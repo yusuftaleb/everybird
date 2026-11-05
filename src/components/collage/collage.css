@@ -1,6 +1,9 @@
 /* Collage stage, ported from LifeList.tsx (framer-site). Positions are in % of the stage width (cqw):
    a bird's tile is --w x --h, placed with `translate` and sized with `scale` (--k), so motion only touches
    compositor properties. The stage height eases to the group's height (one contained element). */
+/* --sh (the stage height, in cqw) is not inherited: an inherited custom property would restyle all 1,000+
+   birds (and their images) every time the stage height changes. */
+@property --sh { syntax: "<number>"; inherits: false; initial-value: 0; }
 .eb-collage {
   --eb-travel: cubic-bezier(.45, 0, .1, 1);
   --eb-arrive: cubic-bezier(.25, .8, .25, 1);
@@ -19,7 +22,10 @@
   -webkit-user-select: none;
 }
 .eb-stage[data-hovering] { cursor: pointer; }
-.eb-layer { position: absolute; inset: 0; }
+/* The birds' containing block never changes size (height 0, full width): when the stage height eases to a
+   new group, the browser would otherwise lay out every absolutely placed bird again on each frame. Birds are
+   placed by translate from the top-left corner and sized in cqw, so they never read the layer's height. */
+.eb-layer { position: absolute; left: 0; top: 0; width: 100%; height: 0; contain: layout style; }
 
 .eb-bird {
   position: absolute;
@@ -39,6 +45,7 @@
   transform-origin: 0 0;
   pointer-events: none;
   -webkit-tap-highlight-color: transparent;
+  contain: layout size style;
   transition:
     translate .64s var(--eb-travel) var(--md),
     scale .64s var(--eb-travel) var(--md),
@@ -60,11 +67,12 @@
   object-fit: contain;
 }
 
-/* Leaving: the shrink-and-fade runs in WAAPI; underneath, hold the old spot and size until it ends. */
+/* Off: hidden at once. A leaving bird plays its shrink-and-fade in WAAPI first (collage-motion.ts) and gets
+   data-off when that ends, so no delayed transition has to tick on the main thread for every leaving bird. */
 .eb-bird[data-off] {
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0s, visibility 0s linear .18s, translate 0s linear .18s, scale 0s linear .18s;
+  transition: none;
 }
 /* Arriving: jump to the new spot while invisible; WAAPI fades and grows it in. */
 .eb-bird[data-enter] { transition: translate 0s, scale 0s, opacity 0s, transform .2s var(--eb-arrive); }
@@ -77,8 +85,13 @@
 @keyframes eb-fade { from { opacity: 0; } }
 
 /* The species count sits in the hole the packing leaves at the stage centre. */
+/* A fixed-size box (the count's hole), so the number ticking every frame never lays out the stage. */
 .eb-mid {
   position: absolute;
+  width: calc(var(--f) * 2.3cqw);
+  height: calc(var(--f) * 1.24cqw + 24px);
+  justify-content: center;
+  contain: size layout style;
   left: 50%;
   top: 50%;
   translate: -50% -50%;
@@ -89,7 +102,6 @@
   pointer-events: none;
   text-align: center;
   white-space: nowrap;
-  contain: layout style;
 }
 .eb-num {
   font-family: var(--font-display);

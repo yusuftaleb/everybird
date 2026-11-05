@@ -390,4 +390,16 @@ describe('layout client', () => {
     await client.get({ family: 'f1' }, 'medium', 'even') // oldest: evicted, recomputed
     expect(worker.layouts().length).toBe(n + 1)
   })
+
+  it('dispose terminates the worker and rejects pending work with an AbortError', async () => {
+    const { client, worker } = setup({ manual: true })
+    let terminated = 0
+    ;(worker as unknown as { terminate: () => void }).terminate = () => { terminated++ }
+    client.setList(entries)
+    const p = client.get({}, 'medium', 'even')
+    client.dispose()
+    await expect(p).rejects.toMatchObject({ name: 'AbortError' })
+    expect(terminated).toBe(1)
+    await expect(client.get({}, 'medium', 'even')).rejects.toThrow(/disposed/)
+  })
 })

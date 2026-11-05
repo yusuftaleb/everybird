@@ -16,7 +16,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { Bird, type BirdInit } from './Bird'
 import { birdAt, ensureMasks } from './collage-hit'
 import {
-  APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, FADE_MS, RIPPLE_MS, fromCount, newMotion, pct, raiseSizes, reduced, writeBirds,
+  APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, FADE_MS, RIPPLE_MS, WRITE_CHUNK, fromCount, newMotion, pct, planBirds, raiseSizes, reduced,
   type Motion,
 } from './collage-motion'
 import { Tally } from './Tally'
@@ -67,6 +67,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
   const stopCode = useRef<string | null>(null)
   const hot = useRef<string | null>(null)
   const frame = useRef(0)
+  const chunkFrame = useRef(0)
   const prunedFor = useRef<ListEntry[] | null>(null)
   const alive = useRef(true)
   const latest = useRef({ layout, onPick, onHover })
@@ -103,7 +104,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
     const el = want ? els.current.get(want) : undefined
     if (el) el.tabIndex = 0
     const active = typeof document !== 'undefined' ? document.activeElement : null
-    if (active instanceof HTMLElement && active.dataset.code && active.hasAttribute('data-off') && el) el.focus({ preventScroll: true })
+    if (active instanceof HTMLElement && active.dataset.code && !on.has(active.dataset.code) && el) el.focus({ preventScroll: true })
   }, [taxo, motion])
 
   const setHot = useCallback((code: string | null) => {
@@ -147,12 +148,26 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
       for (const code of [...inits.keys()]) {
         if (keep.has(code)) continue
         inits.delete(code); m.base.delete(code); m.written.delete(code); m.sizes.delete(code)
-        m.anims.get(code)?.cancel(); m.anims.delete(code); m.on?.delete(code)
+        m.anims.get(code)?.cancel(); m.anims.delete(code); m.on?.delete(code); m.leaving.delete(code)
       }
     }
     const first = m.on === null
+    // Travel writes go out in ripple order, WRITE_CHUNK birds per frame: restyling ~1,000 birds at once is
+    // one long frame on a phone. Small changes, first placement and fades are written at once.
     const write = (style: 'travel' | 'jump') => {
-      writeBirds(m, { codes: taxo, els: els.current, layout, visible, stagePx: stagePx.current, style })
+      cancelAnimationFrame(chunkFrame.current)
+      let view: { top: number; bottom: number } | undefined
+      const r = style === 'travel' && typeof window !== 'undefined' ? stage.current?.getBoundingClientRect() : undefined
+      if (r && r.width) view = { top: (-r.top * 100) / r.width, bottom: ((window.innerHeight - r.top) * 100) / r.width }
+      const { ops, on } = planBirds(m, { codes: taxo, els: els.current, layout, visible, stagePx: stagePx.current, style, view })
+      m.on = on
+      let i = 0
+      const step = () => {
+        const end = style === 'jump' || typeof requestAnimationFrame !== 'function' ? ops.length : Math.min(ops.length, i + WRITE_CHUNK)
+        for (; i < end; i++) ops[i].run()
+        chunkFrame.current = i < ops.length ? requestAnimationFrame(step) : 0
+      }
+      step()
       syncTabStop()
       if (hot.current && !m.on?.has(hot.current)) setHot(null)
     }
@@ -188,9 +203,11 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
     return () => {
       alive.current = false
       cancelAnimationFrame(frame.current)
+      cancelAnimationFrame(chunkFrame.current)
       f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null
       for (const a of motion.anims.values()) a.cancel()
       motion.anims.clear()
+      motion.leaving.clear()
     }
   }, [motion])
 

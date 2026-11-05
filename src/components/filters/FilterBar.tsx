@@ -1,6 +1,6 @@
 'use client'
 import { Airplane, Bird, CalendarBlank, CaretRight, Feather, Globe, MapPin, type Icon } from '@phosphor-icons/react'
-import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { Fragment, memo, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useIsSheet } from '@/components/dialog-utils'
 import { CountryMap } from '@/components/map/CountryMap'
 import { options, type ChipOption, type Filter } from '@/lib/list/filters'
@@ -44,7 +44,7 @@ function withLevel(f: Filter, level: Level, value: string | undefined): Filter {
   return next
 }
 
-export function FilterBar({ state, dispatch, species, regions, dots }: Props) {
+export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots }: Props) {
   const [tab, setTab] = useState<Tab>('birds')
   const sheet = useIsSheet()
   const base = useId()
@@ -157,7 +157,7 @@ export function FilterBar({ state, dispatch, species, regions, dots }: Props) {
         {tab === 'places' && dots && (
           <CountryMap dots={dots} counts={countryCounts} selected={filter.country} onSelect={(iso) => set('country', iso)} countryName={countryName} />
         )}
-        {active.levels.map((l) => levelControl(l))}
+        {active.levels.map((l) => <Fragment key={l}>{levelControl(l)}</Fragment>)}
       </div>
 
       {others.length > 0 && (
@@ -170,7 +170,7 @@ export function FilterBar({ state, dispatch, species, regions, dots }: Props) {
       )}
     </section>
   )
-}
+})
 
 /** Phone: one button; it reads "Choose an order 18" or the chosen group's name, and opens the chips in a sheet. */
 function SheetPicker({ level, options: opts, chosen, value, onPick }: { level: Level; options: ChipOption[]; chosen?: string; value?: string; onPick: (v: string) => void }) {

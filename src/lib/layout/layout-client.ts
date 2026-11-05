@@ -49,6 +49,8 @@ export type LayoutClient = {
   setList(entries: ListEntryMsg[], resolve?: (f: Filter) => string[]): void
   get(f: Filter, layout: LayoutName, mode: 'even' | 'true'): Promise<StateLayout>
   prefetch(fs: Filter[], layout: LayoutName): void
+  /** Terminate the worker; in-flight and queued work rejects with an AbortError, later calls reject. */
+  dispose(): void
 }
 type Mode = 'even' | 'true'
 
@@ -82,6 +84,7 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
   const inflight = new Map<number, Job>()
   let busy = false
   let listError: Error | null = null
+  let disposed = false
   const getEntries: Record<string, Entry[]> = {}
   const seq: Record<string, number> = {}
   const latest: Record<string, Promise<StateLayout>> = {}
@@ -203,6 +206,7 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
 
   return {
     setList(entries, resolve) {
+      if (disposed) return
       epoch++
       cache = new Map()
       const aborted = queue.splice(0)
@@ -220,6 +224,7 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
     },
 
     get(f, layout, mode) {
+      if (disposed) return Promise.reject(new Error('layout client disposed'))
       if (!hasList) return Promise.reject(new Error('setList() must be called before get()'))
       const tok = (seq[layout] = (seq[layout] ?? 0) + 1)
       const stale = () => tok !== seq[layout]
@@ -238,9 +243,18 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
     prefetch(fs, layout) {
       const my = epoch
       idle(() => {
-        if (my !== epoch) return
+        if (my !== epoch || disposed) return
         for (const f of fs) ensure(f, layout, 'even', LOW).promise.catch(() => {})
       })
+    },
+
+    dispose() {
+      if (disposed) return
+      disposed = true
+      epoch++
+      cache = new Map()
+      failAll(abortError())
+      w.terminate()
     },
   }
 }

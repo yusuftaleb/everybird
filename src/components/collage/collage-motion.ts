@@ -14,6 +14,8 @@ export const EXIT_MS = 180, MOVE_MS = 640, ENTER_MS = 480, ENTER_AT = 160, RIPPL
 /** Above this many visible birds, and with reduced motion, a change is a 200ms opacity fade instead of travel. */
 export const CROSSFADE_AT = 1500
 export const FADE_MS = 200
+/** Birds written per frame during a travel (the rest follow in the next frames, in ripple order). */
+export const WRITE_CHUNK = 200
 export const SHRINK = 'translate(12%,12%) scale(.76)' // scale .76 about the tile's centre (transform-origin is 0 0)
 
 export const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -35,8 +37,10 @@ export type Motion = {
   /** Largest CSS px width each bird's <img sizes> has been raised to (never lowered). */
   sizes: Map<string, number>
   on: Set<string> | null // birds shown after the last write; null before the first
+  /** Birds playing their exit; they get data-off when it ends (so no per-frame main-thread transition runs). */
+  leaving: Set<string>
 }
-export const newMotion = (): Motion => ({ base: new Map(), written: new Map(), anims: new Map(), sizes: new Map(), on: null })
+export const newMotion = (): Motion => ({ base: new Map(), written: new Map(), anims: new Map(), sizes: new Map(), on: null, leaving: new Set() })
 
 export type WriteArgs = {
   codes: string[]
@@ -46,80 +50,125 @@ export type WriteArgs = {
   stagePx: number
   /** 'travel': glide with WAAPI exits and entries; 'jump': place without motion (first write, fades). */
   style: 'travel' | 'jump'
+  /**
+   * The viewport's vertical span in stage units (% of the stage width, like --y). Birds entering or leaving
+   * entirely outside it skip their entry / exit animation (nobody sees it, and each one costs a composited
+   * layer and a style update per frame). Omitted: every bird animates.
+   */
+  view?: { top: number; bottom: number }
 }
 
-/** Write every bird's variables and data-off / data-enter for the layout, and start exit / entry animations. */
-export function writeBirds(m: Motion, a: WriteArgs): void {
+const inView = (view: WriteArgs['view'], y: number, h: number) => !view || (y < view.bottom && y + h > view.top)
+
+/** One bird's DOM changes for a layout, applied later (in ripple order) by `run`. */
+export type BirdOp = { md: number; run: () => void }
+
+/**
+ * Plan every bird's changes for the layout without touching the DOM, and return the birds shown afterwards.
+ * Whether a bird is currently shown is read from the DOM (`data-off`), and `written` is updated only when an op
+ * runs, so a plan whose ops were partly applied (and then superseded) is always re-planned correctly.
+ * Ops come sorted by ripple delay (nearest the count first), so applying them in chunks keeps the ripple.
+ */
+export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<string> } {
   const { layout, visible, els, stagePx } = a
   const { W, H } = layout
-  const prev = m.on
+  const travel = a.style === 'travel'
+  const animated = m.on !== null // the first write places birds without entry/exit motion
   const on = new Set<string>()
-  const enter: string[] = [], exit: string[] = []
+  const ops: BirdOp[] = []
   for (const code of a.codes) {
     const el = els.get(code)
     if (!el) continue
     const box = visible.has(code) ? layout.boxes.get(code) : undefined
+    const wasOff = el.hasAttribute('data-off') || m.leaving.has(code)
+    const entering = el.hasAttribute('data-enter')
     if (box) {
       on.add(code)
-      let b = m.base.get(code)
-      if (!b) {
-        b = [pct(box[2], W), pct(box[3], W)]
-        m.base.set(code, b)
-        el.style.setProperty('--w', String(b[0]))
-        el.style.setProperty('--h', String(b[1]))
-      }
-      const x = pct(box[0], W), y = pct(box[1], W), k = pct(box[2], W) / b[0]
+      const x = pct(box[0], W), y = pct(box[1], W)
       const md = Math.round(fromCount(box, W, H) * RIPPLE_MS)
-      const v = `${x},${y},${k},${md}`
-      if (m.written.get(code) !== v) {
-        m.written.set(code, v)
-        const st = el.style
-        st.setProperty('--x', String(x))
-        st.setProperty('--y', String(y))
-        st.setProperty('--k', String(k))
-        st.setProperty('--md', `${md}ms`)
-      }
-      // Ask for a sharper sticker once the bird is drawn bigger than any size it was shown at before.
       const px = Math.ceil((pct(box[2], W) / 100) * stagePx)
-      if (px > (m.sizes.get(code) ?? 0)) {
-        m.sizes.set(code, px)
-        el.querySelector('img')?.setAttribute('sizes', `${px}px`)
-      }
-      if (el.hasAttribute('data-off')) { el.removeAttribute('data-off'); el.removeAttribute('aria-hidden') }
-      if (prev && !prev.has(code)) enter.push(code)
+      const enter = animated && wasOff
+      const seen = inView(a.view, y, pct(box[3], W))
+      const b = m.base.get(code)
+      const v = b ? `${x},${y},${pct(box[2], W) / b[0]},${md}` : ''
+      if (b && m.written.get(code) === v && !wasOff && !entering && px <= (m.sizes.get(code) ?? 0)) continue
+      ops.push({
+        md,
+        run: () => {
+          let base = m.base.get(code)
+          if (!base) {
+            base = [pct(box[2], W), pct(box[3], W)]
+            m.base.set(code, base)
+            el.style.setProperty('--w', String(base[0]))
+            el.style.setProperty('--h', String(base[1]))
+          }
+          const k = pct(box[2], W) / base[0]
+          const val = `${x},${y},${k},${md}`
+          if (m.written.get(code) !== val) {
+            m.written.set(code, val)
+            const st = el.style
+            st.setProperty('--x', String(x))
+            st.setProperty('--y', String(y))
+            st.setProperty('--k', String(k))
+            st.setProperty('--md', `${md}ms`)
+          }
+          // Ask for a sharper sticker once the bird is drawn bigger than any size it was shown at before.
+          if (px > (m.sizes.get(code) ?? 0)) {
+            m.sizes.set(code, px)
+            el.querySelector('img')?.setAttribute('sizes', `${px}px`)
+          }
+          // Arriving birds jump to their new spot while invisible (data-enter turns their travel off).
+          if (travel && enter) el.setAttribute('data-enter', '')
+          else if (el.hasAttribute('data-enter')) el.removeAttribute('data-enter')
+          if (m.leaving.delete(code)) { m.anims.get(code)?.cancel(); m.anims.delete(code) }
+          if (el.hasAttribute('data-off')) el.removeAttribute('data-off')
+          if (el.hasAttribute('aria-hidden')) el.removeAttribute('aria-hidden')
+          if (!enter) return
+          m.anims.get(code)?.cancel()
+          m.anims.delete(code)
+          if (!travel || !seen || typeof el.animate !== 'function') return
+          m.anims.set(code, el.animate([{ opacity: 0, transform: SHRINK }, { opacity: 1, transform: 'none' }],
+            { duration: ENTER_MS, delay: ENTER_AT + md, easing: EASE_OUT, fill: 'backwards' }))
+        },
+      })
     } else {
-      if (!el.hasAttribute('data-off')) { el.setAttribute('data-off', ''); el.setAttribute('aria-hidden', 'true') }
-      if (prev?.has(code)) exit.push(code)
+      if (wasOff && !entering) continue
+      const [, wy, wk, wmd] = (m.written.get(code) ?? '').split(',').map(Number)
+      const md = wmd || 0 // its ripple delay where it was
+      const seen = inView(a.view, wy || 0, (m.base.get(code)?.[1] ?? 0) * (wk || 1))
+      ops.push({
+        md,
+        run: () => {
+          if (el.hasAttribute('data-enter')) el.removeAttribute('data-enter')
+          if (el.hasAttribute('data-off') || m.leaving.has(code)) return
+          el.setAttribute('aria-hidden', 'true')
+          m.anims.get(code)?.cancel()
+          m.anims.delete(code)
+          if (!travel || !animated || !seen || typeof el.animate !== 'function') { el.setAttribute('data-off', ''); return }
+          // A composited shrink-and-fade, held at its end; data-off (visibility hidden) lands when it finishes.
+          const anim = el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: SHRINK }], { duration: EXIT_MS, easing: EASE_IN, fill: 'forwards' })
+          m.leaving.add(code)
+          m.anims.set(code, anim)
+          anim.onfinish = () => {
+            if (m.anims.get(code) !== anim) return
+            m.leaving.delete(code)
+            m.anims.delete(code)
+            el.setAttribute('data-off', '')
+            anim.cancel()
+          }
+        },
+      })
     }
   }
+  ops.sort((p, q) => p.md - q.md)
+  return { ops, on }
+}
+
+/** Write every bird's variables and data-off / data-enter for the layout now, and start exit / entry animations. */
+export function writeBirds(m: Motion, a: WriteArgs): void {
+  const { ops, on } = planBirds(m, a)
   m.on = on
-  const travel = a.style === 'travel'
-  // Arriving birds jump to their new spot while invisible (data-enter turns their travel off).
-  const entering = new Set(enter)
-  for (const code of a.codes) {
-    const el = els.get(code)
-    if (!el) continue
-    if (travel && entering.has(code)) el.setAttribute('data-enter', '')
-    else if (el.hasAttribute('data-enter')) el.removeAttribute('data-enter')
-  }
-  if (!travel) {
-    for (const code of [...enter, ...exit]) { m.anims.get(code)?.cancel(); m.anims.delete(code) }
-    return
-  }
-  for (const code of exit) {
-    const el = els.get(code)
-    if (!el || typeof el.animate !== 'function') continue
-    m.anims.get(code)?.cancel()
-    m.anims.set(code, el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: SHRINK }], { duration: EXIT_MS, easing: EASE_IN }))
-  }
-  for (const code of enter) {
-    const el = els.get(code)
-    if (!el || typeof el.animate !== 'function') continue
-    const md = Math.round(fromCount(layout.boxes.get(code)!, W, H) * RIPPLE_MS)
-    m.anims.get(code)?.cancel()
-    m.anims.set(code, el.animate([{ opacity: 0, transform: SHRINK }, { opacity: 1, transform: 'none' }],
-      { duration: ENTER_MS, delay: ENTER_AT + md, easing: EASE_OUT, fill: 'backwards' }))
-  }
+  for (const op of ops) op.run()
 }
 
 /** After the stage grows: raise each shown bird's <img sizes> so the browser can fetch the sharper file. */
