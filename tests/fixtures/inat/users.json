@@ -1,0 +1,9 @@
+{
+  "total_results": 2,
+  "page": 1,
+  "per_page": 30,
+  "results": [
+    { "id": 1, "login": "testbirder2" },
+    { "id": 2, "login": "testbirder" }
+  ]
+}

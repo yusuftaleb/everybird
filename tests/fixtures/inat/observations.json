@@ -1,0 +1,19 @@
+{
+  "total_results": 6,
+  "page": 1,
+  "per_page": 200,
+  "results": [
+    { "id": 101, "observed_on": "2026-03-02", "quality_grade": "research", "taxon": { "id": 1, "rank": "species", "name": "Colaptes auratus" },
+      "photos": [{ "id": 1 }], "sounds": [], "annotations": [], "place_ids": [1000, 1001, 1002, 77] },
+    { "id": 102, "observed_on": "2026-01-10", "quality_grade": "needs_id", "taxon": { "id": 2, "rank": "subspecies", "name": "Colaptes auratus luteus" },
+      "photos": [], "sounds": [{ "id": 1 }], "annotations": [], "place_ids": [2000, 2001, 2002] },
+    { "id": 103, "observed_on": "2026-01-11", "quality_grade": "needs_id", "taxon": { "id": 3, "rank": "genus", "name": "Colaptes" },
+      "photos": [{ "id": 2 }], "sounds": [], "annotations": [], "place_ids": [1000] },
+    { "id": 201, "observed_on": "2026-02-01", "quality_grade": "casual", "taxon": { "id": 4, "rank": "species", "name": "Colaptes chrysoides" },
+      "photos": [], "sounds": [{ "id": 2 }], "annotations": [{ "controlled_attribute_id": 17, "controlled_value_id": 19 }, { "controlled_attribute_id": 22, "controlled_value_id": 24 }], "place_ids": [1000, 1001] },
+    { "id": 202, "observed_on": "2026-05-05", "quality_grade": "research", "taxon": { "id": 5, "rank": "species", "name": "Cistothorus palustris" },
+      "photos": [{ "id": 3 }], "sounds": [], "annotations": [], "place_ids": [2000, 2001] },
+    { "id": 203, "observed_on": "2026-04-01", "quality_grade": "needs_id", "taxon": { "id": 6, "rank": "species", "name": "Fakeus birdus" },
+      "photos": [{ "id": 4 }], "sounds": [], "annotations": [], "place_ids": [1000, 1001] }
+  ]
+}
