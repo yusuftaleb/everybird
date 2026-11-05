@@ -1,6 +1,6 @@
 'use client'
 import { X } from '@phosphor-icons/react'
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { formatDate, formatMass } from '@/lib/format'
 import { formatPlace } from '@/lib/import/places'
 import type { ListEntry } from '@/lib/list/model'
@@ -26,7 +26,7 @@ type Props = {
 const SHEET_BELOW = 600
 const MARGIN = 8
 const GAP = 10
-const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+const FOCUSABLE = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 
 /** Pointer devices ≥ 600px get a popover; narrower screens a bottom sheet. */
 function useIsSheet(): boolean {
@@ -59,7 +59,6 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   const sheet = useIsSheet()
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  const [pos, setPos] = useState<CSSProperties>({ left: MARGIN, top: MARGIN, visibility: 'hidden' })
   const onCloseRef = useRef(onClose)
   const anchorRef = useRef(anchor)
   const returnRef = useRef(returnFocus)
@@ -69,25 +68,50 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
     returnRef.current = returnFocus
   })
 
-  // Popover: below the anchor (above when there is no room), clamped inside the viewport.
+  // Popover: below the anchor (above when there is no room), clamped inside the viewport. Written straight
+  // to the element's style, in a layout effect, so it is placed before paint and before focus moves in
+  // (browsers ignore focus() on hidden elements, so we never hide it).
   useLayoutEffect(() => {
     const el = ref.current
     if (!el || sheet) return
-    const a = rectOf(anchor)
-    const w = el.offsetWidth, h = el.offsetHeight
-    const vw = window.innerWidth, vh = window.innerHeight
-    const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, Math.max(lo, hi)))
-    if (!a) {
-      setPos({ left: clamp((vw - w) / 2, MARGIN, vw - w - MARGIN), top: clamp((vh - h) / 2, MARGIN, vh - h - MARGIN) })
-      return
+    const place = () => {
+      const a = rectOf(anchorRef.current)
+      const w = el.offsetWidth, h = el.offsetHeight
+      const vw = window.innerWidth, vh = window.innerHeight
+      const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, Math.max(lo, hi)))
+      let left: number, top: number
+      if (!a) {
+        left = clamp((vw - w) / 2, MARGIN, vw - w - MARGIN)
+        top = clamp((vh - h) / 2, MARGIN, vh - h - MARGIN)
+      } else {
+        const below = a.bottom + GAP
+        const t = below + h <= vh - MARGIN ? below : a.top - GAP - h >= MARGIN ? a.top - GAP - h : below
+        left = clamp(a.left + a.width / 2 - w / 2, MARGIN, vw - w - MARGIN)
+        top = clamp(t, MARGIN, vh - h - MARGIN)
+      }
+      el.style.left = `${left}px`
+      el.style.top = `${top}px`
     }
-    const below = a.bottom + GAP
-    const top = below + h <= vh - MARGIN ? below : a.top - GAP - h >= MARGIN ? a.top - GAP - h : below
-    setPos({ left: clamp(a.left + a.width / 2 - w / 2, MARGIN, vw - w - MARGIN), top: clamp(top, MARGIN, vh - h - MARGIN) })
+    place()
+    let raf = 0
+    const again = () => {
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        place()
+      })
+    }
+    window.addEventListener('resize', again, { passive: true })
+    window.addEventListener('scroll', again, { passive: true, capture: true })
+    return () => {
+      if (raf) cancelAnimationFrame(raf)
+      window.removeEventListener('resize', again)
+      window.removeEventListener('scroll', again, { capture: true })
+    }
   }, [anchor, sheet, entry.code])
 
-  // Focus in on open, back on close.
-  useEffect(() => {
+  // Focus in on open (after placement, above), back on close.
+  useLayoutEffect(() => {
     const prev = document.activeElement as HTMLElement | null
     ref.current?.focus({ preventScroll: true })
     return () => {
@@ -101,7 +125,8 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   useEffect(() => {
     const key = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') {
-        e.stopPropagation()
+        // Capture on window, and stop the rest: nothing underneath (a dialog, the page) also sees this Esc.
+        e.stopImmediatePropagation()
         onCloseRef.current()
       }
     }
@@ -112,10 +137,10 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
       if (a && 'contains' in a && a.contains(t)) return
       onCloseRef.current()
     }
-    document.addEventListener('keydown', key)
+    window.addEventListener('keydown', key, true)
     document.addEventListener('pointerdown', down)
     return () => {
-      document.removeEventListener('keydown', key)
+      window.removeEventListener('keydown', key, true)
       document.removeEventListener('pointerdown', down)
     }
   }, [sheet])
@@ -153,7 +178,6 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
       aria-labelledby={titleId}
       data-variant={sheet ? 'sheet' : 'popover'}
       tabIndex={-1}
-      style={sheet ? undefined : pos}
       onKeyDown={trap}
     >
       <div className="eb-card-head">

@@ -1,6 +1,7 @@
 'use client'
 import { Bird as BirdIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
+import './Sticker.css'
 
 const STICKER_BASE = (process.env.NEXT_PUBLIC_STICKER_BASE || 'https://yusuftaleb.github.io/everybird-stickers').replace(/\/+$/, '')
 const SMALL = 128, LARGE = 384

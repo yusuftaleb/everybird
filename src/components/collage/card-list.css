@@ -109,7 +109,7 @@
   cursor: pointer;
 }
 .eb-row-thumb { display: block; width: 40px; height: 40px; }
-.eb-row-thumb img, .eb-row-thumb .eb-sil { display: block; width: 100%; height: 100%; object-fit: contain; }
+.eb-row-thumb img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .eb-row-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .eb-row-com { font-size: 15px; font-weight: 600; }
 .eb-row-sci { font-size: 13px; color: var(--muted); }

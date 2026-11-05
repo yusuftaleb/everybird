@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BirdCard } from '@/components/collage/BirdCard'
@@ -148,5 +150,70 @@ describe('ListView', () => {
     const many = buildSpeciesIndex(Array.from({ length: 5000 }, (_, i) => row(`s${i}`, `Bird ${i}`, i, i + 1)))
     render(<ListView entries={many.rows.map((r) => entry(r.code))} species={many} regions={regions} order="heaviest" onToggle={() => {}} onPick={() => {}} />)
     expect(screen.getAllByRole('listitem')).toHaveLength(5000)
+  })
+})
+
+describe('shared CSS', () => {
+  const css = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8')
+  it('defines .eb-mono, .eb-sr and the corner-shape token globally, and .eb-sil with the Sticker', () => {
+    const g = css('src/styles/globals.css')
+    expect(g).toMatch(/\.eb-mono\s*\{[^}]*var\(--font-mono\)[^}]*12px[^}]*uppercase/)
+    expect(g).toMatch(/\.eb-sr\s*\{[^}]*clip-path/)
+    expect(g).toMatch(/--one-if-corner-shape-supported:\s*\.566/)
+    expect(g).toMatch(/@supports \(corner-shape: superellipse\(2\)\)\s*\{\s*:root\s*\{\s*--one-if-corner-shape-supported:\s*1/)
+    expect(css('src/components/collage/Sticker.css')).toMatch(/\.eb-sil\s*\{/)
+    expect(css('src/components/collage/Sticker.tsx')).toContain("import './Sticker.css'")
+  })
+})
+
+describe('BirdCard focus and Esc', () => {
+  const e1 = entry('crowa', { date: '2026-09-30' })
+  it('popover focuses a visible, placed dialog on open and returns focus to the anchor on close', () => {
+    setWidth(1000)
+    vi.stubGlobal('innerHeight', 800)
+    const anchor = document.createElement('button')
+    anchor.getBoundingClientRect = () => ({ left: 100, right: 120, top: 10, bottom: 30, width: 20, height: 20, x: 100, y: 10, toJSON() {} })
+    document.body.append(anchor)
+    anchor.focus()
+    const seen: { visibility: string; left: string }[] = []
+    const orig = HTMLElement.prototype.focus
+    HTMLElement.prototype.focus = function (this: HTMLElement, ...a) {
+      if (this.getAttribute('role') === 'dialog') seen.push({ visibility: getComputedStyle(this).visibility, left: this.style.left })
+      return orig.apply(this, a)
+    }
+    try {
+      const { unmount } = render(<BirdCard entry={e1} species={species} regions={regions} anchor={anchor} onClose={() => {}} />)
+      const dlg = screen.getByRole('dialog')
+      expect(document.activeElement).toBe(dlg)
+      expect(seen).toHaveLength(1)
+      expect(seen[0].visibility).not.toBe('hidden')
+      expect(seen[0].left).not.toBe('')
+      unmount()
+      expect(document.activeElement).toBe(anchor)
+    } finally {
+      HTMLElement.prototype.focus = orig
+      anchor.remove()
+    }
+  })
+
+  it('Esc handled by the card does not reach other document listeners', () => {
+    setWidth(1000)
+    const onClose = vi.fn()
+    const other = vi.fn()
+    document.addEventListener('keydown', other)
+    render(<BirdCard entry={e1} species={species} regions={regions} onClose={onClose} />)
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    document.removeEventListener('keydown', other)
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(other).not.toHaveBeenCalled()
+  })
+})
+
+describe('list estimated mass', () => {
+  it('marks estimated masses with ~', () => {
+    render(<ListView entries={[entry('tinyc'), entry('crowa')]} species={species} regions={regions} order="heaviest" onToggle={() => {}} onPick={() => {}} />)
+    const items = screen.getAllByRole('listitem')
+    expect(items[1]).toHaveTextContent('~4.3 g')
+    expect(items[0]).not.toHaveTextContent('~')
   })
 })

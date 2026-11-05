@@ -34,7 +34,7 @@ const Row = memo(function Row({ entry, row, place, onPick }: RowProps) {
           <span className="eb-row-com">{row.com}</span>
           <i className="eb-row-sci">{row.sci}</i>
         </span>
-        <span className="eb-mono eb-row-mass"><span className="eb-sr">Average body mass </span>{formatMass(row.g)}</span>
+        <span className="eb-mono eb-row-mass"><span className="eb-sr">Average body mass </span>{row.gSrc === 'family' || row.gSrc === 'order' ? '~' : ''}{formatMass(row.g)}</span>
         <span className="eb-row-place">{place}</span>
         <span className="eb-mono eb-row-date">{date && <time dateTime={entry.date}>{date}</time>}</span>
       </button>
