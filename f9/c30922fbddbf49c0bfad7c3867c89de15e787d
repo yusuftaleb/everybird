@@ -1,0 +1,34 @@
+data/build/crosswalk-report.md
+  s_ab125876fe9ad2::t_a82d6e167096fc 5,278
+src/lib/import/inat.ts
+  s_ab125876fe9ad2::t_67c98f9aeb59d4 158,197-215,224-225,234-236
+  s_ab125876fe9ad2::t_01f461d47592ba 237
+tests/inat.test.ts
+  s_ab125876fe9ad2::t_67c98f9aeb59d4 263-279
+public/data/species.v1.json
+  s_ab125876fe9ad2::t_a82d6e167096fc 1
+scripts/build-data/build-geo.ts
+  s_ab125876fe9ad2::t_095779b1e72ad9 94-123,136
+data/overrides.json
+  s_ab125876fe9ad2::t_9364b72ba8e97c 21-28
+public/data/regions.v1.json
+  s_ab125876fe9ad2::t_095779b1e72ad9 1
+tests/build-geo.test.ts
+  s_ab125876fe9ad2::t_7ec5bc2b6f9525 6,47-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f9c30922fbddbf49c0bfad7c3867c89de15e787d",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
