@@ -1,0 +1,34 @@
+AGENTS.md
+  s_ab125876fe9ad2::t_e7b227fb1d9159 31
+src/components/app/CollagePage.tsx
+  s_ab125876fe9ad2::t_6656506ce837bc 10,19,22,45,47,53-61
+src/components/collage/Collage.tsx
+  s_ab125876fe9ad2::t_1c1fe79e1bd4bc 169-170,172,174
+src/lib/download.ts
+  s_ab125876fe9ad2::t_1c1fe79e1bd4bc 1-2,13-14
+src/components/app/Home.tsx
+  s_ab125876fe9ad2::t_6656506ce837bc 43-52,68-69,88-99
+tests/import-ui.test.tsx
+  s_ab125876fe9ad2::t_04795538198dc5 339,341
+  s_ab125876fe9ad2::t_4b8f160469c7dc 73,76-78,179-215,250-261,327-338,340
+src/components/app/app.css
+  s_ab125876fe9ad2::t_1c1fe79e1bd4bc 49-50
+playwright.config.ts
+  s_ab125876fe9ad2::t_1c1fe79e1bd4bc 12-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3251d2153e0f733c5d2818943eddd608318bf474",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
