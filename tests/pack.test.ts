@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { GAP, LAYOUTS, holeRadii } from '../src/lib/layout/constants'
+import { EXP, GAP, LAYOUTS, holeRadii } from '../src/lib/layout/constants'
 import { MASK, decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
 import { MAX_BASE, packBest, relSizes, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
 import { Grid, SPIRAL_T, spiral, toCellMask } from '../src/lib/layout/grid'
@@ -162,6 +162,57 @@ describe('packing engine (300 birds)', () => {
     expect(r.base).toBeGreaterThanOrEqual(0.7 * wide.base - 1e-9)
     expect(r.base).toBeLessThanOrEqual(1.5 * wide.base + 1e-9)
     expect(r.base).toBeCloseTo(1.5 * wide.base, 6) // 20 birds have room to grow to the cap
+  })
+
+  it('filtered single heavy bird keeps its full-collage size (rel over the full list)', () => {
+    const rel = relSizes(birds, EXP)
+    const heavy = birds.reduce((a, b) => (b.mass > a.mass ? b : a))
+    const r = packBest([heavy], byName('wide'), 'even', { refBase: wide.base, fixedStage: [wide.W, wide.H], rel })
+    const long = (b: Box) => Math.max(b[2], b[3])
+    const k = long(r.boxes.get(heavy.id)!) / long(wide.boxes.get(heavy.id)!)
+    expect(k).toBeGreaterThanOrEqual(0.7 - 1e-9)
+    expect(k).toBeLessThanOrEqual(1.5 + 1e-9)
+  })
+
+  it('fit: a filtered stage is trimmed symmetric about the count, width and x unchanged', () => {
+    const rel = relSizes(birds, EXP)
+    const few = birds.filter((_, i) => i % 50 === 0) // 6 birds spread over the mass range
+    const opts = { refBase: wide.base, fixedStage: [wide.W, wide.H] as [number, number], rel }
+    const r0 = packBest(few, byName('wide'), 'even', opts)
+    const r1 = packBest(few, byName('wide'), 'even', { ...opts, fit: true })
+    expect([r0.W, r0.H]).toEqual([wide.W, wide.H]) // without fit: the full stage, as before
+    expect(r1.W).toBe(wide.W)
+    expect(r1.H).toBeLessThan(wide.H)
+    expect(r1.base).toBe(r0.base)
+    const off = (r0.H - r1.H) / 2
+    expect(Number.isInteger(off)).toBe(true)
+    let ext = holeRadii(byName('wide').F)[1] + 24
+    for (const [id, [x, y, w, h]] of r1.boxes) {
+      const [x0, y0, w0, h0] = r0.boxes.get(id)!
+      expect([x, y + off, w, h]).toEqual([x0, y0, w0, h0])
+      expect(y).toBeGreaterThanOrEqual(0)
+      expect(y + h).toBeLessThanOrEqual(r1.H + 1e-9)
+      ext = Math.max(ext, r1.H / 2 - y, y + h - r1.H / 2)
+    }
+    // tight: half height = extent about the centre + 10 (rounded out to whole units)
+    expect(r1.H / 2 - (ext + 10)).toBeGreaterThanOrEqual(-1e-9)
+    expect(r1.H / 2 - (ext + 10)).toBeLessThan(1)
+    // the count hole (at the new centre) stays empty
+    const [rx, ry] = holeRadii(byName('wide').F)
+    let inside = 0
+    silhouettePixels(few, r1, (_id, px, py) => {
+      const cx = r1.W / 2, cy = r1.H / 2
+      const qx = Math.max(px, Math.min(cx, px + 1)), qy = Math.max(py, Math.min(cy, py + 1))
+      if (((qx - cx) / rx) ** 2 + ((qy - cy) / ry) ** 2 <= 1) inside++
+    })
+    expect(inside).toBe(0)
+  })
+
+  it('fit never makes a stage taller than the one packed in', () => {
+    const r = packBest(birds, byName('narrow'), 'even')
+    const f = packBest(birds, byName('narrow'), 'even', { refBase: r.base, fixedStage: [r.W, r.H], fit: true })
+    expect(f.H).toBeLessThanOrEqual(r.H)
+    expect(f.W).toBe(r.W)
   })
 
   it('20 birds (the smallest list) pack and trim symmetrically about the count', () => {

@@ -6,6 +6,8 @@
 // size. The tile's long side is base · rel (at least 2) and its aspect is the mask's (mask.w / mask.h, which
 // follows the sticker image's `ar` to within the mask's rounding). Draw the sticker image to fill the box.
 // The species count sits at the stage centre (W / 2, H / 2), inside the ellipse holeRadii(layout.F).
+// A filtered state (packBest with `fit`) is packed in the full collage's stage, then its height is trimmed
+// symmetrically about the count (fitStage): W is unchanged, H shrinks, every box moves up by the same amount.
 import { EXP, EXP_TRUE, GAP, LAYOUTS, MAXUP, holeRadii } from './constants'
 import { CentreWalk, Grid, SPIRAL_T, cellMask, spiral, spiralFrom } from './grid'
 import { MASK, type Mask } from './mask'
@@ -90,6 +92,23 @@ function trimToContent(boxes: Map<number, Box>, W: number, H: number): { W: numb
   return { W: W - 2 * dx, H: H - 2 * dy, boxes: out }
 }
 
+const FIT_MARGIN = 10, FIT_HOLE = 24
+/**
+ * Stage fits the group, as build_lifelist.py export(): the half height is the group's vertical extent about
+ * the count (at least the hole's ry + 24) plus 10, never more than the stage's own half height. The cut is a
+ * whole number of layout units, taken equally from top and bottom, so the count stays at H / 2. W unchanged.
+ */
+export function fitStage(boxes: Map<number, Box>, W: number, H: number, holeRy: number): { W: number; H: number; boxes: Map<number, Box> } {
+  const cy = H / 2
+  let ext = holeRy + FIT_HOLE
+  for (const [, y, , h] of boxes.values()) ext = Math.max(ext, cy - y, y + h - cy)
+  const off = Math.max(0, Math.floor(cy - ext - FIT_MARGIN))
+  if (!off) return { W, H, boxes }
+  const out = new Map<number, Box>()
+  for (const [id, [x, y, w, h]] of boxes) out.set(id, [x, y - off, w, h])
+  return { W, H: H - 2 * off, boxes: out }
+}
+
 /**
  * The largest base size that packs, for one layout and size mode.
  * - Full collage (no fixedStage): starts on layout.W x layout.H; if the best base is below layout.minBase the
@@ -98,18 +117,27 @@ function trimToContent(boxes: Map<number, Box>, W: number, H: number): { W: numb
  * - Full collage base is at most MAX_BASE (80), the reference's ceiling.
  * - With refBase (filtered states): base is searched in [0.7, MAXUP] x refBase, as build_lifelist.py main();
  *   only if nothing fits there does it shrink below (see fallback).
- * - With targets (true size): each bird spirals from its target (the even-mode centres of the same state).
+ * - With targets (true size): each bird spirals from its target (the even-mode centres of the same state),
+ *   in the coordinates of the stage packed in.
+ * - With rel (filtered states): relative sizes computed over the WHOLE list (relSizes(fullList, exp of this
+ *   mode)), so a bird keeps its full-collage size across filters, as the reference's set_rel. Without it,
+ *   relSizes over `birds` (the same thing for the full collage).
+ * - With fit (filtered states, needs fixedStage): after packing, the stage height is trimmed about the count
+ *   (fitStage), so the returned H can be less than fixedStage's and box y's move up by the same amount.
  */
 export function packBest(
   birds: PackBird[], layout: Layout, mode: 'even' | 'true',
-  opts: { targets?: Map<number, [number, number]>; refBase?: number; fixedStage?: [number, number] } = {},
+  opts: {
+    targets?: Map<number, [number, number]>; refBase?: number; fixedStage?: [number, number]
+    rel?: Map<number, number>; fit?: boolean
+  } = {},
 ): PackResult {
-  const { targets, refBase, fixedStage } = opts
+  const { targets, refBase, fixedStage, fit } = opts
   if (!birds.length) {
     const [W, H] = fixedStage ?? [layout.W, layout.H]
-    return { base: refBase ?? 0, W, H, boxes: new Map() }
+    return { base: refBase ?? 0, ...(fit && fixedStage ? fitStage(new Map(), W, H, holeRadii(layout.F)[1]) : { W, H, boxes: new Map() }) }
   }
-  const rel = relSizes(birds, mode === 'even' ? EXP : EXP_TRUE)
+  const rel = opts.rel ?? relSizes(birds, mode === 'even' ? EXP : EXP_TRUE)
   const hole = holeRadii(layout.F)
   const cell = DEFAULT_CELL
   let area = 0 // sum of rel² · mask fill, summed in placement order so it never depends on input order
@@ -169,7 +197,9 @@ export function packBest(
   if (fixedStage) {
     const [W, H] = fixedStage
     const got = search(W, H) ?? fallback(W, H)
-    return { base: got.base, W, H, boxes: got.boxes }
+    if (!fit) return { base: got.base, W, H, boxes: got.boxes }
+    const t = fitStage(got.boxes, W, H, hole[1])
+    return { base: got.base, W: t.W, H: t.H, boxes: t.boxes }
   }
 
   const W = layout.W, Hmax = MAX_GROW * layout.H

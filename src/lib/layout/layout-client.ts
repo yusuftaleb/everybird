@@ -12,9 +12,14 @@
 //  - Cache key is `${layout}|${mode}|${filterKey(f)}`; it is also StateLayout.key.
 //
 // Ordering rules:
-//  - Per layout class and mode, the full list's even layout is computed first; its trimmed stage and base fix
-//    fixedStage / refBase for every filtered state (scale = base / fullBase).
-//  - True mode: needs the even layout of the same state (targets = its box centres, stage = its stage).
+//  - Per layout class and mode, the full list's layout is computed first; its trimmed stage and base fix
+//    fixedStage / refBase for every filtered state (scale = base / fullBase). The true-mode full collage packs
+//    in the even full collage's stage, so both modes share one full stage.
+//  - Stage fits the group: a filtered state is packed in that full stage, then the worker trims its height
+//    about the count (`fit`), so StateLayout.H of a filtered state is ≤ the full collage's H, W is the same.
+//  - True mode: needs the even layout of the same state (targets = its box centres). True mode packs in the
+//    full stage (untrimmed), so a filtered even state's centres are shifted back down by its own trim,
+//    (full H - even H) / 2, into the full stage's coordinates; the true result is then trimmed on its own.
 //  - get() superseded by a newer get() for the same layout class resolves with the newer get's result,
 //    and never before it.
 //  - setList clears the cache and invalidates all in-flight work: their promises REJECT with an AbortError
@@ -163,18 +168,21 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       if (listError) throw listError
       const codes = codesFor(f)
       let targets: Float32Array | undefined
+      // Fixed stage: the full collage's (untrimmed) stage; for the true-mode full collage, the even one's.
+      const stage = full ?? even
       if (even) {
+        // even's boxes sit on its own fitted stage (centred on the count): move them into the stage packed in
+        const dx = (stage!.W - even.W) / 2, dy = (stage!.H - even.H) / 2
         targets = new Float32Array(codes.length * 2)
         codes.forEach((c, i) => {
           const b = even.boxes.get(c)
-          targets![2 * i] = b ? b[0] + b[2] / 2 : even.W / 2
-          targets![2 * i + 1] = b ? b[1] + b[3] / 2 : even.H / 2
+          targets![2 * i] = b ? b[0] + b[2] / 2 + dx : stage!.W / 2
+          targets![2 * i + 1] = b ? b[1] + b[3] / 2 + dy : stage!.H / 2
         })
       }
-      const stage = even ?? full // fixed stage: the even layout of this state; for even mode, the full collage
       const reply = await send({
         type: 'layout', key, codes, layout, mode,
-        refBase: full?.base, fixedStage: stage ? [stage.W, stage.H] : undefined, targets,
+        refBase: full?.base, fixedStage: stage ? [stage.W, stage.H] : undefined, targets, fit: !isFull,
       }, entry)
       if (reply.type !== 'result') throw new Error('unexpected worker reply')
       const boxes = new Map<string, Box>()

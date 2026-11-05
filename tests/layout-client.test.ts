@@ -69,7 +69,7 @@ describe('layout client', () => {
     expect(beta.boxes.size).toBe(8)
     expect([...beta.boxes.keys()].every((c) => entries.find((e) => e.code === c)!.ord === 'Beta')).toBe(true)
     expect(beta.W).toBe(full.W)
-    expect(beta.H).toBe(full.H)
+    expect(beta.H).toBeLessThanOrEqual(full.H) // the stage fits the group (packed in the full stage, then trimmed)
     expect(beta.scale).toBeGreaterThanOrEqual(0.7 - 1e-6)
     expect(beta.scale).toBeLessThanOrEqual(1.5 + 1e-6)
     const [, , w, h] = full.boxes.get('b00')!
@@ -84,6 +84,8 @@ describe('layout client', () => {
     expect(second.refBase).toBeGreaterThan(0)
     expect(second.refBase).toBeCloseTo(full.base, 3)
     expect(second.fixedStage).toEqual([full.W, full.H])
+    expect(second.fit).toBe(true)
+    expect(worker.layouts()[0].fit).toBeFalsy() // the full collage is never fitted
     expect(loaded.sort()).toEqual(['Alpha', 'Beta', 'Gamma'])
   })
 
@@ -106,18 +108,116 @@ describe('layout client', () => {
     expect(iEven).toBeGreaterThanOrEqual(0)
     expect(iTrue).toBeGreaterThan(iEven)
     const even = await client.get(f, 'medium', 'even') // cached
+    const full = await client.get({}, 'medium', 'even') // cached
     const m = msgs[iTrue]
-    expect(m.fixedStage).toEqual([even.W, even.H])
+    // packed in the untrimmed full stage, so the even state's (trimmed) centres go back into its coordinates
+    expect(m.fixedStage).toEqual([full.W, full.H])
+    expect(m.fit).toBe(true)
+    const off = (full.H - even.H) / 2
     expect(m.targets).toBeInstanceOf(Float32Array)
     m.codes.forEach((c: string, i: number) => {
       const [x, y, w, h] = even.boxes.get(c)!
       expect(Math.abs(m.targets![2 * i] - (x + w / 2))).toBeLessThan(1e-3)
-      expect(Math.abs(m.targets![2 * i + 1] - (y + h / 2))).toBeLessThan(1e-3)
+      expect(Math.abs(m.targets![2 * i + 1] - (y + h / 2 + off))).toBeLessThan(1e-3)
     })
     expect(t.mode).toBe('true')
     expect(t.W).toBe(even.W)
+    expect(t.H).toBeLessThanOrEqual(full.H)
     expect(t.boxes.size).toBe(8)
     expect(worker.layouts().filter((x) => x.mode === 'even' && x.codes.length === 24).length).toBe(1)
+  })
+
+  const long = (b: [number, number, number, number]) => Math.max(b[2], b[3])
+  // Families for the size tests: 'solo' is the heaviest bird alone, 'pair' two light birds.
+  const famResolve = (f: Filter) =>
+    f.family === 'solo' ? ['b23'] : f.family === 'pair' ? ['b02', 'b05'] : resolve(f)
+
+  it('filtered single heavy bird keeps its full-collage size', async () => {
+    const { client } = setup()
+    client.setList(entries, famResolve)
+    for (const layout of ['wide', 'medium', 'narrow'] as const) {
+      for (const mode of ['even', 'true'] as const) {
+        const full = await client.get({}, layout, mode)
+        const solo = await client.get({ family: 'solo' }, layout, mode)
+        const k = long(solo.boxes.get('b23')!) / long(full.boxes.get('b23')!)
+        expect(k, `${layout} ${mode}`).toBeGreaterThanOrEqual(0.7 - 1e-3)
+        expect(k, `${layout} ${mode}`).toBeLessThanOrEqual(1.5 + 1e-3)
+      }
+    }
+  })
+
+  it('relative sizes follow mass across states', async () => {
+    const { client } = setup()
+    client.setList(entries, famResolve)
+    for (const mode of ['even', 'true'] as const) {
+      const full = await client.get({}, 'medium', mode)
+      for (const f of [{ order: 'Beta' }, { family: 'pair' }]) {
+        const st = await client.get(f, 'medium', mode)
+        const codes = [...st.boxes.keys()]
+        const [a, b] = [codes[0], codes[codes.length - 1]]
+        const rFull = long(full.boxes.get(a)!) / long(full.boxes.get(b)!)
+        const rState = long(st.boxes.get(a)!) / long(st.boxes.get(b)!)
+        expect(Math.abs(rState / rFull - 1)).toBeLessThanOrEqual(0.05)
+        // every bird is drawn at its full-collage size times the state's scale
+        for (const c of codes) expect(long(st.boxes.get(c)!) / long(full.boxes.get(c)!)).toBeCloseTo(st.scale, 3)
+      }
+    }
+  })
+
+  it('filtered stage height is symmetric about the count and ≤ full height', async () => {
+    const { client } = setup()
+    client.setList(entries, famResolve)
+    for (const layout of ['wide', 'medium', 'narrow'] as const) {
+      for (const mode of ['even', 'true'] as const) {
+        const full = await client.get({}, layout, mode)
+        const st = await client.get({ family: 'pair' }, layout, mode)
+        expect(st.W, `${layout} ${mode}`).toBe(full.W)
+        expect(st.H, `${layout} ${mode}`).toBeLessThan(full.H)
+        const cy = st.H / 2
+        let ext = 0
+        for (const [x, y, w, h] of st.boxes.values()) {
+          expect(x).toBeGreaterThanOrEqual(0); expect(x + w).toBeLessThanOrEqual(st.W + 1e-6)
+          expect(y).toBeGreaterThanOrEqual(-1e-6); expect(y + h).toBeLessThanOrEqual(st.H + 1e-6)
+          ext = Math.max(ext, cy - y, y + h - cy)
+        }
+        // the hole (count) is at H/2: the group's extent about it decides the height, plus the margin
+        expect(cy, `${layout} ${mode}`).toBeGreaterThanOrEqual(ext)
+        expect(cy, `${layout} ${mode}`).toBeLessThanOrEqual(Math.max(ext, 0.62 * 64 + 12 + 24) + 11)
+      }
+    }
+    // the full collage keeps its stage
+    const full = await client.get({}, 'medium', 'even')
+    const trueFull = await client.get({}, 'medium', 'true')
+    expect([trueFull.W, trueFull.H]).toEqual([full.W, full.H])
+  })
+
+  it('true-size morph keeps birds near their even positions on screen (fitted stages)', async () => {
+    const { client, worker } = setup()
+    client.setList(entries, famResolve)
+    for (const layout of ['wide', 'medium', 'narrow'] as const) {
+      for (const f of [{ order: 'Alpha' }, { family: 'pair' }]) {
+        const even = await client.get(f, layout, 'even')
+        const tr = await client.get(f, layout, 'true')
+        const full = await client.get({}, layout, 'even')
+        if (f.family === 'pair') {
+          // the true pack's targets are the even centres in the full stage: shifted down by even's own trim
+          const m = worker.layouts().find((x) => x.key === tr.key)!
+          const off = (full.H - even.H) / 2
+          expect(off).toBeGreaterThan(0)
+          expect(m.fixedStage).toEqual([full.W, full.H])
+          m.codes.forEach((c, i) => {
+            const [, y, , h] = even.boxes.get(c)!
+            expect(Math.abs(m.targets![2 * i + 1] - (y + h / 2 + off))).toBeLessThan(1e-3)
+          })
+        }
+        // both stages are centred on the count: compare centre-relative positions
+        const d = [...even.boxes].map(([c, [x, y, w, h]]) => {
+          const [tx, ty, tw, th] = tr.boxes.get(c)!
+          return Math.hypot(tx + tw / 2 - (x + w / 2), ty + th / 2 - tr.H / 2 - (y + h / 2 - even.H / 2))
+        }).sort((a, b) => a - b)
+        expect(d[Math.floor(d.length / 2)] / even.W, `${layout} ${JSON.stringify(f)}`).toBeLessThanOrEqual(0.2)
+      }
+    }
   })
 
   it('out-of-order worker replies never overwrite a newer request', async () => {

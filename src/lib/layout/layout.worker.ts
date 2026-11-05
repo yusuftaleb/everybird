@@ -2,19 +2,21 @@
 //
 // Protocol (structured-clone friendly):
 //   main -> worker  { type: 'setList', id, entries: [{ code, mass, ord }] }
-//                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets? }
+//                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit? }
 //   worker -> main  { type: 'ready', id }                      (setList done: masks loaded)
 //                   { type: 'result', id, key, layout, mode, base, W, H, codes, boxes }
 //                   { type: 'error', id, message }
 // `codes` in a result is the request's codes that the list knows, in request order; `boxes` is a flat
 // Float32Array [x, y, w, h] * codes.length. `targets` (request) is a Float32Array [cx, cy] * codes.length,
-// aligned with the request's `codes` (even-mode centres, used by true mode).
+// aligned with the request's `codes` (even-mode centres, used by true mode), in fixedStage's coordinates.
+// `fit` (filtered states): the result's stage height is trimmed about the count (pack.ts fitStage), so W/H
+// can be smaller than fixedStage. Relative sizes are always computed over the whole list (setList), per mode.
 //
 // Species without a mask (st:false in species.v1.json, drawn as a silhouette icon) get FALLBACK_MASK: a solid
 // ellipse on a square 24 x 24 grid (aspect 1), so they pack as round blobs.
-import { LAYOUTS } from './constants'
+import { EXP, EXP_TRUE, LAYOUTS } from './constants'
 import { decodeMask, MASK, type Mask } from './mask'
-import { packBest, type PackBird } from './pack'
+import { packBest, relSizes, type PackBird } from './pack'
 
 export type ListEntryMsg = { code: string; mass: number; ord: string }
 export type LayoutName = 'wide' | 'medium' | 'narrow'
@@ -22,7 +24,7 @@ export type WorkerRequest =
   | { type: 'setList'; id: number; entries: ListEntryMsg[] }
   | {
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
-      refBase?: number; fixedStage?: [number, number]; targets?: Float32Array
+      refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean
     }
 export type WorkerReply =
   | { type: 'ready'; id: number }
@@ -57,7 +59,8 @@ export const fetchOrderMasks: MaskLoader = async (order) => {
   return (await res.json()) as MaskTable
 }
 
-type ListState = { ids: Map<string, number>; birds: Map<string, PackBird> }
+// rel: relative sizes over the whole list per mode (smallest bird of the list = 1), shared by every state.
+type ListState = { ids: Map<string, number>; birds: Map<string, PackBird>; rel: { even: Map<number, number>; true: Map<number, number> } }
 
 async function buildList(entries: ListEntryMsg[], load: MaskLoader): Promise<ListState> {
   const orders = [...new Set(entries.map((e) => e.ord))]
@@ -76,7 +79,8 @@ async function buildList(entries: ListEntryMsg[], load: MaskLoader): Promise<Lis
     ids.set(e.code, i)
     birds.set(e.code, { id: i, mass: e.mass, mask: raw ? decodeMask(raw) : FALLBACK_MASK })
   })
-  return { ids, birds }
+  const all = [...birds.values()]
+  return { ids, birds, rel: { even: relSizes(all, EXP), true: relSizes(all, EXP_TRUE) } }
 }
 
 /** The message handler, with mask loading injected. Messages must be handed over in arrival order. */
@@ -92,7 +96,7 @@ export function createLayoutHandler(load: MaskLoader = fetchOrderMasks) {
         return { type: 'ready', id: msg.id }
       }
       if (!list) throw new Error('layout requested before setList')
-      const { birds } = await list
+      const { birds, rel } = await list
       const known: string[] = []
       const pack: PackBird[] = []
       const centres: number[] = []
@@ -106,7 +110,9 @@ export function createLayoutHandler(load: MaskLoader = fetchOrderMasks) {
       const layout = LAYOUTS.find((l) => l.name === msg.layout)
       if (!layout) throw new Error(`unknown layout ${msg.layout}`)
       const targets = msg.targets ? new Map(pack.map((b, i) => [b.id, [centres[2 * i], centres[2 * i + 1]] as [number, number]])) : undefined
-      const r = packBest(pack, layout, msg.mode, { targets, refBase: msg.refBase, fixedStage: msg.fixedStage })
+      const r = packBest(pack, layout, msg.mode, {
+        targets, refBase: msg.refBase, fixedStage: msg.fixedStage, rel: rel[msg.mode], fit: msg.fit,
+      })
       const boxes = new Float32Array(known.length * 4)
       pack.forEach((b, i) => boxes.set(r.boxes.get(b.id)!, i * 4))
       return { type: 'result', id: msg.id, key: msg.key, layout: msg.layout, mode: msg.mode, base: r.base, W: r.W, H: r.H, codes: known, boxes }
