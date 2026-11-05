@@ -1,0 +1,71 @@
+/* The three ways in, the match report and the species search. */
+.eb-ways { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 880px) { .eb-ways { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.eb-way {
+  display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 18px 16px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-way-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 20px; line-height: 1.2; }
+.eb-way-title svg { width: 22px; height: 22px; flex: none; color: var(--accent); }
+.eb-way-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+.eb-label {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.eb-input {
+  width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 16px; /* 16px keeps iOS from zooming in */
+  border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-input::placeholder { color: var(--muted); opacity: .8; }
+.eb-input[aria-invalid] { border-color: var(--accent); }
+.eb-row > .eb-input { flex: 1 1 160px; }
+.eb-input-wrap { position: relative; }
+.eb-input-icon { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+.eb-input-search { padding-left: 38px; }
+
+.eb-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 16px; text-align: center;
+  border: 1.5px dashed var(--line); background: var(--surface);
+  border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: border-color .15s cubic-bezier(.25, .8, .25, 1);
+}
+.eb-drop[data-over] { border-color: var(--accent); }
+.eb-drop-icon { width: 32px; height: 32px; color: var(--muted); }
+.eb-drop-text { margin: 0; font-weight: 500; }
+.eb-drop .eb-btn-quiet { background: var(--paper); }
+.eb-drop:has(input:focus-visible) label { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eb-status { margin: 0; min-height: 1.5em; font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.eb-status:empty { min-height: 0; }
+.eb-howto { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.45; }
+.eb-howto .eb-mono { display: block; margin-bottom: 1px; }
+
+.eb-search { display: flex; flex-direction: column; gap: 8px; }
+.eb-hits { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border-top: 1px solid var(--hairline); }
+.eb-hit {
+  display: block; width: 100%; min-height: 44px; padding: 10px 4px; text-align: left;
+  border: 0; border-bottom: 1px solid var(--hairline); background: none; color: var(--ink); font: inherit; cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) { .eb-hit:hover { background: var(--surface); } }
+.eb-hit-com { font-weight: 500; }
+.eb-hit-sci { color: var(--muted); font-size: 14px; }
+.eb-tick { display: flex; flex-direction: column; gap: 8px; }
+.eb-tick-bird { margin: 0 0 4px; }
+
+.eb-privacy { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; color: var(--muted); }
+.eb-privacy svg { width: 16px; height: 16px; flex: none; }
+
+.eb-match { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border-top: 1px solid var(--hairline); max-width: 760px; }
+.eb-match-row { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--hairline); }
+@media (min-width: 640px) {
+  .eb-match-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 16px; }
+  .eb-match-row > .eb-search { grid-column: 1 / -1; }
+}
+.eb-match-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; }
+.eb-match-com { font-weight: 500; }
+.eb-match-sci { color: var(--muted); font-size: 14px; }
+.eb-match-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (prefers-reduced-motion: reduce) { .eb-drop { transition: none; } }

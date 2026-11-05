@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
-// enabled in Task 20 once the page can load a list
-test.fixme(true, "enabled in Task 20 once the page can load a list");
+// A phone: 390px wide, with touch (the test taps).
+test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
 type Row = { code: string };
 const COUNTRIES = ["CA", "US", "EG", "GB", "ZA", "TR", "SA", "BY", "MX", "BR"];
@@ -91,11 +91,14 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
     await took(); // the filter must have taken effect before we measure
     await page.waitForTimeout(1000);
     const m = await stopProbe(page);
+    console.log(`${what}: longest task ${m.long.toFixed(0)} ms, longest frame ${m.frame.toFixed(1)} ms`);
     expect(m.long, `longest task after ${what}`).toBeLessThanOrEqual(100);
     expect(m.frame, `longest frame after ${what}`).toBeLessThanOrEqual(50);
   };
   const pickFirstChip = async () => {
-    const dlg = page.getByRole("dialog");
+    // A CSS locator: getByRole("dialog") computes ARIA roles over the whole page (1,000+ bird buttons) on the
+    // page's main thread at every poll, inside the probe window, which would measure Playwright, not the app.
+    const dlg = page.locator('.eb-sheet[role="dialog"]');
     await dlg.locator(".eb-chip:not([data-selected])").first().tap();
     await expect(dlg).toHaveCount(0);
   };

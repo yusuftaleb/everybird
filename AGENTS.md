@@ -33,11 +33,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `npm run data`: rebuild `public/data/*` from `data/raw/` (`scripts/build-data/`)
 - `data/inat-synonyms.json` (iNaturalist sci name to eBird code, reasons in `inat-synonyms.notes.md`): `npm run data` publishes it via `scripts/build-data/copy-synonyms.ts` to `public/data/inat-synonyms.v1.json`.
 - `npx tsx scripts/build-data/build-stickers.ts [--force]`: trimmed 128/384 webp stickers into `${STICKERS_OUT:-../everybird-stickers}/v1/` (a separate git repo, never pushed from here), masks into `public/data/masks/<Order>.v1.json`, and the `ar` values in `species.v1.json`. Resumable: skips codes whose two webp files exist (`--force` regenerates). **Run it after `build-species`** (`npm run data` does). build-species carries existing `ar` over by code, but species new to the file keep `ar: 1` until build-stickers runs.
+- `npx tsx scripts/build-data/build-sample.ts [lifelist.json]`: rebuilds `public/data/sample.v1.json` (the landing demo) from the PUBLIC website list `framer-site/content/lifelist/lifelist.json`, keeping only code, YYYY-MM and `{country, sub1}`. Never point it at `private/`. Not part of `npm run data`. Yusuf approves the file before launch.
 - `npm run lint`, `npm run build`
 
 ## Structure
 
 - `app/`: Next.js app router (layout, pages). Imports styles via `@/styles/...`.
+- `app/page.tsx` renders `components/app/Home` (thin). `src/components/app/`: `Home` (landing until there is a list, then `CollagePage`), `CollageView` (stats, view tabs, True size, filters, collage or list, legend, card; shared by the landing demo `SampleDemo` and the birder's page), `use-collage-layout.ts` (one layout client per mounted collage, layout class from width, idle prefetch), `RestoreBackup`, `SiteFooter` (sticker credit; Task 24 adds /credits there). `src/components/import/`: `ImportPanel` (the three ways in), `EbirdDrop`, `InatForm`, `AddBirds`, `MatchReport`, `RulesSwitches`, `SpeciesSearch`. `src/components/edit/EditBird.tsx` (marks and remove, in the bird card).
 - `src/`: `lib/` (species, import, list, layout, share), `components/` (`collage/`: `Collage` stage with keyboard and motion, `Bird`, `Tally`, `TrueSizeSwitch`, `collage-motion.ts` style writer, `collage-hit.ts` silhouette hit-testing, `collage.css`), `styles/` (`tokens.css` holds the design tokens, `globals.css` the base styles). The `@/*` alias maps to `./src/*`.
 - `tests/`: Vitest unit tests; `tests/fixtures/` are synthetic only.
 - `e2e/`: Playwright specs.

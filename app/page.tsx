@@ -1,7 +1,5 @@
-export default function Home() {
-  return (
-    <main>
-      <h1>Everybird</h1>
-    </main>
-  );
+import { Home } from '@/components/app/Home'
+
+export default function Page() {
+  return <Home />
 }

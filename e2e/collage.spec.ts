@@ -1,9 +1,5 @@
 import { expect, test } from "@playwright/test";
 
-// Targets the landing page's sample collage (Task 20). Until the landing page renders the sample list, the
-// test is marked fixme; Task 20 removes the fixme and runs it.
-test.fixme(true, "needs the landing sample collage from Task 20");
-
 test("switching True size keeps every bird visible mid-transition", async ({ page }) => {
   await page.goto("/");
   const stage = page.getByTestId("collage-stage");
