@@ -1,5 +1,6 @@
 // Builds sticker variants (long side 128 and 384, trimmed webp), collision masks and `ar`.
-// Run AFTER build-species: npx tsx scripts/build-data/build-stickers.ts [--force]
+// Run AFTER build-species: npx tsx scripts/build-data/build-stickers.ts [--force | --codes a,b,...]
+// --codes regenerates just those codes (e.g. the ones check-stickers.ts reports); everything else is reused.
 // Output: ${STICKERS_OUT:-../everybird-stickers}/v1/{128,384}/<code>.webp, public/data/masks/<Order>.v1.json,
 // and the `ar` values in public/data/species.v1.json (build-stickers is the source of truth for `ar`).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -72,6 +73,10 @@ Licensed under CC BY 4.0, see LICENSE. Credit "Stickers: huashu-bird-sticker, CC
 async function main() {
   process.env.UV_THREADPOOL_SIZE ||= '16' // only effective if set before the first threadpool use
   const force = process.argv.includes('--force')
+  const ci = process.argv.indexOf('--codes')
+  const only = ci >= 0 ? new Set((process.argv[ci + 1] ?? '').split(',').map((c) => c.trim()).filter(Boolean)) : null
+  if (only && !only.size) throw new Error('--codes needs a comma-separated list of codes')
+  const regenerate = (code: string) => (only ? only.has(code) : force)
   const t0 = Date.now()
   const cwd = process.cwd()
   const raw = resolve(cwd, 'data/raw')
@@ -96,7 +101,7 @@ async function main() {
     const rec = matches.get(row.code)
     if (!rec?.sticker) throw new Error(`${row.code}: st:true but no matched sticker (run build-species first)`)
     const p128 = resolve(dirs[128], `${row.code}.webp`), p384 = resolve(dirs[384], `${row.code}.webp`)
-    if (!force && existsSync(p128) && existsSync(p384)) {
+    if (!regenerate(row.code) && existsSync(p128) && existsSync(p384)) {
       skipped++
     } else {
       const v = await makeVariants(resolve(huashuDir, rec.sticker.file))

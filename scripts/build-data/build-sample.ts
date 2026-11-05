@@ -3,7 +3,7 @@
 // (YYYY-MM) and a { country, sub1 } place matched from the region name. Towns, sources, names, coordinates and
 // anything in private/ are never read into the output.
 //
-//   npx tsx scripts/build-data/build-sample.ts [path/to/lifelist.json]
+//   npx tsx scripts/build-data/build-sample.ts <path/to/framer-site/content/lifelist/lifelist.json>
 //
 // Yusuf approves this file before it is published (plan Task 25).
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -17,7 +17,6 @@ export type SampleBird = { code: string; date?: string; place?: Place }
 export type SampleFile = { v: 1; note: string; birds: SampleBird[] }
 type PublicList = { _note?: string; species: { code: string; date?: string; region?: string; [k: string]: unknown }[] }
 
-const DEFAULT_SRC = '/Users/yusuf/orca/projects/personal_website/framer-site/content/lifelist/lifelist.json'
 const NOTE =
   "Sample list for the landing demo: Yusuf's public life list (yusuftaleb.com/lifelist). Code, first month and region only."
 /** Country names on the website that differ from regions.v1.json (folded -> ISO2). */
@@ -55,7 +54,11 @@ export function buildSample(src: PublicList, regions: Regions, known?: Set<strin
 }
 
 function main() {
-  const srcPath = process.argv[2] ?? DEFAULT_SRC
+  const srcPath = process.argv[2]
+  if (!srcPath) {
+    console.error('Usage: npx tsx scripts/build-data/build-sample.ts <path/to/framer-site/content/lifelist/lifelist.json>')
+    process.exit(1)
+  }
   if (/(^|\/)private\//.test(resolve(srcPath))) throw new Error('Never build the sample from private/')
   const src = JSON.parse(readFileSync(srcPath, 'utf8')) as PublicList
   const regions = JSON.parse(readFileSync(resolve('public/data/regions.v1.json'), 'utf8')) as Regions

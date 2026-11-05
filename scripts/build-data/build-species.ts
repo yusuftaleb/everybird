@@ -190,7 +190,12 @@ function main() {
   writeFileSync(prevPath, JSON.stringify(file))
   const taxonomyFile: TaxonomyFile = {
     v: 1, ebirdTaxonomy: manifest.ebirdTaxonomy,
-    taxa: taxa.map(({ ord: _o, fam: _f, famCom: _fc, ...t }) => t),
+    // The taxonomy file leaves out the order and family names (species.v1.json carries them).
+    taxa: taxa.map((t): TaxonRow => {
+      const row = { ...t }
+      delete row.ord; delete row.fam; delete row.famCom
+      return row
+    }),
   }
   writeFileSync(resolve(outDir, 'taxonomy.v1.json'), JSON.stringify(taxonomyFile))
   writeFileSync(resolve(process.cwd(), 'data/build/crosswalk-report.md'), report)
