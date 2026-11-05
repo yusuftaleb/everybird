@@ -55,15 +55,26 @@ export async function save(s: Saved): Promise<'saved' | 'memory-only'> {
   }
 }
 
+/** Pause before load()'s one retry: long enough for a transient IndexedDB hiccup (a blocked open, a busy tab). */
+export const LOAD_RETRY_MS = 150
+
 export async function load(): Promise<Saved | null> {
   if (memoryOnly) return memory
-  try {
-    const got = (await get(STORAGE_KEY, getStore())) as Saved | undefined
-    if (got) memory = got
-    return got ?? null
-  } catch {
-    memoryOnly = true
-    return memory
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const got = (await get(STORAGE_KEY, getStore())) as Saved | undefined
+      if (got) memory = got
+      return got ?? null
+    } catch {
+      if (attempt === 0) {
+        // One retry with a fresh connection (idb-keyval keeps a failed open's promise) before giving up.
+        store = null
+        await new Promise((r) => setTimeout(r, LOAD_RETRY_MS))
+        continue
+      }
+      memoryOnly = true
+      return memory
+    }
   }
 }
 

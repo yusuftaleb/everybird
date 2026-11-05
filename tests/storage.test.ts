@@ -64,6 +64,35 @@ describe('storage', () => {
     expect(await s.load()).toBeNull()
   })
 
+  it('load retries once after a transient failure before going memory-only', async () => {
+    const s0 = await fresh()
+    const saved = { ...s0.emptySaved(), name: 'kept' }
+    await s0.save(saved)
+    vi.resetModules()
+    let calls = 0
+    vi.doMock('idb-keyval', async (orig) => {
+      const real = await orig<typeof import('idb-keyval')>()
+      return { ...real, get: (...a: Parameters<typeof real.get>) => (++calls === 1 ? Promise.reject(new DOMException('busy', 'UnknownError')) : real.get(...a)) }
+    })
+    const s = await import('@/lib/list/storage')
+    expect(await s.load()).toEqual(saved)
+    expect(calls).toBe(2)
+    expect(s.isMemoryOnly()).toBe(false)
+  })
+
+  it('load goes memory-only when the retry fails too', async () => {
+    vi.resetModules()
+    let calls = 0
+    vi.doMock('idb-keyval', async (orig) => {
+      const real = await orig<typeof import('idb-keyval')>()
+      return { ...real, get: () => { calls++; return Promise.reject(new Error('gone')) } }
+    })
+    const s = await import('@/lib/list/storage')
+    expect(await s.load()).toBeNull()
+    expect(calls).toBe(2)
+    expect(s.isMemoryOnly()).toBe(true)
+  })
+
   it('falls back to memory when a write rejects (quota), and stays memory-only', async () => {
     vi.resetModules()
     let fail = true
