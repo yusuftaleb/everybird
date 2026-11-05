@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { loadRegions, stripBracket } from '@/lib/import/places'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { buildList } from './build-list'
@@ -112,7 +112,7 @@ const NO_CTX: StoreContext = { species: { rows: [], byCode: new Map(), search: (
 const SAVE_DELAY_MS = 500
 
 export type EverybirdMeta = {
-  /** False until species, regions and the stored list have loaded. The UI should not dispatch before this. */
+  /** False until species, regions and the stored list have loaded. Actions dispatched before this are queued and applied once loaded. */
   ready: boolean
   /** Set when species/regions failed to load (ready stays false). */
   error?: string
@@ -125,7 +125,9 @@ export type EverybirdMeta = {
 /**
  * Loads species, regions and the stored list on mount, then keeps `saved` persisted
  * (debounced 500 ms, flushed on pagehide / tab hidden). Nothing is saved before the initial load,
- * so a stored list is never overwritten by the empty initial state.
+ * so a stored list is never overwritten by the empty initial state. Actions dispatched before ready are
+ * queued and replayed, in order, after the stored list is restored. A successful save or a new forget clears
+ * meta.forgetOutcome; a failed forget re-reads storage.isMemoryOnly() into `persistence`.
  */
 export function useEverybird(): [AppState, (a: Action) => void, EverybirdMeta] {
   const [ctx, setCtx] = useState<StoreContext | null>(null)
@@ -137,6 +139,9 @@ export function useEverybird(): [AppState, (a: Action) => void, EverybirdMeta] {
   const pending = useRef<Saved | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const alive = useRef(true)
+  // Actions dispatched before the initial load finishes; null once ready.
+  const queue = useRef<Action[] | null>([])
+  const dispatchRef = useRef<(a: Action) => void>(() => {})
 
   useEffect(() => {
     alive.current = true
@@ -149,12 +154,17 @@ export function useEverybird(): [AppState, (a: Action) => void, EverybirdMeta] {
           species,
           countryName: (iso) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso),
         })
+        const early = queue.current ?? []
+        queue.current = null
+        // The restored list itself is not re-saved, unless queued actions change it (then they must be saved).
         if (stored) {
-          skipSave.current = true
+          skipSave.current = early.length === 0
           rawDispatch({ type: 'restore', saved: stored })
         }
         if (storage.isMemoryOnly()) rawDispatch({ type: 'persistence', persistence: 'memory-only' })
         setMeta({ ready: true, species })
+        // Actions dispatched before ready run now, on top of the stored list, with the loaded species.
+        for (const a of early) dispatchRef.current(a)
       } catch (e) {
         if (!cancelled) setMeta({ ready: false, error: e instanceof Error ? e.message : String(e) })
       }
@@ -172,7 +182,9 @@ export function useEverybird(): [AppState, (a: Action) => void, EverybirdMeta] {
     if (!s) return
     pending.current = null
     void storage.save(s).then((p) => {
-      if (alive.current) rawDispatch({ type: 'persistence', persistence: p })
+      if (!alive.current) return
+      rawDispatch({ type: 'persistence', persistence: p })
+      if (p === 'saved') setMeta((m) => (m.forgetOutcome ? { ...m, forgetOutcome: undefined } : m))
     })
   }, [])
 
@@ -206,19 +218,29 @@ export function useEverybird(): [AppState, (a: Action) => void, EverybirdMeta] {
   }, [flush])
 
   const dispatch = useCallback((a: Action) => {
+    if (queue.current) {
+      queue.current.push(a) // not ready: applied after the stored list loads, so the restore can't overwrite it
+      return
+    }
     if (a.type === 'forget') {
       if (timer.current) clearTimeout(timer.current)
       timer.current = null
       pending.current = null
       skipSave.current = true
       rawDispatch(a)
+      setMeta((m) => (m.forgetOutcome ? { ...m, forgetOutcome: undefined } : m))
       void storage.forget().then((outcome) => {
-        if (alive.current) setMeta((m) => ({ ...m, forgetOutcome: outcome }))
+        if (!alive.current) return
+        setMeta((m) => ({ ...m, forgetOutcome: outcome }))
+        if (outcome === 'failed' && storage.isMemoryOnly()) rawDispatch({ type: 'persistence', persistence: 'memory-only' })
       })
       return
     }
     rawDispatch(a)
   }, [])
+  useLayoutEffect(() => {
+    dispatchRef.current = dispatch
+  })
 
   return [state, dispatch, meta]
 }

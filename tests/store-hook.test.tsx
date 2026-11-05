@@ -117,4 +117,68 @@ describe('useEverybird', () => {
     await waitFor(() => expect(result.current[2].error).toBeTruthy())
     expect(result.current[2].ready).toBe(false)
   })
+
+  it('queues dispatches made before ready; the late restore does not overwrite them', async () => {
+    const { storage, store } = await setup()
+    await storage.save({ ...storage.emptySaved(), records: { ebird: [rec('crow')], inat: [], manual: [] } })
+    const { result } = renderHook(() => store.useEverybird())
+    expect(result.current[2].ready).toBe(false)
+    act(() => result.current[1]({ type: 'import', source: 'inat', result: { records: [{ ...rec('wren'), source: 'inat' }], unmatched: [], skipped: 0 } }))
+    await waitFor(() => expect(result.current[2].ready).toBe(true))
+    await waitFor(() => expect(result.current[0].list.map((e) => e.code)).toEqual(['crow', 'wren']))
+    // The queued import is saved on top of the stored list (not skipped as if it were the restore).
+    await waitFor(() => expect(result.current[0].persistence).toBe('saved'), { timeout: 2000 })
+    const got = await storage.load()
+    expect(got!.records.ebird.map((r) => r.code)).toEqual(['crow'])
+    expect(got!.records.inat.map((r) => r.code)).toEqual(['wren'])
+  })
+
+  it('after a failed forget, persistence follows isMemoryOnly()', async () => {
+    vi.resetModules()
+    stubFetch()
+    ;(globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory()
+    let memOnly = false
+    vi.doMock('@/lib/list/storage', async (orig) => ({
+      ...(await orig<typeof import('@/lib/list/storage')>()),
+      forget: async () => { memOnly = true; return 'failed' as const },
+      isMemoryOnly: () => memOnly,
+    }))
+    const store = await import('@/lib/list/store')
+    const { result } = renderHook(() => store.useEverybird())
+    await waitFor(() => expect(result.current[2].ready).toBe(true))
+    expect(result.current[0].persistence).toBe('idle')
+    await act(async () => { result.current[1]({ type: 'forget' }) })
+    await waitFor(() => expect(result.current[2].forgetOutcome).toBe('failed'))
+    expect(result.current[0].persistence).toBe('memory-only')
+    vi.doUnmock('@/lib/list/storage')
+  })
+
+  it('forgetOutcome resets on the next forget and after a successful save', async () => {
+    vi.resetModules()
+    stubFetch()
+    ;(globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory()
+    let outcome: 'failed' | 'forgotten' = 'failed'
+    let release: () => void = () => {}
+    vi.doMock('@/lib/list/storage', async (orig) => ({
+      ...(await orig<typeof import('@/lib/list/storage')>()),
+      forget: () => new Promise<'failed' | 'forgotten'>((done) => { release = () => done(outcome) }),
+    }))
+    const store = await import('@/lib/list/store')
+    const { result } = renderHook(() => store.useEverybird())
+    await waitFor(() => expect(result.current[2].ready).toBe(true))
+    await act(async () => { result.current[1]({ type: 'forget' }) })
+    await act(async () => { release() })
+    await waitFor(() => expect(result.current[2].forgetOutcome).toBe('failed'))
+    // A new forget clears the old outcome while it runs.
+    outcome = 'forgotten'
+    await act(async () => { result.current[1]({ type: 'forget' }) })
+    expect(result.current[2].forgetOutcome).toBeUndefined()
+    await act(async () => { release() })
+    await waitFor(() => expect(result.current[2].forgetOutcome).toBe('forgotten'))
+    // A successful save also clears it.
+    act(() => result.current[1]({ type: 'import', source: 'ebird', result: { records: [rec('crow')], unmatched: [], skipped: 0 } }))
+    await waitFor(() => expect(result.current[0].persistence).toBe('saved'), { timeout: 2000 })
+    expect(result.current[2].forgetOutcome).toBeUndefined()
+    vi.doUnmock('@/lib/list/storage')
+  })
 })

@@ -35,6 +35,12 @@ describe('json backup', () => {
     const s = good()
     expect(fromJson(toJson(s as never))).toEqual(s)
   })
+  it('round-trips the per-source skipped counts and rejects malformed ones', () => {
+    const s = { ...good(), skipped: { ebird: 7, inat: 2 } }
+    expect(fromJson(toJson(s as never)).skipped).toEqual({ ebird: 7, inat: 2 })
+    expect(fromJson(toJson(good() as never)).skipped).toBeUndefined()
+    expect(() => fromJson(JSON.stringify({ ...good(), skipped: { ebird: 'x' } }))).toThrow(/skipped/)
+  })
   it('fromJson rejects wrong version', () => {
     expect(() => fromJson(JSON.stringify({ ...good(), v: 2 }))).toThrow(/version/i)
   })

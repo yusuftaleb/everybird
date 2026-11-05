@@ -112,4 +112,12 @@ describe('storage', () => {
     expect(out.savedAt).not.toBe(saved.savedAt)
     expect(saved.records.inat[0].code).toBe('old') // input not mutated
   })
+
+  it('replaceSource keeps the not-species count per source', async () => {
+    const s = await fresh()
+    const a = s.replaceSource(s.emptySaved(), 'ebird', { records: [], unmatched: [], skipped: 7 })
+    const b = s.replaceSource(a, 'inat', { records: [], unmatched: [], skipped: 2 })
+    expect(b.skipped).toEqual({ ebird: 7, inat: 2 })
+    expect(s.replaceSource(b, 'ebird', { records: [], unmatched: [], skipped: 0 }).skipped).toEqual({ ebird: 0, inat: 2 })
+  })
 })

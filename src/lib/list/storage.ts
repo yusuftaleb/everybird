@@ -9,6 +9,8 @@ export type Saved = {
   edits: Edits
   rules: Rules
   name?: string
+  /** Rows per source that are not countable species (sp., slash, hybrid, domestic), for the match report. */
+  skipped?: Partial<Record<Source, number>>
   savedAt: string
 }
 
@@ -92,6 +94,7 @@ export function replaceSource(saved: Saved, source: Source, result: ImportResult
     ...saved,
     records: { ...saved.records, [source]: result.records },
     unmatched: [...saved.unmatched.filter((u) => u.source !== source), ...result.unmatched],
+    skipped: { ...saved.skipped, [source]: result.skipped },
     savedAt: new Date().toISOString(),
   }
 }

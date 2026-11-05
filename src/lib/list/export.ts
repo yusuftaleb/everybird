@@ -80,6 +80,9 @@ export function fromJson(text: string): Saved {
     throw new Error('Backup rules are malformed.')
 
   if (raw.name !== undefined && typeof raw.name !== 'string') throw new Error('Backup name is malformed.')
+  const sk = raw.skipped
+  if (sk !== undefined && (!isObj(sk) || !Object.entries(sk).every(([k, n]) => SOURCES.includes(k as Source) && typeof n === 'number' && n >= 0)))
+    throw new Error('Backup skipped counts are malformed.')
   const out: Saved = {
     v: 1,
     records,
@@ -89,5 +92,6 @@ export function fromJson(text: string): Saved {
     savedAt: typeof raw.savedAt === 'string' ? raw.savedAt : new Date().toISOString(),
   }
   if (raw.name !== undefined) out.name = raw.name
+  if (sk !== undefined) out.skipped = sk as Saved['skipped']
   return out
 }
