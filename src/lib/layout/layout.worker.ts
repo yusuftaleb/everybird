@@ -62,7 +62,13 @@ type ListState = { ids: Map<string, number>; birds: Map<string, PackBird> }
 async function buildList(entries: ListEntryMsg[], load: MaskLoader): Promise<ListState> {
   const orders = [...new Set(entries.map((e) => e.ord))]
   const tables = new Map<string, MaskTable>()
-  await Promise.all(orders.map(async (o) => tables.set(o, await load(o))))
+  // A failed order file must not poison the list: its species fall back to FALLBACK_MASK (ellipse blobs).
+  await Promise.all(orders.map(async (o) => {
+    try { tables.set(o, await load(o)) } catch (e) {
+      console.warn(`layout worker: masks for ${o} unavailable, using fallback ellipses`, e)
+      tables.set(o, {})
+    }
+  }))
   const ids = new Map<string, number>()
   const birds = new Map<string, PackBird>()
   entries.forEach((e, i) => {

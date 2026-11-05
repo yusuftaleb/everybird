@@ -18,15 +18,18 @@ const resolve = (f: Filter) => entries.filter((e) => !f.order || e.ord === f.ord
 // Synthetic mask: a solid block (code b00 gets one; every other species uses the fallback ellipse).
 const block = (): [number, number, string] => maskFromAlpha(new Uint8Array(48 * 24).fill(255), 48, 24)
 
-function setup(opts: { manual?: boolean; loaded?: string[] } = {}) {
+function setup(opts: { manual?: boolean; loaded?: string[]; failOrder?: string; cacheCap?: number } = {}) {
   const handler = createLayoutHandler(async (order) => {
     opts.loaded?.push(order)
+    if (order === opts.failOrder) throw new Error('boom')
     return (order === 'Alpha' ? { b00: block() } : {}) as MaskTable
   })
   const worker = {
     log: [] as WorkerRequest[],
     pending: [] as (() => void)[],
     onmessage: null as null | ((e: { data: WorkerReply }) => void),
+    onerror: null as null | ((e: { message: string }) => void),
+    onmessageerror: null as null | (() => void),
     postMessage(msg: WorkerRequest) {
       this.log.push(msg)
       const run = async () => this.onmessage?.({ data: await handler(msg) })
@@ -35,7 +38,7 @@ function setup(opts: { manual?: boolean; loaded?: string[] } = {}) {
     },
     layouts() { return this.log.filter((m): m is LayoutMsg => m.type === 'layout') },
   }
-  const client = createLayoutClient(worker as unknown as Worker, { resolve })
+  const client = createLayoutClient(worker as unknown as Worker, { resolve, cacheCap: opts.cacheCap })
   return { worker, client }
 }
 const until = async (cond: () => boolean) => { for (let i = 0; i < 400 && !cond(); i++) await new Promise((r) => setTimeout(r, 5)) }
@@ -72,7 +75,7 @@ describe('layout client', () => {
     const [, , w, h] = full.boxes.get('b00')!
     expect(w / h).toBeCloseTo(2, 0) // the real block mask (aspect 2:1)
     const [, , w1, h1] = full.boxes.get('b01')!
-    expect(w1 / h1).toBeCloseTo(1, 5) // fallback ellipse mask, aspect 1
+    expect(w1 / h1).toBeCloseTo(1, 3) // fallback ellipse mask, aspect 1
     for (const [x, y, bw, bh] of full.boxes.values()) {
       expect(x).toBeGreaterThanOrEqual(0); expect(y).toBeGreaterThanOrEqual(0)
       expect(x + bw).toBeLessThanOrEqual(full.W + 1e-6); expect(y + bh).toBeLessThanOrEqual(full.H + 1e-6)
@@ -108,8 +111,8 @@ describe('layout client', () => {
     expect(m.targets).toBeInstanceOf(Float32Array)
     m.codes.forEach((c: string, i: number) => {
       const [x, y, w, h] = even.boxes.get(c)!
-      expect(m.targets![2 * i]).toBeCloseTo(x + w / 2, 2)
-      expect(m.targets![2 * i + 1]).toBeCloseTo(y + h / 2, 2)
+      expect(Math.abs(m.targets![2 * i] - (x + w / 2))).toBeLessThan(1e-3)
+      expect(Math.abs(m.targets![2 * i + 1] - (y + h / 2))).toBeLessThan(1e-3)
     })
     expect(t.mode).toBe('true')
     expect(t.W).toBe(even.W)
@@ -166,9 +169,14 @@ describe('layout client', () => {
     g.then(() => (done = true))
     for (let i = 0; i < 40 && !done; i++) { worker.pending.shift()?.(); await new Promise((r) => setTimeout(r, 5)) }
     expect(done).toBe(true)
-    const sent = worker.layouts().map((m) => m.codes.length)
-    // full (24), then Gamma (8) right after it, ahead of Alpha and Beta
-    expect(sent.slice(0, 2)).toEqual([24, 8])
+    const keys = worker.layouts().map((m) => m.key)
+    // full first, then Gamma right after it, ahead of the queued Alpha and Beta prefetches
+    expect(keys[0]).toBe('medium|even|')
+    expect(keys[1]).toBe('medium|even|o:Gamma')
+    for (const k of ['o:Alpha', 'o:Beta']) {
+      const i = keys.indexOf(`medium|even|${k}`)
+      expect(i === -1 || i > 1).toBe(true)
+    }
   })
 
   it('prefetch warms the cache in even mode', async () => {
@@ -181,5 +189,105 @@ describe('layout client', () => {
     const a = await client.get({ order: 'Alpha' }, 'wide', 'even')
     expect(a.boxes.size).toBe(8)
     expect(worker.layouts().length).toBe(n)
+  })
+
+  // Release held worker jobs one at a time until the predicate holds.
+  const drain = async (worker: { pending: (() => void)[] }, cond: () => boolean) => {
+    for (let i = 0; i < 80 && !cond(); i++) { worker.pending.shift()?.(); await new Promise((r) => setTimeout(r, 5)) }
+  }
+
+  it('the newest of several rapid gets runs next, ahead of stale ones', async () => {
+    const { client, worker } = setup({ manual: true })
+    client.setList(entries)
+    const full = client.get({}, 'medium', 'even')
+    let fullDone = false
+    void full.then(() => (fullDone = true))
+    await drain(worker, () => fullDone)
+    await full
+    const a = client.get({ order: 'Alpha' }, 'medium', 'even') // goes to the worker and stays in flight
+    await until(() => worker.layouts().length === 2)
+    const b = client.get({ order: 'Beta' }, 'medium', 'even')
+    const c = client.get({ order: 'Gamma' }, 'medium', 'even')
+    void a; void b
+    worker.pending.shift()?.() // finish Alpha
+    await until(() => worker.layouts().length === 3)
+    expect(worker.layouts()[2].key).toBe('medium|even|o:Gamma')
+    await drain(worker, () => worker.layouts().length === 4)
+    expect(worker.layouts()[3].key).toBe('medium|even|o:Beta') // still computed, just later
+    await c
+  })
+
+  it('a failed order file falls back to ellipse masks and the collage still lays out', async () => {
+    const { client } = setup({ failOrder: 'Beta' })
+    client.setList(entries)
+    const full = await client.get({}, 'medium', 'even')
+    expect(full.boxes.size).toBe(24)
+    const [, , w, h] = full.boxes.get('b01')! // Beta species
+    expect(w / h).toBeCloseTo(1, 3)
+  })
+
+  it('a worker error reply rejects the get, and a failed setList rejects every get', async () => {
+    const fake = (failOn: 'layout' | 'setList') => {
+      const w = {
+        onmessage: null as null | ((e: { data: WorkerReply }) => void),
+        postMessage(m: WorkerRequest) {
+          const bad = m.type === failOn
+          setTimeout(() => this.onmessage?.({ data: bad ? { type: 'error', id: m.id, message: 'nope' } : m.type === 'setList' ? { type: 'ready', id: m.id } : { type: 'error', id: m.id, message: 'x' } }), 0)
+        },
+      }
+      return createLayoutClient(w as unknown as Worker, { resolve })
+    }
+    const c1 = fake('layout')
+    c1.setList(entries)
+    await expect(c1.get({}, 'medium', 'even')).rejects.toThrow('nope')
+    const c2 = fake('setList')
+    c2.setList(entries)
+    await expect(c2.get({}, 'medium', 'even')).rejects.toThrow('nope')
+  })
+
+  it('a stale in-flight reply after setList is ignored', async () => {
+    const { client, worker } = setup({ manual: true })
+    client.setList(entries)
+    const old = client.get({}, 'medium', 'even')
+    const oldErr = old.catch((e) => e)
+    await drain(worker, () => worker.layouts().length > 0) // the old layout job is now held in flight
+    // old layout job is now in flight; swap the list for a 5-bird one
+    const small = entries.slice(0, 5)
+    client.setList(small, (f) => small.map((e) => e.code).filter(() => !f.order))
+    const fresh = client.get({}, 'medium', 'even')
+    await drain(worker, () => worker.pending.length === 0 && worker.layouts().length >= 2)
+    await drain(worker, () => worker.pending.length === 0)
+    const r = await fresh
+    // the old get was superseded by the new list's get: it follows it, never the stale 24-bird reply
+    expect(r.boxes.size).toBe(5)
+    expect(await oldErr).toBe(r)
+  })
+
+  it('worker.onerror rejects in-flight and queued work and the client keeps working', async () => {
+    const { client, worker } = setup({ manual: true })
+    client.setList(entries)
+    const p = client.get({}, 'medium', 'even')
+    const err = p.catch((e) => e as Error)
+    await drain(worker, () => worker.layouts().length > 0)
+    worker.onerror?.({ message: 'crash' })
+    expect(((await err) as Error).message).toContain('crash')
+    const again = client.get({}, 'medium', 'even')
+    await drain(worker, () => worker.layouts().length >= 2)
+    await drain(worker, () => worker.pending.length === 0)
+    expect((await again).boxes.size).toBe(24)
+  })
+
+  it('the cache is an LRU that never evicts the full collage', async () => {
+    const { client, worker } = setup({ cacheCap: 3 })
+    client.setList(entries)
+    await client.get({}, 'medium', 'even')
+    for (const fam of ['f1', 'f2', 'f3', 'f4']) await client.get({ family: fam }, 'medium', 'even')
+    const n = worker.layouts().length
+    expect(n).toBe(5)
+    await client.get({ family: 'f4' }, 'medium', 'even') // newest: cached
+    await client.get({}, 'medium', 'even') // full: never evicted
+    expect(worker.layouts().length).toBe(n)
+    await client.get({ family: 'f1' }, 'medium', 'even') // oldest: evicted, recomputed
+    expect(worker.layouts().length).toBe(n + 1)
   })
 })

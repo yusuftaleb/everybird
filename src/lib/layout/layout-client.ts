@@ -19,6 +19,11 @@
 //    and never before it.
 //  - setList clears the cache and invalidates all in-flight work: their promises REJECT with an AbortError
 //    (unless a newer get() superseded them, in which case they follow that get as above). The UI ignores aborts.
+//  - A new get() demotes the still-queued jobs of earlier gets for its layout class to prefetch priority (they
+//    still warm the cache), so the newest request runs next.
+//  - The cache is an LRU (default 300 states); settled full-collage entries are never evicted.
+//  - worker.onerror / onmessageerror reject in-flight and queued work; a setList error reply is remembered and
+//    rejects every get() of that list.
 //  - A get() never waits behind queued prefetches (only behind the single job already on the worker); a get
 //    also bumps the priority of anything it depends on that is still queued.
 import { filterKey, type Filter } from '@/lib/list/filters'
@@ -43,8 +48,8 @@ export type LayoutClient = {
 type Mode = 'even' | 'true'
 
 const HIGH = 2, LOW = 1
-type Job = { prio: number; msg: WorkerRequest; resolve: (r: WorkerReply) => void; reject: (e: unknown) => void; epoch: number }
-type Entry = { promise: Promise<StateLayout>; prio: number; job?: Job; deps: Entry[] }
+type Job = { prio: number; msg: WorkerRequest | null; resolve: (r: WorkerReply) => void; reject: (e: unknown) => void; epoch: number }
+type Entry = { promise: Promise<StateLayout>; prio: number; job?: Job; deps: Entry[]; done: boolean; full: boolean }
 
 const abortError = () => {
   const e = new Error('layout request aborted: the list changed')
@@ -57,7 +62,10 @@ const idle = (fn: () => void) => {
   else setTimeout(fn, 0)
 }
 
-export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter) => string[] } = {}): LayoutClient {
+export const CACHE_CAP = 300
+
+export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter) => string[]; cacheCap?: number } = {}): LayoutClient {
+  const cap = opts.cacheCap ?? CACHE_CAP
   const w: Worker = worker ?? new Worker(new URL('./layout.worker.ts', import.meta.url), { type: 'module' })
   let epoch = 0
   let hasList = false
@@ -68,6 +76,8 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
   const queue: Job[] = []
   const inflight = new Map<number, Job>()
   let busy = false
+  let listError: Error | null = null
+  const getEntries: Record<string, Entry[]> = {}
   const seq: Record<string, number> = {}
   const latest: Record<string, Promise<StateLayout>> = {}
 
@@ -83,8 +93,13 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
     let best = 0
     for (let i = 1; i < queue.length; i++) if (queue[i].prio > queue[best].prio) best = i
     const [job] = queue.splice(best, 1)
+    if (listError && job.epoch === epoch && job.msg?.type === 'layout') { // the list never loaded
+      job.msg = null
+      job.reject(listError)
+      return pump()
+    }
     busy = true
-    inflight.set(job.msg.id, job)
+    inflight.set(job.msg!.id, job)
     w.postMessage(job.msg)
   }
   w.onmessage = (e: MessageEvent<WorkerReply>) => {
@@ -92,12 +107,22 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
     const job = inflight.get(r.id)
     if (!job) return
     inflight.delete(r.id)
-    busy = false
+    job.msg = null // drop the request (it can hold a targets array)
     if (job.epoch !== epoch) job.reject(abortError())
     else if (r.type === 'error') job.reject(new Error(r.message))
     else job.resolve(r)
-    pump()
+    // Let the settled job's dependents enqueue (a few microtask hops) before choosing, so priority applies.
+    // `busy` stays set until then, so enqueueing in between cannot send a low-priority job first.
+    setTimeout(() => { if (!inflight.size) { busy = false; pump() } }, 0)
   }
+  function failAll(e: Error) {
+    const jobs = [...inflight.values(), ...queue.splice(0)]
+    inflight.clear()
+    busy = false
+    jobs.forEach((j) => { j.msg = null; j.reject(e) })
+  }
+  w.onerror = (ev) => failAll(new Error(`layout worker failed: ${(ev as ErrorEvent)?.message ?? 'error'}`))
+  w.onmessageerror = () => failAll(new Error('layout worker sent an unreadable message'))
   function send(msg: Omit<Extract<WorkerRequest, { type: 'layout' }>, 'id'>, entry: Entry): Promise<WorkerReply> {
     return new Promise((resolve, reject) => {
       const job: Job = { prio: entry.prio, msg: { ...msg, id: nextId++ }, resolve, reject, epoch }
@@ -105,6 +130,11 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       queue.push(job)
       pump()
     })
+  }
+  function demote(entry: Entry) {
+    entry.prio = LOW
+    if (entry.job && queue.includes(entry.job)) entry.job.prio = LOW
+    entry.deps.forEach(demote)
   }
   function bump(entry: Entry, prio: number) {
     if (entry.prio >= prio) return
@@ -117,19 +147,20 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
   function ensure(f: Filter, layout: LayoutName, mode: Mode, prio: number): Entry {
     const key = `${layout}|${mode}|${filterKey(f)}`
     const hit = cache.get(key)
-    if (hit) { bump(hit, prio); return hit }
+    if (hit) { bump(hit, prio); cache.delete(key); cache.set(key, hit); return hit } // refresh LRU position
     const my = epoch
-    const entry: Entry = { prio, deps: [], promise: undefined as unknown as Promise<StateLayout> }
-    cache.set(key, entry)
     const isFull = filterKey(f) === ''
+    const entry: Entry = { prio, deps: [], done: false, full: isFull, promise: undefined as unknown as Promise<StateLayout> }
+    cache.set(key, entry)
     entry.promise = (async () => {
       // Dependencies are registered synchronously (before the first await) so bump() can reach them.
       const evenE = mode === 'true' ? ensure(f, layout, 'even', entry.prio) : undefined
-      const fullE = isFull && mode === 'even' ? undefined : ensure({}, layout, mode, entry.prio)
+      const fullE = isFull ? undefined : ensure({}, layout, mode, entry.prio)
       if (evenE) entry.deps.push(evenE)
       if (fullE) entry.deps.push(fullE)
       const [even, full] = await Promise.all([evenE?.promise, fullE?.promise])
       if (my !== epoch) throw abortError()
+      if (listError) throw listError
       const codes = codesFor(f)
       let targets: Float32Array | undefined
       if (even) {
@@ -149,9 +180,16 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       const boxes = new Map<string, Box>()
       reply.codes.forEach((c, i) => boxes.set(c, [reply.boxes[4 * i], reply.boxes[4 * i + 1], reply.boxes[4 * i + 2], reply.boxes[4 * i + 3]]))
       const fullBase = full ? full.base : reply.base
+      entry.done = true
+      entry.deps = []
+      entry.job = undefined
       return { key, layout, mode, W: reply.W, H: reply.H, boxes, base: reply.base, scale: fullBase ? reply.base / fullBase : 1 }
     })()
     entry.promise.catch(() => { if (cache.get(key) === entry) cache.delete(key) }) // failures can be retried
+    for (const [k, e] of cache) { // LRU cap: oldest settled non-full entry goes first
+      if (cache.size <= cap) break
+      if (e.done && !e.full) cache.delete(k)
+    }
     return entry
   }
 
@@ -162,10 +200,13 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       const aborted = queue.splice(0)
       aborted.forEach((j) => j.reject(abortError()))
       // jobs already on the worker finish there; their replies are rejected as stale in onmessage
+      listError = null
+      for (const k of Object.keys(getEntries)) delete getEntries[k]
       resolveFn = resolve ?? opts.resolve
       allCodes = entries.map((e) => e.code)
       hasList = true
-      const job: Job = { prio: HIGH, msg: { type: 'setList', id: nextId++, entries }, resolve: () => {}, reject: () => {}, epoch }
+      const myEpoch = epoch
+      const job: Job = { prio: HIGH, msg: { type: 'setList', id: nextId++, entries }, resolve: () => {}, reject: (e) => { if (epoch === myEpoch) listError = e instanceof Error ? e : new Error(String(e)) }, epoch }
       queue.unshift(job)
       pump()
     },
@@ -174,7 +215,11 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       if (!hasList) return Promise.reject(new Error('setList() must be called before get()'))
       const tok = (seq[layout] = (seq[layout] ?? 0) + 1)
       const stale = () => tok !== seq[layout]
-      const p = ensure(f, layout, mode, HIGH).promise.then(
+      // The newest request runs next: earlier gets' queued jobs drop to prefetch priority (they still cache).
+      ;(getEntries[layout] ?? []).forEach(demote)
+      const entry = ensure(f, layout, mode, HIGH)
+      getEntries[layout] = [entry]
+      const p = entry.promise.then(
         (r) => (stale() ? latest[layout] : r),
         (e) => { if (stale()) return latest[layout]; throw e },
       )
