@@ -1,7 +1,9 @@
 'use client'
 // The share dialog: story or post image with a live preview, Share image (the system share sheet when it takes
 // files, else a download), Download image, Copy link and the optional display name (Saved.name).
-// The link encoder (and its ~111 KB species index) loads only when "Copy link" is pressed.
+// The link encoder (and its ~111 KB species index) is a separate chunk, fetched when the dialog opens, so a Copy link
+// click awaits nothing slow (iOS drops the clipboard permission once a click handler waits on the network).
+// Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
 import { DeviceMobile, DownloadSimple, FrameCorners, LinkSimple, ShareNetwork, X } from '@phosphor-icons/react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack } from '@/components/dialog-utils'
@@ -14,6 +16,7 @@ import {
   IMAGE_SIZE, NAME_MAX_LEN, abortError, clearStickerCache, collageAspect, filterLabel as labelFor, packForImage, renderShareImage, type ImageFormat, type ImagePack,
 } from '@/lib/share/image'
 import type { ShareLevel } from '@/lib/share/link'
+import type { makeShareLink as MakeShareLink } from '@/lib/share/make-link'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
 import '@/components/app/app.css'
@@ -27,6 +30,9 @@ const FORMATS: { id: ImageFormat; label: string; hint: string }[] = [
   { id: 'story', label: 'Story', hint: '9:16' },
   { id: 'post', label: 'Post', hint: '4:5' },
 ]
+type LinkResult = ReturnType<typeof MakeShareLink>
+const loadLinkModule = () => import('@/lib/share/make-link')
+
 const LEVEL_NOTE: Record<ShareLevel, string> = {
   regions: 'Link copied.',
   countries: 'Link copied. Your list is large, so the link carries countries instead of regions.',
@@ -100,6 +106,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const [preview, setPreview] = useState<{ url: string; format: ImageFormat; key: string } | null>(null)
   const [failedKey, setFailedKey] = useState<string | null>(null)
   const current = useRef<Promise<Blob> | null>(null)
+  /** The finished PNG for `key`, so Share and Download can use it without awaiting anything. */
+  const ready = useRef<{ key: string; blob: Blob } | null>(null)
   const previewUrl = useRef<string | null>(null)
   const first = useRef(true)
   const trimmed = name.trim()
@@ -122,6 +130,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       (blob) => {
         if (!live) return
         if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
+        ready.current = { key, blob }
         previewUrl.current = URL.createObjectURL(blob)
         setPreview({ url: previewUrl.current, format, key })
       },
@@ -135,14 +144,23 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   }, [key, format, trimmed, theme, packFor, shown, species, label])
   useEffect(() => () => { if (previewUrl.current) URL.revokeObjectURL(previewUrl.current) }, [])
 
+  // The link module starts loading as soon as the dialog opens (still out of the main bundle).
+  const linkModule = useRef<ReturnType<typeof loadLinkModule> | null>(null)
+  useEffect(() => {
+    const p = loadLinkModule()
+    p.catch(() => { if (linkModule.current === p) linkModule.current = null }) // retried on the click
+    linkModule.current = p
+  }, [])
+
   const [note, setNote] = useState<{ text: string; error?: boolean } | null>(null)
   const [manual, setManual] = useState<string | null>(null)
   const manualRef = useRef<HTMLInputElement>(null)
   useEffect(() => { if (manual) manualRef.current?.select() }, [manual])
 
   const fileName = `everybird-${format}.png`
-  /** The newest render's PNG (waiting for it), or null if it failed. */
+  /** The newest render's PNG: at hand once it's done (the buttons are disabled before), else waiting for it; null if it failed. */
   const getBlob = async (): Promise<Blob | null> => {
+    if (ready.current?.key === key) return ready.current.blob
     for (;;) {
       const p = current.current
       if (!p) return null
@@ -181,29 +199,37 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   }
   const copyLink = async () => {
     setManual(null)
-    let url: string
-    let level: ShareLevel
+    const mod = (linkModule.current ??= loadLinkModule())
+    const making: Promise<LinkResult> = mod.then((m) => m.makeShareLink(list, regions, trimmed || undefined, window.location.origin))
+    // Where the clipboard takes a promised item (Safari, Chromium), hand it over now, inside the click, and let the
+    // link arrive later. Otherwise writeText after the (normally already loaded) module, then the manual field.
+    let copied: Promise<boolean> = Promise.resolve(false)
+    const clip = navigator.clipboard
+    if (typeof ClipboardItem === 'function' && typeof clip?.write === 'function') {
+      try {
+        const item = new ClipboardItem({ 'text/plain': making.then((l) => new Blob([l.url], { type: 'text/plain' })) })
+        copied = clip.write([item]).then(() => true, () => false)
+      } catch {
+        // An old ClipboardItem that refuses promises: fall through to writeText.
+      }
+    }
+    let link: LinkResult
     try {
-      const [{ encodeShare, URL_BUDGET }, { payloadFromList }] = await Promise.all([import('@/lib/share/link'), import('@/lib/share/convert')])
-      const prefix = `${window.location.origin}/s/`
-      const enc = encodeShare(payloadFromList(list, regions, trimmed || undefined), URL_BUDGET - prefix.length)
-      url = prefix + enc.token
-      level = enc.level
+      link = await making
     } catch (e) {
       if ((e as Error)?.name === 'ShareTooLarge') return setNote({ text: 'This list is too large for a link. Share the image instead.', error: true })
       console.warn('Everybird share link failed:', e)
       return setNote({ text: 'Couldn’t make the link. Try again.', error: true })
     }
+    const { url, level, dropped } = link
     // Counted once the link exists, whether the clipboard takes it or the birder copies it by hand.
     track('link_copied', { level })
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error('no clipboard')
-      await navigator.clipboard.writeText(url)
-      setNote({ text: LEVEL_NOTE[level] })
-    } catch {
-      setManual(url)
-      setNote({ text: level === 'regions' ? 'Copy this link:' : `${LEVEL_NOTE[level].replace('Link copied. ', '')} Copy this link:` })
-    }
+    const missing = dropped ? ` ${dropped === 1 ? '1 bird is' : `${dropped} birds are`} too new for links and left out.` : ''
+    let ok = await copied
+    if (!ok && typeof clip?.writeText === 'function') ok = await clip.writeText(url).then(() => true, () => false)
+    if (ok) return setNote({ text: LEVEL_NOTE[level] + missing })
+    setManual(url)
+    setNote({ text: `${level === 'regions' ? '' : `${LEVEL_NOTE[level].replace('Link copied. ', '')} `}${missing.trim()}${missing ? ' ' : ''}Copy this link:` })
   }
 
   const [w, h] = IMAGE_SIZE[preview?.format ?? format]
@@ -262,11 +288,11 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
             </div>
 
             <div className="eb-share-actions">
-              <button type="button" className="eb-btn" onClick={() => void share()}>
+              <button type="button" className="eb-btn" disabled={busy} onClick={() => void share()}>
                 <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
                 Share image
               </button>
-              <button type="button" className="eb-btn eb-btn-quiet" onClick={() => void download()}>
+              <button type="button" className="eb-btn eb-btn-quiet" disabled={busy} onClick={() => void download()}>
                 <DownloadSimple aria-hidden="true" focusable="false" />
                 Download image
               </button>

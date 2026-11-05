@@ -4,6 +4,7 @@ import linkIndex from '../data/link-index.json'
 import { formatPlace } from '@/lib/import/places'
 import { decodeShare, encodeShare, ShareTooLarge, TOKEN_BUDGET, type ShareBird, type SharePayload } from '@/lib/share/link'
 import { payloadFromList } from '@/lib/share/convert'
+import { makeShareLink } from '@/lib/share/make-link'
 import type { ListEntry } from '@/lib/list/model'
 
 const codes = linkIndex as string[]
@@ -207,5 +208,22 @@ describe('share links', () => {
 
   it('refuses a code that is not in the link index', () => {
     expect(() => encodeShare({ v: 1, birds: [{ code: 'notabird' }] })).toThrow(/notabird/)
+  })
+
+  it('leaves out codes the link index does not know (a newer taxonomy) and still makes the link', () => {
+    const regions = { v: 1 as const, countries: { CA: 'Canada' }, sub1: {} }
+    const list: ListEntry[] = [
+      { code: codes[3], date: '2020-05', place: { country: 'CA' }, heard: false, dead: false, media: false, sources: ['ebird'] },
+      { code: 'notabird', date: '2021-01', heard: false, dead: false, media: false, sources: ['ebird'] },
+      { code: codes[9], heard: true, dead: false, media: false, sources: ['ebird'] },
+    ]
+    const { url, level, dropped } = makeShareLink(list, regions, 'Ada', 'https://e.app')
+    expect(dropped).toBe(1)
+    expect(level).toBe('regions')
+    expect(url.startsWith('https://e.app/s/')).toBe(true)
+    const d = decodeShare(url.slice('https://e.app/s/'.length))
+    expect(d.birds.map((b) => b.code)).toEqual([codes[3], codes[9]])
+    expect(d.name).toBe('Ada')
+    expect(url.length).toBeLessThanOrEqual(2000)
   })
 })

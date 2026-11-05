@@ -9,6 +9,7 @@
 // Stickers load with crossOrigin = 'anonymous' (the stickers site sends access-control-allow-origin: *), so the
 // canvas stays exportable. Species without a sticker, and stickers that fail to load, are drawn as the Phosphor
 // Bird silhouette in Muted, as on the page. Text waits for the real fonts (document.fonts.load) before drawing.
+import { SHARE_ORIGIN } from '@/lib/share/origin'
 import { stickerUrl } from '@/lib/sticker-url'
 import { formatDate } from '@/lib/format'
 import type { Box } from '@/lib/layout/pack'
@@ -25,7 +26,8 @@ export const IMAGE_SIZE: Record<ImageFormat, [w: number, h: number]> = { story: 
 /** The longest name the dialog accepts: what a share link carries (link.ts NAME_MAX; a test keeps them equal). */
 export const NAME_MAX_LEN = 40
 export const TAGLINE = "Every bird you've ever seen."
-export const SITE_LABEL = 'everybird.vercel.app'
+/** The footer's site name: the share origin's host ("everybird.vercel.app"). */
+export const SITE_LABEL = new URL(SHARE_ORIGIN).host
 export const STICKER_CREDIT = 'Stickers: huashu-bird-sticker, CC BY 4.0'
 
 /** The design tokens (tokens.css; a test keeps them equal). The image follows the page's current theme. */

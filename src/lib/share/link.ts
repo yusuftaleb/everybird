@@ -66,9 +66,11 @@ export class ShareDecodeError extends Error {
 
 const CODES = linkIndex as string[]
 let indexOf: Map<string, number> | null = null
+const indexMap = (): Map<string, number> => (indexOf ??= new Map(CODES.map((c, i) => [c, i])))
+/** Whether a share link can carry this code (it's in the frozen link index). */
+export const isLinkCode = (code: string): boolean => indexMap().has(code)
 const lookup = (code: string): number => {
-  if (!indexOf) indexOf = new Map(CODES.map((c, i) => [c, i]))
-  const i = indexOf.get(code)
+  const i = indexMap().get(code)
   if (i === undefined) throw new Error(`Unknown bird code for a share link: ${code}`)
   return i
 }
