@@ -78,18 +78,29 @@ export class Grid {
 export type CellMask = { pw: number; ph: number; wpr: number; data: Uint32Array; probeX: number; probeY: number }
 
 /**
- * Nearest-neighbour resize of a 24-cell mask to a tile of w x h layout units at `cell` units per grid
- * cell. Grid cell (i, j) covers [i·cell, (i+1)·cell) of the tile and takes the mask cell under its centre;
- * a centre past the tile's edge (the last, partial cell) samples the edge cell.
+ * Conservative nearest-neighbour resize of a 24-cell mask to a tile of w x h layout units at `cell` units per
+ * grid cell. Grid cell (i, j) covers [i·cell, (i+1)·cell) of the tile and is set when any mask cell it overlaps
+ * is set. Upscaled, that is nearest-neighbour with the edges rounded outwards; downscaled (a mask cell smaller
+ * than a grid cell), thin legs and bills are kept instead of being missed by a centre sample. Either way every
+ * point of the silhouette lies in a set grid cell.
  */
 export function scaleMask(mask: Mask, w: number, h: number, cell: number): { tw: number; th: number; cells: Uint8Array } {
   const tw = Math.max(1, Math.ceil(w / cell)), th = Math.max(1, Math.ceil(h / cell))
+  // Mask cells [lo, hi] overlapped by grid cell i along one axis (tile length len, n mask cells).
+  const span = (i: number, len: number, n: number): [number, number] => {
+    const lo = Math.min(n - 1, Math.floor(((i * cell) / len) * n))
+    const hi = Math.min(n - 1, Math.max(lo, Math.ceil((((i + 1) * cell) / len) * n) - 1))
+    return [lo, hi]
+  }
+  const xs = Array.from({ length: tw }, (_, i) => span(i, w, mask.w))
   const cells = new Uint8Array(tw * th)
   for (let j = 0; j < th; j++) {
-    const my = Math.min(mask.h - 1, Math.floor((((j + 0.5) * cell) / h) * mask.h))
+    const [y0, y1] = span(j, h, mask.h)
     for (let i = 0; i < tw; i++) {
-      const mx = Math.min(mask.w - 1, Math.floor((((i + 0.5) * cell) / w) * mask.w))
-      if (maskCell(mask, mx, my)) cells[j * tw + i] = 1
+      const [x0, x1] = xs[i]
+      search: for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) if (maskCell(mask, x, y)) { cells[j * tw + i] = 1; break search }
+      }
     }
   }
   return { tw, th, cells }
@@ -106,13 +117,18 @@ export function cellMask(mask: Mask, w: number, h: number, cell: number, pad: nu
       for (let y = j; y <= j + 2 * pad; y++) dil.fill(1, y * pw + i, y * pw + i + 2 * pad + 1)
     }
   }
+  return toCellMask(dil, pw, ph)
+}
+
+/** Bit-pack a pw x ph boolean (0/1) array into a CellMask, choosing the set cell nearest the centre as probe. */
+export function toCellMask(cells: Uint8Array, pw: number, ph: number): CellMask {
   const wpr = (pw + 31) >> 5
   const data = new Uint32Array(wpr * ph)
   let probeX = -1, probeY = -1, best = Infinity
   const mx = (pw - 1) / 2, my = (ph - 1) / 2
   for (let y = 0; y < ph; y++) {
     for (let x = 0; x < pw; x++) {
-      if (!dil[y * pw + x]) continue
+      if (!cells[y * pw + x]) continue
       data[y * wpr + (x >> 5)] |= 1 << (x & 31)
       const dd = (x - mx) ** 2 + (y - my) ** 2
       if (dd < best) [best, probeX, probeY] = [dd, x, y]
@@ -122,21 +138,30 @@ export function cellMask(mask: Mask, w: number, h: number, cell: number, pad: nu
 }
 
 /**
- * The reference's spiral, precomputed once (it doesn't depend on the bird): offsets at step i are
- * rad·cos t and rad·sin t with rad = 2.2 t; t += 0.35 / (1 + 0.03 rad) + 0.004 while t < 1400.
+ * The reference's spiral, precomputed (it doesn't depend on the bird): offsets at step i are rad·cos t and
+ * rad·sin t with rad = 2.2 t; t += 0.35 / (1 + 0.03 rad) + 0.004 while t < tMax. The reference stops at
+ * tMax = 1400 (rad 3080); pack() passes a larger tMax only for stages too big for that, so the spiral still
+ * reaches every part of a grown stage. One table is kept, extended on demand; callers walk a prefix.
  */
 export type Spiral = { n: number; dx: Float64Array; dy: Float64Array; rad: Float64Array }
-let SPIRAL: Spiral | null = null
-export function spiral(): Spiral {
-  if (SPIRAL) return SPIRAL
-  const dx: number[] = [], dy: number[] = [], rad: number[] = []
-  for (let t = 0; t < 1400; ) {
-    const r = 2.2 * t
-    dx.push(r * Math.cos(t)); dy.push(r * Math.sin(t)); rad.push(r)
-    t += 0.35 / (1 + 0.03 * r) + 0.004
+export const SPIRAL_T = 1400
+let TABLE: { tEnd: number; dx: Float64Array; dy: Float64Array; rad: Float64Array } | null = null
+export function spiral(tMax = SPIRAL_T): Spiral {
+  if (!TABLE || TABLE.tEnd < tMax) {
+    const dx: number[] = [], dy: number[] = [], rad: number[] = []
+    let t = 0
+    for (; t < tMax; ) {
+      const r = 2.2 * t
+      dx.push(r * Math.cos(t)); dy.push(r * Math.sin(t)); rad.push(r)
+      t += 0.35 / (1 + 0.03 * r) + 0.004
+    }
+    TABLE = { tEnd: tMax, dx: Float64Array.from(dx), dy: Float64Array.from(dy), rad: Float64Array.from(rad) }
   }
-  SPIRAL = { n: rad.length, dx: Float64Array.from(dx), dy: Float64Array.from(dy), rad: Float64Array.from(rad) }
-  return SPIRAL
+  // n = number of steps with t < tMax (rad = 2.2 t is increasing).
+  const { rad } = TABLE, rMax = 2.2 * tMax
+  let lo = 0, hi = rad.length
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (rad[mid] < rMax) lo = mid + 1; else hi = mid }
+  return { n: lo, dx: TABLE.dx, dy: TABLE.dy, rad }
 }
 
 /** Targets mode: walk the spiral from one bird's own centre (layout units). First free [gx, gy] or null. */

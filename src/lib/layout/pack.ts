@@ -7,7 +7,7 @@
 // follows the sticker image's `ar` to within the mask's rounding). Draw the sticker image to fill the box.
 // The species count sits at the stage centre (W / 2, H / 2), inside the ellipse holeRadii(layout.F).
 import { EXP, EXP_TRUE, GAP, LAYOUTS, MAXUP, holeRadii } from './constants'
-import { CentreWalk, Grid, cellMask, spiral, spiralFrom } from './grid'
+import { CentreWalk, Grid, SPIRAL_T, cellMask, spiral, spiralFrom } from './grid'
 import { MASK, type Mask } from './mask'
 
 export type PackBird = { id: number; mass: number; mask: Mask }
@@ -18,6 +18,7 @@ type Layout = (typeof LAYOUTS)[number]
 export const DEFAULT_CELL = 2 // layout units per occupancy cell
 const MIN_MASS = 0.1 // grams; guards mass ** exp against 0 or bad data
 const STEPS = 7 // binary-search steps
+export const MAX_BASE = 80 // largest base for a full collage (the reference's search ceiling)
 const TRIM_PAD = 8
 const GROW = 1.25, MAX_GROW = 12
 
@@ -49,7 +50,11 @@ export function pack(
   const pad = Math.ceil(GAP / cell)
   const sx = (targets ? 1 : stretch) / cell, sy = 1 / cell
   const lim = (targets ? 2 : 1) * Math.max(W, H)
-  const sp = spiral()
+  // The reference's spiral ends at t = 1400 (rad 3080). A grown stage can be taller than that reaches, so
+  // extend it (same formula and step) until it reaches every cell: from the centre, max(W, H) covers the
+  // stage; from a target inside the stage, its diagonal does. Normal stages keep the reference's t = 1400.
+  const reach = targets ? Math.hypot(W, H) : Math.max(W, H)
+  const sp = spiral(Math.max(SPIRAL_T, reach / 2.2))
   // Centre mode: every bird walks the same spiral, so walk only its steps that land on the stage, and skip
   // steps proven dead (occupied all around) for every bird. Same positions tried, same result, far fewer tries.
   const walk = targets ? null : new CentreWalk(sp, W / 2 / cell, H / 2 / cell, sx, sy, grid, lim)
@@ -90,7 +95,9 @@ function trimToContent(boxes: Map<number, Box>, W: number, H: number): { W: numb
  * - Full collage (no fixedStage): starts on layout.W x layout.H; if the best base is below layout.minBase the
  *   stage grows 25% taller and retries (up to 12x). The result is trimmed to its content.
  * - With fixedStage (true size of a state, or a filtered state): packs inside that stage, untrimmed.
- * - With refBase (filtered states): base is clamped to [0.7, MAXUP] x refBase, as build_lifelist.py main().
+ * - Full collage base is at most MAX_BASE (80), the reference's ceiling.
+ * - With refBase (filtered states): base is searched in [0.7, MAXUP] x refBase, as build_lifelist.py main();
+ *   only if nothing fits there does it shrink below (see fallback).
  * - With targets (true size): each bird spirals from its target (the even-mode centres of the same state).
  */
 export function packBest(
@@ -110,16 +117,14 @@ export function packBest(
   const clamp = refBase ? ([0.7 * refBase, MAXUP * refBase] as const) : null
   const tryPack = (W: number, H: number, base: number) => pack(birds, rel, W, H, base, layout.stretch, hole, targets, cell)
 
-  // Area estimate, then the search range [0.6, 1.6] x estimate (clamped to the refBase bounds).
+  // Search range. Full collage: [0.6, 1.6] x the area estimate, capped at MAX_BASE. With refBase (filtered
+  // states): the reference's window [0.7, MAXUP] x refBase, searched directly (it may exceed MAX_BASE).
   const range = (W: number, H: number): [number, number] => {
+    if (clamp) return [clamp[0], clamp[1]]
     const usable = Math.max(1, W * H - Math.PI * hole[0] * hole[1])
     const est = Math.sqrt((0.55 * usable) / Math.max(area, 1e-9))
-    let lo = 0.6 * est, hi = 1.6 * est
-    if (clamp) {
-      lo = Math.min(clamp[1], Math.max(clamp[0], lo))
-      hi = Math.min(clamp[1], Math.max(clamp[0], hi))
-    }
-    return [lo, hi]
+    const hi = Math.min(1.6 * est, MAX_BASE)
+    return [Math.min(0.6 * est, hi), hi]
   }
 
   // stopBelow: once the best possible base is known to be below it, stop (the caller grows the stage).
@@ -127,7 +132,7 @@ export function packBest(
     let [lo, hi] = range(W, H)
     const lo0 = lo
     let best: { base: number; boxes: Map<number, Box> } | null = null
-    if (hi - lo < 1e-6) {
+    if (hi - lo < 1e-6) { // the estimate is above MAX_BASE: just try the cap
       const boxes = tryPack(W, H, hi)
       best = boxes && { base: hi, boxes }
     } else {
@@ -149,7 +154,10 @@ export function packBest(
     return best
   }
 
-  // Nothing fits in the range: shrink until it does (the reference would give up here).
+  // Nothing fits even at the bottom of the range: shrink by 0.85 steps until it does. For a filtered state
+  // this goes below 0.7 x refBase (the reference packed at 0.7 x refBase anyway and could fail); the result's
+  // base says so, and base / refBase is the scale the caller shows. Practically unreachable: a subset of a
+  // collage packed at refBase on the same stage.
   const fallback = (W: number, H: number) => {
     for (let base = range(W, H)[0] * 0.85; base >= 0.5; base *= 0.85) {
       const boxes = tryPack(W, H, base)

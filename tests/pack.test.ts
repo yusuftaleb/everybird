@@ -1,9 +1,10 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { LAYOUTS, holeRadii } from '../src/lib/layout/constants'
+import { GAP, LAYOUTS, holeRadii } from '../src/lib/layout/constants'
 import { MASK, decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
-import { packBest, relSizes, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
+import { MAX_BASE, packBest, relSizes, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
+import { Grid, SPIRAL_T, spiral, toCellMask } from '../src/lib/layout/grid'
 
 // Realistic, deterministic test birds: real sticker masks + real masses from public/data, sampled at a
 // fixed stride over the species sorted by code. Public reference data only, no personal list.
@@ -96,6 +97,24 @@ describe('packing engine (300 birds)', () => {
     }
   })
 
+  it('silhouettes dilated by GAP units never clash (catches a one-cell placement error)', () => {
+    for (const r of [wide, packBest(birds, byName('medium'), 'even')]) {
+      // Set grid cells of two birds are ≥ 3 cells apart (both dilated by 1 cell), so their silhouettes are
+      // ≥ 5 units apart; dilating each by GAP = 2 units still can't clash, but a one-cell slip would.
+      const W = Math.ceil(r.W) + 4, H = Math.ceil(r.H) + 4
+      const owner = new Int32Array(W * H).fill(-1)
+      let clashes = 0
+      silhouettePixels(birds, r, (id, px, py) => {
+        for (let y = py - GAP; y <= py + GAP; y++) for (let x = px - GAP; x <= px + GAP; x++) {
+          const i = (y + GAP) * W + (x + GAP)
+          if (owner[i] !== -1 && owner[i] !== id) clashes++
+          owner[i] = id
+        }
+      })
+      expect(clashes).toBe(0)
+    }
+  })
+
   it('the count hole stays empty', () => {
     for (const r of [wide, packBest(birds, byName('medium'), 'even')]) {
       const F = r === wide ? byName('wide').F : byName('medium').F
@@ -151,10 +170,90 @@ describe('packing engine (300 birds)', () => {
     expect(r.W).toBeLessThanOrEqual(350)
     expect(r.H).toBeLessThanOrEqual(900)
     expect(MASK).toBe(24)
+    // the full collage never goes past the reference's ceiling, even when the estimate would
+    for (const l of LAYOUTS) expect(packBest(sample(20), l, 'even').base).toBeLessThanOrEqual(MAX_BASE)
   })
 })
 
-// Timing tests. Bounds are generous but meaningful; set SKIP_PERF=1 to skip them (e.g. on slow CI).
+// Deterministic LCG for the grid tests.
+function lcg(seed: number) {
+  let x = seed >>> 0
+  return () => ((x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 2 ** 32)
+}
+
+describe('occupancy grid', () => {
+  it('collides/stamp match a brute-force boolean grid at word boundaries and wide masks', () => {
+    const rnd = lcg(7)
+    const GW = 230, GH = 40 // grid of 230 x 40 cells (cell = 1, so layout units = cells)
+    for (const pw of [1, 5, 31, 32, 33, 40, 64, 70, 97]) {
+      const ph = 1 + Math.floor(rnd() * 9)
+      const cells = new Uint8Array(pw * ph).map(() => (rnd() < 0.35 ? 1 : 0))
+      cells[0] = 1; cells[pw * ph - 1] = 1 // touch both edges
+      const m = toCellMask(cells, pw, ph)
+      const g = new Grid(GW, GH, 1)
+      const ref = new Uint8Array(GW * GH)
+      // scatter some occupied cells, written through stamp of 1x1 masks so both stay in sync
+      const dot = toCellMask(new Uint8Array([1]), 1, 1)
+      for (let k = 0; k < 600; k++) {
+        const x = Math.floor(rnd() * GW), y = Math.floor(rnd() * GH)
+        g.stamp(dot, x, y); ref[y * GW + x] = 1
+      }
+      const brute = (gx: number, gy: number) => {
+        for (let y = 0; y < ph; y++) for (let x = 0; x < pw; x++) if (cells[y * pw + x] && ref[(gy + y) * GW + gx + x]) return true
+        return false
+      }
+      const xs = [0, 1, 30, 31, 32, 33, 63, 64, 65, 95, 96, 127, 128, GW - pw].filter((x) => x >= 0 && x + pw <= GW)
+      for (const gx of xs) {
+        for (const gy of [0, 3, GH - ph]) {
+          expect(g.collides(m, gx, gy), `pw ${pw} at ${gx},${gy}`).toBe(brute(gx, gy))
+        }
+      }
+      // stamp at a word-straddling offset, then the grid equals the brute-force union cell for cell
+      const gx = Math.min(GW - pw, 31), gy = 2
+      g.stamp(m, gx, gy)
+      for (let y = 0; y < ph; y++) for (let x = 0; x < pw; x++) if (cells[y * pw + x]) ref[(gy + y) * GW + gx + x] = 1
+      for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) expect(g.get(x, y)).toBe(ref[y * GW + x] === 1)
+    }
+  })
+
+  it('spiral: the reference table (t < 1400) is a prefix of any extended one', () => {
+    const base = spiral(SPIRAL_T)
+    const n0 = base.n, d0 = base.dx.slice(0, n0)
+    const big = spiral(3 * SPIRAL_T)
+    expect(big.n).toBeGreaterThan(n0)
+    expect(spiral(SPIRAL_T).n).toBe(n0)
+    expect(big.dx.slice(0, n0)).toEqual(d0)
+    expect(big.rad[big.n - 1]).toBeLessThan(2.2 * 3 * SPIRAL_T)
+  })
+})
+
+// 5,000-bird lists: computed once per layout and timed; the minBase checks always run, only the timing
+// bounds sit in the skippable perf block below.
+const BIG = new Map<string, { r: PackResult; ms: number }>()
+function big(name: string) {
+  if (!POOL.length) POOL = loadPool()
+  if (!BIG.has(name)) {
+    const birds = sample(5000)
+    const t0 = performance.now()
+    const r = packBest(birds, byName(name), 'even')
+    BIG.set(name, { r, ms: performance.now() - t0 })
+    console.log(`[perf] 5,000 birds ${name}: ${BIG.get(name)!.ms.toFixed(0)} ms, base ${r.base.toFixed(2)}, ${r.W}x${r.H}`)
+  }
+  return BIG.get(name)!
+}
+
+describe('large lists grow the stage instead of shrinking below minBase', () => {
+  for (const name of ['wide', 'medium', 'narrow']) {
+    it(`5,000 birds on ${name}`, () => {
+      const { r } = big(name)
+      expect(r.boxes.size).toBe(5000)
+      expect(r.base).toBeGreaterThanOrEqual(byName(name).minBase)
+      expect(r.H).toBeGreaterThan(byName(name).H)
+    }, 60000)
+  }
+})
+
+// Timing bounds. Generous but meaningful; set SKIP_PERF=1 to skip them (e.g. on slow CI).
 describe.skipIf(!!process.env.SKIP_PERF)('packing performance', () => {
   beforeAll(() => {
     if (!POOL.length) POOL = loadPool()
@@ -170,16 +269,9 @@ describe.skipIf(!!process.env.SKIP_PERF)('packing performance', () => {
     expect(ms).toBeLessThan(1500)
   })
 
-  it('5,000 birds pack in under 12 s and grow the stage instead of shrinking below minBase', () => {
-    const birds = sample(5000)
-    const wide = byName('wide')
-    const t0 = performance.now()
-    const r = packBest(birds, wide, 'even')
-    const ms = performance.now() - t0
-    console.log(`[perf] 5,000 birds wide: ${ms.toFixed(0)} ms, base ${r.base.toFixed(2)}, ${r.W}x${r.H}`)
-    expect(r.boxes.size).toBe(5000)
-    expect(r.base).toBeGreaterThanOrEqual(wide.minBase)
-    expect(r.H).toBeGreaterThan(wide.H)
-    expect(ms).toBeLessThan(12000)
-  }, 60000)
+  for (const name of ['wide', 'medium', 'narrow']) {
+    it(`5,000 birds pack in under 12 s on ${name}`, () => {
+      expect(big(name).ms).toBeLessThan(12000)
+    }, 60000)
+  }
 })

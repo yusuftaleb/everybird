@@ -27,7 +27,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Commands
 
 - `npm run dev`: Next dev server (port 3000)
-- `npm test`: Vitest unit tests (`tests/**/*.test.{ts,tsx}`; node by default, add `// @vitest-environment jsdom` for component tests). `tests/pack.test.ts` includes timing tests (about 8 s); set `SKIP_PERF=1` to skip them
+- `npm test`: Vitest unit tests (`tests/**/*.test.{ts,tsx}`; node by default, add `// @vitest-environment jsdom` for component tests). `tests/pack.test.ts` packs 5,000-bird lists on all three layouts (about 20 s); `SKIP_PERF=1` skips only the timing bounds
 - `npm run e2e`: Playwright specs in `e2e/` (starts `next dev` on port 3100; set `BASE_URL` to test a deployed URL instead)
 - `npm run data`: rebuild `public/data/*` from `data/raw/` (`scripts/build-data/`)
 - `data/inat-synonyms.json` (iNaturalist sci name to eBird code, reasons in `inat-synonyms.notes.md`): `npm run data` publishes it via `scripts/build-data/copy-synonyms.ts` to `public/data/inat-synonyms.v1.json`.
