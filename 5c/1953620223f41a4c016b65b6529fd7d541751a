@@ -1,0 +1,50 @@
+tests/collage.test.tsx
+  s_ab125876fe9ad2::t_6d5c0fded6dfda 1-112
+playwright.config.ts
+  s_ab125876fe9ad2::t_668921f34c789f 4,13-14,17-32
+src/components/collage/collage.css
+  s_ab125876fe9ad2::t_639216347afd22 1-176
+scripts/dev/serve-stickers.mjs
+  s_ab125876fe9ad2::t_3b75cfd8343c75 1-30
+e2e/collage.spec.ts
+  s_ab125876fe9ad2::t_20ff6d12b8d222 1-35
+src/components/collage/collage-hit.ts
+  s_ab125876fe9ad2::t_b9c90644367038 40
+  s_ab125876fe9ad2::t_46d264fb963368 43,45,55
+  s_ab125876fe9ad2::t_f00aed4c570d1f 1-39,41-42,44,46-54,56-62
+package.json
+  s_ab125876fe9ad2::t_668921f34c789f 12
+src/components/collage/Tally.tsx
+  s_ab125876fe9ad2::t_e2a0c8c62d65a3 1-39
+src/components/collage/TrueSizeSwitch.tsx
+  s_ab125876fe9ad2::t_d96ab013e490ed 1-21
+src/components/collage/Collage.tsx
+  s_ab125876fe9ad2::t_31bf66a933f3cf 1-10,12-60,64-89,91-94,96-105,107-140,142,145,147,149-167,169-177,179-181,183-186,188-203,205-216,233-268,270-273
+  s_ab125876fe9ad2::t_0da325c735c379 106,182
+  s_ab125876fe9ad2::t_51c619a30e0016 11,61-63,95,141,146,148,178,187,204,217-218,220,222,224-225,230-232
+  s_ab125876fe9ad2::t_b6894c34463e8e 90,219,221,223,226-229,269
+  s_ab125876fe9ad2::t_b0f1484e5efb25 143-144,168
+src/components/collage/collage-motion.ts
+  s_ab125876fe9ad2::t_fa6dd02b11f06e 1-126
+  s_ab125876fe9ad2::t_46d264fb963368 127-140
+AGENTS.md
+  s_ab125876fe9ad2::t_b9c90644367038 31-32,41
+src/components/collage/Bird.tsx
+  s_ab125876fe9ad2::t_be1e9bfc0dfbfe 1-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5c1953620223f41a4c016b65b6529fd7d541751a",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
