@@ -48,14 +48,13 @@ export type WriteArgs = {
   style: 'travel' | 'jump'
 }
 
-/** Write every bird's variables and data-off / data-enter for the layout; returns whether anything moved. */
-export function writeBirds(m: Motion, a: WriteArgs): { changed: boolean } {
+/** Write every bird's variables and data-off / data-enter for the layout, and start exit / entry animations. */
+export function writeBirds(m: Motion, a: WriteArgs): void {
   const { layout, visible, els, stagePx } = a
   const { W, H } = layout
   const prev = m.on
   const on = new Set<string>()
   const enter: string[] = [], exit: string[] = []
-  let changed = false
   for (const code of a.codes) {
     const el = els.get(code)
     if (!el) continue
@@ -74,7 +73,6 @@ export function writeBirds(m: Motion, a: WriteArgs): { changed: boolean } {
       const v = `${x},${y},${k},${md}`
       if (m.written.get(code) !== v) {
         m.written.set(code, v)
-        changed = true
         const st = el.style
         st.setProperty('--x', String(x))
         st.setProperty('--y', String(y))
@@ -97,16 +95,16 @@ export function writeBirds(m: Motion, a: WriteArgs): { changed: boolean } {
   m.on = on
   const travel = a.style === 'travel'
   // Arriving birds jump to their new spot while invisible (data-enter turns their travel off).
+  const entering = new Set(enter)
   for (const code of a.codes) {
     const el = els.get(code)
     if (!el) continue
-    if (travel && enter.includes(code)) el.setAttribute('data-enter', '')
+    if (travel && entering.has(code)) el.setAttribute('data-enter', '')
     else if (el.hasAttribute('data-enter')) el.removeAttribute('data-enter')
   }
-  if (enter.length || exit.length) changed = true
   if (!travel) {
     for (const code of [...enter, ...exit]) { m.anims.get(code)?.cancel(); m.anims.delete(code) }
-    return { changed }
+    return
   }
   for (const code of exit) {
     const el = els.get(code)
@@ -122,7 +120,6 @@ export function writeBirds(m: Motion, a: WriteArgs): { changed: boolean } {
     m.anims.set(code, el.animate([{ opacity: 0, transform: SHRINK }, { opacity: 1, transform: 'none' }],
       { duration: ENTER_MS, delay: ENTER_AT + md, easing: EASE_OUT, fill: 'backwards' }))
   }
-  return { changed }
 }
 
 /** After the stage grows: raise each shown bird's <img sizes> so the browser can fetch the sharper file. */

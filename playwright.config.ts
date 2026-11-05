@@ -17,7 +17,7 @@ export default defineConfig({
     : [
         {
           command: `node scripts/dev/serve-stickers.mjs`,
-          url: `http://localhost:${STICKER_PORT}/`,
+          url: `http://127.0.0.1:${STICKER_PORT}/`,
           env: { PORT: String(STICKER_PORT) },
           reuseExistingServer: !process.env.CI,
           timeout: 30_000,
@@ -25,7 +25,7 @@ export default defineConfig({
         {
           command: `npx next dev -p ${PORT}`,
           url: baseURL,
-          env: { NEXT_PUBLIC_STICKER_BASE: `http://localhost:${STICKER_PORT}` },
+          env: { NEXT_PUBLIC_STICKER_BASE: `http://127.0.0.1:${STICKER_PORT}` },
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,
         },

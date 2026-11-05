@@ -90,8 +90,48 @@ describe('Collage', () => {
     expect(document.activeElement).toBe(none)
     fireEvent.keyDown(none, { key: 'ArrowUp' })
     expect(document.activeElement).toBe(wren)
+    // Enter: the keydown itself does not pick; the button's native click (detail 0) does, once.
     fireEvent.keyDown(wren, { key: 'Enter' })
+    fireEvent.click(wren, { detail: 0 })
+    expect(onPick).toHaveBeenCalledTimes(1)
     expect(onPick).toHaveBeenCalledWith('wrenb')
+  })
+
+  it('a screen-reader click (detail 0, no keydown) picks the bird once', () => {
+    const onPick = vi.fn()
+    render(<Collage entries={entries} species={species} layout={full} visible={new Set(['crowa', 'wrenb', 'nostk'])} mode="even" onPick={onPick} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Beta Wren' }), { detail: 0 })
+    expect(onPick).toHaveBeenCalledTimes(1)
+    expect(onPick).toHaveBeenCalledWith('wrenb')
+  })
+
+  it('Space keydown plus its click picks once', () => {
+    const onPick = vi.fn()
+    render(<Collage entries={entries} species={species} layout={full} visible={new Set(['crowa', 'wrenb', 'nostk'])} mode="even" onPick={onPick} />)
+    const crow = screen.getByRole('button', { name: 'Alpha Crow' })
+    fireEvent.keyDown(crow, { key: ' ' })
+    fireEvent.keyUp(crow, { key: ' ' })
+    fireEvent.click(crow, { detail: 0 })
+    expect(onPick).toHaveBeenCalledTimes(1)
+    expect(onPick).toHaveBeenCalledWith('crowa')
+  })
+
+  it('unmounting cancels running bird animations', () => {
+    const cancels: Array<() => void> = []
+    const anim = () => { const a = { cancel: vi.fn(), onfinish: null } as unknown as Animation; cancels.push(a.cancel as () => void); return a }
+    const orig = HTMLElement.prototype.animate
+    HTMLElement.prototype.animate = vi.fn(anim) as unknown as typeof orig
+    try {
+      const { rerender, unmount } = render(
+        <Collage entries={entries} species={species} layout={full} visible={new Set(['crowa', 'wrenb', 'nostk'])} mode="even" onPick={() => {}} />,
+      )
+      rerender(<Collage entries={entries} species={species} layout={layoutOf({ crowa: [100, 100, 90, 90] })} visible={new Set(['crowa'])} mode="even" onPick={() => {}} />)
+      expect(cancels.length).toBeGreaterThan(0)
+      unmount()
+      for (const c of cancels) expect(c).toHaveBeenCalled()
+    } finally {
+      HTMLElement.prototype.animate = orig
+    }
   })
 
   it('the count shows "<n> of <total> species" when filtered', () => {

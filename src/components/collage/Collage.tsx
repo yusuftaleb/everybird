@@ -68,6 +68,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
   const hot = useRef<string | null>(null)
   const frame = useRef(0)
   const prunedFor = useRef<ListEntry[] | null>(null)
+  const alive = useRef(true)
   const latest = useRef({ layout, onPick, onHover })
   useLayoutEffect(() => { latest.current = { layout, onPick, onHover } })
 
@@ -126,14 +127,14 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
     const out = L.animate([{ opacity: from }, { opacity: 0 }], { duration: (FADE_MS / 2) * from, easing: EASE_IN, fill: 'forwards' })
     f.anim = out
     out.onfinish = () => {
-      if (f.anim !== out) return
+      if (f.anim !== out || !alive.current) return
       f.apply?.()
       f.apply = null
       f.phase = 'in'
       const fadeIn = L.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS / 2, easing: EASE_OUT })
       out.cancel()
       f.anim = fadeIn
-      fadeIn.onfinish = () => { if (f.anim === fadeIn) { f.anim = null; f.phase = null } }
+      fadeIn.onfinish = () => { if (f.anim === fadeIn && alive.current) { f.anim = null; f.phase = null } }
     }
   }, [])
 
@@ -180,7 +181,18 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
     ro.observe(el)
     return () => ro.disconnect()
   }, [motion])
-  useEffect(() => () => cancelAnimationFrame(frame.current), [])
+  // On unmount: stop the rAF, the layer fade and every bird animation; late onfinish callbacks see alive = false.
+  useEffect(() => {
+    alive.current = true
+    const f = fade.current
+    return () => {
+      alive.current = false
+      cancelAnimationFrame(frame.current)
+      f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null
+      for (const a of motion.anims.values()) a.cancel()
+      motion.anims.clear()
+    }
+  }, [motion])
 
   const codeOf = (t: EventTarget | null) => ((t as HTMLElement | null)?.dataset?.code ?? null)
   const hitAt = (clientX: number, clientY: number, slopPx: number) => {
@@ -196,7 +208,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
   const onKeyDown = (e: React.KeyboardEvent) => {
     const code = codeOf(e.target)
     if (!code) return
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(code); return }
+    // Enter/Space are left to the button: its native click (detail 0) picks, as do screen-reader activations.
     const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
     const edge = e.key === 'Home' ? -1 : e.key === 'End' ? 1 : 0
     if (!step && !edge) return
@@ -252,7 +264,15 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
         }}
         onPointerLeave={() => { cancelAnimationFrame(frame.current); setHot(null) }}
         onClick={(e) => {
-          if (e.detail === 0) return // keyboard activation of a focused bird: handled in onKeyDown
+          if (e.detail === 0) {
+            // Keyboard (Enter/Space) or assistive-tech activation of a bird button: no pointer position.
+            const c = codeOf(e.target)
+            if (!c || !motion.on?.has(c)) return
+            focusCode.current = c
+            syncTabStop()
+            onPick(c)
+            return
+          }
           const pt = (e.nativeEvent as PointerEvent).pointerType
           const touch = pt ? pt !== 'mouse' : typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches
           const code = hitAt(e.clientX, e.clientY, touch ? TOUCH_SLOP_PX : 0)

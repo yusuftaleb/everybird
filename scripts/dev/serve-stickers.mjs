@@ -1,6 +1,6 @@
 // Local static server for the sticker files (dev and e2e): serves ../everybird-stickers (or $STICKERS_DIR)
-// on port 4100 (or $PORT) with CORS, standing in for the GitHub Pages stickers site.
-// Point the app at it with NEXT_PUBLIC_STICKER_BASE=http://localhost:4100.
+// on 127.0.0.1:4100 (or $PORT; loopback only) with CORS, standing in for the GitHub Pages stickers site.
+// Point the app at it with NEXT_PUBLIC_STICKER_BASE=http://127.0.0.1:4100.
 import { createReadStream, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, join, resolve, sep } from 'node:path'
@@ -26,5 +26,9 @@ createServer((req, res) => {
     'Cache-Control': 'public, max-age=3600',
   })
   if (req.method === 'HEAD') res.end()
-  else createReadStream(file).pipe(res)
-}).listen(port, () => console.log(`stickers: serving ${root} on http://localhost:${port}`))
+  else {
+    const stream = createReadStream(file)
+    stream.on('error', () => { if (!res.headersSent) res.writeHead(500); res.destroy() })
+    stream.pipe(res)
+  }
+}).listen(port, '127.0.0.1', () => console.log(`stickers: serving ${root} on http://127.0.0.1:${port}`))
