@@ -1,0 +1,34 @@
+src/components/collage/Sticker.tsx
+  s_ab125876fe9ad2::t_bc4ab1809899e7 4
+src/styles/globals.css
+  s_ab125876fe9ad2::t_1e3faee1b3f740 33-59
+src/components/collage/BirdCard.tsx
+  s_ab125876fe9ad2::t_1e3faee1b3f740 3,29,71-73,77-109,113-114,128-129,140,143
+src/components/collage/collage.css
+  s_ab125876fe9ad2::t_3c16ef1c7cbf28 56,60
+src/components/collage/ListView.tsx
+  s_ab125876fe9ad2::t_1e3faee1b3f740 37
+src/components/collage/Sticker.css
+  s_ab125876fe9ad2::t_3c16ef1c7cbf28 1-8
+tests/card-list.test.tsx
+  s_ab125876fe9ad2::t_3c16ef1c7cbf28 155-159,162-219
+  s_ab125876fe9ad2::t_bc4ab1809899e7 4-5,160-161
+src/components/collage/card-list.css
+  s_ab125876fe9ad2::t_3c16ef1c7cbf28 112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b428b6676416b1ae0e9ab9091fe400d725001027",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
