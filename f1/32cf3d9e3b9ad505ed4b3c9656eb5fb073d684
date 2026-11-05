@@ -1,0 +1,24 @@
+tests/fixtures/inat/observations.json
+  s_ab125876fe9ad2::t_bfe08856e62f41 6-206,208
+tests/inat.test.ts
+  s_ab125876fe9ad2::t_ae65cb85f0c5cf 33
+  s_ab125876fe9ad2::t_bfe08856e62f41 127,130,132-133,137-140,179-203,229
+src/lib/import/inat.ts
+  s_ab125876fe9ad2::t_bfe08856e62f41 73,131,133,135,138-140,267-268,282,285-287,326
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f132cf3d9e3b9ad505ed4b3c9656eb5fb073d684",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
