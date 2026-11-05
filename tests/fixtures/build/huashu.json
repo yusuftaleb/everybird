@@ -1,0 +1,9 @@
+[
+{"id":"Aus_one","scientificName":"Aus one","taxonConcept":"same","taxonomy":{"seq":1,"order":"Ordo","family":"Famone"},"ids":{"ebird":"one1"},"traits":{"massG":100},"sticker":{"file":"stickers/Ordo/Famone/Aus_one.webp","meetsQualityBar":true}},
+{"id":"Aus_bus","scientificName":"Aus bus","taxonConcept":"narrowed","taxonomy":{"seq":5,"order":"Ordo","family":"Famone"},"ids":{"ebird":"multi1"},"traits":{"massG":30},"sticker":{"file":"stickers/Ordo/Famone/Aus_bus.webp","meetsQualityBar":false}},
+{"id":"Aus_cus","scientificName":"Aus cus","taxonConcept":"same","taxonomy":{"seq":3,"order":"Ordo","family":"Famone"},"ids":{"ebird":"multi1"},"traits":{"massG":50},"sticker":{"file":"stickers/Ordo/Famone/Aus_cus.webp","meetsQualityBar":true}},
+{"id":"Bus_old","scientificName":"Bus oldname","taxonConcept":"same","taxonomy":{"seq":8,"order":"Ordo","family":"Famtwo"},"ids":{},"traits":{"massG":20},"sticker":{"file":"stickers/Ordo/Famtwo/Bus_old.webp","meetsQualityBar":true},"previous":[{"scientificName":"Bus formerly"}]},
+{"id":"Bus_sci","scientificName":"Bus sci","taxonConcept":"same","taxonomy":{"seq":9,"order":"Ordo","family":"Famtwo"},"ids":{},"traits":{"massG":40},"sticker":{"file":"stickers/Ordo/Famtwo/Bus_sci.webp","meetsQualityBar":true}},
+{"id":"Cus_goshawk","scientificName":"Cus goshawk","taxonConcept":"same","taxonomy":{"seq":10,"order":"Ordo","family":"Famtwo"},"ids":{"ebird":"amegos"},"traits":{"massG":600},"sticker":{"file":"stickers/Ordo/Famtwo/Cus_goshawk.webp","meetsQualityBar":true}},
+{"id":"Ghost_bird","scientificName":"Ghost bird","taxonConcept":"same","taxonomy":{"seq":99,"order":"Ordo","family":"Famone"},"ids":{"ebird":"ghost1"},"traits":{"massG":5},"sticker":{"file":"stickers/Ordo/Famone/Ghost_bird.webp","meetsQualityBar":true}}
+]

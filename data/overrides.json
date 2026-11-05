@@ -1,0 +1,30 @@
+{
+ "categr1": {
+  "massG": 340,
+  "source": "Birds of the World, Cattle Egret, ~270-512 g"
+ },
+ "marwre1": {
+  "huashu": "Cistothorus_palustris",
+  "source": "AVONET Marsh Wren (pre-split)"
+ },
+ "coohaw": {
+  "massG": 440,
+  "source": "Birds of the World, Cooper's Hawk, males ~350 g, females ~530 g"
+ },
+ "bulori": {
+  "huashu": "Icterus_bullockiorum",
+  "source": "framer-site overrides.json (taxonomy fix, no source text)"
+ },
+ "yelwar1": {
+  "massG": 9.5,
+  "source": "Birds of the World, Yellow Warbler, 9-11 g"
+ },
+ "wewvir2": {
+  "massG": 12,
+  "source": "Birds of the World, Warbling Vireo, 10-16 g"
+ },
+ "norgos": {
+  "massG": 950,
+  "source": "Birds of the World, American Goshawk, males ~630-1100 g, females ~860-1360 g"
+ }
+}

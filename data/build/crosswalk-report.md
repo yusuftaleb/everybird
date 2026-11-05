@@ -1,0 +1,1064 @@
+# Crosswalk report
+
+- Species rows: 11201
+- With sticker: 10988; without: 213
+- Mass sources: avonet 10417, override 5, family 774, order 5
+- Multi-candidate choices: 0; scientific-name fallbacks: 44; huashu orphans: 0
+
+## Multi-candidate choices (0)
+
+_none_
+
+## Scientific-name fallbacks (44)
+
+- rudduc (Ruddy Duck) -> Oxyura_jamaicensis
+- andduc1 (Andean Duck) -> Oxyura_jamaicensis
+- fotswi (Pacific Swift) -> Apus_pacificus
+- blyswi1 (Blyth's Swift) -> Apus_pacificus
+- cooswi1 (Cook's Swift) -> Apus_pacificus
+- boorat1 (White-booted Racket-tail) -> Ocreatus_underwoodii
+- boorat2 (Peruvian Racket-tail) -> Ocreatus_underwoodii
+- rubrat1 (Rufous-booted Racket-tail) -> Ocreatus_underwoodii
+- purswa1 (Western Swamphen) -> Porphyrio_porphyrio
+- purswa4 (Black-backed Swamphen) -> Porphyrio_porphyrio
+- purswa2 (African Swamphen) -> Porphyrio_porphyrio
+- purswa6 (Australasian Swamphen) -> Porphyrio_porphyrio
+- purswa5 (Philippine Swamphen) -> Porphyrio_porphyrio
+- purswa3 (Gray-headed Swamphen) -> Porphyrio_porphyrio
+- whnpet (White-necked Petrel) -> Pterodroma_cervicalis
+- venpet1 (Vanuatu Petrel) -> Pterodroma_cervicalis
+- levshe1 (Yelkouan Shearwater) -> Puffinus_yelkouan
+- balshe1 (Balearic Shearwater) -> Puffinus_yelkouan
+- brnowl (American Barn Owl) -> Tyto_furcata
+- asfowl1 (Ashy-faced Owl) -> Tyto_glaucops
+- crbwoo1 (Crimson-bellied Woodpecker) -> Campephilus_haematogaster
+- blcant4 (Black-crested Antshrike) -> Sakesphorus_canadensis
+- olsfly2 (Olive-streaked Flycatcher) -> Mionectes_olivaceus
+- olsfly1 (Olive-striped Flycatcher) -> Mionectes_olivaceus
+- scamin3 (Orange Minivet) -> Pericrocotus_flammeus
+- scamin1 (Scarlet Minivet) -> Pericrocotus_flammeus
+- carcro1 (Carrion Crow) -> Corvus_corone
+- hoocro1 (Hooded Crow) -> Corvus_corone
+- anjwhe1 (Anjouan White-eye) -> Zosterops_maderaspatanus
+- mohwhe1 (Moheli White-eye) -> Zosterops_maderaspatanus
+- madwhe1 (Malagasy White-eye) -> Zosterops_maderaspatanus
+- aldwhe1 (Aldabra White-eye) -> Zosterops_maderaspatanus
+- guigna2 (Rio Negro Gnatcatcher) -> Polioptila_paraensis
+- inagna1 (Inambari Gnatcatcher) -> Polioptila_paraensis
+- guigna4 (Klages's Gnatcatcher) -> Polioptila_paraensis
+- chtsta2 (Chestnut-tailed Starling) -> Sturnia_malabarica
+- malsta1 (Malabar Starling) -> Sturnia_malabarica
+- sibsto1 (Siberian Stonechat) -> Saxicola_maurus
+- stonec7 (Amur Stonechat) -> Saxicola_maurus
+- stusun1 (Stuhlmann's Sunbird) -> Cinnyris_stuhlmanni
+- mdcsun3 (Montane Double-collared Sunbird) -> Cinnyris_ludovicensis
+- brocow (Bronzed Cowbird) -> Molothrus_aeneus
+- blehem1 (Black-eared Hemispingus) -> Sphenopsis_melanotis
+- tildac1 (Tit-like Dacnis) -> Xenodacnis_parina
+
+## Override huashu records used (2)
+
+- marwre1 (Western Marsh Wren) -> Cistothorus_palustris
+- bulori (Bullock's Oriole) -> Icterus_bullockiorum
+
+## No sticker (213)
+
+- sddtin1 (Slaty-masked Tinamou) [huashu Crypturellus_resonans has no sticker]
+- maushe1 (Mauritius Shelduck)
+- reushe1 (Reunion Shelduck)
+- creshe1 (Crested Shelduck)
+- finduc1 (Finsch's Duck)
+- amsduc1 (Amsterdam Duck)
+- mauduc1 (Mauritius Duck)
+- pihduc1 (Pink-headed Duck)
+- labduc (Labrador Duck)
+- auimer1 (Auckland Islands Merganser)
+- nezqua1 (New Zealand Quail)
+- himqua1 (Himalayan Quail)
+- mauwop1 (Mauritius Wood-Pigeon)
+- ryupig1 (Ryukyu Wood-Pigeon)
+- bonpig1 (Bonin Wood-Pigeon)
+- paspig (Passenger Pigeon)
+- mautud1 (Mauritius Turtle-Dove)
+- rodtud1 (Rodrigues Turtle-Dove)
+- sulcud4 (Sultan's Cuckoo-Dove) [huashu Macropygia_doreya has no sticker]
+- tbgdov1 (Thick-billed Ground Dove)
+- tangrd1 (Tanna Ground Dove)
+- norgrd1 (Norfolk Ground Dove)
+- spgpig1 (Spotted Green Pigeon)
+- dodo1 (Dodo)
+- rodsol2 (Rodrigues Solitaire)
+- chopig1 (Choiseul Pigeon)
+- rodblp1 (Rodrigues Blue-Pigeon)
+- mabpig2 (Mauritius Blue-Pigeon)
+- rmfdov1 (Red-moustached Fruit-Dove)
+- snecou1 (Snail-eating Coua)
+- sthcuc1 (St. Helena Cuckoo)
+- penhac1 (Penan Hawk-Cuckoo) [huashu Hierococcyx_tiganada has no sticker]
+- jampau (Jamaican Pauraque)
+- saaswi1 (Salim Ali's Swift)
+- braeme2 (Brace's Emerald)
+- reurai1 (Reunion Rail)
+- redrai1 (Red Rail)
+- rodrai1 (Rodrigues Rail)
+- sthcra1 (St. Helena Rail)
+- asccra1 (Ascension Crake)
+- hawrai1 (Hawkins's Rail)
+- tahrai1 (Tahiti Rail)
+- chirai1 (Chatham Islands Rail)
+- dierai1 (Dieffenbach's Rail)
+- bawrai1 (Bar-winged Rail)
+- wairai1 (Wake Island Rail)
+- hodwat1 (Hodgen's Waterhen)
+- trimoo2 (Tristan Moorhen)
+- sammoo1 (Samoan Moorhen)
+- mascoo1 (Mascarene Coot)
+- marswa1 (Marquesan Swamphen)
+- necgal1 (New Caledonian Swamphen)
+- reugal1 (Reunion Swamphen)
+- takahe2 (North Island Takahe)
+- lohswa1 (Lord Howe Swamphen)
+- sthrai1 (St. Helena Crake)
+- layrai (Laysan Rail)
+- hawrai (Hawaiian Rail)
+- milrai1 (Miller's Rail)
+- koscra1 (Kosrae Crake)
+- canoys1 (Canarian Oystercatcher)
+- sunlap1 (Javan Lapwing)
+- noisni1 (North Island Snipe)
+- soisni1 (South Island Snipe)
+- willet2 (Saltmarsh Willet) [huashu Tringa_semipalmata has no sticker]
+- kirsan1 (Kiritimati Sandpiper)
+- whwsan1 (Tahiti Sandpiper)
+- moosan1 (Moorea Sandpiper)
+- paibut1 (New Caledonian Buttonquail)
+- greauk (Great Auk)
+- alagre1 (Alaotra Grebe)
+- atigre1 (Atitlan Grebe)
+- colgre1 (Colombian Grebe)
+- guspet (Guadalupe Storm-Petrel)
+- lshpet1 (Large St. Helena Petrel)
+- bkcpet2 (Jamaican Petrel)
+- sshpet1 (Small St. Helena Petrel)
+- palcor1 (Pallas's Cormorant)
+- reusol1 (Reunion Ibis)
+- nezbit1 (New Zealand Bittern)
+- bernih1 (Bermuda Night Heron)
+- reunih1 (Reunion Night Heron)
+- maunih1 (Mauritius Night Heron)
+- rodnih1 (Rodrigues Night Heron)
+- asnher1 (Ascension Night Heron)
+- berhaw1 (Bermuda Hawk)
+- reusco1 (Reunion Scops-Owl)
+- rodsco1 (Rodrigues Scops-Owl)
+- mausco1 (Mauritius Scops-Owl)
+- blafio2 (Northern Fish-Owl) [huashu Ketupa_doerriesi has no sticker]
+- bswowl1 (Bermuda Saw-whet Owl)
+- lauowl1 (Laughing Owl)
+- sthhoo1 (St. Helena Hoopoe)
+- rucmot6 (Guatemalan Motmot) [huashu Momotus_castaneiceps has no sticker]
+- tuakin2 (Tuamotu Kingfisher) [huashu Todiramphus_gambieri has no sticker]
+- yebkin5 (Ochre-bellied Kingfisher) [huashu Syma_ochracea has no sticker]
+- compak17 (Morotai Paradise-Kingfisher) [huashu Tanysiptera_doris has no sticker]
+- compak18 (Halmahera Paradise-Kingfisher) [huashu Tanysiptera_margarethae has no sticker]
+- compak7 (Obi Paradise-Kingfisher) [huashu Tanysiptera_obiensis has no sticker]
+- compak19 (Amboyna Paradise-Kingfisher) [huashu Tanysiptera_nais has no sticker]
+- compak15 (Rossel Paradise-Kingfisher) [huashu Tanysiptera_rosseliana has no sticker]
+- berfli1 (Bermuda Flicker)
+- guacar2 (Guadalupe Caracara)
+- reukes1 (Reunion Kestrel)
+- noikak1 (Norfolk Island Kaka)
+- ocepar1 (Oceanic Eclectus)
+- maspar1 (Mascarene Parrot)
+- seypar2 (Seychelles Parakeet)
+- newpar2 (Newton's Parakeet)
+- magpar1 (Mauritius Gray Parrot)
+- brbpar3 (Broad-billed Parrot)
+- rodpar1 (Rodrigues Parrot)
+- raipar1 (Raiatea Kakariki)
+- blfpar2 (Black-fronted Kakariki)
+- parpar2 (Paradise Parrot)
+- neclor1 (New Caledonian Lorikeet)
+- marpar1 (Martinique Amazon)
+- guapar1 (Guadeloupe Amazon)
+- glamac1 (Glaucous Macaw)
+- carpar (Carolina Parakeet)
+- cubmac1 (Cuban Macaw)
+- purpar2 (Puerto Rican Parakeet)
+- guapar2 (Guadeloupe Parakeet)
+- stiwre1 (Stephens Island Wren)
+- buswre1 (Bush Wren)
+- barbro2 (Ayeyarwady Broadbill) [huashu Cymbirhynchus_affinis has no sticker]
+- bkhant8 (Black-hooded Antthrush) [huashu Formicarius_destructus has no sticker]
+- crytre1 (Cryptic Treehunter)
+- alfgle1 (Alagoas Foliage-gleaner)
+- soubet1 (Panama Beardless-Tyrannulet) [huashu Camptostoma_flaviventre has no sticker]
+- soubet6 (Cauca Beardless-Tyrannulet) [huashu Camptostoma_caucae has no sticker]
+- soubet7 (Venezuelan Beardless-Tyrannulet) [huashu Camptostoma_pusillum has no sticker]
+- soubet16 (Amazonian Beardless-Tyrannulet) [huashu Camptostoma_napaeum has no sticker]
+- soubet17 (Pacific Beardless-Tyrannulet) [huashu Camptostoma_sclateri has no sticker]
+- yebtuf1 (Lemon-bellied Tufted-Flycatcher) [huashu Mitrephanes_aurantiiventris has no sticker]
+- chibel1 (Chatham Islands Bellbird)
+- banmyz3 (Tanimbar Myzomela) [huashu Myzomela_annabellae has no sticker]
+- banmyz4 (Babar Myzomela) [huashu Myzomela_babarensis has no sticker]
+- lohger1 (Lord Howe Gerygone)
+- blujeb5 (Southern Blue Jewel-babbler) [huashu Ptilorrhoa_nigricrissus has no sticker]
+- hoojeb1 (Hooded Jewel-babbler) [huashu Ptilorrhoa_urrissia has no sticker]
+- gyegre2 (Beni Greenlet) [huashu Hylophilus_moxensis has no sticker]
+- noipio1 (North Island Piopio)
+- soipio1 (South Island Piopio)
+- chefan1 (Cheerful Fantail) [huashu Rhipidura_laguceria has no sticker]
+- maumon1 (Maupiti Monarch)
+- eiamon1 (Eiao Monarch)
+- nuhmon1 (Nuku Hiva Monarch)
+- guafly1 (Guam Flycatcher)
+- kokako4 (South Island Kokako)
+- huia1 (Huia)
+- albwar1 (Aldabra Brush-Warbler)
+- nigrew1 (Nightingale Reed Warbler)
+- agurew1 (Aguiguan Reed Warbler)
+- pagrew1 (Pagan Reed Warbler)
+- soirew1 (Society Islands Reed Warbler)
+- moorew1 (Moorea Reed Warbler)
+- manrew2 (Mangareva Reed Warbler)
+- chifer1 (Chatham Islands Fernbird)
+- sqtsaw3 (Congo Saw-wing) [huashu Psalidoprocne_centralis has no sticker]
+- sergob2 (Ambon Golden-Bulbul) [huashu Hypsipetes_flavicaudus has no sticker]
+- olwbul3 (Barusan Bulbul) [huashu Pycnonotus_porphyreus has no sticker]
+- marwhe1 (Marianne White-eye)
+- wcweye1 (White-chested White-eye)
+- robwhe1 (Robust White-eye)
+- pistib2 (Palawan Tit-Babbler) [huashu Mixornis_woodi has no sticker]
+- marwre1 (Western Marsh Wren) [huashu Cistothorus_palustris has no sticker]
+- eamwre1 (Eastern Marsh Wren) [huashu Cistothorus_palustris has no sticker]
+- kossta1 (Kosrae Starling)
+- myssta1 (Mysterious Starling)
+- norsta1 (Tasman Starling)
+- raista2 (Raiatea Starling)
+- rodsta2 (Rodrigues Starling)
+- reusta1 (Reunion Starling)
+- kamao (Kamao)
+- amaui (Amaui)
+- bonthr2 (Bonin Thrush)
+- norist1 (Tasman Sea Island-Thrush)
+- grcthr1 (Grand Cayman Thrush)
+- cairob1 (Canary Islands Robin) [huashu Erithacus_superbus has no sticker]
+- forrob4 (Yellow-breasted Forest Robin) [huashu Stiphrornis_mabirae has no sticker]
+- bluwht2 (Yellow-billed Whistling-Thrush) [huashu Myophonus_flavirostris has no sticker]
+- whcfor10 (Malayan Forktail) [huashu Enicurus_frontalis has no sticker]
+- whcfor5 (Javan Forktail) [huashu Enicurus_leschenaulti has no sticker]
+- mouwhe14 (Mourning Wheatear) [huashu Oenanthe_lugens has no sticker]
+- kauoo (Kauai Oo)
+- oahoo (Oahu Oo)
+- bisoo (Bishop's Oo)
+- hawoo (Hawaii Oo)
+- kioea (Kioea)
+- reufod1 (Reunion Fody)
+- poouli (Poo-uli)
+- kakawa (Kakawahie)
+- kongro (Kona Grosbeak)
+- lekfin (Lesser Koa-Finch)
+- grkfin (Greater Koa-Finch)
+- ulahaw (Ula-ai-hawane)
+- apapan2 (Laysan Honeycreeper)
+- hawmam1 (Hawaii Mamo)
+- blkmam (Black Mamo)
+- ou (Ou)
+- lanhoo (Lanai Hookbill)
+- nukupu3 (Oahu Nukupuu)
+- lesaki (Lesser Akialoa)
+- greaki2 (Oahu Akialoa)
+- greaki4 (Kauai Akialoa)
+- greaki3 (Maui-nui Akialoa)
+- greama (Greater Amakihi)
+- akepa2 (Oahu Akepa)
+- bongro1 (Bonin Grosbeak)
+- bertow1 (Bermuda Towhee)
+- slbgra1 (Slender-billed Grackle)
+- purbul3 (St. Kitts Bullfinch)
+
+## Mass fallbacks (779)
+
+- grskiw1 (Great Spotted Kiwi): 2122.25 g from family Apterygidae
+- sddtin1 (Slaty-masked Tinamou): 455.5 g from family Tinamidae
+- maushe1 (Mauritius Shelduck): 909.45 g from family Anatidae
+- reushe1 (Reunion Shelduck): 909.45 g from family Anatidae
+- creshe1 (Crested Shelduck): 909.45 g from family Anatidae
+- finduc1 (Finsch's Duck): 909.45 g from family Anatidae
+- amsduc1 (Amsterdam Duck): 909.45 g from family Anatidae
+- gnwtea (Green-winged Teal): 909.45 g from family Anatidae
+- mauduc1 (Mauritius Duck): 909.45 g from family Anatidae
+- pihduc1 (Pink-headed Duck): 909.45 g from family Anatidae
+- labduc (Labrador Duck): 909.45 g from family Anatidae
+- auimer1 (Auckland Islands Merganser): 909.45 g from family Anatidae
+- rudduc (Ruddy Duck): 909.45 g from family Anatidae
+- andduc1 (Andean Duck): 909.45 g from family Anatidae
+- wilpta1 (Red Grouse): 527.9 g from family Phasianidae
+- chnpar3 (Sabah Partridge): 527.9 g from family Phasianidae
+- nezqua1 (New Zealand Quail): 527.9 g from family Phasianidae
+- himqua1 (Himalayan Quail): 527.9 g from family Phasianidae
+- mauwop1 (Mauritius Wood-Pigeon): 205.7 g from family Columbidae
+- ryupig1 (Ryukyu Wood-Pigeon): 205.7 g from family Columbidae
+- bonpig1 (Bonin Wood-Pigeon): 205.7 g from family Columbidae
+- paspig (Passenger Pigeon): 205.7 g from family Columbidae
+- mautud1 (Mauritius Turtle-Dove): 205.7 g from family Columbidae
+- rodtud1 (Rodrigues Turtle-Dove): 205.7 g from family Columbidae
+- sulcud3 (Sulawesi Cuckoo-Dove): 205.7 g from family Columbidae
+- sulcud4 (Sultan's Cuckoo-Dove): 205.7 g from family Columbidae
+- wegdov1 (Wetar Ground Dove): 205.7 g from family Columbidae
+- frgdov1 (Shy Ground Dove): 205.7 g from family Columbidae
+- scgdov1 (Santa Cruz Ground Dove): 205.7 g from family Columbidae
+- tbgdov1 (Thick-billed Ground Dove): 205.7 g from family Columbidae
+- tangrd1 (Tanna Ground Dove): 205.7 g from family Columbidae
+- brgdov1 (Bronze Ground Dove): 205.7 g from family Columbidae
+- pagdov1 (Palau Ground Dove): 205.7 g from family Columbidae
+- wbgdov1 (White-breasted Ground Dove): 205.7 g from family Columbidae
+- margrd1 (Marquesan Ground Dove): 205.7 g from family Columbidae
+- cigdov1 (Caroline Islands Ground Dove): 205.7 g from family Columbidae
+- pogdov1 (Polynesian Ground Dove): 205.7 g from family Columbidae
+- wtgdov1 (White-throated Ground Dove): 205.7 g from family Columbidae
+- norgrd1 (Norfolk Ground Dove): 205.7 g from family Columbidae
+- gyhdov1 (Gray-headed Dove): 205.7 g from family Columbidae
+- spgpig1 (Spotted Green Pigeon): 205.7 g from family Columbidae
+- dodo1 (Dodo): 205.7 g from family Columbidae
+- rodsol2 (Rodrigues Solitaire): 205.7 g from family Columbidae
+- chopig1 (Choiseul Pigeon): 205.7 g from family Columbidae
+- whgpig1 (Whistling Green-Pigeon): 205.7 g from family Columbidae
+- macfrd1 (Maroon-chinned Fruit-Dove): 205.7 g from family Columbidae
+- rodblp1 (Rodrigues Blue-Pigeon): 205.7 g from family Columbidae
+- mabpig2 (Mauritius Blue-Pigeon): 205.7 g from family Columbidae
+- clfdov1 (Cloven-feathered Dove): 205.7 g from family Columbidae
+- rmfdov1 (Red-moustached Fruit-Dove): 205.7 g from family Columbidae
+- grygab1 (Gray Go-away-bird): 249.5 g from family Musophagidae
+- bfgbir1 (Bare-faced Go-away-bird): 249.5 g from family Musophagidae
+- wbgbir1 (White-bellied Go-away-bird): 249.5 g from family Musophagidae
+- whctur1 (White-cheeked Turaco): 249.5 g from family Musophagidae
+- prrtur1 (Prince Ruspoli's Turaco): 249.5 g from family Musophagidae
+- viotur1 (Violet Turaco): 249.5 g from family Musophagidae
+- rostur1 (Ross's Turaco): 249.5 g from family Musophagidae
+- snecou1 (Snail-eating Coua): 102.4 g from family Cuculidae
+- whbcou3 (Burchell's Coucal): 102.4 g from family Cuculidae
+- phecou2 (Pheasant Coucal): 102.4 g from family Cuculidae
+- sthcuc1 (St. Helena Cuckoo): 102.4 g from family Cuculidae
+- brucuc2 (Sunda Brush Cuckoo): 102.4 g from family Cuculidae
+- brucuc5 (Sulawesi Brush Cuckoo): 102.4 g from family Cuculidae
+- brucuc13 (Solomons Brush Cuckoo): 102.4 g from family Cuculidae
+- brucuc10 (Manus Brush Cuckoo): 102.4 g from family Cuculidae
+- penhac1 (Penan Hawk-Cuckoo): 102.4 g from family Cuculidae
+- rornig1 (Roraiman Nightjar): 57.5 g from family Caprimulgidae
+- bawnig3 (Tschudi's Nightjar): 57.5 g from family Caprimulgidae
+- sptnig1 (Spot-tailed Nightjar): 57.5 g from family Caprimulgidae
+- lotnig2 (Long-trained Nightjar): 57.5 g from family Caprimulgidae
+- jampau (Jamaican Pauraque): 57.5 g from family Caprimulgidae
+- timnig1 (Timor Nightjar): 57.5 g from family Caprimulgidae
+- kaynig1 (Chirruping Nightjar): 57.5 g from family Caprimulgidae
+- barown5 (Karimui Owlet-nightjar): 52 g from family Aegothelidae
+- polswi2 (Polynesian Swiftlet): 17.1 g from family Apodidae
+- fotswi (Pacific Swift): 17.1 g from family Apodidae
+- saaswi1 (Salim Ali's Swift): 17.1 g from family Apodidae
+- blyswi1 (Blyth's Swift): 17.1 g from family Apodidae
+- cooswi1 (Cook's Swift): 17.1 g from family Apodidae
+- y00960 (Little Swift): 17.1 g from family Apodidae
+- boorat1 (White-booted Racket-tail): 4.8 g from family Trochilidae
+- boorat2 (Peruvian Racket-tail): 4.8 g from family Trochilidae
+- rubrat1 (Rufous-booted Racket-tail): 4.8 g from family Trochilidae
+- brarub1 (Brazilian Ruby): 4.8 g from family Trochilidae
+- giahum2 (Northern Giant-Hummingbird): 4.8 g from family Trochilidae
+- braeme2 (Brace's Emerald): 4.8 g from family Trochilidae
+- wetsab1 (Wedge-tailed Sabrewing): 4.8 g from family Trochilidae
+- vichum (Violet-crowned Hummingbird): 4.8 g from family Trochilidae
+- grfhum1 (Green-fronted Hummingbird): 4.8 g from family Trochilidae
+- gnbhum2 (Copper-tailed Hummingbird): 4.8 g from family Trochilidae
+- manhum1 (Mangrove Hummingbird): 4.8 g from family Trochilidae
+- virrai1 (Ecuadorian Rail): 188.9 g from family Rallidae
+- reurai1 (Reunion Rail): 188.9 g from family Rallidae
+- redrai1 (Red Rail): 188.9 g from family Rallidae
+- rodrai1 (Rodrigues Rail): 188.9 g from family Rallidae
+- afrcra1 (African Crake): 188.9 g from family Rallidae
+- sthcra1 (St. Helena Rail): 188.9 g from family Rallidae
+- asccra1 (Ascension Crake): 188.9 g from family Rallidae
+- hawrai1 (Hawkins's Rail): 188.9 g from family Rallidae
+- necrai1 (New Caledonian Rail): 188.9 g from family Rallidae
+- tahrai1 (Tahiti Rail): 188.9 g from family Rallidae
+- chirai1 (Chatham Islands Rail): 188.9 g from family Rallidae
+- dierai1 (Dieffenbach's Rail): 188.9 g from family Rallidae
+- bawrai1 (Bar-winged Rail): 188.9 g from family Rallidae
+- wairai1 (Wake Island Rail): 188.9 g from family Rallidae
+- zaprai1 (Zapata Rail): 188.9 g from family Rallidae
+- hodwat1 (Hodgen's Waterhen): 188.9 g from family Rallidae
+- trimoo2 (Tristan Moorhen): 188.9 g from family Rallidae
+- sammoo1 (Samoan Moorhen): 188.9 g from family Rallidae
+- mascoo1 (Mascarene Coot): 188.9 g from family Rallidae
+- marswa1 (Marquesan Swamphen): 188.9 g from family Rallidae
+- necgal1 (New Caledonian Swamphen): 188.9 g from family Rallidae
+- reugal1 (Reunion Swamphen): 188.9 g from family Rallidae
+- purswa1 (Western Swamphen): 188.9 g from family Rallidae
+- purswa4 (Black-backed Swamphen): 188.9 g from family Rallidae
+- purswa2 (African Swamphen): 188.9 g from family Rallidae
+- takahe2 (North Island Takahe): 188.9 g from family Rallidae
+- purswa6 (Australasian Swamphen): 188.9 g from family Rallidae
+- purswa5 (Philippine Swamphen): 188.9 g from family Rallidae
+- lohswa1 (Lord Howe Swamphen): 188.9 g from family Rallidae
+- purswa3 (Gray-headed Swamphen): 188.9 g from family Rallidae
+- strcra1 (Striped Crake): 188.9 g from family Rallidae
+- sthrai1 (St. Helena Crake): 188.9 g from family Rallidae
+- layrai (Laysan Rail): 188.9 g from family Rallidae
+- hawrai (Hawaiian Rail): 188.9 g from family Rallidae
+- milrai1 (Miller's Rail): 188.9 g from family Rallidae
+- koscra1 (Kosrae Crake): 188.9 g from family Rallidae
+- ocecra1 (Ocellated Crake): 188.9 g from family Rallidae
+- blbcra1 (Black-banded Crake): 188.9 g from family Rallidae
+- rawcra1 (Red-and-white Crake): 188.9 g from family Rallidae
+- rufcra1 (Rufous-faced Crake): 188.9 g from family Rallidae
+- sperai1 (Speckled Rail): 188.9 g from family Rallidae
+- dowcra1 (Dot-winged Crake): 188.9 g from family Rallidae
+- dstkne (Double-striped Thick-knee): 441 g from family Burhinidae
+- petkne1 (Peruvian Thick-knee): 441 g from family Burhinidae
+- bknsti (Black-necked Stilt): 260 g from family Recurvirostridae
+- canoys1 (Canarian Oystercatcher): 613.9 g from family Haematopodidae
+- rucdot1 (Rufous-chested Dotterel): 150 g from family Charadriidae
+- blfdot1 (Black-fronted Dotterel): 150 g from family Charadriidae
+- forplo1 (Forbes's Plover): 150 g from family Charadriidae
+- thbplo1 (Three-banded Plover): 150 g from family Charadriidae
+- lirplo (Little Ringed Plover): 150 g from family Charadriidae
+- lobplo1 (Long-billed Plover): 150 g from family Charadriidae
+- sunlap1 (Javan Lapwing): 150 g from family Charadriidae
+- casplo1 (Caspian Plover): 150 g from family Charadriidae
+- oriplo1 (Oriental Plover): 150 g from family Charadriidae
+- lessap2 (Siberian Sand-Plover): 150 g from family Charadriidae
+- lessap1 (Tibetan Sand-Plover): 150 g from family Charadriidae
+- grsplo (Greater Sand-Plover): 150 g from family Charadriidae
+- dobplo1 (Double-banded Plover): 150 g from family Charadriidae
+- rebdot1 (Red-breasted Dotterel): 150 g from family Charadriidae
+- wilplo (Wilson's Plover): 150 g from family Charadriidae
+- colplo1 (Collared Plover): 150 g from family Charadriidae
+- mouplo (Mountain Plover): 150 g from family Charadriidae
+- punplo1 (Puna Plover): 150 g from family Charadriidae
+- twbplo1 (Two-banded Plover): 150 g from family Charadriidae
+- madplo1 (Madagascar Plover): 150 g from family Charadriidae
+- kitplo1 (Kittlitz's Plover): 150 g from family Charadriidae
+- sthplo1 (St. Helena Plover): 150 g from family Charadriidae
+- recplo1 (Red-capped Plover): 150 g from family Charadriidae
+- snoplo5 (Snowy Plover): 150 g from family Charadriidae
+- chbplo1 (Chestnut-banded Plover): 150 g from family Charadriidae
+- malplo1 (Malaysian Plover): 150 g from family Charadriidae
+- whfplo1 (White-fronted Plover): 150 g from family Charadriidae
+- javplo1 (Javan Plover): 150 g from family Charadriidae
+- kenplo1 (Kentish Plover): 150 g from family Charadriidae
+- whfplo2 (White-faced Plover): 150 g from family Charadriidae
+- whimbr3 (Hudsonian Whimbrel): 113 g from family Scolopacidae
+- noisni1 (North Island Snipe): 113 g from family Scolopacidae
+- soisni1 (South Island Snipe): 113 g from family Scolopacidae
+- willet2 (Saltmarsh Willet): 113 g from family Scolopacidae
+- willet3 (Prairie Willet): 113 g from family Scolopacidae
+- kirsan1 (Kiritimati Sandpiper): 113 g from family Scolopacidae
+- whwsan1 (Tahiti Sandpiper): 113 g from family Scolopacidae
+- moosan1 (Moorea Sandpiper): 113 g from family Scolopacidae
+- paibut1 (New Caledonian Buttonquail): 52.7 g from family Turnicidae
+- auspra1 (Australian Pratincole): 89.7 g from family Glareolidae
+- greauk (Great Auk): 246.7 g from family Alcidae
+- veggul1 (Vega Gull): 269 g from family Laridae
+- casgul4 (Mongolian Gull): 269 g from family Laridae
+- whiter4 (Blue-billed White-Tern): 269 g from family Laridae
+- santer1 (Sandwich Tern): 269 g from family Laridae
+- alagre1 (Alaotra Grebe): 411.9 g from family Podicipedidae
+- atigre1 (Atitlan Grebe): 411.9 g from family Podicipedidae
+- colgre1 (Colombian Grebe): 411.9 g from family Podicipedidae
+- rocpen3 (Eastern Rockhopper Penguin): 4194.35 g from family Spheniscidae
+- bkbalb (Black-browed Albatross): 3897.7 g from family Diomedeidae
+- necstp1 (New Caledonian Storm-Petrel): 38.2 g from family Oceanitidae
+- guspet (Guadalupe Storm-Petrel): 40.6 g from family Hydrobatidae
+- lshpet1 (Large St. Helena Petrel): 350.8 g from family Procellariidae
+- bkcpet2 (Jamaican Petrel): 350.8 g from family Procellariidae
+- whnpet (White-necked Petrel): 350.8 g from family Procellariidae
+- venpet1 (Vanuatu Petrel): 350.8 g from family Procellariidae
+- sshpet1 (Small St. Helena Petrel): 350.8 g from family Procellariidae
+- levshe1 (Yelkouan Shearwater): 350.8 g from family Procellariidae
+- balshe1 (Balearic Shearwater): 350.8 g from family Procellariidae
+- cocboo1 (Cocos Booby): 1641.4 g from family Sulidae
+- palcor1 (Pallas's Cormorant): 1806.5 g from family Phalacrocoracidae
+- reusol1 (Reunion Ibis): 1303 g from family Threskiornithidae
+- stbbit1 (Stripe-backed Bittern): 542.8 g from family Ardeidae
+- leabit (Least Bittern): 542.8 g from family Ardeidae
+- blabit1 (Black Bittern): 542.8 g from family Ardeidae
+- cinbit1 (Cinnamon Bittern): 542.8 g from family Ardeidae
+- schbit1 (Schrenck's Bittern): 542.8 g from family Ardeidae
+- dwabit1 (Dwarf Bittern): 542.8 g from family Ardeidae
+- litbit1 (Little Bittern): 542.8 g from family Ardeidae
+- yelbit (Yellow Bittern): 542.8 g from family Ardeidae
+- bkbbit1 (Black-backed Bittern): 542.8 g from family Ardeidae
+- nezbit1 (New Zealand Bittern): 542.8 g from family Ardeidae
+- bernih1 (Bermuda Night Heron): 542.8 g from family Ardeidae
+- reunih1 (Reunion Night Heron): 542.8 g from family Ardeidae
+- maunih1 (Mauritius Night Heron): 542.8 g from family Ardeidae
+- rodnih1 (Rodrigues Night Heron): 542.8 g from family Ardeidae
+- asnher1 (Ascension Night Heron): 542.8 g from family Ardeidae
+- strher3 (Lava Heron): 542.8 g from family Ardeidae
+- strher1 (Little Heron): 542.8 g from family Ardeidae
+- categr2 (Eastern Cattle-Egret): 542.8 g from family Ardeidae
+- coseag1 (Congo Snake-Eagle): 759.1 g from family Accipitridae
+- cregos1 (Crested Goshawk): 759.1 g from family Accipitridae
+- sulgos1 (Sulawesi Goshawk): 759.1 g from family Accipitridae
+- afrgos1 (African Goshawk): 759.1 g from family Accipitridae
+- chfspa1 (Chestnut-flanked Sparrowhawk): 759.1 g from family Accipitridae
+- retspa1 (Red-thighed Sparrowhawk): 759.1 g from family Accipitridae
+- litspa1 (Little Sparrowhawk): 759.1 g from family Accipitridae
+- besra1 (Besra): 759.1 g from family Accipitridae
+- smaspa1 (Small Sparrowhawk): 759.1 g from family Accipitridae
+- runspa1 (Rufous-necked Sparrowhawk): 759.1 g from family Accipitridae
+- colspa1 (Collared Sparrowhawk): 759.1 g from family Accipitridae
+- nebspa1 (New Britain Sparrowhawk): 759.1 g from family Accipitridae
+- vibspa1 (Vinous-breasted Sparrowhawk): 759.1 g from family Accipitridae
+- japspa1 (Japanese Sparrowhawk): 759.1 g from family Accipitridae
+- shikra1 (Shikra): 759.1 g from family Accipitridae
+- nicspa1 (Nicobar Sparrowhawk): 759.1 g from family Accipitridae
+- levspa1 (Levant Sparrowhawk): 759.1 g from family Accipitridae
+- grfhaw1 (Chinese Sparrowhawk): 759.1 g from family Accipitridae
+- imispa1 (Imitator Goshawk): 759.1 g from family Accipitridae
+- fragos2 (Frances's Sparrowhawk): 759.1 g from family Accipitridae
+- sptgos1 (Spot-tailed Goshawk): 759.1 g from family Accipitridae
+- gyhgos1 (Gray-headed Goshawk): 759.1 g from family Accipitridae
+- nebgos1 (New Britain Goshawk): 759.1 g from family Accipitridae
+- grygos1 (Gray Goshawk): 759.1 g from family Accipitridae
+- vargos1 (Variable Goshawk): 759.1 g from family Accipitridae
+- blmgos1 (Black-mantled Goshawk): 759.1 g from family Accipitridae
+- piegos1 (Pied Goshawk): 759.1 g from family Accipitridae
+- fijgos1 (Fiji Goshawk): 759.1 g from family Accipitridae
+- molgos1 (Moluccan Goshawk): 759.1 g from family Accipitridae
+- slmgos1 (Slaty-mantled Goshawk): 759.1 g from family Accipitridae
+- necgos1 (New Caledonian Goshawk): 759.1 g from family Accipitridae
+- brogos1 (Brown Goshawk): 759.1 g from family Accipitridae
+- shshaw (Sharp-shinned Hawk): 759.1 g from family Accipitridae
+- bichaw1 (Bicolored Hawk): 759.1 g from family Accipitridae
+- bichaw4 (Chilean Hawk): 759.1 g from family Accipitridae
+- gunhaw1 (Gundlach's Hawk): 759.1 g from family Accipitridae
+- norgos1 (Eurasian Goshawk): 759.1 g from family Accipitridae
+- meygos1 (Meyer's Goshawk): 759.1 g from family Accipitridae
+- blagos1 (Black Goshawk): 759.1 g from family Accipitridae
+- hengos1 (Henst's Goshawk): 759.1 g from family Accipitridae
+- tinhaw1 (Tiny Hawk): 759.1 g from family Accipitridae
+- semhaw2 (Semicollared Hawk): 759.1 g from family Accipitridae
+- affeag1 (African Fish-Eagle): 759.1 g from family Accipitridae
+- mafeag1 (Madagascar Fish-Eagle): 759.1 g from family Accipitridae
+- wbseag1 (White-bellied Sea-Eagle): 759.1 g from family Accipitridae
+- solsee1 (Sanford's Sea-Eagle): 759.1 g from family Accipitridae
+- berhaw1 (Bermuda Hawk): 759.1 g from family Accipitridae
+- combuz1 (Common Buzzard): 759.1 g from family Accipitridae
+- cobowl1 (Itombwe Owl): 400.4 g from family Tytonidae
+- sooowl1 (Sooty Owl): 400.4 g from family Tytonidae
+- ausmao7 (Australasian Masked-Owl): 400.4 g from family Tytonidae
+- eabowl1 (Eastern Barn Owl): 400.4 g from family Tytonidae
+- brnowl (American Barn Owl): 400.4 g from family Tytonidae
+- palowl2 (Palau Scops-Owl): 137.9 g from family Strigidae
+- prisco1 (Principe Scops-Owl): 137.9 g from family Strigidae
+- afsowl1 (African Scops-Owl): 137.9 g from family Strigidae
+- reusco1 (Reunion Scops-Owl): 137.9 g from family Strigidae
+- rodsco1 (Rodrigues Scops-Owl): 137.9 g from family Strigidae
+- mausco1 (Mauritius Scops-Owl): 137.9 g from family Strigidae
+- madsco1 (Madagascar Scops-Owl): 137.9 g from family Strigidae
+- grhowl13 (Paramo Horned Owl): 137.9 g from family Strigidae
+- grhowl19 (Tropical Horned Owl): 137.9 g from family Strigidae
+- fraeao1 (Fraser's Eagle-Owl): 137.9 g from family Strigidae
+- akeowl1 (Akun Eagle-Owl): 137.9 g from family Strigidae
+- veeowl1 (Verreaux's Eagle-Owl): 137.9 g from family Strigidae
+- sheowl1 (Shelley's Eagle-Owl): 137.9 g from family Strigidae
+- blafio2 (Northern Fish-Owl): 137.9 g from family Strigidae
+- blafio4 (Blakiston's Fish-Owl): 137.9 g from family Strigidae
+- dueowl1 (Dusky Eagle-Owl): 137.9 g from family Strigidae
+- sbeowl1 (Spot-bellied Eagle-Owl): 137.9 g from family Strigidae
+- baeowl1 (Barred Eagle-Owl): 137.9 g from family Strigidae
+- pheowl2 (Philippine Eagle-Owl): 137.9 g from family Strigidae
+- nopowl (Northern Pygmy-Owl): 137.9 g from family Strigidae
+- solboo1 (West Solomons Owl): 137.9 g from family Strigidae
+- solboo2 (Guadalcanal Owl): 137.9 g from family Strigidae
+- solboo3 (Malaita Owl): 137.9 g from family Strigidae
+- solboo4 (Makira Owl): 137.9 g from family Strigidae
+- motowl (Mottled Owl): 137.9 g from family Strigidae
+- bawowl1 (Black-and-white Owl): 137.9 g from family Strigidae
+- bkbowl1 (Black-banded Owl): 137.9 g from family Strigidae
+- rubowl3 (Rufous-banded Owl): 137.9 g from family Strigidae
+- tawowl1 (Tawny Owl): 137.9 g from family Strigidae
+- bswowl1 (Bermuda Saw-whet Owl): 137.9 g from family Strigidae
+- lauowl1 (Laughing Owl): 137.9 g from family Strigidae
+- bkttro7 (Graceful Black-throated Trogon): 79.65 g from family Trogonidae
+- bkttro5 (Choco Black-throated Trogon): 79.65 g from family Trogonidae
+- bkttro4 (Atlantic Black-throated Trogon): 79.65 g from family Trogonidae
+- sthhoo1 (St. Helena Hoopoe): 66.9 g from family Upupidae
+- rucmot1 (Mexican Motmot): 111 g from family Momotidae
+- rucmot6 (Guatemalan Motmot): 111 g from family Momotidae
+- shbkoo1 (Shovel-billed Kookaburra): 51.7 g from family Alcedinidae
+- tuakin2 (Tuamotu Kingfisher): 51.7 g from family Alcedinidae
+- yebkin1 (Yellow-billed Kingfisher): 51.7 g from family Alcedinidae
+- yebkin5 (Ochre-bellied Kingfisher): 51.7 g from family Alcedinidae
+- compak17 (Morotai Paradise-Kingfisher): 51.7 g from family Alcedinidae
+- compak18 (Halmahera Paradise-Kingfisher): 51.7 g from family Alcedinidae
+- compak7 (Obi Paradise-Kingfisher): 51.7 g from family Alcedinidae
+- compak19 (Amboyna Paradise-Kingfisher): 51.7 g from family Alcedinidae
+- compak16 (Papuan Paradise-Kingfisher): 51.7 g from family Alcedinidae
+- compak15 (Rossel Paradise-Kingfisher): 51.7 g from family Alcedinidae
+- darbar1 (D'Arnaud's Barbet): 47.3 g from family Lybiidae
+- reftin1 (Northern Red-fronted Tinkerbird): 47.3 g from family Lybiidae
+- chbtou1 (Channel-billed Toucan): 217.45 g from family Ramphastidae
+- grefla4 (Malabar Flameback): 62.4 g from family Picidae
+- olbwoo2 (Olive-backed Woodpecker): 62.4 g from family Picidae
+- gyfwoo1 (Gray-headed Woodpecker): 62.4 g from family Picidae
+- brewoo1 (Brown-eared Woodpecker): 62.4 g from family Picidae
+- buswoo1 (Buff-spotted Woodpecker): 62.4 g from family Picidae
+- goowoo1 (Golden-olive Woodpecker): 62.4 g from family Picidae
+- berfli1 (Bermuda Flicker): 62.4 g from family Picidae
+- guacar2 (Guadalupe Caracara): 209 g from family Falconidae
+- yehcar1 (Yellow-headed Caracara): 209 g from family Falconidae
+- chicar1 (Chimango Caracara): 209 g from family Falconidae
+- carcar1 (Carunculated Caracara): 209 g from family Falconidae
+- moucar1 (Mountain Caracara): 209 g from family Falconidae
+- whtcar1 (White-throated Caracara): 209 g from family Falconidae
+- strcar1 (Striated Caracara): 209 g from family Falconidae
+- whrfal1 (White-rumped Falcon): 209 g from family Falconidae
+- reukes1 (Reunion Kestrel): 209 g from family Falconidae
+- noikak1 (Norfolk Island Kaka): 645.5 g from family Strigopidae
+- kakapo2 (Kakapo): 645.5 g from family Strigopidae
+- yeccoc5 (Citron-crested Cockatoo): 523.7 g from family Cacatuidae
+- ocepar1 (Oceanic Eclectus): 86.45 g from family Psittaculidae
+- maspar1 (Mascarene Parrot): 86.45 g from family Psittaculidae
+- seypar2 (Seychelles Parakeet): 86.45 g from family Psittaculidae
+- newpar2 (Newton's Parakeet): 86.45 g from family Psittaculidae
+- magpar1 (Mauritius Gray Parrot): 86.45 g from family Psittaculidae
+- brbpar3 (Broad-billed Parrot): 86.45 g from family Psittaculidae
+- rodpar1 (Rodrigues Parrot): 86.45 g from family Psittaculidae
+- raipar1 (Raiatea Kakariki): 86.45 g from family Psittaculidae
+- blfpar2 (Black-fronted Kakariki): 86.45 g from family Psittaculidae
+- parpar2 (Paradise Parrot): 86.45 g from family Psittaculidae
+- orbfip1 (Dusky-cheeked Fig-Parrot): 86.45 g from family Psittaculidae
+- orbfip2 (Blue-fronted Fig-Parrot): 86.45 g from family Psittaculidae
+- crbfip1 (Black-fronted Fig-Parrot): 86.45 g from family Psittaculidae
+- lafpar1 (Large Fig-Parrot): 86.45 g from family Psittaculidae
+- edfpar1 (Edwards's Fig-Parrot): 86.45 g from family Psittaculidae
+- safpar1 (Salvadori's Fig-Parrot): 86.45 g from family Psittaculidae
+- neclor1 (New Caledonian Lorikeet): 86.45 g from family Psittaculidae
+- collor1 (Collared Lory): 86.45 g from family Psittaculidae
+- gollor1 (Goldie's Lorikeet): 86.45 g from family Psittaculidae
+- ornlor1 (Ornate Lorikeet): 86.45 g from family Psittaculidae
+- phihap11 (Black-billed Hanging-Parrot): 86.45 g from family Psittaculidae
+- spfpar1 (Speckle-faced Parrot): 146 g from family Psittacidae
+- marpar1 (Martinique Amazon): 146 g from family Psittacidae
+- guapar1 (Guadeloupe Amazon): 146 g from family Psittacidae
+- glamac1 (Glaucous Macaw): 146 g from family Psittacidae
+- carpar (Carolina Parakeet): 146 g from family Psittacidae
+- cubmac1 (Cuban Macaw): 146 g from family Psittacidae
+- purpar2 (Puerto Rican Parakeet): 146 g from family Psittacidae
+- guapar2 (Guadeloupe Parakeet): 146 g from family Psittacidae
+- stiwre1 (Stephens Island Wren): 12.25 g from family Acanthisittidae
+- buswre1 (Bush Wren): 12.25 g from family Acanthisittidae
+- barbro2 (Ayeyarwady Broadbill): 34 g from family Eurylaimidae
+- barbro3 (Black-and-red Broadbill): 34 g from family Eurylaimidae
+- hoopit4 (Nicobar Hooded Pitta): 72.4 g from family Pittidae
+- hoopit8 (Minahasa Hooded Pitta): 72.4 g from family Pittidae
+- sicant1 (Silvery-cheeked Antshrike): 17.7 g from family Thamnophilidae
+- caaant1 (Caatinga Antwren): 17.7 g from family Thamnophilidae
+- whfant2 (White-flanked Antwren): 17.7 g from family Thamnophilidae
+- bkhant7 (Black-capped Antthrush): 69 g from family Formicariidae
+- bkhant8 (Black-hooded Antthrush): 69 g from family Formicariidae
+- plaxen2 (Northern Plain-Xenops): 24.5 g from family Furnariidae
+- crytre1 (Cryptic Treehunter): 24.5 g from family Furnariidae
+- swfgle (Slaty-winged Foliage-gleaner): 24.5 g from family Furnariidae
+- rurfog1 (Rufous-rumped Foliage-gleaner): 24.5 g from family Furnariidae
+- alfgle1 (Alagoas Foliage-gleaner): 24.5 g from family Furnariidae
+- butfog9 (Fawn-throated Foliage-gleaner): 24.5 g from family Furnariidae
+- araman1 (Araripe Manakin): 14.9 g from family Pipridae
+- helman1 (Helmeted Manakin): 14.9 g from family Pipridae
+- bucman1 (Velvety Manakin): 14.9 g from family Pipridae
+- swtcot1 (Swallow-tailed Cotinga): 73.75 g from family Cotingidae
+- bawbec6 (Cryptic Becard): 29.7 g from family Tityridae
+- olsfly2 (Olive-streaked Flycatcher): 12.05 g from family Tyrannidae
+- olsfly1 (Olive-striped Flycatcher): 12.05 g from family Tyrannidae
+- sdmtyr2 (Serra do Mar Bristle-Tyrant): 12.05 g from family Tyrannidae
+- saptyr1 (Sao Paulo Bristle-Tyrant): 12.05 g from family Tyrannidae
+- soubet1 (Panama Beardless-Tyrannulet): 12.05 g from family Tyrannidae
+- soubet6 (Cauca Beardless-Tyrannulet): 12.05 g from family Tyrannidae
+- soubet7 (Venezuelan Beardless-Tyrannulet): 12.05 g from family Tyrannidae
+- soubet16 (Amazonian Beardless-Tyrannulet): 12.05 g from family Tyrannidae
+- soubet17 (Pacific Beardless-Tyrannulet): 12.05 g from family Tyrannidae
+- soubet2 (Southeastern Beardless-Tyrannulet): 12.05 g from family Tyrannidae
+- moctyr6 (Tumbesian Tyrannulet): 12.05 g from family Tyrannidae
+- moctyr4 (Marañon Tyrannulet): 12.05 g from family Tyrannidae
+- y01204 (Mouse-colored Tyrannulet): 12.05 g from family Tyrannidae
+- whcela1 (White-crested Elaenia): 12.05 g from family Tyrannidae
+- graela4 (Hispaniolan Elaenia): 12.05 g from family Tyrannidae
+- roltyr1 (White-fronted Tyrannulet): 12.05 g from family Tyrannidae
+- roltyr3 (Rough-legged Tyrannulet): 12.05 g from family Tyrannidae
+- blctyr1 (Black-capped Tyrannulet): 12.05 g from family Tyrannidae
+- ashtyr1 (Ashy-headed Tyrannulet): 12.05 g from family Tyrannidae
+- tartyr1 (Tawny-rumped Tyrannulet): 12.05 g from family Tyrannidae
+- tuffly1 (Tawny Tufted-Flycatcher): 12.05 g from family Tyrannidae
+- yebtuf1 (Lemon-bellied Tufted-Flycatcher): 12.05 g from family Tyrannidae
+- crocht1 (Crowned Chat-Tyrant): 12.05 g from family Tyrannidae
+- nutfly2 (Salvadoran Flycatcher): 12.05 g from family Tyrannidae
+- macbow2 (MacGregor's Bowerbird): 139 g from family Ptilonorhynchidae
+- sangra1 (Sandhill Grasswren): 12.4 g from family Maluridae
+- chibel1 (Chatham Islands Bellbird): 20.700000000000003 g from family Meliphagidae
+- soomel1 (Sooty Honeyeater): 20.700000000000003 g from family Meliphagidae
+- shbmel1 (Short-bearded Honeyeater): 20.700000000000003 g from family Meliphagidae
+- lobmel1 (Long-bearded Honeyeater): 20.700000000000003 g from family Meliphagidae
+- banmyz2 (Banda Islands Myzomela): 20.700000000000003 g from family Meliphagidae
+- banmyz3 (Tanimbar Myzomela): 20.700000000000003 g from family Meliphagidae
+- banmyz4 (Babar Myzomela): 20.700000000000003 g from family Meliphagidae
+- yetscr1 (Yellow-throated Scrubwren): 7.6 g from family Acanthizidae
+- momwar1 (Mountain Mouse-Warbler): 7.6 g from family Acanthizidae
+- rumwar1 (Rusty Mouse-Warbler): 7.6 g from family Acanthizidae
+- whbscr3 (Spotted Scrubwren): 7.6 g from family Acanthizidae
+- pabscr1 (Pale-billed Scrubwren): 7.6 g from family Acanthizidae
+- bimwar1 (Bicolored Scrubwren): 7.6 g from family Acanthizidae
+- vogscr1 (Vogelkop Scrubwren): 7.6 g from family Acanthizidae
+- bufscr1 (Buff-faced Scrubwren): 7.6 g from family Acanthizidae
+- gygscr1 (Gray-green Scrubwren): 7.6 g from family Acanthizidae
+- papscr1 (Papuan Scrubwren): 7.6 g from family Acanthizidae
+- lohger1 (Lord Howe Gerygone): 7.6 g from family Acanthizidae
+- blujeb1 (Northern Blue Jewel-babbler): 62.4 g from family Cinclosomatidae
+- blujeb5 (Southern Blue Jewel-babbler): 62.4 g from family Cinclosomatidae
+- hoojeb1 (Hooded Jewel-babbler): 62.4 g from family Cinclosomatidae
+- scamin3 (Orange Minivet): 48.9 g from family Campephagidae
+- scamin1 (Scarlet Minivet): 48.9 g from family Campephagidae
+- larcuc3 (Malaysian Cuckooshrike): 48.9 g from family Campephagidae
+- babcuc19 (Mindoro Cuckooshrike): 48.9 g from family Campephagidae
+- mincuc1 (Mindanao Cuckooshrike): 48.9 g from family Campephagidae
+- babcuc24 (Sulu Cuckooshrike): 48.9 g from family Campephagidae
+- halcus1 (Halmahera Cuckooshrike): 48.9 g from family Campephagidae
+- timcic1 (Timor Cicadabird): 48.9 g from family Campephagidae
+- solcuc4 (Malaita Cicadabird): 48.9 g from family Campephagidae
+- sancic1 (Sangihe Cicadabird): 48.9 g from family Campephagidae
+- cemcic1 (Central Melanesian Cicadabird): 48.9 g from family Campephagidae
+- comcic19 (Banggai Cicadabird): 48.9 g from family Campephagidae
+- comcic11 (South Moluccan Cicadabird): 48.9 g from family Campephagidae
+- gyegre2 (Beni Greenlet): 12.2 g from family Vireonidae
+- tacgre4 (Rufous-fronted Brownlet): 12.2 g from family Vireonidae
+- tacgre3 (Para Brownlet): 12.2 g from family Vireonidae
+- fijwhi1 (Yellow-throated Fiji Whistler): 30.4 g from family Pachycephalidae
+- temwhi2 (Nendo Whistler): 30.4 g from family Pachycephalidae
+- temwhi3 (Utupua Whistler): 30.4 g from family Pachycephalidae
+- rubwhi1 (Tenggara Whistler): 30.4 g from family Pachycephalidae
+- yetwhi6 (Babar Whistler): 30.4 g from family Pachycephalidae
+- y01193 (Golden Whistler): 30.4 g from family Pachycephalidae
+- drawhi1 (Drab Whistler): 30.4 g from family Pachycephalidae
+- datori7 (Ventriloquial Oriole): 72 g from family Oriolidae
+- noipio1 (North Island Piopio): 72 g from family Oriolidae
+- soipio1 (South Island Piopio): 72 g from family Oriolidae
+- chefan1 (Cheerful Fantail): 13.05 g from family Rhipiduridae
+- norfan1 (Northern Fantail): 13.05 g from family Rhipiduridae
+- arafan2 (Supertramp Fantail): 13.05 g from family Rhipiduridae
+- ruffan3 (Gilolo Fantail): 13.05 g from family Rhipiduridae
+- ruffan4 (Louisiade Fantail): 13.05 g from family Rhipiduridae
+- mirfan1 (Micronesian Rufous Fantail): 13.05 g from family Rhipiduridae
+- sorfan1 (Solomons Rufous Fantail): 13.05 g from family Rhipiduridae
+- paldro1 (Palawan Drongo): 50.5 g from family Dicruridae
+- glmman2 (Glossy-mantled Manucode): 164.09 g from family Paradisaeidae
+- lawpar2 (Eastern Parotia): 164.09 g from family Paradisaeidae
+- grsbop1 (Greater Lophorina): 164.09 g from family Paradisaeidae
+- wbopar1 (Wilson's Bird-of-Paradise): 164.09 g from family Paradisaeidae
+- mbopar2 (Magnificent Bird-of-Paradise): 164.09 g from family Paradisaeidae
+- maumon1 (Maupiti Monarch): 16.4 g from family Monarchidae
+- eiamon1 (Eiao Monarch): 16.4 g from family Monarchidae
+- nuhmon1 (Nuku Hiva Monarch): 16.4 g from family Monarchidae
+- molmon1 (Moluccan Spectacled Monarch): 16.4 g from family Monarchidae
+- spemon10 (Louisiade Spectacled Monarch): 16.4 g from family Monarchidae
+- velmon1 (Vella Lavella Monarch): 16.4 g from family Monarchidae
+- guafly1 (Guam Flycatcher): 16.4 g from family Monarchidae
+- yebmag (Yellow-billed Magpie): 178 g from family Corvidae
+- eurjac (Eurasian Jackdaw): 178 g from family Corvidae
+- daujac1 (Daurian Jackdaw): 178 g from family Corvidae
+- slbcro5 (Sierra Madre Crow): 178 g from family Corvidae
+- slbcro6 (Samar Crow): 178 g from family Corvidae
+- slbcro12 (Sulawesi Crow): 178 g from family Corvidae
+- slbcro7 (Palawan Crow): 178 g from family Corvidae
+- cupcro1 (Cuban Palm-Crow): 178 g from family Corvidae
+- carcro1 (Carrion Crow): 178 g from family Corvidae
+- hoocro1 (Hooded Crow): 178 g from family Corvidae
+- labcro1 (Large-billed Crow): 178 g from family Corvidae
+- labcro15 (Philippine Jungle Crow): 178 g from family Corvidae
+- colcro1 (Collared Crow): 178 g from family Corvidae
+- spober3 (Spotted Berrypecker): 12 g from family Melanocharitidae
+- kokako4 (South Island Kokako): 74.7 g from family Callaeidae
+- huia1 (Huia): 74.7 g from family Callaeidae
+- pacrob3 (Solomons Robin): 19.4 g from family Petroicidae
+- blcrob1 (Black-chinned Robin): 19.4 g from family Petroicidae
+- whrrob2 (White-rumped Robin): 19.4 g from family Petroicidae
+- manrob1 (Mangrove Robin): 19.4 g from family Petroicidae
+- whwrob2 (White-winged Robin): 19.4 g from family Petroicidae
+- bugrob1 (Blue-gray Robin): 19.4 g from family Petroicidae
+- smorob2 (Smoky Robin): 19.4 g from family Petroicidae
+- olyrob1 (Banded Yellow Robin): 19.4 g from family Petroicidae
+- payrob1 (Pale-yellow Robin): 19.4 g from family Petroicidae
+- whfrob1 (White-faced Robin): 19.4 g from family Petroicidae
+- ruslar1 (Rusty Lark): 24.6 g from family Alaudidae
+- gillar1 (Gillett's Lark): 24.6 g from family Alaudidae
+- burbus1 (Burmese Bushlark): 24.6 g from family Alaudidae
+- indbus3 (Indochinese Bushlark): 24.6 g from family Alaudidae
+- jerbus2 (Jerdon's Bushlark): 24.6 g from family Alaudidae
+- indbus2 (Indian Bushlark): 24.6 g from family Alaudidae
+- benbus1 (Bengal Bushlark): 24.6 g from family Alaudidae
+- collar1 (Collared Lark): 24.6 g from family Alaudidae
+- flalar1 (Flappet Lark): 24.6 g from family Alaudidae
+- anglar1 (Angola Lark): 24.6 g from family Alaudidae
+- higlar1 (Highland Lark): 24.6 g from family Alaudidae
+- caclar1 (Cape Clapper Lark): 24.6 g from family Alaudidae
+- eaclar1 (Eastern Clapper Lark): 24.6 g from family Alaudidae
+- plalar1 (Plains Lark): 24.6 g from family Alaudidae
+- runlar7 (Plateau Lark): 24.6 g from family Alaudidae
+- runlar1 (Rufous-naped Lark): 24.6 g from family Alaudidae
+- senlar1 (Sentinel Lark): 24.6 g from family Alaudidae
+- slblar1 (Somali Lark): 24.6 g from family Alaudidae
+- rewlar1 (Red-winged Lark): 24.6 g from family Alaudidae
+- runlar2 (Russet Lark): 24.6 g from family Alaudidae
+- kidlar1 (Kidepo Lark): 24.6 g from family Alaudidae
+- grbcam1 (Green-backed Camaroptera): 9.850000000000001 g from family Cisticolidae
+- yebapa1 (Yellow-breasted Apalis): 9.850000000000001 g from family Cisticolidae
+- karapa3 (Maasai Apalis): 9.850000000000001 g from family Cisticolidae
+- waicis2 (Lynes's Cisticola): 9.850000000000001 g from family Cisticolidae
+- albwar1 (Aldabra Brush-Warbler): 16 g from family Acrocephalidae
+- malbrw1 (Malagasy Brush-Warbler): 16 g from family Acrocephalidae
+- nigrew1 (Nightingale Reed Warbler): 16 g from family Acrocephalidae
+- agurew1 (Aguiguan Reed Warbler): 16 g from family Acrocephalidae
+- pagrew1 (Pagan Reed Warbler): 16 g from family Acrocephalidae
+- soirew1 (Society Islands Reed Warbler): 16 g from family Acrocephalidae
+- moorew1 (Moorea Reed Warbler): 16 g from family Acrocephalidae
+- manrew2 (Mangareva Reed Warbler): 16 g from family Acrocephalidae
+- chifer1 (Chatham Islands Fernbird): 18.65 g from family Locustellidae
+- guathi1 (Guadalcanal Thicketbird): 18.65 g from family Locustellidae
+- necgra1 (New Caledonian Thicketbird): 18.65 g from family Locustellidae
+- sqtsaw2 (Square-tailed Saw-wing): 15.9 g from family Hirundinidae
+- sqtsaw3 (Congo Saw-wing): 15.9 g from family Hirundinidae
+- rerswa8 (European Red-rumped Swallow): 15.9 g from family Hirundinidae
+- rerswa12 (African Red-rumped Swallow): 15.9 g from family Hirundinidae
+- easmog5 (Kikuyu Mountain Greenbul): 34.5 g from family Pycnonotidae
+- yesbul1 (Yellow-streaked Greenbul): 34.5 g from family Pycnonotidae
+- crsbul1 (Cream-striped Bulbul): 34.5 g from family Pycnonotidae
+- sergob1 (Seram Golden-Bulbul): 34.5 g from family Pycnonotidae
+- sergob2 (Ambon Golden-Bulbul): 34.5 g from family Pycnonotidae
+- yewbul1 (Yellow-wattled Bulbul): 34.5 g from family Pycnonotidae
+- gyhbul1 (Gray-headed Bulbul): 34.5 g from family Pycnonotidae
+- blhbul1 (Black-headed Bulbul): 34.5 g from family Pycnonotidae
+- andbul1 (Andaman Bulbul): 34.5 g from family Pycnonotidae
+- blwbul1 (Blue-wattled Bulbul): 34.5 g from family Pycnonotidae
+- spebul1 (Spectacled Bulbul): 34.5 g from family Pycnonotidae
+- gybbul1 (Gray-bellied Bulbul): 34.5 g from family Pycnonotidae
+- scbbul1 (Scaly-breasted Bulbul): 34.5 g from family Pycnonotidae
+- olwbul9 (Olive-winged Bulbul): 34.5 g from family Pycnonotidae
+- olwbul3 (Barusan Bulbul): 34.5 g from family Pycnonotidae
+- mouwar4 (Negros Leaf Warbler): 7.8 g from family Phylloscopidae
+- tilwar2 (Timor Leaf Warbler): 7.8 g from family Phylloscopidae
+- sulwar1 (Sulawesi Leaf Warbler): 7.8 g from family Phylloscopidae
+- pygtit1 (Pygmy Tit): 6.7 g from family Aegithalidae
+- bkbtit3 (Black-browed Tit): 6.7 g from family Aegithalidae
+- grepar1 (Great Parrotbill): 11.95 g from family Paradoxornithidae
+- bropar1 (Brown Parrotbill): 11.95 g from family Paradoxornithidae
+- thtpar1 (Three-toed Parrotbill): 11.95 g from family Paradoxornithidae
+- gyhpar3 (Gray-headed Parrotbill): 11.95 g from family Paradoxornithidae
+- bkhpar1 (Black-headed Parrotbill): 11.95 g from family Paradoxornithidae
+- ruhpar3 (White-breasted Parrotbill): 11.95 g from family Paradoxornithidae
+- ruhpar2 (Rufous-headed Parrotbill): 11.95 g from family Paradoxornithidae
+- shtpar3 (Short-tailed Parrotbill): 11.95 g from family Paradoxornithidae
+- blbpar3 (Pale-billed Parrotbill): 11.95 g from family Paradoxornithidae
+- spepar2 (Spectacled Parrotbill): 11.95 g from family Paradoxornithidae
+- gyhpar4 (Gray-hooded Parrotbill): 11.95 g from family Paradoxornithidae
+- bnwpar1 (Eye-ringed Parrotbill): 11.95 g from family Paradoxornithidae
+- bnwpar2 (Brown-winged Parrotbill): 11.95 g from family Paradoxornithidae
+- vitpar1 (Vinous-throated Parrotbill): 11.95 g from family Paradoxornithidae
+- astpar1 (Ashy-throated Parrotbill): 11.95 g from family Paradoxornithidae
+- rutpar2 (Rusty-throated Parrotbill): 11.95 g from family Paradoxornithidae
+- bkcbab3 (Calabarzon Babbler): 11.2 g from family Zosteropidae
+- marwhe1 (Marianne White-eye): 11.2 g from family Zosteropidae
+- noywhe2 (Angola White-eye): 11.2 g from family Zosteropidae
+- anjwhe1 (Anjouan White-eye): 11.2 g from family Zosteropidae
+- mohwhe1 (Moheli White-eye): 11.2 g from family Zosteropidae
+- madwhe1 (Malagasy White-eye): 11.2 g from family Zosteropidae
+- aldwhe1 (Aldabra White-eye): 11.2 g from family Zosteropidae
+- merwhe1 (Meratus White-eye): 11.2 g from family Zosteropidae
+- bfweye1 (Black-fronted White-eye): 11.2 g from family Zosteropidae
+- crtwhe2 (Morotai White-eye): 11.2 g from family Zosteropidae
+- wawwhe1 (Wangi-wangi White-eye): 11.2 g from family Zosteropidae
+- gytwhe4 (Guadalcanal White-eye): 11.2 g from family Zosteropidae
+- wcweye1 (White-chested White-eye): 11.2 g from family Zosteropidae
+- robwhe1 (Robust White-eye): 11.2 g from family Zosteropidae
+- sttbab1 (Pin-striped Tit-Babbler): 23.3 g from family Timaliidae
+- pistib2 (Palawan Tit-Babbler): 23.3 g from family Timaliidae
+- chbscb2 (Sunda Scimitar-Babbler): 23.3 g from family Timaliidae
+- reescb1 (Red-eyed Scimitar-Babbler): 23.3 g from family Timaliidae
+- bbcbab1 (Bornean Black-capped Babbler): 24.8 g from family Pellorneidae
+- shtbab1 (Short-tailed Babbler): 24.8 g from family Pellorneidae
+- guigna2 (Rio Negro Gnatcatcher): 6.3 g from family Polioptilidae
+- inagna1 (Inambari Gnatcatcher): 6.3 g from family Polioptilidae
+- guigna4 (Klages's Gnatcatcher): 6.3 g from family Polioptilidae
+- cinwre1 (Kalinago Wren): 19.1 g from family Troglodytidae
+- houwre8 (St. Lucia Wren): 19.1 g from family Troglodytidae
+- houwre10 (St. Vincent Wren): 19.1 g from family Troglodytidae
+- houwre11 (Grenada Wren): 19.1 g from family Troglodytidae
+- houwre4 (Southern House Wren): 19.1 g from family Troglodytidae
+- marwre1 (Western Marsh Wren): 19.1 g from family Troglodytidae
+- eamwre1 (Eastern Marsh Wren): 19.1 g from family Troglodytidae
+- reboxp1 (Red-billed Oxpecker): 58.5 g from family Buphagidae
+- kossta1 (Kosrae Starling): 76.94999999999999 g from family Sturnidae
+- myssta1 (Mysterious Starling): 76.94999999999999 g from family Sturnidae
+- norsta1 (Tasman Starling): 76.94999999999999 g from family Sturnidae
+- raista2 (Raiatea Starling): 76.94999999999999 g from family Sturnidae
+- hilmyn (Common Hill Myna): 76.94999999999999 g from family Sturnidae
+- aspsta7 (Siamese Pied Starling): 76.94999999999999 g from family Sturnidae
+- rodsta2 (Rodrigues Starling): 76.94999999999999 g from family Sturnidae
+- reusta1 (Reunion Starling): 76.94999999999999 g from family Sturnidae
+- chtsta2 (Chestnut-tailed Starling): 76.94999999999999 g from family Sturnidae
+- malsta1 (Malabar Starling): 76.94999999999999 g from family Sturnidae
+- abbsta2 (Abbott's Starling): 76.94999999999999 g from family Sturnidae
+- whbthr4 (St. Lucia Thrasher): 62.45 g from family Mimidae
+- kamao (Kamao): 67.3 g from family Turdidae
+- amaui (Amaui): 67.3 g from family Turdidae
+- bonthr2 (Bonin Thrush): 67.3 g from family Turdidae
+- chithr2 (Chinese Thrush): 67.3 g from family Turdidae
+- grothr2 (Ethiopian Thrush): 67.3 g from family Turdidae
+- grothr1 (Groundscraper Thrush): 67.3 g from family Turdidae
+- islthr22 (Mindoro Island-Thrush): 67.3 g from family Turdidae
+- islthr36 (Luzon Island-Thrush): 67.3 g from family Turdidae
+- minist1 (Mindanao Island-Thrush): 67.3 g from family Turdidae
+- islthr9 (Christmas Island-Thrush): 67.3 g from family Turdidae
+- walist1 (Wallacean Island-Thrush): 67.3 g from family Turdidae
+- sunist1 (Sundaic Island-Thrush): 67.3 g from family Turdidae
+- molist1 (Moluccan Island-Thrush): 67.3 g from family Turdidae
+- papist1 (Papuan Island-Thrush): 67.3 g from family Turdidae
+- bisist1 (Bismarck Island-Thrush): 67.3 g from family Turdidae
+- islthr48 (Bougainville Island-Thrush): 67.3 g from family Turdidae
+- solist1 (Solomons Island-Thrush): 67.3 g from family Turdidae
+- vanist1 (Vanikoro Island-Thrush): 67.3 g from family Turdidae
+- islthr28 (White-headed Island-Thrush): 67.3 g from family Turdidae
+- islthr40 (New Caledonian Island-Thrush): 67.3 g from family Turdidae
+- norist1 (Tasman Sea Island-Thrush): 67.3 g from family Turdidae
+- islthr30 (Samoan Island-Thrush): 67.3 g from family Turdidae
+- fijist1 (Fiji Island-Thrush): 67.3 g from family Turdidae
+- sulthr1 (Sulawesi Thrush): 67.3 g from family Turdidae
+- grcthr1 (Grand Cayman Thrush): 67.3 g from family Turdidae
+- whtthr2 (Dagua Thrush): 67.3 g from family Turdidae
+- whnthr1 (Gray-flanked Thrush): 67.3 g from family Turdidae
+- spofly3 (Mediterranean Flycatcher): 19.55 g from family Muscicapidae
+- boefly1 (Böhm's Flycatcher): 19.55 g from family Muscicapidae
+- ussfly1 (Ussher's Flycatcher): 19.55 g from family Muscicapidae
+- soofly1 (Sooty Flycatcher): 19.55 g from family Muscicapidae
+- hercha1 (Herero Chat): 19.55 g from family Muscicapidae
+- silver1 (Silverbird): 19.55 g from family Muscicapidae
+- fisfly1 (Fiscal Flycatcher): 19.55 g from family Muscicapidae
+- whrsha5 (Sri Lanka Shama): 19.55 g from family Muscicapidae
+- whrsha16 (White-crowned Shama): 19.55 g from family Muscicapidae
+- whrsha17 (Maratua Shama): 19.55 g from family Muscicapidae
+- whrsha11 (Kangean Shama): 19.55 g from family Muscicapidae
+- larsha1 (Larwo Shama): 19.55 g from family Muscicapidae
+- whtfly2 (White-tailed Flycatcher): 19.55 g from family Muscicapidae
+- matfly2 (Matinan Flycatcher): 19.55 g from family Muscicapidae
+- blffly1 (Blue-fronted Flycatcher): 19.55 g from family Muscicapidae
+- tibfly2 (Timor Blue Flycatcher): 19.55 g from family Muscicapidae
+- flojuf2 (Flores Jungle Flycatcher): 19.55 g from family Muscicapidae
+- flojuf1 (Sumba Jungle Flycatcher): 19.55 g from family Muscicapidae
+- merjuf1 (Meratus Blue Flycatcher): 19.55 g from family Muscicapidae
+- subfly5 (Kalao Blue Flycatcher): 19.55 g from family Muscicapidae
+- chtjuf3 (Sulu Jungle Flycatcher): 19.55 g from family Muscicapidae
+- chtjuf4 (Crocker Jungle Flycatcher): 19.55 g from family Muscicapidae
+- morcha1 (Mountain Robin-Chat): 19.55 g from family Muscicapidae
+- eurrob1 (European Robin): 19.55 g from family Muscicapidae
+- cairob1 (Canary Islands Robin): 19.55 g from family Muscicapidae
+- obfrob1 (Orange-breasted Forest Robin): 19.55 g from family Muscicapidae
+- forrob4 (Yellow-breasted Forest Robin): 19.55 g from family Muscicapidae
+- bluwht1 (Chinese Whistling-Thrush): 19.55 g from family Muscicapidae
+- bluwht2 (Yellow-billed Whistling-Thrush): 19.55 g from family Muscicapidae
+- whcfor4 (Northern Forktail): 19.55 g from family Muscicapidae
+- whcfor10 (Malayan Forktail): 19.55 g from family Muscicapidae
+- whcfor5 (Javan Forktail): 19.55 g from family Muscicapidae
+- whcfor3 (Bornean Forktail): 19.55 g from family Muscicapidae
+- sunrob2 (Sumatran Blue Robin): 19.55 g from family Muscicapidae
+- refblu2 (Qilian Bluetail): 19.55 g from family Muscicapidae
+- whbbur3 (Taiwan Bush-Robin): 19.55 g from family Muscicapidae
+- sibsto1 (Siberian Stonechat): 19.55 g from family Muscicapidae
+- stonec7 (Amur Stonechat): 19.55 g from family Muscicapidae
+- whbcha2 (Arnot's Chat): 19.55 g from family Muscicapidae
+- mouwhe6 (Maghreb Wheatear): 19.55 g from family Muscicapidae
+- mouwhe14 (Mourning Wheatear): 19.55 g from family Muscicapidae
+- kauoo (Kauai Oo): 20.8 g from order Passeriformes
+- oahoo (Oahu Oo): 20.8 g from order Passeriformes
+- bisoo (Bishop's Oo): 20.8 g from order Passeriformes
+- hawoo (Hawaii Oo): 20.8 g from order Passeriformes
+- kioea (Kioea): 20.8 g from order Passeriformes
+- olbflo1 (Olive-backed Flowerpecker): 8.5 g from family Dicaeidae
+- thbflo1 (Thick-billed Flowerpecker): 8.5 g from family Dicaeidae
+- brbflo1 (Brown-backed Flowerpecker): 8.5 g from family Dicaeidae
+- whiflo1 (Whiskered Flowerpecker): 8.5 g from family Dicaeidae
+- yevflo1 (Yellow-vented Flowerpecker): 8.5 g from family Dicaeidae
+- yebflo1 (Yellow-bellied Flowerpecker): 8.5 g from family Dicaeidae
+- whtflo1 (White-throated Flowerpecker): 8.5 g from family Dicaeidae
+- blbflo6 (Flores Flowerpecker): 8.5 g from family Dicaeidae
+- stusun1 (Stuhlmann's Sunbird): 8.945 g from family Nectariniidae
+- olbsun4 (Ornate Sunbird): 8.945 g from family Nectariniidae
+- olbsun23 (Tukangbesi Sunbird): 8.945 g from family Nectariniidae
+- olbsun2 (Sahul Sunbird): 8.945 g from family Nectariniidae
+- olbsun6 (Palawan Sunbird): 8.945 g from family Nectariniidae
+- olbsun1 (South Moluccan Sunbird): 8.945 g from family Nectariniidae
+- olbsun8 (Flores Sea Sunbird): 8.945 g from family Nectariniidae
+- ruvwea1 (Ruvu Weaver): 25.3 g from family Ploceidae
+- reufod1 (Reunion Fody): 25.3 g from family Ploceidae
+- stafin1 (Star Finch): 11.9 g from family Estrildidae
+- plhfin1 (Plum-headed Finch): 11.9 g from family Estrildidae
+- zebfin2 (Zebra Finch): 11.9 g from family Estrildidae
+- roypar1 (Royal Parrotfinch): 11.9 g from family Estrildidae
+- auspip2 (Australian Pipit): 23.9 g from family Motacillidae
+- rtweye1 (Madanga): 23.9 g from family Motacillidae
+- sibpip1 (Siberian Pipit): 23.9 g from family Motacillidae
+- yelpip2 (Yellowish Pipit): 23.9 g from family Motacillidae
+- shbpip3 (Puna Pipit): 23.9 g from family Motacillidae
+- comcha16 (Azores Chaffinch): 16.6 g from family Fringillidae
+- comcha17 (Madeira Chaffinch): 16.6 g from family Fringillidae
+- caicha1 (Canary Islands Chaffinch): 16.6 g from family Fringillidae
+- afrcha1 (African Chaffinch): 16.6 g from family Fringillidae
+- anteup3 (Puerto Rican Euphonia): 16.6 g from family Fringillidae
+- anteup4 (Lesser Antillean Euphonia): 16.6 g from family Fringillidae
+- poouli (Poo-uli): 16.6 g from family Fringillidae
+- kakawa (Kakawahie): 16.6 g from family Fringillidae
+- kongro (Kona Grosbeak): 16.6 g from family Fringillidae
+- lekfin (Lesser Koa-Finch): 16.6 g from family Fringillidae
+- grkfin (Greater Koa-Finch): 16.6 g from family Fringillidae
+- ulahaw (Ula-ai-hawane): 16.6 g from family Fringillidae
+- apapan2 (Laysan Honeycreeper): 16.6 g from family Fringillidae
+- hawmam1 (Hawaii Mamo): 16.6 g from family Fringillidae
+- blkmam (Black Mamo): 16.6 g from family Fringillidae
+- ou (Ou): 16.6 g from family Fringillidae
+- lanhoo (Lanai Hookbill): 16.6 g from family Fringillidae
+- nukupu3 (Oahu Nukupuu): 16.6 g from family Fringillidae
+- lesaki (Lesser Akialoa): 16.6 g from family Fringillidae
+- greaki2 (Oahu Akialoa): 16.6 g from family Fringillidae
+- greaki4 (Kauai Akialoa): 16.6 g from family Fringillidae
+- greaki3 (Maui-nui Akialoa): 16.6 g from family Fringillidae
+- greama (Greater Amakihi): 16.6 g from family Fringillidae
+- akepa2 (Oahu Akepa): 16.6 g from family Fringillidae
+- bongro1 (Bonin Grosbeak): 16.6 g from family Fringillidae
+- lotros1 (Long-tailed Rosefinch): 16.6 g from family Fringillidae
+- origre (Oriental Greenfinch): 16.6 g from family Fringillidae
+- foxspa (Fox Sparrow): 27.45 g from family Passerellidae
+- bertow1 (Bermuda Towhee): 27.45 g from family Passerellidae
+- lilmea2 (Chihuahuan Meadowlark): 53.4 g from family Icteridae
+- slbgra1 (Slender-billed Grackle): 53.4 g from family Icteridae
+- masyel5 (Southern Yellowthroat): 10.5 g from family Parulidae
+- olcyel1 (Olive-crowned Yellowthroat): 10.5 g from family Parulidae
+- yerwar (Yellow-rumped Warbler): 10.5 g from family Parulidae
+- thswar2 (Yungas Warbler): 10.5 g from family Parulidae
+- gyhwar1 (Gray-headed Warbler): 10.5 g from family Parulidae
+- twbwar1 (Two-banded Warbler): 10.5 g from family Parulidae
+- heptan (Hepatic Tanager): 28.15 g from family Cardinalidae
+- rtatan1 (Red-throated Ant-Tanager): 28.15 g from family Cardinalidae
+- soatan1 (Sooty Ant-Tanager): 28.15 g from family Cardinalidae
+- bcatan1 (Black-cheeked Ant-Tanager): 28.15 g from family Cardinalidae
+- cratan1 (Crested Ant-Tanager): 28.15 g from family Cardinalidae
+- cartan2 (Yellow-lored Tanager): 28.15 g from family Cardinalidae
+- crcgro (Crimson-collared Grosbeak): 28.15 g from family Cardinalidae
+- blusee4 (Ecuadorian Seedeater): 28.15 g from family Cardinalidae
+- blchem1 (Black-capped Hemispingus): 19 g from family Thraupidae
+- saptan1 (Inti Tanager): 19 g from family Thraupidae
+- bkhtan2 (Black-hooded Tanager): 19 g from family Thraupidae
+- masflo6 (Whistling Masked Flowerpiercer): 19 g from family Thraupidae
+- slafin1 (Slaty Finch): 19 g from family Thraupidae
+- purbul3 (St. Kitts Bullfinch): 19 g from family Thraupidae
+- cubbul3 (Grand Cayman Bullfinch): 19 g from family Thraupidae
+
+## Huashu records matching no eBird species (0)
+
+_none_

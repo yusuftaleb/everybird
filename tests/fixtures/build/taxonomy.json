@@ -1,0 +1,11 @@
+[
+{"code":"nost1","sci":"Dus nost","com":"No Sticker","cat":"species","to":40,"ord":"Ordo","fam":"Famone","famCom":"Family One"},
+{"code":"amegos","sci":"Cus goshawk","com":"American Goshawk","cat":"species","to":30,"ord":"Ordo","fam":"Famtwo","famCom":"Family Two"},
+{"code":"slash1","sci":"Aus one/bus","com":"One/Bus","cat":"slash","to":15,"ord":"Ordo","fam":"Famone","famCom":"Family One"},
+{"code":"multi1","sci":"Aus bus","com":"Multi Bird","cat":"species","to":20,"ord":"Ordo","fam":"Famone","famCom":"Family One"},
+{"code":"one1","sci":"Aus one","com":"Unique Bird","cat":"species","to":10,"ord":"Ordo","fam":"Famone","famCom":"Family One"},
+{"code":"one1x","sci":"Aus one x","com":"Unique Bird subsp","cat":"issf","to":11,"reportAs":"one1","ord":"Ordo","fam":"Famone","famCom":"Family One"},
+{"code":"sciold","sci":"Bus formerly","com":"Old Name Bird","cat":"species","to":50,"ord":"Ordo","fam":"Famtwo","famCom":"Family Two"},
+{"code":"scinew","sci":"Bus sci","com":"Sci Name Bird","cat":"species","to":60,"ord":"Ordo","fam":"Famtwo","famCom":"Family Two"},
+{"code":"orphfam1","sci":"Eus lonely","com":"Lonely Family","cat":"species","to":70,"ord":"Ordo","fam":"Famthree","famCom":"Family Three"}
+]
