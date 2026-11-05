@@ -44,6 +44,22 @@ function setup(opts: { manual?: boolean; loaded?: string[]; failOrder?: string; 
 const until = async (cond: () => boolean) => { for (let i = 0; i < 400 && !cond(); i++) await new Promise((r) => setTimeout(r, 5)) }
 
 describe('layout client', () => {
+  it('refilter keeps the full collage and re-resolves filtered states with the new function', async () => {
+    const { client, worker } = setup()
+    client.setList(entries)
+    const full = await client.get({}, 'medium', 'even')
+    const beta = await client.get({ order: 'Beta' }, 'medium', 'even')
+    expect(beta.boxes.size).toBe(8)
+    const n = worker.layouts().length
+    client.refilter((f) => entries.filter((e) => !f.order || (e.ord === f.order && e.code !== 'b01')).map((e) => e.code))
+    expect(await client.get({}, 'medium', 'even')).toBe(full) // no re-pack
+    expect(worker.layouts().length).toBe(n)
+    const beta2 = await client.get({ order: 'Beta' }, 'medium', 'even')
+    expect(worker.layouts().length).toBe(n + 1)
+    expect(beta2.boxes.size).toBe(7)
+    expect(beta2.boxes.has('b01')).toBe(false)
+  })
+
   it('second get for same key is served from cache', async () => {
     const { client, worker } = setup()
     client.setList(entries)

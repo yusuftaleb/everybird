@@ -1,12 +1,12 @@
 'use client'
-// Wires one layout client (one worker) to a mounted collage: setList when the list changes, get() for the
+// Wires one layout client (one worker) to a mounted collage: setList when the packed birds change, get() for the
 // current filter, mode and layout class, and prefetch of the filter's child states in idle time.
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { createLayoutClient, type LayoutClient, type StateLayout } from '@/lib/layout/layout-client'
 import type { LayoutName } from '@/lib/layout/layout.worker'
 import { applyFilter, options, type Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
-import type { Trip } from '@/lib/list/trips'
+import { entryCountry, type Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 
 export type CollageLayout = { layout: StateLayout; visible: Set<string> }
@@ -64,6 +64,17 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
   const [cls, setCls] = useState<LayoutName | null>(null)
   const [result, setResult] = useState<CollageLayout | null>(null)
   const known = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
+  // Every edit builds a new list (a mark toggle too), so compare what the layout actually uses. `packSig`: the
+  // codes and masses in order (what the worker packs). `filterSig`: what filters resolve on (year, country, trips).
+  const packSig = useMemo(() => known.map((e) => `${e.code}:${species.byCode.get(e.code)!.g}`).join(','), [known, species])
+  const filterSig = useMemo(
+    () => `${known.map((e) => `${e.date?.slice(0, 4) ?? ''}${entryCountry(e) ?? ''}`).join(',')}#${trips.map((t) => `${t.id}:${t.codes.join(' ')}`).join(',')}`,
+    [known, trips],
+  )
+  // The client resolves filters lazily, against the newest list and trips.
+  const latest = useRef({ known, trips })
+  useEffect(() => { latest.current = { known, trips } }, [known, trips])
+  const resolve = useCallback((f: Filter) => applyFilter(latest.current.known, f, species, latest.current.trips).map((e) => e.code), [species])
 
   // One client per mounted collage; its worker ends with it.
   useEffect(() => {
@@ -88,18 +99,25 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
     return () => ro.disconnect()
   }, [container])
 
-  // New list: the client drops its cache and re-packs from the full collage.
+  // New birds or masses: the client drops its cache and re-packs from the full collage. Marks alone: nothing.
+  const packed = useRef<{ sig: string; filterSig: string } | null>(null)
   useEffect(() => {
     const c = client.current
+    const { known } = latest.current
     if (!c || !known.length) return
-    c.setList(
-      known.map((e) => {
-        const row = species.byCode.get(e.code)!
-        return { code: e.code, mass: row.g, ord: row.ord }
-      }),
-      (f) => applyFilter(known, f, species, trips).map((e) => e.code),
-    )
-  }, [known, species, trips])
+    if (packed.current?.sig !== packSig) {
+      c.setList(
+        known.map((e) => {
+          const row = species.byCode.get(e.code)!
+          return { code: e.code, mass: row.g, ord: row.ord }
+        }),
+        resolve,
+      )
+    } else if (packed.current.filterSig !== filterSig) {
+      c.refilter(resolve) // same birds, new dates/places/trips: keep the full collages
+    }
+    packed.current = { sig: packSig, filterSig }
+  }, [packSig, filterSig, species, resolve])
 
   // The current state. Aborts (a newer list) are expected and ignored.
   useEffect(() => {
@@ -121,7 +139,7 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
       live = false
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [known, filter, cls, mode])
+  }, [packSig, filterSig, known.length, filter, cls, mode])
 
   // Warm the cache for the next tap, once the current state is on screen: one idle slot to list the child
   // states, then one idle slot per state, so the main thread is never held for long.
@@ -131,13 +149,13 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
     let todo: Filter[] | null = null
     let cancel = () => {}
     const step = () => {
-      if (!todo) todo = childFilters(known, filter, species, trips)
+      if (!todo) todo = childFilters(latest.current.known, filter, species, latest.current.trips)
       else c.prefetch([todo.shift()!], cls)
       if (todo.length) cancel = idle(step)
     }
     cancel = idle(step)
     return () => cancel()
-  }, [result, known, filter, species, trips, cls])
+  }, [result, filter, species, cls])
 
   return known.length ? result : null
 }

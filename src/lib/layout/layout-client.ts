@@ -22,6 +22,9 @@
 //    (full H - even H) / 2, into the full stage's coordinates; the true result is then trimmed on its own.
 //  - get() superseded by a newer get() for the same layout class resolves with the newer get's result,
 //    and never before it.
+//  - refilter(resolve?) is for a list whose codes and masses are unchanged but whose filters resolve differently
+//    (new dates, places or trips): it keeps the full collages and drops every filtered state, which re-resolves
+//    on its next get. Filtered work already under way finishes into the dropped entries (no one reads them again).
 //  - setList clears the cache and invalidates all in-flight work: their promises REJECT with an AbortError
 //    (unless a newer get() superseded them, in which case they follow that get as above). The UI ignores aborts.
 //  - A new get() demotes the still-queued jobs of earlier gets for its layout class to prefetch priority (they
@@ -47,6 +50,8 @@ export type StateLayout = {
 }
 export type LayoutClient = {
   setList(entries: ListEntryMsg[], resolve?: (f: Filter) => string[]): void
+  /** Same entries, new filter resolution: keeps the full collages, drops the filtered states (see the header). */
+  refilter(resolve?: (f: Filter) => string[]): void
   get(f: Filter, layout: LayoutName, mode: 'even' | 'true'): Promise<StateLayout>
   prefetch(fs: Filter[], layout: LayoutName): void
   /** Terminate the worker; in-flight and queued work rejects with an AbortError, later calls reject. */
@@ -221,6 +226,12 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       const job: Job = { prio: HIGH, msg: { type: 'setList', id: nextId++, entries }, resolve: () => {}, reject: (e) => { if (epoch === myEpoch) listError = e instanceof Error ? e : new Error(String(e)) }, epoch }
       queue.unshift(job)
       pump()
+    },
+
+    refilter(resolve) {
+      if (disposed) return
+      if (resolve) resolveFn = resolve
+      for (const [k, e] of cache) if (!e.full) cache.delete(k)
     },
 
     get(f, layout, mode) {
