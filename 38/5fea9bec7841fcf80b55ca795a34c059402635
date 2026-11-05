@@ -1,0 +1,28 @@
+tests/layout-client.test.ts
+  s_ab125876fe9ad2::t_d21b1f5daf182e 47-62
+tests/collage-layout-hook.test.tsx
+  s_ab125876fe9ad2::t_e26decc4aea536 1-27,29-64
+  s_ab125876fe9ad2::t_be7e50853af4d5 28
+AGENTS.md
+  s_ab125876fe9ad2::t_c18ae12100e055 43
+src/components/app/use-collage-layout.ts
+  s_ab125876fe9ad2::t_aaee3fa03f9fdd 2,4,9,67-77,102-103,106,108-120,142,152,158
+src/lib/layout/layout-client.ts
+  s_ab125876fe9ad2::t_d223e1c1d4adbb 25-27,53-54,231-236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "385fea9bec7841fcf80b55ca795a34c059402635",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
