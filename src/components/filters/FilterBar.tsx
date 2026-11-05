@@ -22,11 +22,13 @@ type Props = {
   regions: Regions
   /** Dotted map data; without it the Places tab shows only chips. */
   dots?: CountryDots
+  /** Tabs to leave out (a shared link that carries no places or dates). */
+  hideTabs?: readonly Tab[]
 }
 
-type Tab = 'birds' | 'places' | 'time'
+export type Tab = 'birds' | 'places' | 'time'
 type Level = 'order' | 'family' | 'country' | 'year' | 'trip'
-const TABS: { id: Tab; label: string; icon: Icon; levels: Level[] }[] = [
+const ALL_TABS: { id: Tab; label: string; icon: Icon; levels: Level[] }[] = [
   { id: 'birds', label: 'Birds', icon: Bird, levels: ['order', 'family'] },
   { id: 'places', label: 'Places', icon: Globe, levels: ['country'] },
   { id: 'time', label: 'Time', icon: CalendarBlank, levels: ['year', 'trip'] },
@@ -44,7 +46,8 @@ function withLevel(f: Filter, level: Level, value: string | undefined): Filter {
   return next
 }
 
-export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots }: Props) {
+export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hideTabs }: Props) {
+  const TABS = useMemo(() => (hideTabs?.length ? ALL_TABS.filter((t) => !hideTabs.includes(t.id)) : ALL_TABS), [hideTabs])
   const [tab, setTab] = useState<Tab>('birds')
   const sheet = useIsSheet()
   const base = useId()

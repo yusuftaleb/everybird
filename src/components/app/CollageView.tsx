@@ -8,7 +8,7 @@ import { BirdCard } from '@/components/collage/BirdCard'
 import { Collage } from '@/components/collage/Collage'
 import { ListView } from '@/components/collage/ListView'
 import { TrueSizeSwitch } from '@/components/collage/TrueSizeSwitch'
-import { FilterBar } from '@/components/filters/FilterBar'
+import { FilterBar, type Tab as FilterTab } from '@/components/filters/FilterBar'
 import { formatDate } from '@/lib/format'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
@@ -31,6 +31,8 @@ type Props = {
   label: string
   /** Extra actions in the bird card (EditBird on the birder's own page). `close` closes the card. */
   cardActions?: (entry: ListEntry, close: () => void) => ReactNode
+  /** Filter tabs to leave out. */
+  hideTabs?: readonly FilterTab[]
 }
 
 const n = (x: number) => x.toLocaleString('en-US')
@@ -52,7 +54,7 @@ export function statsLine(all: ListEntry[], shown: ListEntry[], species: Species
   return parts.join(' · ')
 }
 
-export function CollageView({ state, dispatch, species, regions, dots, label, cardActions }: Props) {
+export function CollageView({ state, dispatch, species, regions, dots, label, cardActions, hideTabs }: Props) {
   const { list, trips, filter, mode, view, massOrder } = state
   const box = useRef<HTMLElement>(null)
   const [pick, setPick] = useState<{ code: string; anchor: HTMLElement | null } | null>(null)
@@ -92,7 +94,7 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
         {view === 'collage' && <TrueSizeSwitch checked={mode === 'true'} onChange={(on) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })} />}
       </div>
 
-      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} />
+      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} hideTabs={hideTabs} />
 
       {view === 'collage' ? (
         lay ? (
