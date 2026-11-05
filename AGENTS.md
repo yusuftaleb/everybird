@@ -30,6 +30,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `npm test`: Vitest unit tests (`tests/**/*.test.{ts,tsx}`; node by default, add `// @vitest-environment jsdom` for component tests)
 - `npm run e2e`: Playwright specs in `e2e/` (starts `next dev` on port 3100; set `BASE_URL` to test a deployed URL instead)
 - `npm run data`: rebuild `public/data/*` from `data/raw/` (`scripts/build-data/`)
+- `npx tsx scripts/build-data/build-stickers.ts [--force]`: trimmed 128/384 webp stickers into `${STICKERS_OUT:-../everybird-stickers}/v1/` (a separate git repo, never pushed from here), masks into `public/data/masks/<Order>.v1.json`, and the `ar` values in `species.v1.json`. Resumable: skips codes whose two webp files exist (`--force` regenerates). **Run it after `build-species`** (`npm run data` does). build-species carries existing `ar` over by code, but species new to the file keep `ar: 1` until build-stickers runs.
 - `npm run lint`, `npm run build`
 
 ## Structure

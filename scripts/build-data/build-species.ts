@@ -1,6 +1,6 @@
 // Builds public/data/species.v1.json, taxonomy.v1.json and data/build/crosswalk-report.md
 // from data/raw/*. Run: npx tsx scripts/build-data/build-species.ts
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type {
@@ -180,7 +180,14 @@ function main() {
   const outDir = resolve(process.cwd(), 'public/data')
   mkdirSync(outDir, { recursive: true })
   mkdirSync(resolve(process.cwd(), 'data/build'), { recursive: true })
-  writeFileSync(resolve(outDir, 'species.v1.json'), JSON.stringify(file))
+  // `ar` is owned by build-stickers (measured from the trimmed image): carry it over so a rerun doesn't reset it.
+  // Species new to the file keep ar 1 until build-stickers runs.
+  const prevPath = resolve(outDir, 'species.v1.json')
+  if (existsSync(prevPath)) {
+    const prev = new Map((JSON.parse(readFileSync(prevPath, 'utf8')) as SpeciesFile).species.map((s) => [s.code, s.ar]))
+    for (const s of file.species) if (prev.has(s.code)) s.ar = prev.get(s.code)!
+  }
+  writeFileSync(prevPath, JSON.stringify(file))
   const taxonomyFile: TaxonomyFile = {
     v: 1, ebirdTaxonomy: manifest.ebirdTaxonomy,
     taxa: taxa.map(({ ord: _o, fam: _f, famCom: _fc, ...t }) => t),
