@@ -15,3 +15,7 @@ export type HuashuRecord = { id: string; scientificName: string; taxonConcept: s
   taxonomy: { seq: number; order: string; family: string }; ids: { ebird?: string };
   traits?: { massG?: number }; sticker?: { file: string; meetsQualityBar: boolean }; previous?: { scientificName: string }[] }
 export type Overrides = Record<string /*eBird code*/, { huashu?: string /*huashu id*/; massG?: number; source: string }>
+export type CountryDots = { v: 1; step: 1.5; rows: 95; cols: 240; countries: string[] /* ISO2, index 0 = none */;
+  cells: string /* base64 Uint16 LE per cell, row-major, country index */;
+  extra: [iso2: string, x: number, y: number][] /* dot for countries with no land cell (map space) */ }
+export type Regions = { v: 1; countries: Record<string, string>; sub1: Record<string, string> }
