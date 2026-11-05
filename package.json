@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "e2e": "playwright test",
-    "data": "tsx scripts/build-data/build-species.ts && tsx scripts/build-data/build-stickers.ts && tsx scripts/build-data/build-geo.ts && tsx scripts/build-data/link-index.ts"
+    "data": "tsx scripts/build-data/copy-synonyms.ts && tsx scripts/build-data/build-species.ts && tsx scripts/build-data/build-stickers.ts && tsx scripts/build-data/build-geo.ts && tsx scripts/build-data/link-index.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
