@@ -1,0 +1,33 @@
+scripts/build-data/build-species.ts
+  s_ab125876fe9ad2::t_9e6923c9a5629f 193-198
+scripts/build-data/build-sample.ts
+  s_ab125876fe9ad2::t_9e6923c9a5629f 6,57-61
+README.md
+  s_ab125876fe9ad2::t_6454c3ca16622e 3,14,17-31,35-36
+scripts/build-data/check-stickers.ts
+  s_ab125876fe9ad2::t_a110a10d01efd8 2,44
+  s_ab125876fe9ad2::t_4db4f6c152ceac 1,3-43,45-49
+AGENTS.md
+  s_ab125876fe9ad2::t_6454c3ca16622e 33-34,36-37
+  s_ab125876fe9ad2::t_bf823106ed1ede 48
+package.json
+  s_ab125876fe9ad2::t_6454c3ca16622e 13
+scripts/build-data/build-stickers.ts
+  s_ab125876fe9ad2::t_a110a10d01efd8 2-3,76-79,104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4a4776074e0516ea4ab5d88714e0efdb91656e07",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
