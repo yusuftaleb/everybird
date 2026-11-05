@@ -1,0 +1,127 @@
+public/data/masks/Procellariiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Psittaciformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Charadriiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Accipitriformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Mesitornithiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+scripts/build-data/build-species.ts
+  s_ab125876fe9ad2::t_a316f6b66ad93c 3,183-190
+public/data/masks/Ciconiiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Coraciiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Pterocliformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Podicipediformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Columbiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Otidiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Nyctibiiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Suliformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Aegotheliformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Bucerotiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+package.json
+  s_ab125876fe9ad2::t_a4e12ed506243e 36
+  s_ab125876fe9ad2::t_a316f6b66ad93c 12
+public/data/masks/Piciformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Podargiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+scripts/build-data/build-stickers.ts
+  s_ab125876fe9ad2::t_b6bfd5bb2321f3 73,90,95
+  s_ab125876fe9ad2::t_da8bfa25255e75 1-31,33,36-72,74-89,91-94,96-128
+  s_ab125876fe9ad2::t_103cca8951ffbd 32
+  s_ab125876fe9ad2::t_4e402c51891e08 34-35
+public/data/masks/Cathartiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Trogoniformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Musophagiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Apodiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Gruiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+AGENTS.md
+  s_ab125876fe9ad2::t_dd1472d853fdb1 33
+public/data/masks/Struthioniformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Anseriformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Coliiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Phaethontiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Apterygiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Steatornithiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Passeriformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Opisthocomiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+tests/build-stickers.test.ts
+  s_ab125876fe9ad2::t_6cb4bdd9ef631f 1-72
+public/data/masks/Caprimulgiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Galliformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Eurypygiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Leptosomiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Falconiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Sphenisciformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Pelecaniformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Cariamiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+src/lib/layout/mask.ts
+  s_ab125876fe9ad2::t_6cb4bdd9ef631f 1-53
+public/data/masks/Gaviiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Rheiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/species.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Phoenicopteriformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Strigiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Cuculiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Tinamiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+public/data/masks/Casuariiformes.v1.json
+  s_ab125876fe9ad2::t_8d1978518392c4 1
+package-lock.json
+  s_ab125876fe9ad2::t_aacdf315f90387 32,1183,7375,7425
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ec1849a5e1d50b81139fc9b04f68e89da5121a72",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
