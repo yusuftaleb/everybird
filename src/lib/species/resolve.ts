@@ -29,11 +29,13 @@ export function foldName(s: string): string {
 /** Exact lookup key: lower-case, spaces collapsed, group/parenthetical text kept. */
 export const exactSci = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
 
-/** A species resolves to itself; issf/form/intergrade follow reportAs; spuh/slash/hybrid/domestic are not species. */
+/** A species resolves to itself; issf/form/intergrade follow reportAs; spuh/slash/hybrid/domestic are not species (except Feral Pigeon). */
 function fromRow(row: TaxonRow, via: 'sci' | 'com' | 'taxonOrder'): Resolution {
   if (row.cat === 'species') return { code: row.code, via }
   if ((row.cat === 'issf' || row.cat === 'form' || row.cat === 'intergrade') && row.reportAs)
     return { code: row.reportAs, via }
+  // Named exception: eBird life lists count the Feral Pigeon as Rock Pigeon. All other domestics stay not-species.
+  if (row.cat === 'domestic' && row.reportAs === 'rocpig') return { code: row.reportAs, via }
   return { code: null, reason: 'not-species' }
 }
 

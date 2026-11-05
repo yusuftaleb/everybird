@@ -11,5 +11,7 @@
 {"code":"rupgri","sci":"Gyps rueppelli","com":"Rüppell's Griffon","cat":"species","to":600},
 {"code":"kiwi1","sci":"Apteryx sp.","com":"kiwi sp.","cat":"spuh","to":30},
 {"code":"mallar3","sci":"Anas platyrhynchos (Domestic type)","com":"Mallard (Domestic type)","cat":"domestic","to":700,"reportAs":"mallar3b"},
-{"code":"mallar3b","sci":"Anas platyrhynchos","com":"Mallard","cat":"species","to":701}
+{"code":"mallar3b","sci":"Anas platyrhynchos","com":"Mallard","cat":"species","to":701},
+{"code":"rocpig","sci":"Columba livia","com":"Rock Pigeon","cat":"species","to":1870},
+{"code":"rocpig1","sci":"Columba livia (Feral Pigeon)","com":"Rock Pigeon (Feral Pigeon)","cat":"domestic","to":1890,"reportAs":"rocpig"}
 ]}

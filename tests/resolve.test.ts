@@ -57,6 +57,19 @@ describe('resolveName', () => {
     expect(resolveName(tax, { sci: 'Anas platyrhynchos (Domestic type)' })).toEqual(notSp)
     expect(resolveName(tax, { sci: 'Anas platyrhynchos' })).toEqual({ code: 'mallar3b', via: 'sci' })
   })
+  it('Feral Pigeon is the one domestic that counts, as Rock Pigeon', () => {
+    expect(resolveName(tax, { sci: 'Columba livia (Feral Pigeon)' })).toEqual({ code: 'rocpig', via: 'sci' })
+    expect(resolveName(tax, { com: 'Rock Pigeon (Feral Pigeon)' })).toEqual({ code: 'rocpig', via: 'com' })
+    expect(resolveName(tax, { sci: 'Columba livia' })).toEqual({ code: 'rocpig', via: 'sci' })
+  })
+  it('real taxonomy: Feral Pigeon counts, other domestics do not', async () => {
+    const { buildTaxonomyIndex } = await import('@/lib/species/load')
+    const real = buildTaxonomyIndex(JSON.parse(readFileSync('public/data/taxonomy.v1.json', 'utf8')).taxa)
+    expect(resolveName(real, { sci: 'Columba livia (Feral Pigeon)' })).toMatchObject({ code: 'rocpig' })
+    const dom = real.rows.filter((r) => r.cat === 'domestic' && r.reportAs !== 'rocpig')
+    expect(dom.length).toBeGreaterThan(0)
+    for (const r of dom) expect(resolveName(real, { sci: r.sci })).toEqual({ code: null, reason: 'not-species' })
+  })
   it('curly apostrophes match', () => {
     expect(resolveName(tax, { com: 'Rüppell\u2019s Griffon' })).toEqual({ code: 'rupgri', via: 'com' })
   })

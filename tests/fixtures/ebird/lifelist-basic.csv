@@ -1,0 +1,9 @@
+Row #,Taxon Order,Category,Common Name,Scientific Name,Count,Location,S/P,Date,LocID,SubID,Exotic,Countable
+1,1890,domestic,Rock Pigeon (Feral Pigeon),Columba livia (Feral Pigeon),3,Test Park,CA-BC,30 Sep 2026,L1,S1,,1
+2,12000,slash,Northern/Gilded Flicker,Colaptes auratus/chrysoides,1,Test Park,US-AZ,12 Aug 2026,L2,S2,,0
+3,34403,issf,Yellow-rumped Warbler (Audubon's),Setophaga coronata auduboni,2,Test Park,CA-BC,06 Sep 2026,L1,S3,,1
+4,30,spuh,kiwi sp.,Apteryx sp.,1,Test Park,NZ-AUK,01 Jul 2026,L3,S4,,0
+5,11994,species,Gilded Flicker,Colaptes chrysoides,1,Test Park,US-AZ,12 Aug 2026,L2,S2,,1
+6,600,species,Rüppell's Griffon,Gyps rueppelli,1,Test Park,ES-AN,20 May 2026,L4,S5,,1
+7,30,spuh,kiwi sp.,Apteryx sp.,1,Test Park,NZ-AUK,02 Jul 2026,L3,S6,,0
+8,11980,species,Northern Flicker,Colaptes auratus,1,Test Park,CA-BC,3 Mar 2026,L1,S7,,1
