@@ -1,0 +1,15 @@
+{"v":1,"ebirdTaxonomy":"synthetic","taxa":[
+{"code":"norfli","sci":"Colaptes auratus","com":"Northern Flicker","cat":"species","to":11980},
+{"code":"resfli","sci":"Colaptes auratus [cafer Group]","com":"Northern Flicker (Red-shafted)","cat":"issf","to":11986,"reportAs":"norfli"},
+{"code":"rxyfli","sci":"Colaptes auratus luteus x cafer","com":"Northern Flicker (Yellow-shafted x Red-shafted)","cat":"intergrade","to":11992,"reportAs":"norfli"},
+{"code":"gilfli","sci":"Colaptes chrysoides","com":"Gilded Flicker","cat":"species","to":11994},
+{"code":"x00924","sci":"Colaptes auratus x chrysoides","com":"Northern x Gilded Flicker (hybrid)","cat":"hybrid","to":11999},
+{"code":"y00323","sci":"Colaptes auratus/chrysoides","com":"Northern/Gilded Flicker","cat":"slash","to":12000},
+{"code":"yerwar","sci":"Setophaga coronata","com":"Yellow-rumped Warbler","cat":"species","to":34401},
+{"code":"audwar","sci":"Setophaga coronata auduboni","com":"Yellow-rumped Warbler (Audubon's)","cat":"issf","to":34403,"reportAs":"yerwar"},
+{"code":"rupbus","sci":"Neotis denhami","com":"Denham's Bustard","cat":"species","to":500},
+{"code":"rupgri","sci":"Gyps rueppelli","com":"Rüppell's Griffon","cat":"species","to":600},
+{"code":"kiwi1","sci":"Apteryx sp.","com":"kiwi sp.","cat":"spuh","to":30},
+{"code":"mallar3","sci":"Anas platyrhynchos (Domestic type)","com":"Mallard (Domestic type)","cat":"domestic","to":700},
+{"code":"mallar3b","sci":"Anas platyrhynchos","com":"Mallard","cat":"species","to":701}
+]}

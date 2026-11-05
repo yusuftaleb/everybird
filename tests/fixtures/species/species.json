@@ -1,0 +1,7 @@
+{"v":1,"ebirdTaxonomy":"synthetic","huashuCommit":"x","species":[
+{"code":"rupgri","com":"Rüppell's Griffon","sci":"Gyps rueppelli","ord":"","fam":"","famCom":"","to":600,"g":6000,"gSrc":"avonet","st":true,"ar":1,"q":true},
+{"code":"norfli","com":"Northern Flicker","sci":"Colaptes auratus","ord":"","fam":"","famCom":"","to":11980,"g":140,"gSrc":"avonet","st":true,"ar":1,"q":true},
+{"code":"gilfli","com":"Gilded Flicker","sci":"Colaptes chrysoides","ord":"","fam":"","famCom":"","to":11994,"g":120,"gSrc":"avonet","st":true,"ar":1,"q":true},
+{"code":"yerwar","com":"Yellow-rumped Warbler","sci":"Setophaga coronata","ord":"","fam":"","famCom":"","to":34401,"g":12,"gSrc":"avonet","st":true,"ar":1,"q":true},
+{"code":"flicker","com":"Flickertail Squirrelbird","sci":"Fictus flickeri","ord":"","fam":"","famCom":"","to":20000,"g":12,"gSrc":"avonet","st":false,"ar":1,"q":false}
+]}
