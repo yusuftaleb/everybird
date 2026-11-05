@@ -3,17 +3,9 @@
   "massG": 340,
   "source": "Birds of the World, Cattle Egret, ~270-512 g"
  },
- "marwre1": {
-  "huashu": "Cistothorus_palustris",
-  "source": "AVONET Marsh Wren (pre-split)"
- },
  "coohaw": {
   "massG": 440,
   "source": "Birds of the World, Cooper's Hawk, males ~350 g, females ~530 g"
- },
- "bulori": {
-  "huashu": "Icterus_bullockiorum",
-  "source": "framer-site overrides.json (taxonomy fix, no source text)"
  },
  "yelwar1": {
   "massG": 9.5,

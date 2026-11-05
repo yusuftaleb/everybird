@@ -1,7 +1,7 @@
 # Crosswalk report
 
 - Species rows: 11201
-- With sticker: 10988; without: 213
+- With sticker: 10989; without: 212
 - Mass sources: avonet 10417, override 5, family 774, order 5
 - Multi-candidate choices: 0; scientific-name fallbacks: 44; huashu orphans: 0
 
@@ -56,12 +56,11 @@ _none_
 - blehem1 (Black-eared Hemispingus) -> Sphenopsis_melanotis
 - tildac1 (Tit-like Dacnis) -> Xenodacnis_parina
 
-## Override huashu records used (2)
+## Override huashu records used (0)
 
-- marwre1 (Western Marsh Wren) -> Cistothorus_palustris
-- bulori (Bullock's Oriole) -> Icterus_bullockiorum
+_none_
 
-## No sticker (213)
+## No sticker (212)
 
 - sddtin1 (Slaty-masked Tinamou) [huashu Crypturellus_resonans has no sticker]
 - maushe1 (Mauritius Shelduck)
@@ -229,7 +228,6 @@ _none_
 - wcweye1 (White-chested White-eye)
 - robwhe1 (Robust White-eye)
 - pistib2 (Palawan Tit-Babbler) [huashu Mixornis_woodi has no sticker]
-- marwre1 (Western Marsh Wren) [huashu Cistothorus_palustris has no sticker]
 - eamwre1 (Eastern Marsh Wren) [huashu Cistothorus_palustris has no sticker]
 - kossta1 (Kosrae Starling)
 - myssta1 (Mysterious Starling)

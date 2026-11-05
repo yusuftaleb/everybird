@@ -25,10 +25,14 @@ function pickCandidate(cands: HuashuRecord[], sci: string): HuashuRecord {
   })[0]
 }
 
-export function buildSpecies(
-  huashu: HuashuRecord[], taxonomy: TaxonRow[], overrides: Overrides,
-  meta: { ebirdTaxonomy?: string; huashuCommit?: string } = {},
-): { file: SpeciesFile; report: string } {
+export type HuashuMatch = {
+  matches: Map<string, HuashuRecord>   // eBird species code -> chosen huashu record
+  multi: string[]; sciFallback: string[]; viaOverride: string[]
+}
+
+// Pure crosswalk: which huashu record (and so which sticker file) belongs to each eBird species.
+// Throws if an override names a huashu id that does not exist.
+export function matchHuashu(huashu: HuashuRecord[], taxonomy: TaxonRow[], overrides: Overrides): HuashuMatch {
   const byEbird = new Map<string, HuashuRecord[]>()
   const bySci = new Map<string, HuashuRecord>()
   const byId = new Map<string, HuashuRecord>()
@@ -40,17 +44,18 @@ export function buildSpecies(
   // previous names never shadow a current name
   for (const h of huashu) for (const p of h.previous ?? []) if (!bySci.has(p.scientificName)) bySci.set(p.scientificName, h)
 
-  const species = taxonomy.filter((t) => t.cat === 'species').sort((a, b) => a.to - b.to)
-  const multi: string[] = [], sciFallback: string[] = [], noSticker: string[] = [], massFallback: string[] = []
-  const overrideHuashu: string[] = []
-
-  type Pre = { t: TaxonRow; rec?: HuashuRecord; g?: number; gSrc?: SpeciesRow['gSrc'] }
-  const pre: Pre[] = species.map((t) => {
+  const matches = new Map<string, HuashuRecord>()
+  const multi: string[] = [], sciFallback: string[] = [], viaOverride: string[] = []
+  const missing = Object.entries(overrides).filter(([, o]) => o.huashu && !byId.has(o.huashu))
+  if (missing.length) {
+    throw new Error(`overrides reference unknown huashu ids: ${missing.map(([c, o]) => `${c} -> ${o.huashu}`).join(', ')}`)
+  }
+  for (const t of taxonomy.filter((x) => x.cat === 'species')) {
     const ov = overrides[t.code]
     let rec: HuashuRecord | undefined
-    if (ov?.huashu && byId.has(ov.huashu)) {
+    if (ov?.huashu) {
       rec = byId.get(ov.huashu)
-      overrideHuashu.push(`${t.code} (${t.com}) -> ${ov.huashu}`)
+      viaOverride.push(`${t.code} (${t.com}) -> ${ov.huashu}`)
     } else {
       const cands = byEbird.get(t.code) ?? []
       if (cands.length === 1) rec = cands[0]
@@ -62,6 +67,23 @@ export function buildSpecies(
         sciFallback.push(`${t.code} (${t.com}) -> ${rec!.id}`)
       }
     }
+    if (rec) matches.set(t.code, rec)
+  }
+  return { matches, multi, sciFallback, viaOverride }
+}
+
+export function buildSpecies(
+  huashu: HuashuRecord[], taxonomy: TaxonRow[], overrides: Overrides,
+  meta: { ebirdTaxonomy?: string; huashuCommit?: string } = {},
+): { file: SpeciesFile; report: string } {
+  const { matches, multi, sciFallback, viaOverride: overrideHuashu } = matchHuashu(huashu, taxonomy, overrides)
+  const species = taxonomy.filter((t) => t.cat === 'species').sort((a, b) => a.to - b.to)
+  const noSticker: string[] = [], massFallback: string[] = []
+
+  type Pre = { t: TaxonRow; rec?: HuashuRecord; g?: number; gSrc?: SpeciesRow['gSrc'] }
+  const pre: Pre[] = species.map((t) => {
+    const ov = overrides[t.code]
+    const rec = matches.get(t.code)
     if (!rec?.sticker) noSticker.push(`${t.code} (${t.com})${rec ? ` [huashu ${rec.id} has no sticker]` : ''}`)
     const p: Pre = { t, rec }
     if (typeof ov?.massG === 'number') { p.g = ov.massG; p.gSrc = 'override' }

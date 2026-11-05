@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import huashu from './fixtures/build/huashu.json'
 import taxonomy from './fixtures/build/taxonomy.json'
 import overrides from './fixtures/build/overrides.json'
-import { buildSpecies } from '../scripts/build-data/build-species'
+import { buildSpecies, matchHuashu } from '../scripts/build-data/build-species'
 import type { HuashuRecord, Overrides, TaxonRow } from '../src/lib/species/types'
 
 const run = (o: Overrides = overrides as Overrides) =>
@@ -61,5 +61,18 @@ describe('buildSpecies', () => {
     expect(report).toMatch(/Mass fallbacks \(2\)/)
     expect(report).toMatch(/Huashu records matching no eBird species \(1\)/)
     expect(report).toMatch(/ghost1/)
+  })
+
+  it('override huashu id redirects the sticker match', () => {
+    const o: Overrides = { nost1: { huashu: 'Aus_cus', source: 'synthetic' } }
+    expect(row('nost1', o)).toMatchObject({ st: true, g: 50, gSrc: 'avonet' })
+    const m = matchHuashu(huashu as HuashuRecord[], taxonomy as TaxonRow[], o)
+    expect(m.matches.get('nost1')?.id).toBe('Aus_cus')
+    expect(m.matches.get('one1')?.id).toBe('Aus_one')
+  })
+
+  it('override naming a missing huashu id throws', () => {
+    const o: Overrides = { nost1: { huashu: 'No_such_id', source: 'synthetic' } }
+    expect(() => run(o)).toThrow(/No_such_id/)
   })
 })
