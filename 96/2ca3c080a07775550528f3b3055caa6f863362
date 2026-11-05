@@ -1,0 +1,25 @@
+public/data/species.v1.json
+  s_ab125876fe9ad2::t_7a8909f90f8686 1
+data/build/crosswalk-report.md
+  s_ab125876fe9ad2::t_7a8909f90f8686 4,59,61,63
+tests/build-species.test.ts
+  s_ab125876fe9ad2::t_7a8909f90f8686 5,65-77
+scripts/build-data/build-species.ts
+  s_ab125876fe9ad2::t_7a8909f90f8686 28-35,47-53,56,58,70-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "962ca3c080a07775550528f3b3055caa6f863362",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
