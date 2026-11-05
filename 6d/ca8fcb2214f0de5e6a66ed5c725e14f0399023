@@ -1,0 +1,93 @@
+src/components/app/CollagePage.tsx
+  s_ab125876fe9ad2::t_676c6e73ed69a0 1-76
+src/lib/list/sample.ts
+  s_ab125876fe9ad2::t_6f017bf010ebe6 1-29
+src/components/import/AddBirds.tsx
+  s_ab125876fe9ad2::t_8d5ff5e1132a3c 1-112
+src/components/app/SiteFooter.tsx
+  s_ab125876fe9ad2::t_c8287b1f3fa8ff 1-11
+src/components/app/app.css
+  s_ab125876fe9ad2::t_86685628777643 1-13,15-115
+  s_ab125876fe9ad2::t_8119749604c67b 14
+scripts/build-data/build-sample.ts
+  s_ab125876fe9ad2::t_db3db19796a891 1-71
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_1e1836f692e819 1-113,118-132
+  s_ab125876fe9ad2::t_10a28b03094a48 114-117
+  s_ab125876fe9ad2::t_0163bcdf9492a4 133-135
+src/components/edit/edit.css
+  s_ab125876fe9ad2::t_8119749604c67b 5
+  s_ab125876fe9ad2::t_10a28b03094a48 1-4
+src/lib/download.ts
+  s_ab125876fe9ad2::t_6f017bf010ebe6 1-15
+src/components/edit/EditBird.tsx
+  s_ab125876fe9ad2::t_10a28b03094a48 1-4,6-57
+  s_ab125876fe9ad2::t_35e0901846a912 5
+src/components/import/import.css
+  s_ab125876fe9ad2::t_debd1ea7807ff8 1-71
+public/data/sample.v1.json
+  s_ab125876fe9ad2::t_db3db19796a891 1
+src/components/app/Home.tsx
+  s_ab125876fe9ad2::t_76e06d9ec11a59 33,38-39,58,61,76,81-82
+  s_ab125876fe9ad2::t_676c6e73ed69a0 1-32,34-37,40-57,59-60,62-75,77-80,83-100
+src/components/import/InatForm.tsx
+  s_ab125876fe9ad2::t_40a5fd41e726fe 1-108
+app/page.tsx
+  s_ab125876fe9ad2::t_676c6e73ed69a0 1-4
+src/components/import/MatchReport.tsx
+  s_ab125876fe9ad2::t_fe83edb97f60f6 3,21,44
+  s_ab125876fe9ad2::t_35e0901846a912 9-10
+  s_ab125876fe9ad2::t_8364daa15dee67 1-2,4-8,11-20,22-43,45-74
+src/components/import/EbirdDrop.tsx
+  s_ab125876fe9ad2::t_40a5fd41e726fe 96-97
+  s_ab125876fe9ad2::t_bc7a1e66810026 1-95,98-102
+src/components/app/SampleDemo.tsx
+  s_ab125876fe9ad2::t_c8287b1f3fa8ff 1-24
+AGENTS.md
+  s_ab125876fe9ad2::t_eea5fe10cf2bc5 36,42
+src/components/import/ImportPanel.tsx
+  s_ab125876fe9ad2::t_fe83edb97f60f6 3,36,59
+  s_ab125876fe9ad2::t_3978464b37493b 1-2,4-35,37-58
+src/components/app/use-collage-layout.ts
+  s_ab125876fe9ad2::t_5addfce741691a 1-108,110,118-119,124-125,128-130,140-143
+  s_ab125876fe9ad2::t_a619e109db564b 126-127,131-139
+  s_ab125876fe9ad2::t_c9a0cdb380b76d 109,111-117,120-123
+e2e/import.spec.ts
+  s_ab125876fe9ad2::t_01010659f5931a 43-44,51,54-55,59-60,62-65,73,81-82,85-86
+  s_ab125876fe9ad2::t_37018d4c425563 1-40,45,49,52,67-69,74-75,77,80,89-107
+  s_ab125876fe9ad2::t_4171b25b1af2a9 41-42,46-48,50,56-58,61,66,70,72,76,78-79,83-84,87-88
+  s_ab125876fe9ad2::t_b18f430b06d8dc 53,71
+src/components/app/Switch.tsx
+  s_ab125876fe9ad2::t_10a28b03094a48 1-12
+tests/build-sample.test.ts
+  s_ab125876fe9ad2::t_4d064683601c89 1-41
+src/components/import/RulesSwitches.tsx
+  s_ab125876fe9ad2::t_fe83edb97f60f6 2,8,21
+  s_ab125876fe9ad2::t_10a28b03094a48 1,3-7,9-20
+tests/import-ui.test.tsx
+  s_ab125876fe9ad2::t_184c94fac34239 1-289
+e2e/filters.spec.ts
+  s_ab125876fe9ad2::t_5b11e9d22786e5 5-6
+  s_ab125876fe9ad2::t_7ea4146de94f84 94
+  s_ab125876fe9ad2::t_dcd9ee95bee912 99-101
+src/components/app/RestoreBackup.tsx
+  s_ab125876fe9ad2::t_c8287b1f3fa8ff 1-33
+src/components/import/SpeciesSearch.tsx
+  s_ab125876fe9ad2::t_8364daa15dee67 1-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6dca8fcb2214f0de5e6a66ed5c725e14f0399023",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
