@@ -1,0 +1,30 @@
+tests/analytics.test.ts
+  s_ab125876fe9ad2::t_d6c1933e365d23 3,32-50
+  s_ab125876fe9ad2::t_af680ed851c4fb 51
+src/components/app/SiteAnalytics.tsx
+  s_ab125876fe9ad2::t_a59dce409d70b4 1-10
+e2e/share-link.spec.ts
+  s_ab125876fe9ad2::t_bd4e5c47655f55 19-20
+app/layout.tsx
+  s_ab125876fe9ad2::t_a59dce409d70b4 4,23-25,42-45
+src/lib/analytics.ts
+  s_ab125876fe9ad2::t_404f9446ada7a5 2,24-39
+AGENTS.md
+  s_ab125876fe9ad2::t_94d80a2671e45e 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d9ef0ebbf6a56bdd77bbe52902b6974445c837f6",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
