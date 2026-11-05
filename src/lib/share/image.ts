@@ -9,7 +9,7 @@
 // Stickers load with crossOrigin = 'anonymous' (the stickers site sends access-control-allow-origin: *), so the
 // canvas stays exportable. Species without a sticker, and stickers that fail to load, are drawn as the Phosphor
 // Bird silhouette in Muted, as on the page. Text waits for the real fonts (document.fonts.load) before drawing.
-import { stickerUrl } from '@/components/collage/Sticker'
+import { stickerUrl } from '@/lib/sticker-url'
 import { formatDate } from '@/lib/format'
 import type { Box } from '@/lib/layout/pack'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'

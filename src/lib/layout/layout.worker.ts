@@ -67,7 +67,7 @@ export const fetchOrderMasks: MaskLoader = async (order) => {
 type ListState = { ids: Map<string, number>; birds: Map<string, PackBird>; rel: { even: Map<number, number>; true: Map<number, number> } }
 
 /** Each entry as a PackBird (id = its index), with its sticker mask or FALLBACK_MASK. */
-async function loadBirds(entries: ListEntryMsg[], load: MaskLoader): Promise<Map<string, PackBird>> {
+export async function loadBirds(entries: ListEntryMsg[], load: MaskLoader): Promise<Map<string, PackBird>> {
   const orders = [...new Set(entries.map((e) => e.ord))]
   const tables = new Map<string, MaskTable>()
   // A failed order file must not poison the list: its species fall back to FALLBACK_MASK (ellipse blobs).

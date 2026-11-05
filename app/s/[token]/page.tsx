@@ -2,27 +2,26 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { SharedView } from '@/components/app/SharedView'
 import { SiteFooter } from '@/components/app/SiteFooter'
-import { decodeShare, type SharePayload } from '@/lib/share/link'
+import { OG_DESCRIPTION, ogName, ogTitle, tryDecodeShare } from '@/lib/share/og'
 import '@/components/app/app.css'
 
 type Props = { params: Promise<{ token: string }> }
 
-function tryDecode(token: string): SharePayload | null {
-  try {
-    return decodeShare(decodeURIComponent(token))
-  } catch {
-    return null
-  }
-}
-const title = (p: SharePayload | null) => (p ? (p.name ? `${p.name}'s Everybird` : 'An Everybird') : 'Everybird')
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const p = tryDecode((await params).token)
-  return { title: title(p), robots: { index: false } }
+  const p = tryDecodeShare((await params).token)
+  const title = ogTitle(p)
+  // og:image comes from ./opengraph-image (and twitter:image from ./twitter-image); the card type is set here.
+  return {
+    title,
+    description: OG_DESCRIPTION,
+    robots: { index: false },
+    openGraph: { title, description: OG_DESCRIPTION, type: 'website', siteName: 'Everybird' },
+    twitter: { card: 'summary_large_image', title, description: OG_DESCRIPTION },
+  }
 }
 
 export default async function SharedPage({ params }: Props) {
-  const payload = tryDecode((await params).token)
+  const payload = tryDecodeShare((await params).token)
   if (!payload) {
     return (
       <>
@@ -44,7 +43,7 @@ export default async function SharedPage({ params }: Props) {
     <>
       <main className="eb-page">
         <header className="eb-head">
-          <h1 className="eb-title">{title(payload)}</h1>
+          <h1 className="eb-title">{ogName(payload)}</h1>
           <p className="eb-tagline">{count.toLocaleString('en-US')} species</p>
         </header>
         <SharedView payload={payload} />

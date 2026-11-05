@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
+import { SHARE_ORIGIN } from "@/lib/share/link";
 import "@/styles/globals.css";
 
 const geistMono = Geist_Mono({
@@ -8,6 +9,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Absolute og:image URLs in production; in dev Next falls back to the request origin.
+  metadataBase: process.env.NODE_ENV === "production" ? new URL(SHARE_ORIGIN) : undefined,
   title: "Everybird",
   description: "Every bird you've ever seen.",
 };
