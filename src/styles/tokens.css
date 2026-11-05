@@ -1,0 +1,49 @@
+/* Everybird design tokens. Light is the default; dark follows the system
+   unless [data-theme] on <html> says otherwise. */
+:root {
+  color-scheme: light dark;
+  --ink: #1e1e24;
+  --paper: #f6f4ef;
+  --accent: #92140c;
+  --muted: #5f5f69;
+  --line: #857f74;
+  --hairline: #dedad2;
+  --surface: #ebe8e1;
+  --font-display: "Cabinet Grotesk", "Satoshi", system-ui, sans-serif;
+  --font-body: "Satoshi", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme=light]) {
+    --ink: #ffffff;
+    --paper: #1e1e24;
+    --accent: #f06a5f;
+    --muted: #a9a9b2;
+    --line: #6e6e78;
+    --hairline: #3d3d45;
+    --surface: #28282f;
+  }
+}
+
+:root[data-theme=light] {
+  color-scheme: light;
+  --ink: #1e1e24;
+  --paper: #f6f4ef;
+  --accent: #92140c;
+  --muted: #5f5f69;
+  --line: #857f74;
+  --hairline: #dedad2;
+  --surface: #ebe8e1;
+}
+
+:root[data-theme=dark] {
+  color-scheme: dark;
+  --ink: #ffffff;
+  --paper: #1e1e24;
+  --accent: #f06a5f;
+  --muted: #a9a9b2;
+  --line: #6e6e78;
+  --hairline: #3d3d45;
+  --surface: #28282f;
+}
