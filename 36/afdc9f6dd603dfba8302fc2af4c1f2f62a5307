@@ -1,0 +1,39 @@
+public/data/country-dots.v1.json
+  s_ab125876fe9ad2::t_b7de391c306ca0 1
+data/link-index.json
+  s_ab125876fe9ad2::t_b7de391c306ca0 1
+scripts/build-data/build-geo.ts
+  s_ab125876fe9ad2::t_e0446da712e7aa 78
+  s_ab125876fe9ad2::t_b7de391c306ca0 1-77,79-96
+package.json
+  s_ab125876fe9ad2::t_a934c00c1a7c37 12
+  s_ab125876fe9ad2::t_9393060efc69c0 28,33
+src/lib/species/types.ts
+  s_ab125876fe9ad2::t_b7de391c306ca0 18-21
+tests/link-index.test.ts
+  s_ab125876fe9ad2::t_a04f7a5c28ae34 1-13
+tests/build-geo.test.ts
+  s_ab125876fe9ad2::t_a04f7a5c28ae34 1-39
+public/data/regions.v1.json
+  s_ab125876fe9ad2::t_705a17ebe8ad26 1
+scripts/build-data/link-index.ts
+  s_ab125876fe9ad2::t_b7de391c306ca0 1-33
+package-lock.json
+  s_ab125876fe9ad2::t_37711281dc3057 24,29,2474-2483,2498-2504,3917-3942,5422-5431
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "36afdc9f6dd603dfba8302fc2af4c1f2f62a5307",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
