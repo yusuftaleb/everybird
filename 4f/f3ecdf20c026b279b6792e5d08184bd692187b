@@ -1,0 +1,27 @@
+tests/storage.test.ts
+  s_ab125876fe9ad2::t_3f824daaf7c849 1-102
+src/lib/list/export.ts
+  s_ab125876fe9ad2::t_baf09fdb9fc1c1 1-93
+tests/export.test.ts
+  s_ab125876fe9ad2::t_3f824daaf7c849 1-55
+  s_ab125876fe9ad2::t_c4d5c0d256a433 56
+src/lib/list/storage.ts
+  s_ab125876fe9ad2::t_37687d699ed134 1-2,30-35,48,59,72
+  s_ab125876fe9ad2::t_baf09fdb9fc1c1 3-29,36-47,49-58,60-71,73-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4ff3ecdf20c026b279b6792e5d08184bd692187b",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
