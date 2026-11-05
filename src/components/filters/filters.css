@@ -1,0 +1,61 @@
+/* Filters, chips, picker sheet and the country map. Superellipse corners with LifeList's .566 fallback. */
+.eb-filters { display: flex; flex-direction: column; gap: 10px; font-family: var(--font-body); color: var(--ink); }
+.eb-tabs { display: flex; gap: 4px; }
+.eb-tab {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px;
+  border: 1px solid transparent; background: none; color: var(--muted);
+  font: inherit; font-weight: 700; cursor: pointer;
+  border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-tab[aria-selected="true"] { color: var(--ink); background: var(--surface); border-color: var(--hairline); }
+.eb-panel { display: flex; flex-direction: column; gap: 10px; }
+
+.eb-crumbs ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.eb-crumbs li { display: inline-flex; align-items: center; gap: 4px; }
+.eb-crumbs li[aria-current] { color: var(--ink); }
+.eb-crumbs button { font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--muted); background: none; border: 0; padding: 4px 2px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.eb-crumb-sep { width: 10px; height: 10px; }
+
+.eb-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.eb-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 12px;
+  border: 1px solid var(--hairline); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 14px; cursor: pointer;
+  border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: border-color .15s cubic-bezier(.25, .8, .25, 1);
+}
+.eb-chip[data-selected] { border-color: var(--accent); color: var(--accent); }
+.eb-chip-icon, .eb-chip-x { width: 16px; height: 16px; flex: none; }
+.eb-chip-count { color: var(--muted); }
+.eb-chip[data-selected] .eb-chip-count { color: inherit; }
+
+/* Phone bottom sheet. */
+.eb-sheet-scrim { position: fixed; inset: 0; z-index: 49; background: rgb(0 0 0 / .28); }
+.eb-sheet {
+  position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 50;
+  max-height: min(72vh, 560px); display: flex; flex-direction: column; gap: 10px; padding: 14px 16px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 -8px 32px rgb(0 0 0 / .12);
+  animation: eb-sheet-up .32s cubic-bezier(.25, .8, .25, 1) both;
+}
+.eb-sheet:focus { outline: none; }
+.eb-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.eb-sheet-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px; }
+.eb-sheet-close { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; background: none; border: 0; color: var(--ink); cursor: pointer; }
+.eb-sheet-body { overflow: auto; }
+@keyframes eb-sheet-up { from { opacity: 0; transform: translateY(24px); } }
+
+/* Country map. */
+.eb-map { display: flex; flex-direction: column; gap: 4px; }
+.eb-map-svg { width: 100%; height: auto; display: block; }
+.eb-map-land, .eb-map-lit, .eb-map-hit { fill: none; stroke-linecap: round; stroke-width: 1; }
+.eb-map-land { stroke: var(--hairline); }
+.eb-map-lit { stroke: var(--accent); transition: opacity .2s linear; }
+.eb-map-hit { stroke: transparent; stroke-width: 3; }
+.eb-map-country { cursor: pointer; }
+.eb-map-label { margin: 0; min-height: 18px; }
+@media (prefers-reduced-motion: reduce) {
+  .eb-map-lit, .eb-chip { transition: none; }
+  .eb-sheet { animation: none; }
+}

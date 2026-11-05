@@ -1,6 +1,7 @@
 'use client'
 import { X } from '@phosphor-icons/react'
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { trapTab, useEscapeCapture, useIsSheet } from '@/components/dialog-utils'
 import { formatDate, formatMass } from '@/lib/format'
 import { formatPlace } from '@/lib/import/places'
 import type { ListEntry } from '@/lib/list/model'
@@ -23,24 +24,8 @@ type Props = {
   returnFocus?: HTMLElement | null
 }
 
-const SHEET_BELOW = 600
 const MARGIN = 8
 const GAP = 10
-const FOCUSABLE = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
-
-/** Pointer devices ≥ 600px get a popover; narrower screens a bottom sheet. */
-function useIsSheet(): boolean {
-  const query = () => (typeof window.matchMedia === 'function' ? window.matchMedia(`(max-width: ${SHEET_BELOW - 1}px)`) : null)
-  // Read synchronously so the card never remounts (and loses its focus) between variants. It only mounts on click.
-  const [sheet, setSheet] = useState(() => (typeof window === 'undefined' ? false : (query()?.matches ?? window.innerWidth < SHEET_BELOW)))
-  useLayoutEffect(() => {
-    const mq = query()
-    const read = () => setSheet(mq ? mq.matches : window.innerWidth < SHEET_BELOW)
-    mq?.addEventListener?.('change', read)
-    return () => mq?.removeEventListener?.('change', read)
-  }, [])
-  return sheet
-}
 
 function rectOf(a: CardAnchor): DOMRect | null {
   if (!a) return null
@@ -121,15 +106,9 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
     }
   }, [])
 
-  // Esc closes; a press outside closes the popover.
+  // Esc closes (shared capture helper); a press outside closes the popover.
+  useEscapeCapture(onClose)
   useEffect(() => {
-    const key = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        // Capture on window, and stop the rest: nothing underneath (a dialog, the page) also sees this Esc.
-        e.stopImmediatePropagation()
-        onCloseRef.current()
-      }
-    }
     const down = (e: PointerEvent) => {
       const t = e.target as Node
       if (sheet || ref.current?.contains(t)) return
@@ -137,27 +116,13 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
       if (a && 'contains' in a && a.contains(t)) return
       onCloseRef.current()
     }
-    window.addEventListener('keydown', key, true)
     document.addEventListener('pointerdown', down)
-    return () => {
-      window.removeEventListener('keydown', key, true)
-      document.removeEventListener('pointerdown', down)
-    }
+    return () => document.removeEventListener('pointerdown', down)
   }, [sheet])
 
   // The sheet is modal: keep Tab inside it.
   const trap = (e: KeyboardEvent) => {
-    if (!sheet || e.key !== 'Tab' || !ref.current) return
-    const items = Array.from(ref.current.querySelectorAll<HTMLElement>(FOCUSABLE))
-    if (!items.length) return
-    const first = items[0], last = items[items.length - 1]
-    if (e.shiftKey && (document.activeElement === first || document.activeElement === ref.current)) {
-      e.preventDefault()
-      last.focus()
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault()
-      first.focus()
-    }
+    if (sheet) trapTab(e, ref.current)
   }
 
   if (!row) return null
