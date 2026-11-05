@@ -1,0 +1,40 @@
+src/lib/share/convert.ts
+  s_ab125876fe9ad2::t_9a7db37d31ea0b 1-91
+app/s/[token]/page.tsx
+  s_ab125876fe9ad2::t_35e8fb5e7d47a5 1-58
+e2e/share-link.spec.ts
+  s_ab125876fe9ad2::t_35e8fb5e7d47a5 1-31
+tests/link.test.ts
+  s_ab125876fe9ad2::t_1eccab45589d12 47
+  s_ab125876fe9ad2::t_85b8fd7b0dae37 1-15,17-22,32-42,44,46,48-71,73-79,85-100,102-115,117-169
+  s_ab125876fe9ad2::t_9a7db37d31ea0b 116
+  s_ab125876fe9ad2::t_b9713964472a64 16,23-31,43,45,72,80-84,101
+tests/shared-view.test.tsx
+  s_ab125876fe9ad2::t_35e8fb5e7d47a5 1-52
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_d15b4495852123 11,34-35,57,97
+src/components/app/SharedView.tsx
+  s_ab125876fe9ad2::t_35e8fb5e7d47a5 1-67
+src/lib/share/link.ts
+  s_ab125876fe9ad2::t_9a7db37d31ea0b 1-231
+tests/fixtures/share/v1-frozen.txt
+  s_ab125876fe9ad2::t_7cbc3f7c81b689 1
+src/components/filters/FilterBar.tsx
+  s_ab125876fe9ad2::t_d15b4495852123 25-26,29,31,49-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2f91afa0c31064824748ec5668dab8c395d3c96f",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
