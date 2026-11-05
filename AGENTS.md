@@ -28,7 +28,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - `npm run dev`: Next dev server (port 3000)
 - `npm test`: Vitest unit tests (`tests/**/*.test.{ts,tsx}`; node by default, add `// @vitest-environment jsdom` for component tests). `tests/pack.test.ts` packs 5,000-bird lists on all three layouts (about 20 s); `SKIP_PERF=1` skips only the timing bounds
-- `npm run e2e`: Playwright specs in `e2e/` (starts `next dev` on port 3100; set `BASE_URL` to test a deployed URL instead)
+- `npm run e2e`: Playwright specs in `e2e/` (starts the sticker server on port 4100 and `next dev` on port 3100 with `NEXT_PUBLIC_STICKER_BASE=http://localhost:4100`; set `BASE_URL` to test a deployed URL instead). A `next dev` already running on 3100 is reused as is, so start it with that variable or stop it first.
+- `npm run stickers:serve`: serves `../everybird-stickers` (or `$STICKERS_DIR`) with CORS on port 4100 (or `$PORT`), for dev: run it next to `NEXT_PUBLIC_STICKER_BASE=http://localhost:4100 npm run dev`. Without the variable the app loads stickers from `https://yusuftaleb.github.io/everybird-stickers` (not live until Task 25). Script: `scripts/dev/serve-stickers.mjs`.
 - `npm run data`: rebuild `public/data/*` from `data/raw/` (`scripts/build-data/`)
 - `data/inat-synonyms.json` (iNaturalist sci name to eBird code, reasons in `inat-synonyms.notes.md`): `npm run data` publishes it via `scripts/build-data/copy-synonyms.ts` to `public/data/inat-synonyms.v1.json`.
 - `npx tsx scripts/build-data/build-stickers.ts [--force]`: trimmed 128/384 webp stickers into `${STICKERS_OUT:-../everybird-stickers}/v1/` (a separate git repo, never pushed from here), masks into `public/data/masks/<Order>.v1.json`, and the `ar` values in `species.v1.json`. Resumable: skips codes whose two webp files exist (`--force` regenerates). **Run it after `build-species`** (`npm run data` does). build-species carries existing `ar` over by code, but species new to the file keep `ar: 1` until build-stickers runs.
@@ -37,7 +38,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Structure
 
 - `app/`: Next.js app router (layout, pages). Imports styles via `@/styles/...`.
-- `src/`: `lib/` (species, import, list, layout, share), `components/`, `styles/` (`tokens.css` holds the design tokens, `globals.css` the base styles). The `@/*` alias maps to `./src/*`.
+- `src/`: `lib/` (species, import, list, layout, share), `components/` (`collage/`: `Collage` stage with keyboard and motion, `Bird`, `Tally`, `TrueSizeSwitch`, `collage-motion.ts` style writer, `collage-hit.ts` silhouette hit-testing, `collage.css`), `styles/` (`tokens.css` holds the design tokens, `globals.css` the base styles). The `@/*` alias maps to `./src/*`.
 - `tests/`: Vitest unit tests; `tests/fixtures/` are synthetic only.
 - `e2e/`: Playwright specs.
 - `data/`: hand-kept overrides and synonyms; `data/raw/` is git-ignored. `public/data/`: generated JSON the app loads.

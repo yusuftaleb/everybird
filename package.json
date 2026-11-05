@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "e2e": "playwright test",
+    "stickers:serve": "node scripts/dev/serve-stickers.mjs",
     "data": "tsx scripts/build-data/copy-synonyms.ts && tsx scripts/build-data/build-species.ts && tsx scripts/build-data/build-stickers.ts && tsx scripts/build-data/build-geo.ts && tsx scripts/build-data/link-index.ts"
   },
   "dependencies": {

@@ -1,0 +1,176 @@
+/* Collage stage, ported from LifeList.tsx (framer-site). Positions are in % of the stage width (cqw):
+   a bird's tile is --w x --h, placed with `translate` and sized with `scale` (--k), so motion only touches
+   compositor properties. The stage height eases to the group's height (one contained element). */
+.eb-collage {
+  --eb-travel: cubic-bezier(.45, 0, .1, 1);
+  --eb-arrive: cubic-bezier(.25, .8, .25, 1);
+  container-type: inline-size;
+  width: 100%;
+  min-width: 0;
+}
+.eb-stage {
+  position: relative;
+  width: 100%;
+  height: calc(var(--sh) * 1cqw);
+  transition: height .64s var(--eb-travel);
+  contain: layout style;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.eb-stage[data-hovering] { cursor: pointer; }
+.eb-layer { position: absolute; inset: 0; }
+
+.eb-bird {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  width: calc(var(--w) * 1cqw);
+  height: calc(var(--h) * 1cqw);
+  translate: calc(var(--x) * 1cqw) calc(var(--y) * 1cqw);
+  scale: var(--k);
+  transform-origin: 0 0;
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    translate .64s var(--eb-travel) var(--md),
+    scale .64s var(--eb-travel) var(--md),
+    opacity .2s ease,
+    transform .2s var(--eb-arrive);
+  animation: eb-in .48s var(--eb-arrive) var(--d) backwards;
+}
+/* The focus ring is drawn inside the bird's scale, so divide by it: 2px Accent, offset 2, at any size. */
+.eb-bird:focus-visible {
+  outline: calc(2px / var(--k)) solid var(--accent);
+  outline-offset: calc(2px / var(--k));
+  border-radius: calc(8px / var(--k));
+  z-index: 3;
+}
+.eb-bird img,
+.eb-sil {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.eb-bird img { object-fit: contain; }
+.eb-sil { color: var(--muted); }
+.eb-sil svg { display: block; width: 100%; height: 100%; }
+
+/* Leaving: the shrink-and-fade runs in WAAPI; underneath, hold the old spot and size until it ends. */
+.eb-bird[data-off] {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0s, visibility 0s linear .18s, translate 0s linear .18s, scale 0s linear .18s;
+}
+/* Arriving: jump to the new spot while invisible; WAAPI fades and grows it in. */
+.eb-bird[data-enter] { transition: translate 0s, scale 0s, opacity 0s, transform .2s var(--eb-arrive); }
+.eb-bird[data-hot] { transform: translateY(calc(-2px / var(--k))); z-index: 2; }
+/* Big lists and reduced motion: no travel; the bird layer fades through instead (Collage.tsx). */
+.eb-stage[data-fast] { transition: none; }
+.eb-stage[data-fast] .eb-bird { transition: opacity .2s ease, transform .2s var(--eb-arrive); }
+.eb-stage[data-many] .eb-bird { animation: none; }
+@keyframes eb-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes eb-fade { from { opacity: 0; } }
+
+/* The species count sits in the hole the packing leaves at the stage centre. */
+.eb-mid {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  text-align: center;
+  white-space: nowrap;
+  contain: layout style;
+}
+.eb-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: calc(var(--f) * 1cqw);
+  line-height: .85;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+.eb-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.eb-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* True size switch (LifeList's .yt-ll-sci toggle). */
+.eb-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: .66;
+  transition: opacity .25s cubic-bezier(.25, .1, .25, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.eb-switch[aria-checked=true] { opacity: 1; }
+.eb-track {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 34px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: background-color .15s cubic-bezier(.16, 1, .3, 1), box-shadow .15s cubic-bezier(.16, 1, .3, 1);
+}
+.eb-knob {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform .15s cubic-bezier(.16, 1, .3, 1), background-color .15s cubic-bezier(.16, 1, .3, 1);
+}
+.eb-switch[aria-checked=true] .eb-track { background: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.eb-switch[aria-checked=true] .eb-knob { transform: translateX(14px); background: var(--paper); }
+@media (hover: hover) and (pointer: fine) { .eb-switch:hover { opacity: 1; } }
+
+/* Reduced motion: nothing travels or grows; fades that confirm a change stay. */
+@media (prefers-reduced-motion: reduce) {
+  .eb-bird,
+  .eb-bird[data-enter] { transition: opacity .2s ease !important; animation-name: eb-fade; }
+  .eb-bird[data-hot] { transform: none; }
+  .eb-stage { transition: none; }
+  .eb-track,
+  .eb-knob { transition: none; }
+}
