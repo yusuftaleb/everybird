@@ -68,7 +68,30 @@ export function buildCountryDots(admin0: { features: Feature[] }): CountryDots {
   return { v: 1, step: 1.5, rows: 95, cols: 240, countries, cells: Buffer.from(cells.buffer).toString('base64'), extra }
 }
 
-export function buildRegions(admin0: { features: Feature[] }, admin1: { features: Feature[] }): Regions {
+// eBird writes mainland-China provinces with GB/T 2260 numbers (CN-11), ISO 3166-2 uses letters (CN-BJ).
+export const CN_NUMERIC: Record<string, string> = {
+  '11': 'BJ', '12': 'TJ', '13': 'HE', '14': 'SX', '15': 'NM', '21': 'LN', '22': 'JL', '23': 'HL', '31': 'SH', '32': 'JS',
+  '33': 'ZJ', '34': 'AH', '35': 'FJ', '36': 'JX', '37': 'SD', '41': 'HA', '42': 'HB', '43': 'HN', '44': 'GD', '45': 'GX',
+  '46': 'HI', '50': 'CQ', '51': 'SC', '52': 'GZ', '53': 'YN', '54': 'XZ', '61': 'SN', '62': 'GS', '63': 'QH', '64': 'NX',
+  '65': 'XJ', '71': 'TW', '91': 'HK', '92': 'MO',
+}
+export type IsoSub = { code: string; name: string; parent?: string }
+
+/** Top-level ISO 3166-2 codes (eBird's subnational1) that Natural Earth lacks. NE names win where it has the code. */
+export function supplementSub1(sub1: Record<string, string>, iso: IsoSub[]): number {
+  let added = 0
+  for (const e of iso) {
+    if (e.parent || sub1[e.code] || !/^[A-Z]{2}-[A-Z0-9]{1,3}$/.test(e.code)) continue
+    sub1[e.code] = e.name; added++
+  }
+  for (const [num, letters] of Object.entries(CN_NUMERIC)) {
+    const name = sub1[`CN-${letters}`]
+    if (name && !sub1[`CN-${num}`]) { sub1[`CN-${num}`] = name; added++ }
+  }
+  return added
+}
+
+export function buildRegions(admin0: { features: Feature[] }, admin1: { features: Feature[] }, iso: IsoSub[] = []): Regions {
   const countries: Record<string, string> = {}
   for (const f of admin0.features) { const i = iso2(f.properties); if (i && i !== 'AQ') countries[i] ??= String(f.properties.NAME) }
   const sub1: Record<string, string> = {}
@@ -78,6 +101,7 @@ export function buildRegions(admin0: { features: Feature[] }, admin1: { features
     const name = String(f.properties.name_en || f.properties.name || '').trim()
     if (name) sub1[code] ??= name
   }
+  supplementSub1(sub1, iso)
   const sorted = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)))
   return { v: 1, countries: sorted(countries), sub1: sorted(sub1) }
 }
@@ -87,7 +111,10 @@ export function main(root = resolve(__dirname, '../..')): void {
   const a0 = read('ne_50m_admin_0_countries.geojson'), a1 = read('ne_10m_admin_1_states_provinces.geojson')
   const out = resolve(root, 'public/data')
   mkdirSync(out, { recursive: true })
-  const dots = buildCountryDots(a0), regions = buildRegions(a0, a1)
+  const iso = (read('iso_3166-2.json') as { '3166-2': IsoSub[] })['3166-2']
+  const ne = buildRegions(a0, a1).sub1
+  const dots = buildCountryDots(a0), regions = buildRegions(a0, a1, iso)
+  console.log(`iso-codes supplement added ${Object.keys(regions.sub1).length - Object.keys(ne).length} sub1 codes`)
   writeFileSync(resolve(out, 'country-dots.v1.json'), JSON.stringify(dots))
   writeFileSync(resolve(out, 'regions.v1.json'), JSON.stringify(regions))
   console.log(`country-dots: ${dots.countries.length - 1} countries, ${dots.extra.length} extra dots; regions: ${Object.keys(regions.countries).length} countries, ${Object.keys(regions.sub1).length} sub1`)

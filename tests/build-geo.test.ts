@@ -36,4 +36,12 @@ describe('regions', () => {
     expect(regions.sub1['EG-DK']).toBe('Dakahlia')
     expect(regions.countries.CA).toBe('Canada')
   })
+  it('ISO top-level codes supplement Natural Earth (eBird subnational1)', () => {
+    expect(regions.sub1['GB-ENG']).toBe('England')
+    expect(regions.sub1['FR-IDF']).toBe('Île-de-France')
+    expect(regions.sub1['ES-AN']).toBe('Andalucía')
+    for (const c of ['GB-SCT', 'GB-WLS', 'GB-NIR', 'FR-ARA', 'FR-BRE', 'ES-CT', 'ES-MD', 'IT-62', 'IT-25', 'CN-11', 'CN-44', 'BE-VLG'])
+      expect(regions.sub1[c], c).toBeTruthy()
+    expect(regions.sub1['CN-11']).toBe(regions.sub1['CN-BJ'])
+  })
 })
