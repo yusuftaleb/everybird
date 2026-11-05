@@ -1,0 +1,22 @@
+tests/places.test.ts
+  s_ab125876fe9ad2::t_7ce5b66449a97b 1-95
+src/lib/import/places.ts
+  s_ab125876fe9ad2::t_de09b55ddc7302 46,50-51
+  s_ab125876fe9ad2::t_c53473e57bf9ab 1-45,47-49,52-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e329dc762a63878ddb0be86722f462b03bddfa62",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
