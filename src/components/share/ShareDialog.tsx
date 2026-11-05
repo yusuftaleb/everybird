@@ -10,7 +10,7 @@ import { stripBracket } from '@/lib/import/places'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import {
-  IMAGE_SIZE, NAME_MAX_LEN, clearStickerCache, collageAspect, filterLabel as labelFor, packForImage, renderShareImage, type ImageFormat, type ImagePack,
+  IMAGE_SIZE, NAME_MAX_LEN, abortError, clearStickerCache, collageAspect, filterLabel as labelFor, packForImage, renderShareImage, type ImageFormat, type ImagePack,
 } from '@/lib/share/image'
 import type { ShareLevel } from '@/lib/share/link'
 import type { SpeciesIndex } from '@/lib/species/load'
@@ -20,7 +20,6 @@ import './share.css'
 
 type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; onClose: () => void }
 type Theme = 'light' | 'dark'
-const abortError = () => Object.assign(new Error('superseded'), { name: 'AbortError' })
 
 const RENDER_DELAY_MS = 250
 const FORMATS: { id: ImageFormat; label: string; hint: string }[] = [
@@ -113,7 +112,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     first.current = false
     const job = new Promise<void>((resolve, reject) => {
       const t = setTimeout(resolve, delay)
-      cancel = () => { clearTimeout(t); reject(abortError()) }
+      cancel = () => { clearTimeout(t); reject(abortError('superseded')) }
     })
       .then(() => packFor(format))
       .then((pack) => renderShareImage({ format, entries: shown, species, filterLabel: label, name: trimmed || undefined, theme, pack, signal: life.current?.signal }))

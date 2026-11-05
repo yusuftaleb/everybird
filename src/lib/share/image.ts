@@ -127,19 +127,24 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, aspect
     signal?.addEventListener('abort', onAbort)
     w.onmessage = (e: MessageEvent<WorkerReply>) => {
       done()
-      const r = e.data
-      if (r.type !== 'image') return reject(new Error(r.type === 'error' ? r.message : 'unexpected layout reply'))
-      const boxes = new Map<string, Box>()
-      r.codes.forEach((c, i) => boxes.set(c, [r.boxes[4 * i], r.boxes[4 * i + 1], r.boxes[4 * i + 2], r.boxes[4 * i + 3]]))
-      resolve({ W: r.W, H: r.H, boxes })
+      try { resolve(packFromReply(e.data)) } catch (err) { reject(err) }
     }
     w.onerror = (e) => { done(); reject(new Error(`layout worker failed: ${e.message ?? 'error'}`)) }
     const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect }
     w.postMessage(msg)
   })
 }
-const abortError = () => {
-  const e = new Error('share image cancelled')
+/** The worker's reply as an ImagePack: boxes [x, y, w, h] per code, in the reply's order. Throws on an error reply. */
+export function packFromReply(r: WorkerReply): ImagePack {
+  if (r.type !== 'image') throw new Error(r.type === 'error' ? r.message : 'unexpected layout reply')
+  const boxes = new Map<string, Box>()
+  r.codes.forEach((c, i) => boxes.set(c, [r.boxes[4 * i], r.boxes[4 * i + 1], r.boxes[4 * i + 2], r.boxes[4 * i + 3]]))
+  return { W: r.W, H: r.H, boxes }
+}
+
+/** The error a cancelled render (or a superseded one, in the dialog) rejects with. */
+export const abortError = (message = 'share image cancelled') => {
+  const e = new Error(message)
   e.name = 'AbortError'
   return e
 }
@@ -158,41 +163,112 @@ const BIRD_PATH = 'M236.44,73.34,213.21,57.86A60,60,0,0,0,156,16h-.29C122.79,16.
 const MAX_TILE = 440
 const SILHOUETTE = 0.72
 const LOADS_AT_ONCE = 12
-const LOAD_TIMEOUT_MS = 20_000
+const LOAD_TIMEOUT_MS = 20_000 // per sticker
+/** All stickers of one render must arrive within this; whatever is still pending is drawn as the silhouette. */
+export const LOAD_BUDGET_MS = 40_000
 
 const images = new Map<string, Promise<HTMLImageElement | null>>()
+// Bumped by clearStickerCache: loads started before it never write to the cache again.
+let generation = 0
 /** Drop the loaded stickers (the dialog keeps them while open, for fast re-renders, and calls this on close). */
 export function clearStickerCache(): void {
+  generation++
   images.clear()
 }
-/** A sticker as a CORS-clean image, or null if it fails. Successes are kept for the next render. */
-function loadSticker(url: string): Promise<HTMLImageElement | null> {
-  let p = images.get(url)
-  if (p) return p
-  p = new Promise<HTMLImageElement | null>((resolve) => {
+/** Test hook: how many stickers the cache holds (loaded or loading). */
+export function stickerCacheSize(): number {
+  return images.size
+}
+
+/**
+ * A sticker as a CORS-clean image, or null if it fails, times out or `signal` aborts (an abort also stops the fetch).
+ * Only successes stay cached, and only while the cache hasn't been cleared since the load began.
+ */
+function loadSticker(url: string, signal?: AbortSignal): Promise<HTMLImageElement | null> {
+  const hit = images.get(url)
+  if (hit) return hit
+  const gen = generation
+  const p: Promise<HTMLImageElement | null> = new Promise<HTMLImageElement | null>((resolve) => {
     const img = new Image()
+    const finish = (v: HTMLImageElement | null) => {
+      clearTimeout(t)
+      signal?.removeEventListener('abort', stop)
+      img.onload = img.onerror = null
+      resolve(v)
+    }
+    const stop = () => { img.removeAttribute('src'); finish(null) }
+    const t = setTimeout(() => finish(null), LOAD_TIMEOUT_MS)
     img.crossOrigin = 'anonymous'
     img.decoding = 'async'
-    const t = setTimeout(() => resolve(null), LOAD_TIMEOUT_MS)
-    img.onload = () => { clearTimeout(t); resolve(img) }
-    img.onerror = () => { clearTimeout(t); resolve(null) }
+    img.onload = () => finish(img)
+    img.onerror = () => finish(null)
+    signal?.addEventListener('abort', stop)
     img.src = url
-  }).then((img) => { if (!img) images.delete(url); return img })
+  }).then((img) => {
+    if ((!img || gen !== generation || signal?.aborted) && images.get(url) === p) images.delete(url)
+    return img
+  })
   images.set(url, p)
   return p
 }
 
-async function loadAll(urls: string[]): Promise<Map<string, HTMLImageElement | null>> {
+/**
+ * Load `urls`, LOADS_AT_ONCE at a time. Resolves when all have settled or when the budget (counted from this call)
+ * runs out: a URL missing from the result, or mapped to null, is drawn as the silhouette. On abort, stops pulling
+ * URLs, stops the loads in flight and rejects with an AbortError.
+ */
+export async function loadStickers(
+  urls: string[], opts: { signal?: AbortSignal; budgetMs?: number } = {},
+): Promise<Map<string, HTMLImageElement | null>> {
+  const { signal, budgetMs = LOAD_BUDGET_MS } = opts
+  if (signal?.aborted) throw abortError()
   const out = new Map<string, HTMLImageElement | null>()
+  let over = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const budget = new Promise<void>((resolve) => { timer = setTimeout(() => { over = true; resolve() }, budgetMs) })
+  let onAbort = () => {}
+  const aborted = new Promise<never>((_, reject) => { onAbort = () => reject(abortError()) })
+  aborted.catch(() => {})
+  signal?.addEventListener('abort', onAbort)
   let next = 0
+  const stopped = () => over || !!signal?.aborted
   const worker = async () => {
-    while (next < urls.length) {
+    while (next < urls.length && !stopped()) {
       const u = urls[next++]
-      out.set(u, await loadSticker(u))
+      const img = await Promise.race([loadSticker(u, signal), budget.then(() => null)])
+      if (!stopped()) out.set(u, img)
     }
   }
-  await Promise.all(Array.from({ length: Math.min(LOADS_AT_ONCE, urls.length) }, worker))
+  try {
+    await Promise.race([Promise.all(Array.from({ length: Math.min(LOADS_AT_ONCE, urls.length) }, worker)), budget, aborted])
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener('abort', onAbort)
+  }
+  if (signal?.aborted) throw abortError()
   return out
+}
+
+export type Tile = { x: number; y: number; w: number; h: number; url: string | null }
+/** Draw the collage's tiles: the sticker when it loaded, else the Muted bird silhouette (never a hole). */
+export function paintTiles(ctx: CanvasRenderingContext2D, tiles: Tile[], imgs: Map<string, HTMLImageElement | null>, muted: string): void {
+  const bird = new Path2D(BIRD_PATH)
+  for (const t of tiles) {
+    const img = t.url ? imgs.get(t.url) : null
+    if (img) {
+      ctx.drawImage(img, t.x, t.y, t.w, t.h)
+      continue
+    }
+    // Silhouette: the icon's 256 grid, fitted (contain) at SILHOUETTE of the tile and centred. A solid icon reads
+    // heavier than a sticker (whose bird never fills its tile), so it is drawn a little smaller.
+    const k = (SILHOUETTE * Math.min(t.w, t.h)) / 256
+    ctx.save()
+    ctx.translate(t.x + (t.w - 256 * k) / 2, t.y + (t.h - 256 * k) / 2)
+    ctx.scale(k, k)
+    ctx.fillStyle = muted
+    ctx.fill(bird)
+    ctx.restore()
+  }
 }
 
 /** The families canvas text uses: the page's own fonts (Fontshare and next/font), with the CSS fallbacks. */
@@ -266,7 +342,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   const s = pack.boxes.size ? Math.min(area.w / (x1 - x0), area.h / (y1 - y0), MAX_TILE / maxL) : 1
   const ox = area.x + (area.w - (x1 - x0) * s) / 2 - x0 * s
   const oy = area.y + (area.h - (y1 - y0) * s) / 2 - y0 * s
-  const tiles = shown.flatMap((e) => {
+  const tiles: Tile[] = shown.flatMap((e) => {
     const b = pack.boxes.get(e.code)
     if (!b) return []
     const row = species.byCode.get(e.code)!
@@ -285,7 +361,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   }
   const title = shareTitle(opts.name)
   const [imgs] = await Promise.all([
-    loadAll([...new Set(tiles.flatMap((t) => (t.url ? [t.url] : [])))]),
+    loadStickers([...new Set(tiles.flatMap((t) => (t.url ? [t.url] : [])))], { signal }),
     fontsReady(
       [font.title(56), font.tagline(30), font.filter(32), font.count(96), font.latest(32), font.footer(22)],
       `${title}${label ?? ''}${text.count}${text.latest ?? ''}${SITE_LABEL}${STICKER_CREDIT}${TAGLINE}`,
@@ -304,23 +380,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   // The collage.
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
-  const bird = new Path2D(BIRD_PATH)
-  for (const t of tiles) {
-    const img = t.url ? imgs.get(t.url) : null
-    if (img) {
-      ctx.drawImage(img, t.x, t.y, t.w, t.h)
-      continue
-    }
-    // Silhouette: the icon's 256 grid, fitted (contain) at SILHOUETTE of the tile and centred. A solid icon reads
-    // heavier than a sticker (whose bird never fills its tile), so it is drawn a little smaller.
-    const k = (SILHOUETTE * Math.min(t.w, t.h)) / 256
-    ctx.save()
-    ctx.translate(t.x + (t.w - 256 * k) / 2, t.y + (t.h - 256 * k) / 2)
-    ctx.scale(k, k)
-    ctx.fillStyle = C.muted
-    ctx.fill(bird)
-    ctx.restore()
-  }
+  paintTiles(ctx, tiles, imgs, C.muted)
 
   // Text.
   const maxW = L.W - 2 * M
