@@ -1,0 +1,24 @@
+e2e/filters.spec.ts
+  s_ab125876fe9ad2::t_e9adec4c271626 88-111,113,115-140
+  s_ab125876fe9ad2::t_d95646e6883311 141
+src/components/filters/FilterBar.tsx
+  s_ab125876fe9ad2::t_e9adec4c271626 58-59,61-65,77,105,114-115,129
+tests/filters-ui.test.tsx
+  s_ab125876fe9ad2::t_e9adec4c271626 129-138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "42f315abee72da792c5f3d0aef5109859f4bd85e",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
