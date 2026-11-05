@@ -79,9 +79,29 @@ describe('share links', () => {
     if (level === 'species') expect(d.birds.every((b) => b.ym === undefined)).toBe(true)
   })
 
-  it('measures a random 3000-bird list (the worst case) without crashing', () => {
-    // Uniformly random birds do not fit 2,000 characters at 3000; real lists come in runs and do (see above).
-    expect(() => encodeShare(payload(3000, 11))).toThrow(ShareTooLarge)
+  it('a 3000-bird uniformly random species list fits at species level', () => {
+    const birds = sample(3000, 11).map((code) => ({ code }))
+    const { token, level } = encodeShare({ v: 1, name: 'Yusuf', birds })
+    expect(level).toBe('species')
+    expect(token.length).toBeLessThanOrEqual(TOKEN_BUDGET)
+    expect(decodeShare(token).birds).toEqual(byIndex(birds))
+  })
+
+  it('a 5000-bird random species list also fits (bitset), and ten marks still decode exactly', () => {
+    const birds: ShareBird[] = sample(5000, 4).map((code, i) => (i % 500 === 0 ? { code, m: 1 + (i % 7) } : { code }))
+    const { token, level } = encodeShare({ v: 1, birds })
+    expect(level).toBe('species')
+    expect(token.length).toBeLessThanOrEqual(TOKEN_BUDGET)
+    expect(decodeShare(token).birds).toEqual(byIndex(birds))
+  })
+
+  it('picks the smaller species encoding and marks encoding, and round-trips both', () => {
+    // Dense: bitset wins. Sparse: deltas win. Many marks: packed nibbles win. Few marks: sparse list wins.
+    for (const [n, markEvery] of [[4000, 2], [40, 3], [4000, 0], [300, 1]] as const) {
+      const birds: ShareBird[] = sample(n, n + 1).map((code, i) => (markEvery && i % markEvery === 0 ? { code, m: 1 + (i % 7) } : { code }))
+      const { token } = encodeShare({ v: 1, birds }, 99999)
+      expect(decodeShare(token).birds).toEqual(byIndex(birds))
+    }
   })
 
   it('falls back one level at a time', () => {
@@ -98,7 +118,9 @@ describe('share links', () => {
   })
 
   it('throws ShareTooLarge when even species does not fit', () => {
-    const p: SharePayload = { v: 1, birds: sample(5000, 2).map((code) => ({ code })) }
+    // Every bird marked differently: the marks alone need more than the budget.
+    const r = rng(5)
+    const p: SharePayload = { v: 1, birds: sample(9000, 2).map((code) => ({ code, m: 1 + Math.floor(r() * 7) })) }
     expect(() => encodeShare(p)).toThrow(ShareTooLarge)
   })
 
@@ -129,6 +151,26 @@ describe('share links', () => {
     expect(() => decodeShare('1!!!not-base64')).toThrow()
     expect(() => decodeShare('garbage')).toThrow()
     expect(() => decodeShare(good.slice(0, good.length >> 1))).toThrow()
+  })
+
+  it('rejects structurally bad bodies', async () => {
+    const { deflateSync } = await import('fflate')
+    const tok = (bytes: number[]) => '1' + Buffer.from(deflateSync(Uint8Array.from(bytes))).toString('base64url')
+    // FORMAT 0, empty name, 2 birds, deltas 5 then 0 (a duplicate)
+    expect(() => decodeShare(tok([0, 0, 2, 5, 0]))).toThrow()
+    // the same body with delta 1 is fine
+    expect(decodeShare(tok([0, 0, 2, 5, 1])).birds.map((b) => b.code)).toEqual([codes[5], codes[6]])
+    // reserved format bit
+    expect(() => decodeShare(tok([32, 0, 0]))).toThrow()
+    // date past MAX_YM
+    expect(() => decodeShare(tok([8, 0, 1, 0, 0x7f, 0xfe]))).toThrow()
+    // bitset longer than the index allows
+    expect(() => decodeShare(tok([1, 0, 1, 0xff, 0xff, 0x03, ...new Array(2000).fill(1)]))).toThrow()
+    // bitset whose popcount does not match the count
+    expect(() => decodeShare(tok([1, 0, 3, 1, 0b101]))).toThrow()
+    // a deflate bomb is refused
+    const bomb = '1' + Buffer.from(deflateSync(new Uint8Array(5_000_000))).toString('base64url')
+    expect(() => decodeShare(bomb)).toThrow(/broken/)
   })
 
   it('never throws anything but an Error on random corruption', () => {

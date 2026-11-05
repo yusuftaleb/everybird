@@ -1,25 +1,33 @@
 // Share links: a self-contained, versioned token (no database). The URL is `${origin}/s/${token}`.
 //
 // token  = "1" + base64url( deflateRaw( level 9, BODY ) )          ("1" is the permanent version; never reuse it)
-// BODY   = varint nameLen, name (UTF-8, at most 40 characters)
-//          varint nPlaces, then per place: ISO2 (2 ASCII bytes, "--" when unknown), varint len, display (UTF-8)
-//          varint nBirds, then per bird, in ascending link-index order:
-//            varint  link-index delta (first delta is from 0)
-//            uint8   flags (below)
-//            uint16  ym, big-endian, only if FLAG_YM        (months since 1900-01; a year-only date is that January)
-//            uint8   p, only if FLAG_P                       (index into the places dictionary)
-// FLAGS  = bit 1 heard, 2 dead, 4 media, 8 has ym, 16 yearOnly, 32 has p. Bits 64 and 128 are reserved and must be 0.
-// varint = unsigned LEB128.
+// BODY   = u8 FORMAT                                               (section flags, below)
+//          varint nameLen, name (UTF-8, at most 40 characters)
+//          [places]  if F_PLACES: varint nPlaces (<= 255), per place: ISO2 (2 ASCII bytes, "--" unknown), varint len, UTF-8 display
+//          varint nBirds
+//          [species] F_BITSET clear: nBirds varints, ascending link-index deltas (first from 0, every later delta >= 1)
+//                    F_BITSET set:   varint byteLen, then a bitset over the link index (bit i, LSB first within a byte, set =
+//                                    code i present; byteLen = ceil((highest index + 1) / 8)). Birds are the set bits in ascending order.
+//                    The encoder writes whichever is smaller before deflate.
+//          [marks]   if F_MARKS: per bird (ascending order) heard 1, dead 2, media 4.
+//                    F_MARKS_PACKED set: ceil(nBirds / 2) bytes, one nibble per bird (low nibble = even ordinal).
+//                    clear: varint nMarked, then per marked bird: varint ordinal delta (first from 0, then >= 1), u8 mark bits.
+//                    The encoder writes whichever is smaller.
+//          [dates]   if F_DATES: per bird uint16 big-endian: 0xFFFF = no date; else bit 15 = yearOnly, bits 0-14 = ym
+//                    (months since 1900-01, at most MAX_YM; a year-only date is that year's January).
+//          [places]  if F_PLACES: per bird uint8 index into the dictionary, 0xFF = no place (so at most 255 places).
+// FORMAT = bit 1 F_BITSET, 2 F_MARKS, 4 F_MARKS_PACKED, 8 F_DATES, 16 F_PLACES. Bits 32, 64 and 128 are reserved and must be 0.
+// varint = unsigned LEB128. A section is absent unless its flag is set: nothing is spent on data a link does not carry.
 //
 // The places dictionary carries each place's ISO2 country next to its display string so the shared page can filter by
 // country and draw the map without region data for sub-regions: payload.places[i] is the display string, payload.countries[i]
 // its ISO2. Display strings are what formatPlace gives (Subnational2?, Subnational1, Country: never towns).
 //
 // Fallback when the token would be over the budget: regions > countries (display strings reduced to country names, one
-// entry per country) > dates (no places) > species (no places, no dates). Past that, ShareTooLarge.
+// entry per country) > dates (no places) > species (no places, no dates; marks and the name stay). Past that, ShareTooLarge.
 //
 // tests/fixtures/share/v1-frozen.txt locks this layout forever; old links must keep decoding.
-import { deflateSync, inflateSync } from 'fflate'
+import { deflateSync, Inflate } from 'fflate'
 import linkIndex from '../../../data/link-index.json'
 
 export type ShareBird = { code: string; ym?: number /* months since 1900-01; year-only → that year's January with yearOnly */; yearOnly?: boolean; p?: number; m?: number /* 1 heard, 2 dead, 4 media */ }
@@ -34,8 +42,13 @@ export const NAME_MAX = 40
 const MAX_TOKEN = 12_000 // decode refuses anything longer
 const MAX_BODY = 400_000 // and anything that inflates beyond this
 
-const FLAG_HEARD = 1, FLAG_DEAD = 2, FLAG_MEDIA = 4, FLAG_YM = 8, FLAG_YEAR_ONLY = 16, FLAG_P = 32
-const MARKS = FLAG_HEARD | FLAG_DEAD | FLAG_MEDIA
+const F_BITSET = 1, F_MARKS = 2, F_MARKS_PACKED = 4, F_DATES = 8, F_PLACES = 16
+const F_KNOWN = F_BITSET | F_MARKS | F_MARKS_PACKED | F_DATES | F_PLACES
+const MARKS = 7
+const NO_DATE = 0xffff, YEAR_ONLY = 0x8000
+/** 1900 + 300 years: past any real sighting; a larger ym is a corrupt token. */
+export const MAX_YM = 300 * 12
+const NO_PLACE = 0xff
 
 export class ShareTooLarge extends Error {
   constructor() {
@@ -135,32 +148,68 @@ function dictFor(p: SharePayload, level: ShareLevel): { dict: Dict; map: (i: num
   return { dict: out, map: (i) => remap[i] }
 }
 
+function varintBytes(n: number): number {
+  let k = 1
+  while (n >= 128) { n = Math.floor(n / 128); k++ }
+  return k
+}
+
 function body(p: SharePayload, level: ShareLevel, sorted: { b: ShareBird; idx: number }[]): Uint8Array {
+  const { dict, map } = dictFor(p, level)
+  const n = sorted.length
+  const withDates = level !== 'species'
+  const withPlaces = level === 'regions' || level === 'countries'
+  const ym = sorted.map(({ b }) => (withDates && b.ym !== undefined ? b.ym | (b.yearOnly ? YEAR_ONLY : 0) : NO_DATE))
+  const place = sorted.map(({ b }) => (withPlaces && b.p !== undefined ? map(b.p) ?? NO_PLACE : NO_PLACE))
+  const marks = sorted.map(({ b }) => (b.m ?? 0) & MARKS)
+  const hasDates = ym.some((x) => x !== NO_DATE)
+  const hasPlaces = dict.display.length > 0 && place.some((x) => x !== NO_PLACE)
+  const nMarked = marks.filter(Boolean).length
+
+  // Species: deltas or bitset, whichever is smaller.
+  let deltaBytes = 0, prev = 0
+  for (const { idx } of sorted) { deltaBytes += varintBytes(idx - prev); prev = idx }
+  const bitsetLen = n ? Math.ceil((sorted[n - 1].idx + 1) / 8) : 0
+  const useBitset = n > 0 && varintBytes(bitsetLen) + bitsetLen < deltaBytes
+
+  // Marks: sparse list or packed nibbles, whichever is smaller.
+  let sparseBytes = varintBytes(nMarked), mp = -1
+  marks.forEach((m, i) => { if (m) { sparseBytes += varintBytes(i - (mp < 0 ? 0 : mp)) + 1; mp = i } })
+  const packedMarks = nMarked > 0 && Math.ceil(n / 2) < sparseBytes
+
   const w = new Writer()
+  w.u8((useBitset ? F_BITSET : 0) | (nMarked ? F_MARKS : 0) | (packedMarks ? F_MARKS_PACKED : 0) | (hasDates ? F_DATES : 0) | (hasPlaces ? F_PLACES : 0))
   const name = Array.from((p.name ?? '').trim()).slice(0, NAME_MAX).join('')
   const nb = enc.encode(name)
   w.varint(nb.length); w.bytes(nb)
-  const { dict, map } = dictFor(p, level)
-  w.varint(dict.display.length)
-  dict.display.forEach((d, i) => {
-    w.u8(dict.iso[i].charCodeAt(0)); w.u8(dict.iso[i].charCodeAt(1))
-    const db = enc.encode(d)
-    w.varint(db.length); w.bytes(db)
-  })
-  w.varint(sorted.length)
-  let prev = 0
-  for (const { b, idx } of sorted) {
-    w.varint(idx - prev)
-    prev = idx
-    const ym = level === 'regions' || level === 'countries' || level === 'dates' ? b.ym : undefined
-    const place = level === 'regions' || level === 'countries' ? (b.p === undefined ? undefined : map(b.p)) : undefined
-    let f = (b.m ?? 0) & MARKS
-    if (ym !== undefined) { f |= FLAG_YM; if (b.yearOnly) f |= FLAG_YEAR_ONLY }
-    if (place !== undefined) f |= FLAG_P
-    w.u8(f)
-    if (ym !== undefined) { w.u8(ym >> 8); w.u8(ym & 255) }
-    if (place !== undefined) w.u8(place)
+  if (hasPlaces) {
+    w.varint(dict.display.length)
+    dict.display.forEach((d, i) => {
+      w.u8(dict.iso[i].charCodeAt(0)); w.u8(dict.iso[i].charCodeAt(1))
+      const db = enc.encode(d)
+      w.varint(db.length); w.bytes(db)
+    })
   }
+  w.varint(n)
+  if (useBitset) {
+    const bits = new Uint8Array(bitsetLen)
+    for (const { idx } of sorted) bits[idx >> 3] |= 1 << (idx & 7)
+    w.varint(bitsetLen); w.bytes(bits)
+  } else {
+    prev = 0
+    for (const { idx } of sorted) { w.varint(idx - prev); prev = idx }
+  }
+  if (nMarked) {
+    if (packedMarks) {
+      for (let i = 0; i < n; i += 2) w.u8(marks[i] | ((marks[i + 1] ?? 0) << 4))
+    } else {
+      w.varint(nMarked)
+      let last = 0
+      marks.forEach((m, i) => { if (m) { w.varint(i - last); w.u8(m); last = i } })
+    }
+  }
+  if (hasDates) for (const x of ym) { w.u8(x >> 8); w.u8(x & 255) }
+  if (hasPlaces) for (const x of place) w.u8(x)
   return Uint8Array.from(w.b)
 }
 
@@ -169,15 +218,36 @@ export function encodeShare(p: SharePayload, maxChars: number = TOKEN_BUDGET): {
   const sorted = p.birds.map((b) => ({ b, idx: lookup(b.code) })).sort((x, y) => x.idx - y.idx)
   for (let i = 1; i < sorted.length; i++) if (sorted[i].idx === sorted[i - 1].idx) throw new Error(`Duplicate bird in a share link: ${sorted[i].b.code}`)
   for (const { b } of sorted) {
-    if (b.ym !== undefined && !(Number.isInteger(b.ym) && b.ym >= 0 && b.ym <= 0xffff)) throw new Error('Month out of range for a share link')
+    if (b.ym !== undefined && !(Number.isInteger(b.ym) && b.ym >= 0 && b.ym <= MAX_YM)) throw new Error('Month out of range for a share link')
     if (b.p !== undefined && !(Number.isInteger(b.p) && b.p >= 0)) throw new Error('Bad place index for a share link')
   }
+  // A level the payload has nothing for would encode the same as the one below it, so it is not reported.
+  const hasPlaces = !!p.places?.length && sorted.some(({ b }) => b.p !== undefined)
+  const hasDates = sorted.some(({ b }) => b.ym !== undefined)
   for (const level of ['regions', 'countries', 'dates', 'species'] as const) {
-    if (level === 'countries' && !p.places?.length) continue
+    if ((level === 'regions' || level === 'countries') && !hasPlaces) continue
+    if (level === 'dates' && !hasDates) continue
     const token = '1' + toBase64Url(deflateSync(body(p, level, sorted), { level: 9 }))
     if (token.length <= maxChars) return { token, level }
   }
   throw new ShareTooLarge()
+}
+
+/** Inflate with a hard cap on the output, fed in small slices so a bomb is stopped before it is allocated. */
+function inflateCapped(data: Uint8Array): Uint8Array {
+  const chunks: Uint8Array[] = []
+  let total = 0
+  const inf = new Inflate((chunk) => {
+    total += chunk.length
+    if (total > MAX_BODY) throw new ShareDecodeError()
+    chunks.push(chunk)
+  })
+  const SLICE = 128
+  for (let i = 0; i < data.length; i += SLICE) inf.push(data.subarray(i, i + SLICE), i + SLICE >= data.length)
+  const out = new Uint8Array(total)
+  let at = 0
+  for (const c of chunks) { out.set(c, at); at += c.length }
+  return out
 }
 
 /** Throws ShareDecodeError ("This link is broken or from a newer Everybird") on an unknown version or a corrupt token. */
@@ -185,43 +255,93 @@ export function decodeShare(token: string): SharePayload {
   if (typeof token !== 'string' || token.length < 2 || token.length > MAX_TOKEN || token[0] !== '1') throw new ShareDecodeError()
   let raw: Uint8Array
   try {
-    raw = inflateSync(fromBase64Url(token.slice(1)))
+    raw = inflateCapped(fromBase64Url(token.slice(1)))
   } catch {
     throw new ShareDecodeError()
   }
-  if (raw.length > MAX_BODY) throw new ShareDecodeError()
   try {
     const r = new Reader(raw)
+    const f = r.u8()
+    if (f & ~F_KNOWN) throw new ShareDecodeError()
     const name = dec.decode(r.bytes(r.varint()))
     if (Array.from(name).length > NAME_MAX) throw new ShareDecodeError()
-    const nPlaces = r.varint()
-    if (nPlaces > 255) throw new ShareDecodeError()
     const places: string[] = [], countries: string[] = []
-    for (let i = 0; i < nPlaces; i++) {
-      const iso = String.fromCharCode(r.u8(), r.u8())
-      countries.push(iso)
-      places.push(dec.decode(r.bytes(r.varint())))
+    let nPlaces = 0
+    if (f & F_PLACES) {
+      nPlaces = r.varint()
+      if (nPlaces < 1 || nPlaces > 255) throw new ShareDecodeError()
+      for (let i = 0; i < nPlaces; i++) {
+        countries.push(String.fromCharCode(r.u8(), r.u8()))
+        places.push(dec.decode(r.bytes(r.varint())))
+      }
     }
     const n = r.varint()
     if (n > CODES.length) throw new ShareDecodeError()
-    const birds: ShareBird[] = []
-    let idx = 0
-    for (let k = 0; k < n; k++) {
-      idx += r.varint()
-      if (idx >= CODES.length) throw new ShareDecodeError()
-      const f = r.u8()
-      if (f & ~(MARKS | FLAG_YM | FLAG_YEAR_ONLY | FLAG_P) || (f & FLAG_YEAR_ONLY && !(f & FLAG_YM))) throw new ShareDecodeError()
-      const b: ShareBird = { code: CODES[idx] }
-      if (f & FLAG_YM) { b.ym = (r.u8() << 8) | r.u8(); if (f & FLAG_YEAR_ONLY) b.yearOnly = true }
-      if (f & FLAG_P) {
-        b.p = r.u8()
-        if (b.p >= nPlaces) throw new ShareDecodeError()
+    const idxs: number[] = []
+    if (f & F_BITSET) {
+      const len = r.varint()
+      if (len > Math.ceil(CODES.length / 8)) throw new ShareDecodeError()
+      const bits = r.bytes(len)
+      for (let i = 0; i < len; i++) for (let k = 0; k < 8; k++) if (bits[i] & (1 << k)) idxs.push(i * 8 + k)
+      if (idxs.length !== n || (n > 0 && idxs[n - 1] >= CODES.length) || (len > 0 && bits[len - 1] === 0)) throw new ShareDecodeError()
+    } else {
+      let idx = 0
+      for (let k = 0; k < n; k++) {
+        const d = r.varint()
+        if (k > 0 && d < 1) throw new ShareDecodeError()
+        idx += d
+        if (idx >= CODES.length) throw new ShareDecodeError()
+        idxs.push(idx)
       }
-      if (f & MARKS) b.m = f & MARKS
-      birds.push(b)
+    }
+    const birds: ShareBird[] = idxs.map((i) => ({ code: CODES[i] }))
+    if (f & F_MARKS) {
+      let any = false
+      if (f & F_MARKS_PACKED) {
+        const packed = r.bytes(Math.ceil(n / 2))
+        for (let i = 0; i < n; i++) {
+          const m = (packed[i >> 1] >> ((i & 1) * 4)) & 15
+          if (m & 8) throw new ShareDecodeError()
+          if (m) { birds[i].m = m; any = true }
+        }
+        if (n % 2 === 1 && packed[packed.length - 1] >> 4) throw new ShareDecodeError()
+      } else {
+        const cnt = r.varint()
+        if (cnt > n) throw new ShareDecodeError()
+        let at = 0
+        for (let k = 0; k < cnt; k++) {
+          const d = r.varint()
+          if (k > 0 && d < 1) throw new ShareDecodeError()
+          at += d
+          const m = r.u8()
+          if (at >= n || !m || m > MARKS) throw new ShareDecodeError()
+          birds[at].m = m
+          any = true
+        }
+      }
+      if (!any) throw new ShareDecodeError()
+    }
+    if (f & F_DATES) {
+      for (let i = 0; i < n; i++) {
+        const x = (r.u8() << 8) | r.u8()
+        if (x === NO_DATE) continue
+        const ym = x & 0x7fff
+        if (ym > MAX_YM) throw new ShareDecodeError()
+        birds[i].ym = ym
+        if (x & YEAR_ONLY) birds[i].yearOnly = true
+      }
+    }
+    if (f & F_PLACES) {
+      for (let i = 0; i < n; i++) {
+        const x = r.u8()
+        if (x === NO_PLACE) continue
+        if (x >= nPlaces) throw new ShareDecodeError()
+        birds[i].p = x
+      }
     }
     if (r.i !== raw.length) throw new ShareDecodeError()
-    const out: SharePayload = { v: 1, birds }
+    // Key order matches what encodeShare took in, so toEqual and JSON agree: code, ym, yearOnly, p, m.
+    const out: SharePayload = { v: 1, birds: birds.map((b) => ({ code: b.code, ...(b.ym !== undefined ? { ym: b.ym } : {}), ...(b.yearOnly ? { yearOnly: true } : {}), ...(b.p !== undefined ? { p: b.p } : {}), ...(b.m ? { m: b.m } : {}) })) }
     if (name) out.name = name
     if (nPlaces) { out.places = places; out.countries = countries }
     return out
