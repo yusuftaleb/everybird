@@ -15,7 +15,9 @@ const fake = {
   prefetch: vi.fn(),
   dispose: vi.fn(),
 }
-vi.mock('@/lib/layout/layout-client', () => ({ createLayoutClient: () => fake }))
+const clients: object[] = []
+// A new object per client (shared spies), so client identity is observable.
+vi.mock('@/lib/layout/layout-client', () => ({ createLayoutClient: () => { const c = { ...fake }; clients.push(c); return c } }))
 const { useCollageLayout } = await import('@/components/app/use-collage-layout')
 
 const row = (code: string, to: number, g: number) => ({ code, com: code, sci: code, ord: 'Passeriformes', fam: 'Corvidae', famCom: 'Crows', to, g, gSrc: 'family', st: true, ar: 1, q: true }) as SpeciesRow
@@ -29,6 +31,7 @@ const setup = (list: ListEntry[]) =>
 
 beforeEach(() => {
   Object.values(fake).forEach((f) => f.mockClear())
+  clients.length = 0
   vi.stubGlobal('Worker', class {})
 })
 afterEach(() => vi.unstubAllGlobals())
@@ -60,5 +63,15 @@ describe('useCollageLayout', () => {
     h.rerender({ list: [e('a'), e('b'), e('c')], trips: [], filter: {} })
     expect(fake.setList).toHaveBeenCalledTimes(2)
     expect((fake.setList.mock.calls[1][0] as { code: string }[]).map((x) => x.code)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('gives a new client its list (Strict Mode remounts the client)', () => {
+    renderHook((p: P) => useCollageLayout({ ...p, mode: 'even', species, container }), {
+      initialProps: { list: [e('a')], trips: [], filter: {} } as P,
+      reactStrictMode: true,
+    })
+    expect(clients.length).toBe(2)
+    expect(fake.setList).toHaveBeenCalledTimes(2)
+    expect(fake.setList.mock.contexts.at(-1)).toBe(clients[1])
   })
 })

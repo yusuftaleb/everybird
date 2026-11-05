@@ -100,12 +100,13 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
   }, [container])
 
   // New birds or masses: the client drops its cache and re-packs from the full collage. Marks alone: nothing.
-  const packed = useRef<{ sig: string; filterSig: string } | null>(null)
+  // Per client: a new client (Strict Mode's remount, a remounted collage) starts with no list.
+  const packed = useRef<{ client: LayoutClient; sig: string; filterSig: string } | null>(null)
   useEffect(() => {
     const c = client.current
     const { known } = latest.current
     if (!c || !known.length) return
-    if (packed.current?.sig !== packSig) {
+    if (packed.current?.client !== c || packed.current.sig !== packSig) {
       c.setList(
         known.map((e) => {
           const row = species.byCode.get(e.code)!
@@ -116,7 +117,7 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
     } else if (packed.current.filterSig !== filterSig) {
       c.refilter(resolve) // same birds, new dates/places/trips: keep the full collages
     }
-    packed.current = { sig: packSig, filterSig }
+    packed.current = { client: c, sig: packSig, filterSig }
   }, [packSig, filterSig, species, resolve])
 
   // The current state. Aborts (a newer list) are expected and ignored.
