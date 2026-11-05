@@ -1,0 +1,32 @@
+tests/fixtures/inat/taxonomy.json
+  s_ab125876fe9ad2::t_c7794fa6a9134b 1-6
+tests/fixtures/inat/users.json
+  s_ab125876fe9ad2::t_c7794fa6a9134b 1-9
+src/lib/import/inat.ts
+  s_ab125876fe9ad2::t_6c83cfc664a559 1-376
+tests/fixtures/inat/observations.json
+  s_ab125876fe9ad2::t_c7794fa6a9134b 1-19
+tests/fixtures/inat/places.json
+  s_ab125876fe9ad2::t_c7794fa6a9134b 1,3-14
+  s_ab125876fe9ad2::t_49c68c727b3a09 2
+tests/inat.test.ts
+  s_ab125876fe9ad2::t_49c68c727b3a09 67
+  s_ab125876fe9ad2::t_09bde1194b7a68 1-66,68-158,160-234
+  s_ab125876fe9ad2::t_1c96fe241e2f87 159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f43d721992c4a1bfdd804ded5d419778f0476926",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
