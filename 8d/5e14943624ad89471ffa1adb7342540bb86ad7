@@ -1,0 +1,21 @@
+tests/storage.test.ts
+  s_ab125876fe9ad2::t_b60d15447d9acb 67-95
+src/lib/list/storage.ts
+  s_ab125876fe9ad2::t_85728b3e8cadd0 58-60,63-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8d5e14943624ad89471ffa1adb7342540bb86ad7",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
