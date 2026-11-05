@@ -65,13 +65,19 @@ export async function load(): Promise<Saved | null> {
   }
 }
 
-export async function forget(): Promise<void> {
+/**
+ * Clears memory and the device copy. 'failed' means the device copy may still exist
+ * (the UI says "Couldn't clear this device's copy"); memory is cleared either way.
+ * The delete is attempted even when memory-only, since an earlier copy may still be on the device.
+ */
+export async function forget(): Promise<'forgotten' | 'failed'> {
   memory = null
-  if (memoryOnly) return
   try {
     await del(STORAGE_KEY, getStore())
+    return 'forgotten'
   } catch {
     memoryOnly = true
+    return 'failed'
   }
 }
 

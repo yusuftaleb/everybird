@@ -35,7 +35,7 @@ describe('storage', () => {
   it('forget clears', async () => {
     const s = await fresh()
     await s.save(s.emptySaved())
-    await s.forget()
+    expect(await s.forget()).toBe('forgotten')
     expect(await s.load()).toBeNull()
     expect((await fresh()).load()).resolves.toBeNull()
   })
@@ -47,7 +47,20 @@ describe('storage', () => {
     expect(await s.save(saved)).toBe('memory-only')
     expect(s.isMemoryOnly()).toBe(true)
     expect(await s.load()).toEqual(saved)
-    await s.forget()
+    expect(await s.forget()).toBe('failed') // the device copy could not be cleared
+    expect(await s.load()).toBeNull() // memory is cleared either way
+  })
+
+  it('forget reports failure when the delete rejects, and still clears memory', async () => {
+    vi.resetModules()
+    vi.doMock('idb-keyval', async (orig) => {
+      const real = await orig<typeof import('idb-keyval')>()
+      return { ...real, del: () => Promise.reject(new Error('boom')) }
+    })
+    const s = await import('@/lib/list/storage')
+    await s.save({ ...s.emptySaved(), name: 'x' })
+    expect(await s.forget()).toBe('failed')
+    expect(s.isMemoryOnly()).toBe(true)
     expect(await s.load()).toBeNull()
   })
 
