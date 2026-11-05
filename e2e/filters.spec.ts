@@ -85,22 +85,58 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
   await expect(stage.locator("[data-code]:not([data-off])").first()).toBeVisible();
   await page.waitForTimeout(1500); // let the first ripple finish
 
-  // Tap an order.
-  await startProbe(page);
-  await page.getByTestId("picker-order").tap();
-  await page.getByRole("dialog").getByRole("button").first().tap();
-  await page.waitForTimeout(1000);
-  let m = await stopProbe(page);
-  expect(m.long, "longest task after choosing an order").toBeLessThanOrEqual(100);
-  expect(m.frame, "longest frame after choosing an order").toBeLessThanOrEqual(50);
+  const measure = async (what: string, act: () => Promise<void>, took: () => Promise<void>) => {
+    await startProbe(page);
+    await act();
+    await took(); // the filter must have taken effect before we measure
+    await page.waitForTimeout(1000);
+    const m = await stopProbe(page);
+    expect(m.long, `longest task after ${what}`).toBeLessThanOrEqual(100);
+    expect(m.frame, `longest frame after ${what}`).toBeLessThanOrEqual(50);
+  };
+  const pickFirstChip = async () => {
+    const dlg = page.getByRole("dialog");
+    await dlg.locator(".eb-chip:not([data-selected])").first().tap();
+    await expect(dlg).toHaveCount(0);
+  };
 
-  // Then a country.
+  // 1. Tap an order (in the phone sheet).
+  await measure(
+    "choosing an order",
+    async () => {
+      await page.getByTestId("picker-order").tap();
+      await pickFirstChip();
+    },
+    () => expect(page.getByTestId("picker-order")).toHaveAttribute("data-selected", ""),
+  );
+
+  // 2. Tap a lit country's dots on the visible map (the ~10k-dot repaint).
   await page.getByTestId("filter-tab-places").tap();
-  await startProbe(page);
-  await page.getByTestId("picker-country").tap();
-  await page.getByRole("dialog").getByRole("button").first().tap();
-  await page.waitForTimeout(1000);
-  m = await stopProbe(page);
-  expect(m.long, "longest task after choosing a country").toBeLessThanOrEqual(100);
-  expect(m.frame, "longest frame after choosing a country").toBeLessThanOrEqual(50);
+  await expect(page.locator(".eb-map-lit").first()).toBeVisible();
+  const spot = await page.evaluate(() => {
+    const path = document.querySelector<SVGPathElement>(".eb-map-lit")!;
+    const svg = path.ownerSVGElement!;
+    const pt = svg.createSVGPoint();
+    const p0 = path.getPointAtLength(0);
+    pt.x = p0.x;
+    pt.y = p0.y;
+    const s = pt.matrixTransform(path.getScreenCTM()!);
+    return { x: s.x, y: s.y, iso: path.getAttribute("data-testid")!.replace("map-country-", "") };
+  });
+  await measure(
+    "tapping a country on the map",
+    () => page.touchscreen.tap(spot.x, spot.y),
+    () => expect(page.getByTestId(`map-country-${spot.iso}`)).toHaveAttribute("opacity", "1"),
+  );
+
+  // 3. Then a different country from the sheet (the map tap already selected one, so the label must change).
+  const before = await page.getByTestId("picker-country").innerText();
+  await measure(
+    "choosing a country",
+    async () => {
+      await page.getByTestId("picker-country").tap();
+      await pickFirstChip();
+    },
+    () => expect(page.getByTestId("picker-country")).not.toHaveText(before),
+  );
 });

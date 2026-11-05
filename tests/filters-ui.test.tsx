@@ -126,6 +126,16 @@ describe('FilterBar', () => {
     expect(screen.queryByRole('button', { name: 'Remove Waterfowl filter' })).toBeNull()
   })
 
+  it('at phone width, tapping a lit country on the map sets the country filter', () => {
+    vi.stubGlobal('innerWidth', 390)
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Places' }))
+    expect(screen.getByRole('button', { name: 'Choose a country 2' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('map-country-EG'))
+    expect(filterOf()).toEqual({ country: 'EG' })
+    expect(screen.getByRole('button', { name: 'Egypt' })).toBeInTheDocument()
+  })
+
   it('under 600px a tab shows one button that opens a sheet', () => {
     vi.stubGlobal('innerWidth', 390)
     render(<Harness />)

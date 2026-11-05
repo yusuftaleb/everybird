@@ -55,11 +55,14 @@ export function FilterBar({ state, dispatch, species, regions, dots }: Props) {
     () => (iso: string) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso),
     [regions],
   )
+  // Only the active tab's levels are counted (the Places tab counts countries for the map too).
+  const activeLevels = TABS.find((t) => t.id === tab)!.levels
   const opts = useMemo(() => {
-    const o = (level: Level) => options(list, filter, level, species, trips, countryName)
-    return { order: o('order'), family: o('family'), country: o('country'), year: o('year'), trip: o('trip') } as Record<Level, ChipOption[]>
-  }, [list, filter, species, trips, countryName])
-  const countryCounts = useMemo(() => new Map(opts.country.map((c) => [c.value, c.count])), [opts.country])
+    const out: Partial<Record<Level, ChipOption[]>> = {}
+    for (const l of activeLevels) out[l] = options(list, filter, l, species, trips, countryName)
+    return out as Record<Level, ChipOption[]>
+  }, [list, filter, species, trips, countryName, activeLevels])
+  const countryCounts = useMemo(() => new Map((opts.country ?? []).map((c) => [c.value, c.count])), [opts.country])
 
   const set = (level: Level, value: string | undefined) => dispatch({ type: 'filter', filter: withLevel(filter, level, value) })
   const toggle = (level: Level, value: string) => set(level, filter[level] === value ? undefined : value)
@@ -71,7 +74,7 @@ export function FilterBar({ state, dispatch, species, regions, dots }: Props) {
     if (level === 'order') return orderLabel(v)
     if (level === 'country') return countryName(v)
     if (level === 'trip') return trips.find((t) => t.id === v)?.label ?? v
-    if (level === 'family') return opts.family.find((o) => o.value === v)?.label ?? species.rows.find((r) => r.fam === v)?.famCom ?? v
+    if (level === 'family') return opts.family?.find((o) => o.value === v)?.label ?? species.rows.find((r) => r.fam === v)?.famCom ?? v
     return v
   }
 
@@ -99,7 +102,7 @@ export function FilterBar({ state, dispatch, species, regions, dots }: Props) {
 
   const chipRow = (level: Level): ReactNode => (
     <div className="eb-chip-row" role="group" aria-label={`${level[0].toUpperCase()}${level.slice(1)} chips`}>
-      {opts[level].map((o) => (
+      {(opts[level] ?? []).map((o) => (
         <Chip key={o.value} icon={LEVEL_ICON[level]} label={o.label} count={o.count} selected={filter[level] === o.value} onClick={() => toggle(level, o.value)} />
       ))}
     </div>
@@ -108,8 +111,8 @@ export function FilterBar({ state, dispatch, species, regions, dots }: Props) {
   const levelControl = (level: Level): ReactNode => {
     if (level === 'family' && !filter.order) return null
     if (level === 'trip' && !filter.year) return null
-    if (!sheet) return opts[level].length ? chipRow(level) : null
-    return <SheetPicker key={level} level={level} options={opts[level]} chosen={chosenLabel(level)} value={filter[level]} onPick={(v) => toggle(level, v)} />
+    if (!sheet) return opts[level]?.length ? chipRow(level) : null
+    return <SheetPicker key={level} level={level} options={opts[level] ?? []} chosen={chosenLabel(level)} value={filter[level]} onPick={(v) => toggle(level, v)} />
   }
 
   return (
@@ -123,7 +126,7 @@ export function FilterBar({ state, dispatch, species, regions, dots }: Props) {
             role="tab"
             id={`${base}-tab-${t.id}`}
             aria-selected={tab === t.id}
-            aria-controls={`${base}-panel-${t.id}`}
+            aria-controls={tab === t.id ? `${base}-panel-${t.id}` : undefined}
             tabIndex={tab === t.id ? 0 : -1}
             className="eb-tab"
             data-testid={`filter-tab-${t.id}`}
