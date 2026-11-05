@@ -1,3 +1,5 @@
+const REVOKE_AFTER_MS = 40_000
+
 /** Save text as a file through a temporary object URL (nothing leaves the browser). */
 export function downloadText(text: string, filename: string, type: string): void {
   const url = URL.createObjectURL(new Blob([text], { type }))
@@ -8,7 +10,8 @@ export function downloadText(text: string, filename: string, type: string): void
   document.body.appendChild(a)
   a.click()
   a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  // Some browsers (Safari, Firefox on Android) read the blob after click() returns: keep it alive a while.
+  setTimeout(() => URL.revokeObjectURL(url), REVOKE_AFTER_MS)
 }
 
 /** "2026-11-05", for file names. */

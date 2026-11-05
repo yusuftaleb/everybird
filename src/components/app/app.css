@@ -46,6 +46,8 @@
 }
 .eb-btn svg { width: 18px; height: 18px; flex: none; }
 .eb-btn:disabled, .eb-btn[data-disabled] { opacity: .45; cursor: default; pointer-events: none; }
+/* Labels that stand in for a visually hidden file input (Restore from backup) show the input's focus ring. */
+.eb-btn:has(+ input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .eb-btn-big { min-height: 52px; padding: 0 22px; font-size: 17px; }
 .eb-btn-quiet { background: var(--surface); border-color: var(--hairline); color: var(--ink); font-weight: 500; }
 .eb-btn-danger { color: var(--accent); }

@@ -166,8 +166,12 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
         const end = style === 'jump' || typeof requestAnimationFrame !== 'function' ? ops.length : Math.min(ops.length, i + WRITE_CHUNK)
         for (; i < end; i++) ops[i].run()
         chunkFrame.current = i < ops.length ? requestAnimationFrame(step) : 0
+        // The last of several chunks: the tab stop may now be a bird that was still hidden a frame ago.
+        if (chunked && i >= ops.length) syncTabStop()
       }
+      let chunked = false
       step()
+      chunked = true
       syncTabStop()
       if (hot.current && !m.on?.has(hot.current)) setHot(null)
     }

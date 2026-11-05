@@ -70,9 +70,12 @@ function stubFetch() {
   })
 }
 
-async function mount(opts: { blockStorage?: boolean } = {}) {
+async function mount(opts: { blockStorage?: boolean; failForget?: boolean } = {}) {
   vi.resetModules()
   stubFetch()
+  if (opts.failForget)
+    vi.doMock('@/lib/list/storage', async (orig) => ({ ...(await orig<typeof import('@/lib/list/storage')>()), forget: async () => 'failed' as const }))
+  else vi.doUnmock('@/lib/list/storage')
   if (opts.blockStorage) vi.stubGlobal('indexedDB', { open: () => { throw new Error('SecurityError') } })
   else (globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory()
   const { Home } = await import('@/components/app/Home')
@@ -173,6 +176,43 @@ describe('landing and the three ways in', () => {
     await waitFor(() => expect(stats()).toHaveTextContent(/^1 species/))
   })
 
+  it('an iNat fetch keeps running (and showing progress) when another import lands first', async () => {
+    const { inat } = await mount()
+    let finish: (v: unknown) => void = () => {}
+    let aborted = false
+    vi.mocked(inat.importInat).mockImplementationOnce(async (_u, opts) => {
+      opts.signal?.addEventListener('abort', () => { aborted = true })
+      opts.onProgress?.({ fetched: 400, total: 576 })
+      return new Promise((done) => { finish = done }) as never
+    })
+    fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: 'birder' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
+    expect(await screen.findByText('Fetched 400 of 576')).toBeInTheDocument()
+    await drop(csv(...ROWS))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
+    expect(screen.getByText('Fetched 400 of 576')).toBeInTheDocument() // the landing became the collage page; the fetch UI stayed
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    expect(aborted).toBe(false)
+    await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }) })
+    await waitFor(() => expect(stats()).toHaveTextContent(/^4 species/))
+  })
+
+  it('cancelling an iNat fetch adds nothing and says so', async () => {
+    const { inat } = await mount()
+    vi.mocked(inat.importInat).mockImplementationOnce(
+      (_u, opts) =>
+        new Promise((_done, fail) => {
+          opts.signal?.addEventListener('abort', () => fail(Object.assign(new Error('aborted'), { name: 'AbortError' })))
+        }) as never,
+    )
+    fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: 'birder' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
+    await act(async () => { fireEvent.click(await screen.findByRole('button', { name: 'Cancel' })) })
+    expect(await screen.findByText('Cancelled. Nothing was added.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Make yours' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Fetch my birds' })).toBeInTheDocument()
+  })
+
   it('fixing an unmatched row adds the species', async () => {
     await mount()
     await drop(csv(...ROWS, ROBIN_TYPO))
@@ -205,6 +245,18 @@ describe('landing and the three ways in', () => {
     expect(await screen.findByRole('heading', { name: 'Make yours' })).toBeInTheDocument()
     await waitFor(async () => expect(await storage.load()).toBeNull())
     expect(screen.queryByText("Couldn't clear this device's copy")).toBeNull()
+  })
+
+  it("a failed forget says the device copy couldn't be cleared", async () => {
+    await mount({ failForget: true })
+    await drop(csv(...ROWS))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
+    fireEvent.click(screen.getByRole('button', { name: 'Forget my list' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Yes, forget it' })) })
+    expect(await screen.findByText(/Couldn't clear this device's copy/)).toBeInTheDocument()
+    expect(screen.getByText(/Couldn't clear this device's copy/).closest('[role=alert]')).not.toBeNull()
+    expect(screen.getByRole('heading', { name: 'Make yours' })).toBeInTheDocument() // memory is cleared either way
+    vi.doUnmock('@/lib/list/storage')
   })
 
   it('works in memory and says so when storage is blocked', async () => {
@@ -269,6 +321,21 @@ describe('editing', () => {
     const good = { ...storage.emptySaved(), records: { ebird: [], inat: [], manual: [{ code: 'snogoo', source: 'manual' }] } }
     const file = new File([JSON.stringify(good)], 'backup.json', { type: 'application/json' })
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
+    await waitFor(() => expect(stats()).toHaveTextContent(/^1 species/))
+  })
+
+  it('restoring a backup over an existing list asks first', async () => {
+    const { storage } = await mount()
+    await drop(csv(...ROWS))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
+    const good = { ...storage.emptySaved(), records: { ebird: [], inat: [], manual: [{ code: 'snogoo', source: 'manual' }] } }
+    const file = new File([JSON.stringify(good)], 'backup.json', { type: 'application/json' })
+    await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
+    expect(screen.getByText(/Replace your list with this backup\?/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Keep my list' }))
+    expect(stats()).toHaveTextContent(/^3 species/)
+    await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, replace it' }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^1 species/))
   })
 

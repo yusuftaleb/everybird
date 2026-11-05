@@ -9,7 +9,11 @@ export default defineConfig({
   fullyParallel: true,
   reporter: "list",
   use: { baseURL },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /filters\.spec\.ts/ },
+    // The frame-timing test runs on its own, after everything else, so other workers can't steal its CPU.
+    { name: "perf", use: { ...devices["Desktop Chrome"] }, testMatch: /filters\.spec\.ts/, dependencies: ["chromium"] },
+  ],
   // Skip the local servers when pointing at a deployed URL. Locally, stickers come from ../everybird-stickers
   // through scripts/dev/serve-stickers.mjs (the Pages site stands in for it in production).
   webServer: process.env.BASE_URL

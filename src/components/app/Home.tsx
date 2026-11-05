@@ -40,6 +40,16 @@ export function Home() {
     el?.focus({ preventScroll: true })
   }
 
+  const landingFooter = (
+    <>
+      {state.persistence === 'memory-only' && <MemoryNotice />}
+      <div className="eb-tools">
+        <span className="eb-note">Moving from another device?</span>
+        <RestoreBackup onRestore={(s) => dispatch({ type: 'restore', saved: s })} />
+      </div>
+    </>
+  )
+
   return (
     <>
       <main className="eb-page">
@@ -55,9 +65,8 @@ export function Home() {
           <p className="eb-error eb-notice" role="alert">Couldn&apos;t load the bird data. Check your connection and reload the page.</p>
         )}
 
-        {!data ? (
-          !(meta.error || regionsFailed) && <div className="eb-stage-wait eb-sample-wait" aria-hidden="true" />
-        ) : mine ? (
+        {!data && !(meta.error || regionsFailed) && <div className="eb-stage-wait eb-sample-wait" aria-hidden="true" />}
+        {data && (mine ? (
           <CollagePage state={state} dispatch={dispatch} species={data.species} regions={data.regions} dots={dots} />
         ) : (
           <>
@@ -75,23 +84,19 @@ export function Home() {
               <figcaption className="eb-mono">Sample · Yusuf&apos;s life list. Try the filters.</figcaption>
               <SampleDemo species={data.species} regions={data.regions} dots={dots} />
             </figure>
-            <ImportPanel
-              saved={state.saved}
-              dispatch={dispatch}
-              species={data.species}
-              regions={data.regions}
-              hasList={false}
-              footer={
-                <>
-                  {state.persistence === 'memory-only' && <MemoryNotice />}
-                  <div className="eb-tools">
-                    <span className="eb-note">Moving from another device?</span>
-                    <RestoreBackup onRestore={(s) => dispatch({ type: 'restore', saved: s })} />
-                  </div>
-                </>
-              }
-            />
           </>
+        ))}
+        {/* One position in the tree for both states: an import in flight (an iNaturalist fetch, a file being read)
+            survives the switch from the landing page to the collage page that another import causes. */}
+        {data && (
+          <ImportPanel
+            saved={state.saved}
+            dispatch={dispatch}
+            species={data.species}
+            regions={data.regions}
+            hasList={mine}
+            footer={mine ? undefined : landingFooter}
+          />
         )}
       </main>
       <SiteFooter />
