@@ -1,0 +1,35 @@
+tests/ebird-lifelist.test.ts
+  s_ab125876fe9ad2::t_11cdefb9f73ccb 1-72
+tests/fixtures/species/taxonomy.json
+  s_ab125876fe9ad2::t_7ed3d84716f799 14-16
+tests/resolve.test.ts
+  s_ab125876fe9ad2::t_88b7431a078595 60-72
+tests/fixtures/ebird/lifelist-basic.csv
+  s_ab125876fe9ad2::t_11cdefb9f73ccb 1-9
+tests/fixtures/ebird/lifelist-edge.csv
+  s_ab125876fe9ad2::t_11cdefb9f73ccb 1-9
+tests/fixtures/ebird/lifelist-spanish.csv
+  s_ab125876fe9ad2::t_11cdefb9f73ccb 1-3
+src/lib/species/resolve.ts
+  s_ab125876fe9ad2::t_7ed3d84716f799 32,37-38
+src/lib/import/detect.ts
+  s_ab125876fe9ad2::t_9903af617661e4 1-9
+src/lib/import/ebird-lifelist.ts
+  s_ab125876fe9ad2::t_9903af617661e4 1-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2bccd3e02451e435d6abae5fd1a8210dc2314a65",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
