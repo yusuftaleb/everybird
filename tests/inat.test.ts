@@ -30,7 +30,7 @@ function fakeFetch(opts: { obs?: Obs[]; users?: unknown; on?: (url: string, n: n
     const forced = opts.on?.(url, calls.length)
     if (forced) return forced
     const u = new URL(url)
-    if (u.pathname === '/v1/users/autocomplete') return json(opts.users ?? USERS)
+    if (u.pathname === '/v1/users/autocomplete') return json('users' in opts ? opts.users : USERS)
     if (u.pathname === '/v1/observations') {
       const above = Number(u.searchParams.get('id_above') ?? 0)
       const rest = obs.filter((o) => o.id > above)
@@ -124,18 +124,20 @@ describe('importInat', () => {
     const placeCall = f.calls.find((c) => c.url.includes('/v1/places/'))!
     expect(placeCall.url).toContain('admin_level=0,10,20')
     const text = JSON.stringify(r)
-    for (const bad of ['location', 'geojson', 'place_guess', 'latitude', 'photo', '"id"']) expect(text).not.toContain(bad)
+    for (const bad of ['location', 'geojson', 'place_guess', 'Faketown', '12.34', '56.78', 'example.invalid', 'square.jpg', 'uuid', 'coordinates', 'photo', '"id"']) expect(text).not.toContain(bad)
   })
 
-  it('resolves places in batches of 100', async () => {
+  it('resolves places in batches of at most 100, each id exactly once', async () => {
     const many: Obs[] = Array.from({ length: 230 }, (_, i) => ({
-      id: i + 1, observed_on: '2026-01-01', quality_grade: 'research', taxon: { rank: 'species', name: `Colaptes auratus` },
-      photos: [{}], sounds: [], annotations: [], place_ids: [1000 + 0],
+      id: i + 1, observed_on: '2026-01-01', quality_grade: 'research', taxon: { rank: 'species', name: `Fakeus sp${String.fromCharCode(97 + (i % 26))}${String.fromCharCode(97 + Math.floor(i / 26))}` },
+      photos: [{}], sounds: [], annotations: [], place_ids: [5000 + i],
     }))
-    // each observation shares a place, so only distinct earliest-observation places are fetched
     const f = fakeFetch({ obs: many })
     okResult(await run(f))
-    expect(f.calls.filter((c) => c.url.includes('/v1/places/')).length).toBe(1)
+    const reqs = f.calls.filter((c) => c.url.includes('/v1/places/')).map((c) => new URL(c.url).pathname.split('/').pop()!.split(',').map(Number))
+    expect(reqs.length).toBe(3)
+    for (const ids of reqs) expect(ids.length).toBeLessThanOrEqual(100)
+    expect(reqs.flat().sort((x, y) => x - y)).toEqual(Array.from({ length: 230 }, (_, i) => 5000 + i))
   })
 
   it('earliest observation per name wins; unmatched has one entry with date and place', async () => {
@@ -174,6 +176,31 @@ describe('importInat', () => {
     expect(obs[3]!.at - obs[2]!.at).toBeGreaterThanOrEqual(8000)
   })
 
+  it('odd bodies and stuck paging never throw', async () => {
+    const nullUsers = fakeFetch({ users: null })
+    expect(await run(nullUsers)).toEqual({ error: 'network' })
+    const nullBody = fakeFetch({ on: (url) => (url.includes('/v1/observations') ? new Response('null') : undefined) })
+    expect(await run(nullBody)).toEqual({ error: 'network' })
+    const stuck = fakeFetch({ on: (url) => (url.includes('/v1/observations') ? json({ total_results: 1, results: [OBS[0]] }) : undefined) })
+    expect(await run(stuck)).toEqual({ error: 'network' })
+    expect(stuck.calls.filter((c) => c.url.includes('/v1/observations')).length).toBe(2)
+  })
+
+  it('requests 30 user matches', async () => {
+    const f = fakeFetch()
+    okResult(await run(f))
+    expect(f.calls[0]!.url).toContain('per_page=30')
+  })
+
+  it('an abort during res.json() is an AbortError, not network', async () => {
+    const ac = new AbortController()
+    const f = fakeFetch({ on: () => ({ status: 200, ok: true, json: async () => { ac.abort(); throw new SyntaxError('x') } }) as unknown as Response })
+    const p = importInat('testbirder', { ...base, fetch: f.fn, signal: ac.signal })
+    const assertion = expect(p).rejects.toMatchObject({ name: 'AbortError' })
+    await vi.runAllTimersAsync()
+    await assertion
+  })
+
   it('a 429 that clears is retried transparently', async () => {
     let seen = 0
     const f = fakeFetch({ on: (url) => (url.includes('/v1/observations') && seen++ === 0 ? json({}, 429) : undefined) })
@@ -199,6 +226,7 @@ describe('marsh wren split', () => {
     expect(marshWrenCode({ country: 'US', sub1: 'US-CA' }, fb)).toBe('marwre1')
     expect(marshWrenCode({ country: 'US', sub1: 'US-CO' }, fb)).toBe('marwre1')
     expect(marshWrenCode({ country: 'MX' }, fb)).toBe('marwre1')
+    expect(marshWrenCode({ country: 'MX', sub1: 'MX-BCN' }, fb)).toBe('marwre1')
     expect(marshWrenCode({ country: 'US', sub1: 'US-NY' }, fb)).toBe('eamwre1')
     expect(marshWrenCode({ country: 'CA', sub1: 'CA-ON' }, fb)).toBe('eamwre1')
     expect(marshWrenCode({ country: 'US', sub1: 'US-TX' }, fb)).toBe('eamwre1')

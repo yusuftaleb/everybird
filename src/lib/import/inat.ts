@@ -70,9 +70,9 @@ const EASTERN = 'eamwre1'
  */
 export function marshWrenCode(place: Place | undefined, fallback: string): string {
   if (!place) return fallback
+  if (place.country && WESTERN_MARSH_WREN_COUNTRIES.has(place.country)) return WESTERN
   if (place.sub1) return WESTERN_MARSH_WREN_SUB1.has(place.sub1) ? WESTERN : EASTERN
   if (!place.country) return fallback
-  if (WESTERN_MARSH_WREN_COUNTRIES.has(place.country)) return WESTERN
   if (place.country === 'US' || place.country === 'CA') return fallback
   return EASTERN
 }
@@ -128,11 +128,16 @@ function makeClient(f: typeof fetch, minIntervalMs: number, signal?: AbortSignal
         continue
       }
       if (!res.ok) throw new NetworkError(`HTTP ${res.status}`)
+      let body: unknown
       try {
-        return (await res.json()) as T
+        body = await res.json()
       } catch {
+        if (signal?.aborted) throw abortError()
         throw new NetworkError('Invalid JSON')
       }
+      // A null or non-object body would break callers' property access; treat it as a failed response.
+      if (body === null || typeof body !== 'object') throw new NetworkError('Unexpected response body')
+      return body as T
     }
   }
 }
@@ -259,8 +264,8 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
   const get = makeClient(opts.fetch ?? fetch, opts.minIntervalMs ?? 1000, opts.signal)
   try {
     const login = username.trim()
-    const users = await get<{ results?: { login?: string }[] }>(`${API}/users/autocomplete?q=${encodeURIComponent(login)}`)
-    if (!users.results?.some((u) => u.login?.toLowerCase() === login.toLowerCase())) return { error: 'unknown-user' }
+    const users = await get<{ results?: { login?: string }[] }>(`${API}/users/autocomplete?q=${encodeURIComponent(login)}&per_page=30`)
+    if (!(Array.isArray(users.results) ? users.results : []).some((u) => u.login?.toLowerCase() === login.toLowerCase())) return { error: 'unknown-user' }
 
     const byName = new Map<string, Agg>()
     let skipped = 0
@@ -274,9 +279,12 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
         id_above: String(lastId),
       })
       const body = await get<{ total_results?: number; results?: ApiObs[] }>(`${API}/observations?${q}`)
-      const results = body.results ?? []
+      const results = Array.isArray(body.results) ? body.results : []
       if (page === 0) total = body.total_results ?? results.length
       if (results.length === 0) break
+      const maxId = Math.max(...results.map((o) => o.id))
+      // Defensive: a page that does not advance id_above would loop forever.
+      if (!(maxId > lastId)) throw new NetworkError('Paging did not advance')
       for (const o of results) {
         seq++
         lastId = Math.max(lastId, o.id)
@@ -315,7 +323,7 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
     for (let i = 0; i < ids.length; i += PLACE_BATCH) {
       const batch = ids.slice(i, i + PLACE_BATCH)
       const res = await get<{ results?: ApiPlace[] }>(`${API}/places/${batch.join(',')}?admin_level=0,10,20`)
-      for (const p of res.results ?? []) placeById.set(p.id, p)
+      for (const p of Array.isArray(res.results) ? res.results : []) placeById.set(p.id, p)
     }
     const placeOf = makePlaceResolver(opts.regions, placeById)
 
