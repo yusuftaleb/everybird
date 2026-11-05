@@ -7,7 +7,7 @@ import type { ListEntry } from '@/lib/list/model'
 import { SHARE_COLORS, SITE_LABEL, STICKER_CREDIT, shareCardText } from '@/lib/share/image'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
-import { OG_COLLAGE, OG_SIZE, ogName, ogResponseOptions, pickOgBirds, tryDecodeShare, OG_DESCRIPTION } from '@/lib/share/og'
+import { OG_COLLAGE, OG_SIZE, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare, OG_DESCRIPTION } from '@/lib/share/og'
 import { fetchStickers, ogFonts, serverMasks, serverSpecies } from '@/lib/share/og-server'
 
 export const alt = "An Everybird: every bird you've ever seen"
@@ -22,10 +22,10 @@ const MONO = '"Geist Mono", monospace'
 
 type Placed = { code: string; box: Box; src: string }
 
-/** Up to 60 birds of the list, packed with the wide layout into the collage area, with their stickers. */
+/** Up to 60 birds of the list that have stickers, packed with the wide layout into the collage area, with their stickers. */
 async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof serverSpecies>>): Promise<{ placed: Placed[]; expected: number }> {
   const known = payload.birds.flatMap((b) => { const row = species.get(b.code); return row ? [row] : [] })
-  const picked = pickOgBirds(known)
+  const picked = pickOgStickers(known)
   if (!picked.length) return { placed: [], expected: 0 }
   const wide = LAYOUTS.find((l) => l.name === 'wide')!
   const birds = await loadBirds(picked.map((r) => ({ code: r.code, mass: r.g, ord: r.ord })), serverMasks)
@@ -36,9 +36,9 @@ async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof
   for (const [code, b] of list) {
     const box = r.boxes.get(b.id)
     const src = stickers.get(code)
-    if (box && src && species.get(code)?.st) placed.push({ code, box, src })
+    if (box && src) placed.push({ code, box, src })
   }
-  return { placed, expected: picked.filter((r) => r.st).length }
+  return { placed, expected: picked.length }
 }
 
 function frame(children: React.ReactNode) {

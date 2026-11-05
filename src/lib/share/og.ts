@@ -21,6 +21,11 @@ export function pickOgBirds<T extends { to: number }>(birds: readonly T[], max =
   return Array.from({ length: max }, (_, i) => sorted[Math.floor(((i + 0.5) * n) / max)])
 }
 
+/** The birds the card draws: only species with a sticker (`st`), then pickOgBirds, so no slot is left empty. */
+export function pickOgStickers<T extends { to: number; st: boolean }>(birds: readonly T[], max = OG_MAX_BIRDS): T[] {
+  return pickOgBirds(birds.filter((b) => b.st), max)
+}
+
 /** The page header's name part: "Ada's Everybird", or "An Everybird" with no name (the shared page's h1). */
 export function ogName(p: Pick<SharePayload, 'name'>): string {
   return p.name?.trim() ? `${p.name.trim()}'s Everybird` : 'An Everybird'

@@ -80,7 +80,9 @@ export function marshWrenCode(place: Place | undefined, fallback: string): strin
 // ---------------------------------------------------------------------------------------------
 // HTTP: one request at a time, >= minIntervalMs apart, 429 backoff, abortable.
 
-class NetworkError extends Error {}
+class NetworkError extends Error {
+  constructor(message: string, readonly status?: number) { super(message) }
+}
 class RateLimitedError extends Error {}
 
 function abortError(): Error {
@@ -127,7 +129,7 @@ function makeClient(f: typeof fetch, minIntervalMs: number, signal?: AbortSignal
         await sleep(minIntervalMs * 2 ** (attempt + 1), signal)
         continue
       }
-      if (!res.ok) throw new NetworkError(`HTTP ${res.status}`)
+      if (!res.ok) throw new NetworkError(`HTTP ${res.status}`, res.status)
       let body: unknown
       try {
         body = await res.json()
@@ -289,7 +291,17 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
   try {
     const login = username.trim()
     const users = await get<{ results?: { login?: string }[] }>(`${API}/users/autocomplete?q=${encodeURIComponent(login)}&per_page=30`)
-    if (!(Array.isArray(users.results) ? users.results : []).some((u) => u.login?.toLowerCase() === login.toLowerCase())) return { error: 'unknown-user' }
+    const isLogin = (u: { login?: string }) => u.login?.toLowerCase() === login.toLowerCase()
+    if (!(Array.isArray(users.results) ? users.results : []).some(isLogin)) {
+      // Autocomplete ranks by name and can miss an exact login: ask for the user directly (404 -> unknown).
+      try {
+        const one = await get<{ results?: { login?: string }[] }>(`${API}/users/${encodeURIComponent(login)}`)
+        if (!(Array.isArray(one.results) ? one.results : []).some(isLogin)) return { error: 'unknown-user' }
+      } catch (e) {
+        if (e instanceof NetworkError && e.status === 404) return { error: 'unknown-user' }
+        throw e
+      }
+    }
 
     const byName = new Map<string, Agg>()
     let skipped = 0

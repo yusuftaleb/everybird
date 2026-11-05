@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SharePayload } from '@/lib/share/link'
-import { OG_DESCRIPTION, ogName, ogResponseOptions, ogTitle, pickOgBirds, tryDecodeShare } from '@/lib/share/og'
+import { OG_DESCRIPTION, ogName, ogResponseOptions, ogTitle, pickOgBirds, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
 import { parseFontFaces } from '@/lib/share/og-server'
 
 const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ code: `b${i}`, to: (i + 1) * 10 }))
@@ -31,6 +31,16 @@ describe('pickOgBirds', () => {
     const copy = [...input]
     pickOgBirds(input)
     expect(input).toEqual(copy)
+  })
+})
+
+describe('pickOgStickers', () => {
+  it('picks only birds that have a sticker, so the card has no holes', () => {
+    const all = Array.from({ length: 200 }, (_, i) => ({ code: `b${i}`, to: i + 1, st: i % 3 !== 0 }))
+    const picked = pickOgStickers(all)
+    expect(picked).toHaveLength(60)
+    expect(picked.every((b) => b.st)).toBe(true)
+    expect(pickOgStickers([{ code: 'x', to: 1, st: false }])).toEqual([])
   })
 })
 

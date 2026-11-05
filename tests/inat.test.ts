@@ -148,9 +148,28 @@ describe('importInat', () => {
   })
 
   it('unknown user', async () => {
+    // Not in autocomplete, and GET /v1/users/{login} is a 404 (the fake's default).
     const f = fakeFetch({ users: { total_results: 1, results: [{ login: 'testbirder2' }] } })
     expect(await run(f)).toEqual({ error: 'unknown-user' })
-    expect(f.calls.length).toBe(1)
+    expect(f.calls.map((c) => new URL(c.url).pathname)).toEqual(['/v1/users/autocomplete', '/v1/users/testbirder'])
+  })
+
+  it('a login autocomplete misses is confirmed with GET /v1/users/{login}', async () => {
+    const f = fakeFetch({
+      users: { total_results: 0, results: [] },
+      on: (url) => (new URL(url).pathname === '/v1/users/testbirder' ? json({ total_results: 1, results: [{ id: 7, login: 'TestBirder' }] }) : undefined),
+    })
+    const r = okResult(await run(f))
+    expect(r.records.length).toBeGreaterThan(0)
+    expect(f.calls[1]!.url).toContain('/v1/users/testbirder')
+  })
+
+  it('a failing user lookup is a network error, not an unknown user', async () => {
+    const f = fakeFetch({
+      users: { total_results: 0, results: [] },
+      on: (url) => (new URL(url).pathname === '/v1/users/testbirder' ? json({}, 500) : undefined),
+    })
+    expect(await run(f)).toEqual({ error: 'network' })
   })
 
   it('zero birds', async () => {
