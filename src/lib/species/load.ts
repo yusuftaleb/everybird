@@ -27,7 +27,9 @@ export function resetCaches(): void {
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url)
+  // Absolute-path URLs resolve against the page origin; make that explicit so it also holds in a worker.
+  const origin = typeof self !== 'undefined' ? self.location?.origin : undefined
+  const res = await fetch(origin && origin !== 'null' ? new URL(url, origin).href : url)
   if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`)
   return (await res.json()) as T
 }

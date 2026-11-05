@@ -1,0 +1,11 @@
+Submission ID,Common Name,Scientific Name,Taxonomic Order,Count,State/Province,County,Location ID,Location,Latitude,Longitude,Date,Time,Protocol,Duration (Min),All Obs Reported,Distance Traveled (km),Area Covered (ha),Number of Observers,Breeding Code,Observation Details,Checklist Comments,ML Catalog Numbers
+S1,Northern Flicker (Red-shafted),Colaptes auratus [cafer Group],11986,1,CA-BC,Okanagan-Similkameen,L1,Test Park,1.5,2.5,2026-03-10,08:00 AM,eBird - Casual Observation,,1,,,1,,,secret comment,
+S2,Northern Flicker,Colaptes auratus,11980,2,US-AZ,Pima,L2,Other Park,3.5,4.5,2026-01-02,09:00 AM,eBird - Casual Observation,,1,,,1,,,,
+S3,Yellow-rumped Warbler (Audubon's),Setophaga coronata auduboni,34403,1,CA-BC,Okanagan-Similkameen,L1,Test Park,1.5,2.5,2026-05-05,10:00 AM,eBird - Casual Observation,,1,,,1,,,,
+S4,kiwi sp.,Apteryx sp.,30,1,CA-BC,,L1,Test Park,1.5,2.5,2026-05-06,10:00 AM,eBird - Casual Observation,,1,,,1,,,,
+S5,Northern/Gilded Flicker,Colaptes auratus/chrysoides,12000,1,CA-BC,,L1,Test Park,1.5,2.5,2026-05-07,10:00 AM,eBird - Casual Observation,,1,,,1,,,,
+S6,Gilded Flicker,Colaptes chrysoides,11994,1,US-AZ,Pima,L2,Other Park,3.5,4.5,2026-06-01,10:00 AM,eBird - Casual Observation,,1,,,1,,,,
+S7,Gilded Flicker,Colaptes chrysoides,11994,1,US-AZ,Pima,L2,Other Park,3.5,4.5,2026-02-01,10:00 AM,eBird - Casual Observation,,1,,,1,,,,ML123456
+S8,Rüppell's Griffon,Gyps rueppelli,600,1,KE,,L3,Far Place,5.5,6.5,2026-04-04,10:00 AM,eBird - Casual Observation,,1,,,1,,,,
+S9,Imaginary Bird,Fictus avis,99999,1,US-AZ,Pima,L2,Other Park,3.5,4.5,2026-09-09,10:00 AM,eBird - Casual Observation,,1,,,1,,,,
+S10,Imaginary Bird,Fictus avis,99999,1,CA-BC,Okanagan-Similkameen,L2,Other Park,3.5,4.5,2026-08-08,10:00 AM,eBird - Casual Observation,,1,,,1,,,,
