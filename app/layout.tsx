@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import { Geist_Mono } from "next/font/google";
 import { SHARE_ORIGIN } from "@/lib/share/origin";
 import "@/styles/globals.css";
@@ -33,7 +34,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&f[]=cabinet-grotesk@700&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Cookieless visit counts and three anonymous events (src/lib/analytics.ts). Only on Vercel, where
+            /_vercel/insights exists: elsewhere (dev, tests, a local production build) nothing loads and track() is a no-op. */}
+        {process.env.VERCEL ? <Analytics /> : null}
+      </body>
     </html>
   );
 }

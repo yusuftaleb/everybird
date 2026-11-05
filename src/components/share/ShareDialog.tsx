@@ -5,6 +5,7 @@
 import { DeviceMobile, DownloadSimple, FrameCorners, LinkSimple, ShareNetwork, X } from '@phosphor-icons/react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack } from '@/components/dialog-utils'
+import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
 import { stripBracket } from '@/lib/import/places'
 import { applyFilter, filterKey } from '@/lib/list/filters'
@@ -157,6 +158,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     const blob = await getBlob()
     if (!blob) return setNote({ text: 'Couldn’t make the image. Try again.', error: true })
     downloadBlob(blob, fileName)
+    track('image_downloaded', { format })
     setNote({ text: `Saved ${fileName}.` })
   }
   const share = async () => {
@@ -167,12 +169,14 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     if (typeof nav.share === 'function' && nav.canShare?.({ files: [file] })) {
       try {
         await nav.share({ files: [file], title: 'Everybird' })
+        track('image_downloaded', { format })
         return
       } catch (e) {
         if ((e as Error)?.name === 'AbortError') return // the birder closed the share sheet
       }
     }
     downloadBlob(blob, fileName)
+    track('image_downloaded', { format })
     setNote({ text: `Saved ${fileName}. Post it from your photos or files.` })
   }
   const copyLink = async () => {
@@ -190,6 +194,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       console.warn('Everybird share link failed:', e)
       return setNote({ text: 'Couldn’t make the link. Try again.', error: true })
     }
+    // Counted once the link exists, whether the clipboard takes it or the birder copies it by hand.
+    track('link_copied', { level })
     try {
       if (!navigator.clipboard?.writeText) throw new Error('no clipboard')
       await navigator.clipboard.writeText(url)

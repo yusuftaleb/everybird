@@ -1,6 +1,7 @@
 'use client'
 import { Binoculars, CheckSquareOffset, FileCsv, LockSimple, type Icon } from '@phosphor-icons/react'
 import { memo, type ReactNode } from 'react'
+import { track } from '@/lib/analytics'
 import type { ImportResult, Source } from '@/lib/list/model'
 import type { Action } from '@/lib/list/store'
 import type { Saved } from '@/lib/list/storage'
@@ -34,7 +35,10 @@ function Way({ icon: Glyph, title, children }: { icon: Icon; title: string; chil
 
 /** The three ways in, given equal weight. They combine into one list; each import replaces only its own source. */
 export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, regions, hasList, disabled, footer }: Props) {
-  const onImport = (source: Source) => (result: ImportResult) => dispatch({ type: 'import', source, result })
+  const onImport = (source: Source) => (result: ImportResult) => {
+    dispatch({ type: 'import', source, result })
+    track('collage_made', { source })
+  }
   return (
     <section id="make-yours" className="eb-block eb-import" aria-labelledby="eb-import-h" tabIndex={-1}>
       <h2 id="eb-import-h" className="eb-h2">{hasList ? 'Add another source' : 'Make yours'}</h2>

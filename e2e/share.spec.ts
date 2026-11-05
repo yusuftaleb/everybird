@@ -99,3 +99,24 @@ test("copy link puts a /s/1… URL under 2000 chars on the clipboard", async ({ 
   await page.goto(url);
   await expect(page.getByText("197 species").first()).toBeVisible();
 });
+
+test("download and copy link each send one anonymous analytics event, with no list contents", async ({ page, context, baseURL }) => {
+  test.setTimeout(90_000);
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseURL });
+  // Stand in for Vercel's queue (only rendered on Vercel) and record what track() hands it.
+  await page.addInitScript(() => {
+    const w = window as unknown as { va: (...a: unknown[]) => void; __events: unknown[] };
+    w.__events = [];
+    w.va = (...a: unknown[]) => { w.__events.push(a); };
+  });
+  const dialog = await openShare(page);
+  await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+  await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
+  await dialog.getByRole("button", { name: "Copy link" }).click();
+  await expect(dialog.getByTestId("share-note")).toHaveText(/^Link copied/);
+  const events = await page.evaluate(() => (window as unknown as { __events: unknown[] }).__events);
+  expect(events).toEqual([
+    ["event", { name: "image_downloaded", data: { format: "story" } }],
+    ["event", { name: "link_copied", data: { level: expect.stringMatching(/^(species|dates|countries|regions)$/) } }],
+  ]);
+});

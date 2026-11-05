@@ -38,6 +38,7 @@ vi.mock('@/lib/import/parse-client', async () => {
   }
 })
 vi.mock('@/lib/import/inat', async (orig) => ({ ...(await orig<typeof import('@/lib/import/inat')>()), importInat: vi.fn() }))
+vi.mock('@/lib/analytics', () => ({ track: vi.fn() }))
 
 const HEADER = 'Row #,Taxon Order,Category,Common Name,Scientific Name,Count,Location,S/P,Date,LocID,SubID,Exotic,Countable'
 const ROWS = [
@@ -81,9 +82,11 @@ async function mount(opts: { blockStorage?: boolean; failForget?: boolean } = {}
   const { Home } = await import('@/components/app/Home')
   const storage = await import('@/lib/list/storage')
   const inat = await import('@/lib/import/inat')
+  const analytics = await import('@/lib/analytics')
+  vi.mocked(analytics.track).mockClear()
   const utils = render(<Home />)
   await screen.findByRole('heading', { name: 'Make yours' })
-  return { storage, inat, ...utils }
+  return { storage, inat, analytics, ...utils }
 }
 
 const stats = () => screen.getByTestId('collage-stats')
@@ -120,9 +123,11 @@ describe('landing and the three ways in', () => {
   })
 
   it('dropping a lifelist CSV adds its species', async () => {
-    const { storage } = await mount()
+    const { storage, analytics } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
+    // One anonymous event: the source only, no counts, names or places.
+    expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'ebird' }]])
     expect(screen.getByRole('heading', { name: 'Add another source' })).toBeInTheDocument()
     expect(screen.getByText("1 sp., slash or hybrid entry doesn't count")).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
@@ -162,7 +167,7 @@ describe('landing and the three ways in', () => {
   })
 
   it('iNat import shows progress and adds its birds as another source', async () => {
-    const { inat } = await mount()
+    const { inat, analytics } = await mount()
     let finish: (v: unknown) => void = () => {}
     vi.mocked(inat.importInat).mockImplementationOnce(async (_u, opts) => {
       opts.onProgress?.({ fetched: 400, total: 576 })
@@ -172,8 +177,10 @@ describe('landing and the three ways in', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     expect(await screen.findByText('Fetched 400 of 576')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    expect(vi.mocked(analytics.track)).not.toHaveBeenCalled()
     await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }) })
     await waitFor(() => expect(stats()).toHaveTextContent(/^1 species/))
+    expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'inat' }]])
   })
 
   it('an iNat fetch keeps running (and showing progress) when another import lands first', async () => {
@@ -301,6 +308,17 @@ describe('editing', () => {
       expect(s?.edits.removed).toEqual([])
       expect(s?.edits.added).toEqual([{ code: 'norfli', source: 'manual', date: '2019-06', place: { country: 'CA', sub1: 'CA-BC' } }])
     }, { timeout: 2000 })
+  })
+
+  it('the first bird ticked by hand counts as one collage made (manual); later ticks do not', async () => {
+    const { analytics } = await mount()
+    for (const [q, name] of [['snow', /^Snow Goose/], ['northern fl', /^Northern Flicker/]] as const) {
+      fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: q } })
+      fireEvent.click(screen.getByRole('button', { name }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add to my list' }))
+    }
+    await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
+    expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'manual' }]])
   })
 
   it('tick by hand rejects a malformed date', async () => {

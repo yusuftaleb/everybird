@@ -1,0 +1,25 @@
+/* Credits: a quiet editorial list. Cabinet Grotesk titles, Satoshi body, Geist Mono labels. */
+.eb-credits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  border-top: 1px solid var(--hairline);
+}
+@media (min-width: 720px) { .eb-credits { grid-template-columns: 1fr 1fr; column-gap: 32px; } }
+.eb-credit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.eb-credit-label { margin: 0; }
+.eb-credit-title { margin: 0; font-size: 20px; line-height: 1.2; }
+.eb-credit-title a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.eb-credit-title a:hover { color: var(--accent); }
+.eb-credit-body { margin: 0; font-size: 16px; line-height: 1.55; max-width: 520px; }
+.eb-credit-body a { color: inherit; text-underline-offset: 3px; }
+.eb-credit-code { text-transform: none; letter-spacing: 0; }

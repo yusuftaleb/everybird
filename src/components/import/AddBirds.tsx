@@ -1,5 +1,6 @@
 'use client'
 import { useId, useMemo, useState, type FormEvent } from 'react'
+import { track } from '@/lib/analytics'
 import { stripBracket } from '@/lib/import/places'
 import type { Edits, Place, SourceRecord } from '@/lib/list/model'
 import type { Action } from '@/lib/list/store'
@@ -62,6 +63,8 @@ export function AddBirds({ species, regions, edits, dispatch, disabled }: Props)
       type: 'edit',
       edits: { ...edits, removed: edits.removed.filter((c) => c !== bird.code), added: [...edits.added.filter((r) => r.code !== bird.code), rec] },
     })
+    // The first bird ticked by hand starts a hand-made collage; later ticks are edits, not new collages.
+    if (edits.added.length === 0) track('collage_made', { source: 'manual' })
     setDone(`Added ${bird.com}.`)
     reset()
   }
