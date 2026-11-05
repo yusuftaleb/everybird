@@ -32,6 +32,8 @@ export type Action =
   | { type: 'view'; view: AppState['view'] }
   | { type: 'massOrder'; massOrder: AppState['massOrder'] }
   | { type: 'restore'; saved: Saved }
+  /** The display name for share images and links (Saved.name); blank removes it. */
+  | { type: 'name'; name: string }
   | { type: 'forget' }
   /** Internal: the hook reports where the last save went. */
   | { type: 'persistence'; persistence: AppState['persistence'] }
@@ -100,6 +102,13 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
         return { ...s, massOrder: a.massOrder }
       case 'persistence':
         return { ...s, persistence: a.persistence }
+      case 'name': {
+        const name = a.name.trim()
+        if ((s.saved.name ?? '') === name) return s
+        const saved = stamp({ ...s.saved, name })
+        if (!name) delete saved.name
+        return { ...s, saved }
+      }
       case 'forget': {
         const f = initialState()
         return derive({ ...f, persistence: s.persistence }, f.saved, {}, ctx, true)

@@ -1,0 +1,64 @@
+/* The share dialog: a centred modal, preview beside the controls from 720px, stacked below. */
+.eb-share-scrim { position: fixed; inset: 0; z-index: 49; background: rgb(0 0 0 / .32); display: grid; place-items: center; padding: 16px; }
+.eb-share {
+  width: min(820px, 100%); max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 16px; padding: 18px 20px 22px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 16px 48px rgb(0 0 0 / .18);
+  animation: eb-share-in .24s cubic-bezier(.25, .8, .25, 1) both;
+}
+.eb-share:focus { outline: none; }
+@keyframes eb-share-in { from { opacity: 0; transform: translateY(12px); } }
+.eb-share-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.eb-share-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15; }
+.eb-share-close {
+  display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center; flex: none;
+  background: none; border: 0; color: var(--ink); cursor: pointer;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-share-close svg { width: 18px; height: 18px; }
+
+.eb-share-body { display: flex; flex-direction: column; gap: 20px; }
+@media (min-width: 720px) { .eb-share-body { flex-direction: row; align-items: flex-start; } }
+
+.eb-share-preview {
+  position: relative; flex: none; align-self: center;
+  height: min(46dvh, 440px); max-width: 100%;
+  background: var(--surface); border: 1px solid var(--hairline); overflow: hidden;
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+@media (min-width: 720px) { .eb-share-preview { height: min(72dvh, 560px); align-self: flex-start; } }
+.eb-share-preview img { display: block; width: 100%; height: 100%; object-fit: contain; transition: opacity .2s cubic-bezier(.25, .8, .25, 1); }
+.eb-share-preview[aria-busy="true"] img { opacity: .55; }
+.eb-share-spin {
+  position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px;
+  border: 3px solid var(--hairline); border-top-color: var(--accent); border-radius: 50%;
+  animation: eb-share-spin .8s linear infinite;
+}
+@keyframes eb-share-spin { to { transform: rotate(360deg); } }
+.eb-share-failed { position: absolute; inset: auto 12px 12px; text-align: center; }
+
+.eb-share-controls { display: flex; flex-direction: column; gap: 16px; min-width: 0; flex: 1; }
+.eb-share-controls .eb-seg { align-self: flex-start; }
+.eb-share-hint { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.eb-share-field { display: flex; flex-direction: column; gap: 6px; }
+.eb-share-label {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.eb-share-input {
+  width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 16px; /* 16px keeps iOS from zooming in */
+  border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-share-input::placeholder { color: var(--muted); opacity: .8; }
+.eb-share-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.eb-share button:focus-visible, .eb-share input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .eb-share { animation: none; }
+  .eb-share-preview img { transition: none; }
+  .eb-share-spin { animation: none; border-color: var(--accent); opacity: .5; }
+}

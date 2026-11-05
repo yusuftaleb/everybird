@@ -112,6 +112,18 @@ describe('store reducer', () => {
     expect([s.filter, s.mode, s.view, s.massOrder]).toEqual([{}, 'even', 'collage', 'heaviest'])
   })
 
+  it('name sets Saved.name (trimmed to nothing when blank) and leaves the list alone', () => {
+    const s0 = run(initialState(), { type: 'import', source: 'ebird', result: result([rec('duck', 'ebird')]) })
+    const s1 = run(s0, { type: 'name', name: 'Ada Birder' })
+    expect(s1.saved.name).toBe('Ada Birder')
+    expect(s1.list).toBe(s0.list)
+    expect(s1.saved.records).toBe(s0.saved.records)
+    const s2 = run(s1, { type: 'name', name: '   ' })
+    expect(s2.saved.name).toBeUndefined()
+    expect('name' in s2.saved).toBe(false)
+    expect(run(s2, { type: 'name', name: '' }).saved).toBe(s2.saved) // no change, same identity (nothing to save)
+  })
+
   it('persistence action sets only persistence', () => {
     const s0 = initialState()
     expect(s0.persistence).toBe('idle')

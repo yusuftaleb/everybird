@@ -67,6 +67,7 @@
 .eb-view { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .eb-stats { margin: 0; }
 .eb-dock { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.eb-dock-end { margin-left: auto; display: flex; gap: 8px; }
 .eb-seg {
   display: inline-flex; gap: 4px; padding: 4px;
   border: 1px solid var(--hairline);

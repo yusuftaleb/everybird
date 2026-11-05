@@ -403,3 +403,32 @@ describe('layout client', () => {
     await expect(client.get({}, 'medium', 'even')).rejects.toThrow(/disposed/)
   })
 })
+
+describe('layout worker: image message', () => {
+  it('packs the given birds at the asked aspect, without setList, and reuses loaded masks', async () => {
+    const loaded: string[] = []
+    const handle = createLayoutHandler(async (order) => {
+      loaded.push(order)
+      return (order === 'Alpha' ? { b00: block() } : {}) as MaskTable
+    })
+    const some = entries.slice(0, 9)
+    const r = await handle({ type: 'image', id: 7, entries: some, aspect: 0.7 })
+    expect(r.type).toBe('image')
+    if (r.type !== 'image') return
+    expect(r.id).toBe(7)
+    expect(r.codes).toEqual(some.map((e) => e.code))
+    expect(r.boxes.length).toBe(9 * 4)
+    expect(r.W / r.H).toBeCloseTo(0.7, 1)
+    // b00 has the 2:1 block mask, the others the round fallback
+    expect(r.boxes[2] / r.boxes[3]).toBeCloseTo(2, 1)
+    expect(r.boxes[6] / r.boxes[7]).toBeCloseTo(1, 1)
+    await handle({ type: 'image', id: 8, entries: some, aspect: 1.2 })
+    expect(loaded.sort()).toEqual(['Alpha', 'Beta', 'Gamma'])
+  })
+
+  it('an empty image request is an empty result', async () => {
+    const handle = createLayoutHandler(async () => ({}))
+    const r = await handle({ type: 'image', id: 1, entries: [], aspect: 1 })
+    expect(r).toMatchObject({ type: 'image', id: 1, codes: [] })
+  })
+})

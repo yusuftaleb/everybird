@@ -2,7 +2,12 @@ const REVOKE_AFTER_MS = 40_000
 
 /** Save text as a file through a temporary object URL (nothing leaves the browser). */
 export function downloadText(text: string, filename: string, type: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type }))
+  downloadBlob(new Blob([text], { type }), filename)
+}
+
+/** Save a Blob (a share image) as a file through a temporary object URL. */
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
   a.download = filename

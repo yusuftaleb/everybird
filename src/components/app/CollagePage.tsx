@@ -1,6 +1,6 @@
 'use client'
-import { DownloadSimple, Trash } from '@phosphor-icons/react'
-import { useCallback, useState } from 'react'
+import { DownloadSimple, ShareNetwork, Trash } from '@phosphor-icons/react'
+import { lazy, Suspense, useCallback, useState } from 'react'
 import { EditBird } from '@/components/edit/EditBird'
 import { MatchReport } from '@/components/import/MatchReport'
 import { RulesSwitches } from '@/components/import/RulesSwitches'
@@ -14,12 +14,16 @@ import type { CountryDots, Regions } from '@/lib/species/types'
 import { CollageView } from './CollageView'
 import { RestoreBackup } from './RestoreBackup'
 
+// The dialog (and its canvas code) loads on first open; the link encoder loads only on "Copy link".
+const ShareDialog = lazy(() => import('@/components/share/ShareDialog'))
+
 type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; dots?: CountryDots }
 
 /** The birder's own collage, with downloads, restore, forget, the match report and rules (Home adds the import panel). */
 export function CollagePage({ state, dispatch, species, regions, dots }: Props) {
   const [confirming, setConfirming] = useState(false)
   const [restoring, setRestoring] = useState<Saved | null>(null)
+  const [sharing, setSharing] = useState(false)
   const { saved } = state
   const actions = useCallback(
     (entry: ListEntry, close: () => void) => <EditBird entry={entry} edits={saved.edits} dispatch={dispatch} onRemoved={close} />,
@@ -28,7 +32,26 @@ export function CollagePage({ state, dispatch, species, regions, dots }: Props) 
   return (
     <>
       {state.persistence === 'memory-only' && <MemoryNotice />}
-      <CollageView state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} label="Your collage" cardActions={actions} />
+      <CollageView
+        state={state}
+        dispatch={dispatch}
+        species={species}
+        regions={regions}
+        dots={dots}
+        label="Your collage"
+        cardActions={actions}
+        dockEnd={
+          <button type="button" className="eb-btn" aria-haspopup="dialog" disabled={!state.list.length} onClick={() => setSharing(true)}>
+            <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
+            Share
+          </button>
+        }
+      />
+      {sharing && (
+        <Suspense fallback={null}>
+          <ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} onClose={() => setSharing(false)} />
+        </Suspense>
+      )}
 
       <section className="eb-block" aria-labelledby="eb-keep-h">
         <h2 id="eb-keep-h" className="eb-h2">Keep your list</h2>

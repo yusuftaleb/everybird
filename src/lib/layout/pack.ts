@@ -8,14 +8,15 @@
 // The species count sits at the stage centre (W / 2, H / 2), inside the ellipse holeRadii(layout.F).
 // A filtered state (packBest with `fit`) is packed in the full collage's stage, then its height is trimmed
 // symmetrically about the count (fitStage): W is unchanged, H shrinks, every box moves up by the same amount.
-import { EXP, EXP_TRUE, GAP, LAYOUTS, MAXUP, holeRadii } from './constants'
+import { EXP, EXP_TRUE, GAP, MAXUP, holeRadii } from './constants'
 import { CentreWalk, Grid, SPIRAL_T, cellMask, spiral, spiralFrom } from './grid'
 import { MASK, type Mask } from './mask'
 
 export type PackBird = { id: number; mass: number; mask: Mask }
 export type Box = [x: number, y: number, w: number, h: number] // layout units
 export type PackResult = { base: number; W: number; H: number; boxes: Map<number, Box> }
-type Layout = (typeof LAYOUTS)[number]
+/** What the packer reads from a layout: one of LAYOUTS, or an ad hoc frame (share images, packFrame). */
+type Layout = { W: number; H: number; stretch: number; F: number; minBase: number }
 
 export const DEFAULT_CELL = 2 // layout units per occupancy cell
 const MIN_MASS = 0.1 // grams; guards mass ** exp against 0 or bad data
@@ -48,7 +49,7 @@ export function pack(
   stretch: number, hole: [number, number], targets?: Map<number, [number, number]>, cell = DEFAULT_CELL,
 ): Map<number, Box> | null {
   const grid = new Grid(W, H, cell)
-  grid.markEllipse(W / 2, H / 2, hole[0], hole[1])
+  if (hole[0] > 0 && hole[1] > 0) grid.markEllipse(W / 2, H / 2, hole[0], hole[1])
   const pad = Math.ceil(GAP / cell)
   const sx = (targets ? 1 : stretch) / cell, sy = 1 / cell
   const lim = (targets ? 2 : 1) * Math.max(W, H)
@@ -122,6 +123,7 @@ export function fitStage(boxes: Map<number, Box>, W: number, H: number, holeRy: 
  * - With rel (filtered states): relative sizes computed over the WHOLE list (relSizes(fullList, exp of this
  *   mode)), so a bird keeps its full-collage size across filters, as the reference's set_rel. Without it,
  *   relSizes over `birds` (the same thing for the full collage).
+ * - With hole: the ellipse radii kept empty at the centre instead of holeRadii(layout.F); [0, 0] keeps none.
  * - With fit (filtered states, needs fixedStage): after packing, the stage height is trimmed about the count
  *   (fitStage), so the returned H can be less than fixedStage's and box y's move up by the same amount.
  */
@@ -129,7 +131,7 @@ export function packBest(
   birds: PackBird[], layout: Layout, mode: 'even' | 'true',
   opts: {
     targets?: Map<number, [number, number]>; refBase?: number; fixedStage?: [number, number]
-    rel?: Map<number, number>; fit?: boolean
+    rel?: Map<number, number>; fit?: boolean; hole?: [number, number]
   } = {},
 ): PackResult {
   const { targets, refBase, fixedStage, fit } = opts
@@ -138,7 +140,7 @@ export function packBest(
     return { base: refBase ?? 0, ...(fit && fixedStage ? fitStage(new Map(), W, H, holeRadii(layout.F)[1]) : { W, H, boxes: new Map() }) }
   }
   const rel = opts.rel ?? relSizes(birds, mode === 'even' ? EXP : EXP_TRUE)
-  const hole = holeRadii(layout.F)
+  const hole = opts.hole ?? holeRadii(layout.F)
   const cell = DEFAULT_CELL
   let area = 0 // sum of rel² · mask fill, summed in placement order so it never depends on input order
   for (const b of placementOrder(birds, rel)) area += rel.get(b.id)! ** 2 * maskFill(b.mask)
@@ -218,4 +220,24 @@ export function packBest(
   got ??= fallback(W, H)
   const t = trimToContent(got.boxes, W, H)
   return { base: got.base, W: t.W, H: t.H, boxes: t.boxes }
+}
+
+// packFrame's target base: the site's typical sizes (so GAP and the cell grid look the same) up to 300 birds,
+// then smaller, down to the narrow layout's minBase at 5,000, so a huge list still packs in seconds.
+const frameBase = (n: number) => (n <= 300 ? 28 : Math.max(10, 28 * Math.sqrt(300 / n)))
+/**
+ * Share images: pack `birds` (relative sizes over these birds, evened out) into a frame of aspect W / H with no
+ * hole at the centre (the count sits under the collage), as large as fits. The frame's size in layout units is
+ * chosen so the base lands near frameBase(n) whatever the count; the caller scales the result to its pixels.
+ */
+export function packFrame(birds: PackBird[], aspect: number): PackResult {
+  const rel = relSizes(birds, EXP)
+  let area = 0
+  for (const b of placementOrder(birds, rel)) area += rel.get(b.id)! ** 2 * maskFill(b.mask)
+  // packBest's estimate is base = sqrt(0.55 · usable / area); solve it for the usable area at frameBase.
+  const usable = (frameBase(birds.length) ** 2 * Math.max(area, 0.05)) / 0.55
+  const H = Math.max(8, Math.ceil(Math.sqrt(usable / aspect)))
+  const W = Math.max(8, Math.round(H * aspect))
+  const frame = { W, H, stretch: aspect, F: 0, minBase: 0 }
+  return packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole: [0, 0] })
 }

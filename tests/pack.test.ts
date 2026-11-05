@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { EXP, GAP, LAYOUTS, holeRadii } from '../src/lib/layout/constants'
 import { MASK, decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
-import { MAX_BASE, packBest, relSizes, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
+import { MAX_BASE, packBest, packFrame, relSizes, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
 import { Grid, SPIRAL_T, spiral, toCellMask } from '../src/lib/layout/grid'
 
 // Realistic, deterministic test birds: real sticker masks + real masses from public/data, sampled at a
@@ -302,6 +302,52 @@ describe('large lists grow the stage instead of shrinking below minBase', () => 
       expect(r.H).toBeGreaterThan(byName(name).H)
     }, 60000)
   }
+})
+
+describe('packFrame (share images)', () => {
+  beforeAll(() => {
+    if (!POOL.length) POOL = loadPool()
+  })
+
+  for (const [n, aspect] of [[1, 0.7], [12, 1.2], [197, 0.7], [197, 1.19]] as const) {
+    it(`${n} birds at aspect ${aspect}: every bird placed, inside the stage, no overlapping silhouettes`, () => {
+      const birds = sample(n)
+      const r = packFrame(birds, aspect)
+      expect(r.boxes.size).toBe(n)
+      expect(r.W / r.H).toBeCloseTo(aspect, 1)
+      for (const [x, y, w, h] of r.boxes.values()) {
+        expect(x).toBeGreaterThanOrEqual(0)
+        expect(y).toBeGreaterThanOrEqual(0)
+        expect(x + w).toBeLessThanOrEqual(r.W + 1e-6)
+        expect(y + h).toBeLessThanOrEqual(r.H + 1e-6)
+      }
+      const owner = new Map<string, number>()
+      let clash = false
+      silhouettePixels(birds, r, (id, px, py) => {
+        const k = `${px},${py}`
+        if (owner.has(k) && owner.get(k) !== id) clash = true
+        owner.set(k, id)
+      })
+      expect(clash).toBe(false)
+    })
+  }
+
+  it('leaves no hole at the centre: the biggest bird sits there', () => {
+    const birds = sample(60)
+    const r = packFrame(birds, 0.8)
+    const rel = relSizes(birds, EXP)
+    const big = birds.reduce((a, b) => (rel.get(b.id)! > rel.get(a.id)! ? b : a))
+    const [x, y, w, h] = r.boxes.get(big.id)!
+    expect(Math.abs(x + w / 2 - r.W / 2)).toBeLessThan(w)
+    expect(Math.abs(y + h / 2 - r.H / 2)).toBeLessThan(h)
+  })
+
+  it('fills the frame: the packed birds span most of its width or height', () => {
+    const r = packFrame(sample(197), 0.7)
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+    for (const [x, y, w, h] of r.boxes.values()) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + w); y1 = Math.max(y1, y + h) }
+    expect(Math.max((x1 - x0) / r.W, (y1 - y0) / r.H)).toBeGreaterThan(0.85)
+  })
 })
 
 // Timing bounds. Generous but meaningful; set SKIP_PERF=1 to skip them (e.g. on slow CI).

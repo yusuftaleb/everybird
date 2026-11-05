@@ -33,6 +33,8 @@ type Props = {
   cardActions?: (entry: ListEntry, close: () => void) => ReactNode
   /** Filter tabs to leave out. */
   hideTabs?: readonly FilterTab[]
+  /** Extra controls at the end of the view dock (Share on the birder's own page). */
+  dockEnd?: ReactNode
 }
 
 const n = (x: number) => x.toLocaleString('en-US')
@@ -54,7 +56,7 @@ export function statsLine(all: ListEntry[], shown: ListEntry[], species: Species
   return parts.join(' · ')
 }
 
-export function CollageView({ state, dispatch, species, regions, dots, label, cardActions, hideTabs }: Props) {
+export function CollageView({ state, dispatch, species, regions, dots, label, cardActions, hideTabs, dockEnd }: Props) {
   const { list, trips, filter, mode, view, massOrder } = state
   const box = useRef<HTMLElement>(null)
   const [pick, setPick] = useState<{ code: string; anchor: HTMLElement | null } | null>(null)
@@ -92,6 +94,7 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
           ))}
         </div>
         {view === 'collage' && <TrueSizeSwitch checked={mode === 'true'} onChange={(on) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })} />}
+        {dockEnd && <div className="eb-dock-end">{dockEnd}</div>}
       </div>
 
       <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} hideTabs={hideTabs} />

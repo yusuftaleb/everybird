@@ -3,8 +3,10 @@
 // Protocol (structured-clone friendly):
 //   main -> worker  { type: 'setList', id, entries: [{ code, mass, ord }] }
 //                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit? }
+//                   { type: 'image', id, entries: [{ code, mass, ord }], aspect }   (share images; no setList needed)
 //   worker -> main  { type: 'ready', id }                      (setList done: masks loaded)
 //                   { type: 'result', id, key, layout, mode, base, W, H, codes, boxes }
+//                   { type: 'image', id, W, H, codes, boxes }  (packFrame: these birds only, evened out, no hole)
 //                   { type: 'error', id, message }
 // `codes` in a result is the request's codes that the list knows, in request order; `boxes` is a flat
 // Float32Array [x, y, w, h] * codes.length. `targets` (request) is a Float32Array [cx, cy] * codes.length,
@@ -16,7 +18,7 @@
 // ellipse on a square 24 x 24 grid (aspect 1), so they pack as round blobs.
 import { EXP, EXP_TRUE, LAYOUTS } from './constants'
 import { decodeMask, MASK, type Mask } from './mask'
-import { packBest, relSizes, type PackBird } from './pack'
+import { packBest, packFrame, relSizes, type PackBird } from './pack'
 
 export type ListEntryMsg = { code: string; mass: number; ord: string }
 export type LayoutName = 'wide' | 'medium' | 'narrow'
@@ -26,12 +28,14 @@ export type WorkerRequest =
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
       refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean
     }
+  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number }
 export type WorkerReply =
   | { type: 'ready'; id: number }
   | {
       type: 'result'; id: number; key: string; layout: LayoutName; mode: 'even' | 'true'
       base: number; W: number; H: number; codes: string[]; boxes: Float32Array
     }
+  | { type: 'image'; id: number; W: number; H: number; codes: string[]; boxes: Float32Array }
   | { type: 'error'; id: number; message: string }
 
 export type MaskTable = Record<string, [number, number, string]>
@@ -62,7 +66,8 @@ export const fetchOrderMasks: MaskLoader = async (order) => {
 // rel: relative sizes over the whole list per mode (smallest bird of the list = 1), shared by every state.
 type ListState = { ids: Map<string, number>; birds: Map<string, PackBird>; rel: { even: Map<number, number>; true: Map<number, number> } }
 
-async function buildList(entries: ListEntryMsg[], load: MaskLoader): Promise<ListState> {
+/** Each entry as a PackBird (id = its index), with its sticker mask or FALLBACK_MASK. */
+async function loadBirds(entries: ListEntryMsg[], load: MaskLoader): Promise<Map<string, PackBird>> {
   const orders = [...new Set(entries.map((e) => e.ord))]
   const tables = new Map<string, MaskTable>()
   // A failed order file must not poison the list: its species fall back to FALLBACK_MASK (ellipse blobs).
@@ -72,22 +77,45 @@ async function buildList(entries: ListEntryMsg[], load: MaskLoader): Promise<Lis
       tables.set(o, {})
     }
   }))
-  const ids = new Map<string, number>()
   const birds = new Map<string, PackBird>()
   entries.forEach((e, i) => {
     const raw = tables.get(e.ord)?.[e.code]
-    ids.set(e.code, i)
     birds.set(e.code, { id: i, mass: e.mass, mask: raw ? decodeMask(raw) : FALLBACK_MASK })
   })
+  return birds
+}
+
+async function buildList(entries: ListEntryMsg[], load: MaskLoader): Promise<ListState> {
+  const birds = await loadBirds(entries, load)
+  const ids = new Map([...birds].map(([code, b]) => [code, b.id]))
   const all = [...birds.values()]
   return { ids, birds, rel: { even: relSizes(all, EXP), true: relSizes(all, EXP_TRUE) } }
 }
 
 /** The message handler, with mask loading injected. Messages must be handed over in arrival order. */
-export function createLayoutHandler(load: MaskLoader = fetchOrderMasks) {
+export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
   let list: Promise<ListState> | null = null
+  // Order files are fetched once per worker (a failure is not remembered, so it can be retried).
+  const tables = new Map<string, Promise<MaskTable>>()
+  const load: MaskLoader = (order) => {
+    let p = tables.get(order)
+    if (!p) {
+      p = loadOrder(order)
+      tables.set(order, p)
+      p.catch(() => { if (tables.get(order) === p) tables.delete(order) })
+    }
+    return p
+  }
   return async function handle(msg: WorkerRequest): Promise<WorkerReply> {
     try {
+      if (msg.type === 'image') {
+        const birds = await loadBirds(msg.entries, load)
+        const codes = [...birds.keys()]
+        const r = packFrame([...birds.values()], msg.aspect)
+        const boxes = new Float32Array(codes.length * 4)
+        codes.forEach((c, i) => boxes.set(r.boxes.get(birds.get(c)!.id)!, i * 4))
+        return { type: 'image', id: msg.id, W: r.W, H: r.H, codes, boxes }
+      }
       if (msg.type === 'setList') {
         const p = buildList(msg.entries, load)
         list = p
@@ -131,6 +159,6 @@ const scope = globalThis as unknown as {
 if (typeof scope.WorkerGlobalScope !== 'undefined' && globalThis instanceof (scope.WorkerGlobalScope as typeof Object)) {
   const handle = createLayoutHandler()
   scope.onmessage = (e) => {
-    void handle(e.data).then((r) => scope.postMessage(r, r.type === 'result' ? [r.boxes.buffer] : []))
+    void handle(e.data).then((r) => scope.postMessage(r, r.type === 'result' || r.type === 'image' ? [r.boxes.buffer] : []))
   }
 }
