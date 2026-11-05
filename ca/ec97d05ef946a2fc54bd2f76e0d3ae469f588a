@@ -1,0 +1,32 @@
+src/lib/layout/grid.ts
+  s_ab125876fe9ad2::t_2fc78f08d58cb2 1-140
+  s_ab125876fe9ad2::t_1b1b407df50b0b 141-224
+src/lib/layout/pack.ts
+  s_ab125876fe9ad2::t_3adedb06770c8b 108-109
+  s_ab125876fe9ad2::t_69d4842e4fa690 116,140
+  s_ab125876fe9ad2::t_c37768846eb27d 10,52-55,61-64,125-126,138,174
+  s_ab125876fe9ad2::t_5342d9505db746 111
+  s_ab125876fe9ad2::t_d33bc0b4063d71 1-9,11-51,56-60,65-107,110,112-115,117-124,127-137,139,141-173,175-183
+src/lib/layout/constants.ts
+  s_ab125876fe9ad2::t_7c12248e9c058f 1-17
+tests/pack.test.ts
+  s_ab125876fe9ad2::t_446520142bf749 1-185
+AGENTS.md
+  s_ab125876fe9ad2::t_8a79ecb8891004 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "caec97d05ef946a2fc54bd2f76e0d3ae469f588a",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
