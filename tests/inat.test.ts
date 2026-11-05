@@ -260,3 +260,20 @@ describe('country aliases', () => {
     expect(r.records.find((x) => x.code === 'gilfli')!.place).toEqual({ country: 'US', sub1: 'US-CA' })
   })
 })
+
+describe('iNaturalist region names', () => {
+  it('local names still find regions build-geo renamed to English', async () => {
+    const { makePlaceResolver } = await import('@/lib/import/inat')
+    const regions = { v: 1 as const, countries: { ES: 'Spain', BE: 'Belgium' }, sub1: { 'ES-CT': 'Catalonia', 'ES-MD': 'Community of Madrid', 'BE-WAL': 'Wallonia' } }
+    const byId = new Map([
+      [1, { id: 1, name: 'Spain', admin_level: 0 }], [2, { id: 2, name: 'Cataluña', admin_level: 10 }], [3, { id: 3, name: 'Comunidad de Madrid', admin_level: 10 }],
+      [4, { id: 4, name: 'Belgium', admin_level: 0 }], [5, { id: 5, name: 'Wallonie', admin_level: 10 }], [6, { id: 6, name: 'Catalonia', admin_level: 10 }],
+    ])
+    const resolvePlace = makePlaceResolver(regions, byId)
+    expect(resolvePlace([1, 2])).toEqual({ country: 'ES', sub1: 'ES-CT' })
+    expect(resolvePlace([1, 6])).toEqual({ country: 'ES', sub1: 'ES-CT' })
+    expect(resolvePlace([1, 3])).toEqual({ country: 'ES', sub1: 'ES-MD' })
+    expect(resolvePlace([4, 5])).toEqual({ country: 'BE', sub1: 'BE-WAL' })
+    expect(resolvePlace([4, 2])).toEqual({ country: 'BE' }) // never across countries
+  })
+})

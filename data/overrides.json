@@ -18,5 +18,13 @@
  "norgos": {
   "massG": 950,
   "source": "Birds of the World, American Goshawk, males ~630-1100 g, females ~860-1360 g"
+ },
+ "marwre1": {
+  "massG": 11,
+  "source": "Pre-split Marsh Wren (Cistothorus palustris sensu lato): Kroodsma & Verner, Birds of North America no. 308 (1997), 9-14 g; EltonTraits 1.0 (Wilman et al. 2014), 11 g. No published mass for the western (C. paludicola) split yet"
+ },
+ "eamwre1": {
+  "massG": 11,
+  "source": "Pre-split Marsh Wren (Cistothorus palustris sensu lato): Kroodsma & Verner, Birds of North America no. 308 (1997), 9-14 g; EltonTraits 1.0 (Wilman et al. 2014), 11 g. No published mass for the eastern (C. palustris) split yet"
  }
 }

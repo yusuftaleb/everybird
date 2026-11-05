@@ -91,6 +91,36 @@ export function supplementSub1(sub1: Record<string, string>, iso: IsoSub[]): num
   return added
 }
 
+/**
+ * English common names for region names that ISO 3166-2 (iso-codes) writes inverted ("Madrid, Comunidad de"), with a
+ * bracketed alternative ("Catalunya [Cataluña]") or a parenthetical, found by scanning regions.v1.json for "," "[" "(".
+ * A comma would also read as a level separator in "Sub1, Country". The Philippine "(Region I)" forms are their official
+ * names and stay. Flanders keeps Belgium's three regions in one language. Applied after the Natural Earth + ISO merge.
+ */
+export const REGION_RENAMES: Record<string, string> = {
+  'BE-VLG': 'Flanders',
+  'BE-WAL': 'Wallonia',
+  'CZ-10': 'Prague',
+  'ES-AS': 'Asturias',
+  'ES-CT': 'Catalonia',
+  'ES-GA': 'Galicia',
+  'ES-IB': 'Balearic Islands',
+  'ES-MC': 'Region of Murcia',
+  'ES-MD': 'Community of Madrid',
+  'ES-NC': 'Navarre',
+  'ES-VC': 'Valencian Community',
+  'FR-973': 'French Guiana',
+  'GB-WLS': 'Wales',
+  'NO-22': 'Jan Mayen',
+  'US-VI': 'U.S. Virgin Islands',
+}
+
+/** Applies REGION_RENAMES (sub1 codes only, and only those present). Mutates and returns `r`. */
+export function renameRegions(r: Regions): Regions {
+  for (const [code, name] of Object.entries(REGION_RENAMES)) if (r.sub1[code]) r.sub1[code] = name
+  return r
+}
+
 export function buildRegions(admin0: { features: Feature[] }, admin1: { features: Feature[] }, iso: IsoSub[] = []): Regions {
   const countries: Record<string, string> = {}
   for (const f of admin0.features) { const i = iso2(f.properties); if (i && i !== 'AQ') countries[i] ??= String(f.properties.NAME) }
@@ -103,7 +133,7 @@ export function buildRegions(admin0: { features: Feature[] }, admin1: { features
   }
   supplementSub1(sub1, iso)
   const sorted = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)))
-  return { v: 1, countries: sorted(countries), sub1: sorted(sub1) }
+  return renameRegions({ v: 1, countries: sorted(countries), sub1: sorted(sub1) })
 }
 
 export function main(root = resolve(__dirname, '../..')): void {

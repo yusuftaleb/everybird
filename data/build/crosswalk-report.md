@@ -2,7 +2,7 @@
 
 - Species rows: 11201
 - With sticker: 10989; without: 212
-- Mass sources: avonet 10417, override 5, family 774, order 5
+- Mass sources: avonet 10417, override 7, family 772, order 5
 - Multi-candidate choices: 0; scientific-name fallbacks: 44; huashu orphans: 0
 
 ## Multi-candidate choices (0)
@@ -275,7 +275,7 @@ _none_
 - slbgra1 (Slender-billed Grackle)
 - purbul3 (St. Kitts Bullfinch)
 
-## Mass fallbacks (779)
+## Mass fallbacks (777)
 
 - grskiw1 (Great Spotted Kiwi): 2122.25 g from family Apterygidae
 - sddtin1 (Slaty-masked Tinamou): 455.5 g from family Tinamidae
@@ -890,8 +890,6 @@ _none_
 - houwre10 (St. Vincent Wren): 19.1 g from family Troglodytidae
 - houwre11 (Grenada Wren): 19.1 g from family Troglodytidae
 - houwre4 (Southern House Wren): 19.1 g from family Troglodytidae
-- marwre1 (Western Marsh Wren): 19.1 g from family Troglodytidae
-- eamwre1 (Eastern Marsh Wren): 19.1 g from family Troglodytidae
 - reboxp1 (Red-billed Oxpecker): 58.5 g from family Buphagidae
 - kossta1 (Kosrae Starling): 76.94999999999999 g from family Sturnidae
 - myssta1 (Mysterious Starling): 76.94999999999999 g from family Sturnidae

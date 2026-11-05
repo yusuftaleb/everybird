@@ -155,7 +155,7 @@ type ApiObs = {
   annotations?: { controlled_attribute_id?: number; controlled_value_id?: number }[]
   place_ids?: number[]
 }
-type ApiPlace = { id: number; name: string; admin_level: number | null }
+export type ApiPlace = { id: number; name: string; admin_level: number | null }
 
 const SPECIES_OR_BELOW = new Set(['species', 'subspecies', 'variety', 'form'])
 
@@ -194,6 +194,25 @@ function invertCountries(r: Regions): Map<string, string> {
   return m
 }
 
+/**
+ * Local-language names iNaturalist may use for the regions build-geo renames to English (REGION_RENAMES), so they keep
+ * matching. Folded on use. A name is only tried within its own country.
+ */
+export const SUB1_ALIASES: Record<string, string[]> = {
+  'BE-VLG': ['Vlaanderen', 'Vlaams Gewest', 'Flemish Region'],
+  'BE-WAL': ['Wallonie', 'Région wallonne', 'Walloon Region'],
+  'CZ-10': ['Praha', 'Hlavní město Praha'],
+  'ES-AS': ['Principado de Asturias'],
+  'ES-CT': ['Catalunya', 'Cataluña'],
+  'ES-IB': ['Illes Balears', 'Islas Baleares'],
+  'ES-MC': ['Murcia', 'Región de Murcia'],
+  'ES-MD': ['Madrid', 'Comunidad de Madrid'],
+  'ES-NC': ['Navarra', 'Comunidad Foral de Navarra'],
+  'ES-VC': ['Comunitat Valenciana', 'Comunidad Valenciana', 'Valencia'],
+  'FR-973': ['Guyane'],
+  'US-VI': ['Virgin Islands', 'United States Virgin Islands'],
+}
+
 /** Names a sub1 entry answers to: "Wales [Cymru GB-CYM]" -> "wales"; "Catalunya [Cataluña]" -> "catalunya", "cataluna". */
 function sub1Names(name: string): string[] {
   const out = [foldName(stripBracket(name))]
@@ -202,7 +221,8 @@ function sub1Names(name: string): string[] {
   return out
 }
 
-function makePlaceResolver(regions: Regions, byId: Map<number, ApiPlace>) {
+/** Exported for tests. */
+export function makePlaceResolver(regions: Regions, byId: Map<number, ApiPlace>) {
   const countries = invertCountries(regions)
   const sub1ByCountry = new Map<string, Map<string, string>>()
   for (const [code, name] of Object.entries(regions.sub1)) {
@@ -210,6 +230,10 @@ function makePlaceResolver(regions: Regions, byId: Map<number, ApiPlace>) {
     let m = sub1ByCountry.get(iso)
     if (!m) sub1ByCountry.set(iso, (m = new Map()))
     for (const n of sub1Names(name)) if (!m.has(n)) m.set(n, code)
+  }
+  for (const [code, names] of Object.entries(SUB1_ALIASES)) { // after the real names, which win
+    const m = regions.sub1[code] ? sub1ByCountry.get(code.split('-')[0]!) : undefined
+    if (m) for (const n of names) if (!m.has(foldName(n))) m.set(foldName(n), code)
   }
   return (placeIds: number[]): Place | undefined => {
     let countryName: string | undefined
