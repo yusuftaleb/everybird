@@ -7,7 +7,7 @@ import type { ListEntry } from '@/lib/list/model'
 import { SHARE_COLORS, SITE_LABEL, STICKER_CREDIT, shareCardText } from '@/lib/share/image'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
-import { OG_COLLAGE, OG_SIZE, ogName, pickOgBirds, tryDecodeShare, OG_DESCRIPTION } from '@/lib/share/og'
+import { OG_COLLAGE, OG_SIZE, ogName, ogResponseOptions, pickOgBirds, tryDecodeShare, OG_DESCRIPTION } from '@/lib/share/og'
 import { fetchStickers, ogFonts, serverMasks, serverSpecies } from '@/lib/share/og-server'
 
 export const alt = "An Everybird: every bird you've ever seen"
@@ -23,10 +23,10 @@ const MONO = '"Geist Mono", monospace'
 type Placed = { code: string; box: Box; src: string }
 
 /** Up to 60 birds of the list, packed with the wide layout into the collage area, with their stickers. */
-async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof serverSpecies>>): Promise<Placed[]> {
+async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof serverSpecies>>): Promise<{ placed: Placed[]; expected: number }> {
   const known = payload.birds.flatMap((b) => { const row = species.get(b.code); return row ? [row] : [] })
   const picked = pickOgBirds(known)
-  if (!picked.length) return []
+  if (!picked.length) return { placed: [], expected: 0 }
   const wide = LAYOUTS.find((l) => l.name === 'wide')!
   const birds = await loadBirds(picked.map((r) => ({ code: r.code, mass: r.g, ord: r.ord })), serverMasks)
   const list = [...birds.entries()]
@@ -38,7 +38,7 @@ async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof
     const src = stickers.get(code)
     if (box && src && species.get(code)?.st) placed.push({ code, box, src })
   }
-  return placed
+  return { placed, expected: picked.filter((r) => r.st).length }
 }
 
 function frame(children: React.ReactNode) {
@@ -51,11 +51,11 @@ function frame(children: React.ReactNode) {
 
 export default async function Image({ params }: { params: Promise<{ token: string }> }) {
   const [payload, fonts] = [tryDecodeShare((await params).token), ogFonts()]
-  let placed: Placed[] = [], latest: ReturnType<typeof shareCardText>['latest']
+  let placed: Placed[] = [], expected = 0, latest: ReturnType<typeof shareCardText>['latest']
   if (payload) {
     try {
       const species = await serverSpecies()
-      placed = await collage(payload, species)
+      ;({ placed, expected } = await collage(payload, species))
       const entries: ListEntry[] = payload.birds.map((b) => ({
         code: b.code, date: b.ym === undefined ? undefined : ymToDate(b.ym, b.yearOnly), heard: false, dead: false, media: false, sources: [],
       }))
@@ -103,5 +103,5 @@ export default async function Image({ params }: { params: Promise<{ token: strin
       </div>
     </>
   )
-  return new ImageResponse(frame(body), { ...OG_SIZE, fonts: await fonts, headers: { 'cache-control': 'public, max-age=3600, s-maxage=86400' } })
+  return new ImageResponse(frame(body), { ...OG_SIZE, ...ogResponseOptions(await fonts, { placed: placed.length, expected }) })
 }

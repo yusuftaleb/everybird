@@ -39,3 +39,17 @@ export function tryDecodeShare(token: string): SharePayload | null {
     return null
   }
 }
+
+export const OG_FONT_COUNT = 3 // Satoshi 500, Cabinet Grotesk 700, Geist Mono 400
+const CACHE_OK = 'public, max-age=3600, s-maxage=86400'
+const CACHE_DEGRADED = 'public, max-age=60, s-maxage=60'
+
+/**
+ * ImageResponse options that depend on how the card came out. No fonts at all -> `fonts: undefined`, so next/og keeps
+ * its default font (an empty array would replace it and satori would throw). A card with a missing font or fewer
+ * stickers than expected is cached only briefly, so a fetch hiccup doesn't stick for a day.
+ */
+export function ogResponseOptions<F>(fonts: F[], stickers: { placed: number; expected: number }) {
+  const complete = fonts.length >= OG_FONT_COUNT && stickers.placed >= stickers.expected
+  return { fonts: fonts.length ? fonts : undefined, headers: { 'cache-control': complete ? CACHE_OK : CACHE_DEGRADED } }
+}

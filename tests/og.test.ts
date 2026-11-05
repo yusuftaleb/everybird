@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { SharePayload } from '@/lib/share/link'
-import { OG_DESCRIPTION, ogName, ogTitle, pickOgBirds, tryDecodeShare } from '@/lib/share/og'
+import { OG_DESCRIPTION, ogName, ogResponseOptions, ogTitle, pickOgBirds, tryDecodeShare } from '@/lib/share/og'
 import { parseFontFaces } from '@/lib/share/og-server'
 
 const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ code: `b${i}`, to: (i + 1) * 10 }))
@@ -65,5 +65,42 @@ describe('parseFontFaces', () => {
       { family: 'Satoshi', weight: 500, url: 'https://cdn.x/a.ttf' },
       { family: 'Geist Mono', weight: 400, url: 'https://g/x.woff' },
     ])
+  })
+})
+
+describe('ogResponseOptions', () => {
+  const f = [1, 2, 3]
+  it('no fonts -> fonts undefined (so next/og keeps its default) and a short cache', () => {
+    const o = ogResponseOptions([], { placed: 5, expected: 5 })
+    expect(o.fonts).toBeUndefined()
+    expect(o.headers['cache-control']).toContain('s-maxage=60')
+  })
+  it('complete card keeps the long cache; a missing font or sticker shortens it', () => {
+    expect(ogResponseOptions(f, { placed: 60, expected: 60 }).headers['cache-control']).toContain('s-maxage=86400')
+    expect(ogResponseOptions(f, { placed: 59, expected: 60 }).headers['cache-control']).toContain('s-maxage=60')
+    expect(ogResponseOptions(f.slice(1), { placed: 60, expected: 60 }).headers['cache-control']).toContain('s-maxage=60')
+  })
+})
+
+describe('the image route when every font and sticker fetch fails', () => {
+  it('still returns a PNG (default font, no stickers)', async () => {
+    vi.stubGlobal('fetch', () => Promise.reject(new Error('offline')))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const { default: Image } = await import('../app/s/[token]/opengraph-image')
+      const { encodeShare } = await import('@/lib/share/link')
+      const token = encodeShare({ v: 1, name: 'Ada', birds: [{ code: 'grerhe1', ym: 1900 }, { code: 'lesrhe2' }] }).token
+      for (const t of [token, 'garbage']) {
+        const res = await Image({ params: Promise.resolve({ token: t }) })
+        expect(res.status).toBe(200)
+        expect(res.headers.get('content-type')).toContain('image/png')
+        expect(res.headers.get('cache-control')).toContain('s-maxage=60')
+        const png = Buffer.from(await res.arrayBuffer())
+        expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630])
+      }
+    } finally {
+      vi.unstubAllGlobals()
+      vi.restoreAllMocks()
+    }
   })
 })

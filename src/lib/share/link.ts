@@ -28,13 +28,14 @@
 //
 // tests/fixtures/share/v1-frozen.txt locks this layout forever; old links must keep decoding.
 import { deflateSync, Inflate } from 'fflate'
+import { SHARE_ORIGIN } from './origin'
 import linkIndex from '../../../data/link-index.json'
 
 export type ShareBird = { code: string; ym?: number /* months since 1900-01; year-only → that year's January with yearOnly */; yearOnly?: boolean; p?: number; m?: number /* 1 heard, 2 dead, 4 media */ }
 export type SharePayload = { v: 1; name?: string; places?: string[] /* formatted region strings */; countries?: string[] /* ISO2 of each place, same order */; birds: ShareBird[] }
 export type ShareLevel = 'regions' | 'countries' | 'dates' | 'species'
 
-export const SHARE_ORIGIN = 'https://everybird.vercel.app'
+export { SHARE_ORIGIN }
 /** A whole share URL stays at or under 2,000 characters; the token gets what the origin and "/s/" leave. */
 export const URL_BUDGET = 2000
 export const TOKEN_BUDGET = URL_BUDGET - `${SHARE_ORIGIN}/s/`.length

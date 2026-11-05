@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
-import { SHARE_ORIGIN } from "@/lib/share/link";
+import { SHARE_ORIGIN } from "@/lib/share/origin";
 import "@/styles/globals.css";
 
 const geistMono = Geist_Mono({
@@ -9,8 +9,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  // Absolute og:image URLs in production; in dev Next falls back to the request origin.
-  metadataBase: process.env.NODE_ENV === "production" ? new URL(SHARE_ORIGIN) : undefined,
+  // Absolute og:image URLs. Production: the real origin. Vercel preview/other environments: that deployment's own URL
+  // (previews must not point at production). Local dev: undefined, so Next uses the request origin (localhost).
+  metadataBase:
+    process.env.VERCEL_ENV === "production" || (!process.env.VERCEL_ENV && process.env.NODE_ENV === "production")
+      ? new URL(SHARE_ORIGIN)
+      : process.env.VERCEL_ENV && process.env.VERCEL_URL
+        ? new URL(`https://${process.env.VERCEL_URL}`)
+        : undefined,
   title: "Everybird",
   description: "Every bird you've ever seen.",
 };
