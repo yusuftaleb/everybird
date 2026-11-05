@@ -1,0 +1,61 @@
+tests/share-image.test.ts
+  s_ab125876fe9ad2::t_84f410b4817076 1-7,9-51,53-101
+  s_ab125876fe9ad2::t_13143a41e0d7e7 8,52
+tests/layout-client.test.ts
+  s_ab125876fe9ad2::t_8c5ff355903ddf 406-434
+tests/pack.test.ts
+  s_ab125876fe9ad2::t_8c5ff355903ddf 6,307-350
+  s_ab125876fe9ad2::t_3e835b151e417d 351-352
+src/lib/list/store.ts
+  s_ab125876fe9ad2::t_9a818802447de6 35-36,105-111
+tests/store.test.ts
+  s_ab125876fe9ad2::t_8c5ff355903ddf 115-126
+src/lib/download.ts
+  s_ab125876fe9ad2::t_e5126645b9d35a 5-10
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_8b2e24b5b36457 1-26,28-49,51-158,160-163,168-313,317-348
+  s_ab125876fe9ad2::t_fec9222025cff7 27,50
+  s_ab125876fe9ad2::t_e48816569c4666 164-167
+  s_ab125876fe9ad2::t_59026066919b67 159,314-316
+src/components/app/app.css
+  s_ab125876fe9ad2::t_0bdd13a0f67604 70
+src/components/app/CollagePage.tsx
+  s_ab125876fe9ad2::t_0bdd13a0f67604 2-3,17-19,26,35-54
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_0bdd13a0f67604 36-37,59,97
+e2e/share.spec.ts
+  s_ab125876fe9ad2::t_29b702c51ee850 1-101
+src/lib/layout/layout.worker.ts
+  s_ab125876fe9ad2::t_f9c5bc91331c4c 6,9,21,31,38,69-70,85-90,96,98-108,111-118,162
+src/components/share/share.css
+  s_ab125876fe9ad2::t_a59bd85d1c8340 1-64
+AGENTS.md
+  s_ab125876fe9ad2::t_d3822014b1b089 31,42
+src/lib/layout/pack.ts
+  s_ab125876fe9ad2::t_883a3ec6236aa2 11
+  s_ab125876fe9ad2::t_650accff0a46d6 18,52,126,134,143,224,228-230,232-236,239-242
+  s_ab125876fe9ad2::t_c04b9bf7d98d62 225-227,231,237-238
+  s_ab125876fe9ad2::t_8e9c227b2bbc5c 19
+  s_ab125876fe9ad2::t_23829af071fd6f 243
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_e48816569c4666 6,13,83,85-94
+  s_ab125876fe9ad2::t_663c1ba4156a50 23,98-99,103-104,111-125,127-130,132-134,136,144,146-155
+  s_ab125876fe9ad2::t_14c5ba044daf49 100-101,106-108,126,131,135
+  s_ab125876fe9ad2::t_9c890f9dadc5dd 1-5,7-12,14-22,24-82,84,95-97,102,105,109-110,137-143,145,156-286
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aa63b97cd057a58baff74c61eca2659654d78692",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
