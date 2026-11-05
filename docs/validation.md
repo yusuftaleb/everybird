@@ -37,14 +37,14 @@ eBird 185 · MyEBirdData 185 · merged 196 · target 197 · unexplained 0
 | Date corrected by hand (iNaturalist's year was wrong) | 4 | yes |
 | Heard-only mark set by hand (not in the source data) | 2 | yes |
 | Bird added by hand, in neither source | 1 | yes |
-| Earlier iNaturalist record that the old migration script on his website skipped (its "domesticus" name filter, meant for domestic forms, also caught a wild species). Everybird keeps it by his own earliest-date rule | 1 | yes; flagged for the author to decide whether to update his list |
+| Earlier iNaturalist record that the old migration script on his website skipped (its name filter for domestic birds also excluded one wild species). Everybird keeps it by his own earliest-date rule | 1 | yes; flagged for the author to decide whether to update his list |
 
 No importer or synonym bugs were found.
 
 ## Licences
 
 - **Satoshi and Cabinet Grotesk (Fontshare, ITF Free Font License v2.0, 17 Aug 2026).** Read from the `FFL.txt` that ships in Fontshare's download, because the licence web page needs JavaScript. It allows personal and commercial use on websites and in apps, through the Fontshare API or self-hosted, with credit optional. It forbids redistributing the font files, including through "publicly accessible servers" or a repository, and modifying or subsetting them. So an open-source web app may use them as Everybird does: loaded from Fontshare's CSS, with the font files never committed (AGENTS.md already says so). The licence also bars offering the fonts as a choice for users to make their own content with. Everybird only uses them for its own pages and images, so that clause doesn't apply.
-- **Geist Mono:** SIL Open Font License. **Phosphor:** MIT. **Stickers:** huashu-bird-sticker, CC BY 4.0, credited on every page, in share images and on `/credits`. **AVONET:** CC BY 4.0. **Natural Earth:** public domain.
+- **Geist Mono:** SIL Open Font License. **Phosphor:** MIT. **Stickers:** huashu-bird-sticker, CC BY 4.0, credited on every page, in share images and on `/credits`. **AVONET:** CC BY 4.0. **Natural Earth:** public domain (country shapes and most region names). **Debian iso-codes:** LGPL-2.1, ISO 3166-2 subdivision names that Natural Earth lacks, used as data for names only and credited on `/credits`.
 
 ## Analytics
 

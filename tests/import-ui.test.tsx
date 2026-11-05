@@ -138,16 +138,18 @@ describe('landing and the three ways in', () => {
   })
 
   it('a file that is not an eBird export says so plainly', async () => {
-    await mount()
+    const { analytics } = await mount()
     await drop(new File(['name,age\nx,1\n'], 'other.csv', { type: 'text/csv' }))
     expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't read this file")
     expect(screen.getByRole('heading', { name: 'Make yours' })).toBeInTheDocument()
+    expect(vi.mocked(analytics.track)).not.toHaveBeenCalled() // a failed import sends no event
   })
 
   it('iNat error message is plain and other sources stay', async () => {
-    const { inat } = await mount()
+    const { inat, analytics } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
+    vi.mocked(analytics.track).mockClear()
     const cases: [string, RegExp][] = [
       ['unknown-user', /couldn't find an iNaturalist user called “nobody”/i],
       ['no-birds', /“nobody” has no public bird observations/i],
@@ -164,6 +166,7 @@ describe('landing and the three ways in', () => {
       expect(stats()).toHaveTextContent(/^3 species/)
     }
     expect(vi.mocked(inat.importInat).mock.calls[0][0]).toBe('nobody')
+    expect(vi.mocked(analytics.track)).not.toHaveBeenCalled() // failed iNat imports send no event
   })
 
   it('iNat import shows progress and adds its birds as another source', async () => {
@@ -319,6 +322,17 @@ describe('editing', () => {
     }
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'manual' }]])
+  })
+
+  it('ticking a bird onto a list from eBird is an edit, not a new collage', async () => {
+    const { analytics } = await mount()
+    await drop(csv(...ROWS))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
+    fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'snow' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Snow Goose/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add to my list' }))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^4 species/))
+    expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'ebird' }]])
   })
 
   it('tick by hand rejects a malformed date', async () => {

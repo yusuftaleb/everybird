@@ -8,7 +8,15 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { SpeciesSearch } from './SpeciesSearch'
 
-type Props = { species: SpeciesIndex; regions: Regions; edits: Edits; dispatch: (a: Action) => void; disabled?: boolean }
+type Props = {
+  species: SpeciesIndex
+  regions: Regions
+  edits: Edits
+  dispatch: (a: Action) => void
+  disabled?: boolean
+  /** No records from any source and nothing added by hand yet: this tick starts a hand-made collage. */
+  listEmpty?: boolean
+}
 
 const DATE_RE = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/
 
@@ -27,7 +35,7 @@ export function parseManualDate(raw: string): string | null {
 }
 
 /** Tick by hand: search a bird, add a date and a region if you like. Writes edits.added and un-removes it. */
-export function AddBirds({ species, regions, edits, dispatch, disabled }: Props) {
+export function AddBirds({ species, regions, edits, dispatch, disabled, listEmpty }: Props) {
   const ids = useId()
   const [bird, setBird] = useState<SpeciesRow | null>(null)
   const [date, setDate] = useState('')
@@ -63,8 +71,8 @@ export function AddBirds({ species, regions, edits, dispatch, disabled }: Props)
       type: 'edit',
       edits: { ...edits, removed: edits.removed.filter((c) => c !== bird.code), added: [...edits.added.filter((r) => r.code !== bird.code), rec] },
     })
-    // The first bird ticked by hand starts a hand-made collage; later ticks are edits, not new collages.
-    if (edits.added.length === 0) track('collage_made', { source: 'manual' })
+    // Only a tick into an empty list starts a hand-made collage; ticks onto an existing list are edits.
+    if (listEmpty) track('collage_made', { source: 'manual' })
     setDone(`Added ${bird.com}.`)
     reset()
   }

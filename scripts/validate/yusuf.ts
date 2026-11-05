@@ -92,10 +92,10 @@ function classify(targets: Target[], merged: ListEntry[], bySource: Record<'ebir
       if (/corrected/i.test(t.source)) out.push({ code: t.code, name, kind: 'date corrected by hand (iNaturalist date wrong)', explained: true, detail: src })
       else if (isYM(t.date) && e.date?.startsWith(t.date)) out.push({ code: t.code, name, kind: 'his list keeps only the month', explained: true, detail: src })
       else if (/^Yusuf,/.test(t.source)) out.push({ code: t.code, name, kind: 'his own date (manual record)', explained: true, detail: src })
-      // His migrate_to_personal.py drops iNaturalist names containing "domesticus" (meant for domestic forms), which also
-      // catches wild species with that epithet; Everybird keeps their records, by his own earliest-date rule.
+      // His old migration script's name filter for domestic birds also excludes wild species whose names match it;
+      // Everybird keeps their records, by his own earliest-date rule.
       else if (/\bdomesticus\b/.test(t.scientific) && ina && e.date === ina && eb === t.date && ina < t.date)
-        out.push({ code: t.code, name, kind: 'earlier iNaturalist record his own script filtered out ("domesticus" name filter)', explained: true, detail: src })
+        out.push({ code: t.code, name, kind: 'earlier iNaturalist record his old script filtered out (domestic-bird name filter)', explained: true, detail: src })
       else if ((eb === t.date || ina === t.date) && e.date && e.date < t.date) out.push({ code: t.code, name, kind: 'earlier record in the other source than the one he used', explained: false, detail: src })
       else out.push({ code: t.code, name, kind: 'date differs', explained: false, detail: src })
     }

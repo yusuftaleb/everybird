@@ -78,7 +78,10 @@ export default function CreditsPage() {
               Observations come from iNaturalist&apos;s public API, called straight from your browser, about once a second.
             </Credit>
             <Credit label="Maps · Public domain" title={<A href="https://www.naturalearthdata.com/">Natural Earth</A>}>
-              Country shapes and region names come from Natural Earth.
+              Country shapes and most region names come from Natural Earth.
+            </Credit>
+            <Credit label="Region names · LGPL-2.1" title={<A href="https://salsa.debian.org/iso-codes-team/iso-codes">Debian iso-codes</A>}>
+              The rest of the state and province names come from Debian&apos;s iso-codes ISO 3166-2 data, used for names only.
             </Credit>
           </ul>
         </section>

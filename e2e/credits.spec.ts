@@ -14,6 +14,8 @@ test("/credits credits the stickers (CC BY 4.0, linked) and the eBird taxonomy v
   await expect(main.getByText("CC BY 4.0").first()).toBeVisible();
   await expect(main.locator('a[href="https://theodore.net/projects/AvianVisitors/"]')).toBeVisible();
   await expect(main.getByText(/eBird\/Clements taxonomy, version 20\d\d/)).toBeVisible();
+  await expect(main.getByRole("link", { name: "Debian iso-codes" })).toHaveAttribute("href", "https://salsa.debian.org/iso-codes-team/iso-codes");
+  await expect(main.getByText("Region names · LGPL-2.1")).toBeVisible();
   expect(errors).toEqual([]);
 });
 

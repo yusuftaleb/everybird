@@ -53,7 +53,14 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
           <InatForm onImport={onImport('inat')} disabled={disabled} replaces={saved.records.inat.length > 0} />
         </Way>
         <Way icon={CheckSquareOffset} title="Tick by hand">
-          <AddBirds species={species} regions={regions} edits={saved.edits} dispatch={dispatch} disabled={disabled} />
+          <AddBirds
+            species={species}
+            regions={regions}
+            edits={saved.edits}
+            dispatch={dispatch}
+            disabled={disabled}
+            listEmpty={Object.values(saved.records).every((r) => r.length === 0) && saved.edits.added.length === 0}
+          />
         </Way>
       </div>
       <p className="eb-privacy"><LockSimple aria-hidden="true" focusable="false" weight="bold" />Your list never leaves your browser. We count visits anonymously.</p>
