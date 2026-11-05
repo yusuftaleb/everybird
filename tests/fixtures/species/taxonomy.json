@@ -10,6 +10,6 @@
 {"code":"rupbus","sci":"Neotis denhami","com":"Denham's Bustard","cat":"species","to":500},
 {"code":"rupgri","sci":"Gyps rueppelli","com":"Rüppell's Griffon","cat":"species","to":600},
 {"code":"kiwi1","sci":"Apteryx sp.","com":"kiwi sp.","cat":"spuh","to":30},
-{"code":"mallar3","sci":"Anas platyrhynchos (Domestic type)","com":"Mallard (Domestic type)","cat":"domestic","to":700},
+{"code":"mallar3","sci":"Anas platyrhynchos (Domestic type)","com":"Mallard (Domestic type)","cat":"domestic","to":700,"reportAs":"mallar3b"},
 {"code":"mallar3b","sci":"Anas platyrhynchos","com":"Mallard","cat":"species","to":701}
 ]}

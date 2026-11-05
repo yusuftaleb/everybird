@@ -20,28 +20,35 @@ export function foldName(s: string): string {
   return s
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u2018\u2019]/g, "'")
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim()
 }
 
-/** A species resolves to itself; anything with reportAs resolves to that; the rest is not a species. */
+/** Exact lookup key: lower-case, spaces collapsed, group/parenthetical text kept. */
+export const exactSci = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
+
+/** A species resolves to itself; issf/form/intergrade follow reportAs; spuh/slash/hybrid/domestic are not species. */
 function fromRow(row: TaxonRow, via: 'sci' | 'com' | 'taxonOrder'): Resolution {
   if (row.cat === 'species') return { code: row.code, via }
-  if (row.reportAs) return { code: row.reportAs, via }
+  if ((row.cat === 'issf' || row.cat === 'form' || row.cat === 'intergrade') && row.reportAs)
+    return { code: row.reportAs, via }
   return { code: null, reason: 'not-species' }
 }
 
 export function resolveName(t: TaxonomyIndex, q: { sci?: string; com?: string; taxonOrder?: number }): Resolution {
   if (q.sci) {
-    const row = t.bySci.get(normalizeSci(q.sci))
+    // Exact name first so domestic/hybrid rows keep their own identity; then the normalized key.
+    const row = t.exactSci.get(exactSci(q.sci)) ?? t.bySci.get(normalizeSci(q.sci))
     if (row) return fromRow(row, 'sci')
   }
   if (q.com) {
     const row = t.byCom.get(foldName(q.com))
     if (row) return fromRow(row, 'com')
   }
-  if (q.taxonOrder !== undefined) {
+  // taxonOrder shifts between taxonomy years: only trust it when no name was supplied.
+  if (!q.sci && !q.com && q.taxonOrder !== undefined) {
     const row = t.byOrder.get(q.taxonOrder)
     if (row) return fromRow(row, 'taxonOrder')
   }

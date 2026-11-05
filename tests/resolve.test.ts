@@ -51,6 +51,19 @@ describe('resolveName', () => {
     expect(resolveName(tax, { sci: 'Nope nope', com: 'Gilded Flicker' })).toEqual({ code: 'gilfli', via: 'com' })
     expect(resolveName(tax, { com: 'Northern Flicker (Red-shafted)' })).toEqual({ code: 'norfli', via: 'com' })
   })
+  it('domestic rows are not the wild species, even with reportAs', () => {
+    const notSp = { code: null, reason: 'not-species' }
+    expect(resolveName(tax, { com: 'Mallard (Domestic type)' })).toEqual(notSp)
+    expect(resolveName(tax, { sci: 'Anas platyrhynchos (Domestic type)' })).toEqual(notSp)
+    expect(resolveName(tax, { sci: 'Anas platyrhynchos' })).toEqual({ code: 'mallar3b', via: 'sci' })
+  })
+  it('curly apostrophes match', () => {
+    expect(resolveName(tax, { com: 'Rüppell\u2019s Griffon' })).toEqual({ code: 'rupgri', via: 'com' })
+  })
+  it('taxonOrder is ignored when names were given and missed', () => {
+    const r = resolveName(tax, { sci: 'Unknownus birdus', com: 'Fake Bird', taxonOrder: 34403 })
+    expect(r).toMatchObject({ code: null, reason: 'no-match' })
+  })
   it('falls back to taxonOrder', () => {
     expect(resolveName(tax, { taxonOrder: 34403 })).toEqual({ code: 'yerwar', via: 'taxonOrder' })
   })
@@ -104,6 +117,9 @@ describe('real taxonomy guard', () => {
     expect(resolveName(real, { sci: 'Setophaga coronata auduboni' })).toEqual({ code: 'yerwar', via: 'sci' })
     expect(resolveName(real, { sci: 'Colaptes auratus chrysocaulosus' })).toEqual({ code: 'norfli', via: 'sci' })
     expect(resolveName(real, { com: 'Yellow-rumped Warbler (Audubon\'s)' })).toEqual({ code: 'yerwar', via: 'com' })
+    expect(resolveName(real, { com: 'Mallard (Domestic type)' })).toEqual({ code: null, reason: 'not-species' })
+    expect(resolveName(real, { sci: 'Anas platyrhynchos (Domestic type)' })).toEqual({ code: null, reason: 'not-species' })
+    expect(resolveName(real, { sci: 'Anas platyrhynchos' })).toEqual({ code: 'mallar3', via: 'sci' })
     expect(resolveName(real, { sci: 'Apteryx sp.' })).toEqual({ code: null, reason: 'not-species' })
   })
   it('real search puts Northern Flicker first', async () => {

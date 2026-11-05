@@ -1,5 +1,5 @@
 import type { SpeciesFile, SpeciesRow, TaxonRow, TaxonomyFile } from './types'
-import { foldName, normalizeSci } from './resolve'
+import { exactSci, foldName, normalizeSci } from './resolve'
 
 export type SpeciesIndex = {
   rows: SpeciesRow[]
@@ -9,6 +9,7 @@ export type SpeciesIndex = {
 export type TaxonomyIndex = {
   rows: TaxonRow[]
   bySci: Map<string, TaxonRow> // normalizeSci keys
+  exactSci: Map<string, TaxonRow> // lower-cased, space-collapsed full names (group/parenthetical kept)
   byCom: Map<string, TaxonRow> // lower-case, accents stripped
   byOrder: Map<number, TaxonRow>
 }
@@ -67,14 +68,16 @@ function put(map: Map<string, TaxonRow>, key: string, row: TaxonRow) {
 
 export function buildTaxonomyIndex(rows: TaxonRow[]): TaxonomyIndex {
   const bySci = new Map<string, TaxonRow>()
+  const exact = new Map<string, TaxonRow>()
   const byCom = new Map<string, TaxonRow>()
   const byOrder = new Map<number, TaxonRow>()
   for (const r of rows) {
     put(bySci, normalizeSci(r.sci), r)
+    put(exact, exactSci(r.sci), r)
     if (r.com) put(byCom, foldName(r.com), r)
     byOrder.set(r.to, r)
   }
-  return { rows, bySci, byCom, byOrder }
+  return { rows, bySci, exactSci: exact, byCom, byOrder }
 }
 
 const wordsOf = (s: string) => (s ? s.split(' ') : [])
