@@ -1,0 +1,23 @@
+tests/collage-layout-hook.test.tsx
+  s_ab125876fe9ad2::t_09d83b6e85b5d3 18-20,34,67-70,72-75
+  s_ab125876fe9ad2::t_5047d388f679e6 71
+  s_ab125876fe9ad2::t_e0813407df0a9b 76
+src/components/app/use-collage-layout.ts
+  s_ab125876fe9ad2::t_62e1f019099161 103-104,109,120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f3d4c6cbc1e91816ac9e3aad5c9f1949854898cd",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
