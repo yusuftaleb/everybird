@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { track } from '@/lib/analytics'
+import { redactAnalyticsEvent, redactShareToken, track } from '@/lib/analytics'
 
 type VaWindow = Window & { va?: (...args: unknown[]) => void }
 
@@ -27,5 +27,25 @@ describe('track', () => {
   it('never throws, even if the analytics queue does', () => {
     ;(window as VaWindow).va = () => { throw new Error('blocked') }
     expect(() => track('link_copied', { level: 'species' })).not.toThrow()
+  })
+})
+
+describe('redactShareToken', () => {
+  it('replaces the share token in /s/<token> paths', () => {
+    expect(redactShareToken('https://everybird.vercel.app/s/v1.AbC-_123')).toBe('https://everybird.vercel.app/s/[token]')
+    expect(redactShareToken('/s/v1.AbC')).toBe('/s/[token]')
+  })
+  it('keeps the query and hash', () => {
+    expect(redactShareToken('https://everybird.vercel.app/s/v1.AbC?ref=x#top')).toBe('https://everybird.vercel.app/s/[token]?ref=x#top')
+    expect(redactShareToken('/s/v1.AbC#y')).toBe('/s/[token]#y')
+  })
+  it('leaves other paths untouched', () => {
+    for (const u of ['https://everybird.vercel.app/', 'https://everybird.vercel.app/credits', '/s', '/s/', '/sx/abc', '/?s=/s/abc']) {
+      expect(redactShareToken(u)).toBe(u)
+    }
+  })
+  it('redacts both page views and custom events (the Analytics beforeSend)', () => {
+    expect(redactAnalyticsEvent({ type: 'pageview', url: 'https://e.app/s/tok' })).toEqual({ type: 'pageview', url: 'https://e.app/s/[token]' })
+    expect(redactAnalyticsEvent({ type: 'event', url: 'https://e.app/s/tok?q=1' })).toEqual({ type: 'event', url: 'https://e.app/s/[token]?q=1' })
   })
 })

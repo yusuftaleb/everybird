@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/react";
 import { Geist_Mono } from "next/font/google";
 import { SHARE_ORIGIN } from "@/lib/share/origin";
+import SiteAnalytics from "@/components/app/SiteAnalytics";
 import "@/styles/globals.css";
 
 const geistMono = Geist_Mono({
@@ -20,6 +20,9 @@ export const metadata: Metadata = {
         : undefined,
   title: "Everybird",
   description: "Every bird you've ever seen.",
+  // A share link's token is the birder's list: never let it leave as a Referer, not even to our own pages
+  // (analytics reads document.referrer). Origin only, everywhere.
+  referrer: "strict-origin",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -36,9 +39,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
-        {/* Cookieless visit counts and three anonymous events (src/lib/analytics.ts). Only on Vercel, where
-            /_vercel/insights exists: elsewhere (dev, tests, a local production build) nothing loads and track() is a no-op. */}
-        {process.env.VERCEL ? <Analytics /> : null}
+        {/* Cookieless visit counts and three anonymous events (src/lib/analytics.ts), with /s/<token> redacted to
+            /s/[token]. Only on Vercel, where /_vercel/insights exists: elsewhere (dev, tests, a local production build)
+            nothing loads and track() is a no-op. */}
+        {process.env.VERCEL ? <SiteAnalytics /> : null}
       </body>
     </html>
   );

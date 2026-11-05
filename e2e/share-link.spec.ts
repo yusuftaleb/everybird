@@ -16,6 +16,8 @@ test("a share link opens a read-only collage with the header, count and Make you
   // Read-only: none of the editing tools, and the visitor's own list is untouched.
   await expect(page.getByRole("button", { name: /forget|download|restore/i })).toHaveCount(0);
   expect(await page.evaluate(async () => (await indexedDB.databases?.())?.some((d) => d.name === "everybird") ?? false)).toBe(false);
+  // The token never leaves as a Referer (analytics also redacts it from URLs: src/lib/analytics.ts).
+  await expect(page.locator('meta[name="referrer"]')).toHaveAttribute("content", "strict-origin");
   expect(errors).toEqual([]);
 });
 
