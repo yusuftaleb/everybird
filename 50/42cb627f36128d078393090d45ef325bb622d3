@@ -1,0 +1,26 @@
+tests/resolve.test.ts
+  s_ab125876fe9ad2::t_65b43056afcb9a 54-66,120-122
+src/lib/species/resolve.ts
+  s_ab125876fe9ad2::t_35f0dd588591c6 29-32,35-36,42-43,50-51
+  s_ab125876fe9ad2::t_3267ef73f050cb 23
+tests/fixtures/species/taxonomy.json
+  s_ab125876fe9ad2::t_35f0dd588591c6 13
+src/lib/species/load.ts
+  s_ab125876fe9ad2::t_35f0dd588591c6 2,12,71,76,80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5042cb627f36128d078393090d45ef325bb622d3",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
