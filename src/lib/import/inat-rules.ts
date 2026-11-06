@@ -3,8 +3,11 @@ import type { Place } from '@/lib/list/model'
 /**
  * Region rules: iNaturalist lumps some species that eBird splits, so one iNat name stands for two eBird species.
  * Each rule picks the eBird code for an observation: the iNat subspecies when it names one, else where (and when) it
- * was seen, else a default. The audit behind this table is in the Task W1 report (huashu split_from groups checked
- * against the live iNaturalist taxonomy, 2026-11-06).
+ * was seen, else a default. The audit behind this table is in the Task W1 report (every huashu split, split_from and
+ * AviList "split" rows alike, checked against the live iNaturalist taxa API, 2026-11-06; summary in
+ * data/inat-synonyms.notes.md). A rule exists only where iNaturalist still lumps: where iNat has both species (as for
+ * the marsh wrens, Cistothorus palustris / C. paludicola) its names match eBird's directly and a rule would only
+ * reassign iNat's own identifications.
  */
 export type Assigned = 'region' | 'default'
 export type RegionRule = {
@@ -16,24 +19,6 @@ export type RegionRule = {
   fallback: string
 }
 export type RuleResult = { code: string; assigned?: Assigned }
-
-// ---------------------------------------------------------------------------------------------
-// Marsh wren: Western Marsh Wren (marwre1) in western North America, Eastern (eamwre1) elsewhere.
-
-/** Western Marsh Wren (marwre1) range, by subnational region. */
-export const WESTERN_MARSH_WREN_SUB1 = new Set([
-  'CA-BC', 'CA-AB', 'CA-YT', 'CA-NT',
-  'US-WA', 'US-OR', 'US-CA', 'US-NV', 'US-ID', 'US-MT', 'US-WY', 'US-UT', 'US-CO', 'US-AZ', 'US-NM',
-])
-export const WESTERN_MARSH_WREN_COUNTRIES = new Set(['MX'])
-
-function marshWren(place: Place | undefined): string | undefined {
-  if (!place?.country) return undefined
-  if (WESTERN_MARSH_WREN_COUNTRIES.has(place.country)) return 'marwre1'
-  if (place.sub1) return WESTERN_MARSH_WREN_SUB1.has(place.sub1) ? 'marwre1' : 'eamwre1'
-  if (place.country === 'US' || place.country === 'CA') return undefined // no state or province: cannot tell
-  return 'eamwre1'
-}
 
 // ---------------------------------------------------------------------------------------------
 // Willet: Saltmarsh Willet (willet2, T. semipalmata) breeds on the Atlantic and Gulf coasts and in the Caribbean and
@@ -113,7 +98,7 @@ export const REGION_RULES: Record<string, RegionRule> = {
   },
   'Bubo virginianus': {
     subspecies: {
-      nacurutu: 'grhowl19', deserti: 'grhowl19', nigrescens: 'grhowl19',
+      nacurutu: 'grhowl19', deserti: 'grhowl19',
       virginianus: 'grhowl', algistus: 'grhowl', lagophonus: 'grhowl', pacificus: 'grhowl', pallescens: 'grhowl',
       saturatus: 'grhowl', subarcticus: 'grhowl', heterocnemis: 'grhowl', elachistus: 'grhowl', mesembrinus: 'grhowl',
       mayensis: 'grhowl', pinorum: 'grhowl',
@@ -133,16 +118,6 @@ export const REGION_RULES: Record<string, RegionRule> = {
     subspecies: { tyrrhenica: 'spofly3', balearica: 'spofly3', striata: 'spofly2', neumanni: 'spofly2' },
     region: spottedFlycatcher,
     fallback: 'spofly2',
-  },
-  // iNaturalist has since split Cistothorus paludicola too; this rule still sorts older or unrevised IDs.
-  'Cistothorus palustris': {
-    subspecies: {
-      palustris: 'eamwre1', dissaeptus: 'eamwre1', iliacus: 'eamwre1', marianae: 'eamwre1', griseus: 'eamwre1', waynei: 'eamwre1',
-      paludicola: 'marwre1', plesius: 'marwre1', pulverius: 'marwre1', browningi: 'marwre1', aestuarinus: 'marwre1',
-      clarkae: 'marwre1', laingi: 'marwre1', deserticola: 'marwre1', tolucensis: 'marwre1',
-    },
-    region: (place) => marshWren(place),
-    fallback: 'marwre1',
   },
 }
 

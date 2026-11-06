@@ -24,7 +24,7 @@ export type SourceRecord = {
    */
   seen?: string[]
   /**
-   * iNaturalist lumps some species eBird splits (willet, marsh wren); the import picks one by a region rule
+   * iNaturalist lumps some species eBird splits (willet, horned owl); the import picks one by a region rule
    * (inat-rules.ts). 'region': placed by where and when it was seen; 'default': the place could not tell.
    */
   assigned?: 'region' | 'default'

@@ -13,13 +13,11 @@ describe('inat-synonyms', () => {
   it('every synonym points to a code that exists in species.v1.json', () => {
     const codes = new Set(species().map((s) => s.code))
     const entries = Object.entries(synonyms())
-    expect(entries.length).toBeGreaterThan(0)
     for (const [name, code] of entries) expect(codes.has(code), `${name} -> ${code}`).toBe(true)
   })
 
-  it('maps the iNaturalist-lumped marsh wren to Western Marsh Wren', () => {
-    const wmw = taxonomy().find((t) => t.sci === 'Cistothorus paludicola' && t.cat === 'species')
-    expect(synonyms()['Cistothorus palustris']).toBe(wmw?.code)
+  it('has no marsh wren synonym: iNaturalist splits them too, so Cistothorus palustris is Eastern there as in eBird', () => {
+    expect(synonyms()['Cistothorus palustris']).toBeUndefined()
   })
 
   it('keys are binomial-looking names', () => {

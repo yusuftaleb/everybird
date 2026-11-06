@@ -54,21 +54,15 @@ describe('willet (iNat lumps Tringa semipalmata; eBird splits willet2 Saltmarsh 
   })
 })
 
-describe('marsh wren (iNat Cistothorus palustris; eBird eamwre1 Eastern / marwre1 Western)', () => {
-  it('western North America is Western, other known places Eastern, by region', () => {
-    expect(applyRegionRule('Cistothorus palustris', undefined, { country: 'CA', sub1: 'CA-BC' }, '2024-05-01')).toEqual({ code: 'marwre1', assigned: 'region' })
-    expect(applyRegionRule('Cistothorus palustris', undefined, { country: 'US', sub1: 'US-NY' }, '2024-05-01')).toEqual({ code: 'eamwre1', assigned: 'region' })
-    expect(applyRegionRule('Cistothorus palustris', undefined, { country: 'MX' }, '2024-05-01')).toEqual({ code: 'marwre1', assigned: 'region' })
+describe('rules only for names iNaturalist still lumps (live taxa API, 2026-11-06)', () => {
+  it('no rule for the marsh wrens: iNat has Cistothorus palustris (Eastern) and C. paludicola (Western) as species', () => {
+    expect(REGION_RULES['Cistothorus palustris']).toBeUndefined()
+    expect(REGION_RULES['Cistothorus paludicola']).toBeUndefined()
+    expect(applyRegionRule('Cistothorus palustris', undefined, { country: 'CA', sub1: 'CA-BC' }, '2024-05-01')).toBeUndefined()
   })
 
-  it('unknown place falls back to Western (the synonym) and is flagged', () => {
-    expect(applyRegionRule('Cistothorus palustris', undefined, undefined, undefined)).toEqual({ code: 'marwre1', assigned: 'default' })
-    expect(applyRegionRule('Cistothorus palustris', undefined, { country: 'US' }, undefined)).toEqual({ code: 'marwre1', assigned: 'default' })
-  })
-
-  it('an eastern subspecies decides', () => {
-    expect(applyRegionRule('Cistothorus palustris', 'waynei', { country: 'US', sub1: 'US-CA' }, '2024-05-01')).toEqual({ code: 'eamwre1' })
-    expect(applyRegionRule('Cistothorus palustris', 'plesius', { country: 'US', sub1: 'US-NY' }, '2024-05-01')).toEqual({ code: 'marwre1' })
+  it('no subspecies maps to a species iNat keeps separately (Bubo nigrescens, Paramo Horned Owl)', () => {
+    expect(REGION_RULES['Bubo virginianus']!.subspecies.nigrescens).toBeUndefined()
   })
 })
 

@@ -56,18 +56,6 @@ export const COUNTRY_ALIASES: Record<string, string> = {
   'british indian ocean territory': 'IO',
 }
 
-export { WESTERN_MARSH_WREN_SUB1, WESTERN_MARSH_WREN_COUNTRIES } from './inat-rules'
-export const MARSH_WREN_INAT_NAME = 'Cistothorus palustris'
-
-/**
- * Western North America -> marwre1; any other known place -> eamwre1; unknown place -> `fallback`. A US/CA place with
- * no resolved sub1 cannot be told apart, so it also falls back. (The marsh wren row of REGION_RULES, inat-rules.ts.)
- */
-export function marshWrenCode(place: Place | undefined, fallback: string): string {
-  const r = applyRegionRule(MARSH_WREN_INAT_NAME, undefined, place, undefined)!
-  return r.assigned === 'default' ? fallback : r.code
-}
-
 // ---------------------------------------------------------------------------------------------
 // HTTP: one request at a time, >= minIntervalMs apart, 429 backoff, abortable.
 
@@ -286,7 +274,7 @@ export type InatOptions = {
  *   the earliest date there; so every distinct set of place ids is resolved. A name's places all go to its code
  *   (for a region-ruled name, each place goes to the code it resolves to). Coordinates, location, place_guess, observation
  *   ids and photo URLs are never read into records.
- * - Region rules (inat-rules.ts): a name iNaturalist lumps but eBird splits (willet, marsh wren) is resolved per
+ * - Region rules (inat-rules.ts): a name iNaturalist lumps but eBird splits (willet, horned owl and others) is resolved per
  *   subspecies, place and month, so one iNat name can give two eBird species. A record whose every observation was
  *   placed by region (or by default, the place unknown) carries `assigned`.
  */
@@ -388,7 +376,7 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
       }
     }
 
-    // Resolve names (after places: the marsh wren depends on where it was seen), then merge per eBird code.
+    // Resolve names (after places: a region rule depends on where it was seen), then merge per eBird code.
     // `assigned`: set while every contribution to the code was a region rule's guess; null once one was not.
     const byCode = new Map<string, Agg & { code: string; place?: Place; assigned: Assigned | null }>()
     const unmatched: Unmatched[] = []

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { importInat, marshWrenCode, COUNTRY_ALIASES } from '@/lib/import/inat'
+import { importInat, COUNTRY_ALIASES } from '@/lib/import/inat'
 import { buildTaxonomyIndex } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
 
@@ -16,7 +16,7 @@ const regions: Regions = {
   countries: { US: 'United States of America', CA: 'Canada', MX: 'Mexico' },
   sub1: { 'US-CA': 'California', 'US-NY': 'New York', 'CA-BC': 'British Columbia', 'CA-AB': 'Alberta' },
 }
-const synonyms = { 'Cistothorus palustris': 'marwre1' }
+const synonyms: Record<string, string> = { 'Colaptes cafer': 'norfli' }
 const PAGE = 3
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
 
@@ -95,7 +95,7 @@ describe('importInat', () => {
     expect(norfli.source).toBe('inat')
     // earliest observation (subspecies luteus, 2026-01-10) supplies the date
     expect(norfli.date).toBe('2026-01-10')
-    expect(r.records.map((x) => x.code).sort()).toEqual(['gilfli', 'marwre1', 'norfli'])
+    expect(r.records.map((x) => x.code).sort()).toEqual(['eamwre1', 'gilfli', 'norfli'])
     expect(r.skipped).toBe(1) // the genus-level observation
   })
 
@@ -253,33 +253,14 @@ describe('importInat', () => {
   })
 })
 
-describe('marsh wren split', () => {
-  it('marshWrenCode picks by place', () => {
-    const fb = 'marwre1'
-    expect(marshWrenCode({ country: 'CA', sub1: 'CA-BC' }, fb)).toBe('marwre1')
-    expect(marshWrenCode({ country: 'US', sub1: 'US-CA' }, fb)).toBe('marwre1')
-    expect(marshWrenCode({ country: 'US', sub1: 'US-CO' }, fb)).toBe('marwre1')
-    expect(marshWrenCode({ country: 'MX' }, fb)).toBe('marwre1')
-    expect(marshWrenCode({ country: 'MX', sub1: 'MX-BCN' }, fb)).toBe('marwre1')
-    expect(marshWrenCode({ country: 'US', sub1: 'US-NY' }, fb)).toBe('eamwre1')
-    expect(marshWrenCode({ country: 'CA', sub1: 'CA-ON' }, fb)).toBe('eamwre1')
-    expect(marshWrenCode({ country: 'US', sub1: 'US-TX' }, fb)).toBe('eamwre1')
-    expect(marshWrenCode(undefined, fb)).toBe('marwre1')
-    expect(marshWrenCode({}, 'x')).toBe('x')
-    expect(marshWrenCode({ country: 'US' }, fb)).toBe('marwre1') // US/CA with no sub1: cannot tell
-  })
-
-  it('importInat applies it by earliest observation place', async () => {
-    const mk = (place_ids: number[]): Obs[] => [{
-      id: 1, observed_on: '2026-05-05', quality_grade: 'research', taxon: { rank: 'species', name: 'Cistothorus palustris' },
+describe('marsh wrens (iNaturalist splits them too)', () => {
+  it('each iNat name matches its eBird species wherever it was seen, with no region guess', async () => {
+    const mk = (name: string, place_ids: number[]): Obs => ({
+      id: name.length, observed_on: '2026-05-05', quality_grade: 'research', taxon: { rank: 'species', name },
       photos: [{}], sounds: [], annotations: [], place_ids,
-    }]
-    const east = okResult(await run(fakeFetch({ obs: mk([1000, 1003]) })))
-    expect(east.records.map((r) => r.code)).toEqual(['eamwre1'])
-    const west = okResult(await run(fakeFetch({ obs: mk([1000, 1001]) })))
-    expect(west.records.map((r) => r.code)).toEqual(['marwre1'])
-    const unknown = okResult(await run(fakeFetch({ obs: mk([77]) })))
-    expect(unknown.records.map((r) => r.code)).toEqual(['marwre1'])
+    } as Obs)
+    const r = okResult(await run(fakeFetch({ obs: [mk('Cistothorus palustris', [1000, 1001]), mk('Cistothorus paludicola', [1000, 1003])] })))
+    expect(r.records.map((x) => [x.code, x.assigned]).sort()).toEqual([['eamwre1', undefined], ['marwre1', undefined]])
   })
 })
 

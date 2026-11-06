@@ -146,7 +146,7 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   const standIn = row.standIn ? species.byCode.get(row.standIn)?.com : undefined
   const notes = [
     standIn && `Illustration: ${standIn} (stand-in)`,
-    entry.assigned === 'region' ? 'Assigned by region' : entry.assigned === 'default' ? 'Assigned by default (no place)' : '',
+    entry.assigned === 'region' ? 'Assigned by region' : entry.assigned === 'default' ? 'Assigned by default' : '',
   ].filter((n): n is string => !!n)
 
   // LifeList's card (layout C), with a close button and the edit actions under it.

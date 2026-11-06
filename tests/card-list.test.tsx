@@ -154,7 +154,7 @@ describe('BirdCard small print', () => {
   })
   it('says default when the place could not tell; nothing for an ordinary bird', () => {
     const { unmount } = render(<BirdCard entry={entry('willet3', { assigned: 'default' })} species={idx} regions={regions} onClose={() => {}} />)
-    expect(screen.getByText('Assigned by default (no place)')).toBeInTheDocument()
+    expect(screen.getByText('Assigned by default')).toBeInTheDocument()
     unmount()
     const { container } = render(<BirdCard entry={entry('willet3')} species={idx} regions={regions} onClose={() => {}} />)
     expect(container.querySelector('.eb-card-note')).toBeNull()
