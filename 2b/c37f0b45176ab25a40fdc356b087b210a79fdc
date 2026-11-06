@@ -1,0 +1,150 @@
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_cc52111d4da1d9 425
+src/components/collage/Collage.tsx
+  s_ab125876fe9ad2::t_3d5d0c25677097 66
+  s_ab125876fe9ad2::t_fba30d0f544693 370
+src/lib/list/filters-validate.ts
+  s_ab125876fe9ad2::t_6e0126af688124 2,12-14,17-25,47
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_f78fffd1691f9d 11-12,21,39,41-42,82,193-195,198
+  s_ab125876fe9ad2::t_d65921e51e2180 204
+README.md
+  s_ab125876fe9ad2::t_a4d430448149a2 36
+src/components/filters/SheetPicker.tsx
+  s_ab125876fe9ad2::t_20489b658f7448 9-10
+tests/seen.test.ts
+  s_ab125876fe9ad2::t_a825cd0aa1b884 107-108
+src/components/filters/filters.css
+  s_ab125876fe9ad2::t_09cdde8f365241 5,54,56,87-96,98-106,108-130,132-133
+  s_ab125876fe9ad2::t_b53b4e6939503c 52-53
+src/components/Flag.tsx
+  s_ab125876fe9ad2::t_b575e1d35f40ca 1-12
+src/components/collage/Tally.tsx
+  s_ab125876fe9ad2::t_fba30d0f544693 11-12,14,40,42
+src/components/app/use-collage-layout.ts
+  s_ab125876fe9ad2::t_dcbc50605defff 7,30,35,39
+tests/timeline-ui.test.tsx
+  s_ab125876fe9ad2::t_a0d2b906ccb7e0 116
+src/components/about/how-it-works.css
+  s_ab125876fe9ad2::t_3d5d0c25677097 170-171
+src/lib/flag-urls.ts
+  s_ab125876fe9ad2::t_d101f5484cc18f 1,259-260
+  s_ab125876fe9ad2::t_b575e1d35f40ca 2-258,261
+tests/build-geo.test.ts
+  s_ab125876fe9ad2::t_84e2393579e0c0 4-5
+src/components/filters/TripBrackets.tsx
+  s_ab125876fe9ad2::t_b53b4e6939503c 7,74
+src/lib/list/seen.ts
+  s_ab125876fe9ad2::t_dcbc50605defff 21,101,104
+src/components/app/SampleDemo.tsx
+  s_ab125876fe9ad2::t_49e6017a314ddd 13,23,26
+src/components/filters/FilterDropdowns.tsx
+  s_ab125876fe9ad2::t_b53b4e6939503c 16,245
+  s_ab125876fe9ad2::t_eeae32c2475b38 14,113,138,144,150,155
+  s_ab125876fe9ad2::t_b74f4926b71950 13,181-184
+  s_ab125876fe9ad2::t_789f3c39fb9e60 24,212-214
+  s_ab125876fe9ad2::t_29fbcea0f0d8d7 1-12,15,17-23,25-112,114-137,139-143,145-149,151-154,156-180,185-211,215-244,246-258
+scripts/build-data/build-geo.ts
+  s_ab125876fe9ad2::t_84e2393579e0c0 1,6,89,92
+tests/collage.test.tsx
+  s_ab125876fe9ad2::t_71e60020af46fb 137,139-141
+src/components/app/ControlsBar.tsx
+  s_ab125876fe9ad2::t_e3e35a0ab5038f 3-8,23-24,27,82-83
+e2e/places.spec.ts
+  s_ab125876fe9ad2::t_ac2f5f2c09c621 1-53,58-79
+  s_ab125876fe9ad2::t_95bddd4412bdfe 54-57
+tests/places-ui.test.tsx
+  s_ab125876fe9ad2::t_422e9a4bf0fcd5 89
+  s_ab125876fe9ad2::t_e9a17084d61fde 3-4,6,8,12-14,20,23,29-30,37,40-41,44-47,53-54,61-62,65-77,80,83-86,91-102,105,108-110,113,116-124,127-128,130-134,137,139-148,151-160
+  s_ab125876fe9ad2::t_a0d2b906ccb7e0 87-88,90
+src/components/app/CollagePage.tsx
+  s_ab125876fe9ad2::t_3feb0057f9c31d 6,26,105
+DESIGN.md
+  s_ab125876fe9ad2::t_f4234e8919853b 119,141,170-176,194,217,238
+  s_ab125876fe9ad2::t_3048a4157dfe68 167
+tests/app-routes.test.tsx
+  s_ab125876fe9ad2::t_28eb222d31eaf9 173,175-177
+package.json
+  s_ab125876fe9ad2::t_8ef16f64af3ba4 19
+tests/filter-summary.test.ts
+  s_ab125876fe9ad2::t_3feb0057f9c31d 2,38-52
+  s_ab125876fe9ad2::t_3ce37a0c211b59 1,3-37,53-54
+src/lib/list/filter-summary.ts
+  s_ab125876fe9ad2::t_3feb0057f9c31d 55-66
+  s_ab125876fe9ad2::t_20489b658f7448 4
+  s_ab125876fe9ad2::t_3ce37a0c211b59 1-3,5-54,67
+src/components/app/Landing.tsx
+  s_ab125876fe9ad2::t_49e6017a314ddd 26
+src/components/filters/FilterBar.tsx
+  s_ab125876fe9ad2::t_b13b696f19ae12 7-9,24-25,31-32,36,46
+  s_ab125876fe9ad2::t_cdc3a841081e89 30,50,54-55,57,66,69,132
+tests/share-image.test.ts
+  s_ab125876fe9ad2::t_a825cd0aa1b884 32-33,36,42
+  s_ab125876fe9ad2::t_71e60020af46fb 128-131,134,142,147,153,163,170
+src/components/about/HowItWorksStage.tsx
+  s_ab125876fe9ad2::t_fba30d0f544693 12,419
+AGENTS.md
+  s_ab125876fe9ad2::t_8013d0b6c43613 56
+  s_ab125876fe9ad2::t_811afc8f5f1d56 37,43,50
+  s_ab125876fe9ad2::t_fead9477942d87 61
+app/(app)/about/page.tsx
+  s_ab125876fe9ad2::t_49847d2402af7b 107-108,119-120
+  s_ab125876fe9ad2::t_6e9d1625232950 121
+src/lib/list/filters.ts
+  s_ab125876fe9ad2::t_548789a0fa988f 11-14,16,18-19,39,46,61-62,82-85,102,114-116,165,167,176,179,195
+  s_ab125876fe9ad2::t_6e0126af688124 213-229
+src/components/app/EverybirdProvider.tsx
+  s_ab125876fe9ad2::t_ca1a5dcd7750d3 8,13,60-61
+tests/filters-ui.test.tsx
+  s_ab125876fe9ad2::t_881267a585edcf 11,40,98
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_aa341096afd72c 23,55,61,63-64,70
+  s_ab125876fe9ad2::t_fba30d0f544693 128,131-132,135,138,170,475
+tests/filters.test.ts
+  s_ab125876fe9ad2::t_a825cd0aa1b884 30,33,45,47,51,74,78-79,95,99,102,104,106,109-111
+e2e/filters.spec.ts
+  s_ab125876fe9ad2::t_f4835e897aac3a 173,175-178,180-182,185-186,188-190
+tests/flag.test.ts
+  s_ab125876fe9ad2::t_b575e1d35f40ca 2,4-5,12-15
+  s_ab125876fe9ad2::t_4b910f58b736c9 6-10
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_3d5d0c25677097 85,92,117,134
+  s_ab125876fe9ad2::t_6fe873dd492f0e 66
+src/lib/import/places.ts
+  s_ab125876fe9ad2::t_84e2393579e0c0 2
+src/components/app/SharedView.tsx
+  s_ab125876fe9ad2::t_ca1a5dcd7750d3 3,7,39,42,55,61
+  s_ab125876fe9ad2::t_49e6017a314ddd 10
+src/components/app/app.css
+  s_ab125876fe9ad2::t_9957fc5326c97f 91-93,95-106,110-116,121
+  s_ab125876fe9ad2::t_bd0b8eb68d1b05 107-109,117-120
+tests/filters-places.test.ts
+  s_ab125876fe9ad2::t_a83f374a28b550 3,25-31,34-36,39-40,42-46,48-50,52-58,60,62-63,68-73,75-78,82,84-93
+scripts/build-data/build-flags.ts
+  s_ab125876fe9ad2::t_d101f5484cc18f 1-11,13-14,16-19
+  s_ab125876fe9ad2::t_b575e1d35f40ca 12,15
+tests/store.test.ts
+  s_ab125876fe9ad2::t_a825cd0aa1b884 82,128
+src/lib/flag.ts
+  s_ab125876fe9ad2::t_b575e1d35f40ca 1-2,4-5,7,9-10
+app/s/[token]/opengraph-image.tsx
+  s_ab125876fe9ad2::t_fba30d0f544693 27
+package-lock.json
+  s_ab125876fe9ad2::t_5767ac595f1bf8 14,4942-4947
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2bc37f0b45176ab25a40fdc356b087b210a79fdc",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
