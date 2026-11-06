@@ -24,7 +24,7 @@
 //
 // Real stickers for the focal birds (the configured sticker site), quiet silhouettes (the product's own fallback) at
 // the edges. Colors and type are the site's tokens (tokens.css), so the demo follows the light and dark themes.
-import { BIRD_PATH } from '@/lib/bird-outline'
+import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { ArrowRight, Binoculars, CheckSquareOffset, FileCsv, ShareNetwork } from '@phosphor-icons/react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { stickerUrl } from '@/lib/sticker-url'
@@ -86,10 +86,20 @@ const markLoaded = (img: HTMLImageElement | null) => {
   if (img && img.complete && img.naturalWidth > 0) img.dataset.ld = ''
 }
 
-/** A sticker from the configured sticker site; the product's silhouette if it fails to load (as the collage does). */
+/** A failed sticker: the product's no-sticker outline (bird-outline.ts), thin in Line, as the collage shows it. */
+function Outline() {
+  const t = 128 * (1 - OUTLINE_SCALE)
+  return (
+    <svg viewBox="0 0 256 256" className="ebd-outline">
+      <path d={BIRD_PATH} transform={`translate(${t} ${t}) scale(${OUTLINE_SCALE})`} />
+    </svg>
+  )
+}
+
+/** A sticker from the configured sticker site; the product's outline if it fails to load (as the collage does). */
 function Sticker({ code, px }: { code: string; px: number }) {
   const [failed, setFailed] = useState(false)
-  if (failed) return <Silhouette />
+  if (failed) return <Outline />
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={stickerUrl(code, px, dpr())} alt="" draggable={false} decoding="async" className="ebd-st" ref={markLoaded}

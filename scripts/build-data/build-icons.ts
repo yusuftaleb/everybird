@@ -11,6 +11,7 @@
 // The sticker is CC BY 4.0 (huashu-bird-sticker); About#credits covers it.
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import sharp from 'sharp'
 
 const ROOT = process.cwd() // run from the repo root, as the other build scripts
@@ -130,4 +131,4 @@ async function main() {
   write('public/icons/icon-512.png', await onPaper(bird, 512))
 }
 
-main().catch((e) => { console.error(e); process.exit(1) })
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((e) => { console.error(e); process.exit(1) })

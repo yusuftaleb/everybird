@@ -82,10 +82,6 @@ export function loading(el: Element): boolean {
 }
 
 /**
- * Let go of a started sticker's image (the reverse of loadDeferred), so the browser can drop its decoded pixels;
- * loadDeferred starts it again. A sticker still waiting its turn just leaves the queue. Returns whether there was one.
- */
-/**
  * A sticker image draws nothing until its file has loaded: `data-ld` marks it loaded (Sticker.css shows it, with a
  * short fade). Until then the browser's own pending-image box (WebKit draws an empty frame for an image with no
  * source or one still loading) stays invisible. Set on load, and on mount for an image that loaded before
@@ -95,6 +91,10 @@ const markLoaded = (img: HTMLImageElement | null) => {
   if (img && img.getAttribute('src') && img.complete && img.naturalWidth > 0) img.dataset.ld = ''
 }
 
+/**
+ * Let go of a started sticker's image (the reverse of loadDeferred), so the browser can drop its decoded pixels;
+ * loadDeferred starts it again. A sticker still waiting its turn just leaves the queue. Returns whether there was one.
+ */
 export function unloadSticker(el: Element): boolean {
   const waiting = el.querySelector<HTMLImageElement>('img[data-src]')
   if (waiting) queued.delete(waiting) // pump skips it
