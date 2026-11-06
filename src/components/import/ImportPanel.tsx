@@ -89,9 +89,15 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
     focusWay(slot === 'inat' ? 'way-inat' : 'way-ebird')
   }
   const listEmpty = Object.values(saved.records).every((r) => r.length === 0) && saved.edits.added.length === 0
+  // Arriving at /settings#sources (the welcome's "Make mine"): keyboard and screen-reader focus starts at the sources,
+  // not at the top of the document.
+  const section = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (window.location.hash === '#sources') section.current?.focus({ preventScroll: true })
+  }, [])
 
   return (
-    <section id="sources" className="eb-block eb-import" aria-labelledby="eb-sources-h" tabIndex={-1}>
+    <section ref={section} id="sources" className="eb-block eb-import" aria-labelledby="eb-sources-h" tabIndex={-1}>
       <h2 id="eb-sources-h" className="eb-h2">Your sources</h2>
       <div className="eb-ways">
         <Way id="way-ebird" icon={FileCsv} title="eBird files" blurb="Your life list download or your full data export from eBird. Bring either, or both.">

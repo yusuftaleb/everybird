@@ -350,6 +350,20 @@ export const TRIPS: Trip[] = [
  * The garden and park birds a new birder in Sydney meets in the first weeks (eBird English names). Range text can't tell
  * a magpie from a rare honeyeater, so these go first; each must still pass the range check for New South Wales.
  */
+/**
+ * Draws the range rules allow but a birder would query (review, 2026-11-06): loose regional phrases ("w USA",
+ * "western North America"), mixed taxonomy text, or a vagrant huashu lists as range. Never picked in that zone.
+ */
+export const DENY: Partial<Record<ZoneId, Record<string, string>>> = {
+  us: { gryjay: 'Canada Jay: boreal and Rockies, not coastal California', varbun: 'Varied Bunting: Arizona/Texas borderlands' },
+  ke: { purswa1: 'Western Swamphen: Mediterranean; Kenya has African Swamphen' },
+  es: { combul2: 'Common Bulbul: North Africa, not Spain' },
+  za: { yesbul1: 'Yellow-streaked Greenbul: not in Mpumalanga', laywar2: "Layard's Warbler: the Karoo and Western Cape" },
+  nz: { whwter: 'White-winged Tern: a rare vagrant in New Zealand' },
+  nsw: { lotsti: 'Long-toed Stint: a rare vagrant in New South Wales' },
+  th: { arcwar3: 'Japanese Leaf Warbler: hardly reaches Thailand' },
+}
+
 export const HOME_STARTERS = [
   'Australian Magpie', 'Laughing Kookaburra', 'Rainbow Lorikeet', 'Sulphur-crested Cockatoo', 'Noisy Miner', 'Superb Fairywren',
   'Welcome Swallow', 'Magpie-lark', 'Crested Pigeon', 'Australian Raven', 'Silver Gull', 'Pacific Black Duck', 'Masked Lapwing',
@@ -455,7 +469,7 @@ export function generateSample(cands: Candidate[], seed = SEED): SampleFile {
     const month = Number(e.month.slice(5))
     const pool: { c: Candidate; hit: ZoneHit }[] = []
     for (const c of cands) {
-      if (used.has(c.code)) continue
+      if (used.has(c.code) || DENY[e.zone]?.[c.code]) continue
       const hit = seenIn(c.rec, e.zone, month)
       // A trip inside Australia is for birds that don't come to New South Wales.
       if (hit && !(DOMESTIC.has(e.zone) && homeBird(c.rec))) pool.push({ c, hit })

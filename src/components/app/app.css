@@ -22,8 +22,8 @@
 /* Collage pages (/): the birds lead. A one-row hero on wide screens; tighter spacing above the stage. */
 .eb-page-collage { --page-gap: 16px; padding-top: 16px; }
 @media (min-width: 720px) { .eb-page-collage { --page-gap: 24px; padding-top: 24px; } }
-/* The landing carries the order chips under the dock; a little less air above keeps the sample's birds on about half
-   of a 1280×800 first screen (the wrapped chips take three rows; e2e import.spec). */
+/* The landing carries the order chips under the dock; a little less air above keeps the sample's birds on a little under
+   half of a 1280×800 first screen (its order chips wrap onto four rows; e2e import.spec). */
 @media (min-width: 720px) { .eb-page-landing { --page-gap: 16px; padding-top: 20px; } }
 .eb-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 .eb-hero-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
