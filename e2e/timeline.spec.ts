@@ -19,7 +19,7 @@ function syntheticSaved() {
     savedAt: new Date().toISOString(),
   };
 }
-async function seed(page: Page) {
+async function seed(page: Page, saved: object = syntheticSaved()) {
   await page.goto("/about");
   await page.evaluate(
     (saved) =>
@@ -34,7 +34,7 @@ async function seed(page: Page) {
         };
         open.onerror = () => fail(open.error);
       }),
-    syntheticSaved(),
+    saved,
   );
   await page.goto("/");
   await expect(page.getByTestId("collage-stage").locator("[data-code]:not([data-off])").first()).toBeVisible();
@@ -105,4 +105,58 @@ test("with reduced motion, Play steps a month at a time and places birds without
   await expect(page.getByTestId("collage-stage")).not.toHaveAttribute("data-fast", "");
   await page.getByTestId("time-play").click(); // pause
   await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
+});
+
+// Shaped like a real list: a lone early month (a few lifers on a trip years before birding began), a long empty gap,
+// then dense months with one big month. The gap collapses to a break, so the strip fits a phone: no sideways scroll,
+// the readout and both handles whole, quiet months still visible bars, the one-month trip a tick.
+function gappySaved() {
+  const species = (JSON.parse(readFileSync(resolve(__dirname, "../public/data/species.v1.json"), "utf8")) as { species: Row[] }).species;
+  const records: object[] = [];
+  let k = 0;
+  const add = (country: string, date: string) => records.push({ code: species[k++ * 7].code, source: "ebird", date, place: { country } });
+  for (let i = 0; i < 4; i++) add("ZA", `2020-05-1${4 + (i % 3)}`);
+  for (let y = 2023; y <= 2026; y++) for (let m = 1; m <= 12; m++) {
+    if (y === 2026 && m > 9) break;
+    const d = `${y}-${String(m).padStart(2, "0")}-10`;
+    const n = y === 2025 && m === 5 ? 40 : m % 3 === 0 ? 0 : 1 + (m % 2);
+    for (let i = 0; i < n; i++) add("CA", d);
+  }
+  return {
+    v: 1, records: { ebird: records, inat: [], manual: [] }, unmatched: [],
+    edits: { removed: [], added: [], marks: {}, fixes: {} }, rules: { hideHeard: false, hideDead: false, researchOnly: false },
+    savedAt: new Date().toISOString(),
+  };
+}
+
+test.describe("timeline at 390px with a lone early month and a long gap", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  test("the gap collapses: the strip fits, nothing is cut, quiet months are bars, a short trip is a tick", async ({ page }) => {
+    await seed(page, gappySaved());
+    await page.getByTestId("filter-tab-time").click();
+    await expect(page.getByTestId("timeline-read")).toContainText("May 2020 to");
+    await expect(page.getByTestId("time-gap")).toHaveCount(1);
+    const m = await page.evaluate(() => {
+      const box = (el: Element | null) => el!.getBoundingClientRect();
+      const s = document.querySelector(".eb-time-scroll")!;
+      const read = document.querySelector('[data-testid="timeline-read"]')!;
+      const knobs = [...document.querySelectorAll(".eb-time-knob")].map((k) => box(k));
+      const bars = [...document.querySelectorAll(".eb-time-bars rect:not([data-empty])")].map((r) => box(r).height);
+      return {
+        overflow: s.scrollWidth - s.clientWidth,
+        page: document.documentElement.scrollWidth - innerWidth,
+        read: { right: box(read).right, w: read.scrollWidth - read.clientWidth },
+        knobs: knobs.map((k) => [k.left, k.right]),
+        shortest: Math.min(...bars),
+        vw: innerWidth,
+      };
+    });
+    expect(m.overflow, "the strip scrolls sideways").toBeLessThanOrEqual(0);
+    expect(m.page, "the page scrolls sideways").toBeLessThanOrEqual(0);
+    expect(m.read.w).toBeLessThanOrEqual(0);
+    expect(m.read.right).toBeLessThanOrEqual(m.vw);
+    for (const [l, r] of m.knobs) { expect(l).toBeGreaterThanOrEqual(0); expect(r).toBeLessThanOrEqual(m.vw); }
+    expect(m.shortest, "a month with one species is a visible bar beside the 40-species month").toBeGreaterThanOrEqual(6);
+    await expect(page.getByRole("button", { name: /^South Africa trip/ })).toHaveAttribute("data-tick", "");
+  });
 });

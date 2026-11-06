@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ListEntry } from '@/lib/list/model'
 import type { Trip } from '@/lib/list/trips'
 import {
-  addMonths, monthBins, pickHandle, monthName, monthOf, playInterval, rangeFilter, rangeIndices, rangeLabel, revealUntil, sliderKey,
+  addMonths, barHeight, boundaryAt, monthAxis, monthBins, pickHandle, monthName, monthOf, playInterval, rangeFilter, rangeIndices, rangeLabel, revealUntil, sliderKey,
   todayMonth, tripFilter, tripLanes,
 } from '@/lib/list/timeline'
 
@@ -44,6 +44,50 @@ describe('monthBins', () => {
   })
 })
 
+// A list shaped like a real one: a lone early month (a trip years before birding began), a long empty gap, then dense
+// months with one outlier month (a big trip) that would flatten everything else on a linear scale.
+const outlier = [4, ...new Array(28).fill(0), 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1, 1, 2, 0, 1, 0, 0, 3, 0, 7, 1, 20, 1, 8, 1, 0, 63, 28, 2, 0, 8, 0, 0, 1, 0, 0, 2, 17, 13, 0, 0, 0, 7, 0, 0]
+
+describe('monthAxis', () => {
+  it('collapses a long empty gap to a short break, so a lone early month does not push the rest off screen', () => {
+    const a = monthAxis(outlier)
+    expect(a.gaps).toEqual([{ from: 1, to: 28 }]) // 28 empty months; the 10-month gap later stays (under 12)
+    expect(a.units).toBeCloseTo(outlier.length - 28 + 2)
+    expect(a.start[0]).toBe(0)
+    expect(a.start[outlier.length]).toBeCloseTo(a.units)
+    // The gap's months share two months' width; a month outside it keeps one.
+    expect(a.start[29] - a.start[1]).toBeCloseTo(2)
+    expect(a.start[30] - a.start[29]).toBeCloseTo(1)
+    // Monotonic, so handles and labels keep their order.
+    for (let i = 1; i <= outlier.length; i++) expect(a.start[i]).toBeGreaterThan(a.start[i - 1])
+  })
+  it('leaves a list without long gaps linear', () => {
+    const a = monthAxis([1, 0, 2, 0, 0, 3])
+    expect(a.gaps).toEqual([])
+    expect(a.start).toEqual([0, 1, 2, 3, 4, 5, 6])
+  })
+  it('collapses a trailing gap too (the last lifer long before today)', () => {
+    expect(monthAxis([2, 1, ...new Array(15).fill(0)]).gaps).toEqual([{ from: 2, to: 16 }])
+  })
+  it('boundaryAt maps a fraction of the track back to the nearest month boundary', () => {
+    const a = monthAxis(outlier)
+    expect(boundaryAt(a, 0)).toBe(0)
+    expect(boundaryAt(a, 1)).toBe(outlier.length)
+    for (const i of [1, 29, 30, 50, outlier.length - 1]) expect(boundaryAt(a, a.start[i] / a.units)).toBe(i)
+  })
+})
+
+describe('barHeight', () => {
+  it('a square-root scale with a floor: one species is a clear bar next to an outlier month, empty months none', () => {
+    expect(barHeight(0, 63)).toBe(0)
+    expect(barHeight(63, 63)).toBe(100)
+    expect(barHeight(1, 63)).toBeGreaterThanOrEqual(12) // linear would be 1.6%: invisible beside the empty ticks
+    expect(barHeight(8, 63)).toBeGreaterThan(barHeight(1, 63))
+    expect(barHeight(28, 63)).toBeLessThan(100)
+    expect(barHeight(1, 1)).toBe(100)
+  })
+})
+
 describe('tripLanes', () => {
   const months = ['2020-01', '2020-02', '2020-03', '2020-04', '2020-05', '2020-06', '2020-07', '2020-08']
   it('places each trip under its months, in the first lane where it does not touch another (labels need minSpan months)', () => {
@@ -59,6 +103,10 @@ describe('tripLanes', () => {
   })
   it('minSpan can depend on the trip (its label\'s width)', () => {
     const lanes = tripLanes([trip('a', '2020-01-02', '2020-01-03'), trip('b', '2020-02-01', '2020-02-03')], months, (t) => (t.id === 'a' ? 1 : 5))
+    expect(lanes.map((l) => l.lane)).toEqual([0, 0])
+  })
+  it('minSpan can depend on where the trip starts (an uneven axis)', () => {
+    const lanes = tripLanes([trip('a', '2020-01-02', '2020-01-03'), trip('b', '2020-02-01', '2020-02-03')], months, (_t, start) => (start === 0 ? 1 : 5))
     expect(lanes.map((l) => l.lane)).toEqual([0, 0])
   })
   it('drops trips outside the months', () => {

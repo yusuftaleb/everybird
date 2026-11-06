@@ -2,12 +2,12 @@
    Bars are Muted inside the range (Hairline outside); the handles and the selected trip are Accent (selection). */
 .eb-time { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .eb-time-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; min-height: 36px; }
-/* The readout is never cut: on wider screens it shares the line with the buttons (which wrap under it if they must);
-   under 600px the buttons always sit on their own line under it, so the panel's height never jumps when Play's
-   buttons come and go. Below 360px the readout itself may wrap. */
-.eb-time-read { margin: 0; flex: 1 0 auto; white-space: nowrap; }
+/* The readout is never cut: it wraps between its parts ("May 2020 to Nov 2026" · "196 species"), never inside one.
+   On wider screens it shares the line with the buttons (which wrap under it if they must); under 600px the buttons
+   always sit on their own line under it, so the panel's height never jumps when Play's buttons come and go. */
+.eb-time-read { margin: 0; flex: 1 1 auto; min-width: 0; }
+.eb-time-read .eb-nowrap { white-space: nowrap; }
 @media (max-width: 599px) { .eb-time-read { flex-basis: 100%; } }
-@media (max-width: 359px) { .eb-time-read { white-space: normal; } }
 .eb-time-actions { display: flex; gap: 4px; flex: none; }
 .eb-time-btn {
   gap: 6px; opacity: 1; border: 1px solid var(--hairline); background: var(--surface); font-weight: 500;
@@ -16,11 +16,16 @@
 .eb-time-btn svg { width: 16px; height: 16px; flex: none; }
 .eb-time-btn[aria-pressed="true"] { color: var(--accent); font-weight: 600; }
 
-/* The strip scrolls sideways when the months are narrower than MONTH_PX; it bleeds into the page gutters. */
+/* The strip scrolls sideways when the months are narrower than MONTH_PX; it bleeds into the page gutters (its
+   padding keeps the end handles' knobs whole). No scrollbar: an edge with more strip beyond it fades instead. */
 .eb-time-scroll {
-  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin;
-  margin-inline: -16px; padding: 6px 16px 4px;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none;
+  margin-inline: -16px; padding: 6px 22px 4px; /* 22px: half an end handle's 44px hit area, so it never overflows */
 }
+.eb-time-scroll::-webkit-scrollbar { display: none; }
+.eb-time-scroll[data-more="left"] { mask-image: linear-gradient(to right, transparent, #000 24px); }
+.eb-time-scroll[data-more="right"] { mask-image: linear-gradient(to left, transparent, #000 24px); }
+.eb-time-scroll[data-more="both"] { mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent); }
 .eb-time-track { position: relative; min-width: 100%; touch-action: pan-x; }
 
 .eb-time-bars { position: relative; height: 56px; }
@@ -34,6 +39,11 @@
   border-radius: calc(6px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-time-sel[data-ranged] { visibility: visible; }
+/* A collapsed run of empty months (monthAxis): a short break mark on the baseline, two slanted hairlines. */
+.eb-time-gap {
+  position: absolute; bottom: -3px; width: 10px; height: 8px; margin-left: -5px;
+  background: linear-gradient(105deg, transparent 30%, var(--line) 30% 42%, transparent 42% 58%, var(--line) 58% 70%, transparent 70%);
+}
 .eb-time-head-line { position: absolute; top: -6px; bottom: -2px; width: 2px; margin-left: -1px; background: var(--accent); }
 
 /* Handles: a line through the bars and a knob under them; a 44px-wide hit area; sliders for the keyboard. */
@@ -41,8 +51,9 @@
   position: absolute; top: -6px; width: 44px; height: 80px; margin-left: -22px; z-index: 1;
   display: flex; justify-content: center; cursor: ew-resize; touch-action: none; -webkit-tap-highlight-color: transparent;
 }
-.eb-time-handle::before { content: ''; position: absolute; top: 0; height: 64px; width: 2px; left: 21px; background: var(--line); }
-.eb-time-track[data-ranged] .eb-time-handle::before { background: var(--accent); }
+/* The stem shows only once a range is chosen: at rest, beside a quiet month's short bar, a stem reads as a stray bar. */
+.eb-time-handle::before { content: ''; position: absolute; top: 0; height: 64px; width: 2px; left: 21px; background: var(--accent); visibility: hidden; }
+.eb-time-track[data-ranged] .eb-time-handle::before { visibility: visible; }
 .eb-time-knob {
   position: absolute; top: 58px; width: 16px; height: 16px; border-radius: 50%; box-sizing: border-box;
   background: var(--paper); border: 2px solid var(--accent);
@@ -67,12 +78,19 @@
 }
 .eb-trip-label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; line-height: 18px; opacity: .8; }
 .eb-trip-label .eb-flag { margin-right: 0; }
+/* A trip of a few days in one month: a tick at its month, not a squashed bracket. */
+.eb-trip[data-tick] .eb-trip-line { height: 8px; border: 0; border-radius: 0; background: linear-gradient(var(--line), var(--line)) center / 1.5px 100% no-repeat; }
+.eb-trip[data-tick][aria-pressed="true"] .eb-trip-line { background-image: linear-gradient(var(--accent), var(--accent)); }
+/* Near the strip's end the label runs leftwards from the bracket's right edge. */
+.eb-trip[data-end] { align-items: flex-end; }
+.eb-trip[data-end] .eb-trip-line { margin-left: 0; margin-right: 1px; }
 .eb-trip[aria-pressed="true"] .eb-trip-line { border-color: var(--accent); }
 .eb-trip[aria-pressed="true"] .eb-trip-label { color: var(--accent); font-weight: 600; opacity: 1; }
 .eb-trip:focus { outline: none; }
 .eb-trip:focus-visible .eb-trip-label { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 @media (hover: hover) and (pointer: fine) {
   .eb-trip:hover .eb-trip-line { border-color: var(--ink); }
+  .eb-trip[data-tick]:hover .eb-trip-line { background-image: linear-gradient(var(--ink), var(--ink)); }
   .eb-trip:hover .eb-trip-label { opacity: 1; }
   .eb-time-btn:hover { border-color: var(--line); }
 }

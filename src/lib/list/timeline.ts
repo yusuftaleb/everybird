@@ -65,14 +65,68 @@ export function monthBins(list: readonly ListEntry[], today: Month, spanOf: read
   return { months, counts, max: Math.max(...counts), undated }
 }
 
+/** An empty stretch at least this many months long is drawn as a short break (monthAxis). */
+export const GAP_MIN_MONTHS = 12
+/** How many months' width a collapsed gap takes. */
+export const GAP_UNITS = 2
+
+/**
+ * The strip's horizontal scale. Every month is one unit wide, except runs of GAP_MIN_MONTHS or more empty months
+ * (`counts`, the whole list's, so the axis never moves under a filter), which share GAP_UNITS: a lone early lifer and a
+ * long gap before regular birding no longer stretch the strip off screen. `start[i]` is month i's left edge in units
+ * (`start[N]` = `units`); `gaps` are the collapsed runs (month indices, inclusive).
+ */
+export type MonthAxis = { units: number; start: number[]; gaps: { from: number; to: number }[] }
+export function monthAxis(counts: readonly number[], minGap = GAP_MIN_MONTHS, gapUnits = GAP_UNITS): MonthAxis {
+  const N = counts.length
+  const width = new Array<number>(N).fill(1)
+  const gaps: { from: number; to: number }[] = []
+  for (let i = 0; i < N; ) {
+    if (counts[i]) { i++; continue }
+    let j = i
+    while (j + 1 < N && !counts[j + 1]) j++
+    if (j - i + 1 >= minGap) {
+      gaps.push({ from: i, to: j })
+      for (let k = i; k <= j; k++) width[k] = gapUnits / (j - i + 1)
+    }
+    i = j + 1
+  }
+  const start = [0]
+  for (let i = 0; i < N; i++) start.push(start[i] + width[i])
+  return { units: start[N], start, gaps }
+}
+
+/** The month boundary (0..N) nearest to `frac` of the track's width. */
+export function boundaryAt(axis: MonthAxis, frac: number): number {
+  const u = Math.min(1, Math.max(0, frac)) * axis.units
+  const s = axis.start
+  let lo = 0, hi = s.length - 1
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1
+    if (s[mid] <= u) lo = mid
+    else hi = mid
+  }
+  return u - s[lo] <= s[hi] - u ? lo : hi
+}
+
+/**
+ * A month's bar height in % of the strip: a square-root scale over the busiest month, at least 12%, so a month with one
+ * new species is a clear bar beside a big trip's month (and never mistaken for an empty month's tick). 0 when empty.
+ */
+export function barHeight(count: number, max: number): number {
+  if (!count) return 0
+  return Math.min(100, Math.max(12, Math.sqrt(count / Math.max(1, max)) * 100))
+}
+
 export type TripLane = { trip: Trip; start: number; end: number; lane: number }
 
 /**
  * Trips as brackets under the bars: each spans its months (indices into `months`) and takes the first lane where it
- * doesn't touch an earlier one. A bracket's label needs `minSpan` months of room, so a short trip claims that much.
+ * doesn't touch an earlier one. A bracket's label needs `minSpan` months of room (it may depend on the trip and its
+ * start month, on an uneven axis), so a short trip claims that much.
  * Trips outside the months are left out. Sorted by start.
  */
-export function tripLanes(trips: readonly Trip[], months: readonly Month[], minSpan: number | ((t: Trip) => number)): TripLane[] {
+export function tripLanes(trips: readonly Trip[], months: readonly Month[], minSpan: number | ((t: Trip, start: number) => number)): TripLane[] {
   if (!months.length) return []
   const first = toIndex(months[0]), last = first + months.length - 1
   const ends: number[] = [] // per lane, the last month index taken
@@ -84,7 +138,7 @@ export function tripLanes(trips: readonly Trip[], months: readonly Month[], minS
     const si = toIndex(s), ei = toIndex(e)
     if (ei < first || si > last) continue
     const start = Math.max(si, first) - first, end = Math.min(ei, last) - first
-    const room = Math.max(end, start + Math.max(1, typeof minSpan === 'number' ? minSpan : minSpan(t)) - 1)
+    const room = Math.max(end, start + Math.max(1, typeof minSpan === 'number' ? minSpan : minSpan(t, start)) - 1)
     let lane = ends.findIndex((x) => x < start)
     if (lane < 0) { lane = ends.length; ends.push(room) } else ends[lane] = room
     out.push({ trip: t, start, end, lane })
