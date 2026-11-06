@@ -138,7 +138,7 @@ Seven tokens, two themes, nothing else. `tests/tokens.test.ts` keeps `tokens.css
 
 - Page container `.eb-page`: max 1152px, 16px gutters (32px from 720px), vertical gap 40px (56px from 720px); collage page 16/24px.
 - Collage block `.eb-view`: one column, 12px between stats line, dock, filters and stage (LifeList's rhythm).
-- Breakpoints actually used: 320/359 (top bar squeezes), 480, 560 (compact demo), 600 (filters become one "Choose an order" button + sheet), 720 (gutters, hero in a row), 820 (list rows collapse), 880 (three source cards). The controls bar answers to its own width: under 820px the Places and Time buttons take a second row, under 600px they split it evenly.
+- Breakpoints actually used: 320/359 (top bar squeezes), 480, 560 (compact demo), 600 (filters become one "Choose an order" button + sheet), 720 (gutters, hero in a row), 820 (list rows collapse), 880 (three source cards). The controls bar answers to its own width: under 820px the Places and Time buttons take a second row, under 600px they split it evenly at 36px (44px hit areas), so the landing's birds keep most of a phone's first screen.
 - The dock responds to its own width with container queries (460, 400, 330px): tab labels hide, "Scientific" shortens, the switch tightens.
 - Touch targets 44px (chips are 32px with a 44px `::after` hit area; nav links 40px, 36-40px on phones).
 - Stage: positions in % of stage width (`cqw`); the stage height eases to the group's height.

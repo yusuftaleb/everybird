@@ -116,7 +116,12 @@
   .eb-dock[data-finding] .eb-dock-filters { display: none; }
 }
 @container (max-width: 599px) {
-  .eb-dock-filters .eb-dock-drop { flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 10px; }
+  /* A slimmer second row (36px buttons, as the old filter toggles; the hit area stays 44px), so the landing's birds
+     keep most of a phone's first screen. */
+  .eb-dock { row-gap: 2px; }
+  .eb-dock-filters { padding: 2px 4px; }
+  .eb-dock-filters .eb-dock-drop { position: relative; min-height: 36px; flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 10px; }
+  .eb-dock-filters .eb-dock-drop::after { content: ''; position: absolute; inset: -4px 0; }
   .eb-dock-filters .eb-drop-caret { display: none; } /* the row reads as two buttons; aria-expanded says the rest */
 }
 .eb-dock-tab {
