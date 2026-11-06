@@ -46,7 +46,12 @@ async function previewInfo(page: Page) {
   });
 }
 
-test("story image is 1080×1920 PNG, post is 1080×1350 and square is 1080×1080", async ({ page }) => {
+// WebKit runs only the layout test at the end: its desktop build shares files natively (Share image opens the share
+// sheet, not a download) and Playwright can't grant it clipboard permissions.
+const chromiumOnly = (browserName: string) => test.skip(browserName === "webkit", "Chromium only: native share and clipboard permissions");
+
+test("story image is 1080×1920 PNG, post is 1080×1350 and square is 1080×1080", async ({ page, browserName }) => {
+  chromiumOnly(browserName);
   test.setTimeout(90_000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -101,7 +106,8 @@ test("story image is 1080×1920 PNG, post is 1080×1350 and square is 1080×1080
   expect(errors).toEqual([]);
 });
 
-test("copy link puts a /s/1… URL under 2000 chars on the clipboard", async ({ page, context, baseURL }) => {
+test("copy link puts a /s/1… URL under 2000 chars on the clipboard", async ({ page, context, baseURL, browserName }) => {
+  chromiumOnly(browserName);
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseURL });
   const dialog = await openShare(page);
   await dialog.getByRole("button", { name: "Copy link" }).click();
@@ -114,7 +120,8 @@ test("copy link puts a /s/1… URL under 2000 chars on the clipboard", async ({ 
   await expect(page.getByText("197 species").first()).toBeVisible();
 });
 
-test("download and copy link each send one anonymous analytics event, with no list contents", async ({ page, context, baseURL }) => {
+test("download and copy link each send one anonymous analytics event, with no list contents", async ({ page, context, baseURL, browserName }) => {
+  chromiumOnly(browserName);
   test.setTimeout(90_000);
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseURL });
   // Stand in for Vercel's queue (only rendered on Vercel) and record what track() hands it.
@@ -141,22 +148,49 @@ test("download and copy link each send one anonymous analytics event, with no li
 });
 
 // The dialog never scrolls sideways, whatever the format, the window width or the name's length: the format control
-// fits its column (Square was added later and pushed it out once).
-test("the dialog never scrolls sideways at 390, 768, 1000 and 1280px, with a long name, in every format", async ({ page }) => {
-  test.setTimeout(120_000);
+// fits its column (Square was added later and pushed it out once). The preview is one box for every format, so the
+// controls' column, and with it the format control (its icons), never changes with the format.
+// SHOT_DIR (optional) saves each width and format, light and dark, there.
+test("the dialog never scrolls sideways at 390, 768, 1000 and 1280px, with a long name, in every format", async ({ page }, info) => {
+  test.setTimeout(180_000);
+  const shots = process.env.SHOT_DIR;
   const dialog = await openShare(page);
   await dialog.getByLabel("Your name (optional)").fill("Maximiliana Featherstonehaugh-Ravensworth");
   for (const width of [1280, 1000, 768, 390]) {
     await page.setViewportSize({ width, height: 800 });
+    const seen: { format: string; col: number; preview: number; icons: boolean }[] = [];
     for (const format of ["Story", "Post", "Square"]) {
       await dialog.getByRole("button", { name: new RegExp(`^${format}`) }).click();
       const m = await dialog.evaluate((d) => {
         const seg = d.querySelector(".eb-seg")!.getBoundingClientRect();
         const col = d.querySelector(".eb-share-controls")!.getBoundingClientRect();
-        return { sw: d.scrollWidth, cw: d.clientWidth, over: seg.right - col.right };
+        const icon = d.querySelector(".eb-seg-btn svg")!;
+        return {
+          sw: d.scrollWidth, cw: d.clientWidth, over: seg.right - col.right, col: col.width,
+          preview: d.querySelector('[data-testid="share-preview"]')!.getBoundingClientRect().width,
+          icons: getComputedStyle(icon).display !== "none",
+        };
       });
       expect(m.sw, `${format} at ${width}px: the dialog scrolls sideways`).toBeLessThanOrEqual(m.cw);
       expect(m.over, `${format} at ${width}px: the format control sticks out of its column`).toBeLessThanOrEqual(0.5);
+      seen.push({ format, col: m.col, preview: m.preview, icons: m.icons });
+      if (shots) {
+        await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+        for (const theme of ["light", "dark"]) {
+          await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+          await page.waitForTimeout(300); // the image re-renders in the theme
+          await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+          await dialog.screenshot({ path: `${shots}/after-share-${width}-${format.toLowerCase()}-${theme}-${info.project.name}.png` });
+        }
+        await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
+      }
     }
+    for (const s of seen.slice(1)) {
+      expect(s.col, `${s.format} at ${width}px: the controls' column changed with the format`).toBeCloseTo(seen[0].col, 0);
+      expect(s.preview, `${s.format} at ${width}px: the preview changed width with the format`).toBeCloseTo(seen[0].preview, 0);
+      expect(s.icons, `${s.format} at ${width}px: the format icons came or went with the format`).toBe(seen[0].icons);
+    }
+    // Wide windows have room for the icons beside the preview.
+    if (width >= 1000) expect(seen[0].icons, `at ${width}px the format control has its icons`).toBe(true);
   }
 });

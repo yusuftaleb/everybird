@@ -1,6 +1,7 @@
-/* The share dialog: a centred modal, preview beside the controls from 720px, stacked below. It never scrolls
-   sideways: the preview's width comes from its height cap and the format's ratio but never takes more than its share,
-   and the controls (at least 280px beside it) shrink their contents, the format control included. */
+/* The share dialog: a centred modal, preview beside the controls from 720px, stacked below. The preview is one box
+   whatever the format (each image letterboxed in it), so switching Story / Post / Square never moves the controls.
+   It never scrolls sideways: beside the preview the controls keep at least 300px, and shrink their contents, the
+   format control included. */
 .eb-share-scrim { position: fixed; inset: 0; z-index: 49; background: rgb(0 0 0 / .32); display: grid; place-items: center; padding: 16px; }
 .eb-share {
   width: min(820px, 100%); max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain;
@@ -24,16 +25,18 @@
 .eb-share-body { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 @media (min-width: 720px) { .eb-share-body { flex-direction: row; align-items: flex-start; } }
 
-/* --ar is the format's width / height (set inline); the height follows the width through aspect-ratio. */
+/* One 4:5 box for every format: its width never depends on the format (story is letterboxed at the sides, square
+   above and below, on Surface), so neither does the controls' column. Stacked, it is as wide as its height cap
+   allows; beside the controls, 320px, but never so wide that they get less than 300px (plus the 20px gap). */
 .eb-share-preview {
   --cap: min(46dvh, 440px);
   position: relative; flex: none; align-self: center; box-sizing: border-box;
-  width: min(100%, calc(var(--cap) * var(--ar)));
+  width: min(100%, calc(var(--cap) * 4 / 5)); aspect-ratio: 4 / 5;
   background: var(--surface); border: 1px solid var(--hairline); overflow: hidden;
   border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 @media (min-width: 720px) {
-  .eb-share-preview { --cap: min(72dvh, 560px); align-self: flex-start; max-width: calc(100% - 300px); }
+  .eb-share-preview { align-self: flex-start; width: 320px; max-width: calc(100% - 300px - 20px); }
 }
 .eb-share-preview img { display: block; width: 100%; height: 100%; object-fit: contain; transition: opacity .2s cubic-bezier(.25, .8, .25, 1); }
 .eb-share-preview[aria-busy="true"] img { opacity: .55; }
@@ -45,7 +48,7 @@
 @keyframes eb-share-spin { to { transform: rotate(360deg); } }
 .eb-share-failed { position: absolute; inset: auto 12px 12px; text-align: center; }
 
-.eb-share-controls { display: flex; flex-direction: column; gap: 16px; min-width: 0; flex: 1 1 280px; container-type: inline-size; }
+.eb-share-controls { display: flex; flex-direction: column; gap: 16px; min-width: 0; flex: 1 1 300px; container-type: inline-size; }
 .eb-share-controls .eb-seg { align-self: flex-start; }
 .eb-share-hint { font-family: var(--font-mono); font-size: 12px; line-height: 1; letter-spacing: .02em; color: var(--muted); }
 .eb-share-field { display: flex; flex-direction: column; gap: 6px; }

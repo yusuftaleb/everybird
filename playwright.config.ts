@@ -17,7 +17,7 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /filters\.spec\.ts/ },
     // The timeline (touch, sliders, Play) in Safari's engine too.
-    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /timeline\.spec\.ts/ },
+    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(timeline|share)\.spec\.ts/ },
     // The frame-timing test runs on its own, after everything else, so other workers can't steal its CPU.
     {
       name: "perf",

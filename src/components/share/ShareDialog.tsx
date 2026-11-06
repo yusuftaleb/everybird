@@ -242,7 +242,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
         </div>
 
         <div className="eb-share-body">
-          <div className="eb-share-preview" style={{ aspectRatio: `${w} / ${h}`, ['--ar' as string]: w / h }} aria-busy={busy} data-testid="share-preview">
+          {/* One box for every format (share.css): the image is letterboxed in it, so the controls never move. */}
+          <div className="eb-share-preview" aria-busy={busy} data-testid="share-preview">
             {preview && (
               // A blob URL of the rendered PNG: next/image has nothing to optimise here.
               // eslint-disable-next-line @next/next/no-img-element
