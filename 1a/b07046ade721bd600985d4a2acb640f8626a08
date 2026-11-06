@@ -1,0 +1,41 @@
+src/lib/list/build-list.ts
+  s_ab125876fe9ad2::t_7fe0e4a08bbfe5 1,18-20,76-77,81-83
+  s_ab125876fe9ad2::t_cb50840b996bf0 84-85
+src/lib/list/storage.ts
+  s_ab125876fe9ad2::t_7fe0e4a08bbfe5 3-4,8-9,15,24,63-75,80-83,116-119,121-122,125-127
+src/lib/list/store.ts
+  s_ab125876fe9ad2::t_7fe0e4a08bbfe5 8-9,28-29,51-52,54,57
+src/lib/list/model.ts
+  s_ab125876fe9ad2::t_444893f564c282 2-10,24-25,41,48-50
+tests/export.test.ts
+  s_ab125876fe9ad2::t_c1264704ccf2ea 33,60
+tests/storage.test.ts
+  s_ab125876fe9ad2::t_c1264704ccf2ea 25,119
+tests/store-hook.test.tsx
+  s_ab125876fe9ad2::t_c1264704ccf2ea 36,90,123
+tests/store.test.ts
+  s_ab125876fe9ad2::t_c1264704ccf2ea 98
+tests/import-ui.test.tsx
+  s_ab125876fe9ad2::t_c1264704ccf2ea 353,363
+src/lib/list/export.ts
+  s_ab125876fe9ad2::t_21bbac1666d47f 4-5
+  s_ab125876fe9ad2::t_7fe0e4a08bbfe5 48,64-65,67,69,73-76,90
+tests/ebird-slots.test.ts
+  s_ab125876fe9ad2::t_7f2736baf949c5 1-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1ab07046ade721bd600985d4a2acb640f8626a08",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
