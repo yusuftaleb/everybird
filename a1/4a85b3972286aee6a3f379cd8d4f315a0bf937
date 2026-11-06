@@ -1,0 +1,33 @@
+tests/collage-motion.test.ts
+  s_ab125876fe9ad2::t_5db5059c2a8d1e 1-193
+src/components/collage/Collage.tsx
+  s_ab125876fe9ad2::t_9bec2984a1fd9c 270-271,316
+  s_ab125876fe9ad2::t_31bfec923d5a01 176
+  s_ab125876fe9ad2::t_aecd47e941c696 142-145,168
+  s_ab125876fe9ad2::t_b515b4ac0f1071 215
+  s_ab125876fe9ad2::t_8f2abaf4007af2 159-162,171-174
+  s_ab125876fe9ad2::t_63bd1f58d306e1 19,175
+src/components/collage/collage-motion.ts
+  s_ab125876fe9ad2::t_805274610a46b6 17-22,98-107,113-115,123,140-142,144-146,148,164,182,191-193,217-236,238-240,242-243,245
+  s_ab125876fe9ad2::t_b4f2eb28a34bda 247-267
+  s_ab125876fe9ad2::t_de5f43aacc55a6 237,241
+  s_ab125876fe9ad2::t_54f1f0bac85649 77
+  s_ab125876fe9ad2::t_b515b4ac0f1071 46-76,206-207,212
+  s_ab125876fe9ad2::t_ba53a1744ed5ec 244,246
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a14a85b3972286aee6a3f379cd8d4f315a0bf937",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
