@@ -22,7 +22,7 @@ afterEach(() => {
 describe('storage', () => {
   it('save/load round-trips', async () => {
     const s = await fresh()
-    const saved = { ...s.emptySaved(), records: { ebird: [rec('a')], inat: [], manual: [] }, name: 'Me' }
+    const saved = { ...s.emptySaved(), records: { ebird: [rec('a')], 'ebird-list': [], inat: [], manual: [] }, name: 'Me' }
     expect(await s.load()).toBeNull()
     expect(await s.save(saved)).toBe('saved')
     expect(await s.load()).toEqual(saved)
@@ -116,7 +116,7 @@ describe('storage', () => {
     const saved = {
       ...s.emptySaved(),
       name: 'Me',
-      records: { ebird: [rec('e1')], inat: [rec('old', 'inat')], manual: [rec('m', 'manual')] },
+      records: { ebird: [rec('e1')], 'ebird-list': [], inat: [rec('old', 'inat')], manual: [rec('m', 'manual')] },
       unmatched: [
         { source: 'ebird' as const, row: 1, reason: 'no-match' as const },
         { source: 'inat' as const, row: 3, reason: 'no-match' as const },

@@ -1,4 +1,13 @@
 export type Source = 'ebird' | 'inat' | 'manual'
+/**
+ * Where a source's records are kept in Saved.records. The two eBird files keep their own slots, so importing one
+ * never replaces the other: 'ebird' holds the full MyEBirdData export (places down to the county), 'ebird-list' the
+ * quick life list download (state or province only). Records in both carry source 'ebird'.
+ */
+export type Slot = Source | 'ebird-list'
+export const SLOTS: readonly Slot[] = ['ebird', 'ebird-list', 'inat', 'manual']
+/** The source a slot's records come from. */
+export const slotSource = (slot: Slot): Source => (slot === 'ebird-list' ? 'ebird' : slot)
 export type Place = { country?: string /* ISO2 */; sub1?: string /* "CA-BC" */; sub2?: string /* "Okanagan-Similkameen" */ }
 export type SourceRecord = {
   code: string
@@ -12,6 +21,8 @@ export type SourceRecord = {
 }
 export type Unmatched = {
   source: Source
+  /** The slot the row was imported into, when it differs from `source` ('ebird-list'). */
+  slot?: Slot
   row: number
   sci?: string
   com?: string
@@ -27,10 +38,13 @@ export type Edits = {
   removed: string[]
   added: SourceRecord[]
   marks: Record<string, Partial<Record<MarkKey, boolean>>>
-  fixes: Record<string, string> /* "source:row" -> eBird code, from fixing unmatched rows */
+  fixes: Record<string, string> /* unmatchedKey(u) ("slot:row") -> eBird code, from fixing unmatched rows */
 }
 export type Rules = { hideHeard: boolean; hideDead: boolean; researchOnly: boolean }
 export type ListEntry = { code: string; date?: string; place?: Place; heard: boolean; dead: boolean; media: boolean; sources: Source[] }
 
 export const EMPTY_EDITS: Edits = { removed: [], added: [], marks: {}, fixes: {} }
 export const DEFAULT_RULES: Rules = { hideHeard: false, hideDead: false, researchOnly: false }
+
+/** An unmatched row's key in edits.fixes: "slot:row" ("ebird:12", "ebird-list:12", "inat:3"). */
+export const unmatchedKey = (u: Pick<Unmatched, 'source' | 'slot' | 'row'>): string => `${u.slot ?? u.source}:${u.row}`

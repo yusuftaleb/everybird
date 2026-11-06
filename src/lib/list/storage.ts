@@ -1,16 +1,18 @@
 import { createStore, del, get, set, type UseStore } from 'idb-keyval'
 import { DEFAULT_RULES } from './model'
-import type { Edits, ImportResult, Rules, Source, SourceRecord, Unmatched } from './model'
+import { SLOTS, slotSource } from './model'
+import type { Edits, ImportResult, Rules, Slot, SourceRecord, Unmatched } from './model'
 
 export type Saved = {
   v: 1
-  records: Record<Source, SourceRecord[]>
+  /** Records per slot (model.ts `Slot`): the two eBird files side by side, then iNaturalist and manual. */
+  records: Record<Slot, SourceRecord[]>
   unmatched: Unmatched[]
   edits: Edits
   rules: Rules
   name?: string
   /** Rows per source that are not countable species (sp., slash, hybrid, domestic), for the match report. */
-  skipped?: Partial<Record<Source, number>>
+  skipped?: Partial<Record<Slot, number>>
   savedAt: string
 }
 
@@ -19,7 +21,7 @@ export const STORAGE_KEY = 'everybird:v1'
 export function emptySaved(): Saved {
   return {
     v: 1,
-    records: { ebird: [], inat: [], manual: [] },
+    records: { ebird: [], 'ebird-list': [], inat: [], manual: [] },
     unmatched: [],
     edits: { removed: [], added: [], marks: {}, fixes: {} },
     rules: { ...DEFAULT_RULES },
@@ -58,11 +60,27 @@ export async function save(s: Saved): Promise<'saved' | 'memory-only'> {
 /** Pause before load()'s one retry: long enough for a transient IndexedDB hiccup (a blocked open, a busy tab). */
 export const LOAD_RETRY_MS = 150
 
+/**
+ * Bring a list saved by an older Everybird up to the current shape (still v1: the shape only grew). Lists saved
+ * before the second eBird slot have no records['ebird-list']; it is added empty. Their eBird records stay in
+ * 'ebird' and their fix keys ("ebird:12") still match. Returns the same object when nothing needed changing.
+ */
+export function migrateSaved(s: Saved): Saved {
+  const missing = SLOTS.filter((k) => !Array.isArray((s.records as Partial<Saved['records']>)[k]))
+  if (!missing.length) return s
+  const records = { ...s.records }
+  for (const k of missing) records[k] = []
+  return { ...s, records }
+}
+
 export async function load(): Promise<Saved | null> {
   if (memoryOnly) return memory
   for (let attempt = 0; ; attempt++) {
     try {
-      const got = (await get(STORAGE_KEY, getStore())) as Saved | undefined
+      const raw = (await get(STORAGE_KEY, getStore())) as Saved | undefined
+      const got = raw ? migrateSaved(raw) : undefined
+      // Migrate in place: write the new shape back (best effort; the next save writes it anyway).
+      if (got && got !== raw) void set(STORAGE_KEY, got, getStore()).catch(() => {})
       if (got) memory = got
       return got ?? null
     } catch {
@@ -95,17 +113,18 @@ export async function forget(): Promise<'forgotten' | 'failed'> {
 }
 
 /**
- * Re-import of one source: replaces records[source] and that source's unmatched rows.
- * Other sources, edits, rules and name are untouched. Caveat: edits.fixes keys
- * ("source:row") are kept, but row numbers can differ in the new file, so a fix may now
- * point at a different row. We keep them rather than silently dropping user edits.
+ * Re-import into one slot: replaces records[slot] and that slot's unmatched rows (stamped with the slot when it
+ * differs from their source, so "ebird-list:12" and "ebird:12" never collide). Other slots, edits, rules and name
+ * are untouched. Caveat: edits.fixes keys ("slot:row") are kept, but row numbers can differ in the new file, so a
+ * fix may now point at a different row. We keep them rather than silently dropping user edits.
  */
-export function replaceSource(saved: Saved, source: Source, result: ImportResult): Saved {
+export function replaceSource(saved: Saved, slot: Slot, result: ImportResult): Saved {
+  const stamped = slot === slotSource(slot) ? result.unmatched : result.unmatched.map((u) => ({ ...u, slot }))
   return {
     ...saved,
-    records: { ...saved.records, [source]: result.records },
-    unmatched: [...saved.unmatched.filter((u) => u.source !== source), ...result.unmatched],
-    skipped: { ...saved.skipped, [source]: result.skipped },
+    records: { ...migrateSaved(saved).records, [slot]: result.records },
+    unmatched: [...saved.unmatched.filter((u: Unmatched) => (u.slot ?? u.source) !== slot), ...stamped],
+    skipped: { ...saved.skipped, [slot]: result.skipped },
     savedAt: new Date().toISOString(),
   }
 }

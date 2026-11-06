@@ -5,7 +5,8 @@ import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { buildList } from './build-list'
 import type { Filter } from './filters'
 import { applyFilterValidity } from './filters-validate'
-import type { Edits, ImportResult, ListEntry, Rules, Source, SourceRecord, Unmatched } from './model'
+import { SLOTS, slotSource, unmatchedKey } from './model'
+import type { Edits, ImportResult, ListEntry, Rules, Slot, SourceRecord, Unmatched } from './model'
 import * as storage from './storage'
 import { emptySaved, replaceSource, type Saved } from './storage'
 import { findTrips, type Trip } from './trips'
@@ -24,7 +25,8 @@ export type AppState = {
 }
 
 export type Action =
-  | { type: 'import'; source: Source; result: ImportResult }
+  /** An import into one slot (model.ts `Slot`: 'ebird' is MyEBirdData, 'ebird-list' the life list download). */
+  | { type: 'import'; source: Slot; result: ImportResult }
   | { type: 'edit'; edits: Edits }
   | { type: 'rules'; rules: Rules }
   | { type: 'filter'; filter: Filter }
@@ -40,21 +42,19 @@ export type Action =
 
 export type StoreContext = { species: SpeciesIndex; countryName: (iso2: string) => string }
 
-const SOURCES: Source[] = ['ebird', 'inat', 'manual']
-
 /** Compute everything derived from `saved`, then repair the filter against it. */
 function derive(s: AppState, saved: Saved, filter: Filter, ctx: StoreContext, pruneValues: boolean): AppState {
   const taxonOrder = (code: string) => ctx.species.byCode.get(code)?.to ?? Number.MAX_SAFE_INTEGER
   const fixKeys = new Set(Object.keys(saved.edits.fixes))
   const fixRecords: SourceRecord[] = []
   for (const u of saved.unmatched) {
-    const code = saved.edits.fixes[`${u.source}:${u.row}`]
-    if (code) fixRecords.push({ code, source: u.source, date: u.date, place: u.place })
+    const code = saved.edits.fixes[unmatchedKey(u)]
+    if (code) fixRecords.push({ code, source: slotSource(u.slot ?? u.source), date: u.date, place: u.place })
   }
-  const records = [...SOURCES.flatMap((src) => saved.records[src]), ...fixRecords]
+  const records = [...SLOTS.flatMap((slot) => saved.records[slot] ?? []), ...fixRecords]
   const list = buildList(records, saved.edits, saved.rules, taxonOrder)
   const trips = findTrips(list, ctx.countryName)
-  const openUnmatched = saved.unmatched.filter((u) => !fixKeys.has(`${u.source}:${u.row}`))
+  const openUnmatched = saved.unmatched.filter((u) => !fixKeys.has(unmatchedKey(u)))
   return {
     ...s,
     saved,

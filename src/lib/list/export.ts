@@ -1,7 +1,8 @@
 import { formatPlace } from '@/lib/import/places'
 import type { Regions } from '@/lib/species/types'
 import type { SpeciesIndex } from '@/lib/species/load'
-import type { ListEntry, Source, SourceRecord } from './model'
+import { SLOTS } from './model'
+import type { ListEntry, Slot, Source, SourceRecord } from './model'
 import type { Saved } from './storage'
 
 const HEADER = ['eBird code', 'Common name', 'Scientific name', 'First date', 'Place', 'Country', 'Heard only', 'Found dead', 'Photo or recording', 'Sources']
@@ -44,6 +45,7 @@ export function toJson(s: Saved): string {
 }
 
 const SOURCES: Source[] = ['ebird', 'inat', 'manual']
+const isSlot = (k: unknown): k is Slot => SLOTS.includes(k as Slot)
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 const isStrArr = (x: unknown): x is string[] => Array.isArray(x) && x.every((s) => typeof s === 'string')
 
@@ -59,15 +61,19 @@ export function fromJson(text: string): Saved {
   if (raw.v !== 1) throw new Error('Unsupported backup version.')
 
   if (!isObj(raw.records)) throw new Error('Backup has no records.')
-  const records = { ebird: [], inat: [], manual: [] } as Record<Source, SourceRecord[]>
+  // Backups made before the second eBird slot have no 'ebird-list'; it starts empty.
+  const records = { ebird: [], 'ebird-list': [], inat: [], manual: [] } as Record<Slot, SourceRecord[]>
   for (const [k, v] of Object.entries(raw.records)) {
-    if (!SOURCES.includes(k as Source) || !Array.isArray(v) || !v.every((r) => isObj(r) && typeof r.code === 'string'))
+    if (!isSlot(k) || !Array.isArray(v) || !v.every((r) => isObj(r) && typeof r.code === 'string'))
       throw new Error('Backup records are malformed.')
-    records[k as Source] = v as SourceRecord[]
+    records[k] = v as SourceRecord[]
   }
 
   const unmatched = raw.unmatched ?? []
-  if (!Array.isArray(unmatched) || !unmatched.every((u) => isObj(u) && typeof u.row === 'number' && SOURCES.includes(u.source as Source)))
+  if (
+    !Array.isArray(unmatched) ||
+    !unmatched.every((u) => isObj(u) && typeof u.row === 'number' && SOURCES.includes(u.source as Source) && (u.slot === undefined || isSlot(u.slot)))
+  )
     throw new Error('Backup unmatched rows are malformed.')
 
   const e = raw.edits
@@ -81,7 +87,7 @@ export function fromJson(text: string): Saved {
 
   if (raw.name !== undefined && typeof raw.name !== 'string') throw new Error('Backup name is malformed.')
   const sk = raw.skipped
-  if (sk !== undefined && (!isObj(sk) || !Object.entries(sk).every(([k, n]) => SOURCES.includes(k as Source) && typeof n === 'number' && n >= 0)))
+  if (sk !== undefined && (!isObj(sk) || !Object.entries(sk).every(([k, n]) => isSlot(k) && typeof n === 'number' && n >= 0)))
     throw new Error('Backup skipped counts are malformed.')
   const out: Saved = {
     v: 1,

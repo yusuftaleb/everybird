@@ -1,4 +1,4 @@
-import type { Edits, ListEntry, Rules, Source, SourceRecord } from './model'
+import type { Edits, ListEntry, Place, Rules, Source, SourceRecord } from './model'
 
 const SOURCE_ORDER: Source[] = ['ebird', 'inat', 'manual']
 
@@ -15,7 +15,9 @@ const byString = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
  * Merge records, edits and rules into a list sorted by `taxonOrder` (by code when omitted).
  *
  * - Earliest padded date wins and supplies date + place. Undated records lose to dated ones.
- *   On equal dates the preferred source wins: ebird > inat > manual (then input order).
+ *   On equal dates the record with the most place detail wins (sub2 > sub1 > country > none: the full eBird export
+ *   names the county, the quick life list download only the province), then the preferred source:
+ *   ebird > inat > manual (then input order).
  * - `edits.added` records are treated as source 'manual'.
  * - `edits.removed` wins over everything, including `edits.added`. To re-add a removed
  *   species the UI must take its code out of `removed`.
@@ -71,7 +73,14 @@ function beats(a: SourceRecord, b: SourceRecord): boolean {
   const da = padDate(a.date)
   const db = padDate(b.date)
   if (da !== db) return da < db
+  const pa = detail(a.place), pb = detail(b.place)
+  if (pa !== pb) return pa > pb
   return SOURCE_ORDER.indexOf(a.source) < SOURCE_ORDER.indexOf(b.source)
+}
+
+/** How precise a place is: 3 with a county (sub2), 2 with a state or province, 1 with a country, 0 without. */
+function detail(p?: Place): number {
+  return p?.sub2 ? 3 : p?.sub1 ? 2 : p?.country ? 1 : 0
 }
 
 /**

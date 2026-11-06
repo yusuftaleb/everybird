@@ -350,7 +350,7 @@ describe('editing', () => {
     const bad = new File(['not json'], 'backup.json', { type: 'application/json' })
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [bad] } }) })
     expect(await screen.findByText(/Couldn't restore this backup. This file is not valid JSON./)).toBeInTheDocument()
-    const good = { ...storage.emptySaved(), records: { ebird: [], inat: [], manual: [{ code: 'snogoo', source: 'manual' }] } }
+    const good = { ...storage.emptySaved(), records: { ebird: [], 'ebird-list': [], inat: [], manual: [{ code: 'snogoo', source: 'manual' }] } }
     const file = new File([JSON.stringify(good)], 'backup.json', { type: 'application/json' })
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
     await waitFor(() => expect(stats()).toHaveTextContent(/^1 species/))
@@ -360,7 +360,7 @@ describe('editing', () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
-    const good = { ...storage.emptySaved(), records: { ebird: [], inat: [], manual: [{ code: 'snogoo', source: 'manual' }] } }
+    const good = { ...storage.emptySaved(), records: { ebird: [], 'ebird-list': [], inat: [], manual: [{ code: 'snogoo', source: 'manual' }] } }
     const file = new File([JSON.stringify(good)], 'backup.json', { type: 'application/json' })
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
     expect(screen.getByText(/Replace your list with this backup\?/)).toBeInTheDocument()
