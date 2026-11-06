@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileSide, packSpec } from '@/lib/share/image'
+import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, packSpec, placeCredit, STICKER_CREDIT } from '@/lib/share/image'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Trip } from '@/lib/list/trips'
 import { orderLabel } from '@/lib/species/orders'
@@ -162,6 +162,13 @@ describe('maxTileSide', () => {
     expect(maxTileSide(952)).toBeCloseTo(952 * 0.3)
     expect(maxTileSide(4000)).toBe(440) // and never past the 384px files' sharp size
   })
+  it('a short list (up to 24 birds) gets bigger stickers, still under the 384px files', () => {
+    expect(maxTileFrac(12)).toBe(0.36)
+    expect(maxTileFrac(197)).toBe(0.3)
+    expect(maxTileSide(952, maxTileFrac(12))).toBeLessThan(384)
+    expect(cardLayout('story', { name: false, filter: false, latest: true, count: 12 }).maxTile).toBe(0.36)
+    expect(packSpec(cardLayout('post', { name: false, filter: false, latest: true, count: 197 })).maxTile).toBe(0.3)
+  })
 })
 
 describe('fitPack', () => {
@@ -183,5 +190,23 @@ describe('fitPack', () => {
   it('never scales a full frame below its width fit', () => {
     const pack = { W: 400, H: 420, boxes: new Map([['a', [0, 0, 30, 30]], ['b', [370, 390, 30, 30]]] as [string, [number, number, number, number]][]) }
     expect(fitPack(pack, area, 228).s).toBeCloseTo(Math.min(952 / 400, 1000 / 420))
+  })
+})
+
+describe('placeCredit (the CC BY credit is never truncated)', () => {
+  // Geist Mono: 0.6em per character.
+  const measure = (text: string) => (px: number) => text.length * 0.6 * px
+  it('sits beside the wordmark when it fits, shrinking no lower than 17px', () => {
+    expect(placeCredit(measure(STICKER_CREDIT), 500, 952, 19)).toEqual({ size: 19, below: false }) // 456px
+    expect(placeCredit(measure(STICKER_CREDIT), 430, 952, 19)).toEqual({ size: 17, below: false }) // 408px
+  })
+  it('takes its own line at full size when it does not fit at 17px', () => {
+    expect(placeCredit(measure(STICKER_CREDIT), 300, 952, 19)).toEqual({ size: 19, below: true })
+  })
+  it('a long credit in a narrow width shrinks to fit its own line, never cut', () => {
+    const long = `${STICKER_CREDIT} and a much longer attribution line that goes on`
+    const r = placeCredit(measure(long), 200, 600, 19)
+    expect(r.below).toBe(true)
+    expect(measure(long)(r.size)).toBeLessThanOrEqual(600)
   })
 })

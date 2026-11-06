@@ -170,8 +170,8 @@ describe('worker image reply', () => {
 
   it('packForImage sends the known birds and the aspect, maps the reply, and ends the worker', async () => {
     const made = fakeWorker(() => reply)
-    const pack = await packForImage(entries, species, { aspect: 0.7, hole: [0.2, 0.15] })
-    expect(made[0].msgs).toEqual([{ type: 'image', id: 1, aspect: 0.7, hole: [0.2, 0.15], maxTile: 0.3, entries: [{ code: 'a', mass: 10, ord: 'Passeriformes' }, { code: 'b', mass: 10, ord: 'Passeriformes' }] }])
+    const pack = await packForImage(entries, species, { aspect: 0.7, hole: [0.2, 0.15], maxTile: 0.36 })
+    expect(made[0].msgs).toEqual([{ type: 'image', id: 1, aspect: 0.7, hole: [0.2, 0.15], maxTile: 0.36, entries: [{ code: 'a', mass: 10, ord: 'Passeriformes' }, { code: 'b', mass: 10, ord: 'Passeriformes' }] }])
     expect(pack.boxes.get('b')).toEqual([50, 60, 10, 12])
     expect(made[0].terminated).toBe(true)
   })
@@ -179,7 +179,7 @@ describe('worker image reply', () => {
   it('aborting packForImage terminates the worker and rejects with an AbortError', async () => {
     const made = fakeWorker()
     const c = new AbortController()
-    const p = packForImage(entries, species, { aspect: 1, hole: [0, 0] }, c.signal)
+    const p = packForImage(entries, species, { aspect: 1, hole: [0, 0], maxTile: 0.3 }, c.signal)
     c.abort()
     await expect(p).rejects.toMatchObject({ name: 'AbortError' })
     expect(made[0].terminated).toBe(true)

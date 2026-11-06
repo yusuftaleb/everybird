@@ -9,7 +9,7 @@ import { SHARE_COLORS, SITE_LABEL, STICKER_CREDIT, countLayout, type CountLayout
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import { OG_COLLAGE, OG_SIZE, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare, OG_DESCRIPTION } from '@/lib/share/og'
-import { fetchStickers, ogFonts, serverMasks, serverSpecies } from '@/lib/share/og-server'
+import { OG_LARGE_TILE, fetchStickers, ogFonts, serverMasks, serverSpecies } from '@/lib/share/og-server'
 
 export const alt = "A birder's life list as a sticker collage, on Everybird"
 export const size = OG_SIZE
@@ -41,7 +41,9 @@ async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof
   // A short list: no sticker taller than 40% of the collage (one ostrich shouldn't fill the card).
   const maxRel = Math.max(...relSizes(pack, EXP).values())
   const r = packBest(pack, wide, 'even', { fixedStage: [OG_COLLAGE.w, OG_COLLAGE.h], hole: ogCount(payload.birds.length).hole, maxBase: (0.4 * OG_COLLAGE.h) / maxRel })
-  const stickers = await fetchStickers(list.map(([c]) => c))
+  // Tiles drawn past OG_LARGE_TILE get the 384 px file, so a short list's big birds stay sharp.
+  const large = new Set(list.flatMap(([c, b]) => { const box = r.boxes.get(b.id); return box && Math.max(box[2], box[3]) > OG_LARGE_TILE ? [c] : [] }))
+  const stickers = await fetchStickers(list.map(([c]) => c), undefined, large)
   const placed: Placed[] = []
   for (const [code, b] of list) {
     const box = r.boxes.get(b.id)

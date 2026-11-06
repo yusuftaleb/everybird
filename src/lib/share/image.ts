@@ -107,6 +107,8 @@ export type CardLayout = {
   latest?: { y: number; icon: number; label: number; name: number }
   rule: { y: number }
   footer: Text & { credit: number }
+  /** The largest sticker's long side as a share of the collage width (maxTileFrac of the count). */
+  maxTile: number
 }
 export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; total?: number }
 
@@ -150,20 +152,25 @@ export function cardLayout(format: ImageFormat, c: CardContent): CardLayout {
   const top = headBottom === undefined ? T : headBottom + 48
   const bottom = (latest ? latest.y : rule.y) - 40
   const collage = { x: M, y: top, w: W - 2 * M, h: bottom - top }
-  return { W, H, name, filter, collage, count: countLayout(format, c.count, c.total, collage.w), latest, rule, footer }
+  return { W, H, name, filter, collage, count: countLayout(format, c.count, c.total, collage.w), latest, rule, footer, maxTile: maxTileFrac(c.count) }
 }
 
 /** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
-export type PackSpec = { aspect: number; hole: [number, number] }
+export type PackSpec = { aspect: number; hole: [number, number]; maxTile: number }
 export function packSpec(L: CardLayout): PackSpec {
   const { w, h } = L.collage
-  return { aspect: w / h, hole: [L.count.hole[0] / w, L.count.hole[1] / w] }
+  return { aspect: w / h, hole: [L.count.hole[0] / w, L.count.hole[1] / w], maxTile: L.maxTile }
 }
 
-/** Largest a sticker is drawn (long side, px): 30% of the collage's width, and never past the 384px files' sharpness. */
-export const MAX_TILE = 0.3
-export function maxTileSide(collageW: number): number {
-  return Math.min(440, collageW * MAX_TILE)
+/**
+ * Largest a sticker is drawn (long side) as a share of the collage's width: 30%, or 36% for a short list (up to 24
+ * birds) so its ring around the count fills more of the frame. Either stays under the 384px files' sharpness.
+ */
+export const MAX_TILE = 0.3, MAX_TILE_SHORT = 0.36
+export const maxTileFrac = (n: number) => (n <= 24 ? MAX_TILE_SHORT : MAX_TILE)
+/** That largest side in px (never past 440, the 384px files' sharp size). */
+export function maxTileSide(collageW: number, frac = MAX_TILE): number {
+  return Math.min(440, collageW * frac)
 }
 
 // --- packing (off the main thread) ---
@@ -191,7 +198,7 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, spec: 
       try { resolve(packFromReply(e.data)) } catch (err) { reject(err) }
     }
     w.onerror = (e) => { done(); reject(new Error(`layout worker failed: ${e.message ?? 'error'}`)) }
-    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: MAX_TILE }
+    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile }
     w.postMessage(msg)
   })
 }
@@ -364,6 +371,20 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, font: (px: number)
   return `${t.trimEnd()}…`
 }
 
+/** The smallest size the credit takes beside the wordmark before it moves to its own line. */
+export const CREDIT_MIN = 17
+/**
+ * Where the sticker credit goes, never truncated: beside the wordmark and site (`inlineRoom` px) at `size` down to
+ * CREDIT_MIN, else on its own line (`fullRoom` px) at `size`, shrinking only if even the full width is too narrow.
+ * `measure(px)` is the credit's width at that size.
+ */
+export function placeCredit(measure: (px: number) => number, inlineRoom: number, fullRoom: number, size: number): { size: number; below: boolean } {
+  for (let px = size; px >= CREDIT_MIN; px--) if (measure(px) <= inlineRoom) return { size: px, below: false }
+  let px = size
+  while (px > 8 && measure(px) > fullRoom) px--
+  return { size: px, below: true }
+}
+
 export type ShareImageOpts = {
   format: ImageFormat
   entries: ListEntry[]
@@ -426,7 +447,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
 
   // The pack on the collage area, its centre (the count) on the area's centre.
   const area = L.collage
-  const fit = fitPack(pack, area, maxTileSide(area.w))
+  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile))
   const tiles: Tile[] = shown.flatMap((e) => {
     const b = pack.boxes.get(e.code)
     if (!b) return []
@@ -513,10 +534,25 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   if (name && L.name) draw(name, font.name, L.name, 36, C.ink)
   if (label && L.filter) draw(label, font.filter, L.filter, 24, C.accent)
 
+  // Footer, quiet: the wordmark and the site on the left, the sticker credit (required, CC BY 4.0, never truncated) on
+  // the right on one baseline. If it doesn't fit there at 17px or more, it takes its own line under them at the bottom
+  // safe line, and the wordmark row, the hairline and the latest lifer row move up by that line.
+  ctx.textBaseline = 'alphabetic'
+  ctx.font = font.brand(L.footer.size)
+  const brandW = ctx.measureText('Everybird').width + 16
+  ctx.font = font.footer(20)
+  const siteW = ctx.measureText(SITE_LABEL).width
+  const credit = placeCredit((px) => { ctx.font = font.footer(px); return ctx.measureText(STICKER_CREDIT).width },
+    maxW - brandW - siteW - 32, maxW, L.footer.credit)
+  const shift = credit.below ? credit.size + 12 : 0
+  const base = L.footer.y + L.footer.size * 0.8
+
   // The latest lifer: its sticker, then the mono label over the bird's name, centred on the sticker.
+  ctx.textBaseline = 'top'
   if (latest && lifer && L.latest) {
-    paintTiles(ctx, [lifer], imgs, C.line)
-    const { y, icon } = L.latest
+    paintTiles(ctx, [{ ...lifer, y: lifer.y - shift }], imgs, C.line)
+    const { icon } = L.latest
+    const y = L.latest.y - shift
     const tx = M + icon + 20, tw = maxW - icon - 20
     const blockH = L.latest.label + 10 + L.latest.name
     const top = y + (icon - blockH) / 2
@@ -527,21 +563,21 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   }
 
   ctx.fillStyle = C.hairline
-  ctx.fillRect(M, L.rule.y, maxW, 2)
-  // Footer, quiet: the wordmark and the site on the left, the sticker credit (required, CC BY 4.0) on the right, on one
-  // baseline; if the credit doesn't fit beside them it takes its own line under them.
-  const base = L.footer.y + L.footer.size * 0.8
+  ctx.fillRect(M, L.rule.y - shift, maxW, 2)
   ctx.textBaseline = 'alphabetic'
   ctx.font = font.brand(L.footer.size)
   ctx.fillStyle = C.ink
-  ctx.fillText('Everybird', M, base)
-  const brandW = ctx.measureText('Everybird').width + 16
+  ctx.fillText('Everybird', M, base - shift)
   ctx.font = font.footer(20)
   ctx.fillStyle = C.muted
-  ctx.fillText(SITE_LABEL, M + brandW, base)
-  const left = M + brandW + ctx.measureText(SITE_LABEL).width + 32
-  ctx.font = font.footer(L.footer.credit)
-  ctx.textAlign = 'right'
-  ctx.fillText(fitText(ctx, STICKER_CREDIT, font.footer, L.footer.credit, 15, L.W - M - left), L.W - M, base)
+  ctx.fillText(SITE_LABEL, M + brandW, base - shift)
+  ctx.font = font.footer(credit.size)
+  if (credit.below) {
+    ctx.textAlign = 'left'
+    ctx.fillText(STICKER_CREDIT, M, base)
+  } else {
+    ctx.textAlign = 'right'
+    ctx.fillText(STICKER_CREDIT, L.W - M, base)
+  }
   return canvas
 }
