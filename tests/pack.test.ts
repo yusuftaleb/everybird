@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { EXP, GAP, LAYOUTS, holeRadii } from '../src/lib/layout/constants'
+import { EXP, EXP_TRUE, GAP, LAYOUTS, holeRadii } from '../src/lib/layout/constants'
 import { MASK, decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
 import { MAX_BASE, packBest, packFrame, relSizes, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
 import { Grid, SPIRAL_T, spiral, toCellMask } from '../src/lib/layout/grid'
@@ -278,30 +278,148 @@ describe('occupancy grid', () => {
   })
 })
 
-// 5,000-bird lists: computed once per layout and timed; the minBase checks always run, only the timing
-// bounds sit in the skippable perf block below.
-const BIG = new Map<string, { r: PackResult; ms: number }>()
-function big(name: string) {
-  if (!POOL.length) POOL = loadPool()
-  if (!BIG.has(name)) {
-    const birds = sample(5000)
-    const t0 = performance.now()
-    const r = packBest(birds, byName(name), 'even')
-    BIG.set(name, { r, ms: performance.now() - t0 })
-    console.log(`[perf] 5,000 birds ${name}: ${BIG.get(name)!.ms.toFixed(0)} ms, base ${r.base.toFixed(2)}, ${r.W}x${r.H}`)
-  }
-  return BIG.get(name)!
+// On-screen size of the median sticker's long side, in CSS px at the layout's reference container width
+// (layout.W: layout units are CSS px there). The renderer maps the stage's W onto the container's width.
+function medianPx(r: PackResult, layoutW: number): number {
+  const longs = [...r.boxes.values()].map(([, , w, h]) => Math.max(w, h)).sort((a, b) => a - b)
+  return (longs[longs.length >> 1] * layoutW) / r.W
+}
+const centres = (r: PackResult) => {
+  const c = new Map<number, [number, number]>()
+  for (const [id, [x, y, w, h]] of r.boxes) c.set(id, [x + w / 2, y + h / 2])
+  return c
 }
 
-describe('large lists grow the stage instead of shrinking below minBase', () => {
-  for (const name of ['wide', 'medium', 'narrow']) {
-    it(`5,000 birds on ${name}`, () => {
-      const { r } = big(name)
-      expect(r.boxes.size).toBe(5000)
-      expect(r.base).toBeGreaterThanOrEqual(byName(name).minBase)
-      expect(r.H).toBeGreaterThan(byName(name).H)
+// Big lists: computed once per (layout, n) and timed; the floor and cap checks always run, only the timing
+// bounds sit in the skippable perf block below.
+const BIG = new Map<string, { r: PackResult; ms: number }>()
+function big(name: string, n = 5000) {
+  if (!POOL.length) POOL = loadPool()
+  const key = `${name}|${n}`
+  if (!BIG.has(key)) {
+    const birds = sample(n)
+    const t0 = performance.now()
+    const r = packBest(birds, byName(name), 'even')
+    BIG.set(key, { r, ms: performance.now() - t0 })
+    console.log(`[perf] ${n.toLocaleString('en-US')} birds ${name}: ${BIG.get(key)!.ms.toFixed(0)} ms, base ${r.base.toFixed(2)}, median ${medianPx(r, byName(name).W).toFixed(1)} px, ${r.W}x${r.H}`)
+  }
+  return BIG.get(key)!
+}
+
+// Small lists keep today's layouts exactly: base, stage and every box, in both modes. Fingerprints recorded
+// from the packer before the floor/cap rule (2026-11-06); a change here means small lists moved.
+const fingerprint = (r: PackResult) => {
+  let s = 0
+  for (const [id, [x, y, w, h]] of [...r.boxes.entries()].sort((a, b) => a[0] - b[0])) s += ((id % 97) + 1) * (x + 3 * y + 7 * w + 11 * h)
+  return `${r.base.toFixed(6)}|${r.W}x${r.H}|${s.toFixed(3)}`
+}
+const SMALL: [string, number, string, string][] = [
+  ['wide', 20, '80.000000|732x456|3046502.652', '72.095198|732x456|3368208.328'],
+  ['wide', 100, '49.728073|1120x700|13483027.029', '31.531220|1120x700|13351428.840'],
+  ['wide', 200, '32.129099|1120x700|24400533.893', '19.380746|1120x700|24398099.928'],
+  ['medium', 20, '79.984678|564x548|3198118.728', '69.697506|564x548|3209451.116'],
+  ['medium', 100, '42.132785|700x800|12141522.671', '26.237303|700x800|11852267.148'],
+  ['medium', 200, '26.682264|700x800|21288803.853', '15.632191|700x800|20411535.102'],
+  ['narrow', 20, '79.832257|350x760|3422656.267', '64.803721|350x760|3453207.813'],
+  ['narrow', 100, '30.068050|350x900|11014671.265', '18.656089|350x900|10837847.343'],
+  ['narrow', 200, '19.000971|350x900|20188307.878', '11.081955|350x900|19375451.226'],
+]
+
+describe('small lists keep their layouts (identical boxes)', () => {
+  beforeAll(() => { if (!POOL.length) POOL = loadPool() })
+  for (const [name, n, even, tru] of SMALL) {
+    it(`${n} birds on ${name}, even and true`, () => {
+      const birds = sample(n)
+      const r = packBest(birds, byName(name), 'even')
+      expect(fingerprint(r)).toBe(even)
+      const t = packBest(birds, byName(name), 'true', { targets: centres(r), fixedStage: [r.W, r.H] })
+      expect(fingerprint(t)).toBe(tru)
+    })
+  }
+})
+
+// [layout, a list size whose floor is reachable under the cap]
+const MID: [string, number][] = [['wide', 723], ['medium', 400], ['narrow', 500]]
+
+describe('big lists: the stage grows taller until the median sticker reaches the floor, up to the cap', () => {
+  for (const [name, n] of MID) {
+    it(`${n} birds on ${name}: taller than the start, under the cap, median sticker at least the floor`, () => {
+      const L = byName(name)
+      const { r } = big(name, n)
+      expect(r.boxes.size).toBe(n)
+      expect(r.W).toBeLessThanOrEqual(L.W)
+      expect(r.H).toBeGreaterThan(L.H)
+      expect(r.H).toBeLessThanOrEqual(L.maxH)
+      expect(medianPx(r, L.W)).toBeGreaterThanOrEqual(L.floor)
     }, 60000)
   }
+
+  // [layout, a list size that cannot meet the floor under the cap, but stays above minBase there]
+  const AT_CAP: [string, number][] = [['wide', 1000], ['medium', 723], ['narrow', 800]]
+  for (const [name, n] of AT_CAP) {
+    it(`${n} birds on ${name}: the stage stops at the cap and accepts smaller birds (down to minBase)`, () => {
+      const L = byName(name)
+      const { r } = big(name, n)
+      expect(r.boxes.size).toBe(n)
+      expect(r.H).toBeLessThanOrEqual(L.maxH)
+      expect(r.H).toBeGreaterThanOrEqual(0.9 * L.maxH) // it grew all the way (less the trim)
+      expect(medianPx(r, L.W)).toBeLessThan(L.floor)
+      expect(r.base).toBeGreaterThanOrEqual(L.minBase)
+    }, 60000)
+  }
+
+  for (const name of ['wide', 'medium', 'narrow']) {
+    it(`5,000 birds on ${name}: past the cap only to keep base at least minBase, as before`, () => {
+      const L = byName(name)
+      const { r } = big(name)
+      expect(r.boxes.size).toBe(5000)
+      expect(r.H).toBeGreaterThan(L.maxH)
+      expect(r.base).toBeGreaterThanOrEqual(L.minBase)
+    }, 60000)
+  }
+
+  it('the count stays centred: the hole is empty on a grown stage', () => {
+    const { r } = big('wide', 723)
+    const birds = sample(723)
+    const [rx, ry] = holeRadii(byName('wide').F)
+    let inside = 0
+    silhouettePixels(birds, r, (_id, px, py) => {
+      const cx = r.W / 2, cy = r.H / 2
+      const qx = Math.max(px, Math.min(cx, px + 1)), qy = Math.max(py, Math.min(cy, py + 1))
+      if (((qx - cx) / rx) ** 2 + ((qy - cy) / ry) ** 2 <= 1) inside++
+    })
+    expect(inside).toBe(0)
+  }, 60000)
+
+  it('true mode packs in the even stage of a grown collage: same W x H, every bird placed', () => {
+    const { r } = big('wide', 723)
+    const birds = sample(723)
+    const t = packBest(birds, byName('wide'), 'true', { targets: centres(r), fixedStage: [r.W, r.H] })
+    expect([t.W, t.H]).toEqual([r.W, r.H])
+    expect(t.boxes.size).toBe(723)
+    expect(t.base).toBeLessThan(r.base) // true size spreads sizes further, so the base drops
+  }, 60000)
+
+  it('filtered states of a grown collage are never taller than the full stage, in both modes', () => {
+    const L = byName('wide')
+    const birds = sample(723)
+    const { r } = big('wide', 723)
+    const relE = relSizes(birds, EXP)
+    const relT = relSizes(birds, EXP_TRUE)
+    const fullTrue = packBest(birds, L, 'true', { targets: centres(r), fixedStage: [r.W, r.H], rel: relT })
+    const heavy = birds.reduce((a, b) => (b.mass > a.mass ? b : a))
+    for (const sub of [birds.filter((_, i) => i % 2 === 0), birds.filter((_, i) => i % 10 === 0), [heavy]]) {
+      const e = packBest(sub, L, 'even', { refBase: r.base, fixedStage: [r.W, r.H], rel: relE, fit: true })
+      expect(e.W).toBe(r.W)
+      expect(e.H).toBeLessThanOrEqual(r.H)
+      // true mode packs in the full (untrimmed) stage, from the even centres moved back into it
+      const dy = (r.H - e.H) / 2
+      const tg = new Map([...centres(e)].map(([id, [x, y]]) => [id, [x, y + dy] as [number, number]]))
+      const t = packBest(sub, L, 'true', { targets: tg, refBase: fullTrue.base, fixedStage: [r.W, r.H], rel: relT, fit: true })
+      expect(t.W).toBe(r.W)
+      expect(t.H).toBeLessThanOrEqual(r.H)
+    }
+  }, 60000)
 })
 
 describe('packFrame (share images)', () => {
@@ -394,7 +512,7 @@ describe('packFrame with the count in the middle (share images)', () => {
 
   it('packBest never goes past maxBase', () => {
     const birds = sample(5)
-    const r = packBest(birds, { W: 400, H: 400, stretch: 1, F: 0, minBase: 0 }, 'even', { fixedStage: [400, 400], hole: [0, 0], maxBase: 20 })
+    const r = packBest(birds, { W: 400, H: 400, stretch: 1, F: 0 }, 'even', { fixedStage: [400, 400], hole: [0, 0], maxBase: 20 })
     expect(r.base).toBeLessThanOrEqual(20)
   })
 })
@@ -405,15 +523,17 @@ describe.skipIf(!!process.env.SKIP_PERF)('packing performance', () => {
     if (!POOL.length) POOL = loadPool()
   })
 
-  it('1,000 birds pack in under 1,500 ms in Node', () => {
-    const birds = sample(1000)
-    const t0 = performance.now()
-    const r = packBest(birds, byName('wide'), 'even')
-    const ms = performance.now() - t0
-    console.log(`[perf] 1,000 birds wide: ${ms.toFixed(0)} ms, base ${r.base.toFixed(2)}, ${r.W}x${r.H}`)
-    expect(r.boxes.size).toBe(1000)
-    expect(ms).toBeLessThan(1500)
-  })
+  for (const name of ['wide', 'medium', 'narrow']) {
+    it(`1,000 birds pack in under 1,500 ms in Node on ${name}`, () => {
+      const birds = sample(1000)
+      const t0 = performance.now()
+      const r = packBest(birds, byName(name), 'even')
+      const ms = performance.now() - t0
+      console.log(`[perf] 1,000 birds ${name}: ${ms.toFixed(0)} ms, base ${r.base.toFixed(2)}, median ${medianPx(r, byName(name).W).toFixed(1)} px, ${r.W}x${r.H}`)
+      expect(r.boxes.size).toBe(1000)
+      expect(ms).toBeLessThan(1500)
+    })
+  }
 
   for (const name of ['wide', 'medium', 'narrow']) {
     it(`5,000 birds pack in under 12 s on ${name}`, () => {

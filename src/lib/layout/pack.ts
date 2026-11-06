@@ -16,7 +16,7 @@ export type PackBird = { id: number; mass: number; mask: Mask }
 export type Box = [x: number, y: number, w: number, h: number] // layout units
 export type PackResult = { base: number; W: number; H: number; boxes: Map<number, Box> }
 /** What the packer reads from a layout: one of LAYOUTS, or an ad hoc frame (share images, packFrame). */
-type Layout = { W: number; H: number; stretch: number; F: number; minBase: number }
+type Layout = { W: number; H: number; stretch: number; F: number; minBase?: number; floor?: number; maxH?: number }
 
 export const DEFAULT_CELL = 2 // layout units per occupancy cell
 const MIN_MASS = 0.1 // grams; guards mass ** exp against 0 or bad data
@@ -74,6 +74,11 @@ export function pack(
   return boxes
 }
 
+function medianOf(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b)
+  return s[s.length >> 1]
+}
+
 function maskFill(m: Mask): number {
   let set = 0
   for (let i = 0; i < m.bits.length; i++) { let v = m.bits[i]; while (v) { set += v & 1; v >>= 1 } }
@@ -112,8 +117,9 @@ export function fitStage(boxes: Map<number, Box>, W: number, H: number, holeRy: 
 
 /**
  * The largest base size that packs, for one layout and size mode.
- * - Full collage (no fixedStage): starts on layout.W x layout.H; if the best base is below layout.minBase the
- *   stage grows 25% taller and retries (up to 12x). The result is trimmed to its content.
+ * - Full collage (no fixedStage): starts on layout.W x layout.H; a big list grows it taller, first up to
+ *   layout.maxH while the median sticker is below layout.floor, then past it only while the base is below
+ *   layout.minBase (see the loop). The result is trimmed to its content.
  * - With fixedStage (true size of a state, or a filtered state): packs inside that stage, untrimmed.
  * - Full collage base is at most MAX_BASE (80), the reference's ceiling.
  * - With refBase (filtered states): base is searched in [0.7, MAXUP] x refBase, as build_lifelist.py main();
@@ -159,7 +165,8 @@ export function packBest(
   }
 
   // stopBelow: once the best possible base is known to be below it, stop (the caller grows the stage).
-  const search = (W: number, H: number, stopBelow = 0): { base: number; boxes: Map<number, Box> } | null => {
+  // Also returns hi: the search's final upper bound (the stage's best base is below it when best fell short).
+  const search = (W: number, H: number, stopBelow = 0): { best: { base: number; boxes: Map<number, Box> } | null; hi: number } => {
     let [lo, hi] = range(W, H)
     const lo0 = lo
     let best: { base: number; boxes: Map<number, Box> } | null = null
@@ -171,7 +178,7 @@ export function packBest(
         const mid = (lo + hi) / 2
         const boxes = tryPack(W, H, mid)
         if (boxes) { lo = mid; best = { base: mid, boxes } } else hi = mid
-        if (hi <= stopBelow) return best
+        if (hi <= stopBelow) return { best, hi }
       }
       if (!best && lo0 >= stopBelow) { // the reference never tries the lower end itself
         const boxes = tryPack(W, H, lo0)
@@ -182,7 +189,7 @@ export function packBest(
       const boxes = tryPack(W, H, clamp[1])
       if (boxes) best = { base: clamp[1], boxes }
     }
-    return best
+    return { best, hi }
   }
 
   // Nothing fits even at the bottom of the range: shrink by 0.85 steps until it does. For a filtered state
@@ -199,24 +206,39 @@ export function packBest(
 
   if (fixedStage) {
     const [W, H] = fixedStage
-    const got = search(W, H) ?? fallback(W, H)
+    const got = search(W, H).best ?? fallback(W, H)
     if (!fit) return { base: got.base, W, H, boxes: got.boxes }
     const t = fitStage(got.boxes, W, H, hole[1])
     return { base: got.base, W: t.W, H: t.H, boxes: t.boxes }
   }
 
+  // Big lists grow the stage taller (never wider), in two stages:
+  // 1. up to layout.maxH, until the median sticker's long side reaches layout.floor (CSS px at the reference
+  //    width W, where layout units are CSS px): base >= floor / median rel. Each step jumps to the height the
+  //    area estimate asks for (base grows as sqrt(H)), at least 10%, never past maxH.
+  // 2. past maxH, by 25% steps (up to 12x the start), only while the base is below layout.minBase.
+  // A list whose birds meet the floor on the starting stage packs exactly as before.
   const W = layout.W, Hmax = MAX_GROW * layout.H
+  const minBase = layout.minBase ?? 0
+  const maxH = Math.max(layout.H, layout.maxH ?? layout.H)
+  const floorBase = layout.floor ? layout.floor / medianOf(birds.map((b) => rel.get(b.id)!)) : 0
   let H: number = layout.H
   let got: { base: number; boxes: Map<number, Box> } | null = null
   for (;;) {
-    const canGrow = H * GROW <= Hmax
-    // Skip packing a stage whose whole search range is below minBase; it would only grow anyway.
-    if (!canGrow || range(W, H)[1] >= layout.minBase) {
-      got = search(W, H, canGrow ? layout.minBase : 0)
-      if (got && got.base >= layout.minBase) break
+    const want = H < maxH ? Math.max(minBase, floorBase) : minBase
+    const canGrow = H < maxH || H * GROW <= Hmax
+    let hi = range(W, H)[1] // an upper bound on this stage's base, tightened by the search
+    // Skip packing a stage whose whole search range is below the target; it would only grow anyway.
+    if (!canGrow || hi >= want) {
+      const r = search(W, H, canGrow ? want : 0)
+      got = r.best
+      hi = r.hi
+      if (got && got.base >= want) break
     }
     if (!canGrow) break
-    H = Math.round(H * GROW)
+    H = H < maxH
+      ? Math.min(maxH, Math.max(Math.round(H * 1.1), Math.round(H * (want / Math.max(hi, 1e-6)) ** 2)))
+      : Math.round(H * GROW)
   }
   got ??= fallback(W, H)
   const t = trimToContent(got.boxes, W, H)
@@ -249,6 +271,6 @@ export function packFrame(birds: PackBird[], aspect: number, opts: { hole?: [num
   const H = Math.max(8, Math.round(W / aspect))
   const hole: [number, number] = hx > 0 && hy > 0 ? [hx * W, hy * W] : [0, 0]
   const maxBase = opts.maxTile ? (opts.maxTile * W) / maxRel : undefined
-  const frame = { W, H, stretch: aspect, F: 0, minBase: 0 }
+  const frame = { W, H, stretch: aspect, F: 0 }
   return packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase })
 }

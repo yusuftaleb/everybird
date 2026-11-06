@@ -5,12 +5,16 @@ export const GAP = 2 // layout units kept between silhouettes
 export const MAXUP = 1.5 // a filtered set may grow up to this much bigger than in the full collage
 
 // W x H: starting stage in layout units (CSS px at that container width). stretch: x-stretch of the spiral.
-// F: count font size (sets the hole). minWidth: narrowest container this layout serves. minBase: smallest
-// acceptable base size before the stage grows taller instead (large lists).
+// F: count font size (sets the hole). minWidth: narrowest container this layout serves.
+// Big lists (packBest): the stage grows taller, never wider, in two stages.
+// - floor: the median sticker's long side, in CSS px at the reference width W, below which the stage grows
+//   taller (a comfortable on-screen size), up to maxH. Past maxH the birds may get smaller than the floor.
+//   wide and medium cap at 2:3 (H = 1.5 W); narrow starts taller than that, so its cap is twice its start.
+// - minBase: the smallest acceptable base size at all. Below it the stage keeps growing past maxH (huge lists).
 export const LAYOUTS = [
-  { name: 'wide', W: 1120, H: 700, stretch: 1.7, F: 64, minWidth: 880, minBase: 14 },
-  { name: 'medium', W: 700, H: 800, stretch: 1.0, F: 56, minWidth: 540, minBase: 12 },
-  { name: 'narrow', W: 350, H: 900, stretch: 0.55, F: 40, minWidth: 0, minBase: 10 },
+  { name: 'wide', W: 1120, H: 700, stretch: 1.7, F: 64, minWidth: 880, minBase: 14, floor: 36, maxH: 1680 },
+  { name: 'medium', W: 700, H: 800, stretch: 1.0, F: 56, minWidth: 540, minBase: 12, floor: 30, maxH: 1050 },
+  { name: 'narrow', W: 350, H: 900, stretch: 0.55, F: 40, minWidth: 0, minBase: 10, floor: 26, maxH: 1800 },
 ] as const
 
 /** Ellipse radii [rx, ry] kept empty at the stage centre for the species count (number + small label). */
