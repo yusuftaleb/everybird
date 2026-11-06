@@ -4,7 +4,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { SLOTS, slotSource } from './model'
 import type { ListEntry, Slot, Source, SourceRecord } from './model'
 import { seenOf, type SeenIndex } from './seen'
-import type { Saved } from './storage'
+import type { Saved, SourceDetails } from './storage'
 
 const HEADER = ['eBird code', 'Common name', 'Scientific name', 'First date', 'Place', 'Country', 'Heard only', 'Found dead', 'Sources', 'Countries seen']
 
@@ -57,6 +57,21 @@ const isSlot = (k: unknown): k is Slot => SLOTS.includes(k as Slot)
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 const isStrArr = (x: unknown): x is string[] => Array.isArray(x) && x.every((s) => typeof s === 'string')
 
+const optStr = (x: unknown) => x === undefined || typeof x === 'string'
+const optCount = (x: unknown) => x === undefined || (typeof x === 'number' && Number.isFinite(x) && x >= 0)
+const EBIRD_KINDS = ['full-export', 'life-list']
+
+/** v3 source details: eBird files (kind, file, rows, at) and the iNaturalist account (user, observations, at). */
+function validSources(x: unknown): boolean {
+  if (!isObj(x)) return false
+  return Object.entries(x).every(([k, d]) => {
+    if (!isObj(d) || !optStr(d.at)) return false
+    if (k === 'ebird' || k === 'ebird-list') return EBIRD_KINDS.includes(d.kind as string) && optStr(d.file) && optCount(d.rows)
+    if (k === 'inat') return optStr(d.user) && optCount(d.observations)
+    return false
+  })
+}
+
 /** Parse and validate a backup. Throws an Error with a plain message on bad input. */
 export function fromJson(text: string): Saved {
   let raw: unknown
@@ -66,8 +81,8 @@ export function fromJson(text: string): Saved {
     throw new Error('This file is not valid JSON.')
   }
   if (!isObj(raw)) throw new Error('This is not an Everybird backup.')
-  // v1 backups predate seen-here; they restore as v2 without it.
-  if (raw.v !== 1 && raw.v !== 2) throw new Error('Unsupported backup version.')
+  // v1 backups predate seen-here, v1 and v2 backups predate source details; they restore as v3 without them.
+  if (raw.v !== 1 && raw.v !== 2 && raw.v !== 3) throw new Error('Unsupported backup version.')
 
   if (!isObj(raw.records)) throw new Error('Backup has no records.')
   // Backups made before the second eBird slot have no 'ebird-list'; it starts empty.
@@ -98,8 +113,10 @@ export function fromJson(text: string): Saved {
   const sk = raw.skipped
   if (sk !== undefined && (!isObj(sk) || !Object.entries(sk).every(([k, n]) => isSlot(k) && typeof n === 'number' && n >= 0)))
     throw new Error('Backup skipped counts are malformed.')
+  const src = raw.sources
+  if (src !== undefined && !validSources(src)) throw new Error('Backup source details are malformed.')
   const out: Saved = {
-    v: 2,
+    v: 3,
     records,
     unmatched: unmatched as Saved['unmatched'],
     edits: e as unknown as Saved['edits'],
@@ -108,5 +125,6 @@ export function fromJson(text: string): Saved {
   }
   if (raw.name !== undefined) out.name = raw.name
   if (sk !== undefined) out.skipped = sk as Saved['skipped']
+  if (src !== undefined) out.sources = src as SourceDetails
   return out
 }

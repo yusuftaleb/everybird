@@ -3,12 +3,33 @@ import { DEFAULT_RULES } from './model'
 import { SLOTS, slotSource } from './model'
 import type { Edits, ImportResult, Rules, Slot, SourceRecord, Unmatched } from './model'
 
+/** Where an eBird file came from (the slot says it too: 'ebird' is the full export, 'ebird-list' the life list). */
+export type EbirdDetails = {
+  kind: 'full-export' | 'life-list'
+  /** The file's name, as the browser gave it. Stays on this device. */
+  file?: string
+  /** Data rows read from the file. */
+  rows?: number
+  /** When it was imported (ISO). */
+  at?: string
+}
+/** The iNaturalist account fetched. The username stays on this device (it was sent to iNaturalist by the birder). */
+export type InatDetails = { user?: string; observations?: number; at?: string }
+/**
+ * What each connected source is, for "Your sources" on a return visit and its Refresh. A slot with records but no
+ * entry here was imported before v3: its details are unknown.
+ */
+export type SourceDetails = { ebird?: EbirdDetails; 'ebird-list'?: EbirdDetails; inat?: InatDetails }
+/** The details an import into `slot` carries. */
+export type DetailsFor<S extends Slot> = S extends 'inat' ? InatDetails : S extends 'ebird' | 'ebird-list' ? EbirdDetails : never
+
 /**
  * The stored list. v2 (Task PL) added seen-here (`SourceRecord.seen`, `Unmatched.seen`); a v1 list is the same shape
- * without it and migrates by its version number alone. The IndexedDB key keeps its v1 name.
+ * without it. v3 added `sources` (each source's details); v1 and v2 lists migrate by their version number alone and
+ * have no details until a source is imported again. The IndexedDB key keeps its v1 name.
  */
 export type Saved = {
-  v: 2
+  v: 3
   /** Records per slot (model.ts `Slot`): the two eBird files side by side, then iNaturalist and manual. */
   records: Record<Slot, SourceRecord[]>
   unmatched: Unmatched[]
@@ -17,6 +38,8 @@ export type Saved = {
   name?: string
   /** Rows per source that are not countable species (sp., slash, hybrid, domestic), for the match report. */
   skipped?: Partial<Record<Slot, number>>
+  /** Each source's details (v3). Absent for lists saved before v3 and for sources not connected. */
+  sources?: SourceDetails
   savedAt: string
 }
 
@@ -24,7 +47,7 @@ export const STORAGE_KEY = 'everybird:v1'
 
 export function emptySaved(): Saved {
   return {
-    v: 2,
+    v: 3,
     records: { ebird: [], 'ebird-list': [], inat: [], manual: [] },
     unmatched: [],
     edits: { removed: [], added: [], marks: {}, fixes: {} },
@@ -66,16 +89,17 @@ export const LOAD_RETRY_MS = 150
 
 /**
  * Bring a list saved by an older Everybird up to the current shape. v1 -> v2: the version only (v2 added seen-here,
- * which a v1 list lacks until its files are imported again; until then its lifer places stand in). Lists saved
+ * which a v1 list lacks until its files are imported again; until then its lifer places stand in). v2 -> v3: the
+ * version only (v3 added `sources`; an older list's sources show "details unknown" until imported again). Lists saved
  * before the second eBird slot have no records['ebird-list']; it is added empty. Their eBird records stay in
  * 'ebird' and their fix keys ("ebird:12") still match. Returns the same object when nothing needed changing.
  */
 export function migrateSaved(s: Saved): Saved {
   const missing = SLOTS.filter((k) => !Array.isArray((s.records as Partial<Saved['records']>)[k]))
-  if (!missing.length && s.v === 2) return s
+  if (!missing.length && s.v === 3) return s
   const records = { ...s.records }
   for (const k of missing) records[k] = []
-  return { ...s, v: 2, records }
+  return { ...s, v: 3, records }
 }
 
 export async function load(): Promise<Saved | null> {
@@ -123,13 +147,41 @@ export async function forget(): Promise<'forgotten' | 'failed'> {
  * are untouched. Caveat: edits.fixes keys ("slot:row") are kept, but row numbers can differ in the new file, so a
  * fix may now point at a different row. We keep them rather than silently dropping user edits.
  */
-export function replaceSource(saved: Saved, slot: Slot, result: ImportResult): Saved {
+export function replaceSource<S extends Slot>(saved: Saved, slot: S, result: ImportResult, details?: DetailsFor<S>): Saved {
   const stamped = slot === slotSource(slot) ? result.unmatched : result.unmatched.map((u) => ({ ...u, slot }))
-  return {
-    ...saved,
+  const out: Saved = {
+    ...migrateSaved(saved),
     records: { ...migrateSaved(saved).records, [slot]: result.records },
     unmatched: [...saved.unmatched.filter((u: Unmatched) => (u.slot ?? u.source) !== slot), ...stamped],
     skipped: { ...saved.skipped, [slot]: result.skipped },
     savedAt: new Date().toISOString(),
   }
+  if (details && slot !== 'manual') out.sources = { ...saved.sources, [slot]: details }
+  return out
+}
+
+/**
+ * Disconnect one source: its records, its unmatched rows, its skipped count and its details go; every other slot,
+ * edits (marks, removals, hand-added birds, fixes), rules and name stay. A fix whose row is gone simply matches
+ * nothing.
+ */
+export function removeSource(saved: Saved, slot: Slot): Saved {
+  const m = migrateSaved(saved)
+  const out: Saved = {
+    ...m,
+    records: { ...m.records, [slot]: [] },
+    unmatched: m.unmatched.filter((u) => (u.slot ?? u.source) !== slot),
+    savedAt: new Date().toISOString(),
+  }
+  if (m.skipped) {
+    const { [slot]: _gone, ...rest } = m.skipped
+    void _gone
+    out.skipped = rest
+  }
+  if (m.sources) {
+    const { [slot as keyof SourceDetails]: _gone, ...rest } = m.sources
+    void _gone
+    out.sources = rest
+  }
+  return out
 }

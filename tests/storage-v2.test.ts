@@ -25,29 +25,26 @@ const withSeen = () => ({
 })
 
 describe('Saved v2', () => {
-  it('new lists are v2', () => {
-    expect(emptySaved().v).toBe(2)
-  })
-  it('a v1 list migrates to v2 unchanged otherwise: it just has no seen-here until re-imported', () => {
+  it('a v1 list migrates (to the current v3) unchanged otherwise: it just has no seen-here until re-imported', () => {
     const m = migrateSaved(v1() as never)
-    expect(m.v).toBe(2)
+    expect(m.v).toBe(3)
     expect(m.records.ebird).toEqual(v1().records.ebird)
     const current = emptySaved()
     expect(migrateSaved(current)).toBe(current)
   })
-  it('backups are v2 and round-trip seen-here', () => {
+  it('backups round-trip seen-here', () => {
     const s = withSeen()
     const text = toJson(s)
-    expect(JSON.parse(text).v).toBe(2)
+    expect(JSON.parse(text).v).toBe(3)
     expect(fromJson(text)).toEqual(s)
   })
-  it('v1 backups restore as v2', () => {
+  it('v1 backups restore as v3', () => {
     const r = fromJson(JSON.stringify(v1()))
-    expect(r.v).toBe(2)
+    expect(r.v).toBe(3)
     expect(r.records.ebird[0].seen).toBeUndefined()
   })
   it('malformed seen-here and unknown versions are refused', () => {
-    expect(() => fromJson(JSON.stringify({ ...withSeen(), v: 3 }))).toThrow(/version/i)
+    expect(() => fromJson(JSON.stringify({ ...withSeen(), v: 4 }))).toThrow(/version/i)
     const bad = withSeen() as unknown as { records: { ebird: { seen: unknown }[] } }
     bad.records.ebird[0].seen = [1, 2]
     expect(() => fromJson(JSON.stringify(bad))).toThrow(/records/)
@@ -62,14 +59,14 @@ describe('a v1 list on the device', () => {
     ;(globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory()
   })
   afterEach(() => vi.unstubAllGlobals())
-  it('loads as v2 and is rewritten in place', async () => {
+  it('loads as v3 and is rewritten in place', async () => {
     vi.resetModules()
     const storage = await import('@/lib/list/storage')
     const { createStore, get, set } = await import('idb-keyval')
     const kv = createStore('everybird', 'kv')
     await set(STORAGE_KEY, v1(), kv)
-    expect((await storage.load())!.v).toBe(2)
-    await vi.waitFor(async () => expect(((await get(STORAGE_KEY, kv)) as { v: number }).v).toBe(2))
+    expect((await storage.load())!.v).toBe(3)
+    await vi.waitFor(async () => expect(((await get(STORAGE_KEY, kv)) as { v: number }).v).toBe(3))
   })
 })
 

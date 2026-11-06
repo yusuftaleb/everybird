@@ -9,7 +9,7 @@ import { SLOTS, slotSource, unmatchedKey } from './model'
 import type { Edits, ImportResult, ListEntry, Rules, Slot, SourceRecord, Unmatched } from './model'
 import { buildSeen, type SeenIndex } from './seen'
 import * as storage from './storage'
-import { emptySaved, replaceSource, type Saved } from './storage'
+import { emptySaved, removeSource, replaceSource, type EbirdDetails, type InatDetails, type Saved } from './storage'
 import { findTrips, type Trip } from './trips'
 
 export type AppState = {
@@ -31,7 +31,9 @@ export type AppState = {
 
 export type Action =
   /** An import into one slot (model.ts `Slot`: 'ebird' is MyEBirdData, 'ebird-list' the life list download). */
-  | { type: 'import'; source: Slot; result: ImportResult }
+  | { type: 'import'; source: Slot; result: ImportResult; details?: EbirdDetails | InatDetails }
+  /** Disconnect one source: its records, unmatched rows and details go; edits stay (storage.ts `removeSource`). */
+  | { type: 'remove-source'; source: Slot }
   | { type: 'edit'; edits: Edits }
   | { type: 'rules'; rules: Rules }
   | { type: 'filter'; filter: Filter }
@@ -117,7 +119,9 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
   return (s, a) => {
     switch (a.type) {
       case 'import':
-        return derive(s, replaceSource(s.saved, a.source, a.result), s.filter, ctx, true)
+        return derive(s, replaceSource(s.saved, a.source, a.result, a.details as never), s.filter, ctx, true)
+      case 'remove-source':
+        return derive(s, removeSource(s.saved, a.source), s.filter, ctx, true)
       case 'edit':
         return derive(s, stamp({ ...s.saved, edits: a.edits }), s.filter, ctx, true)
       case 'rules':
