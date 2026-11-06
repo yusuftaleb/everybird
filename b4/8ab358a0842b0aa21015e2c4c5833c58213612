@@ -1,0 +1,55 @@
+e2e/filters.spec.ts
+  s_ab125876fe9ad2::t_7975278b79d842 7-8,80-118
+  s_ab125876fe9ad2::t_06aebdd66e24be 119
+src/components/collage/Collage.tsx
+  s_ab125876fe9ad2::t_9014f991f91551 39-41,199-202
+  s_ab125876fe9ad2::t_7975278b79d842 11,38,42-43,66,82-83,168-170,179,181,188,194-198,203-204
+src/components/filters/SheetPicker.tsx
+  s_ab125876fe9ad2::t_317b0d3109d533 1-56
+src/lib/list/filter-panels.ts
+  s_ab125876fe9ad2::t_7975278b79d842 6-8,15-18,21
+tests/timeline-ui.test.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 1-140
+src/components/filters/Timeline.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 1-206
+e2e/timeline.spec.ts
+  s_ab125876fe9ad2::t_7975278b79d842 1-97
+src/components/filters/timeline.css
+  s_ab125876fe9ad2::t_7975278b79d842 1-77
+DESIGN.md
+  s_ab125876fe9ad2::t_9bf38873280a9b 170,205
+playwright.config.ts
+  s_ab125876fe9ad2::t_7975278b79d842 19-20,26
+src/components/filters/use-play.ts
+  s_ab125876fe9ad2::t_7975278b79d842 1-40
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 12,17,90-106,197,203
+tests/filters-ui.test.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 7-8,53-55,58,69,133,136,140,154-157,159,161-163,199,203-205
+src/components/filters/TripBrackets.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 1-60
+src/components/filters/FilterBar.tsx
+  s_ab125876fe9ad2::t_317b0d3109d533 26
+  s_ab125876fe9ad2::t_2026f26b1785e6 11,13
+  s_ab125876fe9ad2::t_7975278b79d842 8-9,16,18-19,27-28,53-54,62,85,103,113-120,224,226,250-263
+AGENTS.md
+  s_ab125876fe9ad2::t_9bf38873280a9b 34,60
+tests/filter-panels.test.ts
+  s_ab125876fe9ad2::t_7975278b79d842 12-14,17,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b48ab358a0842b0aa21015e2c4c5833c58213612",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
