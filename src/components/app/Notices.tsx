@@ -10,13 +10,13 @@ export function MemoryNotice() {
 }
 
 /** Load failures and a failed forget, shown on every page of the app. */
-export function AppNotices({ eb, memory = true }: { eb: Everybird; memory?: boolean }) {
+export function AppNotices({ eb, memory = true, failure = true }: { eb: Everybird; memory?: boolean; failure?: boolean }) {
   return (
     <>
       {eb.meta.forgetOutcome === 'failed' && (
         <p className="eb-error eb-notice" role="alert">Couldn&apos;t clear this device&apos;s copy. Clear this site&apos;s data in your browser settings to remove it.</p>
       )}
-      {eb.failed && <p className="eb-error eb-notice" role="alert">Couldn&apos;t load the bird data. Check your connection and reload the page.</p>}
+      {failure && eb.failed && <p className="eb-error eb-notice" role="alert">Couldn&apos;t load the bird data. Check your connection and reload the page.</p>}
       {memory && eb.state.persistence === 'memory-only' && <MemoryNotice />}
     </>
   )

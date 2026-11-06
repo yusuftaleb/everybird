@@ -217,7 +217,8 @@ export function useEverybird(opts: { deferIfEmpty?: boolean } = {}): [AppState, 
         // Actions dispatched before ready run now, on top of the stored list, with the loaded species.
         for (const a of early) dispatchRef.current(a)
       } catch (e) {
-        if (!cancelled) setMeta({ ready: false, error: e instanceof Error ? e.message : String(e) })
+        // Keep what is already known (the stored list): the landing still shows its sample, a list holder sees the notice.
+        if (!cancelled) setMeta((m) => ({ ...m, ready: false, error: e instanceof Error ? e.message : String(e) }))
       }
     })()
     return () => {

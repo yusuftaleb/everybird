@@ -21,6 +21,13 @@ describe('tipPosition (the hover tooltip, as on /lifelist)', () => {
     expect(tipPosition({ left: 880, top: 500, width: 20, height: 20 }, wrap, tip).left).toBe(800 - 240 - 4)
   })
 
+  it('stays inside the stage vertically when its height is known (a bird at the bottom edge)', () => {
+    const stage = { left: 100, top: 200, width: 800, height: 300 }
+    // Near the top of the screen there is no room above, so it would drop below the stage's bottom: it is held inside.
+    expect(tipPosition({ left: 500, top: 60, width: 60, height: 400 }, { ...stage, top: 50 }, tip).top).toBe(300 - 90 - 4)
+    expect(tipPosition({ left: 500, top: 500, width: 60, height: 40 }, stage, tip).top).toBe(500 - 200 - 14 - 90) // already inside
+  })
+
   it('a tip wider than the wrapper starts at its left edge', () => {
     expect(tipPosition({ left: 150, top: 500, width: 20, height: 20 }, { left: 100, top: 200, width: 200 }, tip).left).toBe(4)
   })

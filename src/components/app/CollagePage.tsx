@@ -42,11 +42,20 @@ export function CollagePage() {
     })
     setRemoved(null)
   }, [removed, state.saved.edits, dispatch])
+  // The card has closed: Undo takes focus (so keyboard users reach it), and the toast waits while it has focus or the
+  // pointer is on it.
+  const undoRef = useRef<HTMLButtonElement>(null)
+  const [held, setHeld] = useState(false)
   useEffect(() => {
     if (!removed) return
+    const raf = requestAnimationFrame(() => undoRef.current?.focus({ preventScroll: true }))
+    return () => cancelAnimationFrame(raf)
+  }, [removed])
+  useEffect(() => {
+    if (!removed || held) return
     const t = setTimeout(() => setRemoved(null), UNDO_MS)
     return () => clearTimeout(t)
-  }, [removed])
+  }, [removed, held])
 
   const editsRef = useRef(saved.edits)
   useEffect(() => { editsRef.current = saved.edits }, [saved.edits])
@@ -111,9 +120,15 @@ export function CollagePage() {
       )}
       <div className="eb-toast-slot" role="status">
         {removed && (
-          <div className="eb-toast">
+          <div
+            className="eb-toast"
+            onFocus={() => setHeld(true)}
+            onBlur={() => setHeld(false)}
+            onPointerEnter={() => setHeld(true)}
+            onPointerLeave={() => setHeld(false)}
+          >
             <span>Removed {removed.name}.</span>
-            <button type="button" className="eb-textbtn" onClick={undo}>Undo</button>
+            <button ref={undoRef} type="button" className="eb-textbtn" onClick={() => { setHeld(false); undo() }}>Undo</button>
           </div>
         )}
       </div>

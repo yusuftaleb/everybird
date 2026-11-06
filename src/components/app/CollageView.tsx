@@ -58,6 +58,8 @@ const pad = (d: string) => (d.length === 4 ? `${d}-00-00` : d.length === 7 ? `${
 const RING_MS = 1600
 /** The collage's glide to a new layout (640 ms) and a little slack: then a bird picked from outside the view is shown. */
 const GLIDE_MS = 760
+/** How long an out-of-view pick waits for its layout before it lapses. */
+const PENDING_MS = 4000
 const TABS: { id: FilterTab; label: string }[] = [{ id: 'birds', label: 'Birds' }, { id: 'places', label: 'Places' }, { id: 'time', label: 'Time' }]
 
 /** "197 species · 20 orders · 50 families · since Jan 2020", or "12 of 197 species · 3 families" when filtered. */
@@ -129,7 +131,7 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
     el.focus({ preventScroll: true })
     if (collage) requestAnimationFrame(() => setTip(code))
   }, [view])
-  const [pending, setPending] = useState<{ code: string; key: string } | null>(null)
+  const [pending, setPending] = useState<{ code: string; key: string; at: number } | null>(null)
   const onSearchPick = useCallback((h: CollageHit) => {
     if (h.kind !== 'species') {
       setFolded(false)
@@ -142,11 +144,16 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
     if (!fk || shownList.some((x) => x.code === h.value)) { show(h.value); return }
     const next = filterToShow(filter, e, species, trips)
     dispatch({ type: 'filter', filter: next })
-    setPending({ code: h.value, key: filterKey(next) })
+    setPending({ code: h.value, key: filterKey(next), at: Date.now() })
   }, [filter, fk, shownList, entries, species, trips, dispatch, show])
-  // The out-of-view pick: wait for the new filter's layout (the list re-renders at once), then for the glide.
+  // The out-of-view pick: wait for the new filter's layout (the list re-renders at once), then for the glide. It lapses
+  // when the filter is changed by hand meanwhile, or after PENDING_MS, so a stale tooltip can't pop up later.
   useEffect(() => {
-    if (!pending || fk !== pending.key) return
+    if (!pending) return
+    if (fk !== pending.key || Date.now() - pending.at > PENDING_MS) {
+      const t = setTimeout(() => setPending(null), 0)
+      return () => clearTimeout(t)
+    }
     const collage = view === 'collage'
     if (collage && (!lay || lay.layout.key.split('|').slice(2).join('|') !== pending.key || !lay.visible.has(pending.code))) return
     const t = setTimeout(() => { setPending(null); show(pending.code) }, collage && !reduced() ? GLIDE_MS : 0)

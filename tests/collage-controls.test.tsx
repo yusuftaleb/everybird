@@ -231,4 +231,17 @@ describe('hover tooltip', () => {
     expect(screen.queryByTestId('bird-tip')).toBeNull() // not before the glide
     expect(await screen.findByTestId('bird-tip', {}, { timeout: 2000 })).toHaveTextContent('American Robin')
   })
+
+  it('an out-of-filter pick lapses when the filter is changed by hand before it lands', async () => {
+    render(<Seeded />)
+    await screen.findByTestId('collage-stage')
+    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Find a bird' }))
+    await act(async () => { fireEvent.change(screen.getByRole('combobox', { name: 'Find a bird' }), { target: { value: 'robin' } }) })
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /American Robin/ }))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^5 species/))
+    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Waterfowl/ }))
+    await act(async () => { await new Promise((r) => setTimeout(r, 1200)) })
+    expect(screen.queryByTestId('bird-tip')).toBeNull()
+  })
 })

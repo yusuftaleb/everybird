@@ -5,7 +5,7 @@
 // the arrow keys move the active row, Space ticks it; a click ticks a row. Birds already on the list show ticked and
 // can't be picked again.
 import { Check } from '@phosphor-icons/react'
-import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useDeferredValue, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Sticker } from '@/components/collage/Sticker'
 import { track } from '@/lib/analytics'
 import { stripBracket } from '@/lib/import/places'
@@ -58,7 +58,9 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
     for (const r of species.rows) if (r.ord === order && (!seen.has(r.fam) || r.to < seen.get(r.fam)!.to)) seen.set(r.fam, { com: r.famCom || r.fam, to: r.to })
     return [...seen].sort((a, b) => a[1].to - b[1].to)
   }, [species, order])
-  const rows = useMemo(() => filterTickRows(species.rows, { q, order, family }), [species, q, order, family])
+  // The list follows the search a beat behind the keys, so typing never waits on a pass over 11,000 names.
+  const dq = useDeferredValue(q)
+  const rows = useMemo(() => filterTickRows(species.rows, { q: dq, order, family }), [species, dq, order, family])
   const countries = useMemo(
     () => Object.entries(regions.countries).map(([iso, name]) => [iso, stripBracket(name)] as const).sort((a, b) => a[1].localeCompare(b[1])),
     [regions],
@@ -111,7 +113,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
   const n = picked.size
   return (
     <section id="tick" className="eb-tick" aria-labelledby={`${ids}-h`}>
-      <h3 id={`${ids}-h`} className="eb-way-title">Tick birds off the list</h3>
+      <h3 id={`${ids}-h`} className="eb-way-title">Tick birds off a list</h3>
       <div className="eb-tick-tools">
         <label className="eb-sr" htmlFor={`${ids}-q`}>Search birds</label>
         <input
@@ -144,7 +146,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
           </>
         )}
       </div>
-      <p className="eb-mono eb-tick-count" aria-live="polite">{rows.length.toLocaleString('en-US')} {rows.length === 1 ? 'species' : 'species'}</p>
+      <p className="eb-mono eb-tick-count" aria-live="polite">{rows.length.toLocaleString('en-US')} species</p>
 
       <div
         ref={box}

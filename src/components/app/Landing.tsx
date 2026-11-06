@@ -21,7 +21,8 @@ export function Landing() {
           <ArrowRight aria-hidden="true" focusable="false" weight="bold" />
         </Link>
       </div>
-      <AppNotices eb={eb} memory={false} />
+      {/* The pre-packed sample needs no bird data, so a failed load says nothing here (Settings says it). */}
+      <AppNotices eb={eb} memory={false} failure={false} />
       <SampleDemo dots={eb.dots} />
     </main>
   )

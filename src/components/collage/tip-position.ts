@@ -8,12 +8,14 @@ const EDGE = 4
 
 export function tipPosition(
   bird: Rect,
-  wrap: { left: number; top: number; width: number },
+  wrap: { left: number; top: number; width: number; height?: number },
   tip: { w: number; h: number },
 ): { left: number; top: number; below: boolean } {
   const cx = bird.left + bird.width / 2 - wrap.left
   const left = Math.max(EDGE, Math.min(cx - tip.w / 2, wrap.width - tip.w - EDGE))
   const above = bird.top - GAP - tip.h >= EDGE
-  const top = above ? bird.top - wrap.top - GAP - tip.h : bird.top + bird.height - wrap.top + GAP
+  const raw = above ? bird.top - wrap.top - GAP - tip.h : bird.top + bird.height - wrap.top + GAP
+  // Inside the stage vertically too (when its height is known): a bird at the bottom edge keeps its tip on the stage.
+  const top = wrap.height === undefined ? raw : Math.max(EDGE, Math.min(raw, wrap.height - tip.h - EDGE))
   return { left, top, below: !above }
 }

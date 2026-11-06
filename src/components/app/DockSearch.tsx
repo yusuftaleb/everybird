@@ -44,13 +44,13 @@ export function SearchButton({ onOpen, open, buttonRef }: { onOpen: () => void; 
   )
 }
 
-/** The field over the dock and the results under it, while the search is open. */
 /** Where a hit lives, in the results' right-hand column: its kind and count, and its order when outside the filter. */
 function rankText(h: CollageHit, filtered: boolean): string {
   const what = h.kind === 'species' ? RANK.species : `${RANK[h.kind]} · ${h.count.toLocaleString('en-US')}`
   return filtered && !h.inFilter && h.kind !== 'order' ? `${orderLabel(h.order)} · ${what}` : what
 }
 
+/** The field over the dock and the results under it, while the search is open. */
 export function DockSearchField({ entries, shown, species, onPick, whose = 'this', open, onClose, within }: Omit<Props, 'onOpen'>) {
   const id = useId()
   const input = useRef<HTMLInputElement>(null)

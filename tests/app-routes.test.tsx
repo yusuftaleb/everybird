@@ -70,9 +70,10 @@ const sampleFile = { v: 1, note: 'synthetic', birds: [{ code: 'snogoo', date: '2
 // The landing's pre-packed sample (no layouts: jsdom has no stage to show them on).
 const samplePack = { ...sampleFile, species: fx.species.filter((s) => s.code === 'snogoo' || s.code === 'amerob'), regions: { v: 1, countries: { CA: 'Canada' }, sub1: {} }, layouts: [] }
 
-function stubFetch() {
+function stubFetch(failSpecies = false) {
   vi.stubGlobal('fetch', async (u: string | URL) => {
     const url = String(u)
+    if (failSpecies && url.includes('species.v1')) throw new TypeError('Failed to fetch')
     const body = url.includes('species.v1')
       ? { v: 1, species: fx.species }
       : url.includes('taxonomy.v1')
@@ -90,9 +91,9 @@ function stubFetch() {
   })
 }
 
-async function mount(opts: { blockStorage?: boolean; failForget?: boolean; path?: string } = {}) {
+async function mount(opts: { blockStorage?: boolean; failForget?: boolean; path?: string; failSpecies?: boolean; stored?: (s: import('@/lib/list/storage').Saved) => void } = {}) {
   vi.resetModules()
-  stubFetch()
+  stubFetch(opts.failSpecies)
   if (opts.failForget)
     vi.doMock('@/lib/list/storage', async (orig) => ({ ...(await orig<typeof import('@/lib/list/storage')>()), forget: async () => 'failed' as const }))
   else vi.doUnmock('@/lib/list/storage')
@@ -104,6 +105,7 @@ async function mount(opts: { blockStorage?: boolean; failForget?: boolean; path?
   const { SiteFooter } = await import('@/components/app/SiteFooter')
   const { TopBar } = await import('@/components/app/TopBar')
   const storage = await import('@/lib/list/storage')
+  if (opts.stored) { const s = storage.emptySaved(); opts.stored(s); await storage.save(s) }
   const inat = await import('@/lib/import/inat')
   const analytics = await import('@/lib/analytics')
   vi.mocked(analytics.track).mockClear()
@@ -189,6 +191,20 @@ describe('the Collage page (/)', () => {
     expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Add birds' })).toHaveAttribute('href', '/settings')
     expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull() // the downloads live on Settings
+  })
+})
+
+describe('when the bird data fails to load', () => {
+  it('a visitor without a list still gets the pre-packed sample on /, and no failure notice there', async () => {
+    await mount({ path: '/', failSpecies: true })
+    await waitFor(() => expect(stats()).toHaveTextContent("Sample: Yusuf's life list · 2 species"))
+    expect(screen.queryByText(/Couldn't load the bird data/)).toBeNull()
+  })
+
+  it('a birder with a list on this device gets their collage page with the "couldn\'t load" notice', async () => {
+    await mount({ path: '/', failSpecies: true, stored: (s) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
+    expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
+    expect(await screen.findByText(/Couldn't load the bird data/)).toBeInTheDocument()
   })
 })
 
@@ -407,6 +423,7 @@ describe('editing', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     // A few seconds to undo it.
     expect(screen.getByText('Removed Northern Flicker.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus()) // keyboard users land on it
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
     expect(screen.queryByText('Removed Northern Flicker.')).toBeNull()
