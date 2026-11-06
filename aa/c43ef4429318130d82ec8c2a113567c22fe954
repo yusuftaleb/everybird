@@ -1,0 +1,27 @@
+src/lib/list/filters.ts
+  s_ab125876fe9ad2::t_cbec061a95cfbf 2,7-11,13-14,18,26-27,42,52,57
+src/lib/species/load.ts
+  s_ab125876fe9ad2::t_cbec061a95cfbf 2,88-89
+src/lib/species/name-search.ts
+  s_ab125876fe9ad2::t_96c482b1fa4da9 1-72
+tests/name-search.test.ts
+  s_ab125876fe9ad2::t_b8cf1ce361a917 1-67
+src/components/app/use-collage-layout.ts
+  s_ab125876fe9ad2::t_f310154a365be3 7,24,28-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aac43ef4429318130d82ec8c2a113567c22fe954",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
