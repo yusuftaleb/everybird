@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, filterLabel, shareCardText, shareTitle } from '@/lib/share/image'
+import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, filterLabel, maxTileSide, shareCardText } from '@/lib/share/image'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Trip } from '@/lib/list/trips'
 import { orderLabel } from '@/lib/species/orders'
@@ -25,14 +25,6 @@ describe('shareCardText', () => {
     expect(shareCardText(1234)).toEqual({ count: '1,234 species' })
     expect(shareCardText(1, { com: 'Mallard' })).toEqual({ count: '1 species', latest: 'Latest lifer: Mallard' })
     expect(shareCardText(3, { com: 'Mallard', date: '2024' }).latest).toBe('Latest lifer: Mallard · 2024')
-  })
-})
-
-describe('shareTitle', () => {
-  it('is Everybird, or the name in the possessive', () => {
-    expect(shareTitle()).toBe('Everybird')
-    expect(shareTitle('  ')).toBe('Everybird')
-    expect(shareTitle(' Ada Birder ')).toBe("Ada Birder's Everybird")
   })
 })
 
@@ -78,24 +70,36 @@ describe('share image constants', () => {
 })
 
 describe('cardLayout', () => {
+  const SAFE = { story: { top: 250, bottom: 340 }, post: { top: 64, bottom: 64 } } as const
   for (const format of ['story', 'post'] as const) {
-    it(`${format}: header, collage, count and footer stack inside the 64px margins`, () => {
+    it(`${format}: the birder's name and count lead, the collage, then the latest lifer and the footer, inside the safe zones`, () => {
       const [W, H] = IMAGE_SIZE[format]
-      for (const hasFilter of [false, true]) for (const hasLatest of [false, true]) {
-        const L = cardLayout(format, hasFilter, hasLatest)
-        expect(L.W).toBe(W)
-        expect(L.H).toBe(H)
+      const { top, bottom } = SAFE[format]
+      for (const hasName of [false, true]) for (const hasFilter of [false, true]) for (const hasLatest of [false, true]) {
+        const L = cardLayout(format, hasName, hasFilter, hasLatest)
+        expect([L.W, L.H]).toEqual([W, H])
         expect(L.collage.x).toBe(64)
         expect(L.collage.w).toBe(W - 128)
-        expect(L.title.y).toBe(64)
-        expect(L.collage.y).toBeGreaterThan(L.tagline.y)
-        if (hasFilter) expect(L.collage.y).toBeGreaterThan(L.filter!.y)
-        expect(L.count.y).toBeGreaterThan(L.collage.y + L.collage.h)
-        if (hasLatest) expect(L.latest!.y).toBeGreaterThan(L.count.y)
-        expect(L.footer.y).toBeLessThanOrEqual(H - 64)
-        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 1200 : 700)
+        // Top: the name (if any), then the count, then the filter in words.
+        const first = hasName ? L.name! : L.count
+        expect(first.y).toBe(top)
+        if (hasName) expect(L.count.y).toBeGreaterThanOrEqual(L.name!.y + L.name!.size)
+        expect(L.count.size).toBe(96)
+        if (hasFilter) expect(L.filter!.y).toBeGreaterThanOrEqual(L.count.y + L.count.size)
+        const headBottom = hasFilter ? L.filter!.y + L.filter!.size : L.count.y + L.count.size
+        expect(L.collage.y).toBeGreaterThan(headBottom)
+        // Bottom: a hairline, the latest lifer, the footer; nothing in the bottom safe zone.
+        expect(L.rule.y).toBeGreaterThan(L.collage.y + L.collage.h)
+        if (hasLatest) expect(L.latest!.y).toBeGreaterThan(L.rule.y)
+        expect(L.footer.y).toBeGreaterThan(hasLatest ? L.latest!.y : L.rule.y)
+        expect(L.footer.y + L.footer.size).toBeLessThanOrEqual(H - bottom)
+        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 800 : 700)
       }
-      expect(cardLayout(format, true, true).collage.h).toBeLessThan(cardLayout(format, false, true).collage.h)
+      expect(cardLayout(format, true, true, true).collage.h).toBeLessThan(cardLayout(format, false, false, true).collage.h)
     })
   }
+  it('no sticker is drawn wider than 22% of the collage, so a short list sits as a cluster', () => {
+    expect(maxTileSide(952)).toBeCloseTo(952 * 0.22)
+    expect(maxTileSide(4000)).toBe(440) // and never past the 384px files' sharp size
+  })
 })

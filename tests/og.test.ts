@@ -46,19 +46,20 @@ describe('pickOgStickers', () => {
 
 describe('metadata strings', () => {
   const p = (name: string | undefined, n: number): SharePayload => ({ v: 1, name, birds: Array.from({ length: n }, (_, i) => ({ code: `b${i}` })) })
-  it('titles with a name, without a name, and for a broken link', () => {
-    expect(ogTitle(p('Ada', 197))).toBe("Ada's Everybird — 197 species")
-    expect(ogTitle(p(undefined, 3))).toBe('An Everybird — 3 species')
-    expect(ogTitle(p('  ', 1))).toBe('An Everybird — 1 species')
-    expect(ogTitle(p('Ada', 1234))).toBe("Ada's Everybird — 1,234 species")
+  it('titles lead with the person and their count, with a colon (no em dash), and stay generic for a broken link', () => {
+    expect(ogTitle(p('Ada', 197))).toBe("Ada's life list: 197 species")
+    expect(ogTitle(p(undefined, 3))).toBe('A life list: 3 species')
+    expect(ogTitle(p('  ', 1))).toBe('A life list: 1 species')
+    expect(ogTitle(p('Ada', 1234))).toBe("Ada's life list: 1,234 species")
     expect(ogTitle(null)).toBe('Everybird')
+    expect(ogTitle(p('Ada', 2))).not.toMatch(/—/)
   })
-  it('the header name matches the shared page h1', () => {
-    expect(ogName({ name: 'Ada Birder' })).toBe("Ada Birder's Everybird")
-    expect(ogName({})).toBe('An Everybird')
+  it('the header name matches the shared page h1; the brand is not a possessive', () => {
+    expect(ogName({ name: 'Ada Birder' })).toBe("Ada Birder's life list")
+    expect(ogName({})).toBe("A birder's life list")
   })
-  it('describes the site by its tagline', () => {
-    expect(OG_DESCRIPTION).toBe("Every bird you've ever seen.")
+  it('describes what Everybird is, for someone who has never heard of it', () => {
+    expect(OG_DESCRIPTION).toBe("Everybird turns a birder's life list into a sticker collage.")
   })
   it('a broken or newer token decodes to null', () => {
     expect(tryDecodeShare('garbage')).toBeNull()

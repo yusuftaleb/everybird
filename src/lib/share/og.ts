@@ -1,13 +1,14 @@
 // Link previews (Open Graph images), the pure parts: which birds to draw and what the metadata says.
 // The server pieces (fonts, masks, stickers, the image itself) are in og-server.ts and the route's opengraph-image.tsx.
-import { TAGLINE } from './image'
 import { decodeShare, type SharePayload } from './link'
 
 export const OG_SIZE = { width: 1200, height: 630 } as const
 /** The collage's area on the left of the image. */
 export const OG_COLLAGE = { w: 640, h: 560 } as const
 export const OG_MAX_BIRDS = 60
-export const OG_DESCRIPTION = TAGLINE
+/** For someone who has never heard of Everybird (the shared page says the same under its title). */
+export const OG_DESCRIPTION = "Everybird turns a birder's life list into a sticker collage."
+
 
 /**
  * At most `max` birds, chosen by stepping evenly through the list in taxonomic order (`to`), so every group of the
@@ -26,14 +27,16 @@ export function pickOgStickers<T extends { to: number; st: boolean }>(birds: rea
   return pickOgBirds(birds.filter((b) => b.st), max)
 }
 
-/** The page header's name part: "Ada's Everybird", or "An Everybird" with no name (the shared page's h1). */
+/** The shared page's h1: "Ada's life list", or "A birder's life list" with no name. The brand stays in the site name. */
 export function ogName(p: Pick<SharePayload, 'name'>): string {
-  return p.name?.trim() ? `${p.name.trim()}'s Everybird` : 'An Everybird'
+  return p.name?.trim() ? `${p.name.trim()}'s life list` : "A birder's life list"
 }
 
-/** "Ada's Everybird — 197 species", "An Everybird — 197 species" without a name; "Everybird" for a broken link. */
+/** "Ada's life list: 197 species", "A life list: 197 species" without a name; "Everybird" for a broken link. */
 export function ogTitle(p: SharePayload | null): string {
-  return p ? `${ogName(p)} — ${p.birds.length.toLocaleString('en-US')} species` : 'Everybird'
+  if (!p) return 'Everybird'
+  const who = p.name?.trim() ? `${p.name.trim()}'s life list` : 'A life list'
+  return `${who}: ${p.birds.length.toLocaleString('en-US')} species`
 }
 
 /** The payload a route's `[token]` segment carries, or null for a broken, oversized or newer-version link. */

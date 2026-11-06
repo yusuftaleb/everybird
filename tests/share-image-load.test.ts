@@ -27,8 +27,12 @@ function recorder() {
   const calls: { op: string; arg?: unknown; fill?: string }[] = []
   const ctx = {
     fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    lineJoin: '',
     drawImage: (img: unknown) => calls.push({ op: 'drawImage', arg: img }),
     fill: (p: unknown) => calls.push({ op: 'fill', arg: p, fill: ctx.fillStyle }),
+    stroke: (p: unknown) => calls.push({ op: 'stroke', arg: p, fill: ctx.strokeStyle }),
     save: () => {}, restore: () => {}, translate: () => {}, scale: () => {},
   }
   return { ctx: ctx as unknown as CanvasRenderingContext2D, calls }
@@ -62,9 +66,10 @@ describe('sticker loading and painting', () => {
     expect(stickerCacheSize()).toBe(1) // only the success stays cached
 
     const { ctx, calls } = recorder()
-    paintTiles(ctx, [tile(a), tile(b), tile(null)], imgs, '#5f5f69')
-    expect(calls.map((c) => c.op)).toEqual(['fill', 'drawImage', 'fill'])
-    expect(calls.filter((c) => c.op === 'fill').every((c) => c.fill === '#5f5f69' && c.arg instanceof FakePath2D)).toBe(true)
+    paintTiles(ctx, [tile(a), tile(b), tile(null)], imgs, '#857f74')
+    // A missing sticker is a thin outline in Line, not a solid silhouette.
+    expect(calls.map((c) => c.op)).toEqual(['stroke', 'drawImage', 'stroke'])
+    expect(calls.filter((c) => c.op === 'stroke').every((c) => c.fill === '#857f74' && c.arg instanceof FakePath2D)).toBe(true)
   })
 
   it('when the overall budget runs out, the pending stickers become silhouettes and no more are pulled', async () => {
@@ -86,7 +91,7 @@ describe('sticker loading and painting', () => {
     const { ctx, calls } = recorder()
     paintTiles(ctx, list.map(tile), imgs, '#a9a9b2')
     expect(calls.filter((c) => c.op === 'drawImage').length).toBe(1)
-    expect(calls.filter((c) => c.op === 'fill').length).toBe(19)
+    expect(calls.filter((c) => c.op === 'stroke').length).toBe(19)
   })
 
   it('the per-sticker timeout still applies inside the budget', async () => {

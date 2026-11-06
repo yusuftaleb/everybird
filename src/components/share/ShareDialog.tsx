@@ -267,7 +267,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                 type="text"
                 autoComplete="name"
                 maxLength={NAME_MAX_LEN}
-                placeholder="Shown as “Ada’s Everybird”"
+                placeholder="Your name, shown on the image"
                 value={name}
                 onChange={(e) => { setName(e.target.value); dispatch({ type: 'name', name: e.target.value }) }}
               />

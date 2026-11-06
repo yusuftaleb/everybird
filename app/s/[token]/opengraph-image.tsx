@@ -4,13 +4,14 @@ import { LAYOUTS } from '@/lib/layout/constants'
 import { packBest, type Box } from '@/lib/layout/pack'
 import { latestLifer } from '@/lib/list/build-list'
 import type { ListEntry } from '@/lib/list/model'
-import { SHARE_COLORS, SITE_LABEL, STICKER_CREDIT, shareCardText } from '@/lib/share/image'
+import { formatDate } from '@/lib/format'
+import { SHARE_COLORS, SITE_LABEL, STICKER_CREDIT } from '@/lib/share/image'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import { OG_COLLAGE, OG_SIZE, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare, OG_DESCRIPTION } from '@/lib/share/og'
 import { fetchStickers, ogFonts, serverMasks, serverSpecies } from '@/lib/share/og-server'
 
-export const alt = "An Everybird: every bird you've ever seen"
+export const alt = "A birder's life list as a sticker collage, on Everybird"
 export const size = OG_SIZE
 export const contentType = 'image/png'
 export const runtime = 'nodejs'
@@ -51,7 +52,7 @@ function frame(children: React.ReactNode) {
 
 export default async function Image({ params }: { params: Promise<{ token: string }> }) {
   const [payload, fonts] = [tryDecodeShare((await params).token), ogFonts()]
-  let placed: Placed[] = [], expected = 0, latest: ReturnType<typeof shareCardText>['latest']
+  let placed: Placed[] = [], expected = 0, latest: { name: string; date?: string } | undefined
   if (payload) {
     try {
       const species = await serverSpecies()
@@ -61,13 +62,14 @@ export default async function Image({ params }: { params: Promise<{ token: strin
       }))
       const top = latestLifer(entries, (c) => species.get(c)?.to ?? 0)
       const row = top && species.get(top.code)
-      if (top && row) latest = shareCardText(payload.birds.length, { com: row.com, date: top.date }).latest
+      // The lifer and its date on their own lines: a long name wraps without leaving a separator dangling.
+      if (top && row) latest = { name: `Latest lifer: ${row.com}`, date: formatDate(top.date) || undefined }
     } catch (e) {
       console.warn('og image: collage unavailable, rendering the text card', e) // still a valid image
     }
   }
   const name = payload ? ogName(payload) : 'Everybird'
-  const count = payload ? shareCardText(payload.birds.length).count.split(' ') : null
+  const count = payload ? payload.birds.length.toLocaleString('en-US') : null
 
   const credit = (
     <div style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO, fontSize: 15, color: C.muted, gap: 4 }}>
@@ -91,9 +93,17 @@ export default async function Image({ params }: { params: Promise<{ token: strin
           <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: name.length > 22 ? 36 : 46, lineHeight: 1.1, letterSpacing: -1 }}>{name}</div>
           {count ? (
             <div style={{ display: 'flex', flexDirection: 'column', marginTop: 28 }}>
-              <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 120, lineHeight: 1, letterSpacing: -3, color: C.accent }}>{count[0]}</div>
-              <div style={{ display: 'flex', fontSize: 34, fontWeight: 500, marginTop: 4 }}>{count[1]}</div>
-              {latest && <div style={{ display: 'flex', fontSize: 22, fontWeight: 500, color: C.muted, marginTop: 28, lineHeight: 1.3 }}>{latest}</div>}
+              {/* The share images' treatment: the count in Ink, "species" on the same baseline. */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+                <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 112, lineHeight: 1, letterSpacing: -3 }}>{count}</div>
+                <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 40 }}>species</div>
+              </div>
+              {latest && (
+                <div style={{ display: 'flex', flexDirection: 'column', fontSize: 22, fontWeight: 500, color: C.muted, marginTop: 28, lineHeight: 1.3 }}>
+                  <div style={{ display: 'flex' }}>{latest.name}</div>
+                  {latest.date && <div style={{ display: 'flex' }}>{latest.date}</div>}
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ display: 'flex', fontSize: 34, fontWeight: 500, color: C.muted, marginTop: 24 }}>{OG_DESCRIPTION}</div>
