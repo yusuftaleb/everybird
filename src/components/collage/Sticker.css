@@ -1,8 +1,16 @@
-/* The silhouette fallback; loaded by Sticker, so every surface that shows stickers has it. */
+/* The no-sticker outline (bird-outline.ts), loaded by Sticker so every surface that shows stickers has it: Phosphor's
+   Bird stroked thin in Line at any size (non-scaling stroke), the same quiet placeholder the share images draw. */
 .eb-sil {
   display: block;
   width: 100%;
   height: 100%;
-  color: var(--muted);
+  color: var(--line);
 }
-.eb-sil svg { display: block; width: 100%; height: 100%; }
+.eb-sil svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.eb-sil path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}

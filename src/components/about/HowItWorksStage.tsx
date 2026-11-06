@@ -24,6 +24,7 @@
 //
 // Real stickers for the focal birds (the configured sticker site), quiet silhouettes (the product's own fallback) at
 // the edges. Colors and type are the site's tokens (tokens.css), so the demo follows the light and dark themes.
+import { BIRD_PATH } from '@/lib/bird-outline'
 import { ArrowRight, Binoculars, CheckSquareOffset, FileCsv, ShareNetwork } from '@phosphor-icons/react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { stickerUrl } from '@/lib/sticker-url'
@@ -69,9 +70,6 @@ const GEO: Record<Layout, Geo> = {
   wide: { win: { x: 156, y: 28, w: 660, h: 470 }, col: 524, f: 1, share: { x: 62, y: 217 } },
   compact: { win: { x: 16, y: 16, w: 400, h: 420 }, col: 310, f: 0.6, share: { x: 89, y: 104 } },
 }
-
-const BIRD_PATH =
-  'M236.44,73.34,213.21,57.86A60,60,0,0,0,156,16h-.29C122.79,16.16,96,43.47,96,76.89V96.63L11.63,197.88l-.1.12A16,16,0,0,0,24,224h88A104.11,104.11,0,0,0,216,120V100.28l20.44-13.62a8,8,0,0,0,0-13.32ZM126.15,133.12l-60,72a8,8,0,1,1-12.29-10.24l60-72a8,8,0,1,1,12.29,10.24ZM164,80a12,12,0,1,1,12-12A12,12,0,0,1,164,80Z'
 
 function Silhouette({ flip }: { flip?: boolean }) {
   return (

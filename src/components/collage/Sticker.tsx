@@ -1,5 +1,5 @@
 'use client'
-import { Bird as BirdIcon } from '@phosphor-icons/react'
+import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { useState } from 'react'
 import { LARGE, SMALL, STICKER_BASE, stickerUrl } from '@/lib/sticker-url'
 import './Sticker.css'
@@ -101,7 +101,8 @@ export function unloadSticker(el: Element): boolean {
 
 /**
  * A bird's sticker filling its box (w × h CSS px, used for the width/height attributes and `sizes`), or the
- * Phosphor Bird silhouette in Muted when the species has no sticker or the image fails to load.
+ * no-sticker outline (bird-outline.ts: Phosphor's Bird stroked thin in Line, as the share images draw it) when the
+ * species has no sticker or the image fails to load.
  * - defer: render the image without its source (data-src / data-srcset hold it) until loadDeferred() is called
  *   (and never lazy: the collage starts it when it should load, and a lazy one would hold a download slot);
  *   the collage starts it once the bird nears the viewport. The browser's own lazy loading starts every image
@@ -115,7 +116,9 @@ export function Sticker({ code, st, ar, w, h, lazy = true, defer = false }: { co
   if (!st || failed) {
     return (
       <span className="eb-sil" data-silhouette="">
-        <BirdIcon weight="fill" aria-hidden="true" focusable="false" />
+        <svg viewBox="0 0 256 256" aria-hidden="true" focusable="false">
+          <path d={BIRD_PATH} transform={`translate(${128 * (1 - OUTLINE_SCALE)} ${128 * (1 - OUTLINE_SCALE)}) scale(${OUTLINE_SCALE})`} />
+        </svg>
       </span>
     )
   }

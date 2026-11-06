@@ -145,12 +145,13 @@ describe('BirdCard', () => {
 
 describe('BirdCard small print', () => {
   const idx = buildSpeciesIndex([
-    { ...row('willet2', 'Saltmarsh Willet', 1, 215), standIn: 'willet3' },
+    row('willet2', 'Saltmarsh Willet', 1, 215),
     row('willet3', 'Prairie Willet', 2, 260),
   ])
-  it('names the stand-in illustration and an iNaturalist region assignment', () => {
+  it('names an iNaturalist region assignment, and never a borrowed illustration', () => {
     render(<BirdCard entry={entry('willet2', { assigned: 'region' })} species={idx} regions={regions} onClose={() => {}} />)
-    expect(screen.getByText('Illustration: Prairie Willet (stand-in) · Assigned by region')).toBeInTheDocument()
+    expect(screen.getByText('Assigned by region')).toBeInTheDocument()
+    expect(screen.queryByText(/Illustration|stand-in/)).toBeNull()
   })
   it('says default when the place could not tell; nothing for an ordinary bird', () => {
     const { unmount } = render(<BirdCard entry={entry('willet3', { assigned: 'default' })} species={idx} regions={regions} onClose={() => {}} />)

@@ -142,10 +142,8 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   }
 
   if (!row) return null
-  // Small print: the sticker is a split sibling's (build-species standIn); iNaturalist's lumped name was placed by region.
-  const standIn = row.standIn ? species.byCode.get(row.standIn)?.com : undefined
+  // Small print: iNaturalist's lumped name was placed by region (or by default).
   const notes = [
-    standIn && `Illustration: ${standIn} (stand-in)`,
     entry.assigned === 'region' ? 'Assigned by region' : entry.assigned === 'default' ? 'Assigned by default' : '',
   ].filter((n): n is string => !!n)
 

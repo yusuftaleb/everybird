@@ -18,6 +18,7 @@
 // the Phosphor Bird in Line (a solid silhouette would be the heaviest shape in the image). Text waits for the real
 // fonts (document.fonts.load) before drawing.
 import { SHARE_ORIGIN } from '@/lib/share/origin'
+import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { stickerUrl } from '@/lib/sticker-url'
 import { formatDate } from '@/lib/format'
 import type { Box } from '@/lib/layout/pack'
@@ -259,9 +260,6 @@ export function imagePackSpec(format: ImageFormat, c: CardContent): PackSpec {
 
 // --- drawing ---
 
-/** Phosphor's Bird (fill weight), on its 256 × 256 grid: the silhouette fallback. */
-const BIRD_PATH = 'M236.44,73.34,213.21,57.86A60,60,0,0,0,156,16h-.29C122.79,16.16,96,43.47,96,76.89V96.63L11.63,197.88l-.1.12A16,16,0,0,0,24,224h88A104.11,104.11,0,0,0,216,120V100.28l20.44-13.62a8,8,0,0,0,0-13.32ZM126.15,133.12l-60,72a8,8,0,1,1-12.29-10.24l60-72a8,8,0,1,1,12.29,10.24ZM164,80a12,12,0,1,1,12-12A12,12,0,0,1,164,80Z'
-const SILHOUETTE = 0.72
 const LOADS_AT_ONCE = 12
 const LOAD_TIMEOUT_MS = 20_000 // per sticker
 /** All stickers of one render must arrive within this; whatever is still pending is drawn as the silhouette. */
@@ -359,9 +357,9 @@ export function paintTiles(ctx: CanvasRenderingContext2D, tiles: Tile[], imgs: M
       ctx.drawImage(img, t.x, t.y, t.w, t.h)
       continue
     }
-    // Outline: the icon's 256 grid, fitted (contain) at SILHOUETTE of the tile and centred, stroked 2px thin at any
+    // Outline: the icon's 256 grid, fitted (contain) at OUTLINE_SCALE of the tile and centred, stroked 2px thin at any
     // scale, so a missing sticker reads as a quiet placeholder, not the darkest shape in the image.
-    const k = (SILHOUETTE * Math.min(t.w, t.h)) / 256
+    const k = (OUTLINE_SCALE * Math.min(t.w, t.h)) / 256
     ctx.save()
     ctx.translate(t.x + (t.w - 256 * k) / 2, t.y + (t.h - 256 * k) / 2)
     ctx.scale(k, k)

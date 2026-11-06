@@ -1,7 +1,7 @@
 # Crosswalk report
 
 - Species rows: 11201
-- With sticker: 11019 (30 a split sibling's stand-in); without: 182
+- With sticker: 10989; without: 212
 - Mass sources: avonet 10417, override 7, family 772, order 5
 - Multi-candidate choices: 0; scientific-name fallbacks: 44; huashu orphans: 0
 
@@ -60,40 +60,7 @@ _none_
 
 _none_
 
-## Stand-in stickers (split sibling) (30)
-
-- sulcud4 (Sultan's Cuckoo-Dove) -> sulcud3
-- willet2 (Saltmarsh Willet) -> willet3
-- blafio2 (Northern Fish-Owl) -> blafio4
-- rucmot6 (Guatemalan Motmot) -> rucmot1
-- yebkin5 (Ochre-bellied Kingfisher) -> yebkin1
-- compak17 (Morotai Paradise-Kingfisher) -> compak16
-- compak18 (Halmahera Paradise-Kingfisher) -> compak16
-- compak7 (Obi Paradise-Kingfisher) -> compak16
-- compak19 (Amboyna Paradise-Kingfisher) -> compak16
-- compak15 (Rossel Paradise-Kingfisher) -> compak16
-- barbro2 (Ayeyarwady Broadbill) -> barbro3
-- bkhant8 (Black-hooded Antthrush) -> bkhant7
-- soubet1 (Panama Beardless-Tyrannulet) -> soubet2
-- soubet6 (Cauca Beardless-Tyrannulet) -> soubet2
-- soubet7 (Venezuelan Beardless-Tyrannulet) -> soubet2
-- soubet16 (Amazonian Beardless-Tyrannulet) -> soubet2
-- soubet17 (Pacific Beardless-Tyrannulet) -> soubet2
-- yebtuf1 (Lemon-bellied Tufted-Flycatcher) -> tuffly1
-- banmyz3 (Tanimbar Myzomela) -> banmyz2
-- blujeb5 (Southern Blue Jewel-babbler) -> blujeb1
-- sqtsaw3 (Congo Saw-wing) -> sqtsaw2
-- sergob2 (Ambon Golden-Bulbul) -> sergob1
-- olwbul3 (Barusan Bulbul) -> olwbul9
-- pistib2 (Palawan Tit-Babbler) -> sttbab1
-- eamwre1 (Eastern Marsh Wren) -> marwre1
-- cairob1 (Canary Islands Robin) -> eurrob1
-- bluwht2 (Yellow-billed Whistling-Thrush) -> bluwht1
-- whcfor10 (Malayan Forktail) -> whcfor4
-- whcfor5 (Javan Forktail) -> whcfor4
-- mouwhe14 (Mourning Wheatear) -> mouwhe6
-
-## No sticker (182)
+## No sticker (212)
 
 - sddtin1 (Slaty-masked Tinamou) [huashu Crypturellus_resonans has no sticker]
 - maushe1 (Mauritius Shelduck)
@@ -113,6 +80,7 @@ _none_
 - paspig (Passenger Pigeon)
 - mautud1 (Mauritius Turtle-Dove)
 - rodtud1 (Rodrigues Turtle-Dove)
+- sulcud4 (Sultan's Cuckoo-Dove) [huashu Macropygia_doreya has no sticker]
 - tbgdov1 (Thick-billed Ground Dove)
 - tangrd1 (Tanna Ground Dove)
 - norgrd1 (Norfolk Ground Dove)
@@ -158,6 +126,7 @@ _none_
 - sunlap1 (Javan Lapwing)
 - noisni1 (North Island Snipe)
 - soisni1 (South Island Snipe)
+- willet2 (Saltmarsh Willet) [huashu Tringa_semipalmata has no sticker]
 - kirsan1 (Kiritimati Sandpiper)
 - whwsan1 (Tahiti Sandpiper)
 - moosan1 (Moorea Sandpiper)
@@ -182,10 +151,18 @@ _none_
 - reusco1 (Reunion Scops-Owl)
 - rodsco1 (Rodrigues Scops-Owl)
 - mausco1 (Mauritius Scops-Owl)
+- blafio2 (Northern Fish-Owl) [huashu Ketupa_doerriesi has no sticker]
 - bswowl1 (Bermuda Saw-whet Owl)
 - lauowl1 (Laughing Owl)
 - sthhoo1 (St. Helena Hoopoe)
+- rucmot6 (Guatemalan Motmot) [huashu Momotus_castaneiceps has no sticker]
 - tuakin2 (Tuamotu Kingfisher) [huashu Todiramphus_gambieri has no sticker]
+- yebkin5 (Ochre-bellied Kingfisher) [huashu Syma_ochracea has no sticker]
+- compak17 (Morotai Paradise-Kingfisher) [huashu Tanysiptera_doris has no sticker]
+- compak18 (Halmahera Paradise-Kingfisher) [huashu Tanysiptera_margarethae has no sticker]
+- compak7 (Obi Paradise-Kingfisher) [huashu Tanysiptera_obiensis has no sticker]
+- compak19 (Amboyna Paradise-Kingfisher) [huashu Tanysiptera_nais has no sticker]
+- compak15 (Rossel Paradise-Kingfisher) [huashu Tanysiptera_rosseliana has no sticker]
 - berfli1 (Bermuda Flicker)
 - guacar2 (Guadalupe Caracara)
 - reukes1 (Reunion Kestrel)
@@ -210,11 +187,21 @@ _none_
 - guapar2 (Guadeloupe Parakeet)
 - stiwre1 (Stephens Island Wren)
 - buswre1 (Bush Wren)
+- barbro2 (Ayeyarwady Broadbill) [huashu Cymbirhynchus_affinis has no sticker]
+- bkhant8 (Black-hooded Antthrush) [huashu Formicarius_destructus has no sticker]
 - crytre1 (Cryptic Treehunter)
 - alfgle1 (Alagoas Foliage-gleaner)
+- soubet1 (Panama Beardless-Tyrannulet) [huashu Camptostoma_flaviventre has no sticker]
+- soubet6 (Cauca Beardless-Tyrannulet) [huashu Camptostoma_caucae has no sticker]
+- soubet7 (Venezuelan Beardless-Tyrannulet) [huashu Camptostoma_pusillum has no sticker]
+- soubet16 (Amazonian Beardless-Tyrannulet) [huashu Camptostoma_napaeum has no sticker]
+- soubet17 (Pacific Beardless-Tyrannulet) [huashu Camptostoma_sclateri has no sticker]
+- yebtuf1 (Lemon-bellied Tufted-Flycatcher) [huashu Mitrephanes_aurantiiventris has no sticker]
 - chibel1 (Chatham Islands Bellbird)
+- banmyz3 (Tanimbar Myzomela) [huashu Myzomela_annabellae has no sticker]
 - banmyz4 (Babar Myzomela) [huashu Myzomela_babarensis has no sticker]
 - lohger1 (Lord Howe Gerygone)
+- blujeb5 (Southern Blue Jewel-babbler) [huashu Ptilorrhoa_nigricrissus has no sticker]
 - hoojeb1 (Hooded Jewel-babbler) [huashu Ptilorrhoa_urrissia has no sticker]
 - gyegre2 (Beni Greenlet) [huashu Hylophilus_moxensis has no sticker]
 - noipio1 (North Island Piopio)
@@ -234,9 +221,14 @@ _none_
 - moorew1 (Moorea Reed Warbler)
 - manrew2 (Mangareva Reed Warbler)
 - chifer1 (Chatham Islands Fernbird)
+- sqtsaw3 (Congo Saw-wing) [huashu Psalidoprocne_centralis has no sticker]
+- sergob2 (Ambon Golden-Bulbul) [huashu Hypsipetes_flavicaudus has no sticker]
+- olwbul3 (Barusan Bulbul) [huashu Pycnonotus_porphyreus has no sticker]
 - marwhe1 (Marianne White-eye)
 - wcweye1 (White-chested White-eye)
 - robwhe1 (Robust White-eye)
+- pistib2 (Palawan Tit-Babbler) [huashu Mixornis_woodi has no sticker]
+- eamwre1 (Eastern Marsh Wren) [huashu Cistothorus_palustris has no sticker]
 - kossta1 (Kosrae Starling)
 - myssta1 (Mysterious Starling)
 - norsta1 (Tasman Starling)
@@ -248,7 +240,12 @@ _none_
 - bonthr2 (Bonin Thrush)
 - norist1 (Tasman Sea Island-Thrush)
 - grcthr1 (Grand Cayman Thrush)
+- cairob1 (Canary Islands Robin) [huashu Erithacus_superbus has no sticker]
 - forrob4 (Yellow-breasted Forest Robin) [huashu Stiphrornis_mabirae has no sticker]
+- bluwht2 (Yellow-billed Whistling-Thrush) [huashu Myophonus_flavirostris has no sticker]
+- whcfor10 (Malayan Forktail) [huashu Enicurus_frontalis has no sticker]
+- whcfor5 (Javan Forktail) [huashu Enicurus_leschenaulti has no sticker]
+- mouwhe14 (Mourning Wheatear) [huashu Oenanthe_lugens has no sticker]
 - kauoo (Kauai Oo)
 - oahoo (Oahu Oo)
 - bisoo (Bishop's Oo)

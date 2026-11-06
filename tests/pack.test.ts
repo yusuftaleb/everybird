@@ -324,24 +324,25 @@ function big(name: string, n = 5000) {
   return BIG.get(key)!
 }
 
-// Small lists keep today's layouts exactly: base, stage and every box, in both modes. Fingerprints recorded
-// with the packer before the floor/cap rule (main de23fa4's pack.ts) on main's public/data (11,019 masked
-// species in the pool); a change here means small lists moved, or the pool did (new masks shift the stride).
+// Small lists keep today's layouts exactly: base, stage and every box, in both modes. Fingerprints recorded on
+// public/data with 10,989 masked species in the pool (re-recorded 2026-11-06 when the 30 split-sibling stand-ins
+// were removed; the packer unchanged since de23fa4); a change here means small lists moved, or the pool did (new
+// masks shift the stride).
 const fingerprint = (r: PackResult) => {
   let s = 0
   for (const [id, [x, y, w, h]] of [...r.boxes.entries()].sort((a, b) => a[0] - b[0])) s += ((id % 97) + 1) * (x + 3 * y + 7 * w + 11 * h)
   return `${r.base.toFixed(6)}|${r.W}x${r.H}|${s.toFixed(3)}`
 }
 const SMALL: [string, number, string, string][] = [
-  ['wide', 20, '80.000000|696x432|2092946.430', '73.431516|696x432|2227689.580'],
-  ['wide', 100, '47.637875|1120x700|13475522.797', '28.865483|1120x700|13170460.779'],
-  ['wide', 200, '31.912958|1120x700|23661048.895', '18.729756|1120x700|23163088.446'],
-  ['medium', 20, '80.000000|542x544|2314657.430', '73.379188|542x544|2411123.866'],
-  ['medium', 100, '40.227866|700x800|12596451.618', '24.198605|700x800|12598082.268'],
-  ['medium', 200, '26.279677|700x800|21824442.667', '15.332686|700x800|21670058.517'],
-  ['narrow', 20, '79.853229|350x756|2370624.624', '66.196435|350x756|2387780.103'],
-  ['narrow', 100, '28.971684|350x900|10785855.749', '17.220247|350x900|10721015.362'],
-  ['narrow', 200, '18.705831|350x900|19882516.763', '10.773973|350x900|19840780.925'],
+  ['wide', 20, '80.000000|732x456|3046502.652', '72.095198|732x456|3368208.328'],
+  ['wide', 100, '49.728073|1120x700|13483027.029', '31.531220|1120x700|13351428.840'],
+  ['wide', 200, '32.129099|1120x700|24400533.893', '19.380746|1120x700|24398099.928'],
+  ['medium', 20, '79.984678|564x548|3198118.728', '69.697506|564x548|3209451.116'],
+  ['medium', 100, '42.132785|700x800|12141522.671', '26.237303|700x800|11852267.148'],
+  ['medium', 200, '26.682264|700x800|21288803.853', '15.632191|700x800|20411535.102'],
+  ['narrow', 20, '79.832257|350x760|3422656.267', '64.803721|350x760|3453207.813'],
+  ['narrow', 100, '30.068050|350x900|11014671.265', '18.656089|350x900|10837847.343'],
+  ['narrow', 200, '19.000971|350x900|20188307.878', '11.081955|350x900|19375451.226'],
 ]
 
 describe('small lists keep their layouts (identical boxes)', () => {

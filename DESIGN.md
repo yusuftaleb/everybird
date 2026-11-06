@@ -222,6 +222,8 @@ Two sets, never mixed within a control. The site's own 256-grid glyphs (`collage
 
 Stickers are huashu-bird-sticker (CC BY 4.0), trimmed webp at 128 and 384px, hosted separately (`NEXT_PUBLIC_STICKER_BASE`), shown at their natural aspect (`ar`) with `object-fit: contain`. A sticker that fails to load falls back to a bird silhouette (Phosphor Bird path, 72% of the tile) in Line. **The credit rule:** on the site, the footer's "All credits" link (→ About's `#credits`, which carries "huashu-bird-sticker, CC BY 4.0" in full, linked to https://github.com/alchaincyf/huashu-bird-sticker) and the credit under the About demo; on share images and link previews, the footer line "everybird.yusuftaleb.com · stickers by huashu"; in the share sheet's text, the full credit with the licence and link. Sticker size encodes body mass (the "True size" switch); the order's mask shapes the packing.
 
+**No sticker:** a species huashu has no sticker of its own for (212 of 11,201 in v1) shows the no-sticker outline, never another species' sticker: Phosphor's Bird stroked thin in Line (1.5px on the page, non-scaling; 2px on share images), at 72% of its box and centred, the same on every surface (collage, list rows, card, share images; `src/lib/bird-outline.ts`). It packs as a round blob. A sticker that fails to load shows the same outline.
+
 ## Voice and copy
 
 - Plain words, second person, short sentences: "Every bird you've ever seen." "Make yours." "This link didn't open."
