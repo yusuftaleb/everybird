@@ -50,12 +50,13 @@ const ROWS = 4812
 // ---- Geometry ----
 // Wide (720 × 470): one gutter (28) above the window; the desktop column holds the file at the top and the share
 // image, straddling the window's left edge, below it. The window runs off the right and bottom.
-// Compact (358 × 356): the window inset 16 at the top and left, off the right and bottom (what shows is square). The
-// share image comes up over the window as the product's share dialog shows it, over a scrim.
+// Compact (358 × 356): no desktop, so no tinted field: the window sits on the page itself, inset 16 at the top and
+// left, off the right and bottom (what shows is square). The share image comes up over the window as the product's
+// share dialog shows it, over a scrim.
 type Geo = { win: { x: number; y: number; w: number; h: number }; col: number; f: number; share: { x: number; y: number; w: number } }
 const GEO: Record<Layout, Geo> = {
   wide: { win: { x: 156, y: 28, w: 660, h: 470 }, col: 524, f: 1, share: { x: 70, y: 226, w: 172 } },
-  compact: { win: { x: 16, y: 16, w: 400, h: 420 }, col: 310, f: 0.6, share: { x: 102, y: 92, w: 170 } },
+  compact: { win: { x: 16, y: 16, w: 400, h: 420 }, col: 310, f: 0.6, share: { x: 102, y: 112, w: 170 } },
 }
 
 // ---- The birds ----
@@ -210,14 +211,15 @@ async function script(a: Act<S>) {
   await a.click()
   a.mark('herons')
   await a.set({ herons: true, count: 6 })
-  await a.wait(1600)
+  await a.wait(1100)
   await a.click()
   a.mark('all')
   await a.set({ herons: false, count: TOTAL })
-  await a.wait(900)
+  await a.wait(250)
 
-  // 4. Share: the image the birder posts
+  // 4. Share: the cursor heads for it while everyone comes back
   await a.move({ at: 'share', x: 0.82, y: 0.64 })
+  await a.wait(150)
   await a.click()
   a.mark('share')
   await a.set({ share: true })
@@ -444,7 +446,7 @@ function ShareImage({ show, geo, layout }: { show: boolean; geo: Geo['share']; l
       </div>
       <div className="ebd-share-foot">
         <span className="ebd-share-mark">Everybird</span>
-        <span className="ebd-share-credit">Stickers: huashu-bird-sticker, CC BY 4.0</span>
+        <span className="ebd-share-credit"><span>Stickers: huashu-bird-sticker,</span> <span>CC BY 4.0</span></span>
       </div>
     </div>
   )

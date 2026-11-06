@@ -17,15 +17,17 @@ Beats (wide, about 15 s a loop):
    in Accent, as the real drop target does); dropped, the status reads the rows (0 to 4,812).
 2. 3.4 s: "Added 197 species from your eBird export." opens with "See my collage"; pressed, the page swaps to the
    collage and the stickers arrive from the centre out while the count ticks to 197.
-3. 7.4 s: Herons pressed: the six herons glide and grow into the middle, the rest step out, "6 of 197 species". Pressed
-   again (the product's way to clear a chosen chip), everyone comes back.
-4. 10.6 s, payoff: Share pressed; the share image (post format: "Sam Reyes", "197 species", the stickers, the wordmark and
+3. 7.4 s: Herons pressed: the six herons glide and grow into the middle, the rest step out, "6 of 197 species", held
+   1.1 s. Pressed again (the product's way to clear a chosen chip, and the cause of the data returning), everyone comes
+   back while the cursor is already travelling to Share.
+4. 9.8 s, payoff: Share pressed; the share image (post format: "Sam Reyes", "197 species", the stickers, the wordmark and
    "Stickers: huashu-bird-sticker, CC BY 4.0") comes up on the desktop, straddling the window's left edge, and holds 2.3 s.
 5. Reset with a cause: Settings in the top bar; the window swaps back to Your sources and the image leaves with the
    collage. The banner and the row count were put back while Settings was out of sight; the collage is cleared after it
    has faded. The cursor returns to rest beside the file, where the next loop picks it up.
 
-Compact (under 560 px of column, 358 × 356): no desktop, so "Choose your eBird file" is pressed instead of the drag
+Compact (under 560 px of column, 358 × 356): no desktop, so no tinted field either: the window sits on the page itself
+(transparent stage, the window's hairline and the ground shadow), inset 16 at the top and left, off the right and bottom; so "Choose your eBird file" is pressed instead of the drag
 (phones choose files; the drop hint is hidden on touch in the product too); the chips drop "Perching birds"; the share
 image comes up over the window on the share dialog's scrim, as the product presents it.
 
@@ -67,7 +69,13 @@ Assumptions: "Sam Reyes" and 4,812 rows are invented; the 197 total, 18 visible 
 believable list, not anyone's real one. Sticker codes are public taxonomy codes. Stickers load from the configured
 sticker base (`NEXT_PUBLIC_STICKER_BASE`), so the demo needs the stickers site to be live (Task 25) in production.
 
-Unresolved: the share image's credit line is 6 px at the wide size (it is a picture of the image; the page credits the
+Fix round 1 (review): the compact plate removed (transparent stage, `--ss-shadow-ground` on the window); the compact
+share image moved down 20 px so it fully covers the count's "SPECIES" in the poster; the filtered hold cut from 1.6 s to
+1.1 s and the un-filter overlapped with the cursor's travel to Share (loop about 14 s); the in-image credit raised to 7 px
+on two lines ("Stickers: huashu-bird-sticker," / "CC BY 4.0"). Re-filmed: contact sheets, states, posters and the seam at
+both widths, and the un-filter beat at 60 ms; the gate passes at both widths.
+
+Unresolved: the share image's credit line is 7 px at the wide size (it is a picture of the image; the page credits the
 stickers in words right under the demo and in the footer). The dock (Collage/List, True size) is left out of the
 collage page for room.
 

@@ -28,6 +28,9 @@
   border-radius: calc(20px * var(--one-if-corner-shape-supported, .566));
   corner-shape: superellipse(2);
 }
+/* Compact has no desktop in its story: the page is the ground (no tinted plate); the window keeps its edge and shadow. */
+.ebd .ss-stage[data-layout="compact"] { background: transparent; }
+.ebd .ss-stage[data-layout="compact"] .ebd-window { box-shadow: var(--ss-shadow-ground); }
 .ebd .ss-stage[data-theme="dark"] {
   --ss-shadow-hero: 0 0 0 1px rgb(255 255 255 / .06), 0 30px 60px -12px rgb(0 0 0 / .55), 0 18px 36px -18px rgb(0 0 0 / .6);
   --ss-shadow-satellite: 0 0 0 1px rgb(255 255 255 / .08), 0 14px 32px -8px rgb(0 0 0 / .55), 0 4px 10px -4px rgb(0 0 0 / .4);
@@ -195,7 +198,8 @@
   display: flex; flex-direction: column; gap: 3px;
 }
 .ebd .ebd-share-mark { font-family: var(--font-display); font-weight: 700; font-size: 9px; line-height: 1; }
-.ebd .ebd-share-credit { font-family: var(--font-mono); font-size: 6px; letter-spacing: .02em; color: var(--muted); white-space: nowrap; }
+.ebd .ebd-share-credit { font-family: var(--font-mono); font-size: 7px; line-height: 1.3; letter-spacing: .02em; color: var(--muted); }
+.ebd .ebd-share-credit > span { display: block; white-space: nowrap; }
 
 /* ---- The desktop: the eBird export, and its drag image ---- */
 .ebd .ebd-desk {
