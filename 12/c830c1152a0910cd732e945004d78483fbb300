@@ -1,0 +1,68 @@
+AGENTS.md
+  s_ab125876fe9ad2::t_9b5c982e3dc440 58
+  s_ab125876fe9ad2::t_3436e1ab0f4645 34
+src/components/dialog-utils.ts
+  s_ab125876fe9ad2::t_b68a9f44be93dd 3,43-50
+  s_ab125876fe9ad2::t_8f05be9287baa6 51-52
+src/components/filters/PickerSheet.tsx
+  s_ab125876fe9ad2::t_b68a9f44be93dd 3,14
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_b68a9f44be93dd 9,55
+e2e/headroom.spec.ts
+  s_ab125876fe9ad2::t_e77b4cb6413f9e 146,154-156
+  s_ab125876fe9ad2::t_facda1bf6878ab 151
+  s_ab125876fe9ad2::t_45f857ecd83b7e 174-179,181-182,184-186
+  s_ab125876fe9ad2::t_1ea5f4dae54b62 180
+  s_ab125876fe9ad2::t_ca7bd7240b2337 183
+  s_ab125876fe9ad2::t_11e16a59736219 1-145,147-148,150,152-153,157-173
+  s_ab125876fe9ad2::t_87ddf303e1c940 149
+src/components/app/app.css
+  s_ab125876fe9ad2::t_ed713a422e5e88 277-279
+  s_ab125876fe9ad2::t_c1bff72d9a95cd 267-276,363,404
+src/components/share/share.css
+  s_ab125876fe9ad2::t_c1bff72d9a95cd 5
+src/components/app/Welcome.tsx
+  s_ab125876fe9ad2::t_b68a9f44be93dd 7,34
+src/styles/tokens.css
+  s_ab125876fe9ad2::t_c1bff72d9a95cd 15-28,30
+src/components/app/TopBar.tsx
+  s_ab125876fe9ad2::t_9e1186a3a08052 5-6,9-10,21-22,24
+src/components/collage/BirdCard.tsx
+  s_ab125876fe9ad2::t_b68a9f44be93dd 3,127
+DESIGN.md
+  s_ab125876fe9ad2::t_9b5c982e3dc440 153-154,197-199
+src/styles/globals.css
+  s_ab125876fe9ad2::t_c1bff72d9a95cd 11-12
+src/components/collage/card-list.css
+  s_ab125876fe9ad2::t_c1bff72d9a95cd 5,35
+src/components/filters/FilterDropdowns.tsx
+  s_ab125876fe9ad2::t_b68a9f44be93dd 17,143-144
+tests/headroom.test.ts
+  s_ab125876fe9ad2::t_2571e818c7adbd 1-19,21-39
+  s_ab125876fe9ad2::t_0fcc30a798e015 20
+src/components/filters/filters.css
+  s_ab125876fe9ad2::t_c1bff72d9a95cd 51,53
+src/lib/headroom.ts
+  s_ab125876fe9ad2::t_8ecd0c8673b8fd 1-65,83-134
+  s_ab125876fe9ad2::t_e77b4cb6413f9e 66-72,75-82
+  s_ab125876fe9ad2::t_ed713a422e5e88 74
+  s_ab125876fe9ad2::t_4f1fcd6de72ba9 73
+playwright.config.ts
+  s_ab125876fe9ad2::t_231d93bcbc8f47 26-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "12c830c1152a0910cd732e945004d78483fbb300",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
