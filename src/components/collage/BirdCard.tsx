@@ -142,13 +142,8 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   }
 
   if (!row) return null
-  const place = formatPlace(entry.place, regions)
-  const date = formatDate(entry.date)
-  const marks = marksOf(entry).map((m) => m.label)
-  const when = [date, ...marks].filter(Boolean)
 
-  // LifeList's card (layout C): the name with its marks, the other name under it, the body mass top-right; then
-  // the date line (with the marks in words) and the place, both mono.
+  // LifeList's card (layout C), with a close button and the edit actions under it.
   const card = (
     <div
       ref={ref}
@@ -160,15 +155,42 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
       tabIndex={-1}
       onKeyDown={trap}
     >
-      <div className="eb-card-head">
-        <div className="eb-card-names">
-          <h2 className="eb-card-name" lang={sci ? 'la' : undefined}>{sci ? row.sci : row.com}<Marks entry={entry} /></h2>
-          <p className="eb-card-other" lang={sci ? undefined : 'la'}>{sci ? row.com : row.sci}</p>
-        </div>
-        <span className="eb-card-mass" title={massLabel(row)}><span className="eb-sr">{massLabel(row)} </span>{massValue(row)}</span>
+      <BirdFacts entry={entry} row={row} regions={regions} sci={sci}>
         <button type="button" className="eb-card-close" aria-label="Close" onClick={onClose}>
           <CloseIcon />
         </button>
+      </BirdFacts>
+      {actions && <div className="eb-card-actions">{actions}</div>}
+    </div>
+  )
+
+  return sheet ? (
+    <div className="eb-card-scrim" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>{card}</div>
+  ) : card
+}
+
+/**
+ * What the card and the hover tooltip say (LifeList's card, layout C): the name with its marks, the other name under
+ * it, the body mass top-right (then `children`, the card's close button); then the date line (with the marks in
+ * words) and the place, both mono. `heading` names the bird with an h2 (the card) or a plain paragraph (the tooltip).
+ */
+export function BirdFacts({ entry, row, regions, sci = false, heading = true, children }: {
+  entry: ListEntry; row: SpeciesRow; regions: Regions; sci?: boolean; heading?: boolean; children?: ReactNode
+}) {
+  const place = formatPlace(entry.place, regions)
+  const date = formatDate(entry.date)
+  const marks = marksOf(entry).map((m) => m.label)
+  const when = [date, ...marks].filter(Boolean)
+  const Name = heading ? 'h2' : 'p'
+  return (
+    <>
+      <div className="eb-card-head">
+        <div className="eb-card-names">
+          <Name className="eb-card-name" lang={sci ? 'la' : undefined}>{sci ? row.sci : row.com}<Marks entry={entry} /></Name>
+          <p className="eb-card-other" lang={sci ? undefined : 'la'}>{sci ? row.com : row.sci}</p>
+        </div>
+        <span className="eb-card-mass" title={massLabel(row)}><span className="eb-sr">{massLabel(row)} </span>{massValue(row)}</span>
+        {children}
       </div>
       {(when.length > 0 || place) && (
         <div className="eb-card-when">
@@ -181,11 +203,6 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
           {place && <p className="eb-mono eb-card-place">{place}</p>}
         </div>
       )}
-      {actions && <div className="eb-card-actions">{actions}</div>}
-    </div>
+    </>
   )
-
-  return sheet ? (
-    <div className="eb-card-scrim" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>{card}</div>
-  ) : card
 }

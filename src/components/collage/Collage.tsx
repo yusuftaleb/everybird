@@ -37,6 +37,8 @@ export type CollageProps = {
 }
 
 const TOUCH_SLOP_PX = 28
+/** :focus-visible, where the browser knows it (jsdom doesn't: there, any focus counts). */
+const focusVisible = (el: Element) => { try { return el.matches(':focus-visible') } catch { return true } }
 type Fade = { anim: Animation | null; phase: 'out' | 'in' | null; apply: (() => void) | null }
 
 /** A bird's first-render style, from the layout it first appears in (seeds the motion caches to match). */
@@ -325,7 +327,14 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
           syncTabStop()
           onPick(code)
         }}
-        onFocus={(e) => { const c = codeOf(e.target); if (c) { focusCode.current = c; syncTabStop(); setHot(c) } }}
+        onFocus={(e) => {
+          const c = codeOf(e.target)
+          if (!c) return
+          focusCode.current = c
+          syncTabStop()
+          // Keyboard focus shows the bird's tooltip (as on /lifelist); focus put back after a click or a card does not.
+          if (focusVisible(e.target as Element)) setHot(c)
+        }}
         onBlur={(e) => { if (codeOf(e.target)) setHot(null) }}
         onKeyDown={onKeyDown}
       >

@@ -1,27 +1,28 @@
 'use client'
-// The collage block shared by the landing demo, the birder's own page and the shared view: the stats line, the
-// controls bar (view tabs, search, True size or the list's direction, Scientific), the filters, the collage or the
-// list, the legend and the bird card. Composition after LifeList.tsx (framer-site).
+// The collage block shared by the landing sample, the birder's own collage and the shared view: the stats line, the
+// controls bar (view tabs, True size or the list's direction, Scientific, the search), the filters, the collage or
+// the list, the legend, the hover tooltip and the bird card. Composition after LifeList.tsx (framer-site).
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BirdCard } from '@/components/collage/BirdCard'
+import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage } from '@/components/collage/Collage'
 import { reduced } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
 import { FilterBar, type Tab as FilterTab } from '@/components/filters/FilterBar'
 import { formatDate } from '@/lib/format'
 import { latestLifer } from '@/lib/list/build-list'
-import { applyFilter, filterKey, type Filter } from '@/lib/list/filters'
+import { applyFilter, drillTo, filterKey, filterToShow } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import type { Action, AppState } from '@/lib/list/store'
 import type { SpeciesIndex } from '@/lib/species/load'
-import { suggestBirds } from '@/lib/species/name-search'
+import type { CollageHit } from '@/lib/species/name-search'
 import type { CountryDots, Regions } from '@/lib/species/types'
-import { CollageSearch } from './CollageSearch'
+import type { StateLayout } from '@/lib/layout/layout-client'
 import { ControlsBar } from './ControlsBar'
 import { useCollageLayout } from './use-collage-layout'
 import './app.css'
 
-/** The stage re-renders only when its own props change (not when a card opens). */
+/** The stage re-renders only when its own props change (not when a card or tooltip opens). */
 const Stage = memo(Collage)
 
 type Props = {
@@ -32,24 +33,32 @@ type Props = {
   dots?: CountryDots
   /** Accessible name of the block. */
   label: string
-  /** Extra actions in the bird card (EditBird on the birder's own page). `close` closes the card. */
+  /** Extra actions in the bird card (EditBird on the birder's own collage). `close` closes the card. */
   cardActions?: (entry: ListEntry, close: () => void) => ReactNode
   /** Filter tabs to leave out. */
   hideTabs?: readonly FilterTab[]
+  /** Before the stats ("Sample: Yusuf's life list"). */
+  statsPrefix?: string
+  /** A line under the stats (the unmatched-rows note on the birder's own collage). */
+  notice?: ReactNode
+  /** Under the filters (what a shared link leaves out). */
+  filterNote?: ReactNode
+  /** Start with the filters folded to their tab row (the landing sample: the birds lead). */
+  foldFilters?: boolean
+  /** Whose list the search speaks of when nothing matches: "your" (the birder's own) or "this" (default). */
+  whose?: 'your' | 'this'
+  /** Full layouts packed ahead of time, shown until the layout worker answers (the landing sample). */
+  seed?: readonly StateLayout[]
 }
 
 const n = (x: number) => x.toLocaleString('en-US')
 const plural = (x: number, one: string, many: string) => `${n(x)} ${x === 1 ? one : many}`
 const pad = (d: string) => (d.length === 4 ? `${d}-00-00` : d.length === 7 ? `${d}-00` : d)
-/** Typing settles this long before the collage re-packs for the search (suggestions follow every key). */
-const SEARCH_SETTLE_MS = 140
-/** How long the picked bird's Accent ring shows, and how long its card follows it while it travels. */
+/** How long a bird picked from the search wears its Accent ring. */
 const RING_MS = 1600
-/** The travel (640 ms) plus the ripple and a little slack: by then the bird is in its new spot. */
-const SETTLE_MS = 900
-const SUGGESTIONS = 8
-/** The filter part of a StateLayout key ("<layout>|<mode>|<filterKey>"). */
-const layoutFilterKey = (key: string) => key.split('|').slice(2).join('|')
+/** The collage's glide to a new layout (640 ms) and a little slack: then a bird picked from outside the view is shown. */
+const GLIDE_MS = 760
+const TABS: { id: FilterTab; label: string }[] = [{ id: 'birds', label: 'Birds' }, { id: 'places', label: 'Places' }, { id: 'time', label: 'Time' }]
 
 /** "197 species · 20 orders · 50 families · since Jan 2020", or "12 of 197 species · 3 families" when filtered. */
 export function statsLine(all: ListEntry[], shown: ListEntry[], species: SpeciesIndex): string {
@@ -66,115 +75,129 @@ export function statsLine(all: ListEntry[], shown: ListEntry[], species: Species
   return parts.join(' · ')
 }
 
-export function CollageView({ state, dispatch, species, regions, dots, label, cardActions, hideTabs }: Props) {
+export function CollageView({ state, dispatch, species, regions, dots, label, cardActions, hideTabs, statsPrefix, notice, filterNote, foldFilters, seed, whose = 'this' }: Props) {
   const { list, trips, filter, mode, view, massOrder, sci } = state
   const box = useRef<HTMLElement>(null)
-  const [pick, setPick] = useState<{ code: string; anchor: HTMLElement | null; follow?: boolean } | null>(null)
-  // The search: `text` follows every key (suggestions); `q` follows it once typing settles (the collage re-packs).
-  const [text, setText] = useState('')
-  const [q, setQ] = useState('')
-  const onText = useCallback((t: string) => {
-    setText(t)
-    if (!t.trim()) setQ('') // clearing shows everything at once
-  }, [])
-  useEffect(() => {
-    if (!text.trim() || text.trim() === q.trim()) return
-    const t = setTimeout(() => setQ(text), SEARCH_SETTLE_MS)
-    return () => clearTimeout(t)
-  }, [text, q])
-  const shownFilter = useMemo<Filter>(() => (q.trim() ? { ...filter, q } : filter), [filter, q])
+  const wrap = useRef<HTMLDivElement>(null)
+  const [pick, setPick] = useState<{ code: string; anchor: HTMLElement | null } | null>(null)
+  const [tip, setTip] = useState<string | null>(null)
+  const [tab, setTab] = useState<FilterTab>('birds')
+  const [folded, setFolded] = useState(!!foldFilters)
 
-  const lay = useCollageLayout({ list, trips, filter: shownFilter, mode, species, container: box })
+  const lay = useCollageLayout({ list, trips, filter, mode, species, container: box, seed })
 
   const entries = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
-  const fk = filterKey(shownFilter)
-  const shownList = useMemo(() => (fk ? applyFilter(entries, shownFilter, species, trips) : entries), [entries, shownFilter, fk, species, trips])
+  const fk = filterKey(filter)
+  const shownList = useMemo(() => (fk ? applyFilter(entries, filter, species, trips) : entries), [entries, filter, fk, species, trips])
   const stats = useMemo(() => statsLine(entries, shownList, species), [entries, shownList, species])
-  // Suggestions: birds under the other filters whose names match what is typed now.
-  const others = useMemo(() => (filterKey(filter) ? applyFilter(entries, filter, species, trips) : entries), [entries, filter, species, trips])
-  const suggestions = useMemo(() => (text.trim() ? suggestBirds(others, text, species, SUGGESTIONS) : []), [others, text, species])
+  const shownCodes = useMemo(() => new Set(shownList.map((e) => e.code)), [shownList])
   const latest = useMemo(() => latestLifer(entries, (c) => species.byCode.get(c)?.to ?? 0), [entries, species])
 
   const close = useCallback(() => setPick(null), [])
   const onPickBird = useCallback((code: string) => {
     const el = box.current?.querySelector<HTMLElement>(`.eb-bird[data-code="${code}"]`) ?? null
+    setTip(null)
     setPick({ code, anchor: el })
   }, [])
   const onPickRow = useCallback((code: string, el: HTMLElement) => setPick({ code, anchor: el }), [])
+  const onHover = useCallback((code: string | null) => setTip(code), [])
 
-  // A suggestion picked: clear the narrowing, then (once the unsearched layout is in and the bird is heading for its
-  // own spot) scroll that spot into view, ring the bird (or its row) in Accent and open its card, which follows the
-  // bird while it travels. Scrolling earlier would aim at where the bird stood in the narrowed layout.
-  const ring = useRef<{ el: HTMLElement; t: ReturnType<typeof setTimeout>; t2?: ReturnType<typeof setTimeout> } | null>(null)
-  useEffect(() => () => { if (ring.current) { clearTimeout(ring.current.t); clearTimeout(ring.current.t2) } }, [])
-  const [pending, setPending] = useState<{ code: string; wait: boolean } | null>(null)
-  const onPickSuggestion = useCallback((code: string) => {
-    const narrowed = !!q.trim()
-    setText('')
-    setQ('')
-    // The collage re-packs only if the narrowing had reached it; the list re-renders in the same commit.
-    setPending({ code, wait: view === 'collage' && !!lay && narrowed })
-  }, [view, lay, q])
-  const fullKey = filterKey(filter)
+  // A bird shown from the search keeps its tooltip until the next press, hover or Esc.
   useEffect(() => {
-    if (!pending) return
-    if (pending.wait && (!lay || layoutFilterKey(lay.layout.key) !== fullKey || !lay.visible.has(pending.code))) return
-    const { code } = pending
-    const raf = requestAnimationFrame(() => {
-      setPending(null)
-      const collage = view === 'collage'
-      const el = box.current?.querySelector<HTMLElement>(collage ? `.eb-bird[data-code="${code}"]` : `.eb-row-btn[data-code="${code}"]`) ?? null
-      if (ring.current) { clearTimeout(ring.current.t); clearTimeout(ring.current.t2); ring.current.el.removeAttribute('data-ring') }
-      if (el) {
-        el.setAttribute('data-ring', '')
-        ring.current = { el, t: setTimeout(() => el.removeAttribute('data-ring'), RING_MS) }
-        const behavior: ScrollBehavior = reduced() ? 'auto' : 'smooth'
-        const stage = collage ? box.current?.querySelector<HTMLElement>('.eb-stage') : null
-        const b = collage && lay ? lay.layout.boxes.get(code) : undefined
-        if (stage && b && lay) {
-          // Where the bird is going, not where it is: its box in the new layout, scaled to the stage's width.
-          const r = stage.getBoundingClientRect()
-          const k = r.width / lay.layout.W
-          const y = window.scrollY + r.top + (b[1] + b[3] / 2) * k
-          window.scrollTo?.({ top: Math.max(0, y - window.innerHeight / 2), behavior })
-          // The stage is still growing to its full height (the page may not reach that far yet): once the travel is
-          // over, bring the bird the rest of the way if it isn't on screen.
-          const late = setTimeout(() => {
-            const br = el.getBoundingClientRect()
-            if (el.isConnected && (br.top < 0 || br.bottom > window.innerHeight)) el.scrollIntoView({ block: 'center', behavior })
-          }, SETTLE_MS)
-          ring.current.t2 = late
-        } else el.scrollIntoView?.({ block: 'center', behavior })
-      }
-      setPick({ code, anchor: el, follow: true })
-    })
-    return () => cancelAnimationFrame(raf)
-  }, [pending, lay, view, fullKey])
+    if (!tip) return
+    const down = () => setTip(null)
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setTip(null) }
+    document.addEventListener('pointerdown', down)
+    document.addEventListener('keydown', key)
+    return () => { document.removeEventListener('pointerdown', down); document.removeEventListener('keydown', key) }
+  }, [tip])
+
+  // The search covers the whole list. An order or family drills the filter into it (Birds tab). A species is shown
+  // where it stands: scrolled into view, ringed briefly in Accent, focused, its tooltip open (its row, in list view).
+  // One outside the current view first clears the filters that hide it; it is shown once the collage has glided to
+  // the new layout.
+  const ring = useRef<{ el: HTMLElement; t: ReturnType<typeof setTimeout> } | null>(null)
+  useEffect(() => () => { if (ring.current) clearTimeout(ring.current.t) }, [])
+  const show = useCallback((code: string) => {
+    const collage = view === 'collage'
+    const el = box.current?.querySelector<HTMLElement>(collage ? `.eb-bird[data-code="${code}"]` : `.eb-row-btn[data-code="${code}"]`)
+    if (!el) return
+    if (ring.current) { clearTimeout(ring.current.t); ring.current.el.removeAttribute('data-ring') }
+    el.setAttribute('data-ring', '')
+    ring.current = { el, t: setTimeout(() => el.removeAttribute('data-ring'), RING_MS) }
+    el.scrollIntoView?.({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' })
+    el.focus({ preventScroll: true })
+    if (collage) requestAnimationFrame(() => setTip(code))
+  }, [view])
+  const [pending, setPending] = useState<{ code: string; key: string } | null>(null)
+  const onSearchPick = useCallback((h: CollageHit) => {
+    if (h.kind !== 'species') {
+      setFolded(false)
+      setTab('birds')
+      dispatch({ type: 'filter', filter: drillTo(filter, { order: h.kind === 'order' ? h.value : h.order, family: h.kind === 'family' ? h.value : undefined }, entries, species, trips) })
+      return
+    }
+    const e = entries.find((x) => x.code === h.value)
+    if (!e) return
+    if (!fk || shownList.some((x) => x.code === h.value)) { show(h.value); return }
+    const next = filterToShow(filter, e, species, trips)
+    dispatch({ type: 'filter', filter: next })
+    setPending({ code: h.value, key: filterKey(next) })
+  }, [filter, fk, shownList, entries, species, trips, dispatch, show])
+  // The out-of-view pick: wait for the new filter's layout (the list re-renders at once), then for the glide.
+  useEffect(() => {
+    if (!pending || fk !== pending.key) return
+    const collage = view === 'collage'
+    if (collage && (!lay || lay.layout.key.split('|').slice(2).join('|') !== pending.key || !lay.visible.has(pending.code))) return
+    const t = setTimeout(() => { setPending(null); show(pending.code) }, collage && !reduced() ? GLIDE_MS : 0)
+    return () => clearTimeout(t)
+  }, [pending, fk, lay, view, show])
 
   const picked = pick ? list.find((e) => e.code === pick.code) : undefined
+  const tipEntry = tip && !pick && view === 'collage' ? entries.find((e) => e.code === tip) : undefined
   const sizes = mode === 'true' ? 'Sizes follow body mass at true scale' : 'Sizes follow body mass, evened out so small birds stay visible'
   const latestRow = latest ? species.byCode.get(latest.code) : undefined
+  const shownTabs = hideTabs?.length ? TABS.filter((t) => !hideTabs.includes(t.id)) : TABS
 
   return (
     <section ref={box} className="eb-view" aria-label={label}>
-      <p className="eb-mono eb-stats" data-testid="collage-stats">{stats}</p>
+      {folded && shownTabs.length > 1 ? (
+        // Folded (the landing sample): the filter tabs wait on the stats line's row, so the birds come sooner.
+        <div className="eb-statsrow">
+          <p className="eb-mono eb-stats" data-testid="collage-stats">{statsPrefix ? `${statsPrefix} · ${stats}` : stats}</p>
+          <div className="eb-tabs eb-tabs-folded" role="group" aria-label="Filter by" data-testid="filter-bar-folded">
+            {shownTabs.map((t) => (
+              <button key={t.id} type="button" className="eb-tab" aria-expanded={false} onClick={() => { setTab(t.id); setFolded(false) }}>{t.label}</button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="eb-mono eb-stats" data-testid="collage-stats">{statsPrefix ? `${statsPrefix} · ${stats}` : stats}</p>
+      )}
+      {notice}
       <ControlsBar
         view={view}
-        onView={(v) => { setPick(null); dispatch({ type: 'view', view: v }) }}
+        onView={(v) => { setPick(null); setTip(null); dispatch({ type: 'view', view: v }) }}
         trueSize={mode === 'true'}
         onTrueSize={(on) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })}
         lightFirst={massOrder === 'lightest'}
         onDirection={() => dispatch({ type: 'massOrder', massOrder: massOrder === 'heaviest' ? 'lightest' : 'heaviest' })}
         sci={sci}
         onSci={(on) => dispatch({ type: 'sci', sci: on })}
-        search={<CollageSearch value={text} onChange={onText} suggestions={suggestions} onPick={onPickSuggestion} sci={sci} />}
+        search={{ entries, shown: fk ? shownCodes : undefined, species, onPick: onSearchPick, whose }}
       />
 
-      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} hideTabs={hideTabs} query={q} />
+      {!(folded && shownTabs.length > 1) && (
+        <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} hideTabs={hideTabs} tab={tab} onTab={setTab} />
+      )}
+      {filterNote}
 
       {view === 'collage' ? (
         lay ? (
-          <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} total={entries.length} />
+          <div ref={wrap} className="eb-stagewrap">
+            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} onHover={onHover} total={entries.length} />
+            {tipEntry && <BirdTip key={tipEntry.code} entry={tipEntry} row={species.byCode.get(tipEntry.code)!} regions={regions} sci={sci} wrap={wrap} />}
+          </div>
         ) : (
           <div className="eb-stage-wait" aria-hidden="true">
             <span className="eb-num">{n(shownList.length)}</span>
@@ -200,7 +223,6 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
           species={species}
           regions={regions}
           anchor={pick.anchor}
-          follow={pick.follow ? RING_MS : undefined}
           sci={sci}
           onClose={close}
           actions={cardActions?.(picked, close)}
