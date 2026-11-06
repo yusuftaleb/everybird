@@ -27,9 +27,9 @@ function syntheticSaved() {
   };
 }
 
-/** Put the list where the app's storage reads it (idb-keyval: database "everybird", store "kv", key "everybird:v1"), then open /my. */
+/** Put the list where the app's storage reads it (idb-keyval: database "everybird", store "kv", key "everybird:v1"), then open the collage (/). */
 async function seedList(page: Page) {
-  await page.goto("/make");
+  await page.goto("/about");
   await page.evaluate(
     (saved) =>
       new Promise<void>((done, fail) => {
@@ -45,7 +45,7 @@ async function seedList(page: Page) {
       }),
     syntheticSaved(),
   );
-  await page.goto("/my");
+  await page.goto("/");
 }
 
 /** Record long tasks and requestAnimationFrame deltas until `stop()`. */

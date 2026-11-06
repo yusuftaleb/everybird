@@ -46,9 +46,9 @@ test("a broken token gets a generic preview card, never a 500", async ({ request
 test("the page head carries the per-person title, og:image and the large twitter card", async ({ page }) => {
   await page.goto(`/s/${token}`);
   const meta = (sel: string) => page.locator(sel).first().getAttribute("content");
-  await expect(page).toHaveTitle("Test Birder's Everybird — 197 species");
-  expect(await meta('meta[property="og:title"]')).toBe("Test Birder's Everybird — 197 species");
-  expect(await meta('meta[name="description"]')).toBe("Every bird you've ever seen.");
+  await expect(page).toHaveTitle("Test Birder's life list: 197 species");
+  expect(await meta('meta[property="og:title"]')).toBe("Test Birder's life list: 197 species");
+  expect(await meta('meta[name="description"]')).toBe("Everybird turns a birder's life list into a sticker collage.");
   expect(await meta('meta[property="og:image"]')).toContain(`/s/${token}/opengraph-image`);
   expect(await meta('meta[property="og:image:width"]')).toBe("1200");
   expect(await meta('meta[name="twitter:card"]')).toBe("summary_large_image");

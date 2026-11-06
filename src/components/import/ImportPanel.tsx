@@ -63,7 +63,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
           <InatForm job={jobs.inat} onFetch={(u) => void jobs.fetchInat(u)} onCancel={jobs.cancelInat} disabled={disabled} replaces={saved.records.inat.length > 0} />
           <NotCounted saved={saved} slots={['inat']} />
         </Way>
-        <Way icon={CheckSquareOffset} title="Tick by hand" blurb="Search for a bird, then add a date and a place if you like.">
+        <Way icon={CheckSquareOffset} title="Tick by hand" blurb="Tick off as many birds as you like, with one date and place for the batch.">
           <div className="eb-way-body">
             <div className="eb-way-control">
               <button type="button" className="eb-btn eb-btn-quiet eb-way-btn" aria-expanded={ticking} aria-controls="tick" disabled={disabled} onClick={() => setTicking((t) => !t)}>

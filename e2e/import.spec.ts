@@ -18,14 +18,34 @@ test("sample collage renders on landing", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: "Everybird" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Every bird you've ever seen." })).toBeVisible();
   const stage = page.getByTestId("collage-stage");
   await expect(stage).toBeVisible();
-  await expect(page.getByTestId("collage-stats")).toHaveText(/^197 species · \d+ orders · \d+ families · since /);
+  await expect(page.getByTestId("collage-stats")).toHaveText(/^Sample: Yusuf's life list · 197 species · \d+ orders · \d+ families · since /);
   await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
-  await expect(page.getByRole("link", { name: "Make yours" })).toHaveAttribute("href", "/make");
+  await expect(page.getByRole("link", { name: /^Make yours/ })).toHaveAttribute("href", "/settings");
   await expect(page.getByRole("link", { name: "huashu-bird-sticker" })).toHaveAttribute("href", "https://github.com/alchaincyf/huashu-bird-sticker");
   expect(errors).toEqual([]);
+});
+
+test("the landing sample is pre-packed: its stickers show without the species file or the layout worker's masks", async ({ page }) => {
+  // Hold the big downloads forever: the sample must not wait for them.
+  await page.route(/\/data\/(species\.v1|masks\/.*)\.json$/, () => {});
+  await page.goto("/");
+  const stage = page.getByTestId("collage-stage");
+  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197, { timeout: 10_000 });
+  await expect(stage.locator("img").first()).toBeVisible();
+});
+
+test("at 1280x800 and 390x844 the landing's birds fill most of the first screen", async ({ page }) => {
+  for (const [width, height, share] of [[1280, 800, 0.6], [390, 844, 0.5]] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/");
+    const stage = page.getByTestId("collage-stage");
+    await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
+    const top = await stage.evaluate((el) => el.getBoundingClientRect().top);
+    expect((height - top) / height).toBeGreaterThanOrEqual(share);
+  }
 });
 
 test("large file shows progress and stays responsive", async ({ page }) => {
@@ -34,8 +54,8 @@ test("large file shows progress and stays responsive", async ({ page }) => {
   const file = join(dir, "MyEBirdData.csv");
   writeFileSync(file, buildSyntheticMyData(200_000));
   try {
-    // /make has no collage: the probe taps the footer's Dark mode switch, which re-renders the page's colours.
-    await page.goto("/make");
+    // Settings has no collage: the probe taps the top bar's Dark mode switch, which re-renders the page's colours.
+    await page.goto("/settings");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     const sw = page.getByRole("switch", { name: "Dark mode" });
     await expect(sw).toHaveAttribute("aria-checked", "false");
@@ -67,8 +87,7 @@ test("large file shows progress and stays responsive", async ({ page }) => {
     });
 
     await page.getByTestId("ebird-input").setInputFiles(file);
-    // As soon as the first row count shows, tap the switch. It is scrolled to and measured now, not before the import:
-    // it sits in the footer, below the fold, and the status line above it gains a line of text.
+    // As soon as the first row count shows, tap the switch. It is scrolled to and measured now, not before the import.
     await page.waitForFunction(() => (window as unknown as { __eb: { texts: string[] } }).__eb.texts.some((t) => / rows$/.test(t)), null, { polling: "raf" });
     await page.evaluate(() => document.querySelector(".eb-theme")!.scrollIntoView({ block: "center" }));
     const box = (await sw.boundingBox())!;
@@ -103,50 +122,73 @@ test("an import keeps running while the birder moves between the pages", async (
   const file = join(dir, "MyEBirdData.csv");
   writeFileSync(file, buildSyntheticMyData(100_000));
   try {
-    await page.goto("/make");
+    await page.goto("/settings");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     await page.getByTestId("ebird-input").setInputFiles(file);
     const status = page.getByTestId("ebird-drop").locator("xpath=..").getByRole("status");
     await expect(status).toHaveText(/^Reading your file/);
     // Away (client-side links: the provider above the routes, and the worker, stay) and back.
     await page.getByRole("link", { name: "Everybird", exact: true }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Everybird" })).toBeVisible();
-    await page.getByRole("link", { name: "Make yours" }).click();
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Every bird you've ever seen." })).toBeVisible();
+    await page.getByRole("banner").getByRole("link", { name: "About" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
+    await page.getByRole("banner").getByRole("link", { name: "Settings" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
     await expect(page.getByTestId("see-collage")).toContainText("Your collage has 8 species.", { timeout: 90_000 });
     await page.getByTestId("see-collage").getByRole("link", { name: "See my collage" }).click();
-    await expect(page).toHaveURL(/\/my$/);
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.getByTestId("collage-stats")).toHaveText(/^8 species/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test("/my without a list sends people to /make", async ({ page }) => {
-  await page.goto("/my");
-  await expect(page).toHaveURL(/\/make$/);
-  await expect(page.getByRole("heading", { level: 1, name: "Make yours" })).toBeVisible();
-});
-
-test("search: suggestions from the list, the collage narrows, picking one shows that bird and its card", async ({ page }) => {
+test("search (Photography's): the magnifier opens the field; a species shows its tooltip in place, an order drills in", async ({ page }) => {
   await page.goto("/");
   const stage = page.getByTestId("collage-stage");
   await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
-  const box = page.getByRole("combobox", { name: "Search your birds" });
+  await page.getByRole("button", { name: "Find a bird" }).click();
+  const box = page.getByRole("combobox", { name: "Find a bird" });
+  await expect(box).toBeFocused();
   await box.fill("grebe");
-  const options = page.getByRole("listbox", { name: "Matching birds" }).getByRole("option");
+  const options = page.getByRole("listbox", { name: "Matching birds and groups" }).getByRole("option");
   await expect(options.first()).toBeVisible();
-  const n = await options.count();
-  expect(n).toBeGreaterThan(1);
-  await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(`^${n} of 197 species`));
-  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(n);
-  const first = (await options.first().locator(".eb-suggest-primary").textContent())!;
-  await box.press("ArrowDown");
-  await box.press("Enter");
-  await expect(page.getByRole("dialog", { name: first })).toBeVisible();
-  await expect(box).toHaveValue("");
-  await expect(page.getByTestId("collage-stats")).toHaveText(/^197 species/);
+  await expect(page.getByTestId("collage-stats")).toHaveText(/197 species/); // typing never narrows
+  const species = options.filter({ hasText: /Species$/ }).first();
+  const name = (await species.locator(".eb-result-name").textContent())!.replace(/\s*\(.*$/, "");
+  await species.click();
+  await expect(box).toHaveCount(0);
+  await expect(page.getByTestId("bird-tip")).toContainText(name);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(stage.locator("[data-ring]")).toHaveCount(1);
+  await expect(page.getByTestId("collage-stats")).toHaveText(/197 species/);
+  // An order drills the filter into it.
+  await page.getByRole("button", { name: "Find a bird" }).click();
+  await page.getByRole("combobox", { name: "Find a bird" }).fill("grebes");
+  await page.getByRole("option", { name: /^Grebes \(Podicipediformes\)/ }).click();
+  await expect(page.getByTestId("collage-stats")).toHaveText(/ of 197 species/);
+  // Esc returns focus to the magnifier.
+  await page.getByRole("button", { name: "Find a bird" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Find a bird" })).toBeFocused();
+});
+
+test("hovering a bird on desktop shows its tooltip; a click still opens the card", async ({ page }) => {
+  await page.goto("/");
+  const stage = page.getByTestId("collage-stage");
+  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
+  await page.waitForTimeout(1500); // the first appearance has played
+  const bird = stage.locator(".eb-bird").first();
+  const bb = (await bird.boundingBox())!;
+  const code = await bird.getAttribute("data-code");
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  const tip = page.getByTestId("bird-tip");
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveAttribute("aria-hidden", "true");
+  void code;
+  await page.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(tip).toHaveCount(0);
 });
 
 test("works in memory when storage is blocked", async ({ page }) => {
@@ -155,7 +197,7 @@ test("works in memory when storage is blocked", async ({ page }) => {
       throw new DOMException("The operation is insecure.", "SecurityError");
     };
   });
-  await page.goto("/make");
+  await page.goto("/settings");
   await expect(page.getByText(NOT_SAVED)).toBeVisible();
   await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
   await expect(page.getByTestId("see-collage")).toContainText("Your collage has 3 species.");

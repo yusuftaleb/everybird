@@ -34,6 +34,8 @@
 .eb-row > .eb-input { flex: 1 1 140px; }
 .eb-way-control > .eb-input { flex: 1 1 auto; }
 .eb-way-control > .eb-btn { flex: none; }
+.eb-way-control > .eb-way-btn { flex: 1 1 auto; }
+.eb-way-control.eb-row { flex-wrap: nowrap; }
 .eb-input-wrap { position: relative; }
 .eb-input-icon { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
 .eb-input-search { padding-left: 38px; }

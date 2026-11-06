@@ -15,7 +15,7 @@ const DARK = "rgb(30, 30, 36)";
 test("light mode paints the paper background, no console errors", async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Everybird" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Every bird you've ever seen." })).toBeVisible();
   expect(await bg(page)).toBe(LIGHT);
   expect(errors).toEqual([]);
 });
@@ -27,7 +27,7 @@ test("light by default even when the system is dark; the switch turns dark on, a
   await page.goto("/");
   expect(await bg(page)).toBe(LIGHT);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  const sw = page.getByRole("contentinfo").getByRole("switch", { name: "Dark mode" });
+  const sw = page.getByRole("banner").getByRole("switch", { name: "Dark mode" });
   await expect(sw).toHaveAttribute("aria-checked", "false");
   await sw.click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
@@ -39,7 +39,7 @@ test("light by default even when the system is dark; the switch turns dark on, a
       (window as unknown as { __firstBg: string }).__firstBg = getComputedStyle(document.body).backgroundColor;
     });
   });
-  await page.goto("/make");
+  await page.goto("/settings");
   expect(await page.evaluate(() => (window as unknown as { __firstBg: string }).__firstBg)).toBe(DARK);
   await expect(page.getByRole("switch", { name: "Dark mode" })).toHaveAttribute("aria-checked", "true");
   await page.getByRole("switch", { name: "Dark mode" }).click();
