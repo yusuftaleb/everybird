@@ -1,0 +1,30 @@
+src/components/share/share.css
+  s_ab125876fe9ad2::t_d1e40cbc0987e3 66,73,79-83,85-91
+tests/analytics.test.ts
+  s_ab125876fe9ad2::t_01c1082dd1f0a9 20,25
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_b066bcfcd48cf4 12
+  s_ab125876fe9ad2::t_a2d5d7891e5b8d 1,29-30,78-80,86,158
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_01c1082dd1f0a9 2,7,29-32,258-264
+tests/share-image.test.ts
+  s_ab125876fe9ad2::t_28692be06a83b2 45,48,70,72,101,108-121
+e2e/share.spec.ts
+  s_ab125876fe9ad2::t_e1cbcf9d2396d6 49,76-87,129-132,138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ff8ca719a95724772053eaee03c2ef952b634bfe",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
