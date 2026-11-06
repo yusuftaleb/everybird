@@ -4,12 +4,14 @@
 // product: people share a brag, not an app card.
 //   top     the name, if given (Cabinet Grotesk 700, 56px), then the count (Cabinet 96px, "197 species"), then, for a
 //           filtered view, the filter in words (Satoshi 500 32px, Accent)
-//   middle  the collage, packed for the space left (layout worker 'image' message: packFrame, no centre hole); no
-//           sticker wider than 22% of the collage, so a short list sits as a cluster with air around it
+//   middle  the collage, packed for the space left (layout worker 'image' message: packFrame, the count's hole at its
+//           centre); no sticker longer than 30% of the collage wide (36% up to 24 birds)
 //   bottom  a Hairline rule, "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px), then the footer: the Everybird
-//           wordmark and "everybird.vercel.app" on the left, the sticker credit on the right (Geist Mono 22px, Muted)
-// The story keeps Instagram's safe zones clear: nothing in the top 250px (the profile bar) or the bottom 340px (the
-// reply bar); the post and the square use 64px margins all round.
+//           wordmark and the site ("everybird.yusuftaleb.com") on the left, the sticker credit on the right (Geist Mono 22px, Muted)
+// The story keeps Instagram's safe zones clear: nothing in the top 160px (the profile row) or the bottom 220px (the
+// reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1240 with
+// a name and the latest lifer): packFrame packs it for that aspect (the spiral stretched to it, as the narrow layout's
+// 0.55), so it is a tall rounded cluster, and fitPack spreads a short list's ring to its height (SPREAD).
 // Stickers load with crossOrigin = 'anonymous' (the stickers site sends access-control-allow-origin: *), so the
 // canvas stays exportable. Species without a sticker, and stickers that fail to load, are drawn as a thin outline of
 // the Phosphor Bird in Line (a solid silhouette would be the heaviest shape in the image). Text waits for the real
@@ -31,7 +33,7 @@ export type ImageFormat = 'story' | 'post' | 'square' // 1080×1920, 1080×1350,
 export const IMAGE_SIZE: Record<ImageFormat, [w: number, h: number]> = { story: [1080, 1920], post: [1080, 1350], square: [1080, 1080] }
 /** The longest name the dialog accepts: what a share link carries (link.ts NAME_MAX; a test keeps them equal). */
 export const NAME_MAX_LEN = 40
-/** The footer's site name: the share origin's host ("everybird.vercel.app"). */
+/** The footer's site name: the share origin's host ("everybird.yusuftaleb.com"). */
 export const SITE_LABEL = new URL(SHARE_ORIGIN).host
 export const STICKER_CREDIT = 'Stickers: huashu-bird-sticker, CC BY 4.0'
 
@@ -74,10 +76,25 @@ export function filterLabel(
 // --- layout ---
 
 const M = 64
-/** Clear of the platform's own chrome: Instagram/LinkedIn stories cover about 250px at the top and 340px at the bottom. */
+/**
+ * Clear of the platform's own chrome: a story keeps the top 160px (the progress bar and the profile row) and the bottom
+ * 220px (the reply bar) empty; the post and the square use 64px margins all round.
+ */
 export const SAFE: Record<ImageFormat, { top: number; bottom: number }> = {
-  story: { top: 250, bottom: 340 }, post: { top: M, bottom: M }, square: { top: M, bottom: M },
+  story: { top: 160, bottom: 220 }, post: { top: M, bottom: M }, square: { top: M, bottom: M },
 }
+/**
+ * The gaps (px) between the head and the collage, the collage and the latest lifer row, and that row and the hairline.
+ * The story and the post keep them tighter so their collages take the height; the square keeps its own.
+ */
+const GAPS: Record<ImageFormat, { head: number; collage: number; latest: number }> = {
+  story: { head: 40, collage: 32, latest: 24 }, post: { head: 40, collage: 32, latest: 24 }, square: { head: 48, collage: 40, latest: 32 },
+}
+/**
+ * How far fitPack may spread the birds' centres vertically to fill a tall collage (sizes kept, distances only grow):
+ * the story's tall frame most, the post's a little, the square not at all.
+ */
+export const SPREAD: Record<ImageFormat, number> = { story: 1.6, post: 1.25, square: 1 }
 /**
  * The count's largest size (Cabinet Grotesk 700, px) per format; it shrinks for long numbers (countLayout). It reads
  * as a label in the ring, in /lifelist's proportion: "197" is about 17% of the collage wide (the site's medium
@@ -156,9 +173,10 @@ export function cardLayout(format: ImageFormat, c: CardContent): CardLayout {
   const footer = { y: H - B - 30, size: 30, credit: 19 }
   const rule = { y: footer.y - 30 }
   const icon = format === 'story' ? 76 : 68 // post and square
-  const latest = c.latest ? { y: rule.y - 32 - icon, icon, label: 20, name: 34 } : undefined
-  const top = headBottom === undefined ? T : headBottom + 48
-  const bottom = (latest ? latest.y : rule.y) - 40
+  const G = GAPS[format]
+  const latest = c.latest ? { y: rule.y - G.latest - icon, icon, label: 20, name: 34 } : undefined
+  const top = headBottom === undefined ? T : headBottom + G.head
+  const bottom = (latest ? latest.y : rule.y) - G.collage
   const collage = { x: M, y: top, w: W - 2 * M, h: bottom - top }
   return { W, H, name, filter, collage, count: countLayout(format, c.count, collage.w), latest, rule, footer, maxTile: maxTileFrac(c.count) }
 }
@@ -417,8 +435,6 @@ export async function renderShareImage(opts: ShareImageOpts): Promise<Blob> {
  * `grow`: how much the scale-up past the width fit enlarged the birds (and the hole), at least 1. `sy`: the extra
  * vertical spread of the birds' centres (not their sizes) above the centre, `syDown` below it, each at least 1.
  */
-/** How far the story may spread the birds vertically to fill its tall frame. */
-export const STORY_SPREAD = 1.6
 export type PackFit = { s: number; cx: number; cy: number; ux: number; uy: number; grow: number; sy: number; syDown: number }
 /** Where a tile's centre lands vertically: above the centre spread by `sy`, below by `syDown`. */
 export const spreadY = (f: PackFit, yc: number) => f.cy + (yc - f.uy) * f.s * (yc < f.uy ? f.sy : f.syDown)
@@ -472,7 +488,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
 
   // The pack on the collage area, its centre (the count) on the area's centre.
   const area = L.collage
-  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile), format === 'story' ? STORY_SPREAD : 1)
+  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile), SPREAD[format])
   const tiles: Tile[] = shown.flatMap((e) => {
     const b = pack.boxes.get(e.code)
     if (!b) return []

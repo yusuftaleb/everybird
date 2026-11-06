@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, packSpec, placeCredit, spreadY, STICKER_CREDIT } from '@/lib/share/image'
+import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, packSpec, placeCredit, SPREAD, spreadY, STICKER_CREDIT } from '@/lib/share/image'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
 
@@ -64,7 +64,7 @@ describe('share image constants', () => {
 })
 
 describe('cardLayout', () => {
-  const SAFE = { story: { top: 250, bottom: 340 }, post: { top: 64, bottom: 64 }, square: { top: 64, bottom: 64 } } as const
+  const SAFE = { story: { top: 160, bottom: 220 }, post: { top: 64, bottom: 64 }, square: { top: 64, bottom: 64 } } as const
   const inside = (a: { y: number }, b: { y: number; h: number }) => a.y >= b.y && a.y <= b.y + b.h
   for (const format of ['story', 'post', 'square'] as const) {
     it(`${format}: name and filter on top (or nothing), the collage, then the latest lifer and the footer, inside the safe zones`, () => {
@@ -95,13 +95,36 @@ describe('cardLayout', () => {
         expect(L.footer.y).toBeGreaterThan(L.rule.y)
         expect(L.footer.y + L.footer.size).toBeLessThanOrEqual(H - bottom)
         expect(L.footer.credit).toBeLessThan(L.footer.size)
-        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 900 : format === 'post' ? 850 : 560)
+        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 1150 : format === 'post' ? 870 : 560)
+        // Nothing (the name on top, the footer at the bottom) inside the platform's safe zones.
+        if (L.name) expect(L.name.y).toBeGreaterThanOrEqual(top)
+        expect(L.collage.y).toBeGreaterThanOrEqual(top)
       }
       const full = cardLayout(format, { name: true, filter: true, latest: true, count: 197 })
       expect(full.collage.h).toBeLessThan(cardLayout(format, { name: false, filter: false, latest: true, count: 197 }).collage.h)
       expect(inside({ y: full.collage.y + full.collage.h / 2 }, full.collage)).toBe(true)
     })
   }
+  it('story: a tall collage (about 952 × 1240 with a name and the latest lifer), packed for its aspect', () => {
+    const L = cardLayout('story', { name: true, filter: false, latest: true, count: 197 })
+    expect(L.name!.y).toBe(160)
+    expect(L.footer.y + L.footer.size).toBe(1920 - 220)
+    expect(L.collage.h).toBeGreaterThanOrEqual(1230)
+    expect(L.collage.h / L.collage.w).toBeGreaterThan(1.25)
+    expect(packSpec(L).aspect).toBeCloseTo(L.collage.w / L.collage.h)
+  })
+  it('post: taller than before (914px with a name and the latest lifer), still inside 64px margins', () => {
+    const L = cardLayout('post', { name: true, filter: false, latest: true, count: 197 })
+    expect(L.name!.y).toBe(64)
+    expect(L.footer.y + L.footer.size).toBe(1350 - 64)
+    expect(L.collage.h).toBeGreaterThanOrEqual(935)
+    expect(L.collage.h).toBeGreaterThan(L.collage.w * 0.98)
+  })
+  it('the story and the post may spread a short list vertically; the square never', () => {
+    expect(SPREAD.story).toBeGreaterThan(SPREAD.post)
+    expect(SPREAD.post).toBeGreaterThan(1)
+    expect(SPREAD.square).toBe(1)
+  })
   it('square: the same centre-count card in 1080×1080, the count a little smaller than the post\'s, its collage wider than tall', () => {
     const L = cardLayout('square', { name: true, filter: true, latest: true, count: 197 })
     expect([L.W, L.H]).toEqual([1080, 1080])
