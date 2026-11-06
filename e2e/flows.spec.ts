@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 // Every flow end to end, in every engine: each way in (eBird life list, MyEBirdData, iNaturalist with a mocked API, tick
 // by hand) and their merge, the filters (taxonomy, Places with several countries, a Time range), True size and the list
@@ -14,18 +14,28 @@ const WIDTHS = [390, 768, 1024, 1280, 1440] as const;
 const SAMPLE: Record<string, number[]> = { chromium: [390, 1280], webkit: [390, 1024], firefox: [768, 1440] };
 const FULL = process.env.MATRIX === "full";
 
-function sampled(info: TestInfo, width: number) {
-  const engine = info.project.use.browserName ?? "chromium";
+// The engine comes from the browserName fixture: a project built from devices[...] carries defaultBrowserType, not
+// use.browserName, so reading the project's config made every engine walk Chromium's widths.
+function sampled(engine: string, width: number) {
   test.skip(!FULL && !(SAMPLE[engine] ?? []).includes(width), `${engine} samples ${SAMPLE[engine]?.join(" and ")}px (MATRIX=full for all)`);
 }
 
-/** A small synthetic eBird life list download (real species names, made-up places and dates). */
+/**
+ * A small synthetic eBird life list download (real species names, made-up places and dates). Northern Flicker is in
+ * the MyEBirdData fixture too (as two rows, one a subspecies), so the merge must count it once.
+ */
 const LIFELIST = [
   "Row #,Taxon Order,Category,Common Name,Scientific Name,Count,Location,S/P,Date,LocID,SubID,Exotic,Countable",
   "1,700,species,Mallard,Anas platyrhynchos,2,Test Park,CA-BC,03 Mar 2024,L1,S1,,1",
   "2,8000,species,Bald Eagle,Haliaeetus leucocephalus,1,Test Park,CA-BC,12 Aug 2025,L1,S2,,1",
   "3,30000,species,American Robin,Turdus migratorius,1,Test Park,US-AZ,06 Sep 2026,L2,S3,,1",
+  "4,11980,species,Northern Flicker,Colaptes auratus,1,Test Park,CA-BC,04 Apr 2025,L1,S4,,1",
 ].join("\n");
+/**
+ * tests/fixtures/ebird/mydata-basic.csv's species: Northern Flicker (twice), Yellow-rumped Warbler, Gilded Flicker and
+ * Rüppell's Griffon (a "sp.", a slash and an unknown bird don't count). With the life list's four, one shared: 7.
+ */
+const MERGED = 7;
 const MYDATA = readFileSync(resolve(__dirname, "../tests/fixtures/ebird/mydata-basic.csv"));
 const inat = (f: string) => readFileSync(resolve(__dirname, `../tests/fixtures/inat/${f}.json`), "utf8");
 
@@ -73,9 +83,12 @@ const stats = (page: Page) => page.getByTestId("collage-stats");
 const seeCollage = (page: Page) => page.getByTestId("see-collage");
 const speciesIn = async (page: Page) => Number(/Your collage has ([\d,]+) species/.exec((await seeCollage(page).textContent()) ?? "")![1].replace(/,/g, ""));
 
-/** Waits out the collage's first appearance (its ripple), so a click lands on a bird that has stopped moving. */
+/**
+ * Waits out the collage's first appearance (its ripple), so a click lands on a bird that has stopped moving. Fails if
+ * anything is still animating after 10 s (a stuck or endless animation is a bug, not something to click through).
+ */
 async function settled(page: Page) {
-  await page.waitForFunction(() => document.getAnimations().filter((a) => a.playState === "running").length === 0, null, { timeout: 10_000 }).catch(() => {});
+  await page.waitForFunction(() => document.getAnimations().filter((a) => a.playState === "running").length === 0, null, { timeout: 10_000 });
 }
 
 /** iNaturalist's API, answered from the synthetic fixtures (one user "testbirder" with six observations). */
@@ -128,26 +141,27 @@ async function pressAreas(page: Page) {
 for (const width of WIDTHS) {
   test.describe(`flows at ${width}px`, () => {
     test.use({ viewport: { width, height: width < 600 ? 844 : 900 }, hasTouch: width < 600 });
-    test.beforeEach(({}, info) => sampled(info, width));
+    test.beforeEach(({ browserName }) => sampled(browserName, width));
 
-    test("ways in: an eBird life list, then MyEBirdData merges into it", async ({ page }) => {
+    test("ways in: an eBird life list, then MyEBirdData merges into it, a species in both counted once", async ({ page }) => {
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
       await page.goto("/settings");
       await expect(page.getByTestId("ebird-drop")).toBeVisible();
       await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
-      await expect(seeCollage(page)).toContainText("Your collage has 3 species.");
+      await expect(seeCollage(page)).toContainText("Your collage has 4 species.");
       await expect(page.getByTestId("source-ebird-list")).toContainText("ebird_world_life_list.csv");
       // The full export sits beside the life list download, and the two merge by species.
       await page.getByTestId("ebird-input").setInputFiles({ name: "MyEBirdData.csv", mimeType: "text/csv", buffer: MYDATA });
       await expect(page.getByTestId("source-ebird")).toContainText("MyEBirdData.csv");
       await expect(page.getByTestId("source-ebird-list")).toContainText("ebird_world_life_list.csv");
-      await expect.poll(() => speciesIn(page)).toBeGreaterThan(3);
-      const merged = await speciesIn(page);
+      // By species: the flicker both files have is one bird, so 4 + 4 - 1.
+      await expect.poll(() => speciesIn(page)).toBe(MERGED);
       await seeCollage(page).getByRole("link", { name: "See my collage" }).click();
       await expect(page).toHaveURL(/\/$/);
-      await expect(stats(page)).toHaveText(new RegExp(`^${merged} species`));
-      await expect(shownBirds(page)).toHaveCount(merged);
+      await expect(stats(page)).toHaveText(new RegExp(`^${MERGED} species`));
+      await expect(shownBirds(page)).toHaveCount(MERGED);
+      await expect(shownBirds(page).and(page.getByRole("button", { name: /^Northern Flicker\b/ }))).toHaveCount(1);
       expect(errors).toEqual([]);
     });
 
@@ -324,7 +338,7 @@ for (const width of WIDTHS) {
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
       await expect(shownBirds(page)).toHaveCount(TOTAL);
     });
-    test("every page: no sideways scroll, and every control takes a 44px press", async ({ page }) => {
+    test("landing, About, the collage (Places, Time, list, card, share) and Settings: no sideways scroll, every control a 44px press", async ({ page }) => {
       test.setTimeout(60_000);
       const check = async (where: string) => {
         const m = await pressAreas(page);
@@ -364,3 +378,27 @@ for (const width of WIDTHS) {
     });
   });
 }
+
+// A phone: a touch screen where (pointer: coarse) matches, so the 44px touch rule is live (the small source buttons,
+// 40px for a mouse, grow to 44px). Firefox can't emulate a mobile device, so Chromium and WebKit run it.
+test.describe("on a touch screen (pointer: coarse)", () => {
+  test.use({
+    viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true,
+    userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36",
+  });
+  test.beforeEach(({ browserName }) => test.skip(browserName === "firefox", "Firefox has no mobile emulation (isMobile)"));
+
+  test("every control on Settings and the collage takes a 44px press, the small source buttons included", async ({ page }) => {
+    await page.goto("/settings");
+    expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches), "(pointer: coarse) matches").toBe(true);
+    await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
+    await expect(seeCollage(page)).toContainText("Your collage has 4 species.");
+    const small = page.locator(".eb-btn-sm");
+    expect(await small.count(), "the source row's small buttons").toBeGreaterThan(0);
+    for (const h of await small.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))) expect(Math.round(h)).toBeGreaterThanOrEqual(44);
+    expect((await pressAreas(page)).small, "Settings: controls under 44px").toEqual([]);
+    await seeCollage(page).getByRole("link", { name: "See my collage" }).click();
+    await expect(shownBirds(page)).toHaveCount(4);
+    expect((await pressAreas(page)).small, "collage: controls under 44px").toEqual([]);
+  });
+});
