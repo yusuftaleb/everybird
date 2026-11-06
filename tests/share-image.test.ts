@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, packSpec, placeCredit, STICKER_CREDIT } from '@/lib/share/image'
+import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, packSpec, placeCredit, spreadY, STICKER_CREDIT } from '@/lib/share/image'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Trip } from '@/lib/list/trips'
 import { orderLabel } from '@/lib/species/orders'
@@ -112,15 +112,23 @@ describe('countLayout (the count in the middle)', () => {
     expect(countLayout('story', 6, 197, 952)).toMatchObject({ number: '6', label: 'OF 197 SPECIES' })
     expect(countLayout('post', 1500, 1500, 952)).toMatchObject({ number: '1,500', label: 'SPECIES' })
   })
-  it('is big, and shrinks for long numbers so the number stays within 40% of the collage width', () => {
+  it('reads as a label in the ring, as /lifelist: about 12% of the collage wide for 197, shrinking for long numbers', () => {
     const short = countLayout('story', 12, undefined, 952), mid = countLayout('story', 197, undefined, 952), long = countLayout('story', 12345, undefined, 952)
-    expect(short.size).toBe(200)
-    expect(mid.size).toBe(200)
+    expect(short.size).toBe(112)
+    expect(mid.size).toBe(112)
+    // The site's medium layout: F 56 on a 700 stage, "197" 1.44em wide = 11.5% of the stage.
+    expect((1.44 * mid.size) / 952).toBeGreaterThan(0.12)
+    expect((1.44 * mid.size) / 952).toBeLessThan(0.2)
     expect(long.size).toBeLessThan(mid.size)
-    expect(long.size).toBeGreaterThan(120)
-    expect(countLayout('post', 197, undefined, 952).size).toBeLessThanOrEqual(mid.size)
-    // Digits are 0.5em in Cabinet Grotesk: "12,345" is 5 digits and a comma.
-    expect((5 * 0.5 + 0.25 - 6 * 0.02) * long.size).toBeLessThanOrEqual(0.4 * 952 + 1)
+    expect(long.size).toBeGreaterThan(60)
+    expect(countLayout('post', 197, undefined, 952).size).toBe(104)
+    // Digits are 0.5em in Cabinet Grotesk: "12,345" is 5 digits and a comma; at most 22% of the width.
+    expect((5 * 0.5 + 0.25 - 6 * 0.02) * long.size).toBeLessThanOrEqual(0.22 * 952 + 1)
+  })
+  it('keeps the hole small: at most about a third of the collage wide for 197', () => {
+    const c = countLayout('story', 197, undefined, 952)
+    expect(2 * c.hole[0]).toBeLessThan(952 * 0.36)
+    expect(2 * c.hole[1]).toBeLessThan(260)
   })
   it('keeps a hole around the number and the label, wider than tall from three digits, bigger for bigger text', () => {
     for (const n of [1, 12, 197, 1500, 12345]) {
@@ -135,14 +143,15 @@ describe('countLayout (the count in the middle)', () => {
     expect(countLayout('story', 6, 197, 952).hole[0]).toBeGreaterThan(countLayout('story', 6, undefined, 952).hole[0])
   })
   it('takes a size in px for the link preview', () => {
-    const c = countLayout(104, 197, undefined, 640)
-    expect(c.size).toBe(104)
-    expect(c.labelSize).toBeGreaterThanOrEqual(18)
-    expect(c.hole[0]).toBeLessThan(320)
+    const c = countLayout(OG_COUNT_MAX, 197, undefined, 640)
+    expect(c.size).toBe(OG_COUNT_MAX)
+    expect(OG_COUNT_MAX).toBeLessThanOrEqual(80)
+    expect(c.labelSize).toBeGreaterThanOrEqual(13)
+    expect(c.hole[0]).toBeLessThan(640 * 0.25)
   })
   it('the label is legible and smaller than the number', () => {
     const c = countLayout('post', 1500, undefined, 952)
-    expect(c.labelSize).toBeGreaterThanOrEqual(22)
+    expect(c.labelSize).toBeGreaterThanOrEqual(18)
     expect(c.labelSize).toBeLessThan(c.size / 4)
   })
 })
@@ -186,6 +195,32 @@ describe('fitPack', () => {
     expect(fitPack(pack, area, 10_000).s).toBeCloseTo(Math.min(476 / (100 * k), 500 / (100 * k)) * k)
     const capped = fitPack(pack, area, 228)
     expect(60 * capped.s).toBeCloseTo(228)
+  })
+  it('spreads a short list vertically to fill a tall area (story), keeping tile sizes, up to spreadMax', () => {
+    // A ring ±100 units around the centre; tiles 40 units; the area is much taller than wide.
+    const boxes: [string, [number, number, number, number]][] = [['t', [180, 90, 40, 40]], ['b', [180, 290, 40, 40]], ['l', [80, 190, 40, 40]], ['r', [280, 190, 40, 40]]]
+    const pack = { W: 400, H: 420, boxes: new Map(boxes) }
+    const tall = { x: 64, y: 250, w: 952, h: 1400 }
+    const f = fitPack(pack, tall, 10_000, 2)
+    expect(f.sy).toBeGreaterThan(1)
+    // The top tile's top edge lands on the area's top (or the spread hit its max).
+    const top = f.cy + (110 - f.uy) * f.s * f.sy - 20 * f.s
+    expect(top).toBeGreaterThanOrEqual(tall.y - 1e-6)
+    expect(f.sy === 2 || Math.abs(top - tall.y) < 1e-6).toBe(true)
+    // Without a spread allowance it stays uniform.
+    expect(fitPack(pack, tall, 10_000).sy).toBe(1)
+    expect(fitPack(pack, tall, 10_000, 1.2).sy).toBeLessThanOrEqual(1.2)
+  })
+  it('spreads above and below separately, so a lopsided ring reaches both edges', () => {
+    // One tile 60 units above the centre, one 120 below: the upper one may spread further.
+    const boxes: [string, [number, number, number, number]][] = [['t', [180, 130, 40, 40]], ['b', [180, 310, 40, 40]], ['r', [300, 190, 40, 40]]]
+    const pack = { W: 400, H: 420, boxes: new Map(boxes) }
+    const tall = { x: 64, y: 250, w: 952, h: 1400 }
+    const f = fitPack(pack, tall, 10_000, 5)
+    expect(f.sy).toBeGreaterThan(f.syDown)
+    expect(spreadY(f, 150) - 20 * f.s).toBeCloseTo(tall.y)
+    expect(spreadY(f, 330) + 20 * f.s).toBeCloseTo(tall.y + tall.h)
+    expect(spreadY(f, 210)).toBeCloseTo(f.cy) // a centred tile stays put
   })
   it('never scales a full frame below its width fit', () => {
     const pack = { W: 400, H: 420, boxes: new Map([['a', [0, 0, 30, 30]], ['b', [370, 390, 30, 30]]] as [string, [number, number, number, number]][]) }

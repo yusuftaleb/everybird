@@ -5,7 +5,7 @@ import { packBest, relSizes, type Box } from '@/lib/layout/pack'
 import { latestLifer } from '@/lib/list/build-list'
 import type { ListEntry } from '@/lib/list/model'
 import { formatDate } from '@/lib/format'
-import { SHARE_COLORS, SITE_LABEL, STICKER_CREDIT, countLayout, type CountLayout } from '@/lib/share/image'
+import { OG_COUNT_MAX, SHARE_COLORS, SITE_LABEL, STICKER_CREDIT, countLayout, type CountLayout } from '@/lib/share/image'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import { OG_COLLAGE, OG_SIZE, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare, OG_DESCRIPTION } from '@/lib/share/og'
@@ -23,8 +23,8 @@ const MONO = '"Geist Mono", monospace'
 
 type Placed = { code: string; box: Box; src: string }
 
-/** The count in the collage's middle, as the share images: at most 104px on this smaller card. */
-const ogCount = (n: number): CountLayout => countLayout(104, n, undefined, OG_COLLAGE.w)
+/** The count in the collage's middle, as the share images: at most OG_COUNT_MAX px on this smaller card. */
+const ogCount = (n: number): CountLayout => countLayout(OG_COUNT_MAX, n, undefined, OG_COLLAGE.w)
 
 /**
  * Up to 60 birds of the list that have stickers, packed with the wide layout into the collage area around the count's

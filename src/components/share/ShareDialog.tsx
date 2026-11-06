@@ -257,7 +257,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
               {FORMATS.map((f) => (
                 <button key={f.id} type="button" className="eb-seg-btn" aria-pressed={format === f.id} onClick={() => setFormat(f.id)}>
                   {f.id === 'story' ? <DeviceMobile aria-hidden="true" focusable="false" /> : <FrameCorners aria-hidden="true" focusable="false" />}
-                  {f.label}
+                  <span className="eb-seg-label">{f.label}</span>
                   <span className="eb-share-hint">{f.hint}</span>
                 </button>
               ))}

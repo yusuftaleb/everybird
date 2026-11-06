@@ -76,10 +76,16 @@ export function filterLabel(
 const M = 64
 /** Clear of the platform's own chrome: Instagram/LinkedIn stories cover about 250px at the top and 340px at the bottom. */
 export const SAFE: Record<ImageFormat, { top: number; bottom: number }> = { story: { top: 250, bottom: 340 }, post: { top: M, bottom: M } }
-/** The count's largest size (Cabinet Grotesk 700, px) per format; it shrinks for long numbers (countLayout). */
-const COUNT_MAX: Record<ImageFormat, number> = { story: 200, post: 184 }
+/**
+ * The count's largest size (Cabinet Grotesk 700, px) per format; it shrinks for long numbers (countLayout). It reads
+ * as a label in the ring, in /lifelist's proportion: "197" is about 17% of the collage wide (the site's medium
+ * layout: 11.5%, narrow: 16%).
+ */
+const COUNT_MAX: Record<ImageFormat, number> = { story: 112, post: 104 }
+/** The link preview's (1200 × 630, a 640px collage). */
+export const OG_COUNT_MAX = 72
 /** The number is never wider than this share of the collage's width. */
-const COUNT_W = 0.4
+const COUNT_W = 0.22
 // Cabinet Grotesk 700 metrics (em): tabular digits 0.5, the comma 0.25, digit height 0.6875; drawn at -0.02em tracking.
 // Geist Mono: 0.6em per character, caps 0.73em high.
 const DIGIT_EM = 0.5, COMMA_EM = 0.25, DIGIT_CAP = 0.6875, TRACK = -0.02, MONO_EM = 0.6, MONO_CAP = 0.73, MONO_TRACK = 0.06
@@ -407,14 +413,24 @@ export async function renderShareImage(opts: ShareImageOpts): Promise<Blob> {
   })
 }
 
-/** `grow`: how much the scale-up past the width fit enlarged the birds (and the hole), at least 1. */
-export type PackFit = { s: number; cx: number; cy: number; ux: number; uy: number; grow: number }
+/**
+ * `grow`: how much the scale-up past the width fit enlarged the birds (and the hole), at least 1. `sy`: the extra
+ * vertical spread of the birds' centres (not their sizes) above the centre, `syDown` below it, each at least 1.
+ */
+/** How far the story may spread the birds vertically to fill its tall frame. */
+export const STORY_SPREAD = 1.6
+export type PackFit = { s: number; cx: number; cy: number; ux: number; uy: number; grow: number; sy: number; syDown: number }
+/** Where a tile's centre lands vertically: above the centre spread by `sy`, below by `syDown`. */
+export const spreadY = (f: PackFit, yc: number) => f.cy + (yc - f.uy) * f.s * (yc < f.uy ? f.sy : f.syDown)
 /**
  * How a pack lands on the collage area: the frame's centre (the hole) on the area's centre, the frame's width on the
  * area's width (or its height, if that is tighter), then scaled about the centre until the birds reach the area's
- * edge or the largest tile reaches `maxTile` px. A layout unit at (x, y) is drawn at (cx + (x − ux)·s, cy + (y − uy)·s).
+ * edge or the largest tile reaches `maxTile` px. Then, up to `spreadMax` (the story's tall frame), the birds' centres
+ * spread vertically until the top or bottom bird reaches the area's edge: sizes are kept and distances only grow, so
+ * nothing overlaps, and the ring and its hole become a taller oval. A layout unit at (x, y) is drawn at
+ * (cx + (x − ux)·s, cy + (y − uy)·s) before the spread; a tile's centre moves to cy + (yc − uy)·s·sy.
  */
-export function fitPack(pack: ImagePack, area: { x: number; y: number; w: number; h: number }, maxTile: number): PackFit {
+export function fitPack(pack: ImagePack, area: { x: number; y: number; w: number; h: number }, maxTile: number, spreadMax = 1): PackFit {
   const ux = pack.W / 2, uy = pack.H / 2
   const cx = area.x + area.w / 2, cy = area.y + area.h / 2
   const k = Math.min(area.w / pack.W, area.h / pack.H)
@@ -424,9 +440,18 @@ export function fitPack(pack: ImagePack, area: { x: number; y: number; w: number
     dy = Math.max(dy, uy - y, y + h - uy)
     maxL = Math.max(maxL, w, h)
   }
-  if (!maxL) return { s: k, cx, cy, ux, uy, grow: 1 }
+  if (!maxL) return { s: k, cx, cy, ux, uy, grow: 1, sy: 1, syDown: 1 }
   const fill = Math.min(area.w / 2 / (dx * k), area.h / 2 / (dy * k), maxTile / (maxL * k))
-  return { s: k * fill, cx, cy, ux, uy, grow: Math.max(1, fill) }
+  const s = k * fill
+  // Above and below the centre spread separately, so a lopsided ring (one big bird low) still reaches both edges.
+  let up = spreadMax, down = spreadMax
+  for (const [, y, , h] of pack.boxes.values()) {
+    const c = (y + h / 2 - uy) * s
+    const room = (area.h / 2 - (h * s) / 2) / Math.abs(c)
+    if (c < -1e-6) up = Math.min(up, room)
+    else if (c > 1e-6) down = Math.min(down, room)
+  }
+  return { s, cx, cy, ux, uy, grow: Math.max(1, fill), sy: Math.max(1, up), syDown: Math.max(1, down) }
 }
 
 /** Draw the share image on a new canvas (renderShareImage encodes it). */
@@ -447,12 +472,13 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
 
   // The pack on the collage area, its centre (the count) on the area's centre.
   const area = L.collage
-  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile))
+  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile), format === 'story' ? STORY_SPREAD : 1)
   const tiles: Tile[] = shown.flatMap((e) => {
     const b = pack.boxes.get(e.code)
     if (!b) return []
     const row = species.byCode.get(e.code)!
-    const [x, y, w, h] = [fit.cx + (b[0] - fit.ux) * fit.s, fit.cy + (b[1] - fit.uy) * fit.s, b[2] * fit.s, b[3] * fit.s]
+    const [w, h] = [b[2] * fit.s, b[3] * fit.s]
+    const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
     return [{ x, y, w, h, url: row.st ? stickerUrl(e.code, Math.max(w, h), 1) : null }]
   })
   // The latest lifer's sticker, contained in its square at the sticker's own aspect.
