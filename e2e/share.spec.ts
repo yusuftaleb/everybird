@@ -46,7 +46,7 @@ async function previewInfo(page: Page) {
   });
 }
 
-test("story image is 1080×1920 PNG and post is 1080×1350", async ({ page }) => {
+test("story image is 1080×1920 PNG, post is 1080×1350 and square is 1080×1080", async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -72,6 +72,18 @@ test("story image is 1080×1920 PNG and post is 1080×1350", async ({ page }) =>
   const [dl2] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Share image" }).click()]);
   expect(dl2.suggestedFilename()).toBe("everybird-post.png");
   if (OUT) await dl2.saveAs(join(OUT, "everybird-post.png"));
+
+  await dialog.getByRole("button", { name: /Square/ }).click();
+  await expect(preview.getByRole("img", { name: "Preview of the square image" })).toBeVisible({ timeout: 30_000 });
+  await expect(preview).toHaveAttribute("aria-busy", "false");
+  const square = await previewInfo(page);
+  expect(square).toMatchObject({ w: 1080, h: 1080, type: "image/png" });
+  expect(square.colours).toBeGreaterThan(2000);
+  const [dlSq] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
+  expect(dlSq.suggestedFilename()).toBe("everybird-square.png");
+  if (OUT) await dlSq.saveAs(join(OUT, "everybird-square.png"));
+  await dialog.getByRole("button", { name: /Post/ }).click();
+  await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
 
   // The name is kept in the list and re-renders the image.
   await dialog.getByLabel("Your name (optional)").fill("Ada Birder");
@@ -114,11 +126,16 @@ test("download and copy link each send one anonymous analytics event, with no li
   const dialog = await openShare(page);
   await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
   await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
+  await dialog.getByRole("button", { name: /Square/ }).click();
+  await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+  await expect(dialog.getByRole("img", { name: "Preview of the square image" })).toBeVisible();
+  await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
   await dialog.getByRole("button", { name: "Copy link" }).click();
   await expect(dialog.getByTestId("share-note")).toHaveText(/^Link copied/);
   const events = await page.evaluate(() => (window as unknown as { __events: unknown[] }).__events);
   expect(events).toEqual([
     ["event", { name: "image_downloaded", data: { format: "story" } }],
+    ["event", { name: "image_downloaded", data: { format: "square" } }],
     ["event", { name: "link_copied", data: { level: expect.stringMatching(/^(species|dates|countries|regions)$/) } }],
   ]);
 });

@@ -1,4 +1,4 @@
-// Share images: a story (1080 × 1920) or post (1080 × 1350) PNG of the collage, or of the current filtered view.
+// Share images: a story (1080 × 1920), post (1080 × 1350) or square (1080 × 1080) PNG of the collage, or of the current filtered view.
 //
 // Layout (cardLayout), on Paper with 64px side margins, all text left-aligned. It leads with the birder, not the
 // product: people share a brag, not an app card.
@@ -9,7 +9,7 @@
 //   bottom  a Hairline rule, "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px), then the footer: the Everybird
 //           wordmark and "everybird.vercel.app" on the left, the sticker credit on the right (Geist Mono 22px, Muted)
 // The story keeps Instagram's safe zones clear: nothing in the top 250px (the profile bar) or the bottom 340px (the
-// reply bar); the post uses 64px margins all round.
+// reply bar); the post and the square use 64px margins all round.
 // Stickers load with crossOrigin = 'anonymous' (the stickers site sends access-control-allow-origin: *), so the
 // canvas stays exportable. Species without a sticker, and stickers that fail to load, are drawn as a thin outline of
 // the Phosphor Bird in Line (a solid silhouette would be the heaviest shape in the image). Text waits for the real
@@ -26,8 +26,8 @@ import type { Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
 
-export type ImageFormat = 'story' | 'post' // 1080×1920, 1080×1350
-export const IMAGE_SIZE: Record<ImageFormat, [w: number, h: number]> = { story: [1080, 1920], post: [1080, 1350] }
+export type ImageFormat = 'story' | 'post' | 'square' // 1080×1920, 1080×1350, 1080×1080
+export const IMAGE_SIZE: Record<ImageFormat, [w: number, h: number]> = { story: [1080, 1920], post: [1080, 1350], square: [1080, 1080] }
 /** The longest name the dialog accepts: what a share link carries (link.ts NAME_MAX; a test keeps them equal). */
 export const NAME_MAX_LEN = 40
 /** The footer's site name: the share origin's host ("everybird.vercel.app"). */
@@ -75,13 +75,15 @@ export function filterLabel(
 
 const M = 64
 /** Clear of the platform's own chrome: Instagram/LinkedIn stories cover about 250px at the top and 340px at the bottom. */
-export const SAFE: Record<ImageFormat, { top: number; bottom: number }> = { story: { top: 250, bottom: 340 }, post: { top: M, bottom: M } }
+export const SAFE: Record<ImageFormat, { top: number; bottom: number }> = {
+  story: { top: 250, bottom: 340 }, post: { top: M, bottom: M }, square: { top: M, bottom: M },
+}
 /**
  * The count's largest size (Cabinet Grotesk 700, px) per format; it shrinks for long numbers (countLayout). It reads
  * as a label in the ring, in /lifelist's proportion: "197" is about 17% of the collage wide (the site's medium
  * layout: 11.5%, narrow: 16%).
  */
-const COUNT_MAX: Record<ImageFormat, number> = { story: 112, post: 104 }
+const COUNT_MAX: Record<ImageFormat, number> = { story: 112, post: 104, square: 96 }
 /** The link preview's (1200 × 630, a 640px collage). */
 export const OG_COUNT_MAX = 72
 /** The number is never wider than this share of the collage's width. */
@@ -153,7 +155,7 @@ export function cardLayout(format: ImageFormat, c: CardContent): CardLayout {
   // Bottom, upwards: the footer (wordmark, site and credit on one line), a hairline, the latest lifer row.
   const footer = { y: H - B - 30, size: 30, credit: 19 }
   const rule = { y: footer.y - 30 }
-  const icon = format === 'story' ? 76 : 68
+  const icon = format === 'story' ? 76 : 68 // post and square
   const latest = c.latest ? { y: rule.y - 32 - icon, icon, label: 20, name: 34 } : undefined
   const top = headBottom === undefined ? T : headBottom + 48
   const bottom = (latest ? latest.y : rule.y) - 40

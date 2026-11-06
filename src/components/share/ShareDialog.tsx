@@ -1,10 +1,10 @@
 'use client'
-// The share dialog: story or post image with a live preview, Share image (the system share sheet when it takes
+// The share dialog: story, post or square image with a live preview, Share image (the system share sheet when it takes
 // files, else a download), Download image, Copy link and the optional display name (Saved.name).
 // The link encoder (and its ~111 KB species index) is a separate chunk, fetched when the dialog opens, so a Copy link
 // click awaits nothing slow (iOS drops the clipboard permission once a click handler waits on the network).
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
-import { DeviceMobile, DownloadSimple, FrameCorners, LinkSimple, ShareNetwork, X } from '@phosphor-icons/react'
+import { DeviceMobile, DownloadSimple, FrameCorners, LinkSimple, ShareNetwork, Square, X, type Icon } from '@phosphor-icons/react'
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack } from '@/components/dialog-utils'
 import { track } from '@/lib/analytics'
@@ -26,9 +26,10 @@ import './share.css'
 type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; onClose: () => void }
 
 const RENDER_DELAY_MS = 250
-const FORMATS: { id: ImageFormat; label: string; hint: string }[] = [
-  { id: 'story', label: 'Story', hint: '9:16' },
-  { id: 'post', label: 'Post', hint: '4:5' },
+const FORMATS: { id: ImageFormat; label: string; hint: string; icon: Icon }[] = [
+  { id: 'story', label: 'Story', hint: '9:16', icon: DeviceMobile },
+  { id: 'post', label: 'Post', hint: '4:5', icon: FrameCorners },
+  { id: 'square', label: 'Square', hint: '1:1', icon: Square },
 ]
 type LinkResult = ReturnType<typeof MakeShareLink>
 const loadLinkModule = () => import('@/lib/share/make-link')
@@ -254,11 +255,13 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
 
           <div className="eb-share-controls">
             <div className="eb-seg" role="group" aria-label="Image format">
-              {FORMATS.map((f) => (
-                <button key={f.id} type="button" className="eb-seg-btn" aria-pressed={format === f.id} onClick={() => setFormat(f.id)}>
-                  {f.id === 'story' ? <DeviceMobile aria-hidden="true" focusable="false" /> : <FrameCorners aria-hidden="true" focusable="false" />}
-                  <span className="eb-seg-label">{f.label}</span>
-                  <span className="eb-share-hint">{f.hint}</span>
+              {FORMATS.map(({ id, label: text, hint, icon: Glyph }) => (
+                <button key={id} type="button" className="eb-seg-btn" aria-pressed={format === id} onClick={() => setFormat(id)}>
+                  <Glyph aria-hidden="true" focusable="false" />
+                  <span className="eb-seg-text">
+                    <span className="eb-seg-label">{text}</span>
+                    <span className="eb-share-hint">{hint}</span>
+                  </span>
                 </button>
               ))}
             </div>

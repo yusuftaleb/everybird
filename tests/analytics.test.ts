@@ -17,10 +17,12 @@ describe('track', () => {
     ;(window as VaWindow).va = va
     track('collage_made', { source: 'inat' })
     track('image_downloaded', { format: 'story' })
+    track('image_downloaded', { format: 'square' })
     track('link_copied', { level: 'countries' })
     expect(va.mock.calls).toEqual([
       ['event', { name: 'collage_made', data: { source: 'inat' }, options: undefined }],
       ['event', { name: 'image_downloaded', data: { format: 'story' }, options: undefined }],
+      ['event', { name: 'image_downloaded', data: { format: 'square' }, options: undefined }],
       ['event', { name: 'link_copied', data: { level: 'countries' }, options: undefined }],
     ])
   })

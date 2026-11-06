@@ -42,9 +42,10 @@ describe('filterLabel', () => {
 })
 
 describe('share image constants', () => {
-  it('story is 1080×1920 and post is 1080×1350', () => {
+  it('story is 1080×1920, post is 1080×1350 and square is 1080×1080', () => {
     expect(IMAGE_SIZE.story).toEqual([1080, 1920])
     expect(IMAGE_SIZE.post).toEqual([1080, 1350])
+    expect(IMAGE_SIZE.square).toEqual([1080, 1080])
   })
   it('the name field allows what a share link carries', () => {
     expect(NAME_MAX_LEN).toBe(NAME_MAX)
@@ -66,9 +67,9 @@ describe('share image constants', () => {
 })
 
 describe('cardLayout', () => {
-  const SAFE = { story: { top: 250, bottom: 340 }, post: { top: 64, bottom: 64 } } as const
+  const SAFE = { story: { top: 250, bottom: 340 }, post: { top: 64, bottom: 64 }, square: { top: 64, bottom: 64 } } as const
   const inside = (a: { y: number }, b: { y: number; h: number }) => a.y >= b.y && a.y <= b.y + b.h
-  for (const format of ['story', 'post'] as const) {
+  for (const format of ['story', 'post', 'square'] as const) {
     it(`${format}: name and filter on top (or nothing), the collage, then the latest lifer and the footer, inside the safe zones`, () => {
       const [W, H] = IMAGE_SIZE[format]
       const { top, bottom } = SAFE[format]
@@ -97,13 +98,27 @@ describe('cardLayout', () => {
         expect(L.footer.y).toBeGreaterThan(L.rule.y)
         expect(L.footer.y + L.footer.size).toBeLessThanOrEqual(H - bottom)
         expect(L.footer.credit).toBeLessThan(L.footer.size)
-        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 900 : 850)
+        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 900 : format === 'post' ? 850 : 560)
       }
       const full = cardLayout(format, { name: true, filter: true, latest: true, count: 197 })
       expect(full.collage.h).toBeLessThan(cardLayout(format, { name: false, filter: false, latest: true, count: 197 }).collage.h)
       expect(inside({ y: full.collage.y + full.collage.h / 2 }, full.collage)).toBe(true)
     })
   }
+  it('square: the same centre-count card in 1080×1080, the count a little smaller than the post\'s, its collage wider than tall', () => {
+    const L = cardLayout('square', { name: true, filter: true, latest: true, count: 197 })
+    expect([L.W, L.H]).toEqual([1080, 1080])
+    expect(L.name!.y).toBe(64)
+    expect(L.collage.w).toBeGreaterThan(L.collage.h)
+    expect(L.collage.h).toBeGreaterThan(560)
+    expect(L.count.size).toBeLessThanOrEqual(cardLayout('post', { name: true, filter: true, latest: true, count: 197 }).count.size)
+    expect(L.count.label).toBe('SPECIES')
+    expect(L.footer.y + L.footer.size).toBeLessThanOrEqual(1080 - 64)
+    expect(L.latest!.icon).toBe(68)
+    const short = cardLayout('square', { name: false, filter: false, latest: true, count: 12 })
+    expect(short.maxTile).toBe(0.36)
+    expect(packSpec(short).aspect).toBeCloseTo(short.collage.w / short.collage.h)
+  })
 })
 
 describe('countLayout (the count in the middle)', () => {
