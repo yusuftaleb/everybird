@@ -40,3 +40,21 @@ export function removeTicked(edits: Edits, codes: string[]): Edits {
   const set = new Set(codes)
   return { ...edits, removed: [...edits.removed, ...codes.filter((c) => !edits.removed.includes(c))], added: edits.added.filter((r) => !set.has(r.code)) }
 }
+
+/**
+ * Undo a removal (the card's Remove or Tick by hand's "Remove N"): for each of `codes`, put back exactly what `before`
+ * had (whether it was in `removed`, its hand records as they were, its marks), and keep every edit made since to other
+ * birds. Records from the sources are never touched by a removal, so they need nothing.
+ */
+export function undoRemove(now: Edits, before: Edits, codes: readonly string[]): Edits {
+  const set = new Set(codes)
+  const marks = { ...now.marks }
+  for (const c of codes) {
+    if (before.marks[c]) marks[c] = before.marks[c]
+    else delete marks[c]
+  }
+  // Each hand record goes back where it stood (so with no edits since, `added` is exactly as before).
+  const added = now.added.filter((r) => !set.has(r.code))
+  before.added.forEach((r, i) => { if (set.has(r.code)) added.splice(Math.min(i, added.length), 0, r) })
+  return { ...now, removed: now.removed.filter((c) => !set.has(c) || before.removed.includes(c)), added, marks }
+}

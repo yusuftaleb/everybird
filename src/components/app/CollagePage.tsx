@@ -4,18 +4,17 @@ import Link from 'next/link'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { EditBird } from '@/components/edit/EditBird'
 import { placesNoteFor } from '@/lib/list/filter-summary'
+import { undoRemove } from '@/lib/list/tick'
 import type { Edits, ListEntry } from '@/lib/list/model'
 import { CollageView } from './CollageView'
 import { useEverybirdContext } from './EverybirdProvider'
 import { AppNotices } from './Notices'
 import { PageHead } from './PageHead'
+import { removedText, UndoToast, type Removal } from './UndoToast'
 import './app.css'
 
 // The dialog (and its canvas code) loads on first open; the link encoder loads only on "Copy link".
 const ShareDialog = lazy(() => import('@/components/share/ShareDialog'))
-
-/** How long "Removed … · Undo" stays. */
-const UNDO_MS = 6000
 
 /**
  * `/` with a list: the birder's collage (count, filters, controls, search, collage or list, tooltip, card and
@@ -26,38 +25,17 @@ export function CollagePage() {
   const eb = useEverybirdContext()
   const { state, dispatch, data } = eb
   const [sharing, setSharing] = useState(false)
-  const [removed, setRemoved] = useState<{ name: string; code: string; before: Edits } | null>(null)
+  const [removed, setRemoved] = useState<(Removal & { before: Edits }) | null>(null)
   const { saved } = state
   const ready = !!data
 
-  // Undo: put back what the removal changed (the removed list and any hand-added record), keeping later edits.
+  // Undo: put back what the removal changed (the removed list, the hand-added record), keeping later edits.
   const undo = useCallback(() => {
     if (!removed) return
-    const now = state.saved.edits
-    dispatch({
-      type: 'edit',
-      edits: {
-        ...now,
-        removed: now.removed.filter((c) => c !== removed.code),
-        added: [...now.added.filter((r) => r.code !== removed.code), ...removed.before.added.filter((r) => r.code === removed.code)],
-      },
-    })
+    dispatch({ type: 'edit', edits: undoRemove(state.saved.edits, removed.before, removed.codes) })
     setRemoved(null)
   }, [removed, state.saved.edits, dispatch])
-  // The card has closed: Undo takes focus (so keyboard users reach it), and the toast waits while it has focus or the
-  // pointer is on it.
-  const undoRef = useRef<HTMLButtonElement>(null)
-  const [held, setHeld] = useState(false)
-  useEffect(() => {
-    if (!removed) return
-    const raf = requestAnimationFrame(() => undoRef.current?.focus({ preventScroll: true }))
-    return () => cancelAnimationFrame(raf)
-  }, [removed])
-  useEffect(() => {
-    if (!removed || held) return
-    const t = setTimeout(() => setRemoved(null), UNDO_MS)
-    return () => clearTimeout(t)
-  }, [removed, held])
+  const dismiss = useCallback(() => setRemoved(null), [])
 
   const editsRef = useRef(saved.edits)
   useEffect(() => { editsRef.current = saved.edits }, [saved.edits])
@@ -68,7 +46,7 @@ export function CollagePage() {
         edits={saved.edits}
         dispatch={dispatch}
         onRemoved={() => {
-          setRemoved({ code: entry.code, name: data?.species.byCode.get(entry.code)?.com ?? entry.code, before: editsRef.current })
+          setRemoved({ codes: [entry.code], text: removedText([data?.species.byCode.get(entry.code)?.com ?? entry.code]), before: editsRef.current })
           close()
         }}
       />
@@ -120,20 +98,7 @@ export function CollagePage() {
           )}
         </>
       )}
-      <div className="eb-toast-slot" role="status">
-        {removed && (
-          <div
-            className="eb-toast"
-            onFocus={() => setHeld(true)}
-            onBlur={() => setHeld(false)}
-            onPointerEnter={() => setHeld(true)}
-            onPointerLeave={() => setHeld(false)}
-          >
-            <span>Removed {removed.name}.</span>
-            <button ref={undoRef} type="button" className="eb-textbtn" onClick={() => { setHeld(false); undo() }}>Undo</button>
-          </div>
-        )}
-      </div>
+      <UndoToast removal={removed} onUndo={undo} onDone={dismiss} />
     </main>
   )
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addTicked, filterTickRows, removeTicked } from '@/lib/list/tick'
+import { addTicked, filterTickRows, removeTicked, undoRemove } from '@/lib/list/tick'
 import type { Edits } from '@/lib/list/model'
 import type { SpeciesRow } from '@/lib/species/types'
 
@@ -61,5 +61,35 @@ describe('removeTicked (un-ticking birds already on the list)', () => {
     expect(out.fixes).toEqual(edits.fixes)
     // Ticking one again brings it back.
     expect(addTicked(out, ['a'], {}).removed).toEqual(['old', 'c'])
+  })
+})
+
+describe('undoRemove (Undo after a removal)', () => {
+  const before: Edits = {
+    removed: ['old'],
+    added: [{ code: 'a', source: 'manual', date: '2019-06', place: { country: 'CA' } }, { code: 'b', source: 'manual' }],
+    marks: { a: { heard: true }, c: { dead: true } },
+    fixes: { 'ebird:2': 'c' },
+  }
+  it('puts back exactly what the removal changed: the removed list and the hand records, not fresh ones', () => {
+    const after = removeTicked(before, ['a', 'c'])
+    const back = undoRemove(after, before, ['a', 'c'])
+    expect(back.removed).toEqual(['old'])
+    expect(back.added).toEqual(before.added)
+    expect(back.marks).toEqual(before.marks)
+    expect(back.fixes).toEqual(before.fixes)
+  })
+  it('keeps edits made since to other birds', () => {
+    const after = removeTicked(before, ['a'])
+    const later: Edits = { ...after, removed: [...after.removed, 'z'], added: [...after.added, { code: 'n', source: 'manual' }], marks: { ...after.marks, n: { heard: true } } }
+    const back = undoRemove(later, before, ['a'])
+    expect(back.removed).toEqual(['old', 'z'])
+    expect(back.added.map((r) => r.code).sort()).toEqual(['a', 'b', 'n'])
+    expect(back.added.find((r) => r.code === 'a')).toEqual(before.added[0])
+    expect(back.marks).toEqual({ ...before.marks, n: { heard: true } })
+  })
+  it('a code that was already in removed before stays there', () => {
+    const back = undoRemove(removeTicked(before, ['old']), before, ['old'])
+    expect(back.removed).toEqual(['old'])
   })
 })

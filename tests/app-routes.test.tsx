@@ -493,15 +493,32 @@ describe('editing', () => {
     fireEvent.click(tickOption(/^Snow Goose, Anser caerulescens, already on your list/))
     expect(tickOption(/^Snow Goose/)).toHaveAttribute('aria-selected', 'false')
     expect(screen.getByText(/1 to remove/)).toBeInTheDocument()
+    const beforeRemove = (await storage.load())!.edits
     fireEvent.click(screen.getByRole('button', { name: 'Remove 1 from my list' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species.'))
-    expect(screen.getByText('Removed 1 bird from your list.')).toBeInTheDocument()
+    // The card's "Removed … · Undo" toast, with focus on Undo; Undo puts back exactly what was there (the dated hand
+    // record, not a fresh one).
+    expect(screen.getByText('Removed Snow Goose.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus())
     await waitFor(async () => expect((await storage.load())?.edits.removed).toEqual(['snogoo']), { timeout: 2000 })
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species.'))
+    expect(screen.queryByText('Removed Snow Goose.')).toBeNull()
+    expect(tickOption(/^Snow Goose, Anser caerulescens, already on your list/)).toHaveAttribute('aria-selected', 'true')
+    await waitFor(async () => expect((await storage.load())?.edits).toEqual(beforeRemove), { timeout: 2000 })
+    // Two at once: "Removed 2 birds.", and the toast leaves by itself after about 6 s.
+    fireEvent.click(tickOption(/^Snow Goose, Anser caerulescens, already on your list/))
+    fireEvent.click(tickOption(/^Northern Flicker, Colaptes auratus, already on your list/))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove 2 from my list' }))
+    expect(screen.getByText('Removed 2 birds.')).toBeInTheDocument()
+    await waitFor(async () => expect((await storage.load())?.edits.removed).toEqual(['snogoo', 'norfli']), { timeout: 2000 })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus())
+    screen.getByRole('button', { name: 'Undo' }).blur()
+    await waitFor(() => expect(screen.queryByText('Removed 2 birds.')).toBeNull(), { timeout: 8000 })
     // Ticking it again brings it back.
     fireEvent.click(tickOption(/^Snow Goose/))
     fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species.'))
-  })
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species.'))  }, 20_000) // the Undo toast's ~6 s
 
   it('ticking a bird onto a list from eBird is an edit, not a new collage', async () => {
     const { analytics } = await mount()

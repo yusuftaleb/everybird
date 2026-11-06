@@ -3,15 +3,17 @@
 // birder ticks many birds at once, then adds them with one optional date and place. The list is windowed (only the
 // rows in view are in the DOM), so it stays fast at any size. It is a multi-select listbox: focus stays on the list,
 // the arrow keys move the active row, Space ticks it; a click ticks a row. Birds already on the list show ticked;
-// un-ticking one marks it to come off the list ("Remove N from my list"), as the bird card's Remove does.
+// un-ticking one marks it to come off the list ("Remove N from my list"), as the bird card's Remove does, with the same
+// "Removed … · Undo" toast for a few seconds.
 import { Check } from '@phosphor-icons/react'
-import { useDeferredValue, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useDeferredValue, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { removedText, UndoToast, type Removal } from '@/components/app/UndoToast'
 import { Sticker } from '@/components/collage/Sticker'
 import { track } from '@/lib/analytics'
 import { stripBracket } from '@/lib/import/places'
 import type { Edits, Place } from '@/lib/list/model'
 import type { Action } from '@/lib/list/store'
-import { addTicked, filterTickRows, removeTicked } from '@/lib/list/tick'
+import { addTicked, filterTickRows, removeTicked, undoRemove } from '@/lib/list/tick'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
 import type { Regions } from '@/lib/species/types'
@@ -47,6 +49,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
   const [country, setCountry] = useState('')
   const [sub1, setSub1] = useState('')
   const [done, setDone] = useState('')
+  const [removed, setRemoved] = useState<(Removal & { before: Edits }) | null>(null)
   const box = useRef<HTMLDivElement>(null)
 
   const orders = useMemo(() => {
@@ -116,9 +119,18 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
   const remove = () => {
     if (!drop.length) return
     dispatch({ type: 'edit', edits: removeTicked(edits, drop) })
-    setDone(`Removed ${drop.length.toLocaleString('en-US')} ${drop.length === 1 ? 'bird' : 'birds'} from your list.`)
+    setDone('')
+    setRemoved({ codes: drop, text: removedText(drop.map((c) => species.byCode.get(c)?.com ?? c)), before: edits })
     setDropped(new Set())
   }
+  // Undo: exactly what the removal changed comes back (the removed list, hand records as they were), later edits kept.
+  const undo = () => {
+    if (!removed) return
+    dispatch({ type: 'edit', edits: undoRemove(edits, removed.before, removed.codes) })
+    setRemoved(null)
+    box.current?.focus({ preventScroll: true }) // back to the list the birds came off
+  }
+  const dismiss = useCallback(() => setRemoved(null), [])
 
   const n = picked.size
   return (
@@ -251,6 +263,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
         )}
         <p className="eb-status" role="status">{done}</p>
       </div>
+      <UndoToast removal={removed} onUndo={undo} onDone={dismiss} />
     </section>
   )
 }
