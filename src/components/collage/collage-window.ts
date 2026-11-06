@@ -19,13 +19,13 @@ import { loadDeferred, loading, unloadSticker } from './Sticker'
 /** Lists with more entries than this are windowed (smaller lists keep every bird rendered, as before). */
 export const WINDOW_AT = 1500
 /** Shown within this many screens above and below the viewport... */
-export const SHOW_MARGIN = 0.5
+export const SHOW_MARGIN = 0.75
 /** ...and kept until beyond this many. */
-export const KEEP_MARGIN = 0.75
+export const KEEP_MARGIN = 1
 /** Birds shown per frame to start with (a hide counts half); then adapted between FRAME_MIN and FRAME_MAX. */
 export const FRAME_BUDGET = 160
 export const FRAME_MIN = 40
-export const FRAME_MAX = 600
+export const FRAME_MAX = 250
 /** Hidden birds that keep their sticker (the most recently hidden: a scroll back shows them at once)... */
 export const HELD_MAX = 1000
 /** ...beyond that, the oldest let go of it, at most this many per frame (letting go of an image is not free). */

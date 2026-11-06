@@ -11,9 +11,18 @@ export { stickerUrl }
  * under Playwright's inspector (G1), and on a phone they compete with the stickers actually on screen.
  */
 export const MAX_LOADS = 48
-const queue: HTMLImageElement[] = []
+/**
+ * Most sticker downloads started per frame. Each one is a handful of small tasks (response, data, decode, load);
+ * hundreds at once (a fast scroll through thousands of birds, from a fast server) hold the next frame back by as
+ * much as 100 ms at 4x CPU, though no single task is long.
+ */
+export const STARTS_PER_FRAME = 24
+let queue: HTMLImageElement[] = []
+let head = 0
 const queued = new Set<HTMLImageElement>()
 const flying = new Set<HTMLImageElement>()
+let started = 0
+let frame = 0
 
 function start(img: HTMLImageElement) {
   img.srcset = img.dataset.srcset ?? ''
@@ -34,11 +43,20 @@ function start(img: HTMLImageElement) {
 function pump() {
   // A download whose image left the page (an unmounted collage) no longer counts.
   if (flying.size >= MAX_LOADS) for (const img of flying) if (!img.isConnected) flying.delete(img)
-  while (flying.size < MAX_LOADS && queue.length) {
-    const img = queue.shift()!
+  const raf = typeof requestAnimationFrame === 'function'
+  while (flying.size < MAX_LOADS && head < queue.length) {
+    if (raf && started >= STARTS_PER_FRAME) {
+      // The rest wait for the next frame.
+      frame ||= requestAnimationFrame(() => { frame = 0; started = 0; pump() })
+      return
+    }
+    const img = queue[head++]
     if (!queued.delete(img) || !img.dataset.src || !img.isConnected) continue
+    started++
     start(img)
+    frame ||= raf ? requestAnimationFrame(() => { frame = 0; started = 0; pump() }) : 0
   }
+  if (head > 1024 && head * 2 > queue.length) { queue = queue.slice(head); head = 0 }
 }
 
 /**

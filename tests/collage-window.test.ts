@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { BirdWindow, FRAME_BUDGET, KEEP_MARGIN, SHOW_MARGIN, buildIndex, query } from '@/components/collage/collage-window'
-import { MAX_LOADS, loadDeferred, unloadSticker } from '@/components/collage/Sticker'
+import { MAX_LOADS, STARTS_PER_FRAME, loadDeferred, unloadSticker } from '@/components/collage/Sticker'
 import type { Box } from '@/lib/layout/pack'
 
 /** A column of n birds, each 10 units tall at y = 10·i, on a stage 100 units wide (so % units = layout units). */
@@ -79,8 +79,8 @@ describe('BirdWindow', () => {
     const shown = () => [...els.values()].filter((e) => !e.hasAttribute('data-far')).length
     expect(shown()).toBeLessThanOrEqual(FRAME_BUDGET + 1)
     while (frames.length) frames.shift()!()
-    expect(els.get('b1996')!.hasAttribute('data-far')).toBe(false) // the margin's edge, after a few frames
-    expect(els.get('b1993')!.hasAttribute('data-far')).toBe(true) // beyond it
+    expect(els.get('b1993')!.hasAttribute('data-far')).toBe(false) // the margin's edge, after a few frames
+    expect(els.get('b1990')!.hasAttribute('data-far')).toBe(true) // beyond it
   })
 
   it('hides birds only beyond the keep margin, never pinned ones, and nothing while held', () => {
@@ -89,7 +89,7 @@ describe('BirdWindow', () => {
     w.sync({ all: true })
     move(5000 + (KEEP_MARGIN - SHOW_MARGIN) * 100 / 2) // a small scroll: within the keep margin
     w.sync({ all: true })
-    expect(els.get('b496')!.hasAttribute('data-far')).toBe(false)
+    expect(els.get('b493')!.hasAttribute('data-far')).toBe(false)
     w.hold(10_000)
     move(8000)
     w.sync({ all: true })
@@ -106,20 +106,27 @@ describe('BirdWindow', () => {
 })
 
 describe('sticker downloads in flight', () => {
-  it('start at most MAX_LOADS at once; the rest wait their turn, and a let-go one leaves the queue', () => {
+  const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()))
+  it('start STARTS_PER_FRAME a frame, at most MAX_LOADS at once; the rest wait their turn, and a let-go one leaves the queue', async () => {
     document.body.innerHTML = ''
+    await nextFrame()
     const els = [...birds(MAX_LOADS + 5).values()]
     for (const el of els) loadDeferred(el)
     const started = () => els.filter((e) => e.querySelector('img')!.getAttribute('src')).length
-    expect(started()).toBe(MAX_LOADS)
+    expect(started()).toBe(STARTS_PER_FRAME)
+    while (started() < MAX_LOADS) await nextFrame()
+    await nextFrame()
+    expect(started()).toBe(MAX_LOADS) // no more while MAX_LOADS are in flight
     unloadSticker(els[MAX_LOADS]) // still waiting: just leaves the queue
     els[0].querySelector('img')!.dispatchEvent(new Event('load'))
+    await nextFrame()
     expect(els[MAX_LOADS].querySelector('img')!.getAttribute('src')).toBeNull()
     expect(els[MAX_LOADS + 1].querySelector('img')!.getAttribute('src')).toContain('.webp')
     // Images that left the page free their slots.
     document.body.innerHTML = ''
     const more = [...birds(3).values()]
     for (const el of more) loadDeferred(el)
+    await nextFrame()
     expect(more.every((e) => e.querySelector('img')!.getAttribute('src'))).toBe(true)
   })
 })
