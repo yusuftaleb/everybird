@@ -1,0 +1,23 @@
+e2e/flows.spec.ts
+  s_ab125876fe9ad2::t_018c0ad3506121 86-89,91,381-404
+  s_ab125876fe9ad2::t_51ea34f7a18a44 341
+  s_ab125876fe9ad2::t_c609e663e15a15 23-26,32,34-38,146,152,158-159,162-164
+  s_ab125876fe9ad2::t_09b67789e26434 3,19,144
+  s_ab125876fe9ad2::t_a87f9db9ba2895 17-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f86827e77a066d0f6f37b783a634c98f65d62a8a",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
