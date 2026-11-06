@@ -4,6 +4,8 @@ Every bird you've ever seen. Everybird turns a birder's life list into a sticker
 
 Your list never leaves your browser. The only network calls that carry user input are iNaturalist API requests (a username and place IDs). A share link carries the whole list in the link itself.
 
+Live at https://everybird.yusuftaleb.com (share links, link previews and the share images' footer use this origin, `src/lib/share/origin.ts`).
+
 ## Pages
 
 - **Collage** (`/`): your collage with the dock (Collage/List, True size, Scientific, search), filters, bird cards and Share. Without a list on the device it shows a sample.

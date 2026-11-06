@@ -34,15 +34,15 @@ describe('track', () => {
 
 describe('redactShareToken', () => {
   it('replaces the share token in /s/<token> paths', () => {
-    expect(redactShareToken('https://everybird.vercel.app/s/v1.AbC-_123')).toBe('https://everybird.vercel.app/s/[token]')
+    expect(redactShareToken('https://everybird.yusuftaleb.com/s/v1.AbC-_123')).toBe('https://everybird.yusuftaleb.com/s/[token]')
     expect(redactShareToken('/s/v1.AbC')).toBe('/s/[token]')
   })
   it('keeps the query and hash', () => {
-    expect(redactShareToken('https://everybird.vercel.app/s/v1.AbC?ref=x#top')).toBe('https://everybird.vercel.app/s/[token]?ref=x#top')
+    expect(redactShareToken('https://everybird.yusuftaleb.com/s/v1.AbC?ref=x#top')).toBe('https://everybird.yusuftaleb.com/s/[token]?ref=x#top')
     expect(redactShareToken('/s/v1.AbC#y')).toBe('/s/[token]#y')
   })
   it('leaves other paths untouched', () => {
-    for (const u of ['https://everybird.vercel.app/', 'https://everybird.vercel.app/credits', '/s', '/s/', '/sx/abc', '/?s=/s/abc']) {
+    for (const u of ['https://everybird.yusuftaleb.com/', 'https://everybird.yusuftaleb.com/credits', '/s', '/s/', '/sx/abc', '/?s=/s/abc']) {
       expect(redactShareToken(u)).toBe(u)
     }
   })

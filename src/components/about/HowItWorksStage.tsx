@@ -282,7 +282,7 @@ function Scene({ s, layout, drag }: { s: S; layout: Layout; drag: Drag }) {
 
       <Window
         className="ebd-window"
-        url="everybird.vercel.app"
+        url="everybird.yusuftaleb.com"
         urlShape="pill"
         style={{ left: g.win.x, top: g.win.y, width: g.win.w, height: g.win.h }}
         body={{ className: 'ebd-body', 'data-crop': true, style: { ['--col' as string]: `${g.col}px` } }}

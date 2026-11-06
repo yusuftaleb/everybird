@@ -32,7 +32,7 @@
 
 These come from the spec. Every task must respect them.
 
-- **Name and tagline:** Everybird, "Every bird you've ever seen." The production URL is `https://everybird.vercel.app`.
+- **Name and tagline:** Everybird, "Every bird you've ever seen." The production URL is `https://everybird.yusuftaleb.com`.
 - **Tokens (light / dark):**
 
   | Token | Light | Dark |
@@ -920,7 +920,7 @@ export function shareCardText(n: number, latest?: { com: string; date?: string }
   - top: "Everybird", Cabinet Grotesk 700 at 56px
   - the collage, packed for the area left
   - bottom: the count, Cabinet at 96px ("197 species"), and under it "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px)
-  - footer: `everybird.vercel.app` and "Stickers: huashu-bird-sticker, CC BY 4.0", in Geist Mono 22px Muted
+  - footer: `everybird.yusuftaleb.com` and "Stickers: huashu-bird-sticker, CC BY 4.0", in Geist Mono 22px Muted
   - a filtered view adds `filterLabel` ("Egypt · 2026") under the title
 - **Drawing:** stickers are drawn from the 384 variants with `crossOrigin = 'anonymous'`. GitHub Pages sends `access-control-allow-origin: *`, checked 2026-11-05.
 - **`ShareDialog`** has:
@@ -999,7 +999,7 @@ export function shareCardText(n: number, latest?: { com: string; date?: string }
 **Files:**
 - Modify: `README.md` (live URLs), `docs/validation.md` (results)
 
-- [ ] **Step 1: Ask Yusuf before each step.** Ask: "OK to create public GitHub repos `everybird` and `everybird-stickers` under your account, turn on Pages for the stickers repo, and link `everybird` to Vercel as `everybird.vercel.app`?" Wait for a yes.
+- [ ] **Step 1: Ask Yusuf before each step.** Ask: "OK to create public GitHub repos `everybird` and `everybird-stickers` under your account, turn on Pages for the stickers repo, and link `everybird` to Vercel as `everybird.yusuftaleb.com`?" Wait for a yes.
 - [ ] **Step 2: Stickers.**
   1. Run `gh repo create everybird-stickers --public --source ../everybird-stickers --push`.
   2. Turn on Pages from `main` and the root folder.
@@ -1008,7 +1008,7 @@ export function shareCardText(n: number, latest?: { com: string; date?: string }
   1. Run `gh repo create everybird --public --source . --push`.
   2. Create the Vercel project from the repo (the `vercel` CLI or dashboard), set `NEXT_PUBLIC_STICKER_BASE=https://<user>.github.io/everybird-stickers`, and turn on Web Analytics.
   3. Run `npx playwright test` against the preview URL by setting `BASE_URL`. Expected: all pass.
-- [ ] **Step 4: Production.** Promote the build to production at `everybird.vercel.app`, then run the full e2e suite against it.
+- [ ] **Step 4: Production.** Promote the build to production at `everybird.yusuftaleb.com`, then run the full e2e suite against it.
 - [ ] **Step 5: Launch.** Hand the manual launch gate in `docs/validation.md` to Yusuf. **The LinkedIn post happens only after he signs it off.**
 - [ ] **Step 6: Commit and push** the README and validation updates, with the message `docs: live URLs and validation results`.
 
