@@ -1,0 +1,22 @@
+tests/collage-motion.test.ts
+  s_ab125876fe9ad2::t_7837038715bc33 210,222
+  s_ab125876fe9ad2::t_7d085a6cff37cc 117,120-132,146-182,184-204,206,209,211-221,223-236,238,247
+src/components/collage/collage-motion.ts
+  s_ab125876fe9ad2::t_1a44a6b032720a 104,108,197,233,237-241,243-250,252-258,276-277,288,294-295
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8eabb74644cbf138ee5287cf9827ebcf643cb4ce",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
