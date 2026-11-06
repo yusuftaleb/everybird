@@ -15,7 +15,7 @@ export default defineConfig({
   reporter: "list",
   use: { baseURL },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /filters\.spec\.ts/ },
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /(filters|stress)\.spec\.ts/ },
     // The timeline, the share dialog and Settings (page heads, Tick by hand) in Safari's engine too.
     { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(timeline|share|settings)\.spec\.ts/ },
     // The frame-timing test runs on its own, after everything else, so other workers can't steal its CPU.
@@ -25,6 +25,14 @@ export default defineConfig({
       testMatch: /filters\.spec\.ts/,
       dependencies: ["chromium", "webkit"],
     },
+    // Viral-scale stress (3,000 / 6,000 / ~11,000 species, 390 and 1440 px), opt-in: only with STRESS=1
+    // (`npm run e2e:stress`), on the production build, one test at a time, in both engines.
+    ...(process.env.STRESS
+      ? [
+          { name: "stress-chromium", use: { ...devices["Desktop Chrome"], baseURL: perfURL }, testMatch: /stress\.spec\.ts/ },
+          { name: "stress-webkit", use: { ...devices["Desktop Safari"], baseURL: perfURL }, testMatch: /stress\.spec\.ts/ },
+        ]
+      : []),
   ],
   // Skip the local servers when pointing at a deployed URL. Locally, stickers come from ../everybird-stickers
   // through scripts/dev/serve-stickers.mjs (the Pages site stands in for it in production). The Next servers
