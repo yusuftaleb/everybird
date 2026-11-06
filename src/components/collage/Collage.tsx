@@ -16,7 +16,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { Bird, type BirdInit } from './Bird'
 import { birdAt, ensureMasks } from './collage-hit'
 import {
-  APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, FADE_MS, RIPPLE_MS, WRITE_START, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
+  APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, ENTER_MS, FADE_MS, RIPPLE_MS, WRITE_START, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
   type Motion,
 } from './collage-motion'
 import { Tally } from './Tally'
@@ -190,6 +190,22 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
     if (f.phase === 'out') { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null }
     write(first ? 'jump' : 'travel')
   }, [layout, visible, taxo, entries, shown, syncTabStop, setHot, fadeThrough, motion, inits])
+
+  // Once the first appearance has played (the latest bird starts at APPEAR_MS and runs ENTER_MS), switch the
+  // birds' eb-in CSS animation off in idle time: a bird holding even a finished CSS animation costs more on
+  // every later restyle. Later arrivals use Web Animations, and birds new to a mounted collage start hidden.
+  useEffect(() => {
+    const el = stage.current
+    if (!el) return
+    const g = globalThis as { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void }
+    let idle = 0
+    const t = setTimeout(() => {
+      const settle = () => el.setAttribute('data-settled', '')
+      if (g.requestIdleCallback) idle = g.requestIdleCallback(settle, { timeout: 1000 })
+      else settle()
+    }, APPEAR_MS + ENTER_MS + 100)
+    return () => { clearTimeout(t); if (idle) g.cancelIdleCallback?.(idle) }
+  }, [])
 
   // Measure the stage so sticker sizes follow its real width.
   useEffect(() => {

@@ -80,7 +80,8 @@
 /* Big lists and reduced motion: no travel; the bird layer fades through instead (Collage.tsx). */
 .eb-stage[data-fast] { transition: none; }
 .eb-stage[data-fast] .eb-bird { transition: opacity .2s ease, transform .2s var(--eb-arrive); }
-.eb-stage[data-many] .eb-bird { animation: none; }
+.eb-stage[data-many] .eb-bird,
+.eb-stage[data-settled] .eb-bird { animation: none; } /* settled: the first appearance is over (Collage.tsx) */
 @keyframes eb-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes eb-fade { from { opacity: 0; } }
 
