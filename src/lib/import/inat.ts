@@ -436,7 +436,7 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
       if (a.heardAll) rec.heard = true
       if (a.deadAll) rec.dead = true
       if (a.media) rec.media = true
-      if (a.research) rec.research = true
+      rec.research = a.research
       rec.seen = seenPlaces.get(a.code) ?? []
       records.push(rec)
     }

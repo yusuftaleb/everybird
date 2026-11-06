@@ -69,6 +69,12 @@ describe('buildList', () => {
     expect(e.dead).toBe(false)
   })
 
+  it('casual-only iNat species is hidden with researchOnly, shown without; eBird + casual iNat stays', () => {
+    const records = [rec('x', 'inat', { research: false }), rec('y', 'inat', { research: false }), rec('y', 'ebird')]
+    expect(build(records, {}, { researchOnly: true }).map((e) => e.code)).toEqual(['y'])
+    expect(build(records).map((e) => e.code)).toEqual(['x', 'y'])
+  })
+
   it('researchOnly drops non-research iNat records', () => {
     const records = [rec('a', 'inat', { research: false }), rec('b', 'inat', { research: true }), rec('c', 'ebird'), rec('d', 'inat')]
     expect(build(records, {}, { researchOnly: true }).map((e) => e.code)).toEqual(['b', 'c', 'd'])

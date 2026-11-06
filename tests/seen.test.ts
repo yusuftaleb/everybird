@@ -91,6 +91,16 @@ describe('buildSeen', () => {
     expect([...seen.byCode.keys()].sort()).toEqual(['r'])
     expect(seen.byCode.get('r')!.places.map((p) => p.country)).toEqual(['AR'])
   })
+  it('researchOnly keeps eBird places and drops the casual iNat places of the same species', () => {
+    const records = [
+      rec('e', 'ebird', { seen: ['2020-01-01|CA'] }),
+      rec('e', 'inat', { research: false, seen: ['2019-01-01|MX'] }),
+    ]
+    const on = build(records, {}, { researchOnly: true }).seen
+    expect(on.byCode.get('e')!.places.map((p) => p.country)).toEqual(['CA'])
+    const off = build(records).seen
+    expect(off.byCode.get('e')!.places.map((p) => p.country).sort()).toEqual(['CA', 'MX'])
+  })
   it('a species whose only record is outside the list has nothing (seenOf falls back to the lifer place)', () => {
     const { seen } = build([])
     expect(seenOf(seen, { code: 'q', place: { country: 'FR' }, heard: false, dead: false, media: false, sources: [] })).toEqual([{ country: 'FR' }])

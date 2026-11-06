@@ -99,10 +99,10 @@ describe('importInat', () => {
     expect(r.skipped).toBe(1) // the genus-level observation
   })
 
-  it('research is true if any observation is research grade', async () => {
+  it('research is true if any observation is research grade, false if none is', async () => {
     const r = okResult(await run(fakeFetch()))
     expect(r.records.find((x) => x.code === 'norfli')!.research).toBe(true)
-    expect(r.records.find((x) => x.code === 'gilfli')!.research).toBeUndefined()
+    expect(r.records.find((x) => x.code === 'gilfli')!.research).toBe(false)
   })
 
   it('sound-only is heard; annotation 17/19 is dead; photo is media', async () => {
