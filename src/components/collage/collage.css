@@ -74,20 +74,21 @@
   visibility: hidden;
   transition: none;
 }
-/* Big lists: a bird far from the viewport is not rendered at all (collage-window.ts); one ringed by the search
-   shows at once so it can be scrolled to and focused. */
-.eb-bird[data-far]:not([data-ring]) { display: none; }
+/* Big lists: a bird far from the viewport is not rendered at all (collage-window.ts), and it lacks .eb-tile, the
+   class the stage-state rules below select on: so a stage attribute change (data-fast on every big filter change)
+   restyles only the birds rendered, not thousands of unrendered ones (~330 ms at 4x CPU for 11,000). */
+.eb-bird[data-far] { display: none; }
 /* Arriving: jump to the new spot while invisible; WAAPI fades and grows it in. */
 .eb-bird[data-enter] { transition: translate 0s, scale 0s, opacity 0s, transform .2s var(--eb-arrive); }
 .eb-bird[data-hot] { transform: translateY(calc(-2px / var(--k))); z-index: 2; }
 /* A still change with many arrivals (a wide drag back): birds appear without their fade (Collage.tsx). */
-.eb-stage[data-instant] .eb-bird { transition: none; }
-.eb-stage:not([data-ready]), .eb-stage:not([data-ready]) .eb-bird { transition: none; } /* the first two frames (Collage.tsx) */
+.eb-stage[data-instant] .eb-tile { transition: none; }
+.eb-stage:not([data-ready]), .eb-stage:not([data-ready]) .eb-tile { transition: none; } /* the first two frames (Collage.tsx) */
 /* Big lists and reduced motion: no travel; the bird layer fades through instead (Collage.tsx). */
 .eb-stage[data-fast] { transition: none; }
-.eb-stage[data-fast] .eb-bird { transition: opacity .2s ease, transform .2s var(--eb-arrive); }
-.eb-stage[data-many] .eb-bird,
-.eb-stage[data-settled] .eb-bird { animation: none; } /* settled: the first appearance is over (Collage.tsx) */
+.eb-stage[data-fast] .eb-tile { transition: opacity .2s ease, transform .2s var(--eb-arrive); }
+.eb-stage[data-many] .eb-tile,
+.eb-stage[data-settled] .eb-tile { animation: none; } /* settled: the first appearance is over (Collage.tsx) */
 @keyframes eb-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes eb-fade { from { opacity: 0; } }
 

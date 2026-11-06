@@ -5,7 +5,7 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BirdCard } from '@/components/collage/BirdCard'
 import { BirdTip } from '@/components/collage/BirdTip'
-import { Collage } from '@/components/collage/Collage'
+import { Collage, revealBird } from '@/components/collage/Collage'
 import { reduced } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
 import { FilterBar } from '@/components/filters/FilterBar'
@@ -138,6 +138,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
     const el = box.current?.querySelector<HTMLElement>(collage ? `.eb-bird[data-code="${code}"]` : `.eb-row-btn[data-code="${code}"]`)
     if (!el) return
     if (ring.current) { clearTimeout(ring.current.t); ring.current.el.removeAttribute('data-ring') }
+    if (collage) revealBird(el) // a big list renders only the birds near the viewport
     el.setAttribute('data-ring', '')
     ring.current = { el, t: setTimeout(() => el.removeAttribute('data-ring'), RING_MS) }
     el.scrollIntoView?.({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' })

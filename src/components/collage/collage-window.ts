@@ -22,6 +22,10 @@ export const SHOW_MARGIN = 0.75
 export const KEEP_MARGIN = 1.5
 /** Birds in the margin shown per frame (those in the viewport are always shown at once). */
 export const REVEAL_BUDGET = 160
+/** Birds hidden per frame. */
+export const HIDE_BUDGET = 150
+/** Hidden birds' stickers let go of per frame. */
+export const DROP_BUDGET = 200
 
 export type BandIndex = {
   codes: string[]
@@ -65,7 +69,16 @@ export function query(ix: BandIndex, a: number, b: number, fn: (code: string, di
   }
 }
 
-export type View = { top: number; bottom: number; screen: number }
+/**
+ * Render a bird or not: data-far (display: none) and, the other way, .eb-tile, the class the stage-state rules
+ * select on (collage.css), so stage attribute changes never restyle unrendered birds.
+ */
+export function setFar(el: Element, far: boolean): void {
+  if (far) { el.setAttribute('data-far', ''); el.classList.remove('eb-tile') }
+  else { el.removeAttribute('data-far'); el.classList.add('eb-tile') }
+}
+
+export type View ={ top: number; bottom: number; screen: number }
 
 export type WindowOpts = {
   els: Map<string, HTMLElement>
@@ -75,6 +88,8 @@ export type WindowOpts = {
   pinned: () => Iterable<string | null>
   /** Birds never hidden right now (playing their exit). */
   busy?: (code: string) => boolean
+  /** Called as a bird is rendered, before its data-far goes (to bring its DOM up to date: applyFar). */
+  onReveal?: (code: string, el: HTMLElement) => void
   frame?: (cb: () => void) => number
   cancel?: (id: number) => void
 }
@@ -96,7 +111,9 @@ export class BirdWindow {
     const el = this.o.els.get(code)
     if (!el) return false
     this.shown.add(code)
-    el.removeAttribute('data-far')
+    this.o.onReveal?.(code, el)
+    setFar(el, false)
+    this.drop.delete(code)
     loadDeferred(el)
     return true
   }
@@ -105,8 +122,25 @@ export class BirdWindow {
     const el = this.o.els.get(code)
     this.shown.delete(code)
     if (!el) return
-    el.setAttribute('data-far', '')
-    unloadSticker(el)
+    setFar(el, true)
+    // Letting go of an image is not free (~35 µs at 4x CPU): a filter change that hides 1,500 birds at once lets go
+    // of their stickers over the next frames, DROP_BUDGET a frame.
+    this.drop.add(code)
+    if (!this.dropRaf) this.dropRaf = (this.o.frame ?? requestAnimationFrame)(this.dropSome)
+  }
+
+  private drop = new Set<string>()
+  private dropRaf = 0
+  private dropSome = () => {
+    this.dropRaf = 0
+    let k = 0
+    for (const code of this.drop) {
+      if (k++ >= DROP_BUDGET) break
+      this.drop.delete(code)
+      const el = this.o.els.get(code)
+      if (el && !this.shown.has(code)) unloadSticker(el)
+    }
+    if (this.drop.size) this.dropRaf = (this.o.frame ?? requestAnimationFrame)(this.dropSome)
   }
 
   /** Nothing is hidden for `ms` from now (a glide is under way); then the window is synced again. */
@@ -124,45 +158,78 @@ export class BirdWindow {
     this.raf = frame(() => { this.raf = 0; this.sync() })
   }
 
+  /** Call `cb` once every bird near the viewport is shown. */
+  whenShown(cb: () => void) {
+    this.waiters.push(cb)
+    this.schedule()
+  }
+  private waiters: (() => void)[] = []
+  /**
+   * Quiet: the bird layer is hidden (a fade-through places birds), so the birds in the viewport are shown within the
+   * per-frame budget too; nobody sees them arrive.
+   */
+  quiet = false
+
   /**
    * Show the birds near the viewport and hide those far from it. `all`: show every bird in the margin now (no
-   * per-frame budget). `keep`: hide nothing. Returns how many birds were shown.
+   * per-frame budget). `keep`: hide nothing. Hides are budgeted too (HIDE_BUDGET a frame): a bird left rendered a
+   * few frames longer costs nothing visible. Returns how many birds were shown.
    */
   sync(opts: { all?: boolean; keep?: boolean } = {}): number {
     const ix = this.ix, v = this.o.view()
-    if (!ix || !v) return 0
+    if (!ix || !v) { this.flushWaiters(); return 0 }
     const s = v.screen
     const want: [string, number][] = []
-    let n = 0
+    const eager = !this.quiet
+    let n = 0, more = false, left = false
     query(ix, v.top - SHOW_MARGIN * s, v.bottom + SHOW_MARGIN * s, (code, dist) => {
       if (this.shown.has(code)) return
-      if (dist === 0 || opts.all) { if (this.reveal(code)) n++ } else want.push([code, dist])
+      if (opts.all || (dist === 0 && eager)) { if (this.reveal(code)) n++ } else want.push([code, dist])
     }, v.top, v.bottom)
     if (want.length) {
       want.sort((p, q) => p[1] - q[1])
       const k = Math.min(want.length, REVEAL_BUDGET)
       for (let i = 0; i < k; i++) if (this.reveal(want[i][0])) n++
-      if (want.length > k) this.schedule()
+      if (want.length > k) more = left = true
     }
     for (const c of this.o.pinned()) if (this.reveal(c)) n++
     if (!opts.keep && performance.now() >= this.holdUntil) {
       const a = v.top - KEEP_MARGIN * s, b = v.bottom + KEEP_MARGIN * s
       const pins = new Set(this.o.pinned())
+      let hidden = 0
       for (const code of this.shown) {
         if (pins.has(code) || this.o.busy?.(code)) continue
         const i = ix.at.get(code)
         if (i !== undefined && ix.bottom[i] > a && ix.top[i] < b) continue
+        if (hidden++ >= HIDE_BUDGET) { more = true; break }
         this.hide(code)
       }
     }
+    if (more) this.schedule()
+    if (!left) this.flushWaiters()
     return n
   }
 
-  /** Forget every bird's state (the list stopped being windowed, or the collage unmounts). */
-  dispose() {
+  private flushWaiters() {
+    if (!this.waiters.length) return
+    const w = this.waiters
+    this.waiters = []
+    for (const cb of w) cb()
+  }
+
+  /** Cancel the pending frame and timer (the collage unmounts; a remount syncs again on its next write). */
+  stop() {
+    this.waiters = []
     if (this.raf) (this.o.cancel ?? cancelAnimationFrame)(this.raf)
+    if (this.dropRaf) (this.o.cancel ?? cancelAnimationFrame)(this.dropRaf)
     this.raf = 0
+    this.dropRaf = 0
     clearTimeout(this.timer)
+  }
+
+  /** Stop, and forget which birds are shown (the list stopped or started being windowed: every bird was reset). */
+  dispose() {
+    this.stop()
     this.shown.clear()
   }
 }

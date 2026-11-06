@@ -35,7 +35,7 @@ export const Bird = memo(function Bird({ code, name, st, ar, init, register }: P
     <button
       ref={(el) => register(code, el)}
       type="button"
-      className="eb-bird"
+      className={init.far ? 'eb-bird' : 'eb-bird eb-tile'}
       data-code={code}
       data-off={init.off ? '' : undefined}
       data-far={init.far ? '' : undefined}

@@ -91,6 +91,41 @@ export type WriteArgs = {
    * layer and a style update per frame). Omitted: every bird animates.
    */
   view?: { top: number; bottom: number }
+  /**
+   * Windowed lists (collage-window.ts): birds not rendered right now (`has`: data-far, display: none) are written to
+   * the motion caches only, not the DOM: touching thousands of unrendered birds still restyles each one (a ~350 ms
+   * style recalc at 4x CPU for 11,000). Their DOM catches up when they are rendered (`applyFar`). `off` holds the
+   * shown-or-hidden state of each bird whose DOM is behind (true: hidden).
+   */
+  far?: FarBirds
+}
+
+export type FarBirds = { has: (code: string) => boolean; off: Map<string, boolean> }
+
+/** Bring an unrendered bird's DOM up to date with the motion caches (see WriteArgs `far`), as it is rendered. */
+export function applyFar(m: Motion, far: FarBirds, code: string, el: HTMLElement): void {
+  const off = far.off.get(code)
+  if (off === undefined) return
+  far.off.delete(code)
+  const base = m.base.get(code)
+  const st = el.style
+  if (base) { st.setProperty('--w', String(base[0])); st.setProperty('--h', String(base[1])) }
+  const w = m.written.get(code)
+  if (base && w) {
+    const [x, y, k] = w.split(',').map(Number)
+    st.setProperty('--x', String(x || 0))
+    st.setProperty('--y', String(y || 0))
+    st.setProperty('--k', String(k || 1))
+    st.setProperty('--md', '0ms')
+  }
+  const px = m.sizes.get(code)
+  if (px) el.querySelector('img')?.setAttribute('sizes', `${px}px`)
+  el.removeAttribute('data-enter')
+  m.anims.get(code)?.cancel()
+  m.anims.delete(code)
+  m.leaving.delete(code)
+  if (off) { el.setAttribute('data-off', ''); el.setAttribute('aria-hidden', 'true') }
+  else { el.removeAttribute('data-off'); el.removeAttribute('aria-hidden') }
 }
 
 const inView = (view: WriteArgs['view'], y: number, h: number) => !view || (y < view.bottom && y + h > view.top)
@@ -126,8 +161,9 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
     const el = els.get(code)
     if (!el) continue
     const box = visible.has(code) ? layout.boxes.get(code) : undefined
-    const wasOff = el.hasAttribute('data-off') || m.leaving.has(code)
-    const entering = el.hasAttribute('data-enter')
+    const behind = a.far?.off.get(code) // an unrendered bird whose DOM is behind: its state is here
+    const wasOff = (behind ?? el.hasAttribute('data-off')) || m.leaving.has(code)
+    const entering = behind === undefined && el.hasAttribute('data-enter')
     if (box) {
       on.add(code)
       const x = pct(box[0], W), y = pct(box[1], W)
@@ -149,6 +185,15 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
         md,
         code,
         run: (late = 0) => {
+          if (a.far?.has(code)) {
+            // Not rendered: the caches only (applyFar writes the DOM once it is).
+            if (!m.base.has(code)) m.base.set(code, [pct(box[2], W), pct(box[3], W)])
+            m.written.set(code, `${x},${y},${pct(box[2], W) / m.base.get(code)![0]},${md}`)
+            if (px > (m.sizes.get(code) ?? 0)) m.sizes.set(code, px)
+            m.anims.get(code)?.cancel(); m.anims.delete(code); m.leaving.delete(code)
+            a.far.off.set(code, false)
+            return
+          }
           let base = m.base.get(code)
           if (!base) {
             base = [pct(box[2], W), pct(box[3], W)]
@@ -198,6 +243,11 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
         md,
         code,
         run: (late = 0) => {
+          if (a.far?.has(code)) {
+            m.anims.get(code)?.cancel(); m.anims.delete(code); m.leaving.delete(code)
+            a.far.off.set(code, true)
+            return
+          }
           if (el.hasAttribute('data-enter')) el.removeAttribute('data-enter')
           if (el.hasAttribute('data-off') || m.leaving.has(code)) return
           el.setAttribute('aria-hidden', 'true')
