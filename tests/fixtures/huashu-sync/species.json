@@ -1,0 +1,13 @@
+{
+ "version": "synthetic",
+ "species": [
+  { "id": "Avis_alba", "scientificName": "Avis alba", "taxonConcept": "same", "taxonomy": { "seq": 1, "order": "Testiformes", "family": "Testidae" },
+    "ids": { "ebird": "whibir1" }, "traits": { "massG": 20 }, "names": { "en": "White Bird" },
+    "sticker": { "file": "stickers/Testiformes/Testidae/Avis_alba.webp", "meetsQualityBar": true } },
+  { "id": "Avis_nigra", "scientificName": "Avis nigra", "taxonConcept": "same", "taxonomy": { "seq": 2, "order": "Testiformes", "family": "Testidae" },
+    "ids": { "ebird": "blabir1" }, "traits": { "massG": 40 },
+    "sticker": { "file": "stickers/Testiformes/Testidae/Avis_nigra.webp", "meetsQualityBar": true } },
+  { "id": "Avis_rubra", "scientificName": "Avis rubra", "taxonConcept": "same", "taxonomy": { "seq": 3, "order": "Testiformes", "family": "Testidae" },
+    "ids": { "ebird": "redbir1" }, "traits": { "massG": 60 } }
+ ]
+}

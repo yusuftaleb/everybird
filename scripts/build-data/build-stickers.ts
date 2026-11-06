@@ -1,14 +1,18 @@
 // Builds sticker variants (long side 128 and 384, trimmed webp), collision masks and `ar`.
 // Run AFTER build-species: npx tsx scripts/build-data/build-stickers.ts [--force | --codes a,b,...]
-// --codes regenerates just those codes (e.g. the ones check-stickers.ts reports); everything else is reused.
-// Output: ${STICKERS_OUT:-../everybird-stickers}/v1/{128,384}/<code>.webp, public/data/masks/<Order>.v1.json,
-// and the `ar` values in public/data/species.v1.json (build-stickers is the source of truth for `ar`).
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+// --codes regenerates just those codes (e.g. the ones check-stickers.ts reports) and merges their masks and `ar` into
+// the committed public/data/masks/*.json and species.v1.json, so it needs no other sticker on disk; species without
+// a sticker leave the masks. Without --codes every sticker's mask is measured from its file on disk.
+// Output: ${STICKERS_OUT:-../everybird-stickers}/v1/{128,384}/<code>.webp (<code>.<sv>.webp for a versioned sticker,
+// see src/lib/sticker-url.ts), public/data/masks/<Order>.v1.json, and the `ar` values in public/data/species.v1.json
+// (build-stickers is the source of truth for `ar`).
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import sharp from 'sharp'
 import { maskFromAlpha } from '../../src/lib/layout/mask'
-import type { Overrides, SpeciesFile } from '../../src/lib/species/types'
+import type { Overrides, SpeciesFile, SpeciesRow } from '../../src/lib/species/types'
+import { LARGE, SMALL, stickerPath } from '../../src/lib/sticker-url'
 import { loadEbirdTaxonomy, loadHuashu, matchHuashu } from './build-species'
 
 const WEBP = { quality: 80, effort: 6 } as const
@@ -47,6 +51,77 @@ export async function maskOf(webp: Buffer | string): Promise<{ mask: [number, nu
     mask: maskFromAlpha(alpha, info.width, info.height),
     ar: Math.round((info.width / info.height) * 10000) / 10000,
   }
+}
+
+export type Mask = [number, number, string]
+/** Every order's mask table: order -> code -> mask (public/data/masks/<Order>.v1.json). */
+export type MaskTables = Map<string, Record<string, Mask>>
+
+export function readMaskTables(dir: string): MaskTables {
+  const out: MaskTables = new Map()
+  if (!existsSync(dir)) return out
+  for (const f of readdirSync(dir).filter((f) => f.endsWith('.v1.json')).sort()) {
+    out.set(f.slice(0, -'.v1.json'.length), JSON.parse(readFileSync(resolve(dir, f), 'utf8')))
+  }
+  return out
+}
+
+/** Writes each order's table with its codes sorted (the format build-stickers has always written). */
+export function writeMaskTables(dir: string, tables: MaskTables): void {
+  mkdirSync(dir, { recursive: true })
+  for (const [ord, rec] of tables) {
+    const sorted = Object.fromEntries(Object.entries(rec).sort(([a], [b]) => (a < b ? -1 : 1)))
+    writeFileSync(resolve(dir, `${ord}.v1.json`), JSON.stringify(sorted))
+  }
+}
+
+/**
+ * Rebuilds the stickers of `codes` (from `source(code)`, the huashu file) into `out` and merges every species' mask
+ * and `ar` into `masks` and `rows` (both mutated): a rebuilt sticker is measured from its new 384 file; any other
+ * sticker keeps the mask it has (or, missing one, is measured from its file in `out`); a species without a sticker
+ * leaves the masks and gets ar 1. Returns the files written, relative to `out`.
+ */
+export async function updateStickers(o: {
+  rows: SpeciesRow[]; codes: ReadonlySet<string>; source: (code: string) => string; out: string; masks: MaskTables
+  concurrency?: number
+}): Promise<string[]> {
+  const { rows, codes, out, masks } = o
+  const where = new Map<string, string>() // code -> order holding its mask
+  for (const [ord, rec] of masks) for (const c of Object.keys(rec)) where.set(c, ord)
+  const drop = (code: string) => { const ord = where.get(code); if (ord) delete masks.get(ord)![code] }
+  const put = (row: SpeciesRow, mask: Mask) => {
+    drop(row.code)
+    const ord = row.ord || 'Unknown'
+    if (!masks.has(ord)) masks.set(ord, {})
+    masks.get(ord)![row.code] = mask
+  }
+  const written: string[] = []
+  let rebuilt = 0
+  await pool(rows, o.concurrency ?? 8, async (row) => {
+    if (!row.st) { drop(row.code); row.ar = 1; return }
+    if (codes.has(row.code)) {
+      const v = await makeVariants(o.source(row.code))
+      for (const [size, buf] of [[SMALL, v.v128], [LARGE, v.v384]] as const) {
+        const rel = stickerPath(row.code, size, row.sv)
+        mkdirSync(resolve(out, rel, '..'), { recursive: true })
+        writeFileSync(resolve(out, rel), buf)
+        written.push(rel)
+      }
+      const { mask, ar } = await maskOf(v.v384)
+      row.ar = ar
+      put(row, mask)
+      if (++rebuilt % 500 === 0) console.log(`${rebuilt}/${codes.size} stickers rebuilt`)
+      return
+    }
+    const ord = where.get(row.code)
+    if (ord && (row.ord || 'Unknown') === ord) return // unchanged: keeps its mask and ar
+    const p384 = resolve(out, stickerPath(row.code, LARGE, row.sv))
+    if (!existsSync(p384)) throw new Error(`${row.code}: has a sticker but no mask and no ${p384}`)
+    const { mask, ar } = await maskOf(p384)
+    row.ar = ar
+    put(row, mask)
+  })
+  return written.sort()
 }
 
 async function pool<T>(items: T[], n: number, fn: (t: T) => Promise<void>) {
@@ -95,16 +170,29 @@ async function main() {
   sharp.concurrency(1) // parallelism comes from the pool; UV_THREADPOOL_SIZE must be >= pool size (set in main)
 
   const todo = file.species.filter((s) => s.st)
-  const masks = new Map<string, Record<string, [number, number, string]>>()
+  const sourceOf = (code: string) => {
+    const rec = matches.get(code)
+    if (!rec?.sticker) throw new Error(`${code}: st:true but no matched sticker (run build-species first)`)
+    return resolve(huashuDir, rec.sticker.file)
+  }
+  const maskDir = resolve(cwd, 'public/data/masks')
+  if (only) {
+    const masks = readMaskTables(maskDir)
+    const written = await updateStickers({ rows: file.species, codes: only, source: sourceOf, out, masks, concurrency: 10 })
+    writeMaskTables(maskDir, masks)
+    writeFileSync(speciesPath, JSON.stringify(file))
+    console.log(`stickers: ${written.length / 2} rebuilt, masks merged, ${((Date.now() - t0) / 1000).toFixed(0)}s`)
+    return
+  }
+  const masks = new Map<string, Record<string, Mask>>()
   let done = 0, skipped = 0
   await pool(todo, 10, async (row) => {
-    const rec = matches.get(row.code)
-    if (!rec?.sticker) throw new Error(`${row.code}: st:true but no matched sticker (run build-species first)`)
-    const p128 = resolve(dirs[128], `${row.code}.webp`), p384 = resolve(dirs[384], `${row.code}.webp`)
+    const src = sourceOf(row.code)
+    const p128 = resolve(out, stickerPath(row.code, SMALL, row.sv)), p384 = resolve(out, stickerPath(row.code, LARGE, row.sv))
     if (!regenerate(row.code) && existsSync(p128) && existsSync(p384)) {
       skipped++
     } else {
-      const v = await makeVariants(resolve(huashuDir, rec.sticker.file))
+      const v = await makeVariants(src)
       writeFileSync(p128, v.v128)
       writeFileSync(p384, v.v384)
     }
@@ -116,12 +204,7 @@ async function main() {
     if (++done % 500 === 0) console.log(`${done}/${todo.length}`)
   })
 
-  const maskDir = resolve(cwd, 'public/data/masks')
-  mkdirSync(maskDir, { recursive: true })
-  for (const [ord, rec] of masks) {
-    const sorted = Object.fromEntries(Object.entries(rec).sort(([a], [b]) => (a < b ? -1 : 1)))
-    writeFileSync(resolve(maskDir, `${ord}.v1.json`), JSON.stringify(sorted))
-  }
+  writeMaskTables(maskDir, masks)
   writeFileSync(speciesPath, JSON.stringify(file))
 
   const commit: string = manifest.huashuCommit
