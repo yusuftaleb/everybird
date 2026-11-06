@@ -93,7 +93,7 @@
 .eb-status:empty { min-height: 0; }
 .eb-howto { font-size: 14px; line-height: 1.45; }
 .eb-howto summary {
-  display: inline-flex; align-items: center; min-height: 32px; cursor: pointer; color: var(--ink);
+  display: inline-flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--ink);
   text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px;
 }
 .eb-howto ul { margin: 6px 0 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 6px; }
@@ -126,7 +126,7 @@
 @media (prefers-reduced-motion: reduce) { .eb-way { transition: none; } }
 .eb-tickbar-drop { color: var(--accent); font-weight: 500; }
 .eb-notcounted p { margin: 0; }
-.eb-notcounted summary { cursor: pointer; min-height: 32px; display: inline-flex; align-items: center; color: var(--ink); text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px; }
+.eb-notcounted summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; color: var(--ink); text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px; }
 .eb-notcounted ul { margin: 4px 0 0; padding-left: 18px; }
 
 /* Fields: text inputs and selects share one height, padding, radius, border and type. A select draws its own chevron
