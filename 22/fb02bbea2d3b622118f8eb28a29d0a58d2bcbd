@@ -1,0 +1,25 @@
+scripts/build-data/build-icons.ts
+  s_ab125876fe9ad2::t_b0445eeccfaaad 14,134
+src/components/about/how-it-works.css
+  s_ab125876fe9ad2::t_b0445eeccfaaad 281-284
+src/components/about/HowItWorksStage.tsx
+  s_ab125876fe9ad2::t_b0445eeccfaaad 27,89-99,102
+src/components/collage/Sticker.tsx
+  s_ab125876fe9ad2::t_b0445eeccfaaad 94-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "22fb02bbea2d3b622118f8eb28a29d0a58d2bcbd",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
