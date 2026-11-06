@@ -94,6 +94,15 @@ describe('store reducer', () => {
     expect(s.list).toBe(s0.list)
   })
 
+  it('sci (Scientific names) is off by default and touches only itself', () => {
+    const s0 = run(initialState(), { type: 'import', source: 'ebird', result: result([rec('duck', 'ebird')]) })
+    expect(s0.sci).toBe(false)
+    const s = run(s0, { type: 'sci', sci: true })
+    expect(s.sci).toBe(true)
+    expect(s.saved).toBe(s0.saved)
+    expect(s.list).toBe(s0.list)
+  })
+
   it('restore recomputes everything from the backup', () => {
     const saved = { ...emptySaved(), records: { ebird: [rec('crow', 'ebird')], 'ebird-list': [], inat: [], manual: [] } }
     const s = run(initialState(), { type: 'restore', saved })

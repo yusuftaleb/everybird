@@ -21,6 +21,8 @@ export type AppState = {
   mode: 'even' | 'true'
   view: 'collage' | 'list'
   massOrder: 'heaviest' | 'lightest'
+  /** Scientific names lead wherever a bird or group is named (LifeList's Scientific switch); never stored. */
+  sci: boolean
   persistence: 'saved' | 'memory-only' | 'idle'
 }
 
@@ -33,6 +35,7 @@ export type Action =
   | { type: 'mode'; mode: AppState['mode'] }
   | { type: 'view'; view: AppState['view'] }
   | { type: 'massOrder'; massOrder: AppState['massOrder'] }
+  | { type: 'sci'; sci: boolean }
   | { type: 'restore'; saved: Saved }
   /** The display name for share images and links (Saved.name); blank removes it. */
   | { type: 'name'; name: string }
@@ -75,6 +78,7 @@ export function initialState(): AppState {
     mode: 'even',
     view: 'collage',
     massOrder: 'heaviest',
+    sci: false,
     persistence: 'idle',
   }
 }
@@ -100,6 +104,8 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
         return { ...s, view: a.view }
       case 'massOrder':
         return { ...s, massOrder: a.massOrder }
+      case 'sci':
+        return { ...s, sci: a.sci }
       case 'persistence':
         return { ...s, persistence: a.persistence }
       case 'name': {
