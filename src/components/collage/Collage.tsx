@@ -290,6 +290,17 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     return () => { clearTimeout(t); if (idle) g.cancelIdleCallback?.(idle) }
   }, [])
 
+  // Firefox resolves cqw against the viewport in a new collage's first style pass, then against the collage once it
+  // is laid out, and transitions between the two: birds rendered with the collage (the landing's pre-packed sample,
+  // a shared link) slid in from 1.3x their place and the page scrolled sideways while they did. No transitions until
+  // the collage has had two frames; the first appearance is its CSS animation, not a transition, so it still plays.
+  useEffect(() => {
+    const el = stage.current
+    if (!el || typeof requestAnimationFrame !== 'function') { el?.setAttribute('data-ready', ''); return }
+    let id = requestAnimationFrame(() => { id = requestAnimationFrame(() => el.setAttribute('data-ready', '')) })
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   // Measure the stage so sticker sizes follow its real width.
   useEffect(() => {
     const el = stage.current

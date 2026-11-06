@@ -79,6 +79,7 @@
 .eb-bird[data-hot] { transform: translateY(calc(-2px / var(--k))); z-index: 2; }
 /* A still change with many arrivals (a wide drag back): birds appear without their fade (Collage.tsx). */
 .eb-stage[data-instant] .eb-bird { transition: none; }
+.eb-stage:not([data-ready]), .eb-stage:not([data-ready]) .eb-bird { transition: none; } /* the first two frames (Collage.tsx) */
 /* Big lists and reduced motion: no travel; the bird layer fades through instead (Collage.tsx). */
 .eb-stage[data-fast] { transition: none; }
 .eb-stage[data-fast] .eb-bird { transition: opacity .2s ease, transform .2s var(--eb-arrive); }
