@@ -1,0 +1,21 @@
+docs/validation.md
+  s_ab125876fe9ad2::t_38a4b6cd95c402 10
+e2e/share.spec.ts
+  s_ab125876fe9ad2::t_b0f080febcd778 123-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7af6c908095ae0084060dcc7c1ab26bf48fcfeb8",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
