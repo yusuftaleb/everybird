@@ -87,6 +87,19 @@
 /* Big lists and reduced motion: no travel; the bird layer fades through instead (Collage.tsx). */
 .eb-stage[data-fast] { transition: none; }
 .eb-stage[data-fast] .eb-tile { transition: opacity .2s ease, transform .2s var(--eb-arrive); }
+/* Nothing travels here, so birds are placed by left/top and sized directly, with no transform of their own: each
+   transformed bird is its own paint chunk, and Layerize over ~2,000 of them took 60–90 ms a frame at 4x CPU. */
+.eb-stage[data-fast] .eb-tile {
+  translate: none;
+  scale: none;
+  left: calc(var(--x) * 1cqw);
+  top: calc(var(--y) * 1cqw);
+  width: calc(var(--w) * var(--k) * 1cqw);
+  height: calc(var(--h) * var(--k) * 1cqw);
+}
+.eb-stage[data-fast] .eb-tile:focus-visible { outline-width: 2px; outline-offset: 2px; border-radius: 8px; }
+.eb-stage[data-fast] .eb-tile[data-ring] { outline-width: 2px; outline-offset: 4px; border-radius: 8px; }
+@media (prefers-reduced-motion: no-preference) { .eb-stage[data-fast] .eb-tile[data-hot] { transform: translateY(-2px); } }
 .eb-stage[data-many] .eb-tile,
 .eb-stage[data-settled] .eb-tile { animation: none; } /* settled: the first appearance is over (Collage.tsx) */
 @keyframes eb-in { from { opacity: 0; transform: translateY(6px); } }
