@@ -11,10 +11,12 @@ export const MAXUP = 1.5 // a filtered set may grow up to this much bigger than 
 //   taller (a comfortable on-screen size), up to maxH. Past maxH the birds may get smaller than the floor.
 //   wide and medium cap at 2:3 (H = 1.5 W); narrow starts taller than that, so its cap is twice its start.
 // - minBase: the smallest acceptable base size at all. Below it the stage keeps growing past maxH (huge lists).
+// denseFrom: from this many species (about where a list stops meeting the floor on the starting stage), even
+// layouts are packed dense: one GAP between birds and a settling pass that closes the edge's loose lattice.
 export const LAYOUTS = [
-  { name: 'wide', W: 1120, H: 700, stretch: 1.7, F: 64, minWidth: 880, minBase: 14, floor: 36, maxH: 1680 },
-  { name: 'medium', W: 700, H: 800, stretch: 1.0, F: 56, minWidth: 540, minBase: 12, floor: 30, maxH: 1050 },
-  { name: 'narrow', W: 350, H: 900, stretch: 0.55, F: 40, minWidth: 0, minBase: 10, floor: 26, maxH: 1800 },
+  { name: 'wide', W: 1120, H: 700, stretch: 1.7, F: 64, minWidth: 880, minBase: 14, floor: 36, maxH: 1680, denseFrom: 380 },
+  { name: 'medium', W: 700, H: 800, stretch: 1.0, F: 56, minWidth: 540, minBase: 12, floor: 30, maxH: 1050, denseFrom: 380 },
+  { name: 'narrow', W: 350, H: 900, stretch: 0.55, F: 40, minWidth: 0, minBase: 10, floor: 26, maxH: 1800, denseFrom: 250 },
 ] as const
 
 /** Ellipse radii [rx, ry] kept empty at the stage centre for the species count (number + small label). */

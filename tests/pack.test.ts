@@ -267,6 +267,24 @@ describe('occupancy grid', () => {
     }
   })
 
+  it('clear undoes stamp exactly at word-straddling offsets, leaving neighbours alone', () => {
+    const rnd = lcg(11)
+    for (const pw of [3, 31, 33, 64, 70]) {
+      const ph = 5
+      const m = toCellMask(new Uint8Array(pw * ph).map(() => (rnd() < 0.5 ? 1 : 0)), pw, ph)
+      const g = new Grid(200, 20, 1)
+      const other = toCellMask(new Uint8Array([1, 1]), 2, 1)
+      g.stamp(other, 0, 0)
+      const before = g.bits.slice()
+      for (const gx of [0, 1, 31, 32, 33, 63, 100]) {
+        if (gx + pw > 200) continue
+        g.stamp(m, gx, 6)
+        g.clear(m, gx, 6)
+        expect(g.bits).toEqual(before)
+      }
+    }
+  })
+
   it('spiral: the reference table (t < 1400) is a prefix of any extended one', () => {
     const base = spiral(SPIRAL_T)
     const n0 = base.n, d0 = base.dx.slice(0, n0)
@@ -339,7 +357,7 @@ describe('small lists keep their layouts (identical boxes)', () => {
 })
 
 // [layout, a list size whose floor is reachable under the cap]
-const MID: [string, number][] = [['wide', 723], ['medium', 400], ['narrow', 500]]
+const MID: [string, number][] = [['wide', 723], ['medium', 500], ['narrow', 500]]
 
 describe('big lists: the stage grows taller until the median sticker reaches the floor, up to the cap', () => {
   for (const [name, n] of MID) {
@@ -355,7 +373,7 @@ describe('big lists: the stage grows taller until the median sticker reaches the
   }
 
   // [layout, a list size that cannot meet the floor under the cap, but stays above minBase there]
-  const AT_CAP: [string, number][] = [['wide', 1000], ['medium', 723], ['narrow', 800]]
+  const AT_CAP: [string, number][] = [['wide', 1500], ['medium', 1000], ['narrow', 1000]]
   for (const [name, n] of AT_CAP) {
     it(`${n} birds on ${name}: the stage stops at the cap and accepts smaller birds (down to minBase)`, () => {
       const L = byName(name)
@@ -418,6 +436,85 @@ describe('big lists: the stage grows taller until the median sticker reaches the
       const t = packBest(sub, L, 'true', { targets: tg, refBase: fullTrue.base, fixedStage: [r.W, r.H], rel: relT, fit: true })
       expect(t.W).toBe(r.W)
       expect(t.H).toBeLessThanOrEqual(r.H)
+    }
+  }, 60000)
+})
+
+// Silhouette ownership raster (one cell per layout unit), for the density checks below.
+function owners(birds: PackBird[], r: PackResult) {
+  const W = Math.ceil(r.W), H = Math.ceil(r.H)
+  const own = new Int32Array(W * H).fill(-1)
+  silhouettePixels(birds, r, (id, px, py) => { if (px >= 0 && py >= 0 && px < W && py < H) own[py * W + px] = id })
+  return { W, H, own }
+}
+
+describe('big lists: even density from the centre to the edge, no lattice', () => {
+  for (const name of ['wide', 'narrow']) {
+    it(`723 birds on ${name}: small birds keep GAP, the outer birds sit as close as the inner ones`, () => {
+      const { r } = big(name, 723)
+      const birds = sample(723)
+      // 1. No overlaps, and every silhouette keeps at least GAP units (one GAP between small birds, as the
+      //    packer promises): grow each by GAP / 2 and nothing clashes.
+      const W = Math.ceil(r.W) + 2, H = Math.ceil(r.H) + 2, k = GAP / 2
+      const grown = new Int32Array(W * H).fill(-1)
+      let clashes = 0
+      silhouettePixels(birds, r, (id, px, py) => {
+        for (let y = py - k; y <= py + k; y++) for (let x = px - k; x <= px + k; x++) {
+          const i = (y + 1) * W + (x + 1)
+          if (grown[i] !== -1 && grown[i] !== id) clashes++
+          grown[i] = id
+        }
+      })
+      expect(clashes).toBe(0)
+      // 2. Coverage in rings of the stage (L-infinity distance from the count, 5 rings; ring 4 is the ragged
+      //    edge and the trim margin): the middle-to-outer rings stay full. On the spiral lattice ring 3 held
+      //    0.39 of its area on wide and 0.29 on narrow; settled, 0.44 and 0.40.
+      const { own } = owners(birds, r)
+      const cx = r.W / 2, cy = r.H / 2, cov = [0, 0, 0, 0, 0], tot = [0, 0, 0, 0, 0]
+      for (let y = 0; y < Math.ceil(r.H); y++) for (let x = 0; x < Math.ceil(r.W); x++) {
+        const d = Math.max(Math.abs(x + 0.5 - cx) / cx, Math.abs(y + 0.5 - cy) / cy)
+        const b = Math.min(4, Math.floor(d * 5))
+        tot[b]++; if (own[y * Math.ceil(r.W) + x] !== -1) cov[b]++
+      }
+      const ring = cov.map((c, i) => c / tot[i])
+      console.log(`[density] ${name} 723 rings: ${ring.map((v) => v.toFixed(3)).join(' ')}`)
+      for (const i of [1, 2, 3]) expect(ring[i]).toBeGreaterThan(0.39)
+      // 3. No lattice: almost every bird in the outer half rests against a neighbour (another silhouette within
+      //    4 units). On the spiral's coarse steps they floated apart (narrow: 0 of 612 did).
+      const Wc = Math.ceil(r.W), Hc = Math.ceil(r.H)
+      const near = new Set<number>()
+      for (let y = 0; y < Hc; y++) for (let x = 0; x < Wc; x++) {
+        const id = own[y * Wc + x]
+        if (id === -1 || near.has(id)) continue
+        search: for (let yy = Math.max(0, y - 4); yy <= Math.min(Hc - 1, y + 4); yy++) {
+          for (let xx = Math.max(0, x - 4); xx <= Math.min(Wc - 1, x + 4); xx++) {
+            const o = own[yy * Wc + xx]
+            if (o !== -1 && o !== id) { near.add(id); break search }
+          }
+        }
+      }
+      let outer = 0, resting = 0
+      for (const [id, [x, y, w, h]] of r.boxes) {
+        const d = Math.max(Math.abs(x + w / 2 - cx) / cx, Math.abs(y + h / 2 - cy) / cy)
+        if (d < 0.5) continue
+        outer++
+        if (near.has(id)) resting++
+      }
+      console.log(`[density] ${name} 723: ${resting} of ${outer} outer birds rest against a neighbour`)
+      expect(resting / outer).toBeGreaterThan(0.9)
+    }, 60000)
+  }
+
+  it('a filtered state of a dense list is settled too, inside the full stage', () => {
+    const L = byName('wide')
+    const { r } = big('wide', 723)
+    const birds = sample(723)
+    const sub = birds.filter((_, i) => i % 3 === 0)
+    const e = packBest(sub, L, 'even', { refBase: r.base, fixedStage: [r.W, r.H], rel: relSizes(birds, EXP), fit: true })
+    expect(e.boxes.size).toBe(sub.length)
+    for (const [x, y, w, h] of e.boxes.values()) {
+      expect(x).toBeGreaterThanOrEqual(0); expect(y).toBeGreaterThanOrEqual(0)
+      expect(x + w).toBeLessThanOrEqual(e.W + 1e-9); expect(y + h).toBeLessThanOrEqual(e.H + 1e-9)
     }
   }, 60000)
 })

@@ -55,6 +55,21 @@ export class Grid {
     return false
   }
 
+  /** Clear the cells of a mask stamped at (gx, gy). Exact because stamped masks never share a cell. */
+  clear(m: CellMask, gx: number, gy: number): void {
+    const s = gx & 31, w0 = gx >> 5, mw = m.wpr, d = m.data, occ = this.bits
+    for (let r = 0; r < m.ph; r++) {
+      const ob = (gy + r) * this.wpr + w0, mb = r * mw
+      let carry = 0
+      for (let i = 0; i < mw; i++) {
+        const v = d[mb + i]
+        occ[ob + i] &= ~(s === 0 ? v : (v << s) | carry)
+        carry = s === 0 ? 0 : v >>> (32 - s)
+      }
+      if (carry) occ[ob + mw] &= ~carry
+    }
+  }
+
   stamp(m: CellMask, gx: number, gy: number): void {
     const s = gx & 31, w0 = gx >> 5, mw = m.wpr, d = m.data, occ = this.bits
     for (let r = 0; r < m.ph; r++) {
@@ -104,6 +119,19 @@ export function scaleMask(mask: Mask, w: number, h: number, cell: number): { tw:
     }
   }
   return { tw, th, cells }
+}
+
+/**
+ * The silhouette alone (scaled, padded by `pad` cells but not dilated), the same size as cellMask's, so both
+ * place at the same (gx, gy). A small sticker stamps its core: the next one, tested with its dilated mask,
+ * then keeps one GAP from it instead of two.
+ */
+export function coreMask(mask: Mask, w: number, h: number, cell: number, pad: number): CellMask {
+  const { tw, th, cells } = scaleMask(mask, w, h, cell)
+  const pw = tw + 2 * pad, ph = th + 2 * pad
+  const out = new Uint8Array(pw * ph)
+  for (let j = 0; j < th; j++) out.set(cells.subarray(j * tw, (j + 1) * tw), (j + pad) * pw + pad)
+  return toCellMask(out, pw, ph)
 }
 
 export function cellMask(mask: Mask, w: number, h: number, cell: number, pad: number): CellMask {

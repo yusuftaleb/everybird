@@ -9,21 +9,22 @@
 // A filtered state (packBest with `fit`) is packed in the full collage's stage, then its height is trimmed
 // symmetrically about the count (fitStage): W is unchanged, H shrinks, every box moves up by the same amount.
 import { EXP, EXP_TRUE, GAP, MAXUP, holeRadii } from './constants'
-import { CentreWalk, Grid, SPIRAL_T, cellMask, spiral, spiralFrom } from './grid'
+import { CentreWalk, Grid, SPIRAL_T, cellMask, coreMask, spiral, spiralFrom, type CellMask } from './grid'
 import { MASK, type Mask } from './mask'
 
 export type PackBird = { id: number; mass: number; mask: Mask }
 export type Box = [x: number, y: number, w: number, h: number] // layout units
 export type PackResult = { base: number; W: number; H: number; boxes: Map<number, Box> }
 /** What the packer reads from a layout: one of LAYOUTS, or an ad hoc frame (share images, packFrame). */
-type Layout = { W: number; H: number; stretch: number; F: number; minBase?: number; floor?: number; maxH?: number }
+type Layout = { W: number; H: number; stretch: number; F: number; minBase?: number; floor?: number; maxH?: number; denseFrom?: number }
 
 export const DEFAULT_CELL = 2 // layout units per occupancy cell
 const MIN_MASS = 0.1 // grams; guards mass ** exp against 0 or bad data
 const STEPS = 7 // binary-search steps
 export const MAX_BASE = 80 // largest base for a full collage (the reference's search ceiling)
 const TRIM_PAD = 8
-const GROW = 1.25, MAX_GROW = 12
+// STEP: smallest growth step. AIM: each jump aims this much past the estimate, so one more search is rarely needed.
+const STEP = 1.1, AIM = 1.08, MAX_GROW = 12
 
 /** Relative tile size per bird: mass ** exp, scaled so the smallest bird is 1. */
 export function relSizes(birds: PackBird[], exp: number): Map<number, number> {
@@ -42,12 +43,24 @@ function placementOrder(birds: PackBird[], rel: Map<number, number>): PackBird[]
  * Place every bird at long side base · rel around the central hole; boxes, or null if one doesn't fit.
  * Birds spiral out from the stage centre (x stretched by `stretch`). With `targets` (id -> centre), each bird
  * spirals from its own target with no stretch: true size is packed from the evened-out positions, so
- * switching modes is a short morph.
+ * switching modes is a short morph. With `dense`, every bird stamps only its silhouette, so neighbours keep one
+ * GAP between them instead of two (see coreMask).
  */
 export function pack(
   birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
-  stretch: number, hole: [number, number], targets?: Map<number, [number, number]>, cell = DEFAULT_CELL,
+  stretch: number, hole: [number, number], targets?: Map<number, [number, number]>, cell = DEFAULT_CELL, dense = false,
 ): Map<number, Box> | null {
+  return packGrid(birds, rel, W, H, base, stretch, hole, targets, cell, dense)?.boxes ?? null
+}
+
+/** What settle() needs of each placed bird (its box is in Packed.boxes). */
+type Placed = { id: number; mask: Mask; w: number; h: number }
+type Packed = { boxes: Map<number, Box>; placed: Placed[] }
+
+function packGrid(
+  birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
+  stretch: number, hole: [number, number], targets: Map<number, [number, number]> | undefined, cell: number, dense: boolean,
+): Packed | null {
   const grid = new Grid(W, H, cell)
   if (hole[0] > 0 && hole[1] > 0) grid.markEllipse(W / 2, H / 2, hole[0], hole[1])
   const pad = Math.ceil(GAP / cell)
@@ -62,16 +75,75 @@ export function pack(
   // steps proven dead (occupied all around) for every bird. Same positions tried, same result, far fewer tries.
   const walk = targets ? null : new CentreWalk(sp, W / 2 / cell, H / 2 / cell, sx, sy, grid, lim)
   const boxes = new Map<number, Box>()
+  const placed: Placed[] = []
   for (const b of placementOrder(birds, rel)) {
     const L = Math.max(2, base * rel.get(b.id)!)
     const w = (L * b.mask.w) / MASK, h = (L * b.mask.h) / MASK
     const m = cellMask(b.mask, w, h, cell, pad)
     const at = walk ? walk.place(m) : spiralFrom(grid, m, sp, targets!.get(b.id) ?? [W / 2, H / 2], sx, sy, cell, lim)
     if (!at) return null
-    grid.stamp(m, at[0], at[1])
+    const s = dense ? coreMask(b.mask, w, h, cell, pad) : m
+    grid.stamp(s, at[0], at[1])
     boxes.set(b.id, [(at[0] + pad) * cell, (at[1] + pad) * cell, w, h])
+    placed.push({ id: b.id, mask: b.mask, w, h })
   }
-  return boxes
+  return { boxes, placed }
+}
+
+/**
+ * Settle a dense collage (a big list, centre-packed), on a fresh grid of one layout unit per cell (the packer's
+ * is 2, too coarse for small stickers): every bird is stamped there as its bare silhouette. Then each bird,
+ * nearest the count first, is lifted and walked one unit at a time to the free neighbouring position (of 8) that
+ * is most central, until none is, and put down; it is tested dilated by GAP, so it ends at least GAP from every
+ * silhouette. "Central" is a rounded-rectangle distance (|dx|/ax)^8 + (|dy|/ay)^8 over the stage's half sizes,
+ * so the outer birds close up towards the middle and the stage corners stay filled. This closes the gaps the
+ * spiral's coarse steps (about 14 units between turns) leave between small stickers, which read as a loose
+ * lattice at the edge; every step is a collision test, so it never makes an overlap. Deterministic.
+ */
+function settle(p: Packed, W: number, H: number, hole: [number, number]): Map<number, Box> {
+  const grid = new Grid(W, H, 1)
+  if (hole[0] > 0 && hole[1] > 0) grid.markEllipse(W / 2, H / 2, hole[0], hole[1])
+  const pad = GAP
+  type Q = { id: number; m: CellMask; s: CellMask; gx: number; gy: number; w: number; h: number }
+  const todo: Q[] = []
+  for (const q of p.placed) {
+    const [x, y] = p.boxes.get(q.id)!
+    const gx = Math.round(x) - pad, gy = Math.round(y) - pad
+    const m = cellMask(q.mask, q.w, q.h, 1, pad)
+    const s = coreMask(q.mask, q.w, q.h, 1, pad)
+    grid.stamp(s, gx, gy)
+    todo.push({ id: q.id, m, s, gx, gy, w: q.w, h: q.h })
+  }
+  const ax = W / 2, ay = H / 2
+  const dist = (q: Q, gx: number, gy: number) => {
+    const u = (gx + q.m.pw / 2 - ax) / ax, v = (gy + q.m.ph / 2 - ay) / ay
+    const u2 = u * u, v2 = v * v, u4 = u2 * u2, v4 = v2 * v2
+    return u4 * u4 + v4 * v4
+  }
+  const d0 = new Map(todo.map((q) => [q, dist(q, q.gx, q.gy)]))
+  todo.sort((a, b) => d0.get(a)! - d0.get(b)! || a.id - b.id)
+  const MOVES = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
+  for (const q of todo) {
+    grid.clear(q.s, q.gx, q.gy)
+    const xmax = grid.gw - q.m.pw, ymax = grid.gh - q.m.ph
+    let d = d0.get(q)!
+    for (let step = 0; step < 2000; step++) {
+      let bx = -1, by = -1, bd = d
+      for (const [mx, my] of MOVES) {
+        const gx = q.gx + mx, gy = q.gy + my
+        if (gx < 0 || gy < 0 || gx > xmax || gy > ymax) continue
+        const nd = dist(q, gx, gy)
+        if (nd >= bd - 1e-12) continue
+        if (grid.collides(q.m, gx, gy)) continue
+        bx = gx; by = gy; bd = nd
+      }
+      if (bx < 0) break
+      q.gx = bx; q.gy = by; d = bd
+    }
+    grid.stamp(q.s, q.gx, q.gy)
+    p.boxes.set(q.id, [q.gx + pad, q.gy + pad, q.w, q.h])
+  }
+  return p.boxes
 }
 
 function medianOf(xs: number[]): number {
@@ -152,7 +224,13 @@ export function packBest(
   let area = 0 // sum of rel² · mask fill, summed in placement order so it never depends on input order
   for (const b of placementOrder(birds, rel)) area += rel.get(b.id)! ** 2 * maskFill(b.mask)
   const clamp = refBase ? ([0.7 * refBase, MAXUP * refBase] as const) : null
-  const tryPack = (W: number, H: number, base: number) => pack(birds, rel, W, H, base, layout.stretch, hole, targets, cell)
+  // Dense: the whole list (rel covers it, also for a filtered state) has at least layout.denseFrom birds. Its even
+  // (centre-packed) states keep one GAP between birds and are settled after packing, so small birds sit as close
+  // at the edge as in the middle. True size (targets: it follows the settled even centres) and share images
+  // (no denseFrom) pack as before, and so do smaller lists.
+  const dense = mode === 'even' && !targets && !!layout.denseFrom && rel.size >= layout.denseFrom
+  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, layout.stretch, hole, targets, cell, dense)
+  const boxesOf = (p: Packed, W: number, H: number) => (dense ? settle(p, W, H, hole) : p.boxes)
 
   // Search range. Full collage: [0.6, 1.6] x the area estimate, capped at MAX_BASE. With refBase (filtered
   // states): the reference's window [0.7, MAXUP] x refBase, searched directly (it may exceed MAX_BASE).
@@ -166,28 +244,28 @@ export function packBest(
 
   // stopBelow: once the best possible base is known to be below it, stop (the caller grows the stage).
   // Also returns hi: the search's final upper bound (the stage's best base is below it when best fell short).
-  const search = (W: number, H: number, stopBelow = 0): { best: { base: number; boxes: Map<number, Box> } | null; hi: number } => {
+  const search = (W: number, H: number, stopBelow = 0): { best: { base: number; packed: Packed } | null; hi: number } => {
     let [lo, hi] = range(W, H)
     const lo0 = lo
-    let best: { base: number; boxes: Map<number, Box> } | null = null
+    let best: { base: number; packed: Packed } | null = null
     if (hi - lo < 1e-6) { // the estimate is above MAX_BASE: just try the cap
-      const boxes = tryPack(W, H, hi)
-      best = boxes && { base: hi, boxes }
+      const packed = tryPack(W, H, hi)
+      best = packed && { base: hi, packed }
     } else {
       for (let s = 0; s < STEPS; s++) { // binary search the largest base that fits
         const mid = (lo + hi) / 2
-        const boxes = tryPack(W, H, mid)
-        if (boxes) { lo = mid; best = { base: mid, boxes } } else hi = mid
+        const packed = tryPack(W, H, mid)
+        if (packed) { lo = mid; best = { base: mid, packed } } else hi = mid
         if (hi <= stopBelow) return { best, hi }
       }
       if (!best && lo0 >= stopBelow) { // the reference never tries the lower end itself
-        const boxes = tryPack(W, H, lo0)
-        best = boxes && { base: lo0, boxes }
+        const packed = tryPack(W, H, lo0)
+        best = packed && { base: lo0, packed }
       }
     }
     if (best && clamp && best.base < clamp[1] && best.base >= clamp[1] * 0.97) { // snap to the cap, as main()
-      const boxes = tryPack(W, H, clamp[1])
-      if (boxes) best = { base: clamp[1], boxes }
+      const packed = tryPack(W, H, clamp[1])
+      if (packed) best = { base: clamp[1], packed }
     }
     return { best, hi }
   }
@@ -198,8 +276,8 @@ export function packBest(
   // collage packed at refBase on the same stage.
   const fallback = (W: number, H: number) => {
     for (let base = range(W, H)[0] * 0.85; base >= 0.5; base *= 0.85) {
-      const boxes = tryPack(W, H, base)
-      if (boxes) return { base, boxes }
+      const packed = tryPack(W, H, base)
+      if (packed) return { base, packed }
     }
     throw new Error(`packBest: ${birds.length} birds do not fit a ${W}x${H} stage`)
   }
@@ -207,26 +285,28 @@ export function packBest(
   if (fixedStage) {
     const [W, H] = fixedStage
     const got = search(W, H).best ?? fallback(W, H)
-    if (!fit) return { base: got.base, W, H, boxes: got.boxes }
-    const t = fitStage(got.boxes, W, H, hole[1])
+    const boxes = boxesOf(got.packed, W, H)
+    if (!fit) return { base: got.base, W, H, boxes }
+    const t = fitStage(boxes, W, H, hole[1])
     return { base: got.base, W: t.W, H: t.H, boxes: t.boxes }
   }
 
   // Big lists grow the stage taller (never wider), in two stages:
   // 1. up to layout.maxH, until the median sticker's long side reaches layout.floor (CSS px at the reference
-  //    width W, where layout units are CSS px): base >= floor / median rel. Each step jumps to the height the
-  //    area estimate asks for (base grows as sqrt(H)), at least 10%, never past maxH.
-  // 2. past maxH, by 25% steps (up to 12x the start), only while the base is below layout.minBase.
+  //    width W, where layout units are CSS px): base >= floor / median rel.
+  // 2. past maxH (up to 12x the start), only while the base is below layout.minBase.
+  // Each step jumps to the height the area estimate asks for (base grows as sqrt(H)) from the search's upper
+  // bound, at least 10% (so it never overshoots far), never past maxH in stage 1 or 12x in stage 2.
   // A list whose birds meet the floor on the starting stage packs exactly as before.
   const W = layout.W, Hmax = MAX_GROW * layout.H
   const minBase = layout.minBase ?? 0
   const maxH = Math.max(layout.H, layout.maxH ?? layout.H)
   const floorBase = layout.floor ? layout.floor / medianOf(birds.map((b) => rel.get(b.id)!)) : 0
   let H: number = layout.H
-  let got: { base: number; boxes: Map<number, Box> } | null = null
+  let got: { base: number; packed: Packed } | null = null
   for (;;) {
     const want = H < maxH ? Math.max(minBase, floorBase) : minBase
-    const canGrow = H < maxH || H * GROW <= Hmax
+    const canGrow = H < maxH || H < Hmax
     let hi = range(W, H)[1] // an upper bound on this stage's base, tightened by the search
     // Skip packing a stage whose whole search range is below the target; it would only grow anyway.
     if (!canGrow || hi >= want) {
@@ -236,12 +316,11 @@ export function packBest(
       if (got && got.base >= want) break
     }
     if (!canGrow) break
-    H = H < maxH
-      ? Math.min(maxH, Math.max(Math.round(H * 1.1), Math.round(H * (want / Math.max(hi, 1e-6)) ** 2)))
-      : Math.round(H * GROW)
+    const next = Math.max(Math.round(H * STEP), Math.round(AIM * H * (want / Math.max(hi, 1e-6)) ** 2))
+    H = Math.min(H < maxH ? maxH : Hmax, next)
   }
   got ??= fallback(W, H)
-  const t = trimToContent(got.boxes, W, H)
+  const t = trimToContent(boxesOf(got.packed, W, H), W, H)
   return { base: got.base, W: t.W, H: t.H, boxes: t.boxes }
 }
 
