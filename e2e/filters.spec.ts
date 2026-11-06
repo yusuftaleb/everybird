@@ -94,6 +94,9 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
     console.log(`${what}: longest task ${m.long.toFixed(0)} ms, longest frame ${m.frame.toFixed(1)} ms`);
     expect(m.long, `longest task after ${what}`).toBeLessThanOrEqual(100);
     expect(m.frame, `longest frame after ${what}`).toBeLessThanOrEqual(50);
+    // Headroom (Task P1): no task over half the budget. The frame bound stays at 50 ms: at 4× the order step
+    // still usually drops one vsync (33 ms) and sometimes two (50 ms), so a tighter frame bound would be flaky.
+    expect(m.long, `longest task after ${what} (headroom)`).toBeLessThanOrEqual(50);
   };
   const pickFirstChip = async () => {
     // A CSS locator: getByRole("dialog") computes ARIA roles over the whole page (1,000+ bird buttons) on the
