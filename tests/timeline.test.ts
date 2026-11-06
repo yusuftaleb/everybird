@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ListEntry } from '@/lib/list/model'
 import {
   addMonths, barHeight, boundaryAt, monthAxis, monthBins, pickHandle, monthName, monthOf, rangeFilter, rangeIndices, rangeLabel, sliderKey,
-  todayMonth, type Month,
+  todayMonth,
 } from '@/lib/list/timeline'
 
 const e = (code: string, date?: string, country = 'CA'): ListEntry => ({ code, date, place: { country }, heard: false, dead: false, media: false, sources: [] })
