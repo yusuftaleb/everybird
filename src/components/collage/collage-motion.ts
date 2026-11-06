@@ -101,10 +101,10 @@ const inView = (view: WriteArgs['view'], y: number, h: number) => !view || (y < 
  *          arrivals ENTER_AT + their ripple delay.
  *  - seen: it is in the viewport before or after the change (or no viewport was given).
  *  - cost: rough style work, in units of one bird restyle.
- *  - run(late): apply it `late` ms after the change's first chunk was applied. Delays shrink by `late`, so a
- *    bird written a few frames late still starts on the ripple's schedule (or at once, if that has passed).
+ *  - run(late): apply it `late` ms after the change (the plan). Delays shrink by `late` (an exit starts `late`
+ *    ms into its animation), so a bird written a few frames late still moves on the ripple's schedule.
  */
-export type BirdOp = { at: number; seen: boolean; cost: number; run: (late?: number) => void }
+export type BirdOp = { at: number; seen: boolean; cost: number; code?: string; run: (late?: number) => void }
 
 /**
  * Plan every bird's changes for the layout without touching the DOM, and return the birds shown afterwards.
@@ -137,7 +137,8 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
       const b = m.base.get(code)
       const v = b ? `${x},${y},${pct(box[2], W) / b[0]},${md}` : ''
       if (b && m.written.get(code) === v && !wasOff && !entering && px <= (m.sizes.get(code) ?? 0)) continue
-      // A kept bird is seen if it starts or ends in view.
+      // A kept bird is seen if it starts or ends in view. `seen` is frozen here, at plan time, though the op may
+      // run a few frames later (a scroll in between is not re-checked).
       const was = !wasOff && !entering ? m.written.get(code)?.split(',').map(Number) : undefined
       const seenBefore = was && b ? inView(a.view, was[1] || 0, b[1] * (was[2] || 1)) : false
       ops.push({
@@ -145,6 +146,7 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
         seen: seen || seenBefore,
         cost: 2,
         md,
+        code,
         run: (late = 0) => {
           let base = m.base.get(code)
           if (!base) {
@@ -186,21 +188,25 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
       if (wasOff && !entering) continue
       const [, wy, wk, wmd] = (m.written.get(code) ?? '').split(',').map(Number)
       const md = wmd || 0 // its ripple delay where it was
-      const seen = inView(a.view, wy || 0, (m.base.get(code)?.[1] ?? 0) * (wk || 1))
+      const seen = inView(a.view, wy || 0, (m.base.get(code)?.[1] ?? 0) * (wk || 1)) // frozen at plan time, as above
       ops.push({
         at: 0,
         seen,
         cost: 1,
         md,
-        run: () => {
+        code,
+        run: (late = 0) => {
           if (el.hasAttribute('data-enter')) el.removeAttribute('data-enter')
           if (el.hasAttribute('data-off') || m.leaving.has(code)) return
           el.setAttribute('aria-hidden', 'true')
           m.anims.get(code)?.cancel()
           m.anims.delete(code)
-          if (!travel || !animated || !seen || typeof el.animate !== 'function') { el.setAttribute('data-off', ''); return }
+          // Out of view, without motion, or written after its exit would already have ended: hidden at once.
+          if (!travel || !animated || !seen || late >= EXIT_MS || typeof el.animate !== 'function') { el.setAttribute('data-off', ''); return }
           // A composited shrink-and-fade, held at its end; data-off (visibility hidden) lands when it finishes.
-          const anim = el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: SHRINK }], { duration: EXIT_MS, easing: EASE_IN, fill: 'forwards' })
+          // Written `late` ms after the change, it starts that far in (negative delay), so it ends on schedule.
+          const anim = el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: SHRINK }],
+            { duration: EXIT_MS, delay: -late, easing: EASE_IN, fill: 'forwards' })
           m.leaving.add(code)
           m.anims.set(code, anim)
           anim.onfinish = () => finishLater(m, () => {
@@ -222,13 +228,19 @@ function order(ops: (BirdOp & { md: number })[]): BirdOp[] {
   return ops.sort((p, q) => (p.seen === q.seen ? (p.seen ? p.at - q.at : 0) || p.md - q.md : p.seen ? -1 : 1))
 }
 
+/** Longest an op in view may start after its time in the spec (ms): the ruling on chunked writes. */
+export const MAX_LATE = 64
+
 /**
  * How many ops (from `start`) go in one chunk of `budget` cost units: whole ops until the budget is spent, and
- * always at least one, so every frame makes progress.
+ * always at least one, so every frame makes progress. Seen ops due at or before `due` (ms after the change) are
+ * taken whatever the budget: left for the next frame they would start more than MAX_LATE late.
  */
-export function takeChunk(ops: readonly BirdOp[], start: number, budget: number): number {
+export function takeChunk(ops: readonly BirdOp[], start: number, budget: number, due = -Infinity): number {
   let end = start, spent = 0
-  while (end < ops.length && (end === start || spent + ops[end].cost <= budget)) spent += ops[end++].cost
+  while (end < ops.length && (end === start || spent + ops[end].cost <= budget || (ops[end].seen && ops[end].at <= due))) {
+    spent += ops[end++].cost
+  }
   return end
 }
 
@@ -244,23 +256,28 @@ export function adaptBudget(budget: number, frameMs: number): number {
 
 /**
  * Apply `ops` one budgeted chunk per frame, starting with the next frame (`frame` is requestAnimationFrame or
- * a stand-in; `pending` gets each frame request's id, 0 when done, so the caller can cancel it): the first
- * chunk gets WRITE_START units, later ones adaptBudget's. Each op runs with how late its frame is after the
- * first chunk's. `onDone` runs after the last chunk.
+ * a stand-in; `pending` gets each frame request's id, 0 when done, so the caller can cancel it). `start` is the
+ * change's time on the frame clock (performance.now() when it was planned); each op runs with how late its
+ * frame is after it, so even the first chunk is about one frame late, and its delays shrink by that.
+ * Budget: WRITE_START units, then adaptBudget's. Seen ops that would start more than MAX_LATE late if left
+ * for the next frame (estimated one frame of the last length away) go in this chunk regardless.
+ * `onDone` runs after the last chunk.
  */
 export function runChunked(
   ops: readonly BirdOp[],
+  start: number,
   frame: (cb: (t: number) => void) => number,
   pending: (id: number) => void,
   onDone: () => void,
 ): void {
-  let i = 0, t0 = -1, last = 0, budget = WRITE_START
+  let i = 0, last = -1, budget = WRITE_START
   const step = (now: number) => {
-    if (t0 < 0) t0 = now
-    else budget = adaptBudget(budget, now - last)
+    const late = Math.max(0, now - start)
+    const frameMs = Math.max(1000 / 60, last < 0 ? late : now - last)
+    if (last >= 0) budget = adaptBudget(budget, now - last)
     last = now
-    const end = takeChunk(ops, i, budget)
-    for (; i < end; i++) ops[i].run(now - t0)
+    const end = takeChunk(ops, i, budget, late + frameMs - MAX_LATE)
+    for (; i < end; i++) ops[i].run(late)
     if (i < ops.length) pending(frame(step))
     else { pending(0); onDone() }
   }

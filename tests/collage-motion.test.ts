@@ -3,7 +3,7 @@
 // budget (takeChunk / adaptBudget / runChunked) and the batched clean-up of finished exits (finishLater).
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  ENTER_AT, FINISH_CHUNK, RIPPLE_MS, WRITE_MAX, WRITE_MIN, WRITE_START, adaptBudget, cancelFinishes, finishLater, fromCount,
+  ENTER_AT, EXIT_MS, FINISH_CHUNK, MAX_LATE, RIPPLE_MS, WRITE_MAX, WRITE_MIN, WRITE_START, adaptBudget, cancelFinishes, finishLater, fromCount,
   newMotion, planBirds, runChunked, takeChunk, writeBirds, type BirdOp,
 } from '@/components/collage/collage-motion'
 import type { StateLayout } from '@/lib/layout/layout-client'
@@ -89,6 +89,28 @@ describe('planBirds', () => {
   })
 })
 
+describe('exits written late', () => {
+  it('start that far into their animation, or are hidden at once once it would have ended', () => {
+    const { codes, els, m } = setup()
+    const calls: KeyframeAnimationOptions[] = []
+    els.get('gone')!.animate = vi.fn((_k: Keyframe[], o: KeyframeAnimationOptions) => {
+      calls.push(o)
+      return { cancel: vi.fn(), onfinish: null } as unknown as Animation
+    }) as unknown as HTMLElement['animate']
+    const plan = () => planBirds(m, { codes, els, layout: layoutOf(NEXT), visible: new Set(Object.keys(NEXT)), stagePx: 100, style: 'travel', view: VIEW }).ops
+    plan().find((o) => o.code === 'gone')!.run(40)
+    expect(calls[0].delay).toBe(-40)
+    expect(calls[0].duration).toBe(EXIT_MS)
+    // A fresh collage, the same exit written when it would already have ended.
+    const { codes: c2, els: e2, m: m2 } = setup()
+    e2.get('gone')!.animate = els.get('gone')!.animate
+    planBirds(m2, { codes: c2, els: e2, layout: layoutOf(NEXT), visible: new Set(Object.keys(NEXT)), stagePx: 100, style: 'travel', view: VIEW })
+      .ops.find((o) => o.code === 'gone')!.run(EXIT_MS)
+    expect(e2.get('gone')!.hasAttribute('data-off')).toBe(true)
+    expect(calls.length).toBe(1)
+  })
+})
+
 const op = (cost: number, at = 0, seen = true, log?: number[]): BirdOp => ({ at, seen, cost, run: (late = 0) => { log?.push(late) } })
 
 describe('takeChunk', () => {
@@ -99,6 +121,10 @@ describe('takeChunk', () => {
     expect(takeChunk(ops, 2, 1)).toBe(3)
     expect(takeChunk(ops, 1, 0)).toBe(2) // progress even with no budget
     expect(takeChunk(ops, 4, 10)).toBe(4)
+    // Seen ops due by `due` are taken past the budget; the first op not yet due stops the chunk.
+    const due = [op(2, 0), op(2, 10), op(2, 30), op(2, 0, false)]
+    expect(takeChunk(due, 0, 2, 10)).toBe(2)
+    expect(takeChunk(due, 0, 2, 40)).toBe(3)
   })
 })
 
@@ -112,11 +138,11 @@ describe('adaptBudget', () => {
   })
 })
 
-/** Drive runChunked with fake frames `period` ms apart; returns each op's lateness past its start and the frame count. */
+/** Drive runChunked with fake frames `period` ms apart, the change planned at 0 and the first frame at `period`. */
 function simulate(ops: BirdOp[], period: number) {
   let queued: ((t: number) => void) | null = null
-  let t = 0, frames = 0, done = false
-  runChunked(ops, (cb) => { queued = cb; return 1 }, () => {}, () => { done = true })
+  let t = period, frames = 0, done = false
+  runChunked(ops, 0, (cb) => { queued = cb; return 1 }, () => {}, () => { done = true })
   while (queued && !done) {
     const cb: (t: number) => void = queued
     queued = null
@@ -127,47 +153,68 @@ function simulate(ops: BirdOp[], period: number) {
   return frames
 }
 
+type Seen = { at: number; late: number }
+const seenOp = (at: number, cost: number, log: Seen[]): BirdOp => ({ at, seen: true, cost, run: (late = 0) => { log.push({ at, late }) } })
+/** The test's order step on a phone: ~284 exits in view (due at 0), a few kept or arriving birds in view, ~700 out of view. */
+const orderStep = (log: Seen[]): BirdOp[] => [
+  ...Array.from({ length: 284 }, () => seenOp(0, 1, log)),
+  ...Array.from({ length: 16 }, (_, i) => seenOp(Math.round(RIPPLE_MS * Math.sqrt(i / 16)), 2, log)),
+  ...Array.from({ length: 700 }, () => op(1, 0, false)),
+]
+/** A change where everything in view moves (the True size switch): ~300 travelling birds in view, ~700 out of view. */
+const allMove = (log: Seen[]): BirdOp[] => [
+  ...Array.from({ length: 300 }, (_, i) => seenOp(Math.round(RIPPLE_MS * Math.sqrt(i / 300)), 2, log)),
+  ...Array.from({ length: 700 }, () => op(1, 0, false)),
+]
+const worst = (log: Seen[]) => Math.max(...log.map((l) => l.late - l.at))
+
 describe('runChunked', () => {
   it('writes nothing until the next frame, the first chunk WRITE_START units, and calls onDone once at the end', () => {
     const log: number[] = []
-    const ops = Array.from({ length: 300 }, () => op(1, 0, true, log))
+    const ops = Array.from({ length: 300 }, () => op(1, 50, true, log)) // due at 50 ms: nothing forced early
     let cb: ((t: number) => void) | null = null
     const ids: number[] = []
     const onDone = vi.fn()
-    runChunked(ops, (f) => { cb = f; return 7 }, (id) => ids.push(id), onDone)
+    runChunked(ops, 1000, (f) => { cb = f; return 7 }, (id) => ids.push(id), onDone)
     expect(log.length).toBe(0)
     expect(ids).toEqual([7])
-    cb!(1000)
-    expect(log.length).toBe(WRITE_START)
     cb!(1016.7)
-    expect(log.length).toBe(WRITE_START + 150)
-    expect(log.slice(-1)[0]).toBeCloseTo(16.7)
+    expect(log.length).toBe(WRITE_START)
+    expect(log[0]).toBeCloseTo(16.7) // lateness is measured from the change, so the first chunk is a frame late
     cb!(1033.4)
+    expect(log.length).toBe(WRITE_START + 150)
+    cb!(1050.1)
     expect(log.length).toBe(300)
     expect(onDone).toHaveBeenCalledTimes(1)
     expect(ids.at(-1)).toBe(0)
   })
 
-  // A phone filtering 1,000 birds down to a few: ~300 in view (travel/arrival ripple, cost 2) and ~700 out of view.
-  const phone = (log: { at: number; late: number }[]) => [
-    ...Array.from({ length: 300 }, (_, i) => {
-      const at = Math.round(RIPPLE_MS * Math.sqrt(i / 300))
-      return { at, seen: true, cost: 2, run: (late = 0) => { log.push({ at, late }) } }
-    }),
-    ...Array.from({ length: 700 }, () => op(1, 0, false)),
-  ]
-
-  it('keeps the ripple on schedule for birds in view at 60 Hz', () => {
-    const log: { at: number; late: number }[] = []
-    const frames = simulate(phone(log), 1000 / 60)
-    expect(Math.max(...log.map((l) => l.late - l.at))).toBeLessThanOrEqual(0)
-    expect(frames).toBeLessThanOrEqual(6)
+  it('takes seen ops that would otherwise start over MAX_LATE late, whatever the budget', () => {
+    const log: Seen[] = []
+    const ops = Array.from({ length: 300 }, () => seenOp(0, 1, log))
+    simulate(ops, 50) // first frame 50 ms after the change: the next would be 100 ms, too late for all of them
+    expect(log.length).toBe(300)
+    expect(worst(log)).toBe(50)
   })
 
-  it('stretches the ripple in view by at most 64 ms when every frame drops one (30 Hz)', () => {
-    const log: { at: number; late: number }[] = []
-    simulate(phone(log), 1000 / 30)
-    expect(Math.max(...log.map((l) => l.late - l.at))).toBeLessThanOrEqual(64)
+  for (const [name, hz] of [['60 Hz', 60], ['30 Hz', 30], ['20 Hz (50 ms frames)', 20]] as const) {
+    it(`every bird in view starts within MAX_LATE of its time, order step at ${name}`, () => {
+      const log: Seen[] = []
+      simulate(orderStep(log), 1000 / hz)
+      expect(log.length).toBe(300)
+      expect(worst(log)).toBeLessThanOrEqual(MAX_LATE)
+    })
+    it(`every bird in view starts within MAX_LATE of its time, all moving at ${name}`, () => {
+      const log: Seen[] = []
+      simulate(allMove(log), 1000 / hz)
+      expect(worst(log)).toBeLessThanOrEqual(MAX_LATE)
+    })
+  }
+
+  it('spreads a big change: at 60 Hz the order step takes a few frames, not one', () => {
+    const frames = simulate(orderStep([]), 1000 / 60)
+    expect(frames).toBeGreaterThan(2)
+    expect(frames).toBeLessThanOrEqual(8)
   })
 })
 

@@ -139,10 +139,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
     }
   }, [])
 
-  // `motion` is a per-instance mutable cache kept outside React state on purpose (birds are moved by writing to
-  // the DOM, never by re-rendering); this effect is where it is written. The compiler's immutability check sees
-  // the writes now that it analyses the whole effect.
-  // eslint-disable-next-line react-hooks/immutability
+  // eslint-disable-next-line react-hooks/immutability -- `motion` is a per-instance mutable cache kept outside React state on purpose (birds move by DOM writes, never re-renders); this effect writes it
   useLayoutEffect(() => {
     const m = motion
     // Forget birds that left the list, so one that comes back starts fresh.
@@ -165,15 +162,19 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
       let view: { top: number; bottom: number } | undefined
       const r = style === 'travel' && typeof window !== 'undefined' ? stage.current?.getBoundingClientRect() : undefined
       if (r && r.width) view = { top: (-r.top * 100) / r.width, bottom: ((window.innerHeight - r.top) * 100) / r.width }
-      // eslint-disable-next-line react-hooks/immutability -- see above: motion is the mutable motion cache
+      // eslint-disable-next-line react-hooks/immutability -- motion is the mutable motion cache (see the effect)
       const { ops, on } = planBirds(m, { codes: taxo, els: els.current, layout, visible, stagePx: stagePx.current, style, view })
       m.on = on
       const cost = ops.reduce((n, op) => n + op.cost, 0)
       if (style === 'jump' || cost <= WRITE_START || typeof requestAnimationFrame !== 'function') {
         for (const op of ops) op.run()
       } else {
+        // The tab-stop bird is written now, so focus never lands on a bird that is still hidden.
+        const stop = focusCode.current && on.has(focusCode.current) ? focusCode.current : taxo.find((c) => on.has(c))
+        const at = stop ? ops.findIndex((op) => op.code === stop) : -1
+        if (at >= 0) ops.splice(at, 1)[0].run()
         // After the last chunk the tab stop may be a bird that was still hidden a frame ago.
-        runChunked(ops, requestAnimationFrame, (id) => { chunkFrame.current = id }, syncTabStop)
+        runChunked(ops, performance.now(), requestAnimationFrame, (id) => { chunkFrame.current = id }, syncTabStop)
       }
       syncTabStop()
       if (hot.current && !m.on?.has(hot.current)) setHot(null)
