@@ -98,6 +98,8 @@ const SKIP: Record<Level, Dim[]> = {
  * trip under the active year). Only options with count > 0.
  * Order: order/family by taxonomic position of their first species, country by count desc then label,
  * year descending, trip by start date. `trip` options are empty until a year is chosen (drill-down).
+ * Legacy: the 'year' and 'trip' levels are no longer shown as chips (the Time panel is the timeline, which lays out
+ * every trip itself); they are kept for callers and tests of the old drill-down.
  * `countryName` labels countries (default: the ISO code).
  */
 export function options(

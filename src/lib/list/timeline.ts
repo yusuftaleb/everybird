@@ -103,6 +103,17 @@ export function sliderKey(key: string, value: number, min: number, max: number):
   return Math.min(max, Math.max(min, v))
 }
 
+/**
+ * Which range handle a press at `x` drags (client px; `loX`/`hiX` the handles' positions): the nearer one, or null when
+ * both are within `tie` px of each other and the pointer (stacked handles on a short range): the first move decides,
+ * leftwards the start handle, rightwards the end handle.
+ */
+export function pickHandle(x: number, loX: number, hiX: number, tie = 8): 'lo' | 'hi' | null {
+  const dl = Math.abs(x - loX), dh = Math.abs(x - hiX)
+  if (Math.abs(dl - dh) <= tie && hiX - loX <= 2 * tie) return null
+  return dl < dh ? 'lo' : 'hi'
+}
+
 /** The filter's range as indices into `months` (a year is Jan..Dec), clamped; no range is the whole span. */
 export function rangeIndices(f: Filter, months: readonly Month[]): [number, number] {
   const n = months.length

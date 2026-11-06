@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ListEntry } from '@/lib/list/model'
 import type { Trip } from '@/lib/list/trips'
 import {
-  addMonths, monthBins, monthName, monthOf, playInterval, rangeFilter, rangeIndices, rangeLabel, revealUntil, sliderKey,
+  addMonths, monthBins, pickHandle, monthName, monthOf, playInterval, rangeFilter, rangeIndices, rangeLabel, revealUntil, sliderKey,
   todayMonth, tripFilter, tripLanes,
 } from '@/lib/list/timeline'
 
@@ -78,6 +78,16 @@ describe('slider keyboard', () => {
     expect(sliderKey('Home', 5, 3, 20)).toBe(3)
     expect(sliderKey('End', 5, 0, 9)).toBe(9)
     expect(sliderKey('a', 5, 0, 9)).toBeNull()
+  })
+})
+
+describe('pickHandle', () => {
+  it('the nearer handle; stacked handles under the pointer wait for the first move (null)', () => {
+    expect(pickHandle(105, 100, 300)).toBe('lo')
+    expect(pickHandle(290, 100, 300)).toBe('hi')
+    expect(pickHandle(500, 500, 500)).toBeNull()
+    expect(pickHandle(503, 498, 508)).toBeNull()
+    expect(pickHandle(140, 100, 300)).toBe('lo')
   })
 })
 

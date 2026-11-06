@@ -51,7 +51,7 @@ type Props = {
    */
   compact?: boolean
   /** The Time panel's timeline: the known entries, the whole list's months, today, and Play. */
-  time?: { entries: ListEntry[]; months: Month[]; today: Month; play: PlayControls; onPlay: () => void }
+  time?: { entries: ListEntry[]; months: Month[]; today: Month; play: PlayControls; onPlay: () => void; onPreview?: (r: { from?: Month; to?: Month } | null) => void }
 }
 
 type Level = FilterLevel
@@ -65,11 +65,10 @@ const RANK: Record<Level, string> = { order: 'Orders', family: 'Families', count
 /** Levels named by a scientific name (shown in Latin when Scientific names are on). */
 const LATIN = new Set<Level>(['order', 'family'])
 
-/** A change of one level; clearing a parent also clears its child (family under order, trip under year). */
+/** A change of one level; clearing an order also clears its family. (Time is the timeline's: no year or trip chips.) */
 function withLevel(f: Filter, level: Level, value: string | undefined): Filter {
   const next: Filter = { ...f, [level]: value }
   if (level === 'order') delete next.family
-  if (level === 'year') delete next.trip
   for (const k of Object.keys(next) as (keyof Filter)[]) if (!next[k]) delete next[k]
   return next
 }
@@ -136,7 +135,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
   const levels = (g: Group, strip = false) => {
     // The level on show: the first level with nothing chosen whose parent is chosen, else the deepest chosen one (a
     // leaf keeps its row). An order with one family skips the families row: the breadcrumb names that family instead
-    // (every bird of the order is in it; a year's one trip is not the whole year, so trips keep their row).
+    // (every bird of the order is in it).
     const [top, child] = g.levels
     const childOpts = child ? opts[child] ?? [] : []
     const onlyChild = top === 'order' && !!child && !!filter[top] && !filter[child] && childOpts.length === 1
@@ -259,6 +258,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
               countryName={countryName}
               play={time.play}
               onPlay={time.onPlay}
+              onPreview={time.onPreview}
             />
           )) : levels(open)}
         </div>

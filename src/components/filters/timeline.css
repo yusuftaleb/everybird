@@ -1,8 +1,13 @@
 /* The Time panel's timeline: bars per month, the chosen range's band and handles, the years, the trips' brackets.
    Bars are Muted inside the range (Hairline outside); the handles and the selected trip are Accent (selection). */
 .eb-time { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.eb-time-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; }
-.eb-time-read { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eb-time-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; min-height: 36px; }
+/* The readout is never cut: on wider screens it shares the line with the buttons (which wrap under it if they must);
+   under 600px the buttons always sit on their own line under it, so the panel's height never jumps when Play's
+   buttons come and go. Below 360px the readout itself may wrap. */
+.eb-time-read { margin: 0; flex: 1 0 auto; white-space: nowrap; }
+@media (max-width: 599px) { .eb-time-read { flex-basis: 100%; } }
+@media (max-width: 359px) { .eb-time-read { white-space: normal; } }
 .eb-time-actions { display: flex; gap: 4px; flex: none; }
 .eb-time-btn {
   gap: 6px; opacity: 1; border: 1px solid var(--hairline); background: var(--surface); font-weight: 500;
@@ -11,12 +16,11 @@
 .eb-time-btn svg { width: 16px; height: 16px; flex: none; }
 .eb-time-btn[aria-pressed="true"] { color: var(--accent); font-weight: 600; }
 
-/* The strip scrolls sideways when the months are narrower than MONTH_PX; on phones it bleeds into the gutters. */
+/* The strip scrolls sideways when the months are narrower than MONTH_PX; it bleeds into the page gutters. */
 .eb-time-scroll {
   overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin;
   margin-inline: -16px; padding: 6px 16px 4px;
 }
-@media (max-width: 599px) { .eb-time-scroll { margin-inline: -16px; } }
 .eb-time-track { position: relative; min-width: 100%; touch-action: pan-x; }
 
 .eb-time-bars { position: relative; height: 56px; }

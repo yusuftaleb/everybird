@@ -94,3 +94,20 @@ describe('childFilters and timeless', () => {
     expect(timeless({ order: 'X', year: '2020', from: '2020-01', to: '2020-02', trip: 't' })).toEqual({ order: 'X' })
   })
 })
+
+describe('stillView', () => {
+  it('Play waits for the time-free layout, then reveals by month; a preview hides birds outside the range; else as is', async () => {
+    const { stillView } = await import('@/components/app/use-collage-layout')
+    const box: [number, number, number, number] = [0, 0, 1, 1]
+    const layout = (key: string) => ({ key, layout: 'wide' as const, mode: 'even' as const, W: 10, H: 10, scale: 1, base: 1, boxes: new Map([['a', box], ['b', box]]) })
+    const cur = { layout: layout('wide|even|t:EG-2021-09-01|r:2021-09~2021-09'), visible: new Set(['a', 'b']) }
+    const months = new Map([['a', '2020-01'], ['b', '2021-05']])
+    const play = { months, until: '2020-06', last: false }
+    expect(stillView(cur, '', play, null)).toEqual({ layout: cur.layout, visible: new Set(), still: true })
+    const full = { layout: layout('wide|even|'), visible: new Set(['a', 'b']) }
+    expect([...stillView(full, '', play, null).visible]).toEqual(['a'])
+    const dates = new Map([['a', '2020-01-02'], ['b', '2021-05-03']])
+    expect([...stillView(full, '', null, { dates, from: '2021-01' }).visible]).toEqual(['b'])
+    expect(stillView(full, '', null, null)).toBe(full)
+  })
+})

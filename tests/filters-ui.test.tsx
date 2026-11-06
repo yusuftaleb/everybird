@@ -154,7 +154,7 @@ describe('FilterBar', () => {
     const start = screen.getByRole('slider', { name: 'Start month' })
     fireEvent.keyDown(start, { key: 'End' }) // the start handle to the end handle: the last month
     fireEvent.keyDown(start, { key: 'PageDown' }) // a year back: Aug 2021
-    act(() => vi.advanceTimersByTime(200))
+    act(() => vi.advanceTimersByTime(400))
     fireEvent.click(screen.getByRole('button', { name: 'Time' }))
     expect(filterOf()).toEqual({ order: 'Passeriformes', country: 'CA', from: '2021-08' })
     fireEvent.click(screen.getByRole('button', { name: 'Remove Canada filter' }))

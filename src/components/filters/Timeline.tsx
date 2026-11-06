@@ -1,14 +1,16 @@
 'use client'
 // The Time panel: a strip of months from the first lifer to today, a bar per month (new species that month, scaled to
 // the busiest month; empty months a baseline tick), the trips as labelled brackets under it, and two handles that
-// choose a range of months. The collage follows a drag live (debounced; layouts are cached by range). Play grows the
+// choose a range of months. While a handle is held (or keys repeat) the collage previews the range over its current
+// layout (birds outside it hidden, no re-pack); on release (or KEY_COMMIT_MS after the last key) the range is
+// committed: one re-pack, one travel. Layouts are cached by range. Play grows the
 // collage month by month. On phones the strip scrolls sideways; the handles are sliders for keyboards (arrows a
 // month, PageUp/PageDown a year, Home/End). Logic in src/lib/list/timeline.ts.
 import { Pause, Play, Stop } from '@phosphor-icons/react'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { applyFilter, type Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
-import { monthBins, monthName, monthShort, rangeFilter, rangeIndices, rangeLabel, sliderKey, timeless, tripFilter, type Month } from '@/lib/list/timeline'
+import { monthBins, monthName, monthShort, pickHandle, rangeFilter, rangeIndices, rangeLabel, sliderKey, timeless, tripFilter, type Month } from '@/lib/list/timeline'
 import type { Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { TripBrackets } from './TripBrackets'
@@ -17,8 +19,8 @@ import './timeline.css'
 
 /** Narrowest month on screen (px): below it the strip scrolls sideways. */
 export const MONTH_PX = 8
-/** A drag or held key settles this long before the collage follows. */
-export const DRAG_DEBOUNCE_MS = 140
+/** Keyboard steps commit the range this long after the last key (a pointer drag commits on release). */
+export const KEY_COMMIT_MS = 350
 
 type Props = {
   entries: ListEntry[]
@@ -33,12 +35,14 @@ type Props = {
   play: PlayControls
   /** Start (or resume) Play. */
   onPlay: () => void
+  /** The range being dragged (open at the span's edges), or null once committed. */
+  onPreview?: (r: { from?: Month; to?: Month } | null) => void
 }
 
 const n = (x: number) => x.toLocaleString('en-US')
 const pct = (i: number, total: number) => `${(i / total) * 100}%`
 
-export const Timeline = memo(function Timeline({ entries, trips, filter, species, months, today, onFilter, countryName, play, onPlay }: Props) {
+export const Timeline = memo(function Timeline({ entries, trips, filter, species, months, today, onFilter, countryName, play, onPlay, onPreview }: Props) {
   const N = months.length
   // Bars count the birds of the other filters (birds, places) over the whole span, so the handles never jump.
   const others = useMemo(() => applyFilter(entries, timeless(filter), species, trips), [entries, filter, species, trips])
@@ -48,24 +52,33 @@ export const Timeline = memo(function Timeline({ entries, trips, filter, species
   const [lo, hi] = drag ?? chosen
   const playing = play.state
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const latest = useRef({ filter, months, onFilter })
-  useLayoutEffect(() => { latest.current = { filter, months, onFilter } })
+  const pending = useRef<[number, number] | null>(null) // the previewed range, not yet committed
+  const latest = useRef({ filter, months, onFilter, onPreview })
+  useLayoutEffect(() => { latest.current = { filter, months, onFilter, onPreview } })
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
 
-  /** Move the range now on screen; the filter follows after DRAG_DEBOUNCE_MS (or at once with `now`). */
-  const move = useCallback((a: number, b: number, now = false) => {
-    setDrag([a, b])
-    if (playing) play.stop()
+  /** Commit the previewed range: the filter changes (one re-pack) and the preview ends. */
+  const commit = useCallback(() => {
     if (timer.current) clearTimeout(timer.current)
-    const commit = () => {
-      timer.current = null
-      const { filter: f, months: ms, onFilter: set } = latest.current
-      set(rangeFilter(f, a, b, ms))
-      setDrag(null)
-    }
-    if (now) commit()
-    else timer.current = setTimeout(commit, DRAG_DEBOUNCE_MS)
-  }, [playing, play])
+    timer.current = null
+    const r = pending.current
+    pending.current = null
+    if (!r) return
+    const { filter: f, months: ms, onFilter: set, onPreview: prev } = latest.current
+    set(rangeFilter(f, r[0], r[1], ms))
+    prev?.(null)
+    setDrag(null)
+  }, [])
+  /** Preview a range now (handles, readout, bars and the collage's visible birds); `key`: commit KEY_COMMIT_MS later. */
+  const move = useCallback((a: number, b: number, key = false) => {
+    setDrag([a, b])
+    pending.current = [a, b]
+    if (playing) play.stop()
+    const ms = latest.current.months
+    latest.current.onPreview?.({ from: a > 0 ? ms[a] : undefined, to: b < ms.length - 1 ? ms[b] : undefined })
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = key ? setTimeout(commit, KEY_COMMIT_MS) : null
+  }, [playing, play, commit])
 
   // The track and its width (a month's width decides the trips' label room).
   const track = useRef<HTMLDivElement>(null)
@@ -89,11 +102,34 @@ export const Timeline = memo(function Timeline({ entries, trips, filter, species
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const dragging = useRef<'lo' | 'hi' | null>(null)
+  // Which handle a press drags: the nearer one; with both under the pointer (a short range), the first move decides.
+  const dragging = useRef<{ which: 'lo' | 'hi' | null; x: number } | null>(null)
+  const xOf = (i: number) => { const r = track.current!.getBoundingClientRect(); return r.left + (i / Math.max(1, N)) * r.width }
   const indexAt = (clientX: number, which: 'lo' | 'hi') => {
     const r = track.current!.getBoundingClientRect()
     const edge = Math.round(((clientX - r.left) / Math.max(1, r.width)) * N)
     return which === 'lo' ? Math.min(hi, Math.max(0, edge)) : Math.max(lo, Math.min(N - 1, edge - 1))
+  }
+  const pointer = {
+    onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+      e.preventDefault()
+      e.currentTarget.setPointerCapture?.(e.pointerId)
+      e.currentTarget.focus({ preventScroll: true })
+      dragging.current = { which: pickHandle(e.clientX, xOf(lo), xOf(hi + 1)), x: e.clientX }
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const d = dragging.current
+      if (!d) return
+      if (!d.which) {
+        if (Math.abs(e.clientX - d.x) < 2) return
+        d.which = e.clientX < d.x ? 'lo' : 'hi'
+      }
+      const i = indexAt(e.clientX, d.which)
+      const [a, b] = d.which === 'lo' ? [i, hi] : [lo, i]
+      if (a !== lo || b !== hi) move(a, b)
+    },
+    onPointerUp: () => { if (dragging.current) { dragging.current = null; commit() } },
+    onPointerCancel: () => { if (dragging.current) { dragging.current = null; commit() } },
   }
   const handleProps = (which: 'lo' | 'hi') => {
     const v = which === 'lo' ? lo : hi
@@ -114,25 +150,9 @@ export const Timeline = memo(function Timeline({ entries, trips, filter, species
         const next = sliderKey(e.key, v, min, max)
         if (next === null) return
         e.preventDefault()
-        if (next !== v) move(which === 'lo' ? next : lo, which === 'lo' ? hi : next)
+        if (next !== v) move(which === 'lo' ? next : lo, which === 'lo' ? hi : next, true)
       },
-      onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
-        e.preventDefault()
-        e.currentTarget.setPointerCapture?.(e.pointerId)
-        e.currentTarget.focus({ preventScroll: true })
-        dragging.current = which
-      },
-      onPointerMove: (e: React.PointerEvent) => {
-        if (dragging.current !== which) return
-        const i = indexAt(e.clientX, which)
-        if (i !== v) move(which === 'lo' ? i : lo, which === 'lo' ? hi : i)
-      },
-      onPointerUp: () => {
-        if (dragging.current !== which) return
-        dragging.current = null
-        if (timer.current) move(lo, hi, true) // land the last position at once
-      },
-      onPointerCancel: () => { dragging.current = null },
+      ...pointer,
     } as const
   }
 

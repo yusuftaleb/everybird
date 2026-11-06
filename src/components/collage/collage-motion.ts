@@ -275,7 +275,7 @@ export function adaptBudget(budget: number, frameMs: number): number {
  * frame is after it, so even the first chunk is about one frame late, and its delays shrink by that.
  * Budget: WRITE_START units, then adaptBudget's. Seen travels and arrivals that would start more than MAX_LATE
  * late if left for the next frame (estimated one frame of the last length away) go in this chunk regardless.
- * `onDone` runs after the last chunk.
+ * `onDone` runs after the last chunk. `startBudget` sets the first chunk's budget (a still change starts at WRITE_MIN).
  */
 export function runChunked(
   ops: readonly BirdOp[],
@@ -283,8 +283,10 @@ export function runChunked(
   frame: (cb: (t: number) => void) => number,
   pending: (id: number) => void,
   onDone: () => void,
+  /** The first chunk's budget (default WRITE_START); later ones adapt from it. */
+  startBudget = WRITE_START,
 ): void {
-  let i = 0, last = -1, budget = WRITE_START
+  let i = 0, last = -1, budget = startBudget
   const done: boolean[] = []
   const step = (now: number) => {
     const late = Math.max(0, now - start)

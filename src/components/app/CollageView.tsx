@@ -93,7 +93,16 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
   const play = usePlay(months.length)
   const at = play.state ? months[play.state.i] : undefined
   const playAt = useMemo(() => (at ? { until: at, last: at === months[months.length - 1] } : null), [at, months])
-  const lay = useCollageLayout({ list, trips, filter, mode, species, container: box, seed, play: playAt })
+  // A range drag's preview (Timeline): shown over the current layout until the committed range's layout lands.
+  const [preview, setPreview] = useState<{ from?: string; to?: string; committed?: boolean } | null>(null)
+  const onPreview = useCallback((r: { from?: string; to?: string } | null) => setPreview((p) => (r ? r : p ? { ...p, committed: true } : null)), [])
+  const lay = useCollageLayout({ list, trips, filter, mode, species, container: box, seed, play: playAt, preview })
+  const layKey = lay ? lay.layout.key.split('|').slice(2).join('|') : undefined
+  useEffect(() => {
+    if (!preview?.committed || layKey !== filterKey(filter)) return
+    const t = setTimeout(() => setPreview((p) => (p?.committed ? null : p)), 0)
+    return () => clearTimeout(t)
+  }, [preview, layKey, filter])
   const onPlay = useCallback(() => {
     // Play grows the birds of the other filters from the first lifer to today: the time filter goes first.
     if (!play.state) {
@@ -103,7 +112,7 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
     }
     play.start()
   }, [play, filter, view, dispatch])
-  const time = useMemo(() => ({ entries, months, today, play, onPlay }), [entries, months, today, play, onPlay])
+  const time = useMemo(() => ({ entries, months, today, play, onPlay, onPreview }), [entries, months, today, play, onPlay, onPreview])
   const fk = filterKey(filter)
   const shownList = useMemo(() => (fk ? applyFilter(entries, filter, species, trips) : entries), [entries, filter, fk, species, trips])
   const stats = useMemo(() => statsLine(entries, shownList, species), [entries, shownList, species])
@@ -200,7 +209,7 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
       {view === 'collage' ? (
         lay ? (
           <div ref={wrap} className="eb-stagewrap">
-            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} onHover={onHover} total={entries.length} playing={!!play.state} />
+            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} onHover={onHover} total={entries.length} still={lay.still} />
             {tipEntry && <BirdTip key={tipEntry.code} entry={tipEntry} row={species.byCode.get(tipEntry.code)!} regions={regions} sci={sci} wrap={wrap} />}
           </div>
         ) : (

@@ -4,13 +4,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { createLayoutClient, type LayoutClient, type StateLayout } from '@/lib/layout/layout-client'
 import type { LayoutName } from '@/lib/layout/layout.worker'
-import { applyFilter, options, type Filter, type FilterLevel } from '@/lib/list/filters'
+import { applyFilter, filterKey, inRange, options, type Filter, type FilterLevel } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { monthOf, revealUntil, timeless, tripFilter } from '@/lib/list/timeline'
 import { entryCountry, type Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 
-export type CollageLayout = { layout: StateLayout; visible: Set<string> }
+/** `still`: only visibility changes over the shown layout (Play, a range drag's preview): placed without motion. */
+export type CollageLayout = { layout: StateLayout; visible: Set<string>; still?: boolean }
 
 /** Layout class from the stage container's width (LAYOUTS minWidth: wide 880, medium 540). */
 export function layoutFor(width: number): LayoutName {
@@ -59,6 +60,35 @@ type Opts = {
    * each step is a visibility change over the same layout, never a re-pack.
    */
   play?: { until: string; last: boolean } | null
+  /**
+   * A range drag in progress: the filter is not committed yet; the shown layout stays and only its birds dated inside
+   * from..to are visible (no worker call, no travel). Play wins over a preview.
+   */
+  preview?: { from?: string; to?: string } | null
+}
+
+/**
+ * What the stage shows while only visibility changes. Play: the birds dated up to `until` over the time-free layout,
+ * nothing until that layout (key `want`) has landed, so the old trip or range layout never flashes. A drag preview: the
+ * shown layout's birds dated inside from..to. Otherwise the layout as it is.
+ */
+export function stillView(
+  current: CollageLayout,
+  want: string,
+  play: { months: ReadonlyMap<string, string | undefined>; until: string; last: boolean } | null,
+  preview: { dates: ReadonlyMap<string, string | undefined>; from?: string; to?: string } | null,
+): CollageLayout {
+  const { layout } = current
+  if (play) {
+    if (layout.key.split('|').slice(2).join('|') !== want) return { layout, visible: new Set(), still: true }
+    return { layout, visible: revealUntil(layout.boxes.keys(), play.months, play.until, play.last), still: true }
+  }
+  if (preview) {
+    const visible = new Set<string>()
+    for (const c of layout.boxes.keys()) if (inRange(preview.dates.get(c), preview.from, preview.to)) visible.add(c)
+    return { layout, visible, still: true }
+  }
+  return current
 }
 
 const idle = (fn: () => void): (() => void) => {
@@ -75,7 +105,7 @@ const idle = (fn: () => void): (() => void) => {
  * The current StateLayout and its visible codes, or null until the first layout arrives (and always in
  * environments without Worker, such as jsdom, unless a seed covers the state). Entries whose species are unknown are left out.
  */
-export function useCollageLayout({ list, trips, filter: chosen, mode, species, container, seed, play }: Opts): CollageLayout | null {
+export function useCollageLayout({ list, trips, filter: chosen, mode, species, container, seed, play, preview }: Opts): CollageLayout | null {
   const playing = !!play
   const filter = useMemo(() => (playing ? timeless(chosen) : chosen), [chosen, playing])
   const client = useRef<LayoutClient | null>(null)
@@ -184,12 +214,14 @@ export function useCollageLayout({ list, trips, filter: chosen, mode, species, c
   }, [seed, cls])
 
   const months = useMemo(() => (playing ? new Map(known.map((e) => [e.code, monthOf(e.date)])) : null), [known, playing])
+  const dates = useMemo(() => (preview ? new Map(known.map((e) => [e.code, e.date])) : null), [known, preview])
   const current = result ?? seeded
   const until = play?.until, last = !!play?.last
-  const revealed = useMemo(() => {
-    if (!current || !months || !until) return current
-    return { layout: current.layout, visible: revealUntil(current.layout.boxes.keys(), months, until, last) }
-  }, [current, months, until, last])
+  const want = filterKey(filter)
+  const revealed = useMemo(
+    () => (current ? stillView(current, want, months && until ? { months, until, last } : null, preview && dates ? { dates, ...preview } : null) : null),
+    [current, months, until, last, want, preview, dates],
+  )
 
   return known.length ? revealed : null
 }

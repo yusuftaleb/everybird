@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Timeline, DRAG_DEBOUNCE_MS } from '@/components/filters/Timeline'
+import { Timeline, KEY_COMMIT_MS } from '@/components/filters/Timeline'
 import { HOLD_MS, usePlay, type PlayControls } from '@/components/filters/use-play'
 import type { Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
@@ -21,17 +21,17 @@ const today = '2020-06'
 const months = monthBins(entries, today).months // Jan .. Jun 2020
 const idle: PlayControls = { state: null, start: vi.fn(), pause: vi.fn(), stop: vi.fn() }
 
-function Harness({ play = idle, onPlay = vi.fn() }: { play?: PlayControls; onPlay?: () => void }) {
-  const [filter, setFilter] = useState<Filter>({})
+function Harness({ play = idle, onPlay = vi.fn(), onPreview, initial = {} }: { play?: PlayControls; onPlay?: () => void; onPreview?: (r: unknown) => void; initial?: Filter }) {
+  const [filter, setFilter] = useState<Filter>(initial)
   return (
     <>
-      <Timeline entries={entries} trips={[trip]} filter={filter} species={species} months={months} today={today} onFilter={setFilter} countryName={(c) => (c === 'EG' ? 'Egypt' : c)} play={play} onPlay={onPlay} />
+      <Timeline entries={entries} trips={[trip]} filter={filter} species={species} months={months} today={today} onFilter={setFilter} countryName={(c) => (c === 'EG' ? 'Egypt' : c)} play={play} onPlay={onPlay} onPreview={onPreview} />
       <output data-testid="filter">{JSON.stringify(filter)}</output>
     </>
   )
 }
 const filterOf = () => JSON.parse(screen.getByTestId('filter').textContent!)
-const settle = () => act(() => vi.advanceTimersByTime(DRAG_DEBOUNCE_MS + 10))
+const settle = () => act(() => vi.advanceTimersByTime(KEY_COMMIT_MS + 10))
 
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks() })
@@ -50,16 +50,21 @@ describe('Timeline', () => {
     expect(lo).toHaveAttribute('aria-valuetext', 'January 2020')
   })
 
-  it('keyboard: arrows move a month, Home/End, the start never passes the end; the filter follows debounced', () => {
-    render(<Harness />)
+  it('keyboard: arrows move a month, Home/End, the start never passes the end; previewed at once, committed 350 ms after the last key', () => {
+    const onPreview = vi.fn()
+    render(<Harness onPreview={onPreview} />)
     const lo = screen.getByRole('slider', { name: 'Start month' })
     const hi = screen.getByRole('slider', { name: 'End month' })
     fireEvent.keyDown(lo, { key: 'ArrowRight' })
     fireEvent.keyDown(lo, { key: 'ArrowRight' })
     expect(lo).toHaveAttribute('aria-valuetext', 'March 2020') // on screen at once
-    expect(filterOf()).toEqual({}) // the collage waits for the debounce
+    expect(onPreview).toHaveBeenLastCalledWith({ from: '2020-03', to: undefined }) // the collage previews it
+    expect(filterOf()).toEqual({}) // not committed while keys repeat
+    act(() => vi.advanceTimersByTime(KEY_COMMIT_MS - 50))
+    expect(filterOf()).toEqual({})
     settle()
     expect(filterOf()).toEqual({ from: '2020-03' })
+    expect(onPreview).toHaveBeenLastCalledWith(null)
     fireEvent.keyDown(hi, { key: 'Home' })
     expect(hi).toHaveAttribute('aria-valuetext', 'March 2020') // stops at the start handle
     settle()
@@ -71,15 +76,40 @@ describe('Timeline', () => {
     expect(filterOf()).toEqual({}) // the whole span again: no range
   })
 
-  it('dragging a handle by pointer moves it by month, live; letting go lands it at once', () => {
+  it('dragging a handle previews the range live without committing; letting go commits it once', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 600, top: 0, height: 100, right: 600, bottom: 100, x: 0, y: 0, toJSON: () => ({}) })
-    render(<Harness />)
+    const onPreview = vi.fn()
+    render(<Harness onPreview={onPreview} />)
     const hi = screen.getByRole('slider', { name: 'End month' })
     fireEvent.pointerDown(hi, { pointerId: 1, clientX: 600 })
+    fireEvent.pointerMove(hi, { pointerId: 1, clientX: 410 })
     fireEvent.pointerMove(hi, { pointerId: 1, clientX: 310 }) // 100px a month: the end of March
     expect(hi).toHaveAttribute('aria-valuetext', 'March 2020')
+    expect(screen.getByTestId('timeline-read')).toHaveTextContent('Jan 2020 to Mar 2020 · 4 species') // readout live
+    expect(onPreview).toHaveBeenLastCalledWith({ from: undefined, to: '2020-03' })
+    act(() => vi.advanceTimersByTime(2000))
+    expect(filterOf()).toEqual({}) // held: never committed
     fireEvent.pointerUp(hi, { pointerId: 1 })
     expect(filterOf()).toEqual({ to: '2020-03' })
+    expect(onPreview).toHaveBeenLastCalledWith(null)
+  })
+
+  it('stacked handles (a one-month range at the end): a press then a move left drags the start, right the end', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 600, top: 0, height: 100, right: 600, bottom: 100, x: 0, y: 0, toJSON: () => ({}) })
+    render(<Harness initial={{ from: '2020-06' }} />)
+    const lo = screen.getByRole('slider', { name: 'Start month' })
+    const hi = screen.getByRole('slider', { name: 'End month' })
+    expect(lo).toHaveAttribute('aria-valuetext', 'June 2020')
+    fireEvent.pointerDown(hi, { pointerId: 1, clientX: 548 }) // on top: the end handle's element
+    fireEvent.pointerMove(hi, { pointerId: 1, clientX: 210 })
+    fireEvent.pointerUp(hi, { pointerId: 1 })
+    expect(lo).toHaveAttribute('aria-valuetext', 'March 2020')
+    expect(filterOf()).toEqual({ from: '2020-03' })
+    // Pressing nearer the start handle drags it, whichever element got the press.
+    fireEvent.pointerDown(hi, { pointerId: 2, clientX: 205 })
+    fireEvent.pointerMove(hi, { pointerId: 2, clientX: 110 })
+    fireEvent.pointerUp(hi, { pointerId: 2 })
+    expect(filterOf()).toEqual({ from: '2020-02' })
   })
 
   it('a trip is a labelled bracket; tapping it selects the trip and its months, again clears it', () => {
