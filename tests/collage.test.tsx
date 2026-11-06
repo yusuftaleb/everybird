@@ -151,3 +151,51 @@ describe('stickerUrl', () => {
     expect(stickerUrl('crowa', 100, 3)).toBe(`${base}/v1/384/crowa.webp`)
   })
 })
+
+describe('Collage sticker loading (IntersectionObserver)', () => {
+  type Obs = { cb: IntersectionObserverCallback; margin: string; els: Set<Element> }
+  const observers: Obs[] = []
+  class FakeIO {
+    private o: Obs
+    constructor(cb: IntersectionObserverCallback, opts?: IntersectionObserverInit) {
+      this.o = { cb, margin: opts?.rootMargin ?? '', els: new Set() }
+      observers.push(this.o)
+    }
+    observe(el: Element) { this.o.els.add(el) }
+    unobserve(el: Element) { this.o.els.delete(el) }
+    disconnect() { this.o.els.clear() }
+  }
+  const fire = (o: Obs, el: Element, isIntersecting: boolean) =>
+    o.cb([{ target: el, isIntersecting } as unknown as IntersectionObserverEntry], {} as IntersectionObserver)
+
+  it('starts a sticker near the viewport, lets it go far away, and never while birds are being placed', () => {
+    observers.length = 0
+    vi.stubGlobal('IntersectionObserver', FakeIO)
+    try {
+      const { container } = render(<Collage entries={entries} species={species} layout={full} visible={new Set(['crowa', 'wrenb', 'nostk'])} mode="even" onPick={() => {}} />)
+      const near = observers.find((o) => o.margin === '100% 0px')!
+      const far = observers.find((o) => o.margin === '400% 0px')!
+      const crow = container.querySelector('[data-code="crowa"]')!
+      const img = () => crow.querySelector('img')!
+      // Deferred until near: no src yet.
+      expect(img().getAttribute('src')).toBeNull()
+      expect(img().dataset.src).toContain('/crowa.webp')
+      fire(near, crow, true)
+      expect(img().getAttribute('src')).toContain('/crowa.webp')
+      // Placing (the layer's content skipped): every bird reads as not intersecting, and keeps its sticker.
+      const layer = container.querySelector<HTMLElement>('.eb-layer')!
+      layer.style.contentVisibility = 'hidden'
+      fire(far, crow, false)
+      expect(img().getAttribute('src')).toContain('/crowa.webp')
+      layer.style.removeProperty('content-visibility')
+      // Really far away: let go, and start again when it comes near.
+      fire(far, crow, false)
+      expect(img().getAttribute('src')).toBeNull()
+      expect(img().dataset.src).toContain('/crowa.webp')
+      fire(near, crow, true)
+      expect(img().getAttribute('src')).toContain('/crowa.webp')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})

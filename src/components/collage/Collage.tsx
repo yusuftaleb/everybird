@@ -112,7 +112,12 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       io.current = typeof IntersectionObserver === 'function'
         ? {
             near: new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) loadDeferred(e.target) }, { rootMargin: STICKER_MARGIN }),
-            far: new IntersectionObserver((es) => { for (const e of es) if (!e.isIntersecting) unloadSticker(e.target) }, { rootMargin: STICKER_FAR }),
+            // While a fade-through places birds, the layer's content is skipped (content-visibility: hidden) and every
+            // bird reads as not intersecting: letting go then would drop and re-fetch every sticker near the screen.
+            far: new IntersectionObserver((es) => {
+              if (layer.current?.style.contentVisibility === 'hidden') return
+              for (const e of es) if (!e.isIntersecting) unloadSticker(e.target)
+            }, { rootMargin: STICKER_FAR }),
           }
         : null
     }
