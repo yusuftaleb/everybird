@@ -1,0 +1,95 @@
+app/s/[token]/page.tsx
+  s_ab125876fe9ad2::t_80e646ba5d123f 70
+  s_ab125876fe9ad2::t_9e434a34b05fe3 7,26-39,45-46,48-52,62-63,65-69,72-74
+  s_ab125876fe9ad2::t_f51d53840c94a1 4,54
+  s_ab125876fe9ad2::t_7716a453a66a84 3
+  s_ab125876fe9ad2::t_3604435c62145b 71
+src/components/filters/filters.css
+  s_ab125876fe9ad2::t_72729b6c964c67 76-83
+src/components/import/RulesSwitches.tsx
+  s_ab125876fe9ad2::t_7d67431d557d1f 34
+  s_ab125876fe9ad2::t_89a19c397af383 15,17
+  s_ab125876fe9ad2::t_3d7f17492d4aaa 2,4-6,8-14,16,18-30,36-46
+tests/tick.test.ts
+  s_ab125876fe9ad2::t_e9f14251996f76 1-47
+src/lib/list/tick.ts
+  s_ab125876fe9ad2::t_e9f14251996f76 1-33
+src/components/import/NotCounted.tsx
+  s_ab125876fe9ad2::t_737422f988b39f 1-26
+src/components/import/EbirdDrop.tsx
+  s_ab125876fe9ad2::t_9eac21a4a9cae4 15,25-29,50-60,76-83
+src/components/collage/card-list.css
+  s_ab125876fe9ad2::t_69c9e338231ba9 66
+  s_ab125876fe9ad2::t_c3fb5d8f4b9b7a 107-109
+src/components/map/CountryMap.tsx
+  s_ab125876fe9ad2::t_643c5787d753b7 7
+  s_ab125876fe9ad2::t_72729b6c964c67 8,113,117
+tests/shared-view.test.tsx
+  s_ab125876fe9ad2::t_109711f52fcb59 46
+src/components/app/app.css
+  s_ab125876fe9ad2::t_0f55a08861ff26 198-248,255
+  s_ab125876fe9ad2::t_8e9a3fa6c80d9d 126
+  s_ab125876fe9ad2::t_9e434a34b05fe3 279-281
+  s_ab125876fe9ad2::t_4c9885373b2364 85-86,88,91-93,109,111-113,118,120-122,124-125,130-132,134-147,153-155,157-162,256
+  s_ab125876fe9ad2::t_bc7f2d84e09d8c 58-59
+  s_ab125876fe9ad2::t_9a974a9ef78578 175,178-179
+  s_ab125876fe9ad2::t_2d4bbf90e11bd8 263
+  s_ab125876fe9ad2::t_dc89f23dfc8e1d 22-23,26-28,80-82
+  s_ab125876fe9ad2::t_65cb672bfa5c4c 260-262,264-278
+  s_ab125876fe9ad2::t_d6187a5d25ba3a 83,258-259
+  s_ab125876fe9ad2::t_ef537e065688be 282-283
+  s_ab125876fe9ad2::t_bdf3ea15ef936d 133,151,163
+  s_ab125876fe9ad2::t_b58ad838c3b240 21,24-25,29-33
+  s_ab125876fe9ad2::t_3d7f17492d4aaa 257,284-295,297-306
+  s_ab125876fe9ad2::t_665b03c05a261d 20
+src/components/import/MatchReport.tsx
+  s_ab125876fe9ad2::t_842a5cadca0b35 20,24-25,29-30
+src/components/import/manual-date.ts
+  s_ab125876fe9ad2::t_13f440c81f9ad8 1-15
+src/components/collage/ListView.tsx
+  s_ab125876fe9ad2::t_69c9e338231ba9 36
+src/components/import/import.css
+  s_ab125876fe9ad2::t_dcb8809144a1b3 62
+  s_ab125876fe9ad2::t_1728d29e1b737d 79-129
+  s_ab125876fe9ad2::t_2ccc2c07949f2c 130-133
+  s_ab125876fe9ad2::t_bc7f2d84e09d8c 34-36
+  s_ab125876fe9ad2::t_396dd44c608349 5,8,12-19,31-32,43-48,75
+  s_ab125876fe9ad2::t_737422f988b39f 76-78
+src/components/edit/EditBird.tsx
+  s_ab125876fe9ad2::t_877ad747948071 2,36,39
+tests/filters-ui.test.tsx
+  s_ab125876fe9ad2::t_643c5787d753b7 207
+  s_ab125876fe9ad2::t_109711f52fcb59 221-222,225,230,234-235
+src/components/import/ImportPanel.tsx
+  s_ab125876fe9ad2::t_9eac21a4a9cae4 24,29-30,33-34,42,46-47,49,62,66,87
+  s_ab125876fe9ad2::t_0f5b5585b165e5 88
+  s_ab125876fe9ad2::t_737422f988b39f 12,60,64
+  s_ab125876fe9ad2::t_13f440c81f9ad8 3,11,23,25-26,43-44,67-74,77-86
+src/components/import/InatForm.tsx
+  s_ab125876fe9ad2::t_396dd44c608349 28
+  s_ab125876fe9ad2::t_9eac21a4a9cae4 27,38,53
+src/components/edit/edit.css
+  s_ab125876fe9ad2::t_d8bd9659c40255 2-3
+src/components/app/SharedView.tsx
+  s_ab125876fe9ad2::t_9e434a34b05fe3 57-63
+src/components/import/TickList.tsx
+  s_ab125876fe9ad2::t_7fde258db65236 2-7,9,12,14,16-17,25-27,31-33,35,37-42,44,47-48,50-61,71,73-95,97,100-105,107-108,111,113-124,126-129,131-138,140-199,204,210-216,219-225,228-233
+  s_ab125876fe9ad2::t_13f440c81f9ad8 18
+  s_ab125876fe9ad2::t_28136eda76eb11 8,72,125,130,139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "17536c8f533a3151b99acdf6e31511601ca5a692",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
