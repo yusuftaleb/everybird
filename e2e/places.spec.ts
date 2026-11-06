@@ -19,11 +19,12 @@ function syntheticSaved() {
     savedAt: new Date().toISOString(),
   };
 }
-async function seed(page: Page) {
+async function seed(page: Page, data: object = syntheticSaved(), theme: "light" | "dark" = "light") {
   await page.goto("/about");
   await page.evaluate(
-    (saved) =>
+    ([saved, theme]) =>
       new Promise<void>((done, fail) => {
+        localStorage.setItem("everybird:theme", theme);
         const open = indexedDB.open("everybird");
         open.onupgradeneeded = () => open.result.createObjectStore("kv");
         open.onsuccess = () => {
@@ -34,7 +35,7 @@ async function seed(page: Page) {
         };
         open.onerror = () => fail(open.error);
       }),
-    syntheticSaved(),
+    [data, theme] as const,
   );
   await page.goto("/");
   await expect(page.getByTestId("collage-stage").locator("[data-code]:not([data-off])").first()).toBeVisible();
@@ -75,5 +76,63 @@ for (const width of [1280, 390]) {
       expect(m.dock).toBeLessThanOrEqual(0);
       expect(m.page).toBeLessThanOrEqual(0);
     });
+  });
+}
+
+// More than SEARCH_FROM countries: the panel's "Find a country" is the app's one field (globals.css .eb-input), not
+// the browser's search pill: Surface, a Line border, 44px tall, the site's 16px lens at 12px, Muted placeholder, the
+// Accent focus ring; in both themes. (The collage page loads no Settings CSS, so this needs the shared style.)
+function manyCountriesSaved() {
+  const species = (JSON.parse(readFileSync(resolve(__dirname, "../public/data/species.v1.json"), "utf8")) as { species: Row[] }).species;
+  const isos = ["CA", "EG", "CR", "MX", "US", "FR", "DE", "BE", "NL", "DK", "CH", "AU", "NZ", "JP", "BR", "PE"];
+  const records = isos.flatMap((country, i) => [0, 1].map((j) => ({ code: species[(i * 2 + j) * 5].code, source: "ebird", date: `2022-0${1 + (i % 9)}-1${j}`, place: { country } })));
+  return {
+    v: 1, records: { ebird: records, inat: [], manual: [] }, unmatched: [],
+    edits: { removed: [], added: [], marks: {}, fixes: {} }, rules: { hideHeard: false, hideDead: false, researchOnly: false },
+    savedAt: new Date().toISOString(),
+  };
+}
+for (const theme of ["light", "dark"] as const) {
+  test(`Find a country is the app's field style (${theme})`, async ({ page }) => {
+    await seed(page, manyCountriesSaved(), theme);
+    await page.getByTestId("filter-tab-places").click();
+    const find = page.getByTestId("places-find");
+    await expect(find).toBeVisible();
+    await find.focus();
+    const m = await find.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      const probe = (v: string) => {
+        const d = document.createElement("div");
+        d.style.color = `var(${v})`;
+        document.body.append(d);
+        const c = getComputedStyle(d).color;
+        d.remove();
+        return c;
+      };
+      const icon = el.parentElement!.querySelector("svg.eb-input-icon")!.getBoundingClientRect();
+      const box = el.getBoundingClientRect();
+      return {
+        h: box.height, bg: cs.backgroundColor, border: cs.borderTopColor, borderW: cs.borderTopWidth,
+        appearance: cs.appearance || cs.getPropertyValue("-webkit-appearance"),
+        pad: cs.paddingLeft, font: cs.fontSize, outline: cs.outlineStyle, outlineColor: cs.outlineColor,
+        icon: { w: icon.width, left: icon.left - box.left },
+        surface: probe("--surface"), line: probe("--line"), accent: probe("--accent"),
+        theme: document.documentElement.dataset.theme,
+      };
+    });
+    expect(m.theme).toBe(theme);
+    expect(m.h).toBe(44);
+    expect(m.bg).toBe(m.surface);
+    expect(m.border).toBe(m.line);
+    expect(m.borderW).toBe("1px");
+    expect(m.appearance).toBe("none");
+    expect(m.pad).toBe("40px");
+    expect(m.font).toBe("16px");
+    expect(m.icon.w).toBe(16);
+    expect(m.icon.left).toBe(12);
+    expect(m.outline).toBe("solid");
+    expect(m.outlineColor).toBe(m.accent);
+    await find.fill("new z");
+    await expect(page.getByTestId("filter-panel-places").getByRole("checkbox")).toHaveCount(1);
   });
 }

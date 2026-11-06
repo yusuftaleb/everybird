@@ -1,5 +1,5 @@
 'use client'
-import { MagnifyingGlass } from '@phosphor-icons/react'
+import { SearchIcon } from '@/components/collage/icons'
 import { useId, useMemo, useState } from 'react'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -23,7 +23,7 @@ export function SpeciesSearch({ species, label, showLabel = true, onPick, limit 
     <div className="eb-search">
       <label htmlFor={id} className={showLabel ? 'eb-label' : 'eb-sr'}>{label}</label>
       <div className="eb-input-wrap">
-        <MagnifyingGlass aria-hidden="true" focusable="false" className="eb-input-icon" />
+        <SearchIcon className="eb-input-icon" />
         <input
           id={id}
           className="eb-input eb-input-search"

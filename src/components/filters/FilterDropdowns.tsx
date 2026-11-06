@@ -12,7 +12,7 @@ import { CalendarBlank, CaretDown, GlobeHemisphereWest } from '@phosphor-icons/r
 import Link from 'next/link'
 import { createPortal } from 'react-dom'
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
-import { CloseIcon } from '@/components/collage/icons'
+import { CloseIcon, SearchIcon } from '@/components/collage/icons'
 import { Flag } from '@/components/Flag'
 import { trapTab, useEscapeCapture, useFocusInAndBack, useIsSheet } from '@/components/dialog-utils'
 import { stripBracket } from '@/lib/import/places'
@@ -222,14 +222,22 @@ function PlacesList({ state, species, name, note, onFilter }: { state: AppState;
       </div>
       {note && <PlacesNoteLine note={note} />}
       {searchable && (
-        <input
-          type="search"
-          className="eb-input eb-places-find"
-          placeholder="Find a country"
-          aria-label="Find a country"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
+        // The app's one field style (globals.css .eb-input), with the site's lens.
+        <div className="eb-input-wrap">
+          <SearchIcon className="eb-input-icon" />
+          <input
+            type="search"
+            className="eb-input eb-input-search"
+            placeholder="Find a country"
+            aria-label="Find a country"
+            autoComplete="off"
+            spellCheck={false}
+            enterKeyHint="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            data-testid="places-find"
+          />
+        </div>
       )}
       {rows.length === 0 ? (
         <p className="eb-note">No places on this list.</p>

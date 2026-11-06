@@ -71,23 +71,11 @@
   font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em;
   text-transform: uppercase; color: var(--muted);
 }
-.eb-input {
-  width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px;
-  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
-  font: inherit; font-size: 16px; /* 16px keeps iOS from zooming in */
-  border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-}
-.eb-input::placeholder { color: var(--muted); opacity: 1; }
-.eb-input[type="search"]::-webkit-search-cancel-button { display: none; }
-.eb-input[aria-invalid] { border-color: var(--accent); }
 .eb-row > .eb-input { flex: 1 1 140px; }
 .eb-way-control > .eb-input { flex: 1 1 auto; }
 .eb-way-control > .eb-btn { flex: none; }
 .eb-way-control > .eb-way-btn { flex: 1 1 auto; }
 .eb-way-control.eb-row { flex-wrap: nowrap; }
-.eb-input-wrap { position: relative; }
-.eb-input-icon { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
-.eb-input-search { padding-left: 38px; }
 
 .eb-status { margin: 0; min-height: 1.5em; font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; color: var(--muted); font-variant-numeric: tabular-nums; }
 .eb-status:empty { min-height: 0; }
@@ -129,17 +117,7 @@
 .eb-notcounted summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; color: var(--ink); text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px; }
 .eb-notcounted ul { margin: 4px 0 0; padding-left: 18px; }
 
-/* Fields: text inputs and selects share one height, padding, radius, border and type. A select draws its own chevron
-   (in Muted, so it follows the theme) inside an .eb-select wrapper. */
-.eb-input { height: 44px; line-height: 1.3; }
-select.eb-input { appearance: none; -webkit-appearance: none; padding-right: 38px; cursor: pointer; text-overflow: ellipsis; }
-.eb-select { position: relative; display: block; min-width: 0; }
-.eb-select::after {
-  content: ''; position: absolute; right: 14px; top: 50%; width: 12px; height: 12px; translate: 0 -50%; pointer-events: none;
-  background: var(--muted);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E") center / contain no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E") center / contain no-repeat;
-}
+/* Fields (.eb-input, .eb-select, .eb-input-wrap): styles/globals.css, shared with the Places panel's search. */
 
 /* Tick by hand, page-wide: search and group pickers, the windowed list, and the bar that adds the ticked birds. */
 .eb-tick { display: flex; flex-direction: column; gap: 10px; padding: 18px 16px 0; border: 1px solid var(--hairline); border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
