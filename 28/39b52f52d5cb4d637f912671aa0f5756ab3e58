@@ -1,0 +1,21 @@
+scripts/validate/yusuf.ts
+  s_ab125876fe9ad2::t_63b20af4b8f75a 10,15-16,31-52,63-67,70-75,185-202,220-221,241
+docs/validation.md
+  s_ab125876fe9ad2::t_14c0ad5afbe7fb 44-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2839b52f52d5cb4d637f912671aa0f5756ab3e58",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
