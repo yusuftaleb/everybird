@@ -1,0 +1,29 @@
+playwright.config.ts
+  s_ab125876fe9ad2::t_ccbce047542580 20
+e2e/share.spec.ts
+  s_ab125876fe9ad2::t_ccbce047542580 151-156,161,167-172,176-180,183-191,193-194
+  s_ab125876fe9ad2::t_14a6f207551a00 49-54
+  s_ab125876fe9ad2::t_aa6b0454d7d5c1 181-182
+  s_ab125876fe9ad2::t_e646dddf6ec462 109-110
+  s_ab125876fe9ad2::t_9fe9e95436f014 123-124
+src/components/share/share.css
+  s_ab125876fe9ad2::t_fb85196b374870 1-4,28-30,34,39,51
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_fb85196b374870 245-246
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cfe340f21289e3e360df81780b5f230d85970fff",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
