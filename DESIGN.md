@@ -13,7 +13,7 @@ colors:
   paper-dark: "#1e1e24"
   accent-dark: "#f06a5f"
   muted-dark: "#a9a9b2"
-  line-dark: "#6e6e78"
+  line-dark: "#76767f"
   hairline-dark: "#3d3d45"
   surface-dark: "#28282f"
 typography:
@@ -109,15 +109,16 @@ Seven tokens, two themes, nothing else. `tests/tokens.test.ts` keeps `tokens.css
 | Paper | #f6f4ef | #1e1e24 | Page and floating-surface background; text on Accent |
 | Accent | #92140c | #f06a5f | Primary button, selected chip border, selected tab text, focus ring, links in notes, errors |
 | Muted | #5f5f69 | #a9a9b2 | Secondary text, counts on chips, mono labels, placeholder |
-| Line | #857f74 | #6e6e78 | Input borders, checkbox borders, switch track outline, hover borders |
+| Line | #857f74 | #76767f | Input borders, checkbox borders, switch track outline, hover borders, trip brackets |
 | Hairline | #dedad2 | #3d3d45 | Every divider and resting border |
 | Surface | #ebe8e1 | #28282f | Chips, quiet buttons, fields, selected tab, disabled fill |
 
 - **Theme mechanism.** `:root` is light; `:root[data-theme=dark]` overrides. There is no `prefers-color-scheme` rule. `src/lib/theme.ts` stores the choice per device (`localStorage` `everybird:theme`); `THEME_SCRIPT` in `<head>` sets `data-theme` before first paint. Share images follow the current theme.
 - **The One Voice Rule.** Accent marks "this one": the selected chip, the current tab, the primary action, the focus ring. Never decoration, never two accents.
 - **The Quiet Disabled Rule.** Disabled is Surface fill, Hairline border, Muted text. Never a paler Accent (it reads as a new colour).
-- **The Contrast Rule.** Muted on Paper and Accent on Paper meet AA in both themes.
-- Scrims are `rgb(0 0 0 / .28)`. Shadows are black at 8%/4%.
+- **The Contrast Rule.** Muted on Paper and Accent on Paper meet AA in both themes. Line, the border that must be seen (fields, the switch's off-track ring in the dock and Settings rows, checkboxes, the dropzone), meets 3:1 (WCAG 1.4.11) against both grounds it sits on: light 3.61:1 on Paper and 3.25:1 on Surface; dark 3.69:1 on Paper and 3.25:1 on Surface (`tests/tokens.test.ts` checks all four). Dark Line was #6e6e78 (2.9:1 on Surface) until 2026-11-06, when Yusuf asked for 3:1 on grey; lifting the one token, rather than adding a border token, keeps every Line use (hover borders, trip brackets, the on-list tick box, empty-month ticks) one step above Hairline in both themes. Hairline stays decorative (dividers, resting borders) and is not held to 3:1.
+- **Browser surfaces.** Selected text is tinted with Accent (`::selection`: Accent mixed 22% into transparent, text keeps its colour) and text carets are Accent (`caret-color` on inputs and textareas), in both themes (`globals.css`).
+- Scrims are `rgb(0 0 0 / .28)`. Shadows are black at 8%/4% (Elevation below).
 
 ## Typography
 
@@ -145,7 +146,7 @@ Seven tokens, two themes, nothing else. `tests/tokens.test.ts` keeps `tokens.css
 
 ## Elevation & Depth
 
-Flat by default. Depth is hairline borders and the Surface tint. Floating things only get one shadow: `0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04)` (bird card, tooltip, search results, toast); the phone sheet uses `0 -8px 32px rgb(0 0 0 / .12)` over a .28 scrim.
+Flat by default. Depth is hairline borders and the Surface tint. Floating things only get one shadow: `0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04)` (bird card, tooltip, search results, toast, the Places and Time popovers, and the share dialog over its .28 scrim); the phone sheet uses `0 -8px 32px rgb(0 0 0 / .12)` over a .28 scrim. Everything else is an inset ring (the switch track). The share dialog had its own heavier `0 16px 48px / .18` until 2026-11-06, when Yusuf brought it in line. `tests/tokens.test.ts` fails on any other shadow in the app's CSS (About's demo scene excepted: it draws its own Stageshow depth).
 
 **The Flat-At-Rest Rule.** No shadow on anything that does not float over the page.
 
@@ -210,6 +211,7 @@ Source of truth: `src/components/collage/collage-motion.ts` (ported from LifeLis
 - **The 1,500 rule.** Above 1,500 visible birds (`CROSSFADE_AT`) a change is a 200ms opacity fade instead of travel (`data-fast`, `data-many`).
 - **Reduced motion.** `prefers-reduced-motion` gets the same 200ms fade, no travel, no growth, no stage height easing, no switch transitions; UI transitions go to `none`; sheets and breadcrumbs fade only. About's demo shows its poster.
 - Hover/press affordances only under `(hover: hover) and (pointer: fine)`.
+- **Optimize pass (impeccable, Task Z, 2026-11-06): nothing to change.** Measured on the production build at 4× CPU throttling: filtering frames at most 33.4 ms, a held timeline drag over 1,000 species 16.8 ms, the True size switch 8.7 ms during a 200,000-row parse; the share preview shows its spinner at once. The `perf` project (`e2e/filters.spec.ts`) holds these to its budget: no task over 50 ms, no frame over 50 ms. The one known gap is the frame budget past 3,000 species, which is its own follow-up.
 - The About demo pauses off screen and in a hidden tab, and follows the site theme.
 
 ## Iconography
@@ -233,7 +235,7 @@ Stickers are huashu-bird-sticker (CC BY 4.0), trimmed webp at 128 and 384px, hos
 ## Accessibility
 
 - Focus ring: 2px Accent, offset 2px, on `:focus-visible` everywhere; inside scaled birds the ring is divided by the scale so it is 2px at any size.
-- 44px targets; the page works at 320px and with 200% text.
+- 44px targets; the page works at 320px and with 200% text. On a touch screen (`pointer: coarse`) the small buttons (`.eb-btn-sm`: Replace, Remove, Refresh, Cancel) grow from 40 to 44px; `e2e/flows.spec.ts` checks that on an emulated phone.
 - Collage birds are real buttons with names; keyboard moves between birds, Enter/Space opens the card, Esc closes; exiting birds get `aria-hidden`.
 - The Places and Time buttons have `aria-expanded`, `aria-controls` and `aria-haspopup="dialog"`; their panels are labelled dialogs; the country checklist uses real checkboxes named "Canada, 42 species"; the tooltip is `aria-hidden` (the card and focus carry the content).
 - Switches are `role=switch` with `aria-checked`; tabs and pressed states are real ARIA.

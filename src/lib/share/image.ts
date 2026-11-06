@@ -39,7 +39,7 @@ export const STICKER_CREDIT = 'Stickers: huashu-bird-sticker, CC BY 4.0'
 /** The design tokens (tokens.css; a test keeps them equal). The image follows the page's current theme. */
 export const SHARE_COLORS = {
   light: { ink: '#1e1e24', paper: '#f6f4ef', accent: '#92140c', muted: '#5f5f69', line: '#857f74', hairline: '#dedad2', surface: '#ebe8e1' },
-  dark: { ink: '#ffffff', paper: '#1e1e24', accent: '#f06a5f', muted: '#a9a9b2', line: '#6e6e78', hairline: '#3d3d45', surface: '#28282f' },
+  dark: { ink: '#ffffff', paper: '#1e1e24', accent: '#f06a5f', muted: '#a9a9b2', line: '#76767f', hairline: '#3d3d45', surface: '#28282f' },
 } as const
 
 /**
