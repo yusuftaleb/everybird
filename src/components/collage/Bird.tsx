@@ -20,6 +20,7 @@ type Props = {
   name: string
   st: boolean
   ar: number
+  sv?: string
   init: BirdInit
   register: (code: string, el: HTMLButtonElement | null) => void
 }
@@ -30,7 +31,7 @@ type Props = {
  * the collage sees it near the viewport (Sticker `defer`, Collage's observer). Species without a sticker,
  * and stickers that fail to load, show the no-sticker outline (bird-outline.ts) in Line.
  */
-export const Bird = memo(function Bird({ code, name, st, ar, init, register }: Props) {
+export const Bird = memo(function Bird({ code, name, st, ar, sv, init, register }: Props) {
   return (
     <button
       ref={(el) => register(code, el)}
@@ -44,7 +45,7 @@ export const Bird = memo(function Bird({ code, name, st, ar, init, register }: P
       tabIndex={-1}
       style={init.style}
     >
-      <Sticker code={code} st={st} ar={ar} w={init.w} h={init.h} defer />
+      <Sticker code={code} st={st} ar={ar} sv={sv} w={init.w} h={init.h} defer />
     </button>
   )
 })

@@ -43,7 +43,7 @@ async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof
   const r = packBest(pack, wide, 'even', { fixedStage: [OG_COLLAGE.w, OG_COLLAGE.h], hole: ogCount(payload.birds.length).hole, maxBase: (0.4 * OG_COLLAGE.h) / maxRel })
   // Tiles drawn past OG_LARGE_TILE get the 384 px file, so a short list's big birds stay sharp.
   const large = new Set(list.flatMap(([c, b]) => { const box = r.boxes.get(b.id); return box && Math.max(box[2], box[3]) > OG_LARGE_TILE ? [c] : [] }))
-  const stickers = await fetchStickers(list.map(([c]) => c), undefined, large)
+  const stickers = await fetchStickers(list.map(([code]) => ({ code, sv: species.get(code)?.sv })), undefined, large)
   const placed: Placed[] = []
   for (const [code, b] of list) {
     const box = r.boxes.get(b.id)

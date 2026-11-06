@@ -3,6 +3,8 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Collage, stickerUrl } from '@/components/collage/Collage'
+import { Sticker } from '@/components/collage/Sticker'
+import { stickerPath, stickerSrcSet } from '@/lib/sticker-url'
 import type { StateLayout } from '@/lib/layout/layout-client'
 import type { Box } from '@/lib/layout/pack'
 import type { ListEntry } from '@/lib/list/model'
@@ -149,6 +151,24 @@ describe('stickerUrl', () => {
     expect(stickerUrl('crowa', 65, 2)).toBe(`${base}/v1/384/crowa.webp`)
     expect(stickerUrl('crowa', 128, 1)).toBe(`${base}/v1/128/crowa.webp`)
     expect(stickerUrl('crowa', 100, 3)).toBe(`${base}/v1/384/crowa.webp`)
+  })
+
+  it('a sticker version picks the versioned file; without one every URL stays as it was', () => {
+    const base = process.env.NEXT_PUBLIC_STICKER_BASE ?? 'https://stickers.yusuftaleb.com'
+    expect(stickerUrl('crowa', 64, 2, 'ab12cd34ef')).toBe(`${base}/v1/128/crowa.ab12cd34ef.webp`)
+    expect(stickerUrl('crowa', 200, 1, 'ab12cd34ef')).toBe(`${base}/v1/384/crowa.ab12cd34ef.webp`)
+    expect(stickerUrl('crowa', 64, 2, undefined)).toBe(`${base}/v1/128/crowa.webp`)
+    expect(stickerUrl('crowa', 64, 2, '')).toBe(`${base}/v1/128/crowa.webp`)
+    expect(stickerPath('crowa', 384, 'v9')).toBe('v1/384/crowa.v9.webp')
+    expect(stickerSrcSet('crowa', 0.5)).toBe(`${base}/v1/128/crowa.webp 64w, ${base}/v1/384/crowa.webp 192w`)
+    expect(stickerSrcSet('crowa', 2, 'v9')).toBe(`${base}/v1/128/crowa.v9.webp 128w, ${base}/v1/384/crowa.v9.webp 384w`)
+  })
+
+  it('Sticker renders the versioned src and srcset when the row has sv', () => {
+    const { container } = render(<Sticker code="crowa" st ar={1} sv="v9" w={40} h={40} />)
+    const img = container.querySelector('img')!
+    expect(img.getAttribute('src')).toMatch(/\/v1\/128\/crowa\.v9\.webp$/)
+    expect(img.getAttribute('srcset')).toContain('/v1/384/crowa.v9.webp 384w')
   })
 })
 

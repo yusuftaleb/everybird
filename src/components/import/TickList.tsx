@@ -204,7 +204,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
                 onClick={() => { setActive(i); box.current?.focus({ preventScroll: true }); toggle(r.code) }}
               >
                 <span className="eb-tickbox" aria-hidden="true">{sel && <Check weight="bold" />}</span>
-                <span className="eb-tickthumb" aria-hidden="true"><span style={{ width: Math.round(fit * r.ar), height: Math.round(fit) }}><Sticker code={r.code} st={r.st} ar={r.ar} w={fit * r.ar} h={fit} /></span></span>
+                <span className="eb-tickthumb" aria-hidden="true"><span style={{ width: Math.round(fit * r.ar), height: Math.round(fit) }}><Sticker code={r.code} st={r.st} ar={r.ar} sv={r.sv} w={fit * r.ar} h={fit} /></span></span>
                 <span className="eb-tickname">
                   <span>{r.com}</span>
                   <i lang="la">{r.sci}</i>

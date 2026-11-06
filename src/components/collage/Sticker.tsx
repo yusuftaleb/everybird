@@ -1,7 +1,7 @@
 'use client'
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { useState } from 'react'
-import { LARGE, SMALL, STICKER_BASE, stickerUrl } from '@/lib/sticker-url'
+import { stickerSrcSet, stickerUrl } from '@/lib/sticker-url'
 import './Sticker.css'
 
 export { stickerUrl }
@@ -120,11 +120,8 @@ export function unloadSticker(el: Element): boolean {
  *   the collage starts it once the bird nears the viewport. The browser's own lazy loading starts every image
  *   within 1,250-2,500 px of the viewport, which on a tall collage of thousands of birds is nearly all of them.
  */
-export function Sticker({ code, st, ar, w, h, lazy = true, defer = false }: { code: string; st: boolean; ar: number; w: number; h: number; lazy?: boolean; defer?: boolean }) {
+export function Sticker({ code, st, ar, sv, w, h, lazy = true, defer = false }: { code: string; st: boolean; ar: number; sv?: string; w: number; h: number; lazy?: boolean; defer?: boolean }) {
   const [failed, setFailed] = useState(false)
-  // The long side of each file is its nominal size; srcset widths let the browser apply the 128/384 rule
-  // for the device pixel ratio without a server/client mismatch.
-  const wf = Math.min(1, ar > 0 ? ar : 1)
   if (!st || failed) {
     return (
       <span className="eb-sil" data-silhouette="">
@@ -134,8 +131,9 @@ export function Sticker({ code, st, ar, w, h, lazy = true, defer = false }: { co
       </span>
     )
   }
-  const src = stickerUrl(code, Math.max(w, h), 1)
-  const srcSet = `${STICKER_BASE}/v1/${SMALL}/${code}.webp ${Math.round(SMALL * wf)}w, ${STICKER_BASE}/v1/${LARGE}/${code}.webp ${Math.round(LARGE * wf)}w`
+  // srcset widths let the browser apply the 128/384 rule for the device pixel ratio without a server/client mismatch.
+  const src = stickerUrl(code, Math.max(w, h), 1, sv)
+  const srcSet = stickerSrcSet(code, ar, sv)
   return (
     // Plain <img>: stickers come from the static stickers site, not the Next image optimizer.
     // eslint-disable-next-line @next/next/no-img-element

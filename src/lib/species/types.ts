@@ -4,6 +4,7 @@ export type SpeciesRow = {
   ord: string; fam: string; famCom: string; to: number   // order, family (sci), family common, eBird taxonOrder
   g: number; gSrc: 'avonet'|'override'|'family'|'order' // body mass (g) and where it came from
   st: boolean; ar: number; q: boolean              // has sticker, sticker aspect w/h, meets huashu quality bar
+  sv?: string  // sticker version: only for stickers rebuilt after v1 (data/sticker-versions.json), see sticker-url.ts
 }
 // ord/fam/famCom are only present on build-time input (buildSpecies needs them); they are
 // stripped before taxonomy.v1.json is written.

@@ -144,6 +144,38 @@ export function buildSpecies(
   }
 }
 
+/**
+ * Sticker versions (data/sticker-versions.json, written by scripts/sync/huashu-sync.ts): code -> `sv` for stickers
+ * rebuilt after v1, which are published under versioned file names (src/lib/sticker-url.ts). Sets `sv` on the rows
+ * that have a sticker and drops it from the rest. Mutates and returns `rows`.
+ */
+export function applyStickerVersions(rows: SpeciesRow[], versions: Record<string, string>): SpeciesRow[] {
+  for (const r of rows) {
+    if (r.st && versions[r.code]) r.sv = versions[r.code]
+    else delete r.sv
+  }
+  return rows
+}
+
+export const STICKER_VERSIONS = 'data/sticker-versions.json'
+export function loadStickerVersions(root = process.cwd()): Record<string, string> {
+  const p = resolve(root, STICKER_VERSIONS)
+  return existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) as Record<string, string> : {}
+}
+
+/**
+ * The build-time taxonomy (species rows with their order and family names) from the committed public files, so a
+ * rebuild with a new huashu needs no eBird download: taxonomy.v1.json has every taxon, species.v1.json the order and
+ * family of each species (the only taxa buildSpecies reads them for).
+ */
+export function taxonomyFromPublic(taxonomy: TaxonomyFile, species: SpeciesFile): TaxonRow[] {
+  const by = new Map(species.species.map((s) => [s.code, s]))
+  return taxonomy.taxa.map((t) => {
+    const s = by.get(t.code)
+    return s ? { ...t, ord: s.ord, fam: s.fam, famCom: s.famCom } : t
+  })
+}
+
 const CATS: Record<string, TaxonCategory> = {
   species: 'species', issf: 'issf', form: 'form', intergrade: 'intergrade', spuh: 'spuh',
   slash: 'slash', hybrid: 'hybrid', domestic: 'domestic',
@@ -187,6 +219,7 @@ function main() {
     const prev = new Map((JSON.parse(readFileSync(prevPath, 'utf8')) as SpeciesFile).species.map((s) => [s.code, s.ar]))
     for (const s of file.species) if (prev.has(s.code)) s.ar = prev.get(s.code)!
   }
+  applyStickerVersions(file.species, loadStickerVersions())
   writeFileSync(prevPath, JSON.stringify(file))
   const taxonomyFile: TaxonomyFile = {
     v: 1, ebirdTaxonomy: manifest.ebirdTaxonomy,

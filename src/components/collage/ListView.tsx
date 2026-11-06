@@ -36,7 +36,7 @@ const Row = memo(function Row({ entry, row, place, sci, onPick }: RowProps) {
     <li className="eb-lrow">
       <button type="button" className="eb-row-btn" data-code={entry.code} onClick={(e) => onPick(entry.code, e.currentTarget)}>
         <span className="eb-row-thumb" aria-hidden="true">
-          <span style={{ width: Math.round(fit * row.ar), height: Math.round(fit) }}><Sticker code={entry.code} st={row.st} ar={row.ar} w={fit * row.ar} h={fit} /></span>
+          <span style={{ width: Math.round(fit * row.ar), height: Math.round(fit) }}><Sticker code={entry.code} st={row.st} ar={row.ar} sv={row.sv} w={fit * row.ar} h={fit} /></span>
         </span>
         <span className="eb-row-name">
           <span><span className="eb-row-primary" lang={sci ? 'la' : undefined}>{sci ? row.sci : row.com}</span><Marks entry={entry} /></span>

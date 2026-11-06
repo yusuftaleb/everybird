@@ -498,7 +498,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
     const row = species.byCode.get(e.code)!
     const [w, h] = [b[2] * fit.s, b[3] * fit.s]
     const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
-    return [{ x, y, w, h, url: row.st ? stickerUrl(e.code, Math.max(w, h), 1) : null }]
+    return [{ x, y, w, h, url: row.st ? stickerUrl(e.code, Math.max(w, h), 1, row.sv) : null }]
   })
   // The latest lifer's sticker, contained in its square at the sticker's own aspect.
   let lifer: Tile | null = null
@@ -506,7 +506,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
     const { icon, y } = L.latest
     const ar = latestRow.st && latestRow.ar > 0 ? latestRow.ar : 1
     const w = ar >= 1 ? icon : icon * ar, h = ar >= 1 ? icon / ar : icon
-    lifer = { x: M + (icon - w) / 2, y: y + (icon - h) / 2, w, h, url: latestRow.st ? stickerUrl(latestRow.code, icon, 1) : null }
+    lifer = { x: M + (icon - w) / 2, y: y + (icon - h) / 2, w, h, url: latestRow.st ? stickerUrl(latestRow.code, icon, 1, latestRow.sv) : null }
   }
 
   const F = families()

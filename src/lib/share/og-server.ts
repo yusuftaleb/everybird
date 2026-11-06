@@ -105,21 +105,24 @@ export const OG_LARGE_TILE = 140
 const LARGE_PX = 256
 
 /**
- * The stickers as data URLs: the 128 px file, or for codes in `large` the 384 px file scaled down to 256 px. Fetched
+ * The stickers as data URLs (keyed by code): the 128 px file, or for codes in `large` the 384 px file scaled down to
+ * 256 px; each code's sticker version `sv` (species.v1.json) picks the rebuilt file when it has one. Fetched
  * in parallel with a timeout each and `budgetMs` overall. A sticker that fails, times out or isn't an image is simply
  * left out of the result (the caller draws nothing for it), so the image always renders. Satori would throw on a
  * failed <img> fetch, which is why the bytes are fetched here.
  */
-export async function fetchStickers(codes: string[], budgetMs = 2500, large: ReadonlySet<string> = new Set()): Promise<Map<string, string>> {
+export async function fetchStickers(
+  stickers: readonly { code: string; sv?: string }[], budgetMs = 2500, large: ReadonlySet<string> = new Set(),
+): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   const deadline = Date.now() + budgetMs
-  await Promise.all(codes.map(async (code) => {
+  await Promise.all(stickers.map(async ({ code, sv }) => {
     const big = large.has(code)
-    const key = `${code}@${big ? LARGE_PX : 128}`
+    const key = `${code}${sv ? `.${sv}` : ''}@${big ? LARGE_PX : 128}`
     const hit = stickerCache.get(key)
     if (hit) { out.set(code, hit); return }
     try {
-      const res = await get(stickerUrl(code, big ? 384 : 128, 1), Math.max(1, Math.min(STICKER_TIMEOUT_MS, deadline - Date.now())))
+      const res = await get(stickerUrl(code, big ? 384 : 128, 1, sv), Math.max(1, Math.min(STICKER_TIMEOUT_MS, deadline - Date.now())))
       if (!(res.headers.get('content-type') ?? 'image/webp').startsWith('image/')) return
       // Satori can't draw WebP (it renders nothing), so each sticker goes in as a PNG.
       let img = sharp(Buffer.from(await res.arrayBuffer()))

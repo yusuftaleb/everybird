@@ -516,7 +516,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
         inits.set(code, init)
       }
       const r = row(code)
-      return <Bird key={code} code={code} name={r?.com ?? code} st={!!r?.st} ar={r?.ar ?? 1} init={init} register={register} />
+      return <Bird key={code} code={code} name={r?.com ?? code} st={!!r?.st} ar={r?.ar ?? 1} sv={r?.sv} init={init} register={register} />
     })
     if (!windowed) return list
     // Windowed: in groups of GROUP (display: contents, so nothing changes for layout or paint order). WebKit restyles
