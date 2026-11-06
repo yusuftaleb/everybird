@@ -199,3 +199,40 @@ describe('Collage sticker loading (IntersectionObserver)', () => {
     }
   })
 })
+
+describe('Collage leaving data-fast (big lists, reduced motion)', () => {
+  // Under data-fast birds are placed by left/top; without it by translate, which transitions. Leaving data-fast must
+  // land with transitions off (data-instant on at that moment), or every bird flies in from the stage's corner.
+  const reducedMotion = () => vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce'), media: q, addEventListener() {}, removeEventListener() {} }))
+  const props = { entries, species, mode: 'even' as const, onPick: () => {} }
+  const two = layoutOf({ crowa: [100, 100, 90, 90], wrenb: [250, 300, 30, 30] })
+  type Rerender = (el: React.ReactElement) => void
+  const cases: [string, (r: Rerender) => void][] = [
+    ['a still change (a drag preview)', (r) => r(<Collage {...props} layout={two} visible={new Set(['crowa'])} still />)],
+    ['a travel (big, then smaller)', (r) => { vi.unstubAllGlobals(); r(<Collage {...props} layout={layoutOf({ crowa: [120, 120, 90, 90] })} visible={new Set(['crowa'])} />) }],
+  ]
+  for (const [name, next] of cases) {
+    it(`${name}: data-fast goes only while data-instant is on`, () => {
+      reducedMotion()
+      try {
+        const { rerender, container } = render(<Collage {...props} layout={full} visible={new Set(['crowa', 'wrenb', 'nostk'])} />)
+        const stage = container.querySelector('[data-testid="collage-stage"]')!
+        // A reduced-motion change fades through: data-fast on.
+        rerender(<Collage {...props} layout={two} visible={new Set(['crowa', 'wrenb'])} />)
+        expect(stage).toHaveAttribute('data-fast')
+        const mo = new MutationObserver(() => {})
+        mo.observe(stage, { attributes: true, attributeFilter: ['data-fast', 'data-instant'], attributeOldValue: true })
+        next(rerender)
+        const seq = mo.takeRecords().map((r) => `${r.attributeName}:${r.oldValue === null ? 'on' : 'off'}`)
+        mo.disconnect()
+        expect(stage).not.toHaveAttribute('data-fast')
+        const off = seq.indexOf('data-fast:off')
+        expect(off).toBeGreaterThan(0)
+        const before = seq.slice(0, off)
+        expect(before.lastIndexOf('data-instant:on')).toBeGreaterThan(before.lastIndexOf('data-instant:off'))
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    })
+  }
+})

@@ -9,7 +9,7 @@ import { expect, test, type Page } from "@playwright/test";
 // viewport), and the frame budget while scrolling and on a filter change (4x CPU in Chromium; WebKit has no
 // CPU throttling, so it runs at 1x). The goal is the frame budget (no main-thread task over 100 ms, no frame over
 // 50 ms; WebKit reports no long tasks); each case logs whether it met it. Asserted by default: the ceilings in
-// CEILING (what the windowed collage keeps to, with headroom, so a regression fails). STRESS_STRICT=goal asserts the
+// CEILING (what the windowed collage keeps to, with headroom, so a regression fails). STRESS_STRICT=1 asserts the
 // goal itself; STRESS_STRICT=0 only logs (a busy local machine). Numbers are logged as `[stress] ...` lines.
 test.describe.configure({ mode: "serial" });
 test.setTimeout(15 * 60_000);
@@ -295,9 +295,9 @@ for (const [label, n] of SIZES) {
       expect(geo2.clashes).toBe(0);
       const met = (r: { long: number; frame: number }) => r.long <= 100 && r.frame <= 50;
       console.log(`[stress] ${browserName} ${width}px ${count} species: frame budget (100 ms task, 50 ms frame): scroll ${met(scroll) ? "met" : "missed"}, filter ${met(filt) ? "met" : "missed"}`);
-      const strict = process.env.STRESS_STRICT ?? "1";
+      const strict = process.env.STRESS_STRICT; // unset: CEILING; "1": the budget (GOAL); "0": log only
       if (strict !== "0") {
-        const c = strict === "goal" ? GOAL : n >= SPECIES.length ? CEILING.all : CEILING.big;
+        const c = strict === "1" ? GOAL : n >= SPECIES.length ? CEILING.all : CEILING.big;
         expect.soft(scroll.long, "longest task while scrolling").toBeLessThanOrEqual(c.scroll[0]);
         expect.soft(scroll.frame, "longest frame while scrolling").toBeLessThanOrEqual(c.scroll[1]);
         expect.soft(filt.long, "longest task on a filter change").toBeLessThanOrEqual(c.filter[0]);

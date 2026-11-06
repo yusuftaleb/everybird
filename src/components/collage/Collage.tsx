@@ -361,11 +361,22 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     const sameLayout = written.current === layout
     written.current = layout
     // The stage's data-fast restyles every rendered bird when it flips (collage.css): flip it only when it changes.
-    const fast = (on: boolean) => { if (st && st.hasAttribute('data-fast') !== on) st.toggleAttribute('data-fast', on) }
+    // Leaving it, birds go from left/top back to translate (collage.css): with their translate transition they would
+    // fly in from the stage's corner. So the flip lands with transitions off (data-instant) and is styled at once; the
+    // writes that follow then move each bird from where it really stands.
+    const fast = (on: boolean) => {
+      if (!st || st.hasAttribute('data-fast') === on) return
+      if (on) { st.setAttribute('data-fast', ''); return }
+      const had = st.hasAttribute('data-instant')
+      st.setAttribute('data-instant', '')
+      st.removeAttribute('data-fast')
+      void st.offsetWidth
+      if (!had) st.removeAttribute('data-instant')
+    }
     if (!first && (latest.current.still || sameLayout)) {
-      fast(false)
       const f = fade.current
       if (f.phase) { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null; f.seq++; unveil() }
+      fast(false) // after unveil: a skipped layer's birds must be styled for the flip to land without motion
       // Placed without motion, in budgeted chunks: hidden birds go at once, shown ones fade in through their CSS opacity
       // transition (200 ms) rather than a 640 ms WAAPI growth, so few birds are composited at once. Many arrivals at
       // once (a wide drag back) appear without the fade: hundreds of overlapping fades
@@ -390,9 +401,9 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     }
     // A big list starts fast (it never travels while more than CROSSFADE_AT are shown), so its first big change
     // doesn't restyle every rendered bird for data-fast.
-    fast(first && shown > CROSSFADE_AT)
     const f = fade.current
     if (f.phase === 'out' || f.phase === 'place') { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null; f.seq++; unveil() }
+    fast(first && shown > CROSSFADE_AT)
     write(first ? 'jump' : 'travel')
   }, [layout, visible, taxo, entries, shown, syncTabStop, setHot, fadeThrough, unveil, motion, inits, getWin, far])
 
