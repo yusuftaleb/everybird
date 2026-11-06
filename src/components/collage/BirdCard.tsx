@@ -142,6 +142,12 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   }
 
   if (!row) return null
+  // Small print: the sticker is a split sibling's (build-species standIn); iNaturalist's lumped name was placed by region.
+  const standIn = row.standIn ? species.byCode.get(row.standIn)?.com : undefined
+  const notes = [
+    standIn && `Illustration: ${standIn} (stand-in)`,
+    entry.assigned === 'region' ? 'Assigned by region' : entry.assigned === 'default' ? 'Assigned by default (no place)' : '',
+  ].filter((n): n is string => !!n)
 
   // LifeList's card (layout C), with a close button and the edit actions under it.
   const card = (
@@ -160,6 +166,7 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
           <CloseIcon />
         </button>
       </BirdFacts>
+      {notes.length > 0 && <p className="eb-card-note">{notes.join(' · ')}</p>}
       {actions && <div className="eb-card-actions">{actions}</div>}
     </div>
   )

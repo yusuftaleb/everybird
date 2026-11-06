@@ -3,6 +3,7 @@ import { foldName, resolveName, type TaxonomyIndex } from '@/lib/species/resolve
 import type { Regions } from '@/lib/species/types'
 import { SeenAgg } from '@/lib/list/seen'
 import { stripBracket } from './places'
+import { applyRegionRule, REGION_RULES, type Assigned } from './inat-rules'
 
 export type InatProgress = { fetched: number; total: number }
 export type InatError = 'unknown-user' | 'no-birds' | 'network' | 'rate-limited'
@@ -55,27 +56,16 @@ export const COUNTRY_ALIASES: Record<string, string> = {
   'british indian ocean territory': 'IO',
 }
 
-/** Western Marsh Wren (marwre1) range, by subnational region; iNaturalist lumps both marsh wrens as Cistothorus palustris. */
-export const WESTERN_MARSH_WREN_SUB1 = new Set([
-  'CA-BC', 'CA-AB', 'CA-YT', 'CA-NT',
-  'US-WA', 'US-OR', 'US-CA', 'US-NV', 'US-ID', 'US-MT', 'US-WY', 'US-UT', 'US-CO', 'US-AZ', 'US-NM',
-])
-export const WESTERN_MARSH_WREN_COUNTRIES = new Set(['MX'])
+export { WESTERN_MARSH_WREN_SUB1, WESTERN_MARSH_WREN_COUNTRIES } from './inat-rules'
 export const MARSH_WREN_INAT_NAME = 'Cistothorus palustris'
-const WESTERN = 'marwre1'
-const EASTERN = 'eamwre1'
 
 /**
- * Western North America -> marwre1; any other known place -> eamwre1; unknown place -> `fallback`
- * (the synonyms file's value). A US/CA place with no resolved sub1 cannot be told apart, so it also falls back.
+ * Western North America -> marwre1; any other known place -> eamwre1; unknown place -> `fallback`. A US/CA place with
+ * no resolved sub1 cannot be told apart, so it also falls back. (The marsh wren row of REGION_RULES, inat-rules.ts.)
  */
 export function marshWrenCode(place: Place | undefined, fallback: string): string {
-  if (!place) return fallback
-  if (place.country && WESTERN_MARSH_WREN_COUNTRIES.has(place.country)) return WESTERN
-  if (place.sub1) return WESTERN_MARSH_WREN_SUB1.has(place.sub1) ? WESTERN : EASTERN
-  if (!place.country) return fallback
-  if (place.country === 'US' || place.country === 'CA') return fallback
-  return EASTERN
+  const r = applyRegionRule(MARSH_WREN_INAT_NAME, undefined, place, undefined)!
+  return r.assigned === 'default' ? fallback : r.code
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -293,9 +283,12 @@ export type InatOptions = {
  *   them; `heard` and `dead` only if EVERY observation is sound-only / annotated dead. (So with researchOnly on,
  *   a species whose research-grade observation is not the earliest still shows the earliest one's date.)
  * - Seen here (seen.ts): every observation's place (country, state, county) goes into the record's `seen`, with
- *   the earliest date there; so every distinct set of place ids is resolved. A name's places all go to its code (the
- *   marsh wren follows its earliest observation, as its lifer does). Coordinates, location, place_guess, observation
+ *   the earliest date there; so every distinct set of place ids is resolved. A name's places all go to its code
+ *   (for a region-ruled name, each place goes to the code it resolves to). Coordinates, location, place_guess, observation
  *   ids and photo URLs are never read into records.
+ * - Region rules (inat-rules.ts): a name iNaturalist lumps but eBird splits (willet, marsh wren) is resolved per
+ *   subspecies, place and month, so one iNat name can give two eBird species. A record whose every observation was
+ *   placed by region (or by default, the place unknown) carries `assigned`.
  */
 export async function importInat(username: string, opts: InatOptions): Promise<ImportResult | { error: InatError }> {
   const get = makeClient(opts.fetch ?? fetch, opts.minIntervalMs ?? 1000, opts.signal)
@@ -315,6 +308,7 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
     }
 
     const byName = new Map<string, Agg>()
+    const ruleOf = new Map<string, { name: string; ssp?: string }>() // byName key -> rule name (for ruled keys)
     let skipped = 0
     let fetched = 0
     let total = 0
@@ -341,11 +335,17 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
           skipped++
           continue
         }
-        const key = name.split(/\s+/).slice(0, 2).join(' ')
+        const parts = name.split(/\s+/)
+        const binomial = parts.slice(0, 2).join(' ')
+        // A name with a region rule keeps each subspecies, place and month apart: each may be a different eBird species.
+        const ruled = !!REGION_RULES[binomial]
+        const ssp = ruled && rank === 'subspecies' ? parts[2] : undefined
         const photos = o.photos?.length ?? 0
         const sounds = o.sounds?.length ?? 0
         const date = o.observed_on && /^\d{4}-\d{2}-\d{2}$/.test(o.observed_on) ? o.observed_on : undefined
         const placeIds = Array.isArray(o.place_ids) ? o.place_ids.filter((id) => Number.isInteger(id)) : []
+        const key = ruled ? [binomial, ssp ?? '', placeIds.join(','), date?.slice(0, 7) ?? ''].join('|') : binomial
+        if (ruled && !ruleOf.has(key)) ruleOf.set(key, { name: binomial, ssp })
         const obs: Agg = {
           row: seq,
           date,
@@ -389,13 +389,18 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
     }
 
     // Resolve names (after places: the marsh wren depends on where it was seen), then merge per eBird code.
-    const byCode = new Map<string, Agg & { code: string; place?: Place }>()
+    // `assigned`: set while every contribution to the code was a region rule's guess; null once one was not.
+    const byCode = new Map<string, Agg & { code: string; place?: Place; assigned: Assigned | null }>()
     const unmatched: Unmatched[] = []
     for (const [name, a] of byName) {
       const place = placeOf(a.placeIds)
       let code: string | null
-      if (name === MARSH_WREN_INAT_NAME && opts.synonyms[name]) {
-        code = marshWrenCode(place, opts.synonyms[name])
+      let assigned: Assigned | null = null
+      const ruled = ruleOf.get(name)
+      if (ruled) {
+        const r = applyRegionRule(ruled.name, ruled.ssp, place, a.date)!
+        code = r.code
+        assigned = r.assigned ?? null
       } else {
         code = opts.synonyms[name] ?? null
         if (!code) {
@@ -419,11 +424,12 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
       }
       seenOf(a, code)
       const prev = byCode.get(code)
-      if (!prev) byCode.set(code, { ...a, code, place })
+      if (!prev) byCode.set(code, { ...a, code, place, assigned })
       else {
         const wasEarlier = earlier(a.date, prev.date)
         foldInto(prev, a)
         if (wasEarlier) prev.place = place
+        prev.assigned = prev.assigned && assigned ? (prev.assigned === 'region' || assigned === 'region' ? 'region' : 'default') : null
       }
     }
     unmatched.sort((x, y) => x.row - y.row)
@@ -437,6 +443,7 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
       if (a.deadAll) rec.dead = true
       if (a.media) rec.media = true
       rec.research = a.research
+      if (a.assigned) rec.assigned = a.assigned
       rec.seen = seenPlaces.get(a.code) ?? []
       records.push(rec)
     }

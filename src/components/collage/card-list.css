@@ -53,6 +53,7 @@
 .eb-card-close svg { width: 20px; height: 20px; }
 .eb-card-when { display: flex; flex-direction: column; gap: 2px; }
 .eb-card-when p { margin: 0; }
+.eb-card-note { margin: 0; font-size: 12px; color: var(--muted); }
 .eb-card-actions { display: flex; gap: 8px; margin-top: 4px; }
 .eb-card button:focus-visible, .eb-list button:focus-visible {
   outline: 2px solid var(--accent);

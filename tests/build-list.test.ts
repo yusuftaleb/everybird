@@ -23,6 +23,14 @@ describe('buildList', () => {
     expect(build([rec('a', 'ebird', { date: '2020' }), rec('a', 'inat', { date: '2020-01-01' })])[0].date).toBe('2020')
   })
 
+  it('assigned (iNat region rule) carries over only when every record was assigned', () => {
+    expect(build([rec('willet3', 'inat', { assigned: 'region' })])[0].assigned).toBe('region')
+    expect(build([rec('willet3', 'inat', { assigned: 'default' })])[0].assigned).toBe('default')
+    expect(build([rec('willet3', 'inat', { assigned: 'default' }), rec('willet3', 'manual', { assigned: 'region' })])[0].assigned).toBe('region')
+    expect(build([rec('willet3', 'inat', { assigned: 'region' }), rec('willet3', 'ebird')])[0].assigned).toBeUndefined()
+    expect('assigned' in build([rec('a', 'ebird')])[0]).toBe(false)
+  })
+
   it('undated records lose to dated ones', () => {
     expect(build([rec('a', 'ebird'), rec('a', 'inat', { date: '2021' })])[0].date).toBe('2021')
     expect(build([rec('a', 'ebird')])[0].date).toBeUndefined()

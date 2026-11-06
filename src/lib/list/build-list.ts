@@ -21,6 +21,7 @@ const byString = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
  * - `edits.added` records are treated as source 'manual'.
  * - `edits.removed` wins over everything, including `edits.added`. To re-add a removed
  *   species the UI must take its code out of `removed`.
+ * - `assigned` is set only when every record was assigned by a region rule (any other record outranks the guess).
  * - `sources` lists the distinct contributing sources (after researchOnly), in ebird, inat, manual order.
  */
 export function buildList(
@@ -56,6 +57,7 @@ export function buildList(
       media: mark.media ?? recs.some((r) => r.media === true),
       sources: SOURCE_ORDER.filter((s) => recs.some((r) => r.source === s)),
     }
+    if (recs.every((r) => r.assigned)) entry.assigned = recs.some((r) => r.assigned === 'region') ? 'region' : 'default'
     if (rules.hideHeard && entry.heard) continue
     if (rules.hideDead && entry.dead) continue
     entries.push(entry)

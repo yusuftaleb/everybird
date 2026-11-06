@@ -1,5 +1,5 @@
 {
-  "total_results": 7,
+  "total_results": 8,
   "page": 1,
   "per_page": 100,
   "results": [
@@ -9,6 +9,7 @@
     { "id": 1003, "name": "New York", "display_name": "New York, US", "place_type": 8, "admin_level": 10 },
     { "id": 2000, "name": "Canada", "display_name": "Canada", "place_type": 12, "admin_level": 0 },
     { "id": 2001, "name": "British Columbia", "display_name": "British Columbia, CA", "place_type": 8, "admin_level": 10 },
-    { "id": 2002, "name": "Okanagan-Similkameen", "display_name": "Okanagan-Similkameen, BC, CA", "place_type": 9, "admin_level": 20 }
+    { "id": 2002, "name": "Okanagan-Similkameen", "display_name": "Okanagan-Similkameen, BC, CA", "place_type": 9, "admin_level": 20 },
+    { "id": 2003, "name": "Alberta", "display_name": "Alberta, CA", "place_type": 8, "admin_level": 10 }
   ]
 }

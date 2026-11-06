@@ -143,6 +143,24 @@ describe('BirdCard', () => {
   })
 })
 
+describe('BirdCard small print', () => {
+  const idx = buildSpeciesIndex([
+    { ...row('willet2', 'Saltmarsh Willet', 1, 215), standIn: 'willet3' },
+    row('willet3', 'Prairie Willet', 2, 260),
+  ])
+  it('names the stand-in illustration and an iNaturalist region assignment', () => {
+    render(<BirdCard entry={entry('willet2', { assigned: 'region' })} species={idx} regions={regions} onClose={() => {}} />)
+    expect(screen.getByText('Illustration: Prairie Willet (stand-in) · Assigned by region')).toBeInTheDocument()
+  })
+  it('says default when the place could not tell; nothing for an ordinary bird', () => {
+    const { unmount } = render(<BirdCard entry={entry('willet3', { assigned: 'default' })} species={idx} regions={regions} onClose={() => {}} />)
+    expect(screen.getByText('Assigned by default (no place)')).toBeInTheDocument()
+    unmount()
+    const { container } = render(<BirdCard entry={entry('willet3')} species={idx} regions={regions} onClose={() => {}} />)
+    expect(container.querySelector('.eb-card-note')).toBeNull()
+  })
+})
+
 describe('ListView', () => {
   const entries = [
     entry('wrenb', { date: '2024-05-01' }),

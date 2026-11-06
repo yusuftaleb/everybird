@@ -23,6 +23,11 @@ export type SourceRecord = {
    * there. MyEBirdData and iNaturalist only; absent elsewhere (the lifer place then stands in).
    */
   seen?: string[]
+  /**
+   * iNaturalist lumps some species eBird splits (willet, marsh wren); the import picks one by a region rule
+   * (inat-rules.ts). 'region': placed by where and when it was seen; 'default': the place could not tell.
+   */
+  assigned?: 'region' | 'default'
 }
 export type Unmatched = {
   source: Source
@@ -48,7 +53,11 @@ export type Edits = {
   fixes: Record<string, string> /* unmatchedKey(u) ("slot:row") -> eBird code, from fixing unmatched rows */
 }
 export type Rules = { hideHeard: boolean; hideDead: boolean; researchOnly: boolean }
-export type ListEntry = { code: string; date?: string; place?: Place; heard: boolean; dead: boolean; media: boolean; sources: Source[] }
+export type ListEntry = {
+  code: string; date?: string; place?: Place; heard: boolean; dead: boolean; media: boolean; sources: Source[]
+  /** Set when every record of the species was assigned by an iNaturalist region rule (SourceRecord.assigned). */
+  assigned?: 'region' | 'default'
+}
 
 export const EMPTY_EDITS: Edits = { removed: [], added: [], marks: {}, fixes: {} }
 export const DEFAULT_RULES: Rules = { hideHeard: false, hideDead: false, researchOnly: false }

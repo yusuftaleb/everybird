@@ -283,6 +283,48 @@ describe('marsh wren split', () => {
   })
 })
 
+describe('region rules in importInat (willet)', () => {
+  const ob = (id: number, name: string, rank: string, date: string, place_ids: number[], quality = 'research'): Obs => ({
+    id, observed_on: date, quality_grade: quality, taxon: { rank, name }, photos: [{}], sounds: [], annotations: [], place_ids,
+  } as Obs)
+
+  it('one iNat willet name gives Prairie (Alberta, May) and Saltmarsh (New York, June), each assigned by region', async () => {
+    const r = okResult(await run(fakeFetch({ obs: [
+      ob(1, 'Tringa semipalmata', 'species', '2024-05-12', [2000, 2003]),
+      ob(2, 'Tringa semipalmata', 'species', '2024-06-20', [1000, 1003]),
+    ] })))
+    const byCode = Object.fromEntries(r.records.map((x) => [x.code, x]))
+    expect(Object.keys(byCode).sort()).toEqual(['willet2', 'willet3'])
+    expect(byCode.willet3).toMatchObject({ date: '2024-05-12', place: { country: 'CA', sub1: 'CA-AB' }, assigned: 'region', seen: ['2024-05-12|CA-AB'] })
+    expect(byCode.willet2).toMatchObject({ date: '2024-06-20', place: { country: 'US', sub1: 'US-NY' }, assigned: 'region', seen: ['2024-06-20|US-NY'] })
+    expect(r.unmatched).toEqual([])
+  })
+
+  it('a coastal willet outside the breeding season is Prairie; an unknown place is Prairie by default', async () => {
+    const winter = okResult(await run(fakeFetch({ obs: [ob(1, 'Tringa semipalmata', 'species', '2024-01-05', [1000, 1003])] })))
+    expect(winter.records.map((x) => [x.code, x.assigned])).toEqual([['willet3', 'region']])
+    const nowhere = okResult(await run(fakeFetch({ obs: [ob(1, 'Tringa semipalmata', 'species', '2024-06-05', [])] })))
+    expect(nowhere.records.map((x) => [x.code, x.assigned])).toEqual([['willet3', 'default']])
+  })
+
+  it('a subspecies ID decides and is not flagged; it outranks a region guess for the same code', async () => {
+    const r = okResult(await run(fakeFetch({ obs: [
+      ob(1, 'Tringa semipalmata inornata', 'subspecies', '2024-06-20', [1000, 1003]),
+      ob(2, 'Tringa semipalmata', 'species', '2024-05-12', [2000, 2003]),
+    ] })))
+    expect(r.records.map((x) => [x.code, x.assigned, x.date])).toEqual([['willet3', undefined, '2024-05-12']])
+    expect([...r.records[0]!.seen!].sort()).toEqual(['2024-05-12|CA-AB', '2024-06-20|US-NY'])
+  })
+
+  it('research grade and marks still combine across one code', async () => {
+    const r = okResult(await run(fakeFetch({ obs: [
+      ob(1, 'Tringa semipalmata', 'species', '2024-05-12', [2000, 2003], 'needs_id'),
+      ob(2, 'Tringa semipalmata', 'species', '2024-05-30', [2000, 2003]),
+    ] })))
+    expect(r.records.map((x) => [x.code, x.research, x.date])).toEqual([['willet3', true, '2024-05-12']])
+  })
+})
+
 describe('country aliases', () => {
   it('every alias targets a country in the real regions file', () => {
     for (const [name, iso] of Object.entries(COUNTRY_ALIASES)) expect(realRegions.countries[iso], name).toBeDefined()
