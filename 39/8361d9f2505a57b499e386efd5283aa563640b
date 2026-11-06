@@ -1,0 +1,23 @@
+src/components/about/how-it-works.css
+  s_ab125876fe9ad2::t_65dd94328e53f3 91,104,131,153,240-241,244
+  s_ab125876fe9ad2::t_292a9998af832f 150-151,154,156
+  s_ab125876fe9ad2::t_efeae892ecfb04 136,231,235
+src/components/about/HowItWorksStage.tsx
+  s_ab125876fe9ad2::t_2c2befd94c39f7 69,208
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "398361d9f2505a57b499e386efd5283aa563640b",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
