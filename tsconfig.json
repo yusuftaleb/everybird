@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,7 +23,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
@@ -32,7 +38,15 @@
     ".next-e2e-dev/types/**/*.ts",
     ".next-e2e-dev/dev/types/**/*.ts",
     ".next-e2e/types/**/*.ts",
-    ".next-e2e/dev/types/**/*.ts"
+    ".next-e2e/dev/types/**/*.ts",
+    ".next-s4-dev/types/**/*.ts",
+    ".next-s4-dev/dev/types/**/*.ts",
+    ".next-s4/types/**/*.ts",
+    ".next-s4/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next-e2e", ".next-e2e-dev"]
+  "exclude": [
+    "node_modules",
+    ".next-e2e",
+    ".next-e2e-dev"
+  ]
 }

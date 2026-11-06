@@ -108,7 +108,7 @@ describe('cardLayout', () => {
   it('story: a tall collage (about 952 × 1240 with a name and the latest lifer), packed for its aspect', () => {
     const L = cardLayout('story', { name: true, filter: false, latest: true, count: 197 })
     expect(L.name!.y).toBe(160)
-    expect(L.footer.y + L.footer.size).toBe(1920 - 220)
+    expect(L.footer.y + L.footer.size).toBe(1920 - 220 - 4) // the descenders clear the safe line too
     expect(L.collage.h).toBeGreaterThanOrEqual(1230)
     expect(L.collage.h / L.collage.w).toBeGreaterThan(1.25)
     expect(packSpec(L).aspect).toBeCloseTo(L.collage.w / L.collage.h)

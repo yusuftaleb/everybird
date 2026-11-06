@@ -42,7 +42,19 @@ async function previewInfo(page: Page) {
     const d = ctx.getImageData(0, 0, c.width, c.height).data;
     const colours = new Set<number>();
     for (let i = 0; i < d.length; i += 4 * 7) colours.add((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]);
-    return { w: bmp.width, h: bmp.height, type: blob.type, colours: colours.size };
+    // Rows that are anything but the paper colour (the top-left pixel), counted from the top and from the bottom.
+    const paper = (d[0] << 16) | (d[1] << 8) | d[2];
+    const rowBlank = (y: number) => {
+      for (let x = 0; x < c.width; x++) {
+        const i = 4 * (y * c.width + x);
+        if (((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]) !== paper) return false;
+      }
+      return true;
+    };
+    let clearTop = 0, clearBottom = 0;
+    while (clearTop < c.height && rowBlank(clearTop)) clearTop++;
+    while (clearBottom < c.height && rowBlank(c.height - 1 - clearBottom)) clearBottom++;
+    return { w: bmp.width, h: bmp.height, type: blob.type, colours: colours.size, clearTop, clearBottom };
   });
 }
 
@@ -63,6 +75,9 @@ test("story image is 1080×1920 PNG, post is 1080×1350 and square is 1080×1080
   const story = await previewInfo(page);
   expect(story).toMatchObject({ w: 1080, h: 1920, type: "image/png" });
   expect(story.colours).toBeGreaterThan(2000); // the stickers are in it (a tainted canvas would not export at all)
+  // Instagram's safe zones stay empty: nothing in the top 160px or the bottom 220px.
+  expect(story.clearTop).toBeGreaterThanOrEqual(160);
+  expect(story.clearBottom).toBeGreaterThanOrEqual(220);
 
   // Download gives the same file under the format's name.
   const [dl] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);

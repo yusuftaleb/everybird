@@ -9,7 +9,7 @@
 //   bottom  a Hairline rule, "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px), then the footer: the Everybird
 //           wordmark and the site ("everybird.yusuftaleb.com") on the left, the sticker credit on the right (Geist Mono 22px, Muted)
 // The story keeps Instagram's safe zones clear: nothing in the top 160px (the profile row) or the bottom 220px (the
-// reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1240 with
+// reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1244 with
 // a name and the latest lifer): packFrame packs it for that aspect (the spiral stretched to it, as the narrow layout's
 // 0.55), so it is a tall rounded cluster, and fitPack spreads a short list's ring to its height (SPREAD).
 // Stickers load with crossOrigin = 'anonymous' (the stickers site sends access-control-allow-origin: *), so the
@@ -170,7 +170,8 @@ export function cardLayout(format: ImageFormat, c: CardContent): CardLayout {
   const filter = c.filter ? { y: name ? name.y + 76 : T, size: 34 } : undefined
   const headBottom = filter ? filter.y + filter.size : name ? name.y + name.size : undefined
   // Bottom, upwards: the footer (wordmark, site and credit on one line), a hairline, the latest lifer row.
-  const footer = { y: H - B - 30, size: 30, credit: 19 }
+  // The story's footer sits 4px higher so its descenders ("y", "(") clear the bottom safe line too.
+  const footer = { y: H - B - 30 - (format === 'story' ? 4 : 0), size: 30, credit: 19 }
   const rule = { y: footer.y - 30 }
   const icon = format === 'story' ? 76 : 68 // post and square
   const G = GAPS[format]
