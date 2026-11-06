@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { EXP, EXP_TRUE, GAP, LAYOUTS, holeRadii } from '../src/lib/layout/constants'
 import { MASK, decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
-import { MAX_BASE, packBest, packFrame, relSizes, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
+import { DETACH, MAX_BASE, boxGap, detached, packBest, packFrame, relSizes, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
 import { Grid, SPIRAL_T, spiral, toCellMask } from '../src/lib/layout/grid'
 
 // Realistic, deterministic test birds: real sticker masks + real masses from public/data, sampled at a
@@ -613,6 +613,32 @@ describe('packFrame with the count in the middle (share images)', () => {
     const r = packBest(birds, { W: 400, H: 400, stretch: 1, F: 0 }, 'even', { fixedStage: [400, 400], hole: [0, 0], maxBase: 20 })
     expect(r.base).toBeLessThanOrEqual(20)
   })
+})
+
+// No stragglers (Yusuf, 2026-11-06: small birds sat alone past the cluster's edge). Precisely: with d = DETACH (0.5) x
+// the median sticker long side, (1) every box is within d of another box (rectangle to rectangle), and (2) linking
+// boxes within d of each other makes one group, so no little cluster sits apart either. Both modes, all layouts.
+describe('compact outline: no box detached from the collage', () => {
+  beforeAll(() => { if (!POOL.length) POOL = loadPool() })
+  const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[xs.length >> 1]
+  for (const n of [50, 200, 723, 1500, 3000]) {
+    for (const L of LAYOUTS) {
+      it(`${n} birds on ${L.name}, even and true size`, () => {
+        const birds = sample(n)
+        const even = packBest(birds, L, 'even')
+        const centres = new Map([...even.boxes].map(([id, [x, y, w, h]]) => [id, [x + w / 2, y + h / 2] as [number, number]]))
+        const tr = packBest(birds, L, 'true', { targets: centres, fixedStage: [even.W, even.H] })
+        for (const r of [even, tr]) {
+          const bs = [...r.boxes.values()]
+          const d = DETACH * median(bs.map((b) => Math.max(b[2], b[3])))
+          let far = 0
+          bs.forEach((a, i) => { if (!bs.some((b, j) => j !== i && boxGap(a, b) <= d)) far++ })
+          expect(far, 'boxes with no neighbour within half a median sticker').toBe(0)
+          expect(detached(r.boxes), 'boxes outside the main group').toEqual([])
+        }
+      }, 60000)
+    }
+  }
 })
 
 // Timing bounds. Generous but meaningful; set SKIP_PERF=1 to skip them (e.g. on slow CI).

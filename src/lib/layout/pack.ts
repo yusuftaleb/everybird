@@ -146,6 +146,115 @@ function settle(p: Packed, W: number, H: number, hole: [number, number]): Map<nu
   return p.boxes
 }
 
+/** Two boxes' distance apart (0 when their rectangles touch or overlap). */
+export function boxGap(a: Box, b: Box): number {
+  const dx = Math.max(0, b[0] - (a[0] + a[2]), a[0] - (b[0] + b[2]))
+  const dy = Math.max(0, b[1] - (a[1] + a[3]), a[1] - (b[1] + b[3]))
+  return Math.hypot(dx, dy)
+}
+
+/** Detached: further than this many median sticker long sides from every box of the main group (see detached). */
+export const DETACH = 0.5
+
+/**
+ * The ids of boxes outside the main group: boxes within `k` x the median long side of each other are one group,
+ * and the main group is the biggest. (Buckets of the largest box plus the link distance, so it stays linear.)
+ */
+export function detached(boxes: Map<number, Box>, k = DETACH): number[] {
+  const ids = [...boxes.keys()]
+  if (ids.length < 2) return []
+  const bs = ids.map((id) => boxes.get(id)!)
+  let longest = 0
+  const longs = bs.map((b) => { const l = Math.max(b[2], b[3]); longest = Math.max(longest, l); return l })
+  const link = k * medianOf(longs)
+  const size = longest + link
+  const bucket = new Map<string, number[]>()
+  const key = (x: number, y: number) => `${Math.floor(x / size)},${Math.floor(y / size)}`
+  bs.forEach((b, i) => { const kk = key(b[0], b[1]); const l = bucket.get(kk); if (l) l.push(i); else bucket.set(kk, [i]) })
+  const group = new Int32Array(bs.length).fill(-1)
+  const sizes: number[] = []
+  for (let i = 0; i < bs.length; i++) {
+    if (group[i] >= 0) continue
+    const g = sizes.length
+    let n = 0
+    const stack = [i]
+    group[i] = g
+    while (stack.length) {
+      const a = stack.pop()!
+      n++
+      const gx = Math.floor(bs[a][0] / size), gy = Math.floor(bs[a][1] / size)
+      for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) {
+        for (const j of bucket.get(`${gx + ox},${gy + oy}`) ?? []) {
+          if (group[j] < 0 && boxGap(bs[a], bs[j]) <= link) { group[j] = g; stack.push(j) }
+        }
+      }
+    }
+    sizes.push(n)
+  }
+  const main = sizes.indexOf(Math.max(...sizes))
+  return ids.filter((_, i) => group[i] !== main)
+}
+
+/**
+ * Bring detached birds (see `detached`) back to the collage: on a grid of one layout unit per cell with every bird
+ * stamped as its bare silhouette (as settle), each detached bird, nearest the count first, walks one unit at a time
+ * to whichever free neighbouring position (of 8) is nearest the stage centre, until none is: it comes to rest
+ * against the group, GAP from it. Every step is a collision test, so it never makes an overlap; the hole stays
+ * clear. Repeated while that frees others (a bird that was blocked by one now moved). True size and small lists
+ * leave a few: big birds placed first push small ones out along the spiral past the edge (the "stragglers").
+ */
+function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: [number, number]): Map<number, Box> {
+  let loose = detached(boxes)
+  if (!loose.length) return boxes
+  const grid = new Grid(W, H, 1)
+  if (hole[0] > 0 && hole[1] > 0) grid.markEllipse(W / 2, H / 2, hole[0], hole[1])
+  const pad = GAP
+  const byId = new Map(birds.map((b) => [b.id, b]))
+  const cores = new Map<number, CellMask>()
+  const at = (id: number) => { const [x, y] = boxes.get(id)!; return [Math.round(x) - pad, Math.round(y) - pad] as const }
+  for (const [id, [, , w, h]] of boxes) {
+    const s = coreMask(byId.get(id)!.mask, w, h, 1, pad)
+    cores.set(id, s)
+    const [gx, gy] = at(id)
+    grid.stamp(s, gx, gy)
+  }
+  const MOVES = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
+  for (let round = 0; round < 4 && loose.length; round++) {
+    const d2 = (id: number, gx: number, gy: number) => {
+      const [, , w, h] = boxes.get(id)!
+      const u = gx + pad + w / 2 - W / 2, v = gy + pad + h / 2 - H / 2
+      return u * u + v * v
+    }
+    loose.sort((a, b) => d2(a, ...at(a)) - d2(b, ...at(b)) || a - b)
+    let moved = false
+    for (const id of loose) {
+      const [, , w, h] = boxes.get(id)!
+      const m = cellMask(byId.get(id)!.mask, w, h, 1, pad), s = cores.get(id)!
+      let [gx, gy] = at(id)
+      grid.clear(s, gx, gy)
+      const xmax = grid.gw - m.pw, ymax = grid.gh - m.ph
+      let d = d2(id, gx, gy)
+      for (let step = 0; step < 4 * (W + H); step++) {
+        let bx = -1, by = -1, bd = d
+        for (const [mx, my] of MOVES) {
+          const nx = gx + mx, ny = gy + my
+          if (nx < 0 || ny < 0 || nx > xmax || ny > ymax) continue
+          const nd = d2(id, nx, ny)
+          if (nd >= bd - 1e-9 || grid.collides(m, nx, ny)) continue
+          bx = nx; by = ny; bd = nd
+        }
+        if (bx < 0) break
+        gx = bx; gy = by; d = bd; moved = true
+      }
+      grid.stamp(s, gx, gy)
+      boxes.set(id, [gx + pad, gy + pad, w, h])
+    }
+    if (!moved) break
+    loose = detached(boxes)
+  }
+  return boxes
+}
+
 function medianOf(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b)
   return s[s.length >> 1]
@@ -230,7 +339,8 @@ export function packBest(
   // (no denseFrom) pack as before, and so do smaller lists.
   const dense = mode === 'even' && !targets && !!layout.denseFrom && rel.size >= layout.denseFrom
   const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, layout.stretch, hole, targets, cell, dense)
-  const boxesOf = (p: Packed, W: number, H: number) => (dense ? settle(p, W, H, hole) : p.boxes)
+  // Settled (dense), then any detached birds gathered back to the group (gather): the outline stays compact.
+  const boxesOf = (p: Packed, W: number, H: number) => gather(dense ? settle(p, W, H, hole) : p.boxes, birds, W, H, hole)
 
   // Search range. Full collage: [0.6, 1.6] x the area estimate, capped at MAX_BASE. With refBase (filtered
   // states): the reference's window [0.7, MAXUP] x refBase, searched directly (it may exceed MAX_BASE).
