@@ -60,13 +60,16 @@
 .ebd .ebd-nav-link[data-on] { opacity: 1; color: var(--accent); background: var(--surface); border-color: var(--hairline); font-weight: 600; }
 
 .ebd .ebd-pages { position: relative; }
+/* The two pages overlap and cross-fade: opacity and one transform each, so the compositor runs the swap (no
+   visibility step, which would keep the animation on the main thread). They keep their layers (will-change), so the
+   swap never waits on rasterizing a whole page. */
 .ebd .ebd-page {
   position: absolute; left: 0; top: 0; width: 100%;
-  opacity: 0; visibility: hidden; translate: 0 8px;
-  transition: opacity .16s ease, translate .16s ease, visibility 0s .16s;
-  will-change: transform;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity .16s ease, transform .16s ease;
+  will-change: transform, opacity;
 }
-.ebd .ebd-page[data-show] { opacity: 1; visibility: visible; translate: 0 0; transition: opacity .22s ease .08s, translate .28s var(--eb-arrive) .08s, visibility 0s; }
+.ebd .ebd-page[data-show] { opacity: 1; transform: none; transition: opacity .22s ease .08s, transform .28s var(--eb-arrive) .08s; }
 .ebd .ebd-col { width: var(--col); margin-left: 20px; padding-top: 18px; display: flex; flex-direction: column; gap: 10px; }
 .ebd .ss-stage[data-layout="compact"] .ebd-col { margin-left: 16px; padding-top: 16px; }
 
@@ -77,7 +80,6 @@
   font-size: 14px; font-weight: 700; white-space: nowrap;
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   transition: opacity .15s var(--eb-arrive), transform .12s ease;
-  will-change: transform;
 }
 .ebd .ebd-btn svg { width: 16px; height: 16px; flex: none; }
 .ebd .ebd-btn[data-hover] { opacity: .88; }
@@ -102,7 +104,14 @@
 .ebd .ebd-way-title svg { width: 20px; height: 20px; flex: none; color: var(--accent); }
 .ebd .ebd-lines { display: flex; flex-direction: column; gap: 7px; padding: 2px 0; }
 .ebd .ebd-way .ebd-btn { width: 100%; height: 38px; }
-.ebd .ebd-status { margin: 0; font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; line-height: 1.4; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* The status line keeps its height whether or not it has words (the product's .eb-status is always there); the words
+   fade. Contained, so the ticking row count lays out only this line. */
+.ebd .ebd-status {
+  margin: -2px 0 -4px; height: 17px; contain: strict; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; line-height: 17px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.ebd .ebd-status > span { display: block; opacity: 0; transition: opacity .2s ease; }
+.ebd .ebd-status > span[data-show] { opacity: 1; transition-duration: .24s; }
 .ebd .ebd-field-row { display: flex; gap: 8px; }
 .ebd .ebd-field {
   flex: 1; display: flex; align-items: center; height: 38px; padding: 0 12px; border: 1px solid var(--line); background: var(--surface);
@@ -111,11 +120,21 @@
 .ebd .ebd-field-row .ebd-btn { width: 96px; height: 38px; }
 
 /* After the import: what landed, and the way to the collage (the site's .eb-made). */
+/* It opens over the top of the column (opacity and a short drop) while everything under it moves down by its height
+   and the gap (a transform), as the kit's Collapse would show it, with nothing laid out per frame. */
+.ebd .ebd-col-settings { position: relative; }
 .ebd .ebd-made {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 14px; margin-bottom: 2px;
+  position: absolute; left: 0; right: 0; top: 18px; height: 58px; box-sizing: border-box; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 14px;
   border: 1px solid var(--accent); background: var(--paper);
   border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  opacity: 0; transform: translateY(-10px);
+  transition: opacity .2s cubic-bezier(0, .8, .5, 1), transform .42s cubic-bezier(.4, 0, .2, 1);
 }
+.ebd .ebd-made[data-show] { opacity: 1; transform: none; transition: opacity .24s ease-out .15s, transform .46s cubic-bezier(.4, 0, .2, 1); }
+.ebd .ss-stage[data-layout="compact"] .ebd-made { top: 16px; }
+.ebd .ebd-below { display: flex; flex-direction: column; gap: 10px; transition: transform .42s cubic-bezier(.4, 0, .2, 1) .05s; }
+.ebd .ebd-below[data-pushed] { transform: translateY(70px); transition: transform .46s cubic-bezier(.4, 0, .2, 1); }
 .ebd .ebd-made-text { font-size: 14px; line-height: 1.35; }
 
 /* ---- The collage ---- */
@@ -123,45 +142,62 @@
 .ebd .ebd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .ebd .ebd-head-title { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.05; letter-spacing: -.02em; }
 .ebd .ss-stage[data-layout="compact"] .ebd-head-title { font-size: 21px; }
-.ebd .ebd-chips { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+/* The taxonomy filter: the order row, or (an order chosen) the breadcrumb in its place, cross-faded in one fixed box
+   (the product's eb-rise: opacity and a 4px drop). */
+.ebd .ebd-filter { position: relative; height: 30px; }
+.ebd .ebd-chips, .ebd .ebd-path { position: absolute; left: 0; top: 0; height: 30px; display: flex; align-items: center; white-space: nowrap; }
+.ebd .ebd-chips { gap: 6px; transition: opacity .12s ease; }
+.ebd .ebd-filter[data-chosen] .ebd-chips { opacity: 0; transition-duration: .1s; }
+.ebd .ebd-path {
+  gap: 8px; font-size: 14px; opacity: 0; transform: translateY(-4px);
+  transition: opacity .12s ease, transform .12s ease;
+}
+.ebd .ebd-filter[data-chosen] .ebd-path { opacity: 1; transform: none; transition: opacity .24s cubic-bezier(.16, 1, .3, 1) .06s, transform .24s cubic-bezier(.16, 1, .3, 1) .06s; }
+.ebd .ss-stage[data-layout="compact"] .ebd-path { font-size: 12px; gap: 6px; }
+.ebd .ebd-path-link { opacity: .66; transition: opacity .15s ease; }
+.ebd .ebd-path-link[data-hover] { opacity: 1; }
+.ebd .ebd-path-sep { color: var(--muted); }
+.ebd .ebd-path-here { color: var(--accent); font-weight: 600; }
 .ebd .ebd-chips-label {
   margin-right: 4px; font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
 }
 .ebd .ebd-chip {
-  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; flex: none;
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; flex: none; box-sizing: border-box;
   border: 1px solid var(--hairline); background: var(--surface); font-size: 13px; font-weight: 500;
   border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  transition: border-color .15s cubic-bezier(.16, 1, .3, 1), opacity .2s ease;
+  transition: border-color .15s cubic-bezier(.16, 1, .3, 1);
 }
 .ebd .ebd-chip-n { color: var(--muted); font-variant-numeric: tabular-nums; }
-.ebd .ebd-chip[data-on] { border-color: var(--accent); }
-.ebd .ebd-chip[data-hover]:not([data-on]) { border-color: var(--line); }
-.ebd .ebd-chips[data-chosen] .ebd-chip:not([data-on]) { opacity: .7; }
+.ebd .ebd-chip[data-hover] { border-color: var(--line); }
 
 /* The birds sit around the count, each placed from the collage's centre by transform; a filter moves them on the
-   product's own travel curve (collage.css: .64s, cubic-bezier(.45, 0, .1, 1)). */
+   product's own travel curve (collage.css: .64s, cubic-bezier(.45, 0, .1, 1)). Two elements per bird, so each animates
+   one transform property and the compositor runs it: the outer one's place (and its fade when it steps out), the inner
+   one's arrival. A transform transition and a translate animation on one element would put both on the main thread. */
 .ebd .ebd-collage { position: relative; height: 290px; margin-top: 2px; }
 .ebd .ss-stage[data-layout="compact"] .ebd-collage { height: 200px; }
 .ebd .ebd-bird {
   position: absolute; left: 50%; top: 125px; display: block;
-  opacity: 0;
   transition: transform .64s var(--eb-travel) var(--md, 0ms), opacity .3s ease var(--md, 0ms);
 }
 .ebd .ss-stage[data-layout="compact"] .ebd-bird { top: 76px; }
+.ebd .ebd-bird-in { display: block; width: 100%; height: 100%; opacity: 0; }
 .ebd .ebd-bird img, .ebd .ebd-sil { display: block; width: 100%; height: 100%; object-fit: contain; }
 .ebd .ebd-sil { color: var(--hairline); }
-.ebd .ebd-collage[data-birds] .ebd-bird { opacity: 1; animation: ebd-in .5s var(--eb-arrive) var(--d) backwards; }
-.ebd .ebd-collage[data-birds] .ebd-bird[data-out] { opacity: 0; transition-duration: .5s, .25s; }
-@keyframes ebd-in { from { opacity: 0; translate: 0 8px; } }
+.ebd .ebd-collage[data-birds] .ebd-bird-in { opacity: 1; animation: ebd-in .5s var(--eb-arrive) var(--d) backwards; }
+.ebd .ebd-bird[data-out] { opacity: 0; transition-duration: .5s, .25s; }
+@keyframes ebd-in { from { opacity: 0; transform: translateY(8px); } }
 
 .ebd .ebd-mid {
   position: absolute; left: 50%; top: 125px; translate: -50% -50%;
   display: flex; flex-direction: column; align-items: center; gap: 6px; white-space: nowrap; pointer-events: none;
-  width: 140px; /* a fixed box, as the product's .eb-mid: the ticking number never moves it */
+  /* A fixed, contained box, as the product's .eb-mid: the ticking number never moves it and lays out only itself */
+  width: 140px; height: 66px; contain: strict;
   opacity: 0; transition: opacity .3s ease;
 }
 .ebd .ebd-collage[data-birds] .ebd-mid { opacity: 1; }
-.ebd .ss-stage[data-layout="compact"] .ebd-mid { top: 76px; width: 104px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-mid { top: 76px; width: 104px; height: 50px; }
 .ebd .ebd-num {
   font-family: var(--font-display); font-weight: 700; font-size: 58px; line-height: .85; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; width: 100%; text-align: center;
@@ -175,28 +211,37 @@
 .ebd .ebd-scrim { position: absolute; inset: 0; z-index: 4; background: rgb(0 0 0 / .32); opacity: 0; transition: opacity .3s ease; }
 .ebd .ebd-scrim[data-show] { opacity: 1; }
 
-/* ---- The share image (the post format, 1080 × 1350, drawn at a glance's size) ---- */
+/* ---- The share image: the post format (1080 × 1350) at 180 × 225, the product's centre-count layout ---- */
 .ebd .ebd-share {
-  position: absolute; z-index: 5; display: flex; flex-direction: column; padding: 13px 12px 10px;
+  position: absolute; z-index: 5; width: 180px; height: 225px;
   background: var(--paper); color: var(--ink); box-shadow: var(--ss-shadow-satellite);
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  opacity: 0; translate: 0 -10px; scale: .98;
-  transition: opacity .3s ease, translate .9s var(--eb-arrive), scale .9s var(--eb-arrive);
-  will-change: transform;
+  opacity: 0; transform: translateY(-10px) scale(.98);
+  transition: opacity .3s ease, transform .9s var(--eb-arrive);
+  will-change: transform, opacity;
 }
-.ebd .ebd-share[data-show] { opacity: 1; translate: 0 0; scale: 1; }
-.ebd .ebd-share-name { font-family: var(--font-display); font-weight: 700; font-size: 13px; line-height: 1.1; }
-.ebd .ebd-share-count { margin-top: 3px; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1; letter-spacing: -.02em; }
-.ebd .ebd-share-collage { position: relative; flex: 1; margin: 8px 0 8px; }
-.ebd .ebd-share-bird { position: absolute; translate: -50% -50%; }
+.ebd .ebd-share[data-show] { opacity: 1; transform: none; }
+.ebd .ebd-share > * { position: absolute; left: 11px; }
+.ebd .ebd-share-name { top: 10px; font-family: var(--font-display); font-weight: 700; font-size: 12px; line-height: 1; }
+.ebd .ebd-share-collage { top: 27px; width: 158px; height: 138px; }
+.ebd .ebd-share-bird { position: absolute; }
 .ebd .ebd-share-bird img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.ebd .ebd-share-foot {
-  margin-top: auto; padding-top: 6px; border-top: 1px solid var(--hairline);
-  display: flex; flex-direction: column; gap: 3px;
+.ebd .ebd-share-mid {
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; white-space: nowrap;
 }
-.ebd .ebd-share-mark { font-family: var(--font-display); font-weight: 700; font-size: 9px; line-height: 1; }
-.ebd .ebd-share-credit { font-family: var(--font-mono); font-size: 7px; line-height: 1.3; letter-spacing: .02em; color: var(--muted); }
-.ebd .ebd-share-credit > span { display: block; white-space: nowrap; }
+.ebd .ebd-share-num { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: .75; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.ebd .ebd-share-label { font-family: var(--font-mono); font-size: 5.5px; line-height: 1; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ebd .ebd-share-latest { top: 171px; display: flex; align-items: center; gap: 5px; }
+.ebd .ebd-share-latest-icon { display: block; width: 16px; height: 16px; }
+.ebd .ebd-share-latest-icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ebd .ebd-share-latest-text { display: flex; flex-direction: column; gap: 3px; font-size: 8px; font-weight: 500; line-height: 1; }
+.ebd .ebd-share-foot {
+  top: 193px; right: 11px; padding-top: 5px; border-top: 1px solid var(--hairline);
+  display: flex; align-items: center; gap: 5px;
+}
+.ebd .ebd-share-mark { font-family: var(--font-display); font-weight: 700; font-size: 8.5px; line-height: 1; }
+.ebd .ebd-share-credit { top: 209px; font-family: var(--font-mono); font-size: 6px; line-height: 1; letter-spacing: .02em; color: var(--muted); white-space: nowrap; }
 
 /* ---- The desktop: the eBird export, and its drag image ---- */
 .ebd .ebd-desk {
@@ -221,7 +266,7 @@
 }
 .ebd .ebd-drag { position: absolute; top: 0; left: 0; z-index: 30; pointer-events: none; opacity: 0; will-change: transform; }
 .ebd .ebd-drag[data-show] { opacity: .85; }
-.ebd .ebd-drag-inner { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 108px; font-size: 12px; will-change: transform; }
+.ebd .ebd-drag-inner { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 108px; font-size: 12px; }
 .ebd .ebd-drag[data-dropped] { opacity: 0; transition: opacity .22s ease-in; }
 .ebd .ebd-drag[data-dropped] .ebd-drag-inner { transform: scale(.5); transition: transform .24s cubic-bezier(.4, 0, .2, 1); }
 .ebd .ebd-drag-name { padding: 1px 5px; border-radius: 4px; background: var(--accent); color: var(--paper); white-space: nowrap; line-height: 1.35; }
