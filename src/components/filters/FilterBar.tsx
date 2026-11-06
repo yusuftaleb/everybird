@@ -30,8 +30,9 @@ type Props = {
   dots?: CountryDots
   /** Tabs to leave out (a shared link that carries no places or dates). */
   hideTabs?: readonly Tab[]
-  /** The collage search's text: chip counts follow it (it is never part of the stored filter). */
-  query?: string
+  /** The open tab, when the parent keeps it (a search pick of an order or family opens Birds). */
+  tab?: Tab
+  onTab?: (t: Tab) => void
 }
 
 export type Tab = 'birds' | 'places' | 'time'
@@ -57,14 +58,15 @@ function withLevel(f: Filter, level: Level, value: string | undefined): Filter {
 
 type Crumb = { label: string; latin: boolean; to?: Filter }
 
-export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hideTabs, query }: Props) {
+export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hideTabs, tab: tabProp, onTab }: Props) {
   const TABS = useMemo(() => (hideTabs?.length ? ALL_TABS.filter((t) => !hideTabs.includes(t.id)) : ALL_TABS), [hideTabs])
-  const [tab, setTab] = useState<Tab>('birds')
+  const [ownTab, setOwnTab] = useState<Tab>('birds')
+  const tab = tabProp ?? ownTab
+  const setTab = (t: Tab) => { setOwnTab(t); onTab?.(t) }
   const sheet = useIsSheet()
   const base = useId()
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const { list, trips, filter, sci } = state
-  const counted = useMemo<Filter>(() => (query?.trim() ? { ...filter, q: query } : filter), [filter, query])
 
   const countryName = useMemo(
     () => (iso: string) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso),
@@ -74,9 +76,9 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
   // Only the active tab's levels are counted (the Places tab counts countries for the map too).
   const opts = useMemo(() => {
     const out: Partial<Record<Level, ChipOption[]>> = {}
-    for (const l of active.levels) out[l] = options(list, counted, l, species, trips, countryName)
+    for (const l of active.levels) out[l] = options(list, filter, l, species, trips, countryName)
     return out as Record<Level, ChipOption[]>
-  }, [list, counted, species, trips, countryName, active])
+  }, [list, filter, species, trips, countryName, active])
   const countryCounts = useMemo(() => new Map((opts.country ?? []).map((c) => [c.value, c.count])), [opts.country])
 
   const set = (level: Level, value: string | undefined) => dispatch({ type: 'filter', filter: withLevel(filter, level, value) })
@@ -106,7 +108,6 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
   // (every bird of the order is in it; a year's one trip is not the whole year, so trips keep their row).
   const [top, child] = active.levels as [Level, Level | undefined]
   const childOpts = child ? opts[child] ?? [] : []
-  // Whether the order has one family is a fact of the list, not of the search: count without the narrowing.
   const families = useMemo(
     () => (active.id === 'birds' && filter.order && !filter.family ? options(list, filter, 'family', species, trips, countryName) : null),
     [active.id, list, filter, species, trips, countryName],
@@ -159,7 +160,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
         </div>
       )}
 
-      <div role="tabpanel" id={`${base}-panel-${active.id}`} aria-labelledby={TABS.length > 1 ? `${base}-tab-${active.id}` : undefined} className="eb-panel">
+      <div role="tabpanel" id={`${base}-panel-${active.id}`} aria-labelledby={TABS.length > 1 ? `${base}-tab-${active.id}` : undefined} className="eb-panel" data-map={active.id === 'places' && dots ? '' : undefined}>
         {active.id === 'places' && dots && (
           <CountryMap dots={dots} counts={countryCounts} selected={filter.country} onSelect={(iso) => set('country', iso)} countryName={countryName} />
         )}

@@ -1,21 +1,17 @@
 import type { SpeciesIndex } from '@/lib/species/load'
-import { nameTier, searchKey } from '@/lib/species/name-search'
 import { orderLabel } from '@/lib/species/orders'
 import type { ListEntry } from './model'
 import { entryCountry, type Trip } from './trips'
 
-/**
- * The active filters. `q` is the collage search's text (names, word prefixes): it narrows like any other
- * dimension, but it is never stored (CollageView adds it to the store's filter).
- */
-export type Filter = { order?: string; family?: string; country?: string; year?: string; trip?: string; q?: string }
+/** The active filters. */
+export type Filter = { order?: string; family?: string; country?: string; year?: string; trip?: string }
 export type ChipOption = { value: string; label: string; count: number }
 export type FilterLevel = 'order' | 'family' | 'country' | 'year' | 'trip'
 type Level = FilterLevel
 
 const yearOf = (e: ListEntry) => (e.date && /^\d{4}/.test(e.date) ? e.date.slice(0, 4) : undefined)
 
-/** Stable key, e.g. "o:Passeriformes|f:Corvidae|c:EG|y:2026|t:EG-2026-09-01|q:flick"; empty values are omitted. */
+/** Stable key, e.g. "o:Passeriformes|f:Corvidae|c:EG|y:2026|t:EG-2026-09-01"; empty values are omitted. */
 export function filterKey(f: Filter): string {
   const parts: string[] = []
   if (f.order) parts.push(`o:${f.order}`)
@@ -23,8 +19,6 @@ export function filterKey(f: Filter): string {
   if (f.country) parts.push(`c:${f.country}`)
   if (f.year) parts.push(`y:${f.year}`)
   if (f.trip) parts.push(`t:${f.trip}`)
-  const q = f.q ? searchKey(f.q) : ''
-  if (q) parts.push(`q:${q}`)
   return parts.join('|')
 }
 
@@ -39,7 +33,6 @@ function matcher(f: Filter, species: SpeciesIndex, trips: Trip[], skip: Readonly
   const country = skip.has('country') ? undefined : f.country
   const year = skip.has('year') ? undefined : f.year
   const tripId = skip.has('trip') ? undefined : f.trip
-  const q = f.q ? searchKey(f.q) : ''
   let tripCodes: Set<string> | undefined
   let impossible = false
   if (tripId) {
@@ -49,12 +42,11 @@ function matcher(f: Filter, species: SpeciesIndex, trips: Trip[], skip: Readonly
   }
   return (e: ListEntry): boolean => {
     if (impossible) return false
-    if (order || family || q) {
+    if (order || family) {
       const row = species.byCode.get(e.code)
       if (!row) return false
       if (order && row.ord !== order) return false
       if (family && row.fam !== family) return false
-      if (q && nameTier(q, row) < 0) return false
     }
     if (country && entryCountry(e) !== country) return false
     if (year && yearOf(e) !== year) return false
@@ -145,4 +137,31 @@ export function options(
   else if (level === 'country') out.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
   else out.sort((a, b) => (a.value < b.value ? 1 : -1))
   return out
+}
+
+/**
+ * The filter that shows `e` (a search pick outside the current view): every dimension that already includes the bird
+ * stays; the ones that exclude it go (another order clears the family too; another year clears its trip).
+ */
+export function filterToShow(f: Filter, e: ListEntry, species: SpeciesIndex, trips: Trip[]): Filter {
+  const row = species.byCode.get(e.code)
+  const next: Filter = { ...f }
+  if (next.order && row?.ord !== next.order) { delete next.order; delete next.family }
+  if (next.family && row?.fam !== next.family) delete next.family
+  if (next.country && entryCountry(e) !== next.country) delete next.country
+  if (next.year && yearOf(e) !== next.year) { delete next.year; delete next.trip }
+  if (next.trip && !trips.find((t) => t.id === next.trip)?.codes.includes(e.code)) delete next.trip
+  for (const k of Object.keys(next) as (keyof Filter)[]) if (!next[k]) delete next[k]
+  return next
+}
+
+/**
+ * Drill into an order or family from a search pick: within the current place and time filters, or with them cleared
+ * when they would leave the group empty.
+ */
+export function drillTo(f: Filter, group: { order: string; family?: string }, list: ListEntry[], species: SpeciesIndex, trips: Trip[]): Filter {
+  const next: Filter = { ...f, order: group.order }
+  if (group.family) next.family = group.family
+  else delete next.family
+  return applyFilter(list, next, species, trips).length ? next : { ...group }
 }

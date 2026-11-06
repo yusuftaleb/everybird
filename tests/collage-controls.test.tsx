@@ -38,8 +38,6 @@ function Harness() {
 }
 
 const stats = () => screen.getByTestId('collage-stats')
-const search = () => screen.getByRole('combobox', { name: 'Search your birds' })
-const type = (text: string) => act(async () => { search().focus(); fireEvent.change(search(), { target: { value: text } }) })
 
 beforeEach(() => {
   vi.stubGlobal('innerWidth', 1024)
@@ -93,78 +91,144 @@ describe('Scientific names', () => {
   })
 })
 
-describe('search', () => {
-  it('is a combobox: suggestions from the current list as you type, arrow keys move, and the view narrows', async () => {
+describe('search (Photography\'s dock search)', () => {
+  const open = () => fireEvent.click(screen.getByRole('button', { name: 'Find a bird' }))
+  const box = () => screen.getByRole('combobox', { name: 'Find a bird' })
+  const find = (text: string) => act(async () => { fireEvent.change(box(), { target: { value: text } }) })
+  const names = () => within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.querySelector('.eb-result-name')!.textContent)
+
+  it('the magnifier turns the dock into the field: tabs and tools inert, focus in the field; Esc closes and returns focus', async () => {
     render(<Harness />)
-    const box = search()
-    expect(box).toHaveAttribute('aria-expanded', 'false')
-    await type('fli')
-    expect(box).toHaveAttribute('aria-expanded', 'true')
-    const list = screen.getByRole('listbox')
-    expect(box).toHaveAttribute('aria-controls', list.id)
-    const opts = within(list).getAllByRole('option')
-    expect(opts.map((o) => o.querySelector('.eb-suggest-primary')!.textContent)).toEqual(['Northern Flicker', 'Gilded Flicker'])
-    await waitFor(() => expect(stats()).toHaveTextContent(/^2 of 5 species/))
-    fireEvent.keyDown(box, { key: 'ArrowDown' })
-    expect(box).toHaveAttribute('aria-activedescendant', opts[0].id)
-    expect(opts[0]).toHaveAttribute('aria-selected', 'true')
-    fireEvent.keyDown(box, { key: 'ArrowDown' })
-    expect(box).toHaveAttribute('aria-activedescendant', opts[1].id)
-    fireEvent.keyDown(box, { key: 'ArrowUp' })
-    expect(box).toHaveAttribute('aria-activedescendant', opts[0].id)
+    open()
+    expect(box()).toHaveFocus()
+    expect(screen.getByRole('group', { name: 'View' })).toHaveAttribute('inert')
+    await find('fli')
+    expect(box()).toHaveAttribute('aria-expanded', 'true')
+    expect(box()).toHaveAttribute('aria-controls', screen.getByRole('listbox').id)
+    fireEvent.keyDown(box(), { key: 'ArrowDown' })
+    const opts = within(screen.getByRole('listbox')).getAllByRole('option')
+    expect(box()).toHaveAttribute('aria-activedescendant', opts[0].id)
+    await act(async () => { fireEvent.keyDown(box(), { key: 'Escape' }) })
+    expect(screen.queryByRole('combobox')).toBeNull()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Find a bird' })).toHaveFocus())
+    expect(stats()).toHaveTextContent(/^5 species/) // typing never narrowed the view
   })
 
-  it('matches scientific names and accents, and combines with the other filters', async () => {
+  it('results read "Common name (scientific)", sorted by common name, over orders, families and species on show', async () => {
     render(<Harness />)
-    await type('setóphaga')
-    expect(within(screen.getByRole('listbox')).getAllByRole('option')).toHaveLength(1)
+    open()
+    await find('fli')
+    expect(names()).toEqual(['Gilded Flicker (Colaptes chrysoides)', 'Northern Flicker (Colaptes auratus)'])
+    await find('wood')
+    expect(names()).toEqual(['Woodpeckers (Piciformes)']) // the order; its one family of the same name is left out
+    expect(within(screen.getByRole('listbox')).getByRole('option')).toHaveTextContent(/Order · 2$/)
+    await find('setóphaga')
+    expect(names()).toEqual(['Yellow-rumped Warbler (Setophaga coronata)'])
+    await find('zzz')
+    expect(screen.getByText('No bird on this list matches “zzz”.')).toBeInTheDocument()
+  })
+
+  it('covers the whole list: matches in the filter first, the rest under "Elsewhere on the list" with their order', async () => {
+    render(<Harness />)
     fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
-    await type('fli')
-    await waitFor(() => expect(stats()).toHaveTextContent(/^2 of 5 species/))
-    const status = document.querySelector('.eb-search-field [role="status"]')!
-    expect(status).toHaveTextContent('') // in the DOM before it has anything to say, so the text is announced
-    await type('robin')
-    expect(screen.queryByRole('option')).toBeNull()
-    expect(document.querySelector('.eb-search-field [role="status"]')).toBe(status)
-    expect(status).toHaveTextContent('No bird on this list matches')
+    open()
+    await find('robin')
+    const opt = within(screen.getByRole('listbox')).getByRole('option', { name: /American Robin/ })
+    expect(opt).toHaveTextContent(/Perching birds · Species$/)
+    expect(screen.getByText('Elsewhere on the list')).toBeInTheDocument()
+    await find('co') // Colaptes (the flickers, in the filter) before Setophaga coronata (outside)
+    const all = within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.querySelector('.eb-result-name')!.textContent)
+    expect(all.indexOf('Gilded Flicker (Colaptes chrysoides)')).toBeLessThan(all.indexOf('Yellow-rumped Warbler (Setophaga coronata)'))
   })
 
-  it('Enter picks: the narrowing clears, the bird is highlighted and its card opens', async () => {
-    render(<Harness />)
-    await type('gil')
-    await waitFor(() => expect(stats()).toHaveTextContent(/^1 of 5 species/))
-    fireEvent.keyDown(search(), { key: 'ArrowDown' })
-    fireEvent.keyDown(search(), { key: 'Enter' })
-    expect(await screen.findByRole('dialog', { name: 'Gilded Flicker' })).toBeInTheDocument()
-    expect(search()).toHaveValue('')
-    await waitFor(() => expect(stats()).toHaveTextContent(/^5 species/))
-  })
-
-  it('a click on a suggestion picks too; in list view the row is the one highlighted', async () => {
+  it('picking a species outside the filter clears the filters that hide it, then shows it (list view: its row)', async () => {
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
-    await type('robin')
-    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /American Robin/ }))
-    expect(await screen.findByRole('dialog', { name: 'American Robin' })).toBeInTheDocument()
-    expect(document.querySelector('.eb-row-btn[data-code="amerob"]')).toHaveAttribute('data-ring')
-  })
-
-  it('Esc clears the search and the narrowing', async () => {
-    render(<Harness />)
-    await type('flicker')
+    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 of 5 species/))
-    await act(async () => { fireEvent.keyDown(search(), { key: 'Escape' }) })
-    expect(search()).toHaveValue('')
-    expect(search()).toHaveAttribute('aria-expanded', 'false')
-    await waitFor(() => expect(stats()).toHaveTextContent(/^5 species/))
+    open()
+    await find('robin')
+    await act(async () => { fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /American Robin/ })) })
+    await waitFor(() => expect(stats()).toHaveTextContent(/^5 species/)) // back to All birds
+    await waitFor(() => expect(document.querySelector('.eb-row-btn[data-code="amerob"]')).toHaveAttribute('data-ring'))
+    expect(document.querySelector('.eb-row-btn[data-code="amerob"]')).toHaveFocus()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('with Scientific names on, suggestions lead with the scientific name', async () => {
+  it('picking an order or family outside the filter drills into it', async () => {
     render(<Harness />)
-    fireEvent.click(screen.getByRole('switch', { name: /Scientific/ }))
-    await type('turdus')
-    const opt = within(screen.getByRole('listbox')).getByRole('option')
-    expect(opt.querySelector('.eb-suggest-primary')).toHaveTextContent('Turdus migratorius')
-    expect(opt.querySelector('.eb-suggest-primary')).toHaveAttribute('lang', 'la')
+    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
+    open()
+    await find('thrush')
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /^Thrushes/ }))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^1 of 5 species/))
+    expect(document.querySelector('.eb-path')).toHaveTextContent('All birds/Perching birds/Thrushes')
+  })
+
+  it('picking an order or a family drills the filter into it', async () => {
+    render(<Harness />)
+    open()
+    await find('thrush')
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /^Thrushes/ }))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^1 of 5 species/))
+    expect(document.querySelector('.eb-path')).toHaveTextContent('All birds/Perching birds/Thrushes')
+    expect(screen.queryByRole('combobox')).toBeNull()
+  })
+
+  it('picking a species shows it where it stands, without opening its card (list view: its row, ringed and focused)', async () => {
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: 'List' }))
+    open()
+    await find('robin')
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /American Robin/ }))
+    const row = document.querySelector<HTMLElement>('.eb-row-btn[data-code="amerob"]')!
+    expect(row).toHaveAttribute('data-ring')
+    expect(row).toHaveFocus()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(stats()).toHaveTextContent(/^5 species/)
+  })
+})
+
+describe('hover tooltip', () => {
+  // A full layout handed in as a seed stands in for the worker, so the stage renders in jsdom.
+  const seed = [{ key: 'wide|even|', layout: 'wide' as const, mode: 'even' as const, W: 1000, H: 400, scale: 1, base: 10,
+    boxes: new Map([['snogoo', [10, 10, 80, 60]], ['norfli', [200, 10, 40, 30]], ['gilfli', [300, 10, 40, 30]], ['amerob', [400, 200, 40, 30]], ['yerwar', [500, 200, 20, 15]]] as [string, [number, number, number, number]][]) }]
+  function Seeded() {
+    const [state, dispatch] = useReducer(reduce, undefined, seeded)
+    return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Test collage" seed={seed} />
+  }
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1024, bottom: 400, width: 1024, height: 400, toJSON: () => ({}) })
+  })
+  afterEach(() => vi.restoreAllMocks())
+
+  it('a species picked from the search shows its tooltip (the card\'s facts, not interactive); Esc or a press hides it', async () => {
+    render(<Seeded />)
+    await screen.findByTestId('collage-stage')
+    fireEvent.click(screen.getByRole('button', { name: 'Find a bird' }))
+    await act(async () => { fireEvent.change(screen.getByRole('combobox', { name: 'Find a bird' }), { target: { value: 'robin' } }) })
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /American Robin/ }))
+    const tip = await screen.findByTestId('bird-tip')
+    expect(tip).toHaveAttribute('aria-hidden', 'true')
+    expect(tip).toHaveTextContent('American Robin')
+    expect(tip).toHaveTextContent('Turdus migratorius')
+    expect(tip).toHaveTextContent(/Jul 2023/i)
+    expect(tip).toHaveTextContent(/British Columbia, Canada/i)
+    expect(tip.querySelector('button')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await act(async () => { fireEvent.keyDown(document, { key: 'Escape' }) })
+    expect(screen.queryByTestId('bird-tip')).toBeNull()
+  })
+
+  it('a species picked from outside the filter: the filter clears, the collage glides, then its tooltip opens', async () => {
+    render(<Seeded />)
+    await screen.findByTestId('collage-stage')
+    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Find a bird' }))
+    await act(async () => { fireEvent.change(screen.getByRole('combobox', { name: 'Find a bird' }), { target: { value: 'robin' } }) })
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /American Robin/ }))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^5 species/))
+    expect(screen.queryByTestId('bird-tip')).toBeNull() // not before the glide
+    expect(await screen.findByTestId('bird-tip', {}, { timeout: 2000 })).toHaveTextContent('American Robin')
   })
 })

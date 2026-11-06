@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { applyFilter, filterKey, options } from '@/lib/list/filters'
+import { applyFilter, drillTo, filterKey, filterToShow, options } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { findTrips } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
@@ -66,5 +66,28 @@ describe('orders', () => {
     const d = JSON.parse(readFileSync('public/data/species.v1.json', 'utf8')).species as { ord: string }[]
     for (const o of new Set(d.map((r) => r.ord))) expect(ORDERS[o], o).toBeTruthy()
     expect(orderLabel('Nope')).toBe('Nope')
+  })
+})
+
+describe('filterToShow and drillTo (the search reaching outside the current filter)', () => {
+  const egTrip = trips.find((t) => t.country === 'EG')!
+  it('keeps every dimension that already includes the bird', () => {
+    expect(filterToShow({ order: 'Passeriformes', country: 'EG' }, list[3], species, trips)).toEqual({ order: 'Passeriformes', country: 'EG' })
+  })
+  it('drops only the dimensions that exclude it: another order (and its family), country, year, trip', () => {
+    // The duck (Anseriformes, CA, 2020) under Perching birds / Crows, Egypt, 2026, the Egypt trip: everything goes.
+    const f = { order: 'Passeriformes', family: 'Corvidae', country: 'EG', year: '2026', trip: egTrip.id }
+    expect(filterToShow(f, list[0], species, trips)).toEqual({})
+    // The wren (Passeriformes, Troglodytidae, EG, 2026) under Perching birds / Crows in Egypt: back to the order.
+    expect(filterToShow({ order: 'Passeriformes', family: 'Corvidae', country: 'EG' }, list[3], species, trips)).toEqual({ order: 'Passeriformes', country: 'EG' })
+    // A Canadian crow under Egypt and 2020: the country goes, the year stays.
+    expect(filterToShow({ country: 'EG', year: '2020' }, list[2], species, trips)).toEqual({ year: '2020' })
+    // An undated owl in Egypt under 2026: the year (and its trip) go.
+    expect(filterToShow({ country: 'EG', year: '2026', trip: egTrip.id }, list[6], species, trips)).toEqual({ country: 'EG' })
+  })
+  it('drillTo opens a group in the current filter, or alone when the other filters would leave it empty', () => {
+    expect(drillTo({ country: 'EG' }, { order: 'Passeriformes' }, list, species, trips)).toEqual({ country: 'EG', order: 'Passeriformes' })
+    expect(drillTo({ country: 'EG', order: 'Strigiformes' }, { order: 'Passeriformes', family: 'Corvidae' }, list, sp2, trips)).toEqual({ country: 'EG', order: 'Passeriformes', family: 'Corvidae' })
+    expect(drillTo({ country: 'EG' }, { order: 'Anseriformes' }, list, species, trips)).toEqual({ order: 'Anseriformes' })
   })
 })
