@@ -1,13 +1,13 @@
 import Link from 'next/link'
 
-/** On every page: the sticker credit (required by huashu-bird-sticker's CC BY 4.0 licence), the way to every credit and the maker. */
+/**
+ * On every page: the way to every credit (About#credits, which carries huashu-bird-sticker's CC BY 4.0 attribution for
+ * the site) and the maker. Share images and link previews carry the sticker credit themselves: they travel without it.
+ */
 export function SiteFooter() {
   return (
     <footer className="eb-footer">
       <div className="eb-footer-in">
-        <p className="eb-mono">
-          Stickers: <a href="https://github.com/alchaincyf/huashu-bird-sticker" target="_blank" rel="noopener noreferrer">huashu-bird-sticker</a>, CC BY 4.0
-        </p>
         <p className="eb-mono">
           <Link href="/about#credits">All credits</Link>
         </p>

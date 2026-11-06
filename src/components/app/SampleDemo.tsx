@@ -38,7 +38,6 @@ function Loaded({ pack }: { pack: SamplePack }) {
       regions={regions}
       label="Sample collage"
       statsPrefix="Sample: Yusuf's life list"
-      compactFilters
       seed={pack.seed}
     />
   )

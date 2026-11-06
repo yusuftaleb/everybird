@@ -16,7 +16,8 @@ test("a share link opens a read-only collage: whose list, what Everybird is and 
   await expect(make).toHaveCount(2); // near the top and after the legend, with the landing's words and destination
   await expect(make.first()).toHaveAttribute("href", "/settings");
   expect((await make.first().boundingBox())!.y).toBeLessThan((await page.getByTestId("collage-stage").boundingBox())!.y);
-  await expect(page.getByText("huashu-bird-sticker")).toBeVisible();
+  // The credits are one link away, as on every page (the shared view has the site footer too).
+  await expect(page.getByRole("contentinfo").getByRole("link", { name: "All credits" })).toHaveAttribute("href", "/about#credits");
   // Read-only: none of the editing tools, and the visitor's own list is untouched.
   await expect(page.getByRole("button", { name: /forget|download|restore/i })).toHaveCount(0);
   expect(await page.evaluate(async () => (await indexedDB.databases?.())?.some((d) => d.name === "everybird") ?? false)).toBe(false);

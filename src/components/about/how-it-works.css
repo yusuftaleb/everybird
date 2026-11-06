@@ -241,7 +241,7 @@
   display: flex; align-items: center; gap: 7px;
 }
 .ebd .ebd-share-mark { font-family: var(--font-display); font-weight: 700; font-size: 8.5px; line-height: 1; }
-.ebd .ebd-share-credit { top: 210px; font-family: var(--font-mono); font-size: 6px; line-height: 1; letter-spacing: .02em; color: var(--muted); white-space: nowrap; }
+.ebd .ebd-share-credit { position: static; margin-left: -4px; font-family: var(--font-mono); font-size: 6px; line-height: 1; letter-spacing: .02em; color: var(--muted); white-space: nowrap; }
 
 /* ---- The desktop: the eBird export, and its drag image ---- */
 .ebd .ebd-desk {

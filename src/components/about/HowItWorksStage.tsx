@@ -468,11 +468,12 @@ function ShareImage({ show, at }: { show: boolean; at: Geo['share'] }) {
           <span>{LATEST.name}</span>
         </span>
       </div>
+      {/* As the real share image's footer: the wordmark, then the address (a bar here) and "· stickers by huashu". */}
       <div className="ebd-share-foot">
         <span className="ebd-share-mark">Everybird</span>
-        <Bar w={38} h={3} tone={2} />
+        <Bar w={26} h={3} tone={2} />
+        <span className="ebd-share-credit">· stickers by huashu</span>
       </div>
-      <div className="ebd-share-credit">Stickers: huashu-bird-sticker, CC BY 4.0</div>
     </div>
   )
 }

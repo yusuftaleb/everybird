@@ -32,12 +32,12 @@ function seeded(): AppState {
   return reduce(initialState(), { type: 'restore', saved })
 }
 
-function Harness({ initial, compact }: { initial?: AppState; compact?: boolean }) {
+function Harness({ initial }: { initial?: AppState }) {
   const reduce = makeReducer({ species, countryName: (c) => (c === 'CA' ? 'Canada' : c === 'EG' ? 'Egypt' : c) })
   const [state, dispatch] = useReducer(reduce, initial ?? seeded())
   return (
     <>
-      <FilterBar state={state} dispatch={dispatch} species={species} compact={compact} />
+      <FilterBar state={state} dispatch={dispatch} species={species} />
       <output data-testid="filter">{JSON.stringify(state.filter)}</output>
     </>
   )
@@ -93,17 +93,6 @@ describe('FilterBar', () => {
     const chip = within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: 'Waterfowl, 2 species' })
     expect(chip.querySelector('svg')).toBeNull()
     expect(chip.querySelector('.eb-count')).toHaveTextContent(/^2$/)
-  })
-
-  it('compact (the landing): one strip of the order chips, chips even at phone width (no sheet)', () => {
-    vi.stubGlobal('innerWidth', 390)
-    render(<Harness compact />)
-    const strip = screen.getByTestId('filter-strip')
-    expect(screen.queryByRole('button', { name: /^Choose an order/ })).toBeNull()
-    fireEvent.click(within(within(strip).getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Perching birds/ }))
-    expect(filterOf()).toEqual({ order: 'Passeriformes' })
-    expect(within(strip).getByRole('navigation', { name: 'Filter by group' })).toHaveTextContent('All birds/Perching birds')
-    expect(within(strip).getByRole('group', { name: 'Families' })).toBeInTheDocument()
   })
 
   it('under 600px the level is one button ("Choose an order 3") that opens a sheet of chips', () => {

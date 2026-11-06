@@ -18,7 +18,7 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /(filters|stress)\.spec\.ts/ },
     // The flow matrix (flows.spec.ts: every way in, filters, card, share, backup; each engine samples two widths, MATRIX=full
     // walks all five), the timeline, the share dialog and Settings (page heads, Tick by hand) in Safari's engine too.
-    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(flows|timeline|share|settings)\.spec\.ts/ },
+    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(flows|timeline|share|settings|responsive|dock-sweep)\.spec\.ts/ },
     // Gecko: the flow matrix and the specs that drive the dropdowns, the timeline, the share dialog, Settings, About, the
     // shared view and the theme.
     {

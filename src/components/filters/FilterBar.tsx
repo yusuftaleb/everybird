@@ -5,7 +5,7 @@
 // stays, with the choice in Accent and the other chips stepped back. On phones the row is one button ("Choose an
 // order 18") that opens the chips in a sheet.
 // Taxonomy (orders, then families) is the only filter outside the controls bar: Places and Time are the bar's
-// dropdowns (FilterDropdowns.tsx). In the landing's compact strip the breadcrumb and chips scroll sideways on one line.
+// dropdowns (FilterDropdowns.tsx). The same on every page: the landing's sample, the birder's collage, a shared one.
 import { memo, useMemo } from 'react'
 import { useIsSheet } from '@/components/dialog-utils'
 import { options, type ChipOption, type Filter, type FilterLevel } from '@/lib/list/filters'
@@ -20,11 +20,6 @@ type Props = {
   dispatch: (a: Action) => void
   /** Species index (family names). */
   species: SpeciesIndex
-  /**
-   * One scrollable strip (the landing sample, so the birds keep the first screen): the taxonomy's breadcrumb and chips
-   * on one line at every width (no phone sheet), as /lifelist's phone row does.
-   */
-  compact?: boolean
 }
 
 type Level = 'order' | 'family'
@@ -43,7 +38,7 @@ function withLevel(f: Filter, level: Level, value: string | undefined): Filter {
 
 type Crumb = { label: string; latin: boolean; to?: Filter }
 
-export const FilterBar = memo(function FilterBar({ state, dispatch, species, compact }: Props) {
+export const FilterBar = memo(function FilterBar({ state, dispatch, species }: Props) {
   const sheet = useIsSheet()
   const { list, filter, sci, seen } = state
 
@@ -68,8 +63,8 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, com
   const chipText = (level: Level, o: ChipOption) => (sci && LATIN.has(level) ? o.value : o.label)
   const chipLabel = (level: FilterLevel, o: ChipOption) => chipText(level as Level, o)
 
-  /** A group's breadcrumb and its level on show (chips, or the phone's sheet button; chips always in the strip). */
-  const levels = (g: Group, strip = false) => {
+  /** A group's breadcrumb and its level on show (chips, or the phone's sheet button). */
+  const levels = (g: Group) => {
     // The level on show: the first level with nothing chosen whose parent is chosen, else the deepest chosen one (a
     // leaf keeps its row). An order with one family skips the families row: the breadcrumb names that family instead
     // (every bird of the order is in it).
@@ -119,7 +114,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, com
             latin={latin}
             value={chosen}
             chosenName={chosen ? nameOf(level, chosen) : undefined}
-            sheet={sheet && !strip}
+            sheet={sheet}
             onPick={(v) => toggle(level, v)}
           />
         )}
@@ -128,8 +123,8 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, com
   }
 
   return (
-    <section className="eb-filters" aria-label="Filters" data-testid="filter-bar" data-compact={compact ? '' : undefined}>
-      {compact ? <div className="eb-strip" data-testid="filter-strip">{levels(BIRDS, true)}</div> : levels(BIRDS)}
+    <section className="eb-filters" aria-label="Filters" data-testid="filter-bar">
+      {levels(BIRDS)}
     </section>
   )
 })

@@ -22,7 +22,7 @@
 /* Collage pages (/): the birds lead. A one-row hero on wide screens; tighter spacing above the stage. */
 .eb-page-collage { --page-gap: 16px; padding-top: 16px; }
 @media (min-width: 720px) { .eb-page-collage { --page-gap: 24px; padding-top: 24px; } }
-/* The landing carries the filter strip under the dock; a little less air above keeps the sample's birds on most of a
+/* The landing carries the order chips under the dock; a little less air above keeps the sample's birds on most of a
    1280×800 first screen (e2e import.spec). */
 @media (min-width: 720px) { .eb-page-landing { --page-gap: 16px; padding-top: 20px; } }
 .eb-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
@@ -120,9 +120,8 @@
 }
 @container (max-width: 599px) {
   /* A slimmer second row (36px buttons, as the old filter toggles; the hit area stays 44px), so the landing's birds
-     keep most of a phone's first screen. */
-  .eb-dock { row-gap: 2px; }
-  .eb-dock-filters { padding: 2px 4px; }
+     keep most of a phone's first screen. The dock's 4px inset holds all round: above the pressed tab, either side of
+     the Hairline and under the buttons (the ≤820px row's 4px gap and padding). */
   .eb-dock-filters .eb-dock-drop { position: relative; min-height: 36px; flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 10px; }
   .eb-dock-filters .eb-dock-drop::after { content: ''; position: absolute; inset: -4px 0; }
   .eb-dock-filters .eb-drop-caret { display: none; } /* the row reads as two buttons; aria-expanded says the rest */
@@ -144,11 +143,30 @@
 .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(14px); background: var(--paper); }
 .eb-dock-find { padding: 0; width: 44px; }
 .eb-short { display: none; }
+/* Phones (LifeList's 600px): the bar's short form whatever the phone's width, so row one is always the view icons,
+   True and Sci. (or the list's "Heaviest") and the magnifier; Places and Time are row two. */
+@media (max-width: 600px) {
+  .eb-dock .eb-long { display: none; }
+  .eb-dock .eb-short { display: inline; }
+  .eb-dock-tabs .eb-dock-tab span { display: none; }
+  .eb-dock-tabs .eb-dock-tab { padding: 0; width: 44px; }
+  .eb-dock-tabs, .eb-dock-tools { gap: 2px; }
+  .eb-dock-sw { padding: 0 8px; gap: 6px; }
+  .eb-dock .eb-track { width: 30px; height: 18px; border-radius: 9px; }
+  .eb-dock .eb-knob { width: 12px; height: 12px; }
+  .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(12px); }
+  .eb-dock-end { margin-left: 2px; }
+}
+/* The bar's own width from here (any screen: a phone, a tablet, a narrow window). Row one must hold the tabs, the tools
+   and the magnifier: the 820px rule lets the bar wrap (for Places and Time), so anything too wide would push the
+   magnifier onto a line of its own (e2e dock-sweep.spec sweeps 280–900px). */
 @container (max-width: 460px) {
   .eb-dock-tabs .eb-dock-tab span { display: none; }
   .eb-dock-tabs .eb-dock-tab { padding: 0; width: 44px; }
 }
-@container (max-width: 400px) {
+/* "True size" and "Scientific" with the magnifier need about 540px of bar (with the tabs' words; 400px without):
+   short labels and the tighter switches below that. */
+@container (max-width: 540px) {
   .eb-long { display: none; }
   .eb-short { display: inline; }
   .eb-dock-tabs, .eb-dock-tools { gap: 2px; }
@@ -157,9 +175,25 @@
   .eb-dock .eb-knob { width: 12px; height: 12px; }
   .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(12px); }
 }
+/* Small phones (a 360px phone's bar and under): tighter, so the magnifier keeps row one. The icon buttons draw 40px
+   wide and keep a 44px press through their ::after. */
 @container (max-width: 330px) {
-  .eb-dock-sw { padding: 0 6px; }
-  .eb-dock-tabs .eb-dock-tab, .eb-dock-find { width: 40px; min-width: 40px; }
+  .eb-dock { column-gap: 2px; } /* the row gap stays 4px: the inset over the Hairline */
+  .eb-dock-end { margin-left: 0; }
+  .eb-dock-tools .eb-dock-sw { padding: 0 5px; gap: 5px; }
+  .eb-dock-tools .eb-dock-dir { padding: 0 3px; gap: 3px; } /* "Heaviest ↓" is the row's widest tool */
+  .eb-dock-tabs .eb-dock-tab, .eb-dock-end .eb-dock-find { position: relative; width: 40px; min-width: 40px; }
+  .eb-dock-tabs .eb-dock-tab::after, .eb-dock-end .eb-dock-find::after { content: ''; position: absolute; inset: 0 -2px; }
+}
+/* A 320px phone's bar (288px) and narrower: 36px icon buttons (a 44px press through ::after), the switches' slimmest
+   form (28×18, the knob moving 10px). */
+@container (max-width: 310px) {
+  .eb-dock-tabs .eb-dock-tab, .eb-dock-end .eb-dock-find { width: 36px; min-width: 36px; }
+  .eb-dock-tabs .eb-dock-tab::after, .eb-dock-end .eb-dock-find::after { inset: 0 -4px; }
+  .eb-dock-tools .eb-dock-sw { padding: 0 4px; gap: 4px; }
+  .eb-dock-tools .eb-dock-dir { padding: 0 2px; gap: 2px; }
+  .eb-dock .eb-track { width: 28px; }
+  .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(10px); }
 }
 @media (hover: hover) and (pointer: fine) { .eb-dock-tab:hover { opacity: 1; } }
 
@@ -278,7 +312,7 @@
   .eb-theme svg { width: 20px; height: 20px; }
 }
 
-/* The footer: the sticker credit and the way to every credit, its rule as wide as the content. */
+/* The footer: the way to every credit and the maker, its rule as wide as the content. */
 .eb-footer { padding: 0 16px 32px; }
 @media (min-width: 720px) { .eb-footer { padding: 0 32px 40px; } }
 .eb-footer-in {

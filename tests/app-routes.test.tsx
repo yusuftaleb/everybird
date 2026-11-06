@@ -155,14 +155,15 @@ afterEach(() => {
 })
 
 describe('the Collage page (/)', () => {
-  it('without a list: one line of what Everybird is, the pre-packed sample collage, "Make yours" (to /settings), the top bar and the sticker credit', async () => {
+  it('without a list: one line of what Everybird is, the pre-packed sample collage, "Make yours" (to /settings), the top bar and the footer credits link', async () => {
     await mount({ path: '/' })
     expect(await screen.findByRole('heading', { level: 1, name: "Every bird you've ever seen." })).toBeInTheDocument()
     await waitFor(() => expect(stats()).toHaveTextContent("Sample: Yusuf's life list · 2 species"))
     expect(screen.getByRole('link', { name: /^Make yours/ })).toHaveAttribute('href', '/settings')
-    const credit = screen.getByRole('link', { name: 'huashu-bird-sticker' })
-    expect(credit).toHaveAttribute('href', 'https://github.com/alchaincyf/huashu-bird-sticker')
-    expect(credit.closest('p')).toHaveTextContent('Stickers: huashu-bird-sticker, CC BY 4.0')
+    // The footer reaches every credit (About's, with the sticker licence) by one link; no inline sticker line.
+    const footer = screen.getByRole('contentinfo')
+    expect(within(footer).getByRole('link', { name: 'All credits' })).toHaveAttribute('href', '/about#credits')
+    expect(within(footer).queryByRole('link', { name: 'huashu-bird-sticker' })).toBeNull()
     // The top bar: the wordmark home, the three pages (this one current) and the theme switch.
     const bar = screen.getByRole('banner')
     expect(within(bar).getByRole('link', { name: 'Everybird' })).toHaveAttribute('href', '/')
@@ -170,12 +171,14 @@ describe('the Collage page (/)', () => {
     expect(within(bar).getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
     expect(within(bar).getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about')
     expect(within(bar).getByRole('switch', { name: 'Dark mode' })).toBeInTheDocument()
-    // Places and Time are dropdowns in the controls bar (closed); the order chips are one strip under it. No Birds button.
-    const strip = screen.getByTestId('filter-strip')
+    // Places and Time are dropdowns in the controls bar (closed); the order chips wrap under it, as /lifelist's. No Birds
+    // button, no sideways strip.
+    const filters = screen.getByTestId('filter-bar')
     expect(screen.getByTestId('filter-tab-places')).toHaveAttribute('aria-expanded', 'false')
     expect(screen.getByTestId('filter-tab-time')).toHaveAttribute('aria-expanded', 'false')
-    expect(strip).not.toContainElement(screen.getByTestId('filter-tab-places'))
-    expect(within(strip).getByRole('group', { name: 'Orders' })).toBeInTheDocument()
+    expect(filters).not.toContainElement(screen.getByTestId('filter-tab-places'))
+    expect(within(filters).getByRole('group', { name: 'Orders' })).toBeInTheDocument()
+    expect(screen.queryByTestId('filter-strip')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Birds' })).toBeNull()
     expect(screen.queryByTestId('filter-bar-folded')).toBeNull()
     expect(screen.queryByRole('tab')).toBeNull()

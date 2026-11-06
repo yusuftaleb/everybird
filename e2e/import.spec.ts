@@ -24,7 +24,7 @@ test("sample collage renders on landing", async ({ page }) => {
   await expect(page.getByTestId("collage-stats")).toHaveText(/^Sample: Yusuf's life list · 197 species · \d+ orders · \d+ families · since /);
   await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
   await expect(page.getByRole("link", { name: /^Make yours/ })).toHaveAttribute("href", "/settings");
-  await expect(page.getByRole("link", { name: "huashu-bird-sticker" })).toHaveAttribute("href", "https://github.com/alchaincyf/huashu-bird-sticker");
+  await expect(page.getByRole("contentinfo").getByRole("link", { name: "All credits" })).toHaveAttribute("href", "/about#credits");
   expect(errors).toEqual([]);
 });
 
@@ -37,8 +37,11 @@ test("the landing sample is pre-packed: its stickers show without the species fi
   await expect(stage.locator("img").first()).toBeVisible();
 });
 
+// The taxonomy is /lifelist's on both since 2026-11-06 (it was one sideways strip, and the bounds 0.6 and 0.5): at
+// 1280 the order chips wrap onto three rows (the stage starts at 0.50 of the screen), at 390 the "Choose an order"
+// button and the bar's 4px insets sit over it (0.47). The birds still hold close to half the first screen.
 test("at 1280x800 and 390x844 the landing's birds fill most of the first screen", async ({ page }) => {
-  for (const [width, height, share] of [[1280, 800, 0.6], [390, 844, 0.5]] as const) {
+  for (const [width, height, share] of [[1280, 800, 0.45], [390, 844, 0.45]] as const) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
     const stage = page.getByTestId("collage-stage");
@@ -179,6 +182,8 @@ test("hovering a bird on desktop shows its tooltip; a click still opens the card
   await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
   await page.waitForTimeout(1500); // the first appearance has played
   const bird = stage.locator(".eb-bird").first();
+  await bird.scrollIntoViewIfNeeded(); // the wrapped order chips push the stage's top row near the fold
+  await page.waitForTimeout(300);
   const bb = (await bird.boundingBox())!;
   const code = await bird.getAttribute("data-code");
   await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);

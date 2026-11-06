@@ -46,8 +46,6 @@ type Props = {
   notice?: ReactNode
   /** Under the filters (what a shared link leaves out). */
   filterNote?: ReactNode
-  /** The filters as one scrollable strip (the landing sample: the birds keep the first screen). */
-  compactFilters?: boolean
   /** Whose list the search speaks of when nothing matches: "your" (the birder's own) or "this" (default). */
   whose?: 'your' | 'this'
   /** Full layouts packed ahead of time, shown until the layout worker answers (the landing sample). */
@@ -79,7 +77,7 @@ export function statsLine(all: ListEntry[], shown: ListEntry[], species: Species
   return parts.join(' · ')
 }
 
-export function CollageView({ state, dispatch, species, regions, label, cardActions, hidePanels, placesNote, statsPrefix, notice, filterNote, compactFilters, seed, whose = 'this' }: Props) {
+export function CollageView({ state, dispatch, species, regions, label, cardActions, hidePanels, placesNote, statsPrefix, notice, filterNote, seed, whose = 'this' }: Props) {
   const { list, filter, mode, view, massOrder, sci, seen } = state
   const box = useRef<HTMLElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
@@ -201,7 +199,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         )}
       />
 
-      <FilterBar state={state} dispatch={dispatch} species={species} compact={compactFilters} />
+      <FilterBar state={state} dispatch={dispatch} species={species} />
       {filterNote}
 
       {view === 'collage' ? (

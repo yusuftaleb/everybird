@@ -42,7 +42,7 @@ for (const [name, path] of [
   ["about", "/about"],
   ["shared view", `/s/${frozen}`],
 ] as const) {
-  test(`the ${name} page has the top bar and the footer's sticker credit and credits link`, async ({ page }) => {
+  test(`the ${name} page has the top bar and the footer's credits link (no inline sticker line)`, async ({ page }) => {
     await page.goto(path);
     const bar = page.getByRole("banner");
     await expect(bar.getByRole("link", { name: "Everybird" })).toHaveAttribute("href", "/");
@@ -51,7 +51,8 @@ for (const [name, path] of [
     }
     await expect(bar.getByRole("switch", { name: "Dark mode" })).toBeVisible();
     const footer = page.getByRole("contentinfo");
-    await expect(footer.getByRole("link", { name: "huashu-bird-sticker" })).toHaveAttribute("href", "https://github.com/alchaincyf/huashu-bird-sticker");
+    await expect(footer.getByRole("link", { name: "huashu-bird-sticker" })).toHaveCount(0); // the credit lives on About#credits
+    await expect(footer).not.toContainText("CC BY 4.0");
     await expect(footer.getByRole("link", { name: "All credits" })).toHaveAttribute("href", "/about#credits");
     await expect(footer.getByRole("link", { name: "Made by Yusuf Taleb" })).toHaveAttribute("href", "https://www.yusuftaleb.com");
   });

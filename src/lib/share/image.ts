@@ -7,7 +7,8 @@
 //   middle  the collage, packed for the space left (layout worker 'image' message: packFrame, the count's hole at its
 //           centre); no sticker longer than 30% of the collage wide (36% up to 24 birds)
 //   bottom  a Hairline rule, "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px), then the footer: the Everybird
-//           wordmark and the site ("everybird.yusuftaleb.com") on the left, the sticker credit on the right (Geist Mono 22px, Muted)
+//           wordmark and one quiet line beside it, the site and the sticker credit ("everybird.yusuftaleb.com · stickers
+//           by huashu", Geist Mono 20px, Muted). The full credit, with the licence, travels in the share text.
 // The story keeps Instagram's safe zones clear: nothing in the top 160px (the profile row) or the bottom 220px (the
 // reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1244 with
 // a name and the latest lifer): packFrame packs it for that aspect (the spiral stretched to it, as the narrow layout's
@@ -35,7 +36,10 @@ export const IMAGE_SIZE: Record<ImageFormat, [w: number, h: number]> = { story: 
 export const NAME_MAX_LEN = 40
 /** The footer's site name: the share origin's host ("everybird.yusuftaleb.com"). */
 export const SITE_LABEL = new URL(SHARE_ORIGIN).host
-export const STICKER_CREDIT = 'Stickers: huashu-bird-sticker, CC BY 4.0'
+/** The footer's one line beside the wordmark on share images and link previews: the site and the sticker credit. */
+export const FOOTER_LINE = `${SITE_LABEL} · stickers by huashu`
+/** The full sticker credit (CC BY 4.0), for the share sheet's text: the image itself carries FOOTER_LINE. */
+export const SHARE_CREDIT = 'Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker'
 
 /** The design tokens (tokens.css; a test keeps them equal). The image follows the page's current theme. */
 export const SHARE_COLORS = {
@@ -171,7 +175,7 @@ export function cardLayout(format: ImageFormat, c: CardContent): CardLayout {
   const headBottom = filter ? filter.y + filter.size : name ? name.y + name.size : undefined
   // Bottom, upwards: the footer (wordmark, site and credit on one line), a hairline, the latest lifer row.
   // The story's footer sits 4px higher so its descenders ("y", "(") clear the bottom safe line too.
-  const footer = { y: H - B - 30 - (format === 'story' ? 4 : 0), size: 30, credit: 19 }
+  const footer = { y: H - B - 30 - (format === 'story' ? 4 : 0), size: 30, credit: 20 }
   const rule = { y: footer.y - 30 }
   const icon = format === 'story' ? 76 : 68 // post and square
   const G = GAPS[format]
@@ -398,12 +402,12 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, font: (px: number)
   return `${t.trimEnd()}…`
 }
 
-/** The smallest size the credit takes beside the wordmark before it moves to its own line. */
+/** The smallest size the footer line takes beside the wordmark before it moves to its own line. */
 export const CREDIT_MIN = 17
 /**
- * Where the sticker credit goes, never truncated: beside the wordmark and site (`inlineRoom` px) at `size` down to
- * CREDIT_MIN, else on its own line (`fullRoom` px) at `size`, shrinking only if even the full width is too narrow.
- * `measure(px)` is the credit's width at that size.
+ * Where the footer line (the site and "stickers by huashu") goes, never truncated and never without the credit: beside
+ * the wordmark (`inlineRoom` px) at `size` down to CREDIT_MIN, else on its own line (`fullRoom` px) at `size`,
+ * shrinking only if even the full width is too narrow. `measure(px)` is the line's width at that size.
  */
 export function placeCredit(measure: (px: number) => number, inlineRoom: number, fullRoom: number, size: number): { size: number; below: boolean } {
   for (let px = size; px >= CREDIT_MIN; px--) if (measure(px) <= inlineRoom) return { size: px, below: false }
@@ -524,7 +528,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
     loadStickers([...new Set([...tiles, ...(lifer ? [lifer] : [])].flatMap((t) => (t.url ? [t.url] : [])))], { signal }),
     fontsReady(
       [font.name(L.name?.size ?? 60), font.filter(34), font.count(K.size), font.mono(K.labelSize), font.lifer(34), font.brand(30), font.footer(20)],
-      `${name ?? ''}${label ?? ''}${K.number}${K.label}${latest ? latest.label.toUpperCase() + latest.name : ''}Everybird${SITE_LABEL}${STICKER_CREDIT}`,
+      `${name ?? ''}${label ?? ''}${K.number}${K.label}${latest ? latest.label.toUpperCase() + latest.name : ''}Everybird${FOOTER_LINE}`,
     ),
   ])
   check()
@@ -577,16 +581,14 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   if (name && L.name) draw(name, font.name, L.name, 36, C.ink)
   if (label && L.filter) draw(label, font.filter, L.filter, 24, C.accent)
 
-  // Footer, quiet: the wordmark and the site on the left, the sticker credit (required, CC BY 4.0, never truncated) on
-  // the right on one baseline. If it doesn't fit there at 17px or more, it takes its own line under them at the bottom
-  // safe line, and the wordmark row, the hairline and the latest lifer row move up by that line.
+  // Footer, quiet: the wordmark, then one line on its baseline, the site and the sticker credit ("… · stickers by
+  // huashu", never truncated). If it doesn't fit there at 17px or more, it takes its own line under the wordmark at the
+  // bottom safe line, and the wordmark, the hairline and the latest lifer row move up by that line.
   ctx.textBaseline = 'alphabetic'
   ctx.font = font.brand(L.footer.size)
   const brandW = ctx.measureText('Everybird').width + 16
-  ctx.font = font.footer(20)
-  const siteW = ctx.measureText(SITE_LABEL).width
-  const credit = placeCredit((px) => { ctx.font = font.footer(px); return ctx.measureText(STICKER_CREDIT).width },
-    maxW - brandW - siteW - 32, maxW, L.footer.credit)
+  const credit = placeCredit((px) => { ctx.font = font.footer(px); return ctx.measureText(FOOTER_LINE).width },
+    maxW - brandW, maxW, L.footer.credit)
   const shift = credit.below ? credit.size + 12 : 0
   const base = L.footer.y + L.footer.size * 0.8
 
@@ -611,16 +613,8 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   ctx.font = font.brand(L.footer.size)
   ctx.fillStyle = C.ink
   ctx.fillText('Everybird', M, base - shift)
-  ctx.font = font.footer(20)
-  ctx.fillStyle = C.muted
-  ctx.fillText(SITE_LABEL, M + brandW, base - shift)
   ctx.font = font.footer(credit.size)
-  if (credit.below) {
-    ctx.textAlign = 'left'
-    ctx.fillText(STICKER_CREDIT, M, base)
-  } else {
-    ctx.textAlign = 'right'
-    ctx.fillText(STICKER_CREDIT, L.W - M, base)
-  }
+  ctx.fillStyle = C.muted
+  ctx.fillText(FOOTER_LINE, credit.below ? M : M + brandW, base)
   return canvas
 }

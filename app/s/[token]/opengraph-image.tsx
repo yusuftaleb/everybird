@@ -5,7 +5,7 @@ import { packBest, relSizes, type Box } from '@/lib/layout/pack'
 import { latestLifer } from '@/lib/list/build-list'
 import type { ListEntry } from '@/lib/list/model'
 import { formatDate } from '@/lib/format'
-import { OG_COUNT_MAX, SHARE_COLORS, SITE_LABEL, STICKER_CREDIT, countLayout, type CountLayout } from '@/lib/share/image'
+import { OG_COUNT_MAX, SHARE_COLORS, FOOTER_LINE, countLayout, type CountLayout } from '@/lib/share/image'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import { OG_COLLAGE, OG_SIZE, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare, OG_DESCRIPTION } from '@/lib/share/og'
@@ -83,13 +83,12 @@ export default async function Image({ params }: { params: Promise<{ token: strin
   const name = payload ? ogName(payload) : 'Everybird'
   const K = payload ? ogCount(payload.birds.length) : null
 
+  // The footer, as the share images': the wordmark and one quiet line, the site and the sticker credit ("… · stickers by
+  // huashu"). Beside the wordmark on the wide text card; under it beside the collage, where the column is too narrow.
   const credit = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-        <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 24 }}>Everybird</div>
-        <div style={{ display: 'flex', fontFamily: MONO, fontSize: 16, color: C.muted }}>{SITE_LABEL}</div>
-      </div>
-      <div style={{ display: 'flex', fontFamily: MONO, fontSize: 14, color: C.muted }}>{STICKER_CREDIT}</div>
+    <div style={{ display: 'flex', flexDirection: placed.length ? 'column' : 'row', alignItems: placed.length ? 'flex-start' : 'baseline', gap: placed.length ? 8 : 12 }}>
+      <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 24 }}>Everybird</div>
+      <div style={{ display: 'flex', fontFamily: MONO, fontSize: placed.length ? 14 : 16, color: C.muted, whiteSpace: 'nowrap' }}>{FOOTER_LINE}</div>
     </div>
   )
   // The count in the middle of the collage, as the share images and the app's Tally: the number over a mono label.

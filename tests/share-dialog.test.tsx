@@ -44,6 +44,21 @@ describe('share dialog', () => {
     expect(dlBtn.disabled).toBe(false)
   })
 
+  it('Share image hands the share sheet the image and the full sticker credit as its text', async () => {
+    const share = vi.fn<(d: ShareData) => Promise<void>>(async () => {})
+    vi.stubGlobal('navigator', { ...navigator, share, canShare: () => true })
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
+    const btn = screen.getByRole('button', { name: 'Share image' }) as HTMLButtonElement
+    await waitFor(() => expect(btn.disabled).toBe(false))
+    fireEvent.click(btn)
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(1))
+    const data = share.mock.calls[0][0]
+    expect(data.text).toBe('Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker')
+    expect(data.files?.[0].type).toBe('image/png')
+  })
+
   it('copies a link without the birds the link index does not know, and says so', async () => {
     const writeText = vi.fn(async () => {})
     vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })

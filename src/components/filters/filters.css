@@ -2,24 +2,6 @@
    Accent and the other chips in that row step back to 70%; pressing it again clears the filter. Superellipse
    corners with LifeList's .566 fallback. */
 .eb-filters { --eb-ease: cubic-bezier(.16, 1, .3, 1); display: flex; flex-direction: column; gap: 8px; color: var(--ink); font-size: 14px; font-weight: 500; }
-/* The landing's strip: the taxonomy's breadcrumb and chips, on one line that scrolls sideways (the
-   scrollbar hidden; it bleeds into the gutters so chips slide out under the page edge, as /lifelist's phone row). */
-.eb-strip {
-  display: flex; flex-wrap: nowrap; align-items: center; gap: 6px;
-  overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
-  margin: -6px -16px; padding: 6px 16px; /* room for the chips' 44px tap targets and focus rings */
-}
-.eb-strip::-webkit-scrollbar { display: none; }
-/* Edges fade so a chip sliding under the page edge reads as "more this way". */
-.eb-strip { mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 24px), transparent); }
-/* Tighter to the dock and the stage than the view's 12px rhythm: the strip is one quiet line. */
-.eb-filters[data-compact] { margin-block: -4px; }
-@media (min-width: 720px) { .eb-strip { margin-inline: -32px; padding-inline: 32px; } }
-.eb-strip > *, .eb-strip .eb-levels, .eb-strip .eb-level, .eb-strip .eb-path { flex: none; flex-wrap: nowrap; }
-.eb-strip .eb-levels { flex-direction: row; align-items: center; gap: 6px; }
-.eb-strip .eb-chip, .eb-strip .eb-path { white-space: nowrap; }
-.eb-strip .eb-path { margin-right: 6px; }
-
 /* The panel has no entrance animation on purpose: a filled transform or opacity animation would make it the containing
    block and stacking context of the phone's fixed picker sheet (the sheet would sit under the collage). */
 .eb-panel, .eb-levels { display: flex; flex-direction: column; gap: 8px; }

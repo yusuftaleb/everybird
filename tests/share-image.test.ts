@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, packSpec, placeCredit, SPREAD, spreadY, STICKER_CREDIT } from '@/lib/share/image'
+import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, packSpec, placeCredit, SPREAD, spreadY, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
 
@@ -262,20 +262,24 @@ describe('fitPack', () => {
   })
 })
 
-describe('placeCredit (the CC BY credit is never truncated)', () => {
+describe('the footer line (the site and the sticker credit, never truncated)', () => {
   // Geist Mono: 0.6em per character.
   const measure = (text: string) => (px: number) => text.length * 0.6 * px
+  it('is the site and "stickers by huashu" on one line; the full credit is the share text', () => {
+    expect(FOOTER_LINE).toBe(`${SITE_LABEL} · stickers by huashu`)
+    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · stickers by huashu')
+    expect(SHARE_CREDIT).toBe('Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker')
+  })
   it('sits beside the wordmark when it fits, shrinking no lower than 17px', () => {
-    expect(placeCredit(measure(STICKER_CREDIT), 500, 952, 19)).toEqual({ size: 19, below: false }) // 456px
-    expect(placeCredit(measure(STICKER_CREDIT), 430, 952, 19)).toEqual({ size: 17, below: false }) // 408px
+    expect(placeCredit(measure(FOOTER_LINE), 790, 952, 20)).toEqual({ size: 20, below: false }) // 540px
+    expect(placeCredit(measure(FOOTER_LINE), 470, 952, 20)).toEqual({ size: 17, below: false }) // 459px
   })
-  it('takes its own line at full size when it does not fit at 17px', () => {
-    expect(placeCredit(measure(STICKER_CREDIT), 300, 952, 19)).toEqual({ size: 19, below: true })
+  it('takes its own line at full size when it does not fit at 17px, keeping "stickers by huashu"', () => {
+    expect(placeCredit(measure(FOOTER_LINE), 300, 952, 20)).toEqual({ size: 20, below: true })
   })
-  it('a long credit in a narrow width shrinks to fit its own line, never cut', () => {
-    const long = `${STICKER_CREDIT} and a much longer attribution line that goes on`
-    const r = placeCredit(measure(long), 200, 600, 19)
+  it('a line too long for even its own line shrinks to fit, never cut', () => {
+    const r = placeCredit(measure(FOOTER_LINE), 200, 400, 20)
     expect(r.below).toBe(true)
-    expect(measure(long)(r.size)).toBeLessThanOrEqual(600)
+    expect(measure(FOOTER_LINE)(r.size)).toBeLessThanOrEqual(400)
   })
 })
