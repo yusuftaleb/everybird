@@ -1,0 +1,21 @@
+src/components/collage/collage-window.ts
+  s_ab125876fe9ad2::t_00a20333658e1c 26-28
+e2e/stress.spec.ts
+  s_ab125876fe9ad2::t_a56df92571bd1c 137,139-143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "94ebe6d9ef04a4904fa26d84304988b5c9a86c83",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "unknown"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
