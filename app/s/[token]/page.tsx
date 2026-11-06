@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** "Make yours", as on the landing page: the same words, the same place to start. */
 function MakeYours({ big }: { big?: boolean }) {
   return (
-    <Link className={big ? 'eb-btn eb-btn-big' : 'eb-btn'} href="/settings">
+    <Link className={big ? 'eb-btn eb-btn-big eb-hero-cta' : 'eb-btn'} href="/settings">
       Make yours
       <ArrowRight aria-hidden="true" focusable="false" weight="bold" />
     </Link>

@@ -2,7 +2,7 @@
 // The collage block shared by the landing sample, the birder's own collage and the shared view: the stats line, the
 // controls bar (view tabs, True size or the list's direction, Scientific, the search), the filters, the collage or
 // the list, the legend, the hover tooltip and the bird card. Composition after LifeList.tsx (framer-site).
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BirdCard } from '@/components/collage/BirdCard'
 import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage } from '@/components/collage/Collage'
@@ -178,7 +178,12 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
 
   return (
     <section ref={box} className="eb-view" aria-label={label}>
-      <p className="eb-mono eb-stats" data-testid="collage-stats">{statsPrefix ? `${statsPrefix} · ${stats}` : stats}</p>
+      <p className="eb-mono eb-stats" data-testid="collage-stats">
+        {/* Each part keeps its words on one line ("since May 2022" never splits); the line wraps between parts. */}
+        {(statsPrefix ? `${statsPrefix} · ${stats}` : stats).split(' · ').map((part, i) => (
+          <Fragment key={i}>{i > 0 && ' · '}<span className="eb-stat">{part}</span></Fragment>
+        ))}
+      </p>
       {notice}
       <ControlsBar
         view={view}
