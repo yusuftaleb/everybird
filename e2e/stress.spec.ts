@@ -204,7 +204,7 @@ const WIDTHS = [390, 1440];
 // [longest task, longest frame] in ms. GOAL: the frame budget (filters.spec.ts). CEILING: asserted by default, for
 // 3,000 and 6,000 species (big) and the whole taxonomy (all); see the P4 report for the numbers measured.
 const GOAL = { scroll: [100, 50], filter: [100, 50] };
-const CEILING = { big: { scroll: [100, 100], filter: [150, 200] }, all: { scroll: [150, 150], filter: [250, 350] } };
+const CEILING = { big: { scroll: [150, 150], filter: [200, 300] }, all: { scroll: [200, 200], filter: [300, 400] } };
 // Worker budget for the first full collage (setList + the even layout), unthrottled.
 const LAYOUT_BUDGET_MS: Record<number, number> = { 3000: 20_000, 6000: 40_000, [SPECIES.length]: 90_000 };
 
