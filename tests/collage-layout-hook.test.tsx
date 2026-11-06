@@ -110,4 +110,20 @@ describe('stillView', () => {
     expect([...stillView(full, '', null, { dates, from: '2021-01' }).visible]).toEqual(['b'])
     expect(stillView(full, '', null, null)).toBe(full)
   })
+
+  it('a committed preview stands in over the old layout, then lets the committed range\'s layout travel (not still)', async () => {
+    const { stillView } = await import('@/components/app/use-collage-layout')
+    const box: [number, number, number, number] = [0, 0, 1, 1]
+    const layout = (key: string) => ({ key, layout: 'wide' as const, mode: 'even' as const, W: 10, H: 10, scale: 1, base: 1, boxes: new Map([['a', box], ['b', box]]) })
+    const dates = new Map([['a', '2020-01-02'], ['b', '2021-05-03']])
+    const old = { layout: layout('wide|even|'), visible: new Set(['a', 'b']) }
+    const preview = { dates, to: '2020-12', committed: true }
+    // The filter is committed (want = its key) but the old layout is still shown: the preview's visibility, still.
+    expect(stillView(old, 'r:~2020-12', null, preview)).toEqual({ layout: old.layout, visible: new Set(['a']), still: true })
+    // The committed layout lands: shown as it is, so it travels.
+    const next = { layout: layout('wide|even|r:~2020-12'), visible: new Set(['a']) }
+    expect(stillView(next, 'r:~2020-12', null, preview)).toBe(next)
+    // Uncommitted (still dragging): the shown layout matches the unchanged filter, and the preview applies.
+    expect(stillView(old, '', null, { dates, to: '2020-12' }).still).toBe(true)
+  })
 })

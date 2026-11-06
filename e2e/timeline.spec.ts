@@ -57,7 +57,18 @@ for (const width of [1280, 390]) {
       await page.keyboard.press("PageUp");
       for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
       await expect(lo).toHaveAttribute("aria-valuetext", "April 2020");
+      // Committed 350 ms after the last key: one re-pack, and the kept birds travel (CSS translate transitions).
+      const travelled = page.evaluate(() => new Promise<boolean>((done) => {
+        const end = performance.now() + 3000;
+        const look = () => {
+          if (document.getAnimations().some((a) => (a as CSSTransition).transitionProperty === "translate")) return done(true);
+          if (performance.now() > end) return done(false);
+          requestAnimationFrame(look);
+        };
+        look();
+      }));
       await expect(page.getByTestId("collage-stats")).toContainText(`of ${total} species`);
+      expect(await travelled).toBe(true);
       await expect(page.getByTestId("timeline-read")).toContainText("Apr 2020 to");
 
       // A trip bracket: the trip and its months.

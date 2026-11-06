@@ -64,26 +64,29 @@ type Opts = {
    * A range drag in progress: the filter is not committed yet; the shown layout stays and only its birds dated inside
    * from..to are visible (no worker call, no travel). Play wins over a preview.
    */
-  preview?: { from?: string; to?: string } | null
+  preview?: { from?: string; to?: string; committed?: boolean } | null
 }
 
 /**
  * What the stage shows while only visibility changes. Play: the birds dated up to `until` over the time-free layout,
  * nothing until that layout (key `want`) has landed, so the old trip or range layout never flashes. A drag preview: the
- * shown layout's birds dated inside from..to. Otherwise the layout as it is.
+ * shown layout's birds dated inside from..to; once committed, only while the shown layout is still the old one.
+ * Otherwise the layout as it is.
  */
 export function stillView(
   current: CollageLayout,
   want: string,
   play: { months: ReadonlyMap<string, string | undefined>; until: string; last: boolean } | null,
-  preview: { dates: ReadonlyMap<string, string | undefined>; from?: string; to?: string } | null,
+  preview: { dates: ReadonlyMap<string, string | undefined>; from?: string; to?: string; committed?: boolean } | null,
 ): CollageLayout {
   const { layout } = current
   if (play) {
     if (layout.key.split('|').slice(2).join('|') !== want) return { layout, visible: new Set(), still: true }
     return { layout, visible: revealUntil(layout.boxes.keys(), play.months, play.until, play.last), still: true }
   }
-  if (preview) {
+  // A committed preview stands in only until the committed range's layout (key `want`) lands; that layout is never
+  // marked still, so it travels.
+  if (preview && !(preview.committed && layout.key.split('|').slice(2).join('|') === want)) {
     const visible = new Set<string>()
     for (const c of layout.boxes.keys()) if (inRange(preview.dates.get(c), preview.from, preview.to)) visible.add(c)
     return { layout, visible, still: true }
