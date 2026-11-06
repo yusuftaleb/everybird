@@ -1,0 +1,27 @@
+tests/collage.test.tsx
+  s_ab125876fe9ad2::t_eaeda2cbb05fbd 202-238
+e2e/collage-big.spec.ts
+  s_ab125876fe9ad2::t_f8e1b68b14a48b 1-68
+src/components/collage/Collage.tsx
+  s_ab125876fe9ad2::t_37a01356c53f2e 364-375,379,406
+AGENTS.md
+  s_ab125876fe9ad2::t_14860514a12440 35
+e2e/stress.spec.ts
+  s_ab125876fe9ad2::t_6600a1fc9588f6 12,298,300
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "46dcb7c53756f110ff38a87dca43f0734010df58",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
