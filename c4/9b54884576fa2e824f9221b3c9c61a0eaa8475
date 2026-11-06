@@ -1,0 +1,51 @@
+e2e/filters.spec.ts
+  s_ab125876fe9ad2::t_7975278b79d842 7-8,80-118
+  s_ab125876fe9ad2::t_06aebdd66e24be 119
+src/lib/list/filter-panels.ts
+  s_ab125876fe9ad2::t_7975278b79d842 6-8,15-18,21
+tests/filters-ui.test.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 7-8,53-55,58,69,133,136,140,154-157,159,161-163,199,203-205
+AGENTS.md
+  s_ab125876fe9ad2::t_9bf38873280a9b 34,60
+src/components/filters/TripBrackets.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 1-60
+tests/filter-panels.test.ts
+  s_ab125876fe9ad2::t_7975278b79d842 12-14,17,20
+e2e/timeline.spec.ts
+  s_ab125876fe9ad2::t_7975278b79d842 1-97
+src/components/filters/Timeline.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 1-206
+playwright.config.ts
+  s_ab125876fe9ad2::t_7975278b79d842 19-20,26
+src/components/filters/use-play.ts
+  s_ab125876fe9ad2::t_7975278b79d842 1-40
+DESIGN.md
+  s_ab125876fe9ad2::t_9bf38873280a9b 170,205
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 12,17,90-106,197,203
+tests/timeline-ui.test.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 1-140
+src/components/filters/timeline.css
+  s_ab125876fe9ad2::t_7975278b79d842 1-77
+src/components/filters/FilterBar.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 8-9,16,18-19,27-28,53-54,62,86,104,114-121,225,227,251-264
+src/components/collage/Collage.tsx
+  s_ab125876fe9ad2::t_7975278b79d842 11,38,42-43,66,82-83,168-170,179,181,188,194-198,203-204
+  s_ab125876fe9ad2::t_9014f991f91551 39-41,199-202
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c49b54884576fa2e824f9221b3c9c61a0eaa8475",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
