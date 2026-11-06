@@ -1,0 +1,35 @@
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_5edb4c0eeb2412 3-12,14-16,78-79,84-85,89,94,96-111,158-161,163,260-261,269-270,275-278,341-342,352,365-366,375-376,392,403,405,409-414,417-418,420
+src/components/share/share.css
+  s_ab125876fe9ad2::t_646279791fc7ac 56
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_82d524f95ea2db 270
+src/lib/share/og.ts
+  s_ab125876fe9ad2::t_53c6206f85d558 9-11,30,32,35,37-39
+app/s/[token]/opengraph-image.tsx
+  s_ab125876fe9ad2::t_a89cf26b4cd6d4 7-8,14,55
+  s_ab125876fe9ad2::t_711b0c7cbf9770 65-66,72,96-106
+tests/og.test.ts
+  s_ab125876fe9ad2::t_fd3186d26849c4 49-53,55,57-59,61-62
+tests/share-image.test.ts
+  s_ab125876fe9ad2::t_5f81ffbba299a6 5,73,75,77-80,83-96,98,101-104
+tests/share-image-load.test.ts
+  s_ab125876fe9ad2::t_77966fc765553e 94
+  s_ab125876fe9ad2::t_eaa9048ddf5691 30-32,35,69-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "acf7e77fe245e8cc6721b60461d1829ba0e7efaa",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
