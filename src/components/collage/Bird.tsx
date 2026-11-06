@@ -24,7 +24,8 @@ type Props = {
 
 /**
  * One bird: a button named by its common name, positioned by the stage's CSS variables. It takes no pointer
- * events (the stage hit-tests silhouettes) and is never re-rendered for motion. Species without a sticker,
+ * events (the stage hit-tests silhouettes) and is never re-rendered for motion. Its sticker downloads only when
+ * the collage sees it near the viewport (Sticker `defer`, Collage's observer). Species without a sticker,
  * and stickers that fail to load, show the Phosphor Bird silhouette in Muted.
  */
 export const Bird = memo(function Bird({ code, name, st, ar, init, register }: Props) {
@@ -40,7 +41,7 @@ export const Bird = memo(function Bird({ code, name, st, ar, init, register }: P
       tabIndex={-1}
       style={init.style}
     >
-      <Sticker code={code} st={st} ar={ar} w={init.w} h={init.h} />
+      <Sticker code={code} st={st} ar={ar} w={init.w} h={init.h} defer />
     </button>
   )
 })

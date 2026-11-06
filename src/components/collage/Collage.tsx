@@ -14,6 +14,7 @@ import type { StateLayout } from '@/lib/layout/layout-client'
 import type { ListEntry } from '@/lib/list/model'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { Bird, type BirdInit } from './Bird'
+import { loadDeferred } from './Sticker'
 import { birdAt, ensureMasks } from './collage-hit'
 import {
   APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, ENTER_MS, FADE_MS, RIPPLE_MS, WRITE_MIN, WRITE_START, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
@@ -42,11 +43,13 @@ export type CollageProps = {
 }
 
 const TOUCH_SLOP_PX = 28
+/** How far beyond the viewport (above and below) a bird's sticker starts downloading: one screen. */
+const STICKER_MARGIN = '100% 0px'
 /** In a still change (a drag preview), more arrivals than this appear without their fade. */
 const INSTANT_AT = 60
 /** :focus-visible, where the browser knows it (jsdom doesn't: there, any focus counts). */
 const focusVisible = (el: Element) => { try { return el.matches(':focus-visible') } catch { return true } }
-type Fade = { anim: Animation | null; phase: 'out' | 'in' | null; apply: (() => void) | null }
+type Fade = { anim: Animation | null; phase: 'out' | 'place' | 'in' | null; apply: ((ready: () => void) => void) | null; seq: number }
 
 /** A bird's first-render style, from the layout it first appears in (seeds the motion caches to match). */
 function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Motion, stagePx: number, appear: boolean): BirdInit {
@@ -71,7 +74,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
   const [motion] = useState<Motion>(newMotion)
   const [inits] = useState(() => new Map<string, BirdInit>())
   const stagePx = useRef(layout.W) // layout units are CSS px at the layout's design width, until measured
-  const fade = useRef<Fade>({ anim: null, phase: null, apply: null })
+  const fade = useRef<Fade>({ anim: null, phase: null, apply: null, seq: 0 })
   const focusCode = useRef<string | null>(null)
   const stopCode = useRef<string | null>(null)
   const hot = useRef<string | null>(null)
@@ -97,9 +100,24 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
   const orders = useMemo(() => [...new Set(entries.map((e) => row(e.code)?.ord).filter((o): o is string => !!o))], [entries, row])
   const shown = useMemo(() => entries.reduce((n, e) => n + (visible.has(e.code) ? 1 : 0), 0), [entries, visible])
 
+  // Stickers download when their bird comes within STICKER_MARGIN of the viewport (Sticker `defer`), so a tall
+  // collage of thousands of birds fetches only what is near the screen. Created at the first bird's ref.
+  const io = useRef<IntersectionObserver | null | undefined>(undefined)
   const register = useCallback((code: string, el: HTMLButtonElement | null) => {
-    if (el) els.current.set(code, el)
-    else els.current.delete(code)
+    if (io.current === undefined) {
+      io.current = typeof IntersectionObserver === 'function'
+        ? new IntersectionObserver((es) => {
+          for (const e of es) if (e.isIntersecting) { loadDeferred(e.target); io.current?.unobserve(e.target) }
+        }, { rootMargin: STICKER_MARGIN })
+        : null
+    }
+    const old = els.current.get(code)
+    if (old && old !== el) io.current?.unobserve(old)
+    if (el) {
+      els.current.set(code, el)
+      if (io.current) io.current.observe(el)
+      else loadDeferred(el)
+    } else els.current.delete(code)
   }, [])
 
   // One tab stop: the last focused or picked bird if it is shown, else the first shown bird in taxonomic order.
@@ -126,12 +144,37 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     latest.current.onHover?.(code)
   }, [])
 
-  // Fade-through for big lists and reduced motion: the bird layer fades out, the birds are placed, it fades back.
-  const fadeThrough = useCallback((apply: () => void) => {
+  // Fade-through for big lists and reduced motion: the bird layer fades out, the birds are placed (in budgeted
+  // chunks: `apply` calls `ready` after the last one), it fades back. A change that lands while the birds are
+  // being placed is placed instead, under the same fade. While placing, the layer's content is skipped
+  // (content-visibility: hidden) rather than held at opacity 0 by the finished fade: with thousands of birds,
+  // every chunk's frame would otherwise re-layerize all of them (~300 ms a frame at 4x CPU for 3,000 birds), and
+  // visibility: hidden would restyle every bird twice (it is inherited).
+  // cut: skip the fade-out (the birds go at once). For a change away from thousands of shown birds: fading that
+  // layer out costs a few ~300 ms frames at 4x CPU, so on a slow phone it never looked like a fade anyway.
+  const fadeThrough = useCallback((apply: (ready: () => void) => void, cut = false) => {
     const L = layer.current, f = fade.current
-    if (!L || typeof L.animate !== 'function') { apply(); return }
+    if (!L || typeof L.animate !== 'function') { apply(() => {}); return }
     f.apply = apply
     if (f.phase === 'out') return
+    const place = () => {
+      const run = f.apply
+      f.apply = null
+      f.phase = 'place'
+      L.style.contentVisibility = 'hidden'
+      f.anim?.cancel()
+      f.anim = null
+      const seq = ++f.seq
+      run?.(() => {
+        if (f.seq !== seq || f.phase !== 'place' || !alive.current) return
+        L.style.removeProperty('content-visibility')
+        f.phase = 'in'
+        const fadeIn = L.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS / 2, easing: EASE_OUT })
+        f.anim = fadeIn
+        fadeIn.onfinish = () => { if (f.anim === fadeIn && alive.current) { f.anim = null; f.phase = null } }
+      })
+    }
+    if (f.phase === 'place' || (cut && !f.anim)) { place(); return }
     const from = f.anim ? Number(getComputedStyle(L).opacity) || 0 : 1
     f.anim?.cancel()
     f.phase = 'out'
@@ -139,15 +182,12 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     f.anim = out
     out.onfinish = () => {
       if (f.anim !== out || !alive.current) return
-      f.apply?.()
-      f.apply = null
-      f.phase = 'in'
-      const fadeIn = L.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS / 2, easing: EASE_OUT })
-      out.cancel()
-      f.anim = fadeIn
-      fadeIn.onfinish = () => { if (f.anim === fadeIn && alive.current) { f.anim = null; f.phase = null } }
+      place()
     }
   }, [])
+
+  // A fade-through cut short: the birds show again at once.
+  const unveil = useCallback(() => { layer.current?.style.removeProperty('content-visibility') }, [])
 
   // eslint-disable-next-line react-hooks/immutability -- `motion` is a per-instance mutable cache kept outside React state on purpose (birds move by DOM writes, never re-renders); this effect writes it
   useLayoutEffect(() => {
@@ -197,7 +237,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     if (!first && (latest.current.still || sameLayout)) {
       st?.removeAttribute('data-fast')
       const f = fade.current
-      if (f.phase) { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null }
+      if (f.phase) { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null; f.seq++; unveil() }
       // Placed without motion, in budgeted chunks: hidden birds go at once, shown ones fade in through their CSS opacity
       // transition (200 ms) rather than a 640 ms WAAPI growth, so few birds are composited at once. Many arrivals at
       // once (a wide drag back) appear without the fade: hundreds of overlapping fades
@@ -211,16 +251,19 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       }, WRITE_MIN)
       return
     }
-    if (!first && (reduced() || shown > CROSSFADE_AT)) {
+    // Big before or after: a filter from 3,000 birds down to a few would otherwise start a WAAPI exit for every
+    // leaving bird in view, each its own composited layer (Layerize took ~500 ms a frame at 4x CPU).
+    if (!first && (reduced() || shown > CROSSFADE_AT || (m.on?.size ?? 0) > CROSSFADE_AT)) {
+      // A cut hides the layer first, so data-fast restyles no bird now (its content is skipped until shown).
+      fadeThrough((ready) => write('jump', ready, WRITE_MIN), (m.on?.size ?? 0) > CROSSFADE_AT)
       st?.setAttribute('data-fast', '')
-      fadeThrough(() => write('jump'))
       return
     }
     st?.removeAttribute('data-fast')
     const f = fade.current
-    if (f.phase === 'out') { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null }
+    if (f.phase === 'out' || f.phase === 'place') { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null; f.seq++; unveil() }
     write(first ? 'jump' : 'travel')
-  }, [layout, visible, taxo, entries, shown, syncTabStop, setHot, fadeThrough, motion, inits])
+  }, [layout, visible, taxo, entries, shown, syncTabStop, setHot, fadeThrough, unveil, motion, inits])
 
   // Once the first appearance has played (the latest bird starts at APPEAR_MS and runs ENTER_MS), switch the
   // birds' eb-in CSS animation off in idle time: a bird holding even a finished CSS animation costs more on
@@ -255,8 +298,12 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
   useEffect(() => {
     alive.current = true
     const f = fade.current
+    // A remount (Strict Mode) re-watches the birds whose stickers haven't started (observe is idempotent).
+    const watch = io.current
+    if (watch) for (const el of els.current.values()) watch.observe(el)
     return () => {
       alive.current = false
+      io.current?.disconnect()
       cancelAnimationFrame(frame.current)
       cancelAnimationFrame(chunkFrame.current)
       f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null
