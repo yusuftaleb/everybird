@@ -21,6 +21,21 @@ export function loadDeferred(el: Element): boolean {
 }
 
 /**
+ * Let go of a started sticker's image (the reverse of loadDeferred), so the browser can drop its decoded pixels;
+ * loadDeferred starts it again. Returns whether there was one.
+ */
+export function unloadSticker(el: Element): boolean {
+  const img = el.querySelector<HTMLImageElement>('img:not([data-src])')
+  const src = img?.getAttribute('src')
+  if (!img || !src) return false
+  img.dataset.src = src
+  img.dataset.srcset = img.getAttribute('srcset') ?? ''
+  img.removeAttribute('srcset')
+  img.removeAttribute('src')
+  return true
+}
+
+/**
  * A bird's sticker filling its box (w × h CSS px, used for the width/height attributes and `sizes`), or the
  * Phosphor Bird silhouette in Muted when the species has no sticker or the image fails to load.
  * - defer: render the image without its source (data-src / data-srcset hold it) until loadDeferred() is called;

@@ -14,7 +14,7 @@ import type { StateLayout } from '@/lib/layout/layout-client'
 import type { ListEntry } from '@/lib/list/model'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { Bird, type BirdInit } from './Bird'
-import { loadDeferred } from './Sticker'
+import { loadDeferred, unloadSticker } from './Sticker'
 import { birdAt, ensureMasks } from './collage-hit'
 import {
   APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, ENTER_MS, FADE_MS, RIPPLE_MS, WRITE_MIN, WRITE_START, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
@@ -45,6 +45,8 @@ export type CollageProps = {
 const TOUCH_SLOP_PX = 28
 /** How far beyond the viewport (above and below) a bird's sticker starts downloading: one screen. */
 const STICKER_MARGIN = '100% 0px'
+/** Beyond this (four screens above or below the viewport) a bird's sticker is let go until it comes near again. */
+const STICKER_FAR = '400% 0px'
 /** In a still change (a drag preview), more arrivals than this appear without their fade. */
 const INSTANT_AT = 60
 /** :focus-visible, where the browser knows it (jsdom doesn't: there, any focus counts). */
@@ -101,22 +103,24 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
   const shown = useMemo(() => entries.reduce((n, e) => n + (visible.has(e.code) ? 1 : 0), 0), [entries, visible])
 
   // Stickers download when their bird comes within STICKER_MARGIN of the viewport (Sticker `defer`), so a tall
-  // collage of thousands of birds fetches only what is near the screen. Created at the first bird's ref.
-  const io = useRef<IntersectionObserver | null | undefined>(undefined)
+  // collage of thousands of birds fetches only what is near the screen, and let go of their image again once it
+  // is beyond STICKER_FAR (unloadSticker), so scrolling through thousands never holds them all decoded (WebKit's
+  // page crashed scrolling 6,000 at 1440 px). Both observers are created at the first bird's ref.
+  const io = useRef<{ near: IntersectionObserver; far: IntersectionObserver } | null | undefined>(undefined)
   const register = useCallback((code: string, el: HTMLButtonElement | null) => {
     if (io.current === undefined) {
       io.current = typeof IntersectionObserver === 'function'
-        ? new IntersectionObserver((es) => {
-          for (const e of es) if (e.isIntersecting) { loadDeferred(e.target); io.current?.unobserve(e.target) }
-        }, { rootMargin: STICKER_MARGIN })
+        ? {
+            near: new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) loadDeferred(e.target) }, { rootMargin: STICKER_MARGIN }),
+            far: new IntersectionObserver((es) => { for (const e of es) if (!e.isIntersecting) unloadSticker(e.target) }, { rootMargin: STICKER_FAR }),
+          }
         : null
     }
     const old = els.current.get(code)
-    if (old && old !== el) io.current?.unobserve(old)
+    if (old && old !== el) { io.current?.near.unobserve(old); io.current?.far.unobserve(old) }
     if (el) {
       els.current.set(code, el)
-      if (io.current) io.current.observe(el)
-      else loadDeferred(el)
+      if (io.current) { io.current.near.observe(el); io.current.far.observe(el) } else loadDeferred(el)
     } else els.current.delete(code)
   }, [])
 
@@ -300,10 +304,11 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     const f = fade.current
     // A remount (Strict Mode) re-watches the birds whose stickers haven't started (observe is idempotent).
     const watch = io.current
-    if (watch) for (const el of els.current.values()) watch.observe(el)
+    if (watch) for (const el of els.current.values()) { watch.near.observe(el); watch.far.observe(el) }
     return () => {
       alive.current = false
-      io.current?.disconnect()
+      io.current?.near.disconnect()
+      io.current?.far.disconnect()
       cancelAnimationFrame(frame.current)
       cancelAnimationFrame(chunkFrame.current)
       f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null
