@@ -9,9 +9,6 @@
   flex-direction: column;
   --page-gap: 40px;
   gap: var(--page-gap);
-  /* Birds at the stage's edge grow in from translate(12%, 12%) on their first appearance, a few px past it for a moment:
-     the gutters take that, and nothing ever scrolls the page sideways (Firefox showed a 7px sideways scroll on phones). */
-  overflow-x: clip;
 }
 @media (min-width: 720px) { .eb-page { padding: 48px 32px 64px; --page-gap: 56px; } }
 
