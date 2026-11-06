@@ -1,0 +1,25 @@
+src/components/collage/Collage.tsx
+  s_ab125876fe9ad2::t_c7318663227bf2 494-496
+  s_ab125876fe9ad2::t_f57af71610acda 65-66,175-176,182-189,195,315,501,510-517,520
+  s_ab125876fe9ad2::t_bcfe704c87d29a 63-64,278-280,289
+src/components/collage/collage.css
+  s_ab125876fe9ad2::t_c7318663227bf2 4
+  s_ab125876fe9ad2::t_e44ba0995216ce 47-48
+  s_ab125876fe9ad2::t_f57af71610acda 36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f2269fed8ada5a2f1c640aa8b56dbb6f5fd48de0",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "unknown"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
