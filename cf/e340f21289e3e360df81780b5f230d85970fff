@@ -10,6 +10,8 @@ src/components/share/share.css
   s_ab125876fe9ad2::t_fb85196b374870 1-4,28-30,34,39,51
 src/components/share/ShareDialog.tsx
   s_ab125876fe9ad2::t_fb85196b374870 245-246
+DESIGN.md
+  s_ab125876fe9ad2::t_d25f67128e271e 194
 ---
 {
   "schema_version": "authorship/3.0.0",
