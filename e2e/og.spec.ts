@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { encodeShare, type SharePayload } from "../src/lib/share/link";
+import { OG_CACHE_COMPLETE } from "../src/lib/share/og";
 
 // Synthetic list: 197 species with stickers, spread over the taxonomy, dated in 2026 (the last one is the latest lifer).
 const species = (JSON.parse(readFileSync("public/data/species.v1.json", "utf8")) as { species: { code: string; st: boolean; com: string }[] }).species;
@@ -26,6 +27,16 @@ test("a share link's preview image is a 1200x630 PNG within 4 s", async ({ reque
   expect(res.headers()["content-type"]).toContain("image/png");
   expect(pngSize(await res.body())).toEqual([1200, 630]);
   expect(ms).toBeLessThan(4000);
+});
+
+// A token is content-addressed (the link encodes the list), so a complete card is cached a year at the CDN. Next passes
+// the ImageResponse's header through on both metadata-image routes (the twitter card re-exports the same image).
+test("a complete preview is sent with the year-long cache header, on the og and the twitter image", async ({ request }) => {
+  for (const route of ["opengraph-image", "twitter-image"]) {
+    const res = await request.get(`/s/${token}/${route}`, { timeout: 60_000 });
+    expect(res.status()).toBe(200);
+    expect(res.headers()["cache-control"], `${route}: every font and sticker loaded, so the card is complete`).toBe(OG_CACHE_COMPLETE);
+  }
 });
 
 test("a different, uncached list also renders in 4 s", async ({ request }) => {

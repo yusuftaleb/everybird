@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SharePayload } from '@/lib/share/link'
-import { OG_DESCRIPTION, ogName, ogResponseOptions, ogTitle, pickOgBirds, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
+import { OG_CACHE_COMPLETE, OG_CACHE_DEGRADED, OG_DESCRIPTION, ogCacheControl, ogName, ogResponseOptions, ogTitle, pickOgBirds, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
 import { parseFontFaces } from '@/lib/share/og-server'
 
 const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ code: `b${i}`, to: (i + 1) * 10 }))
@@ -79,6 +79,17 @@ describe('parseFontFaces', () => {
   })
 })
 
+describe('ogCacheControl', () => {
+  it('a complete card is content-addressed by its token: browsers a day, the CDN a year, stale for a week', () => {
+    expect(ogCacheControl(true)).toBe('public, max-age=86400, s-maxage=31536000, stale-while-revalidate=604800')
+    expect(OG_CACHE_COMPLETE).toBe(ogCacheControl(true))
+  })
+  it('a degraded card (a font or a sticker missing) is cached a minute, so a hiccup does not stick', () => {
+    expect(ogCacheControl(false)).toBe('public, max-age=60, s-maxage=60')
+    expect(OG_CACHE_DEGRADED).toBe(ogCacheControl(false))
+  })
+})
+
 describe('ogResponseOptions', () => {
   const f = [1, 2, 3]
   it('no fonts -> fonts undefined (so next/og keeps its default) and a short cache', () => {
@@ -86,8 +97,8 @@ describe('ogResponseOptions', () => {
     expect(o.fonts).toBeUndefined()
     expect(o.headers['cache-control']).toContain('s-maxage=60')
   })
-  it('complete card keeps the long cache; a missing font or sticker shortens it', () => {
-    expect(ogResponseOptions(f, { placed: 60, expected: 60 }).headers['cache-control']).toContain('s-maxage=86400')
+  it('complete card keeps the year-long cache; a missing font or sticker shortens it', () => {
+    expect(ogResponseOptions(f, { placed: 60, expected: 60 }).headers['cache-control']).toBe(OG_CACHE_COMPLETE)
     expect(ogResponseOptions(f, { placed: 59, expected: 60 }).headers['cache-control']).toContain('s-maxage=60')
     expect(ogResponseOptions(f.slice(1), { placed: 60, expected: 60 }).headers['cache-control']).toContain('s-maxage=60')
   })

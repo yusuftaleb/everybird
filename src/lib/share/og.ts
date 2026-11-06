@@ -49,15 +49,22 @@ export function tryDecodeShare(token: string): SharePayload | null {
 }
 
 export const OG_FONT_COUNT = 3 // Satoshi 500, Cabinet Grotesk 700, Geist Mono 400
-const CACHE_OK = 'public, max-age=3600, s-maxage=86400'
-const CACHE_DEGRADED = 'public, max-age=60, s-maxage=60'
+/**
+ * A complete card never changes: the token is content-addressed (the link encodes the list, so a different list is a
+ * different URL). Browsers keep it a day, the CDN a year (one render per token per region until evicted), and a stale
+ * copy is served for a week while it revalidates.
+ */
+export const OG_CACHE_COMPLETE = 'public, max-age=86400, s-maxage=31536000, stale-while-revalidate=604800'
+/** A card missing a font or a sticker: a minute, so a fetch hiccup doesn't stick. */
+export const OG_CACHE_DEGRADED = 'public, max-age=60, s-maxage=60'
+export const ogCacheControl = (complete: boolean) => (complete ? OG_CACHE_COMPLETE : OG_CACHE_DEGRADED)
 
 /**
  * ImageResponse options that depend on how the card came out. No fonts at all -> `fonts: undefined`, so next/og keeps
  * its default font (an empty array would replace it and satori would throw). A card with a missing font or fewer
- * stickers than expected is cached only briefly, so a fetch hiccup doesn't stick for a day.
+ * stickers than expected is cached only briefly (ogCacheControl), so a fetch hiccup doesn't stick for a year.
  */
 export function ogResponseOptions<F>(fonts: F[], stickers: { placed: number; expected: number }) {
   const complete = fonts.length >= OG_FONT_COUNT && stickers.placed >= stickers.expected
-  return { fonts: fonts.length ? fonts : undefined, headers: { 'cache-control': complete ? CACHE_OK : CACHE_DEGRADED } }
+  return { fonts: fonts.length ? fonts : undefined, headers: { 'cache-control': ogCacheControl(complete) } }
 }
