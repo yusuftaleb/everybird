@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { createLayoutClient, type LayoutClient, type StateLayout } from '@/lib/layout/layout-client'
 import type { LayoutName } from '@/lib/layout/layout.worker'
-import { applyFilter, options, type Filter } from '@/lib/list/filters'
+import { applyFilter, options, type Filter, type FilterLevel } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { entryCountry, type Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
@@ -21,12 +21,13 @@ const COUNTRY_PREFETCH = 8
 
 /**
  * The states one tap away from `f`: the next taxonomy level (orders, or the chosen order's families), the
- * top countries, and the next time level (years, or the chosen year's trips). At most PREFETCH_CAP.
+ * top countries, and the next time level (years, or the chosen year's trips). At most PREFETCH_CAP. None while searching.
  */
 export function childFilters(list: ListEntry[], f: Filter, species: SpeciesIndex, trips: Trip[]): Filter[] {
   const out: Filter[] = []
-  const add = (level: keyof Filter, values: string[]) => values.forEach((v) => out.push({ ...f, [level]: v }))
-  const vals = (level: keyof Filter) => options(list, f, level, species, trips).map((o) => o.value)
+  if (f.q) return out // a search is passing through: picking a suggestion goes back to the unsearched state
+  const add = (level: FilterLevel, values: string[]) => values.forEach((v) => out.push({ ...f, [level]: v }))
+  const vals = (level: FilterLevel) => options(list, f, level, species, trips).map((o) => o.value)
   if (!f.order) add('order', vals('order'))
   else if (!f.family) add('family', vals('family'))
   if (!f.country) add('country', vals('country').slice(0, COUNTRY_PREFETCH))

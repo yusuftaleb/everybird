@@ -1,4 +1,5 @@
 import type { SpeciesFile, SpeciesRow, TaxonRow, TaxonomyFile } from './types'
+import { prepared, rankByName } from './name-search'
 import { exactSci, foldName, normalizeSci } from './resolve'
 
 export type SpeciesIndex = {
@@ -82,42 +83,8 @@ export function buildTaxonomyIndex(rows: TaxonRow[]): TaxonomyIndex {
   return { rows, bySci, exactSci: exact, byCom, byOrder }
 }
 
-const wordsOf = (s: string) => (s ? s.split(' ') : [])
-
 export function buildSpeciesIndex(rows: SpeciesRow[]): SpeciesIndex {
   const byCode = new Map(rows.map((r) => [r.code, r]))
-  // Precompute normalized names and word lists once; search() only scans these.
-  const pre = rows.map((r) => {
-    const com = searchKey(r.com)
-    const sci = searchKey(r.sci)
-    return { r, com, sci, cw: wordsOf(com), sw: wordsOf(sci) }
-  })
-  const hasPrefix = (ws: string[], t: string) => ws.some((w) => w.startsWith(t))
-
-  function search(q: string, limit = 20): SpeciesRow[] {
-    const key = searchKey(q)
-    if (!key) return []
-    const toks = key.split(' ')
-    const hits: { r: SpeciesRow; tier: number }[] = []
-    for (const p of pre) {
-      let tier: number
-      if (p.com === key || p.sci === key) tier = 0
-      else if (toks.every((t) => hasPrefix(p.cw, t))) tier = 1
-      else if (toks.every((t) => hasPrefix(p.sw, t))) tier = 2
-      else if (toks.every((t) => hasPrefix(p.cw, t) || hasPrefix(p.sw, t))) tier = 3
-      else continue
-      hits.push({ r: p.r, tier })
-    }
-    hits.sort((a, b) => a.tier - b.tier || a.r.to - b.r.to)
-    return hits.slice(0, limit).map((h) => h.r)
-  }
-  return { rows, byCode, search }
-}
-
-/** Accent-stripped, lower-case, apostrophes dropped, other punctuation to spaces. */
-function searchKey(s: string): string {
-  return foldName(s)
-    .replace(/['’`]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
+  for (const r of rows) prepared(r) // normalise the names once, up front
+  return { rows, byCode, search: (q: string, limit = 20) => rankByName(rows, q, limit) }
 }

@@ -1,15 +1,21 @@
 import type { SpeciesIndex } from '@/lib/species/load'
+import { nameTier, searchKey } from '@/lib/species/name-search'
 import { orderLabel } from '@/lib/species/orders'
 import type { ListEntry } from './model'
 import { entryCountry, type Trip } from './trips'
 
-export type Filter = { order?: string; family?: string; country?: string; year?: string; trip?: string }
+/**
+ * The active filters. `q` is the collage search's text (names, word prefixes): it narrows like any other
+ * dimension, but it is never stored (CollageView adds it to the store's filter).
+ */
+export type Filter = { order?: string; family?: string; country?: string; year?: string; trip?: string; q?: string }
 export type ChipOption = { value: string; label: string; count: number }
-type Level = 'order' | 'family' | 'country' | 'year' | 'trip'
+export type FilterLevel = 'order' | 'family' | 'country' | 'year' | 'trip'
+type Level = FilterLevel
 
 const yearOf = (e: ListEntry) => (e.date && /^\d{4}/.test(e.date) ? e.date.slice(0, 4) : undefined)
 
-/** Stable key, e.g. "o:Passeriformes|f:Corvidae|c:EG|y:2026|t:EG-2026-09-01"; empty values are omitted. */
+/** Stable key, e.g. "o:Passeriformes|f:Corvidae|c:EG|y:2026|t:EG-2026-09-01|q:flick"; empty values are omitted. */
 export function filterKey(f: Filter): string {
   const parts: string[] = []
   if (f.order) parts.push(`o:${f.order}`)
@@ -17,6 +23,8 @@ export function filterKey(f: Filter): string {
   if (f.country) parts.push(`c:${f.country}`)
   if (f.year) parts.push(`y:${f.year}`)
   if (f.trip) parts.push(`t:${f.trip}`)
+  const q = f.q ? searchKey(f.q) : ''
+  if (q) parts.push(`q:${q}`)
   return parts.join('|')
 }
 
@@ -31,6 +39,7 @@ function matcher(f: Filter, species: SpeciesIndex, trips: Trip[], skip: Readonly
   const country = skip.has('country') ? undefined : f.country
   const year = skip.has('year') ? undefined : f.year
   const tripId = skip.has('trip') ? undefined : f.trip
+  const q = f.q ? searchKey(f.q) : ''
   let tripCodes: Set<string> | undefined
   let impossible = false
   if (tripId) {
@@ -40,11 +49,12 @@ function matcher(f: Filter, species: SpeciesIndex, trips: Trip[], skip: Readonly
   }
   return (e: ListEntry): boolean => {
     if (impossible) return false
-    if (order || family) {
+    if (order || family || q) {
       const row = species.byCode.get(e.code)
       if (!row) return false
       if (order && row.ord !== order) return false
       if (family && row.fam !== family) return false
+      if (q && nameTier(q, row) < 0) return false
     }
     if (country && entryCountry(e) !== country) return false
     if (year && yearOf(e) !== year) return false
