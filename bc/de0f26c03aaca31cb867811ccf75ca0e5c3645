@@ -1,0 +1,28 @@
+e2e/settings.spec.ts
+  s_ab125876fe9ad2::t_f41ffda6d5bab0 1-13,31-39,42-78,80-122
+  s_ab125876fe9ad2::t_d3038b40dc3469 79
+  s_ab125876fe9ad2::t_17f2e108ecd0ba 14-30,40-41
+playwright.config.ts
+  s_ab125876fe9ad2::t_1bddb788fd49ad 19-20
+AGENTS.md
+  s_ab125876fe9ad2::t_a2b5890fa5118c 51-52,60
+  s_ab125876fe9ad2::t_80c09a0ac09452 34
+DESIGN.md
+  s_ab125876fe9ad2::t_a2b5890fa5118c 127,188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bcde0f26c03aaca31cb867811ccf75ca0e5c3645",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
