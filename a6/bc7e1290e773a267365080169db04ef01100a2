@@ -1,0 +1,31 @@
+src/lib/share/og-server.ts
+  s_ab125876fe9ad2::t_0bbb5c7794f667 102-105,108-111,113,117-119,122,125-127,131
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_f94c7f4330c955 374-387,537-549,551,553-555,566,570,573-581
+  s_ab125876fe9ad2::t_5d3bb220a03258 110-111,155,159,162,165-173,201,450
+tests/share-image-load.test.ts
+  s_ab125876fe9ad2::t_0bbb5c7794f667 173-174,182
+tests/share-image.test.ts
+  s_ab125876fe9ad2::t_0bbb5c7794f667 5,165-171,195-211
+  s_ab125876fe9ad2::t_74dbcba8cbf487 212
+app/s/[token]/opengraph-image.tsx
+  s_ab125876fe9ad2::t_0bbb5c7794f667 12,44-46
+DESIGN.md
+  s_ab125876fe9ad2::t_e878d73cf05774 188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a6bc7e1290e773a267365080169db04ef01100a2",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
