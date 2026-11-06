@@ -350,6 +350,55 @@ describe('packFrame (share images)', () => {
   })
 })
 
+describe('packFrame with the count in the middle (share images)', () => {
+  beforeAll(() => {
+    if (!POOL.length) POOL = loadPool()
+  })
+  // The hole and the largest tile as fractions of the frame width, as the share image asks for them.
+  const spec = { hole: [0.21, 0.15] as [number, number], maxTile: 0.24 }
+
+  for (const [n, aspect] of [[1, 0.84], [12, 0.84], [197, 0.84], [197, 0.93], [1500, 0.84]] as const) {
+    it(`${n} birds at aspect ${aspect}: no silhouette inside the hole, none overlapping, no tile past maxTile`, () => {
+      const birds = sample(n)
+      const r = packFrame(birds, aspect, spec)
+      expect(r.boxes.size).toBe(n)
+      expect(r.W / r.H).toBeCloseTo(aspect, 1)
+      const [rx, ry] = [spec.hole[0] * r.W, spec.hole[1] * r.W]
+      let inHole = 0, clash = false
+      const owner = new Map<string, number>()
+      silhouettePixels(birds, r, (id, px, py) => {
+        const dx = (px + 0.5 - r.W / 2) / rx, dy = (py + 0.5 - r.H / 2) / ry
+        if (dx * dx + dy * dy < 0.9) inHole++ // the packer's grid rounds the ellipse to whole cells
+        const k = `${px},${py}`
+        if (owner.has(k) && owner.get(k) !== id) clash = true
+        owner.set(k, id)
+      })
+      expect(inHole).toBe(0)
+      expect(clash).toBe(false)
+      for (const [x, y, w, h] of r.boxes.values()) {
+        expect(Math.max(w, h)).toBeLessThanOrEqual(spec.maxTile * r.W + 1e-6)
+        expect(x).toBeGreaterThanOrEqual(0)
+        expect(y).toBeGreaterThanOrEqual(0)
+        expect(x + w).toBeLessThanOrEqual(r.W + 1e-6)
+        expect(y + h).toBeLessThanOrEqual(r.H + 1e-6)
+      }
+    }, 30000)
+  }
+
+  it('a big list still fills the frame around the hole', () => {
+    const r = packFrame(sample(197), 0.84, spec)
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+    for (const [x, y, w, h] of r.boxes.values()) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + w); y1 = Math.max(y1, y + h) }
+    expect(Math.max((x1 - x0) / r.W, (y1 - y0) / r.H)).toBeGreaterThan(0.85)
+  })
+
+  it('packBest never goes past maxBase', () => {
+    const birds = sample(5)
+    const r = packBest(birds, { W: 400, H: 400, stretch: 1, F: 0, minBase: 0 }, 'even', { fixedStage: [400, 400], hole: [0, 0], maxBase: 20 })
+    expect(r.base).toBeLessThanOrEqual(20)
+  })
+})
+
 // Timing bounds. Generous but meaningful; set SKIP_PERF=1 to skip them (e.g. on slow CI).
 describe.skipIf(!!process.env.SKIP_PERF)('packing performance', () => {
   beforeAll(() => {

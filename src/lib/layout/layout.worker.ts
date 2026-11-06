@@ -3,10 +3,12 @@
 // Protocol (structured-clone friendly):
 //   main -> worker  { type: 'setList', id, entries: [{ code, mass, ord }] }
 //                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit? }
-//                   { type: 'image', id, entries: [{ code, mass, ord }], aspect }   (share images; no setList needed)
+//                   { type: 'image', id, entries: [{ code, mass, ord }], aspect, hole?, maxTile? }
+//                                                             (share images; no setList needed)
 //   worker -> main  { type: 'ready', id }                      (setList done: masks loaded)
 //                   { type: 'result', id, key, layout, mode, base, W, H, codes, boxes }
-//                   { type: 'image', id, W, H, codes, boxes }  (packFrame: these birds only, evened out, no hole)
+//                   { type: 'image', id, W, H, codes, boxes }  (packFrame: these birds only, evened out, the hole
+//                                                             [rx, ry] and maxTile as fractions of the frame's width)
 //                   { type: 'error', id, message }
 // `codes` in a result is the request's codes that the list knows, in request order; `boxes` is a flat
 // Float32Array [x, y, w, h] * codes.length. `targets` (request) is a Float32Array [cx, cy] * codes.length,
@@ -28,7 +30,7 @@ export type WorkerRequest =
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
       refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean
     }
-  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number }
+  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: [number, number]; maxTile?: number }
 export type WorkerReply =
   | { type: 'ready'; id: number }
   | {
@@ -111,7 +113,7 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
       if (msg.type === 'image') {
         const birds = await loadBirds(msg.entries, load)
         const codes = [...birds.keys()]
-        const r = packFrame([...birds.values()], msg.aspect)
+        const r = packFrame([...birds.values()], msg.aspect, { hole: msg.hole, maxTile: msg.maxTile })
         const boxes = new Float32Array(codes.length * 4)
         codes.forEach((c, i) => boxes.set(r.boxes.get(birds.get(c)!.id)!, i * 4))
         return { type: 'image', id: msg.id, W: r.W, H: r.H, codes, boxes }

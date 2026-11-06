@@ -126,12 +126,13 @@ export function fitStage(boxes: Map<number, Box>, W: number, H: number, holeRy: 
  * - With hole: the ellipse radii kept empty at the centre instead of holeRadii(layout.F); [0, 0] keeps none.
  * - With fit (filtered states, needs fixedStage): after packing, the stage height is trimmed about the count
  *   (fitStage), so the returned H can be less than fixedStage's and box y's move up by the same amount.
+ * - With maxBase (share images): the search never goes above it, so no tile is longer than maxBase · max rel.
  */
 export function packBest(
   birds: PackBird[], layout: Layout, mode: 'even' | 'true',
   opts: {
     targets?: Map<number, [number, number]>; refBase?: number; fixedStage?: [number, number]
-    rel?: Map<number, number>; fit?: boolean; hole?: [number, number]
+    rel?: Map<number, number>; fit?: boolean; hole?: [number, number]; maxBase?: number
   } = {},
 ): PackResult {
   const { targets, refBase, fixedStage, fit } = opts
@@ -153,7 +154,7 @@ export function packBest(
     if (clamp) return [clamp[0], clamp[1]]
     const usable = Math.max(1, W * H - Math.PI * hole[0] * hole[1])
     const est = Math.sqrt((0.55 * usable) / Math.max(area, 1e-9))
-    const hi = Math.min(1.6 * est, MAX_BASE)
+    const hi = Math.min(1.6 * est, MAX_BASE, opts.maxBase ?? Infinity)
     return [Math.min(0.6 * est, hi), hi]
   }
 
@@ -223,21 +224,31 @@ export function packBest(
 }
 
 // packFrame's target base: the site's typical sizes (so GAP and the cell grid look the same) up to 300 birds,
-// then smaller, down to the narrow layout's minBase at 5,000, so a huge list still packs in seconds.
-const frameBase = (n: number) => (n <= 300 ? 28 : Math.max(10, 28 * Math.sqrt(300 / n)))
+// then smaller, down to the narrow layout's minBase near 5,000, so a huge list still packs in seconds. It falls
+// slower than 1/sqrt(n), so GAP stays a small share of a tile and a big list's stickers stay recognisable.
+const frameBase = (n: number) => (n <= 300 ? 28 : Math.max(10, 28 * (300 / n) ** 0.35))
 /**
- * Share images: pack `birds` (relative sizes over these birds, evened out) into a frame of aspect W / H with no
- * hole at the centre (the count sits under the collage), as large as fits. The frame's size in layout units is
- * chosen so the base lands near frameBase(n) whatever the count; the caller scales the result to its pixels.
+ * Share images: pack `birds` (relative sizes over these birds, evened out) into a frame of aspect W / H, as large as
+ * fits. The frame's size in layout units is chosen so the base lands near frameBase(n) whatever the count; the
+ * caller maps the frame onto its pixels (frame width = collage width).
+ * - hole: ellipse radii [rx, ry] kept empty at the frame's centre for the count, as fractions of the frame's width
+ *   (the same in layout units and in pixels); none by default.
+ * - maxTile: no tile's long side is longer than this fraction of the frame's width (a short list then sits as a
+ *   ring around the count instead of a few giant stickers).
  */
-export function packFrame(birds: PackBird[], aspect: number): PackResult {
+export function packFrame(birds: PackBird[], aspect: number, opts: { hole?: [number, number]; maxTile?: number } = {}): PackResult {
   const rel = relSizes(birds, EXP)
-  let area = 0
-  for (const b of placementOrder(birds, rel)) area += rel.get(b.id)! ** 2 * maskFill(b.mask)
-  // packBest's estimate is base = sqrt(0.55 · usable / area); solve it for the usable area at frameBase.
+  let area = 0, maxRel = 1
+  for (const b of placementOrder(birds, rel)) { const r = rel.get(b.id)!; area += r ** 2 * maskFill(b.mask); maxRel = Math.max(maxRel, r) }
+  const [hx, hy] = opts.hole ?? [0, 0]
+  // packBest's estimate is base = sqrt(0.55 · usable / area); solve it for the frame at frameBase, where usable is the
+  // frame's area less the hole's: W² · (1 / aspect − π · hx · hy).
   const usable = (frameBase(birds.length) ** 2 * Math.max(area, 0.05)) / 0.55
-  const H = Math.max(8, Math.ceil(Math.sqrt(usable / aspect)))
-  const W = Math.max(8, Math.round(H * aspect))
+  const free = Math.max(0.2 / aspect, 1 / aspect - Math.PI * hx * hy)
+  const W = Math.max(8, Math.ceil(Math.sqrt(usable / free)))
+  const H = Math.max(8, Math.round(W / aspect))
+  const hole: [number, number] = hx > 0 && hy > 0 ? [hx * W, hy * W] : [0, 0]
+  const maxBase = opts.maxTile ? (opts.maxTile * W) / maxRel : undefined
   const frame = { W, H, stretch: aspect, F: 0, minBase: 0 }
-  return packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole: [0, 0] })
+  return packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase })
 }

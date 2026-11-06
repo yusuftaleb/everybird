@@ -1,11 +1,11 @@
 import { ImageResponse } from 'next/og'
 import { loadBirds } from '@/lib/layout/layout.worker'
-import { LAYOUTS } from '@/lib/layout/constants'
-import { packBest, type Box } from '@/lib/layout/pack'
+import { EXP, LAYOUTS } from '@/lib/layout/constants'
+import { packBest, relSizes, type Box } from '@/lib/layout/pack'
 import { latestLifer } from '@/lib/list/build-list'
 import type { ListEntry } from '@/lib/list/model'
 import { formatDate } from '@/lib/format'
-import { SHARE_COLORS, SITE_LABEL, STICKER_CREDIT } from '@/lib/share/image'
+import { SHARE_COLORS, SITE_LABEL, STICKER_CREDIT, countLayout, type CountLayout } from '@/lib/share/image'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import { OG_COLLAGE, OG_SIZE, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare, OG_DESCRIPTION } from '@/lib/share/og'
@@ -23,7 +23,13 @@ const MONO = '"Geist Mono", monospace'
 
 type Placed = { code: string; box: Box; src: string }
 
-/** Up to 60 birds of the list that have stickers, packed with the wide layout into the collage area, with their stickers. */
+/** The count in the collage's middle, as the share images: at most 104px on this smaller card. */
+const ogCount = (n: number): CountLayout => countLayout(104, n, undefined, OG_COLLAGE.w)
+
+/**
+ * Up to 60 birds of the list that have stickers, packed with the wide layout into the collage area around the count's
+ * hole (the stage is drawn 1:1, so the hole is in px), with their stickers.
+ */
 async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof serverSpecies>>): Promise<{ placed: Placed[]; expected: number }> {
   const known = payload.birds.flatMap((b) => { const row = species.get(b.code); return row ? [row] : [] })
   const picked = pickOgStickers(known)
@@ -31,7 +37,10 @@ async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof
   const wide = LAYOUTS.find((l) => l.name === 'wide')!
   const birds = await loadBirds(picked.map((r) => ({ code: r.code, mass: r.g, ord: r.ord })), serverMasks)
   const list = [...birds.entries()]
-  const r = packBest(list.map(([, b]) => b), wide, 'even', { fixedStage: [OG_COLLAGE.w, OG_COLLAGE.h], hole: [0, 0] })
+  const pack = list.map(([, b]) => b)
+  // A short list: no sticker taller than 40% of the collage (one ostrich shouldn't fill the card).
+  const maxRel = Math.max(...relSizes(pack, EXP).values())
+  const r = packBest(pack, wide, 'even', { fixedStage: [OG_COLLAGE.w, OG_COLLAGE.h], hole: ogCount(payload.birds.length).hole, maxBase: (0.4 * OG_COLLAGE.h) / maxRel })
   const stickers = await fetchStickers(list.map(([c]) => c))
   const placed: Placed[] = []
   for (const [code, b] of list) {
@@ -62,51 +71,63 @@ export default async function Image({ params }: { params: Promise<{ token: strin
       }))
       const top = latestLifer(entries, (c) => species.get(c)?.to ?? 0)
       const row = top && species.get(top.code)
-      // The lifer and its date on their own lines: a long name wraps without leaving a separator dangling.
-      if (top && row) latest = { name: `Latest lifer: ${row.com}`, date: formatDate(top.date) || undefined }
+      // The latest lifer row: a mono label with the month over the bird's name, as the share images.
+      if (top && row) latest = { name: row.com, date: formatDate(top.date) || undefined }
     } catch (e) {
       console.warn('og image: collage unavailable, rendering the text card', e) // still a valid image
     }
   }
   const name = payload ? ogName(payload) : 'Everybird'
-  const count = payload ? payload.birds.length.toLocaleString('en-US') : null
+  const K = payload ? ogCount(payload.birds.length) : null
 
   const credit = (
-    <div style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO, fontSize: 15, color: C.muted, gap: 4 }}>
-      <div style={{ display: 'flex' }}>{SITE_LABEL}</div>
-      <div style={{ display: 'flex' }}>{STICKER_CREDIT}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+        <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 24 }}>Everybird</div>
+        <div style={{ display: 'flex', fontFamily: MONO, fontSize: 16, color: C.muted }}>{SITE_LABEL}</div>
+      </div>
+      <div style={{ display: 'flex', fontFamily: MONO, fontSize: 14, color: C.muted }}>{STICKER_CREDIT}</div>
+    </div>
+  )
+  // The count in the middle of the collage, as the share images and the app's Tally: the number over a mono label.
+  const middle = K && (
+    <div style={{ display: 'flex', position: 'absolute', left: 0, top: 0, width: OG_COLLAGE.w, height: OG_COLLAGE.h, alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: K.gap * 0.6 }}>
+        <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: K.size, lineHeight: 0.85, letterSpacing: -0.02 * K.size }}>{K.number}</div>
+        <div style={{ display: 'flex', fontFamily: MONO, fontSize: K.labelSize, letterSpacing: 0.06 * K.labelSize, color: C.muted }}>{K.label}</div>
+      </div>
     </div>
   )
   const body = (
     <>
       {placed.length > 0 && (
-        <div style={{ display: 'flex', position: 'relative', width: OG_COLLAGE.w, height: OG_COLLAGE.h, margin: '35px 0 35px 20px' }}>
+        <div style={{ display: 'flex', position: 'relative', width: OG_COLLAGE.w, height: OG_COLLAGE.h, margin: '35px 0 35px 40px' }}>
           {/* satori draws these <img> elements; alt text is moot (there is no DOM) */}
           {placed.map((p) => (
             <img key={p.code} alt="" src={p.src} width={Math.round(p.box[2])} height={Math.round(p.box[3])}
               style={{ position: 'absolute', left: Math.round(p.box[0]), top: Math.round(p.box[1]), objectFit: 'contain' }} />
           ))}
+          {middle}
         </div>
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: placed.length ? 480 : 1200, height: '100%', padding: placed.length ? '48px 0 40px 20px' : '56px 64px 40px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: placed.length ? 460 : 1200, height: '100%', padding: placed.length ? '64px 56px 48px 24px' : '56px 64px 40px' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: name.length > 22 ? 36 : 46, lineHeight: 1.1, letterSpacing: -1 }}>{name}</div>
-          {count ? (
-            <div style={{ display: 'flex', flexDirection: 'column', marginTop: 28 }}>
-              {/* The share images' treatment: the count in Ink, "species" on the same baseline. */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-                <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 112, lineHeight: 1, letterSpacing: -3 }}>{count}</div>
-                <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 40 }}>species</div>
-              </div>
-              {latest && (
-                <div style={{ display: 'flex', flexDirection: 'column', fontSize: 22, fontWeight: 500, color: C.muted, marginTop: 28, lineHeight: 1.3 }}>
-                  <div style={{ display: 'flex' }}>{latest.name}</div>
-                  {latest.date && <div style={{ display: 'flex' }}>{latest.date}</div>}
-                </div>
-              )}
+          <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: name.length > 26 ? 34 : name.length > 16 ? 40 : 52, lineHeight: 1.05, letterSpacing: -1 }}>{name}</div>
+          {K && !placed.length && (
+            // No collage (a hiccup or no stickers): the count leads the text card instead.
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginTop: 28 }}>
+              <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 112, lineHeight: 1, letterSpacing: -3 }}>{K.number}</div>
+              <div style={{ display: 'flex', fontFamily: MONO, fontSize: 24, letterSpacing: 1.4, color: C.muted }}>{K.label}</div>
             </div>
-          ) : (
-            <div style={{ display: 'flex', fontSize: 34, fontWeight: 500, color: C.muted, marginTop: 24 }}>{OG_DESCRIPTION}</div>
+          )}
+          {!K && <div style={{ display: 'flex', fontSize: 34, fontWeight: 500, color: C.muted, marginTop: 24 }}>{OG_DESCRIPTION}</div>}
+          {latest && (
+            <div style={{ display: 'flex', flexDirection: 'column', marginTop: 40, gap: 8 }}>
+              <div style={{ display: 'flex', fontFamily: MONO, fontSize: 15, letterSpacing: 0.9, color: C.muted }}>
+                {`LATEST LIFER${latest.date ? ` · ${latest.date.toUpperCase()}` : ''}`}
+              </div>
+              <div style={{ display: 'flex', fontSize: 28, fontWeight: 500, lineHeight: 1.2 }}>{latest.name}</div>
+            </div>
           )}
         </div>
         {credit}

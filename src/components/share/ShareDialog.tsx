@@ -14,7 +14,7 @@ import { stripBracket } from '@/lib/import/places'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import {
-  IMAGE_SIZE, NAME_MAX_LEN, abortError, clearStickerCache, collageAspect, filterLabel as labelFor, packForImage, renderShareImage, type ImageFormat, type ImagePack,
+  IMAGE_SIZE, NAME_MAX_LEN, abortError, clearStickerCache, filterLabel as labelFor, imagePackSpec, packForImage, renderShareImage, type ImageFormat, type ImagePack,
 } from '@/lib/share/image'
 import type { ShareLevel } from '@/lib/share/link'
 import type { makeShareLink as MakeShareLink } from '@/lib/share/make-link'
@@ -67,7 +67,9 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   )
   const hasLatest = useMemo(() => shown.some((e) => e.date), [shown])
 
-  // One pack per format while the dialog is open (the view can't change underneath it); workers end on close.
+  // One pack per format and name-or-not while the dialog is open (the view can't change underneath it; a name takes a
+  // line off the collage, so it gets its own pack); workers end on close.
+  const total = fk ? known.length : undefined
   const life = useRef<AbortController | null>(null)
   useEffect(() => {
     const c = new AbortController()
@@ -75,17 +77,19 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     return () => { c.abort(); clearStickerCache() }
   }, [])
   const packFor = useMemo(() => {
-    const packs = new Map<ImageFormat, Promise<ImagePack>>()
-    return (f: ImageFormat) => {
-      let p = packs.get(f)
+    const packs = new Map<string, Promise<ImagePack>>()
+    return (f: ImageFormat, named: boolean) => {
+      const k = `${f}|${named}`
+      let p = packs.get(k)
       if (!p) {
-        p = packForImage(shown, species, collageAspect(f, !!label, hasLatest), life.current?.signal)
-        packs.set(f, p)
-        p.catch(() => packs.delete(f))
+        const spec = imagePackSpec(f, { name: named, filter: !!label, latest: hasLatest, count: shown.length, total })
+        p = packForImage(shown, species, spec, life.current?.signal)
+        packs.set(k, p)
+        p.catch(() => packs.delete(k))
       }
       return p
     }
-  }, [shown, species, label, hasLatest])
+  }, [shown, species, label, hasLatest, total])
 
   // The image: re-rendered (debounced) when the format, name or theme changes. `current` is the newest render;
   // a render superseded before it starts rejects with an AbortError.
@@ -109,8 +113,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       const t = setTimeout(resolve, delay)
       cancel = () => { clearTimeout(t); reject(abortError('superseded')) }
     })
-      .then(() => packFor(format))
-      .then((pack) => renderShareImage({ format, entries: shown, species, filterLabel: label, name: trimmed || undefined, theme, pack, signal: life.current?.signal }))
+      .then(() => packFor(format, !!trimmed))
+      .then((pack) => renderShareImage({ format, entries: shown, species, filterLabel: label, total, name: trimmed || undefined, theme, pack, signal: life.current?.signal }))
     current.current = job
     job.then(
       (blob) => {
@@ -127,7 +131,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       },
     )
     return () => { live = false; cancel() }
-  }, [key, format, trimmed, theme, packFor, shown, species, label])
+  }, [key, format, trimmed, theme, packFor, shown, species, label, total])
   useEffect(() => () => { if (previewUrl.current) URL.revokeObjectURL(previewUrl.current) }, [])
 
   // The link module starts loading as soon as the dialog opens (still out of the main bundle).

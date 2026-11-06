@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, filterLabel, maxTileSide, shareCardText } from '@/lib/share/image'
+import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileSide, packSpec } from '@/lib/share/image'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Trip } from '@/lib/list/trips'
 import { orderLabel } from '@/lib/species/orders'
@@ -14,17 +14,13 @@ const trips: Trip[] = [{ id: 'EG-2026-09-01', country: 'EG', start: '2026-09-01'
 const countryName = (iso: string) => ({ EG: 'Egypt', CA: 'Canada' })[iso] ?? iso
 const ctx = { species, trips, countryName }
 
-describe('shareCardText', () => {
-  it('gives the count and the latest lifer line', () => {
-    expect(shareCardText(197, { com: 'Western Grebe', date: '2026-09-30' })).toEqual({
-      count: '197 species',
-      latest: 'Latest lifer: Western Grebe · Sep 2026',
-    })
+describe('latestText', () => {
+  it('gives the latest lifer row: a label with the month, and the name', () => {
+    expect(latestText({ com: 'Western Grebe', date: '2026-09-30' })).toEqual({ label: 'Latest lifer · Sep 2026', name: 'Western Grebe' })
   })
-  it('groups thousands, leaves out a missing latest lifer, and drops a missing date', () => {
-    expect(shareCardText(1234)).toEqual({ count: '1,234 species' })
-    expect(shareCardText(1, { com: 'Mallard' })).toEqual({ count: '1 species', latest: 'Latest lifer: Mallard' })
-    expect(shareCardText(3, { com: 'Mallard', date: '2024' }).latest).toBe('Latest lifer: Mallard · 2024')
+  it('drops a missing date and keeps a year-only one', () => {
+    expect(latestText({ com: 'Mallard' })).toEqual({ label: 'Latest lifer', name: 'Mallard' })
+    expect(latestText({ com: 'Mallard', date: '2024' }).label).toBe('Latest lifer · 2024')
   })
 })
 
@@ -71,35 +67,121 @@ describe('share image constants', () => {
 
 describe('cardLayout', () => {
   const SAFE = { story: { top: 250, bottom: 340 }, post: { top: 64, bottom: 64 } } as const
+  const inside = (a: { y: number }, b: { y: number; h: number }) => a.y >= b.y && a.y <= b.y + b.h
   for (const format of ['story', 'post'] as const) {
-    it(`${format}: the birder's name and count lead, the collage, then the latest lifer and the footer, inside the safe zones`, () => {
+    it(`${format}: name and filter on top (or nothing), the collage, then the latest lifer and the footer, inside the safe zones`, () => {
       const [W, H] = IMAGE_SIZE[format]
       const { top, bottom } = SAFE[format]
-      for (const hasName of [false, true]) for (const hasFilter of [false, true]) for (const hasLatest of [false, true]) {
-        const L = cardLayout(format, hasName, hasFilter, hasLatest)
+      for (const name of [false, true]) for (const filter of [false, true]) for (const latest of [false, true]) {
+        const L = cardLayout(format, { name, filter, latest, count: 197 })
         expect([L.W, L.H]).toEqual([W, H])
         expect(L.collage.x).toBe(64)
         expect(L.collage.w).toBe(W - 128)
-        // Top: the name (if any), then the count, then the filter in words.
-        const first = hasName ? L.name! : L.count
-        expect(first.y).toBe(top)
-        if (hasName) expect(L.count.y).toBeGreaterThanOrEqual(L.name!.y + L.name!.size)
-        expect(L.count.size).toBe(96)
-        if (hasFilter) expect(L.filter!.y).toBeGreaterThanOrEqual(L.count.y + L.count.size)
-        const headBottom = hasFilter ? L.filter!.y + L.filter!.size : L.count.y + L.count.size
-        expect(L.collage.y).toBeGreaterThan(headBottom)
-        // Bottom: a hairline, the latest lifer, the footer; nothing in the bottom safe zone.
-        expect(L.rule.y).toBeGreaterThan(L.collage.y + L.collage.h)
-        if (hasLatest) expect(L.latest!.y).toBeGreaterThan(L.rule.y)
-        expect(L.footer.y).toBeGreaterThan(hasLatest ? L.latest!.y : L.rule.y)
+        // Top: the name, then the filter in words; with neither, the collage takes the room from the safe line.
+        expect(!!L.name).toBe(name)
+        expect(!!L.filter).toBe(filter)
+        const head = [L.name, L.filter].filter(Boolean) as { y: number; size: number }[]
+        if (head.length) {
+          expect(head[0].y).toBe(top)
+          if (head.length === 2) expect(head[1].y).toBeGreaterThanOrEqual(head[0].y + head[0].size)
+          const last = head[head.length - 1]
+          expect(L.collage.y).toBeGreaterThan(last.y + last.size)
+        } else expect(L.collage.y).toBe(top)
+        // Bottom: the latest lifer row, a hairline, the footer; nothing in the bottom safe zone.
+        const collageBottom = L.collage.y + L.collage.h
+        if (latest) {
+          expect(L.latest!.y).toBeGreaterThan(collageBottom)
+          expect(L.rule.y).toBeGreaterThan(L.latest!.y + L.latest!.icon)
+        } else expect(L.latest).toBeUndefined()
+        expect(L.rule.y).toBeGreaterThan(collageBottom)
+        expect(L.footer.y).toBeGreaterThan(L.rule.y)
         expect(L.footer.y + L.footer.size).toBeLessThanOrEqual(H - bottom)
-        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 800 : 700)
+        expect(L.footer.credit).toBeLessThan(L.footer.size)
+        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 900 : 850)
       }
-      expect(cardLayout(format, true, true, true).collage.h).toBeLessThan(cardLayout(format, false, false, true).collage.h)
+      const full = cardLayout(format, { name: true, filter: true, latest: true, count: 197 })
+      expect(full.collage.h).toBeLessThan(cardLayout(format, { name: false, filter: false, latest: true, count: 197 }).collage.h)
+      expect(inside({ y: full.collage.y + full.collage.h / 2 }, full.collage)).toBe(true)
     })
   }
-  it('no sticker is drawn wider than 22% of the collage, so a short list sits as a cluster', () => {
-    expect(maxTileSide(952)).toBeCloseTo(952 * 0.22)
+})
+
+describe('countLayout (the count in the middle)', () => {
+  it('reads like the Tally: the number over SPECIES, or OF N SPECIES for a filtered view', () => {
+    expect(countLayout('story', 197, undefined, 952)).toMatchObject({ number: '197', label: 'SPECIES' })
+    expect(countLayout('story', 6, 197, 952)).toMatchObject({ number: '6', label: 'OF 197 SPECIES' })
+    expect(countLayout('post', 1500, 1500, 952)).toMatchObject({ number: '1,500', label: 'SPECIES' })
+  })
+  it('is big, and shrinks for long numbers so the number stays within 40% of the collage width', () => {
+    const short = countLayout('story', 12, undefined, 952), mid = countLayout('story', 197, undefined, 952), long = countLayout('story', 12345, undefined, 952)
+    expect(short.size).toBe(200)
+    expect(mid.size).toBe(200)
+    expect(long.size).toBeLessThan(mid.size)
+    expect(long.size).toBeGreaterThan(120)
+    expect(countLayout('post', 197, undefined, 952).size).toBeLessThanOrEqual(mid.size)
+    // Digits are 0.5em in Cabinet Grotesk: "12,345" is 5 digits and a comma.
+    expect((5 * 0.5 + 0.25 - 6 * 0.02) * long.size).toBeLessThanOrEqual(0.4 * 952 + 1)
+  })
+  it('keeps a hole around the number and the label, wider than tall from three digits, bigger for bigger text', () => {
+    for (const n of [1, 12, 197, 1500, 12345]) {
+      const c = countLayout('story', n, undefined, 952)
+      const [rx, ry] = c.hole
+      const textW = Math.max((String(n).length * 0.5) * c.size, c.label.length * 0.66 * c.labelSize)
+      expect(rx).toBeGreaterThan(textW / 2)
+      expect(ry).toBeGreaterThan((0.6875 * c.size + c.gap + 0.73 * c.labelSize) / 2)
+      if (n >= 100) expect(rx).toBeGreaterThan(ry)
+      expect(rx).toBeLessThan(952 / 2)
+    }
+    expect(countLayout('story', 6, 197, 952).hole[0]).toBeGreaterThan(countLayout('story', 6, undefined, 952).hole[0])
+  })
+  it('takes a size in px for the link preview', () => {
+    const c = countLayout(104, 197, undefined, 640)
+    expect(c.size).toBe(104)
+    expect(c.labelSize).toBeGreaterThanOrEqual(18)
+    expect(c.hole[0]).toBeLessThan(320)
+  })
+  it('the label is legible and smaller than the number', () => {
+    const c = countLayout('post', 1500, undefined, 952)
+    expect(c.labelSize).toBeGreaterThanOrEqual(22)
+    expect(c.labelSize).toBeLessThan(c.size / 4)
+  })
+})
+
+describe('packSpec', () => {
+  it('the frame aspect and the hole as fractions of the frame width', () => {
+    const L = cardLayout('story', { name: false, filter: false, latest: true, count: 197 })
+    const s = packSpec(L)
+    expect(s.aspect).toBeCloseTo(L.collage.w / L.collage.h)
+    expect(s.hole[0] * L.collage.w).toBeCloseTo(L.count.hole[0])
+    expect(s.hole[1] * L.collage.w).toBeCloseTo(L.count.hole[1])
+  })
+})
+
+describe('maxTileSide', () => {
+  it('no sticker is drawn wider than 30% of the collage, so a short list sits as a cluster', () => {
+    expect(maxTileSide(952)).toBeCloseTo(952 * 0.3)
     expect(maxTileSide(4000)).toBe(440) // and never past the 384px files' sharp size
+  })
+})
+
+describe('fitPack', () => {
+  const area = { x: 64, y: 300, w: 952, h: 1000 }
+  it('puts the frame centre (the hole) on the area centre', () => {
+    const pack = { W: 400, H: 420, boxes: new Map([['a', [10, 10, 40, 40]], ['b', [350, 370, 40, 40]]] as [string, [number, number, number, number]][]) }
+    const f = fitPack(pack, area, 228)
+    expect([f.cx, f.cy]).toEqual([64 + 476, 300 + 500])
+    expect([f.ux, f.uy]).toEqual([200, 210])
+  })
+  it('grows a small cluster about the centre until it reaches the edge, never past the largest tile', () => {
+    // Birds within ±100 units of the centre on a 400-unit frame: the edge allows 2× the width fit, the tile cap less.
+    const pack = { W: 400, H: 420, boxes: new Map([['a', [100, 110, 60, 60]], ['b', [240, 250, 60, 60]]] as [string, [number, number, number, number]][]) }
+    const k = 952 / 400
+    expect(fitPack(pack, area, 10_000).s).toBeCloseTo(Math.min(476 / (100 * k), 500 / (100 * k)) * k)
+    const capped = fitPack(pack, area, 228)
+    expect(60 * capped.s).toBeCloseTo(228)
+  })
+  it('never scales a full frame below its width fit', () => {
+    const pack = { W: 400, H: 420, boxes: new Map([['a', [0, 0, 30, 30]], ['b', [370, 390, 30, 30]]] as [string, [number, number, number, number]][]) }
+    expect(fitPack(pack, area, 228).s).toBeCloseTo(Math.min(952 / 400, 1000 / 420))
   })
 })

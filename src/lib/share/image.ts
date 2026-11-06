@@ -40,14 +40,13 @@ export const SHARE_COLORS = {
   dark: { ink: '#ffffff', paper: '#1e1e24', accent: '#f06a5f', muted: '#a9a9b2', line: '#6e6e78', hairline: '#3d3d45', surface: '#28282f' },
 } as const
 
-/** "197 species" and "Latest lifer: Western Grebe · Sep 2026" (the date part only when there is one). */
-export function shareCardText(n: number, latest?: { com: string; date?: string }): { count: string; latest?: string } {
-  const out: { count: string; latest?: string } = { count: `${n.toLocaleString('en-US')} species` }
-  if (latest) {
-    const d = formatDate(latest.date)
-    out.latest = `Latest lifer: ${latest.com}${d ? ` · ${d}` : ''}`
-  }
-  return out
+/**
+ * The latest lifer row's two lines: the mono label "Latest lifer · Sep 2026" (the date part only when there is one)
+ * and the bird's name.
+ */
+export function latestText(latest: { com: string; date?: string }): { label: string; name: string } {
+  const d = formatDate(latest.date)
+  return { label: `Latest lifer${d ? ` · ${d}` : ''}`, name: latest.com }
 }
 
 /**
@@ -76,39 +75,95 @@ export function filterLabel(
 
 const M = 64
 /** Clear of the platform's own chrome: Instagram/LinkedIn stories cover about 250px at the top and 340px at the bottom. */
-const SAFE: Record<ImageFormat, { top: number; bottom: number }> = { story: { top: 250, bottom: 340 }, post: { top: M, bottom: M } }
+export const SAFE: Record<ImageFormat, { top: number; bottom: number }> = { story: { top: 250, bottom: 340 }, post: { top: M, bottom: M } }
+/** The count's largest size (Cabinet Grotesk 700, px) per format; it shrinks for long numbers (countLayout). */
+const COUNT_MAX: Record<ImageFormat, number> = { story: 200, post: 184 }
+/** The number is never wider than this share of the collage's width. */
+const COUNT_W = 0.4
+// Cabinet Grotesk 700 metrics (em): tabular digits 0.5, the comma 0.25, digit height 0.6875; drawn at -0.02em tracking.
+// Geist Mono: 0.6em per character, caps 0.73em high.
+const DIGIT_EM = 0.5, COMMA_EM = 0.25, DIGIT_CAP = 0.6875, TRACK = -0.02, MONO_EM = 0.6, MONO_CAP = 0.73, MONO_TRACK = 0.06
+
 type Text = { y: number; size: number }
+/** The count at the centre of the collage: the number (size, px), the mono label under it, and the hole kept for them. */
+export type CountLayout = {
+  number: string
+  label: string
+  size: number
+  labelSize: number
+  /** Gap between the number's baseline and the label's cap line. */
+  gap: number
+  /** Ellipse radii [rx, ry] (px) the packer keeps empty at the collage's centre. */
+  hole: [number, number]
+}
 export type CardLayout = {
   W: number
   H: number
   name?: Text
-  count: Text
   filter?: Text
   collage: { x: number; y: number; w: number; h: number }
+  count: CountLayout
+  /** The latest lifer row: its sticker (icon, px square) beside two lines, a mono label and the bird's name. */
+  latest?: { y: number; icon: number; label: number; name: number }
   rule: { y: number }
-  latest?: Text
-  footer: Text
+  footer: Text & { credit: number }
+}
+export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; total?: number }
+
+/**
+ * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: "197" over "SPECIES" ("6" over "OF 197
+ * SPECIES" for a filtered view). The number shrinks so it never takes more than 40% of the collage's width.
+ * `format` sets the largest size (or pass it in px: the link preview's smaller card).
+ */
+export function countLayout(format: ImageFormat | number, count: number, total: number | undefined, collageW: number): CountLayout {
+  const max = typeof format === 'number' ? format : COUNT_MAX[format]
+  const number = count.toLocaleString('en-US')
+  const label = (total !== undefined && count < total ? `of ${total.toLocaleString('en-US')} species` : 'species').toUpperCase()
+  const commas = number.split(',').length - 1
+  const em = (number.length - commas) * DIGIT_EM + commas * COMMA_EM + number.length * TRACK
+  const size = Math.round(Math.min(max, (COUNT_W * collageW) / em))
+  const labelSize = Math.round(Math.max(Math.min(22, size * 0.2), Math.min(28, size * 0.14)))
+  const gap = Math.round(size * 0.14)
+  // Half the text block (a × b), then the ellipse around it: 1.2a wide, and tall enough that the block's corners sit on
+  // it, plus air all round.
+  const a = Math.max(em * size, label.length * labelSize * (MONO_EM + MONO_TRACK)) / 2
+  const b = (DIGIT_CAP * size + gap + MONO_CAP * labelSize) / 2
+  const pad = 0.1 * size
+  const rx = 1.2 * a
+  const ry = 0.92 * b / Math.sqrt(1 - (a / rx) ** 2) // the block's corners are glyph corners, not solid: a little in
+  return { number, label, size, labelSize, gap, hole: [Math.round(rx + pad), Math.round(ry + pad)] }
 }
 
-/** Where everything goes; text y is the top of its em box (textBaseline 'top'). */
-export function cardLayout(format: ImageFormat, hasName: boolean, hasFilter: boolean, hasLatest: boolean): CardLayout {
+/** Where everything goes; text y is the top of its em box (textBaseline 'top'). The count sits at the collage's centre. */
+export function cardLayout(format: ImageFormat, c: CardContent): CardLayout {
   const [W, H] = IMAGE_SIZE[format]
   const { top: T, bottom: B } = SAFE[format]
-  const name = hasName ? { y: T, size: 56 } : undefined
-  const count = { y: name ? name.y + 68 : T, size: 96 }
-  const filter = hasFilter ? { y: count.y + 106, size: 32 } : undefined
-  const headBottom = filter ? filter.y + filter.size : count.y + count.size
-  const footer = { y: H - B - 22, size: 22 }
-  const latest = hasLatest ? { y: footer.y - 36 - 32, size: 32 } : undefined
-  const rule = { y: (latest ? latest.y : footer.y) - 28 }
-  const top = headBottom + 44
-  const bottom = rule.y - 40
-  return { W, H, name, count, filter, collage: { x: M, y: top, w: W - 2 * M, h: bottom - top }, rule, latest, footer }
+  // Top: only the name and the filter in words; with neither, the collage starts at the safe line.
+  const name = c.name ? { y: T, size: 60 } : undefined
+  const filter = c.filter ? { y: name ? name.y + 76 : T, size: 34 } : undefined
+  const headBottom = filter ? filter.y + filter.size : name ? name.y + name.size : undefined
+  // Bottom, upwards: the footer (wordmark, site and credit on one line), a hairline, the latest lifer row.
+  const footer = { y: H - B - 30, size: 30, credit: 19 }
+  const rule = { y: footer.y - 30 }
+  const icon = format === 'story' ? 76 : 68
+  const latest = c.latest ? { y: rule.y - 32 - icon, icon, label: 20, name: 34 } : undefined
+  const top = headBottom === undefined ? T : headBottom + 48
+  const bottom = (latest ? latest.y : rule.y) - 40
+  const collage = { x: M, y: top, w: W - 2 * M, h: bottom - top }
+  return { W, H, name, filter, collage, count: countLayout(format, c.count, c.total, collage.w), latest, rule, footer }
 }
 
-/** Largest a sticker is drawn (long side, px): 22% of the collage's width, and never past the 384px files' sharpness. */
+/** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
+export type PackSpec = { aspect: number; hole: [number, number] }
+export function packSpec(L: CardLayout): PackSpec {
+  const { w, h } = L.collage
+  return { aspect: w / h, hole: [L.count.hole[0] / w, L.count.hole[1] / w] }
+}
+
+/** Largest a sticker is drawn (long side, px): 30% of the collage's width, and never past the 384px files' sharpness. */
+export const MAX_TILE = 0.3
 export function maxTileSide(collageW: number): number {
-  return Math.min(440, collageW * 0.22)
+  return Math.min(440, collageW * MAX_TILE)
 }
 
 // --- packing (off the main thread) ---
@@ -116,10 +171,10 @@ export function maxTileSide(collageW: number): number {
 export type ImagePack = { W: number; H: number; boxes: Map<string, Box> }
 
 /**
- * Pack `entries` for a frame of the given aspect in a short-lived layout worker ('image' message; relative sizes over
- * these entries). Aborting terminates the worker and rejects with an AbortError.
+ * Pack `entries` for the collage frame (spec: its aspect and the count's hole) in a short-lived layout worker ('image'
+ * message; relative sizes over these entries). Aborting terminates the worker and rejects with an AbortError.
  */
-export function packForImage(entries: ListEntry[], species: SpeciesIndex, aspect: number, signal?: AbortSignal): Promise<ImagePack> {
+export function packForImage(entries: ListEntry[], species: SpeciesIndex, spec: PackSpec, signal?: AbortSignal): Promise<ImagePack> {
   const birds: ListEntryMsg[] = []
   for (const e of entries) {
     const row = species.byCode.get(e.code)
@@ -136,7 +191,7 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, aspect
       try { resolve(packFromReply(e.data)) } catch (err) { reject(err) }
     }
     w.onerror = (e) => { done(); reject(new Error(`layout worker failed: ${e.message ?? 'error'}`)) }
-    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect }
+    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: MAX_TILE }
     w.postMessage(msg)
   })
 }
@@ -156,12 +211,12 @@ export const abortError = (message = 'share image cancelled') => {
 }
 
 /**
- * The collage frame's aspect for a format (with or without the filter line and the latest lifer), packed for the
- * frame with a name: the name can be typed after packing, and the drawing fits the pack into whatever frame it gets.
+ * What to pack for a format and a view: the collage frame (with or without the name, the filter line and the latest
+ * lifer) and the count's hole. The dialog packs once per format and name-or-not; the drawing maps the pack onto
+ * whatever frame it gets.
  */
-export function collageAspect(format: ImageFormat, hasFilter: boolean, hasLatest: boolean): number {
-  const c = cardLayout(format, true, hasFilter, hasLatest).collage
-  return c.w / c.h
+export function imagePackSpec(format: ImageFormat, c: CardContent): PackSpec {
+  return packSpec(cardLayout(format, c))
 }
 
 // --- drawing ---
@@ -314,9 +369,11 @@ export type ShareImageOpts = {
   entries: ListEntry[]
   species: SpeciesIndex
   filterLabel?: string
+  /** The whole list's size, for a filtered view: the count reads "6" over "of 197 species". */
+  total?: number
   name?: string
   theme: 'light' | 'dark'
-  /** A pack made earlier by packForImage for this format and these entries (the dialog keeps one per format). */
+  /** A pack made earlier by packForImage for this format, these entries and name-or-not (the dialog keeps them). */
   pack?: ImagePack
   signal?: AbortSignal
 }
@@ -329,6 +386,28 @@ export async function renderShareImage(opts: ShareImageOpts): Promise<Blob> {
   })
 }
 
+/** `grow`: how much the scale-up past the width fit enlarged the birds (and the hole), at least 1. */
+export type PackFit = { s: number; cx: number; cy: number; ux: number; uy: number; grow: number }
+/**
+ * How a pack lands on the collage area: the frame's centre (the hole) on the area's centre, the frame's width on the
+ * area's width (or its height, if that is tighter), then scaled about the centre until the birds reach the area's
+ * edge or the largest tile reaches `maxTile` px. A layout unit at (x, y) is drawn at (cx + (x − ux)·s, cy + (y − uy)·s).
+ */
+export function fitPack(pack: ImagePack, area: { x: number; y: number; w: number; h: number }, maxTile: number): PackFit {
+  const ux = pack.W / 2, uy = pack.H / 2
+  const cx = area.x + area.w / 2, cy = area.y + area.h / 2
+  const k = Math.min(area.w / pack.W, area.h / pack.H)
+  let dx = 0, dy = 0, maxL = 0
+  for (const [x, y, w, h] of pack.boxes.values()) {
+    dx = Math.max(dx, ux - x, x + w - ux)
+    dy = Math.max(dy, uy - y, y + h - uy)
+    maxL = Math.max(maxL, w, h)
+  }
+  if (!maxL) return { s: k, cx, cy, ux, uy, grow: 1 }
+  const fill = Math.min(area.w / 2 / (dx * k), area.h / 2 / (dy * k), maxTile / (maxL * k))
+  return { s: k * fill, cx, cy, ux, uy, grow: Math.max(1, fill) }
+}
+
 /** Draw the share image on a new canvas (renderShareImage encodes it). */
 export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasElement> {
   const { format, entries, species, theme, signal } = opts
@@ -336,44 +415,52 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   const C = SHARE_COLORS[theme]
   const shown = entries.filter((e) => species.byCode.has(e.code))
   const latestE = latestLifer(shown, (c) => species.byCode.get(c)?.to ?? Number.MAX_SAFE_INTEGER)
-  const text = shareCardText(shown.length, latestE && { com: species.byCode.get(latestE.code)!.com, date: latestE.date })
+  const latestRow = latestE && species.byCode.get(latestE.code)!
+  const latest = latestRow && latestText({ com: latestRow.com, date: latestE!.date })
   const label = opts.filterLabel?.trim() || undefined
   const name = opts.name?.trim() || undefined
-  const L = cardLayout(format, !!name, !!label, !!text.latest)
-  const pack = opts.pack ?? (await packForImage(shown, species, L.collage.w / L.collage.h, signal))
+  const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, total: opts.total }
+  const L = cardLayout(format, content)
+  const pack = opts.pack ?? (await packForImage(shown, species, packSpec(L), signal))
   check()
 
-  // Fit the packed birds (their own bounding box) into the collage area, centred; cap the largest tile.
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, maxL = 0
-  for (const [x, y, w, h] of pack.boxes.values()) {
-    x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + w); y1 = Math.max(y1, y + h); maxL = Math.max(maxL, w, h)
-  }
+  // The pack on the collage area, its centre (the count) on the area's centre.
   const area = L.collage
-  const s = pack.boxes.size ? Math.min(area.w / (x1 - x0), area.h / (y1 - y0), maxTileSide(area.w) / maxL) : 1
-  const ox = area.x + (area.w - (x1 - x0) * s) / 2 - x0 * s
-  const oy = area.y + (area.h - (y1 - y0) * s) / 2 - y0 * s
+  const fit = fitPack(pack, area, maxTileSide(area.w))
   const tiles: Tile[] = shown.flatMap((e) => {
     const b = pack.boxes.get(e.code)
     if (!b) return []
     const row = species.byCode.get(e.code)!
-    const [x, y, w, h] = [ox + b[0] * s, oy + b[1] * s, b[2] * s, b[3] * s]
+    const [x, y, w, h] = [fit.cx + (b[0] - fit.ux) * fit.s, fit.cy + (b[1] - fit.uy) * fit.s, b[2] * fit.s, b[3] * fit.s]
     return [{ x, y, w, h, url: row.st ? stickerUrl(e.code, Math.max(w, h), 1) : null }]
   })
+  // The latest lifer's sticker, contained in its square at the sticker's own aspect.
+  let lifer: Tile | null = null
+  if (latestRow && L.latest) {
+    const { icon, y } = L.latest
+    const ar = latestRow.st && latestRow.ar > 0 ? latestRow.ar : 1
+    const w = ar >= 1 ? icon : icon * ar, h = ar >= 1 ? icon / ar : icon
+    lifer = { x: M + (icon - w) / 2, y: y + (icon - h) / 2, w, h, url: latestRow.st ? stickerUrl(latestRow.code, icon, 1) : null }
+  }
 
   const F = families()
   const font = {
     name: (px: number) => `700 ${px}px ${F.display}`,
-    brand: (px: number) => `700 ${px}px ${F.display}`,
     filter: (px: number) => `500 ${px}px ${F.body}`,
     count: (px: number) => `700 ${px}px ${F.display}`,
-    latest: (px: number) => `500 ${px}px ${F.body}`,
+    mono: (px: number) => `500 ${px}px ${F.mono}`,
+    lifer: (px: number) => `600 ${px}px ${F.body}`,
+    brand: (px: number) => `700 ${px}px ${F.display}`,
     footer: (px: number) => `400 ${px}px ${F.mono}`,
   }
+  // The count grows with the birds when a short list is scaled up past the width fit (its hole grew as much).
+  const g = Math.min(fit.grow, 1.3)
+  const K = { ...L.count, size: Math.round(L.count.size * g), labelSize: Math.round(L.count.labelSize * Math.min(g, 1.15)), gap: Math.round(L.count.gap * g) }
   const [imgs] = await Promise.all([
-    loadStickers([...new Set(tiles.flatMap((t) => (t.url ? [t.url] : [])))], { signal }),
+    loadStickers([...new Set([...tiles, ...(lifer ? [lifer] : [])].flatMap((t) => (t.url ? [t.url] : [])))], { signal }),
     fontsReady(
-      [font.name(56), font.brand(26), font.filter(32), font.count(96), font.latest(32), font.footer(22)],
-      `${name ?? ''}${label ?? ''}${text.count}${text.latest ?? ''}Everybird${SITE_LABEL}${STICKER_CREDIT}`,
+      [font.name(L.name?.size ?? 60), font.filter(34), font.count(K.size), font.mono(K.labelSize), font.lifer(34), font.brand(30), font.footer(20)],
+      `${name ?? ''}${label ?? ''}${K.number}${K.label}${latest ? latest.label.toUpperCase() + latest.name : ''}Everybird${SITE_LABEL}${STICKER_CREDIT}`,
     ),
   ])
   check()
@@ -391,32 +478,70 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   ctx.imageSmoothingQuality = 'high'
   paintTiles(ctx, tiles, imgs, C.line)
 
-  // Text.
   const maxW = L.W - 2 * M
+  const track = (em: number, px: number) => { if ('letterSpacing' in ctx) ctx.letterSpacing = `${(em * px).toFixed(2)}px` }
+
+  // The count in the middle: the number (Cabinet Grotesk 700, -0.02em) over the mono label, centred as one block on
+  // the collage's centre (the hole), measured from the digits' real height.
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'alphabetic'
+  ctx.font = font.count(K.size)
+  track(-0.02, K.size)
+  const digitH = ctx.measureText('0').actualBoundingBoxAscent || 0.6875 * K.size
+  ctx.font = font.mono(K.labelSize)
+  track(0.06, K.labelSize)
+  const capH = ctx.measureText('S').actualBoundingBoxAscent || 0.73 * K.labelSize
+  const blockTop = fit.cy - (digitH + K.gap + capH) / 2
+  ctx.font = font.count(K.size)
+  track(-0.02, K.size)
+  ctx.fillStyle = C.ink
+  ctx.fillText(K.number, fit.cx, blockTop + digitH)
+  ctx.font = font.mono(K.labelSize)
+  track(0.06, K.labelSize)
+  ctx.fillStyle = C.muted
+  ctx.fillText(K.label, fit.cx, blockTop + digitH + K.gap + capH)
+  track(0, 0)
+
+  // Text.
   ctx.textBaseline = 'top'
   ctx.textAlign = 'left'
-  const draw = (str: string, f: (px: number) => string, t: Text, min: number, color: string) => {
-    const out = fitText(ctx, str, f, t.size, min, maxW)
+  const draw = (str: string, f: (px: number) => string, t: Text, min: number, color: string, x = M, w = maxW) => {
+    const out = fitText(ctx, str, f, t.size, min, w)
     ctx.fillStyle = color
-    ctx.fillText(out, M, t.y)
+    ctx.fillText(out, x, t.y)
   }
   if (name && L.name) draw(name, font.name, L.name, 36, C.ink)
-  draw(text.count, font.count, L.count, 64, C.ink)
   if (label && L.filter) draw(label, font.filter, L.filter, 24, C.accent)
+
+  // The latest lifer: its sticker, then the mono label over the bird's name, centred on the sticker.
+  if (latest && lifer && L.latest) {
+    paintTiles(ctx, [lifer], imgs, C.line)
+    const { y, icon } = L.latest
+    const tx = M + icon + 20, tw = maxW - icon - 20
+    const blockH = L.latest.label + 10 + L.latest.name
+    const top = y + (icon - blockH) / 2
+    track(0.06, L.latest.label)
+    draw(latest.label.toUpperCase(), font.mono, { y: top, size: L.latest.label }, 16, C.muted, tx, tw)
+    track(0, 0)
+    draw(latest.name, font.lifer, { y: top + L.latest.label + 10, size: L.latest.name }, 24, C.ink, tx, tw)
+  }
 
   ctx.fillStyle = C.hairline
   ctx.fillRect(M, L.rule.y, maxW, 2)
-  if (text.latest && L.latest) draw(text.latest, font.latest, L.latest, 22, C.ink)
-  // Footer: the wordmark and the site on the left, the sticker credit (required, CC BY 4.0) on the right.
-  ctx.font = font.brand(26)
+  // Footer, quiet: the wordmark and the site on the left, the sticker credit (required, CC BY 4.0) on the right, on one
+  // baseline; if the credit doesn't fit beside them it takes its own line under them.
+  const base = L.footer.y + L.footer.size * 0.8
+  ctx.textBaseline = 'alphabetic'
+  ctx.font = font.brand(L.footer.size)
   ctx.fillStyle = C.ink
-  ctx.fillText('Everybird', M, L.footer.y - 3)
-  const brandW = ctx.measureText('Everybird').width + 14
-  ctx.font = font.footer(L.footer.size)
+  ctx.fillText('Everybird', M, base)
+  const brandW = ctx.measureText('Everybird').width + 16
+  ctx.font = font.footer(20)
   ctx.fillStyle = C.muted
-  ctx.fillText(SITE_LABEL, M + brandW, L.footer.y)
-  const left = M + brandW + ctx.measureText(SITE_LABEL).width + 24
+  ctx.fillText(SITE_LABEL, M + brandW, base)
+  const left = M + brandW + ctx.measureText(SITE_LABEL).width + 32
+  ctx.font = font.footer(L.footer.credit)
   ctx.textAlign = 'right'
-  ctx.fillText(fitText(ctx, STICKER_CREDIT, font.footer, L.footer.size, 16, L.W - M - left), L.W - M, L.footer.y)
+  ctx.fillText(fitText(ctx, STICKER_CREDIT, font.footer, L.footer.credit, 15, L.W - M - left), L.W - M, base)
   return canvas
 }
