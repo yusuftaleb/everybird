@@ -1,0 +1,60 @@
+app/(app)/credits/page.tsx
+  s_ab125876fe9ad2::t_1b82a784369dd5 1-119
+src/components/collage/BirdCard.tsx
+  s_ab125876fe9ad2::t_1b82a784369dd5 158
+tests/card-list.test.tsx
+  s_ab125876fe9ad2::t_e4b754e9e09fdd 105,108
+tests/ebird-drop.test.tsx
+  s_ab125876fe9ad2::t_e4b754e9e09fdd 1-24
+AGENTS.md
+  s_ab125876fe9ad2::t_dfcbc696dd2f32 46
+  s_ab125876fe9ad2::t_b840cc93e207c2 45
+src/components/app/EverybirdProvider.tsx
+  s_ab125876fe9ad2::t_b840cc93e207c2 4-5
+src/components/filters/Chip.tsx
+  s_ab125876fe9ad2::t_1b82a784369dd5 33-34,37-38
+  s_ab125876fe9ad2::t_32ddb5e31bea2d 35-36
+src/components/import/EbirdDrop.tsx
+  s_ab125876fe9ad2::t_8ef565db3ee40c 11-13,17-19
+tests/filters-ui.test.tsx
+  s_ab125876fe9ad2::t_dfcbc696dd2f32 117-118
+  s_ab125876fe9ad2::t_e4b754e9e09fdd 103,106,109-116
+  s_ab125876fe9ad2::t_32ddb5e31bea2d 79,108
+tests/ebird-slots.test.ts
+  s_ab125876fe9ad2::t_e4b754e9e09fdd 116-118
+tests/collage-controls.test.tsx
+  s_ab125876fe9ad2::t_e4b754e9e09fdd 89,91-92,124-125,128-129
+src/components/app/CollageSearch.tsx
+  s_ab125876fe9ad2::t_1b82a784369dd5 27,105-106
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_247a7707e2b100 48-49,108-109,127,140-146
+  s_ab125876fe9ad2::t_e4b932713fe238 51-52,105-107,110,112,115-126,128-139,147-152
+app/(app)/layout.tsx
+  s_ab125876fe9ad2::t_b840cc93e207c2 7
+src/lib/list/export.ts
+  s_ab125876fe9ad2::t_1b82a784369dd5 4,75
+e2e/search.spec.ts
+  s_ab125876fe9ad2::t_47eddb40849a5d 57
+  s_ab125876fe9ad2::t_2b88202f7965ce 41-52
+  s_ab125876fe9ad2::t_fe8bac5195c56a 1-40,53-56,58-70
+src/components/import/ImportPanel.tsx
+  s_ab125876fe9ad2::t_8ef565db3ee40c 45-49
+src/components/filters/FilterBar.tsx
+  s_ab125876fe9ad2::t_1b82a784369dd5 109-114,128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "636c21dfc7f901b03664bf39b16230d617b92a56",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
