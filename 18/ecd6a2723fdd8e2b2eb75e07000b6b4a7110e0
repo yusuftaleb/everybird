@@ -1,0 +1,21 @@
+e2e/filters.spec.ts
+  s_ab125876fe9ad2::t_f60d55a2667d77 97-99
+AGENTS.md
+  s_ab125876fe9ad2::t_3f1f12761e8c3b 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "18ecd6a2723fdd8e2b2eb75e07000b6b4a7110e0",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
