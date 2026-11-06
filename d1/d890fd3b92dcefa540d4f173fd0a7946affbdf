@@ -1,0 +1,47 @@
+e2e/welcome.spec.ts
+  s_ab125876fe9ad2::t_e914678dbd1c95 1-47,49-144
+  s_ab125876fe9ad2::t_534df121861156 48
+DESIGN.md
+  s_ab125876fe9ad2::t_1bba5756765d7a 121,161-162
+  s_ab125876fe9ad2::t_11eef87ccc9a61 163
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_1bba5756765d7a 434
+tests/welcome.test.tsx
+  s_ab125876fe9ad2::t_62762eb588afa5 46
+  s_ab125876fe9ad2::t_a8361acd59d05a 15-22,24,30,66-67
+  s_ab125876fe9ad2::t_d340993632da8b 1,3-14,23,25-29,31-45,47-61,64-65,68-76
+  s_ab125876fe9ad2::t_f4c3b9a687548b 62-63
+  s_ab125876fe9ad2::t_37806ba81a07c2 2
+playwright.config.ts
+  s_ab125876fe9ad2::t_e30a55425722b0 11,13-16,22,27,29,38,46-47
+  s_ab125876fe9ad2::t_e914678dbd1c95 12
+src/lib/welcome.ts
+  s_ab125876fe9ad2::t_371a076587f529 1-30
+src/components/app/app.css
+  s_ab125876fe9ad2::t_0e3908dd173b6a 389-425
+AGENTS.md
+  s_ab125876fe9ad2::t_1bba5756765d7a 68
+  s_ab125876fe9ad2::t_42d33ccb244cd1 55
+src/components/app/Landing.tsx
+  s_ab125876fe9ad2::t_0e3908dd173b6a 7,10-11,29
+src/components/app/Welcome.tsx
+  s_ab125876fe9ad2::t_96a491640aab7d 1-35,43-70
+  s_ab125876fe9ad2::t_534df121861156 36-37,40-41
+  s_ab125876fe9ad2::t_11b841efc9c07e 38-39,42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d1d890fd3b92dcefa540d4f173fd0a7946affbdf",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": null
+    }
+  }
+}
