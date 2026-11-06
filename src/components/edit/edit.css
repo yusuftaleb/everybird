@@ -1,6 +1,13 @@
+/* The card's edit actions, under a full-width Hairline. Quiet within the card's palette (/lifelist's card has no
+   actions): the mark toggles are outlined, not filled (no Surface grey on the Paper card), their symbols Muted; a set
+   mark gets the Accent border and a check, as a selected chip does. Remove is the one Accent word. */
+.eb-card-actions > .eb-edit { flex: 1; min-width: 0; }
 .eb-edit { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--hairline); }
 .eb-edit-marks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .eb-edit-label { flex-basis: 100%; }
-.eb-edit-sym { font-family: var(--font-mono); min-width: 1ch; text-align: center; }
+.eb-edit .eb-chip { background: transparent; }
+.eb-edit-sym { font-family: var(--font-mono); min-width: 1ch; text-align: center; color: var(--muted); }
+.eb-edit .eb-chip-icon { color: var(--accent); }
 .eb-edit-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
-.eb-textbtn.eb-edit-remove { color: var(--accent); }
+.eb-textbtn.eb-edit-remove { color: var(--accent); text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.eb-textbtn.eb-edit-remove svg { color: var(--accent); }
