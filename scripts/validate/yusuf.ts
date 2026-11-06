@@ -7,10 +7,13 @@
 // Inputs and outputs all live in private/ (git-ignored): never commit them or anything derived from them.
 // stdout carries only the one-line summary and aggregate counts; species-level detail goes to the private report.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import Papa from 'papaparse'
 import { parseEbirdLifeList } from '@/lib/import/ebird-lifelist'
 import { parseEbirdMyData } from '@/lib/import/ebird-mydata'
 import { importInat } from '@/lib/import/inat'
 import { buildList } from '@/lib/list/build-list'
+import { buildSeen } from '@/lib/list/seen'
+import { resolveName, type TaxonomyIndex } from '@/lib/species/resolve'
 import { DEFAULT_RULES, EMPTY_EDITS, type ImportResult, type ListEntry, type SourceRecord } from '@/lib/list/model'
 import { buildTaxonomyIndex } from '@/lib/species/load'
 import type { Regions, SpeciesFile, TaxonomyFile } from '@/lib/species/types'
@@ -25,6 +28,28 @@ type Target = { code: string; common: string; scientific: string; date: string; 
 type Cache = { user: string; fetchedAt: string; responses: Record<string, unknown> }
 
 const readJson = <T>(p: string): T => JSON.parse(readFileSync(p, 'utf8')) as T
+let offlinePlaceMisses = 0
+
+/**
+ * Seen-here check, independent of the importer's aggregation: read MyEBirdData.csv row by row, resolve each name, and
+ * collect per country the distinct species with any countable row there. Returns ISO2 -> codes.
+ */
+function tallyCountries(csv: string, t: TaxonomyIndex): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>()
+  const cache = new Map<string, string | null>()
+  const rows = Papa.parse<Record<string, string>>(csv.replace(/^\uFEFF/, ''), { header: true, skipEmptyLines: true }).data
+  for (const r of rows) {
+    const sci = r['Scientific Name']?.trim() || undefined, com = r['Common Name']?.trim() || undefined
+    const key = `${sci}|${com}`
+    if (!cache.has(key)) cache.set(key, resolveName(t, { sci, com }).code)
+    const code = cache.get(key)
+    const country = (r['State/Province'] ?? '').trim().toUpperCase().split('-')[0]
+    if (!code || !country) continue
+    if (!out.has(country)) out.set(country, new Set())
+    out.get(country)!.add(code)
+  }
+  return out
+}
 
 // ---------------------------------------------------------------------------------------------
 // iNaturalist: live with a recording fetch, or offline from the saved pages.
@@ -35,10 +60,19 @@ async function inat(opts: Omit<Parameters<typeof importInat>[1], 'fetch'>, offli
   if (offline) {
     if (!existsSync(INAT_CACHE)) throw new Error(`--offline needs ${INAT_CACHE}; run once without --offline first`)
     const saved = readJson<Cache>(INAT_CACHE)
+    // Seen-here resolves every observation's places, so the place batches differ from those the cache was recorded
+    // with: offline, a place batch is answered from every place the cache holds (ids it lacks are counted, not guessed).
+    const knownPlaces = new Map<number, unknown>()
+    for (const [url, body] of Object.entries(saved.responses))
+      if (url.includes('/v1/places/')) for (const p of (body as { results?: { id: number }[] }).results ?? []) knownPlaces.set(p.id, p)
     fetchImpl = (async (u: string | URL | Request) => {
       const url = String(u)
-      if (!(url in saved.responses)) throw new Error(`Not in ${INAT_CACHE}: ${url}`)
-      return new Response(JSON.stringify(saved.responses[url]), { status: 200 })
+      if (url in saved.responses) return new Response(JSON.stringify(saved.responses[url]), { status: 200 })
+      const m = /\/v1\/places\/([\d,]+)/.exec(url)
+      if (!m) throw new Error(`Not in ${INAT_CACHE}: ${url}`)
+      const ids = m[1].split(',').map(Number)
+      offlinePlaceMisses += ids.filter((id) => !knownPlaces.has(id)).length
+      return new Response(JSON.stringify({ results: ids.filter((id) => knownPlaces.has(id)).map((id) => knownPlaces.get(id)) }), { status: 200 })
     }) as typeof fetch
   } else {
     cache = { user: INAT_USER, fetchedAt: new Date().toISOString(), responses: {} }
@@ -148,6 +182,24 @@ async function main() {
   const diffs = classify(targets, merged, bySource, inatRes).map((d) => (d.name === d.code ? { ...d, name: comByCode.get(d.code) ?? d.code } : d))
   const unexplained = diffs.filter((d) => !d.explained)
 
+  // ----- seen-here: per-country species from the importer vs the independent tally -----
+  const mineCsv = readFileSync(`${P}/MyEBirdData.csv`, 'utf8')
+  const tally = tallyCountries(mineCsv, taxonomy)
+  const seenCount = (records: SourceRecord[]) => {
+    const list = buildList(records, EMPTY_EDITS, DEFAULT_RULES)
+    const seen = buildSeen(records, EMPTY_EDITS, DEFAULT_RULES, list)
+    const by = new Map<string, Set<string>>()
+    for (const [code, e] of seen.byCode) for (const p of e.places) { if (!by.has(p.country)) by.set(p.country, new Set()); by.get(p.country)!.add(code) }
+    return by
+  }
+  const seenMine = seenCount(mine.records)
+  const seenMerged = seenCount([...mine.records, ...inatRes.records])
+  const countries = [...new Set([...tally.keys(), ...seenMine.keys()])].sort()
+  const countryDiffs = countries.filter((c) => (tally.get(c)?.size ?? 0) !== (seenMine.get(c)?.size ?? 0))
+  const caT = tally.get('CA')?.size ?? 0, caS = seenMine.get('CA')?.size ?? 0, caM = seenMerged.get('CA')?.size ?? 0
+  const liferCA = mergedMine.filter((e) => (e.place?.country ?? e.place?.sub1?.split('-')[0]) === 'CA').length
+  const seenLine = `seen-here Canada: MyEBirdData ${caS} (independent tally ${caT}, ${caS === caT ? 'match' : 'MISMATCH'}) · merged with iNat ${caM} · lifers there ${liferCA} · countries ${countries.length}, mismatched ${countryDiffs.length}${offline ? ` · offline place ids missing ${offlinePlaceMisses}` : ''}`
+
   const summary = `eBird ${life.records.length} · MyEBirdData ${mine.records.length} · merged ${merged.length} · target ${targets.length === TARGET_COUNT ? TARGET_COUNT : `${targets.length} (expected ${TARGET_COUNT})`} · unexplained ${unexplained.length}`
 
   // ----- private report (species-level; never committed) -----
@@ -165,6 +217,8 @@ async function main() {
   for (const u of inatRes.unmatched) L.push(`  - unmatched: ${u.sci} (${u.reason}${u.suggestion ? `, suggestion ${u.suggestion}` : ''})`)
   L.push(`- Merged (life list + iNat): ${merged.length}; merged (MyEBirdData + iNat) gives the same codes and dates: ${sameMerge ? 'yes' : 'no'}`)
   L.push(`- Species only from iNaturalist: ${merged.filter((e) => e.sources.length === 1 && e.sources[0] === 'inat').map((e) => comByCode.get(e.code) ?? e.code).join('; ') || '-'}`)
+  L.push('', '## Seen here', '', seenLine, '')
+  for (const c of countries) L.push(`- ${c}: MyEBirdData seen-here ${seenMine.get(c)?.size ?? 0}, tally ${tally.get(c)?.size ?? 0}, merged ${seenMerged.get(c)?.size ?? 0}`)
   L.push('', '## Differences from lifelist.json', '')
   if (diffs.length === 0) L.push('None.')
   for (const [kind, ds] of kinds) {
@@ -184,6 +238,7 @@ async function main() {
 
   // ----- stdout: aggregates only -----
   console.log(summary)
+  console.log(seenLine)
   for (const [kind, ds] of kinds) console.log(`  ${ds[0].explained ? 'explained  ' : 'UNEXPLAINED'} ${String(ds.length).padStart(3)}  ${kind}`)
   console.log(`  report: ${REPORT}`)
 }

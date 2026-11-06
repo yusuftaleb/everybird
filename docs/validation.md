@@ -41,6 +41,18 @@ eBird 185 · MyEBirdData 185 · merged 196 · target 197 · unexplained 0
 
 No importer or synonym bugs were found.
 
+### Seen here (2026-11-06)
+
+The Places filter counts species seen in a place, not only lifers there (Task PL). The script now also checks that: it tallies the full `MyEBirdData.csv` again on its own, row by row, rolling each row up to its species, and compares the species per country with the importer's seen-here data.
+
+```
+seen-here Canada: MyEBirdData 178 (independent tally 178, match) · merged with iNat 182 · lifers there 182 · countries 2, mismatched 0
+```
+
+- Every country in the export matches the independent tally (2 countries, 0 mismatches).
+- Canada: 178 species seen in the eBird export, 182 once iNaturalist is merged in, the same as the lifers there.
+- Offline runs replay iNaturalist pages saved before seen-here existed, so some observation places are missing from the cache and the merged figure can be low. A live run refreshes the cache. The eBird check doesn't depend on it.
+
 ## Licences
 
 - **Satoshi and Cabinet Grotesk (Fontshare, ITF Free Font License v2.0, 17 Aug 2026).** Read from the `FFL.txt` that ships in Fontshare's download, because the licence web page needs JavaScript. It allows personal and commercial use on websites and in apps, through the Fontshare API or self-hosted, with credit optional. It forbids redistributing the font files, including through "publicly accessible servers" or a repository, and modifying or subsetting them. So an open-source web app may use them as Everybird does: loaded from Fontshare's CSS, with the font files never committed (AGENTS.md already says so). The licence also bars offering the fonts as a choice for users to make their own content with. Everybird only uses them for its own pages and images, so that clause doesn't apply.
