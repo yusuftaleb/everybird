@@ -1,0 +1,33 @@
+e2e/timeline.spec.ts
+  s_ab125876fe9ad2::t_c97c59b7b8b80e 22,37,109-161
+  s_ab125876fe9ad2::t_2df9a6c6aaf2b9 162
+src/components/filters/Timeline.tsx
+  s_ab125876fe9ad2::t_57ead6e3050a12 13,21-22,52-55,102-110,115,122,125,163,189-200,205-208,221,224-225,228-231,234-237,242,248-249
+src/components/filters/TripBrackets.tsx
+  s_ab125876fe9ad2::t_57ead6e3050a12 4-5,8,15-16,23-25,31,34-43,52-55,64-65,67-71
+src/components/filters/timeline.css
+  s_ab125876fe9ad2::t_57ead6e3050a12 5-9,19-20,22-23,25-28,42-46,54-56,81-86,93
+src/lib/list/timeline.ts
+  s_ab125876fe9ad2::t_57ead6e3050a12 68-120,125-126,129,141
+tests/timeline.test.ts
+  s_ab125876fe9ad2::t_89b22a7ebdc1f0 5,47-90,108-109,111
+  s_ab125876fe9ad2::t_0b84f75d6f1aa2 110
+DESIGN.md
+  s_ab125876fe9ad2::t_6845f71ba4f88a 170
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2b2a081c038e4721e0162232dd916c1abd4a001e",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
