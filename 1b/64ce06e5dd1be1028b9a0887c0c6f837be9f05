@@ -1,0 +1,21 @@
+src/components/import/EbirdDrop.tsx
+  s_ab125876fe9ad2::t_25ae1d30e9ea63 111
+src/components/import/import.css
+  s_ab125876fe9ad2::t_25ae1d30e9ea63 94-95,99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1b64ce06e5dd1be1028b9a0887c0c6f837be9f05",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
