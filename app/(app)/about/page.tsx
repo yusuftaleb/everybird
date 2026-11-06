@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { HowItWorksDemo } from '@/components/about/HowItWorksDemo'
 import { PageHead } from '@/components/app/PageHead'
 import '@/components/app/app.css'
 import './about.css'
@@ -55,6 +56,7 @@ export default function AboutPage() {
 
       <section className="eb-block" aria-labelledby="eb-how-h">
         <h2 id="eb-how-h" className="eb-h2">How it works</h2>
+        <HowItWorksDemo />
         <ol className="eb-steps">
           <li>Bring your list on <Link href="/settings">Settings</Link>: an eBird file, an iNaturalist username, or birds ticked by hand. Combine them if you keep more than one record.</li>
           <li>Each bird is matched to this year&apos;s eBird taxonomy and keeps its earliest date. Rows that don&apos;t match are listed, so nothing is dropped quietly.</li>

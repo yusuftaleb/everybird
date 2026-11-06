@@ -12,3 +12,12 @@
 .eb-credit-body { margin: 0; font-size: 15px; line-height: 1.55; color: var(--muted); max-width: 62ch; }
 .eb-credit-code { text-transform: none; letter-spacing: 0; }
 @media (hover: hover) and (pointer: fine) { .eb-credit-title a:hover { color: var(--accent); } }
+
+/* "How it works": the animated demo (src/components/about). The slot holds the stage's exact height before and after
+   the scene loads (the wide design is 720 × 470, scaled to the column; under 560px the compact one, 358 × 356), so
+   nothing shifts. */
+.eb-howto { margin: 0; container-type: inline-size; }
+.eb-howto-slot { height: calc(min(100cqw, 720px) * 470 / 720); }
+@container (max-width: 559.98px) { .eb-howto-slot { height: calc(min(100cqw, 358px) * 356 / 358); } }
+.eb-howto-credit { margin: 8px 0 0; font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.eb-howto-credit a { color: inherit; text-underline-offset: 3px; }
