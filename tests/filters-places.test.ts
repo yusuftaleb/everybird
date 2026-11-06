@@ -78,3 +78,13 @@ describe('validity of places', () => {
     expect(applyFilterValidity({ country: 'FR', sub1: 'FR-IDF' }, list, [], species, true, seen)).toEqual({})
   })
 })
+
+describe('the share image names the deepest place', async () => {
+  const { filterLabel } = await import('@/lib/share/image')
+  const ctx = { species, trips: [], countryName: (c: string) => ({ CA: 'Canada' })[c] ?? c, regionName: (c: string) => ({ 'CA-BC': 'British Columbia' })[c] ?? c }
+  it('country, province, county', () => {
+    expect(filterLabel({ country: 'CA' }, ctx)).toBe('Canada')
+    expect(filterLabel({ country: 'CA', sub1: 'CA-BC' }, ctx)).toBe('British Columbia')
+    expect(filterLabel({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital', order: 'Strigiformes' }, ctx)).toBe('Owls · Capital, British Columbia')
+  })
+})

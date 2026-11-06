@@ -7,7 +7,8 @@ import type { LayoutName } from '@/lib/layout/layout.worker'
 import { applyFilter, filterKey, inRange, options, type Filter, type FilterLevel } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { monthOf, revealUntil, timeless, tripFilter } from '@/lib/list/timeline'
-import { entryCountry, type Trip } from '@/lib/list/trips'
+import type { SeenIndex } from '@/lib/list/seen'
+import type { Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 
 /** `still`: only visibility changes over the shown layout (Play, a range drag's preview): placed without motion. */
@@ -29,15 +30,16 @@ export { timeless }
  * top countries, and, with no time chosen, the latest trips (a bracket tap: the trip with its months). At most
  * PREFETCH_CAP. Range drags are continuous, so they are not guessed ahead.
  */
-export function childFilters(list: ListEntry[], f: Filter, species: SpeciesIndex, trips: Trip[]): Filter[] {
+export function childFilters(list: ListEntry[], f: Filter, species: SpeciesIndex, trips: Trip[], seen?: SeenIndex): Filter[] {
   const out: Filter[] = []
   const add = (level: FilterLevel, values: string[]) => values.forEach((v) => out.push({ ...f, [level]: v }))
-  const vals = (level: FilterLevel) => options(list, f, level, species, trips).map((o) => o.value)
+  const vals = (level: FilterLevel) => options(list, f, level, species, trips, undefined, seen).map((o) => o.value)
   if (!f.order) add('order', vals('order'))
   else if (!f.family) add('family', vals('family'))
   if (!f.country) add('country', vals('country').slice(0, COUNTRY_PREFETCH))
+  else if (!f.sub1) add('sub1', vals('sub1').slice(0, COUNTRY_PREFETCH))
   if (!f.year && !f.from && !f.to && !f.trip) {
-    const shown = new Set(applyFilter(list, timeless(f), species, trips).map((e) => e.code))
+    const shown = new Set(applyFilter(list, timeless(f), species, trips, seen).map((e) => e.code))
     const near = trips.filter((t) => t.codes.some((c) => shown.has(c))).slice(-TRIP_PREFETCH).reverse()
     for (const t of near) out.push(tripFilter(f, t))
   }
@@ -47,6 +49,8 @@ export function childFilters(list: ListEntry[], f: Filter, species: SpeciesIndex
 type Opts = {
   list: ListEntry[]
   trips: Trip[]
+  /** Seen-here (the Places filter keeps species seen there); without it, lifer places. */
+  seen?: SeenIndex
   filter: Filter
   mode: 'even' | 'true'
   species: SpeciesIndex
@@ -108,7 +112,7 @@ const idle = (fn: () => void): (() => void) => {
  * The current StateLayout and its visible codes, or null until the first layout arrives (and always in
  * environments without Worker, such as jsdom, unless a seed covers the state). Entries whose species are unknown are left out.
  */
-export function useCollageLayout({ list, trips, filter: chosen, mode, species, container, seed, play, preview }: Opts): CollageLayout | null {
+export function useCollageLayout({ list, trips, seen, filter: chosen, mode, species, container, seed, play, preview }: Opts): CollageLayout | null {
   const playing = !!play
   const filter = useMemo(() => (playing ? timeless(chosen) : chosen), [chosen, playing])
   const client = useRef<LayoutClient | null>(null)
@@ -116,16 +120,17 @@ export function useCollageLayout({ list, trips, filter: chosen, mode, species, c
   const [result, setResult] = useState<CollageLayout | null>(null)
   const known = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
   // Every edit builds a new list (a mark toggle too), so compare what the layout actually uses. `packSig`: the
-  // codes and masses in order (what the worker packs). `filterSig`: what filters resolve on (year, country, trips).
+  // codes and masses in order (what the worker packs). `filterSig`: what filters resolve on (months, lifer places, the
+  // seen-here places, trips).
   const packSig = useMemo(() => known.map((e) => `${e.code}:${species.byCode.get(e.code)!.g}`).join(','), [known, species])
   const filterSig = useMemo(
-    () => `${known.map((e) => `${e.date?.slice(0, 7) ?? ''}${entryCountry(e) ?? ''}`).join(',')}#${trips.map((t) => `${t.id}:${t.codes.join(' ')}`).join(',')}`,
-    [known, trips],
+    () => `${known.map((e) => `${e.date?.slice(0, 7) ?? ''}${e.place?.sub1 ?? e.place?.country ?? ''}`).join(',')}#${seen?.sig ?? ''}#${trips.map((t) => `${t.id}:${t.codes.join(' ')}`).join(',')}`,
+    [known, trips, seen],
   )
-  // The client resolves filters lazily, against the newest list and trips.
-  const latest = useRef({ known, trips })
-  useEffect(() => { latest.current = { known, trips } }, [known, trips])
-  const resolve = useCallback((f: Filter) => applyFilter(latest.current.known, f, species, latest.current.trips).map((e) => e.code), [species])
+  // The client resolves filters lazily, against the newest list, trips and seen-here.
+  const latest = useRef({ known, trips, seen })
+  useEffect(() => { latest.current = { known, trips, seen } }, [known, trips, seen])
+  const resolve = useCallback((f: Filter) => applyFilter(latest.current.known, f, species, latest.current.trips, latest.current.seen).map((e) => e.code), [species])
 
   // One client per mounted collage; its worker ends with it.
   useEffect(() => {
@@ -201,7 +206,7 @@ export function useCollageLayout({ list, trips, filter: chosen, mode, species, c
     let todo: Filter[] | null = null
     let cancel = () => {}
     const step = () => {
-      if (!todo) todo = childFilters(latest.current.known, filter, species, latest.current.trips)
+      if (!todo) todo = childFilters(latest.current.known, filter, species, latest.current.trips, latest.current.seen)
       else c.prefetch([todo.shift()!], cls)
       if (todo.length) cancel = idle(step)
     }

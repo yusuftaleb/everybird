@@ -11,6 +11,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import { applyFilter, type Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { monthBins, monthName, monthShort, pickHandle, rangeFilter, rangeIndices, rangeLabel, sliderKey, timeless, tripFilter, type Month } from '@/lib/list/timeline'
+import type { SeenIndex } from '@/lib/list/seen'
 import type { Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { TripBrackets } from './TripBrackets'
@@ -25,6 +26,8 @@ export const KEY_COMMIT_MS = 350
 type Props = {
   entries: ListEntry[]
   trips: Trip[]
+  /** Seen-here, for the Places filter of the other dimensions. */
+  seen?: SeenIndex
   filter: Filter
   species: SpeciesIndex
   /** The whole list's months (first lifer to today). */
@@ -42,10 +45,10 @@ type Props = {
 const n = (x: number) => x.toLocaleString('en-US')
 const pct = (i: number, total: number) => `${(i / total) * 100}%`
 
-export const Timeline = memo(function Timeline({ entries, trips, filter, species, months, today, onFilter, countryName, play, onPlay, onPreview }: Props) {
+export const Timeline = memo(function Timeline({ entries, trips, seen, filter, species, months, today, onFilter, countryName, play, onPlay, onPreview }: Props) {
   const N = months.length
   // Bars count the birds of the other filters (birds, places) over the whole span, so the handles never jump.
-  const others = useMemo(() => applyFilter(entries, timeless(filter), species, trips), [entries, filter, species, trips])
+  const others = useMemo(() => applyFilter(entries, timeless(filter), species, trips, seen), [entries, filter, species, trips, seen])
   const bins = useMemo(() => monthBins(others, today, entries), [others, today, entries])
   const chosen = useMemo(() => rangeIndices(filter, months), [filter, months])
   const [drag, setDrag] = useState<[number, number] | null>(null)

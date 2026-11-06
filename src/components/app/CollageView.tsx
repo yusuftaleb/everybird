@@ -39,6 +39,10 @@ type Props = {
   cardActions?: (entry: ListEntry, close: () => void) => ReactNode
   /** Filter panels (Places, Time) to leave out. */
   hidePanels?: readonly Panel[]
+  /** How deep Places goes (a shared link: countries only). */
+  placeDepth?: 'country' | 'county'
+  /** Every place on the list is a lifer place: the Places panel says so (the birder's own collage). */
+  liferPlaces?: boolean
   /** Before the stats ("Sample: Yusuf's life list"). */
   statsPrefix?: string
   /** A line under the stats (the unmatched-rows note on the birder's own collage). */
@@ -78,8 +82,8 @@ export function statsLine(all: ListEntry[], shown: ListEntry[], species: Species
   return parts.join(' · ')
 }
 
-export function CollageView({ state, dispatch, species, regions, dots, label, cardActions, hidePanels, statsPrefix, notice, filterNote, compactFilters, seed, whose = 'this' }: Props) {
-  const { list, trips, filter, mode, view, massOrder, sci } = state
+export function CollageView({ state, dispatch, species, regions, dots, label, cardActions, hidePanels, placeDepth, liferPlaces, statsPrefix, notice, filterNote, compactFilters, seed, whose = 'this' }: Props) {
+  const { list, trips, filter, mode, view, massOrder, sci, seen } = state
   const box = useRef<HTMLElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
   const [pick, setPick] = useState<{ code: string; anchor: HTMLElement | null } | null>(null)
@@ -96,7 +100,7 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
   // A range drag's preview (Timeline): shown over the current layout until the committed range's layout lands.
   const [preview, setPreview] = useState<{ from?: string; to?: string; committed?: boolean } | null>(null)
   const onPreview = useCallback((r: { from?: string; to?: string } | null) => setPreview((p) => (r ? r : p ? { ...p, committed: true } : null)), [])
-  const lay = useCollageLayout({ list, trips, filter, mode, species, container: box, seed, play: playAt, preview })
+  const lay = useCollageLayout({ list, trips, seen, filter, mode, species, container: box, seed, play: playAt, preview })
   const layKey = lay ? lay.layout.key.split('|').slice(2).join('|') : undefined
   useEffect(() => {
     if (!preview?.committed || layKey !== filterKey(filter)) return
@@ -114,7 +118,7 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
   }, [play, filter, view, dispatch])
   const time = useMemo(() => ({ entries, months, today, play, onPlay, onPreview }), [entries, months, today, play, onPlay, onPreview])
   const fk = filterKey(filter)
-  const shownList = useMemo(() => (fk ? applyFilter(entries, filter, species, trips) : entries), [entries, filter, fk, species, trips])
+  const shownList = useMemo(() => (fk ? applyFilter(entries, filter, species, trips, seen) : entries), [entries, filter, fk, species, trips, seen])
   const stats = useMemo(() => statsLine(entries, shownList, species), [entries, shownList, species])
   const shownCodes = useMemo(() => new Set(shownList.map((e) => e.code)), [shownList])
   const latest = useMemo(() => latestLifer(entries, (c) => species.byCode.get(c)?.to ?? 0), [entries, species])
@@ -158,16 +162,16 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
   const [pending, setPending] = useState<{ code: string; key: string; at: number } | null>(null)
   const onSearchPick = useCallback((h: CollageHit) => {
     if (h.kind !== 'species') {
-      dispatch({ type: 'filter', filter: drillTo(filter, { order: h.kind === 'order' ? h.value : h.order, family: h.kind === 'family' ? h.value : undefined }, entries, species, trips) })
+      dispatch({ type: 'filter', filter: drillTo(filter, { order: h.kind === 'order' ? h.value : h.order, family: h.kind === 'family' ? h.value : undefined }, entries, species, trips, seen) })
       return
     }
     const e = entries.find((x) => x.code === h.value)
     if (!e) return
     if (!fk || shownList.some((x) => x.code === h.value)) { show(h.value); return }
-    const next = filterToShow(filter, e, species, trips)
+    const next = filterToShow(filter, e, species, trips, seen)
     dispatch({ type: 'filter', filter: next })
     setPending({ code: h.value, key: filterKey(next), at: Date.now() })
-  }, [filter, fk, shownList, entries, species, trips, dispatch, show])
+  }, [filter, fk, shownList, entries, species, trips, seen, dispatch, show])
   // The out-of-view pick: wait for the new filter's layout (the list re-renders at once), then for the glide. It lapses
   // when the filter is changed by hand meanwhile, or after PENDING_MS, so a stale tooltip can't pop up later.
   useEffect(() => {
@@ -203,7 +207,7 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
         search={{ entries, shown: fk ? shownCodes : undefined, species, onPick: onSearchPick, whose }}
       />
 
-      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} hidePanels={hidePanels} panel={panel} onPanel={setPanel} compact={compactFilters} time={time} />
+      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} hidePanels={hidePanels} placeDepth={placeDepth} liferPlaces={liferPlaces} panel={panel} onPanel={setPanel} compact={compactFilters} time={time} />
       {filterNote}
 
       {view === 'collage' ? (

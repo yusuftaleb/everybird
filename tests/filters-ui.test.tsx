@@ -178,7 +178,7 @@ describe('FilterBar', () => {
     expect(removable.querySelector('.eb-flag')).toHaveTextContent('🇨🇦')
   })
 
-  it('country chip and map tap set the same filter; the breadcrumb reads All places / the country', () => {
+  it('country chip and map tap set the same filter; the breadcrumb reads World › the country', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: 'Places' }))
@@ -186,7 +186,7 @@ describe('FilterBar', () => {
     fireEvent.click(within(countries).getByRole('button', { name: /^Canada/ }))
     const viaChip = filterOf()
     expect(viaChip).toEqual({ country: 'CA' })
-    expect(screen.getByRole('navigation', { name: 'Filter by place' })).toHaveTextContent('All places/Canada')
+    expect(screen.getByRole('navigation', { name: 'Place' })).toHaveTextContent('World›Canada')
     fireEvent.click(within(screen.getByRole('group', { name: 'Countries' })).getByRole('button', { name: /^Canada/ })) // toggles off
     expect(filterOf()).toEqual({})
     fireEvent.click(screen.getByTestId('map-country-CA'))

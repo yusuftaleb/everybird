@@ -4,14 +4,13 @@
 // next level's row (none for an order with one family: the breadcrumb ends with that family). A leaf level's row
 // stays, with the choice in Accent and the other chips stepped back. On phones the row is one button ("Choose an
 // order 18") that opens the chips in a sheet.
-// Taxonomy (orders, then families) is always on show. Everybird's extra dimensions, Places (the map, then countries)
-// and Time (the timeline: a range of months, trips, Play; Timeline.tsx), are toggles that open their panel (one at a
+// Taxonomy (orders, then families) is always on show. Everybird's extra dimensions, Places (the map, then countries,
+// provinces and counties where species were seen; PlacesPanel.tsx) and Time (the timeline: a range of months, trips, Play; Timeline.tsx), are toggles that open their panel (one at a
 // time; tap again to close). Opening or closing a panel never changes the filter; what a closed panel has chosen shows as a
 // removable chip beside the toggles.
 import { memo, useId, useMemo, useState } from 'react'
 import { useIsSheet } from '@/components/dialog-utils'
 import { ChevronDownIcon, CloseIcon } from '@/components/collage/icons'
-import { CountryMap } from '@/components/map/CountryMap'
 import { flagEmoji } from '@/lib/flag'
 import { closedPanelLevels, togglePanel, type Panel, type PanelKey } from '@/lib/list/filter-panels'
 import { options, type ChipOption, type Filter, type FilterLevel } from '@/lib/list/filters'
@@ -23,7 +22,8 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
 import type { CountryDots, Regions } from '@/lib/species/types'
 import { Chip } from './Chip'
-import { SheetPicker } from './SheetPicker'
+import { LevelRow } from './LevelRow'
+import { PlacesPanel } from './PlacesPanel'
 import { Timeline } from './Timeline'
 import type { PlayControls } from './use-play'
 import './filters.css'
@@ -41,6 +41,10 @@ type Props = {
   dots?: CountryDots
   /** Panels to leave out (a shared link that carries no places or dates). */
   hidePanels?: readonly Panel[]
+  /** How deep Places goes: countries only (a shared link), or down to provinces and counties (default). */
+  placeDepth?: 'country' | 'county'
+  /** The list's places are all lifer places (no MyEBirdData or iNaturalist): the Places panel says so. */
+  liferPlaces?: boolean
   /** The open panel, when the parent keeps it. */
   panel?: Panel | null
   onPanel?: (p: Panel | null) => void
@@ -61,14 +65,18 @@ const PANELS: (Group & { id: Panel })[] = [
   { id: 'places', label: 'Places', nav: 'Filter by place', all: 'All places', levels: ['country'] },
   { id: 'time', label: 'Time', nav: 'Filter by time', all: 'All time', levels: ['trip'] }, // the timeline, not chips
 ]
-const RANK: Record<Level, string> = { order: 'Orders', family: 'Families', country: 'Countries', sub1: 'Regions', sub2: 'Counties', year: 'Years', trip: 'Trips' }
 /** Levels named by a scientific name (shown in Latin when Scientific names are on). */
 const LATIN = new Set<Level>(['order', 'family'])
 
-/** A change of one level; clearing an order also clears its family. (Time is the timeline's: no year or trip chips.) */
+/**
+ * A change of one level; clearing an order also clears its family, a country its province and county. (Time is the
+ * timeline's: no year or trip chips.)
+ */
 function withLevel(f: Filter, level: Level, value: string | undefined): Filter {
   const next: Filter = { ...f, [level]: value }
   if (level === 'order') delete next.family
+  if (level === 'country') { delete next.sub1; delete next.sub2 }
+  if (level === 'sub1') delete next.sub2
   for (const k of Object.keys(next) as (keyof Filter)[]) if (!next[k]) delete next[k]
   return next
 }
@@ -81,7 +89,7 @@ function CountryLabel({ iso, name }: { iso: string; name: string }) {
   return flag ? <><span className="eb-flag" aria-hidden="true">{flag}</span>{name}</> : <>{name}</>
 }
 
-export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hidePanels, panel: panelProp, onPanel, compact, time }: Props) {
+export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hidePanels, placeDepth, liferPlaces, panel: panelProp, onPanel, compact, time }: Props) {
   const panels = useMemo(() => (hidePanels?.length ? PANELS.filter((p) => !hidePanels.includes(p.id)) : PANELS), [hidePanels])
   const [ownPanel, setOwnPanel] = useState<Panel | null>(null)
   const requested = panelProp !== undefined ? panelProp : ownPanel
@@ -89,24 +97,20 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
   const setPanel = (p: Panel | null) => { setOwnPanel(p); onPanel?.(p) }
   const sheet = useIsSheet()
   const base = useId()
-  const { list, trips, filter, sci } = state
+  const { list, trips, filter, sci, seen } = state
 
   const countryName = useMemo(
     () => (iso: string) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso),
     [regions],
   )
-  // Only the levels on show are counted: orders always and the open panel's top level (Places counts countries for the
-  // map); a child level (families, trips) only once its parent is chosen.
+  // Only the levels on show are counted: orders always, families once an order is chosen (Places counts its own levels).
   const opts = useMemo(() => {
     const out: Partial<Record<Level, ChipOption[]>> = {}
-    for (const g of [BIRDS, ...(open && open.id !== 'time' ? [open] : [])]) {
-      const [top, child] = g.levels
-      out[top] = options(list, filter, top, species, trips, countryName)
-      if (child && filter[top]) out[child] = options(list, filter, child, species, trips, countryName)
-    }
+    const [top, child] = BIRDS.levels
+    out[top] = options(list, filter, top, species, trips, countryName, seen)
+    if (child && filter[top]) out[child] = options(list, filter, child, species, trips, countryName, seen)
     return out
-  }, [list, filter, species, trips, countryName, open])
-  const countryCounts = useMemo(() => new Map((opts.country ?? []).map((c) => [c.value, c.count])), [opts.country])
+  }, [list, filter, species, trips, countryName, seen])
 
   const set = (level: Level, value: string | undefined) => dispatch({ type: 'filter', filter: withLevel(filter, level, value) })
   /** Remove a closed panel's choice: a range takes its ends, a trip its months too. */
@@ -116,7 +120,9 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
     delete next.from; delete next.to; delete next.trip
     dispatch({ type: 'filter', filter: next })
   }
-  const panelName = (k: PanelKey) => (k === 'range' ? rangeLabel(filter.from, filter.to) ?? '' : nameOf(k, filter[k]!))
+  // A closed Places panel shows its deepest place (removing it clears every place level).
+  const placeName = () => filter.sub2 ?? (filter.sub1 ? stripBracket(regions.sub1[filter.sub1] ?? filter.sub1) : countryName(filter.country!))
+  const panelName = (k: PanelKey) => (k === 'range' ? rangeLabel(filter.from, filter.to) ?? '' : k === 'country' ? placeName() : nameOf(k, filter[k]!))
   const toggle = (level: Level, value: string) => set(level, filter[level] === value ? undefined : value)
 
   /** The label of a level's value: plain English, or the scientific name for orders and families in Latin mode. */
@@ -174,26 +180,17 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
             })}
           </p>
         )}
-        {level && levelOpts.length > 0 && (
-          sheet && !strip ? (
-            <SheetPicker
-              key={level}
-              level={level}
-              options={levelOpts}
-              label={chipLabel}
-              latin={latin}
-              chosen={chosen ? nameOf(level, chosen) : undefined}
-              value={chosen}
-              onPick={(v) => toggle(level, v)}
-            />
-          ) : (
-            <div className="eb-level" role="group" aria-label={RANK[level]} data-chosen={chosen ? '' : undefined} data-testid={`level-${level}`}>
-              <span className="eb-mono eb-level-label" aria-hidden="true">{RANK[level]}</span>
-              {levelOpts.map((o) => (
-                <Chip key={o.value} label={chipLabel(level, o)} latin={latin} count={o.count} selected={chosen === o.value} onClick={() => toggle(level, o.value)} />
-              ))}
-            </div>
-          )
+        {level && (
+          <LevelRow
+            level={level}
+            options={levelOpts}
+            label={chipLabel}
+            latin={latin}
+            value={chosen}
+            chosenName={chosen ? nameOf(level, chosen) : undefined}
+            sheet={sheet && !strip}
+            onPick={(v) => toggle(level, v)}
+          />
         )}
       </nav>
     )
@@ -243,13 +240,26 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
 
       {open && (
         <div id={`${base}-panel-${open.id}`} role="region" aria-label={open.label} className="eb-panel" data-map={open.id === 'places' && dots ? '' : undefined} data-testid={`filter-panel-${open.id}`}>
-          {open.id === 'places' && dots && (
-            <CountryMap dots={dots} counts={countryCounts} selected={filter.country} onSelect={(iso) => set('country', iso)} countryName={countryName} />
+          {open.id === 'places' && (
+            <PlacesPanel
+              filter={filter}
+              list={list}
+              seen={seen}
+              trips={trips}
+              species={species}
+              regions={regions}
+              dots={dots}
+              depth={placeDepth}
+              liferOnly={liferPlaces}
+              sheet={sheet}
+              onFilter={(f) => dispatch({ type: 'filter', filter: f })}
+            />
           )}
           {open.id === 'time' ? (time && (
             <Timeline
               entries={time.entries}
               trips={trips}
+              seen={seen}
               filter={filter}
               species={species}
               months={time.months}
@@ -260,7 +270,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
               onPlay={time.onPlay}
               onPreview={time.onPreview}
             />
-          )) : levels(open)}
+          )) : null}
         </div>
       )}
 

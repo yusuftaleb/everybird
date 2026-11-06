@@ -60,5 +60,5 @@ function Loaded({ payload, species, regions, dots }: { payload: SharePayload; sp
       {miss.places && miss.dates ? 'This link carries no places or dates' : miss.places ? 'This link carries no places' : 'This link carries no dates'}, so those filters are left out.
     </p>
   ) : undefined
-  return <CollageView state={state} dispatch={dispatch} species={species} regions={shown.regions} dots={dots} label="Shared collage" hidePanels={hide} filterNote={note} />
+  return <CollageView state={state} dispatch={dispatch} species={species} regions={shown.regions} dots={dots} label="Shared collage" hidePanels={hide} placeDepth="country" filterNote={note} />
 }

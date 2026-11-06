@@ -102,6 +102,7 @@ export function CollagePage() {
             species={data.species}
             regions={data.regions}
             dots={dots}
+            liferPlaces={!state.seen.full}
             label="Your collage"
             whose="your"
             cardActions={actions}

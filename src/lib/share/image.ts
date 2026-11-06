@@ -57,17 +57,20 @@ export function latestText(latest: { com: string; date?: string }): { label: str
  */
 export function filterLabel(
   f: Filter,
-  ctx: { species: SpeciesIndex; trips: Trip[]; countryName: (iso2: string) => string },
+  ctx: { species: SpeciesIndex; trips: Trip[]; countryName: (iso2: string) => string; regionName?: (code: string) => string },
 ): string | undefined {
+  // A place reads as its deepest level: "Okanagan-Similkameen, British Columbia", "British Columbia" or "Canada".
+  const region = (code: string) => ctx.regionName?.(code) ?? code
+  const place = f.sub1 ? (f.sub2 ? `${f.sub2}, ${region(f.sub1)}` : region(f.sub1)) : f.country ? ctx.countryName(f.country) : undefined
   const parts: string[] = []
   if (f.family) parts.push(ctx.species.rows.find((r) => r.fam === f.family)?.famCom || f.family)
   else if (f.order) parts.push(orderLabel(f.order))
   const trip = f.trip ? ctx.trips.find((t) => t.id === f.trip) : undefined
   if (trip) {
-    if (f.country && f.country !== trip.country) parts.push(ctx.countryName(f.country))
+    if (place && (f.sub1 || f.country !== trip.country)) parts.push(place)
     parts.push(trip.label)
   } else {
-    if (f.country) parts.push(ctx.countryName(f.country))
+    if (place) parts.push(place)
     const range = rangeLabel(f.from, f.to)
     if (range) parts.push(range)
     else if (f.year) parts.push(f.year)

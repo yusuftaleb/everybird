@@ -117,6 +117,9 @@
 .eb-map-hit { stroke: transparent; stroke-width: 3; }
 .eb-map-country { cursor: pointer; }
 .eb-map-label { margin: 0; min-height: 18px; }
+/* Places breadcrumb (World › Canada › British Columbia › county) sits under the map, over the chips. */
+.eb-places-path .eb-path { margin: 0; }
+.eb-places-note a { color: var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   .eb-map-lit, .eb-chip, .eb-tab, .eb-toggle-caret { transition: none; }
   .eb-sheet, .eb-path, .eb-path + .eb-level, .eb-path + .eb-pick { animation-name: eb-fade-in; }
