@@ -39,7 +39,7 @@
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 44px; padding: 0 18px;
   border: 1px solid var(--accent); background: var(--accent); color: var(--paper);
-  font: inherit; font-size: 15px; font-weight: 700; white-space: nowrap; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: 700; white-space: nowrap; cursor: pointer; text-decoration: none;
   border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   transition: opacity .15s cubic-bezier(.25, .8, .25, 1), border-color .15s cubic-bezier(.25, .8, .25, 1);
   -webkit-tap-highlight-color: transparent;
@@ -63,32 +63,124 @@
 }
 .eb-textbtn svg { width: 16px; height: 16px; flex: none; }
 
-/* The collage block. */
-.eb-view { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+/* The collage block: LifeList's column (12px between the stats line, the dock, the filters and the stage). */
+.eb-view { --eb-ease: cubic-bezier(.16, 1, .3, 1); display: flex; flex-direction: column; gap: 12px; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.3; }
 .eb-stats { margin: 0; }
-.eb-dock { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.eb-dock-end { margin-left: auto; display: flex; gap: 8px; }
-.eb-seg {
-  display: inline-flex; gap: 4px; padding: 4px;
-  border: 1px solid var(--hairline);
+.eb-view .eb-collage, .eb-view .eb-stage-wait { margin-top: 8px; }
+
+/* Controls bar: LifeList's dock (the Photography / Library tab bar). */
+.eb-dockwrap { container-type: inline-size; }
+.eb-dock {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px;
+  border: 1px solid var(--hairline); border-radius: 16px; background: var(--paper);
+}
+.eb-dock-tabs { display: flex; gap: 4px; }
+.eb-dock-tab {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; min-width: 44px;
+  padding: 0 16px 0 14px; border: 0; border-radius: 12px; background: transparent; color: inherit;
+  font: inherit; white-space: nowrap; cursor: pointer; opacity: .66; -webkit-tap-highlight-color: transparent;
+  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease);
+}
+.eb-dock-tab svg { width: 20px; height: 20px; flex: none; }
+.eb-dock-tab[aria-pressed="true"] { opacity: 1; color: var(--accent); background: var(--surface); font-weight: 600; }
+.eb-dock-sw { gap: 10px; padding: 0 12px 0 14px; }
+.eb-dock-push { margin-left: auto; }
+.eb-dock-sci { font-style: italic; }
+.eb-dock-dir { gap: 6px; opacity: 1; }
+.eb-dock-dir svg { width: 16px; height: 16px; transition: transform .2s var(--eb-ease); }
+.eb-dock-sw[aria-checked="true"] { opacity: 1; }
+.eb-dock-sw[aria-checked="true"] .eb-track { background: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(14px); background: var(--paper); }
+.eb-short { display: none; }
+/* The search sits between the tabs and the switches; on a narrow bar it takes its own row under them. */
+.eb-dock-search { flex: 1 1 220px; min-width: 0; }
+.eb-dock-search + .eb-dock-push { margin-left: 0; }
+@container (max-width: 640px) {
+  .eb-dock-search { order: 10; flex-basis: 100%; }
+  .eb-dock-search + .eb-dock-push { margin-left: auto; }
+}
+@container (max-width: 400px) {
+  .eb-long { display: none; }
+  .eb-short { display: inline; }
+  .eb-dock-tab { padding: 0 12px; }
+  .eb-dock-sw { padding: 0 8px; gap: 6px; }
+}
+@container (max-width: 460px) {
+  .eb-dock-tabs .eb-dock-tab span { display: none; }
+  .eb-dock-tabs .eb-dock-tab { padding: 0; width: 44px; }
+}
+@media (hover: hover) and (pointer: fine) { .eb-dock-tab:hover { opacity: 1; } }
+
+/* The search field and its suggestions (a popover in the card's style). */
+.eb-search-field { position: relative; display: flex; align-items: center; min-height: 44px; border-radius: 12px; transition: background-color .15s var(--eb-ease); }
+.eb-search-field:focus-within { background: var(--surface); }
+.eb-search-icon { position: absolute; left: 14px; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+.eb-search-input {
+  flex: 1; min-width: 0; height: 44px; padding: 0 40px 0 42px; border: 0; border-radius: 12px; background: transparent;
+  color: var(--ink); font: inherit; font-size: 16px; /* 16px keeps iOS from zooming in */
+}
+.eb-search-input::placeholder { color: var(--muted); opacity: 1; }
+.eb-search-input:focus { outline: none; }
+.eb-search-field:has(.eb-search-input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eb-search-clear {
+  position: absolute; right: 2px; display: grid; place-items: center; width: 40px; height: 40px;
+  border: 0; border-radius: 10px; background: none; color: var(--muted); cursor: pointer;
+}
+.eb-search-clear svg { width: 16px; height: 16px; }
+.eb-suggest {
+  position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 20; margin: 0; padding: 6px; list-style: none;
+  max-height: min(60vh, 420px); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--paper); border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+  animation: eb-suggest-in .15s var(--eb-ease) both;
 }
-.eb-seg-btn {
-  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px;
-  border: 0; background: none; color: var(--ink); font: inherit; font-weight: 500; cursor: pointer; opacity: .66;
-  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s cubic-bezier(.25, .8, .25, 1);
+.eb-suggest[hidden] { display: none; }
+.eb-suggest-item {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; min-height: 44px; padding: 11px 10px;
+  border-radius: 10px; cursor: pointer;
 }
-.eb-seg-btn svg { width: 18px; height: 18px; }
-.eb-seg-btn[aria-pressed="true"] { opacity: 1; background: var(--surface); }
+.eb-suggest-item[aria-selected="true"] { background: var(--surface); }
+.eb-suggest-primary { font-size: 15px; font-weight: 600; }
+.eb-suggest-other { font-size: 13px; color: var(--muted); }
+.eb-suggest [lang] { font-style: italic; }
+.eb-suggest-none { padding: 12px 14px; font-size: 14px; color: var(--muted); }
+@keyframes eb-suggest-in { from { opacity: 0; } }
+
 .eb-stage-wait {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
   min-height: min(70vh, 560px); container-type: inline-size; --f: 10;
 }
 .eb-stage-wait .eb-num { font-size: clamp(40px, 10vw, 64px); }
 .eb-sample-wait { min-height: min(80vh, 640px); }
-.eb-legend { display: flex; flex-direction: column; gap: 4px; }
+.eb-ways-wait { min-height: 360px; }
+.eb-legend { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .eb-legend p { margin: 0; }
+
+/* Page heads (/make, /my): the way home, the title and its actions. */
+.eb-pagehead { gap: 10px; }
+.eb-home { align-self: flex-start; color: var(--muted); text-decoration: none; padding: 4px 0; }
+.eb-home:hover { color: var(--ink); }
+.eb-pagehead-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
+.eb-title-page { font-size: clamp(36px, 7vw, 56px); }
+.eb-pagehead-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.eb-sm-show { display: none; }
+/* Phones: the four actions as a compact 2 x 2 grid, with short labels ("CSV", "backup"; the full names stay accessible). */
+@media (max-width: 599px) {
+  .eb-pagehead-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .eb-pagehead-actions .eb-btn { min-height: 44px; padding: 0 12px; font-size: 14px; }
+  .eb-sm-hide { display: none; }
+  .eb-sm-show { display: inline; }
+}
+.eb-page-my { gap: 32px; }
+@media (min-width: 720px) { .eb-page-my { gap: 40px; } }
+/* After an import on /make: what landed, and the way to the collage. */
+.eb-made {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 14px 16px;
+  border: 1px solid var(--accent); background: var(--paper);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-made p { margin: 0; font-size: 15px; line-height: 1.45; }
 
 /* Tools: downloads, restore, forget. */
 .eb-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -107,12 +199,16 @@
 .eb-footer {
   max-width: 1152px; margin: 0 auto; padding: 20px 16px 32px;
   border-top: 1px solid var(--hairline);
-  display: flex; flex-wrap: wrap; gap: 8px 20px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px;
 }
 @media (min-width: 720px) { .eb-footer { padding: 20px 32px 40px; } }
 .eb-footer p { margin: 0; }
 .eb-footer a { color: inherit; text-underline-offset: 3px; }
 
+/* The theme switch in the footer. */
+.eb-footer .eb-theme { margin-left: auto; min-height: 36px; padding: 0 0 0 8px; font-size: 13px; }
+
 @media (prefers-reduced-motion: reduce) {
-  .eb-btn, .eb-seg-btn { transition: none; }
+  .eb-btn, .eb-dock-tab, .eb-dock-dir svg, .eb-search-field { transition: none; }
+  .eb-suggest { animation: none; }
 }

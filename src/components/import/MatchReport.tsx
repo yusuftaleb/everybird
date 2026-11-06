@@ -1,7 +1,7 @@
 'use client'
 import { Check, MagnifyingGlass } from '@phosphor-icons/react'
 import { memo, useState } from 'react'
-import type { Unmatched } from '@/lib/list/model'
+import { unmatchedKey, type Unmatched } from '@/lib/list/model'
 import type { Action } from '@/lib/list/store'
 import type { Saved } from '@/lib/list/storage'
 import type { SpeciesIndex } from '@/lib/species/load'
@@ -11,11 +11,12 @@ import './import.css'
 
 type Props = { open: Unmatched[]; saved: Saved; species: SpeciesIndex; dispatch: (a: Action) => void }
 
-const where = (u: Unmatched) => (u.source === 'inat' ? `iNaturalist observation ${u.row}` : u.source === 'ebird' ? `eBird row ${u.row}` : `Row ${u.row}`)
+const where = (u: Unmatched) =>
+  u.source === 'inat' ? `iNaturalist observation ${u.row}` : u.slot === 'ebird-list' ? `eBird life list row ${u.row}` : u.source === 'ebird' ? `eBird row ${u.row}` : `Row ${u.row}`
 
 /**
  * Rows that couldn't be matched to an eBird species (never dropped silently): each with a one-tap fix when there
- * is a likely species, and a search to fix it by hand. Fixes go to edits.fixes ("source:row" -> code).
+ * is a likely species, and a search to fix it by hand. Fixes go to edits.fixes (unmatchedKey, "slot:row" -> code).
  * Non-species rows (sp., slashes, hybrids, domestics) are summarised from the imports' skipped counts.
  */
 export const MatchReport = memo(function MatchReport({ open, saved, species, dispatch }: Props) {
@@ -24,7 +25,7 @@ export const MatchReport = memo(function MatchReport({ open, saved, species, dis
     Object.values(saved.skipped ?? {}).reduce((a, b) => a + (b ?? 0), 0) + open.filter((u) => u.reason === 'not-species').length
   if (!rows.length && !notSpecies) return null
   const fix = (u: Unmatched, code: string) =>
-    dispatch({ type: 'edit', edits: { ...saved.edits, fixes: { ...saved.edits.fixes, [`${u.source}:${u.row}`]: code } } })
+    dispatch({ type: 'edit', edits: { ...saved.edits, fixes: { ...saved.edits.fixes, [unmatchedKey(u)]: code } } })
   return (
     <section className="eb-block" aria-labelledby={rows.length ? 'eb-match-h' : undefined} aria-label={rows.length ? undefined : 'Match report'}>
       {rows.length > 0 && (
@@ -32,7 +33,7 @@ export const MatchReport = memo(function MatchReport({ open, saved, species, dis
           <h2 id="eb-match-h" className="eb-h2">{rows.length.toLocaleString('en-US')} {rows.length === 1 ? "row couldn't" : "rows couldn't"} be matched</h2>
           <p className="eb-note">These names aren&apos;t in this year&apos;s eBird taxonomy, so they aren&apos;t counted yet. Pick the right bird for each.</p>
           <ul className="eb-match">
-            {rows.map((u) => <MatchRow key={`${u.source}:${u.row}`} u={u} species={species} onFix={(code) => fix(u, code)} />)}
+            {rows.map((u) => <MatchRow key={unmatchedKey(u)} u={u} species={species} onFix={(code) => fix(u, code)} />)}
           </ul>
         </>
       )}

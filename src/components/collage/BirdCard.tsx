@@ -1,12 +1,13 @@
 'use client'
-import { X } from '@phosphor-icons/react'
-import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { trapTab, useEscapeCapture, useIsSheet } from '@/components/dialog-utils'
 import { formatDate, formatMass } from '@/lib/format'
 import { formatPlace } from '@/lib/import/places'
 import type { ListEntry } from '@/lib/list/model'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
+import { CloseIcon } from './icons'
+import { Marks, marksOf } from './Marks'
 import './card-list.css'
 
 export type CardAnchor = Element | DOMRect | null
@@ -22,6 +23,10 @@ type Props = {
   actions?: ReactNode
   /** Where focus goes on close; defaults to the anchor when it is an element. */
   returnFocus?: HTMLElement | null
+  /** Scientific names lead (the Scientific switch). */
+  sci?: boolean
+  /** For this many ms the popover re-places itself every frame (its bird is still travelling to its spot). */
+  follow?: number
 }
 
 const MARGIN = 8
@@ -32,18 +37,18 @@ function rectOf(a: CardAnchor): DOMRect | null {
   return 'getBoundingClientRect' in a ? a.getBoundingClientRect() : a
 }
 
-export function massLine(row: SpeciesRow): string {
-  const base = `Average body mass: ${row.gSrc === 'family' || row.gSrc === 'order' ? '~' : ''}${formatMass(row.g)}`
-  if (row.gSrc === 'family') return `${base} (estimated from its family)`
-  if (row.gSrc === 'order') return `${base} (estimated from its order)`
-  return base
+/** The mass label (a tooltip and screen-reader text: the card shows only the value, as on LifeList). */
+export function massLabel(row: SpeciesRow): string {
+  if (row.gSrc === 'family') return 'Average body mass, estimated from its family'
+  if (row.gSrc === 'order') return 'Average body mass, estimated from its order'
+  return 'Average body mass'
 }
+const massValue = (row: SpeciesRow) => `${row.gSrc === 'family' || row.gSrc === 'order' ? '~' : ''}${formatMass(row.g)}`
 
-export function BirdCard({ entry, species, regions, anchor = null, onClose, actions, returnFocus }: Props) {
+export function BirdCard({ entry, species, regions, anchor = null, onClose, actions, returnFocus, sci = false, follow }: Props) {
   const row = species.byCode.get(entry.code)
   const sheet = useIsSheet()
   const ref = useRef<HTMLDivElement>(null)
-  const titleId = useId()
   const onCloseRef = useRef(onClose)
   const anchorRef = useRef(anchor)
   const returnRef = useRef(returnFocus)
@@ -79,6 +84,16 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
     }
     place()
     let raf = 0
+    // Following a travelling bird: re-place every frame until `follow` ms have passed.
+    let trail = 0
+    if (follow && typeof requestAnimationFrame === 'function') {
+      const until = performance.now() + follow
+      const step = () => {
+        place()
+        trail = performance.now() < until ? requestAnimationFrame(step) : 0
+      }
+      trail = requestAnimationFrame(step)
+    }
     const again = () => {
       if (raf) return
       raf = requestAnimationFrame(() => {
@@ -90,10 +105,11 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
     window.addEventListener('scroll', again, { passive: true, capture: true })
     return () => {
       if (raf) cancelAnimationFrame(raf)
+      if (trail) cancelAnimationFrame(trail)
       window.removeEventListener('resize', again)
       window.removeEventListener('scroll', again, { capture: true })
     }
-  }, [anchor, sheet, entry.code])
+  }, [anchor, sheet, entry.code, follow])
 
   // Focus in on open (after placement, above), back on close.
   useLayoutEffect(() => {
@@ -128,44 +144,43 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   if (!row) return null
   const place = formatPlace(entry.place, regions)
   const date = formatDate(entry.date)
-  const marks = [
-    entry.heard && '* heard only',
-    entry.dead && '† found dead',
-    entry.media && '◦ photo or recording',
-  ].filter(Boolean) as string[]
+  const marks = marksOf(entry).map((m) => m.label)
+  const when = [date, ...marks].filter(Boolean)
 
+  // LifeList's card (layout C): the name with its marks, the other name under it, the body mass top-right; then
+  // the date line (with the marks in words) and the place, both mono.
   const card = (
     <div
       ref={ref}
       className="eb-card"
       role="dialog"
       aria-modal={sheet ? true : undefined}
-      aria-labelledby={titleId}
+      aria-label={sci ? row.sci : row.com}
       data-variant={sheet ? 'sheet' : 'popover'}
       tabIndex={-1}
       onKeyDown={trap}
     >
       <div className="eb-card-head">
         <div className="eb-card-names">
-          <h2 id={titleId} className="eb-card-name">{row.com}</h2>
-          <p className="eb-card-sci"><i>{row.sci}</i></p>
+          <h2 className="eb-card-name" lang={sci ? 'la' : undefined}>{sci ? row.sci : row.com}<Marks entry={entry} /></h2>
+          <p className="eb-card-other" lang={sci ? undefined : 'la'}>{sci ? row.com : row.sci}</p>
         </div>
+        <span className="eb-card-mass" title={massLabel(row)}><span className="eb-sr">{massLabel(row)} </span>{massValue(row)}</span>
         <button type="button" className="eb-card-close" aria-label="Close" onClick={onClose}>
-          <X aria-hidden="true" focusable="false" weight="bold" />
+          <CloseIcon />
         </button>
       </div>
-      {(date || place) && (
+      {(when.length > 0 || place) && (
         <div className="eb-card-when">
-          {date && <p className="eb-mono"><time dateTime={entry.date}>{date}</time></p>}
-          {place && <p className="eb-card-place">{place}</p>}
+          {when.length > 0 && (
+            <p className="eb-mono eb-card-date">
+              {date && <time dateTime={entry.date}>{date}</time>}
+              {marks.length > 0 && `${date ? ' · ' : ''}${marks.join(' · ')}`}
+            </p>
+          )}
+          {place && <p className="eb-mono eb-card-place">{place}</p>}
         </div>
       )}
-      {marks.length > 0 && (
-        <ul className="eb-card-marks eb-mono">
-          {marks.map((m) => <li key={m}>{m}</li>)}
-        </ul>
-      )}
-      <p className="eb-card-mass">{massLine(row)}</p>
       {actions && <div className="eb-card-actions">{actions}</div>}
     </div>
   )

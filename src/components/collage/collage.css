@@ -166,3 +166,11 @@
   .eb-track,
   .eb-knob { transition: none; }
 }
+
+/* A bird picked from the search: a brief Accent ring (drawn inside its scale, like the focus ring). */
+.eb-bird[data-ring] {
+  outline: calc(2px / var(--k)) solid var(--accent);
+  outline-offset: calc(4px / var(--k));
+  border-radius: calc(8px / var(--k));
+  z-index: 4;
+}

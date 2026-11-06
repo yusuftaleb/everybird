@@ -11,7 +11,7 @@ test("switching True size keeps every bird visible mid-transition", async ({ pag
   const total = await birds.count();
   expect(total).toBeGreaterThan(0);
 
-  await page.getByRole("switch", { name: "True size" }).click();
+  await page.getByRole("switch", { name: /^True size/ }).click();
   await page.waitForTimeout(320);
   await page.screenshot({ path: "test-results/collage-true-size-320ms.png" });
 
@@ -27,5 +27,5 @@ test("switching True size keeps every bird visible mid-transition", async ({ pag
     }).length;
   });
   expect(visibleNow).toBe(total);
-  await expect(page.getByRole("switch", { name: "True size" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("switch", { name: /^True size/ })).toHaveAttribute("aria-checked", "true");
 });

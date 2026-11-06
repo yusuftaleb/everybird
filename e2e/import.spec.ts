@@ -23,7 +23,7 @@ test("sample collage renders on landing", async ({ page }) => {
   await expect(stage).toBeVisible();
   await expect(page.getByTestId("collage-stats")).toHaveText(/^197 species · \d+ orders · \d+ families · since /);
   await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
-  await expect(page.getByRole("heading", { name: "Make yours" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Make yours" })).toHaveAttribute("href", "/make");
   await expect(page.getByRole("link", { name: "huashu-bird-sticker" })).toHaveAttribute("href", "https://github.com/alchaincyf/huashu-bird-sticker");
   expect(errors).toEqual([]);
 });
@@ -34,11 +34,11 @@ test("large file shows progress and stays responsive", async ({ page }) => {
   const file = join(dir, "MyEBirdData.csv");
   writeFileSync(file, buildSyntheticMyData(200_000));
   try {
-    await page.goto("/");
-    await expect(page.getByTestId("collage-stage")).toBeVisible();
-    const sw = page.getByRole("switch", { name: "True size" });
+    // /make has no collage: the probe taps the footer's Dark mode switch, which re-renders the page's colours.
+    await page.goto("/make");
+    await expect(page.getByTestId("ebird-drop")).toBeVisible();
+    const sw = page.getByRole("switch", { name: "Dark mode" });
     await expect(sw).toHaveAttribute("aria-checked", "false");
-    const box = (await sw.boundingBox())!;
     // A phone-like main thread (4x CPU slowdown).
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
@@ -49,7 +49,7 @@ test("large file shows progress and stays responsive", async ({ page }) => {
     await page.evaluate(() => {
       type Probe = { texts: string[]; times: number[]; long: [number, number][]; down: number; lat: number[]; atClick: string; stop: () => void };
       const status = document.querySelector('[data-testid="ebird-drop"]')!.parentElement!.querySelector('[role="status"]')!;
-      const el = document.querySelector<HTMLElement>('[role="switch"]')!;
+      const el = document.querySelector<HTMLElement>('.eb-theme[role="switch"]')!;
       const p: Probe = { texts: [], times: [], long: [], lat: [], down: 0, atClick: "", stop: () => {} };
       const mo = new MutationObserver(() => {
         const t = status.textContent ?? "";
@@ -67,10 +67,13 @@ test("large file shows progress and stays responsive", async ({ page }) => {
     });
 
     await page.getByTestId("ebird-input").setInputFiles(file);
-    // As soon as the first row count shows, tap the switch (no actionability waits: it was measured above).
+    // As soon as the first row count shows, tap the switch. It is scrolled to and measured now, not before the import:
+    // it sits in the footer, below the fold, and the status line above it gains a line of text.
     await page.waitForFunction(() => (window as unknown as { __eb: { texts: string[] } }).__eb.texts.some((t) => / rows$/.test(t)), null, { polling: "raf" });
+    await page.evaluate(() => document.querySelector(".eb-theme")!.scrollIntoView({ block: "center" }));
+    const box = (await sw.boundingBox())!;
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    await expect(page.getByTestId("collage-stats")).toHaveText(/^8 species/, { timeout: 120_000 });
+    await expect(page.getByTestId("see-collage")).toContainText("Your collage has 8 species.", { timeout: 120_000 });
 
     const probe = await page.evaluate(() => {
       const p = (window as unknown as { __eb: { texts: string[]; times: number[]; long: [number, number][]; lat: number[]; atClick: string; stop: () => void } }).__eb;
@@ -87,9 +90,63 @@ test("large file shows progress and stays responsive", async ({ page }) => {
     expect(probe.atClick).toMatch(/^Reading your file… [\d,]+ rows$/); // the tap landed while the worker was parsing
     expect(probe.latency).toBeLessThan(200); // and the switch flipped within 200 ms
     expect(probe.longest).toBeLessThan(200);
+    await page.getByTestId("see-collage").getByRole("link", { name: "See my collage" }).click();
+    await expect(page.getByTestId("collage-stats")).toHaveText(/^8 species/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("an import keeps running while the birder moves between the pages", async ({ page }) => {
+  test.setTimeout(120_000);
+  const dir = mkdtempSync(join(tmpdir(), "everybird-e2e-"));
+  const file = join(dir, "MyEBirdData.csv");
+  writeFileSync(file, buildSyntheticMyData(100_000));
+  try {
+    await page.goto("/make");
+    await expect(page.getByTestId("ebird-drop")).toBeVisible();
+    await page.getByTestId("ebird-input").setInputFiles(file);
+    const status = page.getByTestId("ebird-drop").locator("xpath=..").getByRole("status");
+    await expect(status).toHaveText(/^Reading your file/);
+    // Away (client-side links: the provider above the routes, and the worker, stay) and back.
+    await page.getByRole("link", { name: "Everybird", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Everybird" })).toBeVisible();
+    await page.getByRole("link", { name: "Make yours" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByTestId("see-collage")).toContainText("Your collage has 8 species.", { timeout: 90_000 });
+    await page.getByTestId("see-collage").getByRole("link", { name: "See my collage" }).click();
+    await expect(page).toHaveURL(/\/my$/);
+    await expect(page.getByTestId("collage-stats")).toHaveText(/^8 species/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("/my without a list sends people to /make", async ({ page }) => {
+  await page.goto("/my");
+  await expect(page).toHaveURL(/\/make$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Make yours" })).toBeVisible();
+});
+
+test("search: suggestions from the list, the collage narrows, picking one shows that bird and its card", async ({ page }) => {
+  await page.goto("/");
+  const stage = page.getByTestId("collage-stage");
+  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
+  const box = page.getByRole("combobox", { name: "Search your birds" });
+  await box.fill("grebe");
+  const options = page.getByRole("listbox", { name: "Matching birds" }).getByRole("option");
+  await expect(options.first()).toBeVisible();
+  const n = await options.count();
+  expect(n).toBeGreaterThan(1);
+  await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(`^${n} of 197 species`));
+  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(n);
+  const first = (await options.first().locator(".eb-suggest-primary").textContent())!;
+  await box.press("ArrowDown");
+  await box.press("Enter");
+  await expect(page.getByRole("dialog", { name: first })).toBeVisible();
+  await expect(box).toHaveValue("");
+  await expect(page.getByTestId("collage-stats")).toHaveText(/^197 species/);
+  await expect(stage.locator("[data-ring]")).toHaveCount(1);
 });
 
 test("works in memory when storage is blocked", async ({ page }) => {
@@ -98,9 +155,11 @@ test("works in memory when storage is blocked", async ({ page }) => {
       throw new DOMException("The operation is insecure.", "SecurityError");
     };
   });
-  await page.goto("/");
+  await page.goto("/make");
   await expect(page.getByText(NOT_SAVED)).toBeVisible();
   await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
+  await expect(page.getByTestId("see-collage")).toContainText("Your collage has 3 species.");
+  await page.getByTestId("see-collage").getByRole("link", { name: "See my collage" }).click();
   await expect(page.getByTestId("collage-stats")).toHaveText(/^3 species/);
   await expect(page.getByTestId("collage-stage").locator("[data-code]:not([data-off])")).toHaveCount(3);
   await expect(page.getByText(NOT_SAVED)).toBeVisible();

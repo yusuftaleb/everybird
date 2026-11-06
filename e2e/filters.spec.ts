@@ -27,9 +27,9 @@ function syntheticSaved() {
   };
 }
 
-/** Put the list where the app's storage reads it (idb-keyval: database "everybird", store "kv", key "everybird:v1"). */
+/** Put the list where the app's storage reads it (idb-keyval: database "everybird", store "kv", key "everybird:v1"), then open /my. */
 async function seedList(page: Page) {
-  await page.goto("/");
+  await page.goto("/make");
   await page.evaluate(
     (saved) =>
       new Promise<void>((done, fail) => {
@@ -45,7 +45,7 @@ async function seedList(page: Page) {
       }),
     syntheticSaved(),
   );
-  await page.reload();
+  await page.goto("/my");
 }
 
 /** Record long tasks and requestAnimationFrame deltas until `stop()`. */
@@ -106,14 +106,14 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
     await expect(dlg).toHaveCount(0);
   };
 
-  // 1. Tap an order (in the phone sheet).
+  // 1. Tap an order (in the phone sheet). As on LifeList, the orders button then gives way to the breadcrumb.
   await measure(
     "choosing an order",
     async () => {
       await page.getByTestId("picker-order").tap();
       await pickFirstChip();
     },
-    () => expect(page.getByTestId("picker-order")).toHaveAttribute("data-selected", ""),
+    () => expect(page.getByTestId("picker-order")).toHaveCount(0),
   );
 
   // 2. Tap a lit country's dots on the visible map (the ~10k-dot repaint).

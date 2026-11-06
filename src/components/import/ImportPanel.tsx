@@ -1,8 +1,7 @@
 'use client'
 import { Binoculars, CheckSquareOffset, FileCsv, LockSimple, type Icon } from '@phosphor-icons/react'
 import { memo, type ReactNode } from 'react'
-import { track } from '@/lib/analytics'
-import type { ImportResult, Source } from '@/lib/list/model'
+import type { ImportJobs } from '@/components/app/use-import-jobs'
 import type { Action } from '@/lib/list/store'
 import type { Saved } from '@/lib/list/storage'
 import type { SpeciesIndex } from '@/lib/species/load'
@@ -17,40 +16,37 @@ type Props = {
   dispatch: (a: Action) => void
   species: SpeciesIndex
   regions: Regions
-  /** The birder already has a list: the heading reads "Add another source". */
-  hasList: boolean
+  /** The imports in flight, kept above the routes (EverybirdProvider). */
+  jobs: ImportJobs
   disabled?: boolean
-  /** Extra content under the three ways in (memory-only notice, restore from backup). */
-  footer?: ReactNode
 }
 
 function Way({ icon: Glyph, title, children }: { icon: Icon; title: string; children: ReactNode }) {
   return (
     <div className="eb-way">
-      <h3 className="eb-way-title"><Glyph aria-hidden="true" focusable="false" weight="regular" />{title}</h3>
+      <h2 className="eb-way-title"><Glyph aria-hidden="true" focusable="false" weight="regular" />{title}</h2>
       {children}
     </div>
   )
 }
 
-/** The three ways in, given equal weight. They combine into one list; each import replaces only its own source. */
-export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, regions, hasList, disabled, footer }: Props) {
-  const onImport = (source: Source) => (result: ImportResult) => {
-    dispatch({ type: 'import', source, result })
-    track('collage_made', { source })
-  }
+const speciesIn = (records: { code: string }[]) => new Set(records.map((r) => r.code)).size
+
+/** The three ways in, given equal weight. They combine into one list; each import replaces only its own slot. */
+export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, regions, jobs, disabled }: Props) {
   return (
-    <section id="make-yours" className="eb-block eb-import" aria-labelledby="eb-import-h" tabIndex={-1}>
-      <h2 id="eb-import-h" className="eb-h2">{hasList ? 'Add another source' : 'Make yours'}</h2>
-      <p className="eb-lede-sm">
-        {hasList ? 'Bring in another record. Each bird keeps its earliest date.' : 'Start from any of these, and combine them if you keep more than one record.'}
-      </p>
+    <section id="make-yours" className="eb-block eb-import" aria-label="Ways in" tabIndex={-1}>
       <div className="eb-ways">
         <Way icon={FileCsv} title="eBird file">
-          <EbirdDrop onImport={onImport('ebird')} disabled={disabled} replaces={saved.records.ebird.length > 0} />
+          <EbirdDrop
+            job={jobs.ebird}
+            onFile={(f) => void jobs.readEbird(f)}
+            disabled={disabled}
+            loaded={{ full: speciesIn(saved.records.ebird), quick: speciesIn(saved.records['ebird-list'] ?? []) }}
+          />
         </Way>
         <Way icon={Binoculars} title="iNaturalist">
-          <InatForm onImport={onImport('inat')} disabled={disabled} replaces={saved.records.inat.length > 0} />
+          <InatForm job={jobs.inat} onFetch={(u) => void jobs.fetchInat(u)} onCancel={jobs.cancelInat} disabled={disabled} replaces={saved.records.inat.length > 0} />
         </Way>
         <Way icon={CheckSquareOffset} title="Tick by hand">
           <AddBirds
@@ -64,7 +60,6 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
         </Way>
       </div>
       <p className="eb-privacy"><LockSimple aria-hidden="true" focusable="false" weight="bold" />Your list never leaves your browser. We count visits anonymously.</p>
-      {footer}
     </section>
   )
 })

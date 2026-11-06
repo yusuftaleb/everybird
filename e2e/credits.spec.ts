@@ -21,6 +21,8 @@ test("/credits credits the stickers (CC BY 4.0, linked) and the eBird taxonomy v
 
 for (const [name, path] of [
   ["home", "/"],
+  ["make", "/make"],
+  ["my", "/my"],
   ["credits", "/credits"],
   ["shared view", `/s/${frozen}`],
 ] as const) {

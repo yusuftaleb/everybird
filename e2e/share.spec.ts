@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
-// The landing demo's public sample list (197 birds) restored as the birder's own list, so the collage page and its
+// The landing demo's public sample list (197 birds) restored as the birder's own list (from /make), so /my and its
 // Share button appear. SHARE_PNG_DIR (optional) saves the downloaded images there for a look.
 const sample = JSON.parse(readFileSync("public/data/sample.v1.json", "utf8")) as { birds: { code: string }[] };
 const backup = JSON.stringify({
@@ -16,9 +16,11 @@ const backup = JSON.stringify({
 const OUT = process.env.SHARE_PNG_DIR;
 
 async function openShare(page: Page) {
-  await page.goto("/");
-  await expect(page.getByTestId("collage-stage")).toBeVisible();
+  await page.goto("/make");
+  await expect(page.getByTestId("ebird-drop")).toBeVisible();
+  // Restore from backup on /make opens /my.
   await page.locator('input[type="file"][accept*="json"]').first().setInputFiles({ name: "backup.json", mimeType: "application/json", buffer: Buffer.from(backup) });
+  await expect(page).toHaveURL(/\/my$/);
   await expect(page.getByRole("region", { name: "Your collage" })).toBeVisible();
   await page.getByRole("button", { name: "Share", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Share your collage" });

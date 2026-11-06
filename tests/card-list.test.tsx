@@ -59,10 +59,12 @@ describe('BirdCard', () => {
     expect(within(dlg).getByText('Avis crowa')).toBeInTheDocument()
     expect(within(dlg).getByText('Okanagan, British Columbia, Canada')).toBeInTheDocument()
     expect(within(dlg).getByText('Sep 2026')).toBeInTheDocument()
-    expect(dlg).toHaveTextContent('* heard only')
-    expect(dlg).toHaveTextContent('† found dead')
-    expect(dlg).toHaveTextContent('◦ photo or recording')
-    expect(dlg).toHaveTextContent('Average body mass: 400 g')
+    // LifeList's card (layout C): marks after the name and on the date line, the mass top-right beside the name.
+    expect(dlg.querySelector('.eb-card-date')).toHaveTextContent('Sep 2026 · Heard only · Found dead · Photo or recording')
+    expect(dlg.querySelector('.eb-card-name .eb-mark')).toHaveTextContent('*†◦')
+    const mass = dlg.querySelector('.eb-card-mass')!
+    expect(mass).toHaveTextContent('Average body mass 400 g')
+    expect(mass).toHaveAttribute('title', 'Average body mass')
     expect(dlg).not.toHaveTextContent('estimated')
     expect(dlg).not.toHaveAttribute('aria-modal')
   })
@@ -71,9 +73,12 @@ describe('BirdCard', () => {
     setWidth(1000)
     render(<BirdCard entry={entry('tinyc', { media: true })} species={species} regions={regions} onClose={() => {}} />)
     const dlg = screen.getByRole('dialog')
-    expect(dlg).toHaveTextContent('◦ photo or recording')
-    expect(dlg).not.toHaveTextContent('heard only')
-    expect(dlg).toHaveTextContent('Average body mass: ~4.3 g (estimated from its family)')
+    expect(dlg).toHaveTextContent('Photo or recording')
+    expect(dlg).not.toHaveTextContent('Heard only')
+    expect(dlg.querySelector('.eb-card-place')).toBeNull()
+    const mass = dlg.querySelector('.eb-card-mass')!
+    expect(mass).toHaveTextContent('~4.3 g')
+    expect(mass).toHaveAttribute('title', 'Average body mass, estimated from its family')
   })
 
   it('phone: bottom sheet with aria-modal; Esc closes; focus moves in and returns', () => {
@@ -95,6 +100,30 @@ describe('BirdCard', () => {
     unmount()
     expect(document.activeElement).toBe(opener)
     opener.remove()
+  })
+
+  it('with Scientific names on, the title is the scientific name (Latin) and the common name comes second', () => {
+    setWidth(1000)
+    render(<BirdCard entry={full} species={species} regions={regions} sci onClose={() => {}} />)
+    const dlg = screen.getByRole('dialog', { name: 'Avis crowa' })
+    expect(within(dlg).getByRole('heading', { name: /Avis crowa/ })).toHaveAttribute('lang', 'la')
+    expect(within(dlg).getByText('Alpha Crow')).toBeInTheDocument()
+  })
+
+  it('follow: the popover keeps re-placing itself next to a bird that is still travelling', async () => {
+    setWidth(1000)
+    vi.stubGlobal('innerHeight', 800)
+    let top = 100
+    const anchor = document.createElement('button')
+    anchor.getBoundingClientRect = () => ({ left: 400, right: 420, top, bottom: top + 20, width: 20, height: 20, x: 400, y: top, toJSON() {} })
+    document.body.append(anchor)
+    render(<BirdCard entry={full} species={species} regions={regions} anchor={anchor} follow={1000} onClose={() => {}} />)
+    const dlg = screen.getByRole('dialog')
+    const first = dlg.style.top
+    top = 300
+    await new Promise((r) => setTimeout(r, 80))
+    expect(dlg.style.top).not.toBe(first)
+    anchor.remove()
   })
 
   it('popover on wide screens positions inside the viewport near the anchor', () => {
@@ -124,15 +153,19 @@ describe('ListView', () => {
 
   function Harness({ onPick = () => {} }: { onPick?: (c: string) => void }) {
     const [order, setOrder] = useState<'heaviest' | 'lightest'>('heaviest')
-    return <ListView entries={entries} species={species} regions={regions} order={order} onToggle={() => setOrder(order === 'heaviest' ? 'lightest' : 'heaviest')} onPick={onPick} />
+    return (
+      <>
+        <button onClick={() => setOrder(order === 'heaviest' ? 'lightest' : 'heaviest')}>Reverse</button>
+        <ListView entries={entries} species={species} regions={regions} order={order} onPick={onPick} />
+      </>
+    )
   }
 
-  it('list sorts by mass and toggles', () => {
+  it('list sorts by mass, heaviest or lightest first (the direction lives in the controls bar)', () => {
     render(<Harness />)
     expect(names()).toEqual(['Delta Heavy', 'Alpha Crow', 'Beta Wren', 'Gamma Tiny'])
-    fireEvent.click(screen.getByRole('button', { name: 'Lightest first' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reverse' }))
     expect(names()).toEqual(['Gamma Tiny', 'Beta Wren', 'Alpha Crow', 'Delta Heavy'])
-    expect(screen.getByRole('button', { name: 'Lightest first' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('rows show mass, place and date, and open the card', () => {
@@ -148,7 +181,7 @@ describe('ListView', () => {
 
   it('renders 5,000 rows', () => {
     const many = buildSpeciesIndex(Array.from({ length: 5000 }, (_, i) => row(`s${i}`, `Bird ${i}`, i, i + 1)))
-    render(<ListView entries={many.rows.map((r) => entry(r.code))} species={many} regions={regions} order="heaviest" onToggle={() => {}} onPick={() => {}} />)
+    render(<ListView entries={many.rows.map((r) => entry(r.code))} species={many} regions={regions} order="heaviest" onPick={() => {}} />)
     expect(screen.getAllByRole('listitem')).toHaveLength(5000)
   })
 })
@@ -211,7 +244,7 @@ describe('BirdCard focus and Esc', () => {
 
 describe('list estimated mass', () => {
   it('marks estimated masses with ~', () => {
-    render(<ListView entries={[entry('tinyc'), entry('crowa')]} species={species} regions={regions} order="heaviest" onToggle={() => {}} onPick={() => {}} />)
+    render(<ListView entries={[entry('tinyc'), entry('crowa')]} species={species} regions={regions} order="heaviest" onPick={() => {}} />)
     const items = screen.getAllByRole('listitem')
     expect(items[1]).toHaveTextContent('~4.3 g')
     expect(items[0]).not.toHaveTextContent('~')

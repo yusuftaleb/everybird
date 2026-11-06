@@ -1,67 +1,44 @@
 'use client'
 import { FileArrowUp } from '@phosphor-icons/react'
 import { useId, useRef, useState, type DragEvent } from 'react'
-import { detectFile } from '@/lib/import/detect'
-import { parseInWorker } from '@/lib/import/parse-client'
-import type { ImportResult } from '@/lib/list/model'
+import type { EbirdJob } from '@/components/app/use-import-jobs'
 
-type Props = { onImport: (r: ImportResult) => void; disabled?: boolean; replaces?: boolean }
-
-const HEAD_BYTES = 64 * 1024
-
-/** The header line of a file (only the first 64 KB are read here; the worker reads the rest). */
-async function headerLine(file: File): Promise<string> {
-  const blob = file.slice(0, HEAD_BYTES)
-  const text = typeof blob.text === 'function'
-    ? await blob.text()
-    : await new Promise<string>((done, fail) => {
-        const r = new FileReader()
-        r.onload = () => done(String(r.result))
-        r.onerror = () => fail(r.error)
-        r.readAsText(blob)
-      })
-  return text.split(/\r?\n/, 1)[0] ?? ''
+type Props = {
+  job: EbirdJob
+  /** Reads the file (use-import-jobs.ts: kind detected from the header, parsed in a worker, imported into its slot). */
+  onFile: (file: File) => void
+  disabled?: boolean
+  /** Species already imported from each eBird file: the full MyEBirdData export and the quick life list download. */
+  loaded: { full: number; quick: number }
 }
 
-/** eBird file: a drop zone plus a file picker. The kind is detected from the header; parsing runs in a worker. */
-export function EbirdDrop({ onImport, disabled, replaces }: Props) {
+/** What each eBird file brings, said plainly: the quick download stops at the province, the full export adds the county. */
+function detailNote({ full, quick }: Props['loaded']): string | null {
+  if (quick && !full) return 'Your life list download gives each bird’s state or province. Add the full “Download My Data” export to place them down to the region (county).'
+  if (full && quick) return 'Both eBird files are in. Where they agree on the first sighting, the region (county) from the full export is kept.'
+  if (full) return 'Your full eBird export places birds down to the region (county). A new export replaces it; the life list download is kept separately.'
+  return null
+}
+
+/** eBird file: a drop zone plus a file picker. The import itself runs above the routes, so it survives navigation. */
+export function EbirdDrop({ job, onFile, disabled, loaded }: Props) {
   const id = useId()
-  const [busy, setBusy] = useState(false)
-  const [rows, setRows] = useState(0)
-  const [error, setError] = useState<string | null>(null)
   const [over, setOver] = useState(false)
   const input = useRef<HTMLInputElement>(null)
+  const { busy, rows, error } = job
 
-  const read = async (file: File | undefined) => {
+  const read = (file: File | undefined) => {
     if (!file || busy) return
-    setError(null)
-    setRows(0)
-    let kind
-    try {
-      kind = detectFile(await headerLine(file))
-    } catch {
-      kind = 'unknown' as const
-    }
-    if (kind === 'unknown') {
-      setError("Couldn't read this file. Use eBird's life list download or MyEBirdData.csv.")
-      return
-    }
-    setBusy(true)
-    try {
-      onImport(await parseInWorker(kind, file, setRows))
-    } catch {
-      setError("Couldn't read this file. It may be damaged or not an eBird export.")
-    } finally {
-      setBusy(false)
-      if (input.current) input.current.value = ''
-    }
+    onFile(file)
+    if (input.current) input.current.value = ''
   }
 
   const onDrop = (e: DragEvent) => {
     e.preventDefault()
     setOver(false)
-    if (!disabled) void read(e.dataTransfer?.files?.[0])
+    if (!disabled) read(e.dataTransfer?.files?.[0])
   }
+  const note = detailNote(loaded)
 
   return (
     <div className="eb-way-body">
@@ -85,7 +62,7 @@ export function EbirdDrop({ onImport, disabled, replaces }: Props) {
           accept=".csv,text/csv"
           data-testid="ebird-input"
           disabled={disabled || busy}
-          onChange={(e) => void read(e.target.files?.[0])}
+          onChange={(e) => read(e.target.files?.[0])}
         />
       </div>
       <p className="eb-status" role="status">
@@ -93,10 +70,11 @@ export function EbirdDrop({ onImport, disabled, replaces }: Props) {
       </p>
       {error && <p className="eb-error" role="alert">{error}</p>}
       <ol className="eb-howto">
-        <li><span className="eb-mono">Quick:</span> My eBird → click your World life list total → Download</li>
-        <li><span className="eb-mono">Full (adds regions and photo marks):</span> eBird → Download My Data (eBird emails it)</li>
+        <li><span className="eb-mono">Quick (state or province only):</span> My eBird → click your World life list total → Download</li>
+        <li><span className="eb-mono">Full (adds the region, or county, and photo marks):</span> eBird → Download My Data (eBird emails it)</li>
       </ol>
-      {replaces && <p className="eb-note">A new eBird file replaces the last one. Your edits stay.</p>}
+      {note && <p className="eb-note" data-testid="ebird-detail">{note}</p>}
+      {(loaded.full > 0 || loaded.quick > 0) && <p className="eb-note">A new file of the same kind replaces the last one. Your edits stay.</p>}
     </div>
   )
 }

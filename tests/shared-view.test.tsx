@@ -46,7 +46,8 @@ describe('shared view', () => {
     expect(screen.getByTestId('share-limited').textContent).toBe("Place and date filters aren't available for this link.")
     expect(screen.queryByTestId('filter-tab-places')).toBeNull()
     expect(screen.queryByTestId('filter-tab-time')).toBeNull()
-    expect(screen.getByTestId('filter-tab-birds')).toBeTruthy()
+    expect(screen.queryByRole('tablist')).toBeNull() // birds only: no tabs, just LifeList's orders row
+    expect(screen.getByRole('group', { name: 'Orders' })).toBeTruthy()
     expect(open).not.toHaveBeenCalled()
   })
 })
