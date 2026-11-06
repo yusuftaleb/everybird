@@ -8,7 +8,7 @@
 //  - total:     the full list size; the count reads "<n> of <total> species" while fewer are shown.
 //  - onHover:   called with the bird under the mouse or keyboard focus (null when none), for a hover card.
 //  - className: extra class on the outer wrapper.
-//  - still:     only visibility changes over the shown layout (Play, a range drag's preview; see the prop).
+//  - still:     only visibility changes over the shown layout (a range drag's preview; see the prop).
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { LAYOUTS } from '@/lib/layout/constants'
 import type { StateLayout } from '@/lib/layout/layout-client'
@@ -36,16 +36,15 @@ export type CollageProps = {
   onHover?: (code: string | null) => void
   className?: string
   /**
-   * Only visibility changes over one fixed layout (Play, a range drag's preview): birds appear with their CSS opacity
+   * Only visibility changes over one fixed layout (a range drag's preview): birds appear with their CSS opacity
    * fade where they stand and disappear at once; never travel, WAAPI growth or the layer fade; big changes are
-   * written in budgeted chunks. A new visible set over the very same layout object is treated the same way (Stop in
-   * the middle of Play).
+   * written in budgeted chunks. A new visible set over the very same layout object is treated the same way.
    */
   still?: boolean
 }
 
 const TOUCH_SLOP_PX = 28
-/** In a still change (Play, a drag preview), more arrivals than this appear without their fade. */
+/** In a still change (a drag preview), more arrivals than this appear without their fade. */
 const INSTANT_AT = 60
 /** :focus-visible, where the browser knows it (jsdom doesn't: there, any focus counts). */
 const focusVisible = (el: Element) => { try { return el.matches(':focus-visible') } catch { return true } }
@@ -169,7 +168,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
     // Restyling ~1,000 birds at once is several long frames on a phone. A big travel is planned now and written
     // from the next frame on, one budgeted chunk per frame (takeChunk / adaptBudget), the birds in view first in
     // the order their motion starts; each op shortens its delays by how late it lands, so the ripple keeps its
-    // timing. Small changes, first placement and fades are written at once; a jump with `done` (Play's reset) is
+    // timing. Small changes, first placement and fades are written at once; a jump with `done` (a still change) is
     // chunked too, and calls `done` after its last chunk.
     const write = (style: 'travel' | 'jump', done?: () => void, startBudget?: number) => {
       cancelAnimationFrame(chunkFrame.current)
@@ -203,7 +202,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
       if (f.phase) { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null }
       // Placed without motion, in budgeted chunks: hidden birds go at once, shown ones fade in through their CSS opacity
       // transition (200 ms) rather than a 640 ms WAAPI growth, so few birds are composited at once. Many arrivals at
-      // once (Stop in the middle of Play, a wide drag back) appear without the fade: hundreds of overlapping fades
+      // once (a wide drag back) appear without the fade: hundreds of overlapping fades
       // are long frames on a phone.
       let arriving = 0
       for (const c of visible) if (!m.on?.has(c)) arriving++

@@ -1,5 +1,5 @@
 // The Time panel's pure logic: months across the list's span, new species per month, trips laid out in lanes under
-// the bars, the range handles' keyboard steps, the range and trip filters, and Play's timing.
+// the bars, the range handles' keyboard steps and the range and trip filters.
 //
 // The filter's time model (see filters.ts): a date range `from`/`to` (YYYY-MM, both inclusive, either end open)
 // replaces the year chips. A year is the range Jan..Dec of that year (`year` still filters, and the store turns it into
@@ -179,7 +179,7 @@ export function rangeIndices(f: Filter, months: readonly Month[]): [number, numb
   return [from ? clamp(toIndex(from) - first) : 0, to ? clamp(toIndex(to) - first) : n - 1]
 }
 
-/** The filter without its time dimensions (Play reveals the birds of the rest over time; the bars count them). */
+/** The filter without its time dimensions (the bars count the birds of the rest over the whole span). */
 export function timeless(f: Filter): Filter {
   const rest: Filter = { ...f }
   delete rest.year; delete rest.from; delete rest.to; delete rest.trip
@@ -221,20 +221,4 @@ export function rangeLabel(from: Month | undefined, to: Month | undefined): stri
   if (from) return `From ${monthShort(from)}`
   if (to) return `Up to ${monthShort(to)}`
   return undefined
-}
-
-/** Play: ms per month, 3 to 12 s in all; reduced motion steps a month at a time, slowly enough to read. */
-export function playInterval(months: number, reducedMotion: boolean): number {
-  if (reducedMotion) return 600
-  return Math.round(Math.min(12_000, Math.max(3_000, months * 90)) / Math.max(1, months))
-}
-
-/** The birds Play has revealed by `until`: dated ones up to that month; undated ones only at the last month. */
-export function revealUntil(codes: Iterable<string>, monthByCode: ReadonlyMap<string, Month | undefined>, until: Month, last: boolean): Set<string> {
-  const out = new Set<string>()
-  for (const c of codes) {
-    const m = monthByCode.get(c)
-    if (m ? m <= until : last) out.add(c)
-  }
-  return out
 }

@@ -3,10 +3,8 @@
 // the busiest month; empty months a baseline tick), the trips as labelled brackets under it, and two handles that
 // choose a range of months. While a handle is held (or keys repeat) the collage previews the range over its current
 // layout (birds outside it hidden, no re-pack); on release (or KEY_COMMIT_MS after the last key) the range is
-// committed: one re-pack, one travel. Layouts are cached by range. Play grows the
-// collage month by month. On phones the strip scrolls sideways; the handles are sliders for keyboards (arrows a
+// committed: one re-pack, one travel. Layouts are cached by range. On phones the strip scrolls sideways; the handles are sliders for keyboards (arrows a
 // month, PageUp/PageDown a year, Home/End). Logic in src/lib/list/timeline.ts.
-import { Pause, Play, Stop } from '@phosphor-icons/react'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { applyFilter, type Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
@@ -15,7 +13,6 @@ import type { SeenIndex } from '@/lib/list/seen'
 import type { Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { TripBrackets } from './TripBrackets'
-import type { PlayControls } from './use-play'
 import './timeline.css'
 
 /** Narrowest month on screen (px): below it the strip scrolls sideways. (A collapsed gap's months are narrower.) */
@@ -35,16 +32,13 @@ type Props = {
   today: Month
   onFilter: (f: Filter) => void
   countryName: (iso2: string) => string
-  play: PlayControls
-  /** Start (or resume) Play. */
-  onPlay: () => void
   /** The range being dragged (open at the span's edges), or null once committed. */
   onPreview?: (r: { from?: Month; to?: Month } | null) => void
 }
 
 const n = (x: number) => x.toLocaleString('en-US')
 
-export const Timeline = memo(function Timeline({ entries, trips, seen, filter, species, months, today, onFilter, countryName, play, onPlay, onPreview }: Props) {
+export const Timeline = memo(function Timeline({ entries, trips, seen, filter, species, months, today, onFilter, countryName, onPreview }: Props) {
   const N = months.length
   // Bars count the birds of the other filters (birds, places) over the whole span, so the handles never jump.
   const others = useMemo(() => applyFilter(entries, timeless(filter), species, trips, seen), [entries, filter, species, trips, seen])
@@ -56,7 +50,6 @@ export const Timeline = memo(function Timeline({ entries, trips, seen, filter, s
   const chosen = useMemo(() => rangeIndices(filter, months), [filter, months])
   const [drag, setDrag] = useState<[number, number] | null>(null)
   const [lo, hi] = drag ?? chosen
-  const playing = play.state
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pending = useRef<[number, number] | null>(null) // the previewed range, not yet committed
   const latest = useRef({ filter, months, onFilter, onPreview })
@@ -79,12 +72,11 @@ export const Timeline = memo(function Timeline({ entries, trips, seen, filter, s
   const move = useCallback((a: number, b: number, key = false) => {
     setDrag([a, b])
     pending.current = [a, b]
-    if (playing) play.stop()
     const ms = latest.current.months
     latest.current.onPreview?.({ from: a > 0 ? ms[a] : undefined, to: b < ms.length - 1 ? ms[b] : undefined })
     if (timer.current) clearTimeout(timer.current)
     timer.current = key ? setTimeout(commit, KEY_COMMIT_MS) : null
-  }, [playing, play, commit])
+  }, [commit])
 
   // The track and its width (a month's width decides the trips' label room).
   const track = useRef<HTMLDivElement>(null)
@@ -171,14 +163,11 @@ export const Timeline = memo(function Timeline({ entries, trips, seen, filter, s
     } as const
   }
 
-  // Readout: Play's month and running count, else the range and its species.
+  // Readout: the range (or trip) and its species.
   const ranged = lo > 0 || hi < N - 1
-  const upTo = (i: number) => bins.counts.slice(0, i + 1).reduce((a, b) => a + b, 0) + (i >= N - 1 ? bins.undated : 0)
   const inRange = bins.counts.slice(lo, hi + 1).reduce((a, b) => a + b, 0) + (ranged ? 0 : bins.undated)
   const trip = filter.trip ? trips.find((t) => t.id === filter.trip) : undefined
-  const read = playing
-    ? `${monthShort(months[playing.i])} · ${n(upTo(playing.i))} species`
-    : `${trip && !drag ? trip.label : ranged ? rangeLabel(months[lo], months[hi]) : `${monthShort(months[0])} to ${monthShort(months[N - 1])}`} · ${n(trip && !drag ? others.filter((e) => trip.codes.includes(e.code)).length : inRange)} species`
+  const read = `${trip && !drag ? trip.label : ranged ? rangeLabel(months[lo], months[hi]) : `${monthShort(months[0])} to ${monthShort(months[N - 1])}`} · ${n(trip && !drag ? others.filter((e) => trip.codes.includes(e.code)).length : inRange)} species`
 
   const tripCounts = useMemo(() => {
     const shown = new Set(others.map((e) => e.code))
@@ -201,30 +190,17 @@ export const Timeline = memo(function Timeline({ entries, trips, seen, filter, s
 
   return (
     <div className="eb-time" data-testid="timeline">
-      <div className="eb-time-head">
-        <p className="eb-mono eb-time-read" data-testid="timeline-read" aria-live={playing?.running ? 'off' : 'polite'}>
-          {/* Wraps only between its parts, never inside a date or the count. */}
-          {read.split(' · ').map((part, i) => <span key={i}>{i > 0 && ' · '}<span className="eb-nowrap">{part}</span></span>)}
-        </p>
-        <div className="eb-time-actions">
-          <button type="button" className="eb-tab eb-time-btn" data-testid="time-play" aria-pressed={!!playing?.running} onClick={playing?.running ? play.pause : onPlay}>
-            {playing?.running ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
-            {playing?.running ? 'Pause' : playing ? 'Resume' : 'Play'}
-          </button>
-          {playing && (
-            <button type="button" className="eb-tab eb-time-btn" data-testid="time-stop" onClick={play.stop}>
-              <Stop aria-hidden="true" />Stop
-            </button>
-          )}
-        </div>
-      </div>
+      <p className="eb-mono eb-time-read" data-testid="timeline-read" aria-live="polite">
+        {/* Wraps only between its parts, never inside a date or the count. */}
+        {read.split(' · ').map((part, i) => <span key={i}>{i > 0 && ' · '}<span className="eb-nowrap">{part}</span></span>)}
+      </p>
       <div ref={scroller} className="eb-time-scroll" onScroll={edges} data-more={more || undefined}>
-        <div ref={track} className="eb-time-track" style={{ width }} data-playing={playing ? '' : undefined} data-ranged={ranged ? '' : undefined}>
+        <div ref={track} className="eb-time-track" style={{ width }} data-ranged={ranged ? '' : undefined}>
           <div className="eb-time-bars" aria-hidden="true">
             <div className="eb-time-sel" style={{ left: pct(lo), width: `${(frac(hi + 1) - frac(lo)) * 100}%` }} data-ranged={ranged ? '' : undefined} />
             <svg viewBox={`0 0 ${axis.units} 100`} preserveAspectRatio="none">
               {bins.counts.map((c, i) => {
-                const on = playing ? i <= playing.i : i >= lo && i <= hi
+                const on = i >= lo && i <= hi
                 const w = axis.start[i + 1] - axis.start[i]
                 if (!c && w < 1) return null // inside a collapsed gap: the break mark stands for these months
                 const h = c ? barHeight(c, bins.max) : 2
@@ -234,7 +210,6 @@ export const Timeline = memo(function Timeline({ entries, trips, seen, filter, s
             {axis.gaps.map((g) => (
               <span key={g.from} className="eb-time-gap" style={{ left: `${((frac(g.from) + frac(g.to + 1)) / 2) * 100}%` }} data-testid="time-gap" />
             ))}
-            {playing && <div className="eb-time-head-line" style={{ left: pct(playing.i + 1) }} data-testid="time-playhead" />}
           </div>
           <div {...handleProps('lo')}><span className="eb-time-knob" /></div>
           <div {...handleProps('hi')}><span className="eb-time-knob" /></div>
@@ -249,7 +224,7 @@ export const Timeline = memo(function Timeline({ entries, trips, seen, filter, s
             unitPx={unitPx}
             selected={filter.trip}
             countryName={countryName}
-            onPick={(t) => { if (playing) play.stop(); onFilter(tripFilter(filter, t)) }}
+            onPick={(t) => onFilter(tripFilter(filter, t))}
           />
         </div>
       </div>

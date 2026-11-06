@@ -6,12 +6,12 @@ import { createLayoutClient, type LayoutClient, type StateLayout } from '@/lib/l
 import type { LayoutName } from '@/lib/layout/layout.worker'
 import { applyFilter, filterKey, inRange, options, type Filter, type FilterLevel } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
-import { monthOf, revealUntil, timeless, tripFilter } from '@/lib/list/timeline'
+import { timeless, tripFilter } from '@/lib/list/timeline'
 import type { SeenIndex } from '@/lib/list/seen'
 import type { Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 
-/** `still`: only visibility changes over the shown layout (Play, a range drag's preview): placed without motion. */
+/** `still`: only visibility changes over the shown layout (a range drag's preview): placed without motion. */
 export type CollageLayout = { layout: StateLayout; visible: Set<string>; still?: boolean }
 
 /** Layout class from the stage container's width (LAYOUTS minWidth: wide 880, medium 540). */
@@ -59,35 +59,22 @@ type Opts = {
   /** Full even layouts packed ahead of time (the landing sample): shown until the worker's first answer. */
   seed?: readonly StateLayout[]
   /**
-   * Play: the month reached (YYYY-MM) and whether it is the last. The layout is the filter's without its time
-   * dimensions, packed once; only the birds dated up to `until` are visible (undated ones join at the last month), so
-   * each step is a visibility change over the same layout, never a re-pack.
-   */
-  play?: { until: string; last: boolean } | null
-  /**
    * A range drag in progress: the filter is not committed yet; the shown layout stays and only its birds dated inside
-   * from..to are visible (no worker call, no travel). Play wins over a preview.
+   * from..to are visible (no worker call, no travel).
    */
   preview?: { from?: string; to?: string; committed?: boolean } | null
 }
 
 /**
- * What the stage shows while only visibility changes. Play: the birds dated up to `until` over the time-free layout,
- * nothing until that layout (key `want`) has landed, so the old trip or range layout never flashes. A drag preview: the
- * shown layout's birds dated inside from..to; once committed, only while the shown layout is still the old one.
- * Otherwise the layout as it is.
+ * What the stage shows while only visibility changes. A drag preview: the shown layout's birds dated inside from..to;
+ * once committed, only while the shown layout is still the old one. Otherwise the layout as it is.
  */
 export function stillView(
   current: CollageLayout,
   want: string,
-  play: { months: ReadonlyMap<string, string | undefined>; until: string; last: boolean } | null,
   preview: { dates: ReadonlyMap<string, string | undefined>; from?: string; to?: string; committed?: boolean } | null,
 ): CollageLayout {
   const { layout } = current
-  if (play) {
-    if (layout.key.split('|').slice(2).join('|') !== want) return { layout, visible: new Set(), still: true }
-    return { layout, visible: revealUntil(layout.boxes.keys(), play.months, play.until, play.last), still: true }
-  }
   // A committed preview stands in only until the committed range's layout (key `want`) lands; that layout is never
   // marked still, so it travels.
   if (preview && !(preview.committed && layout.key.split('|').slice(2).join('|') === want)) {
@@ -112,9 +99,7 @@ const idle = (fn: () => void): (() => void) => {
  * The current StateLayout and its visible codes, or null until the first layout arrives (and always in
  * environments without Worker, such as jsdom, unless a seed covers the state). Entries whose species are unknown are left out.
  */
-export function useCollageLayout({ list, trips, seen, filter: chosen, mode, species, container, seed, play, preview }: Opts): CollageLayout | null {
-  const playing = !!play
-  const filter = useMemo(() => (playing ? timeless(chosen) : chosen), [chosen, playing])
+export function useCollageLayout({ list, trips, seen, filter, mode, species, container, seed, preview }: Opts): CollageLayout | null {
   const client = useRef<LayoutClient | null>(null)
   const [cls, setCls] = useState<LayoutName | null>(null)
   const [result, setResult] = useState<CollageLayout | null>(null)
@@ -202,7 +187,7 @@ export function useCollageLayout({ list, trips, seen, filter: chosen, mode, spec
   // states, then one idle slot per state, so the main thread is never held for long.
   useEffect(() => {
     const c = client.current
-    if (!c || !cls || !result || playing) return
+    if (!c || !cls || !result) return
     let todo: Filter[] | null = null
     let cancel = () => {}
     const step = () => {
@@ -212,7 +197,7 @@ export function useCollageLayout({ list, trips, seen, filter: chosen, mode, spec
     }
     cancel = idle(step)
     return () => cancel()
-  }, [result, filter, species, cls, playing])
+  }, [result, filter, species, cls])
 
   // Until the worker's first answer, the seed stands in, whatever the filter or mode (as a stale layout does while a
   // new one is on its way): the stage stays up, and the worker's layout replaces it as soon as it lands.
@@ -221,14 +206,12 @@ export function useCollageLayout({ list, trips, seen, filter: chosen, mode, spec
     return s ? { layout: s, visible: new Set(s.boxes.keys()) } : null
   }, [seed, cls])
 
-  const months = useMemo(() => (playing ? new Map(known.map((e) => [e.code, monthOf(e.date)])) : null), [known, playing])
   const dates = useMemo(() => (preview ? new Map(known.map((e) => [e.code, e.date])) : null), [known, preview])
   const current = result ?? seeded
-  const until = play?.until, last = !!play?.last
   const want = filterKey(filter)
   const revealed = useMemo(
-    () => (current ? stillView(current, want, months && until ? { months, until, last } : null, preview && dates ? { dates, ...preview } : null) : null),
-    [current, months, until, last, want, preview, dates],
+    () => (current ? stillView(current, want, preview && dates ? { dates, ...preview } : null) : null),
+    [current, want, preview, dates],
   )
 
   return known.length ? revealed : null

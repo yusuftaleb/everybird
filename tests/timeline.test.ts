@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ListEntry } from '@/lib/list/model'
 import type { Trip } from '@/lib/list/trips'
 import {
-  addMonths, barHeight, boundaryAt, monthAxis, monthBins, pickHandle, monthName, monthOf, playInterval, rangeFilter, rangeIndices, rangeLabel, revealUntil, sliderKey,
+  addMonths, barHeight, boundaryAt, monthAxis, monthBins, pickHandle, monthName, monthOf, rangeFilter, rangeIndices, rangeLabel, sliderKey,
   todayMonth, tripFilter, tripLanes,
 } from '@/lib/list/timeline'
 
@@ -168,18 +168,3 @@ describe('range filter', () => {
   })
 })
 
-describe('play', () => {
-  it('steps take 90 ms (3 to 12 s in all); reduced motion steps by month at 600 ms', () => {
-    expect(playInterval(120, false)).toBe(90)
-    expect(playInterval(10, false)).toBe(300)
-    expect(playInterval(400, false)).toBe(30)
-    expect(playInterval(120, true)).toBe(600)
-  })
-  it('revealUntil shows birds up to the month; undated birds arrive with the last month', () => {
-    const months = new Map([['a', '2020-01'], ['b', '2020-03']] as [string, string | undefined][])
-    months.set('c', undefined)
-    const codes = ['a', 'b', 'c']
-    expect([...revealUntil(codes, months, '2020-02', false)]).toEqual(['a'])
-    expect([...revealUntil(codes, months, '2020-03', true)]).toEqual(['a', 'b', 'c'])
-  })
-})

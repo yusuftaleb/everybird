@@ -5,7 +5,7 @@
 // stays, with the choice in Accent and the other chips stepped back. On phones the row is one button ("Choose an
 // order 18") that opens the chips in a sheet.
 // Taxonomy (orders, then families) is always on show. Everybird's extra dimensions, Places (the map, then countries,
-// provinces and counties where species were seen; PlacesPanel.tsx) and Time (the timeline: a range of months, trips, Play; Timeline.tsx), are toggles that open their panel (one at a
+// provinces and counties where species were seen; PlacesPanel.tsx) and Time (the timeline: a range of months, trips; Timeline.tsx), are toggles that open their panel (one at a
 // time; tap again to close). Opening or closing a panel never changes the filter; what a closed panel has chosen shows as a
 // removable chip beside the toggles.
 import { memo, useId, useMemo, useState } from 'react'
@@ -25,7 +25,6 @@ import { Chip } from './Chip'
 import { LevelRow } from './LevelRow'
 import { PlacesPanel } from './PlacesPanel'
 import { Timeline } from './Timeline'
-import type { PlayControls } from './use-play'
 import './filters.css'
 
 export type { Panel } from '@/lib/list/filter-panels'
@@ -54,8 +53,8 @@ type Props = {
    * phone row does. An open panel still opens below the strip.
    */
   compact?: boolean
-  /** The Time panel's timeline: the known entries, the whole list's months, today, and Play. */
-  time?: { entries: ListEntry[]; months: Month[]; today: Month; play: PlayControls; onPlay: () => void; onPreview?: (r: { from?: Month; to?: Month } | null) => void }
+  /** The Time panel's timeline: the known entries, the whole list's months and today. */
+  time?: { entries: ListEntry[]; months: Month[]; today: Month; onPreview?: (r: { from?: Month; to?: Month } | null) => void }
 }
 
 type Level = FilterLevel
@@ -266,8 +265,6 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
               today={time.today}
               onFilter={(f) => dispatch({ type: 'filter', filter: f })}
               countryName={countryName}
-              play={time.play}
-              onPlay={time.onPlay}
               onPreview={time.onPreview}
             />
           )) : null}

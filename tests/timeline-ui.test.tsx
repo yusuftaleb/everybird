@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Timeline, KEY_COMMIT_MS } from '@/components/filters/Timeline'
-import { HOLD_MS, usePlay, type PlayControls } from '@/components/filters/use-play'
 import type { Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { monthBins } from '@/lib/list/timeline'
@@ -19,13 +18,12 @@ const entries = [e('a', '2020-01-03'), e('b', '2020-03-01', 'EG'), e('c', '2020-
 const trip: Trip = { id: 'EG-2020-03-01', country: 'EG', start: '2020-03-01', end: '2020-03-04', label: 'Egypt · Mar 2020', codes: ['b', 'c', 'd'] }
 const today = '2020-06'
 const months = monthBins(entries, today).months // Jan .. Jun 2020
-const idle: PlayControls = { state: null, start: vi.fn(), pause: vi.fn(), stop: vi.fn() }
 
-function Harness({ play = idle, onPlay = vi.fn(), onPreview, initial = {} }: { play?: PlayControls; onPlay?: () => void; onPreview?: (r: unknown) => void; initial?: Filter }) {
+function Harness({ onPreview, initial = {} }: { onPreview?: (r: unknown) => void; initial?: Filter }) {
   const [filter, setFilter] = useState<Filter>(initial)
   return (
     <>
-      <Timeline entries={entries} trips={[trip]} filter={filter} species={species} months={months} today={today} onFilter={setFilter} countryName={(c) => (c === 'EG' ? 'Egypt' : c)} play={play} onPlay={onPlay} onPreview={onPreview} />
+      <Timeline entries={entries} trips={[trip]} filter={filter} species={species} months={months} today={today} onFilter={setFilter} countryName={(c) => (c === 'EG' ? 'Egypt' : c)} onPreview={onPreview} />
       <output data-testid="filter">{JSON.stringify(filter)}</output>
     </>
   )
@@ -124,47 +122,8 @@ describe('Timeline', () => {
     expect(filterOf()).toEqual({})
   })
 
-  it('Play: the button starts it; while playing the readout shows the month and the running count', () => {
-    const onPlay = vi.fn()
-    const { rerender } = render(<Harness onPlay={onPlay} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Play' }))
-    expect(onPlay).toHaveBeenCalled()
-    const pause = vi.fn(), stop = vi.fn()
-    rerender(<Harness play={{ state: { i: 2, running: true }, start: vi.fn(), pause, stop }} />)
-    expect(screen.getByTestId('timeline-read')).toHaveTextContent('Mar 2020 · 4 species')
-    expect(screen.getByTestId('time-playhead')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
-    expect(pause).toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
-    expect(stop).toHaveBeenCalled()
-    rerender(<Harness play={{ state: { i: 5, running: false }, start: vi.fn(), pause, stop }} />)
-    expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument()
-    expect(screen.getByTestId('timeline-read')).toHaveTextContent('Jun 2020 · 5 species') // the undated bird arrives last
-  })
-
   it('a list without dates says so', () => {
-    render(<Timeline entries={[e('a')]} trips={[]} filter={{}} species={species} months={[]} today={today} onFilter={vi.fn()} countryName={(c) => c} play={idle} onPlay={vi.fn()} />)
+    render(<Timeline entries={[e('a')]} trips={[]} filter={{}} species={species} months={[]} today={today} onFilter={vi.fn()} countryName={(c) => c} />)
     expect(screen.getByTestId('timeline-empty')).toHaveTextContent('This list has no dates')
-  })
-})
-
-describe('usePlay', () => {
-  it('steps a month at a time, holds the last month, then ends; pause keeps the month; start resumes', () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: false }))
-    const h = renderHook(() => usePlay(4))
-    act(() => h.result.current.start())
-    expect(h.result.current.state).toEqual({ i: 0, running: true })
-    act(() => vi.advanceTimersByTime(750)) // 4 months: 3 s in all, 750 ms each
-    expect(h.result.current.state).toEqual({ i: 1, running: true })
-    act(() => h.result.current.pause())
-    act(() => vi.advanceTimersByTime(5000))
-    expect(h.result.current.state).toEqual({ i: 1, running: false })
-    act(() => h.result.current.start())
-    act(() => vi.advanceTimersByTime(750))
-    act(() => vi.advanceTimersByTime(750))
-    expect(h.result.current.state?.i).toBe(3)
-    act(() => vi.advanceTimersByTime(HOLD_MS))
-    expect(h.result.current.state).toBeNull()
-    vi.unstubAllGlobals()
   })
 })

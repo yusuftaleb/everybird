@@ -45,7 +45,7 @@ for (const width of [1280, 390]) {
   test.describe(`timeline at ${width}px`, () => {
     test.use({ viewport: { width, height: 900 }, hasTouch: width < 600 });
 
-    test("keyboard range, a trip bracket and Play drive the collage", async ({ page }) => {
+    test("keyboard range and a trip bracket drive the collage", async ({ page }) => {
       await seed(page);
       const total = 53;
       await expect(page.getByTestId("collage-stats")).toContainText(`${total} species`);
@@ -77,35 +77,9 @@ for (const width of [1280, 390]) {
       await expect(egypt).toHaveAttribute("aria-pressed", "true");
       await expect(page.getByTestId("collage-stats")).toContainText(`6 of ${total} species`);
       await expect.poll(() => shown(page)).toBe(6);
-
-      // Play clears the time filter and grows the collage; Stop ends it with every bird back.
-      await page.getByTestId("time-play").click();
-      await expect(page.getByTestId("time-playhead")).toBeVisible();
-      await expect(page.getByTestId("timeline-read")).toContainText(/ · \d+ species/);
-      await page.waitForTimeout(1500);
-      const mid = await shown(page);
-      expect(mid).toBeGreaterThan(0);
-      expect(mid).toBeLessThan(total);
-      await page.getByTestId("time-stop").click();
-      await expect(page.getByTestId("time-playhead")).toHaveCount(0);
-      await expect.poll(() => shown(page)).toBe(total);
-      await expect(page.getByTestId("collage-stats")).not.toContainText(" of ");
     });
   });
 }
-
-test("with reduced motion, Play steps a month at a time and places birds without the layer fade", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await seed(page);
-  await page.getByTestId("filter-tab-time").click();
-  await page.getByTestId("time-play").click();
-  await expect(page.getByTestId("timeline-read")).toContainText("Jan 2019");
-  await page.waitForTimeout(1350); // two 600 ms steps
-  await expect(page.getByTestId("timeline-read")).toContainText("Mar 2019");
-  await expect(page.getByTestId("collage-stage")).not.toHaveAttribute("data-fast", "");
-  await page.getByTestId("time-play").click(); // pause
-  await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
-});
 
 // Shaped like a real list: a lone early month (a few lifers on a trip years before birding began), a long empty gap,
 // then dense months with one big month. The gap collapses to a break, so the strip fits a phone: no sideways scroll,

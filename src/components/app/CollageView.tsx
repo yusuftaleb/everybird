@@ -9,12 +9,11 @@ import { Collage } from '@/components/collage/Collage'
 import { reduced } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
 import { FilterBar, type Panel } from '@/components/filters/FilterBar'
-import { usePlay } from '@/components/filters/use-play'
 import { formatDate } from '@/lib/format'
 import { latestLifer } from '@/lib/list/build-list'
 import { applyFilter, drillTo, filterKey, filterToShow } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
-import { monthBins, timeless, todayMonth } from '@/lib/list/timeline'
+import { monthBins, todayMonth } from '@/lib/list/timeline'
 import type { Action, AppState } from '@/lib/list/store'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { CollageHit } from '@/lib/species/name-search'
@@ -91,32 +90,20 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
   const [panel, setPanel] = useState<Panel | null>(null)
 
   const entries = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
-  // The timeline's months (first lifer to today) and Play, which reveals the collage month by month over one layout.
+  // The timeline's months (first lifer to today).
   const today = useMemo(() => todayMonth(), [])
   const months = useMemo(() => monthBins(entries, today).months, [entries, today])
-  const play = usePlay(months.length)
-  const at = play.state ? months[play.state.i] : undefined
-  const playAt = useMemo(() => (at ? { until: at, last: at === months[months.length - 1] } : null), [at, months])
   // A range drag's preview (Timeline): shown over the current layout until the committed range's layout lands.
   const [preview, setPreview] = useState<{ from?: string; to?: string; committed?: boolean } | null>(null)
   const onPreview = useCallback((r: { from?: string; to?: string } | null) => setPreview((p) => (r ? r : p ? { ...p, committed: true } : null)), [])
-  const lay = useCollageLayout({ list, trips, seen, filter, mode, species, container: box, seed, play: playAt, preview })
+  const lay = useCollageLayout({ list, trips, seen, filter, mode, species, container: box, seed, preview })
   const layKey = lay ? lay.layout.key.split('|').slice(2).join('|') : undefined
   useEffect(() => {
     if (!preview?.committed || layKey !== filterKey(filter)) return
     const t = setTimeout(() => setPreview((p) => (p?.committed ? null : p)), 0)
     return () => clearTimeout(t)
   }, [preview, layKey, filter])
-  const onPlay = useCallback(() => {
-    // Play grows the birds of the other filters from the first lifer to today: the time filter goes first.
-    if (!play.state) {
-      const next = timeless(filter)
-      if (filterKey(next) !== filterKey(filter)) dispatch({ type: 'filter', filter: next })
-      if (view !== 'collage') dispatch({ type: 'view', view: 'collage' })
-    }
-    play.start()
-  }, [play, filter, view, dispatch])
-  const time = useMemo(() => ({ entries, months, today, play, onPlay, onPreview }), [entries, months, today, play, onPlay, onPreview])
+  const time = useMemo(() => ({ entries, months, today, onPreview }), [entries, months, today, onPreview])
   const fk = filterKey(filter)
   const shownList = useMemo(() => (fk ? applyFilter(entries, filter, species, trips, seen) : entries), [entries, filter, fk, species, trips, seen])
   const stats = useMemo(() => statsLine(entries, shownList, species), [entries, shownList, species])

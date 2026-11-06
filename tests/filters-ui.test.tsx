@@ -4,7 +4,6 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { useReducer } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FilterBar } from '@/components/filters/FilterBar'
-import { usePlay } from '@/components/filters/use-play'
 import { monthBins } from '@/lib/list/timeline'
 import { CountryMap, litSteps, LIT_OPACITY } from '@/components/map/CountryMap'
 import { initialState, makeReducer, type AppState } from '@/lib/list/store'
@@ -51,8 +50,7 @@ function Harness({ initial, compact }: { initial?: AppState; compact?: boolean }
   const reduce = makeReducer({ species, countryName: (c) => (c === 'CA' ? 'Canada' : c === 'EG' ? 'Egypt' : c) })
   const [state, dispatch] = useReducer(reduce, initial ?? seeded())
   const months = monthBins(state.list, '2022-08').months
-  const play = usePlay(months.length)
-  const time = { entries: state.list, months, today: '2022-08', play, onPlay: play.start }
+  const time = { entries: state.list, months, today: '2022-08' }
   return (
     <>
       <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} compact={compact} time={time} />

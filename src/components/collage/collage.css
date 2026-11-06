@@ -77,7 +77,7 @@
 /* Arriving: jump to the new spot while invisible; WAAPI fades and grows it in. */
 .eb-bird[data-enter] { transition: translate 0s, scale 0s, opacity 0s, transform .2s var(--eb-arrive); }
 .eb-bird[data-hot] { transform: translateY(calc(-2px / var(--k))); z-index: 2; }
-/* A still change with many arrivals (Stop mid-Play): birds appear without their fade (Collage.tsx). */
+/* A still change with many arrivals (a wide drag back): birds appear without their fade (Collage.tsx). */
 .eb-stage[data-instant] .eb-bird { transition: none; }
 /* Big lists and reduced motion: no travel; the bird layer fades through instead (Collage.tsx). */
 .eb-stage[data-fast] { transition: none; }

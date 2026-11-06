@@ -92,7 +92,7 @@ function measurer(page: Page) {
   };
 }
 
-test("the timeline on a 1,000-species list at 390px with 4x CPU: a held range drag and Play stay smooth; Stop stays under 100 ms tasks", async ({ page }) => {
+test("the timeline on a 1,000-species list at 390px with 4x CPU: a held range drag stays smooth", async ({ page }) => {
   await seedList(page);
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
@@ -127,38 +127,6 @@ test("the timeline on a 1,000-species list at 390px with 4x CPU: a held range dr
   const rel = await stopProbe(page);
   // Logged, not asserted: over 13 runs its longest task was 57-101 ms (one over the hard bound), so not yet stable.
   console.log(`releasing the drag (one travel): longest task ${rel.long.toFixed(0)} ms, longest frame ${rel.frame.toFixed(1)} ms`);
-
-  // Back to the whole span (End on the end handle commits 350 ms later; that travel is not measured). Play from a
-  // committed range first hides the range's ~900 birds over a new layout, and those chunked frames run 66-83 ms at 4x
-  // (see the Task PT report), so Play is measured from the whole list.
-  await hi.focus();
-  await page.keyboard.press("End");
-  await expect(page.getByTestId("collage-stats")).not.toContainText(" of 1,000 species");
-  await page.waitForTimeout(3000);
-
-  // 2. Play: the whole list grows month by month over one layout (visibility only).
-  await measure(
-    "playing the timeline",
-    async () => {
-      await page.getByTestId("time-play").tap();
-      await expect(page.getByTestId("time-playhead")).toBeVisible();
-      await page.waitForTimeout(4000);
-    },
-    async () => {},
-  );
-
-  // 3. Stop mid-Play: the remaining ~600 birds appear where they stand (no growth, no travel), in budgeted chunks.
-  //    Held to the hard 100 ms task bound and a loose 80 ms frame bound: each chunk repaints a near-full collage and
-  //    Chromium's layerization of ~1,000 stickers is 20-30 ms a frame at 4x, so frames sit at 50-67 ms (see the Task
-  //    PT report).
-  await startProbe(page);
-  await page.getByTestId("time-stop").tap();
-  await expect(page.getByTestId("time-playhead")).toHaveCount(0);
-  await page.waitForTimeout(1000);
-  const stop = await stopProbe(page);
-  console.log(`stopping Play: longest task ${stop.long.toFixed(0)} ms, longest frame ${stop.frame.toFixed(1)} ms`);
-  expect(stop.long, "longest task after stopping Play").toBeLessThanOrEqual(100);
-  expect(stop.frame, "longest frame after stopping Play (loose bound)").toBeLessThanOrEqual(80);
 });
 
 test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth", async ({ page }) => {

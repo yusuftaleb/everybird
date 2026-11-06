@@ -1,20 +1,9 @@
 /* The Time panel's timeline: bars per month, the chosen range's band and handles, the years, the trips' brackets.
    Bars are Muted inside the range (Hairline outside); the handles and the selected trip are Accent (selection). */
 .eb-time { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.eb-time-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; min-height: 36px; }
-/* The readout is never cut: it wraps between its parts ("May 2020 to Nov 2026" · "196 species"), never inside one.
-   On wider screens it shares the line with the buttons (which wrap under it if they must); under 600px the buttons
-   always sit on their own line under it, so the panel's height never jumps when Play's buttons come and go. */
-.eb-time-read { margin: 0; flex: 1 1 auto; min-width: 0; }
+/* The readout wraps between its parts ("May 2020 to Nov 2026" · "196 species"), never inside one. */
+.eb-time-read { margin: 0; min-height: 18px; }
 .eb-time-read .eb-nowrap { white-space: nowrap; }
-@media (max-width: 599px) { .eb-time-read { flex-basis: 100%; } }
-.eb-time-actions { display: flex; gap: 4px; flex: none; }
-.eb-time-btn {
-  gap: 6px; opacity: 1; border: 1px solid var(--hairline); background: var(--surface); font-weight: 500;
-  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-}
-.eb-time-btn svg { width: 16px; height: 16px; flex: none; }
-.eb-time-btn[aria-pressed="true"] { color: var(--accent); font-weight: 600; }
 
 /* The strip scrolls sideways when the months are narrower than MONTH_PX; it bleeds into the page gutters (its
    padding keeps the end handles' knobs whole). No scrollbar: an edge with more strip beyond it fades instead. */
@@ -44,7 +33,6 @@
   position: absolute; bottom: -3px; width: 10px; height: 8px; margin-left: -5px;
   background: linear-gradient(105deg, transparent 30%, var(--line) 30% 42%, transparent 42% 58%, var(--line) 58% 70%, transparent 70%);
 }
-.eb-time-head-line { position: absolute; top: -6px; bottom: -2px; width: 2px; margin-left: -1px; background: var(--accent); }
 
 /* Handles: a line through the bars and a knob under them; a 44px-wide hit area; sliders for the keyboard. */
 .eb-time-handle {
@@ -60,7 +48,6 @@
 }
 .eb-time-handle:focus { outline: none; }
 .eb-time-handle:focus-visible .eb-time-knob { outline: 2px solid var(--accent); outline-offset: 2px; }
-.eb-time-track[data-playing] .eb-time-handle { visibility: hidden; }
 
 .eb-time-years { position: relative; height: 16px; margin-top: 22px; font-size: 11px; }
 .eb-time-years span { position: absolute; top: 0; padding-left: 3px; border-left: 1px solid var(--hairline); line-height: 16px; white-space: nowrap; }
@@ -92,7 +79,6 @@
   .eb-trip:hover .eb-trip-line { border-color: var(--ink); }
   .eb-trip[data-tick]:hover .eb-trip-line { background-image: linear-gradient(var(--ink), var(--ink)); }
   .eb-trip:hover .eb-trip-label { opacity: 1; }
-  .eb-time-btn:hover { border-color: var(--line); }
 }
 @media (prefers-reduced-motion: reduce) {
   .eb-time-bars rect { transition: none; }
