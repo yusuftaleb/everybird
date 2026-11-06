@@ -9,8 +9,11 @@ import { Flag } from '@/components/Flag'
 import { labelMonths, monthShort, tripLanes, type Month, type MonthAxis } from '@/lib/list/timeline'
 import type { Trip } from '@/lib/list/trips'
 
-/** One lane's height (px): the bracket and its label. */
-export const LANE_PX = 34
+/**
+ * One lane's height (px): the bracket and its label, with room for a full 44px press (timeline.css, `.eb-trip::after`)
+ * that stops where the next lane's begins.
+ */
+export const LANE_PX = 44
 /** Room a label needs: the flag and some padding, then about 7.5px per character at 13px. */
 const labelPx = (name: string) => 30 + name.length * 7.5
 /** Below this width (px) a bracket is drawn as a tick. */

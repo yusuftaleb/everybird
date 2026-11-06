@@ -58,7 +58,8 @@
   position: absolute; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 0; border: 0;
   background: none; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
-.eb-trip::after { content: ''; position: absolute; inset: -6px -4px; } /* a bigger tap target */
+/* The press: 44px tall from just above the bracket, exactly one lane (LANE_PX), so it never reaches the next lane's. */
+.eb-trip::after { content: ''; position: absolute; top: -4px; right: -4px; left: -4px; height: 44px; }
 .eb-trip-line {
   width: var(--span); height: 6px; box-sizing: border-box; margin-left: 1px;
   border: 1.5px solid var(--line); border-top: 0; border-radius: 0 0 2px 2px;

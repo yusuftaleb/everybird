@@ -94,9 +94,8 @@ async function mockInat(page: Page) {
  * Controls whose press area is under 44px, and how far the page scrolls sideways. A control's press area counts an
  * absolutely placed ::after (the hit areas drawn smaller pills and underlines carry). Exempt: stickers (sized by mass,
  * reached by keyboard too), links inside running text (WCAG 2.5.8's inline exception), a checkbox inside its row's
- * label (the 44px row is the target), file inputs behind their buttons, the small source buttons on a fine pointer
- * (40px for a mouse, 44px for touch), and the timeline's trip brackets (a 41px press in 34px lanes: taller would
- * overlap the trip in the next lane).
+ * label (the 44px row is the target), file inputs behind their buttons, and the small source buttons on a fine pointer
+ * (40px for a mouse, 44px for touch: the touch test below holds them to 44px).
  */
 async function pressAreas(page: Page) {
   return page.evaluate(() => {
@@ -106,7 +105,7 @@ async function pressAreas(page: Page) {
     for (const el of Array.from(document.querySelectorAll<HTMLElement>(sel))) {
       if (el.closest("[inert], [aria-hidden=true]") || el.closest(".eb-bird, .ebd")) continue;
       if (el.matches('input[type="file"]') || (el.matches('input[type="checkbox"]') && el.closest("label"))) continue;
-      if ((fine && el.matches(".eb-btn-sm")) || el.matches(".eb-trip")) continue;
+      if (fine && el.matches(".eb-btn-sm")) continue;
       const cs = getComputedStyle(el);
       const b = el.getBoundingClientRect();
       if (cs.visibility === "hidden" || b.width === 0 || b.height === 0) continue;

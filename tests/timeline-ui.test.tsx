@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Timeline, KEY_COMMIT_MS } from '@/components/filters/Timeline'
+import { LANE_PX } from '@/components/filters/TripBrackets'
 import type { Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { monthBins } from '@/lib/list/timeline'
@@ -120,6 +121,15 @@ describe('Timeline', () => {
     expect(screen.getByTestId('timeline-read')).toHaveTextContent('Egypt · Mar 2020 · 3 species')
     fireEvent.click(b)
     expect(filterOf()).toEqual({})
+  })
+
+  it('trips in the same months stack in lanes 44px apart, room for a whole 44px press each', () => {
+    const us: Trip = { id: 'US-2020-03-10', country: 'US', start: '2020-03-10', end: '2020-03-12', label: 'United States · Mar 2020', codes: ['c', 'd'] }
+    render(<Timeline entries={entries} trips={[trip, us]} filter={{}} species={species} months={months} today={today} onFilter={vi.fn()} countryName={(c) => (c === 'EG' ? 'Egypt' : 'United States')} />)
+    expect(LANE_PX).toBeGreaterThanOrEqual(44)
+    const tops = [/^Egypt trip/, /^United States trip/].map((n) => screen.getByRole('button', { name: n }).style.top).sort()
+    expect(tops).toEqual(['0px', `${LANE_PX}px`])
+    expect(screen.getByTestId('time-trips').style.height).toBe(`${2 * LANE_PX}px`)
   })
 
   it('a list without dates says so', () => {

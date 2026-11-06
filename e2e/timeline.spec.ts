@@ -160,7 +160,7 @@ function endTripsSaved() {
 
 test.describe("timeline at 390px with trips at the strip's end", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
-  test("end labels run leftwards and no two labels overlap", async ({ page }, info) => {
+  test("end labels run leftwards, no two labels overlap, and each trip takes its own 44px press", async ({ page }, info) => {
     await seed(page, endTripsSaved());
     await page.getByTestId("filter-tab-time").click();
     await expect(page.getByRole("button", { name: /^Costa Rica trip/ })).toBeVisible();
@@ -182,6 +182,23 @@ test.describe("timeline at 390px with trips at the strip's end", () => {
         if (a === b) continue;
         const overlap = a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
         expect(overlap, `${a.name} overlaps ${b.name}`).toBe(false);
+      }
+    }
+    // Each bracket takes a 44px press (its ::after), and no two presses overlap: the lanes are 44px apart.
+    const presses = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".eb-trip")].map((el) => {
+      const r = el.getBoundingClientRect();
+      const af = getComputedStyle(el, "::after");
+      const t = r.top + parseFloat(af.top), l = r.left + parseFloat(af.left);
+      const h = parseFloat(af.height), w = r.width - parseFloat(af.left) - parseFloat(af.right);
+      return { name: el.getAttribute("aria-label"), t, b: t + h, l, r: l + w, h };
+    }));
+    expect(new Set(presses.map((p) => Math.round(p.t))).size, "the trips sit in more than one lane").toBeGreaterThan(1);
+    for (const a of presses) {
+      expect(Math.round(a.h), `${a.name}: press height`).toBeGreaterThanOrEqual(44);
+      for (const b of presses) {
+        if (a === b) continue;
+        const overlap = a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
+        expect(overlap, `${a.name}'s press overlaps ${b.name}'s`).toBe(false);
       }
     }
     if (process.env.SHOT_DIR) {
