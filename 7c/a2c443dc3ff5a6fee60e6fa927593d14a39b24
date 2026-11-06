@@ -1,0 +1,36 @@
+src/lib/list/export.ts
+  s_ab125876fe9ad2::t_1282bed440512d 8
+tests/export.test.ts
+  s_ab125876fe9ad2::t_1282bed440512d 11
+  s_ab125876fe9ad2::t_ad3e1e2d06fd00 17,22
+tests/collage-controls.test.tsx
+  s_ab125876fe9ad2::t_11af7533be483e 51-56
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_1282bed440512d 223
+src/components/import/EbirdDrop.tsx
+  s_ab125876fe9ad2::t_1282bed440512d 81
+tests/no-media-mark.test.tsx
+  s_ab125876fe9ad2::t_8c1012d432245b 3
+  s_ab125876fe9ad2::t_5b9794d0ff5a0d 8-36
+  s_ab125876fe9ad2::t_3afa903cfb8817 1-2,4-7,37-43
+src/components/collage/Marks.tsx
+  s_ab125876fe9ad2::t_1282bed440512d 3
+tests/card-list.test.tsx
+  s_ab125876fe9ad2::t_975f505906bc67 63-64,76-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ca2c443dc3ff5a6fee60e6fa927593d14a39b24",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
