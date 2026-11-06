@@ -1,0 +1,9 @@
+# Never upload personal data or local scratch to Vercel (the CLI doesn't read .gitignore).
+private/
+data/raw/
+.superpowers/
+.claude/
+.next*/
+.env*
+test-results/
+playwright-report/
