@@ -1,0 +1,41 @@
+src/components/collage/BirdCard.tsx
+  s_ab125876fe9ad2::t_3f418f828d2e30 149
+tests/inat-synonyms.test.ts
+  s_ab125876fe9ad2::t_3af31f3a6aa6eb 19-20
+src/lib/import/inat.ts
+  s_ab125876fe9ad2::t_51e4058aa49019 379
+  s_ab125876fe9ad2::t_54b6b49508c4d3 277
+tests/inat-rules.test.ts
+  s_ab125876fe9ad2::t_12a13f8ce8fd43 57-61,64-65
+data/inat-synonyms.json
+  s_ab125876fe9ad2::t_106df1926434df 1
+src/lib/import/inat-rules.ts
+  s_ab125876fe9ad2::t_30214713265368 6-10,101
+tests/card-list.test.tsx
+  s_ab125876fe9ad2::t_3f418f828d2e30 157
+tests/inat.test.ts
+  s_ab125876fe9ad2::t_12a13f8ce8fd43 3,19,98,256-259,261-263
+public/data/inat-synonyms.v1.json
+  s_ab125876fe9ad2::t_54b6b49508c4d3 1
+src/lib/list/model.ts
+  s_ab125876fe9ad2::t_12a13f8ce8fd43 27
+data/inat-synonyms.notes.md
+  s_ab125876fe9ad2::t_d8cadf23b50d81 3-5,7-9,13-18,20-30
+  s_ab125876fe9ad2::t_2732e956b0cfe6 19,31-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "43993bb5a386c3f3f9fc135f6381b56348315b28",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
