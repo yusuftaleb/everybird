@@ -7,6 +7,7 @@ What "complete and validated" means before launch (spec, "My calls" 11), how eac
 - [x] **The author's own data reproduces his list**, with every difference explained (automated, below).
 - [ ] **A big list on a real phone:** a mid-range phone with a 1,000+ species list loads and filters smoothly, in Safari on iOS and Chrome on Android.
 - [ ] **Every way in, on a phone:** eBird life list file, MyEBirdData.csv, iNaturalist username and ticking by hand, plus merging them, in Safari on iOS and Chrome on Android.
+- [ ] **Copy link in Safari on an iPhone:** on the deployed site, open Share, tap Copy link once, then paste in Notes or Messages: the `/s/1…` link is there and opens the collage. Automated in WebKit (`e2e/share.spec.ts`, "Safari: Copy link writes the clipboard inside the click": the write happens during the click, while the page has user activation, and resolves to the link), but desktop WebKit can't read the clipboard back or reproduce iOS's stricter gesture rule, so a real iPhone is the proof.
 - [ ] **Share images, by eye:** the story and post images posted to LinkedIn and Instagram look right, and the link preview shows.
 - [ ] **Three to five birder friends** try it privately with their own data. Their problems are logged and fixed.
 

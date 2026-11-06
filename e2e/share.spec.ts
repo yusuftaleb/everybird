@@ -120,6 +120,40 @@ test("copy link puts a /s/1… URL under 2000 chars on the clipboard", async ({ 
   await expect(page.getByText("197 species").first()).toBeVisible();
 });
 
+// Safari keeps a clipboard write only while the click's user activation lasts, and iOS drops it once the handler waits
+// on anything slow, so Copy link must call clipboard.write inside the click with a promised ClipboardItem (the link
+// arrives after). WebKit's real clipboard takes the write here (it can't be read back: readText is NotAllowedError), so
+// a wrapper around the real write records when it was called and what the item resolves to. The link is made after an
+// import (the link module), so a write inside the click that resolves to the link can only be the promised item.
+test("Safari: Copy link writes the clipboard inside the click, with a promised ClipboardItem", async ({ page, baseURL, browserName }) => {
+  test.skip(browserName !== "webkit", "WebKit only: Safari's user-activation rule for the clipboard");
+  await page.addInitScript(() => {
+    const w = window as unknown as { __writes: { event?: string; active?: boolean; result?: string; text?: string }[] };
+    w.__writes = [];
+    const clip = navigator.clipboard;
+    const real = clip.write.bind(clip);
+    clip.write = (items: ClipboardItem[]) => {
+      const rec: (typeof w.__writes)[number] = {
+        event: window.event?.type,
+        active: (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation?.isActive,
+      };
+      w.__writes.push(rec);
+      const got = items[0].getType("text/plain");
+      got.then(async (b) => { rec.text = await b.text(); }, () => {});
+      const p = real(items);
+      p.then(() => { rec.result = "resolved"; }, (e: Error) => { rec.result = `rejected ${e.name}`; });
+      return p;
+    };
+  });
+  const dialog = await openShare(page);
+  await dialog.getByRole("button", { name: "Copy link" }).click();
+  await expect(dialog.getByTestId("share-note")).toHaveText(/^Link copied/);
+  const writes = await page.evaluate(() => (window as unknown as { __writes: unknown[] }).__writes);
+  expect(writes).toEqual([{ event: "click", active: true, result: "resolved", text: expect.stringMatching(/\/s\/1/) }]);
+  const text = (writes[0] as { text: string }).text;
+  expect(text.startsWith(`${new URL(baseURL!).origin}/s/1`)).toBe(true);
+});
+
 test("download and copy link each send one anonymous analytics event, with no list contents", async ({ page, context, baseURL, browserName }) => {
   chromiumOnly(browserName);
   test.setTimeout(90_000);
