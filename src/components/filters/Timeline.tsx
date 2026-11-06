@@ -1,7 +1,7 @@
 'use client'
 // The Time panel: a strip of months from the first lifer to today, a bar per month (new species that month, scaled to
 // the busiest month; empty months a baseline tick), a year axis under it, and two handles that choose a range of
-// months. While a handle is held (or keys repeat) the collage previews the range over its current
+// months; Clear (top right, as the Places panel's) resets the range to the whole span. While a handle is held (or keys repeat) the collage previews the range over its current
 // layout (birds outside it hidden, no re-pack); on release (or KEY_COMMIT_MS after the last key) the range is
 // committed: one re-pack, one travel. Layouts are cached by range. On phones the strip scrolls sideways; the handles are sliders for keyboards (arrows a
 // month, PageUp/PageDown a year, Home/End). Logic in src/lib/list/timeline.ts.
@@ -48,6 +48,7 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
   const [lo, hi] = drag ?? chosen
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pending = useRef<[number, number] | null>(null) // the previewed range, not yet committed
+  const dragging = useRef<{ which: 'lo' | 'hi' | null; x: number } | null>(null) // the handle a press drags
   const latest = useRef({ filter, months, onFilter, onPreview })
   useLayoutEffect(() => { latest.current = { filter, months, onFilter, onPreview } })
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
@@ -73,6 +74,17 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
     if (timer.current) clearTimeout(timer.current)
     timer.current = key ? setTimeout(commit, KEY_COMMIT_MS) : null
   }, [commit])
+  /** Clear: the whole span again (any preview and pending commit dropped); the other filters stay. */
+  const clear = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+    pending.current = null
+    dragging.current = null
+    const { filter: f, onFilter: set, onPreview: prev } = latest.current
+    set(timeless(f))
+    prev?.(null)
+    setDrag(null)
+  }, [])
 
   // The track and its width (a month's width decides where the year labels fit).
   const track = useRef<HTMLDivElement>(null)
@@ -106,7 +118,6 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
   }, [])
 
   // Which handle a press drags: the nearer one; with both under the pointer (a short range), the first move decides.
-  const dragging = useRef<{ which: 'lo' | 'hi' | null; x: number } | null>(null)
   const xOf = (i: number) => { const r = track.current!.getBoundingClientRect(); return r.left + frac(i) * r.width }
   const indexAt = (clientX: number, which: 'lo' | 'hi') => {
     const r = track.current!.getBoundingClientRect()
@@ -180,10 +191,15 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
 
   return (
     <div className="eb-time" data-testid="timeline">
-      <p className="eb-mono eb-time-read" data-testid="timeline-read" aria-live="polite">
-        {/* Wraps only between its parts, never inside a date or the count. */}
-        {read.split(' · ').map((part, i) => <span key={i}>{i > 0 && ' · '}<span className="eb-nowrap">{part}</span></span>)}
-      </p>
+      <div className="eb-time-head">
+        <p className="eb-mono eb-time-read" data-testid="timeline-read" aria-live="polite">
+          {/* Wraps only between its parts, never inside a date or the count. */}
+          {read.split(' · ').map((part, i) => <span key={i}>{i > 0 && ' · '}<span className="eb-nowrap">{part}</span></span>)}
+        </p>
+        {ranged && (
+          <button type="button" className="eb-textbtn" data-testid="time-clear" onClick={clear}>Clear</button>
+        )}
+      </div>
       <div ref={scroller} className="eb-time-scroll" onScroll={edges} data-more={more || undefined}>
         <div ref={track} className="eb-time-track" style={{ width }} data-ranged={ranged ? '' : undefined}>
           <div className="eb-time-bars" aria-hidden="true">

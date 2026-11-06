@@ -108,6 +108,36 @@ describe('Timeline', () => {
     expect(filterOf()).toEqual({ from: '2020-02' })
   })
 
+  it('Clear: only with a range; resets the range to the whole span and keeps the other filters', () => {
+    const onPreview = vi.fn()
+    render(<Harness onPreview={onPreview} initial={{ order: 'Passeriformes', from: '2020-03', to: '2020-04' }} />)
+    const clear = screen.getByRole('button', { name: 'Clear' })
+    expect(clear).toHaveAttribute('data-testid', 'time-clear')
+    expect(clear).toHaveClass('eb-textbtn') // the Places panel's Clear: same look, a 44px press
+    expect(clear.closest('.eb-time-head')).toContainElement(screen.getByTestId('timeline-read'))
+    fireEvent.click(clear)
+    expect(filterOf()).toEqual({ order: 'Passeriformes' })
+    expect(screen.getByRole('slider', { name: 'Start month' })).toHaveAttribute('aria-valuetext', 'January 2020')
+    expect(screen.getByRole('slider', { name: 'End month' })).toHaveAttribute('aria-valuetext', 'June 2020')
+    expect(screen.queryByTestId('time-clear')).toBeNull()
+  })
+
+  it('Clear during a keyboard preview cancels the pending commit', () => {
+    const onPreview = vi.fn()
+    render(<Harness onPreview={onPreview} initial={{ from: '2020-02' }} />)
+    fireEvent.keyDown(screen.getByRole('slider', { name: 'Start month' }), { key: 'ArrowRight' })
+    fireEvent.click(screen.getByTestId('time-clear'))
+    settle()
+    expect(filterOf()).toEqual({})
+    expect(onPreview).toHaveBeenLastCalledWith(null)
+    expect(screen.getByRole('slider', { name: 'Start month' })).toHaveAttribute('aria-valuetext', 'January 2020')
+  })
+
+  it('no Clear with no range', () => {
+    render(<Harness initial={{ order: 'Passeriformes' }} />)
+    expect(screen.queryByTestId('time-clear')).toBeNull()
+  })
+
   it('no trip labels: three lifers abroad within days are only bars, no flags, brackets or buttons', () => {
     render(<Harness />)
     const t = screen.getByTestId('timeline')

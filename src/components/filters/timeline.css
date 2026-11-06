@@ -1,8 +1,11 @@
 /* The Time panel's timeline: bars per month, the chosen range's band and handles, the years.
    Bars are Muted inside the range (Hairline outside); the handles are Accent (selection). */
 .eb-time { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-/* The readout wraps between its parts ("May 2020 to Nov 2026" · "196 species"), never inside one. */
-.eb-time-read { margin: 0; min-height: 18px; }
+/* The head: the readout, and Clear at the right once a range is chosen (the Places panel's head: same height, same
+   Clear). The readout wraps between its parts ("May 2020 to Nov 2026" · "196 species"), never inside one. */
+.eb-time-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; }
+.eb-time-head .eb-textbtn { flex: none; min-height: 36px; }
+.eb-time-read { margin: 0; min-height: 18px; min-width: 0; }
 .eb-time-read .eb-nowrap { white-space: nowrap; }
 
 /* The strip scrolls sideways when the months are narrower than MONTH_PX; it bleeds into the page gutters (its
