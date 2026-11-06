@@ -44,7 +44,13 @@ export type Unmatched = {
   /** Every place the name was seen (seen.ts encoding), so a row fixed by hand keeps its seen-here too. */
   seen?: string[]
 }
-export type ImportResult = { records: SourceRecord[]; unmatched: Unmatched[]; skipped: number /* rows that are not countable species */ }
+export type ImportResult = {
+  records: SourceRecord[]
+  unmatched: Unmatched[]
+  skipped: number /* rows that are not countable species */
+  /** Data rows read from an eBird file (for "Your sources"); not stored with the records. */
+  rows?: number
+}
 export type MarkKey = 'heard' | 'dead' | 'media'
 export type Edits = {
   removed: string[]

@@ -16,6 +16,9 @@ describe('parseEbirdLifeList', () => {
     expect(basic.unmatched).toEqual([])
     expect(basic.records.every((r) => r.source === 'ebird')).toBe(true)
   })
+  it('counts the data rows it read (for "Your sources")', () => {
+    expect(basic.rows).toBe(8)
+  })
   it("parses '06 Sep 2026' to 2026-09-06 and tolerates single-digit days", () => {
     expect(byCode(basic, 'yerwar')?.date).toBe('2026-09-06')
     expect(byCode(basic, 'rocpig')?.date).toBe('2026-09-30')
@@ -55,7 +58,7 @@ describe('parseEbirdLifeList', () => {
   it('handles BOM, CRLF and an empty file', () => {
     const csv = '﻿' + fx('lifelist-spanish').replace(/\n/g, '\r\n')
     expect(parseEbirdLifeList(csv, t).records).toHaveLength(2)
-    expect(parseEbirdLifeList('', t)).toEqual({ records: [], unmatched: [], skipped: 0 })
+    expect(parseEbirdLifeList('', t)).toEqual({ records: [], unmatched: [], skipped: 0, rows: 0 })
   })
 })
 

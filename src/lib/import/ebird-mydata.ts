@@ -110,7 +110,7 @@ export function parseEbirdMyData(csv: string | File, t: TaxonomyIndex, onProgres
     for (const r of records) r.seen = seen.get(r.code) ?? []
     const unmatched: Unmatched[] = []
     for (const [key, u] of unmatchedByName) unmatched.push({ ...u, seen: seenUnmatched.get(key) ?? [] })
-    return { records, unmatched, skipped }
+    return { records, unmatched, skipped, rows: rowNo }
   }
 
   const run = (input: string | File) =>

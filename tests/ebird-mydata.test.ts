@@ -20,6 +20,9 @@ describe('parseEbirdMyData', () => {
   it('drops sp. and slash rows into skipped', () => {
     expect(basic.skipped).toBe(2)
   })
+  it('counts the data rows it read (for "Your sources")', () => {
+    expect(basic.rows).toBe(10)
+  })
   it('earliest row per species wins (date and place)', () => {
     expect(byCode('norfli')).toMatchObject({ date: '2026-01-02', place: { country: 'US', sub1: 'US-AZ', sub2: 'Pima' } })
     expect(byCode('gilfli')?.date).toBe('2026-02-01')
@@ -99,7 +102,7 @@ describe('parseEbirdMyData', () => {
     expect((await parseEbirdMyData(csv, t)).records).toHaveLength(4)
     const file = new File([fx('mydata-basic')], 'MyEBirdData.csv', { type: 'text/csv' })
     expect(await parseEbirdMyData(file, t)).toEqual(basic)
-    expect(await parseEbirdMyData('', t)).toEqual({ records: [], unmatched: [], skipped: 0 })
+    expect(await parseEbirdMyData('', t)).toEqual({ records: [], unmatched: [], skipped: 0, rows: 0 })
   })
   it('reports progress', async () => {
     const seen: number[] = []

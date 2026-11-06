@@ -62,5 +62,5 @@ export function parseEbirdLifeList(csv: string, t: TaxonomyIndex): ImportResult 
       if (place) prev.place = place
     }
   })
-  return { records: [...byCode.values()], unmatched, skipped }
+  return { records: [...byCode.values()], unmatched, skipped, rows: data.length }
 }

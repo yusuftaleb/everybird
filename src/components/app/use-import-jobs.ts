@@ -1,12 +1,13 @@
 'use client'
 // The imports in flight (an eBird file being read, an iNaturalist fetch), kept in the provider above the routes, so
-// they keep running and keep their progress while the birder moves between /, /make and /my.
+// they keep running and keep their progress while the birder moves between /, /settings and /about.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { detectFile } from '@/lib/import/detect'
 import { importInat, type InatError, type InatProgress } from '@/lib/import/inat'
 import { parseInWorker } from '@/lib/import/parse-client'
 import { loadRegions } from '@/lib/import/places'
 import type { ImportResult, Slot } from '@/lib/list/model'
+import type { EbirdDetails, InatDetails } from '@/lib/list/storage'
 import { loadTaxonomy } from '@/lib/species/load'
 
 export type EbirdJob = { busy: boolean; rows: number; error: string | null }
@@ -19,6 +20,7 @@ export type ImportJobs = {
   /** Detects the file's kind from its header, parses it in a worker and imports it into its slot. */
   readEbird: (file: File) => Promise<void>
   inat: InatJob
+  /** Fetches (or, with the remembered username, refreshes) an iNaturalist account into the 'inat' slot. */
   fetchInat: (login: string) => Promise<void>
   cancelInat: () => void
   landed: Landed | null
@@ -72,11 +74,15 @@ export function inatMessage(error: InatError, user: string): string {
 const IDLE_EBIRD: EbirdJob = { busy: false, rows: 0, error: null }
 const IDLE_INAT: InatJob = { busyFor: null, progress: null, error: null, note: null }
 
+export type OnImport = (slot: Slot, result: ImportResult, details: EbirdDetails | InatDetails) => void
+
 /**
- * `onImport` receives each finished import with its slot: the full MyEBirdData export goes to 'ebird', the quick
- * life list download to 'ebird-list', so one never replaces the other. Unmounting (leaving the app's pages) aborts.
+ * `onImport` receives each finished import with its slot and the source's details (storage.ts `SourceDetails`: the
+ * file's name, kind and rows, or the username and observation count; both with the time): the full MyEBirdData export
+ * goes to 'ebird', the quick life list download to 'ebird-list', so one never replaces the other. Unmounting (leaving
+ * the app's pages) aborts.
  */
-export function useImportJobs(onImport: (slot: Slot, result: ImportResult) => void): ImportJobs {
+export function useImportJobs(onImport: OnImport): ImportJobs {
   const [ebird, setEbird] = useState<EbirdJob>(IDLE_EBIRD)
   const [inat, setInat] = useState<InatJob>(IDLE_INAT)
   const [landed, setLanded] = useState<Landed | null>(null)
@@ -90,8 +96,8 @@ export function useImportJobs(onImport: (slot: Slot, result: ImportResult) => vo
     return () => { live.current = false; abort.current?.abort() }
   }, [])
 
-  const land = useCallback((slot: Slot, result: ImportResult) => {
-    latest.current(slot, result)
+  const land = useCallback((slot: Slot, result: ImportResult, details: EbirdDetails | InatDetails) => {
+    latest.current(slot, result, details)
     setLanded({ slot, species: new Set(result.records.map((r) => r.code)).size, at: Date.now() })
   }, [])
 
@@ -112,7 +118,11 @@ export function useImportJobs(onImport: (slot: Slot, result: ImportResult) => vo
     setEbird({ busy: true, rows: 0, error: null })
     try {
       const result = await parseInWorker(kind, file, (rows) => { if (live.current) setEbird((j) => ({ ...j, rows })) })
-      if (live.current) land(kind === 'ebird-lifelist' ? 'ebird-list' : 'ebird', result)
+      const lifeList = kind === 'ebird-lifelist'
+      const details: EbirdDetails = { kind: lifeList ? 'life-list' : 'full-export', at: new Date().toISOString() }
+      if (file.name) details.file = file.name
+      if (typeof result.rows === 'number') details.rows = result.rows
+      if (live.current) land(lifeList ? 'ebird-list' : 'ebird', result, details)
       setEbird(IDLE_EBIRD)
     } catch {
       setEbird({ ...IDLE_EBIRD, error: "Couldn't read this file. It may be damaged or not an eBird export." })
@@ -128,17 +138,21 @@ export function useImportJobs(onImport: (slot: Slot, result: ImportResult) => vo
     const ctl = new AbortController()
     abort.current = ctl
     let end: Partial<InatJob> = {}
+    let observations = 0
     try {
       const [taxonomy, synonyms, regions] = await Promise.all([loadTaxonomy(), loadSynonyms(), loadRegions()])
       const res = await importInat(login, {
         taxonomy, synonyms, regions, signal: ctl.signal,
-        onProgress: (progress) => { if (abort.current === ctl) setInat((j) => ({ ...j, progress })) },
+        onProgress: (progress) => {
+          observations = progress.fetched
+          if (abort.current === ctl) setInat((j) => ({ ...j, progress }))
+        },
       })
-      if (ctl.signal.aborted) end = { note: 'Cancelled. Nothing was added.' }
+      if (ctl.signal.aborted) end = { note: 'Cancelled. Nothing was changed.' }
       else if ('error' in res) end = { error: inatMessage(res.error, login) }
-      else land('inat', res)
+      else land('inat', res, { user: login, observations, at: new Date().toISOString() })
     } catch (err) {
-      end = (err as Error)?.name === 'AbortError' || ctl.signal.aborted ? { note: 'Cancelled. Nothing was added.' } : { error: inatMessage('network', login) }
+      end = (err as Error)?.name === 'AbortError' || ctl.signal.aborted ? { note: 'Cancelled. Nothing was changed.' } : { error: inatMessage('network', login) }
     } finally {
       if (abort.current === ctl) abort.current = null
       setInat({ ...IDLE_INAT, ...end })

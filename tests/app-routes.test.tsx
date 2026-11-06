@@ -323,7 +323,7 @@ describe('Settings and the collage', () => {
     fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: 'birder' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     await act(async () => { fireEvent.click(await screen.findByRole('button', { name: 'Cancel' })) })
-    expect(await screen.findByText('Cancelled. Nothing was added.')).toBeInTheDocument()
+    expect(await screen.findByText('Cancelled. Nothing was changed.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Fetch my birds' })).toBeInTheDocument()
   })
