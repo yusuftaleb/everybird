@@ -1,9 +1,11 @@
 # Everybird: agent instructions
 
-Everybird turns any birder's life list into a sticker collage. Read these before any work:
+Everybird turns any birder's life list into a sticker collage. Import an eBird export or an iNaturalist username, or tick birds by hand; filter, edit and share. The list stays in the browser. It uses Yusuf's personal-site design system, and its collage page mirrors his /lifelist. Pages: Collage `/`, Settings `/settings`, About `/about`, shared view `/s/[token]`. Read these before any work:
 
-- **Spec (approved by Yusuf, 2026-11-05):** `docs/superpowers/specs/2026-11-05-everybird-design.md`
+- **Design system:** `DESIGN.md` (tokens, type, components, motion, voice, accessibility; sidecar `.impeccable/design.json`, product context in `PRODUCT.md`). Match it, and match `/lifelist`, for any UI work.
+- **Spec (approved by Yusuf, 2026-11-05):** `docs/superpowers/specs/2026-11-05-everybird-design.md`, with "Changes after approval" at its end.
 - **Plan (25 tasks):** `docs/superpowers/plans/2026-11-05-everybird.md`
+- **Validation:** `docs/validation.md` (launch checklist; aggregates only, no personal data).
 
 ## Rules
 
@@ -26,7 +28,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Commands
 
-- `npm run dev`: Next dev server (port 3000)
+- **Ports:** 3000 and 3001 are Yusuf's own dev servers: never start, stop or reuse them. Tests use 3100 (e2e dev), 3200 (e2e prod build) and 4100 (sticker server).
+- `npm run dev`: Next dev server (port 3000, Yusuf's; pass `-p` to run another)
 - `npm test`: Vitest unit tests (`tests/**/*.test.{ts,tsx}`; `tests/app-routes.test.tsx` runs / (Collage) and /settings under one provider and the top bar, with a mocked `next/navigation` and `next/link`; node by default, add `// @vitest-environment jsdom` for component tests). `tests/pack.test.ts` packs 5,000-bird lists on all three layouts (about 20 s); `SKIP_PERF=1` skips only the timing bounds
 - `npm run e2e`: Playwright specs in `e2e/`. Playwright starts three servers: the sticker server on `127.0.0.1:4100`; `next dev` on port 3100 for the `chromium` project; and for the `perf` project (`filters.spec.ts`, the 4× frame-timing test, run alone after the others) a production build, `next build && next start -p 3200`. Both Next servers get `NEXT_PUBLIC_STICKER_BASE=http://127.0.0.1:4100`. Each Next server has its own dist dir (`NEXT_DIST_DIR=.next-e2e-dev` for dev, `.next-e2e` for the build; read in `next.config.ts`, both git-ignored), so they run beside your own `next dev` or `next start` on this checkout without touching its `.next`. Run the perf test alone with `npx playwright test --project=perf --no-deps`; every run rebuilds first (about 10–60 s), and all three servers start even for one project. A server already listening on 3100, 3200 or 4100 is reused as is, so stop a stale one first. Editing `next.config.ts` or `tsconfig.json` makes a running `next dev` restart itself. `BASE_URL=<url>` tests a deployed site instead, with no local servers. `SHARE_PNG_DIR=<dir>` makes `e2e/share.spec.ts` save the story and post PNGs it downloads there (keep it outside the repo).
 - `npm run stickers:serve`: serves `../everybird-stickers` (or `$STICKERS_DIR`) with CORS on `127.0.0.1:4100` only (or `$PORT`), for dev: run it next to `NEXT_PUBLIC_STICKER_BASE=http://127.0.0.1:4100 npm run dev`. Without the variable the app loads stickers from `https://yusuftaleb.github.io/everybird-stickers` (not live until Task 25). Script: `scripts/dev/serve-stickers.mjs`.

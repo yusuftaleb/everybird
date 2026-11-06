@@ -408,3 +408,17 @@ Lifer, BirdDex, Birdey, birdr, Birderdex and Birdex are all phone apps where you
 - His iNaturalist username (`yusuftaleb`) is already known and public.
 
 His merged list of 197 species is hand-edited from both sources. So "matches 197" means: after merging his eBird file and his iNaturalist data under the default rules, the differences from `framer-site/content/lifelist/lifelist.json` can each be explained. They include his manual marks, his own exclusions and corrected South Africa dates.
+
+## Changes after approval (Yusuf, 2026-11-05)
+
+Decisions made after the approval above. The approved body is unchanged; where it differs, this section wins.
+
+- **Pages:** Collage (`/`), Settings (`/settings`) and About (`/about`), with a top bar. The shared view stays at `/s/[token]`. The old `/make`, `/my` and `/credits` redirect.
+- **Search:** copied from his Photography page, over the whole list. Picking a species shows its tooltip.
+- **Match /lifelist exactly:** the dock, filters, card and list follow his `/lifelist`; filter chips have no icons.
+- **Theme:** light by default (not the OS setting), with a toggle.
+- **Tick by hand:** a page-wide multiselect on Settings.
+- **The photo-or-recording mark** (a small circle) is removed from the UI. The data is kept.
+- **The sample list** (the landing demo) is approved.
+- **Share links carry the whole list.**
+- **Credit:** his credit sits on About ("Made by Yusuf Taleb") and in the footer.

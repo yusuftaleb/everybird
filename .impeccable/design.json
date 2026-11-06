@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-05T00:00:00Z",
+  "title": "Design System: Everybird",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#1e1e24", "tonalRamp": ["#1e1e24", "#3a3a42", "#5f5f69", "#857f74", "#a9a9b2", "#dedad2", "#ebe8e1", "#f6f4ef"] },
+      "paper": { "role": "neutral", "displayName": "Warm Paper", "canonical": "#f6f4ef", "tonalRamp": ["#857f74", "#a9a39a", "#c9c5bb", "#dedad2", "#ebe8e1", "#f0ede7", "#f6f4ef", "#faf9f6"] },
+      "accent": { "role": "primary", "displayName": "Deep Red", "canonical": "#92140c", "tonalRamp": ["#4a0a06", "#6d0f09", "#92140c", "#b8372d", "#d45f55", "#f06a5f", "#f6a8a1", "#fbd9d6"] },
+      "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#5f5f69", "tonalRamp": ["#2b2b32", "#43434b", "#5f5f69", "#7b7b85", "#a9a9b2", "#c4c4cb", "#dcdce0", "#efeff1"] },
+      "line": { "role": "neutral", "displayName": "Line", "canonical": "#857f74", "tonalRamp": ["#4a463f", "#635f56", "#857f74", "#a09a90", "#b9b4ab", "#cfcbc3", "#dedad2", "#ece9e3"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "#dedad2", "tonalRamp": ["#9a958b", "#b3aea5", "#c7c3ba", "#dedad2", "#e6e3dc", "#ebe8e1", "#f1efea", "#f6f4ef"] },
+      "surface": { "role": "neutral", "displayName": "Surface", "canonical": "#ebe8e1", "tonalRamp": ["#a8a399", "#c2beb5", "#d4d0c8", "#dedad2", "#e5e2db", "#ebe8e1", "#f1efea", "#f6f4ef"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles, the species count, wordmark. Cabinet Grotesk 700." },
+      "headline": { "displayName": "Section heading", "purpose": "Section heads on Settings and About." },
+      "body": { "displayName": "Body", "purpose": "All running text and controls. Satoshi 500." },
+      "label": { "displayName": "Mono label", "purpose": "Stats, dates, mass, status, footer. Geist Mono uppercase." }
+    },
+    "shadows": [
+      { "name": "float", "value": "0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04)", "purpose": "Bird card, tooltip, search results, toast. Nothing else casts a shadow." },
+      { "name": "sheet", "value": "0 -8px 32px rgb(0 0 0 / .12)", "purpose": "Phone bottom sheet for filter levels." }
+    ],
+    "motion": [
+      { "name": "travel", "value": "cubic-bezier(.45,0,.1,1)", "purpose": "640ms: a bird moving to its new place; stage height." },
+      { "name": "arrive", "value": "cubic-bezier(.25,.8,.25,1)", "purpose": "480ms from 160ms: arrival; also card and hover lift." },
+      { "name": "exit", "value": "cubic-bezier(.4,0,1,1)", "purpose": "180ms: a leaving bird." },
+      { "name": "ui", "value": "cubic-bezier(.16,1,.3,1)", "purpose": "150-320ms: chips, switches, sheets." },
+      { "name": "fade", "value": "200ms opacity", "purpose": "Above 1,500 visible birds and under prefers-reduced-motion, replaces travel." }
+    ],
+    "breakpoints": [
+      { "name": "narrow", "value": "359px" },
+      { "name": "phone", "value": "480px" },
+      { "name": "filters-sheet", "value": "600px" },
+      { "name": "gutters", "value": "720px" },
+      { "name": "list-rows", "value": "820px" },
+      { "name": "three-up", "value": "880px" }
+    ]
+  },
+  "components": [
+    { "name": "Primary Button", "kind": "custom", "refersTo": "button-primary", "description": "The one filled action per view.",
+      "html": "<button class=\"ds-btn\">Make yours</button>",
+      "css": ".ds-btn{min-height:44px;padding:0 18px;border:1px solid var(--accent);background:var(--accent);color:var(--paper);font:700 15px var(--font-body);border-radius:calc(12px * var(--one-if-corner-shape-supported,.566));corner-shape:superellipse(2);cursor:pointer}.ds-btn:hover{opacity:.88}.ds-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}" },
+    { "name": "Filter Chip", "kind": "chip", "refersTo": "chip", "description": "A filter choice with a muted count; selected = Accent border. No icon.",
+      "html": "<button class=\"ds-chip\" data-selected>Herons <span class=\"ds-count\">12</span></button>",
+      "css": ".ds-chip{display:inline-flex;gap:6px;align-items:center;min-height:32px;padding:4px 12px;border:1px solid var(--hairline);background:var(--surface);color:var(--ink);font:500 14px var(--font-body);border-radius:calc(8px * var(--one-if-corner-shape-supported,.566));corner-shape:superellipse(2);cursor:pointer}.ds-chip[data-selected]{border-color:var(--accent)}.ds-chip:hover{border-color:var(--line)}.ds-count{color:var(--muted);font-variant-numeric:tabular-nums}.ds-chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}" },
+    { "name": "Dock Tab", "kind": "nav", "refersTo": "dock", "description": "A dock tab; pressed is Accent text on Surface.",
+      "html": "<div class=\"ds-dock\"><button class=\"ds-tab\" aria-pressed=\"true\">Collage</button><button class=\"ds-tab\">List</button></div>",
+      "css": ".ds-dock{display:flex;gap:4px;padding:4px;border:1px solid var(--hairline);border-radius:16px;background:var(--paper)}.ds-tab{min-height:44px;padding:0 16px;border:0;border-radius:12px;background:transparent;color:var(--ink);font:500 14px var(--font-body);opacity:.66;cursor:pointer}.ds-tab[aria-pressed=true]{opacity:1;color:var(--accent);background:var(--surface);font-weight:600}.ds-tab:hover{opacity:1}.ds-tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}" },
+    { "name": "Field", "kind": "input", "refersTo": "field", "description": "Text input and select share one style.",
+      "html": "<input class=\"ds-input\" placeholder=\"iNaturalist username\">",
+      "css": ".ds-input{height:44px;width:240px;padding:8px 12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:16px var(--font-body);border-radius:calc(8px * var(--one-if-corner-shape-supported,.566));corner-shape:superellipse(2)}.ds-input::placeholder{color:var(--muted)}.ds-input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}" },
+    { "name": "Bird Card", "kind": "card", "refersTo": "card", "description": "Layout C: name left, mono mass right, mono date and place.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-head\"><h3>Barn Swallow</h3><span class=\"ds-mono\">19 g</span></div><p class=\"ds-mono\">Sep 2026</p></div>",
+      "css": ".ds-card{max-width:300px;padding:12px 14px;background:var(--paper);color:var(--ink);border:1px solid var(--hairline);border-radius:calc(16px * var(--one-if-corner-shape-supported,.566));corner-shape:superellipse(2);box-shadow:0 12px 32px rgb(0 0 0/.08),0 2px 6px rgb(0 0 0/.04)}.ds-head{display:flex;justify-content:space-between;gap:12px}.ds-card h3{margin:0;font:700 18px var(--font-display)}.ds-mono{margin:2px 0 0;font:500 12px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}" },
+    { "name": "Switch", "kind": "custom", "refersTo": "switch", "description": "Track 34x20, knob 14px; on is Accent.",
+      "html": "<button class=\"ds-sw\" role=\"switch\" aria-checked=\"true\"><span class=\"ds-track\"><span class=\"ds-knob\"></span></span>True size</button>",
+      "css": ".ds-sw{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:0;background:transparent;color:var(--ink);font:500 14px var(--font-body);cursor:pointer}.ds-track{position:relative;width:34px;height:20px;border-radius:10px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}.ds-knob{position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:transform .15s cubic-bezier(.16,1,.3,1)}.ds-sw[aria-checked=true] .ds-track{background:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.ds-sw[aria-checked=true] .ds-knob{transform:translateX(14px);background:var(--paper)}" }
+  ],
+  "narrative": {
+    "northStar": "The Sticker Sheet on Warm Paper",
+    "overview": "Everybird is an Operate surface wearing Yusuf's personal-site clothes. The birds are the only colour and illustration; everything else is warm paper, near-black ink, one deep red and hairlines. The collage page mirrors /lifelist exactly.",
+    "keyCharacteristics": ["Light by default, dark by toggle", "Flat with hairlines; shadows only on floating things", "One accent for selection, focus and the primary action", "Superellipse corners and 44px targets", "Mono uppercase labels for numbers and meta"],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "Accent marks this one: the selected chip, the current tab, the primary action, the focus ring.", "section": "colors" },
+      { "name": "The Quiet Disabled Rule", "body": "Disabled is Surface fill, Hairline border, Muted text, never a paler Accent.", "section": "colors" },
+      { "name": "The Flat-At-Rest Rule", "body": "No shadow on anything that does not float over the page.", "section": "elevation" },
+      { "name": "The Squircle Rule", "body": "Corners are superellipses with the .566 fallback factor.", "section": "shapes" }
+    ],
+    "dos": ["Do copy /lifelist exactly for shared patterns, and use the seven tokens through var(--...).", "Do use the Squircle Rule for every new rounded surface and 44px targets.", "Do keep Accent for selection, focus and the primary action only.", "Do write the credit wherever a sticker appears.", "Do honour reduced motion and the 1,500-bird fade in anything that animates many birds."],
+    "donts": ["Don't add icons to filter chips, shadows at rest, a second accent, gradients, or prefers-color-scheme.", "Don't commit font files, personal data or coordinates, or ship the photo-or-recording mark.", "Don't animate layout properties on birds.", "Don't put em dashes, emoji or exclamation marks in copy."]
+  }
+}
