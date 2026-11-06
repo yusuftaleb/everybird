@@ -183,7 +183,7 @@ describe('the Collage page (/)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('heading', { name: 'Your sources' })).toBeInTheDocument()
-    for (const h of ['eBird file', 'iNaturalist', 'Tick by hand']) expect(screen.getByRole('heading', { name: h })).toBeInTheDocument()
+    for (const h of ['eBird files', 'iNaturalist', 'Tick by hand']) expect(screen.getByRole('heading', { name: h })).toBeInTheDocument()
     expect(screen.getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
   })
 
@@ -475,8 +475,8 @@ describe('editing', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add 2 to my list' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species.'))
     expect(screen.getByText('Added 2 birds to your list.')).toBeInTheDocument()
-    // Now on the list: shown ticked, and can't be picked again.
-    expect(tickOption(/^Snow Goose, Anser caerulescens, already on your list/)).toHaveAttribute('aria-disabled', 'true')
+    // Now on the list: shown ticked.
+    expect(tickOption(/^Snow Goose, Anser caerulescens, already on your list/)).toHaveAttribute('aria-selected', 'true')
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'manual' }]]) // one, for the first batch
     await waitFor(async () => expect((await storage.load())?.edits.added).toEqual([
       { code: 'snogoo', source: 'manual', date: '2018', place: { country: 'US' } },
@@ -488,6 +488,19 @@ describe('editing', () => {
     fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText('Order'), { target: { value: 'Passeriformes' } })
     expect(within(list).getAllByRole('option')).toHaveLength(2)
+    // Un-ticking a bird already on the list takes it off, as the card's Remove does.
+    fireEvent.change(screen.getByLabelText('Order'), { target: { value: '' } })
+    fireEvent.click(tickOption(/^Snow Goose, Anser caerulescens, already on your list/))
+    expect(tickOption(/^Snow Goose/)).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByText(/1 to remove/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove 1 from my list' }))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species.'))
+    expect(screen.getByText('Removed 1 bird from your list.')).toBeInTheDocument()
+    await waitFor(async () => expect((await storage.load())?.edits.removed).toEqual(['snogoo']), { timeout: 2000 })
+    // Ticking it again brings it back.
+    fireEvent.click(tickOption(/^Snow Goose/))
+    fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species.'))
   })
 
   it('ticking a bird onto a list from eBird is an edit, not a new collage', async () => {
@@ -551,5 +564,97 @@ describe('editing', () => {
     expect(await urls[0].text()).toMatch(/^eBird code,Common name/)
     expect(JSON.parse(await urls[1].text()).records['ebird-list']).toHaveLength(3)
     click.mockRestore()
+  })
+})
+
+describe('remembered sources', () => {
+  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+
+  it('an eBird file is remembered by name, kind and rows, with Replace and Remove', async () => {
+    const { storage } = await mount()
+    await drop(csv(...ROWS))
+    const line = await screen.findByTestId('source-ebird-list')
+    expect(line).toHaveTextContent('ebird_world_life_list.csv')
+    expect(line).toHaveTextContent(`Life list download · 4 rows · imported ${today}`)
+    expect(within(line).getByRole('button', { name: 'Replace ebird_world_life_list.csv' })).toBeInTheDocument()
+    await waitFor(async () => expect((await storage.load())?.sources?.['ebird-list']).toMatchObject({ kind: 'life-list', file: 'ebird_world_life_list.csv', rows: 4 }), { timeout: 2000 })
+    // Remove asks once; "Keep it" changes nothing.
+    fireEvent.click(within(line).getByRole('button', { name: 'Remove' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Keep it' }))
+    expect(made()).toHaveTextContent('Your collage has 3 species.')
+    fireEvent.click(within(line).getByRole('button', { name: 'Remove' }))
+    expect(screen.getByRole('group', { name: 'Remove your eBird life list download' })).toHaveTextContent('Your edits stay.')
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, remove it' }))
+    expect(screen.queryByTestId('source-ebird-list')).toBeNull()
+    await waitFor(async () => {
+      const s = await storage.load()
+      expect(s?.records['ebird-list']).toEqual([])
+      expect(s?.sources?.['ebird-list']).toBeUndefined()
+    }, { timeout: 2000 })
+  })
+
+  it('iNaturalist is remembered by username; Refresh fetches it again without retyping; Remove takes only its birds', async () => {
+    const { inat, storage } = await mount()
+    await drop(csv(...ROWS))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    vi.mocked(inat.importInat).mockImplementationOnce(async (_u, opts) => {
+      opts.onProgress?.({ fetched: 576, total: 576 })
+      return { records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }
+    })
+    fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: '@sam_birds' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
+    const line = await screen.findByTestId('source-inat')
+    expect(line).toHaveTextContent('sam_birds')
+    expect(line).toHaveTextContent(`576 observations · updated ${today}`)
+    expect(screen.queryByLabelText('iNaturalist username')).toBeNull() // the form folds away behind "Use a different username"
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species.'))
+    await waitFor(async () => expect((await storage.load())?.sources?.inat?.user).toBe('sam_birds'), { timeout: 2000 })
+
+    let finish: (v: unknown) => void = () => {}
+    vi.mocked(inat.importInat).mockImplementationOnce(async (_u, opts) => {
+      opts.onProgress?.({ fetched: 10, total: 600 })
+      return new Promise((done) => { finish = done }) as never
+    })
+    await act(async () => { fireEvent.click(within(line).getByRole('button', { name: 'Refresh sam_birds from iNaturalist' })) })
+    expect(vi.mocked(inat.importInat).mock.calls.at(-1)![0]).toBe('sam_birds')
+    expect(await screen.findByText('Fetched 10 of 600')).toBeInTheDocument()
+    expect(within(screen.getByTestId('source-inat')).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }, { code: 'snogoo', source: 'inat', date: '2024-06-01' }], unmatched: [], skipped: 0 }) })
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 5 species.'))
+
+    fireEvent.click(within(screen.getByTestId('source-inat')).getByRole('button', { name: 'Remove' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, remove it' }))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    expect(screen.queryByTestId('source-inat')).toBeNull()
+    expect(screen.getByLabelText('iNaturalist username')).toHaveValue('')
+  })
+
+  it('a list saved before v3 shows its sources with details unknown, and asks for the username to refresh', async () => {
+    await mount({
+      stored: (s) => {
+        ;(s as { v: number }).v = 2
+        s.records.ebird = [{ code: 'norfli', source: 'ebird', date: '2020-01-01' }]
+        s.records.inat = [{ code: 'amerob', source: 'inat', date: '2021-01-01' }]
+      },
+    })
+    expect(screen.getByTestId('source-ebird')).toHaveTextContent('eBird full export')
+    expect(screen.getByTestId('source-ebird')).toHaveTextContent('Full export · details unknown')
+    expect(screen.getByTestId('source-inat')).toHaveTextContent('Details unknown: enter your username to refresh')
+    expect(screen.queryByRole('button', { name: /^Refresh/ })).toBeNull()
+    expect(screen.getByLabelText('iNaturalist username')).toBeInTheDocument()
+  })
+
+  it('Tick by hand is a disclosure: aria-expanded and aria-controls, hidden when closed', async () => {
+    await mount()
+    const btn = screen.getByRole('button', { name: 'Tick birds off a list' })
+    expect(btn).toHaveAttribute('aria-expanded', 'false')
+    expect(btn).toHaveAttribute('aria-controls', 'tick')
+    fireEvent.click(btn)
+    expect(btn).toHaveAttribute('aria-expanded', 'true')
+    expect(document.getElementById('tick')).toBeVisible()
+    expect(screen.getByRole('listbox', { name: 'Species to tick' })).toBeInTheDocument()
+    fireEvent.click(btn)
+    expect(btn).toHaveAttribute('aria-expanded', 'false')
+    await waitFor(() => expect(document.getElementById('tick')).toHaveAttribute('hidden'), { timeout: 2000 })
   })
 })

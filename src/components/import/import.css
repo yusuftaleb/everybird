@@ -1,22 +1,71 @@
-/* The three ways in, the match report and the species search. */
-.eb-ways { display: grid; grid-template-columns: 1fr; gap: 12px; }
-@media (min-width: 880px) { .eb-ways { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* The three ways in, one full-width row each: the head (icon, title, a sentence) left and the controls right from
+   880px, stacked below it. The match report and the species search follow. */
+.eb-ways { display: flex; flex-direction: column; gap: 16px; }
 .eb-way {
-  display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 18px 16px 16px;
-  border: 1px solid var(--hairline);
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; padding: 20px 16px;
+  border: 1px solid var(--hairline); scroll-margin-top: 16px;
   border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   transition: border-color .15s cubic-bezier(.25, .8, .25, 1), background-color .15s cubic-bezier(.25, .8, .25, 1);
 }
-.eb-way-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 20px; line-height: 1.2; }
-.eb-way-title svg { width: 22px; height: 22px; flex: none; color: var(--accent); }
-.eb-way-blurb { margin: 0 0 2px; font-size: 15px; line-height: 1.45; }
-.eb-way-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; }
-/* Every card's control row is one 44px row: a button, a field and a button, or the search field. */
+.eb-way:focus { outline: none; }
+.eb-way:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (min-width: 880px) {
+  .eb-way { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: 40px; padding: 28px 28px; }
+  .eb-way > .eb-disclose { grid-column: 1 / -1; }
+}
+.eb-way-head { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.eb-way-title { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 22px; line-height: 1.2; }
+.eb-way-title svg { width: 24px; height: 24px; flex: none; color: var(--accent); }
+.eb-way-blurb { margin: 0; font-size: 15px; line-height: 1.5; max-width: 44ch; }
+.eb-way-body { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.eb-way > .eb-notcounted { grid-column: -2 / -1; }
+/* Every control row is one 44px row: a button, a field and a button, or the search field. */
 .eb-way-control { display: flex; gap: 8px; min-height: 44px; }
 .eb-way-btn { flex: 1; }
-.eb-way:has(.eb-drop[data-over]) { border-color: var(--accent); background: var(--surface); }
-.eb-drop:has(input:focus-visible) label { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eb-way-notes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; max-width: 60ch; }
+
+/* eBird's drop box: the button fills it, edge to edge, so the two always line up; the hint sits under the button. */
+.eb-dropzone {
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 12px;
+  border: 1.5px dashed var(--line); background: transparent;
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: border-color .15s cubic-bezier(.25, .8, .25, 1), background-color .15s cubic-bezier(.25, .8, .25, 1);
+}
+.eb-dropzone-btn { width: 100%; }
+.eb-dropzone .eb-drop-hint { text-align: center; }
+.eb-filedrop[data-over] .eb-dropzone { border-color: var(--accent); background: var(--surface); }
+.eb-way:has(.eb-filedrop[data-over]) { border-color: var(--accent); }
+.eb-filedrop:has(input:focus-visible) label { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (pointer: coarse) { .eb-drop-hint { display: none; } }
+
+/* A connected source: name and a mono meta line, then its actions (Replace or Refresh, Remove). */
+.eb-sources { display: flex; flex-direction: column; border-top: 1px solid var(--hairline); }
+.eb-source { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--hairline); }
+.eb-source-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.eb-source-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 200px; }
+.eb-source-name { margin: 0; font-weight: 600; font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
+.eb-source-meta { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: .04em; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.eb-source-acts { display: flex; gap: 8px; flex: none; }
+.eb-btn-sm { min-height: 40px; padding: 0 14px; font-size: 14px; }
+@media (pointer: coarse) { .eb-btn-sm { min-height: 44px; } }
+.eb-inat-other { align-self: flex-start; }
+.eb-inat-form { display: flex; flex-direction: column; gap: 10px; }
+
+/* Tick by hand's disclosure: the list grows from nothing (rows 0fr -> 1fr). It clips only while it moves, so the
+   sticky "Add N" bar sticks to the screen once open. */
+.eb-disclose-btn svg { transition: rotate .25s cubic-bezier(.25, .8, .25, 1); }
+.eb-disclose-btn[aria-expanded="true"] svg { rotate: 180deg; }
+.eb-disclose { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .32s cubic-bezier(.25, .8, .25, 1); }
+.eb-disclose[data-open] { grid-template-rows: 1fr; }
+.eb-disclose[hidden] { display: none; }
+.eb-disclose-inner { min-height: 0; }
+.eb-disclose[data-phase] .eb-disclose-inner { overflow: hidden; }
+.eb-way .eb-tick { padding: 4px 0 0; border: 0; border-top: 1px solid var(--hairline); border-radius: 0; padding-top: 16px; }
+.eb-way .eb-tickbar { margin: 0 -16px -20px; }
+@media (min-width: 880px) { .eb-way .eb-tickbar { margin: 0 -28px -28px; padding: 12px 28px 16px; } }
+@media (prefers-reduced-motion: reduce) {
+  .eb-disclose, .eb-disclose-btn svg, .eb-dropzone { transition: none; }
+}
 
 .eb-label {
   font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em;
@@ -75,6 +124,7 @@
 .eb-match-sci { color: var(--muted); font-size: 14px; }
 .eb-match-acts { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (prefers-reduced-motion: reduce) { .eb-way { transition: none; } }
+.eb-tickbar-drop { color: var(--accent); font-weight: 500; }
 .eb-notcounted p { margin: 0; }
 .eb-notcounted summary { cursor: pointer; min-height: 32px; display: inline-flex; align-items: center; color: var(--ink); text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px; }
 .eb-notcounted ul { margin: 4px 0 0; padding-left: 18px; }
@@ -106,12 +156,13 @@ select.eb-input { appearance: none; -webkit-appearance: none; padding-right: 38p
   border-bottom: 1px solid var(--hairline); cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .eb-tickrow[data-active] { background: var(--surface); }
-.eb-tickrow[aria-disabled] { cursor: default; color: var(--muted); }
+.eb-tickrow[data-on] .eb-tickname { color: var(--muted); }
+.eb-tickrow[data-on][aria-selected="false"] .eb-tickon { color: var(--accent); }
 .eb-tickbox {
   display: grid; place-items: center; width: 22px; height: 22px; flex: none; border: 1.5px solid var(--line); border-radius: 6px; color: var(--paper);
 }
 .eb-tickrow[aria-selected="true"] .eb-tickbox { background: var(--accent); border-color: var(--accent); }
-.eb-tickrow[aria-disabled] .eb-tickbox { background: var(--line); border-color: var(--line); }
+.eb-tickrow[data-on][aria-selected="true"] .eb-tickbox { background: var(--line); border-color: var(--line); }
 .eb-tickbox svg { width: 14px; height: 14px; }
 .eb-tickthumb { display: grid; place-items: center; width: 48px; height: 36px; flex: none; }
 .eb-tickthumb > span { display: block; }
@@ -120,7 +171,7 @@ select.eb-input { appearance: none; -webkit-appearance: none; padding-right: 38p
 .eb-tickname > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .eb-tickname i { font-size: 13px; color: var(--muted); }
 .eb-tickon { margin-left: auto; white-space: nowrap; }
-@media (hover: hover) and (pointer: fine) { .eb-tickrow:not([aria-disabled]):hover { background: var(--surface); } }
+@media (hover: hover) and (pointer: fine) { .eb-tickrow:hover { background: var(--surface); } }
 .eb-tickbar {
   position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; margin: 0 -16px; padding: 12px 16px 14px;
   background: var(--paper); border-top: 1px solid var(--hairline);

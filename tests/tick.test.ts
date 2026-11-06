@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addTicked, filterTickRows } from '@/lib/list/tick'
+import { addTicked, filterTickRows, removeTicked } from '@/lib/list/tick'
 import type { Edits } from '@/lib/list/model'
 import type { SpeciesRow } from '@/lib/species/types'
 
@@ -43,5 +43,23 @@ describe('addTicked (a batch of ticked birds into the edits)', () => {
   it('without a date or place adds bare records; a code already added by hand is replaced', () => {
     const next = addTicked(edits, ['gilfli'], {})
     expect(next.added).toEqual([{ code: 'gilfli', source: 'manual' }])
+  })
+})
+
+describe('removeTicked (un-ticking birds already on the list)', () => {
+  it('puts them in removed once, drops their hand records, and keeps marks and fixes', () => {
+    const edits: Edits = {
+      removed: ['old'],
+      added: [{ code: 'a', source: 'manual' }, { code: 'b', source: 'manual' }],
+      marks: { a: { heard: true } },
+      fixes: { 'ebird:2': 'c' },
+    }
+    const out = removeTicked(edits, ['a', 'c', 'old'])
+    expect(out.removed).toEqual(['old', 'a', 'c'])
+    expect(out.added).toEqual([{ code: 'b', source: 'manual' }])
+    expect(out.marks).toEqual(edits.marks)
+    expect(out.fixes).toEqual(edits.fixes)
+    // Ticking one again brings it back.
+    expect(addTicked(out, ['a'], {}).removed).toEqual(['old', 'c'])
   })
 })

@@ -1,6 +1,11 @@
 'use client'
 import { useId, useRef, useState, type DragEvent } from 'react'
 import type { EbirdJob } from '@/components/app/use-import-jobs'
+import type { EbirdDetails } from '@/lib/list/storage'
+import { ebirdLine, SourceLine } from './SourceLine'
+
+/** An eBird file already on the list: its slot ('ebird' full export, 'ebird-list' life list) and what is known of it. */
+export type EbirdConnected = { slot: 'ebird' | 'ebird-list'; details?: EbirdDetails }
 
 type Props = {
   job: EbirdJob
@@ -10,6 +15,9 @@ type Props = {
   /** Species already imported from each eBird file (the full MyEBirdData export and the quick life list download),
    *  and whether any full-export record names a region (county). */
   loaded: { full: number; quick: number; fullCounty?: boolean }
+  /** The eBird files on the list, each with Replace and Remove. */
+  connected?: EbirdConnected[]
+  onRemove?: (slot: EbirdConnected['slot']) => void
 }
 
 /** What each eBird file brings, said plainly: the life list download stops at the province, the full export adds the county. */
@@ -23,11 +31,12 @@ function detailNote({ full, quick, fullCounty = true }: Props['loaded']): string
 }
 
 /**
- * eBird file: one "Choose your eBird file" button, and the whole card takes a dropped file (it highlights while a file
- * is dragged over it). The two ways to get the file sit behind a disclosure. The import itself runs above the routes,
- * so it survives navigation.
+ * eBird file: the files already in (each with Replace and Remove), then the drop box, whose "Choose your eBird file"
+ * button fills its width; the whole row takes a dropped file too (the box highlights while a file is dragged over).
+ * Replace opens the same picker: a file lands in the slot of its kind. The two ways to get the file sit behind a
+ * disclosure. The import itself runs above the routes, so it survives navigation.
  */
-export function EbirdDrop({ job, onFile, disabled, loaded }: Props) {
+export function EbirdDrop({ job, onFile, disabled, loaded, connected = [], onRemove }: Props) {
   const id = useId()
   const [over, setOver] = useState(false)
   const input = useRef<HTMLInputElement>(null)
@@ -46,9 +55,10 @@ export function EbirdDrop({ job, onFile, disabled, loaded }: Props) {
   }
   const note = detailNote(loaded)
 
+  const off = disabled || busy
   return (
     <div
-      className="eb-way-body eb-drop"
+      className="eb-way-body eb-filedrop"
       data-testid="ebird-drop"
       data-over={over || undefined}
       data-busy={busy || undefined}
@@ -56,8 +66,32 @@ export function EbirdDrop({ job, onFile, disabled, loaded }: Props) {
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(false) }}
       onDrop={onDrop}
     >
-      <div className="eb-way-control">
-        <label htmlFor={id} className="eb-btn eb-btn-quiet eb-way-btn" data-disabled={disabled || busy || undefined}>Choose your eBird file</label>
+      {connected.length > 0 && (
+        <div className="eb-sources">
+          {connected.map(({ slot, details }) => {
+            const kind = slot === 'ebird' ? 'full-export' : 'life-list'
+            const line = ebirdLine(kind, details)
+            return (
+              <SourceLine
+                key={slot}
+                testId={`source-${slot}`}
+                name={line.name}
+                meta={line.meta}
+                what={slot === 'ebird' ? 'your eBird full export' : 'your eBird life list download'}
+                disabled={off}
+                onRemove={() => onRemove?.(slot)}
+                actions={
+                  <button type="button" className="eb-btn eb-btn-quiet eb-btn-sm" disabled={off} onClick={() => input.current?.click()} aria-label={`Replace ${line.name}`}>
+                    Replace
+                  </button>
+                }
+              />
+            )
+          })}
+        </div>
+      )}
+      <div className="eb-dropzone">
+        <label htmlFor={id} className="eb-btn eb-btn-quiet eb-dropzone-btn" data-disabled={off || undefined}>Choose your eBird file</label>
         <input
           ref={input}
           id={id}
@@ -68,12 +102,12 @@ export function EbirdDrop({ job, onFile, disabled, loaded }: Props) {
           disabled={disabled || busy}
           onChange={(e) => read(e.target.files?.[0])}
         />
+        <p className="eb-note eb-drop-hint">or drop it here</p>
       </div>
       <p className="eb-status" role="status">
         {busy ? (rows ? `Reading your file… ${rows.toLocaleString('en-US')} rows` : 'Reading your file…') : ''}
       </p>
       {error && <p className="eb-error" role="alert">{error}</p>}
-      <p className="eb-note eb-drop-hint">Or drop the file anywhere on this card.</p>
       <details className="eb-howto">
         <summary>How to get your eBird file</summary>
         <ul>
@@ -82,7 +116,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded }: Props) {
         </ul>
       </details>
       {note && <p className="eb-note" data-testid="ebird-detail">{note}</p>}
-      {(loaded.full > 0 || loaded.quick > 0) && <p className="eb-note">A new file of the same kind replaces the last one. Your edits stay.</p>}
+      {(loaded.full > 0 || loaded.quick > 0) && <p className="eb-note">A new file of the same kind replaces the last one; the other kind is kept beside it. Your edits stay.</p>}
     </div>
   )
 }

@@ -31,3 +31,12 @@ export function addTicked(edits: Edits, codes: string[], opts: { date?: string; 
   })
   return { ...edits, removed: edits.removed.filter((c) => !set.has(c)), added: [...edits.added.filter((r) => !set.has(r.code)), ...recs] }
 }
+
+/**
+ * Take `codes` off the list from Tick by hand, as the bird card's Remove does: each goes into `removed` (so a source
+ * that has it no longer counts it) and any hand-added record of it is dropped. Marks and fixes stay.
+ */
+export function removeTicked(edits: Edits, codes: string[]): Edits {
+  const set = new Set(codes)
+  return { ...edits, removed: [...edits.removed, ...codes.filter((c) => !edits.removed.includes(c))], added: edits.added.filter((r) => !set.has(r.code)) }
+}

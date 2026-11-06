@@ -2,8 +2,8 @@
 // Tick by hand, page-wide: the whole eBird taxonomy (~11,000 species) as a browsable, searchable list in which the
 // birder ticks many birds at once, then adds them with one optional date and place. The list is windowed (only the
 // rows in view are in the DOM), so it stays fast at any size. It is a multi-select listbox: focus stays on the list,
-// the arrow keys move the active row, Space ticks it; a click ticks a row. Birds already on the list show ticked and
-// can't be picked again.
+// the arrow keys move the active row, Space ticks it; a click ticks a row. Birds already on the list show ticked;
+// un-ticking one marks it to come off the list ("Remove N from my list"), as the bird card's Remove does.
 import { Check } from '@phosphor-icons/react'
 import { useDeferredValue, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Sticker } from '@/components/collage/Sticker'
@@ -11,7 +11,7 @@ import { track } from '@/lib/analytics'
 import { stripBracket } from '@/lib/import/places'
 import type { Edits, Place } from '@/lib/list/model'
 import type { Action } from '@/lib/list/store'
-import { addTicked, filterTickRows } from '@/lib/list/tick'
+import { addTicked, filterTickRows, removeTicked } from '@/lib/list/tick'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
 import type { Regions } from '@/lib/species/types'
@@ -22,7 +22,7 @@ type Props = {
   regions: Regions
   edits: Edits
   dispatch: (a: Action) => void
-  /** Codes already on the list (shown ticked, not pickable). */
+  /** Codes already on the list (shown ticked; un-ticking one marks it for removal). */
   onList: ReadonlySet<string>
   /** No records from any source and nothing added by hand yet: this batch starts a hand-made collage. */
   listEmpty?: boolean
@@ -38,6 +38,8 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
   const [order, setOrder] = useState('')
   const [family, setFamily] = useState('')
   const [picked, setPicked] = useState<Set<string>>(() => new Set())
+  // Birds on the list the birder un-ticked, to take off with "Remove N from my list".
+  const [dropped, setDropped] = useState<Set<string>>(() => new Set())
   const [active, setActive] = useState(0)
   const [top, setTop] = useState(0)
   const [date, setDate] = useState('')
@@ -76,10 +78,11 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
   const first = Math.max(0, Math.floor(top / ROW) - OVER)
   const last = Math.min(rows.length, Math.ceil((top + VIEW * ROW) / ROW) + OVER)
 
+  const flip = (p: Set<string>, code: string) => { const n = new Set(p); if (n.has(code)) n.delete(code); else n.add(code); return n }
   const toggle = (code: string) => {
-    if (onList.has(code)) return
     setDone('')
-    setPicked((p) => { const n = new Set(p); if (n.has(code)) n.delete(code); else n.add(code); return n })
+    if (onList.has(code)) setDropped((p) => flip(p, code))
+    else setPicked((p) => flip(p, code))
   }
   const moveTo = (i: number) => {
     const j = Math.max(0, Math.min(rows.length - 1, i))
@@ -109,11 +112,18 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
     setDone(`Added ${codes.length.toLocaleString('en-US')} ${codes.length === 1 ? 'bird' : 'birds'} to your list.`)
     setPicked(new Set())
   }
+  const drop = [...dropped].filter((c) => onList.has(c))
+  const remove = () => {
+    if (!drop.length) return
+    dispatch({ type: 'edit', edits: removeTicked(edits, drop) })
+    setDone(`Removed ${drop.length.toLocaleString('en-US')} ${drop.length === 1 ? 'bird' : 'birds'} from your list.`)
+    setDropped(new Set())
+  }
 
   const n = picked.size
   return (
-    <section id="tick" className="eb-tick" aria-labelledby={`${ids}-h`}>
-      <h3 id={`${ids}-h`} className="eb-way-title">Tick birds off a list</h3>
+    <section className="eb-tick" aria-labelledby={`${ids}-h`}>
+      <h3 id={`${ids}-h`} className="eb-sr">Tick birds off a list</h3>
       <div className="eb-tick-tools">
         <label className="eb-sr" htmlFor={`${ids}-q`}>Search birds</label>
         <input
@@ -165,7 +175,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
           {rows.slice(first, last).map((r, k) => {
             const i = first + k
             const on = onList.has(r.code)
-            const sel = on || picked.has(r.code)
+            const sel = on ? !dropped.has(r.code) : picked.has(r.code)
             const fit = Math.min(48 / Math.max(r.ar, 0.01), 36)
             return (
               <div
@@ -173,8 +183,8 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
                 id={`${ids}-r-${r.code}`}
                 role="option"
                 aria-selected={sel}
-                aria-disabled={on || undefined}
                 aria-label={`${r.com}, ${r.sci}${on ? ', already on your list' : ''}`}
+                data-on={on || undefined}
                 className="eb-tickrow"
                 data-active={i === at || undefined}
                 style={{ top: i * ROW }}
@@ -187,7 +197,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
                   <span>{r.com}</span>
                   <i lang="la">{r.sci}</i>
                 </span>
-                {on && <span className="eb-mono eb-tickon">On your list</span>}
+                {on && <span className="eb-mono eb-tickon">{sel ? 'On your list' : 'To remove'}</span>}
               </div>
             )
           })}
@@ -195,8 +205,11 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
       </div>
       {!rows.length && <p className="eb-note">No bird by that name in eBird&apos;s taxonomy.</p>}
 
-      <div className="eb-tickbar" role="group" aria-label="Add the ticked birds">
-        <p className="eb-tickbar-n" aria-live="polite">{n.toLocaleString('en-US')} selected</p>
+      <div className="eb-tickbar" role="group" aria-label="Add or remove the ticked birds">
+        <p className="eb-tickbar-n" aria-live="polite">
+          {n.toLocaleString('en-US')} selected
+          {drop.length > 0 && <span className="eb-tickbar-drop"> · {drop.length.toLocaleString('en-US')} to remove</span>}
+        </p>
         <div className="eb-tickbar-fields">
           <label className="eb-sr" htmlFor={`${ids}-d`}>Date (optional)</label>
           <input
@@ -230,6 +243,12 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
           <button type="button" className="eb-btn" disabled={!n} onClick={add}>Add {n.toLocaleString('en-US')} to my list</button>
         </div>
         {dateError && <p id={`${ids}-de`} className="eb-error">Use YYYY-MM-DD, YYYY-MM or YYYY.</p>}
+        {drop.length > 0 && (
+          <div className="eb-row">
+            <button type="button" className="eb-btn eb-btn-quiet eb-btn-danger" onClick={remove}>Remove {drop.length.toLocaleString('en-US')} from my list</button>
+            <button type="button" className="eb-textbtn" onClick={() => setDropped(new Set())}>Keep them</button>
+          </div>
+        )}
         <p className="eb-status" role="status">{done}</p>
       </div>
     </section>
