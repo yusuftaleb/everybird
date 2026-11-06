@@ -108,7 +108,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded, connected = [], onRem
         {busy ? (rows ? `Reading your file… ${rows.toLocaleString('en-US')} rows` : 'Reading your file…') : ''}
       </p>
       {error && <p className="eb-error" role="alert">{error}</p>}
-      <details className="eb-howto">
+      <details className="eb-filehelp">
         <summary>How to get your eBird file</summary>
         <ul>
           <li><strong>Life list download</strong> (instant): My eBird, then your World life list total, then Download. Places go down to the state or province.</li>
