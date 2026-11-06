@@ -1,0 +1,47 @@
+src/components/filters/PlacesPanel.tsx
+  s_ab125876fe9ad2::t_893c1b9509505f 1-98
+tests/places-ui.test.tsx
+  s_ab125876fe9ad2::t_3b6953c87a3ca7 1-136
+src/components/filters/filters.css
+  s_ab125876fe9ad2::t_eb349c07ccde73 120-122
+src/components/app/CollagePage.tsx
+  s_ab125876fe9ad2::t_a6bf3fa08eb1fb 105
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_db41f5411b019e 42-45,85-86,103,121,165,171,174,210
+src/components/app/SharedView.tsx
+  s_ab125876fe9ad2::t_f572859e882122 63
+src/components/app/use-collage-layout.ts
+  s_ab125876fe9ad2::t_ef89d98f6810f3 10-11,33,36,40,42,52-53,115,123-124,127-128,130-133,209
+src/components/filters/FilterBar.tsx
+  s_ab125876fe9ad2::t_463d861942b490 7-8,25-26,44-47,71-74,78-79,92,100,106,109-111,113,123-125,183-193,243-256,262,273
+src/components/filters/SheetPicker.tsx
+  s_ab125876fe9ad2::t_e65a80e58ccd39 10
+src/components/filters/Timeline.tsx
+  s_ab125876fe9ad2::t_2aded8622378c6 14,29-30,48,51
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_b4a179f5534554 56,64,66
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_a0c581d4921ebe 60,62-64,70,73
+tests/filters-places.test.ts
+  s_ab125876fe9ad2::t_08b6b44f298a9c 81-90
+tests/filters-ui.test.tsx
+  s_ab125876fe9ad2::t_30cb6f194dc89a 181,189
+src/components/filters/LevelRow.tsx
+  s_ab125876fe9ad2::t_8ae99c437e1388 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "84c939e842763750ee952975bc07f85022e001f5",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
