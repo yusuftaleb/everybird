@@ -123,9 +123,12 @@ function Silhouette({ flip }: { flip?: boolean }) {
 
 const dpr = () => (typeof window === 'undefined' ? 2 : Math.min(3, window.devicePixelRatio || 1))
 
+/** A sticker from the configured sticker site; the product's silhouette if it fails to load (as the collage does). */
 function Sticker({ code, px }: { code: string; px: number }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return <Silhouette />
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={stickerUrl(code, px, dpr())} alt="" draggable={false} decoding="async" />
+  return <img src={stickerUrl(code, px, dpr())} alt="" draggable={false} decoding="async" onError={() => setFailed(true)} />
 }
 
 /**
