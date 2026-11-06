@@ -1,0 +1,35 @@
+src/components/app/CollagePage.tsx
+  s_ab125876fe9ad2::t_34a62d844f52e2 7,13,28,32,35,38,49,101
+src/lib/list/tick.ts
+  s_ab125876fe9ad2::t_e14906e138f3d4 43-55,60
+  s_ab125876fe9ad2::t_ead36b3dd162b3 56-59
+src/components/app/UndoToast.tsx
+  s_ab125876fe9ad2::t_286b370c14c464 1-56
+tests/tick.test.ts
+  s_ab125876fe9ad2::t_b8c1e199643084 2,66-94
+  s_ab125876fe9ad2::t_c7cdf88fd6bdfd 95
+src/components/import/TickList.tsx
+  s_ab125876fe9ad2::t_86bc6132c7585d 6-7,9-10,16,52,122-123,126-133,266
+tests/app-routes.test.tsx
+  s_ab125876fe9ad2::t_f1f5aa2362b67e 521
+  s_ab125876fe9ad2::t_02326f4bb97e04 514-515
+  s_ab125876fe9ad2::t_6ac0f3119f1835 496,499-502,504-513,516-517
+node_modules
+  s_ab125876fe9ad2::t_0d501c6d08237e 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59029af5158030951cfca67c30f84a37103d296f",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
