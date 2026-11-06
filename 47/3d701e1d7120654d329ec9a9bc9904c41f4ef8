@@ -1,0 +1,31 @@
+src/components/filters/timeline.css
+  s_ab125876fe9ad2::t_34a77807bdab54 61-62
+src/components/filters/TripBrackets.tsx
+  s_ab125876fe9ad2::t_34a77807bdab54 12-16
+tests/timeline-ui.test.tsx
+  s_ab125876fe9ad2::t_c94942db99cf7c 7,126-132
+  s_ab125876fe9ad2::t_0fbe4326b25fe7 133-134
+e2e/timeline.spec.ts
+  s_ab125876fe9ad2::t_07bd80051c7270 163,187-201
+  s_ab125876fe9ad2::t_12546886d24983 202-203
+e2e/flows.spec.ts
+  s_ab125876fe9ad2::t_ba134b07b19563 97-98,108
+DESIGN.md
+  s_ab125876fe9ad2::t_16f3d4d2381375 143,170
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "473d701e1d7120654d329ec9a9bc9904c41f4ef8",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
