@@ -3,7 +3,6 @@ import { join } from 'node:path'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { SiteFooter } from '@/components/app/SiteFooter'
 import '@/components/app/app.css'
 import './credits.css'
 
@@ -115,7 +114,6 @@ export default function CreditsPage() {
           <Link className="eb-btn" href="/">Back to Everybird</Link>
         </div>
       </main>
-      <SiteFooter />
     </>
   )
 }

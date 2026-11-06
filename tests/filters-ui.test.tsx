@@ -76,7 +76,7 @@ describe('FilterBar', () => {
     expect(filterOf()).toEqual({ order: 'Passeriformes' })
     expect(screen.queryByRole('group', { name: 'Orders' })).toBeNull()
     const fams = screen.getByRole('group', { name: 'Families' })
-    expect(within(fams).getAllByRole('button').map((b) => b.textContent)).toEqual(['Crows1', 'Wrens1'])
+    expect(within(fams).getAllByRole('button').map((b) => b.textContent)).toEqual(['Crows1, 1 species', 'Wrens1, 1 species'])
     expect(crumbs()).toHaveTextContent('All birds/Perching birds')
     expect(within(crumbs()).getByText('Perching birds')).toHaveAttribute('aria-current', 'location')
     fireEvent.click(within(fams).getByRole('button', { name: /^Crows/ }))
@@ -100,12 +100,22 @@ describe('FilterBar', () => {
     expect(screen.queryByRole('group', { name: 'Families' })).toBeNull()
   })
 
-  it('chips have no icons; each count is muted beside the name', () => {
+  it('chips have no icons; each count is muted beside the name, read as ", 2 species"', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
-    const chip = within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Waterfowl/ })
+    const chip = within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: 'Waterfowl, 2 species' })
     expect(chip.querySelector('svg')).toBeNull()
-    expect(chip.querySelector('.eb-count')).toHaveTextContent('2')
+    expect(chip.querySelector('.eb-count')).toHaveTextContent(/^2$/)
+  })
+
+  it('a search that leaves one family of an order still shows that order\'s families row', () => {
+    vi.stubGlobal('innerWidth', 1000)
+    const reduce = makeReducer({ species, countryName: (c) => c })
+    const st = reduce(seeded(), { type: 'filter', filter: { order: 'Passeriformes' } })
+    render(<FilterBar state={st} dispatch={() => {}} species={species} regions={regions} query="crow1" />)
+    expect(screen.getByRole('group', { name: 'Families' })).toBeInTheDocument()
+    expect(document.querySelector('.eb-path')).toHaveTextContent(/^All birds\/Perching birds$/) // not ".../Crows"
+
   })
 
   it('tabs are an arrow-key tablist', () => {

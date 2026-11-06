@@ -106,7 +106,12 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
   // (every bird of the order is in it; a year's one trip is not the whole year, so trips keep their row).
   const [top, child] = active.levels as [Level, Level | undefined]
   const childOpts = child ? opts[child] ?? [] : []
-  const onlyChild = top === 'order' && !!child && !!filter[top] && !filter[child] && childOpts.length === 1
+  // Whether the order has one family is a fact of the list, not of the search: count without the narrowing.
+  const families = useMemo(
+    () => (active.id === 'birds' && filter.order && !filter.family ? options(list, filter, 'family', species, trips, countryName) : null),
+    [active.id, list, filter, species, trips, countryName],
+  )
+  const onlyChild = top === 'order' && !!child && !!filter[top] && !filter[child] && families?.length === 1
   const level: Level | null = !filter[top] ? top : child ? (onlyChild || !childOpts.length ? null : child) : top
 
   // The breadcrumb, once the top level has a choice: "All birds / Perching birds / Crows". The current place is in
@@ -120,7 +125,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
       crumbs.push({ label: nameOf(child, filter[child]!), latin: sci && LATIN.has(child) })
     } else if (onlyChild && child) {
       crumbs.push(topCrumb)
-      crumbs.push({ label: chipLabel(child, childOpts[0]), latin: sci && LATIN.has(child) })
+      crumbs.push({ label: chipLabel(child, families![0]), latin: sci && LATIN.has(child) })
     } else crumbs.push(topCrumb)
   }
 

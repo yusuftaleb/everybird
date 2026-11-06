@@ -102,10 +102,10 @@ describe('BirdCard', () => {
     opener.remove()
   })
 
-  it('with Scientific names on, the title is the scientific name (Latin) and the common name comes second', () => {
+  it('with Scientific names on, the title is the scientific name (Latin) and the common name comes second; the dialog keeps the common name', () => {
     setWidth(1000)
     render(<BirdCard entry={full} species={species} regions={regions} sci onClose={() => {}} />)
-    const dlg = screen.getByRole('dialog', { name: 'Avis crowa' })
+    const dlg = screen.getByRole('dialog', { name: 'Alpha Crow' })
     expect(within(dlg).getByRole('heading', { name: /Avis crowa/ })).toHaveAttribute('lang', 'la')
     expect(within(dlg).getByText('Alpha Crow')).toBeInTheDocument()
   })

@@ -1,7 +1,8 @@
 'use client'
 // The birder's list and the imports in flight, above the routes (app/(app)/layout.tsx): /, /make and /my share one
 // store, and an import started on /make keeps running while the birder moves between them. The shared view
-// (/s/[token]) and /credits live outside this layout, so they never load or touch the saved list.
+// (/s/[token]) lives outside this layout, so it never loads or touches the saved list (/credits is inside, so following
+// the footer link from /make keeps an import running).
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { track } from '@/lib/analytics'
 import { loadCountryDots, loadRegions } from '@/lib/import/places'

@@ -8,12 +8,15 @@ type Props = {
   /** Reads the file (use-import-jobs.ts: kind detected from the header, parsed in a worker, imported into its slot). */
   onFile: (file: File) => void
   disabled?: boolean
-  /** Species already imported from each eBird file: the full MyEBirdData export and the quick life list download. */
-  loaded: { full: number; quick: number }
+  /** Species already imported from each eBird file (the full MyEBirdData export and the quick life list download),
+   *  and whether any full-export record names a region (county). */
+  loaded: { full: number; quick: number; fullCounty?: boolean }
 }
 
 /** What each eBird file brings, said plainly: the quick download stops at the province, the full export adds the county. */
-function detailNote({ full, quick }: Props['loaded']): string | null {
+function detailNote({ full, quick, fullCounty = true }: Props['loaded']): string | null {
+  // A list saved before the two eBird slots may hold the life list download in the full export's place.
+  if (full && !fullCounty) return 'No regions (counties) in your eBird file yet: import “Download My Data” again to add them.'
   if (quick && !full) return 'Your life list download gives each bird’s state or province. Add the full “Download My Data” export to place them down to the region (county).'
   if (full && quick) return 'Both eBird files are in. Where they agree on the first sighting, the region (county) from the full export is kept.'
   if (full) return 'Your full eBird export places birds down to the region (county). A new export replaces it; the life list download is kept separately.'

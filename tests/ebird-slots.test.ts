@@ -113,6 +113,9 @@ describe('older lists and backups keep loading', () => {
     expect(unmatchedKey(back.unmatched[0])).toBe('ebird-list:1')
     expect(back.skipped).toEqual({ 'ebird-list': 3 })
     expect(() => fromJson(JSON.stringify({ ...withSlot, unmatched: [{ source: 'ebird', slot: 'nope', row: 1, reason: 'no-match' }] }))).toThrow()
+    // A slot must belong to the row's source.
+    expect(() => fromJson(JSON.stringify({ ...withSlot, unmatched: [{ source: 'inat', slot: 'ebird-list', row: 1, reason: 'no-match' }] }))).toThrow('unmatched')
+    expect(() => fromJson(JSON.stringify({ ...withSlot, unmatched: [{ source: 'ebird', slot: 'inat', row: 1, reason: 'no-match' }] }))).toThrow('unmatched')
   })
 
   it('a list stored under everybird:v1 in the old shape loads migrated, and is rewritten in place', async () => {

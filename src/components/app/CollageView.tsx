@@ -45,7 +45,11 @@ const pad = (d: string) => (d.length === 4 ? `${d}-00-00` : d.length === 7 ? `${
 const SEARCH_SETTLE_MS = 140
 /** How long the picked bird's Accent ring shows, and how long its card follows it while it travels. */
 const RING_MS = 1600
+/** The travel (640 ms) plus the ripple and a little slack: by then the bird is in its new spot. */
+const SETTLE_MS = 900
 const SUGGESTIONS = 8
+/** The filter part of a StateLayout key ("<layout>|<mode>|<filterKey>"). */
+const layoutFilterKey = (key: string) => key.split('|').slice(2).join('|')
 
 /** "197 species · 20 orders · 50 families · since Jan 2020", or "12 of 197 species · 3 families" when filtered. */
 export function statsLine(all: ListEntry[], shown: ListEntry[], species: SpeciesIndex): string {
@@ -98,23 +102,54 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
   }, [])
   const onPickRow = useCallback((code: string, el: HTMLElement) => setPick({ code, anchor: el }), [])
 
-  // A suggestion picked: clear the narrowing, bring the bird (or its row) into view with a brief Accent ring, and
-  // open its card. The bird travels back to its unsearched spot, so the card follows it for a moment.
-  const ring = useRef<{ el: HTMLElement; t: ReturnType<typeof setTimeout> } | null>(null)
-  useEffect(() => () => { if (ring.current) clearTimeout(ring.current.t) }, [])
+  // A suggestion picked: clear the narrowing, then (once the unsearched layout is in and the bird is heading for its
+  // own spot) scroll that spot into view, ring the bird (or its row) in Accent and open its card, which follows the
+  // bird while it travels. Scrolling earlier would aim at where the bird stood in the narrowed layout.
+  const ring = useRef<{ el: HTMLElement; t: ReturnType<typeof setTimeout>; t2?: ReturnType<typeof setTimeout> } | null>(null)
+  useEffect(() => () => { if (ring.current) { clearTimeout(ring.current.t); clearTimeout(ring.current.t2) } }, [])
+  const [pending, setPending] = useState<{ code: string; wait: boolean } | null>(null)
   const onPickSuggestion = useCallback((code: string) => {
+    const narrowed = !!q.trim()
     setText('')
     setQ('')
-    const sel = view === 'collage' ? `.eb-bird[data-code="${code}"]` : `.eb-row-btn[data-code="${code}"]`
-    const el = box.current?.querySelector<HTMLElement>(sel) ?? null
-    if (ring.current) { clearTimeout(ring.current.t); ring.current.el.removeAttribute('data-ring') }
-    if (el) {
-      el.setAttribute('data-ring', '')
-      ring.current = { el, t: setTimeout(() => el.removeAttribute('data-ring'), RING_MS) }
-      el.scrollIntoView?.({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' })
-    }
-    setPick({ code, anchor: el, follow: true })
-  }, [view])
+    // The collage re-packs only if the narrowing had reached it; the list re-renders in the same commit.
+    setPending({ code, wait: view === 'collage' && !!lay && narrowed })
+  }, [view, lay, q])
+  const fullKey = filterKey(filter)
+  useEffect(() => {
+    if (!pending) return
+    if (pending.wait && (!lay || layoutFilterKey(lay.layout.key) !== fullKey || !lay.visible.has(pending.code))) return
+    const { code } = pending
+    const raf = requestAnimationFrame(() => {
+      setPending(null)
+      const collage = view === 'collage'
+      const el = box.current?.querySelector<HTMLElement>(collage ? `.eb-bird[data-code="${code}"]` : `.eb-row-btn[data-code="${code}"]`) ?? null
+      if (ring.current) { clearTimeout(ring.current.t); clearTimeout(ring.current.t2); ring.current.el.removeAttribute('data-ring') }
+      if (el) {
+        el.setAttribute('data-ring', '')
+        ring.current = { el, t: setTimeout(() => el.removeAttribute('data-ring'), RING_MS) }
+        const behavior: ScrollBehavior = reduced() ? 'auto' : 'smooth'
+        const stage = collage ? box.current?.querySelector<HTMLElement>('.eb-stage') : null
+        const b = collage && lay ? lay.layout.boxes.get(code) : undefined
+        if (stage && b && lay) {
+          // Where the bird is going, not where it is: its box in the new layout, scaled to the stage's width.
+          const r = stage.getBoundingClientRect()
+          const k = r.width / lay.layout.W
+          const y = window.scrollY + r.top + (b[1] + b[3] / 2) * k
+          window.scrollTo?.({ top: Math.max(0, y - window.innerHeight / 2), behavior })
+          // The stage is still growing to its full height (the page may not reach that far yet): once the travel is
+          // over, bring the bird the rest of the way if it isn't on screen.
+          const late = setTimeout(() => {
+            const br = el.getBoundingClientRect()
+            if (el.isConnected && (br.top < 0 || br.bottom > window.innerHeight)) el.scrollIntoView({ block: 'center', behavior })
+          }, SETTLE_MS)
+          ring.current.t2 = late
+        } else el.scrollIntoView?.({ block: 'center', behavior })
+      }
+      setPick({ code, anchor: el, follow: true })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [pending, lay, view, fullKey])
 
   const picked = pick ? list.find((e) => e.code === pick.code) : undefined
   const sizes = mode === 'true' ? 'Sizes follow body mass at true scale' : 'Sizes follow body mass, evened out so small birds stay visible'

@@ -30,7 +30,12 @@ export function Chip({ label, count, selected, latin, removeLabel, onClick, test
       onClick={onClick}
     >
       {label}
-      {count != null && <span className="eb-count" aria-label={`, ${count.toLocaleString('en-US')} species`}>{count.toLocaleString('en-US')}</span>}
+      {count != null && (
+        <>
+          <span className="eb-count" aria-hidden="true">{count.toLocaleString('en-US')}</span>
+          <span className="eb-sr">, {count.toLocaleString('en-US')} species</span>
+        </>
+      )}
       {children}
     </button>
   )

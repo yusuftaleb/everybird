@@ -1,7 +1,7 @@
 import { formatPlace } from '@/lib/import/places'
 import type { Regions } from '@/lib/species/types'
 import type { SpeciesIndex } from '@/lib/species/load'
-import { SLOTS } from './model'
+import { SLOTS, slotSource } from './model'
 import type { ListEntry, Slot, Source, SourceRecord } from './model'
 import type { Saved } from './storage'
 
@@ -72,7 +72,7 @@ export function fromJson(text: string): Saved {
   const unmatched = raw.unmatched ?? []
   if (
     !Array.isArray(unmatched) ||
-    !unmatched.every((u) => isObj(u) && typeof u.row === 'number' && SOURCES.includes(u.source as Source) && (u.slot === undefined || isSlot(u.slot)))
+    !unmatched.every((u) => isObj(u) && typeof u.row === 'number' && SOURCES.includes(u.source as Source) && (u.slot === undefined || (isSlot(u.slot) && slotSource(u.slot) === u.source)))
   )
     throw new Error('Backup unmatched rows are malformed.')
 

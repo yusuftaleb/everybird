@@ -42,7 +42,11 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             job={jobs.ebird}
             onFile={(f) => void jobs.readEbird(f)}
             disabled={disabled}
-            loaded={{ full: speciesIn(saved.records.ebird), quick: speciesIn(saved.records['ebird-list'] ?? []) }}
+            loaded={{
+              full: speciesIn(saved.records.ebird),
+              quick: speciesIn(saved.records['ebird-list'] ?? []),
+              fullCounty: saved.records.ebird.some((r) => !!r.place?.sub2),
+            }}
           />
         </Way>
         <Way icon={Binoculars} title="iNaturalist">

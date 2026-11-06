@@ -24,6 +24,7 @@ export function CollageSearch({ value, onChange, suggestions, onPick, sci, label
   const [active, setActive] = useState(-1)
   const typed = value.trim().length > 0
   const open = focused && typed && suggestions.length > 0
+  const none = focused && typed && !suggestions.length
   const at = active < suggestions.length ? active : -1
 
   const change = (text: string) => {
@@ -101,7 +102,8 @@ export function CollageSearch({ value, onChange, suggestions, onPick, sci, label
             </li>
           ))}
       </ul>
-      {focused && typed && !suggestions.length && <p className="eb-suggest eb-suggest-none" role="status">No bird on this list matches</p>}
+      {/* Always in the DOM, so screen readers announce the text when it appears. */}
+      <p className={none ? 'eb-suggest eb-suggest-none' : 'eb-sr'} role="status">{none ? 'No bird on this list matches' : ''}</p>
     </div>
   )
 }

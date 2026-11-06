@@ -86,10 +86,10 @@ describe('Scientific names', () => {
     expect(primary).toHaveTextContent('Colaptes auratus')
     expect(primary).toHaveAttribute('lang', 'la')
     expect(li.querySelector('.eb-row-other')).toHaveTextContent('Northern Flicker')
-    // Card: the title is the scientific name.
+    // Card: the title is the scientific name (the dialog's name stays the common name).
     fireEvent.click(within(li).getByRole('button'))
-    const card = screen.getByRole('dialog', { name: 'Colaptes auratus' })
-    expect(within(card).getByText('Northern Flicker')).toBeInTheDocument()
+    const card = screen.getByRole('dialog', { name: 'Northern Flicker' })
+    expect(within(card).getByRole('heading')).toHaveTextContent('Colaptes auratus')
   })
 })
 
@@ -121,9 +121,12 @@ describe('search', () => {
     fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
     await type('fli')
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 of 5 species/))
+    const status = document.querySelector('.eb-search-field [role="status"]')!
+    expect(status).toHaveTextContent('') // in the DOM before it has anything to say, so the text is announced
     await type('robin')
     expect(screen.queryByRole('option')).toBeNull()
-    expect(screen.getByText('No bird on this list matches')).toBeInTheDocument()
+    expect(document.querySelector('.eb-search-field [role="status"]')).toBe(status)
+    expect(status).toHaveTextContent('No bird on this list matches')
   })
 
   it('Enter picks: the narrowing clears, the bird is highlighted and its card opens', async () => {
