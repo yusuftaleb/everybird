@@ -1,9 +1,7 @@
 /* Collage stage, ported from LifeList.tsx (framer-site). Positions are in % of the stage width (cqw):
    a bird's tile is --w x --h, placed with `translate` and sized with `scale` (--k), so motion only touches
    compositor properties. The stage height eases to the group's height (one contained element). */
-/* --sh (the stage height, in cqw) is not inherited: an inherited custom property would restyle all 1,000+
-   birds (and their images) every time the stage height changes. */
-@property --sh { syntax: "<number>"; inherits: false; initial-value: 0; }
+/* The stage height is set inline (Collage.tsx), never as a custom property: changing one restyles every bird. */
 /* Each bird's own variables (written per bird, Collage.tsx) are registered and not inherited too: an element that
    sets unregistered custom properties gets its own copy of every inherited one (all the design tokens), which made
    each bird's restyle several times dearer. */
@@ -24,7 +22,6 @@
 .eb-stage {
   position: relative;
   width: 100%;
-  height: calc(var(--sh) * 1cqw);
   transition: height .64s var(--eb-travel);
   contain: layout style;
   touch-action: manipulation;
@@ -36,6 +33,7 @@
    new group, the browser would otherwise lay out every absolutely placed bird again on each frame. Birds are
    placed by translate from the top-left corner and sized in cqw, so they never read the layer's height. */
 .eb-layer { position: absolute; left: 0; top: 0; width: 100%; height: 0; contain: layout style; }
+.eb-group { display: contents; }
 
 .eb-bird {
   position: absolute;
@@ -46,8 +44,8 @@
   padding: 0;
   border: 0;
   background: none;
-  color: inherit;
-  font: inherit;
+  /* No `inherit` values: WebKit restyles an element with explicitly inherited properties whenever its parent's style
+     changes at all, so the layer's fade-through restyled every bird (~150 ms at 6,000). A bird draws no text. */
   width: calc(var(--w) * 1cqw);
   height: calc(var(--h) * 1cqw);
   translate: calc(var(--x) * 1cqw) calc(var(--y) * 1cqw);

@@ -60,6 +60,10 @@ const STICKER_MARGIN = '100% 0px'
 const STICKER_FAR = '400% 0px'
 /** How long a travel moves birds (the latest arrival's start and run, a little slack for chunked writes). */
 const SETTLE_MS = Math.max(MOVE_MS + RIPPLE_MS, ENTER_AT + RIPPLE_MS + ENTER_MS) + 400
+/** The bird layer's opacity while a windowed fade-through places birds (see fadeThrough). */
+const NEARLY_CLEAR = 0.002
+/** Birds per group in a windowed list (see the birds memo). */
+const GROUP = 128
 /** In a still change (a drag preview), more arrivals than this appear without their fade. */
 const INSTANT_AT = 60
 /** :focus-visible, where the browser knows it (jsdom doesn't: there, any focus counts). */
@@ -168,17 +172,27 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     }
     if (io.current) { io.current.near.observe(el); io.current.far.observe(el) } else loadDeferred(el)
   }, [])
+  // Codes that have had an element: a second one is the same bird re-created (a windowed list's group changed).
+  const known = useRef(new Set<string>())
   const register = useCallback((code: string, el: HTMLButtonElement | null) => {
     const old = els.current.get(code)
     if (old && old !== el) { io.current?.near.unobserve(old); io.current?.far.unobserve(old) }
     if (el) {
       els.current.set(code, el)
+      if (known.current.has(code)) {
+        // Re-created with its frozen first style: bring it up to date with the motion caches.
+        motion.anims.get(code)?.cancel(); motion.anims.delete(code); motion.leaving.delete(code)
+        far.off.set(code, !motion.on?.has(code))
+        if (winOn.current) { setFar(el, true); win.current?.shown.delete(code); win.current?.schedule() }
+        else { applyFar(motion, far, code, el); setFar(el, false) }
+      }
+      known.current.add(code)
       if (!winOn.current) observe(el)
     } else {
       els.current.delete(code)
       win.current?.shown.delete(code)
     }
-  }, [observe])
+  }, [observe, motion, far])
 
   // The list crossed WINDOW_AT: set every bird up the other way (the motion effect below then syncs the window).
   useLayoutEffect(() => {
@@ -261,9 +275,9 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       f.apply = null
       f.phase = 'place'
       // Windowed (a big list): only the few hundred rendered birds are written while placing, so the layer is just
-      // held transparent (a fully transparent layer isn't painted), and they are restyled chunk by chunk instead of
-      // all at once when a skipped layer shows again.
-      if (winOn.current) { L.style.opacity = '0'; getWin().quiet = true }
+      // held (nearly) transparent and they are restyled chunk by chunk, instead of all at once when a skipped layer
+      // shows again. Not quite 0: in WebKit, opacity 0 on the layer costs a walk over every bird (~150 ms at 6,000).
+      if (winOn.current) { L.style.opacity = String(NEARLY_CLEAR); getWin().quiet = true }
       else L.style.contentVisibility = 'hidden'
       f.anim?.cancel()
       f.anim = null
@@ -272,7 +286,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
         if (f.seq !== seq || f.phase !== 'place' || !alive.current) return
         unveil()
         f.phase = 'in'
-        const fadeIn = L.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS / 2, easing: EASE_OUT })
+        const fadeIn = L.animate([{ opacity: winOn.current ? NEARLY_CLEAR : 0 }, { opacity: 1 }], { duration: FADE_MS / 2, easing: EASE_OUT })
         f.anim = fadeIn
         fadeIn.onfinish = () => { if (f.anim === fadeIn && alive.current) { f.anim = null; f.phase = null } }
       })
@@ -298,7 +312,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       const keep = new Set(entries.map((e) => e.code))
       for (const code of [...inits.keys()]) {
         if (keep.has(code)) continue
-        inits.delete(code); m.base.delete(code); m.written.delete(code); m.sizes.delete(code)
+        inits.delete(code); m.base.delete(code); m.written.delete(code); m.sizes.delete(code); known.current.delete(code); far.off.delete(code)
         m.anims.get(code)?.cancel(); m.anims.delete(code); m.on?.delete(code); m.leaving.delete(code)
       }
     }
@@ -477,12 +491,14 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
   }
 
   const F = (LAYOUTS.find((l) => l.name === layout.layout) ?? LAYOUTS[0]).F
-  const stageStyle = { '--sh': pct(layout.H, layout.W), '--f': pct(F, layout.W) } as CSSProperties
+  // The stage height is its own inline height, not a custom property: WebKit restyles every descendant of an element
+  // whose custom properties change (registered and not inherited or not), ~150 ms at 6,000 birds on each filter.
+  const stageStyle = { height: `${pct(layout.H, layout.W)}cqw`, '--f': pct(F, layout.W) } as CSSProperties
   // Birds render once each (memoised on the list); after that every change is written to their style directly.
   // A bird's first style comes from the layout current when it first appears, and is then frozen in `inits`.
   const birds = useMemo(() => {
     const appear = motion.on === null
-    return draw.map((code) => {
+    const list = draw.map((code) => {
       let init = inits.get(code)
       if (!init) {
         init = makeInit(code, layout, visible, motion, layout.W, appear, windowed)
@@ -491,9 +507,17 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       const r = row(code)
       return <Bird key={code} code={code} name={r?.com ?? code} st={!!r?.st} ar={r?.ar ?? 1} init={init} register={register} />
     })
+    if (!windowed) return list
+    // Windowed: in groups of GROUP (display: contents, so nothing changes for layout or paint order). WebKit restyles
+    // every child of an element whose style changes, rendered or not: the fade-through's opacity on the layer cost
+    // ~150 ms at 6,000 birds; over groups, ~1 ms. (A bird whose group changes, after a list edit, is re-created; see
+    // register.)
+    const groups = []
+    for (let i = 0; i < list.length; i += GROUP) groups.push(<div key={i / GROUP} className="eb-group">{list.slice(i, i + GROUP)}</div>)
+    return groups
     // layout and visible are read only to seed birds new to the list; their changes are written in the layout effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draw, row, register, motion, inits])
+  }, [draw, row, register, motion, inits, windowed])
   // The layer element itself is memoised too, so a new layout re-renders the stage without walking 1,000 birds.
   const birdLayer = useMemo(() => <div ref={layer} className="eb-layer">{birds}</div>, [birds])
 
