@@ -3,12 +3,18 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
-  PR_URL, SHEET_URL, codesFromMatches, diffRecords, diffRows, diffStickers, lockJson, makeLock, nextVersions,
-  parseLsTree, recordDigest, renderIssueBody, renderPrBody, summarise, type HuashuLock,
+  ARTIFACT_URL, BODY_MAX, PR_URL, UpstreamInconsistency, baseMarker, codesFromMatches, diffRecords, diffRows,
+  diffStickers, implausible, lockJson, makeLock, nextShipped, nextVersions, parseLsTree, recordDigest, recordDigests,
+  renderBlockedBody, renderIssueBody, renderPrBody, restrictToShipped, selectBatch, summarise, type HuashuLock,
+  type StickerChange,
 } from '../scripts/sync/huashu-lib'
 import { applyStickerVersions, buildSpecies, matchHuashu, taxonomyFromPublic } from '../scripts/build-data/build-species'
 import { readMaskTables, updateStickers, writeMaskTables, type MaskTables } from '../scripts/build-data/build-stickers'
 import { websiteCodes } from '../scripts/build-data/build-website-codes'
+import { assertRawPinned, assertShippedSource, gitBlobSha } from '../scripts/build-data/huashu-pin'
+import { checkoutHuashu } from '../scripts/build-data/fetch-sources'
+import { execFileSync } from 'node:child_process'
+import { writeFileSync, mkdirSync } from 'node:fs'
 import type { HuashuRecord, SpeciesFile, SpeciesRow, TaxonRow, TaxonomyFile } from '@/lib/species/types'
 
 const FIX = resolve(__dirname, 'fixtures/huashu-sync')
@@ -61,6 +67,7 @@ describe('the huashu lock', () => {
 
   it('throws when a code’s sticker file is missing from the tree', () => {
     const lock = lockFor(huashu, parseLsTree(lsTree))
+    expect(() => diffStickers(lock, { files: {}, codes: lock.codes })).toThrow(UpstreamInconsistency)
     expect(() => diffStickers(lock, { files: {}, codes: lock.codes })).toThrow(/not in the upstream tree/)
   })
 })
@@ -86,7 +93,7 @@ describe('the huashu diff', () => {
       { code: 'redbir1', kind: 'new', to: 'stickers/Testiformes/Testidae/Avis_rubra.webp', blob: 'e'.repeat(40) },
       { code: 'whibir1', kind: 'changed', from: 'stickers/Testiformes/Testidae/Avis_alba.webp', to: 'stickers/Testiformes/Testidae/Avis_alba.webp', blob: 'd'.repeat(40) },
     ])
-    const r = diffRecords(lock.records, lockFor(next, tree).records)
+    const r = diffRecords(lock.records, recordDigests(next))
     expect(r).toEqual({ changed: ['Avis_nigra', 'Avis_rubra'], added: [], removed: [] })
   })
 
@@ -163,6 +170,14 @@ describe('updateStickers (merge mode)', () => {
     expect(Object.keys(readMaskTables(join(dir, 'masks')).get('Testiformes')!)).toEqual(['keep1', 'new1'])
   })
 
+  it('runs the check on each source before building, so a refusal writes nothing', async () => {
+    const check = (code: string) => { throw new Error(`refused ${code}`) }
+    await expect(updateStickers({
+      rows: [row('chk1', true, 'v1')], codes: new Set(['chk1']), source: () => resolve(__dirname, 'fixtures/build/sticker.png'), out: dir, masks: new Map(), check,
+    })).rejects.toThrow('refused chk1')
+    expect(existsSync(join(dir, 'v1/128/chk1.v1.webp'))).toBe(false)
+  })
+
   it('fails for a sticker with neither a mask nor a file', async () => {
     await expect(updateStickers({ rows: [row('lost1', true)], codes: new Set(), source: () => '', out: dir, masks: new Map() })).rejects.toThrow(/no mask/)
   })
@@ -191,19 +206,37 @@ describe('PR and issue bodies', () => {
   })
 
   it('the PR body has the range link, counts, the sheet link and the table', () => {
-    const body = renderPrBody(summary, { sheetRows: 3 })
+    const body = renderPrBody(summary, { sheets: { pages: 1, rows: 3 } })
     expect(body).toContain('[`aaaaaaa...bbbbbbb`](https://github.com/alchaincyf/huashu-bird-sticker/compare/aaaaaaa...bbbbbbb)')
     expect(body).toContain('- Stickers: 1 changed, 1 new, 1 removed')
-    expect(body).toContain(`[thumbnail sheet](${SHEET_URL})`)
+    expect(body).toContain(`[summary.json and the before/after sheets](${ARTIFACT_URL}) (old and new 128 px sticker side by side, 3 rows on 1 page)`)
+    expect(body).not.toContain('Left for the next sync')
     expect(body).toContain('| White Bird (website) | `whibir1` | changed | redrawn; mass 20 g (avonet) → 25 g (avonet) |')
     expect(body).toContain('| Black \\| Bird (website) | `blabir1` | removed | outline from now on |')
     expect(body).toContain("On the website's /lifelist: `whibir1`, `blabir1`")
-    expect(renderPrBody(summary, { sheetRows: 0 })).not.toContain('thumbnail sheet')
-    expect(renderPrBody(summary, { sheetRows: 3, tableMax: 2 })).toContain('| … and 2 more |')
+    expect(renderPrBody(summary)).not.toContain('side by side')
+    expect(renderPrBody(summary, { tableMax: 2 })).toContain('| … and 2 more (summary.json has them all) |')
+    expect(renderPrBody({ ...summary, deferred: 5283, cap: 600 })).toContain('- Left for the next sync: 5283 more rebuilt stickers (this run ships at most 600')
+  })
+
+  it('keeps the body under GitHub’s limit however long the table', () => {
+    const many = { ...summary, entries: Array.from({ length: 5000 }, (_, i) => ({ code: `c${i}`, com: `A rather long bird name ${i}`, kind: 'changed' as const, detail: 'redrawn; mass 1 g (avonet) → 2 g (avonet)', website: false })) }
+    const body = renderPrBody(many, { tableMax: 5000 })
+    expect(body.length).toBeLessThanOrEqual(BODY_MAX)
+    expect(body).toMatch(/\| … and \d+ more/)
+    expect(body).toContain('Files:')
+  })
+
+  it('the blocked-run issue lists the problems and the way out', () => {
+    const body = renderBlockedBody({ from: 'a'.repeat(40), to: 'b'.repeat(40), problems: ['x: species.json names y, which is not in the upstream tree'], runUrl: 'https://run' })
+    expect(body).toContain('- x: species.json names y')
+    expect(body).toContain('([run](https://run))')
+    expect(body).toContain('allow_big_change')
   })
 
   it('the website issue lists only the website species, and is null without any', () => {
     const body = renderIssueBody(summary)!
+    expect(body.startsWith(baseMarker('a'.repeat(40)))).toBe(true)
     expect(body).toContain(PR_URL)
     expect(body).toContain('| White Bird | `whibir1` | changed |')
     expect(body).toContain('| Black \\| Bird | `blabir1` | removed |')
@@ -230,7 +263,89 @@ describe('the committed lock', () => {
     const lock = JSON.parse(readFileSync(resolve(__dirname, '../data/huashu.lock.json'), 'utf8')) as HuashuLock
     const sp = JSON.parse(readFileSync(resolve(__dirname, '../public/data/species.v1.json'), 'utf8')) as SpeciesFile
     expect(lock.commit).toBe(sp.huashuCommit)
-    expect(Object.keys(lock.codes).sort()).toEqual(sp.species.filter((s) => s.st).map((s) => s.code).sort())
-    for (const f of Object.values(lock.codes)) expect(lock.files[f]).toMatch(/^[0-9a-f]{40}$/)
+    expect(Object.keys(lock.shipped).sort()).toEqual(sp.species.filter((s) => s.st).map((s) => s.code).sort())
+    for (const [c, f] of Object.entries(lock.codes)) expect(lock.files[f]).toBe(lock.shipped[c])
+  })
+})
+
+describe('capped syncs', () => {
+  const ch = (code: string, kind: StickerChange['kind']): StickerChange => (kind === 'removed' ? { code, kind } : { code, kind, to: `stickers/${code}.webp`, blob: code.padEnd(40, '0') })
+  const changes = [ch('d', 'changed'), ch('a', 'new'), ch('c', 'removed'), ch('b', 'changed'), ch('w', 'changed')]
+
+  it('ships every removal and the first N rebuilds, website species first, then by code', () => {
+    const { ship, deferred } = selectBatch(changes, 2, new Set(['w']))
+    expect(ship.map((c) => c.code)).toEqual(['a', 'c', 'w'])
+    expect(deferred.map((c) => c.code)).toEqual(['b', 'd'])
+    expect(selectBatch(changes, 0, new Set()).deferred).toEqual([])
+    expect(selectBatch(changes, 2, new Set(['w']))).toEqual(selectBatch([...changes].reverse(), 2, new Set(['w']))) // deterministic
+  })
+
+  it('the lock records only what shipped; the next diff picks up the rest', () => {
+    const shipped = nextShipped({ b: 'old', c: 'old', d: 'old', w: 'old' }, selectBatch(changes, 2, new Set(['w'])).ship)
+    expect(shipped).toEqual({ a: 'a'.padEnd(40, '0'), b: 'old', d: 'old', w: 'w'.padEnd(40, '0') })
+    const next = { codes: { a: 'stickers/a.webp', b: 'stickers/b.webp', d: 'stickers/d.webp', w: 'stickers/w.webp' }, files: {} as Record<string, string> }
+    for (const [c, f] of Object.entries(next.codes)) next.files[f] = c.padEnd(40, '0')
+    expect(diffStickers({ shipped, codes: next.codes }, next).map((c) => c.code)).toEqual(['b', 'd'])
+  })
+
+  it('a sticker added upstream but not shipped yet stays the outline', () => {
+    const r = (code: string): SpeciesRow => ({ code, com: code, sci: code, ord: 'O', fam: 'F', famCom: 'F', to: 1, g: 1, gSrc: 'avonet', st: true, ar: 0.7, q: true, sv: 'x' })
+    const rows = restrictToShipped([r('a'), r('b')], { a: 'blob' })
+    expect(rows.map((x) => [x.st, x.q, x.ar, x.sv])).toEqual([[true, true, 0.7, 'x'], [false, false, 1, undefined]])
+  })
+})
+
+describe('the schema-change guard', () => {
+  const row = (code: string, g: number): SpeciesRow => ({ code, com: code, sci: code, ord: 'O', fam: 'F', famCom: 'F', to: 1, g, gSrc: 'avonet', st: true, ar: 1, q: true })
+  const prevRows = Array.from({ length: 100 }, (_, i) => row(`s${i}`, 10))
+  const rm = (n: number): StickerChange[] => Array.from({ length: n }, (_, i) => ({ code: `s${i}`, kind: 'removed' }))
+  const base = { shipped: 100, prevRows, rows: prevRows, prevRecords: 100, huashu: huashu }
+
+  it('passes ordinary edits', () => {
+    expect(implausible({ ...base, changes: rm(5), rows: prevRows.map((r, i) => (i < 20 ? row(r.code, 11) : r)), prevRecords: 3 })).toEqual([])
+  })
+
+  it('stops on more than 5% of stickers removed, 20% of masses changed, records lost or malformed', () => {
+    expect(implausible({ ...base, changes: rm(6), prevRecords: 3 })[0]).toMatch(/6 of 100 published stickers/)
+    expect(implausible({ ...base, changes: [], rows: prevRows.map((r, i) => (i < 21 ? row(r.code, 11) : r)), prevRecords: 3 })[0]).toMatch(/21 of 100 species masses/)
+    expect(implausible({ ...base, changes: [], prevRecords: 10 })[0]).toMatch(/3 records, down from 10/)
+    const broken = huashu.map((h) => ({ ...h, scientificName: undefined, taxonomy: undefined })) as unknown as HuashuRecord[]
+    expect(implausible({ ...base, changes: [], huashu: broken, prevRecords: 3 })[0]).toMatch(/3 of 3 species.json records lack/)
+  })
+})
+
+describe('local builds stay on the lock', () => {
+  const lock = { commit: 'c'.repeat(40), shipped: { crowa: gitBlobSha(Buffer.from('crow')) } } as unknown as HuashuLock
+
+  it('git blob SHAs match git hash-object', () => {
+    expect(gitBlobSha(Buffer.from('hello\n'))).toBe('ce013625030ba8dba906f756967f9e9ca394464a')
+  })
+
+  it('refuses data/raw at another commit, saying how to move it', () => {
+    expect(() => assertRawPinned({ huashuCommit: 'c'.repeat(40) }, lock)).not.toThrow()
+    expect(() => assertRawPinned({ huashuCommit: 'f9e63a0' }, lock)).toThrow(/fetch-sources.ts --huashu-only/)
+    expect(() => assertRawPinned({}, null)).not.toThrow()
+  })
+
+  it('refuses to build a sticker from a source the lock does not record as published', () => {
+    expect(() => assertShippedSource('crowa', Buffer.from('crow'), lock)).not.toThrow()
+    expect(() => assertShippedSource('crowa', Buffer.from('redrawn crow'), lock)).toThrow(/published sticker was built from/)
+    expect(() => assertShippedSource('newb1', Buffer.from('x'), lock)).toThrow(/not shipped yet/)
+  })
+
+  it('fetch-sources moves a depth-1 huashu clone to the pinned commit', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'eb-pin-'))
+    try {
+      const up = join(tmp, 'up'), dir = join(tmp, 'clone')
+      mkdirSync(up)
+      const g = (cwd: string, ...args: string[]) => execFileSync('git', ['-C', cwd, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args]).toString().trim()
+      g(up, 'init', '-q')
+      writeFileSync(join(up, 'a.txt'), '1'); g(up, 'add', '.'); g(up, 'commit', '-qm', 'one')
+      const first = g(up, 'rev-parse', 'HEAD')
+      writeFileSync(join(up, 'a.txt'), '2'); g(up, 'commit', '-qam', 'two')
+      execFileSync('git', ['clone', '-q', '--depth', '1', `file://${up}`, dir])
+      expect(checkoutHuashu(dir, first)).toBe(first)
+      expect(readFileSync(join(dir, 'a.txt'), 'utf8')).toBe('1')
+    } finally { rmSync(tmp, { recursive: true, force: true }) }
   })
 })

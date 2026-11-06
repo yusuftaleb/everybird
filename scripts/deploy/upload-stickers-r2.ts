@@ -7,7 +7,8 @@
 //
 // Env: R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_ENDPOINT (https://<account>.r2.cloudflarestorage.com)
 // or R2_ACCOUNT_ID. Idempotent and resumable: it lists the bucket's v1/ objects first (1,000 per request) and skips
-// every file already there at the same size; --force uploads them all. --dry-run lists what it would upload and sends
+// every file already there at the same size; --force uploads them all, except versioned keys (<code>.<sv>.webp)
+// already in the bucket, which are never overwritten. --dry-run lists what it would upload and sends
 // nothing but the listing (with no credentials set, it skips the listing and plans every file). No dependencies: the
 // requests are signed with AWS Signature V4 (node:crypto).
 import { createHash, createHmac } from 'node:crypto'
@@ -77,9 +78,19 @@ export function listLocal(root: string): LocalFile[] {
   return out.sort((a, b) => (a.key < b.key ? -1 : 1))
 }
 
-/** The files to upload: all with `force`, else those missing from the bucket or there at another size. */
+/** A versioned sticker key, `v1/<size>/<code>.<sv>.webp` (src/lib/sticker-url.ts): written once, never replaced. */
+export const isVersionedKey = (key: string) => /^v1\/\d+\/[a-z0-9]+\.[0-9a-z]+\.webp$/.test(key)
+
+/**
+ * The files to upload: all with `force`, else those missing from the bucket or there at another size. A versioned
+ * key already in the bucket is never uploaded again, even with `force` or at another size: its URL is immutable, so
+ * a different file under it would be a bug (and a rerun after a failed sync skips what it already sent).
+ */
 export function planUploads(local: LocalFile[], remote: Map<string, number>, force = false): LocalFile[] {
-  return force ? local : local.filter((f) => remote.get(f.key) !== f.size)
+  return local.filter((f) => {
+    if (isVersionedKey(f.key) && remote.has(f.key)) return false
+    return force || remote.get(f.key) !== f.size
+  })
 }
 
 type Target = { endpoint: string; bucket: string; creds: Creds }
@@ -136,8 +147,11 @@ async function main() {
   if (!haveCreds && !dry) throw new Error('Set R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and R2_ENDPOINT (or R2_ACCOUNT_ID), or pass --dry-run')
   const t: Target | null = haveCreds ? { endpoint, bucket: bucket!, creds: { accessKeyId: accessKeyId!, secretAccessKey: secretAccessKey! } } : null
 
-  const remote = t && !force ? await listRemote(t, 'v1/') : new Map<string, number>()
+  // Listed even with --force: versioned keys already there are never overwritten.
+  const remote = t ? await listRemote(t, 'v1/') : new Map<string, number>()
   const todo = planUploads(local, remote, force)
+  const clash = local.filter((f) => isVersionedKey(f.key) && remote.has(f.key) && remote.get(f.key) !== f.size)
+  if (clash.length) console.warn(`warning: ${clash.length} versioned keys already in the bucket at another size were left alone, e.g. ${clash[0].key}`)
   console.log(`${remote.size} already in the bucket; ${todo.length} to upload${dry ? ' (dry run: nothing sent)' : ''}`)
   if (dry) {
     for (const f of todo.slice(0, 20)) console.log(`  ${f.key} (${f.size} B)`)

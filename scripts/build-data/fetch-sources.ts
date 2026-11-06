@@ -1,8 +1,13 @@
 // Downloads the raw sources into data/raw/ (git-ignored) and writes data/raw/manifest.json.
-// Run: npx tsx scripts/build-data/fetch-sources.ts
+// Run: npx tsx scripts/build-data/fetch-sources.ts [--huashu-only]
+// huashu-bird-sticker is checked out at the commit data/huashu.lock.json pins (the state the committed data was synced
+// to; see scripts/sync/huashu-sync.ts), or at upstream HEAD when there is no lock. --huashu-only moves data/raw/huashu
+// to the pinned commit and updates the manifest's huashu entries, leaving the other downloads as they are (what
+// build-species and build-stickers ask for after a huashu sync PR is merged).
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const RAW = resolve(process.cwd(), 'data/raw')
 const HUASHU_URL = 'https://github.com/alchaincyf/huashu-bird-sticker'
@@ -20,13 +25,37 @@ async function download(url: string, file: string) {
   console.log(`${file}: ${(buf.length / 1e6).toFixed(1)} MB`)
 }
 
+/** Clones huashu (depth 1) if needed and checks out `commit` (fetching just that commit), or keeps HEAD. */
+export function checkoutHuashu(dir: string, commit?: string): string {
+  const git = (...args: string[]) => execFileSync('git', ['-C', dir, ...args], { stdio: ['ignore', 'pipe', 'inherit'] }).toString().trim()
+  if (!existsSync(dir)) execFileSync('git', ['clone', '--depth', '1', HUASHU_URL, dir], { stdio: 'inherit' })
+  if (commit && git('rev-parse', 'HEAD') !== commit) {
+    git('fetch', '--depth', '1', 'origin', commit)
+    git('checkout', '--quiet', '--detach', commit)
+  }
+  return git('rev-parse', 'HEAD')
+}
+
+function lockedCommit(): string | undefined {
+  const p = resolve(process.cwd(), 'data/huashu.lock.json')
+  return existsSync(p) ? (JSON.parse(readFileSync(p, 'utf8')) as { commit: string }).commit : undefined
+}
+
 async function main() {
   mkdirSync(RAW, { recursive: true })
   const huashuDir = resolve(RAW, 'huashu')
-  if (!existsSync(huashuDir)) {
-    execFileSync('git', ['clone', '--depth', '1', HUASHU_URL, huashuDir], { stdio: 'inherit' })
+  const huashuCommit = checkoutHuashu(huashuDir, lockedCommit())
+
+  if (process.argv.includes('--huashu-only')) {
+    const path = resolve(RAW, 'manifest.json')
+    if (!existsSync(path)) throw new Error('no data/raw/manifest.json yet: run fetch-sources.ts without --huashu-only first')
+    const m = JSON.parse(readFileSync(path, 'utf8'))
+    m.huashuCommit = huashuCommit
+    for (const src of m.sources ?? []) if (src.name === 'huashu-bird-sticker') src.commit = huashuCommit
+    writeFileSync(path, JSON.stringify(m, null, 2))
+    console.log('data/raw/huashu at', huashuCommit)
+    return
   }
-  const huashuCommit = execFileSync('git', ['-C', huashuDir, 'rev-parse', 'HEAD']).toString().trim()
 
   const versions = (await (await fetch(EBIRD_VERSIONS_URL)).json()) as { authorityVer: number; latest: boolean }[]
   const ebirdTaxonomy = String(versions.find((v) => v.latest)?.authorityVer ?? 'unknown')
@@ -53,7 +82,9 @@ async function main() {
   console.log('manifest written; huashu', huashuCommit, 'eBird taxonomy', ebirdTaxonomy)
 }
 
-main().catch((e) => {
-  console.error(e)
-  process.exit(1)
-})
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+}

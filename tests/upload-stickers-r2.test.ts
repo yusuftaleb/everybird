@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CACHE_CONTROL, CONTENT_TYPE, planUploads, signV4 } from '../scripts/deploy/upload-stickers-r2'
+import { CACHE_CONTROL, CONTENT_TYPE, isVersionedKey, planUploads, signV4 } from '../scripts/deploy/upload-stickers-r2'
 
 describe('signV4', () => {
   it("matches AWS's documented S3 example (GET Object with a Range header)", () => {
@@ -24,6 +24,14 @@ describe('planUploads', () => {
   })
   it('--force uploads everything', () => {
     expect(planUploads(local, new Map([['v1/128/a.webp', 10]]), true)).toHaveLength(3)
+  })
+  it('never uploads a versioned key the bucket already has, even with --force or at another size', () => {
+    const v = [{ key: 'v1/128/a.ab12cd34ef.webp', path: 'x', size: 10 }, { key: 'v1/384/a.ab12cd34ef.webp', path: 'y', size: 30 }]
+    const remote = new Map([['v1/128/a.ab12cd34ef.webp', 99]])
+    expect(planUploads(v, remote).map((f) => f.key)).toEqual(['v1/384/a.ab12cd34ef.webp'])
+    expect(planUploads(v, remote, true).map((f) => f.key)).toEqual(['v1/384/a.ab12cd34ef.webp'])
+    expect(isVersionedKey('v1/128/a.webp')).toBe(false)
+    expect(isVersionedKey('v1/128/ostric3.ab12cd34ef.webp')).toBe(true)
   })
   it('sends immutable year-long caching and the webp type', () => {
     expect(CACHE_CONTROL).toBe('public, max-age=31536000, immutable')

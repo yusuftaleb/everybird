@@ -3,6 +3,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { restrictToShipped } from '../sync/huashu-lib'
+import { assertRawPinned, readLock } from './huashu-pin'
 import type {
   HuashuRecord, Overrides, SpeciesFile, SpeciesRow, TaxonCategory, TaxonomyFile, TaxonRow,
 } from '../../src/lib/species/types'
@@ -205,6 +207,8 @@ export function loadEbirdTaxonomy(file: string): TaxonRow[] {
 function main() {
   const raw = resolve(process.cwd(), 'data/raw')
   const manifest = JSON.parse(readFileSync(resolve(raw, 'manifest.json'), 'utf8'))
+  const lock = readLock()
+  assertRawPinned(manifest, lock) // data/raw must be at the commit the committed data was synced to
   const taxa = loadEbirdTaxonomy(resolve(raw, 'ebird-taxonomy.json'))
   const overrides = JSON.parse(readFileSync(resolve(process.cwd(), 'data/overrides.json'), 'utf8')) as Overrides
   const { file, report } = buildSpecies(loadHuashu(resolve(raw, 'huashu')), taxa, overrides, manifest)
@@ -219,6 +223,8 @@ function main() {
     const prev = new Map((JSON.parse(readFileSync(prevPath, 'utf8')) as SpeciesFile).species.map((s) => [s.code, s.ar]))
     for (const s of file.species) if (prev.has(s.code)) s.ar = prev.get(s.code)!
   }
+  // Only stickers the lock records as published count (a capped sync may not have shipped them all yet).
+  if (lock) restrictToShipped(file.species, lock.shipped)
   applyStickerVersions(file.species, loadStickerVersions())
   writeFileSync(prevPath, JSON.stringify(file))
   const taxonomyFile: TaxonomyFile = {

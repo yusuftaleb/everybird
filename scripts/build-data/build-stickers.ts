@@ -6,6 +6,8 @@
 // Output: ${STICKERS_OUT:-../everybird-stickers}/v1/{128,384}/<code>.webp (<code>.<sv>.webp for a versioned sticker,
 // see src/lib/sticker-url.ts), public/data/masks/<Order>.v1.json, and the `ar` values in public/data/species.v1.json
 // (build-stickers is the source of truth for `ar`).
+// Refuses to run unless data/raw/huashu is at data/huashu.lock.json's commit, and to build any sticker whose source
+// blob isn't the one the lock records as published (huashu-pin.ts).
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -14,6 +16,7 @@ import { maskFromAlpha } from '../../src/lib/layout/mask'
 import type { Overrides, SpeciesFile, SpeciesRow } from '../../src/lib/species/types'
 import { LARGE, SMALL, stickerPath } from '../../src/lib/sticker-url'
 import { loadEbirdTaxonomy, loadHuashu, matchHuashu } from './build-species'
+import { assertRawPinned, assertShippedSource, readLock } from './huashu-pin'
 
 const WEBP = { quality: 80, effort: 6 } as const
 
@@ -84,6 +87,8 @@ export function writeMaskTables(dir: string, tables: MaskTables): void {
 export async function updateStickers(o: {
   rows: SpeciesRow[]; codes: ReadonlySet<string>; source: (code: string) => string; out: string; masks: MaskTables
   concurrency?: number
+  /** Called with each source's bytes before it is built; throw to refuse (build-stickers checks the lock). */
+  check?: (code: string, source: Buffer) => void
 }): Promise<string[]> {
   const { rows, codes, out, masks } = o
   const where = new Map<string, string>() // code -> order holding its mask
@@ -100,7 +105,9 @@ export async function updateStickers(o: {
   await pool(rows, o.concurrency ?? 8, async (row) => {
     if (!row.st) { drop(row.code); row.ar = 1; return }
     if (codes.has(row.code)) {
-      const v = await makeVariants(o.source(row.code))
+      const src = readFileSync(o.source(row.code))
+      o.check?.(row.code, src)
+      const v = await makeVariants(src)
       for (const [size, buf] of [[SMALL, v.v128], [LARGE, v.v384]] as const) {
         const rel = stickerPath(row.code, size, row.sv)
         mkdirSync(resolve(out, rel, '..'), { recursive: true })
@@ -156,6 +163,11 @@ async function main() {
   const cwd = process.cwd()
   const raw = resolve(cwd, 'data/raw')
   const manifest = JSON.parse(readFileSync(resolve(raw, 'manifest.json'), 'utf8'))
+  const lock = readLock(cwd)
+  assertRawPinned(manifest, lock)
+  // Never build a sticker from a source other than the one the lock records as published: after a sync, an old
+  // drawing under a new versioned name (or a new one under an old, immutable name) would go out.
+  const check = (code: string, src: Buffer) => assertShippedSource(code, src, lock)
   const taxa = loadEbirdTaxonomy(resolve(raw, 'ebird-taxonomy.json'))
   const overrides = JSON.parse(readFileSync(resolve(cwd, 'data/overrides.json'), 'utf8')) as Overrides
   const huashuDir = resolve(raw, 'huashu')
@@ -178,7 +190,7 @@ async function main() {
   const maskDir = resolve(cwd, 'public/data/masks')
   if (only) {
     const masks = readMaskTables(maskDir)
-    const written = await updateStickers({ rows: file.species, codes: only, source: sourceOf, out, masks, concurrency: 10 })
+    const written = await updateStickers({ rows: file.species, codes: only, source: sourceOf, out, masks, concurrency: 10, check })
     writeMaskTables(maskDir, masks)
     writeFileSync(speciesPath, JSON.stringify(file))
     console.log(`stickers: ${written.length / 2} rebuilt, masks merged, ${((Date.now() - t0) / 1000).toFixed(0)}s`)
@@ -192,7 +204,9 @@ async function main() {
     if (!regenerate(row.code) && existsSync(p128) && existsSync(p384)) {
       skipped++
     } else {
-      const v = await makeVariants(src)
+      const buf = readFileSync(src)
+      check(row.code, buf)
+      const v = await makeVariants(buf)
       writeFileSync(p128, v.v128)
       writeFileSync(p384, v.v384)
     }
