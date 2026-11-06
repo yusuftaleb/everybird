@@ -1,0 +1,34 @@
+src/components/collage/Collage.tsx
+  s_ab125876fe9ad2::t_04b544e7289d1e 149-154,159,166,172,174-176,191-192
+  s_ab125876fe9ad2::t_86b1d4904cee71 155-157,179,260
+  s_ab125876fe9ad2::t_84a7cdbeba0ca6 268
+  s_ab125876fe9ad2::t_3b32aa40c1cede 303-305
+  s_ab125876fe9ad2::t_e605255c337809 308
+  s_ab125876fe9ad2::t_6ed843fb77770f 256-258
+  s_ab125876fe9ad2::t_f4e4a1c4ef8fc7 259
+  s_ab125876fe9ad2::t_79f89722ace042 162,167-168,171,187
+  s_ab125876fe9ad2::t_4a9fe95733bd3e 54,79,163-165,169-170,173,177-178
+  s_ab125876fe9ad2::t_468a21ab7680e3 18,48-49,105-107,109-122
+  s_ab125876fe9ad2::t_36f434a24df1e5 193,242,266
+src/components/collage/Sticker.tsx
+  s_ab125876fe9ad2::t_c62c43f74e7a5e 10-22,26-28,30,42-43,48-51
+  s_ab125876fe9ad2::t_6e75c35a4e7a1d 9
+src/components/collage/Bird.tsx
+  s_ab125876fe9ad2::t_c62c43f74e7a5e 27-28,44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6cd3d4e506b5784e2bbf0e89b9a35b4c7343c89c",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
