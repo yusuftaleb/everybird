@@ -3,7 +3,9 @@
 // --codes regenerates just those codes (e.g. the ones check-stickers.ts reports); everything else is reused.
 // Output: ${STICKERS_OUT:-../everybird-stickers}/v1/{128,384}/<code>.webp, public/data/masks/<Order>.v1.json,
 // and the `ar` values in public/data/species.v1.json (build-stickers is the source of truth for `ar`).
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+// A stand-in row (`standIn`, set by build-species) gets a copy of its split sibling's two webp files under its own code,
+// and its own mask entry and `ar` from that copy.
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import sharp from 'sharp'
@@ -62,7 +64,8 @@ Stickers: huashu-bird-sticker, CC BY 4.0 (https://github.com/alchaincyf/huashu-b
 These files are resized and trimmed from huashu-bird-sticker: each sticker is cropped to its
 opaque bounding box and saved as WebP with its long side at 128 px (\`v1/128/<ebird-code>.webp\`)
 and 384 px (\`v1/384/<ebird-code>.webp\`). Names are eBird species codes. Where several eBird
-species share one huashu sticker, each code gets its own copy.
+species share one huashu sticker, each code gets its own copy. A species with no huashu sticker of
+its own, split from (or split off) one that has one, carries a copy of that sibling's sticker as a stand-in.
 
 Source commit: ${commit} (https://github.com/alchaincyf/huashu-bird-sticker/commit/${commit})
 
@@ -94,16 +97,24 @@ async function main() {
   mkdirSync(dirs[384], { recursive: true })
   sharp.concurrency(1) // parallelism comes from the pool; UV_THREADPOOL_SIZE must be >= pool size (set in main)
 
-  const todo = file.species.filter((s) => s.st)
+  // Stand-ins last, so a sibling made in this run is on disk before it is copied.
+  const todo = file.species.filter((s) => s.st && !s.standIn)
+  const standIns = file.species.filter((s) => s.st && s.standIn)
   const masks = new Map<string, Record<string, [number, number, string]>>()
   let done = 0, skipped = 0
-  await pool(todo, 10, async (row) => {
-    const rec = matches.get(row.code)
-    if (!rec?.sticker) throw new Error(`${row.code}: st:true but no matched sticker (run build-species first)`)
-    const p128 = resolve(dirs[128], `${row.code}.webp`), p384 = resolve(dirs[384], `${row.code}.webp`)
+  const paths = (code: string) => ({ p128: resolve(dirs[128], `${code}.webp`), p384: resolve(dirs[384], `${code}.webp`) })
+  const each = async (row: SpeciesFile['species'][number]) => {
+    const { p128, p384 } = paths(row.code)
     if (!regenerate(row.code) && existsSync(p128) && existsSync(p384)) {
       skipped++
+    } else if (row.standIn) {
+      const sib = paths(row.standIn)
+      if (!existsSync(sib.p128) || !existsSync(sib.p384)) throw new Error(`${row.code}: stand-in ${row.standIn} has no webp files`)
+      copyFileSync(sib.p128, p128)
+      copyFileSync(sib.p384, p384)
     } else {
+      const rec = matches.get(row.code)
+      if (!rec?.sticker) throw new Error(`${row.code}: st:true but no matched sticker (run build-species first)`)
       const v = await makeVariants(resolve(huashuDir, rec.sticker.file))
       writeFileSync(p128, v.v128)
       writeFileSync(p384, v.v384)
@@ -113,8 +124,10 @@ async function main() {
     const ord = row.ord || 'Unknown'
     if (!masks.has(ord)) masks.set(ord, {})
     masks.get(ord)![row.code] = mask
-    if (++done % 500 === 0) console.log(`${done}/${todo.length}`)
-  })
+    if (++done % 500 === 0) console.log(`${done}/${todo.length + standIns.length}`)
+  }
+  await pool(todo, 10, each)
+  await pool(standIns, 10, each)
 
   const maskDir = resolve(cwd, 'public/data/masks')
   mkdirSync(maskDir, { recursive: true })
@@ -127,7 +140,7 @@ async function main() {
   const commit: string = manifest.huashuCommit
   writeFileSync(resolve(out, 'README.md'), readme(commit))
   writeFileSync(resolve(out, 'LICENSE'), readFileSync(resolve(huashuDir, 'LICENSES/CC-BY-4.0.txt')))
-  console.log(`stickers: ${todo.length} (${skipped} reused), orders: ${masks.size}, ${((Date.now() - t0) / 1000).toFixed(0)}s`)
+  console.log(`stickers: ${todo.length + standIns.length} (${standIns.length} stand-ins; ${skipped} reused), orders: ${masks.size}, ${((Date.now() - t0) / 1000).toFixed(0)}s`)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((e) => { console.error(e); process.exit(1) })

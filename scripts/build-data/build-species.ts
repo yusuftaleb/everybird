@@ -72,19 +72,70 @@ export function matchHuashu(huashu: HuashuRecord[], taxonomy: TaxonRow[], overri
   return { matches, multi, sciFallback, viaOverride }
 }
 
+/**
+ * huashu split groups: each record that was split from another (previous[].relation 'split_from') joins its parent's
+ * group, keyed by the parent's huashu id; the parent (the narrowed remnant) is a member too. huashu id -> group members.
+ */
+export function splitGroups(huashu: HuashuRecord[]): Map<string, string[]> {
+  const groups = new Map<string, Set<string>>()
+  for (const h of huashu) {
+    for (const p of h.previous ?? []) {
+      if (p.relation !== 'split_from' || !p.id) continue
+      if (!groups.has(p.id)) groups.set(p.id, new Set([p.id]))
+      groups.get(p.id)!.add(h.id)
+    }
+  }
+  const byMember = new Map<string, string[]>()
+  for (const [parent, members] of groups) {
+    const list = [parent, ...[...members].filter((m) => m !== parent)]
+    for (const m of list) byMember.set(m, list)
+  }
+  return byMember
+}
+
+/**
+ * Stand-ins: an eBird species with no huashu sticker of its own borrows the sticker of a split sibling (same huashu
+ * split group) that has one: the parent first, then the sibling nearest in eBird taxonomic order. eBird code -> the
+ * sibling's eBird code. Species outside a split group, or whose group has no sticker, get none (the silhouette stays).
+ */
+export function pickStandIns(matches: Map<string, HuashuRecord>, huashu: HuashuRecord[], taxonomy: TaxonRow[]): Map<string, string> {
+  const groups = splitGroups(huashu)
+  const to = new Map(taxonomy.map((t) => [t.code, t.to]))
+  // huashu id -> eBird codes whose own matched record it is and that have its sticker
+  const withSticker = new Map<string, string[]>()
+  for (const [code, rec] of matches) if (rec.sticker) withSticker.set(rec.id, [...(withSticker.get(rec.id) ?? []), code])
+  const out = new Map<string, string>()
+  for (const t of taxonomy) {
+    if (t.cat !== 'species') continue
+    const rec = matches.get(t.code)
+    if (!rec || rec.sticker) continue
+    const group = groups.get(rec.id)
+    if (!group) continue
+    const parentCodes = group[0] !== rec.id ? withSticker.get(group[0]) ?? [] : []
+    const near = (codes: string[]) => [...codes].sort((a, b) => Math.abs((to.get(a) ?? 0) - t.to) - Math.abs((to.get(b) ?? 0) - t.to) || (a < b ? -1 : 1))[0]
+    const sibling = parentCodes.length ? near(parentCodes)
+      : near(group.filter((m) => m !== rec.id).flatMap((m) => withSticker.get(m) ?? []))
+    if (sibling) out.set(t.code, sibling)
+  }
+  return out
+}
+
 export function buildSpecies(
   huashu: HuashuRecord[], taxonomy: TaxonRow[], overrides: Overrides,
   meta: { ebirdTaxonomy?: string; huashuCommit?: string } = {},
 ): { file: SpeciesFile; report: string } {
   const { matches, multi, sciFallback, viaOverride: overrideHuashu } = matchHuashu(huashu, taxonomy, overrides)
   const species = taxonomy.filter((t) => t.cat === 'species').sort((a, b) => a.to - b.to)
-  const noSticker: string[] = [], massFallback: string[] = []
+  const standIns = pickStandIns(matches, huashu, species)
+  const noSticker: string[] = [], massFallback: string[] = [], standInList: string[] = []
 
   type Pre = { t: TaxonRow; rec?: HuashuRecord; g?: number; gSrc?: SpeciesRow['gSrc'] }
   const pre: Pre[] = species.map((t) => {
     const ov = overrides[t.code]
     const rec = matches.get(t.code)
-    if (!rec?.sticker) noSticker.push(`${t.code} (${t.com})${rec ? ` [huashu ${rec.id} has no sticker]` : ''}`)
+    const si = standIns.get(t.code)
+    if (si) standInList.push(`${t.code} (${t.com}) -> ${si}`)
+    else if (!rec?.sticker) noSticker.push(`${t.code} (${t.com})${rec ? ` [huashu ${rec.id} has no sticker]` : ''}`)
     const p: Pre = { t, rec }
     if (typeof ov?.massG === 'number') { p.g = ov.massG; p.gSrc = 'override' }
     else if (typeof rec?.traits?.massG === 'number') { p.g = rec.traits.massG; p.gSrc = 'avonet' }
@@ -108,12 +159,16 @@ export function buildSpecies(
       else { g = median(all); gSrc = 'order' } // last resort: global median, labelled 'order'
       massFallback.push(`${p.t.code} (${p.t.com}): ${g} g from ${f?.length ? 'family' : o?.length ? 'order' : 'global median'} ${f?.length ? p.t.fam : o?.length ? p.t.ord : ''}`.trimEnd())
     }
-    return {
+    const standIn = standIns.get(p.t.code)
+    const sticker = standIn ? matches.get(standIn)!.sticker : p.rec?.sticker
+    const row: SpeciesRow = {
       code: p.t.code, com: p.t.com, sci: p.t.sci,
       ord: p.t.ord ?? '', fam: p.t.fam ?? '', famCom: p.t.famCom ?? '', to: p.t.to,
       g: g!, gSrc: gSrc!,
-      st: !!p.rec?.sticker, ar: 1, q: !!p.rec?.sticker?.meetsQualityBar,
+      st: !!sticker, ar: 1, q: !!sticker?.meetsQualityBar,
     }
+    if (standIn) row.standIn = standIn
+    return row
   })
 
   const speciesCodes = new Set(species.map((t) => t.code))
@@ -126,13 +181,14 @@ export function buildSpecies(
   const report = [
     '# Crosswalk report', '',
     `- Species rows: ${rows.length}`,
-    `- With sticker: ${rows.filter((r) => r.st).length}; without: ${noSticker.length}`,
+    `- With sticker: ${rows.filter((r) => r.st).length} (${standInList.length} a split sibling's stand-in); without: ${noSticker.length}`,
     `- Mass sources: avonet ${massCount('avonet')}, override ${massCount('override')}, family ${massCount('family')}, order ${massCount('order')}`,
     `- Multi-candidate choices: ${multi.length}; scientific-name fallbacks: ${sciFallback.length}; huashu orphans: ${orphans.length}`,
     '',
     list('Multi-candidate choices', multi),
     list('Scientific-name fallbacks', sciFallback),
     list('Override huashu records used', overrideHuashu),
+    list('Stand-in stickers (split sibling)', standInList),
     list('No sticker', noSticker),
     list('Mass fallbacks', massFallback),
     list('Huashu records matching no eBird species', orphans),
