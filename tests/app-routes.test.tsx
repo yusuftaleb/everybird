@@ -170,9 +170,11 @@ describe('the Collage page (/)', () => {
     expect(within(bar).getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
     expect(within(bar).getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about')
     expect(within(bar).getByRole('switch', { name: 'Dark mode' })).toBeInTheDocument()
-    // The sample's filters wait folded on the stats row; a tab opens them.
+    // The sample's filters wait folded on the stats row; Birds unfolds them (taxonomy, with Places and Time closed).
     fireEvent.click(within(screen.getByTestId('filter-bar-folded')).getByRole('button', { name: 'Birds' }))
-    expect(screen.getByRole('tab', { name: 'Birds' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('navigation', { name: 'Filter by group' })).toBeInTheDocument()
+    expect(screen.getByTestId('filter-tab-places')).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('tab')).toBeNull()
     fireEvent.click(screen.getByRole('link', { name: /^Make yours/ }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')

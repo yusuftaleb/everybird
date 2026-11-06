@@ -46,7 +46,7 @@ describe('shared view', () => {
     expect(screen.getByTestId('share-limited').textContent).toBe('This link carries no places or dates, so those filters are left out.')
     expect(screen.queryByTestId('filter-tab-places')).toBeNull()
     expect(screen.queryByTestId('filter-tab-time')).toBeNull()
-    expect(screen.queryByRole('tablist')).toBeNull() // birds only: no tabs, just LifeList's orders row
+    expect(screen.queryByRole('tab')).toBeNull() // birds only: no toggles, just LifeList's orders row
     expect(screen.getByRole('group', { name: 'Orders' })).toBeTruthy()
     expect(open).not.toHaveBeenCalled()
   })

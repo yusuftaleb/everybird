@@ -7,14 +7,14 @@ import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import type { CountryDots, Regions } from '@/lib/species/types'
 import { payloadToRecords } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
-import type { Tab } from '@/components/filters/FilterBar'
+import type { Panel } from '@/components/filters/FilterBar'
 import { CollageView } from './CollageView'
 import './app.css'
 
-const NO_PLACES: readonly Tab[] = ['places']
-const NO_DATES: readonly Tab[] = ['time']
-const NEITHER: readonly Tab[] = ['places', 'time']
-const NONE: readonly Tab[] = []
+const NO_PLACES: readonly Panel[] = ['places']
+const NO_DATES: readonly Panel[] = ['time']
+const NEITHER: readonly Panel[] = ['places', 'time']
+const NONE: readonly Panel[] = []
 
 /** What a link carries decides which filters exist: it holds places or dates only at the levels that fit. */
 export function missingFilters(p: SharePayload): { places: boolean; dates: boolean } {
@@ -54,11 +54,11 @@ function Loaded({ payload, species, regions, dots }: { payload: SharePayload; sp
   })
   const miss = missingFilters(payload)
   const hide = miss.places && miss.dates ? NEITHER : miss.places ? NO_PLACES : miss.dates ? NO_DATES : NONE
-  // What the link leaves out is said quietly where the missing tab would be, not before the birds.
+  // What the link leaves out is said quietly where the missing panel's toggle would be, not before the birds.
   const note = miss.places || miss.dates ? (
     <p className="eb-note eb-filter-note" data-testid="share-limited">
       {miss.places && miss.dates ? 'This link carries no places or dates' : miss.places ? 'This link carries no places' : 'This link carries no dates'}, so those filters are left out.
     </p>
   ) : undefined
-  return <CollageView state={state} dispatch={dispatch} species={species} regions={shown.regions} dots={dots} label="Shared collage" hideTabs={hide} filterNote={note} />
+  return <CollageView state={state} dispatch={dispatch} species={species} regions={shown.regions} dots={dots} label="Shared collage" hidePanels={hide} filterNote={note} />
 }

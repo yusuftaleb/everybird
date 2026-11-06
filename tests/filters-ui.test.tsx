@@ -108,23 +108,69 @@ describe('FilterBar', () => {
     expect(chip.querySelector('.eb-count')).toHaveTextContent(/^2$/)
   })
 
-  it('tabs are an arrow-key tablist', () => {
+  it('taxonomy is always on show; Places and Time are toggles that open their panel and close on a second tap', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
-    const tabs = screen.getAllByRole('tab')
-    expect(tabs.map((t) => t.textContent)).toEqual(['Birds', 'Places', 'Time'])
-    tabs[0].focus()
-    fireEvent.keyDown(tabs[0], { key: 'ArrowRight' })
-    expect(tabs[1]).toHaveAttribute('aria-selected', 'true')
-    expect(tabs[1]).toHaveFocus()
-    fireEvent.keyDown(tabs[1], { key: 'ArrowLeft' })
-    expect(tabs[0]).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByRole('tab')).toBeNull() // no Birds tab
+    const places = screen.getByRole('button', { name: 'Places' })
+    const time = screen.getByRole('button', { name: 'Time' })
+    expect(places).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('group', { name: 'Countries' })).toBeNull()
+    fireEvent.click(places)
+    expect(places).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('region', { name: 'Places' })).toHaveAttribute('id', places.getAttribute('aria-controls'))
+    expect(screen.getByRole('group', { name: 'Countries' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Orders' })).toBeInTheDocument() // taxonomy stays
+    fireEvent.click(time) // one panel at a time
+    expect(places).toHaveAttribute('aria-expanded', 'false')
+    expect(time).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('group', { name: 'Years' })).toBeInTheDocument()
+    fireEvent.click(time)
+    expect(time).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('group', { name: 'Years' })).toBeNull()
+  })
+
+  it('opening or closing a panel keeps every filter; a closed panel\'s choice is a removable chip', () => {
+    vi.stubGlobal('innerWidth', 1000)
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: /^Perching birds/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Places' }))
+    fireEvent.click(within(screen.getByRole('group', { name: 'Countries' })).getByRole('button', { name: /^Canada/ }))
+    expect(filterOf()).toEqual({ order: 'Passeriformes', country: 'CA' })
+    expect(screen.queryByTestId('active-filters')).toBeNull() // Places is open: its choice shows there
+    fireEvent.click(screen.getByRole('button', { name: 'Places' }))
+    expect(filterOf()).toEqual({ order: 'Passeriformes', country: 'CA' })
+    expect(screen.getByRole('button', { name: 'Remove Canada filter' })).toBeInTheDocument()
+    expect(crumbs()).toHaveTextContent('All birds/Perching birds') // the taxonomy choice stays in its breadcrumb, never a chip
+    expect(screen.queryByRole('button', { name: 'Remove Perching birds filter' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }))
+    fireEvent.click(within(screen.getByRole('group', { name: 'Years' })).getByRole('button', { name: /^2022/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }))
+    expect(filterOf()).toEqual({ order: 'Passeriformes', country: 'CA', year: '2022' })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Canada filter' }))
+    expect(filterOf()).toEqual({ order: 'Passeriformes', year: '2022' })
+    expect(screen.getByRole('button', { name: 'Remove 2022 filter' })).toBeInTheDocument()
+  })
+
+  it('country chips lead with the flag, hidden from screen readers; the name stays the country', () => {
+    vi.stubGlobal('innerWidth', 1000)
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: 'Places' }))
+    const chip = within(screen.getByRole('group', { name: 'Countries' })).getByRole('button', { name: 'Canada, 3 species' })
+    const flag = chip.querySelector('.eb-flag')!
+    expect(flag).toHaveTextContent('🇨🇦')
+    expect(flag).toHaveAttribute('aria-hidden', 'true')
+    expect(chip.firstChild).toBe(flag)
+    fireEvent.click(chip)
+    fireEvent.click(screen.getByRole('button', { name: 'Places' }))
+    const removable = screen.getByRole('button', { name: 'Remove Canada filter' })
+    expect(removable.querySelector('.eb-flag')).toHaveTextContent('🇨🇦')
   })
 
   it('country chip and map tap set the same filter; the breadcrumb reads All places / the country', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
-    fireEvent.click(screen.getByRole('tab', { name: 'Places' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Places' }))
     const countries = screen.getByRole('group', { name: 'Countries' })
     fireEvent.click(within(countries).getByRole('button', { name: /^Canada/ }))
     const viaChip = filterOf()
@@ -142,7 +188,7 @@ describe('FilterBar', () => {
   it('time drills from years to that year\'s trips the same way', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
-    fireEvent.click(screen.getByRole('tab', { name: 'Time' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }))
     const years = screen.getByRole('group', { name: 'Years' })
     fireEvent.click(within(years).getByRole('button', { name: /^2021/ }))
     expect(filterOf()).toEqual({ year: '2021' })
@@ -150,25 +196,19 @@ describe('FilterBar', () => {
     expect(screen.getByRole('navigation', { name: 'Filter by time' })).toHaveTextContent('All time/2021')
   })
 
-  it('removing a chip from another tab clears only that dimension', () => {
-    vi.stubGlobal('innerWidth', 1000)
-    render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: /^Waterfowl/ }))
-    fireEvent.click(screen.getByRole('tab', { name: 'Places' }))
-    fireEvent.click(within(screen.getByRole('group', { name: 'Countries' })).getByRole('button', { name: /^Canada/ }))
-    fireEvent.click(screen.getByRole('tab', { name: 'Time' }))
-    expect(filterOf()).toEqual({ order: 'Anseriformes', country: 'CA' })
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Waterfowl filter' }))
-    expect(filterOf()).toEqual({ country: 'CA' })
-    expect(screen.getByRole('button', { name: 'Remove Canada filter' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Remove Waterfowl filter' })).toBeNull()
-  })
-
-  it('at phone width, tapping a lit country on the map sets the country filter', () => {
+  it('at phone width, tapping a lit country on the map sets the country filter; the sheet\'s chips carry flags', () => {
     vi.stubGlobal('innerWidth', 390)
     render(<Harness />)
-    fireEvent.click(screen.getByRole('tab', { name: 'Places' }))
-    expect(screen.getByRole('button', { name: 'Choose a country 2' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Places' }))
+    expect(screen.getByRole('button', { name: 'Choose an order 3' })).toBeInTheDocument() // taxonomy's sheet button stays
+    const pick = screen.getByRole('button', { name: 'Choose a country 2' })
+    fireEvent.click(pick)
+    const dlg = screen.getByRole('dialog', { name: 'Countries' })
+    const egypt = within(dlg).getByRole('button', { name: 'Egypt, 2 species' })
+    expect(egypt.querySelector('.eb-flag')).toHaveTextContent('🇪🇬')
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
     fireEvent.click(screen.getByTestId('map-country-EG'))
     expect(filterOf()).toEqual({ country: 'EG' })
     expect(screen.getByRole('button', { name: 'Egypt 2' })).toBeInTheDocument()

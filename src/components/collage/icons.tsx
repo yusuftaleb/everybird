@@ -1,5 +1,5 @@
 // The site's own glyphs (LifeList.tsx, framer-site), drawn on a 256 grid: the dock's view tabs, the list's
-// direction arrow, close, the phone filter button and the search field.
+// direction arrow, close, the phone filter button, the filter toggles' chevron and the search field.
 type P = { className?: string }
 const svg = (className: string | undefined, children: React.ReactNode) => (
   <svg viewBox="0 0 256 256" aria-hidden="true" focusable="false" className={className}>{children}</svg>
@@ -29,3 +29,7 @@ export const FilterLinesIcon = ({ className }: P) =>
 /** Search: a lens in the same 16-unit stroke. */
 export const SearchIcon = ({ className }: P) =>
   svg(className, <><circle cx="116" cy="116" r="72" fill="none" stroke="currentColor" strokeWidth="16" /><path d="M168 168l48 48" stroke="currentColor" strokeWidth="16" strokeLinecap="round" /></>)
+
+/** Chevron down (the Places and Time toggles; turned up while the panel is open), in the close glyph's 18-unit stroke. */
+export const ChevronDownIcon = ({ className }: P) =>
+  svg(className, <path d="M64 100l64 64 64-64" stroke="currentColor" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" fill="none" />)

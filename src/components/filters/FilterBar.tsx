@@ -3,12 +3,17 @@
 // label, then chips with muted counts); once a parent is chosen, a breadcrumb ("All birds / Perching birds") and the
 // next level's row (none for an order with one family: the breadcrumb ends with that family). A leaf level's row
 // stays, with the choice in Accent and the other chips stepped back. On phones the row is one button ("Choose an
-// order 18") that opens the chips in a sheet. Everybird's extra dimensions, Places (with the map) and Time (years,
-// then trips), sit in tabs and follow the same pattern.
-import { memo, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+// order 18") that opens the chips in a sheet.
+// Taxonomy (orders, then families) is always on show. Everybird's extra dimensions, Places (the map, then countries)
+// and Time (years, then trips), are toggles that open their panel (one at a time; tap again to close) and follow the
+// same pattern. Opening or closing a panel never changes the filter; what a closed panel has chosen shows as a
+// removable chip beside the toggles.
+import { memo, useId, useMemo, useState, type ReactNode } from 'react'
 import { useIsSheet } from '@/components/dialog-utils'
-import { CloseIcon, FilterLinesIcon } from '@/components/collage/icons'
+import { ChevronDownIcon, CloseIcon, FilterLinesIcon } from '@/components/collage/icons'
 import { CountryMap } from '@/components/map/CountryMap'
+import { flagEmoji } from '@/lib/flag'
+import { closedPanelLevels, togglePanel, type Panel } from '@/lib/list/filter-panels'
 import { options, type ChipOption, type Filter, type FilterLevel } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import { stripBracket } from '@/lib/import/places'
@@ -19,6 +24,8 @@ import { Chip } from './Chip'
 import { PickerSheet } from './PickerSheet'
 import './filters.css'
 
+export type { Panel } from '@/lib/list/filter-panels'
+
 type Props = {
   state: AppState
   dispatch: (a: Action) => void
@@ -26,19 +33,19 @@ type Props = {
   species: SpeciesIndex
   /** Country names. */
   regions: Regions
-  /** Dotted map data; without it the Places tab shows only chips. */
+  /** Dotted map data; without it the Places panel shows only chips. */
   dots?: CountryDots
-  /** Tabs to leave out (a shared link that carries no places or dates). */
-  hideTabs?: readonly Tab[]
-  /** The open tab, when the parent keeps it (a search pick of an order or family opens Birds). */
-  tab?: Tab
-  onTab?: (t: Tab) => void
+  /** Panels to leave out (a shared link that carries no places or dates). */
+  hidePanels?: readonly Panel[]
+  /** The open panel, when the parent keeps it (the landing sample's folded row opens one). */
+  panel?: Panel | null
+  onPanel?: (p: Panel | null) => void
 }
 
-export type Tab = 'birds' | 'places' | 'time'
 type Level = FilterLevel
-const ALL_TABS: { id: Tab; label: string; nav: string; all: string; levels: Level[] }[] = [
-  { id: 'birds', label: 'Birds', nav: 'Filter by group', all: 'All birds', levels: ['order', 'family'] },
+type Group = { id: 'birds' | Panel; label: string; nav: string; all: string; levels: [Level, Level?] }
+const BIRDS: Group = { id: 'birds', label: 'Birds', nav: 'Filter by group', all: 'All birds', levels: ['order', 'family'] }
+const PANELS: (Group & { id: Panel })[] = [
   { id: 'places', label: 'Places', nav: 'Filter by place', all: 'All places', levels: ['country'] },
   { id: 'time', label: 'Time', nav: 'Filter by time', all: 'All time', levels: ['year', 'trip'] },
 ]
@@ -58,27 +65,32 @@ function withLevel(f: Filter, level: Level, value: string | undefined): Filter {
 
 type Crumb = { label: string; latin: boolean; to?: Filter }
 
-export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hideTabs, tab: tabProp, onTab }: Props) {
-  const TABS = useMemo(() => (hideTabs?.length ? ALL_TABS.filter((t) => !hideTabs.includes(t.id)) : ALL_TABS), [hideTabs])
-  const [ownTab, setOwnTab] = useState<Tab>('birds')
-  const tab = tabProp ?? ownTab
-  const setTab = (t: Tab) => { setOwnTab(t); onTab?.(t) }
+/** A country chip's label: the flag (decorative, hidden from screen readers) before the name. */
+function CountryLabel({ iso, name }: { iso: string; name: string }) {
+  const flag = flagEmoji(iso)
+  return flag ? <><span className="eb-flag" aria-hidden="true">{flag}</span>{name}</> : <>{name}</>
+}
+
+export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hidePanels, panel: panelProp, onPanel }: Props) {
+  const panels = useMemo(() => (hidePanels?.length ? PANELS.filter((p) => !hidePanels.includes(p.id)) : PANELS), [hidePanels])
+  const [ownPanel, setOwnPanel] = useState<Panel | null>(null)
+  const requested = panelProp !== undefined ? panelProp : ownPanel
+  const open = panels.find((p) => p.id === requested) ?? null
+  const setPanel = (p: Panel | null) => { setOwnPanel(p); onPanel?.(p) }
   const sheet = useIsSheet()
   const base = useId()
-  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const { list, trips, filter, sci } = state
 
   const countryName = useMemo(
     () => (iso: string) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso),
     [regions],
   )
-  const active = TABS.find((t) => t.id === tab) ?? TABS[0]
-  // Only the active tab's levels are counted (the Places tab counts countries for the map too).
+  // Only the levels on show are counted: taxonomy always, the open panel's levels (Places counts countries for the map).
   const opts = useMemo(() => {
     const out: Partial<Record<Level, ChipOption[]>> = {}
-    for (const l of active.levels) out[l] = options(list, filter, l, species, trips, countryName)
-    return out as Record<Level, ChipOption[]>
-  }, [list, filter, species, trips, countryName, active])
+    for (const g of [BIRDS, ...(open ? [open] : [])]) for (const l of g.levels) if (l) out[l] = options(list, filter, l, species, trips, countryName)
+    return out
+  }, [list, filter, species, trips, countryName, open])
   const countryCounts = useMemo(() => new Map((opts.country ?? []).map((c) => [c.value, c.count])), [opts.country])
 
   const set = (level: Level, value: string | undefined) => dispatch({ type: 'filter', filter: withLevel(filter, level, value) })
@@ -93,128 +105,123 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
     if (level === 'family') return opts.family?.find((o) => o.value === v)?.label ?? species.rows.find((r) => r.fam === v)?.famCom ?? v
     return v
   }
-  const chipLabel = (level: Level, o: ChipOption) => (sci && LATIN.has(level) ? o.value : o.label)
+  const chipText = (level: Level, o: ChipOption) => (sci && LATIN.has(level) ? o.value : o.label)
+  const chipLabel = (level: Level, o: ChipOption) => (level === 'country' ? <CountryLabel iso={o.value} name={o.label} /> : chipText(level, o))
 
-  const onTabKey = (e: KeyboardEvent, i: number) => {
-    const j = e.key === 'ArrowRight' ? (i + 1) % TABS.length : e.key === 'ArrowLeft' ? (i + TABS.length - 1) % TABS.length : e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : -1
-    if (j < 0) return
-    e.preventDefault()
-    setTab(TABS[j].id)
-    tabRefs.current[TABS[j].id]?.focus()
+  /** A group's breadcrumb and its level on show (chips, or the phone's sheet button). */
+  const levels = (g: Group) => {
+    // The level on show: the first level with nothing chosen whose parent is chosen, else the deepest chosen one (a
+    // leaf keeps its row). An order with one family skips the families row: the breadcrumb names that family instead
+    // (every bird of the order is in it; a year's one trip is not the whole year, so trips keep their row).
+    const [top, child] = g.levels
+    const childOpts = child ? opts[child] ?? [] : []
+    const onlyChild = top === 'order' && !!child && !!filter[top] && !filter[child] && childOpts.length === 1
+    const level: Level | null = !filter[top] ? top : child ? (onlyChild || !childOpts.length ? null : child) : top
+
+    // The breadcrumb, once the top level has a choice: "All birds / Perching birds / Crows". The current place is in
+    // Accent; the others go back up. A single family is named but not a button (there is no level to go back to).
+    const crumbs: Crumb[] = []
+    if (filter[top]) {
+      crumbs.push({ label: g.all, latin: false, to: g.levels.reduce<Filter>((f, l) => (l ? withLevel(f, l, undefined) : f), filter) })
+      const topCrumb: Crumb = { label: nameOf(top, filter[top]!), latin: sci && LATIN.has(top) }
+      if (child && filter[child]) {
+        crumbs.push({ ...topCrumb, to: withLevel(filter, child, undefined) })
+        crumbs.push({ label: nameOf(child, filter[child]!), latin: sci && LATIN.has(child) })
+      } else if (onlyChild && child) {
+        crumbs.push(topCrumb)
+        crumbs.push({ label: chipText(child, childOpts[0]), latin: sci && LATIN.has(child) })
+      } else crumbs.push(topCrumb)
+    }
+    const levelOpts = level ? opts[level] ?? [] : []
+    const chosen = level ? filter[level] : undefined
+    const latin = !!level && sci && LATIN.has(level)
+    return (
+      <nav aria-label={g.nav} className="eb-levels">
+        {crumbs.length > 0 && (
+          <p className="eb-path">
+            {crumbs.map((c, i) => {
+              const last = i === crumbs.length - 1
+              const lang = c.latin ? 'la' : undefined
+              return (
+                <span key={i} className="eb-path-item">
+                  {i > 0 && <span className="eb-path-sep" aria-hidden="true">/</span>}
+                  {last ? <span aria-current="location" lang={lang}>{c.label}</span> : c.to ? <button type="button" lang={lang} onClick={() => dispatch({ type: 'filter', filter: c.to! })}>{c.label}</button> : <span lang={lang}>{c.label}</span>}
+                </span>
+              )
+            })}
+          </p>
+        )}
+        {level && levelOpts.length > 0 && (
+          sheet ? (
+            <SheetPicker
+              key={level}
+              level={level}
+              options={levelOpts}
+              label={chipLabel}
+              latin={latin}
+              chosen={chosen ? nameOf(level, chosen) : undefined}
+              value={chosen}
+              onPick={(v) => toggle(level, v)}
+            />
+          ) : (
+            <div className="eb-level" role="group" aria-label={RANK[level]} data-chosen={chosen ? '' : undefined} data-testid={`level-${level}`}>
+              <span className="eb-mono eb-level-label" aria-hidden="true">{RANK[level]}</span>
+              {levelOpts.map((o) => (
+                <Chip key={o.value} label={chipLabel(level, o)} latin={latin} count={o.count} selected={chosen === o.value} onClick={() => toggle(level, o.value)} />
+              ))}
+            </div>
+          )
+        )}
+      </nav>
+    )
   }
 
-  // The level on show: the first level with nothing chosen whose parent is chosen, else the deepest chosen one (a
-  // leaf keeps its row). An order with one family skips the families row: the breadcrumb names that family instead
-  // (every bird of the order is in it; a year's one trip is not the whole year, so trips keep their row).
-  const [top, child] = active.levels as [Level, Level | undefined]
-  const childOpts = child ? opts[child] ?? [] : []
-  const families = useMemo(
-    () => (active.id === 'birds' && filter.order && !filter.family ? options(list, filter, 'family', species, trips, countryName) : null),
-    [active.id, list, filter, species, trips, countryName],
-  )
-  const onlyChild = top === 'order' && !!child && !!filter[top] && !filter[child] && families?.length === 1
-  const level: Level | null = !filter[top] ? top : child ? (onlyChild || !childOpts.length ? null : child) : top
-
-  // The breadcrumb, once the top level has a choice: "All birds / Perching birds / Crows". The current place is in
-  // Accent; the others go back up. A single family is named but not a button (there is no level to go back to).
-  const crumbs: Crumb[] = []
-  if (filter[top]) {
-    crumbs.push({ label: active.all, latin: false, to: active.levels.reduce<Filter>((f, l) => withLevel(f, l, undefined), filter) })
-    const topCrumb: Crumb = { label: nameOf(top, filter[top]!), latin: sci && LATIN.has(top) }
-    if (child && filter[child]) {
-      crumbs.push({ ...topCrumb, to: withLevel(filter, child, undefined) })
-      crumbs.push({ label: nameOf(child, filter[child]!), latin: sci && LATIN.has(child) })
-    } else if (onlyChild && child) {
-      crumbs.push(topCrumb)
-      crumbs.push({ label: chipLabel(child, families![0]), latin: sci && LATIN.has(child) })
-    } else crumbs.push(topCrumb)
-  }
-
-  // Active filters from the other tabs, as removable chips.
-  const others = TABS.filter((t) => t.id !== active.id).flatMap((t) => t.levels.filter((l) => filter[l]))
-  const levelOpts = level ? opts[level] ?? [] : []
-  const chosen = level ? filter[level] : undefined
+  // What closed panels have chosen, as removable chips beside the toggles.
+  const others = closedPanelLevels(filter, open?.id ?? null, hidePanels)
 
   return (
     <section className="eb-filters" aria-label="Filters" data-testid="filter-bar">
-      {TABS.length > 1 && (
-        <div className="eb-tabs" role="tablist" aria-label="Filter by">
-          {TABS.map((t, i) => (
+      {(panels.length > 0 || others.length > 0) && (
+        <div className="eb-toggles">
+          {panels.map((p) => (
             <button
-              key={t.id}
-              ref={(el) => { tabRefs.current[t.id] = el }}
+              key={p.id}
               type="button"
-              role="tab"
-              id={`${base}-tab-${t.id}`}
-              aria-selected={active.id === t.id}
-              aria-controls={active.id === t.id ? `${base}-panel-${t.id}` : undefined}
-              tabIndex={active.id === t.id ? 0 : -1}
-              className="eb-tab"
-              data-testid={`filter-tab-${t.id}`}
-              onClick={() => setTab(t.id)}
-              onKeyDown={(e) => onTabKey(e, i)}
+              className="eb-tab eb-toggle"
+              aria-expanded={open?.id === p.id}
+              aria-controls={open?.id === p.id ? `${base}-panel-${p.id}` : undefined}
+              data-testid={`filter-tab-${p.id}`}
+              onClick={() => setPanel(togglePanel(open?.id ?? null, p.id))}
             >
-              {t.label}
+              {p.label}
+              <ChevronDownIcon className="eb-toggle-caret" />
             </button>
           ))}
-        </div>
-      )}
-
-      <div role="tabpanel" id={`${base}-panel-${active.id}`} aria-labelledby={TABS.length > 1 ? `${base}-tab-${active.id}` : undefined} className="eb-panel" data-map={active.id === 'places' && dots ? '' : undefined}>
-        {active.id === 'places' && dots && (
-          <CountryMap dots={dots} counts={countryCounts} selected={filter.country} onSelect={(iso) => set('country', iso)} countryName={countryName} />
-        )}
-        <nav aria-label={active.nav} className="eb-levels">
-          {crumbs.length > 0 && (
-            <p className="eb-path">
-              {crumbs.map((c, i) => {
-                const last = i === crumbs.length - 1
-                const lang = c.latin ? 'la' : undefined
+          {others.length > 0 && (
+            <div className="eb-level eb-active" role="group" aria-label="Active filters" data-testid="active-filters">
+              {others.map((l) => {
+                const label = nameOf(l, filter[l]!)
                 return (
-                  <span key={i} className="eb-path-item">
-                    {i > 0 && <span className="eb-path-sep" aria-hidden="true">/</span>}
-                    {last ? <span aria-current="location" lang={lang}>{c.label}</span> : c.to ? <button type="button" lang={lang} onClick={() => dispatch({ type: 'filter', filter: c.to! })}>{c.label}</button> : <span lang={lang}>{c.label}</span>}
-                  </span>
+                  <Chip key={l} label={l === 'country' ? <CountryLabel iso={filter[l]!} name={label} /> : label} removeLabel={label} onClick={() => set(l, undefined)}>
+                    <CloseIcon className="eb-chip-x" />
+                  </Chip>
                 )
               })}
-            </p>
+            </div>
           )}
-          {level && levelOpts.length > 0 && (
-            sheet ? (
-              <SheetPicker
-                key={level}
-                level={level}
-                options={levelOpts}
-                label={chipLabel}
-                latin={sci && LATIN.has(level)}
-                chosen={chosen ? nameOf(level, chosen) : undefined}
-                value={chosen}
-                onPick={(v) => toggle(level, v)}
-              />
-            ) : (
-              <div className="eb-level" role="group" aria-label={RANK[level]} data-chosen={chosen ? '' : undefined} data-testid={`level-${level}`}>
-                <span className="eb-mono eb-level-label" aria-hidden="true">{RANK[level]}</span>
-                {levelOpts.map((o) => (
-                  <Chip key={o.value} label={chipLabel(level, o)} latin={sci && LATIN.has(level)} count={o.count} selected={chosen === o.value} onClick={() => toggle(level, o.value)} />
-                ))}
-              </div>
-            )
-          )}
-        </nav>
-      </div>
-
-      {others.length > 0 && (
-        <div className="eb-level eb-active" role="group" aria-label="Active filters" data-testid="active-filters">
-          {others.map((l) => {
-            const label = nameOf(l, filter[l]!)
-            return (
-              <Chip key={l} label={label} latin={sci && LATIN.has(l)} selected removeLabel={label} onClick={() => set(l, undefined)}>
-                <CloseIcon className="eb-chip-x" />
-              </Chip>
-            )
-          })}
         </div>
       )}
+
+      {open && (
+        <div id={`${base}-panel-${open.id}`} role="region" aria-label={open.label} className="eb-panel" data-map={open.id === 'places' && dots ? '' : undefined} data-testid={`filter-panel-${open.id}`}>
+          {open.id === 'places' && dots && (
+            <CountryMap dots={dots} counts={countryCounts} selected={filter.country} onSelect={(iso) => set('country', iso)} countryName={countryName} />
+          )}
+          {levels(open)}
+        </div>
+      )}
+
+      {levels(BIRDS)}
     </section>
   )
 })
@@ -222,7 +229,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
 type PickerProps = {
   level: Level
   options: ChipOption[]
-  label: (level: Level, o: ChipOption) => string
+  label: (level: Level, o: ChipOption) => ReactNode
   latin: boolean
   chosen?: string
   value?: string
@@ -232,6 +239,7 @@ type PickerProps = {
 /** Phone: one button; it reads "Choose an order 18" or the chosen group's name, and opens the chips in a sheet. */
 function SheetPicker({ level, options: opts, label, latin, chosen, value, onPick }: PickerProps) {
   const [open, setOpen] = useState(false)
+  const flag = level === 'country' && value ? flagEmoji(value) : undefined
   return (
     <>
       <button
@@ -244,7 +252,10 @@ function SheetPicker({ level, options: opts, label, latin, chosen, value, onPick
         onClick={() => setOpen(true)}
       >
         <FilterLinesIcon />
-        <span className="eb-pick-label" lang={chosen && latin ? 'la' : undefined}>{chosen ?? `Choose ${NOUN[level]}`}</span>{' '}
+        <span className="eb-pick-label" lang={chosen && latin ? 'la' : undefined}>
+          {flag && <span className="eb-flag" aria-hidden="true">{flag}</span>}
+          {chosen ?? `Choose ${NOUN[level]}`}
+        </span>{' '}
         <span className="eb-count">{opts.length}</span>
       </button>
       {open && (
