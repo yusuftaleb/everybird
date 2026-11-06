@@ -92,6 +92,13 @@ describe('ogCacheControl', () => {
 
 describe('ogResponseOptions', () => {
   const f = [1, 2, 3]
+  it('a collage that failed (species or stickers threw) keeps the short cache, even with nothing expected', () => {
+    expect(ogResponseOptions(f, { placed: 0, expected: 0, failed: true }).headers['cache-control']).toBe(OG_CACHE_DEGRADED)
+    expect(ogResponseOptions(f, { placed: 0, expected: 0 }).headers['cache-control']).toBe(OG_CACHE_COMPLETE)
+  })
+  it('a broken token (no payload) gets the short cache', () => {
+    expect(ogResponseOptions(f, { placed: 0, expected: 0, broken: true }).headers['cache-control']).toBe(OG_CACHE_DEGRADED)
+  })
   it('no fonts -> fonts undefined (so next/og keeps its default) and a short cache', () => {
     const o = ogResponseOptions([], { placed: 5, expected: 5 })
     expect(o.fonts).toBeUndefined()

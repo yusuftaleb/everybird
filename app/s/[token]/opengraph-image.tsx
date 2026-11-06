@@ -63,7 +63,7 @@ function frame(children: React.ReactNode) {
 
 export default async function Image({ params }: { params: Promise<{ token: string }> }) {
   const [payload, fonts] = [tryDecodeShare((await params).token), ogFonts()]
-  let placed: Placed[] = [], expected = 0, latest: { name: string; date?: string } | undefined
+  let placed: Placed[] = [], expected = 0, failed = false, latest: { name: string; date?: string } | undefined
   if (payload) {
     try {
       const species = await serverSpecies()
@@ -76,6 +76,7 @@ export default async function Image({ params }: { params: Promise<{ token: strin
       // The latest lifer row: a mono label with the month over the bird's name, as the share images.
       if (top && row) latest = { name: row.com, date: formatDate(top.date) || undefined }
     } catch (e) {
+      failed = true // the text card stands in: cached briefly, not for a year
       console.warn('og image: collage unavailable, rendering the text card', e) // still a valid image
     }
   }
@@ -136,5 +137,5 @@ export default async function Image({ params }: { params: Promise<{ token: strin
       </div>
     </>
   )
-  return new ImageResponse(frame(body), { ...OG_SIZE, ...ogResponseOptions(await fonts, { placed: placed.length, expected }) })
+  return new ImageResponse(frame(body), { ...OG_SIZE, ...ogResponseOptions(await fonts, { placed: placed.length, expected, failed, broken: !payload }) })
 }

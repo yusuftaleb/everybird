@@ -62,9 +62,12 @@ export const ogCacheControl = (complete: boolean) => (complete ? OG_CACHE_COMPLE
 /**
  * ImageResponse options that depend on how the card came out. No fonts at all -> `fonts: undefined`, so next/og keeps
  * its default font (an empty array would replace it and satori would throw). A card with a missing font or fewer
- * stickers than expected is cached only briefly (ogCacheControl), so a fetch hiccup doesn't stick for a year.
+ * stickers than expected, a collage that failed, or a broken token is cached only briefly (ogCacheControl), so a
+ * fetch hiccup doesn't stick for a year.
  */
-export function ogResponseOptions<F>(fonts: F[], stickers: { placed: number; expected: number }) {
-  const complete = fonts.length >= OG_FONT_COUNT && stickers.placed >= stickers.expected
+export function ogResponseOptions<F>(fonts: F[], card: { placed: number; expected: number; failed?: boolean; broken?: boolean }) {
+  // `failed`: the collage threw (species, masks or stickers), so the text card stood in. `broken`: the token didn't
+  // decode. Neither is the token's real card, so neither is cached for a year.
+  const complete = !card.failed && !card.broken && fonts.length >= OG_FONT_COUNT && card.placed >= card.expected
   return { fonts: fonts.length ? fonts : undefined, headers: { 'cache-control': ogCacheControl(complete) } }
 }
