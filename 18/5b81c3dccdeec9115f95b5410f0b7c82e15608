@@ -1,0 +1,25 @@
+src/lib/layout/pack.ts
+  s_ab125876fe9ad2::t_3a489ccedfa6fa 19,77-81,168-169,181,192,209,215-220,222-224,228-236,239-241,274
+  s_ab125876fe9ad2::t_e4b04dd55519c9 120-122
+src/lib/layout/constants.ts
+  s_ab125876fe9ad2::t_51381b5a7b70ed 8-13,15-17
+tests/pack.test.ts
+  s_ab125876fe9ad2::t_67125ec2b971e3 4,281-293,296,298-300,303-304,306-314,316-357,359-369,372-373,376-377,380-422,515,526-536
+  s_ab125876fe9ad2::t_2d2563f9cc1aa0 358
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "185b81c3dccdeec9115f95b5410f0b7c82e15608",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}

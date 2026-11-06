@@ -1,0 +1,39 @@
+tests/pack.test.ts
+  s_ab125876fe9ad2::t_d2043afc18a8ea 270-287
+  s_ab125876fe9ad2::t_a4e81a62984118 360,376
+  s_ab125876fe9ad2::t_d3f684adfb8cf2 443-454,456-468,472-480,482,484-510,512-519
+  s_ab125876fe9ad2::t_1c1c12ad961488 455,469-471,481,483,511
+  s_ab125876fe9ad2::t_64493e9d22cadb 441-442
+src/lib/layout/pack.ts
+  s_ab125876fe9ad2::t_82f46360465f17 26-27,319
+  s_ab125876fe9ad2::t_09cdac6f6ac143 120-121
+  s_ab125876fe9ad2::t_f3c48268f965da 19
+  s_ab125876fe9ad2::t_9078655c7434d8 46-47,51,53,57,62,85,88,94-101,103,227-233
+  s_ab125876fe9ad2::t_7d8f47cc24d074 56,58,90,104-118,129-130,144,288-290,323
+  s_ab125876fe9ad2::t_4516e0ed8f216b 78,86,89,91-93,102,119,122-128,131-143,146
+  s_ab125876fe9ad2::t_6a482334448a53 12,247,250,252-253,257-258,262-263,267-268,279-280,306
+  s_ab125876fe9ad2::t_caaabb9a92916d 54-55,59-61,63
+  s_ab125876fe9ad2::t_cd80ac5a2c6fcf 296-299,309,320
+src/lib/layout/constants.ts
+  s_ab125876fe9ad2::t_9078655c7434d8 14-15
+  s_ab125876fe9ad2::t_f3c48268f965da 17-19
+src/lib/layout/grid.ts
+  s_ab125876fe9ad2::t_7a8cc14993a53a 58-72,124-134
+  s_ab125876fe9ad2::t_1a39248d1f5b07 135-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "86964150518c8c90c0b221ac94484bcdc7b24edd",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
