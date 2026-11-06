@@ -81,7 +81,7 @@ components:
 
 # Design System: Everybird
 
-Recorded from the shipped code (2026-11-05, HEAD 7ca2c44): `src/styles/tokens.css`, `globals.css`, the component CSS, `collage-motion.ts`, `src/lib/share/image.ts`. Where the code and an intention differ, this file says what the code does and flags the gap under "Known gaps".
+Recorded from the shipped code (as of 2026-11-05): `src/styles/tokens.css`, `globals.css`, the component CSS, `collage-motion.ts`, `src/lib/share/image.ts`. Where the code and an intention differ, this file says what the code does and flags the gap under "Known gaps".
 
 ## Overview
 
@@ -170,7 +170,7 @@ One row, 4px padding, Hairline border, 16px, Paper background. Left: Collage/Lis
 `.eb-chip`: 32px, Surface, 1px Hairline, 8px squircle, 14px 500, muted count with tabular numerals, **no icon**. Selected: border Accent. Once a level has a choice, its other chips drop to 70% opacity; pressing the selected chip clears it. Mono rank label ("Order", "Family") leads each row; the breadcrumb ("All birds / Perching birds / Crows") has the current place in Accent 600. Tabs (Places, Time) are 36px, 10px radius, same pressed treatment as the dock. Under 600px a level is one button ("Choose an order 18", 44px, 12px) opening a bottom sheet of wrapped chips. Hover (fine pointers) raises the border to Line.
 
 ### Switches
-Track 34x20 (30x18 in a narrow dock), Surface with a Line inset ring; knob 14px Muted. On: track Accent, knob Paper, knob travels 14px. 150ms ease-out. Settings rows (`.eb-setgroup`) make the whole row the switch: label 16/500, Muted note 14px, a live count, one 16px-radius bordered group split by Hairlines, min height 64px.
+Track 34x20 (30x18 in a narrow dock), Surface with a Line inset ring; knob 14px Muted. On: track Accent, knob Paper, knob travels 14px. 150ms UI ease `cubic-bezier(.16,1,.3,1)`. Settings rows (`.eb-setgroup`) make the whole row the switch: label 16/500, Muted note 14px, a live count, one 16px-radius bordered group split by Hairlines, min height 64px.
 
 ### Cards and tooltip
 Bird card `.eb-card`: Paper, Hairline, 16px squircle, 12px 14px padding, max 300px, layout C (name top-left, mono mass top-right, mono date and place lines, "Mark as" and remove actions). On phones it is a bottom sheet (20px radius, 8px insets, 72vh). Opens in 150ms fade (sheet 320ms rise). The tooltip uses the card's look, `aria-hidden`, no pointer events, shown on mouse hover, keyboard `:focus-visible` or a search pick. List rows: 56px thumb, name, mass, place, date; Hairline between rows; collapse under 820px.
@@ -219,7 +219,7 @@ Stickers are huashu-bird-sticker (CC BY 4.0), trimmed webp at 128 and 384px, hos
 - Plain words, second person, short sentences: "Every bird you've ever seen." "Make yours." "This link didn't open."
 - Say what happened and what to do next; name the not-counted entries in plain words.
 - Sentence case everywhere; mono labels are the only uppercase (by CSS).
-- No em dashes in UI copy (none ship in components); no exclamation marks, no emoji, no hype.
+- No em dashes in UI copy (none in our components; the vendored Stageshow kit under `src/components/about/stageshow/` is excluded, and its one "—" is in a code comment, not rendered text); no exclamation marks, no emoji, no hype.
 - Numbers are exact and formatted ("197 species", "Sep 2026"); the filter is described in words on share images.
 - Privacy is stated plainly: the list never leaves the browser. Analytics records only three events and never counts, names or places.
 - Attribution is part of the voice: About opens its credits with "Made by Yusuf Taleb".
