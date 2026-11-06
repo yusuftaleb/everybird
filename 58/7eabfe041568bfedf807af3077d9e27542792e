@@ -1,0 +1,21 @@
+AGENTS.md
+  s_ab125876fe9ad2::t_7e56db3069036f 34,55,60
+DESIGN.md
+  s_ab125876fe9ad2::t_7e56db3069036f 141,170,188,211
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "587eabfe041568bfedf807af3077d9e27542792e",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
