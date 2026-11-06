@@ -1,0 +1,84 @@
+tests/share-dialog.test.tsx
+  s_ab125876fe9ad2::t_a863631a8645a9 48
+  s_ab125876fe9ad2::t_bd1eaf0808137f 47,49-61
+e2e/import.spec.ts
+  s_ab125876fe9ad2::t_ab62af16425e07 185-186
+  s_ab125876fe9ad2::t_6ae2e5f8143c99 27
+  s_ab125876fe9ad2::t_3e72399b6b5b1c 40-42,44
+playwright.config.ts
+  s_ab125876fe9ad2::t_c7d02fa0b54936 21
+tests/filters-ui.test.tsx
+  s_ab125876fe9ad2::t_602e7d9710fc1c 35,40
+src/components/app/ControlsBar.tsx
+  s_ab125876fe9ad2::t_dc04aa80c91322 7-10
+e2e/responsive.spec.ts
+  s_ab125876fe9ad2::t_350b01535c5124 1-27,46-89,96-164
+  s_ab125876fe9ad2::t_bbba6e8e90734e 28-45,90-95
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_832360713cd25b 80,202
+src/components/filters/FilterBar.tsx
+  s_ab125876fe9ad2::t_832360713cd25b 8,41,66-67,117,126-127
+src/components/about/how-it-works.css
+  s_ab125876fe9ad2::t_fe4929aa471903 244
+tests/app-routes.test.tsx
+  s_ab125876fe9ad2::t_350b01535c5124 176,179-180
+  s_ab125876fe9ad2::t_602e7d9710fc1c 174-175,181
+  s_ab125876fe9ad2::t_6ae2e5f8143c99 163-166
+  s_ab125876fe9ad2::t_947ebacf782efa 158
+tests/share-image.test.ts
+  s_ab125876fe9ad2::t_e7ef7e2c4af593 5,265,268-272,274-275,277-278,280-281,283
+src/components/about/HowItWorksStage.tsx
+  s_ab125876fe9ad2::t_fe4929aa471903 471,474-475
+AGENTS.md
+  s_ab125876fe9ad2::t_dc04aa80c91322 57
+  s_ab125876fe9ad2::t_b31e5a22264fa3 34
+  s_ab125876fe9ad2::t_b62e1fc3f314a6 53,64
+  s_ab125876fe9ad2::t_668b903a777d8a 13,56,58,60
+e2e/about.spec.ts
+  s_ab125876fe9ad2::t_6ae2e5f8143c99 54-55
+  s_ab125876fe9ad2::t_6d8b14d40c8e75 45
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_6ab45de51b61a2 178
+  s_ab125876fe9ad2::t_da4e26c337a130 10-11,39-42,405,408-410,531,584-586,590-591,617-618
+e2e/dock-sweep.spec.ts
+  s_ab125876fe9ad2::t_c09794424983be 33,36
+  s_ab125876fe9ad2::t_c7d02fa0b54936 1-32,34-35,37
+app/s/[token]/opengraph-image.tsx
+  s_ab125876fe9ad2::t_93a0b9a5e3d311 8,86-87,89-91
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_668b903a777d8a 430-431
+DESIGN.md
+  s_ab125876fe9ad2::t_dc04aa80c91322 142
+  s_ab125876fe9ad2::t_b62e1fc3f314a6 171
+  s_ab125876fe9ad2::t_668b903a777d8a 195,223,259
+src/components/app/app.css
+  s_ab125876fe9ad2::t_35a0b100fe0864 181
+  s_ab125876fe9ad2::t_1fed313528cc54 182-183,185-186
+  s_ab125876fe9ad2::t_947ebacf782efa 123-124
+  s_ab125876fe9ad2::t_602e7d9710fc1c 25
+  s_ab125876fe9ad2::t_03b8273b322e64 184
+  s_ab125876fe9ad2::t_3e437876fe9706 146-162,167-169,178-179,187-196
+  s_ab125876fe9ad2::t_6ae2e5f8143c99 315
+src/components/app/SiteFooter.tsx
+  s_ab125876fe9ad2::t_6ae2e5f8143c99 3-6
+e2e/share-link.spec.ts
+  s_ab125876fe9ad2::t_9e0cee44f50dc3 19-20
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_f6db170bd138dc 17,179-180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "78ed24f559b29784660367b297acaf5b103b0943",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
