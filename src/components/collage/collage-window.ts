@@ -23,9 +23,9 @@ export const SHOW_MARGIN = 0.75
 /** ...and kept until beyond this many. */
 export const KEEP_MARGIN = 1
 /** Birds shown per frame to start with (a hide counts half); then adapted between FRAME_MIN and FRAME_MAX. */
-export const FRAME_BUDGET = 100
-export const FRAME_MIN = 40
-export const FRAME_MAX = 160
+export const FRAME_BUDGET = 80
+export const FRAME_MIN = 30
+export const FRAME_MAX = 120
 /** Hidden birds that keep their sticker (the most recently hidden: a scroll back shows them at once)... */
 export const HELD_MAX = 1000
 /** ...beyond that, the oldest let go of it, at most this many per frame (letting go of an image is not free). */

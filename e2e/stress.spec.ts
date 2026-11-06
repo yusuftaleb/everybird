@@ -134,9 +134,13 @@ async function checkGeometry(page: Page) {
     for (let y = Math.max(0, top - vh); ; y += Math.floor(vh * 0.8)) {
       window.scrollTo(0, y);
       // The collage shows the birds near the viewport over a few budgeted frames: wait until it stops changing.
-      for (let last = -1, same = 0, k = 0; same < 3 && k < 120; k++) {
+      for (let last = -1, same = 0, k = 0; same < 4 && k < 240; k++) {
         await frame();
-        const n = stage.querySelectorAll(".eb-bird:not([data-far])").length;
+        let n = 0; // rendered birds in the viewport: it grows as the viewport fills in
+        for (const el of stage.querySelectorAll<HTMLElement>(".eb-bird:not([data-far])")) {
+          const r = el.getBoundingClientRect();
+          if (r.bottom > 0 && r.top < vh) n++;
+        }
         same = n === last ? same + 1 : 0;
         last = n;
       }
