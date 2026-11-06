@@ -5,9 +5,10 @@
 // click awaits nothing slow (iOS drops the clipboard permission once a click handler waits on the network).
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
 import { DeviceMobile, DownloadSimple, FrameCorners, LinkSimple, ShareNetwork, X } from '@phosphor-icons/react'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack } from '@/components/dialog-utils'
 import { track } from '@/lib/analytics'
+import { currentTheme, subscribeTheme, type Theme } from '@/lib/theme'
 import { downloadBlob } from '@/lib/download'
 import { stripBracket } from '@/lib/import/places'
 import { applyFilter, filterKey } from '@/lib/list/filters'
@@ -23,7 +24,6 @@ import '@/components/app/app.css'
 import './share.css'
 
 type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; onClose: () => void }
-type Theme = 'light' | 'dark'
 
 const RENDER_DELAY_MS = 250
 const FORMATS: { id: ImageFormat; label: string; hint: string }[] = [
@@ -40,23 +40,9 @@ const LEVEL_NOTE: Record<ShareLevel, string> = {
   species: 'Link copied. Your list is large, so the link carries the species only, without dates or places.',
 }
 
-/** The page's theme: [data-theme] on <html> when set, else the system's. */
-function readTheme(): Theme {
-  const t = document.documentElement.dataset.theme
-  if (t === 'light' || t === 'dark') return t
-  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
+/** The page's current theme (light unless the visitor switched to dark): the image follows it. */
 function useTheme(): Theme {
-  const [theme, setTheme] = useState<Theme>(readTheme)
-  useEffect(() => {
-    const mq = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null
-    const read = () => setTheme(readTheme())
-    mq?.addEventListener?.('change', read)
-    const mo = new MutationObserver(read)
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-    return () => { mq?.removeEventListener?.('change', read); mo.disconnect() }
-  }, [])
-  return theme
+  return useSyncExternalStore(subscribeTheme, currentTheme, () => 'light' as const)
 }
 
 export default function ShareDialog({ state, dispatch, species, regions, onClose }: Props) {

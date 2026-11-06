@@ -1,6 +1,7 @@
 import Link from 'next/link'
+import { ThemeToggle } from './ThemeToggle'
 
-/** On every page: the sticker credit (required by huashu-bird-sticker's CC BY 4.0 licence) and the credits link. */
+/** On every page: the sticker credit (required by huashu-bird-sticker's CC BY 4.0 licence), the credits link and the theme switch. */
 export function SiteFooter() {
   return (
     <footer className="eb-footer">
@@ -10,6 +11,7 @@ export function SiteFooter() {
       <p className="eb-mono">
         <Link href="/credits">Credits</Link>
       </p>
+      <ThemeToggle />
     </footer>
   )
 }

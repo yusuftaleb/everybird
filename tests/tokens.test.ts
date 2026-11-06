@@ -29,7 +29,6 @@ function block(source: string, selector: RegExp): string {
 
 const light = block(css, /:root\s*\{/);
 const dark = block(css, /:root\[data-theme=dark\]\s*\{/);
-const auto = block(css, /@media \(prefers-color-scheme: dark\)/);
 const forcedLight = block(css, /:root\[data-theme=light\]\s*\{/);
 
 describe("design tokens", () => {
@@ -39,12 +38,12 @@ describe("design tokens", () => {
       expect(light).toMatch(re(l));
       expect(forcedLight).toMatch(re(l));
       expect(dark).toMatch(re(d));
-      expect(auto).toMatch(re(d));
     });
   }
 
-  it("auto-dark is skipped when light is forced", () => {
-    expect(css).toContain(":root:not([data-theme=light])");
+  it("light by default, even when the system is dark: no prefers-color-scheme rule, color-scheme light", () => {
+    expect(css).not.toMatch(/prefers-color-scheme/);
+    expect(light).toMatch(/color-scheme:\s*light\s*;/);
   });
 
   it("declares the three font variables", () => {

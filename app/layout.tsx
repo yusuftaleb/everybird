@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import { SHARE_ORIGIN } from "@/lib/share/origin";
 import SiteAnalytics from "@/components/app/SiteAnalytics";
+import { THEME_SCRIPT } from "@/lib/theme";
 import "@/styles/globals.css";
 
 const geistMono = Geist_Mono({
@@ -27,8 +28,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={geistMono.variable}>
+    // Light unless the visitor chose dark on this device: the inline script sets data-theme before the first paint
+    // (src/lib/theme.ts), so suppressHydrationWarning lets React keep the attribute it finds.
+    <html lang="en" className={geistMono.variable} data-theme="light" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <link rel="preconnect" href="https://api.fontshare.com" />
         <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="" />
         {/* Satoshi and Cabinet Grotesk come from Fontshare; never commit the files. */}
