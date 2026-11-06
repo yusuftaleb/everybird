@@ -8,19 +8,25 @@ const baseURL = process.env.BASE_URL ?? `http://localhost:${PORT}`;
 // that users never see). Pointed at a deployed URL, everything uses BASE_URL.
 const perfURL = process.env.BASE_URL ?? `http://localhost:${PERF_PORT}`;
 const stickers = { NEXT_PUBLIC_STICKER_BASE: `http://127.0.0.1:${STICKER_PORT}` };
+// Every spec starts with the first-visit welcome already closed (src/lib/welcome.ts), so specs that open "/" fresh see
+// the landing as before. e2e/welcome.spec.ts opts out with `test.use({ storageState: { cookies: [], origins: [] } })`.
+const welcomed = (url: string) => ({
+  cookies: [],
+  origins: [{ origin: new URL(url).origin, localStorage: [{ name: "everybird:welcomed", value: "1" }] }],
+});
 
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
   reporter: "list",
-  use: { baseURL },
+  use: { baseURL, storageState: welcomed(baseURL) },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /(filters|stress)\.spec\.ts/ },
     // The flow matrix (flows.spec.ts: every way in, filters, card, share, backup; each engine samples two widths, MATRIX=full
     // walks all five), the timeline, the share dialog and Settings (page heads, Tick by hand) in Safari's engine too.
-    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(flows|timeline|share|settings|responsive|dock-sweep|sticker-loading)\.spec\.ts/ },
+    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(flows|timeline|share|settings|responsive|dock-sweep|sticker-loading|welcome)\.spec\.ts/ },
     // Gecko: the flow matrix and the specs that drive the dropdowns, the timeline, the share dialog, Settings, About, the
-    // shared view and the theme.
+    // shared view and the theme. The first-visit welcome (welcome.spec.ts) runs in Chromium and WebKit.
     {
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },
@@ -29,7 +35,7 @@ export default defineConfig({
     // The frame-timing test runs on its own, after everything else, so other workers can't steal its CPU.
     {
       name: "perf",
-      use: { ...devices["Desktop Chrome"], baseURL: perfURL },
+      use: { ...devices["Desktop Chrome"], baseURL: perfURL, storageState: welcomed(perfURL) },
       testMatch: /filters\.spec\.ts/,
       dependencies: ["chromium", "webkit", "firefox"],
     },
@@ -37,8 +43,8 @@ export default defineConfig({
     // (`npm run e2e:stress`), on the production build, one test at a time, in both engines.
     ...(process.env.STRESS
       ? [
-          { name: "stress-chromium", use: { ...devices["Desktop Chrome"], baseURL: perfURL }, testMatch: /stress\.spec\.ts/ },
-          { name: "stress-webkit", use: { ...devices["Desktop Safari"], baseURL: perfURL }, testMatch: /stress\.spec\.ts/ },
+          { name: "stress-chromium", use: { ...devices["Desktop Chrome"], baseURL: perfURL, storageState: welcomed(perfURL) }, testMatch: /stress\.spec\.ts/ },
+          { name: "stress-webkit", use: { ...devices["Desktop Safari"], baseURL: perfURL, storageState: welcomed(perfURL) }, testMatch: /stress\.spec\.ts/ },
         ]
       : []),
   ],

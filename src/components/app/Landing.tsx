@@ -4,9 +4,11 @@ import Link from 'next/link'
 import { useEverybirdContext } from './EverybirdProvider'
 import { AppNotices } from './Notices'
 import { SampleDemo } from './SampleDemo'
+import { Welcome } from './Welcome'
 import './app.css'
 
-/** `/` for a visitor without a list: one line of what Everybird is, "Make yours", and the sample collage leading. */
+/** `/` for a visitor without a list: one line of what Everybird is, "Make yours", and the sample collage leading; on
+ * the first visit, the welcome over it. */
 export function Landing() {
   const eb = useEverybirdContext()
   return (
@@ -24,6 +26,7 @@ export function Landing() {
       {/* The pre-packed sample needs no bird data, so a failed load says nothing here (Settings says it). */}
       <AppNotices eb={eb} memory={false} failure={false} />
       <SampleDemo />
+      <Welcome />
     </main>
   )
 }

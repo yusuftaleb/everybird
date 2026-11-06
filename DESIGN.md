@@ -118,7 +118,7 @@ Seven tokens, two themes, nothing else. `tests/tokens.test.ts` keeps `tokens.css
 - **The Quiet Disabled Rule.** Disabled is Surface fill, Hairline border, Muted text. Never a paler Accent (it reads as a new colour).
 - **The Contrast Rule.** Muted on Paper and Accent on Paper meet AA in both themes. Line, the border that must be seen (fields, the switch's off-track ring in the dock and Settings rows, checkboxes, the dropzone), meets 3:1 (WCAG 1.4.11) against both grounds it sits on: light 3.61:1 on Paper and 3.25:1 on Surface; dark 3.69:1 on Paper and 3.25:1 on Surface (`tests/tokens.test.ts` checks all four). Dark Line was #6e6e78 (2.9:1 on Surface) until 2026-11-06, when Yusuf asked for 3:1 on grey; lifting the one token, rather than adding a border token, keeps every Line use (hover borders, the on-list tick box, empty-month ticks) one step above Hairline in both themes. Hairline stays decorative (dividers, resting borders) and is not held to 3:1.
 - **Browser surfaces.** Selected text is tinted with Accent (`::selection`: Accent mixed 22% into transparent, text keeps its colour) and text carets are Accent (`caret-color` on inputs and textareas), in both themes (`globals.css`).
-- Scrims are `rgb(0 0 0 / .28)`. Shadows are black at 8%/4% (Elevation below).
+- Scrims are `rgb(0 0 0 / .28)`, except the first-visit welcome's, `.12`, so the sample stays in view behind it. Shadows are black at 8%/4% (Elevation below).
 
 ## Typography
 
@@ -157,6 +157,9 @@ Flat by default. Depth is hairline borders and the Surface tint. Floating things
 Silhouette hit-testing (`collage-hit.ts`) makes a sticker clickable only where it is opaque.
 
 ## Components
+
+### Welcome
+The first visit to `/` with no list (`Welcome.tsx`): one Cabinet 700 line (24px, 22px on phones), "Make mine" (primary, arrow) and "Explore the sample" (quiet), a 44px ✕ top-right. From 601px a 400px card centred over the sample (Paper, Hairline, 20px squircle, the floating shadow); at 600px and under the phones' bottom sheet with full-width buttons. It rises 16px over 320ms on the UI ease; reduced motion fades only.
 
 ### Buttons
 - Primary `.eb-btn`: Accent fill, Paper text, 44px high, 12px squircle, Satoshi 700 15px, icon 18px. Big variant 52px / 17px (hero CTA). Hover (fine pointers only): opacity .88.

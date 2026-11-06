@@ -386,3 +386,40 @@
 .eb-setrow-btn[aria-checked="true"] .eb-knob { transform: translateX(14px); background: var(--paper); }
 @media (hover: hover) and (pointer: fine) { .eb-setrow-btn:not(:disabled):hover { background: var(--surface); } }
 @media (prefers-reduced-motion: reduce) { .eb-setrow-btn { transition: none; } }
+
+/* The first visit's welcome (Welcome.tsx): a small card over the landing's sample, a bottom sheet on phones (600px and
+   under, as the other sheets). Its scrim is lighter than the dialogs' .28 so the sample stays in view behind it. */
+.eb-welcome-scrim {
+  position: fixed; inset: 0; z-index: 955; display: grid; place-items: center; padding: 16px;
+  background: rgb(0 0 0 / .12); animation: eb-welcome-fade .2s ease both;
+}
+.eb-welcome {
+  position: relative; box-sizing: border-box; width: min(400px, 100%); padding: 24px 24px 20px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+  animation: eb-welcome-up .32s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) both;
+}
+.eb-welcome:focus { outline: none; }
+.eb-welcome-line {
+  margin: 0 40px 20px 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15;
+  letter-spacing: -.01em; text-wrap: balance;
+}
+.eb-welcome-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.eb-welcome-close {
+  position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 44px; height: 44px;
+  border: 0; border-radius: 12px; background: none; color: var(--muted); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.eb-welcome-close svg { width: 20px; height: 20px; }
+.eb-welcome-close:focus-visible, .eb-welcome .eb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .eb-welcome-close:hover { color: var(--ink); } }
+.eb-welcome-scrim[data-sheet] { place-items: end stretch; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
+.eb-welcome-scrim[data-sheet] .eb-welcome { width: 100%; padding: 20px 16px 16px; box-shadow: 0 -8px 32px rgb(0 0 0 / .12); }
+.eb-welcome-scrim[data-sheet] .eb-welcome-line { font-size: 22px; margin-bottom: 18px; }
+.eb-welcome-scrim[data-sheet] .eb-welcome-actions { flex-direction: column; }
+.eb-welcome-scrim[data-sheet] .eb-welcome-actions .eb-btn { width: 100%; }
+@keyframes eb-welcome-up { from { opacity: 0; transform: translateY(16px); } }
+@keyframes eb-welcome-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .eb-welcome { animation-name: eb-welcome-fade; }
+}
