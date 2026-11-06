@@ -118,18 +118,42 @@ export function barHeight(count: number, max: number): number {
   return Math.min(100, Math.max(12, Math.sqrt(count / Math.max(1, max)) * 100))
 }
 
-export type TripLane = { trip: Trip; start: number; end: number; lane: number }
+export type TripLane = { trip: Trip; start: number; end: number; lane: number; flip: boolean }
 
 /**
- * Trips as brackets under the bars: each spans its months (indices into `months`) and takes the first lane where it
- * doesn't touch an earlier one. A bracket's label needs `minSpan` months of room (it may depend on the trip and its
- * start month, on an uneven axis), so a short trip claims that much.
+ * How many months a label `px` wide needs on the strip (`axis`, `unitPx` px per unit). Rightwards (`dir` 1) it runs
+ * from month `at`'s left edge: months at..at+k-1; past the strip's end it returns more than the months left
+ * (N - at + 1), the sign to flip it. Leftwards (`dir` -1) it ends at month `at`'s right edge: months at-k+1..at,
+ * stopping at the first month.
+ */
+export function labelMonths(axis: MonthAxis, unitPx: number, px: number, at: number, dir: 1 | -1): number {
+  const N = axis.start.length - 1
+  const need = px / Math.max(1e-9, unitPx)
+  let k = 1
+  if (dir === 1) {
+    while (at + k < N && axis.start[at + k] - axis.start[at] < need) k++
+    return axis.start[Math.min(N, at + k)] - axis.start[at] < need ? N - at + 1 : k
+  }
+  while (at + 1 - k > 0 && axis.start[at + 1] - axis.start[at + 1 - k] < need) k++
+  return k
+}
+
+/**
+ * Trips as brackets under the bars: each spans its months (indices into `months`) and takes the first lane where
+ * neither it nor its label touches another's. A label needs `minSpan` months of room: a number, or per trip from a
+ * month and a direction (labelMonths: it depends on the label's width and, on an uneven axis, on where it sits).
+ * A label runs rightwards from the trip's start; one that would run past the strip's end is flipped (`flip`) and runs
+ * leftwards from the trip's end, so it claims the months before the end instead.
  * Trips outside the months are left out. Sorted by start.
  */
-export function tripLanes(trips: readonly Trip[], months: readonly Month[], minSpan: number | ((t: Trip, start: number) => number)): TripLane[] {
+export function tripLanes(
+  trips: readonly Trip[], months: readonly Month[], minSpan: number | ((t: Trip, at: number, dir: 1 | -1) => number),
+): TripLane[] {
   if (!months.length) return []
-  const first = toIndex(months[0]), last = first + months.length - 1
-  const ends: number[] = [] // per lane, the last month index taken
+  const N = months.length
+  const first = toIndex(months[0]), last = first + N - 1
+  const span = (t: Trip, at: number, dir: 1 | -1) => Math.max(1, typeof minSpan === 'number' ? minSpan : minSpan(t, at, dir))
+  const taken: [number, number][][] = [] // per lane, the month ranges (inclusive) its brackets and labels hold
   const out: TripLane[] = []
   const sorted = [...trips].sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0))
   for (const t of sorted) {
@@ -138,10 +162,14 @@ export function tripLanes(trips: readonly Trip[], months: readonly Month[], minS
     const si = toIndex(s), ei = toIndex(e)
     if (ei < first || si > last) continue
     const start = Math.max(si, first) - first, end = Math.min(ei, last) - first
-    const room = Math.max(end, start + Math.max(1, typeof minSpan === 'number' ? minSpan : minSpan(t, start)) - 1)
-    let lane = ends.findIndex((x) => x < start)
-    if (lane < 0) { lane = ends.length; ends.push(room) } else ends[lane] = room
-    out.push({ trip: t, start, end, lane })
+    const right = span(t, start, 1)
+    const flip = start + right > N
+    const lo = flip ? Math.max(0, Math.min(start, end + 1 - span(t, end, -1))) : start
+    const hi = flip ? end : Math.max(end, start + right - 1)
+    let lane = taken.findIndex((rs) => rs.every(([a, b]) => b < lo || a > hi))
+    if (lane < 0) { lane = taken.length; taken.push([]) }
+    taken[lane].push([lo, hi])
+    out.push({ trip: t, start, end, lane, flip })
   }
   return out
 }

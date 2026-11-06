@@ -134,3 +134,60 @@ test.describe("timeline at 390px with a lone early month and a long gap", () => 
     await expect(page.getByRole("button", { name: /^South Africa trip/ })).toHaveAttribute("data-tick", "");
   });
 });
+
+// Trips in the strip's last months: their labels would run past the end, so they run leftwards, and the lanes keep
+// them clear of the labels they run back over (one at a time: the United States runs right to the end, Egypt and
+// Costa Rica flip back over it).
+function endTripsSaved() {
+  const species = (JSON.parse(readFileSync(resolve(__dirname, "../public/data/species.v1.json"), "utf8")) as { species: Row[] }).species;
+  const records: object[] = [];
+  let k = 0;
+  const add = (country: string, date: string) => records.push({ code: species[k++ * 7].code, source: "ebird", date, place: { country } });
+  for (let y = 2023; y <= 2026; y++) for (let m = 1; m <= 12; m++) {
+    if (y === 2026 && m > 9) break;
+    add("CA", `${y}-${String(m).padStart(2, "0")}-10`);
+    add("CA", `${y}-${String(m).padStart(2, "0")}-20`);
+  }
+  for (let i = 0; i < 4; i++) add("US", `2025-03-0${2 + i}`);
+  for (let i = 0; i < 4; i++) add("EG", `2026-08-0${2 + i}`);
+  for (let i = 0; i < 4; i++) add("CR", `2026-09-1${2 + i}`);
+  return {
+    v: 1, records: { ebird: records, inat: [], manual: [] }, unmatched: [],
+    edits: { removed: [], added: [], marks: {}, fixes: {} }, rules: { hideHeard: false, hideDead: false, researchOnly: false },
+    savedAt: new Date().toISOString(),
+  };
+}
+
+test.describe("timeline at 390px with trips at the strip's end", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  test("end labels run leftwards and no two labels overlap", async ({ page }, info) => {
+    await seed(page, endTripsSaved());
+    await page.getByTestId("filter-tab-time").click();
+    await expect(page.getByRole("button", { name: /^Costa Rica trip/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Costa Rica trip/ })).toHaveAttribute("data-end", "");
+    await expect(page.getByRole("button", { name: /^Egypt trip/ })).toHaveAttribute("data-end", "");
+    const m = await page.evaluate(() => {
+      const strip = document.querySelector(".eb-time-track")!.getBoundingClientRect();
+      const labels = [...document.querySelectorAll(".eb-trip-label")].map((el) => {
+        const r = el.getBoundingClientRect();
+        return { name: el.textContent, l: r.left, r: r.right, t: r.top, b: r.bottom };
+      });
+      return { strip: { l: strip.left, r: strip.right }, labels, page: document.documentElement.scrollWidth - innerWidth };
+    });
+    expect(m.page, "the page scrolls sideways").toBeLessThanOrEqual(0);
+    for (const a of m.labels) {
+      expect(a.l, `${a.name} starts before the strip`).toBeGreaterThanOrEqual(m.strip.l - 0.5);
+      expect(a.r, `${a.name} runs past the strip`).toBeLessThanOrEqual(m.strip.r + 0.5);
+      for (const b of m.labels) {
+        if (a === b) continue;
+        const overlap = a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
+        expect(overlap, `${a.name} overlaps ${b.name}`).toBe(false);
+      }
+    }
+    if (process.env.SHOT_DIR) {
+      // The whole width: the strip bleeds into the page's gutters.
+      const box = (await page.getByTestId("timeline").boundingBox())!;
+      await page.screenshot({ path: `${process.env.SHOT_DIR}/after-timeline-end-trips-390-${info.project.name}.png`, clip: { x: 0, y: box.y - 8, width: 390, height: box.height + 16 } });
+    }
+  });
+});
