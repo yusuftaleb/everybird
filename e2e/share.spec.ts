@@ -46,9 +46,9 @@ async function previewInfo(page: Page) {
   });
 }
 
-// WebKit runs only the layout test at the end: its desktop build shares files natively (Share image opens the share
-// sheet, not a download) and Playwright can't grant it clipboard permissions.
-const chromiumOnly = (browserName: string) => test.skip(browserName === "webkit", "Chromium only: native share and clipboard permissions");
+// WebKit and Firefox run only the layout test at the end: WebKit's desktop build shares files natively (Share image
+// opens the share sheet, not a download), and Playwright can't grant either engine clipboard permissions.
+const chromiumOnly = (browserName: string) => test.skip(browserName !== "chromium", "Chromium only: native share and clipboard permissions (flows.spec.ts covers the other engines with a clipboard stand-in)");
 
 test("story image is 1080×1920 PNG, post is 1080×1350 and square is 1080×1080", async ({ page, browserName }) => {
   chromiumOnly(browserName);

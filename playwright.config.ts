@@ -16,14 +16,22 @@ export default defineConfig({
   use: { baseURL },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /(filters|stress)\.spec\.ts/ },
-    // The timeline, the share dialog and Settings (page heads, Tick by hand) in Safari's engine too.
-    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(timeline|share|settings)\.spec\.ts/ },
+    // The flow matrix (flows.spec.ts: every way in, filters, card, share, backup; each engine samples two widths, MATRIX=full
+    // walks all five), the timeline, the share dialog and Settings (page heads, Tick by hand) in Safari's engine too.
+    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(flows|timeline|share|settings)\.spec\.ts/ },
+    // Gecko: the flow matrix and the specs that drive the dropdowns, the timeline, the share dialog, Settings, About, the
+    // shared view and the theme.
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+      testMatch: /(flows|timeline|places|share|share-link|settings|about|smoke)\.spec\.ts/,
+    },
     // The frame-timing test runs on its own, after everything else, so other workers can't steal its CPU.
     {
       name: "perf",
       use: { ...devices["Desktop Chrome"], baseURL: perfURL },
       testMatch: /filters\.spec\.ts/,
-      dependencies: ["chromium", "webkit"],
+      dependencies: ["chromium", "webkit", "firefox"],
     },
     // Viral-scale stress (3,000 / 6,000 / ~11,000 species, 390 and 1440 px), opt-in: only with STRESS=1
     // (`npm run e2e:stress`), on the production build, one test at a time, in both engines.
