@@ -7,6 +7,13 @@ test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 // One test at a time: a second worker would steal the CPU being measured.
 test.describe.configure({ mode: "serial" });
 
+// The frame bound: no frame over 50 ms (three 60 Hz refreshes), compared with a 1 ms measurement tolerance (a frame
+// "≤ 50 ms" means a delta under 51 ms). rAF deltas are vsync-quantised and carry timer jitter, so three 16.7 ms
+// refreshes read as 50.0–50.1 ms, which failed the exact bound about one run in three. The 100 ms task bound (and its
+// 50 ms headroom) are unchanged.
+const FRAME_MAX_MS = 50;
+const FRAME_TOLERANCE_MS = 1;
+
 type Row = { code: string };
 const COUNTRIES = ["CA", "US", "EG", "GB", "ZA", "TR", "SA", "BY", "MX", "BR"];
 
@@ -77,7 +84,7 @@ async function stopProbe(page: Page) {
   });
 }
 
-/** Probe an action at the budget: no task over 100 ms (50 ms headroom), no frame over 50 ms. */
+/** Probe an action at the budget: no task over 100 ms (50 ms headroom), no frame over 50 ms (1 ms tolerance). */
 function measurer(page: Page) {
   return async (what: string, act: () => Promise<void>, took: () => Promise<void>) => {
     await startProbe(page);
@@ -87,7 +94,7 @@ function measurer(page: Page) {
     const m = await stopProbe(page);
     console.log(`${what}: longest task ${m.long.toFixed(0)} ms, longest frame ${m.frame.toFixed(1)} ms`);
     expect(m.long, `longest task after ${what}`).toBeLessThanOrEqual(100);
-    expect(m.frame, `longest frame after ${what}`).toBeLessThanOrEqual(50);
+    expect(m.frame, `longest frame after ${what}`).toBeLessThan(FRAME_MAX_MS + FRAME_TOLERANCE_MS);
     expect(m.long, `longest task after ${what} (headroom)`).toBeLessThanOrEqual(50);
   };
 }
@@ -147,7 +154,7 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
     const m = await stopProbe(page);
     console.log(`${what}: longest task ${m.long.toFixed(0)} ms, longest frame ${m.frame.toFixed(1)} ms`);
     expect(m.long, `longest task after ${what}`).toBeLessThanOrEqual(100);
-    expect(m.frame, `longest frame after ${what}`).toBeLessThanOrEqual(50);
+    expect(m.frame, `longest frame after ${what}`).toBeLessThan(FRAME_MAX_MS + FRAME_TOLERANCE_MS);
     // Headroom (Task P1): no task over half the budget. The frame bound stays at 50 ms: at 4× the order step
     // still usually drops one vsync (33 ms) and sometimes two (50 ms), so a tighter frame bound would be flaky.
     expect(m.long, `longest task after ${what} (headroom)`).toBeLessThanOrEqual(50);
