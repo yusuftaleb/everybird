@@ -114,17 +114,22 @@ describe('exits written late', () => {
 const op = (cost: number, at = 0, seen = true, log?: number[]): BirdOp => ({ at, seen, cost, run: (late = 0) => { log?.push(late) } })
 
 describe('takeChunk', () => {
+  const ix = (n: number) => Array.from({ length: n }, (_, i) => i)
   it('takes whole ops up to the budget, and at least one', () => {
     const ops = [op(2), op(2), op(1), op(2)]
-    expect(takeChunk(ops, 0, 4)).toBe(2)
-    expect(takeChunk(ops, 0, 5)).toBe(3)
-    expect(takeChunk(ops, 2, 1)).toBe(3)
-    expect(takeChunk(ops, 1, 0)).toBe(2) // progress even with no budget
-    expect(takeChunk(ops, 4, 10)).toBe(4)
-    // Seen ops due by `due` are taken past the budget; the first op not yet due stops the chunk.
-    const due = [op(2, 0), op(2, 10), op(2, 30), op(2, 0, false)]
-    expect(takeChunk(due, 0, 2, 10)).toBe(2)
-    expect(takeChunk(due, 0, 2, 40)).toBe(3)
+    expect(takeChunk(ops, 0, 4)).toEqual(ix(2))
+    expect(takeChunk(ops, 0, 5)).toEqual(ix(3))
+    expect(takeChunk(ops, 2, 1)).toEqual([2])
+    expect(takeChunk(ops, 1, 0)).toEqual([1]) // progress even with no budget
+    expect(takeChunk(ops, 4, 10)).toEqual([])
+  })
+  it('forces seen travels and arrivals due by `due` past the budget, never exits, and skips done ops', () => {
+    const exit = (seen = true): BirdOp => ({ ...op(1, 0, seen), exit: true })
+    const ops = [exit(), exit(), exit(), op(2, 10), op(2, 30), op(2, 0, false)]
+    expect(takeChunk(ops, 0, 1, 20)).toEqual([0, 3]) // the travel due at 10 jumps the queued exits
+    expect(takeChunk(ops, 0, 1, -Infinity)).toEqual([0]) // nothing due: exits are not forced
+    const done = [true, false, false, true]
+    expect(takeChunk(ops, 1, 2, 40, done)).toEqual([1, 2, 4])
   })
 })
 
@@ -138,40 +143,99 @@ describe('adaptBudget', () => {
   })
 })
 
-/** Drive runChunked with fake frames `period` ms apart, the change planned at 0 and the first frame at `period`. */
-function simulate(ops: BirdOp[], period: number) {
+const op2 = op
+
+/**
+ * A real collage of `n` birds on a 25-column grid (stage 100 wide, 4 x 5 tiles; the viewport shows y 0..50, so
+ * the first 10 rows are in view), first placed, then changed to `next` and written with runChunked on fake
+ * frames `period` ms apart (the change planned at 0, the first frame at `period`). Records for every bird in
+ * view when its write landed and what it asked for.
+ */
+function grid(n: number, next: (i: number) => Box | undefined, extra: Record<string, Box> = {}) {
+  const codes = [...Array.from({ length: n }, (_, i) => `b${i}`), ...Object.keys(extra)]
+  const box = (i: number): Box => [(i % 25) * 4, Math.floor(i / 25) * 5, 4, 5]
+  const full = Object.fromEntries(Array.from({ length: n }, (_, i) => [`b${i}`, box(i)]))
+  const after: Record<string, Box> = { ...extra }
+  for (let i = 0; i < n; i++) { const b = next(i); if (b) after[`b${i}`] = b }
+  return { codes, full, after }
+}
+type Rec = { t: number; md?: string; anim?: KeyframeAnimationOptions; off: boolean }
+function run(g: ReturnType<typeof grid>, period: number) {
+  const L = (boxes: Record<string, Box>): StateLayout =>
+    ({ key: 'x', layout: 'narrow', mode: 'even', W: 100, H: 200, boxes: new Map(Object.entries(boxes)), scale: 1, base: 1 })
+  let t = 0
+  const anims = new Map<string, KeyframeAnimationOptions>()
+  const els = new Map(g.codes.map((c) => {
+    const el = document.createElement('button')
+    el.animate = ((_k: Keyframe[], o: KeyframeAnimationOptions) => { anims.set(c, o); return { cancel() {}, onfinish: null } as unknown as Animation }) as HTMLElement['animate']
+    return [c, el as HTMLElement]
+  }))
+  const m = newMotion()
+  writeBirds(m, { codes: g.codes, els, layout: L(g.full), visible: new Set(Object.keys(g.full)), stagePx: 100, style: 'jump' })
+  const { ops, on } = planBirds(m, { codes: g.codes, els, layout: L(g.after), visible: new Set(Object.keys(g.after)), stagePx: 100, style: 'travel', view: { top: 0, bottom: 50 } })
+  m.on = on
+  const recs = new Map<string, Rec>()
+  const wrapped = ops.map((o) => ({ ...o, run: (late?: number) => {
+    o.run(late)
+    const el = els.get(o.code!)!
+    recs.set(o.code!, { t, md: el.style.getPropertyValue('--md'), anim: anims.get(o.code!), off: el.hasAttribute('data-off') })
+  } }))
   let queued: ((t: number) => void) | null = null
-  let t = period, frames = 0, done = false
-  runChunked(ops, 0, (cb) => { queued = cb; return 1 }, () => {}, () => { done = true })
-  while (queued && !done) {
-    const cb: (t: number) => void = queued
-    queued = null
-    frames++
-    cb(t)
-    t += period
+  let frames = 0
+  runChunked(wrapped, 0, (cb) => { queued = cb; return 1 }, () => {}, () => {})
+  t = period
+  while (queued) { const cb: (t: number) => void = queued; queued = null; frames++; cb(t); t += period }
+  return { ops, recs, m, frames }
+}
+/** Lateness of every seen travel / arrival start, and every seen exit's end (or its hiding) against its schedule. */
+function check(r: ReturnType<typeof run>, period: number) {
+  let travel = 0, exits = 0
+  for (const o of r.ops) {
+    if (!o.seen) continue
+    const rec = r.recs.get(o.code!)!
+    if (o.exit) {
+      exits++
+      if (rec.anim) expect(Math.abs(rec.t + (rec.anim.delay as number) + (rec.anim.duration as number) - EXIT_MS)).toBeLessThanOrEqual(period)
+      else { expect(rec.off).toBe(true); expect(rec.t).toBeGreaterThanOrEqual(EXIT_MS - period) } // already past: hidden
+    } else {
+      travel++
+      const start = rec.anim?.fill === 'backwards' ? rec.t + (rec.anim.delay as number) : rec.t + parseFloat(rec.md || '0')
+      expect(start - o.at).toBeLessThanOrEqual(MAX_LATE)
+    }
   }
-  return frames
+  return { travel, exits }
 }
 
-type Seen = { at: number; late: number }
-const seenOp = (at: number, cost: number, log: Seen[]): BirdOp => ({ at, seen: true, cost, run: (late = 0) => { log.push({ at, late }) } })
-/** The test's order step on a phone: ~284 exits in view (due at 0), a few kept or arriving birds in view, ~700 out of view. */
-const orderStep = (log: Seen[]): BirdOp[] => [
-  ...Array.from({ length: 284 }, () => seenOp(0, 1, log)),
-  ...Array.from({ length: 16 }, (_, i) => seenOp(Math.round(RIPPLE_MS * Math.sqrt(i / 16)), 2, log)),
-  ...Array.from({ length: 700 }, () => op(1, 0, false)),
-]
-/** A change where everything in view moves (the True size switch): ~300 travelling birds in view, ~700 out of view. */
-const allMove = (log: Seen[]): BirdOp[] => [
-  ...Array.from({ length: 300 }, (_, i) => seenOp(Math.round(RIPPLE_MS * Math.sqrt(i / 300)), 2, log)),
-  ...Array.from({ length: 700 }, () => op(1, 0, false)),
-]
-const worst = (log: Seen[]) => Math.max(...log.map((l) => l.late - l.at))
+describe('runChunked on a real 1,000-bird collage', () => {
+  // The e2e order step on a phone: every bird leaves except 16 that move (10 of them in view), and 8 arrive in view.
+  const orderStep = () => grid(1000, (i) => (i < 400 && i % 25 === 0 ? [(i % 25) * 4 + 2, Math.floor(i / 25) * 5 + 1, 4, 5] : undefined),
+    Object.fromEntries(Array.from({ length: 8 }, (_, k) => [`new${k}`, [k * 10, 20, 4, 5] as Box])))
+  // Everything moves (the True size switch): 250 travelling birds in view, 750 out of view.
+  const allMove = () => grid(1000, (i) => [(i % 25) * 4 + 1, Math.floor(i / 25) * 5 + 1, 4, 5])
 
-describe('runChunked', () => {
-  it('writes nothing until the next frame, the first chunk WRITE_START units, and calls onDone once at the end', () => {
+  for (const [name, hz] of [['60 Hz', 60], ['30 Hz', 30], ['20 Hz (50 ms frames)', 20]] as const) {
+    const period = 1000 / hz
+    it(`order step at ${name}: travel and arrivals start within MAX_LATE, exits end on schedule or are hidden`, () => {
+      const r = run(orderStep(), period)
+      const n = check(r, period)
+      expect(n.exits).toBeGreaterThan(200)
+      expect(n.travel).toBe(18) // 10 kept birds in view + 8 arrivals
+    })
+    it(`all moving at ${name}: every travel in view starts within MAX_LATE`, () => {
+      const n = check(run(allMove(), period), period)
+      expect(n.travel).toBe(250)
+    })
+  }
+
+  it('exits follow the budget, not a deadline: at 30 Hz the order step spreads them over several frames', () => {
+    const r = run(orderStep(), 1000 / 30)
+    const times = new Set(r.ops.filter((o) => o.seen && o.exit).map((o) => r.recs.get(o.code!)!.t))
+    expect(times.size).toBeGreaterThan(1)
+  })
+
+  it('writes nothing before the next frame and counts lateness from the change', () => {
     const log: number[] = []
-    const ops = Array.from({ length: 300 }, () => op(1, 50, true, log)) // due at 50 ms: nothing forced early
+    const ops = Array.from({ length: 300 }, () => op2(1, 50, true, log))
     let cb: ((t: number) => void) | null = null
     const ids: number[] = []
     const onDone = vi.fn()
@@ -180,41 +244,13 @@ describe('runChunked', () => {
     expect(ids).toEqual([7])
     cb!(1016.7)
     expect(log.length).toBe(WRITE_START)
-    expect(log[0]).toBeCloseTo(16.7) // lateness is measured from the change, so the first chunk is a frame late
+    expect(log[0]).toBeCloseTo(16.7)
     cb!(1033.4)
     expect(log.length).toBe(WRITE_START + 150)
     cb!(1050.1)
     expect(log.length).toBe(300)
     expect(onDone).toHaveBeenCalledTimes(1)
     expect(ids.at(-1)).toBe(0)
-  })
-
-  it('takes seen ops that would otherwise start over MAX_LATE late, whatever the budget', () => {
-    const log: Seen[] = []
-    const ops = Array.from({ length: 300 }, () => seenOp(0, 1, log))
-    simulate(ops, 50) // first frame 50 ms after the change: the next would be 100 ms, too late for all of them
-    expect(log.length).toBe(300)
-    expect(worst(log)).toBe(50)
-  })
-
-  for (const [name, hz] of [['60 Hz', 60], ['30 Hz', 30], ['20 Hz (50 ms frames)', 20]] as const) {
-    it(`every bird in view starts within MAX_LATE of its time, order step at ${name}`, () => {
-      const log: Seen[] = []
-      simulate(orderStep(log), 1000 / hz)
-      expect(log.length).toBe(300)
-      expect(worst(log)).toBeLessThanOrEqual(MAX_LATE)
-    })
-    it(`every bird in view starts within MAX_LATE of its time, all moving at ${name}`, () => {
-      const log: Seen[] = []
-      simulate(allMove(log), 1000 / hz)
-      expect(worst(log)).toBeLessThanOrEqual(MAX_LATE)
-    })
-  }
-
-  it('spreads a big change: at 60 Hz the order step takes a few frames, not one', () => {
-    const frames = simulate(orderStep([]), 1000 / 60)
-    expect(frames).toBeGreaterThan(2)
-    expect(frames).toBeLessThanOrEqual(8)
   })
 })
 

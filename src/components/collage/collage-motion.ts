@@ -101,10 +101,11 @@ const inView = (view: WriteArgs['view'], y: number, h: number) => !view || (y < 
  *          arrivals ENTER_AT + their ripple delay.
  *  - seen: it is in the viewport before or after the change (or no viewport was given).
  *  - cost: rough style work, in units of one bird restyle.
+ *  - exit: a leaving bird (never forced into a chunk early: see takeChunk).
  *  - run(late): apply it `late` ms after the change (the plan). Delays shrink by `late` (an exit starts `late`
  *    ms into its animation), so a bird written a few frames late still moves on the ripple's schedule.
  */
-export type BirdOp = { at: number; seen: boolean; cost: number; code?: string; run: (late?: number) => void }
+export type BirdOp = { at: number; seen: boolean; cost: number; code?: string; exit?: boolean; run: (late?: number) => void }
 
 /**
  * Plan every bird's changes for the layout without touching the DOM, and return the birds shown afterwards.
@@ -193,6 +194,7 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
         at: 0,
         seen,
         cost: 1,
+        exit: true,
         md,
         code,
         run: (late = 0) => {
@@ -228,20 +230,32 @@ function order(ops: (BirdOp & { md: number })[]): BirdOp[] {
   return ops.sort((p, q) => (p.seen === q.seen ? (p.seen ? p.at - q.at : 0) || p.md - q.md : p.seen ? -1 : 1))
 }
 
-/** Longest an op in view may start after its time in the spec (ms): the ruling on chunked writes. */
+/** Longest a travel or arrival in view may start after its time in the spec (ms): the ruling on chunked writes. */
 export const MAX_LATE = 64
 
 /**
- * How many ops (from `start`) go in one chunk of `budget` cost units: whole ops until the budget is spent, and
- * always at least one, so every frame makes progress. Seen ops due at or before `due` (ms after the change) are
- * taken whatever the budget: left for the next frame they would start more than MAX_LATE late.
+ * One chunk: the indices of the ops to apply now, from `start` (every op before it is done; `done` marks the
+ * ones applied out of order). Whole ops in order until `budget` cost units are spent, at least one so every
+ * frame makes progress; then any seen travel or arrival due at or before `due` (ms after the change), whatever
+ * the budget, since left for the next frame it would start more than MAX_LATE late. Exits are never forced:
+ * written late, they start partway and still end on schedule.
  */
-export function takeChunk(ops: readonly BirdOp[], start: number, budget: number, due = -Infinity): number {
-  let end = start, spent = 0
-  while (end < ops.length && (end === start || spent + ops[end].cost <= budget || (ops[end].seen && ops[end].at <= due))) {
-    spent += ops[end++].cost
+export function takeChunk(ops: readonly BirdOp[], start: number, budget: number, due = -Infinity, done?: readonly boolean[]): number[] {
+  const out: number[] = []
+  let i = start, spent = 0
+  for (; i < ops.length; i++) {
+    if (done?.[i]) continue
+    if (out.length && spent + ops[i].cost > budget) break
+    spent += ops[i].cost
+    out.push(i)
   }
-  return end
+  for (; i < ops.length && ops[i].seen; i++) {
+    const op = ops[i]
+    if (done?.[i] || op.exit) continue
+    if (op.at > due) break // seen ops are in start order, exits aside
+    out.push(i)
+  }
+  return out
 }
 
 /**
@@ -259,8 +273,8 @@ export function adaptBudget(budget: number, frameMs: number): number {
  * a stand-in; `pending` gets each frame request's id, 0 when done, so the caller can cancel it). `start` is the
  * change's time on the frame clock (performance.now() when it was planned); each op runs with how late its
  * frame is after it, so even the first chunk is about one frame late, and its delays shrink by that.
- * Budget: WRITE_START units, then adaptBudget's. Seen ops that would start more than MAX_LATE late if left
- * for the next frame (estimated one frame of the last length away) go in this chunk regardless.
+ * Budget: WRITE_START units, then adaptBudget's. Seen travels and arrivals that would start more than MAX_LATE
+ * late if left for the next frame (estimated one frame of the last length away) go in this chunk regardless.
  * `onDone` runs after the last chunk.
  */
 export function runChunked(
@@ -271,13 +285,14 @@ export function runChunked(
   onDone: () => void,
 ): void {
   let i = 0, last = -1, budget = WRITE_START
+  const done: boolean[] = []
   const step = (now: number) => {
     const late = Math.max(0, now - start)
     const frameMs = Math.max(1000 / 60, last < 0 ? late : now - last)
     if (last >= 0) budget = adaptBudget(budget, now - last)
     last = now
-    const end = takeChunk(ops, i, budget, late + frameMs - MAX_LATE)
-    for (; i < end; i++) ops[i].run(late)
+    for (const k of takeChunk(ops, i, budget, late + frameMs - MAX_LATE, done)) { done[k] = true; ops[k].run(late) }
+    while (i < ops.length && done[i]) i++
     if (i < ops.length) pending(frame(step))
     else { pending(0); onDone() }
   }
