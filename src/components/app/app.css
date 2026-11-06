@@ -264,8 +264,19 @@
 .eb-confirm p { margin: 0; }
 
 
-/* The top bar (the site's phone top bar): wordmark home, Collage / Settings / About, the theme switch. One row. */
-.eb-topbar { border-bottom: 1px solid var(--hairline); }
+/* The top bar (the site's phone top bar): wordmark home, Collage / Settings / About, the theme switch. One row.
+   Sticky, with headroom (src/lib/headroom.ts): data-hidden slides it up out of view while the page scrolls down; any
+   upward scroll brings it back. Transform only: it keeps its place in the flow, so the page never moves. */
+.eb-topbar {
+  position: sticky; top: 0; z-index: var(--z-topbar);
+  border-bottom: 1px solid var(--hairline); background: var(--paper);
+  transition: transform .2s var(--ease-ui);
+}
+.eb-topbar[data-hidden] { transform: translateY(-100%); }
+@media (prefers-reduced-motion: reduce) { .eb-topbar { transition: none; } }
+/* Focusing a control in the bar never scrolls the page: the bar is always on screen when it holds focus (headroom.ts
+   shows it on focusin), so the root's scroll-padding (globals.css) must not apply to it. */
+.eb-topbar :is(a, button) { scroll-margin-top: calc(-1 * var(--topbar-h)); }
 .eb-topbar-in {
   max-width: 1152px; margin: 0 auto; padding: 8px 16px; min-height: 60px;
   display: flex; align-items: center; gap: 8px;
@@ -349,7 +360,7 @@
 .eb-unmatched a { color: var(--accent); text-underline-offset: 3px; }
 
 /* "Removed … · Undo", for a few seconds after a bird is removed. */
-.eb-toast-slot { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 60; translate: -50% 0; width: max-content; max-width: calc(100vw - 32px); }
+.eb-toast-slot { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: var(--z-toast); translate: -50% 0; width: max-content; max-width: calc(100vw - 32px); }
 .eb-toast {
   display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 16px; font-size: 15px;
   background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
@@ -390,7 +401,7 @@
 /* The first visit's welcome (Welcome.tsx): a small card over the landing's sample, a bottom sheet on phones (600px and
    under, as the other sheets). Its scrim is lighter than the dialogs' .28 so the sample stays in view behind it. */
 .eb-welcome-scrim {
-  position: fixed; inset: 0; z-index: 955; display: grid; place-items: center; padding: 16px;
+  position: fixed; inset: 0; z-index: var(--z-welcome); display: grid; place-items: center; padding: 16px;
   background: rgb(0 0 0 / .12); animation: eb-welcome-fade .2s ease both;
 }
 .eb-welcome {

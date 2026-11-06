@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom'
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { CloseIcon, SearchIcon } from '@/components/collage/icons'
 import { Flag } from '@/components/Flag'
-import { trapTab, useEscapeCapture, useFocusInAndBack, useIsSheet } from '@/components/dialog-utils'
+import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
 import { stripBracket } from '@/lib/import/places'
 import { placesSpoken, placesSummary, timeSpoken, timeSummary } from '@/lib/list/filter-summary'
 import { options, toggleCountry, withCountries, type ChipOption, type Filter } from '@/lib/list/filters'
@@ -140,6 +140,8 @@ function DropPanel({ id, kind, title, sheet, button, onClose, children }: PanelP
   const ref = useRef<HTMLDivElement>(null)
   useEscapeCapture(onClose)
   useFocusInAndBack(ref, button)
+  // Shown, the top bar must not cover the popover or its controls bar (a sheet sits above it anyway).
+  useHoldTopBar(() => (sheet ? null : ref.current?.closest<HTMLElement>('.eb-dockwrap')))
   // A press outside the popover and its button closes it (the sheet has its scrim).
   useEffect(() => {
     if (sheet) return

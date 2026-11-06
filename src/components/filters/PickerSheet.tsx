@@ -1,6 +1,6 @@
 'use client'
 import { useRef, type ReactNode } from 'react'
-import { trapTab, useEscapeCapture, useFocusInAndBack } from '@/components/dialog-utils'
+import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar } from '@/components/dialog-utils'
 import { CloseIcon } from '@/components/collage/icons'
 import './filters.css'
 
@@ -11,6 +11,7 @@ export function PickerSheet({ title, count, onClose, children }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   useEscapeCapture(onClose)
   useFocusInAndBack(ref)
+  useHoldTopBar()
   return (
     <div className="eb-sheet-scrim" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div

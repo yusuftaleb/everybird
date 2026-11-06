@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
-import { trapTab, useEscapeCapture, useIsSheet } from '@/components/dialog-utils'
+import { trapTab, useEscapeCapture, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
 import { formatDate, formatMass } from '@/lib/format'
 import { formatPlace } from '@/lib/import/places'
 import type { ListEntry } from '@/lib/list/model'
@@ -124,6 +124,7 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
 
   // Esc closes (shared capture helper); a press outside closes the popover.
   useEscapeCapture(onClose)
+  useHoldTopBar()
   useEffect(() => {
     const down = (e: PointerEvent) => {
       const t = e.target as Node

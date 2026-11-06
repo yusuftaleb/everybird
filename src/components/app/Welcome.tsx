@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CloseIcon } from '@/components/collage/icons'
-import { trapTab, useEscapeCapture, useIsSheet } from '@/components/dialog-utils'
+import { trapTab, useEscapeCapture, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
 import { rememberWelcomed, welcomed } from '@/lib/welcome'
 
 /**
@@ -31,6 +31,7 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
     onClose()
   }
   useEscapeCapture(explore)
+  useHoldTopBar()
   useLayoutEffect(() => {
     primary.current?.focus({ preventScroll: true })
     // Closed (and not off to Settings), focus goes back to the page: the sample's first control (its view tabs), or the

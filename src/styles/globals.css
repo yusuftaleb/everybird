@@ -8,6 +8,8 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Anchor jumps (/settings#sources, /about#credits) and scrollIntoView land below the sticky top bar, shown or not. */
+  scroll-padding-top: var(--topbar-h);
 }
 
 body {

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from 'react'
+import { holdTopBar } from '@/lib/headroom'
 
 /** At or below this width (phones, as /lifelist's max-width:600px), popovers become bottom sheets. */
 export const SHEET_AT = 600
@@ -37,6 +38,16 @@ export function useEscapeCapture(onClose: () => void): void {
     window.addEventListener('keydown', key, true)
     return () => window.removeEventListener('keydown', key, true)
   }, [])
+}
+
+/**
+ * While mounted, the top bar stays shown (its headroom never hides it under an open dialog, sheet or popover).
+ * `clear()` names an element the shown bar must not cover (a popover's controls bar): the page scrolls it out from
+ * under the bar on open.
+ */
+export function useHoldTopBar(clear?: () => HTMLElement | null | undefined): void {
+  const get = useRef(clear)
+  useLayoutEffect(() => holdTopBar(get.current?.()), [])
 }
 
 /** Keep Tab inside `root` (a modal). Call from the root's onKeyDown. */

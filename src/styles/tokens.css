@@ -12,7 +12,22 @@
   --font-display: "Cabinet Grotesk", "Satoshi", system-ui, sans-serif;
   --font-body: "Satoshi", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* The UI ease (DESIGN.md, Motion): chips, switches, sheets, the top bar's slide. */
+  --ease-ui: cubic-bezier(.16, 1, .3, 1);
+  /* The top bar's height (app.css .eb-topbar: 60px + its hairline; 64px + 1 from 720px). Anchor jumps and
+     scrollIntoView keep their target below it (globals.css scroll-padding-top). */
+  --topbar-h: 61px;
+  /* The page's z-index ladder (DESIGN.md, Layers). In-page layers (the stage's birds and tooltip, the controls bar and
+     its popovers, sticky bars inside a section) stay under 40. */
+  --z-topbar: 40;
+  --z-dialog-scrim: 49; /* the share dialog's scrim, the bird card's sheet scrim */
+  --z-dialog: 50; /* the bird card (popover or sheet) */
+  --z-toast: 60; /* "Removed … · Undo" */
+  --z-sheet-scrim: 950; /* the phones' bottom sheets: Places, Time, PickerSheet */
+  --z-sheet: 951;
+  --z-welcome: 955; /* the first-visit welcome */
 }
+@media (min-width: 720px) { :root { --topbar-h: 65px; } }
 
 :root[data-theme=light] {
   color-scheme: light;

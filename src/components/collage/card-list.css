@@ -2,7 +2,7 @@
 .eb-card {
   --eb-arrive: cubic-bezier(.25, .8, .25, 1);
   position: fixed;
-  z-index: 50;
+  z-index: var(--z-dialog);
   width: max-content;
   max-width: min(300px, calc(100vw - 16px));
   box-sizing: border-box;
@@ -32,7 +32,7 @@
   border-radius: calc(20px * var(--one-if-corner-shape-supported, .566));
   animation: eb-sheet-in .32s var(--eb-arrive) both;
 }
-.eb-card-scrim { position: fixed; inset: 0; z-index: 49; background: rgb(0 0 0 / .28); }
+.eb-card-scrim { position: fixed; inset: 0; z-index: var(--z-dialog-scrim); background: rgb(0 0 0 / .28); }
 @keyframes eb-card-in { from { opacity: 0; } }
 @keyframes eb-sheet-in { from { opacity: 0; transform: translateY(24px); } }
 .eb-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }

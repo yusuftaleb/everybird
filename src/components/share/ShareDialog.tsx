@@ -6,7 +6,7 @@
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
 import { DeviceMobile, DownloadSimple, FrameCorners, LinkSimple, ShareNetwork, Square, X, type Icon } from '@phosphor-icons/react'
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { trapTab, useEscapeCapture, useFocusInAndBack } from '@/components/dialog-utils'
+import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar } from '@/components/dialog-utils'
 import { track } from '@/lib/analytics'
 import { currentTheme, subscribeTheme, type Theme } from '@/lib/theme'
 import { downloadBlob } from '@/lib/download'
@@ -52,6 +52,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const nameId = useId()
   useEscapeCapture(onClose)
   useFocusInAndBack(ref)
+  useHoldTopBar()
 
   const { list, filter, saved, seen } = state
   const [format, setFormat] = useState<ImageFormat>('story')

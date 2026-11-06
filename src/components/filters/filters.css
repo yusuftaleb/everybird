@@ -48,9 +48,9 @@
 .eb-pick svg { width: 20px; height: 20px; flex: none; }
 .eb-pick-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .eb-pick-label[lang] { font-style: italic; }
-.eb-sheet-scrim { position: fixed; inset: 0; z-index: 950; background: rgb(0 0 0 / .28); animation: eb-fade-in .2s ease both; }
+.eb-sheet-scrim { position: fixed; inset: 0; z-index: var(--z-sheet-scrim); background: rgb(0 0 0 / .28); animation: eb-fade-in .2s ease both; }
 .eb-sheet {
-  position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 951;
+  position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: var(--z-sheet);
   max-height: min(72vh, 560px); display: flex; flex-direction: column;
   background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
   border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
