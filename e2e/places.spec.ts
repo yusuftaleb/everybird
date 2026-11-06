@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
-// The Places and Time dropdowns in the controls bar, on a synthetic list: Canada most months, trips to Egypt and Costa
+// The Places and Time dropdowns in the controls bar, on a synthetic list: Canada most months, lifers in Egypt and Costa
 // Rica (full dates, 3+ lifers within days in another country).
 type Row = { code: string };
 function syntheticSaved() {

@@ -1,14 +1,12 @@
-// The Time panel's pure logic: months across the list's span, new species per month, trips laid out in lanes under
-// the bars, the range handles' keyboard steps and the range and trip filters.
+// The Time panel's pure logic: months across the list's span, new species per month, the range handles' keyboard
+// steps and the range filter.
 //
 // The filter's time model (see filters.ts): a date range `from`/`to` (YYYY-MM, both inclusive, either end open)
 // replaces the year chips. A year is the range Jan..Dec of that year (`year` still filters, and the store turns it into
-// that range). A trip stays its own dimension (its species, not every bird of its months): choosing one also sets the
-// range to its months, so the handles show it; moving a handle drops the trip.
+// that range).
 import { formatDate } from '../format'
 import type { Filter } from './filters'
 import type { ListEntry } from './model'
-import type { Trip } from './trips'
 
 export type Month = string // 'YYYY-MM'
 
@@ -118,62 +116,6 @@ export function barHeight(count: number, max: number): number {
   return Math.min(100, Math.max(12, Math.sqrt(count / Math.max(1, max)) * 100))
 }
 
-export type TripLane = { trip: Trip; start: number; end: number; lane: number; flip: boolean }
-
-/**
- * How many months a label `px` wide needs on the strip (`axis`, `unitPx` px per unit). Rightwards (`dir` 1) it runs
- * from month `at`'s left edge: months at..at+k-1; past the strip's end it returns more than the months left
- * (N - at + 1), the sign to flip it. Leftwards (`dir` -1) it ends at month `at`'s right edge: months at-k+1..at,
- * stopping at the first month.
- */
-export function labelMonths(axis: MonthAxis, unitPx: number, px: number, at: number, dir: 1 | -1): number {
-  const N = axis.start.length - 1
-  const need = px / Math.max(1e-9, unitPx)
-  let k = 1
-  if (dir === 1) {
-    while (at + k < N && axis.start[at + k] - axis.start[at] < need) k++
-    return axis.start[Math.min(N, at + k)] - axis.start[at] < need ? N - at + 1 : k
-  }
-  while (at + 1 - k > 0 && axis.start[at + 1] - axis.start[at + 1 - k] < need) k++
-  return k
-}
-
-/**
- * Trips as brackets under the bars: each spans its months (indices into `months`) and takes the first lane where
- * neither it nor its label touches another's. A label needs `minSpan` months of room: a number, or per trip from a
- * month and a direction (labelMonths: it depends on the label's width and, on an uneven axis, on where it sits).
- * A label runs rightwards from the trip's start; one that would run past the strip's end is flipped (`flip`) and runs
- * leftwards from the trip's end, so it claims the months before the end instead.
- * Trips outside the months are left out. Sorted by start.
- */
-export function tripLanes(
-  trips: readonly Trip[], months: readonly Month[], minSpan: number | ((t: Trip, at: number, dir: 1 | -1) => number),
-): TripLane[] {
-  if (!months.length) return []
-  const N = months.length
-  const first = toIndex(months[0]), last = first + N - 1
-  const span = (t: Trip, at: number, dir: 1 | -1) => Math.max(1, typeof minSpan === 'number' ? minSpan : minSpan(t, at, dir))
-  const taken: [number, number][][] = [] // per lane, the month ranges (inclusive) its brackets and labels hold
-  const out: TripLane[] = []
-  const sorted = [...trips].sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0))
-  for (const t of sorted) {
-    const s = monthOf(t.start), e = monthOf(t.end) ?? s
-    if (!s || !e) continue
-    const si = toIndex(s), ei = toIndex(e)
-    if (ei < first || si > last) continue
-    const start = Math.max(si, first) - first, end = Math.min(ei, last) - first
-    const right = span(t, start, 1)
-    const flip = start + right > N
-    const lo = flip ? Math.max(0, Math.min(start, end + 1 - span(t, end, -1))) : start
-    const hi = flip ? end : Math.max(end, start + right - 1)
-    let lane = taken.findIndex((rs) => rs.every(([a, b]) => b < lo || a > hi))
-    if (lane < 0) { lane = taken.length; taken.push([]) }
-    taken[lane].push([lo, hi])
-    out.push({ trip: t, start, end, lane, flip })
-  }
-  return out
-}
-
 /** A range slider's value after a key: arrows a month, PageUp/PageDown a year, Home/End the ends; null for other keys. */
 export function sliderKey(key: string, value: number, min: number, max: number): number | null {
   const step: Record<string, number> = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 12, PageDown: -12 }
@@ -210,7 +152,7 @@ export function rangeIndices(f: Filter, months: readonly Month[]): [number, numb
 /** The filter without its time dimensions (the bars count the birds of the rest over the whole span). */
 export function timeless(f: Filter): Filter {
   const rest: Filter = { ...f }
-  delete rest.year; delete rest.from; delete rest.to; delete rest.trip
+  delete rest.year; delete rest.from; delete rest.to
   return rest
 }
 
@@ -219,24 +161,12 @@ const clean = (f: Filter): Filter => {
   return f
 }
 
-/** The filter with the range lo..hi (indices into `months`); an end at the span's edge stays open. Clears year and trip. */
+/** The filter with the range lo..hi (indices into `months`); an end at the span's edge stays open. Clears the year. */
 export function rangeFilter(f: Filter, lo: number, hi: number, months: readonly Month[]): Filter {
   const [a, b] = lo <= hi ? [lo, hi] : [hi, lo]
   const next: Filter = { ...f, from: a > 0 ? months[a] : undefined, to: b < months.length - 1 ? months[b] : undefined }
   delete next.year
-  delete next.trip
   return clean(next)
-}
-
-/** Select a trip (and its months as the range); selecting the chosen trip again clears both. */
-export function tripFilter(f: Filter, t: Trip): Filter {
-  const next: Filter = { ...f }
-  delete next.year
-  if (f.trip === t.id) {
-    delete next.trip; delete next.from; delete next.to
-    return clean(next)
-  }
-  return clean({ ...next, trip: t.id, from: monthOf(t.start), to: monthOf(t.end) ?? monthOf(t.start) })
 }
 
 /** The range in words: "2020", "Sep 2020", "Mar 2020 to Jun 2021", "From Mar 2020", "Up to Jun 2021". */

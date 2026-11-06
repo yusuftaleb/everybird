@@ -6,8 +6,8 @@ import { Chip } from './Chip'
 import { PickerSheet } from './PickerSheet'
 
 type Level = FilterLevel
-export const RANK: Record<Level, string> = { order: 'Orders', family: 'Families', country: 'Countries', year: 'Years', trip: 'Trips' }
-const NOUN: Record<Level, string> = { order: 'an order', family: 'a family', country: 'a country', year: 'a year', trip: 'a trip' }
+export const RANK: Record<Level, string> = { order: 'Orders', family: 'Families', country: 'Countries', year: 'Years' }
+const NOUN: Record<Level, string> = { order: 'an order', family: 'a family', country: 'a country', year: 'a year' }
 
 type PickerProps = {
   level: Level

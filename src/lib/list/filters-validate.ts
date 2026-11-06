@@ -3,23 +3,21 @@ import { inRange, withCountries, type Filter } from './filters'
 import type { ListEntry } from './model'
 import { keysOf, type SeenIndex } from './seen'
 import { MONTH_RE } from './timeline'
-import type { Trip } from './trips'
 
 /**
  * Repair a filter so it never holds state the chips can't show.
  * Always: a year becomes the range Jan..Dec of that year (the Time panel shows ranges, not years); a range end that is
- * not YYYY-MM goes, and reversed ends swap; a family needs an order it belongs to; a trip must exist and start inside
- * the range; countries are ISO2 codes, sorted and deduplicated. Older state migrates: a single `country` joins
- * `countries`; the province and county levels (`sub1`, `sub2`) are gone and dropped.
+ * not YYYY-MM goes, and reversed ends swap; a family needs an order it belongs to; countries are ISO2 codes, sorted and deduplicated. Older state migrates: a single `country` joins
+ * `countries`; the province and county levels (`sub1`, `sub2`) and trips (`trip`) are gone and dropped.
  * With `pruneValues` (after a list change): also drop order/family, countries no species was seen in (seen-here, else
  * lifer places) and a range that match no entry.
  */
-/** Place levels of filters from before countries became a set. */
-type LegacyPlaces = { country?: string; sub1?: string; sub2?: string }
+/** Place levels of filters from before countries became a set, and the trip from before trips were removed. */
+type Legacy = { country?: string; sub1?: string; sub2?: string; trip?: string }
 
-export function applyFilterValidity(f: Filter & LegacyPlaces, list: ListEntry[], trips: Trip[], species: SpeciesIndex, pruneValues: boolean, seen?: SeenIndex): Filter {
-  const { country, sub1, sub2, ...rest } = f
-  void sub1; void sub2
+export function applyFilterValidity(f: Filter & Legacy, list: ListEntry[], species: SpeciesIndex, pruneValues: boolean, seen?: SeenIndex): Filter {
+  const { country, sub1, sub2, trip, ...rest } = f
+  void sub1; void sub2; void trip
   let out: Filter = { ...rest }
   const isos = [...(Array.isArray(out.countries) ? out.countries : []), ...(country ? [country] : [])].filter((c) => typeof c === 'string' && /^[A-Z]{2}$/.test(c))
   out = withCountries(out, isos)
@@ -34,10 +32,6 @@ export function applyFilterValidity(f: Filter & LegacyPlaces, list: ListEntry[],
     const ok = out.order && species.rows.some((r) => r.ord === out.order && r.fam === out.family)
     if (!ok) delete out.family
   }
-  if (out.trip) {
-    const t = trips.find((x) => x.id === out.trip)
-    if (!t || !inRange(t.start.slice(0, 7), out.from, out.to)) delete out.trip
-  }
   if (pruneValues) {
     const has = (pred: (e: ListEntry) => boolean) => list.some(pred)
     const row = (e: ListEntry) => species.byCode.get(e.code)
@@ -48,7 +42,6 @@ export function applyFilterValidity(f: Filter & LegacyPlaces, list: ListEntry[],
     if ((out.from || out.to) && !has((e) => inRange(e.date, out.from, out.to))) {
       delete out.from
       delete out.to
-      delete out.trip
     }
     if (!out.order) delete out.family
   }

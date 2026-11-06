@@ -3,7 +3,6 @@ import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
-import type { Trip } from '@/lib/list/trips'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 
@@ -25,9 +24,9 @@ const species = buildSpeciesIndex([row('a', 1, 10), row('b', 2, 20), row('c', 3,
 const e = (code: string, extra: Partial<ListEntry> = {}): ListEntry => ({ code, date: '2020-05', place: { country: 'CA' }, heard: false, dead: false, media: false, sources: ['ebird'], ...extra })
 const container = { current: document.createElement('div') }
 
-type P = { list: ListEntry[]; trips: Trip[]; filter: Filter }
+type P = { list: ListEntry[]; filter: Filter }
 const setup = (list: ListEntry[]) =>
-  renderHook((p: P) => useCollageLayout({ ...p, mode: 'even', species, container }), { initialProps: { list, trips: [], filter: {} } as P })
+  renderHook((p: P) => useCollageLayout({ ...p, mode: 'even', species, container }), { initialProps: { list, filter: {} } as P })
 
 beforeEach(() => {
   Object.values(fake).forEach((f) => f.mockClear())
@@ -40,18 +39,18 @@ describe('useCollageLayout', () => {
   it('a mark edit (same codes and masses) neither re-packs nor drops the filtered states', () => {
     const h = setup([e('a'), e('b')])
     expect(fake.setList).toHaveBeenCalledTimes(1)
-    h.rerender({ list: [e('a', { heard: true }), e('b')], trips: [], filter: {} })
-    h.rerender({ list: [e('a', { heard: true }), e('b', { media: true })], trips: [], filter: {} })
+    h.rerender({ list: [e('a', { heard: true }), e('b')], filter: {} })
+    h.rerender({ list: [e('a', { heard: true }), e('b', { media: true })], filter: {} })
     expect(fake.setList).toHaveBeenCalledTimes(1)
     expect(fake.refilter).not.toHaveBeenCalled()
   })
 
   it('a new date or place keeps the packed collage and only re-resolves filters', () => {
     const h = setup([e('a'), e('b')])
-    h.rerender({ list: [e('a', { date: '2019-01' }), e('b')], trips: [], filter: {} })
+    h.rerender({ list: [e('a', { date: '2019-01' }), e('b')], filter: {} })
     expect(fake.setList).toHaveBeenCalledTimes(1)
     expect(fake.refilter).toHaveBeenCalledTimes(1)
-    h.rerender({ list: [e('a', { date: '2019-01' }), e('b')], trips: [{ id: 't1', country: 'CA', start: '2019-01-01', end: '2019-01-02', label: 'x', codes: ['a'] }], filter: {} })
+    h.rerender({ list: [e('a', { date: '2019-01', place: { country: 'EG' } }), e('b')], filter: {} })
     expect(fake.refilter).toHaveBeenCalledTimes(2)
     // The client resolves filters against the newest list.
     const resolve = fake.setList.mock.calls[0][1] as (f: Filter) => string[]
@@ -60,14 +59,14 @@ describe('useCollageLayout', () => {
 
   it('a different set of birds re-packs', () => {
     const h = setup([e('a'), e('b')])
-    h.rerender({ list: [e('a'), e('b'), e('c')], trips: [], filter: {} })
+    h.rerender({ list: [e('a'), e('b'), e('c')], filter: {} })
     expect(fake.setList).toHaveBeenCalledTimes(2)
     expect((fake.setList.mock.calls[1][0] as { code: string }[]).map((x) => x.code)).toEqual(['a', 'b', 'c'])
   })
 
   it('gives a new client its list (Strict Mode remounts the client)', () => {
     renderHook((p: P) => useCollageLayout({ ...p, mode: 'even', species, container }), {
-      initialProps: { list: [e('a')], trips: [], filter: {} } as P,
+      initialProps: { list: [e('a')], filter: {} } as P,
       reactStrictMode: true,
     })
     expect(clients.length).toBe(2)
@@ -77,21 +76,13 @@ describe('useCollageLayout', () => {
 })
 
 describe('childFilters and timeless', () => {
-  it('with no time chosen, prefetches the latest trips as a bracket tap sets them; none once a range is set', async () => {
+  it('prefetches the next taxonomy level and countries, never a time state (range drags are not guessed ahead)', async () => {
     const { childFilters, timeless } = await import('@/components/app/use-collage-layout')
     const list = [e('a', { date: '2019-01-02' }), e('b', { date: '2020-03-04' })]
-    const trips: Trip[] = [
-      { id: 't1', country: 'EG', start: '2019-01-01', end: '2019-02-02', label: 'x', codes: ['a'] },
-      { id: 't2', country: 'EG', start: '2020-03-01', end: '2020-03-05', label: 'y', codes: ['b'] },
-    ]
-    const out = childFilters(list, {}, species, trips)
-    expect(out.filter((f) => f.trip)).toEqual([
-      { trip: 't2', from: '2020-03', to: '2020-03' },
-      { trip: 't1', from: '2019-01', to: '2019-02' },
-    ])
-    expect(out.some((f) => f.year)).toBe(false)
-    expect(childFilters(list, { from: '2019-01' }, species, trips).some((f) => f.trip)).toBe(false)
-    expect(timeless({ order: 'X', year: '2020', from: '2020-01', to: '2020-02', trip: 't' })).toEqual({ order: 'X' })
+    const out = childFilters(list, {}, species)
+    expect(out.length).toBeGreaterThan(0)
+    expect(out.some((f) => f.year || f.from || f.to)).toBe(false)
+    expect(timeless({ order: 'X', year: '2020', from: '2020-01', to: '2020-02' })).toEqual({ order: 'X' })
   })
 })
 

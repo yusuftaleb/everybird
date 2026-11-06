@@ -51,7 +51,7 @@ describe("design tokens", () => {
     });
   }
 
-  // Line draws the borders that must be seen (fields, the switch's off track, checkboxes, the dropzone, trip brackets):
+  // Line draws the borders that must be seen (fields, the switch's off track, checkboxes, the dropzone):
   // WCAG 1.4.11's 3:1 against both grounds it sits on, Paper and Surface, in both themes.
   for (const [i, theme] of ["light", "dark"].entries()) {
     for (const ground of ["paper", "surface"] as const) {

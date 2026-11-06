@@ -1,18 +1,16 @@
 'use client'
 // The Time panel: a strip of months from the first lifer to today, a bar per month (new species that month, scaled to
-// the busiest month; empty months a baseline tick), the trips as labelled brackets under it, and two handles that
-// choose a range of months. While a handle is held (or keys repeat) the collage previews the range over its current
+// the busiest month; empty months a baseline tick), a year axis under it, and two handles that choose a range of
+// months. While a handle is held (or keys repeat) the collage previews the range over its current
 // layout (birds outside it hidden, no re-pack); on release (or KEY_COMMIT_MS after the last key) the range is
 // committed: one re-pack, one travel. Layouts are cached by range. On phones the strip scrolls sideways; the handles are sliders for keyboards (arrows a
 // month, PageUp/PageDown a year, Home/End). Logic in src/lib/list/timeline.ts.
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { applyFilter, type Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
-import { barHeight, boundaryAt, monthAxis, monthBins, monthName, monthShort, pickHandle, rangeFilter, rangeIndices, rangeLabel, sliderKey, timeless, tripFilter, type Month } from '@/lib/list/timeline'
+import { barHeight, boundaryAt, monthAxis, monthBins, monthName, monthShort, pickHandle, rangeFilter, rangeIndices, rangeLabel, sliderKey, timeless, type Month } from '@/lib/list/timeline'
 import type { SeenIndex } from '@/lib/list/seen'
-import type { Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
-import { TripBrackets } from './TripBrackets'
 import './timeline.css'
 
 /** Narrowest month on screen (px): below it the strip scrolls sideways. (A collapsed gap's months are narrower.) */
@@ -22,7 +20,6 @@ export const KEY_COMMIT_MS = 350
 
 type Props = {
   entries: ListEntry[]
-  trips: Trip[]
   /** Seen-here, for the Places filter of the other dimensions. */
   seen?: SeenIndex
   filter: Filter
@@ -31,17 +28,16 @@ type Props = {
   months: Month[]
   today: Month
   onFilter: (f: Filter) => void
-  countryName: (iso2: string) => string
   /** The range being dragged (open at the span's edges), or null once committed. */
   onPreview?: (r: { from?: Month; to?: Month } | null) => void
 }
 
 const n = (x: number) => x.toLocaleString('en-US')
 
-export const Timeline = memo(function Timeline({ entries, trips, seen, filter, species, months, today, onFilter, countryName, onPreview }: Props) {
+export const Timeline = memo(function Timeline({ entries, seen, filter, species, months, today, onFilter, onPreview }: Props) {
   const N = months.length
   // Bars count the birds of the other filters (birds, places) over the whole span, so the handles never jump.
-  const others = useMemo(() => applyFilter(entries, timeless(filter), species, trips, seen), [entries, filter, species, trips, seen])
+  const others = useMemo(() => applyFilter(entries, timeless(filter), species, seen), [entries, filter, species, seen])
   const bins = useMemo(() => monthBins(others, today, entries), [others, today, entries])
   // The scale comes from the whole list (long empty stretches collapse to a short break), so it never moves under a filter.
   const axis = useMemo(() => monthAxis(monthBins(entries, today).counts), [entries, today])
@@ -78,7 +74,7 @@ export const Timeline = memo(function Timeline({ entries, trips, seen, filter, s
     timer.current = key ? setTimeout(commit, KEY_COMMIT_MS) : null
   }, [commit])
 
-  // The track and its width (a month's width decides the trips' label room).
+  // The track and its width (a month's width decides where the year labels fit).
   const track = useRef<HTMLDivElement>(null)
   const scroller = useRef<HTMLDivElement>(null)
   const [trackPx, setTrackPx] = useState(0)
@@ -163,16 +159,10 @@ export const Timeline = memo(function Timeline({ entries, trips, seen, filter, s
     } as const
   }
 
-  // Readout: the range (or trip) and its species.
+  // Readout: the range and its species.
   const ranged = lo > 0 || hi < N - 1
   const inRange = bins.counts.slice(lo, hi + 1).reduce((a, b) => a + b, 0) + (ranged ? 0 : bins.undated)
-  const trip = filter.trip ? trips.find((t) => t.id === filter.trip) : undefined
-  const read = `${trip && !drag ? trip.label : ranged ? rangeLabel(months[lo], months[hi]) : `${monthShort(months[0])} to ${monthShort(months[N - 1])}`} · ${n(trip && !drag ? others.filter((e) => trip.codes.includes(e.code)).length : inRange)} species`
-
-  const tripCounts = useMemo(() => {
-    const shown = new Set(others.map((e) => e.code))
-    return new Map(trips.map((t) => [t.id, t.codes.filter((c) => shown.has(c)).length]))
-  }, [others, trips])
+  const read = `${ranged ? rangeLabel(months[lo], months[hi]) : `${monthShort(months[0])} to ${monthShort(months[N - 1])}`} · ${n(inRange)} species`
 
   if (!N) return <p className="eb-note" data-testid="timeline-empty">This list has no dates, so there is no timeline.</p>
   const width = `max(100%, ${axis.units * MONTH_PX}px)`
@@ -216,16 +206,6 @@ export const Timeline = memo(function Timeline({ entries, trips, seen, filter, s
           <div className="eb-time-years eb-mono" aria-hidden="true">
             {years.map(({ m, i }) => <span key={m} style={{ left: pct(i) }}>{m.slice(0, 4)}</span>)}
           </div>
-          <TripBrackets
-            trips={trips}
-            counts={tripCounts}
-            months={months}
-            axis={axis}
-            unitPx={unitPx}
-            selected={filter.trip}
-            countryName={countryName}
-            onPick={(t) => onFilter(tripFilter(filter, t))}
-          />
         </div>
       </div>
     </div>

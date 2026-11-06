@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { countriesLabel, placesNoteFor, placesSpoken, placesSummary, timeSpoken, timeSummary } from '@/lib/list/filter-summary'
-import type { Trip } from '@/lib/list/trips'
 
 const name = (c: string) => ({ CA: 'Canada', EG: 'Egypt', US: 'United States', ZA: 'South Africa' })[c] ?? c
-const trip: Trip = { id: 'EG-2021-09-01', country: 'EG', start: '2021-09-01', end: '2021-09-06', label: 'Egypt · Sep 2021', codes: [] }
 
 describe('countriesLabel (share image)', () => {
   it('one, two joined by +, three or more as "and N more"', () => {
@@ -23,18 +21,17 @@ describe('the bar buttons', () => {
     expect(placesSpoken({ countries: ['CA', 'EG'] }, name)).toBe('Canada, Egypt')
     expect(placesSpoken({}, name)).toBeUndefined()
   })
-  it('Time: years for a range, a month for one month or a trip; spoken in full', () => {
-    expect(timeSummary({}, [])).toBeUndefined()
-    expect(timeSummary({ from: '2022-04', to: '2024-09' }, [])).toBe('2022–2024')
-    expect(timeSummary({ from: '2022-01', to: '2022-12' }, [])).toBe('2022')
-    expect(timeSummary({ from: '2021-09', to: '2021-09' }, [])).toBe('Sep 2021')
-    expect(timeSummary({ from: '2022-04' }, [])).toBe('from 2022')
-    expect(timeSummary({ to: '2024-09' }, [])).toBe('to 2024')
-    expect(timeSummary({ trip: trip.id, from: '2021-09', to: '2021-09' }, [trip])).toBe('Sep 2021')
-    expect(timeSpoken({ from: '2022-04', to: '2024-09' }, [], name)).toBe('April 2022 to September 2024')
-    expect(timeSpoken({ trip: trip.id }, [trip], name)).toBe('Egypt trip, September 2021')
-    expect(timeSpoken({ to: '2024-09' }, [], name)).toBe('up to September 2024')
-    expect(timeSpoken({}, [], name)).toBeUndefined()
+  it('Time: years for a range, a month for one month; spoken in full', () => {
+    expect(timeSummary({})).toBeUndefined()
+    expect(timeSummary({ from: '2022-04', to: '2024-09' })).toBe('2022–2024')
+    expect(timeSummary({ from: '2022-01', to: '2022-12' })).toBe('2022')
+    expect(timeSummary({ from: '2021-09', to: '2021-09' })).toBe('Sep 2021')
+    expect(timeSummary({ from: '2022-04' })).toBe('from 2022')
+    expect(timeSummary({ to: '2024-09' })).toBe('to 2024')
+    expect(timeSpoken({ from: '2022-04', to: '2024-09' })).toBe('April 2022 to September 2024')
+    expect(timeSpoken({ from: '2021-09', to: '2021-09' })).toBe('September 2021')
+    expect(timeSpoken({ to: '2024-09' })).toBe('up to September 2024')
+    expect(timeSpoken({})).toBeUndefined()
   })
 })
 

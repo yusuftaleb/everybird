@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { ListEntry } from '@/lib/list/model'
-import type { Trip } from '@/lib/list/trips'
 import {
   addMonths, barHeight, boundaryAt, monthAxis, monthBins, pickHandle, monthName, monthOf, rangeFilter, rangeIndices, rangeLabel, sliderKey,
-  todayMonth, tripFilter, tripLanes, labelMonths, type Month,
+  todayMonth, type Month,
 } from '@/lib/list/timeline'
 
 const e = (code: string, date?: string, country = 'CA'): ListEntry => ({ code, date, place: { country }, heard: false, dead: false, media: false, sources: [] })
-const trip = (id: string, start: string, end: string, country = 'EG'): Trip => ({ id, country, start, end, label: `${country} trip`, codes: [] })
 
 describe('months', () => {
   it('monthOf reads full dates and months; a year-only date counts as its January; junk is undefined', () => {
@@ -88,101 +86,6 @@ describe('barHeight', () => {
   })
 })
 
-describe('tripLanes', () => {
-  const months = ['2020-01', '2020-02', '2020-03', '2020-04', '2020-05', '2020-06', '2020-07', '2020-08']
-  it('places each trip under its months, in the first lane where it does not touch another (labels need minSpan months)', () => {
-    const lanes = tripLanes([
-      trip('a', '2020-01-02', '2020-01-09'),
-      trip('b', '2020-02-01', '2020-02-03'), // within a's label room (minSpan 3: months 0..2) -> lane 1
-      trip('c', '2020-05-28', '2020-07-02'),
-      trip('d', '2020-04-01', '2020-04-02'), // free in lane 0 (a ends its room at 2)
-    ], months, 3)
-    expect(lanes.map((l) => [l.trip.id, l.start, l.end, l.lane])).toEqual([
-      ['a', 0, 0, 0], ['b', 1, 1, 1], ['d', 3, 3, 0], ['c', 4, 6, 1],
-    ])
-  })
-  it('minSpan can depend on the trip (its label\'s width)', () => {
-    const lanes = tripLanes([trip('a', '2020-01-02', '2020-01-03'), trip('b', '2020-02-01', '2020-02-03')], months, (t) => (t.id === 'a' ? 1 : 5))
-    expect(lanes.map((l) => l.lane)).toEqual([0, 0])
-  })
-  it('minSpan can depend on where the trip starts (an uneven axis)', () => {
-    const lanes = tripLanes([trip('a', '2020-01-02', '2020-01-03'), trip('b', '2020-02-01', '2020-02-03')], months, (_t, start) => (start === 0 ? 1 : 5))
-    expect(lanes.map((l) => l.lane)).toEqual([0, 0])
-  })
-  it('drops trips outside the months', () => {
-    expect(tripLanes([trip('x', '2019-01-01', '2019-01-04')], months, 1)).toEqual([])
-  })
-  it('a label that would run past the end flips and claims the months before the trip\'s end instead', () => {
-    // 8 months, labels need 3: c at month 6 would run to month 8 (past the end), so it holds months 4..6, which b's
-    // label (months 3..5) already holds in lane 0.
-    const lanes = tripLanes([trip('b', '2020-04-01', '2020-04-03'), trip('c', '2020-07-01', '2020-07-03')], months, 3)
-    expect(lanes.map((l) => [l.trip.id, l.lane, l.flip])).toEqual([['b', 0, false], ['c', 1, true]])
-    // With room before it, the flipped label shares the lane.
-    const free = tripLanes([trip('a', '2020-01-01', '2020-01-03'), trip('c', '2020-07-01', '2020-07-03')], months, 3)
-    expect(free.map((l) => [l.trip.id, l.lane, l.flip])).toEqual([['a', 0, false], ['c', 0, true]])
-  })
-  it('two flipped labels at the end take two lanes', () => {
-    const lanes = tripLanes([trip('a', '2020-07-01', '2020-07-03'), trip('b', '2020-08-01', '2020-08-03')], months, 3)
-    expect(lanes.map((l) => [l.trip.id, l.lane, l.flip])).toEqual([['a', 0, true], ['b', 1, true]])
-  })
-})
-
-describe('trip labels on a 390px column', () => {
-  // A phone's strip: the 390px viewport less the strip's 22px padding each side. A gappy list (a lone early month, a
-  // long empty gap, then 46 months of birding), trips with labels of the real widths (TripBrackets' labelPx).
-  const TRACK = 390 - 2 * 22
-  const labelPx = (name: string) => 30 + name.length * 7.5
-  const counts = [4, ...new Array(30).fill(0), ...Array.from({ length: 46 }, (_, i) => (i % 3 ? 1 : 0))]
-  const axis = monthAxis(counts)
-  const unitPx = TRACK / axis.units
-  const ms: Month[] = counts.map((_, i) => addMonths('2020-05', i))
-  const names: Record<string, string> = { EG: 'Egypt', CR: 'Costa Rica', ZA: 'South Africa', MX: 'Mexico', PE: 'Peru', US: 'United States' }
-  const room = (t: Trip, at: number, dir: 1 | -1) => labelMonths(axis, unitPx, labelPx(names[t.country]), at, dir)
-  // Each label's px extent: rightwards from the bracket's left edge, or (flipped) leftwards from its right edge.
-  const extent = (l: { trip: Trip; start: number; end: number; flip: boolean }) => {
-    const w = labelPx(names[l.trip.country])
-    return l.flip ? [axis.start[l.end + 1] * unitPx - w, axis.start[l.end + 1] * unitPx] : [axis.start[l.start] * unitPx, axis.start[l.start] * unitPx + w]
-  }
-  const noOverlap = (lanes: ReturnType<typeof tripLanes>) => {
-    for (const a of lanes) for (const b of lanes) {
-      if (a === b || a.lane !== b.lane) continue
-      const [a0, a1] = extent(a), [b0, b1] = extent(b)
-      const ra = [axis.start[a.start] * unitPx, axis.start[a.end + 1] * unitPx], rb = [axis.start[b.start] * unitPx, axis.start[b.end + 1] * unitPx]
-      const lo = (x: number[], y: number[]) => Math.min(x[0], y[0]), hi = (x: number[], y: number[]) => Math.max(x[1], y[1])
-      const A = [lo([a0, a1], ra), hi([a0, a1], ra)], B = [lo([b0, b1], rb), hi([b0, b1], rb)]
-      expect(A[1] <= B[0] + 0.5 || B[1] <= A[0] + 0.5, `${a.trip.id} and ${b.trip.id} overlap in lane ${a.lane}`).toBe(true)
-    }
-  }
-  const at = (i: number) => `${ms[i]}-05`
-
-  it('the end-of-strip trips flip and never sit on an earlier label', () => {
-    const n = ms.length
-    const lanes = tripLanes([
-      trip('us', at(n - 20), at(n - 20), 'US'), // "United States" (about 18 months here) runs right to the last months
-      trip('eg', at(n - 2), at(n - 2), 'EG'), // flips, running back over "United States"
-      trip('cr', at(n - 1), at(n - 1), 'CR'), // flips too, over both
-    ], ms, room)
-    expect(lanes.map((l) => [l.trip.id, l.flip])).toEqual([['us', false], ['eg', true], ['cr', true]])
-    expect(new Set(lanes.map((l) => l.lane)).size).toBe(3)
-    noOverlap(lanes)
-    // Every label stays on the strip.
-    for (const l of lanes) { const [x0, x1] = extent(l); expect(x0).toBeGreaterThanOrEqual(0); expect(x1).toBeLessThanOrEqual(TRACK + 0.01) }
-  })
-
-  it('no two labels in a lane overlap, for many trip sets', () => {
-    let seed = 7
-    const rnd = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return seed % k }
-    const isos = Object.keys(names)
-    for (let run = 0; run < 200; run++) {
-      const trips = Array.from({ length: 2 + rnd(6) }, (_, i) => {
-        const s = rnd(ms.length), e = Math.min(ms.length - 1, s + rnd(3))
-        return trip(`t${i}`, at(s), at(e), isos[rnd(isos.length)])
-      })
-      noOverlap(tripLanes(trips, ms, room))
-    }
-  })
-})
-
 describe('slider keyboard', () => {
   it('arrows move a month, PageUp/PageDown a year, Home/End to the ends, clamped; other keys do nothing', () => {
     expect(sliderKey('ArrowRight', 5, 0, 20)).toBe(6)
@@ -210,22 +113,16 @@ describe('pickHandle', () => {
 
 describe('range filter', () => {
   const months = ['2020-01', '2020-02', '2020-03', '2020-04']
-  it('rangeIndices reads from/to (or a trip, or a year) onto the months, clamped; nothing is the whole span', () => {
+  it('rangeIndices reads from/to (or a year) onto the months, clamped; nothing is the whole span', () => {
     expect(rangeIndices({}, months)).toEqual([0, 3])
     expect(rangeIndices({ from: '2020-02' }, months)).toEqual([1, 3])
     expect(rangeIndices({ from: '2019-02', to: '2020-03' }, months)).toEqual([0, 2])
     expect(rangeIndices({ year: '2020' }, months)).toEqual([0, 3])
   })
-  it('rangeFilter leaves an end open at the span edge and clears year and trip', () => {
-    expect(rangeFilter({ order: 'X', year: '2020', trip: 't' }, 1, 2, months)).toEqual({ order: 'X', from: '2020-02', to: '2020-03' })
+  it('rangeFilter leaves an end open at the span edge and clears the year', () => {
+    expect(rangeFilter({ order: 'X', year: '2020' }, 1, 2, months)).toEqual({ order: 'X', from: '2020-02', to: '2020-03' })
     expect(rangeFilter({ from: '2020-02' }, 0, 3, months)).toEqual({})
     expect(rangeFilter({}, 2, 1, months)).toEqual({ from: '2020-02', to: '2020-03' }) // swapped ends
-  })
-  it('tripFilter selects the trip with its months; the same trip again clears both', () => {
-    const t = trip('EG-2020-02-27', '2020-02-27', '2020-03-02')
-    const f = tripFilter({ order: 'X', year: '2020' }, t)
-    expect(f).toEqual({ order: 'X', trip: t.id, from: '2020-02', to: '2020-03' })
-    expect(tripFilter(f, t)).toEqual({ order: 'X' })
   })
   it('rangeLabel says the range in words', () => {
     expect(rangeLabel('2020-01', '2020-12')).toBe('2020')

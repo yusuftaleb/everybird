@@ -53,7 +53,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   useEscapeCapture(onClose)
   useFocusInAndBack(ref)
 
-  const { list, trips, filter, saved, seen } = state
+  const { list, filter, saved, seen } = state
   const [format, setFormat] = useState<ImageFormat>('story')
   const [name, setName] = useState(saved.name ?? '')
   const theme = useTheme()
@@ -61,10 +61,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   // What the image shows: the current view (the filter applied), and the filter in words.
   const known = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
   const fk = filterKey(filter)
-  const shown = useMemo(() => (fk ? applyFilter(known, filter, species, trips, seen) : known), [known, filter, fk, species, trips, seen])
+  const shown = useMemo(() => (fk ? applyFilter(known, filter, species, seen) : known), [known, filter, fk, species, seen])
   const label = useMemo(
-    () => labelFor(filter, { species, trips, countryName: (iso) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso) }),
-    [filter, species, trips, regions],
+    () => labelFor(filter, { species, countryName: (iso) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso) }),
+    [filter, species, regions],
   )
   const hasLatest = useMemo(() => shown.some((e) => e.date), [shown])
 

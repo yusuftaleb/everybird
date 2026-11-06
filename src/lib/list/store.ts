@@ -10,14 +10,12 @@ import type { Edits, ImportResult, ListEntry, Rules, Slot, SourceRecord, Unmatch
 import { buildSeen, type SeenIndex } from './seen'
 import * as storage from './storage'
 import { emptySaved, removeSource, replaceSource, type EbirdDetails, type InatDetails, type Saved } from './storage'
-import { findTrips, type Trip } from './trips'
 
 export type AppState = {
   saved: Saved
   list: ListEntry[]
   /** Derived: where each species on the list was seen (seen.ts), for the Places filter, its counts and the map. */
   seen: SeenIndex
-  trips: Trip[]
   /** Derived: unmatched rows that have no fix yet (what the MatchReport shows). */
   openUnmatched: Unmatched[]
   filter: Filter
@@ -84,16 +82,14 @@ function derive(s: AppState, saved: Saved, filter: Filter, ctx: StoreContext, pr
   const records = recordsOf(saved)
   const list = buildList(records, saved.edits, saved.rules, taxonOrder)
   const seen = buildSeen(records, saved.edits, saved.rules, list)
-  const trips = findTrips(list, ctx.countryName)
   const openUnmatched = saved.unmatched.filter((u) => !fixKeys.has(unmatchedKey(u)))
   return {
     ...s,
     saved,
     list,
     seen,
-    trips,
     openUnmatched,
-    filter: applyFilterValidity(filter, list, trips, ctx.species, pruneValues, seen),
+    filter: applyFilterValidity(filter, list, ctx.species, pruneValues, seen),
   }
 }
 
@@ -102,7 +98,6 @@ export function initialState(): AppState {
     saved: emptySaved(),
     list: [],
     seen: { byCode: new Map(), full: false, sig: '0' },
-    trips: [],
     openUnmatched: [],
     filter: {},
     mode: 'even',
@@ -129,7 +124,7 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
       case 'restore':
         return derive(s, a.saved, s.filter, ctx, true)
       case 'filter':
-        return { ...s, filter: applyFilterValidity(a.filter, s.list, s.trips, ctx.species, false, s.seen) }
+        return { ...s, filter: applyFilterValidity(a.filter, s.list, ctx.species, false, s.seen) }
       case 'mode':
         return { ...s, mode: a.mode }
       case 'view':

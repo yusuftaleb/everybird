@@ -45,16 +45,16 @@ type Crumb = { label: string; latin: boolean; to?: Filter }
 
 export const FilterBar = memo(function FilterBar({ state, dispatch, species, compact }: Props) {
   const sheet = useIsSheet()
-  const { list, trips, filter, sci, seen } = state
+  const { list, filter, sci, seen } = state
 
   // Only the levels on show are counted: orders always, families once an order is chosen.
   const opts = useMemo(() => {
     const out: Partial<Record<Level, ChipOption[]>> = {}
     const [top, child] = BIRDS.levels
-    out[top] = options(list, filter, top, species, trips, undefined, seen)
-    if (child && filter[top]) out[child] = options(list, filter, child, species, trips, undefined, seen)
+    out[top] = options(list, filter, top, species, undefined, seen)
+    if (child && filter[top]) out[child] = options(list, filter, child, species, undefined, seen)
     return out
-  }, [list, filter, species, trips, seen])
+  }, [list, filter, species, seen])
 
   const set = (level: Level, value: string | undefined) => dispatch({ type: 'filter', filter: withLevel(filter, level, value) })
   const toggle = (level: Level, value: string) => set(level, filter[level] === value ? undefined : value)

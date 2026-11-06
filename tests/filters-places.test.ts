@@ -20,7 +20,7 @@ const records = [
 ]
 const list = buildList(records, EMPTY_EDITS, DEFAULT_RULES)
 const seen = buildSeen(records, EMPTY_EDITS, DEFAULT_RULES, list)
-const codes = (f: object) => applyFilter(list, f, species, [], seen).map((e) => e.code).sort()
+const codes = (f: object) => applyFilter(list, f, species, seen).map((e) => e.code).sort()
 
 describe('the Places filter: a set of countries, seen-here', () => {
   it('a country keeps every species seen there, not only lifers there; several keep species seen in ANY of them', () => {
@@ -31,16 +31,16 @@ describe('the Places filter: a set of countries, seen-here', () => {
     expect(codes({ countries: ['FR'] })).toEqual([])
   })
   it('without the index (a shared link) places are the lifer places', () => {
-    expect(applyFilter(list, { countries: ['CA'] }, species, []).map((e) => e.code).sort()).toEqual(['duck', 'owl'])
-    expect(applyFilter(list, { countries: ['MX'] }, species, []).map((e) => e.code)).toEqual(['crow'])
-    expect(applyFilter(list, { countries: ['CA', 'MX'] }, species, []).map((e) => e.code).sort()).toEqual(['crow', 'duck', 'owl'])
+    expect(applyFilter(list, { countries: ['CA'] }, species).map((e) => e.code).sort()).toEqual(['duck', 'owl'])
+    expect(applyFilter(list, { countries: ['MX'] }, species).map((e) => e.code)).toEqual(['crow'])
+    expect(applyFilter(list, { countries: ['CA', 'MX'] }, species).map((e) => e.code).sort()).toEqual(['crow', 'duck', 'owl'])
   })
   it('combines with taxonomy and time by AND (time is the lifer date)', () => {
     expect(codes({ countries: ['CA'], order: 'Passeriformes' })).toEqual(['crow'])
     expect(codes({ countries: ['CA'], from: '2019-01', to: '2019-12' })).toEqual(['duck'])
   })
   it('counts are species seen in each country, under the other filters but whatever is checked (a multi-select)', () => {
-    const counts = (f: object) => options(list, f, 'country', species, [], (c) => c, seen).map((o) => [o.value, o.count])
+    const counts = (f: object) => options(list, f, 'country', species, (c) => c, seen).map((o) => [o.value, o.count])
     expect(counts({})).toEqual([['CA', 3], ['MX', 2], ['US', 1]])
     expect(counts({ countries: ['US'] })).toEqual([['CA', 3], ['MX', 2], ['US', 1]])
     expect(counts({ order: 'Strigiformes' })).toEqual([['CA', 1]])
@@ -59,37 +59,32 @@ describe('the Places filter: a set of countries, seen-here', () => {
   })
   it('a search pick keeps countries it was seen in, and clears them when it was seen in none', () => {
     const crow = list.find((e) => e.code === 'crow')!
-    expect(filterToShow({ countries: ['CA', 'US'] }, crow, species, [], seen)).toEqual({ countries: ['CA', 'US'] })
-    expect(filterToShow({ countries: ['US'] }, crow, species, [], seen)).toEqual({})
+    expect(filterToShow({ countries: ['CA', 'US'] }, crow, species, seen)).toEqual({ countries: ['CA', 'US'] })
+    expect(filterToShow({ countries: ['US'] }, crow, species, seen)).toEqual({})
   })
 })
 
 describe('validity of places', () => {
   it('older state migrates: a single country joins the set; provinces and counties are dropped', () => {
-    expect(applyFilterValidity({ country: 'CA' } as never, list, [], species, false)).toEqual({ countries: ['CA'] })
-    expect(applyFilterValidity({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' } as never, list, [], species, false)).toEqual({ countries: ['CA'] })
-    expect(applyFilterValidity({ sub1: 'CA-BC' } as never, list, [], species, false)).toEqual({})
-    expect(applyFilterValidity({ countries: ['US', 'CA', 'US', 'nope'] }, list, [], species, false)).toEqual({ countries: ['CA', 'US'] })
-    expect(applyFilterValidity({ countries: [] }, list, [], species, false)).toEqual({})
+    expect(applyFilterValidity({ country: 'CA' } as never, list, species, false)).toEqual({ countries: ['CA'] })
+    expect(applyFilterValidity({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' } as never, list, species, false)).toEqual({ countries: ['CA'] })
+    expect(applyFilterValidity({ sub1: 'CA-BC' } as never, list, species, false)).toEqual({})
+    expect(applyFilterValidity({ countries: ['US', 'CA', 'US', 'nope'] }, list, species, false)).toEqual({ countries: ['CA', 'US'] })
+    expect(applyFilterValidity({ countries: [] }, list, species, false)).toEqual({})
   })
   it('after a list change, countries no species was seen in go', () => {
-    expect(applyFilterValidity({ countries: ['US'] }, list, [], species, true, seen)).toEqual({ countries: ['US'] })
-    expect(applyFilterValidity({ countries: ['FR', 'US'] }, list, [], species, true, seen)).toEqual({ countries: ['US'] })
-    expect(applyFilterValidity({ countries: ['FR'] }, list, [], species, true, seen)).toEqual({})
+    expect(applyFilterValidity({ countries: ['US'] }, list, species, true, seen)).toEqual({ countries: ['US'] })
+    expect(applyFilterValidity({ countries: ['FR', 'US'] }, list, species, true, seen)).toEqual({ countries: ['US'] })
+    expect(applyFilterValidity({ countries: ['FR'] }, list, species, true, seen)).toEqual({})
   })
 })
 
 describe('the share image names the countries', async () => {
   const { filterLabel } = await import('@/lib/share/image')
-  const ctx = { species, trips: [], countryName: (c: string) => ({ CA: 'Canada', EG: 'Egypt', MX: 'Mexico' })[c] ?? c }
+  const ctx = { species, countryName: (c: string) => ({ CA: 'Canada', EG: 'Egypt', MX: 'Mexico' })[c] ?? c }
   it('one, two, three or more', () => {
     expect(filterLabel({ countries: ['CA'] }, ctx)).toBe('Canada')
     expect(filterLabel({ countries: ['CA', 'EG'], order: 'Strigiformes' }, ctx)).toBe('Owls · Canada + Egypt')
     expect(filterLabel({ countries: ['CA', 'EG', 'MX'] }, ctx)).toBe('Canada and 2 more')
-  })
-  it('a trip in the one chosen country is not named twice', () => {
-    const trip = { id: 'EG-2021-09-01', country: 'EG', start: '2021-09-01', end: '2021-09-03', label: 'Egypt · Sep 2021', codes: [] }
-    expect(filterLabel({ countries: ['EG'], trip: trip.id }, { ...ctx, trips: [trip] })).toBe('Egypt · Sep 2021')
-    expect(filterLabel({ countries: ['CA', 'EG'], trip: trip.id }, { ...ctx, trips: [trip] })).toBe('Canada + Egypt · Egypt · Sep 2021')
   })
 })

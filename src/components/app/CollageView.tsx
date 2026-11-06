@@ -80,7 +80,7 @@ export function statsLine(all: ListEntry[], shown: ListEntry[], species: Species
 }
 
 export function CollageView({ state, dispatch, species, regions, label, cardActions, hidePanels, placesNote, statsPrefix, notice, filterNote, compactFilters, seed, whose = 'this' }: Props) {
-  const { list, trips, filter, mode, view, massOrder, sci, seen } = state
+  const { list, filter, mode, view, massOrder, sci, seen } = state
   const box = useRef<HTMLElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
   const [pick, setPick] = useState<{ code: string; anchor: HTMLElement | null } | null>(null)
@@ -94,7 +94,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // A range drag's preview (Timeline): shown over the current layout until the committed range's layout lands.
   const [preview, setPreview] = useState<{ from?: string; to?: string; committed?: boolean } | null>(null)
   const onPreview = useCallback((r: { from?: string; to?: string } | null) => setPreview((p) => (r ? r : p ? { ...p, committed: true } : null)), [])
-  const lay = useCollageLayout({ list, trips, seen, filter, mode, species, container: box, seed, preview })
+  const lay = useCollageLayout({ list, seen, filter, mode, species, container: box, seed, preview })
   const layKey = lay ? lay.layout.key.split('|').slice(2).join('|') : undefined
   useEffect(() => {
     if (!preview?.committed || layKey !== filterKey(filter)) return
@@ -103,7 +103,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   }, [preview, layKey, filter])
   const time = useMemo(() => ({ entries, months, today, onPreview }), [entries, months, today, onPreview])
   const fk = filterKey(filter)
-  const shownList = useMemo(() => (fk ? applyFilter(entries, filter, species, trips, seen) : entries), [entries, filter, fk, species, trips, seen])
+  const shownList = useMemo(() => (fk ? applyFilter(entries, filter, species, seen) : entries), [entries, filter, fk, species, seen])
   const stats = useMemo(() => statsLine(entries, shownList, species), [entries, shownList, species])
   const shownCodes = useMemo(() => new Set(shownList.map((e) => e.code)), [shownList])
   const latest = useMemo(() => latestLifer(entries, (c) => species.byCode.get(c)?.to ?? 0), [entries, species])
@@ -147,16 +147,16 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const [pending, setPending] = useState<{ code: string; key: string; at: number } | null>(null)
   const onSearchPick = useCallback((h: CollageHit) => {
     if (h.kind !== 'species') {
-      dispatch({ type: 'filter', filter: drillTo(filter, { order: h.kind === 'order' ? h.value : h.order, family: h.kind === 'family' ? h.value : undefined }, entries, species, trips, seen) })
+      dispatch({ type: 'filter', filter: drillTo(filter, { order: h.kind === 'order' ? h.value : h.order, family: h.kind === 'family' ? h.value : undefined }, entries, species, seen) })
       return
     }
     const e = entries.find((x) => x.code === h.value)
     if (!e) return
     if (!fk || shownList.some((x) => x.code === h.value)) { show(h.value); return }
-    const next = filterToShow(filter, e, species, trips, seen)
+    const next = filterToShow(filter, e, species, seen)
     dispatch({ type: 'filter', filter: next })
     setPending({ code: h.value, key: filterKey(next), at: Date.now() })
-  }, [filter, fk, shownList, entries, species, trips, seen, dispatch, show])
+  }, [filter, fk, shownList, entries, species, seen, dispatch, show])
   // The out-of-view pick: wait for the new filter's layout (the list re-renders at once), then for the glide. It lapses
   // when the filter is changed by hand meanwhile, or after PENDING_MS, so a stale tooltip can't pop up later.
   useEffect(() => {

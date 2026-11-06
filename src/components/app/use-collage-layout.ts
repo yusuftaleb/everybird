@@ -6,9 +6,8 @@ import { createLayoutClient, type LayoutClient, type StateLayout } from '@/lib/l
 import type { LayoutName } from '@/lib/layout/layout.worker'
 import { applyFilter, filterKey, inRange, options, withCountries, type Filter, type FilterLevel } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
-import { timeless, tripFilter } from '@/lib/list/timeline'
+import { timeless } from '@/lib/list/timeline'
 import type { SeenIndex } from '@/lib/list/seen'
-import type { Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 
 /** `still`: only visibility changes over the shown layout (a range drag's preview): placed without motion. */
@@ -21,33 +20,25 @@ export function layoutFor(width: number): LayoutName {
 
 const PREFETCH_CAP = 24
 const COUNTRY_PREFETCH = 8
-const TRIP_PREFETCH = 6
 
 export { timeless }
 
 /**
  * The states one tap away from `f`: the next taxonomy level (orders, or the chosen order's families), the
- * top countries (one checked, when none is), and, with no time chosen, the latest trips (a bracket tap: the trip with its months). At most
- * PREFETCH_CAP. Range drags are continuous, so they are not guessed ahead.
+ * top countries (one checked, when none is). At most PREFETCH_CAP. Range drags are continuous, so they are not guessed ahead.
  */
-export function childFilters(list: ListEntry[], f: Filter, species: SpeciesIndex, trips: Trip[], seen?: SeenIndex): Filter[] {
+export function childFilters(list: ListEntry[], f: Filter, species: SpeciesIndex, seen?: SeenIndex): Filter[] {
   const out: Filter[] = []
   const add = (level: 'order' | 'family', values: string[]) => values.forEach((v) => out.push({ ...f, [level]: v }))
-  const vals = (level: FilterLevel) => options(list, f, level, species, trips, undefined, seen).map((o) => o.value)
+  const vals = (level: FilterLevel) => options(list, f, level, species, undefined, seen).map((o) => o.value)
   if (!f.order) add('order', vals('order'))
   else if (!f.family) add('family', vals('family'))
   if (!f.countries) for (const v of vals('country').slice(0, COUNTRY_PREFETCH)) out.push(withCountries(f, [v]))
-  if (!f.year && !f.from && !f.to && !f.trip) {
-    const shown = new Set(applyFilter(list, timeless(f), species, trips, seen).map((e) => e.code))
-    const near = trips.filter((t) => t.codes.some((c) => shown.has(c))).slice(-TRIP_PREFETCH).reverse()
-    for (const t of near) out.push(tripFilter(f, t))
-  }
   return out.slice(0, PREFETCH_CAP)
 }
 
 type Opts = {
   list: ListEntry[]
-  trips: Trip[]
   /** Seen-here (the Places filter keeps species seen there); without it, lifer places. */
   seen?: SeenIndex
   filter: Filter
@@ -98,23 +89,23 @@ const idle = (fn: () => void): (() => void) => {
  * The current StateLayout and its visible codes, or null until the first layout arrives (and always in
  * environments without Worker, such as jsdom, unless a seed covers the state). Entries whose species are unknown are left out.
  */
-export function useCollageLayout({ list, trips, seen, filter, mode, species, container, seed, preview }: Opts): CollageLayout | null {
+export function useCollageLayout({ list, seen, filter, mode, species, container, seed, preview }: Opts): CollageLayout | null {
   const client = useRef<LayoutClient | null>(null)
   const [cls, setCls] = useState<LayoutName | null>(null)
   const [result, setResult] = useState<CollageLayout | null>(null)
   const known = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
   // Every edit builds a new list (a mark toggle too), so compare what the layout actually uses. `packSig`: the
   // codes and masses in order (what the worker packs). `filterSig`: what filters resolve on (months, lifer places, the
-  // seen-here places, trips).
+  // seen-here places).
   const packSig = useMemo(() => known.map((e) => `${e.code}:${species.byCode.get(e.code)!.g}`).join(','), [known, species])
   const filterSig = useMemo(
-    () => `${known.map((e) => `${e.date?.slice(0, 7) ?? ''}${e.place?.sub1 ?? e.place?.country ?? ''}`).join(',')}#${seen?.sig ?? ''}#${trips.map((t) => `${t.id}:${t.codes.join(' ')}`).join(',')}`,
-    [known, trips, seen],
+    () => `${known.map((e) => `${e.date?.slice(0, 7) ?? ''}${e.place?.sub1 ?? e.place?.country ?? ''}`).join(',')}#${seen?.sig ?? ''}`,
+    [known, seen],
   )
-  // The client resolves filters lazily, against the newest list, trips and seen-here.
-  const latest = useRef({ known, trips, seen })
-  useEffect(() => { latest.current = { known, trips, seen } }, [known, trips, seen])
-  const resolve = useCallback((f: Filter) => applyFilter(latest.current.known, f, species, latest.current.trips, latest.current.seen).map((e) => e.code), [species])
+  // The client resolves filters lazily, against the newest list and seen-here.
+  const latest = useRef({ known, seen })
+  useEffect(() => { latest.current = { known, seen } }, [known, seen])
+  const resolve = useCallback((f: Filter) => applyFilter(latest.current.known, f, species, latest.current.seen).map((e) => e.code), [species])
 
   // One client per mounted collage; its worker ends with it.
   useEffect(() => {
@@ -155,7 +146,7 @@ export function useCollageLayout({ list, trips, seen, filter, mode, species, con
         resolve,
       )
     } else if (packed.current.filterSig !== filterSig) {
-      c.refilter(resolve) // same birds, new dates/places/trips: keep the full collages
+      c.refilter(resolve) // same birds, new dates/places: keep the full collages
     }
     packed.current = { client: c, sig: packSig, filterSig }
   }, [packSig, filterSig, species, resolve])
@@ -190,7 +181,7 @@ export function useCollageLayout({ list, trips, seen, filter, mode, species, con
     let todo: Filter[] | null = null
     let cancel = () => {}
     const step = () => {
-      if (!todo) todo = childFilters(latest.current.known, filter, species, latest.current.trips, latest.current.seen)
+      if (!todo) todo = childFilters(latest.current.known, filter, species, latest.current.seen)
       else c.prefetch([todo.shift()!], cls)
       if (todo.length) cancel = idle(step)
     }

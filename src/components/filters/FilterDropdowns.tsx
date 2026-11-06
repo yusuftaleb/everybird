@@ -7,7 +7,7 @@
 //  - Places: a checklist of countries (flag, name, species seen there), sorted by count; several may be checked (the
 //    collage keeps species seen in ANY of them); Clear; a search field once there are more than SEARCH_FROM countries.
 //    A list whose places are all lifer places says so (PlacesNote).
-//  - Time: the timeline (Timeline.tsx): month bars, trip brackets, a range of months.
+//  - Time: the timeline (Timeline.tsx): month bars, a year axis, a range of months; Clear.
 import { CalendarBlank, CaretDown, GlobeHemisphereWest } from '@phosphor-icons/react'
 import Link from 'next/link'
 import { createPortal } from 'react-dom'
@@ -62,7 +62,7 @@ const PANELS: { id: Panel; label: string; Icon: typeof GlobeHemisphereWest }[] =
 export function FilterDropdowns({ state, dispatch, species, regions, open, onOpen, hide, placesNote, time, inert }: Props) {
   const base = useId()
   const sheet = useIsSheet()
-  const { filter, trips } = state
+  const { filter } = state
   const buttons = useRef<Partial<Record<Panel, HTMLButtonElement | null>>>({})
   const countryName = useMemo(() => (iso: string) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso), [regions])
   const shown = PANELS.filter((p) => !hide?.includes(p.id))
@@ -70,8 +70,8 @@ export function FilterDropdowns({ state, dispatch, species, regions, open, onOpe
   if (!shown.length) return null
   const onFilter = (f: Filter) => dispatch({ type: 'filter', filter: f })
 
-  const summary = (p: Panel) => (p === 'places' ? placesSummary(filter) : timeSummary(filter, trips))
-  const spoken = (p: Panel) => (p === 'places' ? placesSpoken(filter, countryName) : timeSpoken(filter, trips, countryName))
+  const summary = (p: Panel) => (p === 'places' ? placesSummary(filter) : timeSummary(filter))
+  const spoken = (p: Panel) => (p === 'places' ? placesSpoken(filter, countryName) : timeSpoken(filter))
 
   return (
     <>
@@ -118,14 +118,12 @@ export function FilterDropdowns({ state, dispatch, species, regions, open, onOpe
           ) : (
             <Timeline
               entries={time.entries}
-              trips={trips}
               seen={state.seen}
               filter={filter}
               species={species}
               months={time.months}
               today={time.today}
               onFilter={onFilter}
-              countryName={countryName}
               onPreview={time.onPreview}
             />
           )}
@@ -199,15 +197,15 @@ function PlacesNoteLine({ note }: { note: PlacesNote }) {
 }
 
 function PlacesList({ state, species, name, note, onFilter }: { state: AppState; species: SpeciesIndex; name: (iso: string) => string; note?: PlacesNote; onFilter: (f: Filter) => void }) {
-  const { list, filter, trips, seen } = state
+  const { list, filter, seen } = state
   const [q, setQ] = useState('')
   const checked = useMemo(() => new Set(filter.countries ?? []), [filter.countries])
   // Every country with a species under the other filters, and any checked one that has none now (so it can be unchecked).
   const rows = useMemo(() => {
-    const opts = options(list, filter, 'country', species, trips, name, seen)
+    const opts = options(list, filter, 'country', species, name, seen)
     const missing: ChipOption[] = [...checked].filter((c) => !opts.some((o) => o.value === c)).map((c) => ({ value: c, label: name(c), count: 0 }))
     return [...opts, ...missing]
-  }, [list, filter, species, trips, name, seen, checked])
+  }, [list, filter, species, name, seen, checked])
   const searchable = rows.length > SEARCH_FROM
   // Word prefixes, accent- and case-insensitive (as the bird search): "new z" finds New Zealand.
   const key = searchable ? searchKey(q) : ''

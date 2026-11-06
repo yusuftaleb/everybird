@@ -4,15 +4,13 @@ import { describe, expect, it } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
 import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, packSpec, placeCredit, spreadY, STICKER_CREDIT } from '@/lib/share/image'
 import type { SpeciesIndex } from '@/lib/species/load'
-import type { Trip } from '@/lib/list/trips'
 import { orderLabel } from '@/lib/species/orders'
 
 const row = (code: string, ord: string, fam: string, famCom: string) => ({ code, com: code, sci: code, ord, fam, famCom, to: 1 }) as never
 const rows = [row('grbher3', 'Pelecaniformes', 'Ardeidae', 'Herons, Egrets, and Bitterns'), row('houspa', 'Passeriformes', 'Passeridae', 'Old World Sparrows')]
 const species: SpeciesIndex = { rows, byCode: new Map(rows.map((r) => [(r as { code: string }).code, r])), search: () => [] }
-const trips: Trip[] = [{ id: 'EG-2026-09-01', country: 'EG', start: '2026-09-01', end: '2026-09-12', label: 'Egypt · Sep 2026', codes: ['grbher3'] }]
 const countryName = (iso: string) => ({ EG: 'Egypt', CA: 'Canada' })[iso] ?? iso
-const ctx = { species, trips, countryName }
+const ctx = { species, countryName }
 
 describe('latestText', () => {
   it('gives the latest lifer row: a label with the month, and the name', () => {
@@ -35,12 +33,8 @@ describe('filterLabel', () => {
     expect(filterLabel({ year: '2025' }, ctx)).toBe('2025')
     expect(filterLabel({ countries: ['EG'], from: '2026-01', to: '2026-12' }, ctx)).toBe('Egypt · 2026')
     expect(filterLabel({ from: '2025-03', to: '2026-06' }, ctx)).toBe('Mar 2025 to Jun 2026')
-    expect(filterLabel({ from: '2026-09', to: '2026-09', trip: 'EG-2026-09-01' }, ctx)).toBe('Egypt · Sep 2026')
-  })
-  it('a trip stands for its country and year', () => {
-    expect(filterLabel({ year: '2026', trip: 'EG-2026-09-01' }, ctx)).toBe('Egypt · Sep 2026')
-    expect(filterLabel({ countries: ['EG'], year: '2026', trip: 'EG-2026-09-01' }, ctx)).toBe('Egypt · Sep 2026')
-    expect(filterLabel({ order: 'Pelecaniformes', year: '2026', trip: 'EG-2026-09-01' }, ctx)).toBe(`${orderLabel('Pelecaniformes')} · Egypt · Sep 2026`)
+    expect(filterLabel({ countries: ['EG'], from: '2026-09', to: '2026-09' }, ctx)).toBe('Egypt · Sep 2026')
+    expect(filterLabel({ order: 'Pelecaniformes', countries: ['EG'], from: '2026-09', to: '2026-09' }, ctx)).toBe(`${orderLabel('Pelecaniformes')} · Egypt · Sep 2026`)
   })
 })
 

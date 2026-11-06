@@ -219,7 +219,7 @@ for (const width of WIDTHS) {
       await page.keyboard.press("Escape");
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
 
-      // Time: a range from the keyboard (a year on), then a trip.
+      // Time: a range from the keyboard (a year on), then Clear; then one country (Egypt's six lifers).
       const time = page.getByTestId("filter-tab-time");
       await time.click();
       const lo = page.getByRole("slider", { name: "Start month" });
@@ -228,10 +228,16 @@ for (const width of WIDTHS) {
       await expect(lo).toHaveAttribute("aria-valuetext", "January 2020");
       await expect(stats(page)).toContainText(`of ${TOTAL} species`);
       await expect(time).toContainText(/Time · /);
-      await page.getByRole("button", { name: /^Egypt trip, Sep 2021, 6 species/ }).click();
+      await page.getByTestId("time-clear").click();
+      await expect(lo).toHaveAttribute("aria-valuetext", "January 2019");
+      await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
+      await expect(page.getByTestId("time-clear")).toHaveCount(0);
+      await page.keyboard.press("Escape");
+      await places.click();
+      await panel.getByText("Egypt", { exact: true }).click();
+      await page.keyboard.press("Escape");
       await expect(stats(page)).toContainText(`6 of ${TOTAL} species`);
       await expect(shownBirds(page)).toHaveCount(6);
-      await page.keyboard.press("Escape");
 
       // True size: the switch flips and every bird stays on the stage.
       const trueSize = page.getByRole("switch", { name: /sticker sizes/ });

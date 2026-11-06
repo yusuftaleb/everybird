@@ -41,7 +41,7 @@ describe('store reducer', () => {
     expect(s.list.map((e) => e.code)).toEqual(['duck', 'wren', 'mystery'])
   })
 
-  it('filter drops invalid family when order changes, and an unknown trip', () => {
+  it('filter drops invalid family when order changes, and any trip (trips are gone)', () => {
     let s = run(initialState(), { type: 'import', source: 'ebird', result: result([rec('duck', 'ebird'), rec('crow', 'ebird')]) })
     s = run(s, { type: 'filter', filter: { order: 'Passeriformes', family: 'Corvidae' } })
     expect(s.filter).toEqual({ order: 'Passeriformes', family: 'Corvidae' })
@@ -49,21 +49,19 @@ describe('store reducer', () => {
     expect(s.filter).toEqual({ order: 'Anseriformes' })
     s = run(s, { type: 'filter', filter: { family: 'Anatidae' } }) // family without order
     expect(s.filter).toEqual({})
-    s = run(s, { type: 'filter', filter: { trip: 'EG-2026-09-01' } }) // no such trip
+    s = run(s, { type: 'filter', filter: { trip: 'EG-2026-09-01' } as never }) // state from before trips were removed
     expect(s.filter).toEqual({})
   })
 
-  it('turns a year into its range and drops a trip that is not in the range', () => {
+  it('turns a year into its range and ignores an old trip value', () => {
     const recs = [rec('duck', 'ebird', 'CA', '2019-01-01'), rec('crow', 'ebird', 'CA', '2019-01-02'), rec('wren', 'ebird', 'CA', '2019-01-03'), rec('a', 'ebird', 'CA', '2019-01-04')]
     const eg = ['x', 'y', 'z'].map((c, i) => rec(c, 'ebird', 'EG', `2026-09-0${i + 1}`))
     let s = run(initialState(), { type: 'import', source: 'ebird', result: result([...recs, ...eg]) })
-    expect(s.trips.map((t) => t.id)).toEqual(['EG-2026-09-01'])
-    s = run(s, { type: 'filter', filter: { year: '2026', trip: 'EG-2026-09-01' } })
-    expect(s.filter).toEqual({ from: '2026-01', to: '2026-12', trip: 'EG-2026-09-01' })
-    s = run(s, { type: 'filter', filter: { year: '2019', trip: 'EG-2026-09-01' } })
+    expect('trips' in s).toBe(false)
+    s = run(s, { type: 'filter', filter: { year: '2026', trip: 'EG-2026-09-01' } as never })
+    expect(s.filter).toEqual({ from: '2026-01', to: '2026-12' })
+    s = run(s, { type: 'filter', filter: { year: '2019' } })
     expect(s.filter).toEqual({ from: '2019-01', to: '2019-12' })
-    s = run(s, { type: 'filter', filter: { trip: 'EG-2026-09-01' } }) // a trip alone is fine
-    expect(s.filter).toEqual({ trip: 'EG-2026-09-01' })
   })
 
   it('repairs a range: bad ends go, reversed ends swap; a range that no longer matches goes after a list change', () => {
@@ -129,7 +127,6 @@ describe('store reducer', () => {
     s = run(s, { type: 'forget' })
     const fresh = initialState()
     expect(s.list).toEqual([])
-    expect(s.trips).toEqual([])
     expect(s.saved.records).toEqual(fresh.saved.records)
     expect([s.filter, s.mode, s.view, s.massOrder]).toEqual([{}, 'even', 'collage', 'heaviest'])
   })

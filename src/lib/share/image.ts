@@ -24,7 +24,6 @@ import { countriesLabel } from '@/lib/list/filter-summary'
 import type { Filter } from '@/lib/list/filters'
 import { rangeLabel } from '@/lib/list/timeline'
 import type { ListEntry } from '@/lib/list/model'
-import type { Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
 
@@ -52,29 +51,23 @@ export function latestText(latest: { com: string; date?: string }): { label: str
 }
 
 /**
- * The current filter in words, birds then places then time: "Egypt · 2026", "Herons · Canada + Egypt". A trip stands for its
- * country and year (its label is "Egypt · Sep 2026"); a range reads "Mar 2020 to Jun 2021" (timeline.ts rangeLabel).
+ * The current filter in words, birds then places then time: "Egypt · 2026", "Herons · Canada + Egypt"; a range reads
+ * "Mar 2020 to Jun 2021" (timeline.ts rangeLabel).
  * Undefined when nothing is filtered.
  */
 export function filterLabel(
   f: Filter,
-  ctx: { species: SpeciesIndex; trips: Trip[]; countryName: (iso2: string) => string },
+  ctx: { species: SpeciesIndex; countryName: (iso2: string) => string },
 ): string | undefined {
   // Countries: "Canada", "Canada + Egypt", "Canada and 2 more".
   const place = countriesLabel(f.countries, ctx.countryName)
   const parts: string[] = []
   if (f.family) parts.push(ctx.species.rows.find((r) => r.fam === f.family)?.famCom || f.family)
   else if (f.order) parts.push(orderLabel(f.order))
-  const trip = f.trip ? ctx.trips.find((t) => t.id === f.trip) : undefined
-  if (trip) {
-    if (place && !(f.countries?.length === 1 && f.countries[0] === trip.country)) parts.push(place)
-    parts.push(trip.label)
-  } else {
-    if (place) parts.push(place)
-    const range = rangeLabel(f.from, f.to)
-    if (range) parts.push(range)
-    else if (f.year) parts.push(f.year)
-  }
+  if (place) parts.push(place)
+  const range = rangeLabel(f.from, f.to)
+  if (range) parts.push(range)
+  else if (f.year) parts.push(f.year)
   return parts.length ? parts.join(' · ') : undefined
 }
 
