@@ -1,0 +1,24 @@
+tests/upload-stickers-r2.test.ts
+  s_ab125876fe9ad2::t_50b91bc160abdd 1-32
+scripts/deploy/upload-stickers-r2.ts
+  s_ab125876fe9ad2::t_60dd7aebd495cb 26-29
+  s_ab125876fe9ad2::t_6815f0d35e7128 1-25,30-165
+AGENTS.md
+  s_ab125876fe9ad2::t_6ee982ba24d27c 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "34390ec089c6bf5d433adf948f607daf05fdaf48",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
