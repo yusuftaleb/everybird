@@ -5,7 +5,7 @@ import { SLOTS, slotSource } from './model'
 import type { ListEntry, Slot, Source, SourceRecord } from './model'
 import type { Saved } from './storage'
 
-const HEADER = ['eBird code', 'Common name', 'Scientific name', 'First date', 'Place', 'Country', 'Heard only', 'Found dead', 'Photo or recording', 'Sources']
+const HEADER = ['eBird code', 'Common name', 'Scientific name', 'First date', 'Place', 'Country', 'Heard only', 'Found dead', 'Sources']
 
 function cell(v: string): string {
   // Neutralise spreadsheet formulas (places can come from iNaturalist free text).
@@ -30,7 +30,6 @@ export function toCsv(list: ListEntry[], species: SpeciesIndex, regions: Regions
         country,
         e.heard ? 'yes' : '',
         e.dead ? 'yes' : '',
-        e.media ? 'yes' : '',
         e.sources.join('; '),
       ]
         .map(cell)

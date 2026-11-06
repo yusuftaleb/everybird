@@ -220,7 +220,7 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
           {latest && latestRow ? <>Latest: {latestRow.com}{latest.date ? <>, <time dateTime={latest.date}>{formatDate(latest.date)}</time></> : null} · </> : null}
           {sizes}
         </p>
-        <p>* heard only · † found dead · ◦ photo or recording</p>
+        <p>* heard only · † found dead</p>
       </div>
 
       {picked && pick && (

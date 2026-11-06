@@ -48,6 +48,12 @@ afterEach(() => {
 })
 
 describe('controls bar', () => {
+  it('the legend reads heard only and found dead, with no photo-or-recording mark', () => {
+    const { container } = render(<Harness />)
+    expect(container).toHaveTextContent('* heard only · † found dead')
+    expect(container).not.toHaveTextContent('◦')
+    expect(container).not.toHaveTextContent(/photo or recording/i)
+  })
   it('has the Collage and List tabs, True size in collage view and the direction in list view, and Scientific', () => {
     render(<Harness />)
     const view = screen.getByRole('group', { name: 'View' })

@@ -1,10 +1,9 @@
 import type { ListEntry } from '@/lib/list/model'
 
-/** Everybird's marks: heard only and found dead as on LifeList, plus photo or recording. */
+/** Everybird's marks: heard only and found dead as on LifeList. The stored `media` field is kept but not shown. */
 export const MARKS = [
   { k: 'heard', sym: '*', label: 'Heard only' },
   { k: 'dead', sym: '†', label: 'Found dead' },
-  { k: 'media', sym: '◦', label: 'Photo or recording' },
 ] as const
 
 export const marksOf = (e: ListEntry) => MARKS.filter((m) => e[m.k])

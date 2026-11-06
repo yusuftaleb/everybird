@@ -78,7 +78,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded }: Props) {
         <summary>How to get your eBird file</summary>
         <ul>
           <li><strong>Life list download</strong> (instant): My eBird, then your World life list total, then Download. Places go down to the state or province.</li>
-          <li><strong>Full data export</strong> (eBird emails it): eBird, then Download My Data. It adds counties and photo marks.</li>
+          <li><strong>Full data export</strong> (eBird emails it): eBird, then Download My Data. It adds counties.</li>
         </ul>
       </details>
       {note && <p className="eb-note" data-testid="ebird-detail">{note}</p>}

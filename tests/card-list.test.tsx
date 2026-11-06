@@ -60,8 +60,8 @@ describe('BirdCard', () => {
     expect(within(dlg).getByText('Okanagan, British Columbia, Canada')).toBeInTheDocument()
     expect(within(dlg).getByText('Sep 2026')).toBeInTheDocument()
     // LifeList's card (layout C): marks after the name and on the date line, the mass top-right beside the name.
-    expect(dlg.querySelector('.eb-card-date')).toHaveTextContent('Sep 2026 · Heard only · Found dead · Photo or recording')
-    expect(dlg.querySelector('.eb-card-name .eb-mark')).toHaveTextContent('*†◦')
+    expect(dlg.querySelector('.eb-card-date')).toHaveTextContent('Sep 2026 · Heard only · Found dead')
+    expect(dlg.querySelector('.eb-card-name .eb-mark')).toHaveTextContent(/^\*†$/)
     const mass = dlg.querySelector('.eb-card-mass')!
     expect(mass).toHaveTextContent('Average body mass 400 g')
     expect(mass).toHaveAttribute('title', 'Average body mass')
@@ -73,7 +73,8 @@ describe('BirdCard', () => {
     setWidth(1000)
     render(<BirdCard entry={entry('tinyc', { media: true })} species={species} regions={regions} onClose={() => {}} />)
     const dlg = screen.getByRole('dialog')
-    expect(dlg).toHaveTextContent('Photo or recording')
+    expect(dlg).not.toHaveTextContent('Photo or recording')
+    expect(dlg).not.toHaveTextContent('◦')
     expect(dlg).not.toHaveTextContent('Heard only')
     expect(dlg.querySelector('.eb-card-place')).toBeNull()
     const mass = dlg.querySelector('.eb-card-mass')!

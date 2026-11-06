@@ -8,7 +8,6 @@ import './edit.css'
 const MARKS: { k: MarkKey; sym: string; label: string }[] = [
   { k: 'heard', sym: '*', label: 'Heard only' },
   { k: 'dead', sym: '†', label: 'Found dead' },
-  { k: 'media', sym: '◦', label: 'Photo or recording' },
 ]
 
 type Props = { entry: ListEntry; edits: Edits; dispatch: (a: Action) => void; onRemoved: () => void }

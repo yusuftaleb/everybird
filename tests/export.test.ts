@@ -8,18 +8,18 @@ import type { SpeciesIndex } from '@/lib/species/load'
 const regions: Regions = { v: 1, countries: { CA: 'Canada' }, sub1: { 'CA-BC': 'British Columbia' } }
 const row = (code: string, com: string, sci: string) => ({ code, com, sci }) as never
 const species = { byCode: new Map([['a', row('a', 'Anna, "Hummingbird"', 'Calypte anna')], ['b', row('b', 'Bird', 'Avis b')]]) } as unknown as SpeciesIndex
-const HEADER = 'eBird code,Common name,Scientific name,First date,Place,Country,Heard only,Found dead,Photo or recording,Sources'
+const HEADER = 'eBird code,Common name,Scientific name,First date,Place,Country,Heard only,Found dead,Sources'
 
 describe('toCsv', () => {
   it('CSV header and one row exact', () => {
     const list: ListEntry[] = [{ code: 'a', date: '2020-05', place: { country: 'CA', sub1: 'CA-BC', sub2: 'Okanagan' }, heard: true, dead: false, media: true, sources: ['ebird', 'inat'] }]
     expect(toCsv(list, species, regions)).toBe(
-      `${HEADER}\r\na,"Anna, ""Hummingbird""",Calypte anna,2020-05,"Okanagan, British Columbia, Canada",Canada,yes,,yes,ebird; inat\r\n`,
+      `${HEADER}\r\na,"Anna, ""Hummingbird""",Calypte anna,2020-05,"Okanagan, British Columbia, Canada",Canada,yes,,ebird; inat\r\n`,
     )
   })
   it('empty fields and unknown codes', () => {
     const list: ListEntry[] = [{ code: 'zz', heard: false, dead: true, media: false, sources: ['manual'] }]
-    expect(toCsv(list, species, regions)).toBe(`${HEADER}\r\nzz,,,,,,,yes,,manual\r\n`)
+    expect(toCsv(list, species, regions)).toBe(`${HEADER}\r\nzz,,,,,,,yes,manual\r\n`)
   })
   it('guards against formula injection and quotes newlines', () => {
     const list: ListEntry[] = [{ code: 'b', place: { sub1: 'CA-BC', sub2: '=HYPERLINK("x")' }, heard: false, dead: false, media: false, sources: ['inat'] }]
