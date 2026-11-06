@@ -39,9 +39,9 @@ test("the landing sample is pre-packed: its stickers show without the species fi
 
 // The taxonomy is /lifelist's on both since 2026-11-06 (it was one sideways strip, and the bounds 0.6 and 0.5): at
 // 1280 the order chips wrap onto three rows (the stage starts at 0.50 of the screen), at 390 the "Choose an order"
-// button and the bar's 4px insets sit over it (0.47). The birds still hold close to half the first screen.
-test("at 1280x800 and 390x844 the landing's birds fill most of the first screen", async ({ page }) => {
-  for (const [width, height, share] of [[1280, 800, 0.45], [390, 844, 0.45]] as const) {
+// button and the bar's 4px insets sit over it (0.47). The bounds keep a couple of percent of slack under those.
+test("at 1280x800 and 390x844 the landing's birds fill about half of the first screen", async ({ page }) => {
+  for (const [width, height, share] of [[1280, 800, 0.48], [390, 844, 0.45]] as const) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
     const stage = page.getByTestId("collage-stage");

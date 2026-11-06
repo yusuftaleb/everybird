@@ -33,7 +33,7 @@ Beats (wide, about 14 s a loop):
 Compact (under 560 px of column, 358 × 356): no desktop, so no tinted field either: the window sits on the page itself
 (transparent stage, the window's hairline and the ground shadow), inset 16 at the top and left, off the right and
 bottom; so "Choose your eBird file" is pressed instead of the drag (phones choose files; the drop hint is hidden on touch
-in the product too); the chips drop "Perching birds" (the product's phone strip scrolls sideways); the breadcrumb sets
+in the product too); the chips drop "Perching birds" (on phones the product shows the "Choose an order" picker instead); the breadcrumb sets
 at 12 px so it fits; all six herons show (before H1 the Black-crowned Night Heron was wide-only, so the phone showed five
 birds under "6"); the share image comes up over the window on the share dialog's scrim, as the product presents it.
 

@@ -22,8 +22,8 @@
 /* Collage pages (/): the birds lead. A one-row hero on wide screens; tighter spacing above the stage. */
 .eb-page-collage { --page-gap: 16px; padding-top: 16px; }
 @media (min-width: 720px) { .eb-page-collage { --page-gap: 24px; padding-top: 24px; } }
-/* The landing carries the order chips under the dock; a little less air above keeps the sample's birds on most of a
-   1280×800 first screen (e2e import.spec). */
+/* The landing carries the order chips under the dock; a little less air above keeps the sample's birds on about half
+   of a 1280×800 first screen (the wrapped chips take three rows; e2e import.spec). */
 @media (min-width: 720px) { .eb-page-landing { --page-gap: 16px; padding-top: 20px; } }
 .eb-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 .eb-hero-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -184,12 +184,14 @@
   .eb-dock-tools .eb-dock-dir { padding: 0 3px; gap: 3px; } /* "Heaviest ↓" is the row's widest tool */
   .eb-dock-tabs .eb-dock-tab, .eb-dock-end .eb-dock-find { position: relative; width: 40px; min-width: 40px; }
   .eb-dock-tabs .eb-dock-tab::after, .eb-dock-end .eb-dock-find::after { content: ''; position: absolute; inset: 0 -2px; }
+  .eb-dock-tabs { gap: 4px; } /* the two 44px press areas meet, never overlap */
 }
 /* A 320px phone's bar (288px) and narrower: 36px icon buttons (a 44px press through ::after), the switches' slimmest
    form (28×18, the knob moving 10px). */
 @container (max-width: 310px) {
   .eb-dock-tabs .eb-dock-tab, .eb-dock-end .eb-dock-find { width: 36px; min-width: 36px; }
   .eb-dock-tabs .eb-dock-tab::after, .eb-dock-end .eb-dock-find::after { inset: 0 -4px; }
+  .eb-dock-tabs { gap: 8px; } /* the two 44px press areas meet, never overlap */
   .eb-dock-tools .eb-dock-sw { padding: 0 4px; gap: 4px; }
   .eb-dock-tools .eb-dock-dir { padding: 0 2px; gap: 2px; }
   .eb-dock .eb-track { width: 28px; }

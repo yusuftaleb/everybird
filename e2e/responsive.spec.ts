@@ -43,7 +43,7 @@ async function dockGaps(page: Page) {
   });
 }
 
-for (const width of [320, 390, 430, 440] as const) {
+for (const width of [320, 390, 430, 440, 600] as const) {
   test.describe(`${width}px phone`, () => {
     test.use({ viewport: { width, height: 844 }, hasTouch: true });
 

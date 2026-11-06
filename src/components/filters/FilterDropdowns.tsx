@@ -1,7 +1,7 @@
 'use client'
 // Places and Time: two dropdown buttons in the controls bar, between Scientific and the search. Each button says what
 // it filters when active ("Places · 2", "Time · 2022–2024"), so the bar itself shows every active place or time filter;
-// taxonomy is the strip under the bar. A button opens its panel (one at a time; a second tap, Esc or a press outside
+// taxonomy sits under the bar (wrapped chips; the "Choose an order" picker on phones). A button opens its panel (one at a time; a second tap, Esc or a press outside
 // closes it and focus returns to the button): a popover under the bar on wider screens, a bottom sheet on phones.
 // Filters apply live.
 //  - Places: a checklist of countries (flag, name, species seen there), sorted by count; several may be checked (the

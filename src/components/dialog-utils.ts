@@ -1,17 +1,18 @@
 'use client'
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from 'react'
 
-/** Below this width, popovers become bottom sheets. */
-export const SHEET_BELOW = 600
+/** At or below this width (phones, as /lifelist's max-width:600px), popovers become bottom sheets. */
+export const SHEET_AT = 600
 export const FOCUSABLE = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 
-/** Pointer devices >= 600px get a popover; narrower screens a bottom sheet. Read synchronously on first render. */
+/** Screens wider than 600px get a popover; 600px and narrower a bottom sheet (the phone controls bar's breakpoint
+ * too, app.css). Read synchronously on first render. */
 export function useIsSheet(): boolean {
-  const query = () => (typeof window.matchMedia === 'function' ? window.matchMedia(`(max-width: ${SHEET_BELOW - 1}px)`) : null)
-  const [sheet, setSheet] = useState(() => (typeof window === 'undefined' ? false : (query()?.matches ?? window.innerWidth < SHEET_BELOW)))
+  const query = () => (typeof window.matchMedia === 'function' ? window.matchMedia(`(max-width: ${SHEET_AT}px)`) : null)
+  const [sheet, setSheet] = useState(() => (typeof window === 'undefined' ? false : (query()?.matches ?? window.innerWidth <= SHEET_AT)))
   useLayoutEffect(() => {
     const mq = query()
-    const read = () => setSheet(mq ? mq.matches : window.innerWidth < SHEET_BELOW)
+    const read = () => setSheet(mq ? mq.matches : window.innerWidth <= SHEET_AT)
     mq?.addEventListener?.('change', read)
     return () => mq?.removeEventListener?.('change', read)
   }, [])
