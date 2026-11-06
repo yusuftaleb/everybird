@@ -39,6 +39,11 @@ async function seed(page: Page, saved: object = syntheticSaved()) {
   await page.goto("/");
   await expect(page.getByTestId("collage-stage").locator("[data-code]:not([data-off])").first()).toBeVisible();
 }
+/** Waits until the birds stand still (their first appearance and any travel have played): while they move, birds at
+ *  the stage's edge stand a few px past it (Firefox measured the page 7 px wide then). These tests measure the settled
+ *  layout. */
+const arrived = (page: Page) =>
+  page.waitForFunction(() => !document.getAnimations().some((a) => a.playState === "running" && ((a.effect as KeyframeEffect | null)?.target as Element | null)?.closest?.(".eb-bird")), null, { timeout: 10_000 });
 const shown = (page: Page) => page.getByTestId("collage-stage").locator("[data-code]:not([data-off])").count();
 
 for (const width of [1280, 390]) {
@@ -107,6 +112,7 @@ test.describe("timeline at 390px with a lone early month and a long gap", () => 
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
   test("the gap collapses: the strip fits, nothing is cut, quiet months are bars, a short trip is a tick", async ({ page }) => {
     await seed(page, gappySaved());
+    await arrived(page);
     await page.getByTestId("filter-tab-time").click();
     await expect(page.getByTestId("timeline-read")).toContainText("May 2020 to");
     await expect(page.getByTestId("time-gap")).toHaveCount(1);
@@ -162,6 +168,7 @@ test.describe("timeline at 390px with trips at the strip's end", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
   test("end labels run leftwards and no two labels overlap", async ({ page }, info) => {
     await seed(page, endTripsSaved());
+    await arrived(page);
     await page.getByTestId("filter-tab-time").click();
     await expect(page.getByRole("button", { name: /^Costa Rica trip/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Costa Rica trip/ })).toHaveAttribute("data-end", "");
