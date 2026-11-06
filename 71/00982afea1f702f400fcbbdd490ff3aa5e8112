@@ -1,0 +1,26 @@
+e2e/flows.spec.ts
+  s_ab125876fe9ad2::t_1737d77e5e9350 1-96,100-108,110-367
+  s_ab125876fe9ad2::t_e5d451c017603e 97-99,109
+AGENTS.md
+  s_ab125876fe9ad2::t_4ed2ded001ab87 34
+e2e/share.spec.ts
+  s_ab125876fe9ad2::t_71e566ea28a269 49-51
+playwright.config.ts
+  s_ab125876fe9ad2::t_d7aa32e65b868e 19-28,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7100982afea1f702f400fcbbdd490ff3aa5e8112",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
