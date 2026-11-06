@@ -114,21 +114,39 @@ async function stopProbe(page: Page) {
  */
 async function checkGeometry(page: Page) {
   return page.evaluate(async () => {
-    // Big lists render only the birds near the viewport (data-far is display: none): render them all for the check.
-    const all = document.createElement("style");
-    all.textContent = ".eb-bird[data-far] { display: block !important; }";
-    document.head.append(all);
+    const frame = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
     const stage = document.querySelector<HTMLElement>('[data-testid="collage-stage"]')!;
-    const sr = stage.getBoundingClientRect();
     const species = (await (await fetch("/data/species.v1.json")).json()).species as { code: string; ord: string }[];
     const ordOf = new Map(species.map((s) => [s.code, s.ord]));
     const vh = window.innerHeight;
-    let near = 0; // shown stickers within one screen of the viewport (the collage's download margin)
-    const birds = [...stage.querySelectorAll<HTMLElement>(".eb-bird:not([data-off])")].map((el) => {
+    // Shown stickers within one screen of the viewport (the most the collage may have asked for at rest).
+    let near = 0;
+    for (const el of stage.querySelectorAll<HTMLElement>(".eb-bird:not([data-off]):not([data-far])")) {
       const r = el.getBoundingClientRect();
       if (el.querySelector("img") && r.bottom > -vh && r.top < 2 * vh) near++;
-      return { code: el.dataset.code!, x: r.left - sr.left, y: r.top - sr.top, w: r.width, h: r.height };
-    });
+    }
+    // Big lists render only the birds near the viewport (the others are data-far, display: none, and their DOM may
+    // be behind): read every bird where it is really drawn, a screen at a time down the stage.
+    const seen = new Map<string, { code: string; x: number; y: number; w: number; h: number }>();
+    const y0 = window.scrollY;
+    const top = stage.getBoundingClientRect().top + window.scrollY;
+    const stageH = stage.getBoundingClientRect().height;
+    for (let y = Math.max(0, top - vh); ; y += Math.floor(vh * 0.8)) {
+      window.scrollTo(0, y);
+      await frame();
+      await frame();
+      const sr = stage.getBoundingClientRect();
+      for (const el of stage.querySelectorAll<HTMLElement>(".eb-bird:not([data-off]):not([data-far])")) {
+        const r = el.getBoundingClientRect();
+        if (r.bottom > 0 && r.top < vh) seen.set(el.dataset.code!, { code: el.dataset.code!, x: r.left - sr.left, y: r.top - sr.top, w: r.width, h: r.height });
+      }
+      if (y >= top + stageH || window.scrollY + vh >= document.documentElement.scrollHeight - 1) break;
+    }
+    window.scrollTo(0, y0);
+    await frame();
+    const sr = stage.getBoundingClientRect();
+    const shown = stage.querySelectorAll(".eb-bird:not([data-off])").length;
+    const birds = [...seen.values()];
     const tables = new Map<string, Record<string, [number, number, string]>>();
     for (const o of new Set(birds.map((b) => ordOf.get(b.code)!))) {
       const res = await fetch(`/data/masks/${o}.v1.json`);
@@ -158,8 +176,7 @@ async function checkGeometry(page: Page) {
         }
       }
     });
-    all.remove();
-    return { shown: birds.length, near, rastered, outside, clashes, clashBirds: clashBirds.size, stageW: sr.width, stageH: sr.height };
+    return { shown, drawn: birds.length, near, rastered, outside, clashes, clashBirds: clashBirds.size, stageW: sr.width, stageH: sr.height };
   });
 }
 
@@ -197,11 +214,12 @@ for (const [label, n] of SIZES) {
       const setList = log.find((l) => l.type === "setList")?.ms ?? NaN;
       const fullEven = log.find((l) => l.type === "layout" && l.key?.endsWith("|even|"))?.ms ?? NaN;
       await page.waitForTimeout(3000); // the first ripple, then idle prefetches may start
+      const imgsAtRest = stickerReqs.size; // (before the check: it scrolls the whole stage)
       const geo = await checkGeometry(page);
-      const imgsAtRest = stickerReqs.size;
       const heap = await heapMB(page, browserName);
       console.log(`[stress] ${browserName} ${width}px ${count} species: collage in ${firstMs} ms (setList ${setList.toFixed(0)} ms, full even layout ${fullEven.toFixed(0)} ms), stage ${geo.stageW.toFixed(0)}x${geo.stageH.toFixed(0)} px, ${geo.rastered}/${geo.shown} silhouettes checked, ${geo.clashes} clashing px (${geo.clashBirds} birds), ${geo.outside} outside, ${imgsAtRest} sticker requests at rest (${geo.near} stickers within a screen of the viewport), heap ${heap?.toFixed(0) ?? "n/a"} MB`);
       expect(geo.shown).toBe(count);
+      expect(geo.drawn, "every shown bird is drawn where the viewport reaches it").toBe(count);
       expect(geo.outside).toBe(0);
       expect(geo.clashes).toBe(0);
       expect(fullEven).toBeLessThan(LAYOUT_BUDGET_MS[n]);
@@ -240,18 +258,25 @@ for (const [label, n] of SIZES) {
         await page.locator('[data-testid="filter-bar"] .eb-chip:not([data-selected])').first().click();
       }
       await expect(page.getByTestId("collage-stats")).toContainText(" of ", { timeout: 120_000 });
-      // Settled: exactly the birds the stats count are shown (leaving birds have finished going).
+      // Settled: the collage shows the count the stats give, and the bird layer is back (no fade-through under
+      // way). Every shown bird drawn where it belongs is checked below (checkGeometry: a big list renders only the
+      // birds near the viewport, so the DOM of the others may be behind).
       const stats = await page.getByTestId("collage-stats").innerText();
       const m = /([\d,]+)\s+of\s/i.exec(stats);
       if (!m) throw new Error(`unexpected stats: ${JSON.stringify(stats)}`);
       const want = Number(m[1].replace(/,/g, ""));
-      await expect.poll(() => stage.locator(".eb-bird:not([data-off])").count(), { timeout: 120_000 }).toBe(want);
+      await expect(stage).toHaveAttribute("aria-label", new RegExp(`^Collage of ${want.toLocaleString("en-US")} species`), { timeout: 120_000 });
+      await expect.poll(() => page.evaluate(() => {
+        const L = document.querySelector<HTMLElement>(".eb-layer")!;
+        return !L.style.opacity && !L.style.contentVisibility && L.getAnimations().length === 0;
+      }), { timeout: 120_000 }).toBe(true);
       const filterMs = Date.now() - t1;
       await page.waitForTimeout(1500);
       const filt = await stopProbe(page);
       await cdp?.send("Emulation.setCPUThrottlingRate", { rate: 1 });
       console.log(`[stress] ${browserName} ${width}px ${count} species: filter (first order)${cdp ? " at 4x CPU" : ""}: shown after ${filterMs} ms, longest task ${filt.long.toFixed(0)} ms, longest frame ${filt.frame.toFixed(1)} ms, p95 frame ${filt.p95.toFixed(1)} ms`);
       const geo2 = await checkGeometry(page);
+      expect(geo2.drawn, "every shown bird is drawn").toBe(want);
       expect(geo2.outside).toBe(0);
       expect(geo2.clashes).toBe(0);
       if (process.env.STRESS_STRICT !== "0") {

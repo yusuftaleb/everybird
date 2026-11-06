@@ -53,6 +53,12 @@ export function loadDeferred(el: Element): boolean {
   return true
 }
 
+/** Whether a bird's sticker is waiting its turn or still downloading (it holds, or will hold, a MAX_LOADS slot). */
+export function loading(el: Element): boolean {
+  const img = el.querySelector('img')
+  return !!img && (queued.has(img as HTMLImageElement) || flying.has(img as HTMLImageElement))
+}
+
 /**
  * Let go of a started sticker's image (the reverse of loadDeferred), so the browser can drop its decoded pixels;
  * loadDeferred starts it again. A sticker still waiting its turn just leaves the queue. Returns whether there was one.
@@ -74,7 +80,8 @@ export function unloadSticker(el: Element): boolean {
 /**
  * A bird's sticker filling its box (w × h CSS px, used for the width/height attributes and `sizes`), or the
  * Phosphor Bird silhouette in Muted when the species has no sticker or the image fails to load.
- * - defer: render the image without its source (data-src / data-srcset hold it) until loadDeferred() is called;
+ * - defer: render the image without its source (data-src / data-srcset hold it) until loadDeferred() is called
+ *   (and never lazy: the collage starts it when it should load, and a lazy one would hold a download slot);
  *   the collage starts it once the bird nears the viewport. The browser's own lazy loading starts every image
  *   within 1,250-2,500 px of the viewport, which on a tall collage of thousands of birds is nearly all of them.
  */
@@ -105,7 +112,7 @@ export function Sticker({ code, st, ar, w, h, lazy = true, defer = false }: { co
       height={Math.max(1, Math.round(h))}
       alt=""
       decoding="async"
-      loading={lazy ? 'lazy' : undefined}
+      loading={lazy && !defer ? 'lazy' : undefined}
       draggable={false}
       onError={() => setFailed(true)}
     />

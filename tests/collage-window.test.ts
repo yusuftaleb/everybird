@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { BirdWindow, KEEP_MARGIN, REVEAL_BUDGET, SHOW_MARGIN, buildIndex, query } from '@/components/collage/collage-window'
+import { BirdWindow, FRAME_BUDGET, KEEP_MARGIN, SHOW_MARGIN, buildIndex, query } from '@/components/collage/collage-window'
 import { MAX_LOADS, loadDeferred, unloadSticker } from '@/components/collage/Sticker'
 import type { Box } from '@/lib/layout/pack'
 
@@ -71,16 +71,16 @@ describe('BirdWindow', () => {
     expect(els.get('b500')!.querySelector('img')!.getAttribute('src')).toContain('/500.webp')
   })
 
-  it('shows the viewport at once and the margin in budgeted frames, nearest first', () => {
+  it('shows birds in budgeted frames, nearest the middle of the viewport first', () => {
     document.body.innerHTML = ''
     const { els, w, frames } = setup(4000, { top: 20000, bottom: 20100 })
     w.sync()
-    expect(els.get('b2005')!.hasAttribute('data-far')).toBe(false) // in view
+    expect(els.get('b2005')!.hasAttribute('data-far')).toBe(false) // the middle of the view
     const shown = () => [...els.values()].filter((e) => !e.hasAttribute('data-far')).length
-    expect(shown()).toBeLessThanOrEqual(11 + 1 + REVEAL_BUDGET + 1)
+    expect(shown()).toBeLessThanOrEqual(FRAME_BUDGET + 1)
     while (frames.length) frames.shift()!()
-    expect(els.get('b1993')!.hasAttribute('data-far')).toBe(false) // the margin's edge, after a few frames
-    expect(els.get('b1990')!.hasAttribute('data-far')).toBe(true) // beyond it
+    expect(els.get('b1996')!.hasAttribute('data-far')).toBe(false) // the margin's edge, after a few frames
+    expect(els.get('b1993')!.hasAttribute('data-far')).toBe(true) // beyond it
   })
 
   it('hides birds only beyond the keep margin, never pinned ones, and nothing while held', () => {
@@ -89,7 +89,7 @@ describe('BirdWindow', () => {
     w.sync({ all: true })
     move(5000 + (KEEP_MARGIN - SHOW_MARGIN) * 100 / 2) // a small scroll: within the keep margin
     w.sync({ all: true })
-    expect(els.get('b493')!.hasAttribute('data-far')).toBe(false)
+    expect(els.get('b496')!.hasAttribute('data-far')).toBe(false)
     w.hold(10_000)
     move(8000)
     w.sync({ all: true })
@@ -100,7 +100,7 @@ describe('BirdWindow', () => {
     w2.move(2000)
     w2.w.sync({ all: true })
     expect(w2.els.get('b800')!.hasAttribute('data-far')).toBe(true)
-    expect(w2.els.get('b800')!.querySelector('img')!.getAttribute('src')).toBeNull() // its sticker let go
+    expect(w2.els.get('b800')!.querySelector('img')!.getAttribute('src')).toBeNull() // its sticker (still waiting) let go
     expect(w2.els.get('b0')!.hasAttribute('data-far')).toBe(false) // pinned
   })
 })
