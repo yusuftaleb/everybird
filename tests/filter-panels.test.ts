@@ -9,14 +9,14 @@ describe('filter panels (taxonomy always on; Places and Time toggle)', () => {
     expect(togglePanel('time', 'time')).toBeNull()
   })
   it('active filters of a closed panel show as removable chips; taxonomy never does (it is always on show)', () => {
-    const f = { order: 'Passeriformes', family: 'Corvidae', country: 'CA', year: '2021', trip: 'CA-2021-05-01' }
-    expect(closedPanelLevels(f, null)).toEqual(['country', 'year', 'trip'])
-    expect(closedPanelLevels(f, 'places')).toEqual(['year', 'trip'])
+    const f = { order: 'Passeriformes', family: 'Corvidae', country: 'CA', from: '2021-05', to: '2021-05', trip: 'CA-2021-05-01' }
+    expect(closedPanelLevels(f, null)).toEqual(['country', 'trip']) // a trip stands for its months
+    expect(closedPanelLevels(f, 'places')).toEqual(['trip'])
     expect(closedPanelLevels(f, 'time')).toEqual(['country'])
     expect(closedPanelLevels({ order: 'Strigiformes' }, null)).toEqual([])
-    expect(closedPanelLevels({ year: '2020' }, 'places')).toEqual(['year'])
+    expect(closedPanelLevels({ from: '2020-01' }, 'places')).toEqual(['range'])
   })
   it('leaves out hidden panels (a shared link without places or dates)', () => {
-    expect(closedPanelLevels({ country: 'CA', year: '2020' }, null, ['places'])).toEqual(['year'])
+    expect(closedPanelLevels({ country: 'CA', to: '2020-03' }, null, ['places'])).toEqual(['range'])
   })
 })

@@ -5,23 +5,27 @@
 // stays, with the choice in Accent and the other chips stepped back. On phones the row is one button ("Choose an
 // order 18") that opens the chips in a sheet.
 // Taxonomy (orders, then families) is always on show. Everybird's extra dimensions, Places (the map, then countries)
-// and Time (years, then trips), are toggles that open their panel (one at a time; tap again to close) and follow the
-// same pattern. Opening or closing a panel never changes the filter; what a closed panel has chosen shows as a
+// and Time (the timeline: a range of months, trips, Play; Timeline.tsx), are toggles that open their panel (one at a
+// time; tap again to close). Opening or closing a panel never changes the filter; what a closed panel has chosen shows as a
 // removable chip beside the toggles.
-import { memo, useId, useMemo, useState, type ReactNode } from 'react'
+import { memo, useId, useMemo, useState } from 'react'
 import { useIsSheet } from '@/components/dialog-utils'
-import { ChevronDownIcon, CloseIcon, FilterLinesIcon } from '@/components/collage/icons'
+import { ChevronDownIcon, CloseIcon } from '@/components/collage/icons'
 import { CountryMap } from '@/components/map/CountryMap'
 import { flagEmoji } from '@/lib/flag'
-import { closedPanelLevels, togglePanel, type Panel } from '@/lib/list/filter-panels'
+import { closedPanelLevels, togglePanel, type Panel, type PanelKey } from '@/lib/list/filter-panels'
 import { options, type ChipOption, type Filter, type FilterLevel } from '@/lib/list/filters'
+import type { ListEntry } from '@/lib/list/model'
+import { rangeLabel, type Month } from '@/lib/list/timeline'
 import type { Action, AppState } from '@/lib/list/store'
 import { stripBracket } from '@/lib/import/places'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
 import type { CountryDots, Regions } from '@/lib/species/types'
 import { Chip } from './Chip'
-import { PickerSheet } from './PickerSheet'
+import { SheetPicker } from './SheetPicker'
+import { Timeline } from './Timeline'
+import type { PlayControls } from './use-play'
 import './filters.css'
 
 export type { Panel } from '@/lib/list/filter-panels'
@@ -46,6 +50,8 @@ type Props = {
    * phone row does. An open panel still opens below the strip.
    */
   compact?: boolean
+  /** The Time panel's timeline: the known entries, the whole list's months, today, and Play. */
+  time?: { entries: ListEntry[]; months: Month[]; today: Month; play: PlayControls; onPlay: () => void }
 }
 
 type Level = FilterLevel
@@ -53,10 +59,9 @@ type Group = { id: 'birds' | Panel; label: string; nav: string; all: string; lev
 const BIRDS: Group = { id: 'birds', label: 'Birds', nav: 'Filter by group', all: 'All birds', levels: ['order', 'family'] }
 const PANELS: (Group & { id: Panel })[] = [
   { id: 'places', label: 'Places', nav: 'Filter by place', all: 'All places', levels: ['country'] },
-  { id: 'time', label: 'Time', nav: 'Filter by time', all: 'All time', levels: ['year', 'trip'] },
+  { id: 'time', label: 'Time', nav: 'Filter by time', all: 'All time', levels: ['trip'] }, // the timeline, not chips
 ]
 const RANK: Record<Level, string> = { order: 'Orders', family: 'Families', country: 'Countries', year: 'Years', trip: 'Trips' }
-const NOUN: Record<Level, string> = { order: 'an order', family: 'a family', country: 'a country', year: 'a year', trip: 'a trip' }
 /** Levels named by a scientific name (shown in Latin when Scientific names are on). */
 const LATIN = new Set<Level>(['order', 'family'])
 
@@ -77,7 +82,7 @@ function CountryLabel({ iso, name }: { iso: string; name: string }) {
   return flag ? <><span className="eb-flag" aria-hidden="true">{flag}</span>{name}</> : <>{name}</>
 }
 
-export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hidePanels, panel: panelProp, onPanel, compact }: Props) {
+export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hidePanels, panel: panelProp, onPanel, compact, time }: Props) {
   const panels = useMemo(() => (hidePanels?.length ? PANELS.filter((p) => !hidePanels.includes(p.id)) : PANELS), [hidePanels])
   const [ownPanel, setOwnPanel] = useState<Panel | null>(null)
   const requested = panelProp !== undefined ? panelProp : ownPanel
@@ -95,7 +100,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
   // map); a child level (families, trips) only once its parent is chosen.
   const opts = useMemo(() => {
     const out: Partial<Record<Level, ChipOption[]>> = {}
-    for (const g of [BIRDS, ...(open ? [open] : [])]) {
+    for (const g of [BIRDS, ...(open && open.id !== 'time' ? [open] : [])]) {
       const [top, child] = g.levels
       out[top] = options(list, filter, top, species, trips, countryName)
       if (child && filter[top]) out[child] = options(list, filter, child, species, trips, countryName)
@@ -105,6 +110,14 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
   const countryCounts = useMemo(() => new Map((opts.country ?? []).map((c) => [c.value, c.count])), [opts.country])
 
   const set = (level: Level, value: string | undefined) => dispatch({ type: 'filter', filter: withLevel(filter, level, value) })
+  /** Remove a closed panel's choice: a range takes its ends, a trip its months too. */
+  const remove = (k: PanelKey) => {
+    if (k !== 'range' && k !== 'trip') return set(k, undefined)
+    const next: Filter = { ...filter }
+    delete next.from; delete next.to; delete next.trip
+    dispatch({ type: 'filter', filter: next })
+  }
+  const panelName = (k: PanelKey) => (k === 'range' ? rangeLabel(filter.from, filter.to) ?? '' : nameOf(k, filter[k]!))
   const toggle = (level: Level, value: string) => set(level, filter[level] === value ? undefined : value)
 
   /** The label of a level's value: plain English, or the scientific name for orders and families in Latin mode. */
@@ -208,9 +221,9 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
       {others.length > 0 && (
         <div className="eb-level eb-active" role="group" aria-label="Active filters" data-testid="active-filters">
           {others.map((l) => {
-            const label = nameOf(l, filter[l]!)
+            const label = panelName(l)
             return (
-              <Chip key={l} label={l === 'country' ? <CountryLabel iso={filter[l]!} name={label} /> : label} selected removeLabel={label} onClick={() => set(l, undefined)}>
+              <Chip key={l} label={l === 'country' ? <CountryLabel iso={filter.country!} name={label} /> : label} selected removeLabel={label} onClick={() => remove(l)}>
                 <CloseIcon className="eb-chip-x" />
               </Chip>
             )
@@ -234,7 +247,20 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
           {open.id === 'places' && dots && (
             <CountryMap dots={dots} counts={countryCounts} selected={filter.country} onSelect={(iso) => set('country', iso)} countryName={countryName} />
           )}
-          {levels(open)}
+          {open.id === 'time' ? (time && (
+            <Timeline
+              entries={time.entries}
+              trips={trips}
+              filter={filter}
+              species={species}
+              months={time.months}
+              today={time.today}
+              onFilter={(f) => dispatch({ type: 'filter', filter: f })}
+              countryName={countryName}
+              play={time.play}
+              onPlay={time.onPlay}
+            />
+          )) : levels(open)}
         </div>
       )}
 
@@ -242,48 +268,3 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
     </section>
   )
 })
-
-type PickerProps = {
-  level: Level
-  options: ChipOption[]
-  label: (level: Level, o: ChipOption) => ReactNode
-  latin: boolean
-  chosen?: string
-  value?: string
-  onPick: (v: string) => void
-}
-
-/** Phone: one button; it reads "Choose an order 18" or the chosen group's name, and opens the chips in a sheet. */
-function SheetPicker({ level, options: opts, label, latin, chosen, value, onPick }: PickerProps) {
-  const [open, setOpen] = useState(false)
-  const flag = level === 'country' && value ? flagEmoji(value) : undefined
-  return (
-    <>
-      <button
-        type="button"
-        className="eb-pick"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        data-selected={chosen ? '' : undefined}
-        data-testid={`picker-${level}`}
-        onClick={() => setOpen(true)}
-      >
-        <FilterLinesIcon />
-        <span className="eb-pick-label" lang={chosen && latin ? 'la' : undefined}>
-          {flag && <span className="eb-flag" aria-hidden="true">{flag}</span>}
-          {chosen ?? `Choose ${NOUN[level]}`}
-        </span>{' '}
-        <span className="eb-count">{opts.length}</span>
-      </button>
-      {open && (
-        <PickerSheet title={RANK[level]} count={opts.length} onClose={() => setOpen(false)}>
-          <div className="eb-picklist" data-chosen={value ? '' : undefined}>
-            {opts.map((o) => (
-              <Chip key={o.value} label={label(level, o)} latin={latin} count={o.count} selected={value === o.value} onClick={() => { onPick(o.value); setOpen(false) }} />
-            ))}
-          </div>
-        </PickerSheet>
-      )}
-    </>
-  )
-}

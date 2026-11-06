@@ -4,6 +4,8 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { useReducer } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FilterBar } from '@/components/filters/FilterBar'
+import { usePlay } from '@/components/filters/use-play'
+import { monthBins } from '@/lib/list/timeline'
 import { CountryMap, litSteps, LIT_OPACITY } from '@/components/map/CountryMap'
 import { initialState, makeReducer, type AppState } from '@/lib/list/store'
 import { emptySaved } from '@/lib/list/storage'
@@ -48,9 +50,12 @@ function seeded(): AppState {
 function Harness({ initial, compact }: { initial?: AppState; compact?: boolean }) {
   const reduce = makeReducer({ species, countryName: (c) => (c === 'CA' ? 'Canada' : c === 'EG' ? 'Egypt' : c) })
   const [state, dispatch] = useReducer(reduce, initial ?? seeded())
+  const months = monthBins(state.list, '2022-08').months
+  const play = usePlay(months.length)
+  const time = { entries: state.list, months, today: '2022-08', play, onPlay: play.start }
   return (
     <>
-      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} compact={compact} />
+      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} compact={compact} time={time} />
       <output data-testid="filter">{JSON.stringify(state.filter)}</output>
     </>
   )
@@ -61,6 +66,7 @@ const filterOf = () => JSON.parse(screen.getByTestId('filter').textContent!)
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 describe('FilterBar', () => {
@@ -124,13 +130,14 @@ describe('FilterBar', () => {
     fireEvent.click(time) // one panel at a time
     expect(places).toHaveAttribute('aria-expanded', 'false')
     expect(time).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('group', { name: 'Years' })).toBeInTheDocument()
+    expect(screen.getByTestId('timeline')).toBeInTheDocument()
     fireEvent.click(time)
     expect(time).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.queryByRole('group', { name: 'Years' })).toBeNull()
+    expect(screen.queryByTestId('timeline')).toBeNull()
   })
 
   it('opening or closing a panel keeps every filter; a closed panel\'s choice is a removable chip', () => {
+    vi.useFakeTimers()
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: /^Perching birds/ }))
@@ -144,12 +151,16 @@ describe('FilterBar', () => {
     expect(crumbs()).toHaveTextContent('All birds/Perching birds') // the taxonomy choice stays in its breadcrumb, never a chip
     expect(screen.queryByRole('button', { name: 'Remove Perching birds filter' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Time' }))
-    fireEvent.click(within(screen.getByRole('group', { name: 'Years' })).getByRole('button', { name: /^2022/ }))
+    const start = screen.getByRole('slider', { name: 'Start month' })
+    fireEvent.keyDown(start, { key: 'End' }) // the start handle to the end handle: the last month
+    fireEvent.keyDown(start, { key: 'PageDown' }) // a year back: Aug 2021
+    act(() => vi.advanceTimersByTime(200))
     fireEvent.click(screen.getByRole('button', { name: 'Time' }))
-    expect(filterOf()).toEqual({ order: 'Passeriformes', country: 'CA', year: '2022' })
+    expect(filterOf()).toEqual({ order: 'Passeriformes', country: 'CA', from: '2021-08' })
     fireEvent.click(screen.getByRole('button', { name: 'Remove Canada filter' }))
-    expect(filterOf()).toEqual({ order: 'Passeriformes', year: '2022' })
-    expect(screen.getByRole('button', { name: 'Remove 2022 filter' })).toBeInTheDocument()
+    expect(filterOf()).toEqual({ order: 'Passeriformes', from: '2021-08' })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove From Aug 2021 filter' }))
+    expect(filterOf()).toEqual({ order: 'Passeriformes' })
   })
 
   it('country chips lead with the flag, hidden from screen readers; the name stays the country', () => {
@@ -185,15 +196,13 @@ describe('FilterBar', () => {
     expect(filterOf()).toEqual({})
   })
 
-  it('time drills from years to that year\'s trips the same way', () => {
+  it('the Time panel is the timeline: a bar per month from the first lifer to today, and the range handles', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: 'Time' }))
-    const years = screen.getByRole('group', { name: 'Years' })
-    fireEvent.click(within(years).getByRole('button', { name: /^2021/ }))
-    expect(filterOf()).toEqual({ year: '2021' })
-    expect(screen.queryByRole('group', { name: 'Years' })).toBeNull()
-    expect(screen.getByRole('navigation', { name: 'Filter by time' })).toHaveTextContent('All time/2021')
+    expect(screen.getByTestId('timeline').querySelectorAll('rect')).toHaveLength(28) // May 2020 .. Aug 2022
+    expect(screen.getByTestId('timeline-read')).toHaveTextContent('May 2020 to Aug 2022 · 5 species')
+    expect(screen.getByRole('slider', { name: 'End month' })).toHaveAttribute('aria-valuetext', 'August 2022')
   })
 
   it('at phone width, tapping a lit country on the map sets the country filter; the sheet\'s chips carry flags', () => {

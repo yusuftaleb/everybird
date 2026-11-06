@@ -3,16 +3,20 @@
 import type { Filter, FilterLevel } from './filters'
 
 export type Panel = 'places' | 'time'
-export const PANEL_LEVELS: Record<Panel, FilterLevel[]> = { places: ['country'], time: ['year', 'trip'] }
+/** What a panel can choose: Places a country; Time a range of months (`from`/`to`) or a trip (with its months). */
+export type PanelKey = Exclude<FilterLevel, 'year'> | 'range'
+export const PANEL_LEVELS: Record<Panel, PanelKey[]> = { places: ['country'], time: ['range', 'trip'] }
 
 /** The open panel after tapping `p`'s toggle. */
 export function togglePanel(open: Panel | null, p: Panel): Panel | null {
   return open === p ? null : p
 }
 
-/** The levels chosen in panels that are closed (and not hidden): they show as removable chips. */
-export function closedPanelLevels(f: Filter, open: Panel | null, hidden: readonly Panel[] = []): FilterLevel[] {
+const isSet = (f: Filter, k: PanelKey) => (k === 'range' ? !!(f.from || f.to) && !f.trip : !!f[k]) // a trip names its own months
+
+/** What closed (and not hidden) panels have chosen: they show as removable chips. */
+export function closedPanelLevels(f: Filter, open: Panel | null, hidden: readonly Panel[] = []): PanelKey[] {
   return (Object.keys(PANEL_LEVELS) as Panel[])
     .filter((p) => p !== open && !hidden.includes(p))
-    .flatMap((p) => PANEL_LEVELS[p].filter((l) => f[l]))
+    .flatMap((p) => PANEL_LEVELS[p].filter((k) => isSet(f, k)))
 }

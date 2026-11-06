@@ -16,12 +16,14 @@ export default defineConfig({
   use: { baseURL },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /filters\.spec\.ts/ },
+    // The timeline (touch, sliders, Play) in Safari's engine too.
+    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /timeline\.spec\.ts/ },
     // The frame-timing test runs on its own, after everything else, so other workers can't steal its CPU.
     {
       name: "perf",
       use: { ...devices["Desktop Chrome"], baseURL: perfURL },
       testMatch: /filters\.spec\.ts/,
-      dependencies: ["chromium"],
+      dependencies: ["chromium", "webkit"],
     },
   ],
   // Skip the local servers when pointing at a deployed URL. Locally, stickers come from ../everybird-stickers

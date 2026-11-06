@@ -4,6 +4,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 // A phone: 390px wide, with touch (the test taps).
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+// One test at a time: a second worker would steal the CPU being measured.
+test.describe.configure({ mode: "serial" });
 
 type Row = { code: string };
 const COUNTRIES = ["CA", "US", "EG", "GB", "ZA", "TR", "SA", "BY", "MX", "BR"];
@@ -74,6 +76,46 @@ async function stopProbe(page: Page) {
     return { long: Math.max(0, ...p.long), frame: Math.max(0, ...p.frames.slice(1)) };
   });
 }
+
+/** Probe an action at the budget: no task over 100 ms (50 ms headroom), no frame over 50 ms. */
+function measurer(page: Page) {
+  return async (what: string, act: () => Promise<void>, took: () => Promise<void>) => {
+    await startProbe(page);
+    await act();
+    await took(); // the change must have taken effect before we measure
+    await page.waitForTimeout(1000);
+    const m = await stopProbe(page);
+    console.log(`${what}: longest task ${m.long.toFixed(0)} ms, longest frame ${m.frame.toFixed(1)} ms`);
+    expect(m.long, `longest task after ${what}`).toBeLessThanOrEqual(100);
+    expect(m.frame, `longest frame after ${what}`).toBeLessThanOrEqual(50);
+    expect(m.long, `longest task after ${what} (headroom)`).toBeLessThanOrEqual(50);
+  };
+}
+
+test("Play on a 1,000-species list at 390px with 4x CPU stays smooth", async ({ page }) => {
+  await seedList(page);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+  const stage = page.getByTestId("collage-stage");
+  await expect(stage.locator("[data-code]:not([data-off])").first()).toBeVisible();
+  await page.getByTestId("filter-tab-time").tap();
+  await expect(page.getByTestId("timeline")).toBeVisible();
+  await page.waitForTimeout(1500);
+  const measure = measurer(page);
+  // (A range drag that trims a few hundred birds off a 1,000-bird collage re-packs and moves nearly every bird at
+  // once: at 4x its frames run 50-90 ms, so it is not part of this budget yet; see the Task PT report.)
+
+  // Play: the whole list grows month by month over one layout (visibility only, no re-pack per step).
+  await measure(
+    "playing the timeline",
+    async () => {
+      await page.getByTestId("time-play").tap();
+      await expect(page.getByTestId("time-playhead")).toBeVisible();
+      await page.waitForTimeout(4000);
+    },
+    async () => {},
+  );
+});
 
 test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

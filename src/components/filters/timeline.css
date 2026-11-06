@@ -1,0 +1,77 @@
+/* The Time panel's timeline: bars per month, the chosen range's band and handles, the years, the trips' brackets.
+   Bars are Muted inside the range (Hairline outside); the handles and the selected trip are Accent (selection). */
+.eb-time { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.eb-time-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; }
+.eb-time-read { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eb-time-actions { display: flex; gap: 4px; flex: none; }
+.eb-time-btn {
+  gap: 6px; opacity: 1; border: 1px solid var(--hairline); background: var(--surface); font-weight: 500;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-time-btn svg { width: 16px; height: 16px; flex: none; }
+.eb-time-btn[aria-pressed="true"] { color: var(--accent); font-weight: 600; }
+
+/* The strip scrolls sideways when the months are narrower than MONTH_PX; on phones it bleeds into the gutters. */
+.eb-time-scroll {
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin;
+  margin-inline: -16px; padding: 6px 16px 4px;
+}
+@media (max-width: 599px) { .eb-time-scroll { margin-inline: -16px; } }
+.eb-time-track { position: relative; min-width: 100%; touch-action: pan-x; }
+
+.eb-time-bars { position: relative; height: 56px; }
+.eb-time-bars svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+.eb-time-bars rect { fill: var(--hairline); transition: fill .15s linear; }
+.eb-time-bars rect[data-on] { fill: var(--muted); }
+.eb-time-bars rect[data-empty] { fill: var(--hairline); }
+.eb-time-bars rect[data-empty][data-on] { fill: var(--line); }
+.eb-time-sel {
+  position: absolute; top: -6px; bottom: -2px; background: var(--surface); visibility: hidden;
+  border-radius: calc(6px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-time-sel[data-ranged] { visibility: visible; }
+.eb-time-head-line { position: absolute; top: -6px; bottom: -2px; width: 2px; margin-left: -1px; background: var(--accent); }
+
+/* Handles: a line through the bars and a knob under them; a 44px-wide hit area; sliders for the keyboard. */
+.eb-time-handle {
+  position: absolute; top: -6px; width: 44px; height: 80px; margin-left: -22px; z-index: 1;
+  display: flex; justify-content: center; cursor: ew-resize; touch-action: none; -webkit-tap-highlight-color: transparent;
+}
+.eb-time-handle::before { content: ''; position: absolute; top: 0; height: 64px; width: 2px; left: 21px; background: var(--line); }
+.eb-time-track[data-ranged] .eb-time-handle::before { background: var(--accent); }
+.eb-time-knob {
+  position: absolute; top: 58px; width: 16px; height: 16px; border-radius: 50%; box-sizing: border-box;
+  background: var(--paper); border: 2px solid var(--accent);
+}
+.eb-time-handle:focus { outline: none; }
+.eb-time-handle:focus-visible .eb-time-knob { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eb-time-track[data-playing] .eb-time-handle { visibility: hidden; }
+
+.eb-time-years { position: relative; height: 16px; margin-top: 22px; font-size: 11px; }
+.eb-time-years span { position: absolute; top: 0; padding-left: 3px; border-left: 1px solid var(--hairline); line-height: 16px; white-space: nowrap; }
+
+/* Trips: brackets open towards the bars, the flag and country under them. */
+.eb-trips { position: relative; margin-top: 8px; }
+.eb-trip {
+  position: absolute; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 0; border: 0;
+  background: none; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.eb-trip::after { content: ''; position: absolute; inset: -6px -4px; } /* a bigger tap target */
+.eb-trip-line {
+  width: var(--span); height: 6px; box-sizing: border-box; margin-left: 1px;
+  border: 1.5px solid var(--line); border-top: 0; border-radius: 0 0 2px 2px;
+}
+.eb-trip-label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; line-height: 18px; opacity: .8; }
+.eb-trip-label .eb-flag { margin-right: 0; }
+.eb-trip[aria-pressed="true"] .eb-trip-line { border-color: var(--accent); }
+.eb-trip[aria-pressed="true"] .eb-trip-label { color: var(--accent); font-weight: 600; opacity: 1; }
+.eb-trip:focus { outline: none; }
+.eb-trip:focus-visible .eb-trip-label { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .eb-trip:hover .eb-trip-line { border-color: var(--ink); }
+  .eb-trip:hover .eb-trip-label { opacity: 1; }
+  .eb-time-btn:hover { border-color: var(--line); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eb-time-bars rect { transition: none; }
+}

@@ -8,6 +8,7 @@
 //  - total:     the full list size; the count reads "<n> of <total> species" while fewer are shown.
 //  - onHover:   called with the bird under the mouse or keyboard focus (null when none), for a hover card.
 //  - className: extra class on the outer wrapper.
+//  - playing:   Play reveals birds over a fixed layout (see the prop).
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { LAYOUTS } from '@/lib/layout/constants'
 import type { StateLayout } from '@/lib/layout/layout-client'
@@ -34,6 +35,12 @@ export type CollageProps = {
   total?: number
   onHover?: (code: string | null) => void
   className?: string
+  /**
+   * Play is revealing birds over one fixed layout: each step only adds birds, which fade in where they stand (their
+   * CSS opacity transition; never travel or the layer fade); a step that hides birds (the start of Play) places them
+   * without motion, in budgeted chunks.
+   */
+  playing?: boolean
 }
 
 const TOUCH_SLOP_PX = 28
@@ -56,7 +63,7 @@ function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Mo
   return { style: { '--x': x, '--y': y, '--w': b[0], '--h': b[1], '--k': 1, '--md': `${md}ms`, '--d': `${d}ms` } as CSSProperties, off: false, w, h }
 }
 
-export function Collage({ entries, species, layout, visible, mode, onPick, total, onHover, className }: CollageProps) {
+export function Collage({ entries, species, layout, visible, mode, onPick, total, onHover, className, playing }: CollageProps) {
   const stage = useRef<HTMLDivElement>(null)
   const layer = useRef<HTMLDivElement>(null)
   const els = useRef(new Map<string, HTMLButtonElement>())
@@ -72,8 +79,8 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
   const chunkFrame = useRef(0)
   const prunedFor = useRef<ListEntry[] | null>(null)
   const alive = useRef(true)
-  const latest = useRef({ layout, onPick, onHover })
-  useLayoutEffect(() => { latest.current = { layout, onPick, onHover } })
+  const latest = useRef({ layout, onPick, onHover, playing })
+  useLayoutEffect(() => { latest.current = { layout, onPick, onHover, playing } })
 
   const row = useCallback((code: string) => species.byCode.get(code), [species])
   // Keyboard order: taxonomic. Draw order: heaviest first, so small birds sit on top.
@@ -158,8 +165,9 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
     // Restyling ~1,000 birds at once is several long frames on a phone. A big travel is planned now and written
     // from the next frame on, one budgeted chunk per frame (takeChunk / adaptBudget), the birds in view first in
     // the order their motion starts; each op shortens its delays by how late it lands, so the ripple keeps its
-    // timing. Small changes, first placement and fades are written at once.
-    const write = (style: 'travel' | 'jump') => {
+    // timing. Small changes, first placement and fades are written at once; a jump with `done` (Play's reset) is
+    // chunked too, and calls `done` after its last chunk.
+    const write = (style: 'travel' | 'jump', done?: () => void) => {
       cancelAnimationFrame(chunkFrame.current)
       let view: { top: number; bottom: number } | undefined
       const r = style === 'travel' && typeof window !== 'undefined' ? stage.current?.getBoundingClientRect() : undefined
@@ -168,20 +176,32 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
       const { ops, on } = planBirds(m, { codes: taxo, els: els.current, layout, visible, stagePx: stagePx.current, style, view })
       m.on = on
       const cost = ops.reduce((n, op) => n + op.cost, 0)
-      if (style === 'jump' || cost <= WRITE_START || typeof requestAnimationFrame !== 'function') {
+      if ((style === 'jump' && !done) || cost <= WRITE_START || typeof requestAnimationFrame !== 'function') {
         for (const op of ops) op.run()
+        done?.()
       } else {
         // The tab-stop bird is written now, so focus never lands on a bird that is still hidden.
         const stop = focusCode.current && on.has(focusCode.current) ? focusCode.current : taxo.find((c) => on.has(c))
         const at = stop ? ops.findIndex((op) => op.code === stop) : -1
         if (at >= 0) ops.splice(at, 1)[0].run()
         // After the last chunk the tab stop may be a bird that was still hidden a frame ago.
-        runChunked(ops, performance.now(), requestAnimationFrame, (id) => { chunkFrame.current = id }, syncTabStop)
+        runChunked(ops, performance.now(), requestAnimationFrame, (id) => { chunkFrame.current = id }, () => { syncTabStop(); done?.() })
       }
       syncTabStop()
       if (hot.current && !m.on?.has(hot.current)) setHot(null)
     }
     const st = stage.current
+    if (!first && latest.current.playing) {
+      st?.removeAttribute('data-fast')
+      const f = fade.current
+      if (f.phase) { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null }
+      const hides = !!m.on && [...m.on].some((c) => !visible.has(c))
+      // Placed without motion (Play's reset hides hundreds of birds, in budgeted chunks); an arriving bird fades in
+      // through its CSS opacity transition (200 ms) rather than a 640 ms WAAPI growth, so few birds are composited
+      // at once while months tick by every 90 ms.
+      write('jump', hides ? () => {} : undefined)
+      return
+    }
     if (!first && (reduced() || shown > CROSSFADE_AT)) {
       st?.setAttribute('data-fast', '')
       fadeThrough(() => write('jump'))
