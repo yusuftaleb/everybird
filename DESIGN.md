@@ -140,7 +140,7 @@ Seven tokens, two themes, nothing else. `tests/tokens.test.ts` keeps `tokens.css
 - Collage block `.eb-view`: one column, 12px between stats line, dock, filters and stage (LifeList's rhythm).
 - Breakpoints actually used: 320/359 (top bar squeezes), 480, 560 (compact demo), 600 (filters become one "Choose an order" button + sheet), 720 (gutters, hero in a row), 820 (list rows collapse), 880 (three source cards). The controls bar answers to its own width: under 820px the Places and Time buttons take a second row, under 600px they split it evenly at 36px (44px hit areas), so the landing's birds keep most of a phone's first screen.
 - The dock responds to its own width with container queries (460, 400, 330px): tab labels hide, "Scientific" shortens, the switch tightens.
-- Touch targets 44px (chips are 32px with a 44px `::after` hit area; nav links 40px, 36-40px on phones).
+- Touch targets 44px (chips are 32px with a 44px `::after` hit area; nav links are drawn 40px, 36-40px on phones, and text buttons 36px, each with a 44px `::after` hit area; the theme switch keeps a 44px hit area when drawn at 40 or 36px; the timeline's trip brackets take a 41px press in their 34px lanes). `e2e/flows.spec.ts` checks every page at its sampled widths in all three engines.
 - Stage: positions in % of stage width (`cqw`); the stage height eases to the group's height.
 
 ## Elevation & Depth
@@ -160,7 +160,7 @@ Silhouette hit-testing (`collage-hit.ts`) makes a sticker clickable only where i
 ### Buttons
 - Primary `.eb-btn`: Accent fill, Paper text, 44px high, 12px squircle, Satoshi 700 15px, icon 18px. Big variant 52px / 17px (hero CTA). Hover (fine pointers only): opacity .88.
 - Quiet `.eb-btn-quiet`: Surface, Hairline border, Ink, 500; hover border Line. Danger: Accent text; confirm uses Accent solid.
-- Text button `.eb-textbtn`: underlined with a Hairline underline, 36px.
+- Text button `.eb-textbtn`: underlined with a Hairline underline, 36px drawn, a 44px hit area.
 - On phones the Share/Add actions collapse to 44px icon buttons under 480px.
 
 ### Dock (controls bar, signature)
