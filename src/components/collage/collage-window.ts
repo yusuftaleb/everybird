@@ -23,9 +23,9 @@ export const SHOW_MARGIN = 0.75
 /** ...and kept until beyond this many. */
 export const KEEP_MARGIN = 1
 /** Birds shown per frame to start with (a hide counts half); then adapted between FRAME_MIN and FRAME_MAX. */
-export const FRAME_BUDGET = 160
+export const FRAME_BUDGET = 100
 export const FRAME_MIN = 40
-export const FRAME_MAX = 250
+export const FRAME_MAX = 160
 /** Hidden birds that keep their sticker (the most recently hidden: a scroll back shows them at once)... */
 export const HELD_MAX = 1000
 /** ...beyond that, the oldest let go of it, at most this many per frame (letting go of an image is not free). */
@@ -189,7 +189,7 @@ export class BirdWindow {
     const now = performance.now()
     if (this.last >= 0 && now - this.last < 200) {
       const f = now - this.last
-      this.budget = Math.round(Math.min(FRAME_MAX, Math.max(FRAME_MIN, f <= 20 ? this.budget * 1.3 : f <= 34 ? this.budget : this.budget * 0.6)))
+      this.budget = Math.round(Math.min(FRAME_MAX, Math.max(FRAME_MIN, f <= 18 ? this.budget * 1.25 : f <= 25 ? this.budget : this.budget * 0.6)))
     }
     this.last = now
     const s = v.screen, mid = (v.top + v.bottom) / 2

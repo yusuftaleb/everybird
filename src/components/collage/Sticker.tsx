@@ -16,12 +16,13 @@ export const MAX_LOADS = 48
  * hundreds at once (a fast scroll through thousands of birds, from a fast server) hold the next frame back by as
  * much as 100 ms at 4x CPU, though no single task is long.
  */
-export const STARTS_PER_FRAME = 24
+export const STARTS_PER_FRAME = 12
 let queue: HTMLImageElement[] = []
 let head = 0
 const queued = new Set<HTMLImageElement>()
 const flying = new Set<HTMLImageElement>()
-let started = 0
+/** Started this frame (an image that left the page since, an unmounted collage's, no longer counts). */
+let started: HTMLImageElement[] = []
 let frame = 0
 
 function start(img: HTMLImageElement) {
@@ -40,21 +41,24 @@ function start(img: HTMLImageElement) {
   img.addEventListener('error', done)
 }
 
+const next = () => { frame = 0; started = []; pump() }
+
 function pump() {
   // A download whose image left the page (an unmounted collage) no longer counts.
   if (flying.size >= MAX_LOADS) for (const img of flying) if (!img.isConnected) flying.delete(img)
   const raf = typeof requestAnimationFrame === 'function'
   while (flying.size < MAX_LOADS && head < queue.length) {
-    if (raf && started >= STARTS_PER_FRAME) {
+    if (raf && started.length >= STARTS_PER_FRAME) started = started.filter((i) => i.isConnected)
+    if (raf && started.length >= STARTS_PER_FRAME) {
       // The rest wait for the next frame.
-      frame ||= requestAnimationFrame(() => { frame = 0; started = 0; pump() })
+      frame ||= requestAnimationFrame(next)
       return
     }
     const img = queue[head++]
     if (!queued.delete(img) || !img.dataset.src || !img.isConnected) continue
-    started++
+    started.push(img)
     start(img)
-    frame ||= raf ? requestAnimationFrame(() => { frame = 0; started = 0; pump() }) : 0
+    frame ||= raf ? requestAnimationFrame(next) : 0
   }
   if (head > 1024 && head * 2 > queue.length) { queue = queue.slice(head); head = 0 }
 }
