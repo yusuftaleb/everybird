@@ -81,12 +81,20 @@ function Silhouette({ flip }: { flip?: boolean }) {
 
 const dpr = () => (typeof window === 'undefined' ? 2 : Math.min(3, window.devicePixelRatio || 1))
 
+/** Marks a demo sticker loaded (data-ld): until then it draws nothing (how-it-works.css), as the product's do. */
+const markLoaded = (img: HTMLImageElement | null) => {
+  if (img && img.complete && img.naturalWidth > 0) img.dataset.ld = ''
+}
+
 /** A sticker from the configured sticker site; the product's silhouette if it fails to load (as the collage does). */
 function Sticker({ code, px }: { code: string; px: number }) {
   const [failed, setFailed] = useState(false)
   if (failed) return <Silhouette />
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={stickerUrl(code, px, dpr())} alt="" draggable={false} decoding="async" onError={() => setFailed(true)} />
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={stickerUrl(code, px, dpr())} alt="" draggable={false} decoding="async" className="ebd-st" ref={markLoaded}
+      onLoad={(e) => { e.currentTarget.dataset.ld = '' }} onError={() => setFailed(true)} />
+  )
 }
 
 /**

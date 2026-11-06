@@ -14,3 +14,9 @@
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
+
+/* A sticker draws nothing until its file has loaded (data-ld, Sticker.tsx markLoaded): no pending-image frame, no
+   empty box. The slot keeps its size (width and height attributes), so nothing shifts when it appears. */
+img.eb-st { transition: opacity .2s ease; }
+img.eb-st:not([data-ld]) { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { img.eb-st { transition: none; } }

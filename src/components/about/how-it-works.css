@@ -273,3 +273,8 @@
 
 /* The still: nothing arrives (reduced motion shows the poster as it stands). */
 .ebd .ss-stage[data-still] *, .ebd .ss-stage[data-still] *::before { animation: none !important; transition: none !important; }
+
+/* A demo sticker draws nothing until its file has loaded (data-ld, HowItWorksStage markLoaded): no pending-image frame. */
+.ebd img.ebd-st { transition: opacity .2s ease; }
+.ebd img.ebd-st:not([data-ld]) { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .ebd img.ebd-st { transition: none; } }

@@ -85,6 +85,16 @@ export function loading(el: Element): boolean {
  * Let go of a started sticker's image (the reverse of loadDeferred), so the browser can drop its decoded pixels;
  * loadDeferred starts it again. A sticker still waiting its turn just leaves the queue. Returns whether there was one.
  */
+/**
+ * A sticker image draws nothing until its file has loaded: `data-ld` marks it loaded (Sticker.css shows it, with a
+ * short fade). Until then the browser's own pending-image box (WebKit draws an empty frame for an image with no
+ * source or one still loading) stays invisible. Set on load, and on mount for an image that loaded before
+ * hydration; cleared when unloadSticker lets the file go.
+ */
+const markLoaded = (img: HTMLImageElement | null) => {
+  if (img && img.getAttribute('src') && img.complete && img.naturalWidth > 0) img.dataset.ld = ''
+}
+
 export function unloadSticker(el: Element): boolean {
   const waiting = el.querySelector<HTMLImageElement>('img[data-src]')
   if (waiting) queued.delete(waiting) // pump skips it
@@ -95,6 +105,7 @@ export function unloadSticker(el: Element): boolean {
   img.dataset.srcset = img.getAttribute('srcset') ?? ''
   img.removeAttribute('srcset')
   img.removeAttribute('src')
+  delete img.dataset.ld
   if (flying.delete(img)) pump()
   return true
 }
@@ -102,7 +113,8 @@ export function unloadSticker(el: Element): boolean {
 /**
  * A bird's sticker filling its box (w × h CSS px, used for the width/height attributes and `sizes`), or the
  * no-sticker outline (bird-outline.ts: Phosphor's Bird stroked thin in Line, as the share images draw it) when the
- * species has no sticker or the image fails to load.
+ * species has no sticker or the image fails to load (only then: a sticker still on its way draws nothing, see
+ * markLoaded).
  * - defer: render the image without its source (data-src / data-srcset hold it) until loadDeferred() is called
  *   (and never lazy: the collage starts it when it should load, and a lazy one would hold a download slot);
  *   the collage starts it once the bird nears the viewport. The browser's own lazy loading starts every image
@@ -139,6 +151,9 @@ export function Sticker({ code, st, ar, w, h, lazy = true, defer = false }: { co
       decoding="async"
       loading={lazy && !defer ? 'lazy' : undefined}
       draggable={false}
+      className="eb-st"
+      ref={markLoaded}
+      onLoad={(e) => { e.currentTarget.dataset.ld = '' }}
       onError={() => setFailed(true)}
     />
   )
