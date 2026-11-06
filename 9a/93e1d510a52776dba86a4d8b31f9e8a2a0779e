@@ -1,0 +1,21 @@
+src/components/edit/edit.css
+  s_ab125876fe9ad2::t_12da68fc21c4c1 1-4,8-10,12-13
+DESIGN.md
+  s_ab125876fe9ad2::t_29b0edd76af221 176
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9a93e1d510a52776dba86a4d8b31f9e8a2a0779e",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
