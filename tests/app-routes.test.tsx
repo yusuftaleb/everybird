@@ -644,11 +644,24 @@ describe('remembered sources', () => {
     expect(screen.getByLabelText('iNaturalist username')).toBeInTheDocument()
   })
 
+  it('the iNaturalist username is stored and shown trimmed', async () => {
+    const { inat, storage } = await mount()
+    vi.mocked(inat.importInat).mockResolvedValueOnce({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 })
+    fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: '  @ sam_birds  ' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
+    expect(vi.mocked(inat.importInat).mock.calls.at(-1)![0]).toBe('sam_birds')
+    expect(within(await screen.findByTestId('source-inat')).getByText('sam_birds')).toBeInTheDocument()
+    await waitFor(async () => expect((await storage.load())?.sources?.inat?.user).toBe('sam_birds'), { timeout: 2000 })
+  })
+
   it('Tick by hand is a disclosure: aria-expanded and aria-controls, hidden when closed', async () => {
     await mount()
     const btn = screen.getByRole('button', { name: 'Tick birds off a list' })
     expect(btn).toHaveAttribute('aria-expanded', 'false')
     expect(btn).toHaveAttribute('aria-controls', 'tick')
+    // The controlled panel exists from the start (hidden, the list not yet mounted).
+    expect(document.getElementById('tick')).toHaveAttribute('hidden')
+    expect(screen.queryByRole('listbox', { name: 'Species to tick' })).toBeNull()
     fireEvent.click(btn)
     expect(btn).toHaveAttribute('aria-expanded', 'true')
     expect(document.getElementById('tick')).toBeVisible()

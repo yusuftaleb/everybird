@@ -127,7 +127,9 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
           title="Tick by hand"
           blurb="Tick off as many birds as you like, with one date and place for the batch."
           after={
-            tick.mounted && (
+            // The panel is always in the DOM (hidden until opened), so aria-controls="tick" always names an element;
+            // the list itself mounts on first open.
+            (
               <div
                 id="tick"
                 className="eb-disclose"
@@ -137,7 +139,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
                 onTransitionEnd={(e) => { if (e.target === e.currentTarget) tick.settle() }}
               >
                 <div className="eb-disclose-inner">
-                  <TickList species={species} regions={regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} />
+                  {tick.mounted && <TickList species={species} regions={regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} />}
                 </div>
               </div>
             )

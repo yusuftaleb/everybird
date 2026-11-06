@@ -132,7 +132,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   }, [land])
 
   const fetchInat = useCallback(async (raw: string) => {
-    const login = raw.trim().replace(/^@/, '')
+    const login = raw.trim().replace(/^@/, '').trim() // "@ sam" too: the username is stored and shown exactly
     if (!login || abort.current) return
     setInat({ busyFor: login, progress: null, error: null, note: null })
     const ctl = new AbortController()
