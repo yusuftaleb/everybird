@@ -1,0 +1,23 @@
+src/components/filters/Timeline.tsx
+  s_ab125876fe9ad2::t_fe0bf2a0bb187c 4,51,77-87,194-202
+tests/timeline-ui.test.tsx
+  s_ab125876fe9ad2::t_be274dc773808c 111-140
+src/components/filters/timeline.css
+  s_ab125876fe9ad2::t_fe0bf2a0bb187c 4-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e4bd3aa36d3dbb21b11054addbe1e03f43a79d0f",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
