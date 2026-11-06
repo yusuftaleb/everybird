@@ -1,6 +1,7 @@
 import type { ImportResult, Place, SourceRecord, Unmatched } from '@/lib/list/model'
 import { foldName, resolveName, type TaxonomyIndex } from '@/lib/species/resolve'
 import type { Regions } from '@/lib/species/types'
+import { SeenAgg } from '@/lib/list/seen'
 import { stripBracket } from './places'
 
 export type InatProgress = { fetched: number; total: number }
@@ -161,11 +162,15 @@ export type ApiPlace = { id: number; name: string; admin_level: number | null }
 
 const SPECIES_OR_BELOW = new Set(['species', 'subspecies', 'variety', 'form'])
 
-/** One entry per iNat species name: the earliest observation's date/row/places plus combined marks. */
+/**
+ * One entry per iNat species name: the earliest observation's date/row/places plus combined marks, and `seen`: every
+ * observation's place ids (joined, as a key) with the earliest date there, resolved to places once fetched.
+ */
 type Agg = {
   row: number
   date?: string
   placeIds: number[]
+  seen: Map<string, string>
   media: boolean
   heardAll: boolean
   deadAll: boolean
@@ -175,6 +180,10 @@ type Agg = {
 const earlier = (date: string | undefined, prev: string | undefined) => !!date && (!prev || date < prev)
 
 function foldInto(into: Agg, from: Agg): void {
+  for (const [k, d] of from.seen) {
+    const prev = into.seen.get(k)
+    if (prev === undefined || (d && (!prev || d < prev))) into.seen.set(k, d)
+  }
   into.media ||= from.media
   into.heardAll &&= from.heardAll
   into.deadAll &&= from.deadAll
@@ -283,7 +292,9 @@ export type InatOptions = {
  *   buildList semantics across all of that species' observations: `media` and `research` if ANY observation has
  *   them; `heard` and `dead` only if EVERY observation is sound-only / annotated dead. (So with researchOnly on,
  *   a species whose research-grade observation is not the earliest still shows the earliest one's date.)
- * - Only the earliest observation's place ids are resolved. Coordinates, location, place_guess, observation
+ * - Seen here (seen.ts): every observation's place (country, state, county) goes into the record's `seen`, with
+ *   the earliest date there; so every distinct set of place ids is resolved. A name's places all go to its code (the
+ *   marsh wren follows its earliest observation, as its lifer does). Coordinates, location, place_guess, observation
  *   ids and photo URLs are never read into records.
  */
 export async function importInat(username: string, opts: InatOptions): Promise<ImportResult | { error: InatError }> {
@@ -333,10 +344,13 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
         const key = name.split(/\s+/).slice(0, 2).join(' ')
         const photos = o.photos?.length ?? 0
         const sounds = o.sounds?.length ?? 0
+        const date = o.observed_on && /^\d{4}-\d{2}-\d{2}$/.test(o.observed_on) ? o.observed_on : undefined
+        const placeIds = Array.isArray(o.place_ids) ? o.place_ids.filter((id) => Number.isInteger(id)) : []
         const obs: Agg = {
           row: seq,
-          date: o.observed_on && /^\d{4}-\d{2}-\d{2}$/.test(o.observed_on) ? o.observed_on : undefined,
-          placeIds: o.place_ids ?? [],
+          date,
+          placeIds,
+          seen: new Map(placeIds.length ? [[placeIds.join(','), date ?? '']] : []),
           media: photos + sounds > 0,
           heardAll: sounds > 0 && photos === 0,
           deadAll: !!o.annotations?.some((a) => a.controlled_attribute_id === 17 && a.controlled_value_id === 19),
@@ -351,9 +365,12 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
     }
     if (seq === 0) return { error: 'no-birds' }
 
-    // Places: only the earliest observation of each name is needed.
+    // Places: every observation's (seen here), which includes each name's earliest.
     const wanted = new Set<number>()
-    for (const a of byName.values()) for (const id of a.placeIds) wanted.add(id)
+    for (const a of byName.values()) {
+      for (const id of a.placeIds) wanted.add(id)
+      for (const k of a.seen.keys()) for (const id of k.split(',')) wanted.add(Number(id))
+    }
     const placeById = new Map<number, ApiPlace>()
     const ids = [...wanted]
     for (let i = 0; i < ids.length; i += PLACE_BATCH) {
@@ -362,6 +379,14 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
       for (const p of Array.isArray(res.results) ? res.results : []) placeById.set(p.id, p)
     }
     const placeOf = makePlaceResolver(opts.regions, placeById)
+    const seenPlaces = new SeenAgg()
+    const placeByKey = new Map<string, Place | undefined>()
+    const seenOf = (a: Agg, into: string) => {
+      for (const [k, d] of a.seen) {
+        if (!placeByKey.has(k)) placeByKey.set(k, placeOf(k.split(',').map(Number)))
+        seenPlaces.add(into, placeByKey.get(k), d || undefined)
+      }
+    }
 
     // Resolve names (after places: the marsh wren depends on where it was seen), then merge per eBird code.
     const byCode = new Map<string, Agg & { code: string; place?: Place }>()
@@ -384,12 +409,15 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
             if (res.suggestion) u.suggestion = res.suggestion
             if (a.date) u.date = a.date
             if (place) u.place = place
+            seenOf(a, `name:${name}`)
+            u.seen = seenPlaces.get(`name:${name}`) ?? []
             unmatched.push(u)
             continue
           }
           code = res.code
         }
       }
+      seenOf(a, code)
       const prev = byCode.get(code)
       if (!prev) byCode.set(code, { ...a, code, place })
       else {
@@ -409,6 +437,7 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
       if (a.deadAll) rec.dead = true
       if (a.media) rec.media = true
       if (a.research) rec.research = true
+      rec.seen = seenPlaces.get(a.code) ?? []
       records.push(rec)
     }
     return { records, unmatched, skipped }

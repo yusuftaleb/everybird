@@ -2,6 +2,7 @@ import Papa from 'papaparse'
 import type { ImportResult, Place, SourceRecord, Unmatched } from '@/lib/list/model'
 import { resolveName, type Resolution, type TaxonomyIndex } from '@/lib/species/resolve'
 import { parseEbirdDate } from './ebird-lifelist'
+import { SeenAgg } from '@/lib/list/seen'
 import { placeFromSubnational } from './places'
 
 const PROGRESS_EVERY = 5000
@@ -20,6 +21,14 @@ function rowPlace(r: Row): Place | undefined {
   return { ...placeFromSubnational(sp), sub2: county || undefined }
 }
 
+/** The row's seen-here key, "CA-BC|County" or "KE", straight from the raw columns (no Place object per row). */
+function rowKey(r: Row): string | undefined {
+  const sp = (r['State/Province'] ?? '').trim().toUpperCase()
+  if (!sp || sp[0] === '-') return undefined
+  const county = (r['County'] ?? '').trim()
+  return county ? `${sp}|${county}` : sp
+}
+
 const earlier = (date: string | undefined, prev: string | undefined) => !!date && (!prev || date < prev)
 
 /**
@@ -29,11 +38,15 @@ const earlier = (date: string | undefined, prev: string | undefined) => !!date &
  * - `unmatched` has one entry per distinct (sci, com) name; `row` is the 1-based data-row index of that
  *   name's earliest-dated row, which also supplies its date and place.
  * - Per species the earliest row wins (date and place); `media` is true if ANY row has ML Catalog Numbers.
+ * - Seen here (seen.ts): every record and unmatched name gets `seen`, one entry per place (province + county) it was
+ *   seen in, with the earliest date there. Aggregated per species and place as the rows stream by; rows are not kept.
  */
 export function parseEbirdMyData(csv: string | File, t: TaxonomyIndex, onProgress?: (rows: number) => void): Promise<ImportResult> {
   const byCode = new Map<string, SourceRecord>()
   const unmatchedByName = new Map<string, Unmatched>()
   const resolved = new Map<string, Resolution>()
+  const seen = new SeenAgg()
+  const seenUnmatched = new SeenAgg()
   let skipped = 0
   let rowNo = 0
 
@@ -55,6 +68,8 @@ export function parseEbirdMyData(csv: string | File, t: TaxonomyIndex, onProgres
         return
       }
       const date = rowDate(r['Date'])
+      const k = rowKey(r)
+      if (k) seenUnmatched.addKey(key, k, date ?? '')
       const prev = unmatchedByName.get(key)
       if (!prev || earlier(date, prev.date)) {
         const u: Unmatched = { source: 'ebird', row: rowNo, reason: res.reason }
@@ -70,6 +85,8 @@ export function parseEbirdMyData(csv: string | File, t: TaxonomyIndex, onProgres
     }
     const date = rowDate(r['Date'])
     const media = (r['ML Catalog Numbers'] ?? '').trim() !== ''
+    const k = rowKey(r)
+    if (k) seen.addKey(res.code, k, date ?? '')
     const prev = byCode.get(res.code)
     if (!prev) {
       const rec: SourceRecord = { code: res.code, source: 'ebird' }
@@ -88,7 +105,13 @@ export function parseEbirdMyData(csv: string | File, t: TaxonomyIndex, onProgres
     }
   }
 
-  const finish = (): ImportResult => ({ records: [...byCode.values()], unmatched: [...unmatchedByName.values()], skipped })
+  const finish = (): ImportResult => {
+    const records = [...byCode.values()]
+    for (const r of records) r.seen = seen.get(r.code) ?? []
+    const unmatched: Unmatched[] = []
+    for (const [key, u] of unmatchedByName) unmatched.push({ ...u, seen: seenUnmatched.get(key) ?? [] })
+    return { records, unmatched, skipped }
+  }
 
   const run = (input: string | File) =>
     new Promise<ImportResult>((resolve, reject) => {

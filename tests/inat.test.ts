@@ -143,8 +143,23 @@ describe('importInat', () => {
   it('earliest observation per name wins; unmatched has one entry with date and place', async () => {
     const r = okResult(await run(fakeFetch()))
     expect(r.unmatched).toEqual([
-      { source: 'inat', row: 6, sci: 'Fakeus birdus', reason: 'no-match', date: '2026-04-01', place: { country: 'US', sub1: 'US-CA' } },
+      { source: 'inat', row: 6, sci: 'Fakeus birdus', reason: 'no-match', date: '2026-04-01', place: { country: 'US', sub1: 'US-CA' }, seen: ['2026-04-01|US-CA'] },
     ])
+  })
+
+  it('seen here: the place of every observation, each with the earliest date there; subspecies roll up', async () => {
+    const r = okResult(await run(fakeFetch()))
+    const norfli = r.records.find((x) => x.code === 'norfli')!
+    expect([...norfli.seen!].sort()).toEqual(['2026-01-10|CA-BC|Okanagan-Similkameen', '2026-03-02|US-CA|Alameda'])
+    expect(r.records.find((x) => x.code === 'gilfli')!.seen).toEqual(['2026-02-01|US-CA'])
+  })
+
+  it('seen here: a later observation elsewhere adds a place; one at the same place keeps the earlier date', async () => {
+    const o = (id: number, date: string, place_ids: number[]): Obs => ({
+      id, observed_on: date, quality_grade: 'research', taxon: { rank: 'species', name: 'Colaptes chrysoides' }, photos: [{}], sounds: [], annotations: [], place_ids,
+    } as Obs)
+    const r = okResult(await run(fakeFetch({ obs: [o(1, '2026-05-01', [1000, 1001]), o(2, '2026-01-01', [1000, 1001]), o(3, '2026-07-01', [1000, 1003]), o(4, '2026-08-01', [])] })))
+    expect([...r.records[0].seen!].sort()).toEqual(['2026-01-01|US-CA', '2026-07-01|US-NY'])
   })
 
   it('unknown user', async () => {

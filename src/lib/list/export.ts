@@ -1,11 +1,12 @@
-import { formatPlace } from '@/lib/import/places'
+import { formatPlace, stripBracket } from '@/lib/import/places'
 import type { Regions } from '@/lib/species/types'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { SLOTS, slotSource } from './model'
 import type { ListEntry, Slot, Source, SourceRecord } from './model'
+import { seenOf, type SeenIndex } from './seen'
 import type { Saved } from './storage'
 
-const HEADER = ['eBird code', 'Common name', 'Scientific name', 'First date', 'Place', 'Country', 'Heard only', 'Found dead', 'Sources']
+const HEADER = ['eBird code', 'Common name', 'Scientific name', 'First date', 'Place', 'Country', 'Heard only', 'Found dead', 'Sources', 'Countries seen']
 
 function cell(v: string): string {
   // Neutralise spreadsheet formulas (places can come from iNaturalist free text).
@@ -13,13 +14,20 @@ function cell(v: string): string {
   return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
 }
 
-/** RFC 4180 CSV, CRLF line endings, one trailing CRLF. Dates are as stored (YYYY-MM-DD | YYYY-MM | YYYY). */
-export function toCsv(list: ListEntry[], species: SpeciesIndex, regions: Regions): string {
+const countryLabel = (iso: string, regions: Regions) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso)
+
+/**
+ * RFC 4180 CSV, CRLF line endings, one trailing CRLF. Dates are as stored (YYYY-MM-DD | YYYY-MM | YYYY). The first
+ * date, place and country are the lifer's; the last column lists every country the species was seen in (seen-here,
+ * else the lifer country), by name, "; "-separated.
+ */
+export function toCsv(list: ListEntry[], species: SpeciesIndex, regions: Regions, seen?: SeenIndex): string {
   const lines = [HEADER.map(cell).join(',')]
   for (const e of list) {
     const sp = species.byCode.get(e.code)
     const p = e.place
     const country = p ? (p.country && regions.countries[p.country]) || (p.sub1 && regions.countries[p.sub1.split('-')[0]]) || '' : ''
+    const countries = [...new Set(seenOf(seen, e).map((x) => countryLabel(x.country, regions)))].sort((a, b) => a.localeCompare(b))
     lines.push(
       [
         e.code,
@@ -31,6 +39,7 @@ export function toCsv(list: ListEntry[], species: SpeciesIndex, regions: Regions
         e.heard ? 'yes' : '',
         e.dead ? 'yes' : '',
         e.sources.join('; '),
+        countries.join('; '),
       ]
         .map(cell)
         .join(','),
@@ -57,13 +66,14 @@ export function fromJson(text: string): Saved {
     throw new Error('This file is not valid JSON.')
   }
   if (!isObj(raw)) throw new Error('This is not an Everybird backup.')
-  if (raw.v !== 1) throw new Error('Unsupported backup version.')
+  // v1 backups predate seen-here; they restore as v2 without it.
+  if (raw.v !== 1 && raw.v !== 2) throw new Error('Unsupported backup version.')
 
   if (!isObj(raw.records)) throw new Error('Backup has no records.')
   // Backups made before the second eBird slot have no 'ebird-list'; it starts empty.
   const records = { ebird: [], 'ebird-list': [], inat: [], manual: [] } as Record<Slot, SourceRecord[]>
   for (const [k, v] of Object.entries(raw.records)) {
-    if (!isSlot(k) || !Array.isArray(v) || !v.every((r) => isObj(r) && typeof r.code === 'string'))
+    if (!isSlot(k) || !Array.isArray(v) || !v.every((r) => isObj(r) && typeof r.code === 'string' && (r.seen === undefined || isStrArr(r.seen))))
       throw new Error('Backup records are malformed.')
     records[k] = v as SourceRecord[]
   }
@@ -71,7 +81,7 @@ export function fromJson(text: string): Saved {
   const unmatched = raw.unmatched ?? []
   if (
     !Array.isArray(unmatched) ||
-    !unmatched.every((u) => isObj(u) && typeof u.row === 'number' && SOURCES.includes(u.source as Source) && (u.slot === undefined || (isSlot(u.slot) && slotSource(u.slot) === u.source)))
+    !unmatched.every((u) => isObj(u) && typeof u.row === 'number' && SOURCES.includes(u.source as Source) && (u.slot === undefined || (isSlot(u.slot) && slotSource(u.slot) === u.source)) && (u.seen === undefined || isStrArr(u.seen)))
   )
     throw new Error('Backup unmatched rows are malformed.')
 
@@ -89,7 +99,7 @@ export function fromJson(text: string): Saved {
   if (sk !== undefined && (!isObj(sk) || !Object.entries(sk).every(([k, n]) => isSlot(k) && typeof n === 'number' && n >= 0)))
     throw new Error('Backup skipped counts are malformed.')
   const out: Saved = {
-    v: 1,
+    v: 2,
     records,
     unmatched: unmatched as Saved['unmatched'],
     edits: e as unknown as Saved['edits'],

@@ -67,7 +67,7 @@ export function SettingsPage() {
           <h2 id="eb-keep-h" className="eb-h2">Keep your list</h2>
           <p className="eb-note">Your list lives on this device. Download it any time, or move it to another device with the backup.</p>
           <div className="eb-tools">
-            <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} onClick={() => data && downloadText(toCsv(state.list, data.species, data.regions), `everybird-${today()}.csv`, 'text/csv')}>
+            <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} onClick={() => data && downloadText(toCsv(state.list, data.species, data.regions, state.seen), `everybird-${today()}.csv`, 'text/csv')}>
               <DownloadSimple aria-hidden="true" focusable="false" />
               Download CSV
             </button>

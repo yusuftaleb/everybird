@@ -31,6 +31,16 @@ describe('parseEbirdMyData', () => {
     expect(byCode('rupgri')?.place?.sub2).toBeUndefined()
     expect(byCode('rupgri')?.place).toMatchObject({ country: 'KE' })
   })
+  it('seen here: every place (province + county) each species was seen, with the earliest date there', () => {
+    expect([...byCode('norfli')!.seen!].sort()).toEqual(['2026-01-02|US-AZ|Pima', '2026-03-10|CA-BC|Okanagan-Similkameen'])
+    expect(byCode('gilfli')?.seen).toEqual(['2026-02-01|US-AZ|Pima'])
+    expect(byCode('rupgri')?.seen).toEqual(['2026-04-04|KE'])
+    expect([...basic.unmatched[0].seen!].sort()).toEqual(['2026-08-08|CA-BC|Okanagan-Similkameen', '2026-09-09|US-AZ|Pima'])
+  })
+  it('seen here: a species seen in no known place has an empty list (it still carries seen-here)', async () => {
+    const csv = [MYDATA_HEADER, 'S1,Gilded Flicker,Colaptes chrysoides,11994,1,,,L,x,0,0,2026-01-01,,,,,,,,,,,'].join('\n')
+    expect((await parseEbirdMyData(csv, t)).records[0].seen).toEqual([])
+  })
   it('media from any row with ML Catalog Numbers', () => {
     expect(byCode('gilfli')?.media).toBe(true) // only the later-dated... S7 is earliest; S6 has none
     expect(byCode('norfli')?.media).toBeFalsy()
@@ -105,6 +115,7 @@ describe('parseEbirdMyData', () => {
     console.log(`200k rows: ${ms.toFixed(0)} ms`)
     expect(r.records).toHaveLength(FIX_SPECIES.length)
     expect(r.records.every((x) => x.media === true)).toBe(true)
+    expect(r.records.every((x) => x.seen?.length === 4)).toBe(true)
     expect(ms).toBeLessThan(5000)
   }, 30_000)
 })

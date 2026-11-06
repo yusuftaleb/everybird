@@ -7,6 +7,7 @@ import type { Filter } from './filters'
 import { applyFilterValidity } from './filters-validate'
 import { SLOTS, slotSource, unmatchedKey } from './model'
 import type { Edits, ImportResult, ListEntry, Rules, Slot, SourceRecord, Unmatched } from './model'
+import { buildSeen, type SeenIndex } from './seen'
 import * as storage from './storage'
 import { emptySaved, replaceSource, type Saved } from './storage'
 import { findTrips, type Trip } from './trips'
@@ -14,6 +15,8 @@ import { findTrips, type Trip } from './trips'
 export type AppState = {
   saved: Saved
   list: ListEntry[]
+  /** Derived: where each species on the list was seen (seen.ts), for the Places filter, its counts and the map. */
+  seen: SeenIndex
   trips: Trip[]
   /** Derived: unmatched rows that have no fix yet (what the MatchReport shows). */
   openUnmatched: Unmatched[]
@@ -50,7 +53,11 @@ export function recordsOf(saved: Saved): SourceRecord[] {
   const fixRecords: SourceRecord[] = []
   for (const u of saved.unmatched) {
     const code = saved.edits.fixes[unmatchedKey(u)]
-    if (code) fixRecords.push({ code, source: slotSource(u.slot ?? u.source), date: u.date, place: u.place })
+    if (code) {
+      const r: SourceRecord = { code, source: slotSource(u.slot ?? u.source), date: u.date, place: u.place }
+      if (u.seen) r.seen = u.seen
+      fixRecords.push(r)
+    }
   }
   return [...SLOTS.flatMap((slot) => saved.records[slot] ?? []), ...fixRecords]
 }
@@ -72,16 +79,19 @@ export function ruleCounts(saved: Saved): { heard: number; dead: number; casual:
 function derive(s: AppState, saved: Saved, filter: Filter, ctx: StoreContext, pruneValues: boolean): AppState {
   const taxonOrder = (code: string) => ctx.species.byCode.get(code)?.to ?? Number.MAX_SAFE_INTEGER
   const fixKeys = new Set(Object.keys(saved.edits.fixes))
-  const list = buildList(recordsOf(saved), saved.edits, saved.rules, taxonOrder)
+  const records = recordsOf(saved)
+  const list = buildList(records, saved.edits, saved.rules, taxonOrder)
+  const seen = buildSeen(records, saved.edits, saved.rules, list)
   const trips = findTrips(list, ctx.countryName)
   const openUnmatched = saved.unmatched.filter((u) => !fixKeys.has(unmatchedKey(u)))
   return {
     ...s,
     saved,
     list,
+    seen,
     trips,
     openUnmatched,
-    filter: applyFilterValidity(filter, list, trips, ctx.species, pruneValues),
+    filter: applyFilterValidity(filter, list, trips, ctx.species, pruneValues, seen),
   }
 }
 
@@ -89,6 +99,7 @@ export function initialState(): AppState {
   return {
     saved: emptySaved(),
     list: [],
+    seen: { byCode: new Map(), full: false, sig: '0' },
     trips: [],
     openUnmatched: [],
     filter: {},
@@ -114,7 +125,7 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
       case 'restore':
         return derive(s, a.saved, s.filter, ctx, true)
       case 'filter':
-        return { ...s, filter: applyFilterValidity(a.filter, s.list, s.trips, ctx.species, false) }
+        return { ...s, filter: applyFilterValidity(a.filter, s.list, s.trips, ctx.species, false, s.seen) }
       case 'mode':
         return { ...s, mode: a.mode }
       case 'view':

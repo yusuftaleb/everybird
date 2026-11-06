@@ -18,6 +18,11 @@ export type SourceRecord = {
   dead?: boolean
   media?: boolean
   research?: boolean
+  /**
+   * Seen here (seen.ts): every place this source saw the species, each "date|region[|county]" with the earliest date
+   * there. MyEBirdData and iNaturalist only; absent elsewhere (the lifer place then stands in).
+   */
+  seen?: string[]
 }
 export type Unmatched = {
   source: Source
@@ -31,6 +36,8 @@ export type Unmatched = {
   /** First date and place of the row, so a row fixed by hand keeps them. */
   date?: string
   place?: Place
+  /** Every place the name was seen (seen.ts encoding), so a row fixed by hand keeps its seen-here too. */
+  seen?: string[]
 }
 export type ImportResult = { records: SourceRecord[]; unmatched: Unmatched[]; skipped: number /* rows that are not countable species */ }
 export type MarkKey = 'heard' | 'dead' | 'media'

@@ -3,8 +3,12 @@ import { DEFAULT_RULES } from './model'
 import { SLOTS, slotSource } from './model'
 import type { Edits, ImportResult, Rules, Slot, SourceRecord, Unmatched } from './model'
 
+/**
+ * The stored list. v2 (Task PL) added seen-here (`SourceRecord.seen`, `Unmatched.seen`); a v1 list is the same shape
+ * without it and migrates by its version number alone. The IndexedDB key keeps its v1 name.
+ */
 export type Saved = {
-  v: 1
+  v: 2
   /** Records per slot (model.ts `Slot`): the two eBird files side by side, then iNaturalist and manual. */
   records: Record<Slot, SourceRecord[]>
   unmatched: Unmatched[]
@@ -20,7 +24,7 @@ export const STORAGE_KEY = 'everybird:v1'
 
 export function emptySaved(): Saved {
   return {
-    v: 1,
+    v: 2,
     records: { ebird: [], 'ebird-list': [], inat: [], manual: [] },
     unmatched: [],
     edits: { removed: [], added: [], marks: {}, fixes: {} },
@@ -61,16 +65,17 @@ export async function save(s: Saved): Promise<'saved' | 'memory-only'> {
 export const LOAD_RETRY_MS = 150
 
 /**
- * Bring a list saved by an older Everybird up to the current shape (still v1: the shape only grew). Lists saved
+ * Bring a list saved by an older Everybird up to the current shape. v1 -> v2: the version only (v2 added seen-here,
+ * which a v1 list lacks until its files are imported again; until then its lifer places stand in). Lists saved
  * before the second eBird slot have no records['ebird-list']; it is added empty. Their eBird records stay in
  * 'ebird' and their fix keys ("ebird:12") still match. Returns the same object when nothing needed changing.
  */
 export function migrateSaved(s: Saved): Saved {
   const missing = SLOTS.filter((k) => !Array.isArray((s.records as Partial<Saved['records']>)[k]))
-  if (!missing.length) return s
+  if (!missing.length && s.v === 2) return s
   const records = { ...s.records }
   for (const k of missing) records[k] = []
-  return { ...s, records }
+  return { ...s, v: 2, records }
 }
 
 export async function load(): Promise<Saved | null> {

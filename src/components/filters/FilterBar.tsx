@@ -61,7 +61,7 @@ const PANELS: (Group & { id: Panel })[] = [
   { id: 'places', label: 'Places', nav: 'Filter by place', all: 'All places', levels: ['country'] },
   { id: 'time', label: 'Time', nav: 'Filter by time', all: 'All time', levels: ['trip'] }, // the timeline, not chips
 ]
-const RANK: Record<Level, string> = { order: 'Orders', family: 'Families', country: 'Countries', year: 'Years', trip: 'Trips' }
+const RANK: Record<Level, string> = { order: 'Orders', family: 'Families', country: 'Countries', sub1: 'Regions', sub2: 'Counties', year: 'Years', trip: 'Trips' }
 /** Levels named by a scientific name (shown in Latin when Scientific names are on). */
 const LATIN = new Set<Level>(['order', 'family'])
 
