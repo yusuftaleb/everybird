@@ -1,0 +1,37 @@
+e2e/import.spec.ts
+  s_ab125876fe9ad2::t_35965144eae091 46
+  s_ab125876fe9ad2::t_4c27f725e9c811 43
+AGENTS.md
+  s_ab125876fe9ad2::t_23a672aa39c761 55
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_ea2448b7a48545 433,435
+src/components/app/app.css
+  s_ab125876fe9ad2::t_23a672aa39c761 26
+  s_ab125876fe9ad2::t_35965144eae091 25
+public/data/sample-pack.v1.json
+  s_ab125876fe9ad2::t_eccb4321145da4 1
+e2e/welcome.spec.ts
+  s_ab125876fe9ad2::t_dc72d42c7aa26b 66
+public/data/sample.v1.json
+  s_ab125876fe9ad2::t_eccb4321145da4 1
+scripts/build-data/build-sample.ts
+  s_ab125876fe9ad2::t_eccb4321145da4 353-366,472
+src/components/import/ImportPanel.tsx
+  s_ab125876fe9ad2::t_754a3a4329fd56 92-97,100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "423cb04f4c78d50ccedf2272ceb53d0ff5b26db4",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
