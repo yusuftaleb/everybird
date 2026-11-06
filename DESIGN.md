@@ -124,7 +124,7 @@ Seven tokens, two themes, nothing else. `tests/tokens.test.ts` keeps `tokens.css
 **Display:** Cabinet Grotesk 700. **Body:** Satoshi (500 base, 600/700 for emphasis). **Mono:** Geist Mono via `next/font/google` (`--font-geist-mono`). Satoshi and Cabinet Grotesk load from Fontshare's CSS and are never committed (also drawn on the share canvas via the same families).
 
 ### Hierarchy (as shipped)
-- **Page title** (Cabinet 700, `clamp(36px,7vw,56px)` on Settings/About pagehead; `clamp(44px,9vw,72px)` for `.eb-title`, line-height .95, -0.02em): page heads.
+- **Page title** `.eb-pagehead-title` (Cabinet 700, `clamp(32px,5vw,48px)`, line-height 1.05, -0.02em): one page head (`PageHead`) for Collage, Settings and About, on a `.eb-page-titled` page: the same top offset (24px, 40px from 720px) and gap to the content (24px, 32px from 720px) on all three. `.eb-title` (`clamp(44px,9vw,72px)`, .95) is not used by the page heads.
 - **Collage hero / head** (Cabinet 700, `clamp(28px,4vw,42px)` landing hero; `clamp(24px,4vw,40px)` the birder's "<name>'s birds").
 - **Section heading** `.eb-h2` (Cabinet 700, `clamp(24px,4vw,28px)`, 1.15).
 - **The count** `.eb-num` (Cabinet 700, `--f` x 1cqw, line-height .85, tabular numerals): the species number at the centre of the collage.
@@ -185,7 +185,7 @@ Bird card `.eb-card`: Paper, Hairline, 16px squircle, 12px 14px padding, max 300
 `.eb-input`: 44px, Surface, 1px Line border, 8px squircle, 16px text; selects share it inside `.eb-select` with a Muted chevron mask; invalid is an Accent border. One shared field style everywhere.
 
 ### Source cards (Settings)
-`.eb-way`: 20px squircle, Hairline; one anatomy: icon (Phosphor, Accent, 22px) + title, a sentence, one 44px control row, a muted line. Three columns from 880px. Drop target turns the border Accent and the fill Surface.
+`.eb-way`: 20px squircle, Hairline; one full-width row per way in (eBird files, iNaturalist, Tick by hand): the head (icon (Phosphor, Accent, 24px) + title, a sentence) left and the controls right (5fr / 7fr) from 880px, stacked below. A connected source is a `.eb-source` line (name, then a mono meta line such as "Full export · 4,212 rows · imported 6 Nov 2026") with Replace or Refresh and Remove (asks once, inline). eBird's `.eb-dropzone` (dashed Line border) holds the full-width "Choose your eBird file" button; a dragged file turns it Accent on Surface. Tick by hand is a disclosure: the list grows in (grid rows 0fr to 1fr, .32s; instant with reduced motion).
 
 ### Top bar
 `.eb-topbar`: Hairline bottom border, one row at every width down to 320px, min height 60px (64 from 720). Wordmark "Everybird" (Cabinet 700 22px), then Collage / Settings / About (40px, 12px squircle, 66% opacity; `aria-current="page"`: Accent text, Surface fill, Hairline border), then the sun/moon theme toggle (44px, role switch, "Dark mode"). Sizes step down at 480 and 359px. Footer on every page: mono credit line, "All credits", "Made by Yusuf Taleb".
