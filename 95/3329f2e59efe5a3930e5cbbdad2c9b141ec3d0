@@ -1,0 +1,71 @@
+DESIGN.md
+  s_ab125876fe9ad2::t_15caa362b127e9 250
+scripts/build-data/build-sample.ts
+  s_ab125876fe9ad2::t_0361112287d5da 318
+  s_ab125876fe9ad2::t_465de3b81ffe01 349-355,358-359,440-447,449-451,498-499
+  s_ab125876fe9ad2::t_86e95f20e45ad6 34,43,46,48-49,53-54,56,59-63,65-66,69-70,72,74,97,105,137,140-141,146-148,150,154-160,162-167,175,178,180-184,188,293-297,301-305,307-308,310,316-317,321,323,456,459,470
+  s_ab125876fe9ad2::t_9d46cfd47b98e7 244-245,252,269,280
+  s_ab125876fe9ad2::t_52ab4ed08e7d7b 142-143,151-153,174,238,246,491-496
+  s_ab125876fe9ad2::t_6f6fb189e8aac5 432
+  s_ab125876fe9ad2::t_981469f189ec89 6-14,51-52
+  s_ab125876fe9ad2::t_f0e07a4d3d956b 177,179,311,322,324-327,330
+  s_ab125876fe9ad2::t_7450569a406b65 37,415,448,463-464,466-467,469,497
+  s_ab125876fe9ad2::t_ba54f513dcccff 361
+  s_ab125876fe9ad2::t_8d86c2a450db7f 144-145,185-186,207-212,219
+  s_ab125876fe9ad2::t_99d581fc878ff0 336-347
+  s_ab125876fe9ad2::t_d6b610f9102775 57,263,286
+  s_ab125876fe9ad2::t_b648b17113abe6 44,205-206
+  s_ab125876fe9ad2::t_7ad008954c5ebf 253,257,265,281
+  s_ab125876fe9ad2::t_75504c44e5d577 356-357
+  s_ab125876fe9ad2::t_4cf03c13ed58b4 220,224,226-228,298,394-396,460-461,465
+  s_ab125876fe9ad2::t_3c429dd7fdc7fe 1-2,4,15-16,21-22,26-33,35-36,38-42,45,47,50,55,58,64,67,71,73,75-96,98-102,104,106-129,131-136,138-139,161,171,173,176,189-204,214-218,222-223,225,229-237,239-243,247-251,254-256,258-262,264,266-268,270-279,282-285,287-292,299-300,306,309,313-315,319-320,328-329,331-335,348,360,362-393,397-414,417-431,433-439,452-455,457-458,462,468,471,473-475,479-480,482-487,489-490,500-503,505-509,512
+  s_ab125876fe9ad2::t_26625f9768fee0 149,187,312
+  s_ab125876fe9ad2::t_bd14462f8c30d7 68,168-170,172,213,221
+  s_ab125876fe9ad2::t_e4569f90ca735d 103,130
+e2e/sample.ts
+  s_ab125876fe9ad2::t_83f6b6cc0fca3f 1-5
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_daded8e3e8e572 43
+public/data/sample-pack.v1.json
+  s_ab125876fe9ad2::t_7627cdce13dce7 1
+src/components/app/SampleDemo.tsx
+  s_ab125876fe9ad2::t_daded8e3e8e572 40
+e2e/share.spec.ts
+  s_ab125876fe9ad2::t_83f6b6cc0fca3f 4,6,136
+tests/app-routes.test.tsx
+  s_ab125876fe9ad2::t_daded8e3e8e572 161,209
+tests/build-sample.test.ts
+  s_ab125876fe9ad2::t_2e68e9ba3aac63 1-2,4-6,9-118
+e2e/flows.spec.ts
+  s_ab125876fe9ad2::t_83f6b6cc0fca3f 4,356
+e2e/import.spec.ts
+  s_ab125876fe9ad2::t_5cc1c72a8e6482 42-45,47
+  s_ab125876fe9ad2::t_83f6b6cc0fca3f 5,25-26,37,51,155,162,170,175,185
+public/data/sample.v1.json
+  s_ab125876fe9ad2::t_d6b610f9102775 1
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_03a82aec24e1a8 433
+PRODUCT.md
+  s_ab125876fe9ad2::t_03a82aec24e1a8 22
+e2e/share-link.spec.ts
+  s_ab125876fe9ad2::t_83f6b6cc0fca3f 2,35
+AGENTS.md
+  s_ab125876fe9ad2::t_15caa362b127e9 55
+  s_ab125876fe9ad2::t_ba8dd121abf0cf 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "953329f2e59efe5a3930e5cbbdad2c9b141ec3d0",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
