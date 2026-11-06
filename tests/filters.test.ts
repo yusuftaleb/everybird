@@ -54,6 +54,26 @@ describe('filters', () => {
     expect(options(list, { year: '2026' }, 'trip', sp2, trips)).toEqual([{ value: 'EG-2026-09-01', label: 'EG · Sep 2026', count: 3 }])
     expect(options(list, { year: '2026', order: 'Anseriformes' }, 'trip', sp2, trips)).toEqual([])
   })
+  it('a range keeps the months from..to (a year-only date overlaps by its year; undated never match)', () => {
+    const l2 = [...list, e('duck', 'CA', '2026')]
+    l2[7] = e('yearly', 'CA', '2026')
+    const sp3: SpeciesIndex = { ...sp2, byCode: new Map([...sp2.byCode, ['yearly', { ...(species.byCode.get('duck') as object), code: 'yearly' } as never]]) }
+    expect(applyFilter(l2, { from: '2020-02', to: '2021-01' }, sp3, trips).map((x) => x.code)).toEqual(['owl', 'crow'])
+    expect(applyFilter(l2, { from: '2026-09' }, sp3, trips).map((x) => x.code)).toEqual(['wren', 'finch', 'crow2', 'yearly'])
+    expect(applyFilter(l2, { to: '2020-01' }, sp3, trips).map((x) => x.code)).toEqual(['duck'])
+    // a trip outside the range matches nothing; inside, the trip's birds
+    expect(applyFilter(list, { to: '2025-12', trip: trips[0].id }, sp2, trips)).toEqual([])
+    expect(applyFilter(list, { from: '2026-09', to: '2026-09', trip: trips[0].id }, sp2, trips)).toHaveLength(3)
+  })
+  it('filterKey adds the range only when there is one', () => {
+    expect(filterKey({ order: 'Passeriformes', from: '2020-03', to: '2021-06', trip: 't' })).toBe('o:Passeriformes|r:2020-03~2021-06|t:t')
+    expect(filterKey({ from: '2020-03' })).toBe('r:2020-03~')
+    expect(filterKey({ to: '2020-03' })).toBe('r:~2020-03')
+  })
+  it('filterToShow drops a range (and its trip) that leaves the bird out', () => {
+    expect(filterToShow({ country: 'CA', from: '2026-01', trip: 'x' }, list[0], species, trips)).toEqual({ country: 'CA' })
+    expect(filterToShow({ from: '2019-01', to: '2020-12' }, list[0], species, trips)).toEqual({ from: '2019-01', to: '2020-12' })
+  })
   it('filterKey is stable regardless of property order', () => {
     expect(filterKey({ year: '2026', order: 'Passeriformes', country: 'EG' })).toBe('o:Passeriformes|c:EG|y:2026')
     expect(filterKey({ country: 'EG', order: 'Passeriformes', year: '2026', family: undefined, trip: '' })).toBe('o:Passeriformes|c:EG|y:2026')

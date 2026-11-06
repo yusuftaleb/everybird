@@ -21,6 +21,7 @@ import type { Box } from '@/lib/layout/pack'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
 import { latestLifer } from '@/lib/list/build-list'
 import type { Filter } from '@/lib/list/filters'
+import { rangeLabel } from '@/lib/list/timeline'
 import type { ListEntry } from '@/lib/list/model'
 import type { Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
@@ -51,7 +52,8 @@ export function latestText(latest: { com: string; date?: string }): { label: str
 
 /**
  * The current filter in words, birds then place then time: "Egypt · 2026", "Herons · Egypt". A trip stands for its
- * country and year (its label is "Egypt · Sep 2026"). Undefined when nothing is filtered.
+ * country and year (its label is "Egypt · Sep 2026"); a range reads "Mar 2020 to Jun 2021" (timeline.ts rangeLabel).
+ * Undefined when nothing is filtered.
  */
 export function filterLabel(
   f: Filter,
@@ -66,7 +68,9 @@ export function filterLabel(
     parts.push(trip.label)
   } else {
     if (f.country) parts.push(ctx.countryName(f.country))
-    if (f.year) parts.push(f.year)
+    const range = rangeLabel(f.from, f.to)
+    if (range) parts.push(range)
+    else if (f.year) parts.push(f.year)
   }
   return parts.length ? parts.join(' · ') : undefined
 }

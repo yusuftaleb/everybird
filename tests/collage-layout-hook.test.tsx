@@ -75,3 +75,22 @@ describe('useCollageLayout', () => {
     expect(fake.setList.mock.contexts.at(-1)).toBe(clients[1])
   })
 })
+
+describe('childFilters and timeless', () => {
+  it('with no time chosen, prefetches the latest trips as a bracket tap sets them; none once a range is set', async () => {
+    const { childFilters, timeless } = await import('@/components/app/use-collage-layout')
+    const list = [e('a', { date: '2019-01-02' }), e('b', { date: '2020-03-04' })]
+    const trips: Trip[] = [
+      { id: 't1', country: 'EG', start: '2019-01-01', end: '2019-02-02', label: 'x', codes: ['a'] },
+      { id: 't2', country: 'EG', start: '2020-03-01', end: '2020-03-05', label: 'y', codes: ['b'] },
+    ]
+    const out = childFilters(list, {}, species, trips)
+    expect(out.filter((f) => f.trip)).toEqual([
+      { trip: 't2', from: '2020-03', to: '2020-03' },
+      { trip: 't1', from: '2019-01', to: '2019-02' },
+    ])
+    expect(out.some((f) => f.year)).toBe(false)
+    expect(childFilters(list, { from: '2019-01' }, species, trips).some((f) => f.trip)).toBe(false)
+    expect(timeless({ order: 'X', year: '2020', from: '2020-01', to: '2020-02', trip: 't' })).toEqual({ order: 'X' })
+  })
+})

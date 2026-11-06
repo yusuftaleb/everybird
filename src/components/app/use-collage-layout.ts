@@ -6,6 +6,7 @@ import { createLayoutClient, type LayoutClient, type StateLayout } from '@/lib/l
 import type { LayoutName } from '@/lib/layout/layout.worker'
 import { applyFilter, options, type Filter, type FilterLevel } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
+import { monthOf, revealUntil, timeless, tripFilter } from '@/lib/list/timeline'
 import { entryCountry, type Trip } from '@/lib/list/trips'
 import type { SpeciesIndex } from '@/lib/species/load'
 
@@ -18,10 +19,14 @@ export function layoutFor(width: number): LayoutName {
 
 const PREFETCH_CAP = 24
 const COUNTRY_PREFETCH = 8
+const TRIP_PREFETCH = 6
+
+export { timeless }
 
 /**
  * The states one tap away from `f`: the next taxonomy level (orders, or the chosen order's families), the
- * top countries, and the next time level (years, or the chosen year's trips). At most PREFETCH_CAP.
+ * top countries, and, with no time chosen, the latest trips (a bracket tap: the trip with its months). At most
+ * PREFETCH_CAP. Range drags are continuous, so they are not guessed ahead.
  */
 export function childFilters(list: ListEntry[], f: Filter, species: SpeciesIndex, trips: Trip[]): Filter[] {
   const out: Filter[] = []
@@ -30,8 +35,11 @@ export function childFilters(list: ListEntry[], f: Filter, species: SpeciesIndex
   if (!f.order) add('order', vals('order'))
   else if (!f.family) add('family', vals('family'))
   if (!f.country) add('country', vals('country').slice(0, COUNTRY_PREFETCH))
-  if (!f.year) add('year', vals('year'))
-  else if (!f.trip) add('trip', vals('trip'))
+  if (!f.year && !f.from && !f.to && !f.trip) {
+    const shown = new Set(applyFilter(list, timeless(f), species, trips).map((e) => e.code))
+    const near = trips.filter((t) => t.codes.some((c) => shown.has(c))).slice(-TRIP_PREFETCH).reverse()
+    for (const t of near) out.push(tripFilter(f, t))
+  }
   return out.slice(0, PREFETCH_CAP)
 }
 
@@ -45,6 +53,12 @@ type Opts = {
   container: RefObject<HTMLElement | null>
   /** Full even layouts packed ahead of time (the landing sample): shown until the worker's first answer. */
   seed?: readonly StateLayout[]
+  /**
+   * Play: the month reached (YYYY-MM) and whether it is the last. The layout is the filter's without its time
+   * dimensions, packed once; only the birds dated up to `until` are visible (undated ones join at the last month), so
+   * each step is a visibility change over the same layout, never a re-pack.
+   */
+  play?: { until: string; last: boolean } | null
 }
 
 const idle = (fn: () => void): (() => void) => {
@@ -61,7 +75,9 @@ const idle = (fn: () => void): (() => void) => {
  * The current StateLayout and its visible codes, or null until the first layout arrives (and always in
  * environments without Worker, such as jsdom, unless a seed covers the state). Entries whose species are unknown are left out.
  */
-export function useCollageLayout({ list, trips, filter, mode, species, container, seed }: Opts): CollageLayout | null {
+export function useCollageLayout({ list, trips, filter: chosen, mode, species, container, seed, play }: Opts): CollageLayout | null {
+  const playing = !!play
+  const filter = useMemo(() => (playing ? timeless(chosen) : chosen), [chosen, playing])
   const client = useRef<LayoutClient | null>(null)
   const [cls, setCls] = useState<LayoutName | null>(null)
   const [result, setResult] = useState<CollageLayout | null>(null)
@@ -70,7 +86,7 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
   // codes and masses in order (what the worker packs). `filterSig`: what filters resolve on (year, country, trips).
   const packSig = useMemo(() => known.map((e) => `${e.code}:${species.byCode.get(e.code)!.g}`).join(','), [known, species])
   const filterSig = useMemo(
-    () => `${known.map((e) => `${e.date?.slice(0, 4) ?? ''}${entryCountry(e) ?? ''}`).join(',')}#${trips.map((t) => `${t.id}:${t.codes.join(' ')}`).join(',')}`,
+    () => `${known.map((e) => `${e.date?.slice(0, 7) ?? ''}${entryCountry(e) ?? ''}`).join(',')}#${trips.map((t) => `${t.id}:${t.codes.join(' ')}`).join(',')}`,
     [known, trips],
   )
   // The client resolves filters lazily, against the newest list and trips.
@@ -148,7 +164,7 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
   // states, then one idle slot per state, so the main thread is never held for long.
   useEffect(() => {
     const c = client.current
-    if (!c || !cls || !result) return
+    if (!c || !cls || !result || playing) return
     let todo: Filter[] | null = null
     let cancel = () => {}
     const step = () => {
@@ -158,7 +174,7 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
     }
     cancel = idle(step)
     return () => cancel()
-  }, [result, filter, species, cls])
+  }, [result, filter, species, cls, playing])
 
   // Until the worker's first answer, the seed stands in, whatever the filter or mode (as a stale layout does while a
   // new one is on its way): the stage stays up, and the worker's layout replaces it as soon as it lands.
@@ -167,5 +183,13 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
     return s ? { layout: s, visible: new Set(s.boxes.keys()) } : null
   }, [seed, cls])
 
-  return known.length ? (result ?? seeded) : null
+  const months = useMemo(() => (playing ? new Map(known.map((e) => [e.code, monthOf(e.date)])) : null), [known, playing])
+  const current = result ?? seeded
+  const until = play?.until, last = !!play?.last
+  const revealed = useMemo(() => {
+    if (!current || !months || !until) return current
+    return { layout: current.layout, visible: revealUntil(current.layout.boxes.keys(), months, until, last) }
+  }, [current, months, until, last])
+
+  return known.length ? revealed : null
 }

@@ -3,41 +3,65 @@ import { orderLabel } from '@/lib/species/orders'
 import type { ListEntry } from './model'
 import { entryCountry, type Trip } from './trips'
 
-/** The active filters. */
-export type Filter = { order?: string; family?: string; country?: string; year?: string; trip?: string }
+/**
+ * The active filters. Time: `from`/`to` are a range of months (YYYY-MM, inclusive, either end open; see timeline.ts).
+ * `year` still filters (old state, search picks), but the store turns it into the range Jan..Dec of that year.
+ * A trip is its own species set; choosing one also sets the range to its months.
+ */
+export type Filter = { order?: string; family?: string; country?: string; year?: string; from?: string; to?: string; trip?: string }
 export type ChipOption = { value: string; label: string; count: number }
 export type FilterLevel = 'order' | 'family' | 'country' | 'year' | 'trip'
+/** The range (`from`/`to`) as one dimension, for skipping it when counting. */
+type Dim = FilterLevel | 'range'
 type Level = FilterLevel
 
 const yearOf = (e: ListEntry) => (e.date && /^\d{4}/.test(e.date) ? e.date.slice(0, 4) : undefined)
 
-/** Stable key, e.g. "o:Passeriformes|f:Corvidae|c:EG|y:2026|t:EG-2026-09-01"; empty values are omitted. */
+/**
+ * Whether an entry's date falls in the range from..to (YYYY-MM, inclusive, either open). A month or full date is
+ * compared by its month; a year-only date matches when its year overlaps the range. Undated entries never match.
+ */
+export function inRange(date: string | undefined, from: string | undefined, to: string | undefined): boolean {
+  if (!from && !to) return true
+  const m = date && /^(\d{4})(?:-(\d{2}))?/.exec(date)
+  if (!m) return false
+  const lo = m[2] ? `${m[1]}-${m[2]}` : `${m[1]}-01`
+  const hi = m[2] ? lo : `${m[1]}-12`
+  return (!from || hi >= from) && (!to || lo <= to)
+}
+/**
+ * Stable key, e.g. "o:Passeriformes|f:Corvidae|c:EG|y:2026|r:2026-03~2026-09|t:EG-2026-09-01"; empty values are omitted
+ * (so filters without a range keep the keys they always had).
+ */
 export function filterKey(f: Filter): string {
   const parts: string[] = []
   if (f.order) parts.push(`o:${f.order}`)
   if (f.family) parts.push(`f:${f.family}`)
   if (f.country) parts.push(`c:${f.country}`)
   if (f.year) parts.push(`y:${f.year}`)
+  if (f.from || f.to) parts.push(`r:${f.from ?? ''}~${f.to ?? ''}`)
   if (f.trip) parts.push(`t:${f.trip}`)
   return parts.join('|')
 }
 
 /**
  * Build one O(1)-per-entry predicate for the filter, ignoring the dimensions in `skip`.
- * Drill-down: a family outside the chosen order, or a trip outside the chosen year, matches nothing.
+ * Drill-down: a family outside the chosen order, or a trip outside the chosen year or range, matches nothing.
  * A child set without its parent is applied on its own (the store drops such state).
  */
-function matcher(f: Filter, species: SpeciesIndex, trips: Trip[], skip: ReadonlySet<Level>) {
+function matcher(f: Filter, species: SpeciesIndex, trips: Trip[], skip: ReadonlySet<Dim>) {
   const order = skip.has('order') ? undefined : f.order
   const family = skip.has('family') ? undefined : f.family
   const country = skip.has('country') ? undefined : f.country
   const year = skip.has('year') ? undefined : f.year
   const tripId = skip.has('trip') ? undefined : f.trip
+  const from = skip.has('range') ? undefined : f.from
+  const to = skip.has('range') ? undefined : f.to
   let tripCodes: Set<string> | undefined
   let impossible = false
   if (tripId) {
     const t = trips.find((x) => x.id === tripId)
-    if (!t || (year && t.start.slice(0, 4) !== year)) impossible = true
+    if (!t || (year && t.start.slice(0, 4) !== year) || !inRange(t.start.slice(0, 7), from, to)) impossible = true
     else tripCodes = new Set(t.codes)
   }
   return (e: ListEntry): boolean => {
@@ -50,6 +74,7 @@ function matcher(f: Filter, species: SpeciesIndex, trips: Trip[], skip: Readonly
     }
     if (country && entryCountry(e) !== country) return false
     if (year && yearOf(e) !== year) return false
+    if ((from || to) && !inRange(e.date, from, to)) return false
     if (tripCodes && !tripCodes.has(e.code)) return false
     return true
   }
@@ -60,11 +85,11 @@ export function applyFilter(list: ListEntry[], f: Filter, species: SpeciesIndex,
   return list.filter(m)
 }
 
-const SKIP: Record<Level, Level[]> = {
+const SKIP: Record<Level, Dim[]> = {
   order: ['order', 'family'], // a family implies its order
   family: ['family'],
   country: ['country'],
-  year: ['year'],
+  year: ['year', 'range'], // years are counted over the whole span
   trip: ['trip'],
 }
 
@@ -141,7 +166,8 @@ export function options(
 
 /**
  * The filter that shows `e` (a search pick outside the current view): every dimension that already includes the bird
- * stays; the ones that exclude it go (another order clears the family too; another year clears its trip).
+ * stays; the ones that exclude it go (another order clears the family too; another year or a range that leaves it out
+ * clears the trip too).
  */
 export function filterToShow(f: Filter, e: ListEntry, species: SpeciesIndex, trips: Trip[]): Filter {
   const row = species.byCode.get(e.code)
@@ -150,6 +176,7 @@ export function filterToShow(f: Filter, e: ListEntry, species: SpeciesIndex, tri
   if (next.family && row?.fam !== next.family) delete next.family
   if (next.country && entryCountry(e) !== next.country) delete next.country
   if (next.year && yearOf(e) !== next.year) { delete next.year; delete next.trip }
+  if ((next.from || next.to) && !inRange(e.date, next.from, next.to)) { delete next.from; delete next.to; delete next.trip }
   if (next.trip && !trips.find((t) => t.id === next.trip)?.codes.includes(e.code)) delete next.trip
   for (const k of Object.keys(next) as (keyof Filter)[]) if (!next[k]) delete next[k]
   return next
