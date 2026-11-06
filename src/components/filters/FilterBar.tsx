@@ -37,9 +37,15 @@ type Props = {
   dots?: CountryDots
   /** Panels to leave out (a shared link that carries no places or dates). */
   hidePanels?: readonly Panel[]
-  /** The open panel, when the parent keeps it (the landing sample's folded row opens one). */
+  /** The open panel, when the parent keeps it. */
   panel?: Panel | null
   onPanel?: (p: Panel | null) => void
+  /**
+   * One scrollable strip (the landing sample, so the birds keep the first screen): the Places and Time toggles, then
+   * the taxonomy's breadcrumb and chips on one line at every width (no phone sheet for taxonomy), as /lifelist's
+   * phone row does. An open panel still opens below the strip.
+   */
+  compact?: boolean
 }
 
 type Level = FilterLevel
@@ -71,7 +77,7 @@ function CountryLabel({ iso, name }: { iso: string; name: string }) {
   return flag ? <><span className="eb-flag" aria-hidden="true">{flag}</span>{name}</> : <>{name}</>
 }
 
-export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hidePanels, panel: panelProp, onPanel }: Props) {
+export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hidePanels, panel: panelProp, onPanel, compact }: Props) {
   const panels = useMemo(() => (hidePanels?.length ? PANELS.filter((p) => !hidePanels.includes(p.id)) : PANELS), [hidePanels])
   const [ownPanel, setOwnPanel] = useState<Panel | null>(null)
   const requested = panelProp !== undefined ? panelProp : ownPanel
@@ -85,10 +91,15 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
     () => (iso: string) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso),
     [regions],
   )
-  // Only the levels on show are counted: taxonomy always, the open panel's levels (Places counts countries for the map).
+  // Only the levels on show are counted: orders always and the open panel's top level (Places counts countries for the
+  // map); a child level (families, trips) only once its parent is chosen.
   const opts = useMemo(() => {
     const out: Partial<Record<Level, ChipOption[]>> = {}
-    for (const g of [BIRDS, ...(open ? [open] : [])]) for (const l of g.levels) if (l) out[l] = options(list, filter, l, species, trips, countryName)
+    for (const g of [BIRDS, ...(open ? [open] : [])]) {
+      const [top, child] = g.levels
+      out[top] = options(list, filter, top, species, trips, countryName)
+      if (child && filter[top]) out[child] = options(list, filter, child, species, trips, countryName)
+    }
     return out
   }, [list, filter, species, trips, countryName, open])
   const countryCounts = useMemo(() => new Map((opts.country ?? []).map((c) => [c.value, c.count])), [opts.country])
@@ -108,8 +119,8 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
   const chipText = (level: Level, o: ChipOption) => (sci && LATIN.has(level) ? o.value : o.label)
   const chipLabel = (level: Level, o: ChipOption) => (level === 'country' ? <CountryLabel iso={o.value} name={o.label} /> : chipText(level, o))
 
-  /** A group's breadcrumb and its level on show (chips, or the phone's sheet button). */
-  const levels = (g: Group) => {
+  /** A group's breadcrumb and its level on show (chips, or the phone's sheet button; chips always in the strip). */
+  const levels = (g: Group, strip = false) => {
     // The level on show: the first level with nothing chosen whose parent is chosen, else the deepest chosen one (a
     // leaf keeps its row). An order with one family skips the families row: the breadcrumb names that family instead
     // (every bird of the order is in it; a year's one trip is not the whole year, so trips keep their row).
@@ -152,7 +163,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
           </p>
         )}
         {level && levelOpts.length > 0 && (
-          sheet ? (
+          sheet && !strip ? (
             <SheetPicker
               key={level}
               level={level}
@@ -178,39 +189,45 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
 
   // What closed panels have chosen, as removable chips beside the toggles.
   const others = closedPanelLevels(filter, open?.id ?? null, hidePanels)
-
-  return (
-    <section className="eb-filters" aria-label="Filters" data-testid="filter-bar">
-      {(panels.length > 0 || others.length > 0) && (
-        <div className="eb-toggles">
-          {panels.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="eb-tab eb-toggle"
-              aria-expanded={open?.id === p.id}
-              aria-controls={open?.id === p.id ? `${base}-panel-${p.id}` : undefined}
-              data-testid={`filter-tab-${p.id}`}
-              onClick={() => setPanel(togglePanel(open?.id ?? null, p.id))}
-            >
-              {p.label}
-              <ChevronDownIcon className="eb-toggle-caret" />
-            </button>
-          ))}
-          {others.length > 0 && (
-            <div className="eb-level eb-active" role="group" aria-label="Active filters" data-testid="active-filters">
-              {others.map((l) => {
-                const label = nameOf(l, filter[l]!)
-                return (
-                  <Chip key={l} label={l === 'country' ? <CountryLabel iso={filter[l]!} name={label} /> : label} removeLabel={label} onClick={() => set(l, undefined)}>
-                    <CloseIcon className="eb-chip-x" />
-                  </Chip>
-                )
-              })}
-            </div>
-          )}
+  const toggles = (panels.length > 0 || others.length > 0) && (
+    <div className="eb-toggles">
+      {panels.map((p) => (
+        <button
+          key={p.id}
+          type="button"
+          className="eb-tab eb-toggle"
+          aria-expanded={open?.id === p.id}
+          aria-controls={open?.id === p.id ? `${base}-panel-${p.id}` : undefined}
+          data-testid={`filter-tab-${p.id}`}
+          onClick={() => setPanel(togglePanel(open?.id ?? null, p.id))}
+        >
+          {p.label}
+          <ChevronDownIcon className="eb-toggle-caret" />
+        </button>
+      ))}
+      {others.length > 0 && (
+        <div className="eb-level eb-active" role="group" aria-label="Active filters" data-testid="active-filters">
+          {others.map((l) => {
+            const label = nameOf(l, filter[l]!)
+            return (
+              <Chip key={l} label={l === 'country' ? <CountryLabel iso={filter[l]!} name={label} /> : label} selected removeLabel={label} onClick={() => set(l, undefined)}>
+                <CloseIcon className="eb-chip-x" />
+              </Chip>
+            )
+          })}
         </div>
       )}
+    </div>
+  )
+
+  return (
+    <section className="eb-filters" aria-label="Filters" data-testid="filter-bar" data-compact={compact ? '' : undefined}>
+      {compact ? (
+        <div className="eb-strip" data-testid="filter-strip">
+          {toggles}
+          {levels(BIRDS, true)}
+        </div>
+      ) : toggles}
 
       {open && (
         <div id={`${base}-panel-${open.id}`} role="region" aria-label={open.label} className="eb-panel" data-map={open.id === 'places' && dots ? '' : undefined} data-testid={`filter-panel-${open.id}`}>
@@ -221,7 +238,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
         </div>
       )}
 
-      {levels(BIRDS)}
+      {!compact && levels(BIRDS)}
     </section>
   )
 })

@@ -170,10 +170,13 @@ describe('the Collage page (/)', () => {
     expect(within(bar).getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
     expect(within(bar).getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about')
     expect(within(bar).getByRole('switch', { name: 'Dark mode' })).toBeInTheDocument()
-    // The sample's filters wait folded on the stats row; Birds unfolds them (taxonomy, with Places and Time closed).
-    fireEvent.click(within(screen.getByTestId('filter-bar-folded')).getByRole('button', { name: 'Birds' }))
-    expect(screen.getByRole('navigation', { name: 'Filter by group' })).toBeInTheDocument()
-    expect(screen.getByTestId('filter-tab-places')).toHaveAttribute('aria-expanded', 'false')
+    // The sample's filters are one strip, unfolded: the Places and Time toggles (closed), then the order chips. No Birds button.
+    const strip = screen.getByTestId('filter-strip')
+    expect(within(strip).getByTestId('filter-tab-places')).toHaveAttribute('aria-expanded', 'false')
+    expect(within(strip).getByTestId('filter-tab-time')).toHaveAttribute('aria-expanded', 'false')
+    expect(within(strip).getByRole('group', { name: 'Orders' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Birds' })).toBeNull()
+    expect(screen.queryByTestId('filter-bar-folded')).toBeNull()
     expect(screen.queryByRole('tab')).toBeNull()
     fireEvent.click(screen.getByRole('link', { name: /^Make yours/ }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()

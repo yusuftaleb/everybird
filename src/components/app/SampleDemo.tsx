@@ -40,7 +40,7 @@ function Loaded({ pack, dots }: { pack: SamplePack; dots?: CountryDots }) {
       dots={dots}
       label="Sample collage"
       statsPrefix="Sample: Yusuf's life list"
-      foldFilters
+      compactFilters
       seed={pack.seed}
     />
   )

@@ -10,7 +10,7 @@ import './app.css'
 export function Landing() {
   const eb = useEverybirdContext()
   return (
-    <main className="eb-page eb-page-collage">
+    <main className="eb-page eb-page-collage eb-page-landing">
       <div className="eb-hero">
         <div className="eb-hero-text">
           <h1 className="eb-hero-title">Every bird you&apos;ve ever seen.</h1>

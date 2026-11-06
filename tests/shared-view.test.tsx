@@ -44,9 +44,11 @@ describe('shared view', () => {
     render(<SharedView payload={{ v: 1, birds: [{ code: 'a' }, { code: 'b' }] }} />)
     await waitFor(() => expect(screen.getByTestId('collage-stats').textContent).toContain('2 species'))
     expect(screen.getByTestId('share-limited').textContent).toBe('This link carries no places or dates, so those filters are left out.')
+    // Birds only: neither toggle is rendered (by test id or by name), just LifeList's orders row.
     expect(screen.queryByTestId('filter-tab-places')).toBeNull()
     expect(screen.queryByTestId('filter-tab-time')).toBeNull()
-    expect(screen.queryByRole('tab')).toBeNull() // birds only: no toggles, just LifeList's orders row
+    expect(screen.queryByRole('button', { name: 'Places' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Time' })).toBeNull()
     expect(screen.getByRole('group', { name: 'Orders' })).toBeTruthy()
     expect(open).not.toHaveBeenCalled()
   })

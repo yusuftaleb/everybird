@@ -21,6 +21,9 @@
 /* Collage pages (/): the birds lead. A one-row hero on wide screens; tighter spacing above the stage. */
 .eb-page-collage { gap: 16px; padding-top: 16px; }
 @media (min-width: 720px) { .eb-page-collage { gap: 24px; padding-top: 24px; } }
+/* The landing carries the filter strip under the dock; a little less air above keeps the sample's birds on most of a
+   1280×800 first screen (e2e import.spec). */
+@media (min-width: 720px) { .eb-page-landing { gap: 16px; padding-top: 20px; } }
 .eb-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 .eb-hero-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .eb-hero-title { margin: 0; font-size: clamp(28px, 4vw, 42px); line-height: 1.02; letter-spacing: -.02em; }
@@ -77,9 +80,6 @@
 /* The collage block: LifeList's column (12px between the stats line, the dock, the filters and the stage). */
 .eb-view { --eb-ease: cubic-bezier(.16, 1, .3, 1); display: flex; flex-direction: column; gap: 12px; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.3; }
 .eb-stats { margin: 0; }
-.eb-statsrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 16px; }
-.eb-tabs-folded { margin: -4px 0; }
-.eb-tabs-folded::before { content: 'Filter by'; align-self: center; margin-right: 4px; font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .eb-view .eb-stage-wait { margin-top: 8px; }
 
 /* Controls bar: LifeList's dock (the Photography / Library tab bar), one row; Photography's search over it. */

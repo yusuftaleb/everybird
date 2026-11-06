@@ -45,12 +45,12 @@ function seeded(): AppState {
   return reduce(initialState(), { type: 'restore', saved })
 }
 
-function Harness({ initial }: { initial?: AppState }) {
+function Harness({ initial, compact }: { initial?: AppState; compact?: boolean }) {
   const reduce = makeReducer({ species, countryName: (c) => (c === 'CA' ? 'Canada' : c === 'EG' ? 'Egypt' : c) })
   const [state, dispatch] = useReducer(reduce, initial ?? seeded())
   return (
     <>
-      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} />
+      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} compact={compact} />
       <output data-testid="filter">{JSON.stringify(state.filter)}</output>
     </>
   )
@@ -212,6 +212,37 @@ describe('FilterBar', () => {
     fireEvent.click(screen.getByTestId('map-country-EG'))
     expect(filterOf()).toEqual({ country: 'EG' })
     expect(screen.getByRole('button', { name: 'Egypt 2' })).toBeInTheDocument()
+  })
+
+  it('removable chips of closed panels carry the Accent border (selected) and show at phone width too', () => {
+    vi.stubGlobal('innerWidth', 390)
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: 'Places' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Choose a country 2' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Countries' })).getByRole('button', { name: /^Canada/ }))
+    expect(screen.queryByTestId('active-filters')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Places' }))
+    const chip = within(screen.getByTestId('active-filters')).getByRole('button', { name: 'Remove Canada filter' })
+    expect(chip).toHaveAttribute('data-selected')
+    expect(chip.querySelector('.eb-flag')).toHaveTextContent('🇨🇦')
+    expect(screen.getByRole('button', { name: 'Choose an order 2' })).toBeInTheDocument() // the taxonomy sheet button stays (Canada's 2 orders)
+    fireEvent.click(chip)
+    expect(filterOf()).toEqual({})
+  })
+
+  it('compact (the landing): one strip of the toggles and the order chips, chips even at phone width (no sheet)', () => {
+    vi.stubGlobal('innerWidth', 390)
+    render(<Harness compact />)
+    const strip = screen.getByTestId('filter-strip')
+    expect(within(strip).getAllByRole('button').slice(0, 2).map((b) => b.textContent)).toEqual(['Places', 'Time'])
+    expect(screen.queryByRole('button', { name: /^Choose an order/ })).toBeNull()
+    fireEvent.click(within(within(strip).getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Perching birds/ }))
+    expect(filterOf()).toEqual({ order: 'Passeriformes' })
+    expect(within(strip).getByRole('navigation', { name: 'Filter by group' })).toHaveTextContent('All birds/Perching birds')
+    expect(within(strip).getByRole('group', { name: 'Families' })).toBeInTheDocument()
+    fireEvent.click(within(strip).getByRole('button', { name: 'Places' }))
+    expect(screen.getByRole('region', { name: 'Places' })).not.toBeNull() // the panel opens below the strip
+    expect(strip).not.toContainElement(screen.getByRole('region', { name: 'Places' }))
   })
 
   it('under 600px the level is one button ("Choose an order 3") that opens a sheet of chips', () => {

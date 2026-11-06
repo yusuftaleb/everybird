@@ -43,8 +43,8 @@ type Props = {
   notice?: ReactNode
   /** Under the filters (what a shared link leaves out). */
   filterNote?: ReactNode
-  /** Start with the filters folded to one row of buttons on the stats line (the landing sample: the birds lead). */
-  foldFilters?: boolean
+  /** The filters as one scrollable strip (the landing sample: the birds keep the first screen). */
+  compactFilters?: boolean
   /** Whose list the search speaks of when nothing matches: "your" (the birder's own) or "this" (default). */
   whose?: 'your' | 'this'
   /** Full layouts packed ahead of time, shown until the layout worker answers (the landing sample). */
@@ -60,8 +60,6 @@ const RING_MS = 1600
 const GLIDE_MS = 760
 /** How long an out-of-view pick waits for its layout before it lapses. */
 const PENDING_MS = 4000
-/** The folded row's buttons: Birds unfolds the filters (taxonomy is always on show), Places and Time also open their panel. */
-const FOLDED: { id: 'birds' | Panel; label: string }[] = [{ id: 'birds', label: 'Birds' }, { id: 'places', label: 'Places' }, { id: 'time', label: 'Time' }]
 
 /** "197 species · 20 orders · 50 families · since Jan 2020", or "12 of 197 species · 3 families" when filtered. */
 export function statsLine(all: ListEntry[], shown: ListEntry[], species: SpeciesIndex): string {
@@ -78,14 +76,13 @@ export function statsLine(all: ListEntry[], shown: ListEntry[], species: Species
   return parts.join(' · ')
 }
 
-export function CollageView({ state, dispatch, species, regions, dots, label, cardActions, hidePanels, statsPrefix, notice, filterNote, foldFilters, seed, whose = 'this' }: Props) {
+export function CollageView({ state, dispatch, species, regions, dots, label, cardActions, hidePanels, statsPrefix, notice, filterNote, compactFilters, seed, whose = 'this' }: Props) {
   const { list, trips, filter, mode, view, massOrder, sci } = state
   const box = useRef<HTMLElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
   const [pick, setPick] = useState<{ code: string; anchor: HTMLElement | null } | null>(null)
   const [tip, setTip] = useState<string | null>(null)
   const [panel, setPanel] = useState<Panel | null>(null)
-  const [folded, setFolded] = useState(!!foldFilters)
 
   const lay = useCollageLayout({ list, trips, filter, mode, species, container: box, seed })
 
@@ -135,7 +132,6 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
   const [pending, setPending] = useState<{ code: string; key: string; at: number } | null>(null)
   const onSearchPick = useCallback((h: CollageHit) => {
     if (h.kind !== 'species') {
-      setFolded(false)
       dispatch({ type: 'filter', filter: drillTo(filter, { order: h.kind === 'order' ? h.value : h.order, family: h.kind === 'family' ? h.value : undefined }, entries, species, trips) })
       return
     }
@@ -164,23 +160,10 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
   const tipEntry = tip && !pick && view === 'collage' ? entries.find((e) => e.code === tip) : undefined
   const sizes = mode === 'true' ? 'Sizes follow body mass at true scale' : 'Sizes follow body mass, evened out so small birds stay visible'
   const latestRow = latest ? species.byCode.get(latest.code) : undefined
-  const folds = hidePanels?.length ? FOLDED.filter((t) => t.id === 'birds' || !hidePanels.includes(t.id)) : FOLDED
 
   return (
     <section ref={box} className="eb-view" aria-label={label}>
-      {folded ? (
-        // Folded (the landing sample): the filters wait as buttons on the stats line's row, so the birds come sooner.
-        <div className="eb-statsrow">
-          <p className="eb-mono eb-stats" data-testid="collage-stats">{statsPrefix ? `${statsPrefix} · ${stats}` : stats}</p>
-          <div className="eb-tabs eb-tabs-folded" role="group" aria-label="Filter by" data-testid="filter-bar-folded">
-            {folds.map((t) => (
-              <button key={t.id} type="button" className="eb-tab" aria-expanded={false} onClick={() => { setPanel(t.id === 'birds' ? null : t.id); setFolded(false) }}>{t.label}</button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <p className="eb-mono eb-stats" data-testid="collage-stats">{statsPrefix ? `${statsPrefix} · ${stats}` : stats}</p>
-      )}
+      <p className="eb-mono eb-stats" data-testid="collage-stats">{statsPrefix ? `${statsPrefix} · ${stats}` : stats}</p>
       {notice}
       <ControlsBar
         view={view}
@@ -194,9 +177,7 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
         search={{ entries, shown: fk ? shownCodes : undefined, species, onPick: onSearchPick, whose }}
       />
 
-      {!folded && (
-        <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} hidePanels={hidePanels} panel={panel} onPanel={setPanel} />
-      )}
+      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} hidePanels={hidePanels} panel={panel} onPanel={setPanel} compact={compactFilters} />
       {filterNote}
 
       {view === 'collage' ? (
