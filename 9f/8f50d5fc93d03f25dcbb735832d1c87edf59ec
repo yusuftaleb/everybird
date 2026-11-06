@@ -1,0 +1,25 @@
+tests/build-list.test.ts
+  s_ab125876fe9ad2::t_90e38e45e8fcd0 72-77
+tests/inat.test.ts
+  s_ab125876fe9ad2::t_1c29c49815595e 102,105
+src/lib/import/inat.ts
+  s_ab125876fe9ad2::t_6a91189946796b 439
+tests/seen.test.ts
+  s_ab125876fe9ad2::t_92d7bfc5923dca 94-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f8f50d5fc93d03f25dcbb735832d1c87edf59ec",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
