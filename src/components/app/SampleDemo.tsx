@@ -37,7 +37,7 @@ function Loaded({ pack }: { pack: SamplePack }) {
       species={species}
       regions={regions}
       label="Sample collage"
-      statsPrefix="Sample: Yusuf's life list"
+      statsPrefix="Sample: a demo birder's life list"
       seed={pack.seed}
     />
   )

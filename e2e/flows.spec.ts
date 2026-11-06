@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { SAMPLE_COUNT } from "./sample";
 
 // Every flow end to end, in every engine: each way in (eBird life list, MyEBirdData, iNaturalist with a mocked API, tick
 // by hand) and their merge, the filters (taxonomy, Places with several countries, a Time range), True size and the list
@@ -352,7 +353,7 @@ for (const width of WIDTHS) {
         expect(m.small, `${where}: controls under 44px`).toEqual([]);
       };
       await page.goto("/");
-      await expect(shownBirds(page)).toHaveCount(197);
+      await expect(shownBirds(page)).toHaveCount(SAMPLE_COUNT);
       await check("landing");
       await page.goto("/about");
       await check("about");

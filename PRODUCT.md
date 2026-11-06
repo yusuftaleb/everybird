@@ -19,7 +19,7 @@ Yusuf's personal-site design language as a standalone app; the collage page mirr
 Operate mode. The list never leaves the browser; share links carry the whole list.
 
 ## Capabilities and Constraints
-Stickers are huashu-bird-sticker (CC BY 4.0) and must be credited wherever they appear. Fonts load from Fontshare, never committed. Personal data (private/) is never committed. Anything outward-facing needs Yusuf's yes first.
+Stickers are huashu-bird-sticker (CC BY 4.0) and must be credited wherever they appear. Fonts load from Fontshare, never committed. Personal data (private/) is never committed. The landing sample is a made-up demo birder (generated, seeded), never anyone's real list. Anything outward-facing needs Yusuf's yes first.
 
 ## Brand Commitments
 Light by default with a toggle; one accent; the "match /lifelist" principle; Yusuf credited on About and in the footer.

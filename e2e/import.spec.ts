@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import { SAMPLE_COUNT } from "./sample";
 import { buildSyntheticMyData } from "../scripts/validate/synthetic-list";
 
 const NOT_SAVED = "This list won't be saved on this device";
@@ -21,8 +22,8 @@ test("sample collage renders on landing", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Every bird you've ever seen." })).toBeVisible();
   const stage = page.getByTestId("collage-stage");
   await expect(stage).toBeVisible();
-  await expect(page.getByTestId("collage-stats")).toHaveText(/^Sample: Yusuf's life list · 197 species · \d+ orders · \d+ families · since /);
-  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
+  await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(`^Sample: a demo birder's life list · ${SAMPLE_COUNT} species · \\d+ orders · \\d+ families · since `));
+  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(SAMPLE_COUNT);
   await expect(page.getByRole("link", { name: /^Make yours/ })).toHaveAttribute("href", "/settings");
   await expect(page.getByRole("contentinfo").getByRole("link", { name: "All credits" })).toHaveAttribute("href", "/about#credits");
   expect(errors).toEqual([]);
@@ -33,19 +34,21 @@ test("the landing sample is pre-packed: its stickers show without the species fi
   await page.route(/\/data\/(species\.v1|masks\/.*)\.json$/, () => {});
   await page.goto("/");
   const stage = page.getByTestId("collage-stage");
-  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197, { timeout: 10_000 });
+  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(SAMPLE_COUNT, { timeout: 10_000 });
   await expect(stage.locator("img").first()).toBeVisible();
 });
 
 // The taxonomy is /lifelist's on both since 2026-11-06 (it was one sideways strip, and the bounds 0.6 and 0.5): at
-// 1280 the order chips wrap onto three rows (the stage starts at 0.50 of the screen), at 390 the "Choose an order"
-// button and the bar's 4px insets sit over it (0.47). The bounds keep a couple of percent of slack under those.
+// 1280 the order chips wrap, at 390 the "Choose an order" button and the bar's 4px insets sit over the stage (0.47).
+// The demo birder (2026-11-06) has 30 orders where the old sample had 18, so at 1280 the chips wrap onto four rows
+// instead of three and the stage starts 40px lower (0.45 of the screen, was 0.50); 390 is unchanged. The bounds keep a
+// couple of percent of slack under those.
 test("at 1280x800 and 390x844 the landing's birds fill about half of the first screen", async ({ page }) => {
-  for (const [width, height, share] of [[1280, 800, 0.48], [390, 844, 0.45]] as const) {
+  for (const [width, height, share] of [[1280, 800, 0.43], [390, 844, 0.45]] as const) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
     const stage = page.getByTestId("collage-stage");
-    await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
+    await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(SAMPLE_COUNT);
     const top = await stage.evaluate((el) => el.getBoundingClientRect().top);
     expect((height - top) / height).toBeGreaterThanOrEqual(share);
   }
@@ -149,14 +152,14 @@ test("an import keeps running while the birder moves between the pages", async (
 test("search (Photography's): the magnifier opens the field; a species shows its tooltip in place, an order drills in", async ({ page }) => {
   await page.goto("/");
   const stage = page.getByTestId("collage-stage");
-  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
+  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(SAMPLE_COUNT);
   await page.getByRole("button", { name: "Find a bird" }).click();
   const box = page.getByRole("combobox", { name: "Find a bird" });
   await expect(box).toBeFocused();
   await box.fill("grebe");
   const options = page.getByRole("listbox", { name: "Matching birds and groups" }).getByRole("option");
   await expect(options.first()).toBeVisible();
-  await expect(page.getByTestId("collage-stats")).toHaveText(/197 species/); // typing never narrows
+  await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(`${SAMPLE_COUNT} species`)); // typing never narrows
   const species = options.filter({ hasText: /Species$/ }).first();
   const name = (await species.locator(".eb-result-name").textContent())!.replace(/\s*\(.*$/, "");
   await species.click();
@@ -164,12 +167,12 @@ test("search (Photography's): the magnifier opens the field; a species shows its
   await expect(page.getByTestId("bird-tip")).toContainText(name);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(stage.locator("[data-ring]")).toHaveCount(1);
-  await expect(page.getByTestId("collage-stats")).toHaveText(/197 species/);
+  await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(`${SAMPLE_COUNT} species`));
   // An order drills the filter into it.
   await page.getByRole("button", { name: "Find a bird" }).click();
   await page.getByRole("combobox", { name: "Find a bird" }).fill("grebes");
   await page.getByRole("option", { name: /^Grebes \(Podicipediformes\)/ }).click();
-  await expect(page.getByTestId("collage-stats")).toHaveText(/ of 197 species/);
+  await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(` of ${SAMPLE_COUNT} species`));
   // Esc returns focus to the magnifier.
   await page.getByRole("button", { name: "Find a bird" }).click();
   await page.keyboard.press("Escape");
@@ -179,7 +182,7 @@ test("search (Photography's): the magnifier opens the field; a species shows its
 test("hovering a bird on desktop shows its tooltip; a click still opens the card", async ({ page }) => {
   await page.goto("/");
   const stage = page.getByTestId("collage-stage");
-  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(197);
+  await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(SAMPLE_COUNT);
   await page.waitForTimeout(1500); // the first appearance has played
   const bird = stage.locator(".eb-bird").first();
   await bird.scrollIntoViewIfNeeded(); // the wrapped order chips push the stage's top row near the fold

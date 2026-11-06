@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { SAMPLE_ORDERS } from "./sample";
 
 // Phones, as /lifelist's phone view: the controls bar in two rows (the view icons, True and Sci. or the list's
 // "Heaviest", and the magnifier; then Places and Time), and the taxonomy as one "Choose an order" button, the landing
@@ -140,8 +141,8 @@ for (const width of [768, 1280, 1440] as const) {
       await expect(page.getByRole("switch", { name: /^Scientific/ })).toBeVisible();
 
       const m = await chips(page);
-      expect(m.n).toBe(18);
-      // The sample's 18 orders are wider than any of these screens: more than one row.
+      expect(m.n).toBe(SAMPLE_ORDERS);
+      // The sample's orders (30) are wider than any of these screens: more than one row.
       expect(m.rows).toBeGreaterThan(1);
       expect(m.out).toEqual([]);
       expect(m.sideways).toEqual([]);

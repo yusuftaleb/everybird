@@ -247,7 +247,7 @@ Stickers are huashu-bird-sticker (CC BY 4.0), trimmed webp at 128 and 384px, hos
 
 ## Pages
 
-- **Collage `/`**: the birder's collage when the device holds a list, else the Landing with the pre-packed sample (hero: h1, one lede, "Make yours"). Head: "<name>'s birds" or "My collage", "Add birds" and Share in one row; stats line, dock, filters, stage, legend. Shared view `/s/[token]` is the same view read-only with "Make yours".
+- **Collage `/`**: the birder's collage when the device holds a list, else the Landing with the pre-packed sample, a made-up demo birder ("Sample: a demo birder's life list") (hero: h1, one lede, "Make yours"). Head: "<name>'s birds" or "My collage", "Add birds" and Share in one row; stats line, dock, filters, stage, legend. Shared view `/s/[token]` is the same view read-only with "Make yours".
 - **Settings `/settings`**: "Your sources" (eBird, iNaturalist, tick by hand as a page-wide multiselect), the match report, "Counting rules" switches, "Keep your list" (CSV, JSON backup, restore, forget); privacy footnote last.
 - **About `/about`**: what Everybird is, the animated how-it-works demo, True size, privacy, every credit under `#credits`, "Made by Yusuf Taleb".
 - Old `/make`, `/my`, `/credits` redirect to `/settings`, `/`, `/about#credits`.

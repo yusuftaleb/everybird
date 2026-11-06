@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { SAMPLE_COUNT } from "./sample";
 import { readFileSync } from "node:fs";
 
 // The frozen fixture is a tiny list (5 birds); a generated one with dates and places is below.
@@ -31,7 +32,7 @@ test("a broken link says so plainly, offers Make yours and still shows the sampl
   await expect(page.getByRole("heading", { level: 1, name: "This link didn't open" })).toBeVisible();
   await expect(page.getByText("It may be cut off, or made by a newer Everybird.", { exact: false })).toBeVisible();
   await expect(page.getByRole("link", { name: /^Make yours/ })).toHaveAttribute("href", "/settings");
-  await expect(page.getByTestId("collage-stage").locator("[data-code]:not([data-off])")).toHaveCount(197);
+  await expect(page.getByTestId("collage-stage").locator("[data-code]:not([data-off])")).toHaveCount(SAMPLE_COUNT);
 });
 
 test("a link from a newer version is rejected", async ({ page }) => {

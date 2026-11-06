@@ -1,8 +1,9 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { SAMPLE_COUNT } from "./sample";
 
-// The landing demo's public sample list (197 birds) restored as the birder's own list (from Settings), so their collage
+// The landing demo's sample list (the made-up demo birder) restored as the birder's own list (from Settings), so their collage
 // and its Share button appear. SHARE_PNG_DIR (optional) saves the downloaded images there for a look.
 const sample = JSON.parse(readFileSync("public/data/sample.v1.json", "utf8")) as { birds: { code: string }[] };
 const backup = JSON.stringify({
@@ -132,7 +133,7 @@ test("copy link puts a /s/1… URL under 2000 chars on the clipboard", async ({ 
   expect(url.length).toBeLessThan(2000);
   // And it opens the shared collage.
   await page.goto(url);
-  await expect(page.getByText("197 species").first()).toBeVisible();
+  await expect(page.getByText(`${SAMPLE_COUNT} species`).first()).toBeVisible();
 });
 
 // Safari keeps a clipboard write only while the click's user activation lasts, and iOS drops it once the handler waits

@@ -40,7 +40,7 @@ type Props = {
   hidePanels?: readonly Panel[]
   /** Every place on the list is a lifer place: the Places dropdown says so, and how to get more (the birder's own collage). */
   placesNote?: PlacesNote
-  /** Before the stats ("Sample: Yusuf's life list"). */
+  /** Before the stats ("Sample: a demo birder's life list"). */
   statsPrefix?: string
   /** A line under the stats (the unmatched-rows note on the birder's own collage). */
   notice?: ReactNode

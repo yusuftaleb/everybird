@@ -158,7 +158,7 @@ describe('the Collage page (/)', () => {
   it('without a list: one line of what Everybird is, the pre-packed sample collage, "Make yours" (to /settings), the top bar and the footer credits link', async () => {
     await mount({ path: '/' })
     expect(await screen.findByRole('heading', { level: 1, name: "Every bird you've ever seen." })).toBeInTheDocument()
-    await waitFor(() => expect(stats()).toHaveTextContent("Sample: Yusuf's life list · 2 species"))
+    await waitFor(() => expect(stats()).toHaveTextContent("Sample: a demo birder's life list · 2 species"))
     expect(screen.getByRole('link', { name: /^Make yours/ })).toHaveAttribute('href', '/settings')
     // The footer reaches every credit (About's, with the sticker licence) by one link; no inline sticker line.
     const footer = screen.getByRole('contentinfo')
@@ -206,7 +206,7 @@ describe('the Collage page (/)', () => {
 describe('when the bird data fails to load', () => {
   it('a visitor without a list still gets the pre-packed sample on /, and no failure notice there', async () => {
     await mount({ path: '/', failSpecies: true })
-    await waitFor(() => expect(stats()).toHaveTextContent("Sample: Yusuf's life list · 2 species"))
+    await waitFor(() => expect(stats()).toHaveTextContent("Sample: a demo birder's life list · 2 species"))
     expect(screen.queryByText(/Couldn't load the bird data/)).toBeNull()
   })
 
