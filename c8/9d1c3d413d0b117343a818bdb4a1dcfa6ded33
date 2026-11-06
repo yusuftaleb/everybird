@@ -1,0 +1,71 @@
+src/lib/list/timeline.ts
+  s_ab125876fe9ad2::t_862a3ffe1b4482 1-2,6,155,164
+src/lib/list/filters-validate.ts
+  s_ab125876fe9ad2::t_9265f01d17a69e 10-11,15-16,18-20
+src/components/app/CollageView.tsx
+  s_ab125876fe9ad2::t_0aecb605be4644 83,97,106,150,156,159
+src/lib/list/store.ts
+  s_ab125876fe9ad2::t_5f1d5fb3eb26fb 92,127
+tests/filter-summary.test.ts
+  s_ab125876fe9ad2::t_55aa5936e7941c 24-34
+tests/store.test.ts
+  s_ab125876fe9ad2::t_a304afc83e062e 44,52,56,60-63
+tests/filters.test.ts
+  s_ab125876fe9ad2::t_f2799cb5162c48 28-30,32-34,37,39,41,45-46,52-54,57,61-63,67,82,84-87,89,91-93,96-98
+  s_ab125876fe9ad2::t_55aa5936e7941c 43
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_5f1d5fb3eb26fb 54-55,60,67-70
+tests/collage-layout-hook.test.tsx
+  s_ab125876fe9ad2::t_d6411c13004a39 29,42-43,50,53,62,69
+  s_ab125876fe9ad2::t_dfa9cb75cceed1 27,79,82-85
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_0aecb605be4644 56,64,66-67
+tests/timeline.test.ts
+  s_ab125876fe9ad2::t_dfa9cb75cceed1 5,116,122-123
+src/lib/list/filter-summary.ts
+  s_ab125876fe9ad2::t_9265f01d17a69e 29,32,43-44
+src/components/filters/SheetPicker.tsx
+  s_ab125876fe9ad2::t_0aecb605be4644 9-10
+src/lib/list/filters.ts
+  s_ab125876fe9ad2::t_9265f01d17a69e 11-13,15,18,38,53,56,82-83,95-96,98-99,113,149,151,158-159,168,172
+src/components/filters/FilterBar.tsx
+  s_ab125876fe9ad2::t_0aecb605be4644 48,54-55,57
+src/components/filters/FilterDropdowns.tsx
+  s_ab125876fe9ad2::t_b023f60d41d68a 10,65,73-74,200,205,208
+tests/share-image.test.ts
+  s_ab125876fe9ad2::t_a304afc83e062e 13,36-37
+e2e/flows.spec.ts
+  s_ab125876fe9ad2::t_caf4bf591f80f9 222,231-238
+tests/timeline-ui.test.tsx
+  s_ab125876fe9ad2::t_dfa9cb75cceed1 24,111,113-116,120
+src/components/filters/timeline.css
+  s_ab125876fe9ad2::t_b023f60d41d68a 1-2
+src/components/app/use-collage-layout.ts
+  s_ab125876fe9ad2::t_0aecb605be4644 9,28,30,33,92,99,102-103,105-108,149,184
+src/components/filters/Timeline.tsx
+  s_ab125876fe9ad2::t_b023f60d41d68a 3-4,11,37,40,77,162,165
+e2e/timeline.spec.ts
+  s_ab125876fe9ad2::t_caf4bf591f80f9 5-7,49,75-95,102,124
+e2e/places.spec.ts
+  s_ab125876fe9ad2::t_caf4bf591f80f9 5
+tests/filters-places.test.ts
+  s_ab125876fe9ad2::t_55aa5936e7941c 23,34-36,43,62-63,69-73,76-78,84
+tests/tokens.test.ts
+  s_ab125876fe9ad2::t_94c1b4d8c27d32 54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c89d1c3d413d0b117343a818bdb4a1dcfa6ded33",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
