@@ -144,7 +144,7 @@ describe('Collage', () => {
 
 describe('stickerUrl', () => {
   it('stickerUrl picks 128 vs 384 by cssPx·dpr', () => {
-    const base = process.env.NEXT_PUBLIC_STICKER_BASE ?? 'https://yusuftaleb.github.io/everybird-stickers'
+    const base = process.env.NEXT_PUBLIC_STICKER_BASE ?? 'https://stickers.yusuftaleb.com'
     expect(stickerUrl('crowa', 64, 2)).toBe(`${base}/v1/128/crowa.webp`)
     expect(stickerUrl('crowa', 65, 2)).toBe(`${base}/v1/384/crowa.webp`)
     expect(stickerUrl('crowa', 128, 1)).toBe(`${base}/v1/128/crowa.webp`)

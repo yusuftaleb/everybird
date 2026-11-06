@@ -1,5 +1,5 @@
 // Local static server for the sticker files (dev and e2e): serves ../everybird-stickers (or $STICKERS_DIR)
-// on 127.0.0.1:4100 (or $PORT; loopback only) with CORS, standing in for the GitHub Pages stickers site.
+// on 127.0.0.1:4100 (or $PORT; loopback only) with CORS, standing in for the production sticker host (R2, https://stickers.yusuftaleb.com).
 // Point the app at it with NEXT_PUBLIC_STICKER_BASE=http://127.0.0.1:4100.
 import { createReadStream, statSync } from 'node:fs'
 import { createServer } from 'node:http'

@@ -1,5 +1,7 @@
 // Sticker URLs. Not a client module, so server code (the link-preview image) can call it too.
-export const STICKER_BASE = (process.env.NEXT_PUBLIC_STICKER_BASE || 'https://yusuftaleb.github.io/everybird-stickers').replace(/\/+$/, '')
+// Default: the Cloudflare R2 bucket's domain. The GitHub Pages copy (https://yusuftaleb.github.io/everybird-stickers)
+// holds the same v1/ files and is the fallback: point NEXT_PUBLIC_STICKER_BASE at it to switch back.
+export const STICKER_BASE = (process.env.NEXT_PUBLIC_STICKER_BASE || 'https://stickers.yusuftaleb.com').replace(/\/+$/, '')
 export const SMALL = 128, LARGE = 384
 
 /** Sticker URL: the 128 px file when cssPx · dpr ≤ 128 (long side), else the 384 px file. */

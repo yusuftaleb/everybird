@@ -1,7 +1,7 @@
 // Upload the sticker files (../everybird-stickers/v1/**, or $STICKERS_DIR/v1/**) to a Cloudflare R2 bucket over its
 // S3 API, each with Cache-Control "public, max-age=31536000, immutable" (the files are versioned by path: v1/) and
-// Content-Type image/webp. The bucket is served at https://stickers.yusuftaleb.com; the app switches to it only when
-// NEXT_PUBLIC_STICKER_BASE points there.
+// Content-Type image/webp. The bucket is served at https://stickers.yusuftaleb.com, the app's default sticker host
+// (src/lib/sticker-url.ts); the GitHub Pages copy of the same files is the fallback.
 //
 //   npx tsx scripts/deploy/upload-stickers-r2.ts [--dry-run] [--force] [--concurrency 16]
 //

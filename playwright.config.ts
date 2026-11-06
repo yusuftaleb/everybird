@@ -43,7 +43,7 @@ export default defineConfig({
       : []),
   ],
   // Skip the local servers when pointing at a deployed URL. Locally, stickers come from ../everybird-stickers
-  // through scripts/dev/serve-stickers.mjs (the Pages site stands in for it in production). The Next servers
+  // through scripts/dev/serve-stickers.mjs (production serves them from R2, https://stickers.yusuftaleb.com). The Next servers
   // use their own dist dirs (NEXT_DIST_DIR, next.config.ts), so they run beside a developer's `next dev` or
   // `next start` on this checkout without touching its `.next`.
   webServer: process.env.BASE_URL
