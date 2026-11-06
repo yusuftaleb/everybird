@@ -16,8 +16,9 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { Bird, type BirdInit } from './Bird'
 import { loadDeferred, unloadSticker } from './Sticker'
 import { birdAt, ensureMasks } from './collage-hit'
+import { BirdWindow, WINDOW_AT, buildIndex } from './collage-window'
 import {
-  APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, ENTER_MS, FADE_MS, RIPPLE_MS, WRITE_MIN, WRITE_START, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
+  APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, ENTER_AT, ENTER_MS, MOVE_MS, FADE_MS, RIPPLE_MS, WRITE_MIN, WRITE_START, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
   type Motion,
 } from './collage-motion'
 import { Tally } from './Tally'
@@ -47,6 +48,8 @@ const TOUCH_SLOP_PX = 28
 const STICKER_MARGIN = '100% 0px'
 /** Beyond this (four screens above or below the viewport) a bird's sticker is let go until it comes near again. */
 const STICKER_FAR = '400% 0px'
+/** How long a travel moves birds (the latest arrival's start and run, a little slack for chunked writes). */
+const SETTLE_MS = Math.max(MOVE_MS + RIPPLE_MS, ENTER_AT + RIPPLE_MS + ENTER_MS) + 400
 /** In a still change (a drag preview), more arrivals than this appear without their fade. */
 const INSTANT_AT = 60
 /** :focus-visible, where the browser knows it (jsdom doesn't: there, any focus counts). */
@@ -54,9 +57,9 @@ const focusVisible = (el: Element) => { try { return el.matches(':focus-visible'
 type Fade = { anim: Animation | null; phase: 'out' | 'place' | 'in' | null; apply: ((ready: () => void) => void) | null; seq: number }
 
 /** A bird's first-render style, from the layout it first appears in (seeds the motion caches to match). */
-function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Motion, stagePx: number, appear: boolean): BirdInit {
+function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Motion, stagePx: number, appear: boolean, far: boolean): BirdInit {
   const box = visible.has(code) ? layout.boxes.get(code) : undefined
-  if (!box) return { style: { '--x': 0, '--y': 0, '--w': 0, '--h': 0, '--k': 1, '--md': '0ms', '--d': '0ms' } as CSSProperties, off: true, w: 1, h: 1 }
+  if (!box) return { style: { '--x': 0, '--y': 0, '--w': 0, '--h': 0, '--k': 1, '--md': '0ms', '--d': '0ms' } as CSSProperties, off: true, far, w: 1, h: 1 }
   const { W, H } = layout
   const b: [number, number] = [pct(box[2], W), pct(box[3], W)]
   const x = pct(box[0], W), y = pct(box[1], W), md = Math.round(fromCount(box, W, H) * RIPPLE_MS)
@@ -65,7 +68,7 @@ function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Mo
   const w = (b[0] / 100) * stagePx, h = (b[1] / 100) * stagePx
   m.sizes.set(code, Math.ceil(w))
   const d = appear ? Math.round(fromCount(box, W, H) * APPEAR_MS) : 0
-  return { style: { '--x': x, '--y': y, '--w': b[0], '--h': b[1], '--k': 1, '--md': `${md}ms`, '--d': `${d}ms` } as CSSProperties, off: false, w, h }
+  return { style: { '--x': x, '--y': y, '--w': b[0], '--h': b[1], '--k': 1, '--md': `${md}ms`, '--d': `${d}ms` } as CSSProperties, off: false, far, w, h }
 }
 
 export function Collage({ entries, species, layout, visible, mode, onPick, onHover, className, still }: CollageProps) {
@@ -106,8 +109,31 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
   // collage of thousands of birds fetches only what is near the screen, and let go of their image again once it
   // is beyond STICKER_FAR (unloadSticker), so scrolling through thousands never holds them all decoded (WebKit's
   // page crashed scrolling 6,000 at 1440 px). Both observers are created at the first bird's ref.
+  // A big list (more than WINDOW_AT entries) is windowed instead (collage-window.ts): only birds near the viewport
+  // are rendered, and they start their stickers when shown, so no bird is observed. `winOn` is what the birds are
+  // set up for; it follows `windowed` in the flip effect below (new birds are created far, with data-far).
+  const windowed = entries.length > WINDOW_AT
+  const winOn = useRef(windowed)
+  const win = useRef<BirdWindow | null>(null)
+  const getWin = useCallback(() => {
+    win.current ??= new BirdWindow({
+      els: els.current,
+      view: () => {
+        const r = stage.current?.getBoundingClientRect()
+        if (!r || !r.width || typeof window === 'undefined') return null
+        const k = 100 / r.width
+        return { top: -r.top * k, bottom: (window.innerHeight - r.top) * k, screen: window.innerHeight * k }
+      },
+      pinned: () => {
+        const a = typeof document !== 'undefined' ? document.activeElement : null
+        return [stopCode.current, a instanceof HTMLElement ? a.dataset.code ?? null : null]
+      },
+      busy: (code) => motion.leaving.has(code),
+    })
+    return win.current
+  }, [motion])
   const io = useRef<{ near: IntersectionObserver; far: IntersectionObserver } | null | undefined>(undefined)
-  const register = useCallback((code: string, el: HTMLButtonElement | null) => {
+  const observe = useCallback((el: HTMLElement) => {
     if (io.current === undefined) {
       io.current = typeof IntersectionObserver === 'function'
         ? {
@@ -121,13 +147,44 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
           }
         : null
     }
+    if (io.current) { io.current.near.observe(el); io.current.far.observe(el) } else loadDeferred(el)
+  }, [])
+  const register = useCallback((code: string, el: HTMLButtonElement | null) => {
     const old = els.current.get(code)
     if (old && old !== el) { io.current?.near.unobserve(old); io.current?.far.unobserve(old) }
     if (el) {
       els.current.set(code, el)
-      if (io.current) { io.current.near.observe(el); io.current.far.observe(el) } else loadDeferred(el)
-    } else els.current.delete(code)
-  }, [])
+      if (!winOn.current) observe(el)
+    } else {
+      els.current.delete(code)
+      win.current?.shown.delete(code)
+    }
+  }, [observe])
+
+  // The list crossed WINDOW_AT: set every bird up the other way (the motion effect below then syncs the window).
+  useLayoutEffect(() => {
+    if (winOn.current === windowed) return
+    winOn.current = windowed
+    win.current?.dispose()
+    if (windowed) {
+      io.current?.near.disconnect()
+      io.current?.far.disconnect()
+      for (const el of els.current.values()) el.setAttribute('data-far', '')
+    } else {
+      for (const el of els.current.values()) { el.removeAttribute('data-far'); observe(el) }
+    }
+  }, [windowed, observe])
+  // Windowed: the window follows the page's scroll and size.
+  useEffect(() => {
+    if (!windowed || typeof window === 'undefined') return
+    const again = () => getWin().schedule()
+    window.addEventListener('scroll', again, { passive: true })
+    window.addEventListener('resize', again, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', again)
+      window.removeEventListener('resize', again)
+    }
+  }, [windowed, getWin])
 
   // One tab stop: the last focused or picked bird if it is shown, else the first shown bird in taxonomic order.
   const syncTabStop = useCallback(() => {
@@ -140,9 +197,10 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     stopCode.current = want
     const el = want ? els.current.get(want) : undefined
     if (el) el.tabIndex = 0
+    if (winOn.current) getWin().reveal(want) // the tab stop is always rendered (windowed lists)
     const active = typeof document !== 'undefined' ? document.activeElement : null
     if (active instanceof HTMLElement && active.dataset.code && !on.has(active.dataset.code) && el) el.focus({ preventScroll: true })
-  }, [taxo, motion])
+  }, [taxo, motion, getWin])
 
   const setHot = useCallback((code: string | null) => {
     if (hot.current === code) return
@@ -225,6 +283,16 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       // eslint-disable-next-line react-hooks/immutability -- motion is the mutable motion cache (see the effect)
       const { ops, on } = planBirds(m, { codes: taxo, els: els.current, layout, visible, stagePx: stagePx.current, style, view })
       m.on = on
+      if (winOn.current) {
+        // Windowed: render the birds that will be near the viewport before they are written, so a bird gliding in
+        // from far away starts where it was and an arriving one fades in. A travel hides nothing until it is over.
+        const w = getWin()
+        w.setIndex(buildIndex(layout, on))
+        const shownNow = w.sync({ all: true, keep: style === 'travel' })
+        // Style the newly rendered birds where they stand now, so their changes below transition from there.
+        if (shownNow && layer.current?.style.contentVisibility !== 'hidden') void stage.current?.offsetWidth
+        if (style === 'travel') w.hold(SETTLE_MS)
+      }
       const cost = ops.reduce((n, op) => n + op.cost, 0)
       if ((style === 'jump' && !done) || cost <= WRITE_START || typeof requestAnimationFrame !== 'function') {
         for (const op of ops) op.run()
@@ -272,7 +340,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     const f = fade.current
     if (f.phase === 'out' || f.phase === 'place') { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null; f.seq++; unveil() }
     write(first ? 'jump' : 'travel')
-  }, [layout, visible, taxo, entries, shown, syncTabStop, setHot, fadeThrough, unveil, motion, inits])
+  }, [layout, visible, taxo, entries, shown, syncTabStop, setHot, fadeThrough, unveil, motion, inits, getWin])
 
   // Once the first appearance has played (the latest bird starts at APPEAR_MS and runs ENTER_MS), switch the
   // birds' eb-in CSS animation off in idle time: a bird holding even a finished CSS animation costs more on
@@ -310,10 +378,11 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       if (!w || w === stagePx.current) return
       stagePx.current = w
       raiseSizes(motion, els.current, latest.current.layout, w)
+      if (winOn.current) getWin().schedule()
     })
     ro.observe(el)
     return () => ro.disconnect()
-  }, [motion])
+  }, [motion, getWin])
   // On unmount: stop the rAF, the layer fade and every bird animation; late onfinish callbacks see alive = false.
   useEffect(() => {
     alive.current = true
@@ -325,6 +394,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       alive.current = false
       io.current?.near.disconnect()
       io.current?.far.disconnect()
+      win.current?.dispose()
       cancelAnimationFrame(frame.current)
       cancelAnimationFrame(chunkFrame.current)
       f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null
@@ -361,6 +431,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     const j = edge === -1 ? 0 : edge === 1 ? list.length - 1 : i + step
     if (j < 0 || j >= list.length || j === i) return
     focusCode.current = list[j]
+    if (winOn.current) getWin().reveal(list[j]) // a windowed bird far away is rendered first (focus scrolls to it)
     syncTabStop()
     els.current.get(list[j])?.focus()
   }
@@ -374,7 +445,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     return draw.map((code) => {
       let init = inits.get(code)
       if (!init) {
-        init = makeInit(code, layout, visible, motion, layout.W, appear)
+        init = makeInit(code, layout, visible, motion, layout.W, appear, windowed)
         inits.set(code, init)
       }
       const r = row(code)

@@ -74,6 +74,9 @@
   visibility: hidden;
   transition: none;
 }
+/* Big lists: a bird far from the viewport is not rendered at all (collage-window.ts); one ringed by the search
+   shows at once so it can be scrolled to and focused. */
+.eb-bird[data-far]:not([data-ring]) { display: none; }
 /* Arriving: jump to the new spot while invisible; WAAPI fades and grows it in. */
 .eb-bird[data-enter] { transition: translate 0s, scale 0s, opacity 0s, transform .2s var(--eb-arrive); }
 .eb-bird[data-hot] { transform: translateY(calc(-2px / var(--k))); z-index: 2; }

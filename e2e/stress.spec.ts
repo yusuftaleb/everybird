@@ -7,8 +7,9 @@ import { expect, test, type Page } from "@playwright/test";
 // Per case: the worker's layout time, no overlapping silhouettes and no sticker outside the stage (checked on
 // the rendered page), the JS heap (Chromium), how many sticker images load (lazy: only those near the
 // viewport), and the frame budget while scrolling and on a filter change (4x CPU in Chromium; WebKit has no
-// CPU throttling, so it runs at 1x). The frame budget is asserted only with STRESS_STRICT=1. Numbers are logged
-// as `[stress] ...` lines.
+// CPU throttling, so it runs at 1x): no main-thread task over 100 ms (Chromium; WebKit reports no long tasks) and
+// no frame over 50 ms, asserted by default; STRESS_STRICT=0 only logs them (a busy local machine). Numbers are
+// logged as `[stress] ...` lines.
 test.describe.configure({ mode: "serial" });
 test.setTimeout(15 * 60_000);
 
@@ -113,6 +114,10 @@ async function stopProbe(page: Page) {
  */
 async function checkGeometry(page: Page) {
   return page.evaluate(async () => {
+    // Big lists render only the birds near the viewport (data-far is display: none): render them all for the check.
+    const all = document.createElement("style");
+    all.textContent = ".eb-bird[data-far] { display: block !important; }";
+    document.head.append(all);
     const stage = document.querySelector<HTMLElement>('[data-testid="collage-stage"]')!;
     const sr = stage.getBoundingClientRect();
     const species = (await (await fetch("/data/species.v1.json")).json()).species as { code: string; ord: string }[];
@@ -153,6 +158,7 @@ async function checkGeometry(page: Page) {
         }
       }
     });
+    all.remove();
     return { shown: birds.length, near, rastered, outside, clashes, clashBirds: clashBirds.size, stageW: sr.width, stageH: sr.height };
   });
 }
@@ -174,9 +180,6 @@ const LAYOUT_BUDGET_MS: Record<number, number> = { 3000: 20_000, 6000: 40_000, [
 for (const [label, n] of SIZES) {
   for (const width of WIDTHS) {
     test(`${label} species at ${width}px`, async ({ page, browserName }) => {
-      // WebKit under Playwright hangs on the whole taxonomy (a page.evaluate never returns; the same inspector
-      // network deadlock as the scroll note below, with ~1,900 sticker requests in flight at once). Not the app.
-      test.fixme(browserName === "webkit" && n === SPECIES.length, "Playwright WebKit inspector deadlock at ~11,000 birds");
       await page.setViewportSize({ width, height: width < 600 ? 844 : 900 });
       const stickerReqs = new Set<string>();
       page.on("request", (r) => { if (/\/v1\/(128|384)\//.test(r.url())) stickerReqs.add(r.url()); });
@@ -211,11 +214,9 @@ for (const [label, n] of SIZES) {
       const cdp = browserName === "chromium" ? await page.context().newCDPSession(page) : null;
       await cdp?.send("Emulation.setCPUThrottlingRate", { rate: 4 });
       await startProbe(page);
-      // WebKit under Playwright: scrolling thousands of stickers into view deadlocks the page in the inspector's
-      // network instrumentation (WebContent main thread parked in InspectorNetworkAgent::didReceiveResponse, a
-      // sync IPC to the network process; seen at 6,000 birds at 1440 px). Not the app (Safari has no inspector
-      // attached), so WebKit scrolls only the first three screens.
-      const steps = Math.min(browserName === "webkit" ? 3 : 40, Math.ceil(geo.stageH / 600));
+      // The whole stage, in both engines. (WebKit under Playwright used to deadlock here, in the inspector's network
+      // instrumentation, with thousands of sticker requests in flight; Sticker now caps them at MAX_LOADS.)
+      const steps = Math.min(40, Math.ceil(geo.stageH / 600));
       for (let i = 0; i < steps; i++) { await page.mouse.wheel(0, 600); await page.waitForTimeout(80); }
       await page.waitForTimeout(800);
       const scroll = await stopProbe(page);
@@ -253,10 +254,9 @@ for (const [label, n] of SIZES) {
       const geo2 = await checkGeometry(page);
       expect(geo2.outside).toBe(0);
       expect(geo2.clashes).toBe(0);
-      if (cdp && process.env.STRESS_STRICT) {
-        // The frame budget (filters.spec.ts): no task over 100 ms, no frame over 50 ms, at 4x CPU. Logged by
-        // default: at 3,000+ birds it is not met yet (G1 report: Layerize / style recalc over thousands of
-        // birds); STRESS_STRICT=1 asserts it.
+      if (process.env.STRESS_STRICT !== "0") {
+        // The frame budget (filters.spec.ts): no task over 100 ms, no frame over 50 ms (4x CPU in Chromium; 1x in
+        // WebKit, which reports no long tasks). STRESS_STRICT=0 logs only.
         expect.soft(scroll.long, "longest task while scrolling").toBeLessThanOrEqual(100);
         expect.soft(scroll.frame, "longest frame while scrolling").toBeLessThanOrEqual(50);
         expect.soft(filt.long, "longest task on a filter change").toBeLessThanOrEqual(100);

@@ -8,6 +8,8 @@ export { stickerUrl }
 export type BirdInit = {
   style: CSSProperties
   off: boolean
+  /** Windowed (a big list): rendered far from the viewport (data-far, display: none) until the collage shows it. */
+  far?: boolean
   /** Box size in CSS px at first render (img width/height attributes and `sizes`). */
   w: number
   h: number
@@ -36,6 +38,7 @@ export const Bird = memo(function Bird({ code, name, st, ar, init, register }: P
       className="eb-bird"
       data-code={code}
       data-off={init.off ? '' : undefined}
+      data-far={init.far ? '' : undefined}
       aria-hidden={init.off ? true : undefined}
       aria-label={name}
       tabIndex={-1}

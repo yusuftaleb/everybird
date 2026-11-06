@@ -7,24 +7,59 @@ import './Sticker.css'
 export { stickerUrl }
 
 /**
- * Start a deferred sticker's download (see Sticker's `defer`): its data-src / data-srcset become src / srcset.
- * Returns whether there was one to start.
+ * Most sticker downloads in flight at once; the rest wait, in the order asked. Thousands at once deadlocked WebKit
+ * under Playwright's inspector (G1), and on a phone they compete with the stickers actually on screen.
  */
-export function loadDeferred(el: Element): boolean {
-  const img = el.querySelector<HTMLImageElement>('img[data-src]')
-  if (!img) return false
+export const MAX_LOADS = 48
+const queue: HTMLImageElement[] = []
+const queued = new Set<HTMLImageElement>()
+const flying = new Set<HTMLImageElement>()
+
+function start(img: HTMLImageElement) {
   img.srcset = img.dataset.srcset ?? ''
   img.src = img.dataset.src!
   delete img.dataset.src
   delete img.dataset.srcset
+  if (img.complete) return // a cached file: nothing in flight
+  flying.add(img)
+  const done = () => {
+    img.removeEventListener('load', done)
+    img.removeEventListener('error', done)
+    if (flying.delete(img)) pump()
+  }
+  img.addEventListener('load', done)
+  img.addEventListener('error', done)
+}
+
+function pump() {
+  // A download whose image left the page (an unmounted collage) no longer counts.
+  if (flying.size >= MAX_LOADS) for (const img of flying) if (!img.isConnected) flying.delete(img)
+  while (flying.size < MAX_LOADS && queue.length) {
+    const img = queue.shift()!
+    if (!queued.delete(img) || !img.dataset.src || !img.isConnected) continue
+    start(img)
+  }
+}
+
+/**
+ * Start a deferred sticker's download (see Sticker's `defer`): its data-src / data-srcset become src / srcset, at
+ * once while fewer than MAX_LOADS are in flight, else in turn. Returns whether there was one to start.
+ */
+export function loadDeferred(el: Element): boolean {
+  const img = el.querySelector<HTMLImageElement>('img[data-src]')
+  if (!img) return false
+  if (!queued.has(img)) { queued.add(img); queue.push(img) }
+  pump()
   return true
 }
 
 /**
  * Let go of a started sticker's image (the reverse of loadDeferred), so the browser can drop its decoded pixels;
- * loadDeferred starts it again. Returns whether there was one.
+ * loadDeferred starts it again. A sticker still waiting its turn just leaves the queue. Returns whether there was one.
  */
 export function unloadSticker(el: Element): boolean {
+  const waiting = el.querySelector<HTMLImageElement>('img[data-src]')
+  if (waiting) queued.delete(waiting) // pump skips it
   const img = el.querySelector<HTMLImageElement>('img:not([data-src])')
   const src = img?.getAttribute('src')
   if (!img || !src) return false
@@ -32,6 +67,7 @@ export function unloadSticker(el: Element): boolean {
   img.dataset.srcset = img.getAttribute('srcset') ?? ''
   img.removeAttribute('srcset')
   img.removeAttribute('src')
+  if (flying.delete(img)) pump()
   return true
 }
 
