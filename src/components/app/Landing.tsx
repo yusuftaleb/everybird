@@ -6,34 +6,23 @@ import { AppNotices } from './Notices'
 import { SampleDemo } from './SampleDemo'
 import './app.css'
 
-/** `/`: what Everybird is, a live sample collage, "Make yours" and, for a returning birder, "Open my collage". */
+/** `/` for a visitor without a list: one line of what Everybird is, "Make yours", and the sample collage leading. */
 export function Landing() {
   const eb = useEverybirdContext()
-  const { data, dots, mine, meta } = eb
   return (
-    <main className="eb-page">
-      <header className="eb-head">
-        <h1 className="eb-title">Everybird</h1>
-        <p className="eb-tagline">Every bird you&apos;ve ever seen.</p>
-      </header>
-      <AppNotices eb={eb} memory={false} />
+    <main className="eb-page eb-page-collage">
       <div className="eb-hero">
-        <p className="eb-lede">
-          Your existing record, made beautiful: every bird on your life list as a sticker, sized by its body mass.
-          Bring an eBird file or an iNaturalist username, or tick birds off by hand.
-        </p>
-        <div className="eb-row">
-          <Link href="/make" className="eb-btn eb-btn-big">
-            Make yours
-            <ArrowRight aria-hidden="true" focusable="false" weight="bold" />
-          </Link>
-          {meta.ready && mine && <Link href="/my" className="eb-btn eb-btn-big eb-btn-quiet">Open my collage</Link>}
+        <div className="eb-hero-text">
+          <h1 className="eb-hero-title">Every bird you&apos;ve ever seen.</h1>
+          <p className="eb-hero-lede">Your eBird, iNaturalist or hand-kept list, made beautiful: every bird a sticker, sized by body mass.</p>
         </div>
+        <Link href="/settings" className="eb-btn eb-btn-big eb-hero-cta">
+          Make yours
+          <ArrowRight aria-hidden="true" focusable="false" weight="bold" />
+        </Link>
       </div>
-      <figure className="eb-sample">
-        <figcaption className="eb-mono">Sample · Yusuf&apos;s life list. Try the filters.</figcaption>
-        {data ? <SampleDemo species={data.species} regions={data.regions} dots={dots} /> : !eb.failed && <div className="eb-stage-wait eb-sample-wait" aria-hidden="true" />}
-      </figure>
+      <AppNotices eb={eb} memory={false} />
+      <SampleDemo dots={eb.dots} />
     </main>
   )
 }

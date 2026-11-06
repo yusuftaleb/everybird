@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The app's three pages (/, /make, /my) under one EverybirdProvider, end to end in jsdom: the store, storage (fake
+// The app's pages (/ Collage, /settings) under one EverybirdProvider and the top bar, end to end in jsdom: the store, storage (fake
 // IndexedDB), the importers and the edit flows are real; the eBird worker and the iNaturalist API are mocked, and
 // there is no layout worker in jsdom (the stage shows its placeholder; the list view and the stats line carry the
 // count). next/navigation and next/link are replaced by a tiny router that swaps the page under the same provider,
@@ -67,6 +67,8 @@ const csv = (...rows: string[]) => new File([[HEADER, ...rows].join('\n') + '\n'
 
 const regionsFile = { v: 1, countries: { CA: 'Canada', US: 'United States' }, sub1: { 'CA-BC': 'British Columbia', 'US-AZ': 'Arizona' } }
 const sampleFile = { v: 1, note: 'synthetic', birds: [{ code: 'snogoo', date: '2020-01' }, { code: 'amerob', date: '2021-05', place: { country: 'CA' } }] }
+// The landing's pre-packed sample (no layouts: jsdom has no stage to show them on).
+const samplePack = { ...sampleFile, species: fx.species.filter((s) => s.code === 'snogoo' || s.code === 'amerob'), regions: { v: 1, countries: { CA: 'Canada' }, sub1: {} }, layouts: [] }
 
 function stubFetch() {
   vi.stubGlobal('fetch', async (u: string | URL) => {
@@ -77,7 +79,9 @@ function stubFetch() {
         ? { v: 1, taxa: fx.taxa }
         : url.includes('regions.v1')
           ? regionsFile
-          : url.includes('sample.v1')
+          : url.includes('sample-pack.v1')
+            ? samplePack
+            : url.includes('sample.v1')
             ? sampleFile
             : url.includes('inat-synonyms')
               ? {}
@@ -95,37 +99,41 @@ async function mount(opts: { blockStorage?: boolean; failForget?: boolean; path?
   if (opts.blockStorage) vi.stubGlobal('indexedDB', { open: () => { throw new Error('SecurityError') } })
   else (globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory()
   const { EverybirdProvider } = await import('@/components/app/EverybirdProvider')
-  const { Landing } = await import('@/components/app/Landing')
-  const { MakePage } = await import('@/components/app/MakePage')
-  const { MyPage } = await import('@/components/app/MyPage')
+  const { Home } = await import('@/components/app/Home')
+  const { SettingsPage } = await import('@/components/app/SettingsPage')
   const { SiteFooter } = await import('@/components/app/SiteFooter')
+  const { TopBar } = await import('@/components/app/TopBar')
   const storage = await import('@/lib/list/storage')
   const inat = await import('@/lib/import/inat')
   const analytics = await import('@/lib/analytics')
   vi.mocked(analytics.track).mockClear()
   nav.replaced = []
   function App() {
-    const [path, setPath] = useState(opts.path ?? '/make')
+    const [path, setPath] = useState(opts.path ?? '/settings')
     nav.path = path
     nav.go = (p) => { nav.path = p; setPath(p) }
     return (
       <EverybirdProvider>
-        {path === '/my' ? <MyPage /> : path === '/make' ? <MakePage /> : <Landing />}
+        <TopBar />
+        {path === '/settings' ? <SettingsPage /> : <Home />}
         <SiteFooter />
       </EverybirdProvider>
     )
   }
   const utils = render(<App />)
-  if ((opts.path ?? '/make') === '/make') await screen.findByTestId('ebird-drop') // the data and the stored list have loaded
+  if ((opts.path ?? '/settings') === '/settings') await screen.findByTestId('ebird-drop') // the data and the stored list have loaded
   return { storage, inat, analytics, ...utils }
 }
 
 /** Move to another page, as a link click does (the provider, and any import in flight, stay). */
 const go = (path: string) => act(async () => { nav.go(path) })
-/** /make's "See my collage" status: what landed and the collage's count. */
+/** Settings' "See my collage" status: what landed and the collage's count. */
 const made = () => screen.getByTestId('see-collage')
 
 const stats = () => screen.getByTestId('collage-stats')
+/** Tick by hand: open the page-wide list, and find a row in it. */
+const openTick = () => fireEvent.click(screen.getByRole('button', { name: 'Tick birds off a list' }))
+const tickOption = (name: RegExp) => within(screen.getByRole('listbox', { name: 'Species to tick' })).getByRole('option', { name })
 
 async function drop(file: File) {
   const zone = screen.getByTestId('ebird-drop')
@@ -144,48 +152,57 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('the landing page', () => {
-  it('shows the hero, the live sample collage, "Make yours" (to /make) and the sticker credit', async () => {
+describe('the Collage page (/)', () => {
+  it('without a list: one line of what Everybird is, the pre-packed sample collage, "Make yours" (to /settings), the top bar and the sticker credit', async () => {
     await mount({ path: '/' })
-    expect(await screen.findByRole('heading', { level: 1, name: 'Everybird' })).toBeInTheDocument()
-    expect(screen.getByText("Every bird you've ever seen.")).toBeInTheDocument()
-    await waitFor(() => expect(stats()).toHaveTextContent('2 species'))
-    expect(screen.getByRole('link', { name: 'Make yours' })).toHaveAttribute('href', '/make')
-    expect(screen.queryByRole('link', { name: 'Open my collage' })).toBeNull()
+    expect(await screen.findByRole('heading', { level: 1, name: "Every bird you've ever seen." })).toBeInTheDocument()
+    await waitFor(() => expect(stats()).toHaveTextContent("Sample: Yusuf's life list · 2 species"))
+    expect(screen.getByRole('link', { name: /^Make yours/ })).toHaveAttribute('href', '/settings')
     const credit = screen.getByRole('link', { name: 'huashu-bird-sticker' })
     expect(credit).toHaveAttribute('href', 'https://github.com/alchaincyf/huashu-bird-sticker')
     expect(credit.closest('p')).toHaveTextContent('Stickers: huashu-bird-sticker, CC BY 4.0')
-    expect(screen.getByRole('switch', { name: 'Dark mode' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('link', { name: 'Make yours' }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Make yours' })).toBeInTheDocument()
+    // The top bar: the wordmark home, the three pages (this one current) and the theme switch.
+    const bar = screen.getByRole('banner')
+    expect(within(bar).getByRole('link', { name: 'Everybird' })).toHaveAttribute('href', '/')
+    expect(within(bar).getByRole('link', { name: 'Collage' })).toHaveAttribute('aria-current', 'page')
+    expect(within(bar).getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
+    expect(within(bar).getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about')
+    expect(within(bar).getByRole('switch', { name: 'Dark mode' })).toBeInTheDocument()
+    // The sample's filters wait folded on the stats row; a tab opens them.
+    fireEvent.click(within(screen.getByTestId('filter-bar-folded')).getByRole('button', { name: 'Birds' }))
+    expect(screen.getByRole('tab', { name: 'Birds' })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(screen.getByRole('link', { name: /^Make yours/ }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
+    expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('heading', { name: 'Your sources' })).toBeInTheDocument()
     for (const h of ['eBird file', 'iNaturalist', 'Tick by hand']) expect(screen.getByRole('heading', { name: h })).toBeInTheDocument()
     expect(screen.getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
   })
 
-  it('a returning birder also gets "Open my collage" (to /my)', async () => {
+  it('with a list: the birder\'s own collage, with Share and "Add birds" (to /settings) in its head', async () => {
     await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
     await go('/')
-    expect(await screen.findByRole('link', { name: 'Open my collage' })).toHaveAttribute('href', '/my')
+    expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
+    expect(stats()).toHaveTextContent(/^3 species/)
+    expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Add birds' })).toHaveAttribute('href', '/settings')
+    expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull() // the downloads live on Settings
   })
 })
 
-describe('/make and /my', () => {
-  it('/my without a list sends people to /make', async () => {
-    await mount({ path: '/my' })
-    expect(await screen.findByRole('heading', { level: 1, name: 'Make yours' })).toBeInTheDocument()
-    expect(nav.replaced).toEqual(['/make'])
-  })
-
-  it('dropping a life list download adds its species, says what it lacks, and "See my collage" opens /my', async () => {
+describe('Settings and the collage', () => {
+  it('dropping a life list download adds its species, says what it lacks, and "See my collage" opens the collage', async () => {
     const { storage, analytics } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Added 3 species from your eBird life list. Your collage has 3 species.'))
     // One anonymous event: the source only, no counts, names or places.
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'ebird' }]])
-    expect(screen.getByRole('heading', { level: 1, name: 'Add another source' })).toBeInTheDocument()
-    expect(screen.getByText("1 sp., slash or hybrid entry doesn't count")).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
+    // In the eBird card, in plain words: the slash entry isn't counted.
+    const notCounted = within(screen.getByTestId('ebird-drop').closest('.eb-way') as HTMLElement).getByTestId('not-counted')
+    expect(notCounted).toHaveTextContent(/^1 entry wasn't counted: birds only identified to a group \(like “duck sp\.”\), either\/or IDs/)
     expect(screen.getByTestId('ebird-detail')).toHaveTextContent(/state or province.*Download My Data.*region \(county\)/)
     await waitFor(async () => expect((await storage.load())?.records['ebird-list']).toHaveLength(3), { timeout: 2000 })
     expect((await storage.load())?.records.ebird).toEqual([])
@@ -193,20 +210,17 @@ describe('/make and /my', () => {
     fireEvent.click(within(made()).getByRole('link', { name: 'See my collage' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
     expect(stats()).toHaveTextContent(/^3 species/)
+    expect(screen.queryByTestId('unmatched-note')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
     const list = screen.getByRole('list', { name: 'Life list' })
     for (const n of ['Northern Flicker', 'Gilded Flicker', 'Yellow-rumped Warbler']) expect(within(list).getByText(n)).toBeInTheDocument()
-    // Share and the downloads sit in the page head; "Add another source" goes back to /make.
-    const head = screen.getByRole('banner')
-    for (const b of ['Share', 'Download CSV', 'Download JSON backup']) expect(within(head).getByRole('button', { name: b })).toBeInTheDocument()
-    expect(within(head).getByRole('link', { name: 'Add another source' })).toHaveAttribute('href', '/make')
   })
 
   it('a file that is not an eBird export says so plainly', async () => {
     const { analytics } = await mount()
     await drop(new File(['name,age\nx,1\n'], 'other.csv', { type: 'text/csv' }))
     expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't read this file")
-    expect(screen.getByRole('heading', { name: 'Make yours' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     expect(vi.mocked(analytics.track)).not.toHaveBeenCalled() // a failed import sends no event
   })
 
@@ -265,14 +279,13 @@ describe('/make and /my', () => {
     expect(await screen.findByText('Fetched 400 of 576')).toBeInTheDocument()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
-    await go('/my')
-    expect(stats()).toHaveTextContent(/^3 species/)
     await go('/')
-    await go('/make')
+    expect(stats()).toHaveTextContent(/^3 species/)
+    await go('/settings')
     expect(screen.getByText('Fetched 400 of 576')).toBeInTheDocument() // the fetch and its progress outlived the pages
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     expect(aborted).toBe(false)
-    await go('/my')
+    await go('/')
     await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }) })
     await waitFor(() => expect(stats()).toHaveTextContent(/^4 species/))
   })
@@ -289,14 +302,18 @@ describe('/make and /my', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     await act(async () => { fireEvent.click(await screen.findByRole('button', { name: 'Cancel' })) })
     expect(await screen.findByText('Cancelled. Nothing was added.')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Make yours' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Fetch my birds' })).toBeInTheDocument()
   })
 
-  it('fixing an unmatched row adds the species (the match report is on /make)', async () => {
+  it('the collage says when rows went unmatched; fixing one on Settings adds the species', async () => {
     await mount()
     await drop(csv(...ROWS, ROBIN_TYPO))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await go('/')
+    expect(await screen.findByTestId('unmatched-note')).toHaveTextContent("1 row couldn't be matched · Fix it")
+    expect(within(screen.getByTestId('unmatched-note')).getByRole('link', { name: 'Fix it' })).toHaveAttribute('href', '/settings#match')
+    await go('/settings')
     expect(screen.getByRole('heading', { name: "1 row couldn't be matched" })).toBeInTheDocument()
     expect(screen.getByText('eBird life list row 5')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Use American Robin' }))
@@ -314,25 +331,34 @@ describe('/make and /my', () => {
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species.'))
   })
 
-  it('the counting rules for the current imports are on /make once there is a list', async () => {
+  it('the counting rules for the current imports are on Settings once there is a list', async () => {
     await mount()
-    expect(screen.queryByRole('heading', { name: 'Your rules' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Counting rules' })).toBeNull()
     await drop(csv(...ROWS))
-    expect(await screen.findByRole('heading', { name: 'Your rules' })).toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'Hide heard-only birds' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Counting rules' })).toBeInTheDocument()
+    const heard = screen.getByRole('switch', { name: 'Hide heard-only birds' })
+    expect(heard).toHaveAccessibleDescription('* Birds you only heard. 0 on your list.')
+    expect(screen.getByRole('switch', { name: 'Hide found-dead birds' })).toHaveAccessibleDescription('† Birds you found dead. 0 on your list.')
+    // No iNaturalist source yet: the research-grade rule waits, and says why.
+    expect(screen.getByRole('switch', { name: 'Research-grade iNaturalist only' })).toBeDisabled()
+    fireEvent.click(heard)
+    expect(heard).toHaveAttribute('aria-checked', 'true')
   })
 
-  it('forget my list asks once, clears, and goes back to /make', async () => {
+  it('forget my list (in "Keep your list" on Settings) asks once, clears, and the collage page shows the sample again', async () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
     await waitFor(async () => expect(await storage.load()).not.toBeNull(), { timeout: 2000 })
-    await go('/my')
+    expect(screen.getByRole('heading', { name: 'Keep your list' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Forget my list' }))
     expect(screen.getByText(/Forget this list on this device\?/)).toBeInTheDocument()
-    expect(stats()).toHaveTextContent(/^3 species/) // nothing cleared yet
+    expect(made()).toHaveTextContent('Your collage has 3 species.') // nothing cleared yet
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Yes, forget it' })) })
-    expect(await screen.findByRole('heading', { name: 'Make yours' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByTestId('see-collage')).toBeNull())
+    expect(screen.queryByRole('heading', { name: 'Keep your list' })).toBeNull()
+    await go('/')
+    expect(await screen.findByRole('heading', { level: 1, name: "Every bird you've ever seen." })).toBeInTheDocument()
     await waitFor(async () => expect(await storage.load()).toBeNull())
     expect(screen.queryByText("Couldn't clear this device's copy")).toBeNull()
   })
@@ -341,12 +367,11 @@ describe('/make and /my', () => {
     await mount({ failForget: true })
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
-    await go('/my')
     fireEvent.click(screen.getByRole('button', { name: 'Forget my list' }))
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Yes, forget it' })) })
     expect(await screen.findByText(/Couldn't clear this device's copy/)).toBeInTheDocument()
     expect(screen.getByText(/Couldn't clear this device's copy/).closest('[role=alert]')).not.toBeNull()
-    expect(screen.getByRole('heading', { name: 'Make yours' })).toBeInTheDocument() // memory is cleared either way
+    expect(screen.queryByTestId('see-collage')).toBeNull() // memory is cleared either way
     vi.doUnmock('@/lib/list/storage')
   })
 
@@ -355,7 +380,7 @@ describe('/make and /my', () => {
     expect(screen.getByText("This list won't be saved on this device.", { exact: false })).toBeInTheDocument()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
-    await go('/my')
+    await go('/')
     expect(screen.getByText("This list won't be saved on this device.", { exact: false })).toBeInTheDocument()
   })
 })
@@ -365,7 +390,7 @@ describe('editing', () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
-    await go('/my')
+    await go('/')
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
     fireEvent.click(within(screen.getByRole('list', { name: 'Life list' })).getByRole('button', { name: /Northern Flicker/ }))
     const card = screen.getByRole('dialog', { name: 'Northern Flicker' })
@@ -380,15 +405,24 @@ describe('editing', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove from my list' }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
     expect(screen.queryByRole('dialog')).toBeNull()
+    // A few seconds to undo it.
+    expect(screen.getByText('Removed Northern Flicker.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
+    expect(screen.queryByText('Removed Northern Flicker.')).toBeNull()
+    fireEvent.click(within(screen.getByRole('list', { name: 'Life list' })).getByRole('button', { name: /Northern Flicker/ }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove from my list' }))
+    await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
 
-    // Tick by hand (on /make): the removed species comes back, with a date and a region.
-    await go('/make')
+    // Tick by hand (on Settings): the removed species comes back, with a date and a region.
+    await go('/settings')
+    openTick()
     fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'northern fl' } })
-    fireEvent.click(screen.getByRole('button', { name: /^Northern Flicker/ }))
+    fireEvent.click(tickOption(/^Northern Flicker/))
     fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2019-06' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'CA' } })
     fireEvent.change(screen.getByLabelText('Region (optional)'), { target: { value: 'CA-BC' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add to my list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
     await waitFor(async () => {
       const s = await storage.load()
@@ -397,39 +431,64 @@ describe('editing', () => {
     }, { timeout: 2000 })
   })
 
-  it('the first bird ticked by hand counts as one collage made (manual); later ticks do not', async () => {
-    const { analytics } = await mount()
-    for (const [q, name] of [['snow', /^Snow Goose/], ['northern fl', /^Northern Flicker/]] as const) {
-      fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: q } })
-      fireEvent.click(screen.getByRole('button', { name }))
-      fireEvent.click(screen.getByRole('button', { name: 'Add to my list' }))
-    }
+  it('Tick by hand: a page-wide list of every species; tick several (click or Space), one date and place for the batch', async () => {
+    const { storage, analytics } = await mount()
+    openTick()
+    const list = screen.getByRole('listbox', { name: 'Species to tick' })
+    expect(list).toHaveAttribute('aria-multiselectable', 'true')
+    expect(within(list).getAllByRole('option')).toHaveLength(5) // the whole (synthetic) taxonomy, windowed
+    fireEvent.click(tickOption(/^Snow Goose/))
+    // Keyboard: the arrows move the active row, Space ticks it.
+    list.focus()
+    fireEvent.keyDown(list, { key: 'ArrowDown' }) // the Northern Flicker
+    fireEvent.keyDown(list, { key: ' ' })
+    expect(tickOption(/^Northern Flicker/)).toHaveAttribute('aria-selected', 'true')
+    fireEvent.keyDown(list, { key: ' ' }) // untick, tick again
+    expect(tickOption(/^Northern Flicker/)).toHaveAttribute('aria-selected', 'false')
+    fireEvent.keyDown(list, { key: ' ' })
+    expect(screen.getByText('2 selected')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2018' } })
+    fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add 2 to my list' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species.'))
-    expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'manual' }]])
+    expect(screen.getByText('Added 2 birds to your list.')).toBeInTheDocument()
+    // Now on the list: shown ticked, and can't be picked again.
+    expect(tickOption(/^Snow Goose, Anser caerulescens, already on your list/)).toHaveAttribute('aria-disabled', 'true')
+    expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'manual' }]]) // one, for the first batch
+    await waitFor(async () => expect((await storage.load())?.edits.added).toEqual([
+      { code: 'snogoo', source: 'manual', date: '2018', place: { country: 'US' } },
+      { code: 'norfli', source: 'manual', date: '2018', place: { country: 'US' } },
+    ]), { timeout: 2000 })
+    // Search narrows by word prefixes of either name, accent-insensitive; the order picker browses.
+    fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'colaptes' } })
+    expect(within(list).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus, already on your list', 'Gilded Flicker, Colaptes chrysoides'])
+    fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Order'), { target: { value: 'Passeriformes' } })
+    expect(within(list).getAllByRole('option')).toHaveLength(2)
   })
 
   it('ticking a bird onto a list from eBird is an edit, not a new collage', async () => {
     const { analytics } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
-    fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'snow' } })
-    fireEvent.click(screen.getByRole('button', { name: /^Snow Goose/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Add to my list' }))
+    openTick()
+    fireEvent.click(tickOption(/^Snow Goose/))
+    fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species.'))
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'ebird' }]])
   })
 
   it('tick by hand rejects a malformed date', async () => {
     await mount()
-    fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'snow' } })
-    fireEvent.click(screen.getByRole('button', { name: /^Snow Goose/ }))
+    openTick()
+    fireEvent.click(tickOption(/^Snow Goose/))
     fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2019-13' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add to my list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
     expect(screen.getByText('Use YYYY-MM-DD, YYYY-MM or YYYY.')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Make yours' })).toBeInTheDocument()
+    expect(screen.queryByTestId('see-collage')).toBeNull()
   })
 
-  it('restore from backup (on /make) brings a list back and opens /my; a bad file gets a plain message', async () => {
+  it('restore from backup (on Settings, without a list) brings a list back and opens the collage; a bad file gets a plain message', async () => {
     const { storage } = await mount()
     const bad = new File(['not json'], 'backup.json', { type: 'application/json' })
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [bad] } }) })
@@ -441,30 +500,28 @@ describe('editing', () => {
     await waitFor(() => expect(stats()).toHaveTextContent(/^1 species/))
   })
 
-  it('restoring a backup over an existing list (on /my) asks first', async () => {
+  it('restoring a backup over an existing list (in "Keep your list") asks first', async () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
-    await go('/my')
     const good = { ...storage.emptySaved(), records: { ebird: [], 'ebird-list': [], inat: [], manual: [{ code: 'snogoo', source: 'manual' }] } }
     const file = new File([JSON.stringify(good)], 'backup.json', { type: 'application/json' })
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
     expect(screen.getByText(/Replace your list with this backup\?/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Keep my list' }))
-    expect(stats()).toHaveTextContent(/^3 species/)
+    expect(made()).toHaveTextContent('Your collage has 3 species.')
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
     fireEvent.click(screen.getByRole('button', { name: 'Yes, replace it' }))
-    await waitFor(() => expect(stats()).toHaveTextContent(/^1 species/))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species.'))
   })
 
-  it('downloads the list as CSV and as a JSON backup from the head of /my', async () => {
+  it('downloads the list as CSV and as a JSON backup from "Keep your list" on Settings', async () => {
     const urls: Blob[] = []
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: (b: Blob) => { urls.push(b); return 'blob:x' }, revokeObjectURL: () => {} }))
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
-    await go('/my')
     fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }))
     fireEvent.click(screen.getByRole('button', { name: 'Download JSON backup' }))
     expect(click).toHaveBeenCalledTimes(2)

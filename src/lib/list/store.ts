@@ -45,17 +45,34 @@ export type Action =
 
 export type StoreContext = { species: SpeciesIndex; countryName: (iso2: string) => string }
 
-/** Compute everything derived from `saved`, then repair the filter against it. */
-function derive(s: AppState, saved: Saved, filter: Filter, ctx: StoreContext, pruneValues: boolean): AppState {
-  const taxonOrder = (code: string) => ctx.species.byCode.get(code)?.to ?? Number.MAX_SAFE_INTEGER
-  const fixKeys = new Set(Object.keys(saved.edits.fixes))
+/** Every record the list is built from: each slot's records, then the fixed unmatched rows. */
+export function recordsOf(saved: Saved): SourceRecord[] {
   const fixRecords: SourceRecord[] = []
   for (const u of saved.unmatched) {
     const code = saved.edits.fixes[unmatchedKey(u)]
     if (code) fixRecords.push({ code, source: slotSource(u.slot ?? u.source), date: u.date, place: u.place })
   }
-  const records = [...SLOTS.flatMap((slot) => saved.records[slot] ?? []), ...fixRecords]
-  const list = buildList(records, saved.edits, saved.rules, taxonOrder)
+  return [...SLOTS.flatMap((slot) => saved.records[slot] ?? []), ...fixRecords]
+}
+
+/**
+ * How many birds on the list each counting rule touches, whatever the rules are set to now: heard only, found dead,
+ * and the birds that research grade only would drop (iNaturalist sightings the community hasn't agreed on, with no
+ * other source).
+ */
+export function ruleCounts(saved: Saved): { heard: number; dead: number; casual: number } {
+  const records = recordsOf(saved)
+  const off = { hideHeard: false, hideDead: false, researchOnly: false }
+  const all = buildList(records, saved.edits, off)
+  const research = buildList(records, saved.edits, { ...off, researchOnly: true })
+  return { heard: all.filter((e) => e.heard).length, dead: all.filter((e) => e.dead).length, casual: all.length - research.length }
+}
+
+/** Compute everything derived from `saved`, then repair the filter against it. */
+function derive(s: AppState, saved: Saved, filter: Filter, ctx: StoreContext, pruneValues: boolean): AppState {
+  const taxonOrder = (code: string) => ctx.species.byCode.get(code)?.to ?? Number.MAX_SAFE_INTEGER
+  const fixKeys = new Set(Object.keys(saved.edits.fixes))
+  const list = buildList(recordsOf(saved), saved.edits, saved.rules, taxonOrder)
   const trips = findTrips(list, ctx.countryName)
   const openUnmatched = saved.unmatched.filter((u) => !fixKeys.has(unmatchedKey(u)))
   return {
@@ -135,16 +152,26 @@ export type EverybirdMeta = {
   forgetOutcome?: 'forgotten' | 'failed'
   /** Species index, once loaded. */
   species?: SpeciesIndex
+  /** The stored list as first read (null: none; undefined: not read yet). Known well before `ready`. */
+  stored?: Saved | null
+}
+
+/** Run `fn` when the browser is idle (at most `timeout` ms from now); where idle callbacks don't exist, now. */
+function whenIdle(timeout: number): Promise<void> {
+  const g = globalThis as { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => number }
+  return new Promise((resolve) => (g.requestIdleCallback ? g.requestIdleCallback(() => resolve(), { timeout }) : resolve()))
 }
 
 /**
- * Loads species, regions and the stored list on mount, then keeps `saved` persisted
+ * Loads species, regions and the stored list on mount (`deferIfEmpty`: with no stored list, the species wait for an idle
+ * moment), then keeps `saved` persisted
  * (debounced 500 ms, flushed on pagehide / tab hidden). Nothing is saved before the initial load,
  * so a stored list is never overwritten by the empty initial state. Actions dispatched before ready are
  * queued and replayed, in order, after the stored list is restored. A successful save or a new forget clears
  * meta.forgetOutcome; a failed forget re-reads storage.isMemoryOnly() into `persistence`.
  */
-export function useEverybird(): [AppState, (a: Action) => void, EverybirdMeta] {
+export function useEverybird(opts: { deferIfEmpty?: boolean } = {}): [AppState, (a: Action) => void, EverybirdMeta] {
+  const deferIfEmpty = useRef(!!opts.deferIfEmpty)
   const [ctx, setCtx] = useState<StoreContext | null>(null)
   const reducer = useMemo(() => makeReducer(ctx ?? NO_CTX), [ctx])
   const [state, rawDispatch] = useReducer(reducer, undefined, initialState)
@@ -163,7 +190,16 @@ export function useEverybird(): [AppState, (a: Action) => void, EverybirdMeta] {
     let cancelled = false
     ;(async () => {
       try {
-        const [species, regions, stored] = await Promise.all([loadSpecies(), loadRegions(), storage.load()])
+        const storedP = storage.load()
+        // A visitor with no list on the landing page sees the pre-packed sample: let its stickers have the network
+        // first, and fetch the big species file once the browser is idle.
+        const stored0 = deferIfEmpty.current ? await storedP : undefined
+        if (cancelled) return
+        if (deferIfEmpty.current) {
+          setMeta((m) => (m.ready ? m : { ...m, stored: stored0 }))
+          if (!stored0) await whenIdle(1500)
+        } else void storedP.then((st) => { if (!cancelled) setMeta((m) => (m.ready ? m : { ...m, stored: st })) }, () => {})
+        const [species, regions, stored] = await Promise.all([loadSpecies(), loadRegions(), storedP])
         if (cancelled) return
         setCtx({
           species,
@@ -177,7 +213,7 @@ export function useEverybird(): [AppState, (a: Action) => void, EverybirdMeta] {
           rawDispatch({ type: 'restore', saved: stored })
         }
         if (storage.isMemoryOnly()) rawDispatch({ type: 'persistence', persistence: 'memory-only' })
-        setMeta({ ready: true, species })
+        setMeta({ ready: true, species, stored })
         // Actions dispatched before ready run now, on top of the stored list, with the loaded species.
         for (const a of early) dispatchRef.current(a)
       } catch (e) {

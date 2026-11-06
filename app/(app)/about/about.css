@@ -1,0 +1,14 @@
+/* About: a quiet editorial page in one column. Cabinet Grotesk headings, Satoshi body, Geist Mono labels. */
+.eb-about > * { max-width: 720px; }
+.eb-prose { margin: 0; font-size: 17px; line-height: 1.6; max-width: 62ch; }
+.eb-prose + .eb-prose { margin-top: -4px; }
+.eb-prose a, .eb-steps a, .eb-credit-body a { color: inherit; text-underline-offset: 3px; }
+.eb-steps { margin: 0; padding: 0 0 0 22px; display: flex; flex-direction: column; gap: 8px; font-size: 17px; line-height: 1.55; max-width: 62ch; }
+.eb-credits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--hairline); }
+.eb-credit { display: flex; flex-direction: column; gap: 4px; padding: 14px 0; border-bottom: 1px solid var(--hairline); }
+.eb-credit-title { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-family: var(--font-body); font-size: 17px; font-weight: 600; line-height: 1.3; }
+.eb-credit-title a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.eb-credit-title .eb-mono { font-weight: 500; }
+.eb-credit-body { margin: 0; font-size: 15px; line-height: 1.55; color: var(--muted); max-width: 62ch; }
+.eb-credit-code { text-transform: none; letter-spacing: 0; }
+@media (hover: hover) and (pointer: fine) { .eb-credit-title a:hover { color: var(--accent); } }

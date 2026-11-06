@@ -141,3 +141,16 @@ describe('store reducer', () => {
     expect(s.saved).toBe(s0.saved)
   })
 })
+
+describe('ruleCounts (the live counts beside each counting rule)', () => {
+  it('counts heard-only and found-dead birds, and the birds research grade only would drop, whatever the rules are now', async () => {
+    const { ruleCounts } = await import('@/lib/list/store')
+    const { emptySaved } = await import('@/lib/list/storage')
+    const s = emptySaved()
+    s.rules = { hideHeard: true, hideDead: true, researchOnly: true }
+    s.records.ebird = [{ code: 'a', source: 'ebird', heard: true }, { code: 'b', source: 'ebird', dead: true }, { code: 'c', source: 'ebird' }]
+    s.records.inat = [{ code: 'd', source: 'inat', research: false }, { code: 'c', source: 'inat', research: false }, { code: 'e', source: 'inat', research: true }]
+    s.edits.marks = { c: { heard: true } }
+    expect(ruleCounts(s)).toEqual({ heard: 2, dead: 1, casual: 1 }) // c also has an eBird record, so only d drops
+  })
+})

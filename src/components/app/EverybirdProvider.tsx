@@ -1,8 +1,8 @@
 'use client'
-// The birder's list and the imports in flight, above the routes (app/(app)/layout.tsx): /, /make and /my share one
-// store, and an import started on /make keeps running while the birder moves between them. The shared view
-// (/s/[token]) lives outside this layout, so it never loads or touches the saved list (/credits is inside, so following
-// the footer link from /make keeps an import running).
+// The birder's list and the imports in flight, above the routes (app/(app)/layout.tsx): / (Collage), /settings and
+// /about share one store, and an import started on /settings keeps running while the birder moves between them. The
+// shared view (/s/[token]) lives outside this layout, so it never loads or touches the saved list.
+import { usePathname } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { track } from '@/lib/analytics'
 import { loadCountryDots, loadRegions } from '@/lib/import/places'
@@ -24,6 +24,8 @@ export type Everybird = {
   failed: boolean
   /** The birder has a list (anything imported, matched or not). */
   mine: boolean
+  /** Whether there is a list, known as soon as storage has been read (before the bird data): null until then. */
+  mineSoon: boolean | null
   jobs: ImportJobs
 }
 
@@ -35,7 +37,8 @@ export function hasData(s: Saved): boolean {
 const Ctx = createContext<Everybird | null>(null)
 
 export function EverybirdProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch, meta] = useEverybird()
+  // On the landing page, a visitor without a list sees the pre-packed sample; the species file can wait.
+  const [state, dispatch, meta] = useEverybird({ deferIfEmpty: usePathname() === '/' })
   const [regions, setRegions] = useState<Regions | null>(null)
   const [dots, setDots] = useState<CountryDots | undefined>(undefined)
   const [regionsFailed, setRegionsFailed] = useState(false)
@@ -55,9 +58,10 @@ export function EverybirdProvider({ children }: { children: ReactNode }) {
   const species = meta.species
   const data = useMemo(() => (meta.ready && species && regions ? { species, regions } : null), [meta.ready, species, regions])
   const mine = hasData(state.saved)
+  const mineSoon = meta.ready ? mine : meta.stored === undefined ? null : !!meta.stored && hasData(meta.stored)
   const value = useMemo<Everybird>(
-    () => ({ state, dispatch, meta, data, dots, failed: !!meta.error || regionsFailed, mine, jobs }),
-    [state, dispatch, meta, data, dots, regionsFailed, mine, jobs],
+    () => ({ state, dispatch, meta, data, dots, failed: !!meta.error || regionsFailed, mine, mineSoon, jobs }),
+    [state, dispatch, meta, data, dots, regionsFailed, mine, mineSoon, jobs],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

@@ -21,11 +21,10 @@ const COUNTRY_PREFETCH = 8
 
 /**
  * The states one tap away from `f`: the next taxonomy level (orders, or the chosen order's families), the
- * top countries, and the next time level (years, or the chosen year's trips). At most PREFETCH_CAP. None while searching.
+ * top countries, and the next time level (years, or the chosen year's trips). At most PREFETCH_CAP.
  */
 export function childFilters(list: ListEntry[], f: Filter, species: SpeciesIndex, trips: Trip[]): Filter[] {
   const out: Filter[] = []
-  if (f.q) return out // a search is passing through: picking a suggestion goes back to the unsearched state
   const add = (level: FilterLevel, values: string[]) => values.forEach((v) => out.push({ ...f, [level]: v }))
   const vals = (level: FilterLevel) => options(list, f, level, species, trips).map((o) => o.value)
   if (!f.order) add('order', vals('order'))
@@ -44,6 +43,8 @@ type Opts = {
   species: SpeciesIndex
   /** The element whose width picks the layout class (the stage's container). */
   container: RefObject<HTMLElement | null>
+  /** Full even layouts packed ahead of time (the landing sample): shown until the worker's first answer. */
+  seed?: readonly StateLayout[]
 }
 
 const idle = (fn: () => void): (() => void) => {
@@ -58,9 +59,9 @@ const idle = (fn: () => void): (() => void) => {
 
 /**
  * The current StateLayout and its visible codes, or null until the first layout arrives (and always in
- * environments without Worker, such as jsdom). Entries whose species are unknown are left out.
+ * environments without Worker, such as jsdom, unless a seed covers the state). Entries whose species are unknown are left out.
  */
-export function useCollageLayout({ list, trips, filter, mode, species, container }: Opts): CollageLayout | null {
+export function useCollageLayout({ list, trips, filter, mode, species, container, seed }: Opts): CollageLayout | null {
   const client = useRef<LayoutClient | null>(null)
   const [cls, setCls] = useState<LayoutName | null>(null)
   const [result, setResult] = useState<CollageLayout | null>(null)
@@ -159,5 +160,12 @@ export function useCollageLayout({ list, trips, filter, mode, species, container
     return () => cancel()
   }, [result, filter, species, cls])
 
-  return known.length ? result : null
+  // Until the worker's first answer, the seed stands in, whatever the filter or mode (as a stale layout does while a
+  // new one is on its way): the stage stays up, and the worker's layout replaces it as soon as it lands.
+  const seeded = useMemo(() => {
+    const s = seed && cls ? seed.find((l) => l.layout === cls) : undefined
+    return s ? { layout: s, visible: new Set(s.boxes.keys()) } : null
+  }, [seed, cls])
+
+  return known.length ? (result ?? seeded) : null
 }
