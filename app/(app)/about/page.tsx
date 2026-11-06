@@ -42,7 +42,7 @@ function Credit({ label, title, children }: { label: string; title: ReactNode; c
 export default function AboutPage() {
   const { ebirdTaxonomy, huashuCommit } = dataVersions()
   return (
-    <main className="eb-page eb-about">
+    <main className="eb-page eb-about eb-page-titled">
       <PageHead title="About" lede="Everybird turns any birder's life list into a sticker collage." />
 
       <section className="eb-block" aria-labelledby="eb-what-h">

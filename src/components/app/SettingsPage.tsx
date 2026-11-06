@@ -33,7 +33,7 @@ export function SettingsPage() {
   const { saved } = state
   const onList = useMemo(() => new Set(state.list.map((e) => e.code)), [state.list])
   return (
-    <main className="eb-page eb-page-settings">
+    <main className="eb-page eb-page-settings eb-page-titled">
       <PageHead
         title="Settings"
         lede={mine ? 'Where your birds come from, how they count, and how to keep your list.' : 'Bring your list in any of three ways, and combine them if you keep more than one record.'}

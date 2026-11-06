@@ -8,6 +8,7 @@ import type { Edits, ListEntry } from '@/lib/list/model'
 import { CollageView } from './CollageView'
 import { useEverybirdContext } from './EverybirdProvider'
 import { AppNotices } from './Notices'
+import { PageHead } from './PageHead'
 import './app.css'
 
 // The dialog (and its canvas code) loads on first open; the link encoder loads only on "Copy link".
@@ -78,10 +79,10 @@ export function CollagePage() {
   const unmatched = state.openUnmatched.filter((u) => u.reason === 'no-match').length
   const name = saved.name?.trim()
   return (
-    <main className="eb-page eb-page-collage">
-      <div className="eb-collagehead">
-        <h1 className="eb-collagehead-title">{name ? `${name}'s birds` : 'My collage'}</h1>
-        <div className="eb-collagehead-actions">
+    <main className="eb-page eb-page-collage eb-page-titled">
+      <PageHead
+        title={name ? `${name}'s birds` : 'My collage'}
+        actions={<>
           <Link href="/settings" className="eb-btn eb-btn-quiet" aria-label="Add birds">
             <Plus aria-hidden="true" focusable="false" />
             <span className="eb-sm-hide">Add birds</span>
@@ -90,8 +91,8 @@ export function CollagePage() {
             <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
             Share
           </button>
-        </div>
-      </div>
+        </>}
+      />
       <AppNotices eb={eb} />
       {!ready ? (
         !eb.failed && <div className="eb-stage-wait eb-sample-wait" aria-hidden="true" />
