@@ -188,7 +188,12 @@ test("download and copy link each send one anonymous analytics event, with no li
   await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
   await dialog.getByRole("button", { name: "Copy link" }).click();
   await expect(dialog.getByTestId("share-note")).toHaveText(/^Link copied/);
-  const events = await page.evaluate(() => (window as unknown as { __events: unknown[] }).__events);
+  // Only our events: on Vercel the real analytics script also queues its own calls (beforeSend) and an options field.
+  const ours = new Set(["image_downloaded", "link_copied"]);
+  type Call = [string, { name: string; data: unknown } | null];
+  const events = (await page.evaluate(() => (window as unknown as { __events: Call[] }).__events))
+    .filter(([kind, e]) => kind === "event" && !!e && ours.has(e.name))
+    .map(([kind, e]) => [kind, { name: e!.name, data: e!.data }]);
   expect(events).toEqual([
     ["event", { name: "image_downloaded", data: { format: "story" } }],
     ["event", { name: "image_downloaded", data: { format: "square" } }],

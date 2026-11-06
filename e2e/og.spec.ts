@@ -31,11 +31,24 @@ test("a share link's preview image is a 1200x630 PNG within 4 s", async ({ reque
 
 // A token is content-addressed (the link encodes the list), so a complete card is cached a year at the CDN. Next passes
 // the ImageResponse's header through on both metadata-image routes (the twitter card re-exports the same image).
+// On a deployed site (BASE_URL), Vercel's CDN keeps s-maxage and stale-while-revalidate for itself and hands the browser
+// only the rest, so there the test expects that remainder and checks the CDN caches the card (a second fetch is a hit).
+const remote = !!process.env.BASE_URL;
+const cdnOnly = /^(s-maxage|stale-while-revalidate)=/;
+const browserPart = (header: string) => header.split(", ").filter((d) => !cdnOnly.test(d)).join(", ");
+
 test("a complete preview is sent with the year-long cache header, on the og and the twitter image", async ({ request }) => {
   for (const route of ["opengraph-image", "twitter-image"]) {
     const res = await request.get(`/s/${token}/${route}`, { timeout: 60_000 });
     expect(res.status()).toBe(200);
-    expect(res.headers()["cache-control"], `${route}: every font and sticker loaded, so the card is complete`).toBe(OG_CACHE_COMPLETE);
+    const why = `${route}: every font and sticker loaded, so the card is complete`;
+    if (!remote) {
+      expect(res.headers()["cache-control"], why).toBe(OG_CACHE_COMPLETE);
+      continue;
+    }
+    expect(res.headers()["cache-control"], why).toBe(browserPart(OG_CACHE_COMPLETE));
+    const again = await request.get(`/s/${token}/${route}`, { timeout: 60_000 });
+    expect(again.headers()["x-vercel-cache"], `${route}: the CDN keeps the card`).toMatch(/^(HIT|STALE)$/);
   }
 });
 
