@@ -1,0 +1,38 @@
+tests/huashu-sync.test.ts
+  s_ab125876fe9ad2::t_137ed60018feb1 1-236
+scripts/sync/huashu-sync.ts
+  s_ab125876fe9ad2::t_417f0026f06199 1-273
+  s_ab125876fe9ad2::t_72f828ab8ec4c9 274-276
+data/huashu.lock.json
+  s_ab125876fe9ad2::t_6cf07f4f6f12ac 1-33076
+data/website-lifelist-codes.json
+  s_ab125876fe9ad2::t_3908615e7458c3 1-199
+scripts/build-data/build-stickers.ts
+  s_ab125876fe9ad2::t_875f6ae98c7c53 3-9,14-15,56-126,173-187,190-191,195,207
+scripts/build-data/build-website-codes.ts
+  s_ab125876fe9ad2::t_91c77fa43f7080 1-29
+scripts/sync/huashu-lib.ts
+  s_ab125876fe9ad2::t_2371158a165db7 1-234
+scripts/sync/sheet.ts
+  s_ab125876fe9ad2::t_2eefe9d1db8343 1-42
+tests/fixtures/huashu-sync/ls-tree.txt
+  s_ab125876fe9ad2::t_13ffa5ad388071 1-5
+tests/fixtures/huashu-sync/species.json
+  s_ab125876fe9ad2::t_7325616022bc40 1-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a2a497ae51580075718b8e74d37d37fea5268a49",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}

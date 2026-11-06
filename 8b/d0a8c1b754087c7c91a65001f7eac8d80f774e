@@ -1,0 +1,26 @@
+.github/workflows/README.md
+  s_ab125876fe9ad2::t_2b9d4af5fc224c 1-54
+.github/workflows/huashu-sync.yml
+  s_ab125876fe9ad2::t_deb672345423c3 1-186
+  s_ab125876fe9ad2::t_d64db69a030e89 187-190
+AGENTS.md
+  s_ab125876fe9ad2::t_47eacd9f24a464 40,47-50,72-73
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_8734ef6e7a0588 436
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8bd0a8c1b754087c7c91a65001f7eac8d80f774e",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}

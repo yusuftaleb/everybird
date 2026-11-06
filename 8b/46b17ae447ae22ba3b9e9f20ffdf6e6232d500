@@ -1,0 +1,41 @@
+app/s/[token]/opengraph-image.tsx
+  s_ab125876fe9ad2::t_b782f71583dedd 46
+scripts/build-data/build-species.ts
+  s_ab125876fe9ad2::t_05ed78f882d9b2 147-178,222
+src/components/collage/Bird.tsx
+  s_ab125876fe9ad2::t_0592f57a14e529 23,34,48
+src/components/collage/Collage.tsx
+  s_ab125876fe9ad2::t_fa2a5be14f7713 519
+src/components/collage/ListView.tsx
+  s_ab125876fe9ad2::t_de8d6573744e21 39
+src/components/collage/Sticker.tsx
+  s_ab125876fe9ad2::t_97beb0e66e50b8 4,123,134-136
+src/components/import/TickList.tsx
+  s_ab125876fe9ad2::t_f0ebb7ef3f2163 207
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_6f953cb2c1cf34 501,509
+src/lib/share/og-server.ts
+  s_ab125876fe9ad2::t_313c22f4531761 108-109,114-116,119,121,125
+src/lib/species/types.ts
+  s_ab125876fe9ad2::t_fb906a11aa4a0d 7
+src/lib/sticker-url.ts
+  s_ab125876fe9ad2::t_a424345e05cffb 4-8,12-16,18-28
+tests/collage.test.tsx
+  s_ab125876fe9ad2::t_80827a84cc416c 6-7,155-172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8b46b17ae447ae22ba3b9e9f20ffdf6e6232d500",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
