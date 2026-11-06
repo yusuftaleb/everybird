@@ -16,7 +16,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { Bird, type BirdInit } from './Bird'
 import { birdAt, ensureMasks } from './collage-hit'
 import {
-  APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, FADE_MS, RIPPLE_MS, WRITE_CHUNK, fromCount, newMotion, pct, planBirds, raiseSizes, reduced,
+  APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, FADE_MS, RIPPLE_MS, WRITE_START, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
   type Motion,
 } from './collage-motion'
 import { Tally } from './Tally'
@@ -139,6 +139,10 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
     }
   }, [])
 
+  // `motion` is a per-instance mutable cache kept outside React state on purpose (birds are moved by writing to
+  // the DOM, never by re-rendering); this effect is where it is written. The compiler's immutability check sees
+  // the writes now that it analyses the whole effect.
+  // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
     const m = motion
     // Forget birds that left the list, so one that comes back starts fresh.
@@ -152,26 +156,25 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
       }
     }
     const first = m.on === null
-    // Travel writes go out in ripple order, WRITE_CHUNK birds per frame: restyling ~1,000 birds at once is
-    // one long frame on a phone. Small changes, first placement and fades are written at once.
+    // Restyling ~1,000 birds at once is several long frames on a phone. A big travel is planned now and written
+    // from the next frame on, one budgeted chunk per frame (takeChunk / adaptBudget), the birds in view first in
+    // the order their motion starts; each op shortens its delays by how late it lands, so the ripple keeps its
+    // timing. Small changes, first placement and fades are written at once.
     const write = (style: 'travel' | 'jump') => {
       cancelAnimationFrame(chunkFrame.current)
       let view: { top: number; bottom: number } | undefined
       const r = style === 'travel' && typeof window !== 'undefined' ? stage.current?.getBoundingClientRect() : undefined
       if (r && r.width) view = { top: (-r.top * 100) / r.width, bottom: ((window.innerHeight - r.top) * 100) / r.width }
+      // eslint-disable-next-line react-hooks/immutability -- see above: motion is the mutable motion cache
       const { ops, on } = planBirds(m, { codes: taxo, els: els.current, layout, visible, stagePx: stagePx.current, style, view })
       m.on = on
-      let i = 0
-      const step = () => {
-        const end = style === 'jump' || typeof requestAnimationFrame !== 'function' ? ops.length : Math.min(ops.length, i + WRITE_CHUNK)
-        for (; i < end; i++) ops[i].run()
-        chunkFrame.current = i < ops.length ? requestAnimationFrame(step) : 0
-        // The last of several chunks: the tab stop may now be a bird that was still hidden a frame ago.
-        if (chunked && i >= ops.length) syncTabStop()
+      const cost = ops.reduce((n, op) => n + op.cost, 0)
+      if (style === 'jump' || cost <= WRITE_START || typeof requestAnimationFrame !== 'function') {
+        for (const op of ops) op.run()
+      } else {
+        // After the last chunk the tab stop may be a bird that was still hidden a frame ago.
+        runChunked(ops, requestAnimationFrame, (id) => { chunkFrame.current = id }, syncTabStop)
       }
-      let chunked = false
-      step()
-      chunked = true
       syncTabStop()
       if (hot.current && !m.on?.has(hot.current)) setHot(null)
     }
@@ -209,6 +212,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
       cancelAnimationFrame(frame.current)
       cancelAnimationFrame(chunkFrame.current)
       f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null
+      cancelFinishes(motion)
       for (const a of motion.anims.values()) a.cancel()
       motion.anims.clear()
       motion.leaving.clear()
@@ -263,6 +267,8 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
     // layout and visible are read only to seed birds new to the list; their changes are written in the layout effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draw, row, register, motion, inits])
+  // The layer element itself is memoised too, so a new layout re-renders the stage without walking 1,000 birds.
+  const birdLayer = useMemo(() => <div ref={layer} className="eb-layer">{birds}</div>, [birds])
 
   return (
     <div className={className ? `eb-collage ${className}` : 'eb-collage'}>
@@ -307,7 +313,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
         onKeyDown={onKeyDown}
       >
         <Tally value={shown} total={total} />
-        <div ref={layer} className="eb-layer">{birds}</div>
+        {birdLayer}
       </div>
     </div>
   )

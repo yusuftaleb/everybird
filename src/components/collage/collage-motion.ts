@@ -14,8 +14,12 @@ export const EXIT_MS = 180, MOVE_MS = 640, ENTER_MS = 480, ENTER_AT = 160, RIPPL
 /** Above this many visible birds, and with reduced motion, a change is a 200ms opacity fade instead of travel. */
 export const CROSSFADE_AT = 1500
 export const FADE_MS = 200
-/** Birds written per frame during a travel (the rest follow in the next frames, in ripple order). */
-export const WRITE_CHUNK = 200
+/**
+ * Chunked writes (see `takeChunk`): a change bigger than WRITE_START cost units is written over several frames,
+ * one chunk per frame starting with the next frame, the budget adapting to how long the last frame took.
+ * A unit is about one bird restyle (a leaving bird); a moving or arriving bird starts transitions and costs two.
+ */
+export const WRITE_START = 100, WRITE_MIN = 50, WRITE_MAX = 800
 export const SHRINK = 'translate(12%,12%) scale(.76)' // scale .76 about the tile's centre (transform-origin is 0 0)
 
 export const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -39,8 +43,39 @@ export type Motion = {
   on: Set<string> | null // birds shown after the last write; null before the first
   /** Birds playing their exit; they get data-off when it ends (so no per-frame main-thread transition runs). */
   leaving: Set<string>
+  /** Finished exits waiting for their data-off, FINISH_CHUNK per frame (see `finishLater`). */
+  done: (() => void)[]
+  doneFrame: number
 }
-export const newMotion = (): Motion => ({ base: new Map(), written: new Map(), anims: new Map(), sizes: new Map(), on: null, leaving: new Set() })
+export const newMotion = (): Motion => ({
+  base: new Map(), written: new Map(), anims: new Map(), sizes: new Map(), on: null, leaving: new Set(), done: [], doneFrame: 0,
+})
+
+/** Finished exits cleaned up per frame (a finished exit holds the bird invisible, so a late data-off shows nothing). */
+export const FINISH_CHUNK = 60
+
+/**
+ * Run `fn` (a finished exit's data-off) in a coming frame, at most FINISH_CHUNK per frame: exits that started
+ * together finish together, and restyling ~300 birds in one frame is a dropped frame on a phone.
+ */
+export function finishLater(m: Motion, fn: () => void): void {
+  if (typeof requestAnimationFrame !== 'function') { fn(); return }
+  m.done.push(fn)
+  if (m.doneFrame) return
+  const flush = () => {
+    const batch = m.done.splice(0, FINISH_CHUNK)
+    m.doneFrame = m.done.length ? requestAnimationFrame(flush) : 0
+    for (const f of batch) f()
+  }
+  m.doneFrame = requestAnimationFrame(flush)
+}
+
+/** Drop pending clean-ups (unmount). */
+export function cancelFinishes(m: Motion): void {
+  if (m.doneFrame) cancelAnimationFrame(m.doneFrame)
+  m.doneFrame = 0
+  m.done.length = 0
+}
 
 export type WriteArgs = {
   codes: string[]
@@ -60,14 +95,24 @@ export type WriteArgs = {
 
 const inView = (view: WriteArgs['view'], y: number, h: number) => !view || (y < view.bottom && y + h > view.top)
 
-/** One bird's DOM changes for a layout, applied later (in ripple order) by `run`. */
-export type BirdOp = { md: number; run: () => void }
+/**
+ * One bird's DOM changes for a layout, applied later by `run`.
+ *  - at:   when its motion starts in the spec, in ms after the change: exits 0, travel its ripple delay,
+ *          arrivals ENTER_AT + their ripple delay.
+ *  - seen: it is in the viewport before or after the change (or no viewport was given).
+ *  - cost: rough style work, in units of one bird restyle.
+ *  - run(late): apply it `late` ms after the change's first chunk was applied. Delays shrink by `late`, so a
+ *    bird written a few frames late still starts on the ripple's schedule (or at once, if that has passed).
+ */
+export type BirdOp = { at: number; seen: boolean; cost: number; run: (late?: number) => void }
 
 /**
  * Plan every bird's changes for the layout without touching the DOM, and return the birds shown afterwards.
  * Whether a bird is currently shown is read from the DOM (`data-off`), and `written` is updated only when an op
  * runs, so a plan whose ops were partly applied (and then superseded) is always re-planned correctly.
- * Ops come sorted by ripple delay (nearest the count first), so applying them in chunks keeps the ripple.
+ * Ops come in the order to apply them: seen birds first, by when their motion starts (exits, then the travel
+ * ripple outward from the count, then arrivals), then the birds outside the viewport, nearest the count first.
+ * So a change applied in chunks keeps the ripple where it can be seen.
  */
 export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<string> } {
   const { layout, visible, els, stagePx } = a
@@ -75,7 +120,7 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
   const travel = a.style === 'travel'
   const animated = m.on !== null // the first write places birds without entry/exit motion
   const on = new Set<string>()
-  const ops: BirdOp[] = []
+  const ops: (BirdOp & { md: number })[] = []
   for (const code of a.codes) {
     const el = els.get(code)
     if (!el) continue
@@ -92,9 +137,15 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
       const b = m.base.get(code)
       const v = b ? `${x},${y},${pct(box[2], W) / b[0]},${md}` : ''
       if (b && m.written.get(code) === v && !wasOff && !entering && px <= (m.sizes.get(code) ?? 0)) continue
+      // A kept bird is seen if it starts or ends in view.
+      const was = !wasOff && !entering ? m.written.get(code)?.split(',').map(Number) : undefined
+      const seenBefore = was && b ? inView(a.view, was[1] || 0, b[1] * (was[2] || 1)) : false
       ops.push({
+        at: enter ? ENTER_AT + md : md,
+        seen: seen || seenBefore,
+        cost: 2,
         md,
-        run: () => {
+        run: (late = 0) => {
           let base = m.base.get(code)
           if (!base) {
             base = [pct(box[2], W), pct(box[3], W)]
@@ -110,7 +161,7 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
             st.setProperty('--x', String(x))
             st.setProperty('--y', String(y))
             st.setProperty('--k', String(k))
-            st.setProperty('--md', `${md}ms`)
+            st.setProperty('--md', `${Math.max(0, md - late)}ms`)
           }
           // Ask for a sharper sticker once the bird is drawn bigger than any size it was shown at before.
           if (px > (m.sizes.get(code) ?? 0)) {
@@ -128,7 +179,7 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
           m.anims.delete(code)
           if (!travel || !seen || typeof el.animate !== 'function') return
           m.anims.set(code, el.animate([{ opacity: 0, transform: SHRINK }, { opacity: 1, transform: 'none' }],
-            { duration: ENTER_MS, delay: ENTER_AT + md, easing: EASE_OUT, fill: 'backwards' }))
+            { duration: ENTER_MS, delay: Math.max(0, ENTER_AT + md - late), easing: EASE_OUT, fill: 'backwards' }))
         },
       })
     } else {
@@ -137,6 +188,9 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
       const md = wmd || 0 // its ripple delay where it was
       const seen = inView(a.view, wy || 0, (m.base.get(code)?.[1] ?? 0) * (wk || 1))
       ops.push({
+        at: 0,
+        seen,
+        cost: 1,
         md,
         run: () => {
           if (el.hasAttribute('data-enter')) el.removeAttribute('data-enter')
@@ -149,19 +203,68 @@ export function planBirds(m: Motion, a: WriteArgs): { ops: BirdOp[]; on: Set<str
           const anim = el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: SHRINK }], { duration: EXIT_MS, easing: EASE_IN, fill: 'forwards' })
           m.leaving.add(code)
           m.anims.set(code, anim)
-          anim.onfinish = () => {
-            if (m.anims.get(code) !== anim) return
+          anim.onfinish = () => finishLater(m, () => {
+            if (m.anims.get(code) !== anim) return // re-planned since (re-entered or restarted)
             m.leaving.delete(code)
             m.anims.delete(code)
             el.setAttribute('data-off', '')
             anim.cancel()
-          }
+          })
         },
       })
     }
   }
-  ops.sort((p, q) => p.md - q.md)
-  return { ops, on }
+  return { ops: order(ops), on }
+}
+
+/** Seen ops by start time (ties: nearest the count first), then the unseen ones nearest the count first. */
+function order(ops: (BirdOp & { md: number })[]): BirdOp[] {
+  return ops.sort((p, q) => (p.seen === q.seen ? (p.seen ? p.at - q.at : 0) || p.md - q.md : p.seen ? -1 : 1))
+}
+
+/**
+ * How many ops (from `start`) go in one chunk of `budget` cost units: whole ops until the budget is spent, and
+ * always at least one, so every frame makes progress.
+ */
+export function takeChunk(ops: readonly BirdOp[], start: number, budget: number): number {
+  let end = start, spent = 0
+  while (end < ops.length && (end === start || spent + ops[end].cost <= budget)) spent += ops[end++].cost
+  return end
+}
+
+/**
+ * The next chunk's budget from the last frame's length (ms between two chunks): grow while frames keep up
+ * with a 60 Hz display, hold at one dropped frame, shrink when more were dropped. A fast device writes a big change in a few frames; a slow
+ * one spreads it so no frame carries more than it can draw.
+ */
+export function adaptBudget(budget: number, frameMs: number): number {
+  const next = frameMs <= 20 ? budget * 1.5 : frameMs <= 40 ? budget : budget * 0.6
+  return Math.min(WRITE_MAX, Math.max(WRITE_MIN, Math.round(next)))
+}
+
+/**
+ * Apply `ops` one budgeted chunk per frame, starting with the next frame (`frame` is requestAnimationFrame or
+ * a stand-in; `pending` gets each frame request's id, 0 when done, so the caller can cancel it): the first
+ * chunk gets WRITE_START units, later ones adaptBudget's. Each op runs with how late its frame is after the
+ * first chunk's. `onDone` runs after the last chunk.
+ */
+export function runChunked(
+  ops: readonly BirdOp[],
+  frame: (cb: (t: number) => void) => number,
+  pending: (id: number) => void,
+  onDone: () => void,
+): void {
+  let i = 0, t0 = -1, last = 0, budget = WRITE_START
+  const step = (now: number) => {
+    if (t0 < 0) t0 = now
+    else budget = adaptBudget(budget, now - last)
+    last = now
+    const end = takeChunk(ops, i, budget)
+    for (; i < end; i++) ops[i].run(now - t0)
+    if (i < ops.length) pending(frame(step))
+    else { pending(0); onDone() }
+  }
+  pending(frame(step))
 }
 
 /** Write every bird's variables and data-off / data-enter for the layout now, and start exit / entry animations. */
