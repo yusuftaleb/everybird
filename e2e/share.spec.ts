@@ -139,3 +139,24 @@ test("download and copy link each send one anonymous analytics event, with no li
     ["event", { name: "link_copied", data: { level: expect.stringMatching(/^(species|dates|countries|regions)$/) } }],
   ]);
 });
+
+// The dialog never scrolls sideways, whatever the format, the window width or the name's length: the format control
+// fits its column (Square was added later and pushed it out once).
+test("the dialog never scrolls sideways at 390, 768, 1000 and 1280px, with a long name, in every format", async ({ page }) => {
+  test.setTimeout(120_000);
+  const dialog = await openShare(page);
+  await dialog.getByLabel("Your name (optional)").fill("Maximiliana Featherstonehaugh-Ravensworth");
+  for (const width of [1280, 1000, 768, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    for (const format of ["Story", "Post", "Square"]) {
+      await dialog.getByRole("button", { name: new RegExp(`^${format}`) }).click();
+      const m = await dialog.evaluate((d) => {
+        const seg = d.querySelector(".eb-seg")!.getBoundingClientRect();
+        const col = d.querySelector(".eb-share-controls")!.getBoundingClientRect();
+        return { sw: d.scrollWidth, cw: d.clientWidth, over: seg.right - col.right };
+      });
+      expect(m.sw, `${format} at ${width}px: the dialog scrolls sideways`).toBeLessThanOrEqual(m.cw);
+      expect(m.over, `${format} at ${width}px: the format control sticks out of its column`).toBeLessThanOrEqual(0.5);
+    }
+  }
+});

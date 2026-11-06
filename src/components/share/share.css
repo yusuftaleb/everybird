@@ -1,4 +1,6 @@
-/* The share dialog: a centred modal, preview beside the controls from 720px, stacked below. */
+/* The share dialog: a centred modal, preview beside the controls from 720px, stacked below. It never scrolls
+   sideways: the preview's width comes from its height cap and the format's ratio but never takes more than its share,
+   and the controls (at least 280px beside it) shrink their contents, the format control included. */
 .eb-share-scrim { position: fixed; inset: 0; z-index: 49; background: rgb(0 0 0 / .32); display: grid; place-items: center; padding: 16px; }
 .eb-share {
   width: min(820px, 100%); max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain;
@@ -11,7 +13,7 @@
 .eb-share:focus { outline: none; }
 @keyframes eb-share-in { from { opacity: 0; transform: translateY(12px); } }
 .eb-share-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.eb-share-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15; }
+.eb-share-title { min-width: 0; margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15; }
 .eb-share-close {
   display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center; flex: none;
   background: none; border: 0; color: var(--ink); cursor: pointer;
@@ -19,16 +21,20 @@
 }
 .eb-share-close svg { width: 18px; height: 18px; }
 
-.eb-share-body { display: flex; flex-direction: column; gap: 20px; }
+.eb-share-body { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 @media (min-width: 720px) { .eb-share-body { flex-direction: row; align-items: flex-start; } }
 
+/* --ar is the format's width / height (set inline); the height follows the width through aspect-ratio. */
 .eb-share-preview {
-  position: relative; flex: none; align-self: center;
-  height: min(46dvh, 440px); max-width: 100%;
+  --cap: min(46dvh, 440px);
+  position: relative; flex: none; align-self: center; box-sizing: border-box;
+  width: min(100%, calc(var(--cap) * var(--ar)));
   background: var(--surface); border: 1px solid var(--hairline); overflow: hidden;
   border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
-@media (min-width: 720px) { .eb-share-preview { height: min(72dvh, 560px); align-self: flex-start; } }
+@media (min-width: 720px) {
+  .eb-share-preview { --cap: min(72dvh, 560px); align-self: flex-start; max-width: calc(100% - 300px); }
+}
 .eb-share-preview img { display: block; width: 100%; height: 100%; object-fit: contain; transition: opacity .2s cubic-bezier(.25, .8, .25, 1); }
 .eb-share-preview[aria-busy="true"] img { opacity: .55; }
 .eb-share-spin {
@@ -39,7 +45,7 @@
 @keyframes eb-share-spin { to { transform: rotate(360deg); } }
 .eb-share-failed { position: absolute; inset: auto 12px 12px; text-align: center; }
 
-.eb-share-controls { display: flex; flex-direction: column; gap: 16px; min-width: 0; flex: 1; }
+.eb-share-controls { display: flex; flex-direction: column; gap: 16px; min-width: 0; flex: 1 1 280px; container-type: inline-size; }
 .eb-share-controls .eb-seg { align-self: flex-start; }
 .eb-share-hint { font-family: var(--font-mono); font-size: 12px; line-height: 1; letter-spacing: .02em; color: var(--muted); }
 .eb-share-field { display: flex; flex-direction: column; gap: 6px; }
@@ -82,11 +88,12 @@
 .eb-seg-text { display: inline-flex; align-items: baseline; gap: 8px; }
 .eb-seg-label, .eb-seg-btn .eb-share-hint { display: block; line-height: 1; text-box: trim-both cap alphabetic; }
 .eb-seg-btn[aria-pressed="true"] { opacity: 1; background: var(--surface); }
-/* Three formats don't fit one row with icons in a phone's dialog: the row spans the width, the icons go, the words
-   and ratios stay. */
-@media (max-width: 479px) {
+/* The control answers to its column's width (a container query), not the window's: where three formats with icons
+   don't fit, the row spans the column and the icons go; narrower still, the ratios go too, the words stay. */
+@container (max-width: 419px) {
   .eb-share-controls .eb-seg { align-self: stretch; }
-  .eb-seg-btn { flex: 1 1 auto; padding: 0 8px; }
+  .eb-seg-btn { flex: 1 1 0; min-width: 0; padding: 0 8px; }
   .eb-seg-btn svg { display: none; }
 }
+@container (max-width: 259px) { .eb-seg-btn .eb-share-hint { display: none; } }
 @media (prefers-reduced-motion: reduce) { .eb-seg-btn { transition: none; } }
