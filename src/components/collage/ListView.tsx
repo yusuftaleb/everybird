@@ -33,7 +33,7 @@ const Row = memo(function Row({ entry, row, place, sci, onPick }: RowProps) {
   const date = formatDate(entry.date)
   const fit = Math.min(THUMB_W / Math.max(row.ar, 0.01), THUMB_H) // sticker fitted in 56 x 40 without stretching
   return (
-    <li className="eb-row">
+    <li className="eb-lrow">
       <button type="button" className="eb-row-btn" data-code={entry.code} onClick={(e) => onPick(entry.code, e.currentTarget)}>
         <span className="eb-row-thumb" aria-hidden="true">
           <span style={{ width: Math.round(fit * row.ar), height: Math.round(fit) }}><Sticker code={entry.code} st={row.st} ar={row.ar} w={fit * row.ar} h={fit} /></span>

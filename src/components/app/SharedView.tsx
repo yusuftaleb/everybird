@@ -54,14 +54,11 @@ function Loaded({ payload, species, regions, dots }: { payload: SharePayload; sp
   })
   const miss = missingFilters(payload)
   const hide = miss.places && miss.dates ? NEITHER : miss.places ? NO_PLACES : miss.dates ? NO_DATES : NONE
-  return (
-    <>
-      {(miss.places || miss.dates) && (
-        <p className="eb-note" data-testid="share-limited">
-          {miss.places && miss.dates ? 'Place and date filters' : miss.places ? 'Place filters' : 'Date filters'} aren&apos;t available for this link.
-        </p>
-      )}
-      <CollageView state={state} dispatch={dispatch} species={species} regions={shown.regions} dots={dots} label="Shared collage" hideTabs={hide} />
-    </>
-  )
+  // What the link leaves out is said quietly where the missing tab would be, not before the birds.
+  const note = miss.places || miss.dates ? (
+    <p className="eb-note eb-filter-note" data-testid="share-limited">
+      {miss.places && miss.dates ? 'This link carries no places or dates' : miss.places ? 'This link carries no places' : 'This link carries no dates'}, so those filters are left out.
+    </p>
+  ) : undefined
+  return <CollageView state={state} dispatch={dispatch} species={species} regions={shown.regions} dots={dots} label="Shared collage" hideTabs={hide} filterNote={note} />
 }

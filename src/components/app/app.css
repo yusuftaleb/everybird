@@ -16,11 +16,21 @@
 .eb-tagline { margin: 0; font-size: 18px; color: var(--muted); }
 .eb-head + * { margin-top: -16px; }
 
-.eb-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; max-width: 640px; }
-.eb-lede { margin: 0; font-size: 18px; line-height: 1.55; }
 .eb-lede-sm { margin: 0; font-size: 16px; line-height: 1.5; color: var(--muted); max-width: 640px; }
-.eb-sample { margin: 0; display: flex; flex-direction: column; gap: 12px; }
-.eb-sample > figcaption { margin: 0; }
+
+/* Collage pages (/): the birds lead. A one-row hero on wide screens; tighter spacing above the stage. */
+.eb-page-collage { gap: 16px; padding-top: 16px; }
+@media (min-width: 720px) { .eb-page-collage { gap: 24px; padding-top: 24px; } }
+.eb-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.eb-hero-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.eb-hero-title { margin: 0; font-size: clamp(28px, 4vw, 42px); line-height: 1.02; letter-spacing: -.02em; }
+.eb-hero-lede { margin: 0; font-size: 15px; line-height: 1.45; max-width: 72ch; }
+@media (max-width: 719px) { .eb-hero-cta.eb-btn-big { min-height: 44px; font-size: 16px; padding: 0 18px; } }
+@media (min-width: 720px) {
+  .eb-hero { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 24px; }
+  .eb-hero-lede { font-size: 17px; }
+  .eb-hero-cta { flex: none; }
+}
 
 .eb-h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(24px, 4vw, 28px); line-height: 1.15; }
 .eb-block { display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; }
@@ -45,7 +55,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 .eb-btn svg { width: 18px; height: 18px; flex: none; }
-.eb-btn:disabled, .eb-btn[data-disabled] { opacity: .45; cursor: default; pointer-events: none; }
+/* Disabled: "not yet", in the quiet colours (never a paler Accent, which reads as a new colour). */
+.eb-btn:disabled, .eb-btn[data-disabled] { background: var(--surface); border-color: var(--hairline); color: var(--muted); cursor: default; pointer-events: none; }
 /* Labels that stand in for a visually hidden file input (Restore from backup) show the input's focus ring. */
 .eb-btn:has(+ input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .eb-btn-big { min-height: 52px; padding: 0 22px; font-size: 17px; }
@@ -66,15 +77,20 @@
 /* The collage block: LifeList's column (12px between the stats line, the dock, the filters and the stage). */
 .eb-view { --eb-ease: cubic-bezier(.16, 1, .3, 1); display: flex; flex-direction: column; gap: 12px; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.3; }
 .eb-stats { margin: 0; }
-.eb-view .eb-collage, .eb-view .eb-stage-wait { margin-top: 8px; }
+.eb-statsrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 16px; }
+.eb-tabs-folded { margin: -4px 0; }
+.eb-tabs-folded::before { content: 'Filter by'; align-self: center; margin-right: 4px; font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.eb-view .eb-stage-wait { margin-top: 8px; }
 
-/* Controls bar: LifeList's dock (the Photography / Library tab bar). */
-.eb-dockwrap { container-type: inline-size; }
+/* Controls bar: LifeList's dock (the Photography / Library tab bar), one row; Photography's search over it. */
+.eb-dockwrap { position: relative; z-index: 3; container-type: inline-size; }
 .eb-dock {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px;
+  position: relative; display: flex; align-items: center; gap: 4px; padding: 4px;
   border: 1px solid var(--hairline); border-radius: 16px; background: var(--paper);
 }
-.eb-dock-tabs { display: flex; gap: 4px; }
+.eb-dock-tabs, .eb-dock-tools { display: flex; align-items: center; gap: 4px; transition: opacity .15s var(--eb-ease); }
+.eb-dock-tools { margin-left: auto; }
+.eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools { opacity: 0; pointer-events: none; }
 .eb-dock-tab {
   display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; min-width: 44px;
   padding: 0 16px 0 14px; border: 0; border-radius: 12px; background: transparent; color: inherit;
@@ -84,68 +100,67 @@
 .eb-dock-tab svg { width: 20px; height: 20px; flex: none; }
 .eb-dock-tab[aria-pressed="true"] { opacity: 1; color: var(--accent); background: var(--surface); font-weight: 600; }
 .eb-dock-sw { gap: 10px; padding: 0 12px 0 14px; }
-.eb-dock-push { margin-left: auto; }
 .eb-dock-sci { font-style: italic; }
 .eb-dock-dir { gap: 6px; opacity: 1; }
 .eb-dock-dir svg { width: 16px; height: 16px; transition: transform .2s var(--eb-ease); }
 .eb-dock-sw[aria-checked="true"] { opacity: 1; }
 .eb-dock-sw[aria-checked="true"] .eb-track { background: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(14px); background: var(--paper); }
+.eb-dock-find { padding: 0; width: 44px; }
 .eb-short { display: none; }
-/* The search sits between the tabs and the switches; on a narrow bar it takes its own row under them. */
-.eb-dock-search { flex: 1 1 220px; min-width: 0; }
-.eb-dock-search + .eb-dock-push { margin-left: 0; }
-@container (max-width: 640px) {
-  .eb-dock-search { order: 10; flex-basis: 100%; }
-  .eb-dock-search + .eb-dock-push { margin-left: auto; }
-}
-@container (max-width: 400px) {
-  .eb-long { display: none; }
-  .eb-short { display: inline; }
-  .eb-dock-tab { padding: 0 12px; }
-  .eb-dock-sw { padding: 0 8px; gap: 6px; }
-}
 @container (max-width: 460px) {
   .eb-dock-tabs .eb-dock-tab span { display: none; }
   .eb-dock-tabs .eb-dock-tab { padding: 0; width: 44px; }
 }
+@container (max-width: 400px) {
+  .eb-long { display: none; }
+  .eb-short { display: inline; }
+  .eb-dock-tabs, .eb-dock-tools { gap: 2px; }
+  .eb-dock-sw { padding: 0 8px; gap: 6px; }
+  .eb-dock .eb-track { width: 30px; height: 18px; border-radius: 9px; }
+  .eb-dock .eb-knob { width: 12px; height: 12px; }
+  .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(12px); }
+}
+@container (max-width: 330px) {
+  .eb-dock-sw { padding: 0 6px; }
+  .eb-dock-tabs .eb-dock-tab, .eb-dock-find { width: 40px; min-width: 40px; }
+}
 @media (hover: hover) and (pointer: fine) { .eb-dock-tab:hover { opacity: 1; } }
 
-/* The search field and its suggestions (a popover in the card's style). */
-.eb-search-field { position: relative; display: flex; align-items: center; min-height: 44px; border-radius: 12px; transition: background-color .15s var(--eb-ease); }
-.eb-search-field:focus-within { background: var(--surface); }
-.eb-search-icon { position: absolute; left: 14px; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
-.eb-search-input {
-  flex: 1; min-width: 0; height: 44px; padding: 0 40px 0 42px; border: 0; border-radius: 12px; background: transparent;
-  color: var(--ink); font: inherit; font-size: 16px; /* 16px keeps iOS from zooming in */
+/* The search field over the dock, and its results under it at full width (Photography's dock search). */
+.eb-find {
+  position: absolute; inset: 4px; display: flex; align-items: center; gap: 4px; padding-left: 12px; border-radius: 12px;
+  animation: eb-find-in .15s var(--eb-ease) both;
 }
-.eb-search-input::placeholder { color: var(--muted); opacity: 1; }
-.eb-search-input:focus { outline: none; }
-.eb-search-field:has(.eb-search-input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-.eb-search-clear {
-  position: absolute; right: 2px; display: grid; place-items: center; width: 40px; height: 40px;
-  border: 0; border-radius: 10px; background: none; color: var(--muted); cursor: pointer;
+.eb-find-icon { width: 16px; height: 16px; flex: none; color: var(--muted); }
+.eb-find-input {
+  flex: 1; min-width: 0; height: 44px; padding: 8px; border: 0; background: transparent; color: var(--ink);
+  font: inherit; font-size: 16px; /* 16px keeps iOS from zooming in */ outline: none;
 }
-.eb-search-clear svg { width: 16px; height: 16px; }
-.eb-suggest {
-  position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 20; margin: 0; padding: 6px; list-style: none;
-  max-height: min(60vh, 420px); overflow-y: auto; overscroll-behavior: contain;
+.eb-find-input::-webkit-search-cancel-button { display: none; }
+.eb-find-input::placeholder { color: var(--muted); opacity: 1; }
+.eb-find:has(.eb-find-input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eb-find .eb-dock-tab { opacity: 1; color: var(--muted); }
+.eb-find .eb-dock-tab svg { width: 16px; height: 16px; }
+.eb-results {
+  position: absolute; z-index: 8; left: 0; right: 0; top: calc(100% + 6px); max-height: 320px; overflow: auto;
+  overscroll-behavior: contain; margin: 0; padding: 4px; list-style: none;
   background: var(--paper); border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
-  animation: eb-suggest-in .15s var(--eb-ease) both;
+  animation: eb-find-in .15s var(--eb-ease) both;
 }
-.eb-suggest[hidden] { display: none; }
-.eb-suggest-item {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; min-height: 44px; padding: 11px 10px;
-  border-radius: 10px; cursor: pointer;
+.eb-results [role="option"] {
+  display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; cursor: pointer;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
-.eb-suggest-item[aria-selected="true"] { background: var(--surface); }
-.eb-suggest-primary { font-size: 15px; font-weight: 600; }
-.eb-suggest-other { font-size: 13px; color: var(--muted); }
-.eb-suggest [lang] { font-style: italic; }
-.eb-suggest-none { padding: 12px 14px; font-size: 14px; color: var(--muted); }
-@keyframes eb-suggest-in { from { opacity: 0; } }
+.eb-results [aria-selected="true"] { background: var(--surface); color: var(--accent); }
+.eb-result-name { min-width: 0; overflow-wrap: anywhere; }
+.eb-result-sci { color: var(--muted); }
+.eb-result-it { font-style: italic; }
+.eb-result-rank { margin-left: auto; white-space: nowrap; }
+.eb-results-empty { padding: 12px; color: var(--muted); }
+@keyframes eb-find-in { from { opacity: 0; } }
 
 .eb-stage-wait {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
@@ -157,24 +172,11 @@
 .eb-legend { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .eb-legend p { margin: 0; }
 
-/* Page heads (/make, /my): the way home, the title and its actions. */
+/* Page heads (Settings, About): the title and a line under it. */
 .eb-pagehead { gap: 10px; }
-.eb-home { align-self: flex-start; color: var(--muted); text-decoration: none; padding: 4px 0; }
-.eb-home:hover { color: var(--ink); }
-.eb-pagehead-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
 .eb-title-page { font-size: clamp(36px, 7vw, 56px); }
-.eb-pagehead-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.eb-sm-show { display: none; }
-/* Phones: the four actions as a compact 2 x 2 grid, with short labels ("CSV", "backup"; the full names stay accessible). */
-@media (max-width: 599px) {
-  .eb-pagehead-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
-  .eb-pagehead-actions .eb-btn { min-height: 44px; padding: 0 12px; font-size: 14px; }
-  .eb-sm-hide { display: none; }
-  .eb-sm-show { display: inline; }
-}
-.eb-page-my { gap: 32px; }
-@media (min-width: 720px) { .eb-page-my { gap: 40px; } }
-/* After an import on /make: what landed, and the way to the collage. */
+@media (max-width: 479px) { .eb-sm-hide { display: none; } }
+/* After an import on Settings: what landed, and the way to the collage. */
 .eb-made {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 14px 16px;
   border: 1px solid var(--accent); background: var(--paper);
@@ -192,23 +194,113 @@
 }
 .eb-confirm p { margin: 0; }
 
-/* Switch rows (rules). */
-.eb-rules { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.eb-switch-row { padding-left: 0; justify-content: space-between; min-width: min(100%, 340px); }
 
-.eb-footer {
-  max-width: 1152px; margin: 0 auto; padding: 20px 16px 32px;
-  border-top: 1px solid var(--hairline);
+/* The top bar (the site's phone top bar): wordmark home, Collage / Settings / About, the theme switch. One row. */
+.eb-topbar { border-bottom: 1px solid var(--hairline); }
+.eb-topbar-in {
+  max-width: 1152px; margin: 0 auto; padding: 8px 16px; min-height: 60px;
+  display: flex; align-items: center; gap: 8px;
+}
+@media (min-width: 720px) { .eb-topbar-in { padding: 10px 32px; min-height: 64px; } }
+.eb-wordmark {
+  font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1; letter-spacing: -.01em;
+  color: var(--ink); text-decoration: none; padding: 6px 0; white-space: nowrap;
+}
+.eb-nav { margin-left: auto; }
+.eb-nav ul { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.eb-nav-link {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; white-space: nowrap;
+  border: 1px solid transparent; color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 500; opacity: .66;
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s cubic-bezier(.16, 1, .3, 1);
+}
+.eb-nav-link[aria-current="page"] { opacity: 1; color: var(--accent); background: var(--surface); border-color: var(--hairline); font-weight: 600; }
+.eb-theme {
+  display: grid; place-items: center; width: 44px; height: 44px; flex: none; padding: 0;
+  border: 0; background: transparent; color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent;
+  border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-theme svg { width: 22px; height: 22px; }
+@media (hover: hover) and (pointer: fine) {
+  .eb-nav-link:hover { opacity: 1; }
+  .eb-theme:hover { background: var(--surface); }
+}
+@media (max-width: 480px) {
+  .eb-topbar-in { gap: 4px; }
+  .eb-wordmark { font-size: 19px; }
+  .eb-nav ul { gap: 2px; }
+  .eb-nav-link { padding: 0 8px; font-size: 14px; }
+  .eb-theme { width: 40px; height: 40px; }
+}
+@media (max-width: 359px) {
+  .eb-topbar-in { padding: 8px 12px; gap: 2px; }
+  .eb-wordmark { font-size: 17px; }
+  .eb-nav ul { gap: 0; }
+  .eb-nav-link { padding: 0 6px; font-size: 13px; }
+  .eb-theme { width: 36px; }
+  .eb-theme svg { width: 20px; height: 20px; }
+}
+
+/* The footer: the sticker credit and the way to every credit, its rule as wide as the content. */
+.eb-footer { padding: 0 16px 32px; }
+@media (min-width: 720px) { .eb-footer { padding: 0 32px 40px; } }
+.eb-footer-in {
+  max-width: 1088px; margin: 0 auto; padding-top: 20px; border-top: 1px solid var(--hairline);
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px;
 }
-@media (min-width: 720px) { .eb-footer { padding: 20px 32px 40px; } }
 .eb-footer p { margin: 0; }
 .eb-footer a { color: inherit; text-underline-offset: 3px; }
 
-/* The theme switch in the footer. */
-.eb-footer .eb-theme { margin-left: auto; min-height: 36px; padding: 0 0 0 8px; font-size: 13px; }
-
 @media (prefers-reduced-motion: reduce) {
-  .eb-btn, .eb-dock-tab, .eb-dock-dir svg, .eb-search-field { transition: none; }
-  .eb-suggest { animation: none; }
+  .eb-btn, .eb-dock-tab, .eb-dock-dir svg, .eb-dock-tabs, .eb-dock-tools, .eb-nav-link { transition: none; }
+  .eb-find, .eb-results { animation: none; }
 }
+.eb-stagewrap { position: relative; }
+.eb-view .eb-stagewrap { margin-top: 8px; }
+
+/* The head of the birder's own collage: the title, then "Add birds" and Share, in one row. */
+.eb-collagehead { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; }
+.eb-collagehead-title { margin: 0; min-width: 0; font-size: clamp(24px, 4vw, 40px); line-height: 1.05; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.eb-collagehead-actions { display: flex; gap: 8px; flex: none; }
+@media (max-width: 479px) { .eb-collagehead-actions .eb-btn-quiet { padding: 0; width: 44px; } }
+.eb-unmatched { margin: -4px 0 0; }
+.eb-unmatched a { color: var(--accent); text-underline-offset: 3px; }
+
+/* "Removed … · Undo", for a few seconds after a bird is removed. */
+.eb-toast-slot { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 60; translate: -50% 0; width: max-content; max-width: calc(100vw - 32px); }
+.eb-toast {
+  display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 16px; font-size: 15px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+  animation: eb-find-in .15s cubic-bezier(.16, 1, .3, 1) both;
+}
+.eb-toast .eb-textbtn { min-height: 40px; padding: 0 8px; color: var(--accent); font-weight: 600; text-decoration-color: currentColor; }
+.eb-filter-note { font-size: 13px; }
+/* The shared view's closing "Make yours". */
+.eb-endcta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding-top: 8px; }
+.eb-results-sep { padding: 12px 12px 4px; border-top: 1px solid var(--hairline); margin-top: 4px; }
+.eb-results-sep:first-child { border-top: 0; margin-top: 0; padding-top: 8px; }
+
+/* Settings rows (Counting rules): one contained group, rows split by hairlines; label and a muted line on the left,
+   the dock's switch at the row's end; the whole row is the switch. */
+.eb-setgroup {
+  list-style: none; margin: 0; padding: 0; max-width: 720px; background: var(--paper); border: 1px solid var(--hairline);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); overflow: hidden;
+}
+.eb-setrow + .eb-setrow { border-top: 1px solid var(--hairline); }
+.eb-setrow-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; min-height: 64px;
+  padding: 12px 16px; border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: background-color .15s cubic-bezier(.16, 1, .3, 1);
+}
+.eb-setrow-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 0; }
+.eb-setrow-btn:disabled { cursor: default; }
+.eb-setrow-btn:disabled .eb-setrow-label, .eb-setrow-btn:disabled .eb-track { opacity: .5; }
+.eb-setrow-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.eb-setrow-label { font-size: 16px; font-weight: 500; }
+.eb-setrow-note { font-size: 14px; line-height: 1.45; color: var(--muted); }
+.eb-setrow-btn[aria-checked="true"] .eb-track { background: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.eb-setrow-btn[aria-checked="true"] .eb-knob { transform: translateX(14px); background: var(--paper); }
+@media (hover: hover) and (pointer: fine) { .eb-setrow-btn:not(:disabled):hover { background: var(--surface); } }
+@media (prefers-reduced-motion: reduce) { .eb-setrow-btn { transition: none; } }

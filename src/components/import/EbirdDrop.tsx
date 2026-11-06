@@ -1,5 +1,4 @@
 'use client'
-import { FileArrowUp } from '@phosphor-icons/react'
 import { useId, useRef, useState, type DragEvent } from 'react'
 import type { EbirdJob } from '@/components/app/use-import-jobs'
 
@@ -13,7 +12,7 @@ type Props = {
   loaded: { full: number; quick: number; fullCounty?: boolean }
 }
 
-/** What each eBird file brings, said plainly: the quick download stops at the province, the full export adds the county. */
+/** What each eBird file brings, said plainly: the life list download stops at the province, the full export adds the county. */
 function detailNote({ full, quick, fullCounty = true }: Props['loaded']): string | null {
   // A list saved before the two eBird slots may hold the life list download in the full export's place.
   if (full && !fullCounty) return 'No regions (counties) in your eBird file yet: import “Download My Data” again to add them.'
@@ -23,7 +22,11 @@ function detailNote({ full, quick, fullCounty = true }: Props['loaded']): string
   return null
 }
 
-/** eBird file: a drop zone plus a file picker. The import itself runs above the routes, so it survives navigation. */
+/**
+ * eBird file: one "Choose your eBird file" button, and the whole card takes a dropped file (it highlights while a file
+ * is dragged over it). The two ways to get the file sit behind a disclosure. The import itself runs above the routes,
+ * so it survives navigation.
+ */
 export function EbirdDrop({ job, onFile, disabled, loaded }: Props) {
   const id = useId()
   const [over, setOver] = useState(false)
@@ -44,19 +47,17 @@ export function EbirdDrop({ job, onFile, disabled, loaded }: Props) {
   const note = detailNote(loaded)
 
   return (
-    <div className="eb-way-body">
-      <div
-        className="eb-drop"
-        data-testid="ebird-drop"
-        data-over={over || undefined}
-        data-busy={busy || undefined}
-        onDragOver={(e) => { e.preventDefault(); setOver(true) }}
-        onDragLeave={() => setOver(false)}
-        onDrop={onDrop}
-      >
-        <FileArrowUp aria-hidden="true" focusable="false" className="eb-drop-icon" weight="light" />
-        <p className="eb-drop-text">Drop your eBird file here</p>
-        <label htmlFor={id} className="eb-btn eb-btn-quiet" data-disabled={disabled || busy || undefined}>Choose a file</label>
+    <div
+      className="eb-way-body eb-drop"
+      data-testid="ebird-drop"
+      data-over={over || undefined}
+      data-busy={busy || undefined}
+      onDragOver={(e) => { e.preventDefault(); setOver(true) }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(false) }}
+      onDrop={onDrop}
+    >
+      <div className="eb-way-control">
+        <label htmlFor={id} className="eb-btn eb-btn-quiet eb-way-btn" data-disabled={disabled || busy || undefined}>Choose your eBird file</label>
         <input
           ref={input}
           id={id}
@@ -72,10 +73,14 @@ export function EbirdDrop({ job, onFile, disabled, loaded }: Props) {
         {busy ? (rows ? `Reading your file… ${rows.toLocaleString('en-US')} rows` : 'Reading your file…') : ''}
       </p>
       {error && <p className="eb-error" role="alert">{error}</p>}
-      <ol className="eb-howto">
-        <li><span className="eb-mono">Quick (state or province only):</span> My eBird → click your World life list total → Download</li>
-        <li><span className="eb-mono">Full (adds the region, or county, and photo marks):</span> eBird → Download My Data (eBird emails it)</li>
-      </ol>
+      <p className="eb-note eb-drop-hint">Or drop the file anywhere on this card.</p>
+      <details className="eb-howto">
+        <summary>How to get your eBird file</summary>
+        <ul>
+          <li><strong>Life list download</strong> (instant): My eBird, then your World life list total, then Download. Places go down to the state or province.</li>
+          <li><strong>Full data export</strong> (eBird emails it): eBird, then Download My Data. It adds counties and photo marks.</li>
+        </ul>
+      </details>
       {note && <p className="eb-note" data-testid="ebird-detail">{note}</p>}
       {(loaded.full > 0 || loaded.quick > 0) && <p className="eb-note">A new file of the same kind replaces the last one. Your edits stay.</p>}
     </div>

@@ -2,13 +2,21 @@
 .eb-ways { display: grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 880px) { .eb-ways { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .eb-way {
-  display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 18px 16px 16px;
+  display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 18px 16px 16px;
   border: 1px solid var(--hairline);
   border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: border-color .15s cubic-bezier(.25, .8, .25, 1), background-color .15s cubic-bezier(.25, .8, .25, 1);
 }
 .eb-way-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 20px; line-height: 1.2; }
 .eb-way-title svg { width: 22px; height: 22px; flex: none; color: var(--accent); }
-.eb-way-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eb-way-blurb { margin: 0 0 2px; font-size: 15px; line-height: 1.45; }
+.eb-way-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; }
+/* Every card's control row is one 44px row: a button, a field and a button, or the search field. */
+.eb-way-control { display: flex; gap: 8px; min-height: 44px; }
+.eb-way-btn { flex: 1; }
+.eb-way:has(.eb-drop[data-over]) { border-color: var(--accent); background: var(--surface); }
+.eb-drop:has(input:focus-visible) label { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (pointer: coarse) { .eb-drop-hint { display: none; } }
 
 .eb-label {
   font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em;
@@ -20,28 +28,24 @@
   font: inherit; font-size: 16px; /* 16px keeps iOS from zooming in */
   border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
-.eb-input::placeholder { color: var(--muted); opacity: .8; }
+.eb-input::placeholder { color: var(--muted); opacity: 1; }
+.eb-input[type="search"]::-webkit-search-cancel-button { display: none; }
 .eb-input[aria-invalid] { border-color: var(--accent); }
-.eb-row > .eb-input { flex: 1 1 160px; }
+.eb-row > .eb-input { flex: 1 1 140px; }
+.eb-way-control > .eb-input { flex: 1 1 auto; }
+.eb-way-control > .eb-btn { flex: none; }
 .eb-input-wrap { position: relative; }
 .eb-input-icon { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
 .eb-input-search { padding-left: 38px; }
 
-.eb-drop {
-  display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 16px; text-align: center;
-  border: 1.5px dashed var(--line); background: var(--surface);
-  border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  transition: border-color .15s cubic-bezier(.25, .8, .25, 1);
-}
-.eb-drop[data-over] { border-color: var(--accent); }
-.eb-drop-icon { width: 32px; height: 32px; color: var(--muted); }
-.eb-drop-text { margin: 0; font-weight: 500; }
-.eb-drop .eb-btn-quiet { background: var(--paper); }
-.eb-drop:has(input:focus-visible) label { outline: 2px solid var(--accent); outline-offset: 2px; }
 .eb-status { margin: 0; min-height: 1.5em; font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; color: var(--muted); font-variant-numeric: tabular-nums; }
 .eb-status:empty { min-height: 0; }
-.eb-howto { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.45; }
-.eb-howto .eb-mono { display: block; margin-bottom: 1px; }
+.eb-howto { font-size: 14px; line-height: 1.45; }
+.eb-howto summary {
+  display: inline-flex; align-items: center; min-height: 32px; cursor: pointer; color: var(--ink);
+  text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px;
+}
+.eb-howto ul { margin: 6px 0 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 6px; }
 
 .eb-search { display: flex; flex-direction: column; gap: 8px; }
 .eb-hits { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border-top: 1px solid var(--hairline); }
@@ -55,7 +59,7 @@
 .eb-tick { display: flex; flex-direction: column; gap: 8px; }
 .eb-tick-bird { margin: 0 0 4px; }
 
-.eb-privacy { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; color: var(--muted); }
+.eb-privacy { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); max-width: 62ch; }
 .eb-privacy svg { width: 16px; height: 16px; flex: none; }
 
 .eb-match { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border-top: 1px solid var(--hairline); max-width: 760px; }
@@ -68,4 +72,62 @@
 .eb-match-com { font-weight: 500; }
 .eb-match-sci { color: var(--muted); font-size: 14px; }
 .eb-match-acts { display: flex; flex-wrap: wrap; gap: 6px; }
-@media (prefers-reduced-motion: reduce) { .eb-drop { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .eb-way { transition: none; } }
+.eb-notcounted p { margin: 0; }
+.eb-notcounted summary { cursor: pointer; min-height: 32px; display: inline-flex; align-items: center; color: var(--ink); text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px; }
+.eb-notcounted ul { margin: 4px 0 0; padding-left: 18px; }
+
+/* Fields: text inputs and selects share one height, padding, radius, border and type. A select draws its own chevron
+   (in Muted, so it follows the theme) inside an .eb-select wrapper. */
+.eb-input { height: 44px; line-height: 1.3; }
+select.eb-input { appearance: none; -webkit-appearance: none; padding-right: 38px; cursor: pointer; text-overflow: ellipsis; }
+.eb-select { position: relative; display: block; min-width: 0; }
+.eb-select::after {
+  content: ''; position: absolute; right: 14px; top: 50%; width: 12px; height: 12px; translate: 0 -50%; pointer-events: none;
+  background: var(--muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* Tick by hand, page-wide: search and group pickers, the windowed list, and the bar that adds the ticked birds. */
+.eb-tick { display: flex; flex-direction: column; gap: 10px; padding: 18px 16px 0; border: 1px solid var(--hairline); border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
+.eb-tick-tools { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 720px) { .eb-tick-tools { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); } }
+.eb-tick-count { margin: 0; }
+.eb-ticklist {
+  position: relative; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+  contain: strict; outline: none;
+}
+.eb-ticklist:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+.eb-tickrow {
+  position: absolute; left: 0; right: 0; height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 8px;
+  border-bottom: 1px solid var(--hairline); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.eb-tickrow[data-active] { background: var(--surface); }
+.eb-tickrow[aria-disabled] { cursor: default; color: var(--muted); }
+.eb-tickbox {
+  display: grid; place-items: center; width: 22px; height: 22px; flex: none; border: 1.5px solid var(--line); border-radius: 6px; color: var(--paper);
+}
+.eb-tickrow[aria-selected="true"] .eb-tickbox { background: var(--accent); border-color: var(--accent); }
+.eb-tickrow[aria-disabled] .eb-tickbox { background: var(--line); border-color: var(--line); }
+.eb-tickbox svg { width: 14px; height: 14px; }
+.eb-tickthumb { display: grid; place-items: center; width: 48px; height: 36px; flex: none; }
+.eb-tickthumb > span { display: block; }
+.eb-tickthumb img, .eb-tickthumb .eb-sil { display: block; width: 100%; height: 100%; object-fit: contain; }
+.eb-tickname { display: flex; flex-direction: column; min-width: 0; font-size: 15px; font-weight: 500; line-height: 1.25; }
+.eb-tickname > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eb-tickname i { font-size: 13px; color: var(--muted); }
+.eb-tickon { margin-left: auto; white-space: nowrap; }
+@media (hover: hover) and (pointer: fine) { .eb-tickrow:not([aria-disabled]):hover { background: var(--surface); } }
+.eb-tickbar {
+  position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; margin: 0 -16px; padding: 12px 16px 14px;
+  background: var(--paper); border-top: 1px solid var(--hairline);
+  border-radius: 0 0 calc(20px * var(--one-if-corner-shape-supported, .566)) calc(20px * var(--one-if-corner-shape-supported, .566));
+}
+.eb-tickbar-n { margin: 0; font-weight: 600; }
+.eb-tickbar-fields { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 720px) { .eb-tickbar-fields { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto; } }
+@media (max-width: 719px) {
+  .eb-tickbar-fields { grid-template-columns: 1fr 1fr; }
+  .eb-tickbar-fields > input, .eb-tickbar-fields > .eb-btn { grid-column: 1 / -1; }
+}

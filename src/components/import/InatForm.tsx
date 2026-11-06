@@ -24,8 +24,8 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces }: Props) 
 
   return (
     <form className="eb-way-body" onSubmit={submit}>
-      <label htmlFor={id} className="eb-label">iNaturalist username</label>
-      <div className="eb-row">
+      <label htmlFor={id} className="eb-sr">iNaturalist username</label>
+      <div className="eb-way-control eb-row">
         <input
           id={id}
           className="eb-input"
@@ -35,7 +35,7 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces }: Props) 
           autoCorrect="off"
           spellCheck={false}
           autoComplete="username"
-          placeholder="your_username"
+          placeholder="iNaturalist username"
           value={busyFor && !user ? busyFor : user}
           disabled={disabled}
           onChange={(e) => setUser(e.target.value)}
@@ -50,7 +50,7 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces }: Props) 
         {busyFor ? (progress ? `Fetched ${progress.fetched.toLocaleString('en-US')} of ${progress.total.toLocaleString('en-US')}` : `Looking up “${busyFor}”…`) : note ?? ''}
       </p>
       {error && <p className="eb-error" role="alert">{error}</p>}
-      <p className="eb-note">Only public, wild bird observations identified to species. iNaturalist sees the username; your list stays here.</p>
+      <p className="eb-note">iNaturalist sees the username; your list stays here.</p>
       {replaces && <p className="eb-note">Fetching again replaces your iNaturalist birds. Your edits stay.</p>}
     </form>
   )

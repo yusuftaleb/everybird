@@ -73,7 +73,14 @@
 
 /* Country map. */
 .eb-map { display: flex; flex-direction: column; gap: 4px; }
-.eb-map-svg { width: 100%; height: auto; display: block; }
+.eb-map-svg { width: 100%; height: auto; max-height: 280px; display: block; }
+/* Places from 880px: the country chips on the left, the map beside them (the site's PlacesMap), so the collage stays
+   in view when the tab opens. */
+@media (min-width: 880px) {
+  .eb-panel[data-map] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; column-gap: 24px; }
+  .eb-panel[data-map] > .eb-map { order: 2; }
+  .eb-panel[data-map] > .eb-levels { order: 1; }
+}
 .eb-map-land, .eb-map-lit, .eb-map-hit { fill: none; stroke-linecap: round; stroke-width: 1; }
 .eb-map-land { stroke: var(--hairline); }
 .eb-map-lit { stroke: var(--accent); transition: opacity .2s linear; }

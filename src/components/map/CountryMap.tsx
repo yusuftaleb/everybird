@@ -4,8 +4,8 @@ import type { CountryDots } from '@/lib/species/types'
 import '../filters/filters.css'
 
 /** Opacity of a lit country by step 0..3 (quartile of lifer counts, lowest to highest). */
-export const LIT_OPACITY = [0.35, 0.55, 0.75, 1] as const
-const DIMMED = 0.25
+export const LIT_OPACITY = [0.6, 0.73, 0.87, 1] as const
+const DIMMED = 0.35
 
 /**
  * Quartile step (0..3) for each count, in input order. Counts are ranked from the top: with n lit countries,
@@ -110,10 +110,11 @@ export function CountryMap({ dots, counts, selected, onSelect, countryName = (c)
       <p className="eb-map-label eb-mono" aria-live="polite">
         {shown && shownN ? `${countryName(shown)} · ${species(shownN)}` : ' '}
       </p>
+      {/* For screen readers; keyboard users choose with the country chips (a hidden focusable button would lose the ring). */}
       <ul className="eb-sr" aria-label="Countries with birds">
         {lit.map(({ iso, n }) => (
           <li key={iso}>
-            <button type="button" aria-pressed={selected === iso} onClick={() => toggle(iso)}>
+            <button type="button" tabIndex={-1} aria-pressed={selected === iso} onClick={() => toggle(iso)}>
               {`${countryName(iso)}, ${species(n)}`}
             </button>
           </li>

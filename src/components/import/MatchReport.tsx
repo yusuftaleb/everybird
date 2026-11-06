@@ -17,18 +17,17 @@ const where = (u: Unmatched) =>
 /**
  * Rows that couldn't be matched to an eBird species (never dropped silently): each with a one-tap fix when there
  * is a likely species, and a search to fix it by hand. Fixes go to edits.fixes (unmatchedKey, "slot:row" -> code).
- * Non-species rows (sp., slashes, hybrids, domestics) are summarised from the imports' skipped counts.
+ * Non-species rows (sp., slashes, hybrids, domestics) are summarised in each source's card (NotCounted.tsx).
  */
 export const MatchReport = memo(function MatchReport({ open, saved, species, dispatch }: Props) {
   const rows = open.filter((u) => u.reason === 'no-match')
-  const notSpecies =
-    Object.values(saved.skipped ?? {}).reduce((a, b) => a + (b ?? 0), 0) + open.filter((u) => u.reason === 'not-species').length
-  if (!rows.length && !notSpecies) return null
+  // Entries that aren't species (sp., slashes, hybrids) are summarised in their own source's card (NotCounted).
+  if (!rows.length) return null
   const fix = (u: Unmatched, code: string) =>
     dispatch({ type: 'edit', edits: { ...saved.edits, fixes: { ...saved.edits.fixes, [unmatchedKey(u)]: code } } })
   return (
-    <section className="eb-block" aria-labelledby={rows.length ? 'eb-match-h' : undefined} aria-label={rows.length ? undefined : 'Match report'}>
-      {rows.length > 0 && (
+    <section id="match" className="eb-block" aria-labelledby="eb-match-h">
+      {(
         <>
           <h2 id="eb-match-h" className="eb-h2">{rows.length.toLocaleString('en-US')} {rows.length === 1 ? "row couldn't" : "rows couldn't"} be matched</h2>
           <p className="eb-note">These names aren&apos;t in this year&apos;s eBird taxonomy, so they aren&apos;t counted yet. Pick the right bird for each.</p>
@@ -36,9 +35,6 @@ export const MatchReport = memo(function MatchReport({ open, saved, species, dis
             {rows.map((u) => <MatchRow key={unmatchedKey(u)} u={u} species={species} onFix={(code) => fix(u, code)} />)}
           </ul>
         </>
-      )}
-      {notSpecies > 0 && (
-        <p className="eb-note">{notSpecies.toLocaleString('en-US')} sp., slash or hybrid {notSpecies === 1 ? "entry doesn't" : "entries don't"} count</p>
       )}
     </section>
   )

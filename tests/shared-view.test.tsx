@@ -43,7 +43,7 @@ describe('shared view', () => {
     vi.stubGlobal('indexedDB', { open })
     render(<SharedView payload={{ v: 1, birds: [{ code: 'a' }, { code: 'b' }] }} />)
     await waitFor(() => expect(screen.getByTestId('collage-stats').textContent).toContain('2 species'))
-    expect(screen.getByTestId('share-limited').textContent).toBe("Place and date filters aren't available for this link.")
+    expect(screen.getByTestId('share-limited').textContent).toBe('This link carries no places or dates, so those filters are left out.')
     expect(screen.queryByTestId('filter-tab-places')).toBeNull()
     expect(screen.queryByTestId('filter-tab-time')).toBeNull()
     expect(screen.queryByRole('tablist')).toBeNull() // birds only: no tabs, just LifeList's orders row

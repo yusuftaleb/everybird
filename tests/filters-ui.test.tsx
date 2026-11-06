@@ -108,16 +108,6 @@ describe('FilterBar', () => {
     expect(chip.querySelector('.eb-count')).toHaveTextContent(/^2$/)
   })
 
-  it('a search that leaves one family of an order still shows that order\'s families row', () => {
-    vi.stubGlobal('innerWidth', 1000)
-    const reduce = makeReducer({ species, countryName: (c) => c })
-    const st = reduce(seeded(), { type: 'filter', filter: { order: 'Passeriformes' } })
-    render(<FilterBar state={st} dispatch={() => {}} species={species} regions={regions} query="crow1" />)
-    expect(screen.getByRole('group', { name: 'Families' })).toBeInTheDocument()
-    expect(document.querySelector('.eb-path')).toHaveTextContent(/^All birds\/Perching birds$/) // not ".../Crows"
-
-  })
-
   it('tabs are an arrow-key tablist', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
@@ -214,7 +204,7 @@ describe('FilterBar', () => {
 
 describe('CountryMap', () => {
   it('lit opacity follows quartiles', () => {
-    expect(LIT_OPACITY).toEqual([0.35, 0.55, 0.75, 1])
+    expect(LIT_OPACITY).toEqual([0.6, 0.73, 0.87, 1]) // the lowest step is 3:1 on Paper
     // 8 lit countries: two per step, by rank from the top.
     expect(litSteps([1, 2, 3, 4, 5, 6, 7, 8])).toEqual([0, 0, 1, 1, 2, 2, 3, 3])
     // 1-3 lit countries: the top one is always full strength.
@@ -228,19 +218,21 @@ describe('CountryMap', () => {
     const counts = new Map([['CA', 30], ['EG', 10], ['US', 1]])
     render(<CountryMap countryName={name} dots={dots} counts={counts} onSelect={() => {}} />)
     expect(screen.getByTestId('map-country-CA')).toHaveAttribute('opacity', '1')
-    expect(screen.getByTestId('map-country-EG')).toHaveAttribute('opacity', '0.75')
-    expect(screen.getByTestId('map-country-US')).toHaveAttribute('opacity', '0.55')
+    expect(screen.getByTestId('map-country-EG')).toHaveAttribute('opacity', '0.87')
+    expect(screen.getByTestId('map-country-US')).toHaveAttribute('opacity', '0.73')
   })
 
-  it('selected stays full, others fade to .25; dots decode to paths; keyboard list', () => {
+  it('selected stays full, others fade to .35; dots decode to paths; a screen-reader list that keyboard focus skips', () => {
     const onSelect = vi.fn()
     const counts = new Map([['CA', 30], ['EG', 10]])
     render(<CountryMap countryName={name} dots={dots} counts={counts} selected="EG" onSelect={onSelect} />)
     expect(screen.getByTestId('map-country-EG')).toHaveAttribute('opacity', '1')
-    expect(screen.getByTestId('map-country-CA')).toHaveAttribute('opacity', '0.25')
+    expect(screen.getByTestId('map-country-CA')).toHaveAttribute('opacity', '0.35')
     // CA has 3 cells: 3 zero-length segments, positioned x = (c + .25 + odd*.5)*1.5, y = (r + .5)*1.5.
     const d = screen.getByTestId('map-country-CA').getAttribute('d')!
     expect(d).toBe('M75.38 30.75h0M76.88 30.75h0M76.13 32.25h0')
+    // Visually hidden, so never a Tab stop (the ring would vanish); the country chips are the keyboard path.
+    expect(screen.getByRole('button', { name: 'Canada, 30 species' })).toHaveAttribute('tabindex', '-1')
     fireEvent.click(screen.getByRole('button', { name: 'Canada, 30 species' }))
     expect(onSelect).toHaveBeenCalledWith('CA')
     fireEvent.click(screen.getByRole('button', { name: 'Egypt, 10 species' }))

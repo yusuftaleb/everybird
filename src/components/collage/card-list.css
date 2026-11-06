@@ -63,7 +63,7 @@
 /* List view: LifeList's rows. thumb | name | mass | (spacer) | place | date, the date rightmost. Each row is its own
    grid, so no track sizes to its content (rows stay aligned). */
 .eb-list { list-style: none; margin: 8px 0 0; padding: 0; border-top: 1px solid var(--hairline); font-family: var(--font-body); animation: eb-card-in .24s cubic-bezier(.16, 1, .3, 1) both; }
-.eb-row {
+.eb-lrow {
   border-bottom: 1px solid var(--hairline);
   content-visibility: auto;
   contain-intrinsic-size: auto 61px;
@@ -104,3 +104,6 @@
 @media (prefers-reduced-motion: reduce) {
   .eb-card, .eb-card[data-variant="sheet"] { animation: eb-card-in .15s linear both; }
 }
+
+/* The hover tooltip: the card's look, placed in the stage wrapper, never in the way of the pointer. */
+.eb-tip { position: absolute; z-index: 30; pointer-events: none; max-width: min(280px, calc(100% - 8px)); }
