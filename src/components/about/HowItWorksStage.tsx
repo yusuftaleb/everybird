@@ -66,7 +66,7 @@ const LATEST = { code: 'triher', name: 'Tricolored Heron' }
 // share dialog shows it, over a scrim.
 type Geo = { win: { x: number; y: number; w: number; h: number }; col: number; f: number; share: { x: number; y: number } }
 const GEO: Record<Layout, Geo> = {
-  wide: { win: { x: 156, y: 28, w: 660, h: 470 }, col: 524, f: 1, share: { x: 62, y: 228 } },
+  wide: { win: { x: 156, y: 28, w: 660, h: 470 }, col: 524, f: 1, share: { x: 62, y: 217 } },
   compact: { win: { x: 16, y: 16, w: 400, h: 420 }, col: 310, f: 0.6, share: { x: 89, y: 104 } },
 }
 
@@ -205,7 +205,7 @@ function makeScript(drag: Drag) {
     a.mark('herons')
     await a.set({ herons: true, count: HERONS })
     await a.wait(1000)
-    await a.move({ at: 'all-birds', x: 0.5, y: 0.62 })
+    await a.move({ at: 'all-birds', x: 0.78, y: 1.05 })
     await a.click()
     a.mark('all')
     await a.set({ herons: false, count: TOTAL })

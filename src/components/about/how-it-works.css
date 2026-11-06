@@ -88,7 +88,7 @@
 .ebd .ebd-btn-quiet[data-hover] { opacity: 1; border-color: var(--line); }
 .ebd .ebd-btn-blank { width: 96px; }
 /* Whole-pixel widths, so their glyphs sit on whole pixels as they press */
-.ebd .ebd-btn-share { width: 90px; }
+.ebd .ebd-btn-share { width: 90px; will-change: transform; } /* pressed, it lands on its own layer: no sub-pixel hop */
 .ebd .ebd-btn-see { width: 152px; }
 
 /* ---- Settings: Your sources ---- */
@@ -101,7 +101,7 @@
 }
 .ebd .ebd-way[data-over], .ebd .ebd-way[data-busy] { border-color: var(--accent); background: var(--surface); }
 .ebd .ebd-way-title { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1.2; }
-.ebd .ebd-way-title svg { width: 20px; height: 20px; flex: none; color: var(--accent); }
+.ebd .ebd-way-title svg { width: 18px; height: 18px; flex: none; color: var(--accent); }
 .ebd .ebd-lines { display: flex; flex-direction: column; gap: 7px; padding: 2px 0; }
 .ebd .ebd-way .ebd-btn { width: 100%; height: 38px; }
 /* The status line keeps its height whether or not it has words (the product's .eb-status is always there); the words
@@ -128,12 +128,12 @@
   display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 14px;
   border: 1px solid var(--accent); background: var(--paper);
   border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  opacity: 0; transform: translateY(-10px);
+  opacity: 0; transform: translateY(-10px); will-change: transform;
   transition: opacity .2s cubic-bezier(0, .8, .5, 1), transform .42s cubic-bezier(.4, 0, .2, 1);
 }
 .ebd .ebd-made[data-show] { opacity: 1; transform: none; transition: opacity .24s ease-out .15s, transform .46s cubic-bezier(.4, 0, .2, 1); }
 .ebd .ss-stage[data-layout="compact"] .ebd-made { top: 16px; }
-.ebd .ebd-below { display: flex; flex-direction: column; gap: 10px; transition: transform .42s cubic-bezier(.4, 0, .2, 1) .05s; }
+.ebd .ebd-below { display: flex; flex-direction: column; gap: 10px; will-change: transform; transition: transform .42s cubic-bezier(.4, 0, .2, 1) .05s; }
 .ebd .ebd-below[data-pushed] { transform: translateY(70px); transition: transform .46s cubic-bezier(.4, 0, .2, 1); }
 .ebd .ebd-made-text { font-size: 14px; line-height: 1.35; }
 
@@ -147,13 +147,13 @@
    (the product's eb-rise: opacity and a 4px drop). */
 .ebd .ebd-filter { position: relative; height: 30px; }
 .ebd .ebd-chips, .ebd .ebd-path { position: absolute; left: 0; top: 0; height: 30px; display: flex; align-items: center; white-space: nowrap; }
-.ebd .ebd-chips { gap: 6px; transition: opacity .12s ease; }
-.ebd .ebd-filter[data-chosen] .ebd-chips { opacity: 0; transition-duration: .1s; }
+.ebd .ebd-chips { gap: 6px; transition: opacity .2s ease .12s; }
+.ebd .ebd-filter[data-chosen] .ebd-chips { opacity: 0; transition: opacity .1s ease; }
 .ebd .ebd-path {
-  gap: 8px; font-size: 14px; opacity: 0; transform: translateY(-4px);
-  transition: opacity .12s ease, transform .12s ease;
+  gap: 8px; font-size: 14px; opacity: 0; transform: translateY(-4px); will-change: transform;
+  transition: opacity .1s ease, transform .1s ease;
 }
-.ebd .ebd-filter[data-chosen] .ebd-path { opacity: 1; transform: none; transition: opacity .24s cubic-bezier(.16, 1, .3, 1) .06s, transform .24s cubic-bezier(.16, 1, .3, 1) .06s; }
+.ebd .ebd-filter[data-chosen] .ebd-path { opacity: 1; transform: none; transition: opacity .24s cubic-bezier(.16, 1, .3, 1) .1s, transform .24s cubic-bezier(.16, 1, .3, 1) .1s; }
 .ebd .ss-stage[data-layout="compact"] .ebd-path { font-size: 12px; gap: 6px; }
 .ebd .ebd-path-link { opacity: .66; transition: opacity .15s ease; }
 .ebd .ebd-path-link[data-hover] { opacity: 1; }
@@ -228,20 +228,20 @@
 .ebd .ebd-share-bird img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .ebd .ebd-share-mid {
   position: absolute; left: 50%; top: 50%; translate: -50% -50%;
-  display: flex; flex-direction: column; align-items: center; gap: 3px; white-space: nowrap;
+  display: flex; flex-direction: column; align-items: center; gap: 5px; white-space: nowrap;
 }
 .ebd .ebd-share-num { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: .75; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .ebd .ebd-share-label { font-family: var(--font-mono); font-size: 5.5px; line-height: 1; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.ebd .ebd-share-latest { top: 171px; display: flex; align-items: center; gap: 5px; }
+.ebd .ebd-share-latest { top: 169px; display: flex; align-items: center; gap: 8px; }
 .ebd .ebd-share-latest-icon { display: block; width: 16px; height: 16px; }
 .ebd .ebd-share-latest-icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .ebd .ebd-share-latest-text { display: flex; flex-direction: column; gap: 3px; font-size: 8px; font-weight: 500; line-height: 1; }
 .ebd .ebd-share-foot {
-  top: 193px; right: 11px; padding-top: 5px; border-top: 1px solid var(--hairline);
-  display: flex; align-items: center; gap: 5px;
+  top: 189px; right: 11px; padding-top: 5px; border-top: 1px solid var(--hairline);
+  display: flex; align-items: center; gap: 7px;
 }
 .ebd .ebd-share-mark { font-family: var(--font-display); font-weight: 700; font-size: 8.5px; line-height: 1; }
-.ebd .ebd-share-credit { top: 209px; font-family: var(--font-mono); font-size: 6px; line-height: 1; letter-spacing: .02em; color: var(--muted); white-space: nowrap; }
+.ebd .ebd-share-credit { top: 210px; font-family: var(--font-mono); font-size: 6px; line-height: 1; letter-spacing: .02em; color: var(--muted); white-space: nowrap; }
 
 /* ---- The desktop: the eBird export, and its drag image ---- */
 .ebd .ebd-desk {
