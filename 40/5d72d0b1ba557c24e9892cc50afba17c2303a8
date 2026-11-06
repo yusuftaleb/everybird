@@ -1,0 +1,22 @@
+e2e/og.spec.ts
+  s_ab125876fe9ad2::t_0e7173a69b2975 34-39,44-51
+e2e/share.spec.ts
+  s_ab125876fe9ad2::t_0e7173a69b2975 191-192
+  s_ab125876fe9ad2::t_8cc0d47bee8f1c 193-196
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "405d72d0b1ba557c24e9892cc50afba17c2303a8",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
