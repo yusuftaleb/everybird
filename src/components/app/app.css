@@ -88,9 +88,37 @@
   position: relative; display: flex; align-items: center; gap: 4px; padding: 4px;
   border: 1px solid var(--hairline); border-radius: 16px; background: var(--paper);
 }
-.eb-dock-tabs, .eb-dock-tools { display: flex; align-items: center; gap: 4px; transition: opacity .15s var(--eb-ease); }
+/* Four groups: view tabs | True size, Scientific | Places, Time | search. 4px inside a group (LifeList's dock gap),
+   12px between groups (a hairline would be one line too many in a bar this quiet). */
+.eb-dock-tabs, .eb-dock-tools, .eb-dock-filters, .eb-dock-end { display: flex; align-items: center; gap: 4px; transition: opacity .15s var(--eb-ease); }
 .eb-dock-tools { margin-left: auto; }
-.eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools { opacity: 0; pointer-events: none; }
+.eb-dock-filters, .eb-dock-end { margin-left: 8px; } /* + the dock's 4px gap = 12px between groups */
+.eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools,
+.eb-dock[data-finding] .eb-dock-filters, .eb-dock[data-finding] .eb-dock-end { opacity: 0; pointer-events: none; }
+/* Places and Time: a Phosphor glyph, the label (and what it filters, " · 2"), a caret. Open: the pressed tab's Surface;
+   filtering: Accent text, full opacity, 600 (selection, as a pressed tab). */
+.eb-dock-drop { gap: 8px; padding: 0 10px 0 12px; }
+.eb-dock-drop svg { width: 18px; height: 18px; }
+.eb-dock-drop .eb-drop-caret { width: 14px; height: 14px; transition: transform .2s var(--eb-ease); }
+.eb-dock-drop[aria-expanded="true"] { opacity: 1; background: var(--surface); }
+.eb-dock-drop[aria-expanded="true"] .eb-drop-caret { transform: rotate(180deg); }
+.eb-dock-drop[data-active] { opacity: 1; color: var(--accent); font-weight: 600; }
+.eb-drop-sum { font-variant-numeric: tabular-nums; }
+/* Under 820px of bar (a tablet's or a phone's) the dropdowns take a second row under a Hairline, rather than squeeze
+   the first; the search keeps row one. Under 600px the two buttons split the row evenly and drop their carets. */
+@container (max-width: 819px) {
+  .eb-dock { flex-wrap: wrap; row-gap: 4px; }
+  .eb-dock-filters {
+    order: 1; flex: 1 0 100%; margin: 0 -4px -4px; padding: 4px; gap: 4px; border-top: 1px solid var(--hairline);
+  }
+  .eb-drop-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .eb-find { bottom: auto; height: 44px; }
+  .eb-dock[data-finding] .eb-dock-filters { display: none; }
+}
+@container (max-width: 599px) {
+  .eb-dock-filters .eb-dock-drop { flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 10px; }
+  .eb-dock-filters .eb-drop-caret { display: none; } /* the row reads as two buttons; aria-expanded says the rest */
+}
 .eb-dock-tab {
   display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; min-width: 44px;
   padding: 0 16px 0 14px; border: 0; border-radius: 12px; background: transparent; color: inherit;

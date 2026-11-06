@@ -4,7 +4,7 @@
 // A trip narrower than TICK_PX (a few days in one month) is a tick at its month instead of a squashed bracket, and a
 // label that would run past the strip's end is aligned to the bracket's right edge.
 import { memo, useMemo } from 'react'
-import { flagEmoji } from '@/lib/flag'
+import { Flag } from '@/components/Flag'
 import { monthShort, tripLanes, type Month, type MonthAxis } from '@/lib/list/timeline'
 import type { Trip } from '@/lib/list/trips'
 
@@ -47,7 +47,6 @@ export const TripBrackets = memo(function TripBrackets({ trips, counts, months, 
     <div className="eb-trips" role="group" aria-label="Trips" style={{ height: rows * LANE_PX }} data-testid="time-trips">
       {lanes.map(({ trip: t, start, end, lane }) => {
         const name = countryName(t.country)
-        const flag = flagEmoji(t.country)
         const count = counts.get(t.id) ?? 0
         const x = axis.start[start] * unitPx
         const span = (axis.start[end + 1] - axis.start[start]) * unitPx - 2
@@ -72,7 +71,7 @@ export const TripBrackets = memo(function TripBrackets({ trips, counts, months, 
           >
             <span className="eb-trip-line" aria-hidden="true" />
             <span className="eb-trip-label" aria-hidden="true">
-              {flag && <span className="eb-flag">{flag}</span>}
+              <Flag iso={t.country} />
               {name}
             </span>
           </button>

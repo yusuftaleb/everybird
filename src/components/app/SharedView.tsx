@@ -1,13 +1,13 @@
 'use client'
 import { useEffect, useMemo, useReducer, useState } from 'react'
-import { loadCountryDots, loadRegions, stripBracket } from '@/lib/import/places'
+import { loadRegions, stripBracket } from '@/lib/import/places'
 import { initialState, makeReducer } from '@/lib/list/store'
 import { emptySaved } from '@/lib/list/storage'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
-import type { CountryDots, Regions } from '@/lib/species/types'
+import type { Regions } from '@/lib/species/types'
 import { payloadToRecords } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
-import type { Panel } from '@/components/filters/FilterBar'
+import type { Panel } from '@/components/filters/FilterDropdowns'
 import { CollageView } from './CollageView'
 import './app.css'
 
@@ -27,21 +27,19 @@ export function missingFilters(p: SharePayload): { places: boolean; dates: boole
  */
 export function SharedView({ payload }: { payload: SharePayload }) {
   const [data, setData] = useState<{ species: SpeciesIndex; regions: Regions } | null>(null)
-  const [dots, setDots] = useState<CountryDots | undefined>(undefined)
   const [failed, setFailed] = useState(false)
   useEffect(() => {
     let live = true
     Promise.all([loadSpecies(), loadRegions()]).then(([species, regions]) => { if (live) setData({ species, regions }) }, () => { if (live) setFailed(true) })
-    loadCountryDots().then((d) => { if (live) setDots(d) }, () => {}) // the map is optional; chips still work
     return () => { live = false }
   }, [])
 
   if (failed) return <p className="eb-error eb-notice" role="alert">Couldn&apos;t load the bird data. Check your connection and reload the page.</p>
   if (!data) return <div className="eb-stage-wait eb-sample-wait" aria-hidden="true" />
-  return <Loaded payload={payload} species={data.species} regions={data.regions} dots={dots} />
+  return <Loaded payload={payload} species={data.species} regions={data.regions} />
 }
 
-function Loaded({ payload, species, regions, dots }: { payload: SharePayload; species: SpeciesIndex; regions: Regions; dots?: CountryDots }) {
+function Loaded({ payload, species, regions }: { payload: SharePayload; species: SpeciesIndex; regions: Regions }) {
   const shown = useMemo(() => payloadToRecords(payload, regions), [payload, regions])
   const reducer = useMemo(
     () => makeReducer({ species, countryName: (iso) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso) }),
@@ -54,11 +52,11 @@ function Loaded({ payload, species, regions, dots }: { payload: SharePayload; sp
   })
   const miss = missingFilters(payload)
   const hide = miss.places && miss.dates ? NEITHER : miss.places ? NO_PLACES : miss.dates ? NO_DATES : NONE
-  // What the link leaves out is said quietly where the missing panel's toggle would be, not before the birds.
+  // What the link leaves out is said quietly under the filters, not before the birds.
   const note = miss.places || miss.dates ? (
     <p className="eb-note eb-filter-note" data-testid="share-limited">
       {miss.places && miss.dates ? 'This link carries no places or dates' : miss.places ? 'This link carries no places' : 'This link carries no dates'}, so those filters are left out.
     </p>
   ) : undefined
-  return <CollageView state={state} dispatch={dispatch} species={species} regions={shown.regions} dots={dots} label="Shared collage" hidePanels={hide} placeDepth="country" filterNote={note} />
+  return <CollageView state={state} dispatch={dispatch} species={species} regions={shown.regions} label="Shared collage" hidePanels={hide} filterNote={note} />
 }

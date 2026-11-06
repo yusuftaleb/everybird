@@ -8,7 +8,8 @@ import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage } from '@/components/collage/Collage'
 import { reduced } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
-import { FilterBar, type Panel } from '@/components/filters/FilterBar'
+import { FilterBar } from '@/components/filters/FilterBar'
+import { FilterDropdowns, type Panel, type PlacesNote } from '@/components/filters/FilterDropdowns'
 import { formatDate } from '@/lib/format'
 import { latestLifer } from '@/lib/list/build-list'
 import { applyFilter, drillTo, filterKey, filterToShow } from '@/lib/list/filters'
@@ -17,7 +18,7 @@ import { monthBins, todayMonth } from '@/lib/list/timeline'
 import type { Action, AppState } from '@/lib/list/store'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { CollageHit } from '@/lib/species/name-search'
-import type { CountryDots, Regions } from '@/lib/species/types'
+import type { Regions } from '@/lib/species/types'
 import type { StateLayout } from '@/lib/layout/layout-client'
 import { ControlsBar } from './ControlsBar'
 import { useCollageLayout } from './use-collage-layout'
@@ -31,17 +32,14 @@ type Props = {
   dispatch: (a: Action) => void
   species: SpeciesIndex
   regions: Regions
-  dots?: CountryDots
   /** Accessible name of the block. */
   label: string
   /** Extra actions in the bird card (EditBird on the birder's own collage). `close` closes the card. */
   cardActions?: (entry: ListEntry, close: () => void) => ReactNode
-  /** Filter panels (Places, Time) to leave out. */
+  /** The Places and Time dropdowns to leave out. */
   hidePanels?: readonly Panel[]
-  /** How deep Places goes (a shared link: countries only). */
-  placeDepth?: 'country' | 'county'
-  /** Every place on the list is a lifer place: the Places panel says so (the birder's own collage). */
-  liferPlaces?: boolean
+  /** Every place on the list is a lifer place: the Places dropdown says so, and how to get more (the birder's own collage). */
+  placesNote?: PlacesNote
   /** Before the stats ("Sample: Yusuf's life list"). */
   statsPrefix?: string
   /** A line under the stats (the unmatched-rows note on the birder's own collage). */
@@ -81,7 +79,7 @@ export function statsLine(all: ListEntry[], shown: ListEntry[], species: Species
   return parts.join(' · ')
 }
 
-export function CollageView({ state, dispatch, species, regions, dots, label, cardActions, hidePanels, placeDepth, liferPlaces, statsPrefix, notice, filterNote, compactFilters, seed, whose = 'this' }: Props) {
+export function CollageView({ state, dispatch, species, regions, label, cardActions, hidePanels, placesNote, statsPrefix, notice, filterNote, compactFilters, seed, whose = 'this' }: Props) {
   const { list, trips, filter, mode, view, massOrder, sci, seen } = state
   const box = useRef<HTMLElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
@@ -192,15 +190,18 @@ export function CollageView({ state, dispatch, species, regions, dots, label, ca
         sci={sci}
         onSci={(on) => dispatch({ type: 'sci', sci: on })}
         search={{ entries, shown: fk ? shownCodes : undefined, species, onPick: onSearchPick, whose }}
+        filters={(inert) => (
+          <FilterDropdowns state={state} dispatch={dispatch} species={species} regions={regions} open={panel} onOpen={setPanel} hide={hidePanels} placesNote={placesNote} time={time} inert={inert} />
+        )}
       />
 
-      <FilterBar state={state} dispatch={dispatch} species={species} regions={regions} dots={dots} hidePanels={hidePanels} placeDepth={placeDepth} liferPlaces={liferPlaces} panel={panel} onPanel={setPanel} compact={compactFilters} time={time} />
+      <FilterBar state={state} dispatch={dispatch} species={species} compact={compactFilters} />
       {filterNote}
 
       {view === 'collage' ? (
         lay ? (
           <div ref={wrap} className="eb-stagewrap">
-            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} onHover={onHover} total={entries.length} still={lay.still} />
+            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} onHover={onHover} still={lay.still} />
             {tipEntry && <BirdTip key={tipEntry.code} entry={tipEntry} row={species.byCode.get(tipEntry.code)!} regions={regions} sci={sci} wrap={wrap} />}
           </div>
         ) : (

@@ -134,10 +134,11 @@ describe('Collage', () => {
     }
   })
 
-  it('the count shows "<n> of <total> species" when filtered', () => {
+  it('a filtered view shows only its own count, as /lifelist (no "of <total>")', () => {
     const filtered = layoutOf({ crowa: [100, 100, 90, 90] })
-    render(<Collage entries={entries} species={species} layout={filtered} visible={new Set(['crowa'])} mode="even" total={3} onPick={() => {}} />)
-    expect(screen.getByText('1 of 3 species')).toBeInTheDocument()
+    render(<Collage entries={entries} species={species} layout={filtered} visible={new Set(['crowa'])} mode="even" onPick={() => {}} />)
+    expect(screen.getByText('1 species')).toBeInTheDocument()
+    expect(screen.queryByText(/ of /)).toBeNull()
   })
 })
 

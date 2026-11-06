@@ -18,7 +18,7 @@ import type { Edits, ListEntry, Place, Rules, SourceRecord } from './model'
 export type SeenPlace = { country: string; sub1?: string; sub2?: string; date?: string }
 export type SeenEntry = { places: SeenPlace[]; keys: Set<string> }
 /**
- * Per species on the list: its places and their filter keys ("c:CA", "s:CA-BC", "n:CA-BC|Okanagan-Similkameen").
+ * Per species on the list: its places and their filter keys ("c:CA").
  * `full`: some record carries seen-here (else every place is a lifer place: the Places panel says so). `sig` changes
  * whenever any species' places do.
  */
@@ -98,16 +98,10 @@ export class SeenAgg {
   }
 }
 
-/** The filter keys of a set of places. */
+/** The filter keys of a set of places: its countries ("c:CA"; the filter goes no deeper than countries). */
 export function placeKeys(places: readonly SeenPlace[]): Set<string> {
   const out = new Set<string>()
-  for (const p of places) {
-    out.add(`c:${p.country}`)
-    if (p.sub1) {
-      out.add(`s:${p.sub1}`)
-      if (p.sub2) out.add(`n:${p.sub1}|${p.sub2}`)
-    }
-  }
+  for (const p of places) out.add(`c:${p.country}`)
   return out
 }
 

@@ -8,9 +8,10 @@ const fmt = (n: number) => n.toLocaleString('en-US')
  * The species count in the hole at the stage centre. The number ticks from the old total to the new one
  * over the travel time (ease-out quart), as LifeList's Tally; with reduced motion it jumps. The ticking
  * number is written straight to its text node each frame (no React render per frame). The visible count is
- * decorative; a polite live region carries the settled text ("12 species", "4 of 175 species").
+ * decorative; a polite live region carries the settled text ("12 species"). A filtered view shows only its own count,
+ * as /lifelist's .yt-ll-mid: the filters and the stats line say what it is out of.
  */
-export function Tally({ value, total }: { value: number; total?: number }) {
+export function Tally({ value }: { value: number }) {
   const num = useRef<HTMLSpanElement>(null)
   const from = useRef<number | null>(null)
   useLayoutEffect(() => {
@@ -32,14 +33,13 @@ export function Tally({ value, total }: { value: number; total?: number }) {
     raf = requestAnimationFrame(tick)
     return () => { cancelAnimationFrame(raf); show(value) }
   }, [value])
-  const filtered = total !== undefined && value < total
   return (
     <>
       <div className="eb-mid" aria-hidden="true">
         <span className="eb-num" ref={num} />
-        <span className="eb-mono">{filtered ? `of ${fmt(total)} species` : 'species'}</span>
+        <span className="eb-mono">species</span>
       </div>
-      <p className="eb-sr" aria-live="polite">{filtered ? `${fmt(value)} of ${fmt(total)} species` : `${fmt(value)} species`}</p>
+      <p className="eb-sr" aria-live="polite">{`${fmt(value)} species`}</p>
     </>
   )
 }

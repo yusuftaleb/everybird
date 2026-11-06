@@ -170,33 +170,23 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
     () => expect(page.getByTestId("picker-order")).toHaveCount(0),
   );
 
-  // 2. Tap a lit country's dots on the visible map (the ~10k-dot repaint).
+  // 2. Check a country in the Places sheet (the controls bar's dropdown; filters apply live, the sheet stays open).
   await page.getByTestId("filter-tab-places").tap();
-  await expect(page.locator(".eb-map-lit").first()).toBeVisible();
-  const spot = await page.evaluate(() => {
-    const path = document.querySelector<SVGPathElement>(".eb-map-lit")!;
-    const svg = path.ownerSVGElement!;
-    const pt = svg.createSVGPoint();
-    const p0 = path.getPointAtLength(0);
-    pt.x = p0.x;
-    pt.y = p0.y;
-    const s = pt.matrixTransform(path.getScreenCTM()!);
-    return { x: s.x, y: s.y, iso: path.getAttribute("data-testid")!.replace("map-country-", "") };
-  });
+  const sheet = page.locator('.eb-sheet[role="dialog"]');
+  await expect(sheet.locator('input[type="checkbox"]').first()).toBeVisible();
+  const box = (i: number) => sheet.locator('input[type="checkbox"]').nth(i);
+  const stats = await page.getByTestId("collage-stats").innerText();
   await measure(
-    "tapping a country on the map",
-    () => page.touchscreen.tap(spot.x, spot.y),
-    () => expect(page.getByTestId(`map-country-${spot.iso}`)).toHaveAttribute("opacity", "1"),
+    "checking a country",
+    () => box(0).tap(),
+    () => expect(page.getByTestId("collage-stats")).not.toHaveText(stats),
   );
 
-  // 3. Then a different country from the sheet (the map tap already selected one, so the label must change).
-  const before = await page.getByTestId("picker-country").innerText();
+  // 3. Then a second country (the set widens: species seen in either).
+  const one = await page.getByTestId("collage-stats").innerText();
   await measure(
-    "choosing a country",
-    async () => {
-      await page.getByTestId("picker-country").tap();
-      await pickFirstChip();
-    },
-    () => expect(page.getByTestId("picker-country")).not.toHaveText(before),
+    "checking a second country",
+    () => box(1).tap(),
+    () => expect(page.getByTestId("collage-stats")).not.toHaveText(one),
   );
 });

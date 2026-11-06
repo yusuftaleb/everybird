@@ -33,7 +33,7 @@ the raw sources in `data/raw/` (git-ignored) and the stickers repo checked out n
 2. `npm run data`, which runs:
    1. `copy-synonyms.ts`: publishes `data/inat-synonyms.json`.
    2. `build-species.ts`: `species.v1.json` and `taxonomy.v1.json` (masses from AVONET, `data/overrides.json` first).
-   3. `build-geo.ts`: `country-dots.v1.json` and `regions.v1.json`.
+   3. `build-geo.ts`: `regions.v1.json` (country and province names).
    4. `build-stickers.ts`: the 128/384 webp stickers into `../everybird-stickers/v1/`, the masks and each species' `ar` (must follow build-species).
    5. `link-index.ts`: appends new codes to `data/link-index.json` (append-only, so old share links keep working).
 3. `npx tsx scripts/build-data/check-stickers.ts`: decodes every sticker and lists any broken file (rebuild those with `build-stickers.ts --codes a,b`).

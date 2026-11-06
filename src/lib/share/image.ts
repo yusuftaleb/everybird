@@ -20,6 +20,7 @@ import { formatDate } from '@/lib/format'
 import type { Box } from '@/lib/layout/pack'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
 import { latestLifer } from '@/lib/list/build-list'
+import { countriesLabel } from '@/lib/list/filter-summary'
 import type { Filter } from '@/lib/list/filters'
 import { rangeLabel } from '@/lib/list/timeline'
 import type { ListEntry } from '@/lib/list/model'
@@ -51,23 +52,22 @@ export function latestText(latest: { com: string; date?: string }): { label: str
 }
 
 /**
- * The current filter in words, birds then place then time: "Egypt · 2026", "Herons · Egypt". A trip stands for its
+ * The current filter in words, birds then places then time: "Egypt · 2026", "Herons · Canada + Egypt". A trip stands for its
  * country and year (its label is "Egypt · Sep 2026"); a range reads "Mar 2020 to Jun 2021" (timeline.ts rangeLabel).
  * Undefined when nothing is filtered.
  */
 export function filterLabel(
   f: Filter,
-  ctx: { species: SpeciesIndex; trips: Trip[]; countryName: (iso2: string) => string; regionName?: (code: string) => string },
+  ctx: { species: SpeciesIndex; trips: Trip[]; countryName: (iso2: string) => string },
 ): string | undefined {
-  // A place reads as its deepest level: "Okanagan-Similkameen, British Columbia", "British Columbia" or "Canada".
-  const region = (code: string) => ctx.regionName?.(code) ?? code
-  const place = f.sub1 ? (f.sub2 ? `${f.sub2}, ${region(f.sub1)}` : region(f.sub1)) : f.country ? ctx.countryName(f.country) : undefined
+  // Countries: "Canada", "Canada + Egypt", "Canada and 2 more".
+  const place = countriesLabel(f.countries, ctx.countryName)
   const parts: string[] = []
   if (f.family) parts.push(ctx.species.rows.find((r) => r.fam === f.family)?.famCom || f.family)
   else if (f.order) parts.push(orderLabel(f.order))
   const trip = f.trip ? ctx.trips.find((t) => t.id === f.trip) : undefined
   if (trip) {
-    if (place && (f.sub1 || f.country !== trip.country)) parts.push(place)
+    if (place && !(f.countries?.length === 1 && f.countries[0] === trip.country)) parts.push(place)
     parts.push(trip.label)
   } else {
     if (place) parts.push(place)
@@ -125,17 +125,17 @@ export type CardLayout = {
   /** The largest sticker's long side as a share of the collage width (maxTileFrac of the count). */
   maxTile: number
 }
-export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; total?: number }
+export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number }
 
 /**
- * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: "197" over "SPECIES" ("6" over "OF 197
- * SPECIES" for a filtered view). The number shrinks so it never takes more than 40% of the collage's width.
+ * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: the shown count over "SPECIES" (a filtered
+ * view too: the filter label on top says what it is). The number shrinks so it never takes more than 40% of the collage's width.
  * `format` sets the largest size (or pass it in px: the link preview's smaller card).
  */
-export function countLayout(format: ImageFormat | number, count: number, total: number | undefined, collageW: number): CountLayout {
+export function countLayout(format: ImageFormat | number, count: number, collageW: number): CountLayout {
   const max = typeof format === 'number' ? format : COUNT_MAX[format]
   const number = count.toLocaleString('en-US')
-  const label = (total !== undefined && count < total ? `of ${total.toLocaleString('en-US')} species` : 'species').toUpperCase()
+  const label = 'SPECIES'
   const commas = number.split(',').length - 1
   const em = (number.length - commas) * DIGIT_EM + commas * COMMA_EM + number.length * TRACK
   const size = Math.round(Math.min(max, (COUNT_W * collageW) / em))
@@ -167,7 +167,7 @@ export function cardLayout(format: ImageFormat, c: CardContent): CardLayout {
   const top = headBottom === undefined ? T : headBottom + 48
   const bottom = (latest ? latest.y : rule.y) - 40
   const collage = { x: M, y: top, w: W - 2 * M, h: bottom - top }
-  return { W, H, name, filter, collage, count: countLayout(format, c.count, c.total, collage.w), latest, rule, footer, maxTile: maxTileFrac(c.count) }
+  return { W, H, name, filter, collage, count: countLayout(format, c.count, collage.w), latest, rule, footer, maxTile: maxTileFrac(c.count) }
 }
 
 /** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
@@ -405,8 +405,6 @@ export type ShareImageOpts = {
   entries: ListEntry[]
   species: SpeciesIndex
   filterLabel?: string
-  /** The whole list's size, for a filtered view: the count reads "6" over "of 197 species". */
-  total?: number
   name?: string
   theme: 'light' | 'dark'
   /** A pack made earlier by packForImage for this format, these entries and name-or-not (the dialog keeps them). */
@@ -474,7 +472,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   const latest = latestRow && latestText({ com: latestRow.com, date: latestE!.date })
   const label = opts.filterLabel?.trim() || undefined
   const name = opts.name?.trim() || undefined
-  const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, total: opts.total }
+  const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length }
   const L = cardLayout(format, content)
   const pack = opts.pack ?? (await packForImage(shown, species, packSpec(L), signal))
   check()

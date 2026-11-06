@@ -4,137 +4,69 @@
 // next level's row (none for an order with one family: the breadcrumb ends with that family). A leaf level's row
 // stays, with the choice in Accent and the other chips stepped back. On phones the row is one button ("Choose an
 // order 18") that opens the chips in a sheet.
-// Taxonomy (orders, then families) is always on show. Everybird's extra dimensions, Places (the map, then countries,
-// provinces and counties where species were seen; PlacesPanel.tsx) and Time (the timeline: a range of months, trips; Timeline.tsx), are toggles that open their panel (one at a
-// time; tap again to close). Opening or closing a panel never changes the filter; what a closed panel has chosen shows as a
-// removable chip beside the toggles.
-import { memo, useId, useMemo, useState } from 'react'
+// Taxonomy (orders, then families) is the only filter outside the controls bar: Places and Time are the bar's
+// dropdowns (FilterDropdowns.tsx). In the landing's compact strip the breadcrumb and chips scroll sideways on one line.
+import { memo, useMemo } from 'react'
 import { useIsSheet } from '@/components/dialog-utils'
-import { ChevronDownIcon, CloseIcon } from '@/components/collage/icons'
-import { flagEmoji } from '@/lib/flag'
-import { closedPanelLevels, togglePanel, type Panel, type PanelKey } from '@/lib/list/filter-panels'
 import { options, type ChipOption, type Filter, type FilterLevel } from '@/lib/list/filters'
-import type { ListEntry } from '@/lib/list/model'
-import { rangeLabel, type Month } from '@/lib/list/timeline'
 import type { Action, AppState } from '@/lib/list/store'
-import { stripBracket } from '@/lib/import/places'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
-import type { CountryDots, Regions } from '@/lib/species/types'
-import { Chip } from './Chip'
 import { LevelRow } from './LevelRow'
-import { PlacesPanel } from './PlacesPanel'
-import { Timeline } from './Timeline'
 import './filters.css'
-
-export type { Panel } from '@/lib/list/filter-panels'
 
 type Props = {
   state: AppState
   dispatch: (a: Action) => void
   /** Species index (family names). */
   species: SpeciesIndex
-  /** Country names. */
-  regions: Regions
-  /** Dotted map data; without it the Places panel shows only chips. */
-  dots?: CountryDots
-  /** Panels to leave out (a shared link that carries no places or dates). */
-  hidePanels?: readonly Panel[]
-  /** How deep Places goes: countries only (a shared link), or down to provinces and counties (default). */
-  placeDepth?: 'country' | 'county'
-  /** The list's places are all lifer places (no MyEBirdData or iNaturalist): the Places panel says so. */
-  liferPlaces?: boolean
-  /** The open panel, when the parent keeps it. */
-  panel?: Panel | null
-  onPanel?: (p: Panel | null) => void
   /**
-   * One scrollable strip (the landing sample, so the birds keep the first screen): the Places and Time toggles, then
-   * the taxonomy's breadcrumb and chips on one line at every width (no phone sheet for taxonomy), as /lifelist's
-   * phone row does. An open panel still opens below the strip.
+   * One scrollable strip (the landing sample, so the birds keep the first screen): the taxonomy's breadcrumb and chips
+   * on one line at every width (no phone sheet), as /lifelist's phone row does.
    */
   compact?: boolean
-  /** The Time panel's timeline: the known entries, the whole list's months and today. */
-  time?: { entries: ListEntry[]; months: Month[]; today: Month; onPreview?: (r: { from?: Month; to?: Month } | null) => void }
 }
 
-type Level = FilterLevel
-type Group = { id: 'birds' | Panel; label: string; nav: string; all: string; levels: [Level, Level?] }
-const BIRDS: Group = { id: 'birds', label: 'Birds', nav: 'Filter by group', all: 'All birds', levels: ['order', 'family'] }
-const PANELS: (Group & { id: Panel })[] = [
-  { id: 'places', label: 'Places', nav: 'Filter by place', all: 'All places', levels: ['country'] },
-  { id: 'time', label: 'Time', nav: 'Filter by time', all: 'All time', levels: ['trip'] }, // the timeline, not chips
-]
+type Level = 'order' | 'family'
+type Group = { label: string; nav: string; all: string; levels: [Level, Level?] }
+const BIRDS: Group = { label: 'Birds', nav: 'Filter by group', all: 'All birds', levels: ['order', 'family'] }
 /** Levels named by a scientific name (shown in Latin when Scientific names are on). */
 const LATIN = new Set<Level>(['order', 'family'])
 
-/**
- * A change of one level; clearing an order also clears its family, a country its province and county. (Time is the
- * timeline's: no year or trip chips.)
- */
+/** A change of one level; clearing an order also clears its family. */
 function withLevel(f: Filter, level: Level, value: string | undefined): Filter {
   const next: Filter = { ...f, [level]: value }
   if (level === 'order') delete next.family
-  if (level === 'country') { delete next.sub1; delete next.sub2 }
-  if (level === 'sub1') delete next.sub2
   for (const k of Object.keys(next) as (keyof Filter)[]) if (!next[k]) delete next[k]
   return next
 }
 
 type Crumb = { label: string; latin: boolean; to?: Filter }
 
-/** A country chip's label: the flag (decorative, hidden from screen readers) before the name. */
-function CountryLabel({ iso, name }: { iso: string; name: string }) {
-  const flag = flagEmoji(iso)
-  return flag ? <><span className="eb-flag" aria-hidden="true">{flag}</span>{name}</> : <>{name}</>
-}
-
-export const FilterBar = memo(function FilterBar({ state, dispatch, species, regions, dots, hidePanels, placeDepth, liferPlaces, panel: panelProp, onPanel, compact, time }: Props) {
-  const panels = useMemo(() => (hidePanels?.length ? PANELS.filter((p) => !hidePanels.includes(p.id)) : PANELS), [hidePanels])
-  const [ownPanel, setOwnPanel] = useState<Panel | null>(null)
-  const requested = panelProp !== undefined ? panelProp : ownPanel
-  const open = panels.find((p) => p.id === requested) ?? null
-  const setPanel = (p: Panel | null) => { setOwnPanel(p); onPanel?.(p) }
+export const FilterBar = memo(function FilterBar({ state, dispatch, species, compact }: Props) {
   const sheet = useIsSheet()
-  const base = useId()
   const { list, trips, filter, sci, seen } = state
 
-  const countryName = useMemo(
-    () => (iso: string) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso),
-    [regions],
-  )
-  // Only the levels on show are counted: orders always, families once an order is chosen (Places counts its own levels).
+  // Only the levels on show are counted: orders always, families once an order is chosen.
   const opts = useMemo(() => {
     const out: Partial<Record<Level, ChipOption[]>> = {}
     const [top, child] = BIRDS.levels
-    out[top] = options(list, filter, top, species, trips, countryName, seen)
-    if (child && filter[top]) out[child] = options(list, filter, child, species, trips, countryName, seen)
+    out[top] = options(list, filter, top, species, trips, undefined, seen)
+    if (child && filter[top]) out[child] = options(list, filter, child, species, trips, undefined, seen)
     return out
-  }, [list, filter, species, trips, countryName, seen])
+  }, [list, filter, species, trips, seen])
 
   const set = (level: Level, value: string | undefined) => dispatch({ type: 'filter', filter: withLevel(filter, level, value) })
-  /** Remove a closed panel's choice: a range takes its ends, a trip its months too. */
-  const remove = (k: PanelKey) => {
-    if (k !== 'range' && k !== 'trip') return set(k, undefined)
-    const next: Filter = { ...filter }
-    delete next.from; delete next.to; delete next.trip
-    dispatch({ type: 'filter', filter: next })
-  }
-  // A closed Places panel shows its deepest place (removing it clears every place level).
-  const placeName = () => filter.sub2 ?? (filter.sub1 ? stripBracket(regions.sub1[filter.sub1] ?? filter.sub1) : countryName(filter.country!))
-  const panelName = (k: PanelKey) => (k === 'range' ? rangeLabel(filter.from, filter.to) ?? '' : k === 'country' ? placeName() : nameOf(k, filter[k]!))
   const toggle = (level: Level, value: string) => set(level, filter[level] === value ? undefined : value)
 
   /** The label of a level's value: plain English, or the scientific name for orders and families in Latin mode. */
   const nameOf = (level: Level, v: string): string => {
     if (sci && LATIN.has(level)) return v
     if (level === 'order') return orderLabel(v)
-    if (level === 'country') return countryName(v)
-    if (level === 'trip') return trips.find((t) => t.id === v)?.label ?? v
-    if (level === 'family') return opts.family?.find((o) => o.value === v)?.label ?? species.rows.find((r) => r.fam === v)?.famCom ?? v
-    return v
+    return opts.family?.find((o) => o.value === v)?.label ?? species.rows.find((r) => r.fam === v)?.famCom ?? v
   }
   const chipText = (level: Level, o: ChipOption) => (sci && LATIN.has(level) ? o.value : o.label)
-  const chipLabel = (level: Level, o: ChipOption) => (level === 'country' ? <CountryLabel iso={o.value} name={o.label} /> : chipText(level, o))
+  const chipLabel = (level: FilterLevel, o: ChipOption) => chipText(level as Level, o)
 
   /** A group's breadcrumb and its level on show (chips, or the phone's sheet button; chips always in the strip). */
   const levels = (g: Group, strip = false) => {
@@ -195,83 +127,9 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, reg
     )
   }
 
-  // What closed panels have chosen, as removable chips beside the toggles.
-  const others = closedPanelLevels(filter, open?.id ?? null, hidePanels)
-  const toggles = (panels.length > 0 || others.length > 0) && (
-    <div className="eb-toggles">
-      {panels.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          className="eb-tab eb-toggle"
-          aria-expanded={open?.id === p.id}
-          aria-controls={open?.id === p.id ? `${base}-panel-${p.id}` : undefined}
-          data-testid={`filter-tab-${p.id}`}
-          onClick={() => setPanel(togglePanel(open?.id ?? null, p.id))}
-        >
-          {p.label}
-          <ChevronDownIcon className="eb-toggle-caret" />
-        </button>
-      ))}
-      {others.length > 0 && (
-        <div className="eb-level eb-active" role="group" aria-label="Active filters" data-testid="active-filters">
-          {others.map((l) => {
-            const label = panelName(l)
-            return (
-              <Chip key={l} label={l === 'country' ? <CountryLabel iso={filter.country!} name={label} /> : label} selected removeLabel={label} onClick={() => remove(l)}>
-                <CloseIcon className="eb-chip-x" />
-              </Chip>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-
   return (
     <section className="eb-filters" aria-label="Filters" data-testid="filter-bar" data-compact={compact ? '' : undefined}>
-      {compact ? (
-        <div className="eb-strip" data-testid="filter-strip">
-          {toggles}
-          {levels(BIRDS, true)}
-        </div>
-      ) : toggles}
-
-      {open && (
-        <div id={`${base}-panel-${open.id}`} role="region" aria-label={open.label} className="eb-panel" data-map={open.id === 'places' && dots ? '' : undefined} data-testid={`filter-panel-${open.id}`}>
-          {open.id === 'places' && (
-            <PlacesPanel
-              filter={filter}
-              list={list}
-              seen={seen}
-              trips={trips}
-              species={species}
-              regions={regions}
-              dots={dots}
-              depth={placeDepth}
-              liferOnly={liferPlaces}
-              sheet={sheet}
-              onFilter={(f) => dispatch({ type: 'filter', filter: f })}
-            />
-          )}
-          {open.id === 'time' ? (time && (
-            <Timeline
-              entries={time.entries}
-              trips={trips}
-              seen={seen}
-              filter={filter}
-              species={species}
-              months={time.months}
-              today={time.today}
-              onFilter={(f) => dispatch({ type: 'filter', filter: f })}
-              countryName={countryName}
-              onPreview={time.onPreview}
-            />
-          )) : null}
-        </div>
-      )}
-
-      {!compact && levels(BIRDS)}
+      {compact ? <div className="eb-strip" data-testid="filter-strip">{levels(BIRDS, true)}</div> : levels(BIRDS)}
     </section>
   )
 })

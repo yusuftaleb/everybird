@@ -79,7 +79,7 @@ describe('store reducer', () => {
 
   it('drops filter values that vanish after a list change', () => {
     let s = run(initialState(), { type: 'import', source: 'ebird', result: result([rec('duck', 'ebird', 'EG'), rec('crow', 'ebird', 'CA')]) })
-    s = run(s, { type: 'filter', filter: { country: 'EG', order: 'Anseriformes' } })
+    s = run(s, { type: 'filter', filter: { countries: ['EG'], order: 'Anseriformes' } })
     s = run(s, { type: 'import', source: 'ebird', result: result([rec('crow', 'ebird', 'CA')]) })
     expect(s.filter).toEqual({})
   })
@@ -125,7 +125,7 @@ describe('store reducer', () => {
 
   it('forget resets to empty', () => {
     let s = run(initialState(), { type: 'import', source: 'ebird', result: result([rec('duck', 'ebird')]) })
-    s = run(s, { type: 'filter', filter: { country: 'CA' } }, { type: 'mode', mode: 'true' }, { type: 'view', view: 'list' }, { type: 'massOrder', massOrder: 'lightest' })
+    s = run(s, { type: 'filter', filter: { countries: ['CA'] } }, { type: 'mode', mode: 'true' }, { type: 'view', view: 'list' }, { type: 'massOrder', massOrder: 'lightest' })
     s = run(s, { type: 'forget' })
     const fresh = initialState()
     expect(s.list).toEqual([])

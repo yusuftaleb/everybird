@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { createLayoutClient, type LayoutClient, type StateLayout } from '@/lib/layout/layout-client'
 import type { LayoutName } from '@/lib/layout/layout.worker'
-import { applyFilter, filterKey, inRange, options, type Filter, type FilterLevel } from '@/lib/list/filters'
+import { applyFilter, filterKey, inRange, options, withCountries, type Filter, type FilterLevel } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { timeless, tripFilter } from '@/lib/list/timeline'
 import type { SeenIndex } from '@/lib/list/seen'
@@ -27,17 +27,16 @@ export { timeless }
 
 /**
  * The states one tap away from `f`: the next taxonomy level (orders, or the chosen order's families), the
- * top countries, and, with no time chosen, the latest trips (a bracket tap: the trip with its months). At most
+ * top countries (one checked, when none is), and, with no time chosen, the latest trips (a bracket tap: the trip with its months). At most
  * PREFETCH_CAP. Range drags are continuous, so they are not guessed ahead.
  */
 export function childFilters(list: ListEntry[], f: Filter, species: SpeciesIndex, trips: Trip[], seen?: SeenIndex): Filter[] {
   const out: Filter[] = []
-  const add = (level: FilterLevel, values: string[]) => values.forEach((v) => out.push({ ...f, [level]: v }))
+  const add = (level: 'order' | 'family', values: string[]) => values.forEach((v) => out.push({ ...f, [level]: v }))
   const vals = (level: FilterLevel) => options(list, f, level, species, trips, undefined, seen).map((o) => o.value)
   if (!f.order) add('order', vals('order'))
   else if (!f.family) add('family', vals('family'))
-  if (!f.country) add('country', vals('country').slice(0, COUNTRY_PREFETCH))
-  else if (!f.sub1) add('sub1', vals('sub1').slice(0, COUNTRY_PREFETCH))
+  if (!f.countries) for (const v of vals('country').slice(0, COUNTRY_PREFETCH)) out.push(withCountries(f, [v]))
   if (!f.year && !f.from && !f.to && !f.trip) {
     const shown = new Set(applyFilter(list, timeless(f), species, trips, seen).map((e) => e.code))
     const near = trips.filter((t) => t.codes.some((c) => shown.has(c))).slice(-TRIP_PREFETCH).reverse()

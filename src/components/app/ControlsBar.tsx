@@ -1,10 +1,11 @@
 'use client'
 // The one horizontal bar above the filters, as LifeList's dock (framer-site), with Photography's search: Collage /
-// List tabs on the left; True size in collage view (or the list's direction in list view), Scientific and the
-// magnifier on the right. The magnifier turns the whole dock into the search field (DockSearch.tsx); the tabs and
-// tools sit under it, inert, while it is open. Under 460px of bar the tabs are icons only; under 400px the switches
-// shorten ("True", "Sci."). One row at every width.
-import { useCallback, useRef, useState } from 'react'
+// List tabs on the left; then four groups at even gaps: the view tabs | True size in collage view (or the list's
+// direction in list view) and Scientific | the Places and Time dropdowns (FilterDropdowns.tsx) | the magnifier. The
+// magnifier turns the dock into the search field (DockSearch.tsx); everything else sits under it, inert, while it is
+// open. Under 600px of bar the Places and Time buttons take a second row of their own, split evenly (app.css); under
+// 460px the tabs are icons only; under 400px the switches shorten ("True", "Sci.").
+import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { ArrowDownIcon, CollageIcon, ListIcon } from '@/components/collage/icons'
 import { DockSearchField, SearchButton, type DockSearchProps } from './DockSearch'
 
@@ -19,9 +20,11 @@ type Props = {
   onSci: (on: boolean) => void
   /** The search (left out: no magnifier). */
   search?: DockSearchProps
+  /** The Places and Time dropdowns; `inert` while the search covers the bar. */
+  filters?: (inert: boolean) => ReactNode
 }
 
-export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, search }: Props) {
+export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, search, filters }: Props) {
   const [finding, setFinding] = useState(false)
   const wrap = useRef<HTMLDivElement>(null)
   const findBtn = useRef<HTMLButtonElement>(null)
@@ -75,8 +78,9 @@ export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, on
             <span><span className="eb-long">Scientific</span><span className="eb-short">Sci.</span><span className="eb-sr"> names</span></span>
             <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
           </button>
-          {search && <SearchButton open={finding} onOpen={() => setFinding(true)} buttonRef={findBtn} />}
         </div>
+        {filters?.(finding)}
+        {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => setFinding(true)} buttonRef={findBtn} /></div>}
         {search && <DockSearchField {...search} onPick={onPick} open={finding} onClose={close} within={wrap} />}
       </div>
     </div>

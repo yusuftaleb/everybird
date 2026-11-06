@@ -3,6 +3,7 @@ import { Plus, ShareNetwork } from '@phosphor-icons/react'
 import Link from 'next/link'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { EditBird } from '@/components/edit/EditBird'
+import { placesNoteFor } from '@/lib/list/filter-summary'
 import type { Edits, ListEntry } from '@/lib/list/model'
 import { CollageView } from './CollageView'
 import { useEverybirdContext } from './EverybirdProvider'
@@ -22,7 +23,7 @@ const UNDO_MS = 6000
  */
 export function CollagePage() {
   const eb = useEverybirdContext()
-  const { state, dispatch, data, dots } = eb
+  const { state, dispatch, data } = eb
   const [sharing, setSharing] = useState(false)
   const [removed, setRemoved] = useState<{ name: string; code: string; before: Edits } | null>(null)
   const { saved } = state
@@ -101,8 +102,7 @@ export function CollagePage() {
             dispatch={dispatch}
             species={data.species}
             regions={data.regions}
-            dots={dots}
-            liferPlaces={!state.seen.full}
+            placesNote={placesNoteFor(saved, state.list.length, state.seen.full)}
             label="Your collage"
             whose="your"
             cardActions={actions}

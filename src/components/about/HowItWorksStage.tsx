@@ -9,7 +9,7 @@
 //   2. "Added 197 species…" opens with "See my collage"; pressed, the page swaps to the collage: stickers arrive
 //      around the count as it rolls up to 197.
 //   3. The Herons chip is pressed: the six herons glide and grow into the middle, the rest step out, the count rolls to
-//      6 of 197. Pressed again (the product's own way to clear it), everyone comes back.
+//      6. Pressed again (the product's own way to clear it), everyone comes back.
 //   4. Share: the share image (the birder's name, "197 species", the stickers and their credit) comes up on the
 //      desktop, straddling the window. It holds; then Settings in the top bar takes the window back to the start.
 // On phones (compact) there is no desktop: "Choose your eBird file" is pressed instead of a drag, and the share image
@@ -416,10 +416,7 @@ function CollagePage({ s, layout }: { s: S; layout: Layout }) {
         })}
         <div className="ebd-mid">
           <span className="ebd-num"><Tick value={s.count} ms={s.count === TOTAL && !s.herons ? 1400 : 640} /></span>
-          <span className="ebd-mid-label">
-            <span data-show={!filtered || undefined}>Species</span>
-            <span data-show={filtered || undefined}>of 197 species</span>
-          </span>
+          <span className="ebd-mid-label">Species</span>
         </div>
       </div>
     </div>

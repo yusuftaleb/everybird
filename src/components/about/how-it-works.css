@@ -167,12 +167,9 @@
   font-variant-numeric: tabular-nums; width: 100%; text-align: center;
 }
 .ebd .ss-stage[data-layout="compact"] .ebd-num { font-size: 38px; }
-.ebd .ebd-mid-label { display: grid; justify-items: center; }
-.ebd .ebd-mid-label > span {
-  grid-area: 1 / 1; font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--muted); opacity: 0; transition: opacity .2s ease;
+.ebd .ebd-mid-label {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
 }
-.ebd .ebd-mid-label > span[data-show] { opacity: 1; }
 
 /* Compact: the share dialog's scrim over the window (share.css: rgb(0 0 0 / .32)). */
 .ebd .ebd-scrim { position: absolute; inset: 0; z-index: 4; background: rgb(0 0 0 / .32); opacity: 0; transition: opacity .3s ease; }

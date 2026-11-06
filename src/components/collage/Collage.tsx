@@ -5,7 +5,6 @@
 // leaving ones away and grows arriving ones in, rippling out from the count. See collage-motion.ts.
 //
 // Props beyond the plan's interface (all optional):
-//  - total:     the full list size; the count reads "<n> of <total> species" while fewer are shown.
 //  - onHover:   called with the bird under the mouse or keyboard focus (null when none), for a hover card.
 //  - className: extra class on the outer wrapper.
 //  - still:     only visibility changes over the shown layout (a range drag's preview; see the prop).
@@ -32,7 +31,6 @@ export type CollageProps = {
   visible: Set<string>
   mode: 'even' | 'true'
   onPick: (code: string) => void
-  total?: number
   onHover?: (code: string | null) => void
   className?: string
   /**
@@ -65,7 +63,7 @@ function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Mo
   return { style: { '--x': x, '--y': y, '--w': b[0], '--h': b[1], '--k': 1, '--md': `${md}ms`, '--d': `${d}ms` } as CSSProperties, off: false, w, h }
 }
 
-export function Collage({ entries, species, layout, visible, mode, onPick, total, onHover, className, still }: CollageProps) {
+export function Collage({ entries, species, layout, visible, mode, onPick, onHover, className, still }: CollageProps) {
   const stage = useRef<HTMLDivElement>(null)
   const layer = useRef<HTMLDivElement>(null)
   const els = useRef(new Map<string, HTMLButtonElement>())
@@ -369,7 +367,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, total
         onBlur={(e) => { if (codeOf(e.target)) setHot(null) }}
         onKeyDown={onKeyDown}
       >
-        <Tally value={shown} total={total} />
+        <Tally value={shown} />
         {birdLayer}
       </div>
     </div>

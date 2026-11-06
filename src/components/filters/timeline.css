@@ -64,7 +64,6 @@
   border: 1.5px solid var(--line); border-top: 0; border-radius: 0 0 2px 2px;
 }
 .eb-trip-label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; line-height: 18px; opacity: .8; }
-.eb-trip-label .eb-flag { margin-right: 0; }
 /* A trip of a few days in one month: a tick at its month, not a squashed bracket. */
 .eb-trip[data-tick] .eb-trip-line { height: 8px; border: 0; border-radius: 0; background: linear-gradient(var(--line), var(--line)) center / 1.5px 100% no-repeat; }
 .eb-trip[data-tick][aria-pressed="true"] .eb-trip-line { background-image: linear-gradient(var(--accent), var(--accent)); }

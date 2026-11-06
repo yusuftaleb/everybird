@@ -104,7 +104,7 @@ describe('buildSeen', () => {
 })
 
 describe('placeKeys', () => {
-  it('names the country, the province and the county of every place', () => {
-    expect([...placeKeys([{ country: 'CA', sub1: 'CA-BC', sub2: 'A' }, { country: 'US' }])].sort()).toEqual(['c:CA', 'c:US', 'n:CA-BC|A', 's:CA-BC'])
+  it('names the countries of the places (the filter goes no deeper)', () => {
+    expect([...placeKeys([{ country: 'CA', sub1: 'CA-BC', sub2: 'A' }, { country: 'US' }])].sort()).toEqual(['c:CA', 'c:US'])
   })
 })

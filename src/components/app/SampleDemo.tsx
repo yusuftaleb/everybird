@@ -3,7 +3,6 @@ import { useEffect, useMemo, useReducer, useState } from 'react'
 import { stripBracket } from '@/lib/import/places'
 import { loadSamplePack, type SamplePack } from '@/lib/list/sample-pack'
 import { initialState, makeReducer } from '@/lib/list/store'
-import type { CountryDots } from '@/lib/species/types'
 import { CollageView } from './CollageView'
 
 /**
@@ -11,7 +10,7 @@ import { CollageView } from './CollageView'
  * saved. It needs neither the species file nor the layout worker to show its first collage; filters and True size
  * then run on the worker as anywhere else.
  */
-export function SampleDemo({ dots }: { dots?: CountryDots }) {
+export function SampleDemo() {
   const [pack, setPack] = useState<SamplePack | null>(null)
   const [failed, setFailed] = useState(false)
   useEffect(() => {
@@ -21,10 +20,10 @@ export function SampleDemo({ dots }: { dots?: CountryDots }) {
   }, [])
   if (failed) return <p className="eb-error eb-notice" role="alert">Couldn&apos;t load the sample collage. Check your connection and reload the page.</p>
   if (!pack) return <div className="eb-stage-wait eb-sample-wait" aria-hidden="true" />
-  return <Loaded pack={pack} dots={dots} />
+  return <Loaded pack={pack} />
 }
 
-function Loaded({ pack, dots }: { pack: SamplePack; dots?: CountryDots }) {
+function Loaded({ pack }: { pack: SamplePack }) {
   const { species, regions } = pack
   const reducer = useMemo(
     () => makeReducer({ species, countryName: (iso) => (regions.countries[iso] ? stripBracket(regions.countries[iso]) : iso) }),
@@ -37,7 +36,6 @@ function Loaded({ pack, dots }: { pack: SamplePack; dots?: CountryDots }) {
       dispatch={dispatch}
       species={species}
       regions={regions}
-      dots={dots}
       label="Sample collage"
       statsPrefix="Sample: Yusuf's life list"
       compactFilters

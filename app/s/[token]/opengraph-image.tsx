@@ -24,7 +24,7 @@ const MONO = '"Geist Mono", monospace'
 type Placed = { code: string; box: Box; src: string }
 
 /** The count in the collage's middle, as the share images: at most OG_COUNT_MAX px on this smaller card. */
-const ogCount = (n: number): CountLayout => countLayout(OG_COUNT_MAX, n, undefined, OG_COLLAGE.w)
+const ogCount = (n: number): CountLayout => countLayout(OG_COUNT_MAX, n, OG_COLLAGE.w)
 
 /**
  * Up to 60 birds of the list that have stickers, packed with the wide layout into the collage area around the count's

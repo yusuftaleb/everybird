@@ -29,17 +29,17 @@ describe('filterLabel', () => {
     expect(filterLabel({}, ctx)).toBeUndefined()
   })
   it('reads the filter in words: birds, then place, then time', () => {
-    expect(filterLabel({ country: 'EG', year: '2026' }, ctx)).toBe('Egypt · 2026')
-    expect(filterLabel({ order: 'Pelecaniformes', family: 'Ardeidae', country: 'EG' }, ctx)).toBe('Herons, Egrets, and Bitterns · Egypt')
+    expect(filterLabel({ countries: ['EG'], year: '2026' }, ctx)).toBe('Egypt · 2026')
+    expect(filterLabel({ order: 'Pelecaniformes', family: 'Ardeidae', countries: ['EG'] }, ctx)).toBe('Herons, Egrets, and Bitterns · Egypt')
     expect(filterLabel({ order: 'Passeriformes' }, ctx)).toBe('Perching birds')
     expect(filterLabel({ year: '2025' }, ctx)).toBe('2025')
-    expect(filterLabel({ country: 'EG', from: '2026-01', to: '2026-12' }, ctx)).toBe('Egypt · 2026')
+    expect(filterLabel({ countries: ['EG'], from: '2026-01', to: '2026-12' }, ctx)).toBe('Egypt · 2026')
     expect(filterLabel({ from: '2025-03', to: '2026-06' }, ctx)).toBe('Mar 2025 to Jun 2026')
     expect(filterLabel({ from: '2026-09', to: '2026-09', trip: 'EG-2026-09-01' }, ctx)).toBe('Egypt · Sep 2026')
   })
   it('a trip stands for its country and year', () => {
     expect(filterLabel({ year: '2026', trip: 'EG-2026-09-01' }, ctx)).toBe('Egypt · Sep 2026')
-    expect(filterLabel({ country: 'EG', year: '2026', trip: 'EG-2026-09-01' }, ctx)).toBe('Egypt · Sep 2026')
+    expect(filterLabel({ countries: ['EG'], year: '2026', trip: 'EG-2026-09-01' }, ctx)).toBe('Egypt · Sep 2026')
     expect(filterLabel({ order: 'Pelecaniformes', year: '2026', trip: 'EG-2026-09-01' }, ctx)).toBe(`${orderLabel('Pelecaniformes')} · Egypt · Sep 2026`)
   })
 })
@@ -125,13 +125,13 @@ describe('cardLayout', () => {
 })
 
 describe('countLayout (the count in the middle)', () => {
-  it('reads like the Tally: the number over SPECIES, or OF N SPECIES for a filtered view', () => {
-    expect(countLayout('story', 197, undefined, 952)).toMatchObject({ number: '197', label: 'SPECIES' })
-    expect(countLayout('story', 6, 197, 952)).toMatchObject({ number: '6', label: 'OF 197 SPECIES' })
-    expect(countLayout('post', 1500, 1500, 952)).toMatchObject({ number: '1,500', label: 'SPECIES' })
+  it('reads like the Tally and /lifelist: the shown number over SPECIES, filtered or not', () => {
+    expect(countLayout('story', 197, 952)).toMatchObject({ number: '197', label: 'SPECIES' })
+    expect(countLayout('story', 6, 952)).toMatchObject({ number: '6', label: 'SPECIES' })
+    expect(countLayout('post', 1500, 952)).toMatchObject({ number: '1,500', label: 'SPECIES' })
   })
   it('reads as a label in the ring, as /lifelist: about 12% of the collage wide for 197, shrinking for long numbers', () => {
-    const short = countLayout('story', 12, undefined, 952), mid = countLayout('story', 197, undefined, 952), long = countLayout('story', 12345, undefined, 952)
+    const short = countLayout('story', 12, 952), mid = countLayout('story', 197, 952), long = countLayout('story', 12345, 952)
     expect(short.size).toBe(112)
     expect(mid.size).toBe(112)
     // The site's medium layout: F 56 on a 700 stage, "197" 1.44em wide = 11.5% of the stage.
@@ -139,18 +139,18 @@ describe('countLayout (the count in the middle)', () => {
     expect((1.44 * mid.size) / 952).toBeLessThan(0.2)
     expect(long.size).toBeLessThan(mid.size)
     expect(long.size).toBeGreaterThan(60)
-    expect(countLayout('post', 197, undefined, 952).size).toBe(104)
+    expect(countLayout('post', 197, 952).size).toBe(104)
     // Digits are 0.5em in Cabinet Grotesk: "12,345" is 5 digits and a comma; at most 22% of the width.
     expect((5 * 0.5 + 0.25 - 6 * 0.02) * long.size).toBeLessThanOrEqual(0.22 * 952 + 1)
   })
   it('keeps the hole small: at most about a third of the collage wide for 197', () => {
-    const c = countLayout('story', 197, undefined, 952)
+    const c = countLayout('story', 197, 952)
     expect(2 * c.hole[0]).toBeLessThan(952 * 0.36)
     expect(2 * c.hole[1]).toBeLessThan(260)
   })
   it('keeps a hole around the number and the label, wider than tall from three digits, bigger for bigger text', () => {
     for (const n of [1, 12, 197, 1500, 12345]) {
-      const c = countLayout('story', n, undefined, 952)
+      const c = countLayout('story', n, 952)
       const [rx, ry] = c.hole
       const textW = Math.max((String(n).length * 0.5) * c.size, c.label.length * 0.66 * c.labelSize)
       expect(rx).toBeGreaterThan(textW / 2)
@@ -158,17 +158,16 @@ describe('countLayout (the count in the middle)', () => {
       if (n >= 100) expect(rx).toBeGreaterThan(ry)
       expect(rx).toBeLessThan(952 / 2)
     }
-    expect(countLayout('story', 6, 197, 952).hole[0]).toBeGreaterThan(countLayout('story', 6, undefined, 952).hole[0])
   })
   it('takes a size in px for the link preview', () => {
-    const c = countLayout(OG_COUNT_MAX, 197, undefined, 640)
+    const c = countLayout(OG_COUNT_MAX, 197, 640)
     expect(c.size).toBe(OG_COUNT_MAX)
     expect(OG_COUNT_MAX).toBeLessThanOrEqual(80)
     expect(c.labelSize).toBeGreaterThanOrEqual(13)
     expect(c.hole[0]).toBeLessThan(640 * 0.25)
   })
   it('the label is legible and smaller than the number', () => {
-    const c = countLayout('post', 1500, undefined, 952)
+    const c = countLayout('post', 1500, 952)
     expect(c.labelSize).toBeGreaterThanOrEqual(18)
     expect(c.labelSize).toBeLessThan(c.size / 4)
   })

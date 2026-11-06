@@ -1,14 +1,13 @@
 'use client'
 import { useState, type ReactNode } from 'react'
 import { FilterLinesIcon } from '@/components/collage/icons'
-import { flagEmoji } from '@/lib/flag'
 import type { ChipOption, FilterLevel } from '@/lib/list/filters'
 import { Chip } from './Chip'
 import { PickerSheet } from './PickerSheet'
 
 type Level = FilterLevel
-export const RANK: Record<Level, string> = { order: 'Orders', family: 'Families', country: 'Countries', sub1: 'Regions', sub2: 'Counties', year: 'Years', trip: 'Trips' }
-const NOUN: Record<Level, string> = { order: 'an order', family: 'a family', country: 'a country', sub1: 'a region', sub2: 'a county', year: 'a year', trip: 'a trip' }
+export const RANK: Record<Level, string> = { order: 'Orders', family: 'Families', country: 'Countries', year: 'Years', trip: 'Trips' }
+const NOUN: Record<Level, string> = { order: 'an order', family: 'a family', country: 'a country', year: 'a year', trip: 'a trip' }
 
 type PickerProps = {
   level: Level
@@ -23,7 +22,6 @@ type PickerProps = {
 /** Phone: one button; it reads "Choose an order 18" or the chosen group's name, and opens the chips in a sheet. */
 export function SheetPicker({ level, options: opts, label, latin, chosen, value, onPick }: PickerProps) {
   const [open, setOpen] = useState(false)
-  const flag = level === 'country' && value ? flagEmoji(value) : undefined
   return (
     <>
       <button
@@ -37,7 +35,6 @@ export function SheetPicker({ level, options: opts, label, latin, chosen, value,
       >
         <FilterLinesIcon />
         <span className="eb-pick-label" lang={chosen && latin ? 'la' : undefined}>
-          {flag && <span className="eb-flag" aria-hidden="true">{flag}</span>}
           {chosen ?? `Choose ${NOUN[level]}`}
         </span>{' '}
         <span className="eb-count">{opts.length}</span>

@@ -422,3 +422,4 @@ Decisions made after the approval above. The approved body is unchanged; where i
 - **The sample list** (the landing demo) is approved.
 - **Share links carry the whole list.**
 - **Credit:** his credit sits on About ("Made by Yusuf Taleb") and in the footer.
+- **Places and Time (2026-11-06):** two dropdown buttons in the controls bar, the only place a place or time filter shows. Places is a multi-select checklist of countries (seen-here counts; species seen in any checked country); province and county filters are gone; the dotted map is removed from the app. Time is the timeline in a dropdown; Play is removed. Flags come from flag-icons (MIT). The centre count shows only the shown count ("species"), never "of N", in the app, share images and link previews.

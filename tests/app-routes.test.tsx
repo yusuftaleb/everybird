@@ -170,10 +170,11 @@ describe('the Collage page (/)', () => {
     expect(within(bar).getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
     expect(within(bar).getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about')
     expect(within(bar).getByRole('switch', { name: 'Dark mode' })).toBeInTheDocument()
-    // The sample's filters are one strip, unfolded: the Places and Time toggles (closed), then the order chips. No Birds button.
+    // Places and Time are dropdowns in the controls bar (closed); the order chips are one strip under it. No Birds button.
     const strip = screen.getByTestId('filter-strip')
-    expect(within(strip).getByTestId('filter-tab-places')).toHaveAttribute('aria-expanded', 'false')
-    expect(within(strip).getByTestId('filter-tab-time')).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByTestId('filter-tab-places')).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByTestId('filter-tab-time')).toHaveAttribute('aria-expanded', 'false')
+    expect(strip).not.toContainElement(screen.getByTestId('filter-tab-places'))
     expect(within(strip).getByRole('group', { name: 'Orders' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Birds' })).toBeNull()
     expect(screen.queryByTestId('filter-bar-folded')).toBeNull()

@@ -113,7 +113,7 @@ describe('Timeline', () => {
   it('a trip is a labelled bracket; tapping it selects the trip and its months, again clears it', () => {
     render(<Harness />)
     const b = screen.getByRole('button', { name: 'Egypt trip, Mar 2020, 3 species' })
-    expect(b.querySelector('.eb-flag')).toHaveTextContent('🇪🇬')
+    expect(b.querySelector('img.eb-flag')).toHaveAttribute('alt', '') // flag-icons' flag, decorative
     fireEvent.click(b)
     expect(filterOf()).toEqual({ trip: trip.id, from: '2020-03', to: '2020-03' })
     expect(b).toHaveAttribute('aria-pressed', 'true')

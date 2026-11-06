@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildList } from '@/lib/list/build-list'
-import { applyFilter, filterKey, filterToShow, options } from '@/lib/list/filters'
+import { applyFilter, filterKey, filterToShow, options, toggleCountry, withCountries } from '@/lib/list/filters'
 import { applyFilterValidity } from '@/lib/list/filters-validate'
 import { DEFAULT_RULES, EMPTY_EDITS, type SourceRecord } from '@/lib/list/model'
 import { buildSeen } from '@/lib/list/seen'
@@ -22,69 +22,74 @@ const list = buildList(records, EMPTY_EDITS, DEFAULT_RULES)
 const seen = buildSeen(records, EMPTY_EDITS, DEFAULT_RULES, list)
 const codes = (f: object) => applyFilter(list, f, species, [], seen).map((e) => e.code).sort()
 
-describe('the Places filter uses seen-here', () => {
-  it('a country, province or county keeps every species seen there, not only lifers there', () => {
-    expect(codes({ country: 'CA' })).toEqual(['crow', 'duck', 'owl'])
-    expect(codes({ country: 'MX' })).toEqual(['crow', 'duck'])
-    expect(codes({ country: 'US' })).toEqual(['duck'])
-    expect(codes({ country: 'CA', sub1: 'CA-BC' })).toEqual(['crow', 'duck'])
-    expect(codes({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' })).toEqual(['duck'])
-    expect(codes({ country: 'US', sub1: 'US-WA', sub2: 'King' })).toEqual(['duck'])
+describe('the Places filter: a set of countries, seen-here', () => {
+  it('a country keeps every species seen there, not only lifers there; several keep species seen in ANY of them', () => {
+    expect(codes({ countries: ['CA'] })).toEqual(['crow', 'duck', 'owl'])
+    expect(codes({ countries: ['MX'] })).toEqual(['crow', 'duck'])
+    expect(codes({ countries: ['US'] })).toEqual(['duck'])
+    expect(codes({ countries: ['MX', 'US'] })).toEqual(['crow', 'duck'])
+    expect(codes({ countries: ['FR'] })).toEqual([])
   })
   it('without the index (a shared link) places are the lifer places', () => {
-    expect(applyFilter(list, { country: 'CA' }, species, []).map((e) => e.code).sort()).toEqual(['duck', 'owl'])
-    expect(applyFilter(list, { country: 'MX' }, species, []).map((e) => e.code)).toEqual(['crow'])
+    expect(applyFilter(list, { countries: ['CA'] }, species, []).map((e) => e.code).sort()).toEqual(['duck', 'owl'])
+    expect(applyFilter(list, { countries: ['MX'] }, species, []).map((e) => e.code)).toEqual(['crow'])
+    expect(applyFilter(list, { countries: ['CA', 'MX'] }, species, []).map((e) => e.code).sort()).toEqual(['crow', 'duck', 'owl'])
   })
   it('combines with taxonomy and time by AND (time is the lifer date)', () => {
-    expect(codes({ country: 'CA', order: 'Passeriformes' })).toEqual(['crow'])
-    expect(codes({ country: 'CA', from: '2019-01', to: '2019-12' })).toEqual(['duck'])
+    expect(codes({ countries: ['CA'], order: 'Passeriformes' })).toEqual(['crow'])
+    expect(codes({ countries: ['CA'], from: '2019-01', to: '2019-12' })).toEqual(['duck'])
   })
-  it('chip counts are species seen in each country, province and county, under the other filters', () => {
-    expect(options(list, {}, 'country', species, [], (c) => c, seen).map((o) => [o.value, o.count])).toEqual([['CA', 3], ['MX', 2], ['US', 1]])
-    expect(options(list, { country: 'CA' }, 'country', species, [], (c) => c, seen).map((o) => [o.value, o.count])).toEqual([['CA', 3], ['MX', 2], ['US', 1]])
-    expect(options(list, { order: 'Strigiformes' }, 'country', species, [], (c) => c, seen).map((o) => [o.value, o.count])).toEqual([['CA', 1]])
-    expect(options(list, {}, 'sub1', species, [], (c) => c, seen)).toEqual([])
-    expect(options(list, { country: 'CA' }, 'sub1', species, [], (c) => c, seen).map((o) => [o.value, o.count])).toEqual([['CA-BC', 2], ['CA-ON', 1]])
-    expect(options(list, { country: 'CA', sub1: 'CA-ON' }, 'sub1', species, [], (c) => c, seen).map((o) => [o.value, o.count])).toEqual([['CA-BC', 2], ['CA-ON', 1]])
-    expect(options(list, { country: 'CA', sub1: 'CA-BC' }, 'sub2', species, [], (c) => c, seen).map((o) => [o.value, o.count])).toEqual([['Capital', 1]])
-    expect(options(list, { country: 'CA', sub1: 'CA-BC' }, 'sub2', species, [], (c) => c, seen)[0].label).toBe('Capital')
+  it('counts are species seen in each country, under the other filters but whatever is checked (a multi-select)', () => {
+    const counts = (f: object) => options(list, f, 'country', species, [], (c) => c, seen).map((o) => [o.value, o.count])
+    expect(counts({})).toEqual([['CA', 3], ['MX', 2], ['US', 1]])
+    expect(counts({ countries: ['US'] })).toEqual([['CA', 3], ['MX', 2], ['US', 1]])
+    expect(counts({ order: 'Strigiformes' })).toEqual([['CA', 1]])
   })
-  it('province labels come from the region names', () => {
-    const name = (c: string) => ({ 'CA-BC': 'British Columbia', 'CA-ON': 'Ontario' })[c] ?? c
-    expect(options(list, { country: 'CA' }, 'sub1', species, [], name, seen).map((o) => o.label)).toEqual(['British Columbia', 'Ontario'])
+  it('keys list the countries sorted, whatever order they were checked in', () => {
+    expect(filterKey({ countries: ['US', 'CA'] })).toBe('c:CA,US')
+    expect(filterKey({ countries: ['CA', 'US'], order: 'X' })).toBe(filterKey({ order: 'X', countries: ['US', 'CA'] }))
   })
-  it('keys name the province and the county', () => {
-    expect(filterKey({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' })).toBe('c:CA|p:CA-BC|k:Capital')
+  it('toggleCountry checks and unchecks, kept sorted; none left drops the dimension', () => {
+    expect(toggleCountry({}, 'US')).toEqual({ countries: ['US'] })
+    expect(toggleCountry({ countries: ['US'] }, 'CA')).toEqual({ countries: ['CA', 'US'] })
+    expect(toggleCountry({ countries: ['CA', 'US'] }, 'CA')).toEqual({ countries: ['US'] })
+    expect(toggleCountry({ countries: ['US'], order: 'X' }, 'US')).toEqual({ order: 'X' })
+    expect(withCountries({ countries: ['US'] }, [])).toEqual({})
+    expect(withCountries({}, ['US', 'CA', 'US'])).toEqual({ countries: ['CA', 'US'] })
   })
-  it('a search pick keeps a place it was seen in, and clears one it was not', () => {
+  it('a search pick keeps countries it was seen in, and clears them when it was seen in none', () => {
     const crow = list.find((e) => e.code === 'crow')!
-    expect(filterToShow({ country: 'CA', sub1: 'CA-BC' }, crow, species, [], seen)).toEqual({ country: 'CA', sub1: 'CA-BC' })
-    expect(filterToShow({ country: 'CA', sub1: 'CA-ON' }, crow, species, [], seen)).toEqual({ country: 'CA' })
-    expect(filterToShow({ country: 'US', sub1: 'US-WA', sub2: 'King' }, crow, species, [], seen)).toEqual({})
+    expect(filterToShow({ countries: ['CA', 'US'] }, crow, species, [], seen)).toEqual({ countries: ['CA', 'US'] })
+    expect(filterToShow({ countries: ['US'] }, crow, species, [], seen)).toEqual({})
   })
 })
 
 describe('validity of places', () => {
-  it('a province needs its country and a county its province', () => {
-    expect(applyFilterValidity({ sub1: 'CA-BC' }, list, [], species, false)).toEqual({})
-    expect(applyFilterValidity({ country: 'US', sub1: 'CA-BC' }, list, [], species, false)).toEqual({ country: 'US' })
-    expect(applyFilterValidity({ country: 'CA', sub2: 'Capital' }, list, [], species, false)).toEqual({ country: 'CA' })
-    expect(applyFilterValidity({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' }, list, [], species, false)).toEqual({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' })
+  it('older state migrates: a single country joins the set; provinces and counties are dropped', () => {
+    expect(applyFilterValidity({ country: 'CA' } as never, list, [], species, false)).toEqual({ countries: ['CA'] })
+    expect(applyFilterValidity({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' } as never, list, [], species, false)).toEqual({ countries: ['CA'] })
+    expect(applyFilterValidity({ sub1: 'CA-BC' } as never, list, [], species, false)).toEqual({})
+    expect(applyFilterValidity({ countries: ['US', 'CA', 'US', 'nope'] }, list, [], species, false)).toEqual({ countries: ['CA', 'US'] })
+    expect(applyFilterValidity({ countries: [] }, list, [], species, false)).toEqual({})
   })
-  it('after a list change, places no species was seen in go', () => {
-    expect(applyFilterValidity({ country: 'US', sub1: 'US-WA', sub2: 'King' }, list, [], species, true, seen)).toEqual({ country: 'US', sub1: 'US-WA', sub2: 'King' })
-    expect(applyFilterValidity({ country: 'US', sub1: 'US-WA', sub2: 'Pierce' }, list, [], species, true, seen)).toEqual({ country: 'US', sub1: 'US-WA' })
-    expect(applyFilterValidity({ country: 'US', sub1: 'US-OR' }, list, [], species, true, seen)).toEqual({ country: 'US' })
-    expect(applyFilterValidity({ country: 'FR', sub1: 'FR-IDF' }, list, [], species, true, seen)).toEqual({})
+  it('after a list change, countries no species was seen in go', () => {
+    expect(applyFilterValidity({ countries: ['US'] }, list, [], species, true, seen)).toEqual({ countries: ['US'] })
+    expect(applyFilterValidity({ countries: ['FR', 'US'] }, list, [], species, true, seen)).toEqual({ countries: ['US'] })
+    expect(applyFilterValidity({ countries: ['FR'] }, list, [], species, true, seen)).toEqual({})
   })
 })
 
-describe('the share image names the deepest place', async () => {
+describe('the share image names the countries', async () => {
   const { filterLabel } = await import('@/lib/share/image')
-  const ctx = { species, trips: [], countryName: (c: string) => ({ CA: 'Canada' })[c] ?? c, regionName: (c: string) => ({ 'CA-BC': 'British Columbia' })[c] ?? c }
-  it('country, province, county', () => {
-    expect(filterLabel({ country: 'CA' }, ctx)).toBe('Canada')
-    expect(filterLabel({ country: 'CA', sub1: 'CA-BC' }, ctx)).toBe('British Columbia')
-    expect(filterLabel({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital', order: 'Strigiformes' }, ctx)).toBe('Owls · Capital, British Columbia')
+  const ctx = { species, trips: [], countryName: (c: string) => ({ CA: 'Canada', EG: 'Egypt', MX: 'Mexico' })[c] ?? c }
+  it('one, two, three or more', () => {
+    expect(filterLabel({ countries: ['CA'] }, ctx)).toBe('Canada')
+    expect(filterLabel({ countries: ['CA', 'EG'], order: 'Strigiformes' }, ctx)).toBe('Owls · Canada + Egypt')
+    expect(filterLabel({ countries: ['CA', 'EG', 'MX'] }, ctx)).toBe('Canada and 2 more')
+  })
+  it('a trip in the one chosen country is not named twice', () => {
+    const trip = { id: 'EG-2021-09-01', country: 'EG', start: '2021-09-01', end: '2021-09-03', label: 'Egypt · Sep 2021', codes: [] }
+    expect(filterLabel({ countries: ['EG'], trip: trip.id }, { ...ctx, trips: [trip] })).toBe('Egypt · Sep 2021')
+    expect(filterLabel({ countries: ['CA', 'EG'], trip: trip.id }, { ...ctx, trips: [trip] })).toBe('Canada + Egypt · Egypt · Sep 2021')
   })
 })

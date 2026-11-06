@@ -23,7 +23,7 @@ export function Landing() {
       </div>
       {/* The pre-packed sample needs no bird data, so a failed load says nothing here (Settings says it). */}
       <AppNotices eb={eb} memory={false} failure={false} />
-      <SampleDemo dots={eb.dots} />
+      <SampleDemo />
     </main>
   )
 }
