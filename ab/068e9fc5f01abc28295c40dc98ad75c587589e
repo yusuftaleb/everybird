@@ -1,0 +1,61 @@
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_6af7ca080ba451 20,356,358
+public/data/masks/Strigiformes.v1.json
+  s_ab125876fe9ad2::t_b22a75aad860c2 1
+src/components/collage/BirdCard.tsx
+  s_ab125876fe9ad2::t_3780b0683f87f2 145
+src/components/collage/Sticker.css
+  s_ab125876fe9ad2::t_6816a5d344955b 1-2,7-15
+src/components/collage/Sticker.tsx
+  s_ab125876fe9ad2::t_b1f7291089c465 2,104-105,119-121
+tests/pack.test.ts
+  s_ab125876fe9ad2::t_184555afdcc3f6 327-330,337-345
+scripts/build-data/build-species.ts
+  s_ab125876fe9ad2::t_9e2eafe456704d 81,87,111,115,129
+tests/card-list.test.tsx
+  s_ab125876fe9ad2::t_44cdf82b4f670b 148,151,153-154
+public/data/species.v1.json
+  s_ab125876fe9ad2::t_ff011cd0053c88 1
+public/data/masks/Columbiformes.v1.json
+  s_ab125876fe9ad2::t_0f794add998295 1
+public/data/masks/Passeriformes.v1.json
+  s_ab125876fe9ad2::t_cb51ca566c7aac 1
+src/components/collage/Bird.tsx
+  s_ab125876fe9ad2::t_1a93b8e32f7ca8 31
+public/data/masks/Charadriiformes.v1.json
+  s_ab125876fe9ad2::t_ec3ce945b94f59 1
+src/lib/bird-outline.ts
+  s_ab125876fe9ad2::t_af5438ce757e81 1-5
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_fe5a4493d8e839 430
+tests/build-species.test.ts
+  s_ab125876fe9ad2::t_4e85843c7eba38 5
+DESIGN.md
+  s_ab125876fe9ad2::t_c60efaa17416c2 225-226
+data/build/crosswalk-report.md
+  s_ab125876fe9ad2::t_2f8d42895f5c43 4,63,83,129,154,158,160-165,190-191,194-199,201,204,224-226,230-231,243,245-248
+AGENTS.md
+  s_ab125876fe9ad2::t_acf092e5d51a64 41
+public/data/masks/Coraciiformes.v1.json
+  s_ab125876fe9ad2::t_a94c5fc7d5b124 1
+scripts/build-data/build-stickers.ts
+  s_ab125876fe9ad2::t_429f06d4fbf470 6,65,97,100-103,116-117,130
+src/components/about/HowItWorksStage.tsx
+  s_ab125876fe9ad2::t_b3318105d69830 27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ab068e9fc5f01abc28295c40dc98ad75c587589e",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
