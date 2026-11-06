@@ -115,6 +115,7 @@ export class BirdWindow {
     const el = this.o.els.get(code)
     if (!el) return false
     this.shown.add(code)
+    this.doomed.delete(code)
     this.o.onReveal?.(code, el)
     setFar(el, false)
     this.drop.delete(code)
@@ -125,6 +126,7 @@ export class BirdWindow {
   private hide(code: string) {
     const el = this.o.els.get(code)
     this.shown.delete(code)
+    this.doomed.delete(code)
     if (!el) return
     setFar(el, true)
     // A sticker still waiting or downloading lets go at once: a hidden image may never finish (nor free its slot).
@@ -168,10 +170,18 @@ export class BirdWindow {
   }
   private waiters: (() => void)[] = []
   /**
-   * Quiet: the bird layer is hidden (a fade-through places birds), so the birds in the viewport are shown within the
-   * per-frame budget too; nobody sees them arrive.
+   * Quiet: the bird layer is transparent while a fade-through places birds. Rendered birds that are leaving the
+   * window are `doomed`: written to the motion caches only (like unrendered ones) and hidden within the budget, so
+   * each costs one restyle, not two; `whenShown` waits for them too. Leaving quiet hides any still left at once.
    */
-  quiet = false
+  get quiet() { return this.isQuiet }
+  set quiet(on: boolean) {
+    this.isQuiet = on
+    if (!on) for (const c of [...this.doomed]) this.hide(c)
+  }
+  private isQuiet = false
+  /** Rendered birds leaving the window while quiet (see `quiet`). */
+  readonly doomed = new Set<string>()
 
   /** Change budget for the next sync (bird reveals; a hide counts half), adapted to how long frames take. */
   private budget = FRAME_BUDGET
@@ -211,21 +221,28 @@ export class BirdWindow {
     if (!opts.keep && performance.now() >= this.holdUntil) {
       const a = v.top - KEEP_MARGIN * s, b = v.bottom + KEEP_MARGIN * s
       const pins = new Set(this.o.pinned())
-      const room = Math.max(FRAME_MIN, (this.budget - spend) * 2)
+      const room = Math.max(FRAME_MIN, this.budget - spend)
       let hidden = 0
-      for (const code of this.shown) {
+      for (const code of [...this.shown]) {
         if (pins.has(code) || this.o.busy?.(code)) continue
         const i = ix.at.get(code)
-        if (i !== undefined && ix.bottom[i] > a && ix.top[i] < b) continue
-        if (hidden++ >= room) { more = true; break }
-        this.hide(code)
+        if (i !== undefined && ix.bottom[i] > a && ix.top[i] < b) {
+          // Back in the window (a scroll while placing): its DOM catches up now.
+          const el = this.doomed.delete(code) ? this.o.els.get(code) : undefined
+          if (el) this.o.onReveal?.(code, el)
+          continue
+        }
+        if (hidden < room) { hidden++; this.hide(code); continue }
+        more = true
+        if (!this.isQuiet) break
+        this.doomed.add(code)
       }
     }
     // Last, so this frame's reads above came before any of its writes.
     if (this.dropSome()) more = true
     if (more) this.schedule()
     else this.last = -1 // the next sync starts a new run: no frame to measure
-    if (!left) this.flushWaiters()
+    if (!left && !this.doomed.size) this.flushWaiters()
     return n
   }
 

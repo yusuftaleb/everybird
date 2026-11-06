@@ -69,7 +69,7 @@ type Fade = { anim: Animation | null; phase: 'out' | 'place' | 'in' | null; appl
 /** A bird's first-render style, from the layout it first appears in (seeds the motion caches to match). */
 function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Motion, stagePx: number, appear: boolean, far: boolean): BirdInit {
   const box = visible.has(code) ? layout.boxes.get(code) : undefined
-  if (!box) return { style: { '--x': 0, '--y': 0, '--w': 0, '--h': 0, '--k': 1, '--md': '0ms', '--d': '0ms' } as CSSProperties, off: true, far, w: 1, h: 1 }
+  if (!box) return { style: { '--x': 0, '--y': 0, '--w': 0, '--h': 0, '--k': 1, '--md': '0ms', '--ad': '0ms' } as CSSProperties, off: true, far, w: 1, h: 1 }
   const { W, H } = layout
   const b: [number, number] = [pct(box[2], W), pct(box[3], W)]
   const x = pct(box[0], W), y = pct(box[1], W), md = Math.round(fromCount(box, W, H) * RIPPLE_MS)
@@ -78,7 +78,7 @@ function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Mo
   const w = (b[0] / 100) * stagePx, h = (b[1] / 100) * stagePx
   m.sizes.set(code, Math.ceil(w))
   const d = appear ? Math.round(fromCount(box, W, H) * APPEAR_MS) : 0
-  return { style: { '--x': x, '--y': y, '--w': b[0], '--h': b[1], '--k': 1, '--md': `${md}ms`, '--d': `${d}ms` } as CSSProperties, off: false, far, w, h }
+  return { style: { '--x': x, '--y': y, '--w': b[0], '--h': b[1], '--k': 1, '--md': `${md}ms`, '--ad': `${d}ms` } as CSSProperties, off: false, far, w, h }
 }
 
 export function Collage({ entries, species, layout, visible, mode, onPick, onHover, className, still }: CollageProps) {
@@ -129,7 +129,10 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
   const winOn = useRef(windowed)
   const win = useRef<BirdWindow | null>(null)
   // Unrendered birds are written to the motion caches only; their DOM catches up as they are rendered (applyFar).
-  const [far] = useState<FarBirds>(() => ({ has: (c) => winOn.current && !win.current?.shown.has(c), off: new Map() }))
+  const [far] = useState<FarBirds>(() => ({
+    has: (c) => winOn.current && (!win.current?.shown.has(c) || win.current.doomed.has(c)),
+    off: new Map(),
+  }))
   const getWin = useCallback(() => {
     win.current ??= new BirdWindow({
       els: els.current,

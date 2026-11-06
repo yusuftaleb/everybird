@@ -4,6 +4,16 @@
 /* --sh (the stage height, in cqw) is not inherited: an inherited custom property would restyle all 1,000+
    birds (and their images) every time the stage height changes. */
 @property --sh { syntax: "<number>"; inherits: false; initial-value: 0; }
+/* Each bird's own variables (written per bird, Collage.tsx) are registered and not inherited too: an element that
+   sets unregistered custom properties gets its own copy of every inherited one (all the design tokens), which made
+   each bird's restyle several times dearer. */
+@property --x { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --y { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --w { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --h { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --k { syntax: "<number>"; inherits: false; initial-value: 1; }
+@property --md { syntax: "<time>"; inherits: false; initial-value: 0ms; }
+@property --ad { syntax: "<time>"; inherits: false; initial-value: 0ms; }
 .eb-collage {
   --eb-travel: cubic-bezier(.45, 0, .1, 1);
   --eb-arrive: cubic-bezier(.25, .8, .25, 1);
@@ -51,7 +61,7 @@
     scale .64s var(--eb-travel) var(--md),
     opacity .2s ease,
     transform .2s var(--eb-arrive);
-  animation: eb-in .48s var(--eb-arrive) var(--d) backwards;
+  animation: eb-in .48s var(--eb-arrive) var(--ad) backwards;
 }
 /* The focus ring is drawn inside the bird's scale, so divide by it: 2px Accent, offset 2, at any size. */
 .eb-bird:focus-visible {
