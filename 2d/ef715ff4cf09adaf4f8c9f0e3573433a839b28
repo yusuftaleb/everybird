@@ -1,0 +1,51 @@
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_655692b7196990 17,70-72,80-83,85-88,92,116-117,134
+src/lib/layout/layout.worker.ts
+  s_ab125876fe9ad2::t_05704536b0e3a1 6-7,10-11,33,116
+tests/pack.test.ts
+  s_ab125876fe9ad2::t_35b549722dce0b 353-401
+src/lib/layout/pack.ts
+  s_ab125876fe9ad2::t_2b669684966141 129,135,157,231-237,239,241-245,247-251,253
+  s_ab125876fe9ad2::t_8a7899d55b4f02 227-229
+AGENTS.md
+  s_ab125876fe9ad2::t_d0c4147693b05d 55,57
+app/s/[token]/opengraph-image.tsx
+  s_ab125876fe9ad2::t_964c28de195140 3-4,40-43,115
+  s_ab125876fe9ad2::t_aea2e6021dcd8d 8,26-32,74-75,81,84-98,104,110,113,116-127,129
+DESIGN.md
+  s_ab125876fe9ad2::t_d0c4147693b05d 188
+tests/share-image-load.test.ts
+  s_ab125876fe9ad2::t_655692b7196990 173,182
+  s_ab125876fe9ad2::t_3777935ab8c24f 174
+tests/share-image.test.ts
+  s_ab125876fe9ad2::t_a59016e2502073 125,132
+  s_ab125876fe9ad2::t_655692b7196990 5,17-19,21-23,166-186
+  s_ab125876fe9ad2::t_aea2e6021dcd8d 137-142
+  s_ab125876fe9ad2::t_bc2c3328ddbcf4 70,72,75-76,80-97,99-100,102-104,107-124,126-131,133-136,143-160,187
+  s_ab125876fe9ad2::t_3777935ab8c24f 161-162
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_3777935ab8c24f 163-164,389-390,406,408
+  s_ab125876fe9ad2::t_8a7899d55b4f02 133,437-444
+  s_ab125876fe9ad2::t_243395299411d1 116,118-119,124-125
+  s_ab125876fe9ad2::t_de7557499bff8a 174-175,177,194,214-216,218-219
+  s_ab125876fe9ad2::t_8aa74d89772a88 78-86,88-98,105-107,109-115,117,120-123,126,129-131,137-138,141-160,166,409
+  s_ab125876fe9ad2::t_338e62ec74e675 127-128,132,134,456-458
+  s_ab125876fe9ad2::t_de895856f30d6f 43-49,372-373,376,391-405,407,418-419,422-424,427,429,434,451-453,460,462-463,482-505,508-509,511,516-528,531-535,537-539,541-543,545
+  s_ab125876fe9ad2::t_85ada2e9f45846 410
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2def715ff4cf09adaf4f8c9f0e3573433a839b28",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
