@@ -1,9 +1,10 @@
 'use client'
-import { useRef, useState, type DragEvent } from 'react'
+import { FileCsv } from '@phosphor-icons/react'
+import { useId, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import type { EbirdJob } from '@/components/app/use-import-jobs'
 import type { Saved, EbirdDetails } from '@/lib/list/storage'
-import { NotCounted } from './NotCounted'
-import { ebirdLine, sourceMeta, SourceRow } from './SourceLine'
+import { notCounted } from './NotCounted'
+import { ebirdLine, HowTo, SourceRow } from './SourceLine'
 
 /** An eBird file already on the list: its slot ('ebird' full export, 'ebird-list' life list) and what is known of it. */
 export type EbirdConnected = { slot: 'ebird' | 'ebird-list'; details?: EbirdDetails }
@@ -16,61 +17,63 @@ type Props = {
   /** Species already imported from each eBird file (the full MyEBirdData export and the quick life list download),
    *  and whether any full-export record names a region (county). */
   loaded: { full: number; quick: number; fullCounty?: boolean }
-  /** The eBird files on the list, each with Replace and Remove. */
+  /** The eBird files on the list, each with Replace and, in its ⋯ menu, Remove. */
   connected?: EbirdConnected[]
   onRemove?: (slot: EbirdConnected['slot']) => void
-  /** For each row's not-counted entries. */
+  /** For each row's skipped entries. */
   saved?: Saved
 }
 
-/** The one thing worth saying about the eBird files in: the life list download stops at the province, and an old
- *  full-export slot without counties should be imported again. */
-function detailNote({ full, quick, fullCounty = true }: Props['loaded']): string | null {
-  // A list saved before the two eBird slots may hold the life list download in the full export's place.
-  if (full && !fullCounty) return 'No regions (counties) in your eBird file yet: import “Download My Data” again to add them.'
-  if (quick && !full) return 'Your life list download gives each bird’s state or province. Add the full “Download My Data” export to place them down to the region (county).'
-  return null
+type Row = {
+  slot: EbirdConnected['slot']
+  kind: EbirdDetails['kind']
+  title: string
+  what: string
+  /** The Add panel's guidance: what this file is and what it brings. */
+  guide: string
+  help: ReactNode
 }
 
-const ROWS = [
+const ROWS: Row[] = [
   {
-    slot: 'ebird-list' as const,
-    kind: 'life-list' as const,
+    slot: 'ebird-list',
+    kind: 'life-list',
     title: 'eBird life list',
-    blurb: 'instant, to the province',
     what: 'your eBird life list download',
-    help: (
-      <p>
-        On eBird: My eBird, then your World life list total, then Download. It&apos;s instant, and places go down to the
-        state or province.
-      </p>
-    ),
+    guide: 'Your World life list from eBird. It downloads at once, and places each bird to the state or province.',
+    help: <p>On eBird: My eBird, then your World life list total, then Download. It&apos;s instant, and places go down to the state or province.</p>,
   },
   {
-    slot: 'ebird' as const,
-    kind: 'full-export' as const,
+    slot: 'ebird',
+    kind: 'full-export',
     title: 'MyEBirdData',
-    blurb: 'full export, adds counties',
     what: 'your eBird full export',
-    help: (
-      <p>
-        On eBird: Download My Data (under My eBird). eBird emails you MyEBirdData.csv; it places birds down to the
-        region (county).
-      </p>
-    ),
+    guide: 'eBird’s full export of every checklist. It places birds down to the region (county), and joins your life list if you add both.',
+    help: <p>On eBird: Download My Data (under My eBird). eBird emails you MyEBirdData.csv; it places birds down to the region (county).</p>,
   },
 ]
 
 /**
- * The two eBird files, one row each (Settings > Your list): the file's name, rows and date, or "Not added", with Add
- * (or Replace) and Remove inline. Every Add and Replace opens the same picker, and the file lands in the row of its
- * kind (read from its header); the rows take a dropped file too (they highlight while one is dragged over). The
- * import itself runs above the routes, so it survives navigation.
+ * The two eBird files, one quiet row each (Settings > Your list). Not added: "Add" opens the row's panel (what the file
+ * brings, the drop zone with "Choose your eBird file", and "How do I get this file?"). Added: the file's name, rows,
+ * skipped entries and date, with Replace (the same picker) and a ⋯ menu (Replace, Remove). Every picker and drop reads
+ * the file the same way, and it lands in the row of its kind (read from its header); both rows and the open panels
+ * take a dropped file (they highlight while one is dragged over). The import itself runs above the routes, so it
+ * survives navigation.
  */
 export function EbirdDrop({ job, onFile, disabled, loaded, connected = [], onRemove, saved }: Props) {
+  const id = useId()
   const [over, setOver] = useState(false)
+  const [adding, setAdding] = useState<EbirdConnected['slot'] | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const { busy, rows, error } = job
+  // A file landed (a row connected or went): fold the Add panels away.
+  const on = connected.map((c) => c.slot).join()
+  const [lastOn, setLastOn] = useState(on)
+  if (lastOn !== on) {
+    setLastOn(on)
+    setAdding(null)
+  }
 
   const read = (file: File | undefined) => {
     if (!file || busy) return
@@ -83,9 +86,12 @@ export function EbirdDrop({ job, onFile, disabled, loaded, connected = [], onRem
     setOver(false)
     if (!disabled) read(e.dataTransfer?.files?.[0])
   }
-  const note = detailNote(loaded)
   const off = disabled || busy
   const pick = () => input.current?.click()
+  // Only the life list download: the full export would add counties. An old full-export slot without counties
+  // (saved before the two eBird slots) should be imported again.
+  const quickOnly = !!loaded.quick && !loaded.full
+  const reimport = !!loaded.full && loaded.fullCounty === false
 
   return (
     <div
@@ -109,39 +115,67 @@ export function EbirdDrop({ job, onFile, disabled, loaded, connected = [], onRem
         onChange={(e) => read(e.target.files?.[0])}
       />
       {ROWS.map((r) => {
-        const on = connected.find((c) => c.slot === r.slot)
-        const line = on ? ebirdLine(r.kind, on.details) : null
+        const c = connected.find((x) => x.slot === r.slot)
+        const line = c ? ebirdLine(r.kind, c.details) : null
+        const open = adding === r.slot
         return (
           <SourceRow
             key={r.slot}
-            testId={on ? `source-${r.slot}` : undefined}
+            testId={c ? `source-${r.slot}` : undefined}
             title={r.title}
-            kind={r.blurb}
-            meta={line ? sourceMeta(line) : 'Not added'}
-            help={{ label: 'How do I get this file?', body: r.help }}
-            what={on ? r.what : undefined}
+            name={line?.name}
+            parts={line ? line.parts : ['Not added']}
+            skipped={c && saved ? notCounted(saved, [r.slot]) ?? undefined : undefined}
+            what={c ? r.what : undefined}
             disabled={off}
             onRemove={() => onRemove?.(r.slot)}
-            extra={saved && <NotCounted saved={saved} slots={[r.slot]} />}
-            actions={
-              on ? (
+            menu={c ? [{ label: 'Replace', onSelect: pick }] : undefined}
+            primary={
+              c ? (
                 <button type="button" className="eb-btn eb-btn-quiet eb-btn-sm" disabled={off} onClick={pick} aria-label={`Replace ${line!.name}`}>
                   Replace
                 </button>
               ) : (
-                <button type="button" className="eb-btn eb-btn-quiet eb-btn-sm" disabled={off} onClick={pick} aria-label={`Add ${r.title}`}>
+                <button
+                  type="button"
+                  className="eb-btn eb-btn-quiet eb-btn-sm"
+                  disabled={off}
+                  aria-expanded={open}
+                  aria-controls={`${id}-${r.slot}`}
+                  aria-label={`Add ${r.title}`}
+                  onClick={() => setAdding(open ? null : r.slot)}
+                >
                   Add
                 </button>
               )
             }
-          />
+          >
+            {!c && (
+              <div id={`${id}-${r.slot}`} className="eb-src-panel" hidden={!open} role="group" aria-label={`Add ${r.title}`}>
+                <p className="eb-note">{r.guide}</p>
+                {r.slot === 'ebird' && quickOnly && (
+                  <p className="eb-note" data-testid="ebird-detail">
+                    Your life list download gives each bird’s state or province. Add the full “Download My Data” export to place them down to the region (county).
+                  </p>
+                )}
+                <div className="eb-dropzone">
+                  <button type="button" className="eb-btn" disabled={off} onClick={pick}>
+                    <FileCsv aria-hidden="true" focusable="false" />
+                    Choose your eBird file
+                  </button>
+                  <span className="eb-note eb-drop-hint">or drop it here</span>
+                </div>
+                <HowTo label="How do I get this file?">{r.help}</HowTo>
+              </div>
+            )}
+          </SourceRow>
         )
       })}
       <p className="eb-status eb-src-status" role="status">
         {busy ? (rows ? `Reading your file… ${rows.toLocaleString('en-US')} rows` : 'Reading your file…') : ''}
       </p>
       {error && <p className="eb-error eb-src-status" role="alert">{error}</p>}
-      {note && <p className="eb-note eb-src-status" data-testid="ebird-detail">{note}</p>}
+      {reimport && <p className="eb-note eb-src-status" data-testid="ebird-detail">No regions (counties) in your eBird file yet: import “Download My Data” again to add them.</p>}
     </div>
   )
 }

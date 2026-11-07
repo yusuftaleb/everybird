@@ -1,5 +1,6 @@
-/* Settings > Your list: one bordered group, a row per source (title and a mono state line left, actions right; the
-   actions drop under the text on narrow screens), groups split by hairlines. The eBird rows take a dropped file. */
+/* Settings > Your list: one bordered group, a quiet row per source (two lines left: the title, with the file or
+   username, over a muted status; one button and, once connected, a ⋯ menu right), split by hairlines. Adding opens
+   the source's panel under its row. The eBird rows take a dropped file. */
 .eb-block-head { display: flex; flex-direction: column; gap: 4px; }
 .eb-srclist {
   display: flex; flex-direction: column; min-width: 0; background: var(--paper); border: 1px solid var(--hairline);
@@ -9,42 +10,89 @@
 .eb-srcgroup + .eb-srcgroup { border-top: 1px solid var(--hairline); }
 .eb-srcgroup:focus { outline: none; }
 .eb-srcgroup:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
+.eb-src { position: relative; }
 .eb-src + .eb-src { border-top: 1px solid var(--hairline); }
-.eb-src-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; }
-.eb-src-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 280px; }
-.eb-src-title {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0;
-  font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.35;
+.eb-src-main { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 12px 16px; min-height: 68px; box-sizing: border-box; }
+.eb-src-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.eb-src-title { margin: 0; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.eb-src-name { font-weight: 500; }
+.eb-src-meta { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.eb-src-meta .eb-nowrap { white-space: nowrap; }
+.eb-whybtn {
+  position: relative; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer;
+  text-decoration: underline; text-decoration-color: currentColor; text-decoration-thickness: from-font; text-underline-offset: 3px;
 }
-.eb-src-kind { font-size: 14px; font-weight: 500; color: var(--muted); }
-.eb-src-meta { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: .04em; line-height: 1.5; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.eb-src-id { font-family: var(--font-body); font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink); }
-.eb-src-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; flex: none; max-width: 100%; }
-.eb-src-how { margin-right: 6px; color: var(--muted); font-size: 13px; }
+.eb-whybtn::after { content: ''; position: absolute; inset: -12px -8px; } /* a 44px press */
+.eb-src-acts { display: flex; align-items: center; gap: 8px; flex: none; }
+
+/* The ⋯ menu (SourceMenu.tsx): a square quiet button, its menu a popover under it at the row's right edge. */
+.eb-menuwrap { position: relative; }
+.eb-menubtn { width: 40px; padding: 0; }
+.eb-menubtn svg { width: 20px; height: 20px; }
+.eb-menubtn[aria-expanded="true"] { border-color: var(--line); }
+@media (pointer: coarse) { .eb-menubtn { width: 44px; } }
+.eb-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 9; display: flex; flex-direction: column; min-width: 200px; padding: 4px;
+  background: var(--paper); border: 1px solid var(--hairline); box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  animation: eb-menu-in .16s var(--ease-ui);
+}
+@keyframes eb-menu-in { from { opacity: 0; translate: 0 -4px; } }
+.eb-menuitem {
+  display: flex; align-items: center; min-height: 44px; padding: 0 12px; border: 0; background: none; color: var(--ink);
+  font: inherit; font-size: 15px; font-weight: 500; text-align: left; white-space: nowrap; cursor: pointer;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-menuitem[data-danger] { color: var(--accent); }
+.eb-menuitem:focus { outline: none; }
+.eb-menuitem:focus-visible, .eb-menuitem:focus { background: var(--surface); }
+@media (hover: hover) and (pointer: fine) { .eb-menuitem:hover { background: var(--surface); } }
+
+/* Under a row: the Add panel (guidance, the drop zone or the username field, the how-to), the skipped entries, the
+   Remove question, the live status. */
+.eb-src-panel { display: flex; flex-direction: column; gap: 10px; margin: -4px 16px 14px; padding: 14px 16px; background: var(--surface); max-width: 640px;
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
+.eb-src-panel[hidden] { display: none; }
+.eb-src-panel > .eb-note { color: var(--ink); max-width: 62ch; }
+.eb-dropzone {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 14px; background: var(--paper);
+  border: 1.5px dashed var(--line); border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: border-color .15s cubic-bezier(.25, .8, .25, 1), background-color .15s cubic-bezier(.25, .8, .25, 1);
+}
+.eb-filedrop[data-over] .eb-dropzone { border-color: var(--accent); background: var(--surface); }
+.eb-howto { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.eb-src-how { color: var(--muted); font-size: 13px; }
 .eb-src-how svg { width: 12px; height: 12px; transition: rotate .2s cubic-bezier(.25, .8, .25, 1); }
 .eb-src-how[aria-expanded="true"] svg { rotate: 180deg; }
-@media (max-width: 599px) {
-  .eb-src-acts { justify-content: flex-start; flex: 1 1 100%; }
-  .eb-src-how { margin-right: auto; }
-}
-.eb-src-help { display: flex; flex-direction: column; gap: 6px; margin: -4px 16px 12px; padding: 10px 12px; max-width: 72ch; background: var(--surface); border-radius: 10px; }
+.eb-src-help { display: flex; flex-direction: column; gap: 6px; max-width: 62ch; }
 .eb-src-help[hidden] { display: none; }
 .eb-src-help p { margin: 0; }
-.eb-src-confirm { margin: 0 16px 12px; }
-.eb-src-form { padding: 0 16px 12px; }
-.eb-src-form[hidden] { display: none; }
-.eb-src-formrow { flex-wrap: nowrap; max-width: 560px; }
-.eb-src-formrow > .eb-input { flex: 1 1 auto; }
+.eb-src-why { display: flex; flex-direction: column; gap: 6px; margin: -4px 16px 14px; padding: 12px 14px; max-width: 640px; background: var(--surface);
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
+.eb-src-why[hidden] { display: none; }
+.eb-src-why .eb-note { margin: 0; }
+.eb-src-why ul { margin: 0; padding-left: 18px; }
+.eb-src-why a { color: var(--accent); font-weight: 600; }
+.eb-src-confirm { margin: 0 16px 14px; }
+.eb-src-form { display: block; }
+.eb-src-formrow { max-width: 560px; }
+.eb-src-formrow > .eb-input { flex: 1 1 180px; min-width: 0; }
 .eb-src-formrow > .eb-btn { flex: none; }
 .eb-src-status { padding: 0 16px 12px; }
 .eb-src-status:empty { padding: 0; }
-.eb-src-extra { padding: 0 16px; }
-.eb-src-extra:not(:has(*)) { display: none; }
 .eb-btn-sm { min-height: 40px; padding: 0 14px; font-size: 14px; }
 @media (pointer: coarse) { .eb-btn-sm { min-height: 44px; } }
 .eb-filedrop { border-radius: 12px; transition: background-color .15s cubic-bezier(.25, .8, .25, 1), box-shadow .15s cubic-bezier(.25, .8, .25, 1); }
 .eb-filedrop[data-over] { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.eb-filedrop[data-over] .eb-src-panel { background: var(--paper); }
 @media (pointer: coarse) { .eb-drop-hint { display: none; } }
+@media (max-width: 479px) {
+  .eb-src-main { padding: 12px 14px; }
+  .eb-src-panel, .eb-src-why { margin-left: 14px; margin-right: 14px; padding: 12px; }
+  .eb-dropzone > .eb-btn { flex: 1 1 100%; }
+  .eb-src-formrow > .eb-input { flex-basis: 100%; }
+  .eb-src-formrow > .eb-btn { flex: 1 1 auto; }
+}
 
 /* The match report under the sources: one line and "Fix them"; the rows open under it. */
 .eb-matchbox {
@@ -65,7 +113,8 @@
 .eb-disclose-inner { min-height: 0; }
 .eb-disclose[data-phase] .eb-disclose-inner { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
-  .eb-disclose, .eb-disclose-btn svg, .eb-src-how svg, .eb-filedrop { transition: none; }
+  .eb-disclose, .eb-disclose-btn svg, .eb-src-how svg, .eb-filedrop, .eb-dropzone { transition: none; }
+  .eb-menu { animation: none; }
 }
 
 .eb-label {
@@ -102,14 +151,6 @@
 .eb-match-sci { color: var(--muted); font-size: 14px; }
 .eb-match-acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .eb-tickbar-drop { color: var(--accent); font-weight: 500; }
-.eb-notcounted { font-size: 13px; }
-.eb-notcounted summary {
-  position: relative; display: inline-flex; align-items: center; line-height: 20px; cursor: pointer; color: var(--ink);
-  text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px;
-}
-.eb-notcounted summary::after { content: ''; position: absolute; inset: -12px -4px; } /* a 44px hit area */
-.eb-notcounted[open] { display: flex; flex-direction: column; gap: 4px; padding-bottom: 4px; }
-.eb-notcounted ul { margin: 0; padding-left: 18px; }
 
 /* Tick by hand inside its row: the list under a hairline, its sticky bar the group's width. */
 .eb-srcgroup .eb-tick { padding: 12px 16px 0; border: 0; border-top: 1px solid var(--hairline); border-radius: 0; }

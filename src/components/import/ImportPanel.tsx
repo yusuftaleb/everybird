@@ -9,7 +9,6 @@ import type { Regions } from '@/lib/species/types'
 import { EbirdDrop, type EbirdConnected } from './EbirdDrop'
 import { InatForm } from './InatForm'
 import { TickList } from './TickList'
-import { NotCounted } from './NotCounted'
 import { SourceRow } from './SourceLine'
 import './import.css'
 
@@ -63,8 +62,9 @@ function Group({ id, label, children }: { id: string; label: string; children: R
 }
 
 /**
- * Settings > "Your list": every source on one line each (eBird life list, MyEBirdData, iNaturalist, Ticked by hand),
- * its state and actions inline, the how-tos folded away. They combine into one list; each import replaces only its own
+ * Settings > "Your list": one quiet row per source (eBird life list, MyEBirdData, iNaturalist, Ticked by hand): its
+ * name and status on two lines, one button on the right, a ⋯ menu once connected; adding opens the source's panel
+ * (its guidance and how-to inside) under the row. They combine into one list; each import replaces only its own
  * slot. `children` follow the rows (the match report).
  */
 export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, regions, jobs, disabled, children, onList }: Props) {
@@ -91,7 +91,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
     <section ref={section} id="sources" className="eb-block eb-import" aria-labelledby="eb-sources-h" tabIndex={-1}>
       <div className="eb-block-head">
         <h2 id="eb-sources-h" className="eb-h2">Your list</h2>
-        <p className="eb-note">Bring any of these, or several: they combine into one list.<span className="eb-drop-hint"> Drop an eBird file on its row.</span></p>
+        <p className="eb-note">Combine any of these into one list.</p>
       </div>
       <div className="eb-srclist">
         <Group id="way-ebird" label="eBird files">
@@ -118,15 +118,14 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             replaces={inatOn}
             details={saved.sources?.inat}
             onRemove={() => remove('inat')}
+            saved={saved}
           />
-          {inatOn && <div className="eb-src-extra"><NotCounted saved={saved} slots={['inat']} /></div>}
         </Group>
         <Group id="way-tick" label="Ticked by hand">
           <SourceRow
             title="Ticked by hand"
-            kind="any bird, no file"
-            meta={ticked ? `${ticked.toLocaleString('en-US')} species ticked · tick or un-tick any bird` : 'None yet · tick or un-tick any bird'}
-            actions={
+            parts={[ticked ? `${ticked.toLocaleString('en-US')} ${ticked === 1 ? 'bird' : 'birds'}` : 'None yet']}
+            primary={
               <button
                 type="button"
                 className="eb-btn eb-btn-quiet eb-btn-sm eb-disclose-btn"

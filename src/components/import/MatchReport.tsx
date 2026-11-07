@@ -18,8 +18,8 @@ const where = (u: Unmatched) =>
  * Rows that couldn't be matched to an eBird species (never dropped silently), as one line under the sources: the count
  * and "Fix them", which opens the rows, each with a one-tap fix when there is a likely species and a search to fix it
  * by hand. It opens by itself on arrival at /settings#match (the collage's "Fix it"). Fixes go to edits.fixes
- * (unmatchedKey, "slot:row" -> code). Non-species rows (sp., slashes, hybrids, domestics) are summarised in each
- * source's row (NotCounted.tsx).
+ * (unmatchedKey, "slot:row" -> code). Each source's row counts these rows, with the non-species ones (sp., slashes,
+ * hybrids, domestics), in its "· N skipped", whose "why?" says why and links here (NotCounted.tsx).
  */
 export const MatchReport = memo(function MatchReport({ open, saved, species, dispatch }: Props) {
   const rows = open.filter((u) => u.reason === 'no-match')
@@ -32,7 +32,7 @@ export const MatchReport = memo(function MatchReport({ open, saved, species, dis
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
-  // Entries that aren't species (sp., slashes, hybrids) are summarised in their own source's row (NotCounted).
+  // Entries that aren't species (sp., slashes, hybrids) are counted in their own source's row ("· N skipped", NotCounted).
   if (!rows.length) return null
   const fix = (u: Unmatched, code: string) =>
     dispatch({ type: 'edit', edits: { ...saved.edits, fixes: { ...saved.edits.fixes, [unmatchedKey(u)]: code } } })

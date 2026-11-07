@@ -65,10 +65,7 @@ export function SettingsPage() {
   const onList = useMemo(() => new Set(state.list.map((e) => e.code)), [state.list])
   return (
     <main className="eb-page eb-page-settings eb-page-titled">
-      <PageHead
-        title="Settings"
-        lede={mine ? 'Where your birds come from, how they count, and how to keep your list.' : 'Bring your list in any of three ways, and combine them if you keep more than one record.'}
-      />
+      <PageHead title="Settings" />
       <AppNotices eb={eb} />
       {mine && (landed || count > 0) && (
         <div className="eb-made" role="status" data-testid="see-collage">
