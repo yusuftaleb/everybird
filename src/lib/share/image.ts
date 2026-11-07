@@ -22,6 +22,7 @@ import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { stickerUrl } from '@/lib/sticker-url'
 import { formatDate } from '@/lib/format'
 import type { Box } from '@/lib/layout/pack'
+import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_LINE, NUM_LINE, columnBoxes, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
 import { latestLifer } from '@/lib/list/build-list'
 import { countriesLabel } from '@/lib/list/filter-summary'
@@ -108,11 +109,13 @@ export const SPREAD: Record<ImageFormat, number> = { story: 1.6, post: 1.25, squ
 const COUNT_MAX: Record<ImageFormat, number> = { story: 112, post: 104, square: 96 }
 /** The link preview's (1200 × 630, a 640px collage). */
 export const OG_COUNT_MAX = 72
-/** The number is never wider than this share of the collage's width. */
-const COUNT_W = 0.22
-// Cabinet Grotesk 700 metrics (em): tabular digits 0.5, the comma 0.25, digit height 0.6875; drawn at -0.02em tracking.
-// Geist Mono: 0.6em per character, caps 0.73em high.
-const DIGIT_EM = 0.5, COMMA_EM = 0.25, DIGIT_CAP = 0.6875, TRACK = -0.02, MONO_EM = 0.6, MONO_CAP = 0.73, MONO_TRACK = 0.06
+/**
+ * The number is never wider than this share of the collage's width (measured with count-box.ts's widths): "197" stays
+ * at the format's largest size, "1,089" and "11,019" shrink so the hole doesn't eat the collage.
+ */
+const COUNT_W = 0.26
+/** Air between the count's text and the edge of its hole, as a share of the number's size (as the collage's 0.17 F). */
+const COUNT_PAD = 0.17
 
 type Text = { y: number; size: number }
 /** The count at the centre of the collage: the number (size, px), the mono label under it, and the hole kept for them. */
@@ -123,8 +126,8 @@ export type CountLayout = {
   labelSize: number
   /** Gap between the number's baseline and the label's cap line. */
   gap: number
-  /** Ellipse radii [rx, ry] (px) the packer keeps empty at the collage's centre. */
-  hole: [number, number]
+  /** The hole (px, about the collage's centre) the packer keeps empty: the drawn text's boxes, grown by its pad. */
+  hole: Hole
 }
 export type CardLayout = {
   W: number
@@ -144,26 +147,33 @@ export type CardContent = { name: boolean; filter: boolean; latest: boolean; cou
 
 /**
  * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: the shown count over "SPECIES" (a filtered
- * view too: the filter label on top says what it is). The number shrinks so it never takes more than 40% of the collage's width.
- * `format` sets the largest size (or pass it in px: the link preview's smaller card).
+ * view too: the filter label on top says what it is). The number shrinks so it never takes more than COUNT_W of the
+ * collage's width. `format` sets the largest size (or pass it in px: the link preview's smaller card).
+ * The hole holds the text as renderShareImage draws it: one column centred on the collage's centre, the digits' height
+ * (the comma's foot below the baseline counted in), the gap, the label's caps.
  */
 export function countLayout(format: ImageFormat | number, count: number, collageW: number): CountLayout {
   const max = typeof format === 'number' ? format : COUNT_MAX[format]
-  const number = count.toLocaleString('en-US')
-  const label = 'SPECIES'
-  const commas = number.split(',').length - 1
-  const em = (number.length - commas) * DIGIT_EM + commas * COMMA_EM + number.length * TRACK
+  const number = countText(count)
+  const label = LABEL
+  const em = numberEm(number)
   const size = Math.round(Math.min(max, (COUNT_W * collageW) / em))
-  const labelSize = Math.round(Math.max(Math.min(22, size * 0.2), Math.min(28, size * 0.14)))
+  // The label: a fifth of the number up to 22px, never under 18px on the share images (a long count's number is smaller).
+  const labelSize = Math.round(Math.max(Math.min(22, size * 0.2), Math.min(28, size * 0.14), typeof format === 'number' ? 0 : 18))
   const gap = Math.round(size * 0.14)
-  // Half the text block (a × b), then the ellipse around it: 1.2a wide, and tall enough that the block's corners sit on
-  // it, plus air all round.
-  const a = Math.max(em * size, label.length * labelSize * (MONO_EM + MONO_TRACK)) / 2
-  const b = (DIGIT_CAP * size + gap + MONO_CAP * labelSize) / 2
-  const pad = 0.1 * size
-  const rx = 1.2 * a
-  const ry = 0.92 * b / Math.sqrt(1 - (a / rx) ** 2) // the block's corners are glyph corners, not solid: a little in
-  return { number, label, size, labelSize, gap, hole: [Math.round(rx + pad), Math.round(ry + pad)] }
+  const drop = COMMA_DROP * size
+  const boxes = columnBoxes(em * size, DIGIT_CAP * size + drop, gap - drop, labelEm(label) * labelSize, MONO_CAP * labelSize)
+  return { number, label, size, labelSize, gap, hole: { ...boxes, pad: COUNT_PAD * size } }
+}
+
+/**
+ * The link preview's hole for its count (px): satori draws the column with line boxes, the number on a 0.85 line box,
+ * the label on a 1.3 one (opengraph-image.tsx sets both), 0.6 x the gap between them.
+ */
+export function ogCountHole(K: CountLayout): Hole {
+  const em = numberEm(K.number)
+  const boxes = columnBoxes(em * K.size, Math.max(NUM_LINE, DIGIT_CAP + COMMA_DROP) * K.size, K.gap * 0.6 - Math.max(0, DIGIT_CAP + COMMA_DROP - NUM_LINE) * K.size, labelEm(K.label) * K.labelSize, MONO_LINE * K.labelSize)
+  return { ...boxes, pad: COUNT_PAD * K.size }
 }
 
 /** Where everything goes; text y is the top of its em box (textBaseline 'top'). The count sits at the collage's centre. */
@@ -188,10 +198,10 @@ export function cardLayout(format: ImageFormat, c: CardContent): CardLayout {
 }
 
 /** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
-export type PackSpec = { aspect: number; hole: [number, number]; maxTile: number }
+export type PackSpec = { aspect: number; hole: Hole; maxTile: number }
 export function packSpec(L: CardLayout): PackSpec {
   const { w, h } = L.collage
-  return { aspect: w / h, hole: [L.count.hole[0] / w, L.count.hole[1] / w], maxTile: L.maxTile }
+  return { aspect: w / h, hole: scaleHole(L.count.hole, 1 / w), maxTile: L.maxTile }
 }
 
 /**

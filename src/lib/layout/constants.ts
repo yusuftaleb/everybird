@@ -20,7 +20,8 @@ export const MAXUP = 1.5 // a filtered set may grow up to this much bigger than 
 // the starting stage; on a grown stage (H > the starting H) the spiral's x : y is stretch · H / grown H, the grown H
 // counted up to maxH (pack.ts stretchAt), so the cluster follows the stage's aspect: a stage grown 1.5x taller packs
 // as a round or tall cluster, not a wide oval.
-// F: count font size (sets the hole). minWidth: narrowest container this layout serves.
+// F: the count's font size in layout units (count-box.ts sizes the hole from the shown count's text at F).
+// minWidth / maxWidth: the stage widths (CSS px) this layout serves (wide up to the page's 1152px column).
 // Big lists (packBest): the stage grows taller, never wider, in two stages.
 // - floor: the median sticker's long side, in CSS px at the reference width W, below which the stage grows
 //   taller (a comfortable on-screen size), up to maxH. Past maxH the birds may get smaller than the floor.
@@ -32,10 +33,8 @@ export const MAXUP = 1.5 // a filtered set may grow up to this much bigger than 
 // denseFrom: from this many species, even layouts are packed dense: one GAP between birds and a settling pass
 // that closes the edge's loose lattice of small stickers (set where lists stopped meeting the old floors).
 export const LAYOUTS = [
-  { name: 'wide', W: 1120, H: 700, stretch: 1.7, F: 64, minWidth: 880, minBase: 14, floor: 48, maxH: 1680, denseFrom: 380 },
-  { name: 'medium', W: 700, H: 800, stretch: 1.0, F: 56, minWidth: 540, minBase: 12, floor: 40, maxH: 1050, denseFrom: 380 },
-  { name: 'narrow', W: 350, H: 900, stretch: 0.55, F: 40, minWidth: 0, minBase: 10, floor: 30, maxH: 1800, denseFrom: 250 },
+  { name: 'wide', W: 1120, H: 700, stretch: 1.7, F: 64, minWidth: 880, maxWidth: 1152, minBase: 14, floor: 48, maxH: 1680, denseFrom: 380 },
+  { name: 'medium', W: 700, H: 800, stretch: 1.0, F: 56, minWidth: 540, maxWidth: 880, minBase: 12, floor: 40, maxH: 1050, denseFrom: 380 },
+  { name: 'narrow', W: 350, H: 900, stretch: 0.55, F: 40, minWidth: 0, maxWidth: 540, minBase: 10, floor: 30, maxH: 1800, denseFrom: 250 },
 ] as const
 
-/** Ellipse radii [rx, ry] kept empty at the stage centre for the species count (number + small label). */
-export const holeRadii = (F: number): [number, number] => [1.15 * F, 0.62 * F + 12]

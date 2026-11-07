@@ -2,6 +2,7 @@
 // One bit per cell, LSB first: column x lives in word x >> 5, bit x & 31.
 import type { Mask } from './mask'
 import { maskCell } from './mask'
+import { holeExtent, isHole, touchesHole, type Hole } from './count-box'
 
 export class Grid {
   readonly gw: number
@@ -19,16 +20,16 @@ export class Grid {
     return (this.bits[y * this.wpr + (x >> 5)] & (1 << (x & 31))) !== 0
   }
 
-  /** Mark every cell that touches the ellipse centred at (cx, cy) with radii rx, ry (layout units). */
-  markEllipse(cx: number, cy: number, rx: number, ry: number): void {
+  /** Mark every cell that touches the count's hole (count-box.ts) centred at (cx, cy), in layout units. */
+  markHole(cx: number, cy: number, hole: Hole): void {
+    if (!isHole(hole)) return
     const c = this.cell
-    for (let y = 0; y < this.gh; y++) {
-      const qy = Math.max(y * c, Math.min(cy, (y + 1) * c))
-      const ty = ((qy - cy) / ry) ** 2
-      if (ty > 1) continue
-      for (let x = 0; x < this.gw; x++) {
-        const qx = Math.max(x * c, Math.min(cx, (x + 1) * c))
-        if (((qx - cx) / rx) ** 2 + ty <= 1) this.bits[y * this.wpr + (x >> 5)] |= 1 << (x & 31)
+    const [ex, ey] = holeExtent(hole)
+    const y0 = Math.max(0, Math.floor((cy - ey) / c)), y1 = Math.min(this.gh - 1, Math.floor((cy + ey) / c))
+    const x0 = Math.max(0, Math.floor((cx - ex) / c)), x1 = Math.min(this.gw - 1, Math.floor((cx + ex) / c))
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        if (touchesHole([x * c - cx, y * c - cy, (x + 1) * c - cx, (y + 1) * c - cy], hole)) this.bits[y * this.wpr + (x >> 5)] |= 1 << (x & 31)
       }
     }
   }

@@ -1,7 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { EXP, EXP_TRUE, GAP, LAYOUTS, OUTLINE_SHAPE, SHAPE_REF, holeRadii } from '../src/lib/layout/constants'
+import { EXP, EXP_TRUE, GAP, LAYOUTS, OUTLINE_SHAPE, SHAPE_REF } from '../src/lib/layout/constants'
+import { NO_HOLE, collageHole, holeExtent, rectGap, scaleHole, columnBoxes, type Hole } from '../src/lib/layout/count-box'
 import { MASK, decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
 import { DETACH, MAX_BASE, boxGap, detached, maskShape, packBest, packFrame, relSizes, stretchAt, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
 import { FALLBACK_MASK, loadBirds } from '../src/lib/layout/layout.worker'
@@ -30,6 +31,24 @@ function sample(n: number): PackBird[] {
 }
 
 const byName = (n: string) => LAYOUTS.find((l) => l.name === n)!
+
+/**
+ * Silhouette units (layout-unit squares) of the placed stickers inside the count's hole, centred on the stage: `touch`
+ * counts those that reach the text's own boxes, `near` those closer to them than the hole's pad less one unit (the
+ * packer's grid rounds the hole out to whole cells, so a unit may sit just inside the padded edge).
+ */
+function holeHits(birds: PackBird[], r: PackResult, hole: Hole): { touch: number; near: number } {
+  const cx = r.W / 2, cy = r.H / 2
+  const rects = [hole.num, hole.label]
+  let touch = 0, near = 0
+  silhouettePixels(birds, r, (_id, px, py) => {
+    const u: [number, number, number, number] = [px - cx, py - cy, px + 1 - cx, py + 1 - cy]
+    const d = Math.min(...rects.map((q) => rectGap(u, q)))
+    if (d <= 0) touch++
+    if (d < hole.pad - 1) near++
+  })
+  return { touch, near }
+}
 
 // Rasterise each placed sticker's silhouette at layout-unit resolution (one sample per layout unit, nearest
 // mask cell), independently of the packer's own grid. Returns the owner of each unit, or the first clash.
@@ -119,16 +138,8 @@ describe('packing engine (300 birds)', () => {
 
   it('the count hole stays empty', () => {
     for (const r of [wide, packBest(birds, byName('medium'), 'even')]) {
-      const F = r === wide ? byName('wide').F : byName('medium').F
-      const [rx, ry] = holeRadii(F)
-      let inside = 0
-      silhouettePixels(birds, r, (_id, px, py) => {
-        // the whole unit square must be outside the ellipse: test its closest point to the centre
-        const cx = r.W / 2, cy = r.H / 2
-        const qx = Math.max(px, Math.min(cx, px + 1)), qy = Math.max(py, Math.min(cy, py + 1))
-        if (((qx - cx) / rx) ** 2 + ((qy - cy) / ry) ** 2 <= 1) inside++
-      })
-      expect(inside).toBe(0)
+      const L = r === wide ? byName('wide') : byName('medium')
+      expect(holeHits(birds, r, collageHole(300, L))).toEqual({ touch: 0, near: 0 })
     }
   })
 
@@ -188,7 +199,7 @@ describe('packing engine (300 birds)', () => {
     expect(r1.base).toBe(r0.base)
     const off = (r0.H - r1.H) / 2
     expect(Number.isInteger(off)).toBe(true)
-    let ext = holeRadii(byName('wide').F)[1] + 24
+    let ext = holeExtent(collageHole(few.length, byName('wide')))[1] + 24
     for (const [id, [x, y, w, h]] of r1.boxes) {
       const [x0, y0, w0, h0] = r0.boxes.get(id)!
       expect([x, y + off, w, h]).toEqual([x0, y0, w0, h0])
@@ -200,14 +211,7 @@ describe('packing engine (300 birds)', () => {
     expect(r1.H / 2 - (ext + 10)).toBeGreaterThanOrEqual(-1e-9)
     expect(r1.H / 2 - (ext + 10)).toBeLessThan(1)
     // the count hole (at the new centre) stays empty
-    const [rx, ry] = holeRadii(byName('wide').F)
-    let inside = 0
-    silhouettePixels(few, r1, (_id, px, py) => {
-      const cx = r1.W / 2, cy = r1.H / 2
-      const qx = Math.max(px, Math.min(cx, px + 1)), qy = Math.max(py, Math.min(cy, py + 1))
-      if (((qx - cx) / rx) ** 2 + ((qy - cy) / ry) ** 2 <= 1) inside++
-    })
-    expect(inside).toBe(0)
+    expect(holeHits(few, r1, collageHole(few.length, byName('wide')))).toEqual({ touch: 0, near: 0 })
   })
 
   it('fit never makes a stage taller than the one packed in', () => {
@@ -406,14 +410,7 @@ describe('big lists: the stage grows taller until the median sticker reaches the
   it('the count stays centred: the hole is empty on a grown stage', () => {
     const { r } = big('wide', 723)
     const birds = sample(723)
-    const [rx, ry] = holeRadii(byName('wide').F)
-    let inside = 0
-    silhouettePixels(birds, r, (_id, px, py) => {
-      const cx = r.W / 2, cy = r.H / 2
-      const qx = Math.max(px, Math.min(cx, px + 1)), qy = Math.max(py, Math.min(cy, py + 1))
-      if (((qx - cx) / rx) ** 2 + ((qy - cy) / ry) ** 2 <= 1) inside++
-    })
-    expect(inside).toBe(0)
+    expect(holeHits(birds, r, collageHole(723, byName('wide')))).toEqual({ touch: 0, near: 0 })
   }, 60000)
 
   it('true mode packs in the even stage of a grown collage: same W x H, every bird placed', () => {
@@ -576,8 +573,8 @@ describe('packFrame with the count in the middle (share images)', () => {
   beforeAll(() => {
     if (!POOL.length) POOL = loadPool()
   })
-  // The hole and the largest tile as fractions of the frame width, as the share image asks for them.
-  const spec = { hole: [0.21, 0.15] as [number, number], maxTile: 0.24 }
+  // The hole and the largest tile as fractions of the frame width, as the share image asks for them (about a 1,089's).
+  const spec = { hole: { ...columnBoxes(0.3, 0.1, 0.02, 0.1, 0.02), pad: 0.02 } as Hole, maxTile: 0.24 }
 
   for (const [n, aspect] of [[1, 0.84], [12, 0.84], [197, 0.84], [197, 0.93], [1500, 0.84]] as const) {
     it(`${n} birds at aspect ${aspect}: no silhouette inside the hole, none overlapping, no tile past maxTile`, () => {
@@ -585,17 +582,14 @@ describe('packFrame with the count in the middle (share images)', () => {
       const r = packFrame(birds, aspect, spec)
       expect(r.boxes.size).toBe(n)
       expect(r.W / r.H).toBeCloseTo(aspect, 1)
-      const [rx, ry] = [spec.hole[0] * r.W, spec.hole[1] * r.W]
-      let inHole = 0, clash = false
+      expect(holeHits(birds, r, scaleHole(spec.hole, r.W))).toEqual({ touch: 0, near: 0 })
+      let clash = false
       const owner = new Map<string, number>()
       silhouettePixels(birds, r, (id, px, py) => {
-        const dx = (px + 0.5 - r.W / 2) / rx, dy = (py + 0.5 - r.H / 2) / ry
-        if (dx * dx + dy * dy < 0.9) inHole++ // the packer's grid rounds the ellipse to whole cells
         const k = `${px},${py}`
         if (owner.has(k) && owner.get(k) !== id) clash = true
         owner.set(k, id)
       })
-      expect(inHole).toBe(0)
       expect(clash).toBe(false)
       for (const [x, y, w, h] of r.boxes.values()) {
         expect(Math.max(w, h)).toBeLessThanOrEqual(spec.maxTile * r.W + 1e-6)
@@ -616,7 +610,7 @@ describe('packFrame with the count in the middle (share images)', () => {
 
   it('packBest never goes past maxBase', () => {
     const birds = sample(5)
-    const r = packBest(birds, { W: 400, H: 400, stretch: 1, F: 0 }, 'even', { fixedStage: [400, 400], hole: [0, 0], maxBase: 20 })
+    const r = packBest(birds, { W: 400, H: 400, stretch: 1, F: 0 }, 'even', { fixedStage: [400, 400], hole: NO_HOLE, maxBase: 20 })
     expect(r.base).toBeLessThanOrEqual(20)
   })
 })

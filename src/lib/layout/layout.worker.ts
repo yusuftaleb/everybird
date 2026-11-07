@@ -8,7 +8,7 @@
 //   worker -> main  { type: 'ready', id }                      (setList done: masks loaded)
 //                   { type: 'result', id, key, layout, mode, base, W, H, codes, boxes }
 //                   { type: 'image', id, W, H, codes, boxes }  (packFrame: these birds only, evened out, the hole
-//                                                             [rx, ry] and maxTile as fractions of the frame's width)
+//                                                             (count-box.ts Hole) and maxTile as fractions of the frame's width)
 //                   { type: 'error', id, message }
 // `codes` in a result is the request's codes that the list knows, in request order; `boxes` is a flat
 // Float32Array [x, y, w, h] * codes.length. `targets` (request) is a Float32Array [cx, cy] * codes.length,
@@ -22,6 +22,7 @@
 import { EXP, EXP_TRUE, LAYOUTS, OUTLINE_SHAPE } from './constants'
 import { decodeMask, MASK, type Mask } from './mask'
 import { packBest, packFrame, relSizes, type PackBird } from './pack'
+import type { Hole } from './count-box'
 
 export type ListEntryMsg = { code: string; mass: number; ord: string }
 export type LayoutName = 'wide' | 'medium' | 'narrow'
@@ -31,7 +32,7 @@ export type WorkerRequest =
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
       refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean
     }
-  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: [number, number]; maxTile?: number }
+  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number }
 export type WorkerReply =
   | { type: 'ready'; id: number }
   | {

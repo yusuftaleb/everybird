@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, packSpec, placeCredit, SPREAD, spreadY, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
+import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, SPREAD, spreadY, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
+import { countText, holeExtent, numberEm } from '@/lib/layout/count-box'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
 
@@ -147,33 +148,35 @@ describe('countLayout (the count in the middle)', () => {
     expect(countLayout('story', 6, 952)).toMatchObject({ number: '6', label: 'SPECIES' })
     expect(countLayout('post', 1500, 952)).toMatchObject({ number: '1,500', label: 'SPECIES' })
   })
-  it('reads as a label in the ring, as /lifelist: about 12% of the collage wide for 197, shrinking for long numbers', () => {
+  it('reads as a label in the ring, as /lifelist: the largest size for 197, shrinking for long numbers', () => {
     const short = countLayout('story', 12, 952), mid = countLayout('story', 197, 952), long = countLayout('story', 12345, 952)
     expect(short.size).toBe(112)
     expect(mid.size).toBe(112)
-    // The site's medium layout: F 56 on a 700 stage, "197" 1.44em wide = 11.5% of the stage.
-    expect((1.44 * mid.size) / 952).toBeGreaterThan(0.12)
-    expect((1.44 * mid.size) / 952).toBeLessThan(0.2)
     expect(long.size).toBeLessThan(mid.size)
     expect(long.size).toBeGreaterThan(60)
     expect(countLayout('post', 197, 952).size).toBe(104)
-    // Digits are 0.5em in Cabinet Grotesk: "12,345" is 5 digits and a comma; at most 22% of the width.
-    expect((5 * 0.5 + 0.25 - 6 * 0.02) * long.size).toBeLessThanOrEqual(0.22 * 952 + 1)
+    // The number (count-box.ts widths, the widest face) is at most 26% of the collage's width.
+    for (const n of [1089, 11019, 12345]) expect(numberEm(countText(n)) * countLayout('story', n, 952).size).toBeLessThanOrEqual(0.26 * 952 + 1)
   })
   it('keeps the hole small: at most about a third of the collage wide for 197', () => {
-    const c = countLayout('story', 197, 952)
-    expect(2 * c.hole[0]).toBeLessThan(952 * 0.36)
-    expect(2 * c.hole[1]).toBeLessThan(260)
+    const [ex, ey] = holeExtent(countLayout('story', 197, 952).hole)
+    expect(2 * ex).toBeLessThan(952 * 0.36)
+    expect(2 * ey).toBeLessThan(260)
   })
-  it('keeps a hole around the number and the label, wider than tall from three digits, bigger for bigger text', () => {
-    for (const n of [1, 12, 197, 1500, 12345]) {
+  it('the hole holds the text as drawn (the number over the label, one centred column), with air all round', () => {
+    for (const n of [1, 12, 197, 1089, 11019, 12345]) {
       const c = countLayout('story', n, 952)
-      const [rx, ry] = c.hole
-      const textW = Math.max((String(n).length * 0.5) * c.size, c.label.length * 0.66 * c.labelSize)
-      expect(rx).toBeGreaterThan(textW / 2)
-      expect(ry).toBeGreaterThan((0.6875 * c.size + c.gap + 0.73 * c.labelSize) / 2)
-      if (n >= 100) expect(rx).toBeGreaterThan(ry)
-      expect(rx).toBeLessThan(952 / 2)
+      const { num, label, pad } = c.hole
+      // The number's width at the widest face's advances, the label's at Geist Mono's 0.6em + 0.06em tracking.
+      expect(num[2] - num[0]).toBeGreaterThanOrEqual(numberEm(c.number) * c.size - 1e-6)
+      expect(label[2] - label[0]).toBeGreaterThanOrEqual(7 * 0.66 * c.labelSize - 1e-6)
+      // The column: the digits' height (Satoshi's 0.745em, taller than Cabinet's 0.68), the gap, the label's caps.
+      expect(label[3] - num[1]).toBeCloseTo(0.745 * c.size + c.gap + 0.73 * c.labelSize, 6)
+      expect(num[1] + label[3]).toBeCloseTo(0, 6) // centred
+      expect(pad).toBeGreaterThan(0.1 * c.size)
+      const [ex] = holeExtent(c.hole)
+      if (n >= 100) expect(ex).toBeGreaterThan(holeExtent(c.hole)[1])
+      expect(ex).toBeLessThan(952 / 2)
     }
   })
   it('takes a size in px for the link preview', () => {
@@ -181,7 +184,15 @@ describe('countLayout (the count in the middle)', () => {
     expect(c.size).toBe(OG_COUNT_MAX)
     expect(OG_COUNT_MAX).toBeLessThanOrEqual(80)
     expect(c.labelSize).toBeGreaterThanOrEqual(13)
-    expect(c.hole[0]).toBeLessThan(640 * 0.25)
+    expect(holeExtent(c.hole)[0]).toBeLessThan(640 * 0.25)
+  })
+  it("the link preview's hole holds satori's column (line boxes: 0.85 for the number, 1.3 for the label)", () => {
+    for (const n of [197, 1089, 11019]) {
+      const K = countLayout(OG_COUNT_MAX, n, 640)
+      const h = ogCountHole(K)
+      expect(h.label[3] - h.num[1]).toBeGreaterThanOrEqual(0.85 * K.size + 0.6 * K.gap + 1.3 * K.labelSize - 1e-6)
+      expect(h.num[2] - h.num[0]).toBeGreaterThanOrEqual(numberEm(K.number) * K.size - 1e-6)
+    }
   })
   it('the label is legible and smaller than the number', () => {
     const c = countLayout('post', 1500, 952)
@@ -195,8 +206,9 @@ describe('packSpec', () => {
     const L = cardLayout('story', { name: false, filter: false, latest: true, count: 197 })
     const s = packSpec(L)
     expect(s.aspect).toBeCloseTo(L.collage.w / L.collage.h)
-    expect(s.hole[0] * L.collage.w).toBeCloseTo(L.count.hole[0])
-    expect(s.hole[1] * L.collage.w).toBeCloseTo(L.count.hole[1])
+    expect(s.hole.num[0] * L.collage.w).toBeCloseTo(L.count.hole.num[0])
+    expect(s.hole.label[3] * L.collage.w).toBeCloseTo(L.count.hole.label[3])
+    expect(s.hole.pad * L.collage.w).toBeCloseTo(L.count.hole.pad)
   })
 })
 

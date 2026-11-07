@@ -113,11 +113,13 @@
 @keyframes eb-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes eb-fade { from { opacity: 0; } }
 
-/* The species count sits in the hole the packing leaves at the stage centre. */
-/* A fixed-size box (the count's hole), so the number ticking every frame never lays out the stage. */
+/* The species count sits in the hole the packing leaves at the stage centre. The hole is sized from this text's metrics
+   (src/lib/layout/count-box.ts: the number at --f x --fs, line-height .85; the 12px .eb-mono label 6px below): keep
+   them in step. */
+/* A fixed-size box (wider than any count), so the number ticking every frame never lays out the stage. */
 .eb-mid {
   position: absolute;
-  width: calc(var(--f) * 2.3cqw);
+  width: max(calc(var(--f) * 3.2cqw), 80px);
   height: calc(var(--f) * 1.24cqw + 24px);
   justify-content: center;
   contain: size layout style;
@@ -135,7 +137,7 @@
 .eb-num {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: calc(var(--f) * 1cqw);
+  font-size: calc(var(--f) * var(--fs, 1) * 1cqw);
   line-height: .85;
   letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;

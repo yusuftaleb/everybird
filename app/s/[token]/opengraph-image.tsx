@@ -5,7 +5,7 @@ import { packBest, relSizes, type Box } from '@/lib/layout/pack'
 import { latestLifer } from '@/lib/list/build-list'
 import type { ListEntry } from '@/lib/list/model'
 import { formatDate } from '@/lib/format'
-import { OG_COUNT_MAX, SHARE_COLORS, FOOTER_LINE, countLayout, type CountLayout } from '@/lib/share/image'
+import { OG_COUNT_MAX, SHARE_COLORS, FOOTER_LINE, countLayout, ogCountHole, type CountLayout } from '@/lib/share/image'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import { OG_COLLAGE, OG_SIZE, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare, OG_DESCRIPTION } from '@/lib/share/og'
@@ -28,7 +28,8 @@ const ogCount = (n: number): CountLayout => countLayout(OG_COUNT_MAX, n, OG_COLL
 
 /**
  * Up to 60 birds of the list that have stickers, packed with the wide layout into the collage area around the count's
- * hole (the stage is drawn 1:1, so the hole is in px), with their stickers.
+ * hole (ogCountHole: the column satori draws, grown by its pad; the stage is drawn 1:1, so the hole is in px), with
+ * their stickers.
  */
 async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof serverSpecies>>): Promise<{ placed: Placed[]; expected: number }> {
   const known = payload.birds.flatMap((b) => { const row = species.get(b.code); return row ? [row] : [] })
@@ -40,7 +41,7 @@ async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof
   const pack = list.map(([, b]) => b)
   // A short list: no sticker taller than 40% of the collage (one ostrich shouldn't fill the card).
   const maxRel = Math.max(...relSizes(pack, EXP).values())
-  const r = packBest(pack, wide, 'even', { fixedStage: [OG_COLLAGE.w, OG_COLLAGE.h], hole: ogCount(payload.birds.length).hole, maxBase: (0.4 * OG_COLLAGE.h) / maxRel })
+  const r = packBest(pack, wide, 'even', { fixedStage: [OG_COLLAGE.w, OG_COLLAGE.h], hole: ogCountHole(ogCount(payload.birds.length)), maxBase: (0.4 * OG_COLLAGE.h) / maxRel })
   // Tiles drawn past OG_LARGE_TILE get the 384 px file, so a short list's big birds stay sharp.
   const large = new Set(list.flatMap(([c, b]) => { const box = r.boxes.get(b.id); return box && Math.max(box[2], box[3]) > OG_LARGE_TILE ? [c] : [] }))
   const stickers = await fetchStickers(list.map(([code]) => ({ code, sv: species.get(code)?.sv })), undefined, large)
@@ -96,7 +97,7 @@ export default async function Image({ params }: { params: Promise<{ token: strin
     <div style={{ display: 'flex', position: 'absolute', left: 0, top: 0, width: OG_COLLAGE.w, height: OG_COLLAGE.h, alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: K.gap * 0.6 }}>
         <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: K.size, lineHeight: 0.85, letterSpacing: -0.02 * K.size }}>{K.number}</div>
-        <div style={{ display: 'flex', fontFamily: MONO, fontSize: K.labelSize, letterSpacing: 0.06 * K.labelSize, color: C.muted }}>{K.label}</div>
+        <div style={{ display: 'flex', fontFamily: MONO, fontSize: K.labelSize, lineHeight: 1.3, letterSpacing: 0.06 * K.labelSize, color: C.muted }}>{K.label}</div>
       </div>
     </div>
   )

@@ -1,8 +1,9 @@
 'use client'
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, type CSSProperties } from 'react'
+import { countScale, countText } from '@/lib/layout/count-box'
 import { MOVE_MS, reduced } from './collage-motion'
 
-const fmt = (n: number) => n.toLocaleString('en-US')
+const fmt = countText
 
 /**
  * The species count in the hole at the stage centre. The number ticks from the old total to the new one
@@ -10,6 +11,8 @@ const fmt = (n: number) => n.toLocaleString('en-US')
  * number is written straight to its text node each frame (no React render per frame). The visible count is
  * decorative; a polite live region carries the settled text ("12 species"). A filtered view shows only its own count,
  * as /lifelist's .yt-ll-mid: the filters and the stats line say what it is out of.
+ * The packer keeps the hole for this text (count-box.ts collageHole: the number at F · countScale, the 12px label), so a
+ * five-digit count is drawn at countScale of F here too (--fs), for the whole tick towards it.
  */
 export function Tally({ value }: { value: number }) {
   const num = useRef<HTMLSpanElement>(null)
@@ -35,7 +38,7 @@ export function Tally({ value }: { value: number }) {
   }, [value])
   return (
     <>
-      <div className="eb-mid" aria-hidden="true">
+      <div className="eb-mid" aria-hidden="true" style={{ '--fs': countScale(fmt(value)) } as CSSProperties}>
         <span className="eb-num" ref={num} />
         <span className="eb-mono">species</span>
       </div>
