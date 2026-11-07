@@ -1,0 +1,29 @@
+src/components/app/app.css
+  s_ab125876fe9ad2::t_122bb824a435ab 351-360,363
+AGENTS.md
+  s_ab125876fe9ad2::t_9b5c982e3dc440 74
+e2e/about.spec.ts
+  s_ab125876fe9ad2::t_0af8401878d447 61-75
+src/components/app/SiteFooter.tsx
+  s_ab125876fe9ad2::t_122bb824a435ab 1,4-6,9-10,22-24
+tests/app-routes.test.tsx
+  s_ab125876fe9ad2::t_0af8401878d447 173-176
+DESIGN.md
+  s_ab125876fe9ad2::t_04de25fd7a3cf4 200
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1b4a7f5b346ae42b9374d804771a79f535c275b3",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
