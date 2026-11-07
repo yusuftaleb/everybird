@@ -1,0 +1,48 @@
+tests/source-counts.test.ts
+  s_ab125876fe9ad2::t_20853d42649bfc 1-117
+src/lib/list/source-counts.ts
+  s_ab125876fe9ad2::t_795f4cfce55516 1-137
+  s_ab125876fe9ad2::t_e804159a8edc5a 138-140
+AGENTS.md
+  s_ab125876fe9ad2::t_233b8c463bc6c4 72
+e2e/flows.spec.ts
+  s_ab125876fe9ad2::t_e9e8c75d3f62d3 153,178,412
+e2e/import.spec.ts
+  s_ab125876fe9ad2::t_5e108dc6eaf323 101,143,211
+e2e/settings.spec.ts
+  s_ab125876fe9ad2::t_2f0c7766e0600a 39,112-134,140-141,220
+src/components/about/how-it-works.css
+  s_ab125876fe9ad2::t_39080b635d4c99 122
+src/components/app/SettingsPage.tsx
+  s_ab125876fe9ad2::t_511b40b2f5ba5b 11,53-54,66-67,73-92
+src/components/import/EbirdDrop.tsx
+  s_ab125876fe9ad2::t_14518e105dcff1 5,26-27,61-62,67,131
+src/components/import/ImportPanel.tsx
+  s_ab125876fe9ad2::t_3e640ac0b0e43b 5,28-31,75,87,99,110,128,134-135
+src/components/import/InatForm.tsx
+  s_ab125876fe9ad2::t_16dbaa67330525 4,21-22,26-27,34,92
+src/components/import/SourceLine.tsx
+  s_ab125876fe9ad2::t_731e3d4eb754ed 19-20,23,27,30,34,41,43-46,63-64,68,74-75,85
+src/components/import/import.css
+  s_ab125876fe9ad2::t_3a6fa5bc069015 5-12
+src/lib/list/store.ts
+  s_ab125876fe9ad2::t_322d84d28cec0b 8-9,52-53,55
+tests/app-routes.test.tsx
+  s_ab125876fe9ad2::t_c64b65089c33de 204,232,271,286,305,322,353,364,371,376,396,401,416,429,439,474,501,523,530,546,551,555,584,590,593,602,616,642,662,674,690,699,701,714,720,735
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "75ba4866298f9029a75bbc81c3d47fd1aa7797e0",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
