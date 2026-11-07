@@ -149,6 +149,23 @@ export function collageBoxes(count: number, layout: CountLayout): CountBoxes {
   }
 }
 
+/** How far the reader's text size may grow the collage's label (Tally): at most this times its 12px. */
+export const LABEL_GROW_MAX = 1.25
+
+/**
+ * The collage label's font size bounds, in cqw of the stage (100 = the stage's width), that keep collageBoxes true
+ * whatever the reader's text size or page zoom: the boxes hold the 12px label (and its 6px gap, which scale with it)
+ * at up to uHi layout units per px, i.e. on a stage as narrow as max(minWidth, 288) px; so the label may be at most
+ * 12 px x stage / that width (`max`), which on a stage wider than that lets it grow, and on a narrower one (a page
+ * zoomed to 200% makes a 390px phone's stage 163 CSS px) shrinks it with the stage. `min`: the smallest tail the
+ * number's box allows (12 px at maxWidth), so the number never sits lower than the box. Tally draws
+ * clamp(min, max(12px, .75rem) capped at LABEL_GROW_MAX, max): never more than the hole holds.
+ */
+export function labelBounds(layout: CountLayout): { min: number; max: number } {
+  const narrowest = Math.max(layout.minWidth ?? 0, MIN_STAGE_PX)
+  return { min: layout.maxWidth ? (LABEL_PX * 100) / layout.maxWidth : 0, max: (LABEL_PX * 100) / narrowest }
+}
+
 /**
  * Air between the count's text and the hole's edge, in layout units (the packer keeps GAP around every sticker too).
  * 0.17 F keeps a three-digit count's hole where the old ellipse was (wide 197: about 74 x 52 units from the centre).

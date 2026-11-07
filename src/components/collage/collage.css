@@ -115,12 +115,15 @@
 
 /* The species count sits in the hole the packing leaves at the stage centre. The hole is sized from this text's metrics
    (src/lib/layout/count-box.ts: the number at --f x --fs, line-height .85; the 12px .eb-mono label 6px below): keep
-   them in step. */
+   them in step. The geometry never reads the reader's text size: the number is in cqw, and the label (--lb) and its
+   gap follow the text size only between the stage's bounds (--lmin/--lmax, count-box.ts labelBounds, so it always
+   fits the hole sized for the default 12px label) and at most 1.25x (15px). */
 /* A fixed-size box (wider than any count), so the number ticking every frame never lays out the stage. */
 .eb-mid {
+  --lb: clamp(calc(var(--lmin, 0) * 1cqw), min(max(12px, .75rem), 15px), calc(var(--lmax, 100) * 1cqw));
   position: absolute;
-  width: max(calc(var(--f) * 3.2cqw), 80px);
-  height: calc(var(--f) * 1.24cqw + 24px);
+  width: max(calc(var(--f) * 3.2cqw), calc(var(--lb) * 6.7));
+  height: calc(var(--f) * 1.24cqw + var(--lb) * 2);
   justify-content: center;
   contain: size layout style;
   left: 50%;
@@ -129,11 +132,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: calc(var(--lb) / 2);
   pointer-events: none;
   text-align: center;
   white-space: nowrap;
 }
+.eb-mid .eb-mono { font-size: var(--lb); }
 .eb-num {
   font-family: var(--font-display);
   font-weight: 700;

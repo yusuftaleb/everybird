@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { LAYOUTS } from '../src/lib/layout/constants'
 import {
-  collageBoxes, collageHole, countScale, countText, holeExtent, labelEm, numberEm, rectGap, touchesHole, type Hole, type Rect,
+  collageBoxes, collageHole, countScale, countText, holeExtent, labelBounds, labelEm, LABEL_GROW_MAX, numberEm, rectGap, touchesHole, type Hole, type Rect,
 } from '../src/lib/layout/count-box'
 import { decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
 import { packBest, packFrame, type PackBird, type PackResult } from '../src/lib/layout/pack'
@@ -169,4 +169,20 @@ describe('share images and the link preview keep their count clear', () => {
       expect(clash(birds, r, hole)).toEqual({ onText: 0, inAir: 0 })
     }, 60_000)
   }
+})
+
+describe('labelBounds (the collage label under text size and page zoom)', () => {
+  it('keeps the default 12px label on every stage width a layout serves, and lets it grow at most to what the hole holds', () => {
+    for (const l of LAYOUTS) {
+      const { min, max } = labelBounds(l)
+      for (const stage of [Math.max(l.minWidth, 288), l.maxWidth]) {
+        expect((min * stage) / 100).toBeLessThanOrEqual(12 + 1e-9)
+        expect((max * stage) / 100).toBeGreaterThanOrEqual(12 - 1e-9)
+      }
+      // At the layout's narrowest stage the label can't grow; a 163px stage (a 390px phone at 200% page zoom) shrinks it.
+      expect((max * Math.max(l.minWidth, 288)) / 100).toBeCloseTo(12)
+      expect((max * 163) / 100).toBeLessThan(12)
+    }
+    expect(LABEL_GROW_MAX).toBe(1.25)
+  })
 })

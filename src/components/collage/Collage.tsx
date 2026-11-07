@@ -10,6 +10,7 @@
 //  - still:     only visibility changes over the shown layout (a range drag's preview; see the prop).
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { LAYOUTS } from '@/lib/layout/constants'
+import { labelBounds } from '@/lib/layout/count-box'
 import type { StateLayout } from '@/lib/layout/layout-client'
 import type { ListEntry } from '@/lib/list/model'
 import type { SpeciesIndex } from '@/lib/species/load'
@@ -515,10 +516,12 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     els.current.get(list[j])?.focus()
   }
 
-  const F = (LAYOUTS.find((l) => l.name === layout.layout) ?? LAYOUTS[0]).F
+  const spec = LAYOUTS.find((l) => l.name === layout.layout) ?? LAYOUTS[0]
+  const F = spec.F
+  const lb = labelBounds(spec) // the count label's bounds (cqw), so text size or page zoom never pushes it out of the hole
   // The stage height is its own inline height, not a custom property: WebKit restyles every descendant of an element
   // whose custom properties change (registered and not inherited or not), ~150 ms at 6,000 birds on each filter.
-  const stageStyle = { height: `${pct(layout.H, layout.W)}cqw`, '--f': pct(F, layout.W) } as CSSProperties
+  const stageStyle = { height: `${pct(layout.H, layout.W)}cqw`, '--f': pct(F, layout.W), '--lmin': lb.min, '--lmax': lb.max } as CSSProperties
   // Birds render once each (memoised on the list); after that every change is written to their style directly.
   // A bird's first style comes from the layout current when it first appears, and is then frozen in `inits`.
   const birds = useMemo(() => {
