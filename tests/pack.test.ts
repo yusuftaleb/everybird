@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { EXP, EXP_TRUE, GAP, LAYOUTS, holeRadii } from '../src/lib/layout/constants'
 import { MASK, decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
-import { DETACH, MAX_BASE, boxGap, detached, packBest, packFrame, relSizes, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
+import { DETACH, MAX_BASE, boxGap, detached, packBest, packFrame, relSizes, stretchAt, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
 import { Grid, SPIRAL_T, spiral, toCellMask } from '../src/lib/layout/grid'
 
 // Realistic, deterministic test birds: real sticker masks + real masses from public/data, sampled at a
@@ -359,7 +359,8 @@ describe('small lists keep their layouts (identical boxes)', () => {
 })
 
 // [layout, a list size whose floor is reachable under the cap]
-const MID: [string, number][] = [['wide', 723], ['medium', 500], ['narrow', 500]]
+// (the floors rose 2026-11-06: wide 36 -> 48, medium 30 -> 40, narrow 26 -> 30, so these are smaller than before)
+const MID: [string, number][] = [['wide', 450], ['medium', 260], ['narrow', 450]]
 
 describe('big lists: the stage grows taller until the median sticker reaches the floor, up to the cap', () => {
   for (const [name, n] of MID) {
@@ -640,6 +641,34 @@ describe('compact outline: no box detached from the collage', () => {
       }, 60000)
     }
   }
+})
+
+// A grown stage's spiral follows its aspect (stretchAt), so a mid-size list is a round or tall cluster, not a wide oval.
+describe('the spiral follows a grown stage', () => {
+  it('keeps the layout stretch on the starting stage and on shorter ones (trimmed collages, link previews, share frames)', () => {
+    for (const L of LAYOUTS) {
+      expect(stretchAt(L, L.H)).toEqual([L.stretch, 1])
+      expect(stretchAt(L, 0.7 * L.H)).toEqual([L.stretch, 1])
+    }
+    expect(stretchAt({ H: 500, stretch: 0.6 }, 500)).toEqual([0.6, 1]) // packFrame's frame: no maxH
+  })
+
+  it('scales x : y by start / grown height, split evenly between the axes, up to maxH', () => {
+    for (const L of LAYOUTS) {
+      const H = Math.min(L.maxH, 1.5 * L.H)
+      const [sx, sy] = stretchAt(L, H)
+      expect(sx / sy).toBeCloseTo((L.stretch * L.H) / H, 9)
+      expect(sx * sy).toBeCloseTo(L.stretch, 9) // the spiral's steps per unit area unchanged
+      expect(stretchAt(L, 3 * L.maxH)).toEqual(stretchAt(L, L.maxH))
+    }
+  })
+
+  it('548 birds on wide: a stage taller than wide, the median sticker at the floor', () => {
+    const L = byName('wide')
+    const { r } = big('wide', 548)
+    expect(r.H).toBeGreaterThan(r.W)
+    expect(medianPx(r, L.W)).toBeGreaterThanOrEqual(L.floor)
+  }, 60000)
 })
 
 // Timing bounds. Generous but meaningful; set SKIP_PERF=1 to skip them (e.g. on slow CI).

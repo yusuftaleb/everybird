@@ -143,6 +143,7 @@ Seven tokens, two themes, nothing else. `tests/tokens.test.ts` keeps `tokens.css
 - The dock responds to its own width with container queries (460, 540, 330 and 310px): tab labels hide, "Scientific" shortens, the switch tightens.
 - Touch targets 44px (chips are 32px with a 44px `::after` hit area; nav links are drawn 40px, 36-40px on phones, and text buttons 36px, each with a 44px `::after` hit area; the theme switch keeps a 44px hit area when drawn at 40 or 36px; the Places and Time panels' Clear is a text button with the same 44px press). `e2e/flows.spec.ts` checks every page at its sampled widths in all three engines.
 - Stage: positions in % of stage width (`cqw`); the stage height eases to the group's height.
+- Stage growth: a list too big for the starting stage (wide 1120×700, medium 700×800, narrow 350×900 layout units) grows it taller, never wider, until the median sticker is 48px (wide), 40px (medium) or 30px (narrow) at the layout's width, up to 2:3 (narrow: twice its start). The spiral follows the grown stage's aspect, so a mid-size list (the 548-species sample on desktop) is a round-to-tall cluster around the count, not a wide oval; lists that fit the starting stage keep their layouts.
 
 ## Elevation & Depth
 

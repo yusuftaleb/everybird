@@ -41,8 +41,8 @@ function placementOrder(birds: PackBird[], rel: Map<number, number>): PackBird[]
 
 /**
  * Place every bird at long side base · rel around the central hole; boxes, or null if one doesn't fit.
- * Birds spiral out from the stage centre (x stretched by `stretch`). With `targets` (id -> centre), each bird
- * spirals from its own target with no stretch: true size is packed from the evened-out positions, so
+ * Birds spiral out from the stage centre, x stretched by `stretch` (packBest passes [x, y] scales, stretchAt).
+ * With `targets` (id -> centre), each bird spirals from its own target with no stretch: true size is packed from the evened-out positions, so
  * switching modes is a short morph. With `dense`, every bird stamps only its silhouette, so neighbours keep one
  * GAP between them instead of two (see coreMask).
  */
@@ -59,12 +59,14 @@ type Packed = { boxes: Map<number, Box>; placed: Placed[] }
 
 function packGrid(
   birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
-  stretch: number, hole: [number, number], targets: Map<number, [number, number]> | undefined, cell: number, dense: boolean,
+  stretch: number | readonly [number, number], hole: [number, number], targets: Map<number, [number, number]> | undefined,
+  cell: number, dense: boolean,
 ): Packed | null {
   const grid = new Grid(W, H, cell)
   if (hole[0] > 0 && hole[1] > 0) grid.markEllipse(W / 2, H / 2, hole[0], hole[1])
   const pad = Math.ceil(GAP / cell)
-  const sx = (targets ? 1 : stretch) / cell, sy = 1 / cell
+  const [kx, ky] = typeof stretch === 'number' ? [stretch, 1] : stretch
+  const sx = (targets ? 1 : kx) / cell, sy = (targets ? 1 : ky) / cell
   const lim = (targets ? 2 : 1) * Math.max(W, H)
   // The reference's spiral ends at t = 1400 (rad 3080). A grown stage can be taller than that reaches, so
   // extend it (same formula and step) until it reaches every cell: from the centre, max(W, H) covers the
@@ -297,6 +299,21 @@ export function fitStage(boxes: Map<number, Box>, W: number, H: number, holeRy: 
 }
 
 /**
+ * The spiral's [x, y] scale on a stage H tall. On the layout's starting stage, or a shorter one (a trimmed small
+ * collage, its filtered states, link previews; share images' frames have no maxH and always get this), it is
+ * [stretch, 1], as before. On a grown stage the spiral's aspect follows the stage's: x : y = stretch · g with
+ * g = layout.H / H, so a stage grown 1.5x taller packs as a round or tall cluster instead of staying a wide oval.
+ * The change is split evenly between the axes ([stretch · √g, 1 / √g]), so the spiral's steps per unit of stage
+ * area stay as on the starting stage (squeezing x alone would multiply the steps tried, and the packing time, by
+ * 1 / g). H counts up to maxH: past it (huge lists, a column far taller than wide) the shape stays at maxH's.
+ * Filtered states pack in the full collage's (trimmed) stage and get about the same.
+ */
+export function stretchAt(layout: Pick<Layout, 'H' | 'stretch' | 'maxH'>, H: number): [number, number] {
+  const g = Math.min(1, layout.H / Math.min(H, Math.max(layout.H, layout.maxH ?? layout.H)))
+  return g === 1 ? [layout.stretch, 1] : [layout.stretch * Math.sqrt(g), 1 / Math.sqrt(g)]
+}
+
+/**
  * The largest base size that packs, for one layout and size mode.
  * - Full collage (no fixedStage): starts on layout.W x layout.H; a big list grows it taller, first up to
  *   layout.maxH while the median sticker is below layout.floor, then past it only while the base is below
@@ -338,7 +355,7 @@ export function packBest(
   // at the edge as in the middle. True size (targets: it follows the settled even centres) and share images
   // (no denseFrom) pack as before, and so do smaller lists.
   const dense = mode === 'even' && !targets && !!layout.denseFrom && rel.size >= layout.denseFrom
-  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, layout.stretch, hole, targets, cell, dense)
+  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, stretchAt(layout, H), hole, targets, cell, dense)
   // Settled (dense), then any detached birds gathered back to the group (gather): the outline stays compact.
   const boxesOf = (p: Packed, W: number, H: number) => gather(dense ? settle(p, W, H, hole) : p.boxes, birds, W, H, hole)
 
@@ -406,8 +423,9 @@ export function packBest(
   //    width W, where layout units are CSS px): base >= floor / median rel.
   // 2. past maxH (up to 12x the start), only while the base is below layout.minBase.
   // Each step jumps to the height the area estimate asks for (base grows as sqrt(H)) from the search's upper
-  // bound, at least 10% (so it never overshoots far), never past maxH in stage 1 or 12x in stage 2.
-  // A list whose birds meet the floor on the starting stage packs exactly as before.
+  // bound (stage 2: from the best base that packed, if any), at least 10% (so it never overshoots far), never past
+  // maxH in stage 1 or 12x in stage 2.
+  // A list whose birds meet the floor on the starting stage packs exactly as before (stretchAt is [stretch, 1] there).
   const W = layout.W, Hmax = MAX_GROW * layout.H
   const minBase = layout.minBase ?? 0
   const maxH = Math.max(layout.H, layout.maxH ?? layout.H)
@@ -426,7 +444,10 @@ export function packBest(
       if (got && got.base >= want) break
     }
     if (!canGrow) break
-    const next = Math.max(Math.round(H * STEP), Math.round(AIM * H * (want / Math.max(hi, 1e-6)) ** 2))
+    // Stage 2 aims from the best base that packed here, when one did (it is below want): a stage that packed close
+    // to minBase would otherwise grow in many small steps, each a full search.
+    const from = H >= maxH && got ? got.base : hi
+    const next = Math.max(Math.round(H * STEP), Math.round(AIM * H * (want / Math.max(from, 1e-6)) ** 2))
     H = Math.min(H < maxH ? maxH : Hmax, next)
   }
   got ??= fallback(W, H)
