@@ -1,0 +1,19 @@
+public/data/sample-pack.v1.json
+  s_ab125876fe9ad2::t_7f7165d09a4288 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "912809d3aac4c19f1852c3116a0da9aa9f7c91d8",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
