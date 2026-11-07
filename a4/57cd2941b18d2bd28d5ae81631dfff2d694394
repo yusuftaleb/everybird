@@ -1,0 +1,51 @@
+AGENTS.md
+  s_ab125876fe9ad2::t_62085b9b16c48f 41
+data/build/crosswalk-report.md
+  s_ab125876fe9ad2::t_54d4b034de89f9 4,7-8,39,41-66,72
+data/huashu.lock.json
+  s_ab125876fe9ad2::t_33c40edf891d03 11104,11187,11221,11448,11541,11727,11796,11807,12370,12544,12715,12818,13044,13294,13488,13687,13702,14510,14700,15237,15295,15334,15716,16065,16339,16719,17114,17367,17402,17439,17595,17781,18018,18022,18039,18057,18079,18141,18247,18306,18354,18523,18614,18706,18783,18814,18844,19117,19185,19489,19668,19819,19826,19952,20128,20324,20383,20670,20709,20736,20945,21091,21099,21312,21332,21656,21658,21661,22026,22036,22205,22290,22327,22608,23573,23632,24746,26248,26583,26686,27510,27802,28272,29024-29028,29659,30139,31061,31803,33196,33281,33318,33599,34564,34623,35737,37239,37574,37677,38501,38793,39263,40015-40019,40650,41130,42052,42794
+data/sticker-versions.json
+  s_ab125876fe9ad2::t_37cdc4d2d24522 1-24
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_7026a6ab2d83f3 446
+public/data/masks/Anseriformes.v1.json
+  s_ab125876fe9ad2::t_8a026f4e13b670 1
+public/data/masks/Apodiformes.v1.json
+  s_ab125876fe9ad2::t_daf48ad214ef36 1
+public/data/masks/Gruiformes.v1.json
+  s_ab125876fe9ad2::t_29096f4e29be91 1
+public/data/masks/Passeriformes.v1.json
+  s_ab125876fe9ad2::t_c0979371fbead0 1
+public/data/masks/Procellariiformes.v1.json
+  s_ab125876fe9ad2::t_5b9480a276287d 1
+public/data/species.v1.json
+  s_ab125876fe9ad2::t_1663092be30873 1
+scripts/build-data/build-species.ts
+  s_ab125876fe9ad2::t_243b940372673a 9,35-36,49-58,62-65,78-84,93,113-115,122,129,182,187
+scripts/build-data/build-stickers.ts
+  s_ab125876fe9ad2::t_d3faa84a362c74 147-149
+scripts/sync/huashu-lib.ts
+  s_ab125876fe9ad2::t_bf3251be11489c 51-55,57,62-64
+src/lib/species/types.ts
+  s_ab125876fe9ad2::t_ea0330032e8d36 18-24
+tests/build-species.test.ts
+  s_ab125876fe9ad2::t_bbb2ad14604961 140-191
+tests/huashu-sync.test.ts
+  s_ab125876fe9ad2::t_e21cd0664a7a05 30,135-176
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a457cd2941b18d2bd28d5ae81631dfff2d694394",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
