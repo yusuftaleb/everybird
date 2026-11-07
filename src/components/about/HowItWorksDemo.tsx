@@ -51,7 +51,7 @@ export function HowItWorksDemo() {
         CC BY 4.0
       </p>
       <figcaption className="eb-sr">
-        An animation of Everybird at work: an eBird export file is dropped onto Settings, under Your sources, and its rows
+        An animation of Everybird at work: an eBird export file is dropped onto Settings, under Your list, and its rows
         are read. Then the collage builds, stickers arriving around the count as it rolls up to 197 species. Choosing the
         Herons filter brings the six herons into the middle; All birds, in the breadcrumb, brings everyone back. Share
         makes the image to post: the birder&apos;s name, the stickers around 197 species, the latest lifer and the

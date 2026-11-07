@@ -17,8 +17,8 @@ describe('EbirdDrop: what each eBird file brings', () => {
     render(<EbirdDrop job={idle} onFile={() => {}} loaded={{ full: 3, quick: 0, fullCounty: false }} />)
     expect(note()).toHaveTextContent('No regions (counties) in your eBird file yet: import “Download My Data” again to add them.')
   })
-  it('a full export with counties: no hint to re-import', () => {
+  it('a full export with counties: no note at all', () => {
     render(<EbirdDrop job={idle} onFile={() => {}} loaded={{ full: 3, quick: 0, fullCounty: true }} />)
-    expect(note()).not.toHaveTextContent('again')
+    expect(note()).toBeNull()
   })
 })

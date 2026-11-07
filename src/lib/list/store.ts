@@ -9,7 +9,7 @@ import { SLOTS, slotSource, unmatchedKey } from './model'
 import type { Edits, ImportResult, ListEntry, Rules, Slot, SourceRecord, Unmatched } from './model'
 import { buildSeen, type SeenIndex } from './seen'
 import * as storage from './storage'
-import { emptySaved, removeSource, replaceSource, type EbirdDetails, type InatDetails, type Saved } from './storage'
+import { emptySaved, NAME_MAX, removeSource, replaceSource, type EbirdDetails, type InatDetails, type Saved } from './storage'
 
 export type AppState = {
   saved: Saved
@@ -136,7 +136,7 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
       case 'persistence':
         return { ...s, persistence: a.persistence }
       case 'name': {
-        const name = a.name.trim()
+        const name = Array.from(a.name.trim()).slice(0, NAME_MAX).join('').trim()
         if ((s.saved.name ?? '') === name) return s
         const saved = stamp({ ...s.saved, name })
         if (!name) delete saved.name

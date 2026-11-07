@@ -46,7 +46,7 @@ function useTheme(): Theme {
   return useSyncExternalStore(subscribeTheme, currentTheme, () => 'light' as const)
 }
 
-export default function ShareDialog({ state, dispatch, species, regions, onClose }: Props) {
+export default function ShareDialog({ state, species, regions, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
   const nameId = useId()
@@ -56,7 +56,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
 
   const { list, filter, saved, seen } = state
   const [format, setFormat] = useState<ImageFormat>('story')
-  const [name, setName] = useState(saved.name ?? '')
+  const [name, setName] = useState(saved.name ?? '') // starts from Settings > Your name
   const theme = useTheme()
 
   // What the image shows: the current view (the filter applied), and the filter in words.
@@ -279,7 +279,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                 maxLength={NAME_MAX_LEN}
                 placeholder="Your name, shown on the image"
                 value={name}
-                onChange={(e) => { setName(e.target.value); dispatch({ type: 'name', name: e.target.value }) }}
+                onChange={(e) => setName(e.target.value)} // this share only: Settings > Your name stays as it is
               />
             </div>
 

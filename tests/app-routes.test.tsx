@@ -131,6 +131,12 @@ async function mount(opts: { blockStorage?: boolean; failForget?: boolean; path?
 const go = (path: string) => act(async () => { nav.go(path) })
 /** Settings' "See my collage" status: what landed and the collage's count. */
 const made = () => screen.getByTestId('see-collage')
+/** iNaturalist's username field: Add opens it when nothing is connected (it only shows when adding or changing). */
+function inatField() {
+  const add = screen.queryByRole('button', { name: 'Add iNaturalist' })
+  if (add?.getAttribute('aria-expanded') === 'false') fireEvent.click(add)
+  return screen.getByLabelText('iNaturalist username')
+}
 
 const stats = () => screen.getByTestId('collage-stats')
 /** Tick by hand: open the page-wide list, and find a row in it. */
@@ -185,8 +191,10 @@ describe('the Collage page (/)', () => {
     fireEvent.click(screen.getByRole('link', { name: /^Make yours/ }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('heading', { name: 'Your sources' })).toBeInTheDocument()
-    for (const h of ['eBird files', 'iNaturalist', 'Tick by hand']) expect(screen.getByRole('heading', { name: h })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Your list' })).toBeInTheDocument()
+    // One row per source, each "Not added" yet.
+    for (const h of [/^eBird life list/, /^MyEBirdData/, /^iNaturalist/, /^Ticked by hand/]) expect(screen.getByRole('heading', { level: 3, name: h })).toBeInTheDocument()
+    expect(screen.getAllByText('Not added')).toHaveLength(3)
     expect(screen.getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
   })
 
@@ -226,8 +234,9 @@ describe('Settings and the collage', () => {
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'ebird' }]])
     expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     // In the eBird card, in plain words: the slash entry isn't counted.
-    const notCounted = within(screen.getByTestId('ebird-drop').closest('.eb-way') as HTMLElement).getByTestId('not-counted')
-    expect(notCounted).toHaveTextContent(/^1 entry wasn't counted: birds only identified to a group \(like “duck sp\.”\), either\/or IDs/)
+    const notCounted = within(screen.getByTestId('source-ebird-list')).getByTestId('not-counted')
+    expect(notCounted).toHaveTextContent(/^1 entry wasn't counted/)
+    expect(notCounted).toHaveTextContent(/Birds only identified to a group \(like “duck sp\.”\), either\/or IDs/)
     expect(screen.getByTestId('ebird-detail')).toHaveTextContent(/state or province.*Download My Data.*region \(county\)/)
     await waitFor(async () => expect((await storage.load())?.records['ebird-list']).toHaveLength(3), { timeout: 2000 })
     expect((await storage.load())?.records.ebird).toEqual([])
@@ -262,7 +271,7 @@ describe('Settings and the collage', () => {
     ]
     for (const [error, message] of cases) {
       vi.mocked(inat.importInat).mockResolvedValueOnce({ error } as never)
-      fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: 'nobody' } })
+      fireEvent.change(inatField(), { target: { value: 'nobody' } })
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
       const alert = await screen.findByText(message)
       expect(alert.closest('[role=alert]')).not.toBeNull()
@@ -280,7 +289,7 @@ describe('Settings and the collage', () => {
       opts.onProgress?.({ fetched: 400, total: 576 })
       return new Promise((done) => { finish = done }) as never
     })
-    fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: 'birder' } })
+    fireEvent.change(inatField(), { target: { value: 'birder' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     expect(await screen.findByText('Fetched 400 of 576')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
@@ -299,7 +308,7 @@ describe('Settings and the collage', () => {
       opts.onProgress?.({ fetched: 400, total: 576 })
       return new Promise((done) => { finish = done }) as never
     })
-    fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: 'birder' } })
+    fireEvent.change(inatField(), { target: { value: 'birder' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     expect(await screen.findByText('Fetched 400 of 576')).toBeInTheDocument()
     await drop(csv(...ROWS))
@@ -323,7 +332,7 @@ describe('Settings and the collage', () => {
           opts.signal?.addEventListener('abort', () => fail(Object.assign(new Error('aborted'), { name: 'AbortError' })))
         }) as never,
     )
-    fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: 'birder' } })
+    fireEvent.change(inatField(), { target: { value: 'birder' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     await act(async () => { fireEvent.click(await screen.findByRole('button', { name: 'Cancel' })) })
     expect(await screen.findByText('Cancelled. Nothing was changed.')).toBeInTheDocument()
@@ -340,6 +349,9 @@ describe('Settings and the collage', () => {
     expect(within(screen.getByTestId('unmatched-note')).getByRole('link', { name: 'Fix it' })).toHaveAttribute('href', '/settings#match')
     await go('/settings')
     expect(screen.getByRole('heading', { name: "1 row couldn't be matched" })).toBeInTheDocument()
+    // One line under the sources; "Fix it" opens the row (it opens by itself at /settings#match).
+    expect(screen.queryByRole('button', { name: 'Use American Robin' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Fix it' }))
     expect(screen.getByText('eBird life list row 5')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Use American Robin' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species.'))
@@ -350,6 +362,7 @@ describe('Settings and the collage', () => {
     await mount()
     await drop(csv(...ROWS, ROBIN_TYPO))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    fireEvent.click(screen.getByRole('button', { name: 'Fix it' }))
     fireEvent.click(screen.getByRole('button', { name: 'Fix by hand' }))
     fireEvent.change(screen.getByLabelText('Find the right species for American Robbin'), { target: { value: 'snow' } })
     fireEvent.click(screen.getByRole('button', { name: /^Snow Goose/ }))
@@ -358,9 +371,9 @@ describe('Settings and the collage', () => {
 
   it('the counting rules for the current imports are on Settings once there is a list', async () => {
     await mount()
-    expect(screen.queryByRole('heading', { name: 'Counting rules' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Counting' })).toBeNull()
     await drop(csv(...ROWS))
-    expect(await screen.findByRole('heading', { name: 'Counting rules' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Counting' })).toBeInTheDocument()
     const heard = screen.getByRole('switch', { name: 'Hide heard-only birds' })
     expect(heard).toHaveAccessibleDescription('* Birds you only heard. 0 on your list.')
     expect(screen.getByRole('switch', { name: 'Hide found-dead birds' })).toHaveAccessibleDescription('† Birds you found dead. 0 on your list.')
@@ -370,18 +383,20 @@ describe('Settings and the collage', () => {
     expect(heard).toHaveAttribute('aria-checked', 'true')
   })
 
-  it('forget my list (in "Keep your list" on Settings) asks once, clears, and the collage page shows the sample again', async () => {
+  it('forget my list (in "Your data" on Settings) asks once, clears, and the collage page shows the sample again', async () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
     await waitFor(async () => expect(await storage.load()).not.toBeNull(), { timeout: 2000 })
-    expect(screen.getByRole('heading', { name: 'Keep your list' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Your data' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Forget my list' }))
     expect(screen.getByText(/Forget this list on this device\?/)).toBeInTheDocument()
     expect(made()).toHaveTextContent('Your collage has 3 species.') // nothing cleared yet
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Yes, forget it' })) })
     await waitFor(() => expect(screen.queryByTestId('see-collage')).toBeNull())
-    expect(screen.queryByRole('heading', { name: 'Keep your list' })).toBeNull()
+    // Without a list, Your data keeps only Restore from backup.
+    expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull()
+    expect(screen.getByLabelText('Restore from backup')).toBeInTheDocument()
     await go('/')
     expect(await screen.findByRole('heading', { level: 1, name: "A lifetime of birds." })).toBeInTheDocument()
     await waitFor(async () => expect(await storage.load()).toBeNull())
@@ -556,7 +571,7 @@ describe('editing', () => {
     await waitFor(() => expect(stats()).toHaveTextContent(/^1 species/))
   })
 
-  it('restoring a backup over an existing list (in "Keep your list") asks first', async () => {
+  it('restoring a backup over an existing list (in "Your data") asks first', async () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
@@ -571,7 +586,7 @@ describe('editing', () => {
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species.'))
   })
 
-  it('downloads the list as CSV and as a JSON backup from "Keep your list" on Settings', async () => {
+  it('downloads the list as CSV and as a JSON backup from "Your data" on Settings', async () => {
     const urls: Blob[] = []
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: (b: Blob) => { urls.push(b); return 'blob:x' }, revokeObjectURL: () => {} }))
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
@@ -587,6 +602,40 @@ describe('editing', () => {
   })
 })
 
+describe('Your name (Settings > Your data)', () => {
+  it('titles the collage, is saved with the list and its backup, and empty means "My collage"', async () => {
+    const { storage } = await mount()
+    await drop(csv(...ROWS))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    const field = screen.getByLabelText('Your name')
+    expect(field).toHaveValue('')
+    expect(field).toHaveAttribute('maxLength', '40')
+    fireEvent.change(field, { target: { value: 'Ada Birder ' } })
+    expect(field).toHaveValue('Ada Birder ') // the field keeps the space being typed; the list saves it trimmed
+    await waitFor(async () => expect((await storage.load())?.name).toBe('Ada Birder'), { timeout: 2000 })
+    await go('/')
+    expect(await screen.findByRole('heading', { level: 1, name: "Ada Birder's birds" })).toBeInTheDocument()
+    await go('/settings')
+    expect(screen.getByLabelText('Your name')).toHaveValue('Ada Birder')
+    fireEvent.change(screen.getByLabelText('Your name'), { target: { value: '' } })
+    await go('/')
+    expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
+  })
+
+  it('a restored backup brings its name into the field', async () => {
+    await mount()
+    await drop(csv(...ROWS))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    const { emptySaved } = await import('@/lib/list/storage')
+    const { toJson } = await import('@/lib/list/export')
+    const backup = { ...emptySaved(), name: 'Sam', records: { ...emptySaved().records, manual: [{ code: 'snogoo', source: 'manual' as const }] } }
+    const file = new File([toJson(backup)], 'backup.json', { type: 'application/json' })
+    await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
+    await act(async () => { fireEvent.click(await screen.findByRole('button', { name: 'Yes, replace it' })) })
+    await waitFor(() => expect(screen.getByLabelText('Your name')).toHaveValue('Sam'))
+  })
+})
+
 describe('remembered sources', () => {
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -595,7 +644,7 @@ describe('remembered sources', () => {
     await drop(csv(...ROWS))
     const line = await screen.findByTestId('source-ebird-list')
     expect(line).toHaveTextContent('ebird_world_life_list.csv')
-    expect(line).toHaveTextContent(`Life list download · 4 rows · imported ${today}`)
+    expect(line).toHaveTextContent(`ebird_world_life_list.csv · 4 rows · imported ${today}`)
     expect(within(line).getByRole('button', { name: 'Replace ebird_world_life_list.csv' })).toBeInTheDocument()
     await waitFor(async () => expect((await storage.load())?.sources?.['ebird-list']).toMatchObject({ kind: 'life-list', file: 'ebird_world_life_list.csv', rows: 4 }), { timeout: 2000 })
     // Remove asks once; "Keep it" changes nothing.
@@ -621,12 +670,12 @@ describe('remembered sources', () => {
       opts.onProgress?.({ fetched: 576, total: 576 })
       return { records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }
     })
-    fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: '@sam_birds' } })
+    fireEvent.change(inatField(), { target: { value: '@sam_birds' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     const line = await screen.findByTestId('source-inat')
     expect(line).toHaveTextContent('sam_birds')
     expect(line).toHaveTextContent(`576 observations · updated ${today}`)
-    expect(screen.queryByLabelText('iNaturalist username')).toBeNull() // the form folds away behind "Use a different username"
+    expect(screen.queryByLabelText('iNaturalist username')).toBeNull() // the form folds away behind Change
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species.'))
     await waitFor(async () => expect((await storage.load())?.sources?.inat?.user).toBe('sam_birds'), { timeout: 2000 })
 
@@ -646,7 +695,8 @@ describe('remembered sources', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Yes, remove it' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
     expect(screen.queryByTestId('source-inat')).toBeNull()
-    expect(screen.getByLabelText('iNaturalist username')).toHaveValue('')
+    expect(screen.queryByLabelText('iNaturalist username')).toBeNull() // back to "Not added" and Add
+    expect(screen.getByRole('button', { name: 'Add iNaturalist' })).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('a list saved before v3 shows its sources with details unknown, and asks for the username to refresh', async () => {
@@ -658,8 +708,8 @@ describe('remembered sources', () => {
       },
     })
     expect(screen.getByTestId('source-ebird')).toHaveTextContent('eBird full export')
-    expect(screen.getByTestId('source-ebird')).toHaveTextContent('Full export · details unknown')
-    expect(screen.getByTestId('source-inat')).toHaveTextContent('Details unknown: enter your username to refresh')
+    expect(screen.getByTestId('source-ebird')).toHaveTextContent('eBird full export · details unknown')
+    expect(screen.getByTestId('source-inat')).toHaveTextContent('username unknown: enter it again to refresh')
     expect(screen.queryByRole('button', { name: /^Refresh/ })).toBeNull()
     expect(screen.getByLabelText('iNaturalist username')).toBeInTheDocument()
   })
@@ -667,7 +717,7 @@ describe('remembered sources', () => {
   it('the iNaturalist username is stored and shown trimmed', async () => {
     const { inat, storage } = await mount()
     vi.mocked(inat.importInat).mockResolvedValueOnce({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 })
-    fireEvent.change(screen.getByLabelText('iNaturalist username'), { target: { value: '  @ sam_birds  ' } })
+    fireEvent.change(inatField(), { target: { value: '  @ sam_birds  ' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     expect(vi.mocked(inat.importInat).mock.calls.at(-1)![0]).toBe('sam_birds')
     expect(within(await screen.findByTestId('source-inat')).getByText('sam_birds')).toBeInTheDocument()

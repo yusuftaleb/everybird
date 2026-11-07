@@ -62,7 +62,7 @@ test("Make mine goes to the ways in on Settings and counts as closed", async ({ 
   await page.goto("/");
   await welcome(page).getByRole("link", { name: /^Make mine/ }).click();
   await expect(page).toHaveURL(/\/settings#sources$/);
-  await expect(page.getByRole("heading", { level: 2, name: "Your sources" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Your list" })).toBeVisible();
   await expect(page.locator("#sources")).toBeFocused(); // keyboard focus lands on the ways in, not the document top
   await expect(welcome(page)).toHaveCount(0);
   await page.goto("/");

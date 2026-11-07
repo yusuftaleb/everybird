@@ -170,6 +170,9 @@ for (const width of WIDTHS) {
       test.setTimeout(60_000);
       await mockInat(page);
       await page.goto("/settings");
+      // The username field shows once Add is pressed, focused.
+      await page.getByRole("button", { name: "Add iNaturalist" }).click();
+      await expect(page.getByPlaceholder("iNaturalist username")).toBeFocused();
       await page.getByPlaceholder("iNaturalist username").fill("testbirder");
       await page.getByRole("button", { name: "Fetch my birds" }).click();
       await expect(seeCollage(page)).toContainText(/Added \d+ species from iNaturalist/, { timeout: 30_000 });
@@ -322,26 +325,33 @@ for (const width of WIDTHS) {
       await expect(page.getByRole("button", { name: "Share", exact: true })).toHaveCount(0);
     });
 
-    test("keep your list: download a backup, forget the list, restore it", async ({ page }) => {
+    test("your data: name the list, download a backup, forget the list, restore it (the name with it)", async ({ page }) => {
       await seed(page);
       await page.goto("/settings");
+      await page.getByLabel("Your name", { exact: true }).fill("Kalin Ocana");
+      await expect.poll(() => page.evaluate(() => new Promise<string | undefined>((done) => {
+        const r = indexedDB.open("everybird");
+        r.onsuccess = () => { const g = r.result.transaction("kv").objectStore("kv").get("everybird:v1"); g.onsuccess = () => { r.result.close(); done(g.result?.name); }; };
+      }))).toBe("Kalin Ocana");
       const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download JSON backup" }).click()]);
       expect(dl.suggestedFilename()).toMatch(/^everybird-backup-\d{4}-\d{2}-\d{2}\.json$/);
       const backup = readFileSync((await dl.path())!);
       expect(JSON.parse(backup.toString()).records).toBeTruthy();
+      expect(JSON.parse(backup.toString()).name).toBe("Kalin Ocana");
       const [csv] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download CSV" }).click()]);
       expect(csv.suggestedFilename()).toMatch(/^everybird-\d{4}-\d{2}-\d{2}\.csv$/);
 
       await page.getByRole("button", { name: "Forget my list" }).click();
       await page.getByRole("button", { name: "Yes, forget it" }).click();
-      // The list is gone: "Keep your list" leaves with it.
-      await expect(page.getByRole("heading", { name: "Keep your list" })).toHaveCount(0);
+      // The list is gone: the downloads leave with it.
+      await expect(page.getByRole("button", { name: "Download CSV" })).toHaveCount(0);
       await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
       await expect(page.getByRole("heading", { level: 1, name: "A lifetime of birds." })).toBeVisible();
 
       await page.goto("/settings");
       await page.locator('input[type="file"][accept*="json"]').first().setInputFiles({ name: "backup.json", mimeType: "application/json", buffer: backup });
       await expect(page).toHaveURL(/\/$/);
+      await expect(page.getByRole("heading", { level: 1, name: "Kalin Ocana's birds" })).toBeVisible();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
       await expect(shownBirds(page)).toHaveCount(TOTAL);
     });

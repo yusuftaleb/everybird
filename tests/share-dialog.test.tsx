@@ -31,6 +31,18 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 describe('share dialog', () => {
+  it('starts from Settings > Your name; editing it changes only this share, never the saved name', async () => {
+    const dispatch = vi.fn()
+    const state = stateWith([entry('ostric2')])
+    state.saved = { ...state.saved, name: 'Ada Birder' }
+    render(<ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
+    const field = screen.getByLabelText('Your name (optional)') as HTMLInputElement
+    expect(field.value).toBe('Ada Birder')
+    fireEvent.change(field, { target: { value: 'Ada B.' } })
+    expect(field.value).toBe('Ada B.')
+    expect(dispatch).not.toHaveBeenCalled()
+  })
+
   it('disables Share image and Download image while the image renders', async () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     const shareBtn = screen.getByRole('button', { name: 'Share image' }) as HTMLButtonElement

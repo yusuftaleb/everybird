@@ -1,3 +1,5 @@
+import { NAME_MAX } from '@/lib/list/storage'
+import { NAME_MAX as LINK_NAME_MAX } from '@/lib/share/link'
 import { describe, expect, it } from 'vitest'
 import type { ImportResult, SourceRecord } from '@/lib/list/model'
 import { DEFAULT_RULES, EMPTY_EDITS } from '@/lib/list/model'
@@ -141,6 +143,12 @@ describe('store reducer', () => {
     expect(s2.saved.name).toBeUndefined()
     expect('name' in s2.saved).toBe(false)
     expect(run(s2, { type: 'name', name: '' }).saved).toBe(s2.saved) // no change, same identity (nothing to save)
+  })
+
+  it('name keeps at most NAME_MAX characters (what a share link carries)', () => {
+    const s = run(initialState(), { type: 'name', name: `  ${'é'.repeat(50)}  ` })
+    expect(Array.from(s.saved.name!)).toHaveLength(NAME_MAX)
+    expect(NAME_MAX).toBe(LINK_NAME_MAX)
   })
 
   it('persistence action sets only persistence', () => {

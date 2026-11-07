@@ -1,55 +1,59 @@
-/* The three ways in, one full-width row each: the head (icon, title, a sentence) left and the controls right from
-   880px, stacked below it. The match report and the species search follow. */
-.eb-ways { display: flex; flex-direction: column; gap: 16px; }
-.eb-way {
-  display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; padding: 20px 16px;
-  border: 1px solid var(--hairline); scroll-margin-top: 16px;
-  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  transition: border-color .15s cubic-bezier(.25, .8, .25, 1), background-color .15s cubic-bezier(.25, .8, .25, 1);
-}
-.eb-way:focus { outline: none; }
-.eb-way:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (min-width: 880px) {
-  .eb-way { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: 40px; padding: 28px 28px; }
-  .eb-way > .eb-disclose { grid-column: 1 / -1; }
-}
-.eb-way-head { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.eb-way-title { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 22px; line-height: 1.2; }
-.eb-way-title svg { width: 24px; height: 24px; flex: none; color: var(--accent); }
-.eb-way-blurb { margin: 0; font-size: 15px; line-height: 1.5; max-width: 44ch; }
-.eb-way-body { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.eb-way > .eb-notcounted { grid-column: -2 / -1; }
-/* Every control row is one 44px row: a button, a field and a button, or the search field. */
-.eb-way-control { display: flex; gap: 8px; min-height: 44px; }
-.eb-way-btn { flex: 1; }
-.eb-way-notes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; max-width: 60ch; }
-
-/* eBird's drop box: the button fills it, edge to edge, so the two always line up; the hint sits under the button. */
-.eb-dropzone {
-  display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 12px;
-  border: 1.5px dashed var(--line); background: transparent;
+/* Settings > Your list: one bordered group, a row per source (title and a mono state line left, actions right; the
+   actions drop under the text on narrow screens), groups split by hairlines. The eBird rows take a dropped file. */
+.eb-block-head { display: flex; flex-direction: column; gap: 4px; }
+.eb-srclist {
+  display: flex; flex-direction: column; min-width: 0; background: var(--paper); border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  transition: border-color .15s cubic-bezier(.25, .8, .25, 1), background-color .15s cubic-bezier(.25, .8, .25, 1);
 }
-.eb-dropzone-btn { width: 100%; }
-.eb-dropzone .eb-drop-hint { text-align: center; }
-.eb-filedrop[data-over] .eb-dropzone { border-color: var(--accent); background: var(--surface); }
-.eb-way:has(.eb-filedrop[data-over]) { border-color: var(--accent); }
-.eb-filedrop:has(input:focus-visible) label { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (pointer: coarse) { .eb-drop-hint { display: none; } }
-
-/* A connected source: name and a mono meta line, then its actions (Replace or Refresh, Remove). */
-.eb-sources { display: flex; flex-direction: column; border-top: 1px solid var(--hairline); }
-.eb-source { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--hairline); }
-.eb-source-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
-.eb-source-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 200px; }
-.eb-source-name { margin: 0; font-weight: 600; font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
-.eb-source-meta { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: .04em; line-height: 1.5; font-variant-numeric: tabular-nums; }
-.eb-source-acts { display: flex; gap: 8px; flex: none; }
+.eb-srcgroup { min-width: 0; scroll-margin-top: 16px; }
+.eb-srcgroup + .eb-srcgroup { border-top: 1px solid var(--hairline); }
+.eb-srcgroup:focus { outline: none; }
+.eb-srcgroup:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
+.eb-src + .eb-src { border-top: 1px solid var(--hairline); }
+.eb-src-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; }
+.eb-src-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 280px; }
+.eb-src-title {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0;
+  font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.35;
+}
+.eb-src-kind { font-size: 14px; font-weight: 500; color: var(--muted); }
+.eb-src-meta { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: .04em; line-height: 1.5; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.eb-src-id { font-family: var(--font-body); font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.eb-src-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; flex: none; max-width: 100%; }
+.eb-src-how { margin-right: 6px; color: var(--muted); font-size: 13px; }
+.eb-src-how svg { width: 12px; height: 12px; transition: rotate .2s cubic-bezier(.25, .8, .25, 1); }
+.eb-src-how[aria-expanded="true"] svg { rotate: 180deg; }
+@media (max-width: 599px) {
+  .eb-src-acts { justify-content: flex-start; flex: 1 1 100%; }
+  .eb-src-how { margin-right: auto; }
+}
+.eb-src-help { display: flex; flex-direction: column; gap: 6px; margin: -4px 16px 12px; padding: 10px 12px; max-width: 72ch; background: var(--surface); border-radius: 10px; }
+.eb-src-help[hidden] { display: none; }
+.eb-src-help p { margin: 0; }
+.eb-src-confirm { margin: 0 16px 12px; }
+.eb-src-form { padding: 0 16px 12px; }
+.eb-src-form[hidden] { display: none; }
+.eb-src-formrow { flex-wrap: nowrap; max-width: 560px; }
+.eb-src-formrow > .eb-input { flex: 1 1 auto; }
+.eb-src-formrow > .eb-btn { flex: none; }
+.eb-src-status { padding: 0 16px 12px; }
+.eb-src-status:empty { padding: 0; }
+.eb-src-extra { padding: 0 16px; }
+.eb-src-extra:not(:has(*)) { display: none; }
 .eb-btn-sm { min-height: 40px; padding: 0 14px; font-size: 14px; }
 @media (pointer: coarse) { .eb-btn-sm { min-height: 44px; } }
-.eb-inat-other { align-self: flex-start; }
-.eb-inat-form { display: flex; flex-direction: column; gap: 10px; }
+.eb-filedrop { border-radius: 12px; transition: background-color .15s cubic-bezier(.25, .8, .25, 1), box-shadow .15s cubic-bezier(.25, .8, .25, 1); }
+.eb-filedrop[data-over] { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--accent); }
+@media (pointer: coarse) { .eb-drop-hint { display: none; } }
+
+/* The match report under the sources: one line and "Fix them"; the rows open under it. */
+.eb-matchbox {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; scroll-margin-top: 16px;
+  border: 1px solid var(--accent); border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-matchbox-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.eb-matchbox-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 280px; }
+.eb-match[hidden] { display: none; }
 
 /* Tick by hand's disclosure: the list grows from nothing (rows 0fr -> 1fr). It clips only while it moves, so the
    sticky "Add N" bar sticks to the screen once open. */
@@ -60,11 +64,8 @@
 .eb-disclose[hidden] { display: none; }
 .eb-disclose-inner { min-height: 0; }
 .eb-disclose[data-phase] .eb-disclose-inner { overflow: hidden; }
-.eb-way .eb-tick { padding: 4px 0 0; border: 0; border-top: 1px solid var(--hairline); border-radius: 0; padding-top: 16px; }
-.eb-way .eb-tickbar { margin: 0 -16px -20px; }
-@media (min-width: 880px) { .eb-way .eb-tickbar { margin: 0 -28px -28px; padding: 12px 28px 16px; } }
 @media (prefers-reduced-motion: reduce) {
-  .eb-disclose, .eb-disclose-btn svg, .eb-dropzone { transition: none; }
+  .eb-disclose, .eb-disclose-btn svg, .eb-src-how svg, .eb-filedrop { transition: none; }
 }
 
 .eb-label {
@@ -72,20 +73,9 @@
   text-transform: uppercase; color: var(--muted);
 }
 .eb-row > .eb-input { flex: 1 1 140px; }
-.eb-way-control > .eb-input { flex: 1 1 auto; }
-.eb-way-control > .eb-btn { flex: none; }
-.eb-way-control > .eb-way-btn { flex: 1 1 auto; }
-.eb-way-control.eb-row { flex-wrap: nowrap; }
 
 .eb-status { margin: 0; min-height: 1.5em; font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; color: var(--muted); font-variant-numeric: tabular-nums; }
 .eb-status:empty { min-height: 0; }
-.eb-filehelp { font-size: 14px; line-height: 1.45; }
-.eb-filehelp summary {
-  display: inline-flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--ink);
-  text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px;
-}
-.eb-filehelp ul { margin: 6px 0 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 6px; }
-
 .eb-search { display: flex; flex-direction: column; gap: 8px; }
 .eb-hits { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border-top: 1px solid var(--hairline); }
 .eb-hit {
@@ -111,11 +101,19 @@
 .eb-match-com { font-weight: 500; }
 .eb-match-sci { color: var(--muted); font-size: 14px; }
 .eb-match-acts { display: flex; flex-wrap: wrap; gap: 6px; }
-@media (prefers-reduced-motion: reduce) { .eb-way { transition: none; } }
 .eb-tickbar-drop { color: var(--accent); font-weight: 500; }
-.eb-notcounted p { margin: 0; }
-.eb-notcounted summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; color: var(--ink); text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px; }
-.eb-notcounted ul { margin: 4px 0 0; padding-left: 18px; }
+.eb-notcounted { font-size: 13px; }
+.eb-notcounted summary {
+  position: relative; display: inline-flex; align-items: center; line-height: 20px; cursor: pointer; color: var(--ink);
+  text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px;
+}
+.eb-notcounted summary::after { content: ''; position: absolute; inset: -12px -4px; } /* a 44px hit area */
+.eb-notcounted[open] { display: flex; flex-direction: column; gap: 4px; padding-bottom: 4px; }
+.eb-notcounted ul { margin: 0; padding-left: 18px; }
+
+/* Tick by hand inside its row: the list under a hairline, its sticky bar the group's width. */
+.eb-srcgroup .eb-tick { padding: 12px 16px 0; border: 0; border-top: 1px solid var(--hairline); border-radius: 0; }
+.eb-srcgroup .eb-tickbar { margin: 0 -16px; }
 
 /* Fields (.eb-input, .eb-select, .eb-input-wrap): styles/globals.css, shared with the Places panel's search. */
 

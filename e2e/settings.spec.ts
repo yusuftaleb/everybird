@@ -114,9 +114,45 @@ test("an eBird file is remembered on the next visit, and Remove takes it away", 
   await page.reload();
   const line = page.getByTestId("source-ebird-list");
   await expect(line).toContainText("ebird_world_life_list.csv");
-  await expect(line).toContainText(/Life list download · 3 rows · imported \d{1,2} \w{3} \d{4}/i);
+  await expect(line).toContainText(/ebird_world_life_list\.csv · 3 rows · imported \d{1,2} \w{3} \d{4}/i);
   await line.getByRole("button", { name: "Remove" }).click();
   await page.getByRole("button", { name: "Yes, remove it" }).click();
   await expect(line).toHaveCount(0);
   await expect(page.getByTestId("see-collage")).toHaveCount(0);
+});
+
+test("Your name in Settings titles the collage and starts the share dialog; the dialog's edit stays in that share", async ({ page }) => {
+  await importLifeList(page);
+  const field = page.getByLabel("Your name", { exact: true });
+  await field.fill("Ada Birder");
+  await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Ada Birder's birds" })).toBeVisible();
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Share your collage" });
+  const shareName = dialog.getByLabel("Your name (optional)");
+  await expect(shareName).toHaveValue("Ada Birder");
+  await shareName.fill("Ada B.");
+  await dialog.getByRole("button", { name: "Close" }).click();
+  // The collage and Settings keep the saved name, after a reload too.
+  await expect(page.getByRole("heading", { level: 1, name: "Ada Birder's birds" })).toBeVisible();
+  await page.goto("/settings");
+  await expect(page.getByLabel("Your name", { exact: true })).toHaveValue("Ada Birder");
+  // Empty: "My collage".
+  await page.getByLabel("Your name", { exact: true }).fill("");
+  await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "My collage" })).toBeVisible();
+});
+
+test("the how-to folds behind a small disclosure per source, and Settings fits about 1.5 screens at 1280x800", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importLifeList(page);
+  const row = page.getByTestId("source-ebird-list");
+  const how = row.getByRole("button", { name: "How do I get this file?" });
+  await expect(how).toHaveAttribute("aria-expanded", "false");
+  await expect(row.getByText(/your World life list total/)).toBeHidden();
+  await how.click();
+  await expect(row.getByText(/your World life list total/)).toBeVisible();
+  await how.click();
+  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+  expect(height).toBeLessThanOrEqual(1.6 * 800);
 });

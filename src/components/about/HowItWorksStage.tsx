@@ -4,7 +4,7 @@
 // the right and bottom of the stage.
 //
 // The story, one loop of about 14 s:
-//   1. An eBird export sits on the desktop beside Everybird's Settings ("Your sources"). It's dragged onto the eBird
+//   1. An eBird export sits on the desktop beside Everybird's Settings ("Your list"). It's dragged onto the eBird
 //      file card, which lights up as the real one does; on the drop the card reads the rows.
 //   2. "Added 197 species…" opens with "See my collage"; pressed, the page swaps to the collage: stickers arrive
 //      around the count as it rolls up to 197.
@@ -352,7 +352,7 @@ function SettingsPage({ s, wide }: { s: S; wide: boolean }) {
         </span>
       </div>
       <div className="ebd-below" data-pushed={s.made || undefined}>
-        <div className="ebd-h2">Your sources</div>
+        <div className="ebd-h2">Your list</div>
         <div className="ebd-way" data-target="drop" data-drop data-busy={s.reading || undefined}>
           <div className="ebd-way-title"><FileCsv />eBird file</div>
           <div className="ebd-lines">

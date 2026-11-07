@@ -1,5 +1,5 @@
 'use client'
-import { Binoculars, CaretDown, CheckSquareOffset, FileCsv, LockSimple, type Icon } from '@phosphor-icons/react'
+import { CaretDown, LockSimple } from '@phosphor-icons/react'
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ImportJobs } from '@/components/app/use-import-jobs'
 import type { Action } from '@/lib/list/store'
@@ -10,6 +10,7 @@ import { EbirdDrop, type EbirdConnected } from './EbirdDrop'
 import { InatForm } from './InatForm'
 import { TickList } from './TickList'
 import { NotCounted } from './NotCounted'
+import { SourceRow } from './SourceLine'
 import './import.css'
 
 type Props = {
@@ -20,27 +21,10 @@ type Props = {
   /** The imports in flight, kept above the routes (EverybirdProvider). */
   jobs: ImportJobs
   disabled?: boolean
-  /** Before the privacy line (Restore from backup, without a list). */
+  /** After the rows, before the privacy line (the match report). */
   children?: ReactNode
   /** Codes already on the list (Tick by hand shows them ticked). */
   onList: ReadonlySet<string>
-}
-
-/**
- * One way in, one full-width row: icon, title and a sentence on the left (above, on phones), its controls on the
- * right; `after` spans the row underneath (the tick list).
- */
-function Way({ id, icon: Glyph, title, blurb, children, after }: { id: string; icon: Icon; title: string; blurb: ReactNode; children: ReactNode; after?: ReactNode }) {
-  return (
-    <div className="eb-way" id={id} tabIndex={-1} aria-labelledby={`${id}-h`} role="group">
-      <div className="eb-way-head">
-        <h3 id={`${id}-h`} className="eb-way-title"><Glyph aria-hidden="true" focusable="false" weight="regular" />{title}</h3>
-        <p className="eb-way-blurb">{blurb}</p>
-      </div>
-      {children}
-      {after}
-    </div>
-  )
 }
 
 const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -73,9 +57,15 @@ function useDisclosure() {
 
 const speciesIn = (records: { code: string }[]) => new Set(records.map((r) => r.code)).size
 
+/** One source's group on "Your list" (the focus target after a Remove: way-ebird, way-inat, way-tick). */
+function Group({ id, label, children }: { id: string; label: string; children: ReactNode }) {
+  return <div className="eb-srcgroup" id={id} tabIndex={-1} role="group" aria-label={label}>{children}</div>
+}
+
 /**
- * "Your sources": the three ways in, one roomy row each. They combine into one list; each import replaces only its own
- * slot. A connected source shows what it is and when it came in, with Replace or Refresh and Remove.
+ * Settings > "Your list": every source on one line each (eBird life list, MyEBirdData, iNaturalist, Ticked by hand),
+ * its state and actions inline, the how-tos folded away. They combine into one list; each import replaces only its own
+ * slot. `children` follow the rows (the match report).
  */
 export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, regions, jobs, disabled, children, onList }: Props) {
   const tick = useDisclosure()
@@ -89,6 +79,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
     focusWay(slot === 'inat' ? 'way-inat' : 'way-ebird')
   }
   const listEmpty = Object.values(saved.records).every((r) => r.length === 0) && saved.edits.added.length === 0
+  const ticked = speciesIn([...saved.records.manual, ...saved.edits.added])
   // Arriving at /settings#sources (the welcome's "Make mine"): keyboard and screen-reader focus starts at the sources,
   // not at the top of the document.
   const section = useRef<HTMLElement>(null)
@@ -98,24 +89,27 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
 
   return (
     <section ref={section} id="sources" className="eb-block eb-import" aria-labelledby="eb-sources-h" tabIndex={-1}>
-      <h2 id="eb-sources-h" className="eb-h2">Your sources</h2>
-      <div className="eb-ways">
-        <Way id="way-ebird" icon={FileCsv} title="eBird files" blurb="Your life list download or your full data export from eBird. Bring either, or both.">
+      <div className="eb-block-head">
+        <h2 id="eb-sources-h" className="eb-h2">Your list</h2>
+        <p className="eb-note">Bring any of these, or several: they combine into one list.<span className="eb-drop-hint"> Drop an eBird file on its row.</span></p>
+      </div>
+      <div className="eb-srclist">
+        <Group id="way-ebird" label="eBird files">
           <EbirdDrop
             job={jobs.ebird}
             onFile={(f) => void jobs.readEbird(f)}
             disabled={disabled}
             connected={ebirdConnected}
             onRemove={remove}
+            saved={saved}
             loaded={{
               full: speciesIn(saved.records.ebird),
               quick: speciesIn(saved.records['ebird-list'] ?? []),
               fullCounty: saved.records.ebird.some((r) => !!r.place?.sub2),
             }}
           />
-          <NotCounted saved={saved} slots={['ebird', 'ebird-list']} />
-        </Way>
-        <Way id="way-inat" icon={Binoculars} title="iNaturalist" blurb="Your public, wild bird observations, identified to species.">
+        </Group>
+        <Group id="way-inat" label="iNaturalist">
           <InatForm
             job={jobs.inat}
             onFetch={(u) => void jobs.fetchInat(u)}
@@ -125,52 +119,44 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             details={saved.sources?.inat}
             onRemove={() => remove('inat')}
           />
-          <NotCounted saved={saved} slots={['inat']} />
-        </Way>
-        <Way
-          id="way-tick"
-          icon={CheckSquareOffset}
-          title="Tick by hand"
-          blurb="Tick off as many birds as you like, with one date and place for the batch."
-          after={
-            // The panel is always in the DOM (hidden until opened), so aria-controls="tick" always names an element;
-            // the list itself mounts on first open.
-            (
-              <div
-                id="tick"
-                className="eb-disclose"
-                data-open={tick.open || undefined}
-                data-phase={tick.phase === 'idle' ? undefined : tick.phase}
-                hidden={!tick.open && tick.phase === 'idle'}
-                onTransitionEnd={(e) => { if (e.target === e.currentTarget) tick.settle() }}
-              >
-                <div className="eb-disclose-inner">
-                  {tick.mounted && <TickList species={species} regions={regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} />}
-                </div>
-              </div>
-            )
-          }
-        >
-          <div className="eb-way-body">
-            <div className="eb-way-control">
+          {inatOn && <div className="eb-src-extra"><NotCounted saved={saved} slots={['inat']} /></div>}
+        </Group>
+        <Group id="way-tick" label="Ticked by hand">
+          <SourceRow
+            title="Ticked by hand"
+            kind="any bird, no file"
+            meta={ticked ? `${ticked.toLocaleString('en-US')} species ticked · tick or un-tick any bird` : 'None yet · tick or un-tick any bird'}
+            actions={
               <button
                 type="button"
-                className="eb-btn eb-btn-quiet eb-way-btn eb-disclose-btn"
+                className="eb-btn eb-btn-quiet eb-btn-sm eb-disclose-btn"
                 aria-expanded={tick.open}
                 aria-controls="tick"
+                aria-label="Tick birds off a list"
                 disabled={disabled}
                 onClick={tick.toggle}
               >
-                Tick birds off a list
+                Tick birds
                 <CaretDown aria-hidden="true" focusable="false" weight="bold" />
               </button>
+            }
+          >
+            {/* The panel is always in the DOM (hidden until opened), so aria-controls="tick" always names an element;
+                the list itself mounts on first open. */}
+            <div
+              id="tick"
+              className="eb-disclose"
+              data-open={tick.open || undefined}
+              data-phase={tick.phase === 'idle' ? undefined : tick.phase}
+              hidden={!tick.open && tick.phase === 'idle'}
+              onTransitionEnd={(e) => { if (e.target === e.currentTarget) tick.settle() }}
+            >
+              <div className="eb-disclose-inner">
+                {tick.mounted && <TickList species={species} regions={regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} />}
+              </div>
             </div>
-            <ul className="eb-way-notes">
-              <li className="eb-note">Every species in eBird&apos;s taxonomy, to search or browse. No upload, no account.</li>
-              <li className="eb-note">This is also where you add or remove species any time, without uploading a file again or retyping a username: tick a bird to add it, un-tick one already on your list to take it off.</li>
-            </ul>
-          </div>
-        </Way>
+          </SourceRow>
+        </Group>
       </div>
       {children}
       {/* The section's footnote, where files and usernames are handed over; the full privacy note is on About. */}

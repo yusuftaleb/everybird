@@ -28,6 +28,9 @@ export type DetailsFor<S extends Slot> = S extends 'inat' ? InatDetails : S exte
  * without it. v3 added `sources` (each source's details); v1 and v2 lists migrate by their version number alone and
  * have no details until a source is imported again. The IndexedDB key keeps its v1 name.
  */
+/** The longest list name (Settings > Your name): what a share link carries (link.ts NAME_MAX; a test keeps them equal). */
+export const NAME_MAX = 40
+
 export type Saved = {
   v: 3
   /** Records per slot (model.ts `Slot`): the two eBird files side by side, then iNaturalist and manual. */
@@ -35,6 +38,7 @@ export type Saved = {
   unmatched: Unmatched[]
   edits: Edits
   rules: Rules
+  /** The birder's name (Settings > Your name, trimmed): the collage's title and each share's starting name. */
   name?: string
   /** Rows per source that are not countable species (sp., slash, hybrid, domestic), for the match report. */
   skipped?: Partial<Record<Slot, number>>
