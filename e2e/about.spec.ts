@@ -58,6 +58,21 @@ for (const [name, path] of [
     await expect(footer).not.toContainText("CC BY 4.0");
     await expect(footer.getByRole("link", { name: "All credits" })).toHaveAttribute("href", "/about#credits");
     await expect(footer.getByRole("link", { name: "Made by Yusuf Taleb" })).toHaveAttribute("href", "https://www.yusuftaleb.com");
+    // The code on GitHub, at the row's right edge, with a 44px press
+    const gh = footer.getByRole("link", { name: "Everybird on GitHub" });
+    await expect(gh).toHaveAttribute("href", "https://github.com/yusuftaleb/everybird");
+    await expect(gh).toHaveAttribute("target", "_blank");
+    await expect(gh).toHaveAttribute("rel", "noopener noreferrer");
+    const m = await gh.evaluate((el) => {
+      const after = getComputedStyle(el, "::after");
+      const r = el.getBoundingClientRect();
+      const row = el.parentElement!.getBoundingClientRect();
+      const inset = parseFloat(after.top);
+      return { w: r.width - 2 * inset, h: r.height - 2 * inset, rightGap: row.right - r.right };
+    });
+    expect(m.w).toBeGreaterThanOrEqual(44);
+    expect(m.h).toBeGreaterThanOrEqual(44);
+    expect(m.rightGap).toBeLessThan(1);
   });
 }
 

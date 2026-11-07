@@ -170,6 +170,10 @@ describe('the Collage page (/)', () => {
     const footer = screen.getByRole('contentinfo')
     expect(within(footer).getByRole('link', { name: 'All credits' })).toHaveAttribute('href', '/about#credits')
     expect(within(footer).queryByRole('link', { name: 'huashu-bird-sticker' })).toBeNull()
+    const gh = within(footer).getByRole('link', { name: 'Everybird on GitHub' })
+    expect(gh).toHaveAttribute('href', 'https://github.com/yusuftaleb/everybird')
+    expect(gh).toHaveAttribute('target', '_blank')
+    expect(gh).toHaveAttribute('rel', 'noopener noreferrer')
     // The top bar: the wordmark home, the three pages (this one current) and the theme switch.
     const bar = screen.getByRole('banner')
     expect(within(bar).getByRole('link', { name: 'Everybird' })).toHaveAttribute('href', '/')

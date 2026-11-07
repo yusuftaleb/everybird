@@ -348,9 +348,19 @@
 }
 .eb-footer p { margin: 0; }
 .eb-footer a { color: inherit; text-underline-offset: 3px; }
+/* The code on GitHub: an 18px Muted glyph pushed to the row's right edge (also when the row wraps: it ends the last
+   line), Ink on hover and focus; a 44px press that reaches 13px past the glyph on each side, inside the 20px gaps. */
+.eb-footer .eb-footer-gh {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; margin-left: auto;
+  width: 18px; height: 18px; color: var(--muted); border-radius: 6px; transition: color .15s var(--ease-ui);
+}
+.eb-footer-gh svg { width: 18px; height: 18px; flex: none; }
+.eb-footer-gh::after { content: ''; position: absolute; inset: -13px; }
+.eb-footer .eb-footer-gh:focus-visible { color: var(--ink); outline-offset: 4px; }
+@media (hover: hover) and (pointer: fine) { .eb-footer .eb-footer-gh:hover { color: var(--ink); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .eb-btn, .eb-dock-tab, .eb-dock-dir svg, .eb-dock-tabs, .eb-dock-tools, .eb-nav-link { transition: none; }
+  .eb-btn, .eb-dock-tab, .eb-dock-dir svg, .eb-dock-tabs, .eb-dock-tools, .eb-nav-link, .eb-footer-gh { transition: none; }
   .eb-find, .eb-results { animation: none; }
 }
 .eb-stagewrap { position: relative; }
