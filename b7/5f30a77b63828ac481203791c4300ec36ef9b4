@@ -1,0 +1,42 @@
+src/components/collage/BirdCard.tsx
+  s_ab125876fe9ad2::t_cd0febe87dbf82 168
+e2e/responsive.spec.ts
+  s_ab125876fe9ad2::t_a6809f6e6c7796 58
+tests/card-list.test.tsx
+  s_ab125876fe9ad2::t_a31b53f95a703d 156-163
+tests/info-tip.test.tsx
+  s_ab125876fe9ad2::t_b0cd556a84c3d3 1,3-35
+  s_ab125876fe9ad2::t_a31b53f95a703d 2
+src/components/app/InfoTip.tsx
+  s_ab125876fe9ad2::t_90693e73d9d029 1-63
+src/components/app/ControlsBar.tsx
+  s_ab125876fe9ad2::t_83dfd2320a8fa6 11,81-84
+  s_ab125876fe9ad2::t_047afdc0bde38e 85
+app/(app)/about/page.tsx
+  s_ab125876fe9ad2::t_35dedb94085843 98-100
+src/components/app/app.css
+  s_ab125876fe9ad2::t_baa152b4f17b0f 169,180,200-201
+  s_ab125876fe9ad2::t_327de70729934a 199
+  s_ab125876fe9ad2::t_c535bd45d8b91a 194-195
+  s_ab125876fe9ad2::t_3558a63c91be7f 203-207
+  s_ab125876fe9ad2::t_83dfd2320a8fa6 202,468,472,475,482-488
+  s_ab125876fe9ad2::t_af7a46ff52c974 469-471,473-474,476-481
+AGENTS.md
+  s_ab125876fe9ad2::t_58df294d20b239 41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b75f30a77b63828ac481203791c4300ec36ef9b4",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
