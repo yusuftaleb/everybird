@@ -1,0 +1,27 @@
+PRODUCT.md
+  s_ab125876fe9ad2::t_21a8a2fd8bd067 7
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_21a8a2fd8bd067 438
+docs/validation.md
+  s_ab125876fe9ad2::t_21a8a2fd8bd067 64-68
+AGENTS.md
+  s_ab125876fe9ad2::t_21a8a2fd8bd067 62-63,77
+DESIGN.md
+  s_ab125876fe9ad2::t_21a8a2fd8bd067 241
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c889a89e15e1b62817d5689a0316f2e65c65dc10",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
