@@ -156,3 +156,35 @@ test("the how-to folds behind a small disclosure per source, and Settings fits a
   const height = await page.evaluate(() => document.documentElement.scrollHeight);
   expect(height).toBeLessThanOrEqual(1.6 * 800);
 });
+
+// The collage's "Fix it" is a client navigation to /settings#match: the match report opens by itself there (it read
+// the hash before the router had written it; review, 2026-11-06).
+test("the collage's Fix it opens Settings with the match report open", async ({ page }) => {
+  await page.goto("/about");
+  await page.evaluate(
+    (saved) =>
+      new Promise<void>((done, fail) => {
+        const open = indexedDB.open("everybird");
+        open.onupgradeneeded = () => open.result.createObjectStore("kv");
+        open.onsuccess = () => {
+          const tx = open.result.transaction("kv", "readwrite");
+          tx.objectStore("kv").put(saved, "everybird:v1");
+          tx.oncomplete = () => { open.result.close(); done(); };
+          tx.onerror = () => fail(tx.error);
+        };
+        open.onerror = () => fail(open.error);
+      }),
+    {
+      v: 1,
+      records: { ebird: [{ code: "ostric2", source: "ebird", date: "2020-05-01", place: { country: "KE" } }], inat: [], manual: [] },
+      unmatched: [{ source: "ebird", row: 3, com: "Mystery Warbler", sci: "Nonexistens avis", reason: "no-match" }],
+      edits: { removed: [], added: [], marks: {}, fixes: {} }, rules: { hideHeard: false, hideDead: false, researchOnly: false },
+      savedAt: new Date().toISOString(),
+    },
+  );
+  await page.goto("/");
+  await page.getByTestId("unmatched-note").getByRole("link", { name: "Fix it" }).click();
+  await expect(page).toHaveURL(/\/settings#match$/);
+  await expect(page.locator("#match").getByRole("button", { name: /^Fix it/ })).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("#eb-match-rows")).toBeVisible();
+});

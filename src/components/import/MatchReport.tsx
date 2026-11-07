@@ -26,6 +26,9 @@ export const MatchReport = memo(function MatchReport({ open, saved, species, dis
   const [shown, setShown] = useState(() => typeof window !== 'undefined' && window.location.hash === '#match')
   useEffect(() => {
     const onHash = () => { if (window.location.hash === '#match') setShown(true) }
+    // The collage's "Fix it" is a client navigation: the router writes the new URL during its commit, after this
+    // component's first render read the old hash, and a router push fires no hashchange. Read it again once mounted.
+    onHash()
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
