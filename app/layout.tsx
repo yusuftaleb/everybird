@@ -20,7 +20,7 @@ export const metadata: Metadata = {
         ? new URL(`https://${process.env.VERCEL_URL}`)
         : undefined,
   title: "Everybird",
-  description: "Every bird you've ever seen.",
+  description: "Look how far you've come. Bring your eBird or iNaturalist list, or tick birds off by hand, and see every species on it as a sticker.",
   // A share link's token is the birder's list: never let it leave as a Referer, not even to our own pages
   // (analytics beacons send one). Origin only, everywhere. No analytics script here: Cloudflare Web Analytics loads from
   // app/(app)/layout.tsx only, so a shared view (/s/<token>) never loads it.

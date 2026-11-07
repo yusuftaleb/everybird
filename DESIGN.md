@@ -1,6 +1,6 @@
 ---
 name: Everybird
-description: Every bird you've ever seen, as a sticker collage. Yusuf's personal-site design system (the /lifelist look) in a standalone app.
+description: A lifetime of birds, as a sticker collage. Yusuf's personal-site design system (the /lifelist look) in a standalone app.
 colors:
   ink: "#1e1e24"
   paper: "#f6f4ef"
@@ -234,7 +234,7 @@ Stickers are huashu-bird-sticker (CC BY 4.0), trimmed webp at 128 and 384px, hos
 
 ## Voice and copy
 
-- Plain words, second person, short sentences: "Every bird you've ever seen." "Make yours." "This link didn't open."
+- Plain words, second person, short sentences: "A lifetime of birds." "Make yours." Never "seen" for the list (heard-only birds count too): "on your list". "This link didn't open."
 - Say what happened and what to do next; name the not-counted entries in plain words.
 - Sentence case everywhere; mono labels are the only uppercase (by CSS).
 - No em dashes in UI copy (none in our components; the vendored Stageshow kit under `src/components/about/stageshow/` is excluded, and its one "—" is in a code comment, not rendered text); no exclamation marks, no emoji, no hype.

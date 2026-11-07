@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Everybird',
     short_name: 'Everybird',
-    description: 'Every bird you’ve ever seen, as a sticker collage.',
+    description: 'A lifetime of birds, as a sticker collage.',
     start_url: '/',
     display: 'standalone',
     background_color: '#f6f4ef',

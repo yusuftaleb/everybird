@@ -54,7 +54,7 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
         data-testid="welcome"
         onKeyDown={(e) => trapTab(e, ref.current)}
       >
-        <p id={lineId} className="eb-welcome-line">Every bird you&apos;ve ever seen, as a sticker collage.</p>
+        <p id={lineId} className="eb-welcome-line">A lifetime of birds, as a sticker collage.</p>
         <div className="eb-welcome-actions">
           <Link ref={primary} href="/settings#sources" className="eb-btn" onClick={rememberWelcomed}>
             Make mine

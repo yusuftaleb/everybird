@@ -28,7 +28,7 @@
 .eb-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 .eb-hero-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .eb-hero-title { margin: 0; font-size: clamp(28px, 4vw, 42px); line-height: 1.02; letter-spacing: -.02em; }
-.eb-hero-lede { margin: 0; font-size: 15px; line-height: 1.45; max-width: 72ch; }
+.eb-hero-lede { margin: 0; font-size: 15px; line-height: 1.45; max-width: 72ch; text-wrap: balance; } /* two even lines, no orphan */
 @media (max-width: 719px) { .eb-hero-cta.eb-btn-big { min-height: 44px; font-size: 16px; padding: 0 18px; } }
 @media (min-width: 720px) {
   .eb-hero { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 24px; }

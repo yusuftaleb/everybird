@@ -19,7 +19,7 @@ test("sample collage renders on landing", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: "Every bird you've ever seen." })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "A lifetime of birds." })).toBeVisible();
   const stage = page.getByTestId("collage-stage");
   await expect(stage).toBeVisible();
   await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(`^Sample: a demo birder's life list · ${SAMPLE_COUNT} species · \\d+ orders · \\d+ families · since `));
@@ -42,9 +42,11 @@ test("the landing sample is pre-packed: its stickers show without the species fi
 // 1280 the order chips wrap, at 390 the "Choose an order" button and the bar's 4px insets sit over the stage (0.47).
 // The demo birder (2026-11-06) has 29 orders where the old sample had 18, so at 1280 the chips wrap onto four rows
 // instead of three and the stage starts 40px lower (0.45 of the screen, was 0.50); 390 is unchanged. The bounds keep a
-// couple of percent of slack under those.
-test("at 1280x800 and 390x844 the landing's birds fill a little under half of the first screen", async ({ page }) => {
-  for (const [width, height, share] of [[1280, 800, 0.43], [390, 844, 0.45]] as const) {
+// couple of percent of slack under those. The lede "Look how far you've come. …" (2026-11-06) takes two lines at 1280
+// where the old one took one, and more lines on a phone, so both bounds are 0.40 (the stage starts at about 0.42 and
+// 0.43).
+test("at 1280x800 and 390x844 the landing's birds fill at least two fifths of the first screen", async ({ page }) => {
+  for (const [width, height, share] of [[1280, 800, 0.40], [390, 844, 0.40]] as const) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
     const stage = page.getByTestId("collage-stage");
@@ -135,7 +137,7 @@ test("an import keeps running while the birder moves between the pages", async (
     await expect(status).toHaveText(/^Reading your file/);
     // Away (client-side links: the provider above the routes, and the worker, stay) and back.
     await page.getByRole("link", { name: "Everybird", exact: true }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Every bird you've ever seen." })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "A lifetime of birds." })).toBeVisible();
     await page.getByRole("banner").getByRole("link", { name: "About" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
     await page.getByRole("banner").getByRole("link", { name: "Settings" }).click();

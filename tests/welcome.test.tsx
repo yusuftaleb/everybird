@@ -10,7 +10,7 @@ vi.mock('next/link', () => ({
   default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => <a href={href} {...rest}>{children}</a>,
 }))
 
-const dialog = () => screen.queryByRole('dialog', { name: "Every bird you've ever seen, as a sticker collage." })
+const dialog = () => screen.queryByRole('dialog', { name: "A lifetime of birds, as a sticker collage." })
 
 // Node 25 ships its own (unconfigured) localStorage global, which shadows jsdom's: use a plain in-memory one.
 class MemoryStorage {

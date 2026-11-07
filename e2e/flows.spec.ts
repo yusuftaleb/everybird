@@ -337,7 +337,7 @@ for (const width of WIDTHS) {
       // The list is gone: "Keep your list" leaves with it.
       await expect(page.getByRole("heading", { name: "Keep your list" })).toHaveCount(0);
       await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
-      await expect(page.getByRole("heading", { level: 1, name: "Every bird you've ever seen." })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "A lifetime of birds." })).toBeVisible();
 
       await page.goto("/settings");
       await page.locator('input[type="file"][accept*="json"]').first().setInputFiles({ name: "backup.json", mimeType: "application/json", buffer: backup });

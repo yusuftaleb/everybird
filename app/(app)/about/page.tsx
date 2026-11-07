@@ -48,7 +48,7 @@ export default function AboutPage() {
       <section className="eb-block" aria-labelledby="eb-what-h">
         <h2 id="eb-what-h" className="eb-h2">What it is</h2>
         <p className="eb-prose">
-          Your life list is already a record of every bird you&apos;ve seen. Everybird lays it out as one collage: every species
+          Your life list is already the record of a lifetime of birds. Everybird lays it out as one collage: every species
           a sticker, sized by its body mass, with the count in the middle. Filter it by group, place or year, then share it as an
           image or a link.
         </p>

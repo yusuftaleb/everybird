@@ -34,6 +34,14 @@ describe('Cloudflare Web Analytics beacon', () => {
     expect(s[0].getAttribute('data-cf-beacon')).toBe(JSON.stringify({ token: CF_BEACON_TOKEN }))
     expect(s[0].getAttribute('strategy')).toBe('afterInteractive')
   })
+  it('stays out of a document that started on a shared view, even after it moved into the app', () => {
+    const real = performance.getEntriesByType.bind(performance)
+    const spy = vi.spyOn(performance, 'getEntriesByType').mockImplementation((t: string) =>
+      t === 'navigation' ? ([{ name: 'https://everybird.yusuftaleb.com/s/1abc' }] as unknown as PerformanceEntryList) : real(t))
+    render(<CloudflareBeacon />)
+    expect(beacons()).toHaveLength(0)
+    spy.mockRestore()
+  })
   it('stays out with Do Not Track or Global Privacy Control', () => {
     Object.defineProperty(navigator, 'doNotTrack', { value: '1', configurable: true })
     render(<CloudflareBeacon />)

@@ -7,7 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
 // WELCOME_PNG_DIR (optional) saves screenshots of the card and the sheet in both themes there.
 test.use({ storageState: { cookies: [], origins: [] } });
 
-const LINE = "Every bird you've ever seen, as a sticker collage.";
+const LINE = "A lifetime of birds, as a sticker collage.";
 const welcome = (page: Page) => page.getByRole("dialog", { name: LINE });
 const frozen = readFileSync("tests/fixtures/share/v1-frozen.txt", "utf8").trim();
 const OUT = process.env.WELCOME_PNG_DIR;

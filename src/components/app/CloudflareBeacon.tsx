@@ -9,8 +9,24 @@ export const CF_BEACON_TOKEN = '810be5cc6af7455686262e3fe8c0cf30'
 export const CF_BEACON_SRC = 'https://static.cloudflareinsights.com/beacon.min.js'
 
 const noop = () => () => {}
-/** Read once in the browser; the server render (and hydration) says no, so the script only ever starts client-side. */
-const allowedNow = () => !optedOut(navigator, (window as Window & { doNotTrack?: string | null }).doNotTrack)
+/** Whether this document began (or is) on a shared view: its first navigation's URL, or the current path, is /s/... */
+export function startedOnShare(): boolean {
+  try {
+    const first = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.name
+    if (first && new URL(first).pathname.startsWith('/s/')) return true
+  } catch {
+    // No Navigation Timing: fall back to the current path alone.
+  }
+  return location.pathname.startsWith('/s/')
+}
+
+/**
+ * Read once in the browser; the server render (and hydration) says no, so the script only ever starts client-side.
+ * Never in a document that started on /s/<token>: belt and braces for FullNavigation, whose click handler attaches a
+ * moment after hydration (a click in that gap would be a client navigation into the app, and the beacon's route
+ * tracking would later see the token on Back).
+ */
+const allowedNow = () => !optedOut(navigator, (window as Window & { doNotTrack?: string | null }).doNotTrack) && !startedOnShare()
 
 /**
  * Cloudflare Web Analytics: cookieless page-view counts. Rendered only from app/(app)/layout.tsx in production

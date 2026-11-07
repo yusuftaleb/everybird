@@ -184,11 +184,11 @@ function DropPanel({ id, kind, title, sheet, button, onClose, children }: PanelP
     : body
 }
 
-/** "Showing where each lifer was first seen", and how to get every country a species was seen in. */
+/** "Showing each lifer's first place only", and how to get every country a species is on the list for. */
 function PlacesNoteLine({ note }: { note: PlacesNote }) {
   return (
     <p className="eb-note eb-places-note" data-testid="places-lifer-only">
-      Showing where each lifer was first seen.{' '}
+      Showing each lifer&apos;s first place only.{' '}
       {note === 'reimport' ? (
         <><Link href="/settings">Import Download My Data again</Link> for full country lists.</>
       ) : (

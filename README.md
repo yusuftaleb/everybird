@@ -1,6 +1,6 @@
 # Everybird
 
-Every bird you've ever seen. Everybird turns a birder's life list into a sticker collage. Import an eBird export or an iNaturalist username, or tick birds off by hand, and your list is laid out as a collage you can filter, edit and share.
+A lifetime of birds. Everybird turns a birder's life list into a sticker collage. Import an eBird export or an iNaturalist username, or tick birds off by hand, and your list is laid out as a collage you can filter, edit and share.
 
 Your list never leaves your browser. The only network calls that carry user input are iNaturalist API requests (a username and place IDs). A share link carries the whole list in the link itself.
 

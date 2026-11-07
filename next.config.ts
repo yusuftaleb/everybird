@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   // Pin the root: a stray package-lock.json higher up would otherwise confuse Next.
   turbopack: { root: dirname(fileURLToPath(import.meta.url)) },
+  // A share link's token is the birder's list: the Referer is the origin only, everywhere. The root layout's metadata
+  // sets the same policy as a <meta> tag; the header doesn't depend on where streaming metadata puts that tag.
+  async headers() {
+    return [{ source: "/:path*", headers: [{ key: "Referrer-Policy", value: "strict-origin" }] }];
+  },
 };
 
 export default nextConfig;

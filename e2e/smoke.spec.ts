@@ -15,7 +15,7 @@ const DARK = "rgb(30, 30, 36)";
 test("light mode paints the paper background, no console errors", async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: "Every bird you've ever seen." })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "A lifetime of birds." })).toBeVisible();
   expect(await bg(page)).toBe(LIGHT);
   expect(errors).toEqual([]);
 });
