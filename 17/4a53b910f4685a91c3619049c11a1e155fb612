@@ -1,0 +1,35 @@
+data/build/crosswalk-report.md
+  s_ab125876fe9ad2::t_17aeb5132f9988 4,6-7,13,38-62,67,79,104-107,127-128,130-131,133,155,157,210,223,232,247-249,253-254,262,273
+public/data/masks/Anseriformes.v1.json
+  s_ab125876fe9ad2::t_b949bf4914ceec 1
+public/data/masks/Apodiformes.v1.json
+  s_ab125876fe9ad2::t_6681128cf376a6 1
+public/data/masks/Gruiformes.v1.json
+  s_ab125876fe9ad2::t_7b04fda06e8ed1 1
+public/data/masks/Passeriformes.v1.json
+  s_ab125876fe9ad2::t_674bbfd5ab2edf 1
+public/data/masks/Procellariiformes.v1.json
+  s_ab125876fe9ad2::t_6b0a2119e51a20 1
+public/data/species.v1.json
+  s_ab125876fe9ad2::t_02a25b47baddcd 1
+scripts/build-data/build-species.ts
+  s_ab125876fe9ad2::t_0039b57bd5ace5 33-34,37-49,55,62-67,70,90-91,96,103,156,160,244,248
+tests/build-species.test.ts
+  s_ab125876fe9ad2::t_281c3b455f9e16 79-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "174a53b910f4685a91c3619049c11a1e155fb612",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
