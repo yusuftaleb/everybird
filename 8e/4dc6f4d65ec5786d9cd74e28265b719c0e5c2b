@@ -1,0 +1,65 @@
+src/components/about/REHEARSAL.md
+  s_ab125876fe9ad2::t_745ef911f46c71 78-91
+  s_ab125876fe9ad2::t_6a16f5e30b07b8 15-77,144-146,150-152
+  s_ab125876fe9ad2::t_b94b95e91f3bf8 1,121-125
+app/(app)/about/about.css
+  s_ab125876fe9ad2::t_49fdc2cb0aa530 19-20,22-26
+e2e/about.spec.ts
+  s_ab125876fe9ad2::t_05decec4a2f470 6,8-10,256-257
+  s_ab125876fe9ad2::t_1f212633296980 3,5,99-108,111-187,195-245,247-255,258-265
+  s_ab125876fe9ad2::t_a69b5942f244cf 4,246
+  s_ab125876fe9ad2::t_5d63da13926791 188-194
+  s_ab125876fe9ad2::t_bdfb2fc9a6ff07 109-110
+AGENTS.md
+  s_ab125876fe9ad2::t_0643fb62fce713 34
+  s_ab125876fe9ad2::t_32a4b9e731cba8 73
+src/components/about/HowItWorksDemo.tsx
+  s_ab125876fe9ad2::t_5773daf10c1574 67
+  s_ab125876fe9ad2::t_e71c95b427dc0d 2,5-6,8-55,59-63,69-72,75-76,78-80,82-89,93-96,98,100-108,111-113,122-126
+  s_ab125876fe9ad2::t_9057ac5a1d48b6 81
+  s_ab125876fe9ad2::t_6ee61f0a8032c1 3-4,66
+src/components/about/HowItWorksScene.tsx
+  s_ab125876fe9ad2::t_481e85f59e35aa 18,160-162,536-537
+  s_ab125876fe9ad2::t_dd7df23d4aea3b 1-17,19-102,106-159,163-535,538-544
+  s_ab125876fe9ad2::t_382565c089dc66 103,105
+  s_ab125876fe9ad2::t_0f57ebd6005153 104
+src/lib/sticker-ready.ts
+  s_ab125876fe9ad2::t_6ee61f0a8032c1 1-5
+scripts/build-data/build-howto.ts
+  s_ab125876fe9ad2::t_9be237bd8af216 11,45-46,106,108-109,111-114
+  s_ab125876fe9ad2::t_df16b44a0f4f77 1-10,12,14-36,39-44,47-65,67,69-76,78-105,107,110
+  s_ab125876fe9ad2::t_a20ccbcbd4743e 37-38
+  s_ab125876fe9ad2::t_9057ac5a1d48b6 77
+  s_ab125876fe9ad2::t_f76d410e574a34 13,66,68
+src/components/about/how-it-works.css
+  s_ab125876fe9ad2::t_5e2f77ba11b7fa 342,348
+  s_ab125876fe9ad2::t_f9fe782060ade4 1-4,26,36-38,41-44,51,53,56,58,62,67,73-74,82-83,85-92,94,96,100,105-106,108-124,126-153,155-156,158,161-169,171-176,178-180,182-192,194-231,234,237-238,244,247-248,250,252,254-260,262-267,269,273-274,276,278,280,282-283,287,294,296,298-313,315,317-335,338-341,343-347,349-384,414,417-422,427-443
+  s_ab125876fe9ad2::t_a20ccbcbd4743e 289,292
+tests/howto-data.test.ts
+  s_ab125876fe9ad2::t_c642201baec351 1-86
+playwright.config.ts
+  s_ab125876fe9ad2::t_dff799ea999d00 26-28
+app/layout.tsx
+  s_ab125876fe9ad2::t_6ee61f0a8032c1 5,39
+src/components/about/how-it-works-data.ts
+  s_ab125876fe9ad2::t_f76d410e574a34 1-12,14-15
+  s_ab125876fe9ad2::t_a20ccbcbd4743e 13
+src/components/about/HowItWorksStage.tsx
+  s_ab125876fe9ad2::t_38403ee008840f 4-5,7,9-13,16-19,25-28,30-31,53,58-62,71,73-75,86-97,99-101,105,107-109,112-125,127-128,131,134,156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8e4dc6f4d65ec5786d9cd74e28265b719c0e5c2b",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
