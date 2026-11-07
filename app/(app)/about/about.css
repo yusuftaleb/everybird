@@ -16,9 +16,14 @@
 
 /* "How it works": the animated demo (src/components/about). The slot holds the stage's exact height before and after
    the scene loads (the wide design is 720 × 470, scaled to the column; under 560px the compact one, 358 × 356), so
-   nothing shifts. */
+   nothing shifts. The static poster (HowItWorksPoster) fills it from the first paint; once the live stage mounts under
+   it, the poster fades away. */
 .eb-howto { margin: 0; container-type: inline-size; }
-.eb-howto-slot { height: calc(min(100cqw, 720px) * 470 / 720); }
+.eb-howto-slot { position: relative; height: calc(min(100cqw, 720px) * 470 / 720); }
+.eb-howto-poster { position: absolute; inset: 0; transition: opacity .45s ease; }
+.eb-howto-poster[data-fading] { opacity: 0; }
+.eb-howto-poster .ebd-poster { height: 100%; overflow: hidden; }
+.eb-howto-poster .ss-fit { height: 100%; }
 @container (max-width: 559.98px) { .eb-howto-slot { height: calc(min(100cqw, 358px) * 356 / 358); } }
 .eb-howto-credit { margin: 8px 0 0; font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .eb-howto-credit a { color: inherit; text-underline-offset: 3px; }

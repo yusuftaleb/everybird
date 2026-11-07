@@ -1,6 +1,7 @@
-/* The About page's "How it works" demo. Every rule is under .ebd (the Stage's outer box), so nothing reaches the app;
-   the kit's own styles are .ss-* inside @layer stageshow. Colors and type are the site's tokens (tokens.css), so the
-   stage follows the light and dark themes with the page. */
+/* The About page's "How it works" demo. Every rule is under .ebd (the stage's outer box: the live Stage's and the
+   static poster's), so nothing reaches the app; the kit's own styles are .ss-* inside @layer stageshow. Colors and type
+   are the site's tokens (tokens.css), so the stage follows the light and dark themes with the page. The scene mirrors
+   the product's UI at a miniature size: each rule names the product class it stands for. */
 
 .ebd .ss-stage {
   --ss-font: var(--font-body);
@@ -22,6 +23,7 @@
   --ss-ink-3: color-mix(in srgb, var(--ink) 9%, transparent);
   --eb-travel: cubic-bezier(.45, 0, .1, 1);
   --eb-arrive: cubic-bezier(.25, .8, .25, 1);
+  --eb-ui: cubic-bezier(.16, 1, .3, 1);
   overflow: hidden;
   background: var(--surface);
   color: var(--ink);
@@ -31,38 +33,45 @@
 /* Compact has no desktop in its story: the page is the ground (no tinted plate); the window keeps its edge and shadow. */
 .ebd .ss-stage[data-layout="compact"] { background: transparent; }
 .ebd .ss-stage[data-layout="compact"] .ebd-window { box-shadow: var(--ss-shadow-ground); }
-.ebd .ss-stage[data-theme="dark"] {
+/* Dark follows the site's own switch (html[data-theme]), so the server-rendered poster is dark from its first paint
+   too (it can't know the stage's theme prop). */
+:root[data-theme="dark"] .ebd .ss-stage {
   --ss-shadow-hero: 0 0 0 1px rgb(255 255 255 / .06), 0 30px 60px -12px rgb(0 0 0 / .55), 0 18px 36px -18px rgb(0 0 0 / .6);
   --ss-shadow-satellite: 0 0 0 1px rgb(255 255 255 / .08), 0 14px 32px -8px rgb(0 0 0 / .55), 0 4px 10px -4px rgb(0 0 0 / .4);
+  --ss-shadow-ground: 0 0 0 1px rgb(255 255 255 / .1), 0 24px 48px -24px rgb(0 0 0 / .6);
+  --ss-shadow-window: 0 0 0 1px rgb(255 255 255 / .08), 0 4px 16px rgb(0 0 0 / .4);
+  --ss-ink-2: color-mix(in srgb, var(--ink) 9%, transparent);
+  --ss-ink-3: color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
 /* ---- The window and the site inside it ---- */
 .ebd .ebd-window { position: absolute; background: var(--paper); box-shadow: var(--ss-shadow-hero); }
 .ebd .ebd-body { position: relative; overflow: hidden; background: var(--paper); }
 
+/* The top bar (.eb-topbar): the wordmark, Collage / Settings / About. */
 .ebd .ebd-top {
-  display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 20px; width: calc(var(--col) + 40px); box-sizing: border-box;
+  display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 20px; width: calc(var(--col) + 40px); box-sizing: border-box;
   border-bottom: 1px solid var(--hairline);
 }
-.ebd .ss-stage[data-layout="compact"] .ebd-top { padding: 0 16px; height: 46px; width: calc(var(--col) + 32px); }
+.ebd .ss-stage[data-layout="compact"] .ebd-top { padding: 0 16px; height: 40px; width: calc(var(--col) + 32px); }
 .ebd .ebd-wordmark { font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1; letter-spacing: -.01em; }
+.ebd .ss-stage[data-layout="compact"] .ebd-wordmark { font-size: 16px; }
 .ebd .ebd-nav { display: flex; gap: 2px; margin-left: auto; }
 .ebd .ss-stage[data-layout="wide"] .ebd-nav { margin-left: 168px; }
 .ebd .ebd-nav-link {
-  display: inline-flex; align-items: center; height: 30px; padding: 0 10px; font-size: 13px; font-weight: 500;
+  display: inline-grid; justify-items: center; align-content: center; height: 28px; padding: 0 10px; font-size: 13px; font-weight: 500;
   border: 1px solid transparent; opacity: .66;
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   transition: opacity .2s ease, color .2s ease, background-color .2s ease, border-color .2s ease;
 }
-.ebd .ebd-nav-link { display: inline-grid; justify-items: center; align-content: center; }
+.ebd .ss-stage[data-layout="compact"] .ebd-nav-link { height: 26px; padding: 0 8px; font-size: 12px; }
 /* The chosen link turns 600: a hidden bold copy holds the width, so the links never shift */
 .ebd .ebd-nav-link::after { content: attr(data-label); font-weight: 600; height: 0; visibility: hidden; overflow: hidden; }
 .ebd .ebd-nav-link[data-on] { opacity: 1; color: var(--accent); background: var(--surface); border-color: var(--hairline); font-weight: 600; }
 
 .ebd .ebd-pages { position: relative; }
-/* The two pages overlap and cross-fade: opacity and one transform each, so the compositor runs the swap (no
-   visibility step, which would keep the animation on the main thread). They keep their layers (will-change), so the
-   swap never waits on rasterizing a whole page. */
+/* The two pages overlap and cross-fade: opacity and one transform each, so the compositor runs the swap. They keep
+   their layers (will-change), so the swap never waits on rasterizing a whole page. */
 .ebd .ebd-page {
   position: absolute; left: 0; top: 0; width: 100%;
   opacity: 0; transform: translateY(8px);
@@ -70,178 +79,309 @@
   will-change: transform, opacity;
 }
 .ebd .ebd-page[data-show] { opacity: 1; transform: none; transition: opacity .22s ease .08s, transform .28s var(--eb-arrive) .08s; }
-.ebd .ebd-col { width: var(--col); margin-left: 20px; padding-top: 18px; display: flex; flex-direction: column; gap: 10px; }
-.ebd .ss-stage[data-layout="compact"] .ebd-col { margin-left: 16px; padding-top: 16px; }
+.ebd .ebd-col { width: var(--col); margin-left: 20px; padding-top: 16px; display: flex; flex-direction: column; }
+.ebd .ss-stage[data-layout="compact"] .ebd-col { margin-left: 16px; padding-top: 10px; }
 
-/* Buttons: the site's .eb-btn and .eb-btn-quiet at the demo's size. */
+/* Two texts in one place (Swap), cross-faded: the longer one sizes the box. */
+.ebd .ebd-swap { display: inline-grid; }
+.ebd .ebd-swap > * { grid-area: 1 / 1; transition: opacity .22s ease; }
+.ebd .ebd-swap-b { opacity: 0; }
+.ebd .ebd-swap[data-on] .ebd-swap-a { opacity: 0; }
+.ebd .ebd-swap[data-on] .ebd-swap-b { opacity: 1; }
+
+/* Buttons: the site's .eb-btn, .eb-btn-quiet and .eb-btn-sm at the demo's size. */
 .ebd .ebd-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; flex: none; box-sizing: border-box;
   border: 1px solid var(--accent); background: var(--accent); color: var(--paper);
-  font-size: 14px; font-weight: 700; white-space: nowrap;
+  font-size: 13px; font-weight: 700; white-space: nowrap;
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   transition: opacity .15s var(--eb-arrive), transform .12s ease;
 }
-.ebd .ebd-btn svg { width: 16px; height: 16px; flex: none; }
+.ebd .ebd-btn svg { width: 15px; height: 15px; flex: none; }
 .ebd .ebd-btn[data-hover] { opacity: .88; }
 .ebd .ebd-btn[data-pressed] { transform: scale(.97); }
 .ebd .ebd-btn-quiet { background: var(--surface); border-color: var(--hairline); color: var(--ink); font-weight: 500; }
 .ebd .ebd-btn-quiet[data-hover] { opacity: 1; border-color: var(--line); }
-.ebd .ebd-btn-blank { width: 96px; }
-/* Whole-pixel widths, so their glyphs sit on whole pixels as they press */
-.ebd .ebd-btn-share { width: 90px; will-change: transform; } /* pressed, it lands on its own layer: no sub-pixel hop */
-.ebd .ebd-btn-see { width: 152px; }
+.ebd .ebd-btn-sm { height: 28px; padding: 0 11px; font-size: 12.5px; }
+.ebd .ebd-btn-sm svg { width: 12px; height: 12px; }
 
-/* ---- Settings: Your sources ---- */
-.ebd .ebd-h2 { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.15; margin-top: 2px; }
-.ebd .ebd-way {
-  display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 14px 16px;
-  border: 1px solid var(--hairline); background: var(--paper);
+/* ---- Settings: Your list ---- */
+.ebd .ebd-h1 { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1.05; letter-spacing: -.02em; }
+.ebd .ebd-h2 { margin-top: 14px; font-family: var(--font-display); font-weight: 700; font-size: 19px; line-height: 1.15; }
+.ebd .ss-stage[data-layout="compact"] .ebd-h1 { font-size: 20px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-h2 { margin-top: 8px; font-size: 16px; }
+/* The section's note, then the summary line (.eb-summary) with "See my collage" (.eb-summary-link). */
+.ebd .ebd-sum { margin: 4px 0 10px; font-size: 13px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.ebd .ebd-sum .ebd-swap-a { color: var(--muted); }
+.ebd .ebd-sum-link {
+  display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; color: var(--accent); font-weight: 600;
+  text-decoration: underline; text-decoration-thickness: from-font; text-underline-offset: 3px;
+}
+.ebd .ebd-sum-link svg { width: 12px; height: 12px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-sum { font-size: 12px; margin: 3px 0 8px; min-height: 34px; }
+/* One bordered group, a row per source split by Hairlines (.eb-srclist, .eb-src). */
+.ebd .ebd-srclist {
+  display: flex; flex-direction: column; background: var(--paper); border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  transition: border-color .15s var(--eb-arrive), background-color .15s var(--eb-arrive);
 }
-.ebd .ebd-way[data-over], .ebd .ebd-way[data-busy] { border-color: var(--accent); background: var(--surface); }
-.ebd .ebd-way-title { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1.2; }
-.ebd .ebd-way-title svg { width: 18px; height: 18px; flex: none; color: var(--accent); }
-.ebd .ebd-lines { display: flex; flex-direction: column; gap: 7px; padding: 2px 0; }
-.ebd .ebd-way .ebd-btn { width: 100%; height: 38px; }
-/* The status line keeps its height whether or not it has words (the product's .eb-status is always there); the words
-   fade. Contained, so the ticking row count lays out only this line. */
+.ebd .ebd-srclist > * + *, .ebd .ebd-below > * + * { border-top: 1px solid var(--hairline); }
+.ebd .ebd-filedrop {
+  position: relative; border-radius: 12px;
+  transition: background-color .15s var(--eb-arrive), box-shadow .15s var(--eb-arrive);
+}
+/* A dragged file rings the eBird rows in Accent (.eb-filedrop[data-over]); while it reads, they stay lit. */
+.ebd .ebd-filedrop[data-over], .ebd .ebd-filedrop[data-busy] { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.ebd .ebd-src + .ebd-src { border-top: 1px solid var(--hairline); }
+.ebd .ebd-src-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; height: 52px; box-sizing: border-box; }
+.ebd .ss-stage[data-layout="compact"] .ebd-src-main { padding: 0 12px; height: 48px; gap: 8px; }
+.ebd .ebd-src-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ebd .ebd-src-title { font-size: 13.5px; font-weight: 600; line-height: 1.35; white-space: nowrap; display: flex; }
+.ebd .ebd-src-name { font-weight: 500; white-space: pre; }
+.ebd .ebd-src-meta { color: var(--muted); font-size: 12px; line-height: 1.4; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ebd .ss-stage[data-layout="compact"] .ebd-src-title { font-size: 12.5px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-src-meta { font-size: 11px; }
+.ebd .ebd-why { color: var(--accent); text-decoration: underline; text-decoration-thickness: from-font; text-underline-offset: 2px; }
+.ebd .ebd-src-acts { display: flex; align-items: center; gap: 6px; flex: none; }
+.ebd .ebd-src-acts > .ebd-btn > .ebd-swap { justify-items: center; }
+/* The ⋯ menu button (.eb-menubtn) arrives with the connection. */
+.ebd .ebd-menubtn { width: 28px; padding: 0; opacity: 0; transition: opacity .22s ease; }
+.ebd .ebd-menubtn[data-show] { opacity: 1; }
+.ebd .ebd-menubtn svg { width: 16px; height: 16px; }
+.ebd .ebd-src-full .ebd-src-acts { margin-right: -34px; transition: margin .3s var(--eb-ui); }
+.ebd .ebd-src-full:has(.ebd-menubtn[data-show]) .ebd-src-acts { margin-right: 0; }
+/* The status line under the eBird rows (.eb-status): always there, so it keeps its height; the words fade. Contained,
+   so the ticking row count lays out only this line. */
 .ebd .ebd-status {
-  margin: -2px 0 -4px; height: 17px; contain: strict; white-space: nowrap;
-  font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; line-height: 17px; color: var(--muted); font-variant-numeric: tabular-nums;
+  margin: 0; padding: 0 14px; height: 20px; contain: strict; white-space: nowrap;
+  font-size: 12px; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums;
 }
+.ebd .ss-stage[data-layout="compact"] .ebd-status { padding: 0 12px; font-size: 11px; height: 18px; }
 .ebd .ebd-status > span { display: block; opacity: 0; transition: opacity .2s ease; }
 .ebd .ebd-status > span[data-show] { opacity: 1; transition-duration: .24s; }
-.ebd .ebd-field-row { display: flex; gap: 8px; }
-.ebd .ebd-field {
-  flex: 1; display: flex; align-items: center; height: 38px; padding: 0 12px; border: 1px solid var(--line); background: var(--surface);
-  border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+/* Compact: MyEBirdData's Add panel (.eb-src-panel) with "Choose your eBird file" in its drop zone. It opens over the
+   rows below (opacity and a short drop) while they move down by a transform: nothing is laid out per frame. */
+.ebd .ebd-src-full { position: relative; }
+.ebd .ebd-panel {
+  position: absolute; left: 12px; right: 12px; top: 44px; height: 46px; z-index: 1; box-sizing: border-box;
+  display: flex; align-items: center; padding: 0 8px; background: var(--surface);
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  opacity: 0; transform: translateY(-6px); pointer-events: none;
+  transition: opacity .16s ease, transform .3s cubic-bezier(.4, 0, .2, 1);
 }
-.ebd .ebd-field-row .ebd-btn { width: 96px; height: 38px; }
+.ebd .ebd-panel[data-show] { opacity: 1; transform: none; transition: opacity .22s ease .08s, transform .32s cubic-bezier(.4, 0, .2, 1); }
+.ebd .ebd-btn-choose { width: 100%; height: 30px; font-size: 12.5px; }
+.ebd .ebd-below { will-change: transform; transition: transform .3s cubic-bezier(.4, 0, .2, 1) .05s; }
+.ebd .ebd-below[data-pushed] { transform: translateY(52px); transition: transform .32s cubic-bezier(.4, 0, .2, 1); }
+.ebd .ebd-filedrop:has(.ebd-panel[data-show]) .ebd-status { transform: translateY(52px); }
+.ebd .ebd-filedrop .ebd-status { transition: transform .3s cubic-bezier(.4, 0, .2, 1); }
 
-/* After the import: what landed, and the way to the collage. */
-/* It opens over the top of the column (opacity and a short drop) while everything under it moves down by its height
-   and the gap (a transform), as the kit's Collapse would show it, with nothing laid out per frame. */
-.ebd .ebd-col-settings { position: relative; }
-.ebd .ebd-made {
-  position: absolute; left: 0; right: 0; top: 18px; height: 58px; box-sizing: border-box; z-index: 1;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 14px;
-  border: 1px solid var(--accent); background: var(--paper);
-  border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  opacity: 0; transform: translateY(-10px); will-change: transform;
-  transition: opacity .2s cubic-bezier(0, .8, .5, 1), transform .42s cubic-bezier(.4, 0, .2, 1);
-}
-.ebd .ebd-made[data-show] { opacity: 1; transform: none; transition: opacity .24s ease-out .15s, transform .46s cubic-bezier(.4, 0, .2, 1); }
-.ebd .ss-stage[data-layout="compact"] .ebd-made { top: 16px; }
-.ebd .ebd-below { display: flex; flex-direction: column; gap: 10px; will-change: transform; transition: transform .42s cubic-bezier(.4, 0, .2, 1) .05s; }
-.ebd .ebd-below[data-pushed] { transform: translateY(70px); transition: transform .46s cubic-bezier(.4, 0, .2, 1); }
-.ebd .ebd-made-text { font-size: 14px; line-height: 1.35; }
-
-/* ---- The collage ---- */
-.ebd .ebd-col-collage { gap: 12px; }
-.ebd .ebd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* ---- The collage page ---- */
+/* The page head (.eb-pagehead): the title verbatim, Add birds (quiet) and Share. */
+.ebd .ebd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 32px; }
 .ebd .ebd-head-title { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.05; letter-spacing: -.02em; }
-.ebd .ss-stage[data-layout="compact"] .ebd-head-title { font-size: 21px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-head-title { font-size: 20px; }
+.ebd .ebd-head-acts { display: flex; gap: 6px; }
+.ebd .ebd-btn-add { font-weight: 500; }
+.ebd .ss-stage[data-layout="compact"] .ebd-btn-add { width: 30px; padding: 0; } /* under 480px: an icon button */
+/* Whole-pixel widths, so their glyphs sit on whole pixels as they press */
+.ebd .ebd-btn-share { width: 82px; will-change: transform; } /* pressed, it lands on its own layer: no sub-pixel hop */
+/* The stats line (.eb-stats, mono). */
+.ebd .ebd-stats {
+  margin: 6px 0 0; font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 14px;
+}
 
-/* The taxonomy filter: the order row, or (an order chosen) the breadcrumb in its place, cross-faded in one fixed box
-   (the product's eb-rise: opacity and a 4px drop). */
-.ebd .ebd-filter { position: relative; height: 30px; }
-.ebd .ebd-chips, .ebd .ebd-path { position: absolute; left: 0; top: 0; height: 30px; display: flex; align-items: center; white-space: nowrap; }
-.ebd .ebd-chips { gap: 6px; transition: opacity .2s ease .12s; }
+/* The controls bar (.eb-dock): view tabs | True size, Scientific | Places, Time | search. Resting tabs at 66%, the
+   pressed tab Accent on Surface. Phones: the short labels, and Places and Time on a second row under a Hairline. */
+.ebd .ebd-dock {
+  display: flex; align-items: center; gap: 2px; padding: 3px; margin-top: 10px; box-sizing: border-box;
+  border: 1px solid var(--hairline); border-radius: 12px; background: var(--paper);
+}
+.ebd .ebd-dock-tabs, .ebd .ebd-dock-tools, .ebd .ebd-dock-filters, .ebd .ebd-dock-end { display: flex; align-items: center; gap: 2px; }
+.ebd .ebd-dock-tools { margin-left: auto; }
+.ebd .ebd-dock-filters, .ebd .ebd-dock-end { margin-left: 6px; }
+.ebd .ebd-tab {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 28px; padding: 0 9px; box-sizing: border-box;
+  border-radius: 9px; font-size: 12px; white-space: nowrap; opacity: .66;
+}
+.ebd .ebd-tab svg { width: 15px; height: 15px; flex: none; }
+.ebd .ebd-tab[data-on] { opacity: 1; color: var(--accent); background: var(--surface); font-weight: 600; }
+.ebd .ebd-icontab { width: 30px; padding: 0; }
+.ebd .ebd-sw { gap: 7px; }
+.ebd .ebd-sw[data-italic] { font-style: italic; }
+.ebd .ebd-track { position: relative; display: block; width: 24px; height: 14px; border-radius: 7px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.ebd .ebd-knob { position: absolute; left: 3px; top: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.ebd .ebd-drop { gap: 5px; }
+.ebd .ebd-drop .ebd-caret { width: 10px; height: 10px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-dock { flex-wrap: wrap; row-gap: 3px; margin-top: 8px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-dock-filters {
+  order: 1; flex: 1 0 100%; margin: 0 -3px -3px; padding: 3px; border-top: 1px solid var(--hairline);
+}
+.ebd .ss-stage[data-layout="compact"] .ebd-dock-filters .ebd-drop { flex: 1 1 0; height: 24px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-dock-end { margin-left: 4px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-tab { height: 26px; font-size: 11.5px; padding: 0 7px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-icontab { width: 28px; padding: 0; }
+
+/* The taxonomy filter (.eb-filters): the rank label and the order chips wrapped (on phones the "Choose an order"
+   button, .eb-pick), or, an order chosen, the breadcrumb in its place, cross-faded in one fixed box (eb-rise: opacity and
+   a 4px drop). */
+.ebd .ebd-filter { position: relative; height: 56px; margin-top: 10px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-filter { height: 30px; margin-top: 8px; }
+.ebd .ebd-chips, .ebd .ebd-path { position: absolute; left: 0; top: 0; right: 0; display: flex; align-items: center; }
+.ebd .ebd-chips { flex-wrap: wrap; gap: 6px 5px; transition: opacity .2s ease .12s; }
 .ebd .ebd-filter[data-chosen] .ebd-chips { opacity: 0; transition: opacity .1s ease; }
 .ebd .ebd-path {
-  gap: 8px; font-size: 14px; opacity: 0; transform: translateY(-4px); will-change: transform;
+  height: 24px; gap: 7px; font-size: 13px; white-space: nowrap; opacity: 0; transform: translateY(-4px); will-change: transform;
   transition: opacity .1s ease, transform .1s ease;
 }
-.ebd .ebd-filter[data-chosen] .ebd-path { opacity: 1; transform: none; transition: opacity .24s cubic-bezier(.16, 1, .3, 1) .1s, transform .24s cubic-bezier(.16, 1, .3, 1) .1s; }
-.ebd .ss-stage[data-layout="compact"] .ebd-path { font-size: 12px; gap: 6px; }
+.ebd .ebd-filter[data-chosen] .ebd-path { opacity: 1; transform: none; transition: opacity .24s var(--eb-ui) .1s, transform .24s var(--eb-ui) .1s; }
+.ebd .ss-stage[data-layout="compact"] .ebd-path { height: 30px; font-size: 11.5px; gap: 5px; }
 .ebd .ebd-path-link { opacity: .66; transition: opacity .15s ease; }
 .ebd .ebd-path-link[data-hover] { opacity: 1; }
 .ebd .ebd-path-sep { color: var(--muted); }
 .ebd .ebd-path-here { color: var(--accent); font-weight: 600; }
 .ebd .ebd-chips-label {
-  margin-right: 4px; font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  margin-right: 3px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
 }
 .ebd .ebd-chip {
-  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; flex: none; box-sizing: border-box;
-  border: 1px solid var(--hairline); background: var(--surface); font-size: 13px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 5px; height: 25px; padding: 0 9px; flex: none; box-sizing: border-box;
+  border: 1px solid var(--hairline); background: var(--surface); font-size: 12px; font-weight: 500;
   border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  transition: border-color .15s cubic-bezier(.16, 1, .3, 1);
+  transition: border-color .15s var(--eb-ui);
 }
-.ebd .ebd-chip-n { color: var(--muted); font-variant-numeric: tabular-nums; }
+.ebd .ebd-chip-n { color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 500; }
 .ebd .ebd-chip[data-hover] { border-color: var(--line); }
+.ebd .ebd-chip[data-pressed] { border-color: var(--accent); }
+.ebd .ebd-pick {
+  display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 11px; box-sizing: border-box;
+  border: 1px solid var(--hairline); border-radius: 9px; background: var(--surface); font-size: 12px; font-weight: 500;
+}
+.ebd .ebd-pick svg { width: 15px; height: 15px; flex: none; }
+.ebd .ebd-pick-label { flex: 1; }
 
-/* The birds sit around the count, each placed from the collage's centre by transform; a filter moves them on the
-   product's own travel curve (collage.css: .64s, cubic-bezier(.45, 0, .1, 1)). Two elements per bird, so each animates
-   one transform property and the compositor runs it: the outer one's place (and its fade when it steps out), the inner
-   one's arrival. A transform transition and a translate animation on one element would put both on the main thread. */
-.ebd .ebd-collage { position: relative; height: 290px; margin-top: 2px; }
-.ebd .ss-stage[data-layout="compact"] .ebd-collage { height: 200px; }
+/* The birds sit in the collage box at the product's packed boxes; a filter moves them on the product's own travel
+   curve (collage.css: .64s, cubic-bezier(.45, 0, .1, 1)). Two elements per bird, so each animates one transform
+   property and the compositor runs it: the outer one's place and size (and its fade when it steps out), the inner
+   one's arrival. */
+.ebd .ebd-collage { position: relative; margin-top: 8px; flex: none; }
+.ebd .ss-stage[data-layout="compact"] .ebd-collage { margin-top: 6px; }
 .ebd .ebd-bird {
-  position: absolute; left: 50%; top: 125px; display: block;
+  position: absolute; display: block;
   transition: transform .64s var(--eb-travel) var(--md, 0ms), opacity .3s ease var(--md, 0ms);
 }
-.ebd .ss-stage[data-layout="compact"] .ebd-bird { top: 76px; }
 .ebd .ebd-bird-in { display: block; width: 100%; height: 100%; opacity: 0; }
-.ebd .ebd-bird img, .ebd .ebd-sil { display: block; width: 100%; height: 100%; object-fit: contain; }
-.ebd .ebd-sil { color: var(--hairline); }
-.ebd .ebd-collage[data-birds] .ebd-bird-in { opacity: 1; animation: ebd-in .5s var(--eb-arrive) var(--d) backwards; }
+.ebd .ebd-bird img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ebd .ebd-collage[data-birds] .ebd-bird-in { opacity: 1; animation: ebd-in .48s var(--eb-arrive) var(--d) backwards; }
 .ebd .ebd-bird[data-out] { opacity: 0; transition-duration: .5s, .25s; }
-@keyframes ebd-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes ebd-in { from { opacity: 0; transform: translate(12%, 12%) scale(.76); } }
 
+/* The count in the hole (Tally, .eb-mid): the number over the mono "SPECIES", centred on the collage box. */
 .ebd .ebd-mid {
-  position: absolute; left: 50%; top: 125px; translate: -50% -50%;
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%;
   display: flex; flex-direction: column; align-items: center; gap: 6px; white-space: nowrap; pointer-events: none;
-  /* A fixed, contained box, as the product's .eb-mid: the ticking number never moves it and lays out only itself */
-  width: 140px; height: 66px; contain: strict;
+  /* A fixed, contained box: the ticking number never moves it and lays out only itself */
+  width: 120px; height: 60px; justify-content: center; contain: strict;
   opacity: 0; transition: opacity .3s ease;
 }
 .ebd .ebd-collage[data-birds] .ebd-mid { opacity: 1; }
-.ebd .ss-stage[data-layout="compact"] .ebd-mid { top: 76px; width: 104px; height: 50px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-mid { width: 90px; height: 48px; gap: 5px; }
 .ebd .ebd-num {
-  font-family: var(--font-display); font-weight: 700; font-size: 58px; line-height: .85; letter-spacing: -.02em;
+  font-family: var(--font-display); font-weight: 700; font-size: 44px; line-height: .85; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; width: 100%; text-align: center;
 }
-.ebd .ss-stage[data-layout="compact"] .ebd-num { font-size: 38px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-num { font-size: 32px; }
 .ebd .ebd-mid-label {
-  font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  font-family: var(--font-mono); font-size: 11px; line-height: 1; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
 }
+.ebd .ss-stage[data-layout="compact"] .ebd-mid-label { font-size: 10px; }
 
-/* Compact: the share dialog's scrim over the window (share.css: rgb(0 0 0 / .32)). */
-.ebd .ebd-scrim { position: absolute; inset: 0; z-index: 4; background: rgb(0 0 0 / .32); opacity: 0; transition: opacity .3s ease; }
-.ebd .ebd-scrim[data-show] { opacity: 1; }
+/* ---- Phones: the "Choose an order" sheet (.eb-sheet) over its scrim ---- */
+.ebd .ebd-sheet-scrim, .ebd .ebd-scrim { position: absolute; inset: 0; z-index: 4; background: rgb(0 0 0 / .28); opacity: 0; transition: opacity .25s ease; }
+.ebd .ebd-scrim { background: rgb(0 0 0 / .32); z-index: 6; }
+.ebd .ebd-sheet-scrim[data-show], .ebd .ebd-scrim[data-show] { opacity: 1; }
+.ebd .ebd-sheet {
+  position: absolute; left: 8px; width: 326px; top: 158px; z-index: 5; box-sizing: border-box; padding: 12px 12px 14px;
+  background: var(--paper); border: 1px solid var(--hairline); box-shadow: 0 -8px 32px rgb(0 0 0 / .12);
+  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  opacity: 0; transform: translateY(24px); will-change: transform;
+  transition: opacity .18s ease, transform .24s cubic-bezier(.4, 0, 1, 1);
+}
+.ebd .ebd-sheet[data-show] { opacity: 1; transform: none; transition: opacity .2s ease, transform .32s var(--eb-ui); }
+.ebd .ebd-sheet-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.ebd .ebd-sheet-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; }
+.ebd .ebd-sheet-x { width: 14px; height: 14px; margin-left: auto; color: var(--muted); }
+.ebd .ebd-sheet-chips { display: flex; flex-wrap: wrap; gap: 6px 5px; }
 
-/* ---- The share image: the post format (1080 × 1350) at 180 × 225, the product's centre-count layout ---- */
+/* ---- The share dialog (.eb-share) over the window, on its scrim ---- */
 .ebd .ebd-share {
-  position: absolute; z-index: 5; width: 180px; height: 225px;
-  background: var(--paper); color: var(--ink); box-shadow: var(--ss-shadow-satellite);
+  position: absolute; z-index: 7; left: 30px; top: 16px; width: 496px; box-sizing: border-box; padding: 12px 14px 14px;
+  background: var(--paper); border: 1px solid var(--hairline); box-shadow: var(--ss-shadow-satellite);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  opacity: 0; transform: translateY(10px) scale(.98); will-change: transform, opacity;
+  transition: opacity .2s ease, transform .3s cubic-bezier(.4, 0, 1, 1);
+}
+.ebd .ebd-share[data-show] { opacity: 1; transform: none; transition: opacity .25s ease, transform .5s var(--eb-arrive); }
+.ebd .ss-stage[data-layout="compact"] .ebd-share { left: 8px; top: 10px; width: 326px; padding: 10px 12px 12px; }
+.ebd .ebd-share-head { display: flex; align-items: center; justify-content: space-between; height: 26px; margin-bottom: 10px; }
+.ebd .ebd-share-title { font-family: var(--font-display); font-weight: 700; font-size: 17px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-share-title { font-size: 15px; }
+.ebd .ebd-share-close { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; color: var(--muted); }
+.ebd .ebd-share-close[data-hover] { background: var(--surface); color: var(--ink); }
+.ebd .ebd-share-close svg { width: 14px; height: 14px; }
+.ebd .ebd-share-body { display: flex; gap: 16px; align-items: flex-start; }
+.ebd .ss-stage[data-layout="compact"] .ebd-share-body { gap: 12px; }
+/* One 4:5 box for every format, the image letterboxed in it on Surface (share.css). */
+.ebd .ebd-share-preview {
+  position: relative; flex: none; overflow: hidden; background: var(--surface);
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  opacity: 0; transform: translateY(-10px) scale(.98);
-  transition: opacity .3s ease, transform .9s var(--eb-arrive);
-  will-change: transform, opacity;
 }
-.ebd .ebd-share[data-show] { opacity: 1; transform: none; }
-.ebd .ebd-share > * { position: absolute; left: 11px; }
-.ebd .ebd-share-name { top: 10px; font-family: var(--font-display); font-weight: 700; font-size: 12px; line-height: 1; }
-.ebd .ebd-share-collage { top: 27px; width: 158px; height: 138px; }
-.ebd .ebd-share-bird { position: absolute; }
-.ebd .ebd-share-bird img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.ebd .ebd-share-mid {
-  position: absolute; left: 50%; top: 50%; translate: -50% -50%;
-  display: flex; flex-direction: column; align-items: center; gap: 5px; white-space: nowrap;
+.ebd .ebd-share-controls { display: flex; flex-direction: column; gap: 12px; min-width: 0; flex: 1; }
+.ebd .ss-stage[data-layout="compact"] .ebd-share-controls { gap: 9px; }
+/* Story / Post / Square (.eb-seg): label and ratio on one line, the pressed one on Surface. */
+.ebd .ebd-seg { display: flex; gap: 3px; padding: 3px; align-self: flex-start; border: 1px solid var(--hairline); border-radius: 11px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-seg { align-self: stretch; } /* the column is narrow: the row spans it, icons and ratios go */
+.ebd .ebd-seg-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 26px; padding: 0 8px;
+  font-size: 12px; font-weight: 500; opacity: .66; border-radius: 8px;
+  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-arrive);
 }
-.ebd .ebd-share-num { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: .75; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.ebd .ebd-share-label { font-family: var(--font-mono); font-size: 5.5px; line-height: 1; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.ebd .ebd-share-latest { top: 169px; display: flex; align-items: center; gap: 8px; }
-.ebd .ebd-share-latest-icon { display: block; width: 16px; height: 16px; }
-.ebd .ebd-share-latest-icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.ebd .ebd-share-latest-text { display: flex; flex-direction: column; gap: 3px; font-size: 8px; font-weight: 500; line-height: 1; }
-.ebd .ebd-share-foot {
-  top: 189px; right: 11px; padding-top: 5px; border-top: 1px solid var(--hairline);
-  display: flex; align-items: center; gap: 7px;
+.ebd .ss-stage[data-layout="compact"] .ebd-seg-btn { flex: 1 1 0; height: 24px; padding: 0 4px; font-size: 11.5px; }
+.ebd .ebd-seg-btn svg { width: 13px; height: 13px; flex: none; }
+.ebd .ebd-seg-btn[data-on] { opacity: 1; background: var(--surface); }
+.ebd .ebd-seg-hint { font-family: var(--font-mono); font-size: 10px; letter-spacing: .02em; color: var(--muted); }
+.ebd .ebd-share-field { display: flex; flex-direction: column; gap: 5px; }
+.ebd .ebd-share-label { font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ebd .ebd-share-input {
+  display: flex; align-items: center; height: 30px; padding: 0 10px; box-sizing: border-box; border: 1px solid var(--line); background: var(--surface);
+  font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden;
+  border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
-.ebd .ebd-share-mark { font-family: var(--font-display); font-weight: 700; font-size: 8.5px; line-height: 1; }
-.ebd .ebd-share-credit { position: static; margin-left: -4px; font-family: var(--font-mono); font-size: 6px; line-height: 1; letter-spacing: .02em; color: var(--muted); white-space: nowrap; }
+.ebd .ss-stage[data-layout="compact"] .ebd-share-field { display: none; }
+.ebd .ebd-share-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ebd .ss-stage[data-layout="compact"] .ebd-share-actions .ebd-btn { flex: 1 1 100%; height: 26px; }
+
+/* The share image itself (the product's centre-count card at its true layout, scaled into the preview). */
+.ebd .ebd-img {
+  position: absolute; background: var(--paper); color: var(--ink); overflow: hidden;
+  opacity: 0; transition: opacity .22s ease;
+}
+.ebd .ebd-img[data-show] { opacity: 1; }
+.ebd .ebd-img > * { position: absolute; }
+.ebd .ebd-img-bird img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ebd .ebd-img-mid { display: flex; flex-direction: column; align-items: center; translate: -50% -50%; white-space: nowrap; }
+.ebd .ebd-img-num { font-family: var(--font-display); font-weight: 700; line-height: .75; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.ebd .ebd-img-label { font-family: var(--font-mono); font-weight: 500; line-height: .75; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ebd .ebd-img-latest { display: flex; align-items: center; white-space: nowrap; }
+.ebd .ebd-img-latest-icon { display: flex; align-items: center; justify-content: center; flex: none; }
+.ebd .ebd-img-latest-icon > span { display: block; }
+.ebd .ebd-img-latest-icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ebd .ebd-img-latest-text { display: flex; flex-direction: column; gap: 1px; }
+.ebd .ebd-img-latest-label { font-family: var(--font-mono); font-weight: 500; line-height: 1; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ebd .ebd-img-latest-name { font-weight: 600; line-height: 1.1; }
+.ebd .ebd-img-rule { height: 1px; background: var(--hairline); }
+.ebd .ebd-img-foot { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
+.ebd .ebd-img-mark { font-family: var(--font-display); font-weight: 700; line-height: 1; }
+.ebd .ebd-img-line { font-family: var(--font-mono); line-height: 1; color: var(--muted); }
 
 /* ---- The desktop: the eBird export, and its drag image ---- */
 .ebd .ebd-desk {
@@ -271,14 +411,33 @@
 .ebd .ebd-drag[data-dropped] .ebd-drag-inner { transform: scale(.5); transition: transform .24s cubic-bezier(.4, 0, .2, 1); }
 .ebd .ebd-drag-name { padding: 1px 5px; border-radius: 4px; background: var(--accent); color: var(--paper); white-space: nowrap; line-height: 1.35; }
 
-/* The still: nothing arrives (reduced motion shows the poster as it stands). */
+/* The still: nothing arrives (the poster, and reduced motion, show the frame as it stands). */
 .ebd .ss-stage[data-still] *, .ebd .ss-stage[data-still] *::before { animation: none !important; transition: none !important; }
 
-/* A demo sticker draws nothing until its file has loaded (data-ld, HowItWorksStage markLoaded): no pending-image frame. */
-.ebd img.ebd-st { transition: opacity .2s ease; }
-.ebd img.ebd-st:not([data-ld]) { opacity: 0; }
-@media (prefers-reduced-motion: reduce) { .ebd img.ebd-st { transition: none; } }
+/* A demo sticker draws nothing until its file has loaded (data-ld, HowItWorksScene markLoaded), then fades in: no
+   pending-image frame, in the poster or the stage. */
+.ebd img.ebd-st { opacity: 0; }
+.ebd img.ebd-st[data-ld] { opacity: 1; }
+.ebd .ss-stage img.ebd-st { transition: opacity .2s ease !important; }
+@media (prefers-reduced-motion: reduce) { .ebd .ss-stage img.ebd-st { transition: none !important; } }
 
 /* A demo sticker that failed to load: the product's no-sticker outline (Sticker.css), thin in Line. */
 .ebd .ebd-outline { display: block; width: 100%; height: 100%; color: var(--line); overflow: visible; }
 .ebd .ebd-outline path { fill: none; stroke: currentColor; stroke-width: 1.5px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+/* ---- The static poster (HowItWorksPoster): the stage's first frame, server-rendered ---- */
+/* Both designs are in the markup; the slot's width picks one (the stage's own rule: compact under 560px). Each is
+   scaled to the slot as the Stage would (min(1, width / design width)), with CSS where the browser can divide lengths
+   and a measured --k otherwise. */
+.ebd-poster { position: relative; width: 100%; container-type: inline-size; }
+.ebd-poster .ss-fit { position: relative; width: 100%; }
+.ebd-poster .ss-stage { position: absolute; left: 50%; top: 0; transform-origin: 50% 0; translate: -50% 0; scale: var(--k, 1); }
+.ebd-poster [data-poster="compact"] { display: none; }
+@container (max-width: 559.98px) {
+  .ebd-poster [data-poster="wide"] { display: none; }
+  .ebd-poster [data-poster="compact"] { display: block; }
+}
+@supports (scale: calc(100cqw / 720px)) {
+  .ebd-poster [data-poster="wide"] .ss-stage { scale: min(1, calc(100cqw / 720px)); }
+  .ebd-poster [data-poster="compact"] .ss-stage { scale: min(1, calc(100cqw / 358px)); }
+}

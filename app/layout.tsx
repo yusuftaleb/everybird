@@ -2,6 +2,7 @@ import { SITE_ICONS } from "@/lib/site-icons";
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import { SHARE_ORIGIN } from "@/lib/share/origin";
+import { STICKER_READY_SCRIPT } from "@/lib/sticker-ready";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "@/styles/globals.css";
 
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={geistMono.variable} data-theme="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: STICKER_READY_SCRIPT }} />
         <link rel="preconnect" href="https://api.fontshare.com" />
         <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="" />
         {/* Satoshi and Cabinet Grotesk come from Fontshare; never commit the files. One stylesheet per family: Fontshare's

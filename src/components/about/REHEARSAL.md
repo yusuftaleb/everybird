@@ -1,4 +1,4 @@
-# Rehearsal: About, "How it works" (HowItWorksStage)
+# Rehearsal: About, "How it works" (HowItWorksScene, HowItWorksStage, HowItWorksPoster)
 
 Gold: `upload` (the Stageshow kit's file-dragged-from-the-desktop example). Kept: the corner-bleed composition (a desktop
 column on the left, the window one gutter from the top running off the right and bottom), the file icon over its name,
@@ -12,33 +12,83 @@ became the card's own "Reading your file… N rows" status and the "Added 197 sp
 own motion (its travel curve and 0.64 s from `collage.css`), and the count ticks as the product's `Tally` does rather
 than rolling digits. Cmd+Z in the gold became a real navigation (Settings in the top bar).
 
-Beats (wide, about 14 s a loop):
-1. 0.4 s: the cursor picks up `MyEBirdData.csv` on the desktop and carries it onto the eBird file card (the card lights
-   in Accent, as the real drop target does); dropped, the status line reads the rows (0 to 4,812).
-2. 3.4 s: "Added 197 species from your eBird export." opens with "See my collage" (the sources move down under it);
-   pressed, the page swaps to the collage and the stickers arrive from the centre out while the count ticks to 197.
-3. 7.4 s: Herons pressed: the order row gives way to the breadcrumb "All birds / Herons / Herons, Egrets, and Bitterns"
-   (the product's FilterBar for an order with one family), the six herons glide and grow into the middle, the rest step
-   out, the count shows 6 over "SPECIES" (never "of 197"), held 1 s. "All birds" in the breadcrumb (the product's way
-   back, and the cause of the data returning) brings everyone back while the cursor travels on to Share.
-4. 9.8 s, payoff: Share pressed; the share image comes up on the desktop, straddling the window's left edge, one gutter
-   from the bottom, and holds 2.3 s. It is the product's centre-count post (cardLayout in `src/lib/share/image.ts`):
-   "Sam Reyes" on top, sixteen stickers packed around "197 / SPECIES", the latest lifer row (the Tricolored Heron's
-   sticker and name), a hairline, the wordmark (the site's address as filler) and the credit "Stickers:
-   huashu-bird-sticker, CC BY 4.0" on its own line, as the product sets it when it doesn't fit beside the wordmark.
-5. Reset with a cause: Settings in the top bar; the window swaps back to Your sources and the image leaves with the
-   collage. The banner and the row count were put back while Settings was out of sight; the collage is cleared after it
-   has faded. The cursor returns to rest beside the file, where the next loop picks it up.
+## Refresh (2026-11-06): the current UI, the product's packing, a poster at once
 
-Compact (under 560 px of column, 358 × 356): no desktop, so no tinted field either: the window sits on the page itself
-(transparent stage, the window's hairline and the ground shadow), inset 16 at the top and left, off the right and
-bottom; so "Choose your eBird file" is pressed instead of the drag (phones choose files; the drop hint is hidden on touch
-in the product too); the chips drop "Perching birds" (on phones the product shows the "Choose an order" picker instead); the breadcrumb sets
-at 12 px so it fits; all six herons show (before H1 the Black-crowned Night Heron was wide-only, so the phone showed five
-birds under "6"); the share image comes up over the window on the share dialog's scrim, as the product presents it.
+What changed, and why each label is what it is:
+- Settings mirrors "Your list" as shipped (SourceLine.tsx, ImportPanel.tsx): one bordered group of quiet rows (eBird
+  life list, MyEBirdData, iNaturalist, Ticked by hand), each a title over a muted sentence-case status ("Not added",
+  "None yet") and one button (Add, Tick birds). The file lands in MyEBirdData: "MyEBirdData · MyEBirdData.csv", "112
+  species · 3 skipped why? · Imported 6 Nov", Replace and the ⋯ menu. The section's note ("Combine any of these into one
+  list.") gives way to the summary line, "Your collage has 112 species, all from eBird." and "See my collage". The old
+  "Added 197 species" banner, the uppercase mono status and the cards with descriptors are gone.
+- The collage page: the page head with the title verbatim ("My collage": the list has no title yet), Add birds and
+  Share; the stats line ("112 species · 7 orders · 31 families · since Mar 2019", "6 of 112 species · 1 family" on
+  Herons); the controls bar (view tabs, True size, Scientific, Places and Time dropdowns, search; on phones the short
+  labels and Places and Time on row two); the order chips wrapped (seven orders adding up to 112; on phones the "Choose
+  an order 7" picker and its sheet).
+- The birds are the product's own packing (scripts/build-data/build-howto.ts writes how-it-works-data.ts): packBest
+  with the order masks, painted-area sizes (relSizes: the Great Blue Heron's long tile beside the compact Great Horned
+  Owl), the count's hole from its text (collageHole), and Herons chosen as the product packs a filtered state (rel over
+  the whole list, refBase). The share images are cardLayout + packFrame + fitPack, so the hole and the footer are the
+  product's. tests/howto-data.test.ts fails if the file drifts from the packer, if a sticker's mask paints on the count
+  or on another bird, or if the chips stop adding up; e2e/about.spec.ts checks the drawn pixels against the count.
+- Share opens the share dialog in the window (both designs): the preview (one 4:5 box, the image letterboxed), Story /
+  Post / Square with their ratios (icons and ratios dropped in the compact column, as the product does under 420 px),
+  the collage title field and the three actions. The image is the centre-count card without a name (the collage has no
+  title): stickers around "112 / SPECIES", "LATEST LIFER · OCT 2026" over Tricolored Heron, a hairline, the wordmark and
+  "everybird.yusuftaleb.com · stickers by huashu" on one line. The old separate credit line is gone (the credit stays
+  under the figure).
+- The landing ("A lifetime of birds.") isn't in the story: the scene starts on Settings, as before.
 
-Poster (reduced motion, thumbnails): the collage made (197) with the share image beside it and the file still on the
-desktop: file in, collage, image out, readable without motion.
+Beats (wide, about 17 s a loop):
+1. 0.4 s: the cursor picks up `MyEBirdData.csv` on the desktop and carries it onto the eBird rows, which ring in
+   Accent as the real drop target does; dropped, the status line reads the rows (0 to 4,812).
+2. 3.4 s: MyEBirdData connects and the summary line appears; "See my collage" is pressed and the page swaps to the
+   collage: the stickers arrive from the centre out while the count ticks to 112.
+3. 7.4 s: Herons pressed: the chips give way to the breadcrumb "All birds / Herons / Herons, Egrets, and Bitterns" (an
+   order with one family), the six herons glide and grow into the middle, the rest step out, the count shows 6 over
+   "SPECIES" (never "of 112"); "All birds" brings everyone back.
+4. 10 s, payoff: Share; the dialog opens on Story, then Post and Square are pressed and the preview follows.
+5. Reset with a cause: ✕ closes the dialog, Settings in the top bar takes the window back; the collage is cleared
+   after it has faded. The cursor returns to rest beside the file.
+
+Compact (under 560 px of column, 358 × 356): no desktop: the window sits on the page itself, inset 16; "Add" on
+MyEBirdData opens its panel and "Choose your eBird file" is pressed (phones choose files); the stats line is left out
+for room; the orders are the "Choose an order" picker, whose sheet rises over a scrim and takes the Herons press.
+
+Poster: the collage made (112, every sticker), the file on the desktop. It is the figure's first frame for everyone
+and the whole figure under reduced motion.
+
+## Shows at once (2026-11-06)
+
+- HowItWorksPoster is server-rendered in the slot's fixed height: both designs in the HTML, the slot's width picking
+  one (a container query, the stage's own 560 px rule) and scaling it (calc(100cqw / 720px) where the browser divides
+  lengths, Chromium and WebKit; a measured --k in Firefox). Layout and text are there with the HTML.
+- Stickers: every demo sticker is the 128 px file (stickerUrl with sv), so the poster's 24 files are small and shared
+  by every state; the six biggest are preloaded from the head (react-dom preload) with a preconnect to the sticker
+  host; the rest start as the poster's HTML parses. Each fades in as it loads (data-ld), set before hydration by the
+  head's STICKER_READY_SCRIPT (src/lib/sticker-ready.ts, a capture-phase load listener), so stickers don't wait for the
+  page's JavaScript.
+- The live stage's code loads after the page's load event, at an idle moment. In view (35%), once the poster's
+  stickers are decoded (or 3 s) and after a 0.6 s hold, the stage mounts under the poster and the poster fades out as
+  the story starts. It pauses off screen and in a hidden tab as before; under reduced motion it never mounts.
+
+Measured (time-to-first-visible, Chromium, Slow 4G: 562.5 ms latency, 1.4 Mbps down, cache disabled, production build,
+median of three; "text" is the slot showing the scene with text, "stickers" every sticker of the shown frame drawn):
+| Scroll to the figure | Width | Motion | Before: text | Before: stickers | After: text | After: stickers |
+|---|---|---|---|---|---|---|
+| Right after load (from navigation) | 1280 | default | 6.29 s | 11.47 s (the loop's collage beat) | 1.48 s | 3.98 s |
+| Right after load (from navigation) | 1280 | reduced | 6.30 s | 9.05 s | 1.48 s | 3.98 s |
+| Right after load (from navigation) | 390 | default | 6.33 s | 10.07 s | 1.48 s | 3.98 s |
+| Right after load (from navigation) | 390 | reduced | 6.29 s | 8.60 s | 1.49 s | 4.01 s |
+| 8 s after load, from the credits (from the scroll) | 1280 | default | 1.56 s | 6.72 s | 0.05 s | 0.05 s |
+| 8 s after load, from the credits (from the scroll) | 1280 | reduced | 1.55 s | 4.02 s | 0.04 s | 0.04 s |
+| 8 s after load, from the credits (from the scroll) | 390 | default | 1.55 s | 5.28 s | 0.04 s | 0.04 s |
+| 8 s after load, from the credits (from the scroll) | 390 | reduced | 1.56 s | 3.67 s | 0.04 s | 0.04 s |
+
+1.48 s is when the slot's HTML has arrived (the page's first bytes take about that long on this network); the
+"after" stickers are all 24 of the poster's. The measuring script polls every frame in the page
+(`checkVisibility({ opacityProperty: true })` on the slot's stages and stickers).
 
 ## Smoothness (H1, 2026-11-06)
 
@@ -68,11 +118,11 @@ fell back to the main thread (compositeFailed 64) 110 → 0 in two loops. At 390
 
 ## No overlaps
 
-The positions live in `how-it-works-data.ts`. Every sticker's drawn box (from its `ar` in species.v1.json, contained
-in its square) clears every other by at least 2 px, and the count's hole, in the collage (all birds, wide and compact,
-and Herons chosen) and in the share image; no real sticker sits under the share image's column on the wide stage. The
-share image's collage was packed centre-out around the hole by a greedy packer; the collage's hand placement was nudged
-apart. The check (and the packer) are scratch scripts, not part of the repo; rerun one if a position changes.
+Since the refresh the positions are the product's packing (`scripts/build-data/build-howto.ts`, see above): no
+sticker's painted mask touches another's or the count's hole, in the collage (wide and compact, all birds and Herons
+chosen) and in the three share images. `tests/howto-data.test.ts` checks the masks and that the file matches the
+packer; `e2e/about.spec.ts` checks the drawn stickers' pixels against the count's text in both engines. (Boxes may
+cross where a sticker's transparent corner sits beside the text, as in the product.)
 
 ## Captured
 
@@ -91,15 +141,15 @@ the cursor covering "All birds" as it pressed (it aims under the label), the sha
 
 Review: no fresh-eye reviewer (subagents were ruled out); mine, against `verify.md` and the frames above.
 
-Assumptions: "Sam Reyes", 4,812 rows and the Tricolored Heron as the latest lifer are invented; the 197 total, 112
-perching birds, 21 waterfowl and six herons are a believable list, not anyone's real one. Sticker codes are public
+Assumptions: the list is invented (112 species in seven orders, 4,812 rows, three skipped, imported 6 Nov, the
+Tricolored Heron the latest lifer in Oct 2026), not anyone's real one; the collage has no title, so the share image has
+no name. Sticker codes are public
 taxonomy codes. Stickers load from the configured sticker base (`NEXT_PUBLIC_STICKER_BASE`), so the demo needs the
 stickers site to be live (Task 25) in production.
 
-Unresolved: the share image's small text is set larger than its true scale (a 180 px picture of a 1080 px image), and
-its "Latest lifer" label and the site's address are filler bars. The collage page leaves out the controls bar (Collage
-/ List, True size, Scientific, search, and the Places and Time dropdowns) for room; the demo never showed the old
-controls either (no Play, no year chips, no map). The collage shows 17 stickers under "197" (a miniature, as before).
+Unresolved: the share image's small text (the lifer row, the footer) is set 1.25 to 1.5 times its true scale so it
+reads as text in a 168 px preview. The collage and the images show 24 stickers under "112" (a miniature: the packing is
+the product's for these 24). The compact page leaves out the stats line for room.
 
 Not checked: real devices and touch, Firefox, headed Safari over a long run (headed WebKit windows were throttled by the
 OS once covered, for the old and new demo alike, so its long runs measure the window manager, not the page), toggling
