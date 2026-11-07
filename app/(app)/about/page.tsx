@@ -73,9 +73,9 @@ export default function AboutPage() {
       <section className="eb-block" aria-labelledby="eb-size-h">
         <h2 id="eb-size-h" className="eb-h2">What True size means</h2>
         <p className="eb-prose">
-          Each sticker is sized from the bird&apos;s average body mass, from AVONET, by the area it covers on the page, so a
-          peafowl&apos;s train or a heron&apos;s legs don&apos;t make it read small. The default evens sizes out: the area follows
-          mass to the power of 0.4, so small birds stay visible next to big ones.
+          Each sticker is sized from the bird&apos;s average body mass, from AVONET: mostly by its length, partly by the area it
+          covers, so a peafowl&apos;s train or a heron&apos;s legs don&apos;t make it read small. The default evens sizes out: length
+          follows mass to the power of 0.2, so small birds stay visible next to big ones.
         </p>
         <p className="eb-prose">
           True size uses the cube root of mass for length instead. Birds are roughly similar in density, so mass tracks volume,
