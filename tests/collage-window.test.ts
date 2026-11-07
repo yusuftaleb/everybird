@@ -105,6 +105,75 @@ describe('BirdWindow', () => {
   })
 })
 
+describe('BirdWindow while quiet (a fade-through placing birds)', () => {
+  // 250 birds rendered near the top, then the view jumps far down (a new layout): more birds leave than one frame
+  // hides, so the rest are doomed, and whenShown waits for them.
+  const placing = () => {
+    document.body.innerHTML = ''
+    const els = birds(2000)
+    let v = { top: 0, bottom: 1000, screen: 1000 }
+    let pins: string[] = []
+    const frames: (() => void)[] = []
+    const revealed: string[] = []
+    const w = new BirdWindow({
+      els,
+      view: () => v,
+      pinned: () => pins,
+      onReveal: (c) => revealed.push(c),
+      frame: (cb) => { frames.push(cb); return frames.length },
+      cancel: () => {},
+    })
+    w.setIndex(buildIndex(column(2000), els.keys()))
+    w.sync({ all: true })
+    w.quiet = true
+    v = { top: 10000, bottom: 11000, screen: 1000 }
+    let ready = false
+    w.whenShown(() => { ready = true })
+    frames.shift()!()
+    const run = () => { for (let i = 0; i < 200 && frames.length && !ready; i++) frames.shift()!() }
+    return { els, w, run, isReady: () => ready, pin: (c: string) => { pins = [c] }, revealed }
+  }
+
+  it('lets the fade finish once every doomed bird is gone', () => {
+    const p = placing()
+    expect(p.w.doomed.size).toBeGreaterThan(0)
+    p.run()
+    expect(p.isReady()).toBe(true)
+  })
+
+  it('keeps a doomed bird that becomes the tab stop, catches its DOM up, and still lets the fade finish', () => {
+    // The bug: the new tab stop was doomed in the sync before it became the stop; pinned, it was never hidden, so
+    // it stayed doomed and whenShown never called back (the collage stayed invisible).
+    const p = placing()
+    const stop = [...p.w.doomed][0]
+    p.pin(stop)
+    p.w.reveal(stop) // as syncTabStop does
+    expect(p.w.doomed.has(stop)).toBe(false)
+    expect(p.revealed).toContain(stop)
+    p.run()
+    expect(p.isReady()).toBe(true)
+    expect(p.els.get(stop)!.hasAttribute('data-far')).toBe(false)
+  })
+
+  it('a pinned doomed bird is kept by the next sync too (focus moved onto it)', () => {
+    const p = placing()
+    const stop = [...p.w.doomed][0]
+    p.pin(stop)
+    p.run()
+    expect(p.isReady()).toBe(true)
+    expect(p.els.get(stop)!.hasAttribute('data-far')).toBe(false)
+  })
+
+  it('forgets a doomed bird whose element went away (re-created), rather than waiting on it forever', () => {
+    const p = placing()
+    const gone = [...p.w.doomed][0]
+    p.w.shown.delete(gone) // as the collage's register does when a bird's element is re-created
+    p.run()
+    expect(p.isReady()).toBe(true)
+    expect(p.w.doomed.size).toBe(0)
+  })
+})
+
 describe('sticker downloads in flight', () => {
   const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()))
   it('start STARTS_PER_FRAME a frame, at most MAX_LOADS at once; the rest wait their turn, and a let-go one leaves the queue', async () => {

@@ -111,7 +111,10 @@ export class BirdWindow {
 
   /** Show one bird now (and start its sticker). */
   reveal(code: string | null | undefined): boolean {
-    if (!code || this.shown.has(code)) return false
+    if (!code) return false
+    // Already rendered but doomed (a fade-through was letting it go, then it became the tab stop or was focused):
+    // kept after all. Its DOM catches up, and it no longer holds back `whenShown` (pinned, it is never hidden).
+    if (this.shown.has(code)) { this.undoom(code); return false }
     const el = this.o.els.get(code)
     if (!el) return false
     this.shown.add(code)
@@ -121,6 +124,13 @@ export class BirdWindow {
     this.drop.delete(code)
     loadDeferred(el)
     return true
+  }
+
+  /** A doomed bird stays after all: its DOM catches up with the motion caches. */
+  private undoom(code: string) {
+    if (!this.doomed.delete(code)) return
+    const el = this.o.els.get(code)
+    if (el) this.o.onReveal?.(code, el)
   }
 
   private hide(code: string) {
@@ -202,6 +212,8 @@ export class BirdWindow {
       this.budget = Math.round(Math.min(FRAME_MAX, Math.max(FRAME_MIN, f <= 18 ? this.budget * 1.25 : f <= 25 ? this.budget : this.budget * 0.6)))
     }
     this.last = now
+    // A doomed bird no longer rendered (its element was re-created or removed) has nothing left to hide.
+    for (const c of this.doomed) if (!this.shown.has(c)) this.doomed.delete(c)
     const s = v.screen, mid = (v.top + v.bottom) / 2
     const want: [string, number][] = []
     let n = 0, more = false, left = false
@@ -228,8 +240,7 @@ export class BirdWindow {
         const i = ix.at.get(code)
         if (i !== undefined && ix.bottom[i] > a && ix.top[i] < b) {
           // Back in the window (a scroll while placing): its DOM catches up now.
-          const el = this.doomed.delete(code) ? this.o.els.get(code) : undefined
-          if (el) this.o.onReveal?.(code, el)
+          this.undoom(code)
           continue
         }
         if (hidden < room) { hidden++; this.hide(code); continue }

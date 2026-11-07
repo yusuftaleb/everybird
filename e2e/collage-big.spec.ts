@@ -10,6 +10,8 @@ const SPECIES = (JSON.parse(readFileSync(resolve(__dirname, "../public/data/spec
 
 test("a big list: kept birds glide from where they stand when the filter narrows (never from the corner)", async ({ page }) => {
   test.setTimeout(120_000);
+  const warns: string[] = [];
+  page.on("console", (m) => { if (m.text().includes("fade-through")) warns.push(m.text()); });
   await page.setViewportSize({ width: 1440, height: 900 });
   const n = 1600, step = SPECIES.length / n;
   const records = Array.from({ length: n }, (_, i) => ({ code: SPECIES[Math.floor(i * step)].code, source: "ebird", date: `20${10 + (i % 15)}-0${(i % 9) + 1}-1${i % 9}`, place: { country: "US" } }));
@@ -57,6 +59,7 @@ test("a big list: kept birds glide from where they stand when the filter narrows
   await expect(stage).not.toHaveAttribute("data-fast", "", { timeout: 30_000 });
   await page.waitForTimeout(1500);
   const track = await page.evaluate(() => (window as unknown as { __track: Record<string, number[][]> }).__track);
+  expect(warns).toEqual([]);
   const kept = Object.values(track).filter((t) => t.length > 5);
   expect(kept.length).toBeGreaterThan(0);
   for (const t of kept) {

@@ -62,13 +62,18 @@ const STICKER_FAR = '400% 0px'
 const SETTLE_MS = Math.max(MOVE_MS + RIPPLE_MS, ENTER_AT + RIPPLE_MS + ENTER_MS) + 400
 /** The bird layer's opacity while a windowed fade-through places birds (see fadeThrough). */
 const NEARLY_CLEAR = 0.002
+/**
+ * Longest a fade-through may hold the birds hidden while they are placed (ms). Placing takes a few frames; if `ready`
+ * still hasn't come by then (a bug: something it waits on never happens), the birds show anyway rather than never.
+ */
+const PLACE_MAX_MS = 3000
 /** Birds per group in a windowed list (see the birds memo). */
 const GROUP = 128
 /** In a still change (a drag preview), more arrivals than this appear without their fade. */
 const INSTANT_AT = 60
 /** :focus-visible, where the browser knows it (jsdom doesn't: there, any focus counts). */
 const focusVisible = (el: Element) => { try { return el.matches(':focus-visible') } catch { return true } }
-type Fade = { anim: Animation | null; phase: 'out' | 'place' | 'in' | null; apply: ((ready: () => void) => void) | null; seq: number }
+type Fade = { anim: Animation | null; phase: 'out' | 'place' | 'in' | null; apply: ((ready: () => void) => void) | null; seq: number; guard?: ReturnType<typeof setTimeout> }
 
 /** A bird's first-render style, from the layout it first appears in (seeds the motion caches to match). */
 function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Motion, stagePx: number, appear: boolean, far: boolean): BirdInit {
@@ -282,14 +287,23 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       f.anim?.cancel()
       f.anim = null
       const seq = ++f.seq
-      run?.(() => {
+      const show = () => {
         if (f.seq !== seq || f.phase !== 'place' || !alive.current) return
+        clearTimeout(f.guard)
         unveil()
         f.phase = 'in'
         const fadeIn = L.animate([{ opacity: winOn.current ? NEARLY_CLEAR : 0 }, { opacity: 1 }], { duration: FADE_MS / 2, easing: EASE_OUT })
         f.anim = fadeIn
         fadeIn.onfinish = () => { if (f.anim === fadeIn && alive.current) { f.anim = null; f.phase = null } }
-      })
+      }
+      // The safety net: the collage is never left invisible, whatever placing waits on.
+      clearTimeout(f.guard)
+      f.guard = setTimeout(() => {
+        if (f.seq !== seq || f.phase !== 'place') return
+        if (process.env.NODE_ENV !== 'production') console.warn(`Collage: a fade-through was still placing birds after ${PLACE_MAX_MS} ms; showing them anyway`)
+        show()
+      }, PLACE_MAX_MS)
+      run?.(show)
     }
     if (f.phase === 'place' || (cut && !f.anim)) { place(); return }
     const from = f.anim ? Number(getComputedStyle(L).opacity) || 0 : 1
@@ -462,7 +476,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       win.current?.stop()
       cancelAnimationFrame(frame.current)
       cancelAnimationFrame(chunkFrame.current)
-      f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null
+      f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null; clearTimeout(f.guard)
       cancelFinishes(motion)
       for (const a of motion.anims.values()) a.cancel()
       motion.anims.clear()
