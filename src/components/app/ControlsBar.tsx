@@ -8,7 +8,6 @@
 // under 330px and 310px everything tightens, so row one never breaks between 280 and 900px of bar (e2e
 // dock-sweep.spec). On phones (600px of screen and under, as /lifelist) the short form holds whatever the width: row
 // one is the icons, the two switches (or "Heaviest") and the magnifier; row two Places and Time.
-import { InfoTip } from './InfoTip'
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { ArrowDownIcon, CollageIcon, ListIcon } from '@/components/collage/icons'
 import { DockSearchField, SearchButton, type DockSearchProps } from './DockSearch'
@@ -77,11 +76,6 @@ export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, on
               <span><span className="eb-long">True size</span><span className="eb-short">True</span><span className="eb-sr"> sticker sizes</span></span>
               <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
             </button>
-          )}
-          {view !== 'list' && (
-            <InfoTip label="About True size">
-              Sized by body weight. Shape and pose can make some birds look bigger or smaller than they are.
-            </InfoTip>
           )}
           <button type="button" role="switch" aria-checked={sci} className="eb-dock-tab eb-dock-sw eb-dock-sci" onClick={() => onSci(!sci)}>
             <span><span className="eb-long">Scientific</span><span className="eb-short">Sci.</span><span className="eb-sr"> names</span></span>
