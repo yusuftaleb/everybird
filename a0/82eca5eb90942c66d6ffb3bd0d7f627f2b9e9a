@@ -41,6 +41,8 @@ tests/share-image.test.ts
   s_ab125876fe9ad2::t_4ede26afe871f2 151,158-159,162-164,166-167,169-179,187-195,209-211
 tests/pack.test.ts
   s_ab125876fe9ad2::t_b41b53d1141a7d 4-5,35-52,141-142,202,214,413,576-577,585-586,613
+AGENTS.md
+  s_ab125876fe9ad2::t_11aa2d06074d41 83
 ---
 {
   "schema_version": "authorship/3.0.0",
