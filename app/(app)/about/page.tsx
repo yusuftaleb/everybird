@@ -80,7 +80,7 @@ export default function AboutPage() {
         <p className="eb-prose">
           True size uses the cube root of mass for length instead. Birds are roughly similar in density, so mass tracks volume,
           and its cube root tracks length: a bird eight times heavier is drawn about twice as long, covering four times the area.
-          It&apos;s an estimate of relative size, not a measured length.
+          It&apos;s an estimate of relative size, not a measured length. Slim, long-necked birds can look a little small and chunky ones a little big, swimming poses hide part of the body, and each species uses one average mass, so males, females and seasons aren&apos;t told apart.
         </p>
       </section>
 
