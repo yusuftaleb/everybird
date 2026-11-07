@@ -1,0 +1,62 @@
+src/lib/layout/pack.ts
+  s_ab125876fe9ad2::t_cff685c30dd094 8-9,12,22-25,350,369
+  s_ab125876fe9ad2::t_05562c4367651e 13,71,82,86,125,127,228,232,307,387,438
+  s_ab125876fe9ad2::t_fe07a7921fae2f 351,360,487-488,492,496,498,500,503
+  s_ab125876fe9ad2::t_f065fde9c2b908 366
+e2e/count-hole.spec.ts
+  s_ab125876fe9ad2::t_5759125ffa39b0 1-112
+src/lib/share/image.ts
+  s_ab125876fe9ad2::t_4e7c50873c72f4 25,112-118,129-130,150-153,157-159,164-176,201,204
+  s_ab125876fe9ad2::t_efa6d3817a7a0d 161-162
+src/lib/layout/count-box.ts
+  s_ab125876fe9ad2::t_de7767ee07c9e7 1-33,36-57,68,71,75-76,90,125,130,132,135-136,146,149-151,157,162
+  s_ab125876fe9ad2::t_30f85fcac2cf70 58-61,67,69-70,72-74,91,126-129,131,133-134,137-145,147-148
+  s_ab125876fe9ad2::t_e2884563030f58 34-35
+  s_ab125876fe9ad2::t_c9bba91e3b9e17 152-156
+  s_ab125876fe9ad2::t_7191d53f97c993 62-66,77-89,92-124,158-161
+tests/share-image-load.test.ts
+  s_ab125876fe9ad2::t_e9f53c9c7bfe74 6
+  s_ab125876fe9ad2::t_4ede26afe871f2 174-176,184
+src/lib/layout/constants.ts
+  s_ab125876fe9ad2::t_cff685c30dd094 23-24,36-38
+src/lib/layout/grid.ts
+  s_ab125876fe9ad2::t_c9bba91e3b9e17 5,23-25,27-32
+DESIGN.md
+  s_ab125876fe9ad2::t_1b6b700b0b4a1e 131,203
+public/data/sample-pack.v1.json
+  s_ab125876fe9ad2::t_30ea1ba511f62e 1
+AGENTS.md
+  s_ab125876fe9ad2::t_1b6b700b0b4a1e 83
+src/components/collage/collage.css
+  s_ab125876fe9ad2::t_785917c31f5e7b 116-119,122,140
+src/lib/layout/layout.worker.ts
+  s_ab125876fe9ad2::t_f065fde9c2b908 11,25,35
+app/s/[token]/opengraph-image.tsx
+  s_ab125876fe9ad2::t_031e5ec9b3796f 8,31-32,44,100
+tests/count-box.test.ts
+  s_ab125876fe9ad2::t_9b51ebe73b0fa7 8,32-33,44-45,50-51,159
+  s_ab125876fe9ad2::t_9251a5115d1204 1-7,9-31,34-43,46-49,52-158,160-172
+src/components/collage/Tally.tsx
+  s_ab125876fe9ad2::t_785917c31f5e7b 2-3,6,14-15,41
+tests/share-image.test.ts
+  s_ab125876fe9ad2::t_e9f53c9c7bfe74 5-6
+  s_ab125876fe9ad2::t_4ede26afe871f2 151,158-159,162-164,166-167,169-179,187-195,209-211
+tests/pack.test.ts
+  s_ab125876fe9ad2::t_b41b53d1141a7d 4-5,35-52,141-142,202,214,412,575-576,584-585,612
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "617eb33ae48934d90709ac77b63d0fef466d9b88",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
