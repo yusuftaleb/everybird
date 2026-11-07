@@ -9,8 +9,8 @@
 //   bottom  a Hairline rule, "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px), then the footer: the Everybird
 //           wordmark and one quiet line beside it, the site and the sticker credit ("everybird.yusuftaleb.com · stickers
 //           by huashu", Geist Mono 20px, Muted). The full credit, with the licence, travels in the share text.
-// The story keeps Instagram's safe zones clear: nothing in the top 160px (the profile row) or the bottom 220px (the
-// reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1244 with
+// The story keeps Instagram's safe zones clear: nothing in the top 160px (the profile row; the title from 184) or the
+// bottom 156px (the reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1284 with
 // a name and the latest lifer): packFrame packs it for that aspect (the spiral stretched to it, as the narrow layout's
 // 0.55), so it is a tall rounded cluster, and fitPack spreads a short list's ring to its height (SPREAD).
 // Stickers load with crossOrigin = 'anonymous' (the stickers site sends access-control-allow-origin: *), so the
@@ -84,11 +84,15 @@ export function filterLabel(
 const M = 64
 /**
  * Clear of the platform's own chrome: a story keeps the top 160px (the progress bar and the profile row) and the bottom
- * 220px (the reply bar) empty; the post and the square use 64px margins all round.
+ * 156px (the reply bar) empty; the post and the square use 64px margins all round. The story's numbers come from a real
+ * Instagram story (2026-11-06): its title starts at 184 (TITLE_TOP), with air under the profile row, and the footer
+ * ends about 150px of the phone's screen above "Say something", in the band the reply bar leaves empty.
  */
 export const SAFE: Record<ImageFormat, { top: number; bottom: number }> = {
-  story: { top: 160, bottom: 220 }, post: { top: M, bottom: M }, square: { top: M, bottom: M },
+  story: { top: 160, bottom: 156 }, post: { top: M, bottom: M }, square: { top: M, bottom: M },
 }
+/** Where the title starts (the collage starts at SAFE.top when there's no title). */
+export const TITLE_TOP: Record<ImageFormat, number> = { story: 184, post: M, square: M }
 /**
  * The gaps (px) between the head and the collage, the collage and the latest lifer row, and that row and the hairline.
  * The story and the post keep them tighter so their collages take the height; the square keeps its own.
@@ -181,7 +185,7 @@ export function cardLayout(format: ImageFormat, c: CardContent): CardLayout {
   const [W, H] = IMAGE_SIZE[format]
   const { top: T, bottom: B } = SAFE[format]
   // Top: only the name and the filter in words; with neither, the collage starts at the safe line.
-  const name = c.name ? { y: T, size: 60 } : undefined
+  const name = c.name ? { y: TITLE_TOP[format], size: 60 } : undefined
   const filter = c.filter ? { y: name ? name.y + 76 : T, size: 34 } : undefined
   const headBottom = filter ? filter.y + filter.size : name ? name.y + name.size : undefined
   // Bottom, upwards: the footer (wordmark, site and credit on one line), a hairline, the latest lifer row.
