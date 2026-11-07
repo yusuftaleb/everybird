@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-// The web manifest (/manifest.webmanifest). Icons: scripts/build-data/build-icons.ts (the Veery sticker on Paper).
+// The web manifest (/manifest.webmanifest). Icons: scripts/build-data/build-icons.ts (the origami bird on Paper).
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Everybird',

@@ -122,6 +122,9 @@ export default function AboutPage() {
           <Credit label="Icons · MIT" title={<A href="https://phosphoricons.com/">Phosphor</A>}>
             Icons from Phosphor Icons, under the MIT licence.
           </Credit>
+          <Credit label="Icons" title={<A href="https://icons8.com/">Icons8</A>}>
+            The site icon&rsquo;s origami bird: <A href="https://icons8.com/icon/JUYuJxA8MPVT/origami">Origami</A> (Fluent Systems Regular) by Icons8.
+          </Credit>
           <Credit label="Code · MIT" title={<A href={REPO_URL}>Everybird</A>}>
             Everybird&apos;s code is open source under the <A href={`${REPO_URL}/blob/main/LICENSE`}>MIT licence</A>.
           </Credit>

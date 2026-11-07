@@ -1,3 +1,4 @@
+import { SITE_ICONS } from "@/lib/site-icons";
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import { SHARE_ORIGIN } from "@/lib/share/origin";
@@ -24,6 +25,7 @@ export const metadata: Metadata = {
   // A share link's token is the birder's list: never let it leave as a Referer, not even to our own pages
   // (analytics reads document.referrer). Origin only, everywhere.
   referrer: "strict-origin",
+  icons: SITE_ICONS,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
