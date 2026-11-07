@@ -1,66 +1,70 @@
 # Crosswalk report
 
 - Species rows: 11201
-- With sticker: 10989; without: 212
+- With sticker: 10967; without: 234
 - Mass sources: avonet 10417, override 7, family 772, order 5
-- Multi-candidate choices: 0; scientific-name fallbacks: 44; huashu orphans: 0
+- Multi-candidate choices: 0; scientific-name fallbacks: 22; huashu orphans: 0
+- No sticker because huashu has them only inside another species (lumped): 22
 
 ## Multi-candidate choices (0)
 
 _none_
 
-## Scientific-name fallbacks (44)
+## Scientific-name fallbacks (22)
 
 - rudduc (Ruddy Duck) -> Oxyura_jamaicensis
-- andduc1 (Andean Duck) -> Oxyura_jamaicensis
 - fotswi (Pacific Swift) -> Apus_pacificus
-- blyswi1 (Blyth's Swift) -> Apus_pacificus
-- cooswi1 (Cook's Swift) -> Apus_pacificus
 - boorat1 (White-booted Racket-tail) -> Ocreatus_underwoodii
-- boorat2 (Peruvian Racket-tail) -> Ocreatus_underwoodii
-- rubrat1 (Rufous-booted Racket-tail) -> Ocreatus_underwoodii
 - purswa1 (Western Swamphen) -> Porphyrio_porphyrio
-- purswa4 (Black-backed Swamphen) -> Porphyrio_porphyrio
-- purswa2 (African Swamphen) -> Porphyrio_porphyrio
-- purswa6 (Australasian Swamphen) -> Porphyrio_porphyrio
-- purswa5 (Philippine Swamphen) -> Porphyrio_porphyrio
-- purswa3 (Gray-headed Swamphen) -> Porphyrio_porphyrio
 - whnpet (White-necked Petrel) -> Pterodroma_cervicalis
-- venpet1 (Vanuatu Petrel) -> Pterodroma_cervicalis
 - levshe1 (Yelkouan Shearwater) -> Puffinus_yelkouan
-- balshe1 (Balearic Shearwater) -> Puffinus_yelkouan
 - brnowl (American Barn Owl) -> Tyto_furcata
 - asfowl1 (Ashy-faced Owl) -> Tyto_glaucops
 - crbwoo1 (Crimson-bellied Woodpecker) -> Campephilus_haematogaster
 - blcant4 (Black-crested Antshrike) -> Sakesphorus_canadensis
 - olsfly2 (Olive-streaked Flycatcher) -> Mionectes_olivaceus
-- olsfly1 (Olive-striped Flycatcher) -> Mionectes_olivaceus
 - scamin3 (Orange Minivet) -> Pericrocotus_flammeus
-- scamin1 (Scarlet Minivet) -> Pericrocotus_flammeus
 - carcro1 (Carrion Crow) -> Corvus_corone
-- hoocro1 (Hooded Crow) -> Corvus_corone
-- anjwhe1 (Anjouan White-eye) -> Zosterops_maderaspatanus
-- mohwhe1 (Moheli White-eye) -> Zosterops_maderaspatanus
 - madwhe1 (Malagasy White-eye) -> Zosterops_maderaspatanus
-- aldwhe1 (Aldabra White-eye) -> Zosterops_maderaspatanus
-- guigna2 (Rio Negro Gnatcatcher) -> Polioptila_paraensis
-- inagna1 (Inambari Gnatcatcher) -> Polioptila_paraensis
 - guigna4 (Klages's Gnatcatcher) -> Polioptila_paraensis
 - chtsta2 (Chestnut-tailed Starling) -> Sturnia_malabarica
-- malsta1 (Malabar Starling) -> Sturnia_malabarica
 - sibsto1 (Siberian Stonechat) -> Saxicola_maurus
-- stonec7 (Amur Stonechat) -> Saxicola_maurus
 - stusun1 (Stuhlmann's Sunbird) -> Cinnyris_stuhlmanni
 - mdcsun3 (Montane Double-collared Sunbird) -> Cinnyris_ludovicensis
 - brocow (Bronzed Cowbird) -> Molothrus_aeneus
 - blehem1 (Black-eared Hemispingus) -> Sphenopsis_melanotis
 - tildac1 (Tit-like Dacnis) -> Xenodacnis_parina
 
+## Lumped by huashu: no sticker (a record never lends its drawing to a species it absorbed) (22)
+
+- andduc1 (Andean Duck, Oxyura ferruginea): only a former name in huashu Oxyura_jamaicensis (lumped_into_this)
+- blyswi1 (Blyth's Swift, Apus leuconyx): only a former name in huashu Apus_pacificus (lumped_into_this)
+- cooswi1 (Cook's Swift, Apus cooki): only a former name in huashu Apus_pacificus (lumped_into_this)
+- boorat2 (Peruvian Racket-tail, Ocreatus peruanus): only a former name in huashu Ocreatus_underwoodii (lumped_into_this)
+- rubrat1 (Rufous-booted Racket-tail, Ocreatus addae): only a former name in huashu Ocreatus_underwoodii (lumped_into_this)
+- purswa4 (Black-backed Swamphen, Porphyrio indicus): only a former name in huashu Porphyrio_porphyrio (lumped_into_this)
+- purswa2 (African Swamphen, Porphyrio madagascariensis): only a former name in huashu Porphyrio_porphyrio (lumped_into_this)
+- purswa6 (Australasian Swamphen, Porphyrio melanotus): only a former name in huashu Porphyrio_porphyrio (lumped_into_this)
+- purswa5 (Philippine Swamphen, Porphyrio pulverulentus): only a former name in huashu Porphyrio_porphyrio (lumped_into_this)
+- purswa3 (Gray-headed Swamphen, Porphyrio poliocephalus): only a former name in huashu Porphyrio_porphyrio (lumped_into_this)
+- venpet1 (Vanuatu Petrel, Pterodroma occulta): only a former name in huashu Pterodroma_cervicalis (lumped_into_this)
+- balshe1 (Balearic Shearwater, Puffinus mauretanicus): only a former name in huashu Puffinus_yelkouan (lumped_into_this)
+- olsfly1 (Olive-striped Flycatcher, Mionectes galbinus): only a former name in huashu Mionectes_olivaceus (lumped_into_this)
+- scamin1 (Scarlet Minivet, Pericrocotus speciosus): only a former name in huashu Pericrocotus_flammeus (lumped_into_this)
+- hoocro1 (Hooded Crow, Corvus cornix): only a former name in huashu Corvus_corone (lumped_into_this)
+- anjwhe1 (Anjouan White-eye, Zosterops anjuanensis): only a former name in huashu Zosterops_maderaspatanus (lumped_into_this)
+- mohwhe1 (Moheli White-eye, Zosterops comorensis): only a former name in huashu Zosterops_maderaspatanus (lumped_into_this)
+- aldwhe1 (Aldabra White-eye, Zosterops aldabrensis): only a former name in huashu Zosterops_maderaspatanus (lumped_into_this)
+- guigna2 (Rio Negro Gnatcatcher, Polioptila facilis): only a former name in huashu Polioptila_paraensis (lumped_into_this)
+- inagna1 (Inambari Gnatcatcher, Polioptila attenboroughi): only a former name in huashu Polioptila_paraensis (lumped_into_this)
+- malsta1 (Malabar Starling, Sturnia blythii): only a former name in huashu Sturnia_malabarica (lumped_into_this)
+- stonec7 (Amur Stonechat, Saxicola stejnegeri): only a former name in huashu Saxicola_maurus (lumped_into_this)
+
 ## Override huashu records used (0)
 
 _none_
 
-## No sticker (212)
+## No sticker (234)
 
 - sddtin1 (Slaty-masked Tinamou) [huashu Crypturellus_resonans has no sticker]
 - maushe1 (Mauritius Shelduck)
@@ -72,6 +76,7 @@ _none_
 - pihduc1 (Pink-headed Duck)
 - labduc (Labrador Duck)
 - auimer1 (Auckland Islands Merganser)
+- andduc1 (Andean Duck)
 - nezqua1 (New Zealand Quail)
 - himqua1 (Himalayan Quail)
 - mauwop1 (Mauritius Wood-Pigeon)
@@ -96,6 +101,10 @@ _none_
 - penhac1 (Penan Hawk-Cuckoo) [huashu Hierococcyx_tiganada has no sticker]
 - jampau (Jamaican Pauraque)
 - saaswi1 (Salim Ali's Swift)
+- blyswi1 (Blyth's Swift)
+- cooswi1 (Cook's Swift)
+- boorat2 (Peruvian Racket-tail)
+- rubrat1 (Rufous-booted Racket-tail)
 - braeme2 (Brace's Emerald)
 - reurai1 (Reunion Rail)
 - redrai1 (Red Rail)
@@ -115,8 +124,13 @@ _none_
 - marswa1 (Marquesan Swamphen)
 - necgal1 (New Caledonian Swamphen)
 - reugal1 (Reunion Swamphen)
+- purswa4 (Black-backed Swamphen)
+- purswa2 (African Swamphen)
 - takahe2 (North Island Takahe)
+- purswa6 (Australasian Swamphen)
+- purswa5 (Philippine Swamphen)
 - lohswa1 (Lord Howe Swamphen)
+- purswa3 (Gray-headed Swamphen)
 - sthrai1 (St. Helena Crake)
 - layrai (Laysan Rail)
 - hawrai (Hawaiian Rail)
@@ -138,7 +152,9 @@ _none_
 - guspet (Guadalupe Storm-Petrel)
 - lshpet1 (Large St. Helena Petrel)
 - bkcpet2 (Jamaican Petrel)
+- venpet1 (Vanuatu Petrel)
 - sshpet1 (Small St. Helena Petrel)
+- balshe1 (Balearic Shearwater)
 - palcor1 (Pallas's Cormorant)
 - reusol1 (Reunion Ibis)
 - nezbit1 (New Zealand Bittern)
@@ -191,6 +207,7 @@ _none_
 - bkhant8 (Black-hooded Antthrush) [huashu Formicarius_destructus has no sticker]
 - crytre1 (Cryptic Treehunter)
 - alfgle1 (Alagoas Foliage-gleaner)
+- olsfly1 (Olive-striped Flycatcher)
 - soubet1 (Panama Beardless-Tyrannulet) [huashu Camptostoma_flaviventre has no sticker]
 - soubet6 (Cauca Beardless-Tyrannulet) [huashu Camptostoma_caucae has no sticker]
 - soubet7 (Venezuelan Beardless-Tyrannulet) [huashu Camptostoma_pusillum has no sticker]
@@ -203,6 +220,7 @@ _none_
 - lohger1 (Lord Howe Gerygone)
 - blujeb5 (Southern Blue Jewel-babbler) [huashu Ptilorrhoa_nigricrissus has no sticker]
 - hoojeb1 (Hooded Jewel-babbler) [huashu Ptilorrhoa_urrissia has no sticker]
+- scamin1 (Scarlet Minivet)
 - gyegre2 (Beni Greenlet) [huashu Hylophilus_moxensis has no sticker]
 - noipio1 (North Island Piopio)
 - soipio1 (South Island Piopio)
@@ -211,6 +229,7 @@ _none_
 - eiamon1 (Eiao Monarch)
 - nuhmon1 (Nuku Hiva Monarch)
 - guafly1 (Guam Flycatcher)
+- hoocro1 (Hooded Crow)
 - kokako4 (South Island Kokako)
 - huia1 (Huia)
 - albwar1 (Aldabra Brush-Warbler)
@@ -225,9 +244,14 @@ _none_
 - sergob2 (Ambon Golden-Bulbul) [huashu Hypsipetes_flavicaudus has no sticker]
 - olwbul3 (Barusan Bulbul) [huashu Pycnonotus_porphyreus has no sticker]
 - marwhe1 (Marianne White-eye)
+- anjwhe1 (Anjouan White-eye)
+- mohwhe1 (Moheli White-eye)
+- aldwhe1 (Aldabra White-eye)
 - wcweye1 (White-chested White-eye)
 - robwhe1 (Robust White-eye)
 - pistib2 (Palawan Tit-Babbler) [huashu Mixornis_woodi has no sticker]
+- guigna2 (Rio Negro Gnatcatcher)
+- inagna1 (Inambari Gnatcatcher)
 - eamwre1 (Eastern Marsh Wren) [huashu Cistothorus_palustris has no sticker]
 - kossta1 (Kosrae Starling)
 - myssta1 (Mysterious Starling)
@@ -235,6 +259,7 @@ _none_
 - raista2 (Raiatea Starling)
 - rodsta2 (Rodrigues Starling)
 - reusta1 (Reunion Starling)
+- malsta1 (Malabar Starling)
 - kamao (Kamao)
 - amaui (Amaui)
 - bonthr2 (Bonin Thrush)
@@ -245,6 +270,7 @@ _none_
 - bluwht2 (Yellow-billed Whistling-Thrush) [huashu Myophonus_flavirostris has no sticker]
 - whcfor10 (Malayan Forktail) [huashu Enicurus_frontalis has no sticker]
 - whcfor5 (Javan Forktail) [huashu Enicurus_leschenaulti has no sticker]
+- stonec7 (Amur Stonechat)
 - mouwhe14 (Mourning Wheatear) [huashu Oenanthe_lugens has no sticker]
 - kauoo (Kauai Oo)
 - oahoo (Oahu Oo)

@@ -30,24 +30,44 @@ function pickCandidate(cands: HuashuRecord[], sci: string): HuashuRecord {
 export type HuashuMatch = {
   matches: Map<string, HuashuRecord>   // eBird species code -> chosen huashu record
   multi: string[]; sciFallback: string[]; viaOverride: string[]
+  /** eBird species left unmatched because huashu has them only as a `previous` name of another taxon (a lump). */
+  lumped: string[]
 }
 
-// Pure crosswalk: which huashu record (and so which sticker file) belongs to each eBird species.
+/**
+ * The `previous[]` relations under which a former name still names the record's own taxon: the same species, or a
+ * rename (new genus, spelling fix); an entry without a relation is read as a former name. Any other relation
+ * (`lumped_into_this`: the record absorbed that species; `split_from`; anything new upstream) means the record's
+ * drawing is not of the eBird species with that name, so it lends it no sticker (no borrowing: a Hooded Crow must
+ * not wear huashu's Carrion Crow). Such species get no match: st false, the outline, no mask.
+ */
+export const SAME_TAXON_RELATIONS: ReadonlySet<string> = new Set(['same', 'renamed'])
+const isSameTaxon = (p: { relation?: string }) => p.relation === undefined || SAME_TAXON_RELATIONS.has(p.relation)
+
+// Pure crosswalk: which huashu record (and so which sticker file) belongs to each eBird species. A record matches an
+// eBird species by its own eBird code, its current scientific name, or a former name of the same taxon; never through
+// a species it absorbed (see SAME_TAXON_RELATIONS). An override names the record by hand and always wins.
 // Throws if an override names a huashu id that does not exist.
 export function matchHuashu(huashu: HuashuRecord[], taxonomy: TaxonRow[], overrides: Overrides): HuashuMatch {
   const byEbird = new Map<string, HuashuRecord[]>()
   const bySci = new Map<string, HuashuRecord>()
   const byId = new Map<string, HuashuRecord>()
+  const absorbed = new Map<string, string>() // former species name -> "huashu id (relation)"
   for (const h of huashu) {
     byId.set(h.id, h)
     if (h.ids.ebird) byEbird.set(h.ids.ebird, [...(byEbird.get(h.ids.ebird) ?? []), h])
     bySci.set(h.scientificName, h)
   }
   // previous names never shadow a current name
-  for (const h of huashu) for (const p of h.previous ?? []) if (!bySci.has(p.scientificName)) bySci.set(p.scientificName, h)
+  for (const h of huashu) {
+    for (const p of h.previous ?? []) {
+      if (!isSameTaxon(p)) { if (!absorbed.has(p.scientificName)) absorbed.set(p.scientificName, `${h.id} (${p.relation})`); continue }
+      if (!bySci.has(p.scientificName)) bySci.set(p.scientificName, h)
+    }
+  }
 
   const matches = new Map<string, HuashuRecord>()
-  const multi: string[] = [], sciFallback: string[] = [], viaOverride: string[] = []
+  const multi: string[] = [], sciFallback: string[] = [], viaOverride: string[] = [], lumped: string[] = []
   const missing = Object.entries(overrides).filter(([, o]) => o.huashu && !byId.has(o.huashu))
   if (missing.length) {
     throw new Error(`overrides reference unknown huashu ids: ${missing.map(([c, o]) => `${c} -> ${o.huashu}`).join(', ')}`)
@@ -67,18 +87,20 @@ export function matchHuashu(huashu: HuashuRecord[], taxonomy: TaxonRow[], overri
       } else if (bySci.has(t.sci)) {
         rec = bySci.get(t.sci)
         sciFallback.push(`${t.code} (${t.com}) -> ${rec!.id}`)
+      } else if (absorbed.has(t.sci)) {
+        lumped.push(`${t.code} (${t.com}, ${t.sci}): only a former name in huashu ${absorbed.get(t.sci)}`)
       }
     }
     if (rec) matches.set(t.code, rec)
   }
-  return { matches, multi, sciFallback, viaOverride }
+  return { matches, multi, sciFallback, viaOverride, lumped }
 }
 
 export function buildSpecies(
   huashu: HuashuRecord[], taxonomy: TaxonRow[], overrides: Overrides,
   meta: { ebirdTaxonomy?: string; huashuCommit?: string } = {},
 ): { file: SpeciesFile; report: string } {
-  const { matches, multi, sciFallback, viaOverride: overrideHuashu } = matchHuashu(huashu, taxonomy, overrides)
+  const { matches, multi, sciFallback, viaOverride: overrideHuashu, lumped } = matchHuashu(huashu, taxonomy, overrides)
   const species = taxonomy.filter((t) => t.cat === 'species').sort((a, b) => a.to - b.to)
   const noSticker: string[] = [], massFallback: string[] = []
 
@@ -131,9 +153,11 @@ export function buildSpecies(
     `- With sticker: ${rows.filter((r) => r.st).length}; without: ${noSticker.length}`,
     `- Mass sources: avonet ${massCount('avonet')}, override ${massCount('override')}, family ${massCount('family')}, order ${massCount('order')}`,
     `- Multi-candidate choices: ${multi.length}; scientific-name fallbacks: ${sciFallback.length}; huashu orphans: ${orphans.length}`,
+    `- No sticker because huashu has them only inside another species (lumped): ${lumped.length}`,
     '',
     list('Multi-candidate choices', multi),
     list('Scientific-name fallbacks', sciFallback),
+    list('Lumped by huashu: no sticker (a record never lends its drawing to a species it absorbed)', lumped),
     list('Override huashu records used', overrideHuashu),
     list('No sticker', noSticker),
     list('Mass fallbacks', massFallback),
@@ -217,11 +241,11 @@ function main() {
   mkdirSync(outDir, { recursive: true })
   mkdirSync(resolve(process.cwd(), 'data/build'), { recursive: true })
   // `ar` is owned by build-stickers (measured from the trimmed image): carry it over so a rerun doesn't reset it.
-  // Species new to the file keep ar 1 until build-stickers runs.
+  // Species new to the file keep ar 1 until build-stickers runs; a species without a sticker keeps the default 1.
   const prevPath = resolve(outDir, 'species.v1.json')
   if (existsSync(prevPath)) {
     const prev = new Map((JSON.parse(readFileSync(prevPath, 'utf8')) as SpeciesFile).species.map((s) => [s.code, s.ar]))
-    for (const s of file.species) if (prev.has(s.code)) s.ar = prev.get(s.code)!
+    for (const s of file.species) if (s.st && prev.has(s.code)) s.ar = prev.get(s.code)!
   }
   // Only stickers the lock records as published count (a capped sync may not have shipped them all yet).
   if (lock) restrictToShipped(file.species, lock.shipped)

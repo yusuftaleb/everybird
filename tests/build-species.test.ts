@@ -76,3 +76,64 @@ describe('buildSpecies', () => {
     expect(() => run(o)).toThrow(/No_such_id/)
   })
 })
+
+describe('no stickers through lumps', () => {
+  // Synthetic: huashu's Gus major absorbed Gus minor (eBird keeps both), Hus nova is Hus vetus renamed, and Jus pars
+  // was split from Jus totus.
+  const sticker = (id: string) => ({ file: `stickers/Ordo/Famone/${id}.webp`, meetsQualityBar: true })
+  const recs: HuashuRecord[] = [
+    {
+      id: 'Gus_major', scientificName: 'Gus major', taxonConcept: 'broadened', taxonomy: { seq: 1, order: 'Ordo', family: 'Famone' },
+      ids: {}, traits: { massG: 80 }, sticker: sticker('Gus_major'),
+      previous: [
+        { id: 'Gus_major', scientificName: 'Gus major', relation: 'same' },
+        { id: 'Gus_minor', scientificName: 'Gus minor', relation: 'lumped_into_this' },
+      ],
+    },
+    {
+      id: 'Hus_nova', scientificName: 'Hus nova', taxonConcept: 'same', taxonomy: { seq: 2, order: 'Ordo', family: 'Famone' },
+      ids: {}, traits: { massG: 20 }, sticker: sticker('Hus_nova'),
+      previous: [{ id: 'Hus_vetus', scientificName: 'Hus vetus', relation: 'renamed' }],
+    },
+    {
+      id: 'Jus_pars', scientificName: 'Jus pars', taxonConcept: 'split', taxonomy: { seq: 3, order: 'Ordo', family: 'Famone' },
+      ids: { ebird: 'jupars1' }, traits: { massG: 30 }, sticker: sticker('Jus_pars'),
+      previous: [{ id: 'Jus_totus', scientificName: 'Jus totus', relation: 'split_from' }],
+    },
+  ]
+  const tx = (code: string, sci: string, to: number): TaxonRow =>
+    ({ code, sci, com: code, cat: 'species', to, ord: 'Ordo', fam: 'Famone', famCom: 'Family One' })
+  const taxa = [tx('gumaj1', 'Gus major', 1), tx('gumin1', 'Gus minor', 2), tx('huvet1', 'Hus vetus', 3),
+    tx('jupars1', 'Jus pars', 4), tx('jutot1', 'Jus totus', 5)]
+  const built = (o: Overrides = {}) => buildSpecies(recs, taxa, o)
+  const get = (code: string, o?: Overrides) => built(o).file.species.find((s) => s.code === code)!
+
+  it('a species the record absorbed (lumped_into_this) gets no sticker; the record’s own species keeps it', () => {
+    expect(get('gumaj1')).toMatchObject({ st: true, q: true, g: 80, gSrc: 'avonet' })
+    expect(get('gumin1')).toMatchObject({ st: false, q: false, ar: 1, gSrc: 'family' })
+    const m = matchHuashu(recs, taxa, {})
+    expect(m.matches.has('gumin1')).toBe(false)
+    expect(m.lumped).toContain('gumin1 (gumin1, Gus minor): only a former name in huashu Gus_major (lumped_into_this)')
+  })
+
+  it('a pure rename keeps the sticker', () => {
+    expect(get('huvet1')).toMatchObject({ st: true, g: 20, gSrc: 'avonet' })
+    expect(matchHuashu(recs, taxa, {}).matches.get('huvet1')?.id).toBe('Hus_nova')
+  })
+
+  it('any other relation lends no sticker either (split_from), while the record’s own code still matches', () => {
+    expect(get('jupars1').st).toBe(true)
+    expect(get('jutot1').st).toBe(false)
+  })
+
+  it('the report lists the lumped species', () => {
+    const { report } = built()
+    expect(report).toMatch(/No sticker because huashu has them only inside another species \(lumped\): 2/)
+    expect(report).toMatch(/Lumped by huashu: no sticker .*\(2\)/)
+    expect(report).toMatch(/gumin1 .*Gus_major \(lumped_into_this\)/)
+  })
+
+  it('an override still names a record by hand', () => {
+    expect(get('gumin1', { gumin1: { huashu: 'Gus_major', source: 'synthetic' } }).st).toBe(true)
+  })
+})
