@@ -1,0 +1,27 @@
+public/data/sample-pack.v1.json
+  s_ab125876fe9ad2::t_d7413699031903 1
+src/lib/layout/constants.ts
+  s_ab125876fe9ad2::t_16315843b9eba0 2-15
+src/lib/layout/layout.worker.ts
+  s_ab125876fe9ad2::t_8c80f92fda41c7 20-22,86
+src/lib/layout/pack.ts
+  s_ab125876fe9ad2::t_99e3511576e09f 6,11,15-16,30-43,46,49
+tests/pack.test.ts
+  s_ab125876fe9ad2::t_dca2fe1cf3bfd3 4,6-7,14,24,59,61-64,700-767
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7cc87430a8a759ba48424669a07ed24fc253e961",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
