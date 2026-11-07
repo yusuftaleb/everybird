@@ -4,7 +4,7 @@
 Web (Next.js 16 app router, React 19), mobile first, works from 320px.
 
 ## Stack
-Next.js, React, Web Workers for layout and import parsing, IndexedDB/localStorage for the list, Playwright and Vitest, Vercel (not yet deployed).
+Next.js, React, Web Workers for layout and import parsing, IndexedDB/localStorage for the list, Playwright and Vitest, Vercel (not yet deployed); Cloudflare Web Analytics and a Cloudflare Worker with D1 (`workers/stats`) for anonymous counts.
 
 ## Users
 Birders with a life list (eBird export, iNaturalist username, or ticking by hand) who want to see and share it. Phone first; shared links are opened by non-birders too.

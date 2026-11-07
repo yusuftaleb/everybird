@@ -239,7 +239,7 @@ Stickers are huashu-bird-sticker (CC BY 4.0), trimmed webp at 128 and 384px, hos
 - Sentence case everywhere; mono labels are the only uppercase (by CSS).
 - No em dashes in UI copy (none in our components; the vendored Stageshow kit under `src/components/about/stageshow/` is excluded, and its one "—" is in a code comment, not rendered text); no exclamation marks, no emoji, no hype.
 - Numbers are exact and formatted ("197 species", "Sep 2026"); the filter is described in words on share images.
-- Privacy is stated plainly: the list never leaves the browser. Analytics records only three events and never counts, names or places.
+- Privacy is stated plainly: the list never leaves the browser. Analytics is Cloudflare Web Analytics (cookieless visit counts) plus an anonymous counter of a few actions (visits by page, collage made, image downloaded or shared, link copied), never counts, names, species or places; a daily-changing anonymous id counts unique visitors without tracking anyone across days.
 - Attribution is part of the voice: About opens its credits with "Made by Yusuf Taleb".
 
 ## Accessibility

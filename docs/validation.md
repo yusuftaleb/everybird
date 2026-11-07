@@ -61,4 +61,8 @@ seen-here Canada: MyEBirdData 178 (independent tally 178, match) · merged with 
 
 ## Analytics
 
-Vercel Web Analytics is cookieless. It is rendered only on Vercel. Three events carry one anonymous property each: `collage_made {source}`, `image_downloaded {format}` and `link_copied {level}`. They never carry counts, names, species or places (`src/lib/analytics.ts`, `tests/analytics.test.ts`, and the share e2e test).
+Moved from Vercel Web Analytics to Cloudflare on 2026-11-06 (Vercel's custom events need Pro). Nothing uses cookies or local storage, nothing carries list contents, and neither part runs with Do Not Track or Global Privacy Control on.
+
+- **Visits:** Cloudflare Web Analytics, cookieless, rendered only on the app's own pages (Collage, Settings, About) and only in production (`VERCEL_ENV=production`). It never loads on a shared view (`/s/<token>`, whose token is the list), and links out of a shared view are full page loads, so the beacon can't see a token in its history (`e2e/share-link.spec.ts`, `tests/analytics-beacon.test.tsx`).
+- **Events:** a small counter of our own (`workers/stats`, a Cloudflare Worker with D1). The app sends `{n, p}` (plus `d: 'touch'` on an iPad that reports a Mac) from the production hostname only: `visit` (landing, collage, settings, about, shared), `collage_made` (source), `image_downloaded` and `shared` (format), `link_copied` (level). Values are fixed lists on both ends (`src/lib/analytics.ts`, `tests/analytics.test.ts`, the share e2e tests).
+- **What the Worker stores:** day, event, value, country (from Cloudflare), a coarse device class, and an anonymous id that changes every day, keyed with a secret, so we can count unique visitors without tracking anyone across days. No IPs, User-Agents, names, species, places or timestamps. At most 200 events per id per day. `npm run stats` prints the aggregates.
