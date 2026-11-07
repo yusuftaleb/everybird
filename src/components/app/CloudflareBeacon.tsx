@@ -2,7 +2,7 @@
 
 import Script from 'next/script'
 import { useSyncExternalStore } from 'react'
-import { optedOut } from '@/lib/analytics'
+import { automatedRun, optedOut, safeSession } from '@/lib/analytics'
 
 /** Everybird's public Cloudflare Web Analytics site token (it goes out in every app page's HTML anyway). */
 export const CF_BEACON_TOKEN = '810be5cc6af7455686262e3fe8c0cf30'
@@ -27,13 +27,15 @@ export function startedOnShare(): boolean {
  * tracking would later see the token on Back).
  */
 const allowedNow = () => !optedOut(navigator, (window as Window & { doNotTrack?: string | null }).doNotTrack) && !startedOnShare()
+  && !automatedRun(navigator, location.search, safeSession(window))
 
 /**
  * Cloudflare Web Analytics: cookieless page-view counts. Rendered only from app/(app)/layout.tsx in production
  * (VERCEL_ENV=production), so it never loads on a shared view: /s/<token> is outside that group, and the beacon, which
  * reports location.href with no way to redact it, must never see a share token. The shared view also makes every link
  * into the app a full page load (FullNavigation.tsx), so a document that has shown /s/<token> never gets the beacon,
- * not even on Back. Not loaded at all with Do Not Track or Global Privacy Control on, as for the event counter.
+ * not even on Back. Not loaded at all with Do Not Track or Global Privacy Control on, or in an automated run
+ * (navigator.webdriver, ?noanalytics: automatedRun), as for the event counter.
  */
 export function CloudflareBeacon() {
   const allowed = useSyncExternalStore(noop, allowedNow, () => false)

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  ALLOWED, PRODUCTION_HOST, STATS_ENDPOINT, WIRE_LEVEL, isTouchMac, optedOut, payloadFor, sendEvent, track,
+  ALLOWED, PRODUCTION_HOST, STATS_ENDPOINT, WIRE_LEVEL, automatedRun, isTouchMac, optedOut, payloadFor, sendEvent, track,
   type SendEnv, type StatsHookWindow,
 } from '@/lib/analytics'
 import type { ShareLevel } from '@/lib/share/link'
@@ -144,5 +144,28 @@ describe('track', () => {
     track('link_copied', { level: 'species' })
     expect(seen).toEqual(['{"n":"visit","p":"collage"}', '{"n":"link_copied","p":"species"}'])
     for (const b of seen) assertClean(b)
+  })
+})
+
+describe('automated runs never send', () => {
+  const store = () => { const m = new Map<string, string>(); return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, v) } } }
+  it('navigator.webdriver (Playwright, Selenium) or ?noanalytics, remembered for the session', () => {
+    expect(automatedRun({ webdriver: true }, '')).toBe(true)
+    expect(automatedRun({ webdriver: false }, '')).toBe(false)
+    const s = store()
+    expect(automatedRun({}, '?noanalytics', s)).toBe(true)
+    expect(automatedRun({}, '', s)).toBe(true) // a later page in the same tab
+    expect(automatedRun({}, '', store())).toBe(false)
+    expect(automatedRun({}, '?x=1', null)).toBe(false)
+  })
+  it('an automated run sends nothing on the production host, but the test hook still sees the event', () => {
+    const beacon = vi.fn(() => true)
+    const nav = { userAgent: 'x', maxTouchPoints: 0, sendBeacon: beacon }
+    expect(sendEvent('image_downloaded', { format: 'story' }, { hostname: PRODUCTION_HOST, navigator: nav, automated: true })).toBe(false)
+    expect(beacon).not.toHaveBeenCalled()
+    const hook = vi.fn()
+    expect(sendEvent('image_downloaded', { format: 'story' }, { hostname: PRODUCTION_HOST, navigator: nav, automated: true, hook })).toBe(true)
+    expect(hook).toHaveBeenCalledOnce()
+    expect(beacon).not.toHaveBeenCalled()
   })
 })

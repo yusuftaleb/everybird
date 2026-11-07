@@ -54,6 +54,7 @@ export function payloadFor<K extends EventName>(name: K, props: AnalyticsEvents[
 }
 
 type Nav = Pick<Navigator, 'userAgent' | 'maxTouchPoints'> & {
+  webdriver?: boolean
   doNotTrack?: string | null
   globalPrivacyControl?: boolean
   sendBeacon?: (url: string, data?: BodyInit | null) => boolean
@@ -68,6 +69,25 @@ export type SendEnv = {
   fetch?: typeof fetch
   /** The test seam: when set, the body goes here instead of the network (and the hostname check is skipped). */
   hook?: (body: string) => void
+  /** An automated run (see automatedRun): nothing goes to the network. */
+  automated?: boolean
+}
+
+const NO_ANALYTICS_KEY = 'everybird:noanalytics'
+
+/**
+ * An automated or opted-out session: a browser driven by automation (navigator.webdriver: Playwright, Selenium,
+ * Puppeteer set it), or a visit with ?noanalytics in its URL (remembered for the tab's session, so later pages of the
+ * same run stay quiet). Such a session never sends anything: no events, no Cloudflare beacon.
+ */
+export function automatedRun(nav: Pick<Nav, 'webdriver'>, search: string, session?: Pick<Storage, 'getItem' | 'setItem'> | null): boolean {
+  if (nav.webdriver === true) return true
+  try {
+    if (new URLSearchParams(search).has('noanalytics')) { session?.setItem(NO_ANALYTICS_KEY, '1'); return true }
+    return session?.getItem(NO_ANALYTICS_KEY) === '1'
+  } catch {
+    return false
+  }
 }
 
 /** Do Not Track or Global Privacy Control: either one means nothing is sent. */
@@ -91,6 +111,7 @@ export function sendEvent<K extends EventName>(name: K, props: AnalyticsEvents[K
       env.hook(body)
       return true
     }
+    if (env.automated) return false
     if (env.hostname !== PRODUCTION_HOST) return false
     // text/plain keeps the cross-origin POST a simple request (no preflight); the Worker reads the raw text.
     if (typeof env.navigator.sendBeacon === 'function' && env.navigator.sendBeacon(STATS_ENDPOINT, new Blob([body], { type: 'text/plain' }))) return true
@@ -118,8 +139,15 @@ export function track<K extends EventName>(name: K, props: AnalyticsEvents[K]): 
       windowDnt: w.doNotTrack,
       fetch: typeof w.fetch === 'function' ? w.fetch.bind(w) : undefined,
       hook: typeof w.__everybirdStats === 'function' ? w.__everybirdStats : undefined,
+      automated: automatedRun(w.navigator as Nav, w.location.search, safeSession(w)),
     })
   } catch {
     // Never break the app.
   }
 }
+
+/** sessionStorage, or null where it throws (private modes, blocked storage). */
+function safeSession(w: Window): Storage | null {
+  try { return w.sessionStorage } catch { return null }
+}
+export { safeSession }

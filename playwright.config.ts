@@ -3,6 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = 3100;
 const PERF_PORT = 3200;
 const STICKER_PORT = 4100;
+// BASE_URL=<deployed site> runs send no analytics: Playwright sets navigator.webdriver, and src/lib/analytics.ts
+// (automatedRun) then sends no events and loads no Cloudflare beacon (by hand: open any page with ?noanalytics).
 const baseURL = process.env.BASE_URL ?? `http://localhost:${PORT}`;
 // The frame-timing test measures a production build (dev-mode React and on-demand compiles add frame time
 // that users never see). Pointed at a deployed URL, everything uses BASE_URL.
