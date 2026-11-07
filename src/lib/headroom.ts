@@ -13,7 +13,7 @@
 /** Scroll this far in one direction (px, summed over frames) before the bar hides or shows: no jitter. */
 export const HEADROOM_DELTA = 8
 
-type Bar = { el: HTMLElement; show: () => void }
+type Bar = { el: HTMLElement; show: (instant?: boolean) => void }
 const bars = new Set<Bar>()
 let holds = 0
 
@@ -59,26 +59,31 @@ export function attachHeadroom(el: HTMLElement): () => void {
     if (!raf) raf = requestAnimationFrame(update)
   }
   const onResize = () => { viewH = window.innerHeight }
-  const show = () => {
+  /** Show the bar; `instant` applies the shown transform now, without the slide (paired with a scroll jump). */
+  const show = (instant = false) => {
     s = { ...s, acc: 0 }
-    if (s.hidden) { s.hidden = false; write() }
+    if (!s.hidden) return
+    s.hidden = false
+    if (!instant) { write(); return }
+    el.style.transition = 'none'
+    write()
+    void el.offsetHeight
+    el.style.transition = ''
   }
   // Focus arriving from the page (Tab, Shift+Tab) shows the bar at once, without the slide. Browsers scroll a newly
   // focused control into view, and a bar still translated out reads as off screen: WebKit scrolls after the focus
   // events (so showing the bar here, applied at once, leaves it nothing to do), Chromium before them (so the page goes
   // back to `y`, the last scroll event's position, which predates this focus; synchronous, so nothing is painted in
   // between). The bar's controls' negative scroll-margin (app.css) cancels the root's scroll-padding for them.
-  const onFocusIn = () => {
+  // Only keyboard focus holds the bar (the spec's "focus moves into it"): Chromium and Firefox also focus a link or
+  // button on a mouse click, and the bar outlives client navigation, so a clicked "Settings" would pin it until the
+  // next click elsewhere. A mouse click needs nothing: the bar was on screen to be clicked.
+  const onFocusIn = (e: FocusEvent) => {
+    const t = e.target as Element | null
+    if (!t?.matches?.(':focus-visible')) return
     const entering = !focused
     focused = true
-    s = { ...s, acc: 0 }
-    if (s.hidden) {
-      s.hidden = false
-      el.style.transition = 'none'
-      write()
-      void el.offsetHeight // apply the shown transform now, before the browser measures the focused control
-      el.style.transition = ''
-    }
+    show(true) // apply the shown transform now, before the browser measures the focused control
     if (entering && Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y)
   }
   const onFocusOut = (e: FocusEvent) => { if (!el.contains(e.relatedTarget as Node | null)) focused = false }
@@ -119,11 +124,14 @@ export function attachHeadroom(el: HTMLElement): () => void {
 export function holdTopBar(clear?: HTMLElement | null): () => void {
   holds++
   for (const b of bars) {
-    b.show()
-    if (!clear) continue
     // The bar's own height: it is sticky at top 0, so shown, its bottom is its height. One read, on open only.
-    const gap = clear.getBoundingClientRect().top - b.el.offsetHeight
-    if (gap < 8) window.scrollBy(0, gap - 8)
+    const gap = clear ? clear.getBoundingClientRect().top - b.el.offsetHeight : Infinity
+    if (gap < 8) {
+      // The page moves to clear the popover's controls bar: the top bar arrives in the same frame, not sliding in
+      // over 200ms after an instant jump.
+      b.show(true)
+      window.scrollBy(0, gap - 8)
+    } else b.show()
   }
   let done = false
   return () => {

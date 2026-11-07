@@ -27,7 +27,10 @@ export function BirdTip({ entry, row, regions, sci, wrap }: Props) {
     const bird = w?.querySelector<HTMLElement>(`.eb-bird[data-code="${entry.code}"]`)
     if (!el || !w || !bird) return
     const place = () => {
-      const p = tipPosition(bird.getBoundingClientRect(), w.getBoundingClientRect(), { w: el.offsetWidth, h: el.offsetHeight })
+      // The top bar, when shown, takes the top of the screen (headroom): no room above means under the bar.
+      const bar = document.querySelector<HTMLElement>('.eb-topbar:not([data-hidden])')
+      const viewTop = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0
+      const p = tipPosition(bird.getBoundingClientRect(), w.getBoundingClientRect(), { w: el.offsetWidth, h: el.offsetHeight }, viewTop)
       el.style.left = `${p.left}px`
       el.style.top = `${p.top}px`
     }

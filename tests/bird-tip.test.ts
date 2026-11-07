@@ -31,4 +31,11 @@ describe('tipPosition (the hover tooltip, as on /lifelist)', () => {
   it('a tip wider than the wrapper starts at its left edge', () => {
     expect(tipPosition({ left: 150, top: 500, width: 20, height: 20 }, { left: 100, top: 200, width: 200 }, tip).left).toBe(4)
   })
+  it('treats the shown top bar as the top of the screen: no room above it puts the tip below', () => {
+    const wrap = { left: 0, top: 0, width: 800 }
+    const tip = { w: 200, h: 90 }
+    const bird = { left: 300, top: 130, width: 60, height: 40 }
+    expect(tipPosition(bird, wrap, tip).below).toBe(false) // 130 - 14 - 90 = 26 >= 4
+    expect(tipPosition(bird, wrap, tip, 61).below).toBe(true) // 26 < 61 + 4: under the bar, so below
+  })
 })

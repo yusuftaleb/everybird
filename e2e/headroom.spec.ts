@@ -184,3 +184,15 @@ test("anchor jumps land below the bar: /about#credits and /settings#sources", as
     expect(top, `${url}: the target clears the bar's place`).toBeGreaterThanOrEqual(shownBottom - 1);
   }
 });
+
+// Only keyboard focus holds the bar: Chromium focuses a link on a mouse click, and the bar outlives client navigation,
+// so a clicked "Collage" used to pin the bar until the next click elsewhere (review, 2026-11-06).
+test("a mouse click in the bar doesn't pin it: after navigating, scrolling down still hides it", async ({ page }) => {
+  await seed(page);
+  await page.goto("/settings");
+  await bar(page).getByRole("link", { name: "Collage" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByTestId("collage-stage")).toBeVisible();
+  for (const y of [200, 500, 900]) await scrollTo(page, y);
+  await hidden(page);
+});
