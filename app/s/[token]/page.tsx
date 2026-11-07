@@ -16,11 +16,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = tryDecodeShare((await params).token)
   const title = ogTitle(p)
   // og:image comes from ./opengraph-image (and twitter:image from ./twitter-image); the card type is set here.
+  // noindex, and no canonical or og:url: the token is the birder's whole list, so it goes in no URL here but the
+  // preview image's own (which link previews need). robots.txt also disallows /s/; it is never in the sitemap.
   return {
     title,
     description: OG_DESCRIPTION,
-    robots: { index: false },
-    openGraph: { title, description: OG_DESCRIPTION, type: 'website', siteName: 'Everybird' },
+    robots: { index: false, follow: false },
+    alternates: { canonical: null },
+    openGraph: { title, description: OG_DESCRIPTION, type: 'website', siteName: 'Everybird', url: null },
     twitter: { card: 'summary_large_image', title, description: OG_DESCRIPTION },
   }
 }

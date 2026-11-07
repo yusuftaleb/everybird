@@ -2,6 +2,7 @@ import { SITE_ICONS } from "@/lib/site-icons";
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import { SHARE_ORIGIN } from "@/lib/share/origin";
+import { pageSeo, SITE_DESCRIPTION, SITE_NAME } from "@/lib/site-meta";
 import { STICKER_READY_SCRIPT } from "@/lib/sticker-ready";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "@/styles/globals.css";
@@ -20,8 +21,11 @@ export const metadata: Metadata = {
       : process.env.VERCEL_ENV && process.env.VERCEL_URL
         ? new URL(`https://${process.env.VERCEL_URL}`)
         : undefined,
-  title: "Everybird",
-  description: "Your life list as a sticker collage, from eBird, iNaturalist, or by hand.",
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  // The landing page's canonical, Open Graph and Twitter card. Every page that sets its own title sets its own copy of
+  // these (about, settings) or replaces them (/s/<token>, which also says noindex), so none inherits "/".
+  ...pageSeo("/", SITE_NAME, SITE_DESCRIPTION),
   // A share link's token is the birder's list: never let it leave as a Referer, not even to our own pages
   // (analytics beacons send one). Origin only, everywhere. No analytics script here: Cloudflare Web Analytics loads from
   // app/(app)/layout.tsx only, so a shared view (/s/<token>) never loads it.

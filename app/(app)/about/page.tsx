@@ -5,12 +5,14 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { HowItWorksDemo } from '@/components/about/HowItWorksDemo'
 import { PageHead } from '@/components/app/PageHead'
+import { ABOUT_DESCRIPTION, ABOUT_TITLE, pageSeo } from '@/lib/site-meta'
 import '@/components/app/app.css'
 import './about.css'
 
 export const metadata: Metadata = {
-  title: 'About · Everybird',
-  description: 'What Everybird is, how it works, what True size means, and the data, stickers, fonts and code it is built from.',
+  title: ABOUT_TITLE,
+  description: ABOUT_DESCRIPTION,
+  ...pageSeo('/about', ABOUT_TITLE, ABOUT_DESCRIPTION),
 }
 
 /** The public repo (created at launch, Task 25). */
