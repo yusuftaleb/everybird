@@ -8,15 +8,13 @@ import { MatchReport } from '@/components/import/MatchReport'
 import { RulesSwitches } from '@/components/import/RulesSwitches'
 import { downloadText, today } from '@/lib/download'
 import { toCsv, toJson } from '@/lib/list/export'
-import type { Slot } from '@/lib/list/model'
+import { sourceCounts, summaryLine } from '@/lib/list/source-counts'
 import { NAME_MAX, type Saved } from '@/lib/list/storage'
 import { useEverybirdContext } from './EverybirdProvider'
 import { AppNotices } from './Notices'
 import { PageHead } from './PageHead'
 import { RestoreBackup } from './RestoreBackup'
 import './app.css'
-
-const FROM: Record<Slot, string> = { ebird: 'your eBird export', 'ebird-list': 'your eBird life list', inat: 'iNaturalist', manual: 'your list' }
 
 /** Settings > Your data > "Name your collage": saved with the list as you type (trimmed, at most NAME_MAX characters),
  *  it is the collage's title, verbatim ("Yusuf’s life list", "Birds of 2026"), and each share dialog's starting title.
@@ -52,7 +50,8 @@ function NameField({ stored, onName }: { stored: string; onName: (name: string) 
 
 /**
  * `/settings`, three tight sections: "Your list" (one row per source, the match report), "Counting" (the rules) and
- * "Your data" (your name, downloads, restore, forget). After an import, "See my collage" goes back to the collage.
+ * "Your data" (your name, downloads, restore, forget). "Your list" opens with one line on what each source brings
+ * (source-counts.ts), ending, after an import, with "See my collage" back to the collage.
  */
 export function SettingsPage() {
   const eb = useEverybirdContext()
@@ -64,21 +63,33 @@ export function SettingsPage() {
   const count = state.list.length
   const { saved } = state
   const onList = useMemo(() => new Set(state.list.map((e) => e.code)), [state.list])
+  const counts = useMemo(() => sourceCounts(saved, state.list), [saved, state.list])
+  const line = mine ? summaryLine(counts) : null
   return (
     <main className="eb-page eb-page-settings eb-page-titled">
       <PageHead title="Settings" />
       <AppNotices eb={eb} />
-      {mine && (landed || count > 0) && (
-        <div className="eb-made" role="status" data-testid="see-collage">
-          <p>
-            {landed ? `Added ${landed.species.toLocaleString('en-US')} species from ${FROM[landed.slot]}. ` : ''}
-            Your collage has {count.toLocaleString('en-US')} species.
-          </p>
-          <Link href="/" className="eb-btn eb-btn-sm">See my collage<ArrowRight aria-hidden="true" focusable="false" weight="bold" /></Link>
-        </div>
-      )}
       {data ? (
-        <ImportPanel saved={saved} dispatch={dispatch} species={data.species} regions={data.regions} jobs={jobs} onList={onList}>
+        <ImportPanel
+          saved={saved}
+          dispatch={dispatch}
+          species={data.species}
+          regions={data.regions}
+          jobs={jobs}
+          onList={onList}
+          counts={counts}
+          summary={line && (
+            <p className="eb-summary" role="status" data-testid="see-collage">
+              {line}
+              {landed && count > 0 && (
+                <>
+                  {' '}
+                  <Link href="/" className="eb-summary-link">See my collage<ArrowRight aria-hidden="true" focusable="false" weight="bold" /></Link>
+                </>
+              )}
+            </p>
+          )}
+        >
           <MatchReport open={state.openUnmatched} saved={saved} species={data.species} dispatch={dispatch} />
         </ImportPanel>
       ) : (

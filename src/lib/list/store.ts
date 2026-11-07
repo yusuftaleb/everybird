@@ -5,7 +5,8 @@ import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { buildList } from './build-list'
 import type { Filter } from './filters'
 import { applyFilterValidity } from './filters-validate'
-import { SLOTS, slotSource, unmatchedKey } from './model'
+import { unmatchedKey } from './model'
+import { slottedRecords } from './source-counts'
 import type { Edits, ImportResult, ListEntry, Rules, Slot, SourceRecord, Unmatched } from './model'
 import { buildSeen, type SeenIndex } from './seen'
 import * as storage from './storage'
@@ -48,18 +49,10 @@ export type Action =
 
 export type StoreContext = { species: SpeciesIndex; countryName: (iso2: string) => string }
 
-/** Every record the list is built from: each slot's records, then the fixed unmatched rows. */
+/** Every record the list is built from: each slot's records, then the fixed unmatched rows (source-counts.ts
+ *  `slottedRecords`, which also says each record's slot). */
 export function recordsOf(saved: Saved): SourceRecord[] {
-  const fixRecords: SourceRecord[] = []
-  for (const u of saved.unmatched) {
-    const code = saved.edits.fixes[unmatchedKey(u)]
-    if (code) {
-      const r: SourceRecord = { code, source: slotSource(u.slot ?? u.source), date: u.date, place: u.place }
-      if (u.seen) r.seen = u.seen
-      fixRecords.push(r)
-    }
-  }
-  return [...SLOTS.flatMap((slot) => saved.records[slot] ?? []), ...fixRecords]
+  return slottedRecords(saved).map((x) => x.record)
 }
 
 /**

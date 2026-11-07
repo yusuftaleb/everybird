@@ -2,6 +2,14 @@
    username, over a muted status; one button and, once connected, a ⋯ menu right), split by hairlines. Adding opens
    the source's panel under its row. The eBird rows take a dropped file. */
 .eb-block-head { display: flex; flex-direction: column; gap: 4px; }
+/* Your list's one line on what each source brings (source-counts.ts), and after an import the way to the collage. */
+.eb-summary { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.45; font-variant-numeric: tabular-nums; max-width: 72ch; }
+.eb-summary-link {
+  position: relative; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; color: var(--accent); font-weight: 600;
+  text-decoration: underline; text-decoration-thickness: from-font; text-underline-offset: 3px;
+}
+.eb-summary-link svg { width: 14px; height: 14px; flex: none; }
+.eb-summary-link::after { content: ''; position: absolute; inset: -12px -8px; } /* a 44px press */
 .eb-srclist {
   display: flex; flex-direction: column; min-width: 0; background: var(--paper); border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);

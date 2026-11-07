@@ -1,6 +1,7 @@
 'use client'
 import { useId, useState, type FormEvent } from 'react'
 import type { InatJob } from '@/components/app/use-import-jobs'
+import { countParts, type RowCount } from '@/lib/list/source-counts'
 import type { InatDetails, Saved } from '@/lib/list/storage'
 import { notCounted } from './NotCounted'
 import { HowTo, inatLine, SourceRow } from './SourceLine'
@@ -17,18 +18,20 @@ type Props = {
   onRemove?: () => void
   /** For the row's skipped entries. */
   saved?: Saved
+  /** The row's species and "only here" (source-counts.ts). */
+  counts?: RowCount
 }
 
 /**
- * iNaturalist's row (Settings > Your list), one quiet row: "iNaturalist · username" over "576 observations · 10 skipped
- * · Updated 6 Nov", or "Not added". Not added: "Add" opens the panel (what counts, the username field, "How do I find
+ * iNaturalist's row (Settings > Your list), one quiet row: "iNaturalist · username" over "220 species · 11 only here ·
+ * 10 skipped · Updated 6 Nov", or "Not added". Not added: "Add" opens the panel (what counts, the username field, "How do I find
  * my username?"). Connected: Refresh (fetches the remembered username again, no retyping; Cancel while it runs) and a
  * ⋯ menu (Refresh, Change username, Remove); Change username opens the same panel. The field only shows when adding
  * or changing the username, or when a connected account's username isn't known (a list saved before v3). Public wild
  * bird observations are fetched above the routes (survives navigation). Cancel aborts a fetch and leaves the list as
  * it was.
  */
-export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, onRemove, saved }: Props) {
+export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, onRemove, saved, counts }: Props) {
   const id = useId()
   const [user, setUser] = useState('')
   const [open, setOpen] = useState(false)
@@ -86,6 +89,7 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, 
       title="iNaturalist"
       name={replaces ? line.name : undefined}
       parts={replaces ? line.parts : ['Not added']}
+      counts={replaces && counts ? countParts(counts) : undefined}
       skipped={replaces && saved ? notCounted(saved, ['inat']) ?? undefined : undefined}
       what={replaces ? 'your iNaturalist birds' : undefined}
       disabled={off}

@@ -119,7 +119,7 @@
 }
 .ebd .ebd-field-row .ebd-btn { width: 96px; height: 38px; }
 
-/* After the import: what landed, and the way to the collage (the site's .eb-made). */
+/* After the import: what landed, and the way to the collage. */
 /* It opens over the top of the column (opacity and a short drop) while everything under it moves down by its height
    and the gap (a transform), as the kit's Collapse would show it, with nothing laid out per frame. */
 .ebd .ebd-col-settings { position: relative; }

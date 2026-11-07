@@ -246,13 +246,6 @@
 
 @media (max-width: 479px) { .eb-sm-hide { display: none; } }
 /* After an import on Settings: what landed, and the way to the collage. */
-.eb-made {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 14px 16px;
-  border: 1px solid var(--accent); background: var(--paper);
-  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-}
-.eb-made p { margin: 0; font-size: 15px; line-height: 1.45; }
-
 /* Tools: downloads, restore, forget. */
 .eb-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .eb-tools-msg { flex-basis: 100%; }
@@ -261,7 +254,6 @@
 .eb-page-settings { --page-gap: 32px; }
 @media (min-width: 720px) { .eb-page-settings { --page-gap: 40px; } }
 .eb-page-settings .eb-block { gap: 12px; }
-.eb-page-settings .eb-made { padding: 10px 12px 10px 16px; }
 /* Counting and Your data side by side from 1024px. */
 .eb-settings-pair, .eb-settings-one { display: flex; flex-direction: column; gap: var(--page-gap); min-width: 0; }
 .eb-settings-one:empty { display: none; }

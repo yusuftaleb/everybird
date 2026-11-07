@@ -150,7 +150,7 @@ for (const width of WIDTHS) {
       await page.goto("/settings");
       await expect(page.getByTestId("ebird-drop")).toBeVisible();
       await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
-      await expect(seeCollage(page)).toContainText("Your collage has 4 species.");
+      await expect(seeCollage(page)).toContainText("Your collage has 4 species");
       await expect(page.getByTestId("source-ebird-list")).toContainText("ebird_world_life_list.csv");
       // The full export sits beside the life list download, and the two merge by species.
       await page.getByTestId("ebird-input").setInputFiles({ name: "MyEBirdData.csv", mimeType: "text/csv", buffer: MYDATA });
@@ -175,7 +175,7 @@ for (const width of WIDTHS) {
       await expect(page.getByPlaceholder("iNaturalist username")).toBeFocused();
       await page.getByPlaceholder("iNaturalist username").fill("testbirder");
       await page.getByRole("button", { name: "Fetch my birds" }).click();
-      await expect(seeCollage(page)).toContainText(/Added \d+ species from iNaturalist/, { timeout: 30_000 });
+      await expect(seeCollage(page)).toContainText(/Your collage has [\d,]+ species, all from iNaturalist\. See my collage/, { timeout: 30_000 });
       const fromInat = await speciesIn(page);
       expect(fromInat).toBeGreaterThan(0);
 
@@ -409,7 +409,7 @@ test.describe("on a touch screen (pointer: coarse)", () => {
     await page.goto("/settings");
     expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches), "(pointer: coarse) matches").toBe(true);
     await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
-    await expect(seeCollage(page)).toContainText("Your collage has 4 species.");
+    await expect(seeCollage(page)).toContainText("Your collage has 4 species");
     const small = page.locator(".eb-btn-sm");
     expect(await small.count(), "the source row's small buttons").toBeGreaterThan(0);
     for (const h of await small.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))) expect(Math.round(h)).toBeGreaterThanOrEqual(44);

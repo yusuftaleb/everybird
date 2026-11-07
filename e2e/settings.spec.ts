@@ -36,7 +36,7 @@ async function importLifeList(page: Page) {
     await page.goto("/settings");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     await page.getByTestId("ebird-input").setInputFiles(file);
-    await expect(page.getByTestId("see-collage")).toContainText("Your collage has 3 species.");
+    await expect(page.getByTestId("see-collage")).toContainText("Your collage has 3 species");
     // Saving is debounced: wait until the device copy holds the file's details before moving on.
     await expect.poll(() => storedFile(page), { timeout: 5000 }).toBe("ebird_world_life_list.csv");
   } finally {
@@ -109,12 +109,36 @@ test("Tick by hand opens and closes from the keyboard, animated, and at once wit
   expect(await page.locator("#tick").evaluate((el) => el.hasAttribute("hidden"))).toBe(true);
 });
 
+test("each source says what it brings, and the line above them sums them up", async ({ page }) => {
+  await page.goto("/settings");
+  // By hand first: Mallard (which the eBird file has too) and Snow Goose (which it doesn't).
+  await page.getByRole("button", { name: "Tick birds off a list" }).click();
+  const list = page.getByRole("listbox", { name: "Species to tick" });
+  for (const [q, name] of [["mallard", /^Mallard, Anas platyrhynchos/], ["snow goose", /^Snow Goose, Anser caerulescens/]] as const) {
+    await page.getByLabel("Search birds").fill(q);
+    await list.getByRole("option", { name }).click();
+  }
+  await page.getByRole("button", { name: "Add 2 to my list" }).click();
+  const hand = page.locator("#way-tick");
+  await expect(hand).toContainText("Ticked by hand2 species");
+  await expect(page.getByTestId("see-collage")).toHaveText("Your collage has 2 species, all ticked by hand.");
+  await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
+  const summary = page.getByTestId("see-collage");
+  await expect(summary).toHaveText("Your collage has 4 species: 3 from eBird, 1 ticked by hand. See my collage");
+  await expect(page.getByTestId("source-ebird-list")).toContainText(/3 species · 2 only here · Imported \d{1,2} \w{3}/);
+  await expect(hand).toContainText("2 species · 1 only here");
+  await summary.getByRole("link", { name: "See my collage" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByTestId("collage-stats")).toHaveText(/^4 species/);
+});
+
 test("an eBird file is remembered on the next visit, and Remove (in its ⋯ menu) takes it away", async ({ page }) => {
   await importLifeList(page);
   await page.reload();
   const line = page.getByTestId("source-ebird-list");
   await expect(line.getByRole("heading", { level: 3 })).toHaveText("eBird life list · ebird_world_life_list.csv");
-  await expect(line).toContainText(/3 rows · Imported \d{1,2} \w{3}/);
+  await expect(line).toContainText(/csv3 species · Imported \d{1,2} \w{3}/);
+  await expect(page.getByTestId("see-collage")).toHaveText("Your collage has 3 species, all from eBird."); // no link on a return visit
   await line.getByRole("button", { name: "More for eBird life list" }).click();
   await page.getByRole("menuitem", { name: "Remove" }).click();
   await page.getByRole("button", { name: "Yes, remove it" }).click();
@@ -193,7 +217,7 @@ for (const width of [1280, 390]) {
     // A file chosen from the open panel lands, and the panel folds away.
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), panel.getByRole("button", { name: "Choose your eBird file" }).click()]);
     await chooser.setFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
-    await expect(page.getByTestId("source-ebird-list")).toContainText("3 rows");
+    await expect(page.getByTestId("source-ebird-list")).toContainText("3 species");
     await expect(page.getByRole("button", { name: "Add eBird life list" })).toHaveCount(0);
   });
 

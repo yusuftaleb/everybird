@@ -2,6 +2,7 @@
 import { CaretDown, LockSimple } from '@phosphor-icons/react'
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ImportJobs } from '@/components/app/use-import-jobs'
+import { countParts, type SourceCounts } from '@/lib/list/source-counts'
 import type { Action } from '@/lib/list/store'
 import type { Saved } from '@/lib/list/storage'
 import type { SpeciesIndex } from '@/lib/species/load'
@@ -24,6 +25,10 @@ type Props = {
   children?: ReactNode
   /** Codes already on the list (Tick by hand shows them ticked). */
   onList: ReadonlySet<string>
+  /** What each source brings to the collage (source-counts.ts), for each row's status. */
+  counts: SourceCounts
+  /** Instead of the section's note, when the list has species: the summary line (Settings' see-collage line). */
+  summary?: ReactNode
 }
 
 const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -67,7 +72,7 @@ function Group({ id, label, children }: { id: string; label: string; children: R
  * (its guidance and how-to inside) under the row. They combine into one list; each import replaces only its own
  * slot. `children` follow the rows (the match report).
  */
-export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, regions, jobs, disabled, children, onList }: Props) {
+export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, regions, jobs, disabled, children, onList, counts, summary }: Props) {
   const tick = useDisclosure()
   const ebirdConnected: EbirdConnected[] = (['ebird', 'ebird-list'] as const)
     .filter((slot) => (saved.records[slot]?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === slot))
@@ -79,7 +84,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
     focusWay(slot === 'inat' ? 'way-inat' : 'way-ebird')
   }
   const listEmpty = Object.values(saved.records).every((r) => r.length === 0) && saved.edits.added.length === 0
-  const ticked = speciesIn([...saved.records.manual, ...saved.edits.added])
+  const ticked = counts.rows.manual
   // Arriving at /settings#sources (the welcome's "Make mine"): keyboard and screen-reader focus starts at the sources,
   // not at the top of the document.
   const section = useRef<HTMLElement>(null)
@@ -91,7 +96,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
     <section ref={section} id="sources" className="eb-block eb-import" aria-labelledby="eb-sources-h" tabIndex={-1}>
       <div className="eb-block-head">
         <h2 id="eb-sources-h" className="eb-h2">Your list</h2>
-        <p className="eb-note">Combine any of these into one list.</p>
+        {summary ?? <p className="eb-note">Combine any of these into one list.</p>}
       </div>
       <div className="eb-srclist">
         <Group id="way-ebird" label="eBird files">
@@ -102,6 +107,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             connected={ebirdConnected}
             onRemove={remove}
             saved={saved}
+            counts={counts}
             loaded={{
               full: speciesIn(saved.records.ebird),
               quick: speciesIn(saved.records['ebird-list'] ?? []),
@@ -119,12 +125,14 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             details={saved.sources?.inat}
             onRemove={() => remove('inat')}
             saved={saved}
+            counts={counts.rows.inat}
           />
         </Group>
         <Group id="way-tick" label="Ticked by hand">
           <SourceRow
             title="Ticked by hand"
-            parts={[ticked ? `${ticked.toLocaleString('en-US')} ${ticked === 1 ? 'bird' : 'birds'}` : 'None yet']}
+            parts={ticked.species ? [] : ['None yet']}
+            counts={ticked.species ? countParts(ticked) : undefined}
             primary={
               <button
                 type="button"

@@ -201,7 +201,7 @@ describe('the Collage page (/)', () => {
   it('with a list: the birder\'s own collage, with Share and "Add birds" (to /settings) in its head', async () => {
     await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await go('/')
     expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
     expect(stats()).toHaveTextContent(/^3 species/)
@@ -229,7 +229,7 @@ describe('Settings and the collage', () => {
   it('dropping a life list download adds its species, says what it lacks, and "See my collage" opens the collage', async () => {
     const { storage, analytics } = await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Added 3 species from your eBird life list. Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species, all from eBird. See my collage'))
     // One anonymous event: the source only, no counts, names or places.
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'ebird' }]])
     expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
@@ -268,7 +268,7 @@ describe('Settings and the collage', () => {
   it('iNat error message is plain and other sources stay', async () => {
     const { inat, analytics } = await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     vi.mocked(analytics.track).mockClear()
     const cases: [string, RegExp][] = [
       ['unknown-user', /couldn't find an iNaturalist user called “nobody”/i],
@@ -283,7 +283,7 @@ describe('Settings and the collage', () => {
       const alert = await screen.findByText(message)
       expect(alert.closest('[role=alert]')).not.toBeNull()
       expect(alert.textContent).not.toMatch(/error|exception|undefined|status/i)
-      expect(made()).toHaveTextContent('Your collage has 3 species.')
+      expect(made()).toHaveTextContent('Your collage has 3 species')
     }
     expect(vi.mocked(inat.importInat).mock.calls[0][0]).toBe('nobody')
     expect(vi.mocked(analytics.track)).not.toHaveBeenCalled() // failed iNat imports send no event
@@ -302,7 +302,7 @@ describe('Settings and the collage', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     expect(vi.mocked(analytics.track)).not.toHaveBeenCalled()
     await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }) })
-    await waitFor(() => expect(made()).toHaveTextContent('Added 1 species from iNaturalist. Your collage has 1 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species, all from iNaturalist. See my collage'))
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'inat' }]])
   })
 
@@ -319,7 +319,7 @@ describe('Settings and the collage', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     expect(await screen.findByText('Fetched 400 of 576')).toBeInTheDocument()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await go('/')
     expect(stats()).toHaveTextContent(/^3 species/)
     await go('/settings')
@@ -350,7 +350,7 @@ describe('Settings and the collage', () => {
   it('the collage says when rows went unmatched; fixing one on Settings adds the species', async () => {
     await mount()
     await drop(csv(...ROWS, ROBIN_TYPO))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await go('/')
     expect(await screen.findByTestId('unmatched-note')).toHaveTextContent("1 row couldn't be matched · Fix it")
     expect(within(screen.getByTestId('unmatched-note')).getByRole('link', { name: 'Fix it' })).toHaveAttribute('href', '/settings#match')
@@ -361,19 +361,19 @@ describe('Settings and the collage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fix it' }))
     expect(screen.getByText('eBird life list row 5')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Use American Robin' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species'))
     expect(screen.queryByRole('heading', { name: /couldn't be matched/ })).toBeNull()
   })
 
   it('an unmatched row can be fixed by hand with a search', async () => {
     await mount()
     await drop(csv(...ROWS, ROBIN_TYPO))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     fireEvent.click(screen.getByRole('button', { name: 'Fix it' }))
     fireEvent.click(screen.getByRole('button', { name: 'Fix by hand' }))
     fireEvent.change(screen.getByLabelText('Find the right species for American Robbin'), { target: { value: 'snow' } })
     fireEvent.click(screen.getByRole('button', { name: /^Snow Goose/ }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species'))
   })
 
   it('the counting rules for the current imports are on Settings once there is a list', async () => {
@@ -393,12 +393,12 @@ describe('Settings and the collage', () => {
   it('forget my list (in "Your data" on Settings) asks once, clears, and the collage page shows the sample again', async () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await waitFor(async () => expect(await storage.load()).not.toBeNull(), { timeout: 2000 })
     expect(screen.getByRole('heading', { name: 'Your data' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Forget my list' }))
     expect(screen.getByText(/Forget this list on this device\?/)).toBeInTheDocument()
-    expect(made()).toHaveTextContent('Your collage has 3 species.') // nothing cleared yet
+    expect(made()).toHaveTextContent('Your collage has 3 species') // nothing cleared yet
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Yes, forget it' })) })
     await waitFor(() => expect(screen.queryByTestId('see-collage')).toBeNull())
     // Without a list, Your data keeps only Restore from backup.
@@ -413,7 +413,7 @@ describe('Settings and the collage', () => {
   it("a failed forget says the device copy couldn't be cleared", async () => {
     await mount({ failForget: true })
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     fireEvent.click(screen.getByRole('button', { name: 'Forget my list' }))
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Yes, forget it' })) })
     expect(await screen.findByText(/Couldn't clear this device's copy/)).toBeInTheDocument()
@@ -426,7 +426,7 @@ describe('Settings and the collage', () => {
     await mount({ blockStorage: true })
     expect(screen.getByText("This list won't be saved on this device.", { exact: false })).toBeInTheDocument()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await go('/')
     expect(screen.getByText("This list won't be saved on this device.", { exact: false })).toBeInTheDocument()
   })
@@ -436,7 +436,7 @@ describe('editing', () => {
   it('the card edits marks and removes a bird; ticking it by hand brings it back', async () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await go('/')
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
     fireEvent.click(within(screen.getByRole('list', { name: 'Life list' })).getByRole('button', { name: /Northern Flicker/ }))
@@ -471,7 +471,7 @@ describe('editing', () => {
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'CA' } })
     fireEvent.change(screen.getByLabelText('Region (optional)'), { target: { value: 'CA-BC' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await waitFor(async () => {
       const s = await storage.load()
       expect(s?.edits.removed).toEqual([])
@@ -498,7 +498,7 @@ describe('editing', () => {
     fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2018' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add 2 to my list' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species'))
     expect(screen.getByText('Added 2 birds to your list.')).toBeInTheDocument()
     // Now on the list: shown ticked.
     expect(tickOption(/^Snow Goose, Anser caerulescens, already on your list/)).toHaveAttribute('aria-selected', 'true')
@@ -520,14 +520,14 @@ describe('editing', () => {
     expect(screen.getByText(/1 to remove/)).toBeInTheDocument()
     const beforeRemove = (await storage.load())!.edits
     fireEvent.click(screen.getByRole('button', { name: 'Remove 1 from my list' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species'))
     // The card's "Removed … · Undo" toast, with focus on Undo; Undo puts back exactly what was there (the dated hand
     // record, not a fresh one).
     expect(screen.getByText('Removed Snow Goose.')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus())
     await waitFor(async () => expect((await storage.load())?.edits.removed).toEqual(['snogoo']), { timeout: 2000 })
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species'))
     expect(screen.queryByText('Removed Snow Goose.')).toBeNull()
     expect(tickOption(/^Snow Goose, Anser caerulescens, already on your list/)).toHaveAttribute('aria-selected', 'true')
     await waitFor(async () => expect((await storage.load())?.edits).toEqual(beforeRemove), { timeout: 2000 })
@@ -543,16 +543,16 @@ describe('editing', () => {
     // Ticking it again brings it back.
     fireEvent.click(tickOption(/^Snow Goose/))
     fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species.'))  }, 20_000) // the Undo toast's ~6 s
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species'))  }, 20_000) // the Undo toast's ~6 s
 
   it('ticking a bird onto a list from eBird is an edit, not a new collage', async () => {
     const { analytics } = await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     openTick()
     fireEvent.click(tickOption(/^Snow Goose/))
     fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species'))
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'ebird' }]])
   })
 
@@ -581,16 +581,16 @@ describe('editing', () => {
   it('restoring a backup over an existing list (in "Your data") asks first', async () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     const good = { ...storage.emptySaved(), records: { ebird: [], 'ebird-list': [], inat: [], manual: [{ code: 'snogoo', source: 'manual' }] } }
     const file = new File([JSON.stringify(good)], 'backup.json', { type: 'application/json' })
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
     expect(screen.getByText(/Replace your list with this backup\?/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Keep my list' }))
-    expect(made()).toHaveTextContent('Your collage has 3 species.')
+    expect(made()).toHaveTextContent('Your collage has 3 species')
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
     fireEvent.click(screen.getByRole('button', { name: 'Yes, replace it' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species'))
   })
 
   it('downloads the list as CSV and as a JSON backup from "Your data" on Settings', async () => {
@@ -599,7 +599,7 @@ describe('editing', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }))
     fireEvent.click(screen.getByRole('button', { name: 'Download JSON backup' }))
     expect(click).toHaveBeenCalledTimes(2)
@@ -613,7 +613,7 @@ describe('Name your collage (Settings > Your data)', () => {
   it('is the collage title verbatim, is saved with the list and its backup, and empty means "My collage"', async () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     const field = screen.getByLabelText('Name your collage')
     expect(field).toHaveValue('')
     expect(field).toHaveAttribute('maxLength', '40')
@@ -639,7 +639,7 @@ describe('Name your collage (Settings > Your data)', () => {
   it('a restored backup brings its title into the field', async () => {
     await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     const { emptySaved } = await import('@/lib/list/storage')
     const { toJson } = await import('@/lib/list/export')
     const backup = { ...emptySaved(), name: 'Sam', records: { ...emptySaved().records, manual: [{ code: 'snogoo', source: 'manual' as const }] } }
@@ -659,7 +659,7 @@ describe('remembered sources', () => {
     const line = await screen.findByTestId('source-ebird-list')
     expect(line).toHaveTextContent('ebird_world_life_list.csv')
     expect(within(line).getByRole('heading', { level: 3 })).toHaveTextContent('eBird life list · ebird_world_life_list.csv')
-    expect(line).toHaveTextContent(`4 rows · 1 skipped why? · Imported ${today}`)
+    expect(line).toHaveTextContent(`3 species · 1 skipped why? · Imported ${today}`)
     expect(within(line).getByRole('button', { name: 'Replace ebird_world_life_list.csv' })).toBeInTheDocument()
     await waitFor(async () => expect((await storage.load())?.sources?.['ebird-list']).toMatchObject({ kind: 'life-list', file: 'ebird_world_life_list.csv', rows: 4 }), { timeout: 2000 })
     // Remove is in the row's ⋯ menu, after Replace; it asks once, and "Keep it" changes nothing (focus back on ⋯).
@@ -671,7 +671,7 @@ describe('remembered sources', () => {
     expect(screen.queryByRole('menu')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Keep it' }))
     expect(more).toHaveFocus()
-    expect(made()).toHaveTextContent('Your collage has 3 species.')
+    expect(made()).toHaveTextContent('Your collage has 3 species')
     fireEvent.click(more)
     fireEvent.click(screen.getByRole('menuitem', { name: 'Remove' }))
     expect(screen.getByRole('group', { name: 'Remove your eBird life list download' })).toHaveTextContent('Your edits stay.')
@@ -687,7 +687,7 @@ describe('remembered sources', () => {
   it('iNaturalist is remembered by username; Refresh fetches it again without retyping; Remove takes only its birds', async () => {
     const { inat, storage } = await mount()
     await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     vi.mocked(inat.importInat).mockImplementationOnce(async (_u, opts) => {
       opts.onProgress?.({ fetched: 576, total: 576 })
       return { records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }
@@ -696,9 +696,9 @@ describe('remembered sources', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     const line = await screen.findByTestId('source-inat')
     expect(within(line).getByRole('heading', { level: 3 })).toHaveTextContent('iNaturalist · sam_birds')
-    expect(line).toHaveTextContent(`576 observations · Updated ${today}`)
+    expect(line).toHaveTextContent(`1 species · 1 only here · Updated ${today}`)
     expect(screen.queryByLabelText('iNaturalist username')).toBeNull() // the form folds away behind the menu's Change username
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species'))
     await waitFor(async () => expect((await storage.load())?.sources?.inat?.user).toBe('sam_birds'), { timeout: 2000 })
 
     let finish: (v: unknown) => void = () => {}
@@ -711,13 +711,13 @@ describe('remembered sources', () => {
     expect(await screen.findByText('Fetched 10 of 600')).toBeInTheDocument()
     expect(within(screen.getByTestId('source-inat')).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }, { code: 'snogoo', source: 'inat', date: '2024-06-01' }], unmatched: [], skipped: 0 }) })
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 5 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 5 species'))
 
     fireEvent.click(within(screen.getByTestId('source-inat')).getByRole('button', { name: 'More for iNaturalist' }))
     expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Refresh', 'Change username', 'Remove'])
     fireEvent.click(screen.getByRole('menuitem', { name: 'Remove' }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes, remove it' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     expect(screen.queryByTestId('source-inat')).toBeNull()
     expect(screen.queryByLabelText('iNaturalist username')).toBeNull() // back to "Not added" and Add
     expect(screen.getByRole('button', { name: 'Add iNaturalist' })).toHaveAttribute('aria-expanded', 'false')
@@ -732,7 +732,7 @@ describe('remembered sources', () => {
       },
     })
     expect(screen.getByTestId('source-ebird')).toHaveTextContent('eBird full export')
-    expect(screen.getByTestId('source-ebird')).toHaveTextContent('MyEBirdData · eBird full exportDetails unknown')
+    expect(screen.getByTestId('source-ebird')).toHaveTextContent('MyEBirdData · eBird full export1 species · 1 only here · Details unknown')
     expect(screen.getByTestId('source-inat')).toHaveTextContent('Username unknown: enter it again to refresh')
     expect(screen.queryByRole('button', { name: /^Refresh/ })).toBeNull()
     expect(screen.getByLabelText('iNaturalist username')).toBeInTheDocument()

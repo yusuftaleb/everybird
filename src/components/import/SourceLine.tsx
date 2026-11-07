@@ -16,35 +16,34 @@ export function shortDate(iso: string | undefined, now = new Date()): string | n
 const n = (x: number) => x.toLocaleString('en-US')
 const FALLBACK: Record<EbirdDetails['kind'], string> = { 'full-export': 'eBird full export', 'life-list': 'eBird life list download' }
 
-/** A connected source's two lines: the file or username (after the title) and the status parts ("4,212 rows",
- *  "Imported 6 Nov"). The skipped count goes between them (SourceRow). */
+/** A connected source's file or username (after the title) and the status parts after its counts and skipped entries
+ *  ("Imported 6 Nov"). The counts ("185 species · 12 only here", source-counts.ts) lead the line (SourceRow). */
 export type SourceState = { name: string; parts: string[] }
 
-/** One eBird file: its name, then "4,212 rows · Imported 6 Nov". Unknown details say so. */
+/** One eBird file: its name, then "Imported 6 Nov". Unknown details say so. */
 export function ebirdLine(kind: EbirdDetails['kind'], d: EbirdDetails | undefined): SourceState {
   if (!d) return { name: FALLBACK[kind], parts: ['Details unknown'] }
   const date = shortDate(d.at)
-  return {
-    name: d.file || FALLBACK[kind],
-    parts: [d.rows !== undefined ? `${n(d.rows)} ${d.rows === 1 ? 'row' : 'rows'}` : null, date ? `Imported ${date}` : null].filter((x): x is string => !!x),
-  }
+  return { name: d.file || FALLBACK[kind], parts: date ? [`Imported ${date}`] : [] }
 }
 
-/** The iNaturalist account: the username, then "576 observations · Updated 6 Nov". */
+/** The iNaturalist account: the username, then "Updated 6 Nov". */
 export function inatLine(d: InatDetails | undefined): SourceState {
   if (!d?.user) return { name: '', parts: ['Username unknown: enter it again to refresh'] }
   const date = shortDate(d.at)
-  const parts = [d.observations !== undefined ? `${n(d.observations)} ${d.observations === 1 ? 'observation' : 'observations'}` : null, date ? `Updated ${date}` : null]
-  return { name: d.user, parts: parts.filter((x): x is string => !!x) }
+  return { name: d.user, parts: date ? [`Updated ${date}`] : [] }
 }
 
 type Props = {
   title: string
   /** Connected: the file name or username, after the title (" · ebird_world_life_list.csv"). */
   name?: string
-  /** The status line's parts, joined by " · " ("Not added", or "576 observations", "Updated 6 Nov"). */
+  /** The status line's parts, joined by " · " ("Not added", or "Updated 6 Nov"). */
   parts: string[]
-  /** Entries of this source that weren't counted: "· 10 skipped" after the first part, with "why?" opening `body`. */
+  /** Connected: what the source brings, leading the line ("185 species", "12 only here"; source-counts.ts). */
+  counts?: string[]
+  /** Entries of this source that weren't counted: "· 10 skipped" after the counts (or the first part), with "why?"
+   *  opening `body`. */
   skipped?: { n: number; body: ReactNode }
   /** The row's one button on the right (Add, Replace, Refresh, Tick birds). */
   primary: ReactNode
@@ -61,18 +60,19 @@ type Props = {
 
 /**
  * One source on Settings > Your list, two quiet lines and one button: the title (and, connected, its file or
- * username), a muted sentence-case status ("576 observations · 10 skipped · Updated 6 Nov"), and the row's primary
- * button on the right; a connected source adds a ⋯ menu (SourceMenu) holding its other actions and Remove. Remove asks
+ * username), a muted sentence-case status ("185 species · 12 only here · 10 skipped · Updated 6 Nov"), and the row's primary
+ * button on the right; a connected source's line leads with its counts ("185 species · 12 only here") and adds a ⋯ menu (SourceMenu) holding its other actions and Remove. Remove asks
  * once, inline, before taking the source's birds away. Edits always stay. "why?" after the skipped count opens the
  * entries that weren't counted under the row.
  */
-export function SourceRow({ title, name, parts, skipped, primary, menu, what, onRemove, disabled, children, testId }: Props) {
+export function SourceRow({ title, name, parts, counts, skipped, primary, menu, what, onRemove, disabled, children, testId }: Props) {
   const id = useId()
   const [asking, setAsking] = useState(false)
   const [why, setWhy] = useState(false)
   const menuBtn = useRef<SourceMenuHandle>(null)
   const items: MenuItem[] = [...(menu ?? []), ...(what ? [{ label: 'Remove', danger: true, keepFocus: true, onSelect: () => setAsking(true) }] : [])]
-  const [first, ...rest] = parts
+  const lead = counts ?? parts.slice(0, 1)
+  const rest = counts ? parts : parts.slice(1)
   return (
     <div className="eb-src" data-testid={testId}>
       <div className="eb-src-main">
@@ -82,7 +82,7 @@ export function SourceRow({ title, name, parts, skipped, primary, menu, what, on
             {name && <span className="eb-src-name"> · {name}</span>}
           </h3>
           <p className="eb-src-meta">
-            {first}
+            {lead.map((p, i) => <span key={p}>{i > 0 && ' · '}<span className="eb-nowrap">{p}</span></span>)}
             {skipped && skipped.n > 0 && (
               <>
                 {' · '}

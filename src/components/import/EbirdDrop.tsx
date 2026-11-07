@@ -2,6 +2,7 @@
 import { FileCsv } from '@phosphor-icons/react'
 import { useId, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import type { EbirdJob } from '@/components/app/use-import-jobs'
+import { countParts, type SourceCounts } from '@/lib/list/source-counts'
 import type { Saved, EbirdDetails } from '@/lib/list/storage'
 import { notCounted } from './NotCounted'
 import { ebirdLine, HowTo, SourceRow } from './SourceLine'
@@ -22,6 +23,8 @@ type Props = {
   onRemove?: (slot: EbirdConnected['slot']) => void
   /** For each row's skipped entries. */
   saved?: Saved
+  /** Each row's species and "only here" (source-counts.ts). */
+  counts?: SourceCounts
 }
 
 type Row = {
@@ -55,13 +58,13 @@ const ROWS: Row[] = [
 
 /**
  * The two eBird files, one quiet row each (Settings > Your list). Not added: "Add" opens the row's panel (what the file
- * brings, the drop zone with "Choose your eBird file", and "How do I get this file?"). Added: the file's name, rows,
- * skipped entries and date, with Replace (the same picker) and a ⋯ menu (Replace, Remove). Every picker and drop reads
+ * brings, the drop zone with "Choose your eBird file", and "How do I get this file?"). Added: the file's name, its species
+ * and "only here" (source-counts.ts), skipped entries and date, with Replace (the same picker) and a ⋯ menu (Replace, Remove). Every picker and drop reads
  * the file the same way, and it lands in the row of its kind (read from its header); both rows and the open panels
  * take a dropped file (they highlight while one is dragged over). The import itself runs above the routes, so it
  * survives navigation.
  */
-export function EbirdDrop({ job, onFile, disabled, loaded, connected = [], onRemove, saved }: Props) {
+export function EbirdDrop({ job, onFile, disabled, loaded, connected = [], onRemove, saved, counts }: Props) {
   const id = useId()
   const [over, setOver] = useState(false)
   const [adding, setAdding] = useState<EbirdConnected['slot'] | null>(null)
@@ -125,6 +128,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded, connected = [], onRem
             title={r.title}
             name={line?.name}
             parts={line ? line.parts : ['Not added']}
+            counts={c && counts ? countParts(counts.rows[r.slot]) : undefined}
             skipped={c && saved ? notCounted(saved, [r.slot]) ?? undefined : undefined}
             what={c ? r.what : undefined}
             disabled={off}

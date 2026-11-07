@@ -98,7 +98,7 @@ test("large file shows progress and stays responsive", async ({ page }) => {
     await page.evaluate(() => document.querySelector(".eb-theme")!.scrollIntoView({ block: "center" }));
     const box = (await sw.boundingBox())!;
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    await expect(page.getByTestId("see-collage")).toContainText("Your collage has 8 species.", { timeout: 120_000 });
+    await expect(page.getByTestId("see-collage")).toContainText("Your collage has 8 species", { timeout: 120_000 });
 
     const probe = await page.evaluate(() => {
       const p = (window as unknown as { __eb: { texts: string[]; times: number[]; long: [number, number][]; lat: number[]; atClick: string; stop: () => void } }).__eb;
@@ -140,7 +140,7 @@ test("an import keeps running while the birder moves between the pages", async (
     await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
     await page.getByRole("banner").getByRole("link", { name: "Settings" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
-    await expect(page.getByTestId("see-collage")).toContainText("Your collage has 8 species.", { timeout: 90_000 });
+    await expect(page.getByTestId("see-collage")).toContainText("Your collage has 8 species", { timeout: 90_000 });
     await page.getByTestId("see-collage").getByRole("link", { name: "See my collage" }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByTestId("collage-stats")).toHaveText(/^8 species/);
@@ -208,7 +208,7 @@ test("works in memory when storage is blocked", async ({ page }) => {
   await page.goto("/settings");
   await expect(page.getByText(NOT_SAVED)).toBeVisible();
   await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
-  await expect(page.getByTestId("see-collage")).toContainText("Your collage has 3 species.");
+  await expect(page.getByTestId("see-collage")).toContainText("Your collage has 3 species");
   await page.getByTestId("see-collage").getByRole("link", { name: "See my collage" }).click();
   await expect(page.getByTestId("collage-stats")).toHaveText(/^3 species/);
   await expect(page.getByTestId("collage-stage").locator("[data-code]:not([data-off])")).toHaveCount(3);
