@@ -3,8 +3,10 @@ import Link from 'next/link'
 import { ArrowRight } from '@phosphor-icons/react/ssr'
 import { SampleDemo } from '@/components/app/SampleDemo'
 import { SharedView } from '@/components/app/SharedView'
+import { FullNavigation } from '@/components/app/FullNavigation'
 import { SiteFooter } from '@/components/app/SiteFooter'
 import { TopBar } from '@/components/app/TopBar'
+import { TrackVisit } from '@/components/app/VisitTracker'
 import { OG_DESCRIPTION, ogName, ogTitle, tryDecodeShare } from '@/lib/share/og'
 import '@/components/app/app.css'
 
@@ -36,6 +38,8 @@ function MakeYours({ big }: { big?: boolean }) {
 /**
  * A shared collage, outside the app's store (it never reads or writes the visitor's own list), under the same top
  * bar. A cold visitor reads whose list it is, what Everybird is and where to make their own before the first bird.
+ * No Cloudflare beacon here (it can't redact the token from the URL), and every link out is a full page load
+ * (FullNavigation), so the beacon never runs in a document that has shown a token. The visit is counted as 'shared' only.
  */
 export default async function SharedPage({ params }: Props) {
   const payload = tryDecodeShare((await params).token)
@@ -54,6 +58,8 @@ export default async function SharedPage({ params }: Props) {
           <SampleDemo />
         </main>
         <SiteFooter />
+        <FullNavigation />
+        <TrackVisit page="shared" />
       </>
     )
   }
@@ -75,6 +81,8 @@ export default async function SharedPage({ params }: Props) {
         </div>
       </main>
       <SiteFooter />
+      <FullNavigation />
+      <TrackVisit page="shared" />
     </>
   )
 }

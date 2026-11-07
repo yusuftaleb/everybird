@@ -2,7 +2,6 @@ import { SITE_ICONS } from "@/lib/site-icons";
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import { SHARE_ORIGIN } from "@/lib/share/origin";
-import SiteAnalytics from "@/components/app/SiteAnalytics";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "@/styles/globals.css";
 
@@ -23,7 +22,8 @@ export const metadata: Metadata = {
   title: "Everybird",
   description: "Every bird you've ever seen.",
   // A share link's token is the birder's list: never let it leave as a Referer, not even to our own pages
-  // (analytics reads document.referrer). Origin only, everywhere.
+  // (analytics beacons send one). Origin only, everywhere. No analytics script here: Cloudflare Web Analytics loads from
+  // app/(app)/layout.tsx only, so a shared view (/s/<token>) never loads it.
   referrer: "strict-origin",
   icons: SITE_ICONS,
 };
@@ -45,10 +45,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
-        {/* Cookieless visit counts and three anonymous events (src/lib/analytics.ts), with /s/<token> redacted to
-            /s/[token]. Only on Vercel, where /_vercel/insights exists: elsewhere (dev, tests, a local production build)
-            nothing loads and track() is a no-op. */}
-        {process.env.VERCEL ? <SiteAnalytics /> : null}
       </body>
     </html>
   );

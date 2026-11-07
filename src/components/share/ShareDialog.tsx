@@ -179,10 +179,11 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       try {
         // The image says "stickers by huashu"; the post's text carries the full CC BY 4.0 credit and its link.
         await nav.share({ files: [file], title: 'Everybird', text: SHARE_CREDIT })
-        track('image_downloaded', { format })
+        track('shared', { via: format })
         return
       } catch (e) {
-        if ((e as Error)?.name === 'AbortError') return // the birder closed the share sheet
+        if ((e as Error)?.name === 'AbortError') return // the birder closed the share sheet: not shared, nothing sent
+        // Any other failure: nothing counted as shared; the download below is counted as a download.
       }
     }
     downloadBlob(blob, fileName)

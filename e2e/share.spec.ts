@@ -170,16 +170,21 @@ test("Safari: Copy link writes the clipboard inside the click, with a promised C
   expect(text.startsWith(`${new URL(baseURL!).origin}/s/1`)).toBe(true);
 });
 
-test("download and copy link each send one anonymous analytics event, with no list contents", async ({ page, context, baseURL, browserName }) => {
+/** Records what track() would send (src/lib/analytics.ts: the window.__everybirdStats seam stands in for the network). */
+async function recordStats(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __everybirdStats: (b: string) => void; __stats: string[] };
+    w.__stats = [];
+    w.__everybirdStats = (b) => { w.__stats.push(b); };
+  });
+  return async () => (await page.evaluate(() => (window as unknown as { __stats: string[] }).__stats)).map((b) => JSON.parse(b) as Record<string, string>);
+}
+
+test("visits, downloads and copy link each send one anonymous event: {n, p} only, no list contents", async ({ page, context, baseURL, browserName }) => {
   chromiumOnly(browserName);
   test.setTimeout(90_000);
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseURL });
-  // Stand in for Vercel's queue (only rendered on Vercel) and record what track() hands it.
-  await page.addInitScript(() => {
-    const w = window as unknown as { va: (...a: unknown[]) => void; __events: unknown[] };
-    w.__events = [];
-    w.va = (...a: unknown[]) => { w.__events.push(a); };
-  });
+  const stats = await recordStats(page);
   const dialog = await openShare(page);
   await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
   await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
@@ -189,16 +194,43 @@ test("download and copy link each send one anonymous analytics event, with no li
   await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
   await dialog.getByRole("button", { name: "Copy link" }).click();
   await expect(dialog.getByTestId("share-note")).toHaveText(/^Link copied/);
-  // Only our events: on Vercel the real analytics script also queues its own calls (beforeSend) and an options field.
-  const ours = new Set(["image_downloaded", "link_copied"]);
-  type Call = [string, { name: string; data: unknown } | null];
-  const events = (await page.evaluate(() => (window as unknown as { __events: Call[] }).__events))
-    .filter(([kind, e]) => kind === "event" && !!e && ours.has(e.name))
-    .map(([kind, e]) => [kind, { name: e!.name, data: e!.data }]);
-  expect(events).toEqual([
-    ["event", { name: "image_downloaded", data: { format: "story" } }],
-    ["event", { name: "image_downloaded", data: { format: "square" } }],
-    ["event", { name: "link_copied", data: { level: expect.stringMatching(/^(species|dates|countries|regions)$/) } }],
+  // The level in the Worker's words (regions/countries/dates/species → full/compact/minimal/species).
+  expect(await stats()).toEqual([
+    { n: "visit", p: "settings" },
+    { n: "visit", p: "collage" },
+    { n: "image_downloaded", p: "story" },
+    { n: "image_downloaded", p: "square" },
+    { n: "link_copied", p: expect.stringMatching(/^(full|compact|minimal|species)$/) },
+  ]);
+});
+
+test("Share image counts `shared` when the share sheet resolves, nothing when it's closed, a download when it fails", async ({ page, browserName }) => {
+  chromiumOnly(browserName);
+  test.setTimeout(90_000);
+  const stats = await recordStats(page);
+  // A share sheet that takes files and resolves, rejects with AbortError (closed) or fails, as window.__shareMode says.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __shareMode: string };
+    w.__shareMode = "resolve";
+    Object.defineProperty(navigator, "canShare", { value: () => true, configurable: true });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: () => w.__shareMode === "resolve" ? Promise.resolve() : Promise.reject(new DOMException("no", w.__shareMode === "abort" ? "AbortError" : "NotAllowedError")),
+    });
+  });
+  const dialog = await openShare(page);
+  await dialog.getByRole("button", { name: /Post/ }).click();
+  await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+  const share = dialog.getByRole("button", { name: "Share image" });
+  await share.click();
+  await expect.poll(async () => (await stats()).filter((e) => e.n !== "visit")).toEqual([{ n: "shared", p: "post" }]);
+  await page.evaluate(() => { (window as unknown as { __shareMode: string }).__shareMode = "abort"; });
+  await share.click();
+  await page.evaluate(() => { (window as unknown as { __shareMode: string }).__shareMode = "fail"; });
+  await Promise.all([page.waitForEvent("download"), share.click()]);
+  await expect.poll(async () => (await stats()).filter((e) => e.n !== "visit")).toEqual([
+    { n: "shared", p: "post" },
+    { n: "image_downloaded", p: "post" },
   ]);
 });
 

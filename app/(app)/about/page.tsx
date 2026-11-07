@@ -62,7 +62,12 @@ export default function AboutPage() {
           <li>Each bird is matched to this year&apos;s eBird taxonomy and keeps its earliest date. Rows that don&apos;t match are listed, so nothing is dropped quietly.</li>
           <li>The collage, the filters and the share images are all made in your browser.</li>
         </ol>
-        <p className="eb-prose">Your list never leaves your browser. We count visits anonymously, without cookies.</p>
+        <p className="eb-prose">
+          Your list never leaves your browser. We count visits with Cloudflare Web Analytics, anonymous and cookieless, and a
+          few actions (a collage made, an image shared or saved, a link copied) with a small counter of our own that never
+          sees your birds, names or places. A daily-changing anonymous id lets us count unique visitors without tracking
+          anyone across days. Neither runs if your browser asks not to be tracked.
+        </p>
       </section>
 
       <section className="eb-block" aria-labelledby="eb-size-h">

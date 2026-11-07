@@ -13,6 +13,9 @@ test("/about says what Everybird is, what True size means, and credits the stick
   await expect(main.getByRole("heading", { name: "What True size means" })).toBeVisible();
   await expect(main.getByText(/cube root of mass/)).toBeVisible();
   await expect(main.getByText("Your list never leaves your browser.", { exact: false })).toBeVisible();
+  await expect(main.getByText(/Cloudflare Web Analytics, anonymous and cookieless/)).toBeVisible();
+  await expect(main.getByText(/daily-changing anonymous id/)).toBeVisible();
+  await expect(main.getByText(/Vercel Analytics/)).toHaveCount(0);
   const credits = main.locator("#credits");
   await expect(credits.getByRole("link", { name: "Yusuf Taleb" })).toHaveAttribute("href", "https://www.yusuftaleb.com");
   await expect(credits.getByRole("link", { name: "life list on his site" })).toHaveAttribute("href", "https://www.yusuftaleb.com/lifelist");
