@@ -1,0 +1,52 @@
+app/(app)/about/page.tsx
+  s_ab125876fe9ad2::t_edeb4939bd7649 65-70
+app/layout.tsx
+  s_ab125876fe9ad2::t_9cfbe59ccb82c0 25-26
+src/components/app/VisitTracker.tsx
+  s_ab125876fe9ad2::t_e4ee96a6c6673d 1-39
+tests/analytics-beacon.test.tsx
+  s_ab125876fe9ad2::t_346fa33a5b9142 1-11,13-100
+  s_ab125876fe9ad2::t_e5a9cdd621324a 12
+app/(app)/layout.tsx
+  s_ab125876fe9ad2::t_9cfbe59ccb82c0 1,5,11-12,20-21
+src/lib/analytics.ts
+  s_ab125876fe9ad2::t_eaf5b44938beee 6-12,14,16-17,19,21-22,25,27-84,86-101,104,108-109,111-124
+e2e/share-link.spec.ts
+  s_ab125876fe9ad2::t_477038ed00e65c 25,30-54
+  s_ab125876fe9ad2::t_dffdce1d617cc4 55-56
+src/components/app/CloudflareBeacon.tsx
+  s_ab125876fe9ad2::t_747d7e19ea9ca1 1-26
+e2e/share.spec.ts
+  s_ab125876fe9ad2::t_35a0680d7b40f4 197,203
+  s_ab125876fe9ad2::t_477038ed00e65c 173-183,187,198-202,204-233
+tests/analytics.test.ts
+  s_ab125876fe9ad2::t_17cb8343758f2e 13
+  s_ab125876fe9ad2::t_b1280e5321f618 3-7,9-12,14-31,34,37-48,50-55,59-96,99-132,135-137,139-146
+  s_ab125876fe9ad2::t_52b9791c0d6df7 133-134,138
+e2e/about.spec.ts
+  s_ab125876fe9ad2::t_477038ed00e65c 16-18
+app/s/[token]/page.tsx
+  s_ab125876fe9ad2::t_9cfbe59ccb82c0 6,9,41-42,61-62,84-85
+package.json
+  s_ab125876fe9ad2::t_8682fd76b6388c 14
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_9cfbe59ccb82c0 182,185-186
+src/components/app/FullNavigation.tsx
+  s_ab125876fe9ad2::t_e4ee96a6c6673d 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bca8752d9efa7ff3b7ea389956c5a3ad74d2e3b4",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
