@@ -1,3 +1,5 @@
+tests/pack.test.ts
+  s_ab125876fe9ad2::t_ebb314c89b625e 337,345-353
 ---
 {
   "schema_version": "authorship/3.0.0",
