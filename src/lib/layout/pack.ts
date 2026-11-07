@@ -8,7 +8,7 @@
 // The species count sits at the stage centre (W / 2, H / 2), inside the ellipse holeRadii(layout.F).
 // A filtered state (packBest with `fit`) is packed in the full collage's stage, then its height is trimmed
 // symmetrically about the count (fitStage): W is unchanged, H shrinks, every box moves up by the same amount.
-import { EXP, EXP_TRUE, GAP, MAXUP, SHAPE_CLAMP, SHAPE_REF, holeRadii } from './constants'
+import { EXP, EXP_TRUE, GAP, MAXUP, SHAPE_REF, holeRadii } from './constants'
 import { CentreWalk, Grid, SPIRAL_T, cellMask, coreMask, spiral, spiralFrom, type CellMask } from './grid'
 import { MASK, type Mask } from './mask'
 
@@ -35,22 +35,15 @@ export function maskShape(m: Mask): number {
 }
 
 /**
- * Relative tile long side per bird: rel = (mass / lightest) ** exp · clamp((SHAPE_REF / shape) ** 1/4, 1 ± SHAPE_CLAMP),
- * the geometric mean of the long-side rule (rel ∝ mass ** exp) and the painted-area rule (rel ∝ mass ** exp ·
- * sqrt(SHAPE_REF / shape)), with the shape correction held within ±20%. A tile of long side L paints L² · shape, so a
- * long-tailed or long-legged bird (little of its square painted) gets a somewhat longer tile than an upright compact one
- * of the same mass, but a thin upright bird is not blown up. A bird of the reference shape (SHAPE_REF) keeps the long
- * side of the long-side rule, so a list's median rel stays where it was (the base, floors and MAXUP keep meaning).
+ * Relative tile long side per bird, so the painted area follows mass: rel = (mass / lightest) ** exp · sqrt(SHAPE_REF /
+ * shape). A tile of long side L paints L² · shape, so the painted area ∝ mass ** (2 · exp) whatever the shape: a
+ * long-tailed or long-legged bird (little of its square painted) gets a longer tile than an upright compact one of the
+ * same mass. A bird of the reference shape (SHAPE_REF) keeps the long side it had when sizes followed the long side, so
+ * the lightest such bird is 1 and a list's median rel stays where it was (the base, floors and MAXUP keep meaning).
  */
-/** The blended shape correction for a mask's painted share (see relSizes). */
-export function shapeFactor(shape: number): number {
-  const f = (SHAPE_REF / Math.max(0.05, shape)) ** 0.25
-  return Math.min(1 + SHAPE_CLAMP, Math.max(1 - SHAPE_CLAMP, f))
-}
-
 export function relSizes(birds: PackBird[], exp: number): Map<number, number> {
   const m = (b: PackBird) => (Number.isFinite(b.mass) ? Math.max(MIN_MASS, b.mass) : MIN_MASS) ** exp
-  const k = (b: PackBird) => shapeFactor(b.shape ?? maskShape(b.mask))
+  const k = (b: PackBird) => Math.sqrt(SHAPE_REF / Math.max(0.05, b.shape ?? maskShape(b.mask)))
   let lo = Infinity
   for (const b of birds) lo = Math.min(lo, m(b))
   return new Map(birds.map((b) => [b.id, (m(b) / lo) * k(b)]))
