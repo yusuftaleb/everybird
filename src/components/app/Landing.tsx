@@ -16,7 +16,7 @@ export function Landing() {
       <div className="eb-hero">
         <div className="eb-hero-text">
           <h1 className="eb-hero-title">A lifetime of birds.</h1>
-          <p className="eb-hero-lede">Look how far you&apos;ve come. Bring your eBird or iNaturalist list, or tick birds off by hand, and see every species on it as a sticker.</p>
+          <p className="eb-hero-lede">Your life list as a sticker collage, from eBird, iNaturalist, or by hand.</p>
         </div>
         <Link href="/settings" className="eb-btn eb-btn-big eb-hero-cta">
           Make yours

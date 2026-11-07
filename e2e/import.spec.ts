@@ -42,11 +42,9 @@ test("the landing sample is pre-packed: its stickers show without the species fi
 // 1280 the order chips wrap, at 390 the "Choose an order" button and the bar's 4px insets sit over the stage (0.47).
 // The demo birder (2026-11-06) has 29 orders where the old sample had 18, so at 1280 the chips wrap onto four rows
 // instead of three and the stage starts 40px lower (0.45 of the screen, was 0.50); 390 is unchanged. The bounds keep a
-// couple of percent of slack under those. The lede "Look how far you've come. …" (2026-11-06) takes two lines at 1280
-// where the old one took one, and more lines on a phone, so both bounds are 0.40 (the stage starts at about 0.42 and
-// 0.43).
-test("at 1280x800 and 390x844 the landing's birds fill at least two fifths of the first screen", async ({ page }) => {
-  for (const [width, height, share] of [[1280, 800, 0.40], [390, 844, 0.40]] as const) {
+// couple of percent of slack under those.
+test("at 1280x800 and 390x844 the landing's birds fill a little under half of the first screen", async ({ page }) => {
+  for (const [width, height, share] of [[1280, 800, 0.43], [390, 844, 0.45]] as const) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
     const stage = page.getByTestId("collage-stage");
