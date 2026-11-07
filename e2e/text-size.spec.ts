@@ -20,10 +20,10 @@ const SIZES: Size[] = [
   { name: "adjust200", css: "html, body { -webkit-text-size-adjust: 200% !important; text-size-adjust: 200% !important; }" },
 ];
 
-async function seed(page: Page, n: number) {
+async function seed(page: Page, n: number, name?: string) {
   const step = SPECIES.length / n;
   const records = Array.from({ length: n }, (_, i) => ({ code: SPECIES[Math.floor(i * step)].code, source: "ebird", date: `20${10 + (i % 15)}-0${(i % 9) + 1}-1${i % 9}`, place: { country: "US" } }));
-  const saved = { v: 1, records: { ebird: records, "ebird-list": [], inat: [], manual: [] }, unmatched: [], edits: { removed: [], added: [], marks: {}, fixes: {} }, rules: { hideHeard: false, hideDead: false, researchOnly: false }, savedAt: new Date().toISOString() };
+  const saved = { v: 1, ...(name ? { name } : {}), records: { ebird: records, "ebird-list": [], inat: [], manual: [] }, unmatched: [], edits: { removed: [], added: [], marks: {}, fixes: {} }, rules: { hideHeard: false, hideDead: false, researchOnly: false }, savedAt: new Date().toISOString() };
   await page.goto("/about");
   await page.evaluate((s) => new Promise<void>((done, fail) => {
     const o = indexedDB.open("everybird");
@@ -209,5 +209,70 @@ for (const width of [195, 260] as const) {
         expect(box!.x + box!.width, `${path}: ${name} on screen`).toBeLessThanOrEqual(width + 0.5);
       }
     }
+  });
+}
+
+// Yusuf's phone at a large text size (2026-11-07): the page head squeezed "Yusuf's Life List" beside its buttons into a
+// column a few letters wide, breaking every word. The title's words stay whole (the buttons wrap under it instead), and
+// Settings' source rows keep their text readable beside or above their buttons.
+for (const [width, css] of [[195, ""], [260, ""], [300, ""], [390, "html { font-size: 200% !important; }"]] as const) {
+  test(`at ${width} CSS px${css ? " with a 200% root font size" : ""}, the collage title's words stay whole and Settings' rows stay readable`, async ({ page }) => {
+    if (css) await textSize(page, css);
+    await page.setViewportSize({ width, height: 800 });
+    await seed(page, 40, "Yusuf's Life List");
+    await page.goto("/");
+    const h1 = page.locator("h1.eb-pagehead-title");
+    await expect(h1).toHaveText("Yusuf's Life List");
+    const broken = await h1.evaluate((el) => {
+      const node = el.firstChild as Text, text = node.textContent ?? "", out: string[] = [];
+      const re = /\S+/g;
+      for (let m = re.exec(text); m; m = re.exec(text)) {
+        const r = document.createRange(); r.setStart(node, m.index); r.setEnd(node, m.index + m[0].length);
+        const tops = new Set([...r.getClientRects()].map((b) => Math.round(b.top)));
+        if (tops.size > 1) out.push(m[0]);
+      }
+      return out;
+    });
+    expect(broken, "words split across lines").toEqual([]);
+    await page.goto("/settings");
+    await expect(page.getByTestId("source-ebird")).toBeVisible();
+    const squeezed = await page.locator(".eb-src-main").evaluateAll((rows) => rows.map((row) => {
+      const text = row.querySelector(".eb-src-text")!.getBoundingClientRect(), acts = row.querySelector(".eb-src-acts")?.getBoundingClientRect();
+      const ok = !acts || text.width >= row.getBoundingClientRect().width * 0.5 - 32 || acts.top >= text.bottom - 1;
+      return ok ? null : `${Math.round(text.width)}px of ${Math.round(row.getBoundingClientRect().width)}`;
+    }).filter(Boolean));
+    expect(squeezed, "source rows squeezed").toEqual([]);
+  });
+}
+
+
+
+
+
+
+// Under 300px of page the controls bar is a grid (app.css): never a control alone on a row, and the magnifier still
+// opens the full-width "Find a bird" field.
+for (const width of [195, 260] as const) {
+  test(`at ${width} CSS px the controls bar keeps the magnifier beside other controls, and search opens inside the page`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await seed(page, 40);
+    await page.goto("/");
+    const rows = await page.locator(".eb-dock").evaluate((dock) => {
+      const groups = [".eb-dock-tabs", ".eb-dock-tools", ".eb-dock-filters", ".eb-dock-end"].map((q) => dock.querySelector<HTMLElement>(q)!.getBoundingClientRect());
+      const byTop = new Map<number, number>();
+      for (const g of groups) byTop.set(Math.round(g.top / 4), (byTop.get(Math.round(g.top / 4)) ?? 0) + 1);
+      const end = groups[3];
+      return { endShares: [...byTop.entries()].some(([t, n]) => t === Math.round(end.top / 4) && n > 1), right: Math.max(...groups.map((g) => g.right)) };
+    });
+    expect(rows.endShares, "the magnifier shares its row").toBe(true);
+    expect(rows.right).toBeLessThanOrEqual(width);
+    await page.getByRole("button", { name: "Find a bird" }).click();
+    const field = page.getByRole("combobox", { name: "Find a bird" });
+    await expect(field).toBeVisible();
+    const b = await field.boundingBox();
+    expect(b!.x + b!.width).toBeLessThanOrEqual(width + 0.5);
+    await page.keyboard.press("Escape");
+    await expect(field).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   });
 }
