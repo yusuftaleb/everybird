@@ -31,13 +31,13 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 describe('share dialog', () => {
-  it('starts from Settings > Your name; editing it changes only this share, never the saved name', async () => {
+  it('"Collage title" starts from Settings > Name your collage; editing it changes only this share, never the saved title', async () => {
     const dispatch = vi.fn()
     const state = stateWith([entry('ostric2')])
-    state.saved = { ...state.saved, name: 'Ada Birder' }
+    state.saved = { ...state.saved, name: "Ada's big year" }
     render(<ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
-    const field = screen.getByLabelText('Your name (optional)') as HTMLInputElement
-    expect(field.value).toBe('Ada Birder')
+    const field = screen.getByLabelText('Collage title') as HTMLInputElement
+    expect(field.value).toBe("Ada's big year")
     fireEvent.change(field, { target: { value: 'Ada B.' } })
     expect(field.value).toBe('Ada B.')
     expect(dispatch).not.toHaveBeenCalled()
@@ -81,6 +81,21 @@ describe('share dialog', () => {
     expect(url).toMatch(/\/s\/1/)
     expect(decodeShare(url.split('/s/')[1]).birds.map((b) => b.code)).toEqual(['ostric2', 'emu1'])
     await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Link copied. 1 bird is too new for links and left out.'))
+  })
+
+  it('the image and the link carry the collage title verbatim, trimmed (no "\'s birds" added)', async () => {
+    const image = await import('@/lib/share/image')
+    const writeText = vi.fn(async () => {})
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    const state = stateWith([entry('ostric2')])
+    state.saved = { ...state.saved, name: 'Birds of 2026' }
+    render(<ShareDialog state={state} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.change(screen.getByLabelText('Collage title'), { target: { value: '  Kenya, 2026  ' } })
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0].name).toBe('Kenya, 2026'))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    const url = (writeText.mock.calls[0] as unknown as [string])[0]
+    expect(decodeShare(url.split('/s/')[1])).toMatchObject({ name: 'Kenya, 2026', titled: true })
   })
 
   it('hands the clipboard a promised item inside the click where ClipboardItem exists (iOS keeps the gesture)', async () => {

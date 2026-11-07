@@ -3,6 +3,7 @@ import { Plus, ShareNetwork } from '@phosphor-icons/react'
 import Link from 'next/link'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { EditBird } from '@/components/edit/EditBird'
+import { pageTitle } from '@/lib/list/title'
 import { placesNoteFor } from '@/lib/list/filter-summary'
 import { undoRemove } from '@/lib/list/tick'
 import type { Edits, ListEntry } from '@/lib/list/model'
@@ -55,11 +56,10 @@ export function CollagePage() {
   )
 
   const unmatched = state.openUnmatched.filter((u) => u.reason === 'no-match').length
-  const name = saved.name?.trim()
   return (
     <main className="eb-page eb-page-collage eb-page-titled">
       <PageHead
-        title={name ? `${name}'s birds` : 'My collage'}
+        title={pageTitle(saved.name)}
         actions={<>
           <Link href="/settings" className="eb-btn eb-btn-quiet" aria-label="Add birds">
             <Plus aria-hidden="true" focusable="false" />

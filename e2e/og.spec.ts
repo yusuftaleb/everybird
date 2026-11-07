@@ -67,15 +67,21 @@ test("a broken token gets a generic preview card, never a 500", async ({ request
   expect(pngSize(await res.body())).toEqual([1200, 630]);
 });
 
-test("the page head carries the per-person title, og:image and the large twitter card", async ({ page }) => {
+test("the page head carries the collage title, og:image and the large twitter card", async ({ page }) => {
+  // A link made before titles carries a bare name: "<name>'s life list", as it always read.
   await page.goto(`/s/${token}`);
   const meta = (sel: string) => page.locator(sel).first().getAttribute("content");
-  await expect(page).toHaveTitle("Test Birder's life list: 197 species");
-  expect(await meta('meta[property="og:title"]')).toBe("Test Birder's life list: 197 species");
+  await expect(page).toHaveTitle("Test Birder's life list · Everybird");
+  expect(await meta('meta[property="og:title"]')).toBe("Test Birder's life list · Everybird");
   expect(await meta('meta[name="description"]')).toBe("Everybird turns a birder's life list into a sticker collage.");
   expect(await meta('meta[property="og:image"]')).toContain(`/s/${token}/opengraph-image`);
   expect(await meta('meta[property="og:image:width"]')).toBe("1200");
   expect(await meta('meta[name="twitter:card"]')).toBe("summary_large_image");
+  // A new link's title is verbatim; no title keeps the generic one.
+  await page.goto(`/s/${encodeShare({ ...payload, name: "Birds of 2026", titled: true }).token}`);
+  await expect(page).toHaveTitle("Birds of 2026 · Everybird");
+  await page.goto(`/s/${encodeShare({ v: 1, birds }).token}`);
+  await expect(page).toHaveTitle("A life list: 197 species");
 });
 
 test("a broken token's head is generic", async ({ page }) => {

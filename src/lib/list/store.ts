@@ -40,7 +40,7 @@ export type Action =
   | { type: 'massOrder'; massOrder: AppState['massOrder'] }
   | { type: 'sci'; sci: boolean }
   | { type: 'restore'; saved: Saved }
-  /** The display name for share images and links (Saved.name); blank removes it. */
+  /** The collage's title (Saved.name), verbatim on the page, share images and links; blank removes it. */
   | { type: 'name'; name: string }
   | { type: 'forget' }
   /** Internal: the hook reports where the last save went. */

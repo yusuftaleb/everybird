@@ -1,6 +1,6 @@
 'use client'
 // The share dialog: story, post or square image with a live preview, Share image (the system share sheet when it takes
-// files, else a download), Download image, Copy link and the optional display name (Saved.name).
+// files, else a download), Download image, Copy link and the optional collage title (Saved.name, verbatim).
 // The link encoder (and its ~111 KB species index) is a separate chunk, fetched when the dialog opens, so a Copy link
 // click awaits nothing slow (iOS drops the clipboard permission once a click handler waits on the network).
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
@@ -56,7 +56,7 @@ export default function ShareDialog({ state, species, regions, onClose }: Props)
 
   const { list, filter, saved, seen } = state
   const [format, setFormat] = useState<ImageFormat>('story')
-  const [name, setName] = useState(saved.name ?? '') // starts from Settings > Your name
+  const [name, setName] = useState(saved.name ?? '') // starts from Settings > Name your collage
   const theme = useTheme()
 
   // What the image shows: the current view (the filter applied), and the filter in words.
@@ -270,16 +270,16 @@ export default function ShareDialog({ state, species, regions, onClose }: Props)
             </div>
 
             <div className="eb-share-field">
-              <label htmlFor={nameId} className="eb-share-label">Your name (optional)</label>
+              <label htmlFor={nameId} className="eb-share-label">Collage title</label>
               <input
                 id={nameId}
                 className="eb-share-input"
                 type="text"
-                autoComplete="name"
+                autoComplete="off"
                 maxLength={NAME_MAX_LEN}
-                placeholder="Your name, shown on the image"
+                placeholder="Optional, shown on the image"
                 value={name}
-                onChange={(e) => setName(e.target.value)} // this share only: Settings > Your name stays as it is
+                onChange={(e) => setName(e.target.value)} // this share only: Settings > Name your collage stays as it is
               />
             </div>
 

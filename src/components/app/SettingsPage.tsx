@@ -18,13 +18,14 @@ import './app.css'
 
 const FROM: Record<Slot, string> = { ebird: 'your eBird export', 'ebird-list': 'your eBird life list', inat: 'iNaturalist', manual: 'your list' }
 
-/** Settings > Your data > "Your name": saved with the list as you type (trimmed, at most NAME_MAX characters), it titles
- *  the collage ("Ada's birds") and starts each share dialog's name. Empty: "My collage" and no name on shares. */
+/** Settings > Your data > "Name your collage": saved with the list as you type (trimmed, at most NAME_MAX characters),
+ *  it is the collage's title, verbatim ("Yusuf’s life list", "Birds of 2026"), and each share dialog's starting title.
+ *  Empty: "My collage" on the page and no title on shares. */
 function NameField({ stored, onName }: { stored: string; onName: (name: string) => void }) {
   const id = useId()
   const [name, setName] = useState(stored)
-  // A restore or a forget changes the saved name underneath the field: follow it (not while the field only differs by
-  // the spaces the store trims off).
+  // A restore or a forget changes the saved title underneath the field: follow it (not while the field only differs
+  // by the spaces the store trims off).
   const [seen, setSeen] = useState(stored)
   if (seen !== stored) {
     setSeen(stored)
@@ -32,19 +33,19 @@ function NameField({ stored, onName }: { stored: string; onName: (name: string) 
   }
   return (
     <div className="eb-namefield">
-      <label htmlFor={id} className="eb-namefield-label">Your name</label>
+      <label htmlFor={id} className="eb-namefield-label">Name your collage</label>
       <input
         id={id}
         className="eb-input"
         type="text"
-        autoComplete="name"
+        autoComplete="off"
         maxLength={NAME_MAX}
-        placeholder="Optional"
+        placeholder="e.g. Yusuf’s life list"
         aria-describedby={`${id}-n`}
         value={name}
         onChange={(e) => { setName(e.target.value); onName(e.target.value) }}
       />
-      <p id={`${id}-n`} className="eb-note">{name.trim() ? `Your collage is “${name.trim()}’s birds”, and shares start with this name.` : 'Titles your collage and your shares. Empty, it’s “My collage”.'}</p>
+      <p id={`${id}-n`} className="eb-note">Shown as your collage’s title and on shares.</p>
     </div>
   )
 }

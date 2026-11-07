@@ -106,8 +106,8 @@ test("story image is 1080×1920 PNG, post is 1080×1350 and square is 1080×1080
   await dialog.getByRole("button", { name: /Post/ }).click();
   await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
 
-  // The name is kept in the list and re-renders the image.
-  await dialog.getByLabel("Your name (optional)").fill("Ada Birder");
+  // The title re-renders the image.
+  await dialog.getByLabel("Collage title").fill("Ada's big year");
   await expect(preview).toHaveAttribute("aria-busy", "true");
   await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
   if (OUT) {
@@ -242,7 +242,7 @@ test("the dialog never scrolls sideways at 390, 768, 1000 and 1280px, with a lon
   test.setTimeout(180_000);
   const shots = process.env.SHOT_DIR;
   const dialog = await openShare(page);
-  await dialog.getByLabel("Your name (optional)").fill("Maximiliana Featherstonehaugh-Ravensworth");
+  await dialog.getByLabel("Collage title").fill("Maximiliana Featherstonehaugh-Ravensworth");
   for (const width of [1280, 1000, 768, 390]) {
     await page.setViewportSize({ width, height: 800 });
     const seen: { format: string; col: number; preview: number; icons: boolean }[] = [];

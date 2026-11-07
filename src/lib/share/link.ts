@@ -16,7 +16,11 @@
 //          [dates]   if F_DATES: per bird uint16 big-endian: 0xFFFF = no date; else bit 15 = yearOnly, bits 0-14 = ym
 //                    (months since 1900-01, at most MAX_YM; a year-only date is that year's January).
 //          [places]  if F_PLACES: per bird uint8 index into the dictionary, 0xFF = no place (so at most 255 places).
-// FORMAT = bit 1 F_BITSET, 2 F_MARKS, 4 F_MARKS_PACKED, 8 F_DATES, 16 F_PLACES. Bits 32, 64 and 128 are reserved and must be 0.
+// FORMAT = bit 1 F_BITSET, 2 F_MARKS, 4 F_MARKS_PACKED, 8 F_DATES, 16 F_PLACES, 32 F_TITLE. Bits 64 and 128 are reserved
+//          and must be 0. F_TITLE (added 2026-11-06, with a non-empty name only): the name is the collage's title, shown
+//          verbatim ("Birds of 2026"). Clear, the name is a person's bare name, as every link made before titles carries,
+//          shown as "<name>'s life list" (og.ts shareTitle). The bit changes no byte of the body, so a token without it
+//          decodes exactly as before; v1-frozen.txt holds tokens made before it.
 // varint = unsigned LEB128. A section is absent unless its flag is set: nothing is spent on data a link does not carry.
 //
 // The places dictionary carries each place's ISO2 country next to its display string so the shared page can filter by
@@ -32,7 +36,7 @@ import { SHARE_ORIGIN } from './origin'
 import linkIndex from '../../../data/link-index.json'
 
 export type ShareBird = { code: string; ym?: number /* months since 1900-01; year-only → that year's January with yearOnly */; yearOnly?: boolean; p?: number; m?: number /* 1 heard, 2 dead, 4 media */ }
-export type SharePayload = { v: 1; name?: string; places?: string[] /* formatted region strings */; countries?: string[] /* ISO2 of each place, same order */; birds: ShareBird[] }
+export type SharePayload = { v: 1; name?: string; /** `name` is a verbatim collage title (F_TITLE), not a bare name. */ titled?: true; places?: string[] /* formatted region strings */; countries?: string[] /* ISO2 of each place, same order */; birds: ShareBird[] }
 export type ShareLevel = 'regions' | 'countries' | 'dates' | 'species'
 
 export { SHARE_ORIGIN }
@@ -43,8 +47,8 @@ export const NAME_MAX = 40
 const MAX_TOKEN = 12_000 // decode refuses anything longer
 const MAX_BODY = 400_000 // and anything that inflates beyond this
 
-const F_BITSET = 1, F_MARKS = 2, F_MARKS_PACKED = 4, F_DATES = 8, F_PLACES = 16
-const F_KNOWN = F_BITSET | F_MARKS | F_MARKS_PACKED | F_DATES | F_PLACES
+const F_BITSET = 1, F_MARKS = 2, F_MARKS_PACKED = 4, F_DATES = 8, F_PLACES = 16, F_TITLE = 32
+const F_KNOWN = F_BITSET | F_MARKS | F_MARKS_PACKED | F_DATES | F_PLACES | F_TITLE
 const MARKS = 7
 const NO_DATE = 0xffff, YEAR_ONLY = 0x8000
 /** 1900 + 300 years: past any real sighting; a larger ym is a corrupt token. */
@@ -181,8 +185,9 @@ function body(p: SharePayload, level: ShareLevel, sorted: { b: ShareBird; idx: n
   const packedMarks = nMarked > 0 && Math.ceil(n / 2) < sparseBytes
 
   const w = new Writer()
-  w.u8((useBitset ? F_BITSET : 0) | (nMarked ? F_MARKS : 0) | (packedMarks ? F_MARKS_PACKED : 0) | (hasDates ? F_DATES : 0) | (hasPlaces ? F_PLACES : 0))
   const name = Array.from((p.name ?? '').trim()).slice(0, NAME_MAX).join('')
+  const titled = !!p.titled && !!name
+  w.u8((useBitset ? F_BITSET : 0) | (nMarked ? F_MARKS : 0) | (packedMarks ? F_MARKS_PACKED : 0) | (hasDates ? F_DATES : 0) | (hasPlaces ? F_PLACES : 0) | (titled ? F_TITLE : 0))
   const nb = enc.encode(name)
   w.varint(nb.length); w.bytes(nb)
   if (hasPlaces) {
@@ -268,6 +273,7 @@ export function decodeShare(token: string): SharePayload {
     if (f & ~F_KNOWN) throw new ShareDecodeError()
     const name = dec.decode(r.bytes(r.varint()))
     if (Array.from(name).length > NAME_MAX) throw new ShareDecodeError()
+    if (f & F_TITLE && !name) throw new ShareDecodeError() // a title flag with no title: never written
     const places: string[] = [], countries: string[] = []
     let nPlaces = 0
     if (f & F_PLACES) {
@@ -346,6 +352,7 @@ export function decodeShare(token: string): SharePayload {
     // Key order matches what encodeShare took in, so toEqual and JSON agree: code, ym, yearOnly, p, m.
     const out: SharePayload = { v: 1, birds: birds.map((b) => ({ code: b.code, ...(b.ym !== undefined ? { ym: b.ym } : {}), ...(b.yearOnly ? { yearOnly: true } : {}), ...(b.p !== undefined ? { p: b.p } : {}), ...(b.m ? { m: b.m } : {}) })) }
     if (name) out.name = name
+    if (f & F_TITLE) out.titled = true
     if (nPlaces) { out.places = places; out.countries = countries }
     return out
   } catch (e) {

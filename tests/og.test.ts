@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SharePayload } from '@/lib/share/link'
-import { OG_CACHE_COMPLETE, OG_CACHE_DEGRADED, OG_DESCRIPTION, ogCacheControl, ogName, ogResponseOptions, ogTitle, pickOgBirds, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
+import { OG_CACHE_COMPLETE, OG_CACHE_DEGRADED, OG_DESCRIPTION, ogCacheControl, ogName, ogResponseOptions, ogTitle, pickOgBirds, shareTitle, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
 import { parseFontFaces } from '@/lib/share/og-server'
 
 const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ code: `b${i}`, to: (i + 1) * 10 }))
@@ -46,16 +46,21 @@ describe('pickOgStickers', () => {
 
 describe('metadata strings', () => {
   const p = (name: string | undefined, n: number): SharePayload => ({ v: 1, name, birds: Array.from({ length: n }, (_, i) => ({ code: `b${i}` })) })
-  it('titles lead with the person and their count, with a colon (no em dash), and stay generic for a broken link', () => {
-    expect(ogTitle(p('Ada', 197))).toBe("Ada's life list: 197 species")
+  it("document titles: a new link's title verbatim, an old link's bare name as before, generic without one", () => {
+    expect(ogTitle({ ...p('Birds of 2026', 197), titled: true })).toBe('Birds of 2026 · Everybird')
+    expect(ogTitle({ ...p('Ada', 197), titled: true })).toBe('Ada · Everybird')
+    expect(ogTitle(p('Ada', 197))).toBe("Ada's life list · Everybird") // a link made before titles
     expect(ogTitle(p(undefined, 3))).toBe('A life list: 3 species')
     expect(ogTitle(p('  ', 1))).toBe('A life list: 1 species')
-    expect(ogTitle(p('Ada', 1234))).toBe("Ada's life list: 1,234 species")
+    expect(ogTitle(p(undefined, 1234))).toBe('A life list: 1,234 species')
     expect(ogTitle(null)).toBe('Everybird')
     expect(ogTitle(p('Ada', 2))).not.toMatch(/—/)
   })
-  it('the header name matches the shared page h1; the brand is not a possessive', () => {
-    expect(ogName({ name: 'Ada Birder' })).toBe("Ada Birder's life list")
+  it("the page h1 (and the card's title): the title verbatim, an old bare name as \"<name>'s life list\"", () => {
+    expect(ogName({ name: "Yusuf's Life List", titled: true })).toBe("Yusuf's Life List")
+    expect(ogName({ name: ' Ada Birder ' })).toBe("Ada Birder's life list")
+    expect(shareTitle({ name: 'Ada' })).toBe("Ada's life list")
+    expect(shareTitle({})).toBeNull()
     expect(ogName({})).toBe("A birder's life list")
   })
   it('describes what Everybird is, for someone who has never heard of it', () => {

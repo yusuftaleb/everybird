@@ -4,7 +4,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { SLOTS, slotSource } from './model'
 import type { ListEntry, Slot, Source, SourceRecord } from './model'
 import { seenOf, type SeenIndex } from './seen'
-import type { Saved, SourceDetails } from './storage'
+import { migrateSaved, type Saved, type SourceDetails } from './storage'
 
 const HEADER = ['eBird code', 'Common name', 'Scientific name', 'First date', 'Place', 'Country', 'Heard only', 'Found dead', 'Sources', 'Countries seen']
 
@@ -81,8 +81,9 @@ export function fromJson(text: string): Saved {
     throw new Error('This file is not valid JSON.')
   }
   if (!isObj(raw)) throw new Error('This is not an Everybird backup.')
-  // v1 backups predate seen-here, v1 and v2 backups predate source details; they restore as v3 without them.
-  if (raw.v !== 1 && raw.v !== 2 && raw.v !== 3) throw new Error('Unsupported backup version.')
+  // v1 backups predate seen-here, v1 and v2 backups predate source details, v1 to v3 backups hold a person's name
+  // rather than the collage's title: migrateSaved brings them to v4.
+  if (raw.v !== 1 && raw.v !== 2 && raw.v !== 3 && raw.v !== 4) throw new Error('Unsupported backup version.')
 
   if (!isObj(raw.records)) throw new Error('Backup has no records.')
   // Backups made before the second eBird slot have no 'ebird-list'; it starts empty.
@@ -116,7 +117,7 @@ export function fromJson(text: string): Saved {
   const src = raw.sources
   if (src !== undefined && !validSources(src)) throw new Error('Backup source details are malformed.')
   const out: Saved = {
-    v: 3,
+    v: raw.v as Saved['v'],
     records,
     unmatched: unmatched as Saved['unmatched'],
     edits: e as unknown as Saved['edits'],
@@ -126,5 +127,5 @@ export function fromJson(text: string): Saved {
   if (raw.name !== undefined) out.name = raw.name
   if (sk !== undefined) out.skipped = sk as Saved['skipped']
   if (src !== undefined) out.sources = src as SourceDetails
-  return out
+  return migrateSaved(out)
 }

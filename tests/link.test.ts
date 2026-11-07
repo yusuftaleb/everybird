@@ -144,6 +144,32 @@ describe('share links', () => {
     })
   })
 
+  it('a collage title rides on format bit 32 (F_TITLE); old tokens, without it, still read as bare names', async () => {
+    const frozen = decodeShare(readFileSync('tests/fixtures/share/v1-frozen.txt', 'utf8').trim())
+    expect(frozen.titled).toBeUndefined()
+    const base: SharePayload = { v: 1, name: 'Birds of 2026', birds: [{ code: codes[3] }, { code: codes[9], ym: 1500 }] }
+    const titled = encodeShare({ ...base, titled: true }).token
+    const bare = encodeShare(base).token
+    expect(decodeShare(titled)).toEqual({ ...base, titled: true })
+    expect(decodeShare(bare)).toEqual(base)
+    expect(decodeShare(bare).titled).toBeUndefined()
+    // No name, no flag (the bit is only ever written with a title).
+    expect(decodeShare(encodeShare({ v: 1, titled: true, birds: [{ code: codes[1] }] }).token)).toEqual({ v: 1, birds: [{ code: codes[1] }] })
+    const { deflateSync } = await import('fflate')
+    const tok = (bytes: number[]) => '1' + Buffer.from(deflateSync(Uint8Array.from(bytes))).toString('base64url')
+    expect(decodeShare(tok([32, 1, 65, 0]))).toEqual({ v: 1, name: 'A', titled: true, birds: [] })
+    expect(() => decodeShare(tok([32, 0, 0]))).toThrow() // a title flag without a title
+    expect(() => decodeShare(tok([64, 0, 0]))).toThrow() // still reserved
+  })
+
+  it('makeShareLink marks the name as the collage title', () => {
+    const list = [{ code: codes[2], com: '', sci: '', to: 0, mass: 1 } as unknown as ListEntry]
+    const { url } = makeShareLink(list, { countries: {}, sub1: {}, sub2: {} } as never, " Yusuf's Life List ", 'https://x.test')
+    expect(decodeShare(url.split('/s/')[1])).toMatchObject({ name: "Yusuf's Life List", titled: true })
+    const none = makeShareLink(list, { countries: {}, sub1: {}, sub2: {} } as never, '  ', 'https://x.test')
+    expect(decodeShare(none.url.split('/s/')[1]).titled).toBeUndefined()
+  })
+
   it('rejects version 2 and corrupt tokens with a clear error', () => {
     const good = encodeShare(payload(20, 5)).token
     expect(() => decodeShare('2' + good.slice(1))).toThrow(/newer Everybird|version/i)
@@ -161,8 +187,9 @@ describe('share links', () => {
     expect(() => decodeShare(tok([0, 0, 2, 5, 0]))).toThrow()
     // the same body with delta 1 is fine
     expect(decodeShare(tok([0, 0, 2, 5, 1])).birds.map((b) => b.code)).toEqual([codes[5], codes[6]])
-    // reserved format bit
+    // reserved format bit (32 is F_TITLE, which needs a title)
     expect(() => decodeShare(tok([32, 0, 0]))).toThrow()
+    expect(() => decodeShare(tok([128, 0, 0]))).toThrow()
     // date past MAX_YM
     expect(() => decodeShare(tok([8, 0, 1, 0, 0x7f, 0xfe]))).toThrow()
     // bitset longer than the index allows

@@ -42,7 +42,7 @@ describe('json backup', () => {
     expect(() => fromJson(JSON.stringify({ ...good(), skipped: { ebird: 'x' } }))).toThrow(/skipped/)
   })
   it('fromJson rejects wrong version', () => {
-    expect(() => fromJson(JSON.stringify({ ...good(), v: 4 }))).toThrow(/version/i)
+    expect(() => fromJson(JSON.stringify({ ...good(), v: 5 }))).toThrow(/version/i)
   })
   it('rejects bad input', () => {
     expect(() => fromJson('not json')).toThrow(/JSON/)

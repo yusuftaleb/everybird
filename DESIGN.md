@@ -126,7 +126,7 @@ Seven tokens, two themes, nothing else. `tests/tokens.test.ts` keeps `tokens.css
 
 ### Hierarchy (as shipped)
 - **Page title** `.eb-pagehead-title` (Cabinet 700, `clamp(32px,5vw,48px)`, line-height 1.05, -0.02em): one page head (`PageHead`) for Collage, Settings and About, on a `.eb-page-titled` page: the same top offset (24px, 40px from 720px) and gap to the content (24px, 32px from 720px) on all three. `.eb-title` (`clamp(44px,9vw,72px)`, .95) is not used by the page heads.
-- **Collage hero / head** (Cabinet 700, `clamp(28px,4vw,42px)` landing hero; `clamp(24px,4vw,40px)` the birder's "<name>'s birds").
+- **Collage hero / head** (Cabinet 700, `clamp(28px,4vw,42px)` landing hero; `clamp(24px,4vw,40px)` the birder's collage title, verbatim, or "My collage").
 - **Section heading** `.eb-h2` (Cabinet 700, `clamp(24px,4vw,28px)`, 1.15).
 - **The count** `.eb-num` (Cabinet 700, `--f` x 1cqw, line-height .85, tabular numerals): the species number at the centre of the collage.
 - **Card name** (Cabinet 700 18px; scientific name in Satoshi 600 italic 16px, `lang` attribute set).

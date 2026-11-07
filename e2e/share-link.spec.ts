@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { SAMPLE_COUNT } from "./sample";
 import { readFileSync } from "node:fs";
+import linkIndex from "../data/link-index.json";
+import { encodeShare } from "../src/lib/share/link";
 
 // The frozen fixture is a tiny list (5 birds); a generated one with dates and places is below.
 const frozen = readFileSync("tests/fixtures/share/v1-frozen.txt", "utf8").trim();
@@ -9,7 +11,9 @@ test("a share link opens a read-only collage: whose list, what Everybird is and 
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`/s/${frozen}`);
+  // The frozen link predates titles: its bare name reads "<name>'s life list", as it always did.
   await expect(page.getByRole("heading", { level: 1, name: "Ada Birder's life list" })).toBeVisible();
+  await expect(page).toHaveTitle("Ada Birder's life list · Everybird");
   await expect(page.getByText("Everybird turns a birder's life list into a sticker collage.")).toBeVisible();
   await expect(page.getByTestId("collage-stats")).toHaveText(/^5 species/);
   await expect(page.getByTestId("collage-stage")).toBeVisible();
@@ -25,6 +29,14 @@ test("a share link opens a read-only collage: whose list, what Everybird is and 
   // The token never leaves as a Referer (no analytics request carries a URL either: src/lib/analytics.ts).
   await expect(page.locator('meta[name="referrer"]')).toHaveAttribute("content", "strict-origin");
   expect(errors).toEqual([]);
+});
+
+test("a new link's collage title is the h1 verbatim, and the document title", async ({ page }) => {
+  const codes = linkIndex as string[];
+  const { token } = encodeShare({ v: 1, name: "Yusuf's Life List", titled: true, birds: [{ code: codes[0] }, { code: codes[5] }] });
+  await page.goto(`/s/${token}`);
+  await expect(page.getByRole("heading", { level: 1, name: "Yusuf's Life List" })).toBeVisible();
+  await expect(page).toHaveTitle("Yusuf's Life List · Everybird");
 });
 
 test("the shared view loads no Cloudflare beacon, counts one 'shared' visit without the token, and leaves by full page loads", async ({ page }) => {

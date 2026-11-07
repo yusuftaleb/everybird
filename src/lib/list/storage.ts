@@ -1,6 +1,7 @@
 import { createStore, del, get, set, type UseStore } from 'idb-keyval'
 import { DEFAULT_RULES } from './model'
 import { SLOTS, slotSource } from './model'
+import { TITLE_MAX, titleFromOldName } from './title'
 import type { Edits, ImportResult, Rules, Slot, SourceRecord, Unmatched } from './model'
 
 /** Where an eBird file came from (the slot says it too: 'ebird' is the full export, 'ebird-list' the life list). */
@@ -28,17 +29,19 @@ export type DetailsFor<S extends Slot> = S extends 'inat' ? InatDetails : S exte
  * without it. v3 added `sources` (each source's details); v1 and v2 lists migrate by their version number alone and
  * have no details until a source is imported again. The IndexedDB key keeps its v1 name.
  */
-/** The longest list name (Settings > Your name): what a share link carries (link.ts NAME_MAX; a test keeps them equal). */
-export const NAME_MAX = 40
+/** The longest collage title (Settings > Name your collage): what a share link carries (link.ts NAME_MAX; a test keeps
+ *  them equal). */
+export const NAME_MAX = TITLE_MAX
 
 export type Saved = {
-  v: 3
+  v: 4
   /** Records per slot (model.ts `Slot`): the two eBird files side by side, then iNaturalist and manual. */
   records: Record<Slot, SourceRecord[]>
   unmatched: Unmatched[]
   edits: Edits
   rules: Rules
-  /** The birder's name (Settings > Your name, trimmed): the collage's title and each share's starting name. */
+  /** The collage's title (Settings > Name your collage, trimmed, at most NAME_MAX), used verbatim on the page and
+   *  each share's starting title (title.ts). Before v4 a bare person's name; migrateSaved makes it "<name>'s birds". */
   name?: string
   /** Rows per source that are not countable species (sp., slash, hybrid, domestic), for the match report. */
   skipped?: Partial<Record<Slot, number>>
@@ -51,7 +54,7 @@ export const STORAGE_KEY = 'everybird:v1'
 
 export function emptySaved(): Saved {
   return {
-    v: 3,
+    v: 4,
     records: { ebird: [], 'ebird-list': [], inat: [], manual: [] },
     unmatched: [],
     edits: { removed: [], added: [], marks: {}, fixes: {} },
@@ -94,16 +97,26 @@ export const LOAD_RETRY_MS = 150
 /**
  * Bring a list saved by an older Everybird up to the current shape. v1 -> v2: the version only (v2 added seen-here,
  * which a v1 list lacks until its files are imported again; until then its lifer places stand in). v2 -> v3: the
- * version only (v3 added `sources`; an older list's sources show "details unknown" until imported again). Lists saved
- * before the second eBird slot have no records['ebird-list']; it is added empty. Their eBird records stay in
- * 'ebird' and their fix keys ("ebird:12") still match. Returns the same object when nothing needed changing.
+ * version only (v3 added `sources`; an older list's sources show "details unknown" until imported again). v3 -> v4:
+ * `name` was a person's name the app turned into "<name>'s birds"; v4 stores the title itself, so an old name becomes
+ * that title once (`titleFromOldName`: a name that already reads like a title stays). Lists saved before the second
+ * eBird slot have no records['ebird-list']; it is added empty. Their eBird records stay in 'ebird' and their fix keys
+ * ("ebird:12") still match. Backups (export.ts fromJson) come through here too. Returns the same object when nothing
+ * needed changing.
  */
 export function migrateSaved(s: Saved): Saved {
   const missing = SLOTS.filter((k) => !Array.isArray((s.records as Partial<Saved['records']>)[k]))
-  if (!missing.length && s.v === 3) return s
+  const old = (s.v as number) < 4
+  if (!missing.length && !old) return s
   const records = { ...s.records }
   for (const k of missing) records[k] = []
-  return { ...s, v: 3, records }
+  const out: Saved = { ...s, v: 4, records }
+  if (old && typeof s.name === 'string') {
+    const title = titleFromOldName(s.name)
+    if (title) out.name = title
+    else delete out.name
+  }
+  return out
 }
 
 export async function load(): Promise<Saved | null> {

@@ -247,26 +247,56 @@ test('"why?" after the skipped count opens the entries that weren\'t counted', a
   await expect(list).toContainText("1 entry isn't a species");
 });
 
-test("Your name in Settings titles the collage and starts the share dialog; the dialog's edit stays in that share", async ({ page }) => {
+test("Name your collage titles the collage verbatim and starts the share dialog's title; the dialog's edit stays in that share", async ({ page }) => {
   await importLifeList(page);
-  const field = page.getByLabel("Your name", { exact: true });
-  await field.fill("Ada Birder");
+  const field = page.getByLabel("Name your collage", { exact: true });
+  await expect(field).toHaveAttribute("placeholder", "e.g. Yusuf’s life list");
+  await expect(page.getByText("Shown as your collage’s title and on shares.")).toBeVisible();
+  await field.fill("Ada's Life List");
   await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Ada Birder's birds" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Ada's Life List" })).toBeVisible();
   await page.getByRole("button", { name: "Share", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Share your collage" });
-  const shareName = dialog.getByLabel("Your name (optional)");
-  await expect(shareName).toHaveValue("Ada Birder");
-  await shareName.fill("Ada B.");
+  const shareTitle = dialog.getByLabel("Collage title");
+  await expect(shareTitle).toHaveValue("Ada's Life List");
+  await shareTitle.fill("Birds of 2026");
   await dialog.getByRole("button", { name: "Close" }).click();
-  // The collage and Settings keep the saved name, after a reload too.
-  await expect(page.getByRole("heading", { level: 1, name: "Ada Birder's birds" })).toBeVisible();
+  // The collage and Settings keep the saved title, after a reload too.
+  await expect(page.getByRole("heading", { level: 1, name: "Ada's Life List" })).toBeVisible();
   await page.goto("/settings");
-  await expect(page.getByLabel("Your name", { exact: true })).toHaveValue("Ada Birder");
+  await expect(page.getByLabel("Name your collage", { exact: true })).toHaveValue("Ada's Life List");
   // Empty: "My collage".
-  await page.getByLabel("Your name", { exact: true }).fill("");
+  await page.getByLabel("Name your collage", { exact: true }).fill("");
   await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "My collage" })).toBeVisible();
+});
+
+test("a list saved with an old bare name (v3) keeps the title it showed", async ({ page }) => {
+  await page.goto("/about");
+  await page.evaluate(
+    (saved) =>
+      new Promise<void>((done, fail) => {
+        const open = indexedDB.open("everybird");
+        open.onupgradeneeded = () => open.result.createObjectStore("kv");
+        open.onsuccess = () => {
+          const tx = open.result.transaction("kv", "readwrite");
+          tx.objectStore("kv").put(saved, "everybird:v1");
+          tx.oncomplete = () => { open.result.close(); done(); };
+          tx.onerror = () => fail(tx.error);
+        };
+        open.onerror = () => fail(open.error);
+      }),
+    {
+      v: 3, name: "Ada",
+      records: { ebird: [], "ebird-list": [], inat: [], manual: [{ code: "ostric2", source: "manual" }] },
+      unmatched: [], edits: { removed: [], added: [], marks: {}, fixes: {} }, rules: { hideHeard: false, hideDead: false, researchOnly: false },
+      savedAt: new Date().toISOString(),
+    },
+  );
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1, name: "Ada's birds" })).toBeVisible();
+  await page.goto("/settings");
+  await expect(page.getByLabel("Name your collage", { exact: true })).toHaveValue("Ada's birds");
 });
 
 test("Settings fits about 1.5 screens at 1280x800 with a source connected", async ({ page }) => {

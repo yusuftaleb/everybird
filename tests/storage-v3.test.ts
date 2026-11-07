@@ -43,26 +43,27 @@ const withSources = (): Saved => ({
 })
 
 describe('Saved v3: source details', () => {
-  it('new lists are v3, with no source details yet', () => {
+  it('new lists are v4, with no source details yet', () => {
     const s = emptySaved()
-    expect(s.v).toBe(3)
+    expect(s.v).toBe(4)
     expect(s.sources ?? {}).toEqual({})
   })
 
-  it('a v2 list migrates to v3 keeping everything; its sources have no details (shown as unknown)', () => {
+  it('a v2 list migrates to v4 keeping everything; its sources have no details (shown as unknown)', () => {
     const m = migrateSaved(v2() as never)
-    expect(m.v).toBe(3)
-    const { v: _v, ...rest } = v2()
-    void _v
+    expect(m.v).toBe(4)
+    const { v: _v, name: _n, ...rest } = v2()
+    void _v; void _n
     expect(m).toMatchObject(rest)
+    expect(m.name).toBe("Sam's birds") // v4: the old bare name becomes the title it showed
     expect(m.sources).toBeUndefined()
     const current = emptySaved()
     expect(migrateSaved(current)).toBe(current)
   })
 
-  it('a v1 list migrates to v3 and gains the empty life-list slot', () => {
+  it('a v1 list migrates to v4 and gains the empty life-list slot', () => {
     const m = migrateSaved(v1() as never)
-    expect(m.v).toBe(3)
+    expect(m.v).toBe(4)
     expect(m.records['ebird-list']).toEqual([])
     expect(m.records.ebird).toEqual([rec('a')])
   })
@@ -91,7 +92,7 @@ describe('replace, refresh and remove one source', () => {
     expect(fresh.edits).toEqual(edited.edits)
     expect(fresh.skipped).toEqual({ ebird: 2, inat: 1 })
     expect(fresh.sources?.inat).toEqual({ user: 'sam_birds', observations: 600, at: AT })
-    expect(fresh.name).toBe('Sam')
+    expect(fresh.name).toBe("Sam's birds")
   })
 
   it('removeSource drops that slot\'s records, unmatched rows, skipped count and details, and nothing else', () => {
@@ -136,23 +137,23 @@ describe('replace, refresh and remove one source', () => {
 })
 
 describe('backups with source details', () => {
-  it('round-trip as v3', () => {
+  it('round-trip as v4', () => {
     const s = withSources()
     const text = toJson(s)
-    expect(JSON.parse(text).v).toBe(3)
+    expect(JSON.parse(text).v).toBe(4)
     expect(fromJson(text)).toEqual(s)
   })
-  it('v2 and v1 backups restore as v3 without details', () => {
+  it('v2 and v1 backups restore as v4 without details', () => {
     const a = fromJson(JSON.stringify(v2()))
-    expect(a.v).toBe(3)
+    expect(a.v).toBe(4)
     expect(a.sources).toBeUndefined()
     expect(a.edits.fixes).toEqual({ 'inat:4': 'd' })
     const b = fromJson(JSON.stringify(v1()))
-    expect(b.v).toBe(3)
+    expect(b.v).toBe(4)
     expect(b.records['ebird-list']).toEqual([])
   })
   it('malformed details and unknown versions are refused', () => {
-    expect(() => fromJson(JSON.stringify({ ...withSources(), v: 4 }))).toThrow(/version/i)
+    expect(() => fromJson(JSON.stringify({ ...withSources(), v: 5 }))).toThrow(/version/i)
     expect(() => fromJson(JSON.stringify({ ...withSources(), sources: { bogus: {} } }))).toThrow(/source details/)
     expect(() => fromJson(JSON.stringify({ ...withSources(), sources: { inat: { user: 5 } } }))).toThrow(/source details/)
     expect(() => fromJson(JSON.stringify({ ...withSources(), sources: { ebird: { kind: 'life-list', rows: 'many' } } }))).toThrow(/source details/)
@@ -166,15 +167,57 @@ describe('a v2 list on the device', () => {
     ;(globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory()
   })
   afterEach(() => vi.unstubAllGlobals())
-  it('loads as v3 and is rewritten in place', async () => {
+  it('loads as v4 and is rewritten in place', async () => {
     vi.resetModules()
     const storage = await import('@/lib/list/storage')
     const { createStore, get, set } = await import('idb-keyval')
     const kv = createStore('everybird', 'kv')
     await set(STORAGE_KEY, v2(), kv)
     const got = await storage.load()
-    expect(got!.v).toBe(3)
+    expect(got!.v).toBe(4)
     expect(got!.records.inat).toHaveLength(1)
-    await vi.waitFor(async () => expect(((await get(STORAGE_KEY, kv)) as { v: number }).v).toBe(3))
+    await vi.waitFor(async () => expect(((await get(STORAGE_KEY, kv)) as { v: number }).v).toBe(4))
+  })
+})
+
+describe('Saved v4: the collage title', () => {
+  const old = (name: string | undefined, v = 3) => ({ ...withSources(), v, ...(name === undefined ? {} : { name }) }) as never
+
+  it('a v1–v3 bare name becomes the title it showed, once', () => {
+    expect(migrateSaved(old('Sam')).name).toBe("Sam's birds")
+    expect(migrateSaved(old('  Ada Birder ', 1)).name).toBe("Ada Birder's birds")
+    expect(migrateSaved(old('Zoë', 2)).name).toBe("Zoë's birds")
+    const once = migrateSaved(old('Sam'))
+    expect(migrateSaved(once)).toBe(once) // v4: never again
+    expect(migrateSaved(once).name).toBe("Sam's birds")
+  })
+
+  it('a v4 title is left as written, however it reads', () => {
+    const s = { ...withSources(), name: 'Sam' }
+    expect(migrateSaved(s).name).toBe('Sam')
+  })
+
+  it('an old name that already reads like a title stays as it is', () => {
+    for (const t of ["Yusuf's Life List", 'Birds of 2026', 'My year', 'Kenya birds', 'Lifers', 'Big Year 2024', 'Sam’s list', "Sam's"])
+      expect(migrateSaved(old(t)).name, t).toBe(t)
+  })
+
+  it('an old name too long for the suffix is cut so the title fits 40 characters', () => {
+    const long = 'Alexandria Constantinople Featherstonehaugh' // 43
+    const t = migrateSaved(old(long)).name!
+    expect(Array.from(t).length).toBeLessThanOrEqual(40)
+    expect(t).toBe("Alexandria Constantinople Feathe's birds")
+  })
+
+  it('an empty or blank old name is dropped', () => {
+    expect(migrateSaved(old('   ')).name).toBeUndefined()
+    expect(migrateSaved(old(undefined)).name).toBeUndefined()
+  })
+
+  it('backups go through the same migration; a v4 backup keeps its title', () => {
+    expect(fromJson(JSON.stringify({ ...withSources(), v: 3, name: 'Sam' })).name).toBe("Sam's birds")
+    expect(fromJson(JSON.stringify({ ...withSources(), v: 1, name: 'Sam' })).v).toBe(4)
+    expect(fromJson(JSON.stringify({ ...withSources(), v: 4, name: 'Sam' })).name).toBe('Sam')
+    expect(fromJson(JSON.stringify({ ...withSources(), v: 3, name: 'Birds of 2026' })).name).toBe('Birds of 2026')
   })
 })

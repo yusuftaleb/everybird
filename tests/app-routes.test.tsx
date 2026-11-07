@@ -609,27 +609,34 @@ describe('editing', () => {
   })
 })
 
-describe('Your name (Settings > Your data)', () => {
-  it('titles the collage, is saved with the list and its backup, and empty means "My collage"', async () => {
+describe('Name your collage (Settings > Your data)', () => {
+  it('is the collage title verbatim, is saved with the list and its backup, and empty means "My collage"', async () => {
     const { storage } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
-    const field = screen.getByLabelText('Your name')
+    const field = screen.getByLabelText('Name your collage')
     expect(field).toHaveValue('')
     expect(field).toHaveAttribute('maxLength', '40')
-    fireEvent.change(field, { target: { value: 'Ada Birder ' } })
-    expect(field).toHaveValue('Ada Birder ') // the field keeps the space being typed; the list saves it trimmed
-    await waitFor(async () => expect((await storage.load())?.name).toBe('Ada Birder'), { timeout: 2000 })
+    expect(field).toHaveAttribute('placeholder', 'e.g. Yusuf’s life list')
+    expect(field).toHaveAccessibleDescription('Shown as your collage’s title and on shares.')
+    fireEvent.change(field, { target: { value: 'Birds of 2026 ' } })
+    expect(field).toHaveValue('Birds of 2026 ') // the field keeps the space being typed; the list saves it trimmed
+    await waitFor(async () => expect((await storage.load())?.name).toBe('Birds of 2026'), { timeout: 2000 })
     await go('/')
-    expect(await screen.findByRole('heading', { level: 1, name: "Ada Birder's birds" })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Birds of 2026' })).toBeInTheDocument() // no "'s birds"
     await go('/settings')
-    expect(screen.getByLabelText('Your name')).toHaveValue('Ada Birder')
-    fireEvent.change(screen.getByLabelText('Your name'), { target: { value: '' } })
+    expect(screen.getByLabelText('Name your collage')).toHaveValue('Birds of 2026')
+    fireEvent.change(screen.getByLabelText('Name your collage'), { target: { value: '' } })
     await go('/')
     expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
   })
 
-  it('a restored backup brings its name into the field', async () => {
+  it('a list saved with an old bare name shows the title it always had', async () => {
+    await mount({ path: '/', stored: (s) => { ;(s as { v: number }).v = 3; s.name = 'Ada'; s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
+    expect(await screen.findByRole('heading', { level: 1, name: "Ada's birds" })).toBeInTheDocument()
+  })
+
+  it('a restored backup brings its title into the field', async () => {
     await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species.'))
@@ -639,7 +646,7 @@ describe('Your name (Settings > Your data)', () => {
     const file = new File([toJson(backup)], 'backup.json', { type: 'application/json' })
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
     await act(async () => { fireEvent.click(await screen.findByRole('button', { name: 'Yes, replace it' })) })
-    await waitFor(() => expect(screen.getByLabelText('Your name')).toHaveValue('Sam'))
+    await waitFor(() => expect(screen.getByLabelText('Name your collage')).toHaveValue('Sam'))
   })
 })
 

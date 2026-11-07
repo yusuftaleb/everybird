@@ -308,7 +308,7 @@ for (const width of WIDTHS) {
         const [dl] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
         expect(dl.suggestedFilename()).toBe(`everybird-${format.toLowerCase()}.png`);
       }
-      await dialog.getByLabel("Your name (optional)").fill("Ada Birder");
+      await dialog.getByLabel("Collage title").fill("Ada's big year");
       await dialog.getByRole("button", { name: "Copy link" }).click();
       await expect(dialog.getByTestId("share-note")).toHaveText(/^Link copied/);
       const url = browserName === "chromium"
@@ -318,26 +318,26 @@ for (const width of WIDTHS) {
       expect(url.length).toBeLessThan(2000);
       // The shared view: read-only, whose list it is, and the visitor's own list untouched.
       await page.goto(new URL(new URL(url).pathname, baseURL).toString());
-      await expect(page.getByRole("heading", { level: 1, name: "Ada Birder's life list" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Ada's big year" })).toBeVisible(); // verbatim
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
       await expect(shownBirds(page)).toHaveCount(TOTAL);
       await expect(page.getByRole("link", { name: /^Make yours/ }).first()).toHaveAttribute("href", "/settings");
       await expect(page.getByRole("button", { name: "Share", exact: true })).toHaveCount(0);
     });
 
-    test("your data: name the list, download a backup, forget the list, restore it (the name with it)", async ({ page }) => {
+    test("your data: name the collage, download a backup, forget the list, restore it (the title with it)", async ({ page }) => {
       await seed(page);
       await page.goto("/settings");
-      await page.getByLabel("Your name", { exact: true }).fill("Kalin Ocana");
+      await page.getByLabel("Name your collage", { exact: true }).fill("Kalin's lifers");
       await expect.poll(() => page.evaluate(() => new Promise<string | undefined>((done) => {
         const r = indexedDB.open("everybird");
         r.onsuccess = () => { const g = r.result.transaction("kv").objectStore("kv").get("everybird:v1"); g.onsuccess = () => { r.result.close(); done(g.result?.name); }; };
-      }))).toBe("Kalin Ocana");
+      }))).toBe("Kalin's lifers");
       const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download JSON backup" }).click()]);
       expect(dl.suggestedFilename()).toMatch(/^everybird-backup-\d{4}-\d{2}-\d{2}\.json$/);
       const backup = readFileSync((await dl.path())!);
       expect(JSON.parse(backup.toString()).records).toBeTruthy();
-      expect(JSON.parse(backup.toString()).name).toBe("Kalin Ocana");
+      expect(JSON.parse(backup.toString()).name).toBe("Kalin's lifers");
       const [csv] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download CSV" }).click()]);
       expect(csv.suggestedFilename()).toMatch(/^everybird-\d{4}-\d{2}-\d{2}\.csv$/);
 
@@ -351,7 +351,7 @@ for (const width of WIDTHS) {
       await page.goto("/settings");
       await page.locator('input[type="file"][accept*="json"]').first().setInputFiles({ name: "backup.json", mimeType: "application/json", buffer: backup });
       await expect(page).toHaveURL(/\/$/);
-      await expect(page.getByRole("heading", { level: 1, name: "Kalin Ocana's birds" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Kalin's lifers" })).toBeVisible();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
       await expect(shownBirds(page)).toHaveCount(TOTAL);
     });

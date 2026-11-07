@@ -27,16 +27,26 @@ export function pickOgStickers<T extends { to: number; st: boolean }>(birds: rea
   return pickOgBirds(birds.filter((b) => b.st), max)
 }
 
-/** The shared page's h1: "Ada's life list", or "A birder's life list" with no name. The brand stays in the site name. */
-export function ogName(p: Pick<SharePayload, 'name'>): string {
-  return p.name?.trim() ? `${p.name.trim()}'s life list` : "A birder's life list"
+/**
+ * A shared link's title, or null without one: a new link's title verbatim ("Birds of 2026", F_TITLE), an old link's
+ * bare name as it always showed ("Ada" -> "Ada's life list").
+ */
+export function shareTitle(p: Pick<SharePayload, 'name' | 'titled'>): string | null {
+  const name = p.name?.trim()
+  if (!name) return null
+  return p.titled ? name : `${name}'s life list`
 }
 
-/** "Ada's life list: 197 species", "A life list: 197 species" without a name; "Everybird" for a broken link. */
+/** The shared page's h1 and the link preview's title: shareTitle, or "A birder's life list" without one. */
+export function ogName(p: Pick<SharePayload, 'name' | 'titled'>): string {
+  return shareTitle(p) ?? "A birder's life list"
+}
+
+/** The document title: "<title> · Everybird"; "A life list: 197 species" without a title; "Everybird" for a broken link. */
 export function ogTitle(p: SharePayload | null): string {
   if (!p) return 'Everybird'
-  const who = p.name?.trim() ? `${p.name.trim()}'s life list` : 'A life list'
-  return `${who}: ${p.birds.length.toLocaleString('en-US')} species`
+  const title = shareTitle(p)
+  return title ? `${title} · Everybird` : `A life list: ${p.birds.length.toLocaleString('en-US')} species`
 }
 
 /** The payload a route's `[token]` segment carries, or null for a broken, oversized or newer-version link. */
