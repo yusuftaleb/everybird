@@ -3,16 +3,17 @@
 //
 // Box semantics (what the renderer places): Box = [x, y, w, h] in layout units, on a stage of W x H layout
 // units with the origin at its top-left. (x, y) is the top-left corner of the sticker's tile and w x h is its
-// size. The tile's long side is base · rel (at least 2) and its aspect is the mask's (mask.w / mask.h, which
+// size. The tile's long side is base · rel (at least 2; rel from relSizes: painted area follows mass) and its aspect is the mask's (mask.w / mask.h, which
 // follows the sticker image's `ar` to within the mask's rounding). Draw the sticker image to fill the box.
 // The species count sits at the stage centre (W / 2, H / 2), inside the ellipse holeRadii(layout.F).
 // A filtered state (packBest with `fit`) is packed in the full collage's stage, then its height is trimmed
 // symmetrically about the count (fitStage): W is unchanged, H shrinks, every box moves up by the same amount.
-import { EXP, EXP_TRUE, GAP, MAXUP, holeRadii } from './constants'
+import { EXP, EXP_TRUE, GAP, MAXUP, SHAPE_REF, holeRadii } from './constants'
 import { CentreWalk, Grid, SPIRAL_T, cellMask, coreMask, spiral, spiralFrom, type CellMask } from './grid'
 import { MASK, type Mask } from './mask'
 
-export type PackBird = { id: number; mass: number; mask: Mask }
+/** shape: the painted share of the bird's L x L square (maskShape of its mask when absent; the outline's for no sticker). */
+export type PackBird = { id: number; mass: number; mask: Mask; shape?: number }
 export type Box = [x: number, y: number, w: number, h: number] // layout units
 export type PackResult = { base: number; W: number; H: number; boxes: Map<number, Box> }
 /** What the packer reads from a layout: one of LAYOUTS, or an ad hoc frame (share images, packFrame). */
@@ -26,12 +27,26 @@ const TRIM_PAD = 8
 // STEP: smallest growth step. AIM: each jump aims this much past the estimate, so one more search is rarely needed.
 const STEP = 1.1, AIM = 1.08, MAX_GROW = 12
 
-/** Relative tile size per bird: mass ** exp, scaled so the smallest bird is 1. */
+/** The mask's set cells over MASK²: the share of the sticker's L x L square (L its long side) that is painted. */
+export function maskShape(m: Mask): number {
+  let set = 0
+  for (let i = 0; i < m.bits.length; i++) { let v = m.bits[i]; while (v) { set += v & 1; v >>= 1 } }
+  return set / (MASK * MASK)
+}
+
+/**
+ * Relative tile long side per bird, so the painted area follows mass: rel = (mass / lightest) ** exp · sqrt(SHAPE_REF /
+ * shape). A tile of long side L paints L² · shape, so the painted area ∝ mass ** (2 · exp) whatever the shape: a
+ * long-tailed or long-legged bird (little of its square painted) gets a longer tile than an upright compact one of the
+ * same mass. A bird of the reference shape (SHAPE_REF) keeps the long side it had when sizes followed the long side, so
+ * the lightest such bird is 1 and a list's median rel stays where it was (the base, floors and MAXUP keep meaning).
+ */
 export function relSizes(birds: PackBird[], exp: number): Map<number, number> {
   const m = (b: PackBird) => (Number.isFinite(b.mass) ? Math.max(MIN_MASS, b.mass) : MIN_MASS) ** exp
+  const k = (b: PackBird) => Math.sqrt(SHAPE_REF / Math.max(0.05, b.shape ?? maskShape(b.mask)))
   let lo = Infinity
   for (const b of birds) lo = Math.min(lo, m(b))
-  return new Map(birds.map((b) => [b.id, m(b) / lo]))
+  return new Map(birds.map((b) => [b.id, (m(b) / lo) * k(b)]))
 }
 
 /** Largest first; ties broken by id, so the order never depends on the input order. */

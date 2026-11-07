@@ -1,15 +1,17 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { EXP, EXP_TRUE, GAP, LAYOUTS, holeRadii } from '../src/lib/layout/constants'
+import { EXP, EXP_TRUE, GAP, LAYOUTS, OUTLINE_SHAPE, SHAPE_REF, holeRadii } from '../src/lib/layout/constants'
 import { MASK, decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
-import { DETACH, MAX_BASE, boxGap, detached, packBest, packFrame, relSizes, stretchAt, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
+import { DETACH, MAX_BASE, boxGap, detached, maskShape, packBest, packFrame, relSizes, stretchAt, type Box, type PackBird, type PackResult } from '../src/lib/layout/pack'
+import { FALLBACK_MASK, loadBirds } from '../src/lib/layout/layout.worker'
 import { Grid, SPIRAL_T, spiral, toCellMask } from '../src/lib/layout/grid'
 
 // Realistic, deterministic test birds: real sticker masks + real masses from public/data, sampled at a
 // fixed stride over the species sorted by code. Public reference data only, no personal list.
 const DATA = resolve(__dirname, '../public/data')
 let POOL: PackBird[] = []
+let CODES: string[] = [] // POOL[i]'s species code
 function loadPool(): PackBird[] {
   const masks = new Map<string, Mask>()
   for (const f of readdirSync(resolve(DATA, 'masks')).sort()) {
@@ -19,6 +21,7 @@ function loadPool(): PackBird[] {
   const species = (JSON.parse(readFileSync(resolve(DATA, 'species.v1.json'), 'utf8')).species as { code: string; g: number }[])
     .filter((s) => masks.has(s.code))
     .sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0))
+  CODES = species.map((s) => s.code)
   return species.map((s, i) => ({ id: i, mass: s.g, mask: masks.get(s.code)! }))
 }
 function sample(n: number): PackBird[] {
@@ -53,13 +56,12 @@ describe('packing engine (300 birds)', () => {
     wide = packBest(birds, byName('wide'), 'even')
   })
 
-  it('relSizes: smallest bird = 1, grows with mass', () => {
+  it('relSizes: (mass / lightest) ** exp, scaled by sqrt(SHAPE_REF / shape) so the painted area follows mass', () => {
     const rel = relSizes(birds, 0.2)
-    const vals = [...rel.values()]
-    expect(Math.min(...vals)).toBeCloseTo(1, 10)
-    const light = birds.reduce((a, b) => (b.mass < a.mass ? b : a)), heavy = birds.reduce((a, b) => (b.mass > a.mass ? b : a))
-    expect(rel.get(light.id)).toBeCloseTo(1, 10)
-    expect(rel.get(heavy.id)).toBeCloseTo((heavy.mass / light.mass) ** 0.2, 8)
+    const light = birds.reduce((a, b) => (b.mass < a.mass ? b : a))
+    for (const b of birds) {
+      expect(rel.get(b.id)).toBeCloseTo((b.mass / light.mass) ** 0.2 * Math.sqrt(SHAPE_REF / maskShape(b.mask)), 8)
+    }
   })
 
   it('every bird is placed', () => {
@@ -694,4 +696,72 @@ describe.skipIf(!!process.env.SKIP_PERF)('packing performance', () => {
       expect(big(name).ms).toBeLessThan(12000)
     }, 60000)
   }
+})
+
+// Sizes follow the painted area (2026-11-06; Yusuf: a Double-crested Cormorant, 1,807 g, read bigger than an Indian
+// Peafowl, 4,155 g, because the tile's long side followed mass and the peafowl's train left little of its box painted).
+// Painted area of a tile = L² · maskShape (L its long side), measured on the packed boxes.
+describe('sizes follow the painted area', () => {
+  beforeAll(() => { if (!POOL.length) POOL = loadPool() })
+  const painted = (b: PackBird, box: Box) => Math.max(box[2], box[3]) ** 2 * maskShape(b.mask)
+  const byCode = (c: string) => POOL[CODES.indexOf(c)]
+
+  it('an Indian Peafowl paints more than a Double-crested Cormorant, in both modes, by mass ** (2 · exp)', () => {
+    const pea = byCode('compea'), cor = byCode('doccor')
+    expect(pea && cor).toBeTruthy()
+    expect(Math.max(pea.mask.w, pea.mask.h) / Math.min(pea.mask.w, pea.mask.h)).toBeGreaterThan(1.3) // the long train
+    const birds = [...sample(197).filter((b) => b !== pea && b !== cor), pea, cor]
+    const even = packBest(birds, byName('wide'), 'even')
+    const tr = packBest(birds, byName('wide'), 'true', { targets: centres(even), fixedStage: [even.W, even.H] })
+    for (const [r, exp] of [[even, EXP], [tr, EXP_TRUE]] as const) {
+      const k = painted(pea, r.boxes.get(pea.id)!) / painted(cor, r.boxes.get(cor.id)!)
+      expect(k).toBeCloseTo((pea.mass / cor.mass) ** (2 * exp), 6) // even 1.40, true 1.74 (before: 1.02 and 1.28)
+    }
+  }, 30000)
+
+  it('painted area ranks with mass over 50 species of extreme shapes (ties only for equal masses)', () => {
+    // Deterministic picks: the 12 widest and 12 tallest stickers (long tails, long legs and necks, upright birds),
+    // the 12 least and 12 most filled (thin, spread shapes; round, compact ones), and the peafowl and the cormorant.
+    const ar = (b: PackBird) => b.mask.w / b.mask.h
+    const fill = (b: PackBird) => maskShape(b.mask) / ((b.mask.w * b.mask.h) / (MASK * MASK))
+    const by = (f: (b: PackBird) => number) => [...POOL].sort((a, b) => f(a) - f(b) || a.id - b.id)
+    const pick = new Set<PackBird>([byCode('compea'), byCode('doccor')])
+    for (const sorted of [by(ar), by(fill)]) for (const b of [...sorted.slice(0, 12), ...sorted.slice(-12)]) pick.add(b)
+    const birds = [...pick]
+    expect(birds.length).toBeGreaterThanOrEqual(48)
+    for (const [mode, exp] of [['even', EXP], ['true', EXP_TRUE]] as const) {
+      const r = packBest(birds, byName('wide'), mode)
+      const rows = birds.map((b) => ({ m: b.mass, a: painted(b, r.boxes.get(b.id)!) })).sort((x, y) => x.m - y.m)
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i].m === rows[i - 1].m) expect(rows[i].a).toBeCloseTo(rows[i - 1].a, 6)
+        else expect(rows[i].a, `${mode}: ${rows[i - 1].m} g then ${rows[i].m} g`).toBeGreaterThan(rows[i - 1].a)
+      }
+      // and exactly as mass ** (2 · exp) (no tile at the 2-unit minimum here)
+      const k0 = rows[0].a / rows[0].m ** (2 * exp)
+      for (const x of rows) expect(x.a / x.m ** (2 * exp) / k0).toBeCloseTo(1, 6)
+    }
+  }, 30000)
+
+  it('the median sticker keeps its size: median rel within 1% of the long-side rule (SHAPE_REF calibrated)', () => {
+    // Small lists move a few % either way (whichever birds land at the median); the packer sizes them to fit anyway.
+    for (const exp of [EXP, EXP_TRUE]) {
+      for (const [n, tol] of [[1000, 0.01], [3000, 0.01], [5000, 0.01], [POOL.length, 0.005]] as const) {
+        const birds = sample(n)
+        const light = Math.min(...birds.map((b) => b.mass))
+        const old = birds.map((b) => (b.mass / light) ** exp).sort((a, b) => a - b)
+        const now = [...relSizes(birds, exp).values()].sort((a, b) => a - b)
+        expect(Math.abs(now[n >> 1] / old[n >> 1] - 1), `${n} birds, exp ${exp}`).toBeLessThan(tol)
+      }
+    }
+  })
+
+  it('species without a sticker are sized by the outline they draw, packed as the ellipse', async () => {
+    const birds = await loadBirds([{ code: 'nosticker1', mass: 100, ord: 'Passeriformes' }], async () => ({}))
+    const b = birds.get('nosticker1')!
+    expect(b.mask).toBe(FALLBACK_MASK)
+    expect(b.shape).toBe(OUTLINE_SHAPE)
+    const two = [{ ...b, id: 0 }, { ...b, id: 1, shape: undefined }]
+    const rel = relSizes(two, EXP)
+    expect(rel.get(0)! / rel.get(1)!).toBeCloseTo(Math.sqrt(maskShape(FALLBACK_MASK) / OUTLINE_SHAPE), 9)
+  })
 })

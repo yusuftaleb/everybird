@@ -17,8 +17,9 @@
 // can be smaller than fixedStage. Relative sizes are always computed over the whole list (setList), per mode.
 //
 // Species without a mask (st:false in species.v1.json, drawn as a silhouette icon) get FALLBACK_MASK: a solid
-// ellipse on a square 24 x 24 grid (aspect 1), so they pack as round blobs.
-import { EXP, EXP_TRUE, LAYOUTS } from './constants'
+// ellipse on a square 24 x 24 grid (aspect 1), so they pack as round blobs, and are sized by the outline they draw
+// (OUTLINE_SHAPE, see relSizes), not by the ellipse.
+import { EXP, EXP_TRUE, LAYOUTS, OUTLINE_SHAPE } from './constants'
 import { decodeMask, MASK, type Mask } from './mask'
 import { packBest, packFrame, relSizes, type PackBird } from './pack'
 
@@ -82,7 +83,7 @@ export async function loadBirds(entries: ListEntryMsg[], load: MaskLoader): Prom
   const birds = new Map<string, PackBird>()
   entries.forEach((e, i) => {
     const raw = tables.get(e.ord)?.[e.code]
-    birds.set(e.code, { id: i, mass: e.mass, mask: raw ? decodeMask(raw) : FALLBACK_MASK })
+    birds.set(e.code, raw ? { id: i, mass: e.mass, mask: decodeMask(raw) } : { id: i, mass: e.mass, mask: FALLBACK_MASK, shape: OUTLINE_SHAPE })
   })
   return birds
 }
