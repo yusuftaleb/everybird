@@ -7,3 +7,5 @@ data/raw/
 .env*
 test-results/
 playwright-report/
+# The stats Worker deploys to Cloudflare with wrangler, not with the app.
+workers/

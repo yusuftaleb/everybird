@@ -17,3 +17,7 @@ node_modules/
 next-env.d.ts
 .vercel
 /.inbox/
+# Cloudflare Workers (workers/*): local state, secrets and generated types never go in git.
+.wrangler/
+.dev.vars*
+worker-configuration.d.ts

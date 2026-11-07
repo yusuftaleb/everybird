@@ -1,0 +1,16 @@
+{
+  // The stats Worker's own type check, apart from the app (whose tsconfig excludes workers/). Types come from
+  // `npx wrangler types` (writes the git-ignored worker-configuration.d.ts: the env bindings and the Workers runtime):
+  //   cd workers/stats && npx wrangler types && npx -p typescript tsc --noEmit
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["src/**/*.ts", "worker-configuration.d.ts"]
+}

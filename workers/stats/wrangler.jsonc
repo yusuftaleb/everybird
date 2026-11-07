@@ -1,0 +1,11 @@
+{
+  // Everybird's anonymous usage counter. Receives tiny beacons from the app and stores them in
+  // a D1 table (events). No names, species, places, IPs or cookies are stored.
+  "name": "everybird-stats",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": false,
+  "routes": [{ "pattern": "stats.yusuftaleb.com", "custom_domain": true }],
+  "d1_databases": [{ "binding": "DB", "database_name": "everybird-events", "database_id": "c0c4b3de-5afd-4472-b6f0-49a1579327bd" }],
+  "observability": { "enabled": false }
+}
