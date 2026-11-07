@@ -192,3 +192,22 @@ for (const c of CASES) {
     }
   });
 }
+
+// Safari's aA bigger text is page zoom: a 390px phone at 150% / 200% lays the page out at 260 / 195 CSS px. No page
+// scrolls sideways there (the top bar puts its nav on a second row under 300px; Places and Time drop their glyphs).
+for (const width of [195, 260] as const) {
+  test(`at ${width} CSS px (a 390px phone at aA ${width === 195 ? 200 : 150}%), no page scrolls sideways`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    for (const path of ["/", "/settings", "/about"]) {
+      await page.goto(path);
+      await expect(page.getByTestId("topbar")).toBeVisible();
+      await page.waitForTimeout(800);
+      const sw = await page.evaluate(() => document.documentElement.scrollWidth);
+      expect(sw, `${path} at ${width}px`).toBeLessThanOrEqual(width);
+      for (const name of ["Collage", "Settings", "About"]) {
+        const box = await page.getByTestId("topbar").getByRole("link", { name, exact: true }).boundingBox();
+        expect(box!.x + box!.width, `${path}: ${name} on screen`).toBeLessThanOrEqual(width + 0.5);
+      }
+    }
+  });
+}

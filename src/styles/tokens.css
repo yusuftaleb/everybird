@@ -28,6 +28,7 @@
   --z-welcome: 955; /* the first-visit welcome */
 }
 @media (min-width: 720px) { :root { --topbar-h: 65px; } }
+@media (max-width: 299px) { :root { --topbar-h: 93px; } } /* the bar's nav on a second row (app.css) */
 
 :root[data-theme=light] {
   color-scheme: light;

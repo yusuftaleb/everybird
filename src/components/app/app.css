@@ -339,6 +339,22 @@
   .eb-theme svg { width: 20px; height: 20px; }
 }
 
+/* Under 300px of page (a 390px phone at Safari's aA 150% or more, page zoom): the nav can't share a row with the
+   wordmark, so it takes its own full-width row under it; --topbar-h (tokens.css) follows. */
+@media (max-width: 299px) {
+  .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding: 4px 12px; min-height: 0; }
+  .eb-theme { order: 1; margin-left: auto; }
+  .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
+  .eb-nav ul { justify-content: space-between; }
+  /* The rest of the page at that width: the stats line and button labels wrap, and Places and Time drop their
+     glyphs (the labels say it) so the two still share the bar's second row. */
+  .eb-stat { white-space: normal; }
+  .eb-btn { white-space: normal; text-align: center; }
+  .eb-dock-filters { min-width: 0; }
+  .eb-dock-filters .eb-dock-drop { gap: 0; padding: 0 6px; }
+  .eb-dock-filters .eb-dock-drop svg { display: none; }
+}
+
 /* The footer: the way to every credit and the maker, its rule as wide as the content. */
 .eb-footer { padding: 0 16px 32px; }
 @media (min-width: 720px) { .eb-footer { padding: 0 32px 40px; } }
