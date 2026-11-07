@@ -1,0 +1,23 @@
+tests/stats-report.test.ts
+  s_ab125876fe9ad2::t_17cb8343758f2e 2,8-17,42-43
+  s_ab125876fe9ad2::t_eb892879b0773a 106
+  s_ab125876fe9ad2::t_ac5d03b7f5597c 1,3-7,18-41,44-105,107-136
+scripts/stats/report.ts
+  s_ab125876fe9ad2::t_1a225369942d36 1-180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f45c0704baf1818002509e9868a41889bd568cf3",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
