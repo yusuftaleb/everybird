@@ -55,7 +55,7 @@ for (const width of [320, 390, 430, 440, 600] as const) {
 
       const m = await bar(page);
       expect(m.rows, JSON.stringify(m.rows)).toHaveLength(2);
-      expect(m.rows[0]).toEqual(["Collage", "List", expect.stringMatching(/^True/), expect.stringMatching(/^Sci\./), "Find a bird"]);
+      expect(m.rows[0]).toEqual(["Collage", "List", expect.stringMatching(/^True/), "About True size", expect.stringMatching(/^Sci\./), "Find a bird"]);
       expect(m.rows[1]).toEqual([expect.stringMatching(/^Places/), expect.stringMatching(/^Time/)]);
       expect(m.dock).toBeLessThanOrEqual(0);
       expect(m.page).toBeLessThanOrEqual(0);

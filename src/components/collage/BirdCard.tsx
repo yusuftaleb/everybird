@@ -165,6 +165,7 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
           <CloseIcon />
         </button>
       </BirdFacts>
+      {!row.st && <p className="eb-card-note" data-testid="no-drawing">No drawing yet for this species.</p>}
       {notes.length > 0 && <p className="eb-card-note">{notes.join(' · ')}</p>}
       {actions && <div className="eb-card-actions">{actions}</div>}
     </div>

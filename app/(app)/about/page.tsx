@@ -95,7 +95,9 @@ export default function AboutPage() {
             Every bird sticker comes from huashu-bird-sticker by alchaincyf, licensed{' '}
             <A href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</A>. The stickers were resized and trimmed for the
             web; nothing else was changed.
-            {huashuCommit && <> Source commit <code className="eb-mono eb-credit-code">{huashuCommit.slice(0, 7)}</code>.</>}
+            {huashuCommit && <> Source commit <code className="eb-mono eb-credit-code">{huashuCommit.slice(0, 7)}</code>.</>}{' '}
+            About 2% of species don&apos;t have a sticker yet; they show as an outline, and new drawings arrive automatically as
+            the sticker set grows.
           </Credit>
           <Credit label="Inspiration" title={<A href="https://theodore.net/projects/AvianVisitors/">Avian Visitors</A>}>
             Teddy Warner&apos;s Avian Visitors showed how lovely a wall of birds can be. Everybird started there.

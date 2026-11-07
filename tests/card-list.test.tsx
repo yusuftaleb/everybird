@@ -153,6 +153,14 @@ describe('BirdCard small print', () => {
     expect(screen.getByText('Assigned by region')).toBeInTheDocument()
     expect(screen.queryByText(/Illustration|stand-in/)).toBeNull()
   })
+  it('a species without a sticker says so in the card; one with a sticker says nothing about drawings', () => {
+    const idx2 = buildSpeciesIndex([{ ...row('nodraw1', 'Undrawn Bird', 3, 40), st: false }, row('willet3', 'Prairie Willet', 2, 260)])
+    const { unmount } = render(<BirdCard entry={entry('nodraw1')} species={idx2} regions={regions} onClose={() => {}} />)
+    expect(screen.getByTestId('no-drawing')).toHaveTextContent('No drawing yet for this species.')
+    unmount()
+    render(<BirdCard entry={entry('willet3')} species={idx2} regions={regions} onClose={() => {}} />)
+    expect(screen.queryByTestId('no-drawing')).toBeNull()
+  })
   it('says default when the place could not tell; nothing for an ordinary bird', () => {
     const { unmount } = render(<BirdCard entry={entry('willet3', { assigned: 'default' })} species={idx} regions={regions} onClose={() => {}} />)
     expect(screen.getByText('Assigned by default')).toBeInTheDocument()
