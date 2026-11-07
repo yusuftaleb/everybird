@@ -1,0 +1,78 @@
+AGENTS.md
+  s_ab125876fe9ad2::t_a6059786c2a8b9 72,78,81
+  s_ab125876fe9ad2::t_c1607b1d92e68b 76
+  s_ab125876fe9ad2::t_1e245a5b586d08 70,79
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_a6059786c2a8b9 444-445
+src/lib/list/title.ts
+  s_ab125876fe9ad2::t_c56f5b6ae8ea7d 1-16,20-23,25-46
+  s_ab125876fe9ad2::t_a6059786c2a8b9 17-19
+  s_ab125876fe9ad2::t_6edb8f7b4ee7db 24
+e2e/share.spec.ts
+  s_ab125876fe9ad2::t_61fe290dd800df 109-110,245
+src/lib/share/link.ts
+  s_ab125876fe9ad2::t_48c58035b247a4 19-23,39,50-51,189-190,276,355
+src/components/app/CollagePage.tsx
+  s_ab125876fe9ad2::t_3d499fa9e911c2 6,62
+e2e/flows.spec.ts
+  s_ab125876fe9ad2::t_61fe290dd800df 311,321,328,331,335,340,354
+src/lib/share/og.ts
+  s_ab125876fe9ad2::t_48c58035b247a4 30-42,45,48-49
+tests/og.test.ts
+  s_ab125876fe9ad2::t_aaaf9c6ec0e1eb 50-52,55,60-63
+  s_ab125876fe9ad2::t_dabe1f2f9e0c5e 3,49,59
+tests/storage-v3.test.ts
+  s_ab125876fe9ad2::t_67ca68423b8b39 46,48,52,54,64,66,140,143,146,148,152,156,170,177,179
+  s_ab125876fe9ad2::t_01ed4f8253b214 55-56,58,95,180-221
+tests/storage-v2.test.ts
+  s_ab125876fe9ad2::t_67ca68423b8b39 28,30,38,41,43,47,62,68-69
+src/lib/list/store.ts
+  s_ab125876fe9ad2::t_3d499fa9e911c2 43
+tests/share-dialog.test.tsx
+  s_ab125876fe9ad2::t_aaaf9c6ec0e1eb 34,37,39-40
+  s_ab125876fe9ad2::t_6d111c5b432ec6 86-100
+src/lib/list/storage.ts
+  s_ab125876fe9ad2::t_37401907c76074 4,32-34,37,43-44,57,100-105,109-110,113-119
+tests/link.test.ts
+  s_ab125876fe9ad2::t_e06b4f379dce73 147-172,190,192
+e2e/settings.spec.ts
+  s_ab125876fe9ad2::t_61fe290dd800df 250,252-255,257,260-262,264-265,267,269,274-299
+  s_ab125876fe9ad2::t_bbf04e1d64d215 300-301
+e2e/share-link.spec.ts
+  s_ab125876fe9ad2::t_fd5b7003e6df07 4-5,35
+  s_ab125876fe9ad2::t_61fe290dd800df 14,16,34,36-39
+  s_ab125876fe9ad2::t_5064650ac0833e 40-41
+DESIGN.md
+  s_ab125876fe9ad2::t_a6059786c2a8b9 129
+src/components/app/SettingsPage.tsx
+  s_ab125876fe9ad2::t_3d499fa9e911c2 21-23,27-28,36,41,43,48
+src/lib/share/make-link.ts
+  s_ab125876fe9ad2::t_48c58035b247a4 9-10,15-18
+tests/app-routes.test.tsx
+  s_ab125876fe9ad2::t_aaaf9c6ec0e1eb 612-613,617,620-624,626,628-629,634-639,649
+src/components/share/ShareDialog.tsx
+  s_ab125876fe9ad2::t_48c58035b247a4 3,59,273,278,280,282
+tests/export.test.ts
+  s_ab125876fe9ad2::t_67ca68423b8b39 45
+src/lib/list/export.ts
+  s_ab125876fe9ad2::t_37401907c76074 84-86,120,130
+  s_ab125876fe9ad2::t_f2cf561379e880 7
+e2e/og.spec.ts
+  s_ab125876fe9ad2::t_61fe290dd800df 70-71,74-75,80-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "00876816ec86fdcedfb8add8d74ad9ff9e8c3eb6",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
