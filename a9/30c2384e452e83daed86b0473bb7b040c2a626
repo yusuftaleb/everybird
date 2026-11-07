@@ -1,0 +1,38 @@
+app/s/[token]/page.tsx
+  s_31b3ae7042f88e::t_1bc23e81f4a8f0 19-20,24-26
+app/(app)/about/page.tsx
+  s_31b3ae7042f88e::t_1bc23e81f4a8f0 8,13-15
+app/layout.tsx
+  s_31b3ae7042f88e::t_1bc23e81f4a8f0 5,24-28
+app/sitemap.ts
+  s_31b3ae7042f88e::t_1bc23e81f4a8f0 1-7
+app/(app)/settings/page.tsx
+  s_31b3ae7042f88e::t_1bc23e81f4a8f0 3,5-6
+tests/seo.test.ts
+  s_31b3ae7042f88e::t_1190a24596d4ad 1-59
+AGENTS.md
+  s_31b3ae7042f88e::t_3bca39e57ee7aa 80
+app/robots.ts
+  s_31b3ae7042f88e::t_1bc23e81f4a8f0 1-11
+src/lib/site-meta.ts
+  s_31b3ae7042f88e::t_1bc23e81f4a8f0 1-28
+e2e/seo.spec.ts
+  s_31b3ae7042f88e::t_5018cc4c47f6b7 1-37,42-60
+  s_31b3ae7042f88e::t_3bca39e57ee7aa 38-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a930c2384e452e83daed86b0473bb7b040c2a626",
+  "prompts": {},
+  "sessions": {
+    "s_31b3ae7042f88e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "42dad271-f4b1-4a21-8830-3b0f3817e94d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Yusuf Taleb <yusufbtaleb@gmail.com>"
+    }
+  }
+}
