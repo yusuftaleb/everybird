@@ -1,0 +1,25 @@
+AGENTS.md
+  s_ab125876fe9ad2::t_d5938075aaebeb 82
+docs/superpowers/specs/2026-11-05-everybird-design.md
+  s_ab125876fe9ad2::t_840c9eca36940c 443
+src/lib/layout/pack.ts
+  s_ab125876fe9ad2::t_43ceb168111698 611-612,671,673-675
+tests/pack.test.ts
+  s_ab125876fe9ad2::t_5e946e083ca856 197,199-201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "31f45514fb266f195664bece474d64fbe93fa493",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
