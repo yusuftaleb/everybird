@@ -106,7 +106,7 @@ describe('Places and Time: dropdowns in the controls bar', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
     fireEvent.click(placesBtn())
-    expect(SEARCH_FROM).toBe(12)
+    expect(SEARCH_FROM).toBe(8)
     expect(screen.queryByRole('searchbox', { name: 'Find a country' })).toBeNull()
   })
 

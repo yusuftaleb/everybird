@@ -34,8 +34,8 @@ export type Panel = 'places' | 'time'
  */
 export type PlacesNote = 'add' | 'reimport'
 
-/** More countries than this, and the Places panel gets a search field. */
-export const SEARCH_FROM = 12
+/** More countries than this, and the Places panel gets a "Find a country" field (from 9). */
+export const SEARCH_FROM = 8
 
 type Props = {
   state: AppState
