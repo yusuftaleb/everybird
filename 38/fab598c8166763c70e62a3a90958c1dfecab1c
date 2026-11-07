@@ -1,0 +1,21 @@
+e2e/responsive.spec.ts
+  s_ab125876fe9ad2::t_e1f029865e7963 58
+src/components/app/app.css
+  s_ab125876fe9ad2::t_e1f029865e7963 169,180,194-195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "38fab598c8166763c70e62a3a90958c1dfecab1c",
+  "prompts": {},
+  "sessions": {
+    "s_ab125876fe9ad2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be5632a2-e4eb-43a8-9726-716d638031a0",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "<yusufbtaleb@gmail.com>"
+    }
+  }
+}
