@@ -48,13 +48,20 @@ export function parseLsTree(text: string): Map<string, string> {
   return out
 }
 
-/** The fields of a huashu record that Everybird's build reads (crosswalk, mass, sticker, quality bar), as a digest. */
+/**
+ * The fields of a huashu record that Everybird's build reads (crosswalk, mass, sticker, quality bar, and the forms the
+ * crosswalk can match by their former species), as a digest. A record without forms digests as it did before forms
+ * were read, so only records with forms changed digest when they were added.
+ */
 export function recordDigest(h: HuashuRecord): string {
-  const fields = [
+  const fields: unknown[] = [
     h.scientificName, h.taxonConcept ?? null, h.taxonomy?.seq ?? null, h.ids?.ebird ?? null,
     h.traits?.massG ?? null, h.sticker ? [h.sticker.file, !!h.sticker.meetsQualityBar] : null,
     (h.previous ?? []).map((p) => p.scientificName),
   ]
+  if (h.forms?.length) {
+    fields.push(h.forms.map((f) => [f.formerSpecies?.scientificName ?? null, f.sticker ? [f.sticker.file, !!f.sticker.meetsQualityBar] : null]))
+  }
   return createHash('sha256').update(JSON.stringify(fields)).digest('hex').slice(0, 12)
 }
 

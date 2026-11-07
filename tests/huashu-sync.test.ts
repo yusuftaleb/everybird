@@ -27,6 +27,7 @@ const taxa: TaxonRow[] = [
   { code: 'x1', sci: 'Avis sp.', com: 'bird sp.', cat: 'spuh', to: 4 },
 ]
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x))
+const parseLsTreeFiles = () => Object.fromEntries([...parseLsTree(lsTree)].filter(([p]) => p.startsWith('stickers/')))
 
 function lockFor(records: HuashuRecord[], tree: Map<string, string>, commit = 'a'.repeat(40)): HuashuLock {
   return makeLock({ commit, tree, huashu: records, matches: matchHuashu(records, taxa, {}).matches })
@@ -128,6 +129,48 @@ describe('the huashu diff', () => {
     expect(diffRows(file.species, after.species)).toEqual([
       { code: 'whibir1', fields: ['mass 20 g (avonet) → 25 g (avonet)', 'quality bar met → not met'] },
     ])
+  })
+})
+
+describe('the huashu diff through forms', () => {
+  // Synthetic: Avis nigra absorbed Avis rubra and draws it as a form; redbir1 takes the form's file.
+  const FORM = 'stickers/Testiformes/Testidae/Avis_nigra.rubra.webp'
+  const withForm = (file: string | null, former = 'Avis rubra') => {
+    const next = clone(huashu)
+    next[2].sticker = undefined
+    next[2].ids = {}
+    next[2].scientificName = 'Avis rosea' // redbir1 has no record of its own
+    next[1].forms = [{ taxon: 'Avis nigra rubra', formerSpecies: { scientificName: former }, ...(file ? { sticker: { file, meetsQualityBar: true } } : {}) }]
+    return next
+  }
+  const base = withForm(FORM)
+  const files = { ...parseLsTreeFiles(), [FORM]: 'c'.repeat(40) }
+  const lock: HuashuLock = { ...lockFor(base, new Map([['data/species.json', '2'.repeat(40)], ...Object.entries(files)])) }
+
+  it('a code mapped through a form is in the lock with the form’s file and blob', () => {
+    expect(lock.codes.redbir1).toBe(FORM)
+    expect(lock.shipped.redbir1).toBe('c'.repeat(40))
+    expect(diffStickers(lock, lock)).toEqual([])
+  })
+
+  it('a redrawn, new or removed form is a changed, new or removed sticker for its code', () => {
+    const codes = (h: HuashuRecord[]) => codesFromMatches(matchHuashu(h, taxa, {}).matches)
+    expect(diffStickers(lock, { files: { ...files, [FORM]: 'd'.repeat(40) }, codes: codes(base) }))
+      .toEqual([{ code: 'redbir1', kind: 'changed', from: FORM, to: FORM, blob: 'd'.repeat(40) }])
+    expect(diffStickers(lock, { files, codes: codes(withForm(null)) })).toEqual([{ code: 'redbir1', kind: 'removed', from: FORM }])
+    expect(diffStickers(lock, { files, codes: codes(withForm(FORM, 'Avis alia')) })).toEqual([{ code: 'redbir1', kind: 'removed', from: FORM }])
+    const before = lockFor(withForm(null), new Map([['data/species.json', '2'.repeat(40)], ...Object.entries(files)]))
+    expect(before.codes.redbir1).toBeUndefined()
+    expect(diffStickers(before, { files, codes: codes(base) })).toEqual([{ code: 'redbir1', kind: 'new', to: FORM, blob: 'c'.repeat(40) }])
+  })
+
+  it('a form edit changes its record’s digest; a record without forms digests as before forms were read', () => {
+    const [, nigra] = huashu
+    expect(recordDigest({ ...clone(nigra), forms: [] })).toBe(recordDigest(nigra))
+    const a = recordDigest(withForm(FORM)[1]), b = recordDigest(withForm(FORM.replace('rubra', 'rufa'))[1])
+    expect(a).not.toBe(recordDigest(nigra))
+    expect(a).not.toBe(b)
+    expect(diffRecords(lock.records, recordDigests(withForm(null))).changed).toContain('Avis_nigra')
   })
 })
 

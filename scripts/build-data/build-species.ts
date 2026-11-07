@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url'
 import { restrictToShipped } from '../sync/huashu-lib'
 import { assertRawPinned, readLock } from './huashu-pin'
 import type {
-  HuashuRecord, Overrides, SpeciesFile, SpeciesRow, TaxonCategory, TaxonomyFile, TaxonRow,
+  HuashuForm, HuashuRecord, Overrides, SpeciesFile, SpeciesRow, TaxonCategory, TaxonomyFile, TaxonRow,
 } from '../../src/lib/species/types'
 
 function median(xs: number[]): number {
@@ -32,6 +32,8 @@ export type HuashuMatch = {
   multi: string[]; sciFallback: string[]; viaOverride: string[]
   /** eBird species left unmatched because huashu has them only as a `previous` name of another taxon (a lump). */
   lumped: string[]
+  /** eBird species matched through a huashu form drawn as that taxon (`forms[].formerSpecies`). */
+  viaForm: string[]
 }
 
 /**
@@ -44,9 +46,23 @@ export type HuashuMatch = {
 export const SAME_TAXON_RELATIONS: ReadonlySet<string> = new Set(['same', 'renamed'])
 const isSameTaxon = (p: { relation?: string }) => p.relation === undefined || SAME_TAXON_RELATIONS.has(p.relation)
 
+/**
+ * A match through a form: the parent record with the form's sticker in place of its own, and no traits (the mass is
+ * the parent's taxon, not the form's, so the species keeps its family or order fallback). `form` names the taxon.
+ */
+export function formMatch(parent: HuashuRecord, f: HuashuForm): HuashuRecord {
+  const rec: HuashuRecord = { ...parent, sticker: f.sticker, form: f.taxon }
+  delete rec.traits
+  return rec
+}
+
 // Pure crosswalk: which huashu record (and so which sticker file) belongs to each eBird species. A record matches an
 // eBird species by its own eBird code, its current scientific name, or a former name of the same taxon; never through
 // a species it absorbed (see SAME_TAXON_RELATIONS). An override names the record by hand and always wins.
+// Last, a species with no record of its own takes a huashu form (`forms[]`, a subspecies drawing) whose
+// `formerSpecies.scientificName` is its scientific name: the form depicts that very taxon (huashu draws the Hooded
+// Crow as Corvus corone cornix inside Carrion Crow's record), so this is not borrowing; the parent's main sticker is
+// never used. Several forms for one name: the parent with the lowest seq.
 // Throws if an override names a huashu id that does not exist.
 export function matchHuashu(huashu: HuashuRecord[], taxonomy: TaxonRow[], overrides: Overrides): HuashuMatch {
   const byEbird = new Map<string, HuashuRecord[]>()
@@ -59,6 +75,13 @@ export function matchHuashu(huashu: HuashuRecord[], taxonomy: TaxonRow[], overri
     bySci.set(h.scientificName, h)
   }
   // previous names never shadow a current name
+  const byForm = new Map<string, HuashuRecord>() // formerSpecies scientific name -> formMatch
+  for (const h of [...huashu].sort((a, b) => a.taxonomy.seq - b.taxonomy.seq)) {
+    for (const f of h.forms ?? []) {
+      const name = f.formerSpecies?.scientificName
+      if (name && f.sticker?.file && !byForm.has(name)) byForm.set(name, formMatch(h, f))
+    }
+  }
   for (const h of huashu) {
     for (const p of h.previous ?? []) {
       if (!isSameTaxon(p)) { if (!absorbed.has(p.scientificName)) absorbed.set(p.scientificName, `${h.id} (${p.relation})`); continue }
@@ -67,7 +90,7 @@ export function matchHuashu(huashu: HuashuRecord[], taxonomy: TaxonRow[], overri
   }
 
   const matches = new Map<string, HuashuRecord>()
-  const multi: string[] = [], sciFallback: string[] = [], viaOverride: string[] = [], lumped: string[] = []
+  const multi: string[] = [], sciFallback: string[] = [], viaOverride: string[] = [], lumped: string[] = [], viaForm: string[] = []
   const missing = Object.entries(overrides).filter(([, o]) => o.huashu && !byId.has(o.huashu))
   if (missing.length) {
     throw new Error(`overrides reference unknown huashu ids: ${missing.map(([c, o]) => `${c} -> ${o.huashu}`).join(', ')}`)
@@ -87,20 +110,23 @@ export function matchHuashu(huashu: HuashuRecord[], taxonomy: TaxonRow[], overri
       } else if (bySci.has(t.sci)) {
         rec = bySci.get(t.sci)
         sciFallback.push(`${t.code} (${t.com}) -> ${rec!.id}`)
+      } else if (byForm.has(t.sci)) {
+        rec = byForm.get(t.sci)!
+        viaForm.push(`${t.code} (${t.com}, ${t.sci}) -> ${rec.sticker!.file} (form ${rec.form} in huashu ${rec.id})`)
       } else if (absorbed.has(t.sci)) {
         lumped.push(`${t.code} (${t.com}, ${t.sci}): only a former name in huashu ${absorbed.get(t.sci)}`)
       }
     }
     if (rec) matches.set(t.code, rec)
   }
-  return { matches, multi, sciFallback, viaOverride, lumped }
+  return { matches, multi, sciFallback, viaOverride, lumped, viaForm }
 }
 
 export function buildSpecies(
   huashu: HuashuRecord[], taxonomy: TaxonRow[], overrides: Overrides,
   meta: { ebirdTaxonomy?: string; huashuCommit?: string } = {},
 ): { file: SpeciesFile; report: string } {
-  const { matches, multi, sciFallback, viaOverride: overrideHuashu, lumped } = matchHuashu(huashu, taxonomy, overrides)
+  const { matches, multi, sciFallback, viaOverride: overrideHuashu, lumped, viaForm } = matchHuashu(huashu, taxonomy, overrides)
   const species = taxonomy.filter((t) => t.cat === 'species').sort((a, b) => a.to - b.to)
   const noSticker: string[] = [], massFallback: string[] = []
 
@@ -153,10 +179,12 @@ export function buildSpecies(
     `- With sticker: ${rows.filter((r) => r.st).length}; without: ${noSticker.length}`,
     `- Mass sources: avonet ${massCount('avonet')}, override ${massCount('override')}, family ${massCount('family')}, order ${massCount('order')}`,
     `- Multi-candidate choices: ${multi.length}; scientific-name fallbacks: ${sciFallback.length}; huashu orphans: ${orphans.length}`,
+    `- From huashu forms (a subspecies drawing of that very taxon): ${viaForm.length}`,
     `- No sticker because huashu has them only inside another species (lumped): ${lumped.length}`,
     '',
     list('Multi-candidate choices', multi),
     list('Scientific-name fallbacks', sciFallback),
+    list('From huashu forms (forms[].formerSpecies is the eBird species; the form’s own drawing, never the parent’s)', viaForm),
     list('Lumped by huashu: no sticker (a record never lends its drawing to a species it absorbed)', lumped),
     list('Override huashu records used', overrideHuashu),
     list('No sticker', noSticker),

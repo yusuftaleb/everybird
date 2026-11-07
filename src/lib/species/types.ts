@@ -15,6 +15,12 @@ export type TaxonomyFile = { v: 1; ebirdTaxonomy: string; taxa: TaxonRow[] }
 export type HuashuRecord = { id: string; scientificName: string; taxonConcept: string;
   taxonomy: { seq: number; order: string; family: string }; ids: { ebird?: string };
   traits?: { massG?: number }; sticker?: { file: string; meetsQualityBar: boolean };
-  previous?: { scientificName: string; id?: string; relation?: string }[] }
+  previous?: { scientificName: string; id?: string; relation?: string }[]
+  /** Subspecies drawings; `formerSpecies` is the taxon the form was a species as (often an eBird species today). */
+  forms?: HuashuForm[]
+  /** Set by build-species' matchHuashu on a match made through a form: the form's taxon (the sticker is the form's). */
+  form?: string }
+export type HuashuForm = { taxon: string; formerSpecies?: { scientificName: string; id?: string };
+  sticker?: { file: string; meetsQualityBar: boolean } }
 export type Overrides = Record<string /*eBird code*/, { huashu?: string /*huashu id*/; massG?: number; source: string }>
 export type Regions = { v: 1; countries: Record<string, string>; sub1: Record<string, string> }

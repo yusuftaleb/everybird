@@ -144,7 +144,9 @@ Stickers: huashu-bird-sticker, CC BY 4.0 (https://github.com/alchaincyf/huashu-b
 These files are resized and trimmed from huashu-bird-sticker: each sticker is cropped to its
 opaque bounding box and saved as WebP with its long side at 128 px (\`v1/128/<ebird-code>.webp\`)
 and 384 px (\`v1/384/<ebird-code>.webp\`). Names are eBird species codes. Where several eBird
-species share one huashu sticker, each code gets its own copy.
+species share one huashu sticker, each code gets its own copy. A sticker added or redrawn after v1 is
+saved under a versioned name, \`<ebird-code>.<sv>.webp\` (sv: the start of its huashu file's git blob SHA), so a
+published file is never replaced at its URL.
 
 Source commit: ${commit} (https://github.com/alchaincyf/huashu-bird-sticker/commit/${commit})
 

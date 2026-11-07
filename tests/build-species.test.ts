@@ -137,3 +137,55 @@ describe('no stickers through lumps', () => {
     expect(get('gumin1', { gumin1: { huashu: 'Gus_major', source: 'synthetic' } }).st).toBe(true)
   })
 })
+
+describe('stickers from huashu forms', () => {
+  // Synthetic: Kus major absorbed Kus minor (eBird keeps both) and draws it as the form Kus major minor; Kus major
+  // also has a form whose former species eBird doesn't know, and one without a sticker.
+  const sticker = (file: string, q = true) => ({ file: `stickers/Ordo/Famone/${file}.webp`, meetsQualityBar: q })
+  const recs: HuashuRecord[] = [
+    {
+      id: 'Kus_major', scientificName: 'Kus major', taxonConcept: 'broadened', taxonomy: { seq: 1, order: 'Ordo', family: 'Famone' },
+      ids: { ebird: 'kumaj1' }, traits: { massG: 500 }, sticker: sticker('Kus_major'),
+      previous: [{ scientificName: 'Kus major', relation: 'same' }, { scientificName: 'Kus minor', relation: 'lumped_into_this' },
+        { scientificName: 'Kus nudus', relation: 'lumped_into_this' }],
+      forms: [
+        { taxon: 'Kus major minor', formerSpecies: { scientificName: 'Kus minor' }, sticker: sticker('Kus_major.minor', false) },
+        { taxon: 'Kus major ignotus', formerSpecies: { scientificName: 'Kus ignotus' }, sticker: sticker('Kus_major.ignotus') },
+        { taxon: 'Kus major nudus', formerSpecies: { scientificName: 'Kus nudus' } },
+      ],
+    },
+    {
+      id: 'Kus_own', scientificName: 'Kus own', taxonConcept: 'same', taxonomy: { seq: 2, order: 'Ordo', family: 'Famone' },
+      ids: { ebird: 'kuown1' }, traits: { massG: 40 }, sticker: sticker('Kus_own'),
+      forms: [{ taxon: 'Kus major own', formerSpecies: { scientificName: 'Kus own' }, sticker: sticker('Kus_major.own') }],
+    },
+  ]
+  const tx = (code: string, sci: string, to: number): TaxonRow =>
+    ({ code, sci, com: code, cat: 'species', to, ord: 'Ordo', fam: 'Famone', famCom: 'Family One' })
+  const taxa = [tx('kumaj1', 'Kus major', 1), tx('kumin1', 'Kus minor', 2), tx('kunud1', 'Kus nudus', 3), tx('kuown1', 'Kus own', 4)]
+
+  it('a species with no record of its own takes the form drawn as it, with the form’s quality bar, never the parent’s sticker or mass', () => {
+    const m = matchHuashu(recs, taxa, {})
+    expect(m.matches.get('kumin1')).toMatchObject({ id: 'Kus_major', form: 'Kus major minor', sticker: { file: 'stickers/Ordo/Famone/Kus_major.minor.webp' } })
+    expect(m.matches.get('kumin1')?.traits).toBeUndefined()
+    const r = buildSpecies(recs, taxa, {}).file.species.find((s) => s.code === 'kumin1')!
+    expect(r).toMatchObject({ st: true, q: false, gSrc: 'family' })
+    expect(m.lumped.some((l) => l.startsWith('kumin1'))).toBe(false)
+    expect(m.viaForm).toEqual(['kumin1 (kumin1, Kus minor) -> stickers/Ordo/Famone/Kus_major.minor.webp (form Kus major minor in huashu Kus_major)'])
+  })
+
+  it('the parent keeps its own sticker; a form without a sticker lends nothing; a record of its own beats a form', () => {
+    const m = matchHuashu(recs, taxa, {})
+    expect(m.matches.get('kumaj1')?.sticker?.file).toBe('stickers/Ordo/Famone/Kus_major.webp')
+    expect(m.matches.has('kunud1')).toBe(false)
+    expect(m.lumped.some((l) => l.startsWith('kunud1'))).toBe(true)
+    expect(m.matches.get('kuown1')).toMatchObject({ id: 'Kus_own', sticker: { file: 'stickers/Ordo/Famone/Kus_own.webp' } })
+    expect(m.matches.get('kuown1')?.form).toBeUndefined()
+  })
+
+  it('the report lists the species from forms', () => {
+    const { report } = buildSpecies(recs, taxa, {})
+    expect(report).toMatch(/From huashu forms \(a subspecies drawing of that very taxon\): 1/)
+    expect(report).toMatch(/## From huashu forms .*\(1\)\n\n- kumin1 /)
+  })
+})
