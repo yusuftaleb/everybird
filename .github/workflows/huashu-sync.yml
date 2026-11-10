@@ -49,9 +49,13 @@ jobs:
       ALLOW_BIG_CHANGE: ${{ inputs.allow_big_change == true }}
       R2_TOKEN_EXPIRES: '2027-11-06'
       UV_THREADPOOL_SIZE: 4 # sharp's work runs on libuv's pool; set before node starts
-      OUT: ${{ github.workspace }}/../huashu-sync
     steps:
-      - uses: actions/checkout@v4
+      # The run's output dir. Not beside the checkout (upload-artifact refuses a path with '..'); the runner context
+      # isn't available in a job-level env, so it is set here for every later step.
+      - name: Output dir
+        run: echo "OUT=$RUNNER_TEMP/huashu-sync" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -72,7 +76,7 @@ jobs:
             fi
           fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -99,10 +103,10 @@ jobs:
       - name: Upload summary.json and the before/after sheets
         id: artifact
         if: steps.sync.outputs.changed == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: huashu-sync-${{ steps.sync.outputs.short }}
-          path: ${{ github.workspace }}/../huashu-sync/artifact
+          path: ${{ runner.temp }}/huashu-sync/artifact
           retention-days: 30
           if-no-files-found: error
 
@@ -134,7 +138,7 @@ jobs:
       - name: Upload the rebuilt stickers to R2
         if: steps.sync.outputs.changed == 'true' && env.DRY_RUN != 'true' && steps.sync.outputs.stickers != '0'
         env:
-          STICKERS_DIR: ${{ github.workspace }}/../huashu-sync/stickers
+          STICKERS_DIR: ${{ runner.temp }}/huashu-sync/stickers
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}

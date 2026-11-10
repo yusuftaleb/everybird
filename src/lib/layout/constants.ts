@@ -7,9 +7,10 @@
 export const EXP = 0.2 // "evened out": painted area ~ mass ** (2 · EXP) = mass ** 0.4 (a typical shape's long side ~ mass ** 0.2)
 export const EXP_TRUE = 1 / 3 // "true size": painted area ~ mass ** (2/3), so length ~ mass ** (1/3)
 // The reference shape: a bird of this shape keeps the long side it had when sizes followed the long side. Calibrated
-// so the median rel over all 10,989 sticker species is unchanged in both modes (the median shape is 222 / 576; the
-// median rel, a product, needs 218 / 576), so the median sticker, the floors and the stage growth stay as they were.
-export const SHAPE_REF = 218 / 576
+// so the median rel over all sticker species is unchanged in both modes, so the median sticker, the floors and the
+// stage growth stay as they were. Recalibrated 2026-11-09 for huashu 442341a's redrawn stickers (11,027 masks; the
+// median shape is 219 / 576, the median rel, a product, needs 215 / 576; it was 218 on 2026-11-06's 10,989).
+export const SHAPE_REF = 215 / 576
 // The no-sticker outline (bird-outline.ts: Phosphor's Bird at 0.72 of its box), filled and measured as a mask would be
 // (141 of 576 cells): its silhouette's area follows mass as a sticker's does. Its collision mask stays the ellipse.
 export const OUTLINE_SHAPE = 141 / 576

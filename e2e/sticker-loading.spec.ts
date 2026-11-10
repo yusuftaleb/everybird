@@ -18,7 +18,7 @@ async function holdStickers(page: Page) {
   const held: (() => Promise<void>)[] = [];
   await page.route(/\/v1\/(128|384)\/[^/]+\.webp/, (route) => {
     held.push(async () => {
-      if (route.request().url().includes(`/${BROKEN}.webp`)) await route.fulfill({ status: 404, body: "" });
+      if (new RegExp(`/${BROKEN}(\\.[0-9a-f]+)?\\.webp$`).test(route.request().url())) await route.fulfill({ status: 404, body: "" });
       else await route.continue();
     });
   });
