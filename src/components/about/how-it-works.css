@@ -143,21 +143,17 @@
 .ebd .ebd-why { color: var(--accent); text-decoration: underline; text-decoration-thickness: from-font; text-underline-offset: 2px; }
 .ebd .ebd-src-acts { display: flex; align-items: center; gap: 6px; flex: none; }
 .ebd .ebd-src-acts > .ebd-btn > .ebd-swap { justify-items: center; }
+/* Add turning into Replace: two buttons at one right edge, each its own width, cross-faded (opacity only). */
+.ebd .ebd-btnswap { display: grid; justify-items: end; }
+.ebd .ebd-btnswap > * { grid-area: 1 / 1; transition: opacity .22s ease; }
+.ebd .ebd-btnswap > :last-child, .ebd .ebd-btnswap[data-on] > :first-child { opacity: 0; }
+.ebd .ebd-btnswap[data-on] > :last-child { opacity: 1; }
 /* The ⋯ menu button (.eb-menubtn) arrives with the connection. */
 .ebd .ebd-menubtn { width: 28px; padding: 0; opacity: 0; transition: opacity .22s ease; }
 .ebd .ebd-menubtn[data-show] { opacity: 1; }
 .ebd .ebd-menubtn svg { width: 16px; height: 16px; }
 .ebd .ebd-src-full .ebd-src-acts { margin-right: -34px; transition: margin .3s var(--eb-ui); }
 .ebd .ebd-src-full:has(.ebd-menubtn[data-show]) .ebd-src-acts { margin-right: 0; }
-/* The status line under the eBird rows (.eb-status): always there, so it keeps its height; the words fade. Contained,
-   so the ticking row count lays out only this line. */
-.ebd .ebd-status {
-  margin: 0; padding: 0 14px; height: 20px; contain: strict; white-space: nowrap;
-  font-size: 12px; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums;
-}
-.ebd .ss-stage[data-layout="compact"] .ebd-status { padding: 0 12px; font-size: 11px; height: 18px; }
-.ebd .ebd-status > span { display: block; opacity: 0; transition: opacity .2s ease; }
-.ebd .ebd-status > span[data-show] { opacity: 1; transition-duration: .24s; }
 /* Compact: MyEBirdData's Add panel (.eb-src-panel) with "Choose your eBird file" in its drop zone. It opens over the
    rows below (opacity and a short drop) while they move down by a transform: nothing is laid out per frame. */
 .ebd .ebd-src-full { position: relative; }
@@ -172,8 +168,6 @@
 .ebd .ebd-btn-choose { width: 100%; height: 30px; font-size: 12.5px; }
 .ebd .ebd-below { will-change: transform; transition: transform .3s cubic-bezier(.4, 0, .2, 1) .05s; }
 .ebd .ebd-below[data-pushed] { transform: translateY(52px); transition: transform .32s cubic-bezier(.4, 0, .2, 1); }
-.ebd .ebd-filedrop:has(.ebd-panel[data-show]) .ebd-status { transform: translateY(52px); }
-.ebd .ebd-filedrop .ebd-status { transition: transform .3s cubic-bezier(.4, 0, .2, 1); }
 
 /* ---- The collage page ---- */
 /* The page head (.eb-pagehead): the title verbatim, Add birds (quiet) and Share. */

@@ -236,7 +236,10 @@ test("How it works: the scene's labels are the product's (Settings rows, summary
   expect(src("src/components/import/InatForm.tsx")).toContain('title="iNaturalist"')
   expect(src("src/components/import/ImportPanel.tsx")).toContain('title="Ticked by hand"')
   // The connected row's status and the summary line, from the product's own functions
-  const status = (await scene.locator(".ebd-src-full .ebd-src-meta .ebd-swap-b").textContent())!
+  const status = (await scene.locator(".ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-b").textContent())!
+  // Before the import: "Not added", then the reading line in its place (the product's .eb-status wording)
+  await expect(scene.locator(".ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-a .ebd-swap-a")).toHaveText("Not added")
+  await expect(scene.locator(".ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-a .ebd-swap-b")).toHaveText(/^Reading your file… [\d,]+ rows$/)
   expect(status).toMatch(new RegExp(`^${countParts({ species: TOTAL, only: 0 } as RowCount).join(" · ")} · 3 skipped why\\? · Imported \\d{1,2} [A-Z][a-z]{2}$`))
   const sum = summaryLine({ total: TOTAL, parts: [{ group: "ebird", n: TOTAL }] } as unknown as SourceCounts)!
   await expect(scene.locator(".ebd-sum .ebd-swap-b")).toHaveText(`${sum} See my collage`)

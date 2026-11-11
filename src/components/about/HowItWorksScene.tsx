@@ -236,9 +236,16 @@ function Swap({ on, a, b, className }: { on: boolean; a: ReactNode; b: ReactNode
 }
 
 /** One source row (SourceLine.tsx's SourceRow): the title and status on two lines, one button, ⋯ once connected. */
-function Row({ title, name, status, button, menu, target, children, className }: {
-  title: string; name?: ReactNode; status: ReactNode; button: ReactNode; menu?: ReactNode; target?: string; children?: ReactNode; className?: string
+function Row({ title, name, status, button, next, menu, target, children, className }: {
+  title: string; name?: ReactNode; status: ReactNode; button: ReactNode; next?: { on: boolean; label: ReactNode }
+  menu?: ReactNode; target?: string; children?: ReactNode; className?: string
 }) {
+  // `next`: the button the row turns into (Add -> Replace). Two buttons of their own widths, stacked at one right edge
+  // and cross-faded, so this row's Add is exactly as wide as every other row's (the product's button follows its label).
+  const btn = <span className="ebd-btn ebd-btn-quiet ebd-btn-sm" data-target={target}>{button}</span>
+  const acts = next
+    ? <span className="ebd-btnswap" data-on={next.on || undefined}>{btn}<span className="ebd-btn ebd-btn-quiet ebd-btn-sm">{next.label}</span></span>
+    : btn
   return (
     <div className={`ebd-src${className ? ` ${className}` : ''}`}>
       <div className="ebd-src-main">
@@ -247,7 +254,7 @@ function Row({ title, name, status, button, menu, target, children, className }:
           <div className="ebd-src-meta">{status}</div>
         </div>
         <div className="ebd-src-acts">
-          <span className="ebd-btn ebd-btn-quiet ebd-btn-sm" data-target={target}>{button}</span>
+          {acts}
           {menu}
         </div>
       </div>
@@ -279,13 +286,16 @@ function SettingsPage({ s, wide }: { s: S; wide: boolean }) {
             className="ebd-src-full"
             name={<Swap on={connected} className="ebd-src-name" a="" b={<> · {FILE}</>} />}
             status={
+              // The reading line takes the status's place (cross-faded): it takes no room until it appears, as the
+              // product's empty .eb-status doesn't
               <Swap
                 on={connected}
-                a="Not added"
+                a={<Swap on={s.reading} a="Not added" b={<>Reading your file… <Tick value={s.rows} ms={900} /> rows</>} />}
                 b={<>{TOTAL} species · {SKIPPED} skipped <span className="ebd-why">why?</span> · Imported {IMPORTED}</>}
               />
             }
-            button={<Swap on={connected} a="Add" b="Replace" />}
+            button="Add"
+            next={{ on: connected, label: 'Replace' }}
             target="add-full"
             menu={<span className="ebd-btn ebd-btn-quiet ebd-btn-sm ebd-menubtn" data-show={connected || undefined}><DotsThree weight="bold" /></span>}
           >
@@ -295,10 +305,6 @@ function SettingsPage({ s, wide }: { s: S; wide: boolean }) {
               </div>
             )}
           </Row>
-          {/* The status line keeps its place (as .eb-status does); the words fade in and out */}
-          <p className="ebd-status">
-            <span data-show={s.reading || undefined}>Reading your file… <Tick value={s.rows} ms={900} /> rows</span>
-          </p>
         </div>
         <div className="ebd-below" data-pushed={(!wide && s.adding) || undefined}>
           <Row title="iNaturalist" status="Not added" button="Add" />
