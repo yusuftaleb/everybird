@@ -21,7 +21,7 @@ import { CollageIcon, FilterLinesIcon, ListIcon, SearchIcon } from '@/components
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { FOOTER_LINE } from '@/lib/share/image'
 import { stickerUrl } from '@/lib/sticker-url'
-import { AR, BIRDS, COLLAGE, HERONS, LATEST, SHARE, SV, TOTAL, type Box } from './how-it-works-data'
+import { AR, BIRDS, COLLAGE, FAMILIES, HERONS, LATEST, SHARE, SV, TOTAL, type Box } from './how-it-works-data'
 import type { Layout } from './stageshow/looks'
 import { Window } from './stageshow/window'
 import './stageshow/stage.css'
@@ -56,7 +56,7 @@ export const FILE = 'MyEBirdData.csv'
 export const ROWS = 4812
 /** The demo's list (made up): its orders as the chips show them, in taxonomic order, adding up to TOTAL. */
 export const ORDERS: [string, number][] = [['Waterfowl', 17], ['Shorebirds and gulls', 12], ['Herons', 6], ['Hawks and eagles', 8], ['Owls', 3], ['Woodpeckers', 5], ['Perching birds', 61]]
-const FAMILIES = 31
+
 const SINCE = 'Mar 2019'
 /** What the file brought: its rows not counted (a spuh, a hybrid, a domestic), and the day it came in. */
 const SKIPPED = 3

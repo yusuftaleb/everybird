@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { HOWTO_DATA, makeHowtoData } from '../scripts/build-data/build-howto'
-import { BIRDS, COLLAGE, HERONS, SHARE, TOTAL } from '@/components/about/how-it-works-data'
+import { BIRDS, COLLAGE, FAMILIES, HERONS, SHARE, TOTAL } from '@/components/about/how-it-works-data'
 import { ORDERS } from '@/components/about/HowItWorksScene'
 import { collageHole, touchesHole, type Rect } from '@/lib/layout/count-box'
 import { decodeMask, maskCell, type Mask } from '@/lib/layout/mask'
@@ -38,6 +38,15 @@ describe('the About demo', () => {
     expect(readFileSync(HOWTO_DATA, 'utf8')).toBe(makeHowtoData())
   })
 
+  it('draws every bird it counts: TOTAL stickers in each collage and share image, the families the stats line says', () => {
+    expect(new Set(BIRDS).size).toBe(TOTAL)
+    for (const layout of ['wide', 'compact'] as const) expect(Object.keys(COLLAGE[layout].all).sort()).toEqual([...BIRDS].sort())
+    for (const f of ['story', 'post', 'square'] as const) expect(Object.keys(SHARE[f].tiles)).toHaveLength(TOTAL)
+    expect(new Set(BIRDS.map((c) => byCode.get(c)!.fam)).size).toBe(FAMILIES)
+    // Each chip's count is the birds of that order drawn
+    for (const [label, k] of ORDERS) expect(BIRDS.filter((c) => orderLabel(byCode.get(c)!.ord) === label), label).toHaveLength(k)
+  })
+
   it('has chips whose counts add up to its total, each order a real one with a bird in the demo, Herons six', () => {
     expect(ORDERS.reduce((a, [, k]) => a + k, 0)).toBe(TOTAL)
     const shown = new Set(BIRDS.map((c) => orderLabel(byCode.get(c)!.ord)))
@@ -51,9 +60,10 @@ describe('the About demo', () => {
       it(`${layout}, ${state === 'all' ? 'every bird' : 'Herons chosen'}: no sticker paints on the count or on another, all inside the box`, () => {
         const c = COLLAGE[layout]
         const boxes = c[state]
+        // The drawn count's hole (packed at z x the box with this hole scaled up, drawn at 1/z)
         const hole = collageHole(state === 'all' ? TOTAL : HERONS.length, { W: c.W, F: c.F, minWidth: c.W, maxWidth: c.W })
-        // The packer works on 2-unit cells: allow a cell's rounding on the hole's padding.
-        const inner = { ...hole, pad: Math.max(0, hole.pad - 2) }
+        // The packer works on 2-unit cells (2 / z px drawn): allow a cell's rounding on the hole's padding.
+        const inner = { ...hole, pad: Math.max(0, hole.pad - 2 / c.z) }
         const cells = Object.fromEntries(Object.entries(boxes).map(([code, b]) => [code, painted(code, b)]))
         for (const [code, b] of Object.entries(boxes)) {
           expect(b[0] >= 0 && b[1] >= 0 && b[0] + b[2] <= c.W + 0.1 && b[1] + b[3] <= c.H + 0.1, `${code} inside`).toBe(true)

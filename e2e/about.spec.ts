@@ -170,6 +170,28 @@ for (const { layout, width, height } of SIZES) {
     await ctx.close()
   })
 
+  test(`How it works: the collage draws every bird it counts, each inside the window's visible part (${layout})`, async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, reducedMotion: "reduce" })
+    const page = await ctx.newPage()
+    await page.goto("/about")
+    const poster = page.locator(`[data-poster="${layout}"]`)
+    await expect(poster.locator(".ebd-num")).toHaveText(String(TOTAL))
+    await expect(poster.locator(".ebd-collage .ebd-bird")).toHaveCount(TOTAL)
+    // The part of the window the stage shows: the window's body clipped by the stage
+    const out = await page.evaluate((l) => {
+      const root = document.querySelector(`[data-poster="${l}"]`)!
+      const st = root.querySelector(".ss-stage")!.getBoundingClientRect()
+      const body = root.querySelector(".ss-window__body")!.getBoundingClientRect()
+      const v = { l: Math.max(st.left, body.left), t: Math.max(st.top, body.top), r: Math.min(st.right, body.right), b: Math.min(st.bottom, body.bottom) }
+      return [...root.querySelectorAll<HTMLElement>(".ebd-collage .ebd-bird")].flatMap((el) => {
+        const r = el.getBoundingClientRect()
+        return r.left >= v.l - 0.5 && r.top >= v.t - 0.5 && r.right <= v.r + 0.5 && r.bottom <= v.b + 0.5 ? [] : [`${el.dataset.code} ${[r.left, r.top, r.right, r.bottom].map(Math.round)} outside ${[v.l, v.t, v.r, v.b].map(Math.round)}`]
+      })
+    }, layout)
+    expect(out).toEqual([])
+    await ctx.close()
+  })
+
   test(`How it works: no sticker paints on the count, in the collage and the share images (${layout})`, async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width, height }, reducedMotion: "reduce" })
     const page = await ctx.newPage()
