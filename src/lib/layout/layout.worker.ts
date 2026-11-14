@@ -23,6 +23,7 @@ import { EXP, EXP_TRUE, LAYOUTS, OUTLINE_SHAPE } from './constants'
 import { decodeMask, MASK, type Mask } from './mask'
 import { packBest, packFrame, relSizes, type PackBird } from './pack'
 import type { Hole } from './count-box'
+import { fetchAllMasks } from '../data-url'
 
 export type ListEntryMsg = { code: string; mass: number; ord: string }
 export type LayoutName = 'wide' | 'medium' | 'narrow'
@@ -59,13 +60,8 @@ function ellipseMask(): Mask {
 }
 export const FALLBACK_MASK: Mask = ellipseMask()
 
-export const fetchOrderMasks: MaskLoader = async (order) => {
-  const url = `/data/masks/${order}.v1.json`
-  const origin = typeof self !== 'undefined' ? self.location?.origin : undefined
-  const res = await fetch(origin && origin !== 'null' ? new URL(url, origin).href : url)
-  if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`)
-  return (await res.json()) as MaskTable
-}
+// All orders come from one file (masks.v2.json, one request); an order missing from it has no masks.
+export const fetchOrderMasks: MaskLoader = async (order) => (await fetchAllMasks())[order] ?? {}
 
 // rel: relative sizes over the whole list per mode (smallest bird of the list = 1), shared by every state.
 type ListState = { ids: Map<string, number>; birds: Map<string, PackBird>; rel: { even: Map<number, number>; true: Map<number, number> } }

@@ -1,5 +1,5 @@
 import { GithubLogo } from '@phosphor-icons/react/dist/ssr'
-import Link from 'next/link'
+import Link from '@/components/app/IntentLink'
 
 /** The repository, linked from the footer's right edge. */
 export const REPO_URL = 'https://github.com/yusuftaleb/everybird'

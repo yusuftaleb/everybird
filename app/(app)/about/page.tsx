@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import Link from '@/components/app/IntentLink'
 import type { ReactNode } from 'react'
 import { HowItWorksDemo } from '@/components/about/HowItWorksDemo'
 import { PageHead } from '@/components/app/PageHead'

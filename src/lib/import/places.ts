@@ -1,7 +1,7 @@
 import type { Place } from '../list/model'
 import type { Regions } from '../species/types'
+import { fetchData } from '../data-url'
 
-const REGIONS_URL = '/data/regions.v1.json'
 let regionsP: Promise<Regions> | null = null
 
 /** Test hook: forget the cached promise. */
@@ -13,9 +13,7 @@ export function resetRegionsCache(): void {
 export function loadRegions(): Promise<Regions> {
   if (regionsP) return regionsP
   const p = (async () => {
-    const res = await fetch(REGIONS_URL)
-    if (!res.ok) throw new Error(`Failed to load ${REGIONS_URL}: ${res.status}`)
-    return (await res.json()) as Regions
+    return await fetchData<Regions>('regions.v1.json')
   })().catch((e) => {
     regionsP = null
     throw e

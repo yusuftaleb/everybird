@@ -1,9 +1,10 @@
 // Silhouette hit-testing for the collage, as LifeList.tsx's hitMask: birds take no pointer events; the stage
-// finds the topmost bird whose mask covers the pointer. Masks are the packer's (public/data/masks/<Order>.v1.json),
-// fetched per order on the first pointer interaction (the browser cache shares them with the layout worker).
+// finds the topmost bird whose mask covers the pointer. Masks are the packer's (masks.v2.json, every order in
+// one file), fetched on the first pointer interaction (the browser cache shares them with the layout worker).
 // Until a bird's mask is in, and for species without a sticker, the inscribed ellipse stands in.
 import type { StateLayout } from '@/lib/layout/layout-client'
 import { decodeMask, maskCell, type Mask } from '@/lib/layout/mask'
+import { fetchAllMasks } from '@/lib/data-url'
 
 const orderFiles = new Map<string, Promise<Record<string, [number, number, string]>>>()
 const decoded = new Map<string, Mask>()
@@ -11,8 +12,8 @@ const decoded = new Map<string, Mask>()
 function loadOrder(ord: string) {
   let p = orderFiles.get(ord)
   if (!p) {
-    p = fetch(`/data/masks/${encodeURIComponent(ord)}.v1.json`)
-      .then((r) => (r.ok ? r.json() : {}))
+    p = fetchAllMasks()
+      .then((all) => all[ord] ?? {})
       .catch(() => ({}))
     orderFiles.set(ord, p)
   }

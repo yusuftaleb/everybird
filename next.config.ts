@@ -11,7 +11,13 @@ const nextConfig: NextConfig = {
   // A share link's token is the birder's list: the Referer is the origin only, everywhere. The root layout's metadata
   // sets the same policy as a <meta> tag; the header doesn't depend on where streaming metadata puts that tag.
   async headers() {
-    return [{ source: "/:path*", headers: [{ key: "Referrer-Policy", value: "strict-origin" }] }];
+    // The site icons change only with a redesign: browsers keep them a week instead of revalidating every visit.
+    const icons = [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }];
+    return [
+      { source: "/:path*", headers: [{ key: "Referrer-Policy", value: "strict-origin" }] },
+      { source: "/icons/:file*", headers: icons },
+      { source: "/favicon.ico", headers: icons },
+    ];
   },
 };
 

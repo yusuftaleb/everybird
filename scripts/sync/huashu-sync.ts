@@ -275,6 +275,10 @@ async function syncFrom(root: string, a: Args, lock: HuashuLock, repo: Repo, dir
     const sorted = Object.fromEntries(Object.entries(rec).sort(([x], [y]) => (x < y ? -1 : 1)))
     outputs.set(`public/data/masks/${ord}.v1.json`, JSON.stringify(sorted))
   }
+  // The masks bundle and the hashed data-file names (src/lib/data-files.ts), from the files as this run leaves them.
+  const { buildDataFiles } = await import('../build-data/data-files')
+  const dataText = (n: string) => outputs.get(`public/data/${n}`) ?? readFileSync(join(root, 'public/data', n), 'utf8')
+  for (const [rel, text] of buildDataFiles(dataText, masks as Map<string, Record<string, unknown>>)) outputs.set(rel, text)
   const changedFiles: string[] = []
   for (const [rel, text] of outputs) {
     const now = existsSync(join(root, rel)) ? readFileSync(join(root, rel), 'utf8') : null

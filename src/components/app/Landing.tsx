@@ -1,6 +1,6 @@
 'use client'
 import { ArrowRight } from '@phosphor-icons/react'
-import Link from 'next/link'
+import Link from '@/components/app/IntentLink'
 import { useEverybirdContext } from './EverybirdProvider'
 import { AppNotices } from './Notices'
 import { SampleDemo } from './SampleDemo'

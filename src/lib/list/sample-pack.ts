@@ -9,6 +9,7 @@ import { buildSpeciesIndex, type SpeciesIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { sampleToSaved, type SampleFile } from './sample'
 import type { Saved } from './storage'
+import { fetchData } from '../data-url'
 
 export type PackedLayout = { layout: LayoutName; W: number; H: number; base: number; codes: string[]; boxes: number[] }
 export type SamplePackFile = SampleFile & { species: SpeciesRow[]; regions: Regions; layouts: PackedLayout[] }
@@ -27,16 +28,13 @@ export function fromPackFile(f: SamplePackFile): SamplePack {
   return { saved: sampleToSaved(f), species: buildSpeciesIndex(f.species), regions: f.regions, seed: seedLayouts(f) }
 }
 
-const PACK_URL = '/data/sample-pack.v1.json'
 let packP: Promise<SamplePack> | null = null
 
 /** The landing sample, fetched once (a failure is not cached). */
 export function loadSamplePack(): Promise<SamplePack> {
   if (packP) return packP
   const p = (async () => {
-    const res = await fetch(PACK_URL, { priority: 'high' } as RequestInit)
-    if (!res.ok) throw new Error(`Failed to load ${PACK_URL}: ${res.status}`)
-    return fromPackFile((await res.json()) as SamplePackFile)
+    return fromPackFile(await fetchData<SamplePackFile>('sample-pack.v1.json', { priority: 'high' } as RequestInit))
   })().catch((e) => {
     packP = null
     throw e

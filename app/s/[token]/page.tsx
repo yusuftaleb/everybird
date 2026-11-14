@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import Link from '@/components/app/IntentLink'
 import { ArrowRight } from '@phosphor-icons/react/ssr'
 import { SampleDemo } from '@/components/app/SampleDemo'
 import { SharedView } from '@/components/app/SharedView'

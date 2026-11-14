@@ -1,6 +1,6 @@
 'use client'
 import { ArrowRight, DownloadSimple, Trash } from '@phosphor-icons/react'
-import Link from 'next/link'
+import Link from '@/components/app/IntentLink'
 import { useRouter } from 'next/navigation'
 import { useId, useMemo, useState } from 'react'
 import { ImportPanel } from '@/components/import/ImportPanel'

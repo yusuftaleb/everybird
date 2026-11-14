@@ -9,7 +9,7 @@
 //    A list whose places are all lifer places says so (PlacesNote).
 //  - Time: the timeline (Timeline.tsx): month bars, a year axis, a range of months; Clear.
 import { CalendarBlank, CaretDown, GlobeHemisphereWest } from '@phosphor-icons/react'
-import Link from 'next/link'
+import Link from '@/components/app/IntentLink'
 import { createPortal } from 'react-dom'
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { CloseIcon, SearchIcon } from '@/components/collage/icons'

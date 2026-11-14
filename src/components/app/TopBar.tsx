@@ -4,7 +4,7 @@
 // site's active style: Surface fill, Hairline border, Accent), and the sun/moon theme switch on the right. One row
 // down to 320px. Sticky with headroom (src/lib/headroom.ts): it slides out of view while the page scrolls down and back
 // on any upward scroll, at the top, while a dialog holds it and while focus is inside it.
-import Link from 'next/link'
+import Link from '@/components/app/IntentLink'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { attachHeadroom } from '@/lib/headroom'

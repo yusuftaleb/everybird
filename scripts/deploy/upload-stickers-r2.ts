@@ -3,7 +3,13 @@
 // Content-Type image/webp. The bucket is served at https://stickers.yusuftaleb.com, the app's default sticker host
 // (src/lib/sticker-url.ts); the GitHub Pages copy of the same files is the fallback.
 //
-//   npx tsx scripts/deploy/upload-stickers-r2.ts [--dry-run] [--force] [--concurrency 16]
+//   npx tsx scripts/deploy/upload-stickers-r2.ts [--dry-run] [--force] [--concurrency 16] [--data]
+//
+// --data uploads the app's data files instead (src/lib/data-files.ts: species, taxonomy, regions, the masks bundle,
+// the sample, the sample pack, the iNaturalist synonyms) from public/data to data/<content-hashed name>, with
+// Content-Type application/json and the same year-long immutable cache; the app fetches them from
+// NEXT_PUBLIC_DATA_BASE (https://stickers.yusuftaleb.com/data, src/lib/data-url.ts). A hashed key already in the
+// bucket is never uploaded again (its name is its content). Run it before deploying a change to public/data.
 //
 // Env: R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_ENDPOINT (https://<account>.r2.cloudflarestorage.com)
 // or R2_ACCOUNT_ID. Idempotent and resumable: it lists the bucket's v1/ objects first (1,000 per request) and skips
@@ -18,6 +24,7 @@ import { fileURLToPath } from 'node:url'
 
 export const CACHE_CONTROL = 'public, max-age=31536000, immutable'
 export const CONTENT_TYPE = 'image/webp'
+export const JSON_TYPE = 'application/json'
 const REGION = 'auto' // R2's region for SigV4
 const EMPTY_SHA = createHash('sha256').update('').digest('hex')
 
@@ -63,7 +70,7 @@ export function signV4(
   return { ...headers, authorization: `AWS4-HMAC-SHA256 Credential=${creds.accessKeyId}/${scope}, SignedHeaders=${names.join(';')}, Signature=${signature}` }
 }
 
-export type LocalFile = { key: string; path: string; size: number }
+export type LocalFile = { key: string; path: string; size: number; type?: string }
 /** Every file under `<root>/v1`, keyed by its path from `root` with '/' ("v1/384/ostric2.webp"), sorted. */
 export function listLocal(root: string): LocalFile[] {
   const out: LocalFile[] = []
@@ -78,8 +85,19 @@ export function listLocal(root: string): LocalFile[] {
   return out.sort((a, b) => (a.key < b.key ? -1 : 1))
 }
 
-/** A versioned sticker key, `v1/<size>/<code>.<sv>.webp` (src/lib/sticker-url.ts): written once, never replaced. */
-export const isVersionedKey = (key: string) => /^v1\/\d+\/[a-z0-9]+\.[0-9a-z]+\.webp$/.test(key)
+/** The data files as `data/<hashed name>` keys, from `dataDir` (public/data) and the DATA_FILES table. */
+export function listData(dataDir: string, files: Record<string, string>): LocalFile[] {
+  return Object.entries(files).map(([name, hashed]) => {
+    const path = join(dataDir, name)
+    return { key: `data/${hashed}`, path, size: statSync(path).size, type: JSON_TYPE }
+  }).sort((a, b) => (a.key < b.key ? -1 : 1))
+}
+
+/**
+ * A key written once, never replaced: a versioned sticker, `v1/<size>/<code>.<sv>.webp` (src/lib/sticker-url.ts),
+ * or a content-hashed data file, `data/<name>.<10 hex>.json`.
+ */
+export const isVersionedKey = (key: string) => /^v1\/\d+\/[a-z0-9]+\.[0-9a-z]+\.webp$/.test(key) || /^data\/[a-z0-9.-]+\.[0-9a-f]{10}\.json$/.test(key)
 
 /**
  * The files to upload: all with `force`, else those missing from the bucket or there at another size. A versioned
@@ -123,7 +141,7 @@ async function put(t: Target, f: LocalFile): Promise<void> {
   const body = readFileSync(f.path)
   const url = objectUrl(t, f.key)
   for (let attempt = 1; ; attempt++) {
-    const headers = signV4({ method: 'PUT', url, payloadHash: sha256(body), headers: { 'cache-control': CACHE_CONTROL, 'content-type': CONTENT_TYPE } }, t.creds)
+    const headers = signV4({ method: 'PUT', url, payloadHash: sha256(body), headers: { 'cache-control': CACHE_CONTROL, 'content-type': f.type ?? CONTENT_TYPE } }, t.creds)
     const res = await fetch(url, { method: 'PUT', headers, body })
     if (res.ok) return
     const msg = `${f.key}: ${res.status} ${(await res.text()).slice(0, 200)}`
@@ -134,12 +152,13 @@ async function put(t: Target, f: LocalFile): Promise<void> {
 
 async function main() {
   const args = process.argv.slice(2)
-  const dry = args.includes('--dry-run'), force = args.includes('--force')
+  const dry = args.includes('--dry-run'), force = args.includes('--force'), data = args.includes('--data')
   const ci = args.indexOf('--concurrency')
   const concurrency = ci >= 0 ? Math.max(1, Number(args[ci + 1]) || 16) : 16
   const root = resolve(process.env.STICKERS_DIR ?? join(fileURLToPath(new URL('.', import.meta.url)), '../../../everybird-stickers'))
-  const local = listLocal(root)
-  console.log(`${local.length} sticker files under ${join(root, 'v1')}`)
+  const repo = resolve(fileURLToPath(new URL('.', import.meta.url)), '../..')
+  const local = data ? listData(join(repo, 'public/data'), (await import('../../src/lib/data-files')).DATA_FILES) : listLocal(root)
+  console.log(data ? `${local.length} data files under ${join(repo, 'public/data')}` : `${local.length} sticker files under ${join(root, 'v1')}`)
 
   const { R2_BUCKET: bucket, R2_ACCESS_KEY_ID: accessKeyId, R2_SECRET_ACCESS_KEY: secretAccessKey } = process.env
   const endpoint = (process.env.R2_ENDPOINT ?? (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : '')).replace(/\/+$/, '')
@@ -148,7 +167,7 @@ async function main() {
   const t: Target | null = haveCreds ? { endpoint, bucket: bucket!, creds: { accessKeyId: accessKeyId!, secretAccessKey: secretAccessKey! } } : null
 
   // Listed even with --force: versioned keys already there are never overwritten.
-  const remote = t ? await listRemote(t, 'v1/') : new Map<string, number>()
+  const remote = t ? await listRemote(t, data ? 'data/' : 'v1/') : new Map<string, number>()
   const todo = planUploads(local, remote, force)
   const clash = local.filter((f) => isVersionedKey(f.key) && remote.has(f.key) && remote.get(f.key) !== f.size)
   if (clash.length) console.warn(`warning: ${clash.length} versioned keys already in the bucket at another size were left alone, e.g. ${clash[0].key}`)

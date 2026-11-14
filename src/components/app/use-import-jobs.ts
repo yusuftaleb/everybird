@@ -9,6 +9,7 @@ import { loadRegions } from '@/lib/import/places'
 import type { ImportResult, Slot } from '@/lib/list/model'
 import type { EbirdDetails, InatDetails } from '@/lib/list/storage'
 import { loadTaxonomy } from '@/lib/species/load'
+import { fetchData } from '@/lib/data-url'
 
 export type EbirdJob = { busy: boolean; rows: number; error: string | null }
 export type InatJob = { busyFor: string | null; progress: InatProgress | null; error: string | null; note: string | null }
@@ -42,14 +43,9 @@ async function headerLine(file: File): Promise<string> {
   return text.split(/\r?\n/, 1)[0] ?? ''
 }
 
-const SYNONYMS_URL = '/data/inat-synonyms.v1.json'
 let synonymsP: Promise<Record<string, string>> | null = null
 function loadSynonyms(): Promise<Record<string, string>> {
-  synonymsP ??= fetch(SYNONYMS_URL)
-    .then((r) => {
-      if (!r.ok) throw new Error(String(r.status))
-      return r.json() as Promise<Record<string, string>>
-    })
+  synonymsP ??= fetchData<Record<string, string>>('inat-synonyms.v1.json')
     .catch((e) => {
       synonymsP = null
       throw e

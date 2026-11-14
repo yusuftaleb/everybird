@@ -1,6 +1,6 @@
 'use client'
 import { Plus, ShareNetwork } from '@phosphor-icons/react'
-import Link from 'next/link'
+import Link from '@/components/app/IntentLink'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { EditBird } from '@/components/edit/EditBird'
 import { pageTitle } from '@/lib/list/title'

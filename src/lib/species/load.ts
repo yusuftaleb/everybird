@@ -1,6 +1,7 @@
 import type { SpeciesFile, SpeciesRow, TaxonRow, TaxonomyFile } from './types'
 import { prepared, rankByName } from './name-search'
 import { exactSci, foldName, normalizeSci } from './resolve'
+import { fetchData } from '../data-url'
 
 export type SpeciesIndex = {
   rows: SpeciesRow[]
@@ -15,9 +16,6 @@ export type TaxonomyIndex = {
   byOrder: Map<number, TaxonRow>
 }
 
-const SPECIES_URL = '/data/species.v1.json'
-const TAXONOMY_URL = '/data/taxonomy.v1.json'
-
 let speciesP: Promise<SpeciesIndex> | null = null
 let taxonomyP: Promise<TaxonomyIndex> | null = null
 
@@ -27,13 +25,6 @@ export function resetCaches(): void {
   taxonomyP = null
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  // Absolute-path URLs resolve against the page origin; make that explicit so it also holds in a worker.
-  const origin = typeof self !== 'undefined' ? self.location?.origin : undefined
-  const res = await fetch(origin && origin !== 'null' ? new URL(url, origin).href : url)
-  if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`)
-  return (await res.json()) as T
-}
 
 /** Fetch once and cache; a failed load is not cached so callers can retry. */
 function cached<T>(get: () => Promise<T> | null, set: (p: Promise<T> | null) => void, make: () => Promise<T>): Promise<T> {
@@ -51,7 +42,7 @@ export function loadSpecies(): Promise<SpeciesIndex> {
   return cached(
     () => speciesP,
     (p) => (speciesP = p),
-    async () => buildSpeciesIndex((await fetchJson<SpeciesFile>(SPECIES_URL)).species),
+    async () => buildSpeciesIndex((await fetchData<SpeciesFile>('species.v1.json')).species),
   )
 }
 
@@ -59,7 +50,7 @@ export function loadTaxonomy(): Promise<TaxonomyIndex> {
   return cached(
     () => taxonomyP,
     (p) => (taxonomyP = p),
-    async () => buildTaxonomyIndex((await fetchJson<TaxonomyFile>(TAXONOMY_URL)).taxa),
+    async () => buildTaxonomyIndex((await fetchData<TaxonomyFile>('taxonomy.v1.json')).taxa),
   )
 }
 

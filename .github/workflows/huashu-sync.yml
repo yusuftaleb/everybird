@@ -147,6 +147,17 @@ jobs:
         # what a failed earlier run already sent, and a versioned key in the bucket is never overwritten.
         run: npx tsx scripts/deploy/upload-stickers-r2.ts
 
+      # The PR's data files under their content-hashed names (src/lib/data-files.ts), so the deploy after the merge
+      # finds them on R2 (the app falls back to /data on Vercel otherwise). Hashed keys are never overwritten.
+      - name: Upload the new data files to R2
+        if: steps.sync.outputs.changed == 'true' && env.DRY_RUN != 'true'
+        env:
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        run: npx tsx scripts/deploy/upload-stickers-r2.ts --data
+
       - name: Commit the rebuilt stickers to everybird-stickers (GitHub Pages fallback)
         if: steps.sync.outputs.changed == 'true' && env.DRY_RUN != 'true' && steps.sync.outputs.stickers != '0'
         env:
