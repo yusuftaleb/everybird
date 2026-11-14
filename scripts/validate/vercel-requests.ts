@@ -19,8 +19,10 @@ function lifeList(): string {
 async function visit(ctx: BrowserContext, path: string, label: string) {
   const page = await ctx.newPage();
   const seen: { url: string; vercel: boolean; cf: string }[] = [];
+  const r2: string[] = [];
   page.on("response", (r) => {
     const u = r.url();
+    if (u.startsWith("https://stickers.yusuftaleb.com/data/")) r2.push(`${u.slice(31)} ${r.status()}`);
     if (!u.startsWith(origin)) return;
     const h = r.headers();
     const path = u.slice(origin.length);
@@ -41,6 +43,7 @@ async function visit(ctx: BrowserContext, path: string, label: string) {
   }
   console.log(`\n${label}: ${seen.length} same-origin requests, ${vercel.length} reach Vercel`);
   for (const [k, n] of [...groups].sort((a, b) => b[1] - a[1])) if (VERBOSE) console.log(`  ${String(n).padStart(3)}  ${k}`);
+  console.log(`  data from R2: ${r2.length ? r2.join(", ") : "none"}`);
   console.log("  reaching Vercel:");
   for (const [k, n] of [...toVercel].sort((a, b) => b[1] - a[1])) console.log(`  ${String(n).padStart(3)}  ${k}`);
   await page.close();
