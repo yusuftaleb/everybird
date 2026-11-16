@@ -73,7 +73,7 @@ export async function verifyPublicAssets(local: LocalFile[], base: string): Prom
   const samples = types.map((type) => local.find((f) => f.type === type)).filter((f): f is LocalFile => !!f)
   await Promise.all(samples.map(async (f) => {
     const res = await fetch(`${base}/${f.key}`, {
-      method: 'HEAD', headers: { Origin: 'https://everybird.yusuftaleb.com' }, redirect: 'error',
+      method: 'HEAD', headers: { Origin: 'https://everybird.yusuftaleb.com', 'Accept-Encoding': 'identity' }, redirect: 'error',
     })
     if (!res.ok || res.headers.get('content-type')?.split(';')[0].trim() !== f.type
       || res.headers.get('access-control-allow-origin') !== '*'

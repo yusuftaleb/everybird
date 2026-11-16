@@ -178,7 +178,7 @@ describe('public serving gate', () => {
     expect(fetcher).toHaveBeenCalledTimes(3)
     for (const [url, init] of fetcher.mock.calls) {
       expect(url).toMatch(/^https:\/\/cdn.test\/_next\/static\//)
-      expect(init).toEqual({ method: 'HEAD', headers: { Origin: 'https://everybird.yusuftaleb.com' }, redirect: 'error' })
+      expect(init).toEqual({ method: 'HEAD', headers: { Origin: 'https://everybird.yusuftaleb.com', 'Accept-Encoding': 'identity' }, redirect: 'error' })
     }
   })
   it('blocks release for wrong bucket, MIME, CORS, size or caching headers', async () => {
