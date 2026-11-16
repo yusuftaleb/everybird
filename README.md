@@ -25,6 +25,12 @@ npm run e2e        # Playwright (first time: npx playwright install chromium)
 npm run data       # rebuild the species and geo data (see below)
 ```
 
+## Build assets on R2
+
+Optional CDN assets and the required upload-before-release gate: [setup, request inventory, costs and rollback](docs/assets-on-r2.md).
+With `NEXT_PUBLIC_ASSET_BASE` unset, development and builds use Vercel/local assets as before. With it set,
+`npm run build` uploads after Next builds; use `npx next build` for a local build without uploading.
+
 ## Rebuilding the data
 
 The generated files in `public/data/` are committed, so you only need this to update a source. The pipeline needs
