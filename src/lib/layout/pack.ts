@@ -10,7 +10,7 @@
 // A filtered state (packBest with `fit`) is packed in the full collage's stage, then its height is trimmed
 // symmetrically about the count (fitStage): W is unchanged, H shrinks, every box moves up by the same amount.
 import { EXP, EXP_TRUE, GAP, MAXUP, SHAPE_REF } from './constants'
-import { NO_HOLE, collageHole, holeArea, holeExtent, scaleHole, type Hole } from './count-box'
+import { NO_HOLE, collageHole, holeArea, holeExtent, rectGap, scaleHole, type Hole } from './count-box'
 import { CentreWalk, Grid, SPIRAL_T, cellMask, coreMask, spiral, spiralFrom, type CellMask } from './grid'
 import { MASK, type Mask } from './mask'
 
@@ -29,6 +29,8 @@ const MIN_MASS = 0.1 // grams; guards mass ** exp against 0 or bad data
 const STEPS = 7 // binary-search steps
 export const MAX_BASE = 80 // largest base for a full collage (the reference's search ceiling)
 const TRIM_PAD = 8
+/** Sets of fewer birds than this are settled dense (see packBest; a filtered one also tries a round spiral). */
+export const SMALL_SET = 12
 // STEP: smallest growth step. AIM: each jump aims this much past the estimate, so one more search is rarely needed.
 const STEP = 1.1, AIM = 1.08, MAX_GROW = 12
 
@@ -166,6 +168,23 @@ function settle(p: Packed, W: number, H: number, hole: Hole): Map<number, Box> {
     p.boxes.set(q.id, [q.gx + pad, q.gy + pad, q.w, q.h])
   }
   return p.boxes
+}
+
+/**
+ * The worst gap of a small set: the largest distance from a box to the count's text, or from a box to its nearest
+ * neighbour's box, whichever is larger (the test of packBest's round and stage spirals for a filtered set).
+ */
+function worstGap(boxes: Map<number, Box>, W: number, H: number, hole: Hole): number {
+  const bs = [...boxes.values()]
+  let worst = 0
+  bs.forEach((b, i) => {
+    const r: [number, number, number, number] = [b[0] - W / 2, b[1] - H / 2, b[0] + b[2] - W / 2, b[1] + b[3] - H / 2]
+    worst = Math.max(worst, Math.min(rectGap(r, hole.num), rectGap(r, hole.label)))
+    let near = Infinity
+    bs.forEach((o, j) => { if (j !== i) near = Math.min(near, boxGap(b, o)) })
+    if (near < Infinity) worst = Math.max(worst, near)
+  })
+  return worst
 }
 
 /** Two boxes' distance apart (0 when their rectangles touch or overlap). */
@@ -374,9 +393,14 @@ export function packBest(
   // Dense: the whole list (rel covers it, also for a filtered state) has at least layout.denseFrom birds. Its even
   // (centre-packed) states keep one GAP between birds and are settled after packing, so small birds sit as close
   // at the edge as in the middle. True size (targets: it follows the settled even centres) and share images
-  // (no denseFrom) pack as before, and so do smaller lists.
-  const dense = mode === 'even' && !targets && !!layout.denseFrom && rel.size >= layout.denseFrom
-  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, stretchAt(layout, H), hole, targets, cell, dense)
+  // (no denseFrom) pack as before. A set of fewer than SMALL_SET birds (a filter that leaves a few birds, in either
+  // mode, whatever the whole list's size) is settled too, and spirals round rather than stretched: two or three birds
+  // then pack around the count instead of strung out along the stage's width, where the settling pass can't close the gap.
+  const small = !!layout.denseFrom && birds.length < SMALL_SET
+  const dense = small || (!!layout.denseFrom && mode === 'even' && !targets && rel.size >= layout.denseFrom)
+  // The spiral of the pass in hand: a small set's filtered state tries a round one and the stage's own, keeps the tighter.
+  let round = small
+  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense)
   // Settled (dense), then any detached birds gathered back to the group (gather): the outline stays compact.
   const boxesOf = (p: Packed, W: number, H: number) => gather(dense ? settle(p, W, H, hole) : p.boxes, birds, W, H, hole)
 
@@ -432,11 +456,17 @@ export function packBest(
 
   if (fixedStage) {
     const [W, H] = fixedStage
-    const got = search(W, H).best ?? fallback(W, H)
-    const boxes = boxesOf(got.packed, W, H)
-    if (!fit) return { base: got.base, W, H, boxes }
-    const t = fitStage(boxes, W, H, holeExtent(hole)[1])
-    return { base: got.base, W: t.W, H: t.H, boxes: t.boxes }
+    const pass = () => { const got = search(W, H).best ?? fallback(W, H); return { got, boxes: boxesOf(got.packed, W, H) } }
+    let best = pass()
+    if (small) { // the stage's own spiral too: keep the pass whose worst gap about the count and its neighbours is smaller
+      round = false
+      const alt = pass()
+      round = true
+      if (worstGap(alt.boxes, W, H, hole) < worstGap(best.boxes, W, H, hole)) best = alt
+    }
+    if (!fit) return { base: best.got.base, W, H, boxes: best.boxes }
+    const t = fitStage(best.boxes, W, H, holeExtent(hole)[1])
+    return { base: best.got.base, W: t.W, H: t.H, boxes: t.boxes }
   }
 
   // Big lists grow the stage taller (never wider), in two stages:

@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { LAYOUTS } from '../src/lib/layout/constants'
 import {
   collageBoxes, collageHole, COUNT_LABEL_CHARS, countDisplay, countScale, countText, holeExtent, labelBounds, labelEm, LABEL_GROW_MAX, MONO_EM, MONO_TRACK,
-  numberEm, rectGap, touchesHole, type Hole, type Rect,
+  collagePad, numberEm, PAD_FULL_AT, PAD_LONG, PAD_SHORT, rectGap, touchesHole, type Hole, type Rect,
 } from '../src/lib/layout/count-box'
 import { en } from '../src/i18n/messages/en'
 import { es } from '../src/i18n/messages/es'
@@ -106,6 +106,15 @@ describe('the count in every language (one hole for all)', () => {
 })
 
 describe('collageHole', () => {
+  it('the air rises with the count: 0.06 F for one bird, 0.17 F from 20 birds on (a list of 20 or more keeps its hole)', () => {
+    const L = byName('wide')
+    expect(collagePad(L, 1) / L.F).toBeCloseTo(PAD_SHORT, 9)
+    expect(collagePad(L, 3) / L.F).toBeGreaterThan(PAD_SHORT)
+    expect(collagePad(L, 3) / L.F).toBeLessThan(collagePad(L, 7) / L.F)
+    expect(collagePad(L, PAD_FULL_AT) / L.F).toBeCloseTo(PAD_LONG, 9)
+    for (const n of [20, 99, 197, 1089, 11019]) expect(collagePad(L, n) / L.F).toBeCloseTo(PAD_LONG, 9)
+    expect(collageHole(3, L).pad).toBeLessThan(collageHole(20, L).pad)
+  })
   it("keeps a three-digit count's hole where the old ellipse was (wide 197: about 74 x 52)", () => {
     const [ex, ey] = holeExtent(collageHole(197, byName('wide')))
     expect(ex).toBeGreaterThan(70)
@@ -136,10 +145,11 @@ describe('collageHole', () => {
         // Grows with the number once the number is wider than the 8-character label (narrow's 197 is just under it:
         // 39.17 against 39.27 units, so its hole is the label's, as 7's is).
         if (n >= 197) {
-          // The one exception is the narrow layout at 197, whose number is still inside the label's box.
+          // The one exception is the narrow layout at 197, whose number is still inside the label's box: its hole is the
+          // label's, so it differs from 7's only by the air (collagePad rises with the count).
           if (L.name === 'narrow' && n === 197) {
             expect(h.num[2]).toBeLessThanOrEqual(h.label[2])
-            expect(ex).toBeCloseTo(last, 9)
+            expect(ex).toBeCloseTo(last + collagePad(L, 197) - collagePad(L, 7), 9)
           } else {
             expect(h.num[2]).toBeGreaterThan(h.label[2])
             expect(ex).toBeGreaterThan(last)

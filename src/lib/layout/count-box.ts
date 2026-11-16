@@ -191,14 +191,23 @@ export function labelBounds(layout: CountLayout): { min: number; max: number } {
   return { min: layout.maxWidth ? (LABEL_PX * 100) / layout.maxWidth : 0, max: (LABEL_PX * 100) / narrowest }
 }
 
+/** The count's air, in F: 0.06 for a single bird, rising in a straight line to 0.17 at PAD_FULL_AT birds, and 0.17 above. */
+export const PAD_SHORT = 0.06, PAD_LONG = 0.17, PAD_FULL_AT = 20
 /**
  * Air between the count's text and the hole's edge, in layout units (the packer keeps GAP around every sticker too).
- * 0.17 F keeps a three-digit count's hole where the old ellipse was (wide 197: about 74 x 52 units from the centre).
+ * A filter that leaves a few birds has a small count, and its label box (eight characters wide) is much wider than the
+ * number, so the full air of 0.17 F kept those birds far from the count: it rises with the count from 0.06 F (one bird)
+ * to 0.17 F (PAD_FULL_AT birds), and a list of 20 or more keeps 0.17 F, where it always was. The 0.17 F keeps a
+ * three-digit count's hole where the old ellipse was (wide 197: about 74 x 52 units from the centre). The packer's hole
+ * is the text grown by this pad, so no sticker enters the text's boxes.
  */
-export const collagePad = (layout: { F: number }): number => 0.17 * layout.F
+export function collagePad(layout: { F: number }, count: number): number {
+  const short = Math.min(1, Math.max(0, (PAD_FULL_AT - count) / (PAD_FULL_AT - 1)))
+  return (PAD_LONG - (PAD_LONG - PAD_SHORT) * short) * layout.F
+}
 
 /** The hole (layout units) the packer keeps empty at the stage centre for `count` species. None for F = 0. */
 export function collageHole(count: number, layout: CountLayout): Hole {
   if (!(layout.F > 0)) return NO_HOLE
-  return { ...collageBoxes(count, layout), pad: collagePad(layout) }
+  return { ...collageBoxes(count, layout), pad: collagePad(layout, count) }
 }
