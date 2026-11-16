@@ -1,8 +1,18 @@
 import type { NextConfig } from "next";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assetBase } from "./scripts/deploy/asset-base";
+
+const assets = assetBase();
 
 const nextConfig: NextConfig = {
+  ...(assets ? {
+    assetPrefix: assets,
+    crossOrigin: "anonymous",
+    // Next 16.4.5's worker bootstrap rejects foreign-origin scripts as well as the entry URL.
+    // Keep workers functional using the documented override; see docs/assets-on-r2.md.
+    experimental: { turbopackWorkerAssetPrefix: "" },
+  } : {}),
   // NEXT_DIST_DIR lets the e2e servers (playwright.config.ts) build and run beside a developer's own `next dev` /
   // `next start` without touching their `.next` (Next 16 locks it per dist dir).
   distDir: process.env.NEXT_DIST_DIR || ".next",

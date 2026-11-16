@@ -95,9 +95,9 @@ export function listData(dataDir: string, files: Record<string, string>): LocalF
 
 /**
  * A key written once, never replaced: a versioned sticker, `v1/<size>/<code>.<sv>.webp` (src/lib/sticker-url.ts),
- * or a content-hashed data file, `data/<name>.<10 hex>.json`.
+ * a content-hashed data file, `data/<name>.<10 hex>.json`, or a build asset under `_next/static/`.
  */
-export const isVersionedKey = (key: string) => /^v1\/\d+\/[a-z0-9]+\.[0-9a-z]+\.webp$/.test(key) || /^data\/[a-z0-9.-]+\.[0-9a-f]{10}\.json$/.test(key)
+export const isVersionedKey = (key: string) => key.startsWith('_next/static/') || /^v1\/\d+\/[a-z0-9]+\.[0-9a-z]+\.webp$/.test(key) || /^data\/[a-z0-9.-]+\.[0-9a-f]{10}\.json$/.test(key)
 
 /**
  * The files to upload: all with `force`, else those missing from the bucket or there at another size. A versioned
@@ -111,11 +111,11 @@ export function planUploads(local: LocalFile[], remote: Map<string, number>, for
   })
 }
 
-type Target = { endpoint: string; bucket: string; creds: Creds }
+export type Target = { endpoint: string; bucket: string; creds: Creds }
 const objectUrl = (t: Target, key: string) => `${t.endpoint}/${enc(t.bucket)}/${enc(key, true)}`
 
 /** The bucket's objects under `prefix` with their sizes (ListObjectsV2, 1,000 a page). */
-async function listRemote(t: Target, prefix: string): Promise<Map<string, number>> {
+export async function listRemote(t: Target, prefix: string): Promise<Map<string, number>> {
   const out = new Map<string, number>()
   let token: string | undefined
   do {
@@ -137,11 +137,15 @@ async function listRemote(t: Target, prefix: string): Promise<Map<string, number
 }
 const unxml = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&')
 
-async function put(t: Target, f: LocalFile): Promise<void> {
+export async function put(t: Target, f: LocalFile): Promise<void> {
   const body = readFileSync(f.path)
   const url = objectUrl(t, f.key)
   for (let attempt = 1; ; attempt++) {
-    const headers = signV4({ method: 'PUT', url, payloadHash: sha256(body), headers: { 'cache-control': CACHE_CONTROL, 'content-type': f.type ?? CONTENT_TYPE } }, t.creds)
+    // Also enforce write-once at R2: a concurrent build may have created the key after our listing.
+    const headers = signV4({ method: 'PUT', url, payloadHash: sha256(body), headers: {
+      'cache-control': CACHE_CONTROL, 'content-type': f.type ?? CONTENT_TYPE,
+      ...(isVersionedKey(f.key) ? { 'if-none-match': '*' } : {}),
+    } }, t.creds)
     const res = await fetch(url, { method: 'PUT', headers, body })
     if (res.ok) return
     const msg = `${f.key}: ${res.status} ${(await res.text()).slice(0, 200)}`
