@@ -174,6 +174,11 @@ describe('the model mirrors the CSS', () => {
     throw new Error(`no @media (${query}) block starting with ${marker}`)
   }
 
+  it('the bar never clips: its menus (the language menu) hang below it', () => {
+    // overflow-x: clip clipped the language menu to a sliver at the bar's bottom edge (some engines clip both axes).
+    const bar = /\.eb-topbar \{([^}]*)\}/.exec(app)?.[1] ?? ''
+    expect(bar).not.toMatch(/overflow/)
+  })
   it('the base rules and the 720/500/360/240 steps say what Sizes says', () => {
     expect(app).toContain(`max-width: ${WIDE.maxWidth}px; margin: 0 auto; padding: 8px ${WIDE.gutter}px;`)
     expect(app).toContain(`display: flex; align-items: center; gap: ${WIDE.gap}px;\n}`)

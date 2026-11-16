@@ -302,7 +302,6 @@
   position: sticky; top: 0; z-index: var(--z-topbar);
   border-bottom: 1px solid var(--hairline); background: var(--paper);
   transition: transform .2s var(--ease-ui);
-  overflow-x: clip; /* a wider fallback font on the first paint never makes the page scroll sideways */
 }
 .eb-topbar[data-hidden] { transform: translateY(-100%); }
 @media (prefers-reduced-motion: reduce) { .eb-topbar { transition: none; } }
