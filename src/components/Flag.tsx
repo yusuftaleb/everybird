@@ -6,7 +6,7 @@ import { flagSrc } from '@/lib/flag'
  */
 export function Flag({ iso }: { iso: string | undefined }) {
   const src = flagSrc(iso)
-  // A same-origin SVG at a fixed small size: next/image has nothing to optimise.
+  // A bundled SVG at a fixed small size (on the asset host when prefixed): next/image has nothing to optimise.
   // eslint-disable-next-line @next/next/no-img-element
   return src ? <img className="eb-flag" src={src} alt="" width={18} height={13} /> : null
 }

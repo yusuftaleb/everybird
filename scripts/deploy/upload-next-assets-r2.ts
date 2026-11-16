@@ -1,6 +1,6 @@
-// Runs after next build, before Vercel can publish HTML. Unset prefix = no filesystem or network work.
+// Runs after next build, before Vercel can publish HTML. Check the built config, including prefixes from .env files.
 // Local inspection: npx tsx scripts/deploy/upload-next-assets-r2.ts --dry-run (never contacts R2).
-import { readdirSync, statSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { assetBase } from './asset-base'
@@ -12,6 +12,7 @@ const TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
   '.webp': 'image/webp', '.avif': 'image/avif', '.gif': 'image/gif', '.ico': 'image/x-icon',
   '.json': 'application/json', '.map': 'application/json', '.wasm': 'application/wasm',
+  '.ts': 'text/plain',
 }
 
 /** Only static/ is public. Never include server/, cache/, manifests or any other build internals. */
@@ -56,17 +57,48 @@ export async function uploadStatic(local: LocalFile[], target: Target): Promise<
   console.log(`R2 static assets: ${todo.length} uploaded, ${local.length - todo.length} already present`)
 }
 
+/** Build output is authoritative: Next loads dotenv files, but the following tsx process does not. */
+export function builtAssetBase(dist: string): string | undefined {
+  const manifest = JSON.parse(readFileSync(join(dist, 'required-server-files.json'), 'utf8'))
+  const built = assetBase(manifest.config?.assetPrefix || '')
+  if (built !== assetBase()) {
+    throw new Error('Built assetPrefix differs from NEXT_PUBLIC_ASSET_BASE; export the same value and rebuild before uploading')
+  }
+  return built
+}
+
+/** Check the actual custom domain after upload, so a wrong bucket, MIME or CORS setting blocks release. */
+export async function verifyPublicAssets(local: LocalFile[], base: string): Promise<void> {
+  const types = ['application/javascript', 'text/css', 'font/woff2']
+  const samples = types.map((type) => local.find((f) => f.type === type)).filter((f): f is LocalFile => !!f)
+  await Promise.all(samples.map(async (f) => {
+    const res = await fetch(`${base}/${f.key}`, {
+      method: 'HEAD', headers: { Origin: 'https://everybird.yusuftaleb.com' }, redirect: 'error',
+    })
+    if (!res.ok || res.headers.get('content-type')?.split(';')[0].trim() !== f.type
+      || res.headers.get('access-control-allow-origin') !== '*'
+      || Number(res.headers.get('content-length')) !== f.size
+      || !res.headers.get('cache-control')?.includes('immutable')) {
+      throw new Error(`Public asset verification failed: ${f.key} (${res.status}); check the custom domain, MIME, cache headers and CORS`)
+    }
+  }))
+  console.log(`R2 public assets: ${samples.length} JS/CSS/font checks passed`)
+}
+
 export async function main(args = process.argv.slice(2)): Promise<void> {
-  if (!assetBase()) {
-    console.log('R2 static assets: skipped (NEXT_PUBLIC_ASSET_BASE unset)')
+  const dist = resolve(process.env.NEXT_DIST_DIR || '.next')
+  const base = builtAssetBase(dist)
+  if (!base) {
+    console.log('R2 static assets: skipped (build has no assetPrefix)')
     return
   }
-  const local = listStatic(resolve(process.env.NEXT_DIST_DIR || '.next'))
+  const local = listStatic(dist)
   if (args.includes('--dry-run')) {
     console.log(`R2 static assets: ${local.length} files, ${local.reduce((n, f) => n + f.size, 0)} bytes (offline dry run; nothing sent)`)
     return
   }
   await uploadStatic(local, targetFromEnv())
+  await verifyPublicAssets(local, base)
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -1,6 +1,6 @@
 // Writes src/lib/flag-urls.ts: one static import per country flag in flag-icons (MIT, the set yusuftaleb.com uses),
-// the 4x3 SVGs of two-letter ISO 3166-1 codes only. Next serves each imported file from the app's own origin (hashed
-// under /_next/static/media), so a flag drawn on a canvas never taints it. Rerun after updating flag-icons.
+// the 4x3 SVGs of two-letter ISO 3166-1 codes only. Next serves them under /_next/static/media, on the asset host
+// when assetPrefix is set. Any future canvas use needs anonymous CORS loading. Rerun after updating flag-icons.
 // Run: npx tsx scripts/build-data/build-flags.ts
 import { readdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'

@@ -146,8 +146,23 @@ export async function put(t: Target, f: LocalFile): Promise<void> {
       'cache-control': CACHE_CONTROL, 'content-type': f.type ?? CONTENT_TYPE,
       ...(isVersionedKey(f.key) ? { 'if-none-match': '*' } : {}),
     } }, t.creds)
-    const res = await fetch(url, { method: 'PUT', headers, body })
+    let res: Response
+    try {
+      res = await fetch(url, { method: 'PUT', headers, body })
+    } catch (e) {
+      if (attempt >= 4) throw new Error(`${f.key}: upload failed: ${(e as Error).message}`)
+      await new Promise((r) => setTimeout(r, 500 * 2 ** attempt))
+      continue
+    }
     if (res.ok) return
+    if (res.status === 412 && isVersionedKey(f.key)) {
+      // Another writer (or a lost success response) may have created this exact object. R2's single-part
+      // PutObject ETag is its MD5. Verify bytes without ever replacing an immutable key.
+      const check = await fetch(url, { method: 'HEAD', headers: signV4({ method: 'HEAD', url }, t.creds) })
+      const md5 = createHash('md5').update(body).digest('hex')
+      if (check.ok && check.headers.get('etag') === `"${md5}"`) return
+      throw new Error(`Immutable asset collision or unverifiable object: ${f.key} (HEAD ${check.status})`)
+    }
     const msg = `${f.key}: ${res.status} ${(await res.text()).slice(0, 200)}`
     if (attempt >= 4 || (res.status < 500 && res.status !== 429)) throw new Error(msg)
     await new Promise((r) => setTimeout(r, 500 * 2 ** attempt))
