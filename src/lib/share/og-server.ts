@@ -85,30 +85,50 @@ export function parseFontFaces(css: string): FontFace[] {
 /** Latin-1's letters, U+00C0 to U+00FF: every accented letter Spanish, Portuguese and Dutch write (á, ã, ç, é, ë, ñ, ú …). */
 const LATIN1 = [0xc0, 0xff] as const
 
-/** Whether a `unicode-range` value ("U+0000-00FF, U+0131") covers all of U+00C0–U+00FF; no range covers everything. */
-export function coversLatin1(range: string | undefined): boolean {
-  if (!range) return true
-  const spans = range.split(',').flatMap((part) => {
+/** Polish's letters outside Latin-1 (ą ć ę ł ń ś ź ż and their capitals; ó/Ó are U+00F3/00D3, already in Latin-1). */
+const POLISH_EXTRA = [0x104, 0x105, 0x106, 0x107, 0x118, 0x119, 0x141, 0x142, 0x143, 0x144, 0x15a, 0x15b, 0x179, 0x17a, 0x17b, 0x17c]
+
+/** A `unicode-range` value ("U+0000-00FF, U+0131") as [start, end] spans; `?` wildcards expanded to their full span. */
+function spansOf(range: string): [number, number][] {
+  return range.split(',').flatMap((part) => {
     const m = /U\+([0-9a-f?]+)(?:-([0-9a-f]+))?/i.exec(part.trim())
     if (!m) return []
-    if (m[1].includes('?')) return [[parseInt(m[1].replace(/\?/g, '0'), 16), parseInt(m[1].replace(/\?/g, 'f'), 16)]]
+    if (m[1].includes('?')) return [[parseInt(m[1].replace(/\?/g, '0'), 16), parseInt(m[1].replace(/\?/g, 'f'), 16)] as [number, number]]
     const a = parseInt(m[1], 16)
-    return [[a, m[2] ? parseInt(m[2], 16) : a]]
+    return [[a, m[2] ? parseInt(m[2], 16) : a] as [number, number]]
   })
+}
+
+/** Whether a `unicode-range` value covers all of U+00C0–U+00FF; no range covers everything. */
+export function coversLatin1(range: string | undefined): boolean {
+  if (!range) return true
+  const spans = spansOf(range)
   // Each code point of the span must sit in some range (spans may be split, e.g. U+00C0-00DF, U+00E0-00FF).
   for (let c = LATIN1[0]; c <= LATIN1[1]; c++) if (!spans.some(([a, b]) => c >= a && c <= b)) return false
   return true
 }
 
+/** Whether a `unicode-range` value covers any of Polish's Latin Extended-A letters; no range covers everything. */
+export function coversPolishExtra(range: string | undefined): boolean {
+  if (!range) return true
+  const spans = spansOf(range)
+  return POLISH_EXTRA.some((cp) => spans.some(([a, b]) => cp >= a && cp <= b))
+}
+
 /**
  * The faces to load for `want`: per family and weight, the faces whose range covers Latin-1 (so the card's "Última
- * especie nueva" and "Lista de vida de Ada" draw in the real font, not the fallback), or all of them when none does.
+ * especie nueva" and "Lista de vida de Ada" draw in the real font, not the fallback), or all of them when none does;
+ * plus, when the Latin-1 face doesn't already cover them (Google splits Geist Mono this way), a face for Polish's
+ * extra letters (ł, ż, …), so a Polish "Kolaż Ady" draws them too instead of falling back. Satori tries each font
+ * registered under a family and weight in order, so passing both is enough.
  */
 export function pickFaces(faces: readonly FontFace[], want: readonly { family: string; weight: number }[]): FontFace[] {
   return want.flatMap((w) => {
     const all = faces.filter((f) => f.family === w.family && f.weight === w.weight)
     const latin = all.filter((f) => coversLatin1(f.range))
-    return latin.length ? latin : all
+    if (!latin.length) return all
+    const extra = all.filter((f) => !latin.includes(f) && coversPolishExtra(f.range))
+    return [...latin, ...extra]
   })
 }
 

@@ -7,6 +7,7 @@ import { HTML_LANG, isLang, LANG_NAMES, LANGS, langFromTag, primarySubtag } from
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
+import { pl } from '@/i18n/messages/pl'
 import { pt } from '@/i18n/messages/pt'
 import { ORDERS } from '@/lib/species/orders'
 import { withI18n } from './i18n-render'
@@ -29,7 +30,7 @@ const ALLOW_SAME = [
   'Asia', 'Oceania', 'Antarctica',
 ]
 
-const OTHERS = { es, pt, nl } as const
+const OTHERS = { es, pt, nl, pl } as const
 
 /** Every leaf as [path, value]: strings, array items and Plural forms each count as one. */
 function leaves(node: unknown, path = ''): [string, string][] {
@@ -82,23 +83,25 @@ describe('the dictionaries', () => {
 
   it('the count label fits the hole in every language', () => {
     // COUNT_LABEL_CHARS (Task 6) is 8: "ESPECIES" and "ESPÉCIES".
-    for (const m of [en, es, pt, nl]) expect(m.ui.count.label.length).toBeLessThanOrEqual(8)
-    expect([en, es, pt, nl].map((m) => m.ui.count.label)).toEqual(['species', 'especies', 'espécies', 'soorten'])
+    for (const m of [en, es, pt, nl, pl]) expect(m.ui.count.label.length).toBeLessThanOrEqual(8)
+    expect([en, es, pt, nl, pl].map((m) => m.ui.count.label)).toEqual(['species', 'especies', 'espécies', 'soorten', 'gatunki'])
   })
 
   it('the tables: separators, 12 months', () => {
-    expect([en, es, pt, nl].map((m) => m.ui.num.group + m.ui.num.decimal)).toEqual([',.', '.,', '.,', '.,'])
+    // Polish groups with "." like es, pt and nl, not its usual space: count-box.ts sizes the count's hole for "," and ".".
+    expect([en, es, pt, nl, pl].map((m) => m.ui.num.group + m.ui.num.decimal)).toEqual([',.', '.,', '.,', '.,', '.,'])
     expect(es.ui.date.months.join(' ')).toBe('ene feb mar abr may jun jul ago sept oct nov dic')
     expect(pt.ui.date.months.join(' ')).toBe('jan fev mar abr mai jun jul ago set out nov dez')
     expect(nl.ui.date.months.join(' ')).toBe('jan feb mrt apr mei jun jul aug sep okt nov dec')
+    expect(pl.ui.date.months.join(' ')).toBe('sty lut mar kwi maj cze lip sie wrz paź lis gru')
   })
 })
 
 describe('langs', () => {
   it('lists the languages with their html lang and own names', () => {
-    expect(LANGS).toEqual(['en', 'es', 'pt', 'nl'])
-    expect(LANGS.map((l) => HTML_LANG[l])).toEqual(['en', 'es', 'pt-BR', 'nl'])
-    expect(LANGS.map((l) => LANG_NAMES[l])).toEqual(['English', 'Español', 'Português', 'Nederlands'])
+    expect(LANGS).toEqual(['en', 'es', 'pt', 'nl', 'pl'])
+    expect(LANGS.map((l) => HTML_LANG[l])).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl'])
+    expect(LANGS.map((l) => LANG_NAMES[l])).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski'])
     expect(isLang('es')).toBe(true)
     expect(isLang('de')).toBe(false)
     expect(isLang('ES')).toBe(false)
@@ -108,6 +111,7 @@ describe('langs', () => {
     expect(langFromTag('pt-PT')).toBe('pt')
     expect(langFromTag('pt_BR')).toBe('pt')
     expect(langFromTag('nl-BE')).toBe('nl')
+    expect(langFromTag('pl-PL')).toBe('pl')
     expect(langFromTag('NL')).toBe('nl')
     expect(langFromTag('en-GB')).toBe('en')
     expect(langFromTag('de-DE')).toBe('en')

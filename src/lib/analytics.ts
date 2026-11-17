@@ -53,7 +53,7 @@ export const ALLOWED: Record<EventName, readonly string[]> = {
   image_downloaded: ['story', 'post', 'square', 'desktop', 'wide'],
   shared: ['story', 'post', 'square', 'desktop', 'wide', 'link'],
   link_copied: ['full', 'compact', 'minimal', 'species'],
-  ui_language: ['en', 'es', 'pt', 'nl'],
+  ui_language: ['en', 'es', 'pt', 'nl', 'pl'],
   poster_made: ['a4', 'a3', 'a2', 'a1', 'a4-l', 'a3-l', 'a2-l', 'a1-l'],
   poster_downloaded: ['png', 'pdf'],
   search_applied: ['smart', 'bird'],

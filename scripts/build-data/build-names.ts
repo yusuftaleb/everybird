@@ -104,7 +104,7 @@ export function writeNames(): void {
   }
   const englishGroups = new Map(readRaw<RawGroup[]>('ebird-groups.en.json').map((g) => [g.groupOrder, g.groupName]))
   const families = new Map<string, Record<string, string>>()
-  for (const lang of ['es', 'pt', 'nl'] as const) {
+  for (const lang of ['es', 'pt', 'nl', 'pl'] as const) {
     const groups = readRaw<RawGroup[]>(`ebird-groups.${lang}.json`).map((g): NameGroup => {
       const englishName = englishGroups.get(g.groupOrder)
       if (!englishName) throw new Error(`No English group for ${lang} group ${g.groupOrder}`)

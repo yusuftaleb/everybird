@@ -31,6 +31,7 @@ import { downloadBlob } from '@/lib/download'
 import type { Poster } from '@/lib/share/poster'
 import { PRINT_SIZES, printCm, printDesign, printFileStem, printPx, type PrintSize } from '@/lib/share/print'
 import { applyFilter, filterKey } from '@/lib/list/filters'
+import { groupName } from '@/lib/search/groups'
 import type { Action, AppState } from '@/lib/list/store'
 import {
   NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, clearStickerCache, filterLabel as labelFor, imagePackSpec, imageShape, isPrint, packForImage, renderShareImage,
@@ -113,7 +114,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const shown = useMemo(() => (fk ? applyFilter(known, filter, species, seen) : known), [known, filter, fk, species, seen])
   const label = useMemo(() => {
     const named = regionsIn(regions, lang)
-    return labelFor(filter, { species, countryName: (iso) => countryName(iso, lang, regions), regions: named, familyName, groupName: (id) => species.groups?.get(id)?.name[lang] }, t)
+    return labelFor(filter, { species, countryName: (iso) => countryName(iso, lang, regions), regions: named, familyName, groupName: (id) => { const g = species.groups?.get(id); return g && groupName(g, lang) } }, t)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
   }, [filter, species, regions, lang, t, names])
   const hasLatest = useMemo(() => shown.some((e) => e.date), [shown])

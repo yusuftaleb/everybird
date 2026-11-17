@@ -62,15 +62,15 @@ afterEach(() => {
 })
 
 describe('LanguageField', () => {
-  it('lists all four in their own names and shows the current one', () => {
+  it('lists every language in its own name and shows the current one', () => {
     render(<LanguageField />, { wrapper: withI18n('pt') })
     const select = screen.getByRole('combobox', { name: 'Idioma' }) as HTMLSelectElement
     expect(select).toHaveClass('eb-input')
     expect(select.parentElement).toHaveClass('eb-select')
     const options = [...select.options]
-    expect(options.map((o) => o.textContent)).toEqual(['English', 'Español', 'Português', 'Nederlands'])
-    expect(options.map((o) => o.value)).toEqual(['en', 'es', 'pt', 'nl'])
-    expect(options.map((o) => o.getAttribute('lang'))).toEqual(['en', 'es', 'pt-BR', 'nl'])
+    expect(options.map((o) => o.textContent)).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski'])
+    expect(options.map((o) => o.value)).toEqual(['en', 'es', 'pt', 'nl', 'pl'])
+    expect(options.map((o) => o.getAttribute('lang'))).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl'])
     expect(select.value).toBe('pt')
   })
 

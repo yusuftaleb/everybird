@@ -69,8 +69,10 @@ describe('the rewrites', () => {
       ['/es/about', 'header:accept-language'],
       ['/pt/about', 'header:accept-language'],
       ['/nl/about', 'header:accept-language'],
+      ['/pl/about', 'header:accept-language'],
       ['/en/about', ''],
     ])
+    expect(resolve('/about', { accept: 'pl-PL,pl;q=0.9,en;q=0.8' })).toBe('/pl/about')
     expect(resolve('/about', { cookie: `${LANG_COOKIE}=en`, accept: 'es-ES,es;q=0.9' })).toBe('/en/about')
     expect(resolve('/about', { cookie: `theme=dark; ${LANG_COOKIE}=pt`, accept: 'nl' })).toBe('/pt/about')
     expect(resolve('/settings', { cookie: `${LANG_COOKIE}=nl` })).toBe('/nl/settings')

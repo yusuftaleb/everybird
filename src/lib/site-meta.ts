@@ -9,7 +9,7 @@ import { SHARE_ORIGIN } from '@/lib/share/origin'
 export const SITE_NAME = 'Everybird'
 
 /** Open Graph's locale per UI language (Portuguese is Brazilian Portuguese). */
-export const OG_LOCALE: Record<Lang, string> = { en: 'en_US', es: 'es_ES', pt: 'pt_BR', nl: 'nl_NL' }
+export const OG_LOCALE: Record<Lang, string> = { en: 'en_US', es: 'es_ES', pt: 'pt_BR', nl: 'nl_NL', pl: 'pl_PL' }
 
 /** A page's document title: "About · Everybird" ("Acerca de · Everybird"). */
 export const siteTitle = (page: string) => `${page} · ${SITE_NAME}`

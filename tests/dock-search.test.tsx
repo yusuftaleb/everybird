@@ -14,7 +14,7 @@ import { withI18n } from './i18n-render'
 
 const sp = (code: string, com: string, sci: string, ord: string, fam: string, famCom: string, to: number, g: number): SpeciesRow =>
   ({ code, com, sci, ord, fam, famCom, to, g, gSrc: 'avonet', st: true, ar: 1, q: true })
-const group = (id: string, en: string, lo: number, hi: number): BirdGroup => ({ id, name: { en, es: en, pt: en, nl: en }, lo, hi })
+const group = (id: string, en: string, lo: number, hi: number): BirdGroup => ({ id, name: { en, es: en, pt: en, nl: en, pl: en }, lo, hi })
 const groupMap = new Map([group('waterfowl', 'Waterfowl', 1, 20), group('owls', 'Owls', 50, 60)].map((g) => [g.id, g]))
 const rows = [
   sp('snogoo', 'Snow Goose', 'Anser caerulescens', 'Anseriformes', 'Anatidae', 'Ducks, Geese, and Waterfowl', 1, 2700),

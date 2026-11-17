@@ -33,7 +33,7 @@ const page = {
         "Each bird is matched to this year's eBird taxonomy and keeps its earliest date. Rows that don't match are listed, so nothing is dropped quietly.",
         'The collage, the filters and the share images are all made in your browser.',
       ],
-      privacy: "Your list never leaves your browser. We count visits with Cloudflare Web Analytics, anonymous and cookieless, and a few actions (a collage made, an image shared or saved, a link copied) with a small counter of our own that never sees your birds, names or places. A daily-changing anonymous id lets us count unique visitors without tracking anyone across days. Neither runs if your browser asks not to be tracked. Your language choice is kept in a small cookie on this device; it never leaves it except to show you the right page. The visit count includes your browser's language (just “es”, “pt” or “nl”).",
+      privacy: "Your list never leaves your browser. We count visits with Cloudflare Web Analytics, anonymous and cookieless, and a few actions (a collage made, an image shared or saved, a link copied) with a small counter of our own that never sees your birds, names or places. A daily-changing anonymous id lets us count unique visitors without tracking anyone across days. Neither runs if your browser asks not to be tracked. Your language choice is kept in a small cookie on this device; it never leaves it except to show you the right page. The visit count includes your browser's language (just “es”, “pt”, “nl” or “pl”).",
     },
     size: {
       head: 'What True size means',

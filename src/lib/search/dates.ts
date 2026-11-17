@@ -10,12 +10,20 @@ const DICT = {
   es: { link: 'a|hasta', between: 'entre', and: 'y', from: 'de|desde', since: 'desde', after: 'después de', before: 'antes de', until: 'hasta', this: 'este|esta', last: 'último|últimos|última|últimas|pasado', year: 'año|años', month: 'mes|meses', quarter: 'trimestre|trimestres' },
   pt: { link: 'a|até', between: 'entre', and: 'e', from: 'de|desde', since: 'desde', after: 'depois de|após', before: 'antes de', until: 'até', this: 'este|esta', last: 'último|últimos|última|últimas|passado', year: 'ano|anos', month: 'mês|meses', quarter: 'trimestre|trimestres' },
   nl: { link: 'tot|tot en met', between: 'tussen', and: 'en', from: 'van|vanaf', since: 'sinds|vanaf', after: 'na', before: 'voor', until: 'tot', this: 'dit|deze', last: 'laatste|vorige|vorig|afgelopen', year: 'jaar|jaren', month: 'maand|maanden', quarter: 'kwartaal|kwartalen' },
+  // Polish declines: "w tym roku", "w zeszłym roku", "ostatnie 3 miesiące", "od marca do maja".
+  pl: { link: 'do', between: 'między|pomiędzy', and: 'i', from: 'od', since: 'od', after: 'po', before: 'przed', until: 'do', this: 'ten|ta|tym|tej|bieżący|bieżącym', last: 'ostatni|ostatnia|ostatnie|ostatnich|ostatnim|zeszły|zeszłym|ubiegły|ubiegłym|poprzedni|poprzednim', year: 'rok|roku|lata|lat', month: 'miesiąc|miesiąca|miesiącu|miesiące|miesięcy', quarter: 'kwartał|kwartału|kwartale|kwartały|kwartałów' },
 } as const
 export const SEARCH_CONNECTORS: Record<SearchLang, string[]> = {
   en: ['in', 'on', 'at', 'from', 'and'], es: ['en', 'de', 'desde', 'y'], pt: ['em', 'no', 'na', 'de', 'do', 'da', 'e'], nl: ['in', 'uit', 'van', 'en'],
+  pl: ['w', 'we', 'z', 'ze', 'na', 'i'],
 }
-/** Spellings Intl's long month names don't cover (abbreviations and variants that aren't prefixes of them). */
-const MONTH_ALIASES: Partial<Record<SearchLang, [string, number][]>> = { es: [['setiembre', 8]], nl: [['mrt', 2]] }
+/** Spellings Intl's long month names don't cover (abbreviations and variants that aren't prefixes of them). Polish
+ *  months after "od", "do" or a day are genitive ("od marca"), which Intl's standalone names ("marzec") don't cover. */
+const MONTH_ALIASES: Partial<Record<SearchLang, [string, number][]>> = {
+  es: [['setiembre', 8]],
+  nl: [['mrt', 2]],
+  pl: ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'].map((m, i): [string, number] => [m, i]),
+}
 const monthCache = new Map<SearchLang, Map<string, number>>()
 /** Month names for the UI language and English, keyed by searchKey, plus MONTH_ALIASES; the value is 0-based. */
 export function monthIndex(lang: SearchLang): Map<string, number> {
@@ -55,14 +63,15 @@ const AGO: Record<SearchLang, { before: string[]; after: string[] }> = {
   es: { before: ['hace'], after: [] },
   pt: { before: ['ha'], after: [] },
   nl: { before: [], after: ['geleden'] },
+  pl: { before: [], after: ['temu'] },
 }
-/** Number words up to twelve in all four languages, keyed by searchKey; "a", "un", "um" and "een" count as one. */
+/** Number words up to twelve in every language, keyed by searchKey; "a", "un", "um" and "een" count as one. */
 const NUMBER_WORDS = new Map<string, number>(
   ([
-    [1, 'one a an uno una un um uma een'], [2, 'two dos dois duas twee'], [3, 'three tres drie'],
-    [4, 'four cuatro quatro vier'], [5, 'five cinco vijf'], [6, 'six seis zes'],
-    [7, 'seven siete sete zeven'], [8, 'eight ocho oito acht'], [9, 'nine nueve nove negen'],
-    [10, 'ten diez dez tien'], [11, 'eleven once onze elf'], [12, 'twelve doce doze twaalf'],
+    [1, 'one a an uno una un um uma een jeden jedna'], [2, 'two dos dois duas twee dwa dwie'], [3, 'three tres drie trzy'],
+    [4, 'four cuatro quatro vier cztery'], [5, 'five cinco vijf piec'], [6, 'six seis zes szesc'],
+    [7, 'seven siete sete zeven siedem'], [8, 'eight ocho oito acht osiem'], [9, 'nine nueve nove negen dziewiec'],
+    [10, 'ten diez dez tien dziesiec'], [11, 'eleven once onze elf jedenascie'], [12, 'twelve doce doze twaalf dwanascie'],
   ] as [number, string][]).flatMap(([count, words]) => words.split(' ').map((w): [string, number] => [w, count])),
 )
 

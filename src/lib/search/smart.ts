@@ -7,7 +7,7 @@ import { ORDERS } from '../species/orders'
 import type { Regions, SpeciesRow } from '../species/types'
 import synonyms from '../../../data/i18n/group-synonyms.json'
 import { dateParser, monthIndex, monthOfWord, SEARCH_CONNECTORS, type SearchWord } from './dates'
-import type { BirdGroup, SearchLang } from './groups'
+import { groupName, type BirdGroup, type SearchLang } from './groups'
 
 export type SearchStatus = 'LC' | 'NT' | 'VU' | 'EN' | 'CR' | 'EW' | 'EX' | 'DD' | 'NE'
 /** Contract for part B, types only: current filtering still ignores these fields. */
@@ -51,9 +51,13 @@ const STATUS_WORDS: Record<SearchLang, Record<string, SearchStatus[]>> = {
   es: { amenazadas: ['VU', 'EN', 'CR'], amenazados: ['VU', 'EN', 'CR'], amenazada: ['VU', 'EN', 'CR'], vulnerable: ['VU'], vulnerables: ['VU'], 'en peligro': ['EN'], 'en peligro de extinción': ['EN'], 'en peligro crítico': ['CR'], 'casi amenazadas': ['NT'], 'preocupación menor': ['LC'], extintas: ['EX'], 'extinta en estado silvestre': ['EW'], 'datos insuficientes': ['DD'], 'no evaluada': ['NE'] },
   pt: { ameaçadas: ['VU', 'EN', 'CR'], ameaçados: ['VU', 'EN', 'CR'], ameaçada: ['VU', 'EN', 'CR'], vulnerável: ['VU'], vulneráveis: ['VU'], 'em perigo': ['EN'], 'criticamente em perigo': ['CR'], 'quase ameaçada': ['NT'], 'pouco preocupante': ['LC'], extintas: ['EX'], 'extinta na natureza': ['EW'], 'dados insuficientes': ['DD'], 'não avaliada': ['NE'] },
   nl: { bedreigd: ['VU', 'EN', 'CR'], kwetsbaar: ['VU'], 'sterk bedreigd': ['EN'], 'ernstig bedreigd': ['CR'], 'gevoelig': ['NT'], 'niet bedreigd': ['LC'], uitgestorven: ['EX'], 'uitgestorven in het wild': ['EW'], 'onvoldoende gegevens': ['DD'], 'niet geëvalueerd': ['NE'] },
+  // Plural "zagrożone" is the three threatened categories; singular "zagrożony" is Endangered, the IUCN name.
+  pl: { zagrożone: ['VU', 'EN', 'CR'], zagrożonych: ['VU', 'EN', 'CR'], zagrożony: ['EN'], zagrożona: ['EN'], narażony: ['VU'], narażone: ['VU'], narażonych: ['VU'], 'krytycznie zagrożony': ['CR'], 'krytycznie zagrożone': ['CR'], 'bliski zagrożenia': ['NT'], 'bliskie zagrożenia': ['NT'], 'najmniejszej troski': ['LC'], wymarły: ['EX'], wymarłe: ['EX'], 'wymarły na wolności': ['EW'], 'wymarłe na wolności': ['EW'], 'brak danych': ['DD'], nieoceniony: ['NE'], nieocenione: ['NE'] },
 }
 const LIFERS: Record<SearchLang, string[]> = {
   en: ['lifer', 'lifers', 'new'], es: ['nuevas', 'nuevos', 'nueva', 'nuevo'], pt: ['novas', 'novos', 'nova', 'novo'], nl: ['nieuw', 'nieuwe'],
+  // Plural only: "Nowa Zelandia" and "Nowy Jork" are places.
+  pl: ['nowe', 'nowych'],
 }
 
 function tokenize(input: string, months: Map<string, number>): SearchWord[] {
@@ -123,8 +127,8 @@ export function parseSmart(input: string, ctx: SearchContext): { filter: SmartFi
     const p = parsePlaceKey(key)
     if (p) addWithAncestors(onList, key)
   }
-  const groupEntities: Entity[] = ctx.groups.map((g) => ({ value: g.id, name: g.name[ctx.lang] || g.name.en,
-    aliases: unique(languages.flatMap((lang) => [g.name[lang], ...((synonyms as Record<string, Partial<Record<SearchLang, string[]>>>)[g.id]?.[lang] ?? [])])).map(searchKey),
+  const groupEntities: Entity[] = ctx.groups.map((g) => ({ value: g.id, name: groupName(g, ctx.lang),
+    aliases: unique(languages.flatMap((lang) => [g.name[lang] ?? '', ...((synonyms as Record<string, Partial<Record<SearchLang, string[]>>>)[g.id]?.[lang] ?? [])])).filter(Boolean).map(searchKey),
   }))
   const orderEntities = Object.entries({ ...ORDERS, ...ctx.orderNames }).map(([value, name]) => ({ value, name, aliases: [value, name, ORDERS[value]].filter(Boolean).map(searchKey) }))
   const familyEntities = unique((ctx.species ?? []).map((s) => s.fam)).map((value) => {

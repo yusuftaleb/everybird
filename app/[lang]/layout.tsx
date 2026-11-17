@@ -12,7 +12,9 @@ import "@/styles/globals.css";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  // "latin-ext" carries Polish's letters outside Latin-1 (ą, ć, ę, ł, ń, ś, ź, ż), used in mono labels (dates, the
+  // count) once the UI language is Polish.
+  subsets: ["latin", "latin-ext"],
 });
 
 /** The site's metadata in the page's language (`page.meta`); pages that set their own title replace the SEO part. */
