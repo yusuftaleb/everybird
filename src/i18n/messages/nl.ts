@@ -660,7 +660,7 @@ export const nl: Messages = {
         api: 'Waarnemingen komen uit de openbare API van iNaturalist, rechtstreeks vanuit je browser aangeroepen, ongeveer één keer per seconde.',
         countries: 'Landnamen, de meeste regionamen en de kustlijnen van de continentbollen komen van Natural Earth.',
         regions: 'De rest van de namen van staten en provincies komt uit de ISO 3166-2-gegevens van Debian iso-codes, alleen gebruikt voor de namen.',
-        vietnamBoundariesTitle: 'Vietnam COD-AB',
+        vietnamBoundariesTitle: 'Provinciegrenzen van Vietnam',
         vietnamBoundaries: 'De Vietnamese provinciegrenzen van 2025 komen van het General Statistics Office of Vietnam via OCHA en HDX, onder <cc>CC BY 3.0 IGO</cc>. Everybird vereenvoudigde de grenzen voor lokale zoekopdrachten in de browser.',
         fonts: 'Satoshi en Cabinet Grotesk van Indian Type Foundry, geleverd door Fontshare.',
         mono: 'Geist Mono van Vercel, onder de SIL Open Font License.',

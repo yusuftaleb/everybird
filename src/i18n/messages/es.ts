@@ -660,7 +660,7 @@ export const es: Messages = {
         api: 'Las observaciones vienen de la API pública de iNaturalist, a la que se llama directamente desde tu navegador, más o menos una vez por segundo.',
         countries: 'Los nombres de los países, de la mayoría de las regiones y las costas de los globos de los continentes vienen de Natural Earth.',
         regions: 'El resto de los nombres de estados y provincias vienen de los datos ISO 3166-2 de iso-codes de Debian, usados solo para los nombres.',
-        vietnamBoundariesTitle: 'Vietnam COD-AB',
+        vietnamBoundariesTitle: 'Límites provinciales de Vietnam',
         vietnamBoundaries: 'Los límites provinciales de Vietnam de 2025 proceden de la Oficina General de Estadística de Vietnam a través de OCHA y HDX, con licencia <cc>CC BY 3.0 IGO</cc>. Everybird simplificó los límites para consultarlos en el navegador.',
         fonts: 'Satoshi y Cabinet Grotesk, de Indian Type Foundry, servidas por Fontshare.',
         mono: 'Geist Mono, de Vercel, con la licencia SIL Open Font License.',
