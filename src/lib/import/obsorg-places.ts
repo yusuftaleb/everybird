@@ -3,6 +3,7 @@ import type { Regions } from '@/lib/species/types'
 import { foldName } from '@/lib/species/resolve'
 import { makeSub1Index, SUB1_ALIASES } from './sub1-index'
 import { IMPORT_REGION_ALIASES, namedImportRegion } from '@/lib/places/region-mapping'
+import { divisionId } from '@/lib/places/registry'
 import { SUB1_PARENT } from './sub1-parents'
 
 export const OBSORG_NAME_LANGS = ['nl', 'en', 'fr', 'de', 'es'] as const
@@ -144,6 +145,9 @@ export function countryNameMap(regions: Regions, langs: readonly string[] = OBSO
     }
   }
   for (const [name, code] of Object.entries(OBSORG_COUNTRY_ALIASES)) if (regions.countries[code]) add(name, code)
+  for (const [code, aliases] of Object.entries(regions.registry?.catalogues.obsorg?.countryNames ?? {})) {
+    if (Object.hasOwn(regions.countries, code)) for (const alias of aliases) add(alias, code)
+  }
   return names
 }
 
@@ -151,7 +155,7 @@ export function countryNameMap(regions: Regions, langs: readonly string[] = OBSO
 const divisionKey = (folded: string) => folded.replace(/\s*\([^()]*\)\s*$/, '').trim()
 
 /**
- * Resolve and cache raw pairs for one parse. Only ISO country/sub1 codes leave the resolver; no counties. A lower-tier
+ * Resolve and cache raw pairs for one parse. Only country and verified Everybird region codes leave the resolver. A lower-tier
  * code (a Belgian province, a French department, a Spanish or Italian province, an English county) rolls up to its
  * top-level region, eBird's subnational1 (SUB1_PARENT, for BE, FR, ES, IT and GB only).
  */
@@ -173,8 +177,11 @@ export function makeObsOrgPlaces(regions: Regions): (country: string, division: 
     let place: Place | undefined
     if (country) {
       const nation = ukNation(country, division)
-      const code = country === 'VN' ? namedImportRegion(country, division) :
-        sub1Of(country, division) ?? (nation ? sub1Of(country, nation) : undefined)
+      const entry = regions.registry?.catalogues.obsorg?.entries[divisionId(country, division)]
+      const shared = entry?.[2] ?? entry?.[3]
+      const verified = shared?.startsWith(country + '-') && Object.hasOwn(regions.sub1, shared) ? shared : undefined
+      const code = verified ?? (country === 'VN' ? namedImportRegion(country, division) :
+        sub1Of(country, division) ?? (nation ? sub1Of(country, nation) : undefined))
       place = code ? { country, sub1: code } : { country }
     }
     cache.set(key, place)

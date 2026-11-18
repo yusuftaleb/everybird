@@ -3,9 +3,12 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ebirdRegion, namedImportRegion } from '../../src/lib/places/region-mapping'
+import { divisionId } from '../../src/lib/places/registry'
 import { foldName } from '../../src/lib/species/resolve'
 import type { CataloguePlace, PlaceCatalogue, PlaceRegistry } from '../../src/lib/places/registry'
 import type { Regions } from '../../src/lib/species/types'
+import obsorgCountries from '../../data/obsorg-countries.json'
+import slovenianRegions from '../../data/slovenia-statistical-regions.json'
 
 type EbirdSnapshot = {
   verified_at: string
@@ -148,6 +151,8 @@ export function buildPlaceRegistry(
       : match ? [country, label(p.name), match] : [country, label(p.name)]
   }
   const snapshotDate = (date: string) => new Date(date).toISOString().slice(0, 10)
+  const obsorgEntries: Record<string, CataloguePlace> = {}
+  for (const [code, name] of Object.entries(slovenianRegions)) obsorgEntries[divisionId('SI', name)] = ['SI', name, code]
   const registry: PlaceRegistry = {
     v: 1,
     catalogues: {
@@ -159,10 +164,10 @@ export function buildPlaceRegistry(
       },
       inat: { edition: snapshotDate(inat.last_modified), entries: ordered(inatEntries) },
       iso: { edition: '2026-11-05', entries: ordered(isoEntries) },
-      obsorg: { edition: '2026-11-17', entries: {} },
+      obsorg: { ...obsorgCountries, entries: ordered(obsorgEntries) },
     },
   }
-  return { countries: ordered(countries), registry }
+  return { countries: ordered(countries), sub1: slovenianRegions, registry }
 }
 
 function main() {
@@ -178,12 +183,15 @@ function main() {
     const previous = JSON.parse(readFileSync(registryPath, 'utf8')) as Pick<Regions, 'countries'> & { registry: PlaceRegistry }
     for (const [ns, catalogue] of Object.entries(previous.registry.catalogues)) {
       const current = built.registry.catalogues[ns]
-      built.registry.catalogues[ns] = !current || ns === 'obsorg' ? catalogue : retainPlaceHistory(catalogue, current)
+      if (ns === 'obsorg') {
+        current.entries = ordered({ ...catalogue.entries, ...current.entries })
+      }
+      built.registry.catalogues[ns] = current ? retainPlaceHistory(catalogue, current) : catalogue
     }
   }
   if (built.registry.catalogues.ebird.reused?.length) console.log('Review edition-sensitive eBird IDs:', built.registry.catalogues.ebird.reused.join(' '))
   writeFileSync(registryPath, JSON.stringify(built))
-  writeFileSync(path, JSON.stringify({ ...regions, ...built }))
+  writeFileSync(path, JSON.stringify({ ...regions, ...built, sub1: { ...regions.sub1, ...built.sub1 } }))
 }
 
 if (process.argv[1]?.endsWith('build-place-registry.ts')) main()

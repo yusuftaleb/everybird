@@ -1,4 +1,5 @@
 import { fetchData } from '@/lib/data-url'
+import type { DataFile } from '@/lib/data-files'
 
 type Point = [longitude: number, latitude: number]
 type Polygon = Point[][]
@@ -76,14 +77,29 @@ export function makeCoordinateRegion(boundaries: ProvinceBoundaries): Coordinate
   }
 }
 
-let vietnamPromise: Promise<CoordinateRegion | undefined> | undefined
-/** Only loads the public boundary asset. Coordinates are processed in memory on the device. */
-export function loadVietnamCoordinateRegion(): Promise<CoordinateRegion | undefined> {
-  vietnamPromise ??= fetchData<ProvinceBoundaries>('vietnam-boundaries.v1.json')
+const BOUNDARY_FILES: Record<string, DataFile> = {
+  SI: 'slovenia-boundaries.v1.json',
+  VN: 'vietnam-boundaries.v1.json',
+}
+const coordinateLookups = new Map<string, Promise<CoordinateRegion | undefined>>()
+
+export function hasCoordinateBoundaries(country: string): boolean {
+  return Object.hasOwn(BOUNDARY_FILES, country)
+}
+
+/** Only the public boundary asset is fetched. Coordinates are processed in memory on the device. */
+export function loadCoordinateRegion(country: string): Promise<CoordinateRegion | undefined> {
+  if (!hasCoordinateBoundaries(country)) return Promise.resolve(undefined)
+  const cached = coordinateLookups.get(country)
+  if (cached) return cached
+  const lookup = fetchData<ProvinceBoundaries>(BOUNDARY_FILES[country])
     .then(makeCoordinateRegion)
     .catch(() => {
-      vietnamPromise = undefined
+      coordinateLookups.delete(country)
       return undefined
     })
-  return vietnamPromise
+  coordinateLookups.set(country, lookup)
+  return lookup
 }
+
+export const loadVietnamCoordinateRegion = () => loadCoordinateRegion('VN')

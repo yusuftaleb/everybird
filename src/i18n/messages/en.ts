@@ -77,6 +77,8 @@ const page = {
       regions: "The rest of the state and province names come from Debian's iso-codes ISO 3166-2 data, used for names only.",
       vietnamBoundariesTitle: 'Vietnam province boundaries',
       vietnamBoundaries: 'Vietnam’s 2025 provincial boundaries come from the General Statistics Office of Vietnam via OCHA and HDX, under <cc>CC BY 3.0 IGO</cc>. Everybird simplified the shapes and uses them for local lookups.',
+      sloveniaBoundariesTitle: 'Slovenia’s statistical regions',
+      sloveniaBoundaries: 'The Surveying and Mapping Authority of the Republic of Slovenia publishes these boundaries under <cc>CC BY 4.0</cc>. Everybird simplified the shapes for local lookups.',
       fonts: 'Satoshi and Cabinet Grotesk by Indian Type Foundry, served by Fontshare.',
       mono: 'Geist Mono by Vercel, under the SIL Open Font License.',
       flags: 'Country flags from flag-icons by Panayiotis Lipiridis, under the MIT licence.',

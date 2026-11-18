@@ -51,9 +51,9 @@ describe('observation.org observations: a File streams to the same result as the
   it('resumes a streamed File after loading the fallback and reads each row once', async () => {
     Papa.LocalChunkSize = 17
     const csv = [
-      'date,scientific name,species type,country,country division,lng,lat,accuracy,obscurity',
-      '2026-01-01,Colaptes auratus,soort,Vietnam,,108.2,16.05,20,False',
-      '2026-02-01,Colaptes auratus,soort,Vietnam,Quảng Nam,,,,',
+      'date,scientific name,species type,country,country division,lng,lat,accuracy,obscurity,embargo date',
+      '2026-01-01,Colaptes auratus,soort,Vietnam,,108.2,16.05,20,False,',
+      '2026-02-01,Colaptes auratus,soort,Vietnam,Quảng Nam,,,,,',
     ].join('\n')
     const result = await parseObsOrgObservations(
       new File([csv], 'synthetic.csv'), t, {}, { ...regions, countries: { ...regions.countries, VN: 'Vietnam' } },

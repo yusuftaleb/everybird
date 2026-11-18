@@ -42,8 +42,8 @@ describe('observation.org country and division names', () => {
     ]) expect(p(country,division)).toEqual({ country:iso, sub1 })
     // Only the UK's divisions split at the dash; elsewhere the whole name must match.
     expect(p('Duitsland','Hessen - Kassel')).toEqual({ country:'DE' })
-    // Slovenia's eBird subnational1 are municipalities: a statistical region stays the country.
-    expect(p('Slovenië','Pomurska')).toEqual({ country:'SI' })
+    // A Slovenian statistical region has its own key alongside the municipalities.
+    expect(p('Slovenië','Pomurska')).toEqual({ country:'SI', sub1:'SI-SR01' })
   })
   it('falls back to country for empty or unknown divisions and caches a pair', () => {
     const p = place()

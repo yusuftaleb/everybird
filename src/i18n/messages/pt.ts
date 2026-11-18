@@ -662,6 +662,8 @@ export const pt: Messages = {
         regions: 'O restante dos nomes de estados e províncias vem dos dados ISO 3166-2 do iso-codes do Debian, usados apenas para os nomes.',
         vietnamBoundariesTitle: 'Limites provinciais do Vietnã',
         vietnamBoundaries: 'Os limites provinciais do Vietnã de 2025 vêm do Escritório Geral de Estatística do Vietnã, via OCHA e HDX, sob a licença <cc>CC BY 3.0 IGO</cc>. O Everybird simplificou os limites para consultas no navegador.',
+        sloveniaBoundariesTitle: 'Regiões estatísticas da Eslovênia',
+        sloveniaBoundaries: 'A Autoridade de Agrimensura e Cartografia da República da Eslovênia publica esses limites sob a licença <cc>CC BY 4.0</cc>. O Everybird simplificou os limites para consultas no navegador.',
         fonts: 'Satoshi e Cabinet Grotesk, da Indian Type Foundry, servidas pela Fontshare.',
         mono: 'Geist Mono, da Vercel, sob a SIL Open Font License.',
         flags: 'Bandeiras de países do flag-icons, de Panayiotis Lipiridis, sob a licença MIT.',

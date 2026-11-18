@@ -3,8 +3,8 @@ import type { ImportResult, Place, SourceRecord, Unmatched } from '@/lib/list/mo
 import { resolveName, suggestName, type Resolution, type TaxonomyIndex } from '@/lib/species/resolve'
 import type { Regions } from '@/lib/species/types'
 import { SeenAgg } from '@/lib/list/seen'
-import { coordinates, loadVietnamCoordinateRegion, type CoordinateRegion } from '@/lib/places/coordinate-region'
-import { divisionId, resolveImportedPlace } from '@/lib/places/registry'
+import { coordinates, hasCoordinateBoundaries, loadCoordinateRegion, type CoordinateRegion } from '@/lib/places/coordinate-region'
+import { divisionId, projectPlace, resolveImportedPlace } from '@/lib/places/registry'
 import { makeObsOrgPlaces } from './obsorg-places'
 import { REGION_RULES } from './inat-rules'
 
@@ -174,14 +174,15 @@ export type ObsOrgObservationsResult = ImportResult & {
  * Observations, row by row (papaparse `step`; a File streams in chunks where FileReader exists, as eBird's parser
  * does), retaining only per-name/species/place aggregates. Per species the earliest dated row gives the date and
  * place; on equal dates the row with more place detail wins, as in buildList.
- * Coordinates are only read to resolve a missing Vietnamese province, when the export explicitly marks the
- * point as unobscured and provides its accuracy. Raw points are never added to the stored records. Names are resolved exactly, once per distinct name; suggestions are computed
+ * Coordinates are read to resolve a missing subdivision where a local boundary pack exists, when the export
+ * marks the point as unobscured and supplies accuracy and embargo fields. Raw points never enter stored records.
+ * Names are resolved exactly, once per distinct name; suggestions are computed
  * at the end, for unmatched names only (`obsOrgSuggester`).
  */
 export async function parseObsOrgObservations(
   csv: string | File, t: TaxonomyIndex, synonyms: Record<string, string>, regions: Regions,
   onProgress?: (rows: number) => void,
-  loadCoordinates: () => Promise<CoordinateRegion | undefined> = loadVietnamCoordinateRegion,
+  loadCoordinates: (country: string) => Promise<CoordinateRegion | undefined> = loadCoordinateRegion,
 ): Promise<ObsOrgObservationsResult | { error: 'no-birds' }> {
   const placeOf = makeObsOrgPlaces(regions)
   const byCode = new Map<string, SourceRecord>()
@@ -237,7 +238,8 @@ export async function parseObsOrgObservations(
     } else {
       seen.add(result.code, place, date)
       const previous = byCode.get(result.code)
-      const tie = !!date && date === previous?.date && detail(place) > detail(previous.place)
+      const tie = !!date && date === previous?.date &&
+        detail(projectPlace(place, regions)) > detail(projectPlace(previous.place, regions))
       if (!previous || earlier(date, previous.date) || tie) {
         // Replace the whole lifer so an earlier unplaced row cannot inherit a later row's place.
         byCode.set(result.code, { code: result.code, source: 'obsorg', ...(date ? { date } : {}), ...(place ? { place } : {}) })
@@ -268,8 +270,7 @@ export async function parseObsOrgObservations(
     new Promise<ObsOrgObservationsResult | { error: 'no-birds' }>((resolve, reject) => {
       let failed = false
       let checked = false
-      let lookup: CoordinateRegion | undefined
-      let loadedBoundaries = false
+      const lookups = new Map<string, CoordinateRegion | undefined>()
       const stream = typeof input !== 'string' ? input as unknown as {
         pause?: () => void; resume?: () => void; stop?: () => void
       } : undefined
@@ -290,26 +291,26 @@ export async function parseObsOrgObservations(
           if (broken(result.errors)) return fail(parser, new DamagedCsvError())
           const row = result.data
           const place = placeOf(row.country ?? '', row['country division'] ?? '')
-          const publicPoint = place?.country === 'VN' && !place.sub1 &&
-            row.obscurity?.trim().toLowerCase() === 'false' && !row['embargo date']?.trim() &&
+          const country = place?.country
+          const publicPoint = country && hasCoordinateBoundaries(country) && !place?.sub1 &&
+            row.obscurity?.trim().toLowerCase() === 'false' && row['embargo date']?.trim() === '' &&
             row.accuracy?.trim() && coordinates(row.lng, row.lat)
-          if (!publicPoint) {
+          if (!country || !publicPoint) {
             onRow(row, place)
             return
           }
           const processPoint = () => {
-            const sub1 = lookup?.(...publicPoint, row.accuracy)
-            onRow(row, sub1 ? { country: 'VN', sub1 } : place)
+            const sub1 = lookups.get(country)?.(...publicPoint, row.accuracy)
+            onRow(row, sub1?.startsWith(country + '-') && Object.hasOwn(regions.sub1, sub1) ? { country, sub1 } : place)
           }
-          if (loadedBoundaries) {
+          if (lookups.has(country)) {
             processPoint()
             return
           }
           stream?.pause?.()
           parser.pause()
-          void loadCoordinates().then((candidate) => {
-            lookup = candidate
-            loadedBoundaries = true
+          void loadCoordinates(country).catch(() => undefined).then((candidate) => {
+            lookups.set(country, candidate)
             processPoint()
             parser.resume()
             stream?.resume?.()

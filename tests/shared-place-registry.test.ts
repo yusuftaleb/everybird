@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { parseEbirdLifeList } from '@/lib/import/ebird-lifelist'
 import { parseEbirdMyData } from '@/lib/import/ebird-mydata'
 import { makePlaceResolver } from '@/lib/import/inat'
 import { willetCode } from '@/lib/import/inat-rules'
 import { formatPlace } from '@/lib/import/places'
 import { parseObsOrgObservations } from '@/lib/import/obsorg'
+import { makeObsOrgPlaces } from '@/lib/import/obsorg-places'
 import { buildTaxonomyIndex } from '@/lib/species/load'
 import { buildList } from '@/lib/list/build-list'
 import { buildSeen, SeenAgg } from '@/lib/list/seen'
@@ -14,6 +15,7 @@ import { fromJson, toCsv, toJson } from '@/lib/list/export'
 import { emptySaved } from '@/lib/list/storage'
 import { recordsOf } from '@/lib/list/store'
 import { divisionId, hasSourcePlaceKey, projectPlace, projectRecord, resolveImportedPlace } from '@/lib/places/registry'
+import { makeCoordinateRegion } from '@/lib/places/coordinate-region'
 import type { Regions } from '@/lib/species/types'
 import { retainPlaceHistory } from '../scripts/build-data/build-place-registry'
 
@@ -108,6 +110,42 @@ describe('shared Places registry', () => {
     })
     expect(roundTrip.records.obsorg[0].place).toEqual(raw.place)
     expect(hasSourcePlaceKey(raw.place!.sub1!)).toBe(true)
+  })
+
+  it('resolves Observation.org country aliases and Slovenian statistical regions', () => {
+    const resolve = makeObsOrgPlaces(regions)
+    expect(resolve('Principado de Andorra', '')).toEqual({ country: 'AD' })
+    expect(resolve('Slovenië', 'Gorenjska')).toEqual({ country: 'SI', sub1: 'SI-SR09' })
+    expect(resolve('Slovenië', 'Obalno-kraška')).toEqual({ country: 'SI', sub1: 'SI-SR12' })
+    expect(resolve('Slovenië', 'Brežice')).toEqual({ country: 'SI', sub1: 'SI-009' })
+    expect(resolve('Oostenrijk', 'Gorenjska')).toEqual({ country: 'AT' })
+    const older = resolveImportedPlace({ namespace: 'obsorg', id: divisionId('SI', 'Gorenjska'), country: 'SI' }, {
+      ...regions, registry: undefined,
+    })
+    expect(projectPlace(older, regions)).toEqual({ country: 'SI', sub1: 'SI-SR09' })
+  })
+
+  it('loads the Slovenian coordinate pack once and skips obscured, embargoed and ambiguous points', async () => {
+    const locate = vi.fn(makeCoordinateRegion(JSON.parse(readFileSync('public/data/slovenia-boundaries.v1.json', 'utf8'))))
+    const load = vi.fn(async () => locate)
+    const header = 'date,scientific name,species type,country,country division,lng,lat,accuracy,obscurity,embargo date'
+    const result = await parseObsOrgObservations([
+      header,
+      `2025-05-01,${name},species,Slovenia,Unknown,14.1136,46.3636,10,False,`,
+      `2025-05-02,${name},species,Slovenia,,14.1136,46.3636,10,False,`,
+      `2025-05-03,${name},species,Slovenia,,14.1136,46.3636,10,True,`,
+      `2025-05-04,${name},species,Slovenia,,14.1136,46.3636,10,False,2027-01-01`,
+      `2025-05-05,${name},species,Slovenia,Obalno-kraška,14.1136,46.3636,10,False,`,
+      `2025-06-01,${name},species,Slovenia,,14.1136,46.3636,50000,False,`,
+      `2025-06-02,${name},species,Austria,,14.1136,46.3636,10,False,`,
+    ].join('\n'), taxonomy, {}, regions, undefined, load)
+    if ('error' in result) throw new Error(result.error)
+    expect(load).toHaveBeenCalledExactlyOnceWith('SI')
+    expect(locate).toHaveBeenCalledTimes(3)
+    expect(projectRecord(result.records[0], regions).seen).toEqual(expect.arrayContaining([
+      '2025-05-01|SI-SR09', '2025-05-03|SI', '2025-05-05|SI-SR12', '2025-06-02|AT',
+    ]))
+    expect(JSON.stringify(result.records)).not.toMatch(/14\.1136|46\.3636/)
   })
 
   it('preserves retired place editions and declines an unversioned ID whose source definition changed', () => {

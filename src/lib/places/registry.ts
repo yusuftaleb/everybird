@@ -6,6 +6,8 @@ export type CataloguePlace = [country: string, name: string, equivalent?: string
 export type PlaceCatalogue = {
   edition: string
   entries: Record<string, CataloguePlace>
+  /** Country labels directly reported by this source, indexed by country code. */
+  countryNames?: Record<string, string[]>
   /** Changes from the current rows in each older edition. A null marks an ID absent in that edition. */
   history?: Record<string, Record<string, CataloguePlace | null>>
   /** Identifiers whose meaning depends on the edition. */

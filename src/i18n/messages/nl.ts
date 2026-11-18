@@ -662,6 +662,8 @@ export const nl: Messages = {
         regions: 'De rest van de namen van staten en provincies komt uit de ISO 3166-2-gegevens van Debian iso-codes, alleen gebruikt voor de namen.',
         vietnamBoundariesTitle: 'Provinciegrenzen van Vietnam',
         vietnamBoundaries: 'De Vietnamese provinciegrenzen van 2025 komen van het General Statistics Office of Vietnam via OCHA en HDX, onder <cc>CC BY 3.0 IGO</cc>. Everybird vereenvoudigde de grenzen voor lokale zoekopdrachten in de browser.',
+        sloveniaBoundariesTitle: 'Statistische regio’s van Slovenië',
+        sloveniaBoundaries: 'De Sloveense landmeetkundige en cartografische dienst publiceert deze grenzen onder <cc>CC BY 4.0</cc>. Everybird vereenvoudigde de grenzen voor lokale zoekopdrachten in de browser.',
         fonts: 'Satoshi en Cabinet Grotesk van Indian Type Foundry, geleverd door Fontshare.',
         mono: 'Geist Mono van Vercel, onder de SIL Open Font License.',
         flags: 'Landenvlaggen uit flag-icons van Panayiotis Lipiridis, onder de MIT-licentie.',
