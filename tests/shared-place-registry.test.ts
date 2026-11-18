@@ -125,27 +125,27 @@ describe('shared Places registry', () => {
     expect(projectPlace(older, regions)).toEqual({ country: 'SI', sub1: 'SI-SR09' })
   })
 
-  it('loads the Slovenian coordinate pack once and skips obscured, embargoed and ambiguous points', async () => {
-    const locate = vi.fn(makeCoordinateRegion(JSON.parse(readFileSync('public/data/slovenia-boundaries.v1.json', 'utf8'))))
+  it('loads the Vietnamese coordinate pack once, skips obscured, embargoed and ambiguous points, and has none for Slovenia', async () => {
+    const locate = vi.fn(makeCoordinateRegion(JSON.parse(readFileSync('public/data/vietnam-boundaries.v1.json', 'utf8'))))
     const load = vi.fn(async () => locate)
     const header = 'date,scientific name,species type,country,country division,lng,lat,accuracy,obscurity,embargo date'
     const result = await parseObsOrgObservations([
       header,
-      `2025-05-01,${name},species,Slovenia,Unknown,14.1136,46.3636,10,False,`,
-      `2025-05-02,${name},species,Slovenia,,14.1136,46.3636,10,False,`,
-      `2025-05-03,${name},species,Slovenia,,14.1136,46.3636,10,True,`,
-      `2025-05-04,${name},species,Slovenia,,14.1136,46.3636,10,False,2027-01-01`,
-      `2025-05-05,${name},species,Slovenia,Obalno-kraška,14.1136,46.3636,10,False,`,
-      `2025-06-01,${name},species,Slovenia,,14.1136,46.3636,50000,False,`,
-      `2025-06-02,${name},species,Austria,,14.1136,46.3636,10,False,`,
+      `2025-05-01,${name},species,Vietnam,Unknown,105.8342,21.0278,10,False,`,
+      `2025-05-02,${name},species,Vietnam,,105.8342,21.0278,10,False,`,
+      `2025-05-03,${name},species,Vietnam,,105.8342,21.0278,10,True,`,
+      `2025-05-04,${name},species,Vietnam,,105.8342,21.0278,10,False,2027-01-01`,
+      `2025-05-05,${name},species,Vietnam,TP. Da Nang,105.8342,21.0278,10,False,`,
+      `2025-06-01,${name},species,Vietnam,,105.8342,21.0278,50000,False,`,
+      `2025-06-02,${name},species,Slovenia,,14.1136,46.3636,10,False,`,
     ].join('\n'), taxonomy, {}, regions, undefined, load)
     if ('error' in result) throw new Error(result.error)
-    expect(load).toHaveBeenCalledExactlyOnceWith('SI')
+    expect(load).toHaveBeenCalledExactlyOnceWith('VN')
     expect(locate).toHaveBeenCalledTimes(3)
     expect(projectRecord(result.records[0], regions).seen).toEqual(expect.arrayContaining([
-      '2025-05-01|SI-SR09', '2025-05-03|SI', '2025-05-05|SI-SR12', '2025-06-02|AT',
+      '2025-05-01|VN-V01', '2025-05-03|VN', '2025-05-05|VN-V48', '2025-06-02|SI',
     ]))
-    expect(JSON.stringify(result.records)).not.toMatch(/14\.1136|46\.3636/)
+    expect(JSON.stringify(result.records)).not.toMatch(/105\.8342|21\.0278|14\.1136|46\.3636/)
   })
 
   it('preserves retired place editions and declines an unversioned ID whose source definition changed', () => {

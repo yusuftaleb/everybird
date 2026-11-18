@@ -78,7 +78,6 @@ export function makeCoordinateRegion(boundaries: ProvinceBoundaries): Coordinate
 }
 
 const BOUNDARY_FILES: Record<string, DataFile> = {
-  SI: 'slovenia-boundaries.v1.json',
   VN: 'vietnam-boundaries.v1.json',
 }
 const coordinateLookups = new Map<string, Promise<CoordinateRegion | undefined>>()

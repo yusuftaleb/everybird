@@ -137,11 +137,8 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
           <Credit label={c.label.regions} title={<A href="https://salsa.debian.org/iso-codes-team/iso-codes">Debian iso-codes</A>}>
             {c.regions}
           </Credit>
-          <Credit label={c.label.regions} title={<A href="https://data.humdata.org/dataset/cod-ab-vnm">{c.vietnamBoundariesTitle}</A>}>
+          <Credit label={c.label.boundaries} title={<A href="https://data.humdata.org/dataset/cod-ab-vnm">{c.vietnamBoundariesTitle}</A>}>
             {rich(c.vietnamBoundaries, { cc: link('https://creativecommons.org/licenses/by/3.0/igo/') })}
-          </Credit>
-          <Credit label={c.label.regions} title={<A href="https://podatki.gov.si/dataset/register-prostorskih-enot">{c.sloveniaBoundariesTitle}</A>}>
-            {rich(c.sloveniaBoundaries, { cc: link('https://creativecommons.org/licenses/by/4.0/') })}
           </Credit>
           <Credit label={c.label.fonts} title={<A href="https://www.fontshare.com/">Fontshare</A>}>
             {c.fonts}

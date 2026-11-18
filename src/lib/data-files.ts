@@ -8,7 +8,6 @@ export const DATA_FILES = {
   'sample.v1.json': 'sample.v1.300671bac4.json',
   'sample-pack.v1.json': 'sample-pack.v1.f716f6eda1.json',
   'inat-synonyms.v1.json': 'inat-synonyms.v1.44136fa355.json',
-  'slovenia-boundaries.v1.json': 'slovenia-boundaries.v1.30b178f558.json',
   'vietnam-boundaries.v1.json': 'vietnam-boundaries.v1.1eed73d78b.json',
   'names.es.v1.json': 'names.es.v1.cff9628611.json',
   'names.es_MX.v1.json': 'names.es_MX.v1.921b2c6667.json',
