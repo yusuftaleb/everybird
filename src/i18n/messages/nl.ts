@@ -635,7 +635,7 @@ export const nl: Messages = {
         coffee: 'Als je Everybird leuk vindt, kun je Yusuf op een kop koffie trakteren.',
         /** Each credit's mono label (its kind, then the licence). */
         label: {
-          stickers: 'Stickers · CC BY 4.0',
+          stickers: 'AI-gegenereerde stickers · CC BY 4.0',
           inspiration: 'Inspiratie',
           taxonomy: 'Taxonomie',
           masses: 'Lichaamsgewichten · CC BY 4.0',
@@ -651,7 +651,7 @@ export const nl: Messages = {
           icons8: 'Pictogrammen',
           code: 'Code · MIT',
         },
-        stickers: { lead: 'Elke vogelsticker komt uit huashu-bird-sticker van alchaincyf, onder de licentie <cc>CC BY 4.0</cc>. De stickers zijn verkleind en bijgesneden voor het web; verder is er niets aan veranderd.', commit: 'Bron-commit <code>{sha}</code>.', tail: 'Minder dan 2% van de soorten heeft nog geen sticker en verschijnt als een omtrek. We zoeken elke week naar nieuwe tekeningen en voegen ze toe in Everybird-updates.' },
+        stickers: { lead: 'Elke vogelsticker is een met AI gegenereerde illustratie uit huashu-bird-sticker van alchaincyf, onder de licentie <cc>CC BY 4.0</cc>. Elke sticker is met GPT-image gemaakt op basis van een geschreven beschrijving van de veldkenmerken van de soort en, voor de meeste soorten, referentiefoto’s, waarvan de fotografen in dat project worden vermeld. <how>Hoe de stickers worden gemaakt</how>. Everybird heeft ze verkleind en bijgesneden voor het web; verder is er niets aan veranderd.', commit: 'Bron-commit <code>{sha}</code>.', tail: 'Minder dan 2% van de soorten heeft nog geen sticker en verschijnt als een omtrek. We zoeken elke week naar nieuwe tekeningen en voegen ze toe in Everybird-updates.' },
         inspiration: 'Avian Visitors van Teddy Warner liet zien hoe mooi een muur vol vogels kan zijn. Everybird begon daar.',
         taxonomyTitle: 'eBird en Clements',
         taxonomy: 'Vogelnamen, soorten en hun volgorde volgen de eBird/Clements-taxonomie, versie {version}, van het Cornell Lab of Ornithology. Bestanden van eBird en observation.org worden in je browser gelezen.',

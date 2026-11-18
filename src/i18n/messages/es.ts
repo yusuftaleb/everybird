@@ -635,7 +635,7 @@ export const es: Messages = {
         coffee: 'Si te gusta Everybird, puedes invitar a Yusuf a un café.',
         /** Each credit's mono label (its kind, then the licence). */
         label: {
-          stickers: 'Stickers · CC BY 4.0',
+          stickers: 'Stickers generados con IA · CC BY 4.0',
           inspiration: 'Inspiración',
           taxonomy: 'Taxonomía',
           masses: 'Masas corporales · CC BY 4.0',
@@ -651,7 +651,7 @@ export const es: Messages = {
           icons8: 'Iconos',
           code: 'Código · MIT',
         },
-        stickers: { lead: 'Cada sticker de ave viene de huashu-bird-sticker, de alchaincyf, con licencia <cc>CC BY 4.0</cc>. Los stickers se redimensionaron y recortaron para la web; no se cambió nada más.', commit: 'Commit de origen <code>{sha}</code>.', tail: 'Menos del 2% de las especies aún no tienen sticker y aparecen como un contorno. Buscamos dibujos nuevos cada semana y los añadimos en las actualizaciones de Everybird.' },
+        stickers: { lead: 'Cada sticker de ave es una ilustración generada con IA de huashu-bird-sticker, de alchaincyf, con licencia <cc>CC BY 4.0</cc>. Cada uno se hizo con GPT-image a partir de una descripción escrita de los rasgos de campo de la especie y, para la mayoría de las especies, de fotos de referencia, cuyos fotógrafos aparecen en los créditos de ese proyecto. <how>Cómo se hacen los stickers</how>. Everybird los redimensionó y recortó para la web; no se cambió nada más.', commit: 'Commit de origen <code>{sha}</code>.', tail: 'Menos del 2% de las especies aún no tienen sticker y aparecen como un contorno. Buscamos dibujos nuevos cada semana y los añadimos en las actualizaciones de Everybird.' },
         inspiration: 'Avian Visitors, de Teddy Warner, mostró lo bonito que puede ser un muro de aves. Everybird empezó ahí.',
         taxonomyTitle: 'eBird y Clements',
         taxonomy: 'Los nombres de las aves, las especies y su orden siguen la taxonomía eBird/Clements, versión {version}, del Laboratorio de Ornitología de Cornell. Los archivos de eBird y de observation.org se leen en tu navegador.',

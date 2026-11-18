@@ -109,7 +109,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
         </div>
         <ul className="eb-credits">
           <Credit label={c.label.stickers} title={<A href={HUASHU_URL}>huashu-bird-sticker</A>}>
-            {rich(c.stickers.lead, { cc: link('https://creativecommons.org/licenses/by/4.0/') })}
+            {rich(c.stickers.lead, { cc: link('https://creativecommons.org/licenses/by/4.0/'), how: link('https://birdalbum.com/how-stickers-are-made/') })}
             {huashuCommit && <>{' '}{rich(fmt(c.stickers.commit, { sha: huashuCommit.slice(0, 7) }), { code: (chunk) => <code className="eb-mono eb-credit-code">{chunk}</code> })}</>}{' '}
             {c.stickers.tail}
           </Credit>

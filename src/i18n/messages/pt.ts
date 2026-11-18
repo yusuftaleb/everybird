@@ -635,7 +635,7 @@ export const pt: Messages = {
         coffee: 'Se você gosta do Everybird, pode pagar um café para o Yusuf.',
         /** Each credit's mono label (its kind, then the licence). */
         label: {
-          stickers: 'Adesivos · CC BY 4.0',
+          stickers: 'Adesivos gerados por IA · CC BY 4.0',
           inspiration: 'Inspiração',
           taxonomy: 'Taxonomia',
           masses: 'Massas corporais · CC BY 4.0',
@@ -651,7 +651,7 @@ export const pt: Messages = {
           icons8: 'Ícones',
           code: 'Código · MIT',
         },
-        stickers: { lead: 'Todos os adesivos de aves vêm do huashu-bird-sticker, de alchaincyf, com licença <cc>CC BY 4.0</cc>. Os adesivos foram redimensionados e recortados para a web; nada mais foi alterado.', commit: 'Commit de origem <code>{sha}</code>.', tail: 'Menos de 2% das espécies ainda não têm adesivo e aparecem como um contorno. Procuramos novos desenhos toda semana e os adicionamos nas atualizações do Everybird.' },
+        stickers: { lead: 'Cada adesivo de ave é uma ilustração gerada por IA do huashu-bird-sticker, de alchaincyf, com licença <cc>CC BY 4.0</cc>. Cada um foi feito com o GPT-image a partir de uma descrição escrita das marcas de campo da espécie e, para a maioria das espécies, de fotos de referência, cujos fotógrafos são creditados nesse projeto. <how>Como os adesivos são feitos</how>. O Everybird os redimensionou e recortou para a web; nada mais foi alterado.', commit: 'Commit de origem <code>{sha}</code>.', tail: 'Menos de 2% das espécies ainda não têm adesivo e aparecem como um contorno. Procuramos novos desenhos toda semana e os adicionamos nas atualizações do Everybird.' },
         inspiration: 'O Avian Visitors, de Teddy Warner, mostrou como um mural de aves pode ser lindo. O Everybird começou ali.',
         taxonomyTitle: 'eBird e Clements',
         taxonomy: 'Os nomes das aves, as espécies e a ordem delas seguem a taxonomia eBird/Clements, versão {version}, do Cornell Lab of Ornithology. Os arquivos do eBird e do observation.org são lidos no seu navegador.',

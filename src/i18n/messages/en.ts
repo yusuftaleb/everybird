@@ -50,7 +50,7 @@ const page = {
       coffee: 'If you enjoy Everybird, you can buy Yusuf a coffee.',
       /** Each credit's mono label (its kind, then the licence). */
       label: {
-        stickers: 'Stickers · CC BY 4.0',
+        stickers: 'AI-generated stickers · CC BY 4.0',
         inspiration: 'Inspiration',
         taxonomy: 'Taxonomy',
         masses: 'Body masses · CC BY 4.0',
@@ -66,7 +66,7 @@ const page = {
         icons8: 'Icons',
         code: 'Code · MIT',
       },
-      stickers: { lead: 'Every bird sticker comes from huashu-bird-sticker by alchaincyf, licensed <cc>CC BY 4.0</cc>. The stickers were resized and trimmed for the web; nothing else was changed.', commit: 'Source commit <code>{sha}</code>.', tail: "Less than 2% of species don't have a sticker yet and show as an outline. We check for new drawings weekly and add them in Everybird updates." },
+      stickers: { lead: 'Every bird sticker is an AI-generated illustration from huashu-bird-sticker by alchaincyf, licensed <cc>CC BY 4.0</cc>. Each one was made with GPT-image from a written description of the species’ field marks and, for most species, reference photos, whose photographers are credited in that project. <how>How the stickers are made</how>. Everybird resized and trimmed them for the web; nothing else was changed.', commit: 'Source commit <code>{sha}</code>.', tail: "Less than 2% of species don't have a sticker yet and show as an outline. We check for new drawings weekly and add them in Everybird updates." },
       inspiration: "Teddy Warner's Avian Visitors showed how lovely a wall of birds can be. Everybird started there.",
       taxonomyTitle: 'eBird and Clements',
       taxonomy: 'Bird names, species and their order follow the eBird/Clements taxonomy, version {version}, from the Cornell Lab of Ornithology. eBird and observation.org files are read in your browser.',
