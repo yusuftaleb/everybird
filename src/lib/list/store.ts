@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { withCanonicalPlaces } from '@/lib/places/region-mapping'
 import { loadRegions } from '@/lib/import/places'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { buildList } from './build-list'
@@ -56,7 +57,8 @@ export type StoreContext = { species: SpeciesIndex }
 /** Every record the list is built from: each slot's records, then the fixed unmatched rows (source-counts.ts
  *  `slottedRecords`, which also says each record's slot). */
 export function recordsOf(saved: Saved): SourceRecord[] {
-  return slottedRecords(saved).map((x) => x.record)
+  return slottedRecords(saved).map(({ record, slot }) =>
+    slot !== 'manual' && saved.sources?.[slot]?.regionMapping === 1 ? record : withCanonicalPlaces(record))
 }
 
 /**
@@ -77,9 +79,13 @@ function derive(s: AppState, saved: Saved, filter: Filter, ctx: StoreContext, pr
   const taxonOrder = (code: string) => ctx.species.byCode.get(code)?.to ?? Number.MAX_SAFE_INTEGER
   const fixKeys = new Set(Object.keys(saved.edits.fixes))
   const records = recordsOf(saved)
-  const list = buildList(records, saved.edits, saved.rules, taxonOrder)
-  const seen = buildSeen(records, saved.edits, saved.rules, list)
-  const openUnmatched = saved.unmatched.filter((u) => !fixKeys.has(unmatchedKey(u)))
+  const edits = { ...saved.edits, added: saved.edits.added.map(withCanonicalPlaces) }
+  const list = buildList(records, edits, saved.rules, taxonOrder)
+  const seen = buildSeen(records, edits, saved.rules, list)
+  const openUnmatched = saved.unmatched.filter((u) => !fixKeys.has(unmatchedKey(u))).map((u) => {
+    const slot = u.slot ?? u.source
+    return slot !== 'manual' && saved.sources?.[slot]?.regionMapping === 1 ? u : withCanonicalPlaces(u)
+  })
   return {
     ...s,
     saved,
@@ -110,8 +116,10 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
   const stamp = (saved: Saved): Saved => ({ ...saved, savedAt: new Date().toISOString() })
   return (s, a) => {
     switch (a.type) {
-      case 'import':
-        return derive(s, replaceSource(s.saved, a.source, a.result, a.details as never), s.filter, ctx, true)
+      case 'import': {
+        const details = a.details ? { ...a.details, regionMapping: 1 as const } : undefined
+        return derive(s, replaceSource(s.saved, a.source, a.result, details as never), s.filter, ctx, true)
+      }
       case 'remove-source':
         return derive(s, removeSource(s.saved, a.source), s.filter, ctx, true)
       case 'edit':

@@ -2,6 +2,7 @@ import Papa from 'papaparse'
 import type { ImportResult, Place, SourceRecord, Unmatched } from '@/lib/list/model'
 import { resolveName, type TaxonomyIndex } from '@/lib/species/resolve'
 import { placeFromSubnational } from './places'
+import { ebirdRegion, vietnamEdition } from '@/lib/places/region-mapping'
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
 
@@ -27,6 +28,7 @@ export function parseEbirdDate(s: string | undefined): string | undefined {
 export function parseEbirdLifeList(csv: string, t: TaxonomyIndex): ImportResult {
   const text = csv.replace(/^﻿/, '')
   const { data } = Papa.parse<Record<string, string>>(text, { header: true, skipEmptyLines: true })
+  const edition = vietnamEdition(data.map((r) => (r['S/P'] ?? '').trim().toUpperCase()))
   const byCode = new Map<string, SourceRecord>()
   const unmatched: Unmatched[] = []
   let skipped = 0
@@ -38,8 +40,8 @@ export function parseEbirdLifeList(csv: string, t: TaxonomyIndex): ImportResult 
     const sci = r['Scientific Name']?.trim() || undefined
     const com = r['Common Name']?.trim() || undefined
     const date = parseEbirdDate(r['Date'])
-    const sp = (r['S/P'] ?? '').trim()
-    const place: Place | undefined = sp ? placeFromSubnational(sp) : undefined
+    const sp = (r['S/P'] ?? '').trim().toUpperCase()
+    const place: Place | undefined = sp ? placeFromSubnational(ebirdRegion(sp, edition)) : undefined
     const res = resolveName(t, { sci, com })
     if (res.code === null) {
       const u: Unmatched = { source: 'ebird', row: i + 1, reason: res.reason }

@@ -75,6 +75,8 @@ const page = {
       api: "Observations come from iNaturalist's public API, called straight from your browser, about once a second.",
       countries: 'Country names, most region names and the continent globes’ coastlines come from Natural Earth.',
       regions: "The rest of the state and province names come from Debian's iso-codes ISO 3166-2 data, used for names only.",
+      vietnamBoundariesTitle: 'Vietnam COD-AB',
+      vietnamBoundaries: 'Vietnam’s 2025 provincial boundaries come from the General Statistics Office of Vietnam via OCHA and HDX, under <cc>CC BY 3.0 IGO</cc>. Everybird simplified the shapes and uses them for local lookups.',
       fonts: 'Satoshi and Cabinet Grotesk by Indian Type Foundry, served by Fontshare.',
       mono: 'Geist Mono by Vercel, under the SIL Open Font License.',
       flags: 'Country flags from flag-icons by Panayiotis Lipiridis, under the MIT licence.',

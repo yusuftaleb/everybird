@@ -3,6 +3,7 @@ import type { ImportResult, Place, SourceRecord, Unmatched } from '@/lib/list/mo
 import { resolveName, suggestName, type Resolution, type TaxonomyIndex } from '@/lib/species/resolve'
 import type { Regions } from '@/lib/species/types'
 import { SeenAgg } from '@/lib/list/seen'
+import { coordinates, loadVietnamCoordinateRegion, type CoordinateRegion } from '@/lib/places/coordinate-region'
 import { makeObsOrgPlaces } from './obsorg-places'
 import { REGION_RULES } from './inat-rules'
 
@@ -172,13 +173,14 @@ export type ObsOrgObservationsResult = ImportResult & {
  * Observations, row by row (papaparse `step`; a File streams in chunks where FileReader exists, as eBird's parser
  * does), retaining only per-name/species/place aggregates. Per species the earliest dated row gives the date and
  * place; on equal dates the row with more place detail wins, as in buildList.
- * The seven column lookups below are the complete allowlist: raw location names, coordinates, notes, ids, links and
- * validator details are never inspected. Names are resolved exactly, once per distinct name; suggestions are computed
+ * Coordinates are only read to resolve a missing Vietnamese province, when the export explicitly marks the
+ * point as unobscured and provides its accuracy. Raw points are never added to the stored records. Names are resolved exactly, once per distinct name; suggestions are computed
  * at the end, for unmatched names only (`obsOrgSuggester`).
  */
 export async function parseObsOrgObservations(
   csv: string | File, t: TaxonomyIndex, synonyms: Record<string, string>, regions: Regions,
   onProgress?: (rows: number) => void,
+  loadCoordinates: () => Promise<CoordinateRegion | undefined> = loadVietnamCoordinateRegion,
 ): Promise<ObsOrgObservationsResult | { error: 'no-birds' }> {
   const placeOf = makeObsOrgPlaces(regions)
   const byCode = new Map<string, SourceRecord>()
@@ -190,7 +192,7 @@ export async function parseObsOrgObservations(
   const excluded = { escape: 0, uncertain: 0 }
   let rows = 0
 
-  const onRow = (r: Row) => {
+  const onRow = (r: Row, place?: Place) => {
     rows++
     if (rows % 5000 === 0) onProgress?.(rows)
     if (r['is escape']?.trim().toLowerCase() === 'true') {
@@ -215,7 +217,6 @@ export async function parseObsOrgObservations(
       return
     }
     const date = isoDate(r.date)
-    const place = placeOf(r.country ?? '', r['country division'] ?? '')
     if (result.code === null) {
       if (kind !== 'skip' && !kinds.has(sci)) kinds.set(sci, kind)
       seenUnmatched.add(sci, place, date)
@@ -256,11 +257,16 @@ export async function parseObsOrgObservations(
     new Promise<ObsOrgObservationsResult | { error: 'no-birds' }>((resolve, reject) => {
       let failed = false
       let checked = false
+      let lookup: CoordinateRegion | undefined
+      let loadedBoundaries = false
+      const stream = typeof input !== 'string' ? input as unknown as {
+        pause?: () => void; resume?: () => void; stop?: () => void
+      } : undefined
       const fail = (parser: Papa.Parser, error: Error) => {
         failed = true
         reject(error)
         parser.abort()
-        if (typeof input !== 'string') (input as unknown as { stop?: () => void }).stop?.()
+        stream?.stop?.()
       }
       Papa.parse<Row>(input as never, {
         ...PARSE,
@@ -271,7 +277,32 @@ export async function parseObsOrgObservations(
             if (missingColumns(result.meta?.fields)) return fail(parser, new DamagedCsvError())
           }
           if (broken(result.errors)) return fail(parser, new DamagedCsvError())
-          onRow(result.data)
+          const row = result.data
+          const place = placeOf(row.country ?? '', row['country division'] ?? '')
+          const publicPoint = place?.country === 'VN' && !place.sub1 &&
+            row.obscurity?.trim().toLowerCase() === 'false' && !row['embargo date']?.trim() &&
+            row.accuracy?.trim() && coordinates(row.lng, row.lat)
+          if (!publicPoint) {
+            onRow(row, place)
+            return
+          }
+          const processPoint = () => {
+            const sub1 = lookup?.(...publicPoint, row.accuracy)
+            onRow(row, sub1 ? { country: 'VN', sub1 } : place)
+          }
+          if (loadedBoundaries) {
+            processPoint()
+            return
+          }
+          stream?.pause?.()
+          parser.pause()
+          void loadCoordinates().then((candidate) => {
+            lookup = candidate
+            loadedBoundaries = true
+            processPoint()
+            parser.resume()
+            stream?.resume?.()
+          }).catch((error) => fail(parser, error instanceof Error ? error : new Error(String(error))))
         },
         complete: () => {
           if (!failed) resolve(finish())
@@ -303,8 +334,14 @@ function textStream(file: File) {
   const size = Math.max(1, Papa.LocalChunkSize)
   let started = false
   let stopped = false
+  let paused = false
+  let next = 0
   const read = (start: number) => {
     if (stopped) return
+    if (paused) {
+      next = start
+      return
+    }
     if (start >= file.size) {
       const tail = decoder.decode()
       if (tail) emit('data', tail)
@@ -328,8 +365,14 @@ function textStream(file: File) {
   return {
     readable: true as const,
     read: () => null,
-    pause: () => {},
-    resume: () => {},
+    pause() {
+      paused = true
+    },
+    resume() {
+      if (!paused || stopped) return
+      paused = false
+      read(next)
+    },
     on(ev: string, f: (x?: unknown) => void) {
       ;(listeners[ev] ??= []).push(f)
       // papaparse listens for "data", "end" and "error" in turn: start once all three are in place.

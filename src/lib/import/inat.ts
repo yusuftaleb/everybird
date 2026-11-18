@@ -3,7 +3,9 @@ import { foldName, resolveName, type TaxonomyIndex } from '@/lib/species/resolve
 import type { Regions } from '@/lib/species/types'
 import { SeenAgg } from '@/lib/list/seen'
 import { stripBracket } from './places'
-import { makeSub1Index } from './sub1-index'
+import { makeSub1Index, SUB1_ALIASES } from './sub1-index'
+import { hasInatVietnamRegion, IMPORT_REGION_ALIASES, namedImportRegion } from '@/lib/places/region-mapping'
+import { coordinates, loadVietnamCoordinateRegion, type CoordinateRegion } from '@/lib/places/coordinate-region'
 import { applyRegionRule, REGION_RULES, type Assigned } from './inat-rules'
 
 export type InatProgress = { fetched: number; total: number }
@@ -11,6 +13,7 @@ export type InatError = 'unknown-user' | 'no-birds' | 'network' | 'rate-limited'
 
 const API = 'https://api.inaturalist.org/v1'
 const PLACE_BATCH = 100
+const VIETNAM_PLACE_ID = 6847
 const RETRIES_ON_429 = 3
 
 /** iNaturalist country place names that differ from Natural Earth names in regions.v1.json (folded -> ISO2). */
@@ -86,6 +89,22 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   })
 }
 
+/** The public boundary download is shared with other imports; cancellation only ends this caller's wait. */
+async function waitForBoundaries(promise: Promise<CoordinateRegion | undefined>, signal?: AbortSignal) {
+  if (!signal) return promise
+  if (signal.aborted) throw abortError()
+  let stop: (() => void) | undefined
+  const cancelled = new Promise<never>((_, reject) => {
+    stop = () => reject(abortError())
+    signal.addEventListener('abort', stop, { once: true })
+  })
+  try {
+    return await Promise.race([promise, cancelled])
+  } finally {
+    if (stop) signal.removeEventListener('abort', stop)
+  }
+}
+
 function makeClient(f: typeof fetch, minIntervalMs: number, signal?: AbortSignal) {
   let last = -Infinity
   async function once(url: string): Promise<Response> {
@@ -136,8 +155,21 @@ type ApiObs = {
   sounds?: unknown[]
   annotations?: { controlled_attribute_id?: number; controlled_value_id?: number }[]
   place_ids?: number[]
+  obscured?: boolean
+  geoprivacy?: string | null
+  taxon_geoprivacy?: string | null
+  positional_accuracy?: number | null
+  geojson?: { type: string; coordinates?: number[] } | null
 }
-export type ApiPlace = { id: number; name: string; admin_level: number | null }
+export type ApiPlace = { id: number; name: string; admin_level: number | null; ancestor_place_ids?: number[] }
+
+function publicCoordinates(o: ApiObs) {
+  const isOpen = (value: string | null | undefined) => !value || value === 'open'
+  if (o.obscured !== false ||
+      !isOpen(o.geoprivacy) || !isOpen(o.taxon_geoprivacy) || o.geojson?.type !== 'Point' ||
+      typeof o.positional_accuracy !== 'number' || !Number.isFinite(o.positional_accuracy) || o.positional_accuracy < 0) return
+  return coordinates(o.geojson.coordinates?.[0], o.geojson.coordinates?.[1])
+}
 
 const SPECIES_OR_BELOW = new Set(['species', 'subspecies', 'variety', 'form'])
 
@@ -148,7 +180,7 @@ const SPECIES_OR_BELOW = new Set(['species', 'subspecies', 'variety', 'form'])
 type Agg = {
   row: number
   date?: string
-  placeIds: number[]
+  placeKey: string
   seen: Map<string, string>
   seenMonths: Map<string, Set<string>>
   media: boolean
@@ -176,7 +208,7 @@ function foldInto(into: Agg, from: Agg): void {
   if (earlier(from.date, into.date)) {
     into.row = from.row
     into.date = from.date
-    into.placeIds = from.placeIds
+    into.placeKey = from.placeKey
   }
 }
 
@@ -195,25 +227,26 @@ export { SUB1_ALIASES, sub1Names } from './sub1-index'
 /** Exported for tests. */
 export function makePlaceResolver(regions: Regions, byId: Map<number, ApiPlace>) {
   const countries = invertCountries(regions)
-  // A name two codes share keeps the first, as this import always has; the aliases settle the known ones first.
-  const sub1Of = makeSub1Index(regions, undefined, undefined, { onClash: 'first' })
-  return (placeIds: number[]): Place | undefined => {
-    let countryName: string | undefined
-    let sub1Name: string | undefined
-    let sub2: string | undefined
-    for (const id of placeIds) {
-      const p = byId.get(id)
-      if (!p) continue
-      if (p.admin_level === 0 && countryName === undefined) countryName = p.name
-      else if (p.admin_level === 10 && sub1Name === undefined) sub1Name = p.name
-      else if (p.admin_level === 20 && sub2 === undefined) sub2 = p.name
-    }
-    const country = countryName ? countries.get(foldName(stripBracket(countryName))) : undefined
+  const sub1Of = makeSub1Index(regions, [IMPORT_REGION_ALIASES, SUB1_ALIASES], undefined, { onClash: 'first' })
+  return (placeIds: number[], coordinatePlace?: string): Place | undefined => {
+    const places = placeIds.map((id) => byId.get(id))
+    const countryPlace = places.find((p) => p?.admin_level === 0)
+    if (!countryPlace) return undefined
+    const country = countries.get(foldName(stripBracket(countryPlace.name)))
     if (!country) return undefined
+    const inCountry = (p: ApiPlace | undefined, level: number) =>
+      p?.admin_level === level && (!p.ancestor_place_ids || p.ancestor_place_ids.includes(countryPlace.id))
+    const province = places.find((p) => inCountry(p, 10))
+    if (country === 'VN') {
+      const sub1 = namedImportRegion(country, province?.name ?? '', province?.id) ?? coordinatePlace
+      return sub1 ? { country, sub1 } : { country }
+    }
     const place: Place = { country }
-    const sub1 = sub1Name ? sub1Of(country, sub1Name) : undefined
+    const sub1 = province ? sub1Of(country, province.name) : undefined
+    const county = places.find((p) => inCountry(p, 20) &&
+      (!province || !p?.ancestor_place_ids || p.ancestor_place_ids.includes(province.id)))
     if (sub1) place.sub1 = sub1
-    if (sub2) place.sub2 = sub2
+    if (county) place.sub2 = county.name
     return place
   }
 }
@@ -229,6 +262,7 @@ export type InatOptions = {
   onProgress?: (p: InatProgress) => void
   /** Minimum gap between ANY two requests (autocomplete, observations, places). Default 1000. */
   minIntervalMs?: number
+  loadCoordinates?: () => Promise<CoordinateRegion | undefined>
 }
 
 /**
@@ -245,7 +279,7 @@ export type InatOptions = {
  *   a species whose research-grade observation is not the earliest still shows the earliest one's date.)
  * - Seen here (seen.ts): every observation's place (country, state, county) goes into the record's `seen`, with
  *   the earliest date there; so every distinct set of place ids is resolved. A name's places all go to its code
- *   (for a region-ruled name, each place goes to the code it resolves to). Coordinates, location, place_guess, observation
+ *   (for a region-ruled name, each place goes to the code it resolves to). Only unobscured points in Vietnam can supply a fallback province; exact coordinates, place_guess, observation
  *   ids and photo URLs are never read into records.
  * - Region rules (inat-rules.ts): a name iNaturalist lumps but eBird splits (willet, horned owl and others) is resolved per
  *   subspecies, place and month, so one iNat name can give two eBird species. A record whose every observation was
@@ -275,6 +309,7 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
     let total = 0
     let lastId = 0
     let seq = 0
+    let coordinateLookup: Promise<CoordinateRegion | undefined> | undefined
     for (let page = 0; ; page++) {
       const q = new URLSearchParams({
         user_login: login, iconic_taxa: 'Aves', captive: 'false', per_page: '200', order_by: 'id', order: 'asc',
@@ -305,14 +340,23 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
         const sounds = o.sounds?.length ?? 0
         const date = o.observed_on && /^\d{4}-\d{2}-\d{2}$/.test(o.observed_on) ? o.observed_on : undefined
         const placeIds = Array.isArray(o.place_ids) ? o.place_ids.filter((id) => Number.isInteger(id)) : []
-        const key = ruled ? [binomial, ssp ?? '', placeIds.join(','), date?.slice(0, 7) ?? ''].join('|') : binomial
+        const point = placeIds.includes(VIETNAM_PLACE_ID) && !placeIds.some(hasInatVietnamRegion) ? publicCoordinates(o) : undefined
+        let region: string | undefined
+        if (point) {
+          coordinateLookup ??= waitForBoundaries((opts.loadCoordinates ?? loadVietnamCoordinateRegion)(), opts.signal)
+          const lookup = await coordinateLookup
+          if (opts.signal?.aborted) throw abortError()
+          region = lookup?.(...point, o.positional_accuracy)
+        }
+        const placeKey = placeIds.length ? placeIds.join(',') + (region ? ';' + region : '') : ''
+        const key = ruled ? [binomial, ssp ?? '', placeKey, date?.slice(0, 7) ?? ''].join('|') : binomial
         if (ruled && !ruleOf.has(key)) ruleOf.set(key, { name: binomial, ssp })
         const obs: Agg = {
           row: seq,
           date,
-          placeIds,
-          seen: new Map(placeIds.length ? [[placeIds.join(','), date ?? '']] : []),
-          seenMonths: new Map(placeIds.length && date ? [[placeIds.join(','), new Set([date.slice(0, 7)])]] : []),
+          placeKey,
+          seen: new Map(placeKey ? [[placeKey, date ?? '']] : []),
+          seenMonths: new Map(placeKey && date ? [[placeKey, new Set([date.slice(0, 7)])]] : []),
           media: photos + sounds > 0,
           heardAll: sounds > 0 && photos === 0,
           deadAll: !!o.annotations?.some((a) => a.controlled_attribute_id === 17 && a.controlled_value_id === 19),
@@ -330,8 +374,7 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
     // Places: every observation's (seen here), which includes each name's earliest.
     const wanted = new Set<number>()
     for (const a of byName.values()) {
-      for (const id of a.placeIds) wanted.add(id)
-      for (const k of a.seen.keys()) for (const id of k.split(',')) wanted.add(Number(id))
+      for (const k of a.seen.keys()) for (const id of k.split(';', 1)[0].split(',')) wanted.add(Number(id))
     }
     const placeById = new Map<number, ApiPlace>()
     const ids = [...wanted]
@@ -343,10 +386,17 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
     const placeOf = makePlaceResolver(opts.regions, placeById)
     const seenPlaces = new SeenAgg()
     const placeByKey = new Map<string, Place | undefined>()
+    const resolvePlaceKey = (key: string) => {
+      if (!key) return undefined
+      if (!placeByKey.has(key)) {
+        const [ids, region] = key.split(';')
+        placeByKey.set(key, placeOf(ids.split(',').map(Number), region))
+      }
+      return placeByKey.get(key)
+    }
     const seenOf = (a: Agg, into: string) => {
       for (const [k, d] of a.seen) {
-        if (!placeByKey.has(k)) placeByKey.set(k, placeOf(k.split(',').map(Number)))
-        const place = placeByKey.get(k)
+        const place = resolvePlaceKey(k)
         seenPlaces.add(into, place, d || undefined)
         const region = place?.sub1 || place?.country
         if (region) seenPlaces.addMonths(into, place?.sub2 ? `${region}|${place.sub2}` : region, a.seenMonths.get(k) ?? [])
@@ -358,7 +408,7 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
     const byCode = new Map<string, Agg & { code: string; place?: Place; assigned: Assigned | null }>()
     const unmatched: Unmatched[] = []
     for (const [name, a] of byName) {
-      const place = placeOf(a.placeIds)
+      const place = resolvePlaceKey(a.placeKey)
       let code: string | null
       let assigned: Assigned | null = null
       const ruled = ruleOf.get(name)

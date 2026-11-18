@@ -71,7 +71,7 @@ const optExcluded = (x: unknown) => x === undefined || (isObj(x) && Object.keys(
 function validSources(x: unknown): boolean {
   if (!isObj(x)) return false
   return Object.entries(x).every(([k, d]) => {
-    if (!isObj(d) || !optStr(d.at)) return false
+    if (!isObj(d) || !optStr(d.at) || (d.regionMapping !== undefined && d.regionMapping !== 1)) return false
     if (k === 'ebird' || k === 'ebird-list') return EBIRD_KINDS.includes(d.kind as string) && optStr(d.file) && optCount(d.rows)
     if (k === 'inat') return optStr(d.user) && optCount(d.observations)
     if (k === 'obsorg' || k === 'obsorg-list')

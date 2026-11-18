@@ -2,6 +2,7 @@ import type { Place } from '@/lib/list/model'
 import type { Regions } from '@/lib/species/types'
 import { foldName } from '@/lib/species/resolve'
 import { makeSub1Index, SUB1_ALIASES } from './sub1-index'
+import { IMPORT_REGION_ALIASES, namedImportRegion } from '@/lib/places/region-mapping'
 import { SUB1_PARENT } from './sub1-parents'
 
 export const OBSORG_NAME_LANGS = ['nl', 'en', 'fr', 'de', 'es'] as const
@@ -158,7 +159,7 @@ export function makeObsOrgPlaces(regions: Regions): (country: string, division: 
   const countries = countryNameMap(regions)
   const topOf = (code: string) => (Object.hasOwn(SUB1_PARENT, code) ? SUB1_PARENT[code] : code)
   // A name two codes share is the country only, unless every code rolls up to the same region (Halton, Liguria).
-  const index = makeSub1Index(regions, [SUB1_ALIASES, OBSORG_SUB1_ALIASES], divisionKey, { onClash: 'none', rollUp: topOf })
+  const index = makeSub1Index(regions, [IMPORT_REGION_ALIASES, SUB1_ALIASES, OBSORG_SUB1_ALIASES], divisionKey, { onClash: 'none', rollUp: topOf })
   const sub1Of = (country: string, name: string) => {
     const code = index(country, name)
     const top = code ? topOf(code) : undefined
@@ -172,7 +173,8 @@ export function makeObsOrgPlaces(regions: Regions): (country: string, division: 
     let place: Place | undefined
     if (country) {
       const nation = ukNation(country, division)
-      const code = sub1Of(country, division) ?? (nation ? sub1Of(country, nation) : undefined)
+      const code = country === 'VN' ? namedImportRegion(country, division) :
+        sub1Of(country, division) ?? (nation ? sub1Of(country, nation) : undefined)
       place = code ? { country, sub1: code } : { country }
     }
     cache.set(key, place)

@@ -48,6 +48,21 @@ describe('observation.org observations: a File streams to the same result as the
     Papa.LocalChunkSize = 33
     expect(await parse(new File(['﻿' + csv], 'synthetic.csv'))).toEqual(await parse(csv))
   })
+  it('resumes a streamed File after loading the fallback and reads each row once', async () => {
+    Papa.LocalChunkSize = 17
+    const csv = [
+      'date,scientific name,species type,country,country division,lng,lat,accuracy,obscurity',
+      '2026-01-01,Colaptes auratus,soort,Vietnam,,108.2,16.05,20,False',
+      '2026-02-01,Colaptes auratus,soort,Vietnam,Quảng Nam,,,,',
+    ].join('\n')
+    const result = await parseObsOrgObservations(
+      new File([csv], 'synthetic.csv'), t, {}, { ...regions, countries: { ...regions.countries, VN: 'Vietnam' } },
+      undefined, async () => () => 'VN-V48',
+    )
+    if ('error' in result) throw new Error(result.error)
+    expect(result.rows).toBe(2)
+    expect(result.records[0].seen).toEqual(['2026-01-01|VN-V48'])
+  })
   it('a damaged File (an unclosed quote) still rejects as damaged, and a file without the columns too', async () => {
     Papa.LocalChunkSize = 9
     const damaged = `${HEAD}\r\n2021-05-03,Colaptes auratus,soort,Frankrijk,"Île-de-France,True,False,\r\n2020-04-11,Colaptes auratus,soort,België,Liège,True,False,`

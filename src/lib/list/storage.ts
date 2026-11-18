@@ -35,19 +35,22 @@ export type ObsOrgDetails = {
  * entry here was imported before v3: its details are unknown.
  */
 export type SourceDetails = {
-  ebird?: EbirdDetails
-  'ebird-list'?: EbirdDetails
-  inat?: InatDetails
-  obsorg?: ObsOrgDetails
-  'obsorg-list'?: ObsOrgDetails
+  ebird?: EbirdDetails & RegionMapping
+  'ebird-list'?: EbirdDetails & RegionMapping
+  inat?: InatDetails & RegionMapping
+  obsorg?: ObsOrgDetails & RegionMapping
+  'obsorg-list'?: ObsOrgDetails & RegionMapping
 }
+
+/** Records imported through the shared, source-aware region mapping. Older raw codes lack this marker. */
+type RegionMapping = { regionMapping?: 1 }
 /** The details an import into `slot` carries. */
 export type DetailsFor<S extends Slot> = S extends 'inat'
-  ? InatDetails
+  ? InatDetails & RegionMapping
   : S extends 'ebird' | 'ebird-list'
-    ? EbirdDetails
+    ? EbirdDetails & RegionMapping
     : S extends 'obsorg' | 'obsorg-list'
-      ? ObsOrgDetails
+      ? ObsOrgDetails & RegionMapping
       : never
 
 /**

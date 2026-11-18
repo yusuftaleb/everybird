@@ -2,6 +2,7 @@
 import type { Filter } from '../list/filters'
 import { parentKey, parsePlaceKey, placeName } from '../list/place-keys'
 import { countryNameMap, sub1Names, SUB1_ALIASES, OBSORG_SUB1_ALIASES } from '../places/names'
+import { IMPORT_REGION_ALIASES } from '../places/region-mapping'
 import { searchKey } from '../species/name-search'
 import { ORDERS } from '../species/orders'
 import type { Regions, SpeciesRow } from '../species/types'
@@ -89,7 +90,7 @@ function places(ctx: SearchContext): Entity[] {
   }
   for (const [name, code] of countryNameMap(ctx.regions, ['en', ctx.lang])) add(`c:${code}`, [name])
   for (const [code, name] of Object.entries(ctx.regions.sub1)) {
-    add(`s:${code}`, [code, ...sub1Names(name), ...(SUB1_ALIASES[code] ?? []), ...(OBSORG_SUB1_ALIASES[code] ?? [])])
+    add(`s:${code}`, [code, ...sub1Names(name), ...(SUB1_ALIASES[code] ?? []), ...(OBSORG_SUB1_ALIASES[code] ?? []), ...(IMPORT_REGION_ALIASES[code] ?? [])])
   }
   const onList = new Set<string>()
   for (const key of ctx.listPlaces) {

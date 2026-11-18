@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { Regions } from '../../src/lib/species/types'
+import { withImportRegionNames } from '../../src/lib/places/region-mapping'
 
 type Feature = { properties: Record<string, string | number>; geometry: unknown }
 const iso2 = (p: Feature['properties']): string => {
@@ -99,7 +100,8 @@ export function buildRegions(admin0: { features: Feature[] }, admin1: { features
   }
   supplementSub1(sub1, iso)
   const sorted = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)))
-  return renameRegions({ v: 1, countries: sorted(countries), sub1: sorted(sub1) })
+  const regions = withImportRegionNames(renameRegions({ v: 1, countries, sub1 }))
+  return { v: 1, countries: sorted(regions.countries), sub1: sorted(regions.sub1) }
 }
 
 export function main(root = resolve(__dirname, '../..')): void {
