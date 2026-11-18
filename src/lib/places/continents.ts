@@ -1,5 +1,5 @@
 // The Places filter's continents: the top level of the Places drill-down, each a place key `n:<ID>` (place-keys.ts;
-// Filter.continents holds the ids). A static table from each country code in regions.v1.json to its continent, following
+// Filter.continents holds the ids). A static table from each terrestrial country or territory code to its continent, following
 // the UN geoscheme (M49) with the calls listed below, plus EXTRA_CODES (codes an import can carry that regions.v1.json
 // lacks) and SUB1_CONTINENT (overseas regions that lie on another continent than their country). Pure;
 // tests/continents.test.ts checks it against the regions file.
@@ -17,6 +17,8 @@
 // - Kosovo (XK) is Europe (it is not in UN M49; the usual non-UN assignment).
 // - Pacific islands, Australia and New Zealand are Oceania, including American Samoa, Guam and the Northern Mariana Islands
 //   (M49 Micronesia and Polynesia), Norfolk Island, Pitcairn and Cook Islands.
+// - eBird's Ashmore and Cartier Islands (AC) and Coral Sea Islands (CS) are Australian territories in Oceania.
+// - The two source-specific Cyprus entries (QY, QZ) use the same continent as CY. The High Seas (XX) have no continent.
 // - Antarctica takes the sub-Antarctic territories: Heard and McDonald Islands (HM), the French Southern Territories (TF)
 //   and South Georgia and the South Sandwich Islands (GS), and Antarctica itself (AQ) and Bouvet Island (BV).
 // - American Samoa (AS) is Oceania: its code is also the id of Asia, but the two never meet (a country key is `c:AS`,
@@ -43,7 +45,7 @@ export function continentName(id: string): string {
   return CONTINENTS.find((c) => c.id === id)?.name ?? id
 }
 
-/** ISO 3166-1 alpha-2 code -> continent, for every country code in regions.v1.json (see the notes above). */
+/** Country or territory code -> continent (see the notes above for source-specific entries). */
 export const CONTINENT_OF: Record<string, ContinentId> = {
   // Africa
   AO: 'AF', BF: 'AF', BI: 'AF', BJ: 'AF', BW: 'AF', CD: 'AF', CF: 'AF', CG: 'AF', CI: 'AF', CM: 'AF', CV: 'AF', DJ: 'AF',
@@ -56,7 +58,7 @@ export const CONTINENT_OF: Record<string, ContinentId> = {
   ID: 'AS', IL: 'AS', IN: 'AS', IQ: 'AS', IR: 'AS', JO: 'AS', JP: 'AS', KG: 'AS', KH: 'AS', KP: 'AS', KR: 'AS', KW: 'AS',
   KZ: 'AS', LA: 'AS', LB: 'AS', LK: 'AS', MM: 'AS', MN: 'AS', MO: 'AS', MV: 'AS', MY: 'AS', NP: 'AS', OM: 'AS', PH: 'AS',
   PK: 'AS', PS: 'AS', QA: 'AS', SA: 'AS', SG: 'AS', SY: 'AS', TH: 'AS', TJ: 'AS', TL: 'AS', TM: 'AS', TR: 'AS', TW: 'AS',
-  UZ: 'AS', VN: 'AS', YE: 'AS',
+  UZ: 'AS', VN: 'AS', YE: 'AS', QY: 'AS', QZ: 'AS',
   // Europe
   AD: 'EU', AL: 'EU', AT: 'EU', AX: 'EU', BA: 'EU', BE: 'EU', BG: 'EU', BY: 'EU', CH: 'EU', CZ: 'EU', DE: 'EU', DK: 'EU',
   EE: 'EU', ES: 'EU', FI: 'EU', FO: 'EU', FR: 'EU', GB: 'EU', GG: 'EU', GR: 'EU', HR: 'EU', HU: 'EU', IE: 'EU', IM: 'EU',
@@ -72,7 +74,7 @@ export const CONTINENT_OF: Record<string, ContinentId> = {
   AR: 'SA', BO: 'SA', BR: 'SA', CL: 'SA', CO: 'SA', EC: 'SA', FK: 'SA', GY: 'SA', PE: 'SA', PY: 'SA', SR: 'SA', UY: 'SA',
   VE: 'SA',
   // Oceania (the Pacific islands, Australia and New Zealand)
-  AS: 'OC', AU: 'OC', CK: 'OC', FJ: 'OC', FM: 'OC', GU: 'OC', KI: 'OC', MH: 'OC', MP: 'OC', NC: 'OC', NF: 'OC', NR: 'OC',
+  AC: 'OC', AS: 'OC', AU: 'OC', CK: 'OC', CS: 'OC', FJ: 'OC', FM: 'OC', GU: 'OC', KI: 'OC', MH: 'OC', MP: 'OC', NC: 'OC', NF: 'OC', NR: 'OC',
   NU: 'OC', NZ: 'OC', PF: 'OC', PG: 'OC', PN: 'OC', PW: 'OC', SB: 'OC', TO: 'OC', TV: 'OC', VU: 'OC', WF: 'OC', WS: 'OC',
   // Antarctica (Antarctica itself, Bouvet Island and the sub-Antarctic territories)
   AQ: 'AN', BV: 'AN', GS: 'AN', HM: 'AN', TF: 'AN',

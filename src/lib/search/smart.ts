@@ -2,6 +2,7 @@
 import type { Filter } from '../list/filters'
 import { parentKey, parsePlaceKey, placeName } from '../list/place-keys'
 import { countryNameMap, sub1Names, SUB1_ALIASES, OBSORG_SUB1_ALIASES } from '../places/names'
+import { hasSourcePlaceKey } from '../places/registry'
 import { IMPORT_REGION_ALIASES } from '../places/region-mapping'
 import { searchKey } from '../species/name-search'
 import { ORDERS } from '../species/orders'
@@ -97,12 +98,13 @@ function places(ctx: SearchContext): Entity[] {
     const p = parsePlaceKey(key)
     if (!p) continue
     addWithAncestors(onList, key)
-    if (p.level === 'county') add(key, [p.county!], true)
+    if (p.level === 'county') add(key, [placeName(key, ctx.regions)], true)
+    if (p.sub1 && hasSourcePlaceKey(p.sub1)) add(`s:${p.sub1}`, [placeName(`s:${p.sub1}`, ctx.regions)])
   }
   // Short sub1 suffixes ("BC" of CA-BC) are codes only for places on this list: exact, and only as typed in capitals.
   for (const key of onList) {
     const p = parsePlaceKey(key)!
-    if (p.level === 'province') add(key, [], false, [p.sub1!.split('-').slice(1).join('-')])
+    if (p.level === 'province' && !hasSourcePlaceKey(p.sub1!)) add(key, [], false, [p.sub1!.split('-').slice(1).join('-')])
   }
   return [...out.values()].map((p) => ({ ...p, aliases: unique(p.aliases), codes: unique(p.codes ?? []) }))
 }

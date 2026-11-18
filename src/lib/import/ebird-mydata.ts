@@ -3,7 +3,8 @@ import type { ImportResult, SourceRecord, Unmatched } from '@/lib/list/model'
 import { resolveName, type Resolution, type TaxonomyIndex } from '@/lib/species/resolve'
 import { parseEbirdDate } from './ebird-lifelist'
 import { SeenAgg } from '@/lib/list/seen'
-import { placeFromSubnational } from './places'
+import { importEbirdPlace } from './ebird-places'
+import type { Regions } from '@/lib/species/types'
 import { ebirdRegion, vietnamEdition } from '@/lib/places/region-mapping'
 import { loadVietnamCoordinateRegion, type CoordinateRegion } from '@/lib/places/coordinate-region'
 
@@ -50,6 +51,7 @@ const earlier = (date: string | undefined, prev: string | undefined) => !!date &
 export async function parseEbirdMyData(
   csv: string | File, t: TaxonomyIndex, onProgress?: (rows: number) => void,
   loadCoordinates: () => Promise<CoordinateRegion | undefined> = loadVietnamCoordinateRegion,
+  regions?: Regions,
 ): Promise<ImportResult> {
   const input = typeof csv === 'string' ? csv.replace(/^\uFEFF/, '') :
     typeof FileReader === 'undefined' ? (await csv.text()).replace(/^\uFEFF/, '') : csv
@@ -60,14 +62,9 @@ export async function parseEbirdMyData(
 
   function rowPlace(r: Row) {
     const code = provinceCode(r)
-    if (!code || code[0] === '-') return undefined
-    let region = ebirdRegion(code, edition)
-    if (region === 'VN' && coordinateRegion) {
-      region = coordinateRegion(r.Longitude, r.Latitude) ?? region
-    }
-    const countryPlace = placeFromSubnational(region)
-    const county = region.slice(0, 2) !== 'VN' && code !== 'IN-DD' && code !== 'IN-DN' ? r.County?.trim() : undefined
-    return county ? { ...countryPlace, sub2: county } : countryPlace
+    const coordinate = coordinateRegion && ebirdRegion(code, edition) === 'VN'
+      ? coordinateRegion(r.Longitude, r.Latitude) : undefined
+    return importEbirdPlace(code, edition, r.County?.trim(), regions, coordinate)
   }
   const byCode = new Map<string, SourceRecord>()
   const unmatchedByName = new Map<string, Unmatched>()

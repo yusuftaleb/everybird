@@ -7,11 +7,14 @@ const regions = JSON.parse(readFileSync('public/data/regions.v1.json', 'utf8')) 
 const IDS = CONTINENTS.map((c) => c.id)
 
 describe('continent table', () => {
-  it('every country code in regions.v1.json has exactly one continent', () => {
+  it('every terrestrial country or territory in regions.v1.json has exactly one continent', () => {
     for (const iso of Object.keys(regions.countries)) {
+      if (iso === 'XX') continue // eBird High Seas, a distinct Places entry with no continent
       expect(Object.hasOwn(CONTINENT_OF, iso), iso).toBe(true)
       expect(IDS, iso).toContain(CONTINENT_OF[iso])
     }
+    expect(regions.countries.XX).toBe('High Seas')
+    expect(continentOfPlace({ country: 'XX' })).toBeUndefined()
   })
 
   it('extra codes only from the explicit EXTRA_CODES list (a code regions.v1.json gains may stay in it)', () => {

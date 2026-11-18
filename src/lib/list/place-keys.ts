@@ -7,6 +7,7 @@
 //   k:<sub1 code>|<county>   "k:CA-BC|Capital" (always under its province, so same-named counties in two states differ)
 // A country's parent is its continent (none when the code is in no continent: it then sits at the top level beside the
 // continents). A county seen without a province counts at its country only. All pure.
+import { placeRegistryLabel } from '@/lib/places/registry'
 import { stripBracket } from '@/lib/import/places'
 import { CONTINENT_OF, continentName, continentOfPlace, isContinentId } from '@/lib/places/continents'
 import type { Regions } from '@/lib/species/types'
@@ -96,12 +97,12 @@ export function childKeyOf(parent: string | undefined): (p: PlaceLike) => string
   return () => undefined
 }
 
-type Names = Pick<Regions, 'countries' | 'sub1'>
+type Names = Pick<Regions, 'countries' | 'sub1' | 'registry'>
 /** The UI language's continent names by id (`ui.places.continents`); English names when not given. */
 type ContinentNames = Partial<Record<string, string>>
 
 const countryName = (iso: string, r: Names) => (r.countries[iso] ? stripBracket(r.countries[iso]) : iso)
-const sub1Name = (code: string, r: Names) => (r.sub1[code] ? stripBracket(r.sub1[code]) : code)
+const sub1Name = (code: string, r: Names) => stripBracket(placeRegistryLabel(code, r) ?? code)
 const contName = (id: string, names?: ContinentNames) => names?.[id] ?? continentName(id)
 
 /**
@@ -114,7 +115,7 @@ export function placeName(key: string, regions: Names, continents?: ContinentNam
   if (p.level === 'continent') return contName(p.continent!, continents)
   if (p.level === 'country') return p.continent ? `${countryName(p.country, regions)} (${contName(p.continent, continents)})` : countryName(p.country, regions)
   if (p.level === 'province') return sub1Name(p.sub1!, regions)
-  return p.county!
+  return placeRegistryLabel(p.county!, regions) ?? p.county!
 }
 
 /** A key's name with its parent's: "Canada", "British Columbia, Canada", "Capital, British Columbia" (never the continent). */

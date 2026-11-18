@@ -7,10 +7,10 @@ import { DamagedCsvError, parseObsOrgSpecies, parseObsOrgObservations, type ObsO
 import type { Regions } from '@/lib/species/types'
 
 export type ParseKind = 'ebird-lifelist' | 'ebird-mydata' | 'obsorg-species' | 'obsorg-observations'
-/** observation.org's kinds need the iNaturalist synonyms (and the observations the regions); eBird's need neither. */
+/** Observation.org uses iNaturalist synonyms. File types with locations also use the place registry. */
 export type ParseRequest =
-  | { kind: 'ebird-lifelist'; file: File }
-  | { kind: 'ebird-mydata'; file: File }
+  | { kind: 'ebird-lifelist'; file: File; regions?: Regions }
+  | { kind: 'ebird-mydata'; file: File; regions?: Regions }
   | { kind: 'obsorg-species'; file: File; synonyms: Record<string, string> }
   | { kind: 'obsorg-observations'; file: File; synonyms: Record<string, string>; regions: Regions }
 export type ParseResult = ImportResult & { excluded?: ObsOrgObservationsResult['excluded']; undated?: number }
@@ -62,10 +62,10 @@ export async function handleParseMessage(
     let result: ParseResult | { error: 'no-birds' }
     switch (msg.kind) {
       case 'ebird-mydata':
-        result = await parseEbirdMyData(msg.file, t, onProgress)
+        result = await parseEbirdMyData(msg.file, t, onProgress, undefined, msg.regions)
         break
       case 'ebird-lifelist':
-        result = parseEbirdLifeList(await msg.file.text(), t)
+        result = parseEbirdLifeList(await msg.file.text(), t, msg.regions)
         break
       case 'obsorg-species':
         result = parseObsOrgSpecies(await msg.file.text(), t, msg.synonyms)

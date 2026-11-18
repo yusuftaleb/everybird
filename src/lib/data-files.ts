@@ -2,7 +2,7 @@
 export const DATA_FILES = {
   'species.v1.json': 'species.v1.8ae50d623e.json',
   'taxonomy.v1.json': 'taxonomy.v1.ded5d08fde.json',
-  'regions.v1.json': 'regions.v1.94e78c68a4.json',
+  'regions.v1.json': 'regions.v1.de8f4c513e.json',
   'groups.v1.json': 'groups.v1.58ae6e3a9a.json',
   'masks.v2.json': 'masks.v2.be92aa507b.json',
   'sample.v1.json': 'sample.v1.300671bac4.json',

@@ -3,6 +3,7 @@ import { foldName, resolveName, type TaxonomyIndex } from '@/lib/species/resolve
 import type { Regions } from '@/lib/species/types'
 import { SeenAgg } from '@/lib/list/seen'
 import { stripBracket } from './places'
+import { projectPlace, resolveImportedPlace } from '@/lib/places/registry'
 import { makeSub1Index, SUB1_ALIASES } from './sub1-index'
 import { hasInatVietnamRegion, IMPORT_REGION_ALIASES, namedImportRegion } from '@/lib/places/region-mapping'
 import { coordinates, loadVietnamCoordinateRegion, type CoordinateRegion } from '@/lib/places/coordinate-region'
@@ -232,19 +233,27 @@ export function makePlaceResolver(regions: Regions, byId: Map<number, ApiPlace>)
     const places = placeIds.map((id) => byId.get(id))
     const countryPlace = places.find((p) => p?.admin_level === 0)
     if (!countryPlace) return undefined
-    const country = countries.get(foldName(stripBracket(countryPlace.name)))
+    const sourceCountry = regions.registry?.catalogues.inat?.entries[String(countryPlace.id)]?.[0]
+    const country = sourceCountry ?? countries.get(foldName(stripBracket(countryPlace.name)))
     if (!country) return undefined
     const inCountry = (p: ApiPlace | undefined, level: number) =>
       p?.admin_level === level && (!p.ancestor_place_ids || p.ancestor_place_ids.includes(countryPlace.id))
     const province = places.find((p) => inCountry(p, 10))
+    const county = places.find((p) => inCountry(p, 20) &&
+      (!province || !p?.ancestor_place_ids || p.ancestor_place_ids.includes(province.id)))
+    if (regions.registry) {
+      return resolveImportedPlace({
+        namespace: 'inat', id: String(province?.id ?? countryPlace.id), country,
+        county: country === 'VN' ? undefined : county?.name,
+        label: province?.name, fallback: coordinatePlace,
+      }, regions)
+    }
     if (country === 'VN') {
       const sub1 = namedImportRegion(country, province?.name ?? '', province?.id) ?? coordinatePlace
       return sub1 ? { country, sub1 } : { country }
     }
     const place: Place = { country }
     const sub1 = province ? sub1Of(country, province.name) : undefined
-    const county = places.find((p) => inCountry(p, 20) &&
-      (!province || !p?.ancestor_place_ids || p.ancestor_place_ids.includes(province.id)))
     if (sub1) place.sub1 = sub1
     if (county) place.sub2 = county.name
     return place
@@ -413,7 +422,7 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
       let assigned: Assigned | null = null
       const ruled = ruleOf.get(name)
       if (ruled) {
-        const r = applyRegionRule(ruled.name, ruled.ssp, place, a.date)!
+        const r = applyRegionRule(ruled.name, ruled.ssp, projectPlace(place, opts.regions), a.date)!
         code = r.code
         assigned = r.assigned ?? null
       } else {

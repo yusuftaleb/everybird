@@ -328,7 +328,7 @@ describe('country aliases', () => {
 
   it('iNat "United States" resolves to US against real regions', async () => {
     const f = fakeFetch()
-    const r = okResult(await run(f, { regions: realRegions }))
+    const r = okResult(await run(f, { regions: { ...realRegions, registry: undefined } }))
     expect(r.records.find((x) => x.code === 'gilfli')!.place).toEqual({ country: 'US', sub1: 'US-CA' })
   })
 })

@@ -1,6 +1,7 @@
 import type { Place } from '../list/model'
 import type { Regions } from '../species/types'
 import { fetchData } from '../data-url'
+import { placeRegistryLabel } from '@/lib/places/registry'
 
 let regionsP: Promise<Regions> | null = null
 
@@ -47,10 +48,10 @@ export function formatPlace(p: Place | undefined, r: Regions): string {
   if (!p) return ''
   const prefix = p.sub1?.split('-')[0]
   const countryName = (p.country && r.countries[p.country]) || (prefix ? r.countries[prefix] : undefined)
-  const subName = p.sub1 ? r.sub1[p.sub1] : undefined
+  const subName = p.sub1 ? placeRegistryLabel(p.sub1, r) : undefined
   const parts: string[] = []
   if (subName) {
-    if (p.sub2?.trim()) parts.push(p.sub2.trim())
+    if (p.sub2?.trim()) parts.push(placeRegistryLabel(p.sub2, r) ?? p.sub2.trim())
     parts.push(subName)
   }
   if (countryName) parts.push(countryName)

@@ -1,12 +1,14 @@
 'use client'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
+import type { Regions } from '@/lib/species/types'
+import { projectRecord } from '@/lib/places/registry'
 import { withCanonicalPlaces } from '@/lib/places/region-mapping'
 import { loadRegions } from '@/lib/import/places'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { buildList } from './build-list'
 import type { Filter } from './filters'
 import { applyFilterValidity } from './filters-validate'
-import { unmatchedKey } from './model'
+import { slotSource, unmatchedKey } from './model'
 import { slottedRecords } from './source-counts'
 import type { Edits, ImportResult, ListEntry, Rules, Slot, SourceRecord, Unmatched } from './model'
 import { buildSeen, type SeenIndex } from './seen'
@@ -52,13 +54,21 @@ export type Action =
   /** Internal: the hook reports where the last save went. */
   | { type: 'persistence'; persistence: AppState['persistence'] }
 
-export type StoreContext = { species: SpeciesIndex }
+export type StoreContext = { species: SpeciesIndex; regions?: Regions }
 
 /** Every record the list is built from: each slot's records, then the fixed unmatched rows (source-counts.ts
  *  `slottedRecords`, which also says each record's slot). */
-export function recordsOf(saved: Saved): SourceRecord[] {
-  return slottedRecords(saved).map(({ record, slot }) =>
-    slot !== 'manual' && saved.sources?.[slot]?.regionMapping === 1 ? record : withCanonicalPlaces(record))
+export function recordsOf(saved: Saved, regions?: Regions): SourceRecord[] {
+  return slottedRecords(saved).map(({ record, slot }) => displayRecord(record, slot, saved, regions))
+}
+
+function displayRecord<T extends SourceRecord | Unmatched>(record: T, slot: Slot, saved: Saved, regions?: Regions): T {
+  const versioned = slot !== 'manual' && saved.sources?.[slot]?.regionMapping === 1
+  // Original eBird codes must be checked before the legacy normalizer uses shared codes.
+  const oldEbird = !versioned && slotSource(slot) === 'ebird'
+  if (oldEbird && regions?.registry) return withCanonicalPlaces(projectRecord(record, regions, true))
+  const legacy = versioned ? record : withCanonicalPlaces(record)
+  return regions?.registry ? projectRecord(legacy, regions, false) : legacy
 }
 
 /**
@@ -78,13 +88,12 @@ export function ruleCounts(saved: Saved): { heard: number; dead: number; casual:
 function derive(s: AppState, saved: Saved, filter: Filter, ctx: StoreContext, pruneValues: boolean): AppState {
   const taxonOrder = (code: string) => ctx.species.byCode.get(code)?.to ?? Number.MAX_SAFE_INTEGER
   const fixKeys = new Set(Object.keys(saved.edits.fixes))
-  const records = recordsOf(saved)
+  const records = recordsOf(saved, ctx.regions)
   const edits = { ...saved.edits, added: saved.edits.added.map(withCanonicalPlaces) }
   const list = buildList(records, edits, saved.rules, taxonOrder)
   const seen = buildSeen(records, edits, saved.rules, list)
   const openUnmatched = saved.unmatched.filter((u) => !fixKeys.has(unmatchedKey(u))).map((u) => {
-    const slot = u.slot ?? u.source
-    return slot !== 'manual' && saved.sources?.[slot]?.regionMapping === 1 ? u : withCanonicalPlaces(u)
+    return displayRecord(u, u.slot ?? u.source, saved, ctx.regions)
   })
   return {
     ...s,
@@ -230,9 +239,9 @@ export function useEverybird(opts: { deferIfEmpty?: boolean } = {}): [AppState, 
           setMeta((m) => (m.ready ? m : { ...m, stored: stored0 }))
           if (!stored0) await whenIdle(1500)
         } else void storedP.then((st) => { if (!cancelled) setMeta((m) => (m.ready ? m : { ...m, stored: st })) }, () => {})
-        const [species, , stored] = await Promise.all([loadSpecies(), loadRegions(), storedP])
+        const [species, regions, stored] = await Promise.all([loadSpecies(), loadRegions(), storedP])
         if (cancelled) return
-        setCtx({ species })
+        setCtx({ species, regions })
         const early = queue.current ?? []
         queue.current = null
         // The restored list itself is not re-saved, unless queued actions change it (then they must be saved).

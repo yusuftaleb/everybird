@@ -11,7 +11,7 @@ import { ebirdRegion, namedImportRegion, vietnamEdition } from '@/lib/places/reg
 import { emptySaved } from '@/lib/list/storage'
 import { recordsOf } from '@/lib/list/store'
 
-const regions = JSON.parse(readFileSync('public/data/regions.v1.json', 'utf8')) as Regions
+const regions = { ...JSON.parse(readFileSync('public/data/regions.v1.json', 'utf8')), registry: undefined } as Regions
 const taxonomy = buildTaxonomyIndex(JSON.parse(readFileSync('tests/fixtures/species/taxonomy.json', 'utf8')).taxa)
 const boundaries = JSON.parse(readFileSync('public/data/vietnam-boundaries.v1.json', 'utf8')) as ProvinceBoundaries
 const lookup = makeCoordinateRegion(boundaries)

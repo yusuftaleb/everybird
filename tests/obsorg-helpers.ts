@@ -8,4 +8,6 @@ export const taxonomy = buildTaxonomyIndex([
   { code: 'hoocro1', sci: 'Corvus cornix', com: 'Hooded Crow', cat: 'species', to: 802 },
 ])
 export const fixture = (name: string) => readFileSync(`tests/fixtures/obsorg/${name}.csv`, 'utf8')
-export const regions: Regions = JSON.parse(readFileSync('public/data/regions.v1.json', 'utf8'))
+const data: Regions = JSON.parse(readFileSync('public/data/regions.v1.json', 'utf8'))
+// These fixtures exercise the legacy name resolver with invented source identifiers.
+export const regions: Regions = { v: data.v, countries: data.countries, sub1: data.sub1 }

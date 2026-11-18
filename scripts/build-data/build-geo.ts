@@ -111,7 +111,9 @@ export function main(root = resolve(__dirname, '../..')): void {
   mkdirSync(out, { recursive: true })
   const iso = (read('iso_3166-2.json') as { '3166-2': IsoSub[] })['3166-2']
   const ne = buildRegions(a0, a1).sub1
-  const regions = buildRegions(a0, a1, iso)
+  const base = buildRegions(a0, a1, iso)
+  const placeData = JSON.parse(readFileSync(resolve(root, 'data/place-registry.v1.json'), 'utf8')) as Pick<Regions, 'countries' | 'registry'>
+  const regions = { ...base, ...placeData, countries: { ...placeData.countries, ...base.countries } }
   console.log(`iso-codes supplement added ${Object.keys(regions.sub1).length - Object.keys(ne).length} sub1 codes`)
   writeFileSync(resolve(out, 'regions.v1.json'), JSON.stringify(regions))
   console.log(`regions: ${Object.keys(regions.countries).length} countries, ${Object.keys(regions.sub1).length} sub1`)

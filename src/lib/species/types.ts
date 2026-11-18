@@ -1,4 +1,5 @@
 import type { IucnCat } from './iucn'
+import type { PlaceRegistry } from '@/lib/places/registry'
 
 export type TaxonCategory = 'species'|'issf'|'form'|'intergrade'|'spuh'|'slash'|'hybrid'|'domestic'
 export type SpeciesRow = {
@@ -28,4 +29,4 @@ export type HuashuRecord = { id: string; scientificName: string; taxonConcept: s
 export type HuashuForm = { taxon: string; formerSpecies?: { scientificName: string; id?: string };
   sticker?: { file: string; meetsQualityBar: boolean } }
 export type Overrides = Record<string /*eBird code*/, { huashu?: string /*huashu id*/; massG?: number; source: string }>
-export type Regions = { v: 1; countries: Record<string, string>; sub1: Record<string, string> }
+export type Regions = { v: 1; countries: Record<string, string>; sub1: Record<string, string>; registry?: PlaceRegistry }

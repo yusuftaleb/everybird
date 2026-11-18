@@ -163,7 +163,10 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
       let synonyms: Record<string, string> = {}
       let regions: Regions | undefined
       try {
-        if (obsorgKind) [synonyms, regions] = await Promise.all([loadSynonyms(), kind === 'obsorg-observations' ? loadRegions() : undefined])
+        [synonyms, regions] = await Promise.all([
+          obsorgKind ? loadSynonyms() : {},
+          kind === 'obsorg-species' ? undefined : loadRegions(),
+        ])
       } catch {
         set({ ...IDLE_FILE, error: 'data' })
         return
@@ -173,7 +176,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
         let result: ParseResult
         let details: EbirdDetails | ObsOrgDetails
         if (kind === 'ebird-lifelist' || kind === 'ebird-mydata') {
-          result = await parseInWorker(kind, file, { onProgress })
+          result = await parseInWorker(kind, file, { onProgress, regions })
           details = { kind: kind === 'ebird-lifelist' ? 'life-list' : 'full-export', at } satisfies EbirdDetails
         } else if (kind === 'obsorg-species') {
           result = await parseInWorker(kind, file, { onProgress, synonyms })

@@ -1,6 +1,7 @@
 import { foldName } from '@/lib/species/resolve'
 import type { Place, Source, SourceRecord, Unmatched } from '@/lib/list/model'
 import type { Regions } from '@/lib/species/types'
+import { hasSourcePlaceKey } from './registry'
 import extraRegionNames from '../../../data/ebird-region-names.json'
 
 // Current eBird Vietnam codes agree with the post-2025 national codes. Everybird uses a distinct
@@ -161,6 +162,7 @@ const legacyVietnamMunicipalities = new Map([
 ])
 
 function savedRegion(code: string, source: Source): string {
+  if (hasSourcePlaceKey(code)) return code
   if (source === 'ebird') return ebirdRegion(code)
   if (code.startsWith('VN-') && !code.startsWith('VN-V')) {
     // Numeric legacy saved codes for these imports came from the old ISO/Natural Earth name index.

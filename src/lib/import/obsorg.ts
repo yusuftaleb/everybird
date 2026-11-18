@@ -4,6 +4,7 @@ import { resolveName, suggestName, type Resolution, type TaxonomyIndex } from '@
 import type { Regions } from '@/lib/species/types'
 import { SeenAgg } from '@/lib/list/seen'
 import { coordinates, loadVietnamCoordinateRegion, type CoordinateRegion } from '@/lib/places/coordinate-region'
+import { divisionId, resolveImportedPlace } from '@/lib/places/registry'
 import { makeObsOrgPlaces } from './obsorg-places'
 import { REGION_RULES } from './inat-rules'
 
@@ -192,7 +193,7 @@ export async function parseObsOrgObservations(
   const excluded = { escape: 0, uncertain: 0 }
   let rows = 0
 
-  const onRow = (r: Row, place?: Place) => {
+  const onRow = (r: Row, location?: Place) => {
     rows++
     if (rows % 5000 === 0) onProgress?.(rows)
     if (r['is escape']?.trim().toLowerCase() === 'true') {
@@ -217,6 +218,12 @@ export async function parseObsOrgObservations(
       return
     }
     const date = isoDate(r.date)
+    const division = r['country division']?.trim() ?? ''
+    const place = regions.registry && location?.country && (division || location.sub1)
+      ? resolveImportedPlace({
+          namespace: 'obsorg', id: divisionId(location.country, division), country: location.country, fallback: location.sub1,
+        }, regions)
+      : location
     if (result.code === null) {
       if (kind !== 'skip' && !kinds.has(sci)) kinds.set(sci, kind)
       seenUnmatched.add(sci, place, date)
@@ -241,12 +248,16 @@ export async function parseObsOrgObservations(
   const finish = (): ObsOrgObservationsResult | { error: 'no-birds' } => {
     if (!byCode.size && !unmatched.size) return { error: 'no-birds' }
     const records = [...byCode.values()]
-    for (const r of records) r.seen = seen.get(r.code) ?? []
+    for (const r of records) {
+      r.seen = seen.get(r.code) ?? []
+      if (regions.registry) r.seenMonths = seen.getMonths(r.code) ?? []
+    }
     const list = [...unmatched.values()].sort((a, b) => a.row - b.row)
     const suggest = obsOrgSuggester(t)
     for (const u of list) {
       if (u.reason !== 'no-match') continue
       u.seen = seenUnmatched.get(u.sci!) ?? []
+      if (regions.registry) u.seenMonths = seenUnmatched.getMonths(u.sci!) ?? []
       const suggestion = suggest(u.sci!, kinds.get(u.sci!) ?? 'species')
       if (suggestion) u.suggestion = suggestion
     }
