@@ -877,12 +877,15 @@ describe('the orientation switch', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
     fireEvent.click(screen.getByRole('button', { name: 'Bulk export (ZIP)' }))
 
+    fireEvent.click(within(screen.getByRole('group', { name: 'Count size' })).getByRole('button', { name: 'Small' }))
+
     const split = screen.getByLabelText('Split by') as HTMLSelectElement
     fireEvent.change(split, { target: { value: 'family' } })
     expect(screen.getByTestId('bulk-count').textContent).toBe('2 posters')
 
     fireEvent.click(screen.getByRole('button', { name: 'Download PNG ZIP' }))
     await waitFor(() => expect(makes).toHaveLength(1))
+    expect(makes[0].opts).toMatchObject({ countSize: 'small' })
     expect(screen.getByTestId('bulk-progress').textContent).toContain('Group 1 of 2')
     const p1 = fakePoster()
     await act(async () => makes[0].resolve(p1))

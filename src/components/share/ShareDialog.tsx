@@ -398,12 +398,13 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
           latest: withLatest,
           markNewest: liferMarks.newest,
           markFirst: liferMarks.first,
+          countSize,
           theme,
           strings: t,
           nameOf: displayName,
           signal: ctl.signal,
         },
-        packSpec: (entries) => imagePackSpec(posterFormat, { name: !!trimmed, filter: true, latest: true, count: entries.length }, size),
+        packSpec: (entries) => imagePackSpec(posterFormat, { name: !!trimmed, filter: true, latest: true, count: entries.length, countSize }, size),
         onProgress: (done, count) => {
           if (!ctl.signal.aborted) setBulkMaking({ key: forKey, done, total: count })
         },
