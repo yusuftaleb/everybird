@@ -234,6 +234,18 @@
 .eb-share-bar { flex: 1 1 auto; height: 4px; min-width: 0; overflow: hidden; background: var(--hairline); border-radius: 2px; }
 .eb-share-bar-fill { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width .15s var(--ease-ui); }
 .eb-share-pct { flex: none; min-width: 4ch; text-align: end; font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.eb-share-bulk {
+  display: flex; flex-direction: column; min-width: 0;
+  border: 1px solid var(--hairline);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-share-bulk-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 10px 16px;
+  background: none; border: 0; color: var(--ink); font: inherit; font-size: 15px; font-weight: 500; text-align: start; cursor: pointer;
+}
+.eb-share-bulk-caret { flex: none; width: 16px; height: 16px; color: var(--muted); transition: transform .18s var(--ease-ui); }
+.eb-share-bulk-toggle[aria-expanded="true"] .eb-share-bulk-caret { transform: rotate(180deg); }
+.eb-share-bulk-body { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 14px; border-top: 1px solid var(--hairline); min-width: 0; }
 /* The four actions (print mode's in the same places), 8px apart. A label wraps to a second line only where it must,
    at 1.2 with 3px padding so two lines still make 44px, centred; a word longer than its cell breaks rather than spill
    (only at page zoom's narrowest widths, which the container queries below mostly spare it). The 15px font size is the
@@ -275,7 +287,7 @@
   .eb-share-preview .eb-share-out { display: none; }
   .eb-share-spin { animation: none; border-color: var(--accent); opacity: .5; }
   .eb-share .eb-share-switch, .eb-share-switch .eb-track, .eb-share-switch .eb-knob { transition: none; }
-  .eb-share-bar-fill { transition: none; }
+  .eb-share-bar-fill, .eb-share-bulk-caret { transition: none; }
 }
 
 /* The orientation switch (Vertical | Horizontal) above the format control: the same control, its two segments sharing the

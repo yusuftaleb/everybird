@@ -867,4 +867,47 @@ describe('the orientation switch', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Download PDF' }))
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(2))
   })
+
+  it('bulk export in Print mode splits the list, runs makePoster sequentially, and downloads a ZIP', async () => {
+    const bulkSpecies = buildSpeciesIndex([
+      row('ostric2', 1),
+      { ...row('emu1', 2), fam: 'Casuariidae', famCom: 'Cassowaries and Emu' },
+    ])
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={bulkSpecies} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk export (ZIP)' }))
+
+    const split = screen.getByLabelText('Split by') as HTMLSelectElement
+    fireEvent.change(split, { target: { value: 'family' } })
+    expect(screen.getByTestId('bulk-count').textContent).toBe('2 posters')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download PNG ZIP' }))
+    await waitFor(() => expect(makes).toHaveLength(1))
+    expect(screen.getByTestId('bulk-progress').textContent).toContain('Group 1 of 2')
+    const p1 = fakePoster()
+    await act(async () => makes[0].resolve(p1))
+
+    await waitFor(() => expect(makes).toHaveLength(2))
+    expect(p1.dispose).toHaveBeenCalledTimes(1)
+    const p2 = fakePoster()
+    await act(async () => makes[1].resolve(p2))
+
+    await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
+    expect(p2.dispose).toHaveBeenCalledTimes(1)
+    const [blob, filename] = vi.mocked(downloadBlob).mock.calls[0]
+    expect(filename).toBe('everybird-a2-bulk.zip')
+    expect(blob.type).toBe('application/zip')
+    expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2-bulk.zip (2 posters).')
+  })
+
+  it('disables bulk ZIP buttons with a note when a split has zero groups', async () => {
+    render(<ShareDialog state={stateWith([{ ...entry('ostric2'), date: undefined }])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk export (ZIP)' }))
+    fireEvent.change(screen.getByLabelText('Split by'), { target: { value: 'year' } })
+
+    expect(screen.getByTestId('bulk-count').textContent).toBe('No groups match this split.')
+    expect((screen.getByRole('button', { name: 'Download PNG ZIP' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Download PDF ZIP' }) as HTMLButtonElement).disabled).toBe(true)
+  })
 })
