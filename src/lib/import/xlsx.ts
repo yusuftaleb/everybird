@@ -161,6 +161,14 @@ function parseSheetRows(xml: string, shared: string[], dateStyles: Set<number>, 
   return rows
 }
 
+/** One spelling for the parsers below: CDATA sections become escaped text, and element prefixes go (`<x:row>` is
+ *  `<row>`; some writers prefix every SpreadsheetML element). */
+function plainXml(xml: string): string {
+  return xml
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, (_, text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
+    .replace(/<(\/?)[A-Za-z_][\w.-]*:/g, '<$1')
+}
+
 function normalizePath(p: string): string {
   return p.replace(/^\/+/, '').replace(/^\.\//, '')
 }
@@ -182,7 +190,7 @@ export function readXlsx(data: Uint8Array | ArrayBuffer): XlsxSheet[] {
   for (const [k, v] of Object.entries(files)) byPath.set(normalizePath(k).toLowerCase(), v)
   const textOf = (p: string) => {
     const entry = byPath.get(normalizePath(p).toLowerCase())
-    return entry ? strFromU8(entry) : undefined
+    return entry ? plainXml(strFromU8(entry)) : undefined
   }
 
   const shared = parseSharedStrings(textOf('xl/sharedStrings.xml'))

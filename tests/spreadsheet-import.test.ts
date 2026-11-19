@@ -5,7 +5,7 @@ import { en } from '@/i18n/messages/en'
 import { detectFile, slotOfKind } from '@/lib/import/detect'
 import { handleParseMessage, type ParseResponse } from '@/lib/import/parse.worker'
 import { parseSheetDate, parseSheetText, parseSheetXlsx } from '@/lib/import/sheet'
-import { DamagedXlsxError } from '@/lib/import/xlsx'
+import { DamagedXlsxError, readXlsx } from '@/lib/import/xlsx'
 import { buildList } from '@/lib/list/build-list'
 import { fromJson, toCsv, toJson } from '@/lib/list/export'
 import { buildSeen } from '@/lib/list/seen'
@@ -39,7 +39,7 @@ function makeXlsx(opts: {
   files['xl/workbook.xml'] = strToU8(`<?xml version="1.0"?><workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${opts.workbookPr ?? ''}<sheets>${sheetEntries}</sheets></workbook>`)
   files['xl/_rels/workbook.xml.rels'] = strToU8(`<?xml version="1.0"?><Relationships>${relEntries}</Relationships>`)
   if (opts.sharedStrings) {
-    const sis = opts.sharedStrings.map((s) => (s.startsWith('<si>') ? s : `<si><t>${s}</t></si>`)).join('')
+    const sis = opts.sharedStrings.map((s) => (/^<(?:x:)?si>/.test(s) ? s : `<si><t>${s}</t></si>`)).join('')
     files['xl/sharedStrings.xml'] = strToU8(`<?xml version="1.0"?><sst>${sis}</sst>`)
   }
   if (opts.stylesXml) files['xl/styles.xml'] = strToU8(opts.stylesXml)
@@ -273,6 +273,26 @@ describe('spreadsheet import', () => {
     }
     expect(dateOf(makeXlsx({ stylesXml, workbookPr: '<workbookPr date1904="1"/>', sheets: [{ name: 'Mac', xml: sheet(43769) }] }))).toBe('2023-11-01')
     expect(dateOf(makeXlsx({ stylesXml, workbookPr: '<workbookPr date1904="false"/>', sheets: [{ name: 'Win', xml: sheet(45231) }] }))).toBe('2023-11-01')
+  })
+
+  it('reads prefixed SpreadsheetML elements and CDATA text', () => {
+    const xlsx = makeXlsx({
+      sharedStrings: ['<x:si><x:t><![CDATA[Common Name]]></x:t></x:si>', '<x:si><x:t><![CDATA[Mallard & co]]></x:t></x:si>'],
+      sheets: [
+        {
+          name: 'Prefixed',
+          xml: `<?xml version="1.0"?><x:worksheet xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:sheetData>
+            <x:row r="1"><x:c r="A1" t="s"><x:v>0</x:v></x:c></x:row>
+            <x:row r="2"><x:c r="A2" t="inlineStr"><x:is><x:t><![CDATA[Rock Pigeon]]></x:t></x:is></x:c></x:row>
+            <x:row r="3"><x:c r="A3" t="inlineStr"><x:is><x:t>Barn Swallow</x:t></x:is></x:c></x:row>
+          </x:sheetData></x:worksheet>`,
+        },
+      ],
+    })
+    const res = parseSheetXlsx(xlsx, taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(res.records.map((r) => r.code)).toEqual(['rocpig', 'barswa'])
+    expect(readXlsx(xlsx)[0].rows[0]).toEqual(['Common Name'])
   })
 
   it('throws DamagedXlsxError on unreadable xlsx bytes', () => {
