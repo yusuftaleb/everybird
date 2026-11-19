@@ -562,6 +562,7 @@ export const nl: Messages = {
           duplicates: { one: '{n} dubbele', other: '{n} dubbele' },
           notSpecies: { one: '{n} geen soort', other: '{n} geen soorten' },
           unmatched: { one: '{n} niet herkend', other: '{n} niet herkend' },
+          noDate: { one: '{n} rij overgeslagen: geen datum', other: '{n} rijen overgeslagen: geen datum' },
           suggestion: '{name} → {suggestion}',
           more: 'nog {n}',
           note: 'Je kunt niet-herkende vogels na het toevoegen met de hand aanvinken.',

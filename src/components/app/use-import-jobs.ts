@@ -38,6 +38,8 @@ export type SheetReview = {
   duplicates: number
   unmatchedCount: number
   notSpeciesCount: number
+  /** Rows left out for having no date (the date column marks the birds seen). */
+  noDate: number
 }
 /** A file being read (an eBird, observation.org or spreadsheet export), shown under the row group it was given to. */
 export type FileJob = { busy: boolean; rows: number; error: FileError | null }
@@ -236,6 +238,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
               duplicates: result.duplicates ?? 0,
               unmatchedCount: result.unmatched.filter((u) => u.reason === 'no-match').length,
               notSpeciesCount: result.unmatched.filter((u) => u.reason === 'not-species').length,
+              noDate: result.noDate ?? 0,
             })
           }
           set(IDLE_FILE)
@@ -315,6 +318,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
             duplicates: result.duplicates ?? 0,
             unmatchedCount: result.unmatched.filter((u) => u.reason === 'no-match').length,
             notSpeciesCount: result.unmatched.filter((u) => u.reason === 'not-species').length,
+            noDate: result.noDate ?? 0,
           })
         }
         setSheet(IDLE_FILE)

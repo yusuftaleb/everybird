@@ -84,6 +84,7 @@ export function SheetDrop({
         ...(review.duplicates > 0 ? [plural(s.review.duplicates, review.duplicates, { n: formatInt(review.duplicates, t.num) })] : []),
         ...(review.notSpeciesCount > 0 ? [plural(s.review.notSpecies, review.notSpeciesCount, { n: formatInt(review.notSpeciesCount, t.num) })] : []),
         ...(review.unmatchedCount > 0 ? [plural(s.review.unmatched, review.unmatchedCount, { n: formatInt(review.unmatchedCount, t.num) })] : []),
+        ...(review.noDate > 0 ? [plural(s.review.noDate, review.noDate, { n: formatInt(review.noDate, t.num) })] : []),
       ]
     : []
 

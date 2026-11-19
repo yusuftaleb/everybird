@@ -10,7 +10,8 @@ import { makeSub1Index, SUB1_ALIASES } from './sub1-index'
 import { SUB1_PARENT } from './sub1-parents'
 import { excelSerialToIso, readXlsx } from './xlsx'
 
-export type SheetParseResult = ImportResult & { duplicates: number }
+/** `noDate`: rows left out because the sheet's date column marks which birds were seen and they have none. */
+export type SheetParseResult = ImportResult & { duplicates: number; noDate?: number }
 
 type ColMap = {
   sci: number
@@ -436,6 +437,7 @@ export function parseSheetRows(
   const unmatchedMap = new Map<string, Unmatched>()
   const suggestions = new Map<string, string | undefined>()
   let duplicates = 0
+  let noDate = 0
   let readRows = 0
 
   for (let i = 0; i < dataRows.length; i++) {
@@ -444,7 +446,10 @@ export function parseSheetRows(
     if (onProgress && readRows % 500 === 0) onProgress(readRows)
 
     if (filterMode === 'mark' && !isRowMarked(r, cols.mark, dateOrder)) continue
-    if (filterMode === 'date' && !parseSheetDate(r[cols.date], dateOrder, true)) continue
+    if (filterMode === 'date' && !parseSheetDate(r[cols.date], dateOrder, true)) {
+      noDate++
+      continue
+    }
 
     const rawSci = cols.sci >= 0 ? (r[cols.sci] ?? '').trim() : ''
     const rawCom = cols.com >= 0 ? (r[cols.com] ?? '').trim() : ''
@@ -549,6 +554,7 @@ export function parseSheetRows(
     skipped: 0,
     rows: dataRows.length,
     duplicates,
+    ...(noDate ? { noDate } : {}),
   }
 }
 

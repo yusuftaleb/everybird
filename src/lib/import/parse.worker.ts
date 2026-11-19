@@ -21,7 +21,7 @@ export type ParseRequest =
   | { kind: 'xlsx'; file: File; regions?: Regions }
   | { kind: 'sheet-text'; file: File; regions?: Regions }
   | { kind: 'sheet-paste'; text: string; regions?: Regions }
-export type ParseResult = ImportResult & { excluded?: ObsOrgObservationsResult['excluded']; undated?: number; duplicates?: number }
+export type ParseResult = ImportResult & { excluded?: ObsOrgObservationsResult['excluded']; undated?: number; duplicates?: number; noDate?: number }
 /**
  * Why a parse failed, for the UI to switch on: 'no-birds' (a readable file without a bird), 'damaged' (not readable as
  * the CSV it claims to be, or anything else the file's parser or its reading threw), 'missing-options' (a caller bug:

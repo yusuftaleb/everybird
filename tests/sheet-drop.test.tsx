@@ -121,6 +121,31 @@ describe('SheetDrop and review flow', () => {
     expect(onImport.mock.calls[0][0]).toBe('sheet')
   })
 
+  it('says how many rows were skipped for having no date', async () => {
+    mockWorker()
+    const { result } = renderHook(() => useImportJobs(vi.fn()))
+    // 25 species, 5 dated: the date column marks the birds seen, so the 20 undated rows are left out.
+    const names = rawSpecies.species.slice(0, 25).map((r) => r.sci)
+    const text = ['Scientific Name,Date', ...names.map((n, i) => `${n},${i < 5 ? '2024-05-0' + (i + 1) : ''}`)].join('\n')
+    await act(async () => {
+      await result.current.parsePaste(text)
+    })
+    expect(result.current.sheetReview?.matched).toBe(5)
+    expect(result.current.sheetReview?.noDate).toBe(20)
+    render(
+      <SheetDrop
+        job={result.current.sheet}
+        onFile={() => {}}
+        onPaste={() => {}}
+        review={result.current.sheetReview}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+        species={species}
+      />,
+    )
+    expect(screen.getByTestId('sheet-review')).toHaveTextContent('5 species matched · 20 rows skipped: no date')
+  })
+
   it('rejects unsupported spreadsheet files and leaves the list unchanged', async () => {
     mockWorker()
     const onImport = vi.fn()
