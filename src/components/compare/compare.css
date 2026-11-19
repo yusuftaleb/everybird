@@ -1,0 +1,7 @@
+/* Compare with friends: the paste box, the group chips and the share line. */
+.eb-compare { display: flex; flex-direction: column; gap: 16px; }
+.eb-compare-form { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.eb-compare-paste { width: 100%; height: auto; min-height: 92px; padding: 10px 12px; resize: vertical; font-family: inherit; }
+.eb-compare-groups { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; }
+.eb-compare-share { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.eb-compare-share .eb-input { flex: 1 1 240px; }

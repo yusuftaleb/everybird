@@ -14,7 +14,7 @@ const NEGOTIATED = LANGS.filter((l): l is Exclude<Lang, 'en'> => l !== 'en')
  * `/s/:token/:rest*`, which also matches `/s/<token>` with no rest; beforeFiles rules all run in turn, and once the page
  * is rewritten to `/<lang>/s/…` no later source matches it.
  */
-export const PAGE_SOURCES = ['/', '/settings', '/about', '/make', '/my', '/credits', '/s/:token', '/s/:token/:rest*'] as const
+export const PAGE_SOURCES = ['/', '/settings', '/about', '/compare', '/make', '/my', '/credits', '/c/:token', '/s/:token', '/s/:token/:rest*'] as const
 
 /** The old image URLs (`/s/<token>/opengraph-image`, `/s/<token>/twitter-image`) that links shared before the languages
  *  already point at, cached for a year: always the English image, never negotiated. */

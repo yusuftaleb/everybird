@@ -1,5 +1,5 @@
 'use client'
-import { Plus, ShareNetwork } from '@phosphor-icons/react'
+import { Plus, ShareNetwork, UsersThree } from '@phosphor-icons/react'
 import Link from '@/components/app/IntentLink'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { EditBird } from '@/components/edit/EditBird'
@@ -69,6 +69,10 @@ export function CollagePage() {
           <Link href="/settings" className="eb-btn eb-btn-quiet" aria-label={t.collage.addBirds}>
             <Plus aria-hidden="true" focusable="false" />
             <span className="eb-sm-hide">{t.collage.addBirds}</span>
+          </Link>
+          <Link href="/compare" className="eb-btn eb-btn-quiet" aria-label={t.compare.title} data-testid="compare-open">
+            <UsersThree aria-hidden="true" focusable="false" />
+            <span className="eb-sm-hide">{t.compare.open}</span>
           </Link>
           <button type="button" className="eb-btn" aria-haspopup="dialog" disabled={!ready || !state.list.length} onClick={() => setSharing(true)}>
             <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />

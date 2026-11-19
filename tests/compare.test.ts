@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import linkIndex from '../data/link-index.json'
 import { compareGroups, groupPayload, linksIn } from '@/lib/share/compare'
 import { makeCompareLink } from '@/lib/share/make-link'
+import { payloadToRecords } from '@/lib/share/convert'
+import { buildList } from '@/lib/list/build-list'
+import { DEFAULT_RULES } from '@/lib/list/model'
+import { emptySaved } from '@/lib/list/storage'
 import { COMPARE_MAX, COMPARE_TOKEN_BUDGET, decodeCompare, decodeShare, encodeCompare, encodeShare, SHARE_ORIGIN, ShareDecodeError, ShareTooLarge, type SharePayload } from '@/lib/share/link'
 
 const codes = linkIndex as string[]
@@ -107,6 +111,15 @@ describe('compareGroups', () => {
     expect(onlyAda.name).toBe('Ada')
     expect(onlyAda.birds.every((b) => b.ym !== undefined)).toBe(true)
     expect(groupPayload([bare, rich], g[0]).birds.every((b) => b.ym === undefined)).toBe(true)
+  })
+  it("a group's collage holds exactly its count, heard-only and found-dead birds included", () => {
+    const a = list(40, 21), b = list(40, 22)
+    a.birds.forEach((x, i) => { if (i % 3 === 0) x.m = 1; else if (i % 3 === 1) x.m = 2 })
+    const regions = { v: 1 as const, countries: { CA: 'Canada', KE: 'Kenya', AU: 'Australia' }, sub1: {} }
+    for (const g of compareGroups([a, b])) {
+      const { records } = payloadToRecords(groupPayload([a, b], g), regions)
+      expect(buildList(records, emptySaved().edits, DEFAULT_RULES)).toHaveLength(g.codes.length)
+    }
   })
   it('a comparison link reopens to the same groups', () => {
     const lists = [list(80, 11, 'You'), list(90, 12, 'Sam'), list(70, 13)]

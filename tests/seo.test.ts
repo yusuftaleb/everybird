@@ -13,9 +13,9 @@ const params = (lang: string) => ({ params: Promise.resolve({ lang }) })
 const ORIGIN = 'https://everybird.yusuftaleb.com'
 
 describe('robots.txt', () => {
-  it('lets crawlers in, keeps them out of /s/ and its per-language copies, and points at the sitemap', () => {
+  it('lets crawlers in, keeps them out of /s/ and /c/ and their per-language copies, and points at the sitemap', () => {
     expect(robots()).toEqual({
-      rules: { userAgent: '*', allow: '/', disallow: ['/s/', '/en/s/', '/es/s/', '/pt/s/', '/nl/s/', '/pl/s/', '/fr/s/', '/de/s/'] },
+      rules: { userAgent: '*', allow: '/', disallow: ['/s/', '/c/', '/en/s/', '/en/c/', '/es/s/', '/es/c/', '/pt/s/', '/pt/c/', '/nl/s/', '/nl/c/', '/pl/s/', '/pl/c/', '/fr/s/', '/fr/c/', '/de/s/', '/de/c/'] },
       sitemap: `${ORIGIN}/sitemap.xml`,
     })
   })
