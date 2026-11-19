@@ -385,8 +385,8 @@ function parseBody(raw: Uint8Array): SharePayload {
  *  5,363 characters, two of 5,000 2,016 to 3,767, six of 5,000 5,885 to 11,260. With months every list is about ten times
  *  bigger, so big comparisons fall back to species only, and the biggest don't fit (tests/compare.test.ts). */
 export const COMPARE_MAX = 6
-/** A whole comparison URL stays at or under 8,000 characters: well inside Cloudflare's 16 KB URL limit and the 8 KB that
- *  common servers and proxies accept. */
+/** A whole comparison URL stays at or under 8,000 characters. Assumed, not measured: Cloudflare takes URLs to 16 KB, and
+ *  8 KB is the common limit of servers and proxies. Messaging apps' limits are untested. */
 export const COMPARE_URL_BUDGET = 8000
 export const COMPARE_TOKEN_BUDGET = COMPARE_URL_BUDGET - `${SHARE_ORIGIN}/c/`.length
 const COMPARE_VERSION = 1
