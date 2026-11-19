@@ -593,12 +593,21 @@ export function textToRows(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, '')
   if (!clean.trim()) return []
   const hasTabs = clean.includes('\t')
-  const parsed = Papa.parse<string[]>(clean, {
+  const parse = (quoteChar?: string) => Papa.parse<string[]>(clean, {
     header: false,
     ...(hasTabs ? { delimiter: '\t' } : {}),
+    ...(quoteChar ? { quoteChar } : {}),
     skipEmptyLines: 'greedy',
   })
-  return parsed.data.map((r) => r.map((c) => (typeof c === 'string' ? c : String(c ?? ''))))
+  let parsed = parse()
+  // A quote that never closes ("Mallard pasted with a stray quote) would swallow every later line: read the text
+  // without quoting instead, and drop the stray quotes around cells.
+  const unclosed = parsed.errors.some((e) => e.code === 'MissingQuotes')
+  if (unclosed) parsed = parse('\u0000')
+  return parsed.data.map((r) => r.map((c) => {
+    const cell = typeof c === 'string' ? c : String(c ?? '')
+    return unclosed ? cell.replace(/^\s*"|"\s*$/g, '') : cell
+  }))
 }
 
 export function parseSheetText(

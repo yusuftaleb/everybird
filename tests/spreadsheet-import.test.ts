@@ -182,6 +182,12 @@ describe('spreadsheet import', () => {
     }
   })
 
+  it('reads every line of a pasted list with a stray quote', () => {
+    const res = parseSheetText('"Mallard\nRock Pigeon\nBarn Swallow\n', taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(res.records.map((r) => r.code)).toEqual(['mallar3', 'rocpig', 'barswa'])
+  })
+
   it('imports only marked rows from a ticked checklist', () => {
     const res = parseSheetText(fixture('ticked-checklist.csv'), taxonomy, regions)
     expect('error' in res).toBe(false)
