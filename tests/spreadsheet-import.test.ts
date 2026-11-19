@@ -70,6 +70,22 @@ describe('spreadsheet import', () => {
     expect(miss?.suggestion).toBe('mallar3')
   })
 
+  it('resolves scientific names in a Species column and common names in a Taxon column', () => {
+    const sciInSpecies = parseSheetText('Species,Country\nAnas platyrhynchos,Canada\n', taxonomy, regions)
+    expect('error' in sciInSpecies).toBe(false)
+    if (!('error' in sciInSpecies)) {
+      expect(sciInSpecies.records.map((r) => r.code)).toEqual(['mallar3'])
+      expect(sciInSpecies.records[0].place?.country).toBe('CA')
+    }
+
+    const comInTaxon = parseSheetText('Taxon,Country\nRock Pigeon,Egypt\n', taxonomy, regions)
+    expect('error' in comInTaxon).toBe(false)
+    if (!('error' in comInTaxon)) {
+      expect(comInTaxon.records.map((r) => r.code)).toEqual(['rocpig'])
+      expect(comInTaxon.records[0].place?.country).toBe('EG')
+    }
+  })
+
   it('parses scientific names and splits multi-country cells into separate sightings', () => {
     const res = parseSheetText(fixture('sci-multicountry.csv'), taxonomy, regions)
     expect('error' in res).toBe(false)

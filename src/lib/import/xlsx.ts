@@ -59,9 +59,11 @@ function colIndex(ref: string): number {
 function extractText(xml: string): string {
   const clean = xml.replace(/<rPh(?:\s[^>]*)?>[\s\S]*?<\/rPh>/g, '')
   let out = ''
-  const re = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g
+  const re = /<t(?:\s[^>]*)?(?:\/>|>([\s\S]*?)<\/t>)/g
   let m: RegExpExecArray | null
-  while ((m = re.exec(clean))) out += decodeXml(m[1])
+  while ((m = re.exec(clean))) {
+    if (m[1]) out += decodeXml(m[1])
+  }
   return out
 }
 

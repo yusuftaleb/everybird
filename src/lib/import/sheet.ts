@@ -377,7 +377,7 @@ function detectColumns(
     }
   }
 
-  const singleNameCol = (sci >= 0) !== (com >= 0) && headerCols.sci === undefined && headerCols.com === undefined
+  const singleNameCol = (sci >= 0) !== (com >= 0)
   return { sci, com, country, place, date, mark, singleNameCol }
 }
 
@@ -400,7 +400,7 @@ function shouldFilterByMark(dataRows: string[][], cols: ColMap, dateOrder: DateO
       if (parseSheetDate(raw, dateOrder, true)) dated++
       else undated++
     }
-    if (dated > 0 && undated > dated) return 'date'
+    if (dated > 0 && undated >= dated * 3) return 'date'
   }
   return null
 }
@@ -472,7 +472,7 @@ export function parseSheetRows(
     }
 
     const rawDate = cols.date >= 0 ? r[cols.date] : cols.mark >= 0 ? r[cols.mark] : undefined
-    const date = parseSheetDate(rawDate, dateOrder, cols.date >= 0)
+    const date = parseSheetDate(rawDate, dateOrder, cols.date >= 0 || cols.mark >= 0)
     const rawCountry = cols.country >= 0 ? (r[cols.country] ?? '').trim() : ''
     const rawPlace = cols.place >= 0 ? (r[cols.place] ?? '').trim() : ''
 
