@@ -16,12 +16,13 @@
 // drops a finished poster. Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied isn't. "Share images" in the format control's place goes back.
 // The actions: Share image over a row of three quiet buttons. Print mode keeps the same pattern.
 import {
-  ArrowClockwise, ArrowLeft, DeviceMobile, DownloadSimple, FilePdf, FrameCorners, LinkSimple, Monitor, Printer, ShareNetwork, Square, X, type Icon,
+  ArrowClockwise, ArrowLeft, CaretDown, DeviceMobile, DownloadSimple, FilePdf, FrameCorners, LinkSimple, Monitor, Printer, ShareNetwork, Square, X, type Icon,
 } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar } from '@/components/dialog-utils'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
+import { HTML_LANG } from '@/i18n/langs'
 import { useI18n } from '@/i18n/I18nProvider'
 import { countryName, regionsIn } from '@/lib/i18n-places'
 import { track, type PosterSizeWire } from '@/lib/analytics'
@@ -29,9 +30,10 @@ import { currentTheme, type Theme } from '@/lib/theme'
 import { useLiferMarks } from '@/lib/lifer-marks'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
+import { bulkGroups, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
 import type { Poster } from '@/lib/share/poster'
 import { PRINT_IN, PRINT_SIZES, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
-import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearList } from '@/lib/list/big-year'
+import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearFilter, yearList } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import {
@@ -62,6 +64,7 @@ const FORMATS: { id: FormatSlot; hint: Record<Orientation, string>; icon: Record
 ]
 const ORIENTATIONS: Orientation[] = ['vertical', 'horizontal']
 const COUNT_SIZES: CountSize[] = ['small', 'medium', 'large', 'hide']
+const BULK_SPLITS: BulkSplit[] = ['batches', 'family', 'order', 'country', 'continent', 'province', 'year']
 type LinkResult = ReturnType<typeof MakeShareLink>
 const loadLinkModule = () => import('@/lib/share/make-link')
 type PosterModule = typeof import('@/lib/share/poster')
@@ -81,6 +84,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const countSizeId = useId()
   const yearId = useId()
   const targetId = useId()
+  const bulkSplitId = useId()
   useEscapeCapture(onClose)
   useFocusInAndBack(ref)
   useHoldTopBar()
@@ -258,7 +262,11 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const posterKey = `print|${size}|${landscape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${fk}|${goalKey}|${countSize}`
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkSplit, setBulkSplit] = useState<BulkSplit>('batches')
+  const [bulkMaking, setBulkMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   const makeCtl = useRef<AbortController | null>(null)
+  const bulkCtl = useRef<AbortController | null>(null)
   const posterRef = useRef<Poster | null>(null)
   const posterModule = useRef<Promise<PosterModule> | null>(null)
   const loadPoster = () => {
@@ -271,14 +279,34 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   useEffect(() => () => {
     makeCtl.current?.abort()
     makeCtl.current = null
+    bulkCtl.current?.abort()
+    bulkCtl.current = null
     posterRef.current?.dispose()
     posterRef.current = null
     setPoster(null)
     setMaking(null)
+    setBulkMaking(null)
     setNote((n) => (n?.print ? null : n))
   }, [posterKey, print])
   const posterNow = print && poster?.key === posterKey ? poster.p : null
   const makingNow = print && making?.key === posterKey ? making : null
+  const bulkMakingNow = print && bulkMaking?.key === posterKey ? bulkMaking : null
+  const bulkList = useMemo(() => {
+    if (!print || !bulkOpen) return []
+    const named = regionsIn(regions, lang)
+    return bulkGroups(bulkSplit, cardEntries, {
+      species,
+      regions: named,
+      seen,
+      filter: bigYearActive ? yearFilter(goalYear, seen) : filter,
+      continents: t.places.continents,
+      batchLabel: (n) => fmt(pt.bulk.batch, { n: formatInt(n, t.num) }),
+      familyLabel: familyName,
+      orderLabel: (ord) => t.orders[ord as keyof typeof t.orders] ?? ord,
+      locale: HTML_LANG[lang],
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
+  }, [print, bulkOpen, bulkSplit, cardEntries, species, regions, lang, seen, bigYearActive, goalYear, filter, t, pt.bulk.batch, names])
 
   // Where focus goes once the button that had it is gone (only if it fell to the page or the dialog itself).
   const backRef = useRef<HTMLButtonElement>(null)
@@ -343,6 +371,64 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     setMaking(null)
     setNote((n) => (n?.print ? null : n))
     focusNext.current = 'make'
+  }
+  const makeBulk = async (kind: 'png' | 'pdf') => {
+    if (!bulkList.length) return
+    makeCtl.current?.abort()
+    makeCtl.current = null
+    setMaking(null)
+    bulkCtl.current?.abort()
+    const ctl = new AbortController()
+    bulkCtl.current = ctl
+    const forKey = posterKey
+    const total = bulkList.length
+    const posterFormat: CardFormat = landscape ? 'printLandscape' : 'print'
+    setNote({ text: pt.bulk.makingNote, print: true })
+    setBulkMaking({ key: forKey, done: 0, total })
+    try {
+      const mod = await (posterModule.current ?? loadPoster())
+      const blob = await makeBulkZip({
+        groups: bulkList,
+        kind,
+        species,
+        poster: {
+          size,
+          landscape,
+          name: trimmed || undefined,
+          latest: withLatest,
+          markNewest: liferMarks.newest,
+          markFirst: liferMarks.first,
+          countSize,
+          theme,
+          strings: t,
+          nameOf: displayName,
+          signal: ctl.signal,
+        },
+        packSpec: (entries) => imagePackSpec(posterFormat, { name: !!trimmed, filter: true, latest: true, count: entries.length, countSize }, size),
+        onProgress: (done, count) => {
+          if (!ctl.signal.aborted) setBulkMaking({ key: forKey, done, total: count })
+        },
+        deps: { makePoster: mod.makePoster },
+      })
+      if (ctl.signal.aborted) return
+      bulkCtl.current = null
+      setBulkMaking(null)
+      const file = `${printFileStem(size, landscape)}-bulk.zip`
+      downloadBlob(blob, file)
+      setNote({ text: plural(pt.bulk.ready, total, { file, n: formatInt(total, t.num) }), print: true })
+    } catch (e) {
+      if (ctl.signal.aborted || (e as Error)?.name === 'AbortError') return
+      console.warn('Everybird bulk ZIP failed:', e)
+      bulkCtl.current = null
+      setBulkMaking(null)
+      setNote({ text: pt.bulk.failed, error: true, print: true })
+    }
+  }
+  const cancelBulk = () => {
+    bulkCtl.current?.abort()
+    bulkCtl.current = null
+    setBulkMaking(null)
+    setNote((n) => (n?.print ? null : n))
   }
   /** Drops the poster on screen (its encoder ends with it). */
   const dropPoster = () => {
@@ -461,6 +547,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     : IMAGE_SIZE[shownCard]
   shownSize.current = [w, h]
   const pct = makingNow && makingNow.total > 0 ? Math.round((makingNow.done / makingNow.total) * 100) : 0
+  const bulkPct = bulkMakingNow && bulkMakingNow.total > 0 ? Math.round((bulkMakingNow.done / bulkMakingNow.total) * 100) : 0
   const [pxW, pxH] = printPx(size, landscape)
   const [dimW, dimH] = isUsSize(size) ? printIn(size, landscape) : printCm(size, landscape)
   const sizeLine = fmt(isUsSize(size) ? pt.sizeLineIn : pt.sizeLine, { size, w: dimW, h: dimH, pw: pxW, ph: pxH })
@@ -513,7 +600,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       {pt.png}
     </button>
   ) : (
-    <button key="make" ref={makeRef} type="button" className="eb-btn eb-share-primary" onClick={() => void makePoster()}>
+    <button key="make" ref={makeRef} type="button" className="eb-btn eb-share-primary" disabled={!!bulkMakingNow} onClick={() => void makePoster()}>
       <Printer aria-hidden="true" focusable="false" weight="bold" />
       {pt.make}
     </button>
@@ -744,6 +831,81 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
               {primary}
               <div className="eb-share-row">{quiet.map(quietButton)}</div>
             </div>
+
+            {print && (
+              <div className="eb-share-bulk" data-testid="share-bulk">
+                <button
+                  type="button"
+                  className="eb-share-bulk-toggle"
+                  aria-expanded={bulkOpen}
+                  onClick={() => setBulkOpen((v) => !v)}
+                >
+                  <span>{pt.bulk.title}</span>
+                  <CaretDown aria-hidden="true" focusable="false" className="eb-share-bulk-caret" />
+                </button>
+                {bulkOpen && (
+                  <div className="eb-share-bulk-body">
+                    <div className="eb-share-field">
+                      <label htmlFor={bulkSplitId} className="eb-share-label">{pt.bulk.splitLabel}</label>
+                      <select
+                        id={bulkSplitId}
+                        className="eb-share-input"
+                        value={bulkSplit}
+                        disabled={!!bulkMakingNow}
+                        onChange={(e) => setBulkSplit(e.target.value as BulkSplit)}
+                      >
+                        {BULK_SPLITS.map((s) => (
+                          <option key={s} value={s}>{pt.bulk.splits[s]}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="eb-note" data-testid="bulk-count">
+                      {bulkList.length > 0
+                        ? plural(pt.bulk.count, bulkList.length, { n: formatInt(bulkList.length, t.num) })
+                        : pt.bulk.empty}
+                    </p>
+                    {bulkMakingNow ? (
+                      <div className="eb-share-progress" data-testid="bulk-progress">
+                        <div
+                          className="eb-share-bar" role="progressbar" aria-label={pt.bulk.makingNote}
+                          aria-valuemin={0} aria-valuemax={bulkMakingNow.total} aria-valuenow={bulkMakingNow.done}
+                        >
+                          <span className="eb-share-bar-fill" style={{ width: `${bulkPct}%` }} />
+                        </div>
+                        <span className="eb-share-pct">
+                          {fmt(pt.bulk.progress, {
+                            done: formatInt(Math.min(bulkMakingNow.done + 1, bulkMakingNow.total), t.num),
+                            total: formatInt(bulkMakingNow.total, t.num),
+                          })}
+                        </span>
+                        <button type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
+                      </div>
+                    ) : (
+                      <div className="eb-share-row">
+                        <button
+                          type="button"
+                          className="eb-btn eb-btn-quiet"
+                          disabled={bulkList.length === 0 || !!makingNow}
+                          onClick={() => void makeBulk('png')}
+                        >
+                          <DownloadSimple aria-hidden="true" focusable="false" />
+                          {pt.bulk.png}
+                        </button>
+                        <button
+                          type="button"
+                          className="eb-btn eb-btn-quiet"
+                          disabled={bulkList.length === 0 || !!makingNow}
+                          onClick={() => void makeBulk('pdf')}
+                        >
+                          <FilePdf aria-hidden="true" focusable="false" />
+                          {pt.bulk.pdf}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <p className={note?.error ? 'eb-error' : 'eb-note'} role="status" data-testid="share-note">{note?.text ?? ''}</p>
             {manual && (
