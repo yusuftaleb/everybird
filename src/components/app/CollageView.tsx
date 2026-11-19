@@ -149,8 +149,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const threatLine = useMemo(() => (threat === 'c' ? threatenedCount(entries, species) : undefined), [threat, entries, species])
   const shownCodes = useMemo(() => new Set(shownList.map((e) => e.code)), [shownList])
   const order = useMemo(() => liferOrder(species.byCode), [species])
-  const latest = useMemo(() => latestLifer(entries, order), [entries, order])
-  const first = useMemo(() => firstLifer(entries, order), [entries, order])
+  // The rings mark the newest and first bird shown, as the share image's latest lifer row does.
+  const latest = useMemo(() => latestLifer(shownList, order), [shownList, order])
+  const first = useMemo(() => firstLifer(shownList, order), [shownList, order])
   const liferMarks = useLiferMarks()
   const stageMarks = useMemo<BirdMarks | undefined>(
     () => (liferMarks.newest || liferMarks.first ? { newest: liferMarks.newest ? latest?.code : undefined, first: liferMarks.first ? first?.code : undefined } : undefined),
