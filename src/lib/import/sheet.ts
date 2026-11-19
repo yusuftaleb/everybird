@@ -562,10 +562,13 @@ export function parseSheetRows(
       byCode.set(res.code, rec)
     } else {
       duplicates++
+      // The lifer is the earliest row, with that row's own place (none if it has none, as in the Scythebill import);
+      // a later row's place is in `seen`, never the lifer's.
       if (earlier(date, prev.date)) {
         prev.date = date
         if (primaryPlace) prev.place = primaryPlace
-      } else if (!prev.place && primaryPlace) {
+        else delete prev.place
+      } else if (date === prev.date && !prev.place && primaryPlace) {
         prev.place = primaryPlace
       }
     }

@@ -200,6 +200,17 @@ describe('spreadsheet import', () => {
     expect(sheet.unmatched.map((u) => [u.com, u.row])).toEqual([['Mallardd', 7]])
   })
 
+  it('gives the lifer the earliest row\'s own place, none when it has none', () => {
+    const later = parseSheetText('Common Name,Date,Country\nMallard,2024-05-01,Canada\nMallard,2023-01-10,\n', taxonomy, regions)
+    const earlierFirst = parseSheetText('Common Name,Date,Country\nMallard,2023-01-10,\nMallard,2024-05-01,Canada\n', taxonomy, regions)
+    for (const res of [later, earlierFirst]) {
+      if ('error' in res) throw new Error('expected parse success')
+      expect(res.records[0]).toMatchObject({ code: 'mallar3', date: '2023-01-10' })
+      expect(res.records[0].place).toBeUndefined()
+      expect(res.records[0].seen?.map((s) => s.split('|')[1])).toEqual(['CA'])
+    }
+  })
+
   it('imports only marked rows from a ticked checklist', () => {
     const res = parseSheetText(fixture('ticked-checklist.csv'), taxonomy, regions)
     expect('error' in res).toBe(false)
