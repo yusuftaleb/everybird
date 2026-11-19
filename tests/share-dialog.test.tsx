@@ -956,6 +956,17 @@ describe('the orientation switch', () => {
     expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Names won’t fit cleanly on A2. Pick a larger size or filter your list.')
   })
 
+  it('packs names again for each paper size: the caption font follows the paper, so an A2 pack never serves A4', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    const named = () => vi.mocked(image.packForImage).mock.calls.filter((c) => c[2].captionBoxes).map((c) => c[2].captionBoxes!.ostric2.h)
+    await waitFor(() => expect(named()).toHaveLength(1))
+    fireEvent.click(screen.getByRole('button', { name: 'A4' }))
+    await waitFor(() => expect(named()).toHaveLength(2))
+    // A4's minimum caption size is larger in design units than A2's, so its name box is taller.
+    expect(named()[1]).toBeGreaterThan(named()[0])
+  })
+
   it('disables Show species names when caption pack check rejects', async () => {
     vi.mocked(image.packForImage).mockImplementation(async (_entries, _species, spec) => {
       if (spec.captionBoxes) throw new Error('packBest: does not fit')

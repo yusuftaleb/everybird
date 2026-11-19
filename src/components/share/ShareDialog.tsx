@@ -214,7 +214,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     // Not keyed by the latest lifer switch: imagePackSpec packs for the with-row frame, so on and off share one pack.
     return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize, plan?: Extract<CaptionPlan, { ok: true }> | null, signal?: AbortSignal) => {
       const hasPlan = !!plan?.ok && isPrint(f)
-      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${hasPlan ? `${lang}|${names}|${liferMarks.newest}|${liferMarks.first}|${fontsTick}` : ''}`
+      // With names, the paper size too: the caption font follows the paper, though every A size shares one pack height.
+      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${hasPlan ? `${printSize}|${lang}|${names}|${liferMarks.newest}|${liferMarks.first}|${fontsTick}` : ''}`
       let p = packs.get(k)
       if (!p) {
         const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined)
