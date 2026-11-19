@@ -217,11 +217,12 @@ function makePlaceResolver(regions?: Regions) {
     return /^[A-Z]{2}-[A-Z0-9]{1,3}$/.test(code) && Object.hasOwn(regions.sub1, code) ? code : undefined
   }
 
-  /** `division` is the place cell; the parts naming one of the row's `countries` are not a division. The rest is tried
+  /** `division` is the place cell; the parts naming one of the row's `countries` are not a division (with a country
+   *  column, `address` false, only when they aren't also its province: Belize's Belize district). The rest is tried
    *  whole, then part by part, against the province index; only an unmatched rest becomes a province of its own. */
-  const resolvePlace = (country: string, division: string, rowCountries: readonly string[] = [country]): Place | undefined => {
+  const resolvePlace = (country: string, division: string, rowCountries: readonly string[] = [country], address = false): Place | undefined => {
     const whole = division.trim()
-    const isRowCountry = (s: string) => rowCountries.includes(countryCode(s) ?? '')
+    const isRowCountry = (s: string) => rowCountries.includes(countryCode(s) ?? '') && (address || !sub1Of(country, s))
     const parts = isRowCountry(whole) ? [] : whole.split(',').map((s) => s.trim()).filter(Boolean)
     const rest = parts.filter((s) => !isRowCountry(s))
     let div = !rest.length ? '' : rest.length === parts.length ? whole : rest.join(', ')
@@ -517,13 +518,12 @@ export function parseSheetRows(
     const rawPlace = cols.place >= 0 ? (r[cols.place] ?? '').trim() : ''
 
     let countryCodes = rawCountry ? resolveCountries(rawCountry) : []
-    if (!countryCodes.length && rawPlace && cols.country < 0) {
-      countryCodes = resolveCountries(rawPlace, true)
-    }
+    const fromPlace = !countryCodes.length && !!rawPlace && cols.country < 0
+    if (fromPlace) countryCodes = resolveCountries(rawPlace, true)
 
     const rowPlaces: Place[] = []
     for (const cc of countryCodes) {
-      const p = resolvePlace(cc, rawPlace, countryCodes)
+      const p = resolvePlace(cc, rawPlace, countryCodes, fromPlace)
       if (p) rowPlaces.push(p)
     }
     const primaryPlace = rowPlaces[0]

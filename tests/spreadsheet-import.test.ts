@@ -150,6 +150,14 @@ describe('spreadsheet import', () => {
     expect(keys('rocpig')).toEqual(['c:US', 's:US-GA'])
   })
 
+  it('keeps a province named like its country when the country has its own column', () => {
+    const res = parseSheetText('Common Name,Country,State\nMallard,Belize,Belize\nRock Pigeon,Panama,Panama\n', taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    const keys = placeKeysOf(replaceSource(emptySaved(), 'sheet', res))
+    expect(keys('mallar3')).toEqual(['c:BZ', 's:BZ-BZ'])
+    expect(keys('rocpig')).toEqual(['c:PA', 's:PA-8'])
+  })
+
   it('puts Puerto Rico entered as a US state in the Caribbean and Latin America', () => {
     const res = parseSheetText('Common Name,Country,State\nMallard,United States,Puerto Rico\n', taxonomy, regions)
     if ('error' in res) throw new Error('expected parse success')
