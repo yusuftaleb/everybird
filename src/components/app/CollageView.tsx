@@ -10,6 +10,7 @@ import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage, revealBird, type BirdMarks } from '@/components/collage/Collage'
 import { reduced } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
+import { MapView } from '@/components/collage/MapView'
 import { FilterBar } from '@/components/filters/FilterBar'
 import { useFiltersUi, type FilterSection, type PlacesNote } from '@/components/filters/Filters'
 import { fmt, plural, rich } from '@/i18n/core'
@@ -117,7 +118,10 @@ function latestLine(name: string, date: string | undefined, t: Ui): ReactNode {
 }
 
 export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, whose = 'this' }: Props) {
-  const { list, filter, mode, view, massOrder, sci, seen } = state
+  const { list, filter, mode, massOrder, sci, seen } = state
+  // No places to map (a shared link without them): no Map tab, and a carried-over Map view shows the collage.
+  const noMap = !!hideSections?.includes('places')
+  const view = noMap && state.view === 'map' ? 'collage' : state.view
   const { t } = useI18n()
   useNames() // the legend's latest lifer, the search results and the filters follow the names
   const box = useRef<HTMLElement>(null)
@@ -229,11 +233,19 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
     }
     const e = entries.find((x) => x.code === h.value)
     if (!e) return
+    // The map has no birds to show: a species picked there is shown on the collage.
+    if (view === 'map') {
+      const next = !fk || shownList.some((x) => x.code === h.value) ? filter : filterToShow(filter, e, species, seen)
+      dispatch({ type: 'view', view: 'collage' })
+      if (next !== filter) dispatch({ type: 'filter', filter: next })
+      setPending({ code: h.value, key: filterKey(next), at: Date.now() })
+      return
+    }
     if (!fk || shownList.some((x) => x.code === h.value)) { show(h.value); return }
     const next = filterToShow(filter, e, species, seen)
     dispatch({ type: 'filter', filter: next })
     setPending({ code: h.value, key: filterKey(next), at: Date.now() })
-  }, [filter, fk, shownList, entries, species, seen, dispatch, show])
+  }, [filter, fk, shownList, entries, species, seen, dispatch, show, view])
   // The out-of-view pick: wait for the new filter's layout (the list re-renders at once), then for the glide. It lapses
   // when the filter is changed by hand meanwhile, or after PENDING_MS, so a stale tooltip can't pop up later.
   useEffect(() => {
@@ -264,6 +276,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       {notice}
       <ControlsBar
         view={view}
+        noMap={noMap}
         onView={(v) => { setPick(null); setTip(null); dispatch({ type: 'view', view: v }) }}
         trueSize={mode === 'true'}
         onTrueSize={(on) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })}
@@ -295,17 +308,19 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
             <span className="eb-mono">{entries.length ? t.collage.arranging : t.count.label}</span>
           </div>
         )
+      ) : view === 'map' ? (
+        <MapView state={state} species={species} regions={regions} onFilter={onApply} note={placesNote} unplaced={placesUnplaced} />
       ) : (
         <ListView entries={shownList} species={species} regions={regions} order={massOrder} sci={sci} onPick={onPickRow} />
       )}
 
-      <div className="eb-mono eb-legend">
+      {view !== 'map' && <div className="eb-mono eb-legend">
         <p>
           {latest && latestRow ? <>{latestLine(displayName(latestRow), latest.date, t)} · </> : null}
           {sizes}
         </p>
         <p>{t.collage.legend.marks}</p>
-      </div>
+      </div>}
       </div>
 
       {picked && pick && (

@@ -14,7 +14,7 @@ import { slottedRecords } from './source-counts'
 import type { Edits, ImportResult, ListEntry, Rules, Slot, SourceRecord, Unmatched } from './model'
 import { buildSeen, type SeenIndex } from './seen'
 import * as storage from './storage'
-import { takeResume, type CollageResume } from '../view-resume'
+import { takeResume, type CollageResume, type ViewKind } from '../view-resume'
 import { useOfferResume } from '../use-resume'
 import { emptySaved, NAME_MAX, removeSource, replaceSource, type DetailsFor, type Saved } from './storage'
 
@@ -27,7 +27,7 @@ export type AppState = {
   openUnmatched: Unmatched[]
   filter: Filter
   mode: 'even' | 'true'
-  view: 'collage' | 'list'
+  view: ViewKind
   massOrder: 'heaviest' | 'lightest'
   /** Scientific names lead wherever a bird or group is named (LifeList's Scientific switch); never stored. */
   sci: boolean

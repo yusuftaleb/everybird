@@ -7,7 +7,7 @@
 // beside the continents. From the top level the search field finds any country (its matches replace the continents). Drilling in
 // focuses "All of …"; a step back focuses the drill button of the row it came from (scrolled into view); Esc closes the panel from any
 // level (DropPanel). The search field and its query are per level.
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDownIcon } from '@/components/collage/icons'
 import { fmt } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -17,7 +17,7 @@ import { parentKey, parsePlaceKey, placeName } from '@/lib/list/place-keys'
 import { countHead } from '@/lib/list/filter-summary'
 import { emptyHere, levelUnder, matchRows, PlaceCheck, placeCountsFor, PlacesFind, placeTestId, SEARCH_FROM, upKey, usePlaceRows, useRegionRows, type PlacesBodyProps } from './places-shared'
 
-export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyProps) {
+export function PlacesDrill({ state, species, regions, onFilter, onLevel }: PlacesBodyProps) {
   const { filter } = state
   const { t, lang } = useI18n()
   const counts = placeCountsFor(state, species)
@@ -28,6 +28,7 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
   const [atRaw, setAt] = useState<string | undefined>(() => startLevel(filterPlaceKeys(filter)))
   const at = flat && atRaw?.startsWith('n:') ? undefined : atRaw
   const [q, setQ] = useState('')
+  useEffect(() => onLevel?.(at), [at, onLevel])
   // Test ids to focus, first found wins, once the new level has rendered (set by the drill and breadcrumb handlers).
   const focusNext = useRef<string[] | null>(null)
   const headRef = useRef<HTMLDivElement>(null)

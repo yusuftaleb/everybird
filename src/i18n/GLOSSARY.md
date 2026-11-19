@@ -18,6 +18,7 @@ Read this before you translate a string or add a language. English (`messages/en
 | About (top bar) | Acerca de | Sobre | Over | Info ("O aplikacji" doesn't fit the top bar) | Infos ("À propos" doesn't fit the top bar) | Über |
 | My collage (untitled) | Mi collage | Minha colagem | Mijn collage | Mój kolaż | Mon collage | Meine Collage |
 | Places (filter) | Lugares | Lugares | Plaatsen | Miejsca | Lieux | Orte |
+| Map (view tab) | Mapa | Mapa | Kaart | Mapa | Carte | Karte |
 | Time (filter) | Fechas | Datas | Tijd | Czas | Dates | Zeit |
 | county | condado | condado | graafschap | hrabstwo | comté | Kreis |
 | Heard only / Found dead | Solo oída / Encontrada muerta | Só ouvida / Encontrada morta | Alleen gehoord / Dood gevonden | Tylko słyszany / Znaleziony martwy | Entendu seulement / Trouvé mort | Nur gehört / Tot gefunden |

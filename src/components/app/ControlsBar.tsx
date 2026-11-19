@@ -1,6 +1,6 @@
 'use client'
 // The one horizontal bar above the filters, as LifeList's dock (framer-site), with Photography's search: Collage /
-// List tabs on the left; then four groups at even gaps: the view tabs | True size in collage view (or the list's
+// List / Map tabs on the left (in the Map view the size and name switches give up their room, unseen); then four groups at even gaps: the view tabs | True size in collage view (or the list's
 // direction in list view) and Scientific | the one Filters button (Filters.tsx) | the magnifier. The magnifier turns the dock into the search field
 // (DockSearch.tsx); everything else sits under it, inert, while it is open. Under 820px of bar the
 // Filters button takes a second row of its own, under 600px filling it (app.css); under
@@ -8,14 +8,17 @@
 // under 330px and 310px everything tightens, so row one never breaks between 280 and 1200px of bar. On phones (600px of screen and under, as /lifelist) the short form holds whatever the width: row
 // one is the icons, the two switches (or "Heaviest") and the magnifier; row two the Filters button.
 import { useCallback, useRef, useState, type ReactNode } from 'react'
-import { ArrowDownIcon, CollageIcon, ListIcon } from '@/components/collage/icons'
+import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon } from '@/components/collage/icons'
 import { useI18n } from '@/i18n/I18nProvider'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
+import type { ViewKind } from '@/lib/view-resume'
 import { DockSearchField, SearchButton, type DockSearchProps } from './DockSearch'
 
 type Props = {
-  view: 'collage' | 'list'
-  onView: (v: 'collage' | 'list') => void
+  view: ViewKind
+  onView: (v: ViewKind) => void
+  /** No Map tab (a view with no places). */
+  noMap?: boolean
   trueSize: boolean
   onTrueSize: (on: boolean) => void
   lightFirst: boolean
@@ -38,7 +41,7 @@ type Props = {
   onFind?: () => void
 }
 
-export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, marks, search, filters, below, onFind }: Props) {
+export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, marks, search, filters, below, onFind }: Props) {
   const [finding, setFinding] = useState(false)
   // Whether the search is open is carried over a language switch (view-resume.ts); the typed text is not.
   const hasSearch = !!search
@@ -60,14 +63,14 @@ export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, on
     <div ref={wrap} className="eb-dockwrap">
       <div className="eb-dock" data-finding={finding || undefined}>
         <div className="eb-dock-tabs" role="group" aria-label={c.view} inert={finding}>
-          {(['collage', 'list'] as const).map((v) => (
-            <button key={v} type="button" className="eb-dock-tab" aria-pressed={view === v} aria-label={v === 'collage' ? c.collage : c.list} onClick={() => onView(v)}>
-              {v === 'collage' ? <CollageIcon /> : <ListIcon />}
-              <span>{v === 'collage' ? c.collage : c.list}</span>
+          {(noMap ? (['collage', 'list'] as const) : (['collage', 'list', 'map'] as const)).map((v) => (
+            <button key={v} type="button" className="eb-dock-tab" aria-pressed={view === v} aria-label={c[v]} onClick={() => onView(v)}>
+              {v === 'collage' ? <CollageIcon /> : v === 'list' ? <ListIcon /> : <MapIcon />}
+              <span>{c[v]}</span>
             </button>
           ))}
         </div>
-        <div className="eb-dock-tools" inert={finding}>
+        <div className="eb-dock-tools" inert={finding || view === 'map'} data-off={view === 'map' || undefined}>
           {view === 'list' ? (
             <button
               type="button"

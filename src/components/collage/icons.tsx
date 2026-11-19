@@ -14,6 +14,10 @@ export const ListIcon = ({ className }: P) =>
     <circle cx="44" cy="64" r="12" fill="currentColor" /><circle cx="44" cy="128" r="12" fill="currentColor" /><circle cx="44" cy="192" r="12" fill="currentColor" />
   </>)
 
+/** A folded map (the dock's Map tab), in the 16-unit stroke. */
+export const MapIcon = ({ className }: P) =>
+  svg(className, <path d="M96 184 32 200V56l64-16 64 32 64-16v144l-64 16-64-32ZM96 40v144M160 72v144" fill="none" stroke="currentColor" strokeWidth="16" strokeLinejoin="round" />)
+
 export const ArrowDownIcon = ({ className, up }: P & { up?: boolean }) => (
   <svg viewBox="0 0 256 256" aria-hidden="true" focusable="false" className={className} style={up ? { transform: 'scaleY(-1)' } : undefined}>
     <path d="M128 48v152M64 140l64 64 64-64" stroke="currentColor" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" fill="none" />
