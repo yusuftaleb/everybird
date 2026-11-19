@@ -32,13 +32,14 @@ import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
 import { bulkGroups, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
 import type { Poster } from '@/lib/share/poster'
-import { CAPTION_CAPS, PRINT_IN, PRINT_SIZES, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
-import { planCaptions } from '@/lib/share/captions'
+import { CAPTION_CAPS, PRINT_IN, PRINT_SIZES, captionMinPx, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
+import { planCaptions, type CaptionPlan } from '@/lib/share/captions'
+import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
 import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearFilter, yearList } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import {
-  NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, captionMeasurer, cardLayout, clearStickerCache, filterLabel as labelFor, fitCaptionPack, imagePackSpec, imageShape, isPrint, packForImage, renderShareImage,
+  NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, captionMeasurer, cardLayout, clearStickerCache, ensureCaptionFont, filterLabel as labelFor, fitCaptionPack, imagePackSpec, imageShape, isPrint, packForImage, renderShareImage,
   type CardFormat, type CountSize, type FormatSlot, type ImagePack, type Orientation,
 } from '@/lib/share/image'
 import type { ShareLevel } from '@/lib/share/link'
@@ -117,6 +118,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const [showLatest, setShowLatest] = useState(true)
   const [showNames, setShowNames] = useState(false)
   const [namesFitFailKey, setNamesFitFailKey] = useState<string | null>(null)
+  const [fontsTick, setFontsTick] = useState(0)
   // The look of everything the dialog makes: the app's theme when the dialog opens, then this dialog's own choice.
   const [dark, setDark] = useState(() => currentTheme() === 'dark')
   const theme: Theme = dark ? 'dark' : 'light'
@@ -156,13 +158,39 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const hasFilter = !!(cardLabel || cardGoal)
   const goalKey = cardGoal ? `by:${cardGoal.year}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
   const overCap = cardEntries.length > CAPTION_CAPS[size]
+  const markedCodes = useMemo(() => {
+    const s = new Set<string>()
+    if (!liferMarks.newest && !liferMarks.first) return s
+    const order = liferOrder(species.byCode)
+    if (liferMarks.newest) {
+      const c = latestLifer(cardEntries, order)?.code
+      if (c) s.add(c)
+    }
+    if (liferMarks.first) {
+      const c = firstLifer(cardEntries, order)?.code
+      if (c) s.add(c)
+    }
+    return s
+  }, [cardEntries, species, liferMarks.newest, liferMarks.first])
+  useEffect(() => {
+    if (!print || overCap || typeof document === 'undefined' || !document.fonts) return
+    let live = true
+    const sample = cardEntries.map((e) => {
+      const r = species.byCode.get(e.code)
+      return r ? displayName(r) : ''
+    }).join('')
+    void ensureCaptionFont(captionMinPx(size), sample).then(() => {
+      if (live) setFontsTick((n) => n + 1)
+    })
+    return () => { live = false }
+  }, [print, overCap, size, cardEntries, species, lang, names])
   const captionPlan = useMemo(() => {
     if (!print || overCap) return null
     const L = cardLayout(cardFormat, { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target }, printDesign(size, landscape))
-    return planCaptions(cardEntries, species, size, L.collage.w, displayName, captionMeasurer())
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` and `lang` trigger recheck for `displayName`
-  }, [print, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, size, landscape, species, names, lang])
-  const namesCheckKey = `${cardFormat}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${lang}|${names}|${fk}|${goalKey}`
+    return planCaptions(cardEntries, species, size, L.collage.w, displayName, captionMeasurer(), markedCodes)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `names`, `lang`, `fontsTick` trigger recheck for `displayName` and loaded Satoshi metrics
+  }, [print, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, size, landscape, species, names, lang, markedCodes, fontsTick])
+  const namesCheckKey = `${cardFormat}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${fontsTick}`
   const namesFitFailed = namesFitFailKey === namesCheckKey
   const namesAvailable = !overCap && !!captionPlan?.ok && !namesFitFailed
   const effectiveShowNames = print && showNames && namesAvailable
@@ -184,34 +212,43 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const packFor = useMemo(() => {
     const packs = new Map<string, Promise<ImagePack>>()
     // Not keyed by the latest lifer switch: imagePackSpec packs for the with-row frame, so on and off share one pack.
-    return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize, withNames = false) => {
-      const plan = withNames && isPrint(f) ? captionPlan : null
-      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${plan?.ok ? `${lang}|${names}` : ''}`
+    return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize, plan?: Extract<CaptionPlan, { ok: true }> | null, signal?: AbortSignal) => {
+      const hasPlan = !!plan?.ok && isPrint(f)
+      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${hasPlan ? `${lang}|${names}|${liferMarks.newest}|${liferMarks.first}|${fontsTick}` : ''}`
       let p = packs.get(k)
       if (!p) {
-        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, plan?.ok ? plan : undefined)
-        p = packForImage(cardEntries, species, spec, life.current?.signal)
+        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined)
+        p = packForImage(cardEntries, species, spec, signal ?? life.current?.signal)
         packs.set(k, p)
         p.catch(() => packs.delete(k))
       }
       return p
     }
-  }, [cardEntries, species, cardLabel, cardGoal, captionPlan, lang, names])
+  }, [cardEntries, species, cardLabel, cardGoal, lang, names, liferMarks.newest, liferMarks.first, fontsTick])
   useEffect(() => {
     if (!print || overCap || !captionPlan?.ok) return
     let live = true
+    const ctl = new AbortController()
+    const onLifeAbort = () => ctl.abort()
+    life.current?.signal.addEventListener('abort', onLifeAbort, { once: true })
     const checkKey = namesCheckKey
-    void packFor(cardFormat, hasTitle, size, true).then((pack) => {
+    void packFor(cardFormat, hasTitle, size, captionPlan, ctl.signal).then((pack) => {
       if (!live || !(pack.boxes instanceof Map)) return
       const res = fitCaptionPack(
         pack, cardEntries, cardFormat,
         { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target },
-        size, captionPlan,
+        size, captionPlan, markedCodes,
       )
       if (!res.ok) setNamesFitFailKey(checkKey)
-    }).catch(() => {})
-    return () => { live = false }
-  }, [print, overCap, captionPlan, namesCheckKey, packFor, cardFormat, hasTitle, size, cardEntries, hasFilter, cardGoal?.target])
+    }).catch((err: unknown) => {
+      if (live && (err as Error)?.name !== 'AbortError') setNamesFitFailKey(checkKey)
+    })
+    return () => {
+      live = false
+      ctl.abort()
+      life.current?.signal.removeEventListener('abort', onLifeAbort)
+    }
+  }, [print, overCap, captionPlan, namesCheckKey, packFor, cardFormat, hasTitle, size, cardEntries, hasFilter, cardGoal?.target, markedCodes])
 
   // The image: re-rendered (debounced) when the format, name, theme or the latest lifer switch changes. `current` is the newest render;
   // a render superseded before it starts rejects with an AbortError. In print mode it is the poster's preview (the
@@ -242,7 +279,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       const t = setTimeout(resolve, delay)
       cancel = () => { clearTimeout(t); reject(abortError('superseded')) }
     })
-      .then(() => packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames))
+      .then(() => packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null))
       .then((pack) => renderShareImage({
         format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
         theme, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, strings: t, nameOf: displayName, signal: life.current?.signal,
@@ -274,7 +311,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       },
     )
     return () => { live = false; cancel() }
-  }, [key, print, size, cardFormat, trimmed, theme, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames])
+  }, [key, print, size, cardFormat, trimmed, theme, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -379,7 +416,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     focusNext.current = 'cancel'
     try {
       const mod = await (posterModule.current ?? loadPoster())
-      const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size, countSize, effectiveShowNames)
+      const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null)
       if (ctl.signal.aborted) return
       const p = await mod.makePoster(
         { size, landscape, showNames: effectiveShowNames, entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, theme, strings: t, nameOf: displayName, signal: ctl.signal },

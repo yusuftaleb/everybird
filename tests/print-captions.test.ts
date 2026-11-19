@@ -8,6 +8,7 @@ import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 import { planCaptions, verifyAndPlaceCaptions, wrapCaption } from '@/lib/share/captions'
 import * as image from '@/lib/share/image'
+import { makePoster, type EncoderPort, type PosterDeps } from '@/lib/share/poster'
 import { CAPTION_CAPS, captionMinPx, printScale } from '@/lib/share/print'
 import { installStubs } from './fixtures/share-image-harness'
 
@@ -184,5 +185,128 @@ describe('print captions', () => {
     expect(drawnA.length).toBeGreaterThan(0)
     expect(drawnB.length).toBeGreaterThan(0)
     expect(drawnA).toEqual(drawnB)
+  })
+
+  it('clears lifer rings on ringed tiles and rejects neighbor ring overlap', async () => {
+    installStubs()
+    const { species, entries } = makeSpeciesAndEntries(2, (i) => `Ringed Bird ${i}`)
+    const pack: image.ImagePack = {
+      W: 400,
+      H: 500,
+      boxes: new Map([
+        ['bird0', [60, 120, 60, 60]],
+        ['bird1', [260, 320, 60, 60]],
+      ]),
+    }
+    image.clearStickerCache()
+    const card = await image.prepareCard({
+      format: 'print',
+      printSize: 'A4',
+      showNames: true,
+      markNewest: true,
+      markFirst: true,
+      entries,
+      species,
+      pack,
+      theme: 'light',
+      strings: en.ui,
+    })
+    expect(card.captions).toHaveLength(2)
+    for (let i = 0; i < card.tiles.length; i++) {
+      const tile = card.tiles[i]
+      const cap = card.captions![i]
+      expect(cap.y).toBeGreaterThanOrEqual(tile.y + tile.h + 8 - 1e-6)
+    }
+
+    const plan = planCaptions(entries, species, 'A4', 952, undefined, undefined, new Set(['bird1']))
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) return
+    const ringOverlap = verifyAndPlaceCaptions(
+      [
+        { code: 'bird0', x: 100, y: 100, w: 60, h: 60 },
+        { code: 'bird1', x: 100, y: 190, w: 60, h: 60, marked: true },
+      ],
+      { x: 64, y: 64, w: 952, h: 1300 },
+      { cx: 540, cy: 700 },
+      { num: [-10, -10, 10, 10], label: [-10, 10, 10, 20], pad: 2 },
+      plan,
+    )
+    expect(ringOverlap).toEqual({ ok: false, reason: 'fit' })
+  })
+
+  it('falls back to uncaptioned fit in prepareCard when provided pack fails caption verification', async () => {
+    installStubs()
+    const { species, entries } = makeSpeciesAndEntries(2, (i) => `Tight Bird ${i}`)
+    const overlappingPack: image.ImagePack = {
+      W: 400,
+      H: 500,
+      boxes: new Map([
+        ['bird0', [100, 100, 60, 60]],
+        ['bird1', [100, 165, 60, 60]],
+      ]),
+    }
+    image.clearStickerCache()
+    const card = await image.prepareCard({
+      format: 'print',
+      printSize: 'A4',
+      showNames: true,
+      entries,
+      species,
+      pack: overlappingPack,
+      theme: 'light',
+      strings: en.ui,
+    })
+    expect(card.captions).toBeUndefined()
+  })
+
+  it('makePoster paints captions across strips identically to prepareCard', async () => {
+    const logs = installStubs()
+    ;(document as unknown as { fonts: { ready: Promise<void> } }).fonts.ready = Promise.resolve()
+    const { species, entries } = makeSpeciesAndEntries(2, (i) => `Poster Bird ${i}`)
+    const pack: image.ImagePack = {
+      W: 400,
+      H: 500,
+      boxes: new Map([
+        ['bird0', [60, 120, 60, 60]],
+        ['bird1', [260, 320, 60, 60]],
+      ]),
+    }
+    const stripCanvases: object[] = []
+    const encoder: EncoderPort = {
+      begin: () => {},
+      strip: async () => {},
+      end: async () => 123,
+      file: async (kind) => new Blob([kind]),
+      dispose: () => {},
+    }
+    const deps: Partial<PosterDeps> = {
+      rows: 200,
+      strip: (w, rows) => {
+        const c = document.createElement('canvas')
+        c.width = w
+        c.height = rows
+        stripCanvases.push(c as unknown as object)
+        const ctx = c.getContext('2d')!
+        return { ctx, read: () => new Uint8ClampedArray(w * rows * 4) }
+      },
+      encoder: () => encoder,
+      stickers: {
+        get: async () => null,
+        release: () => {},
+        stats: () => ({ soft: 0, missing: 0 }),
+        dispose: () => {},
+      },
+      frame: async () => {},
+    }
+    image.clearStickerCache()
+    const poster = await makePoster(
+      { size: 'A4', showNames: true, entries, species, pack, theme: 'light', strings: en.ui },
+      () => {},
+      deps,
+    )
+    expect(poster.bytes).toBe(123)
+    const drawnTexts = stripCanvases.flatMap((c) => (logs.get(c) ?? []).filter((l) => l.includes('Poster Bird')))
+    expect(drawnTexts.some((l) => l.includes('Poster Bird 0'))).toBe(true)
+    expect(drawnTexts.some((l) => l.includes('Poster Bird 1'))).toBe(true)
   })
 })

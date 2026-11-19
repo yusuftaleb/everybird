@@ -956,4 +956,16 @@ describe('the orientation switch', () => {
     expect(sw.disabled).toBe(true)
     expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Species names can’t fit on A2 without clipping. Choose a larger paper size or filter your list.')
   })
+
+  it('disables Show species names when caption pack check rejects', async () => {
+    vi.mocked(image.packForImage).mockImplementation(async (_entries, _species, spec) => {
+      if (spec.captionBoxes) throw new Error('packBest: does not fit')
+      return { W: 100, H: 100, boxes: new Map() }
+    })
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
+    await waitFor(() => expect(sw.disabled).toBe(true))
+    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Species names can’t fit on A2 without clipping. Choose a larger paper size or filter your list.')
+  })
 })

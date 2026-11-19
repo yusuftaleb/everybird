@@ -34,7 +34,7 @@ import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { printStickerUrl, stickerUrl } from '@/lib/sticker-url'
 import { fmt } from '@/i18n/core'
 import { formatMonth } from '@/i18n/format'
-import { PRINT_DESIGN_W, printDesign, printPackH, type PrintSize } from '@/lib/share/print'
+import { PRINT_DESIGN_W, captionMinPx, printDesign, printPackH, type PrintSize } from '@/lib/share/print'
 import { defaultCaptionMeasure, planCaptions, verifyAndPlaceCaptions, type CaptionBox, type CaptionPlan, type PlacedTile, type TextMeasurer } from '@/lib/share/captions'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
 import type { Box } from '@/lib/layout/pack'
@@ -760,6 +760,7 @@ export function fitCaptionPack(
   content: CardContent,
   printSize: PrintSize,
   captionPlan: Extract<CaptionPlan, { ok: true }>,
+  markedCodes?: Set<string>,
 ): { fit: PackFit; placed: PlacedTile[]; captions?: CaptionBox[]; ok: boolean } {
   const L = cardLayout(format, content, printDesign(printSize, format === 'printLandscape'))
   const area = L.collage
@@ -781,10 +782,14 @@ export function fitCaptionPack(
     if (!b) continue
     const [w, h] = [b[2] * fit.s, b[3] * fit.s]
     const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
-    placed.push({ code: e.code, x, y, w, h })
+    placed.push({ code: e.code, x, y, w, h, ...(markedCodes?.has(e.code) ? { marked: true } : {}) })
   }
   const verified = verifyAndPlaceCaptions(placed, area, { cx: fit.cx, cy: fit.cy }, scaleHole(L.count.hole, Math.max(1, fit.grow)), captionPlan)
   return verified.ok ? { fit, placed, captions: verified.captions, ok: true } : { fit, placed, ok: false }
+}
+
+export function ensureCaptionFont(px: number, sample: string): Promise<void> {
+  return fontsReady([cardFonts().filter(px)], sample)
 }
 
 /** The card without its fonts and footer placement: layout, pack, fit, tiles, text. `scale`: device px per design unit. */
@@ -809,11 +814,21 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize }
   const printSize = opts.printSize ?? 'A2'
   const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
-  const captionPlan = print && opts.showNames
-    ? planCaptions(shown, species, printSize, L.collage.w, opts.nameOf, captionMeasurer())
-    : undefined
+  const markedCodes = new Set<string>()
+  if (markNewestCode) markedCodes.add(markNewestCode)
+  if (markFirstCode) markedCodes.add(markFirstCode)
+  let captionPlan: CaptionPlan | undefined
+  if (print && opts.showNames) {
+    const sample = shown.map((e) => {
+      const r = species.byCode.get(e.code)
+      return r ? (opts.nameOf?.(r) ?? r.com) : ''
+    }).join('')
+    await ensureCaptionFont(captionMinPx(printSize), sample)
+    if (signal?.aborted) throw abortError()
+    captionPlan = planCaptions(shown, species, printSize, L.collage.w, opts.nameOf, captionMeasurer(), markedCodes)
+  }
   // Packed for the format's own frame (the print: at its shape's printPackH, one pack for every A size, as imagePackSpec).
-  const pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined), signal))
+  let pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined), signal))
   if (signal?.aborted) throw abortError()
 
   // A tile's sticker: the share images' 128/384 by its size; the print's by its device px (1024 with the 384 fallback).
@@ -824,8 +839,12 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
 
   // The pack on the collage area, its centre (the count) on the area's centre.
   const area = L.collage
-  const capFit = captionPlan?.ok ? fitCaptionPack(pack, shown, format, content, printSize, captionPlan) : undefined
-  const fit = capFit ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format])
+  const capFit = captionPlan?.ok ? fitCaptionPack(pack, shown, format, content, printSize, captionPlan, markedCodes) : undefined
+  if (capFit && !capFit.ok && !opts.pack) {
+    pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize), signal)
+    if (signal?.aborted) throw abortError()
+  }
+  const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format])
   const captions = capFit?.ok ? capFit.captions : undefined
   const tiles: Tile[] = shown.flatMap((e) => {
     const b = pack.boxes.get(e.code)

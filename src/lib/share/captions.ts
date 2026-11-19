@@ -7,6 +7,8 @@ import { CAPTION_CAPS, captionMinPx, type PrintSize } from './print'
 export const CAPTION_LINE_HEIGHT = 1.2
 export const CAPTION_GAP_RATIO = 0.35
 export const CAPTION_PAD_X = 2
+export const RING_PAD = 6.5
+export const RING_GAP = 8
 
 export type TextMeasurer = (px: number, text: string) => number
 
@@ -32,7 +34,7 @@ export type CaptionFitResult =
   | { ok: true; captions: CaptionBox[]; fontPx: number }
   | { ok: false; reason: 'cap' | 'fit' }
 
-export type PlacedTile = { code: string; x: number; y: number; w: number; h: number }
+export type PlacedTile = { code: string; x: number; y: number; w: number; h: number; marked?: boolean }
 
 export function defaultCaptionMeasure(px: number, text: string): number {
   return text.length * 0.56 * px
@@ -80,6 +82,7 @@ export function planCaptions(
   collageW: number,
   nameOf?: (row: SpeciesRow) => string,
   measure: TextMeasurer = defaultCaptionMeasure,
+  markedCodes?: Set<string>,
 ): CaptionPlan {
   if (entries.length > CAPTION_CAPS[printSize]) return { ok: false, reason: 'cap' }
   const fontPx = captionMinPx(printSize)
@@ -96,9 +99,10 @@ export function planCaptions(
     const lines = wrapCaption(label, maxLineW, m)
     if (!lines) return { ok: false, reason: 'fit' }
     const textW = Math.max(...lines.map(m))
+    const tileGap = markedCodes?.has(e.code) ? Math.max(gap, RING_GAP) : gap
     byCode.set(e.code, {
       w: textW + 2 * CAPTION_PAD_X,
-      h: gap + lines.length * lineH,
+      h: tileGap + lines.length * lineH,
       lines,
     })
   }
@@ -122,7 +126,8 @@ export function verifyAndPlaceCaptions(
     if (!p) continue
     const cx = t.x + t.w / 2
     const x = cx - p.w / 2
-    const y = t.y + t.h + plan.gap
+    const tileGap = t.marked ? Math.max(plan.gap, RING_GAP) : plan.gap
+    const y = t.y + t.h + tileGap
     const h = p.lines.length * plan.lineH
     const x1 = x + p.w
     const y1 = y + h
@@ -134,7 +139,8 @@ export function verifyAndPlaceCaptions(
       return { ok: false, reason: 'fit' }
     }
     for (const o of placed) {
-      if (rectsOverlap(x, y, x1, y1, o.x, o.y, o.x + o.w, o.y + o.h)) {
+      const rPad = o.marked ? RING_PAD : 0
+      if (rectsOverlap(x, y, x1, y1, o.x - rPad, o.y - rPad, o.x + o.w + rPad, o.y + o.h + rPad)) {
         return { ok: false, reason: 'fit' }
       }
     }
