@@ -49,10 +49,10 @@ function makeXlsx(opts: {
 }
 
 /** A species' country and province keys as the Places filter sees them (the store projects stored places first). */
-function placeKeysOf(saved: Saved) {
+function placeKeysOf(saved: Saved, kinds = /^[cs]:/) {
   const records = recordsOf(saved, regions)
   const seen = buildSeen(records, saved.edits, saved.rules, buildList(records, saved.edits, saved.rules))
-  return (code: string) => [...(seen.byCode.get(code)?.keys ?? [])].filter((k) => /^[cs]:/.test(k)).sort()
+  return (code: string) => [...(seen.byCode.get(code)?.keys ?? [])].filter((k) => kinds.test(k)).sort()
 }
 
 describe('spreadsheet import', () => {
@@ -147,6 +147,12 @@ describe('spreadsheet import', () => {
     const keys = placeKeysOf(replaceSource(emptySaved(), 'sheet', res))
     expect(keys('mallar3')).toEqual(['c:CA', 's:CA-BC'])
     expect(keys('rocpig')).toEqual(['c:US', 's:US-GA'])
+  })
+
+  it('puts Puerto Rico entered as a US state in the Caribbean and Latin America', () => {
+    const res = parseSheetText('Common Name,Country,State\nMallard,United States,Puerto Rico\n', taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(placeKeysOf(replaceSource(emptySaved(), 'sheet', res), /^[sr]:/)('mallar3')).toEqual(['r:caribbean', 'r:latam', 's:US-PR'])
   })
 
   it('parses a pasted plain list, single plain cell, and quoted TSV with tabs/newlines', () => {

@@ -118,6 +118,11 @@ describe('REGION_PRESETS and regionsOfPlace', () => {
     expect(regionsOfPlace({ country: 'US', sub1: 'US-GU' })).toEqual(['micronesia'])
     expect(regionsOfPlace({ country: 'US', sub1: 'US-MP' })).toEqual(['micronesia'])
     expect(regionsOfPlace({ country: 'US', sub1: 'US-UM' })).toEqual(['micronesia'])
+    expect(regionsOfPlace({ country: 'US', sub1: 'US-PR' })).toEqual(['latam', 'caribbean'])
+    expect(regionsOfPlace({ country: 'US', sub1: 'US-VI' })).toEqual(['latam', 'caribbean'])
+    const pr = [rec('sp-br', { date: '2020-02-01', place: { country: 'US', sub1: 'US-PR' }, seen: ['2020-02-01|US-PR'] })]
+    const keys = buildSeen(pr, EMPTY_EDITS, DEFAULT_RULES, buildList(pr, EMPTY_EDITS, DEFAULT_RULES)).byCode.get('sp-br')?.keys
+    expect(keys?.has('r:caribbean') && keys.has('r:latam') && !keys.has('r:northern-america')).toBe(true)
     for (const [sub1, cont] of Object.entries(SUB1_CONTINENT)) {
       const country = sub1.slice(0, 2)
       const regs = regionsOfPlace({ country, sub1 })
