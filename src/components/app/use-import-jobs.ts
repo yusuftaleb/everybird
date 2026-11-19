@@ -21,6 +21,7 @@ export type FileError =
   | 'unknown-file'
   | 'damaged'
   | 'unsupported-sheet'
+  | 'xlsx'
   | 'data'
   | 'obsorg-unknown'
   | 'obsorg-no-birds'
@@ -124,6 +125,7 @@ export function fileMessage(error: FileError, t: Ui): string {
     case 'unknown-file': return e.unknownFile
     case 'damaged': return e.damaged
     case 'unsupported-sheet': return s.unsupported
+    case 'xlsx': return o.xlsx
     case 'data': return o.data
     case 'obsorg-unknown': return o.unknown
     case 'obsorg-no-birds': return o.noBirds
@@ -196,6 +198,11 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
       }
       if (kind === 'unsupported-sheet') {
         set({ ...IDLE_FILE, error: 'unsupported-sheet' })
+        return
+      }
+      // eBird and observation.org export CSV: an Excel file given to their rows is not read as a spreadsheet.
+      if (kind === 'xlsx' && (via === 'ebird' || via === 'obsorg')) {
+        set({ ...IDLE_FILE, error: 'xlsx' })
         return
       }
       if (kind === 'unknown' && via === 'sheet') {

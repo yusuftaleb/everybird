@@ -3,7 +3,8 @@ import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, renderHook, screen, within } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useImportJobs } from '@/components/app/use-import-jobs'
+import { fileMessage, useImportJobs } from '@/components/app/use-import-jobs'
+import { en } from '@/i18n/messages/en'
 import { MatchReport } from '@/components/import/MatchReport'
 import { SheetDrop } from '@/components/import/SheetDrop'
 import * as parseClient from '@/lib/import/parse-client'
@@ -144,6 +145,24 @@ describe('SheetDrop and review flow', () => {
       />,
     )
     expect(screen.getByTestId('sheet-review')).toHaveTextContent('5 species matched · 20 rows skipped: no date')
+  })
+
+  it('tells the birder to export CSV when an Excel file is given to the eBird or observation.org row', async () => {
+    mockWorker()
+    const onImport = vi.fn()
+    const { result } = renderHook(() => useImportJobs(onImport))
+    const xlsx = () => new File(['PK\u0003\u0004'], 'MyEBirdData.xlsx')
+    await act(async () => {
+      await result.current.readEbird(xlsx())
+    })
+    expect(result.current.ebird.error).toBe('xlsx')
+    expect(fileMessage('xlsx', en.ui)).toBe('This is an Excel file. Everybird reads CSV files: export as CSV and add that file instead.')
+    await act(async () => {
+      await result.current.readObsOrg(xlsx())
+    })
+    expect(result.current.obsorg.error).toBe('xlsx')
+    expect(parseClient.parseInWorker).not.toHaveBeenCalled()
+    expect(onImport).not.toHaveBeenCalled()
   })
 
   it('rejects unsupported spreadsheet files and leaves the list unchanged', async () => {
