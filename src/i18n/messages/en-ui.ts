@@ -149,6 +149,10 @@ export const EN_UI = {
       sci: 'Scientific',
       sciShort: 'Sci.',
       sciSr: 'names',
+      markNewest: 'Mark newest bird',
+      markFirst: 'Mark first bird',
+      newestSr: ', newest bird',
+      firstSr: ', first bird',
     },
     /** The dock search (DockSearch). */
     search: {

@@ -26,6 +26,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { countryName, regionsIn } from '@/lib/i18n-places'
 import { track, type PosterSizeWire } from '@/lib/analytics'
 import { currentTheme, type Theme } from '@/lib/theme'
+import { useLiferMarks } from '@/lib/lifer-marks'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
 import type { Poster } from '@/lib/share/poster'
@@ -119,6 +120,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   }, [filter, species, regions, lang, t, names])
   const hasLatest = useMemo(() => shown.some((e) => e.date), [shown])
   const withLatest = hasLatest && showLatest
+  const liferMarks = useLiferMarks()
 
   // One pack per format and name-or-not while the dialog is open (the view can't change underneath it; a
   // name takes a line off the collage, so each gets its own pack; the latest lifer switch never changes the pack), and for the
@@ -161,7 +163,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const shownSize = useRef<[number, number]>([0, 0])
   const first = useRef(true)
   const trimmed = name.trim()
-  const key = `${print ? `print|${size}|${landscape}` : shape}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}`
+  const key = `${print ? `print|${size}|${landscape}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   // What the render depends on: in print mode not the share format, so switching it there never starts a needless render.
@@ -178,7 +180,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       .then(() => packFor(cardFormat, !!trimmed, size))
       .then((pack) => renderShareImage({
         format: cardFormat, ...(print ? { printSize: size } : {}), entries: shown, species, filterLabel: label, name: trimmed || undefined,
-        theme, pack, latest: withLatest, strings: t, nameOf: displayName, signal: life.current?.signal,
+        theme, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, strings: t, nameOf: displayName, signal: life.current?.signal,
       }))
     current.current = job
     job.then(
@@ -207,7 +209,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       },
     )
     return () => { live = false; cancel() }
-  }, [key, print, size, cardFormat, trimmed, theme, withLatest, packFor, shown, species, label, t])
+  }, [key, print, size, cardFormat, trimmed, theme, withLatest, liferMarks.newest, liferMarks.first, packFor, shown, species, label, t])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -230,7 +232,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
 
   // The poster: one make at a time, for `posterKey`. A new key, leaving print mode or closing the dialog cancels the
   // make and drops the poster (its encoder ends with it).
-  const posterKey = `print|${size}|${landscape}|${trimmed}|${theme}|${withLatest}|${fk}`
+  const posterKey = `print|${size}|${landscape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${fk}`
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   const makeCtl = useRef<AbortController | null>(null)
@@ -291,7 +293,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size)
       if (ctl.signal.aborted) return
       const p = await mod.makePoster(
-        { size, landscape, entries: shown, species, filterLabel: label, name: trimmed || undefined, pack, latest: withLatest, theme, strings: t, nameOf: displayName, signal: ctl.signal },
+        { size, landscape, entries: shown, species, filterLabel: label, name: trimmed || undefined, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, theme, strings: t, nameOf: displayName, signal: ctl.signal },
         (done, total) => { if (!ctl.signal.aborted) setMaking({ key: forKey, done, total }) },
       )
       if (ctl.signal.aborted) { p.dispose(); return }

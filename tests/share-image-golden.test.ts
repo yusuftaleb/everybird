@@ -72,3 +72,52 @@ describe('the footer is measured once the stickers and the fonts have both settl
     await expect(image.prepareCard({ format: 'post', entries, species, pack, now: NOW, theme: 'light', strings: en.ui })).rejects.toThrow('Canvas is not available')
   })
 })
+
+describe('marked lifer rings on share and print images', () => {
+  it('draws Accent and Ink rings around the newest and first lifers on share and print cards without changing unmarked cards', async () => {
+    for (const [format, theme, accent, ink] of [
+      ['story', 'light', '#92140c', '#1e1e24'],
+      ['story', 'dark', '#f06a5f', '#ffffff'],
+      ['print', 'light', '#92140c', '#1e1e24'],
+    ] as const) {
+      const logs = installStubs()
+      const base = await renderLog(image, logs, { format, latest: true, theme } as never)
+      const marked = await renderLog(image, logs, { format, latest: true, theme, markNewest: true, markFirst: true } as never)
+      const added = marked.filter((l, i) => base[i] !== l)
+      expect(added.length).toBeGreaterThan(0)
+      expect(marked).toContain(`strokeStyle = "${accent}"`)
+      expect(marked).toContain(`strokeStyle = "${ink}"`)
+      expect(marked).toContain('lineWidth = 3')
+      expect(marked.filter((l) => l.startsWith('roundRect('))).toHaveLength(2)
+    }
+  })
+
+  it('marks the same newest bird that appears in the share card latest lifer row', async () => {
+    installStubs()
+    image.clearStickerCache()
+    const tiedEntries = [
+      { code: 'bird0', date: '2025-05', heard: false, dead: false, media: false, sources: ['ebird'] },
+      { code: 'bird13', date: '2025-05', heard: false, dead: false, media: false, sources: ['ebird'] },
+    ] satisfies Parameters<typeof image.prepareCard>[0]['entries']
+    const card = await image.prepareCard({ format: 'post', entries: tiedEntries, species, pack, now: NOW, theme: 'light', strings: en.ui, markNewest: true })
+    expect(card.latest?.name).toBe('Synthetic Bird 13')
+    const markedTiles = card.tiles.filter((t) => t.mark)
+    expect(markedTiles).toHaveLength(1)
+    expect(markedTiles[0].mark).toBe('newest')
+  })
+
+  it('paintTiles draws the ring overhang when a marked tile is within 7 units outside a strip range', () => {
+    const logs = installStubs()
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')!
+    const tiles: image.Tile[] = [
+      { x: 10, y: 103, w: 40, h: 40, url: null, mark: 'newest' },
+      { x: 10, y: 108, w: 40, h: 40, url: null, mark: 'first' },
+    ]
+    const imgs = new Map<string, CanvasImageSource | null>()
+    image.paintTiles(ctx, tiles, imgs, '#857f74', { y0: 0, y1: 100 })
+    const log = logs.get(canvas)!
+    expect(log.filter((l) => l.startsWith('roundRect('))).toHaveLength(1)
+    expect(log).toContain('roundRect(5, 98, 50, 50, 10)')
+  })
+})

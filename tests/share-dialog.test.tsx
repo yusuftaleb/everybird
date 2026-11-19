@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ShareDialog from '@/components/share/ShareDialog'
 import * as image from '@/lib/share/image'
+import { setLiferMark } from '@/lib/lifer-marks'
 import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
@@ -797,5 +798,21 @@ describe('the orientation switch', () => {
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
     expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe('everybird-24x36in-landscape.png')
     expect(vi.mocked(track)).toHaveBeenCalledWith('poster_made', { size: 'us24x36-l' })
+  })
+
+  it('forwards remembered lifer marks to renderShareImage and makePoster', async () => {
+    setLiferMark('newest', true)
+    setLiferMark('first', true)
+    try {
+      render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+      await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ markNewest: true, markFirst: true }))
+      fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
+      await waitFor(() => expect(makes).toHaveLength(1))
+      expect(makes[0].opts).toMatchObject({ markNewest: true, markFirst: true })
+    } finally {
+      setLiferMark('newest', false)
+      setLiferMark('first', false)
+    }
   })
 })

@@ -120,6 +120,10 @@ export const nl: Messages = {
         sci: 'Latijn',
         sciShort: 'Wet.',
         sciSr: '(namen)',
+        markNewest: 'Nieuwste vogel markeren',
+        markFirst: 'Eerste vogel markeren',
+        newestSr: ', nieuwste vogel',
+        firstSr: ', eerste vogel',
       },
       search: {
         find: 'Zoek een vogel',
