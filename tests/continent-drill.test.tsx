@@ -178,7 +178,7 @@ describe('where the panel opens (startLevel)', () => {
 describe('search from the continent level', () => {
   it('finds any country: matches replace the continents, a tick and a drill work, clearing returns', () => {
     render(<Harness />)
-    const field = screen.getByRole('searchbox', { name: 'Find a country' })
+    const field = screen.getByRole('searchbox', { name: 'Find a country or region' })
     fireEvent.change(field, { target: { value: 'ken' } })
     expect(screen.getByRole('list', { name: 'Countries' })).toBeInTheDocument()
     expect(screen.queryByTestId('continent-AF')).toBeNull()
@@ -192,7 +192,7 @@ describe('search from the continent level', () => {
 
   it('a found country drills to its provinces under "All continents / North America / Canada"', () => {
     render(<Harness />)
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Find a country' }), { target: { value: 'can' } })
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Find a country or region' }), { target: { value: 'can' } })
     fireEvent.click(screen.getByTestId('drill-c:CA'))
     expect(screen.getByTestId('places-path')).toHaveTextContent('All continents/North America/Canada')
   })

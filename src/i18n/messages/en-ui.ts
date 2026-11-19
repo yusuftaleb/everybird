@@ -213,6 +213,7 @@ export const EN_UI = {
     /** The count-first heads of the Places and Status lists ("20 countries"), and " · 7 checked" after them. */
     countHead: {
       continent: { one: '{n} continent', other: '{n} continents' },
+      region: { one: '{n} region', other: '{n} regions' },
       country: { one: '{n} country', other: '{n} countries' },
       province: { one: '{n} state or province', other: '{n} states and provinces' },
       county: { one: '{n} county', other: '{n} counties' },
@@ -250,9 +251,9 @@ export const EN_UI = {
   /** The Places panel (PlacesList, PlacesDrill, places-shared). Country names come from the data
    *  (src/lib/i18n-places.ts); province and county names are local names. */
   places: {
-    head: { continent: 'Continents', country: 'Countries', province: 'States and provinces', county: 'Counties' },
-    find: { continent: 'Find a country', country: 'Find a country', province: 'Find a state or province', county: 'Find a county' },
-    noMatch: { continent: 'No country matches.', country: 'No country matches.', province: 'No state or province matches.', county: 'No county matches.' },
+    head: { continent: 'Continents', region: 'Regions', country: 'Countries', province: 'States and provinces', county: 'Counties' },
+    find: { continent: 'Find a country or region', region: 'Find a region', country: 'Find a country', province: 'Find a state or province', county: 'Find a county' },
+    noMatch: { continent: 'No place matches.', region: 'No region matches.', country: 'No country matches.', province: 'No state or province matches.', county: 'No county matches.' },
     allCountries: 'All countries',
     /** The breadcrumb's first step when the top level lists the continents. */
     allContinents: 'All continents',
@@ -279,6 +280,32 @@ export const EN_UI = {
     andMore: '{first} and {n} more',
     /** Each continent's name by id (`CONTINENTS` in src/lib/places/continents.ts): the Places top level, its breadcrumb and the share image. */
     continents: { AF: 'Africa', AS: 'Asia', EU: 'Europe', NA: 'North America', SA: 'South America', OC: 'Oceania', AN: 'Antarctica' },
+    regions: {
+      latam: 'Latin America & Caribbean',
+      me: 'Middle East',
+      'northern-africa': 'Northern Africa',
+      'eastern-africa': 'Eastern Africa',
+      'middle-africa': 'Middle Africa',
+      'southern-africa': 'Southern Africa',
+      'western-africa': 'Western Africa',
+      'northern-america': 'Northern America',
+      'central-america': 'Central America',
+      'south-america': 'South America',
+      caribbean: 'Caribbean',
+      'central-asia': 'Central Asia',
+      'eastern-asia': 'Eastern Asia',
+      'south-eastern-asia': 'South-eastern Asia',
+      'southern-asia': 'Southern Asia',
+      'western-asia': 'Western Asia',
+      'eastern-europe': 'Eastern Europe',
+      'northern-europe': 'Northern Europe',
+      'southern-europe': 'Southern Europe',
+      'western-europe': 'Western Europe',
+      'australia-nz': 'Australia & New Zealand',
+      melanesia: 'Melanesia',
+      micronesia: 'Micronesia',
+      polynesia: 'Polynesia',
+    },
   },
   /** Global IUCN Red List categories (the codes LC … DD stay as they are): their full names, the share image's label for
    *  Vulnerable + Endangered + Critically Endangered, and the card badge's spoken suffix. */

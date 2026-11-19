@@ -26,7 +26,13 @@ export function makeWhere(keys: readonly string[] | undefined, from?: string, to
 
 /** The filter's places and range as a Where; undefined when it has neither (nothing to find a sighting in). */
 export function whereOf(f: Filter): Where | undefined {
-  const keys = [...(f.continents ?? []).map((n) => `n:${n}`), ...(f.countries ?? []).map((c) => `c:${c}`), ...(f.provinces ?? []).map((s) => `s:${s}`), ...(f.counties ?? []).map((k) => `k:${k}`)]
+  const keys = [
+    ...(f.continents ?? []).map((n) => `n:${n}`),
+    ...(f.regions ?? []).map((r) => `r:${r}`),
+    ...(f.countries ?? []).map((c) => `c:${c}`),
+    ...(f.provinces ?? []).map((s) => `s:${s}`),
+    ...(f.counties ?? []).map((k) => `k:${k}`),
+  ]
   if (!keys.length && !f.from && !f.to) return undefined
   return makeWhere(keys, f.from, f.to)
 }

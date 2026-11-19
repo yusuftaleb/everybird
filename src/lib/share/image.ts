@@ -41,7 +41,7 @@ import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_CAP_ACCENT, MONO_LINE, NUM
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
 import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
-import { continentNames, namesLabel, placesLabel, seenLabels, statusLabel } from '@/lib/list/filter-summary'
+import { continentNames, namesLabel, placesLabel, regionNames, seenLabels, statusLabel } from '@/lib/list/filter-summary'
 import type { Filter } from '@/lib/list/filters'
 import { rangeLabel } from '@/lib/list/timeline'
 import type { ListEntry } from '@/lib/list/model'
@@ -123,7 +123,7 @@ export function filterLabel(
   t: ShareStrings,
 ): string | undefined {
   // Places: "Africa + Canada", "Canada + Egypt", "Capital and 2 more" (continents first).
-  const place = ctx.regions ? placesLabel(f, ctx.regions, t) : namesLabel([...continentNames(f.continents, t), ...(f.countries ?? []).map((c) => ctx.countryName(c.slice(0, 2)))], t)
+  const place = ctx.regions ? placesLabel(f, ctx.regions, t) : namesLabel([...continentNames(f.continents, t), ...regionNames(f.regions, t), ...(f.countries ?? []).map((c) => ctx.countryName(c.slice(0, 2)))], t)
   const parts: string[] = []
   if (f.group) parts.push(ctx.groupName?.(f.group) ?? f.group)
   if (f.family) { const r = ctx.species.rows.find((x) => x.fam === f.family); parts.push(r ? (ctx.familyName?.(r) ?? r.famCom) || f.family : f.family) }

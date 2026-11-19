@@ -3,18 +3,20 @@ import { childKey, isWithin, keysOfPlace, parentKey, parsePlaceKey, placeName, p
 
 describe('place keys', () => {
   it('every place gives its keys at each level it has', () => {
-    expect(keysOfPlace({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' })).toEqual(['n:NA', 'c:CA', 's:CA-BC', 'k:CA-BC|Capital'])
-    expect(keysOfPlace({ country: 'CA', sub1: 'CA-BC' })).toEqual(['n:NA', 'c:CA', 's:CA-BC'])
-    expect(keysOfPlace({ country: 'KE', sub2: 'Some county' })).toEqual(['n:AF', 'c:KE']) // a county without a province counts at the country
+    expect(keysOfPlace({ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' })).toEqual(['n:NA', 'r:northern-america', 'c:CA', 's:CA-BC', 'k:CA-BC|Capital'])
+    expect(keysOfPlace({ country: 'CA', sub1: 'CA-BC' })).toEqual(['n:NA', 'r:northern-america', 'c:CA', 's:CA-BC'])
+    expect(keysOfPlace({ country: 'KE', sub2: 'Some county' })).toEqual(['n:AF', 'r:eastern-africa', 'c:KE'])
   })
 
-  it('parses the three levels and refuses anything else', () => {
+  it('parses the levels and refuses anything else', () => {
     expect(parsePlaceKey('c:CA')).toEqual({ level: 'country', country: 'CA' })
     expect(parsePlaceKey('n:AF')).toEqual({ level: 'continent', country: '', continent: 'AF' })
+    expect(parsePlaceKey('r:latam')).toEqual({ level: 'region', country: '', region: 'latam' })
+    expect(parsePlaceKey('r:me')).toEqual({ level: 'region', country: '', region: 'me' })
     expect(parsePlaceKey('c:FR@SA')).toEqual({ level: 'country', country: 'FR', continent: 'SA' })
     expect(parsePlaceKey('k:US-OR|Washington')).toEqual({ level: 'county', country: 'US', sub1: 'US-OR', county: 'Washington' })
     expect(parsePlaceKey('s:CA-share0')).toEqual({ level: 'province', country: 'CA', sub1: 'CA-share0' })
-    for (const bad of ['', 'c:ca', 's:CA', 'k:CA-BC|', 'k:CA|X', 'x:CA', 'n:XX', 'n:af', 'c:FR@XX', 'c:FR@']) expect(parsePlaceKey(bad)).toBeUndefined()
+    for (const bad of ['', 'c:ca', 's:CA', 'k:CA-BC|', 'k:CA|X', 'x:CA', 'n:XX', 'n:af', 'r:nope', 'c:FR@XX', 'c:FR@']) expect(parsePlaceKey(bad)).toBeUndefined()
   })
 
   it('parents and children; same-named counties in two states stay apart', () => {
@@ -22,6 +24,9 @@ describe('place keys', () => {
     expect(parentKey('s:US-OR')).toBe('c:US')
     expect(parentKey('c:US')).toBe('n:NA')
     expect(parentKey('n:NA')).toBeUndefined()
+    expect(parentKey('r:latam')).toBeUndefined()
+    expect(isWithin('c:BR', 'r:latam')).toBe(false)
+    expect(isWithin('r:latam', 'n:SA')).toBe(false)
     expect(parentKey('c:ZZ')).toBeUndefined() // a country in no continent has no parent
     expect(isWithin('k:US-OR|Washington', 'c:US')).toBe(true)
     expect(isWithin('k:US-OR|Washington', 's:US-OR')).toBe(true)
@@ -55,6 +60,9 @@ describe('place keys', () => {
     expect(placeName('s:CA-XX', regions)).toBe('CA-XX')
     expect(placeName('k:CA-BC|Capital', regions)).toBe('Capital')
     expect(placeName('n:NA', regions)).toBe('North America')
+    expect(placeName('r:latam', regions)).toBe('Latin America & Caribbean')
+    expect(placeName('r:me', regions, undefined, { me: 'Oriente Medio' })).toBe('Oriente Medio')
+    expect(placeNameLong('r:latam', regions)).toBe('Latin America & Caribbean')
     expect(placeName('c:FR@SA', { countries: { FR: 'France' }, sub1: {} })).toBe('France (South America)')
     expect(placeName('c:FR', { countries: { FR: 'France' }, sub1: {} })).toBe('France')
     expect(placeNameLong('c:CA', regions)).toBe('Canada') // never with its continent
@@ -63,9 +71,9 @@ describe('place keys', () => {
   })
 
   it('overseas regions: French Guiana is South America, with its own France key', () => {
-    expect(keysOfPlace({ country: 'FR', sub1: 'FR-973' })).toEqual(['n:SA', 'c:FR@SA', 's:FR-973'])
-    expect(keysOfPlace({ country: 'FR', sub1: 'FR-IDF' })).toEqual(['n:EU', 'c:FR', 's:FR-IDF'])
-    expect(keysOfPlace({ country: 'FR' })).toEqual(['n:EU', 'c:FR'])
+    expect(keysOfPlace({ country: 'FR', sub1: 'FR-973' })).toEqual(['n:SA', 'r:latam', 'r:south-america', 'c:FR@SA', 's:FR-973'])
+    expect(keysOfPlace({ country: 'FR', sub1: 'FR-IDF' })).toEqual(['n:EU', 'r:western-europe', 'c:FR', 's:FR-IDF'])
+    expect(keysOfPlace({ country: 'FR' })).toEqual(['n:EU', 'r:western-europe', 'c:FR'])
     expect(parentKey('s:FR-973')).toBe('c:FR@SA')
     expect(parentKey('c:FR@SA')).toBe('n:SA')
     expect(parentKey('s:FR-IDF')).toBe('c:FR')

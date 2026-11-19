@@ -3,7 +3,7 @@ import type { Filter } from './filters'
 
 /** One kind's value as a comparable string; '' when the kind is off. Only for telling "changed to something" apart. */
 const SIGNATURES: Record<FilterKind, (f: Filter) => string> = {
-  place: (f) => [f.countries, f.provinces, f.counties].map((a) => (a ? [...a].sort().join(',') : '')).join('|').replace(/^\|*$/, ''),
+  place: (f) => [f.countries, f.provinces, f.counties, f.regions].map((a) => (a ? [...a].sort().join(',') : '')).join('|').replace(/^\|*$/, ''),
   continent: (f) => (f.continents ? [...f.continents].sort().join(',') : ''),
   time: (f) => (f.from || f.to ? `${f.from ?? ''}~${f.to ?? ''}` : f.year ?? ''),
   status: (f) => (f.statuses ? [...f.statuses].sort().join(',') : ''),

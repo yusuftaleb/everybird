@@ -4,6 +4,7 @@ import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import type { Ui } from '@/i18n/messages/en'
 import type { ContinentId } from '@/lib/places/continents'
+import type { RegionPresetId } from '@/lib/places/presets'
 import { THREATENED } from '@/lib/species/iucn'
 import type { StatusFilterCat } from '@/lib/species/status-filter'
 import type { Regions } from '@/lib/species/types'
@@ -34,13 +35,17 @@ export function continentNames(continents: readonly ContinentId[] | undefined, t
   return (continents ?? []).map((id) => t.places.continents[id])
 }
 
+export function regionNames(regions: readonly RegionPresetId[] | undefined, t: Pick<Ui, 'places'>): string[] {
+  return (regions ?? []).map((id) => t.places.regions[id])
+}
+
 /**
  * The share image's places at every level by their short names, worded as `countriesLabel`, continents first:
  * "Africa + Canada", "British Columbia", "Kenya + British Columbia", "Capital and 2 more" (keys in `filterPlaceKeys`
  * order); undefined for none.
  */
 export function placesLabel(f: Filter, regions: Names, t: Pick<Ui, 'places'>): string | undefined {
-  return namesLabel([...new Set(filterPlaceKeys(f).map((k) => placeName(k, regions, t.places.continents)))], t)
+  return namesLabel([...new Set(filterPlaceKeys(f).map((k) => placeName(k, regions, t.places.continents, t.places.regions)))], t)
 }
 
 /**
@@ -50,12 +55,12 @@ export function placesLabel(f: Filter, regions: Names, t: Pick<Ui, 'places'>): s
  * country names, src/lib/i18n-places.ts regionsIn) and `t`'s continents.
  */
 export function placesSpoken(f: Filter, regions: Names, t: Pick<Ui, 'places'>): string | undefined {
-  const keys = filterPlaceKeys(f).filter((k) => !k.startsWith('n:'))
-  const continents = continentNames(f.continents, t)
-  if (!keys.length && !continents.length) return undefined
+  const keys = filterPlaceKeys(f).filter((k) => !k.startsWith('n:') && !k.startsWith('r:'))
+  const top = [...continentNames(f.continents, t), ...regionNames(f.regions, t)]
+  if (!keys.length && !top.length) return undefined
   const sep = f.provinces?.length || f.counties?.length ? '; ' : ', '
-  const items = keys.length ? [keys.map((k) => placeNameLong(k, regions, t.places.continents)).join(sep)] : []
-  return [...(continents.length ? [continents.join(', ')] : []), ...items].join('; ')
+  const items = keys.length ? [keys.map((k) => placeNameLong(k, regions, t.places.continents, t.places.regions)).join(sep)] : []
+  return [...(top.length ? [top.join(', ')] : []), ...items].join('; ')
 }
 
 /** The Filters button's accessible description of the status filter: the full names in `STATUS_FILTER_CATS` order ("Vulnerable, Endangered", "Not evaluated"), in `t`'s language. */
@@ -163,7 +168,7 @@ export function placesUnplacedFor(saved: Pick<Saved, 'records' | 'notCountable'>
 }
 
 /** A panel section's head: the count first, then " · N checked" only when some are ("20 countries · 7 checked"). */
-export function countHead(n: number, kind: 'continent' | 'country' | 'province' | 'county' | 'status', checked: number, t: Ui): string {
+export function countHead(n: number, kind: 'continent' | 'region' | 'country' | 'province' | 'county' | 'status', checked: number, t: Ui): string {
   const head = plural(t.filters.countHead[kind], n, { n: formatInt(n, t.num) })
   return checked > 0 ? `${head} · ${fmt(t.filters.countHead.checked, { n: formatInt(checked, t.num) })}` : head
 }
