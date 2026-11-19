@@ -1,4 +1,4 @@
-import { zipSync } from 'fflate'
+import { Zip, ZipPassThrough } from 'fflate'
 import { filterPlaceKeys, seenBasis, type Filter } from '@/lib/list/filters'
 import { inRange } from '@/lib/list/in-range'
 import type { ListEntry } from '@/lib/list/model'
@@ -251,39 +251,58 @@ export async function makeBulkZip(opts: BulkZipOpts): Promise<{ blob: Blob; name
   check()
   const packFn = deps?.pack ?? packForImage
   const makePosterFn = deps?.makePoster ?? (await import('./poster')).makePoster
-  const files: Record<string, Uint8Array> = {}
+  // The archive is written as each poster is done: its bytes go straight into Blob parts (which the browser may keep off
+  // the JS heap) and are dropped, so finished posters are never held twice and nothing copies the whole archive at once.
+  const parts: Blob[] = []
+  let zipError: Error | null = null
+  const zip = new Zip((err, chunk) => {
+    if (err) zipError = err
+    else parts.push(new Blob([chunk as Uint8Array<ArrayBuffer>]))
+  })
   const total = groups.length
   const view = posterOpts.filterLabel?.trim() || (posterOpts.goal ? goalText(posterOpts.goal, posterOpts.strings) : '')
   let namesDropped = 0
-  for (let i = 0; i < total; i++) {
-    check()
-    const group = groups[i]
-    const spec = packSpec(group.entries, group)
-    const pack = await packFn(group.entries, species, spec, signal)
-    check()
-    let p: Poster | null = null
-    try {
-      p = await makePosterFn(
-        {
-          ...posterOpts,
-          entries: group.entries,
-          species,
-          pack,
-          filterLabel: [view, group.label].filter(Boolean).join(' · '),
-        },
-        () => {},
-      )
+  try {
+    for (let i = 0; i < total; i++) {
       check()
-      const blob = await p.file(kind)
+      const group = groups[i]
+      const spec = packSpec(group.entries, group)
+      const pack = await packFn(group.entries, species, spec, signal)
       check()
-      files[`${group.stem}.${kind}`] = new Uint8Array(await blob.arrayBuffer())
-      if (p.namesDropped) namesDropped++
-      onProgress?.(i + 1, total, group)
-    } finally {
-      p?.dispose()
+      let p: Poster | null = null
+      try {
+        p = await makePosterFn(
+          {
+            ...posterOpts,
+            entries: group.entries,
+            species,
+            pack,
+            filterLabel: [view, group.label].filter(Boolean).join(' · '),
+          },
+          () => {},
+        )
+        check()
+        const blob = await p.file(kind)
+        check()
+        const bytes = new Uint8Array(await blob.arrayBuffer())
+        check()
+        const file = new ZipPassThrough(`${group.stem}.${kind}`)
+        zip.add(file)
+        file.push(bytes, true)
+        if (zipError) throw zipError
+        if (p.namesDropped) namesDropped++
+        onProgress?.(i + 1, total, group)
+      } finally {
+        p?.dispose()
+      }
     }
+    check()
+    zip.end()
+    if (zipError) throw zipError
+  } catch (e) {
+    zip.terminate()
+    parts.length = 0
+    throw e
   }
-  check()
-  const zipped = zipSync(files, { level: 0 })
-  return { blob: new Blob([zipped as Uint8Array<ArrayBuffer>], { type: 'application/zip' }), namesDropped }
+  return { blob: new Blob(parts, { type: 'application/zip' }), namesDropped }
 }

@@ -1,5 +1,12 @@
 import { strFromU8, unzipSync } from 'fflate'
 import { describe, expect, it, vi } from 'vitest'
+
+// The ZIP is written as it goes (fflate's streaming Zip): building the whole archive in one zipSync call would hold
+// every finished poster twice, so it must never be called.
+vi.mock('fflate', async (orig) => ({
+  ...(await orig<typeof import('fflate')>()),
+  zipSync: () => { throw new Error('zipSync holds every poster twice') },
+}))
 import { buildSeen } from '@/lib/list/seen'
 import type { ListEntry, SourceRecord } from '@/lib/list/model'
 import { bulkGroups, bulkPackSpec, makeBulkZip, sanitizeGroupStem } from '@/lib/share/bulk'
@@ -292,6 +299,28 @@ describe('bulk export', () => {
     const plain = bulkPackSpec([entry('a')], opts).hole
     const goal = bulkPackSpec([entry('a')], { ...opts, target: 300 }).hole
     expect(goal.num[2] - goal.num[0]).toBeGreaterThan(plain.num[2] - plain.num[0])
+  })
+
+  it('makeBulkZip stops at a cancel: the poster in hand is disposed and no later group is made', async () => {
+    const species = buildSpeciesIndex([row('a', 1, 'O1', 'F1', 'Ostriches'), row('b', 2, 'O2', 'F2', 'Ducks'), row('c', 3, 'O3', 'F3', 'Falcons')])
+    const groups = bulkGroups('family', [entry('a'), entry('b'), entry('c')], { species, regions })
+    const ctl = new AbortController()
+    const disposed: string[] = []
+    const fakeMakePoster = vi.fn(async (opts: { filterLabel?: string }): Promise<Poster> => {
+      if (opts.filterLabel === 'Ducks') ctl.abort()
+      return {
+        size: 'A2', landscape: false, bytes: 1, soft: 0, missing: 0, namesDropped: false,
+        file: async (kind) => new Blob([kind]), dispose: () => disposed.push(opts.filterLabel ?? ''),
+      }
+    })
+    await expect(makeBulkZip({
+      groups, kind: 'png', species,
+      poster: { size: 'A2', landscape: false, theme: 'light', strings: en.ui, signal: ctl.signal },
+      packSpec: (list) => imagePackSpec('print', { name: false, filter: true, latest: false, count: list.length }, 'A2'),
+      deps: { pack: async () => ({ W: 100, H: 100, boxes: new Map() }), makePoster: fakeMakePoster as never },
+    })).rejects.toMatchObject({ name: 'AbortError' })
+    expect(fakeMakePoster).toHaveBeenCalledTimes(2)
+    expect(disposed).toEqual(['Ostriches', 'Ducks'])
   })
 
   it('makeBulkZip disposes the poster even when poster.file throws or signal aborts', async () => {
