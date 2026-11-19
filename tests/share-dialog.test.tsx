@@ -875,7 +875,7 @@ describe('the orientation switch', () => {
     ])
     render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={bulkSpecies} regions={regions} onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Bulk export (ZIP)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Multiple posters (ZIP)' }))
 
     fireEvent.click(within(screen.getByRole('group', { name: 'Count size' })).getByRole('button', { name: 'Small' }))
 
@@ -883,10 +883,10 @@ describe('the orientation switch', () => {
     fireEvent.change(split, { target: { value: 'family' } })
     expect(screen.getByTestId('bulk-count').textContent).toBe('2 posters')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Download PNG ZIP' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Download PNGs (ZIP)' }))
     await waitFor(() => expect(makes).toHaveLength(1))
     expect(makes[0].opts).toMatchObject({ countSize: 'small' })
-    expect(screen.getByTestId('bulk-progress').textContent).toContain('Group 1 of 2')
+    expect(screen.getByTestId('bulk-progress').textContent).toContain('Poster 1 of 2')
     const p1 = fakePoster()
     await act(async () => makes[0].resolve(p1))
 
@@ -906,12 +906,12 @@ describe('the orientation switch', () => {
   it('disables bulk ZIP buttons with a note when a split has zero groups', async () => {
     render(<ShareDialog state={stateWith([{ ...entry('ostric2'), date: undefined }])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Bulk export (ZIP)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Multiple posters (ZIP)' }))
     fireEvent.change(screen.getByLabelText('Split by'), { target: { value: 'year' } })
 
-    expect(screen.getByTestId('bulk-count').textContent).toBe('No groups match this split.')
-    expect((screen.getByRole('button', { name: 'Download PNG ZIP' }) as HTMLButtonElement).disabled).toBe(true)
-    expect((screen.getByRole('button', { name: 'Download PDF ZIP' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByTestId('bulk-count').textContent).toBe('No posters to make for this choice.')
+    expect((screen.getByRole('button', { name: 'Download PNGs (ZIP)' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Download PDFs (ZIP)' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('Show species names is off by default in Print, disables over A4 cap (41), enables at 40 and on A3, and forwards showNames', async () => {
@@ -932,7 +932,7 @@ describe('the orientation switch', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'A4' }))
     expect(sw.disabled).toBe(true)
-    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('A4 supports up to 40 species with names. Choose a larger paper size or filter your list.')
+    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('A4 fits up to 40 species with names. Pick a larger size or filter your list.')
 
     fireEvent.click(screen.getByRole('button', { name: 'A3' }))
     expect(sw.disabled).toBe(false)
@@ -953,7 +953,7 @@ describe('the orientation switch', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
     const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
     expect(sw.disabled).toBe(true)
-    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Species names can’t fit on A2 without clipping. Choose a larger paper size or filter your list.')
+    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Names won’t fit cleanly on A2. Pick a larger size or filter your list.')
   })
 
   it('disables Show species names when caption pack check rejects', async () => {
@@ -965,6 +965,6 @@ describe('the orientation switch', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
     const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
     await waitFor(() => expect(sw.disabled).toBe(true))
-    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Species names can’t fit on A2 without clipping. Choose a larger paper size or filter your list.')
+    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Names won’t fit cleanly on A2. Pick a larger size or filter your list.')
   })
 })
