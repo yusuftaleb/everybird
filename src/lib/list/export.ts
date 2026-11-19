@@ -49,8 +49,14 @@ export function toCsv(list: ListEntry[], species: SpeciesIndex, regions: Regions
   return lines.join('\r\n') + '\r\n'
 }
 
+/** Slots the released build (before spreadsheet and Scythebill imports) doesn't know: left out of a backup while empty,
+ *  so a birder who used neither can open it there too (it refuses unknown record slots). migrateSaved adds them back. */
+const NEWER_SLOTS = ['sheet', 'scythebill'] as const
+
 export function toJson(s: Saved): string {
-  return JSON.stringify(s)
+  const records: Partial<Saved['records']> = { ...s.records }
+  for (const k of NEWER_SLOTS) if (!records[k]?.length) delete records[k]
+  return JSON.stringify({ ...s, records })
 }
 
 const SOURCES: Source[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'manual']
