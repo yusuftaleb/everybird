@@ -76,6 +76,8 @@
 .eb-sheet-pastebox { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .eb-sheet-paste { width: 100%; height: auto; min-height: 92px; padding: 10px 12px; resize: vertical; font-family: inherit; }
 .eb-sheet-review { display: flex; flex-direction: column; gap: 8px; }
+.eb-sheet-review:focus { outline: none; }
+.eb-sheet-review:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 8px; }
 .eb-sheet-summary { margin: 0; font-size: 15px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 .eb-sheet-unmatched { margin: 0; padding-left: 18px; max-height: 160px; overflow: auto; }
 .eb-src-status { padding: 0 16px 12px; }

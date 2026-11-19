@@ -562,6 +562,7 @@ export const pt: Messages = {
           duplicates: { one: '{n} duplicada', other: '{n} duplicadas' },
           notSpecies: { one: '{n} não é espécie', other: '{n} não são espécies' },
           unmatched: { one: '{n} sem correspondência', other: '{n} sem correspondência' },
+          noDate: { one: '{n} linha ignorada: sem data', other: '{n} linhas ignoradas: sem data' },
           suggestion: '{name} → {suggestion}',
           more: 'mais {n}',
           note: 'Você pode corrigir os nomes sem correspondência depois de adicionar a lista.',

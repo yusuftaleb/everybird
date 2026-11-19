@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import Papa from 'papaparse'
 import { describe, expect, it } from 'vitest'
 import { en } from '@/i18n/messages/en'
 import { detectFile, slotOfKind } from '@/lib/import/detect'
@@ -30,12 +31,26 @@ describe('Scythebill detection', () => {
     expect(detectFile(ebirdRecord)).toBe('scythebill-ebird')
     expect(slotOfKind('scythebill-ebird')).toBe('scythebill')
 
-    expect(detectFile('Common Name,Scientific Name,Countable,Date\nMallard,Anas platyrhynchos,1,1 Jan 2024')).toBe('ebird-lifelist')
+    expect(detectFile('Row #,Taxon Order,Category,Common Name,Scientific Name,Count,Location,S/P,Date,LocID,SubID,Exotic,Countable')).toBe('ebird-lifelist')
+    expect(detectFile('Common Name,Scientific Name,Countable,Date\nMallard,Anas platyrhynchos,1,1 Jan 2024')).toBe('unknown')
     expect(detectFile('Submission ID,Common Name,Scientific Name,Date\nS1,Mallard,Anas platyrhynchos,2024-01-01')).toBe('ebird-mydata')
     expect(detectFile('scientific name,species type,date first observed\nAnas platyrhynchos,species,2024-01-01')).toBe('obsorg-species')
     expect(detectFile('scientific name,species type,country,date\nAnas platyrhynchos,species,Netherlands,2024-01-01')).toBe('obsorg-observations')
     expect(detectFile('Common Name,Country,Date\nMallard,Canada,2024-01-01')).toBe('unknown')
     expect(detectFile('Mallard\nBarn Owl')).toBe('unknown')
+  })
+})
+
+describe('Scythebill fixtures', () => {
+  it('are synthetic: every native row has 44 fields, and no real coordinates or site names', () => {
+    const rows = fixture('native.csv').trim().split('\n').map((l) => Papa.parse<string[]>(l).data[0])
+    expect(rows.every((r) => r.length === 44)).toBe(true)
+    const [lat, lon] = [rows[0].indexOf('Latitude'), rows[0].indexOf('Longitude')]
+    expect(rows.slice(1).every((r) => [r[lat], r[lon]].every((v) => v === '' || v === '0.00'))).toBe(true)
+    expect(rows.some((r, i) => i > 0 && !r[rows[0].indexOf('Country')])).toBe(true) // one row has no place
+    const ebird = fixture('ebird-record.csv').trim().split('\n').map((l) => Papa.parse<string[]>(l).data[0])
+    expect(ebird.every((r) => [r[6], r[7]].every((v) => !v.trim() || v === '0.00'))).toBe(true)
+    expect(ebird.map((r) => r[5]).filter(Boolean)).toEqual(['Test Forest, Northland', 'Test Track'])
   })
 })
 
@@ -56,6 +71,7 @@ describe('Scythebill Format 1: native CSV', () => {
       reason: 'no-match',
       date: '2024-05-01',
     })
+    expect(projectPlace(res.unmatched[0].place, regions)).toEqual({ country: 'CA', sub1: 'CA-BC' })
 
     const byCode = new Map(res.records.map((r) => [r.code, r]))
 

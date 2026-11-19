@@ -146,6 +146,8 @@ const SUB1_SUBREGION: Record<string, RegionPresetId | null> = {
   'NL-BQ1': 'caribbean', 'NL-BQ2': 'caribbean', 'NL-BQ3': 'caribbean',
   'US-AS': 'polynesia', 'US-HI': 'polynesia',
   'US-GU': 'micronesia', 'US-MP': 'micronesia', 'US-UM': 'micronesia',
+  // Entered as US states (a spreadsheet's "United States, Puerto Rico", observation.org's divisions).
+  'US-PR': 'caribbean', 'US-VI': 'caribbean',
 }
 
 const LATAM_SUBREGIONS = new Set<RegionPresetId>(['central-america', 'caribbean', 'south-america'])

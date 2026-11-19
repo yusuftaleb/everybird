@@ -3,7 +3,7 @@ import { CaretDown, LockSimple } from '@phosphor-icons/react'
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ImportJobs } from '@/components/app/use-import-jobs'
 import { useI18n } from '@/i18n/I18nProvider'
-import { countParts, type SourceCounts } from '@/lib/list/source-counts'
+import { countParts, slotConnected, type SourceCounts } from '@/lib/list/source-counts'
 import type { Action } from '@/lib/list/store'
 import type { Slot } from '@/lib/list/model'
 import type { Saved } from '@/lib/list/storage'
@@ -85,14 +85,14 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
   const tick = useDisclosure()
   const { t } = useI18n()
   const ebirdConnected: EbirdConnected[] = (['ebird', 'ebird-list'] as const)
-    .filter((slot) => (saved.records[slot]?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === slot))
+    .filter((slot) => slotConnected(saved, slot))
     .map((slot) => ({ slot, details: saved.sources?.[slot] }))
   const obsorgConnected: ObsOrgConnected[] = (['obsorg-list', 'obsorg'] as const)
-    .filter((slot) => (saved.records[slot]?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === slot))
+    .filter((slot) => slotConnected(saved, slot))
     .map((slot) => ({ slot, details: saved.sources?.[slot] }))
-  const inatOn = saved.records.inat.length > 0 || saved.unmatched.some((u) => u.source === 'inat')
-  const sheetOn = (saved.records.sheet?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === 'sheet')
-  const scythebillOn = (saved.records.scythebill?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === 'scythebill')
+  const inatOn = slotConnected(saved, 'inat')
+  const sheetOn = slotConnected(saved, 'sheet')
+  const scythebillOn = slotConnected(saved, 'scythebill')
   const focusWay = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.focus({ preventScroll: true }))
   const remove = (slot: Exclude<Slot, 'manual'>) => {
     dispatch({ type: 'remove-source', source: slot })

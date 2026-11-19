@@ -1,5 +1,5 @@
 'use client'
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { fileMessage, type FileJob, type SheetReview } from '@/components/app/use-import-jobs'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -53,6 +53,13 @@ export function SheetDrop({
   const [open, setOpen] = useState(false)
   const [paste, setPaste] = useState('')
   const input = useRef<HTMLInputElement>(null)
+  const reviewBox = useRef<HTMLDivElement>(null)
+  const pasteBox = useRef<HTMLTextAreaElement>(null)
+  // The review replaces the panel the birder was in (its paste button or picker is gone): focus moves to the review,
+  // named by its summary, so it is announced; Cancel brings them back to the paste box.
+  useEffect(() => {
+    if (review) reviewBox.current?.focus()
+  }, [review])
   const { busy, rows, error } = job
 
   const marker = `${connected ? '1' : '0'}|${landedAt ?? ''}`
@@ -84,6 +91,7 @@ export function SheetDrop({
         ...(review.duplicates > 0 ? [plural(s.review.duplicates, review.duplicates, { n: formatInt(review.duplicates, t.num) })] : []),
         ...(review.notSpeciesCount > 0 ? [plural(s.review.notSpecies, review.notSpeciesCount, { n: formatInt(review.notSpeciesCount, t.num) })] : []),
         ...(review.unmatchedCount > 0 ? [plural(s.review.unmatched, review.unmatchedCount, { n: formatInt(review.unmatchedCount, t.num) })] : []),
+        ...(review.noDate > 0 ? [plural(s.review.noDate, review.noDate, { n: formatInt(review.noDate, t.num) })] : []),
       ]
     : []
 
@@ -147,8 +155,8 @@ export function SheetDrop({
       >
         <div id={`${id}-panel`} className="eb-src-panel" hidden={!showPanel} role="group" aria-label={fmt(t.import.addLabel, { title: s.title })}>
           {review ? (
-            <div className="eb-sheet-review" data-testid="sheet-review">
-              <p className="eb-sheet-summary">{summaryParts.join(' · ')}</p>
+            <div ref={reviewBox} className="eb-sheet-review" data-testid="sheet-review" role="group" tabIndex={-1} aria-labelledby={`${id}-summary`}>
+              <p id={`${id}-summary`} className="eb-sheet-summary">{summaryParts.join(' · ')}</p>
               {shownUnmatched.length > 0 && (
                 <>
                   <ul className="eb-note eb-sheet-unmatched">
@@ -177,6 +185,7 @@ export function SheetDrop({
                   onClick={() => {
                     onCancel()
                     setOpen(true)
+                    requestAnimationFrame(() => pasteBox.current?.focus())
                   }}
                 >
                   {s.review.cancel}
@@ -190,6 +199,7 @@ export function SheetDrop({
               <div className="eb-sheet-pastebox">
                 <label htmlFor={`${id}-paste`} className="eb-sr">{s.pasteLabel}</label>
                 <textarea
+                  ref={pasteBox}
                   id={`${id}-paste`}
                   className="eb-input eb-sheet-paste"
                   rows={4}

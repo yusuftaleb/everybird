@@ -562,6 +562,7 @@ export const es: Messages = {
           duplicates: { one: '{n} duplicada', other: '{n} duplicadas' },
           notSpecies: { one: '{n} no es especie', other: '{n} no son especies' },
           unmatched: { one: '{n} sin coincidencia', other: '{n} sin coincidencia' },
+          noDate: { one: '{n} fila omitida: sin fecha', other: '{n} filas omitidas: sin fecha' },
           suggestion: '{name} → {suggestion}',
           more: '{n} más',
           note: 'Puedes corregir los nombres sin coincidencia después de añadir la lista.',

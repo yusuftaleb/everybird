@@ -32,7 +32,7 @@ function Panel({ saved, j }: { saved: Saved; j: ImportJobs }) {
   const list = buildList(recordsOf(saved), saved.edits, saved.rules)
   return (
     <ImportPanel
-      saved={saved} dispatch={() => {}} species={{} as SpeciesIndex} regions={regions} jobs={j}
+      saved={saved} dispatch={() => {}} species={{ byCode: new Map() } as unknown as SpeciesIndex} regions={regions} jobs={j}
       onList={new Set()} counts={sourceCounts(saved, list)}
     />
   )
@@ -100,5 +100,18 @@ describe('ImportPanel: the Add panels fold whenever a file lands', () => {
     after.records.inat = [{ code: 'a', source: 'inat' }]
     rerender(<Panel saved={after} j={jobs({ landed: at('inat', 1) })} />)
     expect(screen.getByRole('group', { name: 'Add observation.org life list' })).toBeVisible()
+  })
+})
+
+describe('ImportPanel: a life list that holds only not-countable species', () => {
+  it('shows connected, with its menu and its skipped part, so it can be removed', () => {
+    const saved = emptySaved()
+    saved.notCountable = { 'ebird-list': ['a', 'b'] }
+    saved.skipped = { 'ebird-list': 2 }
+    saved.sources = { 'ebird-list': { kind: 'life-list', file: 'life.csv', rows: 2, at: '2026-11-19T00:00:00Z' } }
+    render(<Panel saved={saved} j={jobs()} />)
+    const row = screen.getByTestId('source-ebird-list')
+    expect(row).toHaveTextContent('2 skipped')
+    expect(within(row).getByRole('button', { name: /more|⋯|options/i })).toHaveAttribute('aria-haspopup', 'menu')
   })
 })

@@ -649,6 +649,8 @@ export const EN_UI = {
         duplicates: { one: '{n} duplicate', other: '{n} duplicates' },
         notSpecies: { one: '{n} not a species', other: '{n} not species' },
         unmatched: { one: '{n} unmatched', other: '{n} unmatched' },
+        /** Rows left out because the sheet's date column marks the birds seen and they have no date. */
+        noDate: { one: '{n} row skipped: no date', other: '{n} rows skipped: no date' },
         suggestion: '{name} → {suggestion}',
         more: '{n} more',
         note: 'You can fix any unmatched names after adding.',
