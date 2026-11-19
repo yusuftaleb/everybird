@@ -68,9 +68,9 @@ describe('LanguageField', () => {
     expect(select).toHaveClass('eb-input')
     expect(select.parentElement).toHaveClass('eb-select')
     const options = [...select.options]
-    expect(options.map((o) => o.textContent)).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski'])
-    expect(options.map((o) => o.value)).toEqual(['en', 'es', 'pt', 'nl', 'pl'])
-    expect(options.map((o) => o.getAttribute('lang'))).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl'])
+    expect(options.map((o) => o.textContent)).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski', 'Français'])
+    expect(options.map((o) => o.value)).toEqual(['en', 'es', 'pt', 'nl', 'pl', 'fr'])
+    expect(options.map((o) => o.getAttribute('lang'))).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl', 'fr'])
     expect(select.value).toBe('pt')
   })
 
@@ -175,7 +175,7 @@ describe('the language cookie', () => {
     refreshLangCookie(present)
     expect(present.writes).toEqual(['everybird-lang=es; Max-Age=31536000; Path=/; SameSite=Lax; Secure'])
 
-    for (const c of ['', 'theme=x', 'everybird-lang=fr', 'everybird-lang=', 'my-everybird-lang=es']) {
+    for (const c of ['', 'theme=x', 'everybird-lang=it', 'everybird-lang=', 'my-everybird-lang=es']) {
       const doc = fakeDoc(c)
       refreshLangCookie(doc)
       expect(doc.writes, c).toEqual([])

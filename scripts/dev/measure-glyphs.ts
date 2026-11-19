@@ -1,8 +1,8 @@
 // Measures the served fonts' advance widths, for the unit tests that model text widths without a browser
 // (tests/topbar-fit.test.ts). It downloads the woff2 files the site loads (Fontshare's CSS for Satoshi 500/700 and
 // Cabinet Grotesk 700, Google Fonts' CSS for Geist Mono 500, the latin subset) into a temp dir, reads them with fontkit
-// and writes each printable Latin-1 character's advance in em (no kerning), plus Polish's Latin Extended-A letters
-// (EXTRA_CODEPOINTS: ą ć ę ł ń ś ź ż and their capitals, none of which are in Latin-1) from whichever face covers
+// and writes each printable Latin-1 character's advance in em (no kerning), plus Polish's and French's Latin Extended-A letters
+// (EXTRA_CODEPOINTS: ą ć ę ł ń ś ź ż œ and their capitals, none of which are in Latin-1) from whichever face covers
 // them (Fontshare sends one face that already has them; Google Fonts splits Geist Mono by unicode-range, so these
 // come from its separate "latin-ext" face), plus `kernWidenEm`, the most kerning widens any of the top bar's words
 // past the sum of its advances (about 0.01 em: kerning here nearly always tightens), to
@@ -50,8 +50,8 @@ const SOURCES = [
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
 
 /** Polish's letters outside Latin-1 (U+0100-017F, Latin Extended-A), ó/Ó excepted: those are U+00F3/00D3, already
- *  in the 0x20-0xff loop below. */
-const EXTRA_CODEPOINTS = [0x104, 0x105, 0x106, 0x107, 0x118, 0x119, 0x141, 0x142, 0x143, 0x144, 0x15a, 0x15b, 0x179, 0x17a, 0x17b, 0x17c]
+ *  in the 0x20-0xff loop below; and French Œ œ (U+0152/0153, in bird and family names). */
+const EXTRA_CODEPOINTS = [0x104, 0x105, 0x106, 0x107, 0x118, 0x119, 0x141, 0x142, 0x143, 0x144, 0x152, 0x153, 0x15a, 0x15b, 0x179, 0x17a, 0x17b, 0x17c]
 
 function faceUrl(face: string): string | undefined {
   const url = /url\(['"]?([^'")]+\.woff2)['"]?\)\s*format\(['"]woff2['"]\)/.exec(face)?.[1]

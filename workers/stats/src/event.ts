@@ -8,7 +8,7 @@ export const ALLOWED: Record<string, Set<string>> = {
   image_downloaded: new Set(['story', 'post', 'square', 'desktop', 'wide']),
   shared: new Set(['story', 'post', 'square', 'desktop', 'wide', 'link']),
   link_copied: new Set(['full', 'compact', 'minimal', 'species']),
-  ui_language: new Set(['en', 'es', 'pt', 'nl', 'pl']),
+  ui_language: new Set(['en', 'es', 'pt', 'nl', 'pl', 'fr']),
   poster_made: new Set(['a4', 'a3', 'a2', 'a1', 'us12x18', 'us18x24', 'us24x36', 'a4-l', 'a3-l', 'a2-l', 'a1-l', 'us12x18-l', 'us18x24-l', 'us24x36-l']),
   poster_downloaded: new Set(['png', 'pdf']),
   search_applied: new Set(['smart', 'bird']),

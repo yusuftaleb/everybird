@@ -8,7 +8,7 @@ import { inGroup } from '../../src/lib/search/groups'
 import type { SpeciesFile } from '../../src/lib/species/types'
 
 export type ApiGroup = { groupName: string; groupOrder: number; taxonOrderBounds: [number, number][] }
-export const GROUP_LOCALES = { en: 'en', es: 'es', pt: 'pt_BR', nl: 'nl', pl: 'pl' } as const
+export const GROUP_LOCALES = { en: 'en', es: 'es', pt: 'pt_BR', nl: 'nl', pl: 'pl', fr: 'fr' } as const
 const idOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 export function buildGroups(sources: Record<SearchLang, ApiGroup[]>, species: SpeciesFile): GroupsFile {

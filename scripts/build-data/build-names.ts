@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { familyLang, NAME_BASE, NAME_LOCALES } from '../../src/lib/species/name-locales'
+import { FAMILY_LANGS, familyLang, NAME_BASE, NAME_LOCALES } from '../../src/lib/species/name-locales'
 import type { NameLocale } from '../../src/lib/species/name-locales'
 import type { SpeciesFile, SpeciesRow } from '../../src/lib/species/types'
 import { assertSameSpeciesCodes } from './fetch-sources'
@@ -104,7 +104,7 @@ export function writeNames(): void {
   }
   const englishGroups = new Map(readRaw<RawGroup[]>('ebird-groups.en.json').map((g) => [g.groupOrder, g.groupName]))
   const families = new Map<string, Record<string, string>>()
-  for (const lang of ['es', 'pt', 'nl', 'pl'] as const) {
+  for (const lang of FAMILY_LANGS) {
     const groups = readRaw<RawGroup[]>(`ebird-groups.${lang}.json`).map((g): NameGroup => {
       const englishName = englishGroups.get(g.groupOrder)
       if (!englishName) throw new Error(`No English group for ${lang} group ${g.groupOrder}`)

@@ -5,7 +5,7 @@ import { gzipSync } from 'node:zlib'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { capFirst, familyNames, mergeChain, normalizeName, usableGroupName, writeNames } from '../scripts/build-data/build-names'
 import { assertSameSpeciesCodes, fetchBytes, fetchNamesOnly, pinnedTaxonomy, taxonomyFlag, taxonomyUrl } from '../scripts/build-data/fetch-sources'
-import { familyLang, NAME_BASE, NAME_LOCALES, REGION_LOCALE } from '../src/lib/species/name-locales'
+import { FAMILY_LANGS, familyLang, NAME_BASE, NAME_BASES, NAME_LOCALES, REGION_LOCALE } from '../src/lib/species/name-locales'
 import type { SpeciesFile } from '../src/lib/species/types'
 
 const english = new Map([['amerob', 'American Robin'], ['kea', 'Kea']])
@@ -94,11 +94,11 @@ describe('names fallback chains', () => {
 
 describe('name locales and pinned source data', () => {
   it('includes every planned locale and maps regions and family languages', () => {
-    expect(NAME_LOCALES).toEqual(['es', 'es_MX', 'es_EC', 'es_PY', 'es_UY', 'es_BO', 'es_PE', 'es_CR', 'es_VE', 'es_AR', 'es_PA', 'es_HN', 'es_CL', 'es_CU', 'es_PR', 'es_DO', 'pt_BR', 'pt_PT', 'nl', 'pl'])
-    expect(REGION_LOCALE).toMatchObject({ ES: 'es', MX: 'es_MX', PT: 'pt_PT', BR: 'pt_BR', NL: 'nl', BE: 'nl', PL: 'pl' })
+    expect(NAME_LOCALES).toEqual(['es', 'es_MX', 'es_EC', 'es_PY', 'es_UY', 'es_BO', 'es_PE', 'es_CR', 'es_VE', 'es_AR', 'es_PA', 'es_HN', 'es_CL', 'es_CU', 'es_PR', 'es_DO', 'pt_BR', 'pt_PT', 'nl', 'pl', 'fr_FR', 'fr'])
+    expect(REGION_LOCALE).toMatchObject({ ES: 'es', MX: 'es_MX', PT: 'pt_PT', BR: 'pt_BR', NL: 'nl', BE: 'nl', PL: 'pl', FR: 'fr_FR', CA: 'fr' })
     for (const l of NAME_LOCALES) {
-      expect(NAME_BASE[l]).toBe(l.startsWith('es') ? 'es' : l.startsWith('pt') ? 'pt_BR' : l)
-      expect(familyLang(l)).toBe(l.startsWith('es') ? 'es' : l.startsWith('pt') ? 'pt' : l)
+      expect(NAME_BASE[l]).toBe(l.startsWith('es') ? 'es' : l.startsWith('pt') ? 'pt_BR' : l.startsWith('fr') ? 'fr_FR' : l)
+      expect(familyLang(l)).toBe(l.slice(0, 2))
     }
   })
 
@@ -180,10 +180,10 @@ describe('fetching names sources', () => {
     await expect(fetchBytes('https://example.test/b', { fetch: down, sleep: noSleep })).rejects.toThrow(/example\.test\/b -> offline \(after 3 tries\)/)
   })
 
-  it('--names-only writes the taxonomy, 20 name sets, 5 group sets and the manifest', async () => {
+  it('--names-only writes the taxonomy, 22 name sets, 6 group sets and the manifest', async () => {
     const calls: string[] = []
     expect(await fetchNamesOnly(root, ['--names-only'], { fetch: ebird(undefined, calls), sleep: noSleep })).toBe('2026')
-    expect(calls).toHaveLength(1 + NAME_LOCALES.length + 5)
+    expect(calls).toHaveLength(1 + NAME_LOCALES.length + 6)
     for (const l of NAME_LOCALES) expect(existsSync(join(root, `data/raw/ebird-taxonomy.${l}.json`))).toBe(true)
     const manifest = JSON.parse(readFileSync(join(root, 'data/raw/manifest.json'), 'utf8'))
     expect(manifest.sources.map((s: { name: string }) => s.name)).toEqual(expect.arrayContaining(['kept', 'ebird-taxonomy', 'ebird-taxonomy.es_AR', 'ebird-groups.nl']))
@@ -225,7 +225,7 @@ describe('writeNames with synthetic source files', () => {
       write(`data/raw/ebird-taxonomy.${l}.json`, [{ ...taxa[0], comName: name }, { ...taxa[1], comName: 'Extra translated' }])
     }
     write('data/raw/ebird-groups.en.json', [{ groupOrder: 1, groupName: 'Test birds' }])
-    for (const lang of ['es', 'pt', 'nl', 'pl']) {
+    for (const lang of FAMILY_LANGS) {
       write(`data/raw/ebird-groups.${lang}.json`, [{ groupOrder: 1, groupName: 'Translated group' }])
       write(`data/i18n/families.${lang}.json`, { Testidae: 'Hand translation' })
     }
@@ -273,6 +273,7 @@ const PROPER = [
   'Nuevo', 'Viejo', 'Novo', 'Velho', 'Mundo', 'Nieuwe', 'Oude', 'Wereld', 'Antillas', 'Antilhas', 'Antillen', 'Mayores',
   'Grandes', 'Grote', 'Nova', 'Zelândia', 'Nieuw', 'Zeeland', 'Zeelandse', 'África', 'Afrika', 'Amerika', 'Aziatische',
   'Oceania', 'Hawaii', 'La', 'Española', 'Célebes', 'Arfak', 'Magallanes', 'Przewalski', 'Zeledón',
+  'Nouveau', 'Ancien', 'Monde', 'Antilles', 'Kowald',
 ]
 
 describe('committed names files', () => {
@@ -295,10 +296,10 @@ describe('committed names files', () => {
         else if (name !== normalizeName(name)) bad.push(`${l}: ${code} is not normalised`)
         else if (name !== capFirst(name)) bad.push(`${l}: ${code} starts in lower case`)
       }
-      if (l === 'es' || l === 'nl' || l === 'pl') expect(Object.keys(file.names).length, l).toBeGreaterThanOrEqual(11100)
+      if (l === 'es' || l === 'nl' || l === 'pl' || l.startsWith('fr')) expect(Object.keys(file.names).length, l).toBeGreaterThanOrEqual(11100)
     }
     expect(bad).toEqual([])
-    for (const l of ['es', 'pt_BR', 'nl', 'pl']) expect(gzipSync(read(`names.${l}.v1.json`), { level: 9 }).length, l).toBeLessThan(120_000)
+    for (const l of NAME_BASES) expect(gzipSync(read(`names.${l}.v1.json`), { level: 9 }).length, l).toBeLessThan(120_000)
     // Live eBird 2026: es_AR's American Robin falls through to the Spanish base.
     expect(files.get('es_AR').names.amerob).toBe('Zorzal americano')
     expect(files.get('pt_BR').names.amerob).toBe('Tordo-americano')
@@ -306,6 +307,9 @@ describe('committed names files', () => {
     // Polish keeps its letters outside Latin-1 (the set a wrong locale or encoding would lose).
     expect(files.get('pl').names.osprey).toBe('Rybołów')
     expect(files.get('pl').names.mutswa).toBe('Łabędź niemy')
+    // French: France's names in fr_FR, eBird's North American French in fr.
+    expect(files.get('fr_FR').names.comloo).toBe('Plongeon imbrin')
+    expect(files.get('fr').names.comloo).toBe('Plongeon huard')
   })
 
   it('every regional Spanish file has names of its own (a locale eBird ignored would equal es)', () => {

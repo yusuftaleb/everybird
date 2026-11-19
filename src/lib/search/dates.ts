@@ -12,10 +12,13 @@ const DICT = {
   nl: { link: 'tot|tot en met', between: 'tussen', and: 'en', from: 'van|vanaf', since: 'sinds|vanaf', after: 'na', before: 'voor', until: 'tot', this: 'dit|deze', last: 'laatste|vorige|vorig|afgelopen', year: 'jaar|jaren', month: 'maand|maanden', quarter: 'kwartaal|kwartalen' },
   // Polish declines: "w tym roku", "w zeszłym roku", "ostatnie 3 miesiące", "od marca do maja".
   pl: { link: 'do', between: 'między|pomiędzy', and: 'i', from: 'od', since: 'od', after: 'po', before: 'przed', until: 'do', this: 'ten|ta|tym|tej|bieżący|bieżącym', last: 'ostatni|ostatnia|ostatnie|ostatnich|ostatnim|zeszły|zeszłym|ubiegły|ubiegłym|poprzedni|poprzednim', year: 'rok|roku|lata|lat', month: 'miesiąc|miesiąca|miesiącu|miesiące|miesięcy', quarter: 'kwartał|kwartału|kwartale|kwartały|kwartałów' },
+  // French elides before a vowel, and searchKey drops the apostrophe: "l'année" is "lannee", "jusqu'à" "jusqua".
+  fr: { link: 'à|au|jusqu’à|jusqu’au|jusqu’en', between: 'entre', and: 'et', from: 'de|du|depuis', since: 'depuis', after: 'après', before: 'avant', until: 'jusqu’à|jusqu’au|jusqu’en', this: 'ce|cet|cette', last: 'dernier|dernière|derniers|dernières|passé|passée', year: 'an|ans|année|années|l’an|l’année', month: 'mois', quarter: 'trimestre|trimestres' },
 } as const
 export const SEARCH_CONNECTORS: Record<SearchLang, string[]> = {
   en: ['in', 'on', 'at', 'from', 'and'], es: ['en', 'de', 'desde', 'y'], pt: ['em', 'no', 'na', 'de', 'do', 'da', 'e'], nl: ['in', 'uit', 'van', 'en'],
   pl: ['w', 'we', 'z', 'ze', 'na', 'i'],
+  fr: ['en', 'au', 'aux', 'dans', 'de', 'du', 'des', 'le', 'la', 'les', 'et'],
 }
 /** Spellings Intl's long month names don't cover (abbreviations and variants that aren't prefixes of them). Polish
  *  months after "od", "do" or a day are genitive ("od marca"), which Intl's standalone names ("marzec") don't cover. */
@@ -23,6 +26,8 @@ const MONTH_ALIASES: Partial<Record<SearchLang, [string, number][]>> = {
   es: [['setiembre', 8]],
   nl: [['mrt', 2]],
   pl: ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'].map((m, i): [string, number] => [m, i]),
+  // "d'avril", "d'août", "d'octobre" (the elided "de").
+  fr: [['d’avril', 3], ['d’août', 7], ['d’octobre', 9]],
 }
 const monthCache = new Map<SearchLang, Map<string, number>>()
 /** Month names for the UI language and English, keyed by searchKey, plus MONTH_ALIASES; the value is 0-based. */
@@ -64,14 +69,15 @@ const AGO: Record<SearchLang, { before: string[]; after: string[] }> = {
   pt: { before: ['ha'], after: [] },
   nl: { before: [], after: ['geleden'] },
   pl: { before: [], after: ['temu'] },
+  fr: { before: ['il y a'], after: [] },
 }
 /** Number words up to twelve in every language, keyed by searchKey; "a", "un", "um" and "een" count as one. */
 const NUMBER_WORDS = new Map<string, number>(
   ([
-    [1, 'one a an uno una un um uma een jeden jedna'], [2, 'two dos dois duas twee dwa dwie'], [3, 'three tres drie trzy'],
-    [4, 'four cuatro quatro vier cztery'], [5, 'five cinco vijf piec'], [6, 'six seis zes szesc'],
-    [7, 'seven siete sete zeven siedem'], [8, 'eight ocho oito acht osiem'], [9, 'nine nueve nove negen dziewiec'],
-    [10, 'ten diez dez tien dziesiec'], [11, 'eleven once onze elf jedenascie'], [12, 'twelve doce doze twaalf dwanascie'],
+    [1, 'one a an uno una un um uma een jeden jedna une'], [2, 'two dos dois duas twee dwa dwie deux'], [3, 'three tres drie trzy trois'],
+    [4, 'four cuatro quatro vier cztery'], [5, 'five cinco vijf piec cinq'], [6, 'six seis zes szesc'],
+    [7, 'seven siete sete zeven siedem sept'], [8, 'eight ocho oito acht osiem huit'], [9, 'nine nueve nove negen dziewiec neuf'],
+    [10, 'ten diez dez tien dziesiec dix'], [11, 'eleven once onze elf jedenascie'], [12, 'twelve doce doze twaalf dwanascie douze'],
   ] as [number, string][]).flatMap(([count, words]) => words.split(' ').map((w): [string, number] => [w, count])),
 )
 
@@ -113,14 +119,19 @@ export function dateParser(today: Date, lang: SearchLang) {
       if (year(keys[at])) return { y: Number(keys[at]), m: 0, end: 11, explicit: true, n: 1 }
     }
     // "N years ago" and "N months ago" (1 to 12, digits or words) name that whole calendar year or the single month.
-    const agoWord = (side: 'before' | 'after', at: number): boolean => {
-      const k = keys[at] ?? ''
-      const locales: SearchLang[] = [lang, 'en']
-      return !!k && locales.some((l) => AGO[l][side].includes(k))
+    // The word's length in tokens ("il y a" is three), 0 when none is there.
+    const agoWord = (side: 'before' | 'after', at: number): number => {
+      for (const l of new Set<SearchLang>([lang, 'en'])) {
+        for (const phrase of AGO[l][side]) {
+          const seq = phrase.split(' ')
+          if (seq.every((s, j) => keys[at + j] === s)) return seq.length
+        }
+      }
+      return 0
     }
     const agoAt = (at: number): Period | undefined => {
       const before = agoWord('before', at)
-      const numAt = before ? at + 1 : at
+      const numAt = at + before
       const k = keys[numAt] ?? ''
       const num = /^\d+$/.test(k) ? Number(k) : NUMBER_WORDS.get(k)
       if (num === undefined || num < 1 || num > 12) return undefined
@@ -128,8 +139,9 @@ export function dateParser(today: Date, lang: SearchLang) {
       const yearLen = is('year', unitAt), unitLen = yearLen || is('month', unitAt)
       if (!unitLen) return undefined
       const end = unitAt + unitLen
-      if (!before && !agoWord('after', end)) return undefined
-      const count = end - at + (before ? 0 : 1)
+      const after = before ? 0 : agoWord('after', end)
+      if (!before && !after) return undefined
+      const count = end - at + after
       if (yearLen) return { from: month(y - num, 0), to: month(y - num, 11), n: count }
       return { from: month(y, mo - num), to: month(y, mo - num), n: count }
     }
@@ -170,11 +182,20 @@ export function dateParser(today: Date, lang: SearchLang) {
       }
       return { to: month(p.y, kind === 'before' ? p.m - 1 : p.end), n: n + p.n }
     }
-    if ((lang === 'es' || lang === 'pt') && is('year', i) && is('last', i + 1)) {
-      return { from: month(y - 1, 0), to: month(y - 1, 11), n: 2 }
+    // The noun before "last": "año pasado", "mês passado", "l'année dernière", "le mois dernier".
+    const nounFirst = lang === 'es' || lang === 'pt' || lang === 'fr'
+    const yearLen = nounFirst ? is('year', i) : 0
+    if (yearLen && is('last', i + yearLen)) {
+      return { from: month(y - 1, 0), to: month(y - 1, 11), n: yearLen + is('last', i + yearLen) }
     }
-    if ((lang === 'es' || lang === 'pt') && is('month', i) && is('last', i + 1)) {
+    if (nounFirst && is('month', i) && is('last', i + 1)) {
       return { from: month(y, mo - 1), to: month(y, mo - 1), n: 2 }
+    }
+    // French puts the count first: "les 3 derniers mois" (the leading "les" is a connector the chip takes).
+    if (lang === 'fr' && /^\d+$/.test(keys[i] ?? '') && is('last', i + 1)) {
+      const count = Number(keys[i]), unitAt = i + 1 + is('last', i + 1)
+      const unit = is('year', unitAt) ? 12 : is('quarter', unitAt) ? 3 : is('month', unitAt) ? 1 : 0
+      if (unit && count >= 1 && count <= 1200) return { from: month(y, mo - count * unit + 1), to: now, n: unitAt - i + 1 }
     }
     const back = is('last', i), current = is('this', i)
     if (back || current) {

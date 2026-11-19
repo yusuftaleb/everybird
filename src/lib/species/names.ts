@@ -6,7 +6,7 @@ import { fetchData } from '@/lib/data-url'
 import type { DataFile } from '@/lib/data-files'
 import type { ListEntry } from '@/lib/list/model'
 import { primarySubtag, type Lang } from '@/i18n/langs'
-import { familyLang, REGION_LOCALE, type NameLocale } from './name-locales'
+import { baseOfLang, familyLang, REGION_LOCALE, type NameLocale } from './name-locales'
 import type { SpeciesRow } from './types'
 
 /** A names file (public/data/names.<locale>.v1.json): only names that differ from English, the base's chain baked in. */
@@ -25,13 +25,13 @@ function regional(lang: Lang, region: string | undefined): NameLocale | null {
 
 /**
  * The names file for a UI language: the browser's region (the first of `languages` in this language) when it maps to
- * a set of this language, else the list's top country when it does, else the base (es, pt_BR, nl). English: null.
+ * a set of this language, else the list's top country when it does, else the base (baseOfLang: es, pt_BR, nl, pl, fr_FR). English: null.
  */
 export function pickNameLocale(lang: Lang, languages: readonly string[], top?: string): NameLocale | null {
   if (lang === 'en') return null
   if (lang === 'nl' || lang === 'pl') return lang
   const tag = languages.find((t) => primarySubtag(t) === lang)
-  return regional(lang, tag ? regionOf(tag) : undefined) ?? regional(lang, top) ?? (lang === 'es' ? 'es' : 'pt_BR')
+  return regional(lang, tag ? regionOf(tag) : undefined) ?? regional(lang, top) ?? baseOfLang(lang)
 }
 
 /** The country with the most species by lifer place (ties: alphabetical); undefined with none. */

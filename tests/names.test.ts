@@ -37,6 +37,15 @@ describe('pickNameLocale', () => {
     expect(pickNameLocale('pt', ['pt'], 'MX')).toBe('pt_BR')
     expect(pickNameLocale('pt', ['pt'], 'NL')).toBe('pt_BR')
   })
+  it('French: France (and Belgium, Switzerland, a bare fr) get fr_FR, Canada gets eBird\'s North American fr', () => {
+    expect(pickNameLocale('fr', ['fr-FR'])).toBe('fr_FR')
+    expect(pickNameLocale('fr', ['fr-CA'])).toBe('fr')
+    expect(pickNameLocale('fr', ['fr-BE'])).toBe('fr_FR')
+    expect(pickNameLocale('fr', ['fr-CH'])).toBe('fr_FR')
+    expect(pickNameLocale('fr', ['fr'])).toBe('fr_FR')
+    expect(pickNameLocale('fr', ['fr'], 'CA')).toBe('fr')
+    expect(pickNameLocale('fr', ['fr'], 'BR')).toBe('fr_FR')
+  })
   it('reads the first browser tag in the UI language', () => {
     expect(pickNameLocale('es', ['en-US', 'es-MX', 'es-ES'])).toBe('es_MX')
   })

@@ -13,13 +13,14 @@ import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
 import { pl } from '@/i18n/messages/pl'
+import { fr } from '@/i18n/messages/fr'
 import { pt } from '@/i18n/messages/pt'
 import glyphs from './fixtures/glyph-advances.json'
 
 type Variant = (typeof LANG_VARIANTS)[number]
 type FontKey = keyof typeof glyphs.fonts
 
-const NAV = { en, es, pt, nl, pl }
+const NAV = { en, es, pt, nl, pl, fr }
 const PAGES = ['collage', 'settings', 'about'] as const
 
 /** Room left over that we insist on: kerning (tightens these words; `kernWidenEm` is added anyway), subpixel rounding. */

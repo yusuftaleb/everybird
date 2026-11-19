@@ -48,7 +48,7 @@ describe('Accept-Language', () => {
     expect(acceptLang('pt-PT')).toEqual(['pt'])
     expect(acceptLang('nl-BE,nl;q=0.9,fr;q=0.8')).toEqual(['nl'])
     expect(acceptLang('nl')).toEqual(['nl'])
-    for (const h of ['en-US,en;q=0.9,es;q=0.8', '*', 'fr-CA,es;q=0.5', 'est', 'esperanto', 'en-ES', '', 'pt2'])
+    for (const h of ['en-US,en;q=0.9,es;q=0.8', '*', 'it-IT,es;q=0.5', 'est', 'esperanto', 'en-ES', '', 'pt2'])
       expect(acceptLang(h), h).toEqual([])
   })
   it('through the router: the first tag decides, anything else is English', () => {
@@ -56,7 +56,7 @@ describe('Accept-Language', () => {
     expect(resolve('/about', { accept: 'pt-BR,pt;q=0.9' })).toBe('/pt/about')
     expect(resolve('/about', { accept: 'nl-BE,nl;q=0.9,fr;q=0.8' })).toBe('/nl/about')
     expect(resolve('/about', { accept: 'en-US,en;q=0.9,es;q=0.8' })).toBe('/en/about')
-    expect(resolve('/about', { accept: 'fr-CA,es;q=0.5' })).toBe('/en/about')
+    expect(resolve('/about', { accept: 'it-IT,es;q=0.5' })).toBe('/en/about')
     expect(resolve('/about', { accept: '*' })).toBe('/en/about')
   })
 })
@@ -70,14 +70,16 @@ describe('the rewrites', () => {
       ['/pt/about', 'header:accept-language'],
       ['/nl/about', 'header:accept-language'],
       ['/pl/about', 'header:accept-language'],
+      ['/fr/about', 'header:accept-language'],
       ['/en/about', ''],
     ])
     expect(resolve('/about', { accept: 'pl-PL,pl;q=0.9,en;q=0.8' })).toBe('/pl/about')
+    expect(resolve('/about', { accept: 'fr-CA,fr;q=0.9,en;q=0.8' })).toBe('/fr/about')
     expect(resolve('/about', { cookie: `${LANG_COOKIE}=en`, accept: 'es-ES,es;q=0.9' })).toBe('/en/about')
     expect(resolve('/about', { cookie: `theme=dark; ${LANG_COOKIE}=pt`, accept: 'nl' })).toBe('/pt/about')
     expect(resolve('/settings', { cookie: `${LANG_COOKIE}=nl` })).toBe('/nl/settings')
     // A cookie that names no language is ignored: the header decides.
-    expect(resolve('/about', { cookie: `${LANG_COOKIE}=fr`, accept: 'es' })).toBe('/es/about')
+    expect(resolve('/about', { cookie: `${LANG_COOKIE}=it`, accept: 'es' })).toBe('/es/about')
     expect(resolve('/about', { cookie: `${LANG_COOKIE}=ES`, accept: 'pt' })).toBe('/pt/about')
     expect(resolve('/about', { cookie: `${LANG_COOKIE}=es-x` })).toBe('/en/about')
     expect(resolve('/about')).toBe('/en/about')
@@ -195,7 +197,7 @@ describe('stripLang', () => {
     expect(stripLang('/en/about')).toBe('/about')
     expect(stripLang('/nl/s/AbC')).toBe('/s/AbC')
     expect(stripLang('/pt/')).toBe('/')
-    for (const p of ['/', '/settings', '/about', '/espresso', '/esx/about', '/s/es', '/fr/about'])
+    for (const p of ['/', '/settings', '/about', '/espresso', '/esx/about', '/s/es', '/it/about'])
       expect(stripLang(p), p).toBe(p)
   })
 })
