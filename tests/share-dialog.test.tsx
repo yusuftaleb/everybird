@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ShareDialog from '@/components/share/ShareDialog'
 import * as image from '@/lib/share/image'
@@ -834,5 +834,37 @@ describe('the orientation switch', () => {
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)![0]).toMatchObject({
       goal: { year: 2026, target: 300, basis: 'lifer' },
     }))
+  })
+
+  it('lets the user pick Count size in Share and Print, repacks, and forwards it to preview and poster PNG/PDF', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(vi.mocked(image.renderShareImage)).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(image.renderShareImage).mock.calls[0][0].countSize).toBe('medium')
+
+    const group = screen.getByRole('group', { name: 'Count size' })
+    expect(within(group).getByRole('button', { name: 'Medium' }).getAttribute('aria-pressed')).toBe('true')
+
+    fireEvent.click(within(group).getByRole('button', { name: 'Small' }))
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0].countSize).toBe('small'))
+    expect(vi.mocked(image.packForImage).mock.calls.at(-1)?.[2]).toMatchObject({
+      hole: expect.objectContaining({ pad: expect.any(Number) }),
+    })
+
+    fireEvent.click(within(group).getByRole('button', { name: 'Hide' }))
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0].countSize).toBe('hide'))
+    expect(vi.mocked(image.packForImage).mock.calls.at(-1)?.[2].hole.pad).toBe(0)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', countSize: 'hide' }))
+    fireEvent.click(within(group).getByRole('button', { name: 'Large' }))
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', countSize: 'large' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
+    await waitFor(() => expect(makes).toHaveLength(1))
+    expect(makes[0].opts).toMatchObject({ countSize: 'large' })
+    await act(async () => makes[0].resolve(fakePoster({ size: 'A2', landscape: false })))
+    fireEvent.click(await screen.findByRole('button', { name: 'Download PNG' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Download PDF' }))
+    await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(2))
   })
 })

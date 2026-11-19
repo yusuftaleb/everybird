@@ -369,6 +369,7 @@ export const pt: Messages = {
       formatName: '{name}, proporção {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Orientação', vertical: 'Vertical', horizontal: 'Horizontal' },
+      countSize: { label: 'Tamanho do número', small: 'Pequeno', medium: 'Médio', large: 'Grande', hide: 'Ocultar' },
       preview: { story: 'Prévia da imagem para story', post: 'Prévia da imagem para publicação', square: 'Prévia da imagem quadrada', desktop: 'Prévia da imagem para desktop', wide: 'Prévia da imagem horizontal' },
       failed: 'Não foi possível criar a imagem.',
       imageFailed: 'Não foi possível criar a imagem. Tente de novo.',

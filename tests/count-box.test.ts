@@ -3,8 +3,8 @@ import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { LAYOUTS } from '../src/lib/layout/constants'
 import {
-  collageBoxes, collageHole, COUNT_LABEL_CHARS, countDisplay, countScale, countText, holeExtent, labelBounds, labelEm, LABEL_GROW_MAX, MONO_EM, MONO_TRACK,
-  collagePad, numberEm, PAD_FULL_AT, PAD_LONG, PAD_SHORT, rectGap, touchesHole, type Hole, type Rect,
+  collageBoxes, collageHole, COUNT_LABEL_CHARS, countDisplay, countScale, countText, holeArea, holeExtent, isHole, labelBounds, labelEm, LABEL_GROW_MAX, MONO_EM, MONO_TRACK,
+  NO_HOLE, collagePad, numberEm, PAD_FULL_AT, PAD_LONG, PAD_SHORT, rectGap, touchesHole, type Hole, type Rect,
 } from '../src/lib/layout/count-box'
 import { en } from '../src/i18n/messages/en'
 import { es } from '../src/i18n/messages/es'
@@ -248,5 +248,45 @@ describe('labelBounds (the collage label under text size and page zoom)', () => 
       expect((max * 163) / 100).toBeLessThan(12)
     }
     expect(LABEL_GROW_MAX).toBe(1.25)
+  })
+})
+
+describe('countSize options in share images', () => {
+  beforeAll(() => { if (!POOL.length) POOL = loadPool() })
+
+  it('orders small < medium < large, keeps medium identical to default, and lets small label scale down to 14', () => {
+    const def = countLayout('story', 197, 952)
+    const small = countLayout('story', 197, 952, undefined, 'small')
+    const medium = countLayout('story', 197, 952, undefined, 'medium')
+    const large = countLayout('story', 197, 952, undefined, 'large')
+    expect(medium).toEqual(def)
+    expect(small.size).toBeLessThan(medium.size)
+    expect(medium.size).toBeLessThan(large.size)
+    expect(holeArea(small.hole)).toBeLessThan(holeArea(medium.hole))
+    expect(holeArea(medium.hole)).toBeLessThan(holeArea(large.hole))
+    const longSmall = countLayout('square', 11019, 952, undefined, 'small')
+    expect(longSmall.labelSize).toBeGreaterThanOrEqual(14)
+    expect(longSmall.labelSize).toBeLessThan(18)
+  })
+
+  it('hide returns NO_HOLE and lets packFrame place birds in the center', () => {
+    const hidden = countLayout('square', 197, 952, undefined, 'hide')
+    expect(hidden).toEqual({ number: '', label: '', size: 0, labelSize: 0, gap: 0, hole: NO_HOLE })
+    expect(isHole(hidden.hole)).toBe(false)
+
+    const L = cardLayout('square', { name: false, filter: false, latest: false, count: 60, countSize: 'hide' })
+    const spec = packSpec(L)
+    expect(isHole(spec.hole)).toBe(false)
+    const birds = sample(60)
+    const r = packFrame(birds, spec.aspect, spec)
+    expect(r.boxes.size).toBe(60)
+    const cx = r.W / 2, cy = r.H / 2
+    const medHole = cardLayout('square', { name: false, filter: false, latest: false, count: 60, countSize: 'medium' }).count.hole
+    const k = L.collage.w / r.W
+    const inCenter = [...r.boxes.values()].some(([x, y, w, h]) => {
+      const dx = (x + w / 2 - cx) * k, dy = (y + h / 2 - cy) * k
+      return Math.abs(dx) < holeExtent(medHole)[0] && Math.abs(dy) < holeExtent(medHole)[1]
+    })
+    expect(inCenter).toBe(true)
   })
 })
