@@ -446,6 +446,14 @@ export const EN_UI = {
     untitledTitle: { one: 'A life list: {n} species', other: 'A life list: {n} species' },
     /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
     dark: 'Dark image',
+    bigYear: {
+      label: 'Big Year',
+      year: 'Year',
+      target: 'Target',
+      targetPlaceholder: 'Species',
+      card: 'Big Year {year}',
+      cardLifer: 'Big Year {year} · New species in {year}',
+    },
     downloadShort: 'Download',
     /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
     print: {

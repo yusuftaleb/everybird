@@ -34,6 +34,18 @@ describe('share image draw calls', () => {
       expect(log).toMatchSnapshot()
     })
   }
+  it('story Big Year progress card', async () => {
+    const logs = installStubs()
+    image.clearStickerCache()
+    const canvas = await image.drawShareImage({
+      format: 'story', entries, species, pack, now: NOW, theme: 'light',
+      goal: { year: 2027, target: 300, basis: 'seen' }, strings: en.ui,
+    })
+    const log = logs.get(canvas as unknown as object)!
+    expect(log.some((l) => l.startsWith('fillText("14 / 300",'))).toBe(true)
+    expect(log).toContain('fillText("Big Year 2027", 64, 160)')
+    expect(log).toMatchSnapshot()
+  })
 })
 
 describe('the footer is measured once the stickers and the fonts have both settled', () => {

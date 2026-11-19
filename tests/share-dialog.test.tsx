@@ -815,4 +815,24 @@ describe('the orientation switch', () => {
       setLiferMark('first', false)
     }
   })
+
+  it('hides Big Year when the list has no dates, and renders/saves the goal when dated', async () => {
+    const { unmount } = render(<ShareDialog state={stateWith([{ ...entry('ostric2'), date: undefined }])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.queryByRole('switch', { name: 'Big Year' })).toBeNull()
+    unmount()
+
+    const dispatch = vi.fn()
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
+    const sw = screen.getByRole('switch', { name: 'Big Year' })
+    fireEvent.click(sw)
+    const yearSelect = screen.getByLabelText('Year') as HTMLSelectElement
+    const targetInput = screen.getByLabelText('Target') as HTMLInputElement
+    expect(targetInput.value).toBe('')
+    fireEvent.change(yearSelect, { target: { value: '2026' } })
+    fireEvent.change(targetInput, { target: { value: '300' } })
+    expect(dispatch).toHaveBeenCalledWith({ type: 'bigYear', bigYear: { year: 2026, target: 300 } })
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)![0]).toMatchObject({
+      goal: { year: 2026, target: 300, basis: 'lifer' },
+    }))
+  })
 })

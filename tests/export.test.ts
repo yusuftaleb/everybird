@@ -66,4 +66,12 @@ describe('json backup', () => {
     expect(out.name).toBeUndefined()
     expect(out.records).toEqual({ ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], manual: [] })
   })
+  it('round-trips bigYear and rejects malformed values', () => {
+    const s = { ...good(), bigYear: { year: 2027, target: 300 } }
+    expect(fromJson(toJson(s as never)).bigYear).toEqual({ year: 2027, target: 300 })
+    expect(() => fromJson(JSON.stringify({ ...good(), bigYear: { year: 2027, target: 0 } }))).toThrow(/Big Year/)
+    expect(() => fromJson(JSON.stringify({ ...good(), bigYear: { year: 99, target: 300 } }))).toThrow(/Big Year/)
+    expect(() => fromJson(JSON.stringify({ ...good(), bigYear: { year: 2027, target: 1.5 } }))).toThrow(/Big Year/)
+    expect(() => fromJson(JSON.stringify({ ...good(), bigYear: { year: 2027, target: 300, extra: 1 } }))).toThrow(/Big Year/)
+  })
 })

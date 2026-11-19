@@ -31,6 +31,7 @@ import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
 import type { Poster } from '@/lib/share/poster'
 import { PRINT_IN, PRINT_SIZES, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
+import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearList } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import {
@@ -76,6 +77,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const titleId = useId()
   const nameId = useId()
   const optionalId = useId()
+  const yearId = useId()
+  const targetId = useId()
   useEscapeCapture(onClose)
   useFocusInAndBack(ref)
   useHoldTopBar()
@@ -118,7 +121,23 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     return labelFor(filter, { species, countryName: (iso) => countryName(iso, lang, regions), regions: named, familyName, groupName: (id) => species.groups?.get(id)?.name[lang] }, t)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
   }, [filter, species, regions, lang, t, names])
-  const hasLatest = useMemo(() => shown.some((e) => e.date), [shown])
+  const showBigYear = useMemo(() => hasDates(known, seen), [known, seen])
+  const years = useMemo(() => {
+    const ys = goalYears(known)
+    const sy = saved.bigYear?.year
+    if (sy && !ys.includes(sy)) ys.push(sy)
+    return ys.sort((a, b) => b - a)
+  }, [known, saved.bigYear?.year])
+  const [bigYearOn, setBigYearOn] = useState(false)
+  const [goalYear, setGoalYear] = useState(() => saved.bigYear?.year ?? new Date().getFullYear())
+  const [goalTarget, setGoalTarget] = useState(() => (saved.bigYear ? String(saved.bigYear.target) : ''))
+  const parsedTarget = /^\d+$/.test(goalTarget.trim()) ? Number(goalTarget.trim()) : undefined
+  const validTarget = isTarget(parsedTarget) ? parsedTarget : undefined
+  const bigYearActive = bigYearOn && showBigYear
+  const cardEntries = useMemo(() => (bigYearActive ? yearList(known, goalYear, species, seen) : shown), [bigYearActive, known, goalYear, species, seen, shown])
+  const cardGoal = useMemo(() => (bigYearActive ? { year: goalYear, target: validTarget, basis: goalBasis(seen) } : undefined), [bigYearActive, goalYear, validTarget, seen])
+  const cardLabel = bigYearActive ? undefined : label
+  const hasLatest = useMemo(() => cardEntries.some((e) => e.date), [cardEntries])
   const withLatest = hasLatest && showLatest
   const liferMarks = useLiferMarks()
 
@@ -138,14 +157,14 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}`
       let p = packs.get(k)
       if (!p) {
-        const spec = imagePackSpec(f, { name: named, filter: !!label, latest: true, count: shown.length }, printSize)
-        p = packForImage(shown, species, spec, life.current?.signal)
+        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target }, printSize)
+        p = packForImage(cardEntries, species, spec, life.current?.signal)
         packs.set(k, p)
         p.catch(() => packs.delete(k))
       }
       return p
     }
-  }, [shown, species, label])
+  }, [cardEntries, species, cardLabel, cardGoal])
 
   // The image: re-rendered (debounced) when the format, name, theme or the latest lifer switch changes. `current` is the newest render;
   // a render superseded before it starts rejects with an AbortError. In print mode it is the poster's preview (the
@@ -163,7 +182,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const shownSize = useRef<[number, number]>([0, 0])
   const first = useRef(true)
   const trimmed = name.trim()
-  const key = `${print ? `print|${size}|${landscape}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}`
+  const goalKey = cardGoal ? `by:${cardGoal.year}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
+  const key = `${print ? `print|${size}|${landscape}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   // What the render depends on: in print mode not the share format, so switching it there never starts a needless render.
@@ -179,7 +199,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     })
       .then(() => packFor(cardFormat, !!trimmed, size))
       .then((pack) => renderShareImage({
-        format: cardFormat, ...(print ? { printSize: size } : {}), entries: shown, species, filterLabel: label, name: trimmed || undefined,
+        format: cardFormat, ...(print ? { printSize: size } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
         theme, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, strings: t, nameOf: displayName, signal: life.current?.signal,
       }))
     current.current = job
@@ -209,7 +229,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       },
     )
     return () => { live = false; cancel() }
-  }, [key, print, size, cardFormat, trimmed, theme, withLatest, liferMarks.newest, liferMarks.first, packFor, shown, species, label, t])
+  }, [key, print, size, cardFormat, trimmed, theme, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, t])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -232,7 +252,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
 
   // The poster: one make at a time, for `posterKey`. A new key, leaving print mode or closing the dialog cancels the
   // make and drops the poster (its encoder ends with it).
-  const posterKey = `print|${size}|${landscape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${fk}`
+  const posterKey = `print|${size}|${landscape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${fk}|${goalKey}`
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   const makeCtl = useRef<AbortController | null>(null)
@@ -293,7 +313,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size)
       if (ctl.signal.aborted) return
       const p = await mod.makePoster(
-        { size, landscape, entries: shown, species, filterLabel: label, name: trimmed || undefined, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, theme, strings: t, nameOf: displayName, signal: ctl.signal },
+        { size, landscape, entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, theme, strings: t, nameOf: displayName, signal: ctl.signal },
         (done, total) => { if (!ctl.signal.aborted) setMaking({ key: forKey, done, total }) },
       )
       if (ctl.signal.aborted) { p.dispose(); return }
@@ -648,7 +668,55 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                     <span>{t.share.dark}</span>
                     <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
                   </button>
+
+                  {showBigYear && (
+                    <button type="button" role="switch" aria-checked={bigYearOn} className="eb-switch eb-share-switch" data-testid="share-big-year-switch" onClick={() => setBigYearOn((v) => !v)}>
+                      <span>{t.share.bigYear.label}</span>
+                      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+                    </button>
+                  )}
                 </div>
+
+                {bigYearActive && (
+                  <div className="eb-share-goal" data-testid="share-big-year-fields">
+                    <div className="eb-share-field">
+                      <label htmlFor={yearId} className="eb-share-label">{t.share.bigYear.year}</label>
+                      <select
+                        id={yearId}
+                        className="eb-share-input"
+                        value={goalYear}
+                        onChange={(e) => {
+                          const y = Number(e.target.value)
+                          setGoalYear(y)
+                          if (validTarget !== undefined) dispatch({ type: 'bigYear', bigYear: { year: y, target: validTarget } })
+                        }}
+                      >
+                        {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                    </div>
+                    <div className="eb-share-field">
+                      <label htmlFor={targetId} className="eb-share-label">{t.share.bigYear.target}</label>
+                      <input
+                        id={targetId}
+                        className="eb-share-input"
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={TARGET_MAX}
+                        step={1}
+                        placeholder={t.share.bigYear.targetPlaceholder}
+                        value={goalTarget}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          setGoalTarget(v)
+                          const n = /^\d+$/.test(v.trim()) ? Number(v.trim()) : undefined
+                          if (isTarget(n)) dispatch({ type: 'bigYear', bigYear: { year: goalYear, target: n } })
+                          else if (v.trim() === '' && saved.bigYear) dispatch({ type: 'bigYear', bigYear: undefined })
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -661,7 +729,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
             {manual && (
               <input ref={manualRef} className="eb-share-input" type="text" readOnly value={manual} aria-label={t.share.linkField} onFocus={(e) => e.currentTarget.select()} />
             )}
-            {fk && (
+            {fk && !bigYearActive && (
               <div className="eb-note eb-share-filters" data-testid="share-filters">
                 <span>{label ? fmt(t.share.filters, { label }) : t.share.filtersNoLabel}</span>
                 <button type="button" className="eb-textbtn" onClick={() => dispatch({ type: 'filter', filter: {} })}>{t.share.clearFilters}</button>

@@ -89,7 +89,7 @@ async function main() {
       if (Math.abs(d) > 0.005) { bad++; console.log(`  ${name} "${ch}": measured ${got.toFixed(4)}, committed ${want.toFixed(3)} (Δ ${d.toFixed(4)})`) }
       return got.toFixed(3)
     })
-    console.log(`${name.padEnd(8)} ${row.join('  ')}   "." ${adv('.').toFixed(3)}`)
+    console.log(`${name.padEnd(8)} ${row.join('  ')}   "." ${adv('.').toFixed(3)}   "/" ${adv('/').toFixed(3)}`)
   }
   console.log(`largest difference from the committed table: ${worst.toFixed(4)} em`)
   if (bad) { console.error(`${bad} advances differ by more than 0.005 em: the table was measured in Chromium; stop.`); process.exit(1) }
@@ -106,6 +106,12 @@ async function main() {
 
   const dot = Math.max(...faces.map(([, adv]) => adv('.')))
   console.log(`"." widest of the three faces: ${dot.toFixed(3)} em`)
+  const slash = Math.max(...faces.map(([, adv]) => adv('/')))
+  console.log(`"/" widest of the three faces: ${slash.toFixed(3)} em`)
+  for (const [name, f] of [['cabinet', cabinet], ['satoshi', satoshi]] as const) {
+    const g = f.layout('/').glyphs[0].bbox
+    console.log(`${name.padEnd(8)} "/" ink ${em(f, g.minY).toFixed(3)} to ${em(f, g.maxY).toFixed(3)} em, " " advance ${advance(f, ' ').toFixed(3)}, tnum ${advance(f, ' ', ['tnum']).toFixed(3)}`)
+  }
   console.log(`Geist Mono 500: advance ${advance(mono, 'S').toFixed(3)}, "S" ink top ${inkTop(mono, 'S').toFixed(3)}, "É" ink top ${inkTop(mono, 'É').toFixed(3)} em`)
 }
 

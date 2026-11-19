@@ -173,4 +173,8 @@ describe('yearLabels', () => {
     expect(run('2021-11', 40, 20).slice(0, 2)).toEqual(['2021', '2022'])
     expect(run('2020-01', 60, 8)).toEqual(['2020', '2021', '2022', '2023', '2024'])
   })
+  it('rangeFilter matches a full calendar year', () => {
+    const months = ['2026-12', '2027-01', '2027-06', '2027-12', '2028-01']
+    expect(rangeFilter({ basis: 'seen' }, 1, 3, months)).toEqual({ from: '2027-01', to: '2027-12', basis: 'seen' })
+  })
 })
