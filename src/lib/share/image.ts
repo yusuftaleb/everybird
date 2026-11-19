@@ -533,8 +533,8 @@ export function paintTiles(
   const bird = new Path2D(BIRD_PATH)
   const ringed: Tile[] = []
   for (const t of tiles) {
+    if (t.mark && (!range || (t.y - 7 < range.y1 && t.y + t.h + 7 > range.y0))) ringed.push(t)
     if (range && !tileInRange(t, range)) continue
-    if (t.mark) ringed.push(t)
     const img = t.url ? imgs.get(t.url) : null
     if (img) {
       ctx.drawImage(img, t.x, t.y, t.w, t.h)

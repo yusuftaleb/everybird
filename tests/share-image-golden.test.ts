@@ -105,4 +105,19 @@ describe('marked lifer rings on share and print images', () => {
     expect(markedTiles).toHaveLength(1)
     expect(markedTiles[0].mark).toBe('newest')
   })
+
+  it('paintTiles draws the ring overhang when a marked tile is within 7 units outside a strip range', () => {
+    const logs = installStubs()
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')!
+    const tiles: image.Tile[] = [
+      { x: 10, y: 103, w: 40, h: 40, url: null, mark: 'newest' },
+      { x: 10, y: 108, w: 40, h: 40, url: null, mark: 'first' },
+    ]
+    const imgs = new Map<string, CanvasImageSource | null>()
+    image.paintTiles(ctx, tiles, imgs, '#857f74', { y0: 0, y1: 100 })
+    const log = logs.get(canvas)!
+    expect(log.filter((l) => l.startsWith('roundRect('))).toHaveLength(1)
+    expect(log).toContain('roundRect(5, 98, 50, 50, 10)')
+  })
 })

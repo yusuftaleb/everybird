@@ -469,7 +469,7 @@
   .eb-dock-tools { grid-area: 1 / 2 / 2 / 4; justify-self: end; margin-left: 0; }
   .eb-dock-filters { grid-area: 2 / 1 / 3 / 3; margin: 0 0 -4px -4px; border-top: 1px solid var(--hairline); align-self: stretch; }
   .eb-dock-end { grid-area: 2 / 3; margin: 0 -4px -4px 0; padding: 4px; border-top: 1px solid var(--hairline); align-self: stretch; display: flex; align-items: center; }
-  .eb-dock-marks { grid-area: 3 / 1 / 4 / 3; }
+  .eb-dock-marks { grid-area: 3 / 1 / 4 / 4; }
   .eb-dock:has(.eb-dock-marks) .eb-dock-filters,
   .eb-dock:has(.eb-dock-marks) .eb-dock-end { margin-bottom: 0; }
 }
