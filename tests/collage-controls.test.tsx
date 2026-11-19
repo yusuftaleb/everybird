@@ -43,8 +43,17 @@ function Harness() {
 
 const stats = () => screen.getByTestId('collage-stats')
 
+// Node 25+ has its own unconfigured localStorage that shadows jsdom's.
+class MemoryStorage {
+  private m = new Map<string, string>()
+  getItem(k: string) { return this.m.get(k) ?? null }
+  setItem(k: string, v: string) { this.m.set(k, String(v)) }
+  removeItem(k: string) { this.m.delete(k) }
+  clear() { this.m.clear() }
+}
 beforeEach(() => {
   vi.stubGlobal('innerWidth', 1024)
+  vi.stubGlobal('localStorage', new MemoryStorage())
 })
 afterEach(() => {
   setLiferMark('newest', false)
