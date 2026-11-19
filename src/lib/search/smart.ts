@@ -89,9 +89,11 @@ function places(ctx: SearchContext): Entity[] {
       existing.codes = [...(existing.codes ?? []), ...codes.map(searchKey)]
     } else out.set(value, { value, name: placeName(value, ctx.regions), aliases: aliases.map(searchKey), exactOnly, codes: codes.map(searchKey) })
   }
-  for (const [name, code] of countryNameMap(ctx.regions, ['en', ctx.lang])) add(`c:${code}`, [name])
+  const countries = countryNameMap(ctx.regions, ['en', ctx.lang], { includeRegistry: false })
+  for (const [name, code] of countries) add(`c:${code}`, [name])
   for (const [code, name] of Object.entries(ctx.regions.sub1)) {
-    add(`s:${code}`, [code, ...sub1Names(name), ...(SUB1_ALIASES[code] ?? []), ...(OBSORG_SUB1_ALIASES[code] ?? []), ...(IMPORT_REGION_ALIASES[code] ?? [])])
+    const obsorgAliases = (OBSORG_SUB1_ALIASES[code] ?? []).filter((a) => !countries.has(searchKey(a)))
+    add(`s:${code}`, [code, ...sub1Names(name), ...(SUB1_ALIASES[code] ?? []), ...obsorgAliases, ...(IMPORT_REGION_ALIASES[code] ?? [])])
   }
   const onList = new Set<string>()
   for (const key of ctx.listPlaces) {

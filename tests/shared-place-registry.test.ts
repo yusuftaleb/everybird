@@ -14,7 +14,7 @@ import { placeName } from '@/lib/list/place-keys'
 import { fromJson, toCsv, toJson } from '@/lib/list/export'
 import { emptySaved } from '@/lib/list/storage'
 import { recordsOf } from '@/lib/list/store'
-import { divisionId, hasSourcePlaceKey, projectPlace, projectRecord, resolveImportedPlace } from '@/lib/places/registry'
+import { divisionId, hasSourcePlaceKey, projectPlace, projectRecord, resolveImportedPlace, validateCatalogueUpdate } from '@/lib/places/registry'
 import { makeCoordinateRegion } from '@/lib/places/coordinate-region'
 import type { Regions } from '@/lib/species/types'
 import { retainPlaceHistory } from '../scripts/build-data/build-place-registry'
@@ -203,5 +203,42 @@ describe('shared Places registry', () => {
     expect(places.some((p) => p.country === 'CA' && !p.sub1)).toBe(true)
     expect(seen.byCode.get('gilfli')!.keys.has('s:CA-BC')).toBe(true)
     expect(toCsv(list, { rows: [], byCode: new Map(), search: () => [] }, all, seen)).toContain('British Columbia, Canada')
+  })
+
+  it('validates catalogue updates for added, retired, reused IDs and parent changes', () => {
+    const previous = {
+      edition: '2026-01-01',
+      entries: {
+        keep: ['CA', 'British Columbia', 'CA-BC'] as [string, string, string],
+        retired: ['CA', 'Former province'] as [string, string],
+        reused: ['CA', 'Old unit', 'CA-BC'] as [string, string, string],
+        reparented: ['CA', 'Island District', null, 'CA-BC'] as [string, string, null, string],
+      },
+    }
+    const rawNext = {
+      edition: '2026-02-01',
+      entries: {
+        keep: ['CA', 'British Columbia', 'CA-BC'] as [string, string, string],
+        added: ['CA', 'Yukon', 'CA-YT'] as [string, string, string],
+        reused: ['CA', 'New unit', 'CA-AB'] as [string, string, string],
+        reparented: ['CA', 'Island District', null, 'CA-AB'] as [string, string, null, string],
+      },
+    }
+    const invalid = validateCatalogueUpdate(previous, rawNext)
+    expect(invalid).toEqual({
+      added: ['added'],
+      retired: ['retired'],
+      reused: ['reused'],
+      parentChanges: ['reparented'],
+      errors: ['retired:retired', 'reused:reused', 'history:reused', 'history:reparented'],
+    })
+    const valid = validateCatalogueUpdate(previous, retainPlaceHistory(previous, rawNext))
+    expect(valid).toEqual({
+      added: ['added'],
+      retired: ['retired'],
+      reused: ['reused'],
+      parentChanges: ['reparented'],
+      errors: [],
+    })
   })
 })
