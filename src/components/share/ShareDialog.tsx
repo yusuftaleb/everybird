@@ -467,6 +467,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
           landscape,
           showNames: effectiveShowNames,
           name: trimmed || undefined,
+          filterLabel: cardLabel,
+          goal: cardGoal,
           latest: withLatest,
           markNewest: liferMarks.newest,
           markFirst: liferMarks.first,
@@ -477,7 +479,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
           signal: ctl.signal,
         },
         packSpec: (entries) => bulkPackSpec(entries, {
-          size, landscape, named: !!trimmed, countSize, showNames: effectiveShowNames, species, nameOf: displayName, measure,
+          size, landscape, named: !!trimmed, countSize, target: cardGoal?.target, showNames: effectiveShowNames, species, nameOf: displayName, measure,
           marks: { newest: liferMarks.newest, first: liferMarks.first },
         }),
         onProgress: (done, count) => {

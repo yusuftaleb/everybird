@@ -261,6 +261,39 @@ describe('bulk export', () => {
     expect(namesDropped).toBe(1)
   })
 
+  it('keeps the active filter label or the Big Year goal on each poster, with the group after it', async () => {
+    const species = buildSpeciesIndex([row('a', 1, 'O1', 'F1', 'Ostriches'), row('b', 2, 'O2', 'F2', 'Ducks')])
+    const groups = bulkGroups('family', [entry('a'), entry('b')], { species, regions })
+    const seenOpts: { filterLabel?: string; goal?: unknown }[] = []
+    const fakeMakePoster = vi.fn(async (opts: { filterLabel?: string; goal?: unknown }): Promise<Poster> => {
+      seenOpts.push({ filterLabel: opts.filterLabel, goal: opts.goal })
+      return { size: 'A2', landscape: false, bytes: 1, soft: 0, missing: 0, namesDropped: false, file: async (kind) => new Blob([kind]), dispose: () => {} }
+    })
+    const run = (poster: Record<string, unknown>) => makeBulkZip({
+      groups, kind: 'png', species,
+      poster: { size: 'A2', landscape: false, theme: 'light', strings: en.ui, ...poster },
+      packSpec: (list) => imagePackSpec('print', { name: false, filter: true, latest: false, count: list.length }, 'A2'),
+      deps: { pack: async () => ({ W: 100, H: 100, boxes: new Map() }), makePoster: fakeMakePoster as never },
+    })
+    await run({ filterLabel: 'Canada' })
+    expect(seenOpts.map((o) => o.filterLabel)).toEqual(['Canada · Ostriches', 'Canada · Ducks'])
+    seenOpts.length = 0
+    const goal = { year: 2027, target: 300, basis: 'lifer' as const }
+    await run({ goal })
+    expect(seenOpts).toEqual([
+      { filterLabel: 'Big Year 2027 · New species in 2027 · Ostriches', goal },
+      { filterLabel: 'Big Year 2027 · New species in 2027 · Ducks', goal },
+    ])
+  })
+
+  it('sizes each group\'s count hole for the Big Year target', () => {
+    const species = buildSpeciesIndex([row('a', 1)])
+    const opts = { size: 'A2' as const, landscape: false, named: false, countSize: 'medium' as const, showNames: false, species, marks: {} }
+    const plain = bulkPackSpec([entry('a')], opts).hole
+    const goal = bulkPackSpec([entry('a')], { ...opts, target: 300 }).hole
+    expect(goal.num[2] - goal.num[0]).toBeGreaterThan(plain.num[2] - plain.num[0])
+  })
+
   it('makeBulkZip disposes the poster even when poster.file throws or signal aborts', async () => {
     const species = buildSpeciesIndex([row('a', 1, 'O1', 'F1', 'Ostriches'), row('b', 2, 'O2', 'F2', 'Ducks')])
     const groups = bulkGroups('family', [entry('a'), entry('b')], { species, regions })

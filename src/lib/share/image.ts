@@ -790,6 +790,11 @@ export function fitCaptionPack(
   return verified.ok ? { fit, placed, captions: verified.captions, ok: true } : { fit, placed, ok: false }
 }
 
+/** The Big Year goal's line on the card ("Big Year 2027"), in the image's language. */
+export function goalText(goal: NonNullable<ShareImageOpts['goal']>, strings: ShareStrings): string {
+  return fmt(goal.basis === 'lifer' ? strings.share.bigYear.cardLifer : strings.share.bigYear.card, { year: goal.year })
+}
+
 /** The birds the lifer rings mark among `entries`: the latest lifer and the first, as the card draws them. */
 export function markedCodesOf(entries: ListEntry[], species: SpeciesIndex, marks: { newest?: boolean; first?: boolean }): Set<string> {
   const s = new Set<string>()
@@ -821,7 +826,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const strings = opts.strings
   const latest = opts.latest !== false && latestRow ? latestText({ com: opts.nameOf?.(latestRow) ?? latestRow.com, date: latestE!.date }, strings) : undefined
   const goal = opts.goal
-  const goalLabel = goal ? fmt(goal.basis === 'lifer' ? strings.share.bigYear.cardLifer : strings.share.bigYear.card, { year: goal.year }) : undefined
+  const goalLabel = goal ? goalText(goal, strings) : undefined
   const label = opts.filterLabel?.trim() || goalLabel || undefined
   const name = opts.name?.trim() || undefined
   const footerLine = withStamp(FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))

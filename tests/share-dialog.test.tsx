@@ -922,6 +922,22 @@ describe('the orientation switch', () => {
     await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2-bulk.zip (2 posters). 1 poster has no names: they didn’t fit.'))
   })
 
+  it('bulk posters keep the Big Year goal: its line before the group and its target in the count', async () => {
+    const dispatch = vi.fn()
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('switch', { name: 'Big Year' }))
+    fireEvent.change(screen.getByLabelText('Year'), { target: { value: '2020' } })
+    fireEvent.change(screen.getByLabelText('Target'), { target: { value: '300' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Multiple posters (ZIP)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Download PNGs (ZIP)' }))
+    await waitFor(() => expect(makes).toHaveLength(1))
+    expect(makes[0].opts).toMatchObject({ goal: { year: 2020, target: 300 }, filterLabel: expect.stringMatching(/^Big Year 2020 · .*Part 1$/) })
+    const bulkSpec = vi.mocked(image.packForImage).mock.calls.at(-1)![2]
+    const plainSpec = image.imagePackSpec('print', { name: false, filter: true, latest: true, count: 2, countSize: 'medium' }, 'A2')
+    expect(bulkSpec.hole.num[2]).toBeGreaterThan(plainSpec.hole.num[2])
+  })
+
   it('disables bulk ZIP buttons with a note when a split has zero groups', async () => {
     render(<ShareDialog state={stateWith([{ ...entry('ostric2'), date: undefined }])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))

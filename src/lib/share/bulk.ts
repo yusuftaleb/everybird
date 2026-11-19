@@ -10,7 +10,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { planCaptions, type TextMeasurer } from './captions'
-import { abortError, cardLayout, imagePackSpec, markedCodesOf, packForImage, type CardFormat, type CountSize, type ImagePack, type PackSpec } from './image'
+import { abortError, cardLayout, goalText, imagePackSpec, markedCodesOf, packForImage, type CardFormat, type CountSize, type ImagePack, type PackSpec } from './image'
 import type { makePoster as MakePoster, Poster, PosterOpts } from './poster'
 import { printDesign, type PrintSize } from './print'
 
@@ -201,7 +201,8 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
   return uniqueStems(items)
 }
 
-export type BulkPosterOpts = Omit<PosterOpts, 'entries' | 'pack' | 'filterLabel' | 'species'>
+/** `filterLabel` and `goal` are the view's: each poster's label line is that, then its group ("Canada · Herons"). */
+export type BulkPosterOpts = Omit<PosterOpts, 'entries' | 'pack' | 'species'>
 
 export type BulkPackOpts = {
   size: PrintSize
@@ -209,6 +210,8 @@ export type BulkPackOpts = {
   /** The poster has a title line. */
   named: boolean
   countSize: CountSize
+  /** The Big Year goal's target: the count reads "12 / 300", so its hole is sized for that. */
+  target?: number
   showNames: boolean
   species: SpeciesIndex
   nameOf?: (row: SpeciesRow) => string
@@ -220,7 +223,7 @@ export type BulkPackOpts = {
 /** What to pack for one group's poster (every poster has its group's label line), with names planned for its own birds. */
 export function bulkPackSpec(entries: ListEntry[], o: BulkPackOpts): PackSpec {
   const format: CardFormat = o.landscape ? 'printLandscape' : 'print'
-  const content = { name: o.named, filter: true, latest: true, count: entries.length, countSize: o.countSize }
+  const content = { name: o.named, filter: true, latest: true, count: entries.length, target: o.target, countSize: o.countSize }
   if (!o.showNames) return imagePackSpec(format, content, o.size)
   const L = cardLayout(format, content, printDesign(o.size, o.landscape))
   const plan = planCaptions(entries, o.species, o.size, L.collage.w, o.nameOf, o.measure, markedCodesOf(entries, o.species, o.marks))
@@ -250,6 +253,7 @@ export async function makeBulkZip(opts: BulkZipOpts): Promise<{ blob: Blob; name
   const makePosterFn = deps?.makePoster ?? (await import('./poster')).makePoster
   const files: Record<string, Uint8Array> = {}
   const total = groups.length
+  const view = posterOpts.filterLabel?.trim() || (posterOpts.goal ? goalText(posterOpts.goal, posterOpts.strings) : '')
   let namesDropped = 0
   for (let i = 0; i < total; i++) {
     check()
@@ -265,7 +269,7 @@ export async function makeBulkZip(opts: BulkZipOpts): Promise<{ blob: Blob; name
           entries: group.entries,
           species,
           pack,
-          filterLabel: group.label,
+          filterLabel: [view, group.label].filter(Boolean).join(' · '),
         },
         () => {},
       )
