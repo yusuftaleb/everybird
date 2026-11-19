@@ -20,7 +20,7 @@ afterEach(() => {
 
 const none: RowCount = { species: 0, only: 0, onlyIn: 'here' }
 function countsWith(rows: Partial<Record<Slot, RowCount>>): SourceCounts {
-  const all = { ebird: none, 'ebird-list': none, inat: none, obsorg: none, 'obsorg-list': none, manual: none, ...rows }
+  const all = { ebird: none, 'ebird-list': none, inat: none, obsorg: none, 'obsorg-list': none, sheet: none, manual: none, ...rows }
   return { total: 0, rows: all, parts: [] }
 }
 const named = (row: number, sci: string, com?: string): Unmatched => ({ source: 'obsorg', slot: 'obsorg-list', row, sci, ...(com ? { com } : {}), reason: 'not-species' })

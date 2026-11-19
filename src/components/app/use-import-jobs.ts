@@ -8,7 +8,7 @@ import { parseErrorCode, parseInWorker } from '@/lib/import/parse-client'
 import type { ParseResult } from '@/lib/import/parse.worker'
 import { loadRegions } from '@/lib/import/places'
 import type { ImportResult, Slot } from '@/lib/list/model'
-import type { DetailsFor, EbirdDetails, ObsOrgDetails } from '@/lib/list/storage'
+import type { DetailsFor, EbirdDetails, ObsOrgDetails, SheetDetails } from '@/lib/list/storage'
 import { loadTaxonomy } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
 import { fetchData } from '@/lib/data-url'
@@ -17,8 +17,26 @@ import type { Ui } from '@/i18n/messages/en'
 
 /** Why a file wasn't read (worded by `fileMessage`: `t.import.ebird`, `t.import.obsorg`). `data`: Everybird's own data
  *  (taxonomy, synonyms, regions) didn't load, which isn't the file's fault. */
-export type FileError = 'unknown-file' | 'damaged' | 'xlsx' | 'data' | 'obsorg-unknown' | 'obsorg-no-birds' | 'obsorg-damaged'
-/** A file being read (an eBird or observation.org export), shown under the row group it was given to. */
+export type FileError =
+  | 'unknown-file'
+  | 'damaged'
+  | 'unsupported-sheet'
+  | 'data'
+  | 'obsorg-unknown'
+  | 'obsorg-no-birds'
+  | 'obsorg-damaged'
+  | 'sheet-unknown'
+  | 'sheet-no-birds'
+  | 'sheet-damaged'
+export type SheetReview = {
+  result: ParseResult
+  details: SheetDetails
+  matched: number
+  duplicates: number
+  unmatchedCount: number
+  notSpeciesCount: number
+}
+/** A file being read (an eBird, observation.org or spreadsheet export), shown under the row group it was given to. */
 export type FileJob = { busy: boolean; rows: number; error: FileError | null }
 export type EbirdJob = FileJob
 /** The jobs hold codes, not words: the rows word them in the UI language (inatMessage, fileMessage). `error.user` is
@@ -35,6 +53,12 @@ export type ImportJobs = {
   obsorg: FileJob
   /** The same read, its status and errors on the observation.org rows. Any supported file lands in its kind's slot. */
   readObsOrg: (file: File) => Promise<void>
+  sheet: FileJob
+  readSheet: (file: File) => Promise<void>
+  parsePaste: (text: string) => Promise<void>
+  sheetReview: SheetReview | null
+  confirmSheet: () => void
+  cancelSheet: () => void
   inat: InatJob
   /** Fetches (or, with the remembered username, refreshes) an iNaturalist account into the 'inat' slot. */
   fetchInat: (login: string) => Promise<void>
@@ -87,20 +111,24 @@ export function inatMessage(error: InatError, user: string, t: Ui): string {
 export function fileMessage(error: FileError, t: Ui): string {
   const e = t.import.ebird
   const o = t.import.obsorg.errors
+  const s = t.import.sheet.errors
   switch (error) {
     case 'unknown-file': return e.unknownFile
     case 'damaged': return e.damaged
-    case 'xlsx': return o.xlsx
+    case 'unsupported-sheet': return s.unsupported
     case 'data': return o.data
     case 'obsorg-unknown': return o.unknown
     case 'obsorg-no-birds': return o.noBirds
     case 'obsorg-damaged': return o.damaged
+    case 'sheet-unknown': return s.unknown
+    case 'sheet-no-birds': return s.noBirds
+    case 'sheet-damaged': return s.damaged
   }
 }
 
 const IDLE_FILE: FileJob = { busy: false, rows: 0, error: null }
 /** The row group a file was given to. */
-type Via = 'ebird' | 'obsorg'
+type Via = 'ebird' | 'obsorg' | 'sheet'
 const IDLE_INAT: InatJob = { busyFor: null, progress: null, error: null, note: null }
 
 export type OnImport = (slot: Slot, result: ImportResult, details: DetailsFor<Slot>) => void
@@ -116,6 +144,8 @@ export type OnImport = (slot: Slot, result: ImportResult, details: DetailsFor<Sl
 export function useImportJobs(onImport: OnImport): ImportJobs {
   const [ebird, setEbird] = useState<FileJob>(IDLE_FILE)
   const [obsorg, setObsorg] = useState<FileJob>(IDLE_FILE)
+  const [sheet, setSheet] = useState<FileJob>(IDLE_FILE)
+  const [sheetReview, setSheetReview] = useState<SheetReview | null>(null)
   const [inat, setInat] = useState<InatJob>(IDLE_INAT)
   const [landed, setLanded] = useState<Landed | null>(null)
   const abort = useRef<AbortController | null>(null)
@@ -133,32 +163,41 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
     setLanded({ slot, species: new Set(result.records.map((r) => r.code)).size, at: Date.now() })
   }, [])
 
-  // One file at a time, across both file groups (the eBird rows and the observation.org rows).
+  // One file at a time, across all file groups (eBird, observation.org, spreadsheet).
   const readFile = useCallback(async (file: File, via: Via) => {
     if (busyFile.current) return
     busyFile.current = true
-    const set = via === 'ebird' ? setEbird : setObsorg
+    const set = via === 'ebird' ? setEbird : via === 'obsorg' ? setObsorg : setSheet
     setEbird(IDLE_FILE)
     setObsorg(IDLE_FILE)
+    setSheet(IDLE_FILE)
+    setSheetReview(null)
     let kind: FileKind = 'unknown'
+    let head = ''
     try {
       try {
-        kind = detectFile(await headerLine(file), file.name)
+        head = await headerLine(file)
+        kind = detectFile(head, file.name)
       } catch {
         kind = 'unknown'
       }
-      const slot = slotOfKind(kind)
-      if (kind === 'xlsx') {
-        set({ ...IDLE_FILE, error: 'xlsx' })
+      if (kind === 'unsupported-sheet') {
+        set({ ...IDLE_FILE, error: 'unsupported-sheet' })
         return
       }
+      if (kind === 'unknown' && via === 'sheet') {
+        const textExt = /\.(csv|tsv|txt)$/i.test(file.name) || !/\.[a-z0-9]{1,8}$/i.test(file.name)
+        if (textExt && !head.includes('\u0000')) kind = 'sheet-text'
+      }
+      const slot = slotOfKind(kind)
       if (kind === 'unknown' || !slot) {
-        set({ ...IDLE_FILE, error: via === 'ebird' ? 'unknown-file' : 'obsorg-unknown' })
+        set({ ...IDLE_FILE, error: via === 'ebird' ? 'unknown-file' : via === 'obsorg' ? 'obsorg-unknown' : 'sheet-unknown' })
         return
       }
       set({ busy: true, rows: 0, error: null })
       const onProgress = (rows: number) => { if (live.current) set((j) => ({ ...j, rows })) }
       const obsorgKind = kind === 'obsorg-species' || kind === 'obsorg-observations'
+      const sheetKind = kind === 'xlsx' || kind === 'sheet-text'
       // Everybird's own data first: when it doesn't load, the file isn't to blame.
       let synonyms: Record<string, string> = {}
       let regions: Regions | undefined
@@ -174,6 +213,22 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
       try {
         const at = new Date().toISOString()
         let result: ParseResult
+        if (kind === 'xlsx' || kind === 'sheet-text') {
+          result = await parseInWorker(kind, file, { onProgress, regions })
+          const details: SheetDetails = { kind: 'file', at, ...(file.name ? { file: file.name } : {}), ...(typeof result.rows === 'number' ? { rows: result.rows } : {}) }
+          if (live.current) {
+            setSheetReview({
+              result,
+              details,
+              matched: result.records.length,
+              duplicates: result.duplicates ?? 0,
+              unmatchedCount: result.unmatched.filter((u) => u.reason === 'no-match').length,
+              notSpeciesCount: result.unmatched.filter((u) => u.reason === 'not-species').length,
+            })
+          }
+          set(IDLE_FILE)
+          return
+        }
         let details: EbirdDetails | ObsOrgDetails
         if (kind === 'ebird-lifelist' || kind === 'ebird-mydata') {
           result = await parseInWorker(kind, file, { onProgress, regions })
@@ -181,9 +236,11 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
         } else if (kind === 'obsorg-species') {
           result = await parseInWorker(kind, file, { onProgress, synonyms })
           details = { kind: 'species-list', at } satisfies ObsOrgDetails
-        } else {
+        } else if (kind === 'obsorg-observations') {
           result = await parseInWorker(kind, file, { onProgress, synonyms, regions: regions! })
           details = { kind: 'observations', at, ...(result.excluded ? { excluded: result.excluded } : {}) } satisfies ObsOrgDetails
+        } else {
+          return
         }
         if (file.name) details.file = file.name
         if (typeof result.rows === 'number') details.rows = result.rows
@@ -194,7 +251,11 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
         // its own. A failure without a code (the taxonomy didn't load, the worker crashed) isn't the file's.
         const code = parseErrorCode(e)
         const error = code === 'damaged' || code === 'no-birds'
-          ? obsorgKind ? (code === 'no-birds' ? 'obsorg-no-birds' : 'obsorg-damaged') : 'damaged'
+          ? obsorgKind
+            ? (code === 'no-birds' ? 'obsorg-no-birds' : 'obsorg-damaged')
+            : sheetKind
+              ? (code === 'no-birds' ? 'sheet-no-birds' : 'sheet-damaged')
+              : 'damaged'
           : 'data'
         set({ ...IDLE_FILE, error })
       }
@@ -204,6 +265,59 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   }, [land])
   const readEbird = useCallback((file: File) => readFile(file, 'ebird'), [readFile])
   const readObsOrg = useCallback((file: File) => readFile(file, 'obsorg'), [readFile])
+  const readSheet = useCallback((file: File) => readFile(file, 'sheet'), [readFile])
+
+  const parsePaste = useCallback(async (text: string) => {
+    if (busyFile.current || !text.trim()) return
+    busyFile.current = true
+    setEbird(IDLE_FILE)
+    setObsorg(IDLE_FILE)
+    setSheet({ busy: true, rows: 0, error: null })
+    setSheetReview(null)
+    try {
+      let regions: Regions | undefined
+      try {
+        regions = await loadRegions()
+      } catch {
+        setSheet({ ...IDLE_FILE, error: 'data' })
+        return
+      }
+      try {
+        const at = new Date().toISOString()
+        const file = new File([text], 'pasted.txt', { type: 'text/plain' })
+        const onProgress = (rows: number) => { if (live.current) setSheet((j) => ({ ...j, rows })) }
+        const result = await parseInWorker('sheet-text', file, { onProgress, regions })
+        const details: SheetDetails = { kind: 'paste', at, ...(typeof result.rows === 'number' ? { rows: result.rows } : {}) }
+        if (live.current) {
+          setSheetReview({
+            result,
+            details,
+            matched: result.records.length,
+            duplicates: result.duplicates ?? 0,
+            unmatchedCount: result.unmatched.filter((u) => u.reason === 'no-match').length,
+            notSpeciesCount: result.unmatched.filter((u) => u.reason === 'not-species').length,
+          })
+        }
+        setSheet(IDLE_FILE)
+      } catch (e) {
+        const code = parseErrorCode(e)
+        const error: FileError = code === 'no-birds' ? 'sheet-no-birds' : code === 'damaged' ? 'sheet-damaged' : 'data'
+        setSheet({ ...IDLE_FILE, error })
+      }
+    } finally {
+      busyFile.current = false
+    }
+  }, [])
+
+  const confirmSheet = useCallback(() => {
+    if (!sheetReview) return
+    land('sheet', sheetReview.result, sheetReview.details)
+    setSheetReview(null)
+  }, [land, sheetReview])
+
+  const cancelSheet = useCallback(() => {
+    setSheetReview(null)
+  }, [])
 
   const fetchInat = useCallback(async (raw: string) => {
     const login = raw.trim().replace(/^@/, '').trim() // "@ sam" too: the username is stored and shown exactly
@@ -236,7 +350,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   const cancelInat = useCallback(() => abort.current?.abort(), [])
 
   return useMemo(
-    () => ({ ebird, readEbird, obsorg, readObsOrg, inat, fetchInat, cancelInat, landed }),
-    [ebird, readEbird, obsorg, readObsOrg, inat, fetchInat, cancelInat, landed],
+    () => ({ ebird, readEbird, obsorg, readObsOrg, sheet, readSheet, parsePaste, sheetReview, confirmSheet, cancelSheet, inat, fetchInat, cancelInat, landed }),
+    [ebird, readEbird, obsorg, readObsOrg, sheet, readSheet, parsePaste, sheetReview, confirmSheet, cancelSheet, inat, fetchInat, cancelInat, landed],
   )
 }

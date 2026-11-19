@@ -192,14 +192,16 @@ describe('useImportJobs: one readFile for both file groups', () => {
     expect(onImport.mock.calls[1][0]).toBe('ebird-list')
     expect(onImport.mock.calls[1][2]).toMatchObject({ kind: 'life-list', file: 'ebird_world_life_list.csv' })
   })
-  it('an Excel file is refused plainly, in the same neutral words on either group', async () => {
+  it('an unsupported spreadsheet file is refused plainly, in the same neutral words on any group', async () => {
     const { onImport, hook } = setup()
-    const xlsx = () => new File(['PK\u0003\u0004rest'], 'observation-2026-species_observed.xlsx')
-    await act(() => hook.result.current.readObsOrg(xlsx()))
-    expect(hook.result.current.obsorg.error).toBe('xlsx')
-    expect(en.ui.import.obsorg.errors.xlsx).toBe('This is an Excel file. Everybird reads CSV files: export as CSV and add that file instead.')
-    await act(() => hook.result.current.readEbird(xlsx()))
-    expect(hook.result.current.ebird.error).toBe('xlsx')
+    const xls = () => new File(['\u00d0\u00cf\u0011\u00e0rest'], 'observation-2026-species_observed.xls')
+    await act(() => hook.result.current.readObsOrg(xls()))
+    expect(hook.result.current.obsorg.error).toBe('unsupported-sheet')
+    expect(en.ui.import.sheet.errors.unsupported).toBe('This spreadsheet format is not supported. Save it as .xlsx or CSV and add that file instead.')
+    await act(() => hook.result.current.readEbird(xls()))
+    expect(hook.result.current.ebird.error).toBe('unsupported-sheet')
+    await act(() => hook.result.current.readSheet(new File(['PK\u0003\u0004rest'], 'list.ods')))
+    expect(hook.result.current.sheet.error).toBe('unsupported-sheet')
     expect(onImport).not.toHaveBeenCalled()
   })
   it('a file without birds says to choose Birds; an unknown file names the exports, by the group it was given to', async () => {

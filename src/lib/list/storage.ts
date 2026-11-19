@@ -30,6 +30,12 @@ export type ObsOrgDetails = {
   at?: string
   excluded?: { escape: number; uncertain: number }
 }
+export type SheetDetails = {
+  kind: 'file' | 'paste'
+  file?: string
+  rows?: number
+  at?: string
+}
 /**
  * What each connected source is, for "Your sources" on a return visit and its Refresh. A slot with records but no
  * entry here was imported before v3: its details are unknown.
@@ -40,6 +46,7 @@ export type SourceDetails = {
   inat?: InatDetails & RegionMapping
   obsorg?: ObsOrgDetails & RegionMapping
   'obsorg-list'?: ObsOrgDetails & RegionMapping
+  sheet?: SheetDetails & RegionMapping
 }
 
 /** Records imported through the shared, source-aware region mapping. Older raw codes lack this marker. */
@@ -51,7 +58,9 @@ export type DetailsFor<S extends Slot> = S extends 'inat'
     ? EbirdDetails & RegionMapping
     : S extends 'obsorg' | 'obsorg-list'
       ? ObsOrgDetails & RegionMapping
-      : never
+      : S extends 'sheet'
+        ? SheetDetails & RegionMapping
+        : never
 
 /**
  * The stored list. v2 (Task PL) added seen-here (`SourceRecord.seen`, `Unmatched.seen`); a v1 list is the same shape
@@ -88,7 +97,7 @@ export const STORAGE_KEY = 'everybird:v1'
 export function emptySaved(): Saved {
   return {
     v: 5,
-    records: { ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], manual: [] },
+    records: { ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], manual: [] },
     unmatched: [],
     edits: { removed: [], added: [], marks: {}, fixes: {} },
     rules: { ...DEFAULT_RULES },

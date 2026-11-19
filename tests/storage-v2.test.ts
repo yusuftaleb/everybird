@@ -20,7 +20,7 @@ const v1 = () => ({
 })
 const withSeen = () => ({
   ...emptySaved(),
-  records: { obsorg: [], 'obsorg-list': [], ebird: [{ code: 'a', source: 'ebird' as const, seen: ['2020-01-01|CA-BC|Capital', '2021-01-01|US'] }], 'ebird-list': [], inat: [], manual: [] },
+  records: { obsorg: [], 'obsorg-list': [], ebird: [{ code: 'a', source: 'ebird' as const, seen: ['2020-01-01|CA-BC|Capital', '2021-01-01|US'] }], 'ebird-list': [], inat: [], sheet: [], manual: [] },
   unmatched: [{ source: 'ebird' as const, row: 3, reason: 'no-match' as const, seen: ['2020-01-01|MX'] }],
 })
 

@@ -12,6 +12,7 @@ import type { Regions } from '@/lib/species/types'
 import { EbirdDrop, type EbirdConnected } from './EbirdDrop'
 import { InatForm } from './InatForm'
 import { ObsOrgDrop, type ObsOrgConnected } from './ObsOrgDrop'
+import { SheetDrop } from './SheetDrop'
 import { TickList } from './TickList'
 import { SourceRow } from './SourceLine'
 import './import.css'
@@ -89,13 +90,22 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
     .filter((slot) => (saved.records[slot]?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === slot))
     .map((slot) => ({ slot, details: saved.sources?.[slot] }))
   const inatOn = saved.records.inat.length > 0 || saved.unmatched.some((u) => u.source === 'inat')
+  const sheetOn = (saved.records.sheet?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === 'sheet')
   const focusWay = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.focus({ preventScroll: true }))
   const remove = (slot: Exclude<Slot, 'manual'>) => {
     dispatch({ type: 'remove-source', source: slot })
-    focusWay(slot === 'inat' ? 'way-inat' : slot === 'obsorg' || slot === 'obsorg-list' ? 'way-obsorg' : 'way-ebird')
+    focusWay(
+      slot === 'inat'
+        ? 'way-inat'
+        : slot === 'obsorg' || slot === 'obsorg-list'
+          ? 'way-obsorg'
+          : slot === 'sheet'
+            ? 'way-sheet'
+            : 'way-ebird',
+    )
   }
-  // One file at a time across both file groups.
-  const fileBusy = jobs.ebird.busy || jobs.obsorg.busy
+  // One file at a time across all file groups.
+  const fileBusy = jobs.ebird.busy || jobs.obsorg.busy || jobs.sheet.busy
   // When a file last landed, in either group: the file groups fold their Add panels (an iNaturalist fetch, running
   // beside them, leaves an open panel alone).
   const [fileLandedAt, setFileLandedAt] = useState<number | undefined>(undefined)
@@ -154,6 +164,24 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             onRemove={remove}
             saved={saved}
             counts={counts}
+          />
+        </Group>
+        <Group id="way-sheet" label={t.import.sheet.title}>
+          <SheetDrop
+            job={jobs.sheet}
+            onFile={(f) => void jobs.readSheet(f)}
+            onPaste={(text) => void jobs.parsePaste(text)}
+            review={jobs.sheetReview}
+            onConfirm={jobs.confirmSheet}
+            onCancel={jobs.cancelSheet}
+            species={species}
+            disabled={disabled || fileBusy}
+            connected={sheetOn}
+            details={saved.sources?.sheet}
+            onRemove={() => remove('sheet')}
+            saved={saved}
+            counts={counts.rows.sheet}
+            landedAt={fileLandedAt}
           />
         </Group>
         <Group id="way-tick" label={t.tick.title}>

@@ -30,7 +30,7 @@ describe('toCsv', () => {
 })
 
 describe('json backup', () => {
-  const good = () => ({ ...emptySaved(), name: 'Me', records: { obsorg: [], 'obsorg-list': [], ebird: [{ code: 'a', source: 'ebird' }], 'ebird-list': [], inat: [], manual: [] } })
+  const good = () => ({ ...emptySaved(), name: 'Me', records: { obsorg: [], 'obsorg-list': [], ebird: [{ code: 'a', source: 'ebird' }], 'ebird-list': [], inat: [], sheet: [], manual: [] } })
   it('round-trips', () => {
     const s = good()
     expect(fromJson(toJson(s as never))).toEqual(s)
@@ -64,6 +64,6 @@ describe('json backup', () => {
     delete rest.name
     const out = fromJson(JSON.stringify({ ...rest, records: { ebird: [] } }))
     expect(out.name).toBeUndefined()
-    expect(out.records).toEqual({ ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], manual: [] })
+    expect(out.records).toEqual({ ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], manual: [] })
   })
 })

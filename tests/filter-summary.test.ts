@@ -75,7 +75,7 @@ describe('in Spanish, Portuguese and Dutch', () => {
 
 describe('placesNoteFor (the lifer-only notice)', () => {
   const rec = (seen?: string[]) => ({ code: 'a', source: 'ebird' as const, seen })
-  const saved = (ebird: ReturnType<typeof rec>[], list: ReturnType<typeof rec>[] = []) => ({ records: { obsorg: [], 'obsorg-list': [], ebird, 'ebird-list': list, inat: [], manual: [] } })
+  const saved = (ebird: ReturnType<typeof rec>[], list: ReturnType<typeof rec>[] = []) => ({ records: { obsorg: [], 'obsorg-list': [], ebird, 'ebird-list': list, inat: [], sheet: [], manual: [] } })
   it('hidden on an empty list and when seen-here is known', () => {
     expect(placesNoteFor(saved([]), 0, false)).toBeUndefined()
     expect(placesNoteFor(saved([rec(['|CA'])]), 3, true)).toBeUndefined()
@@ -118,7 +118,7 @@ describe('Status in words', () => {
 describe('observation.org: the unplaced line, and no MyEBirdData pitch without eBird', () => {
   type R = { code: string; source: 'ebird' | 'obsorg' | 'inat' | 'manual'; place?: { country: string }; seen?: string[] }
   const saved = (r: Partial<Record<'obsorg' | 'obsorg-list' | 'ebird' | 'ebird-list' | 'inat' | 'manual', R[]>>) => ({
-    records: { obsorg: [], 'obsorg-list': [], ebird: [], 'ebird-list': [], inat: [], manual: [], ...r },
+    records: { obsorg: [], 'obsorg-list': [], ebird: [], 'ebird-list': [], inat: [], sheet: [], manual: [], ...r },
   })
   const listed = (code: string): R => ({ code, source: 'obsorg' })
   it('observation.org alone: no MyEBirdData pitch, the unplaced line', () => {

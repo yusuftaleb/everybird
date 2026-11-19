@@ -5,7 +5,7 @@ import { fmt, plural } from '@/i18n/core'
 import { formatInt, shortDay } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
-import type { EbirdDetails, InatDetails, ObsOrgDetails } from '@/lib/list/storage'
+import type { EbirdDetails, InatDetails, ObsOrgDetails, SheetDetails } from '@/lib/list/storage'
 import { obsorgNotCounted } from './obsorg-copy'
 import { SourceMenu, type MenuItem, type SourceMenuHandle } from './SourceMenu'
 
@@ -36,6 +36,13 @@ export function inatLine(d: InatDetails | undefined, t: Ui, now?: Date): SourceS
   if (!d?.user) return { name: '', parts: [t.import.usernameUnknown] }
   const date = d.at ? shortDay(d.at, t.date.months, now) : ''
   return { name: d.user, parts: date ? [fmt(t.import.updated, { date })] : [] }
+}
+
+export function sheetLine(d: SheetDetails | undefined, t: Ui, now?: Date): SourceState {
+  if (!d) return { name: t.import.sheet.fallback.file, parts: [t.import.detailsUnknown] }
+  const date = d.at ? shortDay(d.at, t.date.months, now) : ''
+  const name = d.file || t.import.sheet.fallback[d.kind]
+  return { name, parts: date ? [fmt(t.import.imported, { date })] : [] }
 }
 
 type Props = {

@@ -1,6 +1,6 @@
 import type { Edits, ListEntry, Place, Rules, Source, SourceRecord } from './model'
 
-const SOURCE_ORDER: Source[] = ['ebird', 'inat', 'obsorg', 'manual']
+const SOURCE_ORDER: Source[] = ['ebird', 'inat', 'obsorg', 'sheet', 'manual']
 
 /** YYYY -> YYYY-00-00, YYYY-MM -> YYYY-MM-00, so partial dates compare lexically. */
 function padDate(d: string): string {
