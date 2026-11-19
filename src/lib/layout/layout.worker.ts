@@ -33,7 +33,7 @@ export type WorkerRequest =
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
       refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean
     }
-  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number }
+  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number; captions?: { w: number; h: number }[] }
 export type WorkerReply =
   | { type: 'ready'; id: number }
   | {
@@ -111,7 +111,10 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
       if (msg.type === 'image') {
         const birds = await loadBirds(msg.entries, load)
         const codes = [...birds.keys()]
-        const r = packFrame([...birds.values()], msg.aspect, { hole: msg.hole, maxTile: msg.maxTile })
+        const captions = msg.captions
+          ? new Map(codes.map((c, i) => [birds.get(c)!.id, msg.captions![i]]))
+          : undefined
+        const r = packFrame([...birds.values()], msg.aspect, { hole: msg.hole, maxTile: msg.maxTile, captions })
         const boxes = new Float32Array(codes.length * 4)
         codes.forEach((c, i) => boxes.set(r.boxes.get(birds.get(c)!.id)!, i * 4))
         return { type: 'image', id: msg.id, W: r.W, H: r.H, codes, boxes }

@@ -505,6 +505,7 @@ export const EN_UI = {
       failed: 'Couldn’t make the poster. Try again.',
       back: 'Share images',
       previewAlt: 'Preview of the {size} poster',
+<<<<<<< HEAD
       bulk: {
         title: 'Bulk export (ZIP)',
         splitLabel: 'Split by',
@@ -527,6 +528,9 @@ export const EN_UI = {
         ready: { one: 'Saved {file} ({n} poster).', other: 'Saved {file} ({n} posters).' },
         failed: 'Couldn’t make the bulk ZIP. Try again.',
       },
+      showNames: 'Show species names',
+      namesCap: '{size} supports up to {max} species with names. Choose a larger paper size or filter your list.',
+      namesNoFit: 'Species names can’t fit on {size} without clipping. Choose a larger paper size or filter your list.',
     },
   },
   /** Settings > Your list (ImportPanel, SourceLine, SourceMenu, EbirdDrop, InatForm, NotCounted, MatchReport,

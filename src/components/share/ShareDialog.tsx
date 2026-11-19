@@ -32,12 +32,13 @@ import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
 import { bulkGroups, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
 import type { Poster } from '@/lib/share/poster'
-import { PRINT_IN, PRINT_SIZES, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
+import { CAPTION_CAPS, PRINT_IN, PRINT_SIZES, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
+import { planCaptions } from '@/lib/share/captions'
 import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearFilter, yearList } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import {
-  NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, clearStickerCache, filterLabel as labelFor, imagePackSpec, imageShape, isPrint, packForImage, renderShareImage,
+  NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, captionMeasurer, cardLayout, clearStickerCache, filterLabel as labelFor, fitCaptionPack, imagePackSpec, imageShape, isPrint, packForImage, renderShareImage,
   type CardFormat, type CountSize, type FormatSlot, type ImagePack, type Orientation,
 } from '@/lib/share/image'
 import type { ShareLevel } from '@/lib/share/link'
@@ -114,6 +115,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const [name, setName] = useState(saved.name ?? '') // starts from Settings > Name your collage
   const [countSize, setCountSize] = useState<CountSize>('medium')
   const [showLatest, setShowLatest] = useState(true)
+  const [showNames, setShowNames] = useState(false)
+  const [namesFitFailKey, setNamesFitFailKey] = useState<string | null>(null)
   // The look of everything the dialog makes: the app's theme when the dialog opens, then this dialog's own choice.
   const [dark, setDark] = useState(() => currentTheme() === 'dark')
   const theme: Theme = dark ? 'dark' : 'light'
@@ -147,6 +150,27 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const hasLatest = useMemo(() => cardEntries.some((e) => e.date), [cardEntries])
   const withLatest = hasLatest && showLatest
   const liferMarks = useLiferMarks()
+  const cardFormat: CardFormat = print ? (landscape ? 'printLandscape' : 'print') : shape
+  const trimmed = name.trim()
+  const hasTitle = !!trimmed
+  const hasFilter = !!(cardLabel || cardGoal)
+  const goalKey = cardGoal ? `by:${cardGoal.year}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
+  const overCap = cardEntries.length > CAPTION_CAPS[size]
+  const captionPlan = useMemo(() => {
+    if (!print || overCap) return null
+    const L = cardLayout(cardFormat, { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target }, printDesign(size, landscape))
+    return planCaptions(cardEntries, species, size, L.collage.w, displayName, captionMeasurer())
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` and `lang` trigger recheck for `displayName`
+  }, [print, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, size, landscape, species, names, lang])
+  const namesCheckKey = `${cardFormat}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${lang}|${names}|${fk}|${goalKey}`
+  const namesFitFailed = namesFitFailKey === namesCheckKey
+  const namesAvailable = !overCap && !!captionPlan?.ok && !namesFitFailed
+  const effectiveShowNames = print && showNames && namesAvailable
+  const namesUnavailableReason = overCap
+    ? fmt(pt.namesCap, { size: sizeName(size), max: formatInt(CAPTION_CAPS[size], t.num) })
+    : !namesAvailable
+      ? fmt(pt.namesNoFit, { size: sizeName(size) })
+      : null
 
   // One pack per format and name-or-not while the dialog is open (the view can't change underneath it; a
   // name takes a line off the collage, so each gets its own pack; the latest lifer switch never changes the pack), and for the
@@ -160,18 +184,34 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const packFor = useMemo(() => {
     const packs = new Map<string, Promise<ImagePack>>()
     // Not keyed by the latest lifer switch: imagePackSpec packs for the with-row frame, so on and off share one pack.
-    return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize) => {
-      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}`
+    return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize, withNames = false) => {
+      const plan = withNames && isPrint(f) ? captionPlan : null
+      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${plan?.ok ? `${lang}|${names}` : ''}`
       let p = packs.get(k)
       if (!p) {
-        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize)
+        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, plan?.ok ? plan : undefined)
         p = packForImage(cardEntries, species, spec, life.current?.signal)
         packs.set(k, p)
         p.catch(() => packs.delete(k))
       }
       return p
     }
-  }, [cardEntries, species, cardLabel, cardGoal])
+  }, [cardEntries, species, cardLabel, cardGoal, captionPlan, lang, names])
+  useEffect(() => {
+    if (!print || overCap || !captionPlan?.ok) return
+    let live = true
+    const checkKey = namesCheckKey
+    void packFor(cardFormat, hasTitle, size, true).then((pack) => {
+      if (!live || !(pack.boxes instanceof Map)) return
+      const res = fitCaptionPack(
+        pack, cardEntries, cardFormat,
+        { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target },
+        size, captionPlan,
+      )
+      if (!res.ok) setNamesFitFailKey(checkKey)
+    }).catch(() => {})
+    return () => { live = false }
+  }, [print, overCap, captionPlan, namesCheckKey, packFor, cardFormat, hasTitle, size, cardEntries, hasFilter, cardGoal?.target])
 
   // The image: re-rendered (debounced) when the format, name, theme or the latest lifer switch changes. `current` is the newest render;
   // a render superseded before it starts rejects with an AbortError. In print mode it is the poster's preview (the
@@ -190,11 +230,9 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const first = useRef(true)
   const trimmed = name.trim()
   const goalKey = cardGoal ? `by:${cardGoal.year}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
-  const key = `${print ? `print|${size}|${landscape}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}`
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
-  // What the render depends on: in print mode not the share format, so switching it there never starts a needless render.
-  const cardFormat: CardFormat = print ? (landscape ? 'printLandscape' : 'print') : shape
   useEffect(() => {
     let live = true
     let cancel = () => {}
@@ -204,9 +242,9 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       const t = setTimeout(resolve, delay)
       cancel = () => { clearTimeout(t); reject(abortError('superseded')) }
     })
-      .then(() => packFor(cardFormat, !!trimmed, size, countSize))
+      .then(() => packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames))
       .then((pack) => renderShareImage({
-        format: cardFormat, ...(print ? { printSize: size } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
+        format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
         theme, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, strings: t, nameOf: displayName, signal: life.current?.signal,
       }))
     current.current = job
@@ -236,7 +274,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       },
     )
     return () => { live = false; cancel() }
-  }, [key, print, size, cardFormat, trimmed, theme, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t])
+  }, [key, print, size, cardFormat, trimmed, theme, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -259,7 +297,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
 
   // The poster: one make at a time, for `posterKey`. A new key, leaving print mode or closing the dialog cancels the
   // make and drops the poster (its encoder ends with it).
-  const posterKey = `print|${size}|${landscape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${fk}|${goalKey}|${countSize}`
+  const posterKey = `print|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}`
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -341,10 +379,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     focusNext.current = 'cancel'
     try {
       const mod = await (posterModule.current ?? loadPoster())
-      const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size, countSize)
+      const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size, countSize, effectiveShowNames)
       if (ctl.signal.aborted) return
       const p = await mod.makePoster(
-        { size, landscape, entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, theme, strings: t, nameOf: displayName, signal: ctl.signal },
+        { size, landscape, showNames: effectiveShowNames, entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, theme, strings: t, nameOf: displayName, signal: ctl.signal },
         (done, total) => { if (!ctl.signal.aborted) setMaking({ key: forKey, done, total }) },
       )
       if (ctl.signal.aborted) { p.dispose(); return }
@@ -765,7 +803,26 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                       <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
                     </button>
                   )}
+
+                  {print && (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={showNames && namesAvailable}
+                      disabled={!namesAvailable}
+                      className="eb-switch eb-share-switch"
+                      data-testid="share-print-names-switch"
+                      onClick={() => setShowNames((v) => !v)}
+                    >
+                      <span>{pt.showNames}</span>
+                      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+                    </button>
+                  )}
                 </div>
+
+                {print && namesUnavailableReason && (
+                  <p className="eb-note eb-share-names-note" data-testid="share-print-names-note">{namesUnavailableReason}</p>
+                )}
 
                 <div className="eb-share-field">
                   <span id={countSizeId} className="eb-share-label">{t.share.countSize.label}</span>
