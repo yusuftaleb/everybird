@@ -938,6 +938,37 @@ describe('the orientation switch', () => {
     expect(bulkSpec.hole.num[2]).toBeGreaterThan(plainSpec.hole.num[2])
   })
 
+  it('keeps keyboard focus as the ZIP buttons swap: on Cancel while it runs, back on the button that started it', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Multiple posters (ZIP)' }))
+    pressFocused('Download PDFs (ZIP)')
+    await waitFor(() => expect(makes).toHaveLength(1))
+    const progress = screen.getByTestId('bulk-progress')
+    expect(within(progress).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    within(progress).getByRole('button', { name: 'Cancel' }).focus()
+    fireEvent.click(within(progress).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Download PDFs (ZIP)' })).toHaveFocus())
+
+    pressFocused('Download PNGs (ZIP)')
+    await waitFor(() => expect(makes).toHaveLength(2))
+    await act(async () => makes[1].resolve(fakePoster()))
+    await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Download PNGs (ZIP)' })).toHaveFocus())
+  })
+
+  it('the disabled Show species names switch is described by the note that says why', () => {
+    const manyRows = Array.from({ length: 41 }, (_, i) => ({ ...row(`b${i}`, i + 1), com: `Bird ${i + 1}` }))
+    render(<ShareDialog state={stateWith(manyRows.map((r) => entry(r.code)))} dispatch={() => {}} species={buildSpeciesIndex(manyRows)} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    fireEvent.click(screen.getByRole('button', { name: 'A4' }))
+    const sw = screen.getByRole('switch', { name: 'Show species names' })
+    expect(sw).toBeDisabled()
+    expect(sw).toHaveAccessibleDescription('A4 fits up to 40 species with names. Pick a larger size or filter your list.')
+    fireEvent.click(screen.getByRole('button', { name: 'A3' }))
+    expect(sw).not.toHaveAttribute('aria-describedby')
+  })
+
   it('disables bulk ZIP buttons with a note when a split has zero groups', async () => {
     render(<ShareDialog state={stateWith([{ ...entry('ostric2'), date: undefined }])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))

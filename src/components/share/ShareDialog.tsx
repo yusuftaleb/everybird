@@ -86,6 +86,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const yearId = useId()
   const targetId = useId()
   const bulkSplitId = useId()
+  const namesNoteId = useId()
   useEscapeCapture(onClose)
   useFocusInAndBack(ref)
   useHoldTopBar()
@@ -377,12 +378,17 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const makeRef = useRef<HTMLButtonElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
   const pngRef = useRef<HTMLButtonElement>(null)
-  const focusNext = useRef<'back' | 'entry' | 'make' | 'cancel' | 'png' | null>(null)
+  const bulkPngRef = useRef<HTMLButtonElement>(null)
+  const bulkPdfRef = useRef<HTMLButtonElement>(null)
+  const bulkCancelRef = useRef<HTMLButtonElement>(null)
+  /** The ZIP button that started the make: focus comes back to it when the make ends. */
+  const bulkKind = useRef<'png' | 'pdf'>('png')
+  const focusNext = useRef<'back' | 'entry' | 'make' | 'cancel' | 'png' | 'bulkPng' | 'bulkPdf' | 'bulkCancel' | null>(null)
   useEffect(() => {
     const want = focusNext.current
     if (!want) return
     focusNext.current = null
-    const el = { back: backRef, entry: entryRef, make: makeRef, cancel: cancelRef, png: pngRef }[want].current
+    const el = { back: backRef, entry: entryRef, make: makeRef, cancel: cancelRef, png: pngRef, bulkPng: bulkPngRef, bulkPdf: bulkPdfRef, bulkCancel: bulkCancelRef }[want].current
     const active = document.activeElement
     if (el && (!active || active === document.body || active === ref.current)) el.focus()
   })
@@ -447,6 +453,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     const total = bulkList.length
     setNote({ text: pt.bulk.makingNote, print: true })
     setBulkMaking({ key: forKey, done: 0, total })
+    bulkKind.current = kind
+    focusNext.current = 'bulkCancel'
     try {
       const mod = await (posterModule.current ?? loadPoster())
       if (effectiveShowNames) {
@@ -494,12 +502,14 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       downloadBlob(blob, file)
       const dropped = namesDropped > 0 ? plural(pt.bulk.namesDropped, namesDropped, { n: formatInt(namesDropped, t.num) }) : ''
       setNote({ text: [plural(pt.bulk.ready, total, { file, n: formatInt(total, t.num) }), dropped].filter(Boolean).join(' '), print: true })
+      focusNext.current = kind === 'png' ? 'bulkPng' : 'bulkPdf'
     } catch (e) {
       if (ctl.signal.aborted || (e as Error)?.name === 'AbortError') return
       console.warn('Everybird bulk ZIP failed:', e)
       bulkCtl.current = null
       setBulkMaking(null)
       setNote({ text: pt.bulk.failed, error: true, print: true })
+      focusNext.current = kind === 'png' ? 'bulkPng' : 'bulkPdf'
     }
   }
   const cancelBulk = () => {
@@ -507,6 +517,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     bulkCtl.current = null
     setBulkMaking(null)
     setNote((n) => (n?.print ? null : n))
+    focusNext.current = bulkKind.current === 'png' ? 'bulkPng' : 'bulkPdf'
   }
   /** Drops the poster on screen (its encoder ends with it). */
   const dropPoster = () => {
@@ -850,6 +861,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                       role="switch"
                       aria-checked={showNames && namesAvailable}
                       disabled={!namesAvailable}
+                      aria-describedby={namesUnavailableReason ? namesNoteId : undefined}
                       className="eb-switch eb-share-switch"
                       data-testid="share-print-names-switch"
                       onClick={() => setShowNames((v) => !v)}
@@ -861,7 +873,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                 </div>
 
                 {print && namesUnavailableReason && (
-                  <p className="eb-note eb-share-names-note" data-testid="share-print-names-note">{namesUnavailableReason}</p>
+                  <p id={namesNoteId} className="eb-note eb-share-names-note" data-testid="share-print-names-note">{namesUnavailableReason}</p>
                 )}
 
                 <div className="eb-share-field">
@@ -975,11 +987,12 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                             total: formatInt(bulkMakingNow.total, t.num),
                           })}
                         </span>
-                        <button type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
+                        <button ref={bulkCancelRef} type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
                       </div>
                     ) : (
                       <div className="eb-share-row">
                         <button
+                          ref={bulkPngRef}
                           type="button"
                           className="eb-btn eb-btn-quiet"
                           disabled={bulkList.length === 0 || !!makingNow}
@@ -989,6 +1002,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                           {pt.bulk.png}
                         </button>
                         <button
+                          ref={bulkPdfRef}
                           type="button"
                           className="eb-btn eb-btn-quiet"
                           disabled={bulkList.length === 0 || !!makingNow}
