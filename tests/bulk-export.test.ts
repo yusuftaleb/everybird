@@ -156,6 +156,13 @@ describe('bulk export', () => {
     ])
   })
 
+  it('keeps the letters NFKD does not decompose in file names', () => {
+    expect(sanitizeGroupStem('Łódź')).toBe('lodz')
+    expect(sanitizeGroupStem('Færøerne')).toBe('faeroerne')
+    expect(sanitizeGroupStem('Straße Œuvre')).toBe('strasse-oeuvre')
+    expect(sanitizeGroupStem('Đakovo Þórshöfn')).toBe('dakovo-thorshofn')
+  })
+
   it('sanitizes group names into safe, unique filenames without traversal or illegal characters', () => {
     expect(sanitizeGroupStem('../../etc/passwd')).toBe('etc-passwd')
     expect(sanitizeGroupStem('São Paulo: State / East?*')).toBe('sao-paulo-state-east')

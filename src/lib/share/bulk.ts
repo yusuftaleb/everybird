@@ -40,8 +40,13 @@ export type BulkGroupsOpts = {
 const RESERVED_WINDOWS = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i
 const YEAR_RE = /^(\d{4})/
 
+/** Latin letters NFKD does not split into a base letter and a mark, spelled in ASCII. */
+const LATIN_EXTRA: Record<string, string> = { 'ł': 'l', 'đ': 'd', 'ð': 'd', 'ø': 'o', 'æ': 'ae', 'œ': 'oe', 'ß': 'ss', 'þ': 'th', 'ı': 'i', 'ħ': 'h', 'ŧ': 't', 'ŋ': 'ng' }
+
 export function sanitizeGroupStem(label: string, fallback = 'group'): string {
   const ascii = label
+    .toLowerCase()
+    .replace(/[łđðøæœßþıħŧŋ]/g, (c) => LATIN_EXTRA[c])
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
