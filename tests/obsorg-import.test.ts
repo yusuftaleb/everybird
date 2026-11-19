@@ -197,7 +197,7 @@ describe('useImportJobs: one readFile for both file groups', () => {
     const xls = () => new File(['\u00d0\u00cf\u0011\u00e0rest'], 'observation-2026-species_observed.xls')
     await act(() => hook.result.current.readObsOrg(xls()))
     expect(hook.result.current.obsorg.error).toBe('unsupported-sheet')
-    expect(en.ui.import.sheet.errors.unsupported).toBe('This spreadsheet format is not supported. Save it as .xlsx or CSV and add that file instead.')
+    expect(en.ui.import.sheet.errors.unsupported).toBe('Everybird can’t read this format. Save it as Excel (.xlsx) or CSV and add that file instead.')
     await act(() => hook.result.current.readEbird(xls()))
     expect(hook.result.current.ebird.error).toBe('unsupported-sheet')
     await act(() => hook.result.current.readSheet(new File(['PK\u0003\u0004rest'], 'list.ods')))

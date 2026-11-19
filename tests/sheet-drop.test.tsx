@@ -79,9 +79,9 @@ describe('SheetDrop and review flow', () => {
 
     const review = screen.getByTestId('sheet-review')
     expect(review).toHaveTextContent('1 species matched')
-    expect(review).toHaveTextContent('1 duplicate row')
+    expect(review).toHaveTextContent('1 duplicate')
     expect(review).toHaveTextContent('1 unmatched')
-    expect(review).toHaveTextContent('Mallardd -> Mallard')
+    expect(review).toHaveTextContent('Mallardd → Mallard')
     expect(onImport).not.toHaveBeenCalled()
 
     await act(async () => {
