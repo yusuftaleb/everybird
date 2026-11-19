@@ -27,7 +27,7 @@ export type AppState = {
   openUnmatched: Unmatched[]
   filter: Filter
   mode: 'even' | 'true'
-  view: 'collage' | 'list'
+  view: 'collage' | 'list' | 'tree'
   massOrder: 'heaviest' | 'lightest'
   /** Scientific names lead wherever a bird or group is named (LifeList's Scientific switch); never stored. */
   sci: boolean

@@ -14,6 +14,10 @@ export const ListIcon = ({ className }: P) =>
     <circle cx="44" cy="64" r="12" fill="currentColor" /><circle cx="44" cy="128" r="12" fill="currentColor" /><circle cx="44" cy="192" r="12" fill="currentColor" />
   </>)
 
+/** A small cladogram: three tips joined by two elbows. */
+export const TreeIcon = ({ className }: P) =>
+  svg(className, <path d="M216 56H120V200H216M120 128H216M120 128H40" fill="none" stroke="currentColor" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round" />)
+
 export const ArrowDownIcon = ({ className, up }: P & { up?: boolean }) => (
   <svg viewBox="0 0 256 256" aria-hidden="true" focusable="false" className={className} style={up ? { transform: 'scaleY(-1)' } : undefined}>
     <path d="M128 48v152M64 140l64 64 64-64" stroke="currentColor" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" fill="none" />

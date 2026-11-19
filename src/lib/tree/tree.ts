@@ -166,32 +166,39 @@ export function ageTicks(max: number, count = 5): number[] {
 
 export type Drawing = {
   leaves: Leaf[]
-  /** Elbow paths, in rows (y: one unit per leaf, centred at i + .5) and x from 0 (the root's age) to 1 (today). */
+  /** Elbow paths: y from `yOf`, x from 0 (the root's age) to `width` (today). */
   seen: string
   unseen: string
   /** The oldest node drawn, in millions of years (the axis's left end). */
   rootAge: number
 }
 
-/** The elbows of a drawing: each branch from its parent node down to its child, Ink when `seen(leaf)` anywhere below. */
-export function drawTree(root: Node | Leaf, seen: (leaf: Leaf) => boolean, width = 1000): Drawing {
+/**
+ * The elbows of a drawing: each branch from its parent node down to its child, in `seen` when some leaf below is on the
+ * list. `yOf(i)` is the i-th leaf's y (default: one unit per leaf).
+ */
+export function drawTree(root: Node | Leaf, seen: (leaf: Leaf, i: number) => boolean, yOf: (i: number) => number = (i) => i + 0.5, width = 1000): Drawing {
   const leaves = leavesOf(root)
-  const rootAge = root.age || Math.max(...leaves.map((l) => l.age), 0) || 1
+  const rootAge = root.age || 1
   const x = (age: number) => +((1 - age / rootAge) * width).toFixed(1)
   let row = 0
   const on: string[] = [], off: string[] = []
   // Returns [y, seen] of the subtree.
   const walk = (n: Node | Leaf): [number, boolean] => {
-    if (isLeaf(n)) { const y = row++ + 0.5; return [y, seen(n)] }
+    if (isLeaf(n)) { const i = row++; return [yOf(i), seen(n, i)] }
     const parts = n.kids.map((k) => [k, ...walk(k)] as const)
     const y = (parts[0][1] + parts[parts.length - 1][1]) / 2
     const px = x(n.age)
     for (const [k, ky, ks] of parts) (ks ? on : off).push(`M${px} ${y}V${ky}H${isLeaf(k) ? width : x(k.age)}`)
     return [y, parts.some((p) => p[2])]
   }
-  if (isLeaf(root)) {
-    walk(root)
-    ;(seen(root) ? on : off).push(`M0 0.5H${width}`)
-  } else walk(root)
+  if (isLeaf(root)) (seen(root, 0) ? on : off).push(`M0 ${yOf(0)}H${width}`)
+  else walk(root)
   return { leaves, seen: on.join(''), unseen: off.join(''), rootAge }
+}
+
+/** An age for the axis and the fact line: whole millions from 10, else up to two decimals ("0,5" with a comma decimal). */
+export function formatAge(v: number, num: { decimal: string }): string {
+  const r = v >= 10 ? Math.round(v) : +v.toFixed(v >= 1 ? 1 : 2)
+  return String(r).replace('.', num.decimal)
 }

@@ -18,7 +18,7 @@ const OTHERS = { es, pt, nl, fr, de } as const
 
 /** Resting labels in fixed rows (dotted paths into `ui`). */
 const TIGHT = [
-  'collage.controls.collage', 'collage.controls.list', 'collage.controls.heaviestFirst', 'collage.controls.lightestFirst',
+  'collage.controls.collage', 'collage.controls.list', 'collage.controls.tree', 'collage.controls.heaviestFirst', 'collage.controls.lightestFirst',
   'collage.controls.heaviest', 'collage.controls.lightest', 'collage.controls.trueSize', 'collage.controls.sci',
   'filters.label', 'filters.clear', 'filters.timeline.sumFrom', 'filters.timeline.sumTo',
   'import.add', 'import.replace', 'import.remove', 'import.inat.refresh', 'import.inat.cancel', 'tick.button',

@@ -136,6 +136,7 @@ export const EN_UI = {
       view: 'View',
       collage: 'Collage',
       list: 'List',
+      tree: 'Tree',
       heaviestFirst: 'Heaviest first',
       lightestFirst: 'Lightest first',
       heaviest: 'Heaviest',
@@ -166,6 +167,25 @@ export const EN_UI = {
       noneYour: 'No bird on your list matches “{q}”.',
       noneThis: 'No bird on this list matches “{q}”.',
       matches: { one: '{n} match', other: '{n} matches' },
+    },
+    /** The Tree view (TreeView.tsx): AvesData's tree at three levels (families, genera, species). {tree}, {taxonomy}
+     *  and {year} are data ("AvesData v1.7", "Clements 2025", "2026"); <src> links the repository, <lic> the licence. */
+    tree: {
+      loading: 'Loading the tree',
+      failed: "The tree didn't load. Open Tree again to try once more.",
+      nav: 'Tree levels',
+      all: 'All families',
+      tips: 'Tips of the tree, top to bottom',
+      axis: 'Million years ago (estimates)',
+      onList: '{n} of {total} on the list',
+      part: 'part {i} of {n}',
+      onListOne: 'on the list',
+      notOnList: 'not on the list',
+      split: '{name} is not one clade in this tree, so this drawing shows its species alone.',
+      oldest: 'Oldest lineage on this list: {name}, which split from its closest relatives about {age} million years ago (an estimate).',
+      unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
+      allMapped: 'Every bird on this list has a place in the tree.',
+      credit: 'Tree: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, matched to the eBird {year} taxonomy, which gives the families, genera and totals.',
     },
     /** The close buttons' aria-label (the welcome, sheets, the Places and Time sheet). */
     close: 'Close',

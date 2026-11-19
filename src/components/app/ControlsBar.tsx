@@ -8,14 +8,14 @@
 // under 330px and 310px everything tightens, so row one never breaks between 280 and 1200px of bar. On phones (600px of screen and under, as /lifelist) the short form holds whatever the width: row
 // one is the icons, the two switches (or "Heaviest") and the magnifier; row two the Filters button.
 import { useCallback, useRef, useState, type ReactNode } from 'react'
-import { ArrowDownIcon, CollageIcon, ListIcon } from '@/components/collage/icons'
+import { ArrowDownIcon, CollageIcon, ListIcon, TreeIcon } from '@/components/collage/icons'
 import { useI18n } from '@/i18n/I18nProvider'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
 import { DockSearchField, SearchButton, type DockSearchProps } from './DockSearch'
 
 type Props = {
-  view: 'collage' | 'list'
-  onView: (v: 'collage' | 'list') => void
+  view: 'collage' | 'list' | 'tree'
+  onView: (v: 'collage' | 'list' | 'tree') => void
   trueSize: boolean
   onTrueSize: (on: boolean) => void
   lightFirst: boolean
@@ -60,10 +60,10 @@ export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, on
     <div ref={wrap} className="eb-dockwrap">
       <div className="eb-dock" data-finding={finding || undefined}>
         <div className="eb-dock-tabs" role="group" aria-label={c.view} inert={finding}>
-          {(['collage', 'list'] as const).map((v) => (
-            <button key={v} type="button" className="eb-dock-tab" aria-pressed={view === v} aria-label={v === 'collage' ? c.collage : c.list} onClick={() => onView(v)}>
-              {v === 'collage' ? <CollageIcon /> : <ListIcon />}
-              <span>{v === 'collage' ? c.collage : c.list}</span>
+          {(['collage', 'list', 'tree'] as const).map((v) => (
+            <button key={v} type="button" className="eb-dock-tab" aria-pressed={view === v} aria-label={c[v]} onClick={() => onView(v)}>
+              {v === 'collage' ? <CollageIcon /> : v === 'list' ? <ListIcon /> : <TreeIcon />}
+              <span>{c[v]}</span>
             </button>
           ))}
         </div>
@@ -81,7 +81,7 @@ export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, on
               </span>
               <ArrowDownIcon up={lightFirst} />
             </button>
-          ) : (
+          ) : view === 'collage' && (
             <button
               type="button"
               role="switch"

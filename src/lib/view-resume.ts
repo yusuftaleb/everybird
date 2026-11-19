@@ -17,7 +17,7 @@ const VERSION = 1
 export type CollageResume = {
   filter: Filter
   mode: 'even' | 'true'
-  view: 'collage' | 'list'
+  view: 'collage' | 'list' | 'tree'
   massOrder: 'heaviest' | 'lightest'
   sci: boolean
 }
@@ -67,7 +67,7 @@ function slicesOf(v: unknown): Slices {
   const c = (r.collage ?? undefined) as Record<string, unknown> | undefined
   if (c && typeof c === 'object') {
     const mode = one(c.mode, ['even', 'true'] as const)
-    const view = one(c.view, ['collage', 'list'] as const)
+    const view = one(c.view, ['collage', 'list', 'tree'] as const)
     const massOrder = one(c.massOrder, ['heaviest', 'lightest'] as const)
     const sci = bool(c.sci)
     if (mode && view && massOrder && sci !== undefined) out.collage = { filter: filterOf(c.filter), mode, view, massOrder, sci }
