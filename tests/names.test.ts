@@ -46,6 +46,13 @@ describe('pickNameLocale', () => {
     expect(pickNameLocale('fr', ['fr'], 'CA')).toBe('fr')
     expect(pickNameLocale('fr', ['fr'], 'BR')).toBe('fr_FR')
   })
+  it('German has one set for Germany, Austria and Switzerland', () => {
+    expect(pickNameLocale('de', ['de-CH'])).toBe('de')
+    expect(pickNameLocale('de', ['de-AT'], 'FR')).toBe('de')
+    expect(pickNameLocale('de', ['de'])).toBe('de')
+    // Switzerland's one set is German's: a French reader there gets the French base.
+    expect(pickNameLocale('fr', ['fr-CH'], 'CH')).toBe('fr_FR')
+  })
   it('reads the first browser tag in the UI language', () => {
     expect(pickNameLocale('es', ['en-US', 'es-MX', 'es-ES'])).toBe('es_MX')
   })

@@ -8,6 +8,7 @@ import { es } from "../src/i18n/messages/es";
 import { nl } from "../src/i18n/messages/nl";
 import { pl } from "../src/i18n/messages/pl";
 import { fr } from "../src/i18n/messages/fr";
+import { de } from "../src/i18n/messages/de";
 import { pt } from "../src/i18n/messages/pt";
 
 // Every flow end to end, in every engine: each way in (eBird life list, MyEBirdData, iNaturalist with a mocked API, tick
@@ -392,7 +393,7 @@ test.describe("on a touch screen (pointer: coarse)", () => {
   });
 });
 
-const MESSAGES = { es, pt, nl, pl, fr } as const;
+const MESSAGES = { es, pt, nl, pl, fr, de } as const;
 
 // A short pass per language (Spanish, Portuguese, Dutch, Polish): the sample collage draws and Settings offers each source in
 // the language's words. For manual runs.

@@ -11,6 +11,7 @@ import { es } from '../src/i18n/messages/es'
 import { nl } from '../src/i18n/messages/nl'
 import { pl } from '../src/i18n/messages/pl'
 import { fr } from '../src/i18n/messages/fr'
+import { de } from '../src/i18n/messages/de'
 import { pt } from '../src/i18n/messages/pt'
 import { decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
 import { packBest, packFrame, type PackBird, type PackResult } from '../src/lib/layout/pack'
@@ -90,7 +91,7 @@ describe('count text metrics', () => {
 
 // The geometry (the hole, countScale) is the en-US text and an 8-character label in every language; what is drawn is
 // the language's number and label. Drawn text must never be wider than the geometry's.
-const LANGS = { en, es, pt, nl, pl, fr }
+const LANGS = { en, es, pt, nl, pl, fr, de }
 describe('the count in every language (one hole for all)', () => {
   it('every language draws within the geometry', () => {
     for (const [lang, m] of Object.entries(LANGS)) {

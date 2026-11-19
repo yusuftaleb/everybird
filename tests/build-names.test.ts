@@ -94,8 +94,8 @@ describe('names fallback chains', () => {
 
 describe('name locales and pinned source data', () => {
   it('includes every planned locale and maps regions and family languages', () => {
-    expect(NAME_LOCALES).toEqual(['es', 'es_MX', 'es_EC', 'es_PY', 'es_UY', 'es_BO', 'es_PE', 'es_CR', 'es_VE', 'es_AR', 'es_PA', 'es_HN', 'es_CL', 'es_CU', 'es_PR', 'es_DO', 'pt_BR', 'pt_PT', 'nl', 'pl', 'fr_FR', 'fr'])
-    expect(REGION_LOCALE).toMatchObject({ ES: 'es', MX: 'es_MX', PT: 'pt_PT', BR: 'pt_BR', NL: 'nl', BE: 'nl', PL: 'pl', FR: 'fr_FR', CA: 'fr' })
+    expect(NAME_LOCALES).toEqual(['es', 'es_MX', 'es_EC', 'es_PY', 'es_UY', 'es_BO', 'es_PE', 'es_CR', 'es_VE', 'es_AR', 'es_PA', 'es_HN', 'es_CL', 'es_CU', 'es_PR', 'es_DO', 'pt_BR', 'pt_PT', 'nl', 'pl', 'fr_FR', 'fr', 'de'])
+    expect(REGION_LOCALE).toMatchObject({ ES: 'es', MX: 'es_MX', PT: 'pt_PT', BR: 'pt_BR', NL: 'nl', BE: 'nl', PL: 'pl', FR: 'fr_FR', CA: 'fr', DE: 'de', AT: 'de', CH: 'de' })
     for (const l of NAME_LOCALES) {
       expect(NAME_BASE[l]).toBe(l.startsWith('es') ? 'es' : l.startsWith('pt') ? 'pt_BR' : l.startsWith('fr') ? 'fr_FR' : l)
       expect(familyLang(l)).toBe(l.slice(0, 2))
@@ -180,10 +180,10 @@ describe('fetching names sources', () => {
     await expect(fetchBytes('https://example.test/b', { fetch: down, sleep: noSleep })).rejects.toThrow(/example\.test\/b -> offline \(after 3 tries\)/)
   })
 
-  it('--names-only writes the taxonomy, 22 name sets, 6 group sets and the manifest', async () => {
+  it('--names-only writes the taxonomy, 23 name sets, 7 group sets and the manifest', async () => {
     const calls: string[] = []
     expect(await fetchNamesOnly(root, ['--names-only'], { fetch: ebird(undefined, calls), sleep: noSleep })).toBe('2026')
-    expect(calls).toHaveLength(1 + NAME_LOCALES.length + 6)
+    expect(calls).toHaveLength(1 + NAME_LOCALES.length + 7)
     for (const l of NAME_LOCALES) expect(existsSync(join(root, `data/raw/ebird-taxonomy.${l}.json`))).toBe(true)
     const manifest = JSON.parse(readFileSync(join(root, 'data/raw/manifest.json'), 'utf8'))
     expect(manifest.sources.map((s: { name: string }) => s.name)).toEqual(expect.arrayContaining(['kept', 'ebird-taxonomy', 'ebird-taxonomy.es_AR', 'ebird-groups.nl']))
@@ -296,7 +296,7 @@ describe('committed names files', () => {
         else if (name !== normalizeName(name)) bad.push(`${l}: ${code} is not normalised`)
         else if (name !== capFirst(name)) bad.push(`${l}: ${code} starts in lower case`)
       }
-      if (l === 'es' || l === 'nl' || l === 'pl' || l.startsWith('fr')) expect(Object.keys(file.names).length, l).toBeGreaterThanOrEqual(11100)
+      if (l === 'es' || l === 'nl' || l === 'pl' || l.startsWith('fr') || l === 'de') expect(Object.keys(file.names).length, l).toBeGreaterThanOrEqual(11100)
     }
     expect(bad).toEqual([])
     for (const l of NAME_BASES) expect(gzipSync(read(`names.${l}.v1.json`), { level: 9 }).length, l).toBeLessThan(120_000)
@@ -310,6 +310,7 @@ describe('committed names files', () => {
     // French: France's names in fr_FR, eBird's North American French in fr.
     expect(files.get('fr_FR').names.comloo).toBe('Plongeon imbrin')
     expect(files.get('fr').names.comloo).toBe('Plongeon huard')
+    expect(files.get('de').names.comloo).toBe('Eistaucher')
   })
 
   it('every regional Spanish file has names of its own (a locale eBird ignored would equal es)', () => {
@@ -333,7 +334,8 @@ describe('committed names files', () => {
         if (/\p{L}+idae\b/u.test(label)) bad.push(`${lang}: ${f} "${label}" is scientific`)
         if (label !== capFirst(label)) bad.push(`${lang}: ${f} "${label}" starts in lower case`)
         // Words after the first, split at spaces and hyphens ("Pseudo-Babbelaars"); "IJs- en …" starts the label.
-        for (const word of label.split(/[\s-]+/).slice(1)) {
+        // German capitalises every noun, so its sentence case allows a capital anywhere.
+        for (const word of lang === 'de' ? [] : label.split(/[\s-]+/).slice(1)) {
           if (/^\p{Lu}/u.test(word) && !PROPER.includes(word.replace(/[,'’]+$/, ''))) bad.push(`${lang}: ${f} "${label}" capitalises ${word}`)
         }
       }
