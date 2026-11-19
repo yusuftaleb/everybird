@@ -67,6 +67,18 @@ describe('parseEbirdLifeList', () => {
     expect(r.unmatched).toEqual([])
     expect(r.notCountable).toEqual(['yerwar', 'rupgri', 'rocpig'])
   })
+  it('collects notCountable only from Countable exactly 0 (blank or other values are skipped, nothing more)', () => {
+    const csv = [
+      'Row #,Taxon Order,Category,Common Name,Scientific Name,Count,Location,S/P,Date,LocID,SubID,Exotic,Countable',
+      '1,34401,species,Yellow-rumped Warbler,Setophaga coronata,1,Test Park,CA-BC,06 Sep 2026,L1,S1,,',
+      '2,1870,species,Rock Pigeon,Columba livia,1,Test Park,CA-BC,07 Sep 2026,L1,S2,,x',
+      '3,600,species,Rüppell\'s Griffon,Gyps rueppelli,1,Test Park,ES-AN,20 May 2026,L4,S4,Escapee,0',
+    ].join('\n')
+    const r = parseEbirdLifeList(csv, t)
+    expect(r.records).toEqual([])
+    expect(r.skipped).toBe(3)
+    expect(r.notCountable).toEqual(['rupgri'])
+  })
   it('omits a species from notCountable when another row has Countable=1', () => {
     const csv = [
       'Row #,Taxon Order,Category,Common Name,Scientific Name,Count,Location,S/P,Date,LocID,SubID,Exotic,Countable',
@@ -89,5 +101,10 @@ describe('detectFile', () => {
     expect(detectFile(mine)).toBe('ebird-mydata')
     expect(detectFile('﻿' + mine)).toBe('ebird-mydata')
     expect(detectFile('a,b,c')).toBe('unknown')
+  })
+  it('detects every life-list fixture, but not a spreadsheet that only has a Countable column', () => {
+    for (const n of ['lifelist-basic', 'lifelist-edge', 'lifelist-not-countable', 'lifelist-spanish']) expect(detectFile(fx(n).split(/\r?\n/)[0])).toBe('ebird-lifelist')
+    expect(detectFile('Common Name,Scientific Name,Countable')).toBe('unknown')
+    expect(detectFile('Common Name,Scientific Name,Date,Countable')).toBe('unknown')
   })
 })

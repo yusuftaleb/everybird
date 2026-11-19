@@ -9,7 +9,7 @@ import { DamagedXlsxError } from '@/lib/import/xlsx'
 import { buildList } from '@/lib/list/build-list'
 import { fromJson, toCsv, toJson } from '@/lib/list/export'
 import { buildSeen } from '@/lib/list/seen'
-import { sourceCounts, summaryLine } from '@/lib/list/source-counts'
+import { slotConnected, sourceCounts, summaryLine } from '@/lib/list/source-counts'
 import { emptySaved, replaceSource } from '@/lib/list/storage'
 import { buildSpeciesIndex, buildTaxonomyIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow, TaxonRow } from '@/lib/species/types'
@@ -221,6 +221,22 @@ describe('spreadsheet import', () => {
 
     const csv = toCsv(list, species, regions, seen)
     expect(csv).toContain('Egypt; Morocco; Spain')
+  })
+
+  it('reads a spreadsheet with a Countable column as a spreadsheet, never as an eBird life list', () => {
+    const csv = 'Common Name,Scientific Name,Countable\nNorthern Flicker,Colaptes auratus,x\nMallard,Anas platyrhynchos,\n'
+    expect(detectFile(csv.split('\n')[0], 'ticks.csv')).toBe('unknown') // the spreadsheet row then reads it as text
+    const res = parseSheetText(csv, taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(res.records.map((r) => r.code)).toEqual(['norfli'])
+    expect(res.notCountable).toBeUndefined()
+  })
+
+  it('shows a slot that holds only not-countable species as connected, so it can be removed', () => {
+    const saved = replaceSource(emptySaved(), 'ebird-list', { records: [], unmatched: [], skipped: 2, rows: 2, notCountable: ['norfli', 'mallar3'] })
+    expect(slotConnected(saved, 'ebird-list')).toBe(true)
+    expect(slotConnected(saved, 'ebird')).toBe(false)
+    expect(slotConnected(emptySaved(), 'ebird-list')).toBe(false)
   })
 
   it('dispatches xlsx and sheet-text through the parse worker handler', async () => {

@@ -26,6 +26,12 @@ export function slottedRecords(saved: Saved): { slot: Slot; record: SourceRecord
   return out
 }
 
+/** Whether a source's slot is on the list (Settings shows it connected, with Remove): it holds records, unmatched rows
+ *  or species it marks not countable (a life list of only escapees still hides them, so it must be removable). */
+export function slotConnected(saved: Pick<Saved, 'records' | 'unmatched' | 'notCountable'>, slot: Slot): boolean {
+  return (saved.records[slot]?.length ?? 0) > 0 || (saved.notCountable?.[slot]?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === slot)
+}
+
 /** The species any source marks not countable (Saved.notCountable, every slot together). */
 export function notCountedCodes(saved: Pick<Saved, 'notCountable'>): Set<string> {
   return new Set(Object.values(saved.notCountable ?? {}).flatMap((codes) => codes ?? []))

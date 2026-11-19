@@ -30,7 +30,8 @@ describe('Scythebill detection', () => {
     expect(detectFile(ebirdRecord)).toBe('scythebill-ebird')
     expect(slotOfKind('scythebill-ebird')).toBe('scythebill')
 
-    expect(detectFile('Common Name,Scientific Name,Countable,Date\nMallard,Anas platyrhynchos,1,1 Jan 2024')).toBe('ebird-lifelist')
+    expect(detectFile('Row #,Taxon Order,Category,Common Name,Scientific Name,Count,Location,S/P,Date,LocID,SubID,Exotic,Countable')).toBe('ebird-lifelist')
+    expect(detectFile('Common Name,Scientific Name,Countable,Date\nMallard,Anas platyrhynchos,1,1 Jan 2024')).toBe('unknown')
     expect(detectFile('Submission ID,Common Name,Scientific Name,Date\nS1,Mallard,Anas platyrhynchos,2024-01-01')).toBe('ebird-mydata')
     expect(detectFile('scientific name,species type,date first observed\nAnas platyrhynchos,species,2024-01-01')).toBe('obsorg-species')
     expect(detectFile('scientific name,species type,country,date\nAnas platyrhynchos,species,Netherlands,2024-01-01')).toBe('obsorg-observations')
