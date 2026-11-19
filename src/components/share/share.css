@@ -226,6 +226,8 @@
 .eb-share-sizes { display: flex; flex-wrap: wrap; }
 .eb-share-sizes .eb-seg-btn { flex: 1 1 0; min-width: 0; padding: 0 8px; }
 .eb-share-sizes-break { flex-basis: 100%; height: 0; margin-block: -2px; }
+.eb-share-count-size { display: flex; flex-wrap: wrap; }
+.eb-share-count-size .eb-seg-btn { flex: 1 1 auto; min-width: 0; padding: 0 10px; }
 /* While a poster is made: a thin bar (Hairline track, Accent fill) with the mono percentage and Cancel, on its own row
    of the actions. */
 .eb-share-progress { display: flex; flex: 1 1 auto; align-items: center; gap: 12px; min-width: 0; }

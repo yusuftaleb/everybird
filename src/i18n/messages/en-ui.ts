@@ -434,6 +434,7 @@ export const EN_UI = {
     formatName: '{name}, {ratio}',
     /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
     orientation: { group: 'Orientation', vertical: 'Vertical', horizontal: 'Horizontal' },
+    countSize: { label: 'Count size', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide' },
     /** The preview image's alt text, per format. */
     preview: { story: 'Preview of the story image', post: 'Preview of the post image', square: 'Preview of the square image', desktop: 'Preview of the desktop image', wide: 'Preview of the wide post image' },
     failed: "Couldn't make the image.",

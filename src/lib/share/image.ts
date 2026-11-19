@@ -37,7 +37,7 @@ import { formatMonth } from '@/i18n/format'
 import { PRINT_DESIGN_W, printDesign, printPackH, type PrintSize } from '@/lib/share/print'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
 import type { Box } from '@/lib/layout/pack'
-import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_CAP_ACCENT, MONO_LINE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
+import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
 import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
@@ -251,7 +251,9 @@ export type CardLayout = {
   /** The largest sticker's long side in px (maxTileSide's cap; 440, the desktop 512). */
   maxSide: number
 }
-export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; target?: number }
+export type CountSize = 'small' | 'medium' | 'large' | 'hide'
+
+export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; target?: number; countSize?: CountSize }
 
 /**
  * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: the shown count over "SPECIES" (a filtered
@@ -262,14 +264,18 @@ export type CardContent = { name: boolean; filter: boolean; latest: boolean; cou
  * accented capital's ink (MONO_CAP_ACCENT, pt's "ESPÉCIES") into the gap, and holds COUNT_LABEL_CHARS characters; the
  * column's height, and so where the text is drawn, stays the caps'.
  */
-export function countLayout(format: CardFormat | number, count: number, collageW: number, target?: number): CountLayout {
-  const max = typeof format === 'number' ? format : COUNT_MAX[format]
+export function countLayout(format: CardFormat | number, count: number, collageW: number, target?: number, countSize: CountSize = 'medium'): CountLayout {
+  if (countSize === 'hide') return { number: '', label: '', size: 0, labelSize: 0, gap: 0, hole: NO_HOLE }
+  const baseMax = typeof format === 'number' ? format : COUNT_MAX[format]
+  const max = countSize === 'small' ? baseMax * 0.72 : countSize === 'large' ? baseMax * 1.28 : baseMax
+  const countW = countSize === 'small' ? COUNT_W * 0.72 : countSize === 'large' ? Math.min(0.68, COUNT_W * 1.2) : COUNT_W
   const number = target !== undefined ? `${countText(count)} / ${countText(target)}` : countText(count)
   const label = LABEL
   const em = numberEm(number)
-  const size = Math.round(Math.min(max, (COUNT_W * collageW) / em))
+  const size = Math.round(Math.min(max, (countW * collageW) / em))
   // The label: a fifth of the number up to 22px, never under 18px on the share images (a long count's number is smaller).
-  const labelSize = Math.round(Math.max(Math.min(22, size * 0.2), Math.min(28, size * 0.14), typeof format === 'number' ? 0 : 18))
+  const labelMin = typeof format === 'number' ? 0 : countSize === 'small' ? 14 : 18
+  const labelSize = Math.round(Math.max(Math.min(22, size * 0.2), Math.min(28, size * 0.14), labelMin))
   const gap = Math.round(size * 0.14)
   const drop = COMMA_DROP * size
   const accent = (MONO_CAP_ACCENT - MONO_CAP) * labelSize
@@ -327,7 +333,7 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   const top = headBottom === undefined ? T : headBottom + G.head
   const bottom = (latest && !oneLine ? latest.y : rule.y) - G.collage
   const collage = { x: X, y: top, w: W - 2 * X, h: bottom - top }
-  return { W, H, name, filter, collage, count: countLayout(format, c.count, collage.w, c.target), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
+  return { W, H, name, filter, collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
 }
 
 /**
@@ -633,6 +639,7 @@ export type ShareImageOpts = {
   /** A bird's name to draw (the latest lifer's); default its English name. The dialog passes the display name. */
   nameOf?: (row: SpeciesRow) => string
   goal?: { year: number; target?: number; basis: 'seen' | 'lifer' }
+  countSize?: CountSize
   signal?: AbortSignal
 }
 
@@ -750,7 +757,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const label = opts.filterLabel?.trim() || goalLabel || undefined
   const name = opts.name?.trim() || undefined
   const footerLine = withStamp(FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
-  const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, target: goal?.target }
+  const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize }
   const L = cardLayout(format, content, print ? printDesign(opts.printSize ?? 'A2', format === 'printLandscape') : undefined)
   // Packed for the format's own frame (the print: at its shape's printPackH, one pack for every A size, as imagePackSpec).
   const pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize), signal))
@@ -788,8 +795,8 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const g = Math.min(fit.grow, 1.3)
   const K = { ...L.count, size: Math.round(L.count.size * g), labelSize: Math.round(L.count.labelSize * Math.min(g, 1.15)), gap: Math.round(L.count.gap * g) }
   // What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's.
-  const countNum = goal?.target !== undefined ? `${countDisplay(content.count, strings.num)} / ${countDisplay(goal.target, strings.num)}` : countDisplay(content.count, strings.num)
-  const countLabel = strings.count.label.toUpperCase()
+  const countNum = K.size > 0 ? (goal?.target !== undefined ? `${countDisplay(content.count, strings.num)} / ${countDisplay(goal.target, strings.num)}` : countDisplay(content.count, strings.num)) : ''
+  const countLabel = K.size > 0 ? strings.count.label.toUpperCase() : ''
   return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, footerLine, latest, name, label, fonts: cardFonts() }
 }
 
@@ -809,7 +816,7 @@ function textMeasurer(): (font: string, px: number, text: string, em: number) =>
 function cardFontsReady(d: CardDraft): Promise<void> {
   const { L, fonts: font, K, name, label, latest, footerLine, countNum, countLabel } = d
   return fontsReady(
-    [font.name(L.name?.size ?? 60), font.filter(34), font.count(K.size), font.mono(K.labelSize), font.lifer(34), font.brand(30), font.footer(20)],
+    [font.name(L.name?.size ?? 60), font.filter(34), ...(K.size > 0 ? [font.count(K.size), font.mono(K.labelSize)] : []), font.lifer(34), font.brand(30), font.footer(20)],
     `${name ?? ''}${label ?? ''}${countNum}${countLabel}${latest ? latest.label.toUpperCase() + latest.name : ''}Everybird${footerLine}`,
   )
 }
@@ -899,26 +906,28 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
   const X0 = L.collage.x, maxW = L.collage.w
   const track = (em: number, px: number) => { if ('letterSpacing' in ctx) ctx.letterSpacing = `${(em * px).toFixed(2)}px` }
 
-  // The count in the middle: the number (Cabinet Grotesk 700, -0.02em) over the mono label, centred as one block on
-  // the collage's centre (the hole), measured from the digits' real height.
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'alphabetic'
-  ctx.font = font.count(K.size)
-  track(-0.02, K.size)
-  const digitH = ctx.measureText('0').actualBoundingBoxAscent || 0.6875 * K.size
-  ctx.font = font.mono(K.labelSize)
-  track(0.06, K.labelSize)
-  const capH = ctx.measureText('S').actualBoundingBoxAscent || 0.73 * K.labelSize
-  const blockTop = fit.cy - (digitH + K.gap + capH) / 2
-  ctx.font = font.count(K.size)
-  track(-0.02, K.size)
-  ctx.fillStyle = C.ink
-  ctx.fillText(countNum, fit.cx, blockTop + digitH)
-  ctx.font = font.mono(K.labelSize)
-  track(0.06, K.labelSize)
-  ctx.fillStyle = C.muted
-  ctx.fillText(countLabel, fit.cx, blockTop + digitH + K.gap + capH)
-  track(0, 0)
+  if (K.size > 0) {
+    // The count in the middle: the number (Cabinet Grotesk 700, -0.02em) over the mono label, centred as one block on
+    // the collage's centre (the hole), measured from the digits' real height.
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'alphabetic'
+    ctx.font = font.count(K.size)
+    track(-0.02, K.size)
+    const digitH = ctx.measureText('0').actualBoundingBoxAscent || 0.6875 * K.size
+    ctx.font = font.mono(K.labelSize)
+    track(0.06, K.labelSize)
+    const capH = ctx.measureText('S').actualBoundingBoxAscent || 0.73 * K.labelSize
+    const blockTop = fit.cy - (digitH + K.gap + capH) / 2
+    ctx.font = font.count(K.size)
+    track(-0.02, K.size)
+    ctx.fillStyle = C.ink
+    ctx.fillText(countNum, fit.cx, blockTop + digitH)
+    ctx.font = font.mono(K.labelSize)
+    track(0.06, K.labelSize)
+    ctx.fillStyle = C.muted
+    ctx.fillText(countLabel, fit.cx, blockTop + digitH + K.gap + capH)
+    track(0, 0)
+  }
 
   // Text.
   ctx.textBaseline = 'top'

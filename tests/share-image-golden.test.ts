@@ -132,4 +132,16 @@ describe('marked lifer rings on share and print images', () => {
     expect(log.filter((l) => l.startsWith('roundRect('))).toHaveLength(1)
     expect(log).toContain('roundRect(5, 98, 50, 50, 10)')
   })
+
+  it('draws no count text when countSize is hide', async () => {
+    const logs = installStubs()
+    image.clearStickerCache()
+    const canvas = await image.drawShareImage({
+      format: 'story', entries, species, pack, now: NOW, theme: 'light', countSize: 'hide', strings: en.ui,
+    })
+    const log = logs.get(canvas as unknown as object)!
+    expect(log.some((l) => l.startsWith('fillText("14",'))).toBe(false)
+    expect(log.some((l) => l.startsWith('fillText("SPECIES",'))).toBe(false)
+    expect(log.some((l) => l.startsWith('fillText("Everybird",'))).toBe(true)
+  })
 })

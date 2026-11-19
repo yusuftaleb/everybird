@@ -36,7 +36,7 @@ import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import {
   NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, clearStickerCache, filterLabel as labelFor, imagePackSpec, imageShape, isPrint, packForImage, renderShareImage,
-  type CardFormat, type FormatSlot, type ImagePack, type Orientation,
+  type CardFormat, type CountSize, type FormatSlot, type ImagePack, type Orientation,
 } from '@/lib/share/image'
 import type { ShareLevel } from '@/lib/share/link'
 import type { makeShareLink as MakeShareLink } from '@/lib/share/make-link'
@@ -61,6 +61,7 @@ const FORMATS: { id: FormatSlot; hint: Record<Orientation, string>; icon: Record
   { id: 'square', hint: { vertical: '1:1', horizontal: '1:1' }, icon: { vertical: Square, horizontal: Square } },
 ]
 const ORIENTATIONS: Orientation[] = ['vertical', 'horizontal']
+const COUNT_SIZES: CountSize[] = ['small', 'medium', 'large', 'hide']
 type LinkResult = ReturnType<typeof MakeShareLink>
 const loadLinkModule = () => import('@/lib/share/make-link')
 type PosterModule = typeof import('@/lib/share/poster')
@@ -77,6 +78,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const titleId = useId()
   const nameId = useId()
   const optionalId = useId()
+  const countSizeId = useId()
   const yearId = useId()
   const targetId = useId()
   useEscapeCapture(onClose)
@@ -106,6 +108,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const wideLayout = landscape && !squareShare
   const lastWide = useRef(wideLayout)
   const [name, setName] = useState(saved.name ?? '') // starts from Settings > Name your collage
+  const [countSize, setCountSize] = useState<CountSize>('medium')
   const [showLatest, setShowLatest] = useState(true)
   // The look of everything the dialog makes: the app's theme when the dialog opens, then this dialog's own choice.
   const [dark, setDark] = useState(() => currentTheme() === 'dark')
@@ -153,11 +156,11 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const packFor = useMemo(() => {
     const packs = new Map<string, Promise<ImagePack>>()
     // Not keyed by the latest lifer switch: imagePackSpec packs for the with-row frame, so on and off share one pack.
-    return (f: CardFormat, named: boolean, printSize: PrintSize) => {
-      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}`
+    return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize) => {
+      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}`
       let p = packs.get(k)
       if (!p) {
-        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target }, printSize)
+        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize)
         p = packForImage(cardEntries, species, spec, life.current?.signal)
         packs.set(k, p)
         p.catch(() => packs.delete(k))
@@ -183,7 +186,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const first = useRef(true)
   const trimmed = name.trim()
   const goalKey = cardGoal ? `by:${cardGoal.year}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
-  const key = `${print ? `print|${size}|${landscape}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}`
+  const key = `${print ? `print|${size}|${landscape}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   // What the render depends on: in print mode not the share format, so switching it there never starts a needless render.
@@ -197,10 +200,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       const t = setTimeout(resolve, delay)
       cancel = () => { clearTimeout(t); reject(abortError('superseded')) }
     })
-      .then(() => packFor(cardFormat, !!trimmed, size))
+      .then(() => packFor(cardFormat, !!trimmed, size, countSize))
       .then((pack) => renderShareImage({
         format: cardFormat, ...(print ? { printSize: size } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
-        theme, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, strings: t, nameOf: displayName, signal: life.current?.signal,
+        theme, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, strings: t, nameOf: displayName, signal: life.current?.signal,
       }))
     current.current = job
     job.then(
@@ -229,7 +232,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       },
     )
     return () => { live = false; cancel() }
-  }, [key, print, size, cardFormat, trimmed, theme, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, t])
+  }, [key, print, size, cardFormat, trimmed, theme, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -252,7 +255,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
 
   // The poster: one make at a time, for `posterKey`. A new key, leaving print mode or closing the dialog cancels the
   // make and drops the poster (its encoder ends with it).
-  const posterKey = `print|${size}|${landscape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${fk}|${goalKey}`
+  const posterKey = `print|${size}|${landscape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${fk}|${goalKey}|${countSize}`
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   const makeCtl = useRef<AbortController | null>(null)
@@ -310,10 +313,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     focusNext.current = 'cancel'
     try {
       const mod = await (posterModule.current ?? loadPoster())
-      const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size)
+      const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size, countSize)
       if (ctl.signal.aborted) return
       const p = await mod.makePoster(
-        { size, landscape, entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, theme, strings: t, nameOf: displayName, signal: ctl.signal },
+        { size, landscape, entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, theme, strings: t, nameOf: displayName, signal: ctl.signal },
         (done, total) => { if (!ctl.signal.aborted) setMaking({ key: forKey, done, total }) },
       )
       if (ctl.signal.aborted) { p.dispose(); return }
@@ -675,6 +678,23 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                       <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
                     </button>
                   )}
+                </div>
+
+                <div className="eb-share-field">
+                  <span id={countSizeId} className="eb-share-label">{t.share.countSize.label}</span>
+                  <div className="eb-seg eb-share-count-size" role="group" aria-labelledby={countSizeId} data-testid="share-count-size">
+                    {COUNT_SIZES.map((cs) => (
+                      <button
+                        key={cs}
+                        type="button"
+                        className="eb-seg-btn"
+                        aria-pressed={countSize === cs}
+                        onClick={() => setCountSize(cs)}
+                      >
+                        <span className="eb-seg-label">{t.share.countSize[cs]}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {bigYearActive && (

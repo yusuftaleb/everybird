@@ -369,6 +369,7 @@ export const nl: Messages = {
       formatName: '{name}, verhouding {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Oriëntatie', vertical: 'Staand', horizontal: 'Liggend' },
+      countSize: { label: 'Grootte van aantal', small: 'Klein', medium: 'Middel', large: 'Groot', hide: 'Verberg' },
       preview: { story: 'Voorbeeld van de verhaalafbeelding', post: 'Voorbeeld van de berichtafbeelding', square: 'Voorbeeld van de vierkante afbeelding', desktop: 'Voorbeeld van de bureaubladafbeelding', wide: 'Voorbeeld van de liggende berichtafbeelding' },
       failed: 'De afbeelding kon niet worden gemaakt.',
       imageFailed: 'De afbeelding kon niet worden gemaakt. Probeer het opnieuw.',
