@@ -363,3 +363,11 @@ describe('German (de)', () => {
     expect(parse('Mysterious Thing', 'de').rest).toBe('Mysterious Thing')
   })
 })
+
+describe('folding ß and œ', () => {
+  it('folds them like accents, so "weissstorch" finds "Weißstorch" and "oedicneme" finds "Œdicnème"', () => {
+    expect(searchKey('Weißstorch')).toBe('weissstorch')
+    expect(searchKey('Œdicnème criard')).toBe('oedicneme criard')
+    expect(searchKey('cœur')).toBe('coeur')
+  })
+})

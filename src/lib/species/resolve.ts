@@ -23,6 +23,11 @@ export function foldName(s: string): string {
     // Polish ł has no decomposition, so NFD leaves it whole: "łabędź" must fold to "labedz" like every other accent.
     .replace(/ł/g, 'l')
     .replace(/Ł/g, 'L')
+    // German ß and French œ don't decompose either: "Weißstorch" folds to "weissstorch", "Œdicnème" to "oedicneme".
+    .replace(/ß/g, 'ss')
+    .replace(/ẞ/g, 'SS')
+    .replace(/œ/g, 'oe')
+    .replace(/Œ/g, 'OE')
     .replace(/[\u2018\u2019]/g, "'")
     .toLowerCase()
     .replace(/\s+/g, ' ')

@@ -608,7 +608,7 @@ export const de: Messages = {
       },
       inat: {
         what: 'deine iNaturalist-Vögel',
-        refresh: 'Aktualisieren',
+        refresh: 'Neu laden',
         refreshLabel: '{user} aus iNaturalist aktualisieren',
         cancel: 'Abbrechen',
         change: 'Benutzernamen ändern',

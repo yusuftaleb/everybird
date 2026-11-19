@@ -8,6 +8,9 @@ import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
 import { pt } from '@/i18n/messages/pt'
+import { pl } from '@/i18n/messages/pl'
+import { fr } from '@/i18n/messages/fr'
+import { de } from '@/i18n/messages/de'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ALLOWED as APP_ALLOWED } from '@/lib/analytics'
 import { holeRects, rectGap, type Hole, type Rect } from '@/lib/layout/count-box'
@@ -166,7 +169,7 @@ describe('the landscape layouts', () => {
 })
 
 describe('the footer’s one line fits in every language', () => {
-  for (const [lang, m] of Object.entries({ en, es, nl, pt })) {
+  for (const [lang, m] of Object.entries({ en, es, nl, pt, pl, fr, de })) {
     it(`${lang}: the credit stays on the wordmark’s line, at 17px or more, clear of the latest row`, async () => {
       const opts = { format: 'desktop' as const, theme: 'light' as const, entries, species, pack: harnessPack, now: NOW, strings: m.ui }
       const card = await prepareCard(opts, IMAGE_SCALE.desktop)
