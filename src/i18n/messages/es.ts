@@ -523,6 +523,10 @@ export const es: Messages = {
           one: '{n} entrada no es una especie: aves identificadas solo hasta un grupo (como “Anas sp.”), identificaciones entre dos especies (como “Aythya marila/affinis”) e híbridos. eBird también las deja fuera de las listas de vida.',
           other: '{n} entradas no son especies: aves identificadas solo hasta un grupo (como “Anas sp.”), identificaciones entre dos especies (como “Aythya marila/affinis”) e híbridos. eBird también las deja fuera de las listas de vida.',
         },
+        notCountable: {
+          one: '{n} especie que eBird marca como no contable, como aves escapadas o introducidas:',
+          other: '{n} especies que eBird marca como no contables, como aves escapadas o introducidas:',
+        },
         unmatched: {
           one: '{n} fila no se pudo reconocer en la taxonomía de eBird de este año.',
           other: '{n} filas no se pudieron reconocer en la taxonomía de eBird de este año.',

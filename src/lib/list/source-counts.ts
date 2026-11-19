@@ -6,10 +6,14 @@ import type { ListEntry, Slot, SourceRecord } from './model'
 import type { Saved } from './storage'
 
 /** Every record the list is built from, with the slot it came from: each slot's records (SLOTS order), then the fixed
- *  unmatched rows (in their own slot). Hand ticks in `edits.added` are not here (buildList adds them as 'manual'). */
+ *  unmatched rows (in their own slot). Hand ticks in `edits.added` are not here (buildList adds them as 'manual').
+ *  Imported records of a species a source marks not countable (`notCountedCodes`) are left out; fixed rows stay. */
 export function slottedRecords(saved: Saved): { slot: Slot; record: SourceRecord }[] {
   const out: { slot: Slot; record: SourceRecord }[] = []
-  for (const slot of SLOTS) for (const record of saved.records[slot] ?? []) out.push({ slot, record })
+  const off = notCountedCodes(saved)
+  for (const slot of SLOTS) {
+    for (const record of saved.records[slot] ?? []) if (slot === 'manual' || !off.has(record.code)) out.push({ slot, record })
+  }
   for (const u of saved.unmatched) {
     const code = saved.edits.fixes[unmatchedKey(u)]
     if (!code) continue
@@ -20,6 +24,11 @@ export function slottedRecords(saved: Saved): { slot: Slot; record: SourceRecord
     out.push({ slot, record })
   }
   return out
+}
+
+/** The species any source marks not countable (Saved.notCountable, every slot together). */
+export function notCountedCodes(saved: Pick<Saved, 'notCountable'>): Set<string> {
+  return new Set(Object.values(saved.notCountable ?? {}).flatMap((codes) => codes ?? []))
 }
 
 /** The source groups the summary compares: a source's export slots count together. */

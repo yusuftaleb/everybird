@@ -41,6 +41,13 @@ describe('json backup', () => {
     expect(fromJson(toJson(good() as never)).skipped).toBeUndefined()
     expect(() => fromJson(JSON.stringify({ ...good(), skipped: { ebird: 'x' } }))).toThrow(/skipped/)
   })
+  it('round-trips notCountable and rejects malformed values', () => {
+    const s = { ...good(), notCountable: { 'ebird-list': ['yerwar', 'rupgri', 'rocpig'] } }
+    expect(fromJson(toJson(s as never)).notCountable).toEqual({ 'ebird-list': ['yerwar', 'rupgri', 'rocpig'] })
+    expect(fromJson(toJson(good() as never)).notCountable).toBeUndefined()
+    expect(() => fromJson(JSON.stringify({ ...good(), notCountable: { bogus: ['yerwar'] } }))).toThrow(/not-countable/)
+    expect(() => fromJson(JSON.stringify({ ...good(), notCountable: { 'ebird-list': [1] } }))).toThrow(/not-countable/)
+  })
   it('fromJson rejects wrong version', () => {
     expect(() => fromJson(JSON.stringify({ ...good(), v: 6 }))).toThrow(/version/i)
   })

@@ -9,6 +9,7 @@ import type { StatusFilterCat } from '@/lib/species/status-filter'
 import type { Regions } from '@/lib/species/types'
 import { filterPlaceKeys, hasPlaces, seenBasis, type Filter } from './filters'
 import { placeName, placeNameLong } from './place-keys'
+import { notCountedCodes } from './source-counts'
 import type { Saved } from './storage'
 import { monthName, rangeLabel, rangeShort } from './timeline'
 
@@ -144,12 +145,14 @@ export type PlacesUnplaced = 'add' | 'plain'
  * Whether some bird on the observation.org life list ('obsorg-list', no places) has no record in any slot carrying a
  * place or seen-here: those birds drop out of any place filter, and the Places panel says so. An observations import
  * (or MyEBirdData, iNaturalist) that places the same birds turns it off for them. Birds the birder removed are off the
- * list and don't count; only records do (a hand tick in `edits.added` places nothing). With the observations on the
- * list (`records.obsorg`), the line has no link ('plain'); else 'add'. Undefined: no line.
+ * list and don't count, and so are species a source marks not countable; only records do (a hand tick in `edits.added`
+ * places nothing). With the observations on the list (`records.obsorg`), the line has no link ('plain'); else 'add'.
+ * Undefined: no line.
  */
-export function placesUnplacedFor(saved: Pick<Saved, 'records'> & { edits?: Pick<Saved['edits'], 'removed'> }): PlacesUnplaced | undefined {
+export function placesUnplacedFor(saved: Pick<Saved, 'records' | 'notCountable'> & { edits?: Pick<Saved['edits'], 'removed'> }): PlacesUnplaced | undefined {
   const removed = new Set(saved.edits?.removed ?? [])
-  const listed = (saved.records['obsorg-list'] ?? []).filter((r) => !removed.has(r.code))
+  const off = notCountedCodes(saved)
+  const listed = (saved.records['obsorg-list'] ?? []).filter((r) => !removed.has(r.code) && !off.has(r.code))
   if (!listed.length) return undefined
   const placed = new Set<string>()
   for (const recs of Object.values(saved.records)) {

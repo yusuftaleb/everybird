@@ -124,6 +124,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             connected={ebirdConnected}
             onRemove={remove}
             saved={saved}
+            species={species}
             counts={counts}
             landedAt={fileLandedAt}
             loaded={{ full: speciesIn(saved.records.ebird), quick: speciesIn(saved.records['ebird-list'] ?? []) }}

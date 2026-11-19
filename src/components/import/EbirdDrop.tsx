@@ -8,6 +8,9 @@ import type { Ui } from '@/i18n/messages/en'
 import { MYEBIRDDATA_PLACES } from '@/lib/list/filter-summary'
 import { countParts, type SourceCounts } from '@/lib/list/source-counts'
 import type { Saved, EbirdDetails } from '@/lib/list/storage'
+import type { SpeciesIndex } from '@/lib/species/load'
+import { nameOfCode } from '@/lib/species/names'
+import { useNames } from '@/lib/species/use-names'
 import { FileDropzone, useFileDrop } from './FileDropzone'
 import { notCounted } from './NotCounted'
 import { ebirdLine, HowTo, SourceRow } from './SourceLine'
@@ -30,6 +33,8 @@ type Props = {
   onRemove?: (slot: EbirdConnected['slot']) => void
   /** For each row's skipped entries. */
   saved?: Saved
+  /** Names the species the life list marks not countable, in the bird-name language. */
+  species?: SpeciesIndex
   /** Each row's species and "only here" (source-counts.ts). */
   counts?: SourceCounts
   /** When the last import landed (use-import-jobs `landed.at`), from any source: the open Add panels fold. */
@@ -66,9 +71,11 @@ const rowsIn = (t: Ui): Row[] => {
  * /settings#add-mydata (the Places panel's note) open MyEBirdData's Add panel and focus its picker (MyEBirdData already
  * on the list: its Replace).
  */
-export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected = [], onRemove, saved, counts, landedAt }: Props) {
+export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected = [], onRemove, saved, species, counts, landedAt }: Props) {
   const id = useId()
   const { t } = useI18n()
+  useNames()
+  const nameOf = species ? (code: string) => nameOfCode(species.byCode, code) : undefined
   const [adding, setAdding] = useState<EbirdConnected['slot'] | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const chooseFull = useRef<HTMLButtonElement>(null)
@@ -132,7 +139,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected
             name={line?.name}
             parts={line ? line.parts : [t.import.notAdded]}
             counts={c && counts ? countParts(counts.rows[r.slot], t) : undefined}
-            skipped={c && saved ? notCounted(saved, [r.slot], t) ?? undefined : undefined}
+            skipped={c && saved ? notCounted(saved, [r.slot], t, nameOf) ?? undefined : undefined}
             what={c ? r.what : undefined}
             disabled={off}
             onRemove={() => onRemove?.(r.slot)}

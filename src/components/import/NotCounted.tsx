@@ -18,17 +18,21 @@ const reopen = () => requestAnimationFrame(() => window.dispatchEvent(new HashCh
  * observation.org row names its entries by scientific name (the local name after it, muted). Its observations export
  * also leaves out the records observation.org marks as escapes or uncertain (`sources.obsorg.excluded`): those are
  * observations, not entries, so they stay out of `n` and are `excluded`; their sentence is in `body`, and SourceRow
- * shows "· N observations not counted why?" when they are all that was left out.
+ * shows "· N observations not counted why?" when they are all that was left out. Species the eBird life list marks not
+ * countable (`notCountable`, part of its skipped count) are named on their own line, by `nameOf` when given.
  */
-export function notCounted(saved: Saved, slots: Slot[], t: Ui): { n: number; excluded?: number; body: ReactNode } | null {
+export function notCounted(saved: Saved, slots: Slot[], t: Ui, nameOf?: (code: string) => string): { n: number; excluded?: number; body: ReactNode } | null {
   const mine = saved.unmatched.filter((u) => slots.includes(u.slot ?? u.source))
   const named = mine.filter((u) => u.reason === 'not-species')
   const unmatched = mine.filter((u) => u.reason === 'no-match').length
-  const groups = slots.reduce((a, s) => a + (saved.skipped?.[s] ?? 0), 0) + named.length
+  const skipped = slots.reduce((a, s) => a + (saved.skipped?.[s] ?? 0), 0)
+  const offList = slots.flatMap((s) => saved.notCountable?.[s] ?? [])
+  const notCountable = offList.length
+  const groups = Math.max(0, skipped - notCountable) + named.length
   const obsorg = slots.some((s) => s === 'obsorg' || s === 'obsorg-list')
   const ex = slots.includes('obsorg') ? saved.sources?.obsorg?.excluded : undefined
   const excluded = (ex?.escape ?? 0) + (ex?.uncertain ?? 0)
-  const n = groups + unmatched
+  const n = groups + notCountable + unmatched
   if (!n && !excluded) return null
   const names: ReactNode[] = obsorg
     ? named.filter((u) => u.sci || u.com).map((u) => (u.sci && u.com ? <>{u.sci}<span className="eb-match-sci"> · {u.com}</span></> : (u.sci ?? u.com)))
@@ -47,6 +51,12 @@ export function notCounted(saved: Saved, slots: Slot[], t: Ui): { n: number; exc
               <p className="eb-note">{plural(t.import.notCounted.groups, groups, { n: formatInt(groups, t.num) })}</p>
             )}
             {names.length > 0 && <ul className="eb-note">{names.map((x, i) => <li key={i}>{x}</li>)}</ul>}
+          </>
+        )}
+        {notCountable > 0 && (
+          <>
+            <p className="eb-note">{plural(t.import.notCounted.notCountable, notCountable, { n: formatInt(notCountable, t.num) })}</p>
+            <ul className="eb-note">{offList.map((code) => <li key={code}>{nameOf ? nameOf(code) : code}</li>)}</ul>
           </>
         )}
         {excludedLine && <p className="eb-note">{excludedLine}</p>}

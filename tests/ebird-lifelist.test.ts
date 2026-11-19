@@ -60,6 +60,24 @@ describe('parseEbirdLifeList', () => {
     expect(parseEbirdLifeList(csv, t).records).toHaveLength(2)
     expect(parseEbirdLifeList('', t)).toEqual({ records: [], unmatched: [], skipped: 0, rows: 0 })
   })
+  it('records Countable=0 species in notCountable and skipped without adding to unmatched', () => {
+    const r = parseEbirdLifeList(fx('lifelist-not-countable'), t)
+    expect(r.records.map((x) => x.code)).toEqual(['norfli', 'gilfli'])
+    expect(r.skipped).toBe(4)
+    expect(r.unmatched).toEqual([])
+    expect(r.notCountable).toEqual(['yerwar', 'rupgri', 'rocpig'])
+  })
+  it('omits a species from notCountable when another row has Countable=1', () => {
+    const csv = [
+      'Row #,Taxon Order,Category,Common Name,Scientific Name,Count,Location,S/P,Date,LocID,SubID,Exotic,Countable',
+      '1,34401,species,Yellow-rumped Warbler,Setophaga coronata,1,Test Park,CA-BC,06 Sep 2026,L1,S1,Escapee,0',
+      '2,34401,species,Yellow-rumped Warbler,Setophaga coronata,1,Test Park,CA-BC,07 Sep 2026,L1,S2,,1',
+    ].join('\n')
+    const r = parseEbirdLifeList(csv, t)
+    expect(r.records.map((x) => x.code)).toEqual(['yerwar'])
+    expect(r.skipped).toBe(1)
+    expect(r.notCountable).toBeUndefined()
+  })
 })
 
 describe('detectFile', () => {

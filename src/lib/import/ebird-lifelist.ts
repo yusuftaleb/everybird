@@ -21,7 +21,8 @@ export function parseEbirdDate(s: string | undefined): string | undefined {
 }
 
 /**
- * Parse eBird's "life list" CSV. Rows with Countable !== '1' are counted in `skipped`. A Countable=1 row
+ * Parse eBird's "life list" CSV. Rows with Countable !== '1' are counted in `skipped`; those naming a species no
+ * countable row has (an escapee, say) give `notCountable`, so other sources can't add it back. A Countable=1 row
  * that does not resolve goes to `unmatched` (never dropped). `Unmatched.row` is the 1-based data row index
  * (first row after the header is 1). A species seen twice keeps its earliest date (and that row's place).
  * `Location` is ignored.
@@ -32,14 +33,17 @@ export function parseEbirdLifeList(csv: string, t: TaxonomyIndex, regions?: Regi
   const edition = vietnamEdition(data.map((r) => (r['S/P'] ?? '').trim().toUpperCase()))
   const byCode = new Map<string, SourceRecord>()
   const unmatched: Unmatched[] = []
+  const notCountable = new Set<string>()
   let skipped = 0
   data.forEach((r, i) => {
-    if ((r['Countable'] ?? '').trim() !== '1') {
-      skipped++
-      return
-    }
     const sci = r['Scientific Name']?.trim() || undefined
     const com = r['Common Name']?.trim() || undefined
+    if ((r['Countable'] ?? '').trim() !== '1') {
+      skipped++
+      const res = resolveName(t, { sci, com }, { suggest: false })
+      if (res.code !== null) notCountable.add(res.code)
+      return
+    }
     const date = parseEbirdDate(r['Date'])
     const sp = (r['S/P'] ?? '').trim().toUpperCase()
     const place: Place | undefined = importEbirdPlace(sp, edition, undefined, regions)
@@ -65,5 +69,8 @@ export function parseEbirdLifeList(csv: string, t: TaxonomyIndex, regions?: Regi
       if (place) prev.place = place
     }
   })
-  return { records: [...byCode.values()], unmatched, skipped, rows: data.length }
+  const out: ImportResult = { records: [...byCode.values()], unmatched, skipped, rows: data.length }
+  const left = [...notCountable].filter((code) => !byCode.has(code))
+  if (left.length) out.notCountable = left
+  return out
 }

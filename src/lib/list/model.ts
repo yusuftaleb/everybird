@@ -53,6 +53,8 @@ export type ImportResult = {
   records: SourceRecord[]
   unmatched: Unmatched[]
   skipped: number /* rows that are not countable species */
+  /** Species the eBird life list marks not countable (escapees and the like): off the list whatever source has them. */
+  notCountable?: string[]
   /** Data rows read from an eBird file (for "Your sources"); not stored with the records. */
   rows?: number
 }
