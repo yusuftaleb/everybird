@@ -12,9 +12,10 @@ export class DamagedXlsxError extends Error {
   }
 }
 
-export function excelSerialToIso(serial: number): string | undefined {
+/** `date1904`: the workbook counts days from 1904-01-01 (old Mac Excel), 1,462 days after the 1900 system's day 0. */
+export function excelSerialToIso(serial: number, date1904 = false): string | undefined {
   if (!Number.isFinite(serial) || serial < 1 || serial > 2958465) return undefined
-  const ms = Date.UTC(1899, 11, 30) + Math.floor(serial) * 86400_000
+  const ms = Date.UTC(1899, 11, 30) + (Math.floor(serial) + (date1904 ? 1462 : 0)) * 86400_000
   const d = new Date(ms)
   if (Number.isNaN(d.getTime())) return undefined
   const y = d.getUTCFullYear()
@@ -106,7 +107,7 @@ function parseSharedStrings(xml: string | undefined): string[] {
   return out
 }
 
-function parseSheetRows(xml: string, shared: string[], dateStyles: Set<number>): string[][] {
+function parseSheetRows(xml: string, shared: string[], dateStyles: Set<number>, date1904: boolean): string[][] {
   const rows: string[][] = []
   const rowRe = /<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g
   let rm: RegExpExecArray | null
@@ -145,7 +146,7 @@ function parseSheetRows(xml: string, shared: string[], dateStyles: Set<number>):
           const s = attr(attrs, 's')
           const styleIdx = s !== undefined ? Number(s) : -1
           if (raw && dateStyles.has(styleIdx) && Number.isFinite(Number(raw))) {
-            val = excelSerialToIso(Number(raw)) ?? raw
+            val = excelSerialToIso(Number(raw), date1904) ?? raw
           } else {
             val = raw
           }
@@ -188,6 +189,9 @@ export function readXlsx(data: Uint8Array | ArrayBuffer): XlsxSheet[] {
   const dateStyles = parseDateStyles(textOf('xl/styles.xml'))
   const workbookXml = textOf('xl/workbook.xml')
   const relsXml = textOf('xl/_rels/workbook.xml.rels')
+  // shortcut: a bare serial in a cell without a date format is read in sheet.ts with the 1900 system; such cells are rare.
+  const prMatch = workbookXml ? /<workbookPr\b([^>]*?)\/?>/.exec(workbookXml) : null
+  const date1904 = !!prMatch && ['1', 'true'].includes(attr(prMatch[1], 'date1904') ?? '')
 
   const rels = new Map<string, string>()
   if (relsXml) {
@@ -233,7 +237,7 @@ export function readXlsx(data: Uint8Array | ArrayBuffer): XlsxSheet[] {
   for (const spec of sheetSpecs) {
     const xml = textOf(spec.path)
     if (!xml) continue
-    sheets.push({ name: spec.name, rows: parseSheetRows(xml, shared, dateStyles) })
+    sheets.push({ name: spec.name, rows: parseSheetRows(xml, shared, dateStyles, date1904) })
   }
   if (!sheets.length) throw new DamagedXlsxError('No readable worksheets found in Excel workbook.')
   return sheets

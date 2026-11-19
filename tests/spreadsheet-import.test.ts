@@ -27,6 +27,7 @@ function makeXlsx(opts: {
   sheets: { name: string; xml: string; state?: string }[]
   sharedStrings?: string[]
   stylesXml?: string
+  workbookPr?: string
 }): Uint8Array {
   const files: Record<string, Uint8Array> = {}
   const sheetEntries = opts.sheets
@@ -35,7 +36,7 @@ function makeXlsx(opts: {
   const relEntries = opts.sheets
     .map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`)
     .join('')
-  files['xl/workbook.xml'] = strToU8(`<?xml version="1.0"?><workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheetEntries}</sheets></workbook>`)
+  files['xl/workbook.xml'] = strToU8(`<?xml version="1.0"?><workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${opts.workbookPr ?? ''}<sheets>${sheetEntries}</sheets></workbook>`)
   files['xl/_rels/workbook.xml.rels'] = strToU8(`<?xml version="1.0"?><Relationships>${relEntries}</Relationships>`)
   if (opts.sharedStrings) {
     const sis = opts.sharedStrings.map((s) => (s.startsWith('<si>') ? s : `<si><t>${s}</t></si>`)).join('')
@@ -257,6 +258,21 @@ describe('spreadsheet import', () => {
   it('gives no-birds for a readable file where no row names a species', () => {
     expect(parseSheetText('Date,Description,Amount\n2024-01-02,Coffee,3.50\n2024-01-03,Lunch,12.00\n', taxonomy, regions)).toEqual({ error: 'no-birds' })
     expect(parseSheetText('Shopping\nMilk\nBread\n', taxonomy, regions)).toEqual({ error: 'no-birds' })
+  })
+
+  it('reads dates in a workbook on the 1904 date system', () => {
+    const sheet = (serial: number) => `<?xml version="1.0"?><worksheet><sheetData>
+      <row r="1"><c r="A1" t="inlineStr"><is><t>Common Name</t></is></c><c r="B1" t="inlineStr"><is><t>Date</t></is></c></row>
+      <row r="2"><c r="A2" t="inlineStr"><is><t>Mallard</t></is></c><c r="B2" s="1"><v>${serial}</v></c></row>
+    </sheetData></worksheet>`
+    const stylesXml = `<?xml version="1.0"?><styleSheet><cellXfs count="2"><xf numFmtId="0"/><xf numFmtId="14"/></cellXfs></styleSheet>`
+    const dateOf = (xlsx: Uint8Array) => {
+      const res = parseSheetXlsx(xlsx, taxonomy, regions)
+      if ('error' in res) throw new Error('expected parse success')
+      return res.records[0].date
+    }
+    expect(dateOf(makeXlsx({ stylesXml, workbookPr: '<workbookPr date1904="1"/>', sheets: [{ name: 'Mac', xml: sheet(43769) }] }))).toBe('2023-11-01')
+    expect(dateOf(makeXlsx({ stylesXml, workbookPr: '<workbookPr date1904="false"/>', sheets: [{ name: 'Win', xml: sheet(45231) }] }))).toBe('2023-11-01')
   })
 
   it('throws DamagedXlsxError on unreadable xlsx bytes', () => {
