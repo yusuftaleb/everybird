@@ -23,13 +23,13 @@ const regions = JSON.parse(readFileSync('public/data/regions.v1.json', 'utf8')) 
 const fixture = (name: string) => readFileSync(`tests/fixtures/spreadsheet/${name}`, 'utf8')
 
 function makeXlsx(opts: {
-  sheets: { name: string; xml: string }[]
+  sheets: { name: string; xml: string; state?: string }[]
   sharedStrings?: string[]
   stylesXml?: string
 }): Uint8Array {
   const files: Record<string, Uint8Array> = {}
   const sheetEntries = opts.sheets
-    .map((s, i) => `<sheet name="${s.name}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`)
+    .map((s, i) => `<sheet name="${s.name}" sheetId="${i + 1}"${s.state ? ` state="${s.state}"` : ''} r:id="rId${i + 1}"/>`)
     .join('')
   const relEntries = opts.sheets
     .map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`)
@@ -185,6 +185,22 @@ describe('spreadsheet import', () => {
     expect(res.records[0].date).toBe('2023-11-01')
     expect(res.records[0].place?.country).toBe('CA')
     expect(res.records[1].date).toBe('2022')
+  })
+
+  it('skips hidden and very hidden sheets, however many birds they name', () => {
+    const rows = (names: string[]) =>
+      `<?xml version="1.0"?><worksheet><sheetData>${['Common Name', ...names].map((n, i) => `<row r="${i + 1}"><c r="A${i + 1}" t="inlineStr"><is><t>${n}</t></is></c></row>`).join('')}</sheetData></worksheet>`
+    const lookup = rawSpecies.species.slice(0, 30).map((r) => r.com)
+    const xlsx = makeXlsx({
+      sheets: [
+        { name: 'Lookup', state: 'hidden', xml: rows(lookup) },
+        { name: 'My list', xml: rows(['Mallard', 'Rock Pigeon']) },
+        { name: 'Names', state: 'veryHidden', xml: rows(lookup) },
+      ],
+    })
+    const res = parseSheetXlsx(xlsx, taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(res.records.map((r) => r.code)).toEqual(['mallar3', 'rocpig'])
   })
 
   it('throws DamagedXlsxError on unreadable xlsx bytes', () => {

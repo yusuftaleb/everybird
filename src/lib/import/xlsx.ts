@@ -201,10 +201,17 @@ export function readXlsx(data: Uint8Array | ArrayBuffer): XlsxSheet[] {
   }
 
   const sheetSpecs: { name: string; path: string }[] = []
+  let hidden = 0
   if (workbookXml) {
     const sheetRe = /<sheet\b([^>]*?)\/?>/g
     let m: RegExpExecArray | null
     while ((m = sheetRe.exec(workbookXml))) {
+      // A hidden sheet is the workbook's lookup data (a list of every name), never the birder's list.
+      const state = attr(m[1], 'state')
+      if (state === 'hidden' || state === 'veryHidden') {
+        hidden++
+        continue
+      }
       const name = attr(m[1], 'name') ?? `Sheet ${sheetSpecs.length + 1}`
       const rid = attr(m[1], 'id')
       const path = rid ? rels.get(rid) : undefined
@@ -212,7 +219,7 @@ export function readXlsx(data: Uint8Array | ArrayBuffer): XlsxSheet[] {
     }
   }
 
-  if (!sheetSpecs.length) {
+  if (!sheetSpecs.length && !hidden) {
     const paths = Object.keys(files)
       .map(normalizePath)
       .filter((p) => /^xl\/worksheets\/sheet\d+\.xml$/i.test(p))
