@@ -406,6 +406,7 @@ export const pt: Messages = {
         year: 'Ano',
         target: 'Meta',
         targetPlaceholder: 'Espécies',
+        targetInvalid: 'Digite um número inteiro de 1 a {max}.',
         card: 'Grande Ano {year}',
         cardLifer: 'Grande Ano {year} · Novas espécies em {year}',
       },

@@ -406,6 +406,7 @@ export const es: Messages = {
         year: 'Año',
         target: 'Objetivo',
         targetPlaceholder: 'Especies',
+        targetInvalid: 'Escribe un número entero del 1 al {max}.',
         card: 'Gran Año {year}',
         cardLifer: 'Gran Año {year} · Especies nuevas en {year}',
       },

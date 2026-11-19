@@ -479,6 +479,7 @@ export const EN_UI = {
       year: 'Year',
       target: 'Target',
       targetPlaceholder: 'Species',
+      targetInvalid: 'Enter a whole number from 1 to {max}.',
       card: 'Big Year {year}',
       cardLifer: 'Big Year {year} · New species in {year}',
     },

@@ -85,6 +85,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const countSizeId = useId()
   const yearId = useId()
   const targetId = useId()
+  const targetNoteId = useId()
   const bulkSplitId = useId()
   const namesNoteId = useId()
   useEscapeCapture(onClose)
@@ -143,6 +144,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const [bigYearOn, setBigYearOn] = useState(false)
   const [goalYear, setGoalYear] = useState(() => saved.bigYear?.year ?? new Date().getFullYear())
   const [goalTarget, setGoalTarget] = useState(() => (saved.bigYear ? String(saved.bigYear.target) : ''))
+  /** The target field was left holding something that isn't a whole number from 1 to TARGET_MAX (the saved goal stays). */
+  const [targetBad, setTargetBad] = useState(false)
   const parsedTarget = /^\d+$/.test(goalTarget.trim()) ? Number(goalTarget.trim()) : undefined
   const validTarget = isTarget(parsedTarget) ? parsedTarget : undefined
   const bigYearActive = bigYearOn && showBigYear
@@ -922,16 +925,25 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                         step={1}
                         placeholder={t.share.bigYear.targetPlaceholder}
                         value={goalTarget}
-                        onChange={(e) => {
-                          const v = e.target.value
-                          setGoalTarget(v)
-                          const n = /^\d+$/.test(v.trim()) ? Number(v.trim()) : undefined
+                        aria-invalid={targetBad || undefined}
+                        aria-describedby={targetBad ? targetNoteId : undefined}
+                        onChange={(e) => setGoalTarget(e.target.value)}
+                        onBlur={(e) => {
+                          // Saved once the field is left. A number field reads "" for "-" or "1e" (badInput): that keeps the
+                          // saved goal, as 0, negatives and values over TARGET_MAX do; only a field left empty clears it.
+                          const v = e.currentTarget.value.trim()
+                          const n = /^\d+$/.test(v) ? Number(v) : undefined
+                          if (e.currentTarget.validity?.badInput || (v !== '' && !isTarget(n))) return setTargetBad(true)
+                          setTargetBad(false)
                           if (isTarget(n)) dispatch({ type: 'bigYear', bigYear: { year: goalYear, target: n } })
-                          else if (v.trim() === '' && saved.bigYear) dispatch({ type: 'bigYear', bigYear: undefined })
+                          else if (saved.bigYear) dispatch({ type: 'bigYear', bigYear: undefined })
                         }}
                       />
                     </div>
                   </div>
+                )}
+                {bigYearActive && targetBad && (
+                  <p id={targetNoteId} className="eb-note eb-share-names-note">{fmt(t.share.bigYear.targetInvalid, { max: formatInt(TARGET_MAX, t.num) })}</p>
                 )}
               </div>
             </div>

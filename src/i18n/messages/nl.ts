@@ -406,6 +406,7 @@ export const nl: Messages = {
         year: 'Jaar',
         target: 'Doel',
         targetPlaceholder: 'Soorten',
+        targetInvalid: 'Vul een heel getal van 1 tot en met {max} in.',
         card: 'Groot Jaar {year}',
         cardLifer: 'Groot Jaar {year} · Nieuwe soorten in {year}',
       },

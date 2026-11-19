@@ -830,10 +830,46 @@ describe('the orientation switch', () => {
     expect(targetInput.value).toBe('')
     fireEvent.change(yearSelect, { target: { value: '2026' } })
     fireEvent.change(targetInput, { target: { value: '300' } })
+    fireEvent.blur(targetInput)
     expect(dispatch).toHaveBeenCalledWith({ type: 'bigYear', bigYear: { year: 2026, target: 300 } })
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)![0]).toMatchObject({
       goal: { year: 2026, target: 300, basis: 'lifer' },
     }))
+  })
+
+  it('saves the Big Year target on blur, keeps the saved goal for anything but a whole number in range, and says why', () => {
+    const dispatch = vi.fn()
+    const state = stateWith([entry('ostric2')])
+    state.saved = { ...state.saved, bigYear: { year: 2020, target: 300 } }
+    render(<ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('switch', { name: 'Big Year' }))
+    const target = screen.getByLabelText('Target') as HTMLInputElement
+    expect(target.value).toBe('300')
+    // Typing saves nothing until the field is left.
+    fireEvent.change(target, { target: { value: '25' } })
+    expect(dispatch).not.toHaveBeenCalled()
+    // "1e" or "-": a number field reads empty, with badInput set (jsdom has no badInput, so the browser's is stubbed).
+    fireEvent.change(target, { target: { value: '' } })
+    Object.defineProperty(target, 'validity', { configurable: true, get: () => ({ badInput: true }) })
+    fireEvent.blur(target)
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(target).toHaveAttribute('aria-invalid', 'true')
+    expect(target).toHaveAccessibleDescription('Enter a whole number from 1 to 99,999.')
+    Object.defineProperty(target, 'validity', { configurable: true, get: () => ({ badInput: false }) })
+    for (const v of ['0', '-5', '100000']) {
+      fireEvent.change(target, { target: { value: v } })
+      fireEvent.blur(target)
+    }
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(target).toHaveAttribute('aria-invalid', 'true')
+    fireEvent.change(target, { target: { value: '250' } })
+    fireEvent.blur(target)
+    expect(dispatch).toHaveBeenCalledWith({ type: 'bigYear', bigYear: { year: 2020, target: 250 } })
+    expect(target).not.toHaveAttribute('aria-invalid')
+    // An emptied field (no bad input) clears the goal.
+    fireEvent.change(target, { target: { value: '' } })
+    fireEvent.blur(target)
+    expect(dispatch).toHaveBeenLastCalledWith({ type: 'bigYear', bigYear: undefined })
   })
 
   it('lets the user pick Count size in Share and Print, repacks, and forwards it to preview and poster PNG/PDF', async () => {
