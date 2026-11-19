@@ -27,6 +27,8 @@ const ALLOW_SAME = [
   'Vulnerable', 'Status',
   // Continents: es Asia, pt Oceania and nl Antarctica are the English spelling.
   'Asia', 'Oceania', 'Antarctica',
+  // US poster size label: nl uses "in" as English does.
+  '{w} × {h} in',
 ]
 
 const OTHERS = { es, pt, nl } as const

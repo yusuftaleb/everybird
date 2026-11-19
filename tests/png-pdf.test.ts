@@ -106,6 +106,9 @@ for (const native of [true, false]) describe(native ? 'CompressionStream' : 'ffl
     expect(stream).toEqual(Buffer.concat(chunks))
     expect(unUp(inflateSync(stream), width)).toEqual(rgbOf(img))
     expect(text).toContain('q 1683.78 0 0 2383.94 0 0 cm /Im0 Do Q')
+    const us = Buffer.concat(pdfParts(width, height, [1728, 2592], chunks)).toString('latin1')
+    expect(us).toContain('/MediaBox [0 0 1728 2592]')
+    expect(us).toContain('q 1728 0 0 2592 0 0 cm /Im0 Do Q')
   })
 })
 

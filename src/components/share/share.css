@@ -64,12 +64,18 @@
 .eb-share-preview { --ar: calc(9 / 16); }
 .eb-share-preview[data-format="post"] { --ar: calc(4 / 5); }
 .eb-share-preview[data-format="square"] { --ar: 1; }
-/* The poster's preview: an A size (1:√2, wider than 9:16), so it sits inside the story's area as a post does. */
+/* The poster's preview: an A size (1:√2, wider than 9:16) or a US size (2:3 or 3:4). */
 .eb-share-preview[data-format="print"] { --ar: calc(1240 / 1754); }
-/* Horizontal: the desktop wallpaper (16:9, its content in the central 3:2 column), the wide post (5:4) and a landscape poster (the portrait A size's ratio turned). */
+.eb-share-preview[data-format="print"][data-size="US12x18"],
+.eb-share-preview[data-format="print"][data-size="US24x36"] { --ar: calc(2 / 3); }
+.eb-share-preview[data-format="print"][data-size="US18x24"] { --ar: calc(3 / 4); }
+/* Horizontal: the desktop wallpaper (16:9, its content in the central 3:2 column), the wide post (5:4) and a landscape poster (the portrait ratio turned). */
 .eb-share-preview[data-format="desktop"] { --ar: calc(16 / 9); }
 .eb-share-preview[data-format="wide"] { --ar: calc(5 / 4); }
 .eb-share-preview[data-format="printLandscape"] { --ar: calc(1754 / 1240); }
+.eb-share-preview[data-format="printLandscape"][data-size="US12x18"],
+.eb-share-preview[data-format="printLandscape"][data-size="US24x36"] { --ar: calc(3 / 2); }
+.eb-share-preview[data-format="printLandscape"][data-size="US18x24"] { --ar: calc(4 / 3); }
 .eb-share-preview {
   position: relative; justify-self: center; align-self: center; box-sizing: border-box; overflow: hidden;
   background: var(--surface); border: 1px solid var(--hairline);
@@ -215,9 +221,10 @@
 .eb-share-coffee { display: inline-flex; align-self: flex-end; padding: 6px; margin: auto -6px -6px; }
 .eb-share-coffee img { display: block; width: 114px; height: 32px; }
 @media (hover: hover) and (pointer: fine) { .eb-share-coffee:hover img { opacity: .88; } }
-/* The poster's size choice spans the column, the sizes sharing it evenly. */
-.eb-share-sizes { display: flex; }
+/* The poster's size choice spans the column, A sizes on the first row and US sizes on the second. */
+.eb-share-sizes { display: flex; flex-wrap: wrap; }
 .eb-share-sizes .eb-seg-btn { flex: 1 1 0; min-width: 0; padding: 0 8px; }
+.eb-share-sizes-break { flex-basis: 100%; height: 0; margin-block: -2px; }
 /* While a poster is made: a thin bar (Hairline track, Accent fill) with the mono percentage and Cancel, on its own row
    of the actions. */
 .eb-share-progress { display: flex; flex: 1 1 auto; align-items: center; gap: 12px; min-width: 0; }

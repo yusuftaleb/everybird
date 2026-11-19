@@ -45,6 +45,9 @@ describe('payloadFor', () => {
     expect(payloadFor('visit', { page: 'shared' })).toEqual({ n: 'visit', p: 'shared' })
     expect(payloadFor('shared', { via: 'link' })).toEqual({ n: 'shared', p: 'link' })
     expect(payloadFor('image_downloaded', { format: 'post' }, true)).toEqual({ n: 'image_downloaded', p: 'post', d: 'touch' })
+    for (const size of ['us12x18', 'us18x24', 'us24x36', 'us12x18-l', 'us18x24-l', 'us24x36-l'] as const) {
+      expect(payloadFor('poster_made', { size })).toEqual({ n: 'poster_made', p: size })
+    }
   })
   it("maps the app's link levels onto the Worker's values", () => {
     for (const level of ['regions', 'countries', 'dates', 'species'] as ShareLevel[]) {
