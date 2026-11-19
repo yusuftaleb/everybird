@@ -79,6 +79,9 @@ describe('SheetDrop and review flow', () => {
     )
 
     const review = screen.getByTestId('sheet-review')
+    // The review takes focus, named by its summary, so it is announced.
+    expect(review).toHaveFocus()
+    expect(screen.getByRole('group', { name: '1 species matched · 1 duplicate · 1 unmatched' })).toBe(review)
     expect(review).toHaveTextContent('1 species matched')
     expect(review).toHaveTextContent('1 duplicate')
     expect(review).toHaveTextContent('1 unmatched')
