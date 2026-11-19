@@ -303,8 +303,8 @@ describe('in Spanish', () => {
 describe('mark lifers toggles', () => {
   it('off by default, both can be on at once, remembered in localStorage, and hidden in list view', () => {
     render(<Harness />)
-    const newest = screen.getByRole('switch', { name: 'Mark newest bird' })
-    const first = screen.getByRole('switch', { name: 'Mark first bird' })
+    const newest = screen.getByRole('switch', { name: 'Mark latest lifer' })
+    const first = screen.getByRole('switch', { name: 'Mark first lifer' })
     expect(newest).toHaveAttribute('aria-checked', 'false')
     expect(first).toHaveAttribute('aria-checked', 'false')
     fireEvent.click(newest)
@@ -314,12 +314,12 @@ describe('mark lifers toggles', () => {
     expect(localStorage.getItem(MARK_NEWEST_KEY)).toBe('1')
     expect(localStorage.getItem(MARK_FIRST_KEY)).toBe('1')
     fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'List' }))
-    expect(screen.queryByRole('switch', { name: 'Mark newest bird' })).toBeNull()
-    expect(screen.queryByRole('switch', { name: 'Mark first bird' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Mark latest lifer' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Mark first lifer' })).toBeNull()
     cleanup()
     render(<Harness />)
-    expect(screen.getByRole('switch', { name: 'Mark newest bird' })).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByRole('switch', { name: 'Mark first bird' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('switch', { name: 'Mark latest lifer' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('switch', { name: 'Mark first lifer' })).toHaveAttribute('aria-checked', 'true')
   })
 
   it('hidden when the list has no dated birds', () => {
@@ -332,8 +332,8 @@ describe('mark lifers toggles', () => {
       return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Undated collage" />
     }
     render(<Undated />)
-    expect(screen.queryByRole('switch', { name: 'Mark newest bird' })).toBeNull()
-    expect(screen.queryByRole('switch', { name: 'Mark first bird' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Mark latest lifer' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Mark first lifer' })).toBeNull()
   })
 
   it('rings the marked birds on the stage and appends their accessible names', async () => {
@@ -347,14 +347,14 @@ describe('mark lifers toggles', () => {
     try {
       render(<SeededCollage />)
       const stage = await screen.findByTestId('collage-stage')
-      fireEvent.click(screen.getByRole('switch', { name: 'Mark newest bird' }))
-      fireEvent.click(screen.getByRole('switch', { name: 'Mark first bird' }))
+      fireEvent.click(screen.getByRole('switch', { name: 'Mark latest lifer' }))
+      fireEvent.click(screen.getByRole('switch', { name: 'Mark first lifer' }))
       const newestBird = stage.querySelector('.eb-bird[data-code="yerwar"]')!
       const firstBird = stage.querySelector('.eb-bird[data-code="snogoo"]')!
       expect(newestBird).toHaveAttribute('data-mark', 'newest')
-      expect(newestBird).toHaveAttribute('aria-label', 'Yellow-rumped Warbler, newest bird')
+      expect(newestBird).toHaveAttribute('aria-label', 'Yellow-rumped Warbler, latest lifer')
       expect(firstBird).toHaveAttribute('data-mark', 'first')
-      expect(firstBird).toHaveAttribute('aria-label', 'Snow Goose, first bird')
+      expect(firstBird).toHaveAttribute('aria-label', 'Snow Goose, first lifer')
     } finally {
       vi.restoreAllMocks()
     }

@@ -149,10 +149,10 @@ export const EN_UI = {
       sci: 'Scientific',
       sciShort: 'Sci.',
       sciSr: 'names',
-      markNewest: 'Mark newest bird',
-      markFirst: 'Mark first bird',
-      newestSr: ', newest bird',
-      firstSr: ', first bird',
+      markNewest: 'Mark latest lifer',
+      markFirst: 'Mark first lifer',
+      newestSr: ', latest lifer',
+      firstSr: ', first lifer',
     },
     /** The dock search (DockSearch). */
     search: {
@@ -509,7 +509,7 @@ export const EN_UI = {
         title: 'Multiple posters (ZIP)',
         splitLabel: 'Split by',
         splits: {
-          batches: '1,000 per poster',
+          batches: 'Up to 1,000 per poster',
           family: 'Family',
           order: 'Order',
           country: 'Country',
@@ -637,7 +637,7 @@ export const EN_UI = {
     sheet: {
       title: 'Spreadsheet or list',
       what: 'your spreadsheet or list',
-      guide: 'Upload an Excel (.xlsx), CSV or text file, or paste a list below. Any column of English or scientific bird names works; dates, places and ticked columns are optional.',
+      guide: 'Upload an Excel (.xlsx), CSV or text file, or paste a list below. Any column of English or scientific bird names works; dates, places and a column of ticks (x) are optional.',
       choose: 'Choose your file',
       input: 'Spreadsheet or list file',
       pasteLabel: 'Paste a list of bird names',
@@ -651,7 +651,7 @@ export const EN_UI = {
         unmatched: { one: '{n} unmatched', other: '{n} unmatched' },
         suggestion: '{name} → {suggestion}',
         more: '{n} more',
-        note: 'You can tick any unmatched birds by hand after adding.',
+        note: 'You can fix any unmatched names after adding.',
         add: { one: 'Add {n} species', other: 'Add {n} species' },
         replace: { one: 'Replace with {n} species', other: 'Replace with {n} species' },
         addEmpty: 'Add list',
@@ -668,7 +668,7 @@ export const EN_UI = {
     scythebill: {
       title: 'Scythebill',
       what: 'your Scythebill export',
-      guide: 'Your Scythebill CSV export, or its eBird export. Places each bird by country, state or province, and county.',
+      guide: 'Your Scythebill CSV export, or its export formatted for eBird. Places each bird by country, state or province, and county.',
       help: 'In Scythebill: Reports, then Export, and choose CSV or formatted for eBird.',
       howTo: 'How do I get this file?',
       choose: 'Choose your Scythebill file',
