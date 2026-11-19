@@ -20,7 +20,7 @@ function fakeStore(broken = false) {
 
 const KEY = 'everybird:resume:v1'
 const collage = {
-  filter: { order: 'Passeriformes', countries: ['CA', 'EG'], continents: ['NA' as const], statuses: ['VU' as const], basis: 'seen' as const, from: '2026-03', to: '2026-09' },
+  filter: { order: 'Passeriformes', countries: ['CA', 'EG'], continents: ['NA' as const], regions: ['latam' as const], statuses: ['VU' as const], basis: 'seen' as const, from: '2026-03', to: '2026-09' },
   mode: 'true' as const,
   view: 'list' as const,
   massOrder: 'lightest' as const,
@@ -99,6 +99,19 @@ describe('writeResume / readResume', () => {
     expect(back.slices.collage).toBeUndefined() // mode 'odd' is not a mode
     expect(back.slices.search).toBeUndefined() // open is not a boolean
     expect(back.slices.panel).toEqual({ open: true, at: 'places' })
+  })
+
+  it('keeps valid region presets in collage filter and drops unknown ones', () => {
+    const store = fakeStore()
+    store.m.set(KEY, JSON.stringify({
+      v: 1,
+      at: 1_000,
+      slices: {
+        collage: { filter: { regions: ['me', 'bogus'] }, mode: 'even', view: 'collage', massOrder: 'heaviest', sci: false },
+      },
+    }))
+    const back = mod.readResume(store, 1_000)!
+    expect(back.slices.collage?.filter).toEqual({ regions: ['me'] })
   })
 })
 

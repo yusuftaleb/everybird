@@ -6,6 +6,7 @@
 // Only canonical values go in: filter codes and ids, the typed search text, section ids and booleans. No label is
 // stored, so the labels are drawn in the new language. Storage errors are ignored: the page then behaves as it does today.
 import { isContinentId } from './places/continents'
+import { isRegionPresetId } from './places/presets'
 import type { Filter } from './list/filters'
 import { STATUS_FILTER_CATS, type StatusFilterCat } from './species/status-filter'
 
@@ -50,6 +51,8 @@ function filterOf(v: unknown): Filter {
   }
   const continents = strings(r.continents).filter(isContinentId)
   if (continents.length) f.continents = continents
+  const regions = strings(r.regions).filter(isRegionPresetId)
+  if (regions.length) f.regions = regions
   const statuses = strings(r.statuses).filter((x): x is StatusFilterCat => (STATUS_FILTER_CATS as readonly string[]).includes(x))
   if (statuses.length) f.statuses = statuses
   const basis = one(r.basis, ['lifer', 'seen'] as const)

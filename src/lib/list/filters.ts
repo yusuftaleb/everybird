@@ -440,7 +440,7 @@ export function regionRows(counts: PlaceCounts, label: (key: string) => string, 
  * and none is checked (as the taxonomy skips an order's only family). The top level then lists the countries.
  */
 export function onlyOneContinent(counts: PlaceCounts, f: Filter): boolean {
-  if (counts.continents.size !== 1 || f.continents?.length || f.regions?.length) return false
+  if (counts.continents.size !== 1 || f.continents?.length) return false
   for (const id of counts.countries.keys()) if (!parentKey(`c:${id}`)) return false
   return true
 }

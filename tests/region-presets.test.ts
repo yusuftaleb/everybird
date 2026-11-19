@@ -5,9 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PlacesDrill } from '@/components/filters/PlacesDrill'
 import { withI18n } from './i18n-render'
 import { buildList } from '@/lib/list/build-list'
-import { applyFilter, placeCounts } from '@/lib/list/filters'
+import { filterChips, withoutFilterChip } from '@/lib/list/chips'
+import { applyFilter, onlyOneContinent, placeCounts } from '@/lib/list/filters'
 import { DEFAULT_RULES, EMPTY_EDITS, type SourceRecord } from '@/lib/list/model'
 import { buildSeen } from '@/lib/list/seen'
+import { filterLabel } from '@/lib/share/image'
+import { en } from '@/i18n/messages/en'
 import { initialState, type AppState } from '@/lib/list/store'
 import { CONTINENT_OF, SUB1_CONTINENT } from '@/lib/places/continents'
 import { REGION_PRESETS, regionsOfPlace } from '@/lib/places/presets'
@@ -164,5 +167,51 @@ describe('overlapping presets and Places UI search', () => {
 
     fireEvent.click(screen.getByTestId('region-me'))
     expect(onFilter).toHaveBeenCalledWith({ regions: ['me'] })
+  })
+
+  it('keeps continent drill buttons during search and keeps flat=true on 1-continent lists with regions', () => {
+    const regions: Regions = {
+      v: 1,
+      countries: { EG: 'Egypt', BR: 'Brazil', FR: 'France', JP: 'Japan' },
+      sub1: { 'FR-973': 'French Guiana' },
+    }
+    const state: AppState = { ...initialState(), list, seen }
+    render(createElement(PlacesDrill, { state, species, regions, onFilter: vi.fn() }), { wrapper: withI18n('en') })
+
+    const find = screen.getByTestId('places-find')
+    fireEvent.change(find, { target: { value: 'africa' } })
+    expect(screen.getByTestId('drill-n:AF')).toBeTruthy()
+
+    const singleList = buildList([rec('sp-eg', { date: '2020-01-01', place: { country: 'EG' }, seen: ['2020-01-01|EG'] })], EMPTY_EDITS, DEFAULT_RULES)
+    const singleSeen = buildSeen([rec('sp-eg', { date: '2020-01-01', place: { country: 'EG' }, seen: ['2020-01-01|EG'] })], EMPTY_EDITS, DEFAULT_RULES, singleList)
+    const singleCounts = placeCounts(singleList, {}, species, singleSeen)
+    expect(onlyOneContinent(singleCounts, { regions: ['me'] })).toBe(true)
+  })
+
+  it('supports basis seen with regions, filterChips, withoutFilterChip, and share filterLabel', () => {
+    const regions: Regions = {
+      v: 1,
+      countries: { EG: 'Egypt', BR: 'Brazil', FR: 'France', JP: 'Japan' },
+      sub1: { 'FR-973': 'French Guiana' },
+    }
+    const seenRecs = [
+      rec('sp-eg', {
+        date: '2018-01-01',
+        place: { country: 'JP' },
+        seen: ['2018-01-01|JP', '2022-05-01|EG'],
+        seenMonths: ['5p801|JP', '5pc0g|EG'],
+      }),
+    ]
+    const sList = buildList(seenRecs, EMPTY_EDITS, DEFAULT_RULES)
+    const sSeen = buildSeen(seenRecs, EMPTY_EDITS, DEFAULT_RULES, sList)
+    expect(applyFilter(sList, { regions: ['me'], from: '2022-01', to: '2022-12', basis: 'seen' }, species, sSeen).map((e) => e.code)).toEqual(['sp-eg'])
+    expect(applyFilter(sList, { regions: ['me'], from: '2018-01', to: '2018-12', basis: 'seen' }, species, sSeen)).toEqual([])
+    const sCounts = placeCounts(sList, { from: '2022-01', to: '2022-12', basis: 'seen' }, species, sSeen)
+    expect(sCounts.regions.get('me')?.n).toBe(1)
+
+    const chips = filterChips({ regions: ['latam', 'me'] }, regions, en.ui)
+    expect(chips.map((c) => [c.token, c.label])).toEqual([['r:latam', 'Latin America & Caribbean'], ['r:me', 'Middle East']])
+    expect(withoutFilterChip({ regions: ['latam', 'me'] }, chips[0])).toEqual({ regions: ['me'] })
+    expect(filterLabel({ regions: ['me'] }, { species, countryName: (c) => c, regions }, en.ui)).toBe('Middle East')
   })
 })

@@ -39,7 +39,7 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
   const rows = usePlaceRows(counts, filter, at, regions, flat)
   const regionList = useRegionRows(counts, filter, regions)
   const foundRegions = searching ? matchRows(regionList, q) : []
-  const foundContinents = searching ? matchRows(rows, q) : []
+  const foundContinents = searching ? matchRows(rows.filter((r) => r.value.startsWith('n:')), q) : []
   // The search also finds a checked country, or one holding a checked place, that the counts have emptied (count 0).
   const found = (() => {
     if (!searching) return []
@@ -93,7 +93,7 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
     target?.scrollIntoView?.({ block: 'nearest' })
   }, [at])
 
-  const shown = searching ? found : rows
+  const shown = searching ? [...foundContinents, ...found] : rows
   const showFind = at === undefined && !flat ? (rows.length > 0 || regionList.length > 0) : rows.length > SEARCH_FROM
   const visible = searching ? found : rows.length > SEARCH_FROM ? matchRows(rows, q) : rows
   const visibleRegions = at === undefined ? (searching ? foundRegions : flat && rows.length > SEARCH_FROM ? matchRows(regionList, q) : regionList) : []
@@ -133,42 +133,44 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
         <p className="eb-note">{t.places.none}</p>
       ) : (
         <>
-          <ul key={at ?? ''} className="eb-checklist eb-places-level" aria-label={t.places.head[shownLevel]}>
-            {at && (
-              <li className="eb-places-row">
-                <PlaceCheck
-                  option={{ value: at, label: fmt(t.places.allOf, { place: name(at) }), count: allCount, children: 0 }}
-                  checked={checked.has(at)}
-                  onToggle={() => onFilter(togglePlace(filter, at))}
-                  testId="place-all"
-                />
-                {gap}
-              </li>
-            )}
-            {searching && foundContinents.map((r) => (
-              <li key={r.value} className="eb-places-row">
-                <PlaceCheck option={r} checked={checked.has(r.value)} onToggle={() => onFilter(togglePlace(filter, r.value))} flag />
-                {drills && r.children > 0 ? (
-                  <button type="button" className="eb-drill" aria-label={drillLabel(r.value, r.label)} data-testid={`drill-${r.value}`} onClick={() => go(r.value, ['place-all'])}>
-                    <ChevronDownIcon />
-                  </button>
-                ) : gap}
-              </li>
-            ))}
-            {visible.map((r) => (
-              <li key={r.value} className="eb-places-row">
-                <PlaceCheck option={r} checked={checked.has(r.value)} onToggle={() => onFilter(togglePlace(filter, r.value))} flag={shownLevel === 'country' || shownLevel === 'continent'} />
-                {drills && r.children > 0 ? (
-                  <button type="button" className="eb-drill" aria-label={drillLabel(r.value, r.label)} data-testid={`drill-${r.value}`} onClick={() => go(r.value, ['place-all'])}>
-                    <ChevronDownIcon />
-                  </button>
-                ) : gap}
-              </li>
-            ))}
-            {rows.length === 0 && !searching ? (
-              <li className="eb-note eb-check-none" data-testid="places-empty">{emptyHere(filter, t)}</li>
-            ) : visible.length === 0 && foundContinents.length === 0 && visibleRegions.length === 0 && <li className="eb-note eb-check-none">{t.places.noMatch[shownLevel]}</li>}
-          </ul>
+          {(!searching || visible.length > 0 || foundContinents.length > 0 || visibleRegions.length === 0) && (
+            <ul key={at ?? ''} className="eb-checklist eb-places-level" aria-label={t.places.head[shownLevel]}>
+              {at && (
+                <li className="eb-places-row">
+                  <PlaceCheck
+                    option={{ value: at, label: fmt(t.places.allOf, { place: name(at) }), count: allCount, children: 0 }}
+                    checked={checked.has(at)}
+                    onToggle={() => onFilter(togglePlace(filter, at))}
+                    testId="place-all"
+                  />
+                  {gap}
+                </li>
+              )}
+              {searching && foundContinents.map((r) => (
+                <li key={r.value} className="eb-places-row">
+                  <PlaceCheck option={r} checked={checked.has(r.value)} onToggle={() => onFilter(togglePlace(filter, r.value))} flag />
+                  {drills && r.children > 0 ? (
+                    <button type="button" className="eb-drill" aria-label={drillLabel(r.value, r.label)} data-testid={`drill-${r.value}`} onClick={() => go(r.value, ['place-all'])}>
+                      <ChevronDownIcon />
+                    </button>
+                  ) : gap}
+                </li>
+              ))}
+              {visible.map((r) => (
+                <li key={r.value} className="eb-places-row">
+                  <PlaceCheck option={r} checked={checked.has(r.value)} onToggle={() => onFilter(togglePlace(filter, r.value))} flag={shownLevel === 'country' || shownLevel === 'continent'} />
+                  {drills && r.children > 0 ? (
+                    <button type="button" className="eb-drill" aria-label={drillLabel(r.value, r.label)} data-testid={`drill-${r.value}`} onClick={() => go(r.value, ['place-all'])}>
+                      <ChevronDownIcon />
+                    </button>
+                  ) : gap}
+                </li>
+              ))}
+              {rows.length === 0 && !searching ? (
+                <li className="eb-note eb-check-none" data-testid="places-empty">{emptyHere(filter, t)}</li>
+              ) : visible.length === 0 && foundContinents.length === 0 && visibleRegions.length === 0 && <li className="eb-note eb-check-none">{t.places.noMatch[shownLevel]}</li>}
+            </ul>
+          )}
           {visibleRegions.length > 0 && (
             <>
               <div className="eb-places-subhead">
