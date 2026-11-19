@@ -53,7 +53,7 @@ export function toJson(s: Saved): string {
   return JSON.stringify(s)
 }
 
-const SOURCES: Source[] = ['ebird', 'inat', 'obsorg', 'sheet', 'manual']
+const SOURCES: Source[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'manual']
 const isSlot = (k: unknown): k is Slot => SLOTS.includes(k as Slot)
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 const isStrArr = (x: unknown): x is string[] => Array.isArray(x) && x.every((s) => typeof s === 'string')
@@ -78,6 +78,7 @@ function validSources(x: unknown): boolean {
     if (k === 'obsorg' || k === 'obsorg-list')
       return d.kind === OBSORG_KIND[k] && optStr(d.file) && optCount(d.rows) && (k === 'obsorg' ? optExcluded(d.excluded) : d.excluded === undefined)
     if (k === 'sheet') return (d.kind === 'file' || d.kind === 'paste') && optStr(d.file) && optCount(d.rows)
+    if (k === 'scythebill') return (d.kind === 'csv' || d.kind === 'ebird-record') && optStr(d.file) && optCount(d.rows)
     return false
   })
 }
@@ -112,7 +113,7 @@ export function fromJson(text: string): Saved {
   if (!isObj(raw.records)) throw new BackupError('damaged', 'Backup has no records.')
   // Backups made before the second eBird slot have no 'ebird-list', those before observation.org no 'obsorg' or
   // 'obsorg-list': they start empty.
-  const records = { ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], manual: [] } as Record<Slot, SourceRecord[]>
+  const records = { ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], manual: [] } as Record<Slot, SourceRecord[]>
   for (const [k, v] of Object.entries(raw.records)) {
     if (!isSlot(k) || !Array.isArray(v) || !v.every((r) => isObj(r) && typeof r.code === 'string' && (r.seen === undefined || isStrArr(r.seen)) && validMonths(r.seenMonths)))
       throw new BackupError('damaged', 'Backup records are malformed.')

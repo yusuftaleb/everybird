@@ -34,7 +34,7 @@ const v1 = () => ({
 const AT = '2026-11-06T10:00:00.000Z'
 const withSources = (): Saved => ({
   ...emptySaved(),
-  records: { obsorg: [], 'obsorg-list': [], ebird: [rec('a')], 'ebird-list': [rec('b')], inat: [rec('c', 'inat')], sheet: [], manual: [] },
+  records: { obsorg: [], 'obsorg-list': [], ebird: [rec('a')], 'ebird-list': [rec('b')], inat: [rec('c', 'inat')], sheet: [], scythebill: [], manual: [] },
   sources: {
     ebird: { kind: 'full-export', file: 'MyEBirdData.csv', rows: 4212, at: AT },
     'ebird-list': { kind: 'life-list', file: 'ebird_world_life_list.csv', rows: 812, at: AT },

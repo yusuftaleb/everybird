@@ -21,6 +21,7 @@ const where = (u: Unmatched, t: Ui) => {
   const m = t.import.match
   if (u.source === 'obsorg') return fmt(u.slot === 'obsorg-list' ? t.import.obsorg.whereList : t.import.obsorg.whereRow, { row: u.row })
   if (u.source === 'sheet') return fmt(t.import.sheet.whereRow, { row: u.row })
+  if (u.source === 'scythebill') return fmt(t.import.scythebill.whereRow, { row: u.row })
   const at = u.source === 'inat' ? m.inatRow : u.slot === 'ebird-list' ? m.listRow : u.source === 'ebird' ? m.ebirdRow : m.row
   return fmt(at, { row: u.row })
 }

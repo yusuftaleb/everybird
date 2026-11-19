@@ -527,6 +527,7 @@ export const EN_UI = {
         inat: { one: 'all from iNaturalist', other: 'all from iNaturalist' },
         obsorg: { one: 'all from observation.org', other: 'all from observation.org' },
         sheet: { one: 'all from your spreadsheet', other: 'all from your spreadsheet' },
+        scythebill: { one: 'all from Scythebill', other: 'all from Scythebill' },
         manual: { one: 'all ticked by hand', other: 'all ticked by hand' },
       },
       /** The first part. */
@@ -535,6 +536,7 @@ export const EN_UI = {
         inat: { one: '{n} from iNaturalist', other: '{n} from iNaturalist' },
         obsorg: { one: '{n} from observation.org', other: '{n} from observation.org' },
         sheet: { one: '{n} from your spreadsheet', other: '{n} from your spreadsheet' },
+        scythebill: { one: '{n} from Scythebill', other: '{n} from Scythebill' },
         manual: { one: '{n} ticked by hand', other: '{n} ticked by hand' },
       },
       /** A later part: the species it adds to the ones before (eBird is always first when it is on the list). */
@@ -542,6 +544,7 @@ export const EN_UI = {
         inat: { one: '{n} more from iNaturalist', other: '{n} more from iNaturalist' },
         obsorg: { one: '{n} more from observation.org', other: '{n} more from observation.org' },
         sheet: { one: '{n} more from your spreadsheet', other: '{n} more from your spreadsheet' },
+        scythebill: { one: '{n} more from Scythebill', other: '{n} more from Scythebill' },
         manual: { one: '{n} ticked by hand', other: '{n} ticked by hand' },
       },
     },
@@ -634,6 +637,22 @@ export const EN_UI = {
         unknown: 'Couldn\'t read this file. Use an .xlsx, CSV, TSV or text file.',
         noBirds: 'No birds found in this file or list.',
         damaged: 'Couldn\'t read this file. It may be damaged or not a valid spreadsheet.',
+      },
+    },
+    scythebill: {
+      title: 'Scythebill',
+      what: 'your Scythebill export',
+      guide: 'Your Scythebill CSV export or eBird Record Format file. Places each bird by country, state or province, and county.',
+      help: 'In Scythebill: Reports, then Export, and choose CSV or formatted for eBird.',
+      howTo: 'How do I get this file?',
+      choose: 'Choose your Scythebill file',
+      input: 'Scythebill file',
+      fallback: { csv: 'Scythebill CSV', 'ebird-record': 'Scythebill eBird export' },
+      whereRow: 'Scythebill row {row}',
+      errors: {
+        unknown: 'Couldn\'t read this file. Use a Scythebill CSV export or a Scythebill file formatted for eBird.',
+        noBirds: 'No birds found in this Scythebill file.',
+        damaged: 'Couldn\'t read this file. It may be damaged or not a valid Scythebill export.',
       },
     },
     /** The two eBird rows (EbirdDrop). */

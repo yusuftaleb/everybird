@@ -32,8 +32,8 @@ export function notCountedCodes(saved: Pick<Saved, 'notCountable'>): Set<string>
 }
 
 /** The source groups the summary compares: a source's export slots count together. */
-export type Group = 'ebird' | 'inat' | 'obsorg' | 'sheet' | 'manual'
-export const GROUPS: readonly Group[] = ['ebird', 'inat', 'obsorg', 'sheet', 'manual']
+export type Group = 'ebird' | 'inat' | 'obsorg' | 'sheet' | 'scythebill' | 'manual'
+export const GROUPS: readonly Group[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'manual']
 const groupOf = (slot: Slot): Group => slotSource(slot)
 const ONLY_IN: Partial<Record<Group, RowCount['onlyIn']>> = { ebird: 'eBird', obsorg: 'observation.org' }
 

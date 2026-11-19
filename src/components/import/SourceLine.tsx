@@ -5,7 +5,7 @@ import { fmt, plural } from '@/i18n/core'
 import { formatInt, shortDay } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
-import type { EbirdDetails, InatDetails, ObsOrgDetails, SheetDetails } from '@/lib/list/storage'
+import type { EbirdDetails, InatDetails, ObsOrgDetails, ScythebillDetails, SheetDetails } from '@/lib/list/storage'
 import { obsorgNotCounted } from './obsorg-copy'
 import { SourceMenu, type MenuItem, type SourceMenuHandle } from './SourceMenu'
 
@@ -42,6 +42,13 @@ export function sheetLine(d: SheetDetails | undefined, t: Ui, now?: Date): Sourc
   if (!d) return { name: t.import.sheet.fallback.file, parts: [t.import.detailsUnknown] }
   const date = d.at ? shortDay(d.at, t.date.months, now) : ''
   const name = d.file || t.import.sheet.fallback[d.kind]
+  return { name, parts: date ? [fmt(t.import.imported, { date })] : [] }
+}
+
+export function scythebillLine(d: ScythebillDetails | undefined, t: Ui, now?: Date): SourceState {
+  if (!d) return { name: t.import.scythebill.fallback.csv, parts: [t.import.detailsUnknown] }
+  const date = d.at ? shortDay(d.at, t.date.months, now) : ''
+  const name = d.file || t.import.scythebill.fallback[d.kind]
   return { name, parts: date ? [fmt(t.import.imported, { date })] : [] }
 }
 
