@@ -149,40 +149,37 @@ export function cellMask(mask: Mask, w: number, h: number, cell: number, pad: nu
   return toCellMask(dil, pw, ph)
 }
 
+/** A name's room under a sticker (layout units): its box, and for a ringed sticker the ring's reach around it. */
+export type CaptionRoom = { w: number; h: number; ring?: number }
+
+/**
+ * A captioned sticker's cells: its whole box (not the silhouette: the caption check, verifyAndPlaceCaptions, tests names
+ * against each sticker's rectangle, so no neighbour may sit in a sticker's transparent corners over a name), grown by
+ * the ring's reach when it is ringed, and the name's box under it. Dilated by `pad` (the tested mask) or not (the
+ * stamped one), both the same size. `offX`, `offY`: where the sticker's box starts, past `pad`.
+ */
 export function captionCellMask(
-  mask: Mask, w: number, h: number, capW: number, capH: number, cell: number, pad: number, dilate: boolean,
-): { mask: CellMask; offX: number } {
-  const { tw, th, cells } = scaleMask(mask, w, h, cell)
-  const ctw = Math.max(1, Math.ceil(capW / cell))
-  const cth = Math.max(1, Math.ceil(capH / cell))
-  const innerW = Math.max(tw, ctw)
+  w: number, h: number, cap: CaptionRoom, cell: number, pad: number, dilate: boolean,
+): { mask: CellMask; offX: number; offY: number } {
+  const tw = Math.max(1, Math.ceil(w / cell)), th = Math.max(1, Math.ceil(h / cell))
+  const r = Math.max(0, Math.ceil((cap.ring ?? 0) / cell))
+  const bw = tw + 2 * r, bh = th + 2 * r
+  const ctw = Math.max(1, Math.ceil(cap.w / cell))
+  const cth = Math.max(1, Math.ceil(cap.h / cell))
+  const innerW = Math.max(bw, ctw)
   const pw = innerW + 2 * pad
-  const ph = th + cth + 2 * pad
-  const offX = Math.floor((innerW - tw) / 2)
-  const capX0 = Math.floor((innerW - ctw) / 2)
+  const ph = Math.max(bh, r + th + cth) + 2 * pad
+  const bx0 = Math.floor((innerW - bw) / 2)
+  const cx0 = Math.floor((innerW - ctw) / 2)
   const out = new Uint8Array(pw * ph)
-  if (dilate) {
-    for (let j = 0; j < th; j++) {
-      for (let i = 0; i < tw; i++) {
-        if (!cells[j * tw + i]) continue
-        const x0 = i + offX
-        for (let y = j; y <= j + 2 * pad; y++) out.fill(1, y * pw + x0, y * pw + x0 + 2 * pad + 1)
-      }
-    }
-    const y0 = th
-    const y1 = Math.min(ph - 1, th + cth + 2 * pad - 1)
-    const x0 = capX0
-    const x1 = Math.min(pw, capX0 + ctw + 2 * pad)
-    for (let y = y0; y <= y1; y++) out.fill(1, y * pw + x0, y * pw + x1)
-  } else {
-    for (let j = 0; j < th; j++) out.set(cells.subarray(j * tw, (j + 1) * tw), (j + pad) * pw + pad + offX)
-    const y0 = th + pad
-    const y1 = y0 + cth - 1
-    const x0 = capX0 + pad
-    const x1 = x0 + ctw
-    for (let y = y0; y <= y1; y++) out.fill(1, y * pw + x0, y * pw + x1)
+  // Dilated: each rectangle grows by `pad` on every side (it starts `pad` cells earlier than the stamped one).
+  const d = dilate ? 0 : pad, grow = dilate ? 2 * pad : 0
+  const fill = (x0: number, y0: number, rw: number, rh: number) => {
+    for (let y = y0; y < y0 + rh; y++) out.fill(1, y * pw + x0, y * pw + x0 + rw)
   }
-  return { mask: toCellMask(out, pw, ph), offX }
+  fill(bx0 + d, d, bw + grow, bh + grow)
+  fill(cx0 + d, r + th + d, ctw + grow, cth + grow)
+  return { mask: toCellMask(out, pw, ph), offX: bx0 + r, offY: r }
 }
 
 /** Bit-pack a pw x ph boolean (0/1) array into a CellMask, choosing the set cell nearest the centre as probe. */

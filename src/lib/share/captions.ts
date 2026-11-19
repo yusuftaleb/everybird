@@ -12,7 +12,8 @@ export const RING_GAP = 8
 
 export type TextMeasurer = (px: number, text: string) => number
 
-export type CaptionPlanEntry = { w: number; h: number; lines: string[] }
+/** `ring`: the sticker is ringed (a lifer mark), so the packer keeps RING_PAD clear around it. */
+export type CaptionPlanEntry = { w: number; h: number; lines: string[]; ring?: true }
 
 export type CaptionPlan =
   | { ok: true; fontPx: number; lineH: number; gap: number; maxLineW: number; byCode: Map<string, CaptionPlanEntry> }
@@ -99,11 +100,13 @@ export function planCaptions(
     const lines = wrapCaption(label, maxLineW, m)
     if (!lines) return { ok: false, reason: 'fit' }
     const textW = Math.max(...lines.map(m))
-    const tileGap = markedCodes?.has(e.code) ? Math.max(gap, RING_GAP) : gap
+    const ringed = !!markedCodes?.has(e.code)
+    const tileGap = ringed ? Math.max(gap, RING_GAP) : gap
     byCode.set(e.code, {
       w: textW + 2 * CAPTION_PAD_X,
       h: tileGap + lines.length * lineH,
       lines,
+      ...(ringed ? { ring: true as const } : {}),
     })
   }
   return { ok: true, fontPx, lineH, gap, maxLineW, byCode }

@@ -9,7 +9,7 @@ import type { SpeciesRow } from '@/lib/species/types'
 import { planCaptions, verifyAndPlaceCaptions, wrapCaption } from '@/lib/share/captions'
 import * as image from '@/lib/share/image'
 import { makePoster, type EncoderPort, type PosterDeps } from '@/lib/share/poster'
-import { CAPTION_CAPS, captionMinPx, printScale } from '@/lib/share/print'
+import { CAPTION_CAPS, captionMinPx, printDesign, printScale } from '@/lib/share/print'
 import { installStubs } from './fixtures/share-image-harness'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -69,7 +69,7 @@ describe('print captions', () => {
 
     const { species, entries, load } = makeSpeciesAndEntries(40, (i) => `Northern Synthetic Warbler ${i + 1}`)
     const content: image.CardContent = { name: true, filter: false, latest: true, count: entries.length }
-    const L = image.cardLayout('print', content, image.cardDims('print', 'A4'))
+    const L = image.cardLayout('print', content, printDesign('A4'))
     const plan = planCaptions(entries, species, 'A4', L.collage.w)
     expect(plan.ok).toBe(true)
     if (!plan.ok) return

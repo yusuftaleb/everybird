@@ -33,7 +33,7 @@ export type WorkerRequest =
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
       refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean
     }
-  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number; captions?: { w: number; h: number }[] }
+  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number; captions?: { w: number; h: number; ring?: number }[] }
 export type WorkerReply =
   | { type: 'ready'; id: number }
   | {
