@@ -1,4 +1,4 @@
-import { zipSync } from 'fflate'
+import { Zip, ZipPassThrough } from 'fflate'
 import { filterPlaceKeys, seenBasis, type Filter } from '@/lib/list/filters'
 import { inRange } from '@/lib/list/in-range'
 import type { ListEntry } from '@/lib/list/model'
@@ -9,8 +9,10 @@ import { continentOfPlace, type ContinentId } from '@/lib/places/continents'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
-import { abortError, packForImage, type ImagePack, type PackSpec } from './image'
+import { planCaptions, type TextMeasurer } from './captions'
+import { abortError, cardLayout, goalText, imagePackSpec, markedCodesOf, packForImage, type CardFormat, type CountSize, type ImagePack, type PackSpec } from './image'
 import type { makePoster as MakePoster, Poster, PosterOpts } from './poster'
+import { printDesign, type PrintSize } from './print'
 
 export const BULK_BATCH_SIZE = 1000
 
@@ -38,8 +40,13 @@ export type BulkGroupsOpts = {
 const RESERVED_WINDOWS = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i
 const YEAR_RE = /^(\d{4})/
 
+/** Latin letters NFKD does not split into a base letter and a mark, spelled in ASCII. */
+const LATIN_EXTRA: Record<string, string> = { 'ł': 'l', 'đ': 'd', 'ð': 'd', 'ø': 'o', 'æ': 'ae', 'œ': 'oe', 'ß': 'ss', 'þ': 'th', 'ı': 'i', 'ħ': 'h', 'ŧ': 't', 'ŋ': 'ng' }
+
 export function sanitizeGroupStem(label: string, fallback = 'group'): string {
   const ascii = label
+    .toLowerCase()
+    .replace(/[łđðøæœßþıħŧŋ]/g, (c) => LATIN_EXTRA[c])
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
@@ -199,7 +206,34 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
   return uniqueStems(items)
 }
 
-export type BulkPosterOpts = Omit<PosterOpts, 'entries' | 'pack' | 'filterLabel' | 'species'>
+/** `filterLabel` and `goal` are the view's: each poster's label line is that, then its group ("Canada · Herons"). */
+export type BulkPosterOpts = Omit<PosterOpts, 'entries' | 'pack' | 'species'>
+
+export type BulkPackOpts = {
+  size: PrintSize
+  landscape: boolean
+  /** The poster has a title line. */
+  named: boolean
+  countSize: CountSize
+  /** The Big Year goal's target: the count reads "12 / 300", so its hole is sized for that. */
+  target?: number
+  showNames: boolean
+  species: SpeciesIndex
+  nameOf?: (row: SpeciesRow) => string
+  measure?: TextMeasurer
+  /** The lifer rings: each group rings its own latest and first lifer, as its poster draws them. */
+  marks: { newest?: boolean; first?: boolean }
+}
+
+/** What to pack for one group's poster (every poster has its group's label line), with names planned for its own birds. */
+export function bulkPackSpec(entries: ListEntry[], o: BulkPackOpts): PackSpec {
+  const format: CardFormat = o.landscape ? 'printLandscape' : 'print'
+  const content = { name: o.named, filter: true, latest: true, count: entries.length, target: o.target, countSize: o.countSize }
+  if (!o.showNames) return imagePackSpec(format, content, o.size)
+  const L = cardLayout(format, content, printDesign(o.size, o.landscape))
+  const plan = planCaptions(entries, o.species, o.size, L.collage.w, o.nameOf, o.measure, markedCodesOf(entries, o.species, o.marks))
+  return imagePackSpec(format, content, o.size, plan.ok ? plan : undefined)
+}
 
 export type BulkZipOpts = {
   groups: readonly BulkGroup[]
@@ -214,43 +248,66 @@ export type BulkZipOpts = {
   }
 }
 
-export async function makeBulkZip(opts: BulkZipOpts): Promise<Blob> {
+/** The ZIP, and how many of its posters asked for names but have none (they didn't fit). */
+export async function makeBulkZip(opts: BulkZipOpts): Promise<{ blob: Blob; namesDropped: number }> {
   const { groups, kind, poster: posterOpts, species, packSpec, onProgress, deps } = opts
   const { signal } = posterOpts
   const check = () => { if (signal?.aborted) throw abortError() }
   check()
   const packFn = deps?.pack ?? packForImage
   const makePosterFn = deps?.makePoster ?? (await import('./poster')).makePoster
-  const files: Record<string, Uint8Array> = {}
+  // The archive is written as each poster is done: its bytes go straight into Blob parts (which the browser may keep off
+  // the JS heap) and are dropped, so finished posters are never held twice and nothing copies the whole archive at once.
+  const parts: Blob[] = []
+  let zipError: Error | null = null
+  const zip = new Zip((err, chunk) => {
+    if (err) zipError = err
+    else parts.push(new Blob([chunk as Uint8Array<ArrayBuffer>]))
+  })
   const total = groups.length
-  for (let i = 0; i < total; i++) {
-    check()
-    const group = groups[i]
-    const spec = packSpec(group.entries, group)
-    const pack = await packFn(group.entries, species, spec, signal)
-    check()
-    let p: Poster | null = null
-    try {
-      p = await makePosterFn(
-        {
-          ...posterOpts,
-          entries: group.entries,
-          species,
-          pack,
-          filterLabel: group.label,
-        },
-        () => {},
-      )
+  const view = posterOpts.filterLabel?.trim() || (posterOpts.goal ? goalText(posterOpts.goal, posterOpts.strings) : '')
+  let namesDropped = 0
+  try {
+    for (let i = 0; i < total; i++) {
       check()
-      const blob = await p.file(kind)
+      const group = groups[i]
+      const spec = packSpec(group.entries, group)
+      const pack = await packFn(group.entries, species, spec, signal)
       check()
-      files[`${group.stem}.${kind}`] = new Uint8Array(await blob.arrayBuffer())
-      onProgress?.(i + 1, total, group)
-    } finally {
-      p?.dispose()
+      let p: Poster | null = null
+      try {
+        p = await makePosterFn(
+          {
+            ...posterOpts,
+            entries: group.entries,
+            species,
+            pack,
+            filterLabel: [view, group.label].filter(Boolean).join(' · '),
+          },
+          () => {},
+        )
+        check()
+        const blob = await p.file(kind)
+        check()
+        const bytes = new Uint8Array(await blob.arrayBuffer())
+        check()
+        const file = new ZipPassThrough(`${group.stem}.${kind}`)
+        zip.add(file)
+        file.push(bytes, true)
+        if (zipError) throw zipError
+        if (p.namesDropped) namesDropped++
+        onProgress?.(i + 1, total, group)
+      } finally {
+        p?.dispose()
+      }
     }
+    check()
+    zip.end()
+    if (zipError) throw zipError
+  } catch (e) {
+    zip.terminate()
+    parts.length = 0
+    throw e
   }
-  check()
-  const zipped = zipSync(files, { level: 0 })
-  return new Blob([zipped as Uint8Array<ArrayBuffer>], { type: 'application/zip' })
+  return { blob: new Blob(parts, { type: 'application/zip' }), namesDropped }
 }

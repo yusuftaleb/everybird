@@ -30,17 +30,16 @@ import { currentTheme, type Theme } from '@/lib/theme'
 import { useLiferMarks } from '@/lib/lifer-marks'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
-import { bulkGroups, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
+import { bulkGroups, bulkPackSpec, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
 import type { Poster } from '@/lib/share/poster'
 import { CAPTION_CAPS, PRINT_IN, PRINT_SIZES, captionMinPx, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
 import { planCaptions, type CaptionPlan } from '@/lib/share/captions'
-import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
 import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearFilter, yearList } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import { groupName } from '@/lib/search/groups'
 import type { Action, AppState } from '@/lib/list/store'
 import {
-  NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, captionMeasurer, cardLayout, clearStickerCache, ensureCaptionFont, filterLabel as labelFor, fitCaptionPack, imagePackSpec, imageShape, isPrint, packForImage, renderShareImage,
+  NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, captionMeasurer, cardLayout, clearStickerCache, ensureCaptionFont, filterLabel as labelFor, fitCaptionPack, imagePackSpec, imageShape, isPrint, markedCodesOf, packForImage, renderShareImage,
   type CardFormat, type CountSize, type FormatSlot, type ImagePack, type Orientation,
 } from '@/lib/share/image'
 import type { ShareLevel } from '@/lib/share/link'
@@ -87,7 +86,9 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const countSizeId = useId()
   const yearId = useId()
   const targetId = useId()
+  const targetNoteId = useId()
   const bulkSplitId = useId()
+  const namesNoteId = useId()
   useEscapeCapture(onClose)
   useFocusInAndBack(ref)
   useHoldTopBar()
@@ -96,7 +97,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const sizeName = (s: PrintSize) => (isUsSize(s) ? fmt(pt.inches, { w: PRINT_IN[s][0], h: PRINT_IN[s][1] }) : s)
   /** After a make: ready, then (when some did) the soft stickers, then the ones that didn't load. */
   const readyNote = (p: Poster) =>
-    [fmt(pt.ready, { size: sizeName(p.size) }), p.soft > 0 ? pt.soft : '', p.missing > 0 ? plural(pt.missing, p.missing, { n: formatInt(p.missing, t.num) }) : ''].filter(Boolean).join(' ')
+    [fmt(pt.ready, { size: sizeName(p.size) }), p.namesDropped ? pt.namesDropped : '', p.soft > 0 ? pt.soft : '', p.missing > 0 ? plural(pt.missing, p.missing, { n: formatInt(p.missing, t.num) }) : ''].filter(Boolean).join(' ')
 
   const { list, filter, saved, seen } = state
   const [format, setFormat] = useState<FormatSlot>('story')
@@ -144,6 +145,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const [bigYearOn, setBigYearOn] = useState(false)
   const [goalYear, setGoalYear] = useState(() => saved.bigYear?.year ?? new Date().getFullYear())
   const [goalTarget, setGoalTarget] = useState(() => (saved.bigYear ? String(saved.bigYear.target) : ''))
+  /** The target field was left holding something that isn't a whole number from 1 to TARGET_MAX (the saved goal stays). */
+  const [targetBad, setTargetBad] = useState(false)
   const parsedTarget = /^\d+$/.test(goalTarget.trim()) ? Number(goalTarget.trim()) : undefined
   const validTarget = isTarget(parsedTarget) ? parsedTarget : undefined
   const bigYearActive = bigYearOn && showBigYear
@@ -159,20 +162,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const hasFilter = !!(cardLabel || cardGoal)
   const goalKey = cardGoal ? `by:${cardGoal.year}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
   const overCap = cardEntries.length > CAPTION_CAPS[size]
-  const markedCodes = useMemo(() => {
-    const s = new Set<string>()
-    if (!liferMarks.newest && !liferMarks.first) return s
-    const order = liferOrder(species.byCode)
-    if (liferMarks.newest) {
-      const c = latestLifer(cardEntries, order)?.code
-      if (c) s.add(c)
-    }
-    if (liferMarks.first) {
-      const c = firstLifer(cardEntries, order)?.code
-      if (c) s.add(c)
-    }
-    return s
-  }, [cardEntries, species, liferMarks.newest, liferMarks.first])
+  const markedCodes = useMemo(
+    () => markedCodesOf(cardEntries, species, { newest: liferMarks.newest, first: liferMarks.first }),
+    [cardEntries, species, liferMarks.newest, liferMarks.first],
+  )
   useEffect(() => {
     if (!print || overCap || typeof document === 'undefined' || !document.fonts) return
     let live = true
@@ -212,10 +205,19 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   }, [])
   const packFor = useMemo(() => {
     const packs = new Map<string, Promise<ImagePack>>()
+    // A names pack is keyed by its plan (captionPlan is remade whenever the names, their language, the rings, the fonts or
+    // the paper change), so those never remake the names-off packs.
+    const planIds = new WeakMap<object, number>()
+    let nextPlan = 0
+    const planId = (plan: object) => {
+      if (!planIds.has(plan)) planIds.set(plan, nextPlan++)
+      return planIds.get(plan)!
+    }
     // Not keyed by the latest lifer switch: imagePackSpec packs for the with-row frame, so on and off share one pack.
     return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize, plan?: Extract<CaptionPlan, { ok: true }> | null, signal?: AbortSignal) => {
       const hasPlan = !!plan?.ok && isPrint(f)
-      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${hasPlan ? `${lang}|${names}|${liferMarks.newest}|${liferMarks.first}|${fontsTick}` : ''}`
+      // With names, the paper size too: the caption font follows the paper, though every A size shares one pack height.
+      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${hasPlan ? `${printSize}|plan${planId(plan)}` : ''}`
       let p = packs.get(k)
       if (!p) {
         const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined)
@@ -225,7 +227,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       }
       return p
     }
-  }, [cardEntries, species, cardLabel, cardGoal, lang, names, liferMarks.newest, liferMarks.first, fontsTick])
+  }, [cardEntries, species, cardLabel, cardGoal])
   useEffect(() => {
     if (!print || overCap || !captionPlan?.ok) return
     let live = true
@@ -388,12 +390,17 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const makeRef = useRef<HTMLButtonElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
   const pngRef = useRef<HTMLButtonElement>(null)
-  const focusNext = useRef<'back' | 'entry' | 'make' | 'cancel' | 'png' | null>(null)
+  const bulkPngRef = useRef<HTMLButtonElement>(null)
+  const bulkPdfRef = useRef<HTMLButtonElement>(null)
+  const bulkCancelRef = useRef<HTMLButtonElement>(null)
+  /** The ZIP button that started the make: focus comes back to it when the make ends. */
+  const bulkKind = useRef<'png' | 'pdf'>('png')
+  const focusNext = useRef<'back' | 'entry' | 'make' | 'cancel' | 'png' | 'bulkPng' | 'bulkPdf' | 'bulkCancel' | null>(null)
   useEffect(() => {
     const want = focusNext.current
     if (!want) return
     focusNext.current = null
-    const el = { back: backRef, entry: entryRef, make: makeRef, cancel: cancelRef, png: pngRef }[want].current
+    const el = { back: backRef, entry: entryRef, make: makeRef, cancel: cancelRef, png: pngRef, bulkPng: bulkPngRef, bulkPdf: bulkPdfRef, bulkCancel: bulkCancelRef }[want].current
     const active = document.activeElement
     if (el && (!active || active === document.body || active === ref.current)) el.focus()
   })
@@ -456,9 +463,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     bulkCtl.current = ctl
     const forKey = posterKey
     const total = bulkList.length
-    const posterFormat: CardFormat = landscape ? 'printLandscape' : 'print'
     setNote({ text: pt.bulk.makingNote, print: true })
     setBulkMaking({ key: forKey, done: 0, total })
+    bulkKind.current = kind
+    focusNext.current = 'bulkCancel'
     try {
       const mod = await (posterModule.current ?? loadPoster())
       if (effectiveShowNames) {
@@ -470,7 +478,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
         if (ctl.signal.aborted) return
       }
       const measure = captionMeasurer()
-      const blob = await makeBulkZip({
+      const { blob, namesDropped } = await makeBulkZip({
         groups: bulkList,
         kind,
         species,
@@ -479,6 +487,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
           landscape,
           showNames: effectiveShowNames,
           name: trimmed || undefined,
+          filterLabel: cardLabel,
+          goal: cardGoal,
           latest: withLatest,
           markNewest: liferMarks.newest,
           markFirst: liferMarks.first,
@@ -488,13 +498,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
           nameOf: displayName,
           signal: ctl.signal,
         },
-        packSpec: (entries) => {
-          const content = { name: !!trimmed, filter: true, latest: true, count: entries.length, countSize }
-          if (!effectiveShowNames) return imagePackSpec(posterFormat, content, size)
-          const L = cardLayout(posterFormat, content, printDesign(size, landscape))
-          const plan = planCaptions(entries, species, size, L.collage.w, displayName, measure, markedCodes)
-          return imagePackSpec(posterFormat, content, size, plan.ok ? plan : undefined)
-        },
+        packSpec: (entries) => bulkPackSpec(entries, {
+          size, landscape, named: !!trimmed, countSize, target: cardGoal?.target, showNames: effectiveShowNames, species, nameOf: displayName, measure,
+          marks: { newest: liferMarks.newest, first: liferMarks.first },
+        }),
         onProgress: (done, count) => {
           if (!ctl.signal.aborted) setBulkMaking({ key: forKey, done, total: count })
         },
@@ -505,13 +512,16 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       setBulkMaking(null)
       const file = `${printFileStem(size, landscape)}-bulk.zip`
       downloadBlob(blob, file)
-      setNote({ text: plural(pt.bulk.ready, total, { file, n: formatInt(total, t.num) }), print: true })
+      const dropped = namesDropped > 0 ? plural(pt.bulk.namesDropped, namesDropped, { n: formatInt(namesDropped, t.num) }) : ''
+      setNote({ text: [plural(pt.bulk.ready, total, { file, n: formatInt(total, t.num) }), dropped].filter(Boolean).join(' '), print: true })
+      focusNext.current = kind === 'png' ? 'bulkPng' : 'bulkPdf'
     } catch (e) {
       if (ctl.signal.aborted || (e as Error)?.name === 'AbortError') return
       console.warn('Everybird bulk ZIP failed:', e)
       bulkCtl.current = null
       setBulkMaking(null)
       setNote({ text: pt.bulk.failed, error: true, print: true })
+      focusNext.current = kind === 'png' ? 'bulkPng' : 'bulkPdf'
     }
   }
   const cancelBulk = () => {
@@ -519,6 +529,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     bulkCtl.current = null
     setBulkMaking(null)
     setNote((n) => (n?.print ? null : n))
+    focusNext.current = bulkKind.current === 'png' ? 'bulkPng' : 'bulkPdf'
   }
   /** Drops the poster on screen (its encoder ends with it). */
   const dropPoster = () => {
@@ -862,6 +873,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                       role="switch"
                       aria-checked={showNames && namesAvailable}
                       disabled={!namesAvailable}
+                      aria-describedby={namesUnavailableReason ? namesNoteId : undefined}
                       className="eb-switch eb-share-switch"
                       data-testid="share-print-names-switch"
                       onClick={() => setShowNames((v) => !v)}
@@ -873,7 +885,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                 </div>
 
                 {print && namesUnavailableReason && (
-                  <p className="eb-note eb-share-names-note" data-testid="share-print-names-note">{namesUnavailableReason}</p>
+                  <p id={namesNoteId} className="eb-note eb-share-names-note" data-testid="share-print-names-note">{namesUnavailableReason}</p>
                 )}
 
                 <div className="eb-share-field">
@@ -922,16 +934,25 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                         step={1}
                         placeholder={t.share.bigYear.targetPlaceholder}
                         value={goalTarget}
-                        onChange={(e) => {
-                          const v = e.target.value
-                          setGoalTarget(v)
-                          const n = /^\d+$/.test(v.trim()) ? Number(v.trim()) : undefined
+                        aria-invalid={targetBad || undefined}
+                        aria-describedby={targetBad ? targetNoteId : undefined}
+                        onChange={(e) => setGoalTarget(e.target.value)}
+                        onBlur={(e) => {
+                          // Saved once the field is left. A number field reads "" for "-" or "1e" (badInput): that keeps the
+                          // saved goal, as 0, negatives and values over TARGET_MAX do; only a field left empty clears it.
+                          const v = e.currentTarget.value.trim()
+                          const n = /^\d+$/.test(v) ? Number(v) : undefined
+                          if (e.currentTarget.validity?.badInput || (v !== '' && !isTarget(n))) return setTargetBad(true)
+                          setTargetBad(false)
                           if (isTarget(n)) dispatch({ type: 'bigYear', bigYear: { year: goalYear, target: n } })
-                          else if (v.trim() === '' && saved.bigYear) dispatch({ type: 'bigYear', bigYear: undefined })
+                          else if (saved.bigYear) dispatch({ type: 'bigYear', bigYear: undefined })
                         }}
                       />
                     </div>
                   </div>
+                )}
+                {bigYearActive && targetBad && (
+                  <p id={targetNoteId} className="eb-note eb-share-names-note">{fmt(t.share.bigYear.targetInvalid, { max: formatInt(TARGET_MAX, t.num) })}</p>
                 )}
               </div>
             </div>
@@ -987,11 +1008,12 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                             total: formatInt(bulkMakingNow.total, t.num),
                           })}
                         </span>
-                        <button type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
+                        <button ref={bulkCancelRef} type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
                       </div>
                     ) : (
                       <div className="eb-share-row">
                         <button
+                          ref={bulkPngRef}
                           type="button"
                           className="eb-btn eb-btn-quiet"
                           disabled={bulkList.length === 0 || !!makingNow}
@@ -1001,6 +1023,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                           {pt.bulk.png}
                         </button>
                         <button
+                          ref={bulkPdfRef}
                           type="button"
                           className="eb-btn eb-btn-quiet"
                           disabled={bulkList.length === 0 || !!makingNow}

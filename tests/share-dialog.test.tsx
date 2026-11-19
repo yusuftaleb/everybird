@@ -26,7 +26,7 @@ vi.mock('@/lib/share/image', async (orig) => ({
 vi.mock('@/lib/download', () => ({ downloadBlob: vi.fn() }))
 
 // The poster is made by a promise the test settles; it records the progress callback, the signal and the opts.
-type FakePoster = { size: string; landscape: boolean; bytes: number; soft: number; missing: number; file: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }
+type FakePoster = { size: string; landscape: boolean; bytes: number; soft: number; missing: number; namesDropped?: boolean; file: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }
 const makes: { opts: { size: string; signal?: AbortSignal; pack?: unknown }; onProgress: (d: number, t: number) => void; resolve: (p: FakePoster) => void; reject: (e: unknown) => void }[] = []
 const posterMock = () => ({
   makePoster: vi.fn((opts, onProgress) => new Promise((resolve, reject) => makes.push({ opts, onProgress, resolve, reject }))),
@@ -830,10 +830,46 @@ describe('the orientation switch', () => {
     expect(targetInput.value).toBe('')
     fireEvent.change(yearSelect, { target: { value: '2026' } })
     fireEvent.change(targetInput, { target: { value: '300' } })
+    fireEvent.blur(targetInput)
     expect(dispatch).toHaveBeenCalledWith({ type: 'bigYear', bigYear: { year: 2026, target: 300 } })
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)![0]).toMatchObject({
       goal: { year: 2026, target: 300, basis: 'lifer' },
     }))
+  })
+
+  it('saves the Big Year target on blur, keeps the saved goal for anything but a whole number in range, and says why', () => {
+    const dispatch = vi.fn()
+    const state = stateWith([entry('ostric2')])
+    state.saved = { ...state.saved, bigYear: { year: 2020, target: 300 } }
+    render(<ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('switch', { name: 'Big Year' }))
+    const target = screen.getByLabelText('Target') as HTMLInputElement
+    expect(target.value).toBe('300')
+    // Typing saves nothing until the field is left.
+    fireEvent.change(target, { target: { value: '25' } })
+    expect(dispatch).not.toHaveBeenCalled()
+    // "1e" or "-": a number field reads empty, with badInput set (jsdom has no badInput, so the browser's is stubbed).
+    fireEvent.change(target, { target: { value: '' } })
+    Object.defineProperty(target, 'validity', { configurable: true, get: () => ({ badInput: true }) })
+    fireEvent.blur(target)
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(target).toHaveAttribute('aria-invalid', 'true')
+    expect(target).toHaveAccessibleDescription('Enter a whole number from 1 to 99,999.')
+    Object.defineProperty(target, 'validity', { configurable: true, get: () => ({ badInput: false }) })
+    for (const v of ['0', '-5', '100000']) {
+      fireEvent.change(target, { target: { value: v } })
+      fireEvent.blur(target)
+    }
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(target).toHaveAttribute('aria-invalid', 'true')
+    fireEvent.change(target, { target: { value: '250' } })
+    fireEvent.blur(target)
+    expect(dispatch).toHaveBeenCalledWith({ type: 'bigYear', bigYear: { year: 2020, target: 250 } })
+    expect(target).not.toHaveAttribute('aria-invalid')
+    // An emptied field (no bad input) clears the goal.
+    fireEvent.change(target, { target: { value: '' } })
+    fireEvent.blur(target)
+    expect(dispatch).toHaveBeenLastCalledWith({ type: 'bigYear', bigYear: undefined })
   })
 
   it('lets the user pick Count size in Share and Print, repacks, and forwards it to preview and poster PNG/PDF', async () => {
@@ -903,6 +939,72 @@ describe('the orientation switch', () => {
     expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2-bulk.zip (2 posters).')
   })
 
+  it('says when names were asked for but a poster has none, for one poster and for a ZIP', async () => {
+    const bulkSpecies = buildSpeciesIndex([row('ostric2', 1), { ...row('emu1', 2), fam: 'Casuariidae', famCom: 'Cassowaries and Emu' }])
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={bulkSpecies} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
+    await waitFor(() => expect(makes).toHaveLength(1))
+    await act(async () => makes[0].resolve(fakePoster({ namesDropped: true })))
+    await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Your A2 poster is ready. The names didn’t fit, so this poster has none.'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Multiple posters (ZIP)' }))
+    fireEvent.change(screen.getByLabelText('Split by'), { target: { value: 'family' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Download PNGs (ZIP)' }))
+    await waitFor(() => expect(makes).toHaveLength(2))
+    await act(async () => makes[1].resolve(fakePoster({ namesDropped: true })))
+    await waitFor(() => expect(makes).toHaveLength(3))
+    await act(async () => makes[2].resolve(fakePoster()))
+    await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2-bulk.zip (2 posters). 1 poster has no names: they didn’t fit.'))
+  })
+
+  it('bulk posters keep the Big Year goal: its line before the group and its target in the count', async () => {
+    const dispatch = vi.fn()
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('switch', { name: 'Big Year' }))
+    fireEvent.change(screen.getByLabelText('Year'), { target: { value: '2020' } })
+    fireEvent.change(screen.getByLabelText('Target'), { target: { value: '300' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Multiple posters (ZIP)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Download PNGs (ZIP)' }))
+    await waitFor(() => expect(makes).toHaveLength(1))
+    expect(makes[0].opts).toMatchObject({ goal: { year: 2020, target: 300 }, filterLabel: expect.stringMatching(/^Big Year 2020 · .*Part 1$/) })
+    const bulkSpec = vi.mocked(image.packForImage).mock.calls.at(-1)![2]
+    const plainSpec = image.imagePackSpec('print', { name: false, filter: true, latest: true, count: 2, countSize: 'medium' }, 'A2')
+    expect(bulkSpec.hole.num[2]).toBeGreaterThan(plainSpec.hole.num[2])
+  })
+
+  it('keeps keyboard focus as the ZIP buttons swap: on Cancel while it runs, back on the button that started it', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Multiple posters (ZIP)' }))
+    pressFocused('Download PDFs (ZIP)')
+    await waitFor(() => expect(makes).toHaveLength(1))
+    const progress = screen.getByTestId('bulk-progress')
+    expect(within(progress).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    within(progress).getByRole('button', { name: 'Cancel' }).focus()
+    fireEvent.click(within(progress).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Download PDFs (ZIP)' })).toHaveFocus())
+
+    pressFocused('Download PNGs (ZIP)')
+    await waitFor(() => expect(makes).toHaveLength(2))
+    await act(async () => makes[1].resolve(fakePoster()))
+    await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Download PNGs (ZIP)' })).toHaveFocus())
+  })
+
+  it('the disabled Show species names switch is described by the note that says why', () => {
+    const manyRows = Array.from({ length: 41 }, (_, i) => ({ ...row(`b${i}`, i + 1), com: `Bird ${i + 1}` }))
+    render(<ShareDialog state={stateWith(manyRows.map((r) => entry(r.code)))} dispatch={() => {}} species={buildSpeciesIndex(manyRows)} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    fireEvent.click(screen.getByRole('button', { name: 'A4' }))
+    const sw = screen.getByRole('switch', { name: 'Show species names' })
+    expect(sw).toBeDisabled()
+    expect(sw).toHaveAccessibleDescription('A4 fits up to 40 species with names. Pick a larger size or filter your list.')
+    fireEvent.click(screen.getByRole('button', { name: 'A3' }))
+    expect(sw).not.toHaveAttribute('aria-describedby')
+  })
+
   it('disables bulk ZIP buttons with a note when a split has zero groups', async () => {
     render(<ShareDialog state={stateWith([{ ...entry('ostric2'), date: undefined }])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
@@ -954,6 +1056,31 @@ describe('the orientation switch', () => {
     const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
     expect(sw.disabled).toBe(true)
     expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Names won’t fit cleanly on A2. Pick a larger size or filter your list.')
+  })
+
+  it('packs names again for each paper size: the caption font follows the paper, so an A2 pack never serves A4', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    const named = () => vi.mocked(image.packForImage).mock.calls.filter((c) => c[2].captionBoxes).map((c) => c[2].captionBoxes!.ostric2.h)
+    await waitFor(() => expect(named()).toHaveLength(1))
+    fireEvent.click(screen.getByRole('button', { name: 'A4' }))
+    await waitFor(() => expect(named()).toHaveLength(2))
+    // A4's minimum caption size is larger in design units than A2's, so its name box is taller.
+    expect(named()[1]).toBeGreaterThan(named()[0])
+  })
+
+  it('with names off, the poster\'s pack is not made again when only the names\' inputs change (the lifer rings)', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    const plainPrint = () => vi.mocked(image.packForImage).mock.calls.filter((c) => !c[2].captionBoxes && c[2].aspect < 1).length
+    await waitFor(() => expect(plainPrint()).toBe(1))
+    await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.some((c) => c[2].captionBoxes)).toBe(true))
+    act(() => setLiferMark('newest', true))
+    await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.filter((c) => c[2].captionBoxes?.emu1?.ring).length).toBe(1))
+    // The preview renders again with the rings (after its debounce), from the same names-off pack.
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', markNewest: true }))
+    expect(plainPrint()).toBe(1)
+    act(() => setLiferMark('newest', false))
   })
 
   it('disables Show species names when caption pack check rejects', async () => {

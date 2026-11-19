@@ -184,6 +184,7 @@
   border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-share-input::placeholder { color: var(--muted); opacity: 1; }
+.eb-share-input[aria-invalid] { border-color: var(--accent); }
 /* "Show latest lifer": the site's switch (collage.css), at full strength off too, flush with the column's left edge.
    Scoped to .eb-share, it beats .eb-switch's padding, gap and opacity whatever order the stylesheets load in; it ties
    with .eb-switch[aria-checked=true] and .eb-switch:hover, which only set opacity: 1 too, so nothing conflicts. The

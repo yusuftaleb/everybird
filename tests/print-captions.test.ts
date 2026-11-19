@@ -9,7 +9,7 @@ import type { SpeciesRow } from '@/lib/species/types'
 import { planCaptions, verifyAndPlaceCaptions, wrapCaption } from '@/lib/share/captions'
 import * as image from '@/lib/share/image'
 import { makePoster, type EncoderPort, type PosterDeps } from '@/lib/share/poster'
-import { CAPTION_CAPS, captionMinPx, printScale } from '@/lib/share/print'
+import { CAPTION_CAPS, captionMinPx, printDesign, printScale } from '@/lib/share/print'
 import { installStubs } from './fixtures/share-image-harness'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -69,7 +69,7 @@ describe('print captions', () => {
 
     const { species, entries, load } = makeSpeciesAndEntries(40, (i) => `Northern Synthetic Warbler ${i + 1}`)
     const content: image.CardContent = { name: true, filter: false, latest: true, count: entries.length }
-    const L = image.cardLayout('print', content, image.cardDims('print', 'A4'))
+    const L = image.cardLayout('print', content, printDesign('A4'))
     const plan = planCaptions(entries, species, 'A4', L.collage.w)
     expect(plan.ok).toBe(true)
     if (!plan.ok) return
@@ -120,6 +120,12 @@ describe('print captions', () => {
     }
   })
 
+  it('breaks a name after a slash as after a hyphen', () => {
+    const m = (s: string) => s.length * 10
+    expect(wrapCaption('Northwestern/Southeastern', 140, m)).toEqual(['Northwestern/', 'Southeastern'])
+    expect(wrapCaption('Northwestern/ Southeastern', 140, m)).toEqual(['Northwestern/', 'Southeastern'])
+  })
+
   it('rejects unbreakable long names and overlapping caption placements', () => {
     expect(wrapCaption('Superlongunbreakablebirdspeciesnamethatcannotpossiblyfitintwolines', 150, (s) => s.length * 10)).toBeNull()
 
@@ -168,6 +174,7 @@ describe('print captions', () => {
       nameOf: (row) => `Local ${row.code}`,
     })
     expect(card.captions).toHaveLength(2)
+    expect(card.namesDropped).toBeUndefined()
     const cap0 = card.captions![0]
     const seamY = cap0.y + cap0.h / 2
 
@@ -257,6 +264,7 @@ describe('print captions', () => {
       strings: en.ui,
     })
     expect(card.captions).toBeUndefined()
+    expect(card.namesDropped).toBe(true)
   })
 
   it('makePoster paints captions across strips identically to prepareCard', async () => {
@@ -305,9 +313,15 @@ describe('print captions', () => {
       deps,
     )
     expect(poster.bytes).toBe(123)
+    expect(poster.namesDropped).toBe(false)
     const drawnTexts = stripCanvases.flatMap((c) => (logs.get(c) ?? []).filter((l) => l.includes('Poster Bird')))
     expect(drawnTexts.some((l) => l.includes('Poster Bird 0'))).toBe(true)
     expect(drawnTexts.some((l) => l.includes('Poster Bird 1'))).toBe(true)
+
+    // A pack the names don't fit: the poster is made without them and says so.
+    const tight: image.ImagePack = { W: 400, H: 500, boxes: new Map([['bird0', [100, 100, 60, 60]], ['bird1', [100, 165, 60, 60]]]) }
+    const bare = await makePoster({ size: 'A4', showNames: true, entries, species, pack: tight, theme: 'light', strings: en.ui }, () => {}, deps)
+    expect(bare.namesDropped).toBe(true)
   })
 
   it('supports countSize: hide with showNames: true', async () => {
