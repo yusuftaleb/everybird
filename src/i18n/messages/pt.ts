@@ -454,6 +454,9 @@ export const pt: Messages = {
           ready: { one: 'Salvo {file} ({n} pôster).', other: 'Salvo {file} ({n} pôsteres).' },
           failed: 'Não foi possível criar o ZIP em lote. Tente de novo.',
         },
+        showNames: 'Mostrar nomes das espécies',
+        namesCap: '{size} comporta até {max} espécies com nomes. Escolha um tamanho maior ou filtre sua lista.',
+        namesNoFit: 'Os nomes das espécies não cabem em {size} sem cortar. Escolha um tamanho maior ou filtre sua lista.',
       },
     },
     import: {

@@ -454,6 +454,9 @@ export const es: Messages = {
           ready: { one: 'Guardado {file} ({n} póster).', other: 'Guardado {file} ({n} pósteres).' },
           failed: 'No se pudo crear el ZIP masivo. Inténtalo de nuevo.',
         },
+        showNames: 'Mostrar nombres de especies',
+        namesCap: '{size} admite hasta {max} especies con nombres. Elige un tamaño más grande o filtra tu lista.',
+        namesNoFit: 'Los nombres de las especies no caben en {size} sin cortarse. Elige un tamaño más grande o filtra tu lista.',
       },
     },
     import: {

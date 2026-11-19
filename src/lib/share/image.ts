@@ -34,7 +34,8 @@ import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { printStickerUrl, stickerUrl } from '@/lib/sticker-url'
 import { fmt } from '@/i18n/core'
 import { formatMonth } from '@/i18n/format'
-import { PRINT_DESIGN_W, printDesign, printPackH, type PrintSize } from '@/lib/share/print'
+import { PRINT_DESIGN_W, captionMinPx, printDesign, printPackH, type PrintSize } from '@/lib/share/print'
+import { defaultCaptionMeasure, planCaptions, verifyAndPlaceCaptions, type CaptionBox, type CaptionPlan, type PlacedTile, type TextMeasurer } from '@/lib/share/captions'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
 import type { Box } from '@/lib/layout/pack'
 import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
@@ -348,7 +349,7 @@ export function cardDims(format: CardFormat, size: PrintSize = 'A2'): [number, n
 }
 
 /** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
-export type PackSpec = { aspect: number; hole: Hole; maxTile: number }
+export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number }> }
 export function packSpec(L: CardLayout): PackSpec {
   const { w, h } = L.collage
   return { aspect: w / h, hole: scaleHole(L.count.hole, 1 / w), maxTile: L.maxTile }
@@ -395,7 +396,8 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, spec: 
       try { resolve(packFromReply(e.data)) } catch (err) { reject(err) }
     }
     w.onerror = (e) => { done(); reject(new Error(`layout worker failed: ${e.message ?? 'error'}`)) }
-    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile }
+    const captions = spec.captionBoxes ? birds.map((b) => spec.captionBoxes![b.code] ?? { w: 0, h: 0 }) : undefined
+    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}) }
     w.postMessage(msg)
   })
 }
@@ -419,10 +421,17 @@ export const abortError = (message = 'share image cancelled') => {
  * lifer) and the count's hole. The dialog packs once per format, name-or-not and lifer-or-not; the drawing maps the pack onto
  * whatever frame it gets. The print packs once per shape (cardDims with `size`: every A size at PRINT_DESIGN_H).
  */
-export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSize): PackSpec {
+export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSize, captionPlan?: Extract<CaptionPlan, { ok: true }>): PackSpec {
   // Always the frame with the latest lifer row (the smaller one): the "Show latest lifer" switch never changes the pack.
   // With the row off, the same pack is fitted into the taller area (fitPack), so every bird keeps its place.
-  return packSpec(cardLayout(format, { ...c, latest: true }, cardDims(format, size)))
+  const L = cardLayout(format, { ...c, latest: true }, cardDims(format, size))
+  const spec = packSpec(L)
+  if (!captionPlan) return spec
+  const captionBoxes: Record<string, { w: number; h: number }> = {}
+  for (const [code, entry] of captionPlan.byCode) {
+    captionBoxes[code] = { w: entry.w / L.collage.w, h: entry.h / L.collage.w }
+  }
+  return { ...spec, maxTile: Math.min(spec.maxTile, L.maxSide / L.collage.w), captionBoxes }
 }
 
 // --- drawing ---
@@ -640,6 +649,7 @@ export type ShareImageOpts = {
   nameOf?: (row: SpeciesRow) => string
   goal?: { year: number; target?: number; basis: 'seen' | 'lifer' }
   countSize?: CountSize
+  showNames?: boolean
   signal?: AbortSignal
 }
 
@@ -666,14 +676,18 @@ export const spreadY = (f: PackFit, yc: number) => f.cy + (yc - f.uy) * f.s * (y
  * nothing overlaps, and the ring and its hole become a taller oval. A layout unit at (x, y) is drawn at
  * (cx + (x − ux)·s, cy + (y − uy)·s) before the spread; a tile's centre moves to cy + (yc − uy)·s·sy.
  */
-export function fitPack(pack: ImagePack, area: { x: number; y: number; w: number; h: number }, maxTile: number, spreadMax = 1): PackFit {
+export function fitPack(
+  pack: ImagePack, area: { x: number; y: number; w: number; h: number }, maxTile: number, spreadMax = 1,
+  capBounds?: Map<string, { left: number; right: number; bottom: number }>,
+): PackFit {
   const ux = pack.W / 2, uy = pack.H / 2
   const cx = area.x + area.w / 2, cy = area.y + area.h / 2
   const k = Math.min(area.w / pack.W, area.h / pack.H)
   let dx = 0, dy = 0, maxL = 0
-  for (const [x, y, w, h] of pack.boxes.values()) {
-    dx = Math.max(dx, ux - x, x + w - ux)
-    dy = Math.max(dy, uy - y, y + h - uy)
+  for (const [code, [x, y, w, h]] of pack.boxes) {
+    const b = capBounds?.get(code)
+    dx = Math.max(dx, ux - (x - (b?.left ?? 0)), x + w + (b?.right ?? 0) - ux)
+    dy = Math.max(dy, uy - y, y + h + (b?.bottom ?? 0) - uy)
     maxL = Math.max(maxL, w, h)
   }
   if (!maxL) return { s: k, cx, cy, ux, uy, grow: 1, sy: 1, syDown: 1 }
@@ -681,11 +695,11 @@ export function fitPack(pack: ImagePack, area: { x: number; y: number; w: number
   const s = k * fill
   // Above and below the centre spread separately, so a lopsided ring (one big bird low) still reaches both edges.
   let up = spreadMax, down = spreadMax
-  for (const [, y, , h] of pack.boxes.values()) {
+  for (const [code, [, y, , h]] of pack.boxes) {
+    const b = capBounds?.get(code)
     const c = (y + h / 2 - uy) * s
-    const room = (area.h / 2 - (h * s) / 2) / Math.abs(c)
-    if (c < -1e-6) up = Math.min(up, room)
-    else if (c > 1e-6) down = Math.min(down, room)
+    if (c < -1e-6) up = Math.min(up, (area.h / 2 - (h * s) / 2) / Math.abs(c))
+    else if (c > 1e-6) down = Math.min(down, (area.h / 2 - (h * s) / 2 - (b?.bottom ?? 0) * s) / Math.abs(c))
   }
   return { s, cx, cy, ux, uy, grow: Math.max(1, fill), sy: Math.max(1, up), syDown: Math.max(1, down) }
 }
@@ -735,8 +749,48 @@ export type PreparedCard = {
   credit: { size: number; below: boolean }
   /** How far the wordmark, the hairline and the latest lifer row move up when the footer line is below the wordmark. */
   shift: number
+  captions?: CaptionBox[]
 }
 type CardDraft = Omit<PreparedCard, 'brandW' | 'credit' | 'shift'>
+
+export function fitCaptionPack(
+  pack: ImagePack,
+  entries: ListEntry[],
+  format: CardFormat,
+  content: CardContent,
+  printSize: PrintSize,
+  captionPlan: Extract<CaptionPlan, { ok: true }>,
+  markedCodes?: Set<string>,
+): { fit: PackFit; placed: PlacedTile[]; captions?: CaptionBox[]; ok: boolean } {
+  const L = cardLayout(format, content, printDesign(printSize, format === 'printLandscape'))
+  const area = L.collage
+  let capBounds: Map<string, { left: number; right: number; bottom: number }> | undefined
+  if (pack.W > 0) {
+    const luPerDu = pack.W / area.w
+    capBounds = new Map()
+    for (const [code, [, , w]] of pack.boxes) {
+      const p = captionPlan.byCode.get(code)
+      if (!p) continue
+      const extraX = Math.max(0, (p.w * luPerDu - w) / 2)
+      capBounds.set(code, { left: extraX, right: extraX, bottom: p.h * luPerDu })
+    }
+  }
+  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format], capBounds)
+  const placed: PlacedTile[] = []
+  for (const e of entries) {
+    const b = pack.boxes.get(e.code)
+    if (!b) continue
+    const [w, h] = [b[2] * fit.s, b[3] * fit.s]
+    const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
+    placed.push({ code: e.code, x, y, w, h, ...(markedCodes?.has(e.code) ? { marked: true } : {}) })
+  }
+  const verified = verifyAndPlaceCaptions(placed, area, { cx: fit.cx, cy: fit.cy }, scaleHole(L.count.hole, Math.max(1, fit.grow)), captionPlan)
+  return verified.ok ? { fit, placed, captions: verified.captions, ok: true } : { fit, placed, ok: false }
+}
+
+export function ensureCaptionFont(px: number, sample: string): Promise<void> {
+  return fontsReady([cardFonts().filter(px)], sample)
+}
 
 /** The card without its fonts and footer placement: layout, pack, fit, tiles, text. `scale`: device px per design unit. */
 async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft> {
@@ -758,9 +812,23 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const name = opts.name?.trim() || undefined
   const footerLine = withStamp(FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
   const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize }
-  const L = cardLayout(format, content, print ? printDesign(opts.printSize ?? 'A2', format === 'printLandscape') : undefined)
+  const printSize = opts.printSize ?? 'A2'
+  const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
+  const markedCodes = new Set<string>()
+  if (markNewestCode) markedCodes.add(markNewestCode)
+  if (markFirstCode) markedCodes.add(markFirstCode)
+  let captionPlan: CaptionPlan | undefined
+  if (print && opts.showNames) {
+    const sample = shown.map((e) => {
+      const r = species.byCode.get(e.code)
+      return r ? (opts.nameOf?.(r) ?? r.com) : ''
+    }).join('')
+    await ensureCaptionFont(captionMinPx(printSize), sample)
+    if (signal?.aborted) throw abortError()
+    captionPlan = planCaptions(shown, species, printSize, L.collage.w, opts.nameOf, captionMeasurer(), markedCodes)
+  }
   // Packed for the format's own frame (the print: at its shape's printPackH, one pack for every A size, as imagePackSpec).
-  const pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize), signal))
+  let pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined), signal))
   if (signal?.aborted) throw abortError()
 
   // A tile's sticker: the share images' 128/384 by its size; the print's by its device px (1024 with the 384 fallback).
@@ -771,7 +839,13 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
 
   // The pack on the collage area, its centre (the count) on the area's centre.
   const area = L.collage
-  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format])
+  const capFit = captionPlan?.ok ? fitCaptionPack(pack, shown, format, content, printSize, captionPlan, markedCodes) : undefined
+  if (capFit && !capFit.ok && !opts.pack) {
+    pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize), signal)
+    if (signal?.aborted) throw abortError()
+  }
+  const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format])
+  const captions = capFit?.ok ? capFit.captions : undefined
   const tiles: Tile[] = shown.flatMap((e) => {
     const b = pack.boxes.get(e.code)
     if (!b) return []
@@ -797,7 +871,15 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   // What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's.
   const countNum = K.size > 0 ? (goal?.target !== undefined ? `${countDisplay(content.count, strings.num)} / ${countDisplay(goal.target, strings.num)}` : countDisplay(content.count, strings.num)) : ''
   const countLabel = K.size > 0 ? strings.count.label.toUpperCase() : ''
-  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, footerLine, latest, name, label, fonts: cardFonts() }
+  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, footerLine, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}) }
+}
+
+export function captionMeasurer(): TextMeasurer {
+  if (typeof document === 'undefined') return defaultCaptionMeasure
+  const ctx = document.createElement('canvas').getContext('2d')
+  if (!ctx) return defaultCaptionMeasure
+  const f = cardFonts().filter
+  return (px, text) => { ctx.font = f(px); return ctx.measureText(text).width }
 }
 
 /**
@@ -814,10 +896,13 @@ function textMeasurer(): (font: string, px: number, text: string, em: number) =>
 
 /** Wait (at most 3 s) for every font the card draws with. */
 function cardFontsReady(d: CardDraft): Promise<void> {
-  const { L, fonts: font, K, name, label, latest, footerLine, countNum, countLabel } = d
+  const { L, fonts: font, K, name, label, latest, footerLine, countNum, countLabel, captions } = d
+  const fonts = [font.name(L.name?.size ?? 60), font.filter(34), ...(K.size > 0 ? [font.count(K.size), font.mono(K.labelSize)] : []), font.lifer(34), font.brand(30), font.footer(20)]
+  if (captions?.length) fonts.push(font.filter(captions[0].fontPx))
+  const captionSample = captions?.length ? captions.map((c) => c.lines.join('')).join('') : ''
   return fontsReady(
-    [font.name(L.name?.size ?? 60), font.filter(34), ...(K.size > 0 ? [font.count(K.size), font.mono(K.labelSize)] : []), font.lifer(34), font.brand(30), font.footer(20)],
-    `${name ?? ''}${label ?? ''}${countNum}${countLabel}${latest ? latest.label.toUpperCase() + latest.name : ''}Everybird${footerLine}`,
+    fonts,
+    `${name ?? ''}${label ?? ''}${countNum}${countLabel}${latest ? latest.label.toUpperCase() + latest.name : ''}Everybird${footerLine}${captionSample}`,
   )
 }
 
@@ -902,6 +987,16 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
   paintTiles(ctx, card.tiles, imgs, C.line, range, C)
+  if (card.captions?.length) {
+    ctx.font = font.filter(card.captions[0].fontPx)
+    ctx.fillStyle = C.ink
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    for (const cap of card.captions) {
+      if (range && !tileInRange({ y: cap.y - 2, h: cap.h + 4 }, range)) continue
+      for (let i = 0; i < cap.lines.length; i++) ctx.fillText(cap.lines[i], cap.cx, cap.y + i * cap.lineH)
+    }
+  }
 
   const X0 = L.collage.x, maxW = L.collage.w
   const track = (em: number, px: number) => { if ('letterSpacing' in ctx) ctx.letterSpacing = `${(em * px).toFixed(2)}px` }

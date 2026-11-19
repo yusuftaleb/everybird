@@ -454,6 +454,9 @@ export const nl: Messages = {
           ready: { one: '{file} opgeslagen ({n} poster).', other: '{file} opgeslagen ({n} posters).' },
           failed: 'De bulk-zip maken is niet gelukt. Probeer het opnieuw.',
         },
+        showNames: 'Soortnamen tonen',
+        namesCap: '{size} ondersteunt maximaal {max} soorten met namen. Kies een groter papierformaat of filter je lijst.',
+        namesNoFit: 'Soortnamen passen niet op {size} zonder te worden afgekapt. Kies een groter papierformaat of filter je lijst.',
       },
     },
     import: {

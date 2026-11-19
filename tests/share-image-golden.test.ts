@@ -145,3 +145,12 @@ describe('marked lifer rings on share and print images', () => {
     expect(log.some((l) => l.startsWith('fillText("Everybird",'))).toBe(true)
   })
 })
+
+describe('print captions golden compatibility', () => {
+  it('keeps print draw calls identical when showNames is false or omitted', async () => {
+    const logs = installStubs()
+    const base = await renderLog(image, logs, { format: 'print', latest: true, theme: 'light' } as never)
+    const off = await renderLog(image, logs, { format: 'print', latest: true, theme: 'light', showNames: false } as never)
+    expect(off).toEqual(base)
+  })
+})

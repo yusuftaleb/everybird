@@ -913,4 +913,58 @@ describe('the orientation switch', () => {
     expect((screen.getByRole('button', { name: 'Download PNG ZIP' }) as HTMLButtonElement).disabled).toBe(true)
     expect((screen.getByRole('button', { name: 'Download PDF ZIP' }) as HTMLButtonElement).disabled).toBe(true)
   })
+
+  it('Show species names is off by default in Print, disables over A4 cap (41), enables at 40 and on A3, and forwards showNames', async () => {
+    const manyRows = Array.from({ length: 41 }, (_, i) => ({
+      ...row(`b${i}`, i + 1),
+      com: `Bird ${i + 1}`,
+    }))
+    const manySpecies = buildSpeciesIndex(manyRows)
+    const manyList = manyRows.map((r) => entry(r.code))
+
+    render(<ShareDialog state={stateWith(manyList)} dispatch={() => {}} species={manySpecies} regions={regions} onClose={() => {}} />)
+    expect(screen.queryByRole('switch', { name: 'Show species names' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
+    expect(sw.getAttribute('aria-checked')).toBe('false')
+    expect(sw.disabled).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'A4' }))
+    expect(sw.disabled).toBe(true)
+    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('A4 supports up to 40 species with names. Choose a larger paper size or filter your list.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'A3' }))
+    expect(sw.disabled).toBe(false)
+    expect(screen.queryByTestId('share-print-names-note')).toBeNull()
+
+    fireEvent.click(sw)
+    expect(sw.getAttribute('aria-checked')).toBe('true')
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', printSize: 'A3', showNames: true }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
+    await waitFor(() => expect(makes).toHaveLength(1))
+    expect(makes[0].opts).toMatchObject({ size: 'A3', showNames: true })
+  })
+
+  it('disables Show species names when a species name cannot fit without clipping', async () => {
+    const longSpecies = buildSpeciesIndex([{ ...row('long1', 1), com: 'Superlongunbreakablebirdspeciesnamethatcannotpossiblyfitintwolines' }])
+    render(<ShareDialog state={stateWith([entry('long1')])} dispatch={() => {}} species={longSpecies} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
+    expect(sw.disabled).toBe(true)
+    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Species names can’t fit on A2 without clipping. Choose a larger paper size or filter your list.')
+  })
+
+  it('disables Show species names when caption pack check rejects', async () => {
+    vi.mocked(image.packForImage).mockImplementation(async (_entries, _species, spec) => {
+      if (spec.captionBoxes) throw new Error('packBest: does not fit')
+      return { W: 100, H: 100, boxes: new Map() }
+    })
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
+    await waitFor(() => expect(sw.disabled).toBe(true))
+    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Species names can’t fit on A2 without clipping. Choose a larger paper size or filter your list.')
+  })
 })

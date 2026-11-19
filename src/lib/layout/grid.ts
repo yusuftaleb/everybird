@@ -149,6 +149,42 @@ export function cellMask(mask: Mask, w: number, h: number, cell: number, pad: nu
   return toCellMask(dil, pw, ph)
 }
 
+export function captionCellMask(
+  mask: Mask, w: number, h: number, capW: number, capH: number, cell: number, pad: number, dilate: boolean,
+): { mask: CellMask; offX: number } {
+  const { tw, th, cells } = scaleMask(mask, w, h, cell)
+  const ctw = Math.max(1, Math.ceil(capW / cell))
+  const cth = Math.max(1, Math.ceil(capH / cell))
+  const innerW = Math.max(tw, ctw)
+  const pw = innerW + 2 * pad
+  const ph = th + cth + 2 * pad
+  const offX = Math.floor((innerW - tw) / 2)
+  const capX0 = Math.floor((innerW - ctw) / 2)
+  const out = new Uint8Array(pw * ph)
+  if (dilate) {
+    for (let j = 0; j < th; j++) {
+      for (let i = 0; i < tw; i++) {
+        if (!cells[j * tw + i]) continue
+        const x0 = i + offX
+        for (let y = j; y <= j + 2 * pad; y++) out.fill(1, y * pw + x0, y * pw + x0 + 2 * pad + 1)
+      }
+    }
+    const y0 = th
+    const y1 = Math.min(ph - 1, th + cth + 2 * pad - 1)
+    const x0 = capX0
+    const x1 = Math.min(pw, capX0 + ctw + 2 * pad)
+    for (let y = y0; y <= y1; y++) out.fill(1, y * pw + x0, y * pw + x1)
+  } else {
+    for (let j = 0; j < th; j++) out.set(cells.subarray(j * tw, (j + 1) * tw), (j + pad) * pw + pad + offX)
+    const y0 = th + pad
+    const y1 = y0 + cth - 1
+    const x0 = capX0 + pad
+    const x1 = x0 + ctw
+    for (let y = y0; y <= y1; y++) out.fill(1, y * pw + x0, y * pw + x1)
+  }
+  return { mask: toCellMask(out, pw, ph), offX }
+}
+
 /** Bit-pack a pw x ph boolean (0/1) array into a CellMask, choosing the set cell nearest the centre as probe. */
 export function toCellMask(cells: Uint8Array, pw: number, ph: number): CellMask {
   const wpr = (pw + 31) >> 5
