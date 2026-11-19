@@ -601,10 +601,11 @@ export function parseSheetRows(
 export function textToRows(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, '')
   if (!clean.trim()) return []
-  const hasTabs = clean.includes('\t')
+  // The delimiter is guessed without the blank rows (they would sway papaparse's guess), then every row is kept.
+  const delimiter = clean.includes('\t') ? '\t' : Papa.parse<string[]>(clean, { preview: 10, skipEmptyLines: 'greedy' }).meta.delimiter
   const parse = (quoteChar?: string) => Papa.parse<string[]>(clean, {
     header: false,
-    ...(hasTabs ? { delimiter: '\t' } : {}),
+    delimiter,
     ...(quoteChar ? { quoteChar } : {}),
     skipEmptyLines: false,
   })

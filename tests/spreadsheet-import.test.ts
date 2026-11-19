@@ -211,6 +211,14 @@ describe('spreadsheet import', () => {
     }
   })
 
+  it('reads short semicolon lists, blank lines and all', () => {
+    for (const text of ['Common Name;Date\nMallard;2024\nRock Pigeon;2023\n', '\nCommon Name;Date\nMallard;2024\nRock Pigeon;2023\n', 'Common Name;Date\n\nMallard;2024\n\nRock Pigeon;2023\n\n']) {
+      const res = parseSheetText(text, taxonomy, regions)
+      if ('error' in res) throw new Error('expected parse success')
+      expect(res.records.map((r) => [r.code, r.date])).toEqual([['mallar3', '2024'], ['rocpig', '2023']])
+    }
+  })
+
   it('imports only marked rows from a ticked checklist', () => {
     const res = parseSheetText(fixture('ticked-checklist.csv'), taxonomy, regions)
     expect('error' in res).toBe(false)
