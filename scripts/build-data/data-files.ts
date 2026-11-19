@@ -18,7 +18,7 @@ import { NAME_LOCALES } from '../../src/lib/species/name-locales'
 export const DATA_FILE_NAMES = [
   'species.v1.json', 'taxonomy.v1.json', 'regions.v1.json', 'groups.v1.json', 'masks.v2.json',
   'sample.v1.json', 'sample-pack.v1.json', 'inat-synonyms.v1.json',
-  'vietnam-boundaries.v1.json',
+  'vietnam-boundaries.v1.json', 'colours.v1.json',
   ...NAME_LOCALES.map((locale) => `names.${locale}.v1.json` as const),
 ] as const
 export const MASKS_BUNDLE = 'public/data/masks.v2.json'

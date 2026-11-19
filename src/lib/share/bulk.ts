@@ -10,6 +10,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { planCaptions, type TextMeasurer } from './captions'
+import type { Arrangement } from '@/lib/layout/arrange'
 import { abortError, cardLayout, goalText, imagePackSpec, markedCodesOf, packForImage, type CardFormat, type CountSize, type ImagePack, type PackSpec } from './image'
 import type { makePoster as MakePoster, Poster, PosterOpts } from './poster'
 import { printDesign, type PrintSize } from './print'
@@ -223,16 +224,17 @@ export type BulkPackOpts = {
   measure?: TextMeasurer
   /** The lifer rings: each group rings its own latest and first lifer, as its poster draws them. */
   marks: { newest?: boolean; first?: boolean }
+  arrangement?: Arrangement
 }
 
 /** What to pack for one group's poster (every poster has its group's label line), with names planned for its own birds. */
 export function bulkPackSpec(entries: ListEntry[], o: BulkPackOpts): PackSpec {
   const format: CardFormat = o.landscape ? 'printLandscape' : 'print'
   const content = { name: o.named, filter: true, latest: true, count: entries.length, target: o.target, countSize: o.countSize }
-  if (!o.showNames) return imagePackSpec(format, content, o.size)
+  if (!o.showNames) return imagePackSpec(format, content, o.size, undefined, o.arrangement)
   const L = cardLayout(format, content, printDesign(o.size, o.landscape))
   const plan = planCaptions(entries, o.species, o.size, L.collage.w, o.nameOf, o.measure, markedCodesOf(entries, o.species, o.marks))
-  return imagePackSpec(format, content, o.size, plan.ok ? plan : undefined)
+  return imagePackSpec(format, content, o.size, plan.ok ? plan : undefined, o.arrangement)
 }
 
 export type BulkZipOpts = {

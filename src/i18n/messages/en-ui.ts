@@ -118,6 +118,7 @@ export const EN_UI = {
       latestOn: 'Latest: {name}, <time>{date}</time>',
       sizesEven: 'Sizes follow body mass, evened out so small birds stay visible',
       sizesTrue: 'Sizes follow body mass at true scale',
+      sizesRows: 'Rows follow taxonomic order, one height per row',
       marks: '* heard only · † found dead',
     },
     /** The stage's accessible name. */
@@ -129,6 +130,10 @@ export const EN_UI = {
       trueScale: {
         one: 'Collage of {n} species, sized by body mass at true scale. Use the arrow keys to move between birds.',
         other: 'Collage of {n} species, sized by body mass at true scale. Use the arrow keys to move between birds.',
+      },
+      rows: {
+        one: 'Collage of {n} species in rows by family. Use the arrow keys to move between birds.',
+        other: 'Collage of {n} species in rows by family. Use the arrow keys to move between birds.',
       },
     },
     /** The controls bar. `…Short` labels show on narrow bars; `…Sr` follows the label for screen readers only. */
@@ -151,6 +156,11 @@ export const EN_UI = {
       sciSr: 'names',
       markNewest: 'Mark latest lifer',
       markFirst: 'Mark first lifer',
+      arrangement: 'Arrangement',
+      packed: 'Packed',
+      byFamily: 'By family',
+      byColour: 'By colour',
+      trueOff: 'Not available by family: the birds in a row share one height.',
       newestSr: ', latest lifer',
       firstSr: ', first lifer',
     },

@@ -17,6 +17,7 @@ import { formatInt, formatMonth } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import { setLiferMark, useLiferMarks } from '@/lib/lifer-marks'
+import { setArrangement, useArrangement } from '@/lib/arrangement'
 import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
 import { hasSeenMonths } from '@/lib/list/seen'
 import { applyFilter, drillTo, filterKey, filterToShow, threatenedCount, type Filter } from '@/lib/list/filters'
@@ -132,7 +133,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // A range drag's preview (Timeline): shown over the current layout until the committed range's layout lands.
   const [preview, setPreview] = useState<{ from?: string; to?: string; committed?: boolean } | null>(null)
   const onPreview = useCallback((r: { from?: string; to?: string } | null) => setPreview((p) => (r ? r : p ? { ...p, committed: true } : null)), [])
-  const lay = useCollageLayout({ list, seen, filter, mode, species, container: box, seed, preview })
+  const arrangement = useArrangement()
+  const rows = arrangement === 'family' // By family: one height per row, so True size can't apply
+  const lay = useCollageLayout({ list, seen, filter, mode, arrangement, species, container: box, seed, preview })
   const layKey = lay ? lay.layout.key.split('|').slice(2).join('|') : undefined
   useEffect(() => {
     if (!preview?.committed || layKey !== filterKey(filter)) return
@@ -250,7 +253,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
 
   const picked = pick ? list.find((e) => e.code === pick.code) : undefined
   const tipEntry = tip && !pick && view === 'collage' ? entries.find((e) => e.code === tip) : undefined
-  const sizes = mode === 'true' ? t.collage.legend.sizesTrue : t.collage.legend.sizesEven
+  const sizes = rows ? t.collage.legend.sizesRows : mode === 'true' ? t.collage.legend.sizesTrue : t.collage.legend.sizesEven
   const latestRow = latest ? species.byCode.get(latest.code) : undefined
 
   return (
@@ -267,6 +270,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         onView={(v) => { setPick(null); setTip(null); dispatch({ type: 'view', view: v }) }}
         trueSize={mode === 'true'}
         onTrueSize={(on) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })}
+        trueOff={rows}
+        arrangement={{ value: arrangement, onChange: setArrangement }}
         lightFirst={massOrder === 'lightest'}
         onDirection={() => dispatch({ type: 'massOrder', massOrder: massOrder === 'heaviest' ? 'lightest' : 'heaviest' })}
         sci={sci}
@@ -286,7 +291,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       {view === 'collage' ? (
         lay ? (
           <div ref={wrap} className="eb-stagewrap">
-            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} onHover={onHover} still={lay.still} marks={stageMarks} />
+            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={rows ? 'rows' : mode} onPick={onPickBird} onHover={onHover} still={lay.still} marks={stageMarks} />
             {tipEntry && <BirdTip key={tipEntry.code} entry={tipEntry} row={species.byCode.get(tipEntry.code)!} regions={regions} sci={sci} wrap={wrap} filter={filter} seen={seen} />}
           </div>
         ) : (

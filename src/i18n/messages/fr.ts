@@ -91,6 +91,7 @@ export const fr: Messages = {
         latestOn: 'Dernière\u00a0: {name}, <time>{date}</time>',
         sizesEven: 'Les tailles suivent la masse corporelle, rééquilibrées pour que les petits oiseaux restent visibles',
         sizesTrue: 'Les tailles suivent la masse corporelle à l’échelle réelle',
+        sizesRows: 'Rangées dans l’ordre taxonomique, une hauteur par rangée',
         marks: '* entendu seulement · † trouvé mort',
       },
       stage: {
@@ -101,6 +102,10 @@ export const fr: Messages = {
         trueScale: {
           one: 'Collage de {n} espèce, dont la taille suit la masse corporelle à l’échelle réelle. Utilise les flèches du clavier pour passer d’un oiseau à l’autre.',
           other: 'Collage de {n} espèces, dont la taille suit la masse corporelle à l’échelle réelle. Utilise les flèches du clavier pour passer d’un oiseau à l’autre.',
+        },
+        rows: {
+          one: 'Collage de {n} espèce en rangées par famille. Utilise les flèches du clavier pour passer d’un oiseau à l’autre.',
+          other: 'Collage de {n} espèces en rangées par famille. Utilise les flèches du clavier pour passer d’un oiseau à l’autre.',
         },
       },
       controls: {
@@ -122,6 +127,11 @@ export const fr: Messages = {
         sciSr: '(noms scientifiques)',
         markNewest: 'Marquer la dernière nouvelle espèce',
         markFirst: 'Marquer la première nouvelle espèce',
+        arrangement: 'Disposition',
+        packed: 'Compacte',
+        byFamily: 'Par famille',
+        byColour: 'Par couleur',
+        trueOff: 'Indisponible par famille\u00a0: les oiseaux d’une rangée ont la même hauteur.',
         newestSr: ', dernière nouvelle espèce',
         firstSr: ', première nouvelle espèce',
       },

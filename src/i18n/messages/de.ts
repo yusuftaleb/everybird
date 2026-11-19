@@ -91,6 +91,7 @@ export const de: Messages = {
         latestOn: 'Neueste: {name}, <time>{date}</time>',
         sizesEven: 'Größe nach Körpergewicht, ausgeglichen, damit kleine Vögel sichtbar bleiben',
         sizesTrue: 'Größe nach Körpergewicht im echten Maßstab',
+        sizesRows: 'Reihen in systematischer Reihenfolge, eine Höhe pro Reihe',
         marks: '* nur gehört · † tot gefunden',
       },
       stage: {
@@ -101,6 +102,10 @@ export const de: Messages = {
         trueScale: {
           one: 'Collage aus {n} Art, Größe nach Körpergewicht im echten Maßstab. Mit den Pfeiltasten wechselst du zwischen den Vögeln.',
           other: 'Collage aus {n} Arten, Größe nach Körpergewicht im echten Maßstab. Mit den Pfeiltasten wechselst du zwischen den Vögeln.',
+        },
+        rows: {
+          one: 'Collage aus {n} Art in Reihen nach Familie. Mit den Pfeiltasten wechselst du zwischen den Vögeln.',
+          other: 'Collage aus {n} Arten in Reihen nach Familie. Mit den Pfeiltasten wechselst du zwischen den Vögeln.',
         },
       },
       controls: {
@@ -122,6 +127,11 @@ export const de: Messages = {
         sciSr: '(wissenschaftliche Namen)',
         markNewest: 'Neueste Art markieren',
         markFirst: 'Erste Art markieren',
+        arrangement: 'Anordnung',
+        packed: 'Kompakt',
+        byFamily: 'Nach Familie',
+        byColour: 'Nach Farbe',
+        trueOff: 'Nach Familie nicht verfügbar: Die Vögel einer Reihe sind gleich hoch.',
         newestSr: ', neueste Art',
         firstSr: ', erste Art',
       },
