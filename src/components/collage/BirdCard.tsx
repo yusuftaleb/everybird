@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useLayoutEffect, useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { trapTab, useEscapeCapture, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
 import { formatMass, formatMonth } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -14,6 +14,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
+import { albumSlug, albumUrl, loadAlbumSlugs } from '@/lib/bird-album'
 import { CloseIcon } from './icons'
 import { IucnBadge } from './IucnPill'
 import { markLabel, Marks, marksOf } from './Marks'
@@ -188,6 +189,7 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
         </button>
       </BirdFacts>
       {!row.st && <p className="eb-card-note" data-testid="no-drawing">{t.card.noDrawing}</p>}
+      {row.st && <AlbumLink row={row} />}
       {notes.length > 0 && <p className="eb-card-note">{notes.join(' · ')}</p>}
       {actions && <div className="eb-card-actions">{actions}</div>}
     </div>
@@ -245,5 +247,19 @@ export function BirdFacts({ entry, row, regions, sci = false, heading = true, st
         </div>
       )}
     </>
+  )
+}
+
+/** The credit link to the bird's page on Bird Album, where its sticker comes from; shown once the slugs have loaded. */
+function AlbumLink({ row }: { row: SpeciesRow }) {
+  const { t, lang } = useI18n()
+  const [slugs, setSlugs] = useState<Record<string, string> | null>(null)
+  useEffect(() => { loadAlbumSlugs().then(setSlugs, () => {}) }, [])
+  if (!slugs) return null
+  return (
+    <p className="eb-card-note">
+      <a className="eb-card-album" href={albumUrl(slugs[row.code] ?? albumSlug(row.com), lang)} target="_blank" rel="noopener noreferrer"
+        aria-label={t.card.albumSpoken}>{t.card.album}<span aria-hidden="true"> ↗</span></a>
+    </p>
   )
 }
