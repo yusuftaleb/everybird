@@ -191,23 +191,48 @@ function makePlaceResolver(regions?: Regions) {
     return countries.get(folded)
   }
 
-  // Whole names first: "Congo, Democratic Republic of the" is one country, "Canada, Kenya" two.
-  const resolveCountries = (raw: string): string[] => {
+  // Whole names first: "Congo, Democratic Republic of the" is one country, "Canada, Kenya" two. In an `address`
+  // (a Location cell, "San Diego, CA, USA") a two-letter part is a province code once a part names a country in full.
+  const resolveCountries = (raw: string, address = false): string[] => {
     const out: string[] = []
-    const push = (code: string | undefined) => {
-      if (code && !out.includes(code)) out.push(code)
+    const codeOnly: string[] = []
+    const push = (code: string | undefined, part: string) => {
+      if (!code || out.includes(code)) return
+      out.push(code)
+      if (/^[A-Za-z]{2}$/.test(part.trim())) codeOnly.push(code)
     }
     for (const seg of raw.split(/[;/]+/)) {
       const whole = countryCode(seg)
-      if (whole) push(whole)
-      else for (const part of seg.split(',')) push(countryCode(part))
+      if (whole) push(whole, seg)
+      else for (const part of seg.split(',')) push(countryCode(part), part)
     }
-    return out
+    return address && codeOnly.length < out.length ? out.filter((c) => !codeOnly.includes(c)) : out
   }
 
-  const resolvePlace = (country: string, division: string): Place | undefined => {
-    const div = division.trim()
-    const rawSub1 = div ? sub1Index(country, div) : undefined
+  // A province by name or by its code after the country's ("BC" in Canada).
+  const sub1Of = (country: string, name: string): string | undefined => {
+    const byName = sub1Index(country, name)
+    if (byName) return byName
+    const code = `${country}-${name.trim().toUpperCase()}`
+    return /^[A-Z]{2}-[A-Z0-9]{1,3}$/.test(code) && Object.hasOwn(regions.sub1, code) ? code : undefined
+  }
+
+  /** `division` is the place cell; the parts naming one of the row's `countries` are not a division. The rest is tried
+   *  whole, then part by part, against the province index; only an unmatched rest becomes a province of its own. */
+  const resolvePlace = (country: string, division: string, rowCountries: readonly string[] = [country]): Place | undefined => {
+    const whole = division.trim()
+    const isRowCountry = (s: string) => rowCountries.includes(countryCode(s) ?? '')
+    const parts = isRowCountry(whole) ? [] : whole.split(',').map((s) => s.trim()).filter(Boolean)
+    const rest = parts.filter((s) => !isRowCountry(s))
+    let div = !rest.length ? '' : rest.length === parts.length ? whole : rest.join(', ')
+    let rawSub1 = div ? sub1Of(country, div) : undefined
+    if (!rawSub1 && rest.length > 1) {
+      const part = rest.find((s) => sub1Of(country, s))
+      if (part) {
+        div = part
+        rawSub1 = sub1Of(country, part)
+      }
+    }
     const top = rawSub1 ? topOf(rawSub1) : undefined
     const sub1 = top && regions.sub1[top] ? top : rawSub1
     if (regions.registry && (div || sub1)) {
@@ -488,12 +513,12 @@ export function parseSheetRows(
 
     let countryCodes = rawCountry ? resolveCountries(rawCountry) : []
     if (!countryCodes.length && rawPlace && cols.country < 0) {
-      countryCodes = resolveCountries(rawPlace)
+      countryCodes = resolveCountries(rawPlace, true)
     }
 
     const rowPlaces: Place[] = []
     for (const cc of countryCodes) {
-      const p = resolvePlace(cc, rawPlace)
+      const p = resolvePlace(cc, rawPlace, countryCodes)
       if (p) rowPlaces.push(p)
     }
     const primaryPlace = rowPlaces[0]

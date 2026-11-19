@@ -10,7 +10,8 @@ import { buildList } from '@/lib/list/build-list'
 import { fromJson, toCsv, toJson } from '@/lib/list/export'
 import { buildSeen } from '@/lib/list/seen'
 import { slotConnected, sourceCounts, summaryLine } from '@/lib/list/source-counts'
-import { emptySaved, replaceSource } from '@/lib/list/storage'
+import { emptySaved, replaceSource, type Saved } from '@/lib/list/storage'
+import { recordsOf } from '@/lib/list/store'
 import { buildSpeciesIndex, buildTaxonomyIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow, TaxonRow } from '@/lib/species/types'
 
@@ -45,6 +46,13 @@ function makeXlsx(opts: {
     files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(s.xml)
   })
   return zipSync(files)
+}
+
+/** A species' country and province keys as the Places filter sees them (the store projects stored places first). */
+function placeKeysOf(saved: Saved) {
+  const records = recordsOf(saved, regions)
+  const seen = buildSeen(records, saved.edits, saved.rules, buildList(records, saved.edits, saved.rules))
+  return (code: string) => [...(seen.byCode.get(code)?.keys ?? [])].filter((k) => /^[cs]:/.test(k)).sort()
 }
 
 describe('spreadsheet import', () => {
@@ -112,6 +120,33 @@ describe('spreadsheet import', () => {
       ['rocpig', ['KR']],
       ['barswa', ['CA', 'KE']],
     ])
+  })
+
+  it('reads a Location cell as country and province, never the country as a province', () => {
+    const csv = [
+      'Common Name,Location',
+      'Mallard,Kenya',
+      'Rock Pigeon,"Vancouver, BC, Canada"',
+      'Barn Swallow,"British Columbia, Canada"',
+      'House Sparrow,"San Diego, CA, USA"',
+      'European Robin,"Kenya, Tanzania"',
+    ].join('\n')
+    const res = parseSheetText(csv, taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    const keys = placeKeysOf(replaceSource(emptySaved(), 'sheet', res))
+    expect(keys('mallar3')).toEqual(['c:KE'])
+    expect(keys('rocpig')).toEqual(['c:CA', 's:CA-BC'])
+    expect(keys('barswa')).toEqual(['c:CA', 's:CA-BC'])
+    expect(keys('houspa')).toEqual(['c:US', 's:US-CA'])
+    expect(keys('eurrob1')).toEqual(['c:KE', 'c:TZ'])
+  })
+
+  it('finds the province among a place cell\'s parts when the country has its own column', () => {
+    const res = parseSheetText('Common Name,Country,Place\nMallard,Canada,"Vancouver, BC"\nRock Pigeon,United States,Georgia\n', taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    const keys = placeKeysOf(replaceSource(emptySaved(), 'sheet', res))
+    expect(keys('mallar3')).toEqual(['c:CA', 's:CA-BC'])
+    expect(keys('rocpig')).toEqual(['c:US', 's:US-GA'])
   })
 
   it('parses a pasted plain list, single plain cell, and quoted TSV with tabs/newlines', () => {
