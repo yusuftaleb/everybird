@@ -22,6 +22,7 @@ afterEach(() => {
 function jobs(over: Partial<ImportJobs> = {}): ImportJobs {
   return {
     ebird: idle, readEbird: async () => {}, obsorg: idle, readObsOrg: async () => {},
+    sheet: idle, readSheet: async () => {}, parsePaste: async () => {}, sheetReview: null, confirmSheet: () => {}, cancelSheet: () => {},
     inat: { busyFor: null, progress: null, error: null, note: null }, fetchInat: async () => {}, cancelInat: () => {},
     landed: null, ...over,
   }

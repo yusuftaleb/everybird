@@ -33,7 +33,7 @@ beforeEach(() => vi.useRealTimers())
 describe('useEverybird', () => {
   it('loads species + the stored list and becomes ready, without overwriting storage', async () => {
     const { storage, store } = await setup()
-    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], manual: [] } })
+    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], manual: [] } })
     const { result } = renderHook(() => store.useEverybird())
     expect(result.current[2].ready).toBe(false)
     await waitFor(() => expect(result.current[2].ready).toBe(true))
@@ -87,7 +87,7 @@ describe('useEverybird', () => {
 
   it('forget clears state and storage, and does not re-save the empty list', async () => {
     const { storage, store } = await setup()
-    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('crow')], 'ebird-list': [], inat: [], manual: [] } })
+    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('crow')], 'ebird-list': [], inat: [], sheet: [], manual: [] } })
     const { result } = renderHook(() => store.useEverybird())
     await waitFor(() => expect(result.current[2].ready).toBe(true))
     await act(async () => { result.current[1]({ type: 'forget' }) })
@@ -120,7 +120,7 @@ describe('useEverybird', () => {
 
   it('queues dispatches made before ready; the late restore does not overwrite them', async () => {
     const { storage, store } = await setup()
-    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('crow')], 'ebird-list': [], inat: [], manual: [] } })
+    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('crow')], 'ebird-list': [], inat: [], sheet: [], manual: [] } })
     const { result } = renderHook(() => store.useEverybird())
     expect(result.current[2].ready).toBe(false)
     act(() => result.current[1]({ type: 'import', source: 'inat', result: { records: [{ ...rec('wren'), source: 'inat' }], unmatched: [], skipped: 0 } }))

@@ -1,0 +1,222 @@
+'use client'
+import { useId, useRef, useState } from 'react'
+import { fileMessage, type FileJob, type SheetReview } from '@/components/app/use-import-jobs'
+import { fmt, plural } from '@/i18n/core'
+import { formatInt } from '@/i18n/format'
+import { useI18n } from '@/i18n/I18nProvider'
+import { countParts, type RowCount } from '@/lib/list/source-counts'
+import type { Saved, SheetDetails } from '@/lib/list/storage'
+import type { SpeciesIndex } from '@/lib/species/load'
+import { displayName } from '@/lib/species/names'
+import { FileDropzone, useFileDrop } from './FileDropzone'
+import { notCounted } from './NotCounted'
+import { sheetLine, SourceRow } from './SourceLine'
+
+type Props = {
+  job: FileJob
+  onFile: (file: File) => void
+  onPaste: (text: string) => void
+  review: SheetReview | null
+  onConfirm: () => void
+  onCancel: () => void
+  species: SpeciesIndex
+  disabled?: boolean
+  connected?: boolean
+  details?: SheetDetails
+  onRemove?: () => void
+  saved?: Saved
+  counts?: RowCount
+  landedAt?: number
+}
+
+const REVIEW_CAP = 12
+
+export function SheetDrop({
+  job,
+  onFile,
+  onPaste,
+  review,
+  onConfirm,
+  onCancel,
+  species,
+  disabled,
+  connected = false,
+  details,
+  onRemove,
+  saved,
+  counts,
+  landedAt,
+}: Props) {
+  const id = useId()
+  const { t } = useI18n()
+  const s = t.import.sheet
+  const [open, setOpen] = useState(false)
+  const [paste, setPaste] = useState('')
+  const input = useRef<HTMLInputElement>(null)
+  const { busy, rows, error } = job
+
+  const marker = `${connected ? '1' : '0'}|${landedAt ?? ''}`
+  const [lastMarker, setLastMarker] = useState(marker)
+  if (lastMarker !== marker) {
+    setLastMarker(marker)
+    setOpen(false)
+    setPaste('')
+  }
+
+  const read = (file: File | undefined) => {
+    if (!file || busy) return
+    onFile(file)
+    if (input.current) input.current.value = ''
+  }
+  const { over, handlers } = useFileDrop(read, disabled)
+  const off = disabled || busy
+  const pick = () => input.current?.click()
+  const line = connected ? sheetLine(details, t) : null
+  const showPanel = open || !!review || busy || !!error
+
+  const unmatchedRows = review ? review.result.unmatched.filter((u) => u.reason === 'no-match') : []
+  const shownUnmatched = unmatchedRows.slice(0, REVIEW_CAP)
+  const hiddenUnmatched = unmatchedRows.length - shownUnmatched.length
+
+  const summaryParts = review
+    ? [
+        plural(s.review.matched, review.matched, { n: formatInt(review.matched, t.num) }),
+        ...(review.duplicates > 0 ? [plural(s.review.duplicates, review.duplicates, { n: formatInt(review.duplicates, t.num) })] : []),
+        ...(review.notSpeciesCount > 0 ? [plural(s.review.notSpecies, review.notSpeciesCount, { n: formatInt(review.notSpeciesCount, t.num) })] : []),
+        ...(review.unmatchedCount > 0 ? [plural(s.review.unmatched, review.unmatchedCount, { n: formatInt(review.unmatchedCount, t.num) })] : []),
+      ]
+    : []
+
+  const confirmLabel = review
+    ? review.matched > 0
+      ? plural(connected ? s.review.replace : s.review.add, review.matched, { n: formatInt(review.matched, t.num) })
+      : s.review.addEmpty
+    : ''
+
+  return (
+    <div className="eb-filedrop" data-testid="sheet-drop" data-over={over || undefined} data-busy={busy || undefined} {...handlers}>
+      <input
+        ref={input}
+        className="eb-sr"
+        type="file"
+        accept=".xlsx,.csv,.tsv,.txt,.xls,.numbers,.ods,text/csv,text/tab-separated-values,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        aria-label={s.input}
+        data-testid="sheet-input"
+        tabIndex={-1}
+        disabled={off}
+        onChange={(e) => read(e.target.files?.[0])}
+      />
+      <SourceRow
+        testId={connected ? 'source-sheet' : undefined}
+        title={s.title}
+        name={line?.name}
+        parts={line ? line.parts : [t.import.notAdded]}
+        counts={connected && counts ? countParts(counts, t) : undefined}
+        skipped={connected && saved ? notCounted(saved, ['sheet'], t) ?? undefined : undefined}
+        what={connected ? s.what : undefined}
+        disabled={off}
+        onRemove={onRemove}
+        menu={connected ? [{ label: t.import.replace, keepFocus: true, onSelect: () => setOpen(true) }] : undefined}
+        primary={
+          connected ? (
+            <button
+              type="button"
+              className="eb-btn eb-btn-quiet eb-btn-sm"
+              disabled={off}
+              aria-expanded={showPanel}
+              aria-controls={`${id}-panel`}
+              aria-label={fmt(t.import.replaceLabel, { name: line!.name })}
+              onClick={() => setOpen((v) => !v)}
+            >
+              {t.import.replace}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="eb-btn eb-btn-quiet eb-btn-sm"
+              disabled={off}
+              aria-expanded={showPanel}
+              aria-controls={`${id}-panel`}
+              aria-label={fmt(t.import.addLabel, { title: s.title })}
+              onClick={() => setOpen((v) => !v)}
+            >
+              {t.import.add}
+            </button>
+          )
+        }
+      >
+        <div id={`${id}-panel`} className="eb-src-panel" hidden={!showPanel} role="group" aria-label={fmt(t.import.addLabel, { title: s.title })}>
+          {review ? (
+            <div className="eb-sheet-review" data-testid="sheet-review">
+              <p className="eb-sheet-summary">{summaryParts.join(' · ')}</p>
+              {shownUnmatched.length > 0 && (
+                <>
+                  <ul className="eb-note eb-sheet-unmatched">
+                    {shownUnmatched.map((u, idx) => {
+                      const raw = u.com ?? u.sci ?? ''
+                      const sug = u.suggestion ? species.byCode.get(u.suggestion) : undefined
+                      return (
+                        <li key={`${u.row}-${idx}`}>
+                          {sug ? fmt(s.review.suggestion, { name: raw, suggestion: displayName(sug) }) : raw}
+                        </li>
+                      )
+                    })}
+                    {hiddenUnmatched > 0 && <li>{fmt(s.review.more, { n: formatInt(hiddenUnmatched, t.num) })}</li>}
+                  </ul>
+                  <p className="eb-note">{s.review.note}</p>
+                </>
+              )}
+              <div className="eb-row">
+                <button type="button" className="eb-btn eb-btn-sm" data-testid="sheet-confirm" onClick={onConfirm}>
+                  {confirmLabel}
+                </button>
+                <button
+                  type="button"
+                  className="eb-btn eb-btn-quiet eb-btn-sm"
+                  data-testid="sheet-cancel"
+                  onClick={() => {
+                    onCancel()
+                    setOpen(true)
+                  }}
+                >
+                  {s.review.cancel}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="eb-note">{s.guide}</p>
+              <FileDropzone label={s.choose} disabled={off} onPick={pick} />
+              <div className="eb-sheet-pastebox">
+                <label htmlFor={`${id}-paste`} className="eb-sr">{s.pasteLabel}</label>
+                <textarea
+                  id={`${id}-paste`}
+                  className="eb-input eb-sheet-paste"
+                  rows={4}
+                  placeholder={s.pastePlaceholder}
+                  disabled={off}
+                  value={paste}
+                  onChange={(e) => setPaste(e.target.value)}
+                  data-testid="sheet-paste"
+                />
+                <button
+                  type="button"
+                  className="eb-btn eb-btn-quiet eb-btn-sm"
+                  disabled={off || !paste.trim()}
+                  onClick={() => onPaste(paste)}
+                  data-testid="sheet-paste-submit"
+                >
+                  {s.checkPaste}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </SourceRow>
+      <p className="eb-status eb-src-status" role="status">
+        {busy ? (rows ? plural(t.import.ebird.readingRows, rows, { n: formatInt(rows, t.num) }) : t.import.ebird.reading) : ''}
+      </p>
+      {error && <p className="eb-error eb-src-status" role="alert" data-testid="sheet-error">{fileMessage(error, t)}</p>}
+    </div>
+  )
+}

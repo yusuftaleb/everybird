@@ -233,8 +233,8 @@ describe('the Collage page (/)', () => {
     expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('heading', { level: 2, name: 'Your list' })).toBeInTheDocument()
     // One row per source, each "Not added" yet.
-    for (const h of [/^eBird life list/, /^MyEBirdData/, /^iNaturalist/, /^observation\.org life list/, /^observation\.org observations/, /^Ticked by hand/]) expect(screen.getByRole('heading', { level: 3, name: h })).toBeInTheDocument()
-    expect(screen.getAllByText('Not added')).toHaveLength(5)
+    for (const h of [/^eBird life list/, /^MyEBirdData/, /^iNaturalist/, /^observation\.org life list/, /^observation\.org observations/, /^Spreadsheet or list/, /^Ticked by hand/]) expect(screen.getByRole('heading', { level: 3, name: h })).toBeInTheDocument()
+    expect(screen.getAllByText('Not added')).toHaveLength(6)
     expect(screen.getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
   })
 

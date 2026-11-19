@@ -151,7 +151,7 @@ describe('older lists and backups keep loading', () => {
     const restored = fromJson(JSON.stringify(oldSaved()))
     expect(restored.records['ebird-list']).toEqual([])
     expect(restored.records.ebird).toHaveLength(1)
-    const both = { ...emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('a')], 'ebird-list': [rec('b')], inat: [], manual: [] } }
+    const both = { ...emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('a')], 'ebird-list': [rec('b')], inat: [], sheet: [], manual: [] } }
     expect(fromJson(toJson(both)).records['ebird-list']).toEqual([rec('b')])
     const withSlot = { ...both, unmatched: [{ source: 'ebird' as const, slot: 'ebird-list' as const, row: 1, reason: 'no-match' as const }], skipped: { 'ebird-list': 3 } }
     const back = fromJson(toJson(withSlot))
