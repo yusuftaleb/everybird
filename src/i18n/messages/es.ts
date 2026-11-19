@@ -547,11 +547,11 @@ export const es: Messages = {
       sheet: {
         title: 'Hoja de cálculo o lista',
         what: 'tu hoja de cálculo o lista',
-        guide: 'Sube un archivo Excel (.xlsx), CSV, TSV o de texto, o pega una lista de nombres de aves.',
+        guide: 'Sube un archivo Excel (.xlsx), CSV o de texto, o pega una lista abajo. Vale cualquier columna con nombres en inglés o científicos; las fechas, lugares y columnas marcadas son opcionales.',
         choose: 'Elige tu archivo',
         input: 'Archivo de hoja de cálculo o lista',
         pasteLabel: 'Pega una lista de nombres de aves',
-        pastePlaceholder: 'Pega nombres de aves, uno por línea, o columnas de una hoja de cálculo',
+        pastePlaceholder: 'Pega nombres de aves, uno por línea, o columnas de una hoja de cálculo:\nMallard\nBarn Swallow, 2024-05-12, France',
         checkPaste: 'Revisar lista pegada',
         fallback: { file: 'Hoja de cálculo', paste: 'Lista pegada' },
         review: {
