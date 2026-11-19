@@ -64,11 +64,11 @@ describe('the landing sample pack', () => {
     for (const l of pack.layouts) expect(l.codes).toEqual(pack.species.map((r) => r.code))
   })
 
-  it('carries the base names (es, pt_BR, nl; never a regional set) for its codes, as the committed names files have them', () => {
+  it('carries the base names (es, pt_BR, nl, pl; never a regional set) for its codes, as the committed names files have them', () => {
     const read = <T,>(f: string) => JSON.parse(readFileSync(join(process.cwd(), 'public/data', f), 'utf8')) as T
     const pack = read<SamplePackFile>('sample-pack.v1.json')
-    expect(Object.keys(pack.loc).sort()).toEqual(['es', 'nl', 'pt_BR'])
-    for (const base of ['es', 'pt_BR', 'nl'] as const) {
+    expect(Object.keys(pack.loc).sort()).toEqual(['es', 'nl', 'pl', 'pt_BR'])
+    for (const base of ['es', 'pt_BR', 'nl', 'pl'] as const) {
       const file = read<{ names: Record<string, string>; fam: Record<string, string> }>(`names.${base}.v1.json`)
       for (const r of pack.species) {
         expect(pack.loc[base].names[r.code], `${base} ${r.code}`).toBe(file.names[r.code])

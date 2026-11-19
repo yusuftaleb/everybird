@@ -37,6 +37,7 @@ import { planCaptions, type CaptionPlan } from '@/lib/share/captions'
 import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
 import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearFilter, yearList } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
+import { groupName } from '@/lib/search/groups'
 import type { Action, AppState } from '@/lib/list/store'
 import {
   NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, captionMeasurer, cardLayout, clearStickerCache, ensureCaptionFont, filterLabel as labelFor, fitCaptionPack, imagePackSpec, imageShape, isPrint, packForImage, renderShareImage,
@@ -130,7 +131,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const shown = useMemo(() => (fk ? applyFilter(known, filter, species, seen) : known), [known, filter, fk, species, seen])
   const label = useMemo(() => {
     const named = regionsIn(regions, lang)
-    return labelFor(filter, { species, countryName: (iso) => countryName(iso, lang, regions), regions: named, familyName, groupName: (id) => species.groups?.get(id)?.name[lang] }, t)
+    return labelFor(filter, { species, countryName: (iso) => countryName(iso, lang, regions), regions: named, familyName, groupName: (id) => { const g = species.groups?.get(id); return g && groupName(g, lang) } }, t)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
   }, [filter, species, regions, lang, t, names])
   const showBigYear = useMemo(() => hasDates(known, seen), [known, seen])

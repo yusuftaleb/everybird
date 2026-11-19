@@ -20,6 +20,9 @@ export function foldName(s: string): string {
   return s
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
+    // Polish ł has no decomposition, so NFD leaves it whole: "łabędź" must fold to "labedz" like every other accent.
+    .replace(/ł/g, 'l')
+    .replace(/Ł/g, 'L')
     .replace(/[\u2018\u2019]/g, "'")
     .toLowerCase()
     .replace(/\s+/g, ' ')

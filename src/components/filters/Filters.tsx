@@ -21,6 +21,7 @@ import { emptyFilter, filterActive, type Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import type { Action, AppState } from '@/lib/list/store'
 import type { Month } from '@/lib/list/timeline'
+import { groupName as nameOfGroup } from '@/lib/search/groups'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
@@ -301,7 +302,7 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
   const buttonRef = useRef<HTMLButtonElement>(null)
   const sections = useFilterSections(state, species, hide)
   const { filter } = state
-  const chips = useMemo(() => filterChips(filter, regionsIn(regions, lang), t, (id) => species.groups?.get(id)?.name[lang]), [filter, regions, lang, t, species.groups])
+  const chips = useMemo(() => filterChips(filter, regionsIn(regions, lang), t, (id) => { const g = species.groups?.get(id); return g && nameOfGroup(g, lang) }), [filter, regions, lang, t, species.groups])
   const panelId = `${base}-filters`
   const live = !!open && sections.length > 0
   // Every filter change while the panel is open keeps the window's scroll, the scrollers' and the focus (restored in the
@@ -341,7 +342,7 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
     opener.current = el
     setOpen({ at: c.kind === 'place' ? 'places' : 'status' })
   }, [])
-  const groupName = useCallback((id: string) => species.groups?.get(id)?.name[lang], [species.groups, lang])
+  const groupName = useCallback((id: string) => { const g = species.groups?.get(id); return g && nameOfGroup(g, lang) }, [species.groups, lang])
   const shared = { state, regions, sections, open, onOpen, groupName }
   return {
     button: (inert) => <FiltersButton {...shared} inert={inert} buttonRef={buttonRef} panelId={panelId} />,

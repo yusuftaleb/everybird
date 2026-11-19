@@ -8,7 +8,7 @@ import type { Regions } from '@/lib/species/types'
 const today = new Date(2026, 10, 15)
 const regions: Regions = { v: 1, countries: { CA: 'Canada', MX: 'Mexico' }, sub1: { 'CA-BC': 'British Columbia' } }
 const groups: BirdGroup[] = [
-  { id: 'waterfowl', name: { en: 'Waterfowl', es: 'Patos', pt: 'Patos', nl: 'Eenden' }, lo: 1, hi: 100 },
+  { id: 'waterfowl', name: { en: 'Waterfowl', es: 'Patos', pt: 'Patos', nl: 'Eenden', pl: 'Kaczki' }, lo: 1, hi: 100 },
 ]
 const species = [{ ord: 'Passeriformes', fam: 'Turdidae', famCom: 'Thrushes' }]
 const ctx: SearchContext = {

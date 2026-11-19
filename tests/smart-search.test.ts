@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { parseSmart, withoutChip, type SearchContext } from '@/lib/search/smart'
 import type { GroupsFile, SearchLang } from '@/lib/search/groups'
+import { searchKey } from '@/lib/species/name-search'
 const { groups }: GroupsFile = JSON.parse(readFileSync('public/data/groups.v1.json', 'utf8'))
 const ctx: SearchContext = {
   today: new Date(2026, 10, 15, 12), lang: 'en', groups,
@@ -287,5 +288,27 @@ describe('places under the continent model (nf-10 keys)', () => {
     expect(parse('french guiana', 'en', { regions, listPlaces }).filter).toEqual({ provinces: ['FR-973'] })
     // A plain country key is valid in the continent model: France itself (Europe), whatever else the list holds.
     expect(parse('france', 'en', { regions, listPlaces }).filter).toEqual({ countries: ['FR'] })
+  })
+})
+
+describe('Polish (pl)', () => {
+  it('reads Polish groups (and English ones), places, months (genitive too), relative dates, status and lifers', () => {
+    expect(parse('blaszkodziobe kanada 2026', 'pl').filter).toMatchObject({ group: 'waterfowl', countries: ['CA'], basis: 'seen', from: '2026-01', to: '2026-12' })
+    expect(parse('waterfowl kanada 2026', 'pl').filter).toMatchObject({ group: 'waterfowl', countries: ['CA'] })
+    expect(parse('szponiaste BC', 'pl').filter).toMatchObject({ group: 'vultures-hawks-and-allies', provinces: ['CA-BC'] })
+    expect(parse('blaszkodziobe', 'pl').chips[0].label).toBe('Blaszkodziobe')
+    expect(span('październik', 'pl')).toEqual(['2026-10', '2026-10'])
+    expect(span('od marca do maja', 'pl')).toEqual(['2026-03', '2026-05'])
+    expect(span('w zeszłym roku', 'pl')).toEqual(['2025-01', '2025-12'])
+    expect(span('ostatnie 3 miesiące', 'pl')).toEqual(['2026-09', '2026-11'])
+    expect(span('dwa lata temu', 'pl')).toEqual(['2024-01', '2024-12'])
+    expect(parse('zagrożone', 'pl').filter.statuses).toEqual(['CR', 'EN', 'VU'])
+    expect(parse('zagrożony', 'pl').filter.statuses).toEqual(['EN'])
+    expect(parse('nowe 2024', 'pl').filter).toMatchObject({ basis: 'lifer', from: '2024-01', to: '2024-12' })
+    expect(parse('Mysterious Thing', 'pl').rest).toBe('Mysterious Thing')
+  })
+  it('folds ł like any accent, so "labedz" finds "Łabędź"', () => {
+    expect(searchKey('Łabędź niemy')).toBe('labedz niemy')
+    expect(searchKey('w zeszłym roku')).toBe('w zeszlym roku')
   })
 })

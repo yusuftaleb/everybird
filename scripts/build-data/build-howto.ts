@@ -131,9 +131,9 @@ export const THREATENED = ${threatened}
 export const BIRDS: string[] = ${JSON.stringify(BIRDS)}
 export const HERONS: string[] = ${JSON.stringify(HERONS)}
 /** The latest lifer's name, English and per base language (es, pt_BR, nl; from public/data/names.<base>.v1.json, English where a file has none). */
-export const LATEST: { code: string; name: string; names: Record<'es' | 'pt_BR' | 'nl', string> } = ${JSON.stringify({ code: LATEST, name: byCode.get(LATEST)!.com, names: latestNames })}
+export const LATEST: { code: string; name: string; names: Record<'es' | 'pt_BR' | 'nl' | 'pl', string> } = ${JSON.stringify({ code: LATEST, name: byCode.get(LATEST)!.com, names: latestNames })}
 /** The Herons order's one family (taxonomy name, \`fam\`), its eBird English name, and per base language as the names files word it. */
-export const FAMILY: { fam: string; name: string; names: Record<'es' | 'pt_BR' | 'nl', string> } = ${JSON.stringify({ fam: HERON_FAMILY, name: byCode.get(HERONS[0])!.famCom, names: familyNames })}
+export const FAMILY: { fam: string; name: string; names: Record<'es' | 'pt_BR' | 'nl' | 'pl', string> } = ${JSON.stringify({ fam: HERON_FAMILY, name: byCode.get(HERONS[0])!.famCom, names: familyNames })}
 /** Width over height of each sticker (species.v1.json \`ar\`), the sticker version (\`sv\`) where there is one, the name. */
 export const AR: Record<string, number> = ${JSON.stringify(ar)}
 export const SV: Record<string, string> = ${JSON.stringify(sv)}

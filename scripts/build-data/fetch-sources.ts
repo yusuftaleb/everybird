@@ -108,7 +108,7 @@ export async function fetchNameSources(version: string, deps: FetchDeps = {}): P
   // English groups supply the exact famCom matching key, joined by groupOrder in build-names.
   // sppgroup has no version: the endpoint ignores `version=` (checked 2026-11-15: 2026, 2019 and 1900 all return the
   // same bytes), so these are today's groups; the sha256 records exactly which ones a build used.
-  for (const [lang, locale] of [['en', 'en'], ['es', 'es'], ['pt', 'pt_BR'], ['nl', 'nl']] as const) {
+  for (const [lang, locale] of [['en', 'en'], ['es', 'es'], ['pt', 'pt_BR'], ['nl', 'nl'], ['pl', 'pl']] as const) {
     const url = `https://api.ebird.org/v2/ref/sppgroup/ebird?groupNameLocale=${locale}`
     const file = `ebird-groups.${lang}`
     sources.push({ name: file, url, date, sha256: await download(url, `${file}.json`, files, deps) })

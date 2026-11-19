@@ -5,6 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { LANGS } from "../src/i18n/langs";
 import { es } from "../src/i18n/messages/es";
 import { nl } from "../src/i18n/messages/nl";
+import { pl } from "../src/i18n/messages/pl";
 import { pt } from "../src/i18n/messages/pt";
 
 /** A small synthetic eBird life list download (real species names, made-up places and dates). */
@@ -434,9 +435,9 @@ test("Settings still fits about 1.5 screens at 1280x800 with the language field,
   expect(height).toBeLessThanOrEqual(1.6 * 800);
 });
 
-const MESSAGES = { es, pt, nl } as const;
+const MESSAGES = { es, pt, nl, pl } as const;
 
-// The Settings source rows in Spanish, Portuguese and Dutch at 390 and 1280: each row's button is whole beside its
+// The Settings source rows in Spanish, Portuguese, Dutch and Polish at 390 and 1280: each row's button is whole beside its
 // text (the buttons wrap under the text, never out of the page) and nothing scrolls sideways. For manual runs.
 for (const lang of LANGS.filter((l) => l !== "en")) {
   for (const width of [390, 1280]) {

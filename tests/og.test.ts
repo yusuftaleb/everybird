@@ -7,7 +7,7 @@ import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
 import { pt } from '@/i18n/messages/pt'
 import { OG_CACHE_COMPLETE, OG_CACHE_DEGRADED, ogCacheControl, ogDescription, ogName, ogResponseOptions, ogTitle, pickOgBirds, shareTitle, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
-import { coversLatin1, parseFontFaces, pickFaces, serverNames } from '@/lib/share/og-server'
+import { coversLatin1, coversPolishExtra, parseFontFaces, pickFaces, serverNames } from '@/lib/share/og-server'
 
 const T = en.ui
 
@@ -111,19 +111,20 @@ describe('parseFontFaces', () => {
   })
 })
 
-describe('the card fonts cover Latin-1', () => {
+describe('the card fonts cover Latin-1 and Polish', () => {
   // Google answers some user agents with one face per subset (unicode-range); the card must take the one with
-  // Latin-1's accented letters (á, ã, ç, é, ë, ñ, ú), or "Última especie nueva" would draw in the fallback font.
+  // Latin-1's accented letters (á, ã, ç, é, ë, ñ, ú), or "Última especie nueva" would draw in the fallback font;
+  // and, since that face alone has no Polish letters (ą, ć, ę, ł, ń, ś, ź, ż), also the face that does, so "Kolaż
+  // Ady" draws them too (satori tries each font registered for a family and weight in turn).
   const css = `@font-face { font-family: 'Geist Mono'; font-weight: 400; src: url(https://g/ext.ttf) format('truetype'); unicode-range: U+0100-02BA, U+1E00-1EFF; }
 @font-face { font-family: 'Geist Mono'; font-weight: 400; src: url(https://g/latin.ttf) format('truetype'); unicode-range: U+0000-00FF, U+0131, U+0152-0153; }
 @font-face { font-family: 'Satoshi'; font-weight: 500; src: url(https://f/s.ttf) format('truetype'); }`
   it('keeps the unicode-range a face declares', () => {
     expect(parseFontFaces(css).map((f) => f.range)).toEqual(['U+0100-02BA, U+1E00-1EFF', 'U+0000-00FF, U+0131, U+0152-0153', undefined])
   })
-  it('chooses the face whose range covers U+00C0 to U+00FF; a face without a range covers everything', () => {
+  it('chooses the face whose range covers U+00C0 to U+00FF, plus one for Polish\'s extra letters; a face without a range covers everything', () => {
     const picked = pickFaces(parseFontFaces(css), [{ family: 'Geist Mono', weight: 400 }, { family: 'Satoshi', weight: 500 }])
-    expect(picked.map((f) => f.url)).toEqual(['https://g/latin.ttf', 'https://f/s.ttf'])
-    for (const f of picked) expect(coversLatin1(f.range)).toBe(true)
+    expect(picked.map((f) => f.url)).toEqual(['https://g/latin.ttf', 'https://g/ext.ttf', 'https://f/s.ttf'])
   })
   it('reads ranges, split spans and wildcards', () => {
     expect(coversLatin1('U+0000-00FF')).toBe(true)
@@ -131,6 +132,11 @@ describe('the card fonts cover Latin-1', () => {
     expect(coversLatin1('U+00??')).toBe(true)
     expect(coversLatin1('U+0000-007F')).toBe(false)
     expect(coversLatin1('U+0100-024F')).toBe(false)
+  })
+  it('a face covers Polish\'s extra letters when its range touches any of them; no range covers everything', () => {
+    expect(coversPolishExtra('U+0100-02BA, U+1E00-1EFF')).toBe(true)
+    expect(coversPolishExtra('U+0000-00FF, U+0131, U+0152-0153')).toBe(false)
+    expect(coversPolishExtra(undefined)).toBe(true)
   })
 })
 
