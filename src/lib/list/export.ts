@@ -137,6 +137,9 @@ export function fromJson(text: string): Saved {
   const sk = raw.skipped
   if (sk !== undefined && (!isObj(sk) || !Object.entries(sk).every(([k, n]) => isSlot(k) && typeof n === 'number' && n >= 0)))
     throw new BackupError('damaged', 'Backup skipped counts are malformed.')
+  const nc = raw.notCountable
+  if (nc !== undefined && (!isObj(nc) || !Object.entries(nc).every(([k, codes]) => isSlot(k) && isStrArr(codes))))
+    throw new BackupError('damaged', 'Backup not-countable species are malformed.')
   const src = raw.sources
   if (src !== undefined && !validSources(src)) throw new BackupError('damaged', 'Backup source details are malformed.')
   const out: Saved = {
@@ -149,6 +152,7 @@ export function fromJson(text: string): Saved {
   }
   if (raw.name !== undefined) out.name = raw.name
   if (sk !== undefined) out.skipped = sk as Saved['skipped']
+  if (nc !== undefined) out.notCountable = nc as Saved['notCountable']
   if (src !== undefined) out.sources = src as SourceDetails
   return migrateSaved(out)
 }

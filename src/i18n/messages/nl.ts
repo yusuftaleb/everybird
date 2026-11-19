@@ -523,6 +523,10 @@ export const nl: Messages = {
           one: '{n} rij is geen soort: vogels die alleen tot een groep zijn gedetermineerd (zoals “Anas sp.”), of-of-determinaties (zoals “Aythya marila/affinis”) en hybriden. eBird laat ze ook weg uit levenslijsten.',
           other: '{n} rijen zijn geen soorten: vogels die alleen tot een groep zijn gedetermineerd (zoals “Anas sp.”), of-of-determinaties (zoals “Aythya marila/affinis”) en hybriden. eBird laat ze ook weg uit levenslijsten.',
         },
+        notCountable: {
+          one: '{n} soort die eBird niet laat meetellen, zoals ontsnapte of geïntroduceerde vogels:',
+          other: '{n} soorten die eBird niet laat meetellen, zoals ontsnapte of geïntroduceerde vogels:',
+        },
         unmatched: {
           one: '{n} rij kon niet worden gekoppeld aan de eBird-taxonomie van dit jaar.',
           other: '{n} rijen konden niet worden gekoppeld aan de eBird-taxonomie van dit jaar.',

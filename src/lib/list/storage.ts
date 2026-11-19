@@ -75,6 +75,9 @@ export type Saved = {
   name?: string
   /** Rows per source that are not countable species (sp., slash, hybrid, domestic), for the match report. */
   skipped?: Partial<Record<Slot, number>>
+  /** Per source, the species its file marks not countable (the eBird life list's escapees): kept off the list and out
+   *  of every count, whichever slot holds them, unless ticked or fixed by hand (source-counts.ts `slottedRecords`). */
+  notCountable?: Partial<Record<Slot, string[]>>
   /** Each source's details (v3). Absent for lists saved before v3 and for sources not connected. */
   sources?: SourceDetails
   savedAt: string
@@ -204,14 +207,25 @@ export function replaceSource<S extends Slot>(saved: Saved, slot: S, result: Imp
     skipped: { ...saved.skipped, [slot]: result.skipped },
     savedAt: new Date().toISOString(),
   }
+  const notCountable = withoutSlot(saved.notCountable, slot)
+  if (result.notCountable?.length) out.notCountable = { ...notCountable, [slot]: result.notCountable }
+  else if (notCountable) out.notCountable = notCountable
+  else delete out.notCountable
   if (details && slot !== 'manual') out.sources = { ...saved.sources, [slot]: details }
   return out
 }
 
+function withoutSlot(m: Saved['notCountable'], slot: Slot): Saved['notCountable'] {
+  if (!m) return undefined
+  const { [slot]: _gone, ...rest } = m
+  void _gone
+  return Object.keys(rest).length ? rest : undefined
+}
+
 /**
- * Disconnect one source: its records, its unmatched rows, its skipped count and its details go; every other slot,
- * edits (marks, removals, hand-added birds, fixes), rules and name stay. A fix whose row is gone simply matches
- * nothing.
+ * Disconnect one source: its records, its unmatched rows, its skipped count, its not-countable species and its details
+ * go; every other slot, edits (marks, removals, hand-added birds, fixes), rules and name stay. A fix whose row is gone
+ * simply matches nothing.
  */
 export function removeSource(saved: Saved, slot: Slot): Saved {
   const m = migrateSaved(saved)
@@ -226,6 +240,9 @@ export function removeSource(saved: Saved, slot: Slot): Saved {
     void _gone
     out.skipped = rest
   }
+  const notCountable = withoutSlot(m.notCountable, slot)
+  if (notCountable) out.notCountable = notCountable
+  else delete out.notCountable
   if (m.sources) {
     const { [slot as keyof SourceDetails]: _gone, ...rest } = m.sources
     void _gone

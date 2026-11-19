@@ -1,14 +1,18 @@
 // Places down to the county: the two eBird files (the quick life list download and the full MyEBirdData export)
 // keep their own slots, so importing one never replaces the other; on a tie, the record with more place detail wins.
 import 'fake-indexeddb/auto'
+import { readFileSync } from 'node:fs'
 import { IDBFactory } from 'fake-indexeddb'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { parseEbirdLifeList } from '@/lib/import/ebird-lifelist'
+import { parseEbirdMyData } from '@/lib/import/ebird-mydata'
 import { buildList } from '@/lib/list/build-list'
 import { fromJson, toJson } from '@/lib/list/export'
 import { DEFAULT_RULES, EMPTY_EDITS, unmatchedKey, type ImportResult, type SourceRecord } from '@/lib/list/model'
+import { sourceCounts } from '@/lib/list/source-counts'
 import { emptySaved, migrateSaved, replaceSource, STORAGE_KEY } from '@/lib/list/storage'
 import { makeReducer, initialState } from '@/lib/list/store'
-import type { SpeciesIndex } from '@/lib/species/load'
+import { buildTaxonomyIndex, type SpeciesIndex } from '@/lib/species/load'
 
 const rec = (code: string, extra: Partial<SourceRecord> = {}): SourceRecord => ({ code, source: 'ebird', date: '2024-05-04', ...extra })
 const result = (records: SourceRecord[], extra: Partial<ImportResult> = {}): ImportResult => ({ records, unmatched: [], skipped: 0, ...extra })
@@ -72,6 +76,45 @@ describe('the two eBird slots', () => {
     st = reduce(st, { type: 'edit', edits: { ...st.saved.edits, fixes: { 'ebird-list:2': 'z' } } })
     expect(st.openUnmatched).toHaveLength(0)
     expect(st.list.map((e) => e.code)).toEqual(['z'])
+  })
+
+  it('life-list non-countable species stay off the list even with MyEBirdData, return on removal, and still count when added or fixed by hand', async () => {
+    const taxa = JSON.parse(readFileSync('tests/fixtures/species/taxonomy.json', 'utf8')).taxa
+    const tax = buildTaxonomyIndex(taxa)
+    const species = {
+      rows: [],
+      byCode: new Map(taxa.map((r: { code: string; to: number }) => [r.code, r])),
+      search: () => [],
+    } as unknown as SpeciesIndex
+    const life = parseEbirdLifeList(readFileSync('tests/fixtures/ebird/lifelist-not-countable.csv', 'utf8'), tax)
+    const mine = await parseEbirdMyData(readFileSync('tests/fixtures/ebird/mydata-not-countable.csv', 'utf8'), tax)
+    expect('error' in mine).toBe(false)
+    if ('error' in mine) return
+
+    const reduce = makeReducer({ species })
+    let st = reduce(initialState(), { type: 'import', source: 'ebird-list', result: life })
+    st = reduce(st, { type: 'import', source: 'ebird', result: mine })
+    expect(st.list.map((e) => e.code)).toEqual(['norfli', 'gilfli'])
+    expect(sourceCounts(st.saved, st.list).total).toBe(2)
+
+    st = reduce(st, { type: 'remove-source', source: 'ebird-list' })
+    expect(st.list.map((e) => e.code)).toEqual(['rupgri', 'rocpig', 'norfli', 'gilfli', 'yerwar'])
+    expect(sourceCounts(st.saved, st.list).total).toBe(5)
+
+    st = reduce(st, { type: 'import', source: 'ebird-list', result: life })
+    expect(st.list.map((e) => e.code)).toEqual(['norfli', 'gilfli'])
+
+    st = reduce(st, { type: 'edit', edits: { ...st.saved.edits, added: [{ code: 'yerwar', source: 'manual' }] } })
+    expect(st.list.map((e) => e.code)).toEqual(['norfli', 'gilfli', 'yerwar'])
+    expect(sourceCounts(st.saved, st.list).total).toBe(3)
+
+    st = reduce(st, {
+      type: 'import',
+      source: 'inat',
+      result: result([], { unmatched: [{ source: 'inat', row: 1, reason: 'no-match' }] }),
+    })
+    st = reduce(st, { type: 'edit', edits: { ...st.saved.edits, fixes: { 'inat:1': 'rupgri' } } })
+    expect(st.list.map((e) => e.code)).toEqual(['rupgri', 'norfli', 'gilfli', 'yerwar'])
   })
 })
 

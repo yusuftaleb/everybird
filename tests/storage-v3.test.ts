@@ -118,6 +118,18 @@ describe('replace, refresh and remove one source', () => {
     expect(noInat.sources).toEqual({ ebird: s.sources!.ebird })
   })
 
+  it('replaceSource and removeSource manage notCountable per slot', () => {
+    let s = replaceSource(emptySaved(), 'ebird-list', { ...result([rec('a')]), notCountable: ['yerwar', 'rupgri'] })
+    expect(s.notCountable).toEqual({ 'ebird-list': ['yerwar', 'rupgri'] })
+    s = replaceSource(s, 'ebird', result([rec('a'), rec('yerwar')]))
+    expect(s.notCountable).toEqual({ 'ebird-list': ['yerwar', 'rupgri'] })
+    s = removeSource(s, 'ebird-list')
+    expect(s.notCountable).toBeUndefined()
+    s = replaceSource(s, 'ebird-list', { ...result([rec('a')]), notCountable: ['yerwar'] })
+    s = replaceSource(s, 'ebird-list', result([rec('a')]))
+    expect(s.notCountable).toBeUndefined()
+  })
+
   it('the store: import carries details, remove drops a source and the list rebuilds', () => {
     const ctx: StoreContext = {
       species: { rows: [], byCode: new Map(), search: () => [] } as never,

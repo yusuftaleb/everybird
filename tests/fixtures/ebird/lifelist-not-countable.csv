@@ -1,0 +1,7 @@
+Row #,Taxon Order,Category,Common Name,Scientific Name,Count,Location,S/P,Date,LocID,SubID,Exotic,Countable
+1,11980,species,Northern Flicker,Colaptes auratus,1,Test Park,CA-BC,3 Mar 2026,L1,S1,,1
+2,11994,species,Gilded Flicker,Colaptes chrysoides,1,Test Park,US-AZ,12 Aug 2026,L2,S2,,1
+3,34401,species,Yellow-rumped Warbler,Setophaga coronata,1,Test Park,CA-BC,06 Sep 2026,L1,S3,Escapee,0
+4,600,species,Rüppell's Griffon,Gyps rueppelli,1,Test Park,ES-AN,20 May 2026,L4,S4,Escapee,0
+5,1870,species,Rock Pigeon,Columba livia,3,Test Park,CA-BC,30 Sep 2026,L1,S5,Introduced,0
+6,30,spuh,kiwi sp.,Apteryx sp.,1,Test Park,NZ-AUK,01 Jul 2026,L3,S6,,0
