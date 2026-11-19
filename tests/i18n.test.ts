@@ -30,6 +30,8 @@ const ALLOW_SAME = [
   'Asia', 'Oceania', 'Antarctica', 'Melanesia', 'Micronesia',
   // nl "Continent" is the Dutch word too; nl also uses "poster"/"posters".
   'Continent', '{n} poster', '{n} posters',
+  // pl "{n} region" is the Polish word too.
+  '{n} region',
 ]
 
 const OTHERS = { es, pt, nl, pl } as const
