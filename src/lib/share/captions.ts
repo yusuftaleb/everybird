@@ -56,7 +56,7 @@ export function wrapCaption(text: string, maxW: number, measure: (s: string) => 
     if (ch === ' ') {
       a = clean.slice(0, i).trimEnd()
       b = clean.slice(i + 1).trimStart()
-    } else if (ch === '-') {
+    } else if (ch === '-' || ch === '/') {
       a = clean.slice(0, i + 1)
       b = clean.slice(i + 1).trimStart()
     } else {

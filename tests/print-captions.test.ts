@@ -120,6 +120,12 @@ describe('print captions', () => {
     }
   })
 
+  it('breaks a name after a slash as after a hyphen', () => {
+    const m = (s: string) => s.length * 10
+    expect(wrapCaption('Northwestern/Southeastern', 140, m)).toEqual(['Northwestern/', 'Southeastern'])
+    expect(wrapCaption('Northwestern/ Southeastern', 140, m)).toEqual(['Northwestern/', 'Southeastern'])
+  })
+
   it('rejects unbreakable long names and overlapping caption placements', () => {
     expect(wrapCaption('Superlongunbreakablebirdspeciesnamethatcannotpossiblyfitintwolines', 150, (s) => s.length * 10)).toBeNull()
 
