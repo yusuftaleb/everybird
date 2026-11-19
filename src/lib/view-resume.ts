@@ -14,10 +14,13 @@ export const RESUME_KEY = 'everybird:resume:v1'
 export const RESUME_TTL_MS = 60_000
 const VERSION = 1
 
+/** The collage block's views (the dock's tabs). */
+export type ViewKind = 'collage' | 'list' | 'map'
+
 export type CollageResume = {
   filter: Filter
   mode: 'even' | 'true'
-  view: 'collage' | 'list'
+  view: ViewKind
   massOrder: 'heaviest' | 'lightest'
   sci: boolean
 }
@@ -67,7 +70,7 @@ function slicesOf(v: unknown): Slices {
   const c = (r.collage ?? undefined) as Record<string, unknown> | undefined
   if (c && typeof c === 'object') {
     const mode = one(c.mode, ['even', 'true'] as const)
-    const view = one(c.view, ['collage', 'list'] as const)
+    const view = one(c.view, ['collage', 'list', 'map'] as const)
     const massOrder = one(c.massOrder, ['heaviest', 'lightest'] as const)
     const sci = bool(c.sci)
     if (mode && view && massOrder && sci !== undefined) out.collage = { filter: filterOf(c.filter), mode, view, massOrder, sci }

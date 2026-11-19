@@ -1,0 +1,24 @@
+/* The Map view (MapView.tsx): land in Surface, places on the list in five steps of Accent, a checked place outlined in Ink. */
+.eb-map { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.eb-map-pic { display: flex; flex-direction: column; gap: 8px; }
+.eb-map-svg { display: block; width: 100%; height: auto; max-height: 70vh; }
+.eb-map-wait { aspect-ratio: 2000 / 983; background: var(--surface); border-radius: 8px; }
+.eb-map-svg path {
+  fill: var(--surface);
+  fill-rule: evenodd;
+  stroke: var(--paper);
+  stroke-width: .75px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  transition: fill .15s var(--ease-ui);
+}
+.eb-map-svg path[data-step="1"] { fill: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+.eb-map-svg path[data-step="2"] { fill: color-mix(in srgb, var(--accent) 34%, var(--surface)); }
+.eb-map-svg path[data-step="3"] { fill: color-mix(in srgb, var(--accent) 52%, var(--surface)); }
+.eb-map-svg path[data-step="4"] { fill: color-mix(in srgb, var(--accent) 72%, var(--surface)); }
+.eb-map-svg path[data-step="5"] { fill: var(--accent); }
+.eb-map-svg path[data-press] { cursor: pointer; }
+.eb-map-svg path[data-hot] { stroke: var(--ink); stroke-width: 1.25px; }
+.eb-map-svg path[data-on] { stroke: var(--ink); stroke-width: 2px; }
+.eb-map-line { margin: 0; min-height: 1.5em; color: var(--muted); font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { .eb-map-svg path { transition: none; } }

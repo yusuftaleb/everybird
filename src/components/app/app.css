@@ -96,6 +96,7 @@
    12px between groups (a hairline would be one line too many in a bar this quiet). */
 .eb-dock-tabs, .eb-dock-tools, .eb-dock-filters, .eb-dock-end, .eb-dock-marks { display: flex; align-items: center; gap: 4px; transition: opacity .15s var(--eb-ease); }
 .eb-dock-tools { margin-left: auto; }
+.eb-dock-tools[data-off] { visibility: hidden; } /* the Map view: sizes and names don't apply; the room is kept so the dock doesn't jump */
 .eb-dock-filters, .eb-dock-end { margin-left: 8px; } /* + the dock's 4px gap = 12px between groups */
 .eb-dock-marks { order: 2; flex: 1 0 100%; flex-wrap: wrap; margin: 0 -4px -4px; padding: 4px; border-top: 1px solid var(--hairline); }
 .eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools,

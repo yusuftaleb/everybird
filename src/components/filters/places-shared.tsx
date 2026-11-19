@@ -31,7 +31,14 @@ export type PlacesNote = 'add' | 'reimport'
 export const SEARCH_FROM = 8
 
 /** What a design of the panel gets. */
-export type PlacesBodyProps = { state: AppState; species: SpeciesIndex; regions: Regions; onFilter: (f: Filter) => void }
+export type PlacesBodyProps = {
+  state: AppState
+  species: SpeciesIndex
+  regions: Regions
+  onFilter: (f: Filter) => void
+  /** Told the level shown (its parent's key; undefined: the top) whenever it changes: the Map view draws that level. */
+  onLevel?: (at: string | undefined) => void
+}
 
 /**
  * The level of the places under `parent`: continents with none (countries when `flat`: the one-continent list skips the
