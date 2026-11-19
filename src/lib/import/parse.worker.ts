@@ -5,16 +5,19 @@ import { parseEbirdLifeList } from './ebird-lifelist'
 import { parseEbirdMyData } from './ebird-mydata'
 import { DamagedCsvError, parseObsOrgSpecies, parseObsOrgObservations, type ObsOrgObservationsResult } from './obsorg'
 import { parseSheetText, parseSheetXlsx } from './sheet'
+import { parseScythebillCsv, parseScythebillEbird } from './scythebill'
 import { DamagedXlsxError } from './xlsx'
 import type { Regions } from '@/lib/species/types'
 
-export type ParseKind = 'ebird-lifelist' | 'ebird-mydata' | 'obsorg-species' | 'obsorg-observations' | 'xlsx' | 'sheet-text' | 'sheet-paste'
+export type ParseKind = 'ebird-lifelist' | 'ebird-mydata' | 'obsorg-species' | 'obsorg-observations' | 'scythebill-csv' | 'scythebill-ebird' | 'xlsx' | 'sheet-text' | 'sheet-paste'
 /** Observation.org uses iNaturalist synonyms. File types with locations also use the place registry. */
 export type ParseRequest =
   | { kind: 'ebird-lifelist'; file: File; regions?: Regions }
   | { kind: 'ebird-mydata'; file: File; regions?: Regions }
   | { kind: 'obsorg-species'; file: File; synonyms: Record<string, string> }
   | { kind: 'obsorg-observations'; file: File; synonyms: Record<string, string>; regions: Regions }
+  | { kind: 'scythebill-csv'; file: File; regions?: Regions }
+  | { kind: 'scythebill-ebird'; file: File; regions?: Regions }
   | { kind: 'xlsx'; file: File; regions?: Regions }
   | { kind: 'sheet-text'; file: File; regions?: Regions }
   | { kind: 'sheet-paste'; text: string; regions?: Regions }
@@ -77,6 +80,12 @@ export async function handleParseMessage(
         break
       case 'obsorg-observations':
         result = await parseObsOrgObservations(msg.file, t, msg.synonyms, msg.regions, onProgress)
+        break
+      case 'scythebill-csv':
+        result = parseScythebillCsv(await msg.file.text(), t, msg.regions, onProgress)
+        break
+      case 'scythebill-ebird':
+        result = parseScythebillEbird(await msg.file.text(), t, msg.regions, onProgress)
         break
       case 'xlsx':
         result = parseSheetXlsx(await msg.file.arrayBuffer(), t, msg.regions, onProgress)

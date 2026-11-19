@@ -12,6 +12,7 @@ import type { Regions } from '@/lib/species/types'
 import { EbirdDrop, type EbirdConnected } from './EbirdDrop'
 import { InatForm } from './InatForm'
 import { ObsOrgDrop, type ObsOrgConnected } from './ObsOrgDrop'
+import { ScythebillDrop } from './ScythebillDrop'
 import { SheetDrop } from './SheetDrop'
 import { TickList } from './TickList'
 import { SourceRow } from './SourceLine'
@@ -91,6 +92,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
     .map((slot) => ({ slot, details: saved.sources?.[slot] }))
   const inatOn = saved.records.inat.length > 0 || saved.unmatched.some((u) => u.source === 'inat')
   const sheetOn = (saved.records.sheet?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === 'sheet')
+  const scythebillOn = (saved.records.scythebill?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === 'scythebill')
   const focusWay = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.focus({ preventScroll: true }))
   const remove = (slot: Exclude<Slot, 'manual'>) => {
     dispatch({ type: 'remove-source', source: slot })
@@ -101,11 +103,13 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
           ? 'way-obsorg'
           : slot === 'sheet'
             ? 'way-sheet'
-            : 'way-ebird',
+            : slot === 'scythebill'
+              ? 'way-scythebill'
+              : 'way-ebird',
     )
   }
   // One file at a time across all file groups.
-  const fileBusy = jobs.ebird.busy || jobs.obsorg.busy || jobs.sheet.busy
+  const fileBusy = jobs.ebird.busy || jobs.obsorg.busy || jobs.sheet.busy || jobs.scythebill.busy
   // When a file last landed, in either group: the file groups fold their Add panels (an iNaturalist fetch, running
   // beside them, leaves an open panel alone).
   const [fileLandedAt, setFileLandedAt] = useState<number | undefined>(undefined)
@@ -181,6 +185,19 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             onRemove={() => remove('sheet')}
             saved={saved}
             counts={counts.rows.sheet}
+            landedAt={fileLandedAt}
+          />
+        </Group>
+        <Group id="way-scythebill" label={t.import.scythebill.title}>
+          <ScythebillDrop
+            job={jobs.scythebill}
+            onFile={(f) => void jobs.readScythebill(f)}
+            disabled={disabled || fileBusy}
+            connected={scythebillOn}
+            details={saved.sources?.scythebill}
+            onRemove={() => remove('scythebill')}
+            saved={saved}
+            counts={counts.rows.scythebill}
             landedAt={fileLandedAt}
           />
         </Group>

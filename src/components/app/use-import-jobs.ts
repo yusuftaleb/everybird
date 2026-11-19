@@ -8,7 +8,7 @@ import { parseErrorCode, parseInWorker } from '@/lib/import/parse-client'
 import type { ParseResult } from '@/lib/import/parse.worker'
 import { loadRegions } from '@/lib/import/places'
 import type { ImportResult, Slot } from '@/lib/list/model'
-import type { DetailsFor, EbirdDetails, ObsOrgDetails, SheetDetails } from '@/lib/list/storage'
+import type { DetailsFor, EbirdDetails, ObsOrgDetails, ScythebillDetails, SheetDetails } from '@/lib/list/storage'
 import { loadTaxonomy } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
 import { fetchData } from '@/lib/data-url'
@@ -28,6 +28,9 @@ export type FileError =
   | 'sheet-unknown'
   | 'sheet-no-birds'
   | 'sheet-damaged'
+  | 'scythebill-unknown'
+  | 'scythebill-no-birds'
+  | 'scythebill-damaged'
 export type SheetReview = {
   result: ParseResult
   details: SheetDetails
@@ -55,6 +58,8 @@ export type ImportJobs = {
   readObsOrg: (file: File) => Promise<void>
   sheet: FileJob
   readSheet: (file: File) => Promise<void>
+  scythebill: FileJob
+  readScythebill: (file: File) => Promise<void>
   parsePaste: (text: string) => Promise<void>
   sheetReview: SheetReview | null
   confirmSheet: () => void
@@ -112,6 +117,7 @@ export function fileMessage(error: FileError, t: Ui): string {
   const e = t.import.ebird
   const o = t.import.obsorg.errors
   const s = t.import.sheet.errors
+  const sb = t.import.scythebill.errors
   switch (error) {
     case 'unknown-file': return e.unknownFile
     case 'damaged': return e.damaged
@@ -123,12 +129,15 @@ export function fileMessage(error: FileError, t: Ui): string {
     case 'sheet-unknown': return s.unknown
     case 'sheet-no-birds': return s.noBirds
     case 'sheet-damaged': return s.damaged
+    case 'scythebill-unknown': return sb.unknown
+    case 'scythebill-no-birds': return sb.noBirds
+    case 'scythebill-damaged': return sb.damaged
   }
 }
 
 const IDLE_FILE: FileJob = { busy: false, rows: 0, error: null }
 /** The row group a file was given to. */
-type Via = 'ebird' | 'obsorg' | 'sheet'
+type Via = 'ebird' | 'obsorg' | 'sheet' | 'scythebill'
 const IDLE_INAT: InatJob = { busyFor: null, progress: null, error: null, note: null }
 
 export type OnImport = (slot: Slot, result: ImportResult, details: DetailsFor<Slot>) => void
@@ -145,6 +154,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   const [ebird, setEbird] = useState<FileJob>(IDLE_FILE)
   const [obsorg, setObsorg] = useState<FileJob>(IDLE_FILE)
   const [sheet, setSheet] = useState<FileJob>(IDLE_FILE)
+  const [scythebill, setScythebill] = useState<FileJob>(IDLE_FILE)
   const [sheetReview, setSheetReview] = useState<SheetReview | null>(null)
   const [inat, setInat] = useState<InatJob>(IDLE_INAT)
   const [landed, setLanded] = useState<Landed | null>(null)
@@ -167,10 +177,11 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   const readFile = useCallback(async (file: File, via: Via) => {
     if (busyFile.current) return
     busyFile.current = true
-    const set = via === 'ebird' ? setEbird : via === 'obsorg' ? setObsorg : setSheet
+    const set = via === 'ebird' ? setEbird : via === 'obsorg' ? setObsorg : via === 'sheet' ? setSheet : setScythebill
     setEbird(IDLE_FILE)
     setObsorg(IDLE_FILE)
     setSheet(IDLE_FILE)
+    setScythebill(IDLE_FILE)
     setSheetReview(null)
     let kind: FileKind = 'unknown'
     let head = ''
@@ -191,13 +202,14 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
       }
       const slot = slotOfKind(kind)
       if (kind === 'unknown' || !slot) {
-        set({ ...IDLE_FILE, error: via === 'ebird' ? 'unknown-file' : via === 'obsorg' ? 'obsorg-unknown' : 'sheet-unknown' })
+        set({ ...IDLE_FILE, error: via === 'ebird' ? 'unknown-file' : via === 'obsorg' ? 'obsorg-unknown' : via === 'sheet' ? 'sheet-unknown' : 'scythebill-unknown' })
         return
       }
       set({ busy: true, rows: 0, error: null })
       const onProgress = (rows: number) => { if (live.current) set((j) => ({ ...j, rows })) }
       const obsorgKind = kind === 'obsorg-species' || kind === 'obsorg-observations'
       const sheetKind = kind === 'xlsx' || kind === 'sheet-text'
+      const scythebillKind = kind === 'scythebill-csv' || kind === 'scythebill-ebird'
       // Everybird's own data first: when it doesn't load, the file isn't to blame.
       let synonyms: Record<string, string> = {}
       let regions: Regions | undefined
@@ -229,7 +241,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
           set(IDLE_FILE)
           return
         }
-        let details: EbirdDetails | ObsOrgDetails
+        let details: EbirdDetails | ObsOrgDetails | ScythebillDetails
         if (kind === 'ebird-lifelist' || kind === 'ebird-mydata') {
           result = await parseInWorker(kind, file, { onProgress, regions })
           details = { kind: kind === 'ebird-lifelist' ? 'life-list' : 'full-export', at } satisfies EbirdDetails
@@ -239,6 +251,9 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
         } else if (kind === 'obsorg-observations') {
           result = await parseInWorker(kind, file, { onProgress, synonyms, regions: regions! })
           details = { kind: 'observations', at, ...(result.excluded ? { excluded: result.excluded } : {}) } satisfies ObsOrgDetails
+        } else if (kind === 'scythebill-csv' || kind === 'scythebill-ebird') {
+          result = await parseInWorker(kind, file, { onProgress, regions })
+          details = { kind: kind === 'scythebill-csv' ? 'csv' : 'ebird-record', at } satisfies ScythebillDetails
         } else {
           return
         }
@@ -255,7 +270,9 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
             ? (code === 'no-birds' ? 'obsorg-no-birds' : 'obsorg-damaged')
             : sheetKind
               ? (code === 'no-birds' ? 'sheet-no-birds' : 'sheet-damaged')
-              : 'damaged'
+              : scythebillKind
+                ? (code === 'no-birds' ? 'scythebill-no-birds' : 'scythebill-damaged')
+                : 'damaged'
           : 'data'
         set({ ...IDLE_FILE, error })
       }
@@ -266,12 +283,14 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   const readEbird = useCallback((file: File) => readFile(file, 'ebird'), [readFile])
   const readObsOrg = useCallback((file: File) => readFile(file, 'obsorg'), [readFile])
   const readSheet = useCallback((file: File) => readFile(file, 'sheet'), [readFile])
+  const readScythebill = useCallback((file: File) => readFile(file, 'scythebill'), [readFile])
 
   const parsePaste = useCallback(async (text: string) => {
     if (busyFile.current || !text.trim()) return
     busyFile.current = true
     setEbird(IDLE_FILE)
     setObsorg(IDLE_FILE)
+    setScythebill(IDLE_FILE)
     setSheet({ busy: true, rows: 0, error: null })
     setSheetReview(null)
     try {
@@ -350,7 +369,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   const cancelInat = useCallback(() => abort.current?.abort(), [])
 
   return useMemo(
-    () => ({ ebird, readEbird, obsorg, readObsOrg, sheet, readSheet, parsePaste, sheetReview, confirmSheet, cancelSheet, inat, fetchInat, cancelInat, landed }),
-    [ebird, readEbird, obsorg, readObsOrg, sheet, readSheet, parsePaste, sheetReview, confirmSheet, cancelSheet, inat, fetchInat, cancelInat, landed],
+    () => ({ ebird, readEbird, obsorg, readObsOrg, sheet, readSheet, scythebill, readScythebill, parsePaste, sheetReview, confirmSheet, cancelSheet, inat, fetchInat, cancelInat, landed }),
+    [ebird, readEbird, obsorg, readObsOrg, sheet, readSheet, scythebill, readScythebill, parsePaste, sheetReview, confirmSheet, cancelSheet, inat, fetchInat, cancelInat, landed],
   )
 }
