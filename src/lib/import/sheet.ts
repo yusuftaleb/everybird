@@ -536,7 +536,8 @@ export function parseSheetRows(
     }
   }
 
-  if (!byCode.size && !unmatchedMap.size) return { error: 'no-birds' }
+  // No row names a species: a budget or a notes file, not a bird list (its cells would be "unmatched names").
+  if (!byCode.size) return { error: 'no-birds' }
 
   const records = [...byCode.values()]
   for (const r of records) {

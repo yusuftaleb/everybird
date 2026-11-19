@@ -203,6 +203,11 @@ describe('spreadsheet import', () => {
     expect(res.records.map((r) => r.code)).toEqual(['mallar3', 'rocpig'])
   })
 
+  it('gives no-birds for a readable file where no row names a species', () => {
+    expect(parseSheetText('Date,Description,Amount\n2024-01-02,Coffee,3.50\n2024-01-03,Lunch,12.00\n', taxonomy, regions)).toEqual({ error: 'no-birds' })
+    expect(parseSheetText('Shopping\nMilk\nBread\n', taxonomy, regions)).toEqual({ error: 'no-birds' })
+  })
+
   it('throws DamagedXlsxError on unreadable xlsx bytes', () => {
     expect(() => parseSheetXlsx(new Uint8Array([1, 2, 3, 4]), taxonomy, regions)).toThrow(DamagedXlsxError)
   })
