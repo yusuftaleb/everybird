@@ -453,10 +453,12 @@ export const nl: Messages = {
           makingNote: 'De ZIP wordt gemaakt.',
           ready: { one: '{file} opgeslagen ({n} poster).', other: '{file} opgeslagen ({n} posters).' },
           failed: 'De ZIP maken is niet gelukt. Probeer het opnieuw.',
+          namesDropped: { one: '{n} poster heeft geen namen: ze pasten niet.', other: '{n} posters hebben geen namen: ze pasten niet.' },
         },
         showNames: 'Soortnamen tonen',
         namesCap: 'Op {size} passen tot {max} soorten met namen. Kies een groter formaat of filter je lijst.',
         namesNoFit: 'De namen passen niet netjes op {size}. Kies een groter formaat of filter je lijst.',
+        namesDropped: 'De namen pasten niet, dus deze poster heeft geen namen.',
       },
     },
     import: {

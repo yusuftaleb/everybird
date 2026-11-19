@@ -26,7 +26,7 @@ vi.mock('@/lib/share/image', async (orig) => ({
 vi.mock('@/lib/download', () => ({ downloadBlob: vi.fn() }))
 
 // The poster is made by a promise the test settles; it records the progress callback, the signal and the opts.
-type FakePoster = { size: string; landscape: boolean; bytes: number; soft: number; missing: number; file: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }
+type FakePoster = { size: string; landscape: boolean; bytes: number; soft: number; missing: number; namesDropped?: boolean; file: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }
 const makes: { opts: { size: string; signal?: AbortSignal; pack?: unknown }; onProgress: (d: number, t: number) => void; resolve: (p: FakePoster) => void; reject: (e: unknown) => void }[] = []
 const posterMock = () => ({
   makePoster: vi.fn((opts, onProgress) => new Promise((resolve, reject) => makes.push({ opts, onProgress, resolve, reject }))),
@@ -901,6 +901,25 @@ describe('the orientation switch', () => {
     expect(filename).toBe('everybird-a2-bulk.zip')
     expect(blob.type).toBe('application/zip')
     expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2-bulk.zip (2 posters).')
+  })
+
+  it('says when names were asked for but a poster has none, for one poster and for a ZIP', async () => {
+    const bulkSpecies = buildSpeciesIndex([row('ostric2', 1), { ...row('emu1', 2), fam: 'Casuariidae', famCom: 'Cassowaries and Emu' }])
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={bulkSpecies} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
+    await waitFor(() => expect(makes).toHaveLength(1))
+    await act(async () => makes[0].resolve(fakePoster({ namesDropped: true })))
+    await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Your A2 poster is ready. The names didn’t fit, so this poster has none.'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Multiple posters (ZIP)' }))
+    fireEvent.change(screen.getByLabelText('Split by'), { target: { value: 'family' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Download PNGs (ZIP)' }))
+    await waitFor(() => expect(makes).toHaveLength(2))
+    await act(async () => makes[1].resolve(fakePoster({ namesDropped: true })))
+    await waitFor(() => expect(makes).toHaveLength(3))
+    await act(async () => makes[2].resolve(fakePoster()))
+    await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2-bulk.zip (2 posters). 1 poster has no names: they didn’t fit.'))
   })
 
   it('disables bulk ZIP buttons with a note when a split has zero groups', async () => {

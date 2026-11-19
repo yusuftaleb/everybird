@@ -9,8 +9,10 @@ import { continentOfPlace, type ContinentId } from '@/lib/places/continents'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
-import { abortError, packForImage, type ImagePack, type PackSpec } from './image'
+import { planCaptions, type TextMeasurer } from './captions'
+import { abortError, cardLayout, imagePackSpec, markedCodesOf, packForImage, type CardFormat, type CountSize, type ImagePack, type PackSpec } from './image'
 import type { makePoster as MakePoster, Poster, PosterOpts } from './poster'
+import { printDesign, type PrintSize } from './print'
 
 export const BULK_BATCH_SIZE = 1000
 
@@ -201,6 +203,30 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
 
 export type BulkPosterOpts = Omit<PosterOpts, 'entries' | 'pack' | 'filterLabel' | 'species'>
 
+export type BulkPackOpts = {
+  size: PrintSize
+  landscape: boolean
+  /** The poster has a title line. */
+  named: boolean
+  countSize: CountSize
+  showNames: boolean
+  species: SpeciesIndex
+  nameOf?: (row: SpeciesRow) => string
+  measure?: TextMeasurer
+  /** The lifer rings: each group rings its own latest and first lifer, as its poster draws them. */
+  marks: { newest?: boolean; first?: boolean }
+}
+
+/** What to pack for one group's poster (every poster has its group's label line), with names planned for its own birds. */
+export function bulkPackSpec(entries: ListEntry[], o: BulkPackOpts): PackSpec {
+  const format: CardFormat = o.landscape ? 'printLandscape' : 'print'
+  const content = { name: o.named, filter: true, latest: true, count: entries.length, countSize: o.countSize }
+  if (!o.showNames) return imagePackSpec(format, content, o.size)
+  const L = cardLayout(format, content, printDesign(o.size, o.landscape))
+  const plan = planCaptions(entries, o.species, o.size, L.collage.w, o.nameOf, o.measure, markedCodesOf(entries, o.species, o.marks))
+  return imagePackSpec(format, content, o.size, plan.ok ? plan : undefined)
+}
+
 export type BulkZipOpts = {
   groups: readonly BulkGroup[]
   kind: 'png' | 'pdf'
@@ -214,7 +240,8 @@ export type BulkZipOpts = {
   }
 }
 
-export async function makeBulkZip(opts: BulkZipOpts): Promise<Blob> {
+/** The ZIP, and how many of its posters asked for names but have none (they didn't fit). */
+export async function makeBulkZip(opts: BulkZipOpts): Promise<{ blob: Blob; namesDropped: number }> {
   const { groups, kind, poster: posterOpts, species, packSpec, onProgress, deps } = opts
   const { signal } = posterOpts
   const check = () => { if (signal?.aborted) throw abortError() }
@@ -223,6 +250,7 @@ export async function makeBulkZip(opts: BulkZipOpts): Promise<Blob> {
   const makePosterFn = deps?.makePoster ?? (await import('./poster')).makePoster
   const files: Record<string, Uint8Array> = {}
   const total = groups.length
+  let namesDropped = 0
   for (let i = 0; i < total; i++) {
     check()
     const group = groups[i]
@@ -245,6 +273,7 @@ export async function makeBulkZip(opts: BulkZipOpts): Promise<Blob> {
       const blob = await p.file(kind)
       check()
       files[`${group.stem}.${kind}`] = new Uint8Array(await blob.arrayBuffer())
+      if (p.namesDropped) namesDropped++
       onProgress?.(i + 1, total, group)
     } finally {
       p?.dispose()
@@ -252,5 +281,5 @@ export async function makeBulkZip(opts: BulkZipOpts): Promise<Blob> {
   }
   check()
   const zipped = zipSync(files, { level: 0 })
-  return new Blob([zipped as Uint8Array<ArrayBuffer>], { type: 'application/zip' })
+  return { blob: new Blob([zipped as Uint8Array<ArrayBuffer>], { type: 'application/zip' }), namesDropped }
 }

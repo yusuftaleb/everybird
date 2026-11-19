@@ -30,16 +30,15 @@ import { currentTheme, type Theme } from '@/lib/theme'
 import { useLiferMarks } from '@/lib/lifer-marks'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
-import { bulkGroups, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
+import { bulkGroups, bulkPackSpec, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
 import type { Poster } from '@/lib/share/poster'
 import { CAPTION_CAPS, PRINT_IN, PRINT_SIZES, captionMinPx, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
 import { planCaptions, type CaptionPlan } from '@/lib/share/captions'
-import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
 import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearFilter, yearList } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import {
-  NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, captionMeasurer, cardLayout, clearStickerCache, ensureCaptionFont, filterLabel as labelFor, fitCaptionPack, imagePackSpec, imageShape, isPrint, packForImage, renderShareImage,
+  NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, captionMeasurer, cardLayout, clearStickerCache, ensureCaptionFont, filterLabel as labelFor, fitCaptionPack, imagePackSpec, imageShape, isPrint, markedCodesOf, packForImage, renderShareImage,
   type CardFormat, type CountSize, type FormatSlot, type ImagePack, type Orientation,
 } from '@/lib/share/image'
 import type { ShareLevel } from '@/lib/share/link'
@@ -95,7 +94,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const sizeName = (s: PrintSize) => (isUsSize(s) ? fmt(pt.inches, { w: PRINT_IN[s][0], h: PRINT_IN[s][1] }) : s)
   /** After a make: ready, then (when some did) the soft stickers, then the ones that didn't load. */
   const readyNote = (p: Poster) =>
-    [fmt(pt.ready, { size: sizeName(p.size) }), p.soft > 0 ? pt.soft : '', p.missing > 0 ? plural(pt.missing, p.missing, { n: formatInt(p.missing, t.num) }) : ''].filter(Boolean).join(' ')
+    [fmt(pt.ready, { size: sizeName(p.size) }), p.namesDropped ? pt.namesDropped : '', p.soft > 0 ? pt.soft : '', p.missing > 0 ? plural(pt.missing, p.missing, { n: formatInt(p.missing, t.num) }) : ''].filter(Boolean).join(' ')
 
   const { list, filter, saved, seen } = state
   const [format, setFormat] = useState<FormatSlot>('story')
@@ -158,20 +157,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const hasFilter = !!(cardLabel || cardGoal)
   const goalKey = cardGoal ? `by:${cardGoal.year}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
   const overCap = cardEntries.length > CAPTION_CAPS[size]
-  const markedCodes = useMemo(() => {
-    const s = new Set<string>()
-    if (!liferMarks.newest && !liferMarks.first) return s
-    const order = liferOrder(species.byCode)
-    if (liferMarks.newest) {
-      const c = latestLifer(cardEntries, order)?.code
-      if (c) s.add(c)
-    }
-    if (liferMarks.first) {
-      const c = firstLifer(cardEntries, order)?.code
-      if (c) s.add(c)
-    }
-    return s
-  }, [cardEntries, species, liferMarks.newest, liferMarks.first])
+  const markedCodes = useMemo(
+    () => markedCodesOf(cardEntries, species, { newest: liferMarks.newest, first: liferMarks.first }),
+    [cardEntries, species, liferMarks.newest, liferMarks.first],
+  )
   useEffect(() => {
     if (!print || overCap || typeof document === 'undefined' || !document.fonts) return
     let live = true
@@ -456,7 +445,6 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     bulkCtl.current = ctl
     const forKey = posterKey
     const total = bulkList.length
-    const posterFormat: CardFormat = landscape ? 'printLandscape' : 'print'
     setNote({ text: pt.bulk.makingNote, print: true })
     setBulkMaking({ key: forKey, done: 0, total })
     try {
@@ -470,7 +458,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
         if (ctl.signal.aborted) return
       }
       const measure = captionMeasurer()
-      const blob = await makeBulkZip({
+      const { blob, namesDropped } = await makeBulkZip({
         groups: bulkList,
         kind,
         species,
@@ -488,13 +476,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
           nameOf: displayName,
           signal: ctl.signal,
         },
-        packSpec: (entries) => {
-          const content = { name: !!trimmed, filter: true, latest: true, count: entries.length, countSize }
-          if (!effectiveShowNames) return imagePackSpec(posterFormat, content, size)
-          const L = cardLayout(posterFormat, content, printDesign(size, landscape))
-          const plan = planCaptions(entries, species, size, L.collage.w, displayName, measure, markedCodes)
-          return imagePackSpec(posterFormat, content, size, plan.ok ? plan : undefined)
-        },
+        packSpec: (entries) => bulkPackSpec(entries, {
+          size, landscape, named: !!trimmed, countSize, showNames: effectiveShowNames, species, nameOf: displayName, measure,
+          marks: { newest: liferMarks.newest, first: liferMarks.first },
+        }),
         onProgress: (done, count) => {
           if (!ctl.signal.aborted) setBulkMaking({ key: forKey, done, total: count })
         },
@@ -505,7 +490,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       setBulkMaking(null)
       const file = `${printFileStem(size, landscape)}-bulk.zip`
       downloadBlob(blob, file)
-      setNote({ text: plural(pt.bulk.ready, total, { file, n: formatInt(total, t.num) }), print: true })
+      const dropped = namesDropped > 0 ? plural(pt.bulk.namesDropped, namesDropped, { n: formatInt(namesDropped, t.num) }) : ''
+      setNote({ text: [plural(pt.bulk.ready, total, { file, n: formatInt(total, t.num) }), dropped].filter(Boolean).join(' '), print: true })
     } catch (e) {
       if (ctl.signal.aborted || (e as Error)?.name === 'AbortError') return
       console.warn('Everybird bulk ZIP failed:', e)

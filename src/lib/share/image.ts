@@ -759,6 +759,8 @@ export type PreparedCard = {
   /** How far the wordmark, the hairline and the latest lifer row move up when the footer line is below the wordmark. */
   shift: number
   captions?: CaptionBox[]
+  /** Print names were asked for (showNames) but none are drawn: they didn't fit. */
+  namesDropped?: true
 }
 type CardDraft = Omit<PreparedCard, 'brandW' | 'credit' | 'shift'>
 
@@ -788,6 +790,18 @@ export function fitCaptionPack(
   return verified.ok ? { fit, placed, captions: verified.captions, ok: true } : { fit, placed, ok: false }
 }
 
+/** The birds the lifer rings mark among `entries`: the latest lifer and the first, as the card draws them. */
+export function markedCodesOf(entries: ListEntry[], species: SpeciesIndex, marks: { newest?: boolean; first?: boolean }): Set<string> {
+  const s = new Set<string>()
+  if (!marks.newest && !marks.first) return s
+  const order = liferOrder(species.byCode)
+  const newest = marks.newest ? latestLifer(entries, order)?.code : undefined
+  const first = marks.first ? firstLifer(entries, order)?.code : undefined
+  if (newest) s.add(newest)
+  if (first) s.add(first)
+  return s
+}
+
 export function ensureCaptionFont(px: number, sample: string): Promise<void> {
   return fontsReady([cardFonts().filter(px)], sample)
 }
@@ -814,9 +828,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize }
   const printSize = opts.printSize ?? 'A2'
   const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
-  const markedCodes = new Set<string>()
-  if (markNewestCode) markedCodes.add(markNewestCode)
-  if (markFirstCode) markedCodes.add(markFirstCode)
+  const markedCodes = markedCodesOf(shown, species, { newest: opts.markNewest, first: opts.markFirst })
   let captionPlan: CaptionPlan | undefined
   if (print && opts.showNames) {
     const sample = shown.map((e) => {
@@ -846,6 +858,8 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   }
   const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format])
   const captions = capFit?.ok ? capFit.captions : undefined
+  // Names asked for but not drawn (over the cap, a name too long, or a pack they don't fit): the caller says so.
+  const namesDropped = print && !!opts.showNames && !captions
   const tiles: Tile[] = shown.flatMap((e) => {
     const b = pack.boxes.get(e.code)
     if (!b) return []
@@ -871,7 +885,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   // What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's.
   const countNum = K.size > 0 ? (goal?.target !== undefined ? `${countDisplay(content.count, strings.num)} / ${countDisplay(goal.target, strings.num)}` : countDisplay(content.count, strings.num)) : ''
   const countLabel = K.size > 0 ? strings.count.label.toUpperCase() : ''
-  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, footerLine, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}) }
+  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, footerLine, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}) }
 }
 
 export function captionMeasurer(): TextMeasurer {

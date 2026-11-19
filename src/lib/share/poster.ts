@@ -30,6 +30,8 @@ export type Poster = {
   soft: number
   /** Stickers drawn as the outline because every attempt failed. */
   missing: number
+  /** Names were asked for (showNames) but the poster has none: they didn't fit. */
+  namesDropped: boolean
   /** The file, asked of the encoder once per kind, as a main-thread copy (it survives dispose). */
   file(kind: 'png' | 'pdf'): Promise<Blob>
   /** Terminates the encoder. Files already returned stay valid. */
@@ -300,7 +302,7 @@ export async function makePoster(
     const done = encoder
     const files = new Map<'png' | 'pdf', Promise<Blob>>()
     return {
-      size, landscape, bytes, soft, missing,
+      size, landscape, bytes, soft, missing, namesDropped: !!card.namesDropped,
       file(kind) {
         let p = files.get(kind)
         if (!p) {

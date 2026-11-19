@@ -453,10 +453,12 @@ export const es: Messages = {
           makingNote: 'Creando el ZIP.',
           ready: { one: 'Guardado {file} ({n} póster).', other: 'Guardado {file} ({n} pósteres).' },
           failed: 'No se pudo crear el ZIP. Inténtalo de nuevo.',
+          namesDropped: { one: '{n} póster no tiene nombres porque no cabían.', other: '{n} pósteres no tienen nombres porque no cabían.' },
         },
         showNames: 'Mostrar nombres de especies',
         namesCap: 'En {size} caben hasta {max} especies con nombres. Elige un tamaño más grande o filtra tu lista.',
         namesNoFit: 'Los nombres no caben bien en {size}. Elige un tamaño más grande o filtra tu lista.',
+        namesDropped: 'Los nombres no cabían, así que este póster no los tiene.',
       },
     },
     import: {
