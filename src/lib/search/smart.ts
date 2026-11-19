@@ -5,6 +5,7 @@ import { countryNameMap, sub1Names, SUB1_ALIASES, OBSORG_SUB1_ALIASES } from '..
 import { hasSourcePlaceKey } from '../places/registry'
 import { IMPORT_REGION_ALIASES } from '../places/region-mapping'
 import { searchKey } from '../species/name-search'
+import { foldName } from '../species/resolve'
 import { ORDERS } from '../species/orders'
 import type { Regions, SpeciesRow } from '../species/types'
 import synonyms from '../../../data/i18n/group-synonyms.json'
@@ -92,7 +93,7 @@ function places(ctx: SearchContext): Entity[] {
   const countries = countryNameMap(ctx.regions, ['en', ctx.lang], { includeRegistry: false })
   for (const [name, code] of countries) add(`c:${code}`, [name])
   for (const [code, name] of Object.entries(ctx.regions.sub1)) {
-    const obsorgAliases = (OBSORG_SUB1_ALIASES[code] ?? []).filter((a) => !countries.has(searchKey(a)))
+    const obsorgAliases = (OBSORG_SUB1_ALIASES[code] ?? []).filter((a) => !countries.has(foldName(a)))
     add(`s:${code}`, [code, ...sub1Names(name), ...(SUB1_ALIASES[code] ?? []), ...obsorgAliases, ...(IMPORT_REGION_ALIASES[code] ?? [])])
   }
   const onList = new Set<string>()
