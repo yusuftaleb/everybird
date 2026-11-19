@@ -148,7 +148,7 @@ function pageRoutes(): string[] {
 describe('coverage', () => {
   it('every page has a source', () => {
     const pages = pageRoutes()
-    expect(pages).toEqual(['/', '/about', '/credits', '/make', '/my', '/s/:token', '/settings'])
+    expect(pages).toEqual(['/', '/about', '/c/:token', '/compare', '/credits', '/make', '/my', '/s/:token', '/settings'])
     for (const p of pages) expect(PAGE_SOURCES, p).toContain(p)
   })
   it('static files and metadata routes match no source', () => {
@@ -173,8 +173,8 @@ describe('coverage', () => {
     // The build lists /[lang]/s/[token] and both image routes as ƒ and leaves them out of prerender-manifest.json's
     // dynamicRoutes (no ISR): nothing lists tokens, and the root layout never closes its params (dynamicParams = false
     // would 404 every token).
-    for (const f of ['page.tsx', 'opengraph-image.tsx', 'twitter-image.tsx']) {
-      const src = readFileSync(join(process.cwd(), 'app/[lang]/s/[token]', f), 'utf8')
+    for (const f of ['s/[token]/page.tsx', 's/[token]/opengraph-image.tsx', 's/[token]/twitter-image.tsx', 'c/[token]/page.tsx']) {
+      const src = readFileSync(join(process.cwd(), 'app/[lang]', f), 'utf8')
       expect(src, f).not.toMatch(/generateStaticParams|export const (revalidate|dynamicParams)\b/)
     }
     expect(readFileSync(join(process.cwd(), 'app/[lang]/layout.tsx'), 'utf8')).not.toMatch(/export const dynamicParams/)
@@ -185,7 +185,7 @@ describe('coverage', () => {
     expect(readFileSync(join(process.cwd(), 'app/[lang]/s/[token]/twitter-image.tsx'), 'utf8')).toMatch(/from '\.\/opengraph-image'/)
   })
   it('every prerendered page closes its language, so /nope is the static 404 and never a render', () => {
-    const files = ['(app)/page.tsx', '(app)/about/page.tsx', '(app)/settings/page.tsx', 'make/page.tsx', 'my/page.tsx', 'credits/page.tsx']
+    const files = ['(app)/page.tsx', '(app)/about/page.tsx', '(app)/settings/page.tsx', '(app)/compare/page.tsx', 'make/page.tsx', 'my/page.tsx', 'credits/page.tsx']
     for (const f of files) {
       expect(readFileSync(join(process.cwd(), 'app/[lang]', f), 'utf8'), f).toMatch(/^export const dynamicParams = false$/m)
     }

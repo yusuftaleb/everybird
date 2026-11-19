@@ -374,6 +374,29 @@ export const EN_UI = {
     noPlaces: 'This link carries no places, so those filters are left out.',
     noDates: 'This link carries no dates, so those filters are left out.',
   },
+  /** Compare with friends (issue #10): /compare, and a comparison link's page, /c/<token>. */
+  compare: {
+    open: 'Compare',
+    title: 'Compare with friends',
+    lede: 'Paste your friends’ Everybird share links. Your own list is always included.',
+    linksLabel: 'Share links',
+    submit: 'Compare',
+    bad: { one: '{n} link didn’t open.', other: '{n} links didn’t open.' },
+    needMore: 'Comparing needs at least two lists.',
+    groups: 'Groups',
+    both: 'Both of you',
+    everyone: 'On every list',
+    onlyYou: 'Only you',
+    only: 'Only {name}',
+    birder: 'Birder {n}',
+    empty: 'No birds in this group.',
+    copyLink: 'Copy comparison link',
+    copied: 'Link copied.',
+    copyManual: 'Copy this link',
+    tooMany: 'A comparison link holds up to {n} lists. Remove some to share it.',
+    tooBig: 'These lists are too big for one link. Compare fewer lists to share it.',
+    sharedTitle: 'Comparing {n} life lists',
+  },
   /** Plain labels for the bird orders (scientific name -> label): every order in species.v1.json. English is a copy of
    *  src/lib/species/orders.ts ORDERS (tests/i18n.test.ts keeps them equal). */
   orders: {
