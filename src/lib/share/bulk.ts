@@ -1,10 +1,10 @@
 import { zipSync } from 'fflate'
-import { seenBasis, type Filter } from '@/lib/list/filters'
+import { filterPlaceKeys, seenBasis, type Filter } from '@/lib/list/filters'
 import { inRange } from '@/lib/list/in-range'
 import type { ListEntry } from '@/lib/list/model'
-import { countryKeyOf, placeName } from '@/lib/list/place-keys'
+import { countryKeyOf, keysOfPlace, placeName } from '@/lib/list/place-keys'
 import { seenOf, type SeenIndex } from '@/lib/list/seen'
-import { makeWhere, sightingKeys, whereOf } from '@/lib/list/sighting'
+import { monthOrd, sightingKeys, whereOf } from '@/lib/list/sighting'
 import { continentOfPlace, type ContinentId } from '@/lib/places/continents'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
@@ -124,16 +124,27 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
   }
 
   const filter = opts.filter
+  const placeKeys = filter ? filterPlaceKeys(filter) : []
+  const placeMatches = (p: { country?: string; sub1?: string; sub2?: string }) => {
+    if (!placeKeys.length) return true
+    const country = p.country || p.sub1?.split('-')[0]
+    return !!country && keysOfPlace({ country, sub1: p.sub1, sub2: p.sub2 }).some((k) => placeKeys.includes(k))
+  }
   const useSeenBasis = !!(filter && seenBasis(filter))
-  const when = useSeenBasis ? makeWhere(undefined, filter.from, filter.to) : undefined
   const where = useSeenBasis ? whereOf(filter) : undefined
+  const fromBound = filter?.from ?? (filter?.year ? `${filter.year}-01` : undefined)
+  const toBound = filter?.to ?? (filter?.year ? `${filter.year}-12` : undefined)
+  const hasTime = !!(fromBound || toBound)
+  const loOrd = fromBound ? monthOrd(fromBound) : Number.NEGATIVE_INFINITY
+  const hiOrd = toBound ? monthOrd(toBound) : Number.POSITIVE_INFINITY
 
   if (split === 'country' || split === 'continent' || split === 'province') {
     const buckets = new Map<string, { label: string; entries: ListEntry[]; seen: Set<string> }>()
     for (const e of sorted) {
-      const here = when ? sightingKeys(e, opts.seen, when) : undefined
+      const here = where ? sightingKeys(e, opts.seen, where) : undefined
       for (const p of seenOf(opts.seen, e)) {
         if (here && !here.has(p.sub2 ? `${p.sub1 ?? p.country}|${p.sub2}` : (p.sub1 ?? p.country))) continue
+        if (!placeMatches(p)) continue
         if (split === 'country') {
           const id = countryKeyOf(p)
           addToBucket(buckets, id, placeName(id, opts.regions, opts.continents), e)
@@ -161,22 +172,23 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
     const years = new Set<string>()
     if (months) {
       for (const pm of months) {
-        if (where && where.keys.length && !pm.keys.some((k) => where.keys.includes(k))) continue
+        if (placeKeys.length && !pm.keys.some((k) => placeKeys.includes(k))) continue
         for (const ord of pm.ords) {
-          if (where && (ord < where.lo || ord > where.hi)) continue
+          if (hasTime && (ord < loOrd || ord > hiOrd)) continue
           years.add(String(Math.floor(ord / 12)).padStart(4, '0'))
         }
       }
     }
-    if (!years.size) {
-      if (e.date) {
-        const m = YEAR_RE.exec(e.date)
-        if (m && (!when || inRange(e.date, when.from, when.to))) years.add(m[1])
-      }
+    if (e.date) {
+      const m = YEAR_RE.exec(e.date)
+      const placeOk = !placeKeys.length || !!(e.place && placeMatches(e.place))
+      if (m && placeOk && (!hasTime || inRange(e.date, fromBound, toBound))) years.add(m[1])
+    }
+    if (!months?.length) {
       for (const p of seenOf(opts.seen, e)) {
-        if (!p.date) continue
+        if (!p.date || !placeMatches(p)) continue
         const m = YEAR_RE.exec(p.date)
-        if (m && (!when || inRange(p.date, when.from, when.to))) years.add(m[1])
+        if (m && (!hasTime || inRange(p.date, fromBound, toBound))) years.add(m[1])
       }
     }
     for (const y of years) addToBucket(buckets, y, y, e)

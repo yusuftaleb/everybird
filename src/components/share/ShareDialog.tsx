@@ -33,7 +33,7 @@ import { downloadBlob } from '@/lib/download'
 import { bulkGroups, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
 import type { Poster } from '@/lib/share/poster'
 import { PRINT_IN, PRINT_SIZES, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
-import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearList } from '@/lib/list/big-year'
+import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearFilter, yearList } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import {
@@ -298,7 +298,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       species,
       regions: named,
       seen,
-      filter: bigYearActive ? undefined : filter,
+      filter: bigYearActive ? yearFilter(goalYear, seen) : filter,
       continents: t.places.continents,
       batchLabel: (n) => fmt(pt.bulk.batch, { n: formatInt(n, t.num) }),
       familyLabel: familyName,
@@ -306,7 +306,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       locale: HTML_LANG[lang],
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
-  }, [print, bulkOpen, bulkSplit, cardEntries, species, regions, lang, seen, bigYearActive, filter, t, pt.bulk.batch, names])
+  }, [print, bulkOpen, bulkSplit, cardEntries, species, regions, lang, seen, bigYearActive, goalYear, filter, t, pt.bulk.batch, names])
 
   // Where focus goes once the button that had it is gone (only if it fell to the page or the dialog itself).
   const backRef = useRef<HTMLButtonElement>(null)

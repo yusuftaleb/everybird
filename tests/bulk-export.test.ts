@@ -274,4 +274,33 @@ describe('bulk export', () => {
     expect(disposed).toEqual(['Ostriches'])
     expect(fakeMakePoster).toHaveBeenCalledTimes(1)
   })
+
+  it('respects active place and time filters in country, province, continent, and year splits', () => {
+    const species = buildSpeciesIndex([row('merlin', 1, 'Falconiformes', 'Falconidae', 'Falcons')])
+    const entries = [entry('merlin', { date: '2019-03-01', place: { country: 'EG', sub1: 'EG-C' } })]
+    const records: SourceRecord[] = [
+      {
+        code: 'merlin',
+        source: 'ebird',
+        date: '2019-03-01',
+        place: { country: 'EG', sub1: 'EG-C' },
+        seen: ['2019-03-01|EG-C', '2023-04-10|CA-BC', '2024-05-12|CA-ON'],
+        seenMonths: ['2019-03|EG-C', '2023-04|CA-BC', '2024-05|CA-ON'],
+      },
+    ]
+    const seen = buildSeen(records, { added: [], removed: [], fixes: {}, marks: {} }, { hideHeard: false, hideDead: false, researchOnly: false }, entries)
+
+    const caOnly = { countries: ['CA'] }
+    expect(bulkGroups('country', entries, { species, regions, seen, filter: caOnly }).map((g) => g.label)).toEqual(['Canada'])
+    expect(bulkGroups('continent', entries, { species, regions, seen, filter: caOnly }).map((g) => g.label)).toEqual(['North America'])
+    expect(bulkGroups('province', entries, { species, regions, seen, filter: caOnly }).map((g) => g.label)).toEqual(['British Columbia', 'Ontario'])
+    expect(bulkGroups('year', entries, { species, regions, seen, filter: caOnly }).map((g) => g.label)).toEqual(['2023', '2024'])
+
+    const seenIn2023 = { countries: ['CA'], from: '2023-01', to: '2023-12', basis: 'seen' as const }
+    expect(bulkGroups('province', entries, { species, regions, seen, filter: seenIn2023 }).map((g) => g.label)).toEqual(['British Columbia'])
+    expect(bulkGroups('year', entries, { species, regions, seen, filter: seenIn2023 }).map((g) => g.label)).toEqual(['2023'])
+
+    const liferIn2019 = { from: '2019-01', to: '2019-12' }
+    expect(bulkGroups('year', entries, { species, regions, seen, filter: liferIn2019 }).map((g) => g.label)).toEqual(['2019'])
+  })
 })
