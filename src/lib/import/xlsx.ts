@@ -2,7 +2,10 @@ import { strFromU8, unzipSync } from 'fflate'
 
 export type XlsxSheet = {
   name: string
+  /** The sheet's rows with cells (blank rows left out). */
   rows: string[][]
+  /** Each row's number in Excel (its `r`), for "Spreadsheet row N". */
+  lines: number[]
 }
 
 export class DamagedXlsxError extends Error {
@@ -107,12 +110,14 @@ function parseSharedStrings(xml: string | undefined): string[] {
   return out
 }
 
-function parseSheetRows(xml: string, shared: string[], dateStyles: Set<number>, date1904: boolean): string[][] {
+function parseSheetRows(xml: string, shared: string[], dateStyles: Set<number>, date1904: boolean): Omit<XlsxSheet, 'name'> {
   const rows: string[][] = []
+  const lines: number[] = []
   const rowRe = /<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g
   let rm: RegExpExecArray | null
   while ((rm = rowRe.exec(xml))) {
     const body = rm[2]
+    const n = Number(attr(rm[1] ?? '', 'r'))
     if (!body) continue
     const cells: string[] = []
     let nextCol = 0
@@ -156,9 +161,12 @@ function parseSheetRows(xml: string, shared: string[], dateStyles: Set<number>, 
       cells[targetCol] = val
     }
     while (cells.length && !cells[cells.length - 1].trim()) cells.pop()
-    if (cells.some((c) => c.trim())) rows.push(cells)
+    if (cells.some((c) => c.trim())) {
+      rows.push(cells)
+      lines.push(Number.isInteger(n) && n > (lines.at(-1) ?? 0) ? n : (lines.at(-1) ?? 0) + 1)
+    }
   }
-  return rows
+  return { rows, lines }
 }
 
 /** One spelling for the parsers below: CDATA sections become escaped text, and element prefixes go (`<x:row>` is
@@ -245,7 +253,7 @@ export function readXlsx(data: Uint8Array | ArrayBuffer): XlsxSheet[] {
   for (const spec of sheetSpecs) {
     const xml = textOf(spec.path)
     if (!xml) continue
-    sheets.push({ name: spec.name, rows: parseSheetRows(xml, shared, dateStyles, date1904) })
+    sheets.push({ name: spec.name, ...parseSheetRows(xml, shared, dateStyles, date1904) })
   }
   if (!sheets.length) throw new DamagedXlsxError('No readable worksheets found in Excel workbook.')
   return sheets

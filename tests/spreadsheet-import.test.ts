@@ -188,6 +188,18 @@ describe('spreadsheet import', () => {
     expect(res.records.map((r) => r.code)).toEqual(['mallar3', 'rocpig', 'barswa'])
   })
 
+  it('numbers unmatched rows as the birder\'s file does, title and blank rows included', () => {
+    const text = parseSheetText('My birds\n\nCommon Name\nMallard\n\nMallardd\n', taxonomy, regions)
+    if ('error' in text) throw new Error('expected parse success')
+    expect(text.unmatched.map((u) => [u.com, u.row])).toEqual([['Mallardd', 6]])
+
+    const cell = (r: number, v: string) => `<row r="${r}"><c r="A${r}" t="inlineStr"><is><t>${v}</t></is></c></row>`
+    const xlsx = makeXlsx({ sheets: [{ name: 'Birds', xml: `<?xml version="1.0"?><worksheet><sheetData>${cell(1, 'My birds')}${cell(3, 'Common Name')}${cell(4, 'Mallard')}${cell(7, 'Mallardd')}</sheetData></worksheet>` }] })
+    const sheet = parseSheetXlsx(xlsx, taxonomy, regions)
+    if ('error' in sheet) throw new Error('expected parse success')
+    expect(sheet.unmatched.map((u) => [u.com, u.row])).toEqual([['Mallardd', 7]])
+  })
+
   it('imports only marked rows from a ticked checklist', () => {
     const res = parseSheetText(fixture('ticked-checklist.csv'), taxonomy, regions)
     expect('error' in res).toBe(false)

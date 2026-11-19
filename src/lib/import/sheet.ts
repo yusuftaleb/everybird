@@ -441,17 +441,22 @@ function isRowMarked(row: string[], col: number, dateOrder: DateOrder): boolean 
   return MARK_YES.has(raw.toLowerCase()) || !!parseSheetDate(raw, dateOrder, true)
 }
 
+/** `lines[i]` is row i's number in the birder's file ("Spreadsheet row 6"), when `rows` leaves blank rows out. */
 export function parseSheetRows(
   rows: string[][],
   t: TaxonomyIndex,
   regions?: Regions,
   onProgress?: (rows: number) => void,
+  lines: readonly number[] = rows.map((_, i) => i + 1),
 ): SheetParseResult | { error: 'no-birds' } {
-  const nonEmpty = rows.filter((r) => r.some((c) => c.trim()))
+  const kept = rows.map((_, i) => i).filter((i) => rows[i].some((c) => c.trim()))
+  const nonEmpty = kept.map((i) => rows[i])
+  const lineOf = kept.map((i) => lines[i] ?? i + 1)
   if (!nonEmpty.length) return { error: 'no-birds' }
 
   const header = findHeaderRow(nonEmpty)
   const dataRows = header ? nonEmpty.slice(header.idx + 1) : nonEmpty
+  const rowNo = header ? lineOf.slice(header.idx + 1) : lineOf
   if (!dataRows.length) return { error: 'no-birds' }
 
   const { resolveCountries, resolvePlace } = makePlaceResolver(regions)
@@ -497,7 +502,7 @@ export function parseSheetRows(
       if (!unmatchedMap.has(key)) {
         unmatchedMap.set(key, {
           source: 'sheet',
-          row: i + 1,
+          row: rowNo[i],
           ...(sci && !cols.singleNameCol ? { sci } : {}),
           ...(com ? { com } : sci ? { sci } : {}),
           reason: 'not-species',
@@ -535,7 +540,7 @@ export function parseSheetRows(
         }
         unmatchedMap.set(key, {
           source: 'sheet',
-          row: i + 1,
+          row: rowNo[i],
           ...(sci && !cols.singleNameCol ? { sci } : {}),
           ...(com ? { com } : sci ? { sci } : {}),
           reason: 'no-match',
@@ -589,6 +594,7 @@ export function parseSheetRows(
   }
 }
 
+/** The text's rows, blank ones kept (as ['']), so a row's index is its line in the file. */
 export function textToRows(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, '')
   if (!clean.trim()) return []
@@ -597,7 +603,7 @@ export function textToRows(text: string): string[][] {
     header: false,
     ...(hasTabs ? { delimiter: '\t' } : {}),
     ...(quoteChar ? { quoteChar } : {}),
-    skipEmptyLines: 'greedy',
+    skipEmptyLines: false,
   })
   let parsed = parse()
   // A quote that never closes ("Mallard pasted with a stray quote) would swallow every later line: read the text
@@ -626,11 +632,11 @@ export function parseSheetXlsx(
   onProgress?: (rows: number) => void,
 ): SheetParseResult | { error: 'no-birds' } {
   const sheets = readXlsx(data)
-  if (sheets.length === 1) return parseSheetRows(sheets[0].rows, t, regions, onProgress)
+  if (sheets.length === 1) return parseSheetRows(sheets[0].rows, t, regions, onProgress, sheets[0].lines)
 
   let bestResult: SheetParseResult | null = null
   for (const sheet of sheets) {
-    const res = parseSheetRows(sheet.rows, t, regions, onProgress)
+    const res = parseSheetRows(sheet.rows, t, regions, onProgress, sheet.lines)
     if ('error' in res) continue
     if (!bestResult || res.records.length > bestResult.records.length) {
       bestResult = res
