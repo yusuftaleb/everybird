@@ -1,4 +1,5 @@
 import type { Place, SourceRecord, Unmatched } from '@/lib/list/model'
+import { foldName } from '@/lib/species/resolve'
 import type { Regions } from '@/lib/species/types'
 
 /** [country, native label, equivalent Everybird ID or null, verified parent if distinct]. */
@@ -162,4 +163,56 @@ export function projectRecord<T extends SourceRecord | Unmatched>(record: T, tab
     seen: projectSightings(record.seen, tables, oldEbird),
     seenMonths: projectSightings(record.seenMonths, tables, oldEbird),
   }
+}
+
+export type CatalogueUpdateReport = {
+  added: string[]
+  retired: string[]
+  reused: string[]
+  parentChanges: string[]
+  errors: string[]
+}
+
+export function validateCatalogueUpdate(previous: PlaceCatalogue, next: PlaceCatalogue): CatalogueUpdateReport {
+  const added: string[] = []
+  const retired: string[] = []
+  const reused: string[] = []
+  const parentChanges: string[] = []
+  const errors: string[] = []
+  const prior = next.history?.[previous.edition]
+  const reusedSet = new Set(next.reused ?? [])
+
+  for (const id of Object.keys(next.entries)) {
+    if (!Object.hasOwn(previous.entries, id)) added.push(id)
+  }
+  for (const [id, old] of Object.entries(previous.entries)) {
+    const cur = own(next.entries, id)
+    if (!cur) {
+      retired.push(id)
+      if (previous.edition !== next.edition && (!prior || !Object.hasOwn(prior, id))) {
+        errors.push(`retired:${id}`)
+      }
+      continue
+    }
+    const isReused = old[0] !== cur[0] || foldName(old[1]) !== foldName(cur[1])
+    if (isReused) {
+      reused.push(id)
+      if (previous.edition !== next.edition) {
+        if (!reusedSet.has(id)) errors.push(`reused:${id}`)
+        if (!prior || !Object.hasOwn(prior, id)) errors.push(`history:${id}`)
+      }
+      continue
+    }
+    if ((old[2] ?? null) !== (cur[2] ?? null) || (old[3] ?? null) !== (cur[3] ?? null)) {
+      parentChanges.push(id)
+      if (previous.edition !== next.edition && (!prior || !Object.hasOwn(prior, id))) {
+        errors.push(`history:${id}`)
+      }
+    }
+  }
+  added.sort()
+  retired.sort()
+  reused.sort()
+  parentChanges.sort()
+  return { added, retired, reused, parentChanges, errors }
 }
