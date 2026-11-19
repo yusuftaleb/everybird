@@ -547,11 +547,11 @@ export const nl: Messages = {
       sheet: {
         title: 'Spreadsheet of lijst',
         what: 'je spreadsheet of lijst',
-        guide: 'Upload een Excel- (.xlsx), CSV-, TSV- of tekstbestand, of plak een lijst met vogelnamen.',
+        guide: 'Upload een Excel- (.xlsx), CSV- of tekstbestand, of plak hieronder een lijst. Elke kolom met Engelse of wetenschappelijke vogelnamen werkt; datums, plaatsen en aangevinkte kolommen zijn optioneel.',
         choose: 'Kies je bestand',
         input: 'Spreadsheet- of lijstbestand',
         pasteLabel: 'Plak een lijst met vogelnamen',
-        pastePlaceholder: 'Plak vogelnamen, een per regel, of kolommen uit een spreadsheet',
+        pastePlaceholder: 'Plak vogelnamen, een per regel, of kolommen uit een spreadsheet:\nMallard\nBarn Swallow, 2024-05-12, France',
         checkPaste: 'Geplakte lijst controleren',
         fallback: { file: 'Spreadsheet', paste: 'Geplakte lijst' },
         review: {

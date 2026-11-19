@@ -547,11 +547,11 @@ export const pt: Messages = {
       sheet: {
         title: 'Planilha ou lista',
         what: 'sua planilha ou lista',
-        guide: 'Envie um arquivo Excel (.xlsx), CSV, TSV ou de texto, ou cole uma lista de nomes de aves.',
+        guide: 'Envie um arquivo Excel (.xlsx), CSV ou de texto, ou cole uma lista abaixo. Qualquer coluna com nomes em inglês ou científicos funciona; datas, lugares e colunas marcadas são opcionais.',
         choose: 'Escolha seu arquivo',
         input: 'Arquivo de planilha ou lista',
         pasteLabel: 'Cole uma lista de nomes de aves',
-        pastePlaceholder: 'Cole nomes de aves, um por linha, ou colunas de uma planilha',
+        pastePlaceholder: 'Cole nomes de aves, um por linha, ou colunas de uma planilha:\nMallard\nBarn Swallow, 2024-05-12, France',
         checkPaste: 'Verificar lista colada',
         fallback: { file: 'Planilha', paste: 'Lista colada' },
         review: {

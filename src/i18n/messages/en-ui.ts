@@ -634,11 +634,11 @@ export const EN_UI = {
     sheet: {
       title: 'Spreadsheet or list',
       what: 'your spreadsheet or list',
-      guide: 'Upload an Excel (.xlsx), CSV, TSV or text file, or paste a list of bird names.',
+      guide: 'Upload an Excel (.xlsx), CSV or text file, or paste a list below. Any column of English or scientific bird names works; dates, places and ticked columns are optional.',
       choose: 'Choose your file',
       input: 'Spreadsheet or list file',
       pasteLabel: 'Paste a list of bird names',
-      pastePlaceholder: 'Paste bird names, one per line, or columns from a spreadsheet',
+      pastePlaceholder: 'Paste bird names, one per line, or columns from a spreadsheet:\nMallard\nBarn Swallow, 2024-05-12, France',
       checkPaste: 'Check pasted list',
       fallback: { file: 'Spreadsheet', paste: 'Pasted list' },
       review: {
