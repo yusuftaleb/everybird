@@ -10,7 +10,7 @@
 // Every word is the UI language's (ui.share), the image's and the poster's too; the credit line, the share text
 // (SHARE_CREDIT), the download names and the link stay the same in every language (a link carries no language).
 // The "Dark image" switch (starts at the app's theme, then the dialog's own) sets the look of the share images and the
-// poster alike. Print mode makes an A4 to A1 poster (A2 to start): the preview is the poster's 1080-wide image, "Make poster" runs
+// poster alike. Print mode makes an A4 to A1 or a 12 × 18, 18 × 24 or 24 × 36 in poster (A2 to start): the preview is the poster's 1080-wide image, "Make poster" runs
 // makePoster (its chunk is fetched when print mode opens) with progress and Cancel, then Download PNG and Download PDF
 // serve the one encode. Changing the size, title or either switch, leaving print mode or closing the dialog cancels a make and
 // drops a finished poster. Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied isn't. "Share images" in the format control's place goes back.
@@ -29,7 +29,7 @@ import { currentTheme, type Theme } from '@/lib/theme'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
 import type { Poster } from '@/lib/share/poster'
-import { PRINT_SIZES, printCm, printDesign, printFileStem, printPx, type PrintSize } from '@/lib/share/print'
+import { PRINT_IN, PRINT_SIZES, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import type { Action, AppState } from '@/lib/list/store'
 import {
@@ -80,9 +80,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   useHoldTopBar()
   const { lang, t } = useI18n()
   const pt = t.share.print
+  const sizeName = (s: PrintSize) => (isUsSize(s) ? fmt(pt.inches, { w: PRINT_IN[s][0], h: PRINT_IN[s][1] }) : s)
   /** After a make: ready, then (when some did) the soft stickers, then the ones that didn't load. */
   const readyNote = (p: Poster) =>
-    [fmt(pt.ready, { size: p.size }), p.soft > 0 ? pt.soft : '', p.missing > 0 ? plural(pt.missing, p.missing, { n: formatInt(p.missing, t.num) }) : ''].filter(Boolean).join(' ')
+    [fmt(pt.ready, { size: sizeName(p.size) }), p.soft > 0 ? pt.soft : '', p.missing > 0 ? plural(pt.missing, p.missing, { n: formatInt(p.missing, t.num) }) : ''].filter(Boolean).join(' ')
 
   const { list, filter, saved, seen } = state
   const [format, setFormat] = useState<FormatSlot>('story')
@@ -120,8 +121,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const withLatest = hasLatest && showLatest
 
   // One pack per format and name-or-not while the dialog is open (the view can't change underneath it; a
-  // name takes a line off the collage, so each gets its own pack; the latest lifer switch never changes the pack); workers end
-  // on close.
+  // name takes a line off the collage, so each gets its own pack; the latest lifer switch never changes the pack), and for the
+  // poster per shape (printPackH: the A sizes share one, the US 2:3 sizes another); workers end on close.
   const life = useRef<AbortController | null>(null)
   useEffect(() => {
     const c = new AbortController()
@@ -131,11 +132,11 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const packFor = useMemo(() => {
     const packs = new Map<string, Promise<ImagePack>>()
     // Not keyed by the latest lifer switch: imagePackSpec packs for the with-row frame, so on and off share one pack.
-    return (f: CardFormat, named: boolean) => {
-      const k = `${f}|${named}`
+    return (f: CardFormat, named: boolean, printSize: PrintSize) => {
+      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}`
       let p = packs.get(k)
       if (!p) {
-        const spec = imagePackSpec(f, { name: named, filter: !!label, latest: true, count: shown.length })
+        const spec = imagePackSpec(f, { name: named, filter: !!label, latest: true, count: shown.length }, printSize)
         p = packForImage(shown, species, spec, life.current?.signal)
         packs.set(k, p)
         p.catch(() => packs.delete(k))
@@ -174,7 +175,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       const t = setTimeout(resolve, delay)
       cancel = () => { clearTimeout(t); reject(abortError('superseded')) }
     })
-      .then(() => packFor(cardFormat, !!trimmed))
+      .then(() => packFor(cardFormat, !!trimmed, size))
       .then((pack) => renderShareImage({
         format: cardFormat, ...(print ? { printSize: size } : {}), entries: shown, species, filterLabel: label, name: trimmed || undefined,
         theme, pack, latest: withLatest, strings: t, nameOf: displayName, signal: life.current?.signal,
@@ -287,7 +288,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     focusNext.current = 'cancel'
     try {
       const mod = await (posterModule.current ?? loadPoster())
-      const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed)
+      const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size)
       if (ctl.signal.aborted) return
       const p = await mod.makePoster(
         { size, landscape, entries: shown, species, filterLabel: label, name: trimmed || undefined, pack, latest: withLatest, theme, strings: t, nameOf: displayName, signal: ctl.signal },
@@ -435,11 +436,12 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     : IMAGE_SIZE[shownCard]
   shownSize.current = [w, h]
   const pct = makingNow && makingNow.total > 0 ? Math.round((makingNow.done / makingNow.total) * 100) : 0
-  const [cmW, cmH] = printCm(size, landscape)
   const [pxW, pxH] = printPx(size, landscape)
+  const [dimW, dimH] = isUsSize(size) ? printIn(size, landscape) : printCm(size, landscape)
+  const sizeLine = fmt(isUsSize(size) ? pt.sizeLineIn : pt.sizeLine, { size, w: dimW, h: dimH, pw: pxW, ph: pxH })
   // The box eases to a new format's shape (data-resizing, share.css), but follows a window resize at once.
   const previewBox = useRef<HTMLDivElement>(null)
-  const shownFormat = preview?.format
+  const shownFormat = preview && isPrint(preview.format) ? `${preview.format}|${printPackH(preview.size)}` : preview?.format
   const lastShown = useRef(shownFormat)
   // Switching between the side-by-side and the wide layout eases the preview and fades the controls in (share.css).
   useLayoutEffect(() => {
@@ -575,7 +577,10 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
 
           {/* The box takes the shown image's format (share.css), so it changes shape with the image, not before it; it sits
               centred in an area the story's size, so the controls keep their place in every format. */}
-          <div ref={previewBox} className="eb-share-preview" data-format={shownCard} aria-busy={busy} data-testid="share-preview">
+          <div
+            ref={previewBox} className="eb-share-preview" data-format={shownCard} data-size={isPrint(shownCard) ? (preview?.size ?? size) : undefined}
+            aria-busy={busy} data-testid="share-preview"
+          >
             {outgoing && (
               // The image just replaced, fading out over the frame while it changes shape.
               // eslint-disable-next-line @next/next/no-img-element
@@ -586,7 +591,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={preview.url} className="eb-share-in" src={preview.url} width={w} height={h}
-                alt={isPrint(preview.format) ? fmt(t.share.print.previewAlt, { size: preview.size }) : t.share.preview[preview.format]}
+                alt={isPrint(preview.format) ? fmt(t.share.print.previewAlt, { size: sizeName(preview.size) }) : t.share.preview[preview.format]}
               />
             )}
             {busy && <span className="eb-share-spin" aria-hidden="true" />}
@@ -599,13 +604,14 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
               {print && (
                 <div className="eb-share-field">
                   <div className="eb-seg eb-share-sizes" role="group" aria-label={t.share.print.size}>
-                    {PRINT_SIZES.map((s) => (
+                    {PRINT_SIZES.map((s, i) => [
+                      isUsSize(s) && !isUsSize(PRINT_SIZES[i - 1]) && <span key="us" className="eb-share-sizes-break" aria-hidden="true" />,
                       <button key={s} type="button" className="eb-seg-btn" aria-pressed={size === s} onClick={() => setSize(s)}>
-                        <span className="eb-seg-label">{s}</span>
-                      </button>
-                    ))}
+                        <span className="eb-seg-label">{sizeName(s)}</span>
+                      </button>,
+                    ])}
                   </div>
-                  <p className="eb-note">{fmt(t.share.print.sizeLine, { size, w: cmW, h: cmH, pw: pxW, ph: pxH })}</p>
+                  <p className="eb-note">{sizeLine}</p>
                 </div>
               )}
 

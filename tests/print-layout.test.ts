@@ -1,9 +1,10 @@
 import { en } from '@/i18n/messages/en'
 import { describe, expect, it } from 'vitest'
 import {
-  IOS_CANVAS_AREA, PRINT_CM, PRINT_DESIGN_H, PRINT_PT, PRINT_PX, PRINT_SIZES, STRIP_AREA, printDesignH, printScale, stripRanges,
+  IOS_CANVAS_AREA, PRINT_CM, PRINT_DESIGN_H, PRINT_IN, PRINT_PT, PRINT_PX, PRINT_SIZES, STRIP_AREA,
+  isUsSize, printDesignH, printPackH, printScale, stripRanges,
 } from '@/lib/share/print'
-import { SAFE, SHARE_COLORS, TITLE_TOP, cardLayout, imagePackSpec, prepareCard, type ImagePack } from '@/lib/share/image'
+import { SAFE, SHARE_COLORS, TITLE_TOP, cardDims, cardLayout, imagePackSpec, prepareCard, type ImagePack } from '@/lib/share/image'
 import type { ListEntry } from '@/lib/list/model'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -17,15 +18,37 @@ const entries = [entry('ostric2'), entry('emu1')]
 const pack: ImagePack = { W: 1000, H: 1000, boxes: new Map([['ostric2', [395, 450, 100, 100]], ['emu1', [505, 450, 100, 100]]]) }
 
 describe('print sizes and strips', () => {
-  it('the A sizes at 150 dpi, in px and ISO points', () => {
-    expect(PRINT_PX).toEqual({ A4: [1240, 1754], A3: [1754, 2480], A2: [2480, 3508], A1: [3508, 4967] })
+  it('the ISO and US sizes at 150 dpi, in px, points and inches', () => {
+    expect(PRINT_PX).toEqual({
+      A4: [1240, 1754], A3: [1754, 2480], A2: [2480, 3508], A1: [3508, 4967],
+      US12x18: [1800, 2700], US18x24: [2700, 3600], US24x36: [3600, 5400],
+    })
     for (const s of PRINT_SIZES) {
       expect(PRINT_PT[s][0]).toBeCloseTo((PRINT_CM[s][0] / 2.54) * 72, 1)
       expect(PRINT_PT[s][1]).toBeCloseTo((PRINT_CM[s][1] / 2.54) * 72, 1)
-      expect(Math.abs(printDesignH(s) - PRINT_DESIGN_H)).toBeLessThan(3) // one pack serves every size
+      if (isUsSize(s)) {
+        expect(PRINT_PT[s]).toEqual([PRINT_IN[s][0] * 72, PRINT_IN[s][1] * 72])
+        expect(printDesignH(s)).toBe(printPackH(s))
+      } else {
+        expect(Math.abs(printDesignH(s) - PRINT_DESIGN_H)).toBeLessThan(3)
+      }
     }
+    expect(printPackH('US12x18')).toBe(1620)
+    expect(printPackH('US24x36')).toBe(1620)
+    expect(printPackH('US18x24')).toBe(1440)
     expect(printScale('A1')).toBeCloseTo(3.248, 3)
     expect(printScale('A4')).toBeCloseTo(1.148, 3)
+    expect(printScale('US24x36')).toBeCloseTo(3.333, 3)
+  })
+
+  it('US shapes get their own pack frame so birds fill the frame', () => {
+    for (const [size, packH] of [['A2', 1527], ['US12x18', 1620], ['US24x36', 1620], ['US18x24', 1440]] as const) {
+      expect(cardDims('print', size)).toEqual([1080, packH])
+      expect(cardDims('printLandscape', size)).toEqual([packH, 1080])
+      const L = cardLayout('print', { name: false, filter: false, latest: true, count: 197 }, cardDims('print', size))
+      expect(imagePackSpec('print', { name: false, filter: false, latest: true, count: 197 }, size).aspect)
+        .toBeCloseTo(L.collage.w / L.collage.h, 6)
+    }
   })
 
   it('strips: about 1 MP each, cover the poster once, never past the iOS canvas cap', () => {

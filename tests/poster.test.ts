@@ -153,12 +153,17 @@ function spans(c: PreparedCard, size: PrintSize, rows?: number) {
 }
 
 describe('makePoster', () => {
-  it('strip rows per size: A1 298 (17 strips), A2 276, A3 195, A4 138 (13 strips each)', () => {
-    const got = (['A1', 'A2', 'A3', 'A4'] as const).map((size) => {
+  it('strip rows per size: A1 298 (17 strips), A2–A4, and US sizes under IOS_CANVAS_AREA', () => {
+    const got = (['A1', 'A2', 'A3', 'A4', 'US24x36', 'US18x24', 'US12x18'] as const).map((size) => {
       const [w, h] = PRINT_PX[size], rows = posterRows(w, printScale(size))
+      expect(w * rows).toBeLessThanOrEqual(IOS_CANVAS_AREA)
       return [size, rows, stripRanges(w, h, rows).length]
     })
-    expect(got).toEqual([['A1', 298, 17], ['A2', 276, 13], ['A3', 195, 13], ['A4', 138, 13]])
+    expect(got).toEqual([
+      ['A1', 298, 17], ['A2', 276, 13], ['A3', 195, 13], ['A4', 138, 13],
+      ['US24x36', 291, 19], ['US18x24', 300, 12], ['US12x18', 200, 14],
+    ])
+    expect(3600 * 5400).toBeGreaterThan(IOS_CANVAS_AREA)
   })
 
   it('A1: one strip canvas of 3508 × 298, rows sent in order summing to 4967, progress 1..18 of 18', async () => {

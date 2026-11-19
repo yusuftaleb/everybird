@@ -1,5 +1,5 @@
 // Share images: a story (1080 × 1920), post (1080 × 1350) or square (1080 × 1080) PNG of the collage, or of the current filtered view,
-// and the print poster's card (A4 to A1, drawn by poster code in strips). Horizontal (the dialog's orientation switch): the
+// and the print poster's card (A4 to A1 and three US sizes, drawn by poster code in strips). Horizontal (the dialog's orientation switch): the
 // story becomes a desktop wallpaper (1920 × 1080 units drawn at 2×, a 3840 × 2160 PNG, all its content in the central 3:2 column, DESKTOP_SIDE) and the post a 5:4 wide (1350 × 1080);
 // the poster turns to landscape (print.ts). The tables below have a row for each; imageShape picks a slot's shape.
 //
@@ -26,14 +26,14 @@
 // Two steps: prepareCard computes everything (layout, pack, fit, tiles and their URLs, text, fonts, where the footer
 // line goes) and paintCard only draws it, in 1080-wide design units under the caller's transform, culling tiles to a
 // y-range (tileInRange) but never text. drawShareImage is the two on one canvas at identity.
-// The print poster ('print', print.ts) is the same card 1080 units wide and as tall as its A size (printDesignH), with
-// 64px margins all round, in the dialog's theme, packed once at PRINT_DESIGN_H; prepareCard's `scale` (device px per unit)
+// The print poster ('print', print.ts) is the same card 1080 units wide and as tall as its size (printDesignH), with
+// 64px margins all round, in the dialog's theme, packed once per shape (printPackH); prepareCard's `scale` (device px per unit)
 // picks its sticker tier (printStickerUrl: 1024 with the 384 fallback for big tiles), and the poster paints it in strips.
 import { SHARE_ORIGIN } from '@/lib/share/origin'
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { printStickerUrl, stickerUrl } from '@/lib/sticker-url'
 import { formatMonth } from '@/i18n/format'
-import { PRINT_DESIGN_H, PRINT_DESIGN_W, printDesign, type PrintSize } from '@/lib/share/print'
+import { PRINT_DESIGN_W, printDesign, printPackH, type PrintSize } from '@/lib/share/print'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
 import type { Box } from '@/lib/layout/pack'
 import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_CAP_ACCENT, MONO_LINE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
@@ -291,7 +291,7 @@ export function ogCountHole(K: CountLayout): Hole {
 /**
  * Where everything goes; text y is the top of its em box (textBaseline 'top'). The count sits at the collage's centre.
  * `dims` is the card's design size (width, height): the format's own by default (cardDims), or a number for the height
- * alone (the print's default width). The poster passes printDesign(size, landscape) to lay out one A size exactly.
+ * alone (the print's default width). The poster passes printDesign(size, landscape) to lay out one size exactly.
  */
 export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [w: number, h: number] | number): CardLayout {
   // A number is the height alone (the default width): the print's height is the one thing a caller varies.
@@ -330,12 +330,13 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
 }
 
 /**
- * A card's design size by default: the share image's, or the print's at PRINT_DESIGN_H (one pack serves every A size;
- * the landscape print is the same two swapped). The print's real size comes from printDesign (print.ts).
+ * A card's design size by default: the share image's, or the print's at its shape's pack height (printPackH: one pack
+ * serves every A size, another each US shape; `size` defaults to A2; the landscape print is the same two swapped). The
+ * print's real size comes from printDesign (print.ts).
  */
-export function cardDims(format: CardFormat): [number, number] {
-  if (format === 'print') return [PRINT_DESIGN_W, PRINT_DESIGN_H]
-  if (format === 'printLandscape') return [PRINT_DESIGN_H, PRINT_DESIGN_W]
+export function cardDims(format: CardFormat, size: PrintSize = 'A2'): [number, number] {
+  if (format === 'print') return [PRINT_DESIGN_W, printPackH(size)]
+  if (format === 'printLandscape') return [printPackH(size), PRINT_DESIGN_W]
   return IMAGE_SIZE[format]
 }
 
@@ -409,12 +410,12 @@ export const abortError = (message = 'share image cancelled') => {
 /**
  * What to pack for a format and a view: the collage frame (with or without the name, the filter line and the latest
  * lifer) and the count's hole. The dialog packs once per format, name-or-not and lifer-or-not; the drawing maps the pack onto
- * whatever frame it gets. The print packs once at PRINT_DESIGN_H for every A size.
+ * whatever frame it gets. The print packs once per shape (cardDims with `size`: every A size at PRINT_DESIGN_H).
  */
-export function imagePackSpec(format: CardFormat, c: CardContent): PackSpec {
+export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSize): PackSpec {
   // Always the frame with the latest lifer row (the smaller one): the "Show latest lifer" switch never changes the pack.
   // With the row off, the same pack is fitted into the taller area (fitPack), so every bird keeps its place.
-  return packSpec(cardLayout(format, { ...c, latest: true }))
+  return packSpec(cardLayout(format, { ...c, latest: true }, cardDims(format, size)))
 }
 
 // --- drawing ---
@@ -601,7 +602,7 @@ export type ShareImageOpts = {
   name?: string
   /** The page's theme. The print follows it too: dark is light ink on the dark paper. */
   theme: 'light' | 'dark'
-  /** The print's A size (print only; default A2): the card's height is printDesignH(size). */
+  /** The print's size (print only; default A2): the card's height is printDesignH(size). */
   printSize?: PrintSize
   /** A pack made earlier by packForImage for this format, these entries, name-or-not and lifer-or-not (the dialog keeps them). */
   pack?: ImagePack
@@ -727,8 +728,8 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const footerLine = withStamp(FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
   const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length }
   const L = cardLayout(format, content, print ? printDesign(opts.printSize ?? 'A2', format === 'printLandscape') : undefined)
-  // Packed for the format's own frame (the print: at PRINT_DESIGN_H, one pack for every A size, as imagePackSpec).
-  const pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content), signal))
+  // Packed for the format's own frame (the print: at its shape's printPackH, one pack for every A size, as imagePackSpec).
+  const pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize), signal))
   if (signal?.aborted) throw abortError()
 
   // A tile's sticker: the share images' 128/384 by its size; the print's by its device px (1024 with the 384 fallback).

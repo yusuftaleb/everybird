@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { en } from '@/i18n/messages/en'
 import { prepareCard, type ImagePack } from '@/lib/share/image'
 import {
-  PRINT_CM, PRINT_PT, PRINT_PX, printCm, printDesign, printDesignH, printFileStem, printPt, printPx, printScale, stripRanges, type PrintSize,
+  PRINT_CM, PRINT_IN, PRINT_PT, PRINT_PX, isUsSize, printCm, printDesign, printDesignH, printFileStem, printIn, printPt, printPx, printScale, stripRanges, type PrintSize,
 } from '@/lib/share/print'
 import { makePoster, posterRows, type EncoderPort, type PosterDeps } from '@/lib/share/poster'
 import type { PrintStickers } from '@/lib/share/print-stickers'
@@ -14,18 +14,21 @@ import type { ListEntry } from '@/lib/list/model'
 
 afterEach(() => vi.unstubAllGlobals())
 
-const SIZES: PrintSize[] = ['A4', 'A3', 'A2', 'A1']
+const SIZES: PrintSize[] = ['A4', 'A3', 'A2', 'A1', 'US12x18', 'US18x24', 'US24x36']
 
 describe('the landscape sizes', () => {
-  it('swaps width and height: A4 landscape is 1754 × 1240 px, the same ISO size turned', () => {
+  it('swaps width and height: A4 landscape is 1754 × 1240 px, the same ISO or US size turned', () => {
     for (const s of SIZES) {
       expect(printPx(s, true)).toEqual([PRINT_PX[s][1], PRINT_PX[s][0]])
       expect(printPt(s, true)).toEqual([PRINT_PT[s][1], PRINT_PT[s][0]])
       expect(printCm(s, true)).toEqual([PRINT_CM[s][1], PRINT_CM[s][0]])
+      if (isUsSize(s)) expect(printIn(s, true)).toEqual([PRINT_IN[s][1], PRINT_IN[s][0]])
       expect(printPx(s, false)).toEqual(PRINT_PX[s])
       expect(printPt(s, false)).toEqual(PRINT_PT[s])
     }
     expect(printPx('A4', true)).toEqual([1754, 1240])
+    expect(printPx('US24x36', true)).toEqual([5400, 3600])
+    expect(printIn('US24x36', true)).toEqual([36, 24])
     expect(printPt('A4', true)[0]).toBeCloseTo(841.89, 2)
     expect(printPt('A4', true)[1]).toBeCloseTo(595.28, 2)
     expect(printCm('A2', true)).toEqual([59.4, 42])
@@ -43,10 +46,14 @@ describe('the landscape sizes', () => {
     }
   })
 
-  it('names the files: everybird-a2.png, everybird-a2-landscape.png, and the PDF beside them', () => {
+  it('names the files: everybird-a2.png, everybird-24x36in.png, and -landscape beside them', () => {
     expect(printFileStem('A2')).toBe('everybird-a2')
     expect(printFileStem('A2', true)).toBe('everybird-a2-landscape')
     expect(printFileStem('A4', true)).toBe('everybird-a4-landscape')
+    expect(printFileStem('US12x18')).toBe('everybird-12x18in')
+    expect(printFileStem('US18x24', true)).toBe('everybird-18x24in-landscape')
+    expect(printFileStem('US24x36')).toBe('everybird-24x36in')
+    expect(printFileStem('US24x36', true)).toBe('everybird-24x36in-landscape')
   })
 
   it('lays a landscape card out at its own width and the same 1080 height, with the latest row stacked', async () => {
@@ -98,7 +105,7 @@ class FakePath2D { constructor(public d: string) {} }
 
 describe('makePoster, landscape', () => {
   beforeEach(() => { vi.stubGlobal('Path2D', FakePath2D) })
-  for (const size of ['A4', 'A1'] as PrintSize[]) {
+  for (const size of ['A4', 'A1', 'US18x24', 'US24x36'] as PrintSize[]) {
     it(`${size} landscape: the encoder gets the landscape pixels, its rows add up to them, and the PDF page is the swapped A size`, async () => {
       const { deps, enc, strips } = fakeDeps()
       const [w, h] = printPx(size, true)
