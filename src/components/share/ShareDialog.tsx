@@ -186,11 +186,11 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   }, [print, overCap, size, cardEntries, species, lang, names])
   const captionPlan = useMemo(() => {
     if (!print || overCap) return null
-    const L = cardLayout(cardFormat, { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target }, printDesign(size, landscape))
+    const L = cardLayout(cardFormat, { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target, countSize }, printDesign(size, landscape))
     return planCaptions(cardEntries, species, size, L.collage.w, displayName, captionMeasurer(), markedCodes)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names`, `lang`, `fontsTick` trigger recheck for `displayName` and loaded Satoshi metrics
-  }, [print, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, size, landscape, species, names, lang, markedCodes, fontsTick])
-  const namesCheckKey = `${cardFormat}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${fontsTick}`
+  }, [print, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, countSize, size, landscape, species, names, lang, markedCodes, fontsTick])
+  const namesCheckKey = `${cardFormat}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${countSize}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${fontsTick}`
   const namesFitFailed = namesFitFailKey === namesCheckKey
   const namesAvailable = !overCap && !!captionPlan?.ok && !namesFitFailed
   const effectiveShowNames = print && showNames && namesAvailable
@@ -232,11 +232,11 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     const onLifeAbort = () => ctl.abort()
     life.current?.signal.addEventListener('abort', onLifeAbort, { once: true })
     const checkKey = namesCheckKey
-    void packFor(cardFormat, hasTitle, size, captionPlan, ctl.signal).then((pack) => {
+    void packFor(cardFormat, hasTitle, size, countSize, captionPlan, ctl.signal).then((pack) => {
       if (!live || !(pack.boxes instanceof Map)) return
       const res = fitCaptionPack(
         pack, cardEntries, cardFormat,
-        { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target },
+        { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target, countSize },
         size, captionPlan, markedCodes,
       )
       if (!res.ok) setNamesFitFailKey(checkKey)
@@ -248,7 +248,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       ctl.abort()
       life.current?.signal.removeEventListener('abort', onLifeAbort)
     }
-  }, [print, overCap, captionPlan, namesCheckKey, packFor, cardFormat, hasTitle, size, cardEntries, hasFilter, cardGoal?.target, markedCodes])
+  }, [print, overCap, captionPlan, namesCheckKey, packFor, cardFormat, hasTitle, size, countSize, cardEntries, hasFilter, cardGoal?.target, markedCodes])
 
   // The image: re-rendered (debounced) when the format, name, theme or the latest lifer switch changes. `current` is the newest render;
   // a render superseded before it starts rejects with an AbortError. In print mode it is the poster's preview (the
@@ -265,8 +265,6 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const outgoingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const shownSize = useRef<[number, number]>([0, 0])
   const first = useRef(true)
-  const trimmed = name.trim()
-  const goalKey = cardGoal ? `by:${cardGoal.year}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
   const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
@@ -462,6 +460,15 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
     setBulkMaking({ key: forKey, done: 0, total })
     try {
       const mod = await (posterModule.current ?? loadPoster())
+      if (effectiveShowNames) {
+        const sample = bulkList.flatMap((g) => g.entries).map((e) => {
+          const r = species.byCode.get(e.code)
+          return r ? displayName(r) : ''
+        }).join('')
+        await ensureCaptionFont(captionMinPx(size), sample)
+        if (ctl.signal.aborted) return
+      }
+      const measure = captionMeasurer()
       const blob = await makeBulkZip({
         groups: bulkList,
         kind,
@@ -469,6 +476,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
         poster: {
           size,
           landscape,
+          showNames: effectiveShowNames,
           name: trimmed || undefined,
           latest: withLatest,
           markNewest: liferMarks.newest,
@@ -479,7 +487,13 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
           nameOf: displayName,
           signal: ctl.signal,
         },
-        packSpec: (entries) => imagePackSpec(posterFormat, { name: !!trimmed, filter: true, latest: true, count: entries.length, countSize }, size),
+        packSpec: (entries) => {
+          const content = { name: !!trimmed, filter: true, latest: true, count: entries.length, countSize }
+          if (!effectiveShowNames) return imagePackSpec(posterFormat, content, size)
+          const L = cardLayout(posterFormat, content, printDesign(size, landscape))
+          const plan = planCaptions(entries, species, size, L.collage.w, displayName, measure, markedCodes)
+          return imagePackSpec(posterFormat, content, size, plan.ok ? plan : undefined)
+        },
         onProgress: (done, count) => {
           if (!ctl.signal.aborted) setBulkMaking({ key: forKey, done, total: count })
         },

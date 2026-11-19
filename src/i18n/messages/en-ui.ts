@@ -505,7 +505,6 @@ export const EN_UI = {
       failed: 'Couldn’t make the poster. Try again.',
       back: 'Share images',
       previewAlt: 'Preview of the {size} poster',
-<<<<<<< HEAD
       bulk: {
         title: 'Bulk export (ZIP)',
         splitLabel: 'Split by',

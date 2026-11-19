@@ -309,4 +309,31 @@ describe('print captions', () => {
     expect(drawnTexts.some((l) => l.includes('Poster Bird 0'))).toBe(true)
     expect(drawnTexts.some((l) => l.includes('Poster Bird 1'))).toBe(true)
   })
+
+  it('supports countSize: hide with showNames: true', async () => {
+    installStubs()
+    const { species, entries } = makeSpeciesAndEntries(2, (i) => `Hidden Count Bird ${i}`)
+    const pack: image.ImagePack = {
+      W: 400,
+      H: 500,
+      boxes: new Map([
+        ['bird0', [170, 200, 60, 60]],
+        ['bird1', [260, 320, 60, 60]],
+      ]),
+    }
+    image.clearStickerCache()
+    const card = await image.prepareCard({
+      format: 'print',
+      printSize: 'A4',
+      countSize: 'hide',
+      showNames: true,
+      entries,
+      species,
+      pack,
+      theme: 'light',
+      strings: en.ui,
+    })
+    expect(card.K.size).toBe(0)
+    expect(card.captions).toHaveLength(2)
+  })
 })

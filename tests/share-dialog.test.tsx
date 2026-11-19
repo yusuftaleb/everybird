@@ -836,7 +836,6 @@ describe('the orientation switch', () => {
     }))
   })
 
-<<<<<<< HEAD
   it('lets the user pick Count size in Share and Print, repacks, and forwards it to preview and poster PNG/PDF', async () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     await waitFor(() => expect(vi.mocked(image.renderShareImage)).toHaveBeenCalledTimes(1))

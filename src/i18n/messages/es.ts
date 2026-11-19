@@ -432,7 +432,6 @@ export const es: Messages = {
         failed: 'No se pudo crear el póster. Inténtalo de nuevo.',
         back: 'Imágenes para compartir',
         previewAlt: 'Vista previa del póster {size}',
-<<<<<<< HEAD
         bulk: {
           title: 'Exportación masiva (ZIP)',
           splitLabel: 'Dividir por',

@@ -432,7 +432,6 @@ export const nl: Messages = {
         failed: 'De poster maken is niet gelukt. Probeer het opnieuw.',
         back: 'Afbeeldingen delen',
         previewAlt: 'Voorbeeld van de {size}-poster',
-<<<<<<< HEAD
         bulk: {
           title: 'Bulkexport (ZIP)',
           splitLabel: 'Verdelen op',

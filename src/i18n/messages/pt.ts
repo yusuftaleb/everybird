@@ -432,7 +432,6 @@ export const pt: Messages = {
         failed: 'Não foi possível criar o pôster. Tente de novo.',
         back: 'Imagens para compartilhar',
         previewAlt: 'Prévia do pôster {size}',
-<<<<<<< HEAD
         bulk: {
           title: 'Exportação em lote (ZIP)',
           splitLabel: 'Dividir por',
