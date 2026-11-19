@@ -149,4 +149,11 @@ describe('storage', () => {
     expect(b.skipped).toEqual({ ebird: 7, inat: 2 })
     expect(s.replaceSource(b, 'ebird', { records: [], unmatched: [], skipped: 0 }).skipped).toEqual({ ebird: 0, inat: 2 })
   })
+
+  it('round-trips bigYear goal', async () => {
+    const s = await fresh()
+    const saved = { ...s.emptySaved(), bigYear: { year: 2027, target: 300 } }
+    await s.save(saved)
+    expect((await s.load())?.bigYear).toEqual({ year: 2027, target: 300 })
+  })
 })

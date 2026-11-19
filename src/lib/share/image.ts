@@ -32,6 +32,7 @@
 import { SHARE_ORIGIN } from '@/lib/share/origin'
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { printStickerUrl, stickerUrl } from '@/lib/sticker-url'
+import { fmt } from '@/i18n/core'
 import { formatMonth } from '@/i18n/format'
 import { PRINT_DESIGN_W, printDesign, printPackH, type PrintSize } from '@/lib/share/print'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
@@ -250,7 +251,7 @@ export type CardLayout = {
   /** The largest sticker's long side in px (maxTileSide's cap; 440, the desktop 512). */
   maxSide: number
 }
-export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number }
+export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; target?: number }
 
 /**
  * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: the shown count over "SPECIES" (a filtered
@@ -261,9 +262,9 @@ export type CardContent = { name: boolean; filter: boolean; latest: boolean; cou
  * accented capital's ink (MONO_CAP_ACCENT, pt's "ESPÉCIES") into the gap, and holds COUNT_LABEL_CHARS characters; the
  * column's height, and so where the text is drawn, stays the caps'.
  */
-export function countLayout(format: CardFormat | number, count: number, collageW: number): CountLayout {
+export function countLayout(format: CardFormat | number, count: number, collageW: number, target?: number): CountLayout {
   const max = typeof format === 'number' ? format : COUNT_MAX[format]
-  const number = countText(count)
+  const number = target !== undefined ? `${countText(count)} / ${countText(target)}` : countText(count)
   const label = LABEL
   const em = numberEm(number)
   const size = Math.round(Math.min(max, (COUNT_W * collageW) / em))
@@ -326,7 +327,7 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   const top = headBottom === undefined ? T : headBottom + G.head
   const bottom = (latest && !oneLine ? latest.y : rule.y) - G.collage
   const collage = { x: X, y: top, w: W - 2 * X, h: bottom - top }
-  return { W, H, name, filter, collage, count: countLayout(format, c.count, collage.w), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
+  return { W, H, name, filter, collage, count: countLayout(format, c.count, collage.w, c.target), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
 }
 
 /**
@@ -631,6 +632,7 @@ export type ShareImageOpts = {
   strings: ShareStrings
   /** A bird's name to draw (the latest lifer's); default its English name. The dialog passes the display name. */
   nameOf?: (row: SpeciesRow) => string
+  goal?: { year: number; target?: number; basis: 'seen' | 'lifer' }
   signal?: AbortSignal
 }
 
@@ -743,10 +745,12 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const latestRow = latestE && species.byCode.get(latestE.code)!
   const strings = opts.strings
   const latest = opts.latest !== false && latestRow ? latestText({ com: opts.nameOf?.(latestRow) ?? latestRow.com, date: latestE!.date }, strings) : undefined
-  const label = opts.filterLabel?.trim() || undefined
+  const goal = opts.goal
+  const goalLabel = goal ? fmt(goal.basis === 'lifer' ? strings.share.bigYear.cardLifer : strings.share.bigYear.card, { year: goal.year }) : undefined
+  const label = opts.filterLabel?.trim() || goalLabel || undefined
   const name = opts.name?.trim() || undefined
   const footerLine = withStamp(FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
-  const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length }
+  const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, target: goal?.target }
   const L = cardLayout(format, content, print ? printDesign(opts.printSize ?? 'A2', format === 'printLandscape') : undefined)
   // Packed for the format's own frame (the print: at its shape's printPackH, one pack for every A size, as imagePackSpec).
   const pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize), signal))
@@ -784,7 +788,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const g = Math.min(fit.grow, 1.3)
   const K = { ...L.count, size: Math.round(L.count.size * g), labelSize: Math.round(L.count.labelSize * Math.min(g, 1.15)), gap: Math.round(L.count.gap * g) }
   // What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's.
-  const countNum = countDisplay(content.count, strings.num)
+  const countNum = goal?.target !== undefined ? `${countDisplay(content.count, strings.num)} / ${countDisplay(goal.target, strings.num)}` : countDisplay(content.count, strings.num)
   const countLabel = strings.count.label.toUpperCase()
   return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, footerLine, latest, name, label, fonts: cardFonts() }
 }

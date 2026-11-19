@@ -1,6 +1,7 @@
 import { formatPlace, stripBracket } from '@/lib/import/places'
 import type { Regions } from '@/lib/species/types'
 import type { SpeciesIndex } from '@/lib/species/load'
+import { validBigYear } from './big-year'
 import { SLOTS, slotSource } from './model'
 import type { ListEntry, Slot, Source, SourceRecord } from './model'
 import { seenOf, decodeSeenMonths, type SeenIndex } from './seen'
@@ -143,6 +144,7 @@ export function fromJson(text: string): Saved {
     throw new BackupError('damaged', 'Backup not-countable species are malformed.')
   const src = raw.sources
   if (src !== undefined && !validSources(src)) throw new BackupError('damaged', 'Backup source details are malformed.')
+  if (raw.bigYear !== undefined && !validBigYear(raw.bigYear)) throw new BackupError('damaged', 'Backup Big Year goal is malformed.')
   const out: Saved = {
     v: raw.v as Saved['v'],
     records,
@@ -155,5 +157,6 @@ export function fromJson(text: string): Saved {
   if (sk !== undefined) out.skipped = sk as Saved['skipped']
   if (nc !== undefined) out.notCountable = nc as Saved['notCountable']
   if (src !== undefined) out.sources = src as SourceDetails
+  if (raw.bigYear !== undefined) out.bigYear = raw.bigYear
   return migrateSaved(out)
 }

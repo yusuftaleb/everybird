@@ -9,7 +9,7 @@
 // So the box holds whichever face draws it. Satoshi is the widest for every glyph (its "0" 0.705em proportional,
 // the rest 0.66em tabular; Cabinet's widest digit is 0.655em, its "1" 0.323em).
 //
-// Advances in em (1000px measures / 1000), before tracking ("." added 2026-11-15 with fontkit from the same served
+// Advances in em (1000px measures / 1000), before tracking ("." added 2026-11-15 and "/" 0.407, " " 0.270 added with fontkit from the same served
 // woff2 files, scripts/dev/measure-count-glyphs.ts, which reproduces every other column here exactly):
 //            0      1      2      3      4      5      6      7      8      9      ,      .
 // Cabinet  0.655  0.323  0.595  0.615  0.624  0.623  0.606  0.507  0.606  0.611  0.220  0.220
@@ -34,7 +34,7 @@ export const ADV_TABLE = {
 } as const
 const ADV: Record<string, number> = {
   '0': 0.705, '1': 0.66, '2': 0.66, '3': 0.66, '4': 0.66, '5': 0.66, '6': 0.66, '7': 0.66, '8': 0.66, '9': 0.66, ',': 0.291,
-  '.': 0.291,
+  '.': 0.291, '/': 0.407, ' ': 0.27,
 }
 /** The number's tracking (em per character), as .eb-num and the share images draw it. */
 export const NUM_TRACK = -0.02

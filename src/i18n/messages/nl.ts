@@ -373,6 +373,14 @@ export const nl: Messages = {
       untitledTitle: { one: 'Een levenslijst: {n} soort', other: 'Een levenslijst: {n} soorten' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
       dark: 'Donkere afbeelding',
+      bigYear: {
+        label: 'Groot Jaar',
+        year: 'Jaar',
+        target: 'Doel',
+        targetPlaceholder: 'Soorten',
+        card: 'Groot Jaar {year}',
+        cardLifer: 'Groot Jaar {year} · Nieuwe soorten in {year}',
+      },
       downloadShort: 'Downloaden',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {

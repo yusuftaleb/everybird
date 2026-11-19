@@ -76,6 +76,14 @@ describe('count text metrics', () => {
   it('draws five digits a little smaller', () => {
     expect([7, 197, 1089, 11019].map((n) => countScale(countText(n)))).toEqual([1, 1, 1, 0.85])
   })
+  it('measures progress strings with "/" and spaces', () => {
+    const slashW = numberEm('120 / 300')
+    expect(slashW).toBeGreaterThan(numberEm('120300'))
+    expect(slashW).toBeLessThan(numberEm('12000300'))
+    const k = countLayout('story', 120, 952, 300)
+    expect(k.number).toBe('120 / 300')
+    expect(k.hole.num[2] - k.hole.num[0]).toBeCloseTo(slashW * k.size, 6)
+  })
 })
 
 // The geometry (the hole, countScale) is the en-US text and an 8-character label in every language; what is drawn is

@@ -5,6 +5,7 @@ import { projectRecord } from '@/lib/places/registry'
 import { withCanonicalPlaces } from '@/lib/places/region-mapping'
 import { loadRegions } from '@/lib/import/places'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
+import { validBigYear, type BigYear } from './big-year'
 import { buildList } from './build-list'
 import type { Filter } from './filters'
 import { applyFilterValidity } from './filters-validate'
@@ -50,6 +51,7 @@ export type Action =
   | { type: 'resume'; view: CollageResume }
   /** The collage's title (Saved.name), verbatim on the page, share images and links; blank removes it. */
   | { type: 'name'; name: string }
+  | { type: 'bigYear'; bigYear?: BigYear }
   | { type: 'forget' }
   /** Internal: the hook reports where the last save went. */
   | { type: 'persistence'; persistence: AppState['persistence'] }
@@ -164,6 +166,17 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
         const saved = stamp({ ...s.saved, name })
         if (!name) delete saved.name
         return { ...s, saved }
+      }
+      case 'bigYear': {
+        if (a.bigYear === undefined) {
+          if (!s.saved.bigYear) return s
+          const saved = stamp({ ...s.saved })
+          delete saved.bigYear
+          return { ...s, saved }
+        }
+        if (!validBigYear(a.bigYear)) return s
+        if (s.saved.bigYear?.year === a.bigYear.year && s.saved.bigYear?.target === a.bigYear.target) return s
+        return { ...s, saved: stamp({ ...s.saved, bigYear: a.bigYear }) }
       }
       case 'forget': {
         const f = initialState()

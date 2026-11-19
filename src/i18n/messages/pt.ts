@@ -373,6 +373,14 @@ export const pt: Messages = {
       untitledTitle: { one: 'Uma lista de vida: {n} espécie', other: 'Uma lista de vida: {n} espécies' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
       dark: 'Imagem escura',
+      bigYear: {
+        label: 'Grande Ano',
+        year: 'Ano',
+        target: 'Meta',
+        targetPlaceholder: 'Espécies',
+        card: 'Grande Ano {year}',
+        cardLifer: 'Grande Ano {year} · Novas espécies em {year}',
+      },
       downloadShort: 'Baixar',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {

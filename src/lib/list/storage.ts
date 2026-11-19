@@ -1,4 +1,5 @@
 import { createStore, del, get, set, type UseStore } from 'idb-keyval'
+import type { BigYear } from './big-year'
 import { DEFAULT_RULES } from './model'
 import { SLOTS, slotSource } from './model'
 import { TITLE_MAX, titleFromOldName } from './title'
@@ -89,6 +90,7 @@ export type Saved = {
   notCountable?: Partial<Record<Slot, string[]>>
   /** Each source's details (v3). Absent for lists saved before v3 and for sources not connected. */
   sources?: SourceDetails
+  bigYear?: BigYear
   savedAt: string
 }
 
