@@ -9,7 +9,7 @@ import type { Regions, SpeciesRow } from '@/lib/species/types'
 
 const square = 'M0 0h2v2h-2z'
 const world = { v: 1, w: 10, h: 10, d: { CA: square, US: square, KE: square, BR: square } }
-const provinces = { v: 1, groups: { CA: { w: 10, h: 10, d: { 'CA-BC': square, 'CA-ON': square } } } }
+const provinces: { v: 1; groups: Record<string, { w: number; h: number; d: Record<string, string> }> } = { v: 1, groups: { CA: { w: 10, h: 10, d: { 'CA-BC': square, 'CA-ON': square } } } }
 vi.mock('@/lib/data-url', () => ({
   fetchData: async (name: string) => (name === 'map-countries.v1.json' ? world : provinces),
 }))
@@ -21,6 +21,7 @@ const { mapGroupOf, mapShapes, shadeStep } = await import('@/lib/map/shapes')
 const { initialState, makeReducer } = await import('@/lib/list/store')
 const { emptySaved } = await import('@/lib/list/storage')
 const { buildSpeciesIndex } = await import('@/lib/species/load')
+const { resolveImportedPlace } = await import('@/lib/places/registry')
 
 const row = (code: string): SpeciesRow => ({ code, com: code, sci: `Avis ${code}`, ord: 'Passeriformes', fam: 'Corvidae', famCom: 'Corvidae', to: 1, g: 100, gSrc: 'avonet', st: true, ar: 1, q: true })
 const species = buildSpeciesIndex([row('duck1'), row('crow1'), row('owl1')])
@@ -68,6 +69,23 @@ describe('the map counts', () => {
     expect(n).toEqual({ 'c:CA': 2, 'c:US': 1, 'c:KE': 1, 'c:BR': 0 })
   })
 
+  it("a province stored under eBird's own code (no shared region) lights that code's shape, under the counted key", () => {
+    // Quebec in eBird's catalogue with no equivalent: the import keeps a reference key ("CA-SRC…"), as for eBird's FR-GES or JP-38.
+    const tables: Regions = { ...regions, registry: { v: 1, catalogues: { ebird: { edition: '2026', entries: { 'CA-QC': ['CA', 'Quebec'] } } } } }
+    const place = resolveImportedPlace({ namespace: 'ebird', id: 'CA-QC', country: 'CA' }, tables)!
+    expect(place.sub1).toMatch(/^CA-SRC/)
+    const saved = emptySaved()
+    saved.records.ebird = [{ code: 'duck1', source: 'ebird', date: '2019-01-01', place, seen: [`2019-01-01|${place.sub1}`] }]
+    const c = placeCountsFor(reduce(initialState(), { type: 'restore', saved }), species)
+    const qc = mapShapes({ w: 10, h: 10, d: { 'CA-QC': square, 'CA-BC': square } }, c, new Set(), 'CA')
+    expect(qc).toEqual([
+      { key: `s:${place.sub1}`, d: square, n: 1, checked: false },
+      { key: 's:CA-BC', d: square, n: 0, checked: false },
+    ])
+    // The key is the Places panel's row, so a press sets its filter.
+    expect(placeRows(c, 'c:CA', label).map((r) => r.value)).toEqual([qc[0].key])
+  })
+
   it('shades on five steps, none for no species; a drilled place maps to its country', () => {
     expect([0, 1, 2, 10, 100].map((n) => shadeStep(n, 100))).toEqual([0, 1, 2, 3, 5])
     expect(shadeStep(3, 0)).toBe(0)
@@ -112,5 +130,21 @@ describe('the Map view', () => {
     expect(filterOf()).toEqual({})
     fireEvent.click(screen.getByTestId('place-s:CA-BC'))
     expect(filterOf()).toEqual({ provinces: ['CA-BC'] })
+  })
+
+  it('a drilled country whose province shapes hold none of its species keeps the world', async () => {
+    const kept = provinces.groups.CA
+    provinces.groups.CA = { w: 10, h: 10, d: { 'CA-NS': square } }
+    try {
+      render(<Harness />)
+      await act(async () => {})
+      fireEvent.click(screen.getByTestId('drill-n:NA'))
+      fireEvent.click(screen.getByTestId('drill-c:CA'))
+      await act(async () => {})
+      expect(shape('c:CA')).toHaveAttribute('data-step', '5')
+      expect(shape('s:CA-NS')).toBeNull()
+    } finally {
+      provinces.groups.CA = kept
+    }
   })
 })

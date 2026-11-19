@@ -5,6 +5,7 @@
 import { fetchData } from '@/lib/data-url'
 import type { PlaceCounts } from '@/lib/list/filters'
 import { parentKey, parsePlaceKey } from '@/lib/list/place-keys'
+import { sourcePlaceId } from '@/lib/places/registry'
 
 export type MapLayer = { w: number; h: number; d: Record<string, string> }
 export type MapCountries = MapLayer & { v: 1 }
@@ -35,12 +36,22 @@ export function mapGroupOf(at: string | undefined): string | undefined {
   return undefined
 }
 
-/** The world's shapes, or a country's provinces (`group`), with the counts the Places panel shows. */
+/**
+ * The world's shapes, or a country's provinces (`group`), with the counts the Places panel shows. A province the list
+ * holds under a source's reference key (an eBird code with no shared region, "FR-GES" stored as "FR-SRC…") is drawn by
+ * the shape of that code, under the counted key, so a press sets the panel's filter; a shared code's own count wins.
+ */
 export function mapShapes(layer: MapLayer, counts: PlaceCounts, checked: ReadonlySet<string>, group?: string): MapShape[] {
+  const counted = group === undefined ? undefined : counts.countries.get(group)?.provinces
+  const byCode = new Map<string, { key: string; n: number }>()
+  for (const [sub1, t] of counted ?? []) {
+    const own = Object.hasOwn(layer.d, sub1)
+    const code = own ? sub1 : sourcePlaceId(sub1)
+    if (code && (own || !byCode.has(code))) byCode.set(code, { key: `s:${sub1}`, n: t.n })
+  }
   return Object.entries(layer.d).map(([id, d]) => {
-    const key = group === undefined ? `c:${id}` : `s:${id}`
-    const n = group === undefined ? counts.countries.get(id)?.n ?? 0 : counts.countries.get(group)?.provinces.get(id)?.n ?? 0
-    return { key, d, n, checked: checked.has(key) }
+    const hit = group === undefined ? { key: `c:${id}`, n: counts.countries.get(id)?.n ?? 0 } : byCode.get(id) ?? { key: `s:${id}`, n: 0 }
+    return { key: hit.key, d, n: hit.n, checked: checked.has(hit.key) }
   })
 }
 

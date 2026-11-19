@@ -44,14 +44,15 @@ export function MapView({ state, species, regions, onFilter, note, unplaced }: P
 
   const counts = placeCountsFor(state, species)
   const checked = useMemo(() => new Set(filterPlaceKeys(state.filter)), [state.filter])
-  // A country drilled into shows its provinces; one with no province shapes (or before they load) keeps the world.
-  const own = group !== undefined ? provinces?.groups[group] : undefined
-  const layer = own ?? world
-  const shapes = useMemo(() => {
-    if (!layer) return []
+  // A country drilled into shows its provinces; one where no shape has species (no shapes, provinces the shapes don't
+  // know, a shared link's made-up codes) or before they load keeps the world.
+  const { layer, shapes } = useMemo(() => {
+    const groupLayer = group !== undefined ? provinces?.groups[group] : undefined
+    const inGroup = groupLayer ? mapShapes(groupLayer, counts, checked, group) : []
+    const [l, s] = inGroup.some((x) => x.n > 0 || x.checked) ? [groupLayer!, inGroup] : [world, world ? mapShapes(world, counts, checked) : []]
     // The checked places last, so their outline is drawn over their neighbours'.
-    return mapShapes(layer, counts, checked, own ? group : undefined).sort((a, b) => Number(a.checked) - Number(b.checked))
-  }, [layer, own, group, counts, checked])
+    return { layer: l, shapes: s.sort((a, b) => Number(a.checked) - Number(b.checked)) }
+  }, [world, provinces, group, counts, checked])
   const max = shapes.reduce((m, s) => Math.max(m, s.n), 0)
 
   const named = useMemo(() => regionsIn(regions, lang), [regions, lang])
@@ -75,7 +76,7 @@ export function MapView({ state, species, regions, onFilter, note, unplaced }: P
                 data-on={s.checked || undefined}
                 data-hot={s.key === hot || undefined}
                 data-press={s.n > 0 || s.checked || undefined}
-                onPointerEnter={() => setHot(s.key)}
+                onPointerEnter={s.n > 0 || s.checked ? () => setHot(s.key) : () => setHot(null)}
                 onClick={s.n > 0 || s.checked ? () => { setHot(s.key); onFilter(togglePlace(state.filter, s.key)) } : undefined}
               />
             ))}
