@@ -13,6 +13,7 @@ import { makeSub1Index, SUB1_ALIASES } from './sub1-index'
 import { SUB1_PARENT } from './sub1-parents'
 
 const PROGRESS_EVERY = 5000
+const SUGGEST_MAX = 200
 const REQUIRED_CSV_HEADERS = ['scientific', 'subspecies', 'index', 'trip name'] as const
 
 type CsvRow = Record<string, string | undefined>
@@ -38,6 +39,8 @@ function parseUsDate(raw: string | undefined): string | undefined {
   const d = Number(m[2])
   const y = Number(m[3])
   if (y < 1800 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31) return undefined
+  const check = new Date(Date.UTC(y, mo - 1, d))
+  if (check.getUTCFullYear() !== y || check.getUTCMonth() !== mo - 1 || check.getUTCDate() !== d) return undefined
   return `${String(y).padStart(4, '0')}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
@@ -99,22 +102,30 @@ function makeCsvPlaceResolver(regions?: Regions): (countryRaw: string, stateRaw:
   }
 }
 
-function resolveScythebillName(t: TaxonomyIndex, sci: string | undefined, com: string | undefined): Resolution {
+function resolveScythebillName(
+  t: TaxonomyIndex,
+  sci: string | undefined,
+  com: string | undefined,
+  canSuggest: () => boolean,
+): Resolution {
   if (sci) {
     const direct = resolveName(t, { sci }, { suggest: false })
     if (direct.code !== null || direct.reason === 'not-species') return direct
-    const words = sci.trim().split(/\s+/)
-    if (words.length > 2) {
-      const binomial = `${words[0]} ${words[1]}`
-      const sub = resolveName(t, { sci: binomial }, { suggest: false })
-      if (sub.code !== null || sub.reason === 'not-species') return sub
+    if (/\/|\s+x\s+|×|(?:^|\s)sp\.?$/i.test(sci)) return { code: null, reason: 'not-species' }
+    if (!/\(/.test(sci)) {
+      const words = sci.trim().split(/\s+/)
+      if (words.length > 2) {
+        const binomial = `${words[0]} ${words[1]}`
+        const sub = resolveName(t, { sci: binomial }, { suggest: false })
+        if (sub.code !== null || sub.reason === 'not-species') return sub
+      }
     }
   }
   if (com) {
     const byCom = resolveName(t, { com }, { suggest: false })
     if (byCom.code !== null || byCom.reason === 'not-species') return byCom
   }
-  const suggestion = suggestName(t, { sci, com })
+  const suggestion = canSuggest() ? suggestName(t, { sci, com }) : undefined
   return suggestion ? { code: null, reason: 'no-match', suggestion } : { code: null, reason: 'no-match' }
 }
 
@@ -138,6 +149,12 @@ function createAggregator(t: TaxonomyIndex): Agg {
   const seen = new SeenAgg()
   const seenUnmatched = new SeenAgg()
   let skipped = 0
+  let suggestions = 0
+  const canSuggest = () => {
+    if (suggestions >= SUGGEST_MAX) return false
+    suggestions++
+    return true
+  }
 
   return {
     addRow(rowNo, sci, com, date, place, heard) {
@@ -145,7 +162,7 @@ function createAggregator(t: TaxonomyIndex): Agg {
       const key = `${sci ?? ''}\u0000${com ?? ''}`
       let res = resolved.get(key)
       if (!res) {
-        res = resolveScythebillName(t, sci, com)
+        res = resolveScythebillName(t, sci, com, canSuggest)
         resolved.set(key, res)
       }
       if (res.code === null) {
@@ -178,8 +195,12 @@ function createAggregator(t: TaxonomyIndex): Agg {
       }
       if (!heard) heardAll.set(res.code, false)
       if (earlier(date, prev.date) || (date === prev.date && placeDetail(place) > placeDetail(prev.place))) {
-        if (date) prev.date = date
-        if (place) prev.place = place
+        byCode.set(res.code, {
+          code: res.code,
+          source: 'scythebill',
+          ...(date ? { date } : {}),
+          ...(place ? { place } : {}),
+        })
       }
     },
     finish(totalRows) {
@@ -264,8 +285,7 @@ export function parseScythebillEbird(
     const com = (row[0] ?? '').trim() || undefined
     const genus = (row[1] ?? '').trim()
     const epithet = (row[2] ?? '').trim()
-    const firstEpithet = epithet ? epithet.split(/\s+/)[0] : ''
-    const sci = genus && firstEpithet ? `${genus} ${firstEpithet}` : genus || undefined
+    const sci = genus && epithet ? `${genus} ${epithet}` : genus || undefined
     const date = parseUsDate(row[8])
     const place = importEbirdPlace(rowSpCode(row), edition, undefined, regions)
     agg.addRow(rowNo, sci, com, date, place, false)

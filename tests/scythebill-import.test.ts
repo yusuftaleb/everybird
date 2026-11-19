@@ -126,6 +126,32 @@ describe('Scythebill Format 2: eBird Record Format', () => {
     expect(owl.date).toBeUndefined()
     expect(owl.place).toBeUndefined()
   })
+
+  it('does not inherit a later row place when an earlier row has no place, and skips hybrid/slash rows', () => {
+    const csv = [
+      'Common,Scientific,Subspecies,Index,Date,Start time,Number,Female,Male,Immature,Adult,Heard only,Status,Breeding,Photographed,Photos,Description,Latitude,Longitude,Location Description,Region,Country,State,County,City,Location 1,Location 2,Location 3,Location 4,Observation type,Duration,Distance,Area,Party size,Complete list,Visit comments,Visit photos,Trip name,Trip start date,Trip start time,Trip end date,Trip end time,Trip notes,Trip links',
+      'Mallard,Anas platyrhynchos,,1,2024-05-01,,,,,,,,,,,,,,,,,Canada,British Columbia,,,,,,,,,,,,,,,,,,,,,',
+      'Mallard,Anas platyrhynchos,,1,2023-01-10,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,',
+      'Mallard x American Black Duck,Anas platyrhynchos x rubripes,,2,2024-06-01,,,,,,,,,,,,,,,,,Canada,British Columbia,,,,,,,,,,,,,,,,,,,,,',
+      'Mallard/American Black Duck,Anas platyrhynchos/rubripes,,3,2024-06-02,,,,,,,,,,,,,,,,,Canada,British Columbia,,,,,,,,,,,,,,,,,,,,,',
+    ].join('\n')
+    const res = parseScythebillCsv(csv, taxonomy, regions)
+    if ('error' in res) throw new Error('expected valid result')
+    expect(res.records).toHaveLength(1)
+    expect(res.records[0].code).toBe('mallar3')
+    expect(res.records[0].date).toBe('2023-01-10')
+    expect(res.records[0].place).toBeUndefined()
+    expect(res.skipped).toBe(2)
+
+    const ebirdRows = [
+      'Mallard x American Black Duck,Anas,platyrhynchos x rubripes,1,,,, ,6/1/2024,08:00,BC,CA,Stationary,1,15,Y,',
+      'Mallard/American Black Duck,Anas,platyrhynchos/rubripes,1,,,, ,6/2/2024,08:00,BC,CA,Stationary,1,15,Y,',
+    ].join('\n')
+    const ebirdRes = parseScythebillEbird(ebirdRows, taxonomy, regions)
+    if ('error' in ebirdRes) throw new Error('expected valid result')
+    expect(ebirdRes.records).toHaveLength(0)
+    expect(ebirdRes.skipped).toBe(2)
+  })
 })
 
 describe('Scythebill storage, export, buildList, sourceCounts, and worker', () => {
