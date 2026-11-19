@@ -89,16 +89,19 @@
 /* Controls bar: LifeList's dock (the Photography / Library tab bar), one row; Photography's search over it. */
 .eb-dockwrap { position: relative; z-index: 3; container-type: inline-size; }
 .eb-dock {
-  position: relative; display: flex; align-items: center; gap: 4px; padding: 4px;
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px;
   border: 1px solid var(--hairline); border-radius: 16px; background: var(--paper);
 }
 /* Four groups: view tabs | True size, Scientific | Filters | search. 4px inside a group (LifeList's dock gap),
    12px between groups (a hairline would be one line too many in a bar this quiet). */
-.eb-dock-tabs, .eb-dock-tools, .eb-dock-filters, .eb-dock-end { display: flex; align-items: center; gap: 4px; transition: opacity .15s var(--eb-ease); }
+.eb-dock-tabs, .eb-dock-tools, .eb-dock-filters, .eb-dock-end, .eb-dock-marks { display: flex; align-items: center; gap: 4px; transition: opacity .15s var(--eb-ease); }
 .eb-dock-tools { margin-left: auto; }
 .eb-dock-filters, .eb-dock-end { margin-left: 8px; } /* + the dock's 4px gap = 12px between groups */
+.eb-dock-marks { order: 2; flex: 1 0 100%; flex-wrap: wrap; margin: 0 -4px -4px; padding: 4px; border-top: 1px solid var(--hairline); }
 .eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools,
-.eb-dock[data-finding] .eb-dock-filters, .eb-dock[data-finding] .eb-dock-end { opacity: 0; pointer-events: none; }
+.eb-dock[data-finding] .eb-dock-filters, .eb-dock[data-finding] .eb-dock-end,
+.eb-dock[data-finding] .eb-dock-marks { opacity: 0; pointer-events: none; }
+.eb-dock[data-finding] .eb-dock-marks { display: none; }
 /* Filters: a glyph, the label (and how many filter groups are on, " · 2"), a caret. Open: the pressed tab's Surface;
    filtering: Accent text, full opacity, 600 (selection, as a pressed tab). */
 /* At every width the button can give way: the group may shrink, each drop may shrink (flex's default, said here so the rule
@@ -121,6 +124,7 @@
   .eb-dock-filters {
     order: 1; flex: 1 0 100%; margin: 0 -4px -4px; padding: 4px; gap: 4px; border-top: 1px solid var(--hairline);
   }
+  .eb-dock:has(.eb-dock-marks) .eb-dock-filters { margin-bottom: 0; }
   .eb-find { bottom: auto; height: 44px; }
   .eb-dock[data-finding] .eb-dock-filters { display: none; }
 }
@@ -465,6 +469,9 @@
   .eb-dock-tools { grid-area: 1 / 2 / 2 / 4; justify-self: end; margin-left: 0; }
   .eb-dock-filters { grid-area: 2 / 1 / 3 / 3; margin: 0 0 -4px -4px; border-top: 1px solid var(--hairline); align-self: stretch; }
   .eb-dock-end { grid-area: 2 / 3; margin: 0 -4px -4px 0; padding: 4px; border-top: 1px solid var(--hairline); align-self: stretch; display: flex; align-items: center; }
+  .eb-dock-marks { grid-area: 3 / 1 / 4 / 3; }
+  .eb-dock:has(.eb-dock-marks) .eb-dock-filters,
+  .eb-dock:has(.eb-dock-marks) .eb-dock-end { margin-bottom: 0; }
 }
 /* Under 240px (a 390px phone at aA 200%): the tabs and the magnifier, then the two switches, then the Filters button. */
 @media (max-width: 239px) {
@@ -475,6 +482,7 @@
   .eb-dock-end { grid-area: 1 / 2; margin: 0; padding: 0; border-top: 0; }
   .eb-dock-tools { grid-area: 2 / 1 / 3 / 3; justify-self: stretch; justify-content: space-between; }
   .eb-dock-filters { grid-area: 3 / 1 / 4 / 3; margin: 0 -4px -4px; }
+  .eb-dock-marks { grid-area: 4 / 1 / 5 / 3; }
 }
 
 /* The footer: the way to every credit and the maker, its rule as wide as the content. */

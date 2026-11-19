@@ -120,6 +120,10 @@ export const pt: Messages = {
         sci: 'Científico',
         sciShort: 'Cient.',
         sciSr: '(nomes)',
+        markNewest: 'Marcar a ave mais recente',
+        markFirst: 'Marcar a primeira ave',
+        newestSr: ', ave mais recente',
+        firstSr: ', primeira ave',
       },
       search: {
         find: 'Encontrar uma ave',

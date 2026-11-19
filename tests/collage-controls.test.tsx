@@ -7,6 +7,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { useReducer } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CollageView } from '@/components/app/CollageView'
+import { MARK_FIRST_KEY, MARK_NEWEST_KEY, setLiferMark } from '@/lib/lifer-marks'
 import type { SourceRecord } from '@/lib/list/model'
 import { emptySaved } from '@/lib/list/storage'
 import { initialState, makeReducer, type AppState } from '@/lib/list/store'
@@ -46,6 +47,8 @@ beforeEach(() => {
   vi.stubGlobal('innerWidth', 1024)
 })
 afterEach(() => {
+  setLiferMark('newest', false)
+  setLiferMark('first', false)
   cleanup()
   vi.unstubAllGlobals()
 })
@@ -285,5 +288,66 @@ describe('in Spanish', () => {
     const { container } = render(<Harness />, { wrapper: withI18n('es') })
     expect(container.querySelector('.eb-legend')).toHaveTextContent('* solo oída · † encontrada muerta')
     expect(container.querySelector('.eb-legend')).toHaveTextContent('Los tamaños siguen la masa corporal, equilibrados para que las aves pequeñas se vean')
+  })
+})
+
+describe('mark lifers toggles', () => {
+  it('off by default, both can be on at once, remembered in localStorage, and hidden in list view', () => {
+    render(<Harness />)
+    const newest = screen.getByRole('switch', { name: 'Mark newest bird' })
+    const first = screen.getByRole('switch', { name: 'Mark first bird' })
+    expect(newest).toHaveAttribute('aria-checked', 'false')
+    expect(first).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(newest)
+    fireEvent.click(first)
+    expect(newest).toHaveAttribute('aria-checked', 'true')
+    expect(first).toHaveAttribute('aria-checked', 'true')
+    expect(localStorage.getItem(MARK_NEWEST_KEY)).toBe('1')
+    expect(localStorage.getItem(MARK_FIRST_KEY)).toBe('1')
+    fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'List' }))
+    expect(screen.queryByRole('switch', { name: 'Mark newest bird' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Mark first bird' })).toBeNull()
+    cleanup()
+    render(<Harness />)
+    expect(screen.getByRole('switch', { name: 'Mark newest bird' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('switch', { name: 'Mark first bird' })).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('hidden when the list has no dated birds', () => {
+    function Undated() {
+      const [state, dispatch] = useReducer(reduce, undefined, () => {
+        const saved = emptySaved()
+        saved.records.ebird = [{ code: 'snogoo', source: 'ebird' }, { code: 'amerob', source: 'ebird' }]
+        return reduce(initialState(), { type: 'restore', saved })
+      })
+      return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Undated collage" />
+    }
+    render(<Undated />)
+    expect(screen.queryByRole('switch', { name: 'Mark newest bird' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Mark first bird' })).toBeNull()
+  })
+
+  it('rings the marked birds on the stage and appends their accessible names', async () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1024, bottom: 400, width: 1024, height: 400, toJSON: () => ({}) })
+    const seed = [{ key: 'wide|even|', layout: 'wide' as const, mode: 'even' as const, W: 1000, H: 400, scale: 1, base: 10,
+      boxes: new Map([['snogoo', [10, 10, 80, 60]], ['norfli', [200, 10, 40, 30]], ['gilfli', [300, 10, 40, 30]], ['amerob', [400, 200, 40, 30]], ['yerwar', [500, 200, 20, 15]]] as [string, [number, number, number, number]][]) }]
+    function SeededCollage() {
+      const [state, dispatch] = useReducer(reduce, undefined, seeded)
+      return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Test collage" seed={seed} />
+    }
+    try {
+      render(<SeededCollage />)
+      const stage = await screen.findByTestId('collage-stage')
+      fireEvent.click(screen.getByRole('switch', { name: 'Mark newest bird' }))
+      fireEvent.click(screen.getByRole('switch', { name: 'Mark first bird' }))
+      const newestBird = stage.querySelector('.eb-bird[data-code="yerwar"]')!
+      const firstBird = stage.querySelector('.eb-bird[data-code="snogoo"]')!
+      expect(newestBird).toHaveAttribute('data-mark', 'newest')
+      expect(newestBird).toHaveAttribute('aria-label', 'Yellow-rumped Warbler, newest bird')
+      expect(firstBird).toHaveAttribute('data-mark', 'first')
+      expect(firstBird).toHaveAttribute('aria-label', 'Snow Goose, first bird')
+    } finally {
+      vi.restoreAllMocks()
+    }
   })
 })

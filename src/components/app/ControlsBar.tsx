@@ -22,6 +22,12 @@ type Props = {
   onDirection: () => void
   sci: boolean
   onSci: (on: boolean) => void
+  marks?: {
+    newest: boolean
+    first: boolean
+    onNewest: (on: boolean) => void
+    onFirst: (on: boolean) => void
+  }
   /** The search (left out: no magnifier). */
   search?: DockSearchProps
   /** The Filters button; `inert` while the search covers the bar. */
@@ -32,7 +38,7 @@ type Props = {
   onFind?: () => void
 }
 
-export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, search, filters, below, onFind }: Props) {
+export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, marks, search, filters, below, onFind }: Props) {
   const [finding, setFinding] = useState(false)
   // Whether the search is open is carried over a language switch (view-resume.ts); the typed text is not.
   const hasSearch = !!search
@@ -95,6 +101,18 @@ export function ControlsBar({ view, onView, trueSize, onTrueSize, lightFirst, on
         </div>
         {filters?.(finding)}
         {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => { onFind?.(); setFinding(true) }} buttonRef={findBtn} /></div>}
+        {view === 'collage' && marks && (
+          <div className="eb-dock-marks" inert={finding}>
+            <button type="button" role="switch" aria-checked={marks.newest} className="eb-dock-tab eb-dock-sw" onClick={() => marks.onNewest(!marks.newest)}>
+              <span>{c.markNewest}</span>
+              <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+            </button>
+            <button type="button" role="switch" aria-checked={marks.first} className="eb-dock-tab eb-dock-sw" onClick={() => marks.onFirst(!marks.first)}>
+              <span>{c.markFirst}</span>
+              <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+            </button>
+          </div>
+        )}
         {search && <DockSearchField {...search} onPick={onPick} open={finding} onClose={close} within={wrap} />}
       </div>
       {below}

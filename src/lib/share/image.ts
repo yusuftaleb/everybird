@@ -39,7 +39,7 @@ import type { Box } from '@/lib/layout/pack'
 import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_CAP_ACCENT, MONO_LINE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
-import { latestLifer } from '@/lib/list/build-list'
+import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
 import { continentNames, namesLabel, placesLabel, seenLabels, statusLabel } from '@/lib/list/filter-summary'
 import type { Filter } from '@/lib/list/filters'
 import { rangeLabel } from '@/lib/list/timeline'
@@ -511,6 +511,7 @@ export type Tile = {
   x: number; y: number; w: number; h: number; url: string | null
   /** The print's 384 file, tried when its 1024 file (`url`) fails; absent or null otherwise. */
   fallback?: string | null
+  mark?: 'newest' | 'first' | 'both'
 }
 /** A band of the card in design units, top (y0) to bottom (y1): the part a poster strip paints. */
 export type PaintRange = { y0: number; y1: number }
@@ -527,11 +528,13 @@ export function tileInRange(t: { y: number; h: number }, range: PaintRange): boo
  * `range`, only the tiles tileInRange keeps.
  */
 export function paintTiles(
-  ctx: CanvasRenderingContext2D, tiles: Tile[], imgs: Map<string, CanvasImageSource | null>, line: string, range?: PaintRange,
+  ctx: CanvasRenderingContext2D, tiles: Tile[], imgs: Map<string, CanvasImageSource | null>, line: string, range?: PaintRange, colors?: Pick<ShareColors, 'accent' | 'ink'>,
 ): void {
   const bird = new Path2D(BIRD_PATH)
+  const ringed: Tile[] = []
   for (const t of tiles) {
     if (range && !tileInRange(t, range)) continue
+    if (t.mark) ringed.push(t)
     const img = t.url ? imgs.get(t.url) : null
     if (img) {
       ctx.drawImage(img, t.x, t.y, t.w, t.h)
@@ -547,6 +550,17 @@ export function paintTiles(
     ctx.lineWidth = 2 / k
     ctx.lineJoin = 'round'
     ctx.stroke(bird)
+    ctx.restore()
+  }
+  for (const t of ringed) {
+    ctx.save()
+    ctx.beginPath()
+    const pad = 5, r = 10
+    if (ctx.roundRect) ctx.roundRect(t.x - pad, t.y - pad, t.w + pad * 2, t.h + pad * 2, r)
+    else ctx.rect(t.x - pad, t.y - pad, t.w + pad * 2, t.h + pad * 2)
+    ctx.strokeStyle = t.mark === 'first' ? (colors?.ink ?? '#1e1e24') : (colors?.accent ?? '#92140c')
+    ctx.lineWidth = 3
+    ctx.stroke()
     ctx.restore()
   }
 }
@@ -610,6 +624,8 @@ export type ShareImageOpts = {
   now?: Date
   /** The latest lifer row; default true. False leaves it out and gives its room to the collage (cardLayout's `latest: false`). */
   latest?: boolean
+  markNewest?: boolean
+  markFirst?: boolean
   /** The UI language's strings the image draws: the count's number and label, the latest lifer's label and month, and
    *  the stamp's month. The filter label comes in words already (`filterLabel`, from the same strings). */
   strings: ShareStrings
@@ -719,7 +735,11 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const print = isPrint(format)
   const colors: ShareColors = SHARE_COLORS[theme]
   const shown = entries.filter((e) => species.byCode.has(e.code))
-  const latestE = latestLifer(shown, (c) => species.byCode.get(c)?.to ?? Number.MAX_SAFE_INTEGER)
+  const order = liferOrder(species.byCode)
+  const latestE = latestLifer(shown, order)
+  const firstE = opts.markFirst ? firstLifer(shown, order) : undefined
+  const markNewestCode = opts.markNewest ? latestE?.code : undefined
+  const markFirstCode = opts.markFirst ? firstE?.code : undefined
   const latestRow = latestE && species.byCode.get(latestE.code)!
   const strings = opts.strings
   const latest = opts.latest !== false && latestRow ? latestText({ com: opts.nameOf?.(latestRow) ?? latestRow.com, date: latestE!.date }, strings) : undefined
@@ -747,7 +767,9 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
     const row = species.byCode.get(e.code)!
     const [w, h] = [b[2] * fit.s, b[3] * fit.s]
     const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
-    const tile: Tile = { x, y, w, h, ...(row.st ? sticker(e.code, Math.max(w, h), row.sv) : { url: null }) }
+    const isNewest = e.code === markNewestCode, isFirst = e.code === markFirstCode
+    const mark: Tile['mark'] = isNewest && isFirst ? 'both' : isNewest ? 'newest' : isFirst ? 'first' : undefined
+    const tile: Tile = { x, y, w, h, ...(row.st ? sticker(e.code, Math.max(w, h), row.sv) : { url: null }), ...(mark ? { mark } : {}) }
     return [tile]
   })
   // The latest lifer's sticker, contained in its square at the sticker's own aspect.
@@ -868,7 +890,7 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
   // The collage.
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
-  paintTiles(ctx, card.tiles, imgs, C.line, range)
+  paintTiles(ctx, card.tiles, imgs, C.line, range, C)
 
   const X0 = L.collage.x, maxW = L.collage.w
   const track = (em: number, px: number) => { if ('letterSpacing' in ctx) ctx.letterSpacing = `${(em * px).toFixed(2)}px` }

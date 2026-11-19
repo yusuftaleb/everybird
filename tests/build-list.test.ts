@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildList, latestLifer } from '@/lib/list/build-list'
+import { buildList, firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
 import { DEFAULT_RULES, EMPTY_EDITS, type SourceRecord } from '@/lib/list/model'
 
 const rec = (code: string, source: SourceRecord['source'], extra: Partial<SourceRecord> = {}): SourceRecord => ({ code, source, ...extra })
@@ -118,5 +118,35 @@ describe('latestLifer', () => {
     const list = build([rec('a', 'ebird', { date: '2020' }), rec('b', 'ebird', { date: '2020' })])
     expect(latestLifer(list, (c) => (c === 'a' ? 9 : 1))?.code).toBe('a')
     expect(latestLifer(list)?.code).toBe('b')
+  })
+})
+
+describe('firstLifer', () => {
+  it('picks the earliest date, skipping undated entries', () => {
+    const list = build([rec('a', 'ebird', { date: '2020-03-01' }), rec('b', 'ebird', { date: '2020-02' }), rec('c', 'ebird')])
+    expect(firstLifer(list)?.code).toBe('b')
+    expect(firstLifer([rec('c', 'ebird')].map((r) => ({ code: r.code, heard: false, dead: false, media: false, sources: ['ebird'] })))).toBeUndefined()
+    expect(firstLifer([])).toBeUndefined()
+  })
+
+  it('sorts year-only dates before January and year-month dates before days', () => {
+    const yearOnly = build([rec('a', 'ebird', { date: '2020-01-01' }), rec('b', 'ebird', { date: '2020' })])
+    expect(firstLifer(yearOnly)?.code).toBe('b')
+    const yearMonth = build([rec('a', 'ebird', { date: '2020-05-01' }), rec('b', 'ebird', { date: '2020-05' })])
+    expect(firstLifer(yearMonth)?.code).toBe('b')
+  })
+
+  it('ties go to the lowest taxonOrder or code', () => {
+    const list = build([rec('a', 'ebird', { date: '2020' }), rec('b', 'ebird', { date: '2020' })])
+    expect(firstLifer(list, (c) => (c === 'a' ? 9 : 1))?.code).toBe('b')
+    expect(firstLifer(list)?.code).toBe('a')
+  })
+
+  it('liferOrder orders missing species last', () => {
+    const byCode = new Map([['a', { to: 1 }]])
+    const list = build([rec('a', 'ebird', { date: '2020' }), rec('z', 'ebird', { date: '2020' })])
+    const order = liferOrder(byCode)
+    expect(latestLifer(list, order)?.code).toBe('z')
+    expect(firstLifer(list, order)?.code).toBe('a')
   })
 })
