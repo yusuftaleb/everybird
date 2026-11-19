@@ -104,6 +104,16 @@ describe('spreadsheet import', () => {
     expect(swallow.date).toBe('2022-11-14')
   })
 
+  it('reads a country name with a comma as one country', () => {
+    const res = parseSheetText('Common Name,Country\nMallard,"Congo, Democratic Republic of the"\nRock Pigeon,"Korea, Republic of"\nBarn Swallow,"Canada, Kenya"\n', taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(res.records.map((r) => [r.code, r.seen?.map((s) => s.split('|')[1])])).toEqual([
+      ['mallar3', ['CD']],
+      ['rocpig', ['KR']],
+      ['barswa', ['CA', 'KE']],
+    ])
+  })
+
   it('parses a pasted plain list, single plain cell, and quoted TSV with tabs/newlines', () => {
     const plain = parseSheetText(fixture('pasted-plain.txt'), taxonomy, regions)
     expect('error' in plain).toBe(false)

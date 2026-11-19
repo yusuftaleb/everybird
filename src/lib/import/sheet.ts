@@ -191,11 +191,16 @@ function makePlaceResolver(regions?: Regions) {
     return countries.get(folded)
   }
 
+  // Whole names first: "Congo, Democratic Republic of the" is one country, "Canada, Kenya" two.
   const resolveCountries = (raw: string): string[] => {
     const out: string[] = []
-    for (const part of raw.split(/[,;/]+/)) {
-      const code = countryCode(part)
+    const push = (code: string | undefined) => {
       if (code && !out.includes(code)) out.push(code)
+    }
+    for (const seg of raw.split(/[;/]+/)) {
+      const whole = countryCode(seg)
+      if (whole) push(whole)
+      else for (const part of seg.split(',')) push(countryCode(part))
     }
     return out
   }
