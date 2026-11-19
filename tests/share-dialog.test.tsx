@@ -1069,6 +1069,20 @@ describe('the orientation switch', () => {
     expect(named()[1]).toBeGreaterThan(named()[0])
   })
 
+  it('with names off, the poster\'s pack is not made again when only the names\' inputs change (the lifer rings)', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Print a poster' }))
+    const plainPrint = () => vi.mocked(image.packForImage).mock.calls.filter((c) => !c[2].captionBoxes && c[2].aspect < 1).length
+    await waitFor(() => expect(plainPrint()).toBe(1))
+    await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.some((c) => c[2].captionBoxes)).toBe(true))
+    act(() => setLiferMark('newest', true))
+    await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.filter((c) => c[2].captionBoxes?.emu1?.ring).length).toBe(1))
+    // The preview renders again with the rings (after its debounce), from the same names-off pack.
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', markNewest: true }))
+    expect(plainPrint()).toBe(1)
+    act(() => setLiferMark('newest', false))
+  })
+
   it('disables Show species names when caption pack check rejects', async () => {
     vi.mocked(image.packForImage).mockImplementation(async (_entries, _species, spec) => {
       if (spec.captionBoxes) throw new Error('packBest: does not fit')

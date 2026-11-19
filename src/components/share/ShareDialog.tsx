@@ -204,11 +204,19 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   }, [])
   const packFor = useMemo(() => {
     const packs = new Map<string, Promise<ImagePack>>()
+    // A names pack is keyed by its plan (captionPlan is remade whenever the names, their language, the rings, the fonts or
+    // the paper change), so those never remake the names-off packs.
+    const planIds = new WeakMap<object, number>()
+    let nextPlan = 0
+    const planId = (plan: object) => {
+      if (!planIds.has(plan)) planIds.set(plan, nextPlan++)
+      return planIds.get(plan)!
+    }
     // Not keyed by the latest lifer switch: imagePackSpec packs for the with-row frame, so on and off share one pack.
     return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize, plan?: Extract<CaptionPlan, { ok: true }> | null, signal?: AbortSignal) => {
       const hasPlan = !!plan?.ok && isPrint(f)
       // With names, the paper size too: the caption font follows the paper, though every A size shares one pack height.
-      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${hasPlan ? `${printSize}|${lang}|${names}|${liferMarks.newest}|${liferMarks.first}|${fontsTick}` : ''}`
+      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${hasPlan ? `${printSize}|plan${planId(plan)}` : ''}`
       let p = packs.get(k)
       if (!p) {
         const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined)
@@ -218,7 +226,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       }
       return p
     }
-  }, [cardEntries, species, cardLabel, cardGoal, lang, names, liferMarks.newest, liferMarks.first, fontsTick])
+  }, [cardEntries, species, cardLabel, cardGoal])
   useEffect(() => {
     if (!print || overCap || !captionPlan?.ok) return
     let live = true
