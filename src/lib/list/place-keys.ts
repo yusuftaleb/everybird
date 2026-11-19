@@ -10,11 +10,12 @@
 import { placeRegistryLabel } from '@/lib/places/registry'
 import { stripBracket } from '@/lib/import/places'
 import { CONTINENT_OF, continentName, continentOfPlace, isContinentId } from '@/lib/places/continents'
+import { isRegionPresetId, regionPresetName, regionsOfPlace } from '@/lib/places/presets'
 import type { Regions } from '@/lib/species/types'
 
-export type PlaceLevel = 'continent' | 'country' | 'province' | 'county'
+export type PlaceLevel = 'continent' | 'region' | 'country' | 'province' | 'county'
 /** `country` is the ISO code ('' for a continent); `continent` the id of a continent key or of a country key's `@` part. */
-export type ParsedPlace = { level: PlaceLevel; country: string; continent?: string; sub1?: string; county?: string }
+export type ParsedPlace = { level: PlaceLevel; country: string; continent?: string; region?: string; sub1?: string; county?: string }
 
 type PlaceLike = { country: string; sub1?: string; sub2?: string }
 
@@ -25,6 +26,7 @@ const SUB1 = /^[A-Z]{2}-[A-Za-z0-9]+$/
 export function parsePlaceKey(key: string): ParsedPlace | undefined {
   const body = key.slice(2)
   if (key.startsWith('n:')) return isContinentId(body) ? { level: 'continent', country: '', continent: body } : undefined
+  if (key.startsWith('r:')) return isRegionPresetId(body) ? { level: 'region', country: '', region: body } : undefined
   if (key.startsWith('c:')) {
     const m = COUNTRY.exec(body)
     if (!m) return undefined
@@ -54,6 +56,7 @@ export function keysOfPlace(p: PlaceLike): string[] {
   const out: string[] = []
   const cont = continentOfPlace(p)
   if (cont) out.push(`n:${cont}`)
+  for (const reg of regionsOfPlace(p)) out.push(`r:${reg}`)
   out.push(countryKeyOf(p))
   if (p.sub1) {
     out.push(`s:${p.sub1}`)
@@ -65,7 +68,7 @@ export function keysOfPlace(p: PlaceLike): string[] {
 /** The key one level up (a county's province, a province's country, a country's continent); undefined for a continent, a country in none, or a malformed key. */
 export function parentKey(key: string): string | undefined {
   const p = parsePlaceKey(key)
-  if (!p || p.level === 'continent') return undefined
+  if (!p || p.level === 'continent' || p.level === 'region') return undefined
   if (p.level === 'county') return `s:${p.sub1}`
   if (p.level === 'province') return countryKeyOf({ country: p.country, sub1: p.sub1 })
   const cont = p.continent ?? (Object.hasOwn(CONTINENT_OF, p.country) ? CONTINENT_OF[p.country] : undefined)
@@ -100,27 +103,30 @@ export function childKeyOf(parent: string | undefined): (p: PlaceLike) => string
 type Names = Pick<Regions, 'countries' | 'sub1' | 'registry'>
 /** The UI language's continent names by id (`ui.places.continents`); English names when not given. */
 type ContinentNames = Partial<Record<string, string>>
+type RegionNames = Partial<Record<string, string>>
 
 const countryName = (iso: string, r: Names) => (r.countries[iso] ? stripBracket(r.countries[iso]) : iso)
 const sub1Name = (code: string, r: Names) => stripBracket(placeRegistryLabel(code, r) ?? code)
 const contName = (id: string, names?: ContinentNames) => names?.[id] ?? continentName(id)
+const regName = (id: string, names?: RegionNames) => names?.[id] ?? regionPresetName(id)
 
 /**
  * A key's own name: "Canada", "British Columbia", "Capital", "France (South America)" for an overseas part; the code
  * when the regions don't know it. `continents`: the UI language's continent names (for "Africa" and the qualifier).
  */
-export function placeName(key: string, regions: Names, continents?: ContinentNames): string {
+export function placeName(key: string, regions: Names, continents?: ContinentNames, regionNames?: RegionNames): string {
   const p = parsePlaceKey(key)
   if (!p) return key
   if (p.level === 'continent') return contName(p.continent!, continents)
+  if (p.level === 'region') return regName(p.region!, regionNames)
   if (p.level === 'country') return p.continent ? `${countryName(p.country, regions)} (${contName(p.continent, continents)})` : countryName(p.country, regions)
   if (p.level === 'province') return sub1Name(p.sub1!, regions)
   return placeRegistryLabel(p.county!, regions) ?? p.county!
 }
 
 /** A key's name with its parent's: "Canada", "British Columbia, Canada", "Capital, British Columbia" (never the continent). */
-export function placeNameLong(key: string, regions: Names, continents?: ContinentNames): string {
+export function placeNameLong(key: string, regions: Names, continents?: ContinentNames, regionNames?: RegionNames): string {
   const up = parentKey(key)
-  const own = placeName(key, regions, continents)
-  return up && !up.startsWith('n:') ? `${own}, ${placeName(up, regions, continents)}` : own
+  const own = placeName(key, regions, continents, regionNames)
+  return up && !up.startsWith('n:') ? `${own}, ${placeName(up, regions, continents, regionNames)}` : own
 }

@@ -12,7 +12,7 @@ import { HTML_LANG } from '@/i18n/langs'
 import type { Ui } from '@/i18n/messages/en'
 import { isContinentId } from '@/lib/places/continents'
 import { ContinentGlobe } from './ContinentGlobe'
-import { clearPlaces, countryRows, filterKey, filterPlaceKeys, placeCounts, placeRows, type Filter, type PlaceCounts, type PlaceOption } from '@/lib/list/filters'
+import { clearPlaces, countryRows, filterKey, filterPlaceKeys, placeCounts, placeRows, regionRows, type Filter, type PlaceCounts, type PlaceOption } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import type { SeenIndex } from '@/lib/list/seen'
 import { parentKey, parsePlaceKey, placeName, type PlaceLevel } from '@/lib/list/place-keys'
@@ -85,9 +85,10 @@ export function emptyHere(f: Filter, t: Ui): string {
 export function usePlaceRows(counts: PlaceCounts, filter: Filter, parent: string | undefined, regions: Regions, flat = false): PlaceOption[] {
   const { t, lang } = useI18n()
   const cn = t.places.continents
+  const rn = t.places.regions
   const opts = useMemo(
-    () => (flat && parent === undefined ? countryRows(counts, (k) => placeName(k, regions, cn), HTML_LANG[lang]) : placeRows(counts, parent, (k) => placeName(k, regions, cn), HTML_LANG[lang])),
-    [counts, parent, regions, lang, flat, cn],
+    () => (flat && parent === undefined ? countryRows(counts, (k) => placeName(k, regions, cn, rn), HTML_LANG[lang]) : placeRows(counts, parent, (k) => placeName(k, regions, cn, rn), HTML_LANG[lang])),
+    [counts, parent, regions, lang, flat, cn, rn],
   )
   // Each place at this level that is checked or holds a checked place -> the distinct ones one level under it.
   const held = useMemo(() => {
@@ -109,9 +110,28 @@ export function usePlaceRows(counts: PlaceCounts, filter: Filter, parent: string
     const have = new Set(opts.map((o) => o.value))
     const zero = [...held]
       .filter(([k]) => !have.has(k))
-      .map(([k, kids]): PlaceOption => ({ value: k, label: placeName(k, regions, cn), count: 0, children: kids.size }))
+      .map(([k, kids]): PlaceOption => ({ value: k, label: placeName(k, regions, cn, rn), count: 0, children: kids.size }))
     return [...listed, ...zero]
-  }, [opts, held, regions, cn])
+  }, [opts, held, regions, cn, rn])
+}
+
+export function useRegionRows(counts: PlaceCounts, filter: Filter, regions: Regions): PlaceOption[] {
+  const { t, lang } = useI18n()
+  const cn = t.places.continents
+  const rn = t.places.regions
+  const opts = useMemo(
+    () => regionRows(counts, (k) => placeName(k, regions, cn, rn), HTML_LANG[lang]),
+    [counts, regions, lang, cn, rn],
+  )
+  return useMemo(() => {
+    if (!filter.regions?.length) return opts
+    const have = new Set(opts.map((o) => o.value))
+    const zero = filter.regions
+      .map((id) => `r:${id}`)
+      .filter((k) => !have.has(k))
+      .map((k): PlaceOption => ({ value: k, label: placeName(k, regions, cn, rn), count: 0, children: 0 }))
+    return zero.length ? [...opts, ...zero] : opts
+  }, [opts, filter.regions, regions, cn, rn])
 }
 
 /** The rows whose names hold every word of `q` as a word prefix, accent- and case-insensitive ("new z": New Zealand). */
@@ -129,6 +149,7 @@ export function matchRows<T extends { label: string }>(rows: T[], q: string): T[
 export function placeTestId(key: string): string {
   const p = parsePlaceKey(key)
   if (p?.level === 'continent') return `continent-${p.continent}`
+  if (p?.level === 'region') return `region-${p.region}`
   return p?.level === 'country' ? `country-${key.slice(2)}` : `place-${key}`
 }
 

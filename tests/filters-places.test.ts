@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { en } from '@/i18n/messages/en'
 import { buildList } from '@/lib/list/build-list'
-import { applyFilter, filterKey, filterPlaceKeys, filterToShow, options, placeCounts, placeOptions, placeRows, toggleCountry, togglePlace, withCountries, withPlaces } from '@/lib/list/filters'
+import { applyFilter, clearPlaces, filterKey, filterPlaceKeys, filterToShow, hasPlaces, options, placeCounts, placeOptions, placeRows, toggleCountry, togglePlace, withCountries, withPlaces } from '@/lib/list/filters'
 import { applyFilterValidity } from '@/lib/list/filters-validate'
 import { DEFAULT_RULES, EMPTY_EDITS, type SourceRecord } from '@/lib/list/model'
 import { buildSeen, seenOf, type SeenIndex } from '@/lib/list/seen'
@@ -214,5 +214,29 @@ describe('the share image names the countries', async () => {
     const regions = { countries: { CA: 'Canada', EG: 'Egypt', KE: 'Kenya' }, sub1: { 'CA-BC': 'British Columbia' } }
     expect(filterLabel({ order: 'Strigiformes', provinces: ['CA-BC'] }, { species, countryName: (c) => c, regions }, en.ui)).toBe('Owls · British Columbia')
     expect(filterLabel({ countries: ['KE'], counties: ['CA-BC|Capital'] }, { species, countryName: (c) => c, regions }, en.ui)).toBe('Kenya + Capital')
+  })
+})
+
+describe('region presets in filters', () => {
+  it('filters recorded sightings by region preset and combines cleanly with countries', () => {
+    expect(codes({ regions: ['latam'] })).toEqual(['crow', 'duck'])
+    expect(codes({ regions: ['central-america'] })).toEqual(['crow', 'duck'])
+    expect(codes({ regions: ['northern-america'] })).toEqual(['crow', 'duck', 'owl'])
+    expect(codes({ regions: ['me'] })).toEqual([])
+    expect(togglePlace({}, 'r:latam')).toEqual({ regions: ['latam'] })
+    expect(togglePlace({ regions: ['latam'] }, 'c:CA')).toEqual({ countries: ['CA'], regions: ['latam'] })
+    expect(togglePlace({ countries: ['CA'], regions: ['latam'] }, 'r:latam')).toEqual({ countries: ['CA'] })
+    expect(withPlaces({}, ['r:me', 'r:latam', 'r:me', 'r:bogus'])).toEqual({ regions: ['latam', 'me'] })
+    expect(hasPlaces({ regions: ['latam'] })).toBe(true)
+    expect(clearPlaces({ regions: ['latam'], order: 'Strigiformes' })).toEqual({ order: 'Strigiformes' })
+    expect(filterPlaceKeys({ continents: ['NA'], regions: ['latam'], countries: ['BR'] })).toEqual(['n:NA', 'r:latam', 'c:BR'])
+    expect(filterKey({ regions: ['latam', 'me'] })).toBe('p:latam,me')
+    expect(applyFilterValidity({ regions: ['latam', 'me', 'nope' as never] }, list, species, true, seen)).toEqual({ regions: ['latam'] })
+  })
+
+  it('placeCounts tallies each species at most once per preset', () => {
+    const counts = placeCounts(list, {}, species, seen)
+    expect(counts.regions.get('latam')?.n).toBe(2)
+    expect(counts.regions.get('northern-america')?.n).toBe(3)
   })
 })

@@ -174,6 +174,7 @@ export const nl: Messages = {
       /** The count-first heads of the Places and Status lists ("20 countries"), and " · 7 checked" after them. */
       countHead: {
         continent: { one: '{n} continent', other: '{n} continenten' },
+        region: { one: '{n} regio', other: "{n} regio's" },
         country: { one: '{n} land', other: '{n} landen' },
         province: { one: '{n} staat of provincie', other: '{n} staten en provincies' },
         county: { one: '{n} graafschap', other: '{n} graafschappen' },
@@ -203,9 +204,9 @@ export const nl: Messages = {
       },
     },
     places: {
-      head: { continent: 'Continenten', country: 'Landen', province: 'Staten en provincies', county: 'Graafschappen' },
-      find: { continent: 'Zoek een land', country: 'Zoek een land', province: 'Zoek een staat of provincie', county: 'Zoek een graafschap' },
-      noMatch: { continent: 'Geen land gevonden.', country: 'Geen land gevonden.', province: 'Geen staat of provincie gevonden.', county: 'Geen graafschap gevonden.' },
+      head: { continent: 'Continenten', region: "Regio's", country: 'Landen', province: 'Staten en provincies', county: 'Graafschappen' },
+      find: { continent: 'Zoek een land of regio', region: 'Zoek een regio', country: 'Zoek een land', province: 'Zoek een staat of provincie', county: 'Zoek een graafschap' },
+      noMatch: { continent: 'Geen plaats gevonden.', region: 'Geen regio gevonden.', country: 'Geen land gevonden.', province: 'Geen staat of provincie gevonden.', county: 'Geen graafschap gevonden.' },
       allCountries: 'Alle landen',
       /** The breadcrumb's first step when the top level lists the continents. */
       allContinents: 'Alle continenten',
@@ -226,6 +227,32 @@ export const nl: Messages = {
       },
       andMore: '{first} en nog {n}',
       continents: { AF: 'Afrika', AS: 'Azië', EU: 'Europa', NA: 'Noord-Amerika', SA: 'Zuid-Amerika', OC: 'Oceanië', AN: 'Antarctica' },
+      regions: {
+        latam: 'Latijns-Amerika en het Caribisch gebied',
+        me: 'Midden-Oosten',
+        'northern-africa': 'Noord-Afrika',
+        'eastern-africa': 'Oost-Afrika',
+        'middle-africa': 'Centraal-Afrika',
+        'southern-africa': 'Zuidelijk Afrika',
+        'western-africa': 'West-Afrika',
+        'northern-america': 'Noordelijk Amerika',
+        'central-america': 'Midden-Amerika',
+        'south-america': 'Zuid-Amerika',
+        caribbean: 'Caribisch gebied',
+        'central-asia': 'Centraal-Azië',
+        'eastern-asia': 'Oost-Azië',
+        'south-eastern-asia': 'Zuidoost-Azië',
+        'southern-asia': 'Zuid-Azië',
+        'western-asia': 'West-Azië',
+        'eastern-europe': 'Oost-Europa',
+        'northern-europe': 'Noord-Europa',
+        'southern-europe': 'Zuid-Europa',
+        'western-europe': 'West-Europa',
+        'australia-nz': 'Australië en Nieuw-Zeeland',
+        melanesia: 'Melanesië',
+        micronesia: 'Micronesië',
+        polynesia: 'Polynesië',
+      },
     },
     /** Global IUCN Red List categories (the codes LC … DD stay as they are): their full names, the share image's label for
      *  Vulnerable + Endangered + Critically Endangered, and the card badge's spoken suffix. */

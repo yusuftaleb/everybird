@@ -39,7 +39,7 @@ export function filterChips(f: Filter, regions: Names, t: Ui, groupName?: (id: s
   if (count > MAX_CHIPS) {
     out.push({ kind: 'place', label: fmt(t.filters.panel.manyPlaces, { n: formatInt(count, t.num) }), token: ALL, spoken: placesSpoken(f, regions, t) })
   } else {
-    for (const k of keys) out.push({ kind: 'place', label: placeName(k, regions, t.places.continents), token: k, spoken: placeNameLong(k, regions, t.places.continents) })
+    for (const k of keys) out.push({ kind: 'place', label: placeName(k, regions, t.places.continents, t.places.regions), token: k, spoken: placeNameLong(k, regions, t.places.continents, t.places.regions) })
   }
   const time = timeSummary(f, t)
   if (time) out.push({ kind: 'date', label: time, token: `${f.from ?? ''}..${f.to ?? ''}`, spoken: timeSpoken(f, t) })

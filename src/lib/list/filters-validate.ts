@@ -31,6 +31,7 @@ export function applyFilterValidity(f: Filter & Legacy, list: ListEntry[], speci
   out.provinces = level(out.provinces)
   out.counties = level(out.counties)
   out.continents = level(out.continents) as Filter['continents']
+  out.regions = level(out.regions) as Filter['regions']
   out = withPlaces(out, [...filterPlaceKeys(out), ...(typeof country === 'string' ? [`c:${country}`] : [])])
   out = withStatuses(out, level(out.statuses))
   if (out.year) {

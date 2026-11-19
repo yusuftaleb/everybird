@@ -174,6 +174,7 @@ export const pt: Messages = {
       /** The count-first heads of the Places and Status lists ("20 countries"), and " · 7 checked" after them. */
       countHead: {
         continent: { one: '{n} continente', other: '{n} continentes' },
+        region: { one: '{n} região', other: '{n} regiões' },
         country: { one: '{n} país', other: '{n} países' },
         province: { one: '{n} estado ou província', other: '{n} estados e províncias' },
         county: { one: '{n} condado', other: '{n} condados' },
@@ -203,9 +204,9 @@ export const pt: Messages = {
       },
     },
     places: {
-      head: { continent: 'Continentes', country: 'Países', province: 'Estados e províncias', county: 'Condados' },
-      find: { continent: 'Encontrar um país', country: 'Encontrar um país', province: 'Encontrar um estado ou província', county: 'Encontrar um condado' },
-      noMatch: { continent: 'Nenhum país corresponde.', country: 'Nenhum país corresponde.', province: 'Nenhum estado ou província corresponde.', county: 'Nenhum condado corresponde.' },
+      head: { continent: 'Continentes', region: 'Regiões', country: 'Países', province: 'Estados e províncias', county: 'Condados' },
+      find: { continent: 'Encontrar um país ou região', region: 'Encontrar uma região', country: 'Encontrar um país', province: 'Encontrar um estado ou província', county: 'Encontrar um condado' },
+      noMatch: { continent: 'Nenhum lugar corresponde.', region: 'Nenhuma região corresponde.', country: 'Nenhum país corresponde.', province: 'Nenhum estado ou província corresponde.', county: 'Nenhum condado corresponde.' },
       allCountries: 'Todos os países',
       /** The breadcrumb's first step when the top level lists the continents. */
       allContinents: 'Todos os continentes',
@@ -226,6 +227,32 @@ export const pt: Messages = {
       },
       andMore: '{first} e mais {n}',
       continents: { AF: 'África', AS: 'Ásia', EU: 'Europa', NA: 'América do Norte', SA: 'América do Sul', OC: 'Oceania', AN: 'Antártida' },
+      regions: {
+        latam: 'América Latina e Caribe',
+        me: 'Oriente Médio',
+        'northern-africa': 'Norte da África',
+        'eastern-africa': 'África Oriental',
+        'middle-africa': 'África Central',
+        'southern-africa': 'África Austral',
+        'western-africa': 'África Ocidental',
+        'northern-america': 'América Setentrional',
+        'central-america': 'América Central',
+        'south-america': 'América do Sul',
+        caribbean: 'Caribe',
+        'central-asia': 'Ásia Central',
+        'eastern-asia': 'Ásia Oriental',
+        'south-eastern-asia': 'Sudeste Asiático',
+        'southern-asia': 'Ásia Meridional',
+        'western-asia': 'Ásia Ocidental',
+        'eastern-europe': 'Europa Oriental',
+        'northern-europe': 'Europa do Norte',
+        'southern-europe': 'Europa do Sul',
+        'western-europe': 'Europa Ocidental',
+        'australia-nz': 'Austrália e Nova Zelândia',
+        melanesia: 'Melanésia',
+        micronesia: 'Micronésia',
+        polynesia: 'Polinésia',
+      },
     },
     /** Global IUCN Red List categories (the codes LC … DD stay as they are): their full names, the share image's label for
      *  Vulnerable + Endangered + Critically Endangered, and the card badge's spoken suffix. */

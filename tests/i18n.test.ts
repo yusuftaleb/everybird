@@ -26,7 +26,7 @@ const ALLOW_SAME = [
   // Red List: es "Vulnerable" and nl "Status" are the same word as English.
   'Vulnerable', 'Status',
   // Continents: es Asia, pt Oceania and nl Antarctica are the English spelling.
-  'Asia', 'Oceania', 'Antarctica',
+  'Asia', 'Oceania', 'Antarctica', 'Melanesia', 'Micronesia',
   // US poster size label: nl uses "in" as English does.
   '{w} × {h} in',
 ]

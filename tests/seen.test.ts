@@ -127,9 +127,9 @@ describe('buildSeen output, pinned', () => {
       expect(seen.sig).toBe('3:581dc675')
       expect(seen.full).toBe(true)
       expect([...seen.byCode].map(([k, v]) => [k, v.places, [...v.keys]])).toEqual([
-        ['a', [{ country: 'CA', sub1: 'CA-BC', sub2: 'Capital', date: '2017-01-01' }, { country: 'US', sub1: 'US-WA', date: '2019-05' }, { country: 'KE' }, { country: 'HK', sub2: 'Kowloon', date: '2021-01-01' }, { country: 'MX', date: '2022' }], ['n:NA', 'c:CA', 's:CA-BC', 'k:CA-BC|Capital', 'c:US', 's:US-WA', 'n:AF', 'c:KE', 'n:AS', 'c:HK', 'c:MX']],
-        ['b', [{ country: 'CA', sub1: 'CA-ON', sub2: 'York', date: '2018-01-01' }], ['n:NA', 'c:CA', 's:CA-ON', 'k:CA-ON|York']],
-        ['c', [{ country: 'EG' }], ['n:AF', 'c:EG']],
+        ['a', [{ country: 'CA', sub1: 'CA-BC', sub2: 'Capital', date: '2017-01-01' }, { country: 'US', sub1: 'US-WA', date: '2019-05' }, { country: 'KE' }, { country: 'HK', sub2: 'Kowloon', date: '2021-01-01' }, { country: 'MX', date: '2022' }], ['n:NA', 'r:northern-america', 'c:CA', 's:CA-BC', 'k:CA-BC|Capital', 'c:US', 's:US-WA', 'n:AF', 'r:eastern-africa', 'c:KE', 'n:AS', 'r:eastern-asia', 'c:HK', 'r:latam', 'r:central-america', 'c:MX']],
+        ['b', [{ country: 'CA', sub1: 'CA-ON', sub2: 'York', date: '2018-01-01' }], ['n:NA', 'r:northern-america', 'c:CA', 's:CA-ON', 'k:CA-ON|York']],
+        ['c', [{ country: 'EG' }], ['n:AF', 'r:me', 'r:northern-africa', 'c:EG']],
       ])
       // Each species' places are its own objects.
       expect(seen.byCode.get('a')!.places[2]).not.toBe(build(recs).seen.byCode.get('a')!.places[2])
@@ -139,6 +139,6 @@ describe('buildSeen output, pinned', () => {
 
 describe('placeKeys', () => {
   it('names every level of the places', () => {
-    expect(placeKeys([{ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' }, { country: 'MX' }])).toEqual(new Set(['n:NA', 'c:CA', 's:CA-BC', 'k:CA-BC|Capital', 'c:MX']))
+    expect(placeKeys([{ country: 'CA', sub1: 'CA-BC', sub2: 'Capital' }, { country: 'MX' }])).toEqual(new Set(['n:NA', 'r:northern-america', 'c:CA', 's:CA-BC', 'k:CA-BC|Capital', 'r:latam', 'r:central-america', 'c:MX']))
   })
 })

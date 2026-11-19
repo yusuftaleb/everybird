@@ -118,6 +118,7 @@
 .eb-places { display: flex; flex-direction: column; gap: 10px; }
 .eb-places-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; }
 .eb-places-head .eb-textbtn { min-height: 36px; }
+.eb-places-subhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; border-top: 1px solid var(--hairline); }
 .eb-places-note { margin: 0; font-size: 13px; }
 .eb-places-note a { color: var(--accent); }
 .eb-checklist { list-style: none; margin: 0 -8px; padding: 0; display: flex; flex-direction: column; }
