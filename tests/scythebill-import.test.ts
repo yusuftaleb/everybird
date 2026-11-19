@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import Papa from 'papaparse'
 import { describe, expect, it } from 'vitest'
 import { en } from '@/i18n/messages/en'
 import { detectFile, slotOfKind } from '@/lib/import/detect'
@@ -40,6 +41,19 @@ describe('Scythebill detection', () => {
   })
 })
 
+describe('Scythebill fixtures', () => {
+  it('are synthetic: every native row has 44 fields, and no real coordinates or site names', () => {
+    const rows = fixture('native.csv').trim().split('\n').map((l) => Papa.parse<string[]>(l).data[0])
+    expect(rows.every((r) => r.length === 44)).toBe(true)
+    const [lat, lon] = [rows[0].indexOf('Latitude'), rows[0].indexOf('Longitude')]
+    expect(rows.slice(1).every((r) => [r[lat], r[lon]].every((v) => v === '' || v === '0.00'))).toBe(true)
+    expect(rows.some((r, i) => i > 0 && !r[rows[0].indexOf('Country')])).toBe(true) // one row has no place
+    const ebird = fixture('ebird-record.csv').trim().split('\n').map((l) => Papa.parse<string[]>(l).data[0])
+    expect(ebird.every((r) => [r[6], r[7]].every((v) => !v.trim() || v === '0.00'))).toBe(true)
+    expect(ebird.map((r) => r[5]).filter(Boolean)).toEqual(['Test Forest, Northland', 'Test Track'])
+  })
+})
+
 describe('Scythebill Format 1: native CSV', () => {
   it('parses species, earliest dates, seenMonths, places, heard-only, subspecies, and unmatched rows', () => {
     const res = parseScythebillCsv(fixture('native.csv'), taxonomy, regions)
@@ -57,6 +71,7 @@ describe('Scythebill Format 1: native CSV', () => {
       reason: 'no-match',
       date: '2024-05-01',
     })
+    expect(projectPlace(res.unmatched[0].place, regions)).toEqual({ country: 'CA', sub1: 'CA-BC' })
 
     const byCode = new Map(res.records.map((r) => [r.code, r]))
 
