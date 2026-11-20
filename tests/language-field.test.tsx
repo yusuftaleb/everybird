@@ -27,6 +27,9 @@ vi.mock('@/components/app/EverybirdProvider', () => ({
   }),
 }))
 
+// "Your list" and Add by hand need the import jobs and the taxonomy: not under test here.
+vi.mock('@/components/import/ImportPanel', () => ({ ImportPanel: () => null }))
+vi.mock('@/components/import/TickList', () => ({ TickList: () => null }))
 
 // Node 25 ships its own (unconfigured) localStorage global, which shadows jsdom's: use a plain in-memory one.
 class MemoryStorage {
