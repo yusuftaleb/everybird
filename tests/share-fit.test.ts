@@ -98,10 +98,10 @@ describe("the share dialog's rows", () => {
     expect(stepFor(COLUMNS.phone).name).toBe('small words')
   })
 
-  it('keeps Download, Copy link and Print on one line in every language at 300px and up', () => {
+  it('keeps Download and Copy link on one line in every language at 300px and up', () => {
     const over: string[] = []
     for (const [lang, m] of Object.entries(LANG)) {
-      const labels = [m.ui.share.downloadShort, m.ui.share.copyLink, m.ui.share.print.print]
+      const labels = [m.ui.share.downloadShort, m.ui.share.copyLink]
       for (const s of ROW_STEPS) {
         const need = rowNeed(labels, s)
         if (need > s.min) over.push(`${lang} ${s.name}: needs ${Math.ceil(need)}px, step starts at ${s.min}px`)

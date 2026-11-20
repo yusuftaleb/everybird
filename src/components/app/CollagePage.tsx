@@ -1,5 +1,5 @@
 'use client'
-import { Plus, ShareNetwork, UsersThree } from '@phosphor-icons/react'
+import { Plus } from '@phosphor-icons/react'
 import Link from '@/components/app/IntentLink'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { EditBird } from '@/components/edit/EditBird'
@@ -11,6 +11,7 @@ import { placesNoteFor, placesUnplacedFor } from '@/lib/list/filter-summary'
 import { undoEdit } from '@/lib/list/tick'
 import { nameOfCode } from '@/lib/species/names'
 import type { Edits, ListEntry } from '@/lib/list/model'
+import type { ViewKind } from '@/lib/view-resume'
 import { CollageView } from './CollageView'
 import { useEverybirdContext } from './EverybirdProvider'
 import { AppNotices } from './Notices'
@@ -23,14 +24,14 @@ const ShareDialog = lazy(() => import('@/components/share/ShareDialog'))
 
 /**
  * `/` with a list: the birder's collage (count, filters, controls, search, collage or list, tooltip, card and
- * editing, legend) under a one-row head with Share and "Add birds" (`onAdd`, the Add birds dialog). Removing a bird can be undone for a few seconds.
+ * editing, legend) under a one-row head with "Add birds" (`onAdd`, the Add birds dialog); Share is in the controls bar. Removing a bird can be undone for a few seconds.
  * Unmatched rows are mentioned under the stats, with the way to fix them on Settings.
  */
 export function CollagePage({ onAdd }: { onAdd: () => void }) {
   const eb = useEverybirdContext()
   const { t } = useI18n()
   const { state, dispatch, data } = eb
-  const [sharing, setSharing] = useState(false)
+  const [sharing, setSharing] = useState<ViewKind | null>(null)
   const [removed, setRemoved] = useState<(Removal & { before: Edits }) | null>(null)
   const { saved } = state
   const ready = !!data
@@ -70,14 +71,6 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
             <Plus aria-hidden="true" focusable="false" />
             <span className="eb-sm-hide">{t.collage.addBirds}</span>
           </button>
-          <Link href="/compare" className="eb-btn eb-btn-quiet" aria-label={t.compare.title} data-testid="compare-open">
-            <UsersThree aria-hidden="true" focusable="false" />
-            <span className="eb-sm-hide">{t.compare.open}</span>
-          </Link>
-          <button type="button" className="eb-btn" aria-haspopup="dialog" disabled={!ready || !state.list.length} onClick={() => setSharing(true)}>
-            <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
-            {t.collage.share}
-          </button>
         </>}
       />
       <AppNotices eb={eb} />
@@ -95,6 +88,8 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
             label={t.collage.regionYours}
             whose="your"
             cardActions={actions}
+            onShare={setSharing}
+            compare
             notice={unmatched > 0 ? (
               <p className="eb-mono eb-unmatched" data-testid="unmatched-note">
                 {plural(t.collage.unmatched, unmatched, { n: formatInt(unmatched, t.num) })} · <Link href="/settings#match">{plural(t.collage.fix, unmatched)}</Link>
@@ -103,7 +98,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
           />
           {sharing && (
             <Suspense fallback={null}>
-              <ShareDialog state={state} dispatch={dispatch} species={data.species} regions={data.regions} onClose={() => setSharing(false)} />
+              <ShareDialog state={state} dispatch={dispatch} species={data.species} regions={data.regions} view={sharing} onClose={() => setSharing(null)} />
             </Suspense>
           )}
         </>

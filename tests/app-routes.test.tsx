@@ -767,25 +767,16 @@ describe('editing', () => {
   })
 })
 
-describe('Name your collage (Settings > Your data)', () => {
-  it('is the collage title verbatim, is saved with the list and its backup, and empty means "My collage"', async () => {
-    const { storage } = await mount()
-    await drop(csv(...ROWS))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
-    const field = screen.getByLabelText('Name your collage')
-    expect(field).toHaveValue('')
-    expect(field).toHaveAttribute('maxLength', '40')
-    expect(field).toHaveAttribute('placeholder', 'e.g. Yusuf’s life list')
-    expect(field).toHaveAccessibleDescription('Shown as your collage’s title and on shares.')
-    fireEvent.change(field, { target: { value: 'Birds of 2026 ' } })
-    expect(field).toHaveValue('Birds of 2026 ') // the field keeps the space being typed; the list saves it trimmed
-    await waitFor(async () => expect((await storage.load())?.name).toBe('Birds of 2026'), { timeout: 2000 })
-    await go('/')
+describe('the collage title (set in the share dialog, no longer on Settings)', () => {
+  it('Settings has no title field; a saved title names the collage verbatim', async () => {
+    await mount({ path: '/', stored: (s) => { s.name = 'Birds of 2026'; s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
     expect(await screen.findByRole('heading', { level: 1, name: 'Birds of 2026' })).toBeInTheDocument() // no "'s birds"
     await go('/settings')
-    expect(screen.getByLabelText('Name your collage')).toHaveValue('Birds of 2026')
-    fireEvent.change(screen.getByLabelText('Name your collage'), { target: { value: '' } })
-    await go('/')
+    expect(screen.queryByLabelText('Name your collage')).toBeNull()
+  })
+
+  it('a list with no title is "My collage"', async () => {
+    await mount({ path: '/', stored: (s) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
     expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
   })
 
@@ -794,7 +785,7 @@ describe('Name your collage (Settings > Your data)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: "Ada's birds" })).toBeInTheDocument()
   })
 
-  it('a restored backup brings its title into the field', async () => {
+  it('a restored backup brings its title to the collage', async () => {
     await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
@@ -804,7 +795,8 @@ describe('Name your collage (Settings > Your data)', () => {
     const file = new File([toJson(backup)], 'backup.json', { type: 'application/json' })
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
     await act(async () => { fireEvent.click(await screen.findByRole('button', { name: 'Yes, replace it' })) })
-    await waitFor(() => expect(screen.getByLabelText('Name your collage')).toHaveValue('Sam'))
+    await go('/')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Sam' })).toBeInTheDocument()
   })
 })
 

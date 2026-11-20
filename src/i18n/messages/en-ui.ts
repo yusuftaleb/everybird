@@ -57,12 +57,6 @@ export const EN_UI = {
       head: 'Your data',
       noteMine: 'Your list lives on this device. Download it, or move it to another device with the backup.',
       noteRestore: 'Moving from another device? Restore the backup you downloaded there.',
-      /** Name your collage (NameField). */
-      name: {
-        label: 'Name your collage',
-        placeholder: 'e.g. Yusuf’s life list',
-        helper: 'Shown as your collage’s title and on shares.',
-      },
       downloadCsv: 'Download CSV',
       downloadJson: 'Download JSON backup',
       restore: 'Restore from backup',
@@ -148,17 +142,7 @@ export const EN_UI = {
       tree: 'Tree',
       heaviestFirst: 'Heaviest first',
       lightestFirst: 'Lightest first',
-      heaviest: 'Heaviest',
-      lightest: 'Lightest',
-      sortedHeaviest: 'Sorted by body mass, heaviest first. Reverse order',
-      sortedLightest: 'Sorted by body mass, lightest first. Reverse order',
       trueSize: 'True size',
-      trueShort: 'True',
-      trueSr: 'sticker sizes',
-      trueTitle: 'Size by body mass at true scale (big birds dwarf small ones)',
-      sci: 'Scientific',
-      sciShort: 'Sci.',
-      sciSr: 'names',
       markNewest: 'Mark latest lifer',
       markFirst: 'Mark first lifer',
       arrangement: 'Arrangement',
@@ -167,6 +151,17 @@ export const EN_UI = {
       byFamily: 'By family',
       byColour: 'By colour',
       trueOff: 'Not available by family: the birds in a row share one height.',
+      /** The bar's Style button and its panel (StylePanel): what changes the look. */
+      style: 'Style',
+      /** The Style panel's list sort order (List view). */
+      sort: 'Sort',
+      sciNames: 'Scientific names',
+      /** Why a Style control is disabled in the current view. */
+      onlyCollage: 'Only in the Collage view.',
+      onlyList: 'Only in the List view.',
+      noNamesOnMap: 'The map shows no bird names.',
+      /** Under Style > Dark image. */
+      darkNote: 'For share images and posters.',
       newestSr: ', latest lifer',
       firstSr: ', first lifer',
     },
@@ -409,6 +404,18 @@ export const EN_UI = {
     welcome: 'A lifetime of birds, as a sticker collage.',
     makeMine: 'Make mine',
     explore: 'Explore the sample',
+    /** The sample's guided tour (Tour.tsx), started by Explore the sample: the step count, one line per step, the buttons. */
+    tour: {
+      count: '{n} of {total}',
+      filter: 'Filter by place, date or conservation status. Every view follows the filter.',
+      view: 'See the same birds as a collage, a list, a map or a tree.',
+      bird: 'Press a bird to see when and where it was first seen.',
+      share: 'Share an image, print a poster or make a Big Year card.',
+      next: 'Next',
+      skip: 'Skip tour',
+      end: 'End tour',
+      own: 'Use your own list',
+    },
   },
   /** The shared view's page (/s/[token]) and SharedView. A link's own title and the page metadata are og.ts's. */
   shared: {
@@ -425,6 +432,8 @@ export const EN_UI = {
   /** Compare with friends (issue #10): /compare, and a comparison link's page, /c/<token>. */
   compare: {
     open: 'Compare',
+    /** The Compare page's way back to the collage's views. */
+    back: 'Back to the collage',
     title: 'Compare with friends',
     lede: 'Paste your friends’ Everybird share links. Your own list is always included.',
     linksLabel: 'Share links',
@@ -530,6 +539,10 @@ export const EN_UI = {
     nameLabel: 'Collage title',
     namePlaceholder: 'My 2024 birds',
     nameOptional: '(optional)',
+    /** The dialog's three parts (the third is bigYear.label); the Big Year part is offered only for a list with dates. */
+    parts: { label: 'What to share', image: 'Image', poster: 'Poster' },
+    /** Under the title field: it is saved with the list and names the collage page. */
+    nameHelper: 'Shown as your collage’s title and on shares.',
     showLatest: 'Show latest lifer',
     shareImage: 'Share image',
     download: 'Download image',
@@ -573,8 +586,6 @@ export const EN_UI = {
     downloadShort: 'Download',
     /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
     print: {
-      print: 'Print',
-      entry: 'Print a poster',
       size: 'Poster size',
       inches: '{w} × {h} in',
       sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px at 150 dpi',
@@ -591,7 +602,6 @@ export const EN_UI = {
       soft: 'Some stickers come from smaller files for now, so the biggest birds may print a little soft.',
       failedMemory: 'Couldn’t make the poster. Try a smaller size.',
       failed: 'Couldn’t make the poster. Try again.',
-      back: 'Share images',
       previewAlt: 'Preview of the {size} poster',
       bulk: {
         title: 'Multiple posters (ZIP)',

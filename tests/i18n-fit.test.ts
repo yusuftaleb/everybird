@@ -13,13 +13,13 @@ import { fr } from '@/i18n/messages/fr'
 import { de } from '@/i18n/messages/de'
 import { COUNT_LABEL_CHARS } from '@/lib/layout/count-box'
 
-// pl is left out until its maintainer decides on three labels over budget: trueSize, trueShort, shareImage.
+// pl is left out until its maintainer decides on two labels over budget: trueSize, shareImage.
 const OTHERS = { es, pt, nl, fr, de } as const
 
 /** Resting labels in fixed rows (dotted paths into `ui`). */
 const TIGHT = [
   'collage.controls.collage', 'collage.controls.list', 'collage.controls.tree', 'collage.controls.heaviestFirst', 'collage.controls.lightestFirst',
-  'collage.controls.heaviest', 'collage.controls.lightest', 'collage.controls.trueSize', 'collage.controls.sci',
+  'collage.controls.trueSize', 'collage.controls.style',
   'filters.label', 'filters.clear', 'filters.timeline.sumFrom', 'filters.timeline.sumTo',
   'import.add', 'import.replace', 'import.remove', 'import.inat.refresh', 'import.inat.cancel', 'tick.button',
   'share.format.story', 'share.format.post', 'share.format.square', 'share.shareImage', 'share.download', 'share.copyLink',
@@ -29,9 +29,6 @@ const TIGHT = [
 /** Settings' source-row buttons wrap under the row's text when they don't fit (SourceRow), so a whole word beats a
  *  clipped one: these get at least 12 characters. */
 const ROOMY: Record<string, number> = { 'import.add': 12, 'import.remove': 12 }
-
-/** Short forms: at most the English short form + 2. */
-const SHORT = ['collage.controls.trueShort', 'collage.controls.sciShort']
 
 function get(m: unknown, path: string): string {
   const v = path.split('.').reduce<unknown>((n, k) => (n as Record<string, unknown>)[k], (m as { ui: unknown }).ui)
@@ -48,11 +45,6 @@ describe('tight labels', () => {
         const v = get(m, path)
         const max = Math.max(e.length + 4, Math.ceil(e.length * 1.3), ROOMY[path] ?? 0)
         if (v.length > max) over.push(`${lang} ${path} "${v}" (en "${e}", max ${max})`)
-      }
-      for (const path of SHORT) {
-        const e = get(en, path)
-        const v = get(m, path)
-        if (v.length > e.length + 2) over.push(`${lang} ${path} "${v}" (en "${e}", max ${e.length + 2})`)
       }
     }
     expect(over).toEqual([])

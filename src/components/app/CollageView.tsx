@@ -32,6 +32,7 @@ import { useNames } from '@/lib/species/use-names'
 import type { CollageHit } from '@/lib/species/name-search'
 import type { Regions } from '@/lib/species/types'
 import type { StateLayout } from '@/lib/layout/layout-client'
+import type { ViewKind } from '@/lib/view-resume'
 import { useVariant } from '@/lib/variants'
 import { ControlsBar } from './ControlsBar'
 import { useCollageLayout } from './use-collage-layout'
@@ -67,6 +68,10 @@ type Props = {
   whose?: 'your' | 'this'
   /** Full layouts packed ahead of time, shown until the layout worker answers (the landing sample). */
   seed?: readonly StateLayout[]
+  /** The bar's Share button opens the share dialog for the birds on screen (`view`: what the view shows). None: no button. */
+  onShare?: (view: ViewKind) => void
+  /** The Compare entry in the view switcher (the birder's own collage). */
+  compare?: boolean
 }
 
 const pad = (d: string) => (d.length === 4 ? `${d}-00-00` : d.length === 7 ? `${d}-00` : d)
@@ -120,7 +125,7 @@ function latestLine(name: string, date: string | undefined, t: Ui): ReactNode {
   return rich(fmt(t.collage.legend.latestOn, { name, date: shown }), { time: (chunk) => <time dateTime={date}>{chunk}</time> })
 }
 
-export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, whose = 'this' }: Props) {
+export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShare, compare, whose = 'this' }: Props) {
   const { list, filter, mode, massOrder, sci, seen } = state
   // No places to map (a shared link without them): no Map tab, and a carried-over Map view shows the collage.
   const noMap = !!hideSections?.includes('places')
@@ -282,6 +287,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       <ControlsBar
         view={view}
         noMap={noMap}
+        compare={compare}
+        share={onShare && { onShare: () => onShare(view), disabled: !entries.length }}
         onView={(v) => { setPick(null); setTip(null); dispatch({ type: 'view', view: v }) }}
         trueSize={mode === 'true'}
         onTrueSize={(on) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })}

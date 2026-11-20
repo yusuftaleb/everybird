@@ -2,7 +2,7 @@
 import { ArrowRight, DownloadSimple, Plus, Trash } from '@phosphor-icons/react'
 import Link from '@/components/app/IntentLink'
 import { useRouter } from 'next/navigation'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
 import { AddBirdsDialog, type AddWay } from '@/components/import/AddBirdsDialog'
 import { MatchReport } from '@/components/import/MatchReport'
@@ -11,7 +11,7 @@ import { downloadText, today } from '@/lib/download'
 import { toCsv, toJson } from '@/lib/list/export'
 import { MYEBIRDDATA_PLACES, OBSORG_PLACES } from '@/lib/list/filter-summary'
 import { sourceCounts, summaryLine } from '@/lib/list/source-counts'
-import { NAME_MAX, type Saved } from '@/lib/list/storage'
+import type { Saved } from '@/lib/list/storage'
 import { useEverybirdContext } from './EverybirdProvider'
 import { EnglishNamesSwitch, LanguageField } from './LanguageField'
 import { AppNotices } from './Notices'
@@ -27,43 +27,9 @@ function wayFor(hash: string): AddWay | 'choose' | undefined {
   if (hash === '#tick') return 'hand'
 }
 
-/** Settings > Your data > "Name your collage": saved with the list as you type (trimmed, at most NAME_MAX characters),
- *  it is the collage's title, verbatim ("Yusuf’s life list", "Birds of 2026"), and each share dialog's starting title.
- *  Empty: "My collage" on the page and no title on shares. */
-function NameField({ stored, onName }: { stored: string; onName: (name: string) => void }) {
-  const id = useId()
-  const { t } = useI18n()
-  const n = t.settings.data.name
-  const [name, setName] = useState(stored)
-  // A restore or a forget changes the saved title underneath the field: follow it (not while the field only differs
-  // by the spaces the store trims off).
-  const [seen, setSeen] = useState(stored)
-  if (seen !== stored) {
-    setSeen(stored)
-    if (name.trim() !== stored) setName(stored)
-  }
-  return (
-    <div className="eb-namefield">
-      <label htmlFor={id} className="eb-namefield-label">{n.label}</label>
-      <input
-        id={id}
-        className="eb-input"
-        type="text"
-        autoComplete="off"
-        maxLength={NAME_MAX}
-        placeholder={n.placeholder}
-        aria-describedby={`${id}-n`}
-        value={name}
-        onChange={(e) => { setName(e.target.value); onName(e.target.value) }}
-      />
-      <p id={`${id}-n`} className="eb-note">{n.helper}</p>
-    </div>
-  )
-}
-
 /**
  * `/settings`, three sections: "Your list" (the summary line, "Add birds" for the Add birds dialog, the match report,
- * the counting rules), "Language" and "Your data" (the collage's title, downloads, restore, forget).
+ * the counting rules), "Language" and "Your data" (downloads, restore, forget; the collage's title is in the share dialog).
  */
 export function SettingsPage() {
   const eb = useEverybirdContext()
@@ -140,23 +106,20 @@ export function SettingsPage() {
             <p className="eb-note">{mine ? d.noteMine : d.noteRestore}</p>
           </div>
           {mine ? (
-            <div className="eb-datarow">
-              <NameField stored={saved.name ?? ''} onName={(name) => dispatch({ type: 'name', name })} />
-              <div className="eb-tools">
-                <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} onClick={() => data && downloadText(toCsv(state.list, data.species, data.regions, state.seen), `everybird-${today()}.csv`, 'text/csv')}>
-                  <DownloadSimple aria-hidden="true" focusable="false" />
-                  {d.downloadCsv}
-                </button>
-                <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} onClick={() => downloadText(toJson(saved), `everybird-backup-${today()}.json`, 'application/json')}>
-                  <DownloadSimple aria-hidden="true" focusable="false" />
-                  {d.downloadJson}
-                </button>
-                <RestoreBackup onRestore={(s) => { setConfirming(false); setRestoring(s) }} disabled={!data} />
-                <button type="button" className="eb-btn eb-btn-quiet eb-btn-danger" aria-expanded={confirming} onClick={() => { setRestoring(null); setConfirming((c) => !c) }}>
-                  <Trash aria-hidden="true" focusable="false" />
-                  {d.forget}
-                </button>
-              </div>
+            <div className="eb-tools">
+              <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} onClick={() => data && downloadText(toCsv(state.list, data.species, data.regions, state.seen), `everybird-${today()}.csv`, 'text/csv')}>
+                <DownloadSimple aria-hidden="true" focusable="false" />
+                {d.downloadCsv}
+              </button>
+              <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} onClick={() => downloadText(toJson(saved), `everybird-backup-${today()}.json`, 'application/json')}>
+                <DownloadSimple aria-hidden="true" focusable="false" />
+                {d.downloadJson}
+              </button>
+              <RestoreBackup onRestore={(s) => { setConfirming(false); setRestoring(s) }} disabled={!data} />
+              <button type="button" className="eb-btn eb-btn-quiet eb-btn-danger" aria-expanded={confirming} onClick={() => { setRestoring(null); setConfirming((c) => !c) }}>
+                <Trash aria-hidden="true" focusable="false" />
+                {d.forget}
+              </button>
             </div>
           ) : data && (
             <div className="eb-tools">

@@ -284,27 +284,25 @@ test('"why?" after the skipped count opens the entries that weren\'t counted', a
   await expect(list).toContainText("1 entry isn't a species");
 });
 
-test("Name your collage titles the collage verbatim and starts the share dialog's title; the dialog's edit stays in that share", async ({ page }) => {
+test("the share dialog's Collage title titles the collage verbatim and is saved with the list", async ({ page }) => {
   await importLifeList(page);
-  const field = page.getByLabel("Name your collage", { exact: true });
-  await expect(field).toHaveAttribute("placeholder", "e.g. Yusuf’s life list");
-  await expect(page.getByText("Shown as your collage’s title and on shares.")).toBeVisible();
-  await field.fill("Ada's Life List");
+  // Settings no longer has the field: the title lives in the share dialog.
+  await expect(page.getByLabel("Name your collage", { exact: true })).toHaveCount(0);
   await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Ada's Life List" })).toBeVisible();
   await page.getByRole("button", { name: "Share", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Share your collage" });
   const shareTitle = dialog.getByLabel("Collage title");
-  await expect(shareTitle).toHaveValue("Ada's Life List");
-  await shareTitle.fill("Birds of 2026");
+  await expect(dialog.getByText("Shown as your collage’s title and on shares.")).toBeVisible();
+  await shareTitle.fill("Ada's Life List");
   await dialog.getByRole("button", { name: "Close" }).click();
-  // The collage and Settings keep the saved title, after a reload too.
   await expect(page.getByRole("heading", { level: 1, name: "Ada's Life List" })).toBeVisible();
-  await page.goto("/settings");
-  await expect(page.getByLabel("Name your collage", { exact: true })).toHaveValue("Ada's Life List");
+  // After a reload too.
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: "Ada's Life List" })).toBeVisible();
   // Empty: "My collage".
-  await page.getByLabel("Name your collage", { exact: true }).fill("");
-  await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await page.getByRole("dialog", { name: "Share your collage" }).getByLabel("Collage title").fill("");
+  await page.keyboard.press("Escape");
   await expect(page.getByRole("heading", { level: 1, name: "My collage" })).toBeVisible();
 });
 
@@ -332,8 +330,8 @@ test("a list saved with an old bare name (v3) keeps the title it showed", async 
   );
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Ada's birds" })).toBeVisible();
-  await page.goto("/settings");
-  await expect(page.getByLabel("Name your collage", { exact: true })).toHaveValue("Ada's birds");
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Share your collage" }).getByLabel("Collage title")).toHaveValue("Ada's birds");
 });
 
 test("Settings fits about 1.5 screens at 1280x800 with a source connected", async ({ page }) => {

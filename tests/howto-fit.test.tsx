@@ -78,21 +78,19 @@ describe.each(LANGS)('About demo fit in %s', (lang) => {
   })
 
   it('the controls bar is one row on the wide design', () => {
-    const t = (sel: string) => txt(wide.querySelector(sel))
-    const sws = all(wide, '.ebd-sw').map((e) => body(txt(e), 12) + 7 + 24 + 18)
-    const filters = body(txt(wide.querySelector('.ebd-drop')), 12) + 15 + 5 + 10 + 5 + 18
-    const total = 2 * 30 + 2 + 2 + sws[0] + 2 + sws[1] + 6 + filters + 6 + 30 + 8 + 2
-    // two icon tabs, the tools pushed right, Filters, search: the bar is the column wide
-    expect(t('.ebd-drop')).toBeTruthy()
+    const drops = all(wide, '.ebd-drop').map((e) => body(txt(e), 12) + 15 + 5 + 10 + 5 + 18)
+    const total = 2 * 30 + 2 + 2 + drops[0] + 6 + drops[1] + 6 + 30 + 8 + 2
+    // two icon tabs, Style pushed right, Filters, search: the bar is the column wide
+    expect(drops).toHaveLength(2)
     expect(total + MARGIN).toBeLessThanOrEqual(COL.wide)
   })
 
-  it('the controls bar on the compact design: row one holds the tabs, the two switches and the search', () => {
-    const sws = all(compact, '.ebd-sw').map((e) => body(txt(e), 11.5) + 7 + 24 + 14)
-    const row1 = 2 * 28 + 2 + 2 + sws[0] + 2 + sws[1] + 4 + 28 + 8 + 2
+  it('the controls bar on the compact design: row one holds the tabs, Style and the search', () => {
+    const style = body(txt(compact.querySelector('.ebd-dock-tools .ebd-drop')), 11.5) + 15 + 5 + 10 + 14
+    const row1 = 2 * 28 + 2 + 2 + style + 4 + 28 + 8 + 2
     expect(row1 + MARGIN).toBeLessThanOrEqual(COL.compact)
     // the Filters button is its own full-width row
-    expect(body(txt(compact.querySelector('.ebd-drop')), 11.5) + 15 + 5 + 10 + 14 + MARGIN).toBeLessThanOrEqual(COL.compact)
+    expect(body(txt(compact.querySelector('.ebd-dock-filters .ebd-drop')), 11.5) + 15 + 5 + 10 + 14 + MARGIN).toBeLessThanOrEqual(COL.compact)
   })
 
   it('the order chips wrap into the two rows the filter box has (wide), the picker fits (compact)', () => {
