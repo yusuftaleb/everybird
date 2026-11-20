@@ -428,6 +428,7 @@ export const nl: Messages = {
       untitledTitle: { one: 'Een levenslijst: {n} soort', other: 'Een levenslijst: {n} soorten' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
       dark: 'Donkere afbeelding',
+      transparent: 'Transparante achtergrond',
       bigYear: {
         label: 'Groot Jaar',
         year: 'Jaar',

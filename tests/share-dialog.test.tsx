@@ -292,6 +292,15 @@ describe('share dialog', () => {
     expect(document.documentElement.dataset.theme).toBeUndefined()
   })
 
+  it('"Transparent background" re-renders the share image without its background; off by default', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    expect(vi.mocked(image.renderShareImage).mock.calls[0][0]).toMatchObject({ transparent: false })
+    fireEvent.click(screen.getByRole('switch', { name: 'Transparent background' }))
+    await waitFor(() => expect(renders).toHaveLength(2))
+    expect(vi.mocked(image.renderShareImage).mock.calls[1][0]).toMatchObject({ format: 'story', transparent: true })
+  })
+
   it('shows "Dark image" even when there is no latest lifer', () => {
     render(<ShareDialog state={stateWith([{ ...entry('ostric2'), date: undefined }])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     expect(screen.queryByRole('switch', { name: 'Show latest lifer' })).toBeNull()
@@ -411,6 +420,21 @@ describe('share dialog: print mode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Share images' }))
     expect(screen.queryByRole('group', { name: 'Poster size' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Share image' })).toBeInTheDocument()
+  })
+
+  it('"Transparent background" is off at first; on, the poster is made transparent and offers the PNG only', async () => {
+    open()
+    toPrint()
+    const sw = screen.getByRole('switch', { name: 'Transparent background' })
+    expect(sw).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(sw)
+    expect(sw).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByTestId('share-preview')).toHaveAttribute('data-transparent')
+    await startMake()
+    expect(makes[0].opts).toMatchObject({ transparent: true })
+    await act(async () => makes[0].resolve(fakePoster()))
+    expect(screen.getByRole('button', { name: 'Download PNG' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Download PDF' })).toBeNull()
   })
 
   it('Make poster shows a progressbar with Cancel; when done, Download PNG and Download PDF save everybird-a2.png/.pdf at once', async () => {

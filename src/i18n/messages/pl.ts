@@ -421,6 +421,7 @@ export const pl: Messages = {
       oldLinkTitle: 'Lista życia: {name}',
       untitledTitle: { one: 'Lista życia: {n} gatunek', other: 'Lista życia: {n} gatunków' },
       dark: 'Ciemny obraz',
+      transparent: 'Przezroczyste tło',
       bigYear: {
         label: 'Wielki Rok',
         year: 'Rok',

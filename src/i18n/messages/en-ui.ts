@@ -503,6 +503,7 @@ export const EN_UI = {
     untitledTitle: { one: 'A life list: {n} species', other: 'A life list: {n} species' },
     /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
     dark: 'Dark image',
+    transparent: 'Transparent background',
     bigYear: {
       label: 'Big Year',
       year: 'Year',

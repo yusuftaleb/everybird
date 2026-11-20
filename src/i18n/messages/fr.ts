@@ -428,6 +428,7 @@ export const fr: Messages = {
       untitledTitle: { one: 'Une liste de vie\u00a0: {n} espèce', other: 'Une liste de vie\u00a0: {n} espèces' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
       dark: 'Image sombre',
+      transparent: 'Fond transparent',
       bigYear: {
         label: 'Grande année',
         year: 'Année',

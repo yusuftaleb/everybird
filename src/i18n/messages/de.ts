@@ -421,6 +421,7 @@ export const de: Messages = {
       oldLinkTitle: 'Lebensliste von {name}',
       untitledTitle: { one: 'Eine Lebensliste: {n} Art', other: 'Eine Lebensliste: {n} Arten' },
       dark: 'Dunkles Bild',
+      transparent: 'Transparenter Hintergrund',
       bigYear: {
         label: 'Großes Jahr',
         year: 'Jahr',
