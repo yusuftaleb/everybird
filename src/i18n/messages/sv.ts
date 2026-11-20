@@ -19,6 +19,7 @@ export const sv: Messages = {
         about: 'Om',
       },
       darkMode: 'Mörkt läge',
+      toTop: 'Till toppen',
       footer: {
         credits: 'Alla erkännanden',
         madeBy: 'Gjord av Yusuf Taleb',

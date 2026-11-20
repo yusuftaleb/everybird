@@ -21,6 +21,7 @@ export const zhHant: Messages = {
         about: '關於',
       },
       darkMode: '深色模式',
+      toTop: '回到頂端',
       footer: {
         credits: '所有致謝',
         madeBy: '由 Yusuf Taleb 製作',

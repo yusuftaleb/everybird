@@ -26,6 +26,8 @@ export const EN_UI = {
     },
     /** The theme switch's aria-label. */
     darkMode: 'Dark mode',
+    /** The "Back to top" button's aria-label and tooltip (BackToTop). */
+    toTop: 'Back to top',
     footer: {
       credits: 'All credits',
       madeBy: 'Made by Yusuf Taleb',

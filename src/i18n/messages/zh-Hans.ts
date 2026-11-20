@@ -21,6 +21,7 @@ export const zhHans: Messages = {
         about: '关于',
       },
       darkMode: '深色模式',
+      toTop: '回到顶部',
       footer: {
         credits: '全部致谢',
         madeBy: '由Yusuf Taleb制作',

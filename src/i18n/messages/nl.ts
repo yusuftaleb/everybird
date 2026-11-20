@@ -19,6 +19,7 @@ export const nl: Messages = {
         about: 'Over',
       },
       darkMode: 'Donkere modus',
+      toTop: 'Terug naar boven',
       footer: {
         credits: 'Alle credits',
         madeBy: 'Gemaakt door Yusuf Taleb',

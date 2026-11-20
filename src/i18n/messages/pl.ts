@@ -21,6 +21,7 @@ export const pl: Messages = {
         about: 'Info',
       },
       darkMode: 'Tryb ciemny',
+      toTop: 'Wróć na górę',
       footer: {
         credits: 'Wszystkie podziękowania',
         madeBy: 'Autor: Yusuf Taleb',
