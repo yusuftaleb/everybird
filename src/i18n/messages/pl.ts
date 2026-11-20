@@ -491,6 +491,7 @@ export const pl: Messages = {
           obsorg: { one: 'z observation.org', other: 'wszystkie z observation.org' },
           sheet: { one: 'z twojego arkusza', other: 'wszystkie z twojego arkusza' },
           scythebill: { one: 'z Scythebill', other: 'wszystkie z Scythebill' },
+          igoterra: { one: 'z iGoTerra', other: 'wszystkie z iGoTerra' },
           manual: { one: 'zaznaczony ręcznie', other: 'wszystkie zaznaczone ręcznie' },
         },
         first: {
@@ -499,6 +500,7 @@ export const pl: Messages = {
           obsorg: { one: '{n} z observation.org', other: '{n} z observation.org' },
           sheet: { one: '{n} z twojego arkusza', other: '{n} z twojego arkusza' },
           scythebill: { one: '{n} z Scythebill', other: '{n} z Scythebill' },
+          igoterra: { one: '{n} z iGoTerra', other: '{n} z iGoTerra' },
           manual: { one: '{n} zaznaczony ręcznie', other: 'zaznaczone ręcznie: {n}' },
         },
         more: {
@@ -506,6 +508,7 @@ export const pl: Messages = {
           obsorg: { one: '{n} więcej z observation.org', other: '{n} więcej z observation.org' },
           sheet: { one: '{n} więcej z twojego arkusza', other: '{n} więcej z twojego arkusza' },
           scythebill: { one: '{n} więcej z Scythebill', other: '{n} więcej z Scythebill' },
+          igoterra: { one: '{n} więcej z iGoTerra', other: '{n} więcej z iGoTerra' },
           manual: { one: '{n} zaznaczony ręcznie', other: 'zaznaczone ręcznie: {n}' },
         },
       },
@@ -606,6 +609,22 @@ export const pl: Messages = {
           unknown: 'Nie udało się odczytać tego pliku. Użyj eksportu CSV z Scythebill albo pliku Scythebill sformatowanego dla eBird.',
           noBirds: 'W tym pliku Scythebill nie ma ptaków.',
           damaged: 'Nie udało się odczytać tego pliku. Może być uszkodzony albo nie jest eksportem z Scythebill.',
+        },
+      },
+      igoterra: {
+        title: 'iGoTerra',
+        what: 'twój eksport z iGoTerra',
+        guide: 'Twój eksport obserwacji z iGoTerra (Backup.csv). Przypisuje każdego ptaka do kraju, a do stanu lub prowincji, gdy iGoTerra ją podaje.',
+        help: 'Wyeksportuj swoje obserwacje z iGoTerra jako CSV.',
+        howTo: 'Jak zdobyć ten plik?',
+        choose: 'Wybierz plik iGoTerra',
+        input: 'Plik iGoTerra',
+        fallback: 'Eksport z iGoTerra',
+        whereRow: 'iGoTerra, wiersz {row}',
+        errors: {
+          unknown: 'Nie udało się odczytać tego pliku. Użyj eksportu obserwacji z iGoTerra: pliku CSV, którego pierwszy wiersz zaczyna się od Common Name, Scientific Name, Scientific Family.',
+          noBirds: 'W tym pliku iGoTerra nie ma ptaków.',
+          damaged: 'Nie udało się odczytać tego pliku. Może być uszkodzony albo nie jest eksportem z iGoTerra.',
         },
       },
       ebird: {

@@ -502,6 +502,7 @@ export const nl: Messages = {
           obsorg: { one: 'allemaal van observation.org', other: 'allemaal van observation.org' },
           sheet: { one: 'uit je spreadsheet', other: 'allemaal uit je spreadsheet' },
           scythebill: { one: 'uit Scythebill', other: 'allemaal uit Scythebill' },
+          igoterra: { one: 'uit iGoTerra', other: 'allemaal uit iGoTerra' },
           manual: { one: 'met de hand aangevinkt', other: 'allemaal met de hand aangevinkt' },
         },
         first: {
@@ -510,6 +511,7 @@ export const nl: Messages = {
           obsorg: { one: '{n} van observation.org', other: '{n} van observation.org' },
           sheet: { one: '{n} uit je spreadsheet', other: '{n} uit je spreadsheet' },
           scythebill: { one: '{n} uit Scythebill', other: '{n} uit Scythebill' },
+          igoterra: { one: '{n} uit iGoTerra', other: '{n} uit iGoTerra' },
           manual: { one: '{n} met de hand aangevinkt', other: '{n} met de hand aangevinkt' },
         },
         more: {
@@ -517,6 +519,7 @@ export const nl: Messages = {
           obsorg: { one: '{n} extra van observation.org', other: '{n} extra van observation.org' },
           sheet: { one: '{n} extra uit je spreadsheet', other: '{n} extra uit je spreadsheet' },
           scythebill: { one: '{n} extra uit Scythebill', other: '{n} extra uit Scythebill' },
+          igoterra: { one: '{n} extra uit iGoTerra', other: '{n} extra uit iGoTerra' },
           manual: { one: '{n} met de hand aangevinkt', other: '{n} met de hand aangevinkt' },
         },
       },
@@ -621,6 +624,22 @@ export const nl: Messages = {
           unknown: 'Kon dit bestand niet lezen. Gebruik een Scythebill CSV-export of een Scythebill-bestand opgemaakt voor eBird.',
           noBirds: 'Geen vogels gevonden in dit Scythebill-bestand.',
           damaged: 'Kon dit bestand niet lezen. Het is mogelijk beschadigd of geen Scythebill-export.',
+        },
+      },
+      igoterra: {
+        title: 'iGoTerra',
+        what: 'je iGoTerra-export',
+        guide: 'Je export van waarnemingen uit iGoTerra (Backup.csv). Plaatst elke vogel per land, en per staat of provincie als iGoTerra die noemt.',
+        help: 'Exporteer je waarnemingen uit iGoTerra als CSV.',
+        howTo: 'Hoe krijg ik dit bestand?',
+        choose: 'Kies je iGoTerra-bestand',
+        input: 'iGoTerra-bestand',
+        fallback: 'iGoTerra-export',
+        whereRow: 'Rij {row} van iGoTerra',
+        errors: {
+          unknown: 'Kon dit bestand niet lezen. Gebruik de export van waarnemingen uit iGoTerra: een CSV waarvan de eerste rij begint met Common Name, Scientific Name, Scientific Family.',
+          noBirds: 'Geen vogels gevonden in dit iGoTerra-bestand.',
+          damaged: 'Kon dit bestand niet lezen. Het is mogelijk beschadigd of geen iGoTerra-export.',
         },
       },
       ebird: {

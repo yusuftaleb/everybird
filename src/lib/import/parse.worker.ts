@@ -6,10 +6,11 @@ import { parseEbirdMyData } from './ebird-mydata'
 import { DamagedCsvError, parseObsOrgSpecies, parseObsOrgObservations, type ObsOrgObservationsResult } from './obsorg'
 import { parseSheetText, parseSheetXlsx } from './sheet'
 import { parseScythebillCsv, parseScythebillEbird } from './scythebill'
+import { parseIgoterra } from './igoterra'
 import { DamagedXlsxError } from './xlsx'
 import type { Regions } from '@/lib/species/types'
 
-export type ParseKind = 'ebird-lifelist' | 'ebird-mydata' | 'obsorg-species' | 'obsorg-observations' | 'scythebill-csv' | 'scythebill-ebird' | 'xlsx' | 'sheet-text' | 'sheet-paste'
+export type ParseKind = 'ebird-lifelist' | 'ebird-mydata' | 'obsorg-species' | 'obsorg-observations' | 'scythebill-csv' | 'scythebill-ebird' | 'igoterra' | 'xlsx' | 'sheet-text' | 'sheet-paste'
 /** Observation.org uses iNaturalist synonyms. File types with locations also use the place registry. */
 export type ParseRequest =
   | { kind: 'ebird-lifelist'; file: File; regions?: Regions }
@@ -18,6 +19,7 @@ export type ParseRequest =
   | { kind: 'obsorg-observations'; file: File; synonyms: Record<string, string>; regions: Regions }
   | { kind: 'scythebill-csv'; file: File; regions?: Regions }
   | { kind: 'scythebill-ebird'; file: File; regions?: Regions }
+  | { kind: 'igoterra'; file: File; regions?: Regions }
   | { kind: 'xlsx'; file: File; regions?: Regions }
   | { kind: 'sheet-text'; file: File; regions?: Regions }
   | { kind: 'sheet-paste'; text: string; regions?: Regions }
@@ -86,6 +88,9 @@ export async function handleParseMessage(
         break
       case 'scythebill-ebird':
         result = parseScythebillEbird(await msg.file.text(), t, msg.regions, onProgress)
+        break
+      case 'igoterra':
+        result = parseIgoterra(await msg.file.text(), t, msg.regions, onProgress)
         break
       case 'xlsx':
         result = parseSheetXlsx(await msg.file.arrayBuffer(), t, msg.regions, onProgress)

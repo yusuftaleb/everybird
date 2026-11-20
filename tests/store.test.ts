@@ -117,7 +117,7 @@ describe('store reducer', () => {
   })
 
   it('restore recomputes everything from the backup', () => {
-    const saved = { ...emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('crow', 'ebird')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], manual: [] } }
+    const saved = { ...emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('crow', 'ebird')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], igoterra: [], manual: [] } }
     const s = run(initialState(), { type: 'restore', saved })
     expect(s.saved).toBe(saved)
     expect(s.list.map((e) => e.code)).toEqual(['crow'])

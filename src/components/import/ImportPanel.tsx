@@ -12,6 +12,7 @@ import type { Regions } from '@/lib/species/types'
 import { EbirdDrop, type EbirdConnected } from './EbirdDrop'
 import { InatForm } from './InatForm'
 import { ObsOrgDrop, type ObsOrgConnected } from './ObsOrgDrop'
+import { IgoterraDrop } from './IgoterraDrop'
 import { ScythebillDrop } from './ScythebillDrop'
 import { SheetDrop } from './SheetDrop'
 import { TickList } from './TickList'
@@ -93,6 +94,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
   const inatOn = slotConnected(saved, 'inat')
   const sheetOn = slotConnected(saved, 'sheet')
   const scythebillOn = slotConnected(saved, 'scythebill')
+  const igoterraOn = slotConnected(saved, 'igoterra')
   const focusWay = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.focus({ preventScroll: true }))
   const remove = (slot: Exclude<Slot, 'manual'>) => {
     dispatch({ type: 'remove-source', source: slot })
@@ -105,11 +107,13 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             ? 'way-sheet'
             : slot === 'scythebill'
               ? 'way-scythebill'
-              : 'way-ebird',
+              : slot === 'igoterra'
+                ? 'way-igoterra'
+                : 'way-ebird',
     )
   }
   // One file at a time across all file groups.
-  const fileBusy = jobs.ebird.busy || jobs.obsorg.busy || jobs.sheet.busy || jobs.scythebill.busy
+  const fileBusy = jobs.ebird.busy || jobs.obsorg.busy || jobs.sheet.busy || jobs.scythebill.busy || jobs.igoterra.busy
   // When a file last landed, in either group: the file groups fold their Add panels (an iNaturalist fetch, running
   // beside them, leaves an open panel alone).
   const [fileLandedAt, setFileLandedAt] = useState<number | undefined>(undefined)
@@ -198,6 +202,19 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             onRemove={() => remove('scythebill')}
             saved={saved}
             counts={counts.rows.scythebill}
+            landedAt={fileLandedAt}
+          />
+        </Group>
+        <Group id="way-igoterra" label={t.import.igoterra.title}>
+          <IgoterraDrop
+            job={jobs.igoterra}
+            onFile={(f) => void jobs.readIgoterra(f)}
+            disabled={disabled || fileBusy}
+            connected={igoterraOn}
+            details={saved.sources?.igoterra}
+            onRemove={() => remove('igoterra')}
+            saved={saved}
+            counts={counts.rows.igoterra}
             landedAt={fileLandedAt}
           />
         </Group>

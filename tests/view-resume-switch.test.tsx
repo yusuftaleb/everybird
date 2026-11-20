@@ -61,7 +61,7 @@ afterEach(() => {
 describe('the list store after a language switch', () => {
   it('takes the filter and the layout switches back with the stored list, without analytics', async () => {
     const storage = await import('@/lib/list/storage')
-    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], manual: [] } })
+    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], igoterra: [], manual: [] } })
     const store = await import('@/lib/list/store')
     leaveRecord()
     const { result } = renderHook(() => store.useEverybird())
@@ -79,7 +79,7 @@ describe('the list store after a language switch', () => {
 
   it('still restores under StrictMode, whose effects run twice on mount', async () => {
     const storage = await import('@/lib/list/storage')
-    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], manual: [] } })
+    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], igoterra: [], manual: [] } })
     const store = await import('@/lib/list/store')
     leaveRecord()
     const { result } = renderHook(() => store.useEverybird(), { wrapper: StrictMode })
@@ -90,7 +90,7 @@ describe('the list store after a language switch', () => {
 
   it('a second switch before the store is ready carries the view that is still on its way', async () => {
     const storage = await import('@/lib/list/storage')
-    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], manual: [] } })
+    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], igoterra: [], manual: [] } })
     const store = await import('@/lib/list/store')
     const resume = await import('@/lib/view-resume')
     leaveRecord()

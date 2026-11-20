@@ -8,6 +8,7 @@ export type FileKind =
   | 'obsorg-observations'
   | 'scythebill-csv'
   | 'scythebill-ebird'
+  | 'igoterra'
   | 'xlsx'
   | 'sheet-text'
   | 'unsupported-sheet'
@@ -22,6 +23,7 @@ export const FILE_KINDS: readonly { kind: FileKind; slot: Slot | null; test: (co
   { kind: 'obsorg-observations', slot: 'obsorg', test: c => ['scientific name', 'species type', 'country', 'date'].every(x => c.includes(x)) },
   { kind: 'scythebill-csv', slot: 'scythebill', test: c => ['scientific', 'subspecies', 'index', 'trip name'].every(x => c.includes(x)) },
   { kind: 'scythebill-ebird', slot: 'scythebill', test: (_c, line) => isScythebillEbirdRow(line) },
+  { kind: 'igoterra', slot: 'igoterra', test: c => ['scientific name', 'scientific family', 'fo', 'main group', 'species group'].every(x => c.includes(x)) },
   { kind: 'xlsx', slot: 'sheet', test: () => false },
   { kind: 'sheet-text', slot: 'sheet', test: () => false },
 ]
