@@ -8,6 +8,7 @@ import type { Ui } from '@/i18n/messages/en'
 import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TreeLevel } from '@/lib/tree/levels'
+import type { TreeLayout } from '@/lib/tree-mine'
 import { IMAGE_SCALE, SITE_LABEL, ensureViewFonts, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
 /** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone, the
@@ -16,8 +17,9 @@ export const MAP_FOOTER = SITE_LABEL
 export const TREE_FOOTER = `${SITE_LABEL} · tree: AvesData, McTavish et al., CC BY 4.0`
 
 /** The level the view had open when Share was pressed: the country the map has open (`names`: how the map names its
- *  places, in the UI language), or the tree's (`mine`: its "Only my birds" switch). */
-export type ShareAt = { place?: string; names?: (key: string) => string; tree?: TreeLevel; mine?: boolean }
+ *  places, in the UI language), or the tree's (`mine`: its "Lifers only" switch; `layout`: the layout on screen, which
+ *  the square and wide images draw). */
+export type ShareAt = { place?: string; names?: (key: string) => string; tree?: TreeLevel; mine?: boolean; layout?: TreeLayout }
 /** A view image's input: the share image's, with the view's level, the app state it reads and the UI strings. */
 export type ViewImageOpts = ShareImageOpts & { at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; hideTotals?: boolean }
 export type Area = { x: number; y: number; w: number; h: number }

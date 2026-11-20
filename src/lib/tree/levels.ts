@@ -10,7 +10,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 import { cladeTree, drawTree, isLeaf, leavesOf, type Drawing, type Leaf, type Node, type Tree } from './tree'
 
-/** What the tips of the open branch are: the level switch's four choices, top to bottom. */
+/** What the tips of the open branch are: the Level menu's four choices, top to bottom. */
 export type TipRank = 'orders' | 'families' | 'genera' | 'species'
 export const RANKS: readonly TipRank[] = ['orders', 'families', 'genera', 'species']
 /** The most tips one drawing shows; a rank that would draw more is not offered (open a branch first). Lifers only
@@ -21,7 +21,8 @@ export const MAX_TIPS = 300
  *  path) and the rank of its tips (absent: the rank just under the open branch). */
 export type TreeLevel = { ord?: string; fam?: string; genus?: string; tips?: TipRank }
 
-/** Row heights in px: a tip (a 44px press) and the order headings between groups. */
+/** Row heights in px: a tip (a 44px press; on screen a row grows with its name and the drawing follows the rows'
+ *  measured centres, so these place the share image's rows and the drawing before measuring) and the order headings. */
 export const ROW_H = 44
 export const HEAD_H = 32
 
@@ -123,7 +124,7 @@ export function isClade(tree: Tree, tips: readonly number[]): boolean {
 }
 
 /** A level with no row left ("Lifers only" where no bird of the list is). */
-const NO_DRAWING: Drawing = { leaves: [], seen: '', unseen: '', seenDot: '', unseenDot: '', seenNodes: '', unseenNodes: '', rootAge: 1 }
+const NO_DRAWING: Drawing = { leaves: [], seen: '', unseen: '', seenDot: '', unseenDot: '', rootAge: 1 }
 
 const RAW_KEY: Record<TipRank, (r: SpeciesRow) => string> = { orders: (r) => r.ord, families: (r) => r.fam, genera: (r) => genusOf(r.sci), species: (r) => r.code }
 
@@ -261,3 +262,13 @@ export function taxonCover(rows: readonly SpeciesRow[], codes: ReadonlySet<strin
   }
   return out
 }
+
+/** The most columns the rows under the fan or circle take (Yusuf, 2026-11-20: never four). */
+export const MAX_COLUMNS = 3
+/**
+ * How many columns the rows under the fan or circle take in `width` px, `gap` px apart, so the widest row (`widest`
+ * px, its name in full) fits on one line: as many as fit, from 1 to MAX_COLUMNS. One column even when the widest
+ * does not fit; its name wraps then, never cut.
+ */
+export const rowColumns = (width: number, widest: number, gap: number): number =>
+  Math.max(1, Math.min(MAX_COLUMNS, Math.floor((width + gap) / (Math.max(1, widest) + gap))))

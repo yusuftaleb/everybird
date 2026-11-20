@@ -86,7 +86,7 @@ describe('controls bar', () => {
 })
 
 describe('the bar: one press per switch, each only in its view', () => {
-  it('Map shows none of the switches; Tree shows Lifers only, held on the device; no Style, Share or Compare in the bar', () => {
+  it('Map shows none of the switches; Tree shows Lifers only, held on the device, and Scientific; no Style, Share or Compare in the bar', () => {
     render(<Harness />)
     const view = screen.getByRole('group', { name: 'View' })
     expect(screen.queryByRole('button', { name: 'Style' })).toBeNull()
@@ -98,7 +98,8 @@ describe('the bar: one press per switch, each only in its view', () => {
     expect(screen.queryByRole('button', { name: /^Sorted by body mass/ })).toBeNull()
     fireEvent.click(within(view).getByRole('button', { name: 'Tree' }))
     const mine = screen.getByRole('switch', { name: 'Lifers only' })
-    expect(screen.getAllByRole('switch')).toEqual([mine]) // no True size or Scientific in the tree
+    // No True size in the tree; Scientific is there, since the tree shows one name by it.
+    expect(screen.getAllByRole('switch')).toEqual([mine, screen.getByRole('switch', { name: /^Scientific/ })])
     expect(mine).toHaveAttribute('aria-checked', 'false')
     fireEvent.click(mine)
     expect(mine).toHaveAttribute('aria-checked', 'true')

@@ -26,6 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
 /** The public repo (created at launch, Task 25). */
 const REPO_URL = 'https://github.com/yusuftaleb/everybird'
 const HUASHU_URL = 'https://github.com/alchaincyf/huashu-bird-sticker'
+const AVES_URL = 'https://github.com/McTavishLab/AvesData'
 
 /** Read once at build time: the page is static. Only the two header fields are used. */
 function dataVersions(): { ebirdTaxonomy: string; huashuCommit: string } {
@@ -34,6 +35,12 @@ function dataVersions(): { ebirdTaxonomy: string; huashuCommit: string } {
     huashuCommit?: string
   }
   return { ebirdTaxonomy: head.ebirdTaxonomy ?? 'unknown', huashuCommit: head.huashuCommit ?? '' }
+}
+
+/** The bird tree's header fields, for its credit (read once at build time, as dataVersions). */
+function treeVersions(): { tree: string; taxonomy: string; year: string } {
+  const f = JSON.parse(readFileSync(join(process.cwd(), 'public/data/tree.v1.json'), 'utf8')) as { tree?: string; taxonomy?: string; ebirdTaxonomy?: string }
+  return { tree: f.tree ?? 'AvesData', taxonomy: f.taxonomy ?? 'unknown', year: f.ebirdTaxonomy ?? 'unknown' }
 }
 
 function A({ href, children }: { href: string; children: ReactNode }) {
@@ -61,6 +68,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
   const a = page.about
   const c = a.credits
   const { ebirdTaxonomy, huashuCommit } = dataVersions()
+  const tree = treeVersions()
   return (
     <main className="eb-page eb-about eb-page-titled">
       <PageHead title={page.meta.about.title} lede={a.lede} />
@@ -127,6 +135,9 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
           </Credit>
           <Credit label={c.label.redList} title={<A href={AVILIST.doi}>AviList</A>}>
             {rich(fmt(c.redList, { birdlife: AVILIST.birdlife, version: AVILIST.version, year: String(AVILIST.year) }), { cc: link('https://creativecommons.org/licenses/by/4.0/') })}
+          </Credit>
+          <Credit label={c.label.tree} title={<A href={AVES_URL}>AvesData</A>}>
+            {rich(fmt(c.tree, tree), { cc: link('https://creativecommons.org/licenses/by/4.0/') })}
           </Credit>
           <Credit label={c.label.api} title={<A href="https://api.inaturalist.org/v1/docs/">iNaturalist</A>}>
             {c.api}

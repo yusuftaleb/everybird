@@ -1,40 +1,61 @@
-// The Tree view's "Lifers only" (the bar's switch in Tree view; TreeView reads it, and the tree's share image follows
-// it): a per-device choice kept in localStorage, off when unset or unreadable,
-// the same in every tab. Without storage the choice holds for the page load.
+// The Tree view's per-device choices, kept in localStorage, the same in every tab; without storage a choice holds for
+// the page load. "Lifers only" (the bar's switch; TreeView reads it, and the tree's share image follows it), off when
+// unset or unreadable; and the Layout menu's choice (Fan, Circle, Rows), unset until one is picked, when the view draws
+// the fan from FAN_FROM px wide and rows under it.
 import { useSyncExternalStore } from 'react'
 
 export const TREE_MINE_KEY = 'everybird:tree-mine'
+export const TREE_LAYOUT_KEY = 'everybird:tree-layout'
 
-let memory: boolean | null = null
-const listeners = new Set<() => void>()
+export type TreeLayout = 'fan' | 'circle' | 'rows'
+export const TREE_LAYOUTS: readonly TreeLayout[] = ['fan', 'circle', 'rows']
 
-export function treeMine(): boolean {
-  if (memory !== null) return memory
-  try {
-    return localStorage.getItem(TREE_MINE_KEY) === '1'
-  } catch {
-    return false
+/** One stored string: read, written (null removes it) and watched. */
+function stored(key: string) {
+  let memory: string | null | undefined
+  const listeners = new Set<() => void>()
+  const get = (): string | null => {
+    if (memory !== undefined) return memory
+    try {
+      return localStorage.getItem(key)
+    } catch {
+      return null
+    }
   }
-}
-
-export function setTreeMine(on: boolean): void {
-  try {
-    if (on) localStorage.setItem(TREE_MINE_KEY, '1')
-    else localStorage.removeItem(TREE_MINE_KEY)
-    memory = null
-  } catch {
-    memory = on
+  const set = (v: string | null) => {
+    try {
+      if (v === null) localStorage.removeItem(key)
+      else localStorage.setItem(key, v)
+      memory = undefined
+    } catch {
+      memory = v
+    }
+    for (const f of listeners) f()
   }
-  for (const f of listeners) f()
+  const subscribe = (f: () => void) => {
+    const onStorage = (e: StorageEvent) => { if (e.key === null || e.key === key) f() }
+    listeners.add(f)
+    window.addEventListener('storage', onStorage)
+    return () => { listeners.delete(f); window.removeEventListener('storage', onStorage) }
+  }
+  return { get, set, subscribe }
 }
 
-function subscribe(f: () => void): () => void {
-  const onStorage = (e: StorageEvent) => { if (e.key === null || e.key === TREE_MINE_KEY) f() }
-  listeners.add(f)
-  window.addEventListener('storage', onStorage)
-  return () => { listeners.delete(f); window.removeEventListener('storage', onStorage) }
-}
+const mineStore = stored(TREE_MINE_KEY)
+const layoutStore = stored(TREE_LAYOUT_KEY)
 
+export const treeMine = (): boolean => mineStore.get() === '1'
+export const setTreeMine = (on: boolean): void => mineStore.set(on ? '1' : null)
 export function useTreeMine(): boolean {
-  return useSyncExternalStore(subscribe, treeMine, () => false)
+  return useSyncExternalStore(mineStore.subscribe, treeMine, () => false)
+}
+
+/** The layout picked on this device, or null (none yet, or a value this version doesn't know). */
+export function treeLayout(): TreeLayout | null {
+  const v = layoutStore.get()
+  return TREE_LAYOUTS.includes(v as TreeLayout) ? (v as TreeLayout) : null
+}
+export const setTreeLayout = (v: TreeLayout): void => layoutStore.set(v)
+export function useTreeLayout(): TreeLayout | null {
+  return useSyncExternalStore(layoutStore.subscribe, treeLayout, () => null)
 }

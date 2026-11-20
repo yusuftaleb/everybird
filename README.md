@@ -8,7 +8,7 @@ Live at https://everybird.yusuftaleb.com (share links, link previews and the sha
 
 ## Pages
 
-- **Collage** (`/`): your collage under a head with "Add birds" (one dialog for every import and for adding by hand, opening on Import a file) and Share; the controls bar (the Collage, List, Map and Tree views (the Tree a fan of the orders that opens down to the species), each view's own one-press switches (True size, the list's sort direction, Scientific names, Lifers only in the Tree), Filters, search), the active filter chips and bird cards (with a link to the bird's Bird Album page). Without a list on the device it shows a sample, with a short guided tour.
+- **Collage** (`/`): your collage under a head with "Add birds" (one dialog for every import and for adding by hand, opening on Import a file) and Share; the controls bar (the Collage, List, Map and Tree views (the Tree a fan of the orders that opens down to the species), each view's own one-press switches (True size, the list's sort direction, Scientific names, Lifers only in the Tree), and in the Tree the Level and Layout menus (Fan, Circle, Rows), Filters, search), the active filter chips and bird cards (with a link to the bird's Bird Album page). Without a list on the device it shows a sample, with a short guided tour.
 - **Settings** (`/settings`): your list (its sources, the match report), adding by hand, counting rules, bird names in English (in the other languages), and downloads, backup and restore, all in the page.
 - **About** (`/about`): how it works, privacy and every credit.
 - **Compare** (`/compare`, a tab in the top bar): paste a friend's share link, or press "Compare with mine" on a shared collage, and see the comparison card on the page (a Venn of your lists and their stickers) beside the birds you still need, those you both have and your own; add more friends for a ranking. Share the card, a wish list of the birds you still need, or a link to the comparison (`/c/[token]`, read-only).
@@ -20,7 +20,7 @@ Light by default, with a sun/moon toggle in the top bar. The interface is in Eng
 
 - Smart search and one Filters panel for places, time, taxonomy and conservation status, driving every view alike (the Map has no filter of its own: a press on a country or province zooms in, the path above it zooms out).
 - Share on one screen: Share image is two presses from the collage; the other options are rows under it (a species goal for a year or all time, Fit or Oval, dark and transparent looks). Print, beside Share, opens the same dialog on the poster; One per group makes a ZIP of one image, or one poster, for each group.
-- Share images of every view (Map and Tree draw their own: the Map's with its five places with the most species; the Tree's at the level on screen, a fan of orders or rows, with Lifers only and Hide totals), with a transparent background and a count size option.
+- Share images of every view (Map and Tree draw their own: the Map's with its five places with the most species; the Tree's at the level on screen, in the layout on screen (the story always rows), with Lifers only and Hide totals), with a transparent background and a count size option.
 - Vertical/Horizontal sharing: Story 9:16 or Desktop 16:9, Post 4:5 or 5:4, and Square; print posters A4–A1 and US 12×18 to 24×36 inches in either orientation.
 - Search metadata in every language, a `WebSite` site-name declaration on the homepage, and the landing demo excluded from search snippets. Google's displayed result can lag a deployment.
 - Private anonymous-usage dashboard at `https://stats.yusuftaleb.com/dashboard`, behind Cloudflare Access. Days now follow America/Vancouver; the completed 2026-11-16 transition is documented in [the stats README](workers/stats/README.md).
@@ -63,7 +63,7 @@ the raw sources in `data/raw/` (git-ignored) and the stickers repo checked out n
 - **Taxonomy:** eBird/Clements checklist, used for species names and codes. Every source, with its licence, is also listed on the in-app credits (About, `/about#credits`).
 - **Body masses:** [AVONET](https://doi.org/10.1111/ele.13898) (CC BY 4.0) via huashu's species table, with a few sourced overrides in `data/overrides.json`; and [BIRDBASE](https://doi.org/10.1038/s41597-025-05615-3) (CC BY 4.0) for the species AVONET gives no mass for. Its compact extract is `data/raw/birdbase/` (see its README).
 - **Regions:** place names and the Map view's shapes from Natural Earth (public domain), and [Debian iso-codes](https://salsa.debian.org/iso-codes-team/iso-codes) ISO 3166-2 data (LGPL-2.1), used for names only; Vietnam's provinces from OCHA's COD-AB (CC BY 3.0 IGO).
-- **Bird tree:** [AvesData](https://github.com/McTavishLab/AvesData) (McTavish et al.), CC BY 4.0.
+- **Bird tree:** [AvesData](https://github.com/McTavishLab/AvesData) (McTavish et al.), CC BY 4.0; the full credit is on the About page.
 - **Bird names:** eBird's name sets, with the IOC World Bird List v15.2 (Gill, Donsker & Rasmussen, CC BY 3.0) filling eBird's gaps in Italian, Swedish, Danish, Russian, Japanese and Traditional Chinese.
 - **Fonts:** Satoshi and Cabinet Grotesk from [Fontshare](https://www.fontshare.com) (loaded from their CSS, not bundled), and Geist Mono via `next/font/google`.
 

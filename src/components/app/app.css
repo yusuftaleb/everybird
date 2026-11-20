@@ -141,6 +141,28 @@
   .eb-dock-tools .eb-dock-sw { position: relative; min-height: 36px; }
   .eb-dock-tools .eb-dock-sw::after { content: ''; position: absolute; inset: -4px 0; }
 }
+/* The Tree's controls: the Level and Layout menus (MenuSelect's button, rendered by TreeView into `.eb-dock-menus`), then
+   Lifers only and Scientific. They need more room than the other views' switches, so the second row starts under
+   1200px of bar there, and the row wraps whole groups (the two menus together, the two switches together) rather than
+   overflowing. Under 600px the menus take that row to themselves, sharing it evenly, and the switches and Filters the
+   row under it; the menus draw 36px with a 44px press, as the switches. */
+.eb-dock-menus { display: flex; align-items: center; gap: 4px; flex: none; margin-right: 8px; }
+.eb-dock-menus:empty { display: none; }
+.eb-dock[data-view="tree"] .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
+@container (max-width: 1199px) {
+  .eb-dock[data-view="tree"] .eb-dock-filters {
+    order: 1; flex: 1 0 100%; margin: 0 -4px -4px; padding: 4px; border-top: 1px solid var(--hairline);
+  }
+  .eb-dock[data-view="tree"] .eb-find { bottom: auto; height: 44px; }
+  .eb-dock[data-view="tree"][data-finding] .eb-dock-filters { display: none; }
+}
+@container (max-width: 599px) {
+  .eb-dock-menus { flex: 1 0 100%; margin-right: 0; }
+  .eb-dock-menus > .eb-share-ddwrap { flex: 1 1 0; min-width: 0; }
+  .eb-dock-menus .eb-share-dd { width: 100%; min-height: 36px; justify-content: space-between; }
+  .eb-dock-menus .eb-share-dd::after { inset: -4px 0; }
+  .eb-dock[data-view="tree"] .eb-dock-filters .eb-dock-drop { min-width: max-content; } /* wraps under the switches rather than cut its label */
+}
 .eb-view-below { display: contents; } /* the column's gaps stay; Filters dims and inertes everything in it while open */
 .eb-view-below[data-dim] > * { opacity: .3; transition: opacity .2s var(--eb-ease); }
 @media (prefers-reduced-motion: reduce) { .eb-view-below[data-dim] > * { transition: none; } }
@@ -162,7 +184,8 @@
 .eb-dock-find { padding: 0; width: 44px; }
 .eb-short { display: none; }
 /* Phones (LifeList's 600px): the bar's short form whatever the phone's width: row one is always the view icons and the
-   magnifier, row two True and Sci. (or the list's "Heaviest", or the tree's "Lifers") and the Filters button. */
+   magnifier, row two True and Sci. (or the list's "Heaviest") and the Filters button; in Tree, row two the Level and
+   Layout menus, row three Lifers only, Sci. and Filters. */
 @media (max-width: 600px) {
   .eb-dock .eb-long { display: none; }
   .eb-dock .eb-short { display: inline; }
@@ -368,6 +391,10 @@
 .eb-menuitem:focus { outline: none; }
 .eb-menuitem:focus-visible, .eb-menuitem:focus { background: var(--surface); }
 @media (hover: hover) and (pointer: fine) { .eb-menuitem:hover { background: var(--surface); } }
+/* A choice listed but not open (MenuSelect's `off`: the Tree's levels over its tip limit): Muted, its reason under it. */
+.eb-menuitem[aria-disabled="true"] { color: var(--muted); cursor: default; }
+.eb-menu-off { display: grid; gap: 2px; padding: 6px 0; max-width: 260px; white-space: normal; }
+.eb-menu-why { font-size: 13px; font-weight: 400; line-height: 1.35; }
 /* The language menu: a quiet popover, as wide as its widest row, its right edge on the button's; never wider than the window.
    Rows are 40px (44px on touch), the name left and its code right in Muted mono; the current one has no fill, its name in
    Accent at 600 and a check where the code was. A Surface fill only on a hovered or keyboard-focused row that isn't current. */
@@ -378,7 +405,7 @@
 .eb-langmenu .eb-menuitem[aria-checked="false"]:focus-visible { background: var(--surface); }
 @media (hover: hover) and (pointer: fine) {
   .eb-langmenu .eb-menuitem[aria-checked="false"]:hover { background: var(--surface); }
-  .eb-langmenu .eb-menuitem[aria-checked="true"]:hover { background: none; }
+  .eb-langmenu .eb-menuitem[aria-checked="true"]:hover, .eb-langmenu .eb-menuitem[aria-disabled="true"]:hover { background: none; }
 }
 .eb-langname[data-current] { color: var(--accent); font-weight: 600; }
 .eb-langcode { color: var(--muted); font-size: 12px; line-height: 1; letter-spacing: .06em; }

@@ -33,6 +33,7 @@ import type { Regions } from '@/lib/species/types'
 import type { StateLayout } from '@/lib/layout/layout-client'
 import type { ShareAt } from '@/lib/share/view-image'
 import type { TreeLevel } from '@/lib/tree/levels'
+import type { TreeLayout } from '@/lib/tree-mine'
 import { useVariant } from '@/lib/variants'
 import { ControlsBar } from './ControlsBar'
 import { useCollageLayout } from './use-collage-layout'
@@ -138,7 +139,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const [tip, setTip] = useState<string | null>(null)
   // The level the Map or Tree view has open (their own state, told up as it changes), for Share to draw the same.
   const onMapLevel = useCallback((place: string | undefined, names: (key: string) => string) => onShareAt?.({ place, names }), [onShareAt])
-  const onTreeLevel = useCallback((tree: TreeLevel, mine: boolean) => onShareAt?.({ tree, mine }), [onShareAt])
+  const onTreeLevel = useCallback((tree: TreeLevel, mine: boolean, layout: TreeLayout) => onShareAt?.({ tree, mine, layout }), [onShareAt])
+  // The controls bar's slot for the Tree's Level and Layout menus, which TreeView fills.
+  const [treeMenus, setTreeMenus] = useState<HTMLDivElement | null>(null)
 
   const entries = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
   // The timeline's months (first lifer to today).
@@ -297,6 +300,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         filters={filtersUi.button}
         below={filtersUi.below}
         onFind={filtersUi.close}
+        treeMenus={setTreeMenus}
       />
 
       {/* Everything under the dock: dimmed and inert while the Filters popover is open (a press there closes it). */}
@@ -322,7 +326,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         <ListView entries={shownList} species={species} regions={regions} order={massOrder} sci={sci} onPick={onPickRow} />
       ) : (
         <Suspense fallback={<p className="eb-mono">{t.collage.tree.loading}</p>}>
-          <TreeView entries={shownList} sci={sci} onPick={onPickRow} onLevel={onTreeLevel} />
+          <TreeView entries={shownList} sci={sci} onPick={onPickRow} onLevel={onTreeLevel} menus={treeMenus} />
         </Suspense>
       )}
 

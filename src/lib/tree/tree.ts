@@ -194,37 +194,33 @@ export function ageTicks(max: number, count = 5): number[] {
 export type Drawing = {
   leaves: Leaf[]
   /** Branch paths: rounded elbows in the rows (y from `yOf`, x from 0, the root's age, to `width`, today); in the fan
-   *  (drawFan) an arc along the parent's ring, a rounded join, then a line out along the child's radius. */
+   *  and the circle (drawFan) an arc along the parent's ring, a rounded join, then a line out along the child's radius.
+   *  Branches simply join: no dot marks a node (Yusuf, 2026-11-20). */
   seen: string
   unseen: string
   /** The own branches of the dotted leaves (the part after the join), drawn dotted. */
   seenDot: string
   unseenDot: string
-  /** The nodes' dots, as circles: filled with the page's colour under their stroke, so no line shows through. */
-  seenNodes: string
-  unseenNodes: string
   /** The oldest node drawn, in millions of years (the axis's left end, the fan's centre). */
   rootAge: number
 }
 
 /** How round a branch's corner is (px; less where the branch is shorter), as the site's corners. */
 export const CORNER = 8
-/** A node's dot (px). */
-export const NODE_R = 3.5
+/** A tip's hollow dot (px). */
+export const TIP_R = 3.5
 
-/** One branch: from its parent node (age, position in leaf units) to its child's; `leaf` when the child is a tip. */
+/** One branch: from its parent node (age, position in leaf units) to its child's. */
 export type Branch = { pa: number; py: number; ca: number; cy: number; on: boolean; dot: boolean }
-/** One node: its age, position and whether a leaf below is on the list. */
-export type Joint = { age: number; y: number; on: boolean }
 
 /**
- * The branches and nodes of a drawing, laid out by nothing yet: a node sits midway between its first and last child,
- * a leaf at `yOf(i)` and age 0 (a tip reaches today). A drawing that is one leaf is its stem, from `stemAge`.
+ * The branches of a drawing, laid out by nothing yet: a node sits midway between its first and last child, a leaf at
+ * `yOf(i)` and age 0 (a tip reaches today). A drawing that is one leaf is its stem, from `stemAge`.
  */
-export function branchesOf(root: Node | Leaf, seen: (leaf: Leaf, i: number) => boolean, yOf: (i: number) => number, stemAge: number | undefined, dotted: (leaf: Leaf, i: number) => boolean): { leaves: Leaf[]; branches: Branch[]; joints: Joint[]; rootAge: number } {
+export function branchesOf(root: Node | Leaf, seen: (leaf: Leaf, i: number) => boolean, yOf: (i: number) => number, stemAge: number | undefined, dotted: (leaf: Leaf, i: number) => boolean): { leaves: Leaf[]; branches: Branch[]; rootAge: number } {
   const leaves = leavesOf(root)
   const rootAge = (isLeaf(root) ? stemAge : root.age) || 1
-  const branches: Branch[] = [], joints: Joint[] = []
+  const branches: Branch[] = []
   let row = 0
   // Returns [y, seen, dotted] of the subtree (dotted only for a leaf).
   const walk = (n: Node | Leaf): [number, boolean, boolean] => {
@@ -232,50 +228,45 @@ export function branchesOf(root: Node | Leaf, seen: (leaf: Leaf, i: number) => b
     const parts = n.kids.map((k) => [k, ...walk(k)] as const)
     const y = (parts[0][1] + parts[parts.length - 1][1]) / 2
     for (const [k, ky, ks, kd] of parts) branches.push({ pa: n.age, py: y, ca: isLeaf(k) ? 0 : k.age, cy: ky, on: ks, dot: kd })
-    const on = parts.some((p) => p[2])
-    joints.push({ age: n.age, y, on })
-    return [y, on, false]
+    return [y, parts.some((p) => p[2]), false]
   }
   if (isLeaf(root)) branches.push({ pa: rootAge, py: yOf(0), ca: 0, cy: yOf(0), on: seen(root, 0), dot: dotted(root, 0) })
   else walk(root)
-  return { leaves, branches, joints, rootAge }
+  return { leaves, branches, rootAge }
 }
 
 const n1 = (v: number) => +v.toFixed(1)
-/** A circle as path data (one path holds every node's dot). */
-export const circlePath = (x: number, y: number, r = NODE_R): string => `M${n1(x - r)} ${n1(y)}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0Z`
-
-/** Sorts each branch's path pieces into the drawing's four strokes and its nodes into two fills. */
-function collect(leaves: Leaf[], rootAge: number, branches: Branch[], joints: Joint[], piece: (b: Branch) => [solid: string, dotted: string], node: (j: Joint) => string): Drawing {
-  const on: string[] = [], off: string[] = [], onDot: string[] = [], offDot: string[] = [], onN: string[] = [], offN: string[] = []
-  for (const b of branches) {
-    const [solid, dot] = piece(b)
-    if (solid) (b.on ? on : off).push(solid)
-    if (dot) (b.on ? onDot : offDot).push(dot)
-  }
-  for (const j of joints) (j.on ? onN : offN).push(node(j))
-  return { leaves, seen: on.join(''), unseen: off.join(''), seenDot: onDot.join(''), unseenDot: offDot.join(''), seenNodes: onN.join(''), unseenNodes: offN.join(''), rootAge }
-}
+/** A circle as path data (one path holds every tip's dot, or an age ring). */
+export const circlePath = (x: number, y: number, r = TIP_R): string => `M${n1(x - r)} ${n1(y)}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0Z`
 
 /**
  * The rows' drawing: each branch an elbow from its parent node down to its child, its corner rounded (CORNER, less
- * on a short branch), in `seen` when some leaf below is on the list, with a dot on every node. `yOf(i)` is the i-th
- * leaf's y (default: one unit per leaf). A leaf for which `dotted` holds has its own branch (the part after the corner)
- * in `seenDot` / `unseenDot` instead; the vertical part, which siblings can overlap, stays solid. Coordinates are px
- * when `width` is the drawing's width in px.
+ * on a short branch), in `seen` when some leaf below is on the list. `yOf(i)` is the i-th leaf's y (default: one unit
+ * per leaf). A leaf for which `dotted` holds has its own branch (the part after the corner) in `seenDot` / `unseenDot`
+ * instead; the vertical part, which siblings can overlap, stays solid. Coordinates are px when `width` is the
+ * drawing's width in px.
  */
 export function drawTree(root: Node | Leaf, seen: (leaf: Leaf, i: number) => boolean, yOf: (i: number) => number = (i) => i + 0.5, stemAge?: number, dotted: (leaf: Leaf, i: number) => boolean = () => false, width = 1000): Drawing {
-  const { leaves, branches, joints, rootAge } = branchesOf(root, seen, yOf, stemAge, dotted)
+  const { leaves, branches, rootAge } = branchesOf(root, seen, yOf, stemAge, dotted)
   const x = (age: number) => n1((1 - age / rootAge) * width)
-  return collect(leaves, rootAge, branches, joints, (b) => {
+  const on: string[] = [], off: string[] = [], onDot: string[] = [], offDot: string[] = []
+  for (const b of branches) {
     const px = x(b.pa), end = x(b.ca), py = n1(b.py), cy = n1(b.cy)
     const dy = cy - py
-    if (Math.abs(dy) < 0.05) return b.dot ? ['', `M${px} ${cy}H${end}`] : [`M${px} ${cy}H${end}`, '']
-    const r = n1(Math.min(CORNER, Math.abs(dy), Math.max(0, end - px)))
-    const s = Math.sign(dy)
-    const turn = `M${px} ${py}${r < Math.abs(dy) ? `V${n1(cy - s * r)}` : ''}Q${px} ${cy} ${n1(px + r)} ${cy}`
-    return b.dot ? [turn, `M${n1(px + r)} ${cy}H${end}`] : [`${turn}H${end}`, '']
-  }, (j) => circlePath(x(j.age), j.y))
+    let solid: string, dot = ''
+    if (Math.abs(dy) < 0.05) {
+      solid = `M${px} ${cy}H${end}`
+      if (b.dot) { dot = solid; solid = '' }
+    } else {
+      const r = n1(Math.min(CORNER, Math.abs(dy), Math.max(0, end - px)))
+      const s = Math.sign(dy)
+      const turn = `M${px} ${py}${r < Math.abs(dy) ? `V${n1(cy - s * r)}` : ''}Q${px} ${cy} ${n1(px + r)} ${cy}`
+      if (b.dot) { solid = turn; dot = `M${n1(px + r)} ${cy}H${end}` } else solid = `${turn}H${end}`
+    }
+    if (solid) (b.on ? on : off).push(solid)
+    if (dot) (b.on ? onDot : offDot).push(dot)
+  }
+  return { leaves, seen: on.join(''), unseen: off.join(''), seenDot: onDot.join(''), unseenDot: offDot.join(''), rootAge }
 }
 
 /** An age for the axis and the fact line: whole millions from 10, else up to two decimals ("0,5" with a comma decimal). */
