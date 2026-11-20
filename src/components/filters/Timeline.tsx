@@ -37,7 +37,6 @@ type Props = {
 
 export const Timeline = memo(function Timeline({ entries, seen, filter, species, months, today, onFilter, onPreview }: Props) {
   const N = months.length
-  const baseId = useId()
   const { t } = useI18n()
   // Bars count the birds of the other filters (birds, places) over the whole span, so the handles never jump.
   const others = useMemo(() => applyFilter(entries, timeless(filter), species, seen), [entries, filter, species, seen])
@@ -47,15 +46,6 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
   const frac = (i: number) => axis.start[i] / Math.max(1e-9, axis.units)
   const pct = (i: number) => `${frac(i) * 100}%`
   const chosen = useMemo(() => rangeIndices(filter, months), [filter, months])
-  // The basis switch is for lists with month sets (MyEBirdData, iNaturalist, observation.org observations); without, nothing changes by it.
-  const hasMonths = useMemo(() => hasSeenMonths(seen), [seen])
-  const basis = filter.basis === 'seen' ? 'seen' : 'lifer'
-  const setBasis = useCallback((b: 'lifer' | 'seen') => {
-    const next: Filter = { ...latest.current.filter }
-    if (b === 'seen') next.basis = 'seen'
-    else delete next.basis
-    latest.current.onFilter(next)
-  }, [])
   const [drag, setDrag] = useState<[number, number] | null>(null)
   const [lo, hi] = drag ?? chosen
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -172,6 +162,8 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
     onPointerUp: () => { if (dragging.current) { dragging.current = null; commit() } },
     onPointerCancel: () => { if (dragging.current) { dragging.current = null; commit() } },
   }
+  // The refs are read in the handlers, not in render (the React lint skipped this component until the basis switch moved out).
+  /* eslint-disable react-hooks/refs */
   const handleProps = (which: 'lo' | 'hi') => {
     const v = which === 'lo' ? lo : hi
     const [min, max] = which === 'lo' ? [0, hi] : [lo, N - 1]
@@ -196,6 +188,7 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
       ...pointer,
     } as const
   }
+  /* eslint-enable react-hooks/refs */
 
   // Readout: the range and its species.
   const ranged = lo > 0 || hi < N - 1
@@ -220,34 +213,7 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
           <button type="button" className="eb-textbtn" data-testid="time-clear" onClick={clear}>{t.filters.clear}</button>
         )}
       </div>
-      {hasMonths && (
-        <div className="eb-time-basis">
-          <p className="eb-time-basis-label" id={`${baseId}-basis`}>{t.filters.basis.label}</p>
-          <div className="eb-time-basis-seg" role="radiogroup" aria-labelledby={`${baseId}-basis`} data-testid="time-basis">
-            {(['lifer', 'seen'] as const).map((b) => (
-              <button
-                key={b}
-                type="button"
-                role="radio"
-                aria-checked={basis === b}
-                tabIndex={basis === b ? 0 : -1}
-                className="eb-time-basis-btn"
-                data-testid={`time-basis-${b}`}
-                onClick={() => setBasis(b)}
-                onKeyDown={(e) => {
-                  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
-                  e.preventDefault()
-                  const other = b === 'lifer' ? 'seen' : 'lifer'
-                  setBasis(other)
-                  e.currentTarget.parentElement?.querySelector<HTMLElement>(`[data-testid="time-basis-${other}"]`)?.focus()
-                }}
-              >
-                {b === 'lifer' ? t.filters.basis.first : t.filters.basis.any}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <BasisSwitch filter={filter} seen={seen} onFilter={onFilter} />
       <div ref={scroller} className="eb-time-scroll" onScroll={edges} data-more={more || undefined}>
         <div ref={track} className="eb-time-track" style={{ width }} data-ranged={ranged ? '' : undefined}>
           <div className="eb-time-bars" aria-hidden="true">
@@ -275,3 +241,48 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
     </div>
   )
 })
+
+/** "Count a bird by: First seen / Seen any time" (`Filter.basis`), for lists with month sets (MyEBirdData,
+ *  iNaturalist, observation.org observations); without, nothing changes by it and it isn't shown. The Time panel's and
+ *  the Map view's. */
+export function BasisSwitch({ filter, seen, onFilter }: { filter: Filter; seen?: SeenIndex; onFilter: (f: Filter) => void }) {
+  const baseId = useId()
+  const { t } = useI18n()
+  const hasMonths = useMemo(() => hasSeenMonths(seen), [seen])
+  if (!hasMonths) return null
+  const basis = filter.basis === 'seen' ? 'seen' : 'lifer'
+  const setBasis = (b: 'lifer' | 'seen') => {
+    const next: Filter = { ...filter }
+    if (b === 'seen') next.basis = 'seen'
+    else delete next.basis
+    onFilter(next)
+  }
+  return (
+    <div className="eb-time-basis">
+      <p className="eb-time-basis-label" id={`${baseId}-basis`}>{t.filters.basis.label}</p>
+      <div className="eb-time-basis-seg" role="radiogroup" aria-labelledby={`${baseId}-basis`} data-testid="time-basis">
+        {(['lifer', 'seen'] as const).map((b) => (
+          <button
+            key={b}
+            type="button"
+            role="radio"
+            aria-checked={basis === b}
+            tabIndex={basis === b ? 0 : -1}
+            className="eb-time-basis-btn"
+            data-testid={`time-basis-${b}`}
+            onClick={() => setBasis(b)}
+            onKeyDown={(e) => {
+              if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+              e.preventDefault()
+              const other = b === 'lifer' ? 'seen' : 'lifer'
+              setBasis(other)
+              e.currentTarget.parentElement?.querySelector<HTMLElement>(`[data-testid="time-basis-${other}"]`)?.focus()
+            }}
+          >
+            {b === 'lifer' ? t.filters.basis.first : t.filters.basis.any}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
