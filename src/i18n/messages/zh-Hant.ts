@@ -359,6 +359,7 @@ export const zhHant: Messages = {
       submit: '比較',
       bad: { one: '{n} 個連結打不開。', other: '{n} 個連結打不開。' },
       needMore: '比較至少需要兩份清單。',
+      over: '最多可比較 {n} 份清單，其餘的未加入。',
       both: '都有',
       everyone: '每份清單都有',
       onlyYou: '只有你',

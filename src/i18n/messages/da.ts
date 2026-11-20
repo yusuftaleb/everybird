@@ -360,6 +360,7 @@ export const da: Messages = {
       submit: 'Sammenlign',
       bad: { one: '{n} link kunne ikke åbnes.', other: '{n} links kunne ikke åbnes.' },
       needMore: 'Der skal mindst to lister til en sammenligning.',
+      over: 'Der kan højst sammenlignes {n} lister, så resten blev ikke tilføjet.',
       both: 'Begge',
       everyone: 'På alle lister',
       onlyYou: 'Kun dig',

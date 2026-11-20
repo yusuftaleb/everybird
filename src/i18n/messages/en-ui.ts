@@ -449,6 +449,8 @@ export const EN_UI = {
     add: 'Add',
     bad: { one: '{n} link didn’t open.', other: '{n} links didn’t open.' },
     needMore: 'Comparing needs at least two lists.',
+    /** After a paste past the cap: the links beyond it weren't added ({n} 6). */
+    over: 'Up to {n} lists can be compared, so the rest weren’t added.',
     /** "Compare with mine" sent a friend's list, and the visitor has none yet (followed by the "Add birds" link). */
     noList: 'To compare with {name}, add your own birds first.',
     /** The chips' name, and the chips: the birds on the others' lists you lack, on both or every list, one list's

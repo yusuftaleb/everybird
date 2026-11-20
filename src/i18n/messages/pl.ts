@@ -363,6 +363,7 @@ export const pl: Messages = {
       submit: 'Porównaj',
       bad: { one: 'Nie udało się otworzyć linku: {n}.', few: 'Nie udało się otworzyć linków: {n}.', many: 'Nie udało się otworzyć linków: {n}.', other: 'Nie udało się otworzyć linków: {n}.' },
       needMore: 'Do porównania potrzeba co najmniej dwóch list.',
+      over: 'Można porównać do {n} list, więc reszty nie dodano.',
       both: 'Na obu',
       everyone: 'Na każdej liście',
       onlyYou: 'Tylko ty',

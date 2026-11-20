@@ -359,6 +359,7 @@ export const ja: Messages = {
       submit: '比較',
       bad: { one: '{n}件のリンクが開けませんでした。', other: '{n}件のリンクが開けませんでした。' },
       needMore: '比較には少なくとも二つのリストが必要です。',
+      over: '比較できるリストは{n}件までのため、残りは追加されませんでした。',
       both: '両方',
       everyone: 'すべてのリストにある',
       onlyYou: 'あなただけ',

@@ -359,6 +359,7 @@ export const zhHans: Messages = {
       submit: '对比',
       bad: { one: '{n}个链接打不开。', other: '{n}个链接打不开。' },
       needMore: '对比至少需要两份清单。',
+      over: '最多可对比{n}份清单，其余的未添加。',
       both: '都有',
       everyone: '每份清单都有',
       onlyYou: '只有你有',

@@ -357,6 +357,7 @@ export const it: Messages = {
       submit: 'Confronta',
       bad: { one: '{n} link non si è aperto.', other: '{n} link non si sono aperti.' },
       needMore: 'Per confrontare servono almeno due liste.',
+      over: 'Si possono confrontare al massimo {n} liste, quindi le altre non sono state aggiunte.',
       both: 'Entrambi',
       everyone: 'In ogni lista',
       onlyYou: 'Solo tu',

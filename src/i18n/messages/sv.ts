@@ -358,6 +358,7 @@ export const sv: Messages = {
       submit: 'Jämför',
       bad: { one: '{n} länk gick inte att öppna.', other: '{n} länkar gick inte att öppna.' },
       needMore: 'En jämförelse behöver minst två listor.',
+      over: 'Upp till {n} listor kan jämföras, så resten lades inte till.',
       both: 'Båda',
       everyone: 'På alla listor',
       onlyYou: 'Bara du',

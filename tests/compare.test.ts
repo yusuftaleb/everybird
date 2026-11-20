@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import linkIndex from '../data/link-index.json'
-import { compareGroups, evenly, gridCols, groupPayload, linksIn, memberships, ranking, regionCounts, type GroupId } from '@/lib/share/compare'
+import { addWithin, compareGroups, evenly, gridCols, groupPayload, linksIn, memberships, ranking, regionCounts, type GroupId } from '@/lib/share/compare'
 import { makeCompareLink } from '@/lib/share/make-link'
 import { payloadToRecords } from '@/lib/share/convert'
 import { buildList } from '@/lib/list/build-list'
@@ -162,6 +162,21 @@ describe('compareGroups', () => {
     expect(gridCols(580)).toBe(5)
     expect(gridCols(700)).toBe(6)
     expect(gridCols(1200)).toBe(6)
+  })
+})
+
+describe('addWithin', () => {
+  const L = (name: string): SharePayload => ({ v: 1, name, birds: [{ code: C(1) }] })
+  const names = (ls: SharePayload[]) => ls.map((l) => l.name)
+  it('keeps the held lists and as many new ones as the room takes, counting the rest', () => {
+    const r = addWithin([L('a'), L('b')], [L('c'), L('d'), L('e'), L('f')], COMPARE_MAX - 1)
+    expect(names(r.lists)).toEqual(['a', 'b', 'c', 'd', 'e'])
+    expect(r.over).toBe(1)
+  })
+  it('adds nothing to a full page, and everything while there is room', () => {
+    const six = ['a', 'b', 'c', 'd', 'e', 'f'].map(L)
+    expect(addWithin(six, [L('g')], COMPARE_MAX)).toEqual({ lists: six, over: 1 })
+    expect(addWithin([], [L('a'), L('b')], COMPARE_MAX)).toEqual({ lists: [L('a'), L('b')], over: 0 })
   })
 })
 

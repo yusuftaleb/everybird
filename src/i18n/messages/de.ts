@@ -360,6 +360,7 @@ export const de: Messages = {
       submit: 'Vergleichen',
       bad: { one: '{n} Link ließ sich nicht öffnen.', other: '{n} Links ließen sich nicht öffnen.' },
       needMore: 'Zum Vergleichen braucht es mindestens zwei Listen.',
+      over: 'Es lassen sich höchstens {n} Listen vergleichen, darum wurde der Rest nicht hinzugefügt.',
       both: 'Beide',
       everyone: 'Auf jeder Liste',
       onlyYou: 'Nur du',

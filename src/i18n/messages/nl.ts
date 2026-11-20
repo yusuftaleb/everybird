@@ -364,6 +364,7 @@ export const nl: Messages = {
       submit: 'Vergelijken',
       bad: { one: '{n} link ging niet open.', other: '{n} links gingen niet open.' },
       needMore: 'Vergelijken kan vanaf twee lijsten.',
+      over: 'Je kunt tot {n} lijsten vergelijken, dus de rest is niet toegevoegd.',
       both: 'Allebei',
       everyone: 'Op elke lijst',
       onlyYou: 'Alleen jij',

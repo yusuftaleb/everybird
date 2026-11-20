@@ -5,7 +5,7 @@ import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { payloadFromList } from '@/lib/share/convert'
-import { linksIn } from '@/lib/share/compare'
+import { addWithin, linksIn } from '@/lib/share/compare'
 import { takeHandOff } from '@/lib/share/compare-handoff'
 import { COMPARE_MAX, decodeCompare, decodeShare, type SharePayload } from '@/lib/share/link'
 import { makeCompareLink } from '@/lib/share/make-link'
@@ -15,7 +15,8 @@ import { PageHead } from '@/components/app/PageHead'
 import { CompareResult, listLabels, useComparison, type CompareEdit } from './CompareView'
 import './compare.css'
 
-type Pasted = { lists: SharePayload[]; bad: number; compared: boolean }
+/** `over`: the links left out of the last paste, past the page's COMPARE_MAX lists. */
+type Pasted = { lists: SharePayload[]; bad: number; compared: boolean; over?: number }
 type Kept = { pasted: Pasted | null; names: Record<number, string> }
 // The pasted lists outlive the page while the tab stays in the app (memory only, never storage): a visitor sent to add
 // their own birds first finds their friend's list waiting when they come back.
@@ -26,6 +27,13 @@ export function forgetCompare(): void {
 }
 /** Link fields before the first comparison: one per friend. */
 const FIELDS = COMPARE_MAX - 1
+/** How many pasted lists the page holds: COMPARE_MAX, less the birder's own unless a comparison link's lists stand alone. */
+const roomFor = (compared: boolean) => (compared ? COMPARE_MAX : COMPARE_MAX - 1)
+/** The links read from `text`, added to `held` within the page's cap. */
+function pasteInto(held: readonly SharePayload[], r: ReturnType<typeof linksIn>, compared: boolean): Pasted {
+  const { lists, over } = addWithin(held, r.lists, roomFor(compared))
+  return { lists, bad: r.bad, compared, over }
+}
 /** The name given to the birder's own list, kept beside the pasted lists' (keyed by their place among them). */
 const MINE = -1
 
@@ -33,7 +41,8 @@ const MINE = -1
  * /compare. The page head holds the title and the sharing: Share card (the main button), Share wish list and Copy
  * comparison link, disabled with the reason under the head until two lists are compared. Under the head the paste field:
  * before the first comparison, "Add more" adds a field per friend (pasting several links into one works too); after it,
- * the one field adds lists. The birder's own list, when there is one, is always the first. A pasted comparison link
+ * the one field adds lists, up to COMPARE_MAX lists in all (yours among them): links past it are not added, with a note,
+ * and Add more is off once the fields reach it. The birder's own list, when there is one, is always the first. A pasted comparison link
  * (/c/) opens that comparison as it was shared, without the birder's own list (it holds its sharer's). "Compare with
  * mine" on a shared collage or comparison hands its link over in sessionStorage (compare-handoff.ts), read once on
  * arrival, and adds the birder's own list. The links stay in this page's state (never its URL: the beacon reports the
@@ -60,7 +69,7 @@ export function ComparePage() {
     // "Compare with mine": the link's lists, the birder's own added first, whatever was pasted before replaced.
     const r = linksIn(link, decodeShare, decodeCompare)
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage, read once on arrival, isn't there to prerender
-    setPasted({ ...r, compared: false })
+    setPasted(pasteInto([], r, false))
     setNames(keepMine)
   }, [])
 
@@ -114,9 +123,9 @@ export function ComparePage() {
     const r = linksIn((adding ? texts.slice(0, 1) : texts).join(' '), decodeShare, decodeCompare)
     // A comparison link starts that comparison over; a share link joins the one showing.
     if (r.compared || !pasted) {
-      setPasted(r)
+      setPasted(pasteInto([], r, r.compared))
       setNames(keepMine)
-    } else setPasted({ lists: [...pasted.lists, ...r.lists], bad: r.bad, compared: pasted.compared })
+    } else setPasted(pasteInto(pasted.lists, r, pasted.compared))
     if (r.lists.length) setTexts([''])
     setCopy('idle')
   }
@@ -171,17 +180,24 @@ export function ComparePage() {
               )}
             </div>
           ))}
-          {!adding && texts.length < FIELDS && (
-            <button type="button" className="eb-textbtn eb-compare-addmore" onClick={() => setTexts((xs) => [...xs, ''])} data-testid="compare-add-more">
+          {!adding && (
+            <button
+              type="button" className="eb-textbtn eb-compare-addmore" disabled={texts.length >= FIELDS} aria-describedby={`${id}-limit`}
+              onClick={() => setTexts((xs) => [...xs, ''])} data-testid="compare-add-more"
+            >
               <Plus aria-hidden="true" focusable="false" />
               {t.compare.addMore}
             </button>
           )}
-          <p className="eb-note" data-testid="compare-limit">{fmt(t.compare.limit, { n: COMPARE_MAX, m: COMPARE_MAX - 1 })}</p>
+          <p className="eb-note" id={`${id}-limit`} data-testid="compare-limit">{fmt(t.compare.limit, { n: COMPARE_MAX, m: COMPARE_MAX - 1 })}</p>
         </form>
         <p className="eb-status" role="status" data-testid="compare-status">
-          {/* After a Compare press: the links that didn't open, and whether there are two lists yet. */}
-          {pasted && [pasted.bad ? plural(t.compare.bad, pasted.bad, { n: formatInt(pasted.bad, t.num) }) : '', lists.length < 2 && !waiting ? t.compare.needMore : ''].filter(Boolean).join(' ')}
+          {/* After a Compare press: the links that didn't open, those past the cap, and whether there are two lists yet. */}
+          {pasted && [
+            pasted.bad ? plural(t.compare.bad, pasted.bad, { n: formatInt(pasted.bad, t.num) }) : '',
+            pasted.over ? fmt(t.compare.over, { n: COMPARE_MAX }) : '',
+            lists.length < 2 && !waiting ? t.compare.needMore : '',
+          ].filter(Boolean).join(' ')}
         </p>
         {waiting && lists.length < 2 && (
           <p className="eb-note eb-compare-wait-note" data-testid="compare-no-list">
