@@ -106,8 +106,8 @@
 .eb-dock-end { margin-left: 8px; } /* + the dock's 4px gap = 12px between groups */
 .eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools,
 .eb-dock[data-finding] .eb-dock-filters, .eb-dock[data-finding] .eb-dock-end { opacity: 0; pointer-events: none; }
-/* Filters: a glyph, the label (and how many filter groups are on, " · 2"), a caret. Open: the pressed tab's Surface;
-   filtering: Accent text, full opacity, 600 (selection, as a pressed tab). */
+/* Filters: a glyph (with how many filter groups are on as a small badge on it), the label, a caret. Open: the pressed
+   tab's Surface; filtering: Accent text and full opacity, at the label's one weight (nothing changes width). */
 /* At every width the button can give way: the group may shrink, each drop may shrink (flex's default, said here so the rule
    reads whole), and the label shrinks inside it with an ellipsis, so a long summary ("Time · 2022–2024") cuts its own
    label and never pushes the magnifier out of the bar. The accessible name (aria-label) stays whole. Where nothing
@@ -115,15 +115,22 @@
 .eb-dock-filters { min-width: 0; margin-left: auto; }
 .eb-dock-drop { flex: 0 1 auto; gap: 8px; padding: 0 10px 0 12px; }
 .eb-drop-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-/* The label holds the width of its filtering form ("Filters · 0" at 600) from the start, so the count and the weight
-   arriving never move the switches before it or wrap the bar (the Tree measures it); the line under it is 0 tall. */
-.eb-drop-label::after { content: attr(data-reserve); display: block; height: 0; overflow: hidden; visibility: hidden; font-weight: 600; }
 .eb-dock-drop svg:not(.eb-drop-caret) { width: 18px; height: 18px; } /* :not() outweighs .eb-dock-tab svg's 20px */
 .eb-dock-drop .eb-drop-caret { width: 14px; height: 14px; transition: transform .2s var(--eb-ease); }
 .eb-dock-drop[aria-expanded="true"] { opacity: 1; background: var(--surface); }
 .eb-dock-drop[aria-expanded="true"] .eb-drop-caret { transform: rotate(180deg); }
-.eb-dock-drop[data-active] { opacity: 1; color: var(--accent); font-weight: 600; }
-.eb-drop-sum { font-variant-numeric: tabular-nums; }
+.eb-dock-drop[data-active] { opacity: 1; color: var(--accent); }
+/* The count: a 14px Accent pill on the glyph's top right (the StatusMark pill's size and type), placed absolutely so it
+   moves nothing in the bar, knocked out of the glyph by a 2px ring of the button's own background (an outline, not a
+   shadow: DESIGN.md's Elevation). Decorative: the button's name has the count. */
+.eb-drop-icon { position: relative; display: flex; flex: none; }
+.eb-drop-badge {
+  position: absolute; top: -5px; right: -6px; box-sizing: border-box; min-width: 14px; height: 14px; padding: 0 3px;
+  display: flex; align-items: center; justify-content: center; border-radius: 7px;
+  background: var(--accent); color: var(--paper); outline: 2px solid var(--paper);
+  font: 600 9px/1 var(--font-mono); font-variant-numeric: tabular-nums; pointer-events: none;
+}
+.eb-dock-drop[aria-expanded="true"] .eb-drop-badge { outline-color: var(--surface); }
 /* Under 820px of bar (a tablet's or a phone's) the switches and the Filters button take a second row under a Hairline,
    rather than squeeze the first; the views and the search keep row one. Under 600px Filters fills what the switches
    leave and drops its caret. */
@@ -142,7 +149,6 @@
   .eb-dock-filters .eb-dock-drop { position: relative; min-height: 36px; flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 10px; }
   .eb-dock-filters .eb-dock-drop::after { content: ''; position: absolute; inset: -4px 0; }
   .eb-dock-filters .eb-drop-caret { display: none; } /* the row reads as buttons; aria-expanded says the rest */
-  .eb-dock-filters .eb-drop-label { text-align: center; } /* centred in its held width, as the button is in the row */
   .eb-dock-tools .eb-dock-sw { position: relative; min-height: 36px; }
   .eb-dock-tools .eb-dock-sw::after { content: ''; position: absolute; inset: -4px 0; }
 }
@@ -499,7 +505,8 @@
 /* Under 240px (a 390px phone at aA 200%): row two's links at 13px with a 8px gutter and 3px inside each pill; the press
    stays 44px across (.eb-nav-link::after). */
 /* Under 300px of page (a 390px phone at Safari's aA 150% or more, page zoom; the top bar has split above): the stats
-   line and button labels wrap, and the Filters button drops its glyph (the label says it). Row one stays the views and
+   line and button labels wrap, and the Filters button drops its glyph (the label says it; the count moves to the
+   button's top right corner). Row one stays the views and
    the magnifier (the 310px container rule's 36px icons), row two the switches and Filters. */
 @media (max-width: 299px) {
   .eb-stat { white-space: normal; }
@@ -507,6 +514,8 @@
   .eb-dock-filters { min-width: 0; }
   .eb-dock-filters .eb-dock-drop { gap: 0; padding: 0 6px; }
   .eb-dock-filters .eb-dock-drop svg { display: none; }
+  .eb-dock-filters .eb-drop-icon { position: static; }
+  .eb-dock-filters .eb-drop-badge { top: 2px; right: 2px; }
   .eb-dock-tools { margin-right: 0; }
 }
 /* Under 240px (a 390px phone at aA 200%): the views wrap beside the magnifier rather than push it off the row; the

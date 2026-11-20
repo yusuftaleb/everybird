@@ -87,8 +87,8 @@ describe('Status: a section of the Filters panel', () => {
     fireEvent.click(screen.getByTestId('status-EN'))
     expect(filterOf()).toEqual({ statuses: ['VU', 'EN'] })
     expect(screen.getByTestId('status-VU')).toBeChecked()
-    // One group in use: "Filters · 1", and two chips.
-    expect(statusBtn().querySelector('.eb-drop-sum')).toHaveTextContent('· 1')
+    // One group in use: the badge's 1, and two chips.
+    expect(screen.getByTestId('filters-count')).toHaveTextContent(/^1$/)
     expect(statusBtn()).toHaveAccessibleName('Filters: Conservation status: Vulnerable, Endangered')
     expect(screen.getByTestId('chip-status-VU')).toBeInTheDocument()
     expect(screen.getByTestId('chip-status-EN')).toBeInTheDocument()

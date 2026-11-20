@@ -18,7 +18,7 @@ vi.mock('@/lib/data-url', () => ({
 
 const { MapView } = await import('@/components/collage/MapView')
 const { countryRows, placeRows } = await import('@/lib/list/filters')
-const { countRange, frameBox, mapCounts, mapGroupOf, mapLayer, mapOpens, mapPath, mapRows, mapShapes, pathBox, placeCount, RAMP, shadeMix } = await import('@/lib/map/shapes')
+const { countRange, frameBox, mapCounts, mapEdges, mapGroupOf, mapLayer, mapOpens, mapPath, mapRows, mapShapes, pathBox, placeCount, RAMP, shadeMix } = await import('@/lib/map/shapes')
 const { initialState, makeReducer } = await import('@/lib/list/store')
 const { emptySaved } = await import('@/lib/list/storage')
 const { buildSpeciesIndex } = await import('@/lib/species/load')
@@ -53,6 +53,8 @@ function Harness({ init = start, onLevel }: { init?: typeof start; onLevel?: (at
 }
 const filterOf = () => JSON.parse(screen.getByTestId('filter').textContent || '{}')
 const shape = (key: string) => document.querySelector<SVGPathElement>(`path[data-key="${key}"]`)!
+/** The Ink outlines drawn after every shape, by place key, in drawing order. */
+const edges = () => Array.from(document.querySelectorAll<SVGPathElement>('path.eb-map-edge')).map((p) => p.dataset.edge)
 const countsOf = (state: ReturnType<typeof start>) => mapCounts(state.list, state.filter, species, state.seen)
 afterEach(cleanup)
 
@@ -238,7 +240,7 @@ describe('the county level (placeCount, mapPath, mapOpens, mapRows, mapLayer)', 
     expect(levels.at(-1)).toBe('s:CA-BC')
     expect(screen.getByTestId('map-path')).toHaveTextContent('World/Canada/British Columbia')
     expect(screen.getByRole('button', { name: 'Canada' })).toHaveFocus()
-    expect(shape('s:CA-BC')).toHaveAttribute('data-open')
+    expect(edges()).toEqual(['s:CA-BC'])
     expect(document.querySelector('svg.eb-map-svg')!.getAttribute('viewBox')).not.toBe('0 0 10 10')
     const list = screen.getByRole('list', { name: 'Counties in British Columbia' })
     expect(within(list).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Capital1, 1 species', 'Okanagan1, 1 species'])
@@ -250,6 +252,24 @@ describe('the county level (placeCount, mapPath, mapOpens, mapRows, mapLayer)', 
     fireEvent.click(screen.getByRole('button', { name: 'World' }))
     expect(levels.at(-1)).toBeUndefined()
     expect(screen.getByTestId('map-row-c:CA')).toHaveFocus()
+  })
+})
+
+describe('the outlines drawn last (mapEdges)', () => {
+  const shapes = [
+    { id: 'CY', key: 'c:CY', d: square, n: 2 },
+    { id: 'KE', key: 'c:KE', d: square, n: 1 },
+    { id: 'QY', key: 'c:CY', d: square, n: 2 },
+    { id: 'BR', key: 'c:BR', d: square, n: 0 },
+  ]
+  it('the open place, then the hovered one, each shape of a place once; nothing for a key no shape has', () => {
+    expect(mapEdges(shapes).map((s) => s.id)).toEqual([])
+    expect(mapEdges(shapes, 'c:KE').map((s) => s.id)).toEqual(['KE'])
+    expect(mapEdges(shapes, 'c:KE', 'c:BR').map((s) => s.id)).toEqual(['KE', 'BR'])
+    expect(mapEdges(shapes, undefined, 'c:CY').map((s) => s.id)).toEqual(['CY', 'QY'])
+    expect(mapEdges(shapes, 'c:CY', 'c:CY').map((s) => s.id)).toEqual(['CY', 'QY'])
+    // A country open on its provinces' layer has no shape of its own there: no outline.
+    expect(mapEdges(shapes, 'c:CA')).toEqual([])
   })
 })
 
@@ -288,8 +308,16 @@ describe('map.css: the borders, the columns, nothing cut', () => {
     expect(css).toMatch(/\.eb-map-list > li \{ position: relative; break-inside: avoid; \}/)
     expect(css).not.toMatch(/ellipsis/)
     expect(css).not.toMatch(/data-look/)
-    expect(css).toMatch(/\.eb-map-svg path \{[^}]*stroke: var\(--paper\);[^}]*stroke-width: \.5px;/)
-    expect(css).toMatch(/\.eb-map-svg path\[data-hot\] \{ stroke: var\(--ink\);/)
+    // Every shape: a hairline Paper border, the same on screen at every zoom, round joins.
+    const border = css.match(/\.eb-map-svg path:not\(\.eb-map-edge\) \{([^}]*)\}/)![1]
+    expect(border).toMatch(/stroke: var\(--paper\);[^}]*stroke-width: \.5px;/)
+    expect(border).toMatch(/stroke-linejoin: round;/)
+    expect(border).toMatch(/vector-effect: non-scaling-stroke;/)
+    // The hovered or open place: one Ink line on its own path, unfilled, round joins, non-scaling, taking no pointer.
+    const edge = css.match(/\.eb-map-svg \.eb-map-edge \{([^}]*)\}/)![1]
+    for (const d of ['fill: none', 'stroke: var(--ink)', 'stroke-width: 1.5px', 'stroke-linejoin: round', 'vector-effect: non-scaling-stroke', 'pointer-events: none']) expect(edge).toContain(d)
+    // No other rule strokes a shape in Ink (it would be half covered by the neighbours painted after it).
+    expect(css.match(/stroke: var\(--ink\)/g)).toHaveLength(1)
   })
 })
 
@@ -356,7 +384,7 @@ describe('the Map view', () => {
     expect(svg()).toHaveAttribute('viewBox', '0 0 10 10')
     fireEvent.click(screen.getByTestId('map-row-c:KE'))
     await act(async () => {})
-    expect(shape('c:KE')).toHaveAttribute('data-open')
+    expect(edges()).toEqual(['c:KE'])
     expect(svg().getAttribute('viewBox')).not.toBe('0 0 10 10')
     expect(screen.getByRole('list', { name: 'States and provinces in Kenya' })).toHaveTextContent('Kenya1, 1 species')
     expect(screen.queryByRole('button', { name: 'Kenya' })).toBeNull() // the open place is the path's current step, not a link
@@ -412,10 +440,31 @@ describe('the Map view', () => {
     expect(screen.queryByTestId('map-tip')).toBeNull()
   })
 
-  it('the legend: one ramp from the lowest count to the highest', async () => {
+  it('every place shows its tooltip on hover, one with no species too, and is outlined above every shape, after the open one', async () => {
+    render(<Harness />)
+    await act(async () => {})
+    fireEvent.pointerEnter(shape('c:BR'), { pointerType: 'mouse' })
+    expect(screen.getByTestId('map-tip')).toHaveTextContent('Brazil0 species')
+    expect(edges()).toEqual(['c:BR'])
+    // The outline is the last thing the map draws.
+    expect(document.querySelector('svg.eb-map-svg')!.lastElementChild).toHaveClass('eb-map-edge')
+    fireEvent.click(screen.getByTestId('map-row-c:KE'))
+    await act(async () => {})
+    fireEvent.pointerEnter(shape('c:BR'), { pointerType: 'mouse' })
+    expect(edges()).toEqual(['c:KE', 'c:BR'])
+    // A tap on a place with no species names it too, and opens nothing.
+    fireEvent.pointerDown(shape('c:BR'), { pointerType: 'touch' })
+    fireEvent.click(shape('c:BR'))
+    expect(screen.getByTestId('map-tip')).toHaveTextContent('Brazil0 species')
+    expect(screen.getByTestId('map-path')).toHaveTextContent('World/Kenya')
+  })
+
+  it('the legend: one ramp from the lowest count to the highest, in the path\'s row at the right', async () => {
     render(<Harness />)
     await act(async () => {})
     const legend = screen.getByTestId('map-legend')
+    expect(legend.parentElement).toHaveClass('eb-map-head')
+    expect(legend.previousElementSibling).toBe(screen.getByTestId('map-path'))
     expect(legend).toHaveAttribute('aria-hidden', 'true')
     expect(legend).toHaveTextContent('12 species')
     expect(legend.querySelectorAll('i')).toHaveLength(1)
