@@ -371,7 +371,7 @@ describe('in Spanish', () => {
     expect(mass).toHaveTextContent('~4,3 g')
     expect(mass).toHaveAttribute('title', 'Masa corporal media, estimada a partir de su familia')
   })
-  it("the list view's rows and the direction switch: es.ui's heaviest first", () => {
+  it("the list view's rows and Style's sort order: es.ui's heaviest first", () => {
     render(
       <>
         <ControlsBar view="list" onView={() => {}} trueSize={false} onTrueSize={() => {}} lightFirst={false} onDirection={() => {}} sci={false} onSci={() => {}} />
@@ -380,8 +380,10 @@ describe('in Spanish', () => {
       { wrapper: withI18n('es') },
     )
     const c = es.ui.collage.controls
-    const dir = screen.getByRole('button', { name: c.sortedHeaviest })
-    expect(dir).toHaveTextContent(c.heaviestFirst)
+    fireEvent.click(screen.getByRole('button', { name: c.style }))
+    const sort = screen.getByRole('group', { name: c.sort })
+    expect(within(sort).getByRole('button', { name: c.heaviestFirst })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(sort).getByRole('button', { name: c.lightestFirst })).toHaveAttribute('aria-pressed', 'false')
     const list = screen.getByRole('list', { name: 'Lista de vida' })
     expect(list).toHaveTextContent('2,4 kg')
     expect(list).toHaveTextContent('sept 2026')

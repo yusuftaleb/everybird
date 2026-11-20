@@ -9,7 +9,7 @@
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
 // Every word is the UI language's (ui.share), the image's and the poster's too; the credit line, the share text
 // (SHARE_CREDIT), the download names and the link stay the same in every language (a link carries no language).
-// The "Dark image" switch (starts at the app's theme, then the dialog's own) sets the look of the share images and the
+// Style > Dark image (dark-image.ts: the app's theme until the birder sets it) sets the look of the share images and the
 // poster alike. Print mode makes an A4 to A1 or a 12 × 18, 18 × 24 or 24 × 36 in poster (A2 to start): the preview is the poster's 1080-wide image, "Make poster" runs
 // makePoster (its chunk is fetched when print mode opens) with progress and Cancel, then Download PNG and Download PDF
 // serve the one encode. Changing the size, title or either switch, leaving print mode or closing the dialog cancels a make and
@@ -26,7 +26,8 @@ import { HTML_LANG } from '@/i18n/langs'
 import { useI18n } from '@/i18n/I18nProvider'
 import { countryName, regionsIn } from '@/lib/i18n-places'
 import { track, type PosterSizeWire } from '@/lib/analytics'
-import { currentTheme, type Theme } from '@/lib/theme'
+import type { Theme } from '@/lib/theme'
+import { useDarkImage } from '@/lib/dark-image'
 import { useLiferMarks } from '@/lib/lifer-marks'
 import { useArrangement } from '@/lib/arrangement'
 import { COFFEE_URL } from '@/lib/site-meta'
@@ -129,9 +130,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
   const [showNames, setShowNames] = useState(false)
   const [namesFitFailKey, setNamesFitFailKey] = useState<string | null>(null)
   const [fontsTick, setFontsTick] = useState(0)
-  // The look of everything the dialog makes: the app's theme when the dialog opens, then this dialog's own choice.
-  const [dark, setDark] = useState(() => currentTheme() === 'dark')
-  const theme: Theme = dark ? 'dark' : 'light'
+  // The look of everything the dialog makes: Style > Dark image (the app's theme until the birder sets it).
+  const theme: Theme = useDarkImage() ? 'dark' : 'light'
   // No background fill in the PNGs (images and posters; a PDF needs one, so it's offered only with this off). Not stored.
   const [transparent, setTransparent] = useState(false)
 
@@ -867,11 +867,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
                       <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
                     </button>
                   )}
-
-                  <button type="button" role="switch" aria-checked={dark} className="eb-switch eb-share-switch" onClick={() => setDark((v) => !v)}>
-                    <span>{t.share.dark}</span>
-                    <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
-                  </button>
 
                   <button type="button" role="switch" aria-checked={transparent} className="eb-switch eb-share-switch" data-testid="share-transparent-switch" onClick={() => setTransparent((v) => !v)}>
                     <span>{t.share.transparent}</span>
