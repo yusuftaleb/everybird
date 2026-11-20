@@ -102,8 +102,15 @@ export function isClade(tree: Tree, tips: readonly number[]): boolean {
   return all[mrca] === tips.length
 }
 
-/** The rows and drawing of `level`, with `onList` the codes on the (filtered) list. Undefined when nothing is drawn. */
-export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, onList: ReadonlySet<string>): LevelView | undefined {
+/** A level with no row left ("Only my birds" where no bird of the list is). */
+const NO_DRAWING: Drawing = { leaves: [], seen: '', unseen: '', seenDot: '', unseenDot: '', rootAge: 1 }
+
+/**
+ * The rows and drawing of `level`, with `onList` the codes on the (filtered) list. `mine` ("Only my birds") keeps only the
+ * rows with a bird on the list, and inside a marked row only those groups: the folds are decided on the full tree first,
+ * then the tree is cut down to the kept rows' tips. Undefined when nothing is drawn (with `mine`, rows are empty instead).
+ */
+export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, onList: ReadonlySet<string>, mine = false): LevelView | undefined {
   const rowOf = (tip: number) => species.byCode.get(tree.code[tip]!)
   const all: number[] = []
   for (const tip of tree.tipOf.values()) if (rowOf(tip)) all.push(tip)
@@ -121,8 +128,6 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   const folds = genera ? undefined : genFolds ?? famFolds
   const rawKey = (r: SpeciesRow) => (genera ? r.code : fam ? genusOf(r.sci) : r.fam)
   const keyOf = (r: SpeciesRow) => (folds ? foldedInto(folds.into, rawKey(r)) : rawKey(r))
-  const root = cladeTree(tree, tips, (tip) => keyOf(rowOf(tip)!))
-  if (!root) return undefined
   // Totals from the taxonomy, within the open scope, per group (`own`) and per row (a group inside a marked branch
   // counts toward its row).
   const count = () => ({ total: new Map<string, number>(), on: new Map<string, number>() })
@@ -137,7 +142,14 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
     if (!first.has(rawKey(r))) first.set(rawKey(r), r)
   }
   const insideOf = (keys: string[] | undefined): Inside[] | undefined =>
-    keys?.map((key) => ({ key, row: first.get(key)!, on: own.on.get(key) ?? 0, total: own.total.get(key) ?? 0 }))
+    keys?.map((key) => ({ key, row: first.get(key)!, on: own.on.get(key) ?? 0, total: own.total.get(key) ?? 0 })).filter((w) => !mine || w.on > 0)
+  const inside = (genus ? genFolds!.others.get(genus) : genera ? undefined : fam ? famFolds.others.get(fam) : undefined)
+    ?.map((key) => species.rows.find((r) => (genus ? genusOf(r.sci) : r.fam) === key)!)
+  const split = !inside && !!fam && !isClade(tree, tips)
+  const at = { fam, genus: level.genus }
+  const drawn = mine ? tips.filter((tip) => (byRow.on.get(keyOf(rowOf(tip)!)) ?? 0) > 0) : tips
+  const root = cladeTree(tree, drawn, (tip) => keyOf(rowOf(tip)!))
+  if (!root) return mine && tips.length ? { rows: [], height: 0, drawing: NO_DRAWING, split, inside, level: at } : undefined
   const rows: TreeRow[] = []
   const ys: number[] = []
   let top = 0
@@ -160,7 +172,6 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   // One lineage alone (a genus of one species, a family of one genus): its stem, from the split above it.
   const stem = isLeaf(root) && tree.parent[root.node] >= 0 ? tree.age[tree.parent[root.node]] : undefined
   const drawing = drawTree(root, (_, i) => { const r = tipRows[i]; return r.kind === 'species' ? r.on : r.kind === 'group' && r.on > 0 }, (i) => ys[i], stem, (_, i) => tipRows[i].dotted)
-  const inside = (genus ? genFolds!.others.get(genus) : genera ? undefined : fam ? famFolds.others.get(fam) : undefined)
-    ?.map((key) => species.rows.find((r) => (genus ? genusOf(r.sci) : r.fam) === key)!)
-  return { rows, height: top, drawing, split: !inside && !!fam && !isClade(tree, tips), inside, level: { fam, genus: level.genus } }
+  return { rows, height: top, drawing, split, inside, level: at }
 }
+

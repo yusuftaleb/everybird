@@ -169,6 +169,8 @@ export const pt: Messages = {
         oldest: 'Linhagem mais antiga desta lista: {name}, que se separou dos parentes mais próximos há cerca de {age} milhões de anos (uma estimativa).',
         unmapped: { one: '{n} ave desta lista não tem lugar nesta árvore:', other: '{n} aves desta lista não têm lugar nesta árvore:' },
         allMapped: 'Todas as aves desta lista têm um lugar na árvore.',
+        mine: 'Só minhas aves',
+        mineNone: 'Nenhuma ave da lista aqui.',
         credit: 'Árvore: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, associada à taxonomia do eBird {year}, que dá as famílias, os gêneros e os totais. As espécies novas da taxonomia {year} foram acrescentadas ao lado do parente mais próximo.',
       },
       close: 'Fechar',

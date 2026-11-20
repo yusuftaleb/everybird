@@ -169,6 +169,8 @@ export const fr: Messages = {
         oldest: 'Plus ancienne lignée de cette liste\u00a0: {name}, séparée de ses plus proches parents il y a environ {age} millions d’années (une estimation).',
         unmapped: { one: '{n} oiseau de cette liste n’a pas de place dans cet arbre\u00a0:', other: '{n} oiseaux de cette liste n’ont pas de place dans cet arbre\u00a0:' },
         allMapped: 'Chaque oiseau de cette liste a une place dans l’arbre.',
+        mine: 'Seulement mes oiseaux',
+        mineNone: 'Aucun oiseau de la liste ici.',
         credit: 'Arbre\u00a0: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, rapproché de la taxonomie eBird {year}, qui donne les familles, les genres et les totaux. Les espèces nouvelles de la taxonomie {year} ont été ajoutées à côté de leur plus proche parent.',
       },
       close: 'Fermer',

@@ -139,6 +139,29 @@ describe('levelView', () => {
   })
 })
 
+describe('Only my birds', () => {
+  const shown = (v: LevelView) => v.rows.map((r) => (r.kind === 'order' ? `o:${r.ord}` : r.kind === 'group' ? `${r.key} ${r.on}${r.with ? ` with [${r.with.map((w) => w.key)}]` : ''}` : r.row.code))
+  it('keeps the rows with a bird on the list and draws the tree on them alone, its ages kept', () => {
+    const v = levelView(tree, species, {}, new Set(['a1']), true)!
+    expect(shown(v)).toEqual(['o:O1', 'Fa 1'])
+    expect(v.height).toBe(HEAD_H + ROW_H)
+    expect(v.drawing.leaves).toHaveLength(1)
+    expect(v.drawing.rootAge).toBe(10) // Fa's stem, from the root of the whole tree
+    expect(shown(levelView(tree, species, {}, new Set(['a1']))!)).toEqual(['o:O1', 'Fa 1', 'o:O2', 'Fb 0'])
+  })
+  it('a marked row stays when any species of its branch is on the list, its groups inside cut to those with a bird', () => {
+    expect(shown(levelView(tree, species, { fam: 'Fa' }, new Set(['a2']))!)).toEqual(['Aa 1 with [Ab]'])
+    expect(shown(levelView(tree, species, { fam: 'Fa' }, new Set(['a2']), true)!)).toEqual(['Aa 1 with []'])
+    expect(shown(levelView(tree, species, { fam: 'Fa' }, new Set(['a3']), true)!)).toEqual(['Aa 1 with [Ab]'])
+    expect(shown(levelView(tree, species, { fam: 'Fa', genus: 'Aa' }, new Set(['a2']), true)!)).toEqual(['a2'])
+  })
+  it('a level with no bird on the list: no rows, the level kept', () => {
+    const v = levelView(tree, species, { fam: 'Fb' }, new Set(['a1']), true)!
+    expect(v.rows).toEqual([])
+    expect(v.level).toEqual({ fam: 'Fb', genus: undefined })
+  })
+})
+
 describe('a group the tree splits', () => {
   // Keys are a tip's first letter.
   const folds = (nwk: string) => { const t = parseNewick(nwk); return foldSplit(t, t.tipOf.values(), (k) => t.code[k]![0]) }
@@ -309,6 +332,36 @@ describe('public/data/tree.v1.json', () => {
         }
       }
       expect({ rows, marked, inside }).toEqual({ rows: 1970, marked: 101, inside: 409 })
+    })
+    it('Only my birds: every family\'s genera hold exactly its species on the list, each once, marked as with the switch off', () => {
+      // A synthetic list: every fifth species of the taxonomy.
+      const on = new Set(shipped.species.filter((_, i) => i % 5 === 0).map((r) => r.code))
+      let marked = 0
+      for (const lv of levels) {
+        const fam = lv.level.fam!
+        const fams = new Set([fam, ...famInside.get(fam)!])
+        const scope = counted(tipped.filter((r) => fams.has(r.fam)), genusOf).filter((r) => fams.has(r.fam))
+        const mine = levelView(t, idx, { fam }, on, true)!
+        const off = levelView(t, idx, { fam }, on)!
+        const g = groups(mine)
+        expect(g.every((r) => r.on > 0), fam).toBe(true)
+        expect(g.reduce((a, r) => a + r.on, 0), fam).toBe(scope.filter((r) => on.has(r.code)).length)
+        const keys = g.flatMap((r) => [r.key, ...r.with?.map((w) => w.key) ?? []])
+        expect(new Set(keys).size, fam).toBe(keys.length)
+        expect(mine.drawing.leaves.map((l) => l.key), fam).toEqual(g.map((r) => r.key))
+        // The same rows as the switch off less those without a bird, the same marks, inside only the groups with one.
+        const kept = groups(off).filter((r) => r.on > 0)
+        expect(g.map((r) => `${r.key} ${!!r.with} ${r.with?.map((w) => w.key)}`), fam).toEqual(kept.map((r) => `${r.key} ${!!r.with} ${r.with?.filter((w) => w.on > 0).map((w) => w.key)}`))
+        // Each marked row's species level: its species on the list, each once.
+        for (const r of g.filter((x) => x.with)) {
+          marked++
+          const sv = levelView(t, idx, { fam, genus: r.key }, on, true)!
+          const codes = sv.rows.map((x) => (x.kind === 'species' ? x.row.code : ''))
+          const genera = new Set([r.key, ...off.rows.flatMap((x) => (x.kind === 'group' && x.key === r.key ? x.with!.map((w) => w.key) : []))])
+          expect(codes.sort(), r.key).toEqual(tipped.filter((s) => fams.has(s.fam) && genera.has(genusOf(s)) && on.has(s.code)).map((s) => s.code).sort())
+        }
+      }
+      expect(marked).toBeGreaterThan(20)
     })
     it('Vauriella is the largest marked tip: 358 species with 55 other genera; Muscicapidae, Otididae and Timaliidae are one row each', () => {
       const v = levelView(t, idx, { fam: 'Muscicapidae' }, none)!

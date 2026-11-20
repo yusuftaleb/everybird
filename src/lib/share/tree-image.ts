@@ -2,7 +2,7 @@
 // family's genera or the open genus's species) in the collage's area, its branches drawn as on screen (on the list in
 // Ink, the rest in Line, a tip placed without genetic data dotted), and the names of the rows with a bird on the list,
 // as many as fit (keepNames), the split-group mark after a name. Under it, when there is room, the age axis, and a
-// one-line key for the mark and the dotted line when the image has them.
+// one-line key for the mark and the dotted line when the image has them. "Only my birds" (`at.mine`) as on screen.
 import { formatInt } from '@/i18n/format'
 import { loadSpecies } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
@@ -33,7 +33,7 @@ type Tip = Exclude<TreeRow, { kind: 'order' }>
 export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const { state, entries, at, t } = o
   const [{ tree }, all] = await Promise.all([loadTree(), loadSpecies()])
-  const view = levelView(tree, all, at.tree ?? {}, new Set(entries.map((e) => e.code)))
+  const view = levelView(tree, all, at.tree ?? {}, new Set(entries.map((e) => e.code)), at.mine)
   if (!view) throw new Error('No tree to draw')
   const tt = t.collage.tree
   const nameOf = (r: Tip): string =>
@@ -44,7 +44,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   return renderViewImage(o, (ctx, card, area) => {
     const C = card.colors
     const font = card.fonts
-    const axis = area.h >= 520
+    const axis = area.h >= 520 && tips.length > 0
     const bottom = (axis ? AXIS_H : 0) + KEY_H
     const k = Math.min((area.h - bottom) / view.height, PITCH_MAX / ROW_H)
     const bodyH = view.height * k

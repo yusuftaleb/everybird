@@ -169,6 +169,8 @@ export const nl: Messages = {
         oldest: 'Oudste lijn op deze lijst: {name}, ongeveer {age} miljoen jaar geleden afgesplitst van de naaste verwanten (een schatting).',
         unmapped: { one: '{n} vogel op deze lijst heeft geen plaats in deze boom:', other: '{n} vogels op deze lijst hebben geen plaats in deze boom:' },
         allMapped: 'Elke vogel op deze lijst heeft een plaats in de boom.',
+        mine: 'Alleen mijn vogels',
+        mineNone: 'Hier staat geen vogel van de lijst.',
         credit: 'Boom: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, gekoppeld aan de eBird-taxonomie {year}, die de families, geslachten en totalen geeft. Soorten die nieuw zijn in de taxonomie {year} zijn naast hun naaste verwant toegevoegd.',
       },
       close: 'Sluiten',

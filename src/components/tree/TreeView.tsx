@@ -24,6 +24,9 @@ import './tree.css'
 
 export const AVES_URL = 'https://github.com/McTavishLab/AvesData'
 export const CC_BY_URL = 'https://creativecommons.org/licenses/by/4.0/'
+/** "Only my birds", a per-device choice kept in localStorage (off when unset or unreadable). */
+export const TREE_MINE_KEY = 'everybird:tree-mine'
+const readMine = () => { try { return localStorage.getItem(TREE_MINE_KEY) === '1' } catch { return false } }
 
 type Loaded = { file: TreeFile; tree: Tree; species: SpeciesIndex }
 
@@ -33,8 +36,8 @@ type Props = {
   sci: boolean
   /** Opens the bird card; `el` is the pressed button. */
   onPick: (code: string, el: HTMLElement) => void
-  /** Told the level open whenever it changes, so Share can draw the same level. */
-  onLevel?: (level: TreeLevel) => void
+  /** Told the level open and "Only my birds" whenever they change, so Share can draw the same. */
+  onLevel?: (level: TreeLevel, mine: boolean) => void
 }
 
 export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
@@ -50,12 +53,18 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
     return () => { live = false }
   }, [])
   const [level, setLevel] = useState<TreeLevel>({})
-  useEffect(() => onLevel?.(level), [level, onLevel])
+  // The tab mounts on the client only (lazy, after the view is chosen), so storage is read at once.
+  const [mine, setMine] = useState(readMine)
+  const onMine = (on: boolean) => {
+    setMine(on)
+    try { if (on) localStorage.setItem(TREE_MINE_KEY, '1'); else localStorage.removeItem(TREE_MINE_KEY) } catch { /* kept for this page */ }
+  }
+  useEffect(() => onLevel?.(level, mine), [level, mine, onLevel])
   // The row whose list of genera inside is open.
   const [list, setList] = useState<string | null>(null)
   const onList = useMemo(() => new Set(entries.map((e) => e.code)), [entries])
   const species = data?.species
-  const view = useMemo(() => (data ? levelView(data.tree, data.species, level, onList) : undefined), [data, level, onList])
+  const view = useMemo(() => (data ? levelView(data.tree, data.species, level, onList, mine) : undefined), [data, level, onList, mine])
   const unmapped = useMemo(() => (data ? entries.filter((e) => !data.tree.tipOf.has(e.code)) : []), [data, entries])
   const oldest = useMemo(() => (data ? oldestLineage(data.tree, onList) : undefined), [data, onList])
 
@@ -127,7 +136,7 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
         <span className="eb-tree-name">
           <span lang={!fam || sci ? 'la' : undefined}>{primary}</span>
           {marked && <span className="eb-tree-mark" aria-hidden="true" />}
-          {r.with && !many && <>{' '}<span className="eb-tree-other" data-keep>{withText(r.with, fam)}</span></>}
+          {!!r.with?.length && !many && <>{' '}<span className="eb-tree-other" data-keep>{withText(r.with, fam)}</span></>}
           {other && <>{' '}<span className="eb-tree-other" data-keep={!fam || undefined} lang={otherLatin ? 'la' : undefined}>{other}</span></>}
         </span>
         <span className="eb-mono eb-tree-count" aria-hidden="true">{count(r.on)} / {count(r.total)}</span>
@@ -180,9 +189,13 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
           ))}
         </p>
       </nav>
+      <button type="button" role="switch" aria-checked={mine} className="eb-switch eb-tree-mine" data-testid="tree-mine" onClick={() => onMine(!mine)}>
+        <span>{tt.mine}</span>
+        <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+      </button>
       {view.split && here && <p className="eb-tree-note">{fmt(tt.split, { name: here })}</p>}
       {insideNote && <p className="eb-tree-note">{insideNote}</p>}
-      <div className="eb-tree-chart">
+      {!view.rows.length ? <p className="eb-tree-note">{tt.mineNone}</p> : <div className="eb-tree-chart">
         <div className="eb-tree-head" aria-hidden="true">
           <div className="eb-tree-axis">
             {ticks.map((v) => (
@@ -206,7 +219,7 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
             ))}
           </ol>
         </div>
-      </div>
+      </div>}
       {listRow && (
         <PickerSheet title={fmt(tt.insideTitle, { name: listRow.key })} count={listRow.with!.length} onClose={() => setList(null)}>
           <ul className="eb-tree-inside">

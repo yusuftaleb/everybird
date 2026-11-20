@@ -8,8 +8,9 @@ import type { AppState } from '@/lib/list/store'
 import type { TreeLevel } from '@/lib/tree/levels'
 import { IMAGE_SCALE, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
-/** The level the view had open when Share was pressed: the Places level the map follows, or the tree's. */
-export type ShareAt = { place?: string; tree?: TreeLevel }
+/** The level the view had open when Share was pressed: the Places level the map follows, or the tree's (`mine`: its
+ *  "Only my birds" switch). */
+export type ShareAt = { place?: string; tree?: TreeLevel; mine?: boolean }
 /** A view image's input: the share image's, with the view's level, the app state it reads and the UI strings. */
 export type ViewImageOpts = ShareImageOpts & { at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui }
 export type Area = { x: number; y: number; w: number; h: number }

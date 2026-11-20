@@ -183,7 +183,8 @@ export const EN_UI = {
      *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the names of the groups inside
      *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
      *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that is
-     *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. */
+     *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. `mine` the
+     *  switch keeping only the rows with a bird on the list, `mineNone` the line when none is left. */
     tree: {
       loading: 'Loading the tree',
       failed: "The tree didn't load. Open Tree again to try once more.",
@@ -209,6 +210,8 @@ export const EN_UI = {
       oldest: 'Oldest lineage on this list: {name}, which split from its closest relatives about {age} million years ago (an estimate).',
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
       allMapped: 'Every bird on this list has a place in the tree.',
+      mine: 'Only my birds',
+      mineNone: 'No bird on the list here.',
       credit: 'Tree: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, matched to the eBird {year} taxonomy, which gives the families, genera and totals. Species new in the {year} taxonomy were added beside their closest relative.',
     },
     /** The close buttons' aria-label (the welcome, sheets, the Places and Time sheet). */
