@@ -44,9 +44,13 @@ button.eb-tree-btn { cursor: pointer; -webkit-tap-highlight-color: transparent; 
 .eb-tree-name [lang="la"] { font-style: italic; }
 .eb-tree-other { flex: 0 1 auto; font-size: 13px; font-weight: 500; color: var(--muted); }
 .eb-tree-part { flex: none; font-size: 11px; font-weight: 500; color: var(--muted); }
+/* A group that is not one branch of its own (levels.ts foldSplit): a diamond outline after its name, a shape, not a
+   colour; the key under the tree says what it means and the row's hidden text says it to a screen reader. */
+.eb-tree-mark { flex: none; align-self: center; width: 7px; height: 7px; margin: 0 1px; box-sizing: border-box; border: 1.5px solid currentColor; transform: rotate(45deg); }
 .eb-tree-count { flex: none; padding-right: 4px; font-size: 12px; font-variant-numeric: tabular-nums; }
 @media (hover: hover) and (pointer: fine) { button.eb-tree-btn:hover { background: var(--surface); } }
-@media (max-width: 600px) { .eb-tree-other { display: none; } }
+/* Phones drop a family's other name, never the groups folded into a row or another group's name inside a branch. */
+@media (max-width: 600px) { .eb-tree-other:not([data-keep]) { display: none; } }
 
 /* The key under the drawing: what the dotted line (and the mark) mean. */
 .eb-tree-key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 13px; color: var(--muted); }

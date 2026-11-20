@@ -183,7 +183,10 @@ export const EN_UI = {
       matches: { one: '{n} match', other: '{n} matches' },
     },
     /** The Tree view (TreeView.tsx): AvesData's tree at three levels (families, genera, species). {tree}, {taxonomy}
-     *  and {year} are data ("AvesData v1.7", "Clements 2025", "2026"); <src> links the repository, <lic> the licence. */
+     *  and {year} are data ("AvesData v1.7", "Clements 2025", "2026"); <src> links the repository, <lic> the licence.
+     *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the folded groups' names;
+     *  `insideOne`/`insideTwo` the note over an opened one; `markSr`/`keyMark` the mark of a group that is not one branch
+     *  of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. */
     tree: {
       loading: 'Loading the tree',
       failed: "The tree didn't load. Open Tree again to try once more.",
@@ -193,11 +196,17 @@ export const EN_UI = {
       axis: 'Million years ago (estimates)',
       onList: '{n} of {total} on the list',
       part: 'part {i} of {n}',
+      withOne: 'with <a>{a}</a>',
+      withTwo: 'with <a>{a}</a> and <b>{b}</b>',
+      markSr: 'not one branch of its own in this tree',
+      keyMark: 'Not one branch of its own in this tree',
+      insideOne: 'In this tree, {a} sits inside {name}.',
+      insideTwo: 'In this tree, {a} and {b} sit inside {name}.',
       onListOne: 'on the list',
       notOnList: 'not on the list',
       dottedSr: 'placed without genetic data',
       keyDotted: 'Placed without genetic data',
-      split: '{name} is not one clade in this tree, so this drawing shows its species alone.',
+      split: '{name} is not one branch in this tree, so this drawing shows its species alone.',
       oldest: 'Oldest lineage on this list: {name}, which split from its closest relatives about {age} million years ago (an estimate).',
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
       allMapped: 'Every bird on this list has a place in the tree.',
