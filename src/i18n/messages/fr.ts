@@ -139,8 +139,6 @@ export const fr: Messages = {
       tree: {
         loading: 'Chargement de l’arbre',
         failed: 'L’arbre ne s’est pas chargé. Ouvre Arbre à nouveau pour réessayer.',
-        nav: 'Niveaux de l’arbre',
-        all: 'Tous les oiseaux',
         tips: 'Extrémités de l’arbre, de haut en bas',
         axis: 'Millions d’années avant aujourd’hui (estimations)',
         onList: '{n} sur {total} dans la liste',
@@ -164,7 +162,8 @@ export const fr: Messages = {
         mineNone: 'Aucun oiseau de la liste ici.',
         level: 'Niveau',
         layout: 'Forme',
-        layouts: { fan: 'Éventail', circle: 'Cercle', rows: 'Lignes' },
+        layouts: { fan: 'Éventail', circle: 'Radial', rows: 'Rectangulaire' },
+        noRoom: 'Pas assez de place pour tous les noms',
         rank: { orders: 'Ordres', families: 'Familles', genera: 'Genres', species: 'Espèces' },
         tooMany: { families: 'Ouvre un ordre pour voir ses familles', genera: 'Ouvre une famille pour voir ses genres', species: 'Ouvre un genre pour voir ses espèces' },
         tipOf: '{n} sur {total}',

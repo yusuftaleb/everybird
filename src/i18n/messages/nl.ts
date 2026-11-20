@@ -139,8 +139,6 @@ export const nl: Messages = {
       tree: {
         loading: 'De boom laden',
         failed: 'De boom is niet geladen. Open Boom opnieuw om het nog eens te proberen.',
-        nav: 'Niveaus van de boom',
-        all: 'Alle vogels',
         tips: 'Uiteinden van de boom, van boven naar beneden',
         axis: 'Miljoen jaar geleden (schattingen)',
         onList: '{n} van {total} op de lijst',
@@ -164,7 +162,8 @@ export const nl: Messages = {
         mineNone: 'Hier staat geen vogel van de lijst.',
         level: 'Niveau',
         layout: 'Vorm',
-        layouts: { fan: 'Waaier', circle: 'Cirkel', rows: 'Rijen' },
+        layouts: { fan: 'Waaier', circle: 'Radiaal', rows: 'Rechthoekig' },
+        noRoom: 'Niet genoeg ruimte voor alle namen',
         rank: { orders: 'Ordes', families: 'Families', genera: 'Geslachten', species: 'Soorten' },
         tooMany: { families: 'Open een orde om de families te zien', genera: 'Open een familie om de geslachten te zien', species: 'Open een geslacht om de soorten te zien' },
         tipOf: '{n} van {total}',

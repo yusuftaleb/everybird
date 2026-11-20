@@ -1,7 +1,8 @@
 // The Tree view's per-device choices, kept in localStorage, the same in every tab; without storage a choice holds for
 // the page load. "Lifers only" (the bar's switch; TreeView reads it, and the tree's share image follows it), off when
-// unset or unreadable; and the Layout menu's choice (Fan, Circle, Rows), unset until one is picked, when the view draws
-// the fan from FAN_FROM px wide and rows under it.
+// unset or unreadable; and the Layout menu's choice, unset until one is picked, when the view draws the fan from
+// FAN_FROM px wide (where it names every tip) and rows under it. The stored values keep their first names: 'fan' is the
+// Fan, 'circle' the Radial and 'rows' the Rectangular layout.
 import { useSyncExternalStore } from 'react'
 
 export const TREE_MINE_KEY = 'everybird:tree-mine'

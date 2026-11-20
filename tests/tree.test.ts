@@ -1,14 +1,16 @@
 // The bird tree: parsing, collapsing to orders / families / genera / species, the levels' rows and counts, the level
-// menu and its tip limit, the tips' stickers, the fan's and circle's geometry, the rows' columns, the fact line, the axis,
-// the build script's relabelling, and the committed tree.v1.json against species.v1.json. Synthetic trees only.
+// menu and its tip limit, the tips' stickers, the fan's and circle's geometry and their every-name fit (fitRound), the
+// tree's path through the taxonomy filter (path.ts), the fact line, the axis, the build script's relabelling, and the
+// committed tree.v1.json against species.v1.json. Synthetic trees only.
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { attach, matcher, nexusTree, relabel, taxOnlyBits, type Addition } from '../scripts/build-data/build-tree'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
-import { FAN_GAP, FAN_LABEL, FAN_OUT, FAN_R_MAX, FAN_R_MIN, FAN_STICKER, drawFan, fanAngle, fanBox, fanLabel, fanRing, keepNames, rayRoom, ringLabels } from '@/lib/tree/fan'
-import { HEAD_H, MAX_TIPS, ROW_H, foldSplit, rowColumns, groupSticker, isClade, levelView, ranksAt, taxonCover, type LevelView, type TreeRow } from '@/lib/tree/levels'
+import { FAN_R_MAX, FAN_R_MIN, LABEL_GAP, LABEL_STICKER, SCREEN_SIZES, drawFan, fanAngle, fanLabel, fanRing, fitRound, ringLabels, type FanShape, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
+import { HEAD_H, MAX_TIPS, ROW_H, foldSplit, groupSticker, isClade, levelView, ranksAt, taxonCover, type LevelView, type TreeRow } from '@/lib/tree/levels'
+import { closeDeep, openBranch, treeBranch } from '@/lib/tree/path'
 import { ageTicks, bitAt, cladeTree, drawTree, formatAge, isLeaf, leavesOf, oldestLineage, packBits, parseNewick, type TreeFile } from '@/lib/tree/tree'
 
 const sp = (code: string, sci: string, ord: string, fam: string, to: number): SpeciesRow =>
@@ -213,26 +215,7 @@ describe('the orders and the Level menu', () => {
   })
 })
 
-describe('rowColumns', () => {
-  it('as many columns as hold the widest row in full: three on wide screens, two on medium, one on phones, never four', () => {
-    expect(rowColumns(1400, 260, 24)).toBe(3)
-    expect(rowColumns(4000, 100, 24)).toBe(3)
-    expect(rowColumns(800, 260, 24)).toBe(2)
-    expect(rowColumns(560, 260, 24)).toBe(2)
-    expect(rowColumns(540, 260, 24)).toBe(1)
-    expect(rowColumns(360, 500, 24)).toBe(1) // wider than the screen: one column, the name wraps
-  })
-})
-
 describe('the fan', () => {
-  it('fanBox: as large as the names\' room on both sides allows, between its bounds', () => {
-    const b = fanBox(1000)
-    expect(b.R).toBe(500 - FAN_OUT)
-    expect(b.cx).toBe(500)
-    expect(b.cy).toBe(FAN_OUT + b.R)
-    expect(fanBox(320).R).toBe(FAN_R_MIN)
-    expect(fanBox(4000).R).toBe(FAN_R_MAX)
-  })
   it('the tips spread over the half disc, left to right, each mid-slot', () => {
     expect(fanAngle(0.5, 2)).toBeCloseTo((3 * Math.PI) / 4)
     expect(fanAngle(1.5, 2)).toBeCloseTo(Math.PI / 4)
@@ -265,17 +248,7 @@ describe('the fan', () => {
     expect(fanLabel(box, Math.PI / 2, 10)).toMatchObject({ rot: -90, flip: false })
     expect(fanLabel(box, (3 * Math.PI) / 4, 10)).toMatchObject({ rot: 45, flip: true })
   })
-  it('fanBox: a column too narrow for the smallest fan and full room leaves less room for names, none at all at worst', () => {
-    expect(fanBox(1000).label).toBe(FAN_LABEL)
-    const phone = fanBox(288)
-    expect(phone.R).toBe(FAN_R_MIN)
-    expect(phone.label).toBe(Math.floor(144 - FAN_R_MIN - 2 * FAN_GAP - FAN_STICKER))
-    expect(phone.cx + phone.R + 2 * FAN_GAP + FAN_STICKER + phone.label).toBeLessThanOrEqual(288)
-    expect(fanBox(150).label).toBe(0)
-  })
-  it('the circle: the whole of a square, its tips all round clockwise from the top, each mid-slot', () => {
-    const b = fanBox(1000, 'circle')
-    expect(b).toMatchObject({ shape: 'circle', R: 500 - FAN_OUT, cx: 500, cy: 500, h: 1000 })
+  it('the circle: its tips all round clockwise from the top, each mid-slot', () => {
     expect(fanAngle(0.5, 4, 'circle')).toBeCloseTo(Math.PI / 4) // the first tip just right of the top
     expect(fanAngle(2.5, 4, 'circle')).toBeCloseTo(-(3 * Math.PI) / 4) // the third down on the left
     const root = cladeTree(tree, tree.tipOf.values(), (k) => tree.code[k]!)!
@@ -301,21 +274,104 @@ describe('the fan', () => {
     expect(ringLabels({ cx: 50, cy: 60, R: 40 }, 20)).toEqual([[70, 60], [30, 60]])
     expect(ringLabels({ cx: 50, cy: 60, R: 40 }, 8)).toEqual([[58, 60]])
   })
-  it('rayRoom: how far a label can run outward before it leaves the drawing', () => {
-    const box = { cx: 200, cy: 200, R: 100 }
-    expect(rayRoom(box, 400, 400, 0, 10)).toBeCloseTo(90) // right: 200 to the edge, less the ring and the gap
-    expect(rayRoom(box, 400, 400, Math.PI / 2, 10)).toBeCloseTo(90) // up
-    expect(rayRoom(box, 400, 400, Math.PI / 4, 10)).toBeCloseTo(200 * Math.SQRT2 - 110)
-  })
-  it('keepNames: only names that fit their room in full; round a circle the last tip sits beside the first', () => {
-    const rows = [{ y: 0, n: 3, w: 80 }, { y: 30, n: 5, w: 200 }, { y: 60, n: 1, w: 40 }]
-    expect([...keepNames(rows, 20, 100)].sort()).toEqual([0, 2]) // the widest is left to the hover label and the rows
-    const ring = [{ y: 5, n: 1 }, { y: 50, n: 1 }, { y: 95, n: 2 }]
-    expect([...keepNames(ring, 20)].sort()).toEqual([0, 1, 2])
-    expect([...keepNames(ring, 20, undefined, 100)].sort()).toEqual([1, 2]) // 95 and 5 are 10 apart round the circle
-  })
   it('fanRing: an age\'s half circle over the top', () => {
     expect(fanRing({ cx: 50, cy: 60, R: 40 }, 20)).toBe('M30 60A20 20 0 0 1 70 60')
+  })
+})
+
+describe('every tip named on the Fan and Radial (fitRound)', () => {
+  const spans = (n: number, name = 8, count = 3, on = (i: number) => i % 2 === 0): LabelSpan[] => Array.from({ length: n }, (_, i) => ({ name, count, on: on(i) }))
+  /** Each label's reach past the tips' ring: the dot, a gap, the sticker's box, a gap, the name, and the count it keeps. */
+  const reach = (f: RoundFit, s: LabelSpan, i: number) => SCREEN_SIZES.dot + f.px * (2 * LABEL_GAP + LABEL_STICKER + s.name + (f.counts[i] && s.count ? LABEL_GAP + s.count : 0))
+  /** No two labels touch, every label is inside the width (and the height, when given), the names at the floor or more. */
+  function whole(sp: LabelSpan[], f: RoundFit, shape: FanShape, w: number, h?: number) {
+    const n = sp.length, S = f.px * LABEL_STICKER
+    const step = (shape === 'circle' ? 2 * Math.PI : Math.PI) / n
+    expect((f.R + SCREEN_SIZES.dot + f.px * LABEL_GAP) * step).toBeGreaterThanOrEqual(S - 1e-6)
+    expect(f.px).toBeGreaterThanOrEqual(SCREEN_SIZES.floor)
+    sp.forEach((s, i) => {
+      const a = fanAngle(i + 0.5, n, shape), out = f.R + reach(f, s, i)
+      expect(f.cx + out * Math.abs(Math.cos(a)) + (S / 2) * Math.abs(Math.sin(a))).toBeLessThanOrEqual(w + 1e-6)
+      expect(f.cy - out * Math.sin(a) - (S / 2) * Math.abs(Math.cos(a))).toBeGreaterThanOrEqual(-1e-6)
+      if (h !== undefined) expect(f.cy - out * Math.sin(a) + (S / 2) * Math.abs(Math.cos(a))).toBeLessThanOrEqual(h + 1e-6)
+    })
+  }
+  it('on a wide column every tip keeps its name and count at full size, the drawing as large as the side labels allow', () => {
+    const sp = spans(45)
+    const f = fitRound(sp, 'fan', { w: 1088 })!
+    expect(f.px).toBe(13)
+    expect(f.counts.every(Boolean)).toBe(true)
+    expect(f.cx).toBe(544)
+    whole(sp, f, 'fan', 1088)
+    expect(f.h).toBeGreaterThan(f.R) // the page grows with the drawing
+  })
+  it('on a narrower column the type shrinks, to the floor at most, before any count goes', () => {
+    const sp = spans(45)
+    const f = fitRound(sp, 'fan', { w: 900 })!
+    expect(f.px).toBeLessThan(13)
+    expect(f.counts.every(Boolean)).toBe(true)
+    whole(sp, f, 'fan', 900)
+  })
+  it('past the floor the counts go, only those that hold the drawing in; never a name', () => {
+    // The first and last tips (at the fan's two ends) have long counts, one on the list and one not.
+    const sp = spans(45, 6, 3).map((s, i) => (i === 0 || i === 44 ? { ...s, count: 20, on: i === 0 } : s))
+    const f = fitRound(sp, 'fan', { w: 1088 })!
+    expect(f.px).toBe(SCREEN_SIZES.floor)
+    expect(f.counts[0]).toBe(false)
+    expect(f.counts[44]).toBe(false)
+    expect(f.counts.slice(1, 44).every(Boolean)).toBe(true)
+    whole(sp, f, 'fan', 1088)
+  })
+  it('the radius grows past its usual bound when the tips need it', () => {
+    const sp = spans(200, 4)
+    const f = fitRound(sp, 'circle', { w: 4000 })!
+    expect(f.R).toBeGreaterThan(FAN_R_MAX)
+    whole(sp, f, 'circle', 4000)
+    expect(f.h).toBeGreaterThan(2 * f.R) // both ways round
+    // With fewer tips it keeps to the usual size.
+    expect(fitRound(spans(10), 'circle', { w: 4000 })!.R).toBe(FAN_R_MAX)
+    expect(fitRound(spans(2), 'fan', { w: 400 })!.R).toBeGreaterThanOrEqual(FAN_R_MIN)
+  })
+  it('in a fixed height (a share image) the circle is centred in it and every label stays inside', () => {
+    const sp = spans(30)
+    const f = fitRound(sp, 'circle', { w: 1000, h: 800 })!
+    expect(f).toMatchObject({ h: 800, cy: 400, cx: 500 })
+    whole(sp, f, 'circle', 1000, 800)
+  })
+  it('none when even then a name does not fit: too many tips for the width', () => {
+    expect(fitRound(spans(300), 'fan', { w: 1088 })).toBeUndefined()
+    expect(fitRound(spans(45), 'fan', { w: 360 })).toBeUndefined()
+    expect(fitRound([], 'fan', { w: 1088 })).toBeUndefined()
+  })
+})
+
+describe("the tree's path is the taxonomy filter (path.ts)", () => {
+  // The shown index lacks family Fz (the landing sample's holds only its own birds).
+  const holds = (_ord: string, fam: string) => fam !== 'Fz'
+  const rest = { countries: ['CA'], from: '2020-01' }
+  it('opening an order or a family sets the filter, the rest of it kept; a genus is kept beside it', () => {
+    expect(openBranch(rest, { ord: 'O1' }, holds)).toEqual({ filter: { ...rest, order: 'O1' }, deep: null })
+    expect(openBranch(rest, { ord: 'O1', fam: 'Fa' }, holds)).toEqual({ filter: { ...rest, order: 'O1', family: 'Fa' }, deep: null })
+    const g = openBranch(rest, { ord: 'O1', fam: 'Fa', genus: 'Aa' }, holds)
+    expect(g).toEqual({ filter: { ...rest, order: 'O1', family: 'Fa' }, deep: { at: 'O1|Fa', genus: 'Aa' } })
+    expect(treeBranch(g.filter, g.deep)).toEqual({ ord: 'O1', fam: 'Fa', genus: 'Aa' })
+    expect(openBranch(g.filter, {}, holds)).toEqual({ filter: rest, deep: null }) // back to every order
+  })
+  it('a chip picked in the row (another order or family) opens it and drops the genus', () => {
+    const g = openBranch({}, { ord: 'O1', fam: 'Fa', genus: 'Aa' }, holds)
+    expect(treeBranch({ order: 'O1' }, g.deep)).toEqual({ ord: 'O1' })
+    expect(treeBranch({ order: 'O2', family: 'Fb' }, g.deep)).toEqual({ ord: 'O2', fam: 'Fb' })
+    expect(treeBranch({}, g.deep)).toEqual({})
+    expect(closeDeep(g.deep, 1)).toBeNull() // the family's step closes the genus
+  })
+  it('a family the filter cannot hold is kept beside it, with its name; its steps close one by one', () => {
+    const z = openBranch({}, { ord: 'O1', fam: 'Fz', genus: 'Zz' }, holds, 'Zed birds')
+    expect(z).toEqual({ filter: { order: 'O1' }, deep: { at: 'O1|', fam: 'Fz', famName: 'Zed birds', genus: 'Zz' } })
+    expect(treeBranch(z.filter, z.deep)).toEqual({ ord: 'O1', fam: 'Fz', genus: 'Zz' })
+    const fam = closeDeep(z.deep, 1)
+    expect(fam).toEqual({ at: 'O1|', fam: 'Fz', famName: 'Zed birds' })
+    expect(treeBranch(z.filter, fam)).toEqual({ ord: 'O1', fam: 'Fz' })
+    expect(closeDeep(z.deep, 0)).toBeNull()
   })
 })
 
@@ -343,10 +399,10 @@ describe('Only my birds', () => {
 })
 
 describe('taxonCover', () => {
-  it("counts the orders, families and genera the codes cover against the taxonomy's", () => {
-    expect(taxonCover(species.rows, new Set(['a1', 'a3']))).toEqual({ orders: [1, 2], families: [1, 2], genera: [2, 3] })
-    expect(taxonCover(species.rows, new Set())).toEqual({ orders: [0, 2], families: [0, 2], genera: [0, 3] })
-    expect(taxonCover(species.rows, new Set(species.rows.map((r) => r.code)))).toEqual({ orders: [2, 2], families: [2, 2], genera: [3, 3] })
+  it("counts the species, genera, families and orders the codes cover against the taxonomy's", () => {
+    expect(taxonCover(species.rows, new Set(['a1', 'a3']))).toEqual({ species: [2, 6], genera: [2, 3], families: [1, 2], orders: [1, 2] })
+    expect(taxonCover(species.rows, new Set())).toEqual({ species: [0, 6], genera: [0, 3], families: [0, 2], orders: [0, 2] })
+    expect(taxonCover(species.rows, new Set(species.rows.map((r) => r.code)))).toEqual({ species: [6, 6], genera: [3, 3], families: [2, 2], orders: [2, 2] })
   })
 })
 

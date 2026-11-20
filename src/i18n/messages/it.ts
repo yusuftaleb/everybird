@@ -139,8 +139,6 @@ export const it: Messages = {
       tree: {
         loading: 'Caricamento dell’albero',
         failed: 'L’albero non si è caricato. Apri di nuovo Albero per riprovare.',
-        nav: 'Livelli dell’albero',
-        all: 'Tutti gli uccelli',
         tips: 'Estremità dell’albero, dall’alto in basso',
         axis: 'Milioni di anni fa (stime)',
         onList: '{n} di {total} nella lista',
@@ -164,7 +162,8 @@ export const it: Messages = {
         mineNone: 'Nessun uccello della lista qui.',
         level: 'Livello',
         layout: 'Forma',
-        layouts: { fan: 'Ventaglio', circle: 'Cerchio', rows: 'Righe' },
+        layouts: { fan: 'Ventaglio', circle: 'Radiale', rows: 'Rettangolare' },
+        noRoom: 'Non c’è spazio per tutti i nomi',
         rank: { orders: 'Ordini', families: 'Famiglie', genera: 'Generi', species: 'Specie' },
         tooMany: { families: 'Apri un ordine per vederne le famiglie', genera: 'Apri una famiglia per vederne i generi', species: 'Apri un genere per vederne le specie' },
         tipOf: '{n} di {total}',

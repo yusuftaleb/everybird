@@ -141,8 +141,6 @@ export const zhHans: Messages = {
       tree: {
         loading: '正在加载演化树',
         failed: '演化树没有加载出来。再次打开演化树重试。',
-        nav: '演化树层级',
-        all: '所有鸟',
         tips: '树的末端，从上到下',
         axis: '百万年前（估计值）',
         onList: '清单上有{n}/{total}',
@@ -166,7 +164,8 @@ export const zhHans: Messages = {
         mineNone: '这里没有清单上的鸟。',
         level: '层级',
         layout: '布局',
-        layouts: { fan: '扇形', circle: '圆形', rows: '行' },
+        layouts: { fan: '扇形', circle: '放射状', rows: '矩形' },
+        noRoom: '空间不足，无法显示所有名称',
         rank: { orders: '目', families: '科', genera: '属', species: '种' },
         tooMany: { families: '打开一个目即可查看其科', genera: '打开一个科即可查看其属', species: '打开一个属即可查看其种' },
         tipOf: '{n}/{total}',

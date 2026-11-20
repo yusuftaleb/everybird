@@ -1,21 +1,19 @@
-/* The Tree tab (TreeView.tsx). Rows: the drawing takes the left column (--tree-w, which TreeView sets in px once it
-   knows the width), the rows the rest; a row is 44px at least and grows with its name (the drawing follows the rows'
-   measured centres), an order heading 32px (HEAD_H). Fan and Circle (data-round): the drawing with the rows as a list
-   in columns under it. Branches on the list are Ink, the rest Line; corners are rounded (CORNER in tree.ts) and
-   branches simply join; every tip has one small hollow dot. No name is ever cut: it is shown in full or not at all. */
+/* The Tree tab (TreeView.tsx). Rectangular: the drawing takes the left column (--tree-w, which TreeView sets in px
+   once it knows the width), the rows the rest; a row is 44px at least and grows with its name (the drawing follows the
+   rows' measured centres), an order heading 32px (HEAD_H). Fan and Radial (data-round): the drawing alone, every tip
+   named past it (fitRound sizes it: --tree-px, the names' size, --tree-st the sticker's box, --tree-gap the gaps); the
+   rows stay in the page visually hidden, for the keyboard and screen readers. Each tip reads, along its radius or
+   row: its dot, a gap, the sticker's box, a gap, the name, the count. Branches on the list are Ink, the rest Line;
+   corners are rounded (CORNER in tree.ts) and branches simply join. No name is ever cut. Hover and keyboard focus
+   (Yusuf, 2026-11-20, option 7B): no box, the name Accent and underlined, the sticker a little larger; the keyboard's
+   focus adds the outline round the name. */
 .eb-tree { --tree-w: clamp(112px, 38%, 480px); display: grid; gap: 12px; margin-top: 8px; }
 
-/* The path and its count line. */
-.eb-tree-nav { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 12px; min-width: 0; }
-.eb-tree-nav .eb-path { margin: 0; }
+/* The count line ("18 of 45 orders"); the path is the chip row under the dock (FilterBar). */
 .eb-tree-cover { margin: 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .eb-tree-fact { margin: 0; font-size: 15px; font-weight: 600; }
 .eb-tree-note, .eb-tree-credit, .eb-tree-unmapped p { margin: 0; font-size: 14px; color: var(--muted); }
 .eb-tree-credit a { color: inherit; }
-.eb-tree-path button, .eb-tree-path .eb-tree-here { position: relative; }
-.eb-tree-path button::after { content: ''; position: absolute; inset: -10px -4px; } /* a 44px press on the 24px step */
-.eb-tree-here:focus { outline: none; }
-.eb-tree-here:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
 .eb-tree-head { display: flex; align-items: flex-end; gap: 12px; }
 .eb-tree-axis { position: relative; flex: none; width: var(--tree-w); height: 28px; border-bottom: 1px solid var(--hairline); }
@@ -41,18 +39,24 @@
 }
 .eb-tree-order[lang] { font-style: italic; }
 .eb-tree-row { display: flex; min-height: 44px; }
+/* Each row holds its own hidden words (.eb-sr is absolutely placed): they stay inside it, never below the page. */
 .eb-tree-row > .eb-tree-btn { min-width: 0; }
 .eb-tree-btn {
-  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 4px 0; margin: 0; box-sizing: border-box;
+  position: relative; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 0; margin: 0; box-sizing: border-box;
   border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; text-align: left;
 }
 button.eb-tree-btn { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .eb-tree-btn[data-on] { color: var(--ink); }
-/* Hover and focus as everywhere on the site: the Surface background; the keyboard's focus adds the site's outline. A
-   row is hot too while its tip on the fan or circle is hovered. */
-.eb-tree-btn[data-hot], .eb-tree-btn:focus-visible { background: var(--surface); }
-.eb-tree-btn:focus-visible, .eb-tree-btn[data-ring] { outline: 2px solid var(--accent); outline-offset: -2px; }
-@media (hover: hover) and (pointer: fine) { button.eb-tree-btn:hover { background: var(--surface); } }
+/* Hover and the keyboard's focus (7B): the name Accent and underlined, the sticker 1.2x; the dot and the branch stay.
+   The keyboard's focus (and a bird picked from the search, data-ring) adds the outline round the name, not the row. */
+button.eb-tree-btn:focus-visible { outline: none; }
+button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-btn[data-ring] .eb-tree-nm { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-fan-label[data-hot] .eb-tree-fan-text { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+button.eb-tree-btn:focus-visible .eb-tree-st-in, .eb-tree-fan-label[data-hot] .eb-tree-st-in { transform: scale(1.2); }
+@media (hover: hover) and (pointer: fine) {
+  button.eb-tree-btn:hover .eb-tree-nm { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  button.eb-tree-btn:hover .eb-tree-st-in { transform: scale(1.2); }
+}
 /* The tip's hollow dot where the branch ends: Ink on the list, Line off it. */
 .eb-tree-dot { flex: none; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid color-mix(in srgb, var(--line) 55%, var(--paper)); background: var(--paper); }
 .eb-tree-btn[data-on] .eb-tree-dot { border-color: var(--ink); }
@@ -64,44 +68,46 @@ button.eb-tree-btn { cursor: pointer; -webkit-tap-highlight-color: transparent; 
    colour; the key under the tree says what it means and the row's hidden text says it to a screen reader. */
 .eb-tree-mark { display: inline-block; flex: none; vertical-align: .1em; width: 7px; height: 7px; margin: 0 2px 0 6px; box-sizing: border-box; border: 1.5px solid currentColor; transform: rotate(45deg); }
 .eb-tree-key .eb-tree-mark { margin: 0 1px; }
+.eb-tree-nm { border-radius: 4px; }
 .eb-tree-count { flex: none; padding-right: 4px; font-size: 12px; font-variant-numeric: tabular-nums; }
 
-/* A tip's sticker (Sticker.tsx): the species' own, or one bird of the group on the list; a species not on the list
-   dimmed; a sticker that fails leaves the name alone (no outline). */
-.eb-tree-st { flex: none; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: -4px; }
-.eb-tree-st-in { display: flex; align-items: center; justify-content: center; }
+/* A tip's sticker (Sticker.tsx) in its fixed box: the species' own, or one bird of the group on the list; a species not
+   on the list dimmed; none, or one that fails, leaves the box empty (no outline), so every name starts at one place. */
+.eb-tree-st { flex: none; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; }
+.eb-tree-st-in { display: flex; align-items: center; justify-content: center; transition: transform .15s var(--ease-ui); }
 .eb-tree-st-in[data-off] { opacity: .4; }
 .eb-tree-st .eb-sil, .eb-tree-fan-st .eb-sil { display: none; }
 
-/* The fan and the circle (fan.ts): the SVG and, over it, each tip's label (its sticker kept upright, its name and
-   count), turned along its radius and never upside down, and the ages of the rings. A press on a tip or its label
-   presses its row; hovering one, or its row, gives the label the Surface background. */
+/* The Fan and Radial (fan.ts): the SVG and, over it, every tip's label (the sticker's box kept upright, the name, the
+   count where it fits), turned along its radius and never upside down: on the left half the label is mirrored, so
+   from the tip outward it still reads sticker, name, count. The ages of the rings. A press on a tip or its label
+   presses its row. */
 .eb-tree-fan { position: relative; overflow: hidden; cursor: default; }
 .eb-tree-fan .eb-tree-svg { inset: 0; width: 100%; height: 100%; }
 .eb-tree-ring { stroke: var(--hairline); stroke-width: 1; }
 .eb-tree-fan-label {
-  position: absolute; display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 4px; box-sizing: border-box;
-  transform-origin: 0 50%; border-radius: 8px; white-space: nowrap; color: var(--muted); cursor: pointer;
+  position: absolute; display: flex; align-items: center; gap: var(--tree-gap); height: var(--tree-st); box-sizing: border-box;
+  transform-origin: 0 50%; white-space: nowrap; color: var(--muted); font-size: var(--tree-px);
 }
 .eb-tree-fan-label[data-on] { color: var(--ink); }
-.eb-tree-fan-label[data-flip] { transform-origin: 100% 50%; }
-.eb-tree-fan-label[data-flip] .eb-tree-fan-st { order: 2; }
-.eb-tree-fan-label[data-hot] { z-index: 1; background: var(--surface); }
-.eb-tree-fan-st { flex: none; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; }
-.eb-tree-fan-words { display: flex; align-items: center; gap: 6px; }
-.eb-tree-fan-words .eb-tree-mark { margin: 0 1px; }
-.eb-tree-fan-text { font-size: 13px; font-weight: 600; line-height: 17px; }
+.eb-tree-fan-label[data-live], .eb-tree-tiphit[data-live] { cursor: pointer; }
+.eb-tree-fan-label[data-flip] { flex-direction: row-reverse; transform-origin: 100% 50%; }
+.eb-tree-fan-label[data-hot] { z-index: 1; }
+.eb-tree-fan-label[data-focus] .eb-tree-fan-text { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.eb-tree-fan-st { flex: none; display: flex; align-items: center; justify-content: center; width: var(--tree-st); height: var(--tree-st); }
+.eb-tree-fan-label .eb-tree-mark { margin: 0 1px; }
+.eb-tree-fan-text { font-weight: 600; line-height: calc(17em / 13); }
 .eb-tree-fan-text[lang="la"] { font-style: italic; }
-.eb-tree-fan-count { font-size: 11px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.eb-tree-fan-count { font-size: var(--tree-count); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 .eb-tree-fan-tick { position: absolute; transform: translateX(-50%); font-size: 11px; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
 /* The circle's ages sit on its rings, over the branches: Paper behind them. */
 .eb-tree-fan[data-circle] .eb-tree-fan-tick { padding: 0 3px; border-radius: 4px; background: var(--paper); }
 .eb-tree-fan-axis { margin: -4px 0 0; text-align: center; }
-/* Under the fan or circle, the rows as a list in columns (TreeView sets how many: those that hold every name in full,
-   three at most), no drawing beside them. */
-.eb-tree[data-round] .eb-tree-rows { padding: 0; column-gap: 24px; }
-.eb-tree[data-round] .eb-tree-rows > li { break-inside: avoid; }
-.eb-tree[data-round] .eb-tree-dot { margin-left: 0; }
+/* Fan and Radial: the rows stay in the page for the keyboard and screen readers, out of sight (as .eb-sr), their focus
+   shown on the tip in the drawing. Absolutely placed and clipped to 1px, so they add nothing to the page's height. */
+.eb-tree[data-round] .eb-tree-rows {
+  position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
 
 /* A marked row with more than two genera inside: the count after the row, opening their list (PickerSheet). */
 .eb-tree-with {
@@ -127,3 +133,5 @@ button.eb-tree-btn { cursor: pointer; -webkit-tap-highlight-color: transparent; 
 }
 .eb-tree-link[lang] { font-style: italic; }
 .eb-tree-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) { .eb-tree-st-in { transition: none; } }

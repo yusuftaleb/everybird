@@ -6,6 +6,9 @@
 // order 18") that opens the chips in a sheet.
 // Taxonomy (orders, then families) is the only filter outside the controls bar: Places and Time are the bar's
 // Filters panel (Filters.tsx). The same on every page: the landing's sample, the birder's collage, a shared one.
+// In the Tree view it is the tree's path (`tree`, from CollageView): the chosen order and family are the branch the
+// tree has open, an order with one family keeps its families row (the tree shows that family as a tip), and the
+// breadcrumb ends with what the tree opens past the filter (a genus), its steps going back.
 import { memo, useMemo } from 'react'
 import { useIsSheet } from '@/components/dialog-utils'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -19,11 +22,17 @@ import { orderLabel } from '@/lib/species/orders'
 import { LevelRow } from './LevelRow'
 import './filters.css'
 
+/** The Tree view's steps past the filter: each crumb's `open` goes back to it; `close` back to the filter's own last
+ *  step. Given (even with no crumbs): the row is the tree's path. */
+export type TreePath = { crumbs: { label: string; latin: boolean; open: () => void }[]; close: () => void }
+
 type Props = {
   state: AppState
   dispatch: (a: Action) => void
   /** Species index (family names). */
   species: SpeciesIndex
+  /** In the Tree view: the tree's steps past the filter. */
+  tree?: TreePath
 }
 
 type Level = 'order' | 'family'
@@ -42,9 +51,9 @@ function withLevel(f: Filter, level: Level, value: string | undefined): Filter {
   return next
 }
 
-type Crumb = { label: string; latin: boolean; to?: Filter }
+type Crumb = { label: string; latin: boolean; to?: Filter; onClick?: () => void }
 
-export const FilterBar = memo(function FilterBar({ state, dispatch, species }: Props) {
+export const FilterBar = memo(function FilterBar({ state, dispatch, species, tree }: Props) {
   const sheet = useIsSheet()
   const { t } = useI18n()
   const names = useNames() // family names follow the names file and the English switch
@@ -81,7 +90,7 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species }: P
     // (every bird of the order is in it).
     const [top, child] = g.levels
     const childOpts = child ? opts[child] ?? [] : []
-    const onlyChild = top === 'order' && !!child && !!filter[top] && !filter[child] && childOpts.length === 1
+    const onlyChild = !tree && top === 'order' && !!child && !!filter[top] && !filter[child] && childOpts.length === 1
     const level: Level | null = !filter[top] ? top : child ? (onlyChild || !childOpts.length ? null : child) : top
 
     // The breadcrumb, once the top level has a choice: "All birds / Perching birds / Crows". The current place is in
@@ -97,6 +106,11 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species }: P
         crumbs.push(topCrumb)
         crumbs.push({ label: chipText(child, childOpts[0]), latin: sci && LATIN.has(child) })
       } else crumbs.push(topCrumb)
+      // The tree's steps past the filter: the filter's last step goes back to it, each but the last to itself.
+      if (tree?.crumbs.length) {
+        crumbs[crumbs.length - 1].onClick = tree.close
+        tree.crumbs.forEach((c, i) => crumbs.push({ label: c.label, latin: c.latin, onClick: i < tree.crumbs.length - 1 ? c.open : undefined }))
+      }
     }
     const levelOpts = level ? opts[level] ?? [] : []
     const chosen = level ? filter[level] : undefined
@@ -111,7 +125,9 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species }: P
               return (
                 <span key={i} className="eb-path-item">
                   {i > 0 && <span className="eb-path-sep" aria-hidden="true">/</span>}
-                  {last ? <span aria-current="location" lang={lang}>{c.label}</span> : c.to ? <button type="button" lang={lang} onClick={() => dispatch({ type: 'filter', filter: c.to! })}>{c.label}</button> : <span lang={lang}>{c.label}</span>}
+                  {last ? <span aria-current="location" lang={lang}>{c.label}</span>
+                    : c.onClick ? <button type="button" lang={lang} onClick={c.onClick}>{c.label}</button>
+                      : c.to ? <button type="button" lang={lang} onClick={() => dispatch({ type: 'filter', filter: c.to! })}>{c.label}</button> : <span lang={lang}>{c.label}</span>}
                 </span>
               )
             })}

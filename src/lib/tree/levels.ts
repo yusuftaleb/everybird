@@ -251,9 +251,10 @@ export const tipOn = (tips: readonly TreeRow[]) => (_: Leaf, i: number): boolean
   return r.kind === 'species' ? r.on : r.kind === 'group' && r.on > 0
 }
 
-/** How many orders, families and genera of the taxonomy (`rows`) the species `codes` cover: [covered, in the taxonomy]. */
-export function taxonCover(rows: readonly SpeciesRow[], codes: ReadonlySet<string>): Record<'orders' | 'families' | 'genera', [number, number]> {
-  const rank = { orders: (r: SpeciesRow) => r.ord, families: (r: SpeciesRow) => r.fam, genera: (r: SpeciesRow) => genusOf(r.sci) }
+/** How many species, genera, families and orders of the taxonomy (`rows`) the species `codes` cover: [covered, in the
+ *  taxonomy] (the tree image's four totals). */
+export function taxonCover(rows: readonly SpeciesRow[], codes: ReadonlySet<string>): Record<'species' | 'genera' | 'families' | 'orders', [number, number]> {
+  const rank = { species: (r: SpeciesRow) => r.code, genera: (r: SpeciesRow) => genusOf(r.sci), families: (r: SpeciesRow) => r.fam, orders: (r: SpeciesRow) => r.ord }
   const out = {} as Record<keyof typeof rank, [number, number]>
   for (const [k, of] of Object.entries(rank) as [keyof typeof rank, (r: SpeciesRow) => string][]) {
     const all = new Set<string>(), on = new Set<string>()
@@ -262,13 +263,3 @@ export function taxonCover(rows: readonly SpeciesRow[], codes: ReadonlySet<strin
   }
   return out
 }
-
-/** The most columns the rows under the fan or circle take (Yusuf, 2026-11-20: never four). */
-export const MAX_COLUMNS = 3
-/**
- * How many columns the rows under the fan or circle take in `width` px, `gap` px apart, so the widest row (`widest`
- * px, its name in full) fits on one line: as many as fit, from 1 to MAX_COLUMNS. One column even when the widest
- * does not fit; its name wraps then, never cut.
- */
-export const rowColumns = (width: number, widest: number, gap: number): number =>
-  Math.max(1, Math.min(MAX_COLUMNS, Math.floor((width + gap) / (Math.max(1, widest) + gap))))

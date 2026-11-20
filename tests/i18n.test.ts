@@ -56,6 +56,8 @@ const ALLOW_SAME = [
   '{name}, {ratio}',
   // it: the continent's name in Italian.
   'Africa',
+  // The Tree's Layout menu: es, da and de write "Radial" as English does, es "Rectangular" too.
+  'Radial', 'Rectangular',
 ]
 
 const OTHERS = { es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant } as const

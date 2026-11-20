@@ -1,21 +1,25 @@
-// The Tree view's fan and circle (the Layout menu's Fan and Circle, and the tree's square and wide share images): the
+// The Tree view's fan and circle (the Layout menu's Fan and Radial, and the tree's share images in those layouts): the
 // same drawing as the rows, read in polar coordinates. The root sits at the centre; the tips sit on a half disc's arc
 // from the left end to the right (the fan) or all round a full circle, clockwise from the top (the circle), in the rows'
 // top-to-bottom order; time runs outward: a node's radius is (1 - age / rootAge) of the tips', so the age axis becomes
-// rings. A branch is an arc along its parent's ring, a rounded join, then a line out along the child's radius. Names
-// sit past the tips, turned along their radius and never upside down. Pure: no React, no DOM.
+// rings. A branch is an arc along its parent's ring, a rounded join, then a line out along the child's radius. Every tip
+// has its label past it, turned along its radius and never upside down (fitRound sizes the drawing so that none is
+// cut or touches another). Pure: no React, no DOM.
 import { CORNER, branchesOf, circlePath, type Drawing, type Leaf, type Node } from './tree'
 
-/** From this width (px) the Tree view draws a fan unless a layout is picked; under it, rows. */
+/** From this width (px) the Tree view draws a fan unless a layout is picked (and only when every name fits); under it,
+ *  rows. */
 export const FAN_FROM = 720
-/** Past the tips' ring: the gap, a sticker's slot, the gap, a name's room at most (px). */
-export const FAN_GAP = 6
-export const FAN_STICKER = 24
-export const FAN_LABEL = 132
-export const FAN_OUT = FAN_GAP + FAN_STICKER + FAN_GAP + FAN_LABEL
+/** A tip's label, in units of its name's size: the gap after the tip's dot and after the sticker (and before the count),
+ *  the sticker's box (square), the name's line and the count's size. On screen the name is 13px: a 6px gap, a 24px box,
+ *  an 11px count. */
+export const LABEL_GAP = 6 / 13
+export const LABEL_STICKER = 24 / 13
+export const LABEL_LINE = 17 / 13
+export const LABEL_COUNT = 11 / 13
 /** Under the fan's centre: the age axis's numbers. */
 export const FAN_BELOW = 30
-/** The tips' radius stays between these (px). */
+/** The tips' radius is at least this (px), and grows past FAN_R_MAX only when the tips need the room. */
 export const FAN_R_MIN = 80
 export const FAN_R_MAX = 440
 
@@ -23,18 +27,81 @@ export type FanShape = 'fan' | 'circle'
 /** The centre and the tips' radius; `shape` absent is the fan. */
 export type FanBox = { cx: number; cy: number; R: number; shape?: FanShape }
 
+/** A tip's label measured at a name size of 1 (multiply by the size): its name's width, its count's (0: none), and
+ *  whether the tip has a bird on the list. */
+export type LabelSpan = { name: number; count: number; on: boolean }
+/** The sizes a fit may use: the name's size and the smallest it may shrink to, the tips' dot radius, the radius's bounds,
+ *  and the room under the fan's centre. */
+export type LabelSizes = { base: number; floor: number; dot: number; rMin?: number; rMax?: number; below?: number }
+/** On screen: 13px names, never under 11px. */
+export const SCREEN_SIZES: LabelSizes = { base: 13, floor: 11, dot: 3.5 }
+
+/** A fan or circle in which every tip has its name: the box (its centre about its own top-left corner), its size, the
+ *  names' size `px` and which tips keep their count. */
+export type RoundFit = FanBox & { w: number; h: number; px: number; counts: boolean[] }
+
 /**
- * The fan or circle for a column `width` px wide: as large as the names' room on both sides allows; `h` its height,
- * `label` the room past the tip and its sticker left for a name (less than FAN_LABEL only where the column is too
- * narrow for the smallest drawing and full room; 0 when there is none).
+ * The fan or circle (`shape`) whose every tip has its name in full, in `room` (its width; `h` caps its height when
+ * given, as in a share image; on screen the page grows instead). Each label reads out along its radius: the tip's dot, a
+ * gap, the sticker's box, a gap, the name, a gap, the count. No two labels touch: neighbouring sticker boxes (the label's
+ * thickest part) sit a box apart where they start, and the labels only part further outward. The radius grows as the
+ * tips need; on a narrow column the type shrinks toward `sizes.floor`; past that the counts go, those of tips without a
+ * bird on the list first, and only where they hold the drawing in. Undefined when even then a name does not fit.
  */
-export function fanBox(width: number, shape: FanShape = 'fan'): FanBox & { h: number; label: number } {
-  const R = Math.round(Math.max(FAN_R_MIN, Math.min(FAN_R_MAX, width / 2 - FAN_OUT)))
-  const label = Math.max(0, Math.min(FAN_LABEL, Math.floor(width / 2 - R - FAN_GAP * 2 - FAN_STICKER)))
-  const out = FAN_GAP * 2 + FAN_STICKER + label
-  return shape === 'circle'
-    ? { cx: width / 2, cy: out + R, R, shape, h: 2 * (out + R), label }
-    : { cx: width / 2, cy: out + R, R, h: out + R + FAN_BELOW, label }
+export function fitRound(spans: readonly LabelSpan[], shape: FanShape, room: { w: number; h?: number }, sizes: LabelSizes = SCREEN_SIZES): RoundFit | undefined {
+  const n = spans.length
+  if (!n) return undefined
+  const { base, floor, dot, rMin = FAN_R_MIN, rMax = FAN_R_MAX, below = FAN_BELOW } = sizes
+  const circle = shape === 'circle'
+  const step = (circle ? 2 * Math.PI : Math.PI) / n
+  const angles = spans.map((_, i) => fanAngle(i + 0.5, n, shape))
+  const ext = (px: number, i: number, count: boolean) => dot + px * (2 * LABEL_GAP + LABEL_STICKER + spans[i].name + (count && spans[i].count ? LABEL_GAP + spans[i].count : 0))
+  // The radius the tips need (sticker boxes a box apart at their inner edge), and the most each tip allows: its label
+  // inside the width and, with a height, inside it (the circle centred, so half of it each way).
+  const need = (px: number) => Math.max(rMin, (px * LABEL_STICKER) / step - dot - px * LABEL_GAP)
+  const bound = (px: number, i: number, count: boolean) => {
+    const a = angles[i], c = Math.abs(Math.cos(a)), sn = Math.sin(a), half = (px * LABEL_STICKER) / 2
+    let b = c > 1e-6 ? (room.w / 2 - half * Math.abs(sn)) / c : Infinity
+    if (room.h !== undefined) {
+      const up = circle ? room.h / 2 : room.h - below
+      if (Math.abs(sn) > 1e-6 && (circle || sn > 0)) b = Math.min(b, (up - half * c) / Math.abs(sn))
+    }
+    return b - ext(px, i, count)
+  }
+  const tryFit = (px: number, counts: boolean[]) => {
+    const r = need(px)
+    let hi = Infinity
+    for (let i = 0; i < n; i++) hi = Math.min(hi, bound(px, i, counts[i]))
+    return { r, hi, ok: r <= hi }
+  }
+  const all = spans.map(() => true)
+  let px = base
+  let counts = all
+  let f = tryFit(px, counts)
+  // Smaller type first (in eight steps down to the floor), then the counts that hold the drawing in.
+  for (let k = 1; !f.ok && k <= 8; k++) { px = base - ((base - floor) * k) / 8; f = tryFit(px, counts) }
+  for (const on of [false, true]) {
+    while (!f.ok) {
+      const drop = spans.map((s, i) => counts[i] && !!s.count && s.on === on && bound(px, i, true) < f.r)
+      if (!drop.some(Boolean)) break
+      counts = counts.map((c, i) => c && !drop[i])
+      f = tryFit(px, counts)
+    }
+  }
+  if (!f.ok) return undefined
+  const R = Math.max(f.r, Math.min(f.hi, rMax))
+  // How far the labels reach above and below the centre (the circle's both ways; the fan's age numbers under it).
+  const half = (px * LABEL_STICKER) / 2
+  let top = R, bottom = R
+  angles.forEach((a, i) => {
+    const out = R + ext(px, i, counts[i]), sn = Math.sin(a), side = half * Math.abs(Math.cos(a))
+    top = Math.max(top, out * sn + side)
+    bottom = Math.max(bottom, -out * sn + side)
+  })
+  top = Math.ceil(top)
+  const h = room.h !== undefined && circle ? room.h : circle ? top + Math.ceil(bottom) : top + below
+  const cy = room.h !== undefined && circle ? room.h / 2 : top
+  return { cx: room.w / 2, cy, R, ...(circle ? { shape } : {}), w: room.w, h: room.h !== undefined && !circle ? Math.min(h, room.h) : h, px, counts }
 }
 
 /** The angle (radians) at `y` leaf units of `n` leaves, each tip mid-slot: the fan from π at the left end to 0 at the
@@ -102,28 +169,4 @@ export function fanLabel(box: FanBox, a: number, from: number): { x: number; y: 
   const deg = (a * 180) / Math.PI
   const flip = Math.cos(a) < -1e-9
   return { x, y, rot: flip ? 180 - deg : -deg, flip }
-}
-
-/** How far (px) a label starting `from` px past the tips' ring can run along its radius at angle `a` before it leaves
- *  the `w` × `h` box the drawing sits in (the hover label turns level when its whole text would not fit). */
-export function rayRoom(box: FanBox, w: number, h: number, a: number, from: number): number {
-  const dx = Math.cos(a), dy = -Math.sin(a)
-  const to = (d: number, c: number, max: number) => (d > 1e-9 ? (max - c) / d : d < -1e-9 ? -c / d : Infinity)
-  return Math.min(to(dx, box.cx, w), to(dy, box.cy, h)) - box.R - from
-}
-
-/**
- * Which tips get their name: those with `n` > 0 and a `w` (the name's width) within `room` when both are given,
- * largest `n` first (the earlier on a tie), each kept unless its position `y` would come within `h` (a name's height
- * and its air) of a name already kept. With `period` (the circle's circumference at the names' radius) the positions
- * wrap round, so the last tip sits beside the first. Indexes into `rows`. The rows' `y` is a row's centre; the fan's
- * and the circle's the arc length at the names' radius.
- */
-export function keepNames(rows: readonly { y: number; n: number; w?: number }[], h: number, room?: number, period?: number): Set<number> {
-  const fits = (i: number) => rows[i].n > 0 && (room === undefined || rows[i].w === undefined || rows[i].w! <= room)
-  const order = rows.map((_, i) => i).filter(fits).sort((a, b) => rows[b].n - rows[a].n || a - b)
-  const gap = (a: number, b: number) => { const d = Math.abs(a - b); return period ? Math.min(d, period - d) : d }
-  const kept: number[] = []
-  for (const i of order) if (kept.every((j) => gap(rows[j].y, rows[i].y) >= h)) kept.push(i)
-  return new Set(kept)
 }

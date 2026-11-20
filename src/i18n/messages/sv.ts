@@ -139,8 +139,6 @@ export const sv: Messages = {
       tree: {
         loading: 'Trädet laddas',
         failed: 'Trädet laddades inte. Öppna Träd igen för att försöka en gång till.',
-        nav: 'Trädets nivåer',
-        all: 'Alla fåglar',
         tips: 'Trädets grenspetsar, uppifrån och ned',
         axis: 'Miljoner år sedan (uppskattningar)',
         onList: '{n} av {total} på listan',
@@ -164,7 +162,8 @@ export const sv: Messages = {
         mineNone: 'Ingen fågel från listan här.',
         level: 'Nivå',
         layout: 'Form',
-        layouts: { fan: 'Solfjäder', circle: 'Cirkel', rows: 'Rader' },
+        layouts: { fan: 'Solfjäder', circle: 'Radiell', rows: 'Rektangulär' },
+        noRoom: 'Inte plats för alla namn',
         rank: { orders: 'Ordningar', families: 'Familjer', genera: 'Släkten', species: 'Arter' },
         tooMany: { families: 'Öppna en ordning för att se dess familjer', genera: 'Öppna en familj för att se dess släkten', species: 'Öppna ett släkte för att se dess arter' },
         tipOf: '{n} av {total}',
