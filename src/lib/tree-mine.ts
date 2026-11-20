@@ -1,12 +1,14 @@
 // The Tree view's per-device choices, kept in localStorage, the same in every tab; without storage a choice holds for
 // the page load. "Lifers only" (the bar's switch; TreeView reads it, and the tree's share image follows it), off when
-// unset or unreadable; and the Layout menu's choice, unset until one is picked, when the view draws the fan from
+// unset or unreadable; "Time scale" (the bar's switch, round 6: branches at their true ages, or the splits spaced evenly
+// by branching order), on unless turned off; and the Layout menu's choice (also the share dialog's Arrangement row), unset until one is picked, when the view draws the fan from
 // FAN_FROM px wide (where it names every tip) and rows under it. The stored values keep their first names: 'fan' is the
 // Fan, 'circle' the Radial and 'rows' the Rectangular layout.
 import { useSyncExternalStore } from 'react'
 
 export const TREE_MINE_KEY = 'everybird:tree-mine'
 export const TREE_LAYOUT_KEY = 'everybird:tree-layout'
+export const TREE_TIME_KEY = 'everybird:tree-time'
 
 export type TreeLayout = 'fan' | 'circle' | 'rows'
 export const TREE_LAYOUTS: readonly TreeLayout[] = ['fan', 'circle', 'rows']
@@ -44,6 +46,7 @@ function stored(key: string) {
 
 const mineStore = stored(TREE_MINE_KEY)
 const layoutStore = stored(TREE_LAYOUT_KEY)
+const timeStore = stored(TREE_TIME_KEY)
 
 export const treeMine = (): boolean => mineStore.get() === '1'
 export const setTreeMine = (on: boolean): void => mineStore.set(on ? '1' : null)
@@ -51,12 +54,20 @@ export function useTreeMine(): boolean {
   return useSyncExternalStore(mineStore.subscribe, treeMine, () => false)
 }
 
+/** Whether the tree is drawn on its time scale: on unless turned off ('0' stored; on removes the key). */
+export const treeTime = (): boolean => timeStore.get() !== '0'
+export const setTreeTime = (on: boolean): void => timeStore.set(on ? null : '0')
+export function useTreeTime(): boolean {
+  return useSyncExternalStore(timeStore.subscribe, treeTime, () => true)
+}
+
 /** The layout picked on this device, or null (none yet, or a value this version doesn't know). */
 export function treeLayout(): TreeLayout | null {
   const v = layoutStore.get()
   return TREE_LAYOUTS.includes(v as TreeLayout) ? (v as TreeLayout) : null
 }
-export const setTreeLayout = (v: TreeLayout): void => layoutStore.set(v)
+/** null forgets the pick (the view's default again). */
+export const setTreeLayout = (v: TreeLayout | null): void => layoutStore.set(v)
 export function useTreeLayout(): TreeLayout | null {
   return useSyncExternalStore(layoutStore.subscribe, treeLayout, () => null)
 }

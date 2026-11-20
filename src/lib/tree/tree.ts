@@ -154,6 +154,20 @@ export function cladeTree(tree: Tree, tips: Iterable<number>, keyOf: (tip: numbe
   return pure[0] === undefined ? undefined : build(0)
 }
 
+/**
+ * The drawing without its time scale (the bar's Time scale switch off): the same tree with each node's `age` replaced by
+ * its number of splits down to its deepest tip (a node over two tips is 1), so the splits are spaced evenly by branching
+ * order instead of by age; the tips stay aligned at 0. A drawing that is one leaf keeps its stem at 1 (stemAge).
+ */
+export function bySplits(root: Node | Leaf): Node | Leaf {
+  const walk = (n: Node | Leaf): Node | Leaf => {
+    if (isLeaf(n)) return n
+    const kids = n.kids.map(walk)
+    return { age: 1 + Math.max(...kids.map((k) => (isLeaf(k) ? 0 : k.age))), kids }
+  }
+  return walk(root)
+}
+
 /** The leaves, top to bottom. */
 export function leavesOf(root: Node | Leaf): Leaf[] {
   const out: Leaf[] = []

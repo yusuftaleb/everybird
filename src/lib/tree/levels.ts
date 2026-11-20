@@ -3,9 +3,13 @@
 // under the open branch, so the first screen is every order). A rank that would draw more than MAX_TIPS tips is not
 // offered. Totals come from the eBird taxonomy the app ships (species.v1.json), so a group's count is "on the list /
 // in the taxonomy"; the tree only decides where it is drawn.
+// An open branch never shows one lone tip (round 6): by default it opens past every rank that would draw a single tip
+// (an order with one family at its genera, a family with one genus at its species), and a group of SPECIES_AT species
+// or fewer opens straight at its species; a rank asked for in the Level menu is drawn as asked.
 // A group the tree splits (not one branch of its own) is drawn once (`foldSplit`), as one marked row at the smallest
 // branch holding all of it within the open branch ("Macropygia with Turacoena"), counting the whole branch; the groups
 // inside get no row of their own. When such a branch lies inside another, the outer one is the row.
+import { genusOf } from '@/lib/list/filters'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 import { cladeTree, drawTree, isLeaf, leavesOf, type Drawing, type Leaf, type Node, type Tree } from './tree'
@@ -25,8 +29,11 @@ export type TreeLevel = { ord?: string; fam?: string; genus?: string; tips?: Tip
  *  measured centres, so these place the share image's rows and the drawing before measuring) and the order headings. */
 export const ROW_H = 44
 export const HEAD_H = 32
+/** Rectangular: the drawing's column (px) for a view `width` px wide, half of it (round 6), between 112 and 640, leaving
+ *  the rows at least 200px on a narrow view. */
+export const rowsTreeW = (width: number): number => Math.round(Math.min(640, Math.max(112, Math.min(width * 0.5, width - 200))))
 
-export const genusOf = (sci: string): string => sci.split(' ')[0]
+export { genusOf }
 
 export type TreeRow =
   | { kind: 'order'; ord: string; top: number }
@@ -54,6 +61,9 @@ export type LevelView = {
   level: TreeLevel
   /** The rank of the tips drawn. */
   tips: TipRank
+  /** The highest rank that draws more than one tip (the open branch's children unless they are one alone): the rank the
+   *  Fan and Radial must name whole, and the most they fall back to. */
+  base: TipRank
   /** How many tips each offered rank would draw (after Lifers only); above MAX_TIPS it is not offered. */
   counts: Partial<Record<TipRank, number>>
   /** The groups of the drawn rank in the open branch with a bird on the list, and all of them, in the taxonomy. */
@@ -135,13 +145,23 @@ export const ranksAt = (l: TreeLevel): TipRank[] => RANKS.slice(depthOf(l))
 
 /**
  * The species a group's tip shows as its sticker: of the group's species on the list with a sticker, the first in
- * taxonomic order, so the same bird every time for the same list. Undefined when none has one.
+ * taxonomic order, so the same bird every time for the same list (undefined when none of them has one). A group with no
+ * bird on the list shows its first species in taxonomic order that has a sticker, which the view dims as it dims a
+ * species off the list (Yusuf, 2026-11-20, round 6).
  */
 export function groupSticker(rows: Iterable<SpeciesRow>, onList: ReadonlySet<string>): SpeciesRow | undefined {
-  let best: SpeciesRow | undefined
-  for (const r of rows) if (r.st && onList.has(r.code) && (!best || r.to < best.to)) best = r
-  return best
+  let best: SpeciesRow | undefined, any: SpeciesRow | undefined, seen = false
+  for (const r of rows) {
+    const on = onList.has(r.code)
+    seen ||= on
+    if (r.st && on && (!best || r.to < best.to)) best = r
+    if (r.st && (!any || r.to < any.to)) any = r
+  }
+  return seen ? best : any
 }
+
+/** A group of at most this many species opens straight at its species (round 6). */
+export const SPECIES_AT = 12
 
 /**
  * The rows and drawing of `level`, with `onList` the codes on the (filtered) list. `mine` ("Lifers only") keeps only the
@@ -187,7 +207,13 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   const ranks = new Map(offered.map((r) => [r, rankOf(r)] as const))
   const counts: Partial<Record<TipRank, number>> = {}
   for (const [r, v] of ranks) counts[r] = v.count
-  let ri = Math.max(0, offered.indexOf(level.tips ?? offered[0]))
+  // The rank an open branch opens at when none is asked for (round 6: never one lone tip): past every rank that would
+  // draw a single tip (an order with one family opens at its genera, a family with one genus at its species), and
+  // straight at the species for a group of SPECIES_AT species or fewer. Nothing open: the orders.
+  let base = 0
+  if (depthOf(at) > 0) while (base < offered.length - 1 && counts[offered[base]] === 1) base++
+  const open = depthOf(at) > 0 && (counts.species ?? Infinity) <= SPECIES_AT ? offered.length - 1 : base
+  let ri = level.tips && offered.includes(level.tips) ? offered.indexOf(level.tips) : open
   while (ri > 0 && ranks.get(offered[ri])!.count > MAX_TIPS) ri--
   const rank = offered[ri]
   const { rawKey, folds, keyOf } = ranks.get(rank)!
@@ -218,8 +244,8 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   const cover: [number, number] = [own.on.size, own.total.size]
   const drawn = mine ? tips.filter((tip) => (byRow.on.get(keyOf(rowOf(tip)!)) ?? 0) > 0) : tips
   const root = cladeTree(tree, drawn, (tip) => keyOf(rowOf(tip)!))
-  const base = { split, inside, level: at, tips: rank, counts, cover }
-  if (!root) return mine && tips.length ? { ...base, rows: [], height: 0, drawing: NO_DRAWING } : undefined
+  const head = { split, inside, level: at, tips: rank, base: offered[base], counts, cover }
+  if (!root) return mine && tips.length ? { ...head, rows: [], height: 0, drawing: NO_DRAWING } : undefined
   const rows: TreeRow[] = []
   const ys: number[] = []
   let top = 0
@@ -242,7 +268,7 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   // One lineage alone (a genus of one species, a family of one genus): its stem, from the split above it.
   const stem = isLeaf(root) && tree.parent[root.node] >= 0 ? tree.age[tree.parent[root.node]] : undefined
   const drawing = drawTree(root, tipOn(tipRows), (i) => ys[i], stem, (_, i) => tipRows[i].dotted)
-  return { ...base, rows, height: top, drawing, root, stem }
+  return { ...head, rows, height: top, drawing, root, stem }
 }
 
 /** Whether the i-th tip of `tips` (a level's rows without headings) has a bird on the list: drawTree's and drawFan's `seen`. */

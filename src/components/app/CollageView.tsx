@@ -1,7 +1,7 @@
 'use client'
 // The collage block shared by the landing sample, the birder's own collage and the shared view: the stats line, the
 // controls bar (view tabs, the view's switches, Filters, the search), the filters, the collage, list, map or tree, the
-// legend, the hover tooltip and the bird card. The collage on the page is always packed (Packed / Oval is the share
+// legend (in the tree, its oldest lineage), the hover tooltip and the bird card. The collage on the page is always packed (Packed / Oval is the share
 // dialog's). Composition after LifeList.tsx (framer-site).
 import { trackFilterUsed } from '@/lib/analytics'
 import { newlySetKinds } from '@/lib/list/filter-kinds'
@@ -20,7 +20,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import { latestLifer, liferOrder } from '@/lib/list/build-list'
 import { hasSeenMonths } from '@/lib/list/seen'
-import { applyFilter, drillTo, filterKey, filterToShow, threatenedCount, type Filter } from '@/lib/list/filters'
+import { applyFilter, drillTo, filterKey, filterToShow, genusOf, threatenedCount, type Filter } from '@/lib/list/filters'
 import type { PlacesUnplaced } from '@/lib/list/filter-summary'
 import type { ListEntry } from '@/lib/list/model'
 import { monthBins, todayMonth } from '@/lib/list/timeline'
@@ -32,9 +32,11 @@ import type { CollageHit } from '@/lib/species/name-search'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import type { StateLayout } from '@/lib/layout/layout-client'
 import type { ShareAt } from '@/lib/share/view-image'
-import type { TreeLevel } from '@/lib/tree/levels'
+import type { TreeShown } from '@/components/tree/TreeView'
+import { loadTree } from '@/lib/tree/load'
 import { closeDeep, openBranch, treeBranch, type OpenBranch, type TreeDeep } from '@/lib/tree/path'
-import { useTreeMine, type TreeLayout } from '@/lib/tree-mine'
+import { formatAge, oldestLineage, type Tree } from '@/lib/tree/tree'
+import { useTreeMine } from '@/lib/tree-mine'
 import { useVariant } from '@/lib/variants'
 import { ControlsBar } from './ControlsBar'
 import { useCollageLayout } from './use-collage-layout'
@@ -149,16 +151,16 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const [tip, setTip] = useState<string | null>(null)
   // The level the Map or Tree view has open (their own state, told up as it changes), for Share to draw the same.
   const onMapLevel = useCallback((place: string | undefined, names: (key: string) => string) => onShareAt?.({ place, names }), [onShareAt])
-  const onTreeLevel = useCallback((tree: TreeLevel, mine: boolean, layout: TreeLayout) => onShareAt?.({ tree, mine, layout }), [onShareAt])
+  const onTreeLevel = useCallback((at: TreeShown) => onShareAt?.(at), [onShareAt])
   // The controls bar's slot for the Tree's Level and Layout menus, which TreeView fills.
   const [treeMenus, setTreeMenus] = useState<HTMLDivElement | null>(null)
-  // The tree's open branch is the taxonomy filter's order and family (the chip row is its path, path.ts), with what the
-  // tree opens past them (a genus) kept here while they stay.
+  // The tree's open branch is the taxonomy filter's order, family and genus (the chip row is its path, path.ts), with
+  // what the tree opens past them (a family or genus the shown index lacks) kept here while they stay.
   const [treeDeep, setTreeDeep] = useState<TreeDeep | null>(null)
   const branch = useMemo(() => treeBranch(filter, treeDeep), [filter, treeDeep])
   const onTreeOpen = useCallback((b: OpenBranch, famName?: string) => {
-    // The filter keeps a family only when the shown index has it in that order (applyFilterValidity).
-    const next = openBranch(filter, b, (ord, fam) => species.rows.some((r) => r.ord === ord && r.fam === fam), famName)
+    // The filter keeps a family (a genus) only when the shown index has it in that order (family; applyFilterValidity).
+    const next = openBranch(filter, b, (ord, fam, genus) => species.rows.some((r) => r.ord === ord && r.fam === fam && (!genus || genusOf(r.sci) === genus)), famName)
     setTreeDeep(next.deep)
     if (filterKey(next.filter) !== filterKey(filter)) dispatch({ type: 'filter', filter: next.filter })
   }, [filter, species, dispatch])
@@ -166,9 +168,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
     if (view !== 'tree') return undefined
     const crumbs: TreePath['crumbs'] = []
     if (branch.fam && !filter.family) crumbs.push({ label: sci ? branch.fam : treeDeep?.famName ?? branch.fam, latin: sci, open: () => setTreeDeep((d) => closeDeep(d, 1)) })
-    if (branch.genus) crumbs.push({ label: branch.genus, latin: true, open: () => {} })
+    if (branch.genus && !filter.genus) crumbs.push({ label: branch.genus, latin: true, open: () => {} })
     return { crumbs, close: () => setTreeDeep(null) }
-  }, [view, branch, filter.family, sci, treeDeep?.famName])
+  }, [view, branch, filter.family, filter.genus, sci, treeDeep?.famName])
 
   const entries = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
   // The timeline's months (first lifer to today).
@@ -311,6 +313,16 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const tipEntry = tip && !pick && view === 'collage' ? entries.find((e) => e.code === tip) : undefined
   const sizes = mode === 'true' ? t.collage.legend.sizesTrue : t.collage.legend.sizesEven
   const latestRow = latest ? species.byCode.get(latest.code) : undefined
+  // The tree's legend: the oldest lineage among the birds shown (the tree is fetched once per page, with the Tree tab).
+  const [tree, setTree] = useState<Tree | null>(null)
+  useEffect(() => {
+    if (view !== 'tree' || tree) return
+    let live = true
+    loadTree().then((d) => { if (live) setTree(d.tree) }, () => {})
+    return () => { live = false }
+  }, [view, tree])
+  const oldest = useMemo(() => (view === 'tree' && tree ? oldestLineage(tree, shownCodes) : undefined), [view, tree, shownCodes])
+  const oldestRow = oldest ? species.byCode.get(oldest.code) : undefined
 
   const statsP = (
     <p className="eb-mono eb-stats" data-testid="collage-stats">
@@ -375,6 +387,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
           {sizes}
         </p>
         <p>{t.collage.legend.marks}</p>
+      </div>}
+      {view === 'tree' && oldest && oldestRow && <div className="eb-mono eb-legend">
+        <p>{fmt(t.collage.tree.oldest, { name: displayName(oldestRow), age: formatAge(oldest.age, t.num) })}</p>
       </div>}
       </div>
 

@@ -118,8 +118,8 @@ describe('levelView', () => {
     expect(v.height).toBe(2 * HEAD_H + 2 * ROW_H)
     expect(v.split).toBe(false)
   })
-  it('a family opens to its genera; a split genus is one row with the genus inside it, counting the whole branch', () => {
-    const v = levelView(tree, species, { fam: 'Fa' }, onList)!
+  it('a family\'s genera (asked for: a family of four opens on its species); a split genus is one row with the genus inside it, counting the whole branch', () => {
+    const v = levelView(tree, species, { fam: 'Fa', tips: 'genera' }, onList)!
     expect(v.rows.map((r) => r.kind === 'group' ? `${r.key} ${r.on}/${r.total} ${r.with?.map((w) => `${w.row.sci} ${w.on}/${w.total}`).join() ?? ''}` : '')).toEqual(['Aa 2/4 Ab three 0/1'])
     expect(v.split).toBe(false)
   })
@@ -135,7 +135,7 @@ describe('levelView', () => {
     expect(ab.inside).toBeUndefined()
   })
   it('one lineage alone is drawn as its stem, from the split above it', () => {
-    const fb = levelView(tree, species, { fam: 'Fb' }, onList)!
+    const fb = levelView(tree, species, { fam: 'Fb', tips: 'genera' }, onList)!
     expect(fb.drawing.rootAge).toBe(10)
     expect(fb.drawing.unseen + fb.drawing.seen).toBe(`M0 ${ROW_H / 2}H1000`)
   })
@@ -160,16 +160,17 @@ describe('the orders and the Level menu', () => {
     expect(v.counts).toEqual({ orders: 2, families: 2, genera: 2, species: 5 })
     expect(v.level).toEqual({ ord: undefined, fam: undefined, genus: undefined })
   })
-  it('an order opens to its families; the ranks above the open branch are not offered', () => {
-    const o = levelView(tree, species, { ord: 'O1' }, onList)!
+  it('an order\'s families (asked for: an order with one family opens past it); the ranks above the open branch are not offered', () => {
+    expect(levelView(tree, species, { ord: 'O1' }, onList)!.tips).toBe('species')
+    const o = levelView(tree, species, { ord: 'O1', tips: 'families' }, onList)!
     expect(o.tips).toBe('families')
     expect(groups(o)).toEqual(['Fa 1/4'])
     expect(o.level).toEqual({ ord: 'O1', fam: undefined, genus: undefined })
     expect(ranksAt(o.level)).toEqual(['families', 'genera', 'species'])
     expect(ranksAt({ ord: 'O1', fam: 'Fa' })).toEqual(['genera', 'species'])
     expect(ranksAt({ ord: 'O1', fam: 'Fa', genus: 'Aa' })).toEqual(['species'])
-    // Asking for a rank above the open branch draws the default.
-    expect(levelView(tree, species, { fam: 'Fa', tips: 'orders' }, onList)!.tips).toBe('genera')
+    // Asking for a rank above the open branch draws the default (Fa's one genus row, Aa with Ab, is skipped).
+    expect(levelView(tree, species, { fam: 'Fa', tips: 'orders' }, onList)!.tips).toBe('species')
   })
   it('the switch draws every family, genus or species of the open branch at once, in the tree\'s order', () => {
     expect(groups(levelView(tree, species, { tips: 'species' }, onList)!)).toEqual(['#O1', 'a1', 'a3', 'a2', '#O2', 'b1', 'b2'])
@@ -197,18 +198,19 @@ describe('the orders and the Level menu', () => {
     expect(groupSticker(rows, new Set(['k3', 'k1', 'k0']))?.code).toBe('k1')
     expect(groupSticker(rows, new Set(['k3']))?.code).toBe('k3')
     expect(groupSticker(rows, new Set(['k0']))).toBeUndefined() // no sticker: the name alone
-    expect(groupSticker(rows, new Set())).toBeUndefined()
+    // No bird of the group on the list: its first species in taxonomic order with a sticker (round 6), shown dimmed.
+    expect(groupSticker(rows, new Set())?.code).toBe('k1')
     const v = levelView(tree, species, {}, new Set(['a2', 'a1', 'b2']))!
     expect(v.rows.map((r) => r.kind === 'group' && r.sticker?.code)).toEqual(['a1', 'b2'])
     // A marked row's bird can come from a group inside it.
-    expect(levelView(tree, species, { fam: 'Fa' }, new Set(['a3']))!.rows.map((r) => r.kind === 'group' && r.sticker?.code)).toEqual(['a3'])
+    expect(levelView(tree, species, { fam: 'Fa', tips: 'genera' }, new Set(['a3']))!.rows.map((r) => r.kind === 'group' && r.sticker?.code)).toEqual(['a3'])
   })
   it('a split order is one marked row at the smallest branch holding it, as families and genera are', () => {
     const sp4 = buildSpeciesIndex([sp('p1', 'Pa one', 'Op', 'Fp', 1), sp('p2', 'Pa two', 'Op', 'Fp', 2), sp('q1', 'Qa one', 'Oq', 'Fq', 3), sp('r1', 'Ra one', 'Or', 'Fr', 4)])
     const t = parseNewick('(((p1:1,q1:1):1,p2:2):3,r1:5);')
     const top = levelView(t, sp4, {}, new Set(['q1']))!
     expect(groups(top)).toEqual(['Op 1/3 with Oq', 'Or 0/1'])
-    const oq = levelView(t, sp4, { ord: 'Oq' }, new Set())!
+    const oq = levelView(t, sp4, { ord: 'Oq', tips: 'families' }, new Set())!
     expect(oq.level.ord).toBe('Op')
     expect(oq.inside?.map((r) => r.ord)).toEqual(['Oq'])
     expect(groups(oq)).toEqual(['Fp 0/3 with Fq'])
@@ -268,9 +270,9 @@ describe('the fan', () => {
       expect(Math.hypot(l.x, l.y)).toBeCloseTo(110)
     }
   })
-  it('the circle\'s rings are whole, their ages where they cross the downward radius; the fan\'s on both sides of its centre', () => {
+  it('the circle\'s rings are whole, their ages where they cross the radius straight up; the fan\'s on both sides of its centre', () => {
     expect(fanRing({ cx: 50, cy: 60, R: 40, shape: 'circle' }, 20)).toBe('M30 60a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z')
-    expect(ringLabels({ cx: 50, cy: 60, R: 40, shape: 'circle' }, 20)).toEqual([[50, 80]])
+    expect(ringLabels({ cx: 50, cy: 60, R: 40, shape: 'circle' }, 20)).toEqual([[50, 40]])
     expect(ringLabels({ cx: 50, cy: 60, R: 40 }, 20)).toEqual([[70, 60], [30, 60]])
     expect(ringLabels({ cx: 50, cy: 60, R: 40 }, 8)).toEqual([[58, 60]])
   })
@@ -349,11 +351,11 @@ describe("the tree's path is the taxonomy filter (path.ts)", () => {
   // The shown index lacks family Fz (the landing sample's holds only its own birds).
   const holds = (_ord: string, fam: string) => fam !== 'Fz'
   const rest = { countries: ['CA'], from: '2020-01' }
-  it('opening an order or a family sets the filter, the rest of it kept; a genus is kept beside it', () => {
+  it('opening an order, a family or a genus sets the filter (round 6: the genus too), the rest of it kept', () => {
     expect(openBranch(rest, { ord: 'O1' }, holds)).toEqual({ filter: { ...rest, order: 'O1' }, deep: null })
     expect(openBranch(rest, { ord: 'O1', fam: 'Fa' }, holds)).toEqual({ filter: { ...rest, order: 'O1', family: 'Fa' }, deep: null })
     const g = openBranch(rest, { ord: 'O1', fam: 'Fa', genus: 'Aa' }, holds)
-    expect(g).toEqual({ filter: { ...rest, order: 'O1', family: 'Fa' }, deep: { at: 'O1|Fa', genus: 'Aa' } })
+    expect(g).toEqual({ filter: { ...rest, order: 'O1', family: 'Fa', genus: 'Aa' }, deep: null })
     expect(treeBranch(g.filter, g.deep)).toEqual({ ord: 'O1', fam: 'Fa', genus: 'Aa' })
     expect(openBranch(g.filter, {}, holds)).toEqual({ filter: rest, deep: null }) // back to every order
   })
@@ -366,10 +368,10 @@ describe("the tree's path is the taxonomy filter (path.ts)", () => {
   })
   it('a family the filter cannot hold is kept beside it, with its name; its steps close one by one', () => {
     const z = openBranch({}, { ord: 'O1', fam: 'Fz', genus: 'Zz' }, holds, 'Zed birds')
-    expect(z).toEqual({ filter: { order: 'O1' }, deep: { at: 'O1|', fam: 'Fz', famName: 'Zed birds', genus: 'Zz' } })
+    expect(z).toEqual({ filter: { order: 'O1' }, deep: { at: 'O1||', fam: 'Fz', famName: 'Zed birds', genus: 'Zz' } })
     expect(treeBranch(z.filter, z.deep)).toEqual({ ord: 'O1', fam: 'Fz', genus: 'Zz' })
     const fam = closeDeep(z.deep, 1)
-    expect(fam).toEqual({ at: 'O1|', fam: 'Fz', famName: 'Zed birds' })
+    expect(fam).toEqual({ at: 'O1||', fam: 'Fz', famName: 'Zed birds' })
     expect(treeBranch(z.filter, fam)).toEqual({ ord: 'O1', fam: 'Fz' })
     expect(closeDeep(z.deep, 0)).toBeNull()
   })
@@ -386,15 +388,15 @@ describe('Only my birds', () => {
     expect(shown(levelView(tree, species, FAMILIES, new Set(['a1']))!)).toEqual(['o:O1', 'Fa 1', 'o:O2', 'Fb 0'])
   })
   it('a marked row stays when any species of its branch is on the list, its groups inside cut to those with a bird', () => {
-    expect(shown(levelView(tree, species, { fam: 'Fa' }, new Set(['a2']))!)).toEqual(['Aa 1 with [Ab]'])
-    expect(shown(levelView(tree, species, { fam: 'Fa' }, new Set(['a2']), true)!)).toEqual(['Aa 1 with []'])
-    expect(shown(levelView(tree, species, { fam: 'Fa' }, new Set(['a3']), true)!)).toEqual(['Aa 1 with [Ab]'])
+    expect(shown(levelView(tree, species, { fam: 'Fa', tips: 'genera' }, new Set(['a2']))!)).toEqual(['Aa 1 with [Ab]'])
+    expect(shown(levelView(tree, species, { fam: 'Fa', tips: 'genera' }, new Set(['a2']), true)!)).toEqual(['Aa 1 with []'])
+    expect(shown(levelView(tree, species, { fam: 'Fa', tips: 'genera' }, new Set(['a3']), true)!)).toEqual(['Aa 1 with [Ab]'])
     expect(shown(levelView(tree, species, { fam: 'Fa', genus: 'Aa' }, new Set(['a2']), true)!)).toEqual(['a2'])
   })
   it('a level with no bird on the list: no rows, the level kept', () => {
     const v = levelView(tree, species, { fam: 'Fb' }, new Set(['a1']), true)!
     expect(v.rows).toEqual([])
-    expect(v.level).toEqual({ ord: 'O2', fam: 'Fb', genus: undefined })
+    expect(v.level).toEqual({ ord: 'O2', fam: 'Fb', genus: undefined, tips: 'species' })
   })
 })
 
@@ -427,7 +429,7 @@ describe('a group the tree splits', () => {
   it('opened, a marked genus shows its whole branch; a genus inside it opens on its own species', () => {
     const sp2 = buildSpeciesIndex([sp('c1', 'Ca one', 'O1', 'Fc', 1), sp('c2', 'Cb two', 'O1', 'Fc', 2), sp('c3', 'Ca three', 'O1', 'Fc', 3), sp('c4', 'Cb four', 'O1', 'Fc', 4)])
     const t = parseNewick('((c1:1,c2:1):1,(c3:1,c4:1):1);')
-    const v = levelView(t, sp2, { fam: 'Fc' }, new Set(['c3']))!
+    const v = levelView(t, sp2, { fam: 'Fc', tips: 'genera' }, new Set(['c3']))!
     expect(v.rows.map((r) => r.kind === 'group' ? `${r.key} ${r.on}/${r.total} ${r.with?.map((w) => `${w.key} ${w.on}/${w.total}`)}` : '')).toEqual(['Ca 1/4 Cb 0/2'])
     const ca = levelView(t, sp2, { fam: 'Fc', genus: 'Ca' }, new Set())!
     expect(ca.rows.map((r) => r.kind === 'species' && r.row.code)).toEqual(['c1', 'c2', 'c3', 'c4'])
@@ -441,7 +443,7 @@ describe('a group the tree splits', () => {
     const t = parseNewick('((p1:1,q1:1):1,p2:2);')
     const top = levelView(t, sp3, FAMILIES, new Set(['q1']))!
     expect(top.rows.map((r) => r.kind === 'group' ? `${r.key} ${r.on}/${r.total} ${r.with?.map((w) => w.row.fam).join()}` : r.kind)).toEqual(['order', 'Fp 1/3 Fq'])
-    const fam = levelView(t, sp3, { fam: 'Fq' }, new Set())!
+    const fam = levelView(t, sp3, { fam: 'Fq', tips: 'genera' }, new Set())!
     expect(fam.level).toEqual({ ord: 'O1', fam: 'Fp', genus: undefined })
     expect(fam.inside?.map((r) => r.fam)).toEqual(['Fq'])
     expect(fam.rows.map((r) => r.kind === 'group' ? `${r.key} ${r.with?.map((w) => w.row.sci).join()}` : '')).toEqual(['Pa Qa one'])
@@ -544,7 +546,7 @@ describe('public/data/tree.v1.json', () => {
     const groups = (v: LevelView) => v.rows.filter((r): r is Group => r.kind === 'group')
     const top = levelView(t, idx, FAMILIES, none)!
     // Each family level once (a family inside a marked branch opens its row's family).
-    const levels = [...new Map(groups(top).map((f) => { const v = levelView(t, idx, { fam: f.key }, none)!; return [v.level.fam!, v] as const })).values()]
+    const levels = [...new Map(groups(top).map((f) => { const v = levelView(t, idx, { fam: f.key, tips: 'genera' }, none)!; return [v.level.fam!, v] as const })).values()]
     // Every key once, as a row or inside one; the rows' totals add up to every species of the scope.
     const coversOnce = (rows: Group[], keys: string[], n: number) => {
       expect([...rows.flatMap((r) => [r.key, ...r.with?.map((w) => w.key) ?? []])].sort()).toEqual([...new Set(keys)].sort())
@@ -595,8 +597,8 @@ describe('public/data/tree.v1.json', () => {
         const fam = lv.level.fam!
         const fams = new Set([fam, ...famInside.get(fam)!])
         const scope = counted(tipped.filter((r) => fams.has(r.fam)), genusOf).filter((r) => fams.has(r.fam))
-        const mine = levelView(t, idx, { fam }, on, true)!
-        const off = levelView(t, idx, { fam }, on)!
+        const mine = levelView(t, idx, { fam, tips: 'genera' }, on, true)!
+        const off = levelView(t, idx, { fam, tips: 'genera' }, on)!
         const g = groups(mine)
         expect(g.every((r) => r.on > 0), fam).toBe(true)
         expect(g.reduce((a, r) => a + r.on, 0), fam).toBe(scope.filter((r) => on.has(r.code)).length)
@@ -619,11 +621,17 @@ describe('public/data/tree.v1.json', () => {
     })
     it('Vauriella is the largest marked tip: 358 species with 55 other genera; Muscicapidae, Otididae and Timaliidae are one row each', () => {
       const v = levelView(t, idx, { fam: 'Muscicapidae' }, none)!
+      expect(v.tips).toBe('genera')
       expect(groups(v).map((r) => `${r.key} ${r.with?.length}`)).toEqual(['Vauriella 55'])
       expect(levelView(t, idx, { fam: 'Muscicapidae', genus: 'Vauriella' }, none)!.rows).toHaveLength(358)
       const biggest = levels.flatMap((l) => groups(l).filter((r) => r.with)).sort((a, b) => b.total - a.total)[0]
       expect(biggest.key).toBe('Vauriella')
-      for (const f of ['Otididae', 'Timaliidae']) expect(groups(levelView(t, idx, { fam: f }, none)!), f).toHaveLength(1)
+      // Asked for, their genera are one row each; opened, a family of one row opens past it, on its species (round 6;
+      // Muscicapidae's 358 species are over MAX_TIPS, so it stays on its one row).
+      for (const f of ['Otididae', 'Timaliidae']) {
+        expect(groups(levelView(t, idx, { fam: f, tips: 'genera' }, none)!), f).toHaveLength(1)
+        expect(levelView(t, idx, { fam: f }, none)!.tips, f).toBe('species')
+      }
     })
   })
   it('each species of data/tree-additions.json sits beside its parent, dotted, and names its source', () => {

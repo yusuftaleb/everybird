@@ -2,7 +2,7 @@
 // The one horizontal bar above the filters, as LifeList's dock (framer-site), with Photography's search: the views on
 // the left (Collage / List / Map / Tree); then, at even gaps, the view's own controls and the one Filters button
 // (Filters.tsx), then the magnifier. Each switch is one press and shows only in the view it applies to: True size in
-// Collage, the sort direction in List, Lifers only in Tree, Scientific in every view, last among them (in Map it is the
+// Collage, the sort direction in List, Lifers only and Time scale in Tree, Scientific in every view, last among them (in Map it is the
 // only one, so the setting can be changed from any view; the map itself has no names to change). In Tree, the Level and
 // Layout menus follow the switches, before Filters (Yusuf, 2026-11-20, round 3): TreeView renders them into the slot
 // `treeMenus` hands it (a portal), since the levels on offer come from the tree it loads. The magnifier turns the dock into the search field (DockSearch.tsx); everything
@@ -11,12 +11,12 @@
 // need more room, also takes the second row from 820px whenever its controls don't fit on one (`data-wrap`, measured:
 // `dockRowWidth`); under 600px Filters fills what the switches leave and the Tree's menus fill the rest of their row
 // (app.css); under 1100px the views are icons only; under 540px of bar (and on phones) the switches shorten ("True",
-// "Sci."; "Heaviest" in list view; Lifers only keeps its words), and under 330px and 310px everything tightens, so row
+// "Sci."; "Heaviest" in list view; Lifers only and Time scale keep their words), and under 330px and 310px everything tightens, so row
 // one (the views and the magnifier) never breaks from 280px of bar.
 import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
 import { useI18n } from '@/i18n/I18nProvider'
-import { setTreeMine, useTreeMine } from '@/lib/tree-mine'
+import { setTreeMine, setTreeTime, useTreeMine, useTreeTime } from '@/lib/tree-mine'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
 import type { ViewKind } from '@/lib/view-resume'
 import { DockSearchField, SearchButton, type DockSearchProps } from './DockSearch'
@@ -87,6 +87,7 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
   const { t } = useI18n()
   const c = t.collage.controls
   const mine = useTreeMine()
+  const time = useTreeTime()
   const wrap = useRef<HTMLDivElement>(null)
   const dock = useRef<HTMLDivElement>(null)
   // Tree: the controls take the second row only when they don't fit on one (measured before paint, again on every
@@ -135,6 +136,7 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
   ) : view === 'tree' ? (
     <>
       <DockSwitch on={mine} onChange={setTreeMine} long={c.lifersOnly} testId="tree-mine" />
+      <DockSwitch on={time} onChange={setTreeTime} long={c.timeScale} testId="tree-time" />
       {sciSwitch}
     </>
   ) : sciSwitch
