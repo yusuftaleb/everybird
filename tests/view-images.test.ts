@@ -1,10 +1,11 @@
-// The Map and Tree views' share images, their pure parts: how the map is fitted, where its top places go, which tree
-// names are kept, and where the tree's fan goes.
+// The Map and Tree views' share images, their pure parts: how the map is fitted, where its top places go, the tree's
+// four equal totals, and its Rectangular names (every tip named).
 import { describe, expect, it } from 'vitest'
 import { mapImageLayout, TOP_PLACES } from '@/lib/share/map-image'
 import { en } from '@/i18n/messages/en'
 import { FOOTER_LINE, SITE_LABEL, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
-import { fanFits, imageFanBox, keepNames } from '@/lib/share/tree-image'
+import { IMAGE_SIZES, TOTALS, rowsLabels, totalsSize } from '@/lib/share/tree-image'
+import { LABEL_GAP, fitRound } from '@/lib/tree/fan'
 import { MAP_FOOTER, TREE_FOOTER, fitBox, wrapParts } from '@/lib/share/view-image'
 import { buildSpeciesIndex } from '@/lib/species/load'
 
@@ -47,43 +48,45 @@ describe('the map image', () => {
   })
 })
 
-describe('the tree image keeps the names that fit', () => {
-  it('every name when the rows are far enough apart, only rows with a bird on the list', () => {
-    const rows = [{ y: 0, n: 2 }, { y: 30, n: 0 }, { y: 60, n: 1 }]
-    expect([...keepNames(rows, 24)].sort()).toEqual([0, 2])
-  })
-
-  it('largest count first, skipping a name that would touch one already kept (the upper on a tie)', () => {
-    const rows = [{ y: 0, n: 1 }, { y: 10, n: 5 }, { y: 20, n: 3 }, { y: 30, n: 3 }, { y: 50, n: 3 }]
-    // 5 at 10 first; 3 at 20 touches it, 3 at 30 is kept (20 away), then 3 at 50 (20 from 30); 1 at 0 touches 10.
-    expect([...keepNames(rows, 20)].sort()).toEqual([1, 3, 4])
+describe('the tree image: four equal totals on top', () => {
+  it('species, genera, families and orders, in that order, every number the same size, the largest that fits each', () => {
+    expect(TOTALS).toEqual(['species', 'genera', 'families', 'orders'])
+    const texts = ['202 / 11,201', '150 / 2,379', '60 / 251', '20 / 41']
+    const w = (s: string) => s.length * 0.55
+    const { num, label } = totalsSize(texts, 952, w)
+    // One size for the four, set by the widest, each inside its quarter.
+    expect(num).toBe(Math.floor((952 / 4 - 24) / w(texts[0])))
+    for (const t of texts) expect(w(t) * num).toBeLessThanOrEqual(952 / 4)
+    expect(label).toBeLessThan(num)
+    // Never larger than the cap, however wide the image; one total ("Hide totals") as large as that.
+    expect(totalsSize(['1 / 2'], 1800, w).num).toBe(56)
   })
 })
 
-describe('the tree image draws a fan in a wide or square area, rows in a tall one', () => {
-  it('a square, post or horizontal area draws the fan; the story rows', () => {
-    expect(fanFits({ w: 952, h: 700 })).toBe(true)
-    expect(fanFits({ w: 952, h: 1000 })).toBe(true)
-    expect(fanFits({ w: 952, h: 1300 })).toBe(false)
+describe('the tree image names every tip', () => {
+  it('Rectangular: one size for every name, small enough for the longest; the counts only where they fit', () => {
+    const spans = [{ name: 5, count: 3, on: true }, { name: 20, count: 3, on: false }, { name: 4, count: 0, on: false }]
+    const { px, box, counts } = rowsLabels(spans, 40, 500)
+    expect(px).toBeLessThanOrEqual(30)
+    expect(box + px * (2 * LABEL_GAP + 20)).toBeLessThanOrEqual(500 + 1e-9) // the longest name fits whole
+    expect(box).toBeLessThanOrEqual(40)
+    expect(counts).toEqual([true, false, false])
   })
-  it('the fan and its names fit the area above the axis and key, centred', () => {
-    for (const area of [{ x: 64, y: 300, w: 952, h: 640 }, { x: 64, y: 200, w: 1800, h: 600 }]) {
-      const below = 84
-      const box = imageFanBox(area, below)
-      expect(box.cx).toBe(area.x + area.w / 2)
-      const out = (box.cy - box.R) - area.y // the names' room over the arc's top
-      expect(out).toBeGreaterThanOrEqual(240)
-      expect(box.cx - box.R - 240).toBeGreaterThanOrEqual(area.x - 0.5)
-      expect(box.cy + below).toBeLessThanOrEqual(area.y + area.h + 0.5)
-    }
+  it('Fan and Radial: the image fits whatever the screen named, at its own scale', () => {
+    // 45 tips the screen names at 900px wide fit the story's 952-unit area.
+    const spans = Array.from({ length: 45 }, (_, i) => ({ name: 8, count: 3, on: i % 2 === 0 }))
+    expect(fitRound(spans, 'fan', { w: 900 })).toBeDefined()
+    const f = fitRound(spans, 'fan', { w: 952, h: 1100 }, IMAGE_SIZES)!
+    expect(f).toBeDefined()
+    expect(f.h).toBeLessThanOrEqual(1100)
   })
 })
 
 describe('the credit on each image', () => {
-  it('the map credits the site alone, the tree the site and AvesData (CC BY 4.0); neither the stickers', () => {
+  it('the map credits the site alone; the tree, whose tips carry stickers, the stickers and AvesData (CC BY 4.0)', () => {
     expect(MAP_FOOTER).toBe(SITE_LABEL)
-    expect(TREE_FOOTER).toBe(`${SITE_LABEL} · tree: AvesData, McTavish et al., CC BY 4.0`)
-    for (const f of [MAP_FOOTER, TREE_FOOTER]) expect(f).not.toMatch(/sticker|huashu/)
+    expect(MAP_FOOTER).not.toMatch(/sticker|huashu/)
+    expect(TREE_FOOTER).toBe(`${SITE_LABEL} · stickers by huashu · tree: AvesData, McTavish et al., CC BY 4.0`)
     expect(FOOTER_LINE).toBe(`${SITE_LABEL} · stickers by huashu`)
   })
 

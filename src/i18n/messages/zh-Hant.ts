@@ -141,8 +141,6 @@ export const zhHant: Messages = {
       tree: {
         loading: '正在載入演化樹',
         failed: '演化樹沒有載入。再開一次演化樹試試看。',
-        nav: '演化樹層級',
-        all: '所有鳥類',
         tips: '演化樹的末端，由上而下',
         axis: '百萬年前（估計值）',
         onList: '清單上有 {n} / {total}',
@@ -166,7 +164,8 @@ export const zhHant: Messages = {
         mineNone: '這裡沒有清單上的鳥。',
         level: '層級',
         layout: '版面',
-        layouts: { fan: '扇形', circle: '圓形', rows: '列' },
+        layouts: { fan: '扇形', circle: '放射狀', rows: '矩形' },
+        noRoom: '空間不足，無法顯示所有名稱',
         rank: { orders: '目', families: '科', genera: '屬', species: '種' },
         tooMany: { families: '打開一個目即可查看其科', genera: '打開一個科即可查看其屬', species: '打開一個屬即可查看其種' },
         tipOf: '{n} / {total}',

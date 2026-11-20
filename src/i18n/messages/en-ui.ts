@@ -184,8 +184,6 @@ export const EN_UI = {
     tree: {
       loading: 'Loading the tree',
       failed: "The tree didn't load. Open Tree again to try once more.",
-      nav: 'Tree levels',
-      all: 'All birds',
       tips: 'Tips of the tree, top to bottom',
       axis: 'Million years ago (estimates)',
       onList: '{n} of {total} on the list',
@@ -209,7 +207,8 @@ export const EN_UI = {
       mineNone: 'No bird on the list here.',
       level: 'Level',
       layout: 'Layout',
-      layouts: { fan: 'Fan', circle: 'Circle', rows: 'Rows' },
+      layouts: { fan: 'Fan', circle: 'Radial', rows: 'Rectangular' },
+      noRoom: 'Not enough room for every name',
       rank: { orders: 'Orders', families: 'Families', genera: 'Genera', species: 'Species' },
       tooMany: { families: 'Open an order to see its families', genera: 'Open a family to see its genera', species: 'Open a genus to see its species' },
       tipOf: '{n} of {total}',

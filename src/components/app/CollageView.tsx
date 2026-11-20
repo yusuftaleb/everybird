@@ -12,7 +12,7 @@ import { Collage, revealBird } from '@/components/collage/Collage'
 import { reduced } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
 import { MapView } from '@/components/collage/MapView'
-import { FilterBar } from '@/components/filters/FilterBar'
+import { FilterBar, type TreePath } from '@/components/filters/FilterBar'
 import { useFiltersUi, type FilterSection, type PlacesNote } from '@/components/filters/Filters'
 import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt, formatMonth } from '@/i18n/format'
@@ -33,6 +33,7 @@ import type { Regions } from '@/lib/species/types'
 import type { StateLayout } from '@/lib/layout/layout-client'
 import type { ShareAt } from '@/lib/share/view-image'
 import type { TreeLevel } from '@/lib/tree/levels'
+import { closeDeep, openBranch, treeBranch, type OpenBranch, type TreeDeep } from '@/lib/tree/path'
 import type { TreeLayout } from '@/lib/tree-mine'
 import { useVariant } from '@/lib/variants'
 import { ControlsBar } from './ControlsBar'
@@ -142,6 +143,23 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const onTreeLevel = useCallback((tree: TreeLevel, mine: boolean, layout: TreeLayout) => onShareAt?.({ tree, mine, layout }), [onShareAt])
   // The controls bar's slot for the Tree's Level and Layout menus, which TreeView fills.
   const [treeMenus, setTreeMenus] = useState<HTMLDivElement | null>(null)
+  // The tree's open branch is the taxonomy filter's order and family (the chip row is its path, path.ts), with what the
+  // tree opens past them (a genus) kept here while they stay.
+  const [treeDeep, setTreeDeep] = useState<TreeDeep | null>(null)
+  const branch = useMemo(() => treeBranch(filter, treeDeep), [filter, treeDeep])
+  const onTreeOpen = useCallback((b: OpenBranch, famName?: string) => {
+    // The filter keeps a family only when the shown index has it in that order (applyFilterValidity).
+    const next = openBranch(filter, b, (ord, fam) => species.rows.some((r) => r.ord === ord && r.fam === fam), famName)
+    setTreeDeep(next.deep)
+    if (filterKey(next.filter) !== filterKey(filter)) dispatch({ type: 'filter', filter: next.filter })
+  }, [filter, species, dispatch])
+  const treePath = useMemo((): TreePath | undefined => {
+    if (view !== 'tree') return undefined
+    const crumbs: TreePath['crumbs'] = []
+    if (branch.fam && !filter.family) crumbs.push({ label: sci ? branch.fam : treeDeep?.famName ?? branch.fam, latin: sci, open: () => setTreeDeep((d) => closeDeep(d, 1)) })
+    if (branch.genus) crumbs.push({ label: branch.genus, latin: true, open: () => {} })
+    return { crumbs, close: () => setTreeDeep(null) }
+  }, [view, branch, filter.family, sci, treeDeep?.famName])
 
   const entries = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
   // The timeline's months (first lifer to today).
@@ -305,7 +323,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
 
       {/* Everything under the dock: dimmed and inert while the Filters popover is open (a press there closes it). */}
       <div className="eb-view-below" inert={filtersUi.dimmed || undefined} data-dim={filtersUi.dimmed || undefined}>
-      <FilterBar state={state} dispatch={dispatch} species={species} />
+      <FilterBar state={state} dispatch={dispatch} species={species} tree={treePath} />
       {filterNote}
 
       {view === 'collage' ? (
@@ -326,7 +344,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         <ListView entries={shownList} species={species} regions={regions} order={massOrder} sci={sci} onPick={onPickRow} />
       ) : (
         <Suspense fallback={<p className="eb-mono">{t.collage.tree.loading}</p>}>
-          <TreeView entries={shownList} sci={sci} onPick={onPickRow} onLevel={onTreeLevel} menus={treeMenus} />
+          <TreeView entries={shownList} sci={sci} onPick={onPickRow} branch={branch} onOpen={onTreeOpen} onLevel={onTreeLevel} menus={treeMenus} />
         </Suspense>
       )}
 

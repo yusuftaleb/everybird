@@ -139,8 +139,6 @@ export const pt: Messages = {
       tree: {
         loading: 'Carregando a árvore',
         failed: 'A árvore não carregou. Abra Árvore de novo para tentar outra vez.',
-        nav: 'Níveis da árvore',
-        all: 'Todas as aves',
         tips: 'Pontas da árvore, de cima para baixo',
         axis: 'Milhões de anos atrás (estimativas)',
         onList: '{n} de {total} na lista',
@@ -164,7 +162,8 @@ export const pt: Messages = {
         mineNone: 'Nenhuma ave da lista aqui.',
         level: 'Nível',
         layout: 'Formato',
-        layouts: { fan: 'Leque', circle: 'Círculo', rows: 'Linhas' },
+        layouts: { fan: 'Leque', circle: 'Radial', rows: 'Retangular' },
+        noRoom: 'Não há espaço para todos os nomes',
         rank: { orders: 'Ordens', families: 'Famílias', genera: 'Gêneros', species: 'Espécies' },
         tooMany: { families: 'Abra uma ordem para ver suas famílias', genera: 'Abra uma família para ver seus gêneros', species: 'Abra um gênero para ver suas espécies' },
         tipOf: '{n} de {total}',

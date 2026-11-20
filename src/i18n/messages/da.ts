@@ -139,8 +139,6 @@ export const da: Messages = {
       tree: {
         loading: 'Træet indlæses',
         failed: 'Træet blev ikke indlæst. Åbn Træ igen for at prøve en gang til.',
-        nav: 'Træets niveauer',
-        all: 'Alle fugle',
         tips: 'Træets spidser, oppefra og ned',
         axis: 'Millioner år siden (skøn)',
         onList: '{n} af {total} på listen',
@@ -164,7 +162,8 @@ export const da: Messages = {
         mineNone: 'Ingen fugl fra listen her.',
         level: 'Niveau',
         layout: 'Form',
-        layouts: { fan: 'Vifte', circle: 'Cirkel', rows: 'Rækker' },
+        layouts: { fan: 'Vifte', circle: 'Radial', rows: 'Rektangulær' },
+        noRoom: 'Ikke plads til alle navne',
         rank: { orders: 'Ordener', families: 'Familier', genera: 'Slægter', species: 'Arter' },
         tooMany: { families: 'Åbn en orden for at se dens familier', genera: 'Åbn en familie for at se dens slægter', species: 'Åbn en slægt for at se dens arter' },
         tipOf: '{n} af {total}',

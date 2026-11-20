@@ -139,8 +139,6 @@ export const de: Messages = {
       tree: {
         loading: 'Baum wird geladen',
         failed: 'Der Baum wurde nicht geladen. Öffne Baum noch einmal, um es erneut zu versuchen.',
-        nav: 'Ebenen des Baums',
-        all: 'Alle Vögel',
         tips: 'Enden des Baums, von oben nach unten',
         axis: 'Millionen Jahre vor heute (Schätzungen)',
         onList: '{n} von {total} auf der Liste',
@@ -164,7 +162,8 @@ export const de: Messages = {
         mineNone: 'Hier ist kein Vogel der Liste.',
         level: 'Ebene',
         layout: 'Form',
-        layouts: { fan: 'Fächer', circle: 'Kreis', rows: 'Zeilen' },
+        layouts: { fan: 'Fächer', circle: 'Radial', rows: 'Rechteckig' },
+        noRoom: 'Nicht genug Platz für alle Namen',
         rank: { orders: 'Ordnungen', families: 'Familien', genera: 'Gattungen', species: 'Arten' },
         tooMany: { families: 'Öffne eine Ordnung, um ihre Familien zu sehen', genera: 'Öffne eine Familie, um ihre Gattungen zu sehen', species: 'Öffne eine Gattung, um ihre Arten zu sehen' },
         tipOf: '{n} von {total}',

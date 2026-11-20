@@ -145,8 +145,6 @@ export const pl: Messages = {
       tree: {
         loading: 'Wczytywanie drzewa',
         failed: 'Nie udało się wczytać drzewa. Otwórz Drzewo ponownie, aby spróbować jeszcze raz.',
-        nav: 'Poziomy drzewa',
-        all: 'Wszystkie ptaki',
         tips: 'Końcówki drzewa, od góry do dołu',
         axis: 'Miliony lat temu (szacunki)',
         onList: 'Na liście: {n} z {total}',
@@ -170,7 +168,8 @@ export const pl: Messages = {
         mineNone: 'Nie ma tu żadnego ptaka z listy.',
         level: 'Poziom',
         layout: 'Układ',
-        layouts: { fan: 'Wachlarz', circle: 'Koło', rows: 'Wiersze' },
+        layouts: { fan: 'Wachlarz', circle: 'Promienisty', rows: 'Prostokątny' },
+        noRoom: 'Za mało miejsca na wszystkie nazwy',
         rank: { orders: 'Rzędy', families: 'Rodziny', genera: 'Rodzaje', species: 'Gatunki' },
         tooMany: { families: 'Otwórz rząd, aby zobaczyć jego rodziny', genera: 'Otwórz rodzinę, aby zobaczyć jej rodzaje', species: 'Otwórz rodzaj, aby zobaczyć jego gatunki' },
         tipOf: '{n} z {total}',

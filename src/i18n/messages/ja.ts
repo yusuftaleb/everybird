@@ -141,8 +141,6 @@ export const ja: Messages = {
       tree: {
         loading: '系統樹を読み込んでいます',
         failed: '系統樹を読み込めませんでした。もう一度「系統樹」を開いてください。',
-        nav: '系統樹の階層',
-        all: 'すべての鳥',
         tips: '系統樹の先端、上から下へ',
         axis: '百万年前（推定）',
         onList: '{total}のうち{n}がリストにあります',
@@ -166,7 +164,8 @@ export const ja: Messages = {
         mineNone: 'ここにはリストの鳥がいません。',
         level: '階級',
         layout: 'レイアウト',
-        layouts: { fan: '扇形', circle: '円形', rows: '行' },
+        layouts: { fan: '扇形', circle: '放射状', rows: '矩形' },
+        noRoom: 'すべての名前は入りきりません',
         rank: { orders: '目', families: '科', genera: '属', species: '種' },
         tooMany: { families: '目を開くと科が見られます', genera: '科を開くと属が見られます', species: '属を開くと種が見られます' },
         tipOf: '{total}中{n}',
