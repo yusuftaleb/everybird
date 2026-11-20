@@ -141,12 +141,12 @@
   .eb-dock-tools .eb-dock-sw { position: relative; min-height: 36px; }
   .eb-dock-tools .eb-dock-sw::after { content: ''; position: absolute; inset: -4px 0; }
 }
-/* The Tree's controls: the Level and Layout menus (MenuSelect's button, rendered by TreeView into `.eb-dock-menus`), then
-   Lifers only and Scientific. They keep one row with the views and the magnifier whenever they fit; when they don't
-   (ControlsBar measures them: `data-wrap`), they take the second row as the other views' controls do under 820px, and
-   that row wraps whole groups (the two menus together, the two switches together) rather than overflowing. Each control
-   keeps its own width there (no shrinking: the measure reads it). Under 600px the menus take that row to themselves,
-   sharing it evenly, and the switches and Filters the row under it. */
+/* The Tree's controls: Lifers only and Scientific, then the Level and Layout menus (MenuSelect's button, rendered by
+   TreeView into `.eb-dock-menus`), then Filters. They keep one row with the views and the magnifier whenever they fit;
+   when they don't (ControlsBar measures them: `data-wrap`), they take the second row as the other views' controls do
+   under 820px, in the same order, and that row wraps whole groups (the two switches together, the two menus together)
+   rather than overflowing. Each control keeps its own width there (no shrinking: the measure reads it). Under 600px the
+   menus fill the rest of their row, sharing it evenly, and Filters the rest of its own. */
 .eb-dock-menus { display: flex; align-items: center; gap: 4px; flex: none; margin-right: 8px; }
 .eb-dock-menus:empty { display: none; }
 .eb-dock[data-view="tree"] .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
@@ -170,7 +170,7 @@
 .eb-dock-menus .eb-share-dd:disabled { color: inherit; cursor: default; }
 @media (hover: hover) and (pointer: fine) { .eb-dock-menus .eb-share-dd:not(:disabled):hover { opacity: 1; } }
 @container (max-width: 599px) {
-  .eb-dock-menus { flex: 1 0 100%; margin-right: 0; }
+  .eb-dock-menus { flex: 1 0 auto; margin-right: 0; }
   .eb-dock-menus > .eb-share-ddwrap { flex: 1 1 0; min-width: 0; }
   /* As Filters on this row: 36px drawn with a 44px press, the label centred, no caret. */
   .eb-dock-menus .eb-share-dd { width: 100%; min-height: 36px; justify-content: center; padding: 0 10px; }

@@ -3,12 +3,12 @@
 // the left (Collage / List / Map / Tree); then, at even gaps, the view's own controls and the one Filters button
 // (Filters.tsx), then the magnifier. Each switch is one press and shows only in the view it applies to: True size in
 // Collage, the sort direction in List, Lifers only in Tree, Scientific in all three; none in Map. In Tree, the Level and
-// Layout menus come first: TreeView renders them into the slot `treeMenus` hands it (a portal), since the levels on
-// offer come from the tree it loads. The magnifier turns the dock into the search field (DockSearch.tsx); everything
+// Layout menus follow the switches, before Filters (Yusuf, 2026-11-20, round 3): TreeView renders them into the slot
+// `treeMenus` hands it (a portal), since the levels on offer come from the tree it loads. The magnifier turns the dock into the search field (DockSearch.tsx); everything
 // else sits under it, inert, while it is open. Under 820px of bar the view's controls and Filters take a second row of
 // their own, wrapping whole (the menus together, the switches together) rather than overflowing. Tree, whose controls
 // need more room, also takes the second row from 820px whenever its controls don't fit on one (`data-wrap`, measured:
-// `dockRowWidth`); under 600px Filters fills what the switches leave and the Tree's menus take a row to themselves
+// `dockRowWidth`); under 600px Filters fills what the switches leave and the Tree's menus fill the rest of their row
 // (app.css); under 1100px the views are icons only; under 540px of bar (and on phones) the switches shorten ("True",
 // "Sci."; "Heaviest" in list view; Lifers only keeps its words), and under 330px and 310px everything tightens, so row
 // one (the views and the magnifier) never breaks from 280px of bar.
@@ -149,8 +149,8 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
           ))}
         </div>
         <div className="eb-dock-filters" inert={finding}>
-          {view === 'tree' && <div ref={treeMenus} className="eb-dock-menus" />}
           {tools && <div className="eb-dock-tools">{tools}</div>}
+          {view === 'tree' && <div ref={treeMenus} className="eb-dock-menus" />}
           {filters}
         </div>
         {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => { onFind?.(); setFinding(true) }} buttonRef={findBtn} /></div>}
