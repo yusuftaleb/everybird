@@ -1,10 +1,10 @@
 // The UI languages. No imports: the config (rewrites), the server and the client all read this.
 // A new language is an entry here, its own messages/<lang>.ts and the steps in GLOSSARY.md.
 
-export const LANGS = ['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de'] as const
+export const LANGS = ['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de', 'it'] as const
 export type Lang = (typeof LANGS)[number]
 
-/** The preference cookie (src/i18n/choose.ts writes it, the rewrites in routes.ts read it): `en|es|pt|nl|pl|fr|de`. */
+/** The preference cookie (src/i18n/choose.ts writes it, the rewrites in routes.ts read it): `en|es|pt|nl|pl|fr|de|it`. */
 export const LANG_COOKIE = 'everybird-lang'
 
 export function isLang(s: unknown): s is Lang {
@@ -12,10 +12,10 @@ export function isLang(s: unknown): s is Lang {
 }
 
 /** `<html lang>` per language: Portuguese is Brazilian Portuguese. */
-export const HTML_LANG: Record<Lang, string> = { en: 'en', es: 'es', pt: 'pt-BR', nl: 'nl', pl: 'pl', fr: 'fr', de: 'de' }
+export const HTML_LANG: Record<Lang, string> = { en: 'en', es: 'es', pt: 'pt-BR', nl: 'nl', pl: 'pl', fr: 'fr', de: 'de', it: 'it' }
 
 /** Each language's name in itself, for the language picker (short: Portuguese is pt-BR, the menu just says Português). */
-export const LANG_NAMES: Record<Lang, string> = { en: 'English', es: 'Español', pt: 'Português', nl: 'Nederlands', pl: 'Polski', fr: 'Français', de: 'Deutsch' }
+export const LANG_NAMES: Record<Lang, string> = { en: 'English', es: 'Español', pt: 'Português', nl: 'Nederlands', pl: 'Polski', fr: 'Français', de: 'Deutsch', it: 'Italiano' }
 
 /** A BCP 47 tag's primary subtag, lower-cased ("es-AR" -> "es", "pt_BR" -> "pt"), when it is 2 or 3 letters; else undefined. */
 export function primarySubtag(tag: string | undefined): string | undefined {

@@ -66,9 +66,9 @@ describe('LanguageField', () => {
     expect(select).toHaveClass('eb-input')
     expect(select.parentElement).toHaveClass('eb-select')
     const options = [...select.options]
-    expect(options.map((o) => o.textContent)).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski', 'Français', 'Deutsch'])
-    expect(options.map((o) => o.value)).toEqual(['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de'])
-    expect(options.map((o) => o.getAttribute('lang'))).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl', 'fr', 'de'])
+    expect(options.map((o) => o.textContent)).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski', 'Français', 'Deutsch', 'Italiano'])
+    expect(options.map((o) => o.value)).toEqual(['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de', 'it'])
+    expect(options.map((o) => o.getAttribute('lang'))).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl', 'fr', 'de', 'it'])
     expect(select.value).toBe('pt')
   })
 

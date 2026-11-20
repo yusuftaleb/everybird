@@ -9,6 +9,7 @@ import { nl } from "../src/i18n/messages/nl";
 import { pl } from "../src/i18n/messages/pl";
 import { fr } from "../src/i18n/messages/fr";
 import { de } from "../src/i18n/messages/de";
+import { it } from "../src/i18n/messages/it";
 import { pt } from "../src/i18n/messages/pt";
 
 /** A small synthetic eBird life list download (real species names, made-up places and dates). */
@@ -443,7 +444,7 @@ test("Settings still fits about 1.5 screens at 1280x800 with the language field,
   expect(height).toBeLessThanOrEqual(1.6 * 800);
 });
 
-const MESSAGES = { es, pt, nl, pl, fr, de } as const;
+const MESSAGES = { es, pt, nl, pl, fr, de, it } as const;
 
 // Settings' "Add birds" and the dialog's choices and source rows in each language at 390 and 1280: each button is whole
 // (the row buttons wrap under the text, never out of the page) and nothing scrolls sideways. For manual runs.

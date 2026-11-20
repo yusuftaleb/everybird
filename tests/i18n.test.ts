@@ -10,6 +10,7 @@ import { nl } from '@/i18n/messages/nl'
 import { pl } from '@/i18n/messages/pl'
 import { fr } from '@/i18n/messages/fr'
 import { de } from '@/i18n/messages/de'
+import { it as italian } from '@/i18n/messages/it'
 import { pt } from '@/i18n/messages/pt'
 import { ORDERS } from '@/lib/species/orders'
 import { withI18n } from './i18n-render'
@@ -42,9 +43,11 @@ const ALLOW_SAME = [
   'Image', 'Style', 'Poster',
   // de: months spelled as in English, and "(optional)".
   'Jan', 'Feb', 'Apr', 'Aug', 'Sep', 'Nov', 'April', 'August', 'September', 'November', '(optional)', 'Region (optional)',
+  // it: the continent's name in Italian.
+  'Africa',
 ]
 
-const OTHERS = { es, pt, nl, pl, fr, de } as const
+const OTHERS = { es, pt, nl, pl, fr, de, it: italian } as const
 
 /** Every leaf as [path, value]: strings, array items and Plural forms each count as one. */
 function leaves(node: unknown, path = ''): [string, string][] {
@@ -100,29 +103,30 @@ describe('the dictionaries', () => {
 
   it('the count label fits the hole in every language', () => {
     // COUNT_LABEL_CHARS (Task 6) is 8: "ESPECIES" and "ESPÉCIES".
-    for (const m of [en, es, pt, nl, pl, fr, de]) expect(m.ui.count.label.length).toBeLessThanOrEqual(8)
-    expect([en, es, pt, nl, pl, fr, de].map((m) => m.ui.count.label)).toEqual(['species', 'especies', 'espécies', 'soorten', 'gatunki', 'espèces', 'Arten'])
+    for (const m of [en, es, pt, nl, pl, fr, de, italian]) expect(m.ui.count.label.length).toBeLessThanOrEqual(8)
+    expect([en, es, pt, nl, pl, fr, de, italian].map((m) => m.ui.count.label)).toEqual(['species', 'especies', 'espécies', 'soorten', 'gatunki', 'espèces', 'Arten', 'specie'])
   })
 
   it('the tables: separators, 12 months', () => {
     // Polish groups with "." like es, pt and nl, not its usual space: count-box.ts sizes the count's hole for "," and ".".
-    expect([en, es, pt, nl, pl, fr, de].map((m) => m.ui.num.group + m.ui.num.decimal)).toEqual([',.', '.,', '.,', '.,', '.,', '.,', '.,'])
+    expect([en, es, pt, nl, pl, fr, de, italian].map((m) => m.ui.num.group + m.ui.num.decimal)).toEqual([',.', '.,', '.,', '.,', '.,', '.,', '.,', '.,'])
     expect(es.ui.date.months.join(' ')).toBe('ene feb mar abr may jun jul ago sept oct nov dic')
     expect(pt.ui.date.months.join(' ')).toBe('jan fev mar abr mai jun jul ago set out nov dez')
     expect(nl.ui.date.months.join(' ')).toBe('jan feb mrt apr mei jun jul aug sep okt nov dec')
     expect(pl.ui.date.months.join(' ')).toBe('sty lut mar kwi maj cze lip sie wrz paź lis gru')
     expect(fr.ui.date.months.join(' ')).toBe('janv févr mars avr mai juin juil août sept oct nov déc')
     expect(de.ui.date.months.join(' ')).toBe('Jan Feb Mär Apr Mai Juni Juli Aug Sep Okt Nov Dez')
+    expect(italian.ui.date.months.join(' ')).toBe('gen feb mar apr mag giu lug ago set ott nov dic')
   })
 })
 
 describe('langs', () => {
   it('lists the languages with their html lang and own names', () => {
-    expect(LANGS).toEqual(['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de'])
-    expect(LANGS.map((l) => HTML_LANG[l])).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl', 'fr', 'de'])
-    expect(LANGS.map((l) => LANG_NAMES[l])).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski', 'Français', 'Deutsch'])
+    expect(LANGS).toEqual(['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de', 'it'])
+    expect(LANGS.map((l) => HTML_LANG[l])).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl', 'fr', 'de', 'it'])
+    expect(LANGS.map((l) => LANG_NAMES[l])).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski', 'Français', 'Deutsch', 'Italiano'])
     expect(isLang('es')).toBe(true)
-    expect(isLang('it')).toBe(false)
+    expect(isLang('tr')).toBe(false)
     expect(isLang('ES')).toBe(false)
   })
   it('langFromTag reads the primary subtag', () => {
@@ -133,9 +137,10 @@ describe('langs', () => {
     expect(langFromTag('pl-PL')).toBe('pl')
     expect(langFromTag('fr-CA')).toBe('fr')
     expect(langFromTag('de-AT')).toBe('de')
+    expect(langFromTag('it-IT')).toBe('it')
     expect(langFromTag('NL')).toBe('nl')
     expect(langFromTag('en-GB')).toBe('en')
-    expect(langFromTag('it-IT')).toBe('en')
+    expect(langFromTag('tr-TR')).toBe('en')
     expect(langFromTag('')).toBe('en')
   })
   it('primarySubtag is a lower-case 2–3 letter code or undefined', () => {

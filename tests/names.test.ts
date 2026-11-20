@@ -53,6 +53,10 @@ describe('pickNameLocale', () => {
     // Switzerland's one set is German's: a French reader there gets the French base.
     expect(pickNameLocale('fr', ['fr-CH'], 'CH')).toBe('fr_FR')
   })
+  it('Italian, Swedish and Danish have one set each', () => {
+    expect(pickNameLocale('it', ['it-CH'], 'CH')).toBe('it')
+    expect(pickNameLocale('it', ['it'])).toBe('it')
+  })
   it('reads the first browser tag in the UI language', () => {
     expect(pickNameLocale('es', ['en-US', 'es-MX', 'es-ES'])).toBe('es_MX')
   })

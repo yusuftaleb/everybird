@@ -117,7 +117,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
             {c.inspiration}
           </Credit>
           <Credit label={c.label.taxonomy} title={<A href="https://www.birds.cornell.edu/clementschecklist/">{c.taxonomyTitle}</A>}>
-            {fmt(c.taxonomy, { version: ebirdTaxonomy })}
+            {rich(fmt(c.taxonomy, { version: ebirdTaxonomy }), { cc: link('https://creativecommons.org/licenses/by/3.0/') })}
           </Credit>
           <Credit label={c.label.masses} title={<A href="https://doi.org/10.1111/ele.13898">AVONET</A>}>
             {c.masses}
