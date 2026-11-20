@@ -239,9 +239,9 @@ describe('painting in ranges (the poster strips)', () => {
 
   it('paintCard over bands covering the card: each tile in exactly the bands it meets, all the text in every band', async () => {
     const card = await ringCard()
-    expect(card.lifer).not.toBeNull()
+    expect(card.lifer).toBeNull() // a poster names its latest lifer in the foot, with no sticker
     // Half the stickers loaded, the rest (and bird3, which has none) drawn as outlines.
-    const all = [...card.tiles, card.lifer!]
+    const all = [...card.tiles]
     const imgs = new Map<string, CanvasImageSource | null>()
     all.forEach((t, i) => { if (t.url) imgs.set(t.url, i % 2 ? null : ({ id: t.url } as unknown as CanvasImageSource)) })
     const loaded = (t: Tile) => !!(t.url && imgs.get(t.url))
@@ -268,7 +268,9 @@ describe('painting in ranges (the poster strips)', () => {
       strokes += s
       for (const x of want) drawnIn.set(x, (drawnIn.get(x) ?? 0) + 1)
     }
-    expect(texts).toEqual(expect.arrayContaining(['A test list', 'Perching birds', 'Everybird', card.footerLine, card.K.number]))
+    // The poster's head is its title alone (the name; the filter only when there is no name).
+    expect(texts).toEqual(expect.arrayContaining(['A test list', 'Everybird', card.footerLine, card.K.number]))
+    expect(texts).not.toContain('Perching birds')
     // Every tile drawn in at least one band, and in exactly the bands it meets.
     for (const x of all) expect(drawnIn.get(x)).toBe(bands.filter((b) => tileInRange(x, b)).length)
     expect(all.every((x) => (drawnIn.get(x) ?? 0) >= 1)).toBe(true)

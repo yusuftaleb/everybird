@@ -145,11 +145,11 @@ describe('the landscape layouts', () => {
     }
   }
 
-  it('the desktop has the one-line footer; the 5:4 card and the landscape poster keep the row stacked', () => {
+  it('the desktop has the one-line footer; the 5:4 card keeps the row stacked; the landscape poster has none (its foot names the lifer)', () => {
     const content = { name: true, filter: true, latest: true, count: 197 }
     expect(cardLayout('desktop', content).latest?.oneLine).toBe(true)
     expect(cardLayout('wide', content).latest?.oneLine).toBe(false)
-    expect(cardLayout('printLandscape', content).latest?.oneLine).toBe(false)
+    expect(cardLayout('printLandscape', content).latest).toBeUndefined()
     expect(cardLayout('wide', content).latest?.x).toBe(M)
   })
 
@@ -191,7 +191,7 @@ describe('the footer’s one line fits in every language', () => {
     })
   }
 
-  it('the 5:4 card and the landscape poster would not hold the row beside the credit with a long name (so they stack)', () => {
+  it('the 5:4 card (and a landscape-poster-wide card) would not hold the row beside the credit with a long name (so it stacks)', () => {
     // The widest name a row draws is clipped to 480 units; 22 characters at 30px is about 370 units, the name's common worst.
     const label = 'LATEST LIFER · SEP 2026'.length * (0.6 * 20 + 1.2) // mono 20px with 0.06em tracking
     const block = 40 + 14 + label + 14 + 22 * 0.56 * 30

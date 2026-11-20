@@ -33,12 +33,20 @@ export const PRINT_IN: Record<UsSize, readonly [number, number]> = {
 }
 export const isUsSize = (s: PrintSize): s is UsSize => s in PRINT_IN
 export const PRINT_DPI = 150
-/** Maximum species count for printing common names under stickers, by paper size (same in portrait and landscape). */
+/**
+ * Maximum species count for printing common names under stickers, by paper size (same in portrait and landscape). Half
+ * the first posters' (40 on A4 … 360 on 24 × 36 in) since the names doubled: at the cap the stickers stay about three
+ * times the names' size (tests/print-captions-real-masks.test.ts packs real masks at each cap).
+ */
 export const CAPTION_CAPS: Record<PrintSize, number> = {
-  A4: 40, A3: 80, A2: 160, A1: 320,
-  US12x18: 80, US18x24: 180, US24x36: 360,
+  A4: 20, A3: 40, A2: 80, A1: 160,
+  US12x18: 40, US18x24: 90, US24x36: 180,
 }
-export const CAPTION_MIN_PT = 9
+/**
+ * The species names' size on paper, in points: twice the first posters' 9pt, the same on every size so it reads at arm's
+ * length; in design units it scales with the poster (captionMinPx: 32.7 on A4, 16.3 on A2, 11.5 on A1).
+ */
+export const CAPTION_MIN_PT = 18
 /** The print card's width in design units, as the share images. */
 export const PRINT_DESIGN_W = 1080
 /** The height the A sizes' pack is made at (every A size's printDesignH is within 0.2% of it). */

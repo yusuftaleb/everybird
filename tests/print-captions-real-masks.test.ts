@@ -27,10 +27,10 @@ function pick(n: number, seed: number): ListEntry[] {
   return [...chosen].map((code) => ({ code, date: '2024-05', place: { country: 'CA' }, heard: false, dead: false, media: false, sources: ['ebird'] }))
 }
 
-type Opts = { titled?: boolean; format?: 'print' | 'printLandscape' }
+type Opts = { titled?: boolean; format?: 'print' | 'printLandscape'; countSize?: image.CountSize }
 
-async function namesFit(entries: ListEntry[], size: PrintSize, { titled = false, format = 'print' }: Opts = {}): Promise<boolean> {
-  const content: image.CardContent = { name: titled, filter: titled, latest: true, count: entries.length }
+async function namesFit(entries: ListEntry[], size: PrintSize, { titled = false, format = 'print', countSize }: Opts = {}): Promise<boolean> {
+  const content: image.CardContent = { name: titled, filter: titled, latest: true, count: entries.length, countSize }
   const L = image.cardLayout(format, content, printDesign(size, format === 'printLandscape'))
   const plan = planCaptions(entries, species, size, L.collage.w)
   if (!plan.ok) return false
@@ -45,26 +45,28 @@ async function namesFit(entries: ListEntry[], size: PrintSize, { titled = false,
 }
 
 describe('print captions on real masks', () => {
-  it('40 species on A4 whose names fit turns the switch on', async () => {
+  it('20 species on A4 whose names fit turns the switch on', async () => {
     const ok: boolean[] = []
-    for (let seed = 1; seed <= 4; seed++) ok.push(await namesFit(pick(40, seed), 'A4'))
+    for (let seed = 1; seed <= 4; seed++) ok.push(await namesFit(pick(20, seed), 'A4'))
     expect(ok).toEqual([true, true, true, true])
   }, 60_000)
 
-  it('fits names with a title and a filter line, upright and landscape', async () => {
-    for (const [size, n] of [['A4', 40], ['A2', 160]] as const) {
+  it('fits names with a title, upright and landscape, with the count in the middle or beside the title', async () => {
+    for (const [size, n] of [['A4', 20], ['A2', 80]] as const) {
       for (const format of ['print', 'printLandscape'] as const) {
         for (let seed = 1; seed <= 3; seed++) {
           const entries = pick(n, seed * 31 + n)
-          expect(await namesFit(entries, size, { titled: true, format }), `${size} ${format} seed ${seed}`).toBe(true)
+          const countSize = seed === 3 ? 'title' : undefined
+          expect(await namesFit(entries, size, { titled: true, format, countSize }), `${size} ${format} seed ${seed}`).toBe(true)
         }
       }
     }
   }, 120_000)
 
-  it('fits names for 30 and 160 species on A2 and 320 on A1', async () => {
+  it('fits names for 30 and 80 species on A2, 160 on A1 and 180 on 24 × 36 in', async () => {
     expect(await namesFit(pick(30, 6), 'A2')).toBe(true)
-    expect(await namesFit(pick(160, 7), 'A2')).toBe(true)
-    expect(await namesFit(pick(320, 8), 'A1')).toBe(true)
+    expect(await namesFit(pick(80, 7), 'A2')).toBe(true)
+    expect(await namesFit(pick(160, 8), 'A1')).toBe(true)
+    expect(await namesFit(pick(180, 9), 'US24x36')).toBe(true)
   }, 120_000)
 })

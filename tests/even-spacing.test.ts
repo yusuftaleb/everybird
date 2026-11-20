@@ -52,14 +52,14 @@ function clean(birds: PackBird[], r: PackResult): boolean {
 describe('even spacing in the share images and the poster', () => {
   beforeAll(() => { if (!POOL.length) POOL = loadPool() })
 
-  // Each format's own frame, with the count in the middle (its hole).
-  const CASES: [CardFormat, number, 'medium'][] = [
-    ['story', 60, 'medium'], ['post', 197, 'medium'], ['square', 197, 'medium'], ['desktop', 197, 'medium'],
-    ['print', 600, 'medium'], ['print', 197, 'medium'], ['printLandscape', 300, 'medium'], ['story', 12, 'medium'],
+  // Each format's own frame, with the count in the middle (its hole) or beside the title (none).
+  const CASES: [CardFormat, number, 'medium' | 'title'][] = [
+    ['story', 60, 'medium'], ['post', 197, 'medium'], ['square', 197, 'title'], ['desktop', 197, 'medium'],
+    ['print', 600, 'medium'], ['print', 197, 'title'], ['printLandscape', 300, 'medium'], ['story', 12, 'medium'],
   ]
   for (const oval of [false, true]) {
     for (const [format, n, countSize] of CASES) {
-      it(`${oval ? 'Oval' : 'Fit'}, ${format}, ${n} species: even gaps, no holes${oval ? '' : ', the corners filled'}`, () => {
+      it(`${oval ? 'Oval' : 'Fit'}, ${format}, ${n} species, count ${countSize}: even gaps, no holes${oval ? '' : ', the corners filled'}`, () => {
         const L = cardLayout(format, { name: true, filter: false, latest: true, count: n, countSize }, cardDims(format))
         const spec = packSpec(L)
         const birds = sample(n)

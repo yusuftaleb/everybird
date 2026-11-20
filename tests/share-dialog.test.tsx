@@ -921,7 +921,7 @@ describe('the orientation switch', () => {
     expect(screen.getByRole('button', { name: 'Count Medium' })).toHaveAttribute('aria-haspopup', 'menu')
     fireEvent.click(screen.getByRole('button', { name: 'Count Medium' }))
     expect(screen.getAllByRole('menuitemradio').map((b) => [b.textContent, b.getAttribute('aria-checked')])).toEqual(
-      [['Small', 'false'], ['Medium', 'true'], ['Large', 'false'], ['Hide', 'false']])
+      [['Small', 'false'], ['Medium', 'true'], ['Large', 'false'], ['Beside title', 'false'], ['Hide', 'false']])
     // The menu's keyboard: the current choice has focus; arrows move, wrapping.
     expect(screen.getByRole('menuitemradio', { name: 'Medium' })).toHaveFocus()
     fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowDown' })
@@ -937,6 +937,10 @@ describe('the orientation switch', () => {
 
     pickMenu('Count', 'Hide')
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0].countSize).toBe('hide'))
+    expect(vi.mocked(image.packForImage).mock.calls.at(-1)?.[2].hole.pad).toBe(0)
+    // Beside title: the count on the title's line, so no hole in the pack either.
+    pickMenu('Count', 'Beside title')
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0].countSize).toBe('title'))
     expect(vi.mocked(image.packForImage).mock.calls.at(-1)?.[2].hole.pad).toBe(0)
 
     cleanup()
@@ -1037,12 +1041,12 @@ describe('the orientation switch', () => {
   })
 
   it('the disabled Show species names switch is described by the note that says why', () => {
-    const manyRows = Array.from({ length: 41 }, (_, i) => ({ ...row(`b${i}`, i + 1), com: `Bird ${i + 1}` }))
+    const manyRows = Array.from({ length: 21 }, (_, i) => ({ ...row(`b${i}`, i + 1), com: `Bird ${i + 1}` }))
     render(<ShareDialog state={stateWith(manyRows.map((r) => entry(r.code)))} dispatch={() => {}} species={buildSpeciesIndex(manyRows)} regions={regions} print onClose={() => {}} />)
     pickMenu('Poster size', 'A4')
     const sw = screen.getByRole('switch', { name: 'Show species names' })
     expect(sw).toBeDisabled()
-    expect(sw).toHaveAccessibleDescription('A4 fits up to 40 species with names. Pick a larger size or filter your list.')
+    expect(sw).toHaveAccessibleDescription('A4 fits up to 20 species with names. Pick a larger size or filter your list.')
     pickMenu('Poster size', 'A3')
     expect(sw).not.toHaveAttribute('aria-describedby')
   })
@@ -1103,8 +1107,8 @@ describe('the orientation switch', () => {
     expect((screen.getByRole('button', { name: 'Download PDFs (ZIP)' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
-  it('Show species names is off by default in Print, disables over A4 cap (41), enables at 40 and on A3, and forwards showNames', async () => {
-    const manyRows = Array.from({ length: 41 }, (_, i) => ({
+  it('Show species names is off by default in Print, disables over A4 cap (21), enables on A3, and forwards showNames', async () => {
+    const manyRows = Array.from({ length: 21 }, (_, i) => ({
       ...row(`b${i}`, i + 1),
       com: `Bird ${i + 1}`,
     }))
@@ -1122,7 +1126,7 @@ describe('the orientation switch', () => {
 
     pickMenu('Poster size', 'A4')
     expect(sw.disabled).toBe(true)
-    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('A4 fits up to 40 species with names. Pick a larger size or filter your list.')
+    expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('A4 fits up to 20 species with names. Pick a larger size or filter your list.')
 
     pickMenu('Poster size', 'A3')
     expect(sw.disabled).toBe(false)

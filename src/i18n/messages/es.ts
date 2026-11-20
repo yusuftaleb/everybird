@@ -457,7 +457,7 @@ export const es: Messages = {
       formatName: '{name}, relación {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Orientación', vertical: 'Vertical', horizontal: 'Horizontal' },
-      countSize: { label: 'Número', small: 'Pequeño', medium: 'Mediano', large: 'Grande', hide: 'Ocultar' },
+      countSize: { label: 'Número', small: 'Pequeño', medium: 'Mediano', large: 'Grande', hide: 'Ocultar', title: 'Junto al título' },
       preview: { story: 'Vista previa de la imagen de historia', post: 'Vista previa de la imagen de publicación', square: 'Vista previa de la imagen cuadrada', desktop: 'Vista previa de la imagen de escritorio', wide: 'Vista previa de la imagen de publicación horizontal' },
       failed: 'No se pudo crear la imagen.',
       imageFailed: 'No se pudo crear la imagen. Inténtalo de nuevo.',
@@ -486,6 +486,7 @@ export const es: Messages = {
       filtersNoLabel: 'Mostrando tus filtros.',
       clearFilters: 'Quitar filtros',
       latestLifer: 'Última especie nueva',
+      posterLatest: 'Última especie nueva: {name}, {date}',
       oldLinkTitle: 'Lista de vida de {name}',
       untitledTitle: { one: 'Una lista de vida: {n} especie', other: 'Una lista de vida: {n} especies' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */

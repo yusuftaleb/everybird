@@ -457,7 +457,7 @@ export const nl: Messages = {
       formatName: '{name}, verhouding {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Oriëntatie', vertical: 'Staand', horizontal: 'Liggend' },
-      countSize: { label: 'Aantal', small: 'Klein', medium: 'Middelgroot', large: 'Groot', hide: 'Verbergen' },
+      countSize: { label: 'Aantal', small: 'Klein', medium: 'Middelgroot', large: 'Groot', hide: 'Verbergen', title: 'Naast de titel' },
       preview: { story: 'Voorbeeld van de verhaalafbeelding', post: 'Voorbeeld van de berichtafbeelding', square: 'Voorbeeld van de vierkante afbeelding', desktop: 'Voorbeeld van de bureaubladafbeelding', wide: 'Voorbeeld van de liggende berichtafbeelding' },
       failed: 'De afbeelding kon niet worden gemaakt.',
       imageFailed: 'De afbeelding kon niet worden gemaakt. Probeer het opnieuw.',
@@ -486,6 +486,7 @@ export const nl: Messages = {
       filtersNoLabel: 'Je filters zijn actief.',
       clearFilters: 'Filters wissen',
       latestLifer: 'Nieuwste soort',
+      posterLatest: 'Nieuwste soort: {name}, {date}',
       oldLinkTitle: 'Levenslijst van {name}',
       untitledTitle: { one: 'Een levenslijst: {n} soort', other: 'Een levenslijst: {n} soorten' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */

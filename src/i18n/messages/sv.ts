@@ -449,7 +449,7 @@ export const sv: Messages = {
       format: { story: 'Story', post: 'Inlägg', square: 'Kvadrat', desktop: 'Skrivbord' },
       formatName: '{name}, bildförhållande {ratio}',
       orientation: { group: 'Orientering', vertical: 'Stående', horizontal: 'Liggande' },
-      countSize: { label: 'Antal', small: 'Liten', medium: 'Mellan', large: 'Stor', hide: 'Dölj' },
+      countSize: { label: 'Antal', small: 'Liten', medium: 'Mellan', large: 'Stor', hide: 'Dölj', title: 'Bredvid titeln' },
       preview: { story: 'Förhandsvisning av story-bilden', post: 'Förhandsvisning av inläggsbilden', square: 'Förhandsvisning av den kvadratiska bilden', desktop: 'Förhandsvisning av skrivbordsbilden', wide: 'Förhandsvisning av den breda inläggsbilden' },
       failed: 'Det gick inte att skapa bilden.',
       imageFailed: 'Det gick inte att skapa bilden. Försök igen.',
@@ -478,6 +478,7 @@ export const sv: Messages = {
       filtersNoLabel: 'Visar dina filter.',
       clearFilters: 'Rensa filter',
       latestLifer: 'Senaste nya art',
+      posterLatest: 'Senaste nya art: {name}, {date}',
       // No genitive "{name}s": a name ending in s would read wrong, and the variable can't follow.
       oldLinkTitle: 'Livslista: {name}',
       untitledTitle: { one: 'En livslista: {n} art', other: 'En livslista: {n} arter' },

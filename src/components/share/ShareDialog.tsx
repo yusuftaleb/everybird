@@ -91,7 +91,7 @@ const FORMATS: { id: FormatSlot; hint: Record<Orientation, string>; icon: Record
 const ORIENTATIONS: Orientation[] = ['vertical', 'horizontal']
 /** Fit or Oval's icons: the frame the birds fill, or the oval they sit in. */
 const ARRANGE_ICON: Record<Arrangement, Icon> = { packed: Rectangle, oval: Circle }
-const COUNT_SIZES: CountSize[] = ['small', 'medium', 'large', 'hide']
+const COUNT_SIZES: CountSize[] = ['small', 'medium', 'large', 'title', 'hide']
 const BULK_SPLITS: BulkSplit[] = ['batches', 'family', 'order', 'country', 'continent', 'province', 'year']
 const BULK_BATCHES: BulkBatch[] = ['all', ...[...BULK_BATCH_OPTIONS].reverse()]
 type LinkResult = ReturnType<typeof MakeShareLink>
