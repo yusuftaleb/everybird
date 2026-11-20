@@ -1,5 +1,5 @@
 /* Compare with friends: one field, then the card and the birds, side by side from 760px (the birds under the card on
-   phones). The segmented control is the share dialog's .eb-seg look, kept here as the timeline's basis switch keeps it. */
+   phones). The segmented control is the share dialog's .eb-seg look. */
 .eb-compare { display: flex; flex-direction: column; gap: 12px; }
 .eb-compare-form { display: flex; gap: 8px; max-width: 640px; }
 .eb-compare-paste { flex: 1 1 auto; min-width: 0; }

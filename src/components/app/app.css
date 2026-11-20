@@ -286,12 +286,7 @@
 .eb-settings-one:empty { display: none; }
 @media (min-width: 1024px) {
   .eb-settings-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; align-items: start; }
-  .eb-settings-pair .eb-namefield { flex-basis: 100%; max-width: none; }
 }
-.eb-namefield { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; flex: 1 1 260px; max-width: 340px; }
-@media (max-width: 719px) { .eb-namefield { max-width: none; } }
-.eb-namefield-label { font-size: 14px; font-weight: 600; line-height: 20px; }
-.eb-namefield .eb-note { font-size: 13px; line-height: 1.4; }
 /* Settings > Language: the English-names switch (the language itself is the top bar's menu). */
 .eb-langrow { display: flex; flex-direction: column; gap: 12px; }
 .eb-confirm {

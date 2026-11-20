@@ -61,20 +61,6 @@ function placementOrder(birds: PackBird[], rel: Map<number, number>): PackBird[]
   return [...birds].sort((a, b) => rel.get(b.id)! - rel.get(a.id)! || a.id - b.id)
 }
 
-/**
- * Place every bird at long side base · rel around the central hole; boxes, or null if one doesn't fit.
- * Birds spiral out from the stage centre, x stretched by `stretch` (packBest passes [x, y] scales, stretchAt).
- * With `targets` (id -> centre), each bird spirals from its own target with no stretch: true size is packed from the evened-out positions, so
- * switching modes is a short morph. With `dense`, every bird stamps only its silhouette, so neighbours keep one
- * GAP between them instead of two (see coreMask).
- */
-export function pack(
-  birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
-  stretch: number, hole: Hole, targets?: Map<number, [number, number]>, cell = DEFAULT_CELL, dense = false,
-): Map<number, Box> | null {
-  return packGrid(birds, rel, W, H, base, stretch, hole, targets, cell, dense)?.boxes ?? null
-}
-
 /** An empty grid with the count's hole marked and, for Oval, everything outside the stage's ellipse. */
 function blankGrid(W: number, H: number, cell: number, hole: Hole, oval: boolean): Grid {
   const grid = new Grid(W, H, cell)
@@ -87,6 +73,13 @@ function blankGrid(W: number, H: number, cell: number, hole: Hole, oval: boolean
 type Placed = { id: number; mask: Mask; w: number; h: number }
 type Packed = { boxes: Map<number, Box>; placed: Placed[] }
 
+/**
+ * Place every bird at long side base · rel around the central hole; its boxes, or null if one doesn't fit.
+ * Birds spiral out from the stage centre, x stretched by `stretch` (packBest passes [x, y] scales, stretchAt).
+ * With `targets` (id -> centre), each bird spirals from its own target with no stretch: true size is packed from the evened-out positions, so
+ * switching modes is a short morph. With `dense`, every bird stamps only its silhouette, so neighbours keep one
+ * GAP between them instead of two (see coreMask).
+ */
 function packGrid(
   birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
   stretch: number | readonly [number, number], hole: Hole, targets: Map<number, [number, number]> | undefined,
