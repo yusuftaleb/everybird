@@ -220,27 +220,3 @@ jobs:
                 gh pr close "$old" --comment "Superseded by $url, which carries every upstream change since the lock on $BASE." --delete-branch
               done
           fi
-
-      - name: Open or update the website issue
-        if: steps.sync.outputs.website == 'true' && env.DRY_RUN != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_URL: ${{ steps.pr.outputs.url }}
-        run: |
-          set -euo pipefail
-          title='Website /lifelist stickers changed upstream'
-          sed "s|@@PR_URL@@|$PR_URL|g" "$OUT/issue-body.md" > "$OUT/issue-body.final.md"
-          marker=$(head -n 1 "$OUT/issue-body.final.md")
-          n=$(gh issue list --state open --search "in:title \"$title\"" --json number,title --jq "map(select(.title == \"$title\")) | .[0].number // empty")
-          if [ -z "$n" ]; then
-            gh issue create --title "$title" --body-file "$OUT/issue-body.final.md"
-          elif gh issue view "$n" --json body --jq .body | head -n 1 | grep -qxF "$marker"; then
-            # The same published state (an unmerged sync PR, rerun or superseded): rewrite the body, no new comment.
-            gh issue edit "$n" --body-file "$OUT/issue-body.final.md"
-          elif gh issue view "$n" --json comments --jq '.comments[-1].body // ""' | head -n 1 | grep -qxF "$marker"; then
-            # Likewise for the change the last comment lists.
-            gh issue comment "$n" --edit-last --body-file "$OUT/issue-body.final.md"
-          else
-            # A new change since the body was written: keep the old list in the body, add this one as a comment.
-            gh issue comment "$n" --body-file "$OUT/issue-body.final.md"
-          fi
