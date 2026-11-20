@@ -26,7 +26,8 @@ export function ComparePage() {
   const id = useId()
   const [text, setText] = useState('')
   const [pasted, setPasted] = useState<{ lists: SharePayload[]; bad: number; compared: boolean } | null>(null)
-  // Names given here, by the list's place in `lists`; '' clears a name ("Birder 2").
+  // Names given here, by the list's place among the pasted lists (so the birder's own list loading later shifts
+  // nothing); '' clears a name ("Birder 2").
   const [names, setNames] = useState<Record<number, string>>({})
   const [round, setRound] = useState(0)
   const [copy, setCopy] = useState<'idle' | 'copied' | 'manual'>('idle')
@@ -40,10 +41,11 @@ export function ComparePage() {
     return [mine, ...friends]
   }, [data, state.list, name, pasted])
   const you = !pasted?.compared && !!data && state.list.length > 0
+  const first = lists.length - (pasted?.lists.length ?? 0) // the first pasted list's place in `lists`
   // The lists as shared: each renamed one with its new name as a verbatim title (link.ts F_TITLE).
   const named = useMemo(
     () => lists.map((p, i): SharePayload => {
-      const n = names[i]
+      const n = names[i - first]
       if (n === undefined) return p
       const out: SharePayload = { ...p }
       delete out.name
@@ -51,13 +53,13 @@ export function ComparePage() {
       if (n) { out.name = n; out.titled = true }
       return out
     }),
-    [lists, names],
+    [lists, names, first],
   )
   const labels = listLabels(named, t)
   const link = useMemo(() => (named.length >= 2 ? makeCompareLink(named, window.location.origin) : null), [named])
   const rename = (i: number) => (e: FocusEvent<HTMLInputElement>) => {
     const v = e.currentTarget.value.trim()
-    if (v !== (names[i] ?? labels[i])) setNames((m) => ({ ...m, [i]: v }))
+    if (v !== (names[i] ?? e.currentTarget.defaultValue)) setNames((m) => ({ ...m, [i]: v }))
   }
 
   const submit = (e: FormEvent) => {
@@ -89,7 +91,7 @@ export function ComparePage() {
         </p>
         {lists.length >= 2 && (
           // Re-keyed per paste, so the fields start from the new lists' names.
-          <fieldset className="eb-compare-names" key={`${round}:${you}`}>
+          <fieldset className="eb-compare-names" key={`${round}:${first}`}>
             <legend className="eb-label">{t.compare.names}</legend>
             {lists.map((p, i) => (you && i === 0 ? (
               <p key={i} className="eb-compare-name">{fmt(t.compare.yourList, { name: labels[0] })}</p>
@@ -98,7 +100,7 @@ export function ComparePage() {
                 <label htmlFor={`${id}-name-${i}`}>{fmt(t.compare.listN, { n: i + 1 })}</label>
                 <input
                   id={`${id}-name-${i}`} className="eb-input" defaultValue={shareTitle(p, t) ?? ''} placeholder={fmt(t.compare.birder, { n: i + 1 })}
-                  maxLength={NAME_MAX} onBlur={rename(i)} data-testid={`compare-name-${i}`}
+                  maxLength={NAME_MAX} onBlur={rename(i - first)} data-testid={`compare-name-${i}`}
                 />
               </div>
             )))}

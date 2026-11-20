@@ -82,7 +82,7 @@ export function CompareView({ lists, you = false, labels: named, share }: { list
   const payload = useMemo(() => groupPayload(lists, g), [lists, g])
 
   const downloadCard = async () => {
-    if (!data) return
+    if (!data || card === 'busy') return
     setCard('busy')
     try {
       const { renderShareImage } = await import('@/lib/share/image')
@@ -104,7 +104,7 @@ export function CompareView({ lists, you = false, labels: named, share }: { list
     <div className="eb-compare">
       <div className="eb-compare-share">
         {share}
-        <button type="button" className="eb-btn eb-btn-quiet" disabled={!data || card === 'busy'} onClick={() => void downloadCard()} data-testid="compare-card">
+        <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} aria-disabled={card === 'busy' || undefined} onClick={() => void downloadCard()} data-testid="compare-card">
           <DownloadSimple aria-hidden="true" focusable="false" />
           {t.compare.card}
         </button>
