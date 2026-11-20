@@ -255,7 +255,7 @@ for (const width of WIDTHS) {
       await expect(heard).toHaveAttribute("aria-pressed", "true");
       await heard.click();
       await expect(heard).toHaveAttribute("aria-pressed", "false");
-      await card.getByRole("button", { name: "Remove from my list" }).click();
+      await card.getByRole("button", { name: "Remove", exact: true }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL - 1} species`));
       await page.getByRole("button", { name: "Undo" }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));

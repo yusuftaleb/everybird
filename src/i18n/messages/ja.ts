@@ -322,7 +322,7 @@ export const ja: Messages = {
       marks: '印',
       markAs: '印を付ける',
       resetMarks: '自分の記録どおりの印',
-      remove: 'リストから削除',
+      remove: '削除',
     },
     landing: {
       title: '一生分の鳥を。',

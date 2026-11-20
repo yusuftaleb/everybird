@@ -326,7 +326,7 @@ export const pl: Messages = {
       marks: 'Oznaczenia',
       markAs: 'Oznacz jako',
       resetMarks: 'Oznaczenia z moich zapisów',
-      remove: 'Usuń z mojej listy',
+      remove: 'Usuń',
     },
     landing: {
       title: 'Ptaki całego życia.',

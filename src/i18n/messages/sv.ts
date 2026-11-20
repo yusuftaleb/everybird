@@ -321,7 +321,7 @@ export const sv: Messages = {
       marks: 'Markeringar',
       markAs: 'Markera som',
       resetMarks: 'Markeringar från mina data',
-      remove: 'Ta bort från min lista',
+      remove: 'Ta bort',
     },
     landing: {
       title: 'Ett liv fullt av fåglar.',

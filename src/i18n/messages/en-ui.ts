@@ -400,7 +400,7 @@ export const EN_UI = {
     marks: 'Marks',
     markAs: 'Mark as',
     resetMarks: 'Marks from my records',
-    remove: 'Remove from my list',
+    remove: 'Remove',
   },
   /** The landing page (Landing, SampleDemo) and the first visit's welcome (Welcome). */
   landing: {

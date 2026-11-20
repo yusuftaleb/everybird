@@ -320,7 +320,7 @@ export const it: Messages = {
       marks: 'Segni',
       markAs: 'Segna come',
       resetMarks: 'Segni dai miei dati',
-      remove: 'Rimuovi dalla mia lista',
+      remove: 'Rimuovi',
     },
     landing: {
       title: 'Una vita di uccelli.',

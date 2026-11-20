@@ -342,7 +342,7 @@ export const ru: Messages = {
       marks: 'Отметки',
       markAs: 'Отметить как',
       resetMarks: 'Отметки из моих записей',
-      remove: 'Убрать из моего списка',
+      remove: 'Убрать',
     },
     landing: {
       title: 'Птицы за всю жизнь.',

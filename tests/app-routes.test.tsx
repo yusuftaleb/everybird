@@ -601,7 +601,7 @@ describe('editing', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Heard only/ }))
     expect(screen.getByRole('dialog').querySelector('.eb-card-date')).not.toHaveTextContent('Heard only')
 
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove from my list' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
     expect(screen.queryByRole('dialog')).toBeNull()
     // A few seconds to undo it.
@@ -611,7 +611,7 @@ describe('editing', () => {
     await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
     expect(screen.queryByText('Removed Northern Flicker.')).toBeNull()
     fireEvent.click(within(screen.getByRole('list', { name: 'Life list' })).getByRole('button', { name: /Northern Flicker/ }))
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove from my list' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
 
     // Add by hand (Settings' Add birds): the removed species comes back at once, with a date and a region.

@@ -391,3 +391,23 @@ describe('in Spanish', () => {
     expect(list).toHaveTextContent('sept 2026')
   })
 })
+
+describe('the card\'s Remove row (EditBird)', () => {
+  it('"Remove", then the card\'s illustration link at the row\'s right; without actions the link keeps the corner', async () => {
+    const { CardEndLink } = await import('@/components/collage/BirdCard')
+    const { EditBird } = await import('@/components/edit/EditBird')
+    render(
+      <CardEndLink.Provider value={<p className="eb-card-credit"><a href="#a">Illustration</a></p>}>
+        <EditBird entry={entry('crowa')} edits={{ marks: {}, removed: [] } as never} dispatch={() => {}} onRemoved={() => {}} />
+      </CardEndLink.Provider>,
+    )
+    const remove = screen.getByRole('button', { name: 'Remove' })
+    const row = remove.parentElement!
+    expect(row).toHaveClass('eb-edit-row')
+    expect(row.lastElementChild).toHaveClass('eb-card-credit')
+    expect(remove.nextElementSibling).toBe(row.lastElementChild)
+    const css = readFileSync(resolve(__dirname, '../src/components/edit/edit.css'), 'utf8')
+    expect(css).toMatch(/\.eb-edit-row > \.eb-card-credit \{ margin-left: auto; \}/)
+    expect(readFileSync(resolve(__dirname, '../src/components/collage/card-list.css'), 'utf8')).toMatch(/\.eb-card-credit \{ align-self: flex-end; \}/)
+  })
+})

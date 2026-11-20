@@ -327,7 +327,7 @@ export const fr: Messages = {
       marks: 'Marques',
       markAs: 'Marquer comme',
       resetMarks: 'Marques d’après mes données',
-      remove: 'Retirer de ma liste',
+      remove: 'Retirer',
     },
     landing: {
       title: 'Toute une vie d’oiseaux.',

@@ -322,7 +322,7 @@ export const zhHans: Messages = {
       marks: '标记',
       markAs: '标记为',
       resetMarks: '使用我记录中的标记',
-      remove: '从我的清单中移除',
+      remove: '移除',
     },
     landing: {
       title: '一生的鸟。',

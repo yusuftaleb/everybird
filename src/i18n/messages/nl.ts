@@ -327,7 +327,7 @@ export const nl: Messages = {
       marks: 'Markeringen',
       markAs: 'Markeer als',
       resetMarks: 'Markeringen uit mijn waarnemingen',
-      remove: 'Verwijderen van mijn lijst',
+      remove: 'Verwijderen',
     },
     landing: {
       title: 'Een leven vol vogels.',

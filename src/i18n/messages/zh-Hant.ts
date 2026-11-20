@@ -322,7 +322,7 @@ export const zhHant: Messages = {
       marks: '標記',
       markAs: '標記為',
       resetMarks: '使用我紀錄中的標記',
-      remove: '從我的清單移除',
+      remove: '移除',
     },
     landing: {
       title: '一輩子的鳥。',

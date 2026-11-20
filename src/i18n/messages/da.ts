@@ -323,7 +323,7 @@ export const da: Messages = {
       marks: 'Markeringer',
       markAs: 'Markér som',
       resetMarks: 'Markeringer fra mine data',
-      remove: 'Fjern fra min liste',
+      remove: 'Fjern',
     },
     landing: {
       title: 'Et liv med fugle.',
