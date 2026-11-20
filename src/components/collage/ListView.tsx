@@ -36,7 +36,7 @@ const THUMB_H = 40
 
 type RowProps = { entry: ListEntry; row: SpeciesRow; place: string; sci: boolean; onPick: Props['onPick']; t: Ui }
 
-/** LifeList's row: thumb | name | mass, then place and date at the far right (date rightmost). */
+/** LifeList's row: thumb | name | mass | place | date, from the left (on phones the mass, date and place under the name). */
 const Row = memo(function Row({ entry, row, place, sci, onPick, t }: RowProps) {
   useNames()
   const com = displayName(row)
