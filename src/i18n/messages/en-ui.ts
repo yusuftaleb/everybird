@@ -178,9 +178,7 @@ export const EN_UI = {
      *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
      *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that is
      *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. `mineNone`
-     *  the line when the bar's Lifers only (controls.lifersOnly) leaves no row. `cover`: the count line by the path,
-     *  "18 of 45 orders", and the tree share image's line under the count, "24 of 41 orders · 92 of 251 families · …";
-     *  the form follows {total}. */
+     *  the line when the bar's Lifers only (controls.lifersOnly) leaves no row. */
     tree: {
       loading: 'Loading the tree',
       failed: "The tree didn't load. Open Tree again to try once more.",
@@ -212,7 +210,6 @@ export const EN_UI = {
       rank: { orders: 'Orders', families: 'Families', genera: 'Genera', species: 'Species' },
       tooMany: { families: 'Open an order to see its families', genera: 'Open a family to see its genera', species: 'Open a genus to see its species' },
       tipOf: '{n} of {total}',
-      cover: { orders: { one: '{n} of {total} order', other: '{n} of {total} orders' }, families: { one: '{n} of {total} family', other: '{n} of {total} families' }, genera: { one: '{n} of {total} genus', other: '{n} of {total} genera' }, species: { one: '{n} of {total} species', other: '{n} of {total} species' } },
       credit: 'Tree: <src>AvesData</src> (McTavish et al.), <lic>CC BY 4.0</lic>',
     },
     /** The close buttons' aria-label (the welcome, sheets, the Places and Time sheet). */
@@ -452,6 +449,8 @@ export const EN_UI = {
     add: 'Add',
     bad: { one: '{n} link didn’t open.', other: '{n} links didn’t open.' },
     needMore: 'Comparing needs at least two lists.',
+    /** After a paste past the cap: the links beyond it weren't added ({n} 6). */
+    over: 'Up to {n} lists can be compared, so the rest weren’t added.',
     /** "Compare with mine" sent a friend's list, and the visitor has none yet (followed by the "Add birds" link). */
     noList: 'To compare with {name}, add your own birds first.',
     /** The chips' name, and the chips: the birds on the others' lists you lack, on both or every list, one list's
@@ -949,8 +948,11 @@ export const EN_UI = {
     /** The list's heading, for screen readers. */
     label: 'Tick birds off a list',
     search: 'Search birds',
-    family: 'Family',
-    allFamilies: 'All families',
+    /** The taxonomic picker beside the search: its name (the button reads it before the group, "Taxonomic group, Waterfowl";
+     *  the group's words are filters.all, the orders' names and the families'), and its first row's name ({name} the group
+     *  one level up: "Back to All birds"). */
+    group: 'Taxonomic group',
+    back: 'Back to {name}',
     list: 'Species to tick',
     /** A row's name for screen readers when the bird is already on the list ({name} is "Common, Scientific"). */
     onListLabel: '{name}, already on your list',

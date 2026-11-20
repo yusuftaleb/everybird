@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addTicked, filterTickRows, removeTicked, undoEdit } from '@/lib/list/tick'
+import { addTicked, filterTickRows, genusOf, removeTicked, taxonChildren, undoEdit } from '@/lib/list/tick'
 import type { Edits } from '@/lib/list/model'
 import type { SpeciesRow } from '@/lib/species/types'
 
@@ -15,17 +15,40 @@ const rows = [
 const codes = (r: SpeciesRow[]) => r.map((x) => x.code)
 
 describe('filterTickRows (Add by hand: browse and search the whole taxonomy)', () => {
-  it('without a search: taxonomic order, narrowed by family', () => {
+  it('without a search: taxonomic order, narrowed to the picked order, family or genus', () => {
+    expect(codes(filterTickRows(rows, { taxon: [] }))).toHaveLength(5)
+    expect(codes(filterTickRows(rows, { taxon: ['Piciformes'] }))).toEqual(['norfli', 'gilfli', 'emptou1'])
+    expect(codes(filterTickRows(rows, { taxon: ['Piciformes', 'Picidae', 'Colaptes'] }))).toEqual(['norfli', 'gilfli'])
     expect(codes(filterTickRows(rows, {}))).toEqual(['snogoo', 'norfli', 'gilfli', 'emptou1', 'eurrob1'])
-    expect(codes(filterTickRows(rows, { family: 'Picidae' }))).toEqual(['norfli', 'gilfli'])
-    expect(codes(filterTickRows(rows, { family: 'Ramphastidae' }))).toEqual(['emptou1'])
+    expect(codes(filterTickRows(rows, { taxon: ['Piciformes', 'Picidae'] }))).toEqual(['norfli', 'gilfli'])
+    expect(codes(filterTickRows(rows, { taxon: ['Piciformes', 'Ramphastidae'] }))).toEqual(['emptou1'])
   })
   it('a search matches word prefixes of either name, accent-insensitive, best matches first, within the group', () => {
     expect(codes(filterTickRows(rows, { q: 'flick' }))).toEqual(['norfli', 'gilfli'])
     expect(codes(filterTickRows(rows, { q: 'colaptes aur' }))).toEqual(['norfli'])
     expect(codes(filterTickRows(rows, { q: 'EUROPÉAN' }))).toEqual(['eurrob1'])
-    expect(codes(filterTickRows(rows, { q: 'e', family: 'Ramphastidae' }))).toEqual(['emptou1'])
+    expect(codes(filterTickRows(rows, { q: 'e', taxon: ['Piciformes', 'Ramphastidae'] }))).toEqual(['emptou1'])
+    expect(codes(filterTickRows(rows, { q: 'gild', taxon: ['Piciformes', 'Picidae', 'Colaptes'] }))).toEqual(['gilfli'])
     expect(filterTickRows(rows, { q: 'licker' })).toEqual([])
+  })
+})
+
+describe('taxonChildren (Add by hand: the taxonomic picker)', () => {
+  const ids = (path: string[]) => taxonChildren(rows, path).map((c) => [c.id, c.n])
+  it("lists the orders, an order's families and a family's genera in taxonomic order, with species counts", () => {
+    expect(ids([])).toEqual([['Anseriformes', 1], ['Piciformes', 3], ['Passeriformes', 1]])
+    expect(ids(['Piciformes'])).toEqual([['Picidae', 2], ['Ramphastidae', 1]])
+    expect(ids(['Piciformes', 'Picidae'])).toEqual([['Colaptes', 2]])
+    expect(ids(['Piciformes', 'Picidae', 'Colaptes'])).toEqual([])
+  })
+  it('orders the groups by their first species, wherever the rows sit', () => {
+    const shuffled = [rows[4], rows[3], rows[2], rows[1], rows[0]]
+    expect(taxonChildren(shuffled, []).map((c) => c.id)).toEqual(['Anseriformes', 'Piciformes', 'Passeriformes'])
+    expect(taxonChildren(shuffled, ['Piciformes'])[0].first.code).toBe('norfli')
+  })
+  it('a genus is the first word of the scientific name', () => {
+    expect(genusOf('Colaptes auratus')).toBe('Colaptes')
+    expect(genusOf('Anser')).toBe('Anser')
   })
 })
 

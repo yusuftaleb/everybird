@@ -89,13 +89,35 @@ describe('ComparePage', () => {
       fireEvent.click(screen.getByTestId('compare-add-more'))
       expect(screen.getByTestId(`compare-paste-${i}`)).toHaveFocus()
     }
-    expect(screen.queryByTestId('compare-add-more')).toBeNull()
+    // Five friends and yours: six lists, so Add more is off, read with the limit.
+    expect(screen.getByTestId('compare-add-more')).toBeDisabled()
+    expect(screen.getByTestId('compare-add-more')).toHaveAccessibleDescription('Compare up to 6 lists: yours and 5 friends’.')
     expect(screen.getByLabelText('Link 5')).toBe(screen.getByTestId('compare-paste-4'))
     fireEvent.change(screen.getByTestId('compare-paste-1'), { target: { value: link('Sam', 3) } })
     fireEvent.change(screen.getByTestId('compare-paste-3'), { target: { value: link('Ada', 6) } })
     fireEvent.click(screen.getByTestId('compare-submit'))
     expect(within(screen.getByTestId('compare-people')).getAllByRole('listitem')).toHaveLength(3)
     expect(screen.queryByTestId('compare-paste-1')).toBeNull()
+  })
+  it('six lists at most: links past the cap are not added, with a note', () => {
+    render(<ComparePage />)
+    paste([1, 2, 3, 4, 5, 6, 7].map((i) => link(`F${i}`, i + 5)).join(' '))
+    expect(within(screen.getByTestId('compare-people')).getAllByRole('listitem')).toHaveLength(6)
+    expect(screen.getByTestId('compare-status')).toHaveTextContent('Up to 6 lists can be compared, so the rest weren’t added.')
+    // A full comparison takes no more.
+    paste(link('Ada', 15))
+    expect(within(screen.getByTestId('compare-people')).getAllByRole('listitem')).toHaveLength(6)
+    expect(screen.getByTestId('compare-status')).toHaveTextContent('Up to 6 lists can be compared')
+  })
+  it('a comparison link of six lists stands alone: a seventh is not added', () => {
+    render(<ComparePage />)
+    const six = [1, 2, 3, 4, 5, 6].map((i): SharePayload => ({ v: 1, name: `F${i}`, titled: true, birds: [{ code: C(i) }] }))
+    paste(`${SHARE_ORIGIN}/c/${encodeCompare(six).token}`)
+    expect(within(screen.getByTestId('compare-people')).getAllByRole('listitem')).toHaveLength(6)
+    expect(screen.getByTestId('compare-status')).toHaveTextContent('')
+    paste(link('Ada', 15))
+    expect(within(screen.getByTestId('compare-people')).getAllByRole('listitem')).toHaveLength(6)
+    expect(screen.getByTestId('compare-status')).toHaveTextContent('Up to 6 lists can be compared')
   })
   it('the card on the page: every number of the diagram as its text, the chosen chip as its caption, shared or downloaded', async () => {
     render(<ComparePage />)
@@ -253,12 +275,12 @@ describe('ComparePage', () => {
     expect(screen.queryByTestId('compare-more')).toBeNull()
     expect(names(screen.getByTestId('compare-birds'))).toHaveLength(15)
   })
-  it('over six lists, the comparison still shows but the link is blocked with the reason', () => {
+  it('six friends and yours: the page keeps six lists, so the comparison link still works', () => {
     render(<ComparePage />)
     paste(Array.from({ length: 6 }, (_, i) => link(`F${i}`, 10 + i)).join(' '))
-    expect(within(screen.getByTestId('compare-people')).getAllByRole('listitem')).toHaveLength(7)
-    expect(screen.getByTestId('compare-copy')).toBeDisabled()
-    expect(screen.getByTestId('compare-share-status')).toHaveTextContent('A comparison link holds up to 6 lists.')
+    expect(within(screen.getByTestId('compare-people')).getAllByRole('listitem')).toHaveLength(6)
+    expect(screen.getByTestId('compare-copy')).toBeEnabled()
+    expect(screen.getByTestId('compare-share-status')).not.toHaveTextContent('A comparison link holds up to 6 lists.')
   })
   it('a paste with no link that opens says so', () => {
     render(<ComparePage />)

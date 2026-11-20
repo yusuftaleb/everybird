@@ -77,6 +77,7 @@
   text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px;
 }
 .eb-textbtn svg { width: 16px; height: 16px; flex: none; }
+.eb-textbtn:disabled { color: var(--muted); text-decoration-color: transparent; cursor: default; }
 /* Drawn 36px, a 44px hit area; a short word ("Clear") gets 44px across too. */
 .eb-textbtn::after { content: ''; position: absolute; inset: -4px min(0px, calc(50% - 22px)); }
 
@@ -114,6 +115,9 @@
 .eb-dock-filters { min-width: 0; margin-left: auto; }
 .eb-dock-drop { flex: 0 1 auto; gap: 8px; padding: 0 10px 0 12px; }
 .eb-drop-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* The label holds the width of its filtering form ("Filters · 0" at 600) from the start, so the count and the weight
+   arriving never move the switches before it or wrap the bar (the Tree measures it); the line under it is 0 tall. */
+.eb-drop-label::after { content: attr(data-reserve); display: block; height: 0; overflow: hidden; visibility: hidden; font-weight: 600; }
 .eb-dock-drop svg:not(.eb-drop-caret) { width: 18px; height: 18px; } /* :not() outweighs .eb-dock-tab svg's 20px */
 .eb-dock-drop .eb-drop-caret { width: 14px; height: 14px; transition: transform .2s var(--eb-ease); }
 .eb-dock-drop[aria-expanded="true"] { opacity: 1; background: var(--surface); }
@@ -138,6 +142,7 @@
   .eb-dock-filters .eb-dock-drop { position: relative; min-height: 36px; flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 10px; }
   .eb-dock-filters .eb-dock-drop::after { content: ''; position: absolute; inset: -4px 0; }
   .eb-dock-filters .eb-drop-caret { display: none; } /* the row reads as buttons; aria-expanded says the rest */
+  .eb-dock-filters .eb-drop-label { text-align: center; } /* centred in its held width, as the button is in the row */
   .eb-dock-tools .eb-dock-sw { position: relative; min-height: 36px; }
   .eb-dock-tools .eb-dock-sw::after { content: ''; position: absolute; inset: -4px 0; }
 }
@@ -421,13 +426,16 @@
 .eb-langmenu .eb-menuitem { justify-content: space-between; gap: 16px; min-height: 40px; padding: 0 10px; }
 @media (pointer: coarse) { .eb-langmenu .eb-menuitem { min-height: 44px; } }
 .eb-langmenu .eb-menuitem:focus { background: none; }
-.eb-langmenu .eb-menuitem[aria-checked="false"]:focus-visible { background: var(--surface); }
+.eb-langmenu .eb-menuitem[aria-checked="false"]:focus-visible, .eb-langmenu .eb-menuitem[role="menuitem"]:focus-visible { background: var(--surface); }
 @media (hover: hover) and (pointer: fine) {
-  .eb-langmenu .eb-menuitem[aria-checked="false"]:hover { background: var(--surface); }
+  .eb-langmenu .eb-menuitem[aria-checked="false"]:hover, .eb-langmenu .eb-menuitem[role="menuitem"]:hover { background: var(--surface); }
   .eb-langmenu .eb-menuitem[aria-checked="true"]:hover, .eb-langmenu .eb-menuitem[aria-disabled="true"]:hover { background: none; }
 }
 .eb-langname[data-current] { color: var(--accent); font-weight: 600; }
 .eb-langcode { color: var(--muted); font-size: 12px; line-height: 1; letter-spacing: .06em; }
+/* A row that steps back a level (Add by hand's picker): a Muted arrow before its label. */
+.eb-menu-back { display: inline-flex; align-items: center; gap: 8px; }
+.eb-langmenu .eb-menu-back svg { color: var(--muted); }
 .eb-langmenu .eb-menuitem svg { width: 16px; height: 16px; flex: none; color: var(--accent); }
 @media (hover: hover) and (pointer: fine) {
   .eb-nav-link:hover { opacity: 1; }

@@ -172,8 +172,12 @@
 .eb-tickbar .eb-error { margin: 0; }
 .eb-tick-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 @media (min-width: 720px) { .eb-tick-fields { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1fr); } }
-.eb-tick-tools { display: grid; grid-template-columns: 1fr; gap: 8px; }
-@media (min-width: 720px) { .eb-tick-tools { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
+/* The search, then the taxonomic picker (MenuSelect's quiet button) on its row when there is room, else under it. A long
+   group name ends in an ellipsis rather than widen the row; the menu names it whole. */
+.eb-tick-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.eb-tick-q { flex: 1 1 240px; min-width: 0; }
+.eb-tick-pick, .eb-tick-pick .eb-share-ddwrap, .eb-tick-pick .eb-share-dd { min-width: 0; max-width: 100%; }
+.eb-tick-pick .eb-share-dd > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .eb-tick-count { margin: 0; }
 .eb-ticklist {
   position: relative; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--hairline); /* below it, the bar's Hairline: one line, not two */
@@ -233,3 +237,5 @@
 .eb-add .eb-srclist { flex: none; }
 .eb-add button:focus-visible, .eb-add input:focus-visible, .eb-add select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .eb-add { animation: none; } }
+/* The picker's menu: a long family name wraps rather than widen the menu past a phone's window. */
+.eb-tick-pick .eb-menuitem { white-space: normal; padding-block: 6px; }

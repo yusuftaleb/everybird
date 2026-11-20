@@ -10,7 +10,6 @@
 .eb-tree { --tree-w: clamp(112px, 38%, 480px); display: grid; gap: 12px; margin-top: 8px; }
 
 /* The count line ("18 of 45 orders"); the path is the chip row under the dock (FilterBar). */
-.eb-tree-cover { margin: 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .eb-tree-fact { margin: 0; font-size: 15px; font-weight: 600; }
 .eb-tree-note, .eb-tree-credit, .eb-tree-unmapped p { margin: 0; font-size: 14px; color: var(--muted); }
 .eb-tree-credit a { color: inherit; }

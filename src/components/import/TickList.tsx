@@ -1,6 +1,7 @@
 'use client'
 // Add by hand (the Add birds dialog and Settings): the whole eBird taxonomy (~11,000 species) as a searchable list,
-// browsable by family, where a tap adds a bird to the list at once and a tap on a bird already on it takes it off at
+// browsable through a taxonomic picker beside the search (MenuSelect: All birds, then an order, a family, a genus; its
+// menu lists the current group's children with their species counts, the first row stepping back a level), where a tap adds a bird to the list at once and a tap on a bird already on it takes it off at
 // once, each with "Added … · Undo" or "Removed … · Undo". Taking off a bird is the bird card's Remove (removeTicked): it
 // goes into `removed`, so a file that has it no longer counts it. "When and where", a bar under the list that is always
 // there and sticks to the bottom of the screen while the list is in view (as the old "Add N" bar did), gives every bird
@@ -16,15 +17,18 @@ import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { HTML_LANG } from '@/i18n/langs'
 import { useI18n } from '@/i18n/I18nProvider'
+import { MenuSelect, type MenuOption } from '@/components/share/MenuSelect'
+import '@/components/share/share.css' // .eb-share-dd, the picker's button
 import { regionsIn } from '@/lib/i18n-places'
 import { track } from '@/lib/analytics'
 import { today } from '@/lib/download'
 import { stripBracket } from '@/lib/import/places'
 import type { Edits, Place } from '@/lib/list/model'
 import type { Action } from '@/lib/list/store'
-import { addTicked, filterTickRows, removeTicked, undoEdit } from '@/lib/list/tick'
+import { addTicked, filterTickRows, removeTicked, taxonChildren, undoEdit } from '@/lib/list/tick'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName, nameOfCode } from '@/lib/species/names'
+import { orderLabel } from '@/lib/species/orders'
 import { useNames } from '@/lib/species/use-names'
 import type { Regions } from '@/lib/species/types'
 import { parseManualDate } from './manual-date'
@@ -55,7 +59,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   const names = useNames() // the names file arrived or the English switch flipped
   const num = (x: number) => formatInt(x, t.num)
   const [q, setQ] = useState('')
-  const [family, setFamily] = useState('')
+  const [taxon, setTaxon] = useState<string[]>([]) // the picker's group: [order, family, genus], scientific names
   const [active, setActive] = useState(0)
   const [top, setTop] = useState(0)
   // The list's drawn height: `view` rows, or fewer where its box shrinks to fit (the dialog).
@@ -68,6 +72,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   const box = useRef<HTMLDivElement>(null)
   const search = useRef<HTMLInputElement>(null)
   const yearRef = useRef<HTMLInputElement>(null)
+  const pickEscape = useRef<(() => void) | null>(null) // MenuSelect's; its own Escape keeps the dialog open
   // In the dialog the search has the focus as soon as this opens (an effect: after the dialog's own focus, a layout effect).
   useEffect(() => { if (autoFocus) search.current?.focus({ preventScroll: true }) }, [autoFocus])
   useEffect(() => {
@@ -78,17 +83,31 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
     return () => ro.disconnect()
   }, [view])
 
-  // Every family by its common name, in the UI language's order.
-  const families = useMemo(() => {
-    const seen = new Map<string, string>()
-    for (const r of species.rows) if (!seen.has(r.fam)) seen.set(r.fam, familyName(r))
-    return [...seen].sort((a, b) => a[1].localeCompare(b[1], HTML_LANG[lang]))
+  // The picker: where it is (the button), one row back a level and the current group's children in taxonomic order.
+  // Orders by the dictionary's names, families by the names the family menu used, genera by their scientific name.
+  const picker = useMemo(() => {
+    const named = (path: readonly string[]): MenuOption<string> => {
+      const value = path.join('/')
+      if (!path.length) return { value, label: t.filters.all }
+      if (path.length === 1) return { value, label: orderLabel(path[0], t) }
+      if (path.length === 2) { const r = species.rows.find((x) => x.fam === path[1]); return { value, label: r ? familyName(r) : path[1] } }
+      return { value, label: path[2], sci: true }
+    }
+    const up = taxon.length ? named(taxon.slice(0, -1)) : null
+    const options: MenuOption<string>[] = [
+      ...(up ? [{ ...up, back: true, name: fmt(tt.back, { name: up.label }) }] : []),
+      ...taxonChildren(species.rows, taxon).map((c) => {
+        const o = named([...taxon, c.id])
+        return { ...o, count: formatInt(c.n, t.num), name: `${o.label}, ${plural(t.import.species, c.n, { n: formatInt(c.n, t.num) })}` }
+      }),
+    ]
+    return { shown: named(taxon), options }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
-  }, [species, lang, names])
+  }, [species, taxon, t, names])
   // The list follows the search a beat behind the keys, so typing never waits on a pass over 11,000 names.
   const dq = useDeferredValue(q)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
-  const rows = useMemo(() => filterTickRows(species.rows, { q: dq, family }), [species, dq, family, names])
+  const rows = useMemo(() => filterTickRows(species.rows, { q: dq, taxon }), [species, dq, taxon, names])
   // Country names in the UI language (Intl.DisplayNames, src/lib/i18n-places.ts), sorted in its order.
   const countries = useMemo(
     () => Object.entries(regionsIn(regions, lang).countries).map(([iso, name]) => [iso, stripBracket(name)] as const).sort((a, b) => a[1].localeCompare(b[1], HTML_LANG[lang])),
@@ -101,7 +120,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   // A year alone, checked as typed dates always were (manual-date.ts: from 1800, not in the future).
   const yearBad = !!year && (!/^\d{4}$/.test(year.trim()) || parseManualDate(year) === null)
 
-  // A new search or family starts at the top.
+  // A new search or group starts at the top.
   const fromTop = () => { setActive(0); setTop(0); if (box.current) box.current.scrollTop = 0 }
   const at = Math.min(active, Math.max(0, rows.length - 1))
   const first = Math.max(0, Math.floor(top / ROW) - OVER)
@@ -163,13 +182,13 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
           onChange={(e) => { setQ(e.target.value); fromTop() }}
           onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); box.current?.focus() } }}
         />
-        <label className="eb-sr" htmlFor={`${ids}-f`}>{tt.family}</label>
-        <span className="eb-select">
-          <select id={`${ids}-f`} className="eb-input" value={family} onChange={(e) => { setFamily(e.target.value); fromTop() }}>
-            <option value="">{tt.allFamilies}</option>
-            {families.map(([f, com]) => <option key={f} value={f}>{com}</option>)}
-          </select>
-        </span>
+        <span id={`${ids}-f`} className="eb-sr">{tt.group}</span>
+        <div className="eb-tick-pick">
+          <MenuSelect
+            labelledBy={`${ids}-f`} menuLabel={tt.group} options={picker.options} value={picker.shown.value} shown={picker.shown}
+            onChange={(v) => { setTaxon(v ? v.split('/') : []); fromTop() }} escapeRef={pickEscape} testId="tick-group"
+          />
+        </div>
       </div>
       <p className="eb-mono eb-tick-count" aria-live="polite">{plural(t.import.species, rows.length, { n: num(rows.length) })}</p>
 

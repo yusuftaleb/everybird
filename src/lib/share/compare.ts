@@ -66,6 +66,15 @@ export function groupPayload(lists: readonly SharePayload[], codes: readonly str
 }
 
 /**
+ * The pasted lists `held` with `incoming` added after them, at most `room` in all (the page's cap: COMPARE_MAX, one
+ * less while the birder's own list joins them): the lists kept, the first ones, and how many were left out.
+ */
+export function addWithin(held: readonly SharePayload[], incoming: readonly SharePayload[], room: number): { lists: SharePayload[]; over: number } {
+  const all = [...held, ...incoming]
+  return { lists: all.slice(0, Math.max(0, room)), over: Math.max(0, all.length - Math.max(0, room)) }
+}
+
+/**
  * The share links in pasted text, chat around them included: every `…/s/<token>` (any origin, any language prefix) and
  * every bare token, once each, decoded with `decode`; with `decodeC`, every comparison link `…/c/<token>` too (the URL
  * form only: a bare word starting with "c" is just a word), its lists in its place. `compared`: a comparison link

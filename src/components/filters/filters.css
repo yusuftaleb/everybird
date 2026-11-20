@@ -90,7 +90,9 @@
    only: the sheet renders no row and its body scrolls as one). Flexbox, not grid: the flex column under max-height
    shrinks the row and the lists scroll. */
 .eb-drop[data-kind="filters"] .eb-drop-body { display: flex; flex-direction: column; gap: 16px; }
-.eb-fpanel-headrow { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* The head row is the Clear all button's height (.eb-textbtn, 36px) from the start, so nothing under it moves when a
+   filter brings the button in. The sheet's head is already the close button's 44px. */
+.eb-fpanel-headrow { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; }
 .eb-drop[data-kind="filters"] .eb-fpanel-head { flex: none; margin: 0; }
 .eb-sheet-head .eb-textbtn { margin-left: auto; flex: none; }
 .eb-drop[data-kind="filters"] [data-sec="time"] { flex: none; }
