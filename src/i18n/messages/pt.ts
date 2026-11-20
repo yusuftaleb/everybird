@@ -34,7 +34,6 @@ export const pt: Messages = {
     },
     settings: {
       language: 'Idioma',
-      languageChange: 'Mudar idioma',
       enNames: {
         label: 'Mostrar os nomes das aves em inglês',
         note: 'Onde aparecerem nomes de aves, neste dispositivo.',
@@ -230,9 +229,9 @@ export const pt: Messages = {
         empty: 'Esta lista não tem datas, então não há linha do tempo.',
       },
       basis: {
-        label: 'Contar cada ave por',
-        first: 'Primeira vez',
-        any: 'Qualquer vez',
+        label: 'Contar observações repetidas',
+        off: 'Cada ave conta onde e quando você a registrou pela primeira vez.',
+        on: 'Cada ave conta em cada lugar e em cada ano em que você a registrou.',
         seenIn: 'Vistas em {places}',
         seenTime: 'Vistas: {time}',
       },
@@ -241,10 +240,6 @@ export const pt: Messages = {
       head: { continent: 'Continentes', region: 'Regiões', country: 'Países', province: 'Estados e províncias', county: 'Condados' },
       find: { continent: 'Encontrar um país ou região', region: 'Encontrar uma região', country: 'Encontrar um país', province: 'Encontrar um estado ou província', county: 'Encontrar um condado' },
       noMatch: { continent: 'Nenhum lugar corresponde.', region: 'Nenhuma região corresponde.', country: 'Nenhum país corresponde.', province: 'Nenhum estado ou província corresponde.', county: 'Nenhum condado corresponde.' },
-      allCountries: 'Todos os países',
-      /** The breadcrumb's first step when the top level lists the continents. */
-      allContinents: 'Todos os continentes',
-      allOf: 'Tudo em {place}',
       drill: { continent: 'Mostrar países: {place}', country: 'Mostrar estados e províncias: {place}', province: 'Mostrar condados: {place}' },
       group: { continent: 'Países: {place}', country: 'Estados e províncias: {place}', province: 'Condados: {place}' },
       none: 'Não há lugares nesta lista.',

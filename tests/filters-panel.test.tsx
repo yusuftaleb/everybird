@@ -173,7 +173,6 @@ describe('the Filters button and its panel', () => {
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: 'four places' }))
     fireEvent.click(screen.getByTestId('chip-place-open'))
-    fireEvent.click(screen.getByTestId('drill-n:NA'))
     fireEvent.click(screen.getByTestId('country-US'))
     expect(screen.queryByTestId('chip-place-open')).toBeNull()
     expect(screen.getByTestId('chip-place-s:CA-BC')).toBeInTheDocument()

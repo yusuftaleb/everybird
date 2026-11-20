@@ -34,7 +34,6 @@ export const it: Messages = {
     },
     settings: {
       language: 'Lingua',
-      languageChange: 'Cambia lingua',
       enNames: {
         label: 'Mostra i nomi degli uccelli in inglese',
         note: 'Ovunque compaiano nomi di uccelli, su questo dispositivo.',
@@ -228,9 +227,9 @@ export const it: Messages = {
         empty: 'Questa lista non ha date, quindi non c’è una linea del tempo.',
       },
       basis: {
-        label: 'Conta un uccello per',
-        first: 'Prima osservazione',
-        any: 'Qualsiasi osservazione',
+        label: 'Conta le osservazioni ripetute',
+        off: 'Un uccello conta dove e quando lo hai registrato per la prima volta.',
+        on: 'Un uccello conta ovunque e in ogni anno in cui lo hai registrato.',
         seenIn: 'Osservati in {places}',
         seenTime: 'Osservati: {time}',
       },
@@ -239,9 +238,6 @@ export const it: Messages = {
       head: { continent: 'Continenti', region: 'Regioni', country: 'Paesi', province: 'Stati e province', county: 'Contee' },
       find: { continent: 'Trova un paese o una regione', region: 'Trova una regione', country: 'Trova un paese', province: 'Trova uno stato o una provincia', county: 'Trova una contea' },
       noMatch: { continent: 'Nessun luogo corrisponde.', region: 'Nessuna regione corrisponde.', country: 'Nessun paese corrisponde.', province: 'Nessuno stato o provincia corrisponde.', county: 'Nessuna contea corrisponde.' },
-      allCountries: 'Tutti i paesi',
-      allContinents: 'Tutti i continenti',
-      allOf: '{place} per intero',
       drill: { continent: 'Mostra i paesi: {place}', country: 'Mostra stati e province: {place}', province: 'Mostra le contee: {place}' },
       group: { continent: 'Paesi: {place}', country: 'Stati e province: {place}', province: 'Contee: {place}' },
       none: 'Nessun luogo in questa lista.',

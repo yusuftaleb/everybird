@@ -7,7 +7,6 @@
 // The shapes (src/lib/map/shapes.ts) are pre-projected; the world loads with the tab, the provinces on the first drill.
 import { useEffect, useMemo, useState } from 'react'
 import { PlacesList } from '@/components/filters/PlacesList'
-import { BasisSwitch } from '@/components/filters/Timeline'
 import { placeCountsFor, type PlacesBodyProps, type PlacesNote } from '@/components/filters/places-shared'
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -20,7 +19,7 @@ import { loadMapCountries, loadMapProvinces, mapGroupOf, mapLayer, shadeStep, ty
 import './map.css'
 
 /** `onLevel`: told the Places level the map follows (as PlacesBodyProps' onLevel), so Share can draw the same map. */
-type Props = PlacesBodyProps & { note?: PlacesNote; unplaced?: PlacesUnplaced }
+type Props = PlacesBodyProps & { note?: PlacesNote; unplaced?: PlacesUnplaced; onLevel?: (at: string | undefined) => void }
 
 export function MapView({ state, species, regions, onFilter, note, unplaced, onLevel }: Props) {
   const { t, lang } = useI18n()
@@ -82,8 +81,7 @@ export function MapView({ state, species, regions, onFilter, note, unplaced, onL
         {layer && <p className="eb-mono eb-map-line">{line}</p>}
       </div>
       {failed && <p className="eb-note" data-testid="map-failed">{t.collage.controls.mapFailed}</p>}
-      <BasisSwitch filter={state.filter} seen={state.seen} onFilter={onFilter} />
-      <PlacesList state={state} species={species} regions={regions} onFilter={onFilter} note={note} unplaced={unplaced} onLevel={setAt} />
+      <PlacesList state={state} species={species} regions={regions} onFilter={onFilter} note={note} unplaced={unplaced} />
     </div>
   )
 }

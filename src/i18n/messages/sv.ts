@@ -34,7 +34,6 @@ export const sv: Messages = {
     },
     settings: {
       language: 'Språk',
-      languageChange: 'Byt språk',
       enNames: {
         label: 'Visa fågelnamn på engelska',
         note: 'Överallt där fågelnamn visas, på den här enheten.',
@@ -228,9 +227,9 @@ export const sv: Messages = {
         empty: 'Den här listan har inga datum, så det finns ingen tidslinje.',
       },
       basis: {
-        label: 'Räkna en fågel efter',
-        first: 'Först observerad',
-        any: 'Observerad när som helst',
+        label: 'Räkna upprepade observationer',
+        off: 'En fågel räknas där och när du först registrerade den.',
+        on: 'En fågel räknas överallt och varje år du registrerade den.',
         seenIn: 'Observerad i {places}',
         seenTime: 'Observerad: {time}',
       },
@@ -239,9 +238,6 @@ export const sv: Messages = {
       head: { continent: 'Kontinenter', region: 'Regioner', country: 'Länder', province: 'Delstater och provinser', county: 'Län' },
       find: { continent: 'Hitta ett land eller en region', region: 'Hitta en region', country: 'Hitta ett land', province: 'Hitta en delstat eller provins', county: 'Hitta ett län' },
       noMatch: { continent: 'Ingen plats matchar.', region: 'Ingen region matchar.', country: 'Inget land matchar.', province: 'Ingen delstat eller provins matchar.', county: 'Inget län matchar.' },
-      allCountries: 'Alla länder',
-      allContinents: 'Alla kontinenter',
-      allOf: 'Hela {place}',
       drill: { continent: 'Visa länder i {place}', country: 'Visa delstater och provinser i {place}', province: 'Visa län i {place}' },
       group: { continent: 'Länder i {place}', country: 'Delstater och provinser i {place}', province: 'Län i {place}' },
       none: 'Inga platser på den här listan.',

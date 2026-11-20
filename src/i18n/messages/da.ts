@@ -34,7 +34,6 @@ export const da: Messages = {
     },
     settings: {
       language: 'Sprog',
-      languageChange: 'Skift sprog',
       enNames: {
         label: 'Vis fuglenavne på engelsk',
         note: 'Overalt hvor der står fuglenavne, på denne enhed.',
@@ -230,9 +229,9 @@ export const da: Messages = {
         empty: 'Denne liste har ingen datoer, så der er ingen tidslinje.',
       },
       basis: {
-        label: 'Tæl en fugl efter',
-        first: 'Første fund',
-        any: 'Fundet når som helst',
+        label: 'Tæl gentagne observationer',
+        off: 'En fugl tæller, hvor og hvornår du først registrerede den.',
+        on: 'En fugl tæller overalt og hvert år, du har registreret den.',
         seenIn: 'Fundet i {places}',
         seenTime: 'Fundet: {time}',
       },
@@ -241,9 +240,6 @@ export const da: Messages = {
       head: { continent: 'Kontinenter', region: 'Regioner', country: 'Lande', province: 'Stater og provinser', county: 'Amter' },
       find: { continent: 'Find et land eller en region', region: 'Find en region', country: 'Find et land', province: 'Find en stat eller provins', county: 'Find et amt' },
       noMatch: { continent: 'Intet sted passer.', region: 'Ingen region passer.', country: 'Intet land passer.', province: 'Ingen stat eller provins passer.', county: 'Intet amt passer.' },
-      allCountries: 'Alle lande',
-      allContinents: 'Alle kontinenter',
-      allOf: 'Hele {place}',
       drill: { continent: 'Vis lande i {place}', country: 'Vis stater og provinser i {place}', province: 'Vis amter i {place}' },
       group: { continent: 'Lande i {place}', country: 'Stater og provinser i {place}', province: 'Amter i {place}' },
       none: 'Ingen steder på denne liste.',

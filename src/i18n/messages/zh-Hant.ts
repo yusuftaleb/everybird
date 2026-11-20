@@ -36,7 +36,6 @@ export const zhHant: Messages = {
     },
     settings: {
       language: '語言',
-      languageChange: '變更語言',
       enNames: {
         label: '以英文顯示鳥名',
         note: '在這台裝置上，所有出現鳥名的地方。',
@@ -230,9 +229,9 @@ export const zhHant: Messages = {
         empty: '這份清單沒有日期，所以沒有時間軸。',
       },
       basis: {
-        label: '計算鳥種的依據',
-        first: '首次紀錄',
-        any: '任何時候的紀錄',
+        label: '計入重複紀錄',
+        off: '每種鳥依第一次記錄的地點和時間計入。',
+        on: '每種鳥在你記錄過的每個地點、每一年都計入。',
         seenIn: '在 {places} 有紀錄',
         seenTime: '有紀錄：{time}',
       },
@@ -241,9 +240,6 @@ export const zhHant: Messages = {
       head: { continent: '各洲', region: '區域', country: '國家', province: '州和省', county: '郡' },
       find: { continent: '找國家或區域', region: '找區域', country: '找國家', province: '找州或省', county: '找郡' },
       noMatch: { continent: '沒有符合的地點。', region: '沒有符合的區域。', country: '沒有符合的國家。', province: '沒有符合的州或省。', county: '沒有符合的郡。' },
-      allCountries: '所有國家',
-      allContinents: '所有洲',
-      allOf: '{place} 全部',
       drill: { continent: '顯示 {place} 的國家', country: '顯示 {place} 的州和省', province: '顯示 {place} 的郡' },
       group: { continent: '{place} 的國家', country: '{place} 的州和省', province: '{place} 的郡' },
       none: '這份清單上沒有地點。',

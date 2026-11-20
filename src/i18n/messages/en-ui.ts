@@ -44,10 +44,8 @@ export const EN_UI = {
   },
   /** Settings (SettingsPage). */
   settings: {
-    /** Your data > the language select's label (LanguageField). */
+    /** The heading over the English-names switch (EnglishNamesSwitch), shown when the UI isn't English. */
     language: 'Language',
-    /** The button after the language select: the language changes (and the page reloads) only when it is pressed. */
-    languageChange: 'Change language',
     /** Your data > the English-names switch (EnglishNamesSwitch), shown when the UI isn't English. */
     enNames: {
       label: 'Show bird names in English',
@@ -283,29 +281,25 @@ export const EN_UI = {
       end: 'End month',
       empty: 'This list has no dates, so there is no timeline.',
     },
-    /** The Time section's basis switch (Filter.basis) and how "seen" reads in chips, labels and share images. */
+    /** The counting switch (Filter.basis) and how "seen" reads in chips, labels and share images. */
     basis: {
-      label: 'Count a bird by',
-      first: 'First seen',
-      any: 'Seen any time',
+      /** The Filters panel's "Count repeat sightings" switch (RepeatSwitch): its label, and its note off and on. */
+      label: 'Count repeat sightings',
+      off: 'A bird counts where and when you first recorded it.',
+      on: 'A bird counts everywhere and every year you recorded it.',
       seenIn: 'Seen in {places}',
       seenTime: 'Seen: {time}',
     },
   },
-  /** The Places panel (PlacesList, PlacesDrill, places-shared). Country names come from the data
+  /** The Places panel (PlacesList, PlacesTree, places-shared). Country names come from the data
    *  (src/lib/i18n-places.ts); province and county names are local names. */
   places: {
     head: { continent: 'Continents', region: 'Regions', country: 'Countries', province: 'States and provinces', county: 'Counties' },
     find: { continent: 'Find a country or region', region: 'Find a region', country: 'Find a country', province: 'Find a state or province', county: 'Find a county' },
     noMatch: { continent: 'No place matches.', region: 'No region matches.', country: 'No country matches.', province: 'No state or province matches.', county: 'No county matches.' },
-    allCountries: 'All countries',
-    /** The breadcrumb's first step when the top level lists the continents. */
-    allContinents: 'All continents',
-    /** The drilled level's first row, the parent's own checkbox ("All of Canada"). */
-    allOf: 'All of {place}',
-    /** The drill buttons' aria-labels (design a). */
+    /** The disclosure chevrons' aria-labels (PlacesTree: a row's places open under it). */
     drill: { continent: 'Show countries in {place}', country: 'Show states and provinces in {place}', province: 'Show counties in {place}' },
-    /** The disclosure buttons' and open groups' names (design b). */
+    /** An open row's list of places (its accessible name). */
     group: { continent: 'Countries in {place}', country: 'States and provinces in {place}', province: 'Counties in {place}' },
     none: 'No places on this list.',
     emptyFiltered: 'No places here under the other filters.',

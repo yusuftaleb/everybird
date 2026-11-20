@@ -36,7 +36,6 @@ export const ja: Messages = {
     },
     settings: {
       language: '言語',
-      languageChange: '言語を変更',
       enNames: {
         label: '鳥の名前を英語で表示',
         note: 'このデバイスで、鳥の名前が出るすべての場所に適用されます。',
@@ -230,9 +229,9 @@ export const ja: Messages = {
         empty: 'このリストには日付がないため、タイムラインはありません。',
       },
       basis: {
-        label: '鳥の数え方',
-        first: '初記録の日',
-        any: '記録したすべての日',
+        label: '繰り返しの記録も数える',
+        off: '鳥は最初に記録した場所と時期で数えます。',
+        on: '鳥は記録したすべての場所と年で数えます。',
         seenIn: '{places}で記録',
         seenTime: '記録：{time}',
       },
@@ -241,9 +240,6 @@ export const ja: Messages = {
       head: { continent: '大陸', region: '地域', country: '国', province: '州・県', county: '郡' },
       find: { continent: '国や地域を探す', region: '地域を探す', country: '国を探す', province: '州・県を探す', county: '郡を探す' },
       noMatch: { continent: '一致する場所はありません。', region: '一致する地域はありません。', country: '一致する国はありません。', province: '一致する州・県はありません。', county: '一致する郡はありません。' },
-      allCountries: 'すべての国',
-      allContinents: 'すべての大陸',
-      allOf: '{place}全体',
       drill: { continent: '{place}の国を表示', country: '{place}の州・県を表示', province: '{place}の郡を表示' },
       group: { continent: '{place}の国', country: '{place}の州・県', province: '{place}の郡' },
       none: 'このリストには場所がありません。',

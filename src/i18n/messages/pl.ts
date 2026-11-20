@@ -36,7 +36,6 @@ export const pl: Messages = {
     },
     settings: {
       language: 'Język',
-      languageChange: 'Zmień język',
       enNames: {
         label: 'Pokazuj nazwy ptaków po angielsku',
         note: 'Wszędzie, gdzie pojawiają się nazwy ptaków, na tym urządzeniu.',
@@ -234,9 +233,9 @@ export const pl: Messages = {
         empty: 'Ta lista nie ma dat, więc nie ma osi czasu.',
       },
       basis: {
-        label: 'Licz ptaka według',
-        first: 'Pierwsza obserwacja',
-        any: 'Dowolna obserwacja',
+        label: 'Licz powtórne obserwacje',
+        off: 'Ptak liczy się tam i wtedy, gdzie i kiedy został zapisany po raz pierwszy.',
+        on: 'Ptak liczy się wszędzie i w każdym roku, w którym został zapisany.',
         seenIn: 'Obserwowane: {places}',
         seenTime: 'Obserwowane: {time}',
       },
@@ -245,9 +244,6 @@ export const pl: Messages = {
       head: { continent: 'Kontynenty', region: 'Regiony', country: 'Kraje', province: 'Stany i prowincje', county: 'Hrabstwa' },
       find: { continent: 'Znajdź kraj lub region', region: 'Znajdź region', country: 'Znajdź kraj', province: 'Znajdź stan lub prowincję', county: 'Znajdź hrabstwo' },
       noMatch: { continent: 'Żadne miejsce nie pasuje.', region: 'Żaden region nie pasuje.', country: 'Żaden kraj nie pasuje.', province: 'Żaden stan ani prowincja nie pasuje.', county: 'Żadne hrabstwo nie pasuje.' },
-      allCountries: 'Wszystkie kraje',
-      allContinents: 'Wszystkie kontynenty',
-      allOf: 'Całość: {place}',
       drill: { continent: 'Pokaż kraje: {place}', country: 'Pokaż stany i prowincje: {place}', province: 'Pokaż hrabstwa: {place}' },
       group: { continent: 'Kraje: {place}', country: 'Stany i prowincje: {place}', province: 'Hrabstwa: {place}' },
       none: 'Na tej liście nie ma miejsc.',

@@ -34,7 +34,6 @@ export const de: Messages = {
     },
     settings: {
       language: 'Sprache',
-      languageChange: 'Sprache ändern',
       enNames: {
         label: 'Vogelnamen auf Englisch zeigen',
         note: 'Überall, wo Vogelnamen stehen, auf diesem Gerät.',
@@ -230,9 +229,9 @@ export const de: Messages = {
         empty: 'Diese Liste hat keine Datumsangaben, daher gibt es keine Zeitleiste.',
       },
       basis: {
-        label: 'Vogel zählen nach',
-        first: 'Erstbeobachtung',
-        any: 'Jede Beobachtung',
+        label: 'Wiederholte Beobachtungen zählen',
+        off: 'Ein Vogel zählt dort und dann, wo du ihn zum ersten Mal erfasst hast.',
+        on: 'Ein Vogel zählt überall und in jedem Jahr, in dem du ihn erfasst hast.',
         seenIn: 'Beobachtet in {places}',
         seenTime: 'Beobachtet: {time}',
       },
@@ -241,9 +240,6 @@ export const de: Messages = {
       head: { continent: 'Kontinente', region: 'Regionen', country: 'Länder', province: 'Staaten und Provinzen', county: 'Kreise' },
       find: { continent: 'Land oder Region suchen', region: 'Region suchen', country: 'Land suchen', province: 'Staat oder Provinz suchen', county: 'Kreis suchen' },
       noMatch: { continent: 'Kein Ort gefunden.', region: 'Keine Region gefunden.', country: 'Kein Land gefunden.', province: 'Kein Staat und keine Provinz gefunden.', county: 'Kein Kreis gefunden.' },
-      allCountries: 'Alle Länder',
-      allContinents: 'Alle Kontinente',
-      allOf: 'Ganz {place}',
       drill: { continent: 'Länder in {place} zeigen', country: 'Staaten und Provinzen in {place} zeigen', province: 'Kreise in {place} zeigen' },
       group: { continent: 'Länder in {place}', country: 'Staaten und Provinzen in {place}', province: 'Kreise in {place}' },
       none: 'Keine Orte auf dieser Liste.',

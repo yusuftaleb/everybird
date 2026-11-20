@@ -36,7 +36,6 @@ export const ru: Messages = {
     },
     settings: {
       language: 'Язык',
-      languageChange: 'Сменить язык',
       enNames: {
         label: 'Показывать названия птиц на английском',
         note: 'Везде, где есть названия птиц, на этом устройстве.',
@@ -249,9 +248,9 @@ export const ru: Messages = {
         empty: 'В этом списке нет дат, поэтому шкалы времени нет.',
       },
       basis: {
-        label: 'Как считать птицу',
-        first: 'Первая встреча',
-        any: 'Любая встреча',
+        label: 'Учитывать повторные встречи',
+        off: 'Птица учитывается там и тогда, где и когда она записана впервые.',
+        on: 'Птица учитывается везде и в каждом году, когда она записана.',
         seenIn: 'Встречи: {places}',
         seenTime: 'Встречи: {time}',
       },
@@ -260,9 +259,6 @@ export const ru: Messages = {
       head: { continent: 'Континенты', region: 'Регионы', country: 'Страны', province: 'Штаты и провинции', county: 'Округа' },
       find: { continent: 'Найти страну или регион', region: 'Найти регион', country: 'Найти страну', province: 'Найти штат или провинцию', county: 'Найти округ' },
       noMatch: { continent: 'Нет подходящих мест.', region: 'Нет подходящих регионов.', country: 'Нет подходящих стран.', province: 'Нет подходящих штатов и провинций.', county: 'Нет подходящих округов.' },
-      allCountries: 'Все страны',
-      allContinents: 'Все континенты',
-      allOf: 'Целиком: {place}',
       drill: { continent: 'Показать страны: {place}', country: 'Показать штаты и провинции: {place}', province: 'Показать округа: {place}' },
       group: { continent: 'Страны: {place}', country: 'Штаты и провинции: {place}', province: 'Округа: {place}' },
       none: 'В этом списке нет мест.',

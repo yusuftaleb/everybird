@@ -8,24 +8,6 @@
 .eb-time-read { margin: 0; min-height: 18px; min-width: 0; }
 .eb-time-read .eb-nowrap { white-space: nowrap; }
 
-/* The basis switch ("First seen / Seen any time"): a small two-way segmented control in the share dialog's .eb-seg
-   style (Surface under the pressed one), each side a 44px press. It shares the row when it fits, else wraps under. */
-.eb-time-basis { display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
-.eb-time-basis-label { margin: 0; color: var(--muted); font-size: 14px; }
-.eb-time-basis-seg {
-  display: inline-flex; gap: 4px; padding: 4px; max-width: 100%;
-  border: 1px solid var(--hairline);
-  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-}
-.eb-time-basis-btn {
-  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px;
-  border: 0; background: none; color: var(--ink); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; opacity: .66;
-  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s cubic-bezier(.25, .8, .25, 1);
-}
-.eb-time-basis-btn[aria-checked="true"] { opacity: 1; background: var(--surface); }
-@media (prefers-reduced-motion: reduce) { .eb-time-basis-btn { transition: none; } }
-
 /* The strip scrolls sideways when the months are narrower than MONTH_PX; it bleeds into the page gutters (its
    padding keeps the end handles' knobs whole). No scrollbar: an edge with more strip beyond it fades instead. */
 .eb-time-scroll {

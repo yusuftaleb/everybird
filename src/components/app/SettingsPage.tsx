@@ -14,7 +14,7 @@ import { placesNoteFor } from '@/lib/list/filter-summary'
 import { countParts, sourceCounts, summaryLine } from '@/lib/list/source-counts'
 import type { Saved } from '@/lib/list/storage'
 import { useEverybirdContext } from './EverybirdProvider'
-import { EnglishNamesSwitch, LanguageField } from './LanguageField'
+import { EnglishNamesSwitch } from './LanguageField'
 import { AppNotices } from './Notices'
 import { PageHead } from './PageHead'
 import { RestoreBackup } from './RestoreBackup'
@@ -23,13 +23,14 @@ import './app.css'
 /**
  * `/settings`, everything in the page, behind no click: "Your list" (the summary line, one row per source, the match
  * report, the privacy footnote), "Add by hand" (the whole taxonomy to tick, open), then "Counting" (the rules),
- * "Language" and "Your data" (downloads, restore, forget; the collage's title is in the share dialog). Arriving at
+ * "Language" (only the English-names switch, when the UI isn't English: the language is the top bar's menu) and
+ * "Your data" (downloads, restore, forget; the collage's title is in the share dialog). Arriving at
  * /settings#sources (the welcome's "Make mine") focuses the sources; #tick lands on Add by hand; the Places notes'
  * #add-mydata and #add-obsorg open their row's Add panel (use-anchor-target.ts); #match opens the match report.
  */
 export function SettingsPage() {
   const eb = useEverybirdContext()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const d = t.settings.data
   const { state, dispatch, data, mine, jobs } = eb
   const router = useRouter()
@@ -92,17 +93,17 @@ export function SettingsPage() {
       ) : (
         !eb.failed && <div className="eb-ways-wait" aria-hidden="true" />
       )}
-      <div className={mine ? 'eb-settings-pair' : 'eb-settings-one'}>
-        {/* Always shown, with or without a list, in the prerendered page too. */}
-        <section className="eb-block" aria-labelledby="eb-lang-h">
+      <div className={mine && lang !== 'en' ? 'eb-settings-pair' : 'eb-settings-one'}>
+        {/* The English-names switch, when the UI isn't English, with or without a list, in the prerendered page too. The
+            language itself is the top bar's menu. */}
+        {lang !== 'en' && <section className="eb-block" aria-labelledby="eb-lang-h">
           <div className="eb-block-head">
             <h2 id="eb-lang-h" className="eb-h2">{t.settings.language}</h2>
           </div>
           <div className="eb-langrow">
-            <LanguageField />
             <EnglishNamesSwitch />
           </div>
-        </section>
+        </section>}
         {(mine || data) && <section className="eb-block" aria-labelledby="eb-data-h">
           <div className="eb-block-head">
             <h2 id="eb-data-h" className="eb-h2">{d.head}</h2>

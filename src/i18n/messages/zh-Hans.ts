@@ -36,7 +36,6 @@ export const zhHans: Messages = {
     },
     settings: {
       language: '语言',
-      languageChange: '更改语言',
       enNames: {
         label: '用英文显示鸟名',
         note: '在此设备上，所有显示鸟名的地方都生效。',
@@ -230,9 +229,9 @@ export const zhHans: Messages = {
         empty: '这份清单没有日期，所以没有时间轴。',
       },
       basis: {
-        label: '计入方式',
-        first: '首次记录',
-        any: '任意时间记录',
+        label: '计入重复记录',
+        off: '每种鸟按首次记录的地点和时间计入。',
+        on: '每种鸟在你记录过的每个地点、每一年都计入。',
         seenIn: '记录于{places}',
         seenTime: '记录时间：{time}',
       },
@@ -241,9 +240,6 @@ export const zhHans: Messages = {
       head: { continent: '大洲', region: '地区', country: '国家', province: '州和省', county: '县' },
       find: { continent: '查找国家或地区', region: '查找地区', country: '查找国家', province: '查找州或省', county: '查找县' },
       noMatch: { continent: '没有匹配的地点。', region: '没有匹配的地区。', country: '没有匹配的国家。', province: '没有匹配的州或省。', county: '没有匹配的县。' },
-      allCountries: '所有国家',
-      allContinents: '所有大洲',
-      allOf: '{place}全部',
       drill: { continent: '显示{place}的国家', country: '显示{place}的州和省', province: '显示{place}的县' },
       group: { continent: '{place}的国家', country: '{place}的州和省', province: '{place}的县' },
       none: '这份清单上没有地点。',

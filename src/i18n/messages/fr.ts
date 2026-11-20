@@ -34,7 +34,6 @@ export const fr: Messages = {
     },
     settings: {
       language: 'Langue',
-      languageChange: 'Changer de langue',
       enNames: {
         label: 'Afficher les noms des oiseaux en anglais',
         note: 'Partout où des noms d’oiseaux apparaissent, sur cet appareil.',
@@ -230,9 +229,9 @@ export const fr: Messages = {
         empty: 'Cette liste n’a pas de dates, il n’y a donc pas de frise chronologique.',
       },
       basis: {
-        label: 'Compter un oiseau selon',
-        first: 'Première observation',
-        any: 'Toute observation',
+        label: 'Compter les observations répétées',
+        off: 'Un oiseau compte au lieu et à la date où tu l’as noté pour la première fois.',
+        on: 'Un oiseau compte partout et chaque année où tu l’as noté.',
         seenIn: 'Observés\u00a0: {places}',
         seenTime: 'Observés\u00a0: {time}',
       },
@@ -241,10 +240,6 @@ export const fr: Messages = {
       head: { continent: 'Continents', region: 'Régions', country: 'Pays', province: 'États et provinces', county: 'Comtés' },
       find: { continent: 'Trouver un pays ou une région', region: 'Trouver une région', country: 'Trouver un pays', province: 'Trouver un État ou une province', county: 'Trouver un comté' },
       noMatch: { continent: 'Aucun lieu ne correspond.', region: 'Aucune région ne correspond.', country: 'Aucun pays ne correspond.', province: 'Aucun État ou province ne correspond.', county: 'Aucun comté ne correspond.' },
-      allCountries: 'Tous les pays',
-      /** The breadcrumb's first step when the top level lists the continents. */
-      allContinents: 'Tous les continents',
-      allOf: '{place} en entier',
       drill: { continent: 'Afficher les pays\u00a0: {place}', country: 'Afficher les États et provinces\u00a0: {place}', province: 'Afficher les comtés\u00a0: {place}' },
       group: { continent: 'Pays\u00a0: {place}', country: 'États et provinces\u00a0: {place}', province: 'Comtés\u00a0: {place}' },
       none: 'Aucun lieu dans cette liste.',
