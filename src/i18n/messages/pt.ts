@@ -448,7 +448,7 @@ export const pt: Messages = {
       formatName: '{name}, proporção {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Orientação', vertical: 'Vertical', horizontal: 'Horizontal' },
-      countSize: { label: 'Tamanho do número', small: 'Pequeno', medium: 'Médio', large: 'Grande', hide: 'Ocultar' },
+      countSize: { label: 'Número', small: 'Pequeno', medium: 'Médio', large: 'Grande', hide: 'Ocultar' },
       preview: { story: 'Prévia da imagem para story', post: 'Prévia da imagem para publicação', square: 'Prévia da imagem quadrada', desktop: 'Prévia da imagem para desktop', wide: 'Prévia da imagem horizontal' },
       failed: 'Não foi possível criar a imagem.',
       imageFailed: 'Não foi possível criar a imagem. Tente de novo.',
@@ -457,7 +457,6 @@ export const pt: Messages = {
       nameLabel: 'Título da colagem',
       namePlaceholder: 'Minhas aves de 2024',
       nameOptional: '(opcional)',
-      parts: { label: 'O que compartilhar', image: 'Imagem', poster: 'Pôster' },
       nameHelper: 'Aparece como título da sua colagem e ao compartilhar.',
       showLatest: 'Última espécie nova',
       shareImage: 'Compartilhar',
@@ -483,11 +482,16 @@ export const pt: Messages = {
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
       dark: 'Imagem escura',
       transparent: 'Fundo transparente',
+      arrange: { label: 'Disposição', packed: 'Ajustar', oval: 'Oval' },
+      hideTotals: 'Ocultar totais',
       bigYear: {
-        label: 'Grande Ano',
-        year: 'Ano',
-        target: 'Meta',
-        targetPlaceholder: 'Espécies',
+        label: 'Meta',
+        add: 'Adicionar uma meta',
+        target: 'Meta em espécies',
+        speciesIn: 'espécies em',
+        year: 'Período da meta',
+        allTime: 'Desde sempre',
+        remove: 'Remover meta',
         targetInvalid: 'Digite um número inteiro de 1 a {max}.',
         card: 'Grande Ano {year}',
         cardLifer: 'Grande Ano {year} · Novas espécies em {year}',
@@ -495,6 +499,8 @@ export const pt: Messages = {
       downloadShort: 'Baixar',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
+        entry: 'Imprimir pôster',
+        back: 'Voltar para a imagem',
         size: 'Tamanho do pôster',
         inches: '{w} × {h} pol.',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px a 150 dpi',
@@ -513,10 +519,12 @@ export const pt: Messages = {
         failed: 'Não foi possível criar o pôster. Tente de novo.',
         previewAlt: 'Prévia do pôster {size}',
         bulk: {
-          title: 'Vários pôsteres (ZIP)',
+          title: 'Vários pôsteres de uma vez',
+          lede: 'Um pôster por grupo, baixados juntos em um ZIP.',
           splitLabel: 'Dividir por',
+          perPoster: 'Aves por pôster',
           splits: {
-            batches: 'Até 1.000 por pôster',
+            batches: 'Número de aves',
             family: 'Família',
             order: 'Ordem',
             country: 'País',

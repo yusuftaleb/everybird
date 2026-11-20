@@ -14,18 +14,13 @@
   .eb-share-scrim { align-items: start; }
   .eb-share-body { container-type: inline-size; }
   .eb-share-preview { width: min(100cqw, var(--cap) * var(--ar)); height: min(var(--cap), 100cqw / var(--ar)); }
-  /* The controls under the preview, from the 409px measured for the first ones (a title field, the switch and the
-     first action row, 16px apart) and the CSS since: the options group's gaps are 8px, so 409 + 8 - 16 (the gap it
-     replaces) = 401, plus the "Dark image" switch under "Show latest lifer": a 44px row and an 8px gap = 453. The options are now one
-     bordered box (26px of padding and border, the title field, a 12px gap, the switches in a wrapping row: two 44px
-     rows on a phone), 22px less than the stacked switches, so 431; say 440.
-     Print mode adds the size control above the box: 54 (the control) + 6 + 42 (the size line, two 21px lines on
-     a phone: "A1 · 59.4 × 84.1 cm · 7016 × 9933 px at 150 dpi" is about 340px at 14px) + 8 (the group's gap) = 110
-     more, so 550. The orientation switch is a second row above the preview (54 + 8 = 62 more, in both modes, since
-     the print's first row keeps the same height): 502 and 612. Each keeps the primary action on the first screen,
-     26px above the dialog's bottom edge, with the top of the quiet row showing under it. */
-  .eb-share .eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 502px, 600px)); }
-  .eb-share[data-mode="print"] .eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 612px, 600px)); }
+  /* The actions come straight under the preview (Share image, or in the poster Make poster, on the first screen; the
+     title and the option rows follow), so the cap leaves room for the chrome above it and that one button: the scrim's
+     16px, the dialog's 1px border and 18px padding, the 44px head and its 16px gap, the top rows (two 54px rows 8px
+     apart: 116), the body's two 16px gaps, Share image (44), the 8px gap and the top 18px of the quiet row as a cue to
+     scroll: 313; say 340, the same in the poster (its Back to image row is shorter than the format control). */
+  .eb-share .eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 340px, 600px)); }
+  .eb-share-actions { order: -1; }
 }
 .eb-share {
   width: min(820px, 100%); max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain;
@@ -50,15 +45,15 @@
    above the preview's area, the controls under it, so neither moves when the preview changes shape), a grid from 720px
    (the preview on the left down both rows, the format control over the rest of the controls on the right). */
 .eb-share-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px 20px; min-width: 0; }
-/* Two auto rows, 8px apart: share mode has the orientation switch (54px: a 44px button, 4px padding and a 1px border each
-   side) then the formats; print mode the "Share images" button then the switch, with no minimum row height, so the gaps
-   are the same 8px (a 54px minimum made the shorter button's row add 10px). No min-height here: an explicit one is the
-   item's "minimum contribution" to the body's auto row, which a grid squeezed to a definite height (the desktop body,
-   below) may shrink the row to, so the second row overflowed it onto the options box. In print mode the sizes box
-   under the switch is 8px below too (the body's row gap there). */
-.eb-share-formats { display: grid; grid-template-rows: auto auto; gap: 8px; min-width: 0; container-type: inline-size; }
-/* Print mode's "Share images" button takes the first row's place at its own width, as it did when alone in the column. */
-.eb-share-formats > .eb-btn { justify-self: start; align-self: start; }
+/* Two rows, 8px apart: the format control (in the poster, Back to image at its own width), then the orientation switch
+   with Fit or Oval beside it, the two sharing the row (never wrapping, so the row's height is known: a label that can't
+   fit wraps inside its segment). No min-height here: an explicit one is the item's "minimum contribution" to the body's
+   auto row, which a grid squeezed to a definite height (the desktop body, below) may shrink the row to. */
+.eb-share-formats { display: flex; flex-direction: column; gap: 8px; min-width: 0; container-type: inline-size; }
+.eb-share-formats > .eb-btn { align-self: flex-start; }
+.eb-share-toprow { display: flex; gap: 8px; min-width: 0; }
+.eb-share-toprow .eb-seg { flex: 1 1 auto; min-width: 0; }
+.eb-share-toprow .eb-share-arrange { flex-grow: 0; }
 
 /* The image's shape, from the format it shows. */
 .eb-share-preview { --ar: calc(9 / 16); }
@@ -94,14 +89,11 @@
 /* A transparent image over a checkerboard, so either ink shows. */
 .eb-share-preview[data-transparent] .eb-share-in { background: repeating-conic-gradient(var(--surface) 0 25%, var(--paper) 0 50%) 0 0 / 16px 16px; }
 
-/* Stacked (phones): the preview's area (the body's middle row) is --cap tall in every format: as tall as the screen
-   allows while Share image stays on the first screen, ending 26px above the dialog's bottom edge with the top 18px of
-   the Download / Copy link row showing under it as a cue to scroll (the head, the format control, the title field, the
-   switch, the button and that margin take 409px with the dialog's padding and gaps; measured at 390 x 844 and 700; with the
-   orientation row above the preview, 54px and 8px more: 471), at
-   most 62% of the screen and 600px, at least 240px. The box is at most --cap tall and as wide as the dialog allows,
-   centred in the row both ways: the story fills its height, a post or square leaves equal bands above and below. */
-.eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 471px, 600px)); grid-template-rows: auto var(--cap) auto; }
+/* Stacked (phones): the preview's area (the body's middle row) is --cap tall in every format (set in the phones' media
+   query above: as tall as the screen allows while Share image stays on the first screen), at most 62% of the screen
+   and 600px, at least 240px. The box is at most --cap tall and as wide as the dialog allows, centred in the row both
+   ways: the story fills its height, a post or square leaves equal bands above and below. */
+.eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 340px, 600px)); grid-template-rows: auto var(--cap) auto; }
 
 /* Beside the controls: the window's height minus the chrome (16px scrim padding twice, the dialog's padding, head,
    gap and 1px borders: 134px), at most 760px, and never wider than the window leaves beside the controls' column
@@ -132,8 +124,6 @@
      (flex: none), so the dialog scrolls instead. */
   .eb-share-body { grid-template-columns: auto var(--ctl); grid-template-rows: max-content 1fr; min-height: var(--story-h); flex: none; }
   .eb-share-preview { grid-column: 1; grid-row: 1 / span 2; }
-  /* Print mode: the sizes box is the next thing under the switch, 8px away like the switch from the button above it. */
-  .eb-share[data-mode="print"] .eb-share-body { row-gap: 8px; }
   .eb-share-formats, .eb-share-controls { grid-column: 2; }
   .eb-share-formats { grid-row: 1; }
   /* The controls fill the column's height, so the coffee button can sit at its bottom right. */
@@ -187,7 +177,7 @@
 }
 .eb-share-input::placeholder { color: var(--muted); opacity: 1; }
 .eb-share-input[aria-invalid] { border-color: var(--accent); }
-/* "Show latest lifer": the site's switch (collage.css), at full strength off too, flush with the column's left edge.
+/* The option switches: the site's switch (collage.css), at full strength off too, flush with the column's left edge.
    Scoped to .eb-share, it beats .eb-switch's padding, gap and opacity whatever order the stylesheets load in; it ties
    with .eb-switch[aria-checked=true] and .eb-switch:hover, which only set opacity: 1 too, so nothing conflicts. The
    label is 16/500 (DESIGN.md) in px and wraps (.eb-switch is nowrap at 1rem), so a reader's larger text size never
@@ -205,19 +195,59 @@
 .eb-share .eb-share-switch:disabled { cursor: default; color: var(--muted); }
 .eb-share .eb-share-switch:disabled .eb-track { background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline); }
 .eb-share .eb-share-switch:disabled .eb-knob { background: var(--muted); }
-.eb-share-names-note { margin: 0; }
-/* The image options, with no heading: in print mode the size and its line first, then one bordered box (as Settings'
-   groups: 1px Hairline, 16px squircle, 12px 16px inside) holding the title field and the switches, which sit in one
-   row and wrap only when they don't fit. A switch keeps its 44px press and its label's width. */
-.eb-share-options { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.eb-share-box {
-  display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 12px 16px;
-  border: 1px solid var(--hairline);
-  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+.eb-share-names-note { margin: 0; padding-block: 6px; }
+/* The options, with no heading: in the poster the size and its line first, then the title field, then the option rows. */
+.eb-share-options { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+/* One row per option, all the same height (48px; a goal that can't fit its row wraps under its label, right-aligned):
+   the label (16/500, as Settings' rows) on the left, its control on the right, a Hairline between rows and above the
+   first. A switch row is the switch itself, so the whole row presses. */
+.eb-share-opts { display: flex; flex-direction: column; min-width: 0; border-top: 1px solid var(--hairline); }
+.eb-share .eb-share-opt {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px;
+  align-self: stretch; width: 100%; min-width: 0; min-height: 48px; padding: 2px 0; box-sizing: border-box;
+  border: 0; border-bottom: 1px solid var(--hairline); border-radius: 0;
+  font-size: 16px; font-weight: 500; text-align: start;
 }
-.eb-share-switches { display: flex; flex-wrap: wrap; gap: 8px 20px; min-width: 0; }
-.eb-share-switches .eb-share-switch { flex: 0 0 auto; max-width: 100%; }
-.eb-share-goal { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-width: 0; }
+.eb-share .eb-share-switch.eb-share-opt { flex-wrap: nowrap; }
+.eb-share .eb-share-opt:focus-visible { outline-offset: -2px; }
+.eb-share-optlabel { min-width: 0; }
+/* The dropdowns (MenuSelect): the current choice and a caret in a quiet bordered button, 36px drawn with a 44px press,
+   its menu the language menu's, right-aligned under it and scrolling past 320px (a long list of years). */
+.eb-share-ddwrap { position: relative; display: inline-flex; flex: none; }
+.eb-share-dd {
+  position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px 0 12px;
+  border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+  font: inherit; font-size: 15px; font-weight: 500; white-space: nowrap; cursor: pointer;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  -webkit-tap-highlight-color: transparent;
+}
+.eb-share-dd::after { content: ''; position: absolute; inset: -5px 0; }
+.eb-share-dd svg { width: 14px; height: 14px; flex: none; color: var(--muted); }
+.eb-share-dd[aria-expanded="true"] { background: var(--surface); }
+.eb-share-dd:disabled { color: var(--muted); border-color: var(--hairline); cursor: default; }
+@media (hover: hover) and (pointer: fine) { .eb-share-dd:not(:disabled):hover { border-color: var(--muted); } }
+.eb-share-menu { max-height: min(320px, 50dvh); overflow-y: auto; overscroll-behavior: contain; }
+/* A number box (the goal's target, the most birds per poster): plain text with the numeric keyboard, no stepper. */
+.eb-share-num {
+  inline-size: 4.5em; min-height: 36px; padding: 0 8px; box-sizing: border-box;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 16px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-share-num[aria-invalid] { border-color: var(--accent); }
+.eb-share-num:disabled { color: var(--muted); border-color: var(--hairline); }
+@media (pointer: coarse) { .eb-share-dd, .eb-share-num { min-height: 44px; } }
+/* The goal once set: the number box, "species in", the year menu and a remove button, wrapping only when they must. */
+.eb-share-goal { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 8px; min-width: 0; margin-inline-start: auto; }
+.eb-share-goalwords { color: var(--muted); font-size: 15px; font-weight: 500; }
+.eb-share-goalx {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex: none;
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+  border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-share-goalx::after { content: ''; position: absolute; inset: -6px; }
+.eb-share-goalx svg { width: 14px; height: 14px; }
+@media (hover: hover) and (pointer: fine) { .eb-share-goalx:hover { color: var(--ink); background: var(--surface); } }
 /* The label and its muted "(optional)" side by side. */
 .eb-share-labelrow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
 .eb-share-optional { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
@@ -233,27 +263,24 @@
 .eb-share-sizes { display: flex; flex-wrap: wrap; }
 .eb-share-sizes .eb-seg-btn { flex: 1 1 0; min-width: 0; padding: 0 8px; }
 .eb-share-sizes-break { flex-basis: 100%; height: 0; margin-block: -2px; }
-.eb-share-count-size { display: flex; flex-wrap: wrap; }
-.eb-share-count-size .eb-seg-btn { flex: 1 1 auto; min-width: 0; padding: 0 10px; }
 /* While a poster is made: a thin bar (Hairline track, Accent fill) with the mono percentage and Cancel, on its own row
    of the actions. */
 .eb-share-progress { display: flex; flex: 1 1 auto; align-items: center; gap: 12px; min-width: 0; }
 .eb-share-bar { flex: 1 1 auto; height: 4px; min-width: 0; overflow: hidden; background: var(--hairline); border-radius: 2px; }
 .eb-share-bar-fill { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width .15s var(--ease-ui); }
 .eb-share-pct { flex: none; min-width: 4ch; text-align: end; font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Several posters at once: its own block under the poster's actions (as Settings' groups: 1px Hairline, 16px squircle),
+   a title and one sentence, the Split by row (and, by number of birds, the most per poster), the live count, then the
+   two ZIP downloads or the progress row. */
 .eb-share-bulk {
-  display: flex; flex-direction: column; min-width: 0;
+  display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 14px 16px 16px;
   border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
-.eb-share-bulk-toggle {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 10px 16px;
-  background: none; border: 0; color: var(--ink); font: inherit; font-size: 15px; font-weight: 500; text-align: start; cursor: pointer;
-}
-.eb-share-bulk-caret { flex: none; width: 16px; height: 16px; color: var(--muted); transition: transform .18s var(--ease-ui); }
-.eb-share-bulk-toggle[aria-expanded="true"] .eb-share-bulk-caret { transform: rotate(180deg); }
-.eb-share-bulk-body { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 14px; border-top: 1px solid var(--hairline); min-width: 0; }
-.eb-share-bulk-body .eb-share-pct { min-width: 0; white-space: nowrap; }
+.eb-share-bulk-title { margin: 0; font-family: var(--font-display); font-size: 17px; font-weight: 700; line-height: 1.25; }
+.eb-share-bulk > .eb-note { margin: 0; }
+.eb-share-bulk .eb-share-opts { margin-top: 4px; }
+.eb-share-bulk .eb-share-pct { min-width: 0; white-space: nowrap; }
 /* The four actions (print mode's in the same places), 8px apart. A label wraps to a second line only where it must,
    at 1.2 with 3px padding so two lines still make 44px, centred; a word longer than its cell breaks rather than spill
    (only at page zoom's narrowest widths, which the container queries below mostly spare it). The 15px font size is the
@@ -295,11 +322,11 @@
   .eb-share-preview .eb-share-out { display: none; }
   .eb-share-spin { animation: none; border-color: var(--accent); opacity: .5; }
   .eb-share .eb-share-switch, .eb-share-switch .eb-track, .eb-share-switch .eb-knob { transition: none; }
-  .eb-share-bar-fill, .eb-share-bulk-caret { transition: none; }
+  .eb-share-bar-fill { transition: none; }
 }
 
-/* The orientation switch (Vertical | Horizontal) above the format control: the same control, its two segments sharing the
-   column. Square is the same in both, so it never disables. */
+/* The orientation switch (Vertical | Horizontal) under the format control, beside Fit or Oval: the same control. Square
+   is the same in both, so it never disables. */
 .eb-share-orient .eb-seg-btn:disabled { opacity: .4; cursor: default; }
 
 /* The Story / Post / Square choice: a small segmented control in the dock's style. */

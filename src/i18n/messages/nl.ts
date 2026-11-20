@@ -448,7 +448,7 @@ export const nl: Messages = {
       formatName: '{name}, verhouding {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Oriëntatie', vertical: 'Staand', horizontal: 'Liggend' },
-      countSize: { label: 'Grootte van het getal', small: 'Klein', medium: 'Middelgroot', large: 'Groot', hide: 'Verbergen' },
+      countSize: { label: 'Aantal', small: 'Klein', medium: 'Middelgroot', large: 'Groot', hide: 'Verbergen' },
       preview: { story: 'Voorbeeld van de verhaalafbeelding', post: 'Voorbeeld van de berichtafbeelding', square: 'Voorbeeld van de vierkante afbeelding', desktop: 'Voorbeeld van de bureaubladafbeelding', wide: 'Voorbeeld van de liggende berichtafbeelding' },
       failed: 'De afbeelding kon niet worden gemaakt.',
       imageFailed: 'De afbeelding kon niet worden gemaakt. Probeer het opnieuw.',
@@ -457,7 +457,6 @@ export const nl: Messages = {
       nameLabel: 'Titel van de collage',
       namePlaceholder: 'Mijn vogels van 2024',
       nameOptional: '(optioneel)',
-      parts: { label: 'Wat je deelt', image: 'Afbeelding', poster: 'Poster' },
       nameHelper: 'Getoond als titel van je collage en bij het delen.',
       showLatest: 'Nieuwste soort tonen',
       shareImage: 'Beeld delen',
@@ -483,11 +482,16 @@ export const nl: Messages = {
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
       dark: 'Donkere afbeelding',
       transparent: 'Transparante achtergrond',
+      arrange: { label: 'Indeling', packed: 'Passend', oval: 'Ovaal' },
+      hideTotals: 'Totalen verbergen',
       bigYear: {
-        label: 'Groot Jaar',
-        year: 'Jaar',
-        target: 'Doel',
-        targetPlaceholder: 'Soorten',
+        label: 'Doel',
+        add: 'Doel toevoegen',
+        target: 'Doel in soorten',
+        speciesIn: 'soorten in',
+        year: 'Periode van het doel',
+        allTime: 'Altijd',
+        remove: 'Doel verwijderen',
         targetInvalid: 'Vul een heel getal van 1 tot en met {max} in.',
         card: 'Groot Jaar {year}',
         cardLifer: 'Groot Jaar {year} · Nieuwe soorten in {year}',
@@ -495,6 +499,8 @@ export const nl: Messages = {
       downloadShort: 'Downloaden',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
+        entry: 'Poster printen',
+        back: 'Terug naar afbeelding',
         size: 'Postergrootte',
         inches: '{w} × {h} inch',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px op 150 dpi',
@@ -513,10 +519,12 @@ export const nl: Messages = {
         failed: 'De poster maken is niet gelukt. Probeer het opnieuw.',
         previewAlt: 'Voorbeeld van de {size}-poster',
         bulk: {
-          title: 'Meerdere posters (ZIP)',
+          title: 'Meerdere posters tegelijk',
+          lede: 'Eén poster per groep, samen gedownload als ZIP.',
           splitLabel: 'Verdelen op',
+          perPoster: 'Vogels per poster',
           splits: {
-            batches: 'Tot 1.000 per poster',
+            batches: 'Aantal vogels',
             family: 'Familie',
             order: 'Orde',
             country: 'Land',
