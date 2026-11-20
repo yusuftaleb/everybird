@@ -275,12 +275,12 @@ describe('ComparePage', () => {
     expect(screen.queryByTestId('compare-more')).toBeNull()
     expect(names(screen.getByTestId('compare-birds'))).toHaveLength(15)
   })
-  it('over six lists, the comparison still shows but the link is blocked with the reason', () => {
+  it('six friends and yours: the page keeps six lists, so the comparison link still works', () => {
     render(<ComparePage />)
     paste(Array.from({ length: 6 }, (_, i) => link(`F${i}`, 10 + i)).join(' '))
-    expect(within(screen.getByTestId('compare-people')).getAllByRole('listitem')).toHaveLength(7)
-    expect(screen.getByTestId('compare-copy')).toBeDisabled()
-    expect(screen.getByTestId('compare-share-status')).toHaveTextContent('A comparison link holds up to 6 lists.')
+    expect(within(screen.getByTestId('compare-people')).getAllByRole('listitem')).toHaveLength(6)
+    expect(screen.getByTestId('compare-copy')).toBeEnabled()
+    expect(screen.getByTestId('compare-share-status')).not.toHaveTextContent('A comparison link holds up to 6 lists.')
   })
   it('a paste with no link that opens says so', () => {
     render(<ComparePage />)
