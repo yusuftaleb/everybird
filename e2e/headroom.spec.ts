@@ -94,14 +94,14 @@ test("scrolling down past the threshold hides the bar; a small scroll doesn't to
   expect(await barBottom(page)).toBeCloseTo(h, 0);
 });
 
-test("Places opened after scrolling: the bar shows and covers neither the controls bar nor the panel", async ({ page }) => {
+test("Filters opened after scrolling: the bar shows and covers neither the controls bar nor the panel", async ({ page }) => {
   test.skip((page.viewportSize()?.width ?? 0) <= 600, "phones get the bottom sheet");
   await seed(page);
   const dockTop = await page.locator(".eb-dockwrap").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
   await scrollTo(page, dockTop - 12); // the controls bar just under where the shown bar would be
   await hidden(page);
-  await page.getByTestId("filter-tab-places").click();
-  const panel = page.getByTestId("filter-panel-places");
+  await page.getByTestId("filters-button").click();
+  const panel = page.getByTestId("filters-panel");
   await expect(panel).toBeVisible();
   await shown(page);
   const b = await barBottom(page);

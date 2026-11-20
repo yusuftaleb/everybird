@@ -163,7 +163,7 @@ for (const width of WIDTHS) {
       const fromInat = await speciesIn(page);
       expect(fromInat).toBeGreaterThan(0);
 
-      // Add by hand: a tap adds the bird at once.
+      // Add by hand (Settings' own section, no dialog): a tap adds the bird at once.
       const dialog = await openAdd(page, "hand");
       const list = dialog.getByRole("listbox", { name: "Species to tick" });
       await expect(list).toBeVisible();
@@ -173,7 +173,6 @@ for (const width of WIDTHS) {
       await expect(mallard).toHaveAttribute("aria-selected", "true");
       await expect(dialog.getByTestId("undo-toast")).toContainText("Added Mallard.");
       await expect.poll(() => speciesIn(page)).toBe(fromInat + 1);
-      await dialog.getByRole("button", { name: "Close" }).click();
       await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${fromInat + 1} species`));
     });
@@ -194,36 +193,36 @@ for (const width of WIDTHS) {
       await page.getByRole("button", { name: "All birds" }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
 
-      // Places: two countries (species seen in either).
-      const places = page.getByTestId("filter-tab-places");
-      await places.click();
+      // Places (in the one Filters panel): two countries (species seen in either), each under its continent.
+      const filters = page.getByTestId("filters-button");
+      await filters.click();
       const panel = page.getByTestId("filter-panel-places");
+      await panel.getByTestId("drill-n:AF").click();
+      await panel.getByTestId("drill-n:NA").click();
       await panel.getByText("Egypt", { exact: true }).click();
       await panel.getByText("Costa Rica", { exact: true }).click();
       await expect(stats(page)).toContainText(`11 of ${TOTAL} species`);
-      await expect(places).toContainText("Places · 2");
+      await expect(filters).toContainText("Filters · 1");
       await page.keyboard.press("Escape");
-      await expect(places).toBeFocused();
-      await places.click();
+      await expect(filters).toBeFocused();
+      await filters.click();
       await panel.getByTestId("places-clear").click();
       await page.keyboard.press("Escape");
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
 
-      // Time: a range from the keyboard (a year on), then Clear; then one country (Egypt's six lifers).
-      const time = page.getByTestId("filter-tab-time");
-      await time.click();
+      // Time (the same panel): a range from the keyboard (a year on), then Clear; then one country (Egypt's six lifers).
+      await filters.click();
       const lo = page.getByRole("slider", { name: "Start month" });
       await lo.focus();
       await page.keyboard.press("PageUp");
       await expect(lo).toHaveAttribute("aria-valuetext", "January 2020");
       await expect(stats(page)).toContainText(`of ${TOTAL} species`);
-      await expect(time).toContainText(/Time · /);
+      await expect(filters).toContainText("Filters · 1");
       await page.getByTestId("time-clear").click();
       await expect(lo).toHaveAttribute("aria-valuetext", "January 2019");
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
       await expect(page.getByTestId("time-clear")).toHaveCount(0);
-      await page.keyboard.press("Escape");
-      await places.click();
+      await panel.getByTestId("drill-n:AF").click();
       await panel.getByText("Egypt", { exact: true }).click();
       await page.keyboard.press("Escape");
       await expect(stats(page)).toContainText(`6 of ${TOTAL} species`);
@@ -359,11 +358,9 @@ for (const width of WIDTHS) {
       await check("about");
       await seed(page);
       await check("collage");
-      await page.getByTestId("filter-tab-places").click();
-      await check("places");
-      await page.keyboard.press("Escape");
-      await page.getByTestId("filter-tab-time").click();
-      await check("time");
+      await page.getByTestId("filters-button").click();
+      await expect(page.getByTestId("filters-panel")).toBeVisible();
+      await check("filters (Places and Time)");
       await page.keyboard.press("Escape");
       await page.getByRole("button", { name: "List", exact: true }).click();
       await check("list");

@@ -105,7 +105,7 @@ test("the timeline on a 1,000-species list at 390px with 4x CPU: a held range dr
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
   const stage = page.getByTestId("collage-stage");
   await expect(stage.locator("[data-code]:not([data-off])").first()).toBeVisible();
-  await page.getByTestId("filter-tab-time").tap();
+  await page.getByTestId("filters-button").tap();
   await expect(page.getByTestId("timeline")).toBeVisible();
   await page.waitForTimeout(1500);
   const measure = measurer(page);
@@ -177,22 +177,22 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
     () => expect(page.getByTestId("picker-order")).toHaveCount(0),
   );
 
-  // 2. Check a country in the Places sheet (the controls bar's dropdown; filters apply live, the sheet stays open).
-  await page.getByTestId("filter-tab-places").tap();
-  const sheet = page.locator('.eb-sheet[role="dialog"]');
+  // 2. Check a continent in the Filters sheet's Places section (its top level; filters apply live, the sheet stays open).
+  await page.getByTestId("filters-button").tap();
+  const sheet = page.locator('.eb-sheet[role="dialog"] [data-testid="filter-panel-places"]');
   await expect(sheet.locator('input[type="checkbox"]').first()).toBeVisible();
   const box = (i: number) => sheet.locator('input[type="checkbox"]').nth(i);
   const stats = await page.getByTestId("collage-stats").innerText();
   await measure(
-    "checking a country",
+    "checking a continent",
     () => box(0).tap(),
     () => expect(page.getByTestId("collage-stats")).not.toHaveText(stats),
   );
 
-  // 3. Then a second country (the set widens: species seen in either).
+  // 3. Then a second continent (the set widens: species seen in either).
   const one = await page.getByTestId("collage-stats").innerText();
   await measure(
-    "checking a second country",
+    "checking a second continent",
     () => box(1).tap(),
     () => expect(page.getByTestId("collage-stats")).not.toHaveText(one),
   );
