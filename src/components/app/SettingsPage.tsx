@@ -22,9 +22,9 @@ import './app.css'
 
 /**
  * `/settings`, everything in the page, behind no click: "Your list" (the summary line, one row per source, the match
- * report, the privacy footnote), "Add by hand" (the whole taxonomy to tick, open), then "Counting" (the rules),
- * "Language" (only the English-names switch, when the UI isn't English: the language is the top bar's menu) and
- * "Your data" (downloads, restore, forget; the collage's title is in the share dialog). Arriving at
+ * report, the privacy footnote), "Add by hand" (the whole taxonomy to tick, open), then "Counting" (the rules) beside
+ * "Your data" (downloads, restore, forget; the collage's title is in the share dialog) in two columns from 1024px, then
+ * "Language" (only the English-names switch, when the UI isn't English: the language is the top bar's menu). Arriving at
  * /settings#sources (the welcome's "Make mine") focuses the sources; #tick lands on Add by hand; the Places notes'
  * #add-mydata and #add-obsorg open their row's Add panel (use-anchor-target.ts); #match opens the match report.
  */
@@ -88,22 +88,13 @@ export function SettingsPage() {
             </div>
             <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} />
           </section>
-          {mine && <RulesSwitches saved={saved} dispatch={dispatch} />}
         </>
       ) : (
         !eb.failed && <div className="eb-ways-wait" aria-hidden="true" />
       )}
-      <div className={mine && lang !== 'en' ? 'eb-settings-pair' : 'eb-settings-one'}>
-        {/* The English-names switch, when the UI isn't English, with or without a list, in the prerendered page too. The
-            language itself is the top bar's menu. */}
-        {lang !== 'en' && <section className="eb-block" aria-labelledby="eb-lang-h">
-          <div className="eb-block-head">
-            <h2 id="eb-lang-h" className="eb-h2">{t.settings.language}</h2>
-          </div>
-          <div className="eb-langrow">
-            <EnglishNamesSwitch />
-          </div>
-        </section>}
+      {/* Counting (left) beside Your data (right) on wide screens, stacked on narrow ones (app.css). */}
+      <div className={mine && data ? 'eb-settings-pair' : 'eb-settings-one'}>
+        {mine && data && <RulesSwitches saved={saved} dispatch={dispatch} />}
         {(mine || data) && <section className="eb-block" aria-labelledby="eb-data-h">
           <div className="eb-block-head">
             <h2 id="eb-data-h" className="eb-h2">{d.head}</h2>
@@ -150,6 +141,16 @@ export function SettingsPage() {
           )}
         </section>}
       </div>
+      {/* The English-names switch, when the UI isn't English, with or without a list, in the prerendered page too. The
+          language itself is the top bar's menu. */}
+      {lang !== 'en' && <section className="eb-block" aria-labelledby="eb-lang-h">
+        <div className="eb-block-head">
+          <h2 id="eb-lang-h" className="eb-h2">{t.settings.language}</h2>
+        </div>
+        <div className="eb-langrow">
+          <EnglishNamesSwitch />
+        </div>
+      </section>}
     </main>
   )
 }

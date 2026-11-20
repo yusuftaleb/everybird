@@ -322,9 +322,12 @@
 .eb-page-settings { --page-gap: 32px; }
 @media (min-width: 720px) { .eb-page-settings { --page-gap: 40px; } }
 .eb-page-settings .eb-block { gap: 12px; }
-/* Counting and Your data side by side from 1024px. */
+/* Counting (left) and Your data (right) side by side from 1024px, stacked under it. Your data's buttons wrap inside
+   their column, and a label longer than the column wraps inside its button rather than overflow. */
 .eb-settings-pair, .eb-settings-one { display: flex; flex-direction: column; gap: var(--page-gap); min-width: 0; }
 .eb-settings-one:empty { display: none; }
+.eb-settings-pair .eb-tools > * { max-width: 100%; }
+.eb-settings-pair .eb-tools .eb-btn { white-space: normal; text-align: center; }
 @media (min-width: 1024px) {
   .eb-settings-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; align-items: start; }
 }
