@@ -138,6 +138,7 @@ describe('linksIn', () => {
     expect(lists[1].birds).toHaveLength(6)
     expect(bad).toBe(1)
     expect(linksIn('  \n ', decodeShare)).toEqual({ lists: [], bad: 0, compared: false })
+    expect(linksIn('call 16045551234 tonight', decodeShare).bad).toBe(0)
   })
   it('a comparison link opens its lists in its place; without its decoder, or as a bare word, it is no link', () => {
     const c = encodeCompare([list(3, 7, 'Ada'), list(4, 8, 'Sam')]).token

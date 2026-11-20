@@ -45,7 +45,7 @@ export function linksIn(
   let bad = 0, compared = false
   for (const piece of text.split(/\s+/)) {
     const c = decodeC && /\/c\/(c[A-Za-z0-9_-]+)/.exec(piece)?.[1]
-    const token = c || (/\/s\/([A-Za-z0-9_-]+)/.exec(piece)?.[1] ?? /^1[A-Za-z0-9_-]{8,}$/.exec(piece)?.[0])
+    const token = c || (/\/s\/([A-Za-z0-9_-]+)/.exec(piece)?.[1] ?? /^(?!\d+$)1[A-Za-z0-9_-]{8,}$/.exec(piece)?.[0])
     if (!token || seen.has(token)) continue
     seen.add(token)
     try {

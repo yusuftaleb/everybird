@@ -29,6 +29,7 @@ describe('shared view', () => {
     expect(dateToYm('2020-03-04')).toEqual({ ym: 1442 })
     expect(dateToYm('2020')).toEqual({ ym: 1440, yearOnly: true })
     expect(dateToYm('junk')).toBeUndefined()
+    expect(dateToYm('2921-05-03')).toBeUndefined() // past what a link can carry
     expect(ymToDate(1442)).toBe('2020-03')
     expect(ymToDate(1440, true)).toBe('2020')
   })
