@@ -283,6 +283,8 @@ export const nl: Messages = {
     card: {
       close: 'Sluiten',
       noDrawing: 'Nog geen tekening van deze soort.',
+      album: 'Illustratie: Bird Album',
+      albumSpoken: 'Illustratie van Bird Album, opent in een nieuw tabblad',
       assignedRegion: 'Toegewezen op regio',
       assignedDefault: 'Standaard toegewezen',
       mass: 'Gemiddeld lichaamsgewicht',

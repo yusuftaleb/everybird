@@ -283,6 +283,8 @@ export const pt: Messages = {
     card: {
       close: 'Fechar',
       noDrawing: 'Ainda não há desenho desta espécie.',
+      album: 'Ilustração: Bird Album',
+      albumSpoken: 'Ilustração do Bird Album, abre em uma nova aba',
       assignedRegion: 'Atribuída pela região',
       assignedDefault: 'Atribuída por padrão',
       mass: 'Massa corporal média',
