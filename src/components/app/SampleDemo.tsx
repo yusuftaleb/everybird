@@ -6,6 +6,7 @@ import { seedNames } from '@/lib/species/names'
 import { loadSamplePack, type SamplePack } from '@/lib/list/sample-pack'
 import { initialState, makeReducer } from '@/lib/list/store'
 import type { ViewKind } from '@/lib/view-resume'
+import type { ShareAt } from '@/lib/share/view-image'
 import { CollageView } from './CollageView'
 
 const ShareDialog = lazy(() => import('@/components/share/ShareDialog'))
@@ -44,7 +45,7 @@ function Loaded({ pack }: { pack: SamplePack }) {
   )
   const [state, dispatch] = useReducer(reducer, undefined, () => reducer(initialState(), { type: 'restore', saved: pack.saved }))
   // Share works on the sample too (its own store: a title typed there is never saved).
-  const [sharing, setSharing] = useState<ViewKind | null>(null)
+  const [sharing, setSharing] = useState<{ view: ViewKind; at: ShareAt } | null>(null)
   return (
     <>
       <CollageView
@@ -55,11 +56,11 @@ function Loaded({ pack }: { pack: SamplePack }) {
         label={t.collage.regionSample}
         statsPrefix={t.landing.samplePrefix}
         seed={pack.seed}
-        onShare={setSharing}
+        onShare={(view, at) => setSharing({ view, at })}
       />
       {sharing && (
         <Suspense fallback={null}>
-          <ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} view={sharing} onClose={() => setSharing(null)} />
+          <ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} view={sharing.view} at={sharing.at} onClose={() => setSharing(null)} />
         </Suspense>
       )}
     </>

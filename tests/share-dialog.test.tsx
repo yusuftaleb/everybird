@@ -26,6 +26,10 @@ vi.mock('@/lib/share/image', async (orig) => ({
   clearStickerCache: vi.fn(),
 }))
 vi.mock('@/lib/download', () => ({ downloadBlob: vi.fn() }))
+// The Map and Tree views' own images (loaded only from those views).
+const viewRenders = vi.hoisted(() => ({ map: vi.fn(async () => new Blob(['map'])), tree: vi.fn(async () => new Blob(['tree'])) }))
+vi.mock('@/lib/share/map-image', () => ({ renderMapImage: viewRenders.map }))
+vi.mock('@/lib/share/tree-image', () => ({ renderTreeImage: viewRenders.tree }))
 
 // The poster is made by a promise the test settles; it records the progress callback, the signal and the opts.
 type FakePoster = { size: string; landscape: boolean; bytes: number; soft: number; missing: number; namesDropped?: boolean; file: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }
@@ -234,10 +238,34 @@ describe('share dialog', () => {
     expect(screen.queryByRole('switch', { name: 'Dark image' })).toBeNull()
   })
 
-  it('takes the view it was opened from; every view shares the birds on screen as the collage image', async () => {
-    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} view="map" onClose={() => {}} />)
+  it('the Image part draws the Map or Tree view it was opened from, at its level; other views and the Poster draw the collage', async () => {
+    viewRenders.map.mockClear()
+    viewRenders.tree.mockClear()
+    const st = stateWith([entry('ostric2')])
+    const { unmount } = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="map" at={{ place: 'c:CA' }} onClose={() => {}} />)
+    await waitFor(() => expect(viewRenders.map).toHaveBeenCalledTimes(1))
+    expect(viewRenders.map.mock.calls[0]).toMatchObject([{ format: 'story', at: { place: 'c:CA' }, latest: false, state: { list: st.list } }])
+    expect(image.renderShareImage).not.toHaveBeenCalled()
+    expect(image.packForImage).not.toHaveBeenCalled()
+    // No sticker options for a map: the latest lifer switch is gone; the Poster is the collage again, with it.
+    expect(screen.queryByRole('switch', { name: 'Show latest lifer' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Poster' }))
+    await waitFor(() => expect(image.renderShareImage).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(image.renderShareImage).mock.calls[0][0]).toMatchObject({ format: 'print' })
+    expect(screen.getByRole('switch', { name: 'Show latest lifer' })).toBeInTheDocument()
+    unmount()
+
+    const tree = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { fam: 'Struthionidae' } }} onClose={() => {}} />)
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenCalledTimes(1))
+    expect(viewRenders.tree.mock.calls[0]).toMatchObject([{ at: { tree: { fam: 'Struthionidae' } } }])
+    expect(viewRenders.map).toHaveBeenCalledTimes(1)
+    tree.unmount()
+
+    vi.mocked(image.renderShareImage).mockClear()
+    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="list" onClose={() => {}} />)
     await waitFor(() => expect(image.renderShareImage).toHaveBeenCalledTimes(1))
     expect(vi.mocked(image.renderShareImage).mock.calls[0][0]).toMatchObject({ format: 'story' })
+    expect(screen.getByRole('switch', { name: 'Show latest lifer' })).toBeInTheDocument()
   })
 
   it('has no "Image options" heading; the switches share one row inside one box with the title field', () => {
