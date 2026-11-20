@@ -704,7 +704,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
     if (typeof nav.share === 'function' && nav.canShare?.({ files: [file] })) {
       try {
-        // The image says "stickers by huashu"; the post's text carries the full CC BY 4.0 credit and its link.
+        // The image says "Stickers: huashu-bird-sticker, CC BY 4.0"; the post's text carries the full CC BY 4.0 credit and its link.
         await nav.share({ files: [file], title: 'Everybird', text: SHARE_CREDIT })
         track('shared', { via: shape })
         return

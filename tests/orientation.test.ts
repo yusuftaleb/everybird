@@ -195,7 +195,7 @@ describe('the footer’s one line fits in every language', () => {
     // The widest name a row draws is clipped to 480 units; 22 characters at 30px is about 370 units, the name's common worst.
     const label = 'LATEST LIFER · SEP 2026'.length * (0.6 * 20 + 1.2) // mono 20px with 0.06em tracking
     const block = 40 + 14 + label + 14 + 22 * 0.56 * 30
-    const credit17 = 59 * 0.6 * 17 // the stamped footer line, at the smallest size placeCredit keeps
+    const credit17 = 81 * 0.6 * 17 // the stamped footer line, at the smallest size placeCredit keeps
     const brand = 181
     const wide = 1350 - 2 * M, landscape = printDesign('A2', true)[0] - 2 * M
     expect(brand + credit17 + FOOTER_GAP + block).toBeGreaterThan(wide)

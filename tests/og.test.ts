@@ -246,9 +246,11 @@ describe('the link preview in the page\'s language', () => {
 })
 
 describe('the link preview footer', () => {
-  it('link previews carry the footer line without the date stamp', () => {
+  it('link previews carry the footer line without the date stamp (beside the collage, the site and the credit a line each)', () => {
     const src = readFileSync(resolve('app/[lang]/s/[token]/opengraph-image.tsx'), 'utf8')
     expect(src).toContain('{FOOTER_LINE}')
+    expect(src).toContain('{SITE_LABEL}')
+    expect(src).toContain('{STICKER_CREDIT}')
     expect(src).not.toMatch(/stampDate|withStamp|share\/stamp/)
   })
 })

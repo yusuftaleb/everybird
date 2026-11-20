@@ -2,20 +2,20 @@
 // the count, the filter in words, the footer line with the sticker credit and the date stamp, Dark image and Transparent
 // background), with no stickers, around a drawing of the view in the area the collage would take. The count sits on top
 // of that area, centred, with an optional line under it (the tree's orders, families and genera); the drawing gets the
-// rest. The map draws no stickers, so its footer credits none (MAP_FOOTER); the tree draws a sticker at each tip, so
-// its footer credits them and the tree (TREE_FOOTER). Loaded only when Share is pressed in one of those views.
+// rest. The map's footer is the collage's (MAP_FOOTER, FOOTER_LINE); the tree's adds the tree's credit (TREE_FOOTER).
+// Loaded only when Share is pressed in one of those views.
 import type { Ui } from '@/i18n/messages/en'
 import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TreeLevel } from '@/lib/tree/levels'
 import type { TreeLayout } from '@/lib/tree-mine'
-import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
+import { FOOTER_LINE, IMAGE_SCALE, ensureViewFonts, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
-/** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone, the
- *  tree's FOOTER_LINE (its tips carry stickers) and the tree's credit (AvesData is CC BY 4.0, so an image of it carries
- *  the credit). */
-export const MAP_FOOTER = SITE_LABEL
-export const TREE_FOOTER = `${FOOTER_LINE} · tree: AvesData, McTavish et al., CC BY 4.0`
+/** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the collage's (the
+ *  site and the sticker credit, Yusuf 2026-11-20), the tree's FOOTER_LINE and the tree's credit (AvesData is CC BY 4.0,
+ *  so an image of it carries the credit), in the credits' one form. */
+export const MAP_FOOTER = FOOTER_LINE
+export const TREE_FOOTER = `${FOOTER_LINE} · Tree: AvesData, CC BY 4.0`
 
 /** The level the view had open when Share was pressed: the country the map has open (`names`: how the map names its
  *  places, in the UI language), or the tree's (`mine`: its "Lifers only" switch; `layout`: the layout on screen, which

@@ -174,7 +174,7 @@ describe("the desktop's one-line footer", () => {
   // desktop line is 1792 units wide (1920 less the 64 side margins); the wordmark is about 181 of them.
   const LINE_W = 1920 - 2 * 64
   const BRAND = 181
-  const CREDIT_CHARS = 59 // "everybird.yusuftaleb.com · stickers by huashu · 14 Nov 2026"
+  const CREDIT_CHARS = 81 // "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026"
   const MONO_EM_20 = 0.6 * 20 + 0.06 * 20
   it('fits the credit at 17px or more beside the row, in every language', () => {
     const over: string[] = []

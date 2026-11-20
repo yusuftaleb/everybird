@@ -152,7 +152,7 @@ test.describe("date stamp", () => {
     const dialog = await openShare(page);
     const preview = dialog.getByTestId("share-preview");
     const texts = () => page.evaluate(() => (window as unknown as { __fillTexts: string[] }).__fillTexts);
-    const line = "everybird.yusuftaleb.com · stickers by huashu · 15 Nov 2026";
+    const line = "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 15 Nov 2026";
     for (const format of ["Story", "Post", "Square"]) {
       // The story is drawn as the dialog opens; the others on their click, after the previous format's texts are gone.
       if (format !== "Story") {
@@ -182,7 +182,7 @@ test.describe("date stamp", () => {
       await expect(preview.getByRole("img", { name: es.ui.share.preview.story })).toBeVisible({ timeout: 30_000 });
       await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
       const drawn = await page.evaluate(() => (window as unknown as { __fillTexts: string[] }).__fillTexts);
-      expect(drawn).toContain("everybird.yusuftaleb.com · stickers by huashu · 15 nov 2026");
+      expect(drawn).toContain("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 15 nov 2026");
       expect(drawn.some((t) => t.startsWith("ÚLTIMA ESPECIE NUEVA"))).toBe(true);
       expect(drawn).toContain("ESPECIES");
       const [download] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Descargar imagen" }).click()]);
@@ -223,7 +223,7 @@ test("Show latest lifer: on by default; off draws no latest lifer row, on draws 
   const off = await texts();
   expect(off.length).toBeGreaterThan(0); // a new image was drawn
   expect(off.some((t) => t.startsWith("LATEST LIFER"))).toBe(false);
-  expect(off.some((t) => t.startsWith("everybird.yusuftaleb.com · stickers by huashu"))).toBe(true); // the footer and credit stay
+  expect(off.some((t) => t.startsWith("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0"))).toBe(true); // the footer and credit stay
   expect(off.filter((t) => /coffee/i.test(t)), "Buy me a coffee is never drawn on the image").toEqual([]);
   await clear();
   await sw.click();

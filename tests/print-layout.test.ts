@@ -88,7 +88,7 @@ describe('the print card', () => {
     expect(card.L.collage.x).toBe(64)
     expect(card.L.W - card.L.collage.x - card.L.collage.w).toBe(64)
     expect(card.L.H).toBeCloseTo(printDesignH('A2'), 6)
-    expect(card.footerLine).toContain('stickers by huashu')
+    expect(card.footerLine).toContain('Stickers: huashu-bird-sticker, CC BY 4.0')
     expect(card.footerLine).toMatch(/ · 15 Nov 2026$/)
     expect(card.colors).toEqual(SHARE_COLORS.dark)
     expect(card.colors.paper).toBe('#1e1e24')

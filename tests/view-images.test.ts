@@ -83,11 +83,10 @@ describe('the tree image names every tip', () => {
 })
 
 describe('the credit on each image', () => {
-  it('the map credits the site alone; the tree, whose tips carry stickers, the stickers and AvesData (CC BY 4.0)', () => {
-    expect(MAP_FOOTER).toBe(SITE_LABEL)
-    expect(MAP_FOOTER).not.toMatch(/sticker|huashu/)
-    expect(TREE_FOOTER).toBe(`${SITE_LABEL} · stickers by huashu · tree: AvesData, McTavish et al., CC BY 4.0`)
-    expect(FOOTER_LINE).toBe(`${SITE_LABEL} · stickers by huashu`)
+  it('the map has the collage footer; the tree adds AvesData, each credit in one form', () => {
+    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0')
+    expect(MAP_FOOTER).toBe(FOOTER_LINE)
+    expect(TREE_FOOTER).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · Tree: AvesData, CC BY 4.0')
   })
 
   it('a card draws the footer it is given, the date stamp after it; without one, FOOTER_LINE', async () => {

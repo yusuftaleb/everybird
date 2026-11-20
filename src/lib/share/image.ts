@@ -14,7 +14,8 @@
 //   bottom  a Hairline rule, "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px; unless the dialog's "Show latest
 //           lifer" switch is off, when the collage takes its room), then the footer: the Everybird wordmark and one
 //           quiet line beside it, the site, the sticker credit and the date the image was made
-//           ("everybird.yusuftaleb.com · stickers by huashu · 14 Nov 2026", stamp.ts; Geist Mono 20px, Muted).
+//           ("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", stamp.ts; Geist Mono
+//           20px, Muted; on its own line under the wordmark where it does not fit beside it: placeCredit).
 //           The full credit, with the licence, travels in the share text.
 // The story keeps the story safe zones clear: nothing in the top 160px (the profile row; the title from 184) or the
 // bottom 156px (the reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1284 with
@@ -32,7 +33,7 @@
 // picks its sticker tier (printStickerUrl: 1024 with the 384 fallback for big tiles), and the poster paints it in strips.
 // Its head and foot are quieter than an image's: the head is the title alone (the collage title, else the filter in
 // words, in Accent), with the count at its right under "Beside title"; the foot is one line under the hairline, the
-// wordmark then "everybird.yusuftaleb.com · stickers by huashu · 20 Nov 2026" at the left and "Latest lifer: Hooded
+// wordmark then "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 20 Nov 2026" at the left and "Latest lifer: Hooded
 // Crow, Sep 2026" at the right end (POSTER_FOOT; the latest lifer only with "Show latest lifer", on a second line,
 // right-aligned, where the two don't fit on one: placePosterFoot), with no latest lifer row or sticker.
 import { SHARE_ORIGIN } from '@/lib/share/origin'
@@ -93,11 +94,13 @@ export const isPrint = (f: CardFormat): f is 'print' | 'printLandscape' => f ===
 export const NAME_MAX_LEN = 40
 /** The footer's site name: the share origin's host ("everybird.yusuftaleb.com"). */
 export const SITE_LABEL = new URL(SHARE_ORIGIN).host
+/** The sticker credit on every image, poster and link preview, in the one form the credits take ("Tree: AvesData, CC BY 4.0"). */
+export const STICKER_CREDIT = 'Stickers: huashu-bird-sticker, CC BY 4.0'
 /**
- * The footer's one line beside the wordmark on share images and link previews: the site and the sticker credit. Share
- * images end it with the date stamp (stamp.ts withStamp); link previews don't.
+ * The footer's one line beside (or under) the wordmark on share images and link previews: the site and the sticker
+ * credit. Share images end it with the date stamp (stamp.ts withStamp); link previews don't.
  */
-export const FOOTER_LINE = `${SITE_LABEL} · stickers by huashu`
+export const FOOTER_LINE = `${SITE_LABEL} · ${STICKER_CREDIT}`
 /** The full sticker credit (CC BY 4.0), for the share sheet's text: the image itself carries FOOTER_LINE. */
 export const SHARE_CREDIT = 'Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker'
 
@@ -642,7 +645,7 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, font: (px: number)
 /** The smallest size the footer line takes beside the wordmark before it moves to its own line. */
 export const CREDIT_MIN = 17
 /**
- * Where the footer line (the site and "stickers by huashu") goes, never truncated and never without the credit: beside
+ * Where the footer line (the site and the sticker credit) goes, never truncated and never without the credit: beside
  * the wordmark (`inlineRoom` px) at `size` down to `min` (CREDIT_MIN; the poster's POSTER_FOOT.min), else on its own line
  * (`fullRoom` px) at `size`, shrinking only if even the full width is too narrow. `measure(px)` is the line's width at that size.
  */
@@ -978,7 +981,7 @@ function cardFontsReady(d: CardDraft): Promise<void> {
 function placeFooter(d: CardDraft): PreparedCard {
   const { L, fonts: font, footerLine } = d
   // Footer, quiet: the wordmark, then one line on its baseline, the site, the sticker credit and the date stamp ("… ·
-  // stickers by huashu · 14 Nov 2026", never truncated). If it doesn't fit there at 17px or more, it takes its
+  // Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", never truncated). If it doesn't fit there at 17px or more, it takes its
   // own line under the wordmark at the bottom safe line, and the wordmark, the hairline and the latest lifer row move
   // up by that line. Estimates without a DOM: Cabinet Grotesk 700 about 0.55 em a character, Geist Mono 0.6.
   const X0 = L.collage.x, maxW = L.collage.w
