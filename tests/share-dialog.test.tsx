@@ -4,9 +4,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ShareDialog from '@/components/share/ShareDialog'
 import * as image from '@/lib/share/image'
-import { setLiferMark } from '@/lib/lifer-marks'
-import { setArrangement } from '@/lib/arrangement'
-import { resetDarkImageForTests, setDarkImage } from '@/lib/dark-image'
+import { ARRANGEMENT_KEY, arrangement, setArrangement } from '@/lib/arrangement'
+import { MARK_NEWEST_KEY, setLiferMark } from '@/lib/lifer-marks'
 import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
@@ -69,7 +68,7 @@ beforeEach(() => {
   URL.createObjectURL = vi.fn(() => 'blob:x')
   URL.revokeObjectURL = vi.fn()
 })
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); history.replaceState(null, '', '/'); delete document.documentElement.dataset.theme; resetDarkImageForTests() })
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); history.replaceState(null, '', '/'); delete document.documentElement.dataset.theme })
 
 describe('share dialog', () => {
   it('"Collage title" starts from the saved title and saves as it is typed (it names the collage page too)', async () => {
@@ -234,8 +233,8 @@ describe('share dialog', () => {
     expect(screen.queryByTestId('share-bulk')).toBeNull()
     fireEvent.click(within(parts).getByRole('button', { name: 'Image' }))
     expect(screen.queryByLabelText('Target')).toBeNull()
-    // Dark image is in Style now, not here.
-    expect(screen.queryByRole('switch', { name: 'Dark image' })).toBeNull()
+    // Dark image is back in the image options.
+    expect(screen.getByRole('switch', { name: 'Dark image' })).toBeInTheDocument()
   })
 
   it('the Image part draws the Map or Tree view it was opened from, at its level; other views and the Poster draw the collage', async () => {
@@ -307,12 +306,14 @@ describe('share dialog', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'filter', filter: {} })
   })
 
-  it('the image follows Style > Dark image: the app\'s theme until it is set, and the page theme is left alone', async () => {
+  it('"Dark image" starts at the app\'s theme, then the dialog\'s own; the page theme is left alone', async () => {
     document.documentElement.dataset.theme = 'dark'
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     await waitFor(() => expect(renders).toHaveLength(1))
     expect(vi.mocked(image.renderShareImage).mock.calls[0][0]).toMatchObject({ format: 'story', theme: 'dark' })
-    act(() => setDarkImage(false))
+    const dark = screen.getByRole('switch', { name: 'Dark image' })
+    expect(dark).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(dark)
     await waitFor(() => expect(renders).toHaveLength(2))
     expect(vi.mocked(image.renderShareImage).mock.calls[1][0]).toMatchObject({ format: 'story', theme: 'light' })
     expect(document.documentElement.dataset.theme).toBe('dark')
@@ -701,7 +702,7 @@ describe('share dialog: print mode', () => {
     const p = fakePoster()
     await act(async () => makes[0].resolve(p))
     expect(screen.getByRole('button', { name: 'Download PNG' })).toBeInTheDocument()
-    act(() => setDarkImage(true))
+    fireEvent.click(screen.getByRole('switch', { name: 'Dark image' }))
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', theme: 'dark' }))
     expect(p.dispose).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('button', { name: 'Download PNG' })).toBeNull()
@@ -1140,15 +1141,46 @@ describe('the orientation switch', () => {
   })
 })
 
-describe('share dialog and the collage arrangement', () => {
-  afterEach(() => setArrangement('packed'))
-  it('packs the images in the collage\'s arrangement, and Packed as before', async () => {
-    setArrangement('family')
+describe('share dialog: Packed / Oval and the lifer marks', () => {
+  beforeEach(() => {
+    const m = new Map<string, string>()
+    vi.stubGlobal('localStorage', { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, String(v)) }, removeItem: (k: string) => { m.delete(k) } })
+  })
+  afterEach(() => { setArrangement('packed'); setLiferMark('newest', false); setLiferMark('first', false) })
+  it('Packed to start; Oval packs the images inside the ellipse, is kept on the device, and re-renders', async () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     await waitFor(() => expect(vi.mocked(image.packForImage)).toHaveBeenCalled())
-    expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2]).toEqual(
-      image.imagePackSpec('story', { name: false, filter: false, latest: true, count: 1 }, undefined, undefined, 'family'))
-    expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2].arrangement).toBe('family')
-    expect(image.imagePackSpec('story', { name: false, filter: false, latest: true, count: 1 }).arrangement).toBeUndefined()
+    expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2].oval).toBeUndefined()
+    const group = screen.getByRole('group', { name: 'Arrangement' })
+    expect(within(group).getAllByRole('button').map((b) => b.textContent)).toEqual(['Packed', 'Oval'])
+    expect(within(group).getByRole('button', { name: 'Packed' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(within(group).getByRole('button', { name: 'Oval' }))
+    expect(within(group).getByRole('button', { name: 'Oval' })).toHaveAttribute('aria-pressed', 'true')
+    expect(localStorage.getItem(ARRANGEMENT_KEY)).toBe('oval')
+    await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2]).toEqual(
+      image.imagePackSpec('story', { name: false, filter: false, latest: true, count: 1 }, undefined, undefined, 'oval')))
+    expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2].oval).toBe(true)
+  })
+
+  it('a stored By family or By colour reads as Packed', () => {
+    localStorage.setItem(ARRANGEMENT_KEY, 'family')
+    expect(arrangement()).toBe('packed')
+    localStorage.setItem(ARRANGEMENT_KEY, 'colour')
+    expect(arrangement()).toBe('packed')
+  })
+
+  it('the two lifer-mark switches, off to start, ring the image\'s birds and are kept on the device', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    const newest = screen.getByRole('switch', { name: 'Mark latest lifer' })
+    const first = screen.getByRole('switch', { name: 'Mark first lifer' })
+    expect(newest).toHaveAttribute('aria-checked', 'false')
+    expect(first).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(newest)
+    expect(newest).toHaveAttribute('aria-checked', 'true')
+    expect(localStorage.getItem(MARK_NEWEST_KEY)).toBe('1')
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ markNewest: true, markFirst: false }))
+    fireEvent.click(first)
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ markNewest: true, markFirst: true }))
   })
 })

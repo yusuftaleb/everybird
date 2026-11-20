@@ -41,7 +41,7 @@ export function Tour({ onOwn, onEnd }: { onOwn: () => void; onEnd: () => void })
   const nameId = useId()
   const textId = useId()
   const end = useCallback(() => { rememberToured(); onEnd() }, [onEnd])
-  // Esc ends the tour, but only an Esc nothing else took: dialogs and panels opened over it (Filters, Style, Share, Add
+  // Esc ends the tour, but only an Esc nothing else took: dialogs and panels opened over it (Filters, Share, Add
   // birds) catch theirs on window's capture phase and stop it, so this listens in the bubble phase.
   const endRef = useRef(end)
   useLayoutEffect(() => { endRef.current = end })

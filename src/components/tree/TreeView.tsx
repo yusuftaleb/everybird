@@ -19,14 +19,12 @@ import { useNames } from '@/lib/species/use-names'
 import type { SpeciesRow } from '@/lib/species/types'
 import { genusOf, levelView, type Inside, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
 import { loadTree } from '@/lib/tree/load'
+import { useTreeMine } from '@/lib/tree-mine'
 import { ageTicks, formatAge, oldestLineage, type Tree, type TreeFile } from '@/lib/tree/tree'
 import './tree.css'
 
 export const AVES_URL = 'https://github.com/McTavishLab/AvesData'
 export const CC_BY_URL = 'https://creativecommons.org/licenses/by/4.0/'
-/** "Only my birds", a per-device choice kept in localStorage (off when unset or unreadable). */
-export const TREE_MINE_KEY = 'everybird:tree-mine'
-const readMine = () => { try { return localStorage.getItem(TREE_MINE_KEY) === '1' } catch { return false } }
 
 type Loaded = { file: TreeFile; tree: Tree; species: SpeciesIndex }
 
@@ -36,7 +34,7 @@ type Props = {
   sci: boolean
   /** Opens the bird card; `el` is the pressed button. */
   onPick: (code: string, el: HTMLElement) => void
-  /** Told the level open and "Only my birds" whenever they change, so Share can draw the same. */
+  /** Told the level open and "Lifers only" (the bar's switch, tree-mine.ts) whenever they change, so Share can draw the same. */
   onLevel?: (level: TreeLevel, mine: boolean) => void
 }
 
@@ -53,12 +51,7 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
     return () => { live = false }
   }, [])
   const [level, setLevel] = useState<TreeLevel>({})
-  // The tab mounts on the client only (lazy, after the view is chosen), so storage is read at once.
-  const [mine, setMine] = useState(readMine)
-  const onMine = (on: boolean) => {
-    setMine(on)
-    try { if (on) localStorage.setItem(TREE_MINE_KEY, '1'); else localStorage.removeItem(TREE_MINE_KEY) } catch { /* kept for this page */ }
-  }
+  const mine = useTreeMine()
   useEffect(() => onLevel?.(level, mine), [level, mine, onLevel])
   // The row whose list of genera inside is open.
   const [list, setList] = useState<string | null>(null)
@@ -189,10 +182,6 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
           ))}
         </p>
       </nav>
-      <button type="button" role="switch" aria-checked={mine} className="eb-switch eb-tree-mine" data-testid="tree-mine" onClick={() => onMine(!mine)}>
-        <span>{tt.mine}</span>
-        <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
-      </button>
       {view.split && here && <p className="eb-tree-note">{fmt(tt.split, { name: here })}</p>}
       {insideNote && <p className="eb-tree-note">{insideNote}</p>}
       {!view.rows.length ? <p className="eb-tree-note">{tt.mineNone}</p> : <div className="eb-tree-chart">

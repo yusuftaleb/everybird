@@ -207,6 +207,8 @@
 .ebd .ebd-tab svg { width: 15px; height: 15px; flex: none; }
 .ebd .ebd-tab[data-on] { opacity: 1; color: var(--accent); background: var(--surface); font-weight: 600; }
 .ebd .ebd-icontab { width: 30px; padding: 0; }
+.ebd .ebd-sw { gap: 7px; }
+.ebd .ebd-sw[data-italic] { font-style: italic; }
 .ebd .ebd-track { position: relative; display: block; width: 24px; height: 14px; border-radius: 7px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
 .ebd .ebd-knob { position: absolute; left: 3px; top: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .ebd .ebd-drop { gap: 5px; }

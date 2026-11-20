@@ -1,7 +1,8 @@
 'use client'
 // The collage block shared by the landing sample, the birder's own collage and the shared view: the stats line, the
-// controls bar (view tabs, True size or the list's direction, Scientific, the search), the filters, the collage or
-// the list, the legend, the hover tooltip and the bird card. Composition after LifeList.tsx (framer-site).
+// controls bar (view tabs, the view's switches, Filters, the search), the filters, the collage, list, map or tree, the
+// legend, the hover tooltip and the bird card. The collage on the page is always packed (Packed / Oval is the share
+// dialog's). Composition after LifeList.tsx (framer-site).
 import { trackFilterUsed } from '@/lib/analytics'
 import { newlySetKinds } from '@/lib/list/filter-kinds'
 import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -17,8 +18,7 @@ import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt, formatMonth } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
-import { setLiferMark, useLiferMarks } from '@/lib/lifer-marks'
-import { setArrangement, useArrangement } from '@/lib/arrangement'
+import { useLiferMarks } from '@/lib/lifer-marks'
 import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
 import { hasSeenMonths } from '@/lib/list/seen'
 import { applyFilter, drillTo, filterKey, filterToShow, threatenedCount, type Filter } from '@/lib/list/filters'
@@ -32,7 +32,6 @@ import { useNames } from '@/lib/species/use-names'
 import type { CollageHit } from '@/lib/species/name-search'
 import type { Regions } from '@/lib/species/types'
 import type { StateLayout } from '@/lib/layout/layout-client'
-import type { ViewKind } from '@/lib/view-resume'
 import type { ShareAt } from '@/lib/share/view-image'
 import type { TreeLevel } from '@/lib/tree/levels'
 import { useVariant } from '@/lib/variants'
@@ -70,11 +69,10 @@ type Props = {
   whose?: 'your' | 'this'
   /** Full layouts packed ahead of time, shown until the layout worker answers (the landing sample). */
   seed?: readonly StateLayout[]
-  /** The bar's Share button opens the share dialog for the birds on screen (`view`: what the view shows, `at`: the level the
-   *  Map or Tree view has open). None: no button. */
-  onShare?: (view: ViewKind, at: ShareAt) => void
-  /** The Compare entry in the view switcher (the birder's own collage). */
-  compare?: boolean
+  /** Told the level the Map or Tree view has open as it changes, for the page's Share button to draw the same. */
+  onShareAt?: (at: ShareAt) => void
+  /** At the end of the stats line's row (the landing sample's Share). */
+  statsAction?: ReactNode
 }
 
 const pad = (d: string) => (d.length === 4 ? `${d}-00-00` : d.length === 7 ? `${d}-00` : d)
@@ -128,7 +126,7 @@ function latestLine(name: string, date: string | undefined, t: Ui): ReactNode {
   return rich(fmt(t.collage.legend.latestOn, { name, date: shown }), { time: (chunk) => <time dateTime={date}>{chunk}</time> })
 }
 
-export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShare, compare, whose = 'this' }: Props) {
+export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShareAt, statsAction, whose = 'this' }: Props) {
   const { list, filter, mode, massOrder, sci, seen } = state
   // No places to map (a shared link without them): no Map tab, and a carried-over Map view shows the collage.
   const noMap = !!hideSections?.includes('places')
@@ -140,9 +138,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const [pick, setPick] = useState<{ code: string; anchor: HTMLElement | null } | null>(null)
   const [tip, setTip] = useState<string | null>(null)
   // The level the Map or Tree view has open (their own state, told up as it changes), for Share to draw the same.
-  const shareAt = useRef<ShareAt>({})
-  const onMapLevel = useCallback((place: string | undefined) => { shareAt.current = { place } }, [])
-  const onTreeLevel = useCallback((tree: TreeLevel, mine: boolean) => { shareAt.current = { tree, mine } }, [])
+  const onMapLevel = useCallback((place: string | undefined) => onShareAt?.({ place }), [onShareAt])
+  const onTreeLevel = useCallback((tree: TreeLevel, mine: boolean) => onShareAt?.({ tree, mine }), [onShareAt])
 
   const entries = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
   // The timeline's months (first lifer to today).
@@ -151,9 +148,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // A range drag's preview (Timeline): shown over the current layout until the committed range's layout lands.
   const [preview, setPreview] = useState<{ from?: string; to?: string; committed?: boolean } | null>(null)
   const onPreview = useCallback((r: { from?: string; to?: string } | null) => setPreview((p) => (r ? r : p ? { ...p, committed: true } : null)), [])
-  const arrangement = useArrangement()
-  const rows = arrangement === 'family' // By family: one height per row, so True size can't apply
-  const lay = useCollageLayout({ list, seen, filter, mode, arrangement, species, container: box, seed, preview })
+  const lay = useCollageLayout({ list, seen, filter, mode, species, container: box, seed, preview })
   const layKey = lay ? lay.layout.key.split('|').slice(2).join('|') : undefined
   useEffect(() => {
     if (!preview?.committed || layKey !== filterKey(filter)) return
@@ -279,33 +274,32 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
 
   const picked = pick ? list.find((e) => e.code === pick.code) : undefined
   const tipEntry = tip && !pick && view === 'collage' ? entries.find((e) => e.code === tip) : undefined
-  const sizes = rows ? t.collage.legend.sizesRows : mode === 'true' ? t.collage.legend.sizesTrue : t.collage.legend.sizesEven
+  const sizes = mode === 'true' ? t.collage.legend.sizesTrue : t.collage.legend.sizesEven
   const latestRow = latest ? species.byCode.get(latest.code) : undefined
+
+  const statsP = (
+    <p className="eb-mono eb-stats" data-testid="collage-stats">
+      {/* Each part keeps its words on one line ("since May 2022" never splits); the line wraps between parts. */}
+      {(statsPrefix ? `${statsPrefix} · ${stats}` : stats).split(' · ').map((part, i) => (
+        <Fragment key={i}>{i > 0 && ' · '}<span className="eb-stat">{part}{part === threatPart && <span className="eb-sr"> {t.collage.stats.threatenedSr}</span>}</span></Fragment>
+      ))}
+    </p>
+  )
 
   return (
     <section ref={box} className="eb-view" aria-label={label}>
-      <p className="eb-mono eb-stats" data-testid="collage-stats">
-        {/* Each part keeps its words on one line ("since May 2022" never splits); the line wraps between parts. */}
-        {(statsPrefix ? `${statsPrefix} · ${stats}` : stats).split(' · ').map((part, i) => (
-          <Fragment key={i}>{i > 0 && ' · '}<span className="eb-stat">{part}{part === threatPart && <span className="eb-sr"> {t.collage.stats.threatenedSr}</span>}</span></Fragment>
-        ))}
-      </p>
+      {statsAction ? <div className="eb-stats-row">{statsP}{statsAction}</div> : statsP}
       {notice}
       <ControlsBar
         view={view}
         noMap={noMap}
-        compare={compare}
-        share={onShare && { onShare: () => onShare(view, shareAt.current), disabled: !entries.length }}
         onView={(v) => { setPick(null); setTip(null); dispatch({ type: 'view', view: v }) }}
         trueSize={mode === 'true'}
         onTrueSize={(on) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })}
-        trueOff={rows}
-        arrangement={{ value: arrangement, onChange: setArrangement }}
         lightFirst={massOrder === 'lightest'}
         onDirection={() => dispatch({ type: 'massOrder', massOrder: massOrder === 'heaviest' ? 'lightest' : 'heaviest' })}
         sci={sci}
         onSci={(on) => dispatch({ type: 'sci', sci: on })}
-        marks={latest ? { newest: liferMarks.newest, first: liferMarks.first, onNewest: (on) => setLiferMark('newest', on), onFirst: (on) => setLiferMark('first', on) } : undefined}
         search={{ entries, shown: fk ? shownCodes : undefined, species, onPick: onSearchPick, whose, filter, onApply, regions, listPlaces, hasMonths }}
         filters={filtersUi.button}
         below={filtersUi.below}
@@ -320,7 +314,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       {view === 'collage' ? (
         lay ? (
           <div ref={wrap} className="eb-stagewrap">
-            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={rows ? 'rows' : mode} onPick={onPickBird} onHover={onHover} still={lay.still} marks={stageMarks} />
+            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} onHover={onHover} still={lay.still} marks={stageMarks} />
             {tipEntry && <BirdTip key={tipEntry.code} entry={tipEntry} row={species.byCode.get(tipEntry.code)!} regions={regions} sci={sci} wrap={wrap} filter={filter} seen={seen} />}
           </div>
         ) : (

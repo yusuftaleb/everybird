@@ -47,8 +47,7 @@ export type CollageProps = {
   species: SpeciesIndex
   layout: StateLayout
   visible: Set<string>
-  /** 'rows': By family (arrange.ts), sized by row, not by mass. */
-  mode: 'even' | 'true' | 'rows'
+  mode: 'even' | 'true'
   onPick: (code: string) => void
   onHover?: (code: string | null) => void
   className?: string
@@ -594,7 +593,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
         ref={stage}
         className="eb-stage"
         role="group"
-        aria-label={plural(mode === 'rows' ? t.collage.stage.rows : mode === 'true' ? t.collage.stage.trueScale : t.collage.stage.even, shown, { n: formatInt(shown, t.num) })}
+        aria-label={plural(mode === 'true' ? t.collage.stage.trueScale : t.collage.stage.even, shown, { n: formatInt(shown, t.num) })}
         data-testid="collage-stage"
         data-mode={mode}
         data-many={many || undefined}

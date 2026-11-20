@@ -4,8 +4,6 @@
 .eb-tree-fact { margin: 0; font-size: 15px; font-weight: 600; }
 .eb-tree-note, .eb-tree-credit, .eb-tree-unmapped p { margin: 0; font-size: 14px; color: var(--muted); }
 .eb-tree-credit a { color: inherit; }
-/* "Only my birds": .eb-switch (collage.css), its label lined up with the text above. */
-.eb-tree-mine { justify-self: start; margin-inline-start: -14px; }
 .eb-tree-path button, .eb-tree-path .eb-tree-here { position: relative; }
 .eb-tree-path button::after { content: ''; position: absolute; inset: -10px -4px; } /* a 44px press on the 24px step */
 .eb-tree-here:focus { outline: none; }

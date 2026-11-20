@@ -21,6 +21,7 @@ export const EN_UI = {
       /** The nav's aria-label. */
       label: 'Everybird',
       collage: 'Collage',
+      compare: 'Compare',
       settings: 'Settings',
       about: 'About',
     },
@@ -112,7 +113,6 @@ export const EN_UI = {
       latestOn: 'Latest: {name}, <time>{date}</time>',
       sizesEven: 'Sizes follow body mass, evened out so small birds stay visible',
       sizesTrue: 'Sizes follow body mass at true scale',
-      sizesRows: 'Rows follow taxonomic order, one height per row',
       marks: '* heard only · † found dead',
     },
     /** The stage's accessible name. */
@@ -124,10 +124,6 @@ export const EN_UI = {
       trueScale: {
         one: 'Collage of {n} species, sized by body mass at true scale. Use the arrow keys to move between birds.',
         other: 'Collage of {n} species, sized by body mass at true scale. Use the arrow keys to move between birds.',
-      },
-      rows: {
-        one: 'Collage of {n} species in rows by family. Use the arrow keys to move between birds.',
-        other: 'Collage of {n} species in rows by family. Use the arrow keys to move between birds.',
       },
     },
     /** The controls bar. `…Short` labels show on narrow bars; `…Sr` follows the label for screen readers only. */
@@ -142,26 +138,24 @@ export const EN_UI = {
       tree: 'Tree',
       heaviestFirst: 'Heaviest first',
       lightestFirst: 'Lightest first',
+      heaviest: 'Heaviest',
+      lightest: 'Lightest',
+      sortedHeaviest: 'Sorted by body mass, heaviest first. Reverse order',
+      sortedLightest: 'Sorted by body mass, lightest first. Reverse order',
       trueSize: 'True size',
+      trueShort: 'True',
+      trueSr: 'sticker sizes',
+      trueTitle: 'Size by body mass at true scale (big birds dwarf small ones)',
+      sci: 'Scientific',
+      sciShort: 'Sci.',
+      sciSr: 'names',
+      /** Tree view: keep only the rows with a bird on the list. */
+      lifersOnly: 'Lifers only',
       markNewest: 'Mark latest lifer',
       markFirst: 'Mark first lifer',
       arrangement: 'Arrangement',
       packed: 'Packed',
       oval: 'Oval',
-      byFamily: 'By family',
-      byColour: 'By colour',
-      trueOff: 'Not available by family: the birds in a row share one height.',
-      /** The bar's Style button and its panel (StylePanel): what changes the look. */
-      style: 'Style',
-      /** The Style panel's list sort order (List view). */
-      sort: 'Sort',
-      sciNames: 'Scientific names',
-      /** Why a Style control is disabled in the current view. */
-      onlyCollage: 'Only in the Collage view.',
-      onlyList: 'Only in the List view.',
-      noNamesOnMap: 'The map shows no bird names.',
-      /** Under Style > Dark image. */
-      darkNote: 'For share images and posters.',
       newestSr: ', latest lifer',
       firstSr: ', first lifer',
     },
@@ -183,8 +177,8 @@ export const EN_UI = {
      *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the names of the groups inside
      *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
      *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that is
-     *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. `mine` the
-     *  switch keeping only the rows with a bird on the list, `mineNone` the line when none is left. `cover`: the tree share
+     *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. `mineNone`
+     *  the line when the bar's Lifers only (controls.lifersOnly) leaves no row. `cover`: the tree share
      *  image's line under the count, "24 of 41 orders · 92 of 251 families · …"; the form follows {total}. */
     tree: {
       loading: 'Loading the tree',
@@ -211,7 +205,6 @@ export const EN_UI = {
       oldest: 'Oldest lineage on this list: {name}, which split from its closest relatives about {age} million years ago (an estimate).',
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
       allMapped: 'Every bird on this list has a place in the tree.',
-      mine: 'Only my birds',
       mineNone: 'No bird on the list here.',
       cover: { orders: { one: '{n} of {total} order', other: '{n} of {total} orders' }, families: { one: '{n} of {total} family', other: '{n} of {total} families' }, genera: { one: '{n} of {total} genus', other: '{n} of {total} genera' } },
       credit: 'Tree: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, matched to the eBird {year} taxonomy, which gives the families, genera and totals. Species new in the {year} taxonomy were added beside their closest relative.',
@@ -439,9 +432,6 @@ export const EN_UI = {
   },
   /** Compare with friends (issue #10): /compare, and a comparison link's page, /c/<token>. */
   compare: {
-    open: 'Compare',
-    /** The Compare page's way back to the collage's views. */
-    back: 'Back to the collage',
     title: 'Compare with friends',
     lede: 'Paste your friends’ Everybird share links. Your own list is always included.',
     linksLabel: 'Share links',

@@ -1,5 +1,6 @@
 'use client'
-import { lazy, Suspense, useEffect, useMemo, useReducer, useState } from 'react'
+import { ShareNetwork } from '@phosphor-icons/react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
 import { baseOfLang } from '@/lib/species/name-locales'
 import { seedNames } from '@/lib/species/names'
@@ -44,8 +45,10 @@ function Loaded({ pack }: { pack: SamplePack }) {
     [species],
   )
   const [state, dispatch] = useReducer(reducer, undefined, () => reducer(initialState(), { type: 'restore', saved: pack.saved }))
-  // Share works on the sample too (its own store: a title typed there is never saved).
+  // Share works on the sample too (its own store: a title typed there is never saved), from the end of its stats row.
   const [sharing, setSharing] = useState<{ view: ViewKind; at: ShareAt } | null>(null)
+  const shareAt = useRef<ShareAt>({})
+  const onShareAt = useCallback((at: ShareAt) => { shareAt.current = at }, [])
   return (
     <>
       <CollageView
@@ -56,7 +59,13 @@ function Loaded({ pack }: { pack: SamplePack }) {
         label={t.collage.regionSample}
         statsPrefix={t.landing.samplePrefix}
         seed={pack.seed}
-        onShare={(view, at) => setSharing({ view, at })}
+        onShareAt={onShareAt}
+        statsAction={
+          <button type="button" className="eb-btn eb-btn-quiet" aria-haspopup="dialog" data-testid="share-open" data-tour="share" onClick={() => setSharing({ view: state.view, at: shareAt.current })}>
+            <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
+            {t.collage.share}
+          </button>
+        }
       />
       {sharing && (
         <Suspense fallback={null}>

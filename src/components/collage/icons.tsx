@@ -21,6 +21,12 @@ export const MapIcon = ({ className }: P) =>
 export const TreeIcon = ({ className }: P) =>
   svg(className, <path d="M216 56H120V200H216M120 128H216M120 128H40" fill="none" stroke="currentColor" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round" />)
 
+export const ArrowDownIcon = ({ className, up }: P & { up?: boolean }) => (
+  <svg viewBox="0 0 256 256" aria-hidden="true" focusable="false" className={className} style={up ? { transform: 'scaleY(-1)' } : undefined}>
+    <path d="M128 48v152M64 140l64 64 64-64" stroke="currentColor" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  </svg>
+)
+
 export const CloseIcon = ({ className }: P) =>
   svg(className, <path d="M200 56 56 200M56 56l144 144" stroke="currentColor" strokeWidth="18" strokeLinecap="round" fill="none" />)
 

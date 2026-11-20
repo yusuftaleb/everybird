@@ -1,8 +1,11 @@
-// The collage's arrangement (Packed, By family, By colour; src/lib/layout/arrange.ts), a per-device choice like the
-// lifer marks (lifer-marks.ts): kept in localStorage, Packed when unset or unreadable, the same in every tab. The
-// collage, the share images and the poster all follow it.
+// How the share images and the poster place the birds (the share dialog's Packed / Oval), a per-device choice like the
+// lifer marks (lifer-marks.ts): kept in localStorage, Packed when unset, unreadable or a value no longer offered (the
+// dropped 'family' and 'colour'), the same in every tab. The collage on the page is always packed.
 import { useSyncExternalStore } from 'react'
-import { ARRANGEMENTS, type Arrangement } from './layout/arrange'
+
+/** 'oval': Packed inside the ellipse inscribed in the frame (pack.ts packFrame's `oval`). */
+export type Arrangement = 'packed' | 'oval'
+export const ARRANGEMENTS: readonly Arrangement[] = ['packed', 'oval']
 
 export const ARRANGEMENT_KEY = 'everybird:arrangement'
 

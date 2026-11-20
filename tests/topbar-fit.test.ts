@@ -30,7 +30,7 @@ type Variant = (typeof LANG_VARIANTS)[number]
 type FontKey = keyof typeof glyphs.fonts
 
 const NAV = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant }
-const PAGES = ['collage', 'settings', 'about'] as const
+const PAGES = ['collage', 'compare', 'settings', 'about'] as const
 
 /** Room left over that we insist on: kerning (tightens these words; `kernWidenEm` is added anyway), subpixel rounding. */
 const MARGIN = 4
@@ -99,10 +99,10 @@ function sizesAt(w: number): Sizes {
 /** Where the nav takes its own row (app.css's split rules, each paired with a --topbar-h rule in tokens.css): under
  *  `below` px, for the variant and languages `selector` matches. */
 const SPLITS: { selector: string; below: number; applies: (v: Variant, l: Lang) => boolean }[] = [
-  { selector: ':root:not([data-topbar="b"], [data-topbar="c"])', below: 430, applies: (v) => v === 'a' },
-  { selector: ':root[data-topbar="b"]:is(:lang(es), :lang(nl))', below: 384, applies: (v, l) => v === 'b' && (l === 'es' || l === 'nl') },
-  { selector: ':root[data-topbar="b"]', below: 366, applies: (v) => v === 'b' },
-  { selector: ':root[data-topbar="c"]', below: 310, applies: (v) => v === 'c' },
+  { selector: ':root:not([data-topbar="b"], [data-topbar="c"])', below: 600, applies: (v) => v === 'a' },
+  { selector: ':root[data-topbar="b"]:is(:lang(es), :lang(nl))', below: 548, applies: (v, l) => v === 'b' && (l === 'es' || l === 'nl') },
+  { selector: ':root[data-topbar="b"]', below: 540, applies: (v) => v === 'b' },
+  { selector: ':root[data-topbar="c"]', below: 600, applies: (v) => v === 'c' },
 ]
 /** c hides the Collage link under 480px: `:root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }`. */
 const C_HIDES_COLLAGE_BELOW = 480
@@ -119,7 +119,20 @@ function navWidth(l: Lang, pages: readonly (typeof PAGES)[number][], s: Sizes): 
   return links.reduce((a, b) => a + b, 0) + bold + s.navGap * (labels.length - 1)
 }
 
-type Fit = { split: boolean; inner: number; one: number; two?: number }
+/** Under 300px the nav's row may wrap onto a second line (app.css `.eb-nav ul { flex-wrap: wrap; }`, --topbar-h 133px). */
+const NAV_WRAPS_BELOW = 300
+type Fit = { split: boolean; inner: number; one: number; two?: number; lines?: number }
+
+/** The nav's links packed into lines `inner` wide (a flex row that wraps): how many lines, and the widest. */
+function navLines(l: Lang, pages: readonly (typeof PAGES)[number][], s: Sizes, inner: number): { lines: number; widest: number } {
+  let lines = 1, cur = 0, widest = 0
+  for (const p of pages) {
+    const w = navWidth(l, [p], s)
+    const next = cur ? cur + s.navGap + w : w
+    if (cur && next + MARGIN > inner) { lines++; widest = Math.max(widest, cur); cur = w } else cur = next
+  }
+  return { lines, widest: Math.max(widest, cur) }
+}
 
 function fit(v: Variant, l: Lang, w: number): Fit {
   const s = sizesAt(w)
@@ -128,12 +141,16 @@ function fit(v: Variant, l: Lang, w: number): Fit {
   const end = s.button + (hasLangButton(v) ? s.endGap + s.button : 0)
   const nav = navWidth(l, pagesShown(v, w), s)
   const split = splitAt(v, l, w)
+  if (split && w < NAV_WRAPS_BELOW) {
+    const { lines, widest } = navLines(l, pagesShown(v, w), s, inner)
+    return { split, inner, one: wordmark + s.gap + end, two: widest, lines }
+  }
   if (split) return { split, inner, one: wordmark + s.gap + end, two: nav }
   return { split, inner, one: wordmark + s.gap + nav + s.gap + end }
 }
 
-const BREAKPOINT_EDGES = [239, 240, 299, 300, 309, 310, 359, 360, 365, 366, 383, 384, 429, 430, 479, 480, 499, 500, 719, 720]
-const WIDTHS = [...new Set([195, 260, 300, 320, 340, 360, 375, 390, 414, 430, 480, 600, 720, 1280, ...BREAKPOINT_EDGES])].sort((a, b) => a - b)
+const BREAKPOINT_EDGES = [239, 240, 299, 300, 359, 360, 479, 480, 499, 500, 539, 540, 547, 548, 599, 600, 719, 720]
+const WIDTHS = [...new Set([195, 260, 300, 320, 340, 360, 375, 390, 414, 430, 480, 560, 600, 640, 720, 768, 1280, ...BREAKPOINT_EDGES])].sort((a, b) => a - b)
 
 describe('the top bar fits (fontkit advances of the served fonts)', () => {
   for (const v of LANG_VARIANTS) {
@@ -144,6 +161,7 @@ describe('the top bar fits (fontkit advances of the served fonts)', () => {
           const f = fit(v, l, w)
           if (f.one + MARGIN > f.inner) bad.push(`${w}px: row one ${f.one.toFixed(1)} in ${f.inner}`)
           if (f.two !== undefined && f.two + MARGIN > f.inner) bad.push(`${w}px: row two ${f.two.toFixed(1)} in ${f.inner}`)
+          if ((f.lines ?? 1) > 2) bad.push(`${w}px: the nav takes ${f.lines} lines`)
         }
         expect(bad).toEqual([])
       })
@@ -240,6 +258,11 @@ describe('the model mirrors the CSS', () => {
       expect(tokens).toContain(`@media (${q}) { ${s.selector} { --topbar-h: 93px; } }`)
     }
     expect(tokens.match(/--topbar-h: 93px/g)).toHaveLength(SPLITS.length)
+    expect(app).toContain(`@media (max-width: ${NAV_WRAPS_BELOW - 1}px) {\n  .eb-nav ul { flex-wrap: wrap; }`)
+    expect(tokens).toContain(`@media (max-width: ${NAV_WRAPS_BELOW - 1}px) { :root:not(:lang(zh-Hans), :lang(zh-Hant)):not([data-topbar="-"]) { --topbar-h: 133px; } }`)
+    expect(4 + 44 + 2 * 40 + 4 + 1).toBe(133)
+    // Every split starts at or above the wrap, so a wrapped nav is always on its own row.
+    for (const s of SPLITS) expect(s.below).toBeGreaterThanOrEqual(NAV_WRAPS_BELOW)
     expect(app.match(/\.eb-topbar-in \{ flex-wrap: wrap;/g)).toHaveLength(SPLITS.length)
     expect(app).toContain(`@media (max-width: ${C_HIDES_COLLAGE_BELOW - 1}px) {\n  :root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }`)
   })
