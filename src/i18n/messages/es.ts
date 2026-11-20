@@ -104,7 +104,8 @@ export const es: Messages = {
         collage: 'Collage',
         list: 'Lista',
         map: 'Mapa',
-        mapHint: 'Pulsa un lugar para filtrar el collage. Abre un país en la lista de abajo para ver sus estados y provincias.',
+        mapWorld: 'Mundo',
+        mapAll: 'Mostrar los {n}',
         mapFailed: 'No se pudo cargar el mapa. La lista de abajo tiene los mismos recuentos.',
         tree: 'Árbol',
         heaviestFirst: 'Más pesadas primero',
@@ -845,7 +846,7 @@ export const es: Messages = {
           'Cada ave se empareja con la taxonomía de eBird de este año y conserva su fecha más antigua. Las filas que no coinciden aparecen en una lista, así que nada se descarta en silencio.',
           'El collage, los filtros y las imágenes para compartir se hacen en tu navegador.',
         ],
-        privacy: 'Tu lista nunca sale de tu navegador. Contamos las visitas con Cloudflare Web Analytics, de forma anónima y sin cookies, y unas pocas acciones (un collage hecho, una imagen compartida o guardada, un enlace copiado) con un pequeño contador propio que nunca ve tus aves, nombres ni lugares. Un identificador anónimo que cambia cada día nos permite contar visitantes únicos sin seguir a nadie de un día a otro. Ninguno de los dos funciona si tu navegador pide que no se le rastree. Tu elección de idioma se guarda en una pequeña cookie en este dispositivo; solo sale de él para mostrarte la página correcta. El recuento de visitas incluye el idioma de tu navegador (solo “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” o “zh-Hant”).',
+        privacy: 'Tu lista nunca sale de tu navegador. Contamos las visitas con Cloudflare Web Analytics, de forma anónima y sin cookies, y unas pocas acciones (un collage hecho, una imagen compartida o guardada, un enlace copiado) con un pequeño contador propio que nunca ve tus aves, nombres ni lugares. Un identificador anónimo que cambia cada día nos permite contar visitantes únicos sin seguir a nadie de un día a otro. Ninguno de los dos funciona si tu navegador pide que no se le rastree. Tu elección de idioma se guarda en una pequeña cookie en este dispositivo; solo sale de él para mostrarte la página correcta. El recuento de visitas incluye el idioma de tu navegador (solo “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” o “zh-Hant”). Las páginas en ruso, japonés y chino cargan sus fuentes desde Google Fonts, así que en esas páginas tu navegador se conecta con Google.',
       },
       size: {
         head: 'Qué significa Tamaño real',

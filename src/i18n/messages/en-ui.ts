@@ -132,8 +132,10 @@ export const EN_UI = {
       collage: 'Collage',
       list: 'List',
       map: 'Map',
-      /** The Map view (MapView): the line under the map when no place is pressed, and the note when its shapes don't load. */
-      mapHint: 'Press a place to filter the collage. Open a country in the list below to see its states and provinces.',
+      /** The Map view (MapView): the button on the map back to the whole world (after an arrow icon), "Show all" under its
+       *  list ({n} the number of places), and the note when its shapes don't load. */
+      mapWorld: 'World',
+      mapAll: 'Show all {n}',
       mapFailed: "Couldn't load the map. The list below has the same counts.",
       tree: 'Tree',
       heaviestFirst: 'Heaviest first',

@@ -104,7 +104,8 @@ export const it: Messages = {
         collage: 'Collage',
         list: 'Elenco',
         map: 'Mappa',
-        mapHint: 'Tocca un luogo per filtrare il collage. Apri un paese nell’elenco qui sotto per vedere i suoi stati e province.',
+        mapWorld: 'Mondo',
+        mapAll: 'Mostra tutti ({n})',
         mapFailed: 'Impossibile caricare la mappa. L’elenco qui sotto ha gli stessi numeri.',
         tree: 'Albero',
         heaviestFirst: 'Prima i più pesanti',
@@ -829,7 +830,7 @@ export const it: Messages = {
           'Ogni uccello viene abbinato alla tassonomia eBird di quest’anno e mantiene la sua data più antica. Le righe che non corrispondono vengono elencate, così niente viene scartato in silenzio.',
           'Il collage, i filtri e le immagini da condividere vengono creati tutti nel tuo browser.',
         ],
-        privacy: 'La tua lista non lascia mai il tuo browser. Contiamo le visite con Cloudflare Web Analytics, in forma anonima e senza cookie, e alcune azioni (un collage creato, un’immagine condivisa o salvata, un link copiato) con un nostro piccolo contatore che non vede mai i tuoi uccelli, i nomi o i luoghi. Un identificativo anonimo che cambia ogni giorno ci permette di contare i visitatori unici senza seguire nessuno da un giorno all’altro. Nessuno dei due funziona se il tuo browser chiede di non essere tracciato. La lingua che scegli è salvata in un piccolo cookie su questo dispositivo; non ne esce mai, se non per mostrarti la pagina giusta. Il conteggio delle visite include la lingua del tuo browser (solo “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” o “zh-Hant”).',
+        privacy: 'La tua lista non lascia mai il tuo browser. Contiamo le visite con Cloudflare Web Analytics, in forma anonima e senza cookie, e alcune azioni (un collage creato, un’immagine condivisa o salvata, un link copiato) con un nostro piccolo contatore che non vede mai i tuoi uccelli, i nomi o i luoghi. Un identificativo anonimo che cambia ogni giorno ci permette di contare i visitatori unici senza seguire nessuno da un giorno all’altro. Nessuno dei due funziona se il tuo browser chiede di non essere tracciato. La lingua che scegli è salvata in un piccolo cookie su questo dispositivo; non ne esce mai, se non per mostrarti la pagina giusta. Il conteggio delle visite include la lingua del tuo browser (solo “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” o “zh-Hant”). Le pagine in russo, giapponese e cinese caricano i caratteri da Google Fonts, quindi su quelle pagine il tuo browser contatta Google.',
       },
       size: {
         head: 'Cosa significa Taglia reale',

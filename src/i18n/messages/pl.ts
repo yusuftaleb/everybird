@@ -110,7 +110,8 @@ export const pl: Messages = {
         collage: 'Kolaż',
         list: 'Lista',
         map: 'Mapa',
-        mapHint: 'Naciśnij miejsce, aby przefiltrować kolaż. Otwórz kraj na liście poniżej, aby zobaczyć jego regiony.',
+        mapWorld: 'Świat',
+        mapAll: 'Pokaż wszystkie ({n})',
         mapFailed: 'Nie udało się wczytać mapy. Lista poniżej ma te same liczby.',
         tree: 'Drzewo',
         heaviestFirst: 'Najcięższe najpierw',
@@ -843,7 +844,7 @@ export const pl: Messages = {
           'Każdy ptak jest dopasowywany do tegorocznej taksonomii eBird i zachowuje najwcześniejszą datę. Niedopasowane wiersze są wypisane, więc nic nie znika po cichu.',
           'Kolaż, filtry i obrazy do udostępnienia powstają w twojej przeglądarce.',
         ],
-        privacy: 'Twoja lista nigdy nie opuszcza przeglądarki. Odwiedziny liczymy za pomocą Cloudflare Web Analytics, anonimowo i bez plików cookie, a kilka działań (utworzony kolaż, udostępniony lub zapisany obraz, skopiowany link) małym własnym licznikiem, który nigdy nie widzi twoich ptaków, nazw ani miejsc. Anonimowy identyfikator zmieniany codziennie pozwala liczyć unikalnych odwiedzających bez śledzenia kogokolwiek z dnia na dzień. Żadne z nich nie działa, jeśli przeglądarka prosi o niestosowanie śledzenia. Wybór języka zapisujemy w małym pliku cookie na tym urządzeniu; opuszcza je tylko po to, by pokazać ci właściwą stronę. Licznik odwiedzin zapisuje język przeglądarki (tylko „es”, „pt”, „nl”, „pl”, „fr”, „de”, „it”, „sv”, „da”, „ru”, „ja”, „zh-Hans” lub „zh-Hant”).',
+        privacy: 'Twoja lista nigdy nie opuszcza przeglądarki. Odwiedziny liczymy za pomocą Cloudflare Web Analytics, anonimowo i bez plików cookie, a kilka działań (utworzony kolaż, udostępniony lub zapisany obraz, skopiowany link) małym własnym licznikiem, który nigdy nie widzi twoich ptaków, nazw ani miejsc. Anonimowy identyfikator zmieniany codziennie pozwala liczyć unikalnych odwiedzających bez śledzenia kogokolwiek z dnia na dzień. Żadne z nich nie działa, jeśli przeglądarka prosi o niestosowanie śledzenia. Wybór języka zapisujemy w małym pliku cookie na tym urządzeniu; opuszcza je tylko po to, by pokazać ci właściwą stronę. Licznik odwiedzin zapisuje język przeglądarki (tylko „es”, „pt”, „nl”, „pl”, „fr”, „de”, „it”, „sv”, „da”, „ru”, „ja”, „zh-Hans” lub „zh-Hant”). Strony po rosyjsku, japońsku i chińsku wczytują czcionki z Google Fonts, więc na tych stronach przeglądarka łączy się z Google.',
       },
       size: {
         head: 'Co oznacza Prawdziwy rozmiar',

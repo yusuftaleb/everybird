@@ -138,7 +138,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const [pick, setPick] = useState<{ code: string; anchor: HTMLElement | null } | null>(null)
   const [tip, setTip] = useState<string | null>(null)
   // The level the Map or Tree view has open (their own state, told up as it changes), for Share to draw the same.
-  const onMapLevel = useCallback((place: string | undefined) => onShareAt?.({ place }), [onShareAt])
+  const onMapLevel = useCallback((place: string | undefined, names: (key: string) => string) => onShareAt?.({ place, names }), [onShareAt])
   const onTreeLevel = useCallback((tree: TreeLevel, mine: boolean) => onShareAt?.({ tree, mine }), [onShareAt])
 
   const entries = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
@@ -324,7 +324,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
           </div>
         )
       ) : view === 'map' ? (
-        <MapView state={state} species={species} regions={regions} onFilter={onApply} note={placesNote} unplaced={placesUnplaced} onLevel={onMapLevel} />
+        <MapView state={state} species={species} regions={regions} onLevel={onMapLevel} />
       ) : view === 'list' ? (
         <ListView entries={shownList} species={species} regions={regions} order={massOrder} sci={sci} onPick={onPickRow} />
       ) : (

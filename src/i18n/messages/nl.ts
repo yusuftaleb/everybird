@@ -104,7 +104,8 @@ export const nl: Messages = {
         collage: 'Collage',
         list: 'Lijst',
         map: 'Kaart',
-        mapHint: 'Klik op een plaats om de collage te filteren. Open een land in de lijst hieronder om de provincies en staten te zien.',
+        mapWorld: 'Wereld',
+        mapAll: 'Alle {n} tonen',
         mapFailed: 'De kaart kon niet laden. De lijst hieronder heeft dezelfde aantallen.',
         tree: 'Boom',
         heaviestFirst: 'Zwaarste eerst',
@@ -845,7 +846,7 @@ export const nl: Messages = {
           'Elke vogel wordt gekoppeld aan de eBird-taxonomie van dit jaar en houdt zijn vroegste datum. Rijen die niet passen, staan in een lijst, zodat er niets stilletjes wegvalt.',
           'De collage, de filters en de afbeeldingen om te delen worden allemaal in je browser gemaakt.',
         ],
-        privacy: 'Je lijst verlaat je browser nooit. We tellen bezoeken met Cloudflare Web Analytics, anoniem en zonder cookies, en een paar acties (een collage gemaakt, een afbeelding gedeeld of bewaard, een link gekopieerd) met een kleine eigen teller die nooit je vogels, namen of plaatsen ziet. Een anonieme id die elke dag verandert, laat ons unieke bezoekers tellen zonder iemand van dag tot dag te volgen. Geen van beide draait als je browser vraagt om niet gevolgd te worden. Je taalkeuze wordt bewaard in een klein cookie op dit apparaat; het verlaat het apparaat alleen om je de juiste pagina te tonen. De bezoekteller bevat de taal van je browser (alleen “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” of “zh-Hant”).',
+        privacy: 'Je lijst verlaat je browser nooit. We tellen bezoeken met Cloudflare Web Analytics, anoniem en zonder cookies, en een paar acties (een collage gemaakt, een afbeelding gedeeld of bewaard, een link gekopieerd) met een kleine eigen teller die nooit je vogels, namen of plaatsen ziet. Een anonieme id die elke dag verandert, laat ons unieke bezoekers tellen zonder iemand van dag tot dag te volgen. Geen van beide draait als je browser vraagt om niet gevolgd te worden. Je taalkeuze wordt bewaard in een klein cookie op dit apparaat; het verlaat het apparaat alleen om je de juiste pagina te tonen. De bezoekteller bevat de taal van je browser (alleen “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” of “zh-Hant”). Pagina’s in het Russisch, Japans en Chinees laden hun lettertypen van Google Fonts, dus op die pagina’s maakt je browser contact met Google.',
       },
       size: {
         head: 'Wat Ware grootte betekent',

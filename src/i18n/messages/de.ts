@@ -104,7 +104,8 @@ export const de: Messages = {
         collage: 'Collage',
         list: 'Liste',
         map: 'Karte',
-        mapHint: 'Tippe auf einen Ort, um die Collage zu filtern. Öffne ein Land in der Liste unten, um seine Bundesstaaten und Provinzen zu sehen.',
+        mapWorld: 'Welt',
+        mapAll: 'Alle {n} zeigen',
         mapFailed: 'Die Karte konnte nicht geladen werden. Die Liste unten hat dieselben Zahlen.',
         tree: 'Baum',
         heaviestFirst: 'Schwerste zuerst',
@@ -835,7 +836,7 @@ export const de: Messages = {
           'Die Collage, die Filter und die Bilder zum Teilen entstehen alle in deinem Browser.',
         ],
         // The language codes keep “…” (not „…“): tests/about-i18n.test.tsx matches them.
-        privacy: 'Deine Liste verlässt nie deinen Browser. Wir zählen Besuche mit Cloudflare Web Analytics, anonym und ohne Cookies, und ein paar Aktionen (eine Collage erstellt, ein Bild geteilt oder gespeichert, ein Link kopiert) mit einem kleinen eigenen Zähler, der nie deine Vögel, Namen oder Orte sieht. Eine anonyme ID, die sich täglich ändert, lässt uns einzelne Besucher zählen, ohne jemanden über mehrere Tage zu verfolgen. Beides läuft nicht, wenn dein Browser darum bittet, nicht verfolgt zu werden. Deine Sprachwahl wird in einem kleinen Cookie auf diesem Gerät gespeichert; es verlässt das Gerät nur, um dir die richtige Seite zu zeigen. Die Besuchszählung enthält die Sprache deines Browsers (nur “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” oder “zh-Hant”).',
+        privacy: 'Deine Liste verlässt nie deinen Browser. Wir zählen Besuche mit Cloudflare Web Analytics, anonym und ohne Cookies, und ein paar Aktionen (eine Collage erstellt, ein Bild geteilt oder gespeichert, ein Link kopiert) mit einem kleinen eigenen Zähler, der nie deine Vögel, Namen oder Orte sieht. Eine anonyme ID, die sich täglich ändert, lässt uns einzelne Besucher zählen, ohne jemanden über mehrere Tage zu verfolgen. Beides läuft nicht, wenn dein Browser darum bittet, nicht verfolgt zu werden. Deine Sprachwahl wird in einem kleinen Cookie auf diesem Gerät gespeichert; es verlässt das Gerät nur, um dir die richtige Seite zu zeigen. Die Besuchszählung enthält die Sprache deines Browsers (nur “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” oder “zh-Hant”). Seiten auf Russisch, Japanisch und Chinesisch laden ihre Schriften von Google Fonts, daher nimmt dein Browser auf diesen Seiten Kontakt zu Google auf.',
       },
       size: {
         head: 'Was Echte Größe bedeutet',

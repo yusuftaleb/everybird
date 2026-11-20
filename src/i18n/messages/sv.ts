@@ -104,7 +104,8 @@ export const sv: Messages = {
         collage: 'Collage',
         list: 'Lista',
         map: 'Karta',
-        mapHint: 'Tryck på en plats för att filtrera collaget. Öppna ett land i listan nedan för att se dess delstater och provinser.',
+        mapWorld: 'Världen',
+        mapAll: 'Visa alla {n}',
         mapFailed: 'Kartan kunde inte laddas. Listan nedan har samma siffror.',
         tree: 'Träd',
         heaviestFirst: 'Tyngst först',
@@ -832,7 +833,7 @@ export const sv: Messages = {
           'Varje fågel matchas mot årets eBird-taxonomi och behåller sitt tidigaste datum. Rader som inte matchar listas, så inget försvinner i tysthet.',
           'Collaget, filtren och delningsbilderna skapas helt i din webbläsare.',
         ],
-        privacy: 'Din lista lämnar aldrig din webbläsare. Vi räknar besök med Cloudflare Web Analytics, anonymt och utan cookies, och några handlingar (ett collage skapat, en bild delad eller sparad, en länk kopierad) med en liten egen räknare som aldrig ser dina fåglar, namn eller platser. Ett anonymt id som byts varje dag låter oss räkna unika besökare utan att följa någon över flera dagar. Inget av dem körs om din webbläsare ber om att inte spåras. Ditt språkval sparas i en liten cookie på den här enheten; den lämnar enheten bara för att visa dig rätt sida. Besöksräkningen innehåller din webbläsares språk (bara ”es”, ”pt”, ”nl”, ”pl”, ”fr”, ”de”, ”it”, ”sv”, ”da”, ”ru”, ”ja”, ”zh-Hans” eller ”zh-Hant”).',
+        privacy: 'Din lista lämnar aldrig din webbläsare. Vi räknar besök med Cloudflare Web Analytics, anonymt och utan cookies, och några handlingar (ett collage skapat, en bild delad eller sparad, en länk kopierad) med en liten egen räknare som aldrig ser dina fåglar, namn eller platser. Ett anonymt id som byts varje dag låter oss räkna unika besökare utan att följa någon över flera dagar. Inget av dem körs om din webbläsare ber om att inte spåras. Ditt språkval sparas i en liten cookie på den här enheten; den lämnar enheten bara för att visa dig rätt sida. Besöksräkningen innehåller din webbläsares språk (bara ”es”, ”pt”, ”nl”, ”pl”, ”fr”, ”de”, ”it”, ”sv”, ”da”, ”ru”, ”ja”, ”zh-Hans” eller ”zh-Hant”). Sidor på ryska, japanska och kinesiska hämtar sina typsnitt från Google Fonts, så på de sidorna kontaktar din webbläsare Google.',
       },
       size: {
         head: 'Vad Sann storlek betyder',
