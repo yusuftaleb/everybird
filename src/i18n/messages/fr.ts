@@ -162,6 +162,8 @@ export const fr: Messages = {
         part: 'partie {i} sur {n}',
         onListOne: 'dans la liste',
         notOnList: 'pas dans la liste',
+        dottedSr: 'sans données génétiques',
+        keyDotted: 'Position sans données génétiques',
         split: '{name} ne forme pas un seul clade dans cet arbre, donc ce dessin ne montre que ses espèces.',
         oldest: 'Plus ancienne lignée de cette liste\u00a0: {name}, séparée de ses plus proches parents il y a environ {age} millions d’années (une estimation).',
         unmapped: { one: '{n} oiseau de cette liste n’a pas de place dans cet arbre\u00a0:', other: '{n} oiseaux de cette liste n’ont pas de place dans cet arbre\u00a0:' },

@@ -14,7 +14,7 @@ import type { TreeFile } from '@/lib/tree/tree'
 
 // The tree file, and the full species file TreeView loads itself (the shown index may be the landing sample's own).
 const { fetchData, rows } = vi.hoisted(() => {
-  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: '2026', newick: '(((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6);' }
+  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: '2026', newick: '(((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6);', taxOnly: 'Q' } // b2, the fifth tip, placed without genetic data
   const rows: SpeciesRow[] = []
   const fetchData = vi.fn(async (name: string) => {
     if (name === 'tree.v1.json') return file
@@ -106,6 +106,16 @@ describe('TreeView', () => {
     expect(onPick).toHaveBeenCalledWith('a1', expect.any(HTMLElement))
     fireEvent.click(screen.getByRole('button', { name: 'All families' }))
     expect(screen.getByRole('button', { name: /^Ducks/ })).toHaveFocus()
+  })
+
+  it('a tip placed without genetic data says so, and the key under the tree explains the dotted line', async () => {
+    render(<TreeView entries={['a1', 'b2'].map(entry)} sci={false} onPick={() => {}} />)
+    fireEvent.click(await screen.findByRole('button', { name: /^Woodpeckers/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Bb,/ }))
+    const tips = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect(within(tips).getByRole('button', { name: 'Beta Two, on the list, placed without genetic data' })).toBeInTheDocument()
+    expect(within(tips).getByText('Beta One').closest('.eb-tree-btn')).not.toHaveTextContent(/genetic/)
+    expect(screen.getByText('Placed without genetic data')).toBeInTheDocument()
   })
 
   it('a smaller list changes the counts and the marked tips', async () => {

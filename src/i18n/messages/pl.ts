@@ -165,6 +165,8 @@ export const pl: Messages = {
         part: 'część {i} z {n}',
         onListOne: 'na liście',
         notOnList: 'poza listą',
+        dottedSr: 'bez danych genetycznych',
+        keyDotted: 'Umiejscowienie bez danych genetycznych',
         split: '{name}: w tym drzewie to nie jeden klad, więc rysunek pokazuje tylko gatunki tej grupy.',
         oldest: 'Najstarsza linia na tej liście: {name}. Oddzieliła się od najbliższych krewnych około {age} mln lat temu (szacunek).',
         unmapped: { one: 'Ptaki z tej listy bez miejsca w tym drzewie ({n}):', other: 'Ptaki z tej listy bez miejsca w tym drzewie ({n}):' },

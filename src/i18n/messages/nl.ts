@@ -162,6 +162,8 @@ export const nl: Messages = {
         part: 'deel {i} van {n}',
         onListOne: 'op de lijst',
         notOnList: 'niet op de lijst',
+        dottedSr: 'geplaatst zonder genetische gegevens',
+        keyDotted: 'Geplaatst zonder genetische gegevens',
         split: '{name} is in deze boom niet één clade, dus deze tekening toont alleen de eigen soorten.',
         oldest: 'Oudste lijn op deze lijst: {name}, ongeveer {age} miljoen jaar geleden afgesplitst van de naaste verwanten (een schatting).',
         unmapped: { one: '{n} vogel op deze lijst heeft geen plaats in deze boom:', other: '{n} vogels op deze lijst hebben geen plaats in deze boom:' },

@@ -195,6 +195,8 @@ export const EN_UI = {
       part: 'part {i} of {n}',
       onListOne: 'on the list',
       notOnList: 'not on the list',
+      dottedSr: 'placed without genetic data',
+      keyDotted: 'Placed without genetic data',
       split: '{name} is not one clade in this tree, so this drawing shows its species alone.',
       oldest: 'Oldest lineage on this list: {name}, which split from its closest relatives about {age} million years ago (an estimate).',
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },

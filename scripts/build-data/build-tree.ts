@@ -5,13 +5,15 @@
 // A tip's scientific name is matched to species.v1.json first; else the crosswalk's 2025 code for that name, when
 // species.v1.json still has that code. Tips that match no species are pruned (their parent's other child takes the
 // summed branch), as is a second tip for a code already placed. Branch lengths are kept, rounded to 0.001 million years.
-// Needs data/raw/avesdata (npx tsx scripts/build-data/fetch-sources.ts --tree-only). Prints the match counts.
+// A tip missing from AvesData's tree of the species with genetic data (phylo_only_clements_labels.tre, the same
+// labels) was placed by taxonomy alone; those are the file's `taxOnly` bits.
+// Needs data/raw/avesdata (npx tsx scripts/build-data/fetch-sources.ts --tree-only). Prints the counts.
 //   npx tsx scripts/build-data/build-tree.ts
 // Then rerun scripts/build-data/data-files.ts.
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import Papa from 'papaparse'
-import { parseNewick, type TreeFile } from '../../src/lib/tree/tree'
+import { packBits, parseNewick, type TreeFile } from '../../src/lib/tree/tree'
 
 type Row = { code: string; sci: string }
 
@@ -38,10 +40,10 @@ export function matcher(species: Row[], crosswalk: { SPECIES_CODE?: string; SCI_
 }
 
 /** The tree with its tips relabelled by `codeOf`, unmatched and repeated tips pruned, as compact Newick. */
-export function relabel(newick: string, codeOf: (label: string) => string | undefined): { newick: string; kept: number; unmatched: string[]; repeated: string[] } {
+export function relabel(newick: string, codeOf: (label: string) => string | undefined): { newick: string; kept: number; unmatched: string[]; repeated: string[]; labelOf: Map<string, string> } {
   const t = parseNewick(newick)
   const n = t.parent.length
-  const placed = new Set<string>()
+  const placed = new Map<string, string>()
   const keepCode: (string | undefined)[] = new Array(n)
   const unmatched: string[] = [], repeated: string[] = []
   for (let k = 0; k < n; k++) {
@@ -50,7 +52,7 @@ export function relabel(newick: string, codeOf: (label: string) => string | unde
     const c = codeOf(label)
     if (!c) unmatched.push(label)
     else if (placed.has(c)) repeated.push(label)
-    else { placed.add(c); keepCode[k] = c }
+    else { placed.set(c, label); keepCode[k] = c }
   }
   // live[k]: some kept tip under k.
   const live = new Uint8Array(n)
@@ -65,7 +67,13 @@ export function relabel(newick: string, codeOf: (label: string) => string | unde
   }
   const root = (() => { let k = 0; for (let ks = t.kids[k].filter((c) => live[c]); ks.length === 1; ks = t.kids[k].filter((c) => live[c])) k = ks[0]; return k })()
   const body = write(root, 0).replace(/:[^:(),]*$/, '')
-  return { newick: `${body};`, kept: placed.size, unmatched, repeated }
+  return { newick: `${body};`, kept: placed.size, unmatched, repeated, labelOf: placed }
+}
+
+/** The packed `taxOnly` bits of `newick`'s tips, in order. */
+export function taxOnlyBits(newick: string, isTaxOnly: (code: string) => boolean): string {
+  const t = parseNewick(newick)
+  return packBits(t.code.filter((c): c is string => !!c).map(isTaxOnly))
 }
 
 function main() {
@@ -74,12 +82,17 @@ function main() {
   const species = JSON.parse(readFileSync(resolve(root, 'public/data/species.v1.json'), 'utf8')) as { ebirdTaxonomy: string; species: Row[] }
   const cross = Papa.parse<Record<string, string>>(readFileSync(resolve(raw, 'OTT_crosswalk_2025.csv'), 'utf8'), { header: true, skipEmptyLines: true }).data
   const nex = readFileSync(resolve(raw, 'summary_dated_clements.nex'), 'utf8')
+  const genetic = parseNewick(readFileSync(resolve(raw, 'phylo_only_clements_labels.tre'), 'utf8').trim()).tipOf
   const out = relabel(nexusTree(nex), matcher(species.species, cross))
-  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: species.ebirdTaxonomy, newick: out.newick }
+  const isTaxOnly = (c: string) => !genetic.has(out.labelOf.get(c)!)
+  const taxOnly = taxOnlyBits(out.newick, isTaxOnly)
+  const dotted = [...out.labelOf.keys()].filter(isTaxOnly).length
+  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: species.ebirdTaxonomy, newick: out.newick, taxOnly }
   const text = JSON.stringify(file)
   writeFileSync(resolve(root, 'public/data/tree.v1.json'), text)
   const missing = species.species.filter((r) => !out.newick.includes(`(${r.code}:`) && !out.newick.includes(`,${r.code}:`)).length
-  console.log(`tree.v1.json: ${(text.length / 1024).toFixed(0)} KB; ${out.kept} of ${species.species.length} species placed, ${missing} without a tip; ${out.unmatched.length} tips matched no species, ${out.repeated.length} repeated a code`)
+  console.log(`tree.v1.json: ${(text.length / 1024).toFixed(1)} KB; ${out.kept} of ${species.species.length} species placed, ${missing} without a tip; ${out.unmatched.length} tips matched no species, ${out.repeated.length} repeated a code`)
+  console.log(`${dotted} tips placed without genetic data (${genetic.size} tips in the genetic-data tree)`)
   if (out.unmatched.length) console.log('unmatched tips:', out.unmatched.slice(0, 40).join(' '))
 }
 

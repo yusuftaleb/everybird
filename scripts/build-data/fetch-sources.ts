@@ -7,7 +7,7 @@
 // to; see scripts/sync/huashu-sync.ts), or at upstream HEAD when there is no lock. --huashu-only moves data/raw/huashu
 // to the pinned commit and updates the manifest's huashu entries, leaving the other downloads as they are (what
 // build-species and build-stickers ask for after a huashu sync PR is merged).
-// --tree-only fetches just the AvesData tree and its crosswalk (fetchTreeSources) into data/raw/avesdata/ and merges
+// --tree-only fetches just the AvesData trees and the crosswalk (fetchTreeSources) into data/raw/avesdata/ and merges
 // their manifest entries, for scripts/build-data/build-tree.ts.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -32,6 +32,8 @@ const AVES_RAW = `https://raw.githubusercontent.com/McTavishLab/AvesData/${AVES_
 export const AVES_FILES = [
   ['Tree_versions/Aves_1.7/Clements2025/summary_dated_clements.nex', 'avesdata/summary_dated_clements.nex'],
   ['Taxonomy_versions/Clements2025/OTT_crosswalk_2025.csv', 'avesdata/OTT_crosswalk_2025.csv'],
+  // The tree of the species with genetic data: a summary tip missing from it was placed by taxonomy alone.
+  ['Tree_versions/Aves_1.7/Clements2025/phylo_only_clements_labels.tre', 'avesdata/phylo_only_clements_labels.tre'],
 ] as const
 
 const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex')

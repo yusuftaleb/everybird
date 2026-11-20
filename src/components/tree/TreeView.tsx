@@ -25,7 +25,7 @@ type Loaded = { file: TreeFile; tree: Tree; species: SpeciesIndex }
 let treeP: Promise<Omit<Loaded, 'species'>> | null = null
 /** The tree, fetched and parsed once per page (a failure is not cached). */
 function loadTree(): Promise<Omit<Loaded, 'species'>> {
-  treeP ??= fetchData<TreeFile>('tree.v1.json').then((file) => ({ file, tree: parseNewick(file.newick) })).catch((e) => {
+  treeP ??= fetchData<TreeFile>('tree.v1.json').then((file) => ({ file, tree: parseNewick(file.newick, file.taxOnly) })).catch((e) => {
     treeP = null
     throw e
   })
@@ -104,7 +104,7 @@ export default function TreeView({ entries, sci, onPick }: Props) {
           {r.part && <>{' '}<span className="eb-mono eb-tree-part">{fmt(tt.part, { i: r.part[0], n: r.part[1] })}</span></>}
         </span>
         <span className="eb-mono eb-tree-count" aria-hidden="true">{count(r.on)} / {count(r.total)}</span>
-        <span className="eb-sr">, {fmt(tt.onList, { n: count(r.on), total: count(r.total) })}</span>
+        <span className="eb-sr">, {fmt(tt.onList, { n: count(r.on), total: count(r.total) })}{r.dotted && `, ${tt.dottedSr}`}</span>
       </button>
     )
   }
@@ -114,7 +114,7 @@ export default function TreeView({ entries, sci, onPick }: Props) {
       <>
         <span className="eb-tree-dot" aria-hidden="true" />
         <span className="eb-tree-name"><span lang={sci ? 'la' : undefined}>{name}</span></span>
-        <span className="eb-sr">, {r.on ? tt.onListOne : tt.notOnList}</span>
+        <span className="eb-sr">, {r.on ? tt.onListOne : tt.notOnList}{r.dotted && `, ${tt.dottedSr}`}</span>
       </>
     )
     return r.on
@@ -155,6 +155,8 @@ export default function TreeView({ entries, sci, onPick }: Props) {
           <svg className="eb-tree-svg" viewBox={`0 0 1000 ${view.height}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
             <path className="eb-tree-off" d={view.drawing.unseen} vectorEffect="non-scaling-stroke" />
             <path className="eb-tree-on" d={view.drawing.seen} vectorEffect="non-scaling-stroke" />
+            <path className="eb-tree-off eb-tree-dash" d={view.drawing.unseenDot} vectorEffect="non-scaling-stroke" />
+            <path className="eb-tree-on eb-tree-dash" d={view.drawing.seenDot} vectorEffect="non-scaling-stroke" />
           </svg>
           <ol className="eb-tree-rows" aria-label={tt.tips}>
             {view.rows.map((r) => (
@@ -165,6 +167,12 @@ export default function TreeView({ entries, sci, onPick }: Props) {
           </ol>
         </div>
       </div>
+      <ul className="eb-tree-key">
+        <li>
+          <svg className="eb-tree-key-line" viewBox="0 0 24 4" aria-hidden="true" focusable="false"><path className="eb-tree-on eb-tree-dash" d="M0 2H24" /></svg>
+          {tt.keyDotted}
+        </li>
+      </ul>
       <div className="eb-tree-unmapped">
         {unmapped.length ? (
           <>

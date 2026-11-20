@@ -3,11 +3,11 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { matcher, nexusTree, relabel } from '../scripts/build-data/build-tree'
+import { matcher, nexusTree, relabel, taxOnlyBits } from '../scripts/build-data/build-tree'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 import { HEAD_H, ROW_H, isClade, levelView } from '@/lib/tree/levels'
-import { ageTicks, cladeTree, drawTree, formatAge, isLeaf, leavesOf, oldestLineage, parseNewick, type TreeFile } from '@/lib/tree/tree'
+import { ageTicks, bitAt, cladeTree, drawTree, formatAge, isLeaf, leavesOf, oldestLineage, packBits, parseNewick, type TreeFile } from '@/lib/tree/tree'
 
 const sp = (code: string, sci: string, ord: string, fam: string, to: number): SpeciesRow =>
   ({ code, com: code.toUpperCase(), sci, ord, fam, famCom: `${fam} birds`, to, g: 10, gSrc: 'avonet', st: true, ar: 1, q: true })
@@ -32,6 +32,29 @@ describe('parseNewick', () => {
     const t = parseNewick('((a:1e-1,b:0.1)n1:0.9,c:1)root;')
     expect([...t.tipOf.keys()]).toEqual(['a', 'b', 'c'])
     expect(t.age[0]).toBeCloseTo(1)
+  })
+})
+
+describe('placed without genetic data', () => {
+  it('packs one bit per tip and reads it back', () => {
+    const bits = Array.from({ length: 20 }, (_, i) => i % 7 === 0 || i === 19)
+    const packed = packBits(bits)
+    expect(packed).toHaveLength(4)
+    expect(bits.map((_, i) => bitAt(packed, i))).toEqual(bits)
+    expect(bitAt(packed, 400)).toBe(false) // past the end
+  })
+  it('parseNewick marks the tips in reading order; a file without the field marks none', () => {
+    const t = parseNewick(NWK, taxOnlyBits(NWK, (c) => c === 'a3' || c === 'b2'))
+    expect([...t.tipOf].filter(([, k]) => t.taxOnly[k]).map(([c]) => c)).toEqual(['a3', 'b2'])
+    expect(tree.taxOnly.every((b) => b === 0)).toBe(true)
+  })
+  it('drawTree dots a leaf\'s own branch only, keeping the elbow solid', () => {
+    const root = cladeTree(tree, tree.tipOf.values(), (k) => tree.code[k]!)!
+    const d = drawTree(root, (l) => tree.code[l.tips[0]] === 'b2', undefined, undefined, (l) => tree.code[l.tips[0]] === 'b2')
+    expect(d.seen).toContain('M600 4V4.5')
+    expect(d.seen).not.toContain('M600 4V4.5H')
+    expect(d.seenDot).toBe('M600 4.5H1000')
+    expect(d.unseenDot).toBe('')
   })
 })
 
@@ -159,5 +182,15 @@ describe('public/data/tree.v1.json', () => {
     expect(new Set(tips).size).toBe(tips.length)
     expect(tips.length).toBeGreaterThan(shipped.species.length * 0.99)
     expect(t.age[0]).toBeGreaterThan(60)
+  })
+  it('marks the tips placed without genetic data: about 1,500 of them, the Somali Ostrich and Northern Cassowary but not the Common Ostrich', () => {
+    const t = parseNewick(file.newick, file.taxOnly)
+    const marked = (c: string) => t.taxOnly[t.tipOf.get(c)!] === 1
+    const n = t.taxOnly.reduce((a, b) => a + b, 0)
+    expect(n).toBeGreaterThan(1400)
+    expect(n).toBeLessThan(1800)
+    expect(marked('ostric3')).toBe(true)
+    expect(marked('norcas1')).toBe(true)
+    expect(marked('ostric2')).toBe(false)
   })
 })
