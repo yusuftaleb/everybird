@@ -1,9 +1,10 @@
 // The stats line (statsLine in CollageView): the list's totals, and the threatened count (VU + EN + CR) on the
 // unfiltered line, in the wording of each `threat` preview variant (a: "N threatened", b: "N globally threatened",
-// c: not on the line).
+// c: not on the line). In the Tree with Lifers only off, the counts against the taxonomy's totals.
 import { describe, expect, it } from 'vitest'
 import { en } from '@/i18n/messages/en'
-import { statsLine } from '@/components/app/CollageView'
+import { statsLine, taxonomyTotals } from '@/components/app/CollageView'
+import { taxonCover } from '@/lib/tree/levels'
 import type { ListEntry } from '@/lib/list/model'
 import type { IucnCat } from '@/lib/species/iucn'
 import { buildSpeciesIndex } from '@/lib/species/load'
@@ -46,5 +47,21 @@ describe('statsLine: the threatened count', () => {
     const big = buildSpeciesIndex(codes.map((c, i) => row(c, 'Strigiformes', 'Strigidae', i + 1, 'VU')))
     const list = codes.map((c) => entry(c, '2020-01-01'))
     expect(statsLine(list, list, big, en.ui)).toBe('1,200 species · 1 order · 1 family · 1,200 threatened · since Jan 2020')
+  })
+})
+
+describe('statsLine: against the taxonomy (the Tree with Lifers only off)', () => {
+  const totals = { species: 11201, orders: 45, families: 250 }
+  it('each taxonomic count against its total; threatened and the date as they are', () => {
+    expect(statsLine(all, all, species, en.ui, 'a', totals)).toBe('4 / 11,201 species · 3 / 45 orders · 4 / 250 families · 2 threatened · since Jan 2020')
+  })
+  it('the filtered line, and the line without totals, stay as today', () => {
+    expect(statsLine(all, all.slice(0, 2), species, en.ui, 'a', totals)).toBe('2 of 4 species · 2 families')
+    expect(statsLine(all, all, species, en.ui, 'a', undefined)).toBe('4 species · 3 orders · 4 families · 2 threatened · since Jan 2020')
+  })
+  it('the totals are the Tree’s own (taxonCover’s)', () => {
+    const cover = taxonCover(species.rows, new Set())
+    expect(taxonomyTotals(species.rows)).toEqual({ species: cover.species[1], orders: cover.orders[1], families: cover.families[1] })
+    expect(taxonomyTotals(species.rows)).toEqual({ species: 5, orders: 3, families: 4 })
   })
 })
