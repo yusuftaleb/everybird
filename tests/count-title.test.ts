@@ -92,7 +92,8 @@ describe('the poster\'s head and foot', () => {
     const brand = texts(log).find((l) => l.startsWith('fillText("Everybird"'))!
     expect(brand).toContain(`font: "700 ${image.POSTER_FOOT.brand}px`)
     const lifer = texts(log).find((l) => l.startsWith('fillText("Latest lifer: Synthetic Bird 13, May 2023"'))!
-    expect(lifer).toMatch(new RegExp(`, ${printDesign('A4', true)[0] - 64}, [\\d.]+\\) .*textAlign: "right"`))
+    expect(Number(/, ([\d.]+), [\d.]+\) /.exec(lifer)![1])).toBeCloseTo(printDesign('A4', true)[0] - 64, 4)
+    expect(lifer).toContain('textAlign: "right"')
     expect(lifer).toContain(`fillStyle: "${C.muted}"`)
     // All three on the wordmark's baseline: the line beside the wordmark, the lifer ending at the right margin.
     const y = (l: string) => /, ([\d.]+)\) \{/.exec(l)![1]

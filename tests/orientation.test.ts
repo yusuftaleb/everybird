@@ -176,14 +176,13 @@ describe('the landscape layouts', () => {
 
 describe('the footer’s one line fits in every language', () => {
   for (const [lang, m] of Object.entries({ en, es, nl, pt, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant })) {
-    it(`${lang}: the credit stays on the wordmark’s line, at 17px or more, clear of the latest row`, async () => {
+    it(`${lang}: the credit beside the wordmark or on its own line under it, whole, at 17px or more, clear of the latest row`, async () => {
       const opts = { format: 'desktop' as const, theme: 'light' as const, entries, species, pack: harnessPack, now: NOW, strings: m.ui }
       const card = await prepareCard(opts, IMAGE_SCALE.desktop)
       expect(card.oneLine).toBeDefined()
-      expect(card.credit.below).toBe(false)
       expect(card.credit.size).toBeGreaterThanOrEqual(17)
       // The estimate measureText makes without a DOM (0.6 em a character in mono): the credit ends before the row's block.
-      const lineEnd = M + card.brandW + card.footerLine.length * 0.6 * card.credit.size
+      const lineEnd = M + (card.credit.below ? 0 : card.brandW) + card.footerLine.length * 0.6 * card.credit.size
       expect(lineEnd).toBeLessThanOrEqual(card.oneLine!.x - FOOTER_GAP)
       // The row's block, right-aligned to the margin.
       const blockEnd = card.oneLine!.x + card.L.latest!.icon + ONE_LINE_GAP + Math.max(card.oneLine!.labelW, card.oneLine!.nameText.length * 0.56 * card.oneLine!.nameSize)

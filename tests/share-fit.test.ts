@@ -171,18 +171,18 @@ describe('the option switches and Print\'s actions', () => {
 describe("the desktop's one-line footer", () => {
   // The worst case in every language: the credit at 17px (its smallest), the latest row's label (uppercase mono 20px,
   // tracked .06em) with the longest month, and a 22-character name at 30px (the row clips a name past 480 units). The
-  // desktop line is 1792 units wide (1920 less the 64 side margins); the wordmark is about 181 of them.
+  // desktop line is 1792 units wide (1920 less the 64 side margins).
   const LINE_W = 1920 - 2 * 64
-  const BRAND = 181
   const CREDIT_CHARS = 81 // "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026"
   const MONO_EM_20 = 0.6 * 20 + 0.06 * 20
-  it('fits the credit at 17px or more beside the row, in every language', () => {
+  it('fits the credit at 17px or more beside the row (beside the wordmark, or under it), in every language', () => {
     const over: string[] = []
     for (const [lang, m] of Object.entries(LANG)) {
       const longest = Math.max(...m.ui.date.months.map(labelCells))
       const label = `${m.ui.share.latestLifer} · ${'x'.repeat(longest)} 2026${yearFirst(m.ui.date.months) ? '年' : ''}`.toUpperCase()
       const row = 40 + 14 + labelCells(label) * MONO_EM_20 + 14 + 22 * 0.56 * 30
-      const need = BRAND + 32 + CREDIT_CHARS * 0.6 * 17 + row
+      // At worst the credit takes its own line under the wordmark (placeFooter), starting at the margin.
+      const need = 32 + CREDIT_CHARS * 0.6 * 17 + row
       if (need > LINE_W) over.push(`${lang}: needs ${Math.ceil(need)}px, the line is ${LINE_W}px`)
     }
     expect(over).toEqual([])

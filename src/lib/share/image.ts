@@ -180,7 +180,8 @@ const ICON: Record<CardFormat, number> = { story: 76, post: 68, square: 68, prin
 /**
  * The cards whose footer is one line: the wordmark, the site and the credit on the left and the latest lifer row on the
  * right, all on the footer's baseline (cardLayout, placeFooter). Only the desktop: its width follows the screen (1,308 to
- * 2,464 units of text), and placeFooter clips a long name to the room the credit leaves at 17px. The 5:4 card (1,222) and
+ * 2,464 units of text). Where the credit at 17px and the whole name don't both fit beside the wordmark, the credit takes
+ * its own line under it (placeFooter), and only then is a long name shrunk or clipped. The 5:4 card (1,222) and
  * the landscape poster (about 1,400, with the credit at 17px) are too narrow for the row beside the credit, so they keep
  * the row stacked above the hairline (tests/orientation.test.ts measures it).
  */
@@ -998,14 +999,22 @@ function placeFooter(d: CardDraft): PreparedCard {
     const labelW = measure(font.mono(ls), ls, labelText, 0.6) + labelText.length * 0.06 * ls
     const nameW = (t: string, px: number) => measure(font.lifer(px), px, t, 0.56)
     const creditMin = footerW(CREDIT_MIN)
-    const room = maxW - FOOTER_GAP - brandW - creditMin - icon - ONE_LINE.gap
-    const full = nameW(d.latest.name, ns)
-    const nameSize = full <= room ? ns : Math.max(ns * ONE_LINE.nameMin, Math.min(ns, Math.floor((ns * room) / full)))
-    const nameText = clipTo((t) => nameW(t, nameSize), d.latest.name, room)
-    const blockW = icon + ONE_LINE.gap + Math.max(labelW, nameW(nameText, nameSize))
-    const x = X0 + maxW - blockW
-    const roomCredit = x - FOOTER_GAP - X0 - brandW
-    const credit = { ...placeCredit(footerW, roomCredit, roomCredit, L.footer.credit), below: false }
+    // `left`: where the credit's line starts, after the wordmark (beside it) or at the margin (under it).
+    const place = (left: number) => {
+      const room = maxW - FOOTER_GAP - left - creditMin - icon - ONE_LINE.gap
+      const full = nameW(d.latest!.name, ns)
+      const nameSize = full <= room ? ns : Math.max(ns * ONE_LINE.nameMin, Math.min(ns, Math.floor((ns * room) / full)))
+      const nameText = clipTo((t) => nameW(t, nameSize), d.latest!.name, room)
+      const x = X0 + maxW - (icon + ONE_LINE.gap + Math.max(labelW, nameW(nameText, nameSize)))
+      const roomCredit = x - FOOTER_GAP - X0 - left
+      return { nameSize, nameText, x, roomCredit, fits: nameText === d.latest!.name && roomCredit >= creditMin }
+    }
+    // Beside the wordmark when the credit (17px or more) and the whole name fit; else, as on every card, the credit takes
+    // its own line under the wordmark (the two on the row's two baselines, paintCard), so it has the wordmark's width too.
+    const beside = place(brandW)
+    const at = beside.fits ? beside : place(0)
+    const credit = { ...placeCredit(footerW, at.roomCredit, at.roomCredit, L.footer.credit), below: !beside.fits }
+    const { x, nameText, nameSize } = at
     const lifer = d.lifer && { ...d.lifer, x: x + (icon - d.lifer.w) / 2, y: L.latest.y + (icon - d.lifer.h) / 2 }
     return { ...d, lifer, brandW, credit, shift: 0, oneLine: { x, labelW, nameText, nameSize } }
   }
@@ -1171,13 +1180,16 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
   }
 
   // The footer (placed by prepareCard): the hairline, the wordmark, the line beside or under it.
-  const base = L.footer.y + L.footer.size * 0.8 - (card.oneLine ? FOOTER_LIFT : 0) // lifted to the lifer block's middle when it is on
+  // A one-line row: the wordmark and the credit lifted to the lifer block's middle; or, the credit under the wordmark, the
+  // two on the block's two baselines (its label's 30 above its name's).
+  const stack = !!card.oneLine && credit.below
+  const base = L.footer.y + L.footer.size * 0.8 - (card.oneLine && !stack ? FOOTER_LIFT : 0)
   ctx.fillStyle = C.hairline
   ctx.fillRect(X0, L.rule.y - shift, maxW, 2)
   ctx.textBaseline = 'alphabetic'
   ctx.font = font.brand(L.footer.size)
   ctx.fillStyle = C.ink
-  ctx.fillText('Everybird', X0, base - shift)
+  ctx.fillText('Everybird', X0, stack ? base - 30 : base - shift)
   ctx.font = font.footer(credit.size)
   ctx.fillStyle = C.muted
   // A poster's latest lifer at the right end of the bottom line: the wordmark's, or its own under it (placePosterFoot),
