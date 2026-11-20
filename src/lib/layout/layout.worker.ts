@@ -140,7 +140,7 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks, loa
         let r: PackResult | null = null
         if (msg.arrangement === 'family') r = rowsFrame(byTaxon(all, taxonOf(msg.entries)).map(aspectOf), msg.aspect, opts)
         else if (msg.arrangement === 'colour') {
-          const keys = await loadColours()
+          const keys = await loadColours().catch(() => ({}) as Record<string, number>) // no file: every bird is neutral, as NEUTRAL_KEY says
           const key = new Map(codes.map((c) => [birds.get(c)!.id, keys[c] ?? NEUTRAL_KEY]))
           r = colourFrame(all, msg.aspect, (id) => key.get(id) ?? NEUTRAL_KEY, opts)
         }
@@ -175,7 +175,7 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks, loa
       if (msg.arrangement === 'family') {
         r = rowsLayout(byTaxon(pack, to).map(aspectOf), layout, collageHole(pack.length, layout), { refBase: msg.refBase, fixedStage: msg.fixedStage })
       } else if (msg.arrangement === 'colour') {
-        const keys = await loadColours()
+        const keys = await loadColours().catch(() => ({}) as Record<string, number>) // no file: every bird is neutral, as NEUTRAL_KEY says
         const key = new Map(known.map((c, i) => [pack[i].id, keys[c] ?? NEUTRAL_KEY]))
         // Packed's stage and base for this state (or packed here, when the request didn't bring them).
         const ref = msg.fixedStage && msg.refBase ? { W: msg.fixedStage[0], H: msg.fixedStage[1], base: msg.refBase } : packBest(pack, layout, 'even', { rel: rel.even })

@@ -255,6 +255,12 @@ describe('share frames', () => {
     }
   })
 
+  it('By colour still lays every bird out when the colours file does not load', async () => {
+    const list = pick(40, 5)
+    const offline = createLayoutHandler(loadMasks, () => Promise.reject(new Error('offline')))
+    expect(image.packFromReply(await offline(msgOf(list, 'story', 'colour').msg)).boxes.size).toBe(list.length)
+  })
+
   it('By colour re-places packFrame\'s birds at (about) its sizes', async () => {
     const list = pick(120, 5)
     const packed = image.packFromReply(await handle(msgOf(list, 'story').msg))
