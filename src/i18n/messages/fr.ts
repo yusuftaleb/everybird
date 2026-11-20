@@ -448,7 +448,7 @@ export const fr: Messages = {
       formatName: '{name}, format {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Orientation', vertical: 'Portrait', horizontal: 'Paysage' },
-      countSize: { label: 'Taille du nombre', small: 'Petit', medium: 'Moyen', large: 'Grand', hide: 'Masquer' },
+      countSize: { label: 'Nombre', small: 'Petit', medium: 'Moyen', large: 'Grand', hide: 'Masquer' },
       preview: { story: 'Aperçu de l’image au format Story', post: 'Aperçu de l’image au format Post', square: 'Aperçu de l’image carrée', desktop: 'Aperçu de l’image au format Bureau', wide: 'Aperçu de l’image au format Post paysage' },
       failed: 'Impossible de créer l’image.',
       imageFailed: 'Impossible de créer l’image. Réessaie.',
@@ -457,7 +457,6 @@ export const fr: Messages = {
       nameLabel: 'Titre du collage',
       namePlaceholder: 'Mes oiseaux 2024',
       nameOptional: '(facultatif)',
-      parts: { label: 'Quoi partager', image: 'Image', poster: 'Affiche' },
       nameHelper: 'Affiché comme titre de ton collage et dans tes partages.',
       showLatest: 'Dernière espèce',
       shareImage: 'Partager',
@@ -483,11 +482,16 @@ export const fr: Messages = {
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
       dark: 'Image sombre',
       transparent: 'Fond transparent',
+      arrange: { label: 'Disposition', packed: 'Ajusté', oval: 'Ovale' },
+      hideTotals: 'Masquer les totaux',
       bigYear: {
-        label: 'Grande année',
-        year: 'Année',
-        target: 'Objectif',
-        targetPlaceholder: 'Espèces',
+        label: 'Objectif',
+        add: 'Ajouter un objectif',
+        target: 'Objectif en espèces',
+        speciesIn: 'espèces en',
+        year: 'Période de l’objectif',
+        allTime: 'Depuis toujours',
+        remove: 'Retirer l’objectif',
         targetInvalid: 'Saisis un nombre entier de 1 à {max}.',
         card: 'Grande année {year}',
         cardLifer: 'Grande année {year} · Nouvelles espèces en {year}',
@@ -495,6 +499,8 @@ export const fr: Messages = {
       downloadShort: 'Télécharger',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
+        entry: 'Imprimer l’affiche',
+        back: 'Retour à l’image',
         size: 'Taille de l’affiche',
         inches: '{w} × {h} po',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px à 150 dpi',
@@ -513,10 +519,12 @@ export const fr: Messages = {
         failed: 'Impossible de créer l’affiche. Réessaie.',
         previewAlt: 'Aperçu de l’affiche {size}',
         bulk: {
-          title: 'Plusieurs affiches (ZIP)',
+          title: 'Plusieurs affiches à la fois',
+          lede: 'Une affiche par groupe, téléchargées ensemble dans un ZIP.',
           splitLabel: 'Répartir par',
+          perPoster: 'Oiseaux par affiche',
           splits: {
-            batches: 'Jusqu’à 1.000 par affiche',
+            batches: 'Nombre d’oiseaux',
             family: 'Famille',
             order: 'Ordre',
             country: 'Pays',

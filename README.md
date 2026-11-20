@@ -19,8 +19,8 @@ Light by default, with a sun/moon toggle in the top bar. The interface is in Eng
 ## Current capabilities
 
 - Smart search and one Filters panel for places, time, taxonomy and conservation status.
-- Share images and posters packed or in an oval, with optional rings on the latest and first lifer and a dark look.
-- Share images of every view (Map and Tree draw their own), with a transparent background and a count size option.
+- Share on one screen: Share image is two presses from the collage; the other options are rows under it (a species goal for a year or all time, Fit or Oval, rings on the latest and first lifer, dark and transparent looks). Print poster opens the poster's options, and several posters at once come as one ZIP.
+- Share images of every view (Map and Tree draw their own; the Tree's with Lifers only and Hide totals), with a transparent background and a count size option.
 - Vertical/Horizontal sharing: Story 9:16 or Desktop 16:9, Post 4:5 or 5:4, and Square; print posters A4–A1 and US 12×18 to 24×36 inches in either orientation.
 - Search metadata in every language, a `WebSite` site-name declaration on the homepage, and the landing demo excluded from search snippets. Google's displayed result can lag a deployment.
 - Private anonymous-usage dashboard at `https://stats.yusuftaleb.com/dashboard`, behind Cloudflare Access. Days now follow America/Vancouver; the completed 2026-11-16 transition is documented in [the stats README](workers/stats/README.md).

@@ -1,22 +1,29 @@
 'use client'
-// The share dialog: story, post or square image with a live preview (a Vertical | Horizontal switch above the format control
-// swaps the formats: Story, Post, Square, or Desktop, Post (5:4), Square, and the landscape poster), the image options (the optional collage title,
-// Saved.name verbatim, and the "Show latest lifer" switch, on at every open; off gives the row's room to the collage),
-// four actions (Share image: the system share sheet when it takes files, else a download; Download image; Copy link;
-// Print a poster) and last, in the bottom right corner, Buy Me a Coffee's static button (self-hosted, never on the images).
+// The share dialog, on one screen (Yusuf, 2026-11-19: the fewest steps from the collage to a shared image; every other
+// option is complementary and stays out of the way): the live preview beside the controls (above them on phones), the
+// format control (Story, Post, Square; Desktop, Post 5:4 and Square when the Vertical | Horizontal switch beside it says
+// Horizontal), Fit or Oval (the collage image and the poster only), the optional collage title (Saved.name verbatim),
+// then the option rows, one row each, label left and control right: Count (a dropdown; not for the Tree image), Goal,
+// Show latest lifer and the two lifer marks, the Tree image's Lifers only and Hide totals, Dark image and Transparent
+// background. Then Share image (the system share sheet when it takes files, else a download), over Download, Copy link
+// and Print poster; last, in the bottom right corner, Buy Me a Coffee's static button (self-hosted, never on the images).
+// On phones the actions come straight under the preview, so Share image is on the first screen; the rows follow.
+// The Goal row: "Add a goal" until one is set; then a number box, "species in", a year menu (All time and each year with
+// birds, newest first) and a remove button. With a year the image is that year's birds against the target (the Big
+// Year); with All time, the birds on screen against it. Kept in Saved.bigYear (year left out for All time).
 // The link encoder (and its ~111 KB species index) is a separate chunk, fetched when the dialog opens, so a Copy link
 // click awaits nothing slow (iOS drops the clipboard permission once a click handler waits on the network).
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
 // Every word is the UI language's (ui.share), the image's and the poster's too; the credit line, the share text
 // (SHARE_CREDIT), the download names and the link stay the same in every language (a link carries no language).
-// The "Dark image" switch (starts at the app's theme, then the dialog's own) sets the look of the share images and the
-// poster alike; Packed / Oval and the two lifer marks (lifer-marks.ts, kept per device) apply to them too. Print mode makes an A4 to A1 or a 12 × 18, 18 × 24 or 24 × 36 in poster (A2 to start): the preview is the poster's 1080-wide image, "Make poster" runs
-// makePoster (its chunk is fetched when print mode opens) with progress and Cancel, then Download PNG and Download PDF
-// serve the one encode. Changing the size, title or either switch, leaving print mode or closing the dialog cancels a make and
-// drops a finished poster. Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied isn't. "Share images" in the format control's place goes back.
-// The actions: Share image over a row of three quiet buttons. Print mode keeps the same pattern.
+// Print poster shows the poster's options in the same dialog ("Back to image" in the format control's place goes back):
+// an A4 to A1 or a 12 × 18, 18 × 24 or 24 × 36 in poster (A2 to start), the species names switch, then Make poster
+// (makePoster, its chunk fetched when the poster opens) with progress and Cancel, then Download PNG and Download PDF
+// serving the one encode; under it "Several posters at once", a ZIP of one poster per group. Changing the size, title or
+// a switch, going back or closing the dialog cancels a make and drops a finished poster. Counted: poster_made (by size)
+// when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied isn't, from the poster.
 import {
-  ArrowClockwise, CaretDown, DeviceMobile, DownloadSimple, FilePdf, FrameCorners, LinkSimple, Monitor, Printer, ShareNetwork, Square, X, type Icon,
+  ArrowClockwise, ArrowLeft, DeviceMobile, DownloadSimple, FilePdf, FrameCorners, LinkSimple, Monitor, Printer, ShareNetwork, Square, X, type Icon,
 } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar } from '@/components/dialog-utils'
@@ -28,14 +35,15 @@ import { countryName, regionsIn } from '@/lib/i18n-places'
 import { track, type PosterSizeWire } from '@/lib/analytics'
 import { currentTheme, type Theme } from '@/lib/theme'
 import { setLiferMark, useLiferMarks } from '@/lib/lifer-marks'
+import { setTreeMine, useTreeMine } from '@/lib/tree-mine'
 import { ARRANGEMENTS, setArrangement, useArrangement } from '@/lib/arrangement'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
-import { bulkGroups, bulkPackSpec, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
+import { BULK_BATCH_MAX, BULK_BATCH_MIN, BULK_BATCH_SIZE, bulkGroups, bulkPackSpec, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
 import type { Poster } from '@/lib/share/poster'
 import { CAPTION_CAPS, PRINT_IN, PRINT_SIZES, captionMinPx, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
 import { planCaptions, type CaptionPlan } from '@/lib/share/captions'
-import { goalBasis, goalYears, hasDates, isTarget, TARGET_MAX, yearFilter, yearList } from '@/lib/list/big-year'
+import { goalBasis, hasDates, isTarget, listYears, TARGET_MAX, yearFilter, yearList, type BigYear } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
 import { groupName } from '@/lib/search/groups'
 import type { Action, AppState } from '@/lib/list/store'
@@ -53,6 +61,7 @@ import type { ViewKind } from '@/lib/view-resume'
 import type { ShareAt, ViewImageOpts } from '@/lib/share/view-image'
 import '@/components/app/app.css'
 import '@/components/collage/collage.css'
+import { MenuSelect } from './MenuSelect'
 import './share.css'
 
 /** How long the preview's frame eases to a new shape and the images cross-fade (share.css, as the photo lightbox). */
@@ -62,8 +71,8 @@ const PREVIEW_EASE_MS = 420
  *  Every view shares the birds on screen (the filter applied). */
 type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; view?: ViewKind; at?: ShareAt; onClose: () => void }
 
-/** The views that draw their own image in the Image part (the Poster and the Big Year card stay the collage): each
- *  module loads only when Share is pressed there. Unset, a view shares the collage image of the birds on screen. */
+/** The views that draw their own share image (the poster stays the collage): each module loads only when Share is
+ *  pressed there. Unset, a view shares the collage image of the birds on screen. */
 export const VIEW_IMAGE: Partial<Record<ViewKind, () => Promise<(o: ViewImageOpts) => Promise<Blob>>>> = {
   map: () => import('@/lib/share/map-image').then((m) => m.renderMapImage),
   tree: () => import('@/lib/share/tree-image').then((m) => m.renderTreeImage),
@@ -80,7 +89,8 @@ const ORIENTATIONS: Orientation[] = ['vertical', 'horizontal']
 const COUNT_SIZES: CountSize[] = ['small', 'medium', 'large', 'hide']
 const BULK_SPLITS: BulkSplit[] = ['batches', 'family', 'order', 'country', 'continent', 'province', 'year']
 type LinkResult = ReturnType<typeof MakeShareLink>
-type SharePart = 'image' | 'poster' | 'bigYear'
+/** The goal's year: a year, or the birds on screen (All time). */
+type GoalYear = number | 'all'
 const loadLinkModule = () => import('@/lib/share/make-link')
 type PosterModule = typeof import('@/lib/share/poster')
 
@@ -98,13 +108,16 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const optionalId = useId()
   const helperId = useId()
   const countSizeId = useId()
-  const arrangementId = useId()
-  const yearId = useId()
-  const targetId = useId()
+  const goalId = useId()
+  const goalYearId = useId()
   const targetNoteId = useId()
+  const bulkTitleId = useId()
   const bulkSplitId = useId()
+  const bulkSizeId = useId()
   const namesNoteId = useId()
-  useEscapeCapture(onClose)
+  // An open dropdown takes Escape first (the dialog catches it on the window before the menu could): it closes the menu.
+  const menuEsc = useRef<(() => void) | null>(null)
+  useEscapeCapture(() => (menuEsc.current ? menuEsc.current() : onClose()))
   useFocusInAndBack(ref)
   useHoldTopBar()
   const { lang, t } = useI18n()
@@ -121,12 +134,15 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const landscape = orientation === 'horizontal'
   /** The share image's shape: the slot in this orientation (story is desktop, post is wide when horizontal). */
   const shape = imageShape(format, orientation)
-  // The dialog's three parts: the image, the poster and the Big Year card, each with only its own options.
-  const [part, setPart] = useState<SharePart>('image')
+  // Print poster shows the poster's options in this dialog; Back to image returns. Not a tab: the image is the default.
+  const [print, setPrint] = useState(false)
   const [size, setSize] = useState<PrintSize>('A2')
-  const print = part === 'poster'
-  // The Image part in the Map or Tree view draws that view: no stickers, so no sticker options.
-  const viewImage = part === 'image' && view ? VIEW_IMAGE[view] : undefined
+  // The share image in the Map or Tree view draws that view: no stickers, so no sticker options.
+  const viewImage = !print && view ? VIEW_IMAGE[view] : undefined
+  const treeImage = !!viewImage && view === 'tree'
+  // The Tree image's "Lifers only" is the bar's switch (tree-mine.ts), so the image and the view agree.
+  const treeMine = useTreeMine()
+  const [hideTotals, setHideTotals] = useState(false)
   // Square is the same in both orientations (its image doesn't change; the dialog keeps its narrow layout for it).
   const squareShare = !print && format === 'square'
   // Horizontal (a desktop or wide image, or a landscape poster) lays out wide: the dialog widens and the preview takes
@@ -135,7 +151,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const lastWide = useRef(wideLayout)
   // The collage's title: saved with the list as it is typed (the store trims it), so it also names the page.
   const [name, setName] = useState(saved.name ?? '')
-  const [countSize, setCountSize] = useState<CountSize>('medium')
+  const [countSizeChoice, setCountSize] = useState<CountSize>('medium')
+  // The Tree image has no Count row: its count is the medium one.
+  const countSize: CountSize = treeImage ? 'medium' : countSizeChoice
   const [showLatest, setShowLatest] = useState(true)
   const [showNames, setShowNames] = useState(false)
   const [namesFitFailKey, setNamesFitFailKey] = useState<string | null>(null)
@@ -156,26 +174,34 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     return labelFor(filter, { species, countryName: (iso) => countryName(iso, lang, regions), regions: named, familyName, groupName: (id) => { const g = species.groups?.get(id); return g && groupName(g, lang) } }, t)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
   }, [filter, species, regions, lang, t, names])
-  const showBigYear = useMemo(() => hasDates(known, seen), [known, seen])
-  const years = useMemo(() => {
-    const ys = goalYears(known)
-    const sy = saved.bigYear?.year
-    if (sy && !ys.includes(sy)) ys.push(sy)
-    return ys.sort((a, b) => b - a)
-  }, [known, saved.bigYear?.year])
-  // A poster can show the Big Year too (its switch, in the Poster part only); the Big Year part is the card itself.
-  const [posterBigYear, setPosterBigYear] = useState(false)
-  const bigYearOn = part === 'bigYear' || (print && posterBigYear)
-  const [goalYear, setGoalYear] = useState(() => saved.bigYear?.year ?? new Date().getFullYear())
+  // The Goal row (the collage image and the poster): closed ("Add a goal") until a goal is set or saved.
+  const dated = useMemo(() => hasDates(known, seen), [known, seen])
+  const [goalOpen, setGoalOpen] = useState(() => !!saved.bigYear)
+  const [goalYear, setGoalYear] = useState<GoalYear>(() => (saved.bigYear ? (saved.bigYear.year ?? 'all') : 'all'))
   const [goalTarget, setGoalTarget] = useState(() => (saved.bigYear ? String(saved.bigYear.target) : ''))
-  /** The target field was left holding something that isn't a whole number from 1 to TARGET_MAX (the saved goal stays). */
+  /** The target box was left holding something that isn't a whole number from 1 to TARGET_MAX (the saved goal stays). */
   const [targetBad, setTargetBad] = useState(false)
   const parsedTarget = /^\d+$/.test(goalTarget.trim()) ? Number(goalTarget.trim()) : undefined
   const validTarget = isTarget(parsedTarget) ? parsedTarget : undefined
-  const bigYearActive = bigYearOn && showBigYear
-  const cardEntries = useMemo(() => (bigYearActive ? yearList(known, goalYear, species, seen) : shown), [bigYearActive, known, goalYear, species, seen, shown])
-  const cardGoal = useMemo(() => (bigYearActive ? { year: goalYear, target: validTarget, basis: goalBasis(seen) } : undefined), [bigYearActive, goalYear, validTarget, seen])
-  const cardLabel = bigYearActive ? undefined : label
+  // The year menu: All time, then (for a list with dates) this year and each year with birds, newest first, and the
+  // saved goal's year. Worked out only while the row is open.
+  const years = useMemo(() => {
+    if (!goalOpen) return []
+    const ys = dated ? listYears(known, species, seen) : []
+    if (typeof goalYear === 'number' && !ys.includes(goalYear)) ys.push(goalYear)
+    return ys.sort((a, b) => b - a)
+  }, [goalOpen, dated, known, species, seen, goalYear])
+  // A year's goal draws that year's birds even before a target is typed; an All time goal only once it has a target.
+  const goalActive = goalOpen && !viewImage && (goalYear !== 'all' || validTarget !== undefined)
+  const yearGoal = goalActive && goalYear !== 'all' ? goalYear : undefined
+  const cardEntries = useMemo(() => (yearGoal !== undefined ? yearList(known, yearGoal, species, seen) : shown), [yearGoal, known, species, seen, shown])
+  const cardGoal = useMemo(
+    () => (goalActive ? { ...(yearGoal !== undefined ? { year: yearGoal } : {}), target: validTarget, basis: goalBasis(seen) } : undefined),
+    [goalActive, yearGoal, validTarget, seen],
+  )
+  const cardLabel = yearGoal !== undefined ? undefined : label
+  /** The goal as saved: the year left out for All time. */
+  const goalOf = (y: GoalYear, target: number): BigYear => (y === 'all' ? { target } : { year: y, target })
   const hasLatest = useMemo(() => cardEntries.some((e) => e.date), [cardEntries])
   const withLatest = hasLatest && showLatest && !viewImage
   const liferMarks = useLiferMarks()
@@ -185,7 +211,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const trimmed = name.trim()
   const hasTitle = !!trimmed
   const hasFilter = !!(cardLabel || cardGoal)
-  const goalKey = cardGoal ? `by:${cardGoal.year}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
+  const goalKey = cardGoal ? `by:${cardGoal.year ?? 'all'}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
   const overCap = cardEntries.length > CAPTION_CAPS[size]
   const markedCodes = useMemo(
     () => markedCodesOf(cardEntries, species, { newest: liferMarks.newest, first: liferMarks.first }),
@@ -293,7 +319,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const outgoingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const shownSize = useRef<[number, number]>([0, 0])
   const first = useRef(true)
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : viewImage ? `${view}|${shape}` : shape}|${arrangement}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : viewImage ? `${view}|${shape}|${treeImage ? `${treeMine}|${hideTotals}` : ''}` : shape}|${arrangement}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   useEffect(() => {
@@ -310,7 +336,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
           theme, transparent, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, strings: t, nameOf: displayName, signal: life.current?.signal,
         }
-        if (viewImage) return (await viewImage())({ ...opts, at: at ?? {}, state: { list, filter, seen, sci }, t })
+        if (viewImage) return (await viewImage())({ ...opts, at: treeImage ? { ...at, mine: treeMine } : at ?? {}, state: { list, filter, seen, sci }, t, hideTotals })
         const pack = await packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null)
         return renderShareImage({ ...opts, pack })
       })
@@ -341,7 +367,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       },
     )
     return () => { live = false; cancel() }
-  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, at, list, filter, seen, sci])
+  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, hideTotals, at, list, filter, seen, sci])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -367,8 +393,10 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const posterKey = `print|${arrangement}|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
-  const [bulkOpen, setBulkOpen] = useState(false)
   const [bulkSplit, setBulkSplit] = useState<BulkSplit>('batches')
+  // The most birds per poster when splitting by number of birds: the box as typed, and the last value in bounds.
+  const [bulkSize, setBulkSize] = useState(BULK_BATCH_SIZE)
+  const [bulkSizeText, setBulkSizeText] = useState(String(BULK_BATCH_SIZE))
   const [bulkMaking, setBulkMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   const makeCtl = useRef<AbortController | null>(null)
   const bulkCtl = useRef<AbortController | null>(null)
@@ -397,23 +425,28 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const makingNow = print && making?.key === posterKey ? making : null
   const bulkMakingNow = print && bulkMaking?.key === posterKey ? bulkMaking : null
   const bulkList = useMemo(() => {
-    if (!print || !bulkOpen) return []
+    if (!print) return []
     const named = regionsIn(regions, lang)
     return bulkGroups(bulkSplit, cardEntries, {
       species,
       regions: named,
       seen,
-      filter: bigYearActive ? yearFilter(goalYear, seen) : filter,
+      filter: yearGoal !== undefined ? yearFilter(yearGoal, seen) : filter,
       continents: t.places.continents,
       batchLabel: (n) => fmt(pt.bulk.batch, { n: formatInt(n, t.num) }),
       familyLabel: familyName,
       orderLabel: (ord) => t.orders[ord as keyof typeof t.orders] ?? ord,
       locale: HTML_LANG[lang],
+      batchSize: bulkSize,
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
-  }, [print, bulkOpen, bulkSplit, cardEntries, species, regions, lang, seen, bigYearActive, goalYear, filter, t, pt.bulk.batch, names])
+  }, [print, bulkSplit, bulkSize, cardEntries, species, regions, lang, seen, yearGoal, filter, t, pt.bulk.batch, names])
 
   // Where focus goes once the button that had it is gone (only if it fell to the page or the dialog itself).
+  const backRef = useRef<HTMLButtonElement>(null)
+  const entryRef = useRef<HTMLButtonElement>(null)
+  const goalAddRef = useRef<HTMLButtonElement>(null)
+  const goalTargetRef = useRef<HTMLInputElement>(null)
   const makeRef = useRef<HTMLButtonElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
   const pngRef = useRef<HTMLButtonElement>(null)
@@ -422,20 +455,44 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const bulkCancelRef = useRef<HTMLButtonElement>(null)
   /** The ZIP button that started the make: focus comes back to it when the make ends. */
   const bulkKind = useRef<'png' | 'pdf'>('png')
-  const focusNext = useRef<'make' | 'cancel' | 'png' | 'bulkPng' | 'bulkPdf' | 'bulkCancel' | null>(null)
+  const focusNext = useRef<'back' | 'entry' | 'goalAdd' | 'goalTarget' | 'make' | 'cancel' | 'png' | 'bulkPng' | 'bulkPdf' | 'bulkCancel' | null>(null)
   useEffect(() => {
     const want = focusNext.current
     if (!want) return
     focusNext.current = null
-    const el = { make: makeRef, cancel: cancelRef, png: pngRef, bulkPng: bulkPngRef, bulkPdf: bulkPdfRef, bulkCancel: bulkCancelRef }[want].current
+    const el = { back: backRef, entry: entryRef, goalAdd: goalAddRef, goalTarget: goalTargetRef, make: makeRef, cancel: cancelRef, png: pngRef, bulkPng: bulkPngRef, bulkPdf: bulkPdfRef, bulkCancel: bulkCancelRef }[want].current
     const active = document.activeElement
     if (el && (!active || active === document.body || active === ref.current)) el.focus()
   })
 
-  const switchPart = (p: SharePart) => {
-    if (p === part) return
-    setPart(p)
+  const switchPrint = (on: boolean) => {
+    if (on === print) return
+    setPrint(on)
     setNote(null)
+    focusNext.current = on ? 'back' : 'entry'
+  }
+  const addGoal = () => {
+    setGoalOpen(true)
+    // A list with dates starts at its newest year (usually this one); one without starts at All time.
+    if (!saved.bigYear) setGoalYear(dated ? (listYears(known, species, seen)[0] ?? 'all') : 'all')
+    focusNext.current = 'goalTarget'
+  }
+  const removeGoal = () => {
+    setGoalOpen(false)
+    setGoalTarget('')
+    setTargetBad(false)
+    if (saved.bigYear) dispatch({ type: 'bigYear', bigYear: undefined })
+    focusNext.current = 'goalAdd'
+  }
+  const pickGoalYear = (y: GoalYear) => {
+    setGoalYear(y)
+    if (validTarget !== undefined) dispatch({ type: 'bigYear', bigYear: goalOf(y, validTarget) })
+  }
+  const commitBulkSize = () => {
+    const n = /^\d+$/.test(bulkSizeText.trim()) ? Number(bulkSizeText.trim()) : bulkSize
+    const c = Math.min(BULK_BATCH_MAX, Math.max(BULK_BATCH_MIN, n))
+    setBulkSize(c)
+    setBulkSizeText(String(c))
   }
 
   const makePoster = async () => {
@@ -738,6 +795,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     ? [
         { label: t.share.download, short: t.share.downloadShort, icon: DownloadSimple, disabled: busy, onClick: () => void download() },
         copy,
+        { label: pt.entry, icon: Printer, ref: entryRef, onClick: () => switchPrint(true) },
       ]
     : [
         ...(posterNow && !transparent ? [{ label: pt.pdf, icon: FilePdf, onClick: () => void savePoster('pdf') }] : []),
@@ -754,6 +812,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       </button>
     )
   }
+  /** An option row that is a switch: the whole row presses, the label on the left, the track on the right. */
+  const switchRow = (on: boolean, text: string, toggle: () => void, testId?: string) => (
+    <button type="button" role="switch" aria-checked={on} className="eb-switch eb-share-switch eb-share-opt" data-testid={testId} onClick={toggle}>
+      <span>{text}</span>
+      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+    </button>
+  )
+  const gt = t.share.bigYear
   return (
     <div className="eb-share-scrim" data-layout={wideLayout ? 'wide' : 'side'} onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div
@@ -775,27 +841,16 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         </div>
 
         <div className="eb-share-body">
-          {/* Its own column on top of the controls beside the preview; above the preview on phones (share.css): the three
-              parts first (Big Year only for a list with dates), then the orientation and, for an image, its format. */}
+          {/* Its own column on top of the controls beside the preview; above the preview on phones (share.css): the format
+              (in the poster, Back to image in its place), then the orientation and, for the collage image and the poster,
+              Fit or Oval beside it. */}
           <div className="eb-share-formats">
-            <div className="eb-seg eb-share-parts" role="group" aria-label={t.share.parts.label} data-testid="share-parts">
-              {(['image', 'poster', ...(showBigYear ? ['bigYear' as const] : [])] as const).map((p) => (
-                <button key={p} type="button" className="eb-seg-btn" aria-pressed={part === p} onClick={() => switchPart(p)}>
-                  <span className="eb-seg-label">{p === 'bigYear' ? t.share.bigYear.label : t.share.parts[p]}</span>
-                </button>
-              ))}
-            </div>
-            <div className="eb-seg eb-share-orient" role="group" aria-label={t.share.orientation.group}>
-              {ORIENTATIONS.map((o) => (
-                <button
-                  key={o} type="button" className="eb-seg-btn" aria-pressed={orientation === o}
-                  onClick={() => setOrientation(o)}
-                >
-                  {t.share.orientation[o]}
-                </button>
-              ))}
-            </div>
-            {!print && (
+            {print ? (
+              <button ref={backRef} type="button" className="eb-btn eb-btn-quiet eb-share-back" onClick={() => switchPrint(false)}>
+                <ArrowLeft aria-hidden="true" focusable="false" />
+                {pt.back}
+              </button>
+            ) : (
               <div className="eb-seg" role="group" aria-label={t.share.formats}>
                 {FORMATS.map(({ id, hint, icon }) => {
                   // Horizontal, the story is the desktop wallpaper: its name and icon change, the post keeps its name.
@@ -813,6 +868,27 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                 })}
               </div>
             )}
+            <div className="eb-share-toprow">
+              <div className="eb-seg eb-share-orient" role="group" aria-label={t.share.orientation.group}>
+                {ORIENTATIONS.map((o) => (
+                  <button
+                    key={o} type="button" className="eb-seg-btn" aria-pressed={orientation === o}
+                    onClick={() => setOrientation(o)}
+                  >
+                    <span className="eb-seg-label">{t.share.orientation[o]}</span>
+                  </button>
+                ))}
+              </div>
+              {!viewImage && (
+                <div className="eb-seg eb-share-arrange" role="group" aria-label={t.share.arrange.label} data-testid="share-arrangement">
+                  {ARRANGEMENTS.map((a) => (
+                    <button key={a} type="button" className="eb-seg-btn" aria-pressed={arrangement === a} onClick={() => setArrangement(a)}>
+                      <span className="eb-seg-label">{t.share.arrange[a]}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* The box takes the shown image's format (share.css), so it changes shape with the image, not before it; it sits
@@ -839,7 +915,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           </div>
 
           <div className="eb-share-controls">
-            {/* The image options: in print mode the size first, then the title and the two switches. */}
+            {/* The options: in the poster the size first, then the title and one row per option. */}
             <div className="eb-share-options">
               {print && (
                 <div className="eb-share-field">
@@ -855,162 +931,118 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                 </div>
               )}
 
-              <div className="eb-share-box">
-                <div className="eb-share-field">
-                  <div className="eb-share-labelrow">
-                    <label htmlFor={nameId} className="eb-share-label">{t.share.nameLabel}</label>
-                    <span id={optionalId} className="eb-share-optional">{t.share.nameOptional}</span>
+              <div className="eb-share-field">
+                <div className="eb-share-labelrow">
+                  <label htmlFor={nameId} className="eb-share-label">{t.share.nameLabel}</label>
+                  <span id={optionalId} className="eb-share-optional">{t.share.nameOptional}</span>
+                </div>
+                <input
+                  id={nameId}
+                  className="eb-share-input"
+                  type="text"
+                  autoComplete="off"
+                  maxLength={NAME_MAX_LEN}
+                  placeholder={t.share.namePlaceholder}
+                  aria-describedby={`${optionalId} ${helperId}`}
+                  value={name}
+                  onChange={(e) => { setName(e.target.value); dispatch({ type: 'name', name: e.target.value }) }}
+                />
+                <p id={helperId} className="eb-sr">{t.share.nameHelper}</p>
+              </div>
+
+              <div className="eb-share-opts" data-testid="share-switches">
+                {!treeImage && (
+                  <div className="eb-share-opt">
+                    <span id={countSizeId} className="eb-share-optlabel">{t.share.countSize.label}</span>
+                    <MenuSelect
+                      labelledBy={countSizeId} menuLabel={t.share.countSize.label} escapeRef={menuEsc} testId="share-count-size"
+                      options={COUNT_SIZES.map((cs) => ({ value: cs, label: t.share.countSize[cs] }))}
+                      value={countSizeChoice} onChange={setCountSize}
+                    />
                   </div>
-                  <input
-                    id={nameId}
-                    className="eb-share-input"
-                    type="text"
-                    autoComplete="off"
-                    maxLength={NAME_MAX_LEN}
-                    placeholder={t.share.namePlaceholder}
-                    aria-describedby={`${optionalId} ${helperId}`}
-                    value={name}
-                    onChange={(e) => { setName(e.target.value); dispatch({ type: 'name', name: e.target.value }) }}
-                  />
-                  <p id={helperId} className="eb-note">{t.share.nameHelper}</p>
-                </div>
+                )}
 
-                <div className="eb-share-switches" data-testid="share-switches">
-                  {hasLatest && !viewImage && (
-                    <button type="button" role="switch" aria-checked={showLatest} className="eb-switch eb-share-switch" onClick={() => setShowLatest((v) => !v)}>
-                      <span>{t.share.showLatest}</span>
-                      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
-                    </button>
-                  )}
+                {!viewImage && (
+                  <div className="eb-share-opt" data-testid="share-goal">
+                    <span id={goalId} className="eb-share-optlabel">{gt.label}</span>
+                    {!goalOpen ? (
+                      <button ref={goalAddRef} type="button" className="eb-textbtn" onClick={addGoal}>{gt.add}</button>
+                    ) : (
+                      <span className="eb-share-goal" role="group" aria-labelledby={goalId}>
+                        <input
+                          ref={goalTargetRef}
+                          className="eb-share-num"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          autoComplete="off"
+                          maxLength={5}
+                          aria-label={gt.target}
+                          value={goalTarget}
+                          aria-invalid={targetBad || undefined}
+                          aria-describedby={targetBad ? targetNoteId : undefined}
+                          onChange={(e) => setGoalTarget(e.target.value)}
+                          onBlur={(e) => {
+                            // Saved once the box is left. Anything but a whole number from 1 to TARGET_MAX keeps the saved
+                            // goal and says why; only a box left empty clears it.
+                            const v = e.currentTarget.value.trim()
+                            const n = /^\d+$/.test(v) ? Number(v) : undefined
+                            if (v !== '' && !isTarget(n)) return setTargetBad(true)
+                            setTargetBad(false)
+                            if (isTarget(n)) dispatch({ type: 'bigYear', bigYear: goalOf(goalYear, n) })
+                            else if (saved.bigYear) dispatch({ type: 'bigYear', bigYear: undefined })
+                          }}
+                        />
+                        <span className="eb-share-goalwords" aria-hidden="true">{gt.speciesIn}</span>
+                        <span id={goalYearId} hidden>{gt.year}</span>
+                        <MenuSelect<GoalYear>
+                          labelledBy={goalYearId} menuLabel={gt.year} escapeRef={menuEsc} testId="share-goal-year"
+                          options={[{ value: 'all', label: gt.allTime }, ...years.map((y) => ({ value: y, label: String(y) }))]}
+                          value={goalYear} onChange={pickGoalYear}
+                        />
+                        <button type="button" className="eb-share-goalx" aria-label={gt.remove} onClick={removeGoal}>
+                          <X aria-hidden="true" focusable="false" weight="bold" />
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                )}
+                {!viewImage && goalOpen && targetBad && (
+                  <p id={targetNoteId} className="eb-note eb-share-names-note">{fmt(gt.targetInvalid, { max: formatInt(TARGET_MAX, t.num) })}</p>
+                )}
 
-                  {hasLatest && !viewImage && <>
-                    <button type="button" role="switch" aria-checked={liferMarks.newest} className="eb-switch eb-share-switch" data-testid="share-mark-newest" onClick={() => setLiferMark('newest', !liferMarks.newest)}>
-                      <span>{t.collage.controls.markNewest}</span>
-                      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
-                    </button>
-                    <button type="button" role="switch" aria-checked={liferMarks.first} className="eb-switch eb-share-switch" data-testid="share-mark-first" onClick={() => setLiferMark('first', !liferMarks.first)}>
-                      <span>{t.collage.controls.markFirst}</span>
-                      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
-                    </button>
-                  </>}
+                {hasLatest && !viewImage && <>
+                  {switchRow(showLatest, t.share.showLatest, () => setShowLatest((v) => !v))}
+                  {switchRow(liferMarks.newest, t.collage.controls.markNewest, () => setLiferMark('newest', !liferMarks.newest), 'share-mark-newest')}
+                  {switchRow(liferMarks.first, t.collage.controls.markFirst, () => setLiferMark('first', !liferMarks.first), 'share-mark-first')}
+                </>}
 
-                  <button type="button" role="switch" aria-checked={dark} className="eb-switch eb-share-switch" data-testid="share-dark-switch" onClick={() => setDark((v) => !v)}>
-                    <span>{t.share.dark}</span>
+                {treeImage && <>
+                  {switchRow(treeMine, t.collage.controls.lifersOnly, () => setTreeMine(!treeMine), 'share-tree-mine')}
+                  {switchRow(hideTotals, t.share.hideTotals, () => setHideTotals((v) => !v), 'share-hide-totals')}
+                </>}
+
+                {print && (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={showNames && namesAvailable}
+                    disabled={!namesAvailable}
+                    aria-describedby={namesUnavailableReason ? namesNoteId : undefined}
+                    className="eb-switch eb-share-switch eb-share-opt"
+                    data-testid="share-print-names-switch"
+                    onClick={() => setShowNames((v) => !v)}
+                  >
+                    <span>{pt.showNames}</span>
                     <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
                   </button>
-
-                  <button type="button" role="switch" aria-checked={transparent} className="eb-switch eb-share-switch" data-testid="share-transparent-switch" onClick={() => setTransparent((v) => !v)}>
-                    <span>{t.share.transparent}</span>
-                    <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
-                  </button>
-
-                  {print && showBigYear && (
-                    <button type="button" role="switch" aria-checked={posterBigYear} className="eb-switch eb-share-switch" data-testid="share-big-year-switch" onClick={() => setPosterBigYear((v) => !v)}>
-                      <span>{t.share.bigYear.label}</span>
-                      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
-                    </button>
-                  )}
-
-                  {print && (
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={showNames && namesAvailable}
-                      disabled={!namesAvailable}
-                      aria-describedby={namesUnavailableReason ? namesNoteId : undefined}
-                      className="eb-switch eb-share-switch"
-                      data-testid="share-print-names-switch"
-                      onClick={() => setShowNames((v) => !v)}
-                    >
-                      <span>{pt.showNames}</span>
-                      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
-                    </button>
-                  )}
-                </div>
-
+                )}
                 {print && namesUnavailableReason && (
                   <p id={namesNoteId} className="eb-note eb-share-names-note" data-testid="share-print-names-note">{namesUnavailableReason}</p>
                 )}
 
-                {!viewImage && (
-                  <div className="eb-share-field">
-                    <span id={arrangementId} className="eb-share-label">{t.collage.controls.arrangement}</span>
-                    <div className="eb-seg" role="group" aria-labelledby={arrangementId} data-testid="share-arrangement">
-                      {ARRANGEMENTS.map((a) => (
-                        <button key={a} type="button" className="eb-seg-btn" aria-pressed={arrangement === a} onClick={() => setArrangement(a)}>
-                          <span className="eb-seg-label">{t.collage.controls[a]}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="eb-share-field">
-                  <span id={countSizeId} className="eb-share-label">{t.share.countSize.label}</span>
-                  <div className="eb-seg eb-share-count-size" role="group" aria-labelledby={countSizeId} data-testid="share-count-size">
-                    {COUNT_SIZES.map((cs) => (
-                      <button
-                        key={cs}
-                        type="button"
-                        className="eb-seg-btn"
-                        aria-pressed={countSize === cs}
-                        onClick={() => setCountSize(cs)}
-                      >
-                        <span className="eb-seg-label">{t.share.countSize[cs]}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {bigYearActive && (
-                  <div className="eb-share-goal" data-testid="share-big-year-fields">
-                    <div className="eb-share-field">
-                      <label htmlFor={yearId} className="eb-share-label">{t.share.bigYear.year}</label>
-                      <select
-                        id={yearId}
-                        className="eb-share-input"
-                        value={goalYear}
-                        onChange={(e) => {
-                          const y = Number(e.target.value)
-                          setGoalYear(y)
-                          if (validTarget !== undefined) dispatch({ type: 'bigYear', bigYear: { year: y, target: validTarget } })
-                        }}
-                      >
-                        {years.map((y) => <option key={y} value={y}>{y}</option>)}
-                      </select>
-                    </div>
-                    <div className="eb-share-field">
-                      <label htmlFor={targetId} className="eb-share-label">{t.share.bigYear.target}</label>
-                      <input
-                        id={targetId}
-                        className="eb-share-input"
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        max={TARGET_MAX}
-                        step={1}
-                        placeholder={t.share.bigYear.targetPlaceholder}
-                        value={goalTarget}
-                        aria-invalid={targetBad || undefined}
-                        aria-describedby={targetBad ? targetNoteId : undefined}
-                        onChange={(e) => setGoalTarget(e.target.value)}
-                        onBlur={(e) => {
-                          // Saved once the field is left. A number field reads "" for "-" or "1e" (badInput): that keeps the
-                          // saved goal, as 0, negatives and values over TARGET_MAX do; only a field left empty clears it.
-                          const v = e.currentTarget.value.trim()
-                          const n = /^\d+$/.test(v) ? Number(v) : undefined
-                          if (e.currentTarget.validity?.badInput || (v !== '' && !isTarget(n))) return setTargetBad(true)
-                          setTargetBad(false)
-                          if (isTarget(n)) dispatch({ type: 'bigYear', bigYear: { year: goalYear, target: n } })
-                          else if (saved.bigYear) dispatch({ type: 'bigYear', bigYear: undefined })
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {bigYearActive && targetBad && (
-                  <p id={targetNoteId} className="eb-note eb-share-names-note">{fmt(t.share.bigYear.targetInvalid, { max: formatInt(TARGET_MAX, t.num) })}</p>
-                )}
+                {switchRow(dark, t.share.dark, () => setDark((v) => !v), 'share-dark-switch')}
+                {switchRow(transparent, t.share.transparent, () => setTransparent((v) => !v), 'share-transparent-switch')}
               </div>
             </div>
 
@@ -1020,87 +1052,98 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
             </div>
 
             {print && (
-              <div className="eb-share-bulk" data-testid="share-bulk">
-                <button
-                  type="button"
-                  className="eb-share-bulk-toggle"
-                  aria-expanded={bulkOpen}
-                  onClick={() => setBulkOpen((v) => !v)}
-                >
-                  <span>{pt.bulk.title}</span>
-                  <CaretDown aria-hidden="true" focusable="false" className="eb-share-bulk-caret" />
-                </button>
-                {bulkOpen && (
-                  <div className="eb-share-bulk-body">
-                    <div className="eb-share-field">
-                      <label htmlFor={bulkSplitId} className="eb-share-label">{pt.bulk.splitLabel}</label>
-                      <select
-                        id={bulkSplitId}
-                        className="eb-share-input"
-                        value={bulkSplit}
+              // Several posters at once: one poster per group in a ZIP, its own block under the poster's options.
+              <section className="eb-share-bulk" data-testid="share-bulk" aria-labelledby={bulkTitleId}>
+                <h3 id={bulkTitleId} className="eb-share-bulk-title">{pt.bulk.title}</h3>
+                <p className="eb-note">{pt.bulk.lede}</p>
+                <div className="eb-share-opts">
+                  <div className="eb-share-opt">
+                    <span id={bulkSplitId} className="eb-share-optlabel">{pt.bulk.splitLabel}</span>
+                    <MenuSelect
+                      labelledBy={bulkSplitId} menuLabel={pt.bulk.splitLabel} escapeRef={menuEsc} testId="bulk-split"
+                      options={BULK_SPLITS.map((s) => ({ value: s, label: pt.bulk.splits[s] }))}
+                      value={bulkSplit} onChange={setBulkSplit} disabled={!!bulkMakingNow}
+                    />
+                  </div>
+                  {bulkSplit === 'batches' && (
+                    <div className="eb-share-opt">
+                      <label htmlFor={bulkSizeId} className="eb-share-optlabel">{pt.bulk.perPoster}</label>
+                      <input
+                        id={bulkSizeId}
+                        className="eb-share-num"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoComplete="off"
+                        maxLength={4}
                         disabled={!!bulkMakingNow}
-                        onChange={(e) => setBulkSplit(e.target.value as BulkSplit)}
-                      >
-                        {BULK_SPLITS.map((s) => (
-                          <option key={s} value={s}>{pt.bulk.splits[s]}</option>
-                        ))}
-                      </select>
+                        value={bulkSizeText}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          setBulkSizeText(v)
+                          // The count follows each number in bounds as it is typed; anything else waits for the box to be left.
+                          const n = /^\d+$/.test(v.trim()) ? Number(v.trim()) : NaN
+                          if (n >= BULK_BATCH_MIN && n <= BULK_BATCH_MAX) setBulkSize(n)
+                        }}
+                        onBlur={commitBulkSize}
+                        onKeyDown={(e) => { if (e.key === 'Enter') commitBulkSize() }}
+                      />
                     </div>
-                    <p className="eb-note" data-testid="bulk-count">
-                      {bulkList.length > 0
-                        ? plural(pt.bulk.count, bulkList.length, { n: formatInt(bulkList.length, t.num) })
-                        : pt.bulk.empty}
-                    </p>
-                    {bulkMakingNow ? (
-                      <div className="eb-share-progress" data-testid="bulk-progress">
-                        <div
-                          className="eb-share-bar" role="progressbar" aria-label={pt.bulk.makingNote}
-                          aria-valuemin={0} aria-valuemax={bulkMakingNow.total} aria-valuenow={bulkMakingNow.done}
-                        >
-                          <span className="eb-share-bar-fill" style={{ width: `${bulkPct}%` }} />
-                        </div>
-                        <span className="eb-share-pct">
-                          {fmt(pt.bulk.progress, {
-                            done: formatInt(Math.min(bulkMakingNow.done + 1, bulkMakingNow.total), t.num),
-                            total: formatInt(bulkMakingNow.total, t.num),
-                          })}
-                        </span>
-                        <button ref={bulkCancelRef} type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
-                      </div>
-                    ) : (
-                      <div className="eb-share-row">
-                        <button
-                          ref={bulkPngRef}
-                          type="button"
-                          className="eb-btn eb-btn-quiet"
-                          disabled={bulkList.length === 0 || !!makingNow}
-                          onClick={() => void makeBulk('png')}
-                        >
-                          <DownloadSimple aria-hidden="true" focusable="false" />
-                          {pt.bulk.png}
-                        </button>
-                        {!transparent && <button
-                          ref={bulkPdfRef}
-                          type="button"
-                          className="eb-btn eb-btn-quiet"
-                          disabled={bulkList.length === 0 || !!makingNow}
-                          onClick={() => void makeBulk('pdf')}
-                        >
-                          <FilePdf aria-hidden="true" focusable="false" />
-                          {pt.bulk.pdf}
-                        </button>}
-                      </div>
-                    )}
+                  )}
+                </div>
+                <p className="eb-note eb-share-bulk-count" data-testid="bulk-count" aria-live="polite">
+                  {bulkList.length > 0
+                    ? plural(pt.bulk.count, bulkList.length, { n: formatInt(bulkList.length, t.num) })
+                    : pt.bulk.empty}
+                </p>
+                {bulkMakingNow ? (
+                  <div className="eb-share-progress" data-testid="bulk-progress">
+                    <div
+                      className="eb-share-bar" role="progressbar" aria-label={pt.bulk.makingNote}
+                      aria-valuemin={0} aria-valuemax={bulkMakingNow.total} aria-valuenow={bulkMakingNow.done}
+                    >
+                      <span className="eb-share-bar-fill" style={{ width: `${bulkPct}%` }} />
+                    </div>
+                    <span className="eb-share-pct">
+                      {fmt(pt.bulk.progress, {
+                        done: formatInt(Math.min(bulkMakingNow.done + 1, bulkMakingNow.total), t.num),
+                        total: formatInt(bulkMakingNow.total, t.num),
+                      })}
+                    </span>
+                    <button ref={bulkCancelRef} type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
+                  </div>
+                ) : (
+                  <div className="eb-share-row">
+                    <button
+                      ref={bulkPngRef}
+                      type="button"
+                      className="eb-btn eb-btn-quiet"
+                      disabled={bulkList.length === 0 || !!makingNow}
+                      onClick={() => void makeBulk('png')}
+                    >
+                      <DownloadSimple aria-hidden="true" focusable="false" />
+                      {pt.bulk.png}
+                    </button>
+                    {!transparent && <button
+                      ref={bulkPdfRef}
+                      type="button"
+                      className="eb-btn eb-btn-quiet"
+                      disabled={bulkList.length === 0 || !!makingNow}
+                      onClick={() => void makeBulk('pdf')}
+                    >
+                      <FilePdf aria-hidden="true" focusable="false" />
+                      {pt.bulk.pdf}
+                    </button>}
                   </div>
                 )}
-              </div>
+              </section>
             )}
 
             <p className={note?.error ? 'eb-error' : 'eb-note'} role="status" data-testid="share-note">{note?.text ?? ''}</p>
             {manual && (
               <input ref={manualRef} className="eb-share-input" type="text" readOnly value={manual} aria-label={t.share.linkField} onFocus={(e) => e.currentTarget.select()} />
             )}
-            {fk && !bigYearActive && (
+            {fk && yearGoal === undefined && (
               <div className="eb-note eb-share-filters" data-testid="share-filters">
                 <span>{label ? fmt(t.share.filters, { label }) : t.share.filtersNoLabel}</span>
                 <button type="button" className="eb-textbtn" onClick={() => dispatch({ type: 'filter', filter: {} })}>{t.share.clearFilters}</button>

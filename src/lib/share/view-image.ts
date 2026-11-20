@@ -19,7 +19,7 @@ export const TREE_FOOTER = `${SITE_LABEL} · tree: AvesData, McTavish et al., CC
  *  "Only my birds" switch). */
 export type ShareAt = { place?: string; tree?: TreeLevel; mine?: boolean }
 /** A view image's input: the share image's, with the view's level, the app state it reads and the UI strings. */
-export type ViewImageOpts = ShareImageOpts & { at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui }
+export type ViewImageOpts = ShareImageOpts & { at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; hideTotals?: boolean }
 export type Area = { x: number; y: number; w: number; h: number }
 
 /** A `w` × `h` drawing fitted whole in `area` (contain), centred: its top-left corner and scale. */

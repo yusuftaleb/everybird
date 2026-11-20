@@ -659,7 +659,9 @@ export type ShareImageOpts = {
   strings: ShareStrings
   /** A bird's name to draw (the latest lifer's); default its English name. The dialog passes the display name. */
   nameOf?: (row: SpeciesRow) => string
-  goal?: { year: number; target?: number; basis: 'seen' | 'lifer' }
+  /** A species goal: the count reads "190 / 300". With `year`, the card's line names it ("Big Year 2026"); without, it is
+   *  the shown list's goal (All time) and the line is the filter's. */
+  goal?: { year?: number; target?: number; basis: 'seen' | 'lifer' }
   countSize?: CountSize
   showNames?: boolean
   /** How the birds are placed (default Packed); used when `pack` is not given. */
@@ -806,8 +808,9 @@ export function fitCaptionPack(
   return verified.ok ? { fit, placed, captions: verified.captions, ok: true } : { fit, placed, ok: false }
 }
 
-/** The Big Year goal's line on the card ("Big Year 2027"), in the image's language. */
+/** The Big Year goal's line on the card ("Big Year 2027"), in the image's language; none for an All time goal. */
 export function goalText(goal: NonNullable<ShareImageOpts['goal']>, strings: ShareStrings): string {
+  if (goal.year === undefined) return ''
   return fmt(goal.basis === 'lifer' ? strings.share.bigYear.cardLifer : strings.share.bigYear.card, { year: goal.year })
 }
 

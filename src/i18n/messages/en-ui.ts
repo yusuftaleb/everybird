@@ -529,7 +529,8 @@ export const EN_UI = {
     formatName: '{name}, {ratio}',
     /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
     orientation: { group: 'Orientation', vertical: 'Vertical', horizontal: 'Horizontal' },
-    countSize: { label: 'Count size', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide' },
+    /** The Count row's dropdown (the count's size on the image, or none). */
+    countSize: { label: 'Count', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide' },
     /** The preview image's alt text, per format. */
     preview: { story: 'Preview of the story image', post: 'Preview of the post image', square: 'Preview of the square image', desktop: 'Preview of the desktop image', wide: 'Preview of the wide post image' },
     failed: "Couldn't make the image.",
@@ -539,9 +540,7 @@ export const EN_UI = {
     nameLabel: 'Collage title',
     namePlaceholder: 'My 2024 birds',
     nameOptional: '(optional)',
-    /** The dialog's three parts (the third is bigYear.label); the Big Year part is offered only for a list with dates. */
-    parts: { label: 'What to share', image: 'Image', poster: 'Poster' },
-    /** Under the title field: it is saved with the list and names the collage page. */
+    /** The title field's description (read by screen readers): it is saved with the list and names the collage page. */
     nameHelper: 'Shown as your collage’s title and on shares.',
     showLatest: 'Show latest lifer',
     shareImage: 'Share image',
@@ -574,11 +573,20 @@ export const EN_UI = {
     /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
     dark: 'Dark image',
     transparent: 'Transparent background',
+    /** How the images and the poster place the birds (the stored value stays 'packed'): fitted to the frame, or in an oval. */
+    arrange: { label: 'Arrangement', packed: 'Fit', oval: 'Oval' },
+    /** The Tree image's switch: keep the species count, drop the orders, families and genera totals under it. */
+    hideTotals: 'Hide totals',
+    /** The Goal row: "Add a goal", then "[300] species in [2026 ▾] ✕". `target` names the number box, `year` the year
+     *  menu (All time or a year); the card's line for a year's goal is `card` ("Big Year 2026"). */
     bigYear: {
-      label: 'Big Year',
-      year: 'Year',
-      target: 'Target',
-      targetPlaceholder: 'Species',
+      label: 'Goal',
+      add: 'Add a goal',
+      target: 'Goal in species',
+      speciesIn: 'species in',
+      year: 'Goal period',
+      allTime: 'All time',
+      remove: 'Remove goal',
       targetInvalid: 'Enter a whole number from 1 to {max}.',
       card: 'Big Year {year}',
       cardLifer: 'Big Year {year} · New species in {year}',
@@ -586,6 +594,9 @@ export const EN_UI = {
     downloadShort: 'Download',
     /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
     print: {
+      /** The quiet action that shows the poster's options, and the button that goes back to the share image. */
+      entry: 'Print poster',
+      back: 'Back to image',
       size: 'Poster size',
       inches: '{w} × {h} in',
       sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px at 150 dpi',
@@ -603,11 +614,14 @@ export const EN_UI = {
       failedMemory: 'Couldn’t make the poster. Try a smaller size.',
       failed: 'Couldn’t make the poster. Try again.',
       previewAlt: 'Preview of the {size} poster',
+      /** Several posters at once: a ZIP of one poster per group. `perPoster` names the box for the most birds per poster. */
       bulk: {
-        title: 'Multiple posters (ZIP)',
+        title: 'Several posters at once',
+        lede: 'One poster per group, downloaded together as a ZIP.',
         splitLabel: 'Split by',
+        perPoster: 'Birds per poster',
         splits: {
-          batches: 'Up to 1,000 per poster',
+          batches: 'Number of birds',
           family: 'Family',
           order: 'Order',
           country: 'Country',
