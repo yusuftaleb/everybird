@@ -44,11 +44,6 @@ export const pl: Messages = {
         head: 'Twoje dane',
         noteMine: 'Twoja lista jest zapisana na tym urządzeniu. Pobierz ją albo przenieś na inne urządzenie za pomocą kopii zapasowej.',
         noteRestore: 'Przenosisz się z innego urządzenia? Przywróć kopię zapasową pobraną tam wcześniej.',
-        name: {
-          label: 'Nazwij swój kolaż',
-          placeholder: 'np. Lista życia Yusufa',
-          helper: 'Widoczne jako tytuł kolażu i przy udostępnianiu.',
-        },
         downloadCsv: 'Pobierz CSV',
         downloadJson: 'Pobierz kopię zapasową JSON',
         restore: 'Przywróć z kopii zapasowej',
@@ -442,6 +437,8 @@ export const pl: Messages = {
       nameLabel: 'Tytuł kolażu',
       namePlaceholder: 'Moje ptaki 2024',
       nameOptional: '(opcjonalnie)',
+      parts: { label: 'Co udostępnić', image: 'Obraz', poster: 'Plakat' },
+      nameHelper: 'Widoczne jako tytuł kolażu i przy udostępnianiu.',
       showLatest: 'Pokaż najnowszy gatunek',
       shareImage: 'Udostępnij obraz',
       download: 'Pobierz obraz',
@@ -476,8 +473,6 @@ export const pl: Messages = {
       },
       downloadShort: 'Pobierz',
       print: {
-        print: 'Drukuj',
-        entry: 'Wydrukuj plakat',
         size: 'Rozmiar plakatu',
         inches: '{w} × {h} cali',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px przy 150 dpi',
@@ -494,7 +489,6 @@ export const pl: Messages = {
         soft: 'Niektóre naklejki pochodzą na razie z mniejszych plików, więc największe ptaki mogą wydrukować się trochę nieostro.',
         failedMemory: 'Nie udało się utworzyć plakatu. Spróbuj mniejszego rozmiaru.',
         failed: 'Nie udało się utworzyć plakatu. Spróbuj ponownie.',
-        back: 'Obrazy do udostępnienia',
         previewAlt: 'Podgląd plakatu {size}',
         bulk: {
           title: 'Kilka plakatów (ZIP)',

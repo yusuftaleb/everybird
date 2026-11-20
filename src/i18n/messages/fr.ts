@@ -42,11 +42,6 @@ export const fr: Messages = {
         head: 'Tes données',
         noteMine: 'Ta liste est enregistrée sur cet appareil. Télécharge-la, ou transfère-la sur un autre appareil grâce à la sauvegarde.',
         noteRestore: 'Tu viens d’un autre appareil\u00a0? Restaure la sauvegarde que tu y as téléchargée.',
-        name: {
-          label: 'Nomme ton collage',
-          placeholder: 'p. ex. La liste de vie de Yusuf',
-          helper: 'Affiché comme titre de ton collage et dans tes partages.',
-        },
         downloadCsv: 'Télécharger le CSV',
         downloadJson: 'Télécharger la sauvegarde JSON',
         restore: 'Restaurer une sauvegarde',
@@ -443,6 +438,8 @@ export const fr: Messages = {
       nameLabel: 'Titre du collage',
       namePlaceholder: 'Mes oiseaux 2024',
       nameOptional: '(facultatif)',
+      parts: { label: 'Quoi partager', image: 'Image', poster: 'Affiche' },
+      nameHelper: 'Affiché comme titre de ton collage et dans tes partages.',
       showLatest: 'Dernière espèce',
       shareImage: 'Partager',
       download: 'Télécharger l’image',
@@ -479,8 +476,6 @@ export const fr: Messages = {
       downloadShort: 'Télécharger',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
-        print: 'Imprimer',
-        entry: 'Imprimer une affiche',
         size: 'Taille de l’affiche',
         inches: '{w} × {h} po',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px à 150 dpi',
@@ -497,7 +492,6 @@ export const fr: Messages = {
         soft: 'Certains autocollants viennent pour l’instant de fichiers plus petits, donc les plus grands oiseaux peuvent s’imprimer un peu flous.',
         failedMemory: 'Impossible de créer l’affiche. Essaie une taille plus petite.',
         failed: 'Impossible de créer l’affiche. Réessaie.',
-        back: 'Images à partager',
         previewAlt: 'Aperçu de l’affiche {size}',
         bulk: {
           title: 'Plusieurs affiches (ZIP)',

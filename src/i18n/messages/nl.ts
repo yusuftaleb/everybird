@@ -42,11 +42,6 @@ export const nl: Messages = {
         head: 'Je gegevens',
         noteMine: 'Je lijst staat op dit apparaat. Download hem, of zet hem met de back-up over naar een ander apparaat.',
         noteRestore: 'Kom je van een ander apparaat? Zet de back-up terug die je daar hebt gedownload.',
-        name: {
-          label: 'Geef je collage een naam',
-          placeholder: 'bijv. Yusufs levenslijst',
-          helper: 'Getoond als titel van je collage en bij het delen.',
-        },
         downloadCsv: 'CSV downloaden',
         downloadJson: 'JSON-back-up downloaden',
         restore: 'Back-up terugzetten',
@@ -443,6 +438,8 @@ export const nl: Messages = {
       nameLabel: 'Titel van de collage',
       namePlaceholder: 'Mijn vogels van 2024',
       nameOptional: '(optioneel)',
+      parts: { label: 'Wat je deelt', image: 'Afbeelding', poster: 'Poster' },
+      nameHelper: 'Getoond als titel van je collage en bij het delen.',
       showLatest: 'Nieuwste soort tonen',
       shareImage: 'Beeld delen',
       download: 'Beeld downloaden',
@@ -479,8 +476,6 @@ export const nl: Messages = {
       downloadShort: 'Downloaden',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
-        print: 'Printen',
-        entry: 'Een poster printen',
         size: 'Postergrootte',
         inches: '{w} × {h} inch',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px op 150 dpi',
@@ -497,7 +492,6 @@ export const nl: Messages = {
         soft: 'Sommige stickers komen voorlopig uit kleinere bestanden, dus de grootste vogels kunnen een beetje zacht uitvallen.',
         failedMemory: 'De poster maken is niet gelukt. Probeer een kleiner formaat.',
         failed: 'De poster maken is niet gelukt. Probeer het opnieuw.',
-        back: 'Afbeeldingen delen',
         previewAlt: 'Voorbeeld van de {size}-poster',
         bulk: {
           title: 'Meerdere posters (ZIP)',

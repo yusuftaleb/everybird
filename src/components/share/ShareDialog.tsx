@@ -16,7 +16,7 @@
 // drops a finished poster. Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied isn't. "Share images" in the format control's place goes back.
 // The actions: Share image over a row of three quiet buttons. Print mode keeps the same pattern.
 import {
-  ArrowClockwise, ArrowLeft, CaretDown, DeviceMobile, DownloadSimple, FilePdf, FrameCorners, LinkSimple, Monitor, Printer, ShareNetwork, Square, X, type Icon,
+  ArrowClockwise, CaretDown, DeviceMobile, DownloadSimple, FilePdf, FrameCorners, LinkSimple, Monitor, Printer, ShareNetwork, Square, X, type Icon,
 } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar } from '@/components/dialog-utils'
@@ -76,6 +76,7 @@ const ORIENTATIONS: Orientation[] = ['vertical', 'horizontal']
 const COUNT_SIZES: CountSize[] = ['small', 'medium', 'large', 'hide']
 const BULK_SPLITS: BulkSplit[] = ['batches', 'family', 'order', 'country', 'continent', 'province', 'year']
 type LinkResult = ReturnType<typeof MakeShareLink>
+type SharePart = 'image' | 'poster' | 'bigYear'
 const loadLinkModule = () => import('@/lib/share/make-link')
 type PosterModule = typeof import('@/lib/share/poster')
 
@@ -92,6 +93,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
   const titleId = useId()
   const nameId = useId()
   const optionalId = useId()
+  const helperId = useId()
   const countSizeId = useId()
   const yearId = useId()
   const targetId = useId()
@@ -115,16 +117,18 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
   const landscape = orientation === 'horizontal'
   /** The share image's shape: the slot in this orientation (story is desktop, post is wide when horizontal). */
   const shape = imageShape(format, orientation)
-  const [mode, setMode] = useState<'share' | 'print'>('share')
+  // The dialog's three parts: the image, the poster and the Big Year card, each with only its own options.
+  const [part, setPart] = useState<SharePart>('image')
   const [size, setSize] = useState<PrintSize>('A2')
-  const print = mode === 'print'
+  const print = part === 'poster'
   // Square is the same in both orientations (its image doesn't change; the dialog keeps its narrow layout for it).
   const squareShare = !print && format === 'square'
   // Horizontal (a desktop or wide image, or a landscape poster) lays out wide: the dialog widens and the preview takes
   // the width left beside the controls' column (share.css, data-layout). Vertical keeps its narrower dialog.
   const wideLayout = landscape && !squareShare
   const lastWide = useRef(wideLayout)
-  const [name, setName] = useState(saved.name ?? '') // starts from Settings > Name your collage
+  // The collage's title: saved with the list as it is typed (the store trims it), so it also names the page.
+  const [name, setName] = useState(saved.name ?? '')
   const [countSize, setCountSize] = useState<CountSize>('medium')
   const [showLatest, setShowLatest] = useState(true)
   const [showNames, setShowNames] = useState(false)
@@ -152,7 +156,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
     if (sy && !ys.includes(sy)) ys.push(sy)
     return ys.sort((a, b) => b - a)
   }, [known, saved.bigYear?.year])
-  const [bigYearOn, setBigYearOn] = useState(false)
+  // A poster can show the Big Year too (its switch, in the Poster part only); the Big Year part is the card itself.
+  const [posterBigYear, setPosterBigYear] = useState(false)
+  const bigYearOn = part === 'bigYear' || (print && posterBigYear)
   const [goalYear, setGoalYear] = useState(() => saved.bigYear?.year ?? new Date().getFullYear())
   const [goalTarget, setGoalTarget] = useState(() => (saved.bigYear ? String(saved.bigYear.target) : ''))
   /** The target field was left holding something that isn't a whole number from 1 to TARGET_MAX (the saved goal stays). */
@@ -397,8 +403,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
   }, [print, bulkOpen, bulkSplit, cardEntries, species, regions, lang, seen, bigYearActive, goalYear, filter, t, pt.bulk.batch, names])
 
   // Where focus goes once the button that had it is gone (only if it fell to the page or the dialog itself).
-  const backRef = useRef<HTMLButtonElement>(null)
-  const entryRef = useRef<HTMLButtonElement>(null)
   const makeRef = useRef<HTMLButtonElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
   const pngRef = useRef<HTMLButtonElement>(null)
@@ -407,21 +411,20 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
   const bulkCancelRef = useRef<HTMLButtonElement>(null)
   /** The ZIP button that started the make: focus comes back to it when the make ends. */
   const bulkKind = useRef<'png' | 'pdf'>('png')
-  const focusNext = useRef<'back' | 'entry' | 'make' | 'cancel' | 'png' | 'bulkPng' | 'bulkPdf' | 'bulkCancel' | null>(null)
+  const focusNext = useRef<'make' | 'cancel' | 'png' | 'bulkPng' | 'bulkPdf' | 'bulkCancel' | null>(null)
   useEffect(() => {
     const want = focusNext.current
     if (!want) return
     focusNext.current = null
-    const el = { back: backRef, entry: entryRef, make: makeRef, cancel: cancelRef, png: pngRef, bulkPng: bulkPngRef, bulkPdf: bulkPdfRef, bulkCancel: bulkCancelRef }[want].current
+    const el = { make: makeRef, cancel: cancelRef, png: pngRef, bulkPng: bulkPngRef, bulkPdf: bulkPdfRef, bulkCancel: bulkCancelRef }[want].current
     const active = document.activeElement
     if (el && (!active || active === document.body || active === ref.current)) el.focus()
   })
 
-  const switchMode = (m: 'share' | 'print') => {
-    if (m === mode) return
-    setMode(m)
+  const switchPart = (p: SharePart) => {
+    if (p === part) return
+    setPart(p)
     setNote(null)
-    focusNext.current = m === 'print' ? 'back' : 'entry'
   }
 
   const makePoster = async () => {
@@ -724,7 +727,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
     ? [
         { label: t.share.download, short: t.share.downloadShort, icon: DownloadSimple, disabled: busy, onClick: () => void download() },
         copy,
-        { label: pt.entry, short: pt.print, icon: Printer, ref: entryRef, onClick: () => switchMode('print') },
       ]
     : [
         ...(posterNow && !transparent ? [{ label: pt.pdf, icon: FilePdf, onClick: () => void savePoster('pdf') }] : []),
@@ -746,7 +748,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
       <div
         ref={ref}
         className="eb-share"
-        data-mode={mode}
+        data-mode={print ? 'print' : 'share'}
         data-layout={wideLayout ? 'wide' : 'side'}
         role="dialog"
         aria-modal="true"
@@ -762,15 +764,16 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
         </div>
 
         <div className="eb-share-body">
-          {/* Its own column on top of the controls beside the preview; above the preview on phones (share.css). In print
-              mode the way back to the share images takes its place. */}
+          {/* Its own column on top of the controls beside the preview; above the preview on phones (share.css): the three
+              parts first (Big Year only for a list with dates), then the orientation and, for an image, its format. */}
           <div className="eb-share-formats">
-            {print ? (
-              <button ref={backRef} type="button" className="eb-btn eb-btn-quiet" onClick={() => switchMode('share')}>
-                <ArrowLeft aria-hidden="true" focusable="false" />
-                {t.share.print.back}
-              </button>
-            ) : null}
+            <div className="eb-seg eb-share-parts" role="group" aria-label={t.share.parts.label} data-testid="share-parts">
+              {(['image', 'poster', ...(showBigYear ? ['bigYear' as const] : [])] as const).map((p) => (
+                <button key={p} type="button" className="eb-seg-btn" aria-pressed={part === p} onClick={() => switchPart(p)}>
+                  <span className="eb-seg-label">{p === 'bigYear' ? t.share.bigYear.label : t.share.parts[p]}</span>
+                </button>
+              ))}
+            </div>
             <div className="eb-seg eb-share-orient" role="group" aria-label={t.share.orientation.group}>
               {ORIENTATIONS.map((o) => (
                 <button
@@ -854,10 +857,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
                     autoComplete="off"
                     maxLength={NAME_MAX_LEN}
                     placeholder={t.share.namePlaceholder}
-                    aria-describedby={optionalId}
+                    aria-describedby={`${optionalId} ${helperId}`}
                     value={name}
-                    onChange={(e) => setName(e.target.value)} // this share only: Settings > Name your collage stays as it is
+                    onChange={(e) => { setName(e.target.value); dispatch({ type: 'name', name: e.target.value }) }}
                   />
+                  <p id={helperId} className="eb-note">{t.share.nameHelper}</p>
                 </div>
 
                 <div className="eb-share-switches" data-testid="share-switches">
@@ -873,8 +877,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
                     <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
                   </button>
 
-                  {showBigYear && (
-                    <button type="button" role="switch" aria-checked={bigYearOn} className="eb-switch eb-share-switch" data-testid="share-big-year-switch" onClick={() => setBigYearOn((v) => !v)}>
+                  {print && showBigYear && (
+                    <button type="button" role="switch" aria-checked={posterBigYear} className="eb-switch eb-share-switch" data-testid="share-big-year-switch" onClick={() => setPosterBigYear((v) => !v)}>
                       <span>{t.share.bigYear.label}</span>
                       <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
                     </button>

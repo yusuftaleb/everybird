@@ -255,12 +255,7 @@
 @media (min-width: 1024px) {
   .eb-settings-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; align-items: start; }
   .eb-settings-pair .eb-namefield { flex-basis: 100%; max-width: none; }
-  .eb-settings-pair .eb-datarow > .eb-tools { padding-top: 0; }
 }
-/* Your data: the name field, then the downloads, restore and forget, on one row where there's room. */
-.eb-datarow { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 24px; }
-.eb-datarow > .eb-tools { padding-top: 26px; }
-@media (max-width: 719px) { .eb-datarow > .eb-tools { padding-top: 0; } }
 .eb-namefield { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; flex: 1 1 260px; max-width: 340px; }
 @media (max-width: 719px) { .eb-namefield { max-width: none; } }
 .eb-namefield-label { font-size: 14px; font-weight: 600; line-height: 20px; }

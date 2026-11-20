@@ -42,11 +42,6 @@ export const de: Messages = {
         head: 'Deine Daten',
         noteMine: 'Deine Liste liegt auf diesem Gerät. Lade sie herunter oder bring sie mit der Sicherung auf ein anderes Gerät.',
         noteRestore: 'Du kommst von einem anderen Gerät? Stelle die Sicherung wieder her, die du dort heruntergeladen hast.',
-        name: {
-          label: 'Benenne deine Collage',
-          placeholder: 'z. B. Yusufs Lebensliste',
-          helper: 'Erscheint als Titel deiner Collage und beim Teilen.',
-        },
         downloadCsv: 'CSV herunterladen',
         downloadJson: 'JSON-Sicherung herunterladen',
         restore: 'Sicherung wiederherstellen',
@@ -437,6 +432,8 @@ export const de: Messages = {
       nameLabel: 'Titel der Collage',
       namePlaceholder: 'Meine Vögel 2024',
       nameOptional: '(optional)',
+      parts: { label: 'Was teilen', image: 'Bild', poster: 'Poster' },
+      nameHelper: 'Erscheint als Titel deiner Collage und beim Teilen.',
       showLatest: 'Neueste Art zeigen',
       shareImage: 'Bild teilen',
       download: 'Bild herunterladen',
@@ -471,8 +468,6 @@ export const de: Messages = {
       },
       downloadShort: 'Speichern',
       print: {
-        print: 'Drucken',
-        entry: 'Poster drucken',
         size: 'Postergröße',
         inches: '{w} × {h} Zoll',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px bei 150 dpi',
@@ -489,7 +484,6 @@ export const de: Messages = {
         soft: 'Einige Sticker stammen vorerst aus kleineren Dateien, daher können die größten Vögel etwas unscharf gedruckt werden.',
         failedMemory: 'Das Poster ließ sich nicht erstellen. Versuch ein kleineres Format.',
         failed: 'Das Poster ließ sich nicht erstellen. Versuch es noch einmal.',
-        back: 'Bilder teilen',
         previewAlt: 'Vorschau des {size}-Posters',
         bulk: {
           title: 'Mehrere Poster (ZIP)',

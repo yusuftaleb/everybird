@@ -42,11 +42,6 @@ export const pt: Messages = {
         head: 'Seus dados',
         noteMine: 'Sua lista fica neste dispositivo. Baixe-a ou leve-a para outro dispositivo com o backup.',
         noteRestore: 'Vindo de outro dispositivo? Restaure o backup que você baixou lá.',
-        name: {
-          label: 'Dê um nome à sua colagem',
-          placeholder: 'ex.: A lista de vida do Yusuf',
-          helper: 'Aparece como título da sua colagem e ao compartilhar.',
-        },
         downloadCsv: 'Baixar CSV',
         downloadJson: 'Baixar backup em JSON',
         restore: 'Restaurar backup',
@@ -443,6 +438,8 @@ export const pt: Messages = {
       nameLabel: 'Título da colagem',
       namePlaceholder: 'Minhas aves de 2024',
       nameOptional: '(opcional)',
+      parts: { label: 'O que compartilhar', image: 'Imagem', poster: 'Pôster' },
+      nameHelper: 'Aparece como título da sua colagem e ao compartilhar.',
       showLatest: 'Última espécie nova',
       shareImage: 'Compartilhar',
       download: 'Baixar imagem',
@@ -479,8 +476,6 @@ export const pt: Messages = {
       downloadShort: 'Baixar',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
-        print: 'Imprimir',
-        entry: 'Imprimir um pôster',
         size: 'Tamanho do pôster',
         inches: '{w} × {h} pol.',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px a 150 dpi',
@@ -497,7 +492,6 @@ export const pt: Messages = {
         soft: 'Alguns adesivos vêm de arquivos menores por enquanto, então as aves maiores podem sair um pouco borradas.',
         failedMemory: 'Não foi possível criar o pôster. Tente um tamanho menor.',
         failed: 'Não foi possível criar o pôster. Tente de novo.',
-        back: 'Imagens para compartilhar',
         previewAlt: 'Prévia do pôster {size}',
         bulk: {
           title: 'Vários pôsteres (ZIP)',

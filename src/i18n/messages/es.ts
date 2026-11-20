@@ -42,11 +42,6 @@ export const es: Messages = {
         head: 'Tus datos',
         noteMine: 'Tu lista vive en este dispositivo. Descárgala, o llévala a otro dispositivo con la copia de seguridad.',
         noteRestore: '¿Vienes de otro dispositivo? Restaura la copia de seguridad que descargaste allí.',
-        name: {
-          label: 'Ponle nombre a tu collage',
-          placeholder: 'p. ej., La lista de vida de Yusuf',
-          helper: 'Se muestra como título de tu collage y al compartir.',
-        },
         downloadCsv: 'Descargar CSV',
         downloadJson: 'Descargar copia de seguridad JSON',
         restore: 'Restaurar copia de seguridad',
@@ -443,6 +438,8 @@ export const es: Messages = {
       nameLabel: 'Título del collage',
       namePlaceholder: 'Mis aves de 2024',
       nameOptional: '(opcional)',
+      parts: { label: 'Qué compartir', image: 'Imagen', poster: 'Póster' },
+      nameHelper: 'Se muestra como título de tu collage y al compartir.',
       showLatest: 'Última especie nueva',
       shareImage: 'Compartir',
       download: 'Descargar imagen',
@@ -479,8 +476,6 @@ export const es: Messages = {
       downloadShort: 'Descargar',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
-        print: 'Imprimir',
-        entry: 'Imprimir un póster',
         size: 'Tamaño del póster',
         inches: '{w} × {h} pulg.',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px a 150 dpi',
@@ -497,7 +492,6 @@ export const es: Messages = {
         soft: 'Algunos stickers vienen de archivos más pequeños por ahora, así que las aves más grandes pueden salir un poco borrosas.',
         failedMemory: 'No se pudo crear el póster. Prueba con un tamaño más pequeño.',
         failed: 'No se pudo crear el póster. Inténtalo de nuevo.',
-        back: 'Imágenes para compartir',
         previewAlt: 'Vista previa del póster {size}',
         bulk: {
           title: 'Varios pósteres (ZIP)',

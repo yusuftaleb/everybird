@@ -57,12 +57,6 @@ export const EN_UI = {
       head: 'Your data',
       noteMine: 'Your list lives on this device. Download it, or move it to another device with the backup.',
       noteRestore: 'Moving from another device? Restore the backup you downloaded there.',
-      /** Name your collage (NameField). */
-      name: {
-        label: 'Name your collage',
-        placeholder: 'e.g. Yusuf’s life list',
-        helper: 'Shown as your collage’s title and on shares.',
-      },
       downloadCsv: 'Download CSV',
       downloadJson: 'Download JSON backup',
       restore: 'Restore from backup',
@@ -522,6 +516,10 @@ export const EN_UI = {
     nameLabel: 'Collage title',
     namePlaceholder: 'My 2024 birds',
     nameOptional: '(optional)',
+    /** The dialog's three parts (the third is bigYear.label); the Big Year part is offered only for a list with dates. */
+    parts: { label: 'What to share', image: 'Image', poster: 'Poster' },
+    /** Under the title field: it is saved with the list and names the collage page. */
+    nameHelper: 'Shown as your collage’s title and on shares.',
     showLatest: 'Show latest lifer',
     shareImage: 'Share image',
     download: 'Download image',
@@ -565,8 +563,6 @@ export const EN_UI = {
     downloadShort: 'Download',
     /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
     print: {
-      print: 'Print',
-      entry: 'Print a poster',
       size: 'Poster size',
       inches: '{w} × {h} in',
       sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px at 150 dpi',
@@ -583,7 +579,6 @@ export const EN_UI = {
       soft: 'Some stickers come from smaller files for now, so the biggest birds may print a little soft.',
       failedMemory: 'Couldn’t make the poster. Try a smaller size.',
       failed: 'Couldn’t make the poster. Try again.',
-      back: 'Share images',
       previewAlt: 'Preview of the {size} poster',
       bulk: {
         title: 'Multiple posters (ZIP)',
