@@ -1,12 +1,13 @@
 'use client'
-// Tick by hand, page-wide: the whole eBird taxonomy (~11,000 species) as a browsable, searchable list in which the
-// birder ticks many birds at once, then adds them with one optional date and place. The list is windowed (only the
-// rows in view are in the DOM), so it stays fast at any size. It is a multi-select listbox: focus stays on the list,
-// the arrow keys move the active row, Space ticks it; a click ticks a row. Birds already on the list show ticked;
-// un-ticking one marks it to come off the list ("Remove N from my list"), as the bird card's Remove does, with the same
-// "Removed … · Undo" toast for a few seconds.
-import { Check } from '@phosphor-icons/react'
-import { useCallback, useDeferredValue, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+// Add by hand (the Add birds dialog): the whole eBird taxonomy (~11,000 species) as a searchable list, browsable by
+// family, where a tap adds a bird to the list at once and a tap on a bird already on it takes it off at once, each
+// with "Added … · Undo" or "Removed … · Undo". Taking off a bird is the bird card's Remove (removeTicked): it goes into
+// `removed`, so a file that has it no longer counts it. "When and where", closed by default, gives the birds added
+// while it is open a date (the system picker, or a year alone) and a country and region; closed, a bird gets neither.
+// The list is windowed (only the rows in view are in the DOM). It is a multi-select listbox whose selected options are
+// the birds on the list: the arrow keys move the active row, Space or Enter flips it; a click flips a row.
+import { CaretDown, Check } from '@phosphor-icons/react'
+import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { removedText, UndoToast, type Removal } from '@/components/app/UndoToast'
 import { Sticker } from '@/components/collage/Sticker'
 import { fmt, plural } from '@/i18n/core'
@@ -15,14 +16,14 @@ import { HTML_LANG } from '@/i18n/langs'
 import { useI18n } from '@/i18n/I18nProvider'
 import { regionsIn } from '@/lib/i18n-places'
 import { track } from '@/lib/analytics'
+import { today } from '@/lib/download'
 import { stripBracket } from '@/lib/import/places'
 import type { Edits, Place } from '@/lib/list/model'
 import type { Action } from '@/lib/list/store'
-import { addTicked, filterTickRows, removeTicked, undoRemove } from '@/lib/list/tick'
+import { addTicked, filterTickRows, removeTicked, undoEdit } from '@/lib/list/tick'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName, nameOfCode } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
-import { orderLabel } from '@/lib/species/orders'
 import type { Regions } from '@/lib/species/types'
 import { parseManualDate } from './manual-date'
 
@@ -31,9 +32,9 @@ type Props = {
   regions: Regions
   edits: Edits
   dispatch: (a: Action) => void
-  /** Codes already on the list (shown ticked; un-ticking one marks it for removal). */
+  /** Codes on the list (shown ticked; a tap takes one off). */
   onList: ReadonlySet<string>
-  /** No records from any source and nothing added by hand yet: this batch starts a hand-made collage. */
+  /** No records from any source and nothing added by hand yet: the next bird starts a hand-made collage. */
   listEmpty?: boolean
 }
 
@@ -48,37 +49,32 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
   const names = useNames() // the names file arrived or the English switch flipped
   const num = (x: number) => formatInt(x, t.num)
   const [q, setQ] = useState('')
-  const [order, setOrder] = useState('')
   const [family, setFamily] = useState('')
-  const [picked, setPicked] = useState<Set<string>>(() => new Set())
-  // Birds on the list the birder un-ticked, to take off with "Remove N from my list".
-  const [dropped, setDropped] = useState<Set<string>>(() => new Set())
   const [active, setActive] = useState(0)
   const [top, setTop] = useState(0)
+  const [when, setWhen] = useState(false)
   const [date, setDate] = useState('')
-  const [dateError, setDateError] = useState(false)
+  const [year, setYear] = useState('')
   const [country, setCountry] = useState('')
   const [sub1, setSub1] = useState('')
-  const [done, setDone] = useState('')
-  const [removed, setRemoved] = useState<(Removal & { before: Edits }) | null>(null)
+  const [change, setChange] = useState<(Removal & { before: Edits }) | null>(null)
   const box = useRef<HTMLDivElement>(null)
+  const search = useRef<HTMLInputElement>(null)
+  const yearRef = useRef<HTMLInputElement>(null)
+  // The search has the focus as soon as this opens (an effect: after the dialog's own focus, a layout effect).
+  useEffect(() => { search.current?.focus({ preventScroll: true }) }, [])
 
-  const orders = useMemo(() => {
-    const seen = new Map<string, number>()
-    for (const r of species.rows) if (!seen.has(r.ord) || r.to < seen.get(r.ord)!) seen.set(r.ord, r.to)
-    return [...seen].sort((a, b) => a[1] - b[1]).map(([o]) => o)
-  }, [species])
+  // Every family by its common name, in the UI language's order.
   const families = useMemo(() => {
-    if (!order) return []
-    const seen = new Map<string, { com: string; to: number }>()
-    for (const r of species.rows) if (r.ord === order && (!seen.has(r.fam) || r.to < seen.get(r.fam)!.to)) seen.set(r.fam, { com: familyName(r), to: r.to })
-    return [...seen].sort((a, b) => a[1].to - b[1].to)
+    const seen = new Map<string, string>()
+    for (const r of species.rows) if (!seen.has(r.fam)) seen.set(r.fam, familyName(r))
+    return [...seen].sort((a, b) => a[1].localeCompare(b[1], HTML_LANG[lang]))
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
-  }, [species, order, names])
+  }, [species, lang, names])
   // The list follows the search a beat behind the keys, so typing never waits on a pass over 11,000 names.
   const dq = useDeferredValue(q)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
-  const rows = useMemo(() => filterTickRows(species.rows, { q: dq, order, family }), [species, dq, order, family, names])
+  const rows = useMemo(() => filterTickRows(species.rows, { q: dq, family }), [species, dq, family, names])
   // Country names in the UI language (Intl.DisplayNames, src/lib/i18n-places.ts), sorted in its order.
   const countries = useMemo(
     () => Object.entries(regionsIn(regions, lang).countries).map(([iso, name]) => [iso, stripBracket(name)] as const).sort((a, b) => a[1].localeCompare(b[1], HTML_LANG[lang])),
@@ -88,18 +84,30 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
     () => (country ? Object.entries(regions.sub1).filter(([c]) => c.startsWith(`${country}-`)).map(([c, name]) => [c, stripBracket(name)] as const).sort((a, b) => a[1].localeCompare(b[1], HTML_LANG[lang])) : []),
     [regions, country, lang],
   )
+  // A year alone, checked as typed dates always were (manual-date.ts: from 1800, not in the future).
+  const yearBad = !!year && (!/^\d{4}$/.test(year.trim()) || parseManualDate(year) === null)
 
-  // A new search or group starts at the top.
+  // A new search or family starts at the top.
   const fromTop = () => { setActive(0); setTop(0); if (box.current) box.current.scrollTop = 0 }
   const at = Math.min(active, Math.max(0, rows.length - 1))
   const first = Math.max(0, Math.floor(top / ROW) - OVER)
   const last = Math.min(rows.length, Math.ceil((top + VIEW * ROW) / ROW) + OVER)
 
-  const flip = (p: Set<string>, code: string) => { const n = new Set(p); if (n.has(code)) n.delete(code); else n.add(code); return n }
-  const toggle = (code: string) => {
-    setDone('')
-    if (onList.has(code)) setDropped((p) => flip(p, code))
-    else setPicked((p) => flip(p, code))
+  const flip = (code: string) => {
+    const name = nameOfCode(species.byCode, code)
+    if (onList.has(code)) {
+      dispatch({ type: 'edit', edits: removeTicked(edits, [code]) })
+      setChange({ codes: [code], text: removedText([name], t), before: edits })
+      return
+    }
+    if (when && yearBad) { yearRef.current?.focus(); return }
+    let place: Place | undefined
+    if (when && country) { place = { country }; if (sub1) place.sub1 = sub1 }
+    const d = when ? date || year.trim() : ''
+    dispatch({ type: 'edit', edits: addTicked(edits, [code], { date: d || undefined, place }) })
+    // Only the first bird into an empty list starts a hand-made collage; later ones are edits.
+    if (listEmpty) track('collage_made', { source: 'manual' })
+    setChange({ codes: [code], text: fmt(tt.added, { name }), before: edits })
   }
   const moveTo = (i: number) => {
     const j = Math.max(0, Math.min(rows.length - 1, i))
@@ -113,46 +121,84 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
     const page = VIEW - 1
     const go: Record<string, number> = { ArrowDown: at + 1, ArrowUp: at - 1, PageDown: at + page, PageUp: at - page, Home: 0, End: rows.length - 1 }
     if (e.key in go) { e.preventDefault(); moveTo(go[e.key]) }
-    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (rows[at]) toggle(rows[at].code) }
+    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (rows[at]) flip(rows[at].code) }
   }
-
-  const add = () => {
-    const d = parseManualDate(date)
-    if (d === null) { setDateError(true); return }
-    const codes = [...picked]
-    if (!codes.length) return
-    let place: Place | undefined
-    if (country) { place = { country }; if (sub1) place.sub1 = sub1 }
-    dispatch({ type: 'edit', edits: addTicked(edits, codes, { date: d || undefined, place }) })
-    // Only a batch into an empty list starts a hand-made collage; later ones are edits.
-    if (listEmpty) track('collage_made', { source: 'manual' })
-    setDone(plural(tt.added, codes.length, { n: num(codes.length) }))
-    setPicked(new Set())
-  }
-  const drop = [...dropped].filter((c) => onList.has(c))
-  const remove = () => {
-    if (!drop.length) return
-    dispatch({ type: 'edit', edits: removeTicked(edits, drop) })
-    setDone('')
-    setRemoved({ codes: drop, text: removedText(drop.map((c) => nameOfCode(species.byCode, c)), t), before: edits })
-    setDropped(new Set())
-  }
-  // Undo: exactly what the removal changed comes back (the removed list, hand records as they were), later edits kept.
+  // Undo: exactly what the change touched comes back (on or off the list, hand records as they were), later edits kept.
   const undo = () => {
-    if (!removed) return
-    dispatch({ type: 'edit', edits: undoRemove(edits, removed.before, removed.codes) })
-    setRemoved(null)
-    box.current?.focus({ preventScroll: true }) // back to the list the birds came off
+    if (!change) return
+    dispatch({ type: 'edit', edits: undoEdit(edits, change.before, change.codes) })
+    setChange(null)
+    box.current?.focus({ preventScroll: true })
   }
-  const dismiss = useCallback(() => setRemoved(null), [])
+  const dismiss = useCallback(() => setChange(null), [])
 
-  const n = picked.size
   return (
     <section className="eb-tick" aria-labelledby={`${ids}-h`}>
       <h3 id={`${ids}-h`} className="eb-sr">{tt.label}</h3>
+      <div className="eb-tick-when">
+        <button
+          type="button"
+          className="eb-btn eb-btn-quiet eb-btn-sm eb-disclose-btn"
+          aria-expanded={when}
+          aria-controls={`${ids}-w`}
+          onClick={() => setWhen((w) => !w)}
+        >
+          {tt.when}
+          <CaretDown aria-hidden="true" focusable="false" weight="bold" />
+        </button>
+        <div id={`${ids}-w`} role="group" aria-label={tt.when} hidden={!when}>
+          <p className="eb-note">{tt.whenNote}</p>
+          <div className="eb-tick-fields">
+            <label className="eb-sr" htmlFor={`${ids}-d`}>{tt.date}</label>
+            <input
+              id={`${ids}-d`}
+              className="eb-input"
+              type="date"
+              min="1800-01-01"
+              max={today()}
+              value={date}
+              onChange={(e) => { setDate(e.target.value); if (e.target.value) setYear('') }}
+            />
+            <label className="eb-sr" htmlFor={`${ids}-y`}>{tt.year}</label>
+            <input
+              ref={yearRef}
+              id={`${ids}-y`}
+              className="eb-input"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={4}
+              placeholder={tt.year}
+              value={year}
+              aria-invalid={yearBad || undefined}
+              aria-describedby={yearBad ? `${ids}-ye` : undefined}
+              onChange={(e) => { setYear(e.target.value); if (e.target.value) setDate('') }}
+            />
+            <label className="eb-sr" htmlFor={`${ids}-c`}>{tt.country}</label>
+            <span className="eb-select">
+              <select id={`${ids}-c`} className="eb-input" value={country} onChange={(e) => { setCountry(e.target.value); setSub1('') }}>
+                <option value="">{tt.noCountry}</option>
+                {countries.map(([iso, name]) => <option key={iso} value={iso}>{name}</option>)}
+              </select>
+            </span>
+            {subs.length > 0 && (
+              <>
+                <label className="eb-sr" htmlFor={`${ids}-s`}>{tt.region}</label>
+                <span className="eb-select">
+                  <select id={`${ids}-s`} className="eb-input" value={sub1} onChange={(e) => setSub1(e.target.value)}>
+                    <option value="">{tt.wholeCountry}</option>
+                    {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
+                  </select>
+                </span>
+              </>
+            )}
+          </div>
+          {yearBad && <p id={`${ids}-ye`} className="eb-error">{tt.dateError}</p>}
+        </div>
+      </div>
       <div className="eb-tick-tools">
         <label className="eb-sr" htmlFor={`${ids}-q`}>{tt.search}</label>
         <input
+          ref={search}
           id={`${ids}-q`}
           className="eb-input eb-tick-q"
           type="search"
@@ -163,24 +209,13 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
           onChange={(e) => { setQ(e.target.value); fromTop() }}
           onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); box.current?.focus() } }}
         />
-        <label className="eb-sr" htmlFor={`${ids}-o`}>{tt.order}</label>
+        <label className="eb-sr" htmlFor={`${ids}-f`}>{tt.family}</label>
         <span className="eb-select">
-          <select id={`${ids}-o`} className="eb-input" value={order} onChange={(e) => { setOrder(e.target.value); setFamily(''); fromTop() }}>
-            <option value="">{tt.allOrders}</option>
-            {orders.map((o) => <option key={o} value={o}>{orderLabel(o, t)}</option>)}
+          <select id={`${ids}-f`} className="eb-input" value={family} onChange={(e) => { setFamily(e.target.value); fromTop() }}>
+            <option value="">{tt.allFamilies}</option>
+            {families.map(([f, com]) => <option key={f} value={f}>{com}</option>)}
           </select>
         </span>
-        {families.length > 1 && (
-          <>
-            <label className="eb-sr" htmlFor={`${ids}-f`}>{tt.family}</label>
-            <span className="eb-select">
-              <select id={`${ids}-f`} className="eb-input" value={family} onChange={(e) => { setFamily(e.target.value); fromTop() }}>
-                <option value="">{tt.allFamilies}</option>
-                {families.map(([f, v]) => <option key={f} value={f}>{v.com}</option>)}
-              </select>
-            </span>
-          </>
-        )}
       </div>
       <p className="eb-mono eb-tick-count" aria-live="polite">{plural(t.import.species, rows.length, { n: num(rows.length) })}</p>
 
@@ -201,83 +236,36 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
           {rows.slice(first, last).map((r, k) => {
             const i = first + k
             const on = onList.has(r.code)
-            const sel = on ? !dropped.has(r.code) : picked.has(r.code)
             const fit = Math.min(48 / Math.max(r.ar, 0.01), 36)
+            const name = `${displayName(r)}, ${r.sci}`
             return (
               <div
                 key={r.code}
                 id={`${ids}-r-${r.code}`}
                 role="option"
-                aria-selected={sel}
-                aria-label={on ? fmt(tt.onListLabel, { name: `${displayName(r)}, ${r.sci}` }) : `${displayName(r)}, ${r.sci}`}
-                data-on={on || undefined}
+                aria-selected={on}
+                aria-label={on ? fmt(tt.onListLabel, { name }) : name}
                 className="eb-tickrow"
                 data-active={i === at || undefined}
                 style={{ top: i * ROW }}
                 onPointerDown={(e) => e.preventDefault()}
-                onClick={() => { setActive(i); box.current?.focus({ preventScroll: true }); toggle(r.code) }}
+                onClick={() => { setActive(i); box.current?.focus({ preventScroll: true }); flip(r.code) }}
               >
-                <span className="eb-tickbox" aria-hidden="true">{sel && <Check weight="bold" />}</span>
+                <span className="eb-tickbox" aria-hidden="true">{on && <Check weight="bold" />}</span>
                 <span className="eb-tickthumb" aria-hidden="true"><span style={{ width: Math.round(fit * r.ar), height: Math.round(fit) }}><Sticker code={r.code} st={r.st} ar={r.ar} sv={r.sv} w={fit * r.ar} h={fit} /></span></span>
                 <span className="eb-tickname">
                   <span>{displayName(r)}</span>
                   <i lang="la">{r.sci}</i>
                 </span>
-                {on && <span className="eb-mono eb-tickon">{sel ? tt.onList : tt.toRemove}</span>}
+                {on && <span className="eb-mono eb-tickon">{tt.onList}</span>}
               </div>
             )
           })}
         </div>
       </div>
       {!rows.length && <p className="eb-note">{t.import.search.none}</p>}
-
-      <div className="eb-tickbar" role="group" aria-label={tt.bar}>
-        <p className="eb-tickbar-n" aria-live="polite">
-          {plural(tt.selected, n, { n: num(n) })}
-          {drop.length > 0 && <span className="eb-tickbar-drop"> · {plural(tt.toRemoveN, drop.length, { n: num(drop.length) })}</span>}
-        </p>
-        <div className="eb-tickbar-fields">
-          <label className="eb-sr" htmlFor={`${ids}-d`}>{tt.date}</label>
-          <input
-            id={`${ids}-d`}
-            className="eb-input"
-            inputMode="numeric"
-            placeholder={tt.datePlaceholder}
-            value={date}
-            aria-invalid={dateError || undefined}
-            aria-describedby={dateError ? `${ids}-de` : undefined}
-            onChange={(e) => { setDate(e.target.value); setDateError(false) }}
-          />
-          <label className="eb-sr" htmlFor={`${ids}-c`}>{tt.country}</label>
-          <span className="eb-select">
-            <select id={`${ids}-c`} className="eb-input" value={country} onChange={(e) => { setCountry(e.target.value); setSub1('') }}>
-              <option value="">{tt.noCountry}</option>
-              {countries.map(([iso, name]) => <option key={iso} value={iso}>{name}</option>)}
-            </select>
-          </span>
-          {subs.length > 0 && (
-            <>
-              <label className="eb-sr" htmlFor={`${ids}-s`}>{tt.region}</label>
-              <span className="eb-select">
-                <select id={`${ids}-s`} className="eb-input" value={sub1} onChange={(e) => setSub1(e.target.value)}>
-                  <option value="">{tt.wholeCountry}</option>
-                  {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
-                </select>
-              </span>
-            </>
-          )}
-          <button type="button" className="eb-btn" disabled={!n} onClick={add}>{plural(tt.addN, n, { n: num(n) })}</button>
-        </div>
-        {dateError && <p id={`${ids}-de`} className="eb-error">{tt.dateError}</p>}
-        {drop.length > 0 && (
-          <div className="eb-row">
-            <button type="button" className="eb-btn eb-btn-quiet eb-btn-danger" onClick={remove}>{plural(tt.removeN, drop.length, { n: num(drop.length) })}</button>
-            <button type="button" className="eb-textbtn" onClick={() => setDropped(new Set())}>{tt.keepThem}</button>
-          </div>
-        )}
-        <p className="eb-status" role="status">{done}</p>
-      </div>
-      <UndoToast removal={removed} onUndo={undo} onDone={dismiss} />
+      {/* Each change is announced (the toast's slot is a live region); it keeps focus on the list, to tick on. */}
+      <UndoToast removal={change} onUndo={undo} onDone={dismiss} focus={false} />
     </section>
   )
 }

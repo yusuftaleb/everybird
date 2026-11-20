@@ -873,33 +873,30 @@ export const EN_UI = {
   },
   tick: {
     title: 'Ticked by hand',
+    /** The About demo's Settings scene (HowItWorksScene) still shows the old row's button. */
     button: 'Tick birds',
-    /** The button's aria-label and the list's heading. */
+    /** The list's heading, for screen readers. */
     label: 'Tick birds off a list',
     search: 'Search birds',
-    order: 'Order',
-    allOrders: 'All orders',
     family: 'Family',
     allFamilies: 'All families',
     list: 'Species to tick',
     /** A row's name for screen readers when the bird is already on the list ({name} is "Common, Scientific"). */
     onListLabel: '{name}, already on your list',
     onList: 'On your list',
-    toRemove: 'To remove',
-    bar: 'Add or remove the ticked birds',
-    selected: { one: '{n} selected', other: '{n} selected' },
-    toRemoveN: { one: '{n} to remove', other: '{n} to remove' },
+    when: 'When and where',
+    /** Under "When and where", once open: nothing applies while it is closed. */
+    whenNote: 'Applies to the birds you add while this is open.',
     date: 'Date (optional)',
-    datePlaceholder: 'Date: YYYY-MM-DD, YYYY-MM or YYYY',
-    dateError: 'Use YYYY-MM-DD, YYYY-MM or YYYY.',
+    /** The year field beside the date picker: a year alone, as typed dates allowed. */
+    year: 'Or a year',
+    dateError: 'Use a year from 1800 to this year.',
     country: 'Country (optional)',
     noCountry: 'No country',
     region: 'Region (optional)',
     wholeCountry: 'Whole country',
-    addN: { one: 'Add {n} to my list', other: 'Add {n} to my list' },
-    removeN: { one: 'Remove {n} from my list', other: 'Remove {n} from my list' },
-    keepThem: 'Keep them',
-    added: { one: 'Added {n} bird to your list.', other: 'Added {n} birds to your list.' },
+    /** The Undo notice after a tap adds a bird ("Removed {name}." after one takes it off: collage.removed). */
+    added: 'Added {name}.',
   },
   /** Settings > Counting (RulesSwitches). */
   rules: {

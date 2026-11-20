@@ -1,14 +1,15 @@
-// Tick by hand, the pure parts: which species the browsable list shows, and how a batch of ticks lands in the edits.
+// Add by hand, the pure parts: which species the browsable list shows, and how a bird added or taken off lands in the
+// edits.
 import { nameTier, searchKey } from '@/lib/species/name-search'
 import type { SpeciesRow } from '@/lib/species/types'
 import type { Edits, Place, SourceRecord } from './model'
 
 /**
- * The rows to show: the whole taxonomy in taxonomic order, narrowed to an order (then a family) when chosen; with a
- * search, only rows whose common or scientific name matches by word prefixes (accent-insensitive), best match first.
+ * The rows to show: the whole taxonomy in taxonomic order, narrowed to a family when chosen; with a search, only rows
+ * whose common or scientific name matches by word prefixes (accent-insensitive), best match first.
  */
-export function filterTickRows(rows: readonly SpeciesRow[], f: { q?: string; order?: string; family?: string }): SpeciesRow[] {
-  const inGroup = (r: SpeciesRow) => (!f.order || r.ord === f.order) && (!f.family || r.fam === f.family)
+export function filterTickRows(rows: readonly SpeciesRow[], f: { q?: string; family?: string }): SpeciesRow[] {
+  const inGroup = (r: SpeciesRow) => !f.family || r.fam === f.family
   const key = f.q ? searchKey(f.q) : ''
   if (!key) return rows.filter(inGroup).sort((a, b) => a.to - b.to)
   const hits: { r: SpeciesRow; tier: number }[] = []
@@ -33,7 +34,7 @@ export function addTicked(edits: Edits, codes: string[], opts: { date?: string; 
 }
 
 /**
- * Take `codes` off the list from Tick by hand, as the bird card's Remove does: each goes into `removed` (so a source
+ * Take `codes` off the list from Add by hand, as the bird card's Remove does: each goes into `removed` (so a source
  * that has it no longer counts it) and any hand-added record of it is dropped. Marks and fixes stay.
  */
 export function removeTicked(edits: Edits, codes: string[]): Edits {
@@ -42,11 +43,11 @@ export function removeTicked(edits: Edits, codes: string[]): Edits {
 }
 
 /**
- * Undo a removal (the card's Remove or Tick by hand's "Remove N"): for each of `codes`, put back exactly what `before`
- * had (whether it was in `removed`, its hand records as they were, its marks), and keep every edit made since to other
- * birds. Records from the sources are never touched by a removal, so they need nothing.
+ * Undo a removal (the card's Remove, Add by hand's tap on a bird on the list) or an add by hand: for each of `codes`,
+ * put back exactly what `before` had (whether it was in `removed`, its hand records as they were, its marks), and keep
+ * every edit made since to other birds. Records from the sources are never touched by either, so they need nothing.
  */
-export function undoRemove(now: Edits, before: Edits, codes: readonly string[]): Edits {
+export function undoEdit(now: Edits, before: Edits, codes: readonly string[]): Edits {
   const set = new Set(codes)
   const marks = { ...now.marks }
   for (const c of codes) {
@@ -56,5 +57,6 @@ export function undoRemove(now: Edits, before: Edits, codes: readonly string[]):
   // Each hand record goes back where it stood (so with no edits since, `added` is exactly as before).
   const added = now.added.filter((r) => !set.has(r.code))
   before.added.forEach((r, i) => { if (set.has(r.code)) added.splice(Math.min(i, added.length), 0, r) })
-  return { ...now, removed: now.removed.filter((c) => !set.has(c) || before.removed.includes(c)), added, marks }
+  const removed = [...now.removed.filter((c) => !set.has(c)), ...before.removed.filter((c) => set.has(c))]
+  return { ...now, removed, added, marks }
 }

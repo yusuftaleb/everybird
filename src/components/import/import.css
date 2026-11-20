@@ -156,18 +156,19 @@
 .eb-match-com { font-weight: 500; }
 .eb-match-sci { color: var(--muted); font-size: 14px; }
 .eb-match-acts { display: flex; flex-wrap: wrap; gap: 6px; }
-.eb-tickbar-drop { color: var(--accent); font-weight: 500; }
 
-/* Tick by hand inside its row: the list under a hairline, its sticky bar the group's width. */
-.eb-srcgroup .eb-tick { padding: 12px 16px 0; border: 0; border-top: 1px solid var(--hairline); border-radius: 0; }
-.eb-srcgroup .eb-tickbar { margin: 0 -16px; }
 
 /* Fields (.eb-input, .eb-select, .eb-input-wrap): styles/globals.css, shared with the Places panel's search. */
 
-/* Tick by hand, page-wide: search and group pickers, the windowed list, and the bar that adds the ticked birds. */
-.eb-tick { display: flex; flex-direction: column; gap: 10px; padding: 18px 16px 0; border: 1px solid var(--hairline); border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
+/* Add by hand (the Add birds dialog): "When and where", the search and the family menu, the windowed list. */
+.eb-tick { display: flex; flex-direction: column; gap: 10px; }
+.eb-tick-when { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.eb-tick-when > [role="group"]:not([hidden]) { display: flex; flex-direction: column; gap: 8px; align-self: stretch; }
+.eb-tick-when .eb-note { margin: 0; }
+.eb-tick-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (min-width: 720px) { .eb-tick-fields { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1fr); } }
 .eb-tick-tools { display: grid; grid-template-columns: 1fr; gap: 8px; }
-@media (min-width: 720px) { .eb-tick-tools { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); } }
+@media (min-width: 720px) { .eb-tick-tools { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
 .eb-tick-count { margin: 0; }
 .eb-ticklist {
   position: relative; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
@@ -179,13 +180,10 @@
   border-bottom: 1px solid var(--hairline); cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .eb-tickrow[data-active] { background: var(--surface); }
-.eb-tickrow[data-on] .eb-tickname { color: var(--muted); }
-.eb-tickrow[data-on][aria-selected="false"] .eb-tickon { color: var(--accent); }
 .eb-tickbox {
   display: grid; place-items: center; width: 22px; height: 22px; flex: none; border: 1.5px solid var(--line); border-radius: 6px; color: var(--paper);
 }
 .eb-tickrow[aria-selected="true"] .eb-tickbox { background: var(--accent); border-color: var(--accent); }
-.eb-tickrow[data-on][aria-selected="true"] .eb-tickbox { background: var(--line); border-color: var(--line); }
 .eb-tickbox svg { width: 14px; height: 14px; }
 .eb-tickthumb { display: grid; place-items: center; width: 48px; height: 36px; flex: none; }
 .eb-tickthumb > span { display: block; }
@@ -195,18 +193,6 @@
 .eb-tickname i { font-size: 13px; color: var(--muted); }
 .eb-tickon { margin-left: auto; white-space: nowrap; }
 @media (hover: hover) and (pointer: fine) { .eb-tickrow:hover { background: var(--surface); } }
-.eb-tickbar {
-  position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; margin: 0 -16px; padding: 12px 16px 14px;
-  background: var(--paper); border-top: 1px solid var(--hairline);
-  border-radius: 0 0 calc(20px * var(--one-if-corner-shape-supported, .566)) calc(20px * var(--one-if-corner-shape-supported, .566));
-}
-.eb-tickbar-n { margin: 0; font-weight: 600; }
-.eb-tickbar-fields { display: grid; grid-template-columns: 1fr; gap: 8px; }
-@media (min-width: 720px) { .eb-tickbar-fields { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto; } }
-@media (max-width: 719px) {
-  .eb-tickbar-fields { grid-template-columns: 1fr 1fr; }
-  .eb-tickbar-fields > input, .eb-tickbar-fields > .eb-btn { grid-column: 1 / -1; }
-}
 
 /* "Add birds" (AddBirdsDialog): the share dialog's modal (scrim, Paper, Hairline, the one floating shadow), centred;
    on phones a full-height sheet. */

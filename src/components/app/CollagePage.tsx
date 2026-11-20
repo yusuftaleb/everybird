@@ -8,7 +8,7 @@ import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { pageTitle } from '@/lib/list/title'
 import { placesNoteFor, placesUnplacedFor } from '@/lib/list/filter-summary'
-import { undoRemove } from '@/lib/list/tick'
+import { undoEdit } from '@/lib/list/tick'
 import { nameOfCode } from '@/lib/species/names'
 import type { Edits, ListEntry } from '@/lib/list/model'
 import { CollageView } from './CollageView'
@@ -38,7 +38,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
   // Undo: put back what the removal changed (the removed list, the hand-added record), keeping later edits.
   const undo = useCallback(() => {
     if (!removed) return
-    dispatch({ type: 'edit', edits: undoRemove(state.saved.edits, removed.before, removed.codes) })
+    dispatch({ type: 'edit', edits: undoEdit(state.saved.edits, removed.before, removed.codes) })
     setRemoved(null)
   }, [removed, state.saved.edits, dispatch])
   const dismiss = useCallback(() => setRemoved(null), [])
