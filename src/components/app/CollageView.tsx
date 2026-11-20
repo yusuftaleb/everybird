@@ -8,7 +8,7 @@ import { newlySetKinds } from '@/lib/list/filter-kinds'
 import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BirdCard } from '@/components/collage/BirdCard'
 import { BirdTip } from '@/components/collage/BirdTip'
-import { Collage, revealBird, type BirdMarks } from '@/components/collage/Collage'
+import { Collage, revealBird } from '@/components/collage/Collage'
 import { reduced } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
 import { MapView } from '@/components/collage/MapView'
@@ -18,8 +18,7 @@ import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt, formatMonth } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
-import { useLiferMarks } from '@/lib/lifer-marks'
-import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
+import { latestLifer, liferOrder } from '@/lib/list/build-list'
 import { hasSeenMonths } from '@/lib/list/seen'
 import { applyFilter, drillTo, filterKey, filterToShow, threatenedCount, type Filter } from '@/lib/list/filters'
 import type { PlacesUnplaced } from '@/lib/list/filter-summary'
@@ -165,14 +164,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const threatLine = useMemo(() => (threat === 'c' ? threatenedCount(entries, species) : undefined), [threat, entries, species])
   const shownCodes = useMemo(() => new Set(shownList.map((e) => e.code)), [shownList])
   const order = useMemo(() => liferOrder(species.byCode), [species])
-  // The rings mark the newest and first bird shown, as the share image's latest lifer row does.
+  // The legend's latest lifer: the newest bird shown, as the share image's latest lifer row.
   const latest = useMemo(() => latestLifer(shownList, order), [shownList, order])
-  const first = useMemo(() => firstLifer(shownList, order), [shownList, order])
-  const liferMarks = useLiferMarks()
-  const stageMarks = useMemo<BirdMarks | undefined>(
-    () => (liferMarks.newest || liferMarks.first ? { newest: liferMarks.newest ? latest?.code : undefined, first: liferMarks.first ? first?.code : undefined } : undefined),
-    [liferMarks.newest, liferMarks.first, latest?.code, first?.code],
-  )
   // The search's understood chips: the places the list has (every level), and whether its records keep their months.
   const listPlaces = useMemo(() => {
     const keys = new Set<string>()
@@ -314,7 +307,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       {view === 'collage' ? (
         lay ? (
           <div ref={wrap} className="eb-stagewrap">
-            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} onHover={onHover} still={lay.still} marks={stageMarks} />
+            <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} onHover={onHover} still={lay.still} />
             {tipEntry && <BirdTip key={tipEntry.code} entry={tipEntry} row={species.byCode.get(tipEntry.code)!} regions={regions} sci={sci} wrap={wrap} filter={filter} seen={seen} />}
           </div>
         ) : (

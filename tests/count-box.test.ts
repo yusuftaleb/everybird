@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { LAYOUTS } from '../src/lib/layout/constants'
 import {
-  collageBoxes, collageHole, COUNT_LABEL_CHARS, countDisplay, labelCells, countScale, countText, holeArea, holeExtent, isHole, labelBounds, labelEm, LABEL_GROW_MAX, MONO_EM, MONO_TRACK,
+  collageBoxes, collageHole, COUNT_LABEL_CHARS, countDisplay, GOAL_LABEL_CHARS, goalLabelCells, labelCells, countScale, countText, holeArea, holeExtent, isHole, labelBounds, labelEm, LABEL_GROW_MAX, MONO_EM, MONO_TRACK,
   NO_HOLE, collagePad, numberEm, PAD_FULL_AT, PAD_LONG, PAD_SHORT, rectGap, touchesHole, type Hole, type Rect,
 } from '../src/lib/layout/count-box'
 import { en } from '../src/i18n/messages/en'
@@ -86,13 +86,18 @@ describe('count text metrics', () => {
   it('draws five digits a little smaller', () => {
     expect([7, 197, 1089, 11019].map((n) => countScale(countText(n)))).toEqual([1, 1, 1, 0.85])
   })
-  it('measures progress strings with "/" and spaces', () => {
-    const slashW = numberEm('120 / 300')
-    expect(slashW).toBeGreaterThan(numberEm('120300'))
-    expect(slashW).toBeLessThan(numberEm('12000300'))
-    const k = countLayout('story', 120, 952, 300)
-    expect(k.number).toBe('120 / 300')
-    expect(k.hole.num[2] - k.hole.num[0]).toBeCloseTo(slashW * k.size, 6)
+  it('a goal keeps the number at its no-goal size and widens only the label box ("OF 300 SPECIES")', () => {
+    for (const countSize of ['small', 'medium', 'large'] as const) {
+      const plain = countLayout('story', 120, 952, undefined, countSize)
+      const k = countLayout('story', 120, 952, 300, countSize)
+      expect(k.number).toBe('120')
+      expect([k.size, k.labelSize, k.gap]).toEqual([plain.size, plain.labelSize, plain.gap])
+      expect(k.hole.num).toEqual(plain.hole.num)
+      expect(k.cells).toBe(goalLabelCells(300))
+      expect(k.hole.label[2] - k.hole.label[0]).toBeCloseTo(labelEm(goalLabelCells(300)) * k.labelSize, 6)
+      expect(k.hole.label[2] - k.hole.label[0]).toBeGreaterThan(plain.hole.label[2] - plain.hole.label[0])
+    }
+    expect(countLayout('story', 120, 952, 300, 'hide').hole).toEqual(countLayout('story', 120, 952, undefined, 'hide').hole)
   })
 })
 
@@ -111,6 +116,15 @@ describe('the count in every language (one hole for all)', () => {
     expect(countDisplay(1089, es.ui.num)).toBe('1.089')
     expect(countDisplay(11019, pt.ui.num)).toBe('11.019')
     expect(countDisplay(1089, en.ui.num)).toBe(countText(1089))
+  })
+  it('the goal label box holds every language\'s "of N species", every plural form', () => {
+    for (const [lang, m] of Object.entries(LANGS)) {
+      for (const form of Object.values(m.ui.share.bigYear.ofTarget)) {
+        const words = form.replace('{n}', '').toUpperCase()
+        expect(form, lang).toContain('{n}')
+        expect(labelCells(words), `${lang} ${form}`).toBeLessThanOrEqual(GOAL_LABEL_CHARS)
+      }
+    }
   })
   it('the label box holds the longest label', () => {
     // "ESPÉCIES" (pt) and "ESPECIES" (es) are 8 characters, the most of any language.

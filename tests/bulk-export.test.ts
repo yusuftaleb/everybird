@@ -9,7 +9,7 @@ vi.mock('fflate', async (orig) => ({
 }))
 import { buildSeen } from '@/lib/list/seen'
 import type { ListEntry, SourceRecord } from '@/lib/list/model'
-import { bulkGroups, bulkPackSpec, makeBulkZip, sanitizeGroupStem } from '@/lib/share/bulk'
+import { batchChoice, bulkGroups, bulkImagePackSpec, bulkPackSpec, makeBulkZip, makeImageZip, sanitizeGroupStem } from '@/lib/share/bulk'
 import { imagePackSpec, type ImagePack } from '@/lib/share/image'
 import type { Poster } from '@/lib/share/poster'
 import { buildSpeciesIndex } from '@/lib/species/load'
@@ -63,7 +63,7 @@ describe('bulk export', () => {
     const rows = Array.from({ length: 2101 }, (_, i) => row(`b${i}`, i + 1))
     const species = buildSpeciesIndex(rows)
     const entries = [...rows].reverse().map((r) => entry(r.code))
-    const groups = bulkGroups('batches', entries, { species, regions })
+    const groups = bulkGroups('batches', entries, { species, regions, batchSize: 1000 })
     expect(groups).toHaveLength(3)
     expect(groups.map((g) => g.entries.length)).toEqual([1000, 1000, 101])
     expect(groups.map((g) => g.label)).toEqual(['Batch 1', 'Batch 2', 'Batch 3'])
@@ -72,15 +72,29 @@ describe('bulk export', () => {
     expect(groups[2].entries[100].code).toBe('b2100')
   })
 
-  it('takes the most birds per poster from batchSize, kept between 10 and 5,000', () => {
-    const rows = Array.from({ length: 25 }, (_, i) => row(`b${i}`, i + 1))
+  it('takes the most birds per poster from batchSize: All is one group', () => {
+    const rows = Array.from({ length: 260 }, (_, i) => row(`b${i}`, i + 1))
     const species = buildSpeciesIndex(rows)
     const entries = rows.map((r) => entry(r.code))
-    expect(bulkGroups('batches', entries, { species, regions, batchSize: 10 }).map((g) => g.entries.length)).toEqual([10, 10, 5])
-    expect(bulkGroups('batches', entries, { species, regions, batchSize: 3 }).map((g) => g.entries.length)).toEqual([10, 10, 5])
-    expect(bulkGroups('batches', entries, { species, regions, batchSize: 99999 })).toHaveLength(1)
+    expect(bulkGroups('batches', entries, { species, regions, batchSize: 100 }).map((g) => g.entries.length)).toEqual([100, 100, 60])
+    expect(bulkGroups('batches', entries, { species, regions, batchSize: 250 }).map((g) => g.entries.length)).toEqual([250, 10])
+    expect(bulkGroups('batches', entries, { species, regions, batchSize: 'all' })).toHaveLength(1)
+    expect(bulkGroups('batches', entries, { species, regions })).toHaveLength(1)
   })
 
+  it('batchChoice moves an old number to the nearest choice at or above it, else All', () => {
+    expect(batchChoice(10)).toBe(100)
+    expect(batchChoice(100)).toBe(100)
+    expect(batchChoice(101)).toBe(250)
+    expect(batchChoice(300)).toBe(500)
+    expect(batchChoice(1000)).toBe(1000)
+    expect(batchChoice(1001)).toBe('all')
+    expect(batchChoice(5000)).toBe('all')
+    expect(batchChoice('all')).toBe('all')
+    expect(batchChoice(undefined)).toBe('all')
+    expect(batchChoice('500')).toBe('all')
+    expect(batchChoice(Number.NaN)).toBe('all')
+  })
   it('produces one group per non-empty family and order in taxonomic order', () => {
     const species = buildSpeciesIndex([
       row('ostric2', 1, 'Struthioniformes', 'Struthionidae', 'Ostriches'),
@@ -228,8 +242,6 @@ describe('bulk export', () => {
         landscape: false,
         theme: 'light',
         latest: false,
-        markNewest: false,
-        markFirst: false,
         strings: en.ui,
         nameOf: (r) => r.com,
       },
@@ -255,19 +267,55 @@ describe('bulk export', () => {
     expect(strFromU8(unzipped['falcons.png'])).toBe('png:Falcons')
   })
 
-  it('plans each group\'s names with its own lifer rings, not the whole list\'s', () => {
+  it('makeImageZip writes one PNG per group in the dialog\'s format, each labelled with its group after the view', async () => {
     const species = buildSpeciesIndex([row('a', 1, 'O1', 'F1', 'Ostriches'), row('b', 2, 'O2', 'F2', 'Ducks')])
-    // b is the whole list's latest lifer; in Ostriches' poster a is the latest (and only) bird, and it is ringed there.
-    const groups = bulkGroups('family', [entry('a', { date: '2020-01' }), entry('b', { date: '2024-01' })], { species, regions })
-    const opts = { size: 'A2' as const, landscape: false, named: false, countSize: 'medium' as const, showNames: true, species, marks: { newest: true } }
-    const ostriches = bulkPackSpec(groups[0].entries, opts).captionBoxes!
-    expect(ostriches.a.ring).toBeGreaterThan(0)
-    const plain = bulkPackSpec(groups[0].entries, { ...opts, marks: {} }).captionBoxes!
-    expect(plain.a.ring).toBeUndefined()
-    expect(ostriches.a.h).toBeGreaterThan(plain.a.h)
-    expect(bulkPackSpec(groups[0].entries, { ...opts, showNames: false }).captionBoxes).toBeUndefined()
+    const groups = bulkGroups('family', [entry('a'), entry('b')], { species, regions })
+    const specs: { aspect: number }[] = []
+    const fakePack = vi.fn(async (_e: ListEntry[], _s: unknown, spec: { aspect: number }): Promise<ImagePack> => { specs.push(spec); return { W: 100, H: 100, boxes: new Map() } })
+    const rendered: { format: string; filterLabel?: string; entries: ListEntry[]; theme: string }[] = []
+    const fakeRender = vi.fn(async (o: { format: string; filterLabel?: string; entries: ListEntry[]; theme: string }) => {
+      rendered.push(o)
+      return new Blob([`png:${o.filterLabel}`], { type: 'image/png' })
+    })
+    const progress: number[] = []
+    const blob = await makeImageZip({
+      groups,
+      species,
+      image: { format: 'post', theme: 'dark', filterLabel: 'Canada', strings: en.ui, countSize: 'large' },
+      onProgress: (done) => progress.push(done),
+      deps: { pack: fakePack as never, render: fakeRender as never },
+    })
+    expect(rendered.map((o) => [o.format, o.theme, o.filterLabel, o.entries.map((e) => e.code)])).toEqual([
+      ['post', 'dark', 'Canada · Ostriches', ['a']],
+      ['post', 'dark', 'Canada · Ducks', ['b']],
+    ])
+    expect(progress).toEqual([1, 2])
+    expect(specs[0]).toEqual(bulkImagePackSpec(groups[0].entries, { format: 'post', countSize: 'large' }))
+    const files = unzipSync(new Uint8Array(await blob.arrayBuffer()))
+    expect(Object.keys(files).sort()).toEqual(['ducks.png', 'ostriches.png'])
+    expect(strFromU8(files['ducks.png'])).toBe('png:Canada · Ducks')
   })
 
+  it('makeImageZip stops at a cancel and makes no later image', async () => {
+    const species = buildSpeciesIndex([row('a', 1, 'O1', 'F1', 'Ostriches'), row('b', 2, 'O2', 'F2', 'Ducks')])
+    const groups = bulkGroups('family', [entry('a'), entry('b')], { species, regions })
+    const ctl = new AbortController()
+    const fakeRender = vi.fn(async () => { ctl.abort(); return new Blob(['x']) })
+    await expect(makeImageZip({
+      groups, species,
+      image: { format: 'story', theme: 'light', strings: en.ui, signal: ctl.signal },
+      deps: { pack: async () => ({ W: 1, H: 1, boxes: new Map() }), render: fakeRender },
+    })).rejects.toMatchObject({ name: 'AbortError' })
+    expect(fakeRender).toHaveBeenCalledTimes(1)
+  })
+
+  it('plans names for a group only when they are asked for', () => {
+    const species = buildSpeciesIndex([row('a', 1, 'O1', 'F1', 'Ostriches'), row('b', 2, 'O2', 'F2', 'Ducks')])
+    const groups = bulkGroups('family', [entry('a', { date: '2020-01' }), entry('b', { date: '2024-01' })], { species, regions })
+    const opts = { size: 'A2' as const, landscape: false, named: false, countSize: 'medium' as const, showNames: true, species }
+    expect(Object.keys(bulkPackSpec(groups[0].entries, opts).captionBoxes!)).toEqual(['a'])
+    expect(bulkPackSpec(groups[0].entries, { ...opts, showNames: false }).captionBoxes).toBeUndefined()
+  })
   it('makeBulkZip counts the posters that asked for names but have none', async () => {
     const species = buildSpeciesIndex([row('a', 1, 'O1', 'F1', 'Ostriches'), row('b', 2, 'O2', 'F2', 'Ducks')])
     const groups = bulkGroups('family', [entry('a'), entry('b')], { species, regions })
@@ -311,10 +359,12 @@ describe('bulk export', () => {
 
   it('sizes each group\'s count hole for the Big Year target', () => {
     const species = buildSpeciesIndex([row('a', 1)])
-    const opts = { size: 'A2' as const, landscape: false, named: false, countSize: 'medium' as const, showNames: false, species, marks: {} }
+    const opts = { size: 'A2' as const, landscape: false, named: false, countSize: 'medium' as const, showNames: false, species }
     const plain = bulkPackSpec([entry('a')], opts).hole
     const goal = bulkPackSpec([entry('a')], { ...opts, target: 300 }).hole
-    expect(goal.num[2] - goal.num[0]).toBeGreaterThan(plain.num[2] - plain.num[0])
+    // The number keeps its size; the label under it ("OF 300 SPECIES") is wider.
+    expect(goal.num).toEqual(plain.num)
+    expect(goal.label[2] - goal.label[0]).toBeGreaterThan(plain.label[2] - plain.label[0])
   })
 
   it('makeBulkZip stops at a cancel: the poster in hand is disposed and no later group is made', async () => {
@@ -370,8 +420,6 @@ describe('bulk export', () => {
           landscape: false,
           theme: 'light',
           latest: false,
-          markNewest: false,
-          markFirst: false,
           strings: en.ui,
           nameOf: (r) => r.com,
           signal: ctl.signal,

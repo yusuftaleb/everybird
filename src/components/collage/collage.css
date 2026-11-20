@@ -107,8 +107,6 @@
   height: calc(var(--h) * var(--k) * 1cqw);
 }
 .eb-stage[data-fast] .eb-tile:focus-visible { outline-width: 2px; outline-offset: 2px; border-radius: 8px; }
-.eb-stage[data-fast] .eb-tile[data-mark] { outline-width: 2px; outline-offset: 4px; border-radius: 8px; }
-.eb-stage[data-fast] .eb-tile[data-mark]:focus-visible { outline-offset: 2px; }
 .eb-stage[data-fast] .eb-tile[data-ring] { outline-width: 2px; outline-offset: 4px; border-radius: 8px; }
 @media (prefers-reduced-motion: no-preference) { .eb-stage[data-fast] .eb-tile[data-hot] { transform: translateY(-2px); } }
 .eb-stage[data-many] .eb-tile,
@@ -204,14 +202,6 @@
   .eb-knob { transition: none; }
 }
 
-.eb-bird[data-mark] {
-  outline: calc(2px / var(--k)) solid var(--ink);
-  outline-offset: calc(4px / var(--k));
-  border-radius: calc(8px / var(--k));
-  z-index: 4;
-}
-.eb-bird[data-mark~="newest"] { outline-color: var(--accent); }
-.eb-bird[data-mark]:focus-visible { outline-color: var(--accent); outline-offset: calc(2px / var(--k)); }
 
 /* A bird picked from the search: a brief Accent ring (drawn inside its scale, like the focus ring). */
 .eb-bird[data-ring] {

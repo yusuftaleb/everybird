@@ -1,5 +1,5 @@
 'use client'
-import { ShareNetwork } from '@phosphor-icons/react'
+import { Printer, ShareNetwork } from '@phosphor-icons/react'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
 import { baseOfLang } from '@/lib/species/name-locales'
@@ -45,8 +45,8 @@ function Loaded({ pack }: { pack: SamplePack }) {
     [species],
   )
   const [state, dispatch] = useReducer(reducer, undefined, () => reducer(initialState(), { type: 'restore', saved: pack.saved }))
-  // Share works on the sample too (its own store: a title typed there is never saved), from the end of its stats row.
-  const [sharing, setSharing] = useState<{ view: ViewKind; at: ShareAt } | null>(null)
+  // Share and Print work on the sample too (its own store: a title typed there is never saved), at the end of its stats row.
+  const [sharing, setSharing] = useState<{ view: ViewKind; at: ShareAt; print?: boolean } | null>(null)
   const shareAt = useRef<ShareAt>({})
   const onShareAt = useCallback((at: ShareAt) => { shareAt.current = at }, [])
   return (
@@ -61,15 +61,21 @@ function Loaded({ pack }: { pack: SamplePack }) {
         seed={pack.seed}
         onShareAt={onShareAt}
         statsAction={
-          <button type="button" className="eb-btn eb-btn-quiet" aria-haspopup="dialog" data-testid="share-open" data-tour="share" onClick={() => setSharing({ view: state.view, at: shareAt.current })}>
-            <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
-            {t.collage.share}
-          </button>
+          <span className="eb-stats-actions">
+            <button type="button" className="eb-btn eb-btn-quiet" aria-haspopup="dialog" data-testid="print-open" onClick={() => setSharing({ view: state.view, at: shareAt.current, print: true })}>
+              <Printer aria-hidden="true" focusable="false" />
+              {t.collage.print}
+            </button>
+            <button type="button" className="eb-btn eb-btn-quiet" aria-haspopup="dialog" data-testid="share-open" data-tour="share" onClick={() => setSharing({ view: state.view, at: shareAt.current })}>
+              <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
+              {t.collage.share}
+            </button>
+          </span>
         }
       />
       {sharing && (
         <Suspense fallback={null}>
-          <ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} view={sharing.view} at={sharing.at} onClose={() => setSharing(null)} />
+          <ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} view={sharing.view} at={sharing.at} print={sharing.print} onClose={() => setSharing(null)} />
         </Suspense>
       )}
     </>

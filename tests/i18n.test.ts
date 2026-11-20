@@ -46,8 +46,8 @@ const ALLOW_SAME = [
   '{n} region',
   // fr: the same spelling in French.
   '{n} continents', 'Continents', 'Europe', 'Tinamous', 'Orientation',
-  // The share dialog's parts: fr "Image", nl and de "Poster".
-  'Image', 'Poster',
+  // The share dialog's parts: fr "Image", nl and de "Poster"; fr "{n} image(s)" in One per group's count.
+  'Image', 'Poster', '{n} image', '{n} images',
   // de: months spelled as in English, and "(optional)".
   'Jan', 'Feb', 'Apr', 'Aug', 'Sep', 'Nov', 'April', 'August', 'September', 'November', '(optional)', 'Region (optional)',
   // ja and zh group numbers with "," and use "." for decimals, as English does.

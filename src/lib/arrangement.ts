@@ -1,5 +1,5 @@
-// How the share images and the poster place the birds (the share dialog's Packed / Oval), a per-device choice like the
-// lifer marks (lifer-marks.ts): kept in localStorage, Packed when unset, unreadable or a value no longer offered (the
+// How the share images and the poster place the birds (the share dialog's Fit / Oval), a per-device choice kept in
+// localStorage, Packed when unset, unreadable or a value no longer offered (the
 // dropped 'family' and 'colour'), the same in every tab. The collage on the page is always packed.
 import { useSyncExternalStore } from 'react'
 

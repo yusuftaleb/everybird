@@ -30,7 +30,7 @@ const TIGHT = [
   'filters.label', 'filters.clear', 'filters.timeline.sumFrom', 'filters.timeline.sumTo',
   'import.add', 'import.replace', 'import.remove', 'import.inat.refresh', 'import.inat.cancel', 'tick.button',
   'share.format.story', 'share.format.post', 'share.format.square', 'share.shareImage', 'share.download', 'share.copyLink',
-  'share.showLatest', 'count.label',
+  'share.showLatest', 'count.label', 'collage.print',
 ]
 
 /** Settings' source-row buttons wrap under the row's text when they don't fit (SourceRow), so a whole word beats a

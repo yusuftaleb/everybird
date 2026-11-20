@@ -86,6 +86,8 @@
 /* The landing sample's stats line with its Share button at the row's end (the button wraps under a long line). */
 .eb-stats-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 .eb-stats-row > .eb-stats { flex: 1 1 260px; min-width: 0; }
+/* The landing sample's Print and Share at the end of its stats row, 8px apart. */
+.eb-stats-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .eb-stat { white-space: nowrap; }
 .eb-view .eb-stage-wait { margin-top: 8px; }
 
