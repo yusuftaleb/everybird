@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { packFrame } from '@/lib/layout/pack'
 import { cardLayout, fitPack, imagePackSpec, maxTileSide, SPREAD, type ImagePack } from '@/lib/share/image'
 
-// The comparison card draws the birds on every list, often none (three lists rarely share a bird): the empty pack
-// must still lay out, so the card is the counts line over an empty collage, not a hang or NaN.
-describe('the comparison card with nothing shared', () => {
+// A share image with no birds to draw (an empty group): the empty pack must still lay out, the card's text over an
+// empty collage, not a hang or NaN.
+describe('a share image with no birds', () => {
   it('packs and fits zero birds to finite numbers', () => {
     const content = { name: true, filter: true, latest: false, count: 0 }
     const spec = imagePackSpec('post', content)

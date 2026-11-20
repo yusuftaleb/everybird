@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import linkIndex from '../data/link-index.json'
-import { compareGroups, compareTable, groupPayload, linksIn } from '@/lib/share/compare'
+import { compareGroups, compareTable, groupPayload, linksIn, pairGroups, ranking, spread } from '@/lib/share/compare'
 import { makeCompareLink } from '@/lib/share/make-link'
 import { payloadToRecords } from '@/lib/share/convert'
 import { buildList } from '@/lib/list/build-list'
@@ -140,6 +140,9 @@ describe('linksIn', () => {
     expect(linksIn('  \n ', decodeShare)).toEqual({ lists: [], bad: 0, compared: false })
     expect(linksIn('call 16045551234 tonight', decodeShare).bad).toBe(0)
   })
+  it('splits links a one-line field ran together', () => {
+    expect(linksIn(`${SHARE_ORIGIN}/s/${t1}${SHARE_ORIGIN}/s/${t2}`, decodeShare).lists.map((p) => p.birds.length)).toEqual([5, 6])
+  })
   it('a comparison link opens its lists in its place; without its decoder, or as a bare word, it is no link', () => {
     const c = encodeCompare([list(3, 7, 'Ada'), list(4, 8, 'Sam')]).token
     const text = `look ${SHARE_ORIGIN}/fr/c/${c} and ${SHARE_ORIGIN}/s/${t1} ${c} comparison`
@@ -155,13 +158,33 @@ describe('linksIn', () => {
 
 describe('compareGroups and compareTable', () => {
   const p = (...idx: number[]): SharePayload => ({ v: 1, birds: idx.map((i) => ({ code: C(i) })) })
-  it('your list and one other: the birds you still need first, then both of you, then only you', () => {
-    const g = compareGroups([p(1, 2, 3), p(2, 3, 4, 5)], true)
-    expect(g.map((x) => x.who)).toEqual([1, 'all', 0])
+  it('the first list against another: the other’s birds the first lacks, both, the first’s alone', () => {
+    const lists = [p(1, 2, 3), p(2, 3, 4, 5), p(1, 4, 6)]
+    const g = pairGroups(lists, 1)
+    expect(g.map((x) => [x.part, x.who, x.from])).toEqual([['other', 1, 1], ['both', 'all', 0], ['first', 0, 0]])
     expect(g.map((x) => sorted(x.codes))).toEqual([sorted([C(4), C(5)]), sorted([C(2), C(3)]), [C(1)]])
-    // Not the viewer's list, or three lists: everyone first, then each list's own, in list order.
-    expect(compareGroups([p(1), p(2)]).map((x) => x.who)).toEqual(['all', 0, 1])
-    expect(compareGroups([p(1), p(2), p(3)], true).map((x) => x.who)).toEqual(['all', 0, 1, 2])
+    // Against the third list, the second doesn't count.
+    expect(pairGroups(lists, 2).map((x) => sorted(x.codes))).toEqual([sorted([C(4), C(6)]), [C(1)], sorted([C(2), C(3)])])
+    // With two lists, the same birds as compareGroups' three groups.
+    const two = [p(1, 2, 3), p(2, 3, 4, 5)]
+    const byWho = new Map(compareGroups(two).map((x) => [x.who, sorted(x.codes)]))
+    for (const x of pairGroups(two, 1)) expect(sorted(x.codes)).toEqual(byWho.get(x.who))
+  })
+  it('ranks the lists by species, most first, equal lists in their order', () => {
+    expect(ranking([p(1), p(1, 2, 3), p(4, 5), p(6, 7, 8), p()])).toEqual([1, 3, 2, 0, 4])
+  })
+  it('spreads the card’s stickers over the groups by size, at least one from each, in even steps', () => {
+    const g = (n: number, tag: string) => Array.from({ length: n }, (_, i) => `${tag}${i}`)
+    expect(spread([g(2, 'a'), g(3, 'b')], 10)).toEqual(['a0', 'a1', 'b0', 'b1', 'b2'])
+    const out = spread([g(3, 'a'), g(400, 'b'), g(97, 'c')], 20)
+    expect(out).toHaveLength(20)
+    expect(out.filter((c) => c[0] === 'a')).toHaveLength(1)
+    expect(out.filter((c) => c[0] === 'b')).toHaveLength(16)
+    expect(out.filter((c) => c[0] === 'c')).toHaveLength(3)
+    expect(out.slice(1, 4)).toEqual(['b0', 'b25', 'b50'])
+    expect(new Set(out).size).toBe(20)
+    expect(spread([[], g(50, 'b'), g(1, 'c')], 4)).toEqual(['b0', 'b16', 'b33', 'c0'])
+    expect(spread([g(9, 'a'), g(9, 'b'), g(9, 'c')], 2)).toEqual(['a0', 'b0'])
   })
   it('the table holds every bird once, a bird on two of three lists included, with the lists it is on', () => {
     const lists = [p(1, 2), p(2, 3), p(3, 4, 2)]
