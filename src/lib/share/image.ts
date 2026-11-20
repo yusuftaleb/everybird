@@ -32,8 +32,9 @@
 // picks its sticker tier (printStickerUrl: 1024 with the 384 fallback for big tiles), and the poster paints it in strips.
 // Its head and foot are quieter than an image's: the head is the title alone (the collage title, else the filter in
 // words, in Accent), with the count at its right under "Beside title"; the foot is one line under the hairline, the
-// wordmark then "Latest lifer: Hooded Crow, Sep 2026 · everybird.yusuftaleb.com · stickers by huashu · 20 Nov 2026"
-// (POSTER_FOOT; the latest lifer only with "Show latest lifer"), with no latest lifer row or sticker.
+// wordmark then "everybird.yusuftaleb.com · stickers by huashu · 20 Nov 2026" at the left and "Latest lifer: Hooded
+// Crow, Sep 2026" at the right end (POSTER_FOOT; the latest lifer only with "Show latest lifer", on a second line,
+// right-aligned, where the two don't fit on one: placePosterFoot), with no latest lifer row or sticker.
 import { SHARE_ORIGIN } from '@/lib/share/origin'
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { printStickerUrl, stickerUrl } from '@/lib/sticker-url'
@@ -240,8 +241,9 @@ export type CardLayout = {
   /** The head's first line: the name (on a poster, its title), and, with "Beside title", the count's row too. */
   name?: Text
   filter?: Text
-  /** "Beside title": the count's size (Geist Mono, px), drawn on the name's baseline, right-aligned (left without a name). */
-  titleCount?: { size: number }
+  /** "Beside title": the count on the name's baseline, right-aligned (left without a name): the number at `num` px (the
+   *  count's Cabinet 700), then its label at `label` px (the count label's Geist Mono, upper case), `gap` between. */
+  titleCount?: typeof TITLE_COUNT
   collage: { x: number; y: number; w: number; h: number }
   count: CountLayout
   /**
@@ -260,8 +262,12 @@ export type CardLayout = {
 }
 /** The Count menu: the count in the middle at one of three sizes, none, or 'title', beside the title (no hole). */
 export type CountSize = 'small' | 'medium' | 'large' | 'hide' | 'title'
-/** The count beside the title, in px (Geist Mono 500, upper case, tracked as the count's label). */
-export const TITLE_COUNT = 34
+/**
+ * The count beside the title, in the big count's own type scaled to the title (60px): the number as tall as the title
+ * (Cabinet Grotesk 700, -0.02em), then its label in the count label's style (Geist Mono 500, upper case, tracked 0.06em,
+ * Muted) at the size the label under a medium count takes, on one baseline, `gap` px apart.
+ */
+export const TITLE_COUNT = { num: 60, label: 22, gap: 12 } as const
 /**
  * The poster's foot: the wordmark and the line beside it, smaller than an image's so the line, with the latest lifer in
  * it, stays one line beside the wordmark (it shrinks to `min`, then takes its own line under the wordmark).
@@ -338,7 +344,7 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
     const rule = { y: footer.y - 24 }
     const top = headBottom === undefined ? T : headBottom + GAPS[format].head
     const collage = { x: X, y: top, w: W - 2 * X, h: rule.y - GAPS[format].collage - top }
-    return { W, H, name, filter, ...(titleCount ? { titleCount: { size: TITLE_COUNT } } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
+    return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
   }
   const footer = { y: H - B - 30 - (format === 'story' ? 4 : 0), size: 30, credit: 20 }
   const icon = ICON[format]
@@ -362,7 +368,7 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   const top = headBottom === undefined ? T : headBottom + G.head
   const bottom = (latest && !oneLine ? latest.y : rule.y) - G.collage
   const collage = { x: X, y: top, w: W - 2 * X, h: bottom - top }
-  return { W, H, name, filter, ...(titleCount ? { titleCount: { size: TITLE_COUNT } } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
+  return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
 }
 
 /**
@@ -647,6 +653,19 @@ export function placeCredit(measure: (px: number) => number, inlineRoom: number,
   return { size: px, below: true }
 }
 
+/**
+ * The poster's foot: the wordmark and the site, credit and date beside it at the left, the latest lifer (`latest(px)` its
+ * width) at the right end of the same line, FOOTER_GAP apart, from POSTER_FOOT.line down to POSTER_FOOT.min. Where the two
+ * don't fit on one line at any of those sizes, the latest lifer takes a second line under them, right-aligned, and the
+ * first line is placed alone (placeCredit, so at its largest size that fits).
+ */
+export function placePosterFoot(credit: (px: number) => number, latest: (px: number) => number, maxW: number, brandW: number): { size: number; below: boolean; latestBelow: boolean } {
+  for (let px = POSTER_FOOT.line; px >= POSTER_FOOT.min; px--) {
+    if (brandW + credit(px) + FOOTER_GAP + latest(px) <= maxW) return { size: px, below: false, latestBelow: false }
+  }
+  return { ...placeCredit(credit, maxW - brandW, maxW, POSTER_FOOT.line, POSTER_FOOT.min), latestBelow: true }
+}
+
 export type ShareImageOpts = {
   format: CardFormat
   entries: ListEntry[]
@@ -762,9 +781,11 @@ export type PreparedCard = {
   /** What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's. */
   countNum: string
   countLabel: string
-  /** "Beside title": the count on the title's line, upper-cased ("96 SPECIES", "123 OF 150 SPECIES"). */
-  countLine?: string
+  /** "Beside title": the count on the title's line, its number and its upper-cased label ("96", "SPECIES" or "OF 150 SPECIES"). */
+  countLine?: { num: string; label: string }
   footerLine: string
+  /** The poster's latest lifer in words ("Latest lifer: Hooded Crow, Sep 2026"), drawn at the foot's right end. */
+  posterLatest?: string
   latest?: { label: string; name: string }
   name?: string
   label?: string
@@ -773,8 +794,9 @@ export type PreparedCard = {
   brandW: number
   /** The one-line row (LATEST_ONE_LINE): the block's left edge, the label's width and the name as drawn (its text and font size). */
   oneLine?: { x: number; labelW: number; nameText: string; nameSize: number }
-  /** The footer line's size, and whether it took its own line under the wordmark (placeCredit). */
-  credit: { size: number; below: boolean }
+  /** The footer line's size, and whether it took its own line under the wordmark (placeCredit); on a poster, whether its
+   *  latest lifer took a line of its own under them, right-aligned (placePosterFoot). */
+  credit: { size: number; below: boolean; latestBelow?: boolean }
   /** How far the wordmark, the hairline and the latest lifer row move up when the footer line is below the wordmark. */
   shift: number
   captions?: CaptionBox[]
@@ -807,18 +829,6 @@ export function fitCaptionPack(
   }
   const verified = verifyAndPlaceCaptions(placed, area, { cx: fit.cx, cy: fit.cy }, scaleHole(L.count.hole, Math.max(1, fit.grow)), captionPlan)
   return verified.ok ? { fit, placed, captions: verified.captions, ok: true } : { fit, placed, ok: false }
-}
-
-/**
- * The count beside the title, before it is upper-cased: "96 species", with a goal "123 of 150 species" (the count, then
- * the goal's words as under the count in the middle; joined as the language joins a number to "species" in `count.live`,
- * so "96種" in Japanese).
- */
-export function titleCountText(count: number, target: number | undefined, t: Pick<Ui, 'count' | 'num' | 'share'>): string {
-  const n = countDisplay(count, t.num)
-  if (target === undefined) return plural(t.count.live, count, { n })
-  const sep = /\{n\}(\s*)/.exec(t.count.live.other)?.[1] ?? ' '
-  return `${n}${sep}${plural(t.share.bigYear.ofTarget, target, { n: countDisplay(target, t.num) })}`
 }
 
 /** The poster foot's latest lifer: "Latest lifer: Hooded Crow, Sep 2026" (share.posterLatest; the month as on the images). */
@@ -863,7 +873,8 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const name = print ? named ?? filterText : named
   const label = print ? undefined : filterText
   const stamped = withStamp(opts.footer ?? FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
-  const footerLine = print && latest ? `${posterLatest(latestName, latestE!.date, strings)} · ${stamped}` : stamped
+  const footerLine = stamped
+  const posterLifer = print && latest ? posterLatest(latestName, latestE!.date, strings) : undefined
   const printSize = opts.printSize ?? 'A2'
   const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
   let captionPlan: CaptionPlan | undefined
@@ -918,11 +929,13 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const K = { ...L.count, size: Math.round(L.count.size * g), labelSize: Math.round(L.count.labelSize * Math.min(g, 1.15)), gap: Math.round(L.count.gap * g) }
   // What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's.
   // With a goal the label says it ("OF 150 SPECIES"); the number is the count alone, at its no-goal size.
-  const countNum = K.size > 0 ? countDisplay(content.count, strings.num) : ''
-  const countLabel = K.size <= 0 ? ''
-    : (goal?.target !== undefined ? plural(strings.share.bigYear.ofTarget, goal.target, { n: countDisplay(goal.target, strings.num) }) : strings.count.label).toUpperCase()
-  const countLine = L.titleCount ? titleCountText(content.count, goal?.target, strings).toUpperCase() : undefined
-  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, ...(countLine ? { countLine } : {}), footerLine, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}) }
+  // Beside the title the same two parts, on the title's line.
+  const numText = countDisplay(content.count, strings.num)
+  const labelText = (goal?.target !== undefined ? plural(strings.share.bigYear.ofTarget, goal.target, { n: countDisplay(goal.target, strings.num) }) : strings.count.label).toUpperCase()
+  const countNum = K.size > 0 ? numText : ''
+  const countLabel = K.size > 0 ? labelText : ''
+  const countLine = L.titleCount ? { num: numText, label: labelText } : undefined
+  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, ...(countLine ? { countLine } : {}), footerLine, ...(posterLifer ? { posterLatest: posterLifer } : {}), latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}) }
 }
 
 export function captionMeasurer(): TextMeasurer {
@@ -947,13 +960,13 @@ function textMeasurer(): (font: string, px: number, text: string, em: number) =>
 
 /** Wait (at most 3 s) for every font the card draws with. */
 function cardFontsReady(d: CardDraft): Promise<void> {
-  const { L, fonts: font, K, name, label, latest, footerLine, countNum, countLabel, countLine, captions } = d
-  const fonts = [font.name(L.name?.size ?? 60), font.filter(34), ...(K.size > 0 ? [font.count(K.size), font.mono(K.labelSize)] : []), ...(countLine ? [font.mono(TITLE_COUNT)] : []), font.lifer(34), font.brand(30), font.footer(20)]
+  const { L, fonts: font, K, name, label, latest, footerLine, posterLatest: lifer, countNum, countLabel, countLine, captions } = d
+  const fonts = [font.name(L.name?.size ?? 60), font.filter(34), ...(K.size > 0 ? [font.count(K.size), font.mono(K.labelSize)] : []), ...(countLine ? [font.count(TITLE_COUNT.num), font.mono(TITLE_COUNT.label)] : []), font.lifer(34), font.brand(30), font.footer(20)]
   if (captions?.length) fonts.push(font.filter(captions[0].fontPx))
   const captionSample = captions?.length ? captions.map((c) => c.lines.join('')).join('') : ''
   return fontsReady(
     fonts,
-    `${name ?? ''}${label ?? ''}${countNum}${countLabel}${countLine ?? ''}${latest ? latest.label.toUpperCase() + latest.name : ''}Everybird${footerLine}${captionSample}`,
+    `${name ?? ''}${label ?? ''}${countNum}${countLabel}${countLine ? countLine.num + countLine.label : ''}${latest ? latest.label.toUpperCase() + latest.name : ''}Everybird${footerLine}${lifer ?? ''}${captionSample}`,
   )
 }
 
@@ -993,8 +1006,11 @@ function placeFooter(d: CardDraft): PreparedCard {
     const lifer = d.lifer && { ...d.lifer, x: x + (icon - d.lifer.w) / 2, y: L.latest.y + (icon - d.lifer.h) / 2 }
     return { ...d, lifer, brandW, credit, shift: 0, oneLine: { x, labelW, nameText, nameSize } }
   }
-  const credit = placeCredit(footerW, maxW - brandW, maxW, L.footer.credit, isPrint(d.format) ? POSTER_FOOT.min : CREDIT_MIN)
-  const shift = credit.below ? credit.size + 12 : 0
+  const credit: PreparedCard['credit'] = d.posterLatest
+    ? placePosterFoot(footerW, (px) => measure(font.footer(px), px, d.posterLatest!, 0.6), maxW, brandW)
+    : placeCredit(footerW, maxW - brandW, maxW, L.footer.credit, isPrint(d.format) ? POSTER_FOOT.min : CREDIT_MIN)
+  // Each line under the wordmark's lifts the wordmark, the hairline and the latest lifer row by a line.
+  const shift = ((credit.below ? 1 : 0) + (credit.latestBelow ? 1 : 0)) * (credit.size + 12)
   const lifer = d.lifer && { ...d.lifer, y: d.lifer.y - shift }
   return { ...d, lifer, brandW, credit, shift }
 }
@@ -1086,24 +1102,34 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
     ctx.fillText(out, x, t.y)
   }
   // The head: the name (a poster's title, in Accent), with "Beside title" the count on its baseline at the right (alone,
-  // at the left, without a name), in the count label's style: Geist Mono, upper case, tracked 0.06em, Ink.
+  // at the left, without a name), in the big count's type: the number in Ink (Cabinet 700, -0.02em), then its label in
+  // Muted (Geist Mono, upper case, tracked 0.06em), as under the count in the middle.
   let nameW = maxW
   if (card.countLine && L.name && L.titleCount) {
-    const cs = L.titleCount.size
+    const { num: ns, label: ls, gap } = L.titleCount
     // The name is drawn from its em box's top: its baseline is that far below (0.8 of the size where the canvas can't say).
     ctx.font = font.name(L.name.size)
     ctx.textBaseline = 'top'
     const drop = Math.abs(ctx.measureText('H').alphabeticBaseline ?? 0)
     const base = L.name.y + (Number.isFinite(drop) && drop > 0 ? drop : 0.8 * L.name.size)
-    ctx.font = font.mono(cs)
-    track(0.06, cs)
-    const w = ctx.measureText(card.countLine).width
+    ctx.font = font.count(ns)
+    track(-0.02, ns)
+    const numW = ctx.measureText(card.countLine.num).width
+    ctx.font = font.mono(ls)
+    track(0.06, ls)
+    const labelW = ctx.measureText(card.countLine.label).width
+    const w = numW + gap + labelW
+    const x = name ? X0 + maxW - w : X0
     ctx.textBaseline = 'alphabetic'
-    ctx.textAlign = name ? 'right' : 'left'
-    ctx.fillStyle = C.ink
-    ctx.fillText(card.countLine, name ? X0 + maxW : X0, base)
-    track(0, 0)
     ctx.textAlign = 'left'
+    ctx.fillStyle = C.muted
+    ctx.fillText(card.countLine.label, x + numW + gap, base)
+    track(0, 0)
+    ctx.font = font.count(ns)
+    track(-0.02, ns)
+    ctx.fillStyle = C.ink
+    ctx.fillText(card.countLine.num, x, base)
+    track(0, 0)
     ctx.textBaseline = 'top'
     nameW = maxW - w - 32
   }
@@ -1151,7 +1177,14 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
   ctx.fillText('Everybird', X0, base - shift)
   ctx.font = font.footer(credit.size)
   ctx.fillStyle = C.muted
-  ctx.fillText(footerLine, credit.below ? X0 : X0 + brandW, base)
+  // A poster's latest lifer at the right end of the bottom line: the wordmark's, or its own under it (placePosterFoot),
+  // the site and credit then a line up.
+  ctx.fillText(footerLine, credit.below ? X0 : X0 + brandW, credit.latestBelow ? base - (credit.size + 12) : base)
+  if (card.posterLatest) {
+    ctx.textAlign = 'right'
+    ctx.fillText(card.posterLatest, X0 + maxW, base)
+    ctx.textAlign = 'left'
+  }
 }
 
 /**

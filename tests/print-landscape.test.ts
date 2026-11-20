@@ -64,10 +64,13 @@ describe('the landscape sizes', () => {
     const pack: ImagePack = { W: 1000, H: 800, boxes: new Map(codes.map((c, i) => [c, [200 + i * 250, 300, 160, 120]])) }
     const card = await prepareCard({ format: 'printLandscape', printSize: 'A2', theme: 'light', entries: es, species: sp, pack, now: new Date(2026, 10, 15), strings: en.ui }, printScale('A2'))
     expect([card.L.W, card.L.H]).toEqual([printDesign('A2', true)[0], 1080])
-    // No latest lifer row: the foot's one line names the lifer (POSTER_FOOT), and draws no sticker for it.
+    // No latest lifer row: the foot names the lifer at its right end (POSTER_FOOT), and draws no sticker for it; the
+    // landscape line holds both at the full size.
     expect(card.L.latest).toBeUndefined()
     expect(card.lifer).toBeNull()
-    expect(card.footerLine.startsWith('Latest lifer: synl0, May 2024 · ')).toBe(true)
+    expect(card.posterLatest).toBe('Latest lifer: synl0, May 2024')
+    expect(card.footerLine.startsWith('everybird.yusuftaleb.com · ')).toBe(true)
+    expect(card.credit).toEqual({ size: POSTER_FOOT.line, below: false, latestBelow: false })
     expect(card.L.footer.y).toBe(1080 - 64 - POSTER_FOOT.brand)
   })
 })
