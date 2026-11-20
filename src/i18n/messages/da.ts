@@ -528,6 +528,7 @@ export const da: Messages = {
           lede: 'En ZIP med ét billede eller én plakat for hver gruppe.',
           splitLabel: 'Del op efter',
           perPoster: 'Fugle pr. plakat',
+          perImage: 'Fugle pr. billede',
           all: 'Alle',
           splits: {
             batches: 'Antal fugle',

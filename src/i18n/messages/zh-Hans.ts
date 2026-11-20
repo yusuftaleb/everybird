@@ -527,6 +527,7 @@ export const zhHans: Messages = {
           lede: '一个 ZIP，每组一张图片或一张海报。',
           splitLabel: '拆分依据',
           perPoster: '每张海报的鸟数',
+          perImage: '每张图片的鸟数',
           all: '全部',
           splits: {
             batches: '按鸟的数量',

@@ -536,6 +536,7 @@ export const nl: Messages = {
           lede: 'Een ZIP met één afbeelding, of één poster, per groep.',
           splitLabel: 'Verdelen op',
           perPoster: 'Vogels per poster',
+          perImage: 'Vogels per afbeelding',
           all: 'Alle',
           splits: {
             batches: 'Aantal vogels',

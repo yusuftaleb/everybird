@@ -552,6 +552,7 @@ export const ru: Messages = {
           lede: 'ZIP с одной картинкой или одним постером на каждую группу.',
           splitLabel: 'Разделить',
           perPoster: 'Птиц на постере',
+          perImage: 'Птиц на картинке',
           all: 'Все',
           splits: {
             batches: 'Число птиц',

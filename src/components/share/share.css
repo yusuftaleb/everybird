@@ -47,11 +47,13 @@
    (the preview on the left down both rows, the format control over the rest of the controls on the right).
    No scrolling on a laptop (Yusuf, 2026-11-20: a 1440 × 830 window shows the preview, every option and the actions at
    once). From 1200px the controls' column is 480px; the window leaves the body 830 − 124 (the scrim's 16px twice, the
-   dialog's border, padding, head and gap) = 706px, and the tallest column, the collage poster with the names note, a
-   status line and the filters line, takes 695: the top row 54, 12, the title 40, 8, the options group 350 (the size
-   49, Arrangement, Count, Goal, two switch pairs and Export in batches 40 each, the names note's two lines 52, 9 of
-   hairlines), 12, the actions 88, the status 12 + 21, the filters line 12 + 36, the coffee button 12 + 38. Rows are 40px with a
-   mouse, 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css still says them. */
+   dialog's border, padding, head and gap) = 706px, and the tallest column, the collage poster once made with the names
+   note, a status line and the filters line, takes 687: the top row 54, 12, the title 64 (its label's 18px line, 6, the
+   40px field), 8, the options group 268 (the size 48, Arrangement, Count and two switch pairs 40 each, the names note's
+   two lines 52, 4 hairlines and the 2px border), 8, Export in batches' box 42, 12, the actions 88 (Download PNG and
+   Download PDF, then Copy link), the status 12 + 21, the filters line 12 + 36, the coffee button 12 + 38. Print has no
+   Goal. Rows are 40px with a mouse, 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css
+   still says them. */
 .eb-share-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 20px; min-width: 0; }
 /* One row: the format control (not in the poster) and the orientation switch, words only (each button's spoken name
    keeps its ratio). Where the two don't fit side by side (German and Russian at 480px, every language on a phone) the
@@ -175,8 +177,8 @@
 .eb-share-controls { display: flex; flex-direction: column; gap: 12px; min-width: 0; container-type: inline-size; }
 /* An empty status line takes no room: its gap is taken back (it stays in the page, so what it says later is read). */
 .eb-share-controls > [role="status"]:empty { margin-top: -12px; }
-/* The title on one line with its label; the field goes under the label only where the column is too narrow for both. */
-.eb-share-field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+/* The title: its label (and the muted "(optional)") above the field, the field the column's full width. */
+.eb-share-field { display: flex; flex-direction: column; gap: 6px; }
 .eb-share-label {
   font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em;
   text-transform: uppercase; color: var(--muted);
@@ -233,15 +235,15 @@
 @media (pointer: fine) {
   .eb-share .eb-share-opt, .eb-share-input, .eb-share-actions .eb-btn { min-height: 40px; }
 }
-/* Two switch rows side by side (Dark image and Transparent background; Show latest lifer and Show species names; the
-   Tree's Lifers only and Hide totals), a Hairline between them; where the two don't fit side by side, each takes a
-   line, a Hairline between. Each child draws a Hairline on its left and top, pulled 1px out and clipped, so only the
-   ones between children show. A lone child is a plain row. */
-.eb-share-pair { display: flex; flex-wrap: wrap; overflow: hidden; }
-.eb-share .eb-share-pair > .eb-share-opt {
-  flex: 1 1 auto; width: auto; margin: -1px 0 0 -1px;
-  border-top: 1px solid var(--hairline); border-left: 1px solid var(--hairline);
-}
+/* Two switches in one row (Dark image and Transparent background; Show latest lifer and Show species names; the Tree's
+   Lifers only and Hide totals), read as a list, not a table: no rule between them, each label 12px from its own switch,
+   the first at the row's left, the second ending at its right edge (as the other rows' controls), at least 24px apart.
+   Where the two don't fit side by side, the second takes a line of its own with the row's Hairline above it: each
+   child draws a full-width Hairline 1px above itself, which the row clips, so only a wrapped one's shows. A lone switch
+   is a plain row (ShareDialog's pair). */
+.eb-share-pair { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 24px; padding-inline: 12px; overflow: hidden; }
+.eb-share .eb-share-pair > .eb-share-opt { position: relative; flex: none; width: auto; max-width: 100%; justify-content: flex-start; gap: 12px; padding-inline: 0; }
+.eb-share-pair > .eb-share-opt::before { content: ''; position: absolute; top: -1px; left: -100vw; right: -100vw; border-top: 1px solid var(--hairline); }
 /* Arrangement: Fit and Oval as two icon buttons in the row, 32px drawn with a 44px press. */
 .eb-share .eb-share-arrange { flex: none; gap: 2px; padding: 2px; }
 .eb-share .eb-share-arrange .eb-seg-btn { position: relative; flex: none; width: 40px; min-height: 32px; padding: 0; }
@@ -272,16 +274,14 @@
 .eb-share-dd:disabled { color: var(--muted); cursor: default; }
 @media (hover: hover) and (pointer: fine) { .eb-share-dd:not(:disabled):hover { background: var(--surface); } }
 .eb-share-menu { max-height: min(320px, 50dvh); overflow-y: auto; overscroll-behavior: contain; }
-/* A number box (the goal's target): plain text with the numeric keyboard, no stepper. */
-.eb-share-num {
-  inline-size: 4.5em; min-height: 36px; padding: 0 8px; box-sizing: border-box;
-  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
-  font: inherit; font-size: 16px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums;
-  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+/* The goal's number box: the site's text field (.eb-input, its border, Surface, placeholder, invalid border and the
+   global focus ring) at the row's control height, the dropdowns' 36px with a mouse and 44px on touch, five digits wide
+   (tabular, so 5ch, plus its padding and border), the number right-aligned. The numeric keyboard, no stepper. */
+.eb-share .eb-share-num {
+  flex: none; inline-size: calc(5ch + 2 * 12px + 2px); height: 36px; min-height: 36px; padding: 0 12px; box-sizing: border-box;
+  text-align: end; font-variant-numeric: tabular-nums;
 }
-.eb-share-num[aria-invalid] { border-color: var(--accent); }
-.eb-share-num:disabled { color: var(--muted); border-color: var(--hairline); }
-@media (pointer: coarse) { .eb-share-dd, .eb-share-num { min-height: 44px; } }
+@media (pointer: coarse) { .eb-share-dd, .eb-share .eb-share-num { height: 44px; min-height: 44px; } }
 @media (prefers-reduced-motion: reduce) { .eb-share-dd svg { transition: none; } }
 /* The goal once set: the number box, "species in", the year menu and a remove button, wrapping only when they must. */
 .eb-share-goal { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 8px; min-width: 0; margin-inline-start: auto; }
@@ -294,9 +294,8 @@
 .eb-share-goalx::after { content: ''; position: absolute; inset: -6px; }
 .eb-share-goalx svg { width: 14px; height: 14px; }
 @media (hover: hover) and (pointer: fine) { .eb-share-goalx:hover { color: var(--ink); background: var(--surface); } }
-/* The label and its muted "(optional)" side by side, the field taking the rest of the line (at least 12em). */
-.eb-share-labelrow { display: flex; flex: none; align-items: baseline; gap: 0 8px; white-space: nowrap; }
-.eb-share-field > .eb-share-input { flex: 1 1 12em; width: auto; }
+/* The label and its muted "(optional)" side by side, on one 18px line. */
+.eb-share-labelrow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; line-height: 1.5; }
 .eb-share-optional { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
 /* The filters line: the words, then a text button (44px press) that clears every filter. */
 .eb-share-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; margin: 0; }
@@ -312,10 +311,15 @@
 .eb-share-bar { flex: 1 1 auto; height: 4px; min-width: 0; overflow: hidden; background: var(--hairline); border-radius: 2px; }
 .eb-share-bar-fill { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width .15s var(--ease-ui); }
 .eb-share-pct { flex: none; min-width: 4ch; text-align: end; font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-/* Export in batches: the options group's last row, its name and a chevron (turned while open); open, under it one
-   sentence, the Split by row (and in the poster, by number of birds, Birds per poster), the live count, then the ZIP
-   downloads (PNGs; in the poster PDFs too) or the progress row. */
-.eb-share .eb-share-disclose { color: var(--ink); cursor: pointer; }
+/* Export in batches: its own box under the options group, the group's look (1px Hairline, 16px squircle, Paper); its
+   title row, its name and a chevron (turned while open); open, under it one sentence, the Split by row (by number of
+   birds, Birds per image or per poster), the live count, then the ZIP downloads (PNGs; in the poster PDFs too) or the
+   progress row. */
+.eb-share-bulk {
+  min-width: 0; background: var(--paper); border: 1px solid var(--hairline);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-share .eb-share-disclose { color: var(--ink); cursor: pointer; border-radius: inherit; }
 .eb-share-disclose svg { width: 12px; height: 12px; flex: none; color: var(--muted); transition: transform .2s var(--ease-ui); }
 .eb-share-disclose[aria-expanded="true"] svg { transform: rotate(180deg); }
 @media (hover: hover) and (pointer: fine) { .eb-share-disclose:hover svg { color: var(--ink); } }
@@ -332,6 +336,13 @@
 .eb-share-actions .eb-btn {
   min-width: 0; white-space: normal; text-align: center; line-height: 1.2; padding-block: 3px; overflow-wrap: break-word;
 }
+/* Print: the primary (Make poster, the progress, Download PNG) and one quiet button (Copy link; once made, Download PDF)
+   on one row, the primary taking twice the leftover room; their labels never wrap: where the two don't fit side by
+   side, the quiet one takes the next line. */
+.eb-share-duo { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.eb-share-duo > * { flex: 1 1 auto; }
+.eb-share-duo > .eb-share-primary { flex-grow: 2; }
+.eb-share-duo > .eb-btn { white-space: nowrap; }
 /* Share image across the column, then one row of quiet buttons (however many print mode has). The buttons take their
    words' width and share what is left, so a long label ("Link kopiëren") keeps its line while "Print" stays small;
    when the row truly runs short they shrink together and wrap alike (equal heights, centred). */

@@ -1,5 +1,6 @@
-// The Count menu's "Beside title" (the count on the title's line, no hole in the middle) and the poster's quiet head
-// and foot (the title alone in Accent; one line under the hairline with the latest lifer in words, no lifer row).
+// The Count menu's "Beside title" (the count on the title's line in the big count's type, no hole in the middle) and the
+// poster's quiet head and foot (the title alone in Accent; one line under the hairline, the latest lifer in words at its
+// right end or on a second line, right-aligned; no lifer row).
 // Drawn on the recording canvas of tests/fixtures/share-image-harness.ts, synthetic birds only.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { en } from '@/i18n/messages/en'
@@ -25,7 +26,7 @@ describe('the count beside the title', () => {
   it('keeps no hole: the birds take the whole collage', () => {
     expect(image.countLayout('story', 197, 952, undefined, 'title').hole).toEqual(NO_HOLE)
     const L = image.cardLayout('story', { name: true, filter: false, latest: true, count: 197, countSize: 'title' })
-    expect(L.titleCount).toEqual({ size: image.TITLE_COUNT })
+    expect(L.titleCount).toEqual(image.TITLE_COUNT)
     expect(L.count.size).toBe(0)
     expect(image.packSpec(L).hole).toEqual(NO_HOLE)
   })
@@ -38,29 +39,36 @@ describe('the count beside the title', () => {
     expect(L.collage.y).toBeGreaterThan(plain.collage.y)
   })
 
-  it('reads "96 species", with a goal "123 of 150 species", joined as each language joins a number to "species"', () => {
-    expect(image.titleCountText(96, undefined, en.ui)).toBe('96 species')
-    expect(image.titleCountText(1, undefined, en.ui)).toBe('1 species')
-    expect(image.titleCountText(1089, undefined, en.ui)).toBe('1,089 species')
-    expect(image.titleCountText(123, 150, en.ui)).toBe('123 of 150 species')
-    expect(image.titleCountText(96, undefined, ja.ui)).toBe('96種')
-    expect(image.titleCountText(123, 150, ja.ui)).toBe('123目標150種')
-  })
-
-  it('draws the count on the name\'s baseline at the right margin, in the label style, and nothing in the middle', async () => {
+  it('draws the number in the count\'s type and its label in the count label\'s, on the name\'s baseline ending at the right margin; nothing in the middle', async () => {
     const log = await draw({ name: 'Ada’s birds', countSize: 'title' })
-    const count = texts(log).find((l) => l.startsWith('fillText("14 SPECIES"'))!
-    // 14 drawn birds (one unknown code is left out). Right-aligned at 64 + 952, on the name's baseline (184 + 0.8 · 60).
-    expect(count).toMatch(/^fillText\("14 SPECIES", 1016, 232\) \{fillStyle: "#1e1e24", font: "500 34px .*", textAlign: "right", textBaseline: "alphabetic", letterSpacing: "2\.04px"\}$/)
-    expect(texts(log).some((l) => l.startsWith('fillText("14",'))).toBe(false) // no number in the middle
-    expect(texts(log).some((l) => l.startsWith('fillText("SPECIES"'))).toBe(false)
+    const at = (l: string) => /, ([\d.]+), ([\d.]+)\) \{/.exec(l)!.slice(1).map(Number)
+    // 14 drawn birds (one unknown code is left out). The number: Cabinet 700 at the title's 60px, -0.02em, Ink.
+    const num = texts(log).find((l) => l.startsWith('fillText("14",'))!
+    expect(num).toMatch(/\{fillStyle: "#1e1e24", font: "700 60px .*", textAlign: "left", textBaseline: "alphabetic", letterSpacing: "-1\.20px"\}$/)
+    // The label: Geist Mono 500 22px, upper case, tracked 0.06em, Muted, 12px after the number.
+    const label = texts(log).find((l) => l.startsWith('fillText("SPECIES",'))!
+    expect(label).toMatch(new RegExp(`\\{fillStyle: "${C.muted}", font: "500 22px .*", textAlign: "left", textBaseline: "alphabetic", letterSpacing: "1\\.32px"\\}$`))
+    // The harness measures 0.5em a character (mono 0.6) plus the tracking: "14" is 57.6 wide, "SPECIES" 101.64.
+    const [nx, ny] = at(num), [lx, ly] = at(label)
+    expect(lx).toBeCloseTo(nx + 57.6 + image.TITLE_COUNT.gap, 6)
+    expect(lx + 101.64).toBeCloseTo(64 + 952, 6)
+    // On the name's baseline (184 + 0.8 · 60).
+    expect([ny, ly]).toEqual([232, 232])
+    expect(texts(log).filter((l) => l.startsWith('fillText("14",'))).toHaveLength(1) // no number in the middle
     // The name keeps its place at the left, in Ink.
     expect(texts(log).find((l) => l.startsWith('fillText("Ada’s birds"'))).toMatch(/, 64, 184\) \{fillStyle: "#1e1e24"/)
   })
 
+  it('says "species" in the language, a goal as under the big count ("OF 150 SPECIES")', async () => {
+    const log = await draw({ name: 'Ada’s birds', countSize: 'title', strings: ja.ui })
+    expect(texts(log).some((l) => l.startsWith('fillText("14",'))).toBe(true)
+    expect(texts(log).some((l) => l.startsWith('fillText("種",'))).toBe(true)
+  })
+
   it('without a name, draws the count at the left margin; with a goal, says it', async () => {
     const log = await draw({ countSize: 'title', goal: { target: 150, basis: 'seen' } })
-    expect(texts(log).find((l) => l.includes('OF 150 SPECIES'))).toMatch(/^fillText\("14 OF 150 SPECIES", 64, 232\) .*textAlign: "left"/)
+    expect(texts(log).find((l) => l.startsWith('fillText("14",'))).toMatch(/^fillText\("14", 64, 232\) .*textAlign: "left"/)
+    expect(texts(log).find((l) => l.includes('OF 150 SPECIES'))).toMatch(/^fillText\("OF 150 SPECIES", 133\.6, 232\) /)
   })
 })
 
@@ -75,16 +83,20 @@ describe('the poster\'s head and foot', () => {
     expect(filtered.find((l) => l.startsWith('fillText("Perching birds"'))).toMatch(/, 64, 64\) \{fillStyle: "#92140c", font: "700 60px/)
   })
 
-  it('ends with one quiet line: the wordmark, then the latest lifer, the site, the credit and the date; no lifer row', async () => {
+  it('ends with one quiet line: the wordmark, the site, the credit and the date at the left, the latest lifer at the right end; no lifer row', async () => {
     const log = await poster({ name: 'Ada’s birds' })
-    const line = `Latest lifer: Synthetic Bird 13, May 2023 · ${image.FOOTER_LINE} · 15 Nov 2026`
     const foot = texts(log).find((l) => l.includes('stickers by huashu'))!
-    expect(foot.startsWith(`fillText(${JSON.stringify(line)}, `)).toBe(true)
+    expect(foot.startsWith(`fillText(${JSON.stringify(`${image.FOOTER_LINE} · 15 Nov 2026`)}, `)).toBe(true)
     expect(foot).toContain(`fillStyle: "${C.muted}"`)
     const brand = texts(log).find((l) => l.startsWith('fillText("Everybird"'))!
     expect(brand).toContain(`font: "700 ${image.POSTER_FOOT.brand}px`)
-    // On the wordmark's baseline, beside it.
-    expect(/, ([\d.]+)\) \{/.exec(foot)![1]).toBe(/, ([\d.]+)\) \{/.exec(brand)![1])
+    const lifer = texts(log).find((l) => l.startsWith('fillText("Latest lifer: Synthetic Bird 13, May 2023"'))!
+    expect(lifer).toMatch(/, 1016, [\d.]+\) .*textAlign: "right"/)
+    expect(lifer).toContain(`fillStyle: "${C.muted}"`)
+    // All three on the wordmark's baseline: the line beside the wordmark, the lifer ending at the right margin.
+    const y = (l: string) => /, ([\d.]+)\) \{/.exec(l)![1]
+    expect(y(foot)).toBe(y(brand))
+    expect(y(lifer)).toBe(y(brand))
     expect(texts(log).some((l) => l.startsWith('fillText("LATEST LIFER'))).toBe(false)
     // Only the collage's stickers are drawn: no latest lifer's sticker beside the foot (13 tiles, one of them an outline).
     expect(log.filter((l) => l.startsWith('drawImage(')).length).toBe(11)
@@ -101,7 +113,10 @@ describe('the poster\'s head and foot', () => {
 
   it('puts the count on the title\'s line with "Beside title"', async () => {
     const log = await poster({ name: 'Ada’s birds', countSize: 'title' })
-    expect(texts(log).find((l) => l.startsWith('fillText("14 SPECIES"'))).toMatch(/, 1016, 112\) .*textAlign: "right"/)
+    // The title's baseline is 64 + 0.8 · 60; the label ends at the right margin.
+    expect(texts(log).find((l) => l.startsWith('fillText("14",'))).toMatch(/, [\d.]+, 112\) \{fillStyle: "#1e1e24", font: "700 60px/)
+    const label = texts(log).find((l) => l.startsWith('fillText("SPECIES",'))!
+    expect(Number(/, ([\d.]+), 112\)/.exec(label)![1]) + 101.64).toBeCloseTo(1016, 6)
   })
 
   it('lays the foot out under a hairline, inside the bottom margin, the collage above it', () => {
@@ -114,13 +129,31 @@ describe('the poster\'s head and foot', () => {
     }
   })
 
-  it('keeps the foot on one line beside the wordmark, shrinking it no smaller than POSTER_FOOT.min, else under the wordmark, never cut', () => {
-    const line = (name: string) => `${image.posterLatest(name, '2026-09', en.ui)} · ${image.FOOTER_LINE} · 20 Nov 2026`
-    expect(line('Hooded Crow')).toBe('Latest lifer: Hooded Crow, Sep 2026 · everybird.yusuftaleb.com · stickers by huashu · 20 Nov 2026')
-    const place = (text: string) => image.placeCredit((px) => text.length * 0.6 * px, 952 - (9 * 0.55 * image.POSTER_FOOT.brand + 16), 952, image.POSTER_FOOT.line, image.POSTER_FOOT.min)
-    // Geist Mono is 0.6 em a character: a typical name fits beside the wordmark at 14px.
-    expect(place(line('Hooded Crow'))).toEqual({ size: 14, below: false })
-    // A long one takes the line under the wordmark, whole.
-    expect(place(line('Northern Rough-winged Swallow'))).toEqual({ size: 13, below: true })
+  it('keeps the foot on one line, the latest lifer at its right end, shrinking no smaller than POSTER_FOOT.min; else the lifer takes a second line', () => {
+    const credit = `${image.FOOTER_LINE} · 20 Nov 2026`
+    expect(image.posterLatest('Rock Sandpiper', '2026-10', en.ui)).toBe('Latest lifer: Rock Sandpiper, Oct 2026')
+    // Geist Mono is 0.6 em a character; the wordmark about 0.55 em, 16 after it.
+    const mono = (text: string) => (px: number) => text.length * 0.6 * px
+    const brandW = 9 * 0.55 * image.POSTER_FOOT.brand + 16
+    const place = (name: string, maxW = 952) => image.placePosterFoot(mono(credit), mono(image.posterLatest(name, '2026-10', en.ui)), maxW, brandW)
+    // A typical name shares the line at 13px.
+    expect(place('Rock Sandpiper')).toEqual({ size: 13, below: false, latestBelow: false })
+    // A long one moves to a line of its own; the site and credit keep the wordmark's line at the largest size that fits.
+    expect(place('Northern Rough-winged Swallow')).toEqual({ size: image.POSTER_FOOT.line, below: false, latestBelow: true })
+    // A landscape poster's wider line holds both at the full size.
+    expect(place('Northern Rough-winged Swallow', 1527 - 128)).toEqual({ size: image.POSTER_FOOT.line, below: false, latestBelow: false })
+  })
+
+  it('draws a latest lifer that needs its own line at the bottom, right-aligned, the wordmark\'s line a line above', async () => {
+    // The latest lifer is Synthetic Bird 13 (as above), here with a long name.
+    const nameOf = (r: { com: string }) => (r.com === 'Synthetic Bird 13' ? 'A Very Long Synthetic Bird Name For The Foot' : r.com)
+    const log = await poster({ name: 'Ada’s birds', nameOf })
+    const y = (l: string) => Number(/, ([\d.]+)\) \{/.exec(l)![1])
+    const lifer = texts(log).find((l) => l.startsWith('fillText("Latest lifer: A Very Long'))!
+    const foot = texts(log).find((l) => l.includes('stickers by huashu'))!
+    const brand = texts(log).find((l) => l.startsWith('fillText("Everybird"'))!
+    expect(lifer).toMatch(/, 1016, [\d.]+\) .*textAlign: "right"/)
+    expect(y(foot)).toBe(y(brand))
+    expect(y(lifer) - y(foot)).toBe(image.POSTER_FOOT.line + 12)
   })
 })

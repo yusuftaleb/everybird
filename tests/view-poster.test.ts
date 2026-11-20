@@ -13,14 +13,15 @@ describe('dialogRows: what each dialog shows', () => {
     expect(subjectOf('tree')).toBe('tree')
     expect(subjectOf('map')).toBe('map')
   })
-  it('the collage: the sticker options, and Export in batches; Number of birds and Birds per poster only in Print', () => {
+  it('the collage: the sticker options and Export in batches, Number of birds first in both; the Goal only in Share, names only in Print', () => {
     const share = dialogRows('collage', false)
-    expect(share).toMatchObject({ arrangement: true, count: true, goal: true, latest: true, names: false, lifersOnly: false, hideTotals: false, bulk: true, batchSize: false })
-    expect(share.splits).toEqual(BULK_SPLITS.filter((s) => s !== 'batches'))
+    expect(share).toMatchObject({ arrangement: true, count: true, goal: true, latest: true, names: false, lifersOnly: false, hideTotals: false, bulk: true, batchSize: true })
     const print = dialogRows('collage', true)
-    expect(print).toMatchObject({ names: true, bulk: true, batchSize: true })
-    expect(print.splits).toEqual(BULK_SPLITS)
-    expect(print.splits[0]).toBe('batches')
+    expect(print).toMatchObject({ arrangement: true, count: true, goal: false, names: true, bulk: true, batchSize: true })
+    for (const rows of [share, print]) {
+      expect(rows.splits).toEqual(BULK_SPLITS)
+      expect(rows.splits[0]).toBe('batches')
+    }
   })
   it('the Tree: Lifers only and Hide totals; the Map: Hide totals; neither has sticker options or Export in batches, in Share or Print', () => {
     for (const print of [false, true]) {

@@ -531,6 +531,7 @@ export const pl: Messages = {
           lede: 'ZIP z jednym obrazem lub jednym plakatem dla każdej grupy.',
           splitLabel: 'Podziel według',
           perPoster: 'Ptaki na plakat',
+          perImage: 'Ptaki na obraz',
           all: 'Wszystkie',
           splits: {
             batches: 'Liczba ptaków',

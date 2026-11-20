@@ -336,17 +336,26 @@ describe('share dialog', () => {
     expect(screen.getByRole('switch', { name: 'Show latest lifer' })).toBeInTheDocument()
   })
 
-  it('the options are rows in one group under the title field: Arrangement, Count, Goal, the switches two to a row, Export in batches', () => {
+  it('the options are rows in one group under the title field: Arrangement, Count, Goal, the switches two to a row; Export in batches its own box under it', () => {
     const first = render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     const label = (el: Element): string =>
       el.classList.contains('eb-share-pair') ? [...el.children].map(label).join(' | ')
         : el.getAttribute('role') === 'switch' ? el.textContent!
-          : el.classList.contains('eb-share-bulk') ? el.querySelector('.eb-share-disclose')!.textContent!
-            : el.querySelector('.eb-share-optlabel')!.textContent!
+          : el.querySelector('.eb-share-optlabel')!.textContent!
     let rows = screen.getByTestId('share-switches')
-    expect(screen.getByLabelText('Collage title').closest('.eb-share-field')!.nextElementSibling).toBe(rows)
-    expect([...rows.children].map(label)).toEqual(['Arrangement', 'Count', 'Goal', 'Show latest lifer', 'Dark image | Transparent background', 'Export in batches'])
-    for (const el of rows.children) expect(['eb-share-opt', 'eb-share-pair', 'eb-share-bulk'].some((c) => el.classList.contains(c))).toBe(true)
+    // The title: its label above the field (round 2), then the group.
+    const title = screen.getByLabelText('Collage title')
+    expect(title.previousElementSibling).toHaveClass('eb-share-labelrow')
+    expect(title.closest('.eb-share-field')!.nextElementSibling).toBe(rows)
+    expect([...rows.children].map(label)).toEqual(['Arrangement', 'Count', 'Goal', 'Show latest lifer', 'Dark image | Transparent background'])
+    for (const el of rows.children) expect(['eb-share-opt', 'eb-share-pair'].some((c) => el.classList.contains(c))).toBe(true)
+    // In a pair each switch is its label and its track, nothing between them.
+    const dark = screen.getByRole('switch', { name: 'Dark image' })
+    expect(dark.parentElement).toHaveClass('eb-share-pair')
+    expect([...dark.children].map((c) => c.className)).toEqual(['', 'eb-track'])
+    // Export in batches is its own box right under the group.
+    expect(rows.nextElementSibling).toBe(screen.getByTestId('share-bulk'))
+    expect(screen.getByTestId('share-bulk')).toHaveClass('eb-share-bulk')
     // The format and the orientation share the top row.
     expect(screen.getByRole('group', { name: 'Image format' }).parentElement).toBe(screen.getByRole('group', { name: 'Orientation' }).parentElement)
     expect(screen.queryByRole('switch', { name: /^Mark / })).toBeNull()
@@ -354,7 +363,9 @@ describe('share dialog', () => {
     // In the poster the size is the group's first row (a dropdown, its line under the label), and the names switch joins.
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
     rows = screen.getByTestId('share-switches')
-    expect([...rows.children].map(label)).toEqual(['Poster size', 'Arrangement', 'Count', 'Goal', 'Show latest lifer | Show species names', 'Dark image | Transparent background', 'Export in batches'])
+    // No Goal: posters never draw one.
+    expect([...rows.children].map(label)).toEqual(['Poster size', 'Arrangement', 'Count', 'Show latest lifer | Show species names', 'Dark image | Transparent background'])
+    expect(rows.nextElementSibling).toBe(screen.getByTestId('share-bulk'))
     expect(rows.firstElementChild).toHaveTextContent('A2 · 42 × 59.4 cm · 2480 × 3508 px at 150 dpi')
     expect(screen.getByRole('button', { name: 'Poster size A2' })).toHaveAttribute('aria-haspopup', 'menu')
   })
@@ -522,6 +533,19 @@ describe('share dialog: print mode', () => {
     await act(async () => makes[0].resolve(fakePoster()))
     expect(screen.getByRole('button', { name: 'Download PNG' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Download PDF' })).toBeNull()
+  })
+
+  it('puts Make poster and Copy link on one row; once made, Download PNG and Download PDF, Copy link under them', async () => {
+    open()
+    const duo = () => screen.getByRole('button', { name: 'Make poster' }).parentElement!
+    expect(duo()).toHaveClass('eb-share-duo')
+    expect([...duo().children].map((b) => b.textContent)).toEqual(['Make poster', 'Copy link'])
+    await startMake()
+    await act(async () => makes[0].resolve(fakePoster()))
+    const png = screen.getByRole('button', { name: 'Download PNG' })
+    expect(png.parentElement).toHaveClass('eb-share-duo')
+    expect([...png.parentElement!.children].map((b) => b.textContent)).toEqual(['Download PNG', 'Download PDF'])
+    expect(screen.getByRole('button', { name: 'Copy link' }).parentElement).toHaveClass('eb-share-row')
   })
 
   it('Make poster shows a progressbar with Cancel; when done, Download PNG and Download PDF save everybird-a2.png/.pdf at once', async () => {
@@ -880,6 +904,9 @@ describe('the orientation switch', () => {
     expect(target).toHaveFocus()
     expect(target).toHaveAttribute('inputmode', 'numeric')
     expect(target.value).toBe('')
+    // The site's text field, with an example while it is empty.
+    expect(target).toHaveClass('eb-input')
+    expect(target).toHaveAttribute('placeholder', '150')
     // The year menu: All time, this year, then each year with birds, newest first.
     fireEvent.click(screen.getByRole('button', { name: /^Goal period / }))
     const year = new Date().getFullYear()
@@ -1055,20 +1082,23 @@ describe('the orientation switch', () => {
     await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2-bulk.zip (2 posters). 1 poster has no names: they didn’t fit.'))
   })
 
-  it('bulk posters keep a year\'s goal: its line before the group and its target under the count', async () => {
-    const dispatch = vi.fn()
-    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={dispatch} species={species} regions={regions} print onClose={() => {}} />)
-    // The poster follows the same goal as the image.
-    fireEvent.click(screen.getByRole('button', { name: 'Add a goal' }))
-    pickMenu('Goal period', '2020')
-    fireEvent.change(screen.getByRole('textbox', { name: 'Goal in species' }), { target: { value: '300' } })
+  it('Print has no Goal, and a saved goal reaches neither the poster nor the ZIP', async () => {
+    const state = stateWith([entry('ostric2'), entry('emu1')])
+    state.saved = { ...state.saved, bigYear: { year: 2020, target: 300 } }
+    render(<ShareDialog state={state} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
+    expect(screen.queryByTestId('share-goal')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add a goal' })).toBeNull()
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', goal: undefined }))
+    // Every bird on screen, not the goal year's.
+    expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)![0].entries.map((e) => e.code)).toEqual(['ostric2', 'emu1'])
+    fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
+    await waitFor(() => expect(makes).toHaveLength(1))
+    expect(makes[0].opts).toMatchObject({ goal: undefined })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     openBulk()
     fireEvent.click(screen.getByRole('button', { name: 'Download PNGs (ZIP)' }))
-    await waitFor(() => expect(makes).toHaveLength(1))
-    expect(makes[0].opts).toMatchObject({ goal: { year: 2020, target: 300 }, filterLabel: expect.stringMatching(/^Big Year 2020 · .*Part 1$/) })
-    const bulkSpec = vi.mocked(image.packForImage).mock.calls.at(-1)![2]
-    const plainSpec = image.imagePackSpec('print', { name: false, filter: true, latest: true, count: 2, countSize: 'medium' }, 'A2')
-    expect(bulkSpec.hole.label[2]).toBeGreaterThan(plainSpec.hole.label[2])
+    await waitFor(() => expect(makes).toHaveLength(2))
+    expect(makes[1].opts).toMatchObject({ goal: undefined, filterLabel: 'Part 1' })
   })
 
   it('keeps keyboard focus as the ZIP buttons swap: on Cancel while it runs, back on the button that started it', async () => {
@@ -1133,12 +1163,12 @@ describe('the orientation switch', () => {
     await waitFor(() => expect(renders).toHaveLength(1))
     fireEvent.click(screen.getByRole('button', { name: 'Post, 4:5' }))
     openBulk()
-    // Share has no Birds per image row, so no Number of birds: it starts at Family.
-    expect(screen.getByRole('button', { name: 'Split by Family' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Birds per / })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Split by Family' }))
-    expect(screen.getAllByRole('menuitemradio').map((b) => b.textContent)).toEqual(['Family', 'Order', 'Country', 'Continent', 'State or province', 'Year'])
+    // The same Split by as Print's, Number of birds first, with Birds per image.
+    expect(screen.getByRole('button', { name: 'Birds per image All' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Split by Number of birds' }))
+    expect(screen.getAllByRole('menuitemradio').map((b) => b.textContent)).toEqual(['Number of birds', 'Family', 'Order', 'Country', 'Continent', 'State or province', 'Year'])
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Family' }))
+    expect(screen.queryByRole('button', { name: /^Birds per / })).toBeNull()
     expect(screen.getByTestId('bulk-count').textContent).toBe('2 images')
     vi.mocked(track).mockClear()
     const before = renders.length
@@ -1159,6 +1189,33 @@ describe('the orientation switch', () => {
     expect(blob.type).toBe('application/zip')
     expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-post-groups.zip (2 images).')
     expect(track).not.toHaveBeenCalled()
+  })
+
+  it('Export in batches in Share splits by number of birds: Birds per image (All, 1,000, 500, 250, 100), one image per batch', async () => {
+    const manyRows = Array.from({ length: 260 }, (_, i) => ({ ...row(`b${i}`, i + 1), com: `Bird ${i + 1}` }))
+    render(<ShareDialog state={stateWith(manyRows.map((r) => entry(r.code)))} dispatch={() => {}} species={buildSpeciesIndex(manyRows)} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    openBulk()
+    expect(screen.getByRole('button', { name: 'Split by Number of birds' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Birds per image All' }))
+    expect(screen.getAllByRole('menuitemradio').map((b) => b.textContent)).toEqual(['All', '1,000', '500', '250', '100'])
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'All' }))
+    expect(screen.getByTestId('bulk-count').textContent).toBe('1 image')
+    pickMenu('Birds per image', '100')
+    expect(screen.getByTestId('bulk-count').textContent).toBe('3 images')
+    const before = renders.length
+    fireEvent.click(screen.getByRole('button', { name: 'Download PNGs (ZIP)' }))
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.some((c) => c[0].filterLabel === 'Part 1')).toBe(true))
+    const first = vi.mocked(image.renderShareImage).mock.calls.find((c) => c[0].filterLabel === 'Part 1')![0]
+    expect(first).toMatchObject({ format: 'story' })
+    expect(first.entries).toHaveLength(100)
+    for (let k = before; k < before + 3; k++) {
+      await waitFor(() => expect(renders.length).toBeGreaterThan(k))
+      await act(async () => renders[k].resolve(new Blob(['png'], { type: 'image/png' })))
+    }
+    await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe('everybird-story-groups.zip')
+    expect(vi.mocked(image.renderShareImage).mock.calls.filter((c) => /^Part \d$/.test(c[0].filterLabel ?? '')).map((c) => c[0].entries.length)).toEqual([100, 100, 60])
   })
 
   it('disables bulk ZIP buttons with a note when a split has zero groups', async () => {

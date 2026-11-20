@@ -95,8 +95,9 @@ describe('the print card', () => {
     const light = await prepareCard({ format: 'print', printSize: 'A2', theme: 'light', entries, species, pack, now: new Date(2026, 10, 15), strings: en.ui }, printScale('A2'))
     expect(light.colors).toEqual(SHARE_COLORS.light)
     expect(light.colors.paper).toBe('#f6f4ef')
-    // The foot's one line (the latest lifer, the site, the credit, the date) beside the wordmark, at 16px down to POSTER_FOOT.min.
-    expect(card.footerLine).toMatch(/^Latest lifer: /)
+    // The foot: the site, the credit and the date beside the wordmark, the latest lifer at the right end, at 16px down to POSTER_FOOT.min.
+    expect(card.footerLine).toMatch(/^everybird\.yusuftaleb\.com · /)
+    expect(card.posterLatest).toMatch(/^Latest lifer: /)
     expect(card.credit.size).toBeGreaterThanOrEqual(POSTER_FOOT.min)
     expect(card.credit.size).toBeLessThanOrEqual(POSTER_FOOT.line)
   })

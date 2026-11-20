@@ -527,6 +527,7 @@ export const ja: Messages = {
           lede: 'グループごとに画像またはポスターを1つずつ入れたZIP。',
           splitLabel: '分け方',
           perPoster: 'ポスター1枚の鳥の数',
+          perImage: '画像1枚の鳥の数',
           all: 'すべて',
           splits: {
             batches: '鳥の数',

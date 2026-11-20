@@ -527,6 +527,7 @@ export const zhHant: Messages = {
           lede: '一個 ZIP，每組一張圖片或一張海報。',
           splitLabel: '分組依據',
           perPoster: '每張海報的鳥數',
+          perImage: '每張圖片的鳥數',
           all: '全部',
           splits: {
             batches: '按鳥的數量',

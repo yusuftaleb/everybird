@@ -527,6 +527,7 @@ export const sv: Messages = {
           lede: 'En ZIP med en bild, eller en affisch, för varje grupp.',
           splitLabel: 'Dela upp efter',
           perPoster: 'Fåglar per affisch',
+          perImage: 'Fåglar per bild',
           all: 'Alla',
           splits: {
             batches: 'Antal fåglar',
