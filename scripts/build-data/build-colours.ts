@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import sharp from 'sharp'
 import { gitBlobSha } from './huashu-pin'
-import { CHROMATIC_KEYS, colourKey } from './colour-key'
+import { CHROMATIC_KEYS, colourKey, type ColourName } from './colour-key'
 
 const SIDE = 128
 const SHOW = ['norcar', 'blujay', 'amecro', 'mutswa', 'amegfi', 'eurrob1', 'mallar3', 'scamac1']
@@ -16,6 +16,7 @@ const SHOW = ['norcar', 'blujay', 'amecro', 'mutswa', 'amegfi', 'eurrob1', 'mall
 async function main() {
   const raw = resolve(process.env.DATA_RAW ?? 'data/raw')
   const lock = JSON.parse(readFileSync('data/huashu.lock.json', 'utf8')) as { commit: string; codes: Record<string, string>; shipped: Record<string, string> }
+  const names: Record<string, ColourName> = JSON.parse(readFileSync('data/colour-names.json', 'utf8'))
   const out: Record<string, number> = {}
   let mismatched = 0, missing = 0
   for (const code of Object.keys(lock.codes).sort()) {
@@ -23,7 +24,7 @@ async function main() {
     try { buf = readFileSync(join(raw, 'huashu', lock.codes[code])) } catch { missing++; continue }
     if (lock.shipped[code] && gitBlobSha(buf) !== lock.shipped[code]) mismatched++
     const { data, info } = await sharp(buf).resize(SIDE, SIDE, { fit: 'inside' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
-    const k = colourKey(data, info.width, info.height)
+    const k = colourKey(data, info.width, info.height, names[code])
     if (k !== null) out[code] = k
   }
   writeFileSync('public/data/colours.v1.json', JSON.stringify({ v: 1, huashu: lock.commit, c: out }))

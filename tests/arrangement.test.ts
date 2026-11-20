@@ -79,6 +79,14 @@ describe('colour key', () => {
   it('the white border alone never makes a grey bird light', () => {
     expect(colourKey(disc(128, 128, 128, 16), 16, 16)).toBe(colourKey(disc(128, 128, 128, 40), 40, 40))
   })
+  it('uses only hues in the named range and keeps the pixel rule for unnamed stickers', () => {
+    const pixels = disc(220, 30, 30)
+    pixels.set([30, 220, 30, 255], 4 * (20 * 40 + 20))
+    expect(colourKey(pixels, 40, 40, 'green')).toBe(68)
+    expect(colourKey(pixels, 40, 40, 'blue')).toBe(116)
+    expect(colourKey(pixels, 40, 40, 'grey')).toBeGreaterThanOrEqual(180)
+    expect(colourKey(pixels, 40, 40)).toBe(8)
+  })
   it('the committed keys read as their birds', () => {
     // Northern Cardinal and Scarlet Macaw red, Blue Jay blue, American Goldfinch yellow, American Crow dark, Mute Swan light.
     const red = (k: number) => k < 15 || k > 170
@@ -87,6 +95,11 @@ describe('colour key', () => {
     expect(colours.blujay).toBeLessThan(130)
     expect(colours.amegfi).toBeGreaterThan(25)
     expect(colours.amegfi).toBeLessThan(45)
+    expect(colours.grnjay).toBeGreaterThanOrEqual(44)
+    expect(colours.grnjay).toBeLessThan(94)
+    expect(colours.rosspo1).toBeGreaterThanOrEqual(160)
+    expect(colours.rosspo1).toBeLessThan(180)
+    expect(colours.houspa).toBeGreaterThanOrEqual(180)
     expect(colours.amecro).toBeGreaterThanOrEqual(180)
     expect(colours.amecro).toBeLessThan(colours.mutswa)
   })
