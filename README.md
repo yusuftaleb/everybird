@@ -1,6 +1,6 @@
 # Everybird
 
-A lifetime of birds. Everybird turns a birder's life list into a sticker collage. Import an eBird or observation.org export, use an iNaturalist username, or tick birds off by hand, and your list is laid out as a collage you can filter, edit and share.
+A lifetime of birds. Everybird turns a birder's life list into a sticker collage. Import an eBird, observation.org, iGoTerra or Scythebill export or a spreadsheet, use an iNaturalist username, or tick birds off by hand, and your list is laid out as a collage you can filter, edit and share, and also read as a list, a map or a tree of birds.
 
 Your list never leaves your browser. The only network calls that carry user input are iNaturalist API requests (a username and place IDs). A share link carries the whole list in the link itself. Anonymous usage counts (visits, and a few actions such as a collage made or an image shared, never list contents) are sent to a stats endpoint, and Cloudflare Web Analytics counts visits without cookies; both are skipped with Do Not Track or Global Privacy Control.
 
@@ -8,18 +8,21 @@ Live at https://everybird.yusuftaleb.com (share links, link previews and the sha
 
 ## Pages
 
-- **Collage** (`/`): your collage with the dock (Collage/List, True size, Scientific, Filters, search), the active filter chips, bird cards and Share. Without a list on the device it shows a sample.
-- **Settings** (`/settings`): your sources (eBird files, iNaturalist, observation.org files, tick by hand), the match report, counting rules, and downloads, backup and restore.
+- **Collage** (`/`): your collage with the controls bar (the Collage, List, Map and Tree views, Compare, Filters, Style, Share, search), the active filter chips and bird cards (with a link to the bird's Bird Album page); "Add birds" opens one dialog for every import and for adding by hand. Without a list on the device it shows a sample, with a short guided tour.
+- **Settings** (`/settings`): your list (its sources through Add birds, the match report, counting rules), the language, and downloads, backup and restore.
 - **About** (`/about`): how it works, privacy and every credit.
+- **Compare** (`/compare`): your list beside friends' share links: the birds you share, each one's own, and a link to the comparison (`/c/[token]`, read-only).
 - **Shared view** (`/s/[token]`): a read-only collage from a share link. The old `/make`, `/my` and `/credits` redirect to Settings, Collage and About.
 
-Light by default, with a sun/moon toggle in the top bar. The interface is in English, Español, Português (Brazil) and Nederlands; the language menu sits in the top bar. The design system is in `DESIGN.md`.
+Light by default, with a sun/moon toggle in the top bar. The interface is in English, Español, Português (Brazil), Nederlands, Polski, Français, Deutsch, Italiano, Svenska and Dansk; the language menu sits in the top bar. The design system is in `DESIGN.md`.
 
 ## Current capabilities
 
 - Smart search and one Filters panel for places, time, taxonomy and conservation status.
-- Vertical/Horizontal sharing: Story 9:16 or Desktop 16:9, Post 4:5 or 5:4, and Square; print posters A4–A1 in either orientation.
-- Search metadata in all four languages, a `WebSite` site-name declaration on the homepage, and the landing demo excluded from search snippets. Google's displayed result can lag a deployment.
+- Four arrangements of the collage (Packed, Oval, By family, By colour) and a Style panel for the look.
+- Share images of every view (Map and Tree draw their own), with a transparent background and a count size option.
+- Vertical/Horizontal sharing: Story 9:16 or Desktop 16:9, Post 4:5 or 5:4, and Square; print posters A4–A1 and US 12×18 to 24×36 inches in either orientation.
+- Search metadata in every language, a `WebSite` site-name declaration on the homepage, and the landing demo excluded from search snippets. Google's displayed result can lag a deployment.
 - Private anonymous-usage dashboard at `https://stats.yusuftaleb.com/dashboard`, behind Cloudflare Access. Days now follow America/Vancouver; the completed 2026-11-16 transition is documented in [the stats README](workers/stats/README.md).
 - Sticker updates use the weekly [huashu sync workflow](.github/workflows/README.md); uploaded files only become live when the app's updated data is merged and deployed with `npm run cf:deploy` (a push to main does not deploy).
 
@@ -51,13 +54,17 @@ the raw sources in `data/raw/` (git-ignored) and the stickers repo checked out n
    6. `build-stickers.ts`: the 128/384 webp stickers into `../everybird-stickers/v1/`, the masks and each species' `ar` (must follow build-species).
    7. `link-index.ts`: appends new codes to `data/link-index.json` (append-only, so old share links keep working).
 3. `npx tsx scripts/build-data/check-stickers.ts`: decodes every sticker and lists any broken file (rebuild those with `build-stickers.ts --codes a,b`).
+4. Outside `npm run data`, when their sources change: `build-map.ts` (the Map view's shapes), `build-colours.ts` (By colour), `build-tree.ts` (the Tree view), `build-album.ts` (Bird Album links), `build-sample.ts` and `build-sample-pack.ts` (the landing sample); see `AGENTS.md`.
+5. `npx tsx scripts/build-data/data-files.ts`: the content-hashed names of the data files, which a release uploads before deploying.
 
 ## Data sources and licences
 
 - **Stickers:** [huashu-bird-sticker](https://github.com/alchaincyf/huashu-bird-sticker), CC BY 4.0. Credited wherever stickers appear.
 - **Taxonomy:** eBird/Clements checklist, used for species names and codes. Every source, with its licence, is also listed on the in-app credits (About, `/about#credits`).
 - **Body masses:** [AVONET](https://doi.org/10.1111/ele.13898) (CC BY 4.0) via huashu's species table, with a few sourced overrides in `data/overrides.json`; and [BIRDBASE](https://doi.org/10.1038/s41597-025-05615-3) (CC BY 4.0) for the species AVONET gives no mass for. Its compact extract is `data/raw/birdbase/` (see its README).
-- **Regions:** place names from Natural Earth (public domain) and [Debian iso-codes](https://salsa.debian.org/iso-codes-team/iso-codes) ISO 3166-2 data (LGPL-2.1), used for names only.
+- **Regions:** place names and the Map view's shapes from Natural Earth (public domain), and [Debian iso-codes](https://salsa.debian.org/iso-codes-team/iso-codes) ISO 3166-2 data (LGPL-2.1), used for names only; Vietnam's provinces from OCHA's COD-AB (CC BY 3.0 IGO).
+- **Bird tree:** [AvesData](https://github.com/McTavishLab/AvesData) (McTavish et al.), CC BY 4.0.
+- **Bird names:** eBird's name sets, with the IOC World Bird List v15.2 (Gill, Donsker & Rasmussen, CC BY 3.0) filling eBird's gaps in Italian, Swedish and Danish.
 - **Fonts:** Satoshi and Cabinet Grotesk from [Fontshare](https://www.fontshare.com) (loaded from their CSS, not bundled), and Geist Mono via `next/font/google`.
 
 ## Licence
