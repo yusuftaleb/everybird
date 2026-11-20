@@ -24,8 +24,8 @@ import { holeRects, rectGap, type Hole, type Rect } from '@/lib/layout/count-box
 import { decodeMask, maskCell, type Mask } from '@/lib/layout/mask'
 import { packFrame, type PackBird, type PackResult } from '@/lib/layout/pack'
 import {
-  IMAGE_SCALE, IMAGE_SIZE, SAFE, SPREAD, cardLayout, drawShareImage, fitPack, imageShape, isPrint, maxTileSide, packSpec,
-  prepareCard, spreadY, type CardFormat, type ImagePack,
+  IMAGE_SCALE, IMAGE_SIZE, SAFE, cardLayout, drawShareImage, fitBox, fitPack, imageShape, isPrint, maxTileSide, packSpec,
+  prepareCard, type CardFormat, type ImagePack,
 } from '@/lib/share/image'
 import { installStubs, NOW, entries, pack as harnessPack, species } from './fixtures/share-image-harness'
 import { printDesign } from '@/lib/share/print'
@@ -85,11 +85,10 @@ function fill(format: CardFormat, n: number) {
   const spec = packSpec(L)
   const r = packFrame(sample(n), spec.aspect, spec)
   const pack: ImagePack = { W: r.W, H: r.H, boxes: new Map([...r.boxes].map(([id, b]) => [String(id), b])) }
-  const fit = fitPack(pack, L.collage, maxTileSide(L.collage.w, L.maxTile, L.maxSide), SPREAD[format])
+  const fit = fitPack(pack, L.collage, maxTileSide(L.collage.w, L.maxTile, L.maxSide))
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
-  for (const [, [bx, by, bw, bh]] of pack.boxes) {
-    const x = fit.cx + (bx - fit.ux) * fit.s, w = bw * fit.s, h = bh * fit.s
-    const y = spreadY(fit, by + bh / 2) - h / 2
+  for (const [, b] of pack.boxes) {
+    const [x, y, w, h] = fitBox(fit, b)
     x0 = Math.min(x0, x); x1 = Math.max(x1, x + w); y0 = Math.min(y0, y); y1 = Math.max(y1, y + h)
   }
   return { x: (x1 - x0) / L.collage.w, y: (y1 - y0) / L.collage.h, L, r, fit }
@@ -146,11 +145,11 @@ describe('the landscape layouts', () => {
     }
   }
 
-  it('the desktop has the one-line footer; the 5:4 card and the landscape poster keep the row stacked', () => {
+  it('the desktop has the one-line footer; the 5:4 card keeps the row stacked; the landscape poster has none (its foot names the lifer)', () => {
     const content = { name: true, filter: true, latest: true, count: 197 }
     expect(cardLayout('desktop', content).latest?.oneLine).toBe(true)
     expect(cardLayout('wide', content).latest?.oneLine).toBe(false)
-    expect(cardLayout('printLandscape', content).latest?.oneLine).toBe(false)
+    expect(cardLayout('printLandscape', content).latest).toBeUndefined()
     expect(cardLayout('wide', content).latest?.x).toBe(M)
   })
 
@@ -192,7 +191,7 @@ describe('the footer’s one line fits in every language', () => {
     })
   }
 
-  it('the 5:4 card and the landscape poster would not hold the row beside the credit with a long name (so they stack)', () => {
+  it('the 5:4 card (and a landscape-poster-wide card) would not hold the row beside the credit with a long name (so it stacks)', () => {
     // The widest name a row draws is clipped to 480 units; 22 characters at 30px is about 370 units, the name's common worst.
     const label = 'LATEST LIFER · SEP 2026'.length * (0.6 * 20 + 1.2) // mono 20px with 0.06em tracking
     const block = 40 + 14 + label + 14 + 22 * 0.56 * 30

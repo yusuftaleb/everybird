@@ -4,7 +4,7 @@ import {
   IOS_CANVAS_AREA, PRINT_CM, PRINT_DESIGN_H, PRINT_IN, PRINT_PT, PRINT_PX, PRINT_SIZES, STRIP_AREA,
   isUsSize, printDesignH, printPackH, printScale, stripRanges,
 } from '@/lib/share/print'
-import { SAFE, SHARE_COLORS, TITLE_TOP, cardDims, cardLayout, imagePackSpec, prepareCard, type ImagePack } from '@/lib/share/image'
+import { POSTER_FOOT, SAFE, SHARE_COLORS, TITLE_TOP, cardDims, cardLayout, imagePackSpec, prepareCard, type ImagePack } from '@/lib/share/image'
 import type { ListEntry } from '@/lib/list/model'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -68,14 +68,15 @@ describe('print sizes and strips', () => {
 })
 
 describe('the print card', () => {
-  it('lays out 1080 wide at PRINT_DESIGN_H by default, with 64 margins and the story-sized latest row', () => {
+  it('lays out 1080 wide at PRINT_DESIGN_H by default, with 64 margins, no latest lifer row and the quiet one-line foot', () => {
     expect(SAFE.print).toEqual({ top: 64, bottom: 64 })
     expect(TITLE_TOP.print).toBe(64)
     const L = cardLayout('print', { name: true, filter: false, latest: true, count: 197 })
     expect([L.W, L.H]).toEqual([1080, PRINT_DESIGN_H])
     expect(L.name!.y).toBe(64)
-    expect(L.latest!.icon).toBe(76)
-    expect(L.footer.y).toBe(PRINT_DESIGN_H - 64 - 30) // no story-only lift
+    expect(L.latest).toBeUndefined()
+    expect(L.footer).toEqual({ y: PRINT_DESIGN_H - 64 - POSTER_FOOT.brand, size: POSTER_FOOT.brand, credit: POSTER_FOOT.line })
+    expect(L.rule.y).toBe(L.footer.y - 24)
     expect(L.count.size).toBeLessThanOrEqual(112)
     expect(cardLayout('print', { name: true, filter: false, latest: true, count: 197 }, 1600).H).toBe(1600)
     expect(imagePackSpec('print', { name: false, filter: false, latest: true, count: 197 }).aspect)
@@ -94,7 +95,10 @@ describe('the print card', () => {
     const light = await prepareCard({ format: 'print', printSize: 'A2', theme: 'light', entries, species, pack, now: new Date(2026, 10, 15), strings: en.ui }, printScale('A2'))
     expect(light.colors).toEqual(SHARE_COLORS.light)
     expect(light.colors.paper).toBe('#f6f4ef')
-    expect(card.credit.size).toBeGreaterThanOrEqual(17)
+    // The foot's one line (the latest lifer, the site, the credit, the date) beside the wordmark, at 16px down to POSTER_FOOT.min.
+    expect(card.footerLine).toMatch(/^Latest lifer: /)
+    expect(card.credit.size).toBeGreaterThanOrEqual(POSTER_FOOT.min)
+    expect(card.credit.size).toBeLessThanOrEqual(POSTER_FOOT.line)
   })
 
   it('print tiles pick the tier by device px: a 343 design-px tile at A1 is 1024 with the 384 fallback', async () => {
@@ -106,9 +110,8 @@ describe('the print card', () => {
       expect(t.url).toMatch(/\/v1\/1024\/(ostric2|emu1)\.webp$/)
       expect(t.fallback).toBe(t.url!.replace('/1024/', '/384/'))
     }
-    // The latest lifer's 76 units at A1 are about 247 px: the 384 file, no fallback.
-    expect(a1.lifer!.url).toMatch(/\/v1\/384\/(ostric2|emu1)\.webp$/)
-    expect(a1.lifer!.fallback).toBeNull()
+    // No latest lifer's sticker on a poster (its foot names it).
+    expect(a1.lifer).toBeNull()
     // The preview (scale 1): the same layout, the 384 file and no fallback.
     const preview = await prepareCard(opts)
     expect(preview.tiles.map((t) => [t.x, t.y, t.w, t.h])).toEqual(a1.tiles.map((t) => [t.x, t.y, t.w, t.h]))

@@ -306,6 +306,70 @@ function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number
   return boxes
 }
 
+/** spreadEven's passes over every bird, at most (it stops sooner once nothing moves). */
+const SPREAD_ROUNDS = 16
+
+/**
+ * Even out a frame's pack (packFrame: the share images and the posters), so the gaps are about the same everywhere and
+ * the birds fill the frame (or its oval) to its edge: no clumps, no holes, no empty corners. On a grid of one layout
+ * unit per cell, every bird is stamped as its bare silhouette (a captioned one as its box and its name's box, as
+ * gather). Then, pass after pass, each bird is lifted and its free run measured in the four directions (how far it can
+ * go, tested dilated by GAP, before it meets another bird or a wall: the frame's edge, the count's hole, outside the
+ * oval). Along each axis it moves to the middle of its two runs, so it sits halfway between its neighbours; next to a
+ * wall, it moves right up to the wall instead, so the outer birds line the frame and the free room goes between birds.
+ * The free room so flows to where it is short until the gaps even out. Every move stays inside a measured free run, so
+ * it never makes an overlap; the order is fixed (by id, forwards then backwards), so the result is deterministic.
+ */
+function spreadEven(
+  boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions: Map<number, CaptionRoom> | undefined, oval: boolean,
+): Map<number, Box> {
+  // The walls alone, and the walls with every bird's core. No core overlaps a wall (the pack kept every bird GAP from them
+  // on a coarser, more cautious grid), so clearing a core never clears a wall.
+  const walls = blankGrid(W, H, 1, hole, oval)
+  const occ = blankGrid(W, H, 1, hole, oval)
+  const pad = GAP
+  const byId = new Map(birds.map((b) => [b.id, b]))
+  type Q = { id: number; s: CellMask; m: CellMask; gx: number; gy: number; offX: number; offY: number; w: number; h: number }
+  const qs: Q[] = []
+  for (const id of [...boxes.keys()].sort((a, b) => a - b)) {
+    const [x, y, w, h] = boxes.get(id)!
+    const cap = captions?.get(id)
+    const { mask: s, offX, offY } = cap ? captionCellMask(w, h, cap, 1, pad, false) : { mask: coreMask(byId.get(id)!.mask, w, h, 1, pad), offX: 0, offY: 0 }
+    const m = cap ? captionCellMask(w, h, cap, 1, pad, true).mask : cellMask(byId.get(id)!.mask, w, h, 1, pad)
+    const q = { id, s, m, gx: Math.round(x) - pad - offX, gy: Math.round(y) - pad - offY, offX, offY, w, h }
+    occ.stamp(s, q.gx, q.gy)
+    qs.push(q)
+  }
+  // How far q can go from (gx, gy) by (dx, dy) steps, and whether a wall (not a bird) stops it.
+  const run = (q: Q, dx: number, dy: number): [steps: number, wall: boolean] => {
+    const xmax = occ.gw - q.m.pw, ymax = occ.gh - q.m.ph
+    for (let k = 1; ; k++) {
+      const x = q.gx + k * dx, y = q.gy + k * dy
+      if (x < 0 || y < 0 || x > xmax || y > ymax) return [k - 1, true]
+      if (occ.collides(q.m, x, y)) return [k - 1, walls.collides(q.m, x, y)]
+    }
+  }
+  // The move along one axis: to the wall when one side is a wall and the other a bird, else to the middle.
+  const shift = ([a, aWall]: [number, boolean], [b, bWall]: [number, boolean]) => (aWall && !bWall ? -a : bWall && !aWall ? b : Math.trunc((b - a) / 2))
+  for (let round = 0; round < SPREAD_ROUNDS; round++) {
+    let moved = 0
+    for (let i = 0; i < qs.length; i++) {
+      const q = qs[round % 2 ? qs.length - 1 - i : i]
+      occ.clear(q.s, q.gx, q.gy)
+      const dx = shift(run(q, -1, 0), run(q, 1, 0))
+      q.gx += dx
+      const dy = shift(run(q, 0, -1), run(q, 0, 1))
+      q.gy += dy
+      if (dx || dy) moved++
+      occ.stamp(q.s, q.gx, q.gy)
+    }
+    if (!moved) break
+  }
+  const out = new Map<number, Box>()
+  for (const q of qs) out.set(q.id, [q.gx + q.offX + pad, q.gy + q.offY + pad, q.w, q.h])
+  return out
+}
+
 function medianOf(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b)
   return s[s.length >> 1]
@@ -532,8 +596,21 @@ const frameBase = (n: number) => (n <= 300 ? 28 : Math.max(10, 28 * (300 / n) **
  * - maxTile: no tile's long side is longer than this fraction of the frame's width (a short list then sits as a
  *   ring around the count instead of a few giant stickers).
  * - oval: the birds fill the ellipse inscribed in the frame (a circle in a square one); the frame is sized for its area.
+ * - captions: each bird's name room under it (a poster's names), as fractions of the frame's width. When no base packs
+ *   the birds with their names, the pack is made as without them: the caller's caption check (image.ts fitCaptionPack)
+ *   then finds the names don't fit and draws the poster without them.
+ * Then spreadEven spreads the birds evenly over the frame (or its oval), edge to edge.
  */
-export function packFrame(birds: PackBird[], aspect: number, opts: { hole?: Hole; maxTile?: number; captions?: Map<number, CaptionRoom>; oval?: boolean } = {}): PackResult {
+export function packFrame(birds: PackBird[], aspect: number, opts: FrameOpts = {}): PackResult {
+  if (!opts.captions) return packFrameWith(birds, aspect, opts)
+  try {
+    return packFrameWith(birds, aspect, opts)
+  } catch {
+    return packFrameWith(birds, aspect, { ...opts, captions: undefined })
+  }
+}
+type FrameOpts = { hole?: Hole; maxTile?: number; captions?: Map<number, CaptionRoom>; oval?: boolean }
+function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): PackResult {
   const rel = relSizes(birds, EXP)
   let area = 0, maxRel = 1
   for (const b of placementOrder(birds, rel)) { const r = rel.get(b.id)!; area += r ** 2 * maskFill(b.mask); maxRel = Math.max(maxRel, r) }
@@ -552,5 +629,6 @@ export function packFrame(birds: PackBird[], aspect: number, opts: { hole?: Hole
   const captions = opts.captions
     ? new Map([...opts.captions].map(([id, c]) => [id, { w: c.w * W, h: c.h * W, ...(c.ring ? { ring: c.ring * W } : {}) }]))
     : undefined
-  return packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : {}) })
+  const r = packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : {}) })
+  return { ...r, boxes: spreadEven(r.boxes, birds, r.W, r.H, hole, captions, !!opts.oval) }
 }

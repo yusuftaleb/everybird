@@ -7,6 +7,8 @@ import { CAPTION_CAPS, captionMinPx, type PrintSize } from './print'
 export const CAPTION_LINE_HEIGHT = 1.2
 export const CAPTION_GAP_RATIO = 0.35
 export const CAPTION_PAD_X = 2
+/** The widest a long name's two lines may be, as a share of the collage's width. */
+export const WIDE_LINE = 0.45
 
 export type TextMeasurer = (px: number, text: string) => number
 
@@ -93,7 +95,8 @@ export function planCaptions(
     const row = species.byCode.get(e.code)
     if (!row) continue
     const label = nameOf?.(row) ?? row.com
-    const lines = wrapCaption(label, maxLineW, m)
+    // A name too long for two lines of maxLineW may take wider lines (up to WIDE_LINE of the collage), never cut.
+    const lines = wrapCaption(label, maxLineW, m) ?? wrapCaption(label, collageW * WIDE_LINE, m)
     if (!lines) return { ok: false, reason: 'fit' }
     const textW = Math.max(...lines.map(m))
     byCode.set(e.code, { w: textW + 2 * CAPTION_PAD_X, h: gap + lines.length * lineH, lines })

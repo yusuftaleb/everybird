@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, SPREAD, spreadY, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
+import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, fitBox, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
 import { MONO_CAP, MONO_CAP_ACCENT, countText, holeExtent, numberEm } from '@/lib/layout/count-box'
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
@@ -143,11 +143,6 @@ describe('cardLayout', () => {
     expect(L.collage.h).toBeGreaterThanOrEqual(935)
     expect(L.collage.h).toBeGreaterThan(L.collage.w * 0.98)
   })
-  it('the story and the post may spread a short list vertically; the square never', () => {
-    expect(SPREAD.story).toBeGreaterThan(SPREAD.post)
-    expect(SPREAD.post).toBeGreaterThan(1)
-    expect(SPREAD.square).toBe(1)
-  })
   it('square: the same centre-count card in 1080×1080, the count a little smaller than the post\'s, its collage wider than tall', () => {
     const L = cardLayout('square', { name: true, filter: true, latest: true, count: 197 })
     expect([L.W, L.H]).toEqual([1080, 1080])
@@ -275,31 +270,15 @@ describe('fitPack', () => {
     const capped = fitPack(pack, area, 228)
     expect(60 * capped.s).toBeCloseTo(228)
   })
-  it('spreads a short list vertically to fill a tall area (story), keeping tile sizes, up to spreadMax', () => {
-    // A ring ±100 units around the centre; tiles 40 units; the area is much taller than wide.
-    const boxes: [string, [number, number, number, number]][] = [['t', [180, 90, 40, 40]], ['b', [180, 290, 40, 40]], ['l', [80, 190, 40, 40]], ['r', [280, 190, 40, 40]]]
+  it('scales both axes alike (no vertical stretch): a box keeps its shape and its place relative to the centre', () => {
+    const boxes: [string, [number, number, number, number]][] = [['t', [180, 90, 40, 40]], ['b', [180, 290, 40, 40]]]
     const pack = { W: 400, H: 420, boxes: new Map(boxes) }
     const tall = { x: 64, y: 250, w: 952, h: 1400 }
-    const f = fitPack(pack, tall, 10_000, 2)
-    expect(f.sy).toBeGreaterThan(1)
-    // The top tile's top edge lands on the area's top (or the spread hit its max).
-    const top = f.cy + (110 - f.uy) * f.s * f.sy - 20 * f.s
-    expect(top).toBeGreaterThanOrEqual(tall.y - 1e-6)
-    expect(f.sy === 2 || Math.abs(top - tall.y) < 1e-6).toBe(true)
-    // Without a spread allowance it stays uniform.
-    expect(fitPack(pack, tall, 10_000).sy).toBe(1)
-    expect(fitPack(pack, tall, 10_000, 1.2).sy).toBeLessThanOrEqual(1.2)
-  })
-  it('spreads above and below separately, so a lopsided ring reaches both edges', () => {
-    // One tile 60 units above the centre, one 120 below: the upper one may spread further.
-    const boxes: [string, [number, number, number, number]][] = [['t', [180, 130, 40, 40]], ['b', [180, 310, 40, 40]], ['r', [300, 190, 40, 40]]]
-    const pack = { W: 400, H: 420, boxes: new Map(boxes) }
-    const tall = { x: 64, y: 250, w: 952, h: 1400 }
-    const f = fitPack(pack, tall, 10_000, 5)
-    expect(f.sy).toBeGreaterThan(f.syDown)
-    expect(spreadY(f, 150) - 20 * f.s).toBeCloseTo(tall.y)
-    expect(spreadY(f, 330) + 20 * f.s).toBeCloseTo(tall.y + tall.h)
-    expect(spreadY(f, 210)).toBeCloseTo(f.cy) // a centred tile stays put
+    const f = fitPack(pack, tall, 10_000)
+    const [x, y, w, h] = fitBox(f, [180, 90, 40, 40])
+    expect(w).toBeCloseTo(h)
+    expect(x + w / 2 - f.cx).toBeCloseTo((200 - f.ux) * f.s)
+    expect(y + h / 2 - f.cy).toBeCloseTo((110 - f.uy) * f.s)
   })
   it('never scales a full frame below its width fit', () => {
     const pack = { W: 400, H: 420, boxes: new Map([['a', [0, 0, 30, 30]], ['b', [370, 390, 30, 30]]] as [string, [number, number, number, number]][]) }

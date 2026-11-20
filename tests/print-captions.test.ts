@@ -52,22 +52,25 @@ function rectsOverlap(ax0: number, ay0: number, ax1: number, ay1: number, bx0: n
 }
 
 describe('print captions', () => {
-  it('defines exact species caps and >= 9pt minimum design-unit font sizes', () => {
+  it('defines exact species caps and 18pt names on paper (twice the first posters\' 9pt), in each size\'s design units', () => {
     expect(CAPTION_CAPS).toEqual({
-      A4: 40, A3: 80, A2: 160, A1: 320,
-      US12x18: 80, US18x24: 180, US24x36: 360,
+      A4: 20, A3: 40, A2: 80, A1: 160,
+      US12x18: 40, US18x24: 90, US24x36: 180,
     })
     for (const size of Object.keys(CAPTION_CAPS) as (keyof typeof CAPTION_CAPS)[]) {
-      expect(captionMinPx(size)).toBeCloseTo(18.75 / printScale(size), 6)
+      expect(captionMinPx(size)).toBeCloseTo(37.5 / printScale(size), 6)
     }
+    // The bigger the poster, the smaller a name is in design units, and the same on paper.
+    expect(captionMinPx('A4')).toBeGreaterThan(captionMinPx('A2'))
+    expect(captionMinPx('A2') * printScale('A2')).toBeCloseTo(captionMinPx('A4') * printScale('A4'), 6)
   })
 
-  it('rejects 41 species on A4 with cap reason and accepts 40 species on A4 with zero overlap', async () => {
-    const over = makeSpeciesAndEntries(41)
+  it('rejects 21 species on A4 with cap reason and accepts 20 species on A4 with zero overlap', async () => {
+    const over = makeSpeciesAndEntries(21)
     const overPlan = planCaptions(over.entries, over.species, 'A4', 952)
     expect(overPlan).toEqual({ ok: false, reason: 'cap' })
 
-    const { species, entries, load } = makeSpeciesAndEntries(40, (i) => `Northern Synthetic Warbler ${i + 1}`)
+    const { species, entries, load } = makeSpeciesAndEntries(20, (i) => `Synthetic Warbler ${i + 1}`)
     const content: image.CardContent = { name: true, filter: false, latest: true, count: entries.length }
     const L = image.cardLayout('print', content, printDesign('A4'))
     const plan = planCaptions(entries, species, 'A4', L.collage.w)
@@ -89,7 +92,7 @@ describe('print captions', () => {
     const pack = image.packFromReply(reply)
     const fitRes = image.fitCaptionPack(pack, entries, 'print', content, 'A4', plan)
     expect(fitRes.ok).toBe(true)
-    expect(fitRes.captions).toHaveLength(40)
+    expect(fitRes.captions).toHaveLength(20)
 
     const hole = {
       ...L.count.hole,

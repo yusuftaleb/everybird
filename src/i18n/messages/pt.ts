@@ -457,7 +457,7 @@ export const pt: Messages = {
       formatName: '{name}, proporção {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Orientação', vertical: 'Vertical', horizontal: 'Horizontal' },
-      countSize: { label: 'Número', small: 'Pequeno', medium: 'Médio', large: 'Grande', hide: 'Ocultar' },
+      countSize: { label: 'Número', small: 'Pequeno', medium: 'Médio', large: 'Grande', hide: 'Ocultar', title: 'Ao lado do título' },
       preview: { story: 'Prévia da imagem para story', post: 'Prévia da imagem para publicação', square: 'Prévia da imagem quadrada', desktop: 'Prévia da imagem para desktop', wide: 'Prévia da imagem horizontal' },
       failed: 'Não foi possível criar a imagem.',
       imageFailed: 'Não foi possível criar a imagem. Tente de novo.',
@@ -486,6 +486,7 @@ export const pt: Messages = {
       filtersNoLabel: 'Mostrando seus filtros.',
       clearFilters: 'Limpar filtros',
       latestLifer: 'Última espécie nova',
+      posterLatest: 'Última espécie nova: {name}, {date}',
       oldLinkTitle: 'Lista de vida de {name}',
       untitledTitle: { one: 'Uma lista de vida: {n} espécie', other: 'Uma lista de vida: {n} espécies' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */

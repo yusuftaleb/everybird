@@ -550,8 +550,8 @@ export const EN_UI = {
     formatName: '{name}, {ratio}',
     /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
     orientation: { group: 'Orientation', vertical: 'Vertical', horizontal: 'Horizontal' },
-    /** The Count row's dropdown (the count's size on the image, or none). */
-    countSize: { label: 'Count', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide' },
+    /** The Count row's dropdown: the count's size in the middle of the collage, none, or beside the title (`title`). */
+    countSize: { label: 'Count', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide', title: 'Beside title' },
     /** The preview image's alt text, per format. */
     preview: { story: 'Preview of the story image', post: 'Preview of the post image', square: 'Preview of the square image', desktop: 'Preview of the desktop image', wide: 'Preview of the wide post image' },
     failed: "Couldn't make the image.",
@@ -587,6 +587,8 @@ export const EN_UI = {
     clearFilters: 'Clear filters',
     /** The latest lifer row's mono label on the images and the link preview ("LATEST LIFER · SEP 2026"; upper-cased in code). */
     latestLifer: 'Latest lifer',
+    /** The poster's foot: the latest lifer in words, before the site and the credit ("Latest lifer: Hooded Crow, Sep 2026"). */
+    posterLatest: 'Latest lifer: {name}, {date}',
     /** A link made before titles carries a bare name: its title (og.ts shareTitle). */
     oldLinkTitle: "{name}'s life list",
     /** The shared page's document title for a link without a title ({n} formatted). */
