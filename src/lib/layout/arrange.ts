@@ -39,14 +39,18 @@ export function layRows(birds: RowBird[], W: number, h: number, hole: Hole, H?: 
     for (const r of rects) if (y1 > r[1] - hole.pad - g && y0 < r[3] + hole.pad + g) ex = Math.max(ex, Math.max(-r[0], r[2]) + hole.pad + g)
     return ex
   }
-  // R rows on a stage Ht tall, the first at oy: how many birds were placed (-1: one is wider than a whole row).
+  // R rows on a stage Ht tall, the first at oy: how many birds were placed (-1: one is wider than a whole row). `used`:
+  // the rows that got a bird.
+  let used = 0
   const fill = (R: number, Ht: number, oy: number, boxes: Map<number, Box>): number => {
     let i = 0
+    used = 0
     const cx = W / 2, cy = Ht / 2
     for (let r = 0; r < R && i < birds.length; r++) {
       const y = oy + r * pitch
       const ex = cut(y - cy, y + band - cy)
       const segs: [number, number][] = ex > 0 ? [[0, cx - ex], [cx + ex, W]] : [[0, W]]
+      used = r + 1
       for (const [a, z] of segs) {
         const start = i
         let used = 0
@@ -69,10 +73,13 @@ export function layRows(birds: RowBird[], W: number, h: number, hole: Hole, H?: 
     return i
   }
   if (H !== undefined) {
+    // As many rows as fit, then only as many as the birds need, centred on the count (a short list isn't top-heavy).
     const R = Math.floor((H + g) / pitch)
     if (R < 1) return null
-    const boxes = new Map<number, Box>()
-    return fill(R, H, (H - (R * pitch - g)) / 2, boxes) === birds.length ? { H, boxes } : null
+    const at = (n: number) => { const boxes = new Map<number, Box>(); return fill(n, H, (H - (n * pitch - g)) / 2, boxes) === birds.length ? boxes : null }
+    if (!at(R)) return null
+    for (let n = used; n < R; n++) { const b = at(n); if (b) return { H, boxes: b } }
+    return { H, boxes: at(R)! }
   }
   let total = 0
   for (const b of birds) total += slot(b) + g

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ShareDialog from '@/components/share/ShareDialog'
 import * as image from '@/lib/share/image'
 import { setLiferMark } from '@/lib/lifer-marks'
+import { setArrangement } from '@/lib/arrangement'
 import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
@@ -1093,5 +1094,18 @@ describe('the orientation switch', () => {
     const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
     await waitFor(() => expect(sw.disabled).toBe(true))
     expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Names won’t fit cleanly on A2. Pick a larger size or filter your list.')
+  })
+})
+
+describe('share dialog and the collage arrangement', () => {
+  afterEach(() => setArrangement('packed'))
+  it('packs the images in the collage\'s arrangement, and Packed as before', async () => {
+    setArrangement('family')
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(vi.mocked(image.packForImage)).toHaveBeenCalled())
+    expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2]).toEqual(
+      image.imagePackSpec('story', { name: false, filter: false, latest: true, count: 1 }, undefined, undefined, 'family'))
+    expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2].arrangement).toBe('family')
+    expect(image.imagePackSpec('story', { name: false, filter: false, latest: true, count: 1 }).arrangement).toBeUndefined()
   })
 })

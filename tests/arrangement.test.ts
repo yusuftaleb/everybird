@@ -236,3 +236,45 @@ describe('layout client and arrangements', () => {
     expect([...colour.boxes.keys()].sort()).toEqual([...packed.boxes.keys()].sort())
   }, 60_000)
 })
+
+describe('share frames', () => {
+  const handle = createLayoutHandler(loadMasks, loadColours)
+  const msgOf = (list: SpeciesRow[], format: image.CardFormat, arrangement?: 'family' | 'colour') => {
+    const spec = image.imagePackSpec(format, { name: false, filter: false, latest: true, count: list.length }, undefined, undefined, arrangement)
+    return { spec, msg: { type: 'image' as const, id: 1, entries: list.map((r) => ({ code: r.code, mass: r.g, ord: r.ord, to: r.to })), aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(spec.arrangement ? { arrangement: spec.arrangement } : {}) } }
+  }
+
+  it('By family centres a short list on the count instead of filling the top rows', async () => {
+    for (const n of [8, 20]) for (const format of ['story', 'post', 'square'] as const) {
+      const { msg } = msgOf(pick(n, n * 3), format, 'family')
+      const p = image.packFromReply(await handle(msg))
+      let top = Infinity, bottom = -Infinity
+      for (const [, y, , h] of p.boxes.values()) { top = Math.min(top, y); bottom = Math.max(bottom, y + h) }
+      const rowH = [...p.boxes.values()][0][3]
+      expect(Math.abs(top - (p.H - bottom)), `${n} ${format}`).toBeLessThan(rowH * 1.5)
+    }
+  })
+
+  it('By colour re-places packFrame\'s birds at (about) its sizes', async () => {
+    const list = pick(120, 5)
+    const packed = image.packFromReply(await handle(msgOf(list, 'story').msg))
+    const colour = image.packFromReply(await handle(msgOf(list, 'story', 'colour').msg))
+    expect(colour.boxes.size).toBe(list.length)
+    expect([colour.W, colour.H]).toEqual([packed.W, packed.H])
+    const ratio = [...colour.boxes].map(([c, b]) => b[2] / packed.boxes.get(c)![2])
+    expect(Math.min(...ratio)).toBeGreaterThan(0.8) // colourFrame shrinks the base only when the frame is too tight
+  })
+
+  it('By colour with print names: records whether the names fit (they may drop to no names, as Packed\'s can)', async () => {
+    const list = pick(40, 9), entries = list.map(lifer)
+    const content: image.CardContent = { name: false, filter: false, latest: true, count: entries.length }
+    const L = image.cardLayout('print', content, printDesign('A4', false))
+    const plan = planCaptions(entries, species, 'A4', L.collage.w)
+    if (!plan.ok) throw new Error('plan')
+    const spec = image.imagePackSpec('print', content, 'A4', plan, 'colour')
+    const reply = await handle({ type: 'image', id: 1, entries: list.map((r) => ({ code: r.code, mass: r.g, ord: r.ord })), aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, captions: list.map((r) => spec.captionBoxes![r.code]), arrangement: 'colour' })
+    const fit = image.fitCaptionPack(image.packFromReply(reply), entries, 'print', content, 'A4', plan)
+    console.log(`[arrangement] By colour, 40 names on A4: ${fit.ok ? 'fit' : 'dropped'}`)
+    expect(typeof fit.ok).toBe('boolean')
+  })
+})
