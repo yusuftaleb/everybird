@@ -12,10 +12,11 @@ import { pl } from '@/i18n/messages/pl'
 import { fr } from '@/i18n/messages/fr'
 import { de } from '@/i18n/messages/de'
 import { it as italian } from '@/i18n/messages/it'
+import { sv } from '@/i18n/messages/sv'
 import { COUNT_LABEL_CHARS } from '@/lib/layout/count-box'
 
 // pl is left out until its maintainer decides on two labels over budget: trueSize, shareImage.
-const OTHERS = { es, pt, nl, fr, de, it: italian } as const
+const OTHERS = { es, pt, nl, fr, de, it: italian, sv } as const
 
 /** Resting labels in fixed rows (dotted paths into `ui`). */
 const TIGHT = [
@@ -52,7 +53,7 @@ describe('tight labels', () => {
   })
 
   it('the count label fits the hole', () => {
-    for (const m of [en, es, pt, nl, pl, fr, de, italian]) expect(m.ui.count.label.length).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv]) expect(m.ui.count.label.length).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
   })
 
   it('language codes are two letters', () => {

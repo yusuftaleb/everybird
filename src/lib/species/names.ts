@@ -25,7 +25,7 @@ function regional(lang: Lang, region: string | undefined): NameLocale | null {
 
 /**
  * The names file for a UI language: the browser's region (the first of `languages` in this language) when it maps to
- * a set of this language, else the list's top country when it does, else the base (baseOfLang: es, pt_BR, nl, pl, fr_FR, de, it). English: null.
+ * a set of this language, else the list's top country when it does, else the base (baseOfLang: es, pt_BR, nl, pl, fr_FR, de, it, sv). English: null.
  */
 export function pickNameLocale(lang: Lang, languages: readonly string[], top?: string): NameLocale | null {
   if (lang === 'en') return null

@@ -73,12 +73,14 @@ describe('the rewrites', () => {
       ['/fr/about', 'header:accept-language'],
       ['/de/about', 'header:accept-language'],
       ['/it/about', 'header:accept-language'],
+      ['/sv/about', 'header:accept-language'],
       ['/en/about', ''],
     ])
     expect(resolve('/about', { accept: 'pl-PL,pl;q=0.9,en;q=0.8' })).toBe('/pl/about')
     expect(resolve('/about', { accept: 'fr-CA,fr;q=0.9,en;q=0.8' })).toBe('/fr/about')
     expect(resolve('/about', { accept: 'de-CH,de;q=0.9,en;q=0.8' })).toBe('/de/about')
     expect(resolve('/about', { accept: 'it-IT,it;q=0.9,en;q=0.8' })).toBe('/it/about')
+    expect(resolve('/about', { accept: 'sv-SE,sv;q=0.9,en;q=0.8' })).toBe('/sv/about')
     expect(resolve('/about', { cookie: `${LANG_COOKIE}=en`, accept: 'es-ES,es;q=0.9' })).toBe('/en/about')
     expect(resolve('/about', { cookie: `theme=dark; ${LANG_COOKIE}=pt`, accept: 'nl' })).toBe('/pt/about')
     expect(resolve('/settings', { cookie: `${LANG_COOKIE}=nl` })).toBe('/nl/settings')

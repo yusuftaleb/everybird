@@ -11,6 +11,7 @@ import { pl } from '@/i18n/messages/pl'
 import { fr } from '@/i18n/messages/fr'
 import { de } from '@/i18n/messages/de'
 import { it as italian } from '@/i18n/messages/it'
+import { sv } from '@/i18n/messages/sv'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { CREDIT_MIN, DESKTOP_SIDE, FOOTER_LIFT, IMAGE_SCALE, IMAGE_SIZE, cardDims, cardLayout, clearStickerCache, drawShareImage, imagePackSpec, prepareCard, renderShareImage, type CardFormat } from '@/lib/share/image'
 import { entries, installStubs, NOW, pack, species } from './fixtures/share-image-harness'
@@ -48,8 +49,8 @@ describe('the desktop size', () => {
 
 describe('everything on the desktop is inside the central column, clear of the top and bottom', () => {
   for (const c of CONTENTS) {
-    for (const lang of ['en', 'es', 'nl', 'pt', 'pl', 'fr', 'de', 'it'] as const) {
-      const m = { en, es, nl, pt, pl, fr, de, it: italian }[lang]
+    for (const lang of ['en', 'es', 'nl', 'pt', 'pl', 'fr', 'de', 'it', 'sv'] as const) {
+      const m = { en, es, nl, pt, pl, fr, de, it: italian, sv }[lang]
       const name = `${lang}${c.name ? ' name' : ''}${c.filter ? ' filter' : ''}${c.latest ? ' latest' : ' no-latest'}`
       it(name, async () => {
         installStubs()
@@ -203,12 +204,13 @@ describe('long latest-lifer names on the desktop footer', () => {
     fr: longest(Object.values(data('names.fr_FR.v1.json').names as Record<string, string>)),
     de: longest(Object.values(data('names.de.v1.json').names as Record<string, string>)),
     it: longest(Object.values(data('names.it.v1.json').names as Record<string, string>)),
+    sv: longest(Object.values(data('names.sv.v1.json').names as Record<string, string>)),
     forty: 'Northern Rough-winged Swallow-and-Martin!',
   }
   for (const [lang, name] of Object.entries(NAMES)) {
     it(`${lang}: "${name}" (${name.length}) is drawn whole, at 80% of its size or more`, async () => {
       installStubs()
-      const m = { en, es, pt, nl, pl, fr, de, it: italian, forty: en }[lang as 'en']
+      const m = { en, es, pt, nl, pl, fr, de, it: italian, sv, forty: en }[lang as 'en']
       const card = await prepareCard({ format: 'desktop', theme: 'light', entries, species, pack, now: NOW, strings: m.ui, nameOf: () => name }, IMAGE_SCALE.desktop)
       expect(card.oneLine!.nameText).toBe(name)
       expect(card.oneLine!.nameSize).toBeGreaterThanOrEqual(30 * 0.8)

@@ -56,6 +56,7 @@ describe('pickNameLocale', () => {
   it('Italian, Swedish and Danish have one set each', () => {
     expect(pickNameLocale('it', ['it-CH'], 'CH')).toBe('it')
     expect(pickNameLocale('it', ['it'])).toBe('it')
+    expect(pickNameLocale('sv', ['sv-FI'], 'FI')).toBe('sv')
   })
   it('reads the first browser tag in the UI language', () => {
     expect(pickNameLocale('es', ['en-US', 'es-MX', 'es-ES'])).toBe('es_MX')

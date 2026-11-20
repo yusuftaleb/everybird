@@ -3,10 +3,10 @@ export const DATA_FILES = {
   'species.v1.json': 'species.v1.8ae50d623e.json',
   'taxonomy.v1.json': 'taxonomy.v1.ded5d08fde.json',
   'regions.v1.json': 'regions.v1.eed5c7d426.json',
-  'groups.v1.json': 'groups.v1.1c5ec4b40e.json',
+  'groups.v1.json': 'groups.v1.9029e2f17c.json',
   'masks.v2.json': 'masks.v2.be92aa507b.json',
   'sample.v1.json': 'sample.v1.300671bac4.json',
-  'sample-pack.v1.json': 'sample-pack.v1.f42759f059.json',
+  'sample-pack.v1.json': 'sample-pack.v1.5f06ad8966.json',
   'inat-synonyms.v1.json': 'inat-synonyms.v1.44136fa355.json',
   'vietnam-boundaries.v1.json': 'vietnam-boundaries.v1.1eed73d78b.json',
   'map-countries.v1.json': 'map-countries.v1.b88791b51c.json',
@@ -38,5 +38,6 @@ export const DATA_FILES = {
   'names.fr.v1.json': 'names.fr.v1.fc3a305043.json',
   'names.de.v1.json': 'names.de.v1.926314085f.json',
   'names.it.v1.json': 'names.it.v1.2168f9722f.json',
+  'names.sv.v1.json': 'names.sv.v1.04e215bdcf.json',
 } as const
 export type DataFile = keyof typeof DATA_FILES

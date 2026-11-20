@@ -10,9 +10,10 @@ import { pl } from './messages/pl'
 import { fr } from './messages/fr'
 import { de } from './messages/de'
 import { it } from './messages/it'
+import { sv } from './messages/sv'
 import { pt } from './messages/pt'
 
-export const MESSAGES: Record<Lang, Messages> = { en, es, pt, nl, pl, fr, de, it }
+export const MESSAGES: Record<Lang, Messages> = { en, es, pt, nl, pl, fr, de, it, sv }
 for (const [lang, m] of Object.entries(MESSAGES)) tagPlurals(lang, m)
 
 export function getMessages(lang: Lang): Messages {
