@@ -10,7 +10,7 @@ import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { fetchData } from '@/lib/data-url'
 import type { ListEntry } from '@/lib/list/model'
-import type { SpeciesIndex } from '@/lib/species/load'
+import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -21,10 +21,10 @@ import './tree.css'
 export const AVES_URL = 'https://github.com/McTavishLab/AvesData'
 export const CC_BY_URL = 'https://creativecommons.org/licenses/by/4.0/'
 
-type Loaded = { file: TreeFile; tree: Tree }
-let treeP: Promise<Loaded> | null = null
+type Loaded = { file: TreeFile; tree: Tree; species: SpeciesIndex }
+let treeP: Promise<Omit<Loaded, 'species'>> | null = null
 /** The tree, fetched and parsed once per page (a failure is not cached). */
-function loadTree(): Promise<Loaded> {
+function loadTree(): Promise<Omit<Loaded, 'species'>> {
   treeP ??= fetchData<TreeFile>('tree.v1.json').then((file) => ({ file, tree: parseNewick(file.newick) })).catch((e) => {
     treeP = null
     throw e
@@ -35,13 +35,12 @@ function loadTree(): Promise<Loaded> {
 type Props = {
   /** The filtered list. */
   entries: ListEntry[]
-  species: SpeciesIndex
   sci: boolean
   /** Opens the bird card; `el` is the pressed button. */
   onPick: (code: string, el: HTMLElement) => void
 }
 
-export default function TreeView({ entries, species, sci, onPick }: Props) {
+export default function TreeView({ entries, sci, onPick }: Props) {
   const { t } = useI18n()
   useNames()
   const tt = t.collage.tree
@@ -49,12 +48,14 @@ export default function TreeView({ entries, species, sci, onPick }: Props) {
   const [failed, setFailed] = useState(false)
   useEffect(() => {
     let live = true
-    loadTree().then((d) => { if (live) setData(d) }, () => { if (live) setFailed(true) })
+    // The whole taxonomy (cached; the landing sample's own index holds only its birds), for every family and its totals.
+    Promise.all([loadTree(), loadSpecies()]).then(([d, species]) => { if (live) setData({ ...d, species }) }, () => { if (live) setFailed(true) })
     return () => { live = false }
   }, [])
   const [level, setLevel] = useState<TreeLevel>({})
   const onList = useMemo(() => new Set(entries.map((e) => e.code)), [entries])
-  const view = useMemo(() => (data ? levelView(data.tree, species, level, onList) : undefined), [data, species, level, onList])
+  const species = data?.species
+  const view = useMemo(() => (data ? levelView(data.tree, data.species, level, onList) : undefined), [data, level, onList])
   const unmapped = useMemo(() => (data ? entries.filter((e) => !data.tree.tipOf.has(e.code)) : []), [data, entries])
   const oldest = useMemo(() => (data ? oldestLineage(data.tree, onList) : undefined), [data, onList])
 
@@ -73,7 +74,7 @@ export default function TreeView({ entries, species, sci, onPick }: Props) {
   }
 
   if (failed) return <p className="eb-tree-note">{tt.failed}</p>
-  if (!data || !view) return <p className="eb-mono eb-tree-note">{tt.loading}</p>
+  if (!data || !view || !species) return <p className="eb-mono eb-tree-note">{tt.loading}</p>
 
   const famRow = level.fam ? species.rows.find((r) => r.fam === level.fam) : undefined
   const famLabel = (r: SpeciesRow) => (sci ? r.fam : familyName(r))

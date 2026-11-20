@@ -96,6 +96,12 @@ describe('levelView', () => {
     expect(v.rows.map((r) => r.kind === 'species' ? `${r.row.code} ${r.on}` : '')).toEqual(['a1 true', 'a2 false'])
     expect(v.split).toBe(true)
   })
+  it('one lineage alone is drawn as its stem, from the split above it', () => {
+    expect(levelView(tree, species, { fam: 'Fa', genus: 'Ab' }, onList)!.drawing.rootAge).toBe(1)
+    const fb = levelView(tree, species, { fam: 'Fb' }, onList)!
+    expect(fb.drawing.rootAge).toBe(10)
+    expect(fb.drawing.unseen + fb.drawing.seen).toBe(`M0 ${ROW_H / 2}H1000`)
+  })
   it('changing the list changes the counts and the marked branches', () => {
     const a = levelView(tree, species, {}, new Set(['a1']))!
     const b = levelView(tree, species, {}, new Set(['b1']))!

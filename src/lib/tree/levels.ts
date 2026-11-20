@@ -5,7 +5,7 @@
 // nothing is counted twice.
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
-import { cladeTree, drawTree, leavesOf, type Drawing, type Tree } from './tree'
+import { cladeTree, drawTree, isLeaf, leavesOf, type Drawing, type Tree } from './tree'
 
 /** Which level is open: none (families), a family, or a family's genus. */
 export type TreeLevel = { fam?: string; genus?: string }
@@ -94,6 +94,8 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
     top += ROW_H
   }
   const tipRows = rows.filter((r) => r.kind !== 'order')
-  const drawing = drawTree(root, (_, i) => { const r = tipRows[i]; return r.kind === 'species' ? r.on : r.kind === 'group' && r.on > 0 }, (i) => ys[i])
+  // One lineage alone (a genus of one species, a family of one genus): its stem, from the split above it.
+  const stem = isLeaf(root) && tree.parent[root.node] >= 0 ? tree.age[tree.parent[root.node]] : undefined
+  const drawing = drawTree(root, (_, i) => { const r = tipRows[i]; return r.kind === 'species' ? r.on : r.kind === 'group' && r.on > 0 }, (i) => ys[i], stem)
   return { rows, height: top, drawing, split: !!level.fam && !isClade(tree, tips) }
 }

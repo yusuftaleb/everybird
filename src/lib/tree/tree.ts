@@ -80,7 +80,8 @@ export function parseNewick(s: string): Tree {
   return { parent: Int32Array.from(parent), len: Float64Array.from(len), age, kids, code, tipOf }
 }
 
-export type Leaf = { key: string; tips: number[]; age: number }
+/** A drawn tip: its key, the tree's tips in it, its crown node and that node's age (0 for a single tip). */
+export type Leaf = { key: string; tips: number[]; node: number; age: number }
 export type Node = { age: number; kids: (Node | Leaf)[] }
 export const isLeaf = (n: Node | Leaf): n is Leaf => 'key' in n
 
@@ -117,7 +118,7 @@ export function cladeTree(tree: Tree, tips: Iterable<number>, keyOf: (tip: numbe
     }
     let crown = k
     for (let ks = live(crown); ks.length === 1; ks = live(crown)) crown = ks[0]
-    return { key: pure[k]!, tips: out, age: tree.age[crown] }
+    return { key: pure[k]!, tips: out, node: crown, age: tree.age[crown] }
   }
   const build = (k: number): Node | Leaf => {
     if (pure[k] !== null) return leaf(k)
@@ -175,11 +176,12 @@ export type Drawing = {
 
 /**
  * The elbows of a drawing: each branch from its parent node down to its child, in `seen` when some leaf below is on the
- * list. `yOf(i)` is the i-th leaf's y (default: one unit per leaf).
+ * list. `yOf(i)` is the i-th leaf's y (default: one unit per leaf). A drawing that is one leaf is its stem, from
+ * `stemAge` (the split from its closest relatives) to today.
  */
-export function drawTree(root: Node | Leaf, seen: (leaf: Leaf, i: number) => boolean, yOf: (i: number) => number = (i) => i + 0.5, width = 1000): Drawing {
+export function drawTree(root: Node | Leaf, seen: (leaf: Leaf, i: number) => boolean, yOf: (i: number) => number = (i) => i + 0.5, stemAge?: number, width = 1000): Drawing {
   const leaves = leavesOf(root)
-  const rootAge = root.age || 1
+  const rootAge = (isLeaf(root) ? stemAge : root.age) || 1
   const x = (age: number) => +((1 - age / rootAge) * width).toFixed(1)
   let row = 0
   const on: string[] = [], off: string[] = []

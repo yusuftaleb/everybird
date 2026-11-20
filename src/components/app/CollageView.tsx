@@ -301,7 +301,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         <ListView entries={shownList} species={species} regions={regions} order={massOrder} sci={sci} onPick={onPickRow} />
       ) : (
         <Suspense fallback={<p className="eb-mono">{t.collage.tree.loading}</p>}>
-          <TreeView entries={shownList} species={species} sci={sci} onPick={onPickRow} />
+          <TreeView entries={shownList} sci={sci} onPick={onPickRow} />
         </Suspense>
       )}
 
