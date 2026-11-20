@@ -2,7 +2,7 @@
 // "Add birds": one modal for every way in, opened from the collage's head and the landing's main button (Settings has
 // the same rows in the page). It opens on "Import a file" (the source rows, ImportPanel); "Add by hand" (TickList) is
 // one press away in the same control. Centred from 601px, a
-// full-height sheet on phones. Esc, ✕ and a press outside close it; Tab stays inside; focus goes back to the button
+// full-height sheet on phones. On Add by hand the dialog fits the screen: only the species list scrolls (import.css). Esc, ✕ and a press outside close it; Tab stays inside; focus goes back to the button
 // that opened it (or, when that button has gone, as the landing's does once a first list is made, to the collage's
 // "Add birds"). Imports run in EverybirdProvider, so closing it mid-import loses nothing.
 import { ArrowRight, LockSimple, X } from '@phosphor-icons/react'
@@ -104,7 +104,7 @@ export function AddBirdsDialog({ onClose }: { onClose: () => void }) {
         ) : way === 'hand' && data ? (
           <>
             {ticked.species > 0 && <p className="eb-mono eb-note">{[t.tick.title, ...countParts(ticked, t)].join(' · ')}</p>}
-            <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} autoFocus />
+            <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} autoFocus view={7} />
           </>
         ) : null}
         {/* Where files and usernames are handed over; the full privacy note is on About. */}

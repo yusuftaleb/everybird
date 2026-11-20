@@ -1,12 +1,14 @@
 'use client'
-// Add by hand (the Add birds dialog): the whole eBird taxonomy (~11,000 species) as a searchable list, browsable by
-// family, where a tap adds a bird to the list at once and a tap on a bird already on it takes it off at once, each
-// with "Added … · Undo" or "Removed … · Undo". Taking off a bird is the bird card's Remove (removeTicked): it goes into
-// `removed`, so a file that has it no longer counts it. "When and where", closed by default, gives the birds added
-// while it is open a date (the system picker, or a year alone) and a country and region; closed, a bird gets neither.
-// The list is windowed (only the rows in view are in the DOM). It is a multi-select listbox whose selected options are
-// the birds on the list: the arrow keys move the active row, Space or Enter flips it; a click flips a row.
-import { CaretDown, Check } from '@phosphor-icons/react'
+// Add by hand (the Add birds dialog and Settings): the whole eBird taxonomy (~11,000 species) as a searchable list,
+// browsable by family, where a tap adds a bird to the list at once and a tap on a bird already on it takes it off at
+// once, each with "Added … · Undo" or "Removed … · Undo". Taking off a bird is the bird card's Remove (removeTicked): it
+// goes into `removed`, so a file that has it no longer counts it. "When and where", a bar under the list that is always
+// there and sticks to the bottom of the screen while the list is in view (as the old "Add N" bar did), gives every bird
+// added a date (the system picker, or a year alone) and a country and region, when set. The list is windowed (only the
+// rows in view are in the DOM) and may be shorter than `view` rows when its box is (the dialog fits the screen). It is
+// a multi-select listbox whose selected options are the birds on the list: the arrow keys move the active row, Space or
+// Enter flips it; a click flips a row.
+import { Check } from '@phosphor-icons/react'
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { removedText, UndoToast, type Removal } from '@/components/app/UndoToast'
 import { Sticker } from '@/components/collage/Sticker'
@@ -38,13 +40,15 @@ type Props = {
   listEmpty?: boolean
   /** Focus the search on mount (the Add birds dialog's Add by hand; not on Settings, where it is part of the page). */
   autoFocus?: boolean
+  /** Rows the list shows at most (8; the dialog's 7, so it fits a laptop's screen). */
+  view?: number
 }
 
 const ROW = 56
-const VIEW = 8 // rows in view (the list's height)
+const VIEW = 8 // rows in view at most (the list's height)
 const OVER = 6 // rows drawn above and below the view
 
-export function TickList({ species, regions, edits, dispatch, onList, listEmpty, autoFocus }: Props) {
+export function TickList({ species, regions, edits, dispatch, onList, listEmpty, autoFocus, view = VIEW }: Props) {
   const ids = useId()
   const { lang, t } = useI18n()
   const tt = t.tick
@@ -54,7 +58,8 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   const [family, setFamily] = useState('')
   const [active, setActive] = useState(0)
   const [top, setTop] = useState(0)
-  const [when, setWhen] = useState(false)
+  // The list's drawn height: `view` rows, or fewer where its box shrinks to fit (the dialog).
+  const [boxH, setBoxH] = useState(view * ROW)
   const [date, setDate] = useState('')
   const [year, setYear] = useState('')
   const [country, setCountry] = useState('')
@@ -65,6 +70,13 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   const yearRef = useRef<HTMLInputElement>(null)
   // In the dialog the search has the focus as soon as this opens (an effect: after the dialog's own focus, a layout effect).
   useEffect(() => { if (autoFocus) search.current?.focus({ preventScroll: true }) }, [autoFocus])
+  useEffect(() => {
+    const el = box.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => setBoxH(el.clientHeight || view * ROW))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [view])
 
   // Every family by its common name, in the UI language's order.
   const families = useMemo(() => {
@@ -93,7 +105,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   const fromTop = () => { setActive(0); setTop(0); if (box.current) box.current.scrollTop = 0 }
   const at = Math.min(active, Math.max(0, rows.length - 1))
   const first = Math.max(0, Math.floor(top / ROW) - OVER)
-  const last = Math.min(rows.length, Math.ceil((top + VIEW * ROW) / ROW) + OVER)
+  const last = Math.min(rows.length, Math.ceil((top + boxH) / ROW) + OVER)
 
   const flip = (code: string) => {
     const name = nameOfCode(species.byCode, code)
@@ -102,10 +114,10 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
       setChange({ codes: [code], text: removedText([name], t), before: edits })
       return
     }
-    if (when && yearBad) { yearRef.current?.focus(); return }
+    if (yearBad) { yearRef.current?.focus(); return }
     let place: Place | undefined
-    if (when && country) { place = { country }; if (sub1) place.sub1 = sub1 }
-    const d = when ? date || year.trim() : ''
+    if (country) { place = { country }; if (sub1) place.sub1 = sub1 }
+    const d = date || year.trim()
     dispatch({ type: 'edit', edits: addTicked(edits, [code], { date: d || undefined, place }) })
     // Only the first bird into an empty list starts a hand-made collage; later ones are edits.
     if (listEmpty) track('collage_made', { source: 'manual' })
@@ -120,7 +132,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
     else if ((j + 1) * ROW > el.scrollTop + el.clientHeight) el.scrollTop = (j + 1) * ROW - el.clientHeight
   }
   const onKey = (e: KeyboardEvent) => {
-    const page = VIEW - 1
+    const page = Math.max(1, Math.floor(boxH / ROW) - 1)
     const go: Record<string, number> = { ArrowDown: at + 1, ArrowUp: at - 1, PageDown: at + page, PageUp: at - page, Home: 0, End: rows.length - 1 }
     if (e.key in go) { e.preventDefault(); moveTo(go[e.key]) }
     else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (rows[at]) flip(rows[at].code) }
@@ -137,66 +149,6 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   return (
     <section className="eb-tick" aria-labelledby={`${ids}-h`}>
       <h3 id={`${ids}-h`} className="eb-sr">{tt.label}</h3>
-      <div className="eb-tick-when">
-        <button
-          type="button"
-          className="eb-btn eb-btn-quiet eb-btn-sm eb-disclose-btn"
-          aria-expanded={when}
-          aria-controls={`${ids}-w`}
-          onClick={() => setWhen((w) => !w)}
-        >
-          {tt.when}
-          <CaretDown aria-hidden="true" focusable="false" weight="bold" />
-        </button>
-        <div id={`${ids}-w`} role="group" aria-label={tt.when} hidden={!when}>
-          <p className="eb-note">{tt.whenNote}</p>
-          <div className="eb-tick-fields">
-            <label className="eb-sr" htmlFor={`${ids}-d`}>{tt.date}</label>
-            <input
-              id={`${ids}-d`}
-              className="eb-input"
-              type="date"
-              min="1800-01-01"
-              max={today()}
-              value={date}
-              onChange={(e) => { setDate(e.target.value); if (e.target.value) setYear('') }}
-            />
-            <label className="eb-sr" htmlFor={`${ids}-y`}>{tt.year}</label>
-            <input
-              ref={yearRef}
-              id={`${ids}-y`}
-              className="eb-input"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={4}
-              placeholder={tt.year}
-              value={year}
-              aria-invalid={yearBad || undefined}
-              aria-describedby={yearBad ? `${ids}-ye` : undefined}
-              onChange={(e) => { setYear(e.target.value); if (e.target.value) setDate('') }}
-            />
-            <label className="eb-sr" htmlFor={`${ids}-c`}>{tt.country}</label>
-            <span className="eb-select">
-              <select id={`${ids}-c`} className="eb-input" value={country} onChange={(e) => { setCountry(e.target.value); setSub1('') }}>
-                <option value="">{tt.noCountry}</option>
-                {countries.map(([iso, name]) => <option key={iso} value={iso}>{name}</option>)}
-              </select>
-            </span>
-            {subs.length > 0 && (
-              <>
-                <label className="eb-sr" htmlFor={`${ids}-s`}>{tt.region}</label>
-                <span className="eb-select">
-                  <select id={`${ids}-s`} className="eb-input" value={sub1} onChange={(e) => setSub1(e.target.value)}>
-                    <option value="">{tt.wholeCountry}</option>
-                    {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
-                  </select>
-                </span>
-              </>
-            )}
-          </div>
-          {yearBad && <p id={`${ids}-ye`} className="eb-error">{tt.dateError}</p>}
-        </div>
-      </div>
       <div className="eb-tick-tools">
         <label className="eb-sr" htmlFor={`${ids}-q`}>{tt.search}</label>
         <input
@@ -229,7 +181,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
         aria-label={tt.list}
         aria-activedescendant={rows[at] ? `${ids}-r-${rows[at].code}` : undefined}
         tabIndex={0}
-        style={{ height: Math.min(VIEW, Math.max(rows.length, 1)) * ROW }}
+        style={{ height: Math.min(view, Math.max(rows.length, 1)) * ROW }}
         onScroll={(e) => setTop(e.currentTarget.scrollTop)}
         onKeyDown={onKey}
         data-testid="tick-list"
@@ -266,6 +218,55 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
         </div>
       </div>
       {!rows.length && <p className="eb-note">{t.import.search.none}</p>}
+
+      <div className="eb-tickbar" role="group" aria-labelledby={`${ids}-w`}>
+        <p id={`${ids}-w`} className="eb-tickbar-n">{tt.when}</p>
+        <div className="eb-tick-fields">
+          <label className="eb-sr" htmlFor={`${ids}-d`}>{tt.date}</label>
+          <input
+            id={`${ids}-d`}
+            className="eb-input"
+            type="date"
+            min="1800-01-01"
+            max={today()}
+            value={date}
+            onChange={(e) => { setDate(e.target.value); if (e.target.value) setYear('') }}
+          />
+          <label className="eb-sr" htmlFor={`${ids}-y`}>{tt.year}</label>
+          <input
+            ref={yearRef}
+            id={`${ids}-y`}
+            className="eb-input"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={4}
+            placeholder={tt.year}
+            value={year}
+            aria-invalid={yearBad || undefined}
+            aria-describedby={yearBad ? `${ids}-ye` : undefined}
+            onChange={(e) => { setYear(e.target.value); if (e.target.value) setDate('') }}
+          />
+          <label className="eb-sr" htmlFor={`${ids}-c`}>{tt.country}</label>
+          <span className="eb-select">
+            <select id={`${ids}-c`} className="eb-input" value={country} onChange={(e) => { setCountry(e.target.value); setSub1('') }}>
+              <option value="">{tt.noCountry}</option>
+              {countries.map(([iso, name]) => <option key={iso} value={iso}>{name}</option>)}
+            </select>
+          </span>
+          {subs.length > 0 && (
+            <>
+              <label className="eb-sr" htmlFor={`${ids}-s`}>{tt.region}</label>
+              <span className="eb-select">
+                <select id={`${ids}-s`} className="eb-input" value={sub1} onChange={(e) => setSub1(e.target.value)}>
+                  <option value="">{tt.wholeCountry}</option>
+                  {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
+                </select>
+              </span>
+            </>
+          )}
+        </div>
+        {yearBad && <p id={`${ids}-ye`} className="eb-error">{tt.dateError}</p>}
+      </div>
       {/* Each change is announced (the toast's slot is a live region); it keeps focus on the list, to tick on. */}
       <UndoToast removal={change} onUndo={undo} onDone={dismiss} focus={false} />
     </section>

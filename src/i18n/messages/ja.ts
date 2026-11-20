@@ -795,7 +795,6 @@ export const ja: Messages = {
       onListLabel: '{name}、すでにリストにあります',
       onList: 'リストにあります',
       when: '日付と場所',
-      whenNote: 'ここを開いている間に追加する鳥に適用されます。',
       date: '日付（任意）',
       year: 'または年',
       dateError: '1800年から今年までの年を入力してください。',

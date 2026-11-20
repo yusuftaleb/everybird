@@ -795,7 +795,6 @@ export const zhHans: Messages = {
       onListLabel: '{name}，已在你的清单上',
       onList: '已在你的清单上',
       when: '时间和地点',
-      whenNote: '适用于展开此项时你添加的鸟。',
       date: '日期（可选）',
       year: '或年份',
       dateError: '使用1800年到今年之间的年份。',

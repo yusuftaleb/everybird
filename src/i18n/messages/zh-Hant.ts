@@ -795,7 +795,6 @@ export const zhHant: Messages = {
       onListLabel: '{name}，已在你的清單上',
       onList: '已在你的清單上',
       when: '時間和地點',
-      whenNote: '套用在這裡展開時你新增的鳥。',
       date: '日期（選填）',
       year: '或只填年份',
       dateError: '請使用 1800 年到今年之間的年份。',

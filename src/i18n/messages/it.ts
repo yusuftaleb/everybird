@@ -793,7 +793,6 @@ export const it: Messages = {
       onListLabel: '{name}, già nella tua lista',
       onList: 'Nella tua lista',
       when: 'Quando e dove',
-      whenNote: 'Vale per gli uccelli che aggiungi mentre questo è aperto.',
       date: 'Data (facoltativa)',
       year: 'O un anno',
       dateError: 'Usa un anno dal 1800 a quest’anno.',

@@ -807,7 +807,6 @@ export const nl: Messages = {
       onListLabel: '{name}, al op je lijst',
       onList: 'Op je lijst',
       when: 'Wanneer en waar',
-      whenNote: 'Geldt voor de vogels die je toevoegt zolang dit open is.',
       date: 'Datum (optioneel)',
       year: 'Of een jaar',
       dateError: 'Gebruik een jaar van 1800 tot dit jaar.',

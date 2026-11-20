@@ -796,7 +796,6 @@ export const sv: Messages = {
       onListLabel: '{name}, redan på din lista',
       onList: 'På din lista',
       when: 'När och var',
-      whenNote: 'Gäller fåglarna du lägger till medan det här är öppet.',
       date: 'Datum (valfritt)',
       year: 'Eller ett år',
       dateError: 'Ange ett år från 1800 till i år.',

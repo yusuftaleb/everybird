@@ -807,7 +807,6 @@ export const fr: Messages = {
       onListLabel: '{name}, déjà sur ta liste',
       onList: 'Sur ta liste',
       when: 'Quand et où',
-      whenNote: 'S’applique aux oiseaux que tu ajoutes tant que ceci est ouvert.',
       date: 'Date (facultative)',
       year: 'Ou une année',
       dateError: 'Indique une année entre 1800 et cette année.',
