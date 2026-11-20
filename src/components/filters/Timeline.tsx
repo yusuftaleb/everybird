@@ -5,14 +5,14 @@
 // layout (birds outside it hidden, no re-pack); on release (or KEY_COMMIT_MS after the last key) the range is
 // committed: one re-pack, one travel. Layouts are cached by range. On phones the strip scrolls sideways; the handles are sliders for keyboards (arrows a
 // month, PageUp/PageDown a year, Home/End). Logic in src/lib/list/timeline.ts.
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { applyFilter, type Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { barHeight, boundaryAt, monthAxis, monthBins, monthName, monthShort, pickHandle, rangeFilter, rangeIndices, rangeShort, sliderKey, timeless, yearLabels, type Month } from '@/lib/list/timeline'
-import type { SeenIndex } from '@/lib/list/seen'
+import { hasSeenMonths, type SeenIndex } from '@/lib/list/seen'
 import type { SpeciesIndex } from '@/lib/species/load'
 import './timeline.css'
 
@@ -162,6 +162,8 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
     onPointerUp: () => { if (dragging.current) { dragging.current = null; commit() } },
     onPointerCancel: () => { if (dragging.current) { dragging.current = null; commit() } },
   }
+  // The refs are read in the handlers, not in render (the React compiler lints this component whenever RepeatSwitch shares its file).
+  /* eslint-disable react-hooks/refs */
   const handleProps = (which: 'lo' | 'hi') => {
     const v = which === 'lo' ? lo : hi
     const [min, max] = which === 'lo' ? [0, hi] : [lo, N - 1]
@@ -186,6 +188,7 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
       ...pointer,
     } as const
   }
+  /* eslint-enable react-hooks/refs */
 
   // Readout: the range and its species.
   const ranged = lo > 0 || hi < N - 1
@@ -210,6 +213,7 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
           <button type="button" className="eb-textbtn" data-testid="time-clear" onClick={clear}>{t.filters.clear}</button>
         )}
       </div>
+      <RepeatSwitch filter={filter} seen={seen} onFilter={onFilter} />
       <div ref={scroller} className="eb-time-scroll" onScroll={edges} data-more={more || undefined}>
         <div ref={track} className="eb-time-track" style={{ width }} data-ranged={ranged ? '' : undefined}>
           <div className="eb-time-bars" aria-hidden="true">
@@ -237,3 +241,30 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
     </div>
   )
 })
+
+/** "Count repeat sightings" (`Filter.basis`), under the Time head where "Count a bird by" sat: off, a bird counts where and
+ *  when it was first seen (the lifer); on ('seen'), everywhere and every year it was seen, so Places and Time mean seen
+ *  there in that period. Only for lists with month sets (MyEBirdData, iNaturalist, observation.org observations):
+ *  without, nothing changes by it and it isn't shown. */
+export function RepeatSwitch({ filter, seen, onFilter }: { filter: Filter; seen?: SeenIndex; onFilter: (f: Filter) => void }) {
+  const id = useId()
+  const { t } = useI18n()
+  const hasMonths = useMemo(() => hasSeenMonths(seen), [seen])
+  if (!hasMonths) return null
+  const on = filter.basis === 'seen'
+  const toggle = () => {
+    const next: Filter = { ...filter }
+    if (on) delete next.basis
+    else next.basis = 'seen'
+    onFilter(next)
+  }
+  return (
+    <button type="button" role="switch" aria-checked={on} aria-labelledby={`${id}-l`} aria-describedby={`${id}-n`} className="eb-setrow-btn eb-frepeat" data-testid="repeat-sightings" onClick={toggle}>
+      <span className="eb-setrow-text">
+        <span id={`${id}-l`} className="eb-setrow-label">{t.filters.basis.label}</span>
+        <span id={`${id}-n`} className="eb-setrow-note">{on ? t.filters.basis.on : t.filters.basis.off}</span>
+      </span>
+      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+    </button>
+  )
+}

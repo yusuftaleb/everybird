@@ -242,8 +242,12 @@ export const fr: Messages = {
       head: { continent: 'Continents', region: 'Régions', country: 'Pays', province: 'États et provinces', county: 'Comtés' },
       find: { continent: 'Trouver un pays ou une région', region: 'Trouver une région', country: 'Trouver un pays', province: 'Trouver un État ou une province', county: 'Trouver un comté' },
       noMatch: { continent: 'Aucun lieu ne correspond.', region: 'Aucune région ne correspond.', country: 'Aucun pays ne correspond.', province: 'Aucun État ou province ne correspond.', county: 'Aucun comté ne correspond.' },
+      allCountries: 'Tous les pays',
+      /** The breadcrumb's first step when the top level lists the continents. */
+      allContinents: 'Tous les continents',
+      allOf: '{place} en entier',
       drill: { continent: 'Afficher les pays\u00a0: {place}', country: 'Afficher les États et provinces\u00a0: {place}', province: 'Afficher les comtés\u00a0: {place}' },
-      group: { continent: 'Pays\u00a0: {place}', country: 'États et provinces\u00a0: {place}', province: 'Comtés\u00a0: {place}' },
+      group: { country: 'États et provinces\u00a0: {place}', province: 'Comtés\u00a0: {place}' },
       none: 'Aucun lieu dans cette liste.',
       emptyFiltered: 'Aucun lieu ici avec les autres filtres.',
       emptyNow: 'Plus aucun lieu ici dans ta liste.',

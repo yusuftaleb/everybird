@@ -1,11 +1,11 @@
 'use client'
 // One Filters button in the controls bar and one panel behind it (item 10). The button ("Filters · 2": how many of the bird group,
 // Places, Time and Conservation status are in use, not checked boxes) sits in the controls bar between Scientific and the
-// search. It opens one panel holding the Time, Places and Conservation status sections, each keeping its own control: Time (Timeline.tsx) across the top, Places
-// (PlacesList.tsx, one list that opens in place) about 2/3 and Conservation status (StatusList.tsx) 1/3 beside each other
-// below it, and, on a list with month sets, the "Count repeat sightings" switch (RepeatSwitch) at the foot of Places. From
-// 600px the panel is a popover of one readable width under the chip row (or under the dock with none), inside `.eb-dockwrap`, the
-// same in every view (collage, list, map, tree): the filters drive them all; everything
+// search. It opens one panel holding the Time, Places and Conservation status sections, each keeping its own control: Time
+// (Timeline.tsx, with "Count repeat sightings" under its head on a list with month sets) across the top, Places
+// (PlacesList.tsx, the drill-down with its breadcrumb) about 2/3 and Conservation status (StatusList.tsx) 1/3 beside each
+// other below it. From 600px the panel is a popover the dock's full width under the chip row (or under the dock with none),
+// inside `.eb-dockwrap`, the same in every view (collage, list, map, tree): the filters drive them all; everything
 // after the dock wrap dims and goes inert while it is open (CollageView's `.eb-view-below`), and a press there, Esc or a
 // second press of the button closes it. On phones it is the modal bottom sheet, its head the count of species and its
 // bottom button "Show N species". Filters apply live. The active filters show as chips under the dock (ChipRow.tsx).
@@ -21,7 +21,6 @@ import { filterChips, withoutFilterChip } from '@/lib/list/chips'
 import { filtersCount, filtersSpoken, panelHead, showLabel } from '@/lib/list/filter-summary'
 import { emptyFilter, filterActive, type Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
-import { hasSeenMonths, type SeenIndex } from '@/lib/list/seen'
 import type { Action, AppState } from '@/lib/list/store'
 import type { Month } from '@/lib/list/timeline'
 import { groupName as nameOfGroup } from '@/lib/search/groups'
@@ -173,10 +172,7 @@ export function FiltersPanel({ state, onChange, species, regions, sections, open
           {t.filters[s]}
         </h3>
         {s === 'places' ? (
-          <>
-            <PlacesSection state={state} species={species} regions={regions} note={placesNote} unplaced={placesUnplaced} onFilter={onFilter} />
-            <RepeatSwitch filter={filter} seen={state.seen} onFilter={onFilter} />
-          </>
+          <PlacesSection state={state} species={species} regions={regions} note={placesNote} unplaced={placesUnplaced} onFilter={onFilter} />
         ) : s === 'status' ? (
           <StatusSection state={state} species={species} threatLine={threatLine} onFilter={onFilter} />
         ) : (
@@ -242,38 +238,12 @@ export function FiltersPanel({ state, onChange, species, regions, sections, open
     : body
 }
 
-/** "Count repeat sightings" (`Filter.basis`): off, a bird counts where and when it was first seen (the lifer); on
- *  ('seen'), everywhere and every year it was seen, so Places and Time mean seen there in that period. Only for lists with
- *  month sets (MyEBirdData, iNaturalist, observation.org observations): without, nothing changes by it and it isn't shown. */
-export function RepeatSwitch({ filter, seen, onFilter }: { filter: Filter; seen?: SeenIndex; onFilter: (f: Filter) => void }) {
-  const id = useId()
-  const { t } = useI18n()
-  const hasMonths = useMemo(() => hasSeenMonths(seen), [seen])
-  if (!hasMonths) return null
-  const on = filter.basis === 'seen'
-  const toggle = () => {
-    const next: Filter = { ...filter }
-    if (on) delete next.basis
-    else next.basis = 'seen'
-    onFilter(next)
-  }
-  return (
-    <button type="button" role="switch" aria-checked={on} aria-labelledby={`${id}-l`} aria-describedby={`${id}-n`} className="eb-setrow-btn eb-frepeat" data-testid="repeat-sightings" onClick={toggle}>
-      <span className="eb-setrow-text">
-        <span id={`${id}-l`} className="eb-setrow-label">{t.filters.basis.label}</span>
-        <span id={`${id}-n`} className="eb-setrow-note">{on ? t.filters.basis.on : t.filters.basis.off}</span>
-      </span>
-      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
-    </button>
-  )
-}
-
 /** What a filter change must find again: the window's and each popover scroller's position, and the focused control. */
 type Kept = { y: number; scrolls: number[]; focus: HTMLElement | null }
 
-/** The panel's scrollers in document order: the body, then each Places or Status checklist (an open branch's is not one). */
+/** The panel's scrollers in document order: the body, then Places' list and Status' checklist. */
 function panelScrollers(panel: HTMLElement | null): HTMLElement[] {
-  return panel ? Array.from(panel.querySelectorAll<HTMLElement>('.eb-drop-body, .eb-checklist:not(.eb-places-sub)')) : []
+  return panel ? Array.from(panel.querySelectorAll<HTMLElement>('.eb-drop-body, .eb-places-scroll, [data-sec="status"] .eb-checklist')) : []
 }
 
 function keepPlace(panel: HTMLElement | null): Kept {

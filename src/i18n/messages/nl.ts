@@ -242,8 +242,12 @@ export const nl: Messages = {
       head: { continent: 'Continenten', region: "Regio's", country: 'Landen', province: 'Staten en provincies', county: 'Graafschappen' },
       find: { continent: 'Zoek een land of regio', region: 'Zoek een regio', country: 'Zoek een land', province: 'Zoek een staat of provincie', county: 'Zoek een graafschap' },
       noMatch: { continent: 'Geen plaats gevonden.', region: 'Geen regio gevonden.', country: 'Geen land gevonden.', province: 'Geen staat of provincie gevonden.', county: 'Geen graafschap gevonden.' },
+      allCountries: 'Alle landen',
+      /** The breadcrumb's first step when the top level lists the continents. */
+      allContinents: 'Alle continenten',
+      allOf: 'Heel {place}',
       drill: { continent: 'Toon landen in {place}', country: 'Toon staten en provincies in {place}', province: 'Toon graafschappen in {place}' },
-      group: { continent: 'Landen in {place}', country: 'Staten en provincies in {place}', province: 'Graafschappen in {place}' },
+      group: { country: 'Staten en provincies in {place}', province: 'Graafschappen in {place}' },
       none: 'Geen plaatsen op deze lijst.',
       emptyFiltered: 'Geen plaatsen hier met de andere filters.',
       emptyNow: 'Geen plaatsen meer hier op je lijst.',
