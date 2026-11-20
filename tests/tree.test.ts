@@ -1,14 +1,14 @@
 // The bird tree: parsing, collapsing to orders / families / genera / species, the levels' rows and counts, the level
-// switch and its tip limit, the tips' stickers, the fan's geometry, the fact line, the axis, the build script's
-// relabelling, and the committed tree.v1.json against species.v1.json. Synthetic trees only.
+// menu and its tip limit, the tips' stickers, the fan's and circle's geometry, the rows' columns, the fact line, the axis,
+// the build script's relabelling, and the committed tree.v1.json against species.v1.json. Synthetic trees only.
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { attach, matcher, nexusTree, relabel, taxOnlyBits, type Addition } from '../scripts/build-data/build-tree'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
-import { FAN_OUT, FAN_R_MAX, FAN_R_MIN, drawFan, fanAngle, fanBox, fanLabel, fanRing } from '@/lib/tree/fan'
-import { HEAD_H, MAX_TIPS, ROW_H, foldSplit, groupSticker, isClade, levelView, ranksAt, taxonCover, type LevelView, type TreeRow } from '@/lib/tree/levels'
+import { FAN_GAP, FAN_LABEL, FAN_OUT, FAN_R_MAX, FAN_R_MIN, FAN_STICKER, drawFan, fanAngle, fanBox, fanLabel, fanRing, keepNames, rayRoom, ringLabels } from '@/lib/tree/fan'
+import { HEAD_H, MAX_TIPS, ROW_H, foldSplit, rowColumns, groupSticker, isClade, levelView, ranksAt, taxonCover, type LevelView, type TreeRow } from '@/lib/tree/levels'
 import { ageTicks, bitAt, cladeTree, drawTree, formatAge, isLeaf, leavesOf, oldestLineage, packBits, parseNewick, type TreeFile } from '@/lib/tree/tree'
 
 const sp = (code: string, sci: string, ord: string, fam: string, to: number): SpeciesRow =>
@@ -21,7 +21,7 @@ const species = buildSpeciesIndex([
 const NWK = '(((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6);'
 const tree = parseNewick(NWK)
 const tip = (c: string) => tree.tipOf.get(c)!
-/** Every family at once (the level switch's Families with nothing open; the Tree opens on the orders). */
+/** Every family at once (the Level menu's Families with nothing open; the Tree opens on the orders). */
 const FAMILIES = { tips: 'families' } as const
 
 describe('parseNewick', () => {
@@ -102,10 +102,9 @@ describe('drawTree', () => {
     expect(d.seen).toContain('M0 ')
     expect(d.unseen).toContain('M600 4Q600 3.5 600.5 3.5H1000') // b1
     expect((d.seen + d.unseen).match(/M/g)).toHaveLength(8) // 9 nodes, the root has no branch
-    // A dot on each of the 4 inner nodes, Ink above b2.
-    expect(d.seenNodes.match(/M/g)).toHaveLength(2)
-    expect(d.unseenNodes.match(/M/g)).toHaveLength(2)
-    expect(d.seenNodes).toContain('M-3.5 2.9a3.5 3.5 0 1 0 7 0')
+    // Branches simply join: no dot marks a node.
+    expect(Object.keys(d).sort()).toEqual(['leaves', 'rootAge', 'seen', 'seenDot', 'unseen', 'unseenDot'])
+    expect(d.seen + d.unseen).not.toMatch(/a3\.5/)
   })
 })
 
@@ -147,7 +146,7 @@ describe('levelView', () => {
   })
 })
 
-describe('the orders and the level switch', () => {
+describe('the orders and the Level menu', () => {
   const onList = new Set(['a1', 'b2'])
   const groups = (v: LevelView) => v.rows.map((r) => (r.kind === 'group' ? `${r.key} ${r.on}/${r.total}${r.with ? ` with ${r.with.map((w) => w.key)}` : ''}` : r.kind === 'species' ? r.row.code : `#${r.ord}`))
   it('opens on the orders, counted from the taxonomy, with the count line and what every rank would draw', () => {
@@ -214,6 +213,17 @@ describe('the orders and the level switch', () => {
   })
 })
 
+describe('rowColumns', () => {
+  it('as many columns as hold the widest row in full: three on wide screens, two on medium, one on phones, never four', () => {
+    expect(rowColumns(1400, 260, 24)).toBe(3)
+    expect(rowColumns(4000, 100, 24)).toBe(3)
+    expect(rowColumns(800, 260, 24)).toBe(2)
+    expect(rowColumns(560, 260, 24)).toBe(2)
+    expect(rowColumns(540, 260, 24)).toBe(1)
+    expect(rowColumns(360, 500, 24)).toBe(1) // wider than the screen: one column, the name wraps
+  })
+})
+
 describe('the fan', () => {
   it('fanBox: as large as the names\' room on both sides allows, between its bounds', () => {
     const b = fanBox(1000)
@@ -228,7 +238,7 @@ describe('the fan', () => {
     expect(fanAngle(1.5, 2)).toBeCloseTo(Math.PI / 4)
     expect(fanAngle(0.5, 1)).toBeCloseTo(Math.PI / 2)
   })
-  it('drawFan: the root at the centre, the tips on the arc, arcs with rounded joins, a dot on every node', () => {
+  it('drawFan: the root at the centre, the tips on the arc, arcs with rounded joins, no node dots', () => {
     const root = cladeTree(tree, tree.tipOf.values(), (k) => tree.code[k]!)!
     const box = { cx: 0, cy: 0, R: 100 }
     const d = drawFan(root, (l) => tree.code[l.tips[0]] === 'b2', undefined, (l) => tree.code[l.tips[0]] === 'b2', box)
@@ -239,7 +249,7 @@ describe('the fan', () => {
     expect(d.unseen).toMatch(/A[\d.]+ [\d.]+ 0 0 [01] /) // an arc along the parent's ring
     expect(d.unseen).toContain('Q')
     expect(d.seenDot).toMatch(/^M[-\d. ]+L[-\d. ]+$/) // b2's own branch, past the join
-    expect((d.seenNodes + d.unseenNodes).match(/M/g)).toHaveLength(4)
+    expect('seenNodes' in d || 'unseenNodes' in d).toBe(false)
     // One lineage alone: its stem straight up from the centre.
     const one = drawFan(cladeTree(tree, [tree.tipOf.get('a1')!], () => 'a')!, () => true, 3, () => false, box)
     expect(one.seen).toBe('M0 0L0 -100')
@@ -254,6 +264,55 @@ describe('the fan', () => {
     }
     expect(fanLabel(box, Math.PI / 2, 10)).toMatchObject({ rot: -90, flip: false })
     expect(fanLabel(box, (3 * Math.PI) / 4, 10)).toMatchObject({ rot: 45, flip: true })
+  })
+  it('fanBox: a column too narrow for the smallest fan and full room leaves less room for names, none at all at worst', () => {
+    expect(fanBox(1000).label).toBe(FAN_LABEL)
+    const phone = fanBox(288)
+    expect(phone.R).toBe(FAN_R_MIN)
+    expect(phone.label).toBe(Math.floor(144 - FAN_R_MIN - 2 * FAN_GAP - FAN_STICKER))
+    expect(phone.cx + phone.R + 2 * FAN_GAP + FAN_STICKER + phone.label).toBeLessThanOrEqual(288)
+    expect(fanBox(150).label).toBe(0)
+  })
+  it('the circle: the whole of a square, its tips all round clockwise from the top, each mid-slot', () => {
+    const b = fanBox(1000, 'circle')
+    expect(b).toMatchObject({ shape: 'circle', R: 500 - FAN_OUT, cx: 500, cy: 500, h: 1000 })
+    expect(fanAngle(0.5, 4, 'circle')).toBeCloseTo(Math.PI / 4) // the first tip just right of the top
+    expect(fanAngle(2.5, 4, 'circle')).toBeCloseTo(-(3 * Math.PI) / 4) // the third down on the left
+    const root = cladeTree(tree, tree.tipOf.values(), (k) => tree.code[k]!)!
+    const d = drawFan(root, () => false, undefined, () => false, { cx: 0, cy: 0, R: 100, shape: 'circle' })
+    for (const p of d.tips) expect(Math.hypot(p.x, p.y)).toBeCloseTo(100)
+    expect(d.tips.some((p) => p.y > 0) && d.tips.some((p) => p.y < 0)).toBe(true) // both halves
+    expect(d.unseen).not.toMatch(/A[\d.]+ [\d.]+ 0 1 /) // never the long way round
+  })
+  it('fanLabel all round the circle: along the radius, never upside down, the left half flipped', () => {
+    const box = { cx: 0, cy: 0, R: 100, shape: 'circle' as const }
+    for (let y = 0.5; y < 40; y++) {
+      const a = fanAngle(y, 40, 'circle')
+      const l = fanLabel(box, a, 10)
+      const turn = ((l.rot % 360) + 540) % 360 - 180 // the same turn in -180..180
+      expect(Math.abs(turn)).toBeLessThanOrEqual(90 + 1e-9)
+      expect(l.flip).toBe(Math.cos(a) < -1e-9)
+      expect(Math.hypot(l.x, l.y)).toBeCloseTo(110)
+    }
+  })
+  it('the circle\'s rings are whole, their ages where they cross the downward radius; the fan\'s on both sides of its centre', () => {
+    expect(fanRing({ cx: 50, cy: 60, R: 40, shape: 'circle' }, 20)).toBe('M30 60a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z')
+    expect(ringLabels({ cx: 50, cy: 60, R: 40, shape: 'circle' }, 20)).toEqual([[50, 80]])
+    expect(ringLabels({ cx: 50, cy: 60, R: 40 }, 20)).toEqual([[70, 60], [30, 60]])
+    expect(ringLabels({ cx: 50, cy: 60, R: 40 }, 8)).toEqual([[58, 60]])
+  })
+  it('rayRoom: how far a label can run outward before it leaves the drawing', () => {
+    const box = { cx: 200, cy: 200, R: 100 }
+    expect(rayRoom(box, 400, 400, 0, 10)).toBeCloseTo(90) // right: 200 to the edge, less the ring and the gap
+    expect(rayRoom(box, 400, 400, Math.PI / 2, 10)).toBeCloseTo(90) // up
+    expect(rayRoom(box, 400, 400, Math.PI / 4, 10)).toBeCloseTo(200 * Math.SQRT2 - 110)
+  })
+  it('keepNames: only names that fit their room in full; round a circle the last tip sits beside the first', () => {
+    const rows = [{ y: 0, n: 3, w: 80 }, { y: 30, n: 5, w: 200 }, { y: 60, n: 1, w: 40 }]
+    expect([...keepNames(rows, 20, 100)].sort()).toEqual([0, 2]) // the widest is left to the hover label and the rows
+    const ring = [{ y: 5, n: 1 }, { y: 50, n: 1 }, { y: 95, n: 2 }]
+    expect([...keepNames(ring, 20)].sort()).toEqual([0, 1, 2])
+    expect([...keepNames(ring, 20, undefined, 100)].sort()).toEqual([1, 2]) // 95 and 5 are 10 apart round the circle
   })
   it('fanRing: an age\'s half circle over the top', () => {
     expect(fanRing({ cx: 50, cy: 60, R: 40 }, 20)).toBe('M30 60A20 20 0 0 1 70 60')
