@@ -142,27 +142,43 @@
   .eb-dock-tools .eb-dock-sw::after { content: ''; position: absolute; inset: -4px 0; }
 }
 /* The Tree's controls: the Level and Layout menus (MenuSelect's button, rendered by TreeView into `.eb-dock-menus`), then
-   Lifers only and Scientific. They need more room than the other views' switches, so the second row starts under
-   1200px of bar there, and the row wraps whole groups (the two menus together, the two switches together) rather than
-   overflowing. Under 600px the menus take that row to themselves, sharing it evenly, and the switches and Filters the
-   row under it; the menus draw 36px with a 44px press, as the switches. */
+   Lifers only and Scientific. They keep one row with the views and the magnifier whenever they fit; when they don't
+   (ControlsBar measures them: `data-wrap`), they take the second row as the other views' controls do under 820px, and
+   that row wraps whole groups (the two menus together, the two switches together) rather than overflowing. Each control
+   keeps its own width there (no shrinking: the measure reads it). Under 600px the menus take that row to themselves,
+   sharing it evenly, and the switches and Filters the row under it. */
 .eb-dock-menus { display: flex; align-items: center; gap: 4px; flex: none; margin-right: 8px; }
 .eb-dock-menus:empty { display: none; }
 .eb-dock[data-view="tree"] .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
-@container (max-width: 1199px) {
-  .eb-dock[data-view="tree"] .eb-dock-filters {
-    order: 1; flex: 1 0 100%; margin: 0 -4px -4px; padding: 4px; border-top: 1px solid var(--hairline);
-  }
-  .eb-dock[data-view="tree"] .eb-find { bottom: auto; height: 44px; }
-  .eb-dock[data-view="tree"][data-finding] .eb-dock-filters { display: none; }
+.eb-dock[data-view="tree"][data-wrap] .eb-dock-filters {
+  order: 1; flex: 1 0 100%; margin: 0 -4px -4px; padding: 4px; border-top: 1px solid var(--hairline);
 }
+.eb-dock[data-view="tree"][data-wrap] .eb-find { bottom: auto; height: 44px; }
+.eb-dock[data-view="tree"][data-wrap][data-finding] .eb-dock-filters { display: none; }
+@container (min-width: 600px) { .eb-dock[data-view="tree"] .eb-dock-filters > * { flex-shrink: 0; } }
+/* The menus' buttons are the Filters button's look (a borderless bar button: the label, a caret; the same height,
+   padding, opacity, hover and open state), not MenuSelect's bordered form field (share.css). */
+.eb-dock-menus .eb-share-dd {
+  min-height: 44px; gap: 8px; padding: 0 10px 0 12px; border: 0; background: transparent; color: inherit;
+  font: inherit; opacity: .66; border-radius: 12px; corner-shape: round;
+  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease);
+}
+.eb-dock-menus .eb-share-dd::after { content: none; }
+.eb-dock-menus .eb-share-dd svg { width: 14px; height: 14px; color: inherit; transition: transform .2s var(--eb-ease); }
+.eb-dock-menus .eb-share-dd[aria-expanded="true"] { opacity: 1; background: var(--surface); }
+.eb-dock-menus .eb-share-dd[aria-expanded="true"] svg { transform: rotate(180deg); }
+.eb-dock-menus .eb-share-dd:disabled { color: inherit; cursor: default; }
+@media (hover: hover) and (pointer: fine) { .eb-dock-menus .eb-share-dd:not(:disabled):hover { opacity: 1; } }
 @container (max-width: 599px) {
   .eb-dock-menus { flex: 1 0 100%; margin-right: 0; }
   .eb-dock-menus > .eb-share-ddwrap { flex: 1 1 0; min-width: 0; }
-  .eb-dock-menus .eb-share-dd { width: 100%; min-height: 36px; justify-content: space-between; }
-  .eb-dock-menus .eb-share-dd::after { inset: -4px 0; }
+  /* As Filters on this row: 36px drawn with a 44px press, the label centred, no caret. */
+  .eb-dock-menus .eb-share-dd { width: 100%; min-height: 36px; justify-content: center; padding: 0 10px; }
+  .eb-dock-menus .eb-share-dd::after { content: ''; inset: -4px 0; }
+  .eb-dock-menus .eb-share-dd svg { display: none; }
   .eb-dock[data-view="tree"] .eb-dock-filters .eb-dock-drop { min-width: max-content; } /* wraps under the switches rather than cut its label */
 }
+@media (prefers-reduced-motion: reduce) { .eb-dock-menus .eb-share-dd svg { transition: none; } }
 .eb-view-below { display: contents; } /* the column's gaps stay; Filters dims and inertes everything in it while open */
 .eb-view-below[data-dim] > * { opacity: .3; transition: opacity .2s var(--eb-ease); }
 @media (prefers-reduced-motion: reduce) { .eb-view-below[data-dim] > * { transition: none; } }
