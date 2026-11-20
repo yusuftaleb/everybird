@@ -32,17 +32,17 @@
 import { SHARE_ORIGIN } from '@/lib/share/origin'
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { printStickerUrl, stickerUrl } from '@/lib/sticker-url'
-import { fmt } from '@/i18n/core'
+import { fmt, plural } from '@/i18n/core'
 import { formatMonth } from '@/i18n/format'
 import { PRINT_DESIGN_W, captionMinPx, printDesign, printPackH, type PrintSize } from '@/lib/share/print'
-import { RING_PAD, defaultCaptionMeasure, planCaptions, verifyAndPlaceCaptions, type CaptionBox, type CaptionPlan, type PlacedTile, type TextMeasurer } from '@/lib/share/captions'
+import { defaultCaptionMeasure, planCaptions, verifyAndPlaceCaptions, type CaptionBox, type CaptionPlan, type PlacedTile, type TextMeasurer } from '@/lib/share/captions'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
 import type { Box } from '@/lib/layout/pack'
 import type { Arrangement } from '@/lib/arrangement'
-import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
+import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, goalLabelCells, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
-import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
+import { latestLifer, liferOrder } from '@/lib/list/build-list'
 import { continentNames, namesLabel, placesLabel, regionNames, seenLabels, statusLabel } from '@/lib/list/filter-summary'
 import type { Filter } from '@/lib/list/filters'
 import { rangeLabel } from '@/lib/list/timeline'
@@ -230,6 +230,8 @@ export type CountLayout = {
   labelSize: number
   /** Gap between the number's baseline and the label's cap line. */
   gap: number
+  /** The label box's width in characters (labelEm): COUNT_LABEL_CHARS, or a goal's (goalLabelCells). */
+  cells?: number
   /** The hole (px, about the collage's centre) the packer keeps empty: the drawn text's boxes, grown by its pad. */
   hole: Hole
 }
@@ -271,8 +273,10 @@ export function countLayout(format: CardFormat | number, count: number, collageW
   const baseMax = typeof format === 'number' ? format : COUNT_MAX[format]
   const max = countSize === 'small' ? baseMax * 0.72 : countSize === 'large' ? baseMax * 1.28 : baseMax
   const countW = countSize === 'small' ? COUNT_W * 0.72 : countSize === 'large' ? Math.min(0.68, COUNT_W * 1.2) : COUNT_W
-  const number = target !== undefined ? `${countText(count)} / ${countText(target)}` : countText(count)
+  // A goal never changes the number (its size stays the no-goal one): it goes in the label, "OF 150 SPECIES".
+  const number = countText(count)
   const label = LABEL
+  const cells = target !== undefined ? goalLabelCells(target) : undefined
   const em = numberEm(number)
   const size = Math.round(Math.min(max, (countW * collageW) / em))
   // The label: a fifth of the number up to 22px, never under 18px on the share images (a long count's number is smaller).
@@ -283,8 +287,8 @@ export function countLayout(format: CardFormat | number, count: number, collageW
   const accent = (MONO_CAP_ACCENT - MONO_CAP) * labelSize
   // `gap - drop - accent` is negative at most sizes: the comma's foot and the accent's ink share the gap, so the two boxes
   // overlap by design (the column's height is still digits + gap + caps). Clamping it would move the text.
-  const boxes = columnBoxes(em * size, DIGIT_CAP * size + drop, gap - drop - accent, labelEm() * labelSize, MONO_CAP_ACCENT * labelSize)
-  return { number, label, size, labelSize, gap, hole: { ...boxes, pad: COUNT_PAD * size } }
+  const boxes = columnBoxes(em * size, DIGIT_CAP * size + drop, gap - drop - accent, labelEm(cells) * labelSize, MONO_CAP_ACCENT * labelSize)
+  return { number, label, size, labelSize, gap, ...(cells ? { cells } : {}), hole: { ...boxes, pad: COUNT_PAD * size } }
 }
 
 /**
@@ -293,7 +297,7 @@ export function countLayout(format: CardFormat | number, count: number, collageW
  */
 export function ogCountHole(K: CountLayout): Hole {
   const em = numberEm(K.number)
-  const boxes = columnBoxes(em * K.size, Math.max(NUM_LINE, DIGIT_CAP + COMMA_DROP) * K.size, K.gap * 0.6 - Math.max(0, DIGIT_CAP + COMMA_DROP - NUM_LINE) * K.size, labelEm() * K.labelSize, MONO_LINE * K.labelSize)
+  const boxes = columnBoxes(em * K.size, Math.max(NUM_LINE, DIGIT_CAP + COMMA_DROP) * K.size, K.gap * 0.6 - Math.max(0, DIGIT_CAP + COMMA_DROP - NUM_LINE) * K.size, labelEm(K.cells) * K.labelSize, MONO_LINE * K.labelSize)
   return { ...boxes, pad: COUNT_PAD * K.size }
 }
 
@@ -351,7 +355,7 @@ export function cardDims(format: CardFormat, size: PrintSize = 'A2'): [number, n
 
 /** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
 /** `oval`: the share dialog's Oval (arrangement.ts); left out for Packed. */
-export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number; ring?: number }>; oval?: true }
+export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number }>; oval?: true }
 export function packSpec(L: CardLayout): PackSpec {
   const { w, h } = L.collage
   return { aspect: w / h, hole: scaleHole(L.count.hole, 1 / w), maxTile: L.maxTile }
@@ -431,7 +435,7 @@ export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSi
   if (!captionPlan) return spec
   const captionBoxes: NonNullable<PackSpec['captionBoxes']> = {}
   for (const [code, entry] of captionPlan.byCode) {
-    captionBoxes[code] = { w: entry.w / L.collage.w, h: entry.h / L.collage.w, ...(entry.ring ? { ring: RING_PAD / L.collage.w } : {}) }
+    captionBoxes[code] = { w: entry.w / L.collage.w, h: entry.h / L.collage.w }
   }
   return { ...spec, maxTile: Math.min(spec.maxTile, L.maxSide / L.collage.w), captionBoxes }
 }
@@ -529,7 +533,6 @@ export type Tile = {
   x: number; y: number; w: number; h: number; url: string | null
   /** The print's 384 file, tried when its 1024 file (`url`) fails; absent or null otherwise. */
   fallback?: string | null
-  mark?: 'newest' | 'first' | 'both'
 }
 /** A band of the card in design units, top (y0) to bottom (y1): the part a poster strip paints. */
 export type PaintRange = { y0: number; y1: number }
@@ -546,12 +549,10 @@ export function tileInRange(t: { y: number; h: number }, range: PaintRange): boo
  * `range`, only the tiles tileInRange keeps.
  */
 export function paintTiles(
-  ctx: CanvasRenderingContext2D, tiles: Tile[], imgs: Map<string, CanvasImageSource | null>, line: string, range?: PaintRange, colors?: Pick<ShareColors, 'accent' | 'ink'>,
+  ctx: CanvasRenderingContext2D, tiles: Tile[], imgs: Map<string, CanvasImageSource | null>, line: string, range?: PaintRange,
 ): void {
   const bird = new Path2D(BIRD_PATH)
-  const ringed: Tile[] = []
   for (const t of tiles) {
-    if (t.mark && (!range || (t.y - 7 < range.y1 && t.y + t.h + 7 > range.y0))) ringed.push(t)
     if (range && !tileInRange(t, range)) continue
     const img = t.url ? imgs.get(t.url) : null
     if (img) {
@@ -568,17 +569,6 @@ export function paintTiles(
     ctx.lineWidth = 2 / k
     ctx.lineJoin = 'round'
     ctx.stroke(bird)
-    ctx.restore()
-  }
-  for (const t of ringed) {
-    ctx.save()
-    ctx.beginPath()
-    const pad = 5, r = 10
-    if (ctx.roundRect) ctx.roundRect(t.x - pad, t.y - pad, t.w + pad * 2, t.h + pad * 2, r)
-    else ctx.rect(t.x - pad, t.y - pad, t.w + pad * 2, t.h + pad * 2)
-    ctx.strokeStyle = t.mark === 'first' ? (colors?.ink ?? '#1e1e24') : (colors?.accent ?? '#92140c')
-    ctx.lineWidth = 3
-    ctx.stroke()
     ctx.restore()
   }
 }
@@ -652,14 +642,12 @@ export type ShareImageOpts = {
   footer?: string
   /** The latest lifer row; default true. False leaves it out and gives its room to the collage (cardLayout's `latest: false`). */
   latest?: boolean
-  markNewest?: boolean
-  markFirst?: boolean
   /** The UI language's strings the image draws: the count's number and label, the latest lifer's label and month, and
    *  the stamp's month. The filter label comes in words already (`filterLabel`, from the same strings). */
   strings: ShareStrings
   /** A bird's name to draw (the latest lifer's); default its English name. The dialog passes the display name. */
   nameOf?: (row: SpeciesRow) => string
-  /** A species goal: the count reads "190 / 300". With `year`, the card's line names it ("Big Year 2026"); without, it is
+  /** A species goal: the label under the count reads "OF 300 SPECIES". With `year`, the card's line names it ("Big Year 2026"); without, it is
    *  the shown list's goal (All time) and the line is the filter's. */
   goal?: { year?: number; target?: number; basis: 'seen' | 'lifer' }
   countSize?: CountSize
@@ -789,7 +777,6 @@ export function fitCaptionPack(
   content: CardContent,
   printSize: PrintSize,
   captionPlan: Extract<CaptionPlan, { ok: true }>,
-  markedCodes?: Set<string>,
 ): { fit: PackFit; placed: PlacedTile[]; captions?: CaptionBox[]; ok: boolean } {
   const L = cardLayout(format, content, printDesign(printSize, format === 'printLandscape'))
   const area = L.collage
@@ -802,7 +789,7 @@ export function fitCaptionPack(
     if (!b) continue
     const [w, h] = [b[2] * fit.s, b[3] * fit.s]
     const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
-    placed.push({ code: e.code, x, y, w, h, ...(markedCodes?.has(e.code) ? { marked: true } : {}) })
+    placed.push({ code: e.code, x, y, w, h })
   }
   const verified = verifyAndPlaceCaptions(placed, area, { cx: fit.cx, cy: fit.cy }, scaleHole(L.count.hole, Math.max(1, fit.grow)), captionPlan)
   return verified.ok ? { fit, placed, captions: verified.captions, ok: true } : { fit, placed, ok: false }
@@ -812,18 +799,6 @@ export function fitCaptionPack(
 export function goalText(goal: NonNullable<ShareImageOpts['goal']>, strings: ShareStrings): string {
   if (goal.year === undefined) return ''
   return fmt(goal.basis === 'lifer' ? strings.share.bigYear.cardLifer : strings.share.bigYear.card, { year: goal.year })
-}
-
-/** The birds the lifer rings mark among `entries`: the latest lifer and the first, as the card draws them. */
-export function markedCodesOf(entries: ListEntry[], species: SpeciesIndex, marks: { newest?: boolean; first?: boolean }): Set<string> {
-  const s = new Set<string>()
-  if (!marks.newest && !marks.first) return s
-  const order = liferOrder(species.byCode)
-  const newest = marks.newest ? latestLifer(entries, order)?.code : undefined
-  const first = marks.first ? firstLifer(entries, order)?.code : undefined
-  if (newest) s.add(newest)
-  if (first) s.add(first)
-  return s
 }
 
 export function ensureCaptionFont(px: number, sample: string): Promise<void> {
@@ -844,9 +819,6 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const shown = entries.filter((e) => species.byCode.has(e.code))
   const order = liferOrder(species.byCode)
   const latestE = latestLifer(shown, order)
-  const firstE = opts.markFirst ? firstLifer(shown, order) : undefined
-  const markNewestCode = opts.markNewest ? latestE?.code : undefined
-  const markFirstCode = opts.markFirst ? firstE?.code : undefined
   const latestRow = latestE && species.byCode.get(latestE.code)!
   const strings = opts.strings
   const latest = opts.latest !== false && latestRow ? latestText({ com: opts.nameOf?.(latestRow) ?? latestRow.com, date: latestE!.date }, strings) : undefined
@@ -858,7 +830,6 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize }
   const printSize = opts.printSize ?? 'A2'
   const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
-  const markedCodes = markedCodesOf(shown, species, { newest: opts.markNewest, first: opts.markFirst })
   let captionPlan: CaptionPlan | undefined
   if (print && opts.showNames) {
     const sample = shown.map((e) => {
@@ -867,7 +838,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
     }).join('')
     await ensureCaptionFont(captionMinPx(printSize), sample)
     if (signal?.aborted) throw abortError()
-    captionPlan = planCaptions(shown, species, printSize, L.collage.w, opts.nameOf, captionMeasurer(), markedCodes)
+    captionPlan = planCaptions(shown, species, printSize, L.collage.w, opts.nameOf, captionMeasurer())
   }
   // Packed for the format's own frame (the print: at its shape's printPackH, one pack for every A size, as imagePackSpec).
   let pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined, opts.arrangement), signal))
@@ -881,7 +852,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
 
   // The pack on the collage area, its centre (the count) on the area's centre.
   const area = L.collage
-  const capFit = captionPlan?.ok ? fitCaptionPack(pack, shown, format, content, printSize, captionPlan, markedCodes) : undefined
+  const capFit = captionPlan?.ok ? fitCaptionPack(pack, shown, format, content, printSize, captionPlan) : undefined
   if (capFit && !capFit.ok && !opts.pack) {
     pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, undefined, opts.arrangement), signal)
     if (signal?.aborted) throw abortError()
@@ -896,9 +867,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
     const row = species.byCode.get(e.code)!
     const [w, h] = [b[2] * fit.s, b[3] * fit.s]
     const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
-    const isNewest = e.code === markNewestCode, isFirst = e.code === markFirstCode
-    const mark: Tile['mark'] = isNewest && isFirst ? 'both' : isNewest ? 'newest' : isFirst ? 'first' : undefined
-    const tile: Tile = { x, y, w, h, ...(row.st ? sticker(e.code, Math.max(w, h), row.sv) : { url: null }), ...(mark ? { mark } : {}) }
+    const tile: Tile = { x, y, w, h, ...(row.st ? sticker(e.code, Math.max(w, h), row.sv) : { url: null }) }
     return [tile]
   })
   // The latest lifer's sticker, contained in its square at the sticker's own aspect.
@@ -913,8 +882,10 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const g = Math.min(fit.grow, 1.3)
   const K = { ...L.count, size: Math.round(L.count.size * g), labelSize: Math.round(L.count.labelSize * Math.min(g, 1.15)), gap: Math.round(L.count.gap * g) }
   // What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's.
-  const countNum = K.size > 0 ? (goal?.target !== undefined ? `${countDisplay(content.count, strings.num)} / ${countDisplay(goal.target, strings.num)}` : countDisplay(content.count, strings.num)) : ''
-  const countLabel = K.size > 0 ? strings.count.label.toUpperCase() : ''
+  // With a goal the label says it ("OF 150 SPECIES"); the number is the count alone, at its no-goal size.
+  const countNum = K.size > 0 ? countDisplay(content.count, strings.num) : ''
+  const countLabel = K.size <= 0 ? ''
+    : (goal?.target !== undefined ? plural(strings.share.bigYear.ofTarget, goal.target, { n: countDisplay(goal.target, strings.num) }) : strings.count.label).toUpperCase()
   return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, footerLine, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}) }
 }
 
@@ -1032,7 +1003,7 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
   // The collage.
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
-  paintTiles(ctx, card.tiles, imgs, C.line, range, C)
+  paintTiles(ctx, card.tiles, imgs, C.line, range)
   if (card.captions?.length) {
     ctx.font = font.filter(card.captions[0].fontPx)
     ctx.fillStyle = C.ink

@@ -54,6 +54,14 @@ export const LABEL = 'SPECIES'
  * "SPECIES", "SOORTEN" 7). A new language's `count.label` must fit it, counted in labelCells (tests/count-box.test.ts).
  */
 export const COUNT_LABEL_CHARS = 8
+/**
+ * With a goal the share images' label reads "OF 150 SPECIES" (share.bigYear.ofTarget, the number as large as without
+ * one): its box holds the target's en-US digits and this many characters more, the words around the number in the
+ * longest language ("sur  espèces", "van  soorten" 12). tests/count-box.test.ts checks every language's against it.
+ */
+export const GOAL_LABEL_CHARS = 12
+/** The goal label's width in characters for `target` (labelEm's `cells`). */
+export const goalLabelCells = (target: number): number => GOAL_LABEL_CHARS + countText(target).length
 /** Full-width characters: kana, Han, CJK punctuation and full-width forms. About 1em each, wider than Geist Mono's 0.6em. */
 export const WIDE_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u3000-\u303f\u30fc\uff00-\uffef]/u
 /** A label's width in Geist Mono characters: a full-width character (WIDE_CHAR) counts as two, so COUNT_LABEL_CHARS
@@ -80,8 +88,8 @@ export function numberEm(text: string): number {
   return em * SAFETY
 }
 /** The label's width in em at its tracking (the last letter's tracking too, as the DOM box counts it), for
- *  COUNT_LABEL_CHARS characters: the same in every language. */
-export const labelEm = (): number => COUNT_LABEL_CHARS * (MONO_EM + MONO_TRACK) * SAFETY
+ *  COUNT_LABEL_CHARS characters (or `cells`, a goal's label: goalLabelCells): the same in every language. */
+export const labelEm = (cells: number = COUNT_LABEL_CHARS): number => cells * (MONO_EM + MONO_TRACK) * SAFETY
 
 /**
  * How much smaller the collage's number is drawn than the layout's F: five digits ("11,019", six characters) are drawn

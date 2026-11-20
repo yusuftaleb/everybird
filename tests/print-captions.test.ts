@@ -194,53 +194,6 @@ describe('print captions', () => {
     expect(drawnA).toEqual(drawnB)
   })
 
-  it('clears lifer rings on ringed tiles and rejects neighbor ring overlap', async () => {
-    installStubs()
-    const { species, entries } = makeSpeciesAndEntries(2, (i) => `Ringed Bird ${i}`)
-    const pack: image.ImagePack = {
-      W: 400,
-      H: 500,
-      boxes: new Map([
-        ['bird0', [60, 120, 60, 60]],
-        ['bird1', [260, 320, 60, 60]],
-      ]),
-    }
-    image.clearStickerCache()
-    const card = await image.prepareCard({
-      format: 'print',
-      printSize: 'A4',
-      showNames: true,
-      markNewest: true,
-      markFirst: true,
-      entries,
-      species,
-      pack,
-      theme: 'light',
-      strings: en.ui,
-    })
-    expect(card.captions).toHaveLength(2)
-    for (let i = 0; i < card.tiles.length; i++) {
-      const tile = card.tiles[i]
-      const cap = card.captions![i]
-      expect(cap.y).toBeGreaterThanOrEqual(tile.y + tile.h + 8 - 1e-6)
-    }
-
-    const plan = planCaptions(entries, species, 'A4', 952, undefined, undefined, new Set(['bird1']))
-    expect(plan.ok).toBe(true)
-    if (!plan.ok) return
-    const ringOverlap = verifyAndPlaceCaptions(
-      [
-        { code: 'bird0', x: 100, y: 100, w: 60, h: 60 },
-        { code: 'bird1', x: 100, y: 190, w: 60, h: 60, marked: true },
-      ],
-      { x: 64, y: 64, w: 952, h: 1300 },
-      { cx: 540, cy: 700 },
-      { num: [-10, -10, 10, 10], label: [-10, 10, 10, 20], pad: 2 },
-      plan,
-    )
-    expect(ringOverlap).toEqual({ ok: false, reason: 'fit' })
-  })
-
   it('falls back to uncaptioned fit in prepareCard when provided pack fails caption verification', async () => {
     installStubs()
     const { species, entries } = makeSpeciesAndEntries(2, (i) => `Tight Bird ${i}`)

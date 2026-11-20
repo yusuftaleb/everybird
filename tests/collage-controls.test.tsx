@@ -7,7 +7,6 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { useReducer } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CollageView } from '@/components/app/CollageView'
-import { setLiferMark } from '@/lib/lifer-marks'
 import { TREE_MINE_KEY } from '@/lib/tree-mine'
 import type { SourceRecord } from '@/lib/list/model'
 import { emptySaved } from '@/lib/list/storage'
@@ -57,8 +56,6 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', new MemoryStorage())
 })
 afterEach(() => {
-  setLiferMark('newest', false)
-  setLiferMark('first', false)
   cleanup()
   vi.unstubAllGlobals()
 })
@@ -324,14 +321,14 @@ describe('in Spanish', () => {
   })
 })
 
-describe('lifer marks (set in the share dialog, kept per device)', () => {
+describe('lifer marks (removed)', () => {
   it('the bar has no lifer-mark switches', () => {
     render(<Harness />)
     expect(screen.queryByRole('switch', { name: 'Mark latest lifer' })).toBeNull()
     expect(screen.queryByRole('switch', { name: 'Mark first lifer' })).toBeNull()
   })
 
-  it('rings the marked birds on the stage and appends their accessible names', async () => {
+  it('an old stored mark loads without error and rings nothing', async () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1024, bottom: 400, width: 1024, height: 400, toJSON: () => ({}) })
     const seed = [{ key: 'wide|even|', layout: 'wide' as const, mode: 'even' as const, W: 1000, H: 400, scale: 1, base: 10,
       boxes: new Map([['snogoo', [10, 10, 80, 60]], ['norfli', [200, 10, 40, 30]], ['gilfli', [300, 10, 40, 30]], ['amerob', [400, 200, 40, 30]], ['yerwar', [500, 200, 20, 15]]] as [string, [number, number, number, number]][]) }]
@@ -340,15 +337,13 @@ describe('lifer marks (set in the share dialog, kept per device)', () => {
       return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Test collage" seed={seed} />
     }
     try {
+      // An old device setting from when the marks existed: read by nothing now, and drawn nowhere.
+      localStorage.setItem('everybird:mark-newest', '1')
+      localStorage.setItem('everybird:mark-first', '1')
       render(<SeededCollage />)
       const stage = await screen.findByTestId('collage-stage')
-      act(() => { setLiferMark('newest', true); setLiferMark('first', true) })
-      const newestBird = stage.querySelector('.eb-bird[data-code="yerwar"]')!
-      const firstBird = stage.querySelector('.eb-bird[data-code="snogoo"]')!
-      expect(newestBird).toHaveAttribute('data-mark', 'newest')
-      expect(newestBird).toHaveAttribute('aria-label', 'Yellow-rumped Warbler, latest lifer')
-      expect(firstBird).toHaveAttribute('data-mark', 'first')
-      expect(firstBird).toHaveAttribute('aria-label', 'Snow Goose, first lifer')
+      expect(stage.querySelector('[data-mark]')).toBeNull()
+      expect(stage.querySelector('.eb-bird[data-code="yerwar"]')).toHaveAttribute('aria-label', 'Yellow-rumped Warbler')
     } finally {
       vi.restoreAllMocks()
     }

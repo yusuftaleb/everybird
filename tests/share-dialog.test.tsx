@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ShareDialog from '@/components/share/ShareDialog'
 import * as image from '@/lib/share/image'
 import { ARRANGEMENT_KEY, arrangement, setArrangement } from '@/lib/arrangement'
-import { MARK_NEWEST_KEY, setLiferMark } from '@/lib/lifer-marks'
 import { setTreeMine } from '@/lib/tree-mine'
 import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
@@ -217,31 +216,37 @@ describe('share dialog', () => {
     expect(link.parentElement!.lastElementChild).toBe(link) // last in the controls column
   })
 
-  it('is one screen: no parts; Print poster shows the poster\'s options and Back to image returns', async () => {
-    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+  it('is one screen: Share makes images only (no Print poster in it); Print opens the same dialog on the poster, with no way back', async () => {
+    const first = render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.getByRole('heading', { name: 'Share your collage' })).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'What to share' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Big Year' })).toBeNull()
     expect(screen.getByRole('group', { name: 'Image format' }).querySelectorAll('button')).toHaveLength(3)
     expect(screen.getByRole('group', { name: 'Orientation' })).toBeInTheDocument()
-    // Share image first, then the three quiet ones; no poster options yet.
+    // Share image first, then the quiet ones; no poster options.
     const actions = screen.getByRole('button', { name: 'Share image' }).parentElement!
-    expect([...actions.querySelectorAll('.eb-share-row button')].map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual(['Download image', 'Copy link', 'Print poster'])
-    expect(screen.queryByRole('group', { name: 'Poster size' })).toBeNull()
-    expect(screen.queryByTestId('share-bulk')).toBeNull()
+    expect([...actions.querySelectorAll('.eb-share-row button')].map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual(['Download image', 'Copy link'])
+    expect(screen.queryByRole('button', { name: /^Print/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Poster size / })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Make poster' })).toBeNull()
     expect(screen.queryByRole('switch', { name: 'Show species names' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
-    expect(screen.getByRole('group', { name: 'Poster size' })).toBeInTheDocument()
+    // One per group is offered for images too, PNGs only.
+    expect(within(screen.getByTestId('share-bulk')).getByRole('heading', { name: 'One per group' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Download PNGs (ZIP)' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Download PDFs (ZIP)' })).toBeNull()
+    first.unmount()
+
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
+    expect(screen.getByRole('heading', { name: 'Print poster' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Poster size / })).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Image format' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Back to image' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Make poster' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Share image' })).toBeNull()
     expect(screen.getByRole('switch', { name: 'Show species names' })).toBeInTheDocument()
     expect(screen.getByTestId('share-bulk')).toBeInTheDocument()
-    // Focus moves to the way back, which returns to the image and puts focus on Print poster.
-    expect(screen.getByRole('button', { name: 'Back to image' })).toHaveFocus()
-    fireEvent.click(screen.getByRole('button', { name: 'Back to image' }))
-    expect(screen.getByRole('group', { name: 'Image format' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Print poster' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Download PDFs (ZIP)' })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Dark image' })).toBeInTheDocument()
   })
 
@@ -262,11 +267,14 @@ describe('share dialog', () => {
     expect(screen.getByRole('switch', { name: 'Dark image' })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Transparent background' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Count / })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+    expect(screen.queryByTestId('share-bulk')).toBeNull()
+    unmount()
+    const poster = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="map" at={{ place: 'c:CA' }} print onClose={() => {}} />)
     await waitFor(() => expect(image.renderShareImage).toHaveBeenCalledTimes(1))
     expect(vi.mocked(image.renderShareImage).mock.calls[0][0]).toMatchObject({ format: 'print' })
     expect(screen.getByRole('switch', { name: 'Show latest lifer' })).toBeInTheDocument()
-    unmount()
+    expect(screen.getByTestId('share-bulk')).toBeInTheDocument()
+    poster.unmount()
 
     const tree = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { fam: 'Struthionidae' } }} onClose={() => {}} />)
     await waitFor(() => expect(viewRenders.tree).toHaveBeenCalledTimes(1))
@@ -289,18 +297,21 @@ describe('share dialog', () => {
     expect(screen.getByRole('switch', { name: 'Show latest lifer' })).toBeInTheDocument()
   })
 
-  it('the options are one row each under the title field: Count, Goal, the switches, then Dark and Transparent', () => {
-    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    const rows = screen.getByTestId('share-switches')
+  it('the options are one row each in one group under the title field: Count, Goal, the switches, then Dark and Transparent', () => {
+    const first = render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    const label = (el: Element) => el.getAttribute('role') === 'switch' ? el.textContent : el.querySelector('.eb-share-optlabel')!.textContent
+    let rows = screen.getByTestId('share-switches')
     expect(screen.getByLabelText('Collage title').closest('.eb-share-field')!.nextElementSibling).toBe(rows)
-    const names = [...rows.children].map((el) => el.getAttribute('role') === 'switch' ? el.textContent : el.querySelector('.eb-share-optlabel')!.textContent)
-    expect(names).toEqual(['Count', 'Goal', 'Show latest lifer', 'Mark latest lifer', 'Mark first lifer', 'Dark image', 'Transparent background'])
+    expect([...rows.children].map(label)).toEqual(['Count', 'Goal', 'Show latest lifer', 'Dark image', 'Transparent background'])
     for (const el of rows.children) expect(el).toHaveClass('eb-share-opt')
-    // In the poster the size control sits above the title, and the names switch joins the rows.
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
-    const sizes = screen.getByRole('group', { name: 'Poster size' })
-    expect(sizes.compareDocumentPosition(screen.getByLabelText('Collage title')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(screen.getByRole('switch', { name: 'Show species names' }).parentElement).toBe(screen.getByTestId('share-switches'))
+    expect(screen.queryByRole('switch', { name: /^Mark / })).toBeNull()
+    first.unmount()
+    // In the poster the size is the group's first row (a dropdown, its line under the label), and the names switch joins.
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
+    rows = screen.getByTestId('share-switches')
+    expect([...rows.children].map(label)).toEqual(['Poster size', 'Count', 'Goal', 'Show latest lifer', 'Show species names', 'Dark image', 'Transparent background'])
+    expect(rows.firstElementChild).toHaveTextContent('A2 · 42 × 59.4 cm · 2480 × 3508 px at 150 dpi')
+    expect(screen.getByRole('button', { name: 'Poster size A2' })).toHaveAttribute('aria-haspopup', 'menu')
   })
 
   it('the title label says "(optional)" beside it and the placeholder is an example', () => {
@@ -420,8 +431,8 @@ describe('share dialog', () => {
 })
 
 describe('share dialog: print mode', () => {
-  const open = () => render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-  const toPrint = () => fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+  const open = () => render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
+  const openShare = () => render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
   const startMakeAgain = async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
     await waitFor(() => expect(makes).toHaveLength(2))
@@ -431,22 +442,20 @@ describe('share dialog: print mode', () => {
     await waitFor(() => expect(makes).toHaveLength(1))
   }
 
-  it('Poster shows Poster size A4–A1, A2 pressed, and Make poster', async () => {
+  it('Print shows the Poster size dropdown (A4–A1 and the inch sizes, A2 to start) and Make poster', async () => {
     open()
-    expect(screen.getByRole('button', { name: 'Download image' }).textContent).toBe('Download')
-    expect(screen.queryByRole('group', { name: 'Poster size' })).toBeNull()
-    toPrint()
-    const sizes = screen.getByRole('group', { name: 'Poster size' })
-    expect([...sizes.querySelectorAll('button')].map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual(
+    fireEvent.click(screen.getByRole('button', { name: 'Poster size A2' }))
+    expect(screen.getAllByRole('menuitemradio').map((b) => [b.textContent, b.getAttribute('aria-checked')])).toEqual(
       [['A4', 'false'], ['A3', 'false'], ['A2', 'true'], ['A1', 'false'], ['12 × 18 in', 'false'], ['18 × 24 in', 'false'], ['24 × 36 in', 'false']])
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'A2' }))
     expect(screen.getByText('A2 · 42 × 59.4 cm · 2480 × 3508 px at 150 dpi')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Make poster' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Share image' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Download image' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'A4' }))
+    pickMenu('Poster size', 'A4')
     expect(screen.getByText('A4 · 21 × 29.7 cm · 1240 × 1754 px at 150 dpi')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'A2' }))
+    pickMenu('Poster size', 'A2')
     // The preview is the poster's, in the dialog's theme, at the chosen size.
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', printSize: 'A2', theme: 'light' }))
     await act(async () => renders.at(-1)!.resolve(new Blob(['png'], { type: 'image/png' })))
@@ -454,15 +463,10 @@ describe('share dialog: print mode', () => {
     const img = screen.getByAltText('Preview of the A2 poster')
     expect(img).toHaveAttribute('width', '1080')
     expect(img).toHaveAttribute('height', String(Math.round(1080 * 3508 / 2480)))
-    // Back to image leaves the poster.
-    fireEvent.click(screen.getByRole('button', { name: 'Back to image' }))
-    expect(screen.queryByRole('group', { name: 'Poster size' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Share image' })).toBeInTheDocument()
   })
 
   it('"Transparent background" is off at first; on, the poster is made transparent and offers the PNG only', async () => {
     open()
-    toPrint()
     const sw = screen.getByRole('switch', { name: 'Transparent background' })
     expect(sw).toHaveAttribute('aria-checked', 'false')
     fireEvent.click(sw)
@@ -477,7 +481,6 @@ describe('share dialog: print mode', () => {
 
   it('Make poster shows a progressbar with Cancel; when done, Download PNG and Download PDF save everybird-a2.png/.pdf at once', async () => {
     open()
-    toPrint()
     await startMake()
     expect(makes[0].opts.size).toBe('A2')
     expect(makes[0].opts.pack).toEqual({ boxes: [] }) // the dialog's print pack, so makePoster doesn't pack again
@@ -510,7 +513,6 @@ describe('share dialog: print mode', () => {
 
   it('Cancel aborts the make and shows Make poster again', async () => {
     open()
-    toPrint()
     await startMake()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(makes[0].opts.signal?.aborted).toBe(true)
@@ -521,9 +523,8 @@ describe('share dialog: print mode', () => {
 
   it('changing the size during a make aborts it (signal aborted) and shows Make poster again; no stale poster downloads', async () => {
     open()
-    toPrint()
     await startMake()
-    fireEvent.click(screen.getByRole('button', { name: 'A3' }))
+    pickMenu('Poster size', 'A3')
     expect(makes[0].opts.signal?.aborted).toBe(true)
     expect(screen.queryByRole('progressbar')).toBeNull()
     expect(screen.getByRole('button', { name: 'Make poster' })).toBeInTheDocument()
@@ -550,37 +551,14 @@ describe('share dialog: print mode', () => {
     }
   })
 
-  it('leaving print mode aborts a make and drops a finished poster', async () => {
-    const first = open()
-    toPrint()
-    await startMake()
-    fireEvent.click(screen.getByRole('button', { name: 'Back to image' }))
-    expect(makes[0].opts.signal?.aborted).toBe(true)
-    first.unmount()
-
-    makes.length = 0
-    open()
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
-    await startMake()
-    const p = fakePoster()
-    await act(async () => makes[0].resolve(p))
-    fireEvent.click(screen.getByRole('button', { name: 'Back to image' }))
-    expect(p.dispose).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
-    expect(screen.getByRole('button', { name: 'Make poster' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Download PNG' })).toBeNull()
-  })
-
   it('closing the dialog aborts the make and disposes the poster', async () => {
     const first = open()
-    toPrint()
     await startMake()
     first.unmount()
     expect(makes[0].opts.signal?.aborted).toBe(true)
 
     makes.length = 0
     const second = open()
-    toPrint()
     await startMake()
     const p = fakePoster()
     await act(async () => makes[0].resolve(p))
@@ -591,21 +569,20 @@ describe('share dialog: print mode', () => {
 
   it('soft > 0 shows the smaller-files note; missing > 0 the outlines note; a poster-memory error the try-a-smaller-size note', async () => {
     open()
-    toPrint()
     await startMake()
     await act(async () => makes[0].resolve(fakePoster({ soft: 3, missing: 1 })))
     expect(screen.getByTestId('share-note').textContent).toBe(
       'Your A2 poster is ready. Some stickers come from smaller files for now, so the biggest birds may print a little soft. '
       + '1 sticker didn’t load and is drawn as an outline. Make the poster again to retry.')
 
-    fireEvent.click(screen.getByRole('button', { name: 'A3' }))
+    pickMenu('Poster size', 'A3')
     fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
     await waitFor(() => expect(makes).toHaveLength(2))
     await act(async () => makes[1].resolve(fakePoster({ size: 'A3', missing: 5 })))
     expect(screen.getByTestId('share-note').textContent).toBe(
       'Your A3 poster is ready. 5 stickers didn’t load and are drawn as outlines. Make the poster again to retry.')
 
-    fireEvent.click(screen.getByRole('button', { name: 'A1' }))
+    pickMenu('Poster size', 'A1')
     fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
     await waitFor(() => expect(makes).toHaveLength(3))
     await act(async () => makes[2].reject(new Error('poster-memory')))
@@ -625,7 +602,6 @@ describe('share dialog: print mode', () => {
 
   it('announces the make in the status note, and a cancel clears it', async () => {
     open()
-    toPrint()
     await startMake()
     expect(screen.getByTestId('share-note').textContent).toBe('Making the poster.')
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -634,7 +610,6 @@ describe('share dialog: print mode', () => {
 
   it('a make that finishes after the dialog closed is disposed', async () => {
     const view = open()
-    toPrint()
     await startMake()
     view.unmount()
     const p = fakePoster()
@@ -645,12 +620,12 @@ describe('share dialog: print mode', () => {
   it('a poster whose file fails is dropped: the error note and Make poster come back, focused', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     open()
-    toPrint()
     await startMake()
     const p = fakePoster({ file: vi.fn(async () => { throw new Error('encoder gone') }) })
     await act(async () => makes[0].resolve(p))
-    // Focus is still on Back (fireEvent.click never moves it, so the make's focus moves had nothing to follow); a real
-    // click puts it on Download PNG, and only from there (lost when the button goes) does it follow Make poster back.
+    // Focus is still where the dialog put it (fireEvent.click never moves it, so the make's focus moves had nothing to
+    // follow); a real click puts it on Download PNG, and only from there (lost when the button goes) does it follow Make
+    // poster back.
     const png = screen.getByRole('button', { name: 'Download PNG' })
     pressFocused('Download PNG')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Make poster' })).toHaveFocus())
@@ -666,11 +641,10 @@ describe('share dialog: print mode', () => {
 
   it('Make again shows only when stickers are missing, and starts a new make', async () => {
     open()
-    toPrint()
     await startMake()
     await act(async () => makes[0].resolve(fakePoster()))
     expect(screen.queryByRole('button', { name: 'Make again' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'A3' }))
+    pickMenu('Poster size', 'A3')
     fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
     await waitFor(() => expect(makes).toHaveLength(2))
     const p = fakePoster({ size: 'A3', missing: 2 })
@@ -687,14 +661,13 @@ describe('share dialog: print mode', () => {
     const writeText = vi.fn(async () => {})
     vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
     open()
-    toPrint()
     fireEvent.click(screen.getByRole('button', { name: 'Copy link' }))
     await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Link copied.'))
     expect(track).not.toHaveBeenCalled()
   })
 
   it('in share mode Download image is still counted', async () => {
-    open()
+    openShare()
     await waitFor(() => expect(renders).toHaveLength(1))
     await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
     const dl = screen.getByRole('button', { name: 'Download image' }) as HTMLButtonElement
@@ -703,17 +676,14 @@ describe('share dialog: print mode', () => {
     await waitFor(() => expect(track).toHaveBeenCalledWith('image_downloaded', { format: 'story' }))
   })
 
-  it('print mode ignores the share format: switching to print renders once, in the dialog\'s theme', async () => {
+  it('Print renders the poster once, in the dialog\'s theme', async () => {
     open()
     await waitFor(() => expect(renders).toHaveLength(1))
-    toPrint()
-    await waitFor(() => expect(renders).toHaveLength(2))
-    expect(vi.mocked(image.renderShareImage).mock.calls[1][0]).toMatchObject({ format: 'print', theme: 'light' })
+    expect(vi.mocked(image.renderShareImage).mock.calls[0][0]).toMatchObject({ format: 'print', theme: 'light' })
   })
 
   it('Dark image in print mode re-renders the preview dark and discards a made poster; makePoster gets the theme', async () => {
     open()
-    toPrint()
     await startMake()
     expect(makes[0].opts).toMatchObject({ theme: 'light' })
     const p = fakePoster()
@@ -729,7 +699,6 @@ describe('share dialog: print mode', () => {
 
   it('print mode counts the poster made and each download, never the share image events', async () => {
     open()
-    toPrint()
     await startMake()
     act(() => makes[0].onProgress(1, 1))
     await act(async () => makes[0].resolve(fakePoster()))
@@ -747,7 +716,7 @@ describe('share dialog: print mode', () => {
 describe('share dialog: the poster module fails to load', () => {
   it('a failed import of the poster module shows the error, and Make poster retries it', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    // The poster module fails twice, as a chunk that didn't load would: the load when print mode opens, then the one
+    // The poster module fails twice, as a chunk that didn't load would: the load when the poster opens, then the one
     // Make poster retries. A fresh dialog module picks the factory up.
     const fail = { left: 2 }
     vi.doMock('@/lib/share/poster', () => {
@@ -759,11 +728,10 @@ describe('share dialog: the poster module fails to load', () => {
     })
     vi.resetModules()
     const { default: FreshDialog } = await import('@/components/share/ShareDialog')
-    render(<FreshDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+    render(<FreshDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
     await waitFor(() => expect(fail.left).toBe(1))
-    // Focus is on Back to image (where Print poster sends it); a real click moves it to Make poster, which fireEvent.click
-    // doesn't, and only from there (lost when the button goes) does it follow the one that comes back.
+    // A real click moves focus to Make poster, which fireEvent.click doesn't, and only from there (lost when the button
+    // goes) does it follow the one that comes back.
     pressFocused('Make poster')
     await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Couldn’t make the poster. Try again.'))
     expect(makes).toHaveLength(0)
@@ -818,9 +786,8 @@ describe('the orientation switch', () => {
   })
 
   it('print mode follows the orientation: a landscape poster, sizes swapped, its file named -landscape', async () => {
-    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'Horizontal' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
     expect((screen.getByRole('button', { name: 'Horizontal' }) as HTMLButtonElement).disabled).toBe(false)
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'printLandscape', printSize: 'A2' }))
     expect(screen.getByText('A2 · 59.4 × 42 cm · 3508 × 2480 px at 150 dpi')).toBeInTheDocument()
@@ -835,17 +802,14 @@ describe('the orientation switch', () => {
     expect(vi.mocked(track)).toHaveBeenCalledWith('poster_made', { size: 'a2-l' })
   })
 
-  it('in print mode the switch is on whatever the share format (a poster has no square)', () => {
-    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Square, 1:1' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+  it('in print mode the switch is on (a poster has no square)', () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
     expect((screen.getByRole('button', { name: 'Horizontal' }) as HTMLButtonElement).disabled).toBe(false)
   })
 
   it('US poster sizes show inches, keep data-size on the preview, name files in inches and track us24x36', async () => {
-    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
-    fireEvent.click(screen.getByRole('button', { name: '24 × 36 in' }))
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
+    pickMenu('Poster size', '24 × 36 in')
     expect(screen.getByText('24 × 36 in · 3600 × 5400 px at 150 dpi')).toBeInTheDocument()
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', printSize: 'US24x36' }))
     await act(async () => renders.at(-1)!.resolve(new Blob(['png'], { type: 'image/png' })))
@@ -860,22 +824,6 @@ describe('the orientation switch', () => {
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
     expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe('everybird-24x36in-landscape.png')
     expect(vi.mocked(track)).toHaveBeenCalledWith('poster_made', { size: 'us24x36-l' })
-  })
-
-  it('forwards remembered lifer marks to renderShareImage and makePoster', async () => {
-    setLiferMark('newest', true)
-    setLiferMark('first', true)
-    try {
-      render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-      await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ markNewest: true, markFirst: true }))
-      fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
-      fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
-      await waitFor(() => expect(makes).toHaveLength(1))
-      expect(makes[0].opts).toMatchObject({ markNewest: true, markFirst: true })
-    } finally {
-      setLiferMark('newest', false)
-      setLiferMark('first', false)
-    }
   })
 
   it('Goal: "Add a goal" until one is set; a year draws that year\'s birds against the target, and saves it', async () => {
@@ -991,8 +939,9 @@ describe('the orientation switch', () => {
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0].countSize).toBe('hide'))
     expect(vi.mocked(image.packForImage).mock.calls.at(-1)?.[2].hole.pad).toBe(0)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
-    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', countSize: 'hide' }))
+    cleanup()
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', countSize: 'medium' }))
     pickMenu('Count', 'Large')
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', countSize: 'large' }))
 
@@ -1010,10 +959,9 @@ describe('the orientation switch', () => {
       row('ostric2', 1),
       { ...row('emu1', 2), fam: 'Casuariidae', famCom: 'Cassowaries and Emu' },
     ])
-    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={bulkSpecies} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
-    const bulk = screen.getByRole('region', { name: 'Several posters at once' })
-    expect(bulk).toHaveTextContent('One poster per group, downloaded together as a ZIP.')
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={bulkSpecies} regions={regions} print onClose={() => {}} />)
+    const bulk = screen.getByRole('region', { name: 'One per group' })
+    expect(bulk).toHaveTextContent('A ZIP with one image, or one poster, for each group.')
     pickMenu('Count', 'Small')
 
     pickMenu('Split by', 'Family')
@@ -1041,8 +989,7 @@ describe('the orientation switch', () => {
 
   it('says when names were asked for but a poster has none, for one poster and for a ZIP', async () => {
     const bulkSpecies = buildSpeciesIndex([row('ostric2', 1), { ...row('emu1', 2), fam: 'Casuariidae', famCom: 'Cassowaries and Emu' }])
-    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={bulkSpecies} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={bulkSpecies} regions={regions} print onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
     await waitFor(() => expect(makes).toHaveLength(1))
     await act(async () => makes[0].resolve(fakePoster({ namesDropped: true })))
@@ -1057,11 +1004,10 @@ describe('the orientation switch', () => {
     await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2-bulk.zip (2 posters). 1 poster has no names: they didn’t fit.'))
   })
 
-  it('bulk posters keep a year\'s goal: its line before the group and its target in the count', async () => {
+  it('bulk posters keep a year\'s goal: its line before the group and its target under the count', async () => {
     const dispatch = vi.fn()
-    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={dispatch} species={species} regions={regions} print onClose={() => {}} />)
     // The poster follows the same goal as the image.
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add a goal' }))
     pickMenu('Goal period', '2020')
     fireEvent.change(screen.getByRole('textbox', { name: 'Goal in species' }), { target: { value: '300' } })
@@ -1070,12 +1016,11 @@ describe('the orientation switch', () => {
     expect(makes[0].opts).toMatchObject({ goal: { year: 2020, target: 300 }, filterLabel: expect.stringMatching(/^Big Year 2020 · .*Part 1$/) })
     const bulkSpec = vi.mocked(image.packForImage).mock.calls.at(-1)![2]
     const plainSpec = image.imagePackSpec('print', { name: false, filter: true, latest: true, count: 2, countSize: 'medium' }, 'A2')
-    expect(bulkSpec.hole.num[2]).toBeGreaterThan(plainSpec.hole.num[2])
+    expect(bulkSpec.hole.label[2]).toBeGreaterThan(plainSpec.hole.label[2])
   })
 
   it('keeps keyboard focus as the ZIP buttons swap: on Cancel while it runs, back on the button that started it', async () => {
-    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
     pressFocused('Download PDFs (ZIP)')
     await waitFor(() => expect(makes).toHaveLength(1))
     const progress = screen.getByTestId('bulk-progress')
@@ -1093,42 +1038,67 @@ describe('the orientation switch', () => {
 
   it('the disabled Show species names switch is described by the note that says why', () => {
     const manyRows = Array.from({ length: 41 }, (_, i) => ({ ...row(`b${i}`, i + 1), com: `Bird ${i + 1}` }))
-    render(<ShareDialog state={stateWith(manyRows.map((r) => entry(r.code)))} dispatch={() => {}} species={buildSpeciesIndex(manyRows)} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
-    fireEvent.click(screen.getByRole('button', { name: 'A4' }))
+    render(<ShareDialog state={stateWith(manyRows.map((r) => entry(r.code)))} dispatch={() => {}} species={buildSpeciesIndex(manyRows)} regions={regions} print onClose={() => {}} />)
+    pickMenu('Poster size', 'A4')
     const sw = screen.getByRole('switch', { name: 'Show species names' })
     expect(sw).toBeDisabled()
     expect(sw).toHaveAccessibleDescription('A4 fits up to 40 species with names. Pick a larger size or filter your list.')
-    fireEvent.click(screen.getByRole('button', { name: 'A3' }))
+    pickMenu('Poster size', 'A3')
     expect(sw).not.toHaveAttribute('aria-describedby')
   })
 
-  it('splitting by number of birds: the most per poster is a number box, 1,000 to start, with the count beside it', () => {
-    const manyRows = Array.from({ length: 25 }, (_, i) => ({ ...row(`b${i}`, i + 1), com: `Bird ${i + 1}` }))
-    render(<ShareDialog state={stateWith(manyRows.map((r) => entry(r.code)))} dispatch={() => {}} species={buildSpeciesIndex(manyRows)} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+  it('splitting by number of birds: Birds per poster is a dropdown (All, 1,000, 500, 250, 100), All to start', () => {
+    const manyRows = Array.from({ length: 260 }, (_, i) => ({ ...row(`b${i}`, i + 1), com: `Bird ${i + 1}` }))
+    render(<ShareDialog state={stateWith(manyRows.map((r) => entry(r.code)))} dispatch={() => {}} species={buildSpeciesIndex(manyRows)} regions={regions} print onClose={() => {}} />)
     expect(screen.getByRole('button', { name: 'Split by Number of birds' })).toBeInTheDocument()
-    const box = screen.getByRole('textbox', { name: 'Birds per poster' }) as HTMLInputElement
-    expect(box.value).toBe('1000')
-    expect(screen.getByTestId('bulk-count').textContent).toBe('1 poster')
-    fireEvent.change(box, { target: { value: '10' } })
-    expect(screen.getByTestId('bulk-count').textContent).toBe('3 posters')
-    // Out of bounds: the count waits; leaving the box keeps it in bounds.
-    fireEvent.change(box, { target: { value: '4' } })
-    expect(screen.getByTestId('bulk-count').textContent).toBe('3 posters')
-    fireEvent.blur(box)
-    expect(box.value).toBe('10')
-    // Another split has no box.
-    pickMenu('Split by', 'Family')
     expect(screen.queryByRole('textbox', { name: 'Birds per poster' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Birds per poster All' }))
+    expect(screen.getAllByRole('menuitemradio').map((b) => b.textContent)).toEqual(['All', '1,000', '500', '250', '100'])
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'All' }))
+    expect(screen.getByTestId('bulk-count').textContent).toBe('1 poster')
+    pickMenu('Birds per poster', '100')
+    expect(screen.getByTestId('bulk-count').textContent).toBe('3 posters')
+    pickMenu('Birds per poster', '250')
+    expect(screen.getByTestId('bulk-count').textContent).toBe('2 posters')
+    // Another split has no Birds per poster row.
+    pickMenu('Split by', 'Family')
+    expect(screen.queryByRole('button', { name: /^Birds per poster / })).toBeNull()
+  })
+
+  it('One per group in Share makes a ZIP of PNG images, one per group, in the dialog\'s format; never counted', async () => {
+    const bulkSpecies = buildSpeciesIndex([row('ostric2', 1), { ...row('emu1', 2), fam: 'Casuariidae', famCom: 'Cassowaries and Emu' }])
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={bulkSpecies} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Post, 4:5' }))
+    expect(screen.getByRole('button', { name: 'Birds per image All' })).toBeInTheDocument()
+    pickMenu('Split by', 'Family')
+    expect(screen.getByTestId('bulk-count').textContent).toBe('2 images')
+    vi.mocked(track).mockClear()
+    const before = renders.length
+    fireEvent.click(screen.getByRole('button', { name: 'Download PNGs (ZIP)' }))
+    await waitFor(() => expect(screen.getByTestId('bulk-progress').textContent).toContain('Image 1 of 2'))
+    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.some((c) => c[0].filterLabel === 'Ostriches')).toBe(true))
+    const bulkCall = vi.mocked(image.renderShareImage).mock.calls.find((c) => c[0].filterLabel === 'Ostriches')![0]
+    expect(bulkCall).toMatchObject({ format: 'post', theme: 'light' })
+    expect(bulkCall.entries.map((e) => e.code)).toEqual(['ostric2'])
+    expect(makes).toHaveLength(0)
+    for (let k = before; k < before + 2; k++) {
+      await waitFor(() => expect(renders.length).toBeGreaterThan(k))
+      await act(async () => renders[k].resolve(new Blob(['png'], { type: 'image/png' })))
+    }
+    await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
+    const [blob, filename] = vi.mocked(downloadBlob).mock.calls[0]
+    expect(filename).toBe('everybird-post-groups.zip')
+    expect(blob.type).toBe('application/zip')
+    expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-post-groups.zip (2 images).')
+    expect(track).not.toHaveBeenCalled()
   })
 
   it('disables bulk ZIP buttons with a note when a split has zero groups', async () => {
-    render(<ShareDialog state={stateWith([{ ...entry('ostric2'), date: undefined }])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+    render(<ShareDialog state={stateWith([{ ...entry('ostric2'), date: undefined }])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
     pickMenu('Split by', 'Year')
 
-    expect(screen.getByTestId('bulk-count').textContent).toBe('No posters to make for this choice.')
+    expect(screen.getByTestId('bulk-count').textContent).toBe('Nothing to make for this choice.')
     expect((screen.getByRole('button', { name: 'Download PNGs (ZIP)' }) as HTMLButtonElement).disabled).toBe(true)
     expect((screen.getByRole('button', { name: 'Download PDFs (ZIP)' }) as HTMLButtonElement).disabled).toBe(true)
   })
@@ -1141,19 +1111,20 @@ describe('the orientation switch', () => {
     const manySpecies = buildSpeciesIndex(manyRows)
     const manyList = manyRows.map((r) => entry(r.code))
 
-    render(<ShareDialog state={stateWith(manyList)} dispatch={() => {}} species={manySpecies} regions={regions} onClose={() => {}} />)
+    const share = render(<ShareDialog state={stateWith(manyList)} dispatch={() => {}} species={manySpecies} regions={regions} onClose={() => {}} />)
     expect(screen.queryByRole('switch', { name: 'Show species names' })).toBeNull()
+    share.unmount()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+    render(<ShareDialog state={stateWith(manyList)} dispatch={() => {}} species={manySpecies} regions={regions} print onClose={() => {}} />)
     const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
     expect(sw.getAttribute('aria-checked')).toBe('false')
     expect(sw.disabled).toBe(false)
 
-    fireEvent.click(screen.getByRole('button', { name: 'A4' }))
+    pickMenu('Poster size', 'A4')
     expect(sw.disabled).toBe(true)
     expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('A4 fits up to 40 species with names. Pick a larger size or filter your list.')
 
-    fireEvent.click(screen.getByRole('button', { name: 'A3' }))
+    pickMenu('Poster size', 'A3')
     expect(sw.disabled).toBe(false)
     expect(screen.queryByTestId('share-print-names-note')).toBeNull()
 
@@ -1168,36 +1139,20 @@ describe('the orientation switch', () => {
 
   it('disables Show species names when a species name cannot fit without clipping', async () => {
     const longSpecies = buildSpeciesIndex([{ ...row('long1', 1), com: 'Superlongunbreakablebirdspeciesnamethatcannotpossiblyfitintwolines' }])
-    render(<ShareDialog state={stateWith([entry('long1')])} dispatch={() => {}} species={longSpecies} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+    render(<ShareDialog state={stateWith([entry('long1')])} dispatch={() => {}} species={longSpecies} regions={regions} print onClose={() => {}} />)
     const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
     expect(sw.disabled).toBe(true)
     expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Names won’t fit cleanly on A2. Pick a larger size or filter your list.')
   })
 
   it('packs names again for each paper size: the caption font follows the paper, so an A2 pack never serves A4', async () => {
-    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
     const named = () => vi.mocked(image.packForImage).mock.calls.filter((c) => c[2].captionBoxes).map((c) => c[2].captionBoxes!.ostric2.h)
     await waitFor(() => expect(named()).toHaveLength(1))
-    fireEvent.click(screen.getByRole('button', { name: 'A4' }))
+    pickMenu('Poster size', 'A4')
     await waitFor(() => expect(named()).toHaveLength(2))
     // A4's minimum caption size is larger in design units than A2's, so its name box is taller.
     expect(named()[1]).toBeGreaterThan(named()[0])
-  })
-
-  it('with names off, the poster\'s pack is not made again when only the names\' inputs change (the lifer rings)', async () => {
-    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
-    const plainPrint = () => vi.mocked(image.packForImage).mock.calls.filter((c) => !c[2].captionBoxes && c[2].aspect < 1).length
-    await waitFor(() => expect(plainPrint()).toBe(1))
-    await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.some((c) => c[2].captionBoxes)).toBe(true))
-    act(() => setLiferMark('newest', true))
-    await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.filter((c) => c[2].captionBoxes?.emu1?.ring).length).toBe(1))
-    // The preview renders again with the rings (after its debounce), from the same names-off pack.
-    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', markNewest: true }))
-    expect(plainPrint()).toBe(1)
-    act(() => setLiferMark('newest', false))
   })
 
   it('disables Show species names when caption pack check rejects', async () => {
@@ -1205,26 +1160,26 @@ describe('the orientation switch', () => {
       if (spec.captionBoxes) throw new Error('packBest: does not fit')
       return { W: 100, H: 100, boxes: new Map() }
     })
-    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Print poster' }))
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
     const sw = screen.getByRole('switch', { name: 'Show species names' }) as HTMLButtonElement
     await waitFor(() => expect(sw.disabled).toBe(true))
     expect(screen.getByTestId('share-print-names-note')).toHaveTextContent('Names won’t fit cleanly on A2. Pick a larger size or filter your list.')
   })
 })
 
-describe('share dialog: Packed / Oval and the lifer marks', () => {
+describe('share dialog: Fit / Oval', () => {
   beforeEach(() => {
     const m = new Map<string, string>()
     vi.stubGlobal('localStorage', { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, String(v)) }, removeItem: (k: string) => { m.delete(k) } })
   })
-  afterEach(() => { setArrangement('packed'); setLiferMark('newest', false); setLiferMark('first', false) })
+  afterEach(() => { setArrangement('packed') })
   it('Fit to start (stored as packed); Oval packs the images inside the ellipse, is kept on the device, and re-renders', async () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     await waitFor(() => expect(vi.mocked(image.packForImage)).toHaveBeenCalled())
     expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2].oval).toBeUndefined()
     const group = screen.getByRole('group', { name: 'Arrangement' })
-    expect(within(group).getAllByRole('button').map((b) => b.textContent)).toEqual(['Fit', 'Oval'])
+    // Two icon buttons, named and titled Fit and Oval: no words to wrap.
+    expect(within(group).getAllByRole('button').map((b) => [b.getAttribute('aria-label'), b.getAttribute('title'), b.textContent])).toEqual([['Fit', 'Fit', ''], ['Oval', 'Oval', '']])
     expect(within(group).getByRole('button', { name: 'Fit' })).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(within(group).getByRole('button', { name: 'Oval' }))
     expect(within(group).getByRole('button', { name: 'Oval' })).toHaveAttribute('aria-pressed', 'true')
@@ -1239,20 +1194,5 @@ describe('share dialog: Packed / Oval and the lifer marks', () => {
     expect(arrangement()).toBe('packed')
     localStorage.setItem(ARRANGEMENT_KEY, 'colour')
     expect(arrangement()).toBe('packed')
-  })
-
-  it('the two lifer-mark switches, off to start, ring the image\'s birds and are kept on the device', async () => {
-    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    await waitFor(() => expect(renders).toHaveLength(1))
-    const newest = screen.getByRole('switch', { name: 'Mark latest lifer' })
-    const first = screen.getByRole('switch', { name: 'Mark first lifer' })
-    expect(newest).toHaveAttribute('aria-checked', 'false')
-    expect(first).toHaveAttribute('aria-checked', 'false')
-    fireEvent.click(newest)
-    expect(newest).toHaveAttribute('aria-checked', 'true')
-    expect(localStorage.getItem(MARK_NEWEST_KEY)).toBe('1')
-    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ markNewest: true, markFirst: false }))
-    fireEvent.click(first)
-    await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ markNewest: true, markFirst: true }))
   })
 })

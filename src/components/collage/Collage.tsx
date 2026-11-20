@@ -57,10 +57,7 @@ export type CollageProps = {
    * written in budgeted chunks. A new visible set over the very same layout object is treated the same way.
    */
   still?: boolean
-  marks?: BirdMarks
 }
-
-export type BirdMarks = { newest?: string; first?: string }
 
 const TOUCH_SLOP_PX = 28
 /** How far beyond the viewport (above and below) a bird's sticker starts downloading: one screen. */
@@ -99,7 +96,7 @@ function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Mo
   return { style: { '--x': x, '--y': y, '--w': b[0], '--h': b[1], '--k': 1, '--md': `${md}ms`, '--ad': `${d}ms` } as CSSProperties, off: false, far, w, h }
 }
 
-export function Collage({ entries, species, layout, visible, mode, onPick, onHover, className, still, marks }: CollageProps) {
+export function Collage({ entries, species, layout, visible, mode, onPick, onHover, className, still }: CollageProps) {
   const { t } = useI18n()
   const names = useNames() // birds are named in the local language once its names file arrives
   const stage = useRef<HTMLDivElement>(null)
@@ -190,14 +187,11 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
   }, [])
   // Codes that have had an element: a second one is the same bird re-created (a windowed list's group changed).
   const known = useRef(new Set<string>())
-  const marked = useRef(new Map<string, { kinds: string; label: string }>())
   const register = useCallback((code: string, el: HTMLButtonElement | null) => {
     const old = els.current.get(code)
     if (old && old !== el) { io.current?.near.unobserve(old); io.current?.far.unobserve(old) }
     if (el) {
       els.current.set(code, el)
-      const mark = marked.current.get(code)
-      if (mark) { el.setAttribute('data-mark', mark.kinds); el.setAttribute('aria-label', mark.label) }
       if (known.current.has(code)) {
         // Re-created with its frozen first style: bring it up to date with the motion caches.
         motion.anims.get(code)?.cancel(); motion.anims.delete(code); motion.leaving.delete(code)
@@ -242,31 +236,6 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       st?.removeEventListener(REVEAL_EVENT, reveal)
     }
   }, [windowed, getWin])
-
-  const newest = marks?.newest, firstBird = marks?.first
-  useLayoutEffect(() => {
-    const want = new Map<string, { kinds: string; label: string }>()
-    const add = (code: string | undefined, kind: string, sr: string) => {
-      const r = code ? row(code) : undefined
-      if (!code || !r) return
-      const had = want.get(code)
-      want.set(code, had ? { kinds: `${had.kinds} ${kind}`, label: had.label + sr } : { kinds: kind, label: displayName(r) + sr })
-    }
-    add(newest, 'newest', t.collage.controls.newestSr)
-    add(firstBird, 'first', t.collage.controls.firstSr)
-    for (const code of marked.current.keys()) {
-      if (want.has(code)) continue
-      const el = els.current.get(code), r = row(code)
-      el?.removeAttribute('data-mark')
-      if (el && r) el.setAttribute('aria-label', displayName(r))
-    }
-    for (const [code, mark] of want) {
-      const el = els.current.get(code)
-      el?.setAttribute('data-mark', mark.kinds)
-      el?.setAttribute('aria-label', mark.label)
-    }
-    marked.current = want
-  }, [newest, firstBird, row, t, names])
 
   // One tab stop: the last focused or picked bird if it is shown, else the first shown bird in taxonomic order.
   const syncTabStop = useCallback(() => {

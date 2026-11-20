@@ -1,5 +1,5 @@
 // The Tree view's "Lifers only" (the bar's switch in Tree view; TreeView reads it, and the tree's share image follows
-// it): a per-device choice like the lifer marks (lifer-marks.ts), kept in localStorage, off when unset or unreadable,
+// it): a per-device choice kept in localStorage, off when unset or unreadable,
 // the same in every tab. Without storage the choice holds for the page load.
 import { useSyncExternalStore } from 'react'
 

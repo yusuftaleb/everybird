@@ -1,5 +1,5 @@
 'use client'
-import { Plus, ShareNetwork } from '@phosphor-icons/react'
+import { Plus, Printer, ShareNetwork } from '@phosphor-icons/react'
 import Link from '@/components/app/IntentLink'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { EditBird } from '@/components/edit/EditBird'
@@ -25,15 +25,15 @@ const ShareDialog = lazy(() => import('@/components/share/ShareDialog'))
 
 /**
  * `/` with a list: the birder's collage (count, filters, controls, search, the view, tooltip, card and editing, legend)
- * under a one-row head with "Add birds" (`onAdd`, the Add birds dialog) and Share, the page's main action: it opens the
- * share dialog for the birds on screen in whichever view is open. Removing a bird can be undone for a few seconds.
+ * under a one-row head with "Add birds" (`onAdd`, the Add birds dialog), Print and Share, the page's main action: Share
+ * opens the share dialog for the birds on screen in whichever view is open, Print the same dialog on the poster. Removing a bird can be undone for a few seconds.
  * Unmatched rows are mentioned under the stats, with the way to fix them on Settings.
  */
 export function CollagePage({ onAdd }: { onAdd: () => void }) {
   const eb = useEverybirdContext()
   const { t } = useI18n()
   const { state, dispatch, data } = eb
-  const [sharing, setSharing] = useState<{ view: ViewKind; at: ShareAt } | null>(null)
+  const [sharing, setSharing] = useState<{ view: ViewKind; at: ShareAt; print?: boolean } | null>(null)
   // The level the Map or Tree view has open (CollageView keeps it current), so Share draws what is on screen.
   const shareAt = useRef<ShareAt>({})
   const onShareAt = useCallback((at: ShareAt) => { shareAt.current = at }, [])
@@ -76,6 +76,14 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
             <Plus aria-hidden="true" focusable="false" />
             <span className="eb-sm-hide">{t.collage.addBirds}</span>
           </button>
+          {/* Print beside Share, quieter (Share stays the page's one main button): the same dialog, on the poster. */}
+          <button
+            type="button" className="eb-btn eb-btn-quiet" aria-label={t.collage.print} aria-haspopup="dialog" disabled={!ready || !state.list.length}
+            data-testid="print-open" onClick={() => setSharing({ view: state.view, at: shareAt.current, print: true })}
+          >
+            <Printer aria-hidden="true" focusable="false" />
+            <span className="eb-sm-hide">{t.collage.print}</span>
+          </button>
           <button
             type="button" className="eb-btn" aria-haspopup="dialog" disabled={!ready || !state.list.length}
             data-testid="share-open" data-tour="share" onClick={() => setSharing({ view: state.view, at: shareAt.current })}
@@ -109,7 +117,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
           />
           {sharing && (
             <Suspense fallback={null}>
-              <ShareDialog state={state} dispatch={dispatch} species={data.species} regions={data.regions} view={sharing.view} at={sharing.at} onClose={() => setSharing(null)} />
+              <ShareDialog state={state} dispatch={dispatch} species={data.species} regions={data.regions} view={sharing.view} at={sharing.at} print={sharing.print} onClose={() => setSharing(null)} />
             </Suspense>
           )}
         </>

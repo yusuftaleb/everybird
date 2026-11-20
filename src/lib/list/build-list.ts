@@ -104,20 +104,5 @@ export function latestLifer(list: ListEntry[], taxonOrder?: (code: string) => nu
   return best
 }
 
-export function firstLifer(list: ListEntry[], taxonOrder?: (code: string) => number): ListEntry | undefined {
-  let best: ListEntry | undefined
-  for (const e of list) {
-    if (!e.date) continue
-    if (!best) {
-      best = e
-      continue
-    }
-    const d = byString(padDate(e.date), padDate(best.date!))
-    const t = taxonOrder ? taxonOrder(e.code) - taxonOrder(best.code) || byString(e.code, best.code) : byString(e.code, best.code)
-    if (d < 0 || (d === 0 && t < 0)) best = e
-  }
-  return best
-}
-
 export const liferOrder = (byCode: ReadonlyMap<string, { to: number }>) => (code: string): number =>
   byCode.get(code)?.to ?? Number.MAX_SAFE_INTEGER

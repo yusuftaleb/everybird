@@ -27,12 +27,12 @@ function pick(n: number, seed: number): ListEntry[] {
   return [...chosen].map((code) => ({ code, date: '2024-05', place: { country: 'CA' }, heard: false, dead: false, media: false, sources: ['ebird'] }))
 }
 
-type Opts = { marked?: Set<string>; titled?: boolean; format?: 'print' | 'printLandscape' }
+type Opts = { titled?: boolean; format?: 'print' | 'printLandscape' }
 
-async function namesFit(entries: ListEntry[], size: PrintSize, { marked, titled = false, format = 'print' }: Opts = {}): Promise<boolean> {
+async function namesFit(entries: ListEntry[], size: PrintSize, { titled = false, format = 'print' }: Opts = {}): Promise<boolean> {
   const content: image.CardContent = { name: titled, filter: titled, latest: true, count: entries.length }
   const L = image.cardLayout(format, content, printDesign(size, format === 'printLandscape'))
-  const plan = planCaptions(entries, species, size, L.collage.w, undefined, undefined, marked)
+  const plan = planCaptions(entries, species, size, L.collage.w)
   if (!plan.ok) return false
   const spec = image.imagePackSpec(format, content, size, plan)
   const load: MaskLoader = async (order) => masks[order] ?? {}
@@ -41,7 +41,7 @@ async function namesFit(entries: ListEntry[], size: PrintSize, { marked, titled 
     type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile,
     captions: birds.map((b) => spec.captionBoxes![b.code]),
   })
-  return image.fitCaptionPack(image.packFromReply(reply), entries, format, content, size, plan, marked).ok
+  return image.fitCaptionPack(image.packFromReply(reply), entries, format, content, size, plan).ok
 }
 
 describe('print captions on real masks', () => {
@@ -51,13 +51,12 @@ describe('print captions on real masks', () => {
     expect(ok).toEqual([true, true, true, true])
   }, 60_000)
 
-  it('fits names with the lifer rings, a title and a filter line, upright and landscape', async () => {
+  it('fits names with a title and a filter line, upright and landscape', async () => {
     for (const [size, n] of [['A4', 40], ['A2', 160]] as const) {
       for (const format of ['print', 'printLandscape'] as const) {
         for (let seed = 1; seed <= 3; seed++) {
           const entries = pick(n, seed * 31 + n)
-          const marked = new Set([entries[0].code, entries[n - 1].code])
-          expect(await namesFit(entries, size, { marked, titled: true, format }), `${size} ${format} seed ${seed}`).toBe(true)
+          expect(await namesFit(entries, size, { titled: true, format }), `${size} ${format} seed ${seed}`).toBe(true)
         }
       }
     }

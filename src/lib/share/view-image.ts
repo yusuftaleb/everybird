@@ -49,7 +49,7 @@ export function wrapParts(parts: readonly string[], width: (text: string) => num
  * count is hidden. `sample`: every other text `paint` draws, so the fonts it needs are loaded first.
  */
 export async function renderViewImage(opts: ShareImageOpts, footer: string, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[], sample = ''): Promise<Blob> {
-  const card = await prepareCard({ ...opts, footer, pack: NO_BIRDS, latest: false, markNewest: false, markFirst: false, showNames: false })
+  const card = await prepareCard({ ...opts, footer, pack: NO_BIRDS, latest: false, showNames: false })
   await ensureViewFonts(card, `${(under ?? []).join('')}${sample}`)
   const { L, K } = card
   const c = L.collage

@@ -86,6 +86,7 @@ export const EN_UI = {
     untitled: 'My collage',
     addBirds: 'Add birds',
     share: 'Share',
+    print: 'Print',
     /** The collage block's accessible name: the birder's own, the landing sample, a shared link's. */
     regionYours: 'Your collage',
     regionSample: 'Sample collage',
@@ -153,10 +154,6 @@ export const EN_UI = {
       sciSr: 'names',
       /** Tree view: keep only the rows with a bird on the list. */
       lifersOnly: 'Lifers only',
-      markNewest: 'Mark latest lifer',
-      markFirst: 'Mark first lifer',
-      newestSr: ', latest lifer',
-      firstSr: ', first lifer',
     },
     /** The dock search (DockSearch). */
     search: {
@@ -605,13 +602,13 @@ export const EN_UI = {
       targetInvalid: 'Enter a whole number from 1 to {max}.',
       card: 'Big Year {year}',
       cardLifer: 'Big Year {year} · New species in {year}',
+      ofTarget: { one: 'of {n} species', other: 'of {n} species' },
     },
     downloadShort: 'Download',
     /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
     print: {
-      /** The quiet action that shows the poster's options, and the button that goes back to the share image. */
-      entry: 'Print poster',
-      back: 'Back to image',
+      /** The dialog's title when the page's Print button opens it on the poster. */
+      title: 'Print poster',
       size: 'Poster size',
       inches: '{w} × {h} in',
       sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px at 150 dpi',
@@ -629,12 +626,15 @@ export const EN_UI = {
       failedMemory: 'Couldn’t make the poster. Try a smaller size.',
       failed: 'Couldn’t make the poster. Try again.',
       previewAlt: 'Preview of the {size} poster',
-      /** Several posters at once: a ZIP of one poster per group. `perPoster` names the box for the most birds per poster. */
+      /** One per group: a ZIP of one share image (Share) or one poster (Print) per group. `perPoster` and `perImage` name the
+       *  Birds per poster (image) dropdown; `count`, `progress`, `ready` are the poster's, `…Images` the image's. */
       bulk: {
-        title: 'Several posters at once',
-        lede: 'One poster per group, downloaded together as a ZIP.',
+        title: 'One per group',
+        lede: 'A ZIP with one image, or one poster, for each group.',
         splitLabel: 'Split by',
         perPoster: 'Birds per poster',
+        perImage: 'Birds per image',
+        all: 'All',
         splits: {
           batches: 'Number of birds',
           family: 'Family',
@@ -646,12 +646,15 @@ export const EN_UI = {
         },
         batch: 'Part {n}',
         count: { one: '{n} poster', other: '{n} posters' },
-        empty: 'No posters to make for this choice.',
+        countImages: { one: '{n} image', other: '{n} images' },
+        empty: 'Nothing to make for this choice.',
         png: 'Download PNGs (ZIP)',
         pdf: 'Download PDFs (ZIP)',
         progress: 'Poster {done} of {total}',
+        progressImages: 'Image {done} of {total}',
         makingNote: 'Making the ZIP.',
         ready: { one: 'Saved {file} ({n} poster).', other: 'Saved {file} ({n} posters).' },
+        readyImages: { one: 'Saved {file} ({n} image).', other: 'Saved {file} ({n} images).' },
         failed: 'Couldn’t make the ZIP. Try again.',
         namesDropped: { one: '{n} poster has no names: they didn’t fit.', other: '{n} posters have no names: they didn’t fit.' },
       },

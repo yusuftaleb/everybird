@@ -109,7 +109,7 @@ describe('bigYear helpers', () => {
 })
 
 describe('Big Year share card', () => {
-  it('draws 120 / 300 with Big Year 2027 (seen) and New species in 2027 (lifer), and fits all languages', async () => {
+  it('draws 120 over OF 300 SPECIES with Big Year 2027 (seen) and New species in 2027 (lifer), in every language', async () => {
     const species = makeSpecies(120)
     const entries: ListEntry[] = Array.from({ length: 120 }, (_, i) => ({
       code: `sp${i}`, date: '2027-03-01', heard: false, dead: false, media: false, sources: ['ebird'],
@@ -120,14 +120,15 @@ describe('Big Year share card', () => {
       format: 'story', entries, species, pack, theme: 'light',
       goal: { year: 2027, target: 300, basis: 'seen' }, strings: en.ui,
     })
-    expect(seenCard.countNum).toBe('120 / 300')
+    expect(seenCard.countNum).toBe('120')
+    expect(seenCard.countLabel).toBe('OF 300 SPECIES')
     expect(seenCard.label).toBe('Big Year 2027')
 
     const liferCard = await prepareCard({
       format: 'story', entries, species, pack, theme: 'light',
       goal: { year: 2027, target: 300, basis: 'lifer' }, strings: en.ui,
     })
-    expect(liferCard.countNum).toBe('120 / 300')
+    expect(liferCard.countNum).toBe('120')
     expect(liferCard.label).toBe('Big Year 2027 · New species in 2027')
 
     for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) {
@@ -135,7 +136,8 @@ describe('Big Year share card', () => {
         format: 'square', entries, species, pack, theme: 'light',
         goal: { year: 2027, target: 300, basis: 'lifer' }, strings: m.ui,
       })
-      expect(c.countNum).toBe('120 / 300')
+      expect(c.countNum).toBe('120')
+      expect(c.countLabel).toContain('300')
       expect(c.label).toContain('2027')
     }
   })
