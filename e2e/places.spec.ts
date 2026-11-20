@@ -52,19 +52,20 @@ for (const width of [1280, 390]) {
       await filters.click();
       const panel = page.getByTestId("filter-panel-places");
       await expect(panel).toBeVisible();
-      // The top level is the continents; each opens its countries in place.
+      // The top level is the continents; a drill button shows one's countries, the breadcrumb steps back.
       await expect(panel.getByTestId("continent-AF")).toBeVisible();
       await expect(panel.getByTestId("continent-NA")).toBeVisible();
       await panel.getByTestId("drill-n:AF").click();
-      await panel.getByTestId("drill-n:NA").click();
       // By the row's name (the whole row is the label; dev builds park Next's badge over the phone sheet's corner).
       await panel.getByText("Egypt", { exact: true }).click();
+      await panel.getByTestId("places-path").getByRole("button", { name: "All continents" }).click();
+      await panel.getByTestId("drill-n:NA").click();
       await panel.getByText("Costa Rica", { exact: true }).click();
       await expect(panel.getByTestId("country-CR")).toBeChecked();
       await expect(page.getByTestId("collage-stats")).toContainText("11 of 53 species");
       await expect(filters).toContainText("Filters · 1");
       await expect(filters).toHaveAttribute("aria-label", "Filters: Places: Costa Rica, Egypt");
-      await expect(panel.locator("img.eb-flag")).toHaveCount(3); // flag-icons, same origin
+      await expect(panel.locator("img.eb-flag")).toHaveCount(2); // flag-icons, same origin: North America's two countries
       await page.keyboard.press("Escape");
       await expect(page.getByTestId("filters-panel")).toHaveCount(0);
       await expect(filters).toBeFocused();
@@ -193,7 +194,7 @@ for (const width of [1280, 390]) {
     test.use({ viewport: { width, height: 900 }, hasTouch: width < 600 });
     const press = (l: Locator) => (width < 600 ? l.tap() : l.click());
 
-    test("open North America, Canada, then British Columbia, in place; a county; the bar names it; Esc and 44px presses", async ({ page }) => {
+    test("drill from North America to Canada to British Columbia to a county; the bar names it; back, Esc and 44px presses", async ({ page }) => {
       await seed(page, drilledSaved());
       const places = page.getByTestId("filters-button");
       const stats = page.getByTestId("collage-stats");
@@ -202,19 +203,21 @@ for (const width of [1280, 390]) {
       const head = panel.locator(".eb-places-head");
       await expect(head).toContainText("2 continents");
       await press(panel.getByTestId("drill-n:NA"));
+      await expect(panel.getByTestId("place-all")).toBeFocused();
+      await expect(head).toContainText("2 countries");
+      await expect(panel.getByTestId("places-path")).toContainText("All continents/North America");
       const canada = panel.getByTestId("drill-c:CA");
       await expect(canada).toBeVisible();
-      await expect(panel.getByTestId("drill-c:EG")).toHaveCount(0); // Egypt has no places under it
       await pressable(page, panel, "countries");
 
       if (width < 600) await canada.tap();
       else {
         await canada.focus();
         await page.keyboard.press("Enter");
-        await expect(canada).toBeFocused();
       }
-      await expect(canada).toHaveAttribute("aria-expanded", "true");
-      await expect(head).toContainText("2 continents"); // the provinces open under Canada; the list stays
+      await expect(panel.getByTestId("place-all")).toBeFocused();
+      await expect(head).toContainText("2 states and provinces");
+      await expect(panel.getByTestId("places-path")).toContainText("All continents/North America/Canada");
       await press(row(panel, "place-s:CA-BC"));
       await expect(panel.getByTestId("place-s:CA-BC")).toBeChecked();
       await expect(stats).toContainText("14 of 21 species");
@@ -223,11 +226,12 @@ for (const width of [1280, 390]) {
       await pressable(page, panel, "provinces");
 
       await press(panel.getByTestId("drill-s:CA-BC"));
-      await expect(panel.getByTestId("drill-s:CA-BC")).toHaveAttribute("aria-expanded", "true");
-      await expect(panel.getByTestId("place-s:CA-BC")).toBeChecked();
+      await expect(panel.getByTestId("place-all")).toBeFocused();
+      await expect(head).toContainText("2 counties");
+      await expect(panel.getByTestId("place-all")).toBeChecked(); // "All of British Columbia" is the checked province
       await press(row(panel, "place-k:CA-BC|Capital"));
       await expect(panel.getByTestId("place-k:CA-BC|Capital")).toBeChecked();
-      await expect(panel.getByTestId("place-s:CA-BC")).not.toBeChecked(); // the county narrows its province away
+      await expect(panel.getByTestId("place-all")).not.toBeChecked(); // the county narrows its province away
       await expect(stats).toContainText("10 of 21 species");
       await expect(places).toContainText("Filters · 1");
       await expect(places).toHaveAttribute("aria-label", "Filters: Places: Capital, British Columbia");
@@ -236,8 +240,9 @@ for (const width of [1280, 390]) {
       expect(m.body).not.toBeNull();
       expect(m.body).toBeLessThanOrEqual(0);
 
-      await press(canada);
-      await expect(canada).toHaveAttribute("aria-expanded", "false");
+      await press(panel.getByTestId("places-path").getByRole("button", { name: "North America" }));
+      await expect(canada).toBeFocused();
+      await expect(head).toContainText("2 countries");
       await page.keyboard.press("Escape");
       await expect(page.getByTestId("filters-panel")).toHaveCount(0);
       await expect(places).toBeFocused();
@@ -249,9 +254,9 @@ for (const width of [1280, 390]) {
   });
 }
 
-// Reopened, every branch holding a checked place is open, so a checked county is in view (checking "Canada" there would
+// Reopened, the panel starts at the selection's level, so a checked county is in view (checking "Canada" there would
 // otherwise silently replace it).
-test("reopens with a checked county's branches open", async ({ page }) => {
+test("reopens at a checked county's level", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await seed(page, drilledSaved());
   await page.goto("/");
@@ -266,9 +271,8 @@ test("reopens with a checked county's branches open", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(panel).toHaveCount(0);
   await places.click();
-  await expect(panel.getByTestId("drill-n:NA")).toHaveAttribute("aria-expanded", "true");
-  await expect(panel.getByTestId("drill-c:CA")).toHaveAttribute("aria-expanded", "true");
-  await expect(panel.getByTestId("drill-s:CA-BC")).toHaveAttribute("aria-expanded", "true");
+  await expect(panel.locator(".eb-places-head")).toContainText("2 counties");
+  await expect(panel.getByTestId("places-path")).toContainText("All continents/North America/Canada/British Columbia");
   await expect(panel.getByTestId("place-k:CA-BC|Capital")).toBeChecked();
 });
 
@@ -283,7 +287,7 @@ test("a province, then a county", async ({ page }) => {
   const panel = page.getByTestId("filter-panel-places");
   await panel.getByTestId("drill-n:NA").click();
   await panel.getByTestId("drill-c:CA").click();
-  await expect(panel.getByTestId("drill-c:CA")).toHaveAttribute("aria-expanded", "true");
+  await expect(panel.getByTestId("places-path")).toContainText("Canada");
   await panel.getByTestId("place-s:CA-BC").check();
   await expect(places).toHaveAttribute("aria-label", "Filters: Places: British Columbia, Canada");
   await expect(page.getByTestId("collage-stats")).toContainText("3 of 6 species");

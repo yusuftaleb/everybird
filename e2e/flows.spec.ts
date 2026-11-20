@@ -193,13 +193,14 @@ for (const width of WIDTHS) {
       await page.getByRole("button", { name: "All birds" }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
 
-      // Places (in the one Filters panel): two countries (species seen in either), each under its continent.
+      // Places (in the one Filters panel): two countries (species seen in either), each drilled to from its continent.
       const filters = page.getByTestId("filters-button");
       await filters.click();
       const panel = page.getByTestId("filter-panel-places");
       await panel.getByTestId("drill-n:AF").click();
-      await panel.getByTestId("drill-n:NA").click();
       await panel.getByText("Egypt", { exact: true }).click();
+      await panel.getByTestId("places-path").getByRole("button", { name: "All continents" }).click();
+      await panel.getByTestId("drill-n:NA").click();
       await panel.getByText("Costa Rica", { exact: true }).click();
       await expect(stats(page)).toContainText(`11 of ${TOTAL} species`);
       await expect(filters).toContainText("Filters · 1");

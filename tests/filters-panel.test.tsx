@@ -173,6 +173,7 @@ describe('the Filters button and its panel', () => {
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: 'four places' }))
     fireEvent.click(screen.getByTestId('chip-place-open'))
+    fireEvent.click(screen.getByTestId('drill-n:NA'))
     fireEvent.click(screen.getByTestId('country-US'))
     expect(screen.queryByTestId('chip-place-open')).toBeNull()
     expect(screen.getByTestId('chip-place-s:CA-BC')).toBeInTheDocument()
@@ -396,12 +397,25 @@ describe('a filter change keeps the place: scroll, panel scrollers and focus', (
     expect(window.scrollY).toBe(300)
   })
 
-  it('a popover scroller (the Places checklist and the panel body) is put back to its position', () => {
+  it('each column ends with its one scroller, so a squeezed column never runs under another part (CSS: filters.css)', () => {
+    render(<Harness />)
+    fireEvent.click(button())
+    const places = screen.getByTestId('filter-panel-places')
+    const scroll = places.querySelectorAll<HTMLElement>('.eb-places-scroll')
+    expect(scroll).toHaveLength(1)
+    expect(scroll[0].parentElement!.lastElementChild).toBe(scroll[0])
+    expect(places.lastElementChild).toBe(scroll[0].closest('.eb-places'))
+    expect(within(places).queryByRole('switch')).toBeNull()
+    const status = screen.getByTestId('filter-panel-status')
+    expect(status.lastElementChild!.lastElementChild).toHaveClass('eb-checklist')
+  })
+
+  it('a popover scroller (the Places list and the panel body) is put back to its position', () => {
     render(<Harness />)
     fireEvent.click(button())
     const panel = screen.getByTestId('filters-panel')
     const body = panel.querySelector<HTMLElement>('.eb-drop-body')!
-    const list = panel.querySelector<HTMLElement>('.eb-checklist')!
+    const list = panel.querySelector<HTMLElement>('.eb-places-scroll')!
     body.scrollTop = 120
     list.scrollTop = 80
     onDispatched = () => { body.scrollTop = 0; list.scrollTop = 0 }

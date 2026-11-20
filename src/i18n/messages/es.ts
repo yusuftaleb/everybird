@@ -239,8 +239,12 @@ export const es: Messages = {
       head: { continent: 'Continentes', region: 'Regiones', country: 'Países', province: 'Estados y provincias', county: 'Condados' },
       find: { continent: 'Buscar un país o región', region: 'Buscar una región', country: 'Buscar un país', province: 'Buscar un estado o provincia', county: 'Buscar un condado' },
       noMatch: { continent: 'Ningún lugar coincide.', region: 'Ninguna región coincide.', country: 'Ningún país coincide.', province: 'Ningún estado o provincia coincide.', county: 'Ningún condado coincide.' },
+      allCountries: 'Todos los países',
+      /** The breadcrumb's first step when the top level lists the continents. */
+      allContinents: 'Todos los continentes',
+      allOf: 'Todo en {place}',
       drill: { continent: 'Ver países de {place}', country: 'Ver estados y provincias de {place}', province: 'Ver condados de {place}' },
-      group: { continent: 'Países de {place}', country: 'Estados y provincias de {place}', province: 'Condados de {place}' },
+      group: { country: 'Estados y provincias de {place}', province: 'Condados de {place}' },
       none: 'No hay lugares en esta lista.',
       emptyFiltered: 'No hay lugares aquí con los otros filtros.',
       emptyNow: 'Ya no hay lugares aquí en tu lista.',

@@ -67,14 +67,15 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(topLevelRule(css, ".eb-dock-tab svg")).toMatch(/width: 20px/);
   });
 
-  it("the popover keeps one readable width at the dock's right edge in every view and caps at 70vh; the lists scroll in their columns", () => {
+  it("the popover spans the dock (the same in every view) and caps at 70vh; each column scrolls one list, its last part", () => {
     const pop = topLevelRule(filtersCss, '.eb-drop[data-kind="filters"]');
-    expect(pop).toMatch(/left:\s*auto;\s*right:\s*0;\s*width:\s*min\(680px, 100%\)/);
+    expect(pop).toMatch(/left:\s*0;\s*right:\s*0;\s*width:\s*auto/);
     expect(pop).toMatch(/max-height:\s*70vh/);
-    // The top lists scroll; an open branch inside the Places list does not.
-    const list = topLevelRule(filtersCss, '.eb-drop[data-kind="filters"] .eb-fpanel-row .eb-checklist:not(.eb-places-sub)');
+    const list = topLevelRule(filtersCss, '.eb-drop[data-kind="filters"] .eb-fpanel-row .eb-places-scroll,\n.eb-drop[data-kind="filters"] .eb-fpanel-row [data-sec="status"] .eb-checklist');
     expect(list).toMatch(/overscroll-behavior:\s*contain/);
     expect(list).toMatch(/overflow-y:\s*auto/);
+    // No view narrows it: no rule for a view's own width.
+    expect(filtersCss).not.toMatch(/data-view[^{]*\.eb-drop/);
   });
 
   it("the content under the dock dims to 30% while Filters is open, with no transition under reduced motion", () => {

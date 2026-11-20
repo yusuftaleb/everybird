@@ -133,8 +133,8 @@ export const EN_UI = {
       collage: 'Collage',
       list: 'List',
       map: 'Map',
-      /** The Map view (MapView): the button on the map back to the whole world (after an arrow icon), "Show all" under its
-       *  list ({n} the number of places), and the note when its shapes don't load. */
+      /** The Map view (MapView): the first step of the path above the map ("World / Canada"), "Show all" under its list
+       *  ({n} the number of places), and the note when its shapes don't load. */
       mapWorld: 'World',
       mapAll: 'Show all {n}',
       mapFailed: "Couldn't load the map. The list below has the same counts.",
@@ -294,16 +294,21 @@ export const EN_UI = {
       seenTime: 'Seen: {time}',
     },
   },
-  /** The Places panel (PlacesList, PlacesTree, places-shared). Country names come from the data
+  /** The Places panel (PlacesList, PlacesDrill, places-shared). Country names come from the data
    *  (src/lib/i18n-places.ts); province and county names are local names. */
   places: {
     head: { continent: 'Continents', region: 'Regions', country: 'Countries', province: 'States and provinces', county: 'Counties' },
     find: { continent: 'Find a country or region', region: 'Find a region', country: 'Find a country', province: 'Find a state or province', county: 'Find a county' },
     noMatch: { continent: 'No place matches.', region: 'No region matches.', country: 'No country matches.', province: 'No state or province matches.', county: 'No county matches.' },
-    /** The disclosure chevrons' aria-labels (PlacesTree: a row's places open under it). */
+    allCountries: 'All countries',
+    /** The breadcrumb's first step when the top level lists the continents. */
+    allContinents: 'All continents',
+    /** The drilled level's first row, the parent's own checkbox ("All of Canada"). */
+    allOf: 'All of {place}',
+    /** The drill buttons' aria-labels (PlacesDrill: a row's places, one level down). */
     drill: { continent: 'Show countries in {place}', country: 'Show states and provinces in {place}', province: 'Show counties in {place}' },
-    /** An open row's list of places (its accessible name). */
-    group: { continent: 'Countries in {place}', country: 'States and provinces in {place}', province: 'Counties in {place}' },
+    /** The Map view's list under the map, inside a country or a province (its accessible name). */
+    group: { country: 'States and provinces in {place}', province: 'Counties in {place}' },
     none: 'No places on this list.',
     emptyFiltered: 'No places here under the other filters.',
     emptyNow: 'No places here on your list now.',

@@ -1,6 +1,8 @@
-/* The Map view (MapView.tsx): land in Surface, each place with species Accent mixed into Surface on one continuous scale
-   (the fill is set per path), the hovered place and the open country outlined in Ink. The World button sits on the map's
-   top-left corner, the legend ramp under it, then the plain list of the shown level's places. */
+/* The Map view (MapView.tsx): the path above the map (the Places breadcrumb's .eb-path, filters.css), land in Surface,
+   each place with species on one continuous scale in the look's ramp (the fill is set per path, LOOKS in shapes.ts), the
+   hovered place and the open one outlined; the legend ramp under the map, then the list of the shown level's places in
+   one to three columns. Three looks (`data-look`, `?v=map:a|b|c`): a, Paper borders and Ink outlines; b, the same with
+   hairline borders; c, hairline borders and Accent outlines (its ramp is grey to Ink). */
 .eb-map { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; min-width: 0; }
 .eb-map-pic { position: relative; display: flex; flex-direction: column; gap: 10px; }
 .eb-map-svg { display: block; width: 100%; height: auto; max-height: 70vh; animation: eb-map-in .28s cubic-bezier(.16, 1, .3, 1) both; }
@@ -18,6 +20,8 @@
 .eb-map-svg path[data-opens] { cursor: pointer; }
 .eb-map-svg path[data-open] { stroke: var(--ink); stroke-width: 1.5px; }
 .eb-map-svg path[data-hot] { stroke: var(--ink); stroke-width: 1.25px; }
+.eb-map:is([data-look="b"], [data-look="c"]) .eb-map-svg path:not([data-open], [data-hot]) { stroke-width: .5px; }
+.eb-map[data-look="c"] .eb-map-svg path:is([data-open], [data-hot]) { stroke: var(--accent); }
 
 /* The tooltip: the bird tooltip's card look (card-list.css .eb-card.eb-tip), above the pointer, its side by where the
    pointer is so it never runs off the map. */
@@ -26,17 +30,22 @@
 .eb-map-tip[data-side="end"] { transform: translate(calc(-100% + 12px), calc(-100% - 12px)); }
 .eb-map-tip-name { font-weight: 600; font-size: 14px; color: var(--ink); }
 
-/* "World": a quiet button on the map's top-left corner, on Paper so it reads over any shade. */
-.eb-btn.eb-map-back { position: absolute; left: 8px; top: 8px; z-index: 2; gap: 6px; padding: 0 14px 0 10px; background: var(--paper); border-color: var(--line); font-weight: 600; }
-.eb-map-back svg { width: 16px; height: 16px; }
+/* The path: its earlier steps take a 44px press (filters.css, with the Places breadcrumb's). */
+.eb-map-path { min-height: 24px; }
 
 /* The legend: the lowest count, one continuous ramp, the highest. */
 .eb-map-legend { display: flex; align-items: center; gap: 8px; margin: 0; }
 .eb-map-legend i { flex: 0 1 200px; min-width: 48px; height: 8px; border-radius: 4px; }
 
-/* The list under the map: the shown level's places, most species first, the count beside the name. A world row is a
-   button (a 44px row with the chevron pointing in); a country's rows are plain. */
-.eb-map-list { list-style: none; margin: 0 -8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); column-gap: 16px; }
+/* The list under the map: the shown level's places, most species first down each column (one on phones, two on medium
+   screens, three from 1024px), the flag, the full name (wrapping, never cut) and the count beside it. A row that opens
+   is a button (a 44px row with the chevron pointing in); the others are plain. */
+.eb-map-list { list-style: none; margin: 0 -8px; padding: 0; columns: 1; column-gap: 16px; }
+.eb-map-list > li { break-inside: avoid; }
+@media (min-width: 601px) { .eb-map-list { columns: 2; } }
+@media (min-width: 1024px) { .eb-map-list { columns: 3; } }
+/* The flag (an emoji, mapFlag): a fixed slot, kept empty for a place without one so the names line up. */
+.eb-map-flag { flex: none; width: 22px; font-size: 18px; line-height: 1; text-align: center; }
 .eb-map-row {
   display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 8px; box-sizing: border-box;
   border: 0; background: none; color: var(--ink); font: inherit; text-align: left;
