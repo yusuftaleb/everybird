@@ -154,6 +154,8 @@ export const EN_UI = {
       sciSr: 'names',
       /** Tree view: keep only the rows with a bird on the list. */
       lifersOnly: 'Lifers only',
+      /** Tree view: branches at their true ages over the age axis, or (off) the splits spaced evenly. */
+      timeScale: 'Time scale',
     },
     /** The dock search (DockSearch). */
     search: {
@@ -172,8 +174,7 @@ export const EN_UI = {
      *  names the controls bar's Level menu, `rank` its four choices (what the open branch's tips are), `tooMany` the
      *  reason a choice is off (more than 300 tips: what to open first); `layout` the Layout menu, `layouts` its three
      *  choices (a half disc, a full circle, rows top to bottom); `tipOf` a fan or circle tip's count, "12 of 39".
-     *  `credit` the one line under the tree (the full credit is About's credits.tree): <src> links the repository,
-     *  <lic> the licence.
+     *  `oldest` the legend under the view (CollageView); the tree's credit is About's credits.tree.
      *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the names of the groups inside
      *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
      *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that is
@@ -200,8 +201,12 @@ export const EN_UI = {
       keyDotted: 'Placed without genetic data',
       split: '{name} is not one branch in this tree, so this drawing shows its species alone.',
       oldest: 'Oldest lineage on this list: {name}, which split from its closest relatives about {age} million years ago (an estimate).',
+      /** The tree's share image and poster: the oldest lineage in the latest lifer's place (the row's mono label; the
+       *  poster foot's line), and the dialog's switch. */
+      oldestLabel: 'Oldest lineage · about {age} million years',
+      oldestPoster: 'Oldest lineage: {name}, about {age} million years',
+      showOldest: 'Show oldest lineage',
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
-      allMapped: 'Every bird on this list has a place in the tree.',
       mineNone: 'No bird on the list here.',
       level: 'Level',
       layout: 'Layout',
@@ -210,7 +215,6 @@ export const EN_UI = {
       rank: { orders: 'Orders', families: 'Families', genera: 'Genera', species: 'Species' },
       tooMany: { families: 'Open an order to see its families', genera: 'Open a family to see its genera', species: 'Open a genus to see its species' },
       tipOf: '{n} of {total}',
-      credit: 'Tree: <src>AvesData</src> (McTavish et al.), <lic>CC BY 4.0</lic>',
     },
     /** The close buttons' aria-label (the welcome, sheets, the Places and Time sheet). */
     close: 'Close',
@@ -231,9 +235,9 @@ export const EN_UI = {
     nav: 'Filter by group',
     all: 'All birds',
     /** A level's mono label and its sheet's title. */
-    rank: { order: 'Orders', family: 'Families', country: 'Countries', year: 'Years' },
+    rank: { order: 'Orders', family: 'Families', genus: 'Genera', country: 'Countries', year: 'Years' },
     /** The phone's picker button. */
-    choose: { order: 'Choose an order', family: 'Choose a family', country: 'Choose a country', year: 'Choose a year' },
+    choose: { order: 'Choose an order', family: 'Choose a family', genus: 'Choose a genus', country: 'Choose a country', year: 'Choose a year' },
     /** A removable chip's aria-label. */
     remove: 'Remove {label} filter',
     /** The Filters sections' names (the panel, the chips and the button's spoken text). */
