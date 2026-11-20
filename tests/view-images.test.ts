@@ -83,9 +83,9 @@ describe('the tree image names every tip', () => {
 })
 
 describe('the credit on each image', () => {
-  it('the map has the collage footer; the tree adds AvesData, each credit in one form', () => {
+  it('the map has the site alone; the tree adds AvesData, each credit in one form', () => {
     expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0')
-    expect(MAP_FOOTER).toBe(FOOTER_LINE)
+    expect(MAP_FOOTER).toBe('everybird.yusuftaleb.com')
     expect(TREE_FOOTER).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · Tree: AvesData, CC BY 4.0')
   })
 
