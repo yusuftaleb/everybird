@@ -6,6 +6,9 @@ import { pt } from '@/i18n/messages/pt'
 import { pl } from '@/i18n/messages/pl'
 import { fr } from '@/i18n/messages/fr'
 import { de } from '@/i18n/messages/de'
+import { it as italian } from '@/i18n/messages/it'
+import { sv } from '@/i18n/messages/sv'
+import { da } from '@/i18n/messages/da'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
 
 // The footer line as image.ts has it (FOOTER_LINE); this file must not import image.ts.
@@ -27,7 +30,7 @@ describe('stampDate', () => {
   it('each language: the date only, from its own months (no "Al", "Em" or "Per")', () => {
     const d = new Date(2026, 10, 14)
     expect(stampDate(d, stampStrings(en.ui))).toBe('14 Nov 2026')
-    for (const m of [es, pt, nl, fr]) expect(stampDate(d, stampStrings(m.ui))).toBe('14 nov 2026')
+    for (const m of [es, pt, nl, fr, italian, sv, da]) expect(stampDate(d, stampStrings(m.ui))).toBe('14 nov 2026')
     expect(stampDate(d, stampStrings(pl.ui))).toBe('14 lis 2026')
     expect(stampDate(d, stampStrings(de.ui))).toBe('14 Nov 2026')
     expect(stampDate(new Date(2026, 8, 30), stampStrings(es.ui))).toBe('30 sept 2026')

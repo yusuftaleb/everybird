@@ -245,6 +245,11 @@ describe('writeNames with synthetic source files', () => {
       write(`data/raw/ebird-groups.${lang}.json`, [{ groupOrder: 1, groupName: 'Translated group' }])
       write(`data/i18n/families.${lang}.json`, { Testidae: 'Hand translation' })
     }
+    // The IOC names the IOC_COLUMNS sets fall back to: a synthetic huashu record for "bird" and its names.csv row.
+    mkdirSync(join(root, 'data/raw/huashu/data'), { recursive: true })
+    write('data/raw/huashu/data/species.json', { species: [{ id: 'Avis_testa', scientificName: 'Avis testa', taxonConcept: 'same', taxonomy: { seq: 1, order: 'Testiformes', family: 'Testidae' }, ids: { ebird: 'bird' } }] })
+    writeFileSync(join(root, 'data/raw/huashu/data/names.csv'), 'id,scientific_name,en,it,sv,da\nAvis_testa,Avis testa,Bird,uccello di prova,testfågel,Testfugl\n')
+    write('data/overrides.json', {})
   })
   afterEach(() => {
     vi.restoreAllMocks()
@@ -258,6 +263,10 @@ describe('writeNames with synthetic source files', () => {
     expect(read('pt_PT').names).toEqual({ bird: 'Ave-base' })
     expect(read('nl').names).toEqual({ bird: 'Basisvogel' })
     expect(read('es_MX').names).toEqual({ bird: 'Ave de Hawaii' })
+    // eBird's set only repeats the English name: the matched record's IOC name, capitalised; other sets never take it.
+    expect(read('it').names).toEqual({ bird: 'Uccello di prova' })
+    expect(read('da').names).toEqual({ bird: 'Testfugl' })
+    expect(read('de').names).toEqual({})
     for (const l of NAME_LOCALES) expect(existsSync(join(root, `public/data/names.${l}.v1.json`))).toBe(true)
   })
 

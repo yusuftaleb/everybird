@@ -113,7 +113,7 @@ export const da: Messages = {
         tree: 'Træ',
         heaviestFirst: 'Tungeste først',
         lightestFirst: 'Letteste først',
-        trueSize: 'Ægte størrelse',
+        trueSize: 'Ægte mål',
         markNewest: 'Markér nyeste nye art',
         markFirst: 'Markér første nye art',
         arrangement: 'Opstilling',
@@ -820,7 +820,7 @@ export const da: Messages = {
       description: 'Gør din livsliste over fugle til en gratis collage af klistermærker. Importér fra eBird, iNaturalist eller observation.org, og del billeder eller udskriv en plakat.',
       about: {
         title: 'Om',
-        description: 'Hvad Everybird er, hvordan det virker, hvad Ægte størrelse betyder, og hvilke data, klistermærker, skrifttyper og hvilken kode det er bygget af.',
+        description: 'Hvad Everybird er, hvordan det virker, hvad Ægte mål betyder, og hvilke data, klistermærker, skrifttyper og hvilken kode det er bygget af.',
       },
       settings: { title: 'Indstillinger' },
     },
@@ -838,9 +838,9 @@ export const da: Messages = {
         privacy: 'Din liste forlader aldrig din browser. Vi tæller besøg med Cloudflare Web Analytics, anonymt og uden cookies, og nogle få handlinger (en collage lavet, et billede delt eller gemt, et link kopieret) med en lille tæller af vores egen, som aldrig ser dine fugle, navne eller steder. Et anonymt id, der skifter hver dag, lader os tælle unikke besøgende uden at følge nogen fra dag til dag. Ingen af dem kører, hvis din browser beder om ikke at blive sporet. Dit valg af sprog gemmes i en lille cookie på denne enhed; den forlader kun enheden for at vise dig den rigtige side. Besøgstællingen indeholder din browsers sprog (kun “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv” eller “da”).',
       },
       size: {
-        head: 'Hvad Ægte størrelse betyder',
+        head: 'Hvad Ægte mål betyder',
         even: 'Hvert klistermærke får sin størrelse efter fuglens gennemsnitlige kropsvægt, fra AVONET, målt på det areal, det dækker på siden, så en påfugls slæb eller en hejres ben ikke får den til at se lille ud. Som standard udjævnes størrelserne: arealet følger vægten opløftet i 0,4, så små fugle forbliver synlige ved siden af store.',
-        true: 'Ægte størrelse bruger i stedet kubikroden af vægten til længden. Fugle har nogenlunde samme massefylde, så vægten følger rumfanget, og dens kubikrod følger længden: en fugl, der er otte gange tungere, tegnes omkring dobbelt så lang og dækker fire gange arealet. Det er et skøn over den relative størrelse, ikke en målt længde. Slanke fugle med lang hals kan se lidt små ud og kompakte lidt store, svømmestillinger skjuler en del af kroppen, og hver art bruger én gennemsnitsvægt, så hanner, hunner og årstider skelnes ikke fra hinanden.',
+        true: 'Ægte mål bruger i stedet kubikroden af vægten til længden. Fugle har nogenlunde samme massefylde, så vægten følger rumfanget, og dens kubikrod følger længden: en fugl, der er otte gange tungere, tegnes omkring dobbelt så lang og dækker fire gange arealet. Det er et skøn over den relative størrelse, ikke en målt længde. Slanke fugle med lang hals kan se lidt små ud og kompakte lidt store, svømmestillinger skjuler en del af kroppen, og hver art bruger én gennemsnitsvægt, så hanner, hunner og årstider skelnes ikke fra hinanden.',
       },
       status: {
         head: 'Bevaringsstatus',

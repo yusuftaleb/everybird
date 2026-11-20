@@ -136,8 +136,8 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     const p = text(document.querySelector('main .eb-how, section[aria-labelledby="eb-how-h"] > p.eb-prose'))
     expect(p).toBe(m.page.about.how.privacy)
     expect(p).toContain('Cloudflare Web Analytics')
-    // Polish quotes open low („es”).
-    expect(p).toMatch(/[“„"]es[”"], [“„"]pt[”"].*[“„"]nl[”"].*[“„"]pl[”"].*[“„"]fr[”"].*[“„"]de[”"].*[“„"”]it[”"].*[“„"”]sv[”"].*[“„"”]da[”"]/)
+    // Polish quotes open low („es”), Swedish with a closing quote (”es”).
+    expect(p).toMatch(/[“„"”]es[”"], [“„"”]pt[”"].*[“„"”]nl[”"].*[“„"”]pl[”"].*[“„"”]fr[”"].*[“„"”]de[”"].*[“„"”]it[”"].*[“„"”]sv[”"].*[“„"”]da[”"]/)
     if (lang === 'en') {
       expect(p).toContain('anonymous and cookieless')
       expect(p).toContain('Your language choice is kept in a small cookie on this device; it never leaves it except to show you the right page.')

@@ -174,7 +174,7 @@ describe('the language cookie', () => {
     refreshLangCookie(present)
     expect(present.writes).toEqual(['everybird-lang=es; Max-Age=31536000; Path=/; SameSite=Lax; Secure'])
 
-    for (const c of ['', 'theme=x', 'everybird-lang=it', 'everybird-lang=', 'my-everybird-lang=es']) {
+    for (const c of ['', 'theme=x', 'everybird-lang=tr', 'everybird-lang=', 'my-everybird-lang=es']) {
       const doc = fakeDoc(c)
       refreshLangCookie(doc)
       expect(doc.writes, c).toEqual([])

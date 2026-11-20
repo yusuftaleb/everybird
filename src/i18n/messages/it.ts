@@ -113,7 +113,7 @@ export const it: Messages = {
         tree: 'Albero',
         heaviestFirst: 'Prima i più pesanti',
         lightestFirst: 'Prima i più leggeri',
-        trueSize: 'Dimensione reale',
+        trueSize: 'Taglia reale',
         markNewest: 'Segna l’ultima specie nuova',
         markFirst: 'Segna la prima specie nuova',
         arrangement: 'Disposizione',
@@ -816,7 +816,7 @@ export const it: Messages = {
       description: 'Trasforma la tua lista di vita di uccelli in un collage di adesivi gratuito. Importala da eBird, iNaturalist o observation.org, poi condividi immagini o stampa un poster.',
       about: {
         title: 'Info',
-        description: 'Cos’è Everybird, come funziona, cosa significa Dimensione reale, e i dati, gli adesivi, i caratteri e il codice su cui si basa.',
+        description: 'Cos’è Everybird, come funziona, cosa significa Taglia reale, e i dati, gli adesivi, i caratteri e il codice su cui si basa.',
       },
       settings: { title: 'Opzioni' },
     },
@@ -830,12 +830,12 @@ export const it: Messages = {
           'Ogni uccello viene abbinato alla tassonomia eBird di quest’anno e mantiene la sua data più antica. Le righe che non corrispondono vengono elencate, così niente viene scartato in silenzio.',
           'Il collage, i filtri e le immagini da condividere vengono creati tutti nel tuo browser.',
         ],
-        privacy: 'La tua lista non lascia mai il tuo browser. Contiamo le visite con Cloudflare Web Analytics, in forma anonima e senza cookie, e alcune azioni (un collage creato, un’immagine condivisa o salvata, un link copiato) con un nostro piccolo contatore che non vede mai i tuoi uccelli, i nomi o i luoghi. Un identificativo anonimo che cambia ogni giorno ci permette di contare i visitatori unici senza seguire nessuno da un giorno all’altro. Nessuno dei due funziona se il tuo browser chiede di non essere tracciato. La lingua che scegli è salvata in un piccolo cookie su questo dispositivo; non ne esce mai, se non per mostrarti la pagina giusta. Il conteggio delle visite include la lingua del tuo browser (solo “es”, “pt”, “nl”, “pl”, “fr”, “de” o “it”).',
+        privacy: 'La tua lista non lascia mai il tuo browser. Contiamo le visite con Cloudflare Web Analytics, in forma anonima e senza cookie, e alcune azioni (un collage creato, un’immagine condivisa o salvata, un link copiato) con un nostro piccolo contatore che non vede mai i tuoi uccelli, i nomi o i luoghi. Un identificativo anonimo che cambia ogni giorno ci permette di contare i visitatori unici senza seguire nessuno da un giorno all’altro. Nessuno dei due funziona se il tuo browser chiede di non essere tracciato. La lingua che scegli è salvata in un piccolo cookie su questo dispositivo; non ne esce mai, se non per mostrarti la pagina giusta. Il conteggio delle visite include la lingua del tuo browser (solo “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv” o “da”).',
       },
       size: {
-        head: 'Cosa significa Dimensione reale',
+        head: 'Cosa significa Taglia reale',
         even: 'Ogni adesivo è dimensionato in base alla massa corporea media dell’uccello, da AVONET, secondo l’area che occupa sulla pagina, così lo strascico di un pavone o le zampe di un airone non lo fanno sembrare piccolo. Di base le dimensioni sono bilanciate: l’area segue la massa elevata a 0,4, così gli uccelli piccoli restano visibili accanto a quelli grandi.',
-        true: 'Dimensione reale usa invece la radice cubica della massa per la lunghezza. Gli uccelli hanno una densità più o meno simile, quindi la massa segue il volume e la sua radice cubica segue la lunghezza: un uccello otto volte più pesante è disegnato lungo circa il doppio e occupa quattro volte l’area. È una stima della dimensione relativa, non una lunghezza misurata. Gli uccelli snelli dal collo lungo possono sembrare un po’ piccoli e quelli tozzi un po’ grandi, le pose a nuoto nascondono parte del corpo, e ogni specie usa una sola massa media, quindi maschi, femmine e stagioni non sono distinti.',
+        true: 'Taglia reale usa invece la radice cubica della massa per la lunghezza. Gli uccelli hanno una densità più o meno simile, quindi la massa segue il volume e la sua radice cubica segue la lunghezza: un uccello otto volte più pesante è disegnato lungo circa il doppio e occupa quattro volte l’area. È una stima della dimensione relativa, non una lunghezza misurata. Gli uccelli snelli dal collo lungo possono sembrare un po’ piccoli e quelli tozzi un po’ grandi, le pose a nuoto nascondono parte del corpo, e ogni specie usa una sola massa media, quindi maschi, femmine e stagioni non sono distinti.',
       },
       status: {
         head: 'Stato di conservazione',

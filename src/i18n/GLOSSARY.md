@@ -11,7 +11,7 @@ Read this before you translate a string or add a language. English (`messages/en
 | sticker | sticker | adesivo | sticker | naklejka | autocollant | Sticker | adesivo | klistermärke | klistermærke |
 | latest lifer | Última especie nueva | Última espécie nova | Nieuwste soort | Najnowszy gatunek | Dernière nouvelle espèce | Neueste Art | Ultima specie nuova | Senaste nya art | Nyeste nye art |
 | species (count label) | especies | espécies | soorten | gatunki | espèces | Arten | specie | arter | arter |
-| True size | Tamaño real | Tamanho real | Ware grootte | Prawdziwy rozmiar | Taille réelle | Echte Größe | Dimensione reale | Verklig storlek | Ægte størrelse |
+| True size | Tamaño real | Tamanho real | Ware grootte | Prawdziwy rozmiar | Taille réelle | Echte Größe | Taglia reale | Sann storlek | Ægte mål |
 | Scientific | Científico | Científico | Latijn (the label is short; its screen-reader text says "names") | Łacina (screen reader: "nazwy naukowe") | Latin (screen reader: "noms scientifiques") | Latein (screen reader: "wissenschaftliche Namen") | Latino (screen reader: "nomi scientifici") | Latin (screen reader: "vetenskapliga namn") | Latin (screen reader: "videnskabelige navne") |
 | Make yours | Haz el tuyo | Faça a sua (a colagem) | Maak de jouwe | Stwórz swój | Crée le tien | Mach deine | Crea il tuo | Gör din egen | Lav din egen |
 | Settings (top bar) | Ajustes | Ajustes | Instellingen | Ustawienia | Réglages | Optionen ("Einstellungen" doesn't fit the top bar) | Opzioni ("Impostazioni" is long for the top bar) | Alternativ ("Inställningar" is long for the top bar) | Valg ("Indstillinger" is long for the top bar) |
