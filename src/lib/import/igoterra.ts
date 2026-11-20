@@ -43,7 +43,7 @@ function makePlaceResolver(regions?: Regions): (countryCode: string, state: stri
 /**
  * Parse iGoTerra's sightings export (Backup.csv). Only birds (`Main Group` "Birds"); names by scientific name, then
  * common name; the earliest dated row per species gives its date and place (iGoTerra's FO column is not trusted).
- * Rows marked Don't Count are left out; a species with no other row is one skipped entry.
+ * Rows marked Don't Count are left out; a species with no other row is one skipped entry, named in `notCountable`.
  */
 export function parseIgoterra(
   csv: string,
@@ -83,7 +83,8 @@ export function parseIgoterra(
 
   const out = agg.finish(parsed.data.length)
   const counted = 'error' in out ? new Set<string>() : new Set(out.records.map((r) => r.code))
-  const offList = [...dontCount].filter((code) => !counted.has(code)).length
-  if ('error' in out) return offList ? { records: [], unmatched: [], skipped: offList, rows: parsed.data.length } : out
-  return { ...out, skipped: out.skipped + offList }
+  // Reported as eBird's not-countable species are (NotCounted's own line), not as entries that aren't species.
+  const offList = [...dontCount].filter((code) => !counted.has(code))
+  if ('error' in out) return offList.length ? { records: [], unmatched: [], skipped: offList.length, notCountable: offList, rows: parsed.data.length } : out
+  return offList.length ? { ...out, skipped: out.skipped + offList.length, notCountable: offList } : out
 }

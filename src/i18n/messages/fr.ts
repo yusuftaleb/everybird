@@ -734,8 +734,8 @@ export const fr: Messages = {
           other: '{n} entrées ne sont pas des espèces\u00a0: oiseaux identifiés seulement jusqu’à un groupe (comme «\u00a0Anas sp.\u00a0»), identifications entre deux espèces (comme «\u00a0Aythya marila/affinis\u00a0») et hybrides. eBird les exclut aussi des listes de vie.',
         },
         notCountable: {
-          one: '{n} espèce qu’eBird marque comme non comptable, comme les oiseaux échappés ou introduits\u00a0:',
-          other: '{n} espèces qu’eBird marque comme non comptables, comme les oiseaux échappés ou introduits\u00a0:',
+          one: '{n} espèce marquée comme non comptable, comme les oiseaux échappés ou introduits\u00a0:',
+          other: '{n} espèces marquées comme non comptables, comme les oiseaux échappés ou introduits\u00a0:',
         },
         unmatched: {
           one: '{n} ligne n’a pas pu être reconnue dans la taxonomie eBird de cette année.',

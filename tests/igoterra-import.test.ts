@@ -74,6 +74,7 @@ describe('parseIgoterra', () => {
 
   it('skips other animals, leaves Don’t Count species off as one skipped entry, and reports unmatched names', () => {
     expect(res.skipped).toBe(1) // the chickadee, only ever marked Don't Count
+    expect(res.notCountable).toHaveLength(1) // named as the birder's not-countable species, not as a non-species entry
     expect(res.unmatched).toHaveLength(1)
     expect(res.unmatched[0]).toMatchObject({ source: 'igoterra', sci: 'Fictus imaginarius', com: 'Imaginary Warbler', row: 10, reason: 'no-match' })
     expect(JSON.stringify(res)).not.toContain('Vulpes')
@@ -87,6 +88,7 @@ describe('parseIgoterra', () => {
     const r = parse(csv)
     expect(r.records).toEqual([expect.objectContaining({ code: 'mallar3', date: '2020-01-01', place: { country: 'CA' } })])
     expect(r.skipped).toBe(0)
+    expect(r.notCountable).toBeUndefined()
   })
 
   it('never reads location names, coordinates, comments or diary notes', () => {

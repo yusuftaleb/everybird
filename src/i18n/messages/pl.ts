@@ -723,8 +723,8 @@ export const pl: Messages = {
           other: 'Wpisy, które nie są gatunkami: {n}. To ptaki oznaczone tylko do grupy (jak „duck sp.”), oznaczenia „albo/albo” (jak „Greater/Lesser Scaup”) i mieszańce. eBird też pomija je na listach życia.',
         },
         notCountable: {
-          one: '{n} gatunek, który eBird oznacza jako niepoliczalny, np. uciekinierzy z niewoli lub gatunki introdukowane:',
-          other: 'Gatunki, które eBird oznacza jako niepoliczalne, np. uciekinierzy z niewoli lub gatunki introdukowane ({n}):',
+          one: '{n} gatunek oznaczony jako niepoliczalny, np. uciekinierzy z niewoli lub gatunki introdukowane:',
+          other: 'Gatunki oznaczone jako niepoliczalne, np. uciekinierzy z niewoli lub gatunki introdukowane ({n}):',
         },
         unmatched: {
           one: '{n} wiersz nie został dopasowany do tegorocznej taksonomii eBird.',
