@@ -46,7 +46,7 @@ function loops(d: string): [number, number][][] {
 
 describe('the map shapes', () => {
   it('a carved place is drawn once: no loop of its country lies inside it', () => {
-    for (const [part, country] of [['GF', 'FR'], ['GP', 'FR'], ['MQ', 'FR']]) {
+    for (const [part, country] of [['GF', 'FR'], ['SJ', 'NO'], ['BQ', 'NL'], ['CX', 'AU'], ['CC', 'AU']]) {
       const pts = loops(world.d[part]).flat()
       const [x0, x1] = [Math.min(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[0]))]
       const [y0, y1] = [Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[1]))]
@@ -56,6 +56,9 @@ describe('the map shapes', () => {
         expect(cx >= x0 - 1 && cx <= x1 + 1 && cy >= y0 - 1 && cy <= y1 + 1, `${country} over ${part}`).toBe(false)
       }
     }
+    // Countries the app lists that Natural Earth has only as admin-1 features; High Seas (XX) alone has no shape.
+    for (const id of ['SJ', 'BQ', 'BV', 'CC', 'CX', 'CP', 'GI', 'TK', 'UM', 'AC', 'CS', 'QY', 'QZ']) expect(Object.keys(world.d)).toContain(id)
+    expect(Object.keys(world.d)).not.toContain('NL@NA')
   })
 
   it('the world: one shape per country, the overseas parts their own place', () => {
