@@ -165,8 +165,9 @@ for (const width of WIDTHS) {
 
       // Add by hand (Settings' own section, no dialog): a tap adds the bird at once.
       const dialog = await openAdd(page, "hand");
+      // The search empty, the orders as a list that opens in place; typed, its matches in their place.
+      await expect(dialog.getByRole("list", { name: "Species to tick" })).toBeVisible();
       const list = dialog.getByRole("listbox", { name: "Species to tick" });
-      await expect(list).toBeVisible();
       await dialog.getByLabel("Search birds").fill("mallard");
       const mallard = list.getByRole("option", { name: /^Mallard, Anas platyrhynchos/ });
       await mallard.click();
@@ -381,7 +382,7 @@ for (const width of WIDTHS) {
       await expect(page.getByTestId("ebird-drop")).toBeVisible();
       await check("add birds: import a file");
       await openAdd(page, "hand");
-      await expect(dialog.getByRole("listbox", { name: "Species to tick" })).toBeVisible();
+      await expect(dialog.getByRole("list", { name: "Species to tick" })).toBeVisible();
       await check("add birds: by hand");
     });
   });

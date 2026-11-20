@@ -791,8 +791,6 @@ export const it: Messages = {
       button: 'Spunta uccelli',
       label: 'Spunta uccelli da una lista',
       search: 'Cerca uccelli',
-      group: 'Gruppo tassonomico',
-      back: 'Torna a {name}',
       list: 'Specie da spuntare',
       onListLabel: '{name}, già nella tua lista',
       onList: 'Nella tua lista',

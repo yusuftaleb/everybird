@@ -14,8 +14,8 @@ const rows = [
 ]
 const codes = (r: SpeciesRow[]) => r.map((x) => x.code)
 
-describe('filterTickRows (Add by hand: browse and search the whole taxonomy)', () => {
-  it('without a search: taxonomic order, narrowed to the picked order, family or genus', () => {
+describe('filterTickRows (Add by hand: search the whole taxonomy, and a genus\'s species in the list)', () => {
+  it('without a search: taxonomic order, narrowed to an order, a family or a genus', () => {
     expect(codes(filterTickRows(rows, { taxon: [] }))).toHaveLength(5)
     expect(codes(filterTickRows(rows, { taxon: ['Piciformes'] }))).toEqual(['norfli', 'gilfli', 'emptou1'])
     expect(codes(filterTickRows(rows, { taxon: ['Piciformes', 'Picidae', 'Colaptes'] }))).toEqual(['norfli', 'gilfli'])
@@ -33,7 +33,7 @@ describe('filterTickRows (Add by hand: browse and search the whole taxonomy)', (
   })
 })
 
-describe('taxonChildren (Add by hand: the taxonomic picker)', () => {
+describe('taxonChildren (Add by hand: the levels of the list that opens in place)', () => {
   const ids = (path: string[]) => taxonChildren(rows, path).map((c) => [c.id, c.n])
   it("lists the orders, an order's families and a family's genera in taxonomic order, with species counts", () => {
     expect(ids([])).toEqual([['Anseriformes', 1], ['Piciformes', 3], ['Passeriformes', 1]])
@@ -45,6 +45,20 @@ describe('taxonChildren (Add by hand: the taxonomic picker)', () => {
     const shuffled = [rows[4], rows[3], rows[2], rows[1], rows[0]]
     expect(taxonChildren(shuffled, []).map((c) => c.id)).toEqual(['Anseriformes', 'Piciformes', 'Passeriformes'])
     expect(taxonChildren(shuffled, ['Piciformes'])[0].first.code).toBe('norfli')
+  })
+  it("shows each group's first species in taxonomic order that has a sticker, else its first species (the outline)", () => {
+    const drawn = (code: string, st: boolean, to: number, sci: string, fam = 'Picidae') => ({ ...sp(code, code, sci, 'Piciformes', fam, to), st })
+    const birds = [
+      drawn('c3', true, 30, 'Colaptes c'), drawn('c1', false, 10, 'Colaptes a'), drawn('c2', true, 20, 'Colaptes b'),
+      drawn('m1', false, 40, 'Melanerpes a'), drawn('m2', false, 50, 'Melanerpes b'),
+      drawn('r1', true, 60, 'Ramphastos a', 'Ramphastidae'),
+    ]
+    const at = (path: string[]) => taxonChildren(birds, path).map((g) => [g.id, g.n, g.first.code, g.rep.code])
+    // The order: its first species (c1) has no sticker, the next in taxonomic order (c2) has, wherever the rows sit.
+    expect(at([])).toEqual([['Piciformes', 6, 'c1', 'c2']])
+    expect(at(['Piciformes'])).toEqual([['Picidae', 5, 'c1', 'c2'], ['Ramphastidae', 1, 'r1', 'r1']])
+    // A genus with no sticker at all shows its first species (drawn as the outline).
+    expect(at(['Piciformes', 'Picidae'])).toEqual([['Colaptes', 3, 'c1', 'c2'], ['Melanerpes', 2, 'm1', 'm1']])
   })
   it('a genus is the first word of the scientific name', () => {
     expect(genusOf('Colaptes auratus')).toBe('Colaptes')

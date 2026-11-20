@@ -805,8 +805,6 @@ export const pt: Messages = {
       button: 'Marcar aves',
       label: 'Marcar aves em uma lista',
       search: 'Buscar aves',
-      group: 'Grupo taxonômico',
-      back: 'Voltar para {name}',
       list: 'Espécies para marcar',
       onListLabel: '{name}, já na sua lista',
       onList: 'Na sua lista',

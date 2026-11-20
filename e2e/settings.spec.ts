@@ -104,8 +104,9 @@ test("Add by hand: When and where is always in view, and only the species list s
   await page.goto("/settings");
   const dialog = await openAdd(page, "hand");
   await expect(dialog.getByLabel("Search birds")).not.toBeFocused(); // on Settings the list is part of the page
-  const list = dialog.getByRole("listbox", { name: "Species to tick" });
-  await expect(list).toBeVisible();
+  // The search empty: the orders, a list that opens in place, in the list's scrolling box.
+  await expect(dialog.getByRole("list", { name: "Species to tick" })).toBeVisible();
+  const list = dialog.getByTestId("tick-tree");
   // No button to open it: the date, the year and the country are there all the time.
   await expect(dialog.getByRole("button", { name: "When and where" })).toHaveCount(0);
   const when = dialog.getByRole("group", { name: "When and where" });

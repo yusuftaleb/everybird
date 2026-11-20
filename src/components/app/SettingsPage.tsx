@@ -86,7 +86,7 @@ export function SettingsPage() {
               <h2 id="eb-tick-h" className="eb-h2">{t.add.hand}</h2>
               {ticked.species > 0 && <p className="eb-mono eb-note">{[t.tick.title, ...countParts(ticked, t)].join(' · ')}</p>}
             </div>
-            <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} />
+            <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} sci={state.sci} />
           </section>
         </>
       ) : (

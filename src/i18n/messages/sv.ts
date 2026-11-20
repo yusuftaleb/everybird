@@ -794,8 +794,6 @@ export const sv: Messages = {
       button: 'Kryssa fåglar',
       label: 'Kryssa fåglar i en lista',
       search: 'Sök fåglar',
-      group: 'Taxonomisk grupp',
-      back: 'Tillbaka till {name}',
       list: 'Arter att bocka för',
       onListLabel: '{name}, redan på din lista',
       onList: 'På din lista',

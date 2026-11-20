@@ -845,8 +845,6 @@ export const ru: Messages = {
       button: 'Отметить птиц',
       label: 'Отметь птиц в списке',
       search: 'Искать птиц',
-      group: 'Таксономическая группа',
-      back: 'Назад: {name}',
       list: 'Виды для отметки',
       onListLabel: '{name}, уже в твоём списке',
       onList: 'В твоём списке',
