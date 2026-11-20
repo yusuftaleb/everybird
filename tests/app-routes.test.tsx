@@ -194,11 +194,11 @@ describe('the top bar under a language prefix', () => {
 })
 
 describe('the Collage page (/)', () => {
-  it('without a list: one line of what Everybird is, the pre-packed sample collage, "Make yours" (to /settings), the top bar and the footer credits link', async () => {
+  it('without a list: one line of what Everybird is, the pre-packed sample collage, "Make yours" (the Add birds dialog), the top bar and the footer credits link', async () => {
     await mount({ path: '/' })
     expect(await screen.findByRole('heading', { level: 1, name: "A lifetime of birds." })).toBeInTheDocument()
     await waitFor(() => expect(stats()).toHaveTextContent("Sample: a demo birder's life list · 2 species"))
-    expect(screen.getByRole('link', { name: /^Make yours/ })).toHaveAttribute('href', '/settings')
+    expect(screen.getByRole('button', { name: /^Make yours/ })).toHaveAttribute('aria-haspopup', 'dialog')
     // The footer reaches every credit (About's, with the sticker licence) by one link; no inline sticker line.
     const footer = screen.getByRole('contentinfo')
     expect(within(footer).getByRole('link', { name: 'All credits' })).toHaveAttribute('href', '/about#credits')
@@ -228,17 +228,30 @@ describe('the Collage page (/)', () => {
     expect(screen.queryByRole('button', { name: 'Birds' })).toBeNull()
     expect(screen.queryByTestId('filter-bar-folded')).toBeNull()
     expect(screen.queryByRole('tab')).toBeNull()
-    fireEvent.click(screen.getByRole('link', { name: /^Make yours/ }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
-    expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('heading', { level: 2, name: 'Your list' })).toBeInTheDocument()
-    // One row per source, each "Not added" yet.
-    for (const h of [/^eBird life list/, /^MyEBirdData/, /^iNaturalist/, /^observation\.org life list/, /^observation\.org observations/, /^Spreadsheet or list/, /^Scythebill/, /^iGoTerra/, /^Ticked by hand/]) expect(screen.getByRole('heading', { level: 3, name: h })).toBeInTheDocument()
-    expect(screen.getAllByText('Not added')).toHaveLength(8)
-    expect(screen.getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
+    // The first visit's welcome covers the page; "Explore the sample" closes it.
+    fireEvent.click(within(screen.getByTestId('welcome')).getByRole('button', { name: 'Explore the sample' }))
+    // "Make yours" opens the Add birds dialog on the page: two choices, Import a file and Add by hand.
+    const cta = screen.getByRole('button', { name: /^Make yours/ })
+    cta.focus()
+    fireEvent.click(cta)
+    const dialog = screen.getByRole('dialog', { name: 'Add birds' })
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toHaveFocus()
+    expect(within(dialog).getByRole('group', { name: 'Ways to add birds' })).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Import a file' }))
+    expect(within(dialog).getByRole('button', { name: 'Import a file' })).toHaveAttribute('aria-pressed', 'true')
+    // One row per source, each "Not added" yet (the species load at an idle moment on the landing).
+    await within(dialog).findByTestId('ebird-drop')
+    for (const h of [/^eBird life list/, /^MyEBirdData/, /^iNaturalist/, /^observation\.org life list/, /^observation\.org observations/, /^Spreadsheet or list/, /^Scythebill/, /^iGoTerra/]) expect(within(dialog).getByRole('heading', { level: 3, name: h })).toBeInTheDocument()
+    expect(within(dialog).getAllByText('Not added')).toHaveLength(8)
+    expect(within(dialog).getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
+    // Esc closes it, and focus goes back to "Make yours".
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Add birds' })).toBeNull()
+    expect(cta).toHaveFocus()
   })
 
-  it('with a list: the birder\'s own collage, with Share and "Add birds" (to /settings) in its head', async () => {
+  it('with a list: the birder\'s own collage, with Share and "Add birds" (the Add birds dialog) in its head', async () => {
     await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
@@ -246,8 +259,17 @@ describe('the Collage page (/)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
     expect(stats()).toHaveTextContent(/^3 species/)
     expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Add birds' })).toHaveAttribute('href', '/settings')
+    const add = screen.getByRole('button', { name: 'Add birds' })
+    expect(add).toHaveAttribute('aria-haspopup', 'dialog')
     expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull() // the downloads live on Settings
+    add.focus()
+    fireEvent.click(add)
+    const dialog = screen.getByRole('dialog', { name: 'Add birds' })
+    // The summary line, as on Settings; ✕ closes, focus back on "Add birds".
+    expect(within(dialog).getByTestId('add-summary')).toHaveTextContent('Your collage has 3 species, all from eBird.')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(add).toHaveFocus()
   })
 })
 

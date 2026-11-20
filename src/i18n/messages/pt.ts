@@ -757,6 +757,11 @@ export const pt: Messages = {
         none: 'Nenhuma ave com esse nome na taxonomia do eBird.',
       },
     },
+    add: {
+      ways: 'Formas de adicionar aves',
+      file: 'Importar um arquivo',
+      hand: 'Adicionar à mão',
+    },
     tick: {
       title: 'Marcadas à mão',
       button: 'Marcar aves',

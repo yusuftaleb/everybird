@@ -37,6 +37,8 @@ type Props = {
   summary?: ReactNode
   /** The Places panel's lifer-only note (placesNoteFor), so the eBird rows say the same. */
   placesNote?: 'add' | 'reimport'
+  /** In the "Add birds" dialog: the file and username rows alone (no section, Tick by hand, children or privacy line). */
+  inDialog?: boolean
 }
 
 const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -82,7 +84,7 @@ function Group({ id, label, children }: { id: string; label: string; children: R
  * time: while either reads, both are disabled, and any file lands in the row of its kind. `children` follow the rows
  * (the match report).
  */
-export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, regions, jobs, disabled, children, onList, counts, summary, placesNote }: Props) {
+export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, regions, jobs, disabled, children, onList, counts, summary, placesNote, inDialog }: Props) {
   const tick = useDisclosure()
   const { t } = useI18n()
   const ebirdConnected: EbirdConnected[] = (['ebird', 'ebird-list'] as const)
@@ -124,15 +126,10 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
   // not at the top of the document.
   const section = useRef<HTMLElement>(null)
   useEffect(() => {
-    if (window.location.hash === '#sources') section.current?.focus({ preventScroll: true })
-  }, [])
+    if (!inDialog && window.location.hash === '#sources') section.current?.focus({ preventScroll: true })
+  }, [inDialog])
 
-  return (
-    <section ref={section} id="sources" className="eb-block eb-import" aria-labelledby="eb-sources-h" tabIndex={-1}>
-      <div className="eb-block-head">
-        <h2 id="eb-sources-h" className="eb-h2">{t.import.head}</h2>
-        {summary ?? <p className="eb-note">{t.import.combine}</p>}
-      </div>
+  const rows = (
       <div className="eb-srclist">
         <Group id="way-ebird" label={t.import.ebirdGroup}>
           <EbirdDrop
@@ -218,7 +215,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             landedAt={fileLandedAt}
           />
         </Group>
-        <Group id="way-tick" label={t.tick.title}>
+        {!inDialog && <Group id="way-tick" label={t.tick.title}>
           <SourceRow
             title={t.tick.title}
             parts={ticked.species ? [] : [t.import.noneYet]}
@@ -253,8 +250,17 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
               </div>
             </div>
           </SourceRow>
-        </Group>
+        </Group>}
       </div>
+  )
+  if (inDialog) return rows
+  return (
+    <section ref={section} id="sources" className="eb-block eb-import" aria-labelledby="eb-sources-h" tabIndex={-1}>
+      <div className="eb-block-head">
+        <h2 id="eb-sources-h" className="eb-h2">{t.import.head}</h2>
+        {summary ?? <p className="eb-note">{t.import.combine}</p>}
+      </div>
+      {rows}
       {children}
       {/* The section's footnote, where files and usernames are handed over; the full privacy note is on About. */}
       <p className="eb-privacy"><LockSimple aria-hidden="true" focusable="false" weight="bold" />{t.import.privacy}</p>

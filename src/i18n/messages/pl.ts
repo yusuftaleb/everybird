@@ -746,6 +746,11 @@ export const pl: Messages = {
         none: 'W taksonomii eBird nie ma ptaka o tej nazwie.',
       },
     },
+    add: {
+      ways: 'Sposoby dodawania ptaków',
+      file: 'Zaimportuj plik',
+      hand: 'Dodaj ręcznie',
+    },
     tick: {
       title: 'Zaznaczone ręcznie',
       button: 'Zaznacz ptaki',

@@ -23,10 +23,10 @@ const ShareDialog = lazy(() => import('@/components/share/ShareDialog'))
 
 /**
  * `/` with a list: the birder's collage (count, filters, controls, search, collage or list, tooltip, card and
- * editing, legend) under a one-row head with Share and "Add birds". Removing a bird can be undone for a few seconds.
+ * editing, legend) under a one-row head with Share and "Add birds" (`onAdd`, the Add birds dialog). Removing a bird can be undone for a few seconds.
  * Unmatched rows are mentioned under the stats, with the way to fix them on Settings.
  */
-export function CollagePage() {
+export function CollagePage({ onAdd }: { onAdd: () => void }) {
   const eb = useEverybirdContext()
   const { t } = useI18n()
   const { state, dispatch, data } = eb
@@ -66,10 +66,10 @@ export function CollagePage() {
       <PageHead
         title={pageTitle(saved.name, t)}
         actions={<>
-          <Link href="/settings" className="eb-btn eb-btn-quiet" aria-label={t.collage.addBirds}>
+          <button type="button" className="eb-btn eb-btn-quiet" aria-label={t.collage.addBirds} aria-haspopup="dialog" data-add-birds="" onClick={onAdd}>
             <Plus aria-hidden="true" focusable="false" />
             <span className="eb-sm-hide">{t.collage.addBirds}</span>
-          </Link>
+          </button>
           <Link href="/compare" className="eb-btn eb-btn-quiet" aria-label={t.compare.title} data-testid="compare-open">
             <UsersThree aria-hidden="true" focusable="false" />
             <span className="eb-sm-hide">{t.compare.open}</span>

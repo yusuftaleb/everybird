@@ -757,6 +757,11 @@ export const nl: Messages = {
         none: 'Geen vogel met die naam in de eBird-taxonomie.',
       },
     },
+    add: {
+      ways: 'Manieren om vogels toe te voegen',
+      file: 'Een bestand importeren',
+      hand: 'Met de hand toevoegen',
+    },
     tick: {
       title: 'Met de hand aangevinkt',
       button: 'Aanvinken',

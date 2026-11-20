@@ -748,6 +748,11 @@ export const de: Messages = {
         none: 'Kein Vogel mit diesem Namen in der eBird-Taxonomie.',
       },
     },
+    add: {
+      ways: 'Wege, Vögel hinzuzufügen',
+      file: 'Datei importieren',
+      hand: 'Von Hand hinzufügen',
+    },
     tick: {
       title: 'Von Hand abgehakt',
       button: 'Vögel abhaken',

@@ -757,6 +757,11 @@ export const fr: Messages = {
         none: 'Aucun oiseau de ce nom dans la taxonomie d’eBird.',
       },
     },
+    add: {
+      ways: 'Façons d’ajouter des oiseaux',
+      file: 'Importer un fichier',
+      hand: 'Ajouter à la main',
+    },
     tick: {
       title: 'Cochées à la main',
       button: 'Cocher',

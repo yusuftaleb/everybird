@@ -1,5 +1,6 @@
 'use client'
 import type { ReactNode } from 'react'
+import Link from '@/components/app/IntentLink'
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import type { Ui } from '@/i18n/messages/en'
@@ -7,13 +8,14 @@ import type { Slot } from '@/lib/list/model'
 import type { Saved } from '@/lib/list/storage'
 import { obsorgExcluded, obsorgNotSpecies } from './obsorg-copy'
 
-// Already at #match the link changes nothing the match report hears: tell it again (it opens on a hashchange).
+// A client navigation fires no hashchange (and already at #match the address doesn't change): tell the match report
+// (it opens on a hashchange) and the Add birds dialog (it closes for it).
 const reopen = () => requestAnimationFrame(() => window.dispatchEvent(new HashChangeEvent('hashchange')))
 
 /**
  * A source's entries that weren't counted, for its row's status line ("· 10 skipped", SourceRow): entries that aren't
  * species (sp., slashes, hybrids, domestics: `skipped` counts and named `not-species` rows) and rows that couldn't be
- * matched to an eBird species (fixed in the match report, #match). `body` is what "why?" opens: why, in plain words,
+ * matched to an eBird species (fixed in Settings' match report, /settings#match). `body` is what "why?" opens: why, in plain words,
  * the names when the import kept them, and the way to the match report. Null when nothing was left out. An
  * observation.org row names its entries by scientific name (the local name after it, muted). Its observations export
  * also leaves out the records observation.org marks as escapes or uncertain (`sources.obsorg.excluded`): those are
@@ -63,7 +65,7 @@ export function notCounted(saved: Saved, slots: Slot[], t: Ui, nameOf?: (code: s
         {unmatched > 0 && (
           <p className="eb-note">
             {plural(t.import.notCounted.unmatched, unmatched, { n: formatInt(unmatched, t.num) })}{' '}
-            <a href="#match" onClick={reopen}>{plural(t.collage.fix, unmatched)}</a>
+            <Link href="/settings#match" onClick={reopen}>{plural(t.collage.fix, unmatched)}</Link>
           </p>
         )}
       </>

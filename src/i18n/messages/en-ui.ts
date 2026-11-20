@@ -865,6 +865,12 @@ export const EN_UI = {
     },
   },
   /** Tick by hand (ImportPanel's row, TickList). The removal toast is `collage.removed`. */
+  /** The "Add birds" dialog (AddBirdsDialog): its two choices and their group's name. */
+  add: {
+    ways: 'Ways to add birds',
+    file: 'Import a file',
+    hand: 'Add by hand',
+  },
   tick: {
     title: 'Ticked by hand',
     button: 'Tick birds',
