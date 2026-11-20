@@ -927,7 +927,10 @@ describe('remembered sources', () => {
     await waitFor(() => expect(screen.getByLabelText('Search birds')).toHaveFocus())
     // Tab from the last control wraps to the first (the close button).
     const close = within(dialog).getByRole('button', { name: 'Close' })
+    // In document order (jsdom returns a selector list's matches grouped by selector): the last is When and where's.
     const focusables = [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])')]
+      .sort((x, y) => (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
+    expect(focusables.at(-1)).toHaveAccessibleName('Country (optional)')
     focusables.at(-1)!.focus()
     fireEvent.keyDown(focusables.at(-1)!, { key: 'Tab' })
     expect(close).toHaveFocus()
