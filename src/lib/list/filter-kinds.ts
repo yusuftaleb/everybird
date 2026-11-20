@@ -8,7 +8,7 @@ const SIGNATURES: Record<FilterKind, (f: Filter) => string> = {
   time: (f) => (f.from || f.to ? `${f.from ?? ''}~${f.to ?? ''}` : f.year ?? ''),
   status: (f) => (f.statuses ? [...f.statuses].sort().join(',') : ''),
   group: (f) => f.group ?? '',
-  taxonomy: (f) => (f.order || f.family ? `${f.order ?? ''}|${f.family ?? ''}` : ''),
+  taxonomy: (f) => (f.order || f.family || f.genus ? `${f.order ?? ''}|${f.family ?? ''}|${f.genus ?? ''}` : ''),
 }
 const KINDS = Object.keys(SIGNATURES) as FilterKind[]
 

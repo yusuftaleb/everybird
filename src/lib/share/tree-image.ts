@@ -4,11 +4,15 @@
 // Line, rounded corners, branches simply joining, every tip one small hollow dot, a tip placed without genetic data
 // dotted. Every tip is named, as on screen: along its radius (or row) its dot, a gap, its sticker in a fixed box, a gap,
 // the name, the count; fitRound sizes the fan or circle so every name fits whole, the counts going first when room is
-// short (a fan or circle that cannot name every tip even so is drawn as rows). Under it, when there is room, the age
-// axis, and a one-line key for the mark and the dotted line when the image has them. "Lifers only" (`at.mine`) as on
-// screen. On top, instead of the big count, four equal totals: species, genera, families and orders, each "count /
-// total" over its rank, the same size and weight ("Hide totals": the species alone). The footer credits the stickers
-// and the tree (TREE_FOOTER).
+// short (a fan or circle that cannot name every tip even so is drawn as rows); Rectangular gives the drawing half the
+// width and sets the counts right-aligned in a column just after the longest name. A group with no bird on the list
+// shows its representative sticker dimmed (groupSticker). Under it, when there is room and the time scale is on
+// (`at.time`, the bar's switch; off: the splits spaced evenly, bySplits, and no axis, rings or ages), the age axis (the
+// circle's ages on its radius straight up, never over a branch end), and a one-line key for the mark and the dotted
+// line when the image has them. "Lifers only" (`at.mine`) as on screen. With "Show oldest lineage" (`oldest`) the
+// oldest lineage takes the latest lifer's place and style (latestAs; on a poster, its foot). On top, instead of the
+// big count, four equal totals: species, genera, families and orders, each "count / total" over its rank, the same
+// size and weight ("Hide totals": the species alone). The footer credits the stickers and the tree (TREE_FOOTER).
 import { fmt } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import type { Ui } from '@/i18n/messages/en'
@@ -16,10 +20,10 @@ import { loadSpecies } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
 import type { SpeciesRow } from '@/lib/species/types'
 import { stickerUrl } from '@/lib/sticker-url'
-import { LABEL_COUNT, LABEL_GAP, LABEL_STICKER, drawFan, fanLabel, fanRing, fitRound, polar, ringLabels, type FanBox, type LabelSizes, type LabelSpan } from '@/lib/tree/fan'
+import { LABEL_COUNT, LABEL_GAP, LABEL_STICKER, clearOfEnds, drawFan, fanLabel, fanRing, fitRound, polar, ringLabels, type FanBox, type LabelSizes, type LabelSpan } from '@/lib/tree/fan'
 import { loadTree } from '@/lib/tree/load'
 import { levelView, ROW_H, taxonCover, tipOn, type TreeRow } from '@/lib/tree/levels'
-import { ageTicks, circlePath, drawTree, formatAge, type Drawing } from '@/lib/tree/tree'
+import { ageTicks, bySplits, circlePath, drawTree, formatAge, oldestLineage, type Drawing } from '@/lib/tree/tree'
 import { IMAGE_SCALE, loadStickers, type ImageFormat } from './image'
 import { TREE_FOOTER, clipText, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 
@@ -50,18 +54,27 @@ export function totalsSize(texts: readonly string[], width: number, widthAt1: (t
   return { num, label: Math.max(16, Math.min(22, Math.round(num * 0.4))) }
 }
 
+/** The share of the area's width the Rectangular image's drawing takes (round 6: half, as on screen). */
+export const ROWS_TREE = 0.5
+
 /**
  * Rectangular in the image: every tip named. The names' size (the largest the rows' `pitch` allows, NAME_MAX at most,
- * and smaller where a name would not fit `textW` beside its sticker's box), the box's side, and which tips keep their
- * count (right-aligned at the row's end; dropped where it would touch the name). `name`/`count` are widths at size 1.
+ * and smaller where a name would not fit `textW` beside its sticker's box), the box's side, which tips keep their count
+ * (dropped where it would touch the name) and `col`, the right edge of the counts' column from the text's start: just
+ * after the longest name and count (plus the gap), never past `textW`, so the counts line up right-aligned without a
+ * wide gap. `name`/`count` are widths at size 1.
  */
-export function rowsLabels(spans: readonly LabelSpan[], pitch: number, textW: number): { px: number; box: number; counts: boolean[] } {
+export function rowsLabels(spans: readonly LabelSpan[], pitch: number, textW: number): { px: number; box: number; counts: boolean[]; col: number } {
   let px = Math.min(NAME_MAX, pitch * 0.75)
   const box = Math.min(pitch * 0.92, px * LABEL_STICKER)
   for (const s of spans) px = Math.min(px, (textW - box - 2 * LABEL_GAP * px) / Math.max(1e-6, s.name))
   px = Math.max(1, px)
-  const counts = spans.map((s) => !!s.count && box + px * (2 * LABEL_GAP + s.name + LABEL_GAP + s.count) <= textW)
-  return { px, box, counts }
+  const reach = (s: LabelSpan) => box + px * (2 * LABEL_GAP + s.name + (s.count ? LABEL_GAP + s.count : 0))
+  const fits = spans.map((s) => !!s.count && reach(s) <= textW)
+  const name = Math.max(0, ...spans.map((s) => s.name)), count = Math.max(0, ...spans.filter((_, i) => fits[i]).map((s) => s.count))
+  const col = Math.min(textW, box + px * (2 * LABEL_GAP + name + (count ? LABEL_GAP + count : 0)))
+  const counts = spans.map((s, i) => fits[i] && reach(s) <= col + 1e-6)
+  return { px, box, counts, col }
 }
 
 export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
@@ -71,6 +84,14 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const view = levelView(tree, all, at.tree ?? {}, codes, at.mine)
   if (!view) throw new Error('No tree to draw')
   const tt = t.collage.tree
+  const timeScale = at.time !== false
+  // The oldest lineage in the latest lifer's place ("Show oldest lineage").
+  const old = o.oldest ? oldestLineage(tree, codes) : undefined
+  const oldRow = old && (o.species.byCode.get(old.code) ?? all.byCode.get(old.code))
+  const oldAge = old ? formatAge(old.age, t.num) : ''
+  const latestAs = oldRow ? { row: oldRow, label: fmt(tt.oldestLabel, { age: oldAge }), poster: fmt(tt.oldestPoster, { name: o.nameOf?.(oldRow) ?? oldRow.com, age: oldAge }) } : undefined
+  const root = view.root && (timeScale ? view.root : bySplits(view.root))
+  const stem = timeScale ? view.stem : 1
   const cover = taxonCover(all.rows, codes)
   const totals = (o.hideTotals ? ['species'] as const : TOTALS).map((k) => ({ k, n: formatInt(cover[k][0], t.num), total: formatInt(cover[k][1], t.num), label: tt.rank[k].toUpperCase() }))
   const rank = view.tips
@@ -89,7 +110,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const imgs = await loadStickers([...new Set(tips.flatMap((r) => { const row = stickerOf(r); return row ? [urlOf(row)] : [] }))], { signal: o.signal })
   const countText = (r: Tip) => (r.kind === 'group' ? fmt(tt.tipOf, { n: formatInt(r.on, t.num), total: formatInt(r.total, t.num) }) : '')
 
-  return renderViewImage({ ...o, countSize: 'hide' }, TREE_FOOTER, (ctx, card, full) => {
+  return renderViewImage({ ...o, countSize: 'hide', latestAs }, TREE_FOOTER, (ctx, card, full) => {
     const C = card.colors
     const font = card.fonts
     // The totals on top: the same size for all, "count" in Ink and " / total" in Muted, the rank under it.
@@ -115,7 +136,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     const head = numCap + TOTAL_GAP + labelCap + TOTALS_BELOW
     const area: Area = { x: full.x, y: full.y + head, w: full.w, h: full.h - head }
 
-    const axis = area.h >= 520 && tips.length > 0
+    const axis = timeScale && area.h >= 520 && tips.length > 0
     const bottom = (axis ? AXIS_H : 0) + KEY_H
     const stroke = (on: boolean) => {
       ctx.strokeStyle = on ? C.ink : C.line
@@ -160,7 +181,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       const ar = row.ar > 0 ? row.ar : 1
       const w = ar >= 1 ? side : side * ar, h = ar >= 1 ? side / ar : side
       ctx.save()
-      if (r.kind === 'species' && !r.on) ctx.globalAlpha = 0.4
+      if (onOf(r) === 0) ctx.globalAlpha = 0.4
       ctx.drawImage(img, x - w / 2, y - h / 2, w, h)
       ctx.restore()
     }
@@ -178,19 +199,21 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     let y: number
     let axisAt: (v: number) => number[]
     let axisY: number
-    const want = view.root ? at.layout ?? 'rows' : 'rows'
+    const want = root ? at.layout ?? 'rows' : 'rows'
     const fit = want === 'rows' ? undefined : fitRound(spans, want === 'circle' ? 'circle' : 'fan', { w: area.w, h: area.h - bottom }, IMAGE_SIZES)
     const shape = fit ? (fit.shape ?? 'fan') : 'rows'
 
     if (fit) {
       // The fan or circle, centred in the area above the axis and the key.
       const box: FanBox = { cx: area.x + fit.cx, cy: area.y + (area.h - bottom - fit.h) / 2 + fit.cy, R: fit.R, shape: fit.shape }
-      const d = drawFan(view.root!, tipOn(tips), view.stem, (_, i) => tips[i].dotted, box)
-      ctx.save()
-      ctx.strokeStyle = C.hairline
-      ctx.lineWidth = 1.5
-      for (const v of ageTicks(d.rootAge)) if (v > 0) ctx.stroke(new Path2D(fanRing(box, (1 - v / d.rootAge) * box.R)))
-      ctx.restore()
+      const d = drawFan(root!, tipOn(tips), stem, (_, i) => tips[i].dotted, box)
+      if (timeScale) {
+        ctx.save()
+        ctx.strokeStyle = C.hairline
+        ctx.lineWidth = 1.5
+        for (const v of ageTicks(d.rootAge)) if (v > 0) ctx.stroke(new Path2D(fanRing(box, (1 - v / d.rootAge) * box.R)))
+        ctx.restore()
+      }
       paintDrawing(d)
       tipDots(d.tips.map((p) => [p.x, p.y]), tipIsOn)
       const { px } = fit
@@ -227,7 +250,8 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
         ctx.restore()
       })
       if (shape === 'circle') {
-        // The ages on their rings where they cross the downward radius, on Paper; the axis's title under the circle.
+        // The ages on their rings where they cross the radius straight up (no branch runs there), on Paper, except one
+        // whose patch would hide a branch end; the axis's title under the circle.
         y = box.cy + fit.h / 2
         axisY = y + 10
         axisAt = () => []
@@ -244,6 +268,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
           for (const [x, ry] of ringLabels(box, (1 - v / d.rootAge) * box.R)) {
             const text = formatAge(v, t.num)
             const w = ctx.measureText(text).width + 10
+            if (!clearOfEnds(d.ends, x, ry, w, MONO * 1.4)) continue
             if (!card.transparent) {
               ctx.fillStyle = C.paper
               ctx.fillRect(x - w / 2, ry - MONO * 0.7, w, MONO * 1.4)
@@ -257,19 +282,20 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       const k = Math.min((area.h - bottom) / view.height, PITCH_MAX / ROW_H)
       const bodyH = view.height * k
       const top = area.y + (area.h - bottom - bodyH) / 2
-      const treeW = Math.round(area.w * 0.42)
+      const treeW = Math.round(area.w * ROWS_TREE)
       const dotX = area.x + treeW
       const ys = tips.map((r) => top + (r.top + ROW_H / 2) * k)
-      if (view.root) {
+      if (root) {
         ctx.save()
         ctx.translate(area.x, 0)
-        paintDrawing(drawTree(view.root, tipOn(tips), (i) => ys[i], view.stem, (_, i) => tips[i].dotted, treeW))
+        paintDrawing(drawTree(root, tipOn(tips), (i) => ys[i], stem, (_, i) => tips[i].dotted, treeW))
         ctx.restore()
         tipDots(ys.map((v) => [dotX, v]), tipIsOn)
       }
-      // Every tip named: past its dot a gap, the sticker's box, a gap, the name; the count at the row's end where it fits.
+      // Every tip named: past its dot a gap, the sticker's box, a gap, the name; the count right-aligned in the column
+      // just after the longest name, where it fits.
       const textX = dotX + IMAGE_SIZES.dot
-      const { px, box, counts } = rowsLabels(spans, ROW_H * k, area.x + area.w - textX)
+      const { px, box, counts, col } = rowsLabels(spans, ROW_H * k, area.x + area.w - textX)
       const g = px * LABEL_GAP
       ctx.textBaseline = 'middle'
       tips.forEach((r, i) => {
@@ -279,7 +305,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
           ctx.font = font.footer(px * LABEL_COUNT)
           ctx.textAlign = 'right'
           ctx.fillStyle = C.muted
-          ctx.fillText(count, area.x + area.w, ys[i])
+          ctx.fillText(count, textX + col, ys[i])
         }
         ctx.font = font.lifer(px)
         ctx.textAlign = 'left'
@@ -313,7 +339,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       if (shape === 'fan') ctx.fillText(clipText(ctx, tt.axis, area.w), area.x + area.w / 2, axisY + MONO + 6)
       else if (shape === 'circle') ctx.fillText(clipText(ctx, tt.axis, area.w), area.x + area.w / 2, axisY)
       else {
-        const textX = area.x + Math.round(area.w * 0.42) + 16
+        const textX = area.x + Math.round(area.w * ROWS_TREE) + 16
         ctx.textAlign = 'left'
         ctx.fillText(clipText(ctx, tt.axis, area.x + area.w - textX), textX, axisY)
       }

@@ -206,7 +206,7 @@ export function useCollageLayout({ list, seen, filter, mode, species, container,
   const dates = useMemo(() => (dragging ? new Map(known.map((e) => [e.code, e.date])) : null), [known, dragging])
   // Basis 'seen': each bird's sighting months inside the filter's places, computed once when a drag starts (the places
   // don't change while it runs), so a frame is a binary search per bird and never an applyFilter.
-  const seenKey = filter.basis === 'seen' ? filterKey({ ...filter, from: undefined, to: undefined, basis: undefined, order: undefined, family: undefined, group: undefined, statuses: undefined }) : ''
+  const seenKey = filter.basis === 'seen' ? filterKey({ ...filter, from: undefined, to: undefined, basis: undefined, order: undefined, family: undefined, genus: undefined, group: undefined, statuses: undefined }) : ''
   const ords = useMemo(() => {
     if (!dragging || filter.basis !== 'seen') return null
     const w = whereOf({ ...filter, from: undefined, to: undefined })

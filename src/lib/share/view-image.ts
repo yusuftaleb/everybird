@@ -9,7 +9,7 @@ import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TreeLevel } from '@/lib/tree/levels'
 import type { TreeLayout } from '@/lib/tree-mine'
-import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
+import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, loadStickers, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
 /** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone (it
  *  draws no stickers, so no sticker credit), the tree's FOOTER_LINE (its tips carry stickers) and the tree's credit
@@ -19,11 +19,13 @@ export const TREE_FOOTER = `${FOOTER_LINE} · Tree: AvesData, CC BY 4.0`
 
 /** The level the view had open when Share was pressed: the country the map has open (`names`: how the map names its
  *  places, in the UI language), or the tree's (`mine`: its "Lifers only" switch; `layout`: the layout on screen, which
- *  every tree image draws). */
-export type ShareAt = { place?: string; names?: (key: string) => string; tree?: TreeLevel; mine?: boolean; layout?: TreeLayout }
-/** A view image's input: the share image's, with the view's level, the app state it reads and the UI strings. */
+ *  every tree image draws, or the dialog's Arrangement row's; `time`: its "Time scale" switch, on unless false; `fits`:
+ *  whether the Fan and the Radial name every tip on screen, for that row's reasons). */
+export type ShareAt = { place?: string; names?: (key: string) => string; tree?: TreeLevel; mine?: boolean; layout?: TreeLayout; time?: boolean; fits?: Record<'fan' | 'circle', boolean> }
+/** A view image's input: the share image's, with the view's level, the app state it reads and the UI strings
+ *  (`oldest`: the Tree image draws its oldest lineage in the latest lifer's place). */
 export type ViewImageOpts = ShareImageOpts & {
-  at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; hideTotals?: boolean
+  at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; hideTotals?: boolean; oldest?: boolean
   /** Device px per design unit (a poster's, print.ts viewPosterScale); default the format's IMAGE_SCALE, 1 for a poster's preview. */
   scale?: number
 }
@@ -56,12 +58,17 @@ export function wrapParts(parts: readonly string[], width: (text: string) => num
  * count is hidden. `sample`: every other text `paint` draws, so the fonts it needs are loaded first.
  */
 export async function renderViewImage(opts: ShareImageOpts & { scale?: number }, footer: string, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[], sample = ''): Promise<Blob> {
-  const card = await prepareCard({ ...opts, footer, pack: NO_BIRDS, latest: false, showNames: false })
+  // No latest lifer, unless the view gives a bird for its place (latestAs: the Tree's oldest lineage), drawn as the
+  // collage image draws its latest lifer.
+  const s = opts.scale ?? IMAGE_SCALE[opts.format as ImageFormat] ?? 1
+  const card = await prepareCard({ ...opts, footer, pack: NO_BIRDS, latest: !!opts.latestAs, showNames: false }, s)
+  const lifer = card.lifer?.url ? card.lifer : null
+  const imgs = lifer ? await loadStickers([...new Set([lifer.url!, ...(lifer.fallback ? [lifer.fallback] : [])])], { signal: opts.signal }) : new Map<string, HTMLImageElement | null>()
+  if (lifer?.fallback && !imgs.get(lifer.url!)) imgs.set(lifer.url!, imgs.get(lifer.fallback) ?? null)
   await ensureViewFonts(card, `${(under ?? []).join('')}${sample}`)
   const { L, K } = card
   const c = L.collage
   const blockH = K.size > 0 ? DIGIT_CAP * K.size + K.gap + MONO_CAP * K.labelSize : 0
-  const s = opts.scale ?? IMAGE_SCALE[opts.format as ImageFormat] ?? 1
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(L.W * s)
   canvas.height = Math.round(L.H * s)
@@ -78,7 +85,7 @@ export async function renderViewImage(opts: ShareImageOpts & { scale?: number },
   const lines = blockH && under?.length ? wrapParts(under, (text) => ctx.measureText(text).width, c.w) : []
   const top = blockH ? blockH + lines.length * lineH + COUNT_GAP : 0
   // paintCard centres the count on fit's centre: moved to the top of the area.
-  paintCard(ctx, { ...card, fit: { ...card.fit, cx: c.x + c.w / 2, cy: c.y + blockH / 2 } }, new Map())
+  paintCard(ctx, { ...card, fit: { ...card.fit, cx: c.x + c.w / 2, cy: c.y + blockH / 2 } }, imgs)
   ctx.font = card.fonts.footer(subPx)
   ctx.fillStyle = card.colors.muted
   ctx.textAlign = 'center'

@@ -1,6 +1,7 @@
 // Which rows the share dialog shows, by what it draws and whether it is Print. Pure, so it is tested on its own.
 // The collage (from Collage or List) has the sticker options; the Tree and Map draw their own picture, in Share and in
-// Print alike, so they show only what that drawing reads: the Tree its Lifers only and Hide totals, the Map Hide totals.
+// Print alike, so they show only what that drawing reads: the Tree its Arrangement (Fan, Radial or Rectangular: the
+// dock's Layout), Show oldest lineage, Lifers only and Hide totals, the Map Hide totals.
 // The Goal is Share's alone (posters never draw one). Export in batches is the collage's alone, with the same Split by
 // in both, Number of birds first (Birds per image or per poster under it).
 import type { BulkSplit } from '@/lib/share/bulk'
@@ -19,6 +20,9 @@ export type DialogRows = {
   count: boolean
   goal: boolean
   latest: boolean
+  /** The Tree's: its layout (the dock's Layout menu) and Show oldest lineage. */
+  treeLayout: boolean
+  oldest: boolean
   /** Show species names (the collage poster). */
   names: boolean
   lifersOnly: boolean
@@ -37,6 +41,8 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
     count: collage,
     goal: collage && !print,
     latest: collage,
+    treeLayout: subject === 'tree',
+    oldest: subject === 'tree',
     names: collage && print,
     lifersOnly: subject === 'tree',
     hideTotals: !collage,

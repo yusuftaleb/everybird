@@ -137,7 +137,8 @@ export function filterLabel(
   const place = ctx.regions ? placesLabel(f, ctx.regions, t) : namesLabel([...continentNames(f.continents, t), ...regionNames(f.regions, t), ...(f.countries ?? []).map((c) => ctx.countryName(c.slice(0, 2)))], t)
   const parts: string[] = []
   if (f.group) parts.push(ctx.groupName?.(f.group) ?? f.group)
-  if (f.family) { const r = ctx.species.rows.find((x) => x.fam === f.family); parts.push(r ? (ctx.familyName?.(r) ?? r.famCom) || f.family : f.family) }
+  if (f.genus) parts.push(f.genus)
+  else if (f.family) { const r = ctx.species.rows.find((x) => x.fam === f.family); parts.push(r ? (ctx.familyName?.(r) ?? r.famCom) || f.family : f.family) }
   else if (f.order) parts.push(orderLabel(f.order, t))
   const status = statusLabel(f.statuses, t)
   if (status) parts.push(status)
@@ -690,6 +691,9 @@ export type ShareImageOpts = {
   footer?: string
   /** The latest lifer row; default true. False leaves it out and gives its room to the collage (cardLayout's `latest: false`). */
   latest?: boolean
+  /** Another bird in the latest lifer's place and style, with its own words (the Tree image's oldest lineage): `label`
+   *  the row's mono label, `poster` the poster foot's line. */
+  latestAs?: { row: SpeciesRow; label: string; poster: string }
   /** The UI language's strings the image draws: the count's number and label, the latest lifer's label and month, and
    *  the stamp's month. The filter label comes in words already (`filterLabel`, from the same strings). */
   strings: ShareStrings
@@ -864,10 +868,10 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const shown = entries.filter((e) => species.byCode.has(e.code))
   const order = liferOrder(species.byCode)
   const latestE = latestLifer(shown, order)
-  const latestRow = latestE && species.byCode.get(latestE.code)!
+  const latestRow = opts.latestAs?.row ?? (latestE && species.byCode.get(latestE.code)!)
   const strings = opts.strings
   const latestName = latestRow ? opts.nameOf?.(latestRow) ?? latestRow.com : ''
-  const latest = opts.latest !== false && latestRow ? latestText({ com: latestName, date: latestE!.date }, strings) : undefined
+  const latest = opts.latest !== false && latestRow ? (opts.latestAs ? { label: opts.latestAs.label, name: latestName } : latestText({ com: latestName, date: latestE!.date }, strings)) : undefined
   const goal = opts.goal
   const goalLabel = goal ? goalText(goal, strings) : undefined
   const filterText = opts.filterLabel?.trim() || goalLabel || undefined
@@ -878,7 +882,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const label = print ? undefined : filterText
   const stamped = withStamp(opts.footer ?? FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
   const footerLine = stamped
-  const posterLifer = print && latest ? posterLatest(latestName, latestE!.date, strings) : undefined
+  const posterLifer = print && latest ? (opts.latestAs ? opts.latestAs.poster : posterLatest(latestName, latestE!.date, strings)) : undefined
   const printSize = opts.printSize ?? 'A2'
   const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
   let captionPlan: CaptionPlan | undefined

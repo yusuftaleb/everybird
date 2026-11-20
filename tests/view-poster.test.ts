@@ -23,10 +23,10 @@ describe('dialogRows: what each dialog shows', () => {
       expect(rows.splits[0]).toBe('batches')
     }
   })
-  it('the Tree: Lifers only and Hide totals; the Map: Hide totals; neither has sticker options or Export in batches, in Share or Print', () => {
+  it('the Tree: its Arrangement, Show oldest lineage, Lifers only and Hide totals; the Map: Hide totals; neither has sticker options or Export in batches, in Share or Print', () => {
     for (const print of [false, true]) {
-      expect(dialogRows('tree', print)).toEqual({ arrangement: false, count: false, goal: false, latest: false, names: false, lifersOnly: true, hideTotals: true, bulk: false, batchSize: false, splits: [] })
-      expect(dialogRows('map', print)).toEqual({ arrangement: false, count: false, goal: false, latest: false, names: false, lifersOnly: false, hideTotals: true, bulk: false, batchSize: false, splits: [] })
+      expect(dialogRows('tree', print)).toEqual({ arrangement: false, count: false, goal: false, latest: false, treeLayout: true, oldest: true, names: false, lifersOnly: true, hideTotals: true, bulk: false, batchSize: false, splits: [] })
+      expect(dialogRows('map', print)).toEqual({ arrangement: false, count: false, goal: false, latest: false, treeLayout: false, oldest: false, names: false, lifersOnly: false, hideTotals: true, bulk: false, batchSize: false, splits: [] })
     }
   })
 })

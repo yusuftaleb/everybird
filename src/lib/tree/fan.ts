@@ -114,20 +114,24 @@ const n1 = (v: number) => +v.toFixed(1)
 
 /** A tip of the fan: its angle and the point on the arc. */
 export type FanTip = { a: number; x: number; y: number }
+/** A point in px. */
+export type Pt = [number, number]
 
 /**
  * The fan's or circle's drawing (`box.shape`), the rows' `drawTree` in polar form: the same strokes and dotted parts,
  * in px about `box`. `tips[i]` is the i-th leaf's place on the tips' ring.
  */
-export function drawFan(root: Node | Leaf, seen: (leaf: Leaf, i: number) => boolean, stemAge: number | undefined, dotted: (leaf: Leaf, i: number) => boolean, box: FanBox): Drawing & { tips: FanTip[] } {
+export function drawFan(root: Node | Leaf, seen: (leaf: Leaf, i: number) => boolean, stemAge: number | undefined, dotted: (leaf: Leaf, i: number) => boolean, box: FanBox): Drawing & { tips: FanTip[]; ends: Pt[] } {
   const { leaves, branches, rootAge } = branchesOf(root, seen, (i) => i + 0.5, stemAge, dotted)
   const n = leaves.length
   const rad = (age: number) => (1 - age / rootAge) * box.R
   const ang = (y: number) => fanAngle(y, n, box.shape)
   const P = (r: number, a: number) => { const [x, y] = polar(box, r, a); return `${n1(x)} ${n1(y)}` }
   const on: string[] = [], onDot: string[] = [], off: string[] = [], offDot: string[] = []
+  const ends: Pt[] = []
   for (const b of branches) {
     const rp = rad(b.pa), rc = rad(b.ca), ap = ang(b.py), ac = ang(b.cy)
+    ends.push(polar(box, rp, ap), polar(box, rc, ac))
     let line: string, dot = ''
     if (rp < 0.5 || Math.abs(ap - ac) * rp < 0.05) {
       // From the centre, or straight on: one line out.
@@ -145,7 +149,7 @@ export function drawFan(root: Node | Leaf, seen: (leaf: Leaf, i: number) => bool
     if (dot) (b.on ? onDot : offDot).push(dot)
   }
   const tips = leaves.map((_, i) => { const a = ang(i + 0.5); const [x, y] = polar(box, box.R, a); return { a, x, y } })
-  return { leaves, seen: on.join(''), unseen: off.join(''), seenDot: onDot.join(''), unseenDot: offDot.join(''), rootAge, tips }
+  return { leaves, seen: on.join(''), unseen: off.join(''), seenDot: onDot.join(''), unseenDot: offDot.join(''), rootAge, tips, ends }
 }
 
 /** An age's ring of radius `r` about the centre: the fan's half circle, left to right over the top; the circle's whole. */
@@ -153,12 +157,18 @@ export const fanRing = (box: FanBox, r: number): string =>
   box.shape === 'circle' ? circlePath(box.cx, box.cy, n1(r))
     : `M${n1(box.cx - r)} ${n1(box.cy)}A${n1(r)} ${n1(r)} 0 0 1 ${n1(box.cx + r)} ${n1(box.cy)}`
 
-/** Where the age of the ring of radius `r` is written: under the fan's centre on both sides (once for a ring too small
- *  to split), or where the ring crosses the circle's downward radius. */
+/** Where the age of the ring of radius `r` is written, where no branch runs (round 6): under the fan's centre on both
+ *  sides (once for a ring too small to split; the branches all run above it), or where the ring crosses the circle's
+ *  radius straight up, the one radius between its last tip and its first that no branch crosses. */
 export function ringLabels(box: FanBox, r: number): [number, number][] {
-  if (box.shape === 'circle') return [[box.cx, box.cy + r]]
+  if (box.shape === 'circle') return [[box.cx, box.cy - r]]
   return r > 12 ? [[box.cx + r, box.cy], [box.cx - r, box.cy]] : [[box.cx + r, box.cy]]
 }
+
+/** Whether a `w` × `h` patch centred at (x, y) leaves every branch end (drawFan's `ends`, with `pad` px of air) in view:
+ *  the circle's ages sit on a Paper patch, and one that would hide a branch end is not written. */
+export const clearOfEnds = (ends: readonly Pt[], x: number, y: number, w: number, h: number, pad = 2): boolean =>
+  ends.every(([ex, ey]) => Math.abs(ex - x) > w / 2 + pad || Math.abs(ey - y) > h / 2 + pad)
 
 /**
  * Where a tip's label starts, `from` px past the tips' ring, and how it turns (degrees, clockwise as CSS and canvas

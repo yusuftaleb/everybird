@@ -43,7 +43,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { countryName, regionsIn } from '@/lib/i18n-places'
 import { track, type PosterSizeWire } from '@/lib/analytics'
 import { currentTheme, type Theme } from '@/lib/theme'
-import { setTreeMine, useTreeMine } from '@/lib/tree-mine'
+import { TREE_LAYOUTS, setTreeLayout, setTreeMine, useTreeLayout, useTreeMine, type TreeLayout } from '@/lib/tree-mine'
 import { ARRANGEMENTS, setArrangement, useArrangement, type Arrangement } from '@/lib/arrangement'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
@@ -125,6 +125,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const bulkToggleId = useId()
   const bulkBodyId = useId()
   const arrangeId = useId()
+  const treeLayoutId = useId()
   const bulkSplitId = useId()
   const bulkSizeId = useId()
   const sizeId = useId()
@@ -156,6 +157,13 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const treeImage = subject === 'tree'
   // The Tree image's "Lifers only" is the bar's switch (tree-mine.ts), so the image and the view agree.
   const treeMine = useTreeMine()
+  // The Tree image's layout is the dock's Layout menu (tree-mine.ts): picked there or here, drawn as on screen, where
+  // a Fan or Radial that cannot name every tip draws Rectangular (`at.fits`, from the view). Show oldest lineage starts
+  // on, as Show latest lifer does.
+  const pickedTreeLayout = useTreeLayout()
+  const treeFits = at?.fits
+  const treeLayout: TreeLayout = pickedTreeLayout ? (pickedTreeLayout === 'rows' || treeFits?.[pickedTreeLayout] !== false ? pickedTreeLayout : 'rows') : at?.layout ?? 'rows'
+  const [showOldest, setShowOldest] = useState(true)
   const [hideTotals, setHideTotals] = useState(false)
   // Square is the same in both orientations (its image doesn't change; the dialog keeps its narrow layout for it).
   const squareShare = !print && format === 'square'
@@ -318,7 +326,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // a render superseded before it starts rejects with an AbortError. In print mode it is the poster's preview (the
   // size instead of the format).
   /** What the Tree or Map image reads besides the share image's options: the view's level, the app state, its switches. */
-  const viewOf = () => ({ at: treeImage ? { ...at, mine: treeMine } : at ?? {}, state: { list, filter, seen, sci }, t, hideTotals })
+  const viewOf = () => ({ at: treeImage ? { ...at, mine: treeMine, layout: treeLayout } : at ?? {}, state: { list, filter, seen, sci }, t, hideTotals, oldest: treeImage && showOldest })
   const [preview, setPreview] = useState<{ url: string; format: CardFormat; size: PrintSize; key: string } | null>(null)
   const [failedKey, setFailedKey] = useState<string | null>(null)
   const current = useRef<Promise<Blob> | null>(null)
@@ -333,7 +341,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const first = useRef(true)
   // The Tree's or Map's drawing: the view, its switches.
   // `at` is the view's level, live (the Tree's follows the taxonomy filter); its JSON leaves out the map's names function.
-  const viewKey = viewImage ? `${subject}|${treeImage ? treeMine : ''}|${hideTotals}|${JSON.stringify(at ?? {})}` : ''
+  const viewKey = viewImage ? `${subject}|${treeImage ? `${treeMine}|${treeLayout}|${showOldest}` : ''}|${hideTotals}|${JSON.stringify(at ?? {})}` : ''
   const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
@@ -382,7 +390,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       },
     )
     return () => { live = false; cancel() }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- viewOf reads treeImage, treeMine, hideTotals, at, list, filter, seen and sci, all in `key` or below
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- viewOf reads treeImage, treeMine, treeLayout, showOldest, hideTotals, at, list, filter, seen and sci, all in `key` or below
   }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, hideTotals, at, list, filter, seen, sci])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
@@ -1067,6 +1075,19 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                       batch: (chunk) => <button type="button" className="eb-textbtn eb-share-inline" onClick={openBulk}>{chunk}</button>,
                     })}
                   </p>
+                )}
+                {rows.treeLayout && (
+                  <div className="eb-share-opt">
+                    <span id={treeLayoutId} className="eb-share-optlabel">{t.share.arrange.label}</span>
+                    <MenuSelect
+                      labelledBy={treeLayoutId} menuLabel={t.share.arrange.label} escapeRef={menuEsc} testId="share-tree-layout"
+                      options={TREE_LAYOUTS.map((v) => ({ value: v, label: t.collage.tree.layouts[v], off: v !== 'rows' && treeFits?.[v] === false ? t.collage.tree.noRoom : undefined }))}
+                      value={treeLayout} onChange={setTreeLayout}
+                    />
+                  </div>
+                )}
+                {pair(
+                  rows.oldest && switchRow(showOldest, t.collage.tree.showOldest, () => setShowOldest((v) => !v), 'share-tree-oldest'),
                 )}
                 {pair(
                   rows.lifersOnly && switchRow(treeMine, t.collage.controls.lifersOnly, () => setTreeMine(!treeMine), 'share-tree-mine'),

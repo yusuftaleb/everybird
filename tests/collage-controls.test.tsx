@@ -7,7 +7,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { useReducer } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CollageView } from '@/components/app/CollageView'
-import { TREE_MINE_KEY } from '@/lib/tree-mine'
+import { TREE_MINE_KEY, TREE_TIME_KEY } from '@/lib/tree-mine'
 import type { SourceRecord } from '@/lib/list/model'
 import { emptySaved } from '@/lib/list/storage'
 import { initialState, makeReducer, type AppState } from '@/lib/list/store'
@@ -105,7 +105,15 @@ describe('the bar: one press per switch, each only in its view', () => {
     fireEvent.click(within(view).getByRole('button', { name: 'Tree' }))
     const mine = screen.getByRole('switch', { name: 'Lifers only' })
     // No True size in the tree; Scientific is there, since the tree shows one name by it.
-    expect(screen.getAllByRole('switch')).toEqual([mine, screen.getByRole('switch', { name: /^Scientific/ })])
+    // Round 6: Time scale beside them, on by default, held on the device ('0' when off).
+    const time = screen.getByRole('switch', { name: 'Time scale' })
+    expect(screen.getAllByRole('switch')).toEqual([mine, time, screen.getByRole('switch', { name: /^Scientific/ })])
+    expect(time).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(time)
+    expect(time).toHaveAttribute('aria-checked', 'false')
+    expect(localStorage.getItem(TREE_TIME_KEY)).toBe('0')
+    fireEvent.click(time)
+    expect(localStorage.getItem(TREE_TIME_KEY)).toBeNull()
     expect(mine).toHaveAttribute('aria-checked', 'false')
     fireEvent.click(mine)
     expect(mine).toHaveAttribute('aria-checked', 'true')

@@ -1,38 +1,43 @@
 // The Tree view's open branch and the taxonomy filter (the chip row under the dock) are one path (Yusuf, 2026-11-20):
-// the order and family the filter holds are the tree's open order and family, so picking a chip opens it in the tree
-// and opening it in the tree picks the chip (the other views follow the filter, as always). What the filter cannot
-// hold, a genus, or a family it would drop (the landing sample's index holds only its own birds), the tree keeps beside
-// it (`TreeDeep`) for as long as the filter's order and family stay. Pure.
+// the order, family and genus the filter holds (round 6: the genus is a filter too) are the tree's open order, family
+// and genus, so picking a chip opens it in the tree and opening it in the tree picks the chip (the other views follow
+// the filter, as always). What the filter cannot hold, a family or genus the shown index lacks (the landing sample's
+// index holds only its own birds), the tree keeps beside it (`TreeDeep`) for as long as the filter's taxonomy stays. Pure.
 import type { Filter } from '@/lib/list/filters'
 
 /** The branch the tree has open: an order, a family in it, a genus in that. */
 export type OpenBranch = { ord?: string; fam?: string; genus?: string }
-/** What the tree opens past the filter: `at` the filter's order and family it belongs to; `famName` the family's name
- *  as shown (the shown index may not have it). */
+/** What the tree opens past the filter: `at` the filter's order, family and genus it belongs to; `famName` the family's
+ *  name as shown (the shown index may not have it). */
 export type TreeDeep = { at: string; fam?: string; famName?: string; genus?: string }
 
-const atOf = (f: Pick<Filter, 'order' | 'family'>): string => `${f.order ?? ''}|${f.family ?? ''}`
+type Taxa = Pick<Filter, 'order' | 'family' | 'genus'>
+const atOf = (f: Taxa): string => `${f.order ?? ''}|${f.family ?? ''}|${f.genus ?? ''}`
 
-/** The branch the tree opens for `filter`, with what it keeps beside it while the filter's order and family stay. */
-export function treeBranch(filter: Pick<Filter, 'order' | 'family'>, deep: TreeDeep | null): OpenBranch {
+/** The branch the tree opens for `filter`, with what it keeps beside it while the filter's taxonomy stays. */
+export function treeBranch(filter: Taxa, deep: TreeDeep | null): OpenBranch {
   const d = deep && deep.at === atOf(filter) ? deep : undefined
   const fam = filter.family ?? (filter.order ? d?.fam : undefined)
-  return { ...(filter.order ? { ord: filter.order } : {}), ...(fam ? { fam } : {}), ...(fam && d?.genus ? { genus: d.genus } : {}) }
+  const genus = filter.genus ?? (fam ? d?.genus : undefined)
+  return { ...(filter.order ? { ord: filter.order } : {}), ...(fam ? { fam } : {}), ...(genus ? { genus } : {}) }
 }
 
 /**
- * Opening `b` in the tree: the filter with `b`'s order and family (the family only when `holds(ord, fam)`, as the
- * filter would keep it), its other fields unchanged, and what the tree keeps beside it (null: nothing).
+ * Opening `b` in the tree: the filter with `b`'s order, family and genus (each only while `holds` says the filter would
+ * keep it, with the steps above it), its other fields unchanged, and what the tree keeps beside it (null: nothing).
  */
-export function openBranch(filter: Filter, b: OpenBranch, holds: (ord: string, fam: string) => boolean, famName?: string): { filter: Filter; deep: TreeDeep | null } {
+export function openBranch(filter: Filter, b: OpenBranch, holds: (ord: string, fam: string, genus?: string) => boolean, famName?: string): { filter: Filter; deep: TreeDeep | null } {
   const next: Filter = { ...filter }
   delete next.order
   delete next.family
+  delete next.genus
   if (b.ord) next.order = b.ord
-  const kept = !!(b.ord && b.fam && holds(b.ord, b.fam))
-  if (kept) next.family = b.fam
-  const fam = b.ord && b.fam && !kept ? b.fam : undefined
-  const genus = b.fam ? b.genus : undefined
+  const famKept = !!(b.ord && b.fam && holds(b.ord, b.fam))
+  if (famKept) next.family = b.fam
+  const genusKept = famKept && !!b.genus && holds(b.ord!, b.fam!, b.genus)
+  if (genusKept) next.genus = b.genus
+  const fam = b.ord && b.fam && !famKept ? b.fam : undefined
+  const genus = b.fam && b.genus && !genusKept ? b.genus : undefined
   if (!fam && !genus) return { filter: next, deep: null }
   return { filter: next, deep: { at: atOf(next), ...(fam ? { fam, ...(famName ? { famName } : {}) } : {}), ...(genus ? { genus } : {}) } }
 }
