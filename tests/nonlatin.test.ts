@@ -43,7 +43,9 @@ describe('searchKey', () => {
     expect(searchKey('がん')).toBe(searchKey('ガン'))
     expect(searchKey('コーラル')).toBe('コーラル')
     expect(searchKey('白头海雕')).toBe('白头海雕')
-    expect(searchKey('ヨーロッパ・コマドリ')).toBe('ヨーロッパ コマドリ')
+    // Keys stay decomposed (NFD): compare keys, not a typed literal.
+    expect(searchKey('ヨーロッパ・コマドリ')).toBe(searchKey('ヨーロッパ コマドリ'))
+    expect(searchKey('ヨーロッパ・コマドリ').split(' ')).toHaveLength(2)
   })
 
   it('a Han or katakana word matches inside a name (no spaces to split at); a Latin word only at a word start', () => {

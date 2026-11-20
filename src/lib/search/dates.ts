@@ -178,10 +178,15 @@ export function dateParser(today: Date, lang: SearchLang) {
         // Spanish/Portuguese "octubre de 2026" as well as "oct 2026".
         const de = (lang === 'es' || lang === 'pt') && keys[at + 1] === 'de' ? 1 : 0
         const explicit = year(keys[at + 1 + de])
-        if (word.length === 3 && !explicit && !inRange) return undefined
+        if (word.length === 3 && !word.endsWith('月') && !explicit && !inRange) return undefined
         return { y: explicit ? Number(keys[at + 1 + de]) : y, m, end: m, explicit, n: explicit ? 2 + de : 1 }
       }
-      if (year(keys[at])) return { y: Number(keys[at]), m: 0, end: 11, explicit: true, n: 1 }
+      if (year(keys[at])) {
+        // Japanese and Chinese put the year first: "2024年3月" (the tokenizer's "2024" and "3月").
+        const after = keys[at + 1]?.endsWith('月') ? monthOfWord(months, keys[at + 1], true) : undefined
+        if (after !== undefined) return { y: Number(keys[at]), m: after, end: after, explicit: true, n: 2 }
+        return { y: Number(keys[at]), m: 0, end: 11, explicit: true, n: 1 }
+      }
     }
     // "N years ago" and "N months ago" (1 to 12, digits or words) name that whole calendar year or the single month.
     // The word's length in tokens ("il y a" is three), 0 when none is there.

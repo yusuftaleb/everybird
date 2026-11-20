@@ -867,7 +867,7 @@ export const zhHans: Messages = {
         stickers: { lead: '每张鸟类贴纸都是AI生成的插画，来自alchaincyf的huashu-bird-sticker，采用<cc>CC BY 4.0</cc>许可。每一张都由GPT-image根据对该物种野外识别特征的文字描述生成，大多数物种还参考了照片，摄影师在那个项目中均有署名。<how>贴纸是如何制作的</how>。Everybird为网页调整了它们的大小并做了裁切，没有其他改动。', commit: '源提交<code>{sha}</code>。', tail: '不到2%的物种还没有贴纸，以轮廓显示。我们每周检查一次新画作，并在Everybird更新时加入。' },
         inspiration: 'Teddy Warner的Avian Visitors展示了一整面墙的鸟可以多么可爱。Everybird由此起步。',
         taxonomyTitle: 'eBird和Clements',
-        taxonomy: '鸟名、物种及其顺序依据康奈尔鸟类学实验室的eBird/Clements分类，版本{version}。eBird和observation.org文件在你的浏览器中读取。eBird缺少的中文名来自IOC World Bird List v15.2（Gill, Donsker & Rasmussen），采用<cc>CC BY 3.0</cc>许可。',
+        taxonomy: '鸟名、物种及其顺序依据康奈尔鸟类学实验室（Cornell Lab of Ornithology）的eBird/Clements分类，版本{version}。eBird和observation.org文件在你的浏览器中读取。eBird缺少的中文名来自IOC World Bird List v15.2（Gill, Donsker & Rasmussen），采用<cc>CC BY 3.0</cc>许可。',
         masses: '贴纸大小使用AVONET（Tobias et al. 2022, Ecology Letters）的体重数据，经由huashu的物种表。',
         birdbase: 'AVONET没有体重数据的物种，贴纸大小使用BIRDBASE（Şekercioğlu et al. 2025, Scientific Data）的体重数据。',
         redList: 'IUCN红色名录等级依据AviList: The Global Avian Checklist, {version}（AviList Core Team, {year}）中为BirdLife {birdlife}给出的等级，经由huashu的物种表，采用<cc>CC BY 4.0</cc>许可。Everybird把它们匹配到了eBird物种。',

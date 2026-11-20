@@ -506,7 +506,8 @@ describe('Japanese (ja)', () => {
     expect(span('去年', 'ja')).toEqual(['2025-01', '2025-12'])
     expect(span('先月', 'ja')).toEqual(['2026-10', '2026-10'])
     expect(span('2024年 から', 'ja')).toEqual(['2024-01', '2026-11'])
-    expect(span('2024年 以降', 'ja')).toEqual(['2025-01', '2026-11'])
+    // 以降 includes the year it follows ("from 2024 on").
+    expect(span('2024年 以降', 'ja')).toEqual(['2024-01', '2026-11'])
     expect(span('2024年 まで', 'ja')).toEqual([undefined, '2024-12'])
     expect(span('2024年 以前', 'ja')).toEqual([undefined, '2023-12'])
     expect(span('3月〜5月', 'ja')).toEqual(['2026-03', '2026-05'])

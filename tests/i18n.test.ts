@@ -50,6 +50,10 @@ const ALLOW_SAME = [
   'Image', 'Style', 'Poster',
   // de: months spelled as in English, and "(optional)".
   'Jan', 'Feb', 'Apr', 'Aug', 'Sep', 'Nov', 'April', 'August', 'September', 'November', '(optional)', 'Region (optional)',
+  // ja and zh group numbers with "," and use "." for decimals, as English does.
+  ',', '.',
+  // ru: the share format's name and ratio, a template with no words.
+  '{name}, {ratio}',
   // it: the continent's name in Italian.
   'Africa',
 ]

@@ -110,7 +110,7 @@ describe('LanguageMenu', () => {
 
   it('arrows wrap, Home and End jump, Esc closes and focuses the button', () => {
     render(<LanguageMenu />, { wrapper: withI18n('zh-Hant') })
-    fireEvent.click(screen.getByRole('button', { name: '言語：日本語' }))
+    fireEvent.click(screen.getByRole('button', { name: '語言：繁體中文' }))
     const items = screen.getAllByRole('menuitemradio')
     expect(items[13]).toHaveFocus()
     const key = (k: string) => fireEvent.keyDown(document.activeElement!, { key: k })
@@ -126,9 +126,9 @@ describe('LanguageMenu', () => {
     expect(items[13]).toHaveFocus()
     key('Escape')
     expect(screen.queryByRole('menu')).toBeNull()
-    expect(screen.getByRole('button', { name: '言語：日本語' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: '語言：繁體中文' })).toHaveFocus()
     // ArrowDown on the button opens it too, on the checked item.
-    fireEvent.keyDown(screen.getByRole('button', { name: '言語：日本語' }), { key: 'ArrowDown' })
+    fireEvent.keyDown(screen.getByRole('button', { name: '語言：繁體中文' }), { key: 'ArrowDown' })
     expect(screen.getAllByRole('menuitemradio')[13]).toHaveFocus()
   })
 
