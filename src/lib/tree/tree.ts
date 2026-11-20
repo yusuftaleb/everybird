@@ -17,7 +17,23 @@ export type TreeFile = {
   /** The eBird taxonomy the tips were matched to (species.v1.json's). */
   ebirdTaxonomy: string
   newick: string
+  /** The tips placed without genetic data (by taxonomy alone, or added beside a relative): one bit per tip in the
+   *  Newick's order (`packBits`). Absent in files made before it: nothing is marked. */
+  taxOnly?: string
 }
+
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+/** Bits as text, six per character (bit i is bit i % 6 of character i / 6). */
+export function packBits(bits: readonly boolean[]): string {
+  let out = ''
+  for (let i = 0; i < bits.length; i += 6) {
+    let v = 0
+    for (let b = 0; b < 6; b++) if (bits[i + b]) v |= 1 << b
+    out += B64[v]
+  }
+  return out
+}
+export const bitAt = (packed: string, i: number): boolean => ((B64.indexOf(packed[i / 6 | 0] ?? 'A') >> i % 6) & 1) === 1
 
 /** Nodes in pre-order (0 is the root): parent (-1 for the root), the branch above each node, tip codes. */
 export type Tree = {
@@ -29,10 +45,13 @@ export type Tree = {
   code: (string | null)[]
   /** eBird code -> tip node. */
   tipOf: Map<string, number>
+  /** 1 at a tip placed without genetic data (TreeFile.taxOnly). */
+  taxOnly: Uint8Array
 }
 
-/** Parses Newick text whose labels hold no ( ) , : ; (eBird codes). Internal labels are ignored. */
-export function parseNewick(s: string): Tree {
+/** Parses Newick text whose labels hold no ( ) , : ; (eBird codes). Internal labels are ignored. `taxOnly` is the
+ *  file's packed bits, one per tip in reading order. */
+export function parseNewick(s: string, taxOnly?: string): Tree {
   const parent: number[] = []
   const len: number[] = []
   const code: (string | null)[] = []
@@ -76,8 +95,15 @@ export function parseNewick(s: string): Tree {
   const age = new Float64Array(n)
   for (let k = n - 1; k >= 0; k--) for (const c of kids[k]) age[k] = Math.max(age[k], age[c] + len[c])
   const tipOf = new Map<string, number>()
-  code.forEach((c, k) => { if (c) tipOf.set(c, k) })
-  return { parent: Int32Array.from(parent), len: Float64Array.from(len), age, kids, code, tipOf }
+  const marks = new Uint8Array(n)
+  let tipNo = 0
+  code.forEach((c, k) => {
+    if (!c) return
+    tipOf.set(c, k)
+    if (taxOnly && bitAt(taxOnly, tipNo)) marks[k] = 1
+    tipNo++
+  })
+  return { parent: Int32Array.from(parent), len: Float64Array.from(len), age, kids, code, tipOf, taxOnly: marks }
 }
 
 /** A drawn tip: its key, the tree's tips in it, its crown node and that node's age (0 for a single tip). */
@@ -170,6 +196,9 @@ export type Drawing = {
   /** Elbow paths: y from `yOf`, x from 0 (the root's age) to `width` (today). */
   seen: string
   unseen: string
+  /** The own branches of the dotted leaves (their elbows' horizontal part), drawn dotted. */
+  seenDot: string
+  unseenDot: string
   /** The oldest node drawn, in millions of years (the axis's left end). */
   rootAge: number
 }
@@ -177,26 +206,34 @@ export type Drawing = {
 /**
  * The elbows of a drawing: each branch from its parent node down to its child, in `seen` when some leaf below is on the
  * list. `yOf(i)` is the i-th leaf's y (default: one unit per leaf). A drawing that is one leaf is its stem, from
- * `stemAge` (the split from its closest relatives) to today.
+ * `stemAge` (the split from its closest relatives) to today. A leaf for which `dotted` holds has its own branch (the
+ * elbow's horizontal part) in `seenDot` / `unseenDot` instead; the vertical part, which siblings can overlap, stays solid.
  */
-export function drawTree(root: Node | Leaf, seen: (leaf: Leaf, i: number) => boolean, yOf: (i: number) => number = (i) => i + 0.5, stemAge?: number, width = 1000): Drawing {
+export function drawTree(root: Node | Leaf, seen: (leaf: Leaf, i: number) => boolean, yOf: (i: number) => number = (i) => i + 0.5, stemAge?: number, dotted: (leaf: Leaf, i: number) => boolean = () => false, width = 1000): Drawing {
   const leaves = leavesOf(root)
   const rootAge = (isLeaf(root) ? stemAge : root.age) || 1
   const x = (age: number) => +((1 - age / rootAge) * width).toFixed(1)
   let row = 0
-  const on: string[] = [], off: string[] = []
-  // Returns [y, seen] of the subtree.
-  const walk = (n: Node | Leaf): [number, boolean] => {
-    if (isLeaf(n)) { const i = row++; return [yOf(i), seen(n, i)] }
+  const on: string[] = [], off: string[] = [], onDot: string[] = [], offDot: string[] = []
+  // Returns [y, seen, dotted] of the subtree (dotted only for a leaf).
+  const walk = (n: Node | Leaf): [number, boolean, boolean] => {
+    if (isLeaf(n)) { const i = row++; return [yOf(i), seen(n, i), dotted(n, i)] }
     const parts = n.kids.map((k) => [k, ...walk(k)] as const)
     const y = (parts[0][1] + parts[parts.length - 1][1]) / 2
     const px = x(n.age)
-    for (const [k, ky, ks] of parts) (ks ? on : off).push(`M${px} ${y}V${ky}H${isLeaf(k) ? width : x(k.age)}`)
-    return [y, parts.some((p) => p[2])]
+    for (const [k, ky, ks, kd] of parts) {
+      const end = isLeaf(k) ? width : x(k.age)
+      if (kd) { (ks ? on : off).push(`M${px} ${y}V${ky}`); (ks ? onDot : offDot).push(`M${px} ${ky}H${end}`) }
+      else (ks ? on : off).push(`M${px} ${y}V${ky}H${end}`)
+    }
+    return [y, parts.some((p) => p[2]), false]
   }
-  if (isLeaf(root)) (seen(root, 0) ? on : off).push(`M0 ${yOf(0)}H${width}`)
+  if (isLeaf(root)) {
+    const d = dotted(root, 0)
+    ;(seen(root, 0) ? (d ? onDot : on) : (d ? offDot : off)).push(`M0 ${yOf(0)}H${width}`)
+  }
   else walk(root)
-  return { leaves, seen: on.join(''), unseen: off.join(''), rootAge }
+  return { leaves, seen: on.join(''), unseen: off.join(''), seenDot: onDot.join(''), unseenDot: offDot.join(''), rootAge }
 }
 
 /** An age for the axis and the fact line: whole millions from 10, else up to two decimals ("0,5" with a comma decimal). */

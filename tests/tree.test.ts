@@ -3,15 +3,15 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { matcher, nexusTree, relabel } from '../scripts/build-data/build-tree'
+import { attach, matcher, nexusTree, relabel, taxOnlyBits, type Addition } from '../scripts/build-data/build-tree'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
-import { HEAD_H, ROW_H, isClade, levelView } from '@/lib/tree/levels'
-import { ageTicks, cladeTree, drawTree, formatAge, isLeaf, leavesOf, oldestLineage, parseNewick, type TreeFile } from '@/lib/tree/tree'
+import { HEAD_H, ROW_H, foldSplit, isClade, levelView } from '@/lib/tree/levels'
+import { ageTicks, bitAt, cladeTree, drawTree, formatAge, isLeaf, leavesOf, oldestLineage, packBits, parseNewick, type TreeFile } from '@/lib/tree/tree'
 
 const sp = (code: string, sci: string, ord: string, fam: string, to: number): SpeciesRow =>
   ({ code, com: code.toUpperCase(), sci, ord, fam, famCom: `${fam} birds`, to, g: 10, gSrc: 'avonet', st: true, ar: 1, q: true })
-// Fa: genus Aa is not one clade (a1 sits with Ab's a3); x1 is in Fa but not in the tree.
+// Fa: genus Aa is not one branch (a1 sits with Ab's a3: nearly one branch, with Ab); x1 is in Fa but not in the tree.
 const species = buildSpeciesIndex([
   sp('a1', 'Aa one', 'O1', 'Fa', 1), sp('a2', 'Aa two', 'O1', 'Fa', 2), sp('a3', 'Ab three', 'O1', 'Fa', 3), sp('x1', 'Aa four', 'O1', 'Fa', 4),
   sp('b1', 'Bb one', 'O2', 'Fb', 5), sp('b2', 'Bb two', 'O2', 'Fb', 6),
@@ -32,6 +32,29 @@ describe('parseNewick', () => {
     const t = parseNewick('((a:1e-1,b:0.1)n1:0.9,c:1)root;')
     expect([...t.tipOf.keys()]).toEqual(['a', 'b', 'c'])
     expect(t.age[0]).toBeCloseTo(1)
+  })
+})
+
+describe('placed without genetic data', () => {
+  it('packs one bit per tip and reads it back', () => {
+    const bits = Array.from({ length: 20 }, (_, i) => i % 7 === 0 || i === 19)
+    const packed = packBits(bits)
+    expect(packed).toHaveLength(4)
+    expect(bits.map((_, i) => bitAt(packed, i))).toEqual(bits)
+    expect(bitAt(packed, 400)).toBe(false) // past the end
+  })
+  it('parseNewick marks the tips in reading order; a file without the field marks none', () => {
+    const t = parseNewick(NWK, taxOnlyBits(NWK, (c) => c === 'a3' || c === 'b2'))
+    expect([...t.tipOf].filter(([, k]) => t.taxOnly[k]).map(([c]) => c)).toEqual(['a3', 'b2'])
+    expect(tree.taxOnly.every((b) => b === 0)).toBe(true)
+  })
+  it('drawTree dots a leaf\'s own branch only, keeping the elbow solid', () => {
+    const root = cladeTree(tree, tree.tipOf.values(), (k) => tree.code[k]!)!
+    const d = drawTree(root, (l) => tree.code[l.tips[0]] === 'b2', undefined, undefined, (l) => tree.code[l.tips[0]] === 'b2')
+    expect(d.seen).toContain('M600 4V4.5')
+    expect(d.seen).not.toContain('M600 4V4.5H')
+    expect(d.seenDot).toBe('M600 4.5H1000')
+    expect(d.unseenDot).toBe('')
   })
 })
 
@@ -86,18 +109,20 @@ describe('levelView', () => {
     expect(v.height).toBe(2 * HEAD_H + 2 * ROW_H)
     expect(v.split).toBe(false)
   })
-  it('a family opens to its genera; a split genus counts each part on its own tips', () => {
+  it('a family opens to its genera; a genus nearly one branch is one row with the genus inside it, counting the whole branch', () => {
     const v = levelView(tree, species, { fam: 'Fa' }, onList)!
-    expect(v.rows.map((r) => r.kind === 'group' ? `${r.key} ${r.on}/${r.total} ${r.part?.join('of') ?? ''}` : '')).toEqual(['Aa 1/1 1of2', 'Ab 0/1 ', 'Aa 0/1 2of2'])
+    expect(v.rows.map((r) => r.kind === 'group' ? `${r.key} ${r.on}/${r.total} ${r.with?.map((w) => w.sci).join() ?? ''}` : '')).toEqual(['Aa 2/4 Ab three'])
     expect(v.split).toBe(false)
   })
-  it('a genus opens to its species, marked on or off the list; a genus that is not one clade says so', () => {
+  it('it opens to the real branch, every species where the tree puts it, and says which genus sits inside', () => {
     const v = levelView(tree, species, { fam: 'Fa', genus: 'Aa' }, onList)!
-    expect(v.rows.map((r) => r.kind === 'species' ? `${r.row.code} ${r.on}` : '')).toEqual(['a1 true', 'a2 false'])
-    expect(v.split).toBe(true)
+    expect(v.rows.map((r) => r.kind === 'species' ? `${r.row.code} ${r.on}` : '')).toEqual(['a1 true', 'a3 false', 'a2 false'])
+    expect(v.split).toBe(false)
+    expect(v.inside?.map((r) => r.sci)).toEqual(['Ab three'])
+    // A level naming the genus inside opens the row that holds it.
+    expect(levelView(tree, species, { fam: 'Fa', genus: 'Ab' }, onList)!.level).toEqual({ fam: 'Fa', genus: 'Aa' })
   })
   it('one lineage alone is drawn as its stem, from the split above it', () => {
-    expect(levelView(tree, species, { fam: 'Fa', genus: 'Ab' }, onList)!.drawing.rootAge).toBe(1)
     const fb = levelView(tree, species, { fam: 'Fb' }, onList)!
     expect(fb.drawing.rootAge).toBe(10)
     expect(fb.drawing.unseen + fb.drawing.seen).toBe(`M0 ${ROW_H / 2}H1000`)
@@ -108,6 +133,47 @@ describe('levelView', () => {
     expect(a.drawing.seen).not.toBe(b.drawing.seen)
     expect(a.rows.filter((r) => r.kind === 'group').map((r) => r.kind === 'group' && r.on)).toEqual([1, 0])
     expect(b.rows.filter((r) => r.kind === 'group').map((r) => r.kind === 'group' && r.on)).toEqual([0, 1])
+  })
+})
+
+describe('a group the tree splits', () => {
+  // Keys are a tip's first letter.
+  const folds = (nwk: string) => { const t = parseNewick(nwk); return foldSplit(t, t.tipOf.values(), (k) => t.code[k]![0]) }
+  it('nearly one branch: at most two other groups, each wholly inside, with fewer species together', () => {
+    const f = folds('((((k1,k2),o1),(k3,k4)),z1);')
+    expect(f.others).toEqual(new Map([['k', ['o']]]))
+    expect(f.into).toEqual(new Map([['o', 'k']]))
+    expect(f.scattered.size).toBe(0)
+  })
+  it('scattered: three other groups, one only partly inside, or as many species inside as in the group', () => {
+    expect(folds('(((((k1,o1),p1),q1),k2),(k3,k4));').scattered).toEqual(new Set(['k']))
+    expect(folds('((((k1,k2),o1),k3),o2);').scattered).toEqual(new Set(['k', 'o']))
+    expect(folds('((k1,o1),(o2,k2));')).toMatchObject({ scattered: new Set(['k', 'o']), into: new Map() })
+  })
+  it('a nearly-one-branch group inside another passes its groups on to the outer one', () => {
+    const f = folds('((((((m1,n1),m2),k1),k2),k3),k4);')
+    expect(f.others.get('k')?.sort()).toEqual(['m', 'n'])
+    expect(f.others.has('m')).toBe(false)
+  })
+  it('a scattered genus is drawn as its parts, each counting its own tips; opened, it says it is not one branch', () => {
+    const sp2 = buildSpeciesIndex([sp('c1', 'Ca one', 'O1', 'Fc', 1), sp('c2', 'Cb two', 'O1', 'Fc', 2), sp('c3', 'Ca three', 'O1', 'Fc', 3), sp('c4', 'Cb four', 'O1', 'Fc', 4)])
+    const t = parseNewick('((c1:1,c2:1):1,(c3:1,c4:1):1);')
+    const v = levelView(t, sp2, { fam: 'Fc' }, new Set(['c3']))!
+    expect(v.rows.map((r) => r.kind === 'group' ? `${r.key} ${r.on}/${r.total} ${r.part?.join('of')}` : '')).toEqual(['Ca 0/1 1of2', 'Cb 0/1 1of2', 'Ca 1/1 2of2', 'Cb 0/1 2of2'])
+    expect(levelView(t, sp2, { fam: 'Fc', genus: 'Ca' }, new Set())!.split).toBe(true)
+  })
+  it('the same rules serve families: a family inside another\'s branch folds into it, and opening it shows both', () => {
+    const sp3 = buildSpeciesIndex([sp('p1', 'Pa one', 'O1', 'Fp', 1), sp('p2', 'Pa two', 'O1', 'Fp', 2), sp('q1', 'Qa one', 'O1', 'Fq', 3)])
+    const t = parseNewick('((p1:1,q1:1):1,p2:2);')
+    const top = levelView(t, sp3, {}, new Set(['q1']))!
+    expect(top.rows.map((r) => r.kind === 'group' ? `${r.key} ${r.on}/${r.total} ${r.with?.map((w) => w.fam).join()}` : r.kind)).toEqual(['order', 'Fp 1/3 Fq'])
+    const fam = levelView(t, sp3, { fam: 'Fq' }, new Set())!
+    expect(fam.level).toEqual({ fam: 'Fp', genus: undefined })
+    expect(fam.inside?.map((r) => r.fam)).toEqual(['Fq'])
+    expect(fam.rows.map((r) => r.kind === 'group' ? `${r.key} ${r.with?.map((w) => w.sci).join()}` : '')).toEqual(['Pa Qa one'])
+    const gen = levelView(t, sp3, { fam: 'Fq', genus: 'Qa' }, new Set())!
+    expect(gen.level).toEqual({ fam: 'Fp', genus: 'Pa' })
+    expect(gen.rows.map((r) => r.kind === 'species' && r.row.code)).toEqual(['p1', 'q1', 'p2'])
   })
 })
 
@@ -143,6 +209,31 @@ describe('build-tree', () => {
   })
 })
 
+describe('build-tree: species added beside their parent', () => {
+  const add = (code: string, parent: string): Addition => ({ code, parent, source: 'test' })
+  it('splits off at half the parent\'s own branch; several from one parent share the split', () => {
+    const out = attach(NWK, [add('a9', 'a2'), add('b8', 'b1'), add('b9', 'b1')])
+    expect(out.newick).toBe('(((a1:1,a3:1):2,(a2:1.5,a9:1.5):1.5):7,((b1:2,b8:2,b9:2):2,b2:4):6);')
+    expect(out.added).toEqual(['a9', 'b8', 'b9'])
+  })
+  it('skips, with a note, an addition that has a tip already or whose parent has none', () => {
+    const out = attach(NWK, [add('a1', 'a2'), add('z1', 'zz')])
+    expect(out.newick).toBe(NWK)
+    expect(out.skipped).toEqual(['a1: has a tip of its own', 'z1: its parent zz has no tip'])
+  })
+  it('the parser and the drawing handle a three-way split', () => {
+    const t = parseNewick(attach(NWK, [add('b8', 'b1'), add('b9', 'b1')]).newick)
+    const node = t.parent[t.tipOf.get('b1')!]
+    expect(t.kids[node].map((k) => t.code[k])).toEqual(['b1', 'b8', 'b9'])
+    expect(t.age[node]).toBe(2)
+    const root = cladeTree(t, t.tipOf.values(), (k) => t.code[k]!)!
+    const d = drawTree(root, () => true)
+    expect(d.leaves).toHaveLength(7)
+    // The three kids hang from the node's middle y (leaves 4, 5, 6 at y 3.5, 4.5, 5.5): x 800 is 2 of 10 My ago.
+    expect(d.seen).toContain('M800 4.5V3.5H1000M800 4.5V4.5H1000M800 4.5V5.5H1000')
+  })
+})
+
 describe('public/data/tree.v1.json', () => {
   const root = resolve(__dirname, '..')
   const file = JSON.parse(readFileSync(resolve(root, 'public/data/tree.v1.json'), 'utf8')) as TreeFile
@@ -159,5 +250,26 @@ describe('public/data/tree.v1.json', () => {
     expect(new Set(tips).size).toBe(tips.length)
     expect(tips.length).toBeGreaterThan(shipped.species.length * 0.99)
     expect(t.age[0]).toBeGreaterThan(60)
+  })
+  it('marks the tips placed without genetic data: about 1,500 of them, the Somali Ostrich and Northern Cassowary but not the Common Ostrich', () => {
+    const t = parseNewick(file.newick, file.taxOnly)
+    const marked = (c: string) => t.taxOnly[t.tipOf.get(c)!] === 1
+    const n = t.taxOnly.reduce((a, b) => a + b, 0)
+    expect(n).toBeGreaterThan(1400)
+    expect(n).toBeLessThan(1800)
+    expect(marked('ostric3')).toBe(true)
+    expect(marked('norcas1')).toBe(true)
+    expect(marked('ostric2')).toBe(false)
+  })
+  it('each species of data/tree-additions.json sits beside its parent, dotted, and names its source', () => {
+    const t = parseNewick(file.newick, file.taxOnly)
+    const additions = JSON.parse(readFileSync(resolve(root, 'data/tree-additions.json'), 'utf8')) as Addition[]
+    expect(additions.length).toBeGreaterThan(0)
+    for (const a of additions) {
+      const k = t.tipOf.get(a.code)!
+      expect(t.parent[t.tipOf.get(a.parent)!], a.code).toBe(t.parent[k])
+      expect(t.taxOnly[k], a.code).toBe(1)
+      expect(a.source.length, a.code).toBeGreaterThan(10)
+    }
   })
 })

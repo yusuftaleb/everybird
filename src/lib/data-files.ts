@@ -12,7 +12,7 @@ export const DATA_FILES = {
   'map-countries.v1.json': 'map-countries.v1.b88791b51c.json',
   'map-provinces.v1.json': 'map-provinces.v1.64d3322870.json',
   'colours.v1.json': 'colours.v1.2e4c9b4bdd.json',
-  'tree.v1.json': 'tree.v1.2fc481ed33.json',
+  'tree.v1.json': 'tree.v1.cc7bb41a6a.json',
   'album.v1.json': 'album.v1.53926f8519.json',
   'names.es.v1.json': 'names.es.v1.cff9628611.json',
   'names.es_MX.v1.json': 'names.es_MX.v1.921b2c6667.json',

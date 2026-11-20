@@ -14,7 +14,8 @@ import type { TreeFile } from '@/lib/tree/tree'
 
 // The tree file, and the full species file TreeView loads itself (the shown index may be the landing sample's own).
 const { fetchData, rows } = vi.hoisted(() => {
-  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: '2026', newick: '(((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6);' }
+  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: '2026', newick: '((((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6):1,((c1:1,c2:1):1,(c3:1,c4:1):1):9);', taxOnly: 'Q' }
+  // b2, the fifth tip, is placed without genetic data. Genus Aa is nearly one branch (with Ab inside); Ca and Cb are scattered.
   const rows: SpeciesRow[] = []
   const fetchData = vi.fn(async (name: string) => {
     if (name === 'tree.v1.json') return file
@@ -34,6 +35,8 @@ rows.push(
   sp('a1', 'Alpha One', 'Aa one', 'Anseriformes', 'Anatidae', 'Ducks', 1), sp('a2', 'Alpha Two', 'Aa two', 'Anseriformes', 'Anatidae', 'Ducks', 2),
   sp('a3', 'Alpha Three', 'Ab three', 'Anseriformes', 'Anatidae', 'Ducks', 3), sp('x1', 'Lost Duck', 'Aa four', 'Anseriformes', 'Anatidae', 'Ducks', 4),
   sp('b1', 'Beta One', 'Bb one', 'Piciformes', 'Picidae', 'Woodpeckers', 5), sp('b2', 'Beta Two', 'Bb two', 'Piciformes', 'Picidae', 'Woodpeckers', 6),
+  sp('c1', 'Gamma One', 'Ca one', 'Cuculiformes', 'Cuculidae', 'Cuckoos', 7), sp('c2', 'Gamma Two', 'Cb two', 'Cuculiformes', 'Cuculidae', 'Cuckoos', 8),
+  sp('c3', 'Gamma Three', 'Ca three', 'Cuculiformes', 'Cuculidae', 'Cuckoos', 9), sp('c4', 'Gamma Four', 'Cb four', 'Cuculiformes', 'Cuculidae', 'Cuckoos', 10),
 )
 const entry = (code: string): ListEntry => ({ code, date: '2024-01-01', place: { country: 'CA' } } as ListEntry)
 
@@ -93,19 +96,45 @@ describe('TreeView', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^Ducks/ }))
     expect(screen.getByText('Ducks', { selector: '[aria-current]' })).toHaveFocus()
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
-    expect(within(genera).getAllByRole('button')).toHaveLength(3)
-    expect(within(genera).getByRole('button', { name: 'Aa part 1 of 2, 1 of 1 on the list' })).toHaveAttribute('data-on')
-    expect(within(genera).getByRole('button', { name: 'Ab, 0 of 1 on the list' })).not.toHaveAttribute('data-on')
-    expect(within(genera).getByRole('button', { name: 'Aa part 2 of 2, 0 of 1 on the list' })).toBeInTheDocument()
-    fireEvent.click(within(genera).getAllByRole('button')[0])
-    expect(screen.getByText('Aa is not one clade in this tree, so this drawing shows its species alone.')).toBeInTheDocument()
+    // Aa is nearly one branch: one row for the branch, with Ab inside it and no row of its own.
+    expect(within(genera).getAllByRole('button')).toHaveLength(1)
+    const aa = within(genera).getByRole('button', { name: 'Aa with Ab, not one branch of its own in this tree, 1 of 4 on the list' })
+    expect(aa).toHaveAttribute('data-on')
+    expect(aa.querySelector('.eb-tree-mark')).toHaveAttribute('aria-hidden', 'true')
+    fireEvent.click(aa)
+    expect(screen.getByText('In this tree, Ab sits inside Aa.')).toBeInTheDocument()
     const tips = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
     expect(within(tips).getByText('Alpha Two')).toBeInTheDocument()
+    // Every species of the branch where the tree puts it; Ab's names its genus.
+    expect([...tips.querySelectorAll('.eb-tree-row')].map((li) => li.querySelector('.eb-tree-name')!.textContent)).toEqual(['Alpha One', 'Alpha Three Ab', 'Alpha Two'])
     expect(within(tips).queryByRole('button', { name: /Alpha Two/ })).toBeNull() // not on the list: grey, no card
     fireEvent.click(within(tips).getByRole('button', { name: 'Alpha One, on the list' }))
     expect(onPick).toHaveBeenCalledWith('a1', expect.any(HTMLElement))
     fireEvent.click(screen.getByRole('button', { name: 'All families' }))
     expect(screen.getByRole('button', { name: /^Ducks/ })).toHaveFocus()
+  })
+
+  it('a tip placed without genetic data says so, and the key under the tree explains the dotted line', async () => {
+    render(<TreeView entries={['a1', 'b2'].map(entry)} sci={false} onPick={() => {}} />)
+    fireEvent.click(await screen.findByRole('button', { name: /^Woodpeckers/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Bb,/ }))
+    const tips = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect(within(tips).getByRole('button', { name: 'Beta Two, on the list, placed without genetic data' })).toBeInTheDocument()
+    expect(within(tips).getByText('Beta One').closest('.eb-tree-btn')).not.toHaveTextContent(/genetic/)
+    expect(screen.getByText('Placed without genetic data')).toBeInTheDocument()
+  })
+
+  it('a scattered genus keeps a row per part, marked; opening a part shows its species alone; the key says what the mark means', async () => {
+    render(<TreeView entries={['c3'].map(entry)} sci={false} onPick={() => {}} />)
+    fireEvent.click(await screen.findByRole('button', { name: /^Cuckoos/ }))
+    const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect(within(genera).getAllByRole('button')).toHaveLength(4)
+    expect(within(genera).getByRole('button', { name: 'Ca part 1 of 2, not one branch of its own in this tree, 0 of 1 on the list' })).toBeInTheDocument()
+    expect(within(genera).getByRole('button', { name: 'Ca part 2 of 2, not one branch of its own in this tree, 1 of 1 on the list' })).toHaveAttribute('data-on')
+    expect(screen.getByText('Not one branch of its own in this tree')).toBeInTheDocument()
+    fireEvent.click(within(genera).getByRole('button', { name: /^Cb part 1 of 2/ }))
+    expect(screen.getByText('Cb is not one branch in this tree, so this drawing shows its species alone.')).toBeInTheDocument()
+    expect([...screen.getByRole('list', { name: 'Tips of the tree, top to bottom' }).querySelectorAll('.eb-tree-name')].map((n) => n.textContent)).toEqual(['Gamma Two', 'Gamma Four'])
   })
 
   it('a smaller list changes the counts and the marked tips', async () => {
