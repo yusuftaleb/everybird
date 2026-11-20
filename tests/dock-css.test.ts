@@ -62,6 +62,18 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(topLevelRule(css, ".eb-dock-drop")).toMatch(/flex:\s*0 1 auto/);
   });
 
+  it("nothing moves when a filter is set: the label holds its filtering width, the panel's head row Clear all's height", () => {
+    const held = topLevelRule(css, ".eb-drop-label::after");
+    expect(held).toMatch(/content:\s*attr\(data-reserve\)/);
+    expect(held).toMatch(/height:\s*0/);
+    expect(held).toMatch(/visibility:\s*hidden/);
+    expect(held).toMatch(/font-weight:\s*600/);
+    expect(topLevelRule(css, ".eb-dock-drop[data-active]")).toMatch(/font-weight:\s*600/);
+    // The panel's head row is as tall as Clear all (.eb-textbtn) before it shows.
+    const btn = topLevelRule(css, ".eb-textbtn").match(/min-height:\s*(\d+)px/)![1];
+    expect(topLevelRule(filtersCss, ".eb-fpanel-headrow")).toMatch(new RegExp(`min-height:\\s*${btn}px`));
+  });
+
   it("the drop glyph is 18px: its rule outweighs .eb-dock-tab svg's 20px, and leaves the 14px caret alone", () => {
     expect(topLevelRule(css, ".eb-dock-drop svg:not(.eb-drop-caret)")).toMatch(/width: 18px; height: 18px/);
     expect(topLevelRule(css, ".eb-dock-tab svg")).toMatch(/width: 20px/);

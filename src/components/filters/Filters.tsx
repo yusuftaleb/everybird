@@ -86,7 +86,8 @@ export function FiltersButton({ state, regions, sections, open, onOpen, groupNam
         onClick={() => onOpen(open ? null : {})}
       >
         <FilterLinesIcon />
-        <span className="eb-drop-label">
+        {/* data-reserve: the label's widest form, held from the start so the count never moves the controls before it. */}
+        <span className="eb-drop-label" data-reserve={`${t.filters.label} · 0`}>
           {t.filters.label}
           {n > 0 && <span className="eb-drop-sum"> · {n}</span>}
         </span>
