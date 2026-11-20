@@ -1,15 +1,99 @@
-/* Compare with friends: the paste box, the group chips and the share line. */
-.eb-compare { display: flex; flex-direction: column; gap: 16px; }
-.eb-compare-form { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.eb-compare-paste { width: 100%; height: auto; min-height: 92px; padding: 10px 12px; resize: vertical; font-family: inherit; }
+/* Compare with friends: one field, then the card and the birds, side by side from 760px (the birds under the card on
+   phones). The segmented control is the share dialog's .eb-seg look, kept here as the timeline's basis switch keeps it. */
+.eb-compare { display: flex; flex-direction: column; gap: 12px; }
+.eb-compare-form { display: flex; gap: 8px; max-width: 640px; }
+.eb-compare-paste { flex: 1 1 auto; min-width: 0; }
+.eb-compare-form .eb-btn { flex: none; }
+/* An empty status line takes no room (no gap either), yet stays in the page, so its first message is announced. */
+.eb-compare .eb-status:empty { position: absolute; }
+.eb-compare-wait-note a { color: var(--accent); font-weight: 600; }
+
+.eb-compare-result { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 8px; }
+@media (min-width: 760px) { .eb-compare-result { grid-template-columns: minmax(280px, 400px) minmax(0, 1fr); gap: 32px; } }
+
+/* The card: the drawn image, with the Venn's three regions laid over it as pointer shortcuts. */
+.eb-compare-card { margin: 0; width: 100%; max-width: 440px; justify-self: center; }
+.eb-compare-pic {
+  position: relative; aspect-ratio: 1080 / 1350; overflow: hidden; background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-compare-pic img { display: block; width: 100%; height: 100%; }
+.eb-compare-wait { width: 100%; height: 100%; background: var(--surface); }
+.eb-compare-venn { position: absolute; inset: 0; width: 100%; height: 100%; }
+.eb-compare-venn path {
+  fill: transparent; stroke: transparent; stroke-width: 3px; vector-effect: non-scaling-stroke; stroke-linejoin: round;
+  pointer-events: all; cursor: pointer; transition: stroke .15s cubic-bezier(.25, .8, .25, 1);
+}
+@media (hover: hover) and (pointer: fine) { .eb-compare-venn path:hover { stroke: var(--line); } }
+.eb-compare-venn path[data-on] { stroke: var(--accent); }
+
+.eb-compare-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+/* The lists, most species first; with three or more, a ranking whose rows pick the Venn's other circle. */
+.eb-compare-people { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hairline); }
+.eb-compare-person { display: flex; align-items: center; gap: 2px; min-height: 48px; border-bottom: 1px solid var(--hairline); }
+.eb-compare-pick {
+  flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 6px 12px;
+  margin: 2px 0; padding: 8px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 15px; text-align: start;
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+button.eb-compare-pick { cursor: pointer; min-height: 44px; transition: background-color .15s cubic-bezier(.25, .8, .25, 1); }
+@media (hover: hover) and (pointer: fine) { button.eb-compare-pick:hover { background: var(--surface); } }
+button.eb-compare-pick[aria-pressed="true"] { background: var(--surface); }
+button.eb-compare-pick[aria-pressed="true"] .eb-compare-name { color: var(--accent); }
+.eb-compare-name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.eb-compare-you { margin-inline-start: .3em; color: var(--muted); font-weight: 500; }
+.eb-compare-count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.eb-compare-bar { grid-column: 1 / -1; display: block; min-inline-size: 3px; height: 6px; border-radius: 3px; background: var(--muted); }
+button.eb-compare-pick[aria-pressed="true"] .eb-compare-bar { background: var(--accent); }
+.eb-compare-icon {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: none;
+  color: var(--muted); cursor: pointer;
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-compare-icon svg { width: 18px; height: 18px; }
+@media (hover: hover) and (pointer: fine) { .eb-compare-icon:hover { color: var(--ink); background: var(--surface); } }
+.eb-compare-rename { flex: 1 1 auto; min-width: 0; margin: 2px 0; }
+
+/* The three groups of the Venn: one segmented control, each segment a 44px press, wrapping on a narrow column. */
+.eb-compare-seg {
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; max-width: 100%; align-self: flex-start;
+  border: 1px solid var(--hairline);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-compare-seg-btn {
+  flex: 1 1 auto; min-width: 0; display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; min-height: 44px;
+  padding: 4px 12px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 14px; font-weight: 500; text-align: center;
+  cursor: pointer; opacity: .66; overflow-wrap: anywhere;
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s cubic-bezier(.25, .8, .25, 1);
+}
+.eb-compare-seg-btn[aria-pressed="true"] { opacity: 1; background: var(--surface); }
+.eb-compare-seg-n { white-space: pre; font-variant-numeric: tabular-nums; }
 .eb-compare-groups { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; }
-.eb-compare-share { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.eb-compare-share .eb-input { flex: 1 1 240px; }
-.eb-compare-share > .eb-note { flex: 1 0 100%; margin: 0; }
-/* The lists' names for this comparison. */
-.eb-compare-names { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; padding: 0; border: 0; min-width: 0; }
-.eb-compare-names > legend { padding: 0; margin-bottom: 8px; }
-.eb-compare-name { display: flex; flex-direction: column; gap: 4px; flex: 1 1 200px; margin: 0; }
+@media (prefers-reduced-motion: reduce) { .eb-compare-seg-btn, .eb-compare-venn path, button.eb-compare-pick { transition: none; } }
+
+/* The chosen group's birds: a sticker, the name, whose list and the year. */
+.eb-compare-birds { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hairline); }
+.eb-compare-bird { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 4px 0; border-bottom: 1px solid var(--hairline); }
+.eb-compare-bird .eb-row-thumb { flex: none; }
+.eb-compare-bird-name { flex: 1 1 auto; min-width: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.eb-compare-bird-meta {
+  flex: 0 1 auto; max-width: 45%; font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: end;
+  text-transform: uppercase; letter-spacing: .04em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+.eb-compare-more { align-self: flex-start; }
+.eb-compare-birds-wait { min-height: 240px; }
+
+.eb-compare-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.eb-compare-actions > .eb-input { flex: 1 1 240px; }
+.eb-compare-actions > .eb-note { flex: 1 0 100%; }
+
+/* "Compare with mine" beside "Make yours" on a shared collage or comparison. */
+.eb-compare-ctas { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (min-width: 720px) { .eb-compare-ctas { flex: none; } }
+
 /* The species × people table (three or more lists): scrolls sideways inside itself, never the page. */
 .eb-compare-table { overflow-x: auto; max-width: 100%; }
 .eb-compare-table:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
