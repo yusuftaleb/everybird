@@ -503,6 +503,9 @@
 .eb-totop:focus-visible { box-shadow: inset 0 0 0 1px var(--ink); }
 .eb-totop:focus-visible svg { opacity: 1; }
 .eb-totop:active { scale: .94; }
+/* Out of the way while the bar's Filters panel or search results are open: they can reach this corner, and the
+   button would paint over them (it is a page layer, they are in-page ones). */
+body:has(.eb-drop, .eb-find-drop) .eb-totop { opacity: 0; visibility: hidden; }
 /* Focus lands on <main> after the trip, for the keyboard's sake only: no ring around the whole page. */
 main[tabindex="-1"]:focus { outline: none; }
 @media (max-width: 719.98px) {
