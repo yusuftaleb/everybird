@@ -12,9 +12,13 @@ import { de } from './messages/de'
 import { it } from './messages/it'
 import { sv } from './messages/sv'
 import { da } from './messages/da'
+import { ru } from './messages/ru'
+import { ja } from './messages/ja'
+import { zhHans } from './messages/zh-Hans'
+import { zhHant } from './messages/zh-Hant'
 import { pt } from './messages/pt'
 
-export const MESSAGES: Record<Lang, Messages> = { en, es, pt, nl, pl, fr, de, it, sv, da }
+export const MESSAGES: Record<Lang, Messages> = { en, es, pt, nl, pl, fr, de, it, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant }
 for (const [lang, m] of Object.entries(MESSAGES)) tagPlurals(lang, m)
 
 export function getMessages(lang: Lang): Messages {

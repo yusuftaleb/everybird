@@ -40,13 +40,13 @@ export type SearchContext = {
 }
 
 type Entity = { value: string; name: string; aliases: string[]; exactOnly?: boolean; codes?: string[] }
-const GENERIC = new Set(['bird', 'birds', 'and', 'of', 'the', 'aves', 'vogel', 'vogels', 'oiseau', 'oiseaux', 'uccello', 'uccelli', 'fagel', 'faglar', 'fugl', 'fugle'])
+const GENERIC = new Set(['bird', 'birds', 'and', 'of', 'the', 'aves', 'vogel', 'vogels', 'oiseau', 'oiseaux', 'uccello', 'uccelli', 'fagel', 'faglar', 'fugl', 'fugle', 'птица', 'птицы', 'птиц', '鳥', '野鳥', '鳥類', '鸟', '鸟类', '鳥', '鳥兒', '鳥種'])
 /** Words dropped from a phrase before group and taxon names are matched word by word ("aves de garzas" is "aves garzas"). */
-const CONNECTOR_WORDS = new Set(['de', 'del', 'do', 'da', 'dos', 'das', 'la', 'el', 'los', 'las', 'of', 'the', 'van', 'der', 'het', 'du', 'des', 'le', 'les', 'die', 'das', 'den', 'dem', 'di', 'dei', 'degli', 'delle', 'della', 'il', 'gli'])
+const CONNECTOR_WORDS = new Set(['de', 'del', 'do', 'da', 'dos', 'das', 'la', 'el', 'los', 'las', 'of', 'the', 'van', 'der', 'het', 'du', 'des', 'le', 'les', 'die', 'das', 'den', 'dem', 'di', 'dei', 'degli', 'delle', 'della', 'il', 'gli', 'ノ', '的', '之'])
 /** A province code typed as capitals ("BC", "ON"); lowercase "or", "no" and "al" are words, never codes. */
 const isCodeWord = (raw: string) => /^\p{Lu}{2,}$/u.test(raw)
 /** Words that join the parts of a group's name ('Ducks, Geese, and Waterfowl') and may be left out of a query. */
-const GROUP_JOINERS = new Set(['and', 'y', 'e', 'et', 'und', 'och', 'og'])
+const GROUP_JOINERS = new Set(['and', 'y', 'e', 'et', 'und', 'och', 'og', 'и', 'ト', '和', '与', '與', '及'])
 const singular = (s: string) => s.split(' ').map((w) => w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w).join(' ')
 const unique = <T,>(xs: Iterable<T>) => [...new Set(xs)]
 const STATUS_WORDS: Record<SearchLang, Record<string, SearchStatus[]>> = {
@@ -65,6 +65,16 @@ const STATUS_WORDS: Record<SearchLang, Record<string, SearchStatus[]>> = {
   sv: { hotade: ['VU', 'EN', 'CR'], hotad: ['VU', 'EN', 'CR'], hotat: ['VU', 'EN', 'CR'], sårbar: ['VU'], sårbara: ['VU'], 'starkt hotad': ['EN'], 'starkt hotade': ['EN'], 'akut hotad': ['CR'], 'akut hotade': ['CR'], 'nära hotad': ['NT'], 'nära hotade': ['NT'], livskraftig: ['LC'], livskraftiga: ['LC'], utdöd: ['EX'], utdöda: ['EX'], 'utdöd i vilt tillstånd': ['EW'], kunskapsbrist: ['DD'], 'ej bedömd': ['NE'], 'ej bedömda': ['NE'] },
   // "truede" is the three threatened categories (the Danish Red List's "truede arter"); the categories by their Red List names.
   da: { truede: ['VU', 'EN', 'CR'], truet: ['VU', 'EN', 'CR'], sårbar: ['VU'], sårbare: ['VU'], 'moderat truet': ['EN'], 'moderat truede': ['EN'], 'kritisk truet': ['CR'], 'kritisk truede': ['CR'], 'næsten truet': ['NT'], 'næsten truede': ['NT'], 'ikke truet': ['LC'], 'ikke truede': ['LC'], uddød: ['EX'], uddøde: ['EX'], 'uddød i naturen': ['EW'], 'utilstrækkelige data': ['DD'], 'ikke vurderet': ['NE'] },
+  // "под угрозой" and "угрожаемые" are the three threatened categories; the categories by IUCN's (МСОП) Russian names.
+  ru: { 'под угрозой': ['VU', 'EN', 'CR'], угрожаемые: ['VU', 'EN', 'CR'], угрожаемых: ['VU', 'EN', 'CR'], уязвимые: ['VU'], уязвимый: ['VU'], уязвимых: ['VU'], вымирающие: ['EN'], вымирающий: ['EN'], вымирающих: ['EN'], 'на грани исчезновения': ['CR'], 'на грани полного исчезновения': ['CR'], 'в критическом состоянии': ['CR'], 'близкие к уязвимому положению': ['NT'], 'близкий к уязвимому положению': ['NT'], 'вызывающие наименьшие опасения': ['LC'], 'наименьшие опасения': ['LC'], исчезнувшие: ['EX'], исчезнувший: ['EX'], вымершие: ['EX'], вымерший: ['EX'], 'исчезнувшие в дикой природе': ['EW'], 'вымершие в дикой природе': ['EW'], 'недостаточно данных': ['DD'], 'не оценивались': ['NE'], 'не оценен': ['NE'], неоцененные: ['NE'] },
+  // IUCN's Japanese category names (ui.iucn.names), the Ministry of the Environment's Red List names Japanese readers
+  // know (絶滅危惧IA類 = CR, IB類 = EN, II類 = VU, 近絶滅種), and 絶滅危惧(種) for the three threatened.
+  ja: { 絶滅危惧: ['VU', 'EN', 'CR'], 絶滅危惧種: ['VU', 'EN', 'CR'], 危急: ['VU'], 危急種: ['VU'], '絶滅危惧ii類': ['VU'], 危機: ['EN'], '絶滅危惧ib類': ['EN'], 深刻な危機: ['CR'], '絶滅危惧ia類': ['CR'], 近絶滅種: ['CR'], 準絶滅危惧: ['NT'], 低懸念: ['LC'], 軽度懸念: ['LC'], 絶滅: ['EX'], 野生絶滅: ['EW'], データ不足: ['DD'], 情報不足: ['DD'], 未評価: ['NE'] },
+  // IUCN's Chinese category names; "受威胁" (and "受胁") is the three threatened categories.
+  'zh-Hans': { 受威胁: ['VU', 'EN', 'CR'], 受胁: ['VU', 'EN', 'CR'], 受威胁物种: ['VU', 'EN', 'CR'], 易危: ['VU'], 濒危: ['EN'], 极危: ['CR'], 近危: ['NT'], 无危: ['LC'], 灭绝: ['EX'], 野外灭绝: ['EW'], 数据缺乏: ['DD'], 未评估: ['NE'], 未予评估: ['NE'] },
+  // "受威脅" is the three threatened categories (IUCN's Chinese "受威脅物種"); the categories by their Chinese Red List
+  // names, with Taiwan's TBN variants (接近受脅, 數據缺乏) beside the ones the UI shows.
+  'zh-Hant': { 受威脅: ['VU', 'EN', 'CR'], 受脅: ['VU', 'EN', 'CR'], 受威脅物種: ['VU', 'EN', 'CR'], 易危: ['VU'], 瀕危: ['EN'], 極危: ['CR'], 極度瀕危: ['CR'], 近危: ['NT'], 接近受脅: ['NT'], 無危: ['LC'], 暫無危機: ['LC'], 滅絕: ['EX'], 絕種: ['EX'], 野外滅絕: ['EW'], 資料缺乏: ['DD'], 數據缺乏: ['DD'], 未評估: ['NE'], 未予評估: ['NE'] },
 }
 const LIFERS: Record<SearchLang, string[]> = {
   en: ['lifer', 'lifers', 'new'], es: ['nuevas', 'nuevos', 'nueva', 'nuevo'], pt: ['novas', 'novos', 'nova', 'novo'], nl: ['nieuw', 'nieuwe'],
@@ -79,12 +89,21 @@ const LIFERS: Record<SearchLang, string[]> = {
   sv: ['kryss', 'livskryss', 'nykryss'],
   // Plural only: "Ny Kaledonien" is a place.
   da: ['nye'],
+  // Plural only: "Новая Зеландия" and "Новая Каледония" are places. Russian birders also say "лайфер".
+  ru: ['новые', 'новых', 'лайфер', 'лайферы', 'лайферов'],
+  // Japanese birders say ライファー; 初見 is "first time recorded".
+  ja: ['ライファー', '初見'],
+  // Chinese birders say 加新 for a lifer; 新鸟种 and 新增鸟种 are the plain forms.
+  'zh-Hans': ['加新', '新鸟种', '新增鸟种'],
+  // Taiwan birders call a lifer a "新種" (and adding one "加新"). Not "新": "新加坡" and "新喀里多尼亞" are places.
+  'zh-Hant': ['新種', '新鳥種', '加新'],
 }
 
 function tokenize(input: string, months: Map<string, number>): SearchWord[] {
   // Keep compounds (beija-flor, CA-BC), ISO dates, quotes and positions. A numeric year range splits at its dash.
-  const re = /"[^"]*"|(?:19|20)\d{2}-\d{2}(?:-\d{2})?(?!\d)|(?:19|20)\d{2}(?![\p{L}\p{N}])|[\p{L}\p{M}\p{N}]+(?:[-'’][\p{L}\p{M}]+)*|[-–—/]|[^\s]/gu
-  const word = (text: string, start: number): SearchWord => ({ raw: text, key: searchKey(text), start, end: start + text.length, quoted: text.startsWith('"') })
+  // Chinese and Japanese write a year and a month without spaces ("2024年3月"): "2024年" is the year 2024, "3月" a month.
+  const re = /"[^"]*"|(?:19|20)\d{2}-\d{2}(?:-\d{2})?(?!\d)|(?:19|20)\d{2}年|\d{1,2}月|(?:19|20)\d{2}(?![\p{L}\p{N}])|[\p{L}\p{M}\p{N}]+(?:[-'’][\p{L}\p{M}]+)*|[-–—/]|[^\s]/gu
+  const word = (text: string, start: number): SearchWord => ({ raw: text, key: /^\d{4}年$/.test(text) ? text.slice(0, 4) : searchKey(text), start, end: start + text.length, quoted: text.startsWith('"') })
   const isMonth = (text: string) => monthOfWord(months, searchKey(text), true) !== undefined
   const out: SearchWord[] = []
   for (const m of input.matchAll(re)) {

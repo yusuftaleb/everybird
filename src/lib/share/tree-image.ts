@@ -149,7 +149,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       ctx.fillStyle = C.muted
       ctx.fillText(clipText(ctx, tt.keyDotted, area.x + area.w - x), x, keyY)
     }
-  }, under)
+  }, under, `${tips.map(nameOf).join('')}${tt.axis}${tt.keyMark}${tt.keyDotted}`)
 }
 
 /** The split-group mark: a diamond outline (the screen's rotated square). */

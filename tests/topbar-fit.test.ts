@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { LANG_VARIANTS } from '@/i18n/choose'
-import { HTML_LANG, LANGS, type Lang } from '@/i18n/langs'
+import { HTML_LANG, LANGS, langBadge, type Lang } from '@/i18n/langs'
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
@@ -18,26 +18,37 @@ import { de } from '@/i18n/messages/de'
 import { it as italian } from '@/i18n/messages/it'
 import { sv } from '@/i18n/messages/sv'
 import { da } from '@/i18n/messages/da'
+import { ru } from '@/i18n/messages/ru'
+import { ja } from '@/i18n/messages/ja'
+import { zhHans } from '@/i18n/messages/zh-Hans'
+import { zhHant } from '@/i18n/messages/zh-Hant'
 import { pt } from '@/i18n/messages/pt'
+import { WIDE_CHAR } from '@/lib/layout/count-box'
 import glyphs from './fixtures/glyph-advances.json'
 
 type Variant = (typeof LANG_VARIANTS)[number]
 type FontKey = keyof typeof glyphs.fonts
 
-const NAV = { en, es, pt, nl, pl, fr, de, it: italian, sv, da }
+const NAV = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant }
 const PAGES = ['collage', 'settings', 'about'] as const
 
 /** Room left over that we insist on: kerning (tightens these words; `kernWidenEm` is added anyway), subpixel rounding. */
 const MARGIN = 4
 
+/** Where a page finds the letters a Latin face lacks (tokens.css --font-noto): Cyrillic in Noto Sans at the same
+ *  weight, measured. Kana and Han are taken as one em each: not measured (thousands of glyphs), every one is drawn on
+ *  the em square, so one em is their advance in Noto Sans JP, SC and TC. */
+const NOTO: Partial<Record<FontKey, FontKey>> = { 'satoshi-500': 'noto-sans-500', 'satoshi-700': 'noto-sans-700', 'cabinet-grotesk-700': 'noto-sans-700' }
+const advance = (font: FontKey, ch: string): number | undefined => (glyphs.fonts[font].advances as Record<string, number>)[ch]
+
 /** A string's width at `px`: the sum of its advances, the most kerning widens a word, and letter-spacing per glyph
  *  (browsers add it after every glyph, the last one too). */
 function textWidth(font: FontKey, s: string, px: number, letterSpacingEm = 0): number {
   const f = glyphs.fonts[font]
-  const adv = f.advances as Record<string, number>
   let em = f.kernWidenEm
   for (const ch of s) {
-    const a = adv[ch]
+    const fallback = NOTO[font]
+    const a = advance(font, ch) ?? (fallback && advance(fallback, ch)) ?? (WIDE_CHAR.test(ch) ? 1 : undefined)
     if (a === undefined) throw new Error(`no advance for ${JSON.stringify(ch)} in ${font}`)
     em += a + letterSpacingEm
   }
@@ -140,7 +151,7 @@ describe('the top bar fits (fontkit advances of the served fonts)', () => {
   }
 
   it('the language code fits its button at its narrowest (Geist Mono 13px, letter-spacing .06em)', () => {
-    for (const l of LANGS) expect(textWidth('geist-mono-500', l.toUpperCase(), 13, 0.06)).toBeLessThan(TINY.button! - 2 * MARGIN)
+    for (const l of LANGS) expect(textWidth('geist-mono-500', langBadge(l), 13, 0.06)).toBeLessThan(TINY.button! - 2 * MARGIN)
   })
 
   it('every split rule matches some language (no dead rule) and the html lang values the selectors key on', () => {

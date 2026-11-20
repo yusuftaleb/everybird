@@ -30,7 +30,7 @@ function assertClean(body: string) {
   if ('d' in o) expect(o.d).toBe('touch')
   if ('l' in o) {
     expect(o.n).toBe('visit')
-    expect(o.l).toMatch(/^[a-z]{2,3}$/)
+    expect(o.l).toMatch(/^(?:[a-z]{2,3}|zh-Han[st])$/)
   }
 }
 
@@ -72,7 +72,10 @@ describe('the browser language', () => {
       return JSON.parse(await blobText(beacon.mock.calls[0][1])) as Record<string, unknown>
     }
     expect(await body('pt-BR')).toEqual({ n: 'visit', p: 'landing', l: 'pt' })
-    expect(await body('zh-Hant-TW')).toEqual({ n: 'visit', p: 'landing', l: 'zh' })
+    // Chinese by script (langCode), the stats Worker's two Chinese values.
+    expect(await body('zh-Hant-TW')).toEqual({ n: 'visit', p: 'landing', l: 'zh-Hant' })
+    expect(await body('zh-HK')).toEqual({ n: 'visit', p: 'landing', l: 'zh-Hant' })
+    expect(await body('zh-CN')).toEqual({ n: 'visit', p: 'landing', l: 'zh-Hans' })
     expect(await body('es')).toEqual({ n: 'visit', p: 'landing', l: 'es' })
     for (const bad of ['x', '', 'english', '12-US', undefined]) expect(await body(bad), String(bad)).toEqual({ n: 'visit', p: 'landing' })
     const ipad = env({ nav: { userAgent: MAC, maxTouchPoints: 5, language: 'nl-NL' } })

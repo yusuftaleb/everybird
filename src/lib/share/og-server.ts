@@ -141,18 +141,25 @@ async function loadFamily(cssUrl: string, want: { family: string; weight: number
   })))
 }
 
-// One request per family: Fontshare's CSS API answers a two-family query with only the first.
-const SOURCES = [
+// One request per family: Fontshare's CSS API answers a two-family query with only the first. `lang`: a face only that
+// language's cards fetch. Satoshi and Cabinet Grotesk have no Cyrillic, so a Russian card adds Noto Sans (one whole TTF
+// per weight from Google with the old UA, about 0.5 MB each), bold where Cabinet is; Geist Mono's Cyrillic is in a face
+// pickFaces leaves out, so mono text falls back to it too. Japanese and Chinese need none: next/og fetches a font with
+// just the characters the given fonts lack (Google Fonts' `text=`), Noto Sans JP, SC or TC by the card's `lang`.
+const SOURCES: { css: string; want: { family: string; weight: number }[]; lang?: string }[] = [
   { css: 'https://api.fontshare.com/v2/css?f[]=satoshi@500&display=swap', want: [{ family: 'Satoshi', weight: 500 }] },
   { css: 'https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700&display=swap', want: [{ family: 'Cabinet Grotesk', weight: 700 }] },
   { css: 'https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400', want: [{ family: 'Geist Mono', weight: 400 }] },
+  { css: 'https://fonts.googleapis.com/css2?family=Noto+Sans:wght@500;700', want: [{ family: 'Noto Sans', weight: 500 }, { family: 'Noto Sans', weight: 700 }], lang: 'ru' },
 ]
 const fontCache: (OgFont[] | { failedAt: number } | undefined)[] = []
 const inflight: (Promise<OgFont[]> | undefined)[] = []
 
-/** The fonts that could be fetched (each source cached once it works; a failed source is retried after 30 s). Never throws. */
-export async function ogFonts(): Promise<OgFont[]> {
+/** The fonts for a card in `lang` that could be fetched (each source cached once it works; a failed source is retried
+ *  after 30 s). Never throws. */
+export async function ogFonts(lang = 'en'): Promise<OgFont[]> {
   const parts = await Promise.all(SOURCES.map(async (s, i) => {
+    if (s.lang && s.lang !== lang) return []
     const hit = fontCache[i]
     if (Array.isArray(hit)) return hit
     if (hit && Date.now() - hit.failedAt < FONT_RETRY_MS) return []

@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { LAYOUTS } from '../src/lib/layout/constants'
 import {
-  collageBoxes, collageHole, COUNT_LABEL_CHARS, countDisplay, countScale, countText, holeArea, holeExtent, isHole, labelBounds, labelEm, LABEL_GROW_MAX, MONO_EM, MONO_TRACK,
+  collageBoxes, collageHole, COUNT_LABEL_CHARS, countDisplay, labelCells, countScale, countText, holeArea, holeExtent, isHole, labelBounds, labelEm, LABEL_GROW_MAX, MONO_EM, MONO_TRACK,
   NO_HOLE, collagePad, numberEm, PAD_FULL_AT, PAD_LONG, PAD_SHORT, rectGap, touchesHole, type Hole, type Rect,
 } from '../src/lib/layout/count-box'
 import { en } from '../src/i18n/messages/en'
@@ -15,6 +15,10 @@ import { de } from '../src/i18n/messages/de'
 import { it as italian } from '../src/i18n/messages/it'
 import { sv } from '../src/i18n/messages/sv'
 import { da } from '../src/i18n/messages/da'
+import { ru } from '../src/i18n/messages/ru'
+import { ja } from '../src/i18n/messages/ja'
+import { zhHans } from '../src/i18n/messages/zh-Hans'
+import { zhHant } from '../src/i18n/messages/zh-Hant'
 import { pt } from '../src/i18n/messages/pt'
 import { decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
 import { packBest, packFrame, type PackBird, type PackResult } from '../src/lib/layout/pack'
@@ -94,7 +98,7 @@ describe('count text metrics', () => {
 
 // The geometry (the hole, countScale) is the en-US text and an 8-character label in every language; what is drawn is
 // the language's number and label. Drawn text must never be wider than the geometry's.
-const LANGS = { en, es, pt, nl, pl, fr, de, it: italian, sv, da }
+const LANGS = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant }
 describe('the count in every language (one hole for all)', () => {
   it('every language draws within the geometry', () => {
     for (const [lang, m] of Object.entries(LANGS)) {
@@ -113,9 +117,21 @@ describe('the count in every language (one hole for all)', () => {
     expect(labelEm()).toBeGreaterThanOrEqual('ESPÉCIES'.length * (MONO_EM + MONO_TRACK))
     for (const [lang, m] of Object.entries(LANGS)) {
       const label = m.ui.count.label.toUpperCase()
-      expect([...label].length, lang).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
-      expect(labelEm(), lang).toBeGreaterThanOrEqual([...label].length * (MONO_EM + MONO_TRACK))
+      expect(labelCells(label), lang).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
+      expect(labelEm(), lang).toBeGreaterThanOrEqual(labelCells(label) * (MONO_EM + MONO_TRACK))
     }
+  })
+})
+
+describe('labelCells', () => {
+  it('counts a kana or Han character as two Geist Mono cells, any other as one', () => {
+    expect(labelCells('SPECIES')).toBe(7)
+    expect(labelCells('ВИДЫ')).toBe(4)
+    expect(labelCells('種')).toBe(2)
+    expect(labelCells('鸟种')).toBe(4)
+    expect(labelCells('スピーシーズ')).toBe(12)
+    // Two cells with tracking hold a full-width character's 1em.
+    expect(2 * (MONO_EM + MONO_TRACK)).toBeGreaterThanOrEqual(1)
   })
 })
 

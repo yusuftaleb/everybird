@@ -61,6 +61,7 @@ describe('workspace validation and capability contract', () => {
       expect(typeof p !== 'string',measure+'/'+dimension).toBe((config.dimensions as readonly string[]).includes(dimension))
     }
     expect(params('measure=visits&dimension=language&f_language=').filters).toEqual({language:''})
+    expect(params('measure=visits&dimension=language&f_language=zh-Hant').filters).toEqual({language:'zh-Hant'})
     expect(params('measure=visits&dimension=hour&f_hour=').filters).toEqual({hour:''})
     expect(params('country=mx')).toMatchObject({country:'MX'})
   })

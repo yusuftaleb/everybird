@@ -1,4 +1,4 @@
-import { ALLOWED } from './event'
+import { ALLOWED, LANG } from './event'
 import { MAX_DAYS, parseParams, type Row, type Stmt } from './dashboard'
 
 export const DEVICES = ['iphone', 'ipad', 'android-phone', 'android-tablet', 'other-tablet', 'other-phone', 'mac', 'windows', 'linux', 'chromeos', 'other']
@@ -53,7 +53,7 @@ function validValue(d: Dimension, v: string): boolean {
   if (d === 'hour') return v === '' || /^(?:[0-9]|1[0-9]|2[0-3])$/.test(v)
   if (d === 'country') return /^[A-Z]{2}$/.test(v)
   if (d === 'device') return DEVICES.includes(v)
-  if (d === 'language') return v === '' || /^[a-z]{2,3}$/.test(v)
+  if (d === 'language') return v === '' || LANG.test(v)
   if (d === 'event') return ['image_downloaded', 'poster_downloaded'].includes(v)
   const event: Partial<Record<Dimension, string>> = { page: 'visit', source: 'collage_made', format: 'image_downloaded', fileType: 'poster_downloaded', shareType: 'shared', linkType: 'link_copied', posterSize: 'poster_made', searchType: 'search_applied', filterType: 'filter_used', uiLanguage: 'ui_language' }
   return !!event[d] && ALLOWED[event[d]!].has(v)

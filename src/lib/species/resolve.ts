@@ -15,7 +15,7 @@ export function normalizeSci(s: string): string {
     .toLowerCase()
 }
 
-/** Lower-case, accents stripped, spaces collapsed (common names). */
+/** Lower-case, accents stripped (Russian ё reads as е, й as и), hiragana as katakana, spaces collapsed (common names). */
 export function foldName(s: string): string {
   return s
     .normalize('NFD')
@@ -34,6 +34,9 @@ export function foldName(s: string): string {
     .replace(/æ/g, 'ae')
     .replace(/Æ/g, 'AE')
     .replace(/[\u2018\u2019]/g, "'")
+    // Hiragana reads as katakana (eBird's Japanese names are katakana): "かも" finds "カモ". NFD has split off the
+    // voicing marks (U+3099, U+309A), which both scripts share; ゝゞ become ヽヾ.
+    .replace(/[\u3041-\u3096\u309d\u309e]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim()

@@ -1,6 +1,6 @@
 'use client'
 // The top bar's language button (preview variants lang:a, the default, and c): ThemeToggle's size and look, showing the
-// current language's code ("EN", "ES", "PT", "NL"), named in full for screen readers ("Idioma: Español"). It opens a
+// current language's code ("EN", "ES", "PT", "NL"; 简 and 繁 for Chinese, langBadge), named in full for screen readers ("Idioma: Español"). It opens a
 // small menu of the four languages, each in its own language, the current one checked. Its keyboard copies SourceMenu
 // (src/components/import/SourceMenu.tsx). A new choice sets the cookie and reloads (chooseLang); the current one only
 // closes the menu.
@@ -10,7 +10,7 @@ import { useHoldTopBar } from '@/components/dialog-utils'
 import { chooseLang } from '@/i18n/choose'
 import { fmt } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
-import { HTML_LANG, LANG_NAMES, LANGS, type Lang } from '@/i18n/langs'
+import { HTML_LANG, LANG_NAMES, LANGS, langBadge, type Lang } from '@/i18n/langs'
 
 /** The menu's side margin from the window's edges. */
 const EDGE = 8
@@ -47,7 +47,7 @@ export function LanguageMenu() {
         onClick={() => (open ? close(false) : setOpen(true))}
         onKeyDown={onButtonKey}
       >
-        <span className="eb-mono" aria-hidden="true">{lang.toUpperCase()}</span>
+        <span className="eb-mono" aria-hidden="true">{langBadge(lang)}</span>
       </button>
       {open && <LangList id={`${id}-menu`} label={t.shell.language.menu} current={lang} btn={btn} onPick={pick} onClose={close} />}
     </div>
@@ -117,7 +117,7 @@ function LangList({ id, label, current, btn, onPick, onClose }: {
       {LANGS.map((l) => (
         <button key={l} type="button" role="menuitemradio" aria-checked={l === current} tabIndex={-1} className="eb-menuitem" onClick={() => onPick(l)}>
           <span className="eb-langname" lang={HTML_LANG[l]} data-current={l === current ? '' : undefined}>{LANG_NAMES[l]}</span>
-          {l === current ? <Check aria-hidden="true" focusable="false" weight="bold" /> : <span className="eb-mono eb-langcode" aria-hidden="true">{l.toUpperCase()}</span>}
+          {l === current ? <Check aria-hidden="true" focusable="false" weight="bold" /> : <span className="eb-mono eb-langcode" aria-hidden="true">{langBadge(l)}</span>}
         </button>
       ))}
     </div>

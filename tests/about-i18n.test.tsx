@@ -58,7 +58,7 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
     expect(text(compact.querySelector('.ebd-pick-label'))).toBe(ui.filters.choose.order)
     expect(text(wide.querySelector('.ebd-mid-label'))).toBe(ui.count.label)
     expect(text(wide.querySelector('.ebd-num'))).toBe(formatInt(TOTAL, ui.num))
-    expect(text(wide.querySelector('.ebd-stats .ebd-swap-a'))).toContain(ui.collage.stats.orders.other.replace('{n}', '7'))
+    expect(text(wide.querySelector('.ebd-stats .ebd-swap-a'))).toContain(plural(ui.collage.stats.orders, 7, { n: '7' }))
   })
 
   it("draws the share dialog and its images in the language, the stamp ending each footer", () => {
@@ -69,14 +69,15 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
     expect(text(wide.querySelector('.ebd-share-switch'))).toBe(ui.share.showLatest)
     const line = withStamp(FOOTER_LINE, stampDate(STAMPED, stampStrings(ui)))
     expect([...wide.querySelectorAll('.ebd-img-line')].map(text)).toEqual([line, line, line])
-    // The date alone, no lead: "6 Nov 2026" in English, "6 nov 2026" in es, pt and nl, "6 lis 2026" in pl
-    expect(line.endsWith(lang === 'en' ? ' · 6 Nov 2026' : lang === 'pl' ? ' · 6 lis 2026' : lang === 'de' ? ' · 6 Nov 2026' : ' · 6 nov 2026')).toBe(true)
+    // The date alone, no lead: "6 Nov 2026" in English, "6 nov 2026" in es, pt and nl, "6 lis 2026" in pl, "2026年11月6日" in ja and zh
+    const stamp = { en: '6 Nov 2026', de: '6 Nov 2026', pl: '6 lis 2026', ru: '6 ноя 2026', ja: '2026年11月6日', 'zh-Hans': '2026年11月6日', 'zh-Hant': '2026年11月6日' }[lang as string] ?? '6 nov 2026'
+    expect(line.endsWith(` · ${stamp}`)).toBe(true)
     expect(line.startsWith('everybird.yusuftaleb.com · stickers by huashu')).toBe(true)
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.share.latestLifer)
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.date.months[9])
     expect(text(wide.querySelector('.ebd-img-mark'))).toBe('Everybird')
-    // The latest lifer's name is the language's base name (es, pt_BR, nl, pl, fr_FR, de, it, sv, da), English in English.
-    const base = { en: undefined, es: 'es', pt: 'pt_BR', nl: 'nl', pl: 'pl', fr: 'fr_FR', de: 'de', it: 'it', sv: 'sv', da: 'da' }[lang] as keyof typeof LATEST.names | undefined
+    // The latest lifer's name is the language's base name (es, pt_BR, nl, pl, fr_FR, de, it, sv, da, ru, ja, zh_SIM, zh), English in English.
+    const base = { en: undefined, es: 'es', pt: 'pt_BR', nl: 'nl', pl: 'pl', fr: 'fr_FR', de: 'de', it: 'it', sv: 'sv', da: 'da', ru: 'ru', ja: 'ja', 'zh-Hans': 'zh_SIM', 'zh-Hant': 'zh' }[lang] as keyof typeof LATEST.names | undefined
     expect(text(wide.querySelector('.ebd-img-latest-name'))).toBe(base ? LATEST.names[base] : LATEST.name)
   })
 
@@ -114,9 +115,9 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     expect(text(main.querySelector('#eb-how-h'))).toBe(m.page.about.how.head)
     expect(text(main.querySelector('#eb-size-h'))).toBe(m.page.about.size.head)
     const credits = document.getElementById('credits')!
-    const made = { en: 'Made by Yusuf Taleb', es: 'Hecho por Yusuf Taleb', pt: 'Feito por Yusuf Taleb', nl: 'Gemaakt door Yusuf Taleb', pl: 'Autor: Yusuf Taleb', fr: 'Créé par Yusuf Taleb', de: 'Gemacht von Yusuf Taleb', it: 'Creato da Yusuf Taleb', sv: 'Gjord av Yusuf Taleb', da: 'Lavet af Yusuf Taleb' }[lang]
+    const made = { en: 'Made by Yusuf Taleb', es: 'Hecho por Yusuf Taleb', pt: 'Feito por Yusuf Taleb', nl: 'Gemaakt door Yusuf Taleb', pl: 'Autor: Yusuf Taleb', fr: 'Créé par Yusuf Taleb', de: 'Gemacht von Yusuf Taleb', it: 'Creato da Yusuf Taleb', sv: 'Gjord av Yusuf Taleb', da: 'Lavet af Yusuf Taleb', ru: 'Автор: Yusuf Taleb', ja: '制作：Yusuf Taleb', 'zh-Hans': '由Yusuf Taleb制作', 'zh-Hant': '由 Yusuf Taleb 製作' }[lang]
     expect(made).toBe(m.ui.shell.footer.madeBy)
-    expect(text(credits.querySelector('.eb-prose'))).toMatch(new RegExp(`^${made}\\.`))
+    expect(text(credits.querySelector('.eb-prose'))).toMatch(new RegExp(`^${made}[.。]`))
     expect(within(credits).getByRole('link', { name: 'Yusuf Taleb' })).toHaveAttribute('href', 'https://www.yusuftaleb.com')
     // The coffee sentence is translated, the button and its alt stay
     expect(text(credits.querySelector('.eb-coffee .eb-prose'))).toBe(m.page.about.credits.coffee)
@@ -137,11 +138,11 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     expect(p).toBe(m.page.about.how.privacy)
     expect(p).toContain('Cloudflare Web Analytics')
     // Polish quotes open low („es”), Swedish with a closing quote (”es”).
-    expect(p).toMatch(/[“„"”]es[”"], [“„"”]pt[”"].*[“„"”]nl[”"].*[“„"”]pl[”"].*[“„"”]fr[”"].*[“„"”]de[”"].*[“„"”]it[”"].*[“„"”]sv[”"].*[“„"”]da[”"]/)
+    expect(p).toMatch(/[“„"”]es[”"][,、] ?[“„"”]pt[”"].*[“„"”]nl[”"].*[“„"”]pl[”"].*[“„"”]fr[”"].*[“„"”]de[”"].*[“„"”]it[”"].*[“„"”]sv[”"].*[“„"”]da[”"].*[“„"”]ru[”"].*[“„"”]ja[”"].*[“„"”]zh-Hans[”"].*[“„"”]zh-Hant[”"]/)
     if (lang === 'en') {
       expect(p).toContain('anonymous and cookieless')
       expect(p).toContain('Your language choice is kept in a small cookie on this device; it never leaves it except to show you the right page.')
-      expect(p).toContain('The visit count includes your browser\'s language (just “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv” or “da”).')
+      expect(p).toContain('The visit count includes your browser\'s language (just “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” or “zh-Hant”).')
     }
   })
 })

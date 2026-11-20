@@ -12,11 +12,17 @@ import { pt } from '@/i18n/messages/pt'
 import { pl } from '@/i18n/messages/pl'
 import { fr } from '@/i18n/messages/fr'
 import { de } from '@/i18n/messages/de'
+import { labelCells, WIDE_CHAR } from '@/lib/layout/count-box'
+import { yearFirst } from '@/i18n/format'
 import { it as italian } from '@/i18n/messages/it'
 import { sv } from '@/i18n/messages/sv'
 import { da } from '@/i18n/messages/da'
+import { ru } from '@/i18n/messages/ru'
+import { ja } from '@/i18n/messages/ja'
+import { zhHans } from '@/i18n/messages/zh-Hans'
+import { zhHant } from '@/i18n/messages/zh-Hant'
 
-const LANG = { en, es, nl, pt, pl, fr, de, it: italian, sv, da } as const
+const LANG = { en, es, nl, pt, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant } as const
 const css = readFileSync('src/components/share/share.css', 'utf8')
 
 const EM = 0.58 // Satoshi 500 and 700, per character
@@ -24,7 +30,8 @@ const MONO_EM = 0.62 // Geist Mono 12px plus .02em of tracking
 const RATIOS = ['9:16', '4:5', '1:1']
 /** Horizontal: 16:9 (the desktop, in place of the story), 5:4 (the wide post) and 1:1 (square). */
 const RATIOS_WIDE = ['16:9', '5:4', '1:1']
-const text = (s: string, px: number) => s.length * EM * px
+/** A kana or Han character is one em (not measured; see topbar-fit.test.ts), any other EM. */
+const text = (s: string, px: number) => [...s].reduce((w, c) => w + (WIDE_CHAR.test(c) ? 1 : EM), 0) * px
 const COLUMNS = { desktop: 420, narrow: 300, phone: 246 }
 
 type FormatStep = { name: string; min: number; query: string | null; icon: boolean; hint: boolean; px: number; padX: number; gap: number; segPad: number }
@@ -125,9 +132,9 @@ describe("the desktop's one-line footer", () => {
   it('fits the credit at 17px or more beside the row, in every language', () => {
     const over: string[] = []
     for (const [lang, m] of Object.entries(LANG)) {
-      const longest = Math.max(...m.ui.date.months.map((x) => x.length))
-      const label = `${m.ui.share.latestLifer} · ${'x'.repeat(longest)} 2026`.toUpperCase()
-      const row = 40 + 14 + label.length * MONO_EM_20 + 14 + 22 * 0.56 * 30
+      const longest = Math.max(...m.ui.date.months.map(labelCells))
+      const label = `${m.ui.share.latestLifer} · ${'x'.repeat(longest)} 2026${yearFirst(m.ui.date.months) ? '年' : ''}`.toUpperCase()
+      const row = 40 + 14 + labelCells(label) * MONO_EM_20 + 14 + 22 * 0.56 * 30
       const need = BRAND + 32 + CREDIT_CHARS * 0.6 * 17 + row
       if (need > LINE_W) over.push(`${lang}: needs ${Math.ceil(need)}px, the line is ${LINE_W}px`)
     }

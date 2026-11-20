@@ -3,7 +3,7 @@ import type { Lang } from '../../i18n/langs'
 /** Every UI language: the smart search reads its words in each. */
 export type SearchLang = Lang
 /** The languages groups.v1.json names every group in (build-groups' GROUP_LOCALES); other languages fall back to English. */
-export type GroupLang = 'en' | 'es' | 'pt' | 'nl' | 'pl' | 'fr' | 'de' | 'sv' | 'da'
+export type GroupLang = 'en' | 'es' | 'pt' | 'nl' | 'pl' | 'fr' | 'de' | 'sv' | 'da' | 'ru' | 'zh-Hans' | 'zh-Hant'
 /** eBird's named groups, with inclusive bounds in the pinned taxonomy's taxon order. */
 export type BirdGroup = {
   id: string

@@ -9,6 +9,10 @@ import { de } from '@/i18n/messages/de'
 import { it as italian } from '@/i18n/messages/it'
 import { sv } from '@/i18n/messages/sv'
 import { da } from '@/i18n/messages/da'
+import { ru } from '@/i18n/messages/ru'
+import { ja } from '@/i18n/messages/ja'
+import { zhHans } from '@/i18n/messages/zh-Hans'
+import { zhHant } from '@/i18n/messages/zh-Hant'
 import { goalBasis, goalYears, hasDates, isGoalYear, isTarget, validBigYear, yearFilter, yearList } from '@/lib/list/big-year'
 import { applyFilter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
@@ -119,7 +123,7 @@ describe('Big Year share card', () => {
     expect(liferCard.countNum).toBe('120 / 300')
     expect(liferCard.label).toBe('Big Year 2027 · New species in 2027')
 
-    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da]) {
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) {
       const c = await prepareCard({
         format: 'square', entries, species, pack, theme: 'light',
         goal: { year: 2027, target: 300, basis: 'lifer' }, strings: m.ui,

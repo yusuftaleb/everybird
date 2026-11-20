@@ -8,7 +8,7 @@ import type { Ui } from '@/i18n/messages/en'
 import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TreeLevel } from '@/lib/tree/levels'
-import { IMAGE_SCALE, SITE_LABEL, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
+import { IMAGE_SCALE, SITE_LABEL, ensureViewFonts, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
 /** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone, the
  *  tree's the site and the tree's credit (AvesData is CC BY 4.0, so an image of it carries the credit). */
@@ -46,10 +46,11 @@ export function wrapParts(parts: readonly string[], width: (text: string) => num
 /**
  * The card's frame, its footer line `footer`, with `paint` drawing the view into its area (design units), as a PNG.
  * `under`: the parts of a line under the count, at the footer's size (two lines when one does not fit); none when the
- * count is hidden.
+ * count is hidden. `sample`: every other text `paint` draws, so the fonts it needs are loaded first.
  */
-export async function renderViewImage(opts: ShareImageOpts, footer: string, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[]): Promise<Blob> {
+export async function renderViewImage(opts: ShareImageOpts, footer: string, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[], sample = ''): Promise<Blob> {
   const card = await prepareCard({ ...opts, footer, pack: NO_BIRDS, latest: false, markNewest: false, markFirst: false, showNames: false })
+  await ensureViewFonts(card, `${(under ?? []).join('')}${sample}`)
   const { L, K } = card
   const c = L.collage
   const blockH = K.size > 0 ? DIGIT_CAP * K.size + K.gap + MONO_CAP * K.labelSize : 0

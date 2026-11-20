@@ -9,9 +9,10 @@
   --line: #857f74;
   --hairline: #dedad2;
   --surface: #ebe8e1;
-  --font-display: "Cabinet Grotesk", "Satoshi", system-ui, sans-serif;
-  --font-body: "Satoshi", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* --font-noto: the page language's Noto family when its letters aren't Latin (the :lang rules below). */
+  --font-display: "Cabinet Grotesk", "Satoshi", var(--font-noto, system-ui), system-ui, sans-serif;
+  --font-body: "Satoshi", var(--font-noto, system-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", var(--font-noto, ui-monospace), ui-monospace, "SF Mono", Menlo, monospace;
   /* The UI ease (DESIGN.md, Motion): chips, switches, sheets, the top bar's slide. */
   --ease-ui: cubic-bezier(.16, 1, .3, 1);
   /* The top bar's height (app.css .eb-topbar: 60px + its hairline; 64px + 1 from 720px). Anchor jumps and
@@ -28,6 +29,14 @@
   --z-sheet: 951;
   --z-welcome: 955; /* the first-visit welcome */
 }
+
+/* Satoshi and Cabinet Grotesk have Latin letters only: Russian, Japanese and Chinese pages draw their own letters in
+   Noto, after the Latin fonts, which app/[lang]/layout.tsx links on that language's pages only. One family per
+   language, so a Japanese page never shows Chinese letter forms. Geist Mono has Cyrillic, so Russian mono labels keep it. */
+:root:lang(ru) { --font-noto: "Noto Sans"; }
+:root:lang(ja) { --font-noto: "Noto Sans JP"; }
+:root:lang(zh-Hans) { --font-noto: "Noto Sans SC"; }
+:root:lang(zh-Hant) { --font-noto: "Noto Sans TC"; }
 @media (min-width: 720px) { :root { --topbar-h: 65px; } }
 /* The bar's nav on a second row (app.css, the same media queries and selectors; preview variant lang via
    <html data-topbar>, none reads as a): 4 + 44 + 40 + 4px and the hairline. */
