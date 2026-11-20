@@ -15,12 +15,23 @@ const DICT = {
   // French elides before a vowel, and searchKey drops the apostrophe: "l'année" is "lannee", "jusqu'à" "jusqua".
   fr: { link: 'à|au|jusqu’à|jusqu’au|jusqu’en', between: 'entre', and: 'et', from: 'de|du|depuis', since: 'depuis', after: 'après', before: 'avant', until: 'jusqu’à|jusqu’au|jusqu’en', this: 'ce|cet|cette', last: 'dernier|dernière|derniers|dernières|passé|passée', year: 'an|ans|année|années|l’an|l’année', month: 'mois', quarter: 'trimestre|trimestres' },
   de: { link: 'bis', between: 'zwischen', and: 'und', from: 'von|ab', since: 'seit|ab', after: 'nach', before: 'vor', until: 'bis', this: 'dieses|diesen|diesem|dieser|diese', last: 'letzte|letzten|letztes|letzter|letztem|vergangene|vergangenen|vergangenes|vorige|vorigen|voriges', year: 'jahr|jahre|jahren|jahres', month: 'monat|monate|monaten|monats', quarter: 'quartal|quartale|quartalen|quartals' },
+  // Italian elides too: searchKey reads "dall'aprile" as "dallaprile", "l'anno" as "lanno".
+  it: { link: 'a|al|fino a|fino al', between: 'tra|fra', and: 'e', from: 'da|dal|dalla', since: 'da|dal|dalla|dall’', after: 'dopo', before: 'prima di|prima del|prima', until: 'fino a|fino al', this: 'questo|questa', last: 'ultimo|ultima|ultimi|ultime|scorso|scorsa|passato|passata', year: 'anno|anni|l’anno', month: 'mese|mesi', quarter: 'trimestre|trimestri' },
+  // "i år" is this year: "i" counts as "this" only before a year or month.
+  sv: { link: 'till|fram till', between: 'mellan', and: 'och', from: 'från', since: 'sedan|från', after: 'efter', before: 'före|innan', until: 'till|fram till', this: 'i|detta|denna|den här|det här', last: 'förra|senaste|de senaste|sista', year: 'år|året|åren', month: 'månad|månaden|månader|månaderna', quarter: 'kvartal|kvartalet|kvartalen' },
+  // "i år" is this year, as in Swedish.
+  da: { link: 'til|frem til', between: 'mellem', and: 'og', from: 'fra', since: 'siden|fra', after: 'efter', before: 'før|inden', until: 'til|indtil', this: 'i|denne|dette', last: 'sidste|de sidste|forrige', year: 'år|året|årene', month: 'måned|måneden|måneder|månederne', quarter: 'kvartal|kvartalet|kvartaler' },
 } as const
 export const SEARCH_CONNECTORS: Record<SearchLang, string[]> = {
   en: ['in', 'on', 'at', 'from', 'and'], es: ['en', 'de', 'desde', 'y'], pt: ['em', 'no', 'na', 'de', 'do', 'da', 'e'], nl: ['in', 'uit', 'van', 'en'],
   pl: ['w', 'we', 'z', 'ze', 'na', 'i'],
   fr: ['en', 'au', 'aux', 'dans', 'de', 'du', 'des', 'le', 'la', 'les', 'et'],
   de: ['in', 'im', 'aus', 'vom', 'die', 'der', 'das', 'den', 'und'],
+  it: ['in', 'a', 'al', 'nel', 'nella', 'di', 'del', 'della', 'dal', 'il', 'lo', 'gli', 'e'],
+  // "för" opens "för 2 år sedan" (2 years ago).
+  sv: ['i', 'på', 'från', 'och', 'för'],
+  // "for" opens "for 2 år siden" (2 years ago).
+  da: ['i', 'på', 'fra', 'og', 'for'],
 }
 /** Spellings Intl's long month names don't cover (abbreviations and variants that aren't prefixes of them). Polish
  *  months after "od", "do" or a day are genitive ("od marca"), which Intl's standalone names ("marzec") don't cover. */
@@ -76,14 +87,17 @@ const AGO: Record<SearchLang, { before: string[]; after: string[] }> = {
   fr: { before: ['il y a'], after: [] },
   // "vor 2 Jahren"; "vor 2024" (before) is read when no count of 1 to 12 follows.
   de: { before: ['vor'], after: [] },
+  it: { before: [], after: ['fa'] },
+  sv: { before: [], after: ['sedan'] },
+  da: { before: [], after: ['siden'] },
 }
 /** Number words up to twelve in every language, keyed by searchKey; "a", "un", "um" and "een" count as one. */
 const NUMBER_WORDS = new Map<string, number>(
   ([
-    [1, 'one a an uno una un um uma een jeden jedna une ein einem einen einer'], [2, 'two dos dois duas twee dwa dwie deux zwei'], [3, 'three tres drie trzy trois drei'],
-    [4, 'four cuatro quatro vier cztery'], [5, 'five cinco vijf piec cinq funf'], [6, 'six seis zes szesc sechs'],
-    [7, 'seven siete sete zeven siedem sept sieben'], [8, 'eight ocho oito acht osiem huit'], [9, 'nine nueve nove negen dziewiec neuf neun'],
-    [10, 'ten diez dez tien dziesiec dix zehn'], [11, 'eleven once onze elf jedenascie'], [12, 'twelve doce doze twaalf dwanascie douze zwolf'],
+    [1, 'one a an uno una un um uma een jeden jedna une ein einem einen einer ett en et'], [2, 'two dos dois duas twee dwa dwie deux zwei due tva to'], [3, 'three tres drie trzy trois drei tre'],
+    [4, 'four cuatro quatro vier cztery quattro fyra fire'], [5, 'five cinco vijf piec cinq funf cinque fem'], [6, 'six seis zes szesc sechs sei sex seks'],
+    [7, 'seven siete sete zeven siedem sept sieben sette sju syv'], [8, 'eight ocho oito acht osiem huit otto atta otte'], [9, 'nine nueve nove negen dziewiec neuf neun nio ni'],
+    [10, 'ten diez dez tien dziesiec dix zehn dieci tio ti'], [11, 'eleven once onze elf jedenascie undici elva elleve'], [12, 'twelve doce doze twaalf dwanascie douze zwolf dodici tolv'],
   ] as [number, string][]).flatMap(([count, words]) => words.split(' ').map((w): [string, number] => [w, count])),
 )
 
@@ -188,8 +202,8 @@ export function dateParser(today: Date, lang: SearchLang) {
       }
       return { to: month(p.y, kind === 'before' ? p.m - 1 : p.end), n: n + p.n }
     }
-    // The noun before "last": "año pasado", "mês passado", "l'année dernière", "le mois dernier".
-    const nounFirst = lang === 'es' || lang === 'pt' || lang === 'fr'
+    // The noun before "last": "año pasado", "mês passado", "l'année dernière", "le mois dernier", "anno scorso".
+    const nounFirst = lang === 'es' || lang === 'pt' || lang === 'fr' || lang === 'it'
     const yearLen = nounFirst ? is('year', i) : 0
     if (yearLen && is('last', i + yearLen)) {
       return { from: month(y - 1, 0), to: month(y - 1, 11), n: yearLen + is('last', i + yearLen) }

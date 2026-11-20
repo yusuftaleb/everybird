@@ -40,13 +40,13 @@ export type SearchContext = {
 }
 
 type Entity = { value: string; name: string; aliases: string[]; exactOnly?: boolean; codes?: string[] }
-const GENERIC = new Set(['bird', 'birds', 'and', 'of', 'the', 'aves', 'vogel', 'vogels', 'oiseau', 'oiseaux'])
+const GENERIC = new Set(['bird', 'birds', 'and', 'of', 'the', 'aves', 'vogel', 'vogels', 'oiseau', 'oiseaux', 'uccello', 'uccelli', 'fagel', 'faglar', 'fugl', 'fugle'])
 /** Words dropped from a phrase before group and taxon names are matched word by word ("aves de garzas" is "aves garzas"). */
-const CONNECTOR_WORDS = new Set(['de', 'del', 'do', 'da', 'dos', 'das', 'la', 'el', 'los', 'las', 'of', 'the', 'van', 'der', 'het', 'du', 'des', 'le', 'les', 'die', 'das', 'den', 'dem'])
+const CONNECTOR_WORDS = new Set(['de', 'del', 'do', 'da', 'dos', 'das', 'la', 'el', 'los', 'las', 'of', 'the', 'van', 'der', 'het', 'du', 'des', 'le', 'les', 'die', 'das', 'den', 'dem', 'di', 'dei', 'degli', 'delle', 'della', 'il', 'gli'])
 /** A province code typed as capitals ("BC", "ON"); lowercase "or", "no" and "al" are words, never codes. */
 const isCodeWord = (raw: string) => /^\p{Lu}{2,}$/u.test(raw)
 /** Words that join the parts of a group's name ('Ducks, Geese, and Waterfowl') and may be left out of a query. */
-const GROUP_JOINERS = new Set(['and', 'y', 'e', 'et', 'und'])
+const GROUP_JOINERS = new Set(['and', 'y', 'e', 'et', 'und', 'och', 'og'])
 const singular = (s: string) => s.split(' ').map((w) => w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w).join(' ')
 const unique = <T,>(xs: Iterable<T>) => [...new Set(xs)]
 const STATUS_WORDS: Record<SearchLang, Record<string, SearchStatus[]>> = {
@@ -59,6 +59,12 @@ const STATUS_WORDS: Record<SearchLang, Record<string, SearchStatus[]>> = {
   fr: { menacées: ['VU', 'EN', 'CR'], menacés: ['VU', 'EN', 'CR'], menacée: ['VU', 'EN', 'CR'], menacé: ['VU', 'EN', 'CR'], vulnérable: ['VU'], vulnérables: ['VU'], 'en danger': ['EN'], 'en danger critique': ['CR'], 'quasi menacée': ['NT'], 'quasi menacées': ['NT'], 'préoccupation mineure': ['LC'], éteinte: ['EX'], éteintes: ['EX'], 'éteinte à l’état sauvage': ['EW'], 'données insuffisantes': ['DD'], 'non évaluée': ['NE'], 'non évaluées': ['NE'] },
   // "bedroht" and the plural "gefährdete (Arten)" are the three threatened categories; "gefährdet" alone is Vulnerable, the IUCN name.
   de: { bedroht: ['VU', 'EN', 'CR'], bedrohte: ['VU', 'EN', 'CR'], bedrohten: ['VU', 'EN', 'CR'], gefährdete: ['VU', 'EN', 'CR'], gefährdeten: ['VU', 'EN', 'CR'], gefährdet: ['VU'], 'stark gefährdet': ['EN'], 'vom aussterben bedroht': ['CR'], 'potenziell gefährdet': ['NT'], 'nicht gefährdet': ['LC'], ausgestorben: ['EX'], 'in der natur ausgestorben': ['EW'], 'ungenügende datengrundlage': ['DD'], 'nicht beurteilt': ['NE'] },
+  // "minacciate" (and its other genders) is the three threatened categories, as in IUCN's Italian "specie minacciate".
+  it: { minacciate: ['VU', 'EN', 'CR'], minacciata: ['VU', 'EN', 'CR'], minacciati: ['VU', 'EN', 'CR'], minacciato: ['VU', 'EN', 'CR'], vulnerabile: ['VU'], vulnerabili: ['VU'], 'in pericolo': ['EN'], 'in pericolo critico': ['CR'], 'quasi minacciata': ['NT'], 'quasi minacciate': ['NT'], 'minor preoccupazione': ['LC'], estinta: ['EX'], estinte: ['EX'], 'estinta in natura': ['EW'], 'carente di dati': ['DD'], 'non valutata': ['NE'], 'non valutate': ['NE'] },
+  // "hotade" is the three threatened categories (the Swedish Red List's "hotade arter"); the categories by their Red List names.
+  sv: { hotade: ['VU', 'EN', 'CR'], hotad: ['VU', 'EN', 'CR'], hotat: ['VU', 'EN', 'CR'], sårbar: ['VU'], sårbara: ['VU'], 'starkt hotad': ['EN'], 'starkt hotade': ['EN'], 'akut hotad': ['CR'], 'akut hotade': ['CR'], 'nära hotad': ['NT'], 'nära hotade': ['NT'], livskraftig: ['LC'], livskraftiga: ['LC'], utdöd: ['EX'], utdöda: ['EX'], 'utdöd i vilt tillstånd': ['EW'], kunskapsbrist: ['DD'], 'ej bedömd': ['NE'], 'ej bedömda': ['NE'] },
+  // "truede" is the three threatened categories (the Danish Red List's "truede arter"); the categories by their Red List names.
+  da: { truede: ['VU', 'EN', 'CR'], truet: ['VU', 'EN', 'CR'], sårbar: ['VU'], sårbare: ['VU'], 'moderat truet': ['EN'], 'moderat truede': ['EN'], 'kritisk truet': ['CR'], 'kritisk truede': ['CR'], 'næsten truet': ['NT'], 'næsten truede': ['NT'], 'ikke truet': ['LC'], 'ikke truede': ['LC'], uddød: ['EX'], uddøde: ['EX'], 'uddød i naturen': ['EW'], 'utilstrækkelige data': ['DD'], 'ikke vurderet': ['NE'] },
 }
 const LIFERS: Record<SearchLang, string[]> = {
   en: ['lifer', 'lifers', 'new'], es: ['nuevas', 'nuevos', 'nueva', 'nuevo'], pt: ['novas', 'novos', 'nova', 'novo'], nl: ['nieuw', 'nieuwe'],
@@ -67,6 +73,12 @@ const LIFERS: Record<SearchLang, string[]> = {
   // Plural only: "Nouvelle-Zélande" and "Nouvelle-Calédonie" are places.
   fr: ['nouvelles', 'nouveaux'],
   de: ['neue', 'neuen'],
+  // Plural only: "Nuova Zelanda" and "Nuova Caledonia" are places.
+  it: ['nuove', 'nuovi'],
+  // Not "nya": "Nya Zeeland" and "Nya Kaledonien" are places. Swedish birders call a lifer a "kryss".
+  sv: ['kryss', 'livskryss', 'nykryss'],
+  // Plural only: "Ny Kaledonien" is a place.
+  da: ['nye'],
 }
 
 function tokenize(input: string, months: Map<string, number>): SearchWord[] {

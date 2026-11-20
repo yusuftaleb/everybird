@@ -230,7 +230,7 @@ describe('the newer events', () => {
     for (const format of ['png', 'pdf'] as const) expect(payloadFor('poster_downloaded', { format })).toEqual({ n: 'poster_downloaded', p: format })
     for (const kind of ['smart', 'bird'] as const) expect(payloadFor('search_applied', { kind })).toEqual({ n: 'search_applied', p: kind })
     for (const kind of ['place', 'continent', 'time', 'status', 'group', 'taxonomy'] as const) expect(payloadFor('filter_used', { kind })).toEqual({ n: 'filter_used', p: kind })
-    expect(payloadFor('ui_language', { lang: 'it' as never })).toBeNull()
+    expect(payloadFor('ui_language', { lang: 'tr' as never })).toBeNull()
     expect(payloadFor('poster_made', { size: 'A4' as never })).toBeNull()
     expect(payloadFor('poster_downloaded', { format: 'jpg' as never })).toBeNull()
     expect(payloadFor('search_applied', { kind: 'Snow Goose' as never })).toBeNull()

@@ -28,6 +28,11 @@ export function foldName(s: string): string {
     .replace(/ẞ/g, 'SS')
     .replace(/œ/g, 'oe')
     .replace(/Œ/g, 'OE')
+    // Danish and Norwegian ø and æ neither: "Sørøver" folds to "sorover", "Ænder" to "aender".
+    .replace(/ø/g, 'o')
+    .replace(/Ø/g, 'O')
+    .replace(/æ/g, 'ae')
+    .replace(/Æ/g, 'AE')
     .replace(/[\u2018\u2019]/g, "'")
     .toLowerCase()
     .replace(/\s+/g, ' ')

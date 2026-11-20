@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { capFirst, familyNames, mergeChain, normalizeName, usableGroupName, writeNames } from '../scripts/build-data/build-names'
+import { capFirst, familyNames, iocNames, mergeChain, normalizeName, usableGroupName, writeNames } from '../scripts/build-data/build-names'
+import type { HuashuRecord } from '../src/lib/species/types'
 import { assertSameSpeciesCodes, fetchBytes, fetchNamesOnly, pinnedTaxonomy, taxonomyFlag, taxonomyUrl } from '../scripts/build-data/fetch-sources'
 import { FAMILY_LANGS, familyLang, NAME_BASE, NAME_BASES, NAME_LOCALES, REGION_LOCALE } from '../src/lib/species/name-locales'
 import type { SpeciesFile } from '../src/lib/species/types'
@@ -90,12 +91,27 @@ describe('names fallback chains', () => {
     expect(Object.keys(mergeChain(new Map([['z', 'Z'], ['a', 'A']]), [new Map([['z', 'Zeta'], ['a', 'Alfa']])]))).toEqual(['a', 'z'])
     expect(Object.keys(familyNames([], [{ fam: 'Z', famCom: 'Z' }, { fam: 'A', famCom: 'A' }], { Z: 'Zeta', A: 'Alfa' }))).toEqual(['A', 'Z'])
   })
+
+  it('the IOC set: the matched record\'s name, never a form\'s parent, after eBird and before English', () => {
+    const rec = (id: string, form?: string) => ({ id, form }) as HuashuRecord
+    const matches = new Map([['amerob', rec('Turdus_migratorius')], ['hoocro1', rec('Corvus_corone', 'Corvus corone cornix')], ['kea1', rec('Nestor_notabilis')], ['comduc3', rec('Sarkidiornis_sylvicola')]])
+    const csv = [
+      { id: 'Turdus_migratorius', it: 'tordo\u00a0americano ' }, { id: 'Corvus_corone', it: 'Cornacchia nera' },
+      { id: 'Nestor_notabilis', it: 'Kea' }, { id: 'Sarkidiornis_sylvicola', it: '' },
+    ]
+    const ioc = iocNames(matches, csv, 'it')
+    expect(Object.fromEntries(ioc)).toEqual({ amerob: 'Tordo americano', kea1: 'Kea' })
+    const english = new Map([['amerob', 'American Robin'], ['kea1', 'Kea'], ['comduc3', 'Comb Duck'], ['hoocro1', 'Hooded Crow']])
+    // eBird's own name wins; its English fallback ("Comb Duck") gives way to IOC; a name equal to English is left out.
+    const ebird = new Map([['amerob', 'American Robin'], ['kea1', 'Kea'], ['comduc3', 'Comb Duck'], ['hoocro1', 'Cornacchia grigia']])
+    expect(mergeChain(english, [ebird, ioc])).toEqual({ amerob: 'Tordo americano', hoocro1: 'Cornacchia grigia' })
+  })
 })
 
 describe('name locales and pinned source data', () => {
   it('includes every planned locale and maps regions and family languages', () => {
-    expect(NAME_LOCALES).toEqual(['es', 'es_MX', 'es_EC', 'es_PY', 'es_UY', 'es_BO', 'es_PE', 'es_CR', 'es_VE', 'es_AR', 'es_PA', 'es_HN', 'es_CL', 'es_CU', 'es_PR', 'es_DO', 'pt_BR', 'pt_PT', 'nl', 'pl', 'fr_FR', 'fr', 'de'])
-    expect(REGION_LOCALE).toMatchObject({ ES: 'es', MX: 'es_MX', PT: 'pt_PT', BR: 'pt_BR', NL: 'nl', BE: 'nl', PL: 'pl', FR: 'fr_FR', CA: 'fr', DE: 'de', AT: 'de', CH: 'de' })
+    expect(NAME_LOCALES).toEqual(['es', 'es_MX', 'es_EC', 'es_PY', 'es_UY', 'es_BO', 'es_PE', 'es_CR', 'es_VE', 'es_AR', 'es_PA', 'es_HN', 'es_CL', 'es_CU', 'es_PR', 'es_DO', 'pt_BR', 'pt_PT', 'nl', 'pl', 'fr_FR', 'fr', 'de', 'it', 'sv', 'da'])
+    expect(REGION_LOCALE).toMatchObject({ ES: 'es', MX: 'es_MX', PT: 'pt_PT', BR: 'pt_BR', NL: 'nl', BE: 'nl', PL: 'pl', FR: 'fr_FR', CA: 'fr', DE: 'de', AT: 'de', CH: 'de', IT: 'it', SE: 'sv', DK: 'da' })
     for (const l of NAME_LOCALES) {
       expect(NAME_BASE[l]).toBe(l.startsWith('es') ? 'es' : l.startsWith('pt') ? 'pt_BR' : l.startsWith('fr') ? 'fr_FR' : l)
       expect(familyLang(l)).toBe(l.slice(0, 2))
@@ -180,10 +196,10 @@ describe('fetching names sources', () => {
     await expect(fetchBytes('https://example.test/b', { fetch: down, sleep: noSleep })).rejects.toThrow(/example\.test\/b -> offline \(after 3 tries\)/)
   })
 
-  it('--names-only writes the taxonomy, 23 name sets, 7 group sets and the manifest', async () => {
+  it('--names-only writes the taxonomy, 26 name sets, 10 group sets and the manifest', async () => {
     const calls: string[] = []
     expect(await fetchNamesOnly(root, ['--names-only'], { fetch: ebird(undefined, calls), sleep: noSleep })).toBe('2026')
-    expect(calls).toHaveLength(1 + NAME_LOCALES.length + 7)
+    expect(calls).toHaveLength(1 + NAME_LOCALES.length + 10)
     for (const l of NAME_LOCALES) expect(existsSync(join(root, `data/raw/ebird-taxonomy.${l}.json`))).toBe(true)
     const manifest = JSON.parse(readFileSync(join(root, 'data/raw/manifest.json'), 'utf8'))
     expect(manifest.sources.map((s: { name: string }) => s.name)).toEqual(expect.arrayContaining(['kept', 'ebird-taxonomy', 'ebird-taxonomy.es_AR', 'ebird-groups.nl']))
@@ -229,6 +245,11 @@ describe('writeNames with synthetic source files', () => {
       write(`data/raw/ebird-groups.${lang}.json`, [{ groupOrder: 1, groupName: 'Translated group' }])
       write(`data/i18n/families.${lang}.json`, { Testidae: 'Hand translation' })
     }
+    // The IOC names the IOC_COLUMNS sets fall back to: a synthetic huashu record for "bird" and its names.csv row.
+    mkdirSync(join(root, 'data/raw/huashu/data'), { recursive: true })
+    write('data/raw/huashu/data/species.json', { species: [{ id: 'Avis_testa', scientificName: 'Avis testa', taxonConcept: 'same', taxonomy: { seq: 1, order: 'Testiformes', family: 'Testidae' }, ids: { ebird: 'bird' } }] })
+    writeFileSync(join(root, 'data/raw/huashu/data/names.csv'), 'id,scientific_name,en,it,sv,da\nAvis_testa,Avis testa,Bird,uccello di prova,testfågel,Testfugl\n')
+    write('data/overrides.json', {})
   })
   afterEach(() => {
     vi.restoreAllMocks()
@@ -242,6 +263,10 @@ describe('writeNames with synthetic source files', () => {
     expect(read('pt_PT').names).toEqual({ bird: 'Ave-base' })
     expect(read('nl').names).toEqual({ bird: 'Basisvogel' })
     expect(read('es_MX').names).toEqual({ bird: 'Ave de Hawaii' })
+    // eBird's set only repeats the English name: the matched record's IOC name, capitalised; other sets never take it.
+    expect(read('it').names).toEqual({ bird: 'Uccello di prova' })
+    expect(read('da').names).toEqual({ bird: 'Testfugl' })
+    expect(read('de').names).toEqual({})
     for (const l of NAME_LOCALES) expect(existsSync(join(root, `public/data/names.${l}.v1.json`))).toBe(true)
   })
 
@@ -273,7 +298,7 @@ const PROPER = [
   'Nuevo', 'Viejo', 'Novo', 'Velho', 'Mundo', 'Nieuwe', 'Oude', 'Wereld', 'Antillas', 'Antilhas', 'Antillen', 'Mayores',
   'Grandes', 'Grote', 'Nova', 'Zelândia', 'Nieuw', 'Zeeland', 'Zeelandse', 'África', 'Afrika', 'Amerika', 'Aziatische',
   'Oceania', 'Hawaii', 'La', 'Española', 'Célebes', 'Arfak', 'Magallanes', 'Przewalski', 'Zeledón',
-  'Nouveau', 'Ancien', 'Monde', 'Antilles', 'Kowald',
+  'Nouveau', 'Ancien', 'Monde', 'Antilles', 'Kowald', 'Nuovo', 'Nuova', 'Mondo', 'Zelanda', 'Antille',
 ]
 
 describe('committed names files', () => {
@@ -296,7 +321,8 @@ describe('committed names files', () => {
         else if (name !== normalizeName(name)) bad.push(`${l}: ${code} is not normalised`)
         else if (name !== capFirst(name)) bad.push(`${l}: ${code} starts in lower case`)
       }
-      if (l === 'es' || l === 'nl' || l === 'pl' || l.startsWith('fr') || l === 'de') expect(Object.keys(file.names).length, l).toBeGreaterThanOrEqual(11100)
+      if (l === 'es' || l === 'nl' || l === 'pl' || l.startsWith('fr') || l === 'de' || l === 'sv' || l === 'da') expect(Object.keys(file.names).length, l).toBeGreaterThanOrEqual(11100)
+      if (l === 'it') expect(Object.keys(file.names).length, l).toBeGreaterThanOrEqual(9800)
     }
     expect(bad).toEqual([])
     for (const l of NAME_BASES) expect(gzipSync(read(`names.${l}.v1.json`), { level: 9 }).length, l).toBeLessThan(120_000)
@@ -311,6 +337,9 @@ describe('committed names files', () => {
     expect(files.get('fr_FR').names.comloo).toBe('Plongeon imbrin')
     expect(files.get('fr').names.comloo).toBe('Plongeon huard')
     expect(files.get('de').names.comloo).toBe('Eistaucher')
+    expect(files.get('it').names.comloo).toBe('Strolaga maggiore')
+    expect(files.get('sv').names.comloo).toBe('Svartnäbbad islom')
+    expect(files.get('da').names.comloo).toBe('Islom')
   })
 
   it('every regional Spanish file has names of its own (a locale eBird ignored would equal es)', () => {
