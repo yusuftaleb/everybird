@@ -440,46 +440,52 @@ export const EN_UI = {
   /** Compare with friends (issue #10): /compare, and a comparison link's page, /c/<token>. */
   compare: {
     title: 'Compare with friends',
-    /** The one field (its label and placeholder), and once a comparison shows, the same field adding another list. */
+    /** The paste field (its label and placeholder), and once a comparison shows, the same field adding another list. */
     paste: 'Paste a friend’s Everybird link',
     addAnother: 'Add another friend’s link',
+    /** Before the first comparison: another link field ("Add more"), named by its place. */
+    addMore: 'Add more',
+    linkN: 'Link {n}',
+    /** Under the field: how many lists a comparison holds ({n} 6, {m} 5). */
+    limit: 'Compare up to {n} lists: yours and {m} friends’.',
     submit: 'Compare',
     add: 'Add',
     bad: { one: '{n} link didn’t open.', other: '{n} links didn’t open.' },
     needMore: 'Comparing needs at least two lists.',
     /** "Compare with mine" sent a friend's list, and the visitor has none yet (followed by the "Add birds" link). */
     noList: 'To compare with {name}, add your own birds first.',
-    /** The segmented control's name, and its three choices: the first list against one other. */
-    groups: 'Groups',
+    /** The chips' name, and the chips: the birds on the others' lists you lack, on both or every list, one list's
+     *  alone (yours: "Only you"), every bird. */
+    groups: 'Which birds',
+    yetToSee: 'Yet to see',
     both: 'Both',
+    everyone: 'On every list',
     onlyYou: 'Only you',
     only: 'Only {name}',
-    /** With your list and one other: the other list's birds you lack, first. */
-    need: 'You still need',
-    /** Three or more lists: the chips for everyone's birds, each list's own and the table, and their group's name. */
-    allLists: 'All lists',
-    everyone: 'On every list',
+    every: 'Every bird',
     birder: 'Birder {n}',
     empty: 'No birds in this group.',
     showAll: 'Show all {n}',
-    every: 'Every bird',
-    tableCaption: 'Every bird in this comparison and the lists it is on',
-    bird: 'Bird',
-    onList: 'On this list',
-    /** The lists in the comparison (a ranking from three), your own marked "(you)", and each pasted one's controls. */
+    /** The bars, one per list, your own marked "(you)", and each one's controls. */
     people: 'Lists in this comparison',
     you: '(you)',
     rename: 'Rename {name}',
     remove: 'Remove {name}',
-    /** The card's text alternative: the Venn's three counts. */
-    venn: 'Only {first}: {a}. Both: {both}. Only {other}: {b}.',
+    /** The card's text alternative, every number in the diagram: "Only Ada: 12." "Only Ada and Sam: 3." */
+    onlyTwo: 'Only {a} and {b}',
+    altPart: '{label}: {n}.',
     shareCard: 'Share card',
-    /** The card's counts line, one part per list: "Sam: 412". */
+    /** The card's counts line, one part per list ("Sam: 412"), and a group's caption over its stickers ("Both: 15"). */
     cardCount: '{label}: {n}',
-    /** The wish-list card's title, and its button. */
-    wish: { one: '{n} bird {name} has that I still need', other: '{n} birds {name} has that I still need' },
+    /** The birds you've yet to see, with one friend and with several: the card's caption and the wish list's title. */
+    wish: { one: '{n} of {name}’s birds you’ve yet to see', other: '{n} of {name}’s birds you’ve yet to see' },
+    wishAll: { one: '{n} of your friends’ birds you’ve yet to see', other: '{n} of your friends’ birds you’ve yet to see' },
     shareWish: 'Share wish list',
+    /** Under the page head: why its buttons wait, then what a comparison link carries, and why there's no wish list. */
+    needFirst: 'Compare two lists to share them.',
     consent: 'A comparison link carries every list in it, so ask the others before you share it.',
+    wishNeedsYours: 'Add your own birds for a wish list.',
+    wishNone: 'You’ve seen every bird on these lists.',
     copyLink: 'Copy comparison link',
     copied: 'Link copied.',
     copyManual: 'Copy this link',
@@ -489,6 +495,7 @@ export const EN_UI = {
     /** On a shared collage or comparison: open Compare with it and your own list. */
     withMine: 'Compare with mine',
   },
+
   /** Plain labels for the bird orders (scientific name -> label): every order in species.v1.json. English is a copy of
    *  src/lib/species/orders.ts ORDERS (tests/i18n.test.ts keeps them equal). */
   orders: {

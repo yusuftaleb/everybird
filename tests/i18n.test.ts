@@ -33,7 +33,9 @@ const ALLOW_SAME = [
   // The Oval arrangement: pt and de spell it as English does.
   'Oval',
   // Templates with no words: the summary line's joins (ui.import.summary) and suggestion arrow; nl "Spreadsheet".
-  '{head}: {parts}.', '{head}, {all}.', '{name} → {suggestion}', 'Spreadsheet', '{label}: {n}',
+  '{head}: {parts}.', '{head}, {all}.', '{name} → {suggestion}', 'Spreadsheet', '{label}: {n}', '{label}: {n}.',
+  // Compare's extra link fields: "Link" is the word in da, de, it, nl, pl and pt.
+  'Link {n}',
   // About's credits: es and nl keep "Stickers" and "API" as they are; nl "Credits" and "Code".
   'Stickers · CC BY 4.0', 'API', 'Credits', 'Code · MIT',
   // Red List: es "Vulnerable" and nl "Status" are the same word as English.
