@@ -62,7 +62,7 @@
 .eb-card-when p { margin: 0; }
 .eb-card-note { margin: 0; font-size: 12px; color: var(--muted); }
 /* The illustration link in the card's bottom-right corner, after the edit actions. */
-.eb-card-credit { align-self: flex-end; }
+.eb-card-credit { align-self: flex-end; white-space: nowrap; }
 .eb-card-album { position: relative; color: inherit; text-underline-offset: 2px; }
 .eb-card-album::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: 44px; transform: translate(-50%, -50%); }
 .eb-card-actions { display: flex; gap: 8px; margin-top: 4px; }

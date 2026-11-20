@@ -393,21 +393,28 @@ describe('in Spanish', () => {
 })
 
 describe('the card\'s Remove row (EditBird)', () => {
-  it('"Remove", then the card\'s illustration link at the row\'s right; without actions the link keeps the corner', async () => {
+  it('"Remove" and the card\'s illustration link alone on one row that never wraps; without actions the link keeps the corner', async () => {
     const { CardEndLink } = await import('@/components/collage/BirdCard')
     const { EditBird } = await import('@/components/edit/EditBird')
+    // A mark edited: "Marks from my records" shows, under the marks, not in the Remove row.
     render(
       <CardEndLink.Provider value={<p className="eb-card-credit"><a href="#a">Illustration</a></p>}>
-        <EditBird entry={entry('crowa')} edits={{ marks: {}, removed: [] } as never} dispatch={() => {}} onRemoved={() => {}} />
+        <EditBird entry={entry('crowa')} edits={{ marks: { crowa: { heard: true } }, removed: [] } as never} dispatch={() => {}} onRemoved={() => {}} />
       </CardEndLink.Provider>,
     )
     const remove = screen.getByRole('button', { name: 'Remove' })
     const row = remove.parentElement!
     expect(row).toHaveClass('eb-edit-row')
+    expect([...row.children]).toEqual([remove, row.lastElementChild])
     expect(row.lastElementChild).toHaveClass('eb-card-credit')
-    expect(remove.nextElementSibling).toBe(row.lastElementChild)
+    const reset = screen.getByRole('button', { name: 'Marks from my records' })
+    expect(reset).toHaveClass('eb-edit-reset')
+    expect(reset.nextElementSibling).toBe(row)
     const css = readFileSync(resolve(__dirname, '../src/components/edit/edit.css'), 'utf8')
+    expect(css).toMatch(/\.eb-edit-row \{ display: flex; align-items: center; justify-content: space-between; gap: 8px; \}/)
+    expect(css).not.toMatch(/\.eb-edit-row \{[^}]*flex-wrap/)
+    expect(css).toMatch(/\.eb-edit-row > \* \{ flex: none; white-space: nowrap; \}/)
     expect(css).toMatch(/\.eb-edit-row > \.eb-card-credit \{ margin-left: auto; \}/)
-    expect(readFileSync(resolve(__dirname, '../src/components/collage/card-list.css'), 'utf8')).toMatch(/\.eb-card-credit \{ align-self: flex-end; \}/)
+    expect(readFileSync(resolve(__dirname, '../src/components/collage/card-list.css'), 'utf8')).toMatch(/\.eb-card-credit \{ align-self: flex-end; white-space: nowrap; \}/)
   })
 })

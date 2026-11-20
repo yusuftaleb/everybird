@@ -174,7 +174,7 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   ].filter((n): n is string => !!n)
 
   // LifeList's card (layout C), with the edit actions under it and the illustration link in the bottom-right corner (with
-  // actions, at the right of their Remove row: CardEndLink). No
+  // actions, at the right of their Remove row, on the same line: CardEndLink). No
   // visible close button: a press outside and Esc close it; a visually hidden one (shown on keyboard focus) keeps it
   // closable without a pointer.
   const card = (

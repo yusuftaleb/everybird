@@ -16,8 +16,8 @@ const MARKS: { k: MarkKey & ('heard' | 'dead'); sym: string }[] = [
 
 type Props = { entry: ListEntry; edits: Edits; dispatch: (a: Action) => void; onRemoved: () => void }
 
-/** In the bird card: set or clear each mark, go back to the marks from the records, or remove the bird; the card's
- *  illustration link (CardEndLink) ends the Remove row, at its right. */
+/** In the bird card: set or clear each mark, go back to the marks from the records (under the marks), or remove the
+ *  bird; the card's illustration link (CardEndLink) shares the Remove row, at its right, never wrapping under it. */
 export function EditBird({ entry, edits, dispatch, onRemoved }: Props) {
   const { t } = useI18n()
   const end = useContext(CardEndLink)
@@ -47,13 +47,13 @@ export function EditBird({ entry, edits, dispatch, onRemoved }: Props) {
           </button>
         ))}
       </div>
+      {own && (
+        <button type="button" className="eb-textbtn eb-edit-reset" onClick={reset}>
+          <ArrowCounterClockwise aria-hidden="true" focusable="false" />
+          {t.card.resetMarks}
+        </button>
+      )}
       <div className="eb-edit-row">
-        {own && (
-          <button type="button" className="eb-textbtn" onClick={reset}>
-            <ArrowCounterClockwise aria-hidden="true" focusable="false" />
-            {t.card.resetMarks}
-          </button>
-        )}
         <button type="button" className="eb-textbtn eb-edit-remove" onClick={remove}>
           <Trash aria-hidden="true" focusable="false" />
           {t.card.remove}
