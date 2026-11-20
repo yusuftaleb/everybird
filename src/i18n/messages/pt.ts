@@ -19,6 +19,7 @@ export const pt: Messages = {
         about: 'Sobre',
       },
       darkMode: 'Modo escuro',
+      toTop: 'Voltar ao topo',
       footer: {
         credits: 'Todos os créditos',
         madeBy: 'Feito por Yusuf Taleb',

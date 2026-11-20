@@ -20,6 +20,7 @@
   --topbar-h: 61px;
   /* The page's z-index ladder (DESIGN.md, Layers). In-page layers (the stage's birds and tooltip, the controls bar and
      its popovers, sticky bars inside a section) stay under 40. */
+  --z-totop: 35; /* the "Back to top" button: over the page, under the top bar and everything that opens */
   --z-topbar: 40;
   --z-tour: 45; /* the landing sample's guided tour note */
   --z-dialog-scrim: 49; /* the share dialog's scrim, the bird card's sheet scrim */

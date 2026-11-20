@@ -485,6 +485,40 @@
 .eb-unmatched a { color: var(--accent); text-underline-offset: 3px; }
 
 /* "Removed … · Undo", for a few seconds after a bird is removed. */
+/* "Back to top" (BackToTop), as on yusuftaleb.com: a quiet 44px squircle in the bottom-right corner, Paper with a
+   Hairline edge and the arrow at 62%, both going to full Ink on hover (hover devices only, so a tap leaves no ring
+   behind). Hidden it sits 8px low; pressed it leaves upward, the way the page is going. */
+.eb-totop {
+  position: fixed; right: 24px; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: var(--z-totop);
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; cursor: pointer;
+  background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1px var(--hairline);
+  border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity .25s ease, translate .35s var(--ease-ui), scale .35s var(--ease-ui), box-shadow .18s ease, bottom .2s ease;
+}
+.eb-totop svg { width: 18px; height: 18px; opacity: .62; transition: opacity .18s ease; }
+.eb-totop[data-hidden] { opacity: 0; translate: 0 8px; pointer-events: none; }
+.eb-totop[data-hidden][data-launched] { translate: 0 -14px; scale: .9; transition: opacity .2s ease, translate .3s var(--ease-ui), scale .3s var(--ease-ui); }
+@media (hover: hover) and (pointer: fine) { .eb-totop:hover { box-shadow: inset 0 0 0 1px var(--ink); } .eb-totop:hover svg { opacity: 1; } }
+.eb-totop:focus-visible { box-shadow: inset 0 0 0 1px var(--ink); }
+.eb-totop:focus-visible svg { opacity: 1; }
+.eb-totop:active { scale: .94; }
+/* Out of the way while the bar's Filters panel or search results are open: they can reach this corner, and the
+   button would paint over them (it is a page layer, they are in-page ones). */
+body:has(.eb-drop, .eb-find-drop) .eb-totop { opacity: 0; visibility: hidden; }
+/* Focus lands on <main> after the trip, for the keyboard's sake only: no ring around the whole page. */
+main[tabindex="-1"]:focus { outline: none; }
+@media (max-width: 719.98px) {
+  .eb-totop { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); }
+  /* Phones: clear the undo toast, which spans the bottom edge there. */
+  body:has(.eb-toast) .eb-totop { bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eb-totop, .eb-totop[data-hidden][data-launched] { transition: opacity .2s ease; }
+  .eb-totop[data-hidden], .eb-totop[data-hidden][data-launched] { translate: none; scale: none; }
+}
+@media print { .eb-totop { display: none; } }
+
 .eb-toast-slot { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: var(--z-toast); translate: -50% 0; width: max-content; max-width: calc(100vw - 32px); }
 .eb-toast {
   display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 16px; font-size: 15px;

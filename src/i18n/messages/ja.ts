@@ -21,6 +21,7 @@ export const ja: Messages = {
         about: '概要',
       },
       darkMode: 'ダークモード',
+      toTop: 'ページの先頭へ',
       footer: {
         credits: 'クレジット一覧',
         madeBy: '制作：Yusuf Taleb',

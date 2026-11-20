@@ -21,6 +21,7 @@ export const ru: Messages = {
         about: 'Инфо',
       },
       darkMode: 'Тёмная тема',
+      toTop: 'Наверх',
       footer: {
         credits: 'Все благодарности',
         madeBy: 'Автор: Yusuf Taleb',

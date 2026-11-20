@@ -19,6 +19,7 @@ export const da: Messages = {
         about: 'Om',
       },
       darkMode: 'Mørk tilstand',
+      toTop: 'Til toppen',
       footer: {
         credits: 'Alle krediteringer',
         madeBy: 'Lavet af Yusuf Taleb',
