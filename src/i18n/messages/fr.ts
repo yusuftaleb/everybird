@@ -544,6 +544,7 @@ export const fr: Messages = {
           obsorg: { one: 'issue d’observation.org', other: 'toutes issues d’observation.org' },
           sheet: { one: 'issue de ton tableur', other: 'toutes issues de ton tableur' },
           scythebill: { one: 'issue de Scythebill', other: 'toutes issues de Scythebill' },
+          igoterra: { one: 'issue d’iGoTerra', other: 'toutes issues d’iGoTerra' },
           manual: { one: 'cochée à la main', other: 'toutes cochées à la main' },
         },
         first: {
@@ -552,6 +553,7 @@ export const fr: Messages = {
           obsorg: { one: '{n} d’observation.org', other: '{n} d’observation.org' },
           sheet: { one: '{n} de ton tableur', other: '{n} de ton tableur' },
           scythebill: { one: '{n} de Scythebill', other: '{n} de Scythebill' },
+          igoterra: { one: '{n} d’iGoTerra', other: '{n} d’iGoTerra' },
           manual: { one: '{n} cochée à la main', other: '{n} cochées à la main' },
         },
         more: {
@@ -559,6 +561,7 @@ export const fr: Messages = {
           obsorg: { one: '{n} de plus d’observation.org', other: '{n} de plus d’observation.org' },
           sheet: { one: '{n} de plus de ton tableur', other: '{n} de plus de ton tableur' },
           scythebill: { one: '{n} de plus de Scythebill', other: '{n} de plus de Scythebill' },
+          igoterra: { one: '{n} de plus d’iGoTerra', other: '{n} de plus d’iGoTerra' },
           manual: { one: '{n} cochée à la main', other: '{n} cochées à la main' },
         },
       },
@@ -663,6 +666,22 @@ export const fr: Messages = {
           unknown: 'Impossible de lire ce fichier. Utilise un export CSV de Scythebill ou un fichier Scythebill formaté pour eBird.',
           noBirds: 'Aucun oiseau trouvé dans ce fichier Scythebill.',
           damaged: 'Impossible de lire ce fichier. Il est peut-être endommagé, ou ce n’est pas un export Scythebill.',
+        },
+      },
+      igoterra: {
+        title: 'iGoTerra',
+        what: 'ton export iGoTerra',
+        guide: 'Ton export des observations d’iGoTerra (Backup.csv). Il situe chaque oiseau par pays, et par État ou province quand iGoTerra l’indique.',
+        help: 'Exporte tes observations d’iGoTerra en CSV.',
+        howTo: 'Comment obtenir ce fichier\u00a0?',
+        choose: 'Choisis ton fichier iGoTerra',
+        input: 'Fichier iGoTerra',
+        fallback: 'Export iGoTerra',
+        whereRow: 'Ligne {row} d’iGoTerra',
+        errors: {
+          unknown: 'Impossible de lire ce fichier. Utilise l’export des observations d’iGoTerra\u00a0: un CSV dont la première ligne commence par Common Name, Scientific Name, Scientific Family.',
+          noBirds: 'Aucun oiseau trouvé dans ce fichier iGoTerra.',
+          damaged: 'Impossible de lire ce fichier. Il est peut-être endommagé, ou ce n’est pas un export iGoTerra.',
         },
       },
       ebird: {

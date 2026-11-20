@@ -1,0 +1,11 @@
+﻿"Common Name","Scientific Name","Scientific Family","Family","Scientific Genus","Scientific Species","Scientific subspecies","Scientific variety","Date","Date to","Time","Time to","Year","Month","Day","Quantity","Quantity to","Age","Gender","Activity","FO","Location Name","Coordinate Lat","Coordinate Lng","Country","State","Country Code","State Code","Comment","Only heard","Don't Count","Main Group","Species Group","Photographed","Diary Note","Fullday Diary Note"
+"Mallard","Anas platyrhynchos","Anatidae",,"Anas","platyrhynchos",,,"2021-05-03",,,,2021,5,3,3,,,,,0,"Test Pond",,,"Canada","Sample Valley District","CA",,,0,,"Birds","Songbirds",0,,
+"Mallard","Anas platyrhynchos","Anatidae",,"Anas","platyrhynchos",,,"2020-04-11",,"08:15",,2020,4,11,2,,,,,1,"Example Marsh",,,"Canada","British Columbia","CA",,,0,,"Birds","Songbirds",0,,
+"American Robin","Turdus migratorius","Turdidae",,"Turdus","migratorius",,,"2022-06-01",,,,2022,6,1,1,,,,,1,"Fake Park",,,"Canada","Sample County","CA","BC",,0,,"Birds","Songbirds",0,,
+"American Robin","Turdus migratorius","Turdidae",,"Turdus","migratorius",,,"2023-02-14",,,,2023,2,14,1,,,,,0,"Fake Park",,,"Canada","Sample County","CA",,,1,,"Birds","Songbirds",0,,
+"Common Raven","Corvus corax","Corvidae",,"Corvus","corax",,,"2022-07-01",,,,2022,7,1,1,,,,,1,"Nowhere Ridge",,,"United States","Made-up Hills","US",,,1,,"Birds","Songbirds",0,,
+"Common Raven","Corvus corax","Corvidae",,"Corvus","corax",,,"2022-08-09",,,,2022,8,9,1,,,,,0,"Nowhere Ridge",,,"United States","Made-up Hills","US",,,1,,"Birds","Songbirds",0,,
+"Great Tit","Parus major","Paridae",,"Parus","major","Parus major major",,"2019-03-03",,,,2019,3,3,1,,,,,1,,,,"No Country",,,,,0,,"Birds","Songbirds",0,,
+"Black-capped Chickadee","Poecile atricapillus","Paridae",,"Poecile","atricapillus",,,"2021-01-01",,,,2021,1,1,1,,,,,1,"Test Garden",,,"Canada",,"CA",,,0,1,"Birds","Songbirds",0,,
+"Red Fox","Vulpes vulpes","Canidae",,"Vulpes","vulpes",,,"2021-09-09",,,,2021,9,9,1,,,,,1,"Test Garden",,,"Canada",,"CA",,,0,,"Mammals","Carnivores",0,,
+"Imaginary Warbler","Fictus imaginarius","Parulidae",,"Fictus","imaginarius",,,"2024-05-20",,,,2024,5,20,1,,,,,1,"Dream Wood",,,"Canada",,"CA",,,0,,"Birds","Songbirds",0,,

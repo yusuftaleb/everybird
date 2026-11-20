@@ -55,7 +55,7 @@ describe('json backup and the released build', () => {
 })
 
 describe('json backup', () => {
-  const good = () => ({ ...emptySaved(), name: 'Me', records: { obsorg: [], 'obsorg-list': [], ebird: [{ code: 'a', source: 'ebird' }], 'ebird-list': [], inat: [], sheet: [], scythebill: [], manual: [] } })
+  const good = () => ({ ...emptySaved(), name: 'Me', records: { obsorg: [], 'obsorg-list': [], ebird: [{ code: 'a', source: 'ebird' }], 'ebird-list': [], inat: [], sheet: [], scythebill: [], igoterra: [], manual: [] } })
   it('round-trips', () => {
     const s = good()
     expect(fromJson(toJson(s as never))).toEqual(s)
@@ -89,7 +89,7 @@ describe('json backup', () => {
     delete rest.name
     const out = fromJson(JSON.stringify({ ...rest, records: { ebird: [] } }))
     expect(out.name).toBeUndefined()
-    expect(out.records).toEqual({ ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], manual: [] })
+    expect(out.records).toEqual({ ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], igoterra: [], manual: [] })
   })
   it('round-trips bigYear and rejects malformed values', () => {
     const s = { ...good(), bigYear: { year: 2027, target: 300 } }

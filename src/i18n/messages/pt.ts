@@ -544,6 +544,7 @@ export const pt: Messages = {
           obsorg: { one: 'todas do observation.org', other: 'todas do observation.org' },
           sheet: { one: 'da sua planilha', other: 'todas da sua planilha' },
           scythebill: { one: 'do Scythebill', other: 'todas do Scythebill' },
+          igoterra: { one: 'do iGoTerra', other: 'todas do iGoTerra' },
           manual: { one: 'marcada à mão', other: 'todas marcadas à mão' },
         },
         first: {
@@ -552,6 +553,7 @@ export const pt: Messages = {
           obsorg: { one: '{n} do observation.org', other: '{n} do observation.org' },
           sheet: { one: '{n} da sua planilha', other: '{n} da sua planilha' },
           scythebill: { one: '{n} do Scythebill', other: '{n} do Scythebill' },
+          igoterra: { one: '{n} do iGoTerra', other: '{n} do iGoTerra' },
           manual: { one: '{n} marcada à mão', other: '{n} marcadas à mão' },
         },
         more: {
@@ -559,6 +561,7 @@ export const pt: Messages = {
           obsorg: { one: 'mais {n} do observation.org', other: 'mais {n} do observation.org' },
           sheet: { one: 'mais {n} da sua planilha', other: 'mais {n} da sua planilha' },
           scythebill: { one: 'mais {n} do Scythebill', other: 'mais {n} do Scythebill' },
+          igoterra: { one: 'mais {n} do iGoTerra', other: 'mais {n} do iGoTerra' },
           manual: { one: '{n} marcada à mão', other: '{n} marcadas à mão' },
         },
       },
@@ -663,6 +666,22 @@ export const pt: Messages = {
           unknown: 'Não foi possível ler este arquivo. Use uma exportação CSV do Scythebill ou um arquivo do Scythebill formatado para eBird.',
           noBirds: 'Nenhuma ave encontrada neste arquivo do Scythebill.',
           damaged: 'Não foi possível ler este arquivo. Ele pode estar danificado ou não ser uma exportação do Scythebill.',
+        },
+      },
+      igoterra: {
+        title: 'iGoTerra',
+        what: 'sua exportação do iGoTerra',
+        guide: 'Sua exportação de observações do iGoTerra (Backup.csv). Situa cada ave por país, e por estado ou província quando o iGoTerra informa.',
+        help: 'Exporte suas observações do iGoTerra como CSV.',
+        howTo: 'Como consigo este arquivo?',
+        choose: 'Escolha seu arquivo do iGoTerra',
+        input: 'Arquivo do iGoTerra',
+        fallback: 'Exportação do iGoTerra',
+        whereRow: 'Linha {row} do iGoTerra',
+        errors: {
+          unknown: 'Não foi possível ler este arquivo. Use a exportação de observações do iGoTerra: um CSV cuja primeira linha começa com Common Name, Scientific Name, Scientific Family.',
+          noBirds: 'Nenhuma ave encontrada neste arquivo do iGoTerra.',
+          damaged: 'Não foi possível ler este arquivo. Ele pode estar danificado ou não ser uma exportação do iGoTerra.',
         },
       },
       ebird: {

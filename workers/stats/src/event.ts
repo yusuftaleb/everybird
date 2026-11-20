@@ -4,7 +4,7 @@
 /** Only these events and values are accepted; anything else is dropped. Mirrored by the app's ALLOWED (src/lib/analytics.ts). */
 export const ALLOWED: Record<string, Set<string>> = {
   visit: new Set(['landing', 'collage', 'settings', 'about', 'shared']),
-  collage_made: new Set(['ebird', 'ebird-list', 'inat', 'obsorg', 'sheet', 'scythebill', 'manual', 'sample', 'restore', 'mixed']),
+  collage_made: new Set(['ebird', 'ebird-list', 'inat', 'obsorg', 'sheet', 'scythebill', 'igoterra', 'manual', 'sample', 'restore', 'mixed']),
   image_downloaded: new Set(['story', 'post', 'square', 'desktop', 'wide']),
   shared: new Set(['story', 'post', 'square', 'desktop', 'wide', 'link']),
   link_copied: new Set(['full', 'compact', 'minimal', 'species']),

@@ -632,6 +632,7 @@ export const EN_UI = {
         obsorg: { one: 'all from observation.org', other: 'all from observation.org' },
         sheet: { one: 'all from your spreadsheet', other: 'all from your spreadsheet' },
         scythebill: { one: 'all from Scythebill', other: 'all from Scythebill' },
+        igoterra: { one: 'all from iGoTerra', other: 'all from iGoTerra' },
         manual: { one: 'all ticked by hand', other: 'all ticked by hand' },
       },
       /** The first part. */
@@ -641,6 +642,7 @@ export const EN_UI = {
         obsorg: { one: '{n} from observation.org', other: '{n} from observation.org' },
         sheet: { one: '{n} from your spreadsheet', other: '{n} from your spreadsheet' },
         scythebill: { one: '{n} from Scythebill', other: '{n} from Scythebill' },
+        igoterra: { one: '{n} from iGoTerra', other: '{n} from iGoTerra' },
         manual: { one: '{n} ticked by hand', other: '{n} ticked by hand' },
       },
       /** A later part: the species it adds to the ones before (eBird is always first when it is on the list). */
@@ -649,6 +651,7 @@ export const EN_UI = {
         obsorg: { one: '{n} more from observation.org', other: '{n} more from observation.org' },
         sheet: { one: '{n} more from your spreadsheet', other: '{n} more from your spreadsheet' },
         scythebill: { one: '{n} more from Scythebill', other: '{n} more from Scythebill' },
+        igoterra: { one: '{n} more from iGoTerra', other: '{n} more from iGoTerra' },
         manual: { one: '{n} ticked by hand', other: '{n} ticked by hand' },
       },
     },
@@ -759,6 +762,22 @@ export const EN_UI = {
         unknown: 'Couldn\'t read this file. Use a Scythebill CSV export or a Scythebill file formatted for eBird.',
         noBirds: 'No birds found in this Scythebill file.',
         damaged: 'Couldn’t read this file. It may be damaged or not a Scythebill export.',
+      },
+    },
+    igoterra: {
+      title: 'iGoTerra',
+      what: 'your iGoTerra export',
+      guide: 'Your iGoTerra sightings export (Backup.csv). Places each bird by country, and by state or province when iGoTerra gives one.',
+      help: 'Export your sightings from iGoTerra as CSV.',
+      howTo: 'How do I get this file?',
+      choose: 'Choose your iGoTerra file',
+      input: 'iGoTerra file',
+      fallback: 'iGoTerra export',
+      whereRow: 'iGoTerra row {row}',
+      errors: {
+        unknown: 'Couldn’t read this file. Use iGoTerra’s sightings export: a CSV whose first row starts Common Name, Scientific Name, Scientific Family.',
+        noBirds: 'No birds found in this iGoTerra file.',
+        damaged: 'Couldn’t read this file. It may be damaged or not an iGoTerra export.',
       },
     },
     /** The two eBird rows (EbirdDrop). */
