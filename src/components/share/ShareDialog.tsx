@@ -49,6 +49,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { Regions } from '@/lib/species/types'
+import type { ViewKind } from '@/lib/view-resume'
 import '@/components/app/app.css'
 import '@/components/collage/collage.css'
 import './share.css'
@@ -56,7 +57,12 @@ import './share.css'
 /** How long the preview's frame eases to a new shape and the images cross-fade (share.css, as the photo lightbox). */
 const PREVIEW_EASE_MS = 420
 
-type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; onClose: () => void }
+/** `view`: the view Share was pressed in. Every view shares the birds on screen (the filter applied). */
+type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; view?: ViewKind; onClose: () => void }
+
+/** The one place a view supplies its own image (the map's and the tree's are a later task): unset, a view shares the
+ *  collage image of the birds on screen. */
+const VIEW_IMAGE: Partial<Record<ViewKind, typeof renderShareImage>> = {}
 
 const RENDER_DELAY_MS = 250
 /** The format buttons: each slot's ratio and icon in each orientation (the square is square in both). */
@@ -78,7 +84,8 @@ type QuietAction = { label: string; short?: string; icon: Icon; onClick: () => v
 /** Why a link carries less than the regions (a large list), or nothing for a full link. */
 const levelReason = (level: ShareLevel, t: ReturnType<typeof useI18n>['t']) => (level === 'regions' ? '' : t.share.level[level])
 
-export default function ShareDialog({ state, dispatch, species, regions, onClose }: Props) {
+export default function ShareDialog({ state, dispatch, species, regions, view, onClose }: Props) {
+  const renderImage = (view && VIEW_IMAGE[view]) || renderShareImage
   const names = useNames()
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
@@ -286,7 +293,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       cancel = () => { clearTimeout(t); reject(abortError('superseded')) }
     })
       .then(() => packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null))
-      .then((pack) => renderShareImage({
+      .then((pack) => renderImage({
         format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
         theme, transparent, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, strings: t, nameOf: displayName, signal: life.current?.signal,
       }))
@@ -317,7 +324,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       },
     )
     return () => { live = false; cancel() }
-  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan])
+  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, renderImage])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)

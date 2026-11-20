@@ -63,14 +63,13 @@ type Shared = {
   groupName?: (id: string) => string | undefined
 }
 
-/** In the dock's `filters` slot. Renders null when `sections` is empty. */
-export function FiltersButton({ state, regions, sections, open, onOpen, groupName, inert, buttonRef, panelId }: Shared & { inert?: boolean; buttonRef: RefObject<HTMLButtonElement | null>; panelId: string }): ReactNode {
+/** In the dock's `filters` slot (ControlsBar's `.eb-dock-filters` group). Renders null when `sections` is empty. */
+export function FiltersButton({ state, regions, sections, open, onOpen, groupName, buttonRef, panelId }: Shared & { buttonRef: RefObject<HTMLButtonElement | null>; panelId: string }): ReactNode {
   const { lang, t } = useI18n()
   if (!sections.length) return null
   const n = filtersCount(state.filter)
   const said = filtersSpoken(state.filter, regionsIn(regions, lang), t, groupName)
   return (
-    <div className="eb-dock-filters" inert={inert}>
       <button
         ref={buttonRef}
         type="button"
@@ -81,6 +80,7 @@ export function FiltersButton({ state, regions, sections, open, onOpen, groupNam
         aria-label={said ? `${t.filters.label}: ${said}` : t.filters.label}
         data-active={n > 0 ? '' : undefined}
         data-testid="filters-button"
+        data-tour="filter"
         onClick={() => onOpen(open ? null : {})}
       >
         <FilterLinesIcon />
@@ -90,7 +90,6 @@ export function FiltersButton({ state, regions, sections, open, onOpen, groupNam
         </span>
         <CaretDown aria-hidden="true" focusable="false" className="eb-drop-caret" />
       </button>
-    </div>
   )
 }
 
@@ -279,11 +278,11 @@ type UiArgs = {
 }
 
 /**
- * The button, the chip row and the panel, wired together as CollageView uses them: `button(inert)` for the dock's
+ * The button, the chip row and the panel, wired together as CollageView uses them: `button` for the dock's
  * `filters` slot, `below` for ControlsBar's, `dimmed` for the content after the dock wrap.
  */
 export function useFiltersUi({ state, dispatch, species, regions, hide, placesNote, placesUnplaced, time, threatLine, shown }: UiArgs): {
-  button: (inert: boolean) => ReactNode
+  button: ReactNode
   below: ReactNode
   dimmed: boolean
   /** The panel is open (popover or sheet): CollageView freezes the height of the collage column while it is. */
@@ -345,7 +344,7 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
   const groupName = useCallback((id: string) => { const g = species.groups?.get(id); return g && nameOfGroup(g, lang) }, [species.groups, lang])
   const shared = { state, regions, sections, open, onOpen, groupName }
   return {
-    button: (inert) => <FiltersButton {...shared} inert={inert} buttonRef={buttonRef} panelId={panelId} />,
+    button: <FiltersButton {...shared} buttonRef={buttonRef} panelId={panelId} />,
     below: (
       <>
         <ChipRow chips={chips} label={t.filters.panel.chips} testId="filter-chips" onRemove={onRemove} onOpen={onChip} onEmpty={onEmpty} onClearAll={onClearAll} active={active} />

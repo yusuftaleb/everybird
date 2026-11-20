@@ -350,6 +350,7 @@ export const nl: Messages = {
     },
     compare: {
       open: 'Vergelijken',
+      back: 'Terug naar de collage',
       title: 'Vergelijken met vrienden',
       lede: 'Plak de Everybird-deellinks van je vrienden. Je eigen lijst doet altijd mee.',
       linksLabel: 'Deellinks',

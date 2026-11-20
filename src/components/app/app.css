@@ -178,7 +178,7 @@
 /* The bar's own width from here (any screen: a phone, a tablet, a narrow window). Row one must hold the tabs, the tools
    and the magnifier: the 820px rule lets the bar wrap (for the Filters button), so anything
    too wide would push the magnifier onto a line of its own (row one holds from 280 to 1200px of bar). */
-@container (max-width: 640px) { /* 460px before the third (Tree) tab */
+@container (max-width: 1099px) { /* five views (Compare the fifth) beside Filters, Style and Share need about 1,000px with words */
   .eb-dock-tabs .eb-dock-tab span { display: none; }
   .eb-dock-tabs .eb-dock-tab { padding: 0; width: 44px; }
 }

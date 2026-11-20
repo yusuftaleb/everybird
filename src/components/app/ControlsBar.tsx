@@ -7,7 +7,9 @@
 // 460px the tabs are icons only; under 540px the switches shorten ("True", "Sci."; "Heaviest" in list view), and
 // under 330px and 310px everything tightens, so row one never breaks between 280 and 1200px of bar. On phones (600px of screen and under, as /lifelist) the short form holds whatever the width: row
 // one is the icons, the two switches (or "Heaviest") and the magnifier; row two the Filters button.
+import { ShareNetwork, UsersThree } from '@phosphor-icons/react'
 import { useCallback, useId, useRef, useState, type ReactNode } from 'react'
+import Link from '@/components/app/IntentLink'
 import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
 import { useI18n } from '@/i18n/I18nProvider'
 import { ARRANGEMENTS, type Arrangement } from '@/lib/layout/arrange'
@@ -20,6 +22,10 @@ type Props = {
   onView: (v: ViewKind) => void
   /** No Map tab (a view with no places). */
   noMap?: boolean
+  /** A Compare entry after the views: a link to /compare (the birder's own collage). */
+  compare?: boolean
+  /** The Share button (left out: none). */
+  share?: { onShare: () => void; disabled?: boolean }
   trueSize: boolean
   onTrueSize: (on: boolean) => void
   /** True size can't apply (By family's rows share one height): the switch stays focusable, off, and says why. */
@@ -38,8 +44,8 @@ type Props = {
   }
   /** The search (left out: no magnifier). */
   search?: DockSearchProps
-  /** The Filters button; `inert` while the search covers the bar. */
-  filters?: (inert: boolean) => ReactNode
+  /** The Filters button (inert with its group while the search covers the bar). */
+  filters?: ReactNode
   /** After the dock, inside the wrap: the active-filter chips, then the Filters popover (it anchors under them). */
   below?: ReactNode
   /** The search is opening (pointer or keyboard): the caller closes whatever else is open over the bar. */
@@ -48,7 +54,7 @@ type Props = {
 
 const ARRANGEMENT_LABEL = { packed: 'packed', oval: 'oval', family: 'byFamily', colour: 'byColour' } as const
 
-export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, trueOff, arrangement, lightFirst, onDirection, sci, onSci, marks, search, filters, below, onFind }: Props) {
+export function ControlsBar({ view, onView, noMap, compare, share, trueSize, onTrueSize, trueOff, arrangement, lightFirst, onDirection, sci, onSci, marks, search, filters, below, onFind }: Props) {
   const [finding, setFinding] = useState(false)
   // Whether the search is open is carried over a language switch (view-resume.ts); the typed text is not.
   const hasSearch = !!search
@@ -70,13 +76,20 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, trueOff
   return (
     <div ref={wrap} className="eb-dockwrap">
       <div className="eb-dock" data-finding={finding || undefined}>
-        <div className="eb-dock-tabs" role="group" aria-label={c.view} inert={finding}>
+        <div className="eb-dock-tabs" role="group" aria-label={c.view} inert={finding} data-tour="view">
           {(noMap ? (['collage', 'list', 'tree'] as const) : (['collage', 'list', 'map', 'tree'] as const)).map((v) => (
             <button key={v} type="button" className="eb-dock-tab" aria-pressed={view === v} aria-label={c[v]} onClick={() => onView(v)}>
               {v === 'collage' ? <CollageIcon /> : v === 'list' ? <ListIcon /> : v === 'map' ? <MapIcon /> : <TreeIcon />}
               <span>{c[v]}</span>
             </button>
           ))}
+          {compare && (
+            // Compare is its own page: the entry takes the birder there (the page has a way back).
+            <Link href="/compare" className="eb-dock-tab" aria-label={t.compare.open} data-testid="compare-open">
+              <UsersThree aria-hidden="true" focusable="false" />
+              <span>{t.compare.open}</span>
+            </Link>
+          )}
         </div>
         <div className="eb-dock-tools" inert={finding || view === 'map'} data-off={view === 'map' || undefined}>
           {view === 'list' ? (
@@ -113,7 +126,15 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, trueOff
             <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
           </button>
         </div>
-        {filters?.(finding)}
+        <div className="eb-dock-filters" inert={finding}>
+          {filters}
+          {share && (
+            <button type="button" className="eb-dock-tab eb-dock-drop" aria-haspopup="dialog" disabled={share.disabled} data-testid="share-open" data-tour="share" onClick={share.onShare}>
+              <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
+              <span className="eb-drop-label">{t.collage.share}</span>
+            </button>
+          )}
+        </div>
         {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => { onFind?.(); setFinding(true) }} buttonRef={findBtn} /></div>}
         {view === 'collage' && (marks || arrangement) && (
           <div className="eb-dock-marks" inert={finding}>

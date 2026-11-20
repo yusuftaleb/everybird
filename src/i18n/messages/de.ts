@@ -346,6 +346,7 @@ export const de: Messages = {
     },
     compare: {
       open: 'Vergleichen',
+      back: 'Zurück zur Collage',
       title: 'Mit Freunden vergleichen',
       lede: 'Füge die Everybird-Links deiner Freunde ein. Deine eigene Liste ist immer dabei.',
       linksLabel: 'Geteilte Links',

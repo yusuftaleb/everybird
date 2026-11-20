@@ -1,11 +1,14 @@
 'use client'
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useReducer, useState } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
 import { baseOfLang } from '@/lib/species/name-locales'
 import { seedNames } from '@/lib/species/names'
 import { loadSamplePack, type SamplePack } from '@/lib/list/sample-pack'
 import { initialState, makeReducer } from '@/lib/list/store'
+import type { ViewKind } from '@/lib/view-resume'
 import { CollageView } from './CollageView'
+
+const ShareDialog = lazy(() => import('@/components/share/ShareDialog'))
 
 /**
  * The landing page's live demo: the pre-packed sample (public/data/sample-pack.v1.json) in its own store, never
@@ -40,15 +43,25 @@ function Loaded({ pack }: { pack: SamplePack }) {
     [species],
   )
   const [state, dispatch] = useReducer(reducer, undefined, () => reducer(initialState(), { type: 'restore', saved: pack.saved }))
+  // Share works on the sample too (its own store: a title typed there is never saved).
+  const [sharing, setSharing] = useState<ViewKind | null>(null)
   return (
-    <CollageView
-      state={state}
-      dispatch={dispatch}
-      species={species}
-      regions={regions}
-      label={t.collage.regionSample}
-      statsPrefix={t.landing.samplePrefix}
-      seed={pack.seed}
-    />
+    <>
+      <CollageView
+        state={state}
+        dispatch={dispatch}
+        species={species}
+        regions={regions}
+        label={t.collage.regionSample}
+        statsPrefix={t.landing.samplePrefix}
+        seed={pack.seed}
+        onShare={setSharing}
+      />
+      {sharing && (
+        <Suspense fallback={null}>
+          <ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} view={sharing} onClose={() => setSharing(null)} />
+        </Suspense>
+      )}
+    </>
   )
 }

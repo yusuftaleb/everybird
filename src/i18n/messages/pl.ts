@@ -351,6 +351,7 @@ export const pl: Messages = {
     },
     compare: {
       open: 'Porównaj',
+      back: 'Wróć do kolażu',
       title: 'Porównaj ze znajomymi',
       lede: 'Wklej linki Everybird od znajomych. Twoja lista jest zawsze uwzględniona.',
       linksLabel: 'Linki',

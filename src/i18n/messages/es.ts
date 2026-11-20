@@ -350,6 +350,7 @@ export const es: Messages = {
     },
     compare: {
       open: 'Comparar',
+      back: 'Volver al collage',
       title: 'Comparar con amigos',
       lede: 'Pega los enlaces de Everybird de tus amigos. Tu propia lista siempre se incluye.',
       linksLabel: 'Enlaces',

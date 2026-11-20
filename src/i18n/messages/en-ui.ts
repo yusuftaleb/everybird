@@ -414,6 +414,8 @@ export const EN_UI = {
   /** Compare with friends (issue #10): /compare, and a comparison link's page, /c/<token>. */
   compare: {
     open: 'Compare',
+    /** The Compare page's way back to the collage's views. */
+    back: 'Back to the collage',
     title: 'Compare with friends',
     lede: 'Paste your friends’ Everybird share links. Your own list is always included.',
     linksLabel: 'Share links',
