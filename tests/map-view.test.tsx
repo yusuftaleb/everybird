@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // The Map view: it shades the birds the filters leave (the Places filter included), a bird seen in two countries counts in
-// both, a press on a country (or its row in the list under the map) opens it and World closes it, the tooltip names the
-// place, and the map has no filter controls of its own.
+// both, a press on a country (or its row in the list under the map) opens it, a province with counties opens too, the
+// path above the map goes back, the tooltip names the place, and the map has no filter controls of its own. Its three
+// looks (?v=map:a|b|c), the flags of the list's rows and its columns.
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useReducer } from 'react'
@@ -9,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 
 const square = 'M0 0h2v2h-2z'
-const world = { v: 1, w: 10, h: 10, d: { CA: square, US: square, KE: square, BR: square } }
+const world = { v: 1 as const, w: 10, h: 10, d: { CA: square, US: square, KE: square, BR: square } }
 const provinces: { v: 1; groups: Record<string, { w: number; h: number; d: Record<string, string> }> } = { v: 1, groups: { CA: { w: 10, h: 10, d: { 'CA-BC': square, 'CA-ON': square } } } }
 vi.mock('@/lib/data-url', () => ({
   fetchData: async (name: string) => (name === 'map-countries.v1.json' ? world : provinces),
@@ -17,7 +18,7 @@ vi.mock('@/lib/data-url', () => ({
 
 const { MapView } = await import('@/components/collage/MapView')
 const { countryRows, placeRows } = await import('@/lib/list/filters')
-const { countRange, frameBox, mapCounts, mapGroupOf, mapLayer, mapRows, mapShapes, pathBox, shadeMix, SHADE_LIGHT } = await import('@/lib/map/shapes')
+const { countRange, frameBox, LOOKS, mapCounts, mapFlag, mapGroupOf, mapLayer, mapOpens, mapPath, mapRows, mapShapes, pathBox, placeCount, shadeMix, SHADE_LIGHT } = await import('@/lib/map/shapes')
 const { initialState, makeReducer } = await import('@/lib/list/store')
 const { emptySaved } = await import('@/lib/list/storage')
 const { buildSpeciesIndex } = await import('@/lib/species/load')
@@ -174,6 +175,157 @@ describe('framing a country (pathBox, frameBox, mapLayer)', () => {
   })
 })
 
+describe('the county level (placeCount, mapPath, mapOpens, mapRows, mapLayer)', () => {
+  // duck1 in British Columbia's Capital, crow1 in its Okanagan, owl1 in Ontario (no county).
+  const counties = () => {
+    const saved = emptySaved()
+    saved.records.ebird = [
+      { code: 'duck1', source: 'ebird', date: '2019-01-01', place: { country: 'CA', sub1: 'CA-BC' }, seen: ['2019-01-01|CA-BC|Capital'] },
+      { code: 'crow1', source: 'ebird', date: '2021-01-01', place: { country: 'CA', sub1: 'CA-BC' }, seen: ['2021-01-01|CA-BC|Okanagan'] },
+      { code: 'owl1', source: 'ebird', date: '2022-01-01', place: { country: 'CA', sub1: 'CA-ON' }, seen: ['2022-01-01|CA-ON'] },
+    ]
+    return reduce(initialState(), { type: 'restore', saved })
+  }
+  const counts = countsOf(counties())
+  const label = (k: string) => k.split('|').at(-1)!.replace(/^[a-z]:/, '')
+  it('counts a country and a province; nothing else', () => {
+    expect(placeCount(counts, 'c:CA')).toBe(3)
+    expect(placeCount(counts, 's:CA-BC')).toBe(2)
+    expect(placeCount(counts, 's:CA-ON')).toBe(1)
+    expect(placeCount(counts, 'k:CA-BC|Capital')).toBe(0)
+    expect(placeCount(counts, 'c:KE')).toBe(0)
+  })
+  it('the path runs World, the country, the province (never the continent)', () => {
+    expect(mapPath(undefined)).toEqual([undefined])
+    expect(mapPath('c:CA')).toEqual([undefined, 'c:CA'])
+    expect(mapPath('s:CA-BC')).toEqual([undefined, 'c:CA', 's:CA-BC'])
+  })
+  it('a province with counties opens, one without does not; every country does; the open place never', () => {
+    const provinces = mapRows(counts, 'c:CA', label)
+    expect(provinces.map((r) => [r.value, mapOpens(r, 'c:CA')])).toEqual([['s:CA-BC', true], ['s:CA-ON', false]])
+    expect(mapRows(counts, undefined, label).map((r) => mapOpens(r, undefined))).toEqual([true])
+    expect(mapOpens(provinces[0], 's:CA-BC')).toBe(false)
+  })
+  it("a province's rows are its counties, most first; one with none lists itself", () => {
+    expect(mapRows(counts, 's:CA-BC', label).map((r) => [r.value, r.count])).toEqual([['k:CA-BC|Capital', 1], ['k:CA-BC|Okanagan', 1]])
+    expect(mapRows(counts, 's:CA-ON', label).map((r) => [r.value, r.count])).toEqual([['s:CA-ON', 1]])
+  })
+  it("an open province is framed in its country's provinces; without their shapes, the country in the world", () => {
+    const layer = { w: 100, h: 100, d: { 'CA-BC': 'M10 10h10v10h-10z', 'CA-ON': 'M70 70h10v10h-10z' } }
+    const bc = mapLayer(world, { v: 1, groups: { CA: layer } }, counts, 's:CA-BC')
+    expect(bc.layer).toBe(layer)
+    expect(bc.box!.w).toBeLessThan(100)
+    expect(bc.box!.x).toBeLessThanOrEqual(10)
+    expect(bc.box!.x + bc.box!.w).toBeGreaterThanOrEqual(20)
+    expect(mapLayer(world, { v: 1, groups: { CA: layer } }, counts, 'c:CA').box).toEqual({ x: 0, y: 0, w: 100, h: 100 })
+    const noShapes = mapLayer(world, { v: 1, groups: {} }, counts, 's:CA-BC')
+    expect(noShapes.layer).toBe(world)
+    expect(noShapes.box).toEqual(mapLayer(world, { v: 1, groups: {} }, counts, 'c:CA').box)
+  })
+  it('the Map view: a province with counties opens from its row or the map; the path steps back; Esc too', async () => {
+    const levels: (string | undefined)[] = []
+    render(<Harness init={counties} onLevel={(at) => levels.push(at)} />)
+    await act(async () => {})
+    fireEvent.click(screen.getByTestId('map-row-c:CA'))
+    await act(async () => {})
+    expect(screen.getByTestId('map-row-s:CA-BC').tagName).toBe('BUTTON')
+    expect(screen.getByTestId('map-row-s:CA-ON').tagName).toBe('SPAN')
+    expect(shape('s:CA-BC')).toHaveAttribute('data-opens')
+    expect(shape('s:CA-ON')).not.toHaveAttribute('data-opens')
+    fireEvent.pointerDown(shape('s:CA-BC'), { pointerType: 'mouse' })
+    fireEvent.click(shape('s:CA-BC'))
+    await act(async () => {})
+    expect(levels.at(-1)).toBe('s:CA-BC')
+    expect(screen.getByTestId('map-path')).toHaveTextContent('World/Canada/British Columbia')
+    expect(screen.getByRole('button', { name: 'Canada' })).toHaveFocus()
+    expect(shape('s:CA-BC')).toHaveAttribute('data-open')
+    expect(document.querySelector('svg.eb-map-svg')!.getAttribute('viewBox')).not.toBe('0 0 10 10')
+    const list = screen.getByRole('list', { name: 'Counties in British Columbia' })
+    expect(within(list).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Capital1, 1 species', 'Okanagan1, 1 species'])
+    expect(within(list).queryAllByRole('button')).toHaveLength(0)
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Canada' }), { key: 'Escape' })
+    expect(levels.at(-1)).toBe('c:CA')
+    expect(screen.getByTestId('map-row-s:CA-BC')).toHaveFocus()
+    fireEvent.click(screen.getByTestId('map-row-s:CA-BC'))
+    fireEvent.click(screen.getByRole('button', { name: 'World' }))
+    expect(levels.at(-1)).toBeUndefined()
+    expect(screen.getByTestId('map-row-c:CA')).toHaveFocus()
+  })
+})
+
+describe('the flags (mapFlag)', () => {
+  it("a country's regional-indicator emoji from its ISO code; none for a private code, a province or a county", () => {
+    expect(mapFlag('c:CA')).toBe('🇨🇦')
+    expect(mapFlag('c:FR@SA')).toBe('🇫🇷')
+    expect(mapFlag('c:XK')).toBe('🇽🇰')
+    expect(mapFlag('c:QY')).toBe('')
+    expect(mapFlag('c:XA')).toBe('')
+    expect(mapFlag('s:CA-BC')).toBe('')
+    expect(mapFlag('k:CA-BC|Capital')).toBe('')
+    expect(mapFlag('n:NA')).toBe('')
+  })
+})
+
+describe('the three looks (LOOKS, shadeMix by look, lookFill, ?v=map:)', () => {
+  it('each look runs from its light end at the fewest species to its strong end at the most, on the log scale', () => {
+    for (const look of ['a', 'b', 'c'] as const) {
+      const { lo, hi } = LOOKS[look]
+      expect(shadeMix(0, 1, 100, look)).toBe(0)
+      expect(shadeMix(1, 1, 100, look)).toBeCloseTo(lo)
+      expect(shadeMix(100, 1, 100, look)).toBeCloseTo(hi)
+      expect(shadeMix(10, 1, 100, look)).toBeCloseTo((lo + hi) / 2)
+      expect(shadeMix(5, 5, 5, look)).toBe(hi)
+    }
+    expect(shadeMix(10, 1, 100)).toBe(shadeMix(10, 1, 100, 'a')) // a is the default, today's look
+  })
+  it('a: Accent over Surface to full Accent; b: a pale Accent tint over Paper up to mid-strength, never full; c: grey to Ink', () => {
+    expect(LOOKS.a).toEqual({ hue: 'accent', over: 'surface', lo: SHADE_LIGHT, hi: 1 })
+    expect(LOOKS.b.hue).toBe('accent')
+    expect(LOOKS.b.over).toBe('paper')
+    expect(LOOKS.b.lo).toBeLessThan(0.25)
+    expect(LOOKS.b.hi).toBeGreaterThan(0.5)
+    expect(LOOKS.b.hi).toBeLessThan(0.75)
+    expect(LOOKS.c).toMatchObject({ hue: 'ink', over: 'paper', hi: 1 })
+    expect(LOOKS.c.lo).toBeLessThan(0.25)
+  })
+  it('the CSS colour mixes the look\'s tokens, so dark mode follows', async () => {
+    const { lookFill } = await import('@/components/collage/MapView')
+    expect(lookFill('a', 1)).toBe('color-mix(in srgb, var(--accent) 100%, var(--surface))')
+    expect(lookFill('b', 0.18)).toBe('color-mix(in srgb, var(--accent) 18%, var(--paper))')
+    expect(lookFill('c', 0.5)).toBe('color-mix(in srgb, var(--ink) 50%, var(--paper))')
+  })
+  it('?v=map:c picks look c on the page: its fills and legend in Ink, the look on the root for map.css', async () => {
+    window.history.replaceState(null, '', '/?v=map:c')
+    try {
+      render(<Harness />)
+      await act(async () => {})
+      expect(screen.getByTestId('map-view')).toHaveAttribute('data-look', 'c')
+      expect(shape('c:CA').style.fill).toContain('var(--ink)')
+      expect(screen.getByTestId('map-legend').querySelector('i')!.style.background).toContain('var(--ink)')
+    } finally {
+      window.history.replaceState(null, '', '/')
+    }
+    cleanup()
+    render(<Harness />)
+    await act(async () => {})
+    expect(screen.getByTestId('map-view')).toHaveAttribute('data-look', 'a')
+  })
+})
+
+describe('map.css: the looks, the columns, nothing cut', () => {
+  it('one column on phones, two from 601px, three from 1024px, a row never split; no ellipsis anywhere', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const css = readFileSync(resolve(__dirname, '../src/components/collage/map.css'), 'utf8')
+    expect(css).toMatch(/\.eb-map-list \{[^}]*columns: 1;/)
+    expect(css).toMatch(/@media \(min-width: 601px\) \{ \.eb-map-list \{ columns: 2; \} \}/)
+    expect(css).toMatch(/@media \(min-width: 1024px\) \{ \.eb-map-list \{ columns: 3; \} \}/)
+    expect(css).toMatch(/\.eb-map-list > li \{ break-inside: avoid; \}/)
+    expect(css).not.toMatch(/ellipsis/)
+    expect(css).toMatch(/\.eb-map\[data-look="c"\] \.eb-map-svg path:is\(\[data-open\], \[data-hot\]\) \{ stroke: var\(--accent\); \}/)
+  })
+})
+
 describe('the list under the map (mapRows)', () => {
   const counts = countsOf(start())
   const label = (k: string) => regions.countries[k.slice(2)] ?? regions.sub1[k.slice(2)] ?? k
@@ -200,7 +352,7 @@ describe('the Map view', () => {
     expect(filterOf()).toEqual({})
   })
 
-  it('a press on a country opens it; World (focused) goes back and focus returns to its row; Esc does too', async () => {
+  it('a press on a country opens it; the path says where; its World step (focused) goes back and focus returns to its row; Esc does too', async () => {
     const levels: (string | undefined)[] = []
     render(<Harness onLevel={(at) => levels.push(at)} />)
     await act(async () => {})
@@ -212,11 +364,13 @@ describe('the Map view', () => {
     expect(levels.at(-1)).toBe('c:CA')
     const back = screen.getByRole('button', { name: 'World' })
     expect(back).toHaveFocus()
-    // The list is the country's provinces, plain rows, World leading it.
+    expect(screen.getByTestId('map-path')).toHaveTextContent('World/Canada')
+    expect(within(screen.getByTestId('map-path')).getByText('Canada')).toHaveAttribute('aria-current', 'location')
+    // The list is the country's provinces (plain rows: no counties under them), no flags, the path above the map.
     const list = screen.getByRole('list', { name: 'States and provinces in Canada' })
     expect(within(list).queryAllByRole('button')).toHaveLength(0)
     expect(within(list).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['British Columbia1, 1 species', 'Ontario1, 1 species'])
-    expect(back.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(back.compareDocumentPosition(document.querySelector('svg.eb-map-svg')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     fireEvent.click(back)
     expect(shape('c:CA')).toBeInTheDocument()
     expect(levels.at(-1)).toBeUndefined()
@@ -238,13 +392,17 @@ describe('the Map view', () => {
     expect(shape('c:KE')).toHaveAttribute('data-open')
     expect(svg().getAttribute('viewBox')).not.toBe('0 0 10 10')
     expect(screen.getByRole('list', { name: 'States and provinces in Kenya' })).toHaveTextContent('Kenya1, 1 species')
+    expect(screen.queryByRole('button', { name: 'Kenya' })).toBeNull() // the open place is the path's current step, not a link
   })
 
-  it('the list under the map: countries with species, most first, each a button with its count', async () => {
+  it('the list under the map: countries with species, most first, each a button with its flag and count', async () => {
     render(<Harness />)
     await act(async () => {})
     const list = screen.getByRole('list', { name: 'Countries' })
-    expect(within(list).getAllByRole('button').map((b) => b.textContent)).toEqual(['Canada2, 2 species', 'Kenya1, 1 species', 'United States1, 1 species'])
+    expect(within(list).getAllByRole('button').map((b) => b.textContent)).toEqual(['🇨🇦Canada2, 2 species', '🇰🇪Kenya1, 1 species', '🇺🇸United States1, 1 species'])
+    expect(within(list).getByRole('button', { name: 'Canada, 2 species' })).toBeInTheDocument() // the flag is aria-hidden
+    expect(screen.getByTestId('map-path')).toHaveTextContent(/^World$/)
+    expect(within(screen.getByTestId('map-path')).queryAllByRole('button')).toHaveLength(0)
     expect(screen.queryByTestId('map-all')).toBeNull()
   })
 
@@ -257,7 +415,7 @@ describe('the Map view', () => {
     await act(async () => {})
     expect(screen.queryByRole('button', { name: 'World' })).toBeNull()
     expect(shape('c:CA')).not.toHaveAttribute('data-mix')
-    expect(within(screen.getByRole('list', { name: 'Countries' })).getAllByRole('button').map((b) => b.textContent)).toEqual(['Kenya1, 1 species'])
+    expect(within(screen.getByRole('list', { name: 'Countries' })).getAllByRole('button').map((b) => b.textContent)).toEqual(['🇰🇪Kenya1, 1 species'])
   })
 
   it('hover shows a tooltip with the name and count; on touch the first tap names the country and the second opens it', async () => {

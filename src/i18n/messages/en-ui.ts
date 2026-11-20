@@ -132,8 +132,8 @@ export const EN_UI = {
       collage: 'Collage',
       list: 'List',
       map: 'Map',
-      /** The Map view (MapView): the button on the map back to the whole world (after an arrow icon), "Show all" under its
-       *  list ({n} the number of places), and the note when its shapes don't load. */
+      /** The Map view (MapView): the first step of the path above the map ("World / Canada"), "Show all" under its list
+       *  ({n} the number of places), and the note when its shapes don't load. */
       mapWorld: 'World',
       mapAll: 'Show all {n}',
       mapFailed: "Couldn't load the map. The list below has the same counts.",

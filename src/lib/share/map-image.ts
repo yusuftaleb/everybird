@@ -1,13 +1,16 @@
 // The Map view's share image (view-image.ts has the frame): the map as on screen, the world or the open country
 // (mapLayer: its provinces, or the country framed in the world), shaded by the birds the filters leave (mapCounts, the
-// Places filter included) on the view's continuous scale, with the legend ramp under it, and the five places with the
-// most species at that level beside it (wide areas) or under it, each with its count and a bar in its shade. The count
-// over the map is the level's species total, the line under it the number of countries (or the country and its states
-// and provinces). No outline, no tooltip.
+// Places filter included) on the view's continuous scale in the page's look (`?v=map:a|b|c`, LOOKS in shapes.ts), with
+// the legend ramp under it, and the five places with the most species at that level beside it (wide areas) or under it,
+// each with its count and a bar in its shade. With a province open, the province framed and its counties listed. The
+// count over the map is the level's species total, the line under it the number of countries (or the open place and
+// its states and provinces, or counties). No outline, no tooltip.
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { applyFilter, clearPlaces, withPlaces } from '@/lib/list/filters'
-import { countRange, loadMapCountries, loadMapProvinces, mapCounts, mapGroupOf, mapLayer, mapRows, SHADE_LIGHT, shadeMix } from '@/lib/map/shapes'
+import { parsePlaceKey } from '@/lib/list/place-keys'
+import { countRange, loadMapCountries, loadMapProvinces, LOOKS, MAP_LOOKS, mapCounts, mapGroupOf, mapLayer, mapRows, shadeMix } from '@/lib/map/shapes'
+import { readVariant } from '@/lib/variants'
 import { MAP_FOOTER, clipText, fitBox, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 
 /** How many places the image lists. */
@@ -17,6 +20,8 @@ const LEGEND = { ramp: 12, size: 20, above: 24, rampMax: 360, gap: 14 }
 const ROW = { name: 26, count: 22, bar: 6, h: 64, barTop: 40 }
 const SIDE = { gap: 48, minW: 280, maxW: 460, share: 0.32, from: 1.2 }
 const LIST_GAP = 40
+/** The borders' width in design units: Paper lines in look a, hairlines in b and c. */
+const STROKE = { a: 1, b: 0.6, c: 0.6 } as const
 
 export type MapImageLayout = { map: Area; legendH: number; list: Area | null; rows: number; side: boolean }
 
@@ -50,6 +55,8 @@ function mix(a: string, b: string, p: number): string {
 
 export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
   const { state, species, at, t } = o
+  const look = readVariant('map', MAP_LOOKS)
+  const L0 = LOOKS[look]
   const open = at.place
   const name = at.names ?? ((k: string) => k.slice(2))
   const [world, provinces] = await Promise.all([loadMapCountries(), mapGroupOf(open) !== undefined ? loadMapProvinces().catch(() => null) : null])
@@ -62,13 +69,15 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
   // The count is the level's: with a country open, the shown birds recorded there.
   const entries = open ? applyFilter(o.entries, withPlaces(clearPlaces(state.filter), [open]), species, state.seen) : o.entries
   const ch = t.filters.countHead
+  const sub = parsePlaceKey(open ?? '')?.level === 'province' ? ch.county : ch.province
   const under = o.hideTotals ? undefined
-    : open ? [name(open), ...(rows.length && rows[0].value !== open ? [plural(ch.province, rows.length, { n: formatInt(rows.length, t.num) })] : [])]
+    : open ? [name(open), ...(rows.length && rows[0].value !== open ? [plural(sub, rows.length, { n: formatInt(rows.length, t.num) })] : [])]
     : [plural(ch.country, rows.length, { n: formatInt(rows.length, t.num) })]
   const minText = formatInt(min, t.num)
   const maxText = plural(t.collage.stats.species, max, { n: formatInt(max, t.num) })
   return renderViewImage({ ...o, entries }, MAP_FOOTER, (ctx, card, area) => {
     const C = card.colors
+    const shade = (p: number) => mix(C[L0.hue], C[L0.over], p)
     const L = mapImageLayout(area, top.length, max > 0)
     const fit = fitBox(box.w, box.h, L.map)
     // Under the map, the map, its legend and the list are one block, centred in the area.
@@ -81,11 +90,11 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
     ctx.translate(fit.x - box.x * fit.s, fit.y - box.y * fit.s)
     ctx.scale(fit.s, fit.s)
     ctx.strokeStyle = C.paper
-    ctx.lineWidth = 1 / fit.s
+    ctx.lineWidth = STROKE[look] / fit.s
     ctx.lineJoin = 'round'
     for (const s of shapes) {
       const p = new Path2D(s.d)
-      ctx.fillStyle = s.n > 0 ? mix(C.accent, C.surface, shadeMix(s.n, min, max)) : C.surface
+      ctx.fillStyle = s.n > 0 ? shade(shadeMix(s.n, min, max, look)) : C.surface
       ctx.fill(p, 'evenodd')
       ctx.stroke(p)
     }
@@ -107,8 +116,8 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
       const rx = x0 + lw + LEGEND.gap
       if (ramp > 0) {
         const g = ctx.createLinearGradient(rx, 0, rx + ramp, 0)
-        g.addColorStop(0, mix(C.accent, C.surface, SHADE_LIGHT))
-        g.addColorStop(1, C.accent)
+        g.addColorStop(0, shade(L0.lo))
+        g.addColorStop(1, shade(L0.hi))
         ctx.fillStyle = g
         ctx.beginPath()
         if (ctx.roundRect) ctx.roundRect(rx, y - LEGEND.ramp / 2, ramp, LEGEND.ramp, LEGEND.ramp / 2)
@@ -135,7 +144,7 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
       ctx.fillStyle = C.ink
       ctx.textAlign = 'left'
       ctx.fillText(clipText(ctx, r.label, list.w - cw - 16), list.x, y + ROW.name / 2 + 4)
-      ctx.fillStyle = mix(C.accent, C.surface, shadeMix(r.count, min, max) || 1)
+      ctx.fillStyle = shade(shadeMix(r.count, min, max, look) || L0.hi)
       ctx.beginPath()
       const w = Math.max(ROW.bar, (list.w * r.count) / most)
       if (ctx.roundRect) ctx.roundRect(list.x, y + ROW.barTop, w, ROW.bar, ROW.bar / 2)
