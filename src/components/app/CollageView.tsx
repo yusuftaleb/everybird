@@ -4,7 +4,7 @@
 // the list, the legend, the hover tooltip and the bird card. Composition after LifeList.tsx (framer-site).
 import { trackFilterUsed } from '@/lib/analytics'
 import { newlySetKinds } from '@/lib/list/filter-kinds'
-import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BirdCard } from '@/components/collage/BirdCard'
 import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage, revealBird, type BirdMarks } from '@/components/collage/Collage'
@@ -39,6 +39,8 @@ import './app.css'
 
 /** The stage re-renders only when its own props change (not when a card or tooltip opens). */
 const Stage = memo(Collage)
+/** The Tree tab, and its data, load only when it is opened. */
+const TreeView = lazy(() => import('@/components/tree/TreeView'))
 
 type Props = {
   state: AppState
@@ -218,8 +220,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   useEffect(() => () => { if (ring.current) clearTimeout(ring.current.t) }, [])
   const show = useCallback((code: string) => {
     const collage = view === 'collage'
-    const el = box.current?.querySelector<HTMLElement>(collage ? `.eb-bird[data-code="${code}"]` : `.eb-row-btn[data-code="${code}"]`)
-    if (!el) return
+    const el = box.current?.querySelector<HTMLElement>(collage ? `.eb-bird[data-code="${code}"]` : ['.eb-row-btn', '.eb-tree-btn', '.eb-tree-link'].map((c) => `${c}[data-code="${code}"]`).join())
+    if (!el) { if (view === 'tree') setPick({ code, anchor: null }); return } // a species the open tree level doesn't show: its card
     if (ring.current) { clearTimeout(ring.current.t); ring.current.el.removeAttribute('data-ring') }
     if (collage) revealBird(el) // a big list renders only the birds near the viewport
     el.setAttribute('data-ring', '')
@@ -315,11 +317,15 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         )
       ) : view === 'map' ? (
         <MapView state={state} species={species} regions={regions} onFilter={onApply} note={placesNote} unplaced={placesUnplaced} />
-      ) : (
+      ) : view === 'list' ? (
         <ListView entries={shownList} species={species} regions={regions} order={massOrder} sci={sci} onPick={onPickRow} />
+      ) : (
+        <Suspense fallback={<p className="eb-mono">{t.collage.tree.loading}</p>}>
+          <TreeView entries={shownList} sci={sci} onPick={onPickRow} />
+        </Suspense>
       )}
 
-      {view !== 'map' && <div className="eb-mono eb-legend">
+      {view !== 'map' && view !== 'tree' && <div className="eb-mono eb-legend">
         <p>
           {latest && latestRow ? <>{latestLine(displayName(latestRow), latest.date, t)} · </> : null}
           {sizes}

@@ -8,7 +8,7 @@
 // under 330px and 310px everything tightens, so row one never breaks between 280 and 1200px of bar. On phones (600px of screen and under, as /lifelist) the short form holds whatever the width: row
 // one is the icons, the two switches (or "Heaviest") and the magnifier; row two the Filters button.
 import { useCallback, useId, useRef, useState, type ReactNode } from 'react'
-import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon } from '@/components/collage/icons'
+import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
 import { useI18n } from '@/i18n/I18nProvider'
 import { ARRANGEMENTS, type Arrangement } from '@/lib/layout/arrange'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
@@ -71,9 +71,9 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, trueOff
     <div ref={wrap} className="eb-dockwrap">
       <div className="eb-dock" data-finding={finding || undefined}>
         <div className="eb-dock-tabs" role="group" aria-label={c.view} inert={finding}>
-          {(noMap ? (['collage', 'list'] as const) : (['collage', 'list', 'map'] as const)).map((v) => (
+          {(noMap ? (['collage', 'list', 'tree'] as const) : (['collage', 'list', 'map', 'tree'] as const)).map((v) => (
             <button key={v} type="button" className="eb-dock-tab" aria-pressed={view === v} aria-label={c[v]} onClick={() => onView(v)}>
-              {v === 'collage' ? <CollageIcon /> : v === 'list' ? <ListIcon /> : <MapIcon />}
+              {v === 'collage' ? <CollageIcon /> : v === 'list' ? <ListIcon /> : v === 'map' ? <MapIcon /> : <TreeIcon />}
               <span>{c[v]}</span>
             </button>
           ))}
@@ -92,7 +92,7 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, trueOff
               </span>
               <ArrowDownIcon up={lightFirst} />
             </button>
-          ) : (
+          ) : view === 'collage' && (
             <button
               type="button"
               role="switch"

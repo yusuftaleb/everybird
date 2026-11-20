@@ -17,6 +17,9 @@ export const ListIcon = ({ className }: P) =>
 /** A folded map (the dock's Map tab), in the 16-unit stroke. */
 export const MapIcon = ({ className }: P) =>
   svg(className, <path d="M96 184 32 200V56l64-16 64 32 64-16v144l-64 16-64-32ZM96 40v144M160 72v144" fill="none" stroke="currentColor" strokeWidth="16" strokeLinejoin="round" />)
+/** A small cladogram: three tips joined by two elbows. */
+export const TreeIcon = ({ className }: P) =>
+  svg(className, <path d="M216 56H120V200H216M120 128H216M120 128H40" fill="none" stroke="currentColor" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round" />)
 
 export const ArrowDownIcon = ({ className, up }: P & { up?: boolean }) => (
   <svg viewBox="0 0 256 256" aria-hidden="true" focusable="false" className={className} style={up ? { transform: 'scaleY(-1)' } : undefined}>
