@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { mapImageLayout, TOP_PLACES } from '@/lib/share/map-image'
 import { en } from '@/i18n/messages/en'
-import { FOOTER_LINE, SITE_LABEL, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
+import { FOOTER_LINE, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
 import { IMAGE_SIZES, TOTALS, rowsLabels, totalsSize } from '@/lib/share/tree-image'
 import { LABEL_GAP, fitRound } from '@/lib/tree/fan'
 import { MAP_FOOTER, TREE_FOOTER, fitBox, wrapParts } from '@/lib/share/view-image'
