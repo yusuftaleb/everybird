@@ -133,6 +133,7 @@ export const nl: Messages = {
         markFirst: 'Eerste soort markeren',
         arrangement: 'Indeling',
         packed: 'Compact',
+        oval: 'Ovaal',
         byFamily: 'Per familie',
         byColour: 'Op kleur',
         trueOff: 'Niet beschikbaar per familie: de vogels in een rij zijn even hoog.',

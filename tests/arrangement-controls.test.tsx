@@ -27,14 +27,23 @@ function bar(props: Partial<Parameters<typeof ControlsBar>[0]> = {}) {
 }
 
 describe('Arrangement control', () => {
-  it('is a named group of three pressed buttons, even without a dated lifer', () => {
+  it('is a named group of four pressed buttons, even without a dated lifer', () => {
     const { onChange } = bar()
     const group = screen.getByRole('group', { name: 'Arrangement' })
     const buttons = within(group).getAllByRole('button')
-    expect(buttons.map((b) => b.textContent)).toEqual(['Packed', 'By family', 'By colour'])
-    expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false'])
-    fireEvent.click(buttons[2])
+    expect(buttons.map((b) => b.textContent)).toEqual(['Packed', 'Oval', 'By family', 'By colour'])
+    expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false'])
+    fireEvent.click(buttons[1])
+    expect(onChange).toHaveBeenCalledWith('oval')
+    fireEvent.click(buttons[3])
     expect(onChange).toHaveBeenCalledWith('colour')
+  })
+
+  it('Oval keeps True size available', () => {
+    bar({ arrangement: { value: 'oval', onChange: vi.fn() } })
+    const sw = screen.getByRole('switch', { name: /True size/ })
+    expect(sw).not.toHaveAttribute('aria-disabled')
+    expect(within(screen.getByRole('group', { name: 'Arrangement' })).getByRole('button', { name: 'Oval' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('is left out of list view', () => {
@@ -57,9 +66,11 @@ describe('Arrangement control', () => {
     setArrangement('family')
     expect(localStorage.getItem(ARRANGEMENT_KEY)).toBe('family')
     expect(arrangement()).toBe('family')
+    setArrangement('oval')
+    expect(arrangement()).toBe('oval')
     setArrangement('packed')
     expect(localStorage.getItem(ARRANGEMENT_KEY)).toBeNull()
-    localStorage.setItem(ARRANGEMENT_KEY, 'oval')
+    localStorage.setItem(ARRANGEMENT_KEY, 'spiral')
     expect(arrangement()).toBe('packed')
   })
 })

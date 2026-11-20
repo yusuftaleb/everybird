@@ -20,7 +20,8 @@
 // entry's `to`, else the request's order); a filtered family state passes the full one's row height as refBase and its
 // stage as fixedStage. 'colour' re-places Packed's birds by colour (colours.v1.json, loaded once per worker): an even
 // layout request passes the same state's Packed stage as fixedStage and its base as refBase; true mode needs nothing new
-// (its targets are the colour state's centres).
+// (its targets are the colour state's centres). 'oval' is Packed (both modes, every option as Packed's) inside the
+// ellipse inscribed in the stage packed in or the image's frame.
 //
 // Species without a mask (st:false in species.v1.json, drawn as a silhouette icon) get FALLBACK_MASK: a solid
 // ellipse on a square 24 x 24 grid (aspect 1), so they pack as round blobs, and are sized by the outline they draw
@@ -34,7 +35,7 @@ import { fetchAllMasks, fetchData } from '../data-url'
 
 /** `to`: the eBird taxon order (By family sorts by it). */
 export type ListEntryMsg = { code: string; mass: number; ord: string; to?: number }
-type Arranged = 'family' | 'colour'
+type Arranged = 'oval' | 'family' | 'colour'
 export type LayoutName = 'wide' | 'medium' | 'narrow'
 export type WorkerRequest =
   | { type: 'setList'; id: number; entries: ListEntryMsg[] }
@@ -144,7 +145,7 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks, loa
           const key = new Map(codes.map((c) => [birds.get(c)!.id, keys[c] ?? NEUTRAL_KEY]))
           r = colourFrame(all, msg.aspect, (id) => key.get(id) ?? NEUTRAL_KEY, opts)
         }
-        r ??= packFrame(all, msg.aspect, opts)
+        r ??= packFrame(all, msg.aspect, { ...opts, ...(msg.arrangement === 'oval' ? { oval: true } : {}) })
         const boxes = new Float32Array(codes.length * 4)
         codes.forEach((c, i) => boxes.set(r.boxes.get(birds.get(c)!.id)!, i * 4))
         return { type: 'image', id: msg.id, W: r.W, H: r.H, codes, boxes }
@@ -183,6 +184,7 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks, loa
       } else {
         r = packBest(pack, layout, msg.mode, {
           targets, refBase: msg.refBase, fixedStage: msg.fixedStage, rel: rel[msg.mode], fit: msg.fit,
+          ...(msg.arrangement === 'oval' ? { oval: true } : {}),
         })
       }
       const boxes = new Float32Array(known.length * 4)

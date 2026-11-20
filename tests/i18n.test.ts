@@ -22,6 +22,8 @@ const ALLOW_SAME = [
   'Filters', '{n} continent', 'Filters · {n} · {species}', 'Filters · {species}', 'Families', '{n} families', 'Story', 'Post', 'Kiwis', 'Turacos', 'Flamingos', 'Seriemas', 'Hoatzin', 'Trogons', '{month} {year}',
   // The orientation switch and the desktop format: es and pt keep "Vertical" and "Horizontal", and pt and nl "Desktop".
   'Vertical', 'Horizontal', 'Desktop',
+  // The Oval arrangement: pt and de spell it as English does.
+  'Oval',
   // Templates with no words: the summary line's joins (ui.import.summary) and suggestion arrow; nl "Spreadsheet".
   '{head}: {parts}.', '{head}, {all}.', '{name} → {suggestion}', 'Spreadsheet', '{label}: {n}',
   // About's credits: es and nl keep "Stickers" and "API" as they are; nl "Credits" and "Code".

@@ -14,7 +14,8 @@
 //    still everything after the second "|".
 //  - Arrangements: By family ignores mode (always even rows); its filtered states take the full one's row height and
 //    stage as Packed's take its base. By colour's even state needs the same filter's Packed state (its stage and base);
-//    its true state follows its even one, as Packed's does.
+//    its true state follows its even one, as Packed's does. Oval depends on its own states exactly as Packed does, and
+//    both its modes tell the worker (the ellipse applies to true size too).
 //
 // Ordering rules:
 //  - Per layout class and mode, the full list's layout is computed first; its trimmed stage and base fix
@@ -202,7 +203,7 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       const reply = await send({
         type: 'layout', key, codes, layout, mode,
         refBase: (full ?? packed)?.base, fixedStage: stage ? [stage.W, stage.H] : undefined, targets, fit: !isFull,
-        ...(arr !== 'packed' && mode === 'even' ? { arrangement: arr } : {}),
+        ...(arr === 'oval' || (arr !== 'packed' && mode === 'even') ? { arrangement: arr } : {}),
       }, entry)
       if (reply.type !== 'result') throw new Error('unexpected worker reply')
       const boxes = new Map<string, Box>()

@@ -76,6 +76,14 @@ export function pack(
   return packGrid(birds, rel, W, H, base, stretch, hole, targets, cell, dense, captions)?.boxes ?? null
 }
 
+/** An empty grid with the count's hole marked and, for Oval, everything outside the stage's ellipse. */
+function blankGrid(W: number, H: number, cell: number, hole: Hole, oval: boolean): Grid {
+  const grid = new Grid(W, H, cell)
+  grid.markHole(W / 2, H / 2, hole)
+  if (oval) grid.markOutsideOval(W, H)
+  return grid
+}
+
 /** What settle() needs of each placed bird (its box is in Packed.boxes). */
 type Placed = { id: number; mask: Mask; w: number; h: number }
 type Packed = { boxes: Map<number, Box>; placed: Placed[] }
@@ -83,10 +91,9 @@ type Packed = { boxes: Map<number, Box>; placed: Placed[] }
 function packGrid(
   birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
   stretch: number | readonly [number, number], hole: Hole, targets: Map<number, [number, number]> | undefined,
-  cell: number, dense: boolean, captions?: Map<number, CaptionRoom>,
+  cell: number, dense: boolean, captions?: Map<number, CaptionRoom>, oval = false,
 ): Packed | null {
-  const grid = new Grid(W, H, cell)
-  grid.markHole(W / 2, H / 2, hole)
+  const grid = blankGrid(W, H, cell, hole, oval)
   const pad = Math.ceil(GAP / cell)
   const [kx, ky] = typeof stretch === 'number' ? [stretch, 1] : stretch
   const sx = (targets ? 1 : kx) / cell, sy = (targets ? 1 : ky) / cell
@@ -130,9 +137,8 @@ function packGrid(
  * spiral's coarse steps (about 14 units between turns) leave between small stickers, which read as a loose
  * lattice at the edge; every step is a collision test, so it never makes an overlap. Deterministic.
  */
-function settle(p: Packed, W: number, H: number, hole: Hole): Map<number, Box> {
-  const grid = new Grid(W, H, 1)
-  grid.markHole(W / 2, H / 2, hole)
+function settle(p: Packed, W: number, H: number, hole: Hole, oval: boolean): Map<number, Box> {
+  const grid = blankGrid(W, H, 1, hole, oval)
   const pad = GAP
   type Q = { id: number; m: CellMask; s: CellMask; gx: number; gy: number; w: number; h: number }
   const todo: Q[] = []
@@ -250,11 +256,10 @@ export function detached(boxes: Map<number, Box>, k = DETACH): number[] {
  * clear. Repeated while that frees others (a bird that was blocked by one now moved). True size and small lists
  * leave a few: big birds placed first push small ones out along the spiral past the edge (the "stragglers").
  */
-export function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions?: Map<number, CaptionRoom>): Map<number, Box> {
+export function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions?: Map<number, CaptionRoom>, oval = false): Map<number, Box> {
   let loose = detached(boxes)
   if (!loose.length) return boxes
-  const grid = new Grid(W, H, 1)
-  grid.markHole(W / 2, H / 2, hole)
+  const grid = blankGrid(W, H, 1, hole, oval)
   const pad = GAP
   const byId = new Map(birds.map((b) => [b.id, b]))
   type Off = { offX: number; offY: number }
@@ -384,15 +389,18 @@ export function stretchAt(layout: Pick<Layout, 'H' | 'stretch' | 'maxH'>, H: num
  * - With fit (filtered states, needs fixedStage): after packing, the stage height is trimmed about the count
  *   (fitStage), so the returned H can be less than fixedStage's and box y's move up by the same amount.
  * - With maxBase (share images): the search never goes above it, so no tile is longer than maxBase · max rel.
+ * - With oval (the Oval arrangement): every bird stays inside the ellipse inscribed in the stage packed in (the grown
+ *   stage, fixedStage or the frame), and the size estimate counts the ellipse's area (π/4 of the stage's).
  */
 export function packBest(
   birds: PackBird[], layout: Layout, mode: 'even' | 'true',
   opts: {
     targets?: Map<number, [number, number]>; refBase?: number; fixedStage?: [number, number]
-    rel?: Map<number, number>; fit?: boolean; hole?: Hole; maxBase?: number; captions?: Map<number, CaptionRoom>
+    rel?: Map<number, number>; fit?: boolean; hole?: Hole; maxBase?: number; captions?: Map<number, CaptionRoom>; oval?: boolean
   } = {},
 ): PackResult {
   const { targets, refBase, fixedStage, fit, captions } = opts
+  const oval = !!opts.oval
   if (!birds.length) {
     const [W, H] = fixedStage ?? [layout.W, layout.H]
     return { base: refBase ?? 0, ...(fit && fixedStage ? fitStage(new Map(), W, H, holeExtent(collageHole(0, layout))[1]) : { W, H, boxes: new Map() }) }
@@ -413,15 +421,15 @@ export function packBest(
   const dense = small || (!!layout.denseFrom && mode === 'even' && !targets && rel.size >= layout.denseFrom)
   // The spiral of the pass in hand: a small set's filtered state tries a round one and the stage's own, keeps the tighter.
   let round = small
-  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions)
+  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions, oval)
   // Settled (dense), then any detached birds gathered back to the group (gather): the outline stays compact.
-  const boxesOf = (p: Packed, W: number, H: number) => gather(dense ? settle(p, W, H, hole) : p.boxes, birds, W, H, hole, captions)
+  const boxesOf = (p: Packed, W: number, H: number) => gather(dense ? settle(p, W, H, hole, oval) : p.boxes, birds, W, H, hole, captions, oval)
 
   // Search range. Full collage: [0.6, 1.6] x the area estimate, capped at MAX_BASE. With refBase (filtered
   // states): the reference's window [0.7, MAXUP] x refBase, searched directly (it may exceed MAX_BASE).
   const range = (W: number, H: number): [number, number] => {
     if (clamp) return [clamp[0], clamp[1]]
-    const usable = Math.max(1, W * H - holeArea(hole))
+    const usable = Math.max(1, (oval ? Math.PI / 4 : 1) * W * H - holeArea(hole))
     const est = Math.sqrt((0.55 * usable) / Math.max(area, 1e-9))
     const hi = Math.min(1.6 * est, MAX_BASE, opts.maxBase ?? Infinity)
     return [Math.min(0.6 * est, hi), hi]
@@ -531,8 +539,9 @@ const frameBase = (n: number) => (n <= 300 ? 28 : Math.max(10, 28 * (300 / n) **
  *   same in layout units and in pixels); none by default.
  * - maxTile: no tile's long side is longer than this fraction of the frame's width (a short list then sits as a
  *   ring around the count instead of a few giant stickers).
+ * - oval: the birds fill the ellipse inscribed in the frame (a circle in a square one); the frame is sized for its area.
  */
-export function packFrame(birds: PackBird[], aspect: number, opts: { hole?: Hole; maxTile?: number; captions?: Map<number, CaptionRoom> } = {}): PackResult {
+export function packFrame(birds: PackBird[], aspect: number, opts: { hole?: Hole; maxTile?: number; captions?: Map<number, CaptionRoom>; oval?: boolean } = {}): PackResult {
   const rel = relSizes(birds, EXP)
   let area = 0, maxRel = 1
   for (const b of placementOrder(birds, rel)) { const r = rel.get(b.id)!; area += r ** 2 * maskFill(b.mask); maxRel = Math.max(maxRel, r) }
@@ -542,7 +551,7 @@ export function packFrame(birds: PackBird[], aspect: number, opts: { hole?: Hole
   // packBest's estimate is base = sqrt(0.55 · usable / area); solve it for the frame at frameBase, where usable is the
   // frame's area less the hole's: W² · (1 / aspect − hole area at width 1).
   const usable = (frameBase(birds.length) ** 2 * Math.max(area, 0.05)) / 0.55
-  const free = Math.max(0.1 / aspect, 1 / aspect - holeArea(unit) - capArea * 2.8)
+  const free = Math.max(0.1 / aspect, (opts.oval ? Math.PI / 4 : 1) / aspect - holeArea(unit) - capArea * 2.8)
   const W = Math.max(8, Math.ceil(Math.sqrt(usable / free)))
   const H = Math.max(8, Math.round(W / aspect))
   const hole = scaleHole(unit, W)
@@ -551,5 +560,5 @@ export function packFrame(birds: PackBird[], aspect: number, opts: { hole?: Hole
   const captions = opts.captions
     ? new Map([...opts.captions].map(([id, c]) => [id, { w: c.w * W, h: c.h * W, ...(c.ring ? { ring: c.ring * W } : {}) }]))
     : undefined
-  return packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions })
+  return packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : {}) })
 }
