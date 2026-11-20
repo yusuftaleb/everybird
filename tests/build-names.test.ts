@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { capFirst, familyNames, mergeChain, normalizeName, usableGroupName, writeNames } from '../scripts/build-data/build-names'
+import { capFirst, familyNames, iocNames, mergeChain, normalizeName, usableGroupName, writeNames } from '../scripts/build-data/build-names'
+import type { HuashuRecord } from '../src/lib/species/types'
 import { assertSameSpeciesCodes, fetchBytes, fetchNamesOnly, pinnedTaxonomy, taxonomyFlag, taxonomyUrl } from '../scripts/build-data/fetch-sources'
 import { FAMILY_LANGS, familyLang, NAME_BASE, NAME_BASES, NAME_LOCALES, REGION_LOCALE } from '../src/lib/species/name-locales'
 import type { SpeciesFile } from '../src/lib/species/types'
@@ -89,6 +90,21 @@ describe('names fallback chains', () => {
   it('sorts name and family keys deterministically', () => {
     expect(Object.keys(mergeChain(new Map([['z', 'Z'], ['a', 'A']]), [new Map([['z', 'Zeta'], ['a', 'Alfa']])]))).toEqual(['a', 'z'])
     expect(Object.keys(familyNames([], [{ fam: 'Z', famCom: 'Z' }, { fam: 'A', famCom: 'A' }], { Z: 'Zeta', A: 'Alfa' }))).toEqual(['A', 'Z'])
+  })
+
+  it('the IOC set: the matched record\'s name, never a form\'s parent, after eBird and before English', () => {
+    const rec = (id: string, form?: string) => ({ id, form }) as HuashuRecord
+    const matches = new Map([['amerob', rec('Turdus_migratorius')], ['hoocro1', rec('Corvus_corone', 'Corvus corone cornix')], ['kea1', rec('Nestor_notabilis')], ['comduc3', rec('Sarkidiornis_sylvicola')]])
+    const csv = [
+      { id: 'Turdus_migratorius', it: 'tordo\u00a0americano ' }, { id: 'Corvus_corone', it: 'Cornacchia nera' },
+      { id: 'Nestor_notabilis', it: 'Kea' }, { id: 'Sarkidiornis_sylvicola', it: '' },
+    ]
+    const ioc = iocNames(matches, csv, 'it')
+    expect(Object.fromEntries(ioc)).toEqual({ amerob: 'Tordo americano', kea1: 'Kea' })
+    const english = new Map([['amerob', 'American Robin'], ['kea1', 'Kea'], ['comduc3', 'Comb Duck'], ['hoocro1', 'Hooded Crow']])
+    // eBird's own name wins; its English fallback ("Comb Duck") gives way to IOC; a name equal to English is left out.
+    const ebird = new Map([['amerob', 'American Robin'], ['kea1', 'Kea'], ['comduc3', 'Comb Duck'], ['hoocro1', 'Cornacchia grigia']])
+    expect(mergeChain(english, [ebird, ioc])).toEqual({ amerob: 'Tordo americano', hoocro1: 'Cornacchia grigia' })
   })
 })
 

@@ -2,10 +2,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import Papa from 'papaparse'
 import { FAMILY_LANGS, familyLang, NAME_BASE, NAME_LOCALES } from '../../src/lib/species/name-locales'
 import type { NameLocale } from '../../src/lib/species/name-locales'
-import type { SpeciesFile, SpeciesRow } from '../../src/lib/species/types'
+import type { HuashuRecord, Overrides, SpeciesFile, SpeciesRow } from '../../src/lib/species/types'
 import { assertSameSpeciesCodes } from './fetch-sources'
+import { loadEbirdTaxonomy, loadHuashu, matchHuashu } from './build-species'
+import { gitBlobSha, readLock } from './huashu-pin'
 
 export type NameGroup = { englishName: string; groupName: string }
 type RawGroup = { groupOrder: number; groupName: string }
@@ -75,6 +78,28 @@ export function familyNames(groups: NameGroup[], species: Pick<SpeciesRow, 'fam'
   return sorted(names)
 }
 
+/**
+ * Name sets whose English fallbacks are filled from the IOC World Bird List v15.2 (Gill, Donsker & Rasmussen, CC BY 3.0;
+ * credited on About), which huashu carries in data/names.csv: locale -> that file's column. Only the sets listed here;
+ * every other names file stays eBird's alone.
+ */
+export const IOC_COLUMNS: Partial<Record<NameLocale, string>> = {}
+
+/**
+ * eBird code -> the IOC name of the huashu record build-species' crosswalk (matchHuashu) matches the species to. Never
+ * through a form: the record is then the parent, another taxon. huashu leaves a name empty where IOC's and AviList's
+ * species differ.
+ */
+export function iocNames(matches: ReadonlyMap<string, HuashuRecord>, csv: readonly Record<string, string>[], column: string): Map<string, string> {
+  const byId = new Map(csv.map((r) => [r.id, r[column] ?? '']))
+  const names = new Map<string, string>()
+  for (const [code, rec] of matches) {
+    const name = rec.form === undefined ? normalizeName(byId.get(rec.id) ?? '') : ''
+    if (name) names.set(code, capFirst(name))
+  }
+  return names
+}
+
 const FETCH_NAMES = 'npx tsx scripts/build-data/fetch-sources.ts --names-only'
 
 /** Rebuild every locale from the same pinned taxonomy; output contains only published species codes. */
@@ -116,10 +141,26 @@ export function writeNames(): void {
     if (unlabelled.length) console.warn(`${lang}: ${unlabelled.length} families have no label (English shows): ${unlabelled.join(', ')}; add them to data/i18n/families.${lang}.json`)
     families.set(lang, fam)
   }
+  // The IOC names, through the crosswalk at the pinned huashu (data/raw/huashu, as build-species reads it).
+  let ioc: ((column: string) => Map<string, string>) | undefined
+  if (Object.keys(IOC_COLUMNS).length) {
+    const dir = resolve(raw, 'huashu')
+    const lock = readLock(root)
+    const speciesJson = resolve(dir, 'data/species.json')
+    if (!existsSync(speciesJson)) throw new Error('data/raw/huashu is missing: run npx tsx scripts/build-data/fetch-sources.ts --huashu-only')
+    if (lock && gitBlobSha(readFileSync(speciesJson)) !== lock.speciesJson) throw new Error(`data/raw/huashu is not at the lock's commit ${lock.commit}: run npx tsx scripts/build-data/fetch-sources.ts --huashu-only`)
+    const overrides = read<Overrides>(resolve(root, 'data/overrides.json'))
+    const { matches } = matchHuashu(loadHuashu(dir), loadEbirdTaxonomy(resolve(raw, 'ebird-taxonomy.json')), overrides)
+    const csv = Papa.parse<Record<string, string>>(readFileSync(resolve(dir, 'data/names.csv'), 'utf8'), { header: true, skipEmptyLines: true }).data
+    ioc = (column) => iocNames(matches, csv, column)
+  }
   mkdirSync(resolve(root, 'public/data'), { recursive: true })
   for (const locale of NAME_LOCALES) {
     const base = NAME_BASE[locale]
     const chain = locale === base ? [sets.get(locale)!] : [sets.get(locale)!, sets.get(base)!]
+    // eBird's name first; where eBird only repeats the English name, the IOC name; English last (left out of the file).
+    const column = IOC_COLUMNS[locale]
+    if (column && ioc) chain.push(ioc(column))
     const names = mergeChain(english, chain)
     const file = { v: 1, locale, taxonomy: species.ebirdTaxonomy, names, fam: families.get(familyLang(locale))! }
     writeFileSync(resolve(root, `public/data/names.${locale}.v1.json`), JSON.stringify(file))
