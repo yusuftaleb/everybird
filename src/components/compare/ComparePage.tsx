@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useId, useMemo, useState, type FormEvent } from 'react'
+import { Binoculars, LinkSimple, Plus, ShareNetwork } from '@phosphor-icons/react'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -11,7 +12,7 @@ import { makeCompareLink } from '@/lib/share/make-link'
 import { useEverybirdContext } from '@/components/app/EverybirdProvider'
 import Link from '@/components/app/IntentLink'
 import { PageHead } from '@/components/app/PageHead'
-import { CompareView, listLabels, type CompareEdit } from './CompareView'
+import { CompareResult, listLabels, useComparison, type CompareEdit } from './CompareView'
 import './compare.css'
 
 type Pasted = { lists: SharePayload[]; bad: number; compared: boolean }
@@ -23,27 +24,35 @@ let kept: Kept = { pasted: null, names: {} }
 export function forgetCompare(): void {
   kept = { pasted: null, names: {} }
 }
+/** Link fields before the first comparison: one per friend. */
+const FIELDS = COMPARE_MAX - 1
+/** The name given to the birder's own list, kept beside the pasted lists' (keyed by their place among them). */
+const MINE = -1
 
 /**
- * /compare: one field for a friend's share link (several pasted at once work too); the birder's own list, when there is
- * one, is always the first. Once a comparison shows, the same field adds another friend to it. A pasted comparison link
+ * /compare. The page head holds the title and the sharing: Share card (the main button), Share wish list and Copy
+ * comparison link, disabled with the reason under the head until two lists are compared. Under the head the paste field:
+ * before the first comparison, "Add more" adds a field per friend (pasting several links into one works too); after it,
+ * the one field adds lists. The birder's own list, when there is one, is always the first. A pasted comparison link
  * (/c/) opens that comparison as it was shared, without the birder's own list (it holds its sharer's). "Compare with
  * mine" on a shared collage or comparison hands its link over in sessionStorage (compare-handoff.ts), read once on
  * arrival, and adds the birder's own list. The links stay in this page's state (never its URL: the beacon reports the
- * address), and nothing is sent anywhere. A pasted list can be renamed or removed for this comparison.
+ * address), and nothing is sent anywhere. Every list can be renamed for this comparison; a pasted one removed.
  */
 export function ComparePage() {
   const { t } = useI18n()
   const { state, data, mineSoon } = useEverybirdContext()
   const id = useId()
-  const [text, setText] = useState('')
+  const [texts, setTexts] = useState<string[]>([''])
   const [pasted, setPastedState] = useState<Pasted | null>(kept.pasted)
-  // Names given here, by the list's place among the pasted lists (so the birder's own list loading later shifts
-  // nothing); '' clears a name ("Birder 2").
+  // Names given here: a pasted list's by its place among the pasted lists (so the birder's own list loading later shifts
+  // nothing), the birder's own under MINE; '' clears a name ("Birder 2").
   const [names, setNamesState] = useState<Record<number, string>>(kept.names)
   const [copy, setCopy] = useState<'idle' | 'copied' | 'manual'>('idle')
   const setPasted = (p: Pasted | null) => { kept = { ...kept, pasted: p }; setPastedState(p) }
   const setNames = (f: (m: Record<number, string>) => Record<number, string>) => setNamesState((m) => { const n = f(m); kept = { ...kept, names: n }; return n })
+  // A new comparison forgets the pasted lists' names, not the one given to the birder's own.
+  const keepMine = (m: Record<number, string>): Record<number, string> => (MINE in m ? { [MINE]: m[MINE] } : {})
 
   useEffect(() => {
     const link = takeHandOff()
@@ -52,7 +61,7 @@ export function ComparePage() {
     const r = linksIn(link, decodeShare, decodeCompare)
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage, read once on arrival, isn't there to prerender
     setPasted({ ...r, compared: false })
-    setNames(() => ({}))
+    setNames(keepMine)
   }, [])
 
   const name = state.saved.name?.trim()
@@ -70,7 +79,7 @@ export function ComparePage() {
   // The lists as shared: each renamed one with its new name as a verbatim title (link.ts F_TITLE).
   const named = useMemo(
     () => lists.map((p, i): SharePayload => {
-      const n = names[i - first]
+      const n = names[i < first ? MINE : i - first]
       if (n === undefined) return p
       const out: SharePayload = { ...p }
       delete out.name
@@ -81,10 +90,11 @@ export function ComparePage() {
     [lists, names, first],
   )
   const labels = listLabels(named, t)
+  const c = useComparison(lists, { you, labels })
   const link = useMemo(() => (named.length >= 2 ? makeCompareLink(named, window.location.origin) : null), [named])
   const edit: CompareEdit = {
-    can: (i) => i >= first,
-    rename: (i, v) => setNames((m) => ({ ...m, [i - first]: v })),
+    rename: (i, v) => setNames((m) => ({ ...m, [i < first ? MINE : i - first]: v })),
+    canRemove: (i) => i >= first,
     remove: (i) => {
       const j = i - first
       if (!pasted) return
@@ -97,14 +107,17 @@ export function ComparePage() {
   // No list of the birder's own yet: the friend's list waits for it.
   const waiting = !pasted?.compared && friends.length > 0 && mineSoon === false
 
+  // Once a comparison shows, the one field adds lists to it.
+  const adding = c.ready
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    const r = linksIn(text, decodeShare, decodeCompare)
+    const r = linksIn((adding ? texts.slice(0, 1) : texts).join(' '), decodeShare, decodeCompare)
     // A comparison link starts that comparison over; a share link joins the one showing.
-    if (r.compared || !pasted) setPasted(r)
-    else setPasted({ lists: [...pasted.lists, ...r.lists], bad: r.bad, compared: pasted.compared })
-    if (r.compared || !pasted) setNames(() => ({}))
-    if (r.lists.length) setText('')
+    if (r.compared || !pasted) {
+      setPasted(r)
+      setNames(keepMine)
+    } else setPasted({ lists: [...pasted.lists, ...r.lists], bad: r.bad, compared: pasted.compared })
+    if (r.lists.length) setTexts([''])
     setCopy('idle')
   }
   const copyLink = async () => {
@@ -113,19 +126,58 @@ export function ComparePage() {
     setCopy(ok ? 'copied' : 'manual')
   }
   const blocked = link && 'blocked' in link ? (link.blocked === 'tooMany' ? fmt(t.compare.tooMany, { n: COMPARE_MAX }) : t.compare.tooBig) : ''
-  const adding = friends.length > 0
+  const setText = (i: number, v: string) => setTexts((xs) => xs.map((x, j) => (j === i ? v : x)))
+  // Under the head: why the buttons wait, then (once they work) what a comparison link carries and why there's no wish list.
+  const head = c.ready ? [t.compare.consent, c.wishReason].filter(Boolean).join(' ') : t.compare.needFirst
 
   return (
     <main className="eb-page eb-page-collage eb-page-titled">
-      <PageHead title={t.compare.title} />
+      <PageHead
+        title={t.compare.title}
+        lede={<span id={`${id}-head`} data-testid="compare-consent">{head}</span>}
+        actions={<>
+          <button
+            type="button" className="eb-btn eb-btn-quiet" aria-label={t.compare.copyLink} disabled={!c.ready || !!blocked}
+            aria-describedby={`${id}-head${blocked ? ` ${id}-blocked` : ''}`} onClick={() => void copyLink()} data-testid="compare-copy"
+          >
+            <LinkSimple aria-hidden="true" focusable="false" />
+            <span className="eb-sm-hide">{t.compare.copyLink}</span>
+          </button>
+          <button
+            type="button" className="eb-btn eb-btn-quiet" aria-label={t.compare.shareWish} disabled={!c.canWish || !c.data}
+            aria-disabled={c.busy || undefined} aria-describedby={`${id}-head`} onClick={() => void c.shareWish()} data-testid="compare-wish"
+          >
+            <Binoculars aria-hidden="true" focusable="false" />
+            <span className="eb-sm-hide">{t.compare.shareWish}</span>
+          </button>
+          <button type="button" className="eb-btn" disabled={!c.card} aria-describedby={`${id}-head`} onClick={c.shareCard} data-testid="compare-card">
+            <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
+            {t.compare.shareCard}
+          </button>
+        </>}
+      />
       <div className="eb-compare">
         <form className="eb-compare-form" onSubmit={submit}>
-          <label htmlFor={`${id}-links`} className="eb-sr">{adding ? t.compare.addAnother : t.compare.paste}</label>
-          <input
-            id={`${id}-links`} className="eb-input eb-compare-paste" type="text" inputMode="url" autoComplete="off" spellCheck={false}
-            placeholder={adding ? t.compare.addAnother : t.compare.paste} value={text} onChange={(e) => setText(e.target.value)} data-testid="compare-paste"
-          />
-          <button type="submit" className="eb-btn" disabled={!text.trim()} data-testid="compare-submit">{adding ? t.compare.add : t.compare.submit}</button>
+          {(adding ? [texts[0]] : texts).map((text, i) => (
+            <div key={i} className="eb-compare-field">
+              <label htmlFor={`${id}-link-${i}`} className="eb-sr">{adding ? t.compare.addAnother : i ? fmt(t.compare.linkN, { n: i + 1 }) : t.compare.paste}</label>
+              <input
+                id={`${id}-link-${i}`} className="eb-input eb-compare-paste" type="text" inputMode="url" autoComplete="off" spellCheck={false}
+                placeholder={adding ? t.compare.addAnother : i ? t.compare.addAnother : t.compare.paste} value={text} autoFocus={i > 0}
+                onChange={(e) => setText(i, e.target.value)} data-testid={i ? `compare-paste-${i}` : 'compare-paste'}
+              />
+              {i === 0 && (
+                <button type="submit" className="eb-btn" disabled={!texts.some((x) => x.trim())} data-testid="compare-submit">{adding ? t.compare.add : t.compare.submit}</button>
+              )}
+            </div>
+          ))}
+          {!adding && texts.length < FIELDS && (
+            <button type="button" className="eb-textbtn eb-compare-addmore" onClick={() => setTexts((xs) => [...xs, ''])} data-testid="compare-add-more">
+              <Plus aria-hidden="true" focusable="false" />
+              {t.compare.addMore}
+            </button>
+          )}
+          <p className="eb-note" data-testid="compare-limit">{fmt(t.compare.limit, { n: COMPARE_MAX, m: COMPARE_MAX - 1 })}</p>
         </form>
         <p className="eb-status" role="status" data-testid="compare-status">
           {/* After a Compare press: the links that didn't open, and whether there are two lists yet. */}
@@ -139,22 +191,10 @@ export function ComparePage() {
         )}
         {/* Always mounted, so its first message is announced. */}
         <p className="eb-status" role="status" id={`${id}-blocked`} data-testid="compare-share-status">{blocked || (copy === 'copied' ? t.compare.copied : '')}</p>
-        {lists.length >= 2 && (
-          <CompareView
-            lists={lists} you={you} labels={labels} edit={edit}
-            share={(
-              <>
-                <button type="button" className="eb-btn eb-btn-quiet" disabled={!!blocked} aria-describedby={`${id}-consent${blocked ? ` ${id}-blocked` : ''}`} onClick={() => void copyLink()} data-testid="compare-copy">
-                  {t.compare.copyLink}
-                </button>
-                {copy === 'manual' && link && 'url' in link && (
-                  <input className="eb-input" readOnly value={link.url} aria-label={t.compare.copyManual} onFocus={(e) => e.currentTarget.select()} />
-                )}
-                <p className="eb-note" id={`${id}-consent`} data-testid="compare-consent">{t.compare.consent}</p>
-              </>
-            )}
-          />
+        {copy === 'manual' && link && 'url' in link && (
+          <input className="eb-input eb-compare-manual" readOnly value={link.url} aria-label={t.compare.copyManual} onFocus={(e) => e.currentTarget.select()} />
         )}
+        {c.ready && <CompareResult c={c} you={you} edit={edit} />}
       </div>
     </main>
   )
