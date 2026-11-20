@@ -21,6 +21,7 @@ export type HuashuRecord = { id: string; scientificName: string; taxonConcept: s
   taxonomy: { seq: number; order: string; family: string }; ids: { ebird?: string };
   traits?: { massG?: number }; sticker?: { file: string; meetsQualityBar: boolean };
   conservation?: { iucn?: string; sources?: { iucn?: string } };
+  names?: { en?: string }
   previous?: { scientificName: string; id?: string; relation?: string }[]
   /** Subspecies drawings; `formerSpecies` is the taxon the form was a species as (often an eBird species today). */
   forms?: HuashuForm[]

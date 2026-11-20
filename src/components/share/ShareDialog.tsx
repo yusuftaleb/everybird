@@ -125,6 +125,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   // The look of everything the dialog makes: the app's theme when the dialog opens, then this dialog's own choice.
   const [dark, setDark] = useState(() => currentTheme() === 'dark')
   const theme: Theme = dark ? 'dark' : 'light'
+  // No background fill in the PNGs (images and posters; a PDF needs one, so it's offered only with this off). Not stored.
+  const [transparent, setTransparent] = useState(false)
 
   // What the image shows: the current view (the filter applied), and the filter in words, in the UI language (countries
   // named by regionsIn; the link below is made from the English `regions`, so it is the same in every language).
@@ -271,7 +273,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const outgoingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const shownSize = useRef<[number, number]>([0, 0])
   const first = useRef(true)
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}`
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   useEffect(() => {
@@ -286,7 +288,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       .then(() => packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null))
       .then((pack) => renderShareImage({
         format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
-        theme, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, strings: t, nameOf: displayName, signal: life.current?.signal,
+        theme, transparent, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, strings: t, nameOf: displayName, signal: life.current?.signal,
       }))
     current.current = job
     job.then(
@@ -315,7 +317,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       },
     )
     return () => { live = false; cancel() }
-  }, [key, print, size, cardFormat, trimmed, theme, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan])
+  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -338,7 +340,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
 
   // The poster: one make at a time, for `posterKey`. A new key, leaving print mode or closing the dialog cancels the
   // make and drops the poster (its encoder ends with it).
-  const posterKey = `print|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}`
+  const posterKey = `print|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -428,7 +430,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null)
       if (ctl.signal.aborted) return
       const p = await mod.makePoster(
-        { size, landscape, showNames: effectiveShowNames, entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, theme, strings: t, nameOf: displayName, signal: ctl.signal },
+        { size, landscape, showNames: effectiveShowNames, entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, theme, transparent, strings: t, nameOf: displayName, signal: ctl.signal },
         (done, total) => { if (!ctl.signal.aborted) setMaking({ key: forKey, done, total }) },
       )
       if (ctl.signal.aborted) { p.dispose(); return }
@@ -497,6 +499,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
           markFirst: liferMarks.first,
           countSize,
           theme,
+          transparent,
           strings: t,
           nameOf: displayName,
           signal: ctl.signal,
@@ -717,7 +720,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
         { label: pt.entry, short: pt.print, icon: Printer, ref: entryRef, onClick: () => switchMode('print') },
       ]
     : [
-        ...(posterNow ? [{ label: pt.pdf, icon: FilePdf, onClick: () => void savePoster('pdf') }] : []),
+        ...(posterNow && !transparent ? [{ label: pt.pdf, icon: FilePdf, onClick: () => void savePoster('pdf') }] : []),
         copy,
         ...(posterNow && posterNow.missing > 0 ? [{ label: pt.again, icon: ArrowClockwise, onClick: remake }] : []),
       ]
@@ -795,7 +798,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
               centred in an area the story's size, so the controls keep their place in every format. */}
           <div
             ref={previewBox} className="eb-share-preview" data-format={shownCard} data-size={isPrint(shownCard) ? (preview?.size ?? size) : undefined}
-            aria-busy={busy} data-testid="share-preview"
+            aria-busy={busy} data-testid="share-preview" data-transparent={transparent || undefined}
           >
             {outgoing && (
               // The image just replaced, fading out over the frame while it changes shape.
@@ -860,6 +863,11 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
 
                   <button type="button" role="switch" aria-checked={dark} className="eb-switch eb-share-switch" onClick={() => setDark((v) => !v)}>
                     <span>{t.share.dark}</span>
+                    <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+                  </button>
+
+                  <button type="button" role="switch" aria-checked={transparent} className="eb-switch eb-share-switch" data-testid="share-transparent-switch" onClick={() => setTransparent((v) => !v)}>
+                    <span>{t.share.transparent}</span>
                     <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
                   </button>
 
@@ -1025,7 +1033,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                           <DownloadSimple aria-hidden="true" focusable="false" />
                           {pt.bulk.png}
                         </button>
-                        <button
+                        {!transparent && <button
                           ref={bulkPdfRef}
                           type="button"
                           className="eb-btn eb-btn-quiet"
@@ -1034,7 +1042,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
                         >
                           <FilePdf aria-hidden="true" focusable="false" />
                           {pt.bulk.pdf}
-                        </button>
+                        </button>}
                       </div>
                     )}
                   </div>

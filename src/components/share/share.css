@@ -91,6 +91,8 @@
 @keyframes eb-share-fade-in { from { opacity: 0; } }
 @keyframes eb-share-fade-out { to { opacity: 0; } }
 .eb-share-preview[aria-busy="true"] .eb-share-in { opacity: .55; }
+/* A transparent image over a checkerboard, so either ink shows. */
+.eb-share-preview[data-transparent] .eb-share-in { background: repeating-conic-gradient(var(--surface) 0 25%, var(--paper) 0 50%) 0 0 / 16px 16px; }
 
 /* Stacked (phones): the preview's area (the body's middle row) is --cap tall in every format: as tall as the screen
    allows while Share image stays on the first screen, ending 26px above the dialog's bottom edge with the top 18px of

@@ -634,6 +634,8 @@ export type ShareImageOpts = {
   name?: string
   /** The page's theme. The print follows it too: dark is light ink on the dark paper. */
   theme: 'light' | 'dark'
+  /** No background fill: a PNG of the birds and the text alone (to print on fabric). The text keeps `theme`'s ink. */
+  transparent?: boolean
   /** The print's size (print only; default A2): the card's height is printDesignH(size). */
   printSize?: PrintSize
   /** A pack made earlier by packForImage for this format, these entries, name-or-not and lifer-or-not (the dialog keeps them). */
@@ -765,6 +767,8 @@ export type PreparedCard = {
   captions?: CaptionBox[]
   /** Print names were asked for (showNames) but none are drawn: they didn't fit. */
   namesDropped?: true
+  /** No Paper fill (ShareImageOpts.transparent). */
+  transparent?: true
 }
 type CardDraft = Omit<PreparedCard, 'brandW' | 'credit' | 'shift'>
 
@@ -894,7 +898,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   // What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's.
   const countNum = K.size > 0 ? (goal?.target !== undefined ? `${countDisplay(content.count, strings.num)} / ${countDisplay(goal.target, strings.num)}` : countDisplay(content.count, strings.num)) : ''
   const countLabel = K.size > 0 ? strings.count.label.toUpperCase() : ''
-  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, footerLine, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}) }
+  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, footerLine, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}) }
 }
 
 export function captionMeasurer(): TextMeasurer {
@@ -1003,8 +1007,10 @@ export function cardUrls(card: Pick<PreparedCard, 'tiles' | 'lifer'>): string[] 
  */
 export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, imgs: Map<string, CanvasImageSource | null>, range?: PaintRange): void {
   const { L, colors: C, fit, K, countNum, countLabel, fonts: font, latest, name, label, lifer, footerLine, brandW, credit, shift } = card
-  ctx.fillStyle = C.paper
-  ctx.fillRect(0, 0, L.W, L.H)
+  if (!card.transparent) {
+    ctx.fillStyle = C.paper
+    ctx.fillRect(0, 0, L.W, L.H)
+  }
 
   // The collage.
   ctx.imageSmoothingEnabled = true
@@ -1125,7 +1131,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas is not available')
   // The print's height is fractional (A4 1527.7 rounds up to 1528): Paper over the whole canvas covers its last row.
-  if (canvas.height > card.L.H * s) {
+  if (!card.transparent && canvas.height > card.L.H * s) {
     ctx.fillStyle = card.colors.paper
     ctx.fillRect(0, 0, canvas.width, canvas.height)
   }

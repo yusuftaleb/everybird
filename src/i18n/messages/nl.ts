@@ -311,6 +311,8 @@ export const nl: Messages = {
     card: {
       close: 'Sluiten',
       noDrawing: 'Nog geen tekening van deze soort.',
+      album: 'Illustratie: Bird Album',
+      albumSpoken: 'Illustratie van Bird Album, opent in een nieuw tabblad',
       assignedRegion: 'Toegewezen op regio',
       assignedDefault: 'Standaard toegewezen',
       mass: 'Gemiddeld lichaamsgewicht',
@@ -454,6 +456,7 @@ export const nl: Messages = {
       untitledTitle: { one: 'Een levenslijst: {n} soort', other: 'Een levenslijst: {n} soorten' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
       dark: 'Donkere afbeelding',
+      transparent: 'Transparante achtergrond',
       bigYear: {
         label: 'Groot Jaar',
         year: 'Jaar',

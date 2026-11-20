@@ -311,6 +311,8 @@ export const fr: Messages = {
     card: {
       close: 'Fermer',
       noDrawing: 'Pas encore de dessin pour cette espèce.',
+      album: 'Illustration\u00a0: Bird Album',
+      albumSpoken: 'Illustration de Bird Album, s’ouvre dans un nouvel onglet',
       assignedRegion: 'Attribuée selon la région',
       assignedDefault: 'Attribuée par défaut',
       mass: 'Masse corporelle moyenne',
@@ -454,11 +456,13 @@ export const fr: Messages = {
       untitledTitle: { one: 'Une liste de vie\u00a0: {n} espèce', other: 'Une liste de vie\u00a0: {n} espèces' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
       dark: 'Image sombre',
+      transparent: 'Fond transparent',
       bigYear: {
         label: 'Grande année',
         year: 'Année',
         target: 'Objectif',
         targetPlaceholder: 'Espèces',
+        targetInvalid: 'Saisis un nombre entier de 1 à {max}.',
         card: 'Grande année {year}',
         cardLifer: 'Grande année {year} · Nouvelles espèces en {year}',
       },
@@ -506,10 +510,12 @@ export const fr: Messages = {
           makingNote: 'Création du ZIP.',
           ready: { one: '{file} enregistré ({n} affiche).', other: '{file} enregistré ({n} affiches).' },
           failed: 'Impossible de créer le ZIP. Réessaie.',
+          namesDropped: { one: '{n} affiche n’a pas de noms\u00a0: ils ne tenaient pas.', other: '{n} affiches n’ont pas de noms\u00a0: ils ne tenaient pas.' },
         },
         showNames: 'Afficher les noms des espèces',
         namesCap: 'Le format {size} accueille jusqu’à {max} espèces avec leur nom. Choisis une taille plus grande ou filtre ta liste.',
         namesNoFit: 'Les noms ne tiennent pas bien en {size}. Choisis une taille plus grande ou filtre ta liste.',
+        namesDropped: 'Les noms ne tenaient pas, donc cette affiche n’en a pas.',
       },
     },
     import: {
@@ -615,6 +621,7 @@ export const fr: Messages = {
           duplicates: { one: '{n} doublon', other: '{n} doublons' },
           notSpecies: { one: '{n} n’est pas une espèce', other: '{n} ne sont pas des espèces' },
           unmatched: { one: '{n} non reconnu', other: '{n} non reconnus' },
+          noDate: { one: '{n} ligne ignorée\u00a0: sans date', other: '{n} lignes ignorées\u00a0: sans date' },
           suggestion: '{name} → {suggestion}',
           more: '{n} de plus',
           note: 'Tu pourras corriger les noms non reconnus après l’ajout.',

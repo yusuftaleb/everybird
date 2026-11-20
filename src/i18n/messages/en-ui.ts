@@ -370,6 +370,8 @@ export const EN_UI = {
   card: {
     close: 'Close',
     noDrawing: 'No drawing yet for this species.',
+    album: 'Illustration: Bird Album',
+    albumSpoken: 'Illustration from Bird Album, opens in a new tab',
     assignedRegion: 'Assigned by region',
     assignedDefault: 'Assigned by default',
     mass: 'Average body mass',
@@ -531,6 +533,7 @@ export const EN_UI = {
     untitledTitle: { one: 'A life list: {n} species', other: 'A life list: {n} species' },
     /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
     dark: 'Dark image',
+    transparent: 'Transparent background',
     bigYear: {
       label: 'Big Year',
       year: 'Year',

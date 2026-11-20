@@ -185,7 +185,7 @@ describe('search from the continent level', () => {
     fireEvent.click(screen.getByTestId('country-KE'))
     expect(filterOf()).toEqual({ countries: ['KE'] })
     fireEvent.change(field, { target: { value: 'zzz' } })
-    expect(screen.getByText('No country matches.')).toBeInTheDocument()
+    expect(screen.getByText('No place matches.')).toBeInTheDocument()
     fireEvent.change(field, { target: { value: '' } })
     expect(screen.getByRole('list', { name: 'Continents' })).toBeInTheDocument()
   })

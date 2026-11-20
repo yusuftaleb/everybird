@@ -123,3 +123,15 @@ it('worker refuses a second begin while a poster is open, and allows one after i
   await vi.waitFor(() => expect(replies).toHaveLength(6))
   expect(replies[5]).toEqual({ type: 'took', rows: 1 })
 })
+
+it('a transparent (alpha) poster is an RGBA PNG that keeps every pixel, and has no PDF', async () => {
+  const encoder = new PosterEncoder(width, height, { native: false, alpha: true })
+  await encoder.strip(rgba.subarray(0, width * 2 * 4), 2)
+  await encoder.strip(rgba.subarray(width * 2 * 4), 3)
+  await encoder.end()
+  const png = Buffer.from(await encoder.file('png', [100, 100]).arrayBuffer())
+  const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true })
+  expect(info.channels).toBe(4)
+  expect(data).toEqual(Buffer.from(rgba))
+  expect(() => encoder.file('pdf', [100, 100])).toThrow('no PDF')
+})

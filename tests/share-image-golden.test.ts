@@ -154,3 +154,17 @@ describe('print captions golden compatibility', () => {
     expect(off).toEqual(base)
   })
 })
+
+describe('a transparent background', () => {
+  it('paints no Paper: the same draws as the default image without its one background fill', async () => {
+    const c = CASES.find((x) => x.format === 'story' && x.name && x.latest && x.theme === 'light')!
+    const logs = installStubs()
+    const opaque = await renderLog(image, logs, c)
+    const clear = await renderLog(image, logs, { ...c, transparent: true } as typeof c)
+    const fill = opaque.findIndex((l) => l.startsWith('fillRect(0, 0,'))
+    expect(fill).toBeGreaterThan(-1)
+    expect(clear.some((l) => l.startsWith('fillRect(0, 0,'))).toBe(false)
+    // The background is the fillStyle set and the fillRect just before it; everything else is the same, in order.
+    expect(clear).toEqual([...opaque.slice(0, fill - 1), ...opaque.slice(fill + 1)])
+  })
+})

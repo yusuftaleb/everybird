@@ -1,4 +1,4 @@
-// Worker-safe RGB PNG and single-page PDF wrappers around the same Up-filtered zlib stream.
+// Worker-safe RGB (or RGBA) PNG and single-page PDF wrappers around the same Up-filtered zlib stream.
 import { Zlib } from 'fflate'
 
 let crcTable: Uint32Array | undefined
@@ -19,9 +19,10 @@ export function crc32(bytes: Uint8Array, crc = 0): number {
 
 function positiveInteger(n: number): boolean { return Number.isSafeInteger(n) && n > 0 }
 
-/** Drop alpha (the caller paints opaque paper); PNG filter 2 carries across strip boundaries. */
-export function filterUp(rgba: Uint8Array | Uint8ClampedArray, width: number, rows: number, prev: Uint8Array | null): { out: Uint8Array; last: Uint8Array } {
-  const stride = 3 * width
+/** Drop alpha (the caller paints opaque paper), or keep it with `alpha`; PNG filter 2 carries across strip boundaries. */
+export function filterUp(rgba: Uint8Array | Uint8ClampedArray, width: number, rows: number, prev: Uint8Array | null, alpha = false): { out: Uint8Array; last: Uint8Array } {
+  const ch = alpha ? 4 : 3
+  const stride = ch * width
   if (!positiveInteger(width) || !positiveInteger(rows) || rgba.length !== width * rows * 4 || (prev !== null && prev.length !== stride)) {
     throw new Error('invalid poster strip')
   }
@@ -31,8 +32,8 @@ export function filterUp(rgba: Uint8Array | Uint8ClampedArray, width: number, ro
     const row = y * (stride + 1)
     out[row] = 2
     for (let x = 0; x < width; x++) {
-      for (let c = 0; c < 3; c++) {
-        const i = 3 * x + c, value = rgba[(y * width + x) * 4 + c]
+      for (let c = 0; c < ch; c++) {
+        const i = ch * x + c, value = rgba[(y * width + x) * 4 + c]
         out[row + 1 + i] = value - last[i]
         last[i] = value
       }
@@ -106,10 +107,11 @@ function chunk(type: string, data: Uint8Array): Uint8Array[] {
   return [head, data, u32(crc32(data, crc32(name)))]
 }
 
-export function pngParts(width: number, height: number, zlib: Uint8Array[], dpi = 150): Uint8Array[] {
+/** `alpha`: colour type 6 (RGBA, from filterUp's `alpha`), else 2 (RGB). */
+export function pngParts(width: number, height: number, zlib: Uint8Array[], dpi = 150, alpha = false): Uint8Array[] {
   dimensions(width, height)
   const ihdr = new Uint8Array(13)
-  ihdr.set(u32(width)); ihdr.set(u32(height), 4); ihdr.set([8, 2, 0, 0, 0], 8)
+  ihdr.set(u32(width)); ihdr.set(u32(height), 4); ihdr.set([8, alpha ? 6 : 2, 0, 0, 0], 8)
   const phys = new Uint8Array(9), ppm = Math.round(dpi / 0.0254)
   phys.set(u32(ppm)); phys.set(u32(ppm), 4); phys[8] = 1
   // sRGB with rendering intent 0 (perceptual): the canvas pixels are sRGB, so viewers and print shops need not guess.

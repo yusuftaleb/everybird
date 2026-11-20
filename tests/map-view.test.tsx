@@ -22,6 +22,7 @@ const { initialState, makeReducer } = await import('@/lib/list/store')
 const { emptySaved } = await import('@/lib/list/storage')
 const { buildSpeciesIndex } = await import('@/lib/species/load')
 const { resolveImportedPlace } = await import('@/lib/places/registry')
+const { SeenAgg } = await import('@/lib/list/seen')
 
 const row = (code: string): SpeciesRow => ({ code, com: code, sci: `Avis ${code}`, ord: 'Passeriformes', fam: 'Corvidae', famCom: 'Corvidae', to: 1, g: 100, gSrc: 'avonet', st: true, ar: 1, q: true })
 const species = buildSpeciesIndex([row('duck1'), row('crow1'), row('owl1')])
@@ -39,8 +40,8 @@ function start() {
   return reduce(initialState(), { type: 'restore', saved })
 }
 
-function Harness() {
-  const [state, dispatch] = useReducer(reduce, undefined, start)
+function Harness({ init = start }: { init?: typeof start }) {
+  const [state, dispatch] = useReducer(reduce, undefined, init)
   return (
     <>
       <MapView state={state} species={species} regions={regions} onFilter={(f) => dispatch({ type: 'filter', filter: f })} />
@@ -146,5 +147,33 @@ describe('the Map view', () => {
     } finally {
       provinces.groups.CA = kept
     }
+  })
+})
+
+describe('the counting switch on the map', () => {
+  it('is hidden for a list without month sets (first sightings only), as in the Time panel', async () => {
+    render(<Harness />)
+    await act(async () => {})
+    expect(screen.queryByTestId('time-basis')).toBeNull()
+  })
+
+  it('with month sets, "Seen any time" sets the basis and "First seen" clears it, by press and by arrow key', async () => {
+    const withMonths = () => {
+      const agg = new SeenAgg()
+      agg.addMonths('duck1', 'CA-BC', ['2019-01', '2024-05'])
+      agg.addKey('duck1', 'CA-BC', '2019-01')
+      const saved = emptySaved()
+      saved.records.ebird = [{ code: 'duck1', source: 'ebird', date: '2019-01-01', place: { country: 'CA', sub1: 'CA-BC' }, seen: agg.get('duck1'), seenMonths: agg.getMonths('duck1') }]
+      return reduce(initialState(), { type: 'restore', saved })
+    }
+    render(<Harness init={withMonths} />)
+    await act(async () => {})
+    const group = screen.getByRole('radiogroup', { name: 'Count a bird by' })
+    expect(screen.getByRole('radio', { name: 'First seen' })).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(screen.getByRole('radio', { name: 'Seen any time' }))
+    expect(filterOf()).toEqual({ basis: 'seen' })
+    fireEvent.keyDown(screen.getByRole('radio', { name: 'Seen any time' }), { key: 'ArrowLeft' })
+    expect(filterOf()).toEqual({})
+    expect(group).toBeInTheDocument()
   })
 })

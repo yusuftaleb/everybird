@@ -311,6 +311,8 @@ export const es: Messages = {
     card: {
       close: 'Cerrar',
       noDrawing: 'Aún no hay dibujo de esta especie.',
+      album: 'Ilustración: Bird Album',
+      albumSpoken: 'Ilustración de Bird Album, se abre en una pestaña nueva',
       assignedRegion: 'Asignada por región',
       assignedDefault: 'Asignada por defecto',
       mass: 'Masa corporal media',
@@ -454,6 +456,7 @@ export const es: Messages = {
       untitledTitle: { one: 'Una lista de vida: {n} especie', other: 'Una lista de vida: {n} especies' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
       dark: 'Imagen oscura',
+      transparent: 'Fondo transparente',
       bigYear: {
         label: 'Gran Año',
         year: 'Año',

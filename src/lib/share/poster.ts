@@ -39,7 +39,8 @@ export type Poster = {
 }
 
 export type EncoderPort = {
-  begin(width: number, height: number): void
+  /** `alpha`: keep the alpha channel (an RGBA PNG; no PDF). */
+  begin(width: number, height: number, alpha?: boolean): void
   /** Transfers the buffer; resolves once at most 1 strip is unacknowledged (so at most 2 are ever in flight). */
   strip(rgba: Uint8ClampedArray, rows: number): Promise<void>
   /** Resolves with the encoded bytes. */
@@ -149,9 +150,9 @@ export function workerEncoder(
   worker.onerror = (e) => { e.preventDefault?.(); fail(new Error(e.message || 'print worker failed')) }
 
   return {
-    begin(width, height) {
+    begin(width, height, alpha) {
       if (failure) throw failure
-      send({ type: 'begin', width, height })
+      send({ type: 'begin', width, height, ...(alpha ? { alpha } : {}) })
     },
     strip(rgba, rows) {
       if (failure) return Promise.reject(failure)
@@ -270,7 +271,8 @@ export async function makePoster(
     const { ctx } = strip
     encoder = (deps.encoder ?? workerEncoder)()
     signal?.addEventListener('abort', onAbort, { once: true })
-    encoder.begin(width, height)
+    if (card.transparent) encoder.begin(width, height, true)
+    else encoder.begin(width, height)
 
     const imgs = new Map<string, CanvasImageSource | null>()
     startStrip(0)
@@ -280,10 +282,14 @@ export async function makePoster(
       for (const url of byFirst[i]) imgs.set(url, await loads.get(url)!)
       check()
 
-      // Paper over the whole strip in device px (it covers the last row, which the card's fractional height may not).
+      // Paper over the whole strip in device px (it covers the last row, which the card's fractional height may not);
+      // transparent, the reused strip is cleared instead.
       ctx.setTransform(1, 0, 0, 1, 0, 0)
-      ctx.fillStyle = card.colors.paper
-      ctx.fillRect(0, 0, width, rows)
+      if (card.transparent) ctx.clearRect(0, 0, width, rows)
+      else {
+        ctx.fillStyle = card.colors.paper
+        ctx.fillRect(0, 0, width, rows)
+      }
       ctx.setTransform(k, 0, 0, k, 0, -y)
       paintCard(ctx, card, imgs, ranges[i])
       const rgba = strip.read(rows)
