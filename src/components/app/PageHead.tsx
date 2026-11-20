@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 /**
  * The one page head of Collage (`/` with a list), Settings and About: the title, its actions on the same row (the
- * collage's "Add birds", Compare's way back), and an optional line under it. Its place on the page (top offset, title type,
+ * collage's "Add birds" and Share), and an optional line under it. Its place on the page (top offset, title type,
  * gap to the content) is the same on all three: `.eb-pagehead` in app.css, on a `.eb-page-titled` page.
  */
 export function PageHead({ title, lede, actions }: { title: string; lede?: ReactNode; actions?: ReactNode }) {

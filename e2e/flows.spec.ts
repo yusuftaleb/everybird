@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { addDialog, openAdd } from "./add-birds";
+import { openAdd } from "./add-birds";
 import { pressAreas } from "./press-areas";
 import { SAMPLE_COUNT } from "./sample";
 import { HTML_LANG, LANGS } from "../src/i18n/langs";
@@ -97,8 +97,8 @@ async function seed(page: Page) {
 
 const shownBirds = (page: Page) => page.getByTestId("collage-stage").locator("[data-code]:not([data-off])");
 const stats = (page: Page) => page.getByTestId("collage-stats");
-// The Add birds dialog's summary line (Settings' own, "see-collage", sits behind the open dialog).
-const seeCollage = (page: Page) => page.getByTestId("add-summary");
+// Settings' summary line ("Your list"; the Add birds dialog's own is "add-summary").
+const seeCollage = (page: Page) => page.getByTestId("see-collage");
 const speciesIn = async (page: Page) => Number(/Your collage has ([\d,]+) species/.exec((await seeCollage(page).textContent()) ?? "")![1].replace(/,/g, ""));
 
 /**
@@ -229,18 +229,14 @@ for (const width of WIDTHS) {
       await expect(stats(page)).toContainText(`6 of ${TOTAL} species`);
       await expect(shownBirds(page)).toHaveCount(6);
 
-      // True size (in Style): the switch flips and every bird stays on the stage.
-      await page.getByRole("button", { name: "Style", exact: true }).click();
-      const trueSize = page.getByRole("switch", { name: "True size" });
+      // True size (in the bar, one press): the switch flips and every bird stays on the stage.
+      const trueSize = page.getByRole("switch", { name: /^True size|^True sticker sizes/ });
       await trueSize.click();
       await expect(trueSize).toHaveAttribute("aria-checked", "true");
-      await page.keyboard.press("Escape");
       await expect(shownBirds(page)).toHaveCount(6);
-      // The list view: one row per bird shown, and Style's sort order now applies.
+      // The list view: one row per bird shown, and the bar's sort direction in place of True size.
       await page.getByRole("button", { name: "List", exact: true }).click();
-      await page.getByRole("button", { name: "Style", exact: true }).click();
-      await expect(page.getByRole("group", { name: "Sort" })).not.toHaveAccessibleDescription(/Only in/);
-      await page.keyboard.press("Escape");
+      await expect(page.getByRole("button", { name: /^Sorted by body mass/ })).toBeVisible();
       await expect(page.locator(".eb-lrow")).toHaveCount(6);
       await page.getByRole("button", { name: "Collage", exact: true }).click();
       await expect(shownBirds(page)).toHaveCount(6);
@@ -433,9 +429,9 @@ for (const lang of LANGS.filter((l) => l !== "en")) {
       await expect(shownBirds(page).first()).toBeVisible();
       await expect(page.getByTestId("collage-stage")).toContainText(ui.count.label.toUpperCase());
       await page.goto("/settings");
-      const dialog = await openAdd(page, "file", ui);
-      await expect(dialog.getByRole("button", { name: ui.import.add, exact: true }).first()).toBeVisible();
-      await expect(addDialog(page, ui).getByRole("button", { name: ui.add.hand, exact: true })).toBeVisible();
+      const sources = await openAdd(page, "file", ui);
+      await expect(sources.getByRole("button", { name: ui.import.add, exact: true }).first()).toBeVisible();
+      await expect(page.getByRole("heading", { level: 2, name: ui.add.hand })).toBeVisible();
     });
   });
 }

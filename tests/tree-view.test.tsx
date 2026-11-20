@@ -2,7 +2,7 @@
 // The Tree tab (TreeView.tsx) on a synthetic tree: families with counts, drilling to genera and species with the
 // focus following, the bird card from a tip, the birds the tree lacks, the source line, and the tab in CollageView.
 import '@testing-library/jest-dom/vitest'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useReducer } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ListEntry, SourceRecord } from '@/lib/list/model'
@@ -11,6 +11,7 @@ import { initialState, makeReducer, type AppState } from '@/lib/list/store'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import type { TreeFile } from '@/lib/tree/tree'
+import { setTreeMine, TREE_MINE_KEY } from '@/lib/tree-mine'
 
 // The tree file, and the full species file TreeView loads itself (the shown index may be the landing sample's own).
 const { fetchData, rows } = vi.hoisted(() => {
@@ -160,31 +161,28 @@ describe('TreeView', () => {
     expect(screen.getByRole('list', { name: 'Tips of the tree, top to bottom' }).querySelectorAll('.eb-tree-row')).toHaveLength(5)
   })
 
-  it('Only my birds: a switch, off to start, keeping the rows with a bird on the list, held on the device and told to Share', async () => {
+  it('Lifers only (the bar\'s switch, tree-mine.ts): off to start, keeping the rows with a bird on the list, held on the device and told to Share', async () => {
     // Node 25+ has its own unconfigured localStorage that shadows jsdom's.
     const kept = new Map<string, string>()
     vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
     const onLevel = vi.fn()
     const { unmount } = render(<TreeView entries={['b2'].map(entry)} sci={false} onPick={() => {}} onLevel={onLevel} />)
-    const sw = await screen.findByRole('switch', { name: 'Only my birds' })
-    expect(sw).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('button', { name: /^Ducks/ })).toBeInTheDocument()
-    fireEvent.click(sw)
-    expect(sw).toHaveAttribute('aria-checked', 'true')
+    expect(await screen.findByRole('button', { name: /^Ducks/ })).toBeInTheDocument()
+    expect(screen.queryByRole('switch')).toBeNull() // the switch is in the controls bar
+    act(() => setTreeMine(true))
     expect(screen.queryByRole('button', { name: /^Ducks/ })).toBeNull()
     expect(screen.getByRole('button', { name: /^Woodpeckers Picidae, 1 of 2 on the list$/ })).toBeInTheDocument()
     expect(onLevel).toHaveBeenLastCalledWith({}, true)
-    expect(localStorage.getItem('everybird:tree-mine')).toBe('1')
+    expect(localStorage.getItem(TREE_MINE_KEY)).toBe('1')
     unmount()
     const { rerender } = render(<TreeView entries={['b2'].map(entry)} sci={false} onPick={() => {}} />)
-    expect(await screen.findByRole('switch', { name: 'Only my birds' })).toHaveAttribute('aria-checked', 'true')
-    fireEvent.click(screen.getByRole('button', { name: /^Woodpeckers/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /^Woodpeckers/ }))
     // The open family loses its last bird: one plain line, the breadcrumb kept.
     rerender(<TreeView entries={['a1'].map(entry)} sci={false} onPick={() => {}} />)
     expect(screen.getByText('No bird on the list here.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'All families' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('switch', { name: 'Only my birds' }))
-    expect(localStorage.getItem('everybird:tree-mine')).toBeNull()
+    act(() => setTreeMine(false))
+    expect(localStorage.getItem(TREE_MINE_KEY)).toBeNull()
     expect(screen.queryByText('No bird on the list here.')).toBeNull()
     vi.unstubAllGlobals()
   })

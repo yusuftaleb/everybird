@@ -38,7 +38,7 @@ import { PRINT_DESIGN_W, captionMinPx, printDesign, printPackH, type PrintSize }
 import { RING_PAD, defaultCaptionMeasure, planCaptions, verifyAndPlaceCaptions, type CaptionBox, type CaptionPlan, type PlacedTile, type TextMeasurer } from '@/lib/share/captions'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
 import type { Box } from '@/lib/layout/pack'
-import type { Arrangement } from '@/lib/layout/arrange'
+import type { Arrangement } from '@/lib/arrangement'
 import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
@@ -350,8 +350,8 @@ export function cardDims(format: CardFormat, size: PrintSize = 'A2'): [number, n
 }
 
 /** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
-/** `arrangement`: By family or By colour (arrange.ts); left out for Packed. */
-export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number; ring?: number }>; arrangement?: Exclude<Arrangement, 'packed'> }
+/** `oval`: the share dialog's Oval (arrangement.ts); left out for Packed. */
+export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number; ring?: number }>; oval?: true }
 export function packSpec(L: CardLayout): PackSpec {
   const { w, h } = L.collage
   return { aspect: w / h, hole: scaleHole(L.count.hole, 1 / w), maxTile: L.maxTile }
@@ -385,7 +385,7 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, spec: 
   const birds: ListEntryMsg[] = []
   for (const e of entries) {
     const row = species.byCode.get(e.code)
-    if (row) birds.push({ code: e.code, mass: row.g, ord: row.ord, ...(spec.arrangement === 'family' ? { to: row.to } : {}) })
+    if (row) birds.push({ code: e.code, mass: row.g, ord: row.ord })
   }
   return new Promise((resolve, reject) => {
     if (signal?.aborted) return reject(abortError())
@@ -399,7 +399,7 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, spec: 
     }
     w.onerror = (e) => { done(); reject(new Error(`layout worker failed: ${e.message ?? 'error'}`)) }
     const captions = spec.captionBoxes ? birds.map((b) => spec.captionBoxes![b.code] ?? { w: 0, h: 0 }) : undefined
-    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}), ...(spec.arrangement ? { arrangement: spec.arrangement } : {}) }
+    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}), ...(spec.oval ? { oval: true } : {}) }
     w.postMessage(msg)
   })
 }
@@ -427,7 +427,7 @@ export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSi
   // Always the frame with the latest lifer row (the smaller one): the "Show latest lifer" switch never changes the pack.
   // With the row off, the same pack is fitted into the taller area (fitPack), so every bird keeps its place.
   const L = cardLayout(format, { ...c, latest: true }, cardDims(format, size))
-  const spec = { ...packSpec(L), ...(arrangement !== 'packed' ? { arrangement } : {}) }
+  const spec: PackSpec = { ...packSpec(L), ...(arrangement === 'oval' ? { oval: true } : {}) }
   if (!captionPlan) return spec
   const captionBoxes: NonNullable<PackSpec['captionBoxes']> = {}
   for (const [code, entry] of captionPlan.byCode) {

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The controls bar (view tabs, Filters, Style with the list's sort order, True size and Scientific names), Scientific names and the search, on the
+// The controls bar (view tabs, the list's direction, True size, Scientific), Scientific names and the search, on the
 // shared CollageView. jsdom has no layout worker, so the collage shows its placeholder; the stats line, the list view
 // and the card carry what is shown.
 import '@testing-library/jest-dom/vitest'
@@ -7,7 +7,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { useReducer } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CollageView } from '@/components/app/CollageView'
-import { MARK_FIRST_KEY, MARK_NEWEST_KEY, setLiferMark } from '@/lib/lifer-marks'
+import { setLiferMark } from '@/lib/lifer-marks'
+import { TREE_MINE_KEY } from '@/lib/tree-mine'
 import type { SourceRecord } from '@/lib/list/model'
 import { emptySaved } from '@/lib/list/storage'
 import { initialState, makeReducer, type AppState } from '@/lib/list/store'
@@ -42,8 +43,6 @@ function Harness() {
 }
 
 const stats = () => screen.getByTestId('collage-stats')
-/** Opens the bar's Style panel (True size, the sort order, Scientific names, the lifer marks live there). */
-const openStyle = (name = 'Style') => fireEvent.click(screen.getByRole('button', { name }))
 
 // Node 25+ has its own unconfigured localStorage that shadows jsdom's.
 class MemoryStorage {
@@ -71,34 +70,44 @@ describe('controls bar', () => {
     expect(container).not.toHaveTextContent('◦')
     expect(container).not.toHaveTextContent(/photo or recording/i)
   })
-  it('has the view tabs; Style holds True size (collage view), the sort order (list view) and Scientific names', () => {
+  it('has the Collage and List tabs, True size in collage view and the direction in list view, and Scientific', () => {
     render(<Harness />)
     const view = screen.getByRole('group', { name: 'View' })
     expect(within(view).getByRole('button', { name: 'Collage' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.queryByRole('switch')).toBeNull() // nothing of the look in the bar itself
-    openStyle()
-    expect(screen.getByRole('switch', { name: 'True size' })).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('switch', { name: 'Scientific names' })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('switch', { name: /True size/ })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('switch', { name: /Scientific/ })).toHaveAttribute('aria-checked', 'false')
     fireEvent.click(within(view).getByRole('button', { name: 'List' }))
-    expect(screen.getByRole('switch', { name: 'True size' })).toHaveAttribute('aria-disabled', 'true')
-    const sort = screen.getByRole('group', { name: 'Sort' })
-    expect(within(sort).getByRole('button', { name: 'Heaviest first' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('switch', { name: /True size/ })).toBeNull()
+    const dir = screen.getByRole('button', { name: 'Sorted by body mass, heaviest first. Reverse order' })
+    expect(dir).toHaveTextContent('Heaviest first')
     const rowNames = () => screen.getAllByRole('listitem').map((li) => li.querySelector('.eb-row-primary')!.textContent)
     expect(rowNames()[0]).toBe('Snow Goose')
-    fireEvent.click(within(sort).getByRole('button', { name: 'Lightest first' }))
-    expect(within(sort).getByRole('button', { name: 'Lightest first' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(dir)
+    expect(screen.getByRole('button', { name: 'Sorted by body mass, lightest first. Reverse order' })).toHaveTextContent('Lightest first')
     expect(rowNames()[0]).toBe('Yellow-rumped Warbler')
   })
+})
 
-  it('opening Style closes the Filters popover, and opening the search closes Style', () => {
+describe('the bar: one press per switch, each only in its view', () => {
+  it('Map shows none of the switches; Tree shows Lifers only, held on the device; no Style, Share or Compare in the bar', () => {
     render(<Harness />)
-    fireEvent.click(screen.getByTestId('filters-button'))
-    expect(screen.getByTestId('filters-panel')).toBeInTheDocument()
-    openStyle()
-    expect(screen.queryByTestId('filters-panel')).toBeNull()
-    expect(screen.getByTestId('style-panel')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Find a bird' }))
-    expect(screen.queryByTestId('style-panel')).toBeNull()
+    const view = screen.getByRole('group', { name: 'View' })
+    expect(screen.queryByRole('button', { name: 'Style' })).toBeNull()
+    expect(screen.queryByTestId('share-open')).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Compare' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Lifers only' })).toBeNull()
+    fireEvent.click(within(view).getByRole('button', { name: 'Map' }))
+    expect(screen.queryByRole('switch')).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Sorted by body mass/ })).toBeNull()
+    fireEvent.click(within(view).getByRole('button', { name: 'Tree' }))
+    const mine = screen.getByRole('switch', { name: 'Lifers only' })
+    expect(screen.getAllByRole('switch')).toEqual([mine]) // no True size or Scientific in the tree
+    expect(mine).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(mine)
+    expect(mine).toHaveAttribute('aria-checked', 'true')
+    expect(localStorage.getItem(TREE_MINE_KEY)).toBe('1')
+    fireEvent.click(mine)
+    expect(localStorage.getItem(TREE_MINE_KEY)).toBeNull()
   })
 })
 
@@ -115,10 +124,8 @@ describe('Filters and the search', () => {
 describe('Scientific names', () => {
   it('lead in list rows, the card, the order chips and the breadcrumb, in italics marked as Latin', () => {
     render(<Harness />)
-    openStyle()
-    fireEvent.click(screen.getByRole('switch', { name: 'Scientific names' }))
-    expect(screen.getByRole('switch', { name: 'Scientific names' })).toHaveAttribute('aria-checked', 'true')
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.click(screen.getByRole('switch', { name: /Scientific/ }))
+    expect(screen.getByRole('switch', { name: /Scientific/ })).toHaveAttribute('aria-checked', 'true')
     // Order chips: the order's scientific name.
     const orders = screen.getByRole('group', { name: 'Orders' })
     const chip = within(orders).getByRole('button', { name: /^Piciformes/ })
@@ -295,12 +302,10 @@ describe('hover tooltip', () => {
 })
 
 describe('in Spanish', () => {
-  it('Estilo with Tamaño real and Nombres científicos, the view tabs, the magnifier and the stats line', () => {
+  it('Tamaño real, Científico, the view tabs, the magnifier and the stats line', () => {
     render(<Harness />, { wrapper: withI18n('es') })
-    openStyle('Estilo')
-    expect(screen.getByRole('switch', { name: 'Tamaño real' })).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('switch', { name: 'Nombres científicos' })).toBeInTheDocument()
-    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.getByRole('switch', { name: /^Tamaño real/ })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('switch', { name: /^Científico/ })).toBeInTheDocument()
     const view = screen.getByRole('group', { name: 'Vista' })
     expect(within(view).getByRole('button', { name: 'Lista' })).toBeInTheDocument()
     expect(stats()).toHaveTextContent('5 especies · 3 órdenes · 4 familias · desde ene 2020')
@@ -319,41 +324,9 @@ describe('in Spanish', () => {
   })
 })
 
-describe('mark lifers toggles', () => {
-  it('off by default, both can be on at once, remembered in localStorage, and disabled in list view', () => {
+describe('lifer marks (set in the share dialog, kept per device)', () => {
+  it('the bar has no lifer-mark switches', () => {
     render(<Harness />)
-    openStyle()
-    const newest = screen.getByRole('switch', { name: 'Mark latest lifer' })
-    const first = screen.getByRole('switch', { name: 'Mark first lifer' })
-    expect(newest).toHaveAttribute('aria-checked', 'false')
-    expect(first).toHaveAttribute('aria-checked', 'false')
-    fireEvent.click(newest)
-    fireEvent.click(first)
-    expect(newest).toHaveAttribute('aria-checked', 'true')
-    expect(first).toHaveAttribute('aria-checked', 'true')
-    expect(localStorage.getItem(MARK_NEWEST_KEY)).toBe('1')
-    expect(localStorage.getItem(MARK_FIRST_KEY)).toBe('1')
-    fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'List' }))
-    expect(screen.getByRole('switch', { name: 'Mark latest lifer' })).toHaveAccessibleDescription('Only in the Collage view.')
-    expect(screen.getByRole('switch', { name: 'Mark first lifer' })).toHaveAttribute('aria-disabled', 'true')
-    cleanup()
-    render(<Harness />)
-    openStyle()
-    expect(screen.getByRole('switch', { name: 'Mark latest lifer' })).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByRole('switch', { name: 'Mark first lifer' })).toHaveAttribute('aria-checked', 'true')
-  })
-
-  it('hidden when the list has no dated birds', () => {
-    function Undated() {
-      const [state, dispatch] = useReducer(reduce, undefined, () => {
-        const saved = emptySaved()
-        saved.records.ebird = [{ code: 'snogoo', source: 'ebird' }, { code: 'amerob', source: 'ebird' }]
-        return reduce(initialState(), { type: 'restore', saved })
-      })
-      return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Undated collage" />
-    }
-    render(<Undated />)
-    openStyle()
     expect(screen.queryByRole('switch', { name: 'Mark latest lifer' })).toBeNull()
     expect(screen.queryByRole('switch', { name: 'Mark first lifer' })).toBeNull()
   })
@@ -369,9 +342,7 @@ describe('mark lifers toggles', () => {
     try {
       render(<SeededCollage />)
       const stage = await screen.findByTestId('collage-stage')
-      openStyle()
-      fireEvent.click(screen.getByRole('switch', { name: 'Mark latest lifer' }))
-      fireEvent.click(screen.getByRole('switch', { name: 'Mark first lifer' }))
+      act(() => { setLiferMark('newest', true); setLiferMark('first', true) })
       const newestBird = stage.querySelector('.eb-bird[data-code="yerwar"]')!
       const firstBird = stage.querySelector('.eb-bird[data-code="snogoo"]')!
       expect(newestBird).toHaveAttribute('data-mark', 'newest')

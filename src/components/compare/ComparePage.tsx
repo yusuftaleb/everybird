@@ -1,7 +1,5 @@
 'use client'
-import { ArrowLeft } from '@phosphor-icons/react'
 import { useId, useMemo, useState, type FocusEvent, type FormEvent } from 'react'
-import Link from '@/components/app/IntentLink'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -80,17 +78,7 @@ export function ComparePage() {
 
   return (
     <main className="eb-page eb-page-collage eb-page-titled">
-      <PageHead
-        title={t.compare.title}
-        lede={t.compare.lede}
-        actions={(
-          // Compare is an entry of the collage's view switcher: the plain way back to the views.
-          <Link href="/" className="eb-btn eb-btn-quiet" data-testid="compare-back">
-            <ArrowLeft aria-hidden="true" focusable="false" />
-            {t.compare.back}
-          </Link>
-        )}
-      />
+      <PageHead title={t.compare.title} lede={t.compare.lede} />
       <div className="eb-compare">
         <form className="eb-compare-form" onSubmit={submit}>
           <label htmlFor={`${id}-links`} className="eb-label">{t.compare.linksLabel}</label>

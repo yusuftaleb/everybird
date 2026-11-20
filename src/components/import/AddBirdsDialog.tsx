@@ -1,6 +1,7 @@
 'use client'
-// "Add birds": one modal for every way in, opened from the collage's head, the landing's main button and Settings. Two
-// choices: "Import a file" (the source rows, ImportPanel) and "Add by hand" (TickList). Centred from 601px, a
+// "Add birds": one modal for every way in, opened from the collage's head and the landing's main button (Settings has
+// the same rows in the page). It opens on "Import a file" (the source rows, ImportPanel); "Add by hand" (TickList) is
+// one press away in the same control. Centred from 601px, a
 // full-height sheet on phones. Esc, ✕ and a press outside close it; Tab stays inside; focus goes back to the button
 // that opened it (or, when that button has gone, as the landing's does once a first list is made, to the collage's
 // "Add birds"). Imports run in EverybirdProvider, so closing it mid-import loses nothing.
@@ -22,14 +23,14 @@ export type AddWay = 'file' | 'hand'
 /** The element "Add birds" buttons carry, so focus can return to one when the opener has gone. */
 export const ADD_BIRDS_ATTR = 'data-add-birds'
 
-export function AddBirdsDialog({ start, onClose }: { start?: AddWay; onClose: () => void }) {
+export function AddBirdsDialog({ onClose }: { onClose: () => void }) {
   const eb = useEverybirdContext()
   const { state, dispatch, data, jobs, mine } = eb
   const { saved } = state
   const { t } = useI18n()
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  const [way, setWay] = useState<AddWay | undefined>(start)
+  const [way, setWay] = useState<AddWay>('file')
   const [opener] = useState(() => document.activeElement as HTMLElement | null)
   useFocusInAndBack(ref, () => (opener?.isConnected ? opener : document.querySelector<HTMLElement>(`[${ADD_BIRDS_ATTR}]`)))
   useHoldTopBar()
@@ -86,7 +87,7 @@ export function AddBirdsDialog({ start, onClose }: { start?: AddWay; onClose: ()
             )}
           </p>
         )}
-        {way && !data ? (
+        {!data ? (
           !eb.failed && <div className="eb-ways-wait" aria-hidden="true" />
         ) : way === 'file' && data ? (
           <>
@@ -103,7 +104,7 @@ export function AddBirdsDialog({ start, onClose }: { start?: AddWay; onClose: ()
         ) : way === 'hand' && data ? (
           <>
             {ticked.species > 0 && <p className="eb-mono eb-note">{[t.tick.title, ...countParts(ticked, t)].join(' · ')}</p>}
-            <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} />
+            <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} autoFocus />
           </>
         ) : null}
         {/* Where files and usernames are handed over; the full privacy note is on About. */}

@@ -1,62 +1,94 @@
 'use client'
-// The one bar above the filters, as LifeList's dock (framer-site), with Photography's search, holding three things: the
-// view switcher on the left (Collage / List / Map / Tree, then Compare, a link to its own page), then Filters, Style
-// and Share side by side, then the magnifier. Filters (Filters.tsx) serves every view; Style (StylePanel.tsx) holds
-// what changes the look; Share opens the share dialog. The magnifier turns the dock into the search field
-// (DockSearch.tsx); everything else sits under it, inert, while it is open. Under 820px of bar Filters, Style and Share
-// take a second row of their own, under 600px filling it (app.css); under 1100px the views are icons only, so row one
-// (the views and the magnifier) never breaks between 280 and 1200px of bar.
-import { ShareNetwork, UsersThree } from '@phosphor-icons/react'
-import { useCallback, useId, useRef, useState, type ReactNode } from 'react'
-import Link from '@/components/app/IntentLink'
-import { CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
+// The one horizontal bar above the filters, as LifeList's dock (framer-site), with Photography's search: the views on
+// the left (Collage / List / Map / Tree); then, at even gaps, the view's own switches and the one Filters button
+// (Filters.tsx), then the magnifier. Each switch is one press and shows only in the view it applies to: True size in
+// Collage, the sort direction in List, Scientific in both, Lifers only in Tree; none in Map. The magnifier turns the dock
+// into the search field (DockSearch.tsx); everything else sits under it, inert, while it is open. Under 820px of bar the
+// switches and Filters take a second row of their own, under 600px Filters filling what the switches leave (app.css);
+// under 1100px the views are icons only; under 540px of bar (and on phones) the switches shorten ("True", "Sci.";
+// "Heaviest" in list view; Lifers only keeps its words, alone beside Filters), and under 330px and 310px everything
+// tightens, so row one (the views and the magnifier) never breaks between 280 and 1200px of bar.
+import { useCallback, useRef, useState, type ReactNode } from 'react'
+import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
 import { useI18n } from '@/i18n/I18nProvider'
+import { setTreeMine, useTreeMine } from '@/lib/tree-mine'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
 import type { ViewKind } from '@/lib/view-resume'
 import { DockSearchField, SearchButton, type DockSearchProps } from './DockSearch'
-import { StyleButton, StylePanel, type StyleProps } from './StylePanel'
 
-type Props = StyleProps & {
+type Props = {
+  view: ViewKind
   onView: (v: ViewKind) => void
   /** No Map tab (a view with no places). */
   noMap?: boolean
-  /** A Compare entry after the views: a link to /compare (the birder's own collage). */
-  compare?: boolean
-  /** The Share button (left out: none). */
-  share?: { onShare: () => void; disabled?: boolean }
+  trueSize: boolean
+  onTrueSize: (on: boolean) => void
+  lightFirst: boolean
+  onDirection: () => void
+  sci: boolean
+  onSci: (on: boolean) => void
   /** The search (left out: no magnifier). */
   search?: DockSearchProps
   /** The Filters button (inert with its group while the search covers the bar). */
   filters?: ReactNode
   /** After the dock, inside the wrap: the active-filter chips, then the Filters popover (it anchors under them). */
   below?: ReactNode
-  /** The search or the Style panel is opening: the caller closes the Filters panel. */
+  /** The search is opening (pointer or keyboard): the caller closes whatever else is open over the bar. */
   onFind?: () => void
 }
 
-export function ControlsBar({ onView, noMap, compare, share, search, filters, below, onFind, ...style }: Props) {
-  const { view } = style
+/** A one-press switch in the bar: the label, its short form on narrow bars and phones (none: the label at every
+ *  width), and words for screen readers only. */
+function DockSwitch({ on, onChange, long, short, sr, className, title, testId }: {
+  on: boolean; onChange: (on: boolean) => void; long: string; short?: string; sr?: string; className?: string; title?: string; testId?: string
+}) {
+  return (
+    <button type="button" role="switch" aria-checked={on} className={`eb-dock-tab eb-dock-sw${className ? ` ${className}` : ''}`} title={title} data-testid={testId} onClick={() => onChange(!on)}>
+      <span>{short ? <><span className="eb-long">{long}</span><span className="eb-short">{short}</span></> : long}{sr && <span className="eb-sr">{` ${sr}`}</span>}</span>
+      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+    </button>
+  )
+}
+
+export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, search, filters, below, onFind }: Props) {
   const [finding, setFinding] = useState(false)
-  const [styling, setStyling] = useState(false)
   // Whether the search is open is carried over a language switch (view-resume.ts); the typed text is not.
   const hasSearch = !!search
   useTakeResume('search', (r) => { if (hasSearch) setFinding(r.open) })
   useOfferResume('search', () => (hasSearch ? { open: finding } : undefined))
   const { t } = useI18n()
   const c = t.collage.controls
+  const mine = useTreeMine()
   const wrap = useRef<HTMLDivElement>(null)
   const findBtn = useRef<HTMLButtonElement>(null)
-  const styleBtn = useRef<HTMLButtonElement>(null)
-  const styleId = useId()
   const close = useCallback((restore: boolean) => {
     setFinding(false)
     if (restore) requestAnimationFrame(() => findBtn.current?.focus({ preventScroll: true }))
   }, [])
-  const closeStyle = useCallback(() => setStyling(false), [])
   const onPick: DockSearchProps['onPick'] = (h) => {
     setFinding(false)
     search?.onPick(h)
   }
+  const sciSwitch = <DockSwitch on={sci} onChange={onSci} long={c.sci} short={c.sciShort} sr={c.sciSr} className="eb-dock-sci" testId="dock-sci" />
+  const tools = view === 'collage' ? (
+    <>
+      <DockSwitch on={trueSize} onChange={onTrueSize} long={c.trueSize} short={c.trueShort} sr={c.trueSr} title={c.trueTitle} testId="dock-true" />
+      {sciSwitch}
+    </>
+  ) : view === 'list' ? (
+    <>
+      <button type="button" className="eb-dock-tab eb-dock-sw eb-dock-dir" aria-label={lightFirst ? c.sortedLightest : c.sortedHeaviest} data-testid="dock-sort" onClick={onDirection}>
+        <span>
+          <span className="eb-long">{lightFirst ? c.lightestFirst : c.heaviestFirst}</span>
+          <span className="eb-short">{lightFirst ? c.lightest : c.heaviest}</span>
+        </span>
+        <ArrowDownIcon up={lightFirst} />
+      </button>
+      {sciSwitch}
+    </>
+  ) : view === 'tree' ? (
+    <DockSwitch on={mine} onChange={setTreeMine} long={c.lifersOnly} testId="tree-mine" />
+  ) : null
   return (
     <div ref={wrap} className="eb-dockwrap">
       <div className="eb-dock" data-finding={finding || undefined}>
@@ -67,29 +99,15 @@ export function ControlsBar({ onView, noMap, compare, share, search, filters, be
               <span>{c[v]}</span>
             </button>
           ))}
-          {compare && (
-            // Compare is its own page: the entry takes the birder there (the page has a way back).
-            <Link href="/compare" className="eb-dock-tab" aria-label={t.compare.open} data-testid="compare-open">
-              <UsersThree aria-hidden="true" focusable="false" />
-              <span>{t.compare.open}</span>
-            </Link>
-          )}
         </div>
         <div className="eb-dock-filters" inert={finding}>
+          {tools && <div className="eb-dock-tools">{tools}</div>}
           {filters}
-          <StyleButton open={styling} onOpen={(o) => { if (o) onFind?.(); setStyling(o) }} buttonRef={styleBtn} panelId={styleId} />
-          {share && (
-            <button type="button" className="eb-dock-tab eb-dock-drop" aria-haspopup="dialog" disabled={share.disabled} data-testid="share-open" data-tour="share" onClick={share.onShare}>
-              <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
-              <span className="eb-drop-label">{t.collage.share}</span>
-            </button>
-          )}
         </div>
-        {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => { onFind?.(); setStyling(false); setFinding(true) }} buttonRef={findBtn} /></div>}
+        {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => { onFind?.(); setFinding(true) }} buttonRef={findBtn} /></div>}
         {search && <DockSearchField {...search} onPick={onPick} open={finding} onClose={close} within={wrap} />}
       </div>
       {below}
-      {styling && <StylePanel {...style} showDark={!!share} id={styleId} buttonRef={styleBtn} onClose={closeStyle} />}
     </div>
   )
 }

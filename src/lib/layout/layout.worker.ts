@@ -3,7 +3,7 @@
 // Protocol (structured-clone friendly):
 //   main -> worker  { type: 'setList', id, entries: [{ code, mass, ord }] }
 //                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit? }
-//                   { type: 'image', id, entries: [{ code, mass, ord }], aspect, hole?, maxTile? }
+//                   { type: 'image', id, entries: [{ code, mass, ord }], aspect, hole?, maxTile?, captions?, oval? }
 //                                                             (share images; no setList needed)
 //   worker -> main  { type: 'ready', id }                      (setList done: masks loaded)
 //                   { type: 'result', id, key, layout, mode, base, W, H, codes, boxes }
@@ -16,34 +16,26 @@
 // `fit` (filtered states): the result's stage height is trimmed about the count (pack.ts fitStage), so W/H
 // can be smaller than fixedStage. Relative sizes are always computed over the whole list (setList), per mode.
 //
-// `arrangement` (arrange.ts; left out for Packed): 'family' lays a layout or image out in rows in taxonomic order (each
-// entry's `to`, else the request's order); a filtered family state passes the full one's row height as refBase and its
-// stage as fixedStage. 'colour' re-places Packed's birds by colour (colours.v1.json, loaded once per worker): an even
-// layout request passes the same state's Packed stage as fixedStage and its base as refBase; true mode needs nothing new
-// (its targets are the colour state's centres). 'oval' is Packed (both modes, every option as Packed's) inside the
-// ellipse inscribed in the stage packed in or the image's frame.
+// `oval` (an image): packFrame inside the ellipse inscribed in the frame (the share dialog's Oval).
 //
 // Species without a mask (st:false in species.v1.json, drawn as a silhouette icon) get FALLBACK_MASK: a solid
 // ellipse on a square 24 x 24 grid (aspect 1), so they pack as round blobs, and are sized by the outline they draw
 // (OUTLINE_SHAPE, see relSizes), not by the ellipse.
 import { EXP, EXP_TRUE, LAYOUTS, OUTLINE_SHAPE } from './constants'
 import { decodeMask, MASK, type Mask } from './mask'
-import { packBest, packFrame, relSizes, type PackBird, type PackResult } from './pack'
-import { collageHole, type Hole } from './count-box'
-import { NEUTRAL_KEY, colourFrame, colourPack, rowsFrame, rowsLayout } from './arrange'
-import { fetchAllMasks, fetchData } from '../data-url'
+import { packBest, packFrame, relSizes, type PackBird } from './pack'
+import type { Hole } from './count-box'
+import { fetchAllMasks } from '../data-url'
 
-/** `to`: the eBird taxon order (By family sorts by it). */
-export type ListEntryMsg = { code: string; mass: number; ord: string; to?: number }
-type Arranged = 'oval' | 'family' | 'colour'
+export type ListEntryMsg = { code: string; mass: number; ord: string }
 export type LayoutName = 'wide' | 'medium' | 'narrow'
 export type WorkerRequest =
   | { type: 'setList'; id: number; entries: ListEntryMsg[] }
   | {
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
-      refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean; arrangement?: Arranged
+      refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean
     }
-  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number; captions?: { w: number; h: number; ring?: number }[]; arrangement?: Arranged }
+  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number; captions?: { w: number; h: number; ring?: number }[]; oval?: boolean }
 export type WorkerReply =
   | { type: 'ready'; id: number }
   | {
@@ -70,23 +62,11 @@ function ellipseMask(): Mask {
 }
 export const FALLBACK_MASK: Mask = ellipseMask()
 
-/** Code -> colour key (colours.v1.json). Injectable for tests. */
-export type ColourLoader = () => Promise<Record<string, number>>
-let coloursP: Promise<Record<string, number>> | null = null
-export const fetchColours: ColourLoader = () => (coloursP ??= fetchData<{ c: Record<string, number> }>('colours.v1.json').then((f) => f.c, (e) => { coloursP = null; throw e }))
-
-/** `birds` in taxon order (`to` by id; without one, by id: the request's order). */
-function byTaxon(birds: PackBird[], to: Map<number, number>): PackBird[] {
-  return [...birds].sort((a, b) => (to.get(a.id) ?? 1e12) - (to.get(b.id) ?? 1e12) || a.id - b.id)
-}
-const taxonOf = (entries: ListEntryMsg[]) => new Map(entries.flatMap((e, i) => (e.to === undefined ? [] : [[i, e.to] as [number, number]])))
-const aspectOf = (b: PackBird) => ({ id: b.id, aspect: b.mask.w / b.mask.h })
-
 // All orders come from one file (masks.v2.json, one request); an order missing from it has no masks.
 export const fetchOrderMasks: MaskLoader = async (order) => (await fetchAllMasks())[order] ?? {}
 
 // rel: relative sizes over the whole list per mode (smallest bird of the list = 1), shared by every state.
-type ListState = { ids: Map<string, number>; birds: Map<string, PackBird>; rel: { even: Map<number, number>; true: Map<number, number> }; to: Map<number, number> }
+type ListState = { ids: Map<string, number>; birds: Map<string, PackBird>; rel: { even: Map<number, number>; true: Map<number, number> } }
 
 /** Each entry as a PackBird (id = its index), with its sticker mask or FALLBACK_MASK. */
 export async function loadBirds(entries: ListEntryMsg[], load: MaskLoader): Promise<Map<string, PackBird>> {
@@ -111,11 +91,11 @@ async function buildList(entries: ListEntryMsg[], load: MaskLoader): Promise<Lis
   const birds = await loadBirds(entries, load)
   const ids = new Map([...birds].map(([code, b]) => [code, b.id]))
   const all = [...birds.values()]
-  return { ids, birds, rel: { even: relSizes(all, EXP), true: relSizes(all, EXP_TRUE) }, to: taxonOf(entries) }
+  return { ids, birds, rel: { even: relSizes(all, EXP), true: relSizes(all, EXP_TRUE) } }
 }
 
 /** The message handler, with mask loading injected. Messages must be handed over in arrival order. */
-export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks, loadColours: ColourLoader = fetchColours) {
+export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
   let list: Promise<ListState> | null = null
   // Order files are fetched once per worker (a failure is not remembered, so it can be retried).
   const tables = new Map<string, Promise<MaskTable>>()
@@ -136,16 +116,7 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks, loa
         const captions = msg.captions
           ? new Map(codes.map((c, i) => [birds.get(c)!.id, msg.captions![i]]))
           : undefined
-        const all = [...birds.values()]
-        const opts = { hole: msg.hole, maxTile: msg.maxTile, captions }
-        let r: PackResult | null = null
-        if (msg.arrangement === 'family') r = rowsFrame(byTaxon(all, taxonOf(msg.entries)).map(aspectOf), msg.aspect, opts)
-        else if (msg.arrangement === 'colour') {
-          const keys = await loadColours().catch(() => ({}) as Record<string, number>) // no file: every bird is neutral, as NEUTRAL_KEY says
-          const key = new Map(codes.map((c) => [birds.get(c)!.id, keys[c] ?? NEUTRAL_KEY]))
-          r = colourFrame(all, msg.aspect, (id) => key.get(id) ?? NEUTRAL_KEY, opts)
-        }
-        r ??= packFrame(all, msg.aspect, { ...opts, ...(msg.arrangement === 'oval' ? { oval: true } : {}) })
+        const r = packFrame([...birds.values()], msg.aspect, { hole: msg.hole, maxTile: msg.maxTile, captions, ...(msg.oval ? { oval: true } : {}) })
         const boxes = new Float32Array(codes.length * 4)
         codes.forEach((c, i) => boxes.set(r.boxes.get(birds.get(c)!.id)!, i * 4))
         return { type: 'image', id: msg.id, W: r.W, H: r.H, codes, boxes }
@@ -158,7 +129,7 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks, loa
         return { type: 'ready', id: msg.id }
       }
       if (!list) throw new Error('layout requested before setList')
-      const { birds, rel, to } = await list
+      const { birds, rel } = await list
       const known: string[] = []
       const pack: PackBird[] = []
       const centres: number[] = []
@@ -172,21 +143,9 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks, loa
       const layout = LAYOUTS.find((l) => l.name === msg.layout)
       if (!layout) throw new Error(`unknown layout ${msg.layout}`)
       const targets = msg.targets ? new Map(pack.map((b, i) => [b.id, [centres[2 * i], centres[2 * i + 1]] as [number, number]])) : undefined
-      let r: PackResult
-      if (msg.arrangement === 'family') {
-        r = rowsLayout(byTaxon(pack, to).map(aspectOf), layout, collageHole(pack.length, layout), { refBase: msg.refBase, fixedStage: msg.fixedStage })
-      } else if (msg.arrangement === 'colour') {
-        const keys = await loadColours().catch(() => ({}) as Record<string, number>) // no file: every bird is neutral, as NEUTRAL_KEY says
-        const key = new Map(known.map((c, i) => [pack[i].id, keys[c] ?? NEUTRAL_KEY]))
-        // Packed's stage and base for this state (or packed here, when the request didn't bring them).
-        const ref = msg.fixedStage && msg.refBase ? { W: msg.fixedStage[0], H: msg.fixedStage[1], base: msg.refBase } : packBest(pack, layout, 'even', { rel: rel.even })
-        r = colourPack(pack, rel.even, ref.W, ref.H, ref.base, collageHole(pack.length, layout), (id) => key.get(id) ?? NEUTRAL_KEY)
-      } else {
-        r = packBest(pack, layout, msg.mode, {
-          targets, refBase: msg.refBase, fixedStage: msg.fixedStage, rel: rel[msg.mode], fit: msg.fit,
-          ...(msg.arrangement === 'oval' ? { oval: true } : {}),
-        })
-      }
+      const r = packBest(pack, layout, msg.mode, {
+        targets, refBase: msg.refBase, fixedStage: msg.fixedStage, rel: rel[msg.mode], fit: msg.fit,
+      })
       const boxes = new Float32Array(known.length * 4)
       pack.forEach((b, i) => boxes.set(r.boxes.get(b.id)!, i * 4))
       return { type: 'result', id: msg.id, key: msg.key, layout: msg.layout, mode: msg.mode, base: r.base, W: r.W, H: r.H, codes: known, boxes }

@@ -71,9 +71,8 @@ function placementOrder(birds: PackBird[], rel: Map<number, number>): PackBird[]
 export function pack(
   birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
   stretch: number, hole: Hole, targets?: Map<number, [number, number]>, cell = DEFAULT_CELL, dense = false,
-  captions?: Map<number, CaptionRoom>,
 ): Map<number, Box> | null {
-  return packGrid(birds, rel, W, H, base, stretch, hole, targets, cell, dense, captions)?.boxes ?? null
+  return packGrid(birds, rel, W, H, base, stretch, hole, targets, cell, dense)?.boxes ?? null
 }
 
 /** An empty grid with the count's hole marked and, for Oval, everything outside the stage's ellipse. */
@@ -256,7 +255,7 @@ export function detached(boxes: Map<number, Box>, k = DETACH): number[] {
  * clear. Repeated while that frees others (a bird that was blocked by one now moved). True size and small lists
  * leave a few: big birds placed first push small ones out along the spiral past the edge (the "stragglers").
  */
-export function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions?: Map<number, CaptionRoom>, oval = false): Map<number, Box> {
+function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions?: Map<number, CaptionRoom>, oval = false): Map<number, Box> {
   let loose = detached(boxes)
   if (!loose.length) return boxes
   const grid = blankGrid(W, H, 1, hole, oval)
@@ -389,7 +388,7 @@ export function stretchAt(layout: Pick<Layout, 'H' | 'stretch' | 'maxH'>, H: num
  * - With fit (filtered states, needs fixedStage): after packing, the stage height is trimmed about the count
  *   (fitStage), so the returned H can be less than fixedStage's and box y's move up by the same amount.
  * - With maxBase (share images): the search never goes above it, so no tile is longer than maxBase · max rel.
- * - With oval (the Oval arrangement): every bird stays inside the ellipse inscribed in the stage packed in (the grown
+ * - With oval (packFrame's, the share images' Oval): every bird stays inside the ellipse inscribed in the stage packed in (the grown
  *   stage, fixedStage or the frame), and the size estimate counts the ellipse's area (π/4 of the stage's).
  */
 export function packBest(

@@ -36,13 +36,15 @@ type Props = {
   onList: ReadonlySet<string>
   /** No records from any source and nothing added by hand yet: the next bird starts a hand-made collage. */
   listEmpty?: boolean
+  /** Focus the search on mount (the Add birds dialog's Add by hand; not on Settings, where it is part of the page). */
+  autoFocus?: boolean
 }
 
 const ROW = 56
 const VIEW = 8 // rows in view (the list's height)
 const OVER = 6 // rows drawn above and below the view
 
-export function TickList({ species, regions, edits, dispatch, onList, listEmpty }: Props) {
+export function TickList({ species, regions, edits, dispatch, onList, listEmpty, autoFocus }: Props) {
   const ids = useId()
   const { lang, t } = useI18n()
   const tt = t.tick
@@ -61,8 +63,8 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty 
   const box = useRef<HTMLDivElement>(null)
   const search = useRef<HTMLInputElement>(null)
   const yearRef = useRef<HTMLInputElement>(null)
-  // The search has the focus as soon as this opens (an effect: after the dialog's own focus, a layout effect).
-  useEffect(() => { search.current?.focus({ preventScroll: true }) }, [])
+  // In the dialog the search has the focus as soon as this opens (an effect: after the dialog's own focus, a layout effect).
+  useEffect(() => { if (autoFocus) search.current?.focus({ preventScroll: true }) }, [autoFocus])
 
   // Every family by its common name, in the UI language's order.
   const families = useMemo(() => {

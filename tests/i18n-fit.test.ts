@@ -26,7 +26,7 @@ const OTHERS = { es, pt, nl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhH
 /** Resting labels in fixed rows (dotted paths into `ui`). */
 const TIGHT = [
   'collage.controls.collage', 'collage.controls.list', 'collage.controls.tree', 'collage.controls.heaviestFirst', 'collage.controls.lightestFirst',
-  'collage.controls.trueSize', 'collage.controls.style',
+  'collage.controls.heaviest', 'collage.controls.lightest', 'collage.controls.trueSize', 'collage.controls.sci',
   'filters.label', 'filters.clear', 'filters.timeline.sumFrom', 'filters.timeline.sumTo',
   'import.add', 'import.replace', 'import.remove', 'import.inat.refresh', 'import.inat.cancel', 'tick.button',
   'share.format.story', 'share.format.post', 'share.format.square', 'share.shareImage', 'share.download', 'share.copyLink',
@@ -40,6 +40,8 @@ const ROOMY: Record<string, number> = { 'import.add': 12, 'import.remove': 12 }
 /** A label's length in Latin characters: a kana or Han character is one em, about 1 / 0.58 of a Satoshi letter (the
  *  width model of topbar-fit.test.ts; Latin and Cyrillic letters count one each). */
 const width = (s: string) => [...s].reduce((n, c) => n + (WIDE_CHAR.test(c) ? 1 / 0.58 : 1), 0)
+/** Short forms: at most the English short form + 2. */
+const SHORT = ['collage.controls.trueShort', 'collage.controls.sciShort']
 
 function get(m: unknown, path: string): string {
   const v = path.split('.').reduce<unknown>((n, k) => (n as Record<string, unknown>)[k], (m as { ui: unknown }).ui)
@@ -56,6 +58,11 @@ describe('tight labels', () => {
         const v = get(m, path)
         const max = Math.max(e.length + 4, Math.ceil(e.length * 1.3), ROOMY[path] ?? 0)
         if (width(v) > max) over.push(`${lang} ${path} "${v}" (en "${e}", max ${max})`)
+      }
+      for (const path of SHORT) {
+        const e = get(en, path)
+        const v = get(m, path)
+        if (width(v) > e.length + 2) over.push(`${lang} ${path} "${v}" (en "${e}", max ${e.length + 2})`)
       }
     }
     expect(over).toEqual([])

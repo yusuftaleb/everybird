@@ -41,10 +41,13 @@
 @media (min-width: 720px) { :root { --topbar-h: 65px; } }
 /* The bar's nav on a second row (app.css, the same media queries and selectors; preview variant lang via
    <html data-topbar>, none reads as a): 4 + 44 + 40 + 4px and the hairline. */
-@media (max-width: 429px) { :root:not([data-topbar="b"], [data-topbar="c"]) { --topbar-h: 93px; } }
-@media (max-width: 383px) { :root[data-topbar="b"]:is(:lang(es), :lang(nl)) { --topbar-h: 93px; } }
-@media (max-width: 365px) { :root[data-topbar="b"] { --topbar-h: 93px; } }
-@media (max-width: 309px) { :root[data-topbar="c"] { --topbar-h: 93px; } }
+@media (max-width: 599px) { :root:not([data-topbar="b"], [data-topbar="c"]) { --topbar-h: 93px; } }
+@media (max-width: 547px) { :root[data-topbar="b"]:is(:lang(es), :lang(nl)) { --topbar-h: 93px; } }
+@media (max-width: 539px) { :root[data-topbar="b"] { --topbar-h: 93px; } }
+@media (max-width: 599px) { :root[data-topbar="c"] { --topbar-h: 93px; } }
+/* Under 300px the nav's row wraps to two lines (app.css): 4 + 44 + 2 × 40 + 4px and the hairline. Chinese keeps one line.
+   The second :not() lifts it over the Spanish and Dutch rule above. */
+@media (max-width: 299px) { :root:not(:lang(zh-Hans), :lang(zh-Hant)):not([data-topbar="-"]) { --topbar-h: 133px; } }
 
 :root[data-theme=light] {
   color-scheme: light;

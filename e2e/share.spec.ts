@@ -410,7 +410,7 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
       }
       seen.push({ format, col: m.col, icons: m.icons, segX: m.segX, segY: m.segY, midY: m.midY, midX: m.midX, boxR: m.boxR, share: m.share });
       if (shots) {
-        // Dark image is in Style (outside the dialog): the shots are in the image's current look.
+        // The shots are in the image's current look (the dialog's Dark image switch, at the app's theme).
         await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
         await dialog.screenshot({ path: `${shots}/after-share-${width}-${format.toLowerCase()}-${info.project.name}.png` });
       }

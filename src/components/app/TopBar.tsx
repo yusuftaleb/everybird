@@ -1,10 +1,10 @@
 'use client'
 // The top bar on every page, after the site's phone top bar (framer-site code-components/SiteNav.tsx): the Everybird
-// wordmark home on the left, then Collage, Settings and About (the current page carries aria-current="page" and the
+// wordmark home on the left, then Collage, Compare, Settings and About (the current page carries aria-current="page" and the
 // site's active style: Surface fill, Hairline border, Accent), then on the right the language button (LanguageMenu,
 // preview variants lang:a and c) and the sun/moon theme switch, together in row one at every width. Where row one
-// can't hold the nav it takes its own second row (app.css; a under 430px, b under 384/366px by language, c under
-// 310px with Collage hidden under 480px). The variant is mirrored on <html data-topbar> so the CSS and --topbar-h
+// can't hold the nav it takes its own second row (app.css; a and c under 600px, c with Collage hidden under 480px, b
+// under 548/540px by language), which wraps onto a second line under 300px of page. The variant is mirrored on <html data-topbar> so the CSS and --topbar-h
 // (tokens.css) switch together. Sticky with headroom (src/lib/headroom.ts): it slides out of view while the page
 // scrolls down and back on any upward scroll, at the top, while a dialog holds it and while focus is inside it.
 import Link from '@/components/app/IntentLink'
@@ -19,6 +19,7 @@ import { ThemeToggle } from './ThemeToggle'
 
 const PAGES = [
   { href: '/', key: 'collage' },
+  { href: '/compare', key: 'compare' },
   { href: '/settings', key: 'settings' },
   { href: '/about', key: 'about' },
 ] as const

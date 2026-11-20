@@ -9,8 +9,8 @@
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
 // Every word is the UI language's (ui.share), the image's and the poster's too; the credit line, the share text
 // (SHARE_CREDIT), the download names and the link stay the same in every language (a link carries no language).
-// Style > Dark image (dark-image.ts: the app's theme until the birder sets it) sets the look of the share images and the
-// poster alike. Print mode makes an A4 to A1 or a 12 × 18, 18 × 24 or 24 × 36 in poster (A2 to start): the preview is the poster's 1080-wide image, "Make poster" runs
+// The "Dark image" switch (starts at the app's theme, then the dialog's own) sets the look of the share images and the
+// poster alike; Packed / Oval and the two lifer marks (lifer-marks.ts, kept per device) apply to them too. Print mode makes an A4 to A1 or a 12 × 18, 18 × 24 or 24 × 36 in poster (A2 to start): the preview is the poster's 1080-wide image, "Make poster" runs
 // makePoster (its chunk is fetched when print mode opens) with progress and Cancel, then Download PNG and Download PDF
 // serve the one encode. Changing the size, title or either switch, leaving print mode or closing the dialog cancels a make and
 // drops a finished poster. Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied isn't. "Share images" in the format control's place goes back.
@@ -26,10 +26,9 @@ import { HTML_LANG } from '@/i18n/langs'
 import { useI18n } from '@/i18n/I18nProvider'
 import { countryName, regionsIn } from '@/lib/i18n-places'
 import { track, type PosterSizeWire } from '@/lib/analytics'
-import type { Theme } from '@/lib/theme'
-import { useDarkImage } from '@/lib/dark-image'
-import { useLiferMarks } from '@/lib/lifer-marks'
-import { useArrangement } from '@/lib/arrangement'
+import { currentTheme, type Theme } from '@/lib/theme'
+import { setLiferMark, useLiferMarks } from '@/lib/lifer-marks'
+import { ARRANGEMENTS, setArrangement, useArrangement } from '@/lib/arrangement'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
 import { bulkGroups, bulkPackSpec, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
@@ -99,6 +98,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const optionalId = useId()
   const helperId = useId()
   const countSizeId = useId()
+  const arrangementId = useId()
   const yearId = useId()
   const targetId = useId()
   const targetNoteId = useId()
@@ -140,8 +140,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const [showNames, setShowNames] = useState(false)
   const [namesFitFailKey, setNamesFitFailKey] = useState<string | null>(null)
   const [fontsTick, setFontsTick] = useState(0)
-  // The look of everything the dialog makes: Style > Dark image (the app's theme until the birder sets it).
-  const theme: Theme = useDarkImage() ? 'dark' : 'light'
+  // The look of everything the dialog makes: the app's theme when the dialog opens, then this dialog's own choice.
+  const [dark, setDark] = useState(() => currentTheme() === 'dark')
+  const theme: Theme = dark ? 'dark' : 'light'
   // No background fill in the PNGs (images and posters; a PDF needs one, so it's offered only with this off). Not stored.
   const [transparent, setTransparent] = useState(false)
 
@@ -178,7 +179,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const hasLatest = useMemo(() => cardEntries.some((e) => e.date), [cardEntries])
   const withLatest = hasLatest && showLatest && !viewImage
   const liferMarks = useLiferMarks()
-  // The collage's arrangement (Packed, By family, By colour): the images and the poster are packed the same way.
+  // Packed or Oval (kept per device): how the images and the poster place the birds. The collage on the page is always packed.
   const arrangement = useArrangement()
   const cardFormat: CardFormat = print ? (landscape ? 'printLandscape' : 'print') : shape
   const trimmed = name.trim()
@@ -208,7 +209,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     return planCaptions(cardEntries, species, size, L.collage.w, displayName, captionMeasurer(), markedCodes)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names`, `lang`, `fontsTick` trigger recheck for `displayName` and loaded Satoshi metrics
   }, [print, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, countSize, size, landscape, species, names, lang, markedCodes, fontsTick])
-  const namesCheckKey = `${cardFormat}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${countSize}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${fontsTick}`
+  const namesCheckKey = `${cardFormat}|${arrangement}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${countSize}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${fontsTick}`
   const namesFitFailed = namesFitFailKey === namesCheckKey
   const namesAvailable = !overCap && !!captionPlan?.ok && !namesFitFailed
   const effectiveShowNames = print && showNames && namesAvailable
@@ -292,7 +293,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const outgoingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const shownSize = useRef<[number, number]>([0, 0])
   const first = useRef(true)
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : viewImage ? `${view}|${shape}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : viewImage ? `${view}|${shape}` : shape}|${arrangement}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   useEffect(() => {
@@ -363,7 +364,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
 
   // The poster: one make at a time, for `posterKey`. A new key, leaving print mode or closing the dialog cancels the
   // make and drops the poster (its encoder ends with it).
-  const posterKey = `print|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
+  const posterKey = `print|${arrangement}|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -882,6 +883,22 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                     </button>
                   )}
 
+                  {hasLatest && !viewImage && <>
+                    <button type="button" role="switch" aria-checked={liferMarks.newest} className="eb-switch eb-share-switch" data-testid="share-mark-newest" onClick={() => setLiferMark('newest', !liferMarks.newest)}>
+                      <span>{t.collage.controls.markNewest}</span>
+                      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+                    </button>
+                    <button type="button" role="switch" aria-checked={liferMarks.first} className="eb-switch eb-share-switch" data-testid="share-mark-first" onClick={() => setLiferMark('first', !liferMarks.first)}>
+                      <span>{t.collage.controls.markFirst}</span>
+                      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+                    </button>
+                  </>}
+
+                  <button type="button" role="switch" aria-checked={dark} className="eb-switch eb-share-switch" data-testid="share-dark-switch" onClick={() => setDark((v) => !v)}>
+                    <span>{t.share.dark}</span>
+                    <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+                  </button>
+
                   <button type="button" role="switch" aria-checked={transparent} className="eb-switch eb-share-switch" data-testid="share-transparent-switch" onClick={() => setTransparent((v) => !v)}>
                     <span>{t.share.transparent}</span>
                     <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
@@ -913,6 +930,19 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
 
                 {print && namesUnavailableReason && (
                   <p id={namesNoteId} className="eb-note eb-share-names-note" data-testid="share-print-names-note">{namesUnavailableReason}</p>
+                )}
+
+                {!viewImage && (
+                  <div className="eb-share-field">
+                    <span id={arrangementId} className="eb-share-label">{t.collage.controls.arrangement}</span>
+                    <div className="eb-seg" role="group" aria-labelledby={arrangementId} data-testid="share-arrangement">
+                      {ARRANGEMENTS.map((a) => (
+                        <button key={a} type="button" className="eb-seg-btn" aria-pressed={arrangement === a} onClick={() => setArrangement(a)}>
+                          <span className="eb-seg-label">{t.collage.controls[a]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 <div className="eb-share-field">
