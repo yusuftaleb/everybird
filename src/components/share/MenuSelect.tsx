@@ -7,14 +7,32 @@
 // outside closes it. The dialog catches Escape on the window before any element sees it, so an open menu hands the dialog
 // its close through `escapeRef` (ShareDialog checks it first). The Tree's Level and Layout menus in the controls bar use
 // it too, in the Filters button's look (app.css); an option with `off` stays listed, aria-disabled, named by its label and described by that reason under it
-// (the Tree's levels over the tip limit).
-import { CaretDown, Check } from '@phosphor-icons/react'
+// (the Tree's levels over the tip limit). Add by hand's taxonomic picker (TickList) uses it as a menu of places to go:
+// its current group is not among the options (`shown` gives the button its words), so the rows are plain menuitems
+// with no check, each with its species count, the first stepping back a level (`back`, an arrow before the label).
+import { ArrowLeft, CaretDown, Check } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MutableRefObject } from 'react'
 
 /** The menu's side margin from the window's edges (as the language menu's). */
 const EDGE = 8
 
-export type MenuOption<T extends string | number> = { value: T; label: string; /** Listed but not choosable: why. */ off?: string }
+export type MenuOption<T extends string | number> = {
+  value: T
+  label: string
+  /** Listed but not choosable: why. */
+  off?: string
+  /** A Muted number at the row's end (a group's species). */
+  count?: string
+  /** The row's accessible name when its words alone don't say it ("Back to All birds", "Waterfowl, 178 species"). */
+  name?: string
+  /** The row steps back a level: an arrow before its label. */
+  back?: boolean
+  /** The label is a scientific name (italic, Latin). */
+  sci?: boolean
+}
+
+/** An option's label, a scientific name in italics. */
+const Label = ({ o }: { o: MenuOption<string | number> }) => (o.sci ? <i lang="la">{o.label}</i> : <>{o.label}</>)
 
 type Props<T extends string | number> = {
   /** The id of the row's visible label: the button's name is that label then the current choice. */
@@ -28,9 +46,11 @@ type Props<T extends string | number> = {
   testId?: string
   /** Set to this menu's close while it is open, so the dialog's Escape closes the menu instead of the dialog. */
   escapeRef: MutableRefObject<(() => void) | null>
+  /** What the button shows when `value` isn't among the options (the picker's current group). */
+  shown?: MenuOption<T>
 }
 
-export function MenuSelect<T extends string | number>({ labelledBy, menuLabel, options, value, onChange, disabled, testId, escapeRef }: Props<T>) {
+export function MenuSelect<T extends string | number>({ labelledBy, menuLabel, options, value, onChange, disabled, testId, escapeRef, shown }: Props<T>) {
   const id = useId()
   const [open, setOpen] = useState(false)
   const btn = useRef<HTMLButtonElement>(null)
@@ -38,7 +58,7 @@ export function MenuSelect<T extends string | number>({ labelledBy, menuLabel, o
     setOpen(false)
     if (refocus) btn.current?.focus()
   }
-  const current = options.find((o) => o.value === value)
+  const current = options.find((o) => o.value === value) ?? shown
   return (
     <div className="eb-share-ddwrap">
       <button
@@ -60,7 +80,7 @@ export function MenuSelect<T extends string | number>({ labelledBy, menuLabel, o
           }
         }}
       >
-        <span>{current?.label ?? ''}</span>
+        <span>{current ? <Label o={current} /> : ''}</span>
         <CaretDown aria-hidden="true" focusable="false" weight="bold" />
       </button>
       {open && (
@@ -86,7 +106,9 @@ function MenuList<T extends string | number>({ id, label, options, value, btn, e
   onClose: (refocus: boolean) => void
 }) {
   const menu = useRef<HTMLDivElement>(null)
-  const items = () => [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? [])]
+  const items = () => [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]') ?? [])]
+  // A choice among options (a check on the current one), or places to go when the current one isn't listed.
+  const radio = options.some((o) => o.value === value)
 
   // Right-aligned under the button (share.css), then clamped to the window, as the language menu.
   useLayoutEffect(() => {
@@ -141,13 +163,18 @@ function MenuList<T extends string | number>({ id, label, options, value, btn, e
     <div ref={menu} id={id} className="eb-menu eb-langmenu eb-share-menu" role="menu" aria-label={label} onKeyDown={onKey}>
       {options.map((o) => (
         <button
-          key={o.value} type="button" role="menuitemradio" aria-checked={o.value === value} aria-disabled={o.off ? true : undefined} tabIndex={-1} className="eb-menuitem"
+          key={o.value} type="button" role={radio ? 'menuitemradio' : 'menuitem'} aria-checked={radio ? o.value === value : undefined}
+          aria-disabled={o.off ? true : undefined} tabIndex={-1} className="eb-menuitem"
+          aria-label={o.off ? undefined : o.name}
           aria-labelledby={o.off ? `${id}-${o.value}` : undefined} aria-describedby={o.off ? `${id}-${o.value}-why` : undefined}
           onClick={() => { if (!o.off) onPick(o.value) }}
         >
           {o.off
             ? <span className="eb-menu-off"><span id={`${id}-${o.value}`} className="eb-langname">{o.label}</span><span id={`${id}-${o.value}-why`} className="eb-menu-why">{o.off}</span></span>
-            : <span className="eb-langname" data-current={o.value === value ? '' : undefined}>{o.label}</span>}
+            : o.back
+              ? <span className="eb-langname eb-menu-back"><ArrowLeft aria-hidden="true" focusable="false" /><Label o={o} /></span>
+              : <span className="eb-langname" data-current={o.value === value ? '' : undefined}><Label o={o} /></span>}
+          {o.count && <span className="eb-mono eb-langcode">{o.count}</span>}
           {o.value === value && <Check aria-hidden="true" focusable="false" weight="bold" />}
         </button>
       ))}

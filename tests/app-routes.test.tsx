@@ -674,16 +674,47 @@ describe('editing', () => {
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: '' } })
     fireEvent.click(tickOption(/^Northern Flicker/))
     await waitFor(async () => expect((await storage.load())?.edits.added.at(-1)).toEqual({ code: 'norfli', source: 'manual' }), { timeout: 2000 })
-    // Search narrows by word prefixes of either name; one family menu (common names) browses; there is no order menu.
+    // Search narrows by word prefixes of either name; the taxonomic picker browses orders, families and genera.
     fireEvent.change(search, { target: { value: 'colaptes' } })
     expect(within(list).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus, already on your list', 'Gilded Flicker, Colaptes chrysoides'])
     fireEvent.change(search, { target: { value: '' } })
-    expect(screen.queryByLabelText('Order')).toBeNull()
-    const family = screen.getByLabelText('Family')
-    expect([...(family as HTMLSelectElement).options].map((o) => o.textContent)).toEqual(['All families', 'Ducks, Geese, and Waterfowl', 'New World Warblers', 'Thrushes', 'Woodpeckers'])
-    fireEvent.change(family, { target: { value: 'Picidae' } })
+    const pick = (name: string) => fireEvent.click(screen.getByRole('menuitem', { name }))
+    const items = () => screen.getAllByRole('menuitem').map((b) => b.getAttribute('aria-label'))
+    const group = screen.getByTestId('tick-group')
+    expect(group).toHaveAccessibleName('Taxonomic group All birds')
+    // The orders in taxonomic order with their species; no check, nothing is "chosen" among places to go.
+    fireEvent.keyDown(group, { key: 'ArrowDown' })
+    expect(items()).toEqual(['Waterfowl, 1 species', 'Woodpeckers, 2 species', 'Perching birds, 2 species'])
+    expect(screen.getByRole('menuitem', { name: 'Waterfowl, 1 species' })).toHaveFocus()
+    expect(screen.queryByRole('menuitemradio')).toBeNull()
+    pick('Woodpeckers, 2 species')
+    expect(group).toHaveFocus()
+    expect(group).toHaveAccessibleName('Taxonomic group Woodpeckers')
     expect(within(list).getAllByRole('option')).toHaveLength(2)
-    fireEvent.change(family, { target: { value: '' } })
+    // Inside an order: a row back, then its families (their common names); inside a family, its genera.
+    fireEvent.click(group)
+    expect(items()).toEqual(['Back to All birds', 'Woodpeckers, 2 species'])
+    pick('Woodpeckers, 2 species')
+    fireEvent.click(group)
+    expect(items()).toEqual(['Back to Woodpeckers', 'Colaptes, 2 species'])
+    pick('Colaptes, 2 species')
+    expect(group).toHaveAccessibleName('Taxonomic group Colaptes')
+    // The search works inside the group.
+    fireEvent.change(search, { target: { value: 'gilded' } })
+    expect(within(list).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Gilded Flicker, Colaptes chrysoides'])
+    fireEvent.change(search, { target: { value: '' } })
+    // Escape closes the menu, focus back on the button; the row back steps up one level at a time.
+    fireEvent.click(group)
+    expect(items()).toEqual(['Back to Woodpeckers'])
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(group).toHaveFocus()
+    for (const back of ['Back to Woodpeckers', 'Back to Woodpeckers', 'Back to All birds']) {
+      fireEvent.click(group)
+      pick(back)
+    }
+    expect(group).toHaveAccessibleName('Taxonomic group All birds')
+    expect(within(list).getAllByRole('option')).toHaveLength(5)
     // A tap on a bird on the list takes it off at once, as the card's Remove does; Undo puts back exactly what was there.
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species'))
     const before = (await storage.load())!.edits

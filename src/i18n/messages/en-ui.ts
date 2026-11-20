@@ -948,8 +948,11 @@ export const EN_UI = {
     /** The list's heading, for screen readers. */
     label: 'Tick birds off a list',
     search: 'Search birds',
-    family: 'Family',
-    allFamilies: 'All families',
+    /** The taxonomic picker beside the search: its name (the button reads it before the group, "Taxonomic group, Waterfowl";
+     *  the group's words are filters.all, the orders' names and the families'), and its first row's name ({name} the group
+     *  one level up: "Back to All birds"). */
+    group: 'Taxonomic group',
+    back: 'Back to {name}',
     list: 'Species to tick',
     /** A row's name for screen readers when the bird is already on the list ({name} is "Common, Scientific"). */
     onListLabel: '{name}, already on your list',

@@ -1,15 +1,42 @@
-// Add by hand, the pure parts: which species the browsable list shows, and how a bird added or taken off lands in the
-// edits.
+// Add by hand, the pure parts: which species the browsable list shows, the taxonomic picker's levels, and how a bird
+// added or taken off lands in the edits.
 import { nameTier, searchKey } from '@/lib/species/name-search'
 import type { SpeciesRow } from '@/lib/species/types'
 import type { Edits, Place, SourceRecord } from './model'
 
+/** Where the taxonomic picker is: [] all birds, [order], [order, family] or [order, family, genus] (scientific names). */
+export type TaxonPath = readonly string[]
+
+/** A species' genus: the first word of its scientific name. */
+export const genusOf = (sci: string): string => sci.split(' ', 1)[0]
+const keyAt = (r: SpeciesRow, depth: number): string => (depth === 0 ? r.ord : depth === 1 ? r.fam : genusOf(r.sci))
+
+/** Whether the species is inside the group `path` names. */
+export const inTaxon = (r: SpeciesRow, path: TaxonPath): boolean => path.every((k, d) => keyAt(r, d) === k)
+
 /**
- * The rows to show: the whole taxonomy in taxonomic order, narrowed to a family when chosen; with a search, only rows
- * whose common or scientific name matches by word prefixes (accent-insensitive), best match first.
+ * The groups one level under `path` (the orders, an order's families, a family's genera; none under a genus), in
+ * taxonomic order (by each one's first species), with their species counts and that first species (for its names).
  */
-export function filterTickRows(rows: readonly SpeciesRow[], f: { q?: string; family?: string }): SpeciesRow[] {
-  const inGroup = (r: SpeciesRow) => !f.family || r.fam === f.family
+export function taxonChildren(rows: readonly SpeciesRow[], path: TaxonPath): { id: string; n: number; first: SpeciesRow }[] {
+  if (path.length >= 3) return []
+  const out = new Map<string, { id: string; n: number; first: SpeciesRow }>()
+  for (const r of rows) {
+    if (!inTaxon(r, path)) continue
+    const id = keyAt(r, path.length)
+    const g = out.get(id)
+    if (!g) out.set(id, { id, n: 1, first: r })
+    else { g.n++; if (r.to < g.first.to) g.first = r }
+  }
+  return [...out.values()].sort((a, b) => a.first.to - b.first.to)
+}
+
+/**
+ * The rows to show: the whole taxonomy in taxonomic order, narrowed to the picker's group when chosen; with a search,
+ * only rows whose common or scientific name matches by word prefixes (accent-insensitive), best match first.
+ */
+export function filterTickRows(rows: readonly SpeciesRow[], f: { q?: string; taxon?: TaxonPath }): SpeciesRow[] {
+  const inGroup = (r: SpeciesRow) => !f.taxon?.length || inTaxon(r, f.taxon)
   const key = f.q ? searchKey(f.q) : ''
   if (!key) return rows.filter(inGroup).sort((a, b) => a.to - b.to)
   const hits: { r: SpeciesRow; tier: number }[] = []
