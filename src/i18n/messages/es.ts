@@ -91,6 +91,7 @@ export const es: Messages = {
         latestOn: 'Última: {name}, <time>{date}</time>',
         sizesEven: 'Los tamaños siguen la masa corporal, equilibrados para que las aves pequeñas se vean',
         sizesTrue: 'Los tamaños siguen la masa corporal a escala real',
+        sizesRows: 'Filas en orden taxonómico, una altura por fila',
         marks: '* solo oída · † encontrada muerta',
       },
       stage: {
@@ -101,6 +102,10 @@ export const es: Messages = {
         trueScale: {
           one: 'Collage de {n} especie, con tamaños según la masa corporal a escala real. Usa las flechas para moverte entre las aves.',
           other: 'Collage de {n} especies, con tamaños según la masa corporal a escala real. Usa las flechas para moverte entre las aves.',
+        },
+        rows: {
+          one: 'Collage de {n} especie en filas por familia. Usa las flechas para moverte entre las aves.',
+          other: 'Collage de {n} especies en filas por familia. Usa las flechas para moverte entre las aves.',
         },
       },
       controls: {
@@ -125,6 +130,11 @@ export const es: Messages = {
         sciSr: '(nombres)',
         markNewest: 'Marcar la última especie nueva',
         markFirst: 'Marcar la primera especie nueva',
+        arrangement: 'Disposición',
+        packed: 'Compacta',
+        byFamily: 'Por familia',
+        byColour: 'Por color',
+        trueOff: 'No disponible por familia: las aves de una fila tienen la misma altura.',
         newestSr: ', última especie nueva',
         firstSr: ', primera especie nueva',
       },

@@ -91,6 +91,7 @@ export const nl: Messages = {
         latestOn: 'Nieuwste: {name}, <time>{date}</time>',
         sizesEven: 'Formaat volgt lichaamsgewicht, afgevlakt zodat kleine vogels zichtbaar blijven',
         sizesTrue: 'Formaat volgt lichaamsgewicht op ware grootte',
+        sizesRows: 'Rijen in taxonomische volgorde, één hoogte per rij',
         marks: '* alleen gehoord · † dood gevonden',
       },
       stage: {
@@ -101,6 +102,10 @@ export const nl: Messages = {
         trueScale: {
           one: 'Collage van {n} soort, op formaat naar lichaamsgewicht op ware grootte. Gebruik de pijltjestoetsen om tussen de vogels te gaan.',
           other: 'Collage van {n} soorten, op formaat naar lichaamsgewicht op ware grootte. Gebruik de pijltjestoetsen om tussen de vogels te gaan.',
+        },
+        rows: {
+          one: 'Collage van {n} soort in rijen per familie. Gebruik de pijltjestoetsen om tussen de vogels te gaan.',
+          other: 'Collage van {n} soorten in rijen per familie. Gebruik de pijltjestoetsen om tussen de vogels te gaan.',
         },
       },
       controls: {
@@ -125,6 +130,11 @@ export const nl: Messages = {
         sciSr: '(namen)',
         markNewest: 'Nieuwste soort markeren',
         markFirst: 'Eerste soort markeren',
+        arrangement: 'Indeling',
+        packed: 'Compact',
+        byFamily: 'Per familie',
+        byColour: 'Op kleur',
+        trueOff: 'Niet beschikbaar per familie: de vogels in een rij zijn even hoog.',
         newestSr: ', nieuwste soort',
         firstSr: ', eerste soort',
       },

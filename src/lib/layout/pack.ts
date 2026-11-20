@@ -71,8 +71,9 @@ function placementOrder(birds: PackBird[], rel: Map<number, number>): PackBird[]
 export function pack(
   birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
   stretch: number, hole: Hole, targets?: Map<number, [number, number]>, cell = DEFAULT_CELL, dense = false,
+  captions?: Map<number, CaptionRoom>,
 ): Map<number, Box> | null {
-  return packGrid(birds, rel, W, H, base, stretch, hole, targets, cell, dense)?.boxes ?? null
+  return packGrid(birds, rel, W, H, base, stretch, hole, targets, cell, dense, captions)?.boxes ?? null
 }
 
 /** What settle() needs of each placed bird (its box is in Packed.boxes). */
@@ -249,7 +250,7 @@ export function detached(boxes: Map<number, Box>, k = DETACH): number[] {
  * clear. Repeated while that frees others (a bird that was blocked by one now moved). True size and small lists
  * leave a few: big birds placed first push small ones out along the spiral past the edge (the "stragglers").
  */
-function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions?: Map<number, CaptionRoom>): Map<number, Box> {
+export function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions?: Map<number, CaptionRoom>): Map<number, Box> {
   let loose = detached(boxes)
   if (!loose.length) return boxes
   const grid = new Grid(W, H, 1)

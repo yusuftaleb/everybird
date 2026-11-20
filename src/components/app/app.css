@@ -102,6 +102,10 @@
 .eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools,
 .eb-dock[data-finding] .eb-dock-filters, .eb-dock[data-finding] .eb-dock-end,
 .eb-dock[data-finding] .eb-dock-marks { opacity: 0; pointer-events: none; }
+/* The Arrangement group on the marks row (Packed, By family, By colour), before the lifer marks. */
+.eb-dock-arr { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-right: 8px; }
+/* True size where it can't apply (By family): focusable, says why, looks off. */
+.eb-dock-sw[aria-disabled="true"] { opacity: .5; cursor: default; }
 .eb-dock[data-finding] .eb-dock-marks { display: none; }
 /* Filters: a glyph, the label (and how many filter groups are on, " · 2"), a caret. Open: the pressed tab's Surface;
    filtering: Accent text, full opacity, 600 (selection, as a pressed tab). */

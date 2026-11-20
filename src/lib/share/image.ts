@@ -38,6 +38,7 @@ import { PRINT_DESIGN_W, captionMinPx, printDesign, printPackH, type PrintSize }
 import { RING_PAD, defaultCaptionMeasure, planCaptions, verifyAndPlaceCaptions, type CaptionBox, type CaptionPlan, type PlacedTile, type TextMeasurer } from '@/lib/share/captions'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
 import type { Box } from '@/lib/layout/pack'
+import type { Arrangement } from '@/lib/layout/arrange'
 import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
@@ -349,7 +350,8 @@ export function cardDims(format: CardFormat, size: PrintSize = 'A2'): [number, n
 }
 
 /** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
-export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number; ring?: number }> }
+/** `arrangement`: By family or By colour (arrange.ts); left out for Packed. */
+export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number; ring?: number }>; arrangement?: Exclude<Arrangement, 'packed'> }
 export function packSpec(L: CardLayout): PackSpec {
   const { w, h } = L.collage
   return { aspect: w / h, hole: scaleHole(L.count.hole, 1 / w), maxTile: L.maxTile }
@@ -383,7 +385,7 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, spec: 
   const birds: ListEntryMsg[] = []
   for (const e of entries) {
     const row = species.byCode.get(e.code)
-    if (row) birds.push({ code: e.code, mass: row.g, ord: row.ord })
+    if (row) birds.push({ code: e.code, mass: row.g, ord: row.ord, ...(spec.arrangement === 'family' ? { to: row.to } : {}) })
   }
   return new Promise((resolve, reject) => {
     if (signal?.aborted) return reject(abortError())
@@ -397,7 +399,7 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, spec: 
     }
     w.onerror = (e) => { done(); reject(new Error(`layout worker failed: ${e.message ?? 'error'}`)) }
     const captions = spec.captionBoxes ? birds.map((b) => spec.captionBoxes![b.code] ?? { w: 0, h: 0 }) : undefined
-    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}) }
+    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}), ...(spec.arrangement ? { arrangement: spec.arrangement } : {}) }
     w.postMessage(msg)
   })
 }
@@ -421,11 +423,11 @@ export const abortError = (message = 'share image cancelled') => {
  * lifer) and the count's hole. The dialog packs once per format, name-or-not and lifer-or-not; the drawing maps the pack onto
  * whatever frame it gets. The print packs once per shape (cardDims with `size`: every A size at PRINT_DESIGN_H).
  */
-export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSize, captionPlan?: Extract<CaptionPlan, { ok: true }>): PackSpec {
+export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSize, captionPlan?: Extract<CaptionPlan, { ok: true }>, arrangement: Arrangement = 'packed'): PackSpec {
   // Always the frame with the latest lifer row (the smaller one): the "Show latest lifer" switch never changes the pack.
   // With the row off, the same pack is fitted into the taller area (fitPack), so every bird keeps its place.
   const L = cardLayout(format, { ...c, latest: true }, cardDims(format, size))
-  const spec = packSpec(L)
+  const spec = { ...packSpec(L), ...(arrangement !== 'packed' ? { arrangement } : {}) }
   if (!captionPlan) return spec
   const captionBoxes: NonNullable<PackSpec['captionBoxes']> = {}
   for (const [code, entry] of captionPlan.byCode) {
@@ -650,6 +652,8 @@ export type ShareImageOpts = {
   goal?: { year: number; target?: number; basis: 'seen' | 'lifer' }
   countSize?: CountSize
   showNames?: boolean
+  /** How the birds are placed (default Packed); used when `pack` is not given. */
+  arrangement?: Arrangement
   signal?: AbortSignal
 }
 
@@ -845,7 +849,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
     captionPlan = planCaptions(shown, species, printSize, L.collage.w, opts.nameOf, captionMeasurer(), markedCodes)
   }
   // Packed for the format's own frame (the print: at its shape's printPackH, one pack for every A size, as imagePackSpec).
-  let pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined), signal))
+  let pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined, opts.arrangement), signal))
   if (signal?.aborted) throw abortError()
 
   // A tile's sticker: the share images' 128/384 by its size; the print's by its device px (1024 with the 384 fallback).
@@ -858,7 +862,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const area = L.collage
   const capFit = captionPlan?.ok ? fitCaptionPack(pack, shown, format, content, printSize, captionPlan, markedCodes) : undefined
   if (capFit && !capFit.ok && !opts.pack) {
-    pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize), signal)
+    pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, undefined, opts.arrangement), signal)
     if (signal?.aborted) throw abortError()
   }
   const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format])

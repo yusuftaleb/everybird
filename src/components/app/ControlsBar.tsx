@@ -7,9 +7,10 @@
 // 460px the tabs are icons only; under 540px the switches shorten ("True", "Sci."; "Heaviest" in list view), and
 // under 330px and 310px everything tightens, so row one never breaks between 280 and 1200px of bar. On phones (600px of screen and under, as /lifelist) the short form holds whatever the width: row
 // one is the icons, the two switches (or "Heaviest") and the magnifier; row two the Filters button.
-import { useCallback, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useId, useRef, useState, type ReactNode } from 'react'
 import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon } from '@/components/collage/icons'
 import { useI18n } from '@/i18n/I18nProvider'
+import { ARRANGEMENTS, type Arrangement } from '@/lib/layout/arrange'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
 import type { ViewKind } from '@/lib/view-resume'
 import { DockSearchField, SearchButton, type DockSearchProps } from './DockSearch'
@@ -21,6 +22,10 @@ type Props = {
   noMap?: boolean
   trueSize: boolean
   onTrueSize: (on: boolean) => void
+  /** True size can't apply (By family's rows share one height): the switch stays focusable, off, and says why. */
+  trueOff?: boolean
+  /** The Arrangement group (collage view), on the marks row. */
+  arrangement?: { value: Arrangement; onChange: (a: Arrangement) => void }
   lightFirst: boolean
   onDirection: () => void
   sci: boolean
@@ -41,7 +46,9 @@ type Props = {
   onFind?: () => void
 }
 
-export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, marks, search, filters, below, onFind }: Props) {
+const ARRANGEMENT_LABEL = { packed: 'packed', family: 'byFamily', colour: 'byColour' } as const
+
+export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, trueOff, arrangement, lightFirst, onDirection, sci, onSci, marks, search, filters, below, onFind }: Props) {
   const [finding, setFinding] = useState(false)
   // Whether the search is open is carried over a language switch (view-resume.ts); the typed text is not.
   const hasSearch = !!search
@@ -51,6 +58,7 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
   const c = t.collage.controls
   const wrap = useRef<HTMLDivElement>(null)
   const findBtn = useRef<HTMLButtonElement>(null)
+  const trueOffId = useId()
   const close = useCallback((restore: boolean) => {
     setFinding(false)
     if (restore) requestAnimationFrame(() => findBtn.current?.focus({ preventScroll: true }))
@@ -88,15 +96,18 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
             <button
               type="button"
               role="switch"
-              aria-checked={trueSize}
+              aria-checked={trueSize && !trueOff}
+              aria-disabled={trueOff || undefined}
+              aria-describedby={trueOff ? trueOffId : undefined}
               className="eb-dock-tab eb-dock-sw"
-              title={c.trueTitle}
-              onClick={() => onTrueSize(!trueSize)}
+              title={trueOff ? c.trueOff : c.trueTitle}
+              onClick={() => { if (!trueOff) onTrueSize(!trueSize) }}
             >
               <span><span className="eb-long">{c.trueSize}</span><span className="eb-short">{c.trueShort}</span><span className="eb-sr">{` ${c.trueSr}`}</span></span>
               <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
             </button>
           )}
+          {view === 'collage' && trueOff && <span id={trueOffId} className="eb-sr">{c.trueOff}</span>}
           <button type="button" role="switch" aria-checked={sci} className="eb-dock-tab eb-dock-sw eb-dock-sci" onClick={() => onSci(!sci)}>
             <span><span className="eb-long">{c.sci}</span><span className="eb-short">{c.sciShort}</span><span className="eb-sr">{` ${c.sciSr}`}</span></span>
             <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
@@ -104,8 +115,18 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
         </div>
         {filters?.(finding)}
         {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => { onFind?.(); setFinding(true) }} buttonRef={findBtn} /></div>}
-        {view === 'collage' && marks && (
+        {view === 'collage' && (marks || arrangement) && (
           <div className="eb-dock-marks" inert={finding}>
+            {arrangement && (
+              <div className="eb-dock-arr" role="group" aria-label={c.arrangement}>
+                {ARRANGEMENTS.map((a) => (
+                  <button key={a} type="button" className="eb-dock-tab" aria-pressed={arrangement.value === a} onClick={() => arrangement.onChange(a)}>
+                    <span>{c[ARRANGEMENT_LABEL[a]]}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {marks && <>
             <button type="button" role="switch" aria-checked={marks.newest} className="eb-dock-tab eb-dock-sw" onClick={() => marks.onNewest(!marks.newest)}>
               <span>{c.markNewest}</span>
               <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
@@ -114,6 +135,7 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
               <span>{c.markFirst}</span>
               <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
             </button>
+            </>}
           </div>
         )}
         {search && <DockSearchField {...search} onPick={onPick} open={finding} onClose={close} within={wrap} />}

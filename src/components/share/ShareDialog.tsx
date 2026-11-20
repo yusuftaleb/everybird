@@ -28,6 +28,7 @@ import { countryName, regionsIn } from '@/lib/i18n-places'
 import { track, type PosterSizeWire } from '@/lib/analytics'
 import { currentTheme, type Theme } from '@/lib/theme'
 import { useLiferMarks } from '@/lib/lifer-marks'
+import { useArrangement } from '@/lib/arrangement'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
 import { bulkGroups, bulkPackSpec, makeBulkZip, type BulkSplit } from '@/lib/share/bulk'
@@ -156,6 +157,8 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
   const hasLatest = useMemo(() => cardEntries.some((e) => e.date), [cardEntries])
   const withLatest = hasLatest && showLatest
   const liferMarks = useLiferMarks()
+  // The collage's arrangement (Packed, By family, By colour): the images and the poster are packed the same way.
+  const arrangement = useArrangement()
   const cardFormat: CardFormat = print ? (landscape ? 'printLandscape' : 'print') : shape
   const trimmed = name.trim()
   const hasTitle = !!trimmed
@@ -220,14 +223,14 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
       const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${hasPlan ? `${printSize}|plan${planId(plan)}` : ''}`
       let p = packs.get(k)
       if (!p) {
-        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined)
+        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined, arrangement)
         p = packForImage(cardEntries, species, spec, signal ?? life.current?.signal)
         packs.set(k, p)
         p.catch(() => packs.delete(k))
       }
       return p
     }
-  }, [cardEntries, species, cardLabel, cardGoal])
+  }, [cardEntries, species, cardLabel, cardGoal, arrangement])
   useEffect(() => {
     if (!print || overCap || !captionPlan?.ok) return
     let live = true
@@ -500,7 +503,7 @@ export default function ShareDialog({ state, dispatch, species, regions, onClose
         },
         packSpec: (entries) => bulkPackSpec(entries, {
           size, landscape, named: !!trimmed, countSize, target: cardGoal?.target, showNames: effectiveShowNames, species, nameOf: displayName, measure,
-          marks: { newest: liferMarks.newest, first: liferMarks.first },
+          marks: { newest: liferMarks.newest, first: liferMarks.first }, arrangement,
         }),
         onProgress: (done, count) => {
           if (!ctl.signal.aborted) setBulkMaking({ key: forKey, done, total: count })

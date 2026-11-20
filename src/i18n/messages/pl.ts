@@ -94,6 +94,7 @@ export const pl: Messages = {
         latestOn: 'Najnowszy: {name}, <time>{date}</time>',
         sizesEven: 'Rozmiary według masy ciała, wyrównane, by małe ptaki były widoczne',
         sizesTrue: 'Rozmiary według masy ciała w prawdziwej skali',
+        sizesRows: 'Rzędy w kolejności systematycznej, jedna wysokość na rząd',
         marks: '* tylko słyszany · † znaleziony martwy',
       },
       stage: {
@@ -104,6 +105,10 @@ export const pl: Messages = {
         trueScale: {
           one: 'Kolaż: {n} gatunek, rozmiary według masy ciała w prawdziwej skali. Strzałkami przechodzisz między ptakami.',
           other: 'Kolaż: {n} gatunków, rozmiary według masy ciała w prawdziwej skali. Strzałkami przechodzisz między ptakami.',
+        },
+        rows: {
+          one: 'Kolaż: {n} gatunek, w rzędach według rodzin. Strzałkami przechodzisz między ptakami.',
+          other: 'Kolaż: {n} gatunków, w rzędach według rodzin. Strzałkami przechodzisz między ptakami.',
         },
       },
       controls: {
@@ -128,6 +133,11 @@ export const pl: Messages = {
         sciSr: 'nazwy naukowe',
         markNewest: 'Oznacz najnowszy gatunek',
         markFirst: 'Oznacz pierwszy gatunek',
+        arrangement: 'Układ',
+        packed: 'Zwarty',
+        byFamily: 'Według rodzin',
+        byColour: 'Według koloru',
+        trueOff: 'Niedostępne w układzie według rodzin: ptaki w rzędzie mają tę samą wysokość.',
         newestSr: ', najnowszy gatunek',
         firstSr: ', pierwszy gatunek',
       },

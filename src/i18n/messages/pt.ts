@@ -91,6 +91,7 @@ export const pt: Messages = {
         latestOn: 'Última: {name}, <time>{date}</time>',
         sizesEven: 'Os tamanhos seguem a massa corporal, equilibrados para que as aves pequenas apareçam',
         sizesTrue: 'Os tamanhos seguem a massa corporal em escala real',
+        sizesRows: 'Linhas em ordem taxonômica, uma altura por linha',
         marks: '* só ouvida · † encontrada morta',
       },
       stage: {
@@ -101,6 +102,10 @@ export const pt: Messages = {
         trueScale: {
           one: 'Colagem de {n} espécie, com tamanhos pela massa corporal em escala real. Use as setas para passar de uma ave a outra.',
           other: 'Colagem de {n} espécies, com tamanhos pela massa corporal em escala real. Use as setas para passar de uma ave a outra.',
+        },
+        rows: {
+          one: 'Colagem de {n} espécie em linhas por família. Use as setas para passar de uma ave a outra.',
+          other: 'Colagem de {n} espécies em linhas por família. Use as setas para passar de uma ave a outra.',
         },
       },
       controls: {
@@ -125,6 +130,11 @@ export const pt: Messages = {
         sciSr: '(nomes)',
         markNewest: 'Marcar a última espécie nova',
         markFirst: 'Marcar a primeira espécie nova',
+        arrangement: 'Disposição',
+        packed: 'Compacta',
+        byFamily: 'Por família',
+        byColour: 'Por cor',
+        trueOff: 'Indisponível por família: as aves de uma linha têm a mesma altura.',
         newestSr: ', última espécie nova',
         firstSr: ', primeira espécie nova',
       },
