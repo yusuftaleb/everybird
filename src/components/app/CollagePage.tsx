@@ -12,6 +12,7 @@ import { undoEdit } from '@/lib/list/tick'
 import { nameOfCode } from '@/lib/species/names'
 import type { Edits, ListEntry } from '@/lib/list/model'
 import type { ViewKind } from '@/lib/view-resume'
+import type { ShareAt } from '@/lib/share/view-image'
 import { CollageView } from './CollageView'
 import { useEverybirdContext } from './EverybirdProvider'
 import { AppNotices } from './Notices'
@@ -31,7 +32,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
   const eb = useEverybirdContext()
   const { t } = useI18n()
   const { state, dispatch, data } = eb
-  const [sharing, setSharing] = useState<ViewKind | null>(null)
+  const [sharing, setSharing] = useState<{ view: ViewKind; at: ShareAt } | null>(null)
   const [removed, setRemoved] = useState<(Removal & { before: Edits }) | null>(null)
   const { saved } = state
   const ready = !!data
@@ -88,7 +89,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
             label={t.collage.regionYours}
             whose="your"
             cardActions={actions}
-            onShare={setSharing}
+            onShare={(view, at) => setSharing({ view, at })}
             compare
             notice={unmatched > 0 ? (
               <p className="eb-mono eb-unmatched" data-testid="unmatched-note">
@@ -98,7 +99,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
           />
           {sharing && (
             <Suspense fallback={null}>
-              <ShareDialog state={state} dispatch={dispatch} species={data.species} regions={data.regions} view={sharing} onClose={() => setSharing(null)} />
+              <ShareDialog state={state} dispatch={dispatch} species={data.species} regions={data.regions} view={sharing.view} at={sharing.at} onClose={() => setSharing(null)} />
             </Suspense>
           )}
         </>

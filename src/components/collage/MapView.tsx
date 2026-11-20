@@ -16,12 +16,13 @@ import { regionsIn } from '@/lib/i18n-places'
 import { filterPlaceKeys, togglePlace } from '@/lib/list/filters'
 import type { PlacesUnplaced } from '@/lib/list/filter-summary'
 import { placeName } from '@/lib/list/place-keys'
-import { loadMapCountries, loadMapProvinces, mapGroupOf, mapShapes, shadeStep, type MapCountries, type MapProvinces } from '@/lib/map/shapes'
+import { loadMapCountries, loadMapProvinces, mapGroupOf, mapLayer, shadeStep, type MapCountries, type MapProvinces } from '@/lib/map/shapes'
 import './map.css'
 
-type Props = Omit<PlacesBodyProps, 'onLevel'> & { note?: PlacesNote; unplaced?: PlacesUnplaced }
+/** `onLevel`: told the Places level the map follows (as PlacesBodyProps' onLevel), so Share can draw the same map. */
+type Props = PlacesBodyProps & { note?: PlacesNote; unplaced?: PlacesUnplaced }
 
-export function MapView({ state, species, regions, onFilter, note, unplaced }: Props) {
+export function MapView({ state, species, regions, onFilter, note, unplaced, onLevel }: Props) {
   const { t, lang } = useI18n()
   const [at, setAt] = useState<string | undefined>()
   const [world, setWorld] = useState<MapCountries | null>(null)
@@ -29,6 +30,7 @@ export function MapView({ state, species, regions, onFilter, note, unplaced }: P
   const [failed, setFailed] = useState(false)
   const [hot, setHot] = useState<string | null>(null)
   const group = mapGroupOf(at)
+  useEffect(() => onLevel?.(at), [at, onLevel])
 
   useEffect(() => {
     let live = true
@@ -45,15 +47,7 @@ export function MapView({ state, species, regions, onFilter, note, unplaced }: P
 
   const counts = placeCountsFor(state, species)
   const checked = useMemo(() => new Set(filterPlaceKeys(state.filter)), [state.filter])
-  // A country drilled into shows its provinces; one where no shape has species (no shapes, provinces the shapes don't
-  // know, a shared link's made-up codes) or before they load keeps the world.
-  const { layer, shapes } = useMemo(() => {
-    const groupLayer = group !== undefined ? provinces?.groups[group] : undefined
-    const inGroup = groupLayer ? mapShapes(groupLayer, counts, checked, group) : []
-    const [l, s] = inGroup.some((x) => x.n > 0 || x.checked) ? [groupLayer!, inGroup] : [world, world ? mapShapes(world, counts, checked) : []]
-    // The checked places last, so their outline is drawn over their neighbours'.
-    return { layer: l, shapes: s.sort((a, b) => Number(a.checked) - Number(b.checked)) }
-  }, [world, provinces, group, counts, checked])
+  const { layer, shapes } = useMemo(() => mapLayer(world, provinces, counts, checked, at), [world, provinces, at, counts, checked])
   const max = shapes.reduce((m, s) => Math.max(m, s.n), 0)
 
   const named = useMemo(() => regionsIn(regions, lang), [regions, lang])
@@ -70,7 +64,7 @@ export function MapView({ state, species, regions, onFilter, note, unplaced }: P
           <svg className="eb-map-svg" viewBox={`0 0 ${layer.w} ${layer.h}`} onPointerLeave={() => setHot(null)}>
             {shapes.map((s) => (
               <path
-                key={s.key}
+                key={s.id}
                 d={s.d}
                 data-key={s.key}
                 data-step={shadeStep(s.n, max)}

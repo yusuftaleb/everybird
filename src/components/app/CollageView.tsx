@@ -33,6 +33,8 @@ import type { CollageHit } from '@/lib/species/name-search'
 import type { Regions } from '@/lib/species/types'
 import type { StateLayout } from '@/lib/layout/layout-client'
 import type { ViewKind } from '@/lib/view-resume'
+import type { ShareAt } from '@/lib/share/view-image'
+import type { TreeLevel } from '@/lib/tree/levels'
 import { useVariant } from '@/lib/variants'
 import { ControlsBar } from './ControlsBar'
 import { useCollageLayout } from './use-collage-layout'
@@ -68,8 +70,9 @@ type Props = {
   whose?: 'your' | 'this'
   /** Full layouts packed ahead of time, shown until the layout worker answers (the landing sample). */
   seed?: readonly StateLayout[]
-  /** The bar's Share button opens the share dialog for the birds on screen (`view`: what the view shows). None: no button. */
-  onShare?: (view: ViewKind) => void
+  /** The bar's Share button opens the share dialog for the birds on screen (`view`: what the view shows, `at`: the level the
+   *  Map or Tree view has open). None: no button. */
+  onShare?: (view: ViewKind, at: ShareAt) => void
   /** The Compare entry in the view switcher (the birder's own collage). */
   compare?: boolean
 }
@@ -136,6 +139,10 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const wrap = useRef<HTMLDivElement>(null)
   const [pick, setPick] = useState<{ code: string; anchor: HTMLElement | null } | null>(null)
   const [tip, setTip] = useState<string | null>(null)
+  // The level the Map or Tree view has open (their own state, told up as it changes), for Share to draw the same.
+  const shareAt = useRef<ShareAt>({})
+  const onMapLevel = useCallback((place: string | undefined) => { shareAt.current = { place } }, [])
+  const onTreeLevel = useCallback((tree: TreeLevel) => { shareAt.current = { tree } }, [])
 
   const entries = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
   // The timeline's months (first lifer to today).
@@ -288,7 +295,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         view={view}
         noMap={noMap}
         compare={compare}
-        share={onShare && { onShare: () => onShare(view), disabled: !entries.length }}
+        share={onShare && { onShare: () => onShare(view, shareAt.current), disabled: !entries.length }}
         onView={(v) => { setPick(null); setTip(null); dispatch({ type: 'view', view: v }) }}
         trueSize={mode === 'true'}
         onTrueSize={(on) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })}
@@ -323,12 +330,12 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
           </div>
         )
       ) : view === 'map' ? (
-        <MapView state={state} species={species} regions={regions} onFilter={onApply} note={placesNote} unplaced={placesUnplaced} />
+        <MapView state={state} species={species} regions={regions} onFilter={onApply} note={placesNote} unplaced={placesUnplaced} onLevel={onMapLevel} />
       ) : view === 'list' ? (
         <ListView entries={shownList} species={species} regions={regions} order={massOrder} sci={sci} onPick={onPickRow} />
       ) : (
         <Suspense fallback={<p className="eb-mono">{t.collage.tree.loading}</p>}>
-          <TreeView entries={shownList} sci={sci} onPick={onPickRow} />
+          <TreeView entries={shownList} sci={sci} onPick={onPickRow} onLevel={onTreeLevel} />
         </Suspense>
       )}
 

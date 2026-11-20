@@ -12,29 +12,20 @@ import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { PickerSheet } from '@/components/filters/PickerSheet'
-import { fetchData } from '@/lib/data-url'
 import type { ListEntry } from '@/lib/list/model'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { SpeciesRow } from '@/lib/species/types'
 import { genusOf, levelView, type Inside, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
-import { ageTicks, formatAge, oldestLineage, parseNewick, type Tree, type TreeFile } from '@/lib/tree/tree'
+import { loadTree } from '@/lib/tree/load'
+import { ageTicks, formatAge, oldestLineage, type Tree, type TreeFile } from '@/lib/tree/tree'
 import './tree.css'
 
 export const AVES_URL = 'https://github.com/McTavishLab/AvesData'
 export const CC_BY_URL = 'https://creativecommons.org/licenses/by/4.0/'
 
 type Loaded = { file: TreeFile; tree: Tree; species: SpeciesIndex }
-let treeP: Promise<Omit<Loaded, 'species'>> | null = null
-/** The tree, fetched and parsed once per page (a failure is not cached). */
-function loadTree(): Promise<Omit<Loaded, 'species'>> {
-  treeP ??= fetchData<TreeFile>('tree.v1.json').then((file) => ({ file, tree: parseNewick(file.newick, file.taxOnly) })).catch((e) => {
-    treeP = null
-    throw e
-  })
-  return treeP
-}
 
 type Props = {
   /** The filtered list. */
@@ -42,9 +33,11 @@ type Props = {
   sci: boolean
   /** Opens the bird card; `el` is the pressed button. */
   onPick: (code: string, el: HTMLElement) => void
+  /** Told the level open whenever it changes, so Share can draw the same level. */
+  onLevel?: (level: TreeLevel) => void
 }
 
-export default function TreeView({ entries, sci, onPick }: Props) {
+export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
   const { t } = useI18n()
   useNames()
   const tt = t.collage.tree
@@ -57,6 +50,7 @@ export default function TreeView({ entries, sci, onPick }: Props) {
     return () => { live = false }
   }, [])
   const [level, setLevel] = useState<TreeLevel>({})
+  useEffect(() => onLevel?.(level), [level, onLevel])
   // The row whose list of genera inside is open.
   const [list, setList] = useState<string | null>(null)
   const onList = useMemo(() => new Set(entries.map((e) => e.code)), [entries])

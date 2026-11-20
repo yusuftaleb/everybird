@@ -51,6 +51,7 @@ import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { Regions } from '@/lib/species/types'
 import type { ViewKind } from '@/lib/view-resume'
+import type { ShareAt, ViewImageOpts } from '@/lib/share/view-image'
 import '@/components/app/app.css'
 import '@/components/collage/collage.css'
 import './share.css'
@@ -58,12 +59,16 @@ import './share.css'
 /** How long the preview's frame eases to a new shape and the images cross-fade (share.css, as the photo lightbox). */
 const PREVIEW_EASE_MS = 420
 
-/** `view`: the view Share was pressed in. Every view shares the birds on screen (the filter applied). */
-type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; view?: ViewKind; onClose: () => void }
+/** `view`: the view Share was pressed in, `at` the level it had open (the Map's place, the Tree's family or genus).
+ *  Every view shares the birds on screen (the filter applied). */
+type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; view?: ViewKind; at?: ShareAt; onClose: () => void }
 
-/** The one place a view supplies its own image (the map's and the tree's are a later task): unset, a view shares the
- *  collage image of the birds on screen. */
-const VIEW_IMAGE: Partial<Record<ViewKind, typeof renderShareImage>> = {}
+/** The views that draw their own image in the Image part (the Poster and the Big Year card stay the collage): each
+ *  module loads only when Share is pressed there. Unset, a view shares the collage image of the birds on screen. */
+export const VIEW_IMAGE: Partial<Record<ViewKind, () => Promise<(o: ViewImageOpts) => Promise<Blob>>>> = {
+  map: () => import('@/lib/share/map-image').then((m) => m.renderMapImage),
+  tree: () => import('@/lib/share/tree-image').then((m) => m.renderTreeImage),
+}
 
 const RENDER_DELAY_MS = 250
 /** The format buttons: each slot's ratio and icon in each orientation (the square is square in both). */
@@ -86,8 +91,7 @@ type QuietAction = { label: string; short?: string; icon: Icon; onClick: () => v
 /** Why a link carries less than the regions (a large list), or nothing for a full link. */
 const levelReason = (level: ShareLevel, t: ReturnType<typeof useI18n>['t']) => (level === 'regions' ? '' : t.share.level[level])
 
-export default function ShareDialog({ state, dispatch, species, regions, view, onClose }: Props) {
-  const renderImage = (view && VIEW_IMAGE[view]) || renderShareImage
+export default function ShareDialog({ state, dispatch, species, regions, view, at, onClose }: Props) {
   const names = useNames()
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
@@ -110,7 +114,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
   const readyNote = (p: Poster) =>
     [fmt(pt.ready, { size: sizeName(p.size) }), p.namesDropped ? pt.namesDropped : '', p.soft > 0 ? pt.soft : '', p.missing > 0 ? plural(pt.missing, p.missing, { n: formatInt(p.missing, t.num) }) : ''].filter(Boolean).join(' ')
 
-  const { list, filter, saved, seen } = state
+  const { list, filter, saved, seen, sci } = state
   const [format, setFormat] = useState<FormatSlot>('story')
   // The orientation flips every format at once (Square stays square; its switch is off). It holds while the dialog is open.
   const [orientation, setOrientation] = useState<Orientation>('vertical')
@@ -121,6 +125,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
   const [part, setPart] = useState<SharePart>('image')
   const [size, setSize] = useState<PrintSize>('A2')
   const print = part === 'poster'
+  // The Image part in the Map or Tree view draws that view: no stickers, so no sticker options.
+  const viewImage = part === 'image' && view ? VIEW_IMAGE[view] : undefined
   // Square is the same in both orientations (its image doesn't change; the dialog keeps its narrow layout for it).
   const squareShare = !print && format === 'square'
   // Horizontal (a desktop or wide image, or a landscape poster) lays out wide: the dialog widens and the preview takes
@@ -170,7 +176,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
   const cardGoal = useMemo(() => (bigYearActive ? { year: goalYear, target: validTarget, basis: goalBasis(seen) } : undefined), [bigYearActive, goalYear, validTarget, seen])
   const cardLabel = bigYearActive ? undefined : label
   const hasLatest = useMemo(() => cardEntries.some((e) => e.date), [cardEntries])
-  const withLatest = hasLatest && showLatest
+  const withLatest = hasLatest && showLatest && !viewImage
   const liferMarks = useLiferMarks()
   // The collage's arrangement (Packed, By family, By colour): the images and the poster are packed the same way.
   const arrangement = useArrangement()
@@ -286,7 +292,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
   const outgoingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const shownSize = useRef<[number, number]>([0, 0])
   const first = useRef(true)
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : viewImage ? `${view}|${shape}` : shape}|${trimmed}|${theme}|${withLatest}|${liferMarks.newest}|${liferMarks.first}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   useEffect(() => {
@@ -298,11 +304,15 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
       const t = setTimeout(resolve, delay)
       cancel = () => { clearTimeout(t); reject(abortError('superseded')) }
     })
-      .then(() => packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null))
-      .then((pack) => renderImage({
-        format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
-        theme, transparent, pack, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, strings: t, nameOf: displayName, signal: life.current?.signal,
-      }))
+      .then(async () => {
+        const opts = {
+          format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
+          theme, transparent, latest: withLatest, markNewest: liferMarks.newest, markFirst: liferMarks.first, countSize, strings: t, nameOf: displayName, signal: life.current?.signal,
+        }
+        if (viewImage) return (await viewImage())({ ...opts, at: at ?? {}, state: { list, filter, seen, sci }, t })
+        const pack = await packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null)
+        return renderShareImage({ ...opts, pack })
+      })
     current.current = job
     job.then(
       (blob) => {
@@ -330,7 +340,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
       },
     )
     return () => { live = false; cancel() }
-  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, renderImage])
+  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, liferMarks.newest, liferMarks.first, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, at, list, filter, seen, sci])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -865,7 +875,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, o
                 </div>
 
                 <div className="eb-share-switches" data-testid="share-switches">
-                  {hasLatest && (
+                  {hasLatest && !viewImage && (
                     <button type="button" role="switch" aria-checked={showLatest} className="eb-switch eb-share-switch" onClick={() => setShowLatest((v) => !v)}>
                       <span>{t.share.showLatest}</span>
                       <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>

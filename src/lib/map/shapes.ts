@@ -11,8 +11,8 @@ export type MapLayer = { w: number; h: number; d: Record<string, string> }
 export type MapCountries = MapLayer & { v: 1 }
 export type MapProvinces = { v: 1; groups: Record<string, MapLayer> }
 
-/** One shape to draw: its place key, path, species count and whether the filter has it checked. */
-export type MapShape = { key: string; d: string; n: number; checked: boolean }
+/** One shape to draw: its id in the layer, its place key, path, species count and whether the filter has it checked. */
+export type MapShape = { id: string; key: string; d: string; n: number; checked: boolean }
 
 const cache = new Map<string, Promise<unknown>>()
 /** A map file, fetched once per page (a failure is not cached, so the next open tries again). */
@@ -49,10 +49,40 @@ export function mapShapes(layer: MapLayer, counts: PlaceCounts, checked: Readonl
     const code = own ? sub1 : sourcePlaceId(sub1)
     if (code && (own || !byCode.has(code))) byCode.set(code, { key: `s:${sub1}`, n: t.n })
   }
+  // Northern Cyprus (QY) is a place only iNaturalist records; eBird records the whole island as Cyprus. With Cyprus
+  // counted and no QY, the north is drawn as Cyprus (its shade, name, count and press).
+  const cy = group === undefined && !counts.countries.has('QY') ? counts.countries.get('CY')?.n ?? 0 : 0
   return Object.entries(layer.d).map(([id, d]) => {
-    const hit = group === undefined ? { key: `c:${id}`, n: counts.countries.get(id)?.n ?? 0 } : byCode.get(id) ?? { key: `s:${id}`, n: 0 }
-    return { key: hit.key, d, n: hit.n, checked: checked.has(hit.key) }
+    const hit = group !== undefined ? byCode.get(id) ?? { key: `s:${id}`, n: 0 }
+      : id === 'QY' && cy > 0 ? { key: 'c:CY', n: cy }
+      : { key: `c:${id}`, n: counts.countries.get(id)?.n ?? 0 }
+    return { id, key: hit.key, d, n: hit.n, checked: checked.has(hit.key) }
   })
+}
+
+/**
+ * What the map draws for the Places level `at`: the open country's provinces, or the world when no province shape has
+ * species (no shapes, provinces the shapes don't know, a shared link's made-up codes) or before they load. The checked
+ * places last, so their outline is drawn over their neighbours'. The Map view and its share image both draw this.
+ */
+export function mapLayer(world: MapCountries | null, provinces: MapProvinces | null, counts: PlaceCounts, checked: ReadonlySet<string>, at: string | undefined): { layer: MapLayer | null; shapes: MapShape[] } {
+  const group = mapGroupOf(at)
+  const groupLayer = group !== undefined ? provinces?.groups[group] : undefined
+  const inGroup = groupLayer ? mapShapes(groupLayer, counts, checked, group) : []
+  const [layer, shapes] = inGroup.some((x) => x.n > 0 || x.checked) ? [groupLayer!, inGroup] : [world, world ? mapShapes(world, counts, checked) : []]
+  return { layer, shapes: shapes.sort((a, b) => Number(a.checked) - Number(b.checked)) }
+}
+
+/** The counts each shade step covers on a layer whose most is `max`: [step, from, to] for every step some count takes. */
+export function shadeRanges(max: number): [step: number, from: number, to: number][] {
+  const out: [number, number, number][] = []
+  for (let n = 1; n <= max; n++) {
+    const s = shadeStep(n, max)
+    const last = out[out.length - 1]
+    if (last?.[0] === s) last[2] = n
+    else out.push([s, n, n])
+  }
+  return out
 }
 
 /** The shade step of a count, 0 (none) to 5, on a log scale up to the layer's most. */

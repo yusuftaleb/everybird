@@ -80,11 +80,30 @@ describe('the map counts', () => {
     const c = placeCountsFor(reduce(initialState(), { type: 'restore', saved }), species)
     const qc = mapShapes({ w: 10, h: 10, d: { 'CA-QC': square, 'CA-BC': square } }, c, new Set(), 'CA')
     expect(qc).toEqual([
-      { key: `s:${place.sub1}`, d: square, n: 1, checked: false },
-      { key: 's:CA-BC', d: square, n: 0, checked: false },
+      { id: 'CA-QC', key: `s:${place.sub1}`, d: square, n: 1, checked: false },
+      { id: 'CA-BC', key: 's:CA-BC', d: square, n: 0, checked: false },
     ])
     // The key is the Places panel's row, so a press sets its filter.
     expect(placeRows(c, 'c:CA', label).map((r) => r.value)).toEqual([qc[0].key])
+  })
+
+  it("Northern Cyprus takes Cyprus's shade, name and press when the list has Cyprus and no QY; any QY keeps it its own", () => {
+    const island = { w: 10, h: 10, d: { CY: square, QY: square } }
+    const counted = (places: { country: string }[]) => {
+      const saved = emptySaved()
+      saved.records.ebird = places.map((place, i) => ({ code: ['duck1', 'crow1'][i], source: 'ebird' as const, date: '2019-01-01', place, seen: [`2019-01-01|${place.country}`] }))
+      return placeCountsFor(reduce(initialState(), { type: 'restore', saved }), species)
+    }
+    const eBird = mapShapes(island, counted([{ country: 'CY' }]), new Set(['c:CY']))
+    expect(eBird.map(({ id, key, n, checked }) => ({ id, key, n, checked }))).toEqual([
+      { id: 'CY', key: 'c:CY', n: 1, checked: true },
+      { id: 'QY', key: 'c:CY', n: 1, checked: true },
+    ])
+    const inat = mapShapes(island, counted([{ country: 'CY' }, { country: 'QY' }]), new Set())
+    expect(inat.map(({ id, key, n }) => ({ id, key, n }))).toEqual([
+      { id: 'CY', key: 'c:CY', n: 1 },
+      { id: 'QY', key: 'c:QY', n: 1 },
+    ])
   })
 
   it('shades on five steps, none for no species; a drilled place maps to its country', () => {
