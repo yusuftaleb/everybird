@@ -174,19 +174,22 @@ export const EN_UI = {
       noneThis: 'No bird on this list matches “{q}”.',
       matches: { one: '{n} match', other: '{n} matches' },
     },
-    /** The Tree view (TreeView.tsx): AvesData's tree at three levels (families, genera, species). {tree}, {taxonomy}
+    /** The Tree view (TreeView.tsx): AvesData's tree, opening on the orders; `all` the path's first step. `rankGroup`
+     *  names the level switch, `rank` its four choices (what the open branch's tips are), `tooMany` the reason a choice
+     *  is off (more than 300 tips: what to open first); `tipOf` a fan tip's count, "12 of 39". {tree}, {taxonomy}
      *  and {year} are data ("AvesData v1.7", "Clements 2025", "2026"); <src> links the repository, <lic> the licence.
      *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the names of the groups inside
      *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
      *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that is
      *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. `mineNone`
-     *  the line when the bar's Lifers only (controls.lifersOnly) leaves no row. `cover`: the tree share
-     *  image's line under the count, "24 of 41 orders · 92 of 251 families · …"; the form follows {total}. */
+     *  the line when the bar's Lifers only (controls.lifersOnly) leaves no row. `cover`: the count line by the path,
+     *  "18 of 45 orders", and the tree share image's line under the count, "24 of 41 orders · 92 of 251 families · …";
+     *  the form follows {total}. */
     tree: {
       loading: 'Loading the tree',
       failed: "The tree didn't load. Open Tree again to try once more.",
       nav: 'Tree levels',
-      all: 'All families',
+      all: 'All birds',
       tips: 'Tips of the tree, top to bottom',
       axis: 'Million years ago (estimates)',
       onList: '{n} of {total} on the list',
@@ -208,7 +211,11 @@ export const EN_UI = {
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
       allMapped: 'Every bird on this list has a place in the tree.',
       mineNone: 'No bird on the list here.',
-      cover: { orders: { one: '{n} of {total} order', other: '{n} of {total} orders' }, families: { one: '{n} of {total} family', other: '{n} of {total} families' }, genera: { one: '{n} of {total} genus', other: '{n} of {total} genera' } },
+      rankGroup: 'Show tips as',
+      rank: { orders: 'Orders', families: 'Families', genera: 'Genera', species: 'Species' },
+      tooMany: { families: 'Open an order to see its families', genera: 'Open a family to see its genera', species: 'Open a genus to see its species' },
+      tipOf: '{n} of {total}',
+      cover: { orders: { one: '{n} of {total} order', other: '{n} of {total} orders' }, families: { one: '{n} of {total} family', other: '{n} of {total} families' }, genera: { one: '{n} of {total} genus', other: '{n} of {total} genera' }, species: { one: '{n} of {total} species', other: '{n} of {total} species' } },
       credit: 'Tree: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, matched to the eBird {year} taxonomy, which gives the families, genera and totals. Species new in the {year} taxonomy were added beside their closest relative.',
     },
     /** The close buttons' aria-label (the welcome, sheets, the Places and Time sheet). */
