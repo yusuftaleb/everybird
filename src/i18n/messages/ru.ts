@@ -183,12 +183,6 @@ export const ru: Messages = {
         rank: { orders: 'Отряды', families: 'Семейства', genera: 'Роды', species: 'Виды' },
         tooMany: { families: 'Открой отряд, чтобы увидеть его семейства', genera: 'Открой семейство, чтобы увидеть его роды', species: 'Открой род, чтобы увидеть его виды' },
         tipOf: '{n} из {total}',
-        cover: {
-          orders: { one: '{n} из {total} отряда', few: '{n} из {total} отрядов', many: '{n} из {total} отрядов', other: '{n} из {total} отряда' },
-          families: { one: '{n} из {total} семейства', few: '{n} из {total} семейств', many: '{n} из {total} семейств', other: '{n} из {total} семейства' },
-          genera: { one: '{n} из {total} рода', few: '{n} из {total} родов', many: '{n} из {total} родов', other: '{n} из {total} рода' },
-          species: { one: '{n} из {total} вида', few: '{n} из {total} видов', many: '{n} из {total} видов', other: '{n} из {total} вида' },
-        },
         credit: 'Дерево: <src>AvesData</src> (McTavish et al.), <lic>CC BY 4.0</lic>',
       },
       close: 'Закрыть',

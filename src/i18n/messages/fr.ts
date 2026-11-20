@@ -167,7 +167,6 @@ export const fr: Messages = {
         rank: { orders: 'Ordres', families: 'Familles', genera: 'Genres', species: 'Espèces' },
         tooMany: { families: 'Ouvre un ordre pour voir ses familles', genera: 'Ouvre une famille pour voir ses genres', species: 'Ouvre un genre pour voir ses espèces' },
         tipOf: '{n} sur {total}',
-        cover: { orders: { one: '{n} sur {total} ordre', other: '{n} sur {total} ordres' }, families: { one: '{n} sur {total} famille', other: '{n} sur {total} familles' }, genera: { one: '{n} sur {total} genre', other: '{n} sur {total} genres' }, species: { one: '{n} sur {total} espèce', other: '{n} sur {total} espèces' } },
         credit: 'Arbre\u00a0: <src>AvesData</src> (McTavish et al.), <lic>CC BY 4.0</lic>',
       },
       close: 'Fermer',

@@ -167,7 +167,6 @@ export const nl: Messages = {
         rank: { orders: 'Ordes', families: 'Families', genera: 'Geslachten', species: 'Soorten' },
         tooMany: { families: 'Open een orde om de families te zien', genera: 'Open een familie om de geslachten te zien', species: 'Open een geslacht om de soorten te zien' },
         tipOf: '{n} van {total}',
-        cover: { orders: { one: '{n} van {total} orde', other: '{n} van {total} ordes' }, families: { one: '{n} van {total} familie', other: '{n} van {total} families' }, genera: { one: '{n} van {total} geslacht', other: '{n} van {total} geslachten' }, species: { one: '{n} van {total} soort', other: '{n} van {total} soorten' } },
         credit: 'Boom: <src>AvesData</src> (McTavish et al.), <lic>CC BY 4.0</lic>',
       },
       close: 'Sluiten',

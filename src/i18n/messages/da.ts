@@ -167,7 +167,6 @@ export const da: Messages = {
         rank: { orders: 'Ordener', families: 'Familier', genera: 'Slægter', species: 'Arter' },
         tooMany: { families: 'Åbn en orden for at se dens familier', genera: 'Åbn en familie for at se dens slægter', species: 'Åbn en slægt for at se dens arter' },
         tipOf: '{n} af {total}',
-        cover: { orders: { one: '{n} af {total} orden', other: '{n} af {total} ordener' }, families: { one: '{n} af {total} familie', other: '{n} af {total} familier' }, genera: { one: '{n} af {total} slægt', other: '{n} af {total} slægter' }, species: { one: '{n} af {total} art', other: '{n} af {total} arter' } },
         credit: 'Træ: <src>AvesData</src> (McTavish et al.), <lic>CC BY 4.0</lic>',
       },
       close: 'Luk',

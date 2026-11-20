@@ -169,7 +169,6 @@ export const ja: Messages = {
         rank: { orders: '目', families: '科', genera: '属', species: '種' },
         tooMany: { families: '目を開くと科が見られます', genera: '科を開くと属が見られます', species: '属を開くと種が見られます' },
         tipOf: '{total}中{n}',
-        cover: { orders: { one: '{total}目中{n}目', other: '{total}目中{n}目' }, families: { one: '{total}科中{n}科', other: '{total}科中{n}科' }, genera: { one: '{total}属中{n}属', other: '{total}属中{n}属' }, species: { one: '{total}種中{n}種', other: '{total}種中{n}種' } },
         credit: '系統樹：<src>AvesData</src>（McTavish et al.）、<lic>CC BY 4.0</lic>',
       },
       close: '閉じる',

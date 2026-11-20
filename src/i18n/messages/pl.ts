@@ -173,7 +173,6 @@ export const pl: Messages = {
         rank: { orders: 'Rzędy', families: 'Rodziny', genera: 'Rodzaje', species: 'Gatunki' },
         tooMany: { families: 'Otwórz rząd, aby zobaczyć jego rodziny', genera: 'Otwórz rodzinę, aby zobaczyć jej rodzaje', species: 'Otwórz rodzaj, aby zobaczyć jego gatunki' },
         tipOf: '{n} z {total}',
-        cover: { orders: { one: '{n} z {total} rzędu', other: '{n} z {total} rzędów' }, families: { one: '{n} z {total} rodziny', other: '{n} z {total} rodzin' }, genera: { one: '{n} z {total} rodzaju', other: '{n} z {total} rodzajów' }, species: { one: '{n} z {total} gatunku', other: '{n} z {total} gatunków' } },
         credit: 'Drzewo: <src>AvesData</src> (McTavish et al.), <lic>CC BY 4.0</lic>',
       },
       close: 'Zamknij',

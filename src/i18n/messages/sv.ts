@@ -167,7 +167,6 @@ export const sv: Messages = {
         rank: { orders: 'Ordningar', families: 'Familjer', genera: 'Släkten', species: 'Arter' },
         tooMany: { families: 'Öppna en ordning för att se dess familjer', genera: 'Öppna en familj för att se dess släkten', species: 'Öppna ett släkte för att se dess arter' },
         tipOf: '{n} av {total}',
-        cover: { orders: { one: '{n} av {total} ordning', other: '{n} av {total} ordningar' }, families: { one: '{n} av {total} familj', other: '{n} av {total} familjer' }, genera: { one: '{n} av {total} släkte', other: '{n} av {total} släkten' }, species: { one: '{n} av {total} art', other: '{n} av {total} arter' } },
         credit: 'Träd: <src>AvesData</src> (McTavish et al.), <lic>CC BY 4.0</lic>',
       },
       close: 'Stäng',

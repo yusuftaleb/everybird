@@ -169,7 +169,6 @@ export const zhHant: Messages = {
         rank: { orders: '目', families: '科', genera: '屬', species: '種' },
         tooMany: { families: '打開一個目即可查看其科', genera: '打開一個科即可查看其屬', species: '打開一個屬即可查看其種' },
         tipOf: '{n} / {total}',
-        cover: { orders: { one: '{n} / {total} 目', other: '{n} / {total} 目' }, families: { one: '{n} / {total} 科', other: '{n} / {total} 科' }, genera: { one: '{n} / {total} 屬', other: '{n} / {total} 屬' }, species: { one: '{n} / {total} 種', other: '{n} / {total} 種' } },
         credit: '演化樹：<src>AvesData</src>（McTavish 等人），<lic>CC BY 4.0</lic>',
       },
       close: '關閉',
