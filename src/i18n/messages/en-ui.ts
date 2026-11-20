@@ -611,7 +611,7 @@ export const EN_UI = {
       namesDropped: 'The names didn’t fit, so this poster has none.',
     },
   },
-  /** Settings > Your list (ImportPanel, SourceLine, SourceMenu, EbirdDrop, InatForm, NotCounted, MatchReport,
+  /** The Add birds dialog and Settings > Your list (AddBirdsDialog, ImportPanel, SourceLine, SourceMenu, EbirdDrop, InatForm, NotCounted, MatchReport,
    *  SpeciesSearch, source-counts.ts) and the import jobs' messages (use-import-jobs.ts). eBird, MyEBirdData and
    *  iNaturalist are names and stay as they are. */
   import: {
@@ -866,35 +866,38 @@ export const EN_UI = {
     },
   },
   /** Tick by hand (ImportPanel's row, TickList). The removal toast is `collage.removed`. */
+  /** The "Add birds" dialog (AddBirdsDialog): its two choices and their group's name. */
+  add: {
+    ways: 'Ways to add birds',
+    file: 'Import a file',
+    hand: 'Add by hand',
+  },
   tick: {
     title: 'Ticked by hand',
+    /** The About demo's Settings scene (HowItWorksScene) still shows the old row's button. */
     button: 'Tick birds',
-    /** The button's aria-label and the list's heading. */
+    /** The list's heading, for screen readers. */
     label: 'Tick birds off a list',
     search: 'Search birds',
-    order: 'Order',
-    allOrders: 'All orders',
     family: 'Family',
     allFamilies: 'All families',
     list: 'Species to tick',
     /** A row's name for screen readers when the bird is already on the list ({name} is "Common, Scientific"). */
     onListLabel: '{name}, already on your list',
     onList: 'On your list',
-    toRemove: 'To remove',
-    bar: 'Add or remove the ticked birds',
-    selected: { one: '{n} selected', other: '{n} selected' },
-    toRemoveN: { one: '{n} to remove', other: '{n} to remove' },
+    when: 'When and where',
+    /** Under "When and where", once open: nothing applies while it is closed. */
+    whenNote: 'Applies to the birds you add while this is open.',
     date: 'Date (optional)',
-    datePlaceholder: 'Date: YYYY-MM-DD, YYYY-MM or YYYY',
-    dateError: 'Use YYYY-MM-DD, YYYY-MM or YYYY.',
+    /** The year field beside the date picker: a year alone, as typed dates allowed. */
+    year: 'Or a year',
+    dateError: 'Use a year from 1800 to this year.',
     country: 'Country (optional)',
     noCountry: 'No country',
     region: 'Region (optional)',
     wholeCountry: 'Whole country',
-    addN: { one: 'Add {n} to my list', other: 'Add {n} to my list' },
-    removeN: { one: 'Remove {n} from my list', other: 'Remove {n} from my list' },
-    keepThem: 'Keep them',
-    added: { one: 'Added {n} bird to your list.', other: 'Added {n} birds to your list.' },
+    /** The Undo notice after a tap adds a bird ("Removed {name}." after one takes it off: collage.removed). */
+    added: 'Added {name}.',
   },
   /** Settings > Counting (RulesSwitches). */
   rules: {
@@ -909,7 +912,7 @@ export const EN_UI = {
       one: 'Count iNaturalist sightings only once the community agrees on the ID. Affects {n} bird.',
       other: 'Count iNaturalist sightings only once the community agrees on the ID. Affects {n} birds.',
     },
-    researchOff: 'For iNaturalist sightings. Add iNaturalist above to use it.',
+    researchOff: 'For iNaturalist sightings. Add iNaturalist in Add birds to use it.',
   },
   /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
   demo: {

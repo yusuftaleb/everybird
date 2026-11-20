@@ -27,8 +27,6 @@ vi.mock('@/components/app/EverybirdProvider', () => ({
   }),
 }))
 
-// "Your list" needs the import jobs: not under test here.
-vi.mock('@/components/import/ImportPanel', () => ({ ImportPanel: () => null }))
 
 // Node 25 ships its own (unconfigured) localStorage global, which shadows jsdom's: use a plain in-memory one.
 class MemoryStorage {
@@ -108,8 +106,9 @@ describe('LanguageField', () => {
       render(<SettingsPage />, { wrapper: withI18n('nl') })
       const select = screen.getByRole('combobox', { name: 'Taal' }) as HTMLSelectElement
       expect(select.value).toBe('nl')
-      // The first field of "Your data".
-      const section = document.querySelector<HTMLElement>('section[aria-labelledby="eb-data-h"]')!
+      // The first field of its own block, "Language".
+      const section = document.querySelector<HTMLElement>('section[aria-labelledby="eb-lang-h"]')!
+      expect(section.querySelector('h2')).toHaveTextContent('Taal')
       expect(section).toContainElement(select)
       expect(section.querySelector('select, input, button')).toBe(select)
       // The English-names switch sits under it when the UI isn't English.

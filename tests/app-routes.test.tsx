@@ -132,7 +132,8 @@ async function mount(opts: { blockStorage?: boolean; failForget?: boolean; path?
     )
   }
   const utils = render(<App />, { wrapper: withI18n('en') })
-  if ((opts.path ?? '/settings') === '/settings') await screen.findByTestId('ebird-drop') // the data and the stored list have loaded
+  // The data and the stored list have loaded; the source rows are in Settings' Add birds dialog.
+  if ((opts.path ?? '/settings') === '/settings') { await openAdd('Import a file'); await screen.findByTestId('ebird-drop') }
   return { storage, inat, analytics, ...utils }
 }
 
@@ -148,8 +149,13 @@ function inatField() {
 }
 
 const stats = () => screen.getByTestId('collage-stats')
-/** Tick by hand: open the page-wide list, and find a row in it. */
-const openTick = () => fireEvent.click(screen.getByRole('button', { name: 'Tick birds off a list' }))
+/** The Add birds dialog (opened from Settings' "Add birds" unless it is open), at one of its two choices. */
+async function openAdd(way: 'Import a file' | 'Add by hand') {
+  if (!screen.queryByRole('dialog', { name: 'Add birds' })) fireEvent.click(await screen.findByRole('button', { name: 'Add birds' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'Add birds' })).getByRole('button', { name: way }))
+}
+/** Add by hand: open its list, and find a row in it. */
+const openTick = () => openAdd('Add by hand')
 const tickOption = (name: RegExp) => within(screen.getByRole('listbox', { name: 'Species to tick' })).getByRole('option', { name })
 
 async function drop(file: File, zoneId = 'ebird-drop') {
@@ -194,11 +200,11 @@ describe('the top bar under a language prefix', () => {
 })
 
 describe('the Collage page (/)', () => {
-  it('without a list: one line of what Everybird is, the pre-packed sample collage, "Make yours" (to /settings), the top bar and the footer credits link', async () => {
+  it('without a list: one line of what Everybird is, the pre-packed sample collage, "Make yours" (the Add birds dialog), the top bar and the footer credits link', async () => {
     await mount({ path: '/' })
     expect(await screen.findByRole('heading', { level: 1, name: "A lifetime of birds." })).toBeInTheDocument()
     await waitFor(() => expect(stats()).toHaveTextContent("Sample: a demo birder's life list · 2 species"))
-    expect(screen.getByRole('link', { name: /^Make yours/ })).toHaveAttribute('href', '/settings')
+    expect(screen.getByRole('button', { name: /^Make yours/ })).toHaveAttribute('aria-haspopup', 'dialog')
     // The footer reaches every credit (About's, with the sticker licence) by one link; no inline sticker line.
     const footer = screen.getByRole('contentinfo')
     expect(within(footer).getByRole('link', { name: 'All credits' })).toHaveAttribute('href', '/about#credits')
@@ -228,17 +234,30 @@ describe('the Collage page (/)', () => {
     expect(screen.queryByRole('button', { name: 'Birds' })).toBeNull()
     expect(screen.queryByTestId('filter-bar-folded')).toBeNull()
     expect(screen.queryByRole('tab')).toBeNull()
-    fireEvent.click(screen.getByRole('link', { name: /^Make yours/ }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
-    expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('heading', { level: 2, name: 'Your list' })).toBeInTheDocument()
-    // One row per source, each "Not added" yet.
-    for (const h of [/^eBird life list/, /^MyEBirdData/, /^iNaturalist/, /^observation\.org life list/, /^observation\.org observations/, /^Spreadsheet or list/, /^Scythebill/, /^iGoTerra/, /^Ticked by hand/]) expect(screen.getByRole('heading', { level: 3, name: h })).toBeInTheDocument()
-    expect(screen.getAllByText('Not added')).toHaveLength(8)
-    expect(screen.getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
+    // The first visit's welcome covers the page; "Explore the sample" closes it.
+    fireEvent.click(within(screen.getByTestId('welcome')).getByRole('button', { name: 'Explore the sample' }))
+    // "Make yours" opens the Add birds dialog on the page: two choices, Import a file and Add by hand.
+    const cta = screen.getByRole('button', { name: /^Make yours/ })
+    cta.focus()
+    fireEvent.click(cta)
+    const dialog = screen.getByRole('dialog', { name: 'Add birds' })
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toHaveFocus()
+    expect(within(dialog).getByRole('group', { name: 'Ways to add birds' })).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Import a file' }))
+    expect(within(dialog).getByRole('button', { name: 'Import a file' })).toHaveAttribute('aria-pressed', 'true')
+    // One row per source, each "Not added" yet (the species load at an idle moment on the landing).
+    await within(dialog).findByTestId('ebird-drop')
+    for (const h of [/^eBird life list/, /^MyEBirdData/, /^iNaturalist/, /^observation\.org life list/, /^observation\.org observations/, /^Spreadsheet or list/, /^Scythebill/, /^iGoTerra/]) expect(within(dialog).getByRole('heading', { level: 3, name: h })).toBeInTheDocument()
+    expect(within(dialog).getAllByText('Not added')).toHaveLength(8)
+    expect(within(dialog).getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
+    // Esc closes it, and focus goes back to "Make yours".
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Add birds' })).toBeNull()
+    expect(cta).toHaveFocus()
   })
 
-  it('with a list: the birder\'s own collage, with Share and "Add birds" (to /settings) in its head', async () => {
+  it('with a list: the birder\'s own collage, with Share and "Add birds" (the Add birds dialog) in its head', async () => {
     await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
@@ -246,8 +265,17 @@ describe('the Collage page (/)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
     expect(stats()).toHaveTextContent(/^3 species/)
     expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Add birds' })).toHaveAttribute('href', '/settings')
+    const add = screen.getByRole('button', { name: 'Add birds' })
+    expect(add).toHaveAttribute('aria-haspopup', 'dialog')
     expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull() // the downloads live on Settings
+    add.focus()
+    fireEvent.click(add)
+    const dialog = screen.getByRole('dialog', { name: 'Add birds' })
+    // The summary line, as on Settings; ✕ closes, focus back on "Add birds".
+    expect(within(dialog).getByTestId('add-summary')).toHaveTextContent('Your collage has 3 species, all from eBird.')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(add).toHaveFocus()
   })
 })
 
@@ -438,6 +466,7 @@ describe('Settings and the collage', () => {
     await go('/')
     expect(stats()).toHaveTextContent(/^3 species/)
     await go('/settings')
+    await openAdd('Import a file')
     expect(screen.getByText('Fetched 400 of 576')).toBeInTheDocument() // the fetch and its progress outlived the pages
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     expect(aborted).toBe(false)
@@ -577,108 +606,122 @@ describe('editing', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove from my list' }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
 
-    // Tick by hand (on Settings): the removed species comes back, with a date and a region.
+    // Add by hand (Settings' Add birds): the removed species comes back at once, with a date and a region.
     await go('/settings')
-    openTick()
+    await openTick()
     fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'northern fl' } })
-    fireEvent.click(tickOption(/^Northern Flicker/))
-    fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2019-06' } })
+    fireEvent.click(screen.getByRole('button', { name: 'When and where' }))
+    fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2019-06-15' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'CA' } })
     fireEvent.change(screen.getByLabelText('Region (optional)'), { target: { value: 'CA-BC' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
+    fireEvent.click(tickOption(/^Northern Flicker/))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await waitFor(async () => {
       const s = await storage.load()
       expect(s?.edits.removed).toEqual([])
-      expect(s?.edits.added).toEqual([{ code: 'norfli', source: 'manual', date: '2019-06', place: { country: 'CA', sub1: 'CA-BC' } }])
+      expect(s?.edits.added).toEqual([{ code: 'norfli', source: 'manual', date: '2019-06-15', place: { country: 'CA', sub1: 'CA-BC' } }])
     }, { timeout: 2000 })
   })
 
-  it('Tick by hand: a page-wide list of every species; tick several (click or Space), one date and place for the batch', async () => {
+  it('Add by hand: every species in one list; a tap (or Space) adds a bird at once, a tap on one on the list takes it off, each with Undo', async () => {
     const { storage, analytics } = await mount()
-    openTick()
+    await openTick()
+    const search = screen.getByLabelText('Search birds')
+    await waitFor(() => expect(search).toHaveFocus()) // the search has the focus on open
     const list = screen.getByRole('listbox', { name: 'Species to tick' })
     expect(list).toHaveAttribute('aria-multiselectable', 'true')
     expect(within(list).getAllByRole('option')).toHaveLength(5) // the whole (synthetic) taxonomy, windowed
+    // "When and where" is closed: a bird added now gets no date and no place.
+    const when = screen.getByRole('button', { name: 'When and where' })
+    expect(when).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByLabelText('Date (optional)')).not.toBeVisible()
     fireEvent.click(tickOption(/^Snow Goose/))
-    // Keyboard: the arrows move the active row, Space ticks it.
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species, all ticked by hand.'))
+    // On the list: selected, and says so in words; the change is announced with Undo, focus left on the list.
+    expect(screen.getByText('Added Snow Goose.')).toBeInTheDocument()
+    expect(screen.getByText('Added Snow Goose.').closest('[role=status]')).not.toBeNull()
+    const goose = tickOption(/^Snow Goose, Anser caerulescens, already on your list/)
+    expect(goose).toHaveAttribute('aria-selected', 'true')
+    expect(within(goose).getByText('On your list')).toBeInTheDocument()
+    expect(list).toHaveFocus()
+    expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'manual' }]])
+    // Keyboard, with When and where open: the arrows move the active row, Space adds it with the year and country.
+    fireEvent.click(when)
+    expect(when).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.change(screen.getByLabelText('Or a year'), { target: { value: '2018' } })
+    fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
     list.focus()
     fireEvent.keyDown(list, { key: 'ArrowDown' }) // the Northern Flicker
     fireEvent.keyDown(list, { key: ' ' })
-    expect(tickOption(/^Northern Flicker/)).toHaveAttribute('aria-selected', 'true')
-    fireEvent.keyDown(list, { key: ' ' }) // untick, tick again
-    expect(tickOption(/^Northern Flicker/)).toHaveAttribute('aria-selected', 'false')
-    fireEvent.keyDown(list, { key: ' ' })
-    expect(screen.getByText('2 selected')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2018' } })
-    fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add 2 to my list' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species'))
-    expect(screen.getByText('Added 2 birds to your list.')).toBeInTheDocument()
-    // Now on the list: shown ticked.
-    expect(tickOption(/^Snow Goose, Anser caerulescens, already on your list/)).toHaveAttribute('aria-selected', 'true')
-    expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'manual' }]]) // one, for the first batch
+    expect(screen.getByText('Added Northern Flicker.')).toBeInTheDocument()
+    expect(vi.mocked(analytics.track)).toHaveBeenCalledTimes(1) // only the first bird starts a collage
     await waitFor(async () => expect((await storage.load())?.edits.added).toEqual([
-      { code: 'snogoo', source: 'manual', date: '2018', place: { country: 'US' } },
+      { code: 'snogoo', source: 'manual' },
       { code: 'norfli', source: 'manual', date: '2018', place: { country: 'US' } },
     ]), { timeout: 2000 })
-    // Search narrows by word prefixes of either name, accent-insensitive; the order picker browses.
-    fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'colaptes' } })
-    expect(within(list).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus, already on your list', 'Gilded Flicker, Colaptes chrysoides'])
-    fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText('Order'), { target: { value: 'Passeriformes' } })
-    expect(within(list).getAllByRole('option')).toHaveLength(2)
-    // Un-ticking a bird already on the list takes it off, as the card's Remove does.
-    fireEvent.change(screen.getByLabelText('Order'), { target: { value: '' } })
-    fireEvent.click(tickOption(/^Snow Goose, Anser caerulescens, already on your list/))
-    expect(tickOption(/^Snow Goose/)).toHaveAttribute('aria-selected', 'false')
-    expect(screen.getByText(/1 to remove/)).toBeInTheDocument()
-    const beforeRemove = (await storage.load())!.edits
-    fireEvent.click(screen.getByRole('button', { name: 'Remove 1 from my list' }))
+    // Undo takes it off again.
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species'))
-    // The card's "Removed … · Undo" toast, with focus on Undo; Undo puts back exactly what was there (the dated hand
-    // record, not a fresh one).
+    expect(tickOption(/^Northern Flicker/)).toHaveAttribute('aria-selected', 'false')
+    // Closed again, When and where gives the next bird nothing.
+    fireEvent.click(when)
+    fireEvent.click(tickOption(/^Northern Flicker/))
+    await waitFor(async () => expect((await storage.load())?.edits.added.at(-1)).toEqual({ code: 'norfli', source: 'manual' }), { timeout: 2000 })
+    // Search narrows by word prefixes of either name; one family menu (common names) browses; there is no order menu.
+    fireEvent.change(search, { target: { value: 'colaptes' } })
+    expect(within(list).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus, already on your list', 'Gilded Flicker, Colaptes chrysoides'])
+    fireEvent.change(search, { target: { value: '' } })
+    expect(screen.queryByLabelText('Order')).toBeNull()
+    const family = screen.getByLabelText('Family')
+    expect([...(family as HTMLSelectElement).options].map((o) => o.textContent)).toEqual(['All families', 'Ducks, Geese, and Waterfowl', 'New World Warblers', 'Thrushes', 'Woodpeckers'])
+    fireEvent.change(family, { target: { value: 'Picidae' } })
+    expect(within(list).getAllByRole('option')).toHaveLength(2)
+    fireEvent.change(family, { target: { value: '' } })
+    // A tap on a bird on the list takes it off at once, as the card's Remove does; Undo puts back exactly what was there.
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species'))
+    const before = (await storage.load())!.edits
+    fireEvent.click(tickOption(/^Snow Goose, Anser caerulescens, already on your list/))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species'))
     expect(screen.getByText('Removed Snow Goose.')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus())
+    expect(tickOption(/^Snow Goose/)).toHaveAttribute('aria-selected', 'false')
     await waitFor(async () => expect((await storage.load())?.edits.removed).toEqual(['snogoo']), { timeout: 2000 })
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species'))
     expect(screen.queryByText('Removed Snow Goose.')).toBeNull()
-    expect(tickOption(/^Snow Goose, Anser caerulescens, already on your list/)).toHaveAttribute('aria-selected', 'true')
-    await waitFor(async () => expect((await storage.load())?.edits).toEqual(beforeRemove), { timeout: 2000 })
-    // Two at once: "Removed 2 birds.", and the toast leaves by itself after about 6 s.
+    await waitFor(async () => expect((await storage.load())?.edits).toEqual(before), { timeout: 2000 })
+    // The notice leaves by itself after about 6 s.
     fireEvent.click(tickOption(/^Snow Goose, Anser caerulescens, already on your list/))
-    fireEvent.click(tickOption(/^Northern Flicker, Colaptes auratus, already on your list/))
-    fireEvent.click(screen.getByRole('button', { name: 'Remove 2 from my list' }))
-    expect(screen.getByText('Removed 2 birds.')).toBeInTheDocument()
-    await waitFor(async () => expect((await storage.load())?.edits.removed).toEqual(['snogoo', 'norfli']), { timeout: 2000 })
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus())
-    screen.getByRole('button', { name: 'Undo' }).blur()
-    await waitFor(() => expect(screen.queryByText('Removed 2 birds.')).toBeNull(), { timeout: 8000 })
-    // Ticking it again brings it back.
-    fireEvent.click(tickOption(/^Snow Goose/))
-    fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
-    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species'))  }, 20_000) // the Undo toast's ~6 s
+    expect(screen.getByText('Removed Snow Goose.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Removed Snow Goose.')).toBeNull(), { timeout: 8000 })
+  }, 20_000) // the Undo toast's ~6 s
 
-  it('ticking a bird onto a list from eBird is an edit, not a new collage', async () => {
-    const { analytics } = await mount()
+  it('adding a bird by hand to a list from eBird is an edit, not a new collage; taking an eBird bird off puts it in removed', async () => {
+    const { analytics, storage } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
-    openTick()
+    await openTick()
     fireEvent.click(tickOption(/^Snow Goose/))
-    fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species'))
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'ebird' }]])
+    fireEvent.click(tickOption(/^Northern Flicker, Colaptes auratus, already on your list/))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
+    await waitFor(async () => expect((await storage.load())?.edits.removed).toEqual(['norfli']), { timeout: 2000 })
+    expect((await storage.load())?.records['ebird-list'].some((r) => r.code === 'norfli')).toBe(true) // the file's record stays
   })
 
-  it('tick by hand rejects a malformed date', async () => {
+  it('add by hand refuses a year it cannot use', async () => {
     await mount()
-    openTick()
+    await openTick()
+    fireEvent.click(screen.getByRole('button', { name: 'When and where' }))
+    const year = screen.getByLabelText('Or a year')
+    fireEvent.change(year, { target: { value: '20x9' } })
+    expect(screen.getByText('Use a year from 1800 to this year.')).toBeInTheDocument()
+    expect(year).toHaveAttribute('aria-invalid', 'true')
     fireEvent.click(tickOption(/^Snow Goose/))
-    fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2019-13' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add 1 to my list' }))
-    expect(screen.getByText('Use YYYY-MM-DD, YYYY-MM or YYYY.')).toBeInTheDocument()
+    expect(year).toHaveFocus()
     expect(screen.queryByTestId('see-collage')).toBeNull()
+    expect(screen.queryByText('Added Snow Goose.')).toBeNull()
   })
 
   it('restore from backup (on Settings, without a list) brings a list back and opens the collage; a bad file gets a plain message', async () => {
@@ -863,20 +906,30 @@ describe('remembered sources', () => {
     await waitFor(async () => expect((await storage.load())?.sources?.inat?.user).toBe('sam_birds'), { timeout: 2000 })
   })
 
-  it('Tick by hand is a disclosure: aria-expanded and aria-controls, hidden when closed', async () => {
+  it("Settings' Add birds opens the dialog, Tab stays inside, Esc closes it and focus returns to the button", async () => {
     await mount()
-    const btn = screen.getByRole('button', { name: 'Tick birds off a list' })
-    expect(btn).toHaveAttribute('aria-expanded', 'false')
-    expect(btn).toHaveAttribute('aria-controls', 'tick')
-    // The controlled panel exists from the start (hidden, the list not yet mounted).
-    expect(document.getElementById('tick')).toHaveAttribute('hidden')
-    expect(screen.queryByRole('listbox', { name: 'Species to tick' })).toBeNull()
-    fireEvent.click(btn)
-    expect(btn).toHaveAttribute('aria-expanded', 'true')
-    expect(document.getElementById('tick')).toBeVisible()
-    expect(screen.getByRole('listbox', { name: 'Species to tick' })).toBeInTheDocument()
-    fireEvent.click(btn)
-    expect(btn).toHaveAttribute('aria-expanded', 'false')
-    await waitFor(() => expect(document.getElementById('tick')).toHaveAttribute('hidden'), { timeout: 2000 })
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Add birds' }), { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByTestId('ebird-drop')).toBeNull() // the rows live in the dialog only
+    const add = screen.getByRole('button', { name: 'Add birds' })
+    expect(add).toHaveAttribute('aria-haspopup', 'dialog')
+    add.focus()
+    fireEvent.click(add)
+    const dialog = screen.getByRole('dialog', { name: 'Add birds' })
+    expect(dialog).toHaveFocus()
+    // Neither choice yet; then Add by hand, the search focused.
+    for (const b of within(dialog).getAllByRole('button', { pressed: false })) expect(['Import a file', 'Add by hand']).toContain(b.textContent)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add by hand' }))
+    await waitFor(() => expect(screen.getByLabelText('Search birds')).toHaveFocus())
+    // Tab from the last control wraps to the first (the close button).
+    const close = within(dialog).getByRole('button', { name: 'Close' })
+    const focusables = [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])')]
+    focusables.at(-1)!.focus()
+    fireEvent.keyDown(focusables.at(-1)!, { key: 'Tab' })
+    expect(close).toHaveFocus()
+    fireEvent.keyDown(close, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(add).toHaveFocus()
   })
+
 })
