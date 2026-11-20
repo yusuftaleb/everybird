@@ -62,13 +62,16 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(topLevelRule(css, ".eb-dock-drop")).toMatch(/flex:\s*0 1 auto/);
   });
 
-  it("nothing moves when a filter is set: the label holds its filtering width, the panel's head row Clear all's height", () => {
-    const held = topLevelRule(css, ".eb-drop-label::after");
-    expect(held).toMatch(/content:\s*attr\(data-reserve\)/);
-    expect(held).toMatch(/height:\s*0/);
-    expect(held).toMatch(/visibility:\s*hidden/);
-    expect(held).toMatch(/font-weight:\s*600/);
-    expect(topLevelRule(css, ".eb-dock-drop[data-active]")).toMatch(/font-weight:\s*600/);
+  it("nothing moves when a filter is set: one label weight, the count a badge placed on the glyph, the panel's head row Clear all's height", () => {
+    // No held width (it left a gap before the caret) and no weight change: the label is "Filters" at one width.
+    expect(css).not.toContain("data-reserve");
+    expect(css).not.toMatch(/\.eb-drop-label::after/);
+    expect(topLevelRule(css, ".eb-dock-drop[data-active]")).not.toMatch(/font-weight/);
+    // The count sits on the glyph, out of the flow, so it changes no width; it takes no pointer.
+    expect(topLevelRule(css, ".eb-drop-icon")).toMatch(/position:\s*relative/);
+    const badge = topLevelRule(css, ".eb-drop-badge");
+    expect(badge).toMatch(/position:\s*absolute/);
+    expect(badge).toMatch(/pointer-events:\s*none/);
     // The panel's head row is as tall as Clear all (.eb-textbtn) before it shows.
     const btn = topLevelRule(css, ".eb-textbtn").match(/min-height:\s*(\d+)px/)![1];
     expect(topLevelRule(filtersCss, ".eb-fpanel-headrow")).toMatch(new RegExp(`min-height:\\s*${btn}px`));

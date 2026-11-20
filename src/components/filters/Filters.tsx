@@ -1,6 +1,6 @@
 'use client'
-// One Filters button in the controls bar and one panel behind it (item 10). The button ("Filters · 2": how many of the bird group,
-// Places, Time and Conservation status are in use, not checked boxes) sits in the controls bar between Scientific and the
+// One Filters button in the controls bar and one panel behind it (item 10). The button ("Filters", with a small count on
+// its glyph of how many of the bird group, Places, Time and Conservation status are in use, not checked boxes) sits in the controls bar between Scientific and the
 // search. It opens one panel holding the Time, Places and Conservation status sections, each keeping its own control: Time
 // (Timeline.tsx; "Count repeat sightings" at the right of its head on a list with month sets) across the top, Places
 // (PlacesList.tsx, the drill-down with its breadcrumb) about 2/3 and Conservation status (StatusList.tsx) 1/3 beside each
@@ -15,6 +15,7 @@ import { createPortal } from 'react-dom'
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { CloseIcon, FilterLinesIcon } from '@/components/collage/icons'
 import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
+import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { regionsIn } from '@/lib/i18n-places'
 import { filterChips, withoutFilterChip } from '@/lib/list/chips'
@@ -85,12 +86,12 @@ export function FiltersButton({ state, regions, sections, open, onOpen, groupNam
         data-tour="filter"
         onClick={() => onOpen(open ? null : {})}
       >
-        <FilterLinesIcon />
-        {/* data-reserve: the label's widest form, held from the start so the count never moves the controls before it. */}
-        <span className="eb-drop-label" data-reserve={`${t.filters.label} · 0`}>
-          {t.filters.label}
-          {n > 0 && <span className="eb-drop-sum"> · {n}</span>}
+        {/* The count sits on the glyph, absolutely placed, so setting a filter changes no width; the name says it in full. */}
+        <span className="eb-drop-icon">
+          <FilterLinesIcon />
+          {n > 0 && <span className="eb-drop-badge" aria-hidden="true" data-testid="filters-count">{formatInt(n, t.num)}</span>}
         </span>
+        <span className="eb-drop-label">{t.filters.label}</span>
         <CaretDown aria-hidden="true" focusable="false" className="eb-drop-caret" />
       </button>
   )

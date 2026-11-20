@@ -203,7 +203,7 @@ for (const width of WIDTHS) {
       await panel.getByTestId("drill-n:NA").click();
       await panel.getByText("Costa Rica", { exact: true }).click();
       await expect(stats(page)).toContainText(`11 of ${TOTAL} species`);
-      await expect(filters).toContainText("Filters · 1");
+      await expect(filters.getByTestId("filters-count")).toHaveText("1");
       await page.keyboard.press("Escape");
       await expect(filters).toBeFocused();
       await filters.click();
@@ -218,7 +218,7 @@ for (const width of WIDTHS) {
       await page.keyboard.press("PageUp");
       await expect(lo).toHaveAttribute("aria-valuetext", "January 2020");
       await expect(stats(page)).toContainText(`of ${TOTAL} species`);
-      await expect(filters).toContainText("Filters · 1");
+      await expect(filters.getByTestId("filters-count")).toHaveText("1");
       await page.getByTestId("time-clear").click();
       await expect(lo).toHaveAttribute("aria-valuetext", "January 2019");
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));

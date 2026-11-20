@@ -63,7 +63,7 @@ for (const width of [1280, 390]) {
       await panel.getByText("Costa Rica", { exact: true }).click();
       await expect(panel.getByTestId("country-CR")).toBeChecked();
       await expect(page.getByTestId("collage-stats")).toContainText("11 of 53 species");
-      await expect(filters).toContainText("Filters · 1");
+      await expect(filters.getByTestId("filters-count")).toHaveText("1");
       await expect(filters).toHaveAttribute("aria-label", "Filters: Places: Costa Rica, Egypt");
       await expect(panel.locator("img.eb-flag")).toHaveCount(2); // flag-icons, same origin: North America's two countries
       await page.keyboard.press("Escape");
@@ -221,7 +221,7 @@ for (const width of [1280, 390]) {
       await press(row(panel, "place-s:CA-BC"));
       await expect(panel.getByTestId("place-s:CA-BC")).toBeChecked();
       await expect(stats).toContainText("14 of 21 species");
-      await expect(places).toContainText("Filters · 1");
+      await expect(places.getByTestId("filters-count")).toHaveText("1");
       await expect(places).toHaveAttribute("aria-label", "Filters: Places: British Columbia, Canada");
       await pressable(page, panel, "provinces");
 
@@ -233,7 +233,7 @@ for (const width of [1280, 390]) {
       await expect(panel.getByTestId("place-k:CA-BC|Capital")).toBeChecked();
       await expect(panel.getByTestId("place-all")).not.toBeChecked(); // the county narrows its province away
       await expect(stats).toContainText("10 of 21 species");
-      await expect(places).toContainText("Filters · 1");
+      await expect(places.getByTestId("filters-count")).toHaveText("1");
       await expect(places).toHaveAttribute("aria-label", "Filters: Places: Capital, British Columbia");
       await pressable(page, panel, "counties");
       let m = await sideways(page);
