@@ -171,6 +171,7 @@ export const nl: Messages = {
         allMapped: 'Elke vogel op deze lijst heeft een plaats in de boom.',
         mine: 'Alleen mijn vogels',
         mineNone: 'Hier staat geen vogel van de lijst.',
+        cover: { orders: { one: '{n} van {total} orde', other: '{n} van {total} ordes' }, families: { one: '{n} van {total} familie', other: '{n} van {total} families' }, genera: { one: '{n} van {total} geslacht', other: '{n} van {total} geslachten' } },
         credit: 'Boom: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, gekoppeld aan de eBird-taxonomie {year}, die de families, geslachten en totalen geeft. Soorten die nieuw zijn in de taxonomie {year} zijn naast hun naaste verwant toegevoegd.',
       },
       close: 'Sluiten',

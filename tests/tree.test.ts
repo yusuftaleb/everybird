@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { attach, matcher, nexusTree, relabel, taxOnlyBits, type Addition } from '../scripts/build-data/build-tree'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
-import { HEAD_H, ROW_H, foldSplit, isClade, levelView, type LevelView, type TreeRow } from '@/lib/tree/levels'
+import { HEAD_H, ROW_H, foldSplit, isClade, levelView, taxonCover, type LevelView, type TreeRow } from '@/lib/tree/levels'
 import { ageTicks, bitAt, cladeTree, drawTree, formatAge, isLeaf, leavesOf, oldestLineage, packBits, parseNewick, type TreeFile } from '@/lib/tree/tree'
 
 const sp = (code: string, sci: string, ord: string, fam: string, to: number): SpeciesRow =>
@@ -159,6 +159,14 @@ describe('Only my birds', () => {
     const v = levelView(tree, species, { fam: 'Fb' }, new Set(['a1']), true)!
     expect(v.rows).toEqual([])
     expect(v.level).toEqual({ fam: 'Fb', genus: undefined })
+  })
+})
+
+describe('taxonCover', () => {
+  it("counts the orders, families and genera the codes cover against the taxonomy's", () => {
+    expect(taxonCover(species.rows, new Set(['a1', 'a3']))).toEqual({ orders: [1, 2], families: [1, 2], genera: [2, 3] })
+    expect(taxonCover(species.rows, new Set())).toEqual({ orders: [0, 2], families: [0, 2], genera: [0, 3] })
+    expect(taxonCover(species.rows, new Set(species.rows.map((r) => r.code)))).toEqual({ orders: [2, 2], families: [2, 2], genera: [3, 3] })
   })
 })
 

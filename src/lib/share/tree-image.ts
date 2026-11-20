@@ -2,14 +2,16 @@
 // family's genera or the open genus's species) in the collage's area, its branches drawn as on screen (on the list in
 // Ink, the rest in Line, a tip placed without genetic data dotted), and the names of the rows with a bird on the list,
 // as many as fit (keepNames), the split-group mark after a name. Under it, when there is room, the age axis, and a
-// one-line key for the mark and the dotted line when the image has them. "Only my birds" (`at.mine`) as on screen.
+// one-line key for the mark and the dotted line when the image has them. "Only my birds" (`at.mine`) as on screen; under
+// the count, the orders, families and genera the birds cover (taxonCover); the footer credits the tree (TREE_FOOTER).
+import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { loadSpecies } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
 import { loadTree } from '@/lib/tree/load'
-import { levelView, ROW_H, type TreeRow } from '@/lib/tree/levels'
+import { levelView, ROW_H, taxonCover, type TreeRow } from '@/lib/tree/levels'
 import { ageTicks, formatAge } from '@/lib/tree/tree'
-import { clipText, renderViewImage, type ViewImageOpts } from './view-image'
+import { TREE_FOOTER, clipText, renderViewImage, type ViewImageOpts } from './view-image'
 
 /**
  * Which rows get their name: those with a bird on the list (`n` > 0), largest `n` first (the upper on a tie), each kept
@@ -33,15 +35,18 @@ type Tip = Exclude<TreeRow, { kind: 'order' }>
 export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const { state, entries, at, t } = o
   const [{ tree }, all] = await Promise.all([loadTree(), loadSpecies()])
-  const view = levelView(tree, all, at.tree ?? {}, new Set(entries.map((e) => e.code)), at.mine)
+  const codes = new Set(entries.map((e) => e.code))
+  const view = levelView(tree, all, at.tree ?? {}, codes, at.mine)
   if (!view) throw new Error('No tree to draw')
   const tt = t.collage.tree
+  const cover = taxonCover(all.rows, codes)
+  const under = (['orders', 'families', 'genera'] as const).map((k) => { const [n, total] = cover[k]; return plural(tt.cover[k], total, { n: formatInt(n, t.num), total: formatInt(total, t.num) }) })
   const nameOf = (r: Tip): string =>
     r.kind === 'species' ? (state.sci ? r.row.sci : o.nameOf?.(r.row) ?? r.row.com) : view.level.fam ? r.key : state.sci ? r.row.fam : familyName(r.row)
   const tips = view.rows.filter((r): r is Tip => r.kind !== 'order')
   const dotted = !!(view.drawing.seenDot || view.drawing.unseenDot)
 
-  return renderViewImage(o, (ctx, card, area) => {
+  return renderViewImage(o, TREE_FOOTER, (ctx, card, area) => {
     const C = card.colors
     const font = card.fonts
     const axis = area.h >= 520 && tips.length > 0
@@ -144,7 +149,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       ctx.fillStyle = C.muted
       ctx.fillText(clipText(ctx, tt.keyDotted, area.x + area.w - x), x, keyY)
     }
-  })
+  }, under)
 }
 
 /** The split-group mark: a diamond outline (the screen's rotated square). */

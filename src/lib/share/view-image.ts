@@ -1,12 +1,19 @@
 // The Map and Tree views' share images (map-image.ts, tree-image.ts): the collage card's frame from image.ts (the title,
 // the count, the filter in words, the footer line with the sticker credit and the date stamp, Dark image and Transparent
 // background), with no stickers, around a drawing of the view in the area the collage would take. The count sits on top
-// of that area, centred; the drawing gets the rest. Loaded only when Share is pressed in one of those views.
+// of that area, centred, with an optional line under it (the tree's orders, families and genera); the drawing gets the
+// rest. No stickers, so the footer credits no stickers: MAP_FOOTER, TREE_FOOTER. Loaded only when Share is pressed in
+// one of those views.
 import type { Ui } from '@/i18n/messages/en'
 import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TreeLevel } from '@/lib/tree/levels'
-import { IMAGE_SCALE, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
+import { IMAGE_SCALE, SITE_LABEL, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
+
+/** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone, the
+ *  tree's the site and the tree's credit (AvesData is CC BY 4.0, so an image of it carries the credit). */
+export const MAP_FOOTER = SITE_LABEL
+export const TREE_FOOTER = `${SITE_LABEL} · tree: AvesData, McTavish et al., CC BY 4.0`
 
 /** The level the view had open when Share was pressed: the Places level the map follows, or the tree's (`mine`: its
  *  "Only my birds" switch). */
@@ -25,13 +32,27 @@ const NO_BIRDS: ImagePack = { W: 1, H: 1, boxes: new Map() }
 /** Between the count and the drawing under it. */
 const COUNT_GAP = 32
 
-/** The card's frame with `paint` drawing the view into its area (design units), as a PNG. */
-export async function renderViewImage(opts: ShareImageOpts, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void): Promise<Blob> {
-  const card = await prepareCard({ ...opts, pack: NO_BIRDS, latest: false, markNewest: false, markFirst: false, showNames: false })
+/** `parts` joined with " · ", broken between parts onto as many lines as `max` (in `width`'s units) needs. */
+export function wrapParts(parts: readonly string[], width: (text: string) => number, max: number): string[] {
+  const lines: string[] = []
+  for (const p of parts) {
+    const joined = lines.length ? `${lines[lines.length - 1]} · ${p}` : ''
+    if (joined && width(joined) <= max) lines[lines.length - 1] = joined
+    else lines.push(p)
+  }
+  return lines
+}
+
+/**
+ * The card's frame, its footer line `footer`, with `paint` drawing the view into its area (design units), as a PNG.
+ * `under`: the parts of a line under the count, at the footer's size (two lines when one does not fit); none when the
+ * count is hidden.
+ */
+export async function renderViewImage(opts: ShareImageOpts, footer: string, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[]): Promise<Blob> {
+  const card = await prepareCard({ ...opts, footer, pack: NO_BIRDS, latest: false, markNewest: false, markFirst: false, showNames: false })
   const { L, K } = card
   const c = L.collage
   const blockH = K.size > 0 ? DIGIT_CAP * K.size + K.gap + MONO_CAP * K.labelSize : 0
-  const top = blockH ? blockH + COUNT_GAP : 0
   const s = IMAGE_SCALE[opts.format as ImageFormat]
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(L.W * s)
@@ -39,8 +60,17 @@ export async function renderViewImage(opts: ShareImageOpts, paint: (ctx: CanvasR
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas is not available')
   if (s !== 1) ctx.setTransform(s, 0, 0, s, 0, 0)
+  const subPx = L.footer.credit, lineH = Math.round(subPx * 1.5)
+  ctx.font = card.fonts.footer(subPx)
+  const lines = blockH && under?.length ? wrapParts(under, (text) => ctx.measureText(text).width, c.w) : []
+  const top = blockH ? blockH + lines.length * lineH + COUNT_GAP : 0
   // paintCard centres the count on fit's centre: moved to the top of the area.
   paintCard(ctx, { ...card, fit: { ...card.fit, cx: c.x + c.w / 2, cy: c.y + blockH / 2 } }, new Map())
+  ctx.font = card.fonts.footer(subPx)
+  ctx.fillStyle = card.colors.muted
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'alphabetic'
+  lines.forEach((line, i) => ctx.fillText(line, c.x + c.w / 2, c.y + blockH + (i + 1) * lineH))
   paint(ctx, card, { x: c.x, y: c.y + top, w: c.w, h: c.h - top })
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not encode the image'))), 'image/png')

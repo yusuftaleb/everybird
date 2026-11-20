@@ -171,6 +171,7 @@ export const fr: Messages = {
         allMapped: 'Chaque oiseau de cette liste a une place dans l’arbre.',
         mine: 'Seulement mes oiseaux',
         mineNone: 'Aucun oiseau de la liste ici.',
+        cover: { orders: { one: '{n} sur {total} ordre', other: '{n} sur {total} ordres' }, families: { one: '{n} sur {total} famille', other: '{n} sur {total} familles' }, genera: { one: '{n} sur {total} genre', other: '{n} sur {total} genres' } },
         credit: 'Arbre\u00a0: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, rapproché de la taxonomie eBird {year}, qui donne les familles, les genres et les totaux. Les espèces nouvelles de la taxonomie {year} ont été ajoutées à côté de leur plus proche parent.',
       },
       close: 'Fermer',

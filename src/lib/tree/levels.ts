@@ -175,3 +175,14 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   return { rows, height: top, drawing, split, inside, level: at }
 }
 
+/** How many orders, families and genera of the taxonomy (`rows`) the species `codes` cover: [covered, in the taxonomy]. */
+export function taxonCover(rows: readonly SpeciesRow[], codes: ReadonlySet<string>): Record<'orders' | 'families' | 'genera', [number, number]> {
+  const rank = { orders: (r: SpeciesRow) => r.ord, families: (r: SpeciesRow) => r.fam, genera: (r: SpeciesRow) => genusOf(r.sci) }
+  const out = {} as Record<keyof typeof rank, [number, number]>
+  for (const [k, of] of Object.entries(rank) as [keyof typeof rank, (r: SpeciesRow) => string][]) {
+    const all = new Set<string>(), on = new Set<string>()
+    for (const r of rows) { all.add(of(r)); if (codes.has(r.code)) on.add(of(r)) }
+    out[k] = [on.size, all.size]
+  }
+  return out
+}

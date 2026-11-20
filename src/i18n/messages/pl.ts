@@ -179,6 +179,7 @@ export const pl: Messages = {
         allMapped: 'Każdy ptak z tej listy ma miejsce w drzewie.',
         mine: 'Tylko moje ptaki',
         mineNone: 'Nie ma tu żadnego ptaka z listy.',
+        cover: { orders: { one: '{n} z {total} rzędu', other: '{n} z {total} rzędów' }, families: { one: '{n} z {total} rodziny', other: '{n} z {total} rodzin' }, genera: { one: '{n} z {total} rodzaju', other: '{n} z {total} rodzajów' } },
         credit: 'Drzewo: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, dopasowane do taksonomii eBird {year}, z której pochodzą rodziny, rodzaje i liczby. Gatunki nowe w taksonomii {year} dodano obok ich najbliższego krewnego.',
       },
       close: 'Zamknij',

@@ -4,7 +4,7 @@
 import { formatInt } from '@/i18n/format'
 import { clearPlaces, filterPlaceKeys, placeCounts } from '@/lib/list/filters'
 import { loadMapCountries, loadMapProvinces, mapGroupOf, mapLayer, shadeRanges, shadeStep } from '@/lib/map/shapes'
-import { clipText, fitBox, renderViewImage, type ViewImageOpts } from './view-image'
+import { MAP_FOOTER, clipText, fitBox, renderViewImage, type ViewImageOpts } from './view-image'
 
 /** Accent's share of each step over Surface (map.css). */
 const STEP_MIX = [0, 0.18, 0.34, 0.52, 0.72, 1]
@@ -25,7 +25,7 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
   if (!layer) throw new Error('No map to draw')
   const max = shapes.reduce((m, s) => Math.max(m, s.n), 0)
   const ranges = shadeRanges(max)
-  return renderViewImage(o, (ctx, card, area) => {
+  return renderViewImage(o, MAP_FOOTER, (ctx, card, area) => {
     const C = card.colors
     const legendH = ranges.length ? LEGEND.h + LEGEND.above : 0
     const box = fitBox(layer.w, layer.h, { ...area, h: area.h - legendH })

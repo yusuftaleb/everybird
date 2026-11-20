@@ -171,6 +171,7 @@ export const de: Messages = {
         allMapped: 'Jeder Vogel auf dieser Liste hat einen Platz im Baum.',
         mine: 'Nur meine Vögel',
         mineNone: 'Hier ist kein Vogel der Liste.',
+        cover: { orders: { one: '{n} von {total} Ordnung', other: '{n} von {total} Ordnungen' }, families: { one: '{n} von {total} Familie', other: '{n} von {total} Familien' }, genera: { one: '{n} von {total} Gattung', other: '{n} von {total} Gattungen' } },
         credit: 'Baum: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, abgeglichen mit der eBird-Taxonomie {year}, aus der Familien, Gattungen und Summen stammen. Arten, die in der Taxonomie {year} neu sind, wurden neben ihrem nächsten Verwandten eingefügt.',
       },
       close: 'Schließen',

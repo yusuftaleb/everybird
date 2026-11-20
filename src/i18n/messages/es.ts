@@ -171,6 +171,7 @@ export const es: Messages = {
         allMapped: 'Todas las aves de esta lista tienen un lugar en el árbol.',
         mine: 'Solo mis aves',
         mineNone: 'Aquí no hay ningún ave de la lista.',
+        cover: { orders: { one: '{n} de {total} orden', other: '{n} de {total} órdenes' }, families: { one: '{n} de {total} familia', other: '{n} de {total} familias' }, genera: { one: '{n} de {total} género', other: '{n} de {total} géneros' } },
         credit: 'Árbol: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, emparejado con la taxonomía de eBird {year}, que da las familias, los géneros y los totales. Las especies nuevas de la taxonomía {year} se añadieron junto a su pariente más cercano.',
       },
       close: 'Cerrar',
