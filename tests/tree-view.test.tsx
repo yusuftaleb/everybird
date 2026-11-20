@@ -12,8 +12,10 @@ import { buildSpeciesIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import type { TreeFile } from '@/lib/tree/tree'
 
-const FILE: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: '2026', newick: '(((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6);' }
-const fetchData = vi.fn(async () => FILE)
+const { fetchData } = vi.hoisted(() => {
+  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: '2026', newick: '(((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6);' }
+  return { fetchData: vi.fn(async (name: string) => { void name; return file }) }
+})
 vi.mock('@/lib/data-url', () => ({ fetchData, fetchAllMasks: vi.fn(() => new Promise(() => {})) }))
 
 const { default: TreeView } = await import('@/components/tree/TreeView')
@@ -31,11 +33,38 @@ const entry = (code: string): ListEntry => ({ code, date: '2024-01-01', place: {
 beforeEach(() => fetchData.mockClear())
 afterEach(cleanup)
 
+// First: TreeView keeps the parsed tree for the page, so only the first test in this file sees the fetch.
+describe('the Tree tab in CollageView', () => {
+  const regions: Regions = { v: 1, countries: { CA: 'Canada' }, sub1: {} }
+  const reduce = makeReducer({ species })
+  const rec = (code: string): SourceRecord => ({ code, source: 'ebird', date: '2024-01-02', place: { country: 'CA' } })
+  function seeded(): AppState {
+    const saved = emptySaved()
+    saved.records.ebird = [rec('a1'), rec('b2')]
+    return reduce(initialState(), { type: 'restore', saved })
+  }
+  function Harness() {
+    const [state, dispatch] = useReducer(reduce, undefined, seeded)
+    return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Test collage" />
+  }
+  it('a third view tab; the tree loads only when it opens, without the size switch or the legend', async () => {
+    const { container } = render(<Harness />)
+    expect(fetchData).not.toHaveBeenCalledWith('tree.v1.json')
+    const view = screen.getByRole('group', { name: 'View' })
+    fireEvent.click(within(view).getByRole('button', { name: 'Tree' }))
+    expect(within(view).getByRole('button', { name: 'Tree' })).toHaveAttribute('aria-pressed', 'true')
+    await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect(fetchData).toHaveBeenCalledWith('tree.v1.json')
+    expect(screen.queryByRole('switch', { name: /True size/ })).toBeNull()
+    expect(container.querySelector('.eb-legend')).toBeNull()
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Woodpeckers Picidae, 1 of 2 on the list$/ })).toBeInTheDocument())
+  })
+})
+
 describe('TreeView', () => {
   it('shows every family with its count, the fact line, the birds without a tip and the source', async () => {
     render(<TreeView entries={['a1', 'b2', 'x1'].map(entry)} species={species} sci={false} onPick={() => {}} />)
     const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
-    expect(fetchData).toHaveBeenCalledWith('tree.v1.json')
     expect(within(tips).getByText('Waterfowl')).toBeInTheDocument() // the order heading
     expect(within(tips).getByRole('button', { name: /^Ducks Anatidae, 2 of 4 on the list$/ })).toBeInTheDocument()
     expect(within(tips).getByRole('button', { name: /^Woodpeckers Picidae, 1 of 2 on the list$/ })).toBeInTheDocument()
@@ -76,32 +105,5 @@ describe('TreeView', () => {
     rerender(<TreeView entries={['b2'].map(entry)} species={species} sci={false} onPick={() => {}} />)
     expect(screen.getByRole('button', { name: /^Ducks Anatidae, 0 of 4 on the list$/ })).not.toHaveAttribute('data-on')
     expect(screen.getByText('Every bird on this list has a place in the tree.')).toBeInTheDocument()
-  })
-})
-
-describe('the Tree tab in CollageView', () => {
-  const regions: Regions = { v: 1, countries: { CA: 'Canada' }, sub1: {} }
-  const reduce = makeReducer({ species })
-  const rec = (code: string): SourceRecord => ({ code, source: 'ebird', date: '2024-01-02', place: { country: 'CA' } })
-  function seeded(): AppState {
-    const saved = emptySaved()
-    saved.records.ebird = [rec('a1'), rec('b2')]
-    return reduce(initialState(), { type: 'restore', saved })
-  }
-  function Harness() {
-    const [state, dispatch] = useReducer(reduce, undefined, seeded)
-    return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Test collage" />
-  }
-  it('a third view tab; the tree loads only when it opens, without the size switch or the legend', async () => {
-    const { container } = render(<Harness />)
-    expect(fetchData).not.toHaveBeenCalledWith('tree.v1.json')
-    const view = screen.getByRole('group', { name: 'View' })
-    fireEvent.click(within(view).getByRole('button', { name: 'Tree' }))
-    expect(within(view).getByRole('button', { name: 'Tree' })).toHaveAttribute('aria-pressed', 'true')
-    await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
-    expect(fetchData).toHaveBeenCalledWith('tree.v1.json')
-    expect(screen.queryByRole('switch', { name: /True size/ })).toBeNull()
-    expect(container.querySelector('.eb-legend')).toBeNull()
-    await waitFor(() => expect(screen.getByRole('button', { name: /^Woodpeckers Picidae, 1 of 2 on the list$/ })).toBeInTheDocument())
   })
 })
