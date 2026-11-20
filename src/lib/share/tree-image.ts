@@ -83,7 +83,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const onOf = (r: Tip) => (r.kind === 'species' ? Number(r.on) : r.on)
   const dotted = tips.some((r) => r.dotted)
   // The stickers, as on screen: the species' own, else one bird of the group on the list.
-  const scale = IMAGE_SCALE[o.format as ImageFormat] ?? 1
+  const scale = o.scale ?? IMAGE_SCALE[o.format as ImageFormat] ?? 1
   const stickerOf = (r: Tip): SpeciesRow | undefined => { const row = r.kind === 'species' ? r.row : r.sticker; return row?.st ? row : undefined }
   const urlOf = (row: SpeciesRow) => stickerUrl(row.code, 64, scale, row.sv)
   const imgs = await loadStickers([...new Set(tips.flatMap((r) => { const row = stickerOf(r); return row ? [urlOf(row)] : [] }))], { signal: o.signal })
