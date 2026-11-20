@@ -1,19 +1,25 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { en, type Ui } from "../src/i18n/messages/en";
 
-// The Add birds dialog (src/components/import/AddBirdsDialog.tsx): opened by "Add birds" on the collage and Settings
-// and by the landing's "Make yours"; its two ways in are "Import a file" (the source rows) and "Add by hand".
+// Adding birds. On Settings the source rows ("Your list", #sources) and Add by hand (#tick) are in the page, behind no
+// click. Elsewhere the Add birds dialog (src/components/import/AddBirdsDialog.tsx), opened by the collage's "Add birds"
+// and the landing's "Make yours", starts at "Import a file" (the source rows); "Add by hand" is its other choice.
 
 export type AddWay = "file" | "hand";
 
 export const addDialog = (page: Page, ui: Ui = en.ui) => page.getByRole("dialog", { name: ui.collage.addBirds });
 
-/** Opens the dialog from the page's "Add birds" button (unless it is open already) and picks `way`. */
-export async function openAdd(page: Page, way: AddWay, ui: Ui = en.ui) {
+/** Where `way` is: Settings' own section, or the dialog (opened from the page's "Add birds" unless it is open) at `way`. */
+export async function openAdd(page: Page, way: AddWay, ui: Ui = en.ui): Promise<Locator> {
+  if (new URL(page.url()).pathname.endsWith("/settings")) {
+    const section = page.locator(way === "file" ? "#sources" : "#tick");
+    await expect(section).toBeVisible();
+    return section;
+  }
   const dialog = addDialog(page, ui);
   if (!(await dialog.isVisible())) await page.getByRole("button", { name: ui.collage.addBirds, exact: true }).click();
   const choice = dialog.getByRole("button", { name: ui.add[way], exact: true });
-  await choice.click();
+  if (way === "hand") await choice.click();
   await expect(choice).toHaveAttribute("aria-pressed", "true");
   return dialog;
 }

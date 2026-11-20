@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { addDialog, openAdd } from "./add-birds";
+import { openAdd } from "./add-birds";
 import { LANGS } from "../src/i18n/langs";
 import { es } from "../src/i18n/messages/es";
 import { nl } from "../src/i18n/messages/nl";
@@ -43,21 +43,19 @@ const storedFile = (page: Page) =>
       }),
   );
 
-/** Imports LIFELIST from Settings' Add birds dialog, then closes the dialog. */
+/** Imports LIFELIST from Settings' source rows. */
 async function importLifeList(page: Page) {
   const dir = mkdtempSync(join(tmpdir(), "everybird-e2e-"));
   const file = join(dir, "ebird_world_life_list.csv");
   writeFileSync(file, LIFELIST);
   try {
     await page.goto("/settings");
-    const dialog = await openAdd(page, "file");
+    await openAdd(page, "file");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     await page.getByTestId("ebird-input").setInputFiles(file);
-    await expect(page.getByTestId("add-summary")).toContainText("Your collage has 3 species");
+    await expect(page.getByTestId("see-collage")).toContainText("Your collage has 3 species");
     // Saving is debounced: wait until the device copy holds the file's details before moving on.
     await expect.poll(() => storedFile(page), { timeout: 5000 }).toBe("ebird_world_life_list.csv");
-    await dialog.getByRole("button", { name: "Close", exact: true }).click();
-    await expect(dialog).toHaveCount(0);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -105,7 +103,7 @@ test("Collage, Settings and About share one page head at 390, 768 and 1280", asy
 test("Add by hand: the search has the focus, and When and where opens and closes from the keyboard", async ({ page }) => {
   await page.goto("/settings");
   const dialog = await openAdd(page, "hand");
-  await expect(dialog.getByLabel("Search birds")).toBeFocused();
+  await expect(dialog.getByLabel("Search birds")).not.toBeFocused(); // on Settings the list is part of the page
   await expect(dialog.getByRole("listbox", { name: "Species to tick" })).toBeVisible();
   // Closed by default: a bird added now gets no date or place.
   const btn = dialog.getByRole("button", { name: "When and where" });
@@ -132,7 +130,7 @@ test("each source says what it brings, and the line above them sums them up", as
     await expect(list.getByRole("option", { name })).toHaveAttribute("aria-selected", "true");
   }
   await expect(dialog).toContainText("Ticked by hand · 2 species");
-  const summary = page.getByTestId("add-summary");
+  const summary = page.getByTestId("see-collage");
   await expect(summary).toHaveText("Your collage has 2 species, all ticked by hand.");
   await openAdd(page, "file");
   await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
@@ -157,7 +155,7 @@ test("an eBird file is remembered on the next visit, and Remove (in its ⋯ menu
   await page.getByRole("menuitem", { name: "Remove" }).click();
   await page.getByRole("button", { name: "Yes, remove it" }).click();
   await expect(line).toHaveCount(0);
-  await expect(page.getByTestId("add-summary")).toHaveCount(0);
+  await expect(page.getByTestId("see-collage")).toHaveCount(0);
   await expect(page.getByTestId("see-collage")).toHaveCount(0);
   await expect(page.locator("#way-ebird")).toBeFocused();
 });
@@ -200,10 +198,10 @@ for (const width of [1280, 390]) {
     await ask.getByRole("button", { name: "Keep it" }).click();
     await expect(more).toBeFocused();
     await expect(line).toHaveCount(1);
-    // A press outside closes it (on the dialog's title: a press outside the dialog would close the dialog too).
+    // A press outside closes it (on the section's title).
     await more.click();
     await expect(menu).toBeVisible();
-    await addDialog(page).getByRole("heading", { level: 2, name: "Add birds" }).click();
+    await page.getByRole("heading", { level: 2, name: "Your list" }).click();
     await expect(menu).toHaveCount(0);
   });
 
@@ -350,11 +348,11 @@ test("Settings fits about 1.5 screens at 1280x800 with a source connected", asyn
 
 // A life list download knows only where you first recorded each bird: the Add birds dialog says so under the eBird rows,
 // with an inline link to MyEBirdData's Add panel (each row keeps its one button), and the collage's Places panel links to
-// the same panel (/settings#add-mydata, which opens the dialog at "Import a file").
+// the same panel (/settings#add-mydata, which opens it in the page).
 for (const width of [1280, 390]) test(`after a life list import, Settings and Places say places are first places only, one tap from MyEBirdData (${width}px)`, async ({ page }) => {
   await page.setViewportSize({ width, height: width < 600 ? 844 : 800 });
   await importLifeList(page);
-  const dialog = await openAdd(page, "file");
+  await openAdd(page, "file");
   const note = page.getByTestId("places-lifer-note");
   await expect(note).toBeVisible();
   await expect(note.getByRole("button")).toHaveCount(0);
@@ -368,7 +366,6 @@ for (const width of [1280, 390]) test(`after a life list import, Settings and Pl
   await page.getByTestId("places-lifer-add").click();
   await expect(group).toBeVisible();
   await expect(choose).toBeFocused();
-  await dialog.getByRole("button", { name: "Close", exact: true }).click();
 
   await page.getByRole("banner").getByRole("link", { name: "Collage", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
@@ -452,8 +449,8 @@ test("Settings still fits about 1.5 screens at 1280x800 with the language field,
 
 const MESSAGES = { es, pt, nl, pl, fr, de, it, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant } as const;
 
-// Settings' "Add birds" and the dialog's choices and source rows in each language at 390 and 1280: each button is whole
-// (the row buttons wrap under the text, never out of the page) and nothing scrolls sideways. For manual runs.
+// Settings' source rows in each language at 390 and 1280: each Add button is whole (the row buttons wrap under the
+// text, never out of the page) and nothing scrolls sideways. For manual runs.
 for (const lang of LANGS.filter((l) => l !== "en")) {
   for (const width of [390, 1280]) {
     test(`source rows fit in ${lang} at ${width}px`, async ({ page, context, baseURL }) => {
@@ -470,9 +467,8 @@ for (const lang of LANGS.filter((l) => l !== "en")) {
           expect(box!.x, `${label} inside the page`).toBeGreaterThanOrEqual(0);
         }
       };
-      await fits(ui.collage.addBirds);
       await openAdd(page, "file", ui);
-      for (const label of [ui.add.file, ui.add.hand, ui.import.add]) await fits(label);
+      await fits(ui.import.add);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     });
   }

@@ -8,10 +8,10 @@ Live at https://everybird.yusuftaleb.com (share links, link previews and the sha
 
 ## Pages
 
-- **Collage** (`/`): your collage with the controls bar (the Collage, List, Map and Tree views, Compare, Filters, Style, Share, search), the active filter chips and bird cards (with a link to the bird's Bird Album page); "Add birds" opens one dialog for every import and for adding by hand. Without a list on the device it shows a sample, with a short guided tour.
-- **Settings** (`/settings`): your list (its sources through Add birds, the match report, counting rules), the language, and downloads, backup and restore.
+- **Collage** (`/`): your collage under a head with "Add birds" (one dialog for every import and for adding by hand, opening on Import a file) and Share; the controls bar (the Collage, List, Map and Tree views, each view's own one-press switches (True size, the list's sort direction, Scientific names, Lifers only in the Tree), Filters, search), the active filter chips and bird cards (with a link to the bird's Bird Album page). Without a list on the device it shows a sample, with a short guided tour.
+- **Settings** (`/settings`): your list (its sources, the match report), adding by hand, counting rules, the language, and downloads, backup and restore, all in the page.
 - **About** (`/about`): how it works, privacy and every credit.
-- **Compare** (`/compare`): your list beside friends' share links: the birds you share, each one's own, and a link to the comparison (`/c/[token]`, read-only).
+- **Compare** (`/compare`, a tab in the top bar): your list beside friends' share links: the birds you share, each one's own, and a link to the comparison (`/c/[token]`, read-only).
 - **Shared view** (`/s/[token]`): a read-only collage from a share link. The old `/make`, `/my` and `/credits` redirect to Settings, Collage and About.
 
 Light by default, with a sun/moon toggle in the top bar. The interface is in English, Español, Português (Brazil), Nederlands, Polski, Français, Deutsch, Italiano, Svenska and Dansk; the language menu sits in the top bar. The design system is in `DESIGN.md`.
@@ -19,7 +19,7 @@ Light by default, with a sun/moon toggle in the top bar. The interface is in Eng
 ## Current capabilities
 
 - Smart search and one Filters panel for places, time, taxonomy and conservation status.
-- Four arrangements of the collage (Packed, Oval, By family, By colour) and a Style panel for the look.
+- Share images and posters packed or in an oval, with optional rings on the latest and first lifer and a dark look.
 - Share images of every view (Map and Tree draw their own), with a transparent background and a count size option.
 - Vertical/Horizontal sharing: Story 9:16 or Desktop 16:9, Post 4:5 or 5:4, and Square; print posters A4–A1 and US 12×18 to 24×36 inches in either orientation.
 - Search metadata in every language, a `WebSite` site-name declaration on the homepage, and the landing demo excluded from search snippets. Google's displayed result can lag a deployment.
@@ -54,7 +54,7 @@ the raw sources in `data/raw/` (git-ignored) and the stickers repo checked out n
    6. `build-stickers.ts`: the 128/384 webp stickers into `../everybird-stickers/v1/`, the masks and each species' `ar` (must follow build-species).
    7. `link-index.ts`: appends new codes to `data/link-index.json` (append-only, so old share links keep working).
 3. `npx tsx scripts/build-data/check-stickers.ts`: decodes every sticker and lists any broken file (rebuild those with `build-stickers.ts --codes a,b`).
-4. Outside `npm run data`, when their sources change: `build-map.ts` (the Map view's shapes), `build-colours.ts` (By colour), `build-tree.ts` (the Tree view), `build-album.ts` (Bird Album links), `build-sample.ts` and `build-sample-pack.ts` (the landing sample); see `AGENTS.md`.
+4. Outside `npm run data`, when their sources change: `build-map.ts` (the Map view's shapes), `build-tree.ts` (the Tree view), `build-album.ts` (Bird Album links), `build-sample.ts` and `build-sample-pack.ts` (the landing sample); see `AGENTS.md`.
 5. `npx tsx scripts/build-data/data-files.ts`: the content-hashed names of the data files, which a release uploads before deploying.
 
 ## Data sources and licences

@@ -58,15 +58,14 @@ for (const [how, close] of [
   });
 }
 
-test("Make mine opens the Add birds dialog on Settings, no way chosen yet, and counts as closed", async ({ page }) => {
+test("Make mine lands on Settings' sources, in the page with no dialog, and counts as closed", async ({ page }) => {
   await page.goto("/");
   await welcome(page).getByRole("link", { name: /^Make mine/ }).click();
   await expect(page).toHaveURL(/\/settings#sources$/);
-  const add = page.getByRole("dialog", { name: "Add birds" });
-  await expect(add).toBeVisible();
-  for (const way of ["Import a file", "Add by hand"]) await expect(add.getByRole("button", { name: way, exact: true })).toHaveAttribute("aria-pressed", "false");
-  // Keyboard focus lands in the dialog, not the document top.
-  await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
+  await expect(page.getByRole("dialog", { name: "Add birds" })).toHaveCount(0);
+  await expect(page.getByTestId("ebird-drop")).toBeVisible();
+  // Keyboard focus lands on the sources, not the document top.
+  await expect(page.locator("#sources")).toBeFocused();
   await expect(welcome(page)).toHaveCount(0);
   await page.goto("/");
   await expect(page.getByTestId("collage-stage")).toBeVisible();
