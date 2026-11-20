@@ -169,7 +169,7 @@ export function PlacesDrill({ state, species, regions, onFilter, onLevel }: Plac
               ))}
               {rows.length === 0 && !searching ? (
                 <li className="eb-note eb-check-none" data-testid="places-empty">{emptyHere(filter, t)}</li>
-              ) : visible.length === 0 && foundContinents.length === 0 && visibleRegions.length === 0 && <li className="eb-note eb-check-none">{t.places.noMatch[shownLevel]}</li>}
+              ) : visible.length === 0 && foundContinents.length === 0 && visibleRegions.length === 0 && <li className="eb-note eb-check-none">{t.places.noMatch[level]}</li>}
             </ul>
           )}
           {visibleRegions.length > 0 && (
