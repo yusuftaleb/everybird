@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ShareDialog from '@/components/share/ShareDialog'
 import * as image from '@/lib/share/image'
 import { ARRANGEMENT_KEY, arrangement, setArrangement } from '@/lib/arrangement'
-import { setTreeMine } from '@/lib/tree-mine'
+import { setTreeLayout, setTreeMine, treeLayout } from '@/lib/tree-mine'
 import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
@@ -315,9 +315,25 @@ describe('share dialog', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'Hide totals' }))
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ hideTotals: true })))
     fireEvent.click(screen.getByRole('switch', { name: 'Lifers only' }))
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: { fam: 'Struthionidae' }, mine: true } })))
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: { fam: 'Struthionidae' }, mine: true, layout: 'rows' } })))
     act(() => setTreeMine(false))
+    // Round 6: Show oldest lineage (on at first, as Show latest lifer) and the Arrangement row, the dock's Layout menu.
+    const oldest = screen.getByRole('switch', { name: 'Show oldest lineage' })
+    expect(oldest).toHaveAttribute('aria-checked', 'true')
+    expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ oldest: true }))
+    fireEvent.click(oldest)
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ oldest: false })))
+    expect(screen.getByTestId('share-tree-layout')).toHaveAccessibleName('Arrangement Rectangular')
     tree.unmount()
+    // A layout the view cannot name whole is listed but off; picking one sets the dock's Layout too.
+    const fanTree = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'rows', fits: { fan: true, circle: false } }} onClose={() => {}} />)
+    fireEvent.click(screen.getByTestId('share-tree-layout'))
+    expect(screen.getByRole('menuitemradio', { name: /^Radial/ })).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /^Fan/ }))
+    expect(treeLayout()).toBe('fan')
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: expect.objectContaining({ layout: 'fan' }) })))
+    act(() => setTreeLayout(null))
+    fanTree.unmount()
 
     // Print from the Tree: the tree as on screen, its switches beside the poster's size.
     viewRenders.tree.mockClear()
