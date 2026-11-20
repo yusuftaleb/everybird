@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { LANG_VARIANTS } from '@/i18n/choose'
-import { HTML_LANG, LANGS, langBadge, type Lang } from '@/i18n/langs'
+import { LANGS, langBadge, type Lang } from '@/i18n/langs'
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
@@ -65,7 +65,7 @@ type Sizes = {
   gap: number
   /** .eb-wordmark font-size (Cabinet Grotesk 700, letter-spacing -.01em): 22px; 19px under 500px; 17px under 360px. */
   wordmark: number
-  /** .eb-nav ul gap: 4px; 2px under 500px; 0 under 360px. */
+  /** .eb-nav ul gap: 4px; 0 under 500px (the nav is on its own row there, spread by space-between). */
   navGap: number
   /** .eb-nav-link padding's inline sides: 12px; 8px under 500px; 6px under 360px; 3px under 240px (border 1px). */
   linkPad: number
@@ -82,7 +82,7 @@ const WIDE: Sizes = { maxWidth: 1152, gutter: 16, gap: 8, wordmark: 22, navGap: 
 /** @media (min-width: 720px) { .eb-topbar-in { padding: 10px 32px; … } } */
 const DESKTOP: Partial<Sizes> = { gutter: 32 }
 /** @media (max-width: 499px) */
-const SMALL: Partial<Sizes> = { gap: 4, wordmark: 19, navGap: 2, linkPad: 8, linkFont: 14, button: 40 }
+const SMALL: Partial<Sizes> = { gap: 4, wordmark: 19, navGap: 0, linkPad: 8, linkFont: 14, button: 40 }
 /** @media (max-width: 359px) */
 const TINY: Partial<Sizes> = { gutter: 12, gap: 2, wordmark: 17, navGap: 0, linkPad: 6, linkFont: 13, button: 36, endGap: 2 }
 /** @media (max-width: 239px) */
@@ -99,12 +99,11 @@ function sizesAt(w: number): Sizes {
 /** Where the nav takes its own row (app.css's split rules, each paired with a --topbar-h rule in tokens.css): under
  *  `below` px, for the variant and languages `selector` matches. */
 const SPLITS: { selector: string; below: number; applies: (v: Variant, l: Lang) => boolean }[] = [
-  { selector: ':root:not([data-topbar="b"], [data-topbar="c"])', below: 600, applies: (v) => v === 'a' },
-  { selector: ':root[data-topbar="b"]:is(:lang(es), :lang(nl))', below: 548, applies: (v, l) => v === 'b' && (l === 'es' || l === 'nl') },
-  { selector: ':root[data-topbar="b"]', below: 540, applies: (v) => v === 'b' },
-  { selector: ':root[data-topbar="c"]', below: 600, applies: (v) => v === 'c' },
+  { selector: ':root:not([data-topbar="b"], [data-topbar="c"])', below: 620, applies: (v) => v === 'a' },
+  { selector: ':root[data-topbar="b"]', below: 572, applies: (v) => v === 'b' },
+  { selector: ':root[data-topbar="c"]', below: 620, applies: (v) => v === 'c' },
 ]
-/** c hides the Collage link under 480px: `:root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }`. */
+/** c hides the My birds link (its key is still `collage`) under 480px: `:root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }`. */
 const C_HIDES_COLLAGE_BELOW = 480
 
 const splitAt = (v: Variant, l: Lang, w: number) => SPLITS.some((s) => s.applies(v, l) && w < s.below)
@@ -119,8 +118,8 @@ function navWidth(l: Lang, pages: readonly (typeof PAGES)[number][], s: Sizes): 
   return links.reduce((a, b) => a + b, 0) + bold + s.navGap * (labels.length - 1)
 }
 
-/** Under 300px the nav's row may wrap onto a second line (app.css `.eb-nav ul { flex-wrap: wrap; }`, --topbar-h 133px). */
-const NAV_WRAPS_BELOW = 300
+/** Under 320px the nav's row may wrap onto a second line (app.css `.eb-nav ul { flex-wrap: wrap; }`, --topbar-h 133px). */
+const NAV_WRAPS_BELOW = 320
 type Fit = { split: boolean; inner: number; one: number; two?: number; lines?: number }
 
 /** The nav's links packed into lines `inner` wide (a flex row that wraps): how many lines, and the widest. */
@@ -149,7 +148,7 @@ function fit(v: Variant, l: Lang, w: number): Fit {
   return { split, inner, one: wordmark + s.gap + nav + s.gap + end }
 }
 
-const BREAKPOINT_EDGES = [239, 240, 299, 300, 359, 360, 479, 480, 499, 500, 539, 540, 547, 548, 599, 600, 719, 720]
+const BREAKPOINT_EDGES = [239, 240, 319, 320, 359, 360, 479, 480, 499, 500, 571, 572, 619, 620, 719, 720]
 const WIDTHS = [...new Set([195, 260, 300, 320, 340, 360, 375, 390, 414, 430, 480, 560, 600, 640, 720, 768, 1280, ...BREAKPOINT_EDGES])].sort((a, b) => a - b)
 
 describe('the top bar fits (fontkit advances of the served fonts)', () => {
@@ -172,10 +171,8 @@ describe('the top bar fits (fontkit advances of the served fonts)', () => {
     for (const l of LANGS) expect(textWidth('geist-mono-500', langBadge(l), 13, 0.06)).toBeLessThan(TINY.button! - 2 * MARGIN)
   })
 
-  it('every split rule matches some language (no dead rule) and the html lang values the selectors key on', () => {
+  it('every split rule matches some language (no dead rule)', () => {
     for (const s of SPLITS) expect(LANG_VARIANTS.some((v) => LANGS.some((l) => s.applies(v, l)))).toBe(true)
-    expect(HTML_LANG.es).toBe('es')
-    expect(HTML_LANG.nl).toBe('nl')
   })
 
   if (process.env.TOPBAR_FIT_TABLE) {

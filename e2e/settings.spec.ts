@@ -86,7 +86,7 @@ test("Collage, Settings and About share one page head at 390, 768 and 1280", asy
   for (const width of [390, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     const got: Record<string, Awaited<ReturnType<typeof measureHead>>> = {};
-    for (const [name, path, title] of [["collage", "/", "My collage"], ["settings", "/settings", "Settings"], ["about", "/about", "About"]] as const) {
+    for (const [name, path, title] of [["collage", "/", "My birds"], ["settings", "/settings", "Settings"], ["about", "/about", "About"]] as const) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
       if (name === "collage") await expect(page.getByTestId("collage-stats")).toBeVisible();
@@ -290,7 +290,7 @@ test("the share dialog's Collage title titles the collage verbatim and is saved 
   await importLifeList(page);
   // Settings no longer has the field: the title lives in the share dialog.
   await expect(page.getByLabel("Name your collage", { exact: true })).toHaveCount(0);
-  await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
+  await page.getByRole("banner").getByRole("link", { name: "My birds" }).click();
   await page.getByRole("button", { name: "Share", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Share your collage" });
   const shareTitle = dialog.getByLabel("Collage title");
@@ -301,11 +301,11 @@ test("the share dialog's Collage title titles the collage verbatim and is saved 
   // After a reload too.
   await page.reload();
   await expect(page.getByRole("heading", { level: 1, name: "Ada's Life List" })).toBeVisible();
-  // Empty: "My collage".
+  // Empty: "My birds".
   await page.getByRole("button", { name: "Share", exact: true }).click();
   await page.getByRole("dialog", { name: "Share your collage" }).getByLabel("Collage title").fill("");
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("heading", { level: 1, name: "My collage" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "My birds" })).toBeVisible();
 });
 
 test("a list saved with an old bare name (v3) keeps the title it showed", async ({ page }) => {
@@ -364,7 +364,7 @@ for (const width of [1280, 390]) test(`after a life list import, Settings and Pl
   await expect(group).toBeVisible();
   await expect(choose).toBeFocused();
 
-  await page.getByRole("banner").getByRole("link", { name: "Collage", exact: true }).click();
+  await page.getByRole("banner").getByRole("link", { name: "My birds", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   await page.getByTestId("filters-button").click();
   await page.getByTestId("places-lifer-only").getByRole("link", { name: "Add MyEBirdData" }).click();
@@ -421,7 +421,7 @@ test("Language: Español from the top bar switches every page and stays after a 
   await expect(page.locator("html")).toHaveAttribute("lang", "es");
   await expect(bar.getByRole("button", { name: "Idioma: Español" })).toHaveText("ES");
   expect((await context.cookies()).find((c) => c.name === "everybird-lang")?.value).toBe("es");
-  for (const [name, path] of [["Ajustes", "/settings"], ["Acerca de", "/about"], ["Collage", "/"]] as const) {
+  for (const [name, path] of [["Ajustes", "/settings"], ["Acerca de", "/about"], ["Mis aves", "/"]] as const) {
     await bar.getByRole("link", { name, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${path === "/" ? "/" : path}$`));
     await expect(page.locator("html")).toHaveAttribute("lang", "es");

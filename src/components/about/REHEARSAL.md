@@ -21,7 +21,7 @@ What changed, and why each label is what it is:
   species · 3 skipped why? · Imported 6 Nov", Replace and the ⋯ menu. The section's note ("Combine any of these into one
   list.") gives way to the summary line, "Your collage has 112 species, all from eBird." and "See my collage". The old
   "Added 197 species" banner, the uppercase mono status and the cards with descriptors are gone.
-- The collage page: the page head with the title verbatim ("My collage": the list has no title yet), Add birds and
+- The collage page: the page head with the title verbatim ("My birds": the list has no title yet), Add birds and
   Share; the stats line ("112 species · 7 orders · 31 families · since Mar 2019", "6 of 112 species · 1 family" on
   Herons); the controls bar (view tabs, True size, Scientific, a Filters button, search; on phones the short
   labels and the Filters button on row two); the order chips wrapped (seven orders adding up to 112; on phones the "Choose

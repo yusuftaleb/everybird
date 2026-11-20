@@ -14,7 +14,7 @@ export const da: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: 'Collage',
+        collage: 'Mine fugle',
         compare: 'Sammenlign',
         settings: 'Valg',
         about: 'Om',
@@ -63,7 +63,7 @@ export const da: Messages = {
       },
     },
     collage: {
-      untitled: 'Min collage',
+      untitled: 'Mine fugle',
       addBirds: 'Tilføj fugle',
       share: 'Del',
       print: 'Udskriv',

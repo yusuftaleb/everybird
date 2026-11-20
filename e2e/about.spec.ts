@@ -76,7 +76,7 @@ for (const [name, path] of [
     await page.goto(path);
     const bar = page.getByRole("banner");
     await expect(bar.getByRole("link", { name: "Everybird" })).toHaveAttribute("href", "/");
-    for (const [label, href] of [["Collage", "/"], ["Settings", "/settings"], ["About", "/about"]]) {
+    for (const [label, href] of [["My birds", "/"], ["Settings", "/settings"], ["About", "/about"]]) {
       await expect(bar.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
     }
     await expect(bar.getByRole("switch", { name: "Dark mode" })).toBeVisible();
@@ -138,7 +138,7 @@ for (const { layout, width, height } of SIZES) {
     const shown = slot.locator(`[data-poster="${layout}"]`)
     await expect(shown).toBeVisible()
     await expect(slot.locator(`[data-poster="${layout === "wide" ? "compact" : "wide"}"]`)).toBeHidden()
-    await expect(shown.locator(".ebd-head-title")).toHaveText("My collage")
+    await expect(shown.locator(".ebd-head-title")).toHaveText("My birds")
     await expect(shown.locator(".ebd-num")).toHaveText(String(TOTAL))
     await expect(shown.locator(".ebd-mid-label")).toHaveText("Species")
     const m = await page.evaluate((l) => {

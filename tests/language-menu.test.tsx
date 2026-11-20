@@ -202,18 +202,18 @@ describe('LanguageMenu', () => {
     const theme = screen.getByRole('switch', { name: 'Modo oscuro' })
     expect(lang.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     // jsdom has no media queries: app.css hides [data-nav="collage"] under 480px in c; the wordmark still goes home.
-    const collage = screen.getByRole('link', { name: 'Collage' })
+    const collage = screen.getByRole('link', { name: 'Mis aves' })
     expect(collage.closest('li')).toHaveAttribute('data-nav', 'collage')
     expect(screen.getByRole('link', { name: 'Ajustes' }).closest('li')).toHaveAttribute('data-nav', 'settings')
     expect(screen.getByRole('link', { name: 'Everybird' })).toHaveAttribute('href', '/')
   })
 
-  it('variant c: on the Collage page the wordmark is the current page too (Collage is hidden on phones); never in a or b', () => {
+  it('variant c: on the My birds page the wordmark is the current page too (My birds is hidden on phones); never in a or b', () => {
     nav.path = '/'
     try {
       renderTopBar('c')
       expect(screen.getByRole('link', { name: 'Everybird' })).toHaveAttribute('aria-current', 'page')
-      expect(screen.getByRole('link', { name: 'Collage' })).toHaveAttribute('aria-current', 'page')
+      expect(screen.getByRole('link', { name: 'Mis aves' })).toHaveAttribute('aria-current', 'page')
       cleanup()
       for (const v of ['a', 'b']) {
         renderTopBar(v)

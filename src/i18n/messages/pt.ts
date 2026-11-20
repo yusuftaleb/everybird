@@ -14,7 +14,7 @@ export const pt: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: 'Colagem',
+        collage: 'Minhas aves',
         compare: 'Comparar',
         settings: 'Ajustes',
         about: 'Sobre',
@@ -63,7 +63,7 @@ export const pt: Messages = {
       },
     },
     collage: {
-      untitled: 'Minha colagem',
+      untitled: 'Minhas aves',
       addBirds: 'Adicionar aves',
       share: 'Compartilhar',
       print: 'Imprimir',

@@ -7,18 +7,18 @@ export type TopbarVariant = "a" | "b" | "c";
 export type TopbarLang = "en" | "es" | "pt" | "nl";
 
 /** Whether the nav has its own second row: a under 430px; b under 384px (es, nl) or 366px (en, pt); c under 310px. */
-export function navSplits(variant: TopbarVariant, lang: TopbarLang, width: number): boolean {
-  if (variant === "a") return width < 430;
-  if (variant === "b") return width < (lang === "es" || lang === "nl" ? 384 : 366);
-  return width < 310;
+export function navSplits(variant: TopbarVariant, _lang: TopbarLang, width: number): boolean {
+  if (variant === "a") return width < 620;
+  if (variant === "b") return width < 572;
+  return width < 620;
 }
 
 /** The nav labels per language (src/i18n/messages, ui.shell.nav). */
 export const NAV: Record<TopbarLang, [string, string, string]> = {
-  en: ["Collage", "Settings", "About"],
-  es: ["Collage", "Ajustes", "Acerca de"],
-  pt: ["Colagem", "Ajustes", "Sobre"],
-  nl: ["Collage", "Instellingen", "Over"],
+  en: ["My birds", "Settings", "About"],
+  es: ["Mis aves", "Ajustes", "Acerca de"],
+  pt: ["Minhas aves", "Ajustes", "Sobre"],
+  nl: ["Mijn vogels", "Instellingen", "Over"],
 };
 const BUTTON: Record<TopbarLang, string> = { en: "Language: English", es: "Idioma: Español", pt: "Idioma: Português", nl: "Taal: Nederlands" };
 

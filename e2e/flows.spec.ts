@@ -173,7 +173,7 @@ for (const width of WIDTHS) {
       await expect(mallard).toHaveAttribute("aria-selected", "true");
       await expect(dialog.getByTestId("undo-toast")).toContainText("Added Mallard.");
       await expect.poll(() => speciesIn(page)).toBe(fromInat + 1);
-      await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
+      await page.getByRole("banner").getByRole("link", { name: "My birds" }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${fromInat + 1} species`));
     });
 
@@ -335,7 +335,7 @@ for (const width of WIDTHS) {
       await page.getByRole("button", { name: "Yes, forget it" }).click();
       // The list is gone: the downloads leave with it.
       await expect(page.getByRole("button", { name: "Download CSV" })).toHaveCount(0);
-      await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
+      await page.getByRole("banner").getByRole("link", { name: "My birds" }).click();
       await expect(page.getByRole("heading", { level: 1, name: "A lifetime of birds." })).toBeVisible();
 
       await page.goto("/settings");
