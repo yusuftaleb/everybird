@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-// The Tree tab (TreeView.tsx) on a synthetic tree: families with counts, drilling to genera and species with the
-// focus following, the bird card from a tip, the birds the tree lacks, the source line, and the tab in CollageView.
+// The Tree tab (TreeView.tsx) on a synthetic tree: the orders first, with counts and stickers, the level switch, drilling
+// to families, genera and species with the focus following and the path stepping back, the bird card from a tip, the
+// birds the tree lacks, the source line, and the tab in CollageView.
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useReducer } from 'react'
@@ -73,18 +74,31 @@ describe('the Tree tab in CollageView', () => {
     expect(fetchData).toHaveBeenCalledWith('tree.v1.json')
     expect(screen.queryByRole('switch', { name: /True size/ })).toBeNull()
     expect(container.querySelector('.eb-legend')).toBeNull()
-    await waitFor(() => expect(screen.getByRole('button', { name: /^Woodpeckers Picidae, 1 of 2 on the list$/ })).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /^Ducks Anatidae, 1 of 4 on the list$/ })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Woodpeckers Piciformes, 1 of 2 on the list$/ })).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /^Waterfowl Anseriformes, 1 of 4 on the list$/ })).toBeInTheDocument()
   })
 })
 
 describe('TreeView', () => {
-  it('shows every family with its count, the fact line, the birds without a tip and the source', async () => {
+  it('opens on every order with its count and sticker; Families shows every family; the fact line, the birds without a tip and the source', async () => {
     render(<TreeView entries={['a1', 'b2', 'x1'].map(entry)} sci={false} onPick={() => {}} />)
-    const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    let tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect(within(tips).getAllByRole('button').map((b) => b.getAttribute('data-key'))).toEqual(['Anseriformes', 'Piciformes', 'Cuculiformes', 'Columbiformes'])
+    const ducks = within(tips).getByRole('button', { name: /^Waterfowl Anseriformes, 2 of 4 on the list$/ })
+    // One bird of the order on the list, the first in taxonomic order with a sticker; none for an order without one.
+    expect(ducks.querySelector('img')?.getAttribute('src')).toContain('a1')
+    expect(within(tips).getByRole('button', { name: /^Cuckoos Cuculiformes/ }).querySelector('img')).toBeNull()
+    expect(screen.getByText('All birds', { selector: '[aria-current]' })).toBeInTheDocument()
+    expect(screen.getByText('2 of 4 orders')).toBeInTheDocument()
+    const ranks = screen.getByRole('group', { name: 'Show tips as' })
+    expect(within(ranks).getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([['Orders', 'true'], ['Families', 'false'], ['Genera', 'false'], ['Species', 'false']])
+    fireEvent.click(within(ranks).getByRole('button', { name: 'Families' }))
+    expect(within(ranks).getByRole('button', { name: 'Families' })).toHaveAttribute('aria-pressed', 'true')
+    tips = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
     expect(within(tips).getByText('Waterfowl')).toBeInTheDocument() // the order heading
     expect(within(tips).getByRole('button', { name: /^Ducks Anatidae, 2 of 4 on the list$/ })).toBeInTheDocument()
     expect(within(tips).getByRole('button', { name: /^Woodpeckers Picidae, 1 of 2 on the list$/ })).toBeInTheDocument()
+    expect(screen.getByText('2 of 4 families')).toBeInTheDocument()
     expect(screen.getByText('Oldest lineage on this list: Beta Two, which split from its closest relatives about 4 million years ago (an estimate).')).toBeInTheDocument()
     expect(screen.getByText('1 bird on this list has no place in this tree:')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Lost Duck' })).toBeInTheDocument()
@@ -94,11 +108,16 @@ describe('TreeView', () => {
     expect(screen.getByText('Million years ago (estimates)')).toBeInTheDocument()
   })
 
-  it('a family opens to its genera, a genus to its species; a tip on the list opens the card; the breadcrumb goes back', async () => {
+  it('an order opens to its families, a family to its genera, a genus to its species; a tip on the list opens the card; the path goes back', async () => {
     const onPick = vi.fn()
     render(<TreeView entries={['a1', 'b2'].map(entry)} sci={false} onPick={onPick} />)
-    fireEvent.click(await screen.findByRole('button', { name: /^Ducks/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /^Waterfowl/ }))
+    expect(screen.getByText('Waterfowl', { selector: '[aria-current]' })).toHaveFocus()
+    // Inside an order the switch offers no Orders.
+    expect(within(screen.getByRole('group', { name: 'Show tips as' })).getAllByRole('button').map((b) => b.textContent)).toEqual(['Families', 'Genera', 'Species'])
+    fireEvent.click(screen.getByRole('button', { name: /^Ducks/ }))
     expect(screen.getByText('Ducks', { selector: '[aria-current]' })).toHaveFocus()
+    expect(screen.getByText('1 of 2 genera')).toBeInTheDocument()
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
     // Aa is not one branch: one row for the branch, with Ab inside it and no row of its own.
     expect(within(genera).getAllByRole('button')).toHaveLength(1)
@@ -114,13 +133,32 @@ describe('TreeView', () => {
     expect(within(tips).queryByRole('button', { name: /Alpha Two/ })).toBeNull() // not on the list: grey, no card
     fireEvent.click(within(tips).getByRole('button', { name: 'Alpha One, on the list' }))
     expect(onPick).toHaveBeenCalledWith('a1', expect.any(HTMLElement))
-    fireEvent.click(screen.getByRole('button', { name: 'All families' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ducks' }))
+    expect(screen.getByRole('button', { name: /^Aa with Ab/ })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: 'Waterfowl' }))
     expect(screen.getByRole('button', { name: /^Ducks/ })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: 'All birds' }))
+    expect(screen.getByRole('button', { name: /^Waterfowl/ })).toHaveFocus()
+  })
+
+  it('the switch shows every genus or species of the open branch at once; a species tip carries its own sticker, dimmed off the list', async () => {
+    render(<TreeView entries={['a1', 'b2'].map(entry)} sci={false} onPick={() => {}} />)
+    fireEvent.click(await screen.findByRole('button', { name: /^Waterfowl/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Species' }))
+    const tips = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect([...tips.querySelectorAll('.eb-tree-row')].map((li) => li.querySelector('.eb-tree-name')!.textContent)).toEqual(['Alpha One', 'Alpha Three', 'Alpha Two'])
+    expect(screen.getByText('1 of 4 species')).toBeInTheDocument()
+    expect(within(tips).getByText('Alpha Two').closest('.eb-tree-btn')!.querySelector('[data-off] img')?.getAttribute('src')).toContain('a2')
+    expect(within(tips).getByRole('button', { name: 'Alpha One, on the list' }).querySelector('[data-off]')).toBeNull()
+    // Back to the order's own tips.
+    fireEvent.click(screen.getByRole('button', { name: 'Families' }))
+    expect(screen.getByRole('button', { name: /^Ducks Anatidae, 1 of 4 on the list$/ })).toBeInTheDocument()
   })
 
   it('a tip placed without genetic data says so, and the key under the tree explains the dotted line', async () => {
     render(<TreeView entries={['a1', 'b2'].map(entry)} sci={false} onPick={() => {}} />)
-    fireEvent.click(await screen.findByRole('button', { name: /^Woodpeckers/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Families' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Woodpeckers/ }))
     fireEvent.click(screen.getByRole('button', { name: /^Bb,/ }))
     const tips = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
     expect(within(tips).getByRole('button', { name: 'Beta Two, on the list, placed without genetic data' })).toBeInTheDocument()
@@ -130,7 +168,8 @@ describe('TreeView', () => {
 
   it('a genus split across its family is one marked row, with the genus inside named; the key says what the mark means', async () => {
     render(<TreeView entries={['c3'].map(entry)} sci={false} onPick={() => {}} />)
-    fireEvent.click(await screen.findByRole('button', { name: /^Cuckoos/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Families' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Cuckoos/ }))
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
     expect(within(genera).getAllByRole('button')).toHaveLength(1)
     fireEvent.click(within(genera).getByRole('button', { name: 'Ca with Cb, not one branch of its own in this tree, 1 of 4 on the list' }))
@@ -141,7 +180,8 @@ describe('TreeView', () => {
 
   it('more than two genera inside: a count opening their list, each genus opening its own species, and back to the count', async () => {
     render(<TreeView entries={['d3'].map(entry)} sci={false} onPick={() => {}} />)
-    fireEvent.click(await screen.findByRole('button', { name: /^Pigeons/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /^Pigeons and doves/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Pigeons Columbidae/ }))
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
     expect(within(genera).getByRole('button', { name: 'Da, not one branch of its own in this tree, 1 of 5 on the list' })).toBeInTheDocument()
     const more = within(genera).getByRole('button', { name: 'Da with 3 other genera' })
@@ -167,11 +207,11 @@ describe('TreeView', () => {
     vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
     const onLevel = vi.fn()
     const { unmount } = render(<TreeView entries={['b2'].map(entry)} sci={false} onPick={() => {}} onLevel={onLevel} />)
-    expect(await screen.findByRole('button', { name: /^Ducks/ })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^Waterfowl/ })).toBeInTheDocument()
     expect(screen.queryByRole('switch')).toBeNull() // the switch is in the controls bar
     act(() => setTreeMine(true))
-    expect(screen.queryByRole('button', { name: /^Ducks/ })).toBeNull()
-    expect(screen.getByRole('button', { name: /^Woodpeckers Picidae, 1 of 2 on the list$/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Waterfowl/ })).toBeNull()
+    expect(screen.getByRole('button', { name: /^Woodpeckers Piciformes, 1 of 2 on the list$/ })).toBeInTheDocument()
     expect(onLevel).toHaveBeenLastCalledWith({}, true)
     expect(localStorage.getItem(TREE_MINE_KEY)).toBe('1')
     unmount()
@@ -180,7 +220,7 @@ describe('TreeView', () => {
     // The open family loses its last bird: one plain line, the breadcrumb kept.
     rerender(<TreeView entries={['a1'].map(entry)} sci={false} onPick={() => {}} />)
     expect(screen.getByText('No bird on the list here.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'All families' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'All birds' })).toBeInTheDocument()
     act(() => setTreeMine(false))
     expect(localStorage.getItem(TREE_MINE_KEY)).toBeNull()
     expect(screen.queryByText('No bird on the list here.')).toBeNull()
@@ -189,10 +229,12 @@ describe('TreeView', () => {
 
   it('a smaller list changes the counts and the marked tips', async () => {
     const { rerender } = render(<TreeView entries={['a1', 'b2'].map(entry)} sci={false} onPick={() => {}} />)
-    const duck = await screen.findByRole('button', { name: /^Ducks/ })
+    const duck = await screen.findByRole('button', { name: /^Waterfowl/ })
     expect(duck).toHaveAttribute('data-on')
     rerender(<TreeView entries={['b2'].map(entry)} sci={false} onPick={() => {}} />)
-    expect(screen.getByRole('button', { name: /^Ducks Anatidae, 0 of 4 on the list$/ })).not.toHaveAttribute('data-on')
+    const none = screen.getByRole('button', { name: /^Waterfowl Anseriformes, 0 of 4 on the list$/ })
+    expect(none).not.toHaveAttribute('data-on')
+    expect(none.querySelector('img')).toBeNull()
     expect(screen.getByText('Every bird on this list has a place in the tree.')).toBeInTheDocument()
   })
 })
