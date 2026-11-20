@@ -289,16 +289,16 @@ describe('fitPack', () => {
 describe('the footer line (the site and the sticker credit, never truncated)', () => {
   // Geist Mono: 0.6em per character.
   const measure = (text: string) => (px: number) => text.length * 0.6 * px
-  it('is the site and "stickers by huashu" on one line; the full credit is the share text', () => {
-    expect(FOOTER_LINE).toBe(`${SITE_LABEL} · stickers by huashu`)
-    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · stickers by huashu')
+  it('is the site and the sticker credit in its one form; the full credit with the link is the share text', () => {
+    expect(FOOTER_LINE).toBe(`${SITE_LABEL} · Stickers: huashu-bird-sticker, CC BY 4.0`)
+    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0')
     expect(SHARE_CREDIT).toBe('Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker')
   })
   it('sits beside the wordmark when it fits, shrinking no lower than 17px', () => {
-    expect(placeCredit(measure(FOOTER_LINE), 790, 952, 20)).toEqual({ size: 20, below: false }) // 540px
-    expect(placeCredit(measure(FOOTER_LINE), 470, 952, 20)).toEqual({ size: 17, below: false }) // 459px
+    expect(placeCredit(measure(FOOTER_LINE), 810, 952, 20)).toEqual({ size: 20, below: false }) // 804px
+    expect(placeCredit(measure(FOOTER_LINE), 690, 952, 20)).toEqual({ size: 17, below: false }) // 683px
   })
-  it('takes its own line at full size when it does not fit at 17px, keeping "stickers by huashu"', () => {
+  it('takes its own line at full size when it does not fit at 17px, keeping the credit', () => {
     expect(placeCredit(measure(FOOTER_LINE), 300, 952, 20)).toEqual({ size: 20, below: true })
   })
   it('a line too long for even its own line shrinks to fit, never cut', () => {
@@ -306,18 +306,18 @@ describe('the footer line (the site and the sticker credit, never truncated)', (
     expect(r.below).toBe(true)
     expect(measure(FOOTER_LINE)(r.size)).toBeLessThanOrEqual(400)
   })
-  const stamped = withStamp(FOOTER_LINE, stampDate(new Date(2026, 8, 30))) // the longest English stamp; the line is 59 characters
-  it('with the date stamp, still sits beside the wordmark at 17px or more for a wordmark up to 280px wide', () => {
+  const stamped = withStamp(FOOTER_LINE, stampDate(new Date(2026, 8, 30))) // the longest English stamp; the line is 81 characters
+  it('with the date stamp, takes its own line under the wordmark of a 1080-wide card, whole, at 19px', () => {
     for (const brandW of [140, 200, 280]) {
       const r = placeCredit(measure(stamped), 952 - brandW, 952, 20)
-      expect(r.below).toBe(false)
-      expect(r.size).toBeGreaterThanOrEqual(17)
+      expect(r).toEqual({ size: 19, below: true })
+      expect(measure(stamped)(r.size)).toBeLessThanOrEqual(952)
     }
   })
-  it('a stamp too long to sit beside a 280px wordmark (a full month name) moves the whole line under it, never cut', () => {
+  it('a longer stamp (a full month name) shrinks the line on its own line, never cut', () => {
     const long = withStamp(FOOTER_LINE, '30 septiembre 2026')
     const r = placeCredit(measure(long), 952 - 280, 952, 20)
-    expect(r).toEqual({ size: 20, below: true })
+    expect(r).toEqual({ size: 18, below: true })
     expect(measure(long)(r.size)).toBeLessThanOrEqual(952)
   })
 })
@@ -393,7 +393,7 @@ describe('drawShareImage draws the count in the UI language', () => {
     const long = `${label} · ${'Muy largo '.repeat(12)}`
     for (const format of ['story', 'post', 'square'] as const) {
       const texts = await draw(12, t, { format, latest: true, filterLabel: long })
-      const footer = texts.filter((x) => x.includes('stickers by huashu'))
+      const footer = texts.filter((x) => x.includes('Stickers: huashu-bird-sticker'))
       expect(footer, format).toEqual([`${FOOTER_LINE} · 14 nov 2026`])
     }
     // placeCredit itself: the stamped Spanish line beside a 280px wordmark, else whole on its own line.

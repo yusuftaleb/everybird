@@ -33,10 +33,11 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
   const eb = useEverybirdContext()
   const { t } = useI18n()
   const { state, dispatch, data } = eb
-  const [sharing, setSharing] = useState<{ view: ViewKind; at: ShareAt; print?: boolean } | null>(null)
+  const [sharing, setSharing] = useState<{ view: ViewKind; print?: boolean } | null>(null)
   // The level the Map or Tree view has open (CollageView keeps it current), so Share draws what is on screen.
-  const shareAt = useRef<ShareAt>({})
-  const onShareAt = useCallback((at: ShareAt) => { shareAt.current = at }, [])
+  // Live, not taken when Share is pressed: the Tree's level follows the taxonomy filter, so after the dialog's Clear
+  // filters its image draws the level on screen, as if opened unfiltered.
+  const [shareAt, onShareAt] = useState<ShareAt>({})
   const [removed, setRemoved] = useState<(Removal & { before: Edits }) | null>(null)
   const { saved } = state
   const ready = !!data
@@ -79,14 +80,14 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
           {/* Print beside Share, quieter (Share stays the page's one main button): the same dialog, on the poster. */}
           <button
             type="button" className="eb-btn eb-btn-quiet" aria-label={t.collage.print} aria-haspopup="dialog" disabled={!ready || !state.list.length}
-            data-testid="print-open" onClick={() => setSharing({ view: state.view, at: shareAt.current, print: true })}
+            data-testid="print-open" onClick={() => setSharing({ view: state.view, print: true })}
           >
             <Printer aria-hidden="true" focusable="false" />
             <span className="eb-sm-hide">{t.collage.print}</span>
           </button>
           <button
             type="button" className="eb-btn" aria-haspopup="dialog" disabled={!ready || !state.list.length}
-            data-testid="share-open" data-tour="share" onClick={() => setSharing({ view: state.view, at: shareAt.current })}
+            data-testid="share-open" data-tour="share" onClick={() => setSharing({ view: state.view })}
           >
             <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
             {t.collage.share}
@@ -117,7 +118,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
           />
           {sharing && (
             <Suspense fallback={null}>
-              <ShareDialog state={state} dispatch={dispatch} species={data.species} regions={data.regions} view={sharing.view} at={sharing.at} print={sharing.print} onClose={() => setSharing(null)} />
+              <ShareDialog state={state} dispatch={dispatch} species={data.species} regions={data.regions} view={sharing.view} at={shareAt} print={sharing.print} onClose={() => setSharing(null)} />
             </Suspense>
           )}
         </>

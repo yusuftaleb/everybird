@@ -803,8 +803,6 @@ export const pl: Messages = {
       button: 'Zaznacz ptaki',
       label: 'Zaznacz ptaki z listy',
       search: 'Szukaj ptaków',
-      group: 'Grupa systematyczna',
-      back: 'Wróć do: {name}',
       list: 'Gatunki do zaznaczenia',
       onListLabel: '{name}, już na twojej liście',
       onList: 'Na twojej liście',

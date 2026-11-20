@@ -40,7 +40,7 @@ What changed, and why each label is what it is:
   the collage title field, the "Show latest lifer" switch (on, as the product opens; wide design only, like the title
   field) and the three actions. The image is the centre-count card without a name (the collage has no
   title): stickers around "112 / SPECIES", "LATEST LIFER · OCT 2026" over Tricolored Heron, a hairline, the wordmark and
-  "everybird.yusuftaleb.com · stickers by huashu · 6 Nov 2026" on one line (the demo's fixed date stamp, the
+  "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 6 Nov 2026" on its own line under it (the demo's fixed date stamp, the
   day of its "Imported 6 Nov"; the product stamps the day the image is made). The old separate credit line is gone (the
   credit stays under the figure).
 - The landing ("A lifetime of birds.") isn't in the story: the scene starts on Settings, as before.

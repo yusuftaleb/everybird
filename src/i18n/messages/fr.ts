@@ -805,8 +805,6 @@ export const fr: Messages = {
       button: 'Cocher',
       label: 'Cocher des oiseaux dans une liste',
       search: 'Chercher des oiseaux',
-      group: 'Groupe taxonomique',
-      back: 'Revenir à {name}',
       list: 'Espèces à cocher',
       onListLabel: '{name}, déjà sur ta liste',
       onList: 'Sur ta liste',

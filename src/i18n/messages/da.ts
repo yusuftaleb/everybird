@@ -795,8 +795,6 @@ export const da: Messages = {
       button: 'Kryds fugle af',
       label: 'Kryds fugle af på en liste',
       search: 'Søg efter fugle',
-      group: 'Taksonomisk gruppe',
-      back: 'Tilbage til {name}',
       list: 'Arter at krydse af',
       onListLabel: '{name}, allerede på din liste',
       onList: 'På din liste',

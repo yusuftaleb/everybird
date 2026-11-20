@@ -72,7 +72,7 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
     // The date alone, no lead: "6 Nov 2026" in English, "6 nov 2026" in es, pt and nl, "6 lis 2026" in pl, "2026年11月6日" in ja and zh
     const stamp = { en: '6 Nov 2026', de: '6 Nov 2026', pl: '6 lis 2026', ru: '6 ноя 2026', ja: '2026年11月6日', 'zh-Hans': '2026年11月6日', 'zh-Hant': '2026年11月6日' }[lang as string] ?? '6 nov 2026'
     expect(line.endsWith(` · ${stamp}`)).toBe(true)
-    expect(line.startsWith('everybird.yusuftaleb.com · stickers by huashu')).toBe(true)
+    expect(line.startsWith('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · ')).toBe(true)
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.share.latestLifer)
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.date.months[9])
     expect(text(wide.querySelector('.ebd-img-mark'))).toBe('Everybird')

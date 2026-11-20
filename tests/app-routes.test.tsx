@@ -630,117 +630,125 @@ describe('editing', () => {
     }, { timeout: 2000 })
   })
 
-  it('Add by hand: every species in one list; a tap (or Space) adds a bird at once, a tap on one on the list takes it off, each with Undo', async () => {
+  it('Add by hand: the orders as a list that opens in place, the search instead of it; a tap (or Space) adds a bird at once, a tap on one on the list takes it off, each with Undo', async () => {
     const { storage, analytics } = await mount()
     await openTick()
     const search = screen.getByLabelText('Search birds')
     expect(search).not.toHaveFocus() // on Settings the list is part of the page: nothing is focused for you
-    const list = screen.getByRole('listbox', { name: 'Species to tick' })
-    expect(list).toHaveAttribute('aria-multiselectable', 'true')
-    expect(within(list).getAllByRole('option')).toHaveLength(5) // the whole (synthetic) taxonomy, windowed
+    // With the search empty: the orders in taxonomic order, each a closed disclosure row with its sticker, name and count.
+    const tree = screen.getByRole('list', { name: 'Species to tick' })
+    const rowsOf = (el: HTMLElement) => within(el).getAllByRole('button').map((b) => `${b.getAttribute('aria-label')} ${b.getAttribute('aria-expanded')}`)
+    expect(rowsOf(tree)).toEqual(['Waterfowl, 1 species false', 'Woodpeckers, 2 species false', 'Perching birds, 2 species false'])
+    expect(screen.queryByRole('listbox')).toBeNull() // no species rows until a genus is open
+    const order = screen.getByTestId('tick-group-Piciformes')
+    expect(order.querySelector('.eb-tickchev svg')).not.toBeNull()
+    expect(order.querySelector('.eb-tickthumb')).not.toBeNull()
+    expect(within(order).getByText('2')).toBeInTheDocument()
+    // An order opens its families in place, a family its genera (their scientific names), a genus its species.
+    fireEvent.click(order)
+    expect(order).toHaveAttribute('aria-expanded', 'true')
+    const families = document.getElementById(order.getAttribute('aria-controls')!)!
+    expect(families).toHaveAccessibleName('Woodpeckers, 2 species')
+    expect(rowsOf(families)).toEqual(['Woodpeckers, 2 species false'])
+    fireEvent.click(screen.getByTestId('tick-group-Piciformes/Picidae'))
+    const genus = screen.getByTestId('tick-group-Piciformes/Picidae/Colaptes')
+    expect(genus).toHaveAccessibleName('Colaptes, 2 species')
+    expect(within(genus).getByText('Colaptes')).toHaveAttribute('lang', 'la')
+    fireEvent.click(genus)
+    const colaptes = screen.getByRole('listbox', { name: 'Colaptes, 2 species' })
+    expect(colaptes).toHaveAttribute('aria-multiselectable', 'true')
+    expect(within(colaptes).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus', 'Gilded Flicker, Colaptes chrysoides'])
     // "When and where" is always there, under the list (no button to open it); empty, a bird gets no date and no place.
     expect(screen.queryByRole('button', { name: 'When and where' })).toBeNull()
     expect(screen.getByRole('group', { name: 'When and where' })).toContainElement(screen.getByLabelText('Date (optional)'))
     expect(screen.getByLabelText('Date (optional)')).toBeVisible()
-    fireEvent.click(tickOption(/^Snow Goose/))
+    // A tap in an open genus adds the bird: selected, and says so in words; announced with Undo, focus left on its list.
+    fireEvent.click(within(colaptes).getByRole('option', { name: /^Northern Flicker/ }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species, all ticked by hand.'))
-    // On the list: selected, and says so in words; the change is announced with Undo, focus left on the list.
-    expect(screen.getByText('Added Snow Goose.')).toBeInTheDocument()
-    expect(screen.getByText('Added Snow Goose.').closest('[role=status]')).not.toBeNull()
-    const goose = tickOption(/^Snow Goose, Anser caerulescens, already on your list/)
-    expect(goose).toHaveAttribute('aria-selected', 'true')
-    expect(within(goose).getByText('On your list')).toBeInTheDocument()
-    expect(list).toHaveFocus()
+    expect(screen.getByText('Added Northern Flicker.')).toBeInTheDocument()
+    expect(screen.getByText('Added Northern Flicker.').closest('[role=status]')).not.toBeNull()
+    const flicker = within(colaptes).getByRole('option', { name: /^Northern Flicker, Colaptes auratus, already on your list/ })
+    expect(flicker).toHaveAttribute('aria-selected', 'true')
+    expect(within(flicker).getByText('On your list')).toBeInTheDocument()
+    expect(colaptes).toHaveFocus()
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'manual' }]])
-    // Keyboard, with a year and a country set: the arrows move the active row, Space adds it with them.
+    // Typing shows the search's matches instead of the list; clearing it brings the list back, the same rows open.
+    fireEvent.change(search, { target: { value: 'goose' } })
+    expect(screen.queryByRole('list', { name: 'Species to tick' })).toBeNull()
+    const list = screen.getByRole('listbox', { name: 'Species to tick' })
+    expect(within(list).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Snow Goose, Anser caerulescens'])
+    fireEvent.change(search, { target: { value: '' } })
+    expect(screen.queryByRole('listbox', { name: 'Species to tick' })).toBeNull()
+    expect(screen.getByTestId('tick-group-Piciformes')).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('listbox', { name: 'Colaptes, 2 species' })).toBeInTheDocument()
+    // Keyboard, in the search, with a year and a country set: the arrows move the active row, Space adds it with them.
     fireEvent.change(screen.getByLabelText('Or a year'), { target: { value: '2018' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
-    list.focus()
-    fireEvent.keyDown(list, { key: 'ArrowDown' }) // the Northern Flicker
-    fireEvent.keyDown(list, { key: ' ' })
+    fireEvent.change(search, { target: { value: 'flicker' } })
+    const flickers = screen.getByRole('listbox', { name: 'Species to tick' })
+    expect(within(flickers).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus, already on your list', 'Gilded Flicker, Colaptes chrysoides'])
+    flickers.focus()
+    fireEvent.keyDown(flickers, { key: 'ArrowDown' }) // the Gilded Flicker
+    fireEvent.keyDown(flickers, { key: ' ' })
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species'))
-    expect(screen.getByText('Added Northern Flicker.')).toBeInTheDocument()
+    expect(screen.getByText('Added Gilded Flicker.')).toBeInTheDocument()
     expect(vi.mocked(analytics.track)).toHaveBeenCalledTimes(1) // only the first bird starts a collage
     await waitFor(async () => expect((await storage.load())?.edits.added).toEqual([
-      { code: 'snogoo', source: 'manual' },
-      { code: 'norfli', source: 'manual', date: '2018', place: { country: 'US' } },
+      { code: 'norfli', source: 'manual' },
+      { code: 'gilfli', source: 'manual', date: '2018', place: { country: 'US' } },
     ]), { timeout: 2000 })
-    // Undo takes it off again.
+    // Undo takes it off again, focus back on the list it was ticked in.
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species'))
-    expect(tickOption(/^Northern Flicker/)).toHaveAttribute('aria-selected', 'false')
+    expect(tickOption(/^Gilded Flicker/)).toHaveAttribute('aria-selected', 'false')
+    expect(flickers).toHaveFocus()
     // Cleared again, When and where gives the next bird nothing.
     fireEvent.change(screen.getByLabelText('Or a year'), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: '' } })
-    fireEvent.click(tickOption(/^Northern Flicker/))
-    await waitFor(async () => expect((await storage.load())?.edits.added.at(-1)).toEqual({ code: 'norfli', source: 'manual' }), { timeout: 2000 })
-    // Search narrows by word prefixes of either name; the taxonomic picker browses orders, families and genera.
-    fireEvent.change(search, { target: { value: 'colaptes' } })
-    expect(within(list).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus, already on your list', 'Gilded Flicker, Colaptes chrysoides'])
-    fireEvent.change(search, { target: { value: '' } })
-    const pick = (name: string) => fireEvent.click(screen.getByRole('menuitem', { name }))
-    const items = () => screen.getAllByRole('menuitem').map((b) => b.getAttribute('aria-label'))
-    const group = screen.getByTestId('tick-group')
-    expect(group).toHaveAccessibleName('Taxonomic group All birds')
-    // The orders in taxonomic order with their species; no check, nothing is "chosen" among places to go.
-    fireEvent.keyDown(group, { key: 'ArrowDown' })
-    expect(items()).toEqual(['Waterfowl, 1 species', 'Woodpeckers, 2 species', 'Perching birds, 2 species'])
-    expect(screen.getByRole('menuitem', { name: 'Waterfowl, 1 species' })).toHaveFocus()
-    expect(screen.queryByRole('menuitemradio')).toBeNull()
-    pick('Woodpeckers, 2 species')
-    expect(group).toHaveFocus()
-    expect(group).toHaveAccessibleName('Taxonomic group Woodpeckers')
-    expect(within(list).getAllByRole('option')).toHaveLength(2)
-    // Inside an order: a row back, then its families (their common names); inside a family, its genera.
-    fireEvent.click(group)
-    expect(items()).toEqual(['Back to All birds', 'Woodpeckers, 2 species'])
-    pick('Woodpeckers, 2 species')
-    fireEvent.click(group)
-    expect(items()).toEqual(['Back to Woodpeckers', 'Colaptes, 2 species'])
-    pick('Colaptes, 2 species')
-    expect(group).toHaveAccessibleName('Taxonomic group Colaptes')
-    // The search works inside the group.
-    fireEvent.change(search, { target: { value: 'gilded' } })
-    expect(within(list).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Gilded Flicker, Colaptes chrysoides'])
-    fireEvent.change(search, { target: { value: '' } })
-    // Escape closes the menu, focus back on the button; the row back steps up one level at a time.
-    fireEvent.click(group)
-    expect(items()).toEqual(['Back to Woodpeckers'])
-    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
-    expect(screen.queryByRole('menu')).toBeNull()
-    expect(group).toHaveFocus()
-    for (const back of ['Back to Woodpeckers', 'Back to Woodpeckers', 'Back to All birds']) {
-      fireEvent.click(group)
-      pick(back)
-    }
-    expect(group).toHaveAccessibleName('Taxonomic group All birds')
-    expect(within(list).getAllByRole('option')).toHaveLength(5)
+    fireEvent.click(tickOption(/^Gilded Flicker/))
+    await waitFor(async () => expect((await storage.load())?.edits.added.at(-1)).toEqual({ code: 'gilfli', source: 'manual' }), { timeout: 2000 })
+    // The search matches word prefixes of either name.
+    fireEvent.change(search, { target: { value: 'colaptes aur' } })
+    expect(within(screen.getByRole('listbox', { name: 'Species to tick' })).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus, already on your list'])
     // A tap on a bird on the list takes it off at once, as the card's Remove does; Undo puts back exactly what was there.
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species'))
     const before = (await storage.load())!.edits
-    fireEvent.click(tickOption(/^Snow Goose, Anser caerulescens, already on your list/))
+    fireEvent.click(tickOption(/^Northern Flicker, Colaptes auratus, already on your list/))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species'))
-    expect(screen.getByText('Removed Snow Goose.')).toBeInTheDocument()
-    expect(tickOption(/^Snow Goose/)).toHaveAttribute('aria-selected', 'false')
-    await waitFor(async () => expect((await storage.load())?.edits.removed).toEqual(['snogoo']), { timeout: 2000 })
+    expect(screen.getByText('Removed Northern Flicker.')).toBeInTheDocument()
+    expect(tickOption(/^Northern Flicker/)).toHaveAttribute('aria-selected', 'false')
+    await waitFor(async () => expect((await storage.load())?.edits.removed).toEqual(['norfli']), { timeout: 2000 })
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species'))
-    expect(screen.queryByText('Removed Snow Goose.')).toBeNull()
+    expect(screen.queryByText('Removed Northern Flicker.')).toBeNull()
     await waitFor(async () => expect((await storage.load())?.edits).toEqual(before), { timeout: 2000 })
     // The notice leaves by itself after about 6 s.
-    fireEvent.click(tickOption(/^Snow Goose, Anser caerulescens, already on your list/))
-    expect(screen.getByText('Removed Snow Goose.')).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByText('Removed Snow Goose.')).toBeNull(), { timeout: 8000 })
+    fireEvent.click(tickOption(/^Northern Flicker, Colaptes auratus, already on your list/))
+    expect(screen.getByText('Removed Northern Flicker.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Removed Northern Flicker.')).toBeNull(), { timeout: 8000 })
   }, 20_000) // the Undo toast's ~6 s
+
+  it('Add by hand with Scientific on names every group by its scientific name', async () => {
+    await mount({ path: '/', stored: (s) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
+    fireEvent.click(await screen.findByRole('switch', { name: /Scientific/ }))
+    await openTick()
+    const tree = screen.getByRole('list', { name: 'Species to tick' })
+    expect(within(tree).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Anseriformes, 1 species', 'Piciformes, 2 species', 'Passeriformes, 2 species'])
+    fireEvent.click(screen.getByTestId('tick-group-Piciformes'))
+    expect(screen.getByTestId('tick-group-Piciformes/Picidae')).toHaveAccessibleName('Picidae, 2 species')
+  })
 
   it('adding a bird by hand to a list from eBird is an edit, not a new collage; taking an eBird bird off puts it in removed', async () => {
     const { analytics, storage } = await mount()
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await openTick()
+    const search = screen.getByLabelText('Search birds')
+    fireEvent.change(search, { target: { value: 'snow' } })
     fireEvent.click(tickOption(/^Snow Goose/))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 4 species'))
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'ebird' }]])
+    fireEvent.change(search, { target: { value: 'northern' } })
     fireEvent.click(tickOption(/^Northern Flicker, Colaptes auratus, already on your list/))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await waitFor(async () => expect((await storage.load())?.edits.removed).toEqual(['norfli']), { timeout: 2000 })
@@ -754,6 +762,7 @@ describe('editing', () => {
     fireEvent.change(year, { target: { value: '20x9' } })
     expect(screen.getByText('Use a year from 1800 to this year.')).toBeInTheDocument()
     expect(year).toHaveAttribute('aria-invalid', 'true')
+    fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'snow' } })
     fireEvent.click(tickOption(/^Snow Goose/))
     expect(year).toHaveFocus()
     expect(screen.queryByTestId('see-collage')).toBeNull()
@@ -940,10 +949,10 @@ describe('remembered sources', () => {
     expect(screen.queryByRole('button', { name: 'Add birds' })).toBeNull()
     const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
     expect(headings.slice(0, 2)).toEqual(['Your list', 'Add by hand'])
-    // The rows and the whole taxonomy to tick are in the page, nothing to open first.
+    // The rows and the whole taxonomy to tick (its orders, opening in place) are in the page, nothing to open first.
     expect(screen.getByTestId('ebird-drop')).toBeVisible()
-    expect(screen.getByRole('listbox', { name: 'Species to tick' })).toBeInTheDocument()
-    expect(document.getElementById('tick')).toContainElement(screen.getByRole('listbox', { name: 'Species to tick' }))
+    expect(screen.getByRole('list', { name: 'Species to tick' })).toBeInTheDocument()
+    expect(document.getElementById('tick')).toContainElement(screen.getByRole('list', { name: 'Species to tick' }))
     expect(screen.getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
   })
 

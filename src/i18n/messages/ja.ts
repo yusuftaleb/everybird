@@ -793,8 +793,6 @@ export const ja: Messages = {
       button: '鳥を選ぶ',
       label: 'リストから鳥を選ぶ',
       search: '鳥を検索',
-      group: '分類群',
-      back: '{name}に戻る',
       list: '選ぶ種',
       onListLabel: '{name}、すでにリストにあります',
       onList: 'リストにあります',

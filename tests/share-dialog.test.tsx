@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { useMemo, useReducer } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ShareDialog from '@/components/share/ShareDialog'
 import * as image from '@/lib/share/image'
@@ -9,7 +10,7 @@ import { setTreeMine } from '@/lib/tree-mine'
 import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
-import { initialState } from '@/lib/list/store'
+import { initialState, makeReducer } from '@/lib/list/store'
 import { decodeShare } from '@/lib/share/link'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -388,6 +389,57 @@ describe('share dialog', () => {
     expect(screen.getByTestId('share-filters')).toHaveTextContent(/^Showing your filters: .*Canada/)
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
     expect(dispatch).toHaveBeenCalledWith({ type: 'filter', filter: {} })
+  })
+
+  it('after Clear filters, the preview, the count, the label and the downloads use the whole list', async () => {
+    // A live store around the dialog, as CollagePage gives it: the Canada filter hides the emu (seen in Australia).
+    const list = [entry('ostric2'), { ...entry('emu1'), place: { country: 'AU' } }]
+    function Live() {
+      const reducer = useMemo(() => makeReducer({ species }), [])
+      const [state, dispatch] = useReducer(reducer, undefined, () => ({ ...stateWith(list), filter: { countries: ['CA'] } }))
+      return <ShareDialog state={state} dispatch={dispatch} species={species} regions={{ ...regions, countries: { CA: 'Canada', AU: 'Australia' } }} onClose={() => {}} />
+    }
+    render(<Live />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    const first = vi.mocked(image.renderShareImage).mock.calls[0][0]
+    expect(first.entries.map((e) => e.code)).toEqual(['ostric2'])
+    expect(first.filterLabel).toBe('Canada')
+    await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(screen.queryByTestId('share-filters')).toBeNull()
+    await waitFor(() => expect(renders).toHaveLength(2))
+    const after = vi.mocked(image.renderShareImage).mock.calls[1][0]
+    expect(after.entries.map((e) => e.code).sort()).toEqual(['emu1', 'ostric2'])
+    expect(after.filterLabel).toBeUndefined()
+    // The pack the image draws is made from the whole list too.
+    expect(vi.mocked(image.packForImage).mock.calls.at(-1)![0].map((e) => e.code).sort()).toEqual(['emu1', 'ostric2'])
+  })
+
+  it('in the Tree, Clear filters draws the level the tree then shows (the page passes it live), in the image and in Print', async () => {
+    // As CollagePage: the store, and the tree's level from its taxonomy filter (the chip row is the tree's path).
+    function Live({ print }: { print?: boolean }) {
+      const reducer = useMemo(() => makeReducer({ species }), [])
+      const [state, dispatch] = useReducer(reducer, undefined, () => ({ ...stateWith([entry('ostric2'), entry('emu1')]), filter: { order: 'Struthioniformes' } }))
+      const at = { tree: state.filter.order ? { ord: state.filter.order } : {}, layout: 'rows' as const }
+      return <ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} view="tree" at={at} print={print} onClose={() => {}} />
+    }
+    viewRenders.tree.mockClear()
+    const { unmount } = render(<Live />)
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenCalledTimes(1))
+    expect(viewRenders.tree.mock.calls[0]).toMatchObject([{ at: { tree: { ord: 'Struthioniformes' } }, filterLabel: expect.any(String) }])
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: {}, layout: 'rows', mine: false }, filterLabel: undefined })))
+    expect((viewRenders.tree.mock.lastCall as unknown as [{ entries: ListEntry[] }])[0].entries).toHaveLength(2)
+    unmount()
+    // Print: the poster is made for the level after Clear filters, not the one the dialog opened on.
+    makes.length = 0
+    render(<Live print />)
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Make poster' }))
+    await waitFor(() => expect(makes).toHaveLength(1))
+    viewRenders.tree.mockClear()
+    await makes[0].opts.render!(2)
+    expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: {}, layout: 'rows', mine: false }, filterLabel: undefined }))
   })
 
   it('"Dark image" starts at the app\'s theme, then the dialog\'s own; the page theme is left alone', async () => {

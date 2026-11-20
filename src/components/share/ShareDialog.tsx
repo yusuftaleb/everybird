@@ -332,7 +332,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const shownSize = useRef<[number, number]>([0, 0])
   const first = useRef(true)
   // The Tree's or Map's drawing: the view, its switches.
-  const viewKey = viewImage ? `${subject}|${treeImage ? treeMine : ''}|${hideTotals}` : ''
+  // `at` is the view's level, live (the Tree's follows the taxonomy filter); its JSON leaves out the map's names function.
+  const viewKey = viewImage ? `${subject}|${treeImage ? treeMine : ''}|${hideTotals}|${JSON.stringify(at ?? {})}` : ''
   const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
@@ -704,7 +705,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
     if (typeof nav.share === 'function' && nav.canShare?.({ files: [file] })) {
       try {
-        // The image says "stickers by huashu"; the post's text carries the full CC BY 4.0 credit and its link.
+        // The image says "Stickers: huashu-bird-sticker, CC BY 4.0"; the post's text carries the full CC BY 4.0 credit and its link.
         await nav.share({ files: [file], title: 'Everybird', text: SHARE_CREDIT })
         track('shared', { via: shape })
         return

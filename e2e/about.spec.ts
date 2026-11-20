@@ -9,7 +9,7 @@ import { stampDate, withStamp } from "../src/lib/share/stamp";
 
 // share/image.ts's FOOTER_LINE (that module can't load here: it starts a worker with import.meta); the test checks its
 // definition is still this.
-const FOOTER_LINE = `${new URL(SHARE_ORIGIN).host} · stickers by huashu`;
+const FOOTER_LINE = `${new URL(SHARE_ORIGIN).host} · Stickers: huashu-bird-sticker, CC BY 4.0`;
 const frozen = readFileSync("tests/fixtures/share/v1-frozen.txt", "utf8").trim();
 
 test("/about says what Everybird is, what True size means, and credits the stickers (CC BY 4.0) and the taxonomy version", async ({ page }) => {
@@ -362,16 +362,17 @@ test("How it works: the scene's labels are the product's (Settings rows, summary
   expect(fit).toBeGreaterThanOrEqual(0)
   // The footer line ends with the demo's fixed date stamp (its "Imported 6 Nov"), as the product's ends with the day's
   const LINE = withStamp(FOOTER_LINE, stampDate(new Date(2026, 10, 6)))
-  expect(LINE).toBe("everybird.yusuftaleb.com · stickers by huashu · 6 Nov 2026")
+  expect(LINE).toBe("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 6 Nov 2026")
   expect(await scene.locator(".ebd-img-line").allTextContents()).toEqual([LINE, LINE, LINE])
   expect(src("src/lib/share/image.ts")).toContain("withStamp(FOOTER_LINE, stampDate(")
-  expect(src("src/lib/share/image.ts")).toContain("export const FOOTER_LINE = `${SITE_LABEL} · stickers by huashu`")
+  expect(src("src/lib/share/image.ts")).toContain("export const FOOTER_LINE = `${SITE_LABEL} · ${STICKER_CREDIT}`")
+  expect(src("src/lib/share/image.ts")).toContain("export const STICKER_CREDIT = 'Stickers: huashu-bird-sticker, CC BY 4.0'")
   expect(src("src/lib/share/image.ts")).toContain("export const SITE_LABEL = new URL(SHARE_ORIGIN).host")
-  expect(FOOTER_LINE).toBe("everybird.yusuftaleb.com · stickers by huashu")
+  expect(FOOTER_LINE).toBe("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0")
   expect(await scene.locator(".ebd-img-mark").allTextContents()).toEqual(["Everybird", "Everybird", "Everybird"])
-  // Nothing from the old scene, no credit line inside the image (the footer carries it), no "seen" for the list
+  // Nothing from the old scene, no credit line inside the image but the footer's (one in each of the three), no "seen" for the list
   const all = (await scene.textContent())!
-  expect(all).not.toContain("Stickers: huashu")
+  expect(all.split("Stickers: huashu").length - 1).toBe(3)
   expect(all).not.toMatch(/\bseen\b/i)
   expect(all).not.toContain("Yusuf")
 })

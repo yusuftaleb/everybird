@@ -80,9 +80,9 @@ describe('everything on the desktop is inside the central column, clear of the t
           const blockEnd = card.oneLine.x + icon + 14 + Math.max(card.oneLine.labelW, card.oneLine.nameText.length * 0.5 * card.oneLine.nameSize)
           expect(card.oneLine.x).toBeGreaterThanOrEqual(LEFT + M)
           expect(blockEnd).toBeLessThanOrEqual(RIGHT - M + 1)
-          expect(card.credit.below).toBe(false)
+          // A long name keeps its room: the credit takes its own line under the wordmark, whole, at CREDIT_MIN or more.
           expect(card.credit.size).toBeGreaterThanOrEqual(CREDIT_MIN)
-          expect(LEFT + M + card.brandW + card.footerLine.length * 0.6 * card.credit.size).toBeLessThanOrEqual(card.oneLine.x - 32)
+          expect(LEFT + M + (card.credit.below ? 0 : card.brandW) + card.footerLine.length * 0.6 * card.credit.size).toBeLessThanOrEqual(card.oneLine.x - 32)
         } else {
           expect(LEFT + M + card.brandW + card.footerLine.length * 0.6 * card.credit.size).toBeLessThanOrEqual(RIGHT - M)
         }
@@ -136,14 +136,16 @@ describe('everything on the desktop is inside the central column, clear of the t
 // drawShareImage on the harness, over the content combinations, counts and themes below): they must stay byte-identical.
 // Retaken 2026-11-20 for the even spacing (no vertical spread on the story and the post: their tiles move, nothing else)
 // and the poster's quiet head and foot (print and printLandscape); the square and the 5:4 wide stayed identical. The
-// poster draws retaken for round 5 (the latest lifer at the foot's right end; layouts unchanged).
+// poster draws retaken for round 5 (the latest lifer at the foot's right end; layouts unchanged). Every format's draws
+// retaken for round 6 (the footer's credit "Stickers: huashu-bird-sticker, CC BY 4.0", on its own line where it no longer
+// fits beside the wordmark; layouts unchanged).
 const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: string }> = {
-  story: { layout: '42ea58674d4ee8d18505c49684fe983e7edf1b10', draws: '1cba68fbff9509615b486ad72ae14a55a2ea9955' },
-  post: { layout: '6385621f4f386188b50d6ff70c67618f6e3644a4', draws: '34c60eb79ec20c43b75000b5dacc9edf5d427eb2' },
-  square: { layout: '9baa675c2529f2777654d3ec49d5940ebd5ad2f4', draws: '24075c510ce9b9e68892a3e731f3d63cd57a1b01' },
-  wide: { layout: '4e9d6e75750df1125d6ac5c9c4159790b8af3f4b', draws: '44f52e9bb3bdd87d450385258b9e77289f5ce407' },
-  print: { layout: 'aee75945aabf33f4b0969088c020f9966dc88af1', draws: 'fa191c70947792698c4e9c2d9db0fea8f0483e37' },
-  printLandscape: { layout: '6420700515cec114ad51c385b3bc919e11dc6d0c', draws: '7f823863bc786837644bddef2acae16d1dda0fd7' },
+  story: { layout: '42ea58674d4ee8d18505c49684fe983e7edf1b10', draws: '38828cc34e287758c20ef2a4f22c182f1aef2054' },
+  post: { layout: '6385621f4f386188b50d6ff70c67618f6e3644a4', draws: 'c1230f1ccbd2e327a4d709b70398407ed8d5cfa4' },
+  square: { layout: '9baa675c2529f2777654d3ec49d5940ebd5ad2f4', draws: '23f0ea694f518b3c85a5c5fe784784ca9445318c' },
+  wide: { layout: '4e9d6e75750df1125d6ac5c9c4159790b8af3f4b', draws: 'fc6487d757a4baf5200a6638cd44b650fa102f56' },
+  print: { layout: 'aee75945aabf33f4b0969088c020f9966dc88af1', draws: '94db1cda530b078332372947185a1a7c8e7c8413' },
+  printLandscape: { layout: '6420700515cec114ad51c385b3bc919e11dc6d0c', draws: '4cfc1b0122a8940fa644676f8e72f82b5cddc4af' },
 }
 const sha = (s: string) => createHash('sha1').update(s).digest('hex')
 
@@ -201,8 +203,8 @@ describe('the latest lifer switch does not rearrange the collage', () => {
   }
 })
 
-// The latest lifer's name on the desktop footer: the label over the name, the name gets the whole right-hand room, shrinks to 80%
-// before it is clipped, and is never clipped up to about 40 characters, in the longest common names of every language.
+// The latest lifer's name on the desktop footer: the label over the name, the name gets the whole right-hand room (the credit
+// moving under the wordmark for it), shrinks to 80% before it is clipped, and is never clipped up to about 40 characters, in the longest common names of every language.
 describe('long latest-lifer names on the desktop footer', () => {
   const data = (f: string) => JSON.parse(readFileSync(`public/data/${f}`, 'utf8'))
   const longest = (names: string[]) => names.filter((n) => n.length <= 40).sort((a, b) => b.length - a.length)[0]
@@ -230,9 +232,25 @@ describe('long latest-lifer names on the desktop footer', () => {
       const card = await prepareCard({ format: 'desktop', theme: 'light', entries, species, pack, now: NOW, strings: m.ui, nameOf: () => name }, IMAGE_SCALE.desktop)
       expect(card.oneLine!.nameText).toBe(name)
       expect(card.oneLine!.nameSize).toBeGreaterThanOrEqual(30 * 0.8)
-      expect(card.credit.below).toBe(false)
+      // The credit gives way first: beside the wordmark or, for a long name, on its own line under it, at 17px or more.
+      expect(card.credit.size).toBeGreaterThanOrEqual(CREDIT_MIN)
     })
   }
+  it('with the credit under the wordmark, the two sit on the row\'s baselines: the wordmark on the label\'s, the credit on the name\'s', async () => {
+    const logs = installStubs()
+    const name = 'Northern Rough-winged Swallow-and-Martin!'
+    const canvas = await drawShareImage({ format: 'desktop', theme: 'light', entries, species, pack, now: NOW, strings: en.ui, nameOf: () => name })
+    const at = (start: string) => {
+      const l = logs.get(canvas as unknown as object)!.find((x) => x.startsWith(start))!
+      return /, ([\d.]+), ([\d.]+)\)/.exec(l)!.slice(1).map(Number)
+    }
+    const [bx, by] = at('fillText("Everybird"'), [cx, cy] = at('fillText("everybird.yusuftaleb.com · Stickers:')
+    const [, ly] = at('fillText("LATEST LIFER'), [, ny] = at(`fillText(${JSON.stringify(name)}`)
+    expect([bx, cx]).toEqual([LEFT + M, LEFT + M])
+    expect(by).toBe(ly)
+    expect(cy).toBe(ny)
+    expect(cy - by).toBe(30)
+  })
   it('a name of 60 characters shrinks to 80% and only then gets an ellipsis', async () => {
     installStubs()
     const name = 'A Very Long Imaginary Bird Name That Cannot Possibly Fit Here'

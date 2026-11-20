@@ -176,14 +176,13 @@ describe('the landscape layouts', () => {
 
 describe('the footer’s one line fits in every language', () => {
   for (const [lang, m] of Object.entries({ en, es, nl, pt, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant })) {
-    it(`${lang}: the credit stays on the wordmark’s line, at 17px or more, clear of the latest row`, async () => {
+    it(`${lang}: the credit beside the wordmark or on its own line under it, whole, at 17px or more, clear of the latest row`, async () => {
       const opts = { format: 'desktop' as const, theme: 'light' as const, entries, species, pack: harnessPack, now: NOW, strings: m.ui }
       const card = await prepareCard(opts, IMAGE_SCALE.desktop)
       expect(card.oneLine).toBeDefined()
-      expect(card.credit.below).toBe(false)
       expect(card.credit.size).toBeGreaterThanOrEqual(17)
       // The estimate measureText makes without a DOM (0.6 em a character in mono): the credit ends before the row's block.
-      const lineEnd = M + card.brandW + card.footerLine.length * 0.6 * card.credit.size
+      const lineEnd = M + (card.credit.below ? 0 : card.brandW) + card.footerLine.length * 0.6 * card.credit.size
       expect(lineEnd).toBeLessThanOrEqual(card.oneLine!.x - FOOTER_GAP)
       // The row's block, right-aligned to the margin.
       const blockEnd = card.oneLine!.x + card.L.latest!.icon + ONE_LINE_GAP + Math.max(card.oneLine!.labelW, card.oneLine!.nameText.length * 0.56 * card.oneLine!.nameSize)
@@ -195,7 +194,7 @@ describe('the footer’s one line fits in every language', () => {
     // The widest name a row draws is clipped to 480 units; 22 characters at 30px is about 370 units, the name's common worst.
     const label = 'LATEST LIFER · SEP 2026'.length * (0.6 * 20 + 1.2) // mono 20px with 0.06em tracking
     const block = 40 + 14 + label + 14 + 22 * 0.56 * 30
-    const credit17 = 59 * 0.6 * 17 // the stamped footer line, at the smallest size placeCredit keeps
+    const credit17 = 81 * 0.6 * 17 // the stamped footer line, at the smallest size placeCredit keeps
     const brand = 181
     const wide = 1350 - 2 * M, landscape = printDesign('A2', true)[0] - 2 * M
     expect(brand + credit17 + FOOTER_GAP + block).toBeGreaterThan(wide)

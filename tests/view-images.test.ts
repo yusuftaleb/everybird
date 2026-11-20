@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { mapImageLayout, TOP_PLACES } from '@/lib/share/map-image'
 import { en } from '@/i18n/messages/en'
-import { FOOTER_LINE, SITE_LABEL, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
+import { FOOTER_LINE, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
 import { IMAGE_SIZES, TOTALS, rowsLabels, totalsSize } from '@/lib/share/tree-image'
 import { LABEL_GAP, fitRound } from '@/lib/tree/fan'
 import { MAP_FOOTER, TREE_FOOTER, fitBox, wrapParts } from '@/lib/share/view-image'
@@ -83,11 +83,10 @@ describe('the tree image names every tip', () => {
 })
 
 describe('the credit on each image', () => {
-  it('the map credits the site alone; the tree, whose tips carry stickers, the stickers and AvesData (CC BY 4.0)', () => {
-    expect(MAP_FOOTER).toBe(SITE_LABEL)
-    expect(MAP_FOOTER).not.toMatch(/sticker|huashu/)
-    expect(TREE_FOOTER).toBe(`${SITE_LABEL} · stickers by huashu · tree: AvesData, McTavish et al., CC BY 4.0`)
-    expect(FOOTER_LINE).toBe(`${SITE_LABEL} · stickers by huashu`)
+  it('the map has the collage footer; the tree adds AvesData, each credit in one form', () => {
+    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0')
+    expect(MAP_FOOTER).toBe(FOOTER_LINE)
+    expect(TREE_FOOTER).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · Tree: AvesData, CC BY 4.0')
   })
 
   it('a card draws the footer it is given, the date stamp after it; without one, FOOTER_LINE', async () => {

@@ -84,14 +84,16 @@ describe('the poster\'s head and foot', () => {
   })
 
   it('ends with one quiet line: the wordmark, the site, the credit and the date at the left, the latest lifer at the right end; no lifer row', async () => {
-    const log = await poster({ name: 'Ada’s birds' })
-    const foot = texts(log).find((l) => l.includes('stickers by huashu'))!
+    // A landscape poster's line holds both (a portrait one moves this lifer to its second line, below).
+    const log = await poster({ name: 'Ada’s birds', format: 'printLandscape' })
+    const foot = texts(log).find((l) => l.includes('Stickers: huashu-bird-sticker'))!
     expect(foot.startsWith(`fillText(${JSON.stringify(`${image.FOOTER_LINE} · 15 Nov 2026`)}, `)).toBe(true)
     expect(foot).toContain(`fillStyle: "${C.muted}"`)
     const brand = texts(log).find((l) => l.startsWith('fillText("Everybird"'))!
     expect(brand).toContain(`font: "700 ${image.POSTER_FOOT.brand}px`)
     const lifer = texts(log).find((l) => l.startsWith('fillText("Latest lifer: Synthetic Bird 13, May 2023"'))!
-    expect(lifer).toMatch(/, 1016, [\d.]+\) .*textAlign: "right"/)
+    expect(Number(/, ([\d.]+), [\d.]+\) /.exec(lifer)![1])).toBeCloseTo(printDesign('A4', true)[0] - 64, 4)
+    expect(lifer).toContain('textAlign: "right"')
     expect(lifer).toContain(`fillStyle: "${C.muted}"`)
     // All three on the wordmark's baseline: the line beside the wordmark, the lifer ending at the right margin.
     const y = (l: string) => /, ([\d.]+)\) \{/.exec(l)![1]
@@ -104,7 +106,7 @@ describe('the poster\'s head and foot', () => {
 
   it('leaves the latest lifer out of the line with "Show latest lifer" off, and keeps the collage where it was', async () => {
     const log = await poster({ name: 'Ada’s birds', latest: false })
-    expect(texts(log).find((l) => l.includes('stickers by huashu'))).toMatch(/^fillText\("everybird\.yusuftaleb\.com · stickers by huashu · 15 Nov 2026"/)
+    expect(texts(log).find((l) => l.includes('Stickers: huashu-bird-sticker'))).toMatch(/^fillText\("everybird\.yusuftaleb\.com · Stickers: huashu-bird-sticker, CC BY 4\.0 · 15 Nov 2026"/)
     const on = image.cardLayout('print', { name: true, filter: false, latest: true, count: 14 }, printDesign('A4'))
     const off = image.cardLayout('print', { name: true, filter: false, latest: false, count: 14 }, printDesign('A4'))
     expect(off.collage).toEqual(on.collage)
@@ -136,12 +138,13 @@ describe('the poster\'s head and foot', () => {
     const mono = (text: string) => (px: number) => text.length * 0.6 * px
     const brandW = 9 * 0.55 * image.POSTER_FOOT.brand + 16
     const place = (name: string, maxW = 952) => image.placePosterFoot(mono(credit), mono(image.posterLatest(name, '2026-10', en.ui)), maxW, brandW)
-    // A typical name shares the line at 13px.
-    expect(place('Rock Sandpiper')).toEqual({ size: 13, below: false, latestBelow: false })
-    // A long one moves to a line of its own; the site and credit keep the wordmark's line at the largest size that fits.
+    // On a portrait poster a typical name moves to a line of its own; the site and credit keep the wordmark's line at the
+    // largest size that fits.
+    expect(place('Rock Sandpiper')).toEqual({ size: image.POSTER_FOOT.line, below: false, latestBelow: true })
     expect(place('Northern Rough-winged Swallow')).toEqual({ size: image.POSTER_FOOT.line, below: false, latestBelow: true })
-    // A landscape poster's wider line holds both at the full size.
-    expect(place('Northern Rough-winged Swallow', 1527 - 128)).toEqual({ size: image.POSTER_FOOT.line, below: false, latestBelow: false })
+    // A landscape poster's wider line holds both: a typical name at the full size, a long one a size smaller.
+    expect(place('Rock Sandpiper', 1527 - 128)).toEqual({ size: image.POSTER_FOOT.line, below: false, latestBelow: false })
+    expect(place('Northern Rough-winged Swallow', 1527 - 128)).toEqual({ size: 15, below: false, latestBelow: false })
   })
 
   it('draws a latest lifer that needs its own line at the bottom, right-aligned, the wordmark\'s line a line above', async () => {
@@ -150,7 +153,7 @@ describe('the poster\'s head and foot', () => {
     const log = await poster({ name: 'Ada’s birds', nameOf })
     const y = (l: string) => Number(/, ([\d.]+)\) \{/.exec(l)![1])
     const lifer = texts(log).find((l) => l.startsWith('fillText("Latest lifer: A Very Long'))!
-    const foot = texts(log).find((l) => l.includes('stickers by huashu'))!
+    const foot = texts(log).find((l) => l.includes('Stickers: huashu-bird-sticker'))!
     const brand = texts(log).find((l) => l.startsWith('fillText("Everybird"'))!
     expect(lifer).toMatch(/, 1016, [\d.]+\) .*textAlign: "right"/)
     expect(y(foot)).toBe(y(brand))

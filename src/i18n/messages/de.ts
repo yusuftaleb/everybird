@@ -796,8 +796,6 @@ export const de: Messages = {
       button: 'Vögel abhaken',
       label: 'Vögel auf einer Liste abhaken',
       search: 'Vögel suchen',
-      group: 'Taxonomische Gruppe',
-      back: 'Zurück: {name}',
       list: 'Arten zum Abhaken',
       onListLabel: '{name}, schon auf deiner Liste',
       onList: 'Auf deiner Liste',

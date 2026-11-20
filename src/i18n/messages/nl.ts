@@ -805,8 +805,6 @@ export const nl: Messages = {
       button: 'Aanvinken',
       label: 'Vogels aanvinken op een lijst',
       search: 'Vogels zoeken',
-      group: 'Taxonomische groep',
-      back: 'Terug naar {name}',
       list: 'Soorten om aan te vinken',
       onListLabel: '{name}, al op je lijst',
       onList: 'Op je lijst',

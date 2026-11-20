@@ -14,7 +14,8 @@
 //   bottom  a Hairline rule, "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px; unless the dialog's "Show latest
 //           lifer" switch is off, when the collage takes its room), then the footer: the Everybird wordmark and one
 //           quiet line beside it, the site, the sticker credit and the date the image was made
-//           ("everybird.yusuftaleb.com · stickers by huashu · 14 Nov 2026", stamp.ts; Geist Mono 20px, Muted).
+//           ("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", stamp.ts; Geist Mono
+//           20px, Muted; on its own line under the wordmark where it does not fit beside it: placeCredit).
 //           The full credit, with the licence, travels in the share text.
 // The story keeps the story safe zones clear: nothing in the top 160px (the profile row; the title from 184) or the
 // bottom 156px (the reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1284 with
@@ -32,7 +33,7 @@
 // picks its sticker tier (printStickerUrl: 1024 with the 384 fallback for big tiles), and the poster paints it in strips.
 // Its head and foot are quieter than an image's: the head is the title alone (the collage title, else the filter in
 // words, in Accent), with the count at its right under "Beside title"; the foot is one line under the hairline, the
-// wordmark then "everybird.yusuftaleb.com · stickers by huashu · 20 Nov 2026" at the left and "Latest lifer: Hooded
+// wordmark then "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 20 Nov 2026" at the left and "Latest lifer: Hooded
 // Crow, Sep 2026" at the right end (POSTER_FOOT; the latest lifer only with "Show latest lifer", on a second line,
 // right-aligned, where the two don't fit on one: placePosterFoot), with no latest lifer row or sticker.
 import { SHARE_ORIGIN } from '@/lib/share/origin'
@@ -93,11 +94,13 @@ export const isPrint = (f: CardFormat): f is 'print' | 'printLandscape' => f ===
 export const NAME_MAX_LEN = 40
 /** The footer's site name: the share origin's host ("everybird.yusuftaleb.com"). */
 export const SITE_LABEL = new URL(SHARE_ORIGIN).host
+/** The sticker credit on every image, poster and link preview, in the one form the credits take ("Tree: AvesData, CC BY 4.0"). */
+export const STICKER_CREDIT = 'Stickers: huashu-bird-sticker, CC BY 4.0'
 /**
- * The footer's one line beside the wordmark on share images and link previews: the site and the sticker credit. Share
- * images end it with the date stamp (stamp.ts withStamp); link previews don't.
+ * The footer's one line beside (or under) the wordmark on share images and link previews: the site and the sticker
+ * credit. Share images end it with the date stamp (stamp.ts withStamp); link previews don't.
  */
-export const FOOTER_LINE = `${SITE_LABEL} · stickers by huashu`
+export const FOOTER_LINE = `${SITE_LABEL} · ${STICKER_CREDIT}`
 /** The full sticker credit (CC BY 4.0), for the share sheet's text: the image itself carries FOOTER_LINE. */
 export const SHARE_CREDIT = 'Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker'
 
@@ -177,7 +180,8 @@ const ICON: Record<CardFormat, number> = { story: 76, post: 68, square: 68, prin
 /**
  * The cards whose footer is one line: the wordmark, the site and the credit on the left and the latest lifer row on the
  * right, all on the footer's baseline (cardLayout, placeFooter). Only the desktop: its width follows the screen (1,308 to
- * 2,464 units of text), and placeFooter clips a long name to the room the credit leaves at 17px. The 5:4 card (1,222) and
+ * 2,464 units of text). Where the credit at 17px and the whole name don't both fit beside the wordmark, the credit takes
+ * its own line under it (placeFooter), and only then is a long name shrunk or clipped. The 5:4 card (1,222) and
  * the landscape poster (about 1,400, with the credit at 17px) are too narrow for the row beside the credit, so they keep
  * the row stacked above the hairline (tests/orientation.test.ts measures it).
  */
@@ -642,7 +646,7 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, font: (px: number)
 /** The smallest size the footer line takes beside the wordmark before it moves to its own line. */
 export const CREDIT_MIN = 17
 /**
- * Where the footer line (the site and "stickers by huashu") goes, never truncated and never without the credit: beside
+ * Where the footer line (the site and the sticker credit) goes, never truncated and never without the credit: beside
  * the wordmark (`inlineRoom` px) at `size` down to `min` (CREDIT_MIN; the poster's POSTER_FOOT.min), else on its own line
  * (`fullRoom` px) at `size`, shrinking only if even the full width is too narrow. `measure(px)` is the line's width at that size.
  */
@@ -978,7 +982,7 @@ function cardFontsReady(d: CardDraft): Promise<void> {
 function placeFooter(d: CardDraft): PreparedCard {
   const { L, fonts: font, footerLine } = d
   // Footer, quiet: the wordmark, then one line on its baseline, the site, the sticker credit and the date stamp ("… ·
-  // stickers by huashu · 14 Nov 2026", never truncated). If it doesn't fit there at 17px or more, it takes its
+  // Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", never truncated). If it doesn't fit there at 17px or more, it takes its
   // own line under the wordmark at the bottom safe line, and the wordmark, the hairline and the latest lifer row move
   // up by that line. Estimates without a DOM: Cabinet Grotesk 700 about 0.55 em a character, Geist Mono 0.6.
   const X0 = L.collage.x, maxW = L.collage.w
@@ -995,14 +999,22 @@ function placeFooter(d: CardDraft): PreparedCard {
     const labelW = measure(font.mono(ls), ls, labelText, 0.6) + labelText.length * 0.06 * ls
     const nameW = (t: string, px: number) => measure(font.lifer(px), px, t, 0.56)
     const creditMin = footerW(CREDIT_MIN)
-    const room = maxW - FOOTER_GAP - brandW - creditMin - icon - ONE_LINE.gap
-    const full = nameW(d.latest.name, ns)
-    const nameSize = full <= room ? ns : Math.max(ns * ONE_LINE.nameMin, Math.min(ns, Math.floor((ns * room) / full)))
-    const nameText = clipTo((t) => nameW(t, nameSize), d.latest.name, room)
-    const blockW = icon + ONE_LINE.gap + Math.max(labelW, nameW(nameText, nameSize))
-    const x = X0 + maxW - blockW
-    const roomCredit = x - FOOTER_GAP - X0 - brandW
-    const credit = { ...placeCredit(footerW, roomCredit, roomCredit, L.footer.credit), below: false }
+    // `left`: where the credit's line starts, after the wordmark (beside it) or at the margin (under it).
+    const place = (left: number) => {
+      const room = maxW - FOOTER_GAP - left - creditMin - icon - ONE_LINE.gap
+      const full = nameW(d.latest!.name, ns)
+      const nameSize = full <= room ? ns : Math.max(ns * ONE_LINE.nameMin, Math.min(ns, Math.floor((ns * room) / full)))
+      const nameText = clipTo((t) => nameW(t, nameSize), d.latest!.name, room)
+      const x = X0 + maxW - (icon + ONE_LINE.gap + Math.max(labelW, nameW(nameText, nameSize)))
+      const roomCredit = x - FOOTER_GAP - X0 - left
+      return { nameSize, nameText, x, roomCredit, fits: nameText === d.latest!.name && roomCredit >= creditMin }
+    }
+    // Beside the wordmark when the credit (17px or more) and the whole name fit; else, as on every card, the credit takes
+    // its own line under the wordmark (the two on the row's two baselines, paintCard), so it has the wordmark's width too.
+    const beside = place(brandW)
+    const at = beside.fits ? beside : place(0)
+    const credit = { ...placeCredit(footerW, at.roomCredit, at.roomCredit, L.footer.credit), below: !beside.fits }
+    const { x, nameText, nameSize } = at
     const lifer = d.lifer && { ...d.lifer, x: x + (icon - d.lifer.w) / 2, y: L.latest.y + (icon - d.lifer.h) / 2 }
     return { ...d, lifer, brandW, credit, shift: 0, oneLine: { x, labelW, nameText, nameSize } }
   }
@@ -1168,13 +1180,16 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
   }
 
   // The footer (placed by prepareCard): the hairline, the wordmark, the line beside or under it.
-  const base = L.footer.y + L.footer.size * 0.8 - (card.oneLine ? FOOTER_LIFT : 0) // lifted to the lifer block's middle when it is on
+  // A one-line row: the wordmark and the credit lifted to the lifer block's middle; or, the credit under the wordmark, the
+  // two on the block's two baselines (its label's 30 above its name's).
+  const stack = !!card.oneLine && credit.below
+  const base = L.footer.y + L.footer.size * 0.8 - (card.oneLine && !stack ? FOOTER_LIFT : 0)
   ctx.fillStyle = C.hairline
   ctx.fillRect(X0, L.rule.y - shift, maxW, 2)
   ctx.textBaseline = 'alphabetic'
   ctx.font = font.brand(L.footer.size)
   ctx.fillStyle = C.ink
-  ctx.fillText('Everybird', X0, base - shift)
+  ctx.fillText('Everybird', X0, stack ? base - 30 : base - shift)
   ctx.font = font.footer(credit.size)
   ctx.fillStyle = C.muted
   // A poster's latest lifer at the right end of the bottom line: the wordmark's, or its own under it (placePosterFoot),
