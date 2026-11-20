@@ -833,7 +833,7 @@ export const sv: Messages = {
           'Varje fågel matchas mot årets eBird-taxonomi och behåller sitt tidigaste datum. Rader som inte matchar listas, så inget försvinner i tysthet.',
           'Collaget, filtren och delningsbilderna skapas helt i din webbläsare.',
         ],
-        privacy: 'Din lista lämnar aldrig din webbläsare. Vi räknar besök med Cloudflare Web Analytics, anonymt och utan cookies, och några handlingar (ett collage skapat, en bild delad eller sparad, en länk kopierad) med en liten egen räknare som aldrig ser dina fåglar, namn eller platser. Ett anonymt id som byts varje dag låter oss räkna unika besökare utan att följa någon över flera dagar. Inget av dem körs om din webbläsare ber om att inte spåras. Ditt språkval sparas i en liten cookie på den här enheten; den lämnar enheten bara för att visa dig rätt sida. Besöksräkningen innehåller din webbläsares språk (bara ”es”, ”pt”, ”nl”, ”pl”, ”fr”, ”de”, ”it”, ”sv” eller ”da”).',
+        privacy: 'Din lista lämnar aldrig din webbläsare. Vi räknar besök med Cloudflare Web Analytics, anonymt och utan cookies, och några handlingar (ett collage skapat, en bild delad eller sparad, en länk kopierad) med en liten egen räknare som aldrig ser dina fåglar, namn eller platser. Ett anonymt id som byts varje dag låter oss räkna unika besökare utan att följa någon över flera dagar. Inget av dem körs om din webbläsare ber om att inte spåras. Ditt språkval sparas i en liten cookie på den här enheten; den lämnar enheten bara för att visa dig rätt sida. Besöksräkningen innehåller din webbläsares språk (bara ”es”, ”pt”, ”nl”, ”pl”, ”fr”, ”de”, ”it”, ”sv”, ”da”, ”ru”, ”ja”, ”zh-Hans” eller ”zh-Hant”).',
       },
       size: {
         head: 'Vad Sann storlek betyder',

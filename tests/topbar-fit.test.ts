@@ -18,6 +18,7 @@ import { de } from '@/i18n/messages/de'
 import { it as italian } from '@/i18n/messages/it'
 import { sv } from '@/i18n/messages/sv'
 import { da } from '@/i18n/messages/da'
+import { ru } from '@/i18n/messages/ru'
 import { pt } from '@/i18n/messages/pt'
 import { WIDE_CHAR } from '@/lib/layout/count-box'
 import glyphs from './fixtures/glyph-advances.json'
@@ -25,7 +26,7 @@ import glyphs from './fixtures/glyph-advances.json'
 type Variant = (typeof LANG_VARIANTS)[number]
 type FontKey = keyof typeof glyphs.fonts
 
-const NAV = { en, es, pt, nl, pl, fr, de, it: italian, sv, da }
+const NAV = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru }
 const PAGES = ['collage', 'settings', 'about'] as const
 
 /** Room left over that we insist on: kerning (tightens these words; `kernWidenEm` is added anyway), subpixel rounding. */

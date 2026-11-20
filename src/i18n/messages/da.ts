@@ -835,7 +835,7 @@ export const da: Messages = {
           'Collagen, filtrene og billederne til deling laves alle i din browser.',
         ],
         // The language codes keep “…”: tests/about-i18n.test.tsx matches them.
-        privacy: 'Din liste forlader aldrig din browser. Vi tæller besøg med Cloudflare Web Analytics, anonymt og uden cookies, og nogle få handlinger (en collage lavet, et billede delt eller gemt, et link kopieret) med en lille tæller af vores egen, som aldrig ser dine fugle, navne eller steder. Et anonymt id, der skifter hver dag, lader os tælle unikke besøgende uden at følge nogen fra dag til dag. Ingen af dem kører, hvis din browser beder om ikke at blive sporet. Dit valg af sprog gemmes i en lille cookie på denne enhed; den forlader kun enheden for at vise dig den rigtige side. Besøgstællingen indeholder din browsers sprog (kun “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv” eller “da”).',
+        privacy: 'Din liste forlader aldrig din browser. Vi tæller besøg med Cloudflare Web Analytics, anonymt og uden cookies, og nogle få handlinger (en collage lavet, et billede delt eller gemt, et link kopieret) med en lille tæller af vores egen, som aldrig ser dine fugle, navne eller steder. Et anonymt id, der skifter hver dag, lader os tælle unikke besøgende uden at følge nogen fra dag til dag. Ingen af dem kører, hvis din browser beder om ikke at blive sporet. Dit valg af sprog gemmes i en lille cookie på denne enhed; den forlader kun enheden for at vise dig den rigtige side. Besøgstællingen indeholder din browsers sprog (kun “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” eller “zh-Hant”).',
       },
       size: {
         head: 'Hvad Ægte mål betyder',

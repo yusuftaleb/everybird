@@ -75,6 +75,7 @@ describe('the rewrites', () => {
       ['/it/about', 'header:accept-language'],
       ['/sv/about', 'header:accept-language'],
       ['/da/about', 'header:accept-language'],
+      ['/ru/about', 'header:accept-language'],
       ['/en/about', ''],
     ])
     expect(resolve('/about', { accept: 'pl-PL,pl;q=0.9,en;q=0.8' })).toBe('/pl/about')
@@ -83,6 +84,7 @@ describe('the rewrites', () => {
     expect(resolve('/about', { accept: 'it-IT,it;q=0.9,en;q=0.8' })).toBe('/it/about')
     expect(resolve('/about', { accept: 'sv-SE,sv;q=0.9,en;q=0.8' })).toBe('/sv/about')
     expect(resolve('/about', { accept: 'da-DK,da;q=0.9,en;q=0.8' })).toBe('/da/about')
+    expect(resolve('/about', { accept: 'ru-RU,ru;q=0.9,en;q=0.8' })).toBe('/ru/about')
     expect(resolve('/about', { cookie: `${LANG_COOKIE}=en`, accept: 'es-ES,es;q=0.9' })).toBe('/en/about')
     expect(resolve('/about', { cookie: `theme=dark; ${LANG_COOKIE}=pt`, accept: 'nl' })).toBe('/pt/about')
     expect(resolve('/settings', { cookie: `${LANG_COOKIE}=nl` })).toBe('/nl/settings')

@@ -13,7 +13,9 @@ import { de } from '@/i18n/messages/de'
 import { it as italian } from '@/i18n/messages/it'
 import { sv } from '@/i18n/messages/sv'
 import { da } from '@/i18n/messages/da'
+import { ru } from '@/i18n/messages/ru'
 import { pt } from '@/i18n/messages/pt'
+import { labelCells } from '@/lib/layout/count-box'
 import { ORDERS } from '@/lib/species/orders'
 import { withI18n } from './i18n-render'
 
@@ -49,7 +51,7 @@ const ALLOW_SAME = [
   'Africa',
 ]
 
-const OTHERS = { es, pt, nl, pl, fr, de, it: italian, sv, da } as const
+const OTHERS = { es, pt, nl, pl, fr, de, it: italian, sv, da, ru } as const
 
 /** Every leaf as [path, value]: strings, array items and Plural forms each count as one. */
 function leaves(node: unknown, path = ''): [string, string][] {
@@ -105,13 +107,13 @@ describe('the dictionaries', () => {
 
   it('the count label fits the hole in every language', () => {
     // COUNT_LABEL_CHARS (Task 6) is 8: "ESPECIES" and "ESPÉCIES".
-    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da]) expect(m.ui.count.label.length).toBeLessThanOrEqual(8)
-    expect([en, es, pt, nl, pl, fr, de, italian, sv, da].map((m) => m.ui.count.label)).toEqual(['species', 'especies', 'espécies', 'soorten', 'gatunki', 'espèces', 'Arten', 'specie', 'arter', 'arter'])
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru]) expect(labelCells(m.ui.count.label)).toBeLessThanOrEqual(8)
+    expect([en, es, pt, nl, pl, fr, de, italian, sv, da, ru].map((m) => m.ui.count.label)).toEqual(['species', 'especies', 'espécies', 'soorten', 'gatunki', 'espèces', 'Arten', 'specie', 'arter', 'arter', 'виды'])
   })
 
   it('the tables: separators, 12 months', () => {
     // Polish groups with "." like es, pt and nl, not its usual space: count-box.ts sizes the count's hole for "," and ".".
-    expect([en, es, pt, nl, pl, fr, de, italian, sv, da].map((m) => m.ui.num.group + m.ui.num.decimal)).toEqual([',.', '.,', '.,', '.,', '.,', '.,', '.,', '.,', '.,', '.,'])
+    expect([en, es, pt, nl, pl, fr, de, italian, sv, da, ru].map((m) => m.ui.num.group + m.ui.num.decimal)).toEqual([',.', '.,', '.,', '.,', '.,', '.,', '.,', '.,', '.,', '.,', '.,'])
     expect(es.ui.date.months.join(' ')).toBe('ene feb mar abr may jun jul ago sept oct nov dic')
     expect(pt.ui.date.months.join(' ')).toBe('jan fev mar abr mai jun jul ago set out nov dez')
     expect(nl.ui.date.months.join(' ')).toBe('jan feb mrt apr mei jun jul aug sep okt nov dec')
@@ -121,14 +123,15 @@ describe('the dictionaries', () => {
     expect(italian.ui.date.months.join(' ')).toBe('gen feb mar apr mag giu lug ago set ott nov dic')
     expect(sv.ui.date.months.join(' ')).toBe('jan feb mars apr maj juni juli aug sep okt nov dec')
     expect(da.ui.date.months.join(' ')).toBe('jan feb mar apr maj jun jul aug sep okt nov dec')
+    expect(ru.ui.date.months.join(' ')).toBe('янв фев мар апр май июн июл авг сен окт ноя дек')
   })
 })
 
 describe('langs', () => {
   it('lists the languages with their html lang and own names', () => {
-    expect(LANGS).toEqual(['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da'])
-    expect(LANGS.map((l) => HTML_LANG[l])).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da'])
-    expect(LANGS.map((l) => LANG_NAMES[l])).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski', 'Français', 'Deutsch', 'Italiano', 'Svenska', 'Dansk'])
+    expect(LANGS).toEqual(['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru'])
+    expect(LANGS.map((l) => HTML_LANG[l])).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru'])
+    expect(LANGS.map((l) => LANG_NAMES[l])).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski', 'Français', 'Deutsch', 'Italiano', 'Svenska', 'Dansk', 'Русский'])
     expect(isLang('es')).toBe(true)
     expect(isLang('tr')).toBe(false)
     expect(isLang('ES')).toBe(false)
@@ -144,6 +147,7 @@ describe('langs', () => {
     expect(langFromTag('it-IT')).toBe('it')
     expect(langFromTag('sv-SE')).toBe('sv')
     expect(langFromTag('da-DK')).toBe('da')
+    expect(langFromTag('ru-RU')).toBe('ru')
     expect(langFromTag('NL')).toBe('nl')
     expect(langFromTag('en-GB')).toBe('en')
     expect(langFromTag('tr-TR')).toBe('en')
