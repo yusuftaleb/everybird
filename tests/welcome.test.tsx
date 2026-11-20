@@ -59,6 +59,19 @@ describe('the first-visit welcome', () => {
     expect(dialog()).toBeNull()
   })
 
+  it('"Explore the sample" starts the tour; ✕ and Escape close without it', () => {
+    const onExplore = vi.fn()
+    render(<Welcome onExplore={onExplore} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onExplore).not.toHaveBeenCalled()
+    cleanup()
+    resetWelcomedForTests()
+    localStorage.clear()
+    render(<Welcome onExplore={onExplore} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Explore the sample' }))
+    expect(onExplore).toHaveBeenCalledOnce()
+  })
+
   // Tab staying inside is checked in a real browser (e2e/welcome.spec.ts): jsdom's querySelectorAll lists a selector
   // group's matches by selector, not in document order.
 

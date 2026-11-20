@@ -560,3 +560,21 @@
 @media (prefers-reduced-motion: reduce) {
   .eb-welcome { animation-name: eb-welcome-fade; }
 }
+
+/* The sample's guided tour (Tour.tsx): the welcome's card, small and fixed beside its target, which wears an Accent
+   ring. Over the top bar, under every dialog (a dialog opened from it covers it). */
+.eb-tour {
+  position: fixed; z-index: var(--z-tour); box-sizing: border-box; width: min(320px, calc(100vw - 32px)); padding: 16px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+  animation: eb-welcome-fade .2s ease both;
+}
+.eb-tour:focus { outline: none; }
+.eb-tour:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eb-tour-count { margin: 0 0 6px; color: var(--muted); }
+.eb-tour-text { margin: 0 0 14px; }
+.eb-tour-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.eb-tour .eb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[data-tour-on] { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .eb-tour { animation: none; } }

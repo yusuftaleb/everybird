@@ -393,6 +393,18 @@ export const EN_UI = {
     welcome: 'A lifetime of birds, as a sticker collage.',
     makeMine: 'Make mine',
     explore: 'Explore the sample',
+    /** The sample's guided tour (Tour.tsx), started by Explore the sample: the step count, one line per step, the buttons. */
+    tour: {
+      count: '{n} of {total}',
+      filter: 'Filter by place, date or conservation status. Every view follows the filter.',
+      view: 'See the same birds as a collage, a list, a map or a tree.',
+      bird: 'Press a bird to see when and where it was first seen.',
+      share: 'Share an image, print a poster or make a Big Year card.',
+      next: 'Next',
+      skip: 'Skip tour',
+      end: 'End tour',
+      own: 'Use your own list',
+    },
   },
   /** The shared view's page (/s/[token]) and SharedView. A link's own title and the page metadata are og.ts's. */
   shared: {

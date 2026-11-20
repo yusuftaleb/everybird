@@ -325,6 +325,17 @@ export const de: Messages = {
       welcome: 'Ein Leben voller Vögel, als Stickercollage.',
       makeMine: 'Meine erstellen',
       explore: 'Beispiel ansehen',
+      tour: {
+        count: '{n} von {total}',
+        filter: 'Filtere nach Ort, Datum oder Gefährdungsstatus. Jede Ansicht folgt dem Filter.',
+        view: 'Sieh dieselben Vögel als Collage, Liste, Karte oder Baum.',
+        bird: 'Tippe auf einen Vogel, um zu sehen, wann und wo er zuerst gesehen wurde.',
+        share: 'Teile ein Bild, drucke ein Poster oder erstelle eine Großes-Jahr-Karte.',
+        next: 'Weiter',
+        skip: 'Tour überspringen',
+        end: 'Tour beenden',
+        own: 'Nimm deine eigene Liste',
+      },
     },
     shared: {
       brokenTitle: 'Dieser Link ließ sich nicht öffnen',

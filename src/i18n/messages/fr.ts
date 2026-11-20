@@ -329,6 +329,17 @@ export const fr: Messages = {
       welcome: 'Toute une vie d’oiseaux, en collage d’autocollants.',
       makeMine: 'Créer le mien',
       explore: 'Explorer l’exemple',
+      tour: {
+        count: '{n} sur {total}',
+        filter: 'Filtre par lieu, date ou statut de conservation. Chaque affichage suit le filtre.',
+        view: 'Vois les mêmes oiseaux en collage, en liste, sur une carte ou en arbre.',
+        bird: 'Touche un oiseau pour voir quand et où il a été vu pour la première fois.',
+        share: 'Partage une image, imprime une affiche ou crée une carte Grande année.',
+        next: 'Suivant',
+        skip: 'Passer la visite',
+        end: 'Terminer la visite',
+        own: 'Utilise ta propre liste',
+      },
     },
     shared: {
       brokenTitle: 'Ce lien ne s’est pas ouvert',

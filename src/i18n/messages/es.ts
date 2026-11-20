@@ -329,6 +329,17 @@ export const es: Messages = {
       welcome: 'Toda una vida de aves, como un collage de stickers.',
       makeMine: 'Hacer el mío',
       explore: 'Explorar la muestra',
+      tour: {
+        count: '{n} de {total}',
+        filter: 'Filtra por lugar, fecha o estado de conservación. Todas las vistas siguen el filtro.',
+        view: 'Mira las mismas aves como collage, lista, mapa o árbol.',
+        bird: 'Toca un ave para ver cuándo y dónde se vio por primera vez.',
+        share: 'Comparte una imagen, imprime un póster o crea una tarjeta de Gran Año.',
+        next: 'Siguiente',
+        skip: 'Saltar el recorrido',
+        end: 'Terminar el recorrido',
+        own: 'Usa tu propia lista',
+      },
     },
     shared: {
       brokenTitle: 'Este enlace no se abrió',

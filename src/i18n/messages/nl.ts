@@ -329,6 +329,17 @@ export const nl: Messages = {
       welcome: 'Een leven vol vogels, als stickercollage.',
       makeMine: 'Maak de mijne',
       explore: 'Bekijk het voorbeeld',
+      tour: {
+        count: '{n} van {total}',
+        filter: 'Filter op plaats, datum of beschermingsstatus. Elke weergave volgt het filter.',
+        view: 'Bekijk dezelfde vogels als collage, lijst, kaart of boom.',
+        bird: 'Tik op een vogel om te zien wanneer en waar hij voor het eerst is gezien.',
+        share: 'Deel een afbeelding, print een poster of maak een Groot Jaar-kaart.',
+        next: 'Volgende',
+        skip: 'Rondleiding overslaan',
+        end: 'Rondleiding beëindigen',
+        own: 'Gebruik je eigen lijst',
+      },
     },
     shared: {
       brokenTitle: 'Deze link ging niet open',

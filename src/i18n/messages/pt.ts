@@ -329,6 +329,17 @@ export const pt: Messages = {
       welcome: 'Uma vida inteira de aves, como uma colagem de adesivos.',
       makeMine: 'Fazer a minha',
       explore: 'Explorar o exemplo',
+      tour: {
+        count: '{n} de {total}',
+        filter: 'Filtre por lugar, data ou estado de conservação. Todas as visualizações seguem o filtro.',
+        view: 'Veja as mesmas aves como colagem, lista, mapa ou árvore.',
+        bird: 'Toque em uma ave para ver quando e onde foi vista pela primeira vez.',
+        share: 'Compartilhe uma imagem, imprima um pôster ou crie um cartão de Grande Ano.',
+        next: 'Próximo',
+        skip: 'Pular o tour',
+        end: 'Encerrar o tour',
+        own: 'Use sua própria lista',
+      },
     },
     shared: {
       brokenTitle: 'Este link não abriu',

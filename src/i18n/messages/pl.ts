@@ -330,6 +330,17 @@ export const pl: Messages = {
       welcome: 'Ptaki całego życia jako kolaż naklejek.',
       makeMine: 'Stwórz mój',
       explore: 'Obejrzyj przykład',
+      tour: {
+        count: '{n} z {total}',
+        filter: 'Filtruj według miejsca, daty lub statusu ochronnego. Każdy widok stosuje ten filtr.',
+        view: 'Zobacz te same ptaki jako kolaż, listę, mapę lub drzewo.',
+        bird: 'Dotknij ptaka, aby zobaczyć, kiedy i gdzie widziano go po raz pierwszy.',
+        share: 'Udostępnij obraz, wydrukuj plakat lub utwórz kartę Wielkiego Roku.',
+        next: 'Dalej',
+        skip: 'Pomiń przewodnik',
+        end: 'Zakończ przewodnik',
+        own: 'Użyj własnej listy',
+      },
     },
     shared: {
       brokenTitle: 'Ten link się nie otworzył',
