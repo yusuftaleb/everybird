@@ -180,9 +180,10 @@ export const EN_UI = {
     },
     /** The Tree view (TreeView.tsx): AvesData's tree at three levels (families, genera, species). {tree}, {taxonomy}
      *  and {year} are data ("AvesData v1.7", "Clements 2025", "2026"); <src> links the repository, <lic> the licence.
-     *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the folded groups' names;
-     *  `insideOne`/`insideTwo` the note over an opened one; `markSr`/`keyMark` the mark of a group that is not one branch
-     *  of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. */
+     *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the names of the groups inside
+     *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
+     *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that is
+     *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. */
     tree: {
       loading: 'Loading the tree',
       failed: "The tree didn't load. Open Tree again to try once more.",
@@ -191,13 +192,15 @@ export const EN_UI = {
       tips: 'Tips of the tree, top to bottom',
       axis: 'Million years ago (estimates)',
       onList: '{n} of {total} on the list',
-      part: 'part {i} of {n}',
       withOne: 'with <a>{a}</a>',
       withTwo: 'with <a>{a}</a> and <b>{b}</b>',
       markSr: 'not one branch of its own in this tree',
       keyMark: 'Not one branch of its own in this tree',
       insideOne: 'In this tree, {a} sits inside {name}.',
       insideTwo: 'In this tree, {a} and {b} sit inside {name}.',
+      withMany: { one: 'with {n} other genus', other: 'with {n} other genera' },
+      insideMany: { one: 'In this tree, {n} other genus sits inside {name}.', other: 'In this tree, {n} other genera sit inside {name}.' },
+      insideTitle: 'Inside the {name} branch',
       onListOne: 'on the list',
       notOnList: 'not on the list',
       dottedSr: 'placed without genetic data',

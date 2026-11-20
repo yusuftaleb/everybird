@@ -14,8 +14,8 @@ import type { TreeFile } from '@/lib/tree/tree'
 
 // The tree file, and the full species file TreeView loads itself (the shown index may be the landing sample's own).
 const { fetchData, rows } = vi.hoisted(() => {
-  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: '2026', newick: '((((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6):1,((c1:1,c2:1):1,(c3:1,c4:1):1):9);', taxOnly: 'Q' }
-  // b2, the fifth tip, is placed without genetic data. Genus Aa is nearly one branch (with Ab inside); Ca and Cb are scattered.
+  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: '2026', newick: '((((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6):1,((c1:1,c2:1):1,(c3:1,c4:1):1):9,((d1:1,d2:1):1,(d3:1,(d4:0.5,d5:0.5):0.5):1):9);', taxOnly: 'Q' }
+  // b2, the fifth tip, is placed without genetic data. Genus Aa's row holds Ab, Ca's holds Cb, Da's holds Db, Dc and Dd.
   const rows: SpeciesRow[] = []
   const fetchData = vi.fn(async (name: string) => {
     if (name === 'tree.v1.json') return file
@@ -37,6 +37,9 @@ rows.push(
   sp('b1', 'Beta One', 'Bb one', 'Piciformes', 'Picidae', 'Woodpeckers', 5), sp('b2', 'Beta Two', 'Bb two', 'Piciformes', 'Picidae', 'Woodpeckers', 6),
   sp('c1', 'Gamma One', 'Ca one', 'Cuculiformes', 'Cuculidae', 'Cuckoos', 7), sp('c2', 'Gamma Two', 'Cb two', 'Cuculiformes', 'Cuculidae', 'Cuckoos', 8),
   sp('c3', 'Gamma Three', 'Ca three', 'Cuculiformes', 'Cuculidae', 'Cuckoos', 9), sp('c4', 'Gamma Four', 'Cb four', 'Cuculiformes', 'Cuculidae', 'Cuckoos', 10),
+  sp('d1', 'Delta One', 'Da one', 'Columbiformes', 'Columbidae', 'Pigeons', 11), sp('d2', 'Delta Two', 'Db two', 'Columbiformes', 'Columbidae', 'Pigeons', 12),
+  sp('d3', 'Delta Three', 'Dc three', 'Columbiformes', 'Columbidae', 'Pigeons', 13), sp('d4', 'Delta Four', 'Dd four', 'Columbiformes', 'Columbidae', 'Pigeons', 14),
+  sp('d5', 'Delta Five', 'Da five', 'Columbiformes', 'Columbidae', 'Pigeons', 15),
 )
 const entry = (code: string): ListEntry => ({ code, date: '2024-01-01', place: { country: 'CA' } } as ListEntry)
 
@@ -96,7 +99,7 @@ describe('TreeView', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^Ducks/ }))
     expect(screen.getByText('Ducks', { selector: '[aria-current]' })).toHaveFocus()
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
-    // Aa is nearly one branch: one row for the branch, with Ab inside it and no row of its own.
+    // Aa is not one branch: one row for the branch, with Ab inside it and no row of its own.
     expect(within(genera).getAllByRole('button')).toHaveLength(1)
     const aa = within(genera).getByRole('button', { name: 'Aa with Ab, not one branch of its own in this tree, 1 of 4 on the list' })
     expect(aa).toHaveAttribute('data-on')
@@ -124,17 +127,37 @@ describe('TreeView', () => {
     expect(screen.getByText('Placed without genetic data')).toBeInTheDocument()
   })
 
-  it('a scattered genus keeps a row per part, marked; opening a part shows its species alone; the key says what the mark means', async () => {
+  it('a genus split across its family is one marked row, with the genus inside named; the key says what the mark means', async () => {
     render(<TreeView entries={['c3'].map(entry)} sci={false} onPick={() => {}} />)
     fireEvent.click(await screen.findByRole('button', { name: /^Cuckoos/ }))
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
-    expect(within(genera).getAllByRole('button')).toHaveLength(4)
-    expect(within(genera).getByRole('button', { name: 'Ca part 1 of 2, not one branch of its own in this tree, 0 of 1 on the list' })).toBeInTheDocument()
-    expect(within(genera).getByRole('button', { name: 'Ca part 2 of 2, not one branch of its own in this tree, 1 of 1 on the list' })).toHaveAttribute('data-on')
+    expect(within(genera).getAllByRole('button')).toHaveLength(1)
+    fireEvent.click(within(genera).getByRole('button', { name: 'Ca with Cb, not one branch of its own in this tree, 1 of 4 on the list' }))
     expect(screen.getByText('Not one branch of its own in this tree')).toBeInTheDocument()
-    fireEvent.click(within(genera).getByRole('button', { name: /^Cb part 1 of 2/ }))
-    expect(screen.getByText('Cb is not one branch in this tree, so this drawing shows its species alone.')).toBeInTheDocument()
-    expect([...screen.getByRole('list', { name: 'Tips of the tree, top to bottom' }).querySelectorAll('.eb-tree-name')].map((n) => n.textContent)).toEqual(['Gamma Two', 'Gamma Four'])
+    expect(screen.getByText('In this tree, Cb sits inside Ca.')).toBeInTheDocument()
+    expect([...screen.getByRole('list', { name: 'Tips of the tree, top to bottom' }).querySelectorAll('.eb-tree-name')].map((n) => n.textContent)).toEqual(['Gamma One', 'Gamma Two Cb', 'Gamma Three', 'Gamma Four Cb'])
+  })
+
+  it('more than two genera inside: a count opening their list, each genus opening its own species, and back to the count', async () => {
+    render(<TreeView entries={['d3'].map(entry)} sci={false} onPick={() => {}} />)
+    fireEvent.click(await screen.findByRole('button', { name: /^Pigeons/ }))
+    const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect(within(genera).getByRole('button', { name: 'Da, not one branch of its own in this tree, 1 of 5 on the list' })).toBeInTheDocument()
+    const more = within(genera).getByRole('button', { name: 'Da with 3 other genera' })
+    expect(more).toHaveAttribute('aria-haspopup', 'dialog')
+    fireEvent.click(more)
+    const sheet = screen.getByRole('dialog', { name: 'Inside the Da branch' })
+    expect(within(sheet).getByText('Inside the Da branch · 3')).toBeInTheDocument()
+    expect(within(within(sheet).getByRole('list')).getAllByRole('button').map((b) => b.textContent)).toEqual(['Db0 / 1, 0 of 1 on the list', 'Dc1 / 1, 1 of 1 on the list', 'Dd0 / 1, 0 of 1 on the list'])
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Dc, 1 of 1 on the list' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByText('Dc', { selector: '[aria-current]' })).toHaveFocus()
+    expect([...screen.getByRole('list', { name: 'Tips of the tree, top to bottom' }).querySelectorAll('.eb-tree-name')].map((n) => n.textContent)).toEqual(['Delta Three'])
+    fireEvent.click(screen.getByRole('button', { name: 'Pigeons' }))
+    expect(screen.getByRole('button', { name: 'Da with 3 other genera' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: /^Da, / }))
+    expect(screen.getByText('In this tree, 3 other genera sit inside Da.')).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Tips of the tree, top to bottom' }).querySelectorAll('.eb-tree-row')).toHaveLength(5)
   })
 
   it('a smaller list changes the counts and the marked tips', async () => {

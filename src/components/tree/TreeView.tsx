@@ -2,21 +2,23 @@
 // The Tree tab: the list read on AvesData's dated tree of birds (public/data/tree.v1.json, fetched the first time the
 // tab opens). Level one is every family, grey when none of its species is on the (filtered) list; a family opens to
 // its genera and a genus to its species, whose tips on the list open the bird card. The drawing is aria-hidden; the
-// rows beside it carry the names and counts, top to bottom in the tree's order. A group the tree splits carries a mark:
-// nearly one branch, it is one row "with" the groups inside it; scattered, one row per part. Under it: the key (the mark
-// and the dotted line of a tip placed without genetic data), the birds the tree does not place, and the source with its
-// licence. levels.ts and tree.ts hold the logic.
+// rows beside it carry the names and counts, top to bottom in the tree's order. A group the tree splits is one marked row
+// at the smallest branch holding it, "with" the groups inside it; more than two genera inside are a button opening their
+// list (PickerSheet), each opening its own species. Under it: the key (the mark and the dotted line of a tip placed
+// without genetic data), the birds the tree does not place, and the source with its licence. levels.ts and tree.ts
+// hold the logic.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
+import { PickerSheet } from '@/components/filters/PickerSheet'
 import { fetchData } from '@/lib/data-url'
 import type { ListEntry } from '@/lib/list/model'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { SpeciesRow } from '@/lib/species/types'
-import { genusOf, levelView, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
+import { genusOf, levelView, type Inside, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
 import { ageTicks, formatAge, oldestLineage, parseNewick, type Tree, type TreeFile } from '@/lib/tree/tree'
 import './tree.css'
 
@@ -55,6 +57,8 @@ export default function TreeView({ entries, sci, onPick }: Props) {
     return () => { live = false }
   }, [])
   const [level, setLevel] = useState<TreeLevel>({})
+  // The row whose list of genera inside is open.
+  const [list, setList] = useState<string | null>(null)
   const onList = useMemo(() => new Set(entries.map((e) => e.code)), [entries])
   const species = data?.species
   const view = useMemo(() => (data ? levelView(data.tree, data.species, level, onList) : undefined), [data, level, onList])
@@ -68,10 +72,12 @@ export default function TreeView({ entries, sci, onPick }: Props) {
     const f = focus.current
     if (!f) return
     focus.current = null
-    box.current?.querySelector<HTMLElement>(f === 'here' ? '.eb-tree-here' : `[data-key="${f}"]`)?.focus()
+    // A genus opened from a row's list goes back to that list's button.
+    box.current?.querySelector<HTMLElement>(f === 'here' ? '.eb-tree-here' : `[data-key="${f}"], [data-inside~="${f}"]`)?.focus()
   }, [level])
   const go = (next: TreeLevel, back?: string) => {
     focus.current = back ?? 'here'
+    setList(null)
     setLevel(next)
   }
 
@@ -86,20 +92,21 @@ export default function TreeView({ entries, sci, onPick }: Props) {
   if (famRow) crumbs.push({ label: famLabel(famRow), latin: sci, to: { fam: at.fam }, back: at.genus })
   if (at.genus) crumbs.push({ label: at.genus, latin: true })
   const here = at.genus ?? (famRow ? famLabel(famRow) : undefined)
+  const count = (n: number) => formatInt(n, t.num)
   // A family's or genus's name as shown, and whether it is Latin.
   const groupName = (r: SpeciesRow, fam: boolean): [string, boolean] => (fam ? [famLabel(r), sci] : [genusOf(r.sci), true])
   const insideNote = (() => {
     if (!view.inside || !here) return undefined
+    if (at.genus && view.inside.length > 2) return plural(tt.insideMany, view.inside.length, { n: count(view.inside.length), name: here })
     const names = view.inside.map((r) => groupName(r, !at.genus)[0])
     const last = names.pop()!
     return names.length ? fmt(tt.insideTwo, { a: names.join(', '), b: last, name: here }) : fmt(tt.insideOne, { a: last, name: here })
   })()
   const ticks = ageTicks(view.drawing.rootAge).filter((v) => v / view.drawing.rootAge <= 0.97 || v === 0)
-  const count = (n: number) => formatInt(n, t.num)
 
   // "with Turacoena", "with Urolestes and Corvinella": the groups folded into a row's branch, named as the row's own.
-  const withText = (rows: SpeciesRow[], fam: boolean) => {
-    const names = rows.map((r) => groupName(r, fam)[0])
+  const withText = (rows: Inside[], fam: boolean) => {
+    const names = rows.map((w) => groupName(w.row, fam)[0])
     const tag = (chunk: string) => <span lang={!fam || sci ? 'la' : undefined}>{chunk}</span>
     const b = names.pop()!
     return rich(names.length ? fmt(tt.withTwo, { a: names.join(', '), b }) : fmt(tt.withOne, { a: b }), { a: tag, b: tag })
@@ -110,8 +117,11 @@ export default function TreeView({ entries, sci, onPick }: Props) {
     // Level one: the family's other name. Level two inside a folded family: a genus of another family names its family.
     const other = fam ? (sci ? familyName(r.row) : r.row.fam) : r.row.fam !== at.fam ? famLabel(r.row) : undefined
     const otherLatin = fam ? !sci : sci
-    const marked = !!(r.with || r.part)
+    const marked = !!r.with
+    // More than two genera inside: a count opening their list instead of the sentence.
+    const many = !fam && r.with && r.with.length > 2 ? r.with : undefined
     return (
+      <>
       <button
         type="button"
         className="eb-tree-btn"
@@ -123,13 +133,18 @@ export default function TreeView({ entries, sci, onPick }: Props) {
         <span className="eb-tree-name">
           <span lang={!fam || sci ? 'la' : undefined}>{primary}</span>
           {marked && <span className="eb-tree-mark" aria-hidden="true" />}
-          {r.with && <>{' '}<span className="eb-tree-other" data-keep>{withText(r.with, fam)}</span></>}
-          {r.part && <>{' '}<span className="eb-mono eb-tree-part">{fmt(tt.part, { i: r.part[0], n: r.part[1] })}</span></>}
+          {r.with && !many && <>{' '}<span className="eb-tree-other" data-keep>{withText(r.with, fam)}</span></>}
           {other && <>{' '}<span className="eb-tree-other" data-keep={!fam || undefined} lang={otherLatin ? 'la' : undefined}>{other}</span></>}
         </span>
         <span className="eb-mono eb-tree-count" aria-hidden="true">{count(r.on)} / {count(r.total)}</span>
         <span className="eb-sr">{marked && `, ${tt.markSr}`}, {fmt(tt.onList, { n: count(r.on), total: count(r.total) })}{r.dotted && `, ${tt.dottedSr}`}</span>
       </button>
+      {many && (
+        <button type="button" className="eb-tree-with" aria-haspopup="dialog" aria-expanded={list === r.key} data-inside={many.map((w) => w.key).join(' ')} onClick={() => setList(r.key)}>
+          <span className="eb-sr" lang="la">{r.key}</span>{' '}{plural(tt.withMany, many.length, { n: count(many.length) })}
+        </button>
+      )}
+      </>
     )
   }
   const speciesRow = (r: Extract<TreeRow, { kind: 'species' }>) => {
@@ -149,6 +164,8 @@ export default function TreeView({ entries, sci, onPick }: Props) {
       ? <button type="button" className="eb-tree-btn" data-on data-code={r.row.code} onClick={(e) => onPick(r.row.code, e.currentTarget)}>{inner}</button>
       : <span className="eb-tree-btn">{inner}</span>
   }
+
+  const listRow = list ? view.rows.find((r): r is Extract<TreeRow, { kind: 'group' }> => r.kind === 'group' && r.key === list && !!r.with) : undefined
 
   return (
     <div ref={box} className="eb-tree">
@@ -196,6 +213,22 @@ export default function TreeView({ entries, sci, onPick }: Props) {
           </ol>
         </div>
       </div>
+      {listRow && (
+        <PickerSheet title={fmt(tt.insideTitle, { name: listRow.key })} count={listRow.with!.length} onClose={() => setList(null)}>
+          <ul className="eb-tree-inside">
+            {listRow.with!.map((w) => (
+              <li key={w.key}>
+                <button type="button" className="eb-tree-btn" data-on={w.on > 0 || undefined} onClick={() => go({ fam: at.fam, genus: w.key })}>
+                  <span className="eb-tree-dot" aria-hidden="true" />
+                  <span className="eb-tree-name"><span lang="la">{w.key}</span></span>
+                  <span className="eb-mono eb-tree-count" aria-hidden="true">{count(w.on)} / {count(w.total)}</span>
+                  <span className="eb-sr">, {fmt(tt.onList, { n: count(w.on), total: count(w.total) })}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </PickerSheet>
+      )}
       <ul className="eb-tree-key">
         <li><span className="eb-tree-mark" aria-hidden="true" />{tt.keyMark}</li>
         <li>
