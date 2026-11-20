@@ -309,7 +309,7 @@ export const zhHant: Messages = {
     card: {
       close: '關閉',
       noDrawing: '這個鳥種還沒有插畫。',
-      album: '插畫：Bird Album',
+      album: '插畫',
       albumSpoken: 'Bird Album 的插畫，在新分頁開啟',
       assignedRegion: '依地區指定',
       assignedDefault: '預設指定',
@@ -795,7 +795,6 @@ export const zhHant: Messages = {
       onListLabel: '{name}，已在你的清單上',
       onList: '已在你的清單上',
       when: '時間和地點',
-      whenNote: '套用在這裡展開時你新增的鳥。',
       date: '日期（選填）',
       year: '或只填年份',
       dateError: '請使用 1800 年到今年之間的年份。',

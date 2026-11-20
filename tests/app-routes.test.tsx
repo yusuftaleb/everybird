@@ -618,7 +618,6 @@ describe('editing', () => {
     await go('/settings')
     await openTick()
     fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'northern fl' } })
-    fireEvent.click(screen.getByRole('button', { name: 'When and where' }))
     fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2019-06-15' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'CA' } })
     fireEvent.change(screen.getByLabelText('Region (optional)'), { target: { value: 'CA-BC' } })
@@ -639,10 +638,10 @@ describe('editing', () => {
     const list = screen.getByRole('listbox', { name: 'Species to tick' })
     expect(list).toHaveAttribute('aria-multiselectable', 'true')
     expect(within(list).getAllByRole('option')).toHaveLength(5) // the whole (synthetic) taxonomy, windowed
-    // "When and where" is closed: a bird added now gets no date and no place.
-    const when = screen.getByRole('button', { name: 'When and where' })
-    expect(when).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.getByLabelText('Date (optional)')).not.toBeVisible()
+    // "When and where" is always there, under the list (no button to open it); empty, a bird gets no date and no place.
+    expect(screen.queryByRole('button', { name: 'When and where' })).toBeNull()
+    expect(screen.getByRole('group', { name: 'When and where' })).toContainElement(screen.getByLabelText('Date (optional)'))
+    expect(screen.getByLabelText('Date (optional)')).toBeVisible()
     fireEvent.click(tickOption(/^Snow Goose/))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species, all ticked by hand.'))
     // On the list: selected, and says so in words; the change is announced with Undo, focus left on the list.
@@ -653,9 +652,7 @@ describe('editing', () => {
     expect(within(goose).getByText('On your list')).toBeInTheDocument()
     expect(list).toHaveFocus()
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'manual' }]])
-    // Keyboard, with When and where open: the arrows move the active row, Space adds it with the year and country.
-    fireEvent.click(when)
-    expect(when).toHaveAttribute('aria-expanded', 'true')
+    // Keyboard, with a year and a country set: the arrows move the active row, Space adds it with them.
     fireEvent.change(screen.getByLabelText('Or a year'), { target: { value: '2018' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
     list.focus()
@@ -672,8 +669,9 @@ describe('editing', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species'))
     expect(tickOption(/^Northern Flicker/)).toHaveAttribute('aria-selected', 'false')
-    // Closed again, When and where gives the next bird nothing.
-    fireEvent.click(when)
+    // Cleared again, When and where gives the next bird nothing.
+    fireEvent.change(screen.getByLabelText('Or a year'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: '' } })
     fireEvent.click(tickOption(/^Northern Flicker/))
     await waitFor(async () => expect((await storage.load())?.edits.added.at(-1)).toEqual({ code: 'norfli', source: 'manual' }), { timeout: 2000 })
     // Search narrows by word prefixes of either name; one family menu (common names) browses; there is no order menu.
@@ -721,7 +719,6 @@ describe('editing', () => {
   it('add by hand refuses a year it cannot use', async () => {
     await mount()
     await openTick()
-    fireEvent.click(screen.getByRole('button', { name: 'When and where' }))
     const year = screen.getByLabelText('Or a year')
     fireEvent.change(year, { target: { value: '20x9' } })
     expect(screen.getByText('Use a year from 1800 to this year.')).toBeInTheDocument()
@@ -930,7 +927,10 @@ describe('remembered sources', () => {
     await waitFor(() => expect(screen.getByLabelText('Search birds')).toHaveFocus())
     // Tab from the last control wraps to the first (the close button).
     const close = within(dialog).getByRole('button', { name: 'Close' })
+    // In document order (jsdom returns a selector list's matches grouped by selector): the last is When and where's.
     const focusables = [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])')]
+      .sort((x, y) => (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
+    expect(focusables.at(-1)).toHaveAccessibleName('Country (optional)')
     focusables.at(-1)!.focus()
     fireEvent.keyDown(focusables.at(-1)!, { key: 'Tab' })
     expect(close).toHaveFocus()

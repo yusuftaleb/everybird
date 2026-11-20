@@ -386,7 +386,7 @@ export const EN_UI = {
   card: {
     close: 'Close',
     noDrawing: 'No drawing yet for this species.',
-    album: 'Illustration: Bird Album',
+    album: 'Illustration',
     albumSpoken: 'Illustration from Bird Album, opens in a new tab',
     assignedRegion: 'Assigned by region',
     assignedDefault: 'Assigned by default',
@@ -947,9 +947,8 @@ export const EN_UI = {
     /** A row's name for screen readers when the bird is already on the list ({name} is "Common, Scientific"). */
     onListLabel: '{name}, already on your list',
     onList: 'On your list',
+    /** The bar under the list (always shown): the date, year, country and region every bird added gets. */
     when: 'When and where',
-    /** Under "When and where", once open: nothing applies while it is closed. */
-    whenNote: 'Applies to the birds you add while this is open.',
     date: 'Date (optional)',
     /** The year field beside the date picker: a year alone, as typed dates allowed. */
     year: 'Or a year',

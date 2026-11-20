@@ -314,7 +314,7 @@ export const nl: Messages = {
     card: {
       close: 'Sluiten',
       noDrawing: 'Nog geen tekening van deze soort.',
-      album: 'Illustratie: Bird Album',
+      album: 'Illustratie',
       albumSpoken: 'Illustratie van Bird Album, opent in een nieuw tabblad',
       assignedRegion: 'Toegewezen op regio',
       assignedDefault: 'Standaard toegewezen',
@@ -807,7 +807,6 @@ export const nl: Messages = {
       onListLabel: '{name}, al op je lijst',
       onList: 'Op je lijst',
       when: 'Wanneer en waar',
-      whenNote: 'Geldt voor de vogels die je toevoegt zolang dit open is.',
       date: 'Datum (optioneel)',
       year: 'Of een jaar',
       dateError: 'Gebruik een jaar van 1800 tot dit jaar.',

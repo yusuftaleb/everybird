@@ -100,23 +100,20 @@ test("Collage, Settings and About share one page head at 390, 768 and 1280", asy
   }
 });
 
-test("Add by hand: the search has the focus, and When and where opens and closes from the keyboard", async ({ page }) => {
+test("Add by hand: When and where is always in view, and only the species list scrolls in the dialog", async ({ page }) => {
   await page.goto("/settings");
   const dialog = await openAdd(page, "hand");
   await expect(dialog.getByLabel("Search birds")).not.toBeFocused(); // on Settings the list is part of the page
-  await expect(dialog.getByRole("listbox", { name: "Species to tick" })).toBeVisible();
-  // Closed by default: a bird added now gets no date or place.
-  const btn = dialog.getByRole("button", { name: "When and where" });
-  await expect(btn).toHaveAttribute("aria-expanded", "false");
-  await expect(dialog.getByLabel("Date (optional)")).toBeHidden();
-  await btn.focus();
-  await page.keyboard.press("Enter");
-  await expect(btn).toHaveAttribute("aria-expanded", "true");
-  await expect(dialog.getByText("Applies to the birds you add while this is open.")).toBeVisible();
-  for (const label of ["Date (optional)", "Or a year", "Country (optional)"]) await expect(dialog.getByLabel(label, { exact: true })).toBeVisible();
-  await page.keyboard.press("Space");
-  await expect(btn).toHaveAttribute("aria-expanded", "false");
-  await expect(dialog.getByLabel("Date (optional)")).toBeHidden();
+  const list = dialog.getByRole("listbox", { name: "Species to tick" });
+  await expect(list).toBeVisible();
+  // No button to open it: the date, the year and the country are there all the time.
+  await expect(dialog.getByRole("button", { name: "When and where" })).toHaveCount(0);
+  const when = dialog.getByRole("group", { name: "When and where" });
+  for (const label of ["Date (optional)", "Or a year", "Country (optional)"]) await expect(when.getByLabel(label, { exact: true })).toBeVisible();
+  // The dialog itself does not scroll; the list does, and the bar stays in view while it does.
+  expect(await dialog.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+  await list.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  await expect(when.getByLabel("Date (optional)", { exact: true })).toBeInViewport();
 });
 
 test("each source says what it brings, and the line above them sums them up", async ({ page }) => {

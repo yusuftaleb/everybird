@@ -5,13 +5,14 @@
 // Collage, the sort direction in List, Lifers only in Tree, Scientific in all three; none in Map. In Tree, the Level and
 // Layout menus come first: TreeView renders them into the slot `treeMenus` hands it (a portal), since the levels on
 // offer come from the tree it loads. The magnifier turns the dock into the search field (DockSearch.tsx); everything
-// else sits under it, inert, while it is open. Under 820px of bar (1200px in Tree, whose controls need more room) the
-// view's controls and Filters take a second row of their own, wrapping whole (the menus together, the switches
-// together) rather than overflowing; under 600px Filters fills what the switches leave and the Tree's menus take a row
-// to themselves (app.css); under 1100px the views are icons only; under 540px of bar (and on phones) the switches
-// shorten ("True", "Sci."; "Heaviest" in list view; Lifers only keeps its words), and under 330px and 310px everything
-// tightens, so row one (the views and the magnifier) never breaks between 280 and 1200px of bar.
-import { useCallback, useRef, useState, type ReactNode } from 'react'
+// else sits under it, inert, while it is open. Under 820px of bar the view's controls and Filters take a second row of
+// their own, wrapping whole (the menus together, the switches together) rather than overflowing. Tree, whose controls
+// need more room, also takes the second row from 820px whenever its controls don't fit on one (`data-wrap`, measured:
+// `dockRowWidth`); under 600px Filters fills what the switches leave and the Tree's menus take a row to themselves
+// (app.css); under 1100px the views are icons only; under 540px of bar (and on phones) the switches shorten ("True",
+// "Sci."; "Heaviest" in list view; Lifers only keeps its words), and under 330px and 310px everything tightens, so row
+// one (the views and the magnifier) never breaks from 280px of bar.
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
 import { useI18n } from '@/i18n/I18nProvider'
 import { setTreeMine, useTreeMine } from '@/lib/tree-mine'
@@ -55,6 +56,27 @@ function DockSwitch({ on, onChange, long, short, sr, className, title, testId }:
   )
 }
 
+const px = (v: string) => parseFloat(v) || 0
+const shown = (el: Element) => { const s = getComputedStyle(el); return s.display !== 'none' && s.position !== 'absolute' }
+const outer = (el: Element) => { const s = getComputedStyle(el); return (el as HTMLElement).offsetWidth + px(s.marginLeft) + px(s.marginRight) }
+
+/**
+ * The width the dock's content needs on one row: the views, every control of the view-and-Filters group side by side
+ * (each at its own width: they never stretch or shrink on the Tree's bar, wrapped from 600px or not), and the
+ * magnifier, with their margins and the gaps. The group's own margin is left out (its `auto` reads as the room left).
+ */
+export function dockRowWidth(dock: HTMLElement): number {
+  const gap = (el: Element) => px(getComputedStyle(el).columnGap)
+  const parts = [...dock.children].filter(shown)
+  let w = gap(dock) * Math.max(0, parts.length - 1)
+  for (const p of parts) {
+    if (!p.classList.contains('eb-dock-filters')) { w += outer(p); continue }
+    const kids = [...p.children].filter(shown)
+    w += kids.reduce((a, k) => a + outer(k), 0) + gap(p) * Math.max(0, kids.length - 1)
+  }
+  return w
+}
+
 export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, search, filters, below, onFind, treeMenus }: Props) {
   const [finding, setFinding] = useState(false)
   // Whether the search is open is carried over a language switch (view-resume.ts); the typed text is not.
@@ -65,6 +87,24 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
   const c = t.collage.controls
   const mine = useTreeMine()
   const wrap = useRef<HTMLDivElement>(null)
+  const dock = useRef<HTMLDivElement>(null)
+  // Tree: the controls take the second row only when they don't fit on one (measured before paint, again on every
+  // change of the bar's or a control's width; left as it is while the search covers the bar).
+  const [treeWrap, setTreeWrap] = useState(false)
+  useLayoutEffect(() => {
+    const el = dock.current
+    if (view !== 'tree' || finding || !el || typeof ResizeObserver === 'undefined') return
+    const check = () => {
+      const s = getComputedStyle(el)
+      setTreeWrap(dockRowWidth(el) > el.clientWidth - px(s.paddingLeft) - px(s.paddingRight) + 0.5)
+    }
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    const group = el.querySelector('.eb-dock-filters')
+    if (group) { ro.observe(group); for (const k of group.children) ro.observe(k) }
+    return () => ro.disconnect()
+  }, [view, finding])
   const findBtn = useRef<HTMLButtonElement>(null)
   const close = useCallback((restore: boolean) => {
     setFinding(false)
@@ -99,7 +139,7 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
   ) : null
   return (
     <div ref={wrap} className="eb-dockwrap">
-      <div className="eb-dock" data-view={view} data-finding={finding || undefined}>
+      <div ref={dock} className="eb-dock" data-view={view} data-wrap={(view === 'tree' && treeWrap) || undefined} data-finding={finding || undefined}>
         <div className="eb-dock-tabs" role="group" aria-label={c.view} inert={finding} data-tour="view">
           {(noMap ? (['collage', 'list', 'tree'] as const) : (['collage', 'list', 'map', 'tree'] as const)).map((v) => (
             <button key={v} type="button" className="eb-dock-tab" aria-pressed={view === v} aria-label={c[v]} onClick={() => onView(v)}>

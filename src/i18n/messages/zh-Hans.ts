@@ -309,7 +309,7 @@ export const zhHans: Messages = {
     card: {
       close: '关闭',
       noDrawing: '这个物种还没有插画。',
-      album: '插画：Bird Album',
+      album: '插画',
       albumSpoken: '插画来自Bird Album，在新标签页中打开',
       assignedRegion: '按地区归属',
       assignedDefault: '默认归属',
@@ -795,7 +795,6 @@ export const zhHans: Messages = {
       onListLabel: '{name}，已在你的清单上',
       onList: '已在你的清单上',
       when: '时间和地点',
-      whenNote: '适用于展开此项时你添加的鸟。',
       date: '日期（可选）',
       year: '或年份',
       dateError: '使用1800年到今年之间的年份。',

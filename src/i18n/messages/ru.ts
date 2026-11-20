@@ -329,7 +329,7 @@ export const ru: Messages = {
     card: {
       close: 'Закрыть',
       noDrawing: 'Для этого вида пока нет рисунка.',
-      album: 'Иллюстрация: Bird Album',
+      album: 'Иллюстрация',
       albumSpoken: 'Иллюстрация из Bird Album, откроется в новой вкладке',
       assignedRegion: 'Определено по региону',
       assignedDefault: 'Определено по умолчанию',
@@ -852,7 +852,6 @@ export const ru: Messages = {
       onListLabel: '{name}, уже в твоём списке',
       onList: 'В твоём списке',
       when: 'Когда и где',
-      whenNote: 'Применяется к птицам, которых ты добавляешь, пока это открыто.',
       date: 'Дата (необязательно)',
       year: 'Или год',
       dateError: 'Укажи год от 1800 до текущего.',

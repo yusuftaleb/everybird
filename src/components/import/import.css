@@ -160,11 +160,16 @@
 
 /* Fields (.eb-input, .eb-select, .eb-input-wrap): styles/globals.css, shared with the Places panel's search. */
 
-/* Add by hand (the Add birds dialog): "When and where", the search and the family menu, the windowed list. */
+/* Add by hand (the Add birds dialog and Settings): the search and the family menu, the windowed list, and under it the
+   "When and where" bar (the old "Add N" bar's design: Paper, a Hairline above, sticky at the screen's bottom while the
+   list is in view), always shown. */
 .eb-tick { display: flex; flex-direction: column; gap: 10px; }
-.eb-tick-when { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-.eb-tick-when > [role="group"]:not([hidden]) { display: flex; flex-direction: column; gap: 8px; align-self: stretch; }
-.eb-tick-when .eb-note { margin: 0; }
+.eb-tickbar {
+  position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 14px;
+  background: var(--paper); border-top: 1px solid var(--hairline);
+}
+.eb-tickbar-n { margin: 0; font-weight: 600; }
+.eb-tickbar .eb-error { margin: 0; }
 .eb-tick-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 @media (min-width: 720px) { .eb-tick-fields { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1fr); } }
 .eb-tick-tools { display: grid; grid-template-columns: 1fr; gap: 8px; }
@@ -220,6 +225,11 @@
 }
 .eb-add-close svg { width: 18px; height: 18px; }
 .eb-add-ways { align-self: flex-start; max-width: 100%; }
+/* Add by hand fits the dialog (and the phone's sheet): everything else keeps its height and only the species list
+   gives way, down to two rows, scrolling inside (its windowing follows its drawn height). */
+.eb-add > .eb-tick { min-height: 0; }
+.eb-add .eb-ticklist { flex: 0 1 auto; min-height: 112px; }
+.eb-add .eb-tickbar { padding-bottom: 0; }
 .eb-add .eb-srclist { flex: none; }
 .eb-add button:focus-visible, .eb-add input:focus-visible, .eb-add select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .eb-add { animation: none; } }

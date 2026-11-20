@@ -310,7 +310,7 @@ export const de: Messages = {
     card: {
       close: 'Schließen',
       noDrawing: 'Für diese Art gibt es noch keine Zeichnung.',
-      album: 'Illustration: Bird Album',
+      album: 'Illustration',
       albumSpoken: 'Illustration von Bird Album, öffnet in einem neuen Tab',
       assignedRegion: 'Nach Region zugeordnet',
       assignedDefault: 'Standardmäßig zugeordnet',
@@ -798,7 +798,6 @@ export const de: Messages = {
       onListLabel: '{name}, schon auf deiner Liste',
       onList: 'Auf deiner Liste',
       when: 'Wann und wo',
-      whenNote: 'Gilt für die Vögel, die du hinzufügst, solange dies offen ist.',
       date: 'Datum (optional)',
       year: 'Oder ein Jahr',
       dateError: 'Gib ein Jahr von 1800 bis heute an.',

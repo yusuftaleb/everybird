@@ -310,7 +310,7 @@ export const da: Messages = {
     card: {
       close: 'Luk',
       noDrawing: 'Endnu ingen tegning af denne art.',
-      album: 'Illustration: Bird Album',
+      album: 'Illustration',
       albumSpoken: 'Illustration fra Bird Album, åbner i en ny fane',
       assignedRegion: 'Tildelt efter region',
       assignedDefault: 'Tildelt som standard',
@@ -797,7 +797,6 @@ export const da: Messages = {
       onListLabel: '{name}, allerede på din liste',
       onList: 'På din liste',
       when: 'Hvornår og hvor',
-      whenNote: 'Gælder de fugle, du tilføjer, mens dette er åbent.',
       date: 'Dato (valgfri)',
       year: 'Eller et år',
       dateError: 'Brug et år fra 1800 til i år.',

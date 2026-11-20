@@ -314,7 +314,7 @@ export const fr: Messages = {
     card: {
       close: 'Fermer',
       noDrawing: 'Pas encore de dessin pour cette espèce.',
-      album: 'Illustration\u00a0: Bird Album',
+      album: 'Illustration',
       albumSpoken: 'Illustration de Bird Album, s’ouvre dans un nouvel onglet',
       assignedRegion: 'Attribuée selon la région',
       assignedDefault: 'Attribuée par défaut',
@@ -807,7 +807,6 @@ export const fr: Messages = {
       onListLabel: '{name}, déjà sur ta liste',
       onList: 'Sur ta liste',
       when: 'Quand et où',
-      whenNote: 'S’applique aux oiseaux que tu ajoutes tant que ceci est ouvert.',
       date: 'Date (facultative)',
       year: 'Ou une année',
       dateError: 'Indique une année entre 1800 et cette année.',

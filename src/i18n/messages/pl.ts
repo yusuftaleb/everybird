@@ -313,7 +313,7 @@ export const pl: Messages = {
     card: {
       close: 'Zamknij',
       noDrawing: 'Ten gatunek nie ma jeszcze rysunku.',
-      album: 'Ilustracja: Bird Album',
+      album: 'Ilustracja',
       albumSpoken: 'Ilustracja z Bird Album, otwiera się w nowej karcie',
       assignedRegion: 'Przypisany według regionu',
       assignedDefault: 'Przypisany domyślnie',
@@ -805,7 +805,6 @@ export const pl: Messages = {
       onListLabel: '{name}, już na twojej liście',
       onList: 'Na twojej liście',
       when: 'Kiedy i gdzie',
-      whenNote: 'Dotyczy ptaków dodanych, gdy to jest otwarte.',
       date: 'Data (opcjonalnie)',
       year: 'Lub rok',
       dateError: 'Podaj rok od 1800 do bieżącego.',
