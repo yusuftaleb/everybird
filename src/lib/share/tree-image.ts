@@ -40,7 +40,8 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   if (!view) throw new Error('No tree to draw')
   const tt = t.collage.tree
   const cover = taxonCover(all.rows, codes)
-  const under = (['orders', 'families', 'genera'] as const).map((k) => { const [n, total] = cover[k]; return plural(tt.cover[k], total, { n: formatInt(n, t.num), total: formatInt(total, t.num) }) })
+  // "Hide totals" (the dialog's switch) keeps the species count and drops the orders, families and genera under it.
+  const under = o.hideTotals ? undefined : (['orders', 'families', 'genera'] as const).map((k) => { const [n, total] = cover[k]; return plural(tt.cover[k], total, { n: formatInt(n, t.num), total: formatInt(total, t.num) }) })
   const nameOf = (r: Tip): string =>
     r.kind === 'species' ? (state.sci ? r.row.sci : o.nameOf?.(r.row) ?? r.row.com) : view.level.fam ? r.key : state.sci ? r.row.fam : familyName(r.row)
   const tips = view.rows.filter((r): r is Tip => r.kind !== 'order')

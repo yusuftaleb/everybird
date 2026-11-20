@@ -72,6 +72,15 @@ describe('bulk export', () => {
     expect(groups[2].entries[100].code).toBe('b2100')
   })
 
+  it('takes the most birds per poster from batchSize, kept between 10 and 5,000', () => {
+    const rows = Array.from({ length: 25 }, (_, i) => row(`b${i}`, i + 1))
+    const species = buildSpeciesIndex(rows)
+    const entries = rows.map((r) => entry(r.code))
+    expect(bulkGroups('batches', entries, { species, regions, batchSize: 10 }).map((g) => g.entries.length)).toEqual([10, 10, 5])
+    expect(bulkGroups('batches', entries, { species, regions, batchSize: 3 }).map((g) => g.entries.length)).toEqual([10, 10, 5])
+    expect(bulkGroups('batches', entries, { species, regions, batchSize: 99999 })).toHaveLength(1)
+  })
+
   it('produces one group per non-empty family and order in taxonomic order', () => {
     const species = buildSpeciesIndex([
       row('ostric2', 1, 'Struthioniformes', 'Struthionidae', 'Ostriches'),

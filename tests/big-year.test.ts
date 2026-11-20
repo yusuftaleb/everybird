@@ -13,7 +13,7 @@ import { ru } from '@/i18n/messages/ru'
 import { ja } from '@/i18n/messages/ja'
 import { zhHans } from '@/i18n/messages/zh-Hans'
 import { zhHant } from '@/i18n/messages/zh-Hant'
-import { goalBasis, goalYears, hasDates, isGoalYear, isTarget, validBigYear, yearFilter, yearList } from '@/lib/list/big-year'
+import { goalBasis, goalYears, hasDates, isGoalYear, isTarget, listYears, validBigYear, yearFilter, yearList } from '@/lib/list/big-year'
 import { applyFilter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { buildSeen, type SeenIndex } from '@/lib/list/seen'
@@ -43,6 +43,11 @@ describe('bigYear helpers', () => {
     expect(validBigYear({ year: 2027, target: 300 })).toBe(true)
     expect(validBigYear({ year: 2027, target: 0 })).toBe(false)
     expect(validBigYear({ year: 2027, target: 300, extra: 1 })).toBe(false)
+    // An All time goal: the target alone.
+    expect(validBigYear({ target: 300 })).toBe(true)
+    expect(validBigYear({ target: 0 })).toBe(false)
+    expect(validBigYear({ target: 300, extra: 1 })).toBe(false)
+    expect(validBigYear({ year: undefined, target: 300 })).toBe(false)
     expect(validBigYear(null)).toBe(false)
   })
 
@@ -57,6 +62,8 @@ describe('bigYear helpers', () => {
     ]
     expect(hasDates(dated, emptySeen)).toBe(true)
     expect(goalYears(dated, new Date(2027, 0, 1))).toEqual([2027, 2026, 2025, 2024, 2023])
+    // The goal's menu: this year, then only the years with a bird.
+    expect(listYears(dated, makeSpecies(2), emptySeen, new Date(2027, 0, 1))).toEqual([2027, 2025, 2023])
   })
 
   it('counts seen-in-year with seenMonths and lifers without seenMonths, agreeing with year filter', () => {

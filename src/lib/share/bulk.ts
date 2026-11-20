@@ -16,6 +16,9 @@ import type { makePoster as MakePoster, Poster, PosterOpts } from './poster'
 import { printDesign, type PrintSize } from './print'
 
 export const BULK_BATCH_SIZE = 1000
+/** The bounds of the most birds per poster the birder may ask for when splitting by number of birds. */
+export const BULK_BATCH_MIN = 10
+export const BULK_BATCH_MAX = 5000
 
 export type BulkSplit = 'batches' | 'family' | 'order' | 'country' | 'continent' | 'province' | 'year'
 
@@ -36,6 +39,8 @@ export type BulkGroupsOpts = {
   familyLabel?: (row: Pick<SpeciesRow, 'fam' | 'famCom'>) => string
   orderLabel?: (ord: string) => string
   locale?: string
+  /** Splitting by number of birds: the most per poster (default BULK_BATCH_SIZE), clamped to BULK_BATCH_MIN..MAX. */
+  batchSize?: number
 }
 
 const RESERVED_WINDOWS = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i
@@ -105,13 +110,14 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
   if (!sorted.length) return []
 
   if (split === 'batches') {
+    const size = Math.min(BULK_BATCH_MAX, Math.max(BULK_BATCH_MIN, Math.round(opts.batchSize ?? BULK_BATCH_SIZE)))
     const out: { id: string; label: string; entries: ListEntry[] }[] = []
-    for (let i = 0; i < sorted.length; i += BULK_BATCH_SIZE) {
-      const n = Math.floor(i / BULK_BATCH_SIZE) + 1
+    for (let i = 0; i < sorted.length; i += size) {
+      const n = Math.floor(i / size) + 1
       out.push({
         id: `batch-${n}`,
         label: opts.batchLabel ? opts.batchLabel(n) : `Batch ${n}`,
-        entries: sorted.slice(i, i + BULK_BATCH_SIZE),
+        entries: sorted.slice(i, i + size),
       })
     }
     return uniqueStems(out)

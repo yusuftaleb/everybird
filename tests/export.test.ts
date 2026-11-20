@@ -94,6 +94,8 @@ describe('json backup', () => {
   it('round-trips bigYear and rejects malformed values', () => {
     const s = { ...good(), bigYear: { year: 2027, target: 300 } }
     expect(fromJson(toJson(s as never)).bigYear).toEqual({ year: 2027, target: 300 })
+    // An All time goal has no year.
+    expect(fromJson(toJson({ ...good(), bigYear: { target: 120 } } as never)).bigYear).toEqual({ target: 120 })
     expect(() => fromJson(JSON.stringify({ ...good(), bigYear: { year: 2027, target: 0 } }))).toThrow(/Big Year/)
     expect(() => fromJson(JSON.stringify({ ...good(), bigYear: { year: 99, target: 300 } }))).toThrow(/Big Year/)
     expect(() => fromJson(JSON.stringify({ ...good(), bigYear: { year: 2027, target: 1.5 } }))).toThrow(/Big Year/)
