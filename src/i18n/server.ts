@@ -1,6 +1,7 @@
 // Server-only: the whole dictionary for a language (`ui` for the client provider, `page` for server prose and metadata),
 // and the [lang] segment read safely. Client code reads its strings through useI18n() instead.
 import { notFound } from 'next/navigation'
+import { tagPlurals } from './core'
 import { isLang, type Lang } from './langs'
 import { en, type Messages } from './messages/en'
 import { es } from './messages/es'
@@ -11,6 +12,7 @@ import { de } from './messages/de'
 import { pt } from './messages/pt'
 
 export const MESSAGES: Record<Lang, Messages> = { en, es, pt, nl, pl, fr, de }
+for (const [lang, m] of Object.entries(MESSAGES)) tagPlurals(lang, m)
 
 export function getMessages(lang: Lang): Messages {
   return MESSAGES[lang]

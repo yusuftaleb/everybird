@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { fmt, plural, rich } from '@/i18n/core'
+import { fmt, plural, rich, tagPlurals } from '@/i18n/core'
 import { formatInt, formatMass, formatMonth, shortDay } from '@/i18n/format'
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
 import { pt } from '@/i18n/messages/pt'
+import { getMessages } from '@/i18n/server'
 
 describe('formatInt: grouped from 4 digits', () => {
   it('groups by language', () => {
@@ -79,6 +80,19 @@ describe('core', () => {
     expect(plural(p, 2, { n: '2' })).toBe('2 especies')
     expect(plural(p, 1089, { n: '1.089' })).toBe('1.089 especies')
     expect(plural(p, 3)).toBe('3 especies')
+  })
+  it("plural: few and many by Intl.PluralRules for the dictionary's language, else other", () => {
+    const live = getMessages('pl').ui.count.live // tagged by server.ts
+    expect([0, 1, 2, 4, 5, 12, 22, 25, 101, 1.5].map((n) => plural(live, n))).toEqual(
+      ['0 gatunków', '1 gatunek', '2 gatunki', '4 gatunki', '5 gatunków', '12 gatunków', '22 gatunki', '25 gatunków', '101 gatunków', '1.5 gatunków'])
+    // Russian (planned): 21 takes `one`, and a missing form falls back to `other`.
+    const ru = { one: '{n} вид', few: '{n} вида', other: '{n} видов' }
+    tagPlurals('ru', ru)
+    expect([1, 21, 3, 5, 11].map((n) => plural(ru, n))).toEqual(['1 вид', '21 вид', '3 вида', '5 видов', '11 видов'])
+    // An untagged plural, or one with no few or many, keeps the two-form rule.
+    expect(plural({ one: 'a', few: 'b', other: 'c' }, 2)).toBe('c')
+    const ptLive = getMessages('pt').ui.count.live
+    expect(plural(ptLive, 0)).toBe(fmt(ptLive.other, { n: 0 }))
   })
   it('fmt fills known keys and leaves unknown ones', () => {
     expect(fmt("{name}'s birds", { name: 'Ada' })).toBe("Ada's birds")

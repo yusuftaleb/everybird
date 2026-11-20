@@ -3,6 +3,7 @@
 // messages/<lang>.ts); components read it with useI18n(): `const { lang, t } = useI18n()`, then `t.shell.nav.about`.
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import { refreshLangCookie } from './choose'
+import { tagPlurals } from './core'
 import type { Lang } from './langs'
 import { EN_UI, type Ui } from './messages/en-ui'
 
@@ -15,7 +16,11 @@ const ENGLISH: I18n = { lang: 'en', t: EN_UI }
 const I18nContext = createContext<I18n>(ENGLISH)
 
 export function I18nProvider({ lang, ui, children }: { lang: Lang; ui: Ui; children: ReactNode }) {
-  const value = useMemo(() => ({ lang, t: ui }), [lang, ui])
+  // The layout's `ui` arrives as a fresh copy (RSC props), so its plurals are tagged here for `plural`'s few and many.
+  const value = useMemo(() => {
+    tagPlurals(lang, ui)
+    return { lang, t: ui }
+  }, [lang, ui])
   // A chosen language's cookie gets a fresh year on every page load (Safari caps script-set cookies at 7 days).
   useEffect(refreshLangCookie, [])
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>

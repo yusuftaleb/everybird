@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import AboutPage from '../app/[lang]/(app)/about/page'
 import { HowItWorksPoster } from '@/components/about/HowItWorksDemo'
 import { TOTAL } from '@/components/about/how-it-works-data'
-import { fmt } from '@/i18n/core'
+import { fmt, plural } from '@/i18n/core'
 import { formatInt, shortDay } from '@/i18n/format'
 import { LANGS } from '@/i18n/langs'
 import { countParts, summaryLine, type RowCount, type SourceCounts } from '@/lib/list/source-counts'
@@ -48,7 +48,7 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
     expect(text(wide.querySelector('.ebd-sum .ebd-swap-b'))).toBe(`${sum} ${ui.settings.seeCollage}`)
     expect(text(wide.querySelector('.ebd-sum .ebd-swap-a'))).toBe(ui.import.combine)
     const imported = fmt(ui.import.imported, { date: shortDay(STAMPED.toISOString(), ui.date.months, STAMPED) })
-    const skipped = ui.import.skipped.other.replace('{n}', formatInt(3, ui.num))
+    const skipped = plural(ui.import.skipped, 3, { n: formatInt(3, ui.num) })
     const status = text(wide.querySelector('.ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-b'))
     expect(status).toBe(`${countParts({ species: TOTAL, only: 0 } as RowCount, ui).join(' · ')} · ${skipped} ${ui.import.why} · ${imported}`)
     expect(text(wide.querySelector('.ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-a .ebd-swap-a'))).toBe(ui.import.notAdded)
