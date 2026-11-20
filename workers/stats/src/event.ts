@@ -37,8 +37,9 @@ export function statsDay(now: Date): string {
 export type EventContext = { day: string; country: string; device: string; vid: string }
 export type EventRow = EventContext & { name: string; value: string; lang: string }
 
-/** A browser language's primary subtag as the app sends it: two or three lower-case letters ("es"), nothing else. */
-const LANG = /^[a-z]{2,3}$/
+/** A browser language as the app sends it (langCode): two or three lower-case letters ("es"), or zh-Hans / zh-Hant
+ *  for Chinese, nothing else. */
+export const LANG = /^(?:[a-z]{2,3}|zh-Han[st])$/
 
 /** The row for one body: `n`/`p` on the allow-list, and `lang` = the body's `l` on a visit only, else ''. */
 export function eventRow(body: unknown, ctx: EventContext): EventRow | null {

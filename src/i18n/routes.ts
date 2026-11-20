@@ -6,8 +6,9 @@ import { LANGS, LANG_COOKIE, type Lang } from './langs'
 
 export { LANG_COOKIE }
 
-/** The languages negotiated from Accept-Language: every language but English, the fallback. */
-const NEGOTIATED = LANGS.filter((l): l is Exclude<Lang, 'en'> => l !== 'en')
+/** The languages negotiated from Accept-Language: every language but English, the fallback. Traditional Chinese
+ *  first: its rule is a narrower case of Simplified's (any zh), and the first rule that matches wins. */
+const NEGOTIATED = LANGS.filter((l): l is Exclude<Lang, 'en'> => l !== 'en').sort((a, b) => Number((b as string) === 'zh-Hant') - Number((a as string) === 'zh-Hant'))
 
 /**
  * Every unprefixed path a page answers at, in rule order. `/s/:token` (the shared view, negotiated) comes before
@@ -23,13 +24,18 @@ const OLD_IMAGES = '/s/:token/:rest*'
 /** A primary subtag, case-insensitive by character class: "es" -> "[Ee][Ss]". */
 const anyCase = (s: string) => [...s].map((c) => `[${c.toUpperCase()}${c.toLowerCase()}]`).join('')
 
+/** Chinese by script (langCode in langs.ts): zh-Hant's first subtags are zh then Hant, TW, HK or MO; zh-Hans's are zh. */
+const head = (l: string) =>
+  l === 'zh-Hant' ? `${anyCase('zh')}[-_](?:${['hant', 'tw', 'hk', 'mo'].map(anyCase).join('|')})` : anyCase(l.split('-')[0])
+
 /**
- * Accept-Language whose FIRST tag's primary subtag is the language: "es", "ES", "es-MX,en;q=0.8", "nl-BE,nl;q=0.9".
+ * Accept-Language whose FIRST tag's primary subtag is the language: "es", "ES", "es-MX,en;q=0.8", "nl-BE,nl;q=0.9";
+ * for Chinese, its script (zh-TW is zh-Hant; zh, zh-CN and zh-SG are zh-Hans, so zh-Hant's rule goes first).
  * Next compiles a `has` value as `new RegExp('^' + value + '$')`; the value carries its own anchors as well, so it also
  * matches the whole header on a router that doesn't add them ("^^…$$" is the same regex).
  */
 export const ACCEPT = Object.fromEntries(
-  NEGOTIATED.map((l) => [l, `^${anyCase(l)}(?:[-_][^,;]*)?(?:[;,].*)?$`]),
+  NEGOTIATED.map((l) => [l, `^${head(l)}(?:[-_][^,;]*)?(?:[;,].*)?$`]),
 ) as Record<(typeof NEGOTIATED)[number], string>
 
 /** The cookie's value when it names a language; the named group becomes `:lang` in the destination. */

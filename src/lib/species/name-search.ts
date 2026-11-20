@@ -7,11 +7,12 @@ import { displayName, familyName, localName, namesVersion } from './names'
 import { foldName } from './resolve'
 import type { SpeciesRow } from './types'
 
-/** Accent-stripped, lower-case, apostrophes dropped, other punctuation to spaces. */
+/** Accent-stripped, lower-case, apostrophes dropped, other punctuation to spaces. Cyrillic, katakana (hiragana folds
+ *  to it), its voicing marks and long-vowel mark ー, and Han are kept as letters; a Latin name's key is unchanged. */
 export function searchKey(s: string): string {
   return foldName(s)
     .replace(/['’`]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^a-z0-9\p{Script=Cyrillic}\p{Script=Katakana}\p{Script=Han}\u3099\u309a\u30fc]+/gu, ' ')
     .trim()
 }
 
@@ -36,7 +37,10 @@ export function prepared(r: Pick<SpeciesRow, 'com' | 'sci'> & { code?: string })
   return p
 }
 
-const hasPrefix = (ws: string[], t: string) => ws.some((w) => w.startsWith(t))
+/** Chinese and Japanese names have no spaces to split words at: a search word in Han or katakana matches anywhere in
+ *  a name ("海雕" finds 白头海雕, "ワシ" オオワシ); every other word matches a word's start. */
+const CJK = /^[\p{Script=Han}\p{Script=Katakana}]/u
+const hasPrefix = (ws: string[], t: string) => (CJK.test(t) ? ws.some((w) => w.includes(t)) : ws.some((w) => w.startsWith(t)))
 
 /**
  * How well a row matches a search key (from searchKey): 0 exact local, English or scientific name, 1 every word a

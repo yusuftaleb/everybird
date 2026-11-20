@@ -583,14 +583,20 @@ export function paintTiles(
   }
 }
 
-/** The families canvas text uses: the page's own fonts (Fontshare and next/font), with the CSS fallbacks. */
+/** The families canvas text uses: the page's own fonts (Fontshare and next/font), with the CSS fallbacks; on a page in
+ *  Russian, Japanese or Chinese its Noto family (tokens.css --font-noto) after the Latin ones. */
 function families(): { display: string; body: string; mono: string } {
-  let mono = ''
-  if (typeof document !== 'undefined') mono = getComputedStyle(document.documentElement).getPropertyValue('--font-geist-mono').trim()
+  let mono = '', noto = ''
+  if (typeof document !== 'undefined') {
+    const css = getComputedStyle(document.documentElement)
+    mono = css.getPropertyValue('--font-geist-mono').trim()
+    noto = css.getPropertyValue('--font-noto').trim()
+  }
+  const n = noto ? `${noto}, ` : ''
   return {
-    display: '"Cabinet Grotesk", "Satoshi", system-ui, sans-serif',
-    body: '"Satoshi", system-ui, -apple-system, "Segoe UI", sans-serif',
-    mono: `${mono ? `${mono}, ` : ''}"Geist Mono", ui-monospace, Menlo, monospace`,
+    display: `"Cabinet Grotesk", "Satoshi", ${n}system-ui, sans-serif`,
+    body: `"Satoshi", ${n}system-ui, -apple-system, "Segoe UI", sans-serif`,
+    mono: `${mono ? `${mono}, ` : ''}"Geist Mono", ${n}ui-monospace, Menlo, monospace`,
   }
 }
 
@@ -819,6 +825,12 @@ export function markedCodesOf(entries: ListEntry[], species: SpeciesIndex, marks
 
 export function ensureCaptionFont(px: number, sample: string): Promise<void> {
   return fontsReady([cardFonts().filter(px)], sample)
+}
+
+/** Wait for the faces a view image draws its own text with (names, ticks, the key: the lifer and footer fonts), for
+ *  every character of `sample`: a CJK family is split into many files, and only those `sample` touches are loaded. */
+export function ensureViewFonts(card: Pick<PreparedCard, 'fonts'>, sample: string): Promise<void> {
+  return fontsReady([card.fonts.lifer(20), card.fonts.footer(20)], sample)
 }
 
 /** The card without its fonts and footer placement: layout, pack, fit, tiles, text. `scale`: device px per design unit. */

@@ -19,6 +19,7 @@ import { it as italian } from '@/i18n/messages/it'
 import { sv } from '@/i18n/messages/sv'
 import { da } from '@/i18n/messages/da'
 import { pt } from '@/i18n/messages/pt'
+import { WIDE_CHAR } from '@/lib/layout/count-box'
 import glyphs from './fixtures/glyph-advances.json'
 
 type Variant = (typeof LANG_VARIANTS)[number]
@@ -30,14 +31,20 @@ const PAGES = ['collage', 'settings', 'about'] as const
 /** Room left over that we insist on: kerning (tightens these words; `kernWidenEm` is added anyway), subpixel rounding. */
 const MARGIN = 4
 
+/** Where a page finds the letters a Latin face lacks (tokens.css --font-noto): Cyrillic in Noto Sans at the same
+ *  weight, measured. Kana and Han are taken as one em each: not measured (thousands of glyphs), every one is drawn on
+ *  the em square, so one em is their advance in Noto Sans JP, SC and TC. */
+const NOTO: Partial<Record<FontKey, FontKey>> = { 'satoshi-500': 'noto-sans-500', 'satoshi-700': 'noto-sans-700', 'cabinet-grotesk-700': 'noto-sans-700' }
+const advance = (font: FontKey, ch: string): number | undefined => (glyphs.fonts[font].advances as Record<string, number>)[ch]
+
 /** A string's width at `px`: the sum of its advances, the most kerning widens a word, and letter-spacing per glyph
  *  (browsers add it after every glyph, the last one too). */
 function textWidth(font: FontKey, s: string, px: number, letterSpacingEm = 0): number {
   const f = glyphs.fonts[font]
-  const adv = f.advances as Record<string, number>
   let em = f.kernWidenEm
   for (const ch of s) {
-    const a = adv[ch]
+    const fallback = NOTO[font]
+    const a = advance(font, ch) ?? (fallback && advance(fallback, ch)) ?? (WIDE_CHAR.test(ch) ? 1 : undefined)
     if (a === undefined) throw new Error(`no advance for ${JSON.stringify(ch)} in ${font}`)
     em += a + letterSpacingEm
   }

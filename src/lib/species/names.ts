@@ -5,7 +5,7 @@
 import { fetchData } from '@/lib/data-url'
 import type { DataFile } from '@/lib/data-files'
 import type { ListEntry } from '@/lib/list/model'
-import { primarySubtag, type Lang } from '@/i18n/langs'
+import { langCode, type Lang } from '@/i18n/langs'
 import { baseOfLang, familyLang, REGION_LOCALE, type NameLocale } from './name-locales'
 import type { SpeciesRow } from './types'
 
@@ -30,7 +30,7 @@ function regional(lang: Lang, region: string | undefined): NameLocale | null {
 export function pickNameLocale(lang: Lang, languages: readonly string[], top?: string): NameLocale | null {
   if (lang === 'en') return null
   if (lang === 'nl' || lang === 'pl') return lang
-  const tag = languages.find((t) => primarySubtag(t) === lang)
+  const tag = languages.find((t) => langCode(t) === lang)
   return regional(lang, tag ? regionOf(tag) : undefined) ?? regional(lang, top) ?? baseOfLang(lang)
 }
 

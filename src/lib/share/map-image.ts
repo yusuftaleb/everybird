@@ -68,5 +68,5 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
     }
     const room = area.x + area.w - x
     if (room > 40) ctx.fillText(clipText(ctx, t.count.label, room), x, y + LEGEND.h / 2)
-  })
+  }, undefined, t.count.label)
 }

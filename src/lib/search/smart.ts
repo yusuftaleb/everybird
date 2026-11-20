@@ -83,8 +83,9 @@ const LIFERS: Record<SearchLang, string[]> = {
 
 function tokenize(input: string, months: Map<string, number>): SearchWord[] {
   // Keep compounds (beija-flor, CA-BC), ISO dates, quotes and positions. A numeric year range splits at its dash.
-  const re = /"[^"]*"|(?:19|20)\d{2}-\d{2}(?:-\d{2})?(?!\d)|(?:19|20)\d{2}(?![\p{L}\p{N}])|[\p{L}\p{M}\p{N}]+(?:[-'’][\p{L}\p{M}]+)*|[-–—/]|[^\s]/gu
-  const word = (text: string, start: number): SearchWord => ({ raw: text, key: searchKey(text), start, end: start + text.length, quoted: text.startsWith('"') })
+  // Chinese and Japanese write a year and a month without spaces ("2024年3月"): "2024年" is the year 2024, "3月" a month.
+  const re = /"[^"]*"|(?:19|20)\d{2}-\d{2}(?:-\d{2})?(?!\d)|(?:19|20)\d{2}年|\d{1,2}月|(?:19|20)\d{2}(?![\p{L}\p{N}])|[\p{L}\p{M}\p{N}]+(?:[-'’][\p{L}\p{M}]+)*|[-–—/]|[^\s]/gu
+  const word = (text: string, start: number): SearchWord => ({ raw: text, key: /^\d{4}年$/.test(text) ? text.slice(0, 4) : searchKey(text), start, end: start + text.length, quoted: text.startsWith('"') })
   const isMonth = (text: string) => monthOfWord(months, searchKey(text), true) !== undefined
   const out: SearchWord[] = []
   for (const m of input.matchAll(re)) {

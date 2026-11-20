@@ -6,7 +6,9 @@
 // them (Fontshare sends one face that already has them; Google Fonts splits Geist Mono by unicode-range, so these
 // come from its separate "latin-ext" face), plus `kernWidenEm`, the most kerning widens any of the top bar's words
 // past the sum of its advances (about 0.01 em: kerning here nearly always tightens), to
-// tests/fixtures/glyph-advances.json.
+// tests/fixtures/glyph-advances.json. Russian's Cyrillic letters (CYRILLIC) come from Geist Mono's "cyrillic" face and
+// from Noto Sans 500 and 700, the family a Russian page draws them in (Satoshi and Cabinet Grotesk have none). Kana and
+// Han aren't measured: the tests take them as one em each (tests/topbar-fit.test.ts).
 //
 //   npx -p fontkit -p tsx tsx scripts/dev/measure-glyphs.ts [--out tests/fixtures/glyph-advances.json]
 //
@@ -38,20 +40,25 @@ function loadFontkit(): { create(buf: Buffer): Font } {
   throw new Error('fontkit not found: run with `npx -p fontkit -p tsx tsx scripts/dev/measure-glyphs.ts`')
 }
 
-/** The site's own font CSS (app/[lang]/layout.tsx; Geist Mono through next/font/google, the same Google files). */
-const SOURCES = [
-  { key: 'satoshi-500', css: 'https://api.fontshare.com/v2/css?f[]=satoshi@500&display=swap' },
-  { key: 'satoshi-700', css: 'https://api.fontshare.com/v2/css?f[]=satoshi@700&display=swap' },
-  { key: 'cabinet-grotesk-700', css: 'https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700&display=swap' },
-  { key: 'geist-mono-500', css: 'https://fonts.googleapis.com/css2?family=Geist+Mono:wght@500&display=swap' },
-] as const
-
 /** Google serves woff2 only to a browser's User-Agent; a generic one. */
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
 
 /** Polish's letters outside Latin-1 (U+0100-017F, Latin Extended-A), ó/Ó excepted: those are U+00F3/00D3, already
  *  in the 0x20-0xff loop below; and French Œ œ (U+0152/0153, in bird and family names). */
 const EXTRA_CODEPOINTS = [0x104, 0x105, 0x106, 0x107, 0x118, 0x119, 0x141, 0x142, 0x143, 0x144, 0x152, 0x153, 0x15a, 0x15b, 0x179, 0x17a, 0x17b, 0x17c]
+/** Russian's alphabet: А–я (U+0410-044F), Ё and ё. */
+const CYRILLIC = [0x401, 0x451, ...Array.from({ length: 0x40 }, (_, i) => 0x410 + i)]
+
+/** The site's own font CSS (app/[lang]/layout.tsx; Geist Mono through next/font/google, the same Google files; Noto
+ *  Sans linked on Russian pages) and the letters outside Latin-1 each must measure. */
+const SOURCES = [
+  { key: 'satoshi-500', css: 'https://api.fontshare.com/v2/css?f[]=satoshi@500&display=swap', extra: EXTRA_CODEPOINTS },
+  { key: 'satoshi-700', css: 'https://api.fontshare.com/v2/css?f[]=satoshi@700&display=swap', extra: EXTRA_CODEPOINTS },
+  { key: 'cabinet-grotesk-700', css: 'https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700&display=swap', extra: EXTRA_CODEPOINTS },
+  { key: 'geist-mono-500', css: 'https://fonts.googleapis.com/css2?family=Geist+Mono:wght@500&display=swap', extra: [...EXTRA_CODEPOINTS, ...CYRILLIC] },
+  { key: 'noto-sans-500', css: 'https://fonts.googleapis.com/css2?family=Noto+Sans:wght@500&display=swap', extra: [...EXTRA_CODEPOINTS, ...CYRILLIC] },
+  { key: 'noto-sans-700', css: 'https://fonts.googleapis.com/css2?family=Noto+Sans:wght@700&display=swap', extra: [...EXTRA_CODEPOINTS, ...CYRILLIC] },
+] as const
 
 function faceUrl(face: string): string | undefined {
   const url = /url\(['"]?([^'")]+\.woff2)['"]?\)\s*format\(['"]woff2['"]\)/.exec(face)?.[1]
@@ -110,7 +117,7 @@ async function main() {
       advances[String.fromCodePoint(cp)] = advanceOf(font, cp)
     }
     const extraFonts = new Map<string, Font>()
-    for (const cp of EXTRA_CODEPOINTS) {
+    for (const cp of s.extra) {
       if (font.hasGlyphForCodePoint(cp)) {
         advances[String.fromCodePoint(cp)] = advanceOf(font, cp)
         continue

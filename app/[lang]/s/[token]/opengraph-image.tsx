@@ -12,7 +12,7 @@ import { countDisplay } from '@/lib/layout/count-box'
 import { OG_COUNT_MAX, SHARE_COLORS, FOOTER_LINE, countLayout, ogCountHole, type CountLayout } from '@/lib/share/image'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
-import { OG_COLLAGE, OG_SIZE, ogDescription, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
+import { OG_COLLAGE, OG_SIZE, ogDescription, ogLang, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
 import { OG_LARGE_TILE, fetchStickers, ogFonts, serverMasks, serverNames, serverSpecies } from '@/lib/share/og-server'
 
 // English in every language: Next's file convention takes a static `alt`, and a per-language one (generateImageMetadata)
@@ -23,9 +23,10 @@ export const contentType = 'image/png'
 export const runtime = 'nodejs'
 
 const C = SHARE_COLORS.light
-const CABINET = '"Cabinet Grotesk", sans-serif'
-const SATOSHI = 'Satoshi, sans-serif'
-const MONO = '"Geist Mono", monospace'
+// "Noto Sans" draws a Russian card's Cyrillic (ogFonts loads it for Russian only; satori skips an unloaded family).
+const CABINET = '"Cabinet Grotesk", "Noto Sans", sans-serif'
+const SATOSHI = 'Satoshi, "Noto Sans", sans-serif'
+const MONO = '"Geist Mono", "Noto Sans", monospace'
 
 type Placed = { code: string; box: Box; src: string }
 
@@ -60,9 +61,9 @@ async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof
   return { placed, expected: picked.length }
 }
 
-function frame(children: React.ReactNode) {
+function frame(children: React.ReactNode, lang: string) {
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100%', background: C.paper, color: C.ink, fontFamily: SATOSHI }}>
+    <div lang={ogLang(lang)} style={{ display: 'flex', width: '100%', height: '100%', background: C.paper, color: C.ink, fontFamily: SATOSHI }}>
       {children}
     </div>
   )
@@ -75,7 +76,7 @@ export default async function Image({ params }: { params: Promise<{ lang: string
   if (!isLang(lang)) notFound()
   // The card's words in the URL's language (base names only: the card is cached a year per URL). No date stamp here.
   const t = getMessages(lang).ui
-  const [payload, fonts] = [tryDecodeShare(token), ogFonts()]
+  const [payload, fonts] = [tryDecodeShare(token), ogFonts(lang)]
   let placed: Placed[] = [], expected = 0, failed = false, namesFailed = false, latest: { name: string; date?: string } | undefined
   if (payload) {
     try {
@@ -154,5 +155,5 @@ export default async function Image({ params }: { params: Promise<{ lang: string
       </div>
     </>
   )
-  return new ImageResponse(frame(body), { ...OG_SIZE, ...ogResponseOptions(await fonts, { placed: placed.length, expected, failed, broken: !payload, namesFailed }) })
+  return new ImageResponse(frame(body, lang), { ...OG_SIZE, ...ogResponseOptions(await fonts, { placed: placed.length, expected, failed, broken: !payload, namesFailed, lang }) })
 }

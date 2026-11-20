@@ -13,9 +13,17 @@ import "@/styles/globals.css";
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   // "latin-ext" carries Polish's letters outside Latin-1 (ą, ć, ę, ł, ń, ś, ź, ż), used in mono labels (dates, the
-  // count) once the UI language is Polish.
-  subsets: ["latin", "latin-ext"],
+  // count) once the UI language is Polish; "cyrillic" Russian's. Each is a unicode-range face: a page downloads only the
+  // ones its text uses.
+  subsets: ["latin", "latin-ext", "cyrillic"],
 });
+
+/**
+ * The Noto family each non-Latin language draws its letters in (tokens.css puts it after the Latin fonts, by :lang).
+ * Google's CSS, linked from that language's pages only: through next/font every page would carry the @font-face rules
+ * of all four (the CJK families' unicode-range slices are about 340 KB of CSS each), and English would pay for them.
+ */
+const NOTO: Partial<Record<string, string>> = { ru: "Noto+Sans", ja: "Noto+Sans+JP", "zh-Hans": "Noto+Sans+SC", "zh-Hant": "Noto+Sans+TC" };
 
 /** The site's metadata in the page's language (`page.meta`); pages that set their own title replace the SEO part. */
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
@@ -67,6 +75,12 @@ export default async function RootLayout({ children, params }: { children: React
             no 600 (400, 500 and 700 here; a 600 rule draws the nearest, 700). */}
         <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" />
         <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700&display=swap" />
+        {NOTO[lang] && (
+          <>
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+            <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${NOTO[lang]}:wght@400;500;700&display=swap`} />
+          </>
+        )}
       </head>
       <body>
         <I18nProvider lang={lang} ui={getMessages(lang).ui}>

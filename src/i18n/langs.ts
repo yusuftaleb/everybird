@@ -23,8 +23,19 @@ export function primarySubtag(tag: string | undefined): string | undefined {
   return p && /^[a-z]{2,3}$/.test(p) ? p : undefined
 }
 
-/** The UI language for a browser tag: any Spanish -> es, any Portuguese -> pt, any Dutch (nl-NL, nl-BE) -> nl, and so on for every language in LANGS, else en. */
-export function langFromTag(tag: string): Lang {
+/** Chinese tags that read Traditional: zh-TW, zh-HK, zh-MO and any zh-Hant… (any case, "-" or "_"); every other zh is Simplified. */
+const TRADITIONAL = /^zh[-_](?:hant|tw|hk|mo)(?:[-_]|$)/i
+
+/** A browser tag's language as Everybird codes it: the primary subtag ("es-AR" -> "es"), but zh-Hans or zh-Hant for
+ *  Chinese (the script, from TRADITIONAL), since the two are separate UI languages; undefined as primarySubtag. */
+export function langCode(tag: string | undefined): string | undefined {
   const p = primarySubtag(tag)
+  return p === 'zh' ? (TRADITIONAL.test(tag!) ? 'zh-Hant' : 'zh-Hans') : p
+}
+
+/** The UI language for a browser tag: any Spanish -> es, any Portuguese -> pt, any Dutch (nl-NL, nl-BE) -> nl, and so
+ *  on for every language in LANGS (Chinese by script, langCode), else en. */
+export function langFromTag(tag: string): Lang {
+  const p = langCode(tag)
   return isLang(p) ? p : 'en'
 }

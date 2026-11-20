@@ -45,7 +45,7 @@ const MONTH_ALIASES: Partial<Record<SearchLang, [string, number][]>> = {
   de: [['maerz', 2], ['jänner', 0]],
 }
 const monthCache = new Map<SearchLang, Map<string, number>>()
-/** Month names for the UI language and English, keyed by searchKey, plus MONTH_ALIASES; the value is 0-based. */
+/** Month names for the UI language and English, keyed by searchKey, plus MONTH_ALIASES and "1月" … "12月"; the value is 0-based. */
 export function monthIndex(lang: SearchLang): Map<string, number> {
   let index = monthCache.get(lang)
   if (!index) {
@@ -55,6 +55,8 @@ export function monthIndex(lang: SearchLang): Map<string, number> {
       for (let m = 0; m < 12; m++) index.set(searchKey(fmt.format(new Date(Date.UTC(2020, m, 1)))), m)
     }
     for (const [name, m] of MONTH_ALIASES[lang] ?? []) index.set(searchKey(name), m)
+    // "3月", as Japanese and Chinese write a month (Intl's Chinese name is "三月").
+    for (let m = 0; m < 12; m++) index.set(`${m + 1}月`, m)
     monthCache.set(lang, index)
   }
   return index
@@ -64,6 +66,8 @@ export function monthIndex(lang: SearchLang): Map<string, number> {
  * follows, or the word ends a range), so "mar" in "aves del mar" (the sea) is not March, and "mar 2020" is.
  */
 export function monthOfWord(index: Map<string, number>, s: string, short: boolean): number | undefined {
+  // A Japanese or Chinese month ("3月", "三月") is two or three characters and only ever its exact name.
+  if (s.endsWith('月')) return index.get(s)
   if (s.length < 3 || (s.length === 3 && !short)) return undefined
   const hits = new Set([...index].filter(([name]) => name.startsWith(s)).map(([, m]) => m))
   return hits.size === 1 ? [...hits][0] : undefined
