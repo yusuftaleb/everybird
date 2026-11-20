@@ -369,7 +369,7 @@ for (const width of [1280, 390]) test(`after a life list import, Settings and Pl
 
   await page.getByRole("banner").getByRole("link", { name: "Collage", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
-  await page.getByTestId("filter-tab-places").click();
+  await page.getByTestId("filters-button").click();
   await page.getByTestId("places-lifer-only").getByRole("link", { name: "Add MyEBirdData" }).click();
   await expect(page).toHaveURL(/\/settings#add-mydata$/);
   await expect(group).toBeVisible();
@@ -409,8 +409,8 @@ test("the collage's Fix it opens Settings with the match report open", async ({ 
 });
 
 // The language switch (preview variant lang:a, the default): the top bar's button beside the theme switch opens a menu
-// of the four languages; a choice sets the everybird-lang cookie and reloads, and every page follows it, after a
-// reload too. Settings' "Language" field shows the same choice.
+// of the languages; a choice sets the everybird-lang cookie and reloads, and every page follows it, after a reload
+// too. Settings has no language select, only the English-names switch.
 test("Language: Español from the top bar switches every page and stays after a reload", async ({ page, context }) => {
   await page.goto("/");
   const bar = page.getByTestId("topbar");
