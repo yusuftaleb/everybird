@@ -27,6 +27,9 @@ const DICT = {
   // Japanese is written on spaces here ("3月 から 5月"); since, after, before and until follow the date ("2024年 から",
   // POSTFIX). Kana are folded to katakana by searchKey on both sides.
   ja: { link: 'から', between: '間', and: 'と', from: 'から', since: '以降|から', after: '以降', before: '以前|より前', until: 'まで', this: 'この|今', last: '過去|直近|最近', year: '年|年間', month: 'か月|ヶ月|カ月|ヵ月|箇月', quarter: '四半期' },
+  // Chinese is written on spaces here ("从 3月 到 5月", "最近 3 个月", "2 年 前"); since, after, before and until may
+  // also follow the date ("2020年 以来", "2024年 以前", POSTFIX).
+  'zh-Hans': { link: '到|至|直到', between: '介于|在', and: '和|与|到|至', from: '从|自', since: '自|自从|从|以来', after: '晚于|以后|之后', before: '早于|以前|之前', until: '截至|直到|到', this: '本|这|这个|今', last: '最近|过去|上|上个|去', year: '年', month: '月|个月', quarter: '季度|个季度' },
 } as const
 export const SEARCH_CONNECTORS: Record<SearchLang, string[]> = {
   en: ['in', 'on', 'at', 'from', 'and'], es: ['en', 'de', 'desde', 'y'], pt: ['em', 'no', 'na', 'de', 'do', 'da', 'e'], nl: ['in', 'uit', 'van', 'en'],
@@ -41,6 +44,7 @@ export const SEARCH_CONNECTORS: Record<SearchLang, string[]> = {
   // "за" opens "за последние 3 месяца"; "в"/"во" "в этом году", "в Канаде".
   ru: ['в', 'во', 'на', 'из', 'за', 'и'],
   ja: ['の', 'で', 'に', 'と'],
+  'zh-Hans': ['在', '于', '的', '和'],
 }
 /** Spellings Intl's long month names don't cover (abbreviations and variants that aren't prefixes of them). Polish
  *  months after "od", "do" or a day are genitive ("od marca"), which Intl's standalone names ("marzec") don't cover. */
@@ -113,14 +117,16 @@ const AGO: Record<SearchLang, { before: string[]; after: string[] }> = {
   ru: { before: [], after: ['назад', 'тому назад'] },
   // "2 年 前", "3 か月 前".
   ja: { before: [], after: ['前'] },
+  // "2 年 前", "3 个月 前", "两 年 以前".
+  'zh-Hans': { before: [], after: ['前', '以前', '之前'] },
 }
 /** Number words up to twelve in every language, keyed by searchKey; "a", "un", "um" and "een" count as one. */
 const NUMBER_WORDS = new Map<string, number>(
   ([
-    [1, 'one a an uno una un um uma een jeden jedna une ein einem einen einer ett en et один одна одно одну 一'], [2, 'two dos dois duas twee dwa dwie deux zwei due tva to два две 二'], [3, 'three tres drie trzy trois drei tre три 三'],
-    [4, 'four cuatro quatro vier cztery quattro fyra fire четыре 四'], [5, 'five cinco vijf piec cinq funf cinque fem пять 五'], [6, 'six seis zes szesc sechs sei sex seks шесть 六'],
-    [7, 'seven siete sete zeven siedem sept sieben sette sju syv семь 七'], [8, 'eight ocho oito acht osiem huit otto atta otte восемь 八'], [9, 'nine nueve nove negen dziewiec neuf neun nio ni девять 九'],
-    [10, 'ten diez dez tien dziesiec dix zehn dieci tio ti десять 十'], [11, 'eleven once onze elf jedenascie undici elva elleve одиннадцать 十一'], [12, 'twelve doce doze twaalf dwanascie douze zwolf dodici tolv двенадцать 十二'],
+    [1, 'one a an uno una un um uma een jeden jedna une ein einem einen einer ett en et один одна одно одну 一 一'], [2, 'two dos dois duas twee dwa dwie deux zwei due tva to два две 二 二 两'], [3, 'three tres drie trzy trois drei tre три 三 三'],
+    [4, 'four cuatro quatro vier cztery quattro fyra fire четыре 四 四'], [5, 'five cinco vijf piec cinq funf cinque fem пять 五 五'], [6, 'six seis zes szesc sechs sei sex seks шесть 六 六'],
+    [7, 'seven siete sete zeven siedem sept sieben sette sju syv семь 七 七'], [8, 'eight ocho oito acht osiem huit otto atta otte восемь 八 八'], [9, 'nine nueve nove negen dziewiec neuf neun nio ni девять 九 九'],
+    [10, 'ten diez dez tien dziesiec dix zehn dieci tio ti десять 十 十'], [11, 'eleven once onze elf jedenascie undici elva elleve одиннадцать 十一 十一'], [12, 'twelve doce doze twaalf dwanascie douze zwolf dodici tolv двенадцать 十二 十二'],
   ] as [number, string][]).flatMap(([count, words]) => words.split(' ').map((w): [string, number] => [w, count])),
 )
 
@@ -128,9 +134,10 @@ const NUMBER_WORDS = new Map<string, number>(
 type PeriodWord = 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'
 const PERIOD_WORDS: Partial<Record<string, Record<string, PeriodWord>>> = {
   ja: { 今年: 'thisYear', 去年: 'lastYear', 昨年: 'lastYear', 今月: 'thisMonth', 先月: 'lastMonth' },
+  'zh-Hans': { 今年: 'thisYear', 去年: 'lastYear', 本月: 'thisMonth', 这个月: 'thisMonth', 上个月: 'lastMonth', 上月: 'lastMonth' },
 }
 /** Languages that put since, after, before and until after the date ("2024年 から", "2020年 以来"). */
-const POSTFIX = new Set<string>(['ja'])
+const POSTFIX = new Set<string>(['ja', 'zh-Hans'])
 
 /** Date vocabulary and Intl month names are prepared once per parse; never reads the clock. */
 export function dateParser(today: Date, lang: SearchLang) {

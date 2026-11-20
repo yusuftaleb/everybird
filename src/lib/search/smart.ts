@@ -40,13 +40,13 @@ export type SearchContext = {
 }
 
 type Entity = { value: string; name: string; aliases: string[]; exactOnly?: boolean; codes?: string[] }
-const GENERIC = new Set(['bird', 'birds', 'and', 'of', 'the', 'aves', 'vogel', 'vogels', 'oiseau', 'oiseaux', 'uccello', 'uccelli', 'fagel', 'faglar', 'fugl', 'fugle', 'птица', 'птицы', 'птиц', '鳥', '野鳥', '鳥類'])
+const GENERIC = new Set(['bird', 'birds', 'and', 'of', 'the', 'aves', 'vogel', 'vogels', 'oiseau', 'oiseaux', 'uccello', 'uccelli', 'fagel', 'faglar', 'fugl', 'fugle', 'птица', 'птицы', 'птиц', '鳥', '野鳥', '鳥類', '鸟', '鸟类'])
 /** Words dropped from a phrase before group and taxon names are matched word by word ("aves de garzas" is "aves garzas"). */
-const CONNECTOR_WORDS = new Set(['de', 'del', 'do', 'da', 'dos', 'das', 'la', 'el', 'los', 'las', 'of', 'the', 'van', 'der', 'het', 'du', 'des', 'le', 'les', 'die', 'das', 'den', 'dem', 'di', 'dei', 'degli', 'delle', 'della', 'il', 'gli', 'ノ'])
+const CONNECTOR_WORDS = new Set(['de', 'del', 'do', 'da', 'dos', 'das', 'la', 'el', 'los', 'las', 'of', 'the', 'van', 'der', 'het', 'du', 'des', 'le', 'les', 'die', 'das', 'den', 'dem', 'di', 'dei', 'degli', 'delle', 'della', 'il', 'gli', 'ノ', '的'])
 /** A province code typed as capitals ("BC", "ON"); lowercase "or", "no" and "al" are words, never codes. */
 const isCodeWord = (raw: string) => /^\p{Lu}{2,}$/u.test(raw)
 /** Words that join the parts of a group's name ('Ducks, Geese, and Waterfowl') and may be left out of a query. */
-const GROUP_JOINERS = new Set(['and', 'y', 'e', 'et', 'und', 'och', 'og', 'и', 'ト'])
+const GROUP_JOINERS = new Set(['and', 'y', 'e', 'et', 'und', 'och', 'og', 'и', 'ト', '和', '与'])
 const singular = (s: string) => s.split(' ').map((w) => w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w).join(' ')
 const unique = <T,>(xs: Iterable<T>) => [...new Set(xs)]
 const STATUS_WORDS: Record<SearchLang, Record<string, SearchStatus[]>> = {
@@ -70,6 +70,8 @@ const STATUS_WORDS: Record<SearchLang, Record<string, SearchStatus[]>> = {
   // IUCN's Japanese category names (ui.iucn.names), the Ministry of the Environment's Red List names Japanese readers
   // know (絶滅危惧IA類 = CR, IB類 = EN, II類 = VU, 近絶滅種), and 絶滅危惧(種) for the three threatened.
   ja: { 絶滅危惧: ['VU', 'EN', 'CR'], 絶滅危惧種: ['VU', 'EN', 'CR'], 危急: ['VU'], 危急種: ['VU'], '絶滅危惧ii類': ['VU'], 危機: ['EN'], '絶滅危惧ib類': ['EN'], 深刻な危機: ['CR'], '絶滅危惧ia類': ['CR'], 近絶滅種: ['CR'], 準絶滅危惧: ['NT'], 低懸念: ['LC'], 軽度懸念: ['LC'], 絶滅: ['EX'], 野生絶滅: ['EW'], データ不足: ['DD'], 情報不足: ['DD'], 未評価: ['NE'] },
+  // IUCN's Chinese category names; "受威胁" (and "受胁") is the three threatened categories.
+  'zh-Hans': { 受威胁: ['VU', 'EN', 'CR'], 受胁: ['VU', 'EN', 'CR'], 受威胁物种: ['VU', 'EN', 'CR'], 易危: ['VU'], 濒危: ['EN'], 极危: ['CR'], 近危: ['NT'], 无危: ['LC'], 灭绝: ['EX'], 野外灭绝: ['EW'], 数据缺乏: ['DD'], 未评估: ['NE'], 未予评估: ['NE'] },
 }
 const LIFERS: Record<SearchLang, string[]> = {
   en: ['lifer', 'lifers', 'new'], es: ['nuevas', 'nuevos', 'nueva', 'nuevo'], pt: ['novas', 'novos', 'nova', 'novo'], nl: ['nieuw', 'nieuwe'],
@@ -88,6 +90,8 @@ const LIFERS: Record<SearchLang, string[]> = {
   ru: ['новые', 'новых', 'лайфер', 'лайферы', 'лайферов'],
   // Japanese birders say ライファー; 初見 is "first time recorded".
   ja: ['ライファー', '初見'],
+  // Chinese birders say 加新 for a lifer; 新鸟种 and 新增鸟种 are the plain forms.
+  'zh-Hans': ['加新', '新鸟种', '新增鸟种'],
 }
 
 function tokenize(input: string, months: Map<string, number>): SearchWord[] {

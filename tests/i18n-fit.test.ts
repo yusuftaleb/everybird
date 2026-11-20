@@ -16,10 +16,11 @@ import { sv } from '@/i18n/messages/sv'
 import { da } from '@/i18n/messages/da'
 import { ru } from '@/i18n/messages/ru'
 import { ja } from '@/i18n/messages/ja'
+import { zhHans } from '@/i18n/messages/zh-Hans'
 import { COUNT_LABEL_CHARS, labelCells, WIDE_CHAR } from '@/lib/layout/count-box'
 
 // pl is left out until its maintainer decides on two labels over budget: trueSize, shareImage.
-const OTHERS = { es, pt, nl, fr, de, it: italian, sv, da, ru, ja } as const
+const OTHERS = { es, pt, nl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans } as const
 
 /** Resting labels in fixed rows (dotted paths into `ui`). */
 const TIGHT = [
@@ -60,7 +61,7 @@ describe('tight labels', () => {
   })
 
   it('the count label fits the hole', () => {
-    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja]) expect(labelCells(m.ui.count.label)).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans]) expect(labelCells(m.ui.count.label)).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
   })
 
   it('language codes are two letters, or Chinese by script', () => {

@@ -3,10 +3,10 @@ export const DATA_FILES = {
   'species.v1.json': 'species.v1.8ae50d623e.json',
   'taxonomy.v1.json': 'taxonomy.v1.ded5d08fde.json',
   'regions.v1.json': 'regions.v1.eed5c7d426.json',
-  'groups.v1.json': 'groups.v1.9fda3b7247.json',
+  'groups.v1.json': 'groups.v1.3a5b5b4cdb.json',
   'masks.v2.json': 'masks.v2.be92aa507b.json',
   'sample.v1.json': 'sample.v1.300671bac4.json',
-  'sample-pack.v1.json': 'sample-pack.v1.2a5f113734.json',
+  'sample-pack.v1.json': 'sample-pack.v1.69a1a8117f.json',
   'inat-synonyms.v1.json': 'inat-synonyms.v1.44136fa355.json',
   'vietnam-boundaries.v1.json': 'vietnam-boundaries.v1.1eed73d78b.json',
   'map-countries.v1.json': 'map-countries.v1.b88791b51c.json',
@@ -42,5 +42,6 @@ export const DATA_FILES = {
   'names.da.v1.json': 'names.da.v1.0bf82f63c3.json',
   'names.ru.v1.json': 'names.ru.v1.69822a9271.json',
   'names.ja.v1.json': 'names.ja.v1.20e1746926.json',
+  'names.zh_SIM.v1.json': 'names.zh_SIM.v1.ed4f615ffe.json',
 } as const
 export type DataFile = keyof typeof DATA_FILES

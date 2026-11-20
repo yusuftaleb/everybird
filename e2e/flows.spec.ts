@@ -15,6 +15,7 @@ import { sv } from "../src/i18n/messages/sv";
 import { da } from "../src/i18n/messages/da";
 import { ru } from "../src/i18n/messages/ru";
 import { ja } from "../src/i18n/messages/ja";
+import { zhHans } from "../src/i18n/messages/zh-Hans";
 import { pt } from "../src/i18n/messages/pt";
 
 // Every flow end to end, in every engine: each way in (eBird life list, MyEBirdData, iNaturalist with a mocked API, tick
@@ -416,7 +417,7 @@ test.describe("on a touch screen (pointer: coarse)", () => {
   });
 });
 
-const MESSAGES = { es, pt, nl, pl, fr, de, it, sv, da, ru, ja } as const;
+const MESSAGES = { es, pt, nl, pl, fr, de, it, sv, da, ru, ja, 'zh-Hans': zhHans } as const;
 
 // A short pass per language (Spanish, Portuguese, Dutch, Polish): the sample collage draws and Settings' Add birds offers
 // each source and Add by hand in the language's words. For manual runs.

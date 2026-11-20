@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { LANG_VARIANTS } from '@/i18n/choose'
-import { HTML_LANG, LANGS, type Lang } from '@/i18n/langs'
+import { HTML_LANG, LANGS, langBadge, type Lang } from '@/i18n/langs'
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
@@ -20,6 +20,7 @@ import { sv } from '@/i18n/messages/sv'
 import { da } from '@/i18n/messages/da'
 import { ru } from '@/i18n/messages/ru'
 import { ja } from '@/i18n/messages/ja'
+import { zhHans } from '@/i18n/messages/zh-Hans'
 import { pt } from '@/i18n/messages/pt'
 import { WIDE_CHAR } from '@/lib/layout/count-box'
 import glyphs from './fixtures/glyph-advances.json'
@@ -27,7 +28,7 @@ import glyphs from './fixtures/glyph-advances.json'
 type Variant = (typeof LANG_VARIANTS)[number]
 type FontKey = keyof typeof glyphs.fonts
 
-const NAV = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja }
+const NAV = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans }
 const PAGES = ['collage', 'settings', 'about'] as const
 
 /** Room left over that we insist on: kerning (tightens these words; `kernWidenEm` is added anyway), subpixel rounding. */
@@ -149,7 +150,7 @@ describe('the top bar fits (fontkit advances of the served fonts)', () => {
   }
 
   it('the language code fits its button at its narrowest (Geist Mono 13px, letter-spacing .06em)', () => {
-    for (const l of LANGS) expect(textWidth('geist-mono-500', l.toUpperCase(), 13, 0.06)).toBeLessThan(TINY.button! - 2 * MARGIN)
+    for (const l of LANGS) expect(textWidth('geist-mono-500', langBadge(l), 13, 0.06)).toBeLessThan(TINY.button! - 2 * MARGIN)
   })
 
   it('every split rule matches some language (no dead rule) and the html lang values the selectors key on', () => {

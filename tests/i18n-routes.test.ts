@@ -77,6 +77,7 @@ describe('the rewrites', () => {
       ['/da/about', 'header:accept-language'],
       ['/ru/about', 'header:accept-language'],
       ['/ja/about', 'header:accept-language'],
+      ['/zh-Hans/about', 'header:accept-language'],
       ['/en/about', ''],
     ])
     expect(resolve('/about', { accept: 'pl-PL,pl;q=0.9,en;q=0.8' })).toBe('/pl/about')
@@ -85,6 +86,10 @@ describe('the rewrites', () => {
     expect(resolve('/about', { accept: 'it-IT,it;q=0.9,en;q=0.8' })).toBe('/it/about')
     expect(resolve('/about', { accept: 'sv-SE,sv;q=0.9,en;q=0.8' })).toBe('/sv/about')
     expect(resolve('/about', { accept: 'da-DK,da;q=0.9,en;q=0.8' })).toBe('/da/about')
+    expect(resolve('/about', { accept: 'zh-CN,zh;q=0.9,en;q=0.8' })).toBe('/zh-Hans/about')
+    expect(resolve('/about', { accept: 'zh' })).toBe('/zh-Hans/about')
+    expect(resolve('/about', { accept: 'zh-SG,zh;q=0.9' })).toBe('/zh-Hans/about')
+    expect(resolve('/about', { accept: 'zh-Hans-TW' })).toBe('/zh-Hans/about')
     expect(resolve('/about', { accept: 'ja-JP,ja;q=0.9,en;q=0.8' })).toBe('/ja/about')
     expect(resolve('/about', { accept: 'ru-RU,ru;q=0.9,en;q=0.8' })).toBe('/ru/about')
     expect(resolve('/about', { cookie: `${LANG_COOKIE}=en`, accept: 'es-ES,es;q=0.9' })).toBe('/en/about')

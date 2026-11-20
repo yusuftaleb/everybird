@@ -16,6 +16,7 @@ import { sv } from '@/i18n/messages/sv'
 import { da } from '@/i18n/messages/da'
 import { ru } from '@/i18n/messages/ru'
 import { ja } from '@/i18n/messages/ja'
+import { zhHans } from '@/i18n/messages/zh-Hans'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ALLOWED as APP_ALLOWED } from '@/lib/analytics'
 import { holeRects, rectGap, type Hole, type Rect } from '@/lib/layout/count-box'
@@ -174,7 +175,7 @@ describe('the landscape layouts', () => {
 })
 
 describe('the footer’s one line fits in every language', () => {
-  for (const [lang, m] of Object.entries({ en, es, nl, pt, pl, fr, de, it: italian, sv, da, ru, ja })) {
+  for (const [lang, m] of Object.entries({ en, es, nl, pt, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans })) {
     it(`${lang}: the credit stays on the wordmark’s line, at 17px or more, clear of the latest row`, async () => {
       const opts = { format: 'desktop' as const, theme: 'light' as const, entries, species, pack: harnessPack, now: NOW, strings: m.ui }
       const card = await prepareCard(opts, IMAGE_SCALE.desktop)
