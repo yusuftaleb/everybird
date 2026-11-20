@@ -168,7 +168,7 @@ export const de: Messages = {
         oldest: 'Älteste Linie auf dieser Liste: {name}, vor etwa {age} Millionen Jahren von den nächsten Verwandten getrennt (eine Schätzung).',
         unmapped: { one: '{n} Vogel auf dieser Liste hat keinen Platz in diesem Baum:', other: '{n} Vögel auf dieser Liste haben keinen Platz in diesem Baum:' },
         allMapped: 'Jeder Vogel auf dieser Liste hat einen Platz im Baum.',
-        credit: 'Baum: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, abgeglichen mit der eBird-Taxonomie {year}, aus der Familien, Gattungen und Summen stammen.',
+        credit: 'Baum: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, abgeglichen mit der eBird-Taxonomie {year}, aus der Familien, Gattungen und Summen stammen. Arten, die in der Taxonomie {year} neu sind, wurden neben ihrem nächsten Verwandten eingefügt.',
       },
       close: 'Schließen',
       undo: 'Rückgängig',

@@ -201,7 +201,7 @@ export const EN_UI = {
       oldest: 'Oldest lineage on this list: {name}, which split from its closest relatives about {age} million years ago (an estimate).',
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
       allMapped: 'Every bird on this list has a place in the tree.',
-      credit: 'Tree: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, matched to the eBird {year} taxonomy, which gives the families, genera and totals.',
+      credit: 'Tree: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, matched to the eBird {year} taxonomy, which gives the families, genera and totals. Species new in the {year} taxonomy were added beside their closest relative.',
     },
     /** The close buttons' aria-label (the welcome, sheets, the Places and Time sheet). */
     close: 'Close',

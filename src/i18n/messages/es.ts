@@ -168,7 +168,7 @@ export const es: Messages = {
         oldest: 'Linaje más antiguo de esta lista: {name}, que se separó de sus parientes más cercanos hace unos {age} millones de años (una estimación).',
         unmapped: { one: '{n} ave de esta lista no tiene lugar en este árbol:', other: '{n} aves de esta lista no tienen lugar en este árbol:' },
         allMapped: 'Todas las aves de esta lista tienen un lugar en el árbol.',
-        credit: 'Árbol: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, emparejado con la taxonomía de eBird {year}, que da las familias, los géneros y los totales.',
+        credit: 'Árbol: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, emparejado con la taxonomía de eBird {year}, que da las familias, los géneros y los totales. Las especies nuevas de la taxonomía {year} se añadieron junto a su pariente más cercano.',
       },
       close: 'Cerrar',
       undo: 'Deshacer',

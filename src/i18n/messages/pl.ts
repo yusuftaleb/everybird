@@ -171,7 +171,7 @@ export const pl: Messages = {
         oldest: 'Najstarsza linia na tej liście: {name}. Oddzieliła się od najbliższych krewnych około {age} mln lat temu (szacunek).',
         unmapped: { one: 'Ptaki z tej listy bez miejsca w tym drzewie ({n}):', other: 'Ptaki z tej listy bez miejsca w tym drzewie ({n}):' },
         allMapped: 'Każdy ptak z tej listy ma miejsce w drzewie.',
-        credit: 'Drzewo: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, dopasowane do taksonomii eBird {year}, z której pochodzą rodziny, rodzaje i liczby.',
+        credit: 'Drzewo: <src>{tree}</src> ({taxonomy}), McTavish et al., <lic>CC BY 4.0</lic>, dopasowane do taksonomii eBird {year}, z której pochodzą rodziny, rodzaje i liczby. Gatunki nowe w taksonomii {year} dodano obok ich najbliższego krewnego.',
       },
       close: 'Zamknij',
       undo: 'Cofnij',

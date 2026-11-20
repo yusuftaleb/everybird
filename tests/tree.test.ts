@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { matcher, nexusTree, relabel, taxOnlyBits } from '../scripts/build-data/build-tree'
+import { attach, matcher, nexusTree, relabel, taxOnlyBits, type Addition } from '../scripts/build-data/build-tree'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 import { HEAD_H, ROW_H, isClade, levelView } from '@/lib/tree/levels'
@@ -166,6 +166,31 @@ describe('build-tree', () => {
   })
 })
 
+describe('build-tree: species added beside their parent', () => {
+  const add = (code: string, parent: string): Addition => ({ code, parent, source: 'test' })
+  it('splits off at half the parent\'s own branch; several from one parent share the split', () => {
+    const out = attach(NWK, [add('a9', 'a2'), add('b8', 'b1'), add('b9', 'b1')])
+    expect(out.newick).toBe('(((a1:1,a3:1):2,(a2:1.5,a9:1.5):1.5):7,((b1:2,b8:2,b9:2):2,b2:4):6);')
+    expect(out.added).toEqual(['a9', 'b8', 'b9'])
+  })
+  it('skips, with a note, an addition that has a tip already or whose parent has none', () => {
+    const out = attach(NWK, [add('a1', 'a2'), add('z1', 'zz')])
+    expect(out.newick).toBe(NWK)
+    expect(out.skipped).toEqual(['a1: has a tip of its own', 'z1: its parent zz has no tip'])
+  })
+  it('the parser and the drawing handle a three-way split', () => {
+    const t = parseNewick(attach(NWK, [add('b8', 'b1'), add('b9', 'b1')]).newick)
+    const node = t.parent[t.tipOf.get('b1')!]
+    expect(t.kids[node].map((k) => t.code[k])).toEqual(['b1', 'b8', 'b9'])
+    expect(t.age[node]).toBe(2)
+    const root = cladeTree(t, t.tipOf.values(), (k) => t.code[k]!)!
+    const d = drawTree(root, () => true)
+    expect(d.leaves).toHaveLength(7)
+    // The three kids hang from the node's middle y (leaves 4, 5, 6 at y 3.5, 4.5, 5.5): x 800 is 2 of 10 My ago.
+    expect(d.seen).toContain('M800 4.5V3.5H1000M800 4.5V4.5H1000M800 4.5V5.5H1000')
+  })
+})
+
 describe('public/data/tree.v1.json', () => {
   const root = resolve(__dirname, '..')
   const file = JSON.parse(readFileSync(resolve(root, 'public/data/tree.v1.json'), 'utf8')) as TreeFile
@@ -192,5 +217,16 @@ describe('public/data/tree.v1.json', () => {
     expect(marked('ostric3')).toBe(true)
     expect(marked('norcas1')).toBe(true)
     expect(marked('ostric2')).toBe(false)
+  })
+  it('each species of data/tree-additions.json sits beside its parent, dotted, and names its source', () => {
+    const t = parseNewick(file.newick, file.taxOnly)
+    const additions = JSON.parse(readFileSync(resolve(root, 'data/tree-additions.json'), 'utf8')) as Addition[]
+    expect(additions.length).toBeGreaterThan(0)
+    for (const a of additions) {
+      const k = t.tipOf.get(a.code)!
+      expect(t.parent[t.tipOf.get(a.parent)!], a.code).toBe(t.parent[k])
+      expect(t.taxOnly[k], a.code).toBe(1)
+      expect(a.source.length, a.code).toBeGreaterThan(10)
+    }
   })
 })
