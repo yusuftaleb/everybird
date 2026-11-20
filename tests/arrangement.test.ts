@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest'
 import { colourKey } from '../scripts/build-data/colour-key'
 import { NEUTRAL_KEY, colourPack, layRows, rowsLayout, type RowBird } from '@/lib/layout/arrange'
 import { EXP, LAYOUTS, MAXUP } from '@/lib/layout/constants'
-import { collageHole, touchesHole, type Hole } from '@/lib/layout/count-box'
+import { collageHole, scaleHole as scaleHoleBy, touchesHole, type Hole } from '@/lib/layout/count-box'
 import { createLayoutClient } from '@/lib/layout/layout-client'
 import { createLayoutHandler, type MaskLoader, type WorkerReply, type WorkerRequest } from '@/lib/layout/layout.worker'
-import { decodeMask } from '@/lib/layout/mask'
+import { decodeMask, maskCell } from '@/lib/layout/mask'
 import { packBest, relSizes, type Box, type PackBird } from '@/lib/layout/pack'
 import type { ListEntry } from '@/lib/list/model'
 import { planCaptions } from '@/lib/share/captions'
@@ -296,4 +296,117 @@ describe('share frames', () => {
     console.log(`[arrangement] By colour, 40 names on A4: ${fit.ok ? 'fit' : 'dropped'}`)
     expect(typeof fit.ok).toBe('boolean')
   })
+})
+
+describe('Oval', () => {
+  /** Each painted mask cell's rectangle [x0, y0, x1, y1] of every bird, as drawn in its box. */
+  function* cells(boxes: Map<number, Box>, birds: PackBird[]): Generator<[number, number, number, number]> {
+    for (const b of birds) {
+      const [x, y, w, h] = boxes.get(b.id)!
+      const cw = w / b.mask.w, ch = h / b.mask.h
+      for (let j = 0; j < b.mask.h; j++) for (let i = 0; i < b.mask.w; i++) {
+        if (maskCell(b.mask, i, j)) yield [x + i * cw, y + j * ch, x + (i + 1) * cw, y + (j + 1) * ch]
+      }
+    }
+  }
+  /** Every painted cell lies inside the ellipse centred at (cx, cy) with semi-axes rx, ry. */
+  function insideOval(boxes: Map<number, Box>, birds: PackBird[], cx: number, cy: number, rx: number, ry: number): boolean {
+    for (const [x0, y0, x1, y1] of cells(boxes, birds)) {
+      for (const [u, v] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]]) if (((u - cx) / rx) ** 2 + ((v - cy) / ry) ** 2 > 1 + 1e-6) return false
+    }
+    return true
+  }
+  /** No painted cell touches the count's hole at (W / 2, H / 2). */
+  function countClear(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole): boolean {
+    for (const [x0, y0, x1, y1] of cells(boxes, birds)) if (touchesHole([x0 - W / 2, y0 - H / 2, x1 - W / 2, y1 - H / 2], hole)) return false
+    return true
+  }
+  const birdsOf = (list: SpeciesRow[]): PackBird[] => list.map((r, i) => ({ id: i, mass: r.g, mask: decodeMask(masks[r.ord][r.code]) }))
+
+  for (const [n, layout] of [[150, LAYOUTS[1]], [600, LAYOUTS[0]], [60, LAYOUTS[2]]] as const) {
+    it(`${n} birds on ${layout.name}'s stage: inside its ellipse and the count clear, in both modes`, () => {
+      const birds = birdsOf(pick(n, n + 1))
+      const hole = collageHole(n, layout)
+      const even = packBest(birds, layout, 'even', { fixedStage: [layout.W, layout.H], oval: true })
+      expect(even.boxes.size).toBe(n)
+      expect(insideOval(even.boxes, birds, layout.W / 2, layout.H / 2, layout.W / 2, layout.H / 2)).toBe(true)
+      const targets = new Map(birds.map((b) => { const [x, y, w, h] = even.boxes.get(b.id)!; return [b.id, [x + w / 2, y + h / 2] as [number, number]] }))
+      const tru = packBest(birds, layout, 'true', { fixedStage: [layout.W, layout.H], targets, oval: true })
+      expect(tru.boxes.size).toBe(n)
+      for (const r of [even, tru]) expect(countClear(r.boxes, birds, layout.W, layout.H, hole)).toBe(true)
+      expect(insideOval(tru.boxes, birds, layout.W / 2, layout.H / 2, layout.W / 2, layout.H / 2)).toBe(true)
+      // Packed on the same stage uses its corners: the oval's estimate is for the smaller area, so its birds are smaller.
+      const packed = packBest(birds, layout, 'even', { fixedStage: [layout.W, layout.H] })
+      expect(even.base).toBeLessThan(packed.base)
+      expect(insideOval(packed.boxes, birds, layout.W / 2, layout.H / 2, layout.W / 2, layout.H / 2)).toBe(false)
+    }, 60_000)
+  }
+
+  it('a full collage keeps Packed\'s sizes rule (relative sizes over the list) and lays every bird out', async () => {
+    const list = pick(200, 21)
+    const handle = createLayoutHandler(loadMasks, loadColours)
+    await handle({ type: 'setList', id: 1, entries: list.map((r) => ({ code: r.code, mass: r.g, ord: r.ord, to: r.to })) })
+    const reply = await handle({ type: 'layout', id: 2, key: 'k', codes: list.map((r) => r.code), layout: 'wide', mode: 'even', arrangement: 'oval' }) as Extract<WorkerReply, { type: 'result' }>
+    expect(reply.type).toBe('result')
+    expect(reply.codes.length).toBe(list.length)
+    // Bigger birds keep bigger tiles, as Packed's.
+    const rel = relSizes(birdsOf(list), EXP)
+    const side = list.map((_, i) => Math.max(reply.boxes[4 * i + 2], reply.boxes[4 * i + 3]))
+    expect(spearman(list.map((_, i) => rel.get(i)!), side)).toBeGreaterThan(0.99)
+  }, 60_000)
+
+  it('the layout client asks for the ellipse in both modes, under its own keys', async () => {
+    const handle = createLayoutHandler(loadMasks, loadColours)
+    const log: WorkerRequest[] = []
+    const worker = {
+      onmessage: null as null | ((e: { data: WorkerReply }) => void),
+      onerror: null, onmessageerror: null,
+      postMessage(msg: WorkerRequest) { log.push(msg); setTimeout(async () => this.onmessage?.({ data: await handle(msg) }), 0) },
+    }
+    const list = pick(40, 13)
+    const client = createLayoutClient(worker as unknown as Worker, { resolve: (f) => list.filter((r) => !f.order || r.ord === f.order).map((r) => r.code) })
+    client.setList(list.map((r) => ({ code: r.code, mass: r.g, ord: r.ord, to: r.to })))
+    expect((await client.get({}, 'medium', 'even', 'oval')).key).toBe('medium|even:oval|')
+    expect((await client.get({}, 'medium', 'true', 'oval')).key).toBe('medium|true:oval|')
+    const sub = await client.get({ order: list[0].ord }, 'medium', 'even', 'oval')
+    expect(sub.boxes.size).toBe(list.filter((r) => r.ord === list[0].ord).length)
+    const layouts = log.filter((m): m is Extract<WorkerRequest, { type: 'layout' }> => m.type === 'layout')
+    expect(layouts.length).toBe(3)
+    for (const m of layouts) expect(m.arrangement).toBe('oval')
+  }, 60_000)
+
+  it('in a share frame: inside the frame\'s ellipse (a circle in the square), the count clear', async () => {
+    const handle = createLayoutHandler(loadMasks, loadColours)
+    for (const format of ['story', 'post', 'square', 'desktop'] as const) {
+      const list = pick(120, 31)
+      const spec = image.imagePackSpec(format, { name: true, filter: false, latest: true, count: list.length }, undefined, undefined, 'oval')
+      expect(spec.arrangement).toBe('oval')
+      const reply = await handle({ type: 'image', id: 1, entries: list.map((r) => ({ code: r.code, mass: r.g, ord: r.ord })), aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, arrangement: 'oval' })
+      const p = image.packFromReply(reply)
+      expect(p.boxes.size, format).toBe(list.length)
+      expect(p.W / p.H).toBeCloseTo(spec.aspect, 1)
+      const birds = birdsOf(list)
+      const byId = new Map(list.map((r, i) => [i, p.boxes.get(r.code)!]))
+      expect(insideOval(byId, birds, p.W / 2, p.H / 2, p.W / 2, p.H / 2), format).toBe(true)
+      expect(countClear(byId, birds, p.W, p.H, scaleHoleBy(spec.hole, p.W)), format).toBe(true)
+    }
+  }, 60_000)
+
+  it('in print, the names under the stickers still fit (A4 and A2, upright and landscape, with the lifer rings)', async () => {
+    const handle = createLayoutHandler(loadMasks, loadColours)
+    for (const [size, n] of [['A4', 40], ['A2', 120]] as const) {
+      for (const format of ['print', 'printLandscape'] as const) {
+        const list = pick(n, n + 3), entries = list.map(lifer)
+        const marked = new Set([list[0].code, list[n - 1].code])
+        const content: image.CardContent = { name: true, filter: false, latest: true, count: entries.length }
+        const L = image.cardLayout(format, content, printDesign(size, format === 'printLandscape'))
+        const plan = planCaptions(entries, species, size, L.collage.w, undefined, undefined, marked)
+        if (!plan.ok) throw new Error('plan')
+        const spec = image.imagePackSpec(format, content, size, plan, 'oval')
+        const reply = await handle({ type: 'image', id: 1, entries: list.map((r) => ({ code: r.code, mass: r.g, ord: r.ord })), aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, captions: list.map((r) => spec.captionBoxes![r.code]), arrangement: 'oval' })
+        const fit = image.fitCaptionPack(image.packFromReply(reply), entries, format, content, size, plan, marked)
+        expect(fit.ok, `${size} ${format}`).toBe(true)
+      }
+    }
+  }, 120_000)
 })

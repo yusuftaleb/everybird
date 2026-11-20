@@ -133,6 +133,7 @@ export const de: Messages = {
         markFirst: 'Erste Art markieren',
         arrangement: 'Anordnung',
         packed: 'Kompakt',
+        oval: 'Oval',
         byFamily: 'Nach Familie',
         byColour: 'Nach Farbe',
         trueOff: 'Nach Familie nicht verfügbar: Die Vögel einer Reihe sind gleich hoch.',

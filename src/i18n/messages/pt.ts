@@ -133,6 +133,7 @@ export const pt: Messages = {
         markFirst: 'Marcar a primeira espécie nova',
         arrangement: 'Disposição',
         packed: 'Compacta',
+        oval: 'Oval',
         byFamily: 'Por família',
         byColour: 'Por cor',
         trueOff: 'Indisponível por família: as aves de uma linha têm a mesma altura.',

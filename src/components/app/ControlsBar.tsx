@@ -46,7 +46,7 @@ type Props = {
   onFind?: () => void
 }
 
-const ARRANGEMENT_LABEL = { packed: 'packed', family: 'byFamily', colour: 'byColour' } as const
+const ARRANGEMENT_LABEL = { packed: 'packed', oval: 'oval', family: 'byFamily', colour: 'byColour' } as const
 
 export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, trueOff, arrangement, lightFirst, onDirection, sci, onSci, marks, search, filters, below, onFind }: Props) {
   const [finding, setFinding] = useState(false)

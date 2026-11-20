@@ -163,6 +163,7 @@ export const EN_UI = {
       markFirst: 'Mark first lifer',
       arrangement: 'Arrangement',
       packed: 'Packed',
+      oval: 'Oval',
       byFamily: 'By family',
       byColour: 'By colour',
       trueOff: 'Not available by family: the birds in a row share one height.',

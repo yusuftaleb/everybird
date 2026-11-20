@@ -136,6 +136,7 @@ export const pl: Messages = {
         markFirst: 'Oznacz pierwszy gatunek',
         arrangement: 'Układ',
         packed: 'Zwarty',
+        oval: 'Owalny',
         byFamily: 'Według rodzin',
         byColour: 'Według koloru',
         trueOff: 'Niedostępne w układzie według rodzin: ptaki w rzędzie mają tę samą wysokość.',

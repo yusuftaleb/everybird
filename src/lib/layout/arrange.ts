@@ -1,4 +1,5 @@
-// The collage's other two arrangements (the Arrangement control; Packed is pack.ts as it always was). Both run in the
+// The collage's By family and By colour arrangements (the Arrangement control; Packed is pack.ts as it always was, and
+// Oval is Packed with pack.ts's `oval`: the cells outside the stage's or frame's ellipse blocked, as the count's hole is). Both run in the
 // layout worker, on the screen's stages and the share images' frames, and keep the count's hole at the stage centre.
 // - By family (layRows, rowsLayout, rowsFrame): the birds in taxonomic order in rows that read like a book, left to
 //   right and top to bottom, every bird of a row at the row's height (its tile the mask's aspect, as packGrid draws it,
@@ -13,8 +14,9 @@ import { NO_HOLE, holeExtent, holeRects, isHole, scaleHole, type Hole } from './
 import type { CaptionRoom } from './grid'
 import { DEFAULT_CELL, fitStage, gather, pack, packFrame, relSizes, type Box, type PackBird, type PackResult } from './pack'
 
-export type Arrangement = 'packed' | 'family' | 'colour'
-export const ARRANGEMENTS: readonly Arrangement[] = ['packed', 'family', 'colour']
+/** 'oval': Packed inside the ellipse inscribed in the stage or frame (pack.ts packBest's and packFrame's `oval`). */
+export type Arrangement = 'packed' | 'oval' | 'family' | 'colour'
+export const ARRANGEMENTS: readonly Arrangement[] = ['packed', 'oval', 'family', 'colour']
 
 /** A bird in a row: its tile's aspect (w / h) and, in print, its name's box under it (`ring`: kept clear round a ringed sticker). */
 export type RowBird = { id: number; aspect: number; cap?: CaptionRoom }

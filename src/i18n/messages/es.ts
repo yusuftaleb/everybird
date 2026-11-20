@@ -133,6 +133,7 @@ export const es: Messages = {
         markFirst: 'Marcar la primera especie nueva',
         arrangement: 'Disposición',
         packed: 'Compacta',
+        oval: 'Ovalada',
         byFamily: 'Por familia',
         byColour: 'Por color',
         trueOff: 'No disponible por familia: las aves de una fila tienen la misma altura.',
