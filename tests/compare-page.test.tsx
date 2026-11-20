@@ -98,12 +98,12 @@ describe('ComparePage', () => {
   it('three lists: every bird in the table, a bird on two of the three included, marked where it is', async () => {
     render(<ComparePage />)
     paste(`${link('Sam', 1, 5)}\n${link('Ada', 5, 6)}`)
-    await screen.findByTestId('group-collage')
+    expect(await screen.findByTestId('compare-empty')).toBeInTheDocument() // no bird is on all three
     const every = screen.getByTestId('compare-group-table')
     expect(every).toHaveTextContent('Every bird6')
     fireEvent.click(every)
     expect(every).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.queryByTestId('group-collage')).toBeNull()
+    expect(screen.queryByTestId('compare-empty')).toBeNull()
     const table = within(screen.getByTestId('compare-table')).getByRole('table', { name: 'Every bird in this comparison and the lists it is on' })
     expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Bird', 'Mine', 'Sam', 'Ada'])
     const rows = within(table).getAllByRole('row').slice(1)
