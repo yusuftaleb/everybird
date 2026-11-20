@@ -120,7 +120,10 @@ function useMeasure(el: HTMLElement | null): Measure {
     const css = el ? getComputedStyle(el) : undefined
     const body = css?.fontFamily || 'sans-serif'
     const mono = css?.getPropertyValue('--font-mono').trim() || 'monospace'
-    return (text, px, weight, isMono) => textWidth(text, `${weight} ${px}px ${isMono ? mono : body}`, text.length * px * (isMono ? 0.62 : 0.56))
+    // The counts are .eb-mono: upper case with .06em letter-spacing, which the canvas does not apply, so add both.
+    return (text, px, weight, isMono) => isMono
+      ? textWidth(text.toUpperCase(), `${weight} ${px}px ${mono}`, text.length * px * 0.62) + text.length * px * 0.06
+      : textWidth(text, `${weight} ${px}px ${body}`, text.length * px * 0.56)
     // `fonts` only says the fonts have loaded: measure again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [el, fonts])
