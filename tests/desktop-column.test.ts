@@ -16,6 +16,7 @@ import { da } from '@/i18n/messages/da'
 import { ru } from '@/i18n/messages/ru'
 import { ja } from '@/i18n/messages/ja'
 import { zhHans } from '@/i18n/messages/zh-Hans'
+import { zhHant } from '@/i18n/messages/zh-Hant'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { CREDIT_MIN, DESKTOP_SIDE, FOOTER_LIFT, IMAGE_SCALE, IMAGE_SIZE, cardDims, cardLayout, clearStickerCache, drawShareImage, imagePackSpec, prepareCard, renderShareImage, type CardFormat } from '@/lib/share/image'
 import { entries, installStubs, NOW, pack, species } from './fixtures/share-image-harness'
@@ -53,8 +54,8 @@ describe('the desktop size', () => {
 
 describe('everything on the desktop is inside the central column, clear of the top and bottom', () => {
   for (const c of CONTENTS) {
-    for (const lang of ['en', 'es', 'nl', 'pt', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh-Hans'] as const) {
-      const m = { en, es, nl, pt, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans }[lang]
+    for (const lang of ['en', 'es', 'nl', 'pt', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh-Hans', 'zh-Hant'] as const) {
+      const m = { en, es, nl, pt, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant }[lang]
       const name = `${lang}${c.name ? ' name' : ''}${c.filter ? ' filter' : ''}${c.latest ? ' latest' : ' no-latest'}`
       it(name, async () => {
         installStubs()
@@ -213,12 +214,13 @@ describe('long latest-lifer names on the desktop footer', () => {
     ru: longest(Object.values(data('names.ru.v1.json').names as Record<string, string>)),
     ja: longest(Object.values(data('names.ja.v1.json').names as Record<string, string>)),
     'zh-Hans': longest(Object.values(data('names.zh_SIM.v1.json').names as Record<string, string>)),
+    'zh-Hant': longest(Object.values(data('names.zh.v1.json').names as Record<string, string>)),
     forty: 'Northern Rough-winged Swallow-and-Martin!',
   }
   for (const [lang, name] of Object.entries(NAMES)) {
     it(`${lang}: "${name}" (${name.length}) is drawn whole, at 80% of its size or more`, async () => {
       installStubs()
-      const m = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, forty: en }[lang as 'en']
+      const m = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant, forty: en }[lang as 'en']
       const card = await prepareCard({ format: 'desktop', theme: 'light', entries, species, pack, now: NOW, strings: m.ui, nameOf: () => name }, IMAGE_SCALE.desktop)
       expect(card.oneLine!.nameText).toBe(name)
       expect(card.oneLine!.nameSize).toBeGreaterThanOrEqual(30 * 0.8)

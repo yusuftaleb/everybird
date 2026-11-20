@@ -55,7 +55,7 @@ export const ALLOWED: Record<EventName, readonly string[]> = {
   image_downloaded: ['story', 'post', 'square', 'desktop', 'wide'],
   shared: ['story', 'post', 'square', 'desktop', 'wide', 'link'],
   link_copied: ['full', 'compact', 'minimal', 'species'],
-  ui_language: ['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh-Hans'],
+  ui_language: ['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh-Hans', 'zh-Hant'],
   poster_made: ['a4', 'a3', 'a2', 'a1', 'us12x18', 'us18x24', 'us24x36', 'a4-l', 'a3-l', 'a2-l', 'a1-l', 'us12x18-l', 'us18x24-l', 'us24x36-l'],
   poster_downloaded: ['png', 'pdf'],
   search_applied: ['smart', 'bird'],

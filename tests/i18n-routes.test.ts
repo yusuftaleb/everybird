@@ -66,6 +66,8 @@ describe('the rewrites', () => {
     const about = langRewrites().filter((r) => r.source === '/about')
     expect(about.map((r) => [r.destination, r.has?.map((h) => `${h.type}:${h.key}`).join() ?? ''])).toEqual([
       ['/:lang/about', `cookie:${LANG_COOKIE}`],
+      // Traditional Chinese first: its rule is a narrower case of Simplified's (any zh), and the first match wins.
+      ['/zh-Hant/about', 'header:accept-language'],
       ['/es/about', 'header:accept-language'],
       ['/pt/about', 'header:accept-language'],
       ['/nl/about', 'header:accept-language'],
@@ -86,6 +88,12 @@ describe('the rewrites', () => {
     expect(resolve('/about', { accept: 'it-IT,it;q=0.9,en;q=0.8' })).toBe('/it/about')
     expect(resolve('/about', { accept: 'sv-SE,sv;q=0.9,en;q=0.8' })).toBe('/sv/about')
     expect(resolve('/about', { accept: 'da-DK,da;q=0.9,en;q=0.8' })).toBe('/da/about')
+    expect(resolve('/about', { accept: 'zh-TW,zh;q=0.9,en;q=0.8' })).toBe('/zh-Hant/about')
+    expect(resolve('/about', { accept: 'zh-HK' })).toBe('/zh-Hant/about')
+    expect(resolve('/about', { accept: 'zh-MO,zh;q=0.9' })).toBe('/zh-Hant/about')
+    expect(resolve('/about', { accept: 'zh-Hant-TW' })).toBe('/zh-Hant/about')
+    expect(resolve('/about', { accept: 'zh_TW' })).toBe('/zh-Hant/about')
+    expect(resolve('/about', { accept: 'ZH-tw' })).toBe('/zh-Hant/about')
     expect(resolve('/about', { accept: 'zh-CN,zh;q=0.9,en;q=0.8' })).toBe('/zh-Hans/about')
     expect(resolve('/about', { accept: 'zh' })).toBe('/zh-Hans/about')
     expect(resolve('/about', { accept: 'zh-SG,zh;q=0.9' })).toBe('/zh-Hans/about')

@@ -75,8 +75,8 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.share.latestLifer)
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.date.months[9])
     expect(text(wide.querySelector('.ebd-img-mark'))).toBe('Everybird')
-    // The latest lifer's name is the language's base name (es, pt_BR, nl, pl, fr_FR, de, it, sv, da, ru, ja, zh_SIM), English in English.
-    const base = { en: undefined, es: 'es', pt: 'pt_BR', nl: 'nl', pl: 'pl', fr: 'fr_FR', de: 'de', it: 'it', sv: 'sv', da: 'da', ru: 'ru', ja: 'ja', 'zh-Hans': 'zh_SIM' }[lang] as keyof typeof LATEST.names | undefined
+    // The latest lifer's name is the language's base name (es, pt_BR, nl, pl, fr_FR, de, it, sv, da, ru, ja, zh_SIM, zh), English in English.
+    const base = { en: undefined, es: 'es', pt: 'pt_BR', nl: 'nl', pl: 'pl', fr: 'fr_FR', de: 'de', it: 'it', sv: 'sv', da: 'da', ru: 'ru', ja: 'ja', 'zh-Hans': 'zh_SIM', 'zh-Hant': 'zh' }[lang] as keyof typeof LATEST.names | undefined
     expect(text(wide.querySelector('.ebd-img-latest-name'))).toBe(base ? LATEST.names[base] : LATEST.name)
   })
 
@@ -114,7 +114,7 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     expect(text(main.querySelector('#eb-how-h'))).toBe(m.page.about.how.head)
     expect(text(main.querySelector('#eb-size-h'))).toBe(m.page.about.size.head)
     const credits = document.getElementById('credits')!
-    const made = { en: 'Made by Yusuf Taleb', es: 'Hecho por Yusuf Taleb', pt: 'Feito por Yusuf Taleb', nl: 'Gemaakt door Yusuf Taleb', pl: 'Autor: Yusuf Taleb', fr: 'Créé par Yusuf Taleb', de: 'Gemacht von Yusuf Taleb', it: 'Creato da Yusuf Taleb', sv: 'Gjord av Yusuf Taleb', da: 'Lavet af Yusuf Taleb', ru: 'Автор: Yusuf Taleb', ja: '制作：Yusuf Taleb', 'zh-Hans': '由Yusuf Taleb制作' }[lang]
+    const made = { en: 'Made by Yusuf Taleb', es: 'Hecho por Yusuf Taleb', pt: 'Feito por Yusuf Taleb', nl: 'Gemaakt door Yusuf Taleb', pl: 'Autor: Yusuf Taleb', fr: 'Créé par Yusuf Taleb', de: 'Gemacht von Yusuf Taleb', it: 'Creato da Yusuf Taleb', sv: 'Gjord av Yusuf Taleb', da: 'Lavet af Yusuf Taleb', ru: 'Автор: Yusuf Taleb', ja: '制作：Yusuf Taleb', 'zh-Hans': '由Yusuf Taleb制作', 'zh-Hant': '由 Yusuf Taleb 製作' }[lang]
     expect(made).toBe(m.ui.shell.footer.madeBy)
     expect(text(credits.querySelector('.eb-prose'))).toMatch(new RegExp(`^${made}\\.`))
     expect(within(credits).getByRole('link', { name: 'Yusuf Taleb' })).toHaveAttribute('href', 'https://www.yusuftaleb.com')

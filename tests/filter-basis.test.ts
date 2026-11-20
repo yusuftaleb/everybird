@@ -16,8 +16,8 @@ const en = enMessages.ui
 const row = (code: string, ord: string, fam: string, to: number) => ({ code, com: code, sci: code, ord, fam, famCom: fam, to }) as never
 const rows = [row('merlin', 'Falconiformes', 'Falconidae', 5), row('duck', 'Anseriformes', 'Anatidae', 20), row('crow', 'Passeriformes', 'Corvidae', 90)]
 const groups = new Map<string, BirdGroup>([
-  ['raptors', { id: 'raptors', name: { en: 'Raptors', es: 'Rapaces', pt: 'Rapinas', nl: 'Roofvogels', pl: 'Drapieżne', fr: 'Rapaces', de: 'Greifvögel', sv: 'Rovfåglar', da: 'Rovfugle', ru: 'Хищные птицы', 'zh-Hans': '猛禽' }, lo: 1, hi: 10 }],
-  ['waterfowl', { id: 'waterfowl', name: { en: 'Waterfowl', es: 'Patos', pt: 'Patos', nl: 'Eenden', pl: 'Kaczki', fr: 'Canards', de: 'Enten', sv: 'Änder', da: 'Ænder', ru: 'Утки', 'zh-Hans': '鸭类' }, lo: 15, hi: 30 }],
+  ['raptors', { id: 'raptors', name: { en: 'Raptors', es: 'Rapaces', pt: 'Rapinas', nl: 'Roofvogels', pl: 'Drapieżne', fr: 'Rapaces', de: 'Greifvögel', sv: 'Rovfåglar', da: 'Rovfugle', ru: 'Хищные птицы', 'zh-Hans': '猛禽', 'zh-Hant': '猛禽' }, lo: 1, hi: 10 }],
+  ['waterfowl', { id: 'waterfowl', name: { en: 'Waterfowl', es: 'Patos', pt: 'Patos', nl: 'Eenden', pl: 'Kaczki', fr: 'Canards', de: 'Enten', sv: 'Änder', da: 'Ænder', ru: 'Утки', 'zh-Hans': '鸭类', 'zh-Hant': '鴨類' }, lo: 15, hi: 30 }],
 ])
 const species: SpeciesIndex = { rows, byCode: new Map(rows.map((r) => [(r as { code: string }).code, r])), search: () => [], groups }
 const noGroups: SpeciesIndex = { ...species, groups: undefined }

@@ -473,7 +473,7 @@ describe('the sample pack the sync regenerates', () => {
     const read = <T,>(f: string) => JSON.parse(readFileSync(join(dir, f), 'utf8')) as T
     const rows = read<SpeciesFile>('species.v1.json').species // the sync passes its rebuilt rows the same way
     const pack = await makeSamplePack(read('sample.v1.json'), rows, read('regions.v1.json'), async () => ({}), dir)
-    expect(Object.keys(pack.loc).sort()).toEqual(['da', 'de', 'es', 'fr_FR', 'it', 'ja', 'nl', 'pl', 'pt_BR', 'ru', 'sv', 'zh_SIM'])
+    expect(Object.keys(pack.loc).sort()).toEqual(['da', 'de', 'es', 'fr_FR', 'it', 'ja', 'nl', 'pl', 'pt_BR', 'ru', 'sv', 'zh', 'zh_SIM'])
     expect(Object.keys(pack.loc.es.names).length).toBeGreaterThan(100)
     expect(pack.loc).toEqual(read<{ loc: unknown }>('sample-pack.v1.json').loc)
   })

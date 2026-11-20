@@ -15,6 +15,7 @@ import { da } from '@/i18n/messages/da'
 import { ru } from '@/i18n/messages/ru'
 import { ja } from '@/i18n/messages/ja'
 import { zhHans } from '@/i18n/messages/zh-Hans'
+import { zhHant } from '@/i18n/messages/zh-Hant'
 import { OG_CACHE_COMPLETE, OG_CACHE_DEGRADED, ogCacheControl, ogDescription, ogName, ogResponseOptions, ogTitle, pickOgBirds, shareTitle, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
 import { coversLatin1, coversPolishExtra, parseFontFaces, pickFaces, serverNames } from '@/lib/share/og-server'
 
@@ -82,7 +83,7 @@ describe('metadata strings', () => {
   })
   it('describes what Everybird is, for someone who has never heard of it: the shared page\'s lede, one source', () => {
     expect(ogDescription(T)).toBe("Everybird turns a birder's life list into a sticker collage.")
-    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans]) expect(ogDescription(m.ui)).toBe(m.ui.shared.lede)
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) expect(ogDescription(m.ui)).toBe(m.ui.shared.lede)
     expect(ogName({}, es.ui)).toBe(es.ui.shared.untitled)
   })
   it('titles in Spanish and Portuguese: a new title verbatim, numbers with the language\'s separator', () => {
