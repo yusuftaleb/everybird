@@ -10,7 +10,9 @@
 // (the Tree's levels over the tip limit). Add by hand's taxonomic picker (TickList) uses it as a menu of places to go:
 // its current group is not among the options (`shown` gives the button its words), so the rows are plain menuitems
 // with no check, each with its species count, the first stepping back a level (`back`, an arrow before the label).
-import { ArrowLeft, CaretDown, Check } from '@phosphor-icons/react'
+// The Collage's Arrangement menu in the controls bar gives each option its glyph (`icon`), drawn before its label on
+// the button and in the menu.
+import { ArrowLeft, CaretDown, Check, type Icon } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MutableRefObject } from 'react'
 
 /** The menu's side margin from the window's edges (as the language menu's). */
@@ -29,10 +31,17 @@ export type MenuOption<T extends string | number> = {
   back?: boolean
   /** The label is a scientific name (italic, Latin). */
   sci?: boolean
+  /** A glyph before the label (decorative: the label names the option). */
+  icon?: Icon
 }
 
-/** An option's label, a scientific name in italics. */
-const Label = ({ o }: { o: MenuOption<string | number> }) => (o.sci ? <i lang="la">{o.label}</i> : <>{o.label}</>)
+/** An option's label, a scientific name in italics, after its glyph when it has one. */
+const Label = ({ o }: { o: MenuOption<string | number> }) => {
+  const text = o.sci ? <i lang="la">{o.label}</i> : <>{o.label}</>
+  if (!o.icon) return text
+  const Glyph = o.icon
+  return <span className="eb-menu-glyph"><Glyph className="eb-menu-icon" aria-hidden="true" focusable="false" /><span className="eb-menu-text">{text}</span></span>
+}
 
 type Props<T extends string | number> = {
   /** The id of the row's visible label: the button's name is that label then the current choice. */

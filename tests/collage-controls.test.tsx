@@ -8,6 +8,7 @@ import { useReducer } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CollageView } from '@/components/app/CollageView'
 import { TREE_MINE_KEY } from '@/lib/tree-mine'
+import { ARRANGEMENT_KEY, setArrangement } from '@/lib/arrangement'
 import type { SourceRecord } from '@/lib/list/model'
 import { emptySaved } from '@/lib/list/storage'
 import { initialState, makeReducer, type AppState } from '@/lib/list/store'
@@ -112,6 +113,44 @@ describe('the bar: one press per switch, each only in its view', () => {
     expect(localStorage.getItem(TREE_MINE_KEY)).toBe('1')
     fireEvent.click(mine)
     expect(localStorage.getItem(TREE_MINE_KEY)).toBeNull()
+  })
+})
+
+// Round 6 (Yusuf, 2026-11-20): Fit or Oval in the bar, in Collage only, the share dialog's setting (arrangement.ts).
+describe('the Arrangement menu', () => {
+  afterEach(() => { setArrangement('packed') })
+  it('in Collage only, after the switches and before Filters, named by its label and the choice; one setting with the share dialog', async () => {
+    render(<Harness />)
+    const view = screen.getByRole('group', { name: 'View' })
+    const menu = () => screen.getByTestId('dock-arrange')
+    expect(menu()).toHaveAccessibleName('Arrangement Fit')
+    expect(menu()).toHaveAttribute('aria-haspopup', 'menu')
+    // Its place: after the switches, before the Filters button.
+    const sci = screen.getByRole('switch', { name: /^Scientific/ }), filters = screen.getByTestId('filters-button')
+    expect(sci.compareDocumentPosition(menu()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(menu().compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // The keyboard: ArrowDown opens it on the current choice, the arrows move, Enter picks.
+    fireEvent.keyDown(menu(), { key: 'ArrowDown' })
+    const items = await screen.findAllByRole('menuitemradio')
+    expect(items.map((i) => i.textContent)).toEqual(['Fit', 'Oval'])
+    expect(items[0]).toHaveAttribute('aria-checked', 'true')
+    expect(items[0].querySelector('svg.eb-menu-icon')).not.toBeNull()
+    await waitFor(() => expect(items[0]).toHaveFocus())
+    fireEvent.keyDown(items[0], { key: 'ArrowDown' })
+    expect(items[1]).toHaveFocus()
+    fireEvent.click(items[1])
+    expect(menu()).toHaveAccessibleName('Arrangement Oval')
+    expect(menu()).toHaveFocus()
+    expect(localStorage.getItem(ARRANGEMENT_KEY)).toBe('oval')
+    // The share dialog's row sets the same store: the bar follows.
+    act(() => setArrangement('packed'))
+    expect(menu()).toHaveAccessibleName('Arrangement Fit')
+    expect(localStorage.getItem(ARRANGEMENT_KEY)).toBeNull()
+    // Not in List, Map or Tree.
+    for (const v of ['List', 'Map', 'Tree']) {
+      fireEvent.click(within(view).getByRole('button', { name: v }))
+      expect(screen.queryByTestId('dock-arrange')).toBeNull()
+    }
   })
 })
 
