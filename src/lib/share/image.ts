@@ -8,7 +8,8 @@
 //   top     the name, if given (Cabinet Grotesk 700, 56px), then the count (Cabinet 96px, "197 species"), then, for a
 //           filtered view, the filter in words (Satoshi 500 32px, Accent)
 //   middle  the collage, packed for the space left (layout worker 'image' message: packFrame, the count's hole at its
-//           centre); no sticker longer than 30% of the collage wide (36% up to 24 birds)
+//           centre, the birds spread evenly to the frame's edges); no sticker longer than 30% of the collage wide (36% up
+//           to 24 birds)
 //   bottom  a Hairline rule, "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px; unless the dialog's "Show latest
 //           lifer" switch is off, when the collage takes its room), then the footer: the Everybird wordmark and one
 //           quiet line beside it, the site, the sticker credit and the date the image was made
@@ -16,8 +17,7 @@
 //           The full credit, with the licence, travels in the share text.
 // The story keeps the story safe zones clear: nothing in the top 160px (the profile row; the title from 184) or the
 // bottom 156px (the reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1284 with
-// a name and the latest lifer): packFrame packs it for that aspect (the spiral stretched to it, as the narrow layout's
-// 0.55), so it is a tall rounded cluster, and fitPack spreads a short list's ring to its height (SPREAD).
+// a name and the latest lifer): packFrame packs it for that aspect and spreads the birds evenly over it, edge to edge.
 // Stickers load with crossOrigin = 'anonymous' (the stickers site sends access-control-allow-origin: *), so the
 // canvas stays exportable. Species without a sticker, and stickers that fail to load, are drawn as a thin outline of
 // the Phosphor Bird in Line (a solid silhouette would be the heaviest shape in the image). Text waits for the real
@@ -196,12 +196,6 @@ const GAPS: Record<CardFormat, { head: number; collage: number; latest: number }
   printLandscape: { head: 40, collage: 32, latest: 24 },
 }
 /**
- * How far fitPack may spread the birds' centres vertically to fill a tall collage (sizes kept, distances only grow):
- * the story's tall frame most, the post's a little, the square not at all. The print (about 0.71 wide to tall) sits
- * between the story and the post.
- */
-export const SPREAD: Record<CardFormat, number> = { story: 1.6, post: 1.25, square: 1, print: 1.4, desktop: 1.25, wide: 1, printLandscape: 1.25 }
-/**
  * The count's largest size (Cabinet Grotesk 700, px) per format; it shrinks for long numbers (countLayout). It reads
  * as a label in the ring, in /lifelist's proportion: "197" is about 17% of the collage wide (the site's medium
  * layout: 11.5%, narrow: 16%).
@@ -358,7 +352,9 @@ export function cardDims(format: CardFormat, size: PrintSize = 'A2'): [number, n
 export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number }>; oval?: true }
 export function packSpec(L: CardLayout): PackSpec {
   const { w, h } = L.collage
-  return { aspect: w / h, hole: scaleHole(L.count.hole, 1 / w), maxTile: L.maxTile }
+  // The tile cap the drawing keeps (maxTileSide: the share, and the sticker files' sharp size), so the pack is made at the
+  // size it is drawn and fitPack never shrinks it off the frame's edges.
+  return { aspect: w / h, hole: scaleHole(L.count.hole, 1 / w), maxTile: Math.min(L.maxTile, L.maxSide / w) }
 }
 
 /**
@@ -437,7 +433,7 @@ export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSi
   for (const [code, entry] of captionPlan.byCode) {
     captionBoxes[code] = { w: entry.w / L.collage.w, h: entry.h / L.collage.w }
   }
-  return { ...spec, maxTile: Math.min(spec.maxTile, L.maxSide / L.collage.w), captionBoxes }
+  return { ...spec, captionBoxes }
 }
 
 // --- drawing ---
@@ -665,23 +661,17 @@ export async function renderShareImage(opts: ShareImageOpts): Promise<Blob> {
   })
 }
 
-/**
- * `grow`: how much the scale-up past the width fit enlarged the birds (and the hole), at least 1. `sy`: the extra
- * vertical spread of the birds' centres (not their sizes) above the centre, `syDown` below it, each at least 1.
- */
-export type PackFit = { s: number; cx: number; cy: number; ux: number; uy: number; grow: number; sy: number; syDown: number }
-/** Where a tile's centre lands vertically: above the centre spread by `sy`, below by `syDown`. */
-export const spreadY = (f: PackFit, yc: number) => f.cy + (yc - f.uy) * f.s * (yc < f.uy ? f.sy : f.syDown)
+/** `grow`: how much the scale-up past the width fit enlarged the birds (and the hole), at least 1. */
+export type PackFit = { s: number; cx: number; cy: number; ux: number; uy: number; grow: number }
 /**
  * How a pack lands on the collage area: the frame's centre (the hole) on the area's centre, the frame's width on the
  * area's width (or its height, if that is tighter), then scaled about the centre until the birds reach the area's
- * edge or the largest tile reaches `maxTile` px. Then, up to `spreadMax` (the story's tall frame), the birds' centres
- * spread vertically until the top or bottom bird reaches the area's edge: sizes are kept and distances only grow, so
- * nothing overlaps, and the ring and its hole become a taller oval. A layout unit at (x, y) is drawn at
- * (cx + (x − ux)·s, cy + (y − uy)·s) before the spread; a tile's centre moves to cy + (yc − uy)·s·sy.
+ * edge or the largest tile reaches `maxTile` px. A layout unit at (x, y) is drawn at (cx + (x − ux)·s, cy + (y − uy)·s)
+ * (fitBox). The pack already fills its frame evenly (packFrame), and the frame has the area's shape, so nothing is
+ * stretched: the gaps stay even.
  */
 export function fitPack(
-  pack: ImagePack, area: { x: number; y: number; w: number; h: number }, maxTile: number, spreadMax = 1,
+  pack: ImagePack, area: { x: number; y: number; w: number; h: number }, maxTile: number,
   caps?: Map<string, { w: number; below: number }>,
 ): PackFit {
   const ux = pack.W / 2, uy = pack.H / 2
@@ -693,7 +683,7 @@ export function fitPack(
     dy = Math.max(dy, uy - y, y + h - uy)
     maxL = Math.max(maxL, w, h)
   }
-  if (!maxL) return { s: k, cx, cy, ux, uy, grow: 1, sy: 1, syDown: 1 }
+  if (!maxL) return { s: k, cx, cy, ux, uy, grow: 1 }
   let fill = Math.min(area.w / 2 / (dx * k), area.h / 2 / (dy * k), maxTile / (maxL * k))
   // `caps`: each name's width and its reach below its sticker, in design units (they don't scale with the birds), centred
   // under the sticker: it stays inside the area too.
@@ -706,16 +696,10 @@ export function fitPack(
       if (low > 1e-9) fill = Math.min(fill, (area.h / 2 - c.below) / (low * k))
     }
   }
-  const s = k * fill
-  // Above and below the centre spread separately, so a lopsided ring (one big bird low) still reaches both edges.
-  let up = spreadMax, down = spreadMax
-  for (const [code, [, y, , h]] of pack.boxes) {
-    const c = (y + h / 2 - uy) * s
-    if (c < -1e-6) up = Math.min(up, (area.h / 2 - (h * s) / 2) / Math.abs(c))
-    else if (c > 1e-6) down = Math.min(down, (area.h / 2 - (h * s) / 2 - (caps?.get(code)?.below ?? 0)) / Math.abs(c))
-  }
-  return { s, cx, cy, ux, uy, grow: Math.max(1, fill), sy: Math.max(1, up), syDown: Math.max(1, down) }
+  return { s: k * fill, cx, cy, ux, uy, grow: Math.max(1, fill) }
 }
+/** A pack's box [x, y, w, h] (layout units) as drawn on the card (design units), by fitPack's `f`. */
+export const fitBox = (f: PackFit, [x, y, w, h]: Box): Box => [f.cx + (x - f.ux) * f.s, f.cy + (y - f.uy) * f.s, w * f.s, h * f.s]
 
 /** The canvas fonts of one card, as functions of the size in px. */
 export type CardFonts = Record<'name' | 'filter' | 'count' | 'mono' | 'lifer' | 'brand' | 'footer', (px: number) => string>
@@ -782,13 +766,12 @@ export function fitCaptionPack(
   const area = L.collage
   const caps = new Map<string, { w: number; below: number }>()
   for (const [code, p] of captionPlan.byCode) caps.set(code, { w: p.w, below: p.h })
-  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format], caps)
+  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), caps)
   const placed: PlacedTile[] = []
   for (const e of entries) {
     const b = pack.boxes.get(e.code)
     if (!b) continue
-    const [w, h] = [b[2] * fit.s, b[3] * fit.s]
-    const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
+    const [x, y, w, h] = fitBox(fit, b)
     placed.push({ code: e.code, x, y, w, h })
   }
   const verified = verifyAndPlaceCaptions(placed, area, { cx: fit.cx, cy: fit.cy }, scaleHole(L.count.hole, Math.max(1, fit.grow)), captionPlan)
@@ -857,7 +840,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
     pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, undefined, opts.arrangement), signal)
     if (signal?.aborted) throw abortError()
   }
-  const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format])
+  const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide))
   const captions = capFit?.ok ? capFit.captions : undefined
   // Names asked for but not drawn (over the cap, a name too long, or a pack they don't fit): the caller says so.
   const namesDropped = print && !!opts.showNames && !captions
@@ -865,8 +848,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
     const b = pack.boxes.get(e.code)
     if (!b) return []
     const row = species.byCode.get(e.code)!
-    const [w, h] = [b[2] * fit.s, b[3] * fit.s]
-    const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
+    const [x, y, w, h] = fitBox(fit, b)
     const tile: Tile = { x, y, w, h, ...(row.st ? sticker(e.code, Math.max(w, h), row.sv) : { url: null }) }
     return [tile]
   })

@@ -134,13 +134,15 @@ describe('everything on the desktop is inside the central column, clear of the t
 
 // The hashes of every layout and every draw call of the other formats, taken before the desktop's column (cardLayout and
 // drawShareImage on the harness, over the content combinations, counts and themes below): they must stay byte-identical.
+// Retaken 2026-11-20 for the even spacing: no vertical spread, so the story's, the post's and the poster's tiles move
+// (their layouts and everything else unchanged); the square and the 5:4 wide stayed identical.
 const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: string }> = {
-  story: { layout: '42ea58674d4ee8d18505c49684fe983e7edf1b10', draws: 'b0ded4d027f4cc596410b35a1f4846b52e62ea3c' },
-  post: { layout: '6385621f4f386188b50d6ff70c67618f6e3644a4', draws: '0518e41faffdfefc76fe286a74296ab4e54c8c56' },
+  story: { layout: '42ea58674d4ee8d18505c49684fe983e7edf1b10', draws: '1cba68fbff9509615b486ad72ae14a55a2ea9955' },
+  post: { layout: '6385621f4f386188b50d6ff70c67618f6e3644a4', draws: '34c60eb79ec20c43b75000b5dacc9edf5d427eb2' },
   square: { layout: '9baa675c2529f2777654d3ec49d5940ebd5ad2f4', draws: '24075c510ce9b9e68892a3e731f3d63cd57a1b01' },
   wide: { layout: '4e9d6e75750df1125d6ac5c9c4159790b8af3f4b', draws: '44f52e9bb3bdd87d450385258b9e77289f5ce407' },
-  print: { layout: 'bd2bbab39ecbf7d82d9e7aadffb714b7f2601f7c', draws: '1357a1f83954c8b9461ead75455dc42a4f2d1c7b' },
-  printLandscape: { layout: '68b608dbefd61791383888516529cf2b1644805a', draws: 'b8db39bea513454e900b6c67feffea8f96cfee20' },
+  print: { layout: 'bd2bbab39ecbf7d82d9e7aadffb714b7f2601f7c', draws: '7b6ecd526a8c14adfa4542118d52c0a5afb439bc' },
+  printLandscape: { layout: '68b608dbefd61791383888516529cf2b1644805a', draws: '327a4b284cbb636306c6fb0d35bb5699b54f5701' },
 }
 const sha = (s: string) => createHash('sha1').update(s).digest('hex')
 

@@ -14,7 +14,7 @@ import { collageHole, scaleHole } from '../../src/lib/layout/count-box'
 import { decodeMask } from '../../src/lib/layout/mask'
 import { packBest, packFrame, relSizes, type Box, type PackBird } from '../../src/lib/layout/pack'
 import type { MaskTable } from '../../src/lib/layout/layout.worker'
-import { cardLayout, fitPack, maxTileSide, packSpec, spreadY, SPREAD, type ImageFormat } from '../../src/lib/share/image'
+import { cardLayout, fitBox, fitPack, maxTileSide, packSpec, type ImageFormat } from '../../src/lib/share/image'
 import { NAME_BASES } from '../../src/lib/species/name-locales'
 import type { NameSet } from '../../src/lib/species/names'
 import { THREATENED as THREAT_CATS } from '../../src/lib/species/iucn'
@@ -103,11 +103,8 @@ export function makeHowtoData(readData: <T>(file: string) => T = read): string {
     const L = cardLayout(format, { name: false, filter: false, latest: true, count: TOTAL })
     const spec = packSpec(L)
     const p = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile })
-    const fit = fitPack({ W: p.W, H: p.H, boxes: new Map([...p.boxes].map(([id, b]) => [BIRDS[id], b])) }, L.collage, maxTileSide(L.collage.w, L.maxTile), SPREAD[format])
-    const tiles = Object.fromEntries([...p.boxes].map(([id, b]) => {
-      const w = b[2] * fit.s, h = b[3] * fit.s
-      return [BIRDS[id], box([fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2, w, h])]
-    }))
+    const fit = fitPack({ W: p.W, H: p.H, boxes: new Map([...p.boxes].map(([id, b]) => [BIRDS[id], b])) }, L.collage, maxTileSide(L.collage.w, L.maxTile))
+    const tiles = Object.fromEntries([...p.boxes].map(([id, b]) => [BIRDS[id], box(fitBox(fit, b))]))
     const g = Math.min(fit.grow, 1.3)
     const count = { cx: r1(fit.cx), cy: r1(fit.cy), size: Math.round(L.count.size * g), labelSize: Math.round(L.count.labelSize * Math.min(g, 1.15)), gap: Math.round(L.count.gap * g) }
     // The row's four numbers (the About demo draws the row above the hairline; x and the column width are the card's own).

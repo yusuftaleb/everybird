@@ -24,8 +24,8 @@ import { holeRects, rectGap, type Hole, type Rect } from '@/lib/layout/count-box
 import { decodeMask, maskCell, type Mask } from '@/lib/layout/mask'
 import { packFrame, type PackBird, type PackResult } from '@/lib/layout/pack'
 import {
-  IMAGE_SCALE, IMAGE_SIZE, SAFE, SPREAD, cardLayout, drawShareImage, fitPack, imageShape, isPrint, maxTileSide, packSpec,
-  prepareCard, spreadY, type CardFormat, type ImagePack,
+  IMAGE_SCALE, IMAGE_SIZE, SAFE, cardLayout, drawShareImage, fitBox, fitPack, imageShape, isPrint, maxTileSide, packSpec,
+  prepareCard, type CardFormat, type ImagePack,
 } from '@/lib/share/image'
 import { installStubs, NOW, entries, pack as harnessPack, species } from './fixtures/share-image-harness'
 import { printDesign } from '@/lib/share/print'
@@ -85,11 +85,10 @@ function fill(format: CardFormat, n: number) {
   const spec = packSpec(L)
   const r = packFrame(sample(n), spec.aspect, spec)
   const pack: ImagePack = { W: r.W, H: r.H, boxes: new Map([...r.boxes].map(([id, b]) => [String(id), b])) }
-  const fit = fitPack(pack, L.collage, maxTileSide(L.collage.w, L.maxTile, L.maxSide), SPREAD[format])
+  const fit = fitPack(pack, L.collage, maxTileSide(L.collage.w, L.maxTile, L.maxSide))
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
-  for (const [, [bx, by, bw, bh]] of pack.boxes) {
-    const x = fit.cx + (bx - fit.ux) * fit.s, w = bw * fit.s, h = bh * fit.s
-    const y = spreadY(fit, by + bh / 2) - h / 2
+  for (const [, b] of pack.boxes) {
+    const [x, y, w, h] = fitBox(fit, b)
     x0 = Math.min(x0, x); x1 = Math.max(x1, x + w); y0 = Math.min(y0, y); y1 = Math.max(y1, y + h)
   }
   return { x: (x1 - x0) / L.collage.w, y: (y1 - y0) / L.collage.h, L, r, fit }
