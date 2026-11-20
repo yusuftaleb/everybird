@@ -840,8 +840,8 @@ export const EN_UI = {
         other: "{n} entries aren't species: birds only identified to a group (like “duck sp.”), either/or IDs (like “Greater/Lesser Scaup”) and hybrids. eBird leaves these off life lists too.",
       },
       notCountable: {
-        one: '{n} species eBird marks as not countable, like escaped or introduced birds:',
-        other: '{n} species eBird marks as not countable, like escaped or introduced birds:',
+        one: '{n} species marked as not countable, like escaped or introduced birds:',
+        other: '{n} species marked as not countable, like escaped or introduced birds:',
       },
       unmatched: {
         one: "{n} row couldn't be matched to this year's eBird taxonomy.",

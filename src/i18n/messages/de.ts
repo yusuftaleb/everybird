@@ -726,8 +726,8 @@ export const de: Messages = {
           other: '{n} Einträge sind keine Arten: Vögel, die nur bis zu einer Gruppe bestimmt sind (wie „Anas sp.“), Entweder-oder-Bestimmungen (wie „Aythya marila/affinis“) und Hybriden. eBird lässt sie auch in Lebenslisten weg.',
         },
         notCountable: {
-          one: '{n} Art, die eBird als nicht zählbar markiert, etwa entflogene oder eingeführte Vögel:',
-          other: '{n} Arten, die eBird als nicht zählbar markiert, etwa entflogene oder eingeführte Vögel:',
+          one: '{n} als nicht zählbar markierte Art, etwa entflogene oder eingeführte Vögel:',
+          other: '{n} als nicht zählbar markierte Arten, etwa entflogene oder eingeführte Vögel:',
         },
         unmatched: {
           one: '{n} Zeile ließ sich nicht der diesjährigen eBird-Taxonomie zuordnen.',

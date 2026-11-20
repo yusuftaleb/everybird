@@ -52,18 +52,21 @@ function leaves(node: unknown, path = ''): [string, string][] {
   throw new Error(`${path}: not a string, array or object`)
 }
 
+/** A Plural's `few` and `many` (Polish) stand for English's `other`. */
+const asEnglish = (k: string) => k.replace(/\.(few|many)$/, '.other')
+
 describe('the dictionaries', () => {
   const enLeaves = new Map(leaves(en))
 
   it('every language has every key of English, and nothing else', () => {
     const keys = [...enLeaves.keys()].sort()
-    for (const [lang, m] of Object.entries(OTHERS)) expect(leaves(m).map(([k]) => k).sort(), lang).toEqual(keys)
+    for (const [lang, m] of Object.entries(OTHERS)) expect([...new Set(leaves(m).map(([k]) => asEnglish(k)))].sort(), lang).toEqual(keys)
   })
 
   it('every template keeps English placeholders', () => {
     for (const [lang, m] of Object.entries(OTHERS)) {
       for (const [k, v] of leaves(m)) {
-        const want = placeholders(enLeaves.get(k)!)
+        const want = placeholders(enLeaves.get(asEnglish(k))!)
         const have = new Set(placeholders(v))
         for (const p of want) expect(have.has(p), `${lang} ${k} lacks ${p}`).toBe(true)
       }
@@ -82,7 +85,7 @@ describe('the dictionaries', () => {
   it('only allow-listed values are identical to English', () => {
     for (const [lang, m] of Object.entries(OTHERS)) {
       for (const [k, v] of leaves(m)) {
-        const e = enLeaves.get(k)!
+        const e = enLeaves.get(asEnglish(k))!
         if (v === e) expect(ALLOW_SAME, `${lang} ${k} is still English: "${v}"`).toContain(v)
       }
     }

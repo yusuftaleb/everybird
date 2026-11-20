@@ -28,7 +28,39 @@ function longest(d: string, layer: MapLayer): number {
   return max
 }
 
+/** Each loop's points, absolute. */
+function loops(d: string): [number, number][][] {
+  return d.split('z').filter(Boolean).map((loop) => {
+    if (loop.endsWith('h2v2h-2')) {
+      const [x, y] = loop.slice(1, -7).split(' ').map(Number)
+      return [[x, y], [x + 2, y + 2]]
+    }
+    const [start, rest = ''] = loop.slice(1).split('l')
+    let [x, y] = start.split(' ').map(Number)
+    const pts: [number, number][] = [[x, y]]
+    const n = rest.match(/-?\d+/g)?.map(Number) ?? []
+    for (let i = 0; i + 1 < n.length; i += 2) pts.push([(x += n[i]), (y += n[i + 1])])
+    return pts
+  })
+}
+
 describe('the map shapes', () => {
+  it('a carved place is drawn once: no loop of its country lies inside it', () => {
+    for (const [part, country] of [['GF', 'FR'], ['SJ', 'NO'], ['BQ', 'NL'], ['CX', 'AU'], ['CC', 'AU']]) {
+      const pts = loops(world.d[part]).flat()
+      const [x0, x1] = [Math.min(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[0]))]
+      const [y0, y1] = [Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[1]))]
+      for (const loop of loops(world.d[country])) {
+        const cx = loop.reduce((s, p) => s + p[0], 0) / loop.length
+        const cy = loop.reduce((s, p) => s + p[1], 0) / loop.length
+        expect(cx >= x0 - 1 && cx <= x1 + 1 && cy >= y0 - 1 && cy <= y1 + 1, `${country} over ${part}`).toBe(false)
+      }
+    }
+    // Countries the app lists that Natural Earth has only as admin-1 features; High Seas (XX) alone has no shape.
+    for (const id of ['SJ', 'BQ', 'BV', 'CC', 'CX', 'CP', 'GI', 'TK', 'UM', 'AC', 'CS', 'QY', 'QZ']) expect(Object.keys(world.d)).toContain(id)
+    expect(Object.keys(world.d)).not.toContain('NL@NA')
+  })
+
   it('the world: one shape per country, the overseas parts their own place', () => {
     const ids = Object.keys(world.d)
     expect(ids.length).toBeGreaterThan(240)

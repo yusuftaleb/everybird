@@ -3,7 +3,8 @@
 //   public/data/map-provinces.v1.json  { v, groups: { <country id>: { w, h, d: { <sub1 code>: path } } } }
 // Country ids are the Places filter's (`c:` keys without the prefix): ISO 3166-1 codes from Natural Earth's ISO_A2_EH,
 // plus, painted over their country, the parts that are their own place: eBird's GF, GP, MQ, RE and YT (Natural Earth
-// draws them inside France) and the `<country>@<continent>` parts (US@OC, Hawaii), from the admin-1 shapes.
+// draws them inside France), the `<country>@<continent>` parts (US@OC, Hawaii) and OWN_SHAPE's places (Svalbard, Bonaire),
+// from the admin-1 shapes.
 // Province codes are the app's canonical sub1 ids (regions.v1.json): Natural Earth's iso_3166_2, rolled up by
 // SUB1_PARENT (French departments to their region); several features of one code are dissolved (shared edges cancel).
 // Each province group is projected on its own (azimuthal equal-area centred on it, so the US, Russia and Fiji don't
@@ -29,7 +30,15 @@ const EPS = 1 // Douglas-Peucker tolerance, units
 const MIN_AREA = 2 // loops under this (units²) are dropped
 const GZIP_BUDGET = { countries: 250_000, provinces: 1_500_000 }
 /** Natural Earth features with no ISO code that are part of a country eBird lists. */
-const NO_ISO: Record<string, string> = { Somaliland: 'SO', 'N. Cyprus': 'CY' }
+const NO_ISO: Record<string, string> = { Somaliland: 'SO', 'N. Cyprus': 'QY' }
+/** Places the app lists as countries that Natural Earth has only as admin-1 features (by name): drawn as their own
+ * shape and carved out of whichever country drew them. Coral Sea Islands, Clipperton and the rest are reefs and atolls,
+ * so most end as the 2-unit dot. High Seas (XX) has no shape. */
+const OWN_SHAPE: Record<string, string> = {
+  Svalbard: 'SJ', 'Bouvet Island': 'BV', Bonaire: 'BQ', Saba: 'BQ', 'St. Eustatius': 'BQ', Gibraltar: 'GI', Tokelau: 'TK',
+  'Cocos (Keeling) Islands': 'CC', 'Christmas Island': 'CX', 'Clipperton Island': 'CP', 'Ashmore and Cartier Islands': 'AC',
+  'Coral Sea Islands': 'CS', Akrotiri: 'QZ', Dhekelia: 'QZ',
+}
 
 type Pt = [number, number]
 type Poly = Pt[][] // rings, the first the outer
@@ -198,24 +207,36 @@ function main() {
   const drawn = new Set(world.keys())
   const overlay = new Map<string, Poly[]>()
   // Where an overlay lies, its country's own polygons there are dropped, so only the overlay is drawn and pressed.
-  const carved: { country: string; box: [number, number, number, number] }[] = []
+  // `country` unset: carved out of any country (Svalbard from Norway, Cocos from Australia's Indian Ocean territories).
+  const carved: { country?: string; box: [number, number, number, number] }[] = []
   // The provinces, by group (the country key `parentKey` gives the province: US-HI is in US@OC) and code.
   const groups = new Map<string, Map<string, { polys: Poly[]; lon: number; lat: number }>>()
   let skipped = 0
+  // A carved part's own polygons, each by its box: a country's polygon whose ring centroid falls in one is dropped.
+  const carve = (polys: Poly[], country?: string) => {
+    for (const poly of polys) {
+      const lons = poly[0].map((q) => q[0])
+      const lats = poly[0].map((q) => q[1])
+      carved.push({ country, box: [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)] })
+    }
+  }
   for (const f of provinces) {
+    const own = Object.hasOwn(OWN_SHAPE, f.properties.name) ? OWN_SHAPE[f.properties.name] : f.properties.admin === 'United States Minor Outlying Islands' ? 'UM' : undefined
+    if (own && Object.hasOwn(regions.countries, own) && !drawn.has(own)) {
+      overlay.set(own, [...(overlay.get(own) ?? []), ...polysOf(f)])
+      carve(polysOf(f))
+    }
     const iso = f.properties.iso_3166_2
     const code = Object.hasOwn(SUB1_PARENT, iso) ? SUB1_PARENT[iso] : iso
     if (!code || !Object.hasOwn(regions.sub1, code)) { skipped++; continue }
     const group = parentKey(`s:${code}`)?.slice(2)
     if (!group) throw new Error(`no country key for ${code}`)
-    if (group.includes('@')) {
-      const own = iso.split('-')[1]
-      const id = Object.hasOwn(regions.countries, own) ? own : group
-      if (!(id === own && drawn.has(own))) {
+    if (group.includes('@') && !own) {
+      const part = iso.split('-')[1]
+      const id = Object.hasOwn(regions.countries, part) ? part : group
+      if (!(id === part && drawn.has(part))) {
         overlay.set(id, [...(overlay.get(id) ?? []), ...polysOf(f)])
-        const lons = polysOf(f).flatMap((poly) => poly[0].map((q) => q[0]))
-        const lats = polysOf(f).flatMap((poly) => poly[0].map((q) => q[1]))
-        carved.push({ country: f.properties.iso_a2, box: [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)] })
+        carve(polysOf(f), f.properties.iso_a2)
       }
     }
     const g = groups.get(group) ?? new Map()
@@ -225,9 +246,15 @@ function main() {
     groups.set(group, g)
   }
 
+  // By the ring's centroid, not its first point: Natural Earth's 1:50m and 1:10m outlines differ, so a first point can
+  // sit just outside the finer box (France's French Guiana loop did, and was drawn under GF).
+  const centroid = (ring: Pt[]): Pt => [ring.reduce((s, q) => s + q[0], 0) / ring.length, ring.reduce((s, q) => s + q[1], 0) / ring.length]
   for (const { country, box } of carved) {
     const inBox = ([x, y]: Pt) => x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3]
-    world.set(country, (world.get(country) ?? []).filter((poly) => !inBox(poly[0][0])))
+    for (const id of country ? [country] : [...drawn]) {
+      const polys = world.get(id)
+      if (polys) world.set(id, polys.filter((poly) => !inBox(centroid(poly[0]))))
+    }
   }
   const all = [...world.values(), ...overlay.values()].flat()
   const wf = fitter(geoEqualEarth(), all, WORLD_W, true)

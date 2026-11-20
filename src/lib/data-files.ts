@@ -9,7 +9,7 @@ export const DATA_FILES = {
   'sample-pack.v1.json': 'sample-pack.v1.4faf98d3e5.json',
   'inat-synonyms.v1.json': 'inat-synonyms.v1.44136fa355.json',
   'vietnam-boundaries.v1.json': 'vietnam-boundaries.v1.1eed73d78b.json',
-  'map-countries.v1.json': 'map-countries.v1.8398c8fad8.json',
+  'map-countries.v1.json': 'map-countries.v1.b88791b51c.json',
   'map-provinces.v1.json': 'map-provinces.v1.64d3322870.json',
   'colours.v1.json': 'colours.v1.2e4c9b4bdd.json',
   'tree.v1.json': 'tree.v1.2fc481ed33.json',
