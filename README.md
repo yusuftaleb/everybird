@@ -64,7 +64,7 @@ the raw sources in `data/raw/` (git-ignored) and the stickers repo checked out n
 - **Body masses:** [AVONET](https://doi.org/10.1111/ele.13898) (CC BY 4.0) via huashu's species table, with a few sourced overrides in `data/overrides.json`; and [BIRDBASE](https://doi.org/10.1038/s41597-025-05615-3) (CC BY 4.0) for the species AVONET gives no mass for. Its compact extract is `data/raw/birdbase/` (see its README).
 - **Regions:** place names and the Map view's shapes from Natural Earth (public domain), and [Debian iso-codes](https://salsa.debian.org/iso-codes-team/iso-codes) ISO 3166-2 data (LGPL-2.1), used for names only; Vietnam's provinces from OCHA's COD-AB (CC BY 3.0 IGO).
 - **Bird tree:** [AvesData](https://github.com/McTavishLab/AvesData) (McTavish et al.), CC BY 4.0.
-- **Bird names:** eBird's name sets, with the IOC World Bird List v15.2 (Gill, Donsker & Rasmussen, CC BY 3.0) filling eBird's gaps in Italian, Swedish and Danish.
+- **Bird names:** eBird's name sets, with the IOC World Bird List v15.2 (Gill, Donsker & Rasmussen, CC BY 3.0) filling eBird's gaps in Italian, Swedish, Danish, Russian, Japanese and Traditional Chinese.
 - **Fonts:** Satoshi and Cabinet Grotesk from [Fontshare](https://www.fontshare.com) (loaded from their CSS, not bundled), and Geist Mono via `next/font/google`.
 
 ## Licence
