@@ -4,14 +4,16 @@
 // choice and is named by its row's label and that choice. Its keyboard is the language menu's: ArrowDown or ArrowUp opens
 // it, the arrows move (wrapping), Home and End jump, Escape closes it and focus returns to the button, Tab or a press
 // outside closes it. The dialog catches Escape on the window before any element sees it, so an open menu hands the dialog
-// its close through `escapeRef` (ShareDialog checks it first).
+// its close through `escapeRef` (ShareDialog checks it first). The Tree's Level and Layout menus in the controls bar use
+// it too; an option with `off` stays listed, aria-disabled, with that reason under its label (the Tree's levels over the
+// tip limit).
 import { CaretDown, Check } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MutableRefObject } from 'react'
 
 /** The menu's side margin from the window's edges (as the language menu's). */
 const EDGE = 8
 
-export type MenuOption<T extends string | number> = { value: T; label: string }
+export type MenuOption<T extends string | number> = { value: T; label: string; /** Listed but not choosable: why. */ off?: string }
 
 type Props<T extends string | number> = {
   /** The id of the row's visible label: the button's name is that label then the current choice. */
@@ -137,8 +139,13 @@ function MenuList<T extends string | number>({ id, label, options, value, btn, e
   return (
     <div ref={menu} id={id} className="eb-menu eb-langmenu eb-share-menu" role="menu" aria-label={label} onKeyDown={onKey}>
       {options.map((o) => (
-        <button key={o.value} type="button" role="menuitemradio" aria-checked={o.value === value} tabIndex={-1} className="eb-menuitem" onClick={() => onPick(o.value)}>
-          <span className="eb-langname" data-current={o.value === value ? '' : undefined}>{o.label}</span>
+        <button
+          key={o.value} type="button" role="menuitemradio" aria-checked={o.value === value} aria-disabled={o.off ? true : undefined} tabIndex={-1} className="eb-menuitem"
+          onClick={() => { if (!o.off) onPick(o.value) }}
+        >
+          {o.off
+            ? <span className="eb-menu-off"><span className="eb-langname">{o.label}</span><span className="eb-menu-why">{o.off}</span></span>
+            : <span className="eb-langname" data-current={o.value === value ? '' : undefined}>{o.label}</span>}
           {o.value === value && <Check aria-hidden="true" focusable="false" weight="bold" />}
         </button>
       ))}

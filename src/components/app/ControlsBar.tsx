@@ -1,12 +1,15 @@
 'use client'
 // The one horizontal bar above the filters, as LifeList's dock (framer-site), with Photography's search: the views on
-// the left (Collage / List / Map / Tree); then, at even gaps, the view's own switches and the one Filters button
+// the left (Collage / List / Map / Tree); then, at even gaps, the view's own controls and the one Filters button
 // (Filters.tsx), then the magnifier. Each switch is one press and shows only in the view it applies to: True size in
-// Collage, the sort direction in List, Scientific in both, Lifers only in Tree; none in Map. The magnifier turns the dock
-// into the search field (DockSearch.tsx); everything else sits under it, inert, while it is open. Under 820px of bar the
-// switches and Filters take a second row of their own, under 600px Filters filling what the switches leave (app.css);
-// under 1100px the views are icons only; under 540px of bar (and on phones) the switches shorten ("True", "Sci.";
-// "Heaviest" in list view; Lifers only keeps its words, alone beside Filters), and under 330px and 310px everything
+// Collage, the sort direction in List, Lifers only in Tree, Scientific in all three; none in Map. In Tree, the Level and
+// Layout menus come first: TreeView renders them into the slot `treeMenus` hands it (a portal), since the levels on
+// offer come from the tree it loads. The magnifier turns the dock into the search field (DockSearch.tsx); everything
+// else sits under it, inert, while it is open. Under 820px of bar (1200px in Tree, whose controls need more room) the
+// view's controls and Filters take a second row of their own, wrapping whole (the menus together, the switches
+// together) rather than overflowing; under 600px Filters fills what the switches leave and the Tree's menus take a row
+// to themselves (app.css); under 1100px the views are icons only; under 540px of bar (and on phones) the switches
+// shorten ("True", "Sci."; "Heaviest" in list view; Lifers only keeps its words), and under 330px and 310px everything
 // tightens, so row one (the views and the magnifier) never breaks between 280 and 1200px of bar.
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
@@ -35,6 +38,8 @@ type Props = {
   below?: ReactNode
   /** The search is opening (pointer or keyboard): the caller closes whatever else is open over the bar. */
   onFind?: () => void
+  /** In Tree view: given the element the Level and Layout menus go in (TreeView fills it). */
+  treeMenus?: (el: HTMLDivElement | null) => void
 }
 
 /** A one-press switch in the bar: the label, its short form on narrow bars and phones (none: the label at every
@@ -50,7 +55,7 @@ function DockSwitch({ on, onChange, long, short, sr, className, title, testId }:
   )
 }
 
-export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, search, filters, below, onFind }: Props) {
+export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFirst, onDirection, sci, onSci, search, filters, below, onFind, treeMenus }: Props) {
   const [finding, setFinding] = useState(false)
   // Whether the search is open is carried over a language switch (view-resume.ts); the typed text is not.
   const hasSearch = !!search
@@ -87,11 +92,14 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
       {sciSwitch}
     </>
   ) : view === 'tree' ? (
-    <DockSwitch on={mine} onChange={setTreeMine} long={c.lifersOnly} testId="tree-mine" />
+    <>
+      <DockSwitch on={mine} onChange={setTreeMine} long={c.lifersOnly} testId="tree-mine" />
+      {sciSwitch}
+    </>
   ) : null
   return (
     <div ref={wrap} className="eb-dockwrap">
-      <div className="eb-dock" data-finding={finding || undefined}>
+      <div className="eb-dock" data-view={view} data-finding={finding || undefined}>
         <div className="eb-dock-tabs" role="group" aria-label={c.view} inert={finding} data-tour="view">
           {(noMap ? (['collage', 'list', 'tree'] as const) : (['collage', 'list', 'map', 'tree'] as const)).map((v) => (
             <button key={v} type="button" className="eb-dock-tab" aria-pressed={view === v} aria-label={c[v]} onClick={() => onView(v)}>
@@ -101,6 +109,7 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
           ))}
         </div>
         <div className="eb-dock-filters" inert={finding}>
+          {view === 'tree' && <div ref={treeMenus} className="eb-dock-menus" />}
           {tools && <div className="eb-dock-tools">{tools}</div>}
           {filters}
         </div>

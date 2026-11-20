@@ -1,35 +1,40 @@
 'use client'
 // The Tree tab: the list read on AvesData's dated tree of birds (public/data/tree.v1.json, fetched the first time the
 // tab opens). It opens on every order; a tip opens its branch (an order to its families, a family to its genera, a genus
-// to its species, whose tips on the list open the bird card), and the level switch (Orders | Families | Genera |
-// Species) chooses what the open branch's tips are, a rank drawing more than MAX_TIPS tips disabled with its reason. The
-// path above says where you are and steps back, with the count line ("18 of 45 orders"). From FAN_FROM px wide the
-// drawing is a fan (fan.ts: the root at the centre, the tips on the arc, the age axis as rings, the names that fit at
-// the tips) over a compact list of the rows; narrower, rows top to bottom beside the drawing. Branches have rounded
-// corners and every node a filled dot. Each tip shows a sticker: the species' own, else one bird of the group on the
-// list (groupSticker). The drawing is aria-hidden; the rows carry the names and counts in the tree's order and are how
-// the keyboard and screen readers open a branch (a focused row rings its tip on the fan). A group the tree splits is
-// one marked row at the smallest branch holding it, "with" the groups inside it; more than two genera inside are a
-// button opening their list (PickerSheet), each opening its own species. Under it: the key (the mark and the dotted
-// line of a tip placed without genetic data), the birds the tree does not place, and the source with its licence.
-// levels.ts, fan.ts and tree.ts hold the logic.
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+// to its species, whose tips on the list open the bird card). Two menus in the controls bar (rendered here, into the
+// bar's slot, through a portal): Level (Orders | Families | Genera | Species: what the open branch's tips are, a rank
+// drawing more than MAX_TIPS tips listed but disabled with its reason) and Layout (Fan | Circle | Rows, kept on the
+// device; unpicked, the fan from FAN_FROM px wide and rows under it). The path above says where you are and steps back,
+// with the count line ("18 of 45 orders"). The fan and the circle (fan.ts: the root at the centre, the tips on the
+// arc or all round, the age axis as rings, the names that fit in full at the tips) sit over a list of the rows in up
+// to three columns; Rows draws the tree top to bottom beside the rows, which grow with their names. Branches have
+// rounded corners and simply join; every tip has one small hollow dot. Each tip shows a sticker: the species' own,
+// else one bird of the group on the list (groupSticker). One name per tip, following the bar's Scientific switch. The
+// drawing is aria-hidden; the rows carry the names and counts in the tree's order and are how the keyboard and screen
+// readers open a branch. Hovering or focusing a row or a tip gives the tip's label (sticker, name, count) the Surface
+// background, its whole name shown. A group the tree splits is one marked row at the smallest branch holding it,
+// "with" the groups inside it; more than two genera inside are a button opening their list (PickerSheet), each opening
+// its own species. Under it: the key (the mark and the dotted line of a tip placed without genetic data), the birds the
+// tree does not place, and a one-line credit (the full one is on About). levels.ts, fan.ts and tree.ts hold the logic.
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { Sticker } from '@/components/collage/Sticker'
 import { PickerSheet } from '@/components/filters/PickerSheet'
+import { MenuSelect } from '@/components/share/MenuSelect'
 import type { ListEntry } from '@/lib/list/model'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { SpeciesRow } from '@/lib/species/types'
-import { FAN_FROM, FAN_GAP, FAN_LABEL, FAN_STICKER, drawFan, fanBox, fanLabel, fanRing, keepNames } from '@/lib/tree/fan'
-import { MAX_TIPS, RANKS, ROW_H, genusOf, levelView, ranksAt, tipOn, type Inside, type TipRank, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
+import { FAN_FROM, FAN_GAP, FAN_STICKER, drawFan, fanBox, fanLabel, fanRing, keepNames, polar, rayRoom, ringLabels, type FanTip } from '@/lib/tree/fan'
+import { MAX_TIPS, RANKS, ROW_H, genusOf, levelView, ranksAt, rowColumns, tipOn, type Inside, type TipRank, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
 import { loadTree } from '@/lib/tree/load'
-import { useTreeMine } from '@/lib/tree-mine'
-import { ageTicks, drawTree, formatAge, oldestLineage, type Drawing, type Tree, type TreeFile } from '@/lib/tree/tree'
-import '@/components/share/share.css' // .eb-seg, the share dialog's segmented control
+import { TREE_LAYOUTS, setTreeLayout, useTreeLayout, useTreeMine, type TreeLayout } from '@/lib/tree-mine'
+import { ageTicks, circlePath, drawTree, formatAge, oldestLineage, type Tree, type TreeFile } from '@/lib/tree/tree'
+import '@/components/share/share.css' // .eb-share-dd, the menus' button (MenuSelect)
 import './tree.css'
 
 export const AVES_URL = 'https://github.com/McTavishLab/AvesData'
@@ -40,9 +45,18 @@ type Tip = Exclude<TreeRow, { kind: 'order' }>
 
 /** The rows' drawing column (px) for a view `width` px wide: about 38% of it, between 112 and 480. */
 const rowsTreeW = (width: number) => Math.round(Math.min(480, Math.max(112, width * 0.38)))
-/** A row's sticker (px), and the fan's names' line height with its air. */
+/** A row's sticker (px); the fan's and circle's labels: height (a sticker and its padding), padding, the gap between
+ *  their parts, the name's line; the mark's width with its gap. */
 const ROW_STICKER = 24
+const LABEL_H = 28
+const LABEL_PAD = 4
+const LABEL_GAP = 6
 const NAME_H = 17
+const MARK_W = 7 + LABEL_GAP
+/** Between the columns of rows under the fan or circle (px), and a row's parts besides its name and count (the dot, the
+ *  sticker, their gaps, the padding) with a little air. */
+const COLUMN_GAP = 24
+const ROW_FIXED = 8 + 10 + 20 + 10 + 10 + 4 + 8
 
 type Props = {
   /** The filtered list. */
@@ -50,8 +64,11 @@ type Props = {
   sci: boolean
   /** Opens the bird card; `el` is the pressed button. */
   onPick: (code: string, el: HTMLElement) => void
-  /** Told the level open and "Lifers only" (the bar's switch, tree-mine.ts) whenever they change, so Share can draw the same. */
-  onLevel?: (level: TreeLevel, mine: boolean) => void
+  /** Told the level open, "Lifers only" (the bar's switch, tree-mine.ts) and the layout drawn whenever they change, so
+   *  Share can draw the same. */
+  onLevel?: (level: TreeLevel, mine: boolean, layout: TreeLayout) => void
+  /** The controls bar's slot for the Level and Layout menus (none: no menus). */
+  menus?: HTMLElement | null
 }
 
 /** The element's width (0 until measured, and where ResizeObserver is missing). The observer's first answer comes
@@ -67,6 +84,41 @@ function useWidth(el: HTMLElement | null): number {
   return w
 }
 
+type Measure = (text: string, px: number, weight: number, mono?: boolean) => number
+/** Text widths measured so far (by font and text), and the canvas they are measured on (null where there is none). */
+const widths = new Map<string, number>()
+let measuring: CanvasRenderingContext2D | null | undefined
+function textWidth(text: string, font: string, estimate: number): number {
+  const key = `${font}|${text}`
+  let w = widths.get(key)
+  if (w === undefined) {
+    if (measuring === undefined) {
+      try { measuring = document.createElement('canvas').getContext('2d') } catch { measuring = null }
+    }
+    if (measuring) { measuring.font = font; w = measuring.measureText(text).width } else w = estimate
+    widths.set(key, w)
+  }
+  return w
+}
+/** Text widths (px) in `el`'s fonts, by canvas, measured again once the web fonts have loaded; an estimate where canvas
+ *  is missing. Used only for the fan, the circle and the columns under them (never in jsdom: no width, no fan). */
+function useMeasure(el: HTMLElement | null): Measure {
+  const [fonts, setFonts] = useState(0)
+  useEffect(() => {
+    let live = true
+    document.fonts?.ready.then(() => { if (live) { widths.clear(); setFonts((n) => n + 1) } })
+    return () => { live = false }
+  }, [])
+  return useMemo(() => {
+    const css = el ? getComputedStyle(el) : undefined
+    const body = css?.fontFamily || 'sans-serif'
+    const mono = css?.getPropertyValue('--font-mono').trim() || 'monospace'
+    return (text, px, weight, isMono) => textWidth(text, `${weight} ${px}px ${isMono ? mono : body}`, text.length * px * (isMono ? 0.62 : 0.56))
+    // `fonts` only says the fonts have loaded: measure again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [el, fonts])
+}
+
 /** A sticker in a `size` px square, or nothing (a missing sticker leaves the name alone: tree.css hides the outline). */
 function Thumb({ row, size, off }: { row?: SpeciesRow; size: number; off?: boolean }) {
   if (!row?.st) return null
@@ -74,7 +126,7 @@ function Thumb({ row, size, off }: { row?: SpeciesRow; size: number; off?: boole
   return <span className="eb-tree-st-in" data-off={off || undefined}><Sticker code={row.code} st={row.st} ar={row.ar} sv={row.sv} w={w} h={h} /></span>
 }
 
-export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
+export default function TreeView({ entries, sci, onPick, onLevel, menus }: Props) {
   const { t } = useI18n()
   useNames()
   const tt = t.collage.tree
@@ -88,8 +140,8 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
   }, [])
   const [level, setLevel] = useState<TreeLevel>({})
   const mine = useTreeMine()
-  useEffect(() => onLevel?.(level, mine), [level, mine, onLevel])
-  // The row whose list of genera inside is open, and the tip a focused or hovered row rings on the fan.
+  const picked = useTreeLayout()
+  // The row whose list of genera inside is open, and the tip a hovered or focused row or tip gives its label's background.
   const [list, setList] = useState<string | null>(null)
   const [hot, setHot] = useState<number | null>(null)
   const onList = useMemo(() => new Set(entries.map((e) => e.code)), [entries])
@@ -102,17 +154,42 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
   const [boxEl, setBoxEl] = useState<HTMLDivElement | null>(null)
   const boxRef = useCallback((el: HTMLDivElement | null) => { box.current = el; setBoxEl(el) }, [])
   const width = useWidth(boxEl)
-  const fan = width >= FAN_FROM
-  const fb = useMemo(() => fanBox(width), [width])
+  const measure = useMeasure(boxEl)
+  // The layout drawn: the one picked, else the fan from FAN_FROM px and rows under it; rows until the width is known.
+  const layout: TreeLayout = !width ? 'rows' : picked ?? (width >= FAN_FROM ? 'fan' : 'rows')
+  const round = layout !== 'rows'
+  useEffect(() => onLevel?.(level, mine, layout), [level, mine, layout, onLevel])
+  const fb = useMemo(() => fanBox(width, layout === 'circle' ? 'circle' : 'fan'), [width, layout])
   const treeW = rowsTreeW(width)
   const tips = useMemo(() => (view?.rows.filter((r): r is Tip => r.kind !== 'order') ?? []), [view])
+
+  // Rows: each row is as tall as its name needs (44px at least), so the drawing follows the rows' measured centres.
+  const rowsRef = useRef<HTMLOListElement | null>(null)
+  const [rowYs, setRowYs] = useState<{ y: number[]; h: number } | null>(null)
+  const measureRows = useCallback(() => {
+    const ol = rowsRef.current
+    if (!ol) return
+    const y = [...ol.querySelectorAll<HTMLElement>(':scope > .eb-tree-row')].map((li) => li.offsetTop + li.offsetHeight / 2)
+    const h = ol.offsetHeight
+    setRowYs((p) => (p && p.h === h && p.y.length === y.length && p.y.every((v, i) => v === y[i]) ? p : { y, h }))
+  }, [])
+  useLayoutEffect(() => { if (!round && width) measureRows() })
+  useLayoutEffect(() => {
+    const ol = rowsRef.current
+    if (round || !width || !ol || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(measureRows)
+    ro.observe(ol)
+    return () => ro.disconnect()
+  }, [round, width, measureRows, view])
+  const ys = !round && width && rowYs && rowYs.y.length === tips.length && rowYs.h > 0 ? rowYs : undefined
+
   // The drawing in px once the width is known (rounded corners stay round); before it, the 1000-wide one stretched.
-  const drawing = useMemo((): (Drawing & { tips?: ReturnType<typeof drawFan>['tips'] }) | undefined => {
+  const drawing = useMemo(() => {
     if (!view?.root) return view?.drawing
     const dotted = (_: unknown, i: number) => tips[i].dotted
-    if (fan) return drawFan(view.root, tipOn(tips), view.stem, dotted, fb)
-    return width ? drawTree(view.root, tipOn(tips), (i) => tips[i].top + ROW_H / 2, view.stem, dotted, treeW) : view.drawing
-  }, [view, tips, fan, fb, width, treeW])
+    if (round) return drawFan(view.root, tipOn(tips), view.stem, dotted, fb)
+    return width ? drawTree(view.root, tipOn(tips), (i) => ys?.y[i] ?? tips[i].top + ROW_H / 2, view.stem, dotted, treeW) : view.drawing
+  }, [view, tips, round, fb, width, treeW, ys])
 
   // Focus follows the level: drilling in focuses the path's current step, a step back the row it came from.
   const focus = useRef<string | null>(null)
@@ -129,6 +206,8 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
     setHot(null)
     setLevel(next)
   }
+  const ids = useId()
+  const escape = useRef<(() => void) | null>(null)
 
   if (failed) return <p className="eb-tree-note">{tt.failed}</p>
   if (!data || !view || !species || !drawing) return <p className="eb-mono eb-tree-note">{tt.loading}</p>
@@ -159,7 +238,7 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
   })()
   const ticks = ageTicks(drawing.rootAge).filter((v) => v / drawing.rootAge <= 0.97 || v === 0)
   const offered = ranksAt(at)
-  // A rank for the open branch's tips: the focus stays on the switch.
+  // A rank for the open branch's tips: the focus goes back to the Level menu's button.
   const choose = (k: TipRank) => {
     if (k === rank) return
     setList(null)
@@ -170,26 +249,24 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
   const opens = (k: TipRank, key: string, r: SpeciesRow): TreeLevel =>
     k === 'orders' ? { ord: key } : k === 'families' ? { ord: r.ord, fam: key } : { ord: at.ord ?? r.ord, fam: at.fam ?? r.fam, genus: key }
 
-  // "with Turacoena", "with Urolestes and Corvinella": the groups folded into a row's branch, named as the row's own.
-  const withText = (rows: Inside[]) => {
+  /** "with Turacoena", "with Urolestes and Corvinella": the groups folded into a row's branch, named as the row's own. */
+  const withWords = (rows: Inside[]) => {
     const names = rows.map((w) => nameAt(w.row, rank)[0])
-    const tag = (chunk: string) => <span lang={rank === 'genera' || sci ? 'la' : undefined}>{chunk}</span>
     const b = names.pop()!
-    return rich(names.length ? fmt(tt.withTwo, { a: names.join(', '), b }) : fmt(tt.withOne, { a: b }), { a: tag, b: tag })
+    return names.length ? fmt(tt.withTwo, { a: names.join(', '), b }) : fmt(tt.withOne, { a: b })
   }
+  const withText = (rows: Inside[]) => {
+    const tag = (chunk: string) => <span lang={rank === 'genera' || sci ? 'la' : undefined}>{chunk}</span>
+    return rich(withWords(rows), { a: tag, b: tag })
+  }
+  /** More than two genera inside a marked row: a count opening their list instead of the sentence. */
+  const manyOf = (r: Tip) => (rank === 'genera' && r.kind === 'group' && r.with && r.with.length > 2 ? r.with : undefined)
   const hover = (i: number) => ({ onFocus: () => setHot(i), onBlur: () => setHot(null), onMouseEnter: () => setHot(i), onMouseLeave: () => setHot(null) })
   const thumb = (r: Tip) => <span className="eb-tree-st" aria-hidden="true"><Thumb row={r.kind === 'species' ? r.row : r.sticker} size={ROW_STICKER} off={r.kind === 'species' && !r.on} /></span>
   const groupRow = (r: Extract<TreeRow, { kind: 'group' }>, i: number) => {
-    const [primary, latin] = nameAt(r.row, rank)
-    // The group's other name; a genus names its family when no family is open or it belongs to another one.
-    const alt = rank === 'orders' ? (sci ? (t.orders as Record<string, string>)[r.row.ord] : r.row.ord)
-      : rank === 'families' ? (sci ? familyName(r.row) : r.row.fam)
-      : r.row.fam !== at.fam ? famLabel(r.row) : undefined
-    const other = alt !== primary ? alt : undefined
-    const otherLatin = rank === 'genera' ? sci : !sci
+    const [name, latin] = nameAt(r.row, rank)
     const marked = !!r.with
-    // More than two genera inside: a count opening their list instead of the sentence.
-    const many = rank === 'genera' && r.with && r.with.length > 2 ? r.with : undefined
+    const many = manyOf(r)
     return (
       <>
       <button
@@ -198,16 +275,16 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
         data-key={r.key}
         data-tip={i}
         data-on={r.on > 0 || undefined}
+        data-hot={hot === i || undefined}
         onClick={() => go(opens(rank, r.key, r.row))}
         {...hover(i)}
       >
         <span className="eb-tree-dot" aria-hidden="true" />
         {thumb(r)}
         <span className="eb-tree-name">
-          <span lang={latin ? 'la' : undefined}>{primary}</span>
+          <span lang={latin ? 'la' : undefined}>{name}</span>
           {marked && <span className="eb-tree-mark" aria-hidden="true" />}
-          {!!r.with?.length && !many && <>{' '}<span className="eb-tree-other" data-keep>{withText(r.with)}</span></>}
-          {other && <>{' '}<span className="eb-tree-other" data-keep={rank === 'genera' || undefined} lang={otherLatin ? 'la' : undefined}>{other}</span></>}
+          {!!r.with?.length && !many && <>{' '}<span className="eb-tree-other">{withText(r.with)}</span></>}
         </span>
         <span className="eb-mono eb-tree-count" aria-hidden="true">{count(r.on)} / {count(r.total)}</span>
         <span className="eb-sr">{marked && `, ${tt.markSr}`}, {fmt(tt.onList, { n: count(r.on), total: count(r.total) })}{r.dotted && `, ${tt.dottedSr}`}</span>
@@ -221,87 +298,96 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
     )
   }
   const speciesRow = (r: Extract<TreeRow, { kind: 'species' }>, i: number) => {
-    const name = sci ? r.row.sci : displayName(r.row)
     const inner = (
       <>
         <span className="eb-tree-dot" aria-hidden="true" />
         {thumb(r)}
-        <span className="eb-tree-name">
-          <span lang={sci ? 'la' : undefined}>{name}</span>
-          {/* In a folded genus's branch, a species of another genus names its genus (its scientific name already does). */}
-          {!sci && at.genus && genusOf(r.row.sci) !== at.genus && <>{' '}<span className="eb-tree-other" data-keep lang="la">{genusOf(r.row.sci)}</span></>}
-        </span>
+        <span className="eb-tree-name"><span lang={sci ? 'la' : undefined}>{sci ? r.row.sci : displayName(r.row)}</span></span>
         <span className="eb-sr">, {r.on ? tt.onListOne : tt.notOnList}{r.dotted && `, ${tt.dottedSr}`}</span>
       </>
     )
     return r.on
-      ? <button type="button" className="eb-tree-btn" data-on data-code={r.row.code} data-tip={i} onClick={(e) => onPick(r.row.code, e.currentTarget)} {...hover(i)}>{inner}</button>
-      : <span className="eb-tree-btn" {...hover(i)}>{inner}</span>
+      ? <button type="button" className="eb-tree-btn" data-on data-code={r.row.code} data-tip={i} data-hot={hot === i || undefined} onClick={(e) => onPick(r.row.code, e.currentTarget)} {...hover(i)}>{inner}</button>
+      : <span className="eb-tree-btn" data-tip={i} data-hot={hot === i || undefined} {...hover(i)}>{inner}</span>
   }
   const tipName = (r: Tip) => (r.kind === 'species' ? [sci ? r.row.sci : displayName(r.row), sci] as const : nameAt(r.row, rank))
   const tipCount = (r: Tip) => (r.kind === 'species' ? Number(r.on) : r.on)
+  const tipOfText = (r: Tip) => (r.kind === 'group' ? fmt(tt.tipOf, { n: count(r.on), total: count(r.total) }) : '')
 
-  // The fan's names and stickers: as many as fit along the arc, those with more birds on the list first, every tip
-  // with a name when there is room; the ringed tip's always.
-  const fanTips = fan ? drawing.tips ?? [] : []
-  const named = fan ? keepNames(fanTips.map((p, i) => ({ y: p.a * (fb.R + FAN_GAP * 2 + FAN_STICKER), n: tipCount(tips[i]) + 1 })), NAME_H) : new Set<number>()
-  const stickered = fan ? keepNames(fanTips.map((p, i) => {
+  // The fan's or circle's labels: a sticker where one fits, a name (with its count) where it fits in full without
+  // touching another, those with more birds on the list first; the hot tip's whole label.
+  const roundTips: FanTip[] = round && 'tips' in drawing ? (drawing.tips as FanTip[]) : []
+  const circle = layout === 'circle'
+  const nameAt0 = fb.R + FAN_GAP * 2 + FAN_STICKER
+  const labelW = (r: Tip) => {
+    const c = tipOfText(r)
+    return measure(tipName(r)[0], 13, 600) + (c ? LABEL_GAP + measure(c, 11, 500, true) : 0) + (r.kind === 'group' && r.with ? MARK_W : 0)
+  }
+  const named = round ? keepNames(roundTips.map((p, i) => ({ y: p.a * nameAt0, n: tipCount(tips[i]) + 1, w: labelW(tips[i]) })), NAME_H, fb.label, circle ? 2 * Math.PI * nameAt0 : undefined) : new Set<number>()
+  const stickerAt = fb.R + FAN_GAP + FAN_STICKER / 2
+  const stickered = round ? keepNames(roundTips.map((p, i) => {
     const r = tips[i]
     const row = r.kind === 'species' ? r.row : r.sticker
-    return { y: p.a * (fb.R + FAN_GAP + FAN_STICKER / 2), n: row?.st ? tipCount(r) + 1 : 0 }
-  }), FAN_STICKER) : new Set<number>()
-  // A press on a tip, its name or its sticker presses its row.
+    return { y: p.a * stickerAt, n: row?.st ? tipCount(r) + 1 : 0 }
+  }), FAN_STICKER, undefined, circle ? 2 * Math.PI * stickerAt : undefined) : new Set<number>()
+  // A press on a tip's label presses its row; a pointer over one makes it hot.
+  const tipAt = (e: MouseEvent) => (e.target as Element).closest('[data-i]')?.getAttribute('data-i')
   const onFanClick = (e: MouseEvent) => {
-    const i = (e.target as Element).closest('[data-i]')?.getAttribute('data-i')
+    const i = tipAt(e)
     if (i != null) box.current?.querySelector<HTMLElement>(`.eb-tree-rows [data-tip="${i}"]`)?.click()
   }
-  const fanFigure = fan && (
+  const onFanOver = (e: MouseEvent) => { const i = tipAt(e); setHot(i == null ? null : Number(i)) }
+  const label = (p: FanTip, i: number) => {
+    const isHot = hot === i
+    const showName = named.has(i) || isHot
+    if (!showName && !stickered.has(i)) return null
+    const r = tips[i]
+    const [name, latin] = tipName(r)
+    const l = fanLabel(fb, p.a, FAN_GAP - LABEL_PAD)
+    const w = labelW(r) + FAN_STICKER + LABEL_GAP + 2 * LABEL_PAD
+    // The hot label of a name too long for its room runs level instead, kept inside the drawing.
+    const flat = isHot && !named.has(i) && w > rayRoom(fb, width, fb.h, p.a, FAN_GAP - LABEL_PAD)
+    const [x, y] = flat ? polar(fb, fb.R + FAN_GAP + FAN_STICKER / 2, p.a) : [l.x, l.y]
+    const style = flat
+      ? { left: Math.max(0, Math.min(width - w, x - FAN_STICKER / 2 - LABEL_PAD)), top: Math.max(0, Math.min(fb.h - LABEL_H, y - LABEL_H / 2)) }
+      : { left: l.x, top: l.y - LABEL_H / 2, transform: `${l.flip ? 'translateX(-100%) ' : ''}rotate(${l.rot.toFixed(2)}deg)` }
+    const rot = flat ? 0 : l.rot
+    return (
+      <span
+        key={i} className="eb-tree-fan-label" data-i={i} data-flip={!flat && l.flip ? '' : undefined} data-on={tipCount(r) > 0 || undefined} data-hot={isHot || undefined}
+        style={style}
+      >
+        <span className="eb-tree-fan-st" style={rot ? { transform: `rotate(${(-rot).toFixed(2)}deg)` } : undefined}>
+          {(stickered.has(i) || isHot) && <Thumb row={r.kind === 'species' ? r.row : r.sticker} size={FAN_STICKER} off={r.kind === 'species' && !r.on} />}
+        </span>
+        {showName && (
+          <span className="eb-tree-fan-words">
+            <span className="eb-tree-fan-text" lang={latin ? 'la' : undefined}>{name}</span>
+            {r.kind === 'group' && r.with && <span className="eb-tree-mark" />}
+            {r.kind === 'group' && <span className="eb-mono eb-tree-fan-count">{tipOfText(r)}</span>}
+          </span>
+        )}
+      </span>
+    )
+  }
+  const roundFigure = round && (
     // The rows under it are the keyboard's and screen readers' way in; this is a shortcut for the pointer.
-    <div className="eb-tree-fan" style={{ height: fb.h }} aria-hidden="true" onClick={onFanClick}>
+    <div className="eb-tree-fan" data-circle={circle || undefined} style={{ height: fb.h }} aria-hidden="true" onClick={onFanClick} onMouseOver={onFanOver} onMouseLeave={() => setHot(null)}>
       <svg className="eb-tree-svg" width={width} height={fb.h} viewBox={`0 0 ${width} ${fb.h}`} focusable="false">
         {ticks.filter((v) => v > 0).map((v) => <path key={v} className="eb-tree-ring" d={fanRing(fb, (1 - v / drawing.rootAge) * fb.R)} />)}
         <path className="eb-tree-off" d={drawing.unseen} />
         <path className="eb-tree-on" d={drawing.seen} />
         <path className="eb-tree-off eb-tree-dash" d={drawing.unseenDot} />
         <path className="eb-tree-on eb-tree-dash" d={drawing.seenDot} />
-        <path className="eb-tree-node eb-tree-off" d={drawing.unseenNodes} />
-        <path className="eb-tree-node eb-tree-on" d={drawing.seenNodes} />
-        {fanTips.map((p, i) => {
-          const r = tips[i]
-          const d = r.kind === 'group' && r.with ? `M${p.x} ${p.y - 5}L${p.x + 5} ${p.y}L${p.x} ${p.y + 5}L${p.x - 5} ${p.y}Z` : `M${p.x - 4} ${p.y}a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z`
-          return <path key={i} className="eb-tree-tipmark" data-i={i} data-on={tipCount(r) > 0 || undefined} d={d} />
-        })}
-        {hot != null && fanTips[hot] && <circle className="eb-tree-hot" cx={fanTips[hot].x} cy={fanTips[hot].y} r={9} />}
+        <path className="eb-tree-tipdot eb-tree-off" d={roundTips.filter((_, i) => !tipCount(tips[i])).map((p) => circlePath(p.x, p.y)).join('')} />
+        <path className="eb-tree-tipdot eb-tree-on" d={roundTips.filter((_, i) => tipCount(tips[i])).map((p) => circlePath(p.x, p.y)).join('')} />
+        {roundTips.map((p, i) => <circle key={i} className="eb-tree-tiphit" data-i={i} cx={p.x} cy={p.y} r={8} />)}
       </svg>
-      {fanTips.map((p, i) => {
-        if (!stickered.has(i)) return null
-        const r = tips[i]
-        const [x, y] = [fb.cx + (fb.R + FAN_GAP + FAN_STICKER / 2) * Math.cos(p.a), fb.cy - (fb.R + FAN_GAP + FAN_STICKER / 2) * Math.sin(p.a)]
-        return (
-          <span key={`s${i}`} className="eb-tree-fan-st" data-i={i} style={{ left: x - FAN_STICKER / 2, top: y - FAN_STICKER / 2 }}>
-            <Thumb row={r.kind === 'species' ? r.row : r.sticker} size={FAN_STICKER} off={r.kind === 'species' && !r.on} />
-          </span>
-        )
-      })}
-      {fanTips.map((p, i) => {
-        if (!named.has(i) && hot !== i) return null
-        const r = tips[i]
-        const l = fanLabel(fb, p.a, FAN_GAP * 2 + FAN_STICKER)
-        const [name, latin] = tipName(r)
-        return (
-          <span
-            key={`n${i}`} className="eb-tree-fan-name" data-i={i} data-flip={l.flip || undefined} data-on={tipCount(r) > 0 || undefined} data-hot={hot === i || undefined}
-            style={{ left: l.flip ? l.x - FAN_LABEL : l.x, top: l.y - NAME_H / 2, width: FAN_LABEL, transform: `rotate(${l.rot.toFixed(2)}deg)` }}
-          >
-            <span className="eb-tree-fan-text" lang={latin ? 'la' : undefined}>{name}</span>
-            {r.kind === 'group' && <span className="eb-mono eb-tree-fan-count">{fmt(tt.tipOf, { n: count(r.on), total: count(r.total) })}</span>}
-          </span>
-        )
-      })}
-      {ticks.map((v) => {
+      {roundTips.map(label)}
+      {ticks.filter((v) => !circle || v > 0).map((v) => {
         const rr = (1 - v / drawing.rootAge) * fb.R
-        return [fb.cx + rr, ...(rr > 12 ? [fb.cx - rr] : [])].map((x) => (
-          <span key={`${v}:${x}`} className="eb-mono eb-tree-fan-tick" style={{ left: x, top: fb.cy + 10 }}>{formatAge(v, t.num)}</span>
+        return ringLabels(fb, rr).map(([x, y]) => (
+          <span key={`${v}:${x}`} className="eb-mono eb-tree-fan-tick" style={{ left: x, top: circle ? y - 8 : y + 10 }}>{formatAge(v, t.num)}</span>
         ))
       })}
     </div>
@@ -314,53 +400,60 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
     const i = tipNo++
     return <li key={`${r.kind === 'group' ? r.key : r.row.code}:${r.top}`} className="eb-tree-row">{r.kind === 'group' ? groupRow(r, i) : speciesRow(r, i)}</li>
   })
+  // Under the fan or circle: as many columns (at most three) as hold every row on one line, its name in full.
+  const columns = round ? rowColumns(width, Math.max(0, ...tips.map((r) => {
+    const many = manyOf(r)
+    return ROW_FIXED + measure(tipName(r)[0], 15, 600)
+      + (r.kind === 'group' ? 10 + measure(`${count(r.on)} / ${count(r.total)}`, 12, 400, true) : 0)
+      + (r.kind === 'group' && r.with ? MARK_W : 0)
+      + (r.kind === 'group' && r.with && !many ? 8 + measure(withWords(r.with), 13, 500) : 0)
+      + (many ? 12 + measure(plural(tt.withMany, many.length, { n: count(many.length) }), 13, 400) : 0)
+  })), COLUMN_GAP) : 1
+
+  const offeredOptions = RANKS.filter((k) => offered.includes(k)).map((k) => ({
+    value: k, label: tt.rank[k], off: k !== 'orders' && (view.counts[k] ?? 0) > MAX_TIPS ? tt.tooMany[k] : undefined,
+  }))
+  const menuBar = menus && createPortal(
+    <>
+      <span id={`${ids}-level`} className="eb-sr">{tt.level}</span>
+      <MenuSelect labelledBy={`${ids}-level`} menuLabel={tt.level} options={offeredOptions} value={rank} onChange={choose} escapeRef={escape} testId="tree-level" />
+      <span id={`${ids}-layout`} className="eb-sr">{tt.layout}</span>
+      <MenuSelect
+        labelledBy={`${ids}-layout`} menuLabel={tt.layout} options={TREE_LAYOUTS.map((v) => ({ value: v, label: tt.layouts[v] }))} value={layout}
+        onChange={(v) => { setHot(null); setTreeLayout(v) }} escapeRef={escape} testId="tree-layout"
+      />
+    </>,
+    menus,
+  )
 
   return (
-    <div ref={boxRef} className="eb-tree" data-fan={fan || undefined} style={width ? { ['--tree-w' as string]: `${treeW}px` } : undefined}>
+    <div ref={boxRef} className="eb-tree" data-round={round || undefined} style={width ? { ['--tree-w' as string]: `${treeW}px` } : undefined}>
+      {menuBar}
       {oldest && (
         <p className="eb-tree-fact">
           {fmt(tt.oldest, { name: displayName(species.byCode.get(oldest.code)!), age: formatAge(oldest.age, t.num) })}
         </p>
       )}
-      <div className="eb-tree-levels">
-        <div className="eb-seg eb-tree-ranks" role="group" aria-label={tt.rankGroup}>
-          {RANKS.filter((k) => offered.includes(k)).map((k) => {
-            const tooMany = (view.counts[k] ?? 0) > MAX_TIPS
-            const why = `eb-tree-why-${k}`
-            return (
-              <span key={k} className="eb-tree-rank">
-                <button
-                  type="button" className="eb-seg-btn" aria-pressed={rank === k} aria-disabled={tooMany || undefined} aria-describedby={tooMany ? why : undefined}
-                  onClick={(e) => (tooMany ? e.currentTarget.focus() : choose(k))}
-                >
-                  <span className="eb-seg-label">{tt.rank[k]}</span>
-                </button>
-                {tooMany && k !== 'orders' && <span id={why} role="tooltip" className="eb-tree-why">{tt.tooMany[k]}</span>}
-              </span>
-            )
-          })}
-        </div>
-        <nav aria-label={tt.nav} className="eb-tree-nav">
-          <p className="eb-path eb-tree-path">
-            {crumbs.map((c, i) => (
-              <span key={i} className="eb-path-item">
-                {i > 0 && <span className="eb-path-sep" aria-hidden="true">/</span>}
-                {i === crumbs.length - 1
-                  ? <span className="eb-tree-here" aria-current="location" tabIndex={-1} lang={c.latin ? 'la' : undefined}>{c.label}</span>
-                  : <button type="button" lang={c.latin ? 'la' : undefined} onClick={() => go(c.to!, c.back)}>{c.label}</button>}
-              </span>
-            ))}
-          </p>
-          <p className="eb-mono eb-tree-cover">{plural(tt.cover[rank], view.cover[1], { n: count(view.cover[0]), total: count(view.cover[1]) })}</p>
-        </nav>
-      </div>
+      <nav aria-label={tt.nav} className="eb-tree-nav">
+        <p className="eb-path eb-tree-path">
+          {crumbs.map((c, i) => (
+            <span key={i} className="eb-path-item">
+              {i > 0 && <span className="eb-path-sep" aria-hidden="true">/</span>}
+              {i === crumbs.length - 1
+                ? <span className="eb-tree-here" aria-current="location" tabIndex={-1} lang={c.latin ? 'la' : undefined}>{c.label}</span>
+                : <button type="button" lang={c.latin ? 'la' : undefined} onClick={() => go(c.to!, c.back)}>{c.label}</button>}
+            </span>
+          ))}
+        </p>
+        <p className="eb-mono eb-tree-cover">{plural(tt.cover[rank], view.cover[1], { n: count(view.cover[0]), total: count(view.cover[1]) })}</p>
+      </nav>
       {view.split && here && <p className="eb-tree-note">{fmt(tt.split, { name: here })}</p>}
       {insideNote && <p className="eb-tree-note">{insideNote}</p>}
-      {!view.rows.length ? <p className="eb-tree-note">{tt.mineNone}</p> : fan ? (
+      {!view.rows.length ? <p className="eb-tree-note">{tt.mineNone}</p> : round ? (
         <div className="eb-tree-chart">
-          {fanFigure}
+          {roundFigure}
           <p className="eb-mono eb-tree-axis-title eb-tree-fan-axis" aria-hidden="true">{tt.axis}</p>
-          <ol className="eb-tree-rows" aria-label={tt.tips}>{rowItems}</ol>
+          <ol className="eb-tree-rows" aria-label={tt.tips} style={{ columns }}>{rowItems}</ol>
         </div>
       ) : (
         <div className="eb-tree-chart">
@@ -372,16 +465,14 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
             </div>
             <span className="eb-mono eb-tree-axis-title">{tt.axis}</span>
           </div>
-          <div className="eb-tree-body" style={{ height: view.height }}>
-            <svg className="eb-tree-svg" viewBox={`0 0 ${width ? treeW : 1000} ${view.height}`} preserveAspectRatio={width ? undefined : 'none'} aria-hidden="true" focusable="false">
+          <div className="eb-tree-body">
+            <svg className="eb-tree-svg" viewBox={`0 0 ${width ? treeW : 1000} ${ys?.h ?? view.height}`} preserveAspectRatio={width ? undefined : 'none'} aria-hidden="true" focusable="false">
               <path className="eb-tree-off" d={drawing.unseen} />
               <path className="eb-tree-on" d={drawing.seen} />
               <path className="eb-tree-off eb-tree-dash" d={drawing.unseenDot} />
               <path className="eb-tree-on eb-tree-dash" d={drawing.seenDot} />
-              <path className="eb-tree-node eb-tree-off" d={drawing.unseenNodes} />
-              <path className="eb-tree-node eb-tree-on" d={drawing.seenNodes} />
             </svg>
-            <ol className="eb-tree-rows" aria-label={tt.tips}>{rowItems}</ol>
+            <ol ref={rowsRef} className="eb-tree-rows" aria-label={tt.tips}>{rowItems}</ol>
           </div>
         </div>
       )}
@@ -426,7 +517,7 @@ export default function TreeView({ entries, sci, onPick, onLevel }: Props) {
         ) : <p>{tt.allMapped}</p>}
       </div>
       <p className="eb-tree-credit">
-        {rich(fmt(tt.credit, { tree: data.file.tree, taxonomy: data.file.taxonomy, year: data.file.ebirdTaxonomy }), {
+        {rich(tt.credit, {
           src: (chunk) => <a href={AVES_URL} target="_blank" rel="noopener noreferrer">{chunk}</a>,
           lic: (chunk) => <a href={CC_BY_URL} target="_blank" rel="noopener noreferrer">{chunk}</a>,
         })}
