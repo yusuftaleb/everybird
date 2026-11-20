@@ -75,8 +75,8 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.share.latestLifer)
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.date.months[9])
     expect(text(wide.querySelector('.ebd-img-mark'))).toBe('Everybird')
-    // The latest lifer's name is the language's base name (es, pt_BR, nl, pl, fr_FR, de, it, sv), English in English.
-    const base = { en: undefined, es: 'es', pt: 'pt_BR', nl: 'nl', pl: 'pl', fr: 'fr_FR', de: 'de', it: 'it', sv: 'sv' }[lang] as keyof typeof LATEST.names | undefined
+    // The latest lifer's name is the language's base name (es, pt_BR, nl, pl, fr_FR, de, it, sv, da), English in English.
+    const base = { en: undefined, es: 'es', pt: 'pt_BR', nl: 'nl', pl: 'pl', fr: 'fr_FR', de: 'de', it: 'it', sv: 'sv', da: 'da' }[lang] as keyof typeof LATEST.names | undefined
     expect(text(wide.querySelector('.ebd-img-latest-name'))).toBe(base ? LATEST.names[base] : LATEST.name)
   })
 
@@ -114,7 +114,7 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     expect(text(main.querySelector('#eb-how-h'))).toBe(m.page.about.how.head)
     expect(text(main.querySelector('#eb-size-h'))).toBe(m.page.about.size.head)
     const credits = document.getElementById('credits')!
-    const made = { en: 'Made by Yusuf Taleb', es: 'Hecho por Yusuf Taleb', pt: 'Feito por Yusuf Taleb', nl: 'Gemaakt door Yusuf Taleb', pl: 'Autor: Yusuf Taleb', fr: 'Créé par Yusuf Taleb', de: 'Gemacht von Yusuf Taleb', it: 'Creato da Yusuf Taleb', sv: 'Gjord av Yusuf Taleb' }[lang]
+    const made = { en: 'Made by Yusuf Taleb', es: 'Hecho por Yusuf Taleb', pt: 'Feito por Yusuf Taleb', nl: 'Gemaakt door Yusuf Taleb', pl: 'Autor: Yusuf Taleb', fr: 'Créé par Yusuf Taleb', de: 'Gemacht von Yusuf Taleb', it: 'Creato da Yusuf Taleb', sv: 'Gjord av Yusuf Taleb', da: 'Lavet af Yusuf Taleb' }[lang]
     expect(made).toBe(m.ui.shell.footer.madeBy)
     expect(text(credits.querySelector('.eb-prose'))).toMatch(new RegExp(`^${made}\\.`))
     expect(within(credits).getByRole('link', { name: 'Yusuf Taleb' })).toHaveAttribute('href', 'https://www.yusuftaleb.com')
@@ -137,11 +137,11 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     expect(p).toBe(m.page.about.how.privacy)
     expect(p).toContain('Cloudflare Web Analytics')
     // Polish quotes open low („es”).
-    expect(p).toMatch(/[“„"]es[”"], [“„"]pt[”"].*[“„"]nl[”"].*[“„"]pl[”"].*[“„"]fr[”"].*[“„"]de[”"].*[“„"”]it[”"].*[“„"”]sv[”"]/)
+    expect(p).toMatch(/[“„"]es[”"], [“„"]pt[”"].*[“„"]nl[”"].*[“„"]pl[”"].*[“„"]fr[”"].*[“„"]de[”"].*[“„"”]it[”"].*[“„"”]sv[”"].*[“„"”]da[”"]/)
     if (lang === 'en') {
       expect(p).toContain('anonymous and cookieless')
       expect(p).toContain('Your language choice is kept in a small cookie on this device; it never leaves it except to show you the right page.')
-      expect(p).toContain('The visit count includes your browser\'s language (just “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it” or “sv”).')
+      expect(p).toContain('The visit count includes your browser\'s language (just “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv” or “da”).')
     }
   })
 })

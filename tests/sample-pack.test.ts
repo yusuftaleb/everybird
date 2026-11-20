@@ -64,11 +64,11 @@ describe('the landing sample pack', () => {
     for (const l of pack.layouts) expect(l.codes).toEqual(pack.species.map((r) => r.code))
   })
 
-  it('carries the base names (es, pt_BR, nl, pl, fr_FR, de, it, sv; never a regional set) for its codes, as the committed names files have them', () => {
+  it('carries the base names (es, pt_BR, nl, pl, fr_FR, de, it, sv, da; never a regional set) for its codes, as the committed names files have them', () => {
     const read = <T,>(f: string) => JSON.parse(readFileSync(join(process.cwd(), 'public/data', f), 'utf8')) as T
     const pack = read<SamplePackFile>('sample-pack.v1.json')
-    expect(Object.keys(pack.loc).sort()).toEqual(['de', 'es', 'fr_FR', 'it', 'nl', 'pl', 'pt_BR', 'sv'])
-    for (const base of ['es', 'pt_BR', 'nl', 'pl', 'fr_FR', 'de', 'it', 'sv'] as const) {
+    expect(Object.keys(pack.loc).sort()).toEqual(['da', 'de', 'es', 'fr_FR', 'it', 'nl', 'pl', 'pt_BR', 'sv'])
+    for (const base of ['es', 'pt_BR', 'nl', 'pl', 'fr_FR', 'de', 'it', 'sv', 'da'] as const) {
       const file = read<{ names: Record<string, string>; fam: Record<string, string> }>(`names.${base}.v1.json`)
       for (const r of pack.species) {
         expect(pack.loc[base].names[r.code], `${base} ${r.code}`).toBe(file.names[r.code])

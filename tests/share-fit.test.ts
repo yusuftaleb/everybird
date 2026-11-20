@@ -14,8 +14,9 @@ import { fr } from '@/i18n/messages/fr'
 import { de } from '@/i18n/messages/de'
 import { it as italian } from '@/i18n/messages/it'
 import { sv } from '@/i18n/messages/sv'
+import { da } from '@/i18n/messages/da'
 
-const LANG = { en, es, nl, pt, pl, fr, de, it: italian, sv } as const
+const LANG = { en, es, nl, pt, pl, fr, de, it: italian, sv, da } as const
 const css = readFileSync('src/components/share/share.css', 'utf8')
 
 const EM = 0.58 // Satoshi 500 and 700, per character

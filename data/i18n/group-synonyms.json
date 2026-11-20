@@ -7,6 +7,7 @@
     "fr": ["canard", "canards", "oie", "oies", "cygne", "cygnes"],
     "de": ["ente", "enten", "gans", "gänse", "schwan", "schwäne"],
     "sv": ["änder", "gås", "gäss", "svan", "svanar"],
+    "da": ["ænder", "gås", "gæs", "svane", "svaner"],
     "it": ["anatra", "anatre", "oca", "oche", "cigno", "cigni"]
   },
   "vultures-hawks-and-allies": {
@@ -17,36 +18,37 @@
     "fr": ["rapace", "rapaces", "aigle", "aigles", "buse", "buses"],
     "de": ["greifvogel", "greifvögel", "adler", "bussard", "bussarde", "habicht", "habichte"],
     "sv": ["rovfågel", "rovfåglar", "örn", "örnar", "vråk", "vråkar", "hök", "hökar", "glada", "glador"],
+    "da": ["rovfugl", "rovfugle", "ørn", "ørne", "våge", "våger", "høg", "høge", "glente", "glenter"],
     "it": ["rapace", "rapaci", "aquila", "aquile", "poiana", "poiane", "astore", "astori"]
   },
   "herons-ibis-and-allies": {
-    "en": ["heron", "herons", "egret", "egrets"], "es": ["garza", "garzas"], "pt": ["garça", "garças"], "nl": ["reiger", "reigers"], "fr": ["héron", "hérons", "aigrette", "aigrettes"], "de": ["reiher"], "sv": ["häger", "hägrar"], "it": ["airone", "aironi", "garzetta", "garzette"]
+    "en": ["heron", "herons", "egret", "egrets"], "es": ["garza", "garzas"], "pt": ["garça", "garças"], "nl": ["reiger", "reigers"], "fr": ["héron", "hérons", "aigrette", "aigrettes"], "de": ["reiher"], "sv": ["häger", "hägrar"], "da": ["hejre", "hejrer"], "it": ["airone", "aironi", "garzetta", "garzette"]
   },
   "owls": {
-    "en": ["owl"], "es": ["búho", "búhos", "lechuzas"], "pt": ["coruja", "corujas"], "nl": ["uil", "uilen"], "fr": ["hibou", "hiboux", "chouette", "chouettes"], "de": ["eule", "eulen"], "sv": ["uggla", "ugglor"], "it": ["gufo", "gufi", "civetta", "civette", "allocco", "allocchi"]
+    "en": ["owl"], "es": ["búho", "búhos", "lechuzas"], "pt": ["coruja", "corujas"], "nl": ["uil", "uilen"], "fr": ["hibou", "hiboux", "chouette", "chouettes"], "de": ["eule", "eulen"], "sv": ["uggla", "ugglor"], "da": ["ugle", "ugler"], "it": ["gufo", "gufi", "civetta", "civette", "allocco", "allocchi"]
   },
   "gulls-terns-and-skimmers": {
-    "en": ["gull", "gulls", "tern", "terns"], "es": ["gaviota", "gaviotas", "charranes"], "pt": ["gaivota", "gaivotas"], "nl": ["meeuw", "meeuwen", "sterns"], "fr": ["goéland", "goélands", "mouette", "mouettes", "sterne", "sternes"], "de": ["möwe", "möwen", "seeschwalbe", "seeschwalben"], "sv": ["mås", "måsar", "trut", "trutar", "tärna", "tärnor"], "it": ["gabbiano", "gabbiani", "sterna", "sterne"]
+    "en": ["gull", "gulls", "tern", "terns"], "es": ["gaviota", "gaviotas", "charranes"], "pt": ["gaivota", "gaivotas"], "nl": ["meeuw", "meeuwen", "sterns"], "fr": ["goéland", "goélands", "mouette", "mouettes", "sterne", "sternes"], "de": ["möwe", "möwen", "seeschwalbe", "seeschwalben"], "sv": ["mås", "måsar", "trut", "trutar", "tärna", "tärnor"], "da": ["måge", "måger", "terne", "terner"], "it": ["gabbiano", "gabbiani", "sterna", "sterne"]
   },
   "shorebirds": {
-    "en": ["shorebird", "wader", "waders"], "es": ["limícola", "limícolas"], "pt": ["limícola", "limícolas", "aves limícolas"], "nl": ["steltloper", "steltlopers"], "fr": ["limicole", "limicoles"], "de": ["limikole", "limikolen", "watvogel", "watvögel"], "sv": ["vadare"], "it": ["limicolo", "limicoli", "trampoliere", "trampolieri"]
+    "en": ["shorebird", "wader", "waders"], "es": ["limícola", "limícolas"], "pt": ["limícola", "limícolas", "aves limícolas"], "nl": ["steltloper", "steltlopers"], "fr": ["limicole", "limicoles"], "de": ["limikole", "limikolen", "watvogel", "watvögel"], "sv": ["vadare"], "da": ["vadefugl", "vadefugle"], "it": ["limicolo", "limicoli", "trampoliere", "trampolieri"]
   },
   "hummingbirds": {
-    "en": ["hummingbird", "hummers"], "es": ["colibrí", "colibríes"], "pt": ["beija-flor", "beija-flores"], "nl": ["kolibrie", "kolibries"], "fr": ["colibri", "colibris"], "de": ["kolibri", "kolibris"], "sv": ["kolibri", "kolibrier"], "it": ["colibrì"]
+    "en": ["hummingbird", "hummers"], "es": ["colibrí", "colibríes"], "pt": ["beija-flor", "beija-flores"], "nl": ["kolibrie", "kolibries"], "fr": ["colibri", "colibris"], "de": ["kolibri", "kolibris"], "sv": ["kolibri", "kolibrier"], "da": ["kolibri", "kolibrier"], "it": ["colibrì"]
   },
   "woodpeckers": {
-    "en": ["woodpecker"], "es": ["pájaro carpintero", "pájaros carpinteros", "carpinteros"], "pt": ["pica-pau", "pica-paus"], "nl": ["specht", "spechten"], "fr": ["pic", "pics"], "de": ["specht", "spechte"], "sv": ["hackspett", "hackspettar"], "it": ["picchio", "picchi"]
+    "en": ["woodpecker"], "es": ["pájaro carpintero", "pájaros carpinteros", "carpinteros"], "pt": ["pica-pau", "pica-paus"], "nl": ["specht", "spechten"], "fr": ["pic", "pics"], "de": ["specht", "spechte"], "sv": ["hackspett", "hackspettar"], "da": ["spætte", "spætter"], "it": ["picchio", "picchi"]
   },
   "wood-warblers": {
-    "en": ["warbler", "warblers", "new world warblers"], "es": ["reinita", "reinitas"], "pt": ["mariquita", "mariquitas"], "nl": ["amerikaanse zanger", "amerikaanse zangers"], "fr": ["paruline", "parulines"], "de": ["waldsänger"], "sv": ["skogssångare"], "it": ["parula", "parule"]
+    "en": ["warbler", "warblers", "new world warblers"], "es": ["reinita", "reinitas"], "pt": ["mariquita", "mariquitas"], "nl": ["amerikaanse zanger", "amerikaanse zangers"], "fr": ["paruline", "parulines"], "de": ["waldsänger"], "sv": ["skogssångare"], "da": ["amerikansk sanger", "amerikanske sangere"], "it": ["parula", "parule"]
   },
   "new-world-sparrows": {
-    "en": ["sparrow", "sparrows"], "es": ["gorrión", "gorriones"], "pt": ["pardal", "pardais"], "nl": ["mus", "mussen"], "fr": ["bruant", "bruants"], "de": ["neuweltammer", "neuweltammern"], "sv": ["amerikansk sparv", "amerikanska sparvar"], "it": ["passero americano", "passeri americani"]
+    "en": ["sparrow", "sparrows"], "es": ["gorrión", "gorriones"], "pt": ["pardal", "pardais"], "nl": ["mus", "mussen"], "fr": ["bruant", "bruants"], "de": ["neuweltammer", "neuweltammern"], "sv": ["amerikansk sparv", "amerikanska sparvar"], "da": ["amerikansk spurv", "amerikanske spurve"], "it": ["passero americano", "passeri americani"]
   },
   "pigeons-and-doves": {
-    "en": ["pigeon", "pigeons", "dove", "doves"], "es": ["paloma", "palomas"], "pt": ["pombo", "pombos", "pombas"], "nl": ["duif", "duiven"], "fr": ["pigeon", "pigeons", "tourterelle", "tourterelles", "colombe", "colombes"], "de": ["taube", "tauben"], "sv": ["duva", "duvor"], "it": ["piccione", "piccioni", "colomba", "colombe", "tortora", "tortore"]
+    "en": ["pigeon", "pigeons", "dove", "doves"], "es": ["paloma", "palomas"], "pt": ["pombo", "pombos", "pombas"], "nl": ["duif", "duiven"], "fr": ["pigeon", "pigeons", "tourterelle", "tourterelles", "colombe", "colombes"], "de": ["taube", "tauben"], "sv": ["duva", "duvor"], "da": ["due", "duer"], "it": ["piccione", "piccioni", "colomba", "colombe", "tortora", "tortore"]
   },
   "falcons-and-caracaras": {
-    "en": ["falcon", "falcons"], "es": ["halcón", "halcones"], "pt": ["falcão", "falcões"], "nl": ["valk", "valken"], "fr": ["faucon", "faucons"], "de": ["falke", "falken"], "sv": ["falk", "falkar"], "it": ["falco", "falchi"]
+    "en": ["falcon", "falcons"], "es": ["halcón", "halcones"], "pt": ["falcão", "falcões"], "nl": ["valk", "valken"], "fr": ["faucon", "faucons"], "de": ["falke", "falken"], "sv": ["falk", "falkar"], "da": ["falk", "falke"], "it": ["falco", "falchi"]
   }
 }

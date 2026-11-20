@@ -4,33 +4,33 @@ Read this before you translate a string or add a language. English (`messages/en
 
 ## Glossary
 
-| English | es | pt | nl | pl | fr | de | it | sv |
-|---|---|---|---|---|---|---|---|---|
-| life list | lista de vida | lista de vida | levenslijst | lista życia | liste de vie | Lebensliste | lista di vita | livslista |
-| collage | collage | colagem | collage | kolaż | collage | Collage | collage | collage |
-| sticker | sticker | adesivo | sticker | naklejka | autocollant | Sticker | adesivo | klistermärke |
-| latest lifer | Última especie nueva | Última espécie nova | Nieuwste soort | Najnowszy gatunek | Dernière nouvelle espèce | Neueste Art | Ultima specie nuova | Senaste nya art |
-| species (count label) | especies | espécies | soorten | gatunki | espèces | Arten | specie | arter |
-| True size | Tamaño real | Tamanho real | Ware grootte | Prawdziwy rozmiar | Taille réelle | Echte Größe | Dimensione reale | Verklig storlek |
-| Scientific | Científico | Científico | Latijn (the label is short; its screen-reader text says "names") | Łacina (screen reader: "nazwy naukowe") | Latin (screen reader: "noms scientifiques") | Latein (screen reader: "wissenschaftliche Namen") | Latino (screen reader: "nomi scientifici") | Latin (screen reader: "vetenskapliga namn") |
-| Make yours | Haz el tuyo | Faça a sua (a colagem) | Maak de jouwe | Stwórz swój | Crée le tien | Mach deine | Crea il tuo | Gör din egen |
-| Settings (top bar) | Ajustes | Ajustes | Instellingen | Ustawienia | Réglages | Optionen ("Einstellungen" doesn't fit the top bar) | Opzioni ("Impostazioni" is long for the top bar) | Alternativ ("Inställningar" is long for the top bar) |
-| About (top bar) | Acerca de | Sobre | Over | Info ("O aplikacji" doesn't fit the top bar) | Infos ("À propos" doesn't fit the top bar) | Über | Info | Om |
-| My collage (untitled) | Mi collage | Minha colagem | Mijn collage | Mój kolaż | Mon collage | Meine Collage | Il mio collage | Mitt collage |
-| Places (filter) | Lugares | Lugares | Plaatsen | Miejsca | Lieux | Orte | Luoghi | Platser |
-| Map (view tab) | Mapa | Mapa | Kaart | Mapa | Carte | Karte | Mappa | Karta |
-| Time (filter) | Fechas | Datas | Tijd | Czas | Dates | Zeit | Date | Tid |
-| county | condado | condado | graafschap | hrabstwo | comté | Kreis | contea | län |
-| Heard only / Found dead | Solo oída / Encontrada muerta | Só ouvida / Encontrada morta | Alleen gehoord / Dood gevonden | Tylko słyszany / Znaleziony martwy | Entendu seulement / Trouvé mort | Nur gehört / Tot gefunden | Solo sentita / Trovata morta | Bara hörd / Hittad död |
-| birder | observador de aves | observador de aves | vogelaar | obserwator ptaków | observateur d'oiseaux | Vogelbeobachter | birdwatcher | fågelskådare |
-| Ticked by hand (source) | Marcadas a mano | Marcadas à mão | Met de hand aangevinkt | Zaznaczone ręcznie | Cochées à la main | Von Hand abgehakt | Spuntate a mano | Bockade för hand |
-| skipped (entries) | omitidas | ignoradas | overgeslagen | pominięte | ignorées | übersprungen | saltate | överhoppade |
-| backup | copia de seguridad | backup | back-up | kopia zapasowa | sauvegarde | Sicherung | backup | säkerhetskopia |
-| Counting (Settings) | Recuento | Contagem | Tellen | Liczenie | Décompte | Zählung | Conteggio | Räkning |
-| (iNaturalist) observation, sighting | observación | observação | waarneming | obserwacja | observation | Beobachtung | osservazione | observation |
-| Your list (Settings) | Tu lista | Sua lista | Je lijst | Twoja lista | Ta liste | Deine Liste | La tua lista | Din lista |
-| Conservation status | Estado de conservación | Estado de conservação | Beschermingsstatus | Status ochronny | Statut de conservation | Gefährdungsstatus | Stato di conservazione | Hotstatus |
-| order / family (ranks) | orden / familia | ordem / família | orde / familie | rząd / rodzina | ordre / famille | Ordnung / Familie | ordine / famiglia | ordning / familj |
+| English | es | pt | nl | pl | fr | de | it | sv | da |
+|---|---|---|---|---|---|---|---|---|---|
+| life list | lista de vida | lista de vida | levenslijst | lista życia | liste de vie | Lebensliste | lista di vita | livslista | livsliste |
+| collage | collage | colagem | collage | kolaż | collage | Collage | collage | collage | collage |
+| sticker | sticker | adesivo | sticker | naklejka | autocollant | Sticker | adesivo | klistermärke | klistermærke |
+| latest lifer | Última especie nueva | Última espécie nova | Nieuwste soort | Najnowszy gatunek | Dernière nouvelle espèce | Neueste Art | Ultima specie nuova | Senaste nya art | Nyeste nye art |
+| species (count label) | especies | espécies | soorten | gatunki | espèces | Arten | specie | arter | arter |
+| True size | Tamaño real | Tamanho real | Ware grootte | Prawdziwy rozmiar | Taille réelle | Echte Größe | Dimensione reale | Verklig storlek | Ægte størrelse |
+| Scientific | Científico | Científico | Latijn (the label is short; its screen-reader text says "names") | Łacina (screen reader: "nazwy naukowe") | Latin (screen reader: "noms scientifiques") | Latein (screen reader: "wissenschaftliche Namen") | Latino (screen reader: "nomi scientifici") | Latin (screen reader: "vetenskapliga namn") | Latin (screen reader: "videnskabelige navne") |
+| Make yours | Haz el tuyo | Faça a sua (a colagem) | Maak de jouwe | Stwórz swój | Crée le tien | Mach deine | Crea il tuo | Gör din egen | Lav din egen |
+| Settings (top bar) | Ajustes | Ajustes | Instellingen | Ustawienia | Réglages | Optionen ("Einstellungen" doesn't fit the top bar) | Opzioni ("Impostazioni" is long for the top bar) | Alternativ ("Inställningar" is long for the top bar) | Valg ("Indstillinger" is long for the top bar) |
+| About (top bar) | Acerca de | Sobre | Over | Info ("O aplikacji" doesn't fit the top bar) | Infos ("À propos" doesn't fit the top bar) | Über | Info | Om | Om |
+| My collage (untitled) | Mi collage | Minha colagem | Mijn collage | Mój kolaż | Mon collage | Meine Collage | Il mio collage | Mitt collage | Min collage |
+| Places (filter) | Lugares | Lugares | Plaatsen | Miejsca | Lieux | Orte | Luoghi | Platser | Steder |
+| Map (view tab) | Mapa | Mapa | Kaart | Mapa | Carte | Karte | Mappa | Karta | Kort |
+| Time (filter) | Fechas | Datas | Tijd | Czas | Dates | Zeit | Date | Tid | Tid |
+| county | condado | condado | graafschap | hrabstwo | comté | Kreis | contea | län | amt |
+| Heard only / Found dead | Solo oída / Encontrada muerta | Só ouvida / Encontrada morta | Alleen gehoord / Dood gevonden | Tylko słyszany / Znaleziony martwy | Entendu seulement / Trouvé mort | Nur gehört / Tot gefunden | Solo sentita / Trovata morta | Bara hörd / Hittad död | Kun hørt / Fundet død |
+| birder | observador de aves | observador de aves | vogelaar | obserwator ptaków | observateur d'oiseaux | Vogelbeobachter | birdwatcher | fågelskådare | fuglekigger |
+| Ticked by hand (source) | Marcadas a mano | Marcadas à mão | Met de hand aangevinkt | Zaznaczone ręcznie | Cochées à la main | Von Hand abgehakt | Spuntate a mano | Bockade för hand | Afkrydset i hånden |
+| skipped (entries) | omitidas | ignoradas | overgeslagen | pominięte | ignorées | übersprungen | saltate | överhoppade | sprunget over |
+| backup | copia de seguridad | backup | back-up | kopia zapasowa | sauvegarde | Sicherung | backup | säkerhetskopia | sikkerhedskopi |
+| Counting (Settings) | Recuento | Contagem | Tellen | Liczenie | Décompte | Zählung | Conteggio | Räkning | Optælling |
+| (iNaturalist) observation, sighting | observación | observação | waarneming | obserwacja | observation | Beobachtung | osservazione | observation | observation |
+| Your list (Settings) | Tu lista | Sua lista | Je lijst | Twoja lista | Ta liste | Deine Liste | La tua lista | Din lista | Din liste |
+| Conservation status | Estado de conservación | Estado de conservação | Beschermingsstatus | Status ochronny | Statut de conservation | Gefährdungsstatus | Stato di conservazione | Hotstatus | Bevaringsstatus |
+| order / family (ranks) | orden / familia | ordem / família | orde / familie | rząd / rodzina | ordre / famille | Ordnung / Familie | ordine / famiglia | ordning / familj | orden / familie |
 
 ## Register
 
@@ -42,6 +42,7 @@ Read this before you translate a string or add a language. English (`messages/en
 - **German (de):** standard German (Germany) that reads naturally in Austria and Switzerland, with informal "du" ("Deine Liste", "Füge … hinzu"), never "Sie". Sentence case keeps every noun's capital (the family-label test allows it). Numbers group with ".". Bird names are eBird's one German set (`de_AT` and `de_CH` return it too). The whole file is an LLM draft awaiting a fluent speaker's review.
 - **Italian (it):** standard Italian, with informal "tu" ("La tua lista", "Aggiungi"), never "Lei" or "voi", matching the informal register of es, fr and de. Numbers group with "." and use "," for decimals, as Italian does. Bird names: eBird's `it` set has only 737 names of its own, so where it repeats the English name the build takes the IOC World Bird List v15.2 name of the matched huashu record (`IOC_COLUMNS` in `build-names.ts`, credited on About); eBird has no Italian group or family names, so every family label is in `data/i18n/families.it.json` and group names stay English. The whole file is an LLM draft awaiting a fluent speaker's review.
 - **Swedish (sv):** standard Swedish (Sweden) that reads naturally in Finland, with informal "du" ("Din lista", "Lägg till"), as Swedish apps always write. Numbers group with "." and use "," for decimals: Swedish groups with a space, but count-box.ts sizes the count for "," and "." only (as for pl and fr). Bird names: eBird's `sv` set, with the IOC World Bird List v15.2 names switched on for any it lacks (`IOC_COLUMNS`; none are needed in taxonomy 2026). eBird's names are lower case and the build capitalises the first letter. Typographic quotes are ”…”. The whole file is an LLM draft awaiting a fluent speaker's review.
+- **Danish (da):** standard Danish with informal "du" ("Din liste", "Tilføj"), never "De". Numbers group with "." and use "," for decimals, as Danish does. Bird names: eBird's `da` set, with the IOC World Bird List v15.2 name of the matched huashu record where eBird only repeats the English one (`IOC_COLUMNS`, credited on About). eBird's Danish groups are Title Case and name Callaeidae and Meliphagidae alike, so `data/i18n/families.da.json` also overrides those. Search folds ø to "o" and æ to "ae" (`foldName`). The whole file is an LLM draft awaiting a fluent speaker's review.
 - **Every language** follows DESIGN.md "Voice and copy": plain words, second person, short sentences, sentence case (mono labels are uppercased by CSS, never in the string), no em dashes, no exclamation marks (nor "¡"), no emoji, no hype. Never "seen" for the list (heard-only birds count too): "on your list".
 
 ## Templates
