@@ -113,9 +113,14 @@ describe('the Tree tab in CollageView', () => {
     expect(kids.indexOf('eb-dock-tools')).toBeLessThan(kids.indexOf('eb-dock-menus'))
     expect(kids.indexOf('eb-dock-menus')).toBe(1)
     expect(screen.queryByRole('group', { name: 'Show tips as' })).toBeNull()
-    // No path of the tree's own: the chip row is its path; the count line stays.
+    // No path of the tree's own: the chip row is its path. No count line either: with Lifers only off the page's stats
+    // line counts against the taxonomy, from the full species file (the shown index here holds only the list's birds).
     expect(screen.queryByRole('navigation', { name: 'Tree levels' })).toBeNull()
-    expect(screen.getByText('2 of 4 orders')).toBeInTheDocument()
+    expect(screen.queryByText('2 of 4 orders')).toBeNull()
+    await waitFor(() => expect(screen.getByTestId('collage-stats')).toHaveTextContent('2 / 15 species · 2 / 4 orders · 2 / 4 families · since Jan 2024'))
+    // Every other view keeps today's line.
+    fireEvent.click(within(view).getByRole('button', { name: 'Collage' }))
+    expect(screen.getByTestId('collage-stats')).toHaveTextContent('2 species · 2 orders · 2 families · since Jan 2024')
   })
 
   it("the chip row is the tree's path: a chip opens the branch, a tip picks the chip, a genus adds a step, and the steps go back", async () => {
@@ -126,7 +131,6 @@ describe('the Tree tab in CollageView', () => {
     fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Waterfowl/ }))
     expect(within(tipList()).getByRole('button', { name: /^Ducks, / })).toBeInTheDocument()
     expect(path()).toHaveTextContent('All birds/Waterfowl')
-    expect(screen.getByText('1 of 1 family')).toBeInTheDocument()
     // Back in the chip row closes the branch.
     fireEvent.click(within(path() as HTMLElement).getByRole('button', { name: 'All birds' }))
     expect(within(tipList()).getByRole('button', { name: /^Woodpeckers, / })).toBeInTheDocument()
@@ -137,7 +141,6 @@ describe('the Tree tab in CollageView', () => {
     fireEvent.click(within(tipList()).getByRole('button', { name: /^Ducks/ }))
     expect(path()).toHaveTextContent('All birds/Waterfowl/Ducks')
     expect(within(screen.getByRole('group', { name: 'Families' })).getByRole('button', { name: /^Ducks/ })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText('1 of 2 genera')).toBeInTheDocument()
     // A genus opens in the tree, a step of its own at the path's end; the family's step closes it.
     viaKeyboard()
     fireEvent.click(within(tipList()).getByRole('button', { name: /^Aa with Ab/ }))
@@ -183,7 +186,7 @@ describe('TreeView', () => {
     expect([...ducks.children].map((c) => c.className)).toEqual(['eb-tree-dot', 'eb-tree-st', 'eb-tree-name', 'eb-mono eb-tree-count', 'eb-sr'])
     // One name per row: the common one, or the scientific one with the bar's switch.
     expect(within(tips).queryByText('Anseriformes')).toBeNull()
-    expect(screen.getByText('2 of 4 orders')).toBeInTheDocument()
+    expect(screen.queryByText('2 of 4 orders')).toBeNull() // no count line: the page's stats line has the counts
     fireEvent.click(within(slot).getByRole('button', { name: 'Level Orders' }))
     expect(screen.getByRole('menu', { name: 'Level' })).toBeInTheDocument()
     expect(screen.getAllByRole('menuitemradio').map((b) => [b.textContent, b.getAttribute('aria-checked')])).toEqual([['Orders', 'true'], ['Families', 'false'], ['Genera', 'false'], ['Species', 'false']])
@@ -193,7 +196,6 @@ describe('TreeView', () => {
     expect(within(tips).getByText('Waterfowl')).toBeInTheDocument() // the order heading
     expect(within(tips).getByRole('button', { name: /^Ducks, 2 of 4 on the list$/ })).toBeInTheDocument()
     expect(within(tips).getByRole('button', { name: /^Woodpeckers, 1 of 2 on the list$/ })).toBeInTheDocument()
-    expect(screen.getByText('2 of 4 families')).toBeInTheDocument()
     expect(screen.getByText('Oldest lineage on this list: Beta Two, which split from its closest relatives about 4 million years ago (an estimate).')).toBeInTheDocument()
     expect(screen.getByText('1 bird on this list has no place in this tree:')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Lost Duck' })).toBeInTheDocument()
@@ -214,7 +216,6 @@ describe('TreeView', () => {
     fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
     expect(screen.queryByRole('menu')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /^Ducks/ }))
-    expect(screen.getByText('1 of 2 genera')).toBeInTheDocument()
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
     // Aa is not one branch: one row for the branch, with Ab inside it and no row of its own.
     expect(within(genera).getAllByRole('button')).toHaveLength(1)
@@ -253,7 +254,6 @@ describe('TreeView', () => {
     chooseLevel('Species')
     const tips = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
     expect([...tips.querySelectorAll('.eb-tree-row')].map((li) => li.querySelector('.eb-tree-name')!.textContent)).toEqual(['Alpha One', 'Alpha Three', 'Alpha Two'])
-    expect(screen.getByText('1 of 4 species')).toBeInTheDocument()
     expect(within(tips).getByText('Alpha Two').closest('.eb-tree-btn')!.querySelector('[data-off] img')?.getAttribute('src')).toContain('a2')
     expect(within(tips).getByRole('button', { name: 'Alpha One, on the list' }).querySelector('[data-off]')).toBeNull()
     // Back to the order's own tips.

@@ -524,11 +524,10 @@ export const da: Messages = {
         failed: 'Plakaten kunne ikke laves. Prøv igen.',
         previewAlt: 'Forhåndsvisning af {size}-plakaten',
         bulk: {
-          title: 'Én pr. gruppe',
+          title: 'Eksportér i portioner',
           lede: 'En ZIP med ét billede eller én plakat for hver gruppe.',
           splitLabel: 'Del op efter',
           perPoster: 'Fugle pr. plakat',
-          perImage: 'Fugle pr. billede',
           all: 'Alle',
           splits: {
             batches: 'Antal fugle',
@@ -554,7 +553,7 @@ export const da: Messages = {
           namesDropped: { one: '{n} plakat har ingen navne: der var ikke plads til dem.', other: '{n} plakater har ingen navne: der var ikke plads til dem.' },
         },
         showNames: 'Vis artsnavne',
-        namesCap: '{size} har plads til op til {max} arter med navne. Vælg en større størrelse, eller filtrér din liste.',
+        namesCap: '{size} har plads til op til {max} arter med navne. Vælg en større størrelse, filtrér din liste, eller <batch>eksportér i portioner</batch>.',
         namesNoFit: 'Navnene kan ikke være pænt på {size}. Vælg en større størrelse, eller filtrér din liste.',
         namesDropped: 'Navnene var der ikke plads til, så denne plakat har ingen.',
       },

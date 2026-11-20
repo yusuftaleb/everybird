@@ -1,11 +1,12 @@
 'use client'
-// The share dialog's dropdowns (Count, the goal's year, Split by), in the top bar's language-menu style (LanguageMenu:
-// .eb-menu, .eb-menuitem, role="menuitemradio", the current choice in Accent with a check). The button shows the current
-// choice and is named by its row's label and that choice. Its keyboard is the language menu's: ArrowDown or ArrowUp opens
+// The share dialog's dropdowns (Poster size, Count, the goal's year, Split by, Birds per poster), in the top bar's
+// language-menu style (LanguageMenu): a borderless button showing the current choice and a small chevron, Surface on
+// hover and while open (share.css .eb-share-dd), and a small floating menu (.eb-menu, .eb-menuitem,
+// role="menuitemradio", the current choice in Accent with a check). The button is named by its row's label and that choice. Its keyboard is the language menu's: ArrowDown or ArrowUp opens
 // it, the arrows move (wrapping), Home and End jump, Escape closes it and focus returns to the button, Tab or a press
 // outside closes it. The dialog catches Escape on the window before any element sees it, so an open menu hands the dialog
 // its close through `escapeRef` (ShareDialog checks it first). The Tree's Level and Layout menus in the controls bar use
-// it too; an option with `off` stays listed, aria-disabled, named by its label and described by that reason under it
+// it too, in the Filters button's look (app.css); an option with `off` stays listed, aria-disabled, named by its label and described by that reason under it
 // (the Tree's levels over the tip limit).
 import { CaretDown, Check } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MutableRefObject } from 'react'

@@ -25,16 +25,16 @@ import type { PlacesUnplaced } from '@/lib/list/filter-summary'
 import type { ListEntry } from '@/lib/list/model'
 import { monthBins, todayMonth } from '@/lib/list/timeline'
 import type { Action, AppState } from '@/lib/list/store'
-import type { SpeciesIndex } from '@/lib/species/load'
+import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { displayName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { CollageHit } from '@/lib/species/name-search'
-import type { Regions } from '@/lib/species/types'
+import type { Regions, SpeciesRow } from '@/lib/species/types'
 import type { StateLayout } from '@/lib/layout/layout-client'
 import type { ShareAt } from '@/lib/share/view-image'
 import type { TreeLevel } from '@/lib/tree/levels'
 import { closeDeep, openBranch, treeBranch, type OpenBranch, type TreeDeep } from '@/lib/tree/path'
-import type { TreeLayout } from '@/lib/tree-mine'
+import { useTreeMine, type TreeLayout } from '@/lib/tree-mine'
 import { useVariant } from '@/lib/variants'
 import { ControlsBar } from './ControlsBar'
 import { useCollageLayout } from './use-collage-layout'
@@ -93,12 +93,19 @@ const GLIDE_MS = 760
 /** How long an out-of-view pick waits for its layout before it lapses. */
 const PENDING_MS = 4000
 
+/** The taxonomy's species, orders and families: the totals the Tree counts against (levels.ts taxonCover's). */
+export type TaxonomyTotals = { species: number; orders: number; families: number }
+export function taxonomyTotals(rows: readonly SpeciesRow[]): TaxonomyTotals {
+  return { species: new Set(rows.map((r) => r.code)).size, orders: new Set(rows.map((r) => r.ord)).size, families: new Set(rows.map((r) => r.fam)).size }
+}
+
 /**
  * "197 species · 20 orders · 50 families · 12 threatened · since Jan 2020", or "12 of 197 species · 3 families" when
  * filtered, in `t`'s language. The threatened count (VU + EN + CR) is left out at 0 and in variant c; b reads
- * "12 globally threatened".
+ * "12 globally threatened". With `totals` (the Tree with Lifers only off) the unfiltered line counts against the
+ * taxonomy: "197 / 11,201 species · 20 / 45 orders · 50 / 250 families · …".
  */
-export function statsLine(all: ListEntry[], shown: ListEntry[], species: SpeciesIndex, t: Ui, threat: ThreatVariant = 'a'): string {
+export function statsLine(all: ListEntry[], shown: ListEntry[], species: SpeciesIndex, t: Ui, threat: ThreatVariant = 'a', totals?: TaxonomyTotals): string {
   const ords = new Set<string>(), fams = new Set<string>()
   for (const e of shown) {
     const r = species.byCode.get(e.code)
@@ -112,7 +119,9 @@ export function statsLine(all: ListEntry[], shown: ListEntry[], species: Species
   }
   let first: string | undefined
   for (const e of all) if (e.date && (!first || pad(e.date) < pad(first))) first = e.date
-  const parts = [count(s.species, all.length), count(s.orders, ords.size), count(s.families, fams.size)]
+  // Against a total: the number, then the total in the count's own words ("197 / 11,201 species").
+  const part = (p: typeof s.species, x: number, total?: number) => (total === undefined ? count(p, x) : `${formatInt(x, t.num)} / ${count(p, total)}`)
+  const parts = [part(s.species, all.length, totals?.species), part(s.orders, ords.size, totals?.orders), part(s.families, fams.size, totals?.families)]
   const threatened = threat === 'c' ? 0 : threatenedCount(all, species)
   if (threatened > 0) parts.push(threatText(threatened, threat, t))
   const since = formatMonth(first, t.date.months)
@@ -179,7 +188,19 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const fk = filterKey(filter)
   const shownList = useMemo(() => (fk ? applyFilter(entries, filter, species, seen) : entries), [entries, filter, fk, species, seen])
   const threat = useVariant('threat', THREAT_VARIANTS)
-  const stats = useMemo(() => statsLine(entries, shownList, species, t, threat), [entries, shownList, species, t, threat])
+  // The Tree with Lifers only off draws the whole taxonomy, so the line counts against it: the full species file's
+  // totals (the Tree's own data; the landing sample's index holds only its birds), fetched the first time.
+  const treeMine = useTreeMine()
+  const wantTotals = view === 'tree' && !treeMine
+  const [taxonomy, setTaxonomy] = useState<TaxonomyTotals | null>(null)
+  useEffect(() => {
+    if (!wantTotals || taxonomy) return
+    let live = true
+    loadSpecies().then((all) => { if (live) setTaxonomy(taxonomyTotals(all.rows)) }, () => {})
+    return () => { live = false }
+  }, [wantTotals, taxonomy])
+  const totals = wantTotals ? taxonomy ?? undefined : undefined
+  const stats = useMemo(() => statsLine(entries, shownList, species, t, threat, totals), [entries, shownList, species, t, threat, totals])
   // Variant c: the count moves to the Status panel.
   const threatPart = useMemo(() => (threat === 'c' ? undefined : threatText(threatenedCount(entries, species), threat, t)), [threat, entries, species, t])
   const threatLine = useMemo(() => (threat === 'c' ? threatenedCount(entries, species) : undefined), [threat, entries, species])

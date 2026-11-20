@@ -1,18 +1,21 @@
 'use client'
 // The share dialog, on one screen (Yusuf, 2026-11-19: the fewest steps from the collage to a shared image; every other
-// option is complementary and stays out of the way). The page opens it two ways: Share (images) and Print beside it (the
-// poster, `print`); neither switches to the other inside it. On top the format control (Story, Post, Square; Desktop,
-// Post 5:4 and Square when the Vertical | Horizontal switch beside it says Horizontal; the poster has none), then the
-// orientation and, for the collage image and the poster, Fit or Oval as two icon buttons. Beside them the live preview
-// (above them on phones). Then the optional collage title (Saved.name verbatim) and the option rows in one bordered group
-// (as Settings' Counting group), label left and control right: in the poster the size first (a dropdown, A4 to A1 and
-// the inch sizes, with its line under the label), Count (a dropdown; not for the Tree image), Goal, Show latest lifer,
-// the Tree image's Lifers only and Hide totals, the poster's species names, Dark image and Transparent background.
-// Then Share image (the system share sheet when it takes files, else a download) over Download and Copy link; in the
-// poster Make poster (makePoster, its chunk fetched when the dialog opens) with progress and Cancel, then Download PNG
-// and Download PDF serving the one encode. Under them One per group (the collage image and the poster): a ZIP of one
-// image (PNG, the dialog's format and options) or one poster per group, by the poster bulk export's Split by choices.
-// Last, in the bottom right corner, Buy Me a Coffee's static button (self-hosted, never on the images).
+// option is complementary and stays out of the way; 2026-11-20: nothing scrolls on a 1440 × 830 laptop). The page opens
+// it two ways: Share (images) and Print beside it (the poster, `print`); neither switches to the other inside it. Both
+// draw what the view on screen draws: from the Tree or the Map that view's own picture (renderTreeImage, renderMapImage;
+// the poster at the paper's size, makeViewPoster), from Collage or List the collage; dialogRows says which options each
+// shows. On top the format control (Story, Post, Square; Desktop, Post 5:4 and Square when the Vertical | Horizontal
+// switch beside it says Horizontal; the poster has none) and the orientation, on one row where they fit. Beside them the
+// live preview (above them on phones). Then the optional collage title (Saved.name verbatim) on one line with its label,
+// and the option rows in one bordered group (as Settings' Counting group), label left and control right: in the poster
+// the size first (a dropdown, A4 to A1 and the inch sizes, with its line under the label), Arrangement (Fit or Oval),
+// Count (a dropdown), Goal, then the switches two to a row where they fit (Show latest lifer and the poster's species
+// names; the Tree's Lifers only and Hide totals, the Map's Hide totals; Dark image and Transparent background), and last
+// Export in batches, collapsed: a ZIP of one image (PNG, the dialog's format and options) or one poster per group, by
+// the Split by choices (in the poster also Birds per poster). Then Share image (the system share sheet when it takes
+// files, else a download) over Download and Copy link; in the poster Make poster (makePoster, its chunk fetched when the
+// dialog opens) with progress and Cancel, then Download PNG and Download PDF serving the one encode. Last, in the bottom
+// right corner, Buy Me a Coffee's static button (self-hosted, never on the images). Every dropdown is MenuSelect.
 // On phones the actions come straight under the preview, so Share image (or Make poster) is on the first screen.
 // The Goal row: "Add a goal" until one is set; then a number box, "species in", a year menu (All time and each year with
 // birds, newest first) and a remove button. With a year the image is that year's birds against the target (the Big
@@ -27,11 +30,11 @@
 // Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied
 // isn't, from the poster; the ZIPs aren't counted.
 import {
-  ArrowClockwise, Circle, DeviceMobile, DownloadSimple, FilePdf, FrameCorners, LinkSimple, Monitor, Printer, Rectangle, ShareNetwork, Square, X, type Icon,
+  ArrowClockwise, CaretDown, Circle, DownloadSimple, FilePdf, LinkSimple, Printer, Rectangle, ShareNetwork, X, type Icon,
 } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar } from '@/components/dialog-utils'
-import { fmt, plural } from '@/i18n/core'
+import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { HTML_LANG } from '@/i18n/langs'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -64,6 +67,7 @@ import type { ViewKind } from '@/lib/view-resume'
 import type { ShareAt, ViewImageOpts } from '@/lib/share/view-image'
 import '@/components/app/app.css'
 import '@/components/collage/collage.css'
+import { dialogRows, subjectOf } from './dialog-options'
 import { MenuSelect } from './MenuSelect'
 import './share.css'
 
@@ -74,25 +78,24 @@ const PREVIEW_EASE_MS = 420
  *  Every view shares the birds on screen (the filter applied). `print`: opened by Print, on the poster. */
 type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; view?: ViewKind; at?: ShareAt; print?: boolean; onClose: () => void }
 
-/** The views that draw their own share image (the poster stays the collage): each module loads only when Share is
- *  pressed there. Unset, a view shares the collage image of the birds on screen. */
+/** The views that draw their own image and poster: each module loads only when Share or Print is pressed there.
+ *  Unset, a view shares and prints the collage of the birds on screen. */
 export const VIEW_IMAGE: Partial<Record<ViewKind, () => Promise<(o: ViewImageOpts) => Promise<Blob>>>> = {
   map: () => import('@/lib/share/map-image').then((m) => m.renderMapImage),
   tree: () => import('@/lib/share/tree-image').then((m) => m.renderTreeImage),
 }
 
 const RENDER_DELAY_MS = 250
-/** The format buttons: each slot's ratio and icon in each orientation (the square is square in both). */
-const FORMATS: { id: FormatSlot; hint: Record<Orientation, string>; icon: Record<Orientation, Icon> }[] = [
-  { id: 'story', hint: { vertical: '9:16', horizontal: '16:9' }, icon: { vertical: DeviceMobile, horizontal: Monitor } },
-  { id: 'post', hint: { vertical: '4:5', horizontal: '5:4' }, icon: { vertical: FrameCorners, horizontal: FrameCorners } },
-  { id: 'square', hint: { vertical: '1:1', horizontal: '1:1' }, icon: { vertical: Square, horizontal: Square } },
+/** The format buttons: each slot's ratio in each orientation (the square is square in both), in its spoken name. */
+const FORMATS: { id: FormatSlot; hint: Record<Orientation, string> }[] = [
+  { id: 'story', hint: { vertical: '9:16', horizontal: '16:9' } },
+  { id: 'post', hint: { vertical: '4:5', horizontal: '5:4' } },
+  { id: 'square', hint: { vertical: '1:1', horizontal: '1:1' } },
 ]
 const ORIENTATIONS: Orientation[] = ['vertical', 'horizontal']
 /** Fit or Oval's icons: the frame the birds fill, or the oval they sit in. */
 const ARRANGE_ICON: Record<Arrangement, Icon> = { packed: Rectangle, oval: Circle }
 const COUNT_SIZES: CountSize[] = ['small', 'medium', 'large', 'title', 'hide']
-const BULK_SPLITS: BulkSplit[] = ['batches', 'family', 'order', 'country', 'continent', 'province', 'year']
 const BULK_BATCHES: BulkBatch[] = ['all', ...[...BULK_BATCH_OPTIONS].reverse()]
 type LinkResult = ReturnType<typeof MakeShareLink>
 /** The goal's year: a year, or the birds on screen (All time). */
@@ -117,7 +120,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const goalId = useId()
   const goalYearId = useId()
   const targetNoteId = useId()
-  const bulkTitleId = useId()
+  const bulkToggleId = useId()
+  const bulkBodyId = useId()
+  const arrangeId = useId()
   const bulkSplitId = useId()
   const bulkSizeId = useId()
   const sizeId = useId()
@@ -142,9 +147,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   /** The share image's shape: the slot in this orientation (story is desktop, post is wide when horizontal). */
   const shape = imageShape(format, orientation)
   const [size, setSize] = useState<PrintSize>('A2')
-  // The share image in the Map or Tree view draws that view: no stickers, so no sticker options.
-  const viewImage = !print && view ? VIEW_IMAGE[view] : undefined
-  const treeImage = !!viewImage && view === 'tree'
+  // In the Map or Tree view the image and the poster draw that view: no stickers, so no sticker options (dialogRows).
+  const subject = subjectOf(view)
+  const rows = dialogRows(subject, print)
+  const viewImage = subject === 'collage' ? undefined : VIEW_IMAGE[subject]
+  const treeImage = subject === 'tree'
   // The Tree image's "Lifers only" is the bar's switch (tree-mine.ts), so the image and the view agree.
   const treeMine = useTreeMine()
   const [hideTotals, setHideTotals] = useState(false)
@@ -157,8 +164,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // The collage's title: saved with the list as it is typed (the store trims it), so it also names the page.
   const [name, setName] = useState(saved.name ?? '')
   const [countSizeChoice, setCountSize] = useState<CountSize>('medium')
-  // The Tree image has no Count row: its count is the medium one.
-  const countSize: CountSize = treeImage ? 'medium' : countSizeChoice
+  // The Tree and Map images have no Count row: their count is the medium one.
+  const countSize: CountSize = rows.count ? countSizeChoice : 'medium'
   const [showLatest, setShowLatest] = useState(true)
   const [showNames, setShowNames] = useState(false)
   const [namesFitFailKey, setNamesFitFailKey] = useState<string | null>(null)
@@ -218,7 +225,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const goalKey = cardGoal ? `by:${cardGoal.year ?? 'all'}:${cardGoal.target ?? ''}:${cardGoal.basis}` : ''
   const overCap = cardEntries.length > CAPTION_CAPS[size]
   useEffect(() => {
-    if (!print || overCap || typeof document === 'undefined' || !document.fonts) return
+    if (!rows.names || overCap || typeof document === 'undefined' || !document.fonts) return
     let live = true
     const sample = cardEntries.map((e) => {
       const r = species.byCode.get(e.code)
@@ -228,17 +235,17 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       if (live) setFontsTick((n) => n + 1)
     })
     return () => { live = false }
-  }, [print, overCap, size, cardEntries, species, lang, names])
+  }, [rows.names, overCap, size, cardEntries, species, lang, names])
   const captionPlan = useMemo(() => {
-    if (!print || overCap) return null
+    if (!rows.names || overCap) return null
     const L = cardLayout(cardFormat, { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target, countSize }, printDesign(size, landscape))
     return planCaptions(cardEntries, species, size, L.collage.w, displayName, captionMeasurer())
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names`, `lang`, `fontsTick` trigger recheck for `displayName` and loaded Satoshi metrics
-  }, [print, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, countSize, size, landscape, species, names, lang, fontsTick])
+  }, [rows.names, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, countSize, size, landscape, species, names, lang, fontsTick])
   const namesCheckKey = `${cardFormat}|${arrangement}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${countSize}|${lang}|${names}|${fk}|${goalKey}|${fontsTick}`
   const namesFitFailed = namesFitFailKey === namesCheckKey
   const namesAvailable = !overCap && !!captionPlan?.ok && !namesFitFailed
-  const effectiveShowNames = print && showNames && namesAvailable
+  const effectiveShowNames = rows.names && showNames && namesAvailable
   const namesUnavailableReason = overCap
     ? fmt(pt.namesCap, { size: sizeName(size), max: formatInt(CAPTION_CAPS[size], t.num) })
     : !namesAvailable
@@ -280,7 +287,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     }
   }, [cardEntries, species, cardLabel, cardGoal, arrangement])
   useEffect(() => {
-    if (!print || overCap || !captionPlan?.ok) return
+    if (!rows.names || overCap || !captionPlan?.ok) return
     let live = true
     const ctl = new AbortController()
     const onLifeAbort = () => ctl.abort()
@@ -302,11 +309,13 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       ctl.abort()
       life.current?.signal.removeEventListener('abort', onLifeAbort)
     }
-  }, [print, overCap, captionPlan, namesCheckKey, packFor, cardFormat, hasTitle, size, countSize, cardEntries, hasFilter, cardGoal?.target])
+  }, [rows.names, overCap, captionPlan, namesCheckKey, packFor, cardFormat, hasTitle, size, countSize, cardEntries, hasFilter, cardGoal?.target])
 
   // The image: re-rendered (debounced) when the format, name, theme or the latest lifer switch changes. `current` is the newest render;
   // a render superseded before it starts rejects with an AbortError. In print mode it is the poster's preview (the
   // size instead of the format).
+  /** What the Tree or Map image reads besides the share image's options: the view's level, the app state, its switches. */
+  const viewOf = () => ({ at: treeImage ? { ...at, mine: treeMine } : at ?? {}, state: { list, filter, seen, sci }, t, hideTotals })
   const [preview, setPreview] = useState<{ url: string; format: CardFormat; size: PrintSize; key: string } | null>(null)
   const [failedKey, setFailedKey] = useState<string | null>(null)
   const current = useRef<Promise<Blob> | null>(null)
@@ -319,7 +328,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const outgoingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const shownSize = useRef<[number, number]>([0, 0])
   const first = useRef(true)
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : viewImage ? `${view}|${shape}|${treeImage ? `${treeMine}|${hideTotals}` : ''}` : shape}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
+  // The Tree's or Map's drawing: the view, its switches.
+  const viewKey = viewImage ? `${subject}|${treeImage ? treeMine : ''}|${hideTotals}` : ''
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   useEffect(() => {
@@ -336,7 +347,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
           theme, transparent, latest: withLatest, countSize, strings: t, nameOf: displayName, signal: life.current?.signal,
         }
-        if (viewImage) return (await viewImage())({ ...opts, at: treeImage ? { ...at, mine: treeMine } : at ?? {}, state: { list, filter, seen, sci }, t, hideTotals })
+        if (viewImage) return (await viewImage())({ ...opts, ...viewOf() })
         const pack = await packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null)
         return renderShareImage({ ...opts, pack })
       })
@@ -367,6 +378,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       },
     )
     return () => { live = false; cancel() }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- viewOf reads treeImage, treeMine, hideTotals, at, list, filter, seen and sci, all in `key` or below
   }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, hideTotals, at, list, filter, seen, sci])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
@@ -389,11 +401,13 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   useEffect(() => { if (manual) manualRef.current?.select() }, [manual])
 
   // The poster: one make at a time, for `posterKey`. A new key or closing the dialog cancels the make and drops the
-  // poster (its encoder ends with it). One per group's ZIP is cancelled by a new key too (in Share, `key`: the image's).
-  const posterKey = print ? `print|${arrangement}|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}` : key
+  // poster (its encoder ends with it). Export in batches' ZIP is cancelled by a new key too (in Share, `key`: the image's).
+  const posterKey = print ? `print|${viewKey}|${arrangement}|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}` : key
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
-  const [bulkSplit, setBulkSplit] = useState<BulkSplit>('batches')
+  // Export in batches: closed until its row is pressed (or the names note's "export in batches").
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkSplit, setBulkSplit] = useState<BulkSplit>(() => rows.splits[0] ?? 'family')
   // The most birds per poster (or image) when splitting by number of birds: All (one of every bird) or a cap.
   const [bulkSize, setBulkSize] = useState<BulkBatch>('all')
   const [bulkMaking, setBulkMaking] = useState<{ key: string; done: number; total: number } | null>(null)
@@ -423,8 +437,10 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const posterNow = print && poster?.key === posterKey ? poster.p : null
   const makingNow = print && making?.key === posterKey ? making : null
   const bulkMakingNow = bulkMaking?.key === posterKey ? bulkMaking : null
-  // One per group: for the collage image and the poster (the Map and Tree images have their own subject).
-  const bulkOn = !viewImage
+  // A ZIP in the making keeps its section open, so its Cancel stays in reach.
+  const bulkShown = bulkOpen || !!bulkMakingNow
+  // Export in batches: for the collage image and the poster (the Map and Tree draw their own subject).
+  const bulkOn = rows.bulk
   const bulkList = useMemo(() => {
     if (!bulkOn) return []
     const named = regionsIn(regions, lang)
@@ -454,6 +470,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const bulkCancelRef = useRef<HTMLButtonElement>(null)
   /** The ZIP button that started the make: focus comes back to it when the make ends. */
   const bulkKind = useRef<'png' | 'pdf'>('png')
+  const bulkToggleRef = useRef<HTMLButtonElement>(null)
   const focusNext = useRef<'goalAdd' | 'goalTarget' | 'make' | 'cancel' | 'png' | 'bulkPng' | 'bulkPdf' | 'bulkCancel' | null>(null)
   useEffect(() => {
     const want = focusNext.current
@@ -469,6 +486,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     // A list with dates starts at its newest year (usually this one); one without starts at All time.
     if (!saved.bigYear) setGoalYear(dated ? (listYears(known, species, seen)[0] ?? 'all') : 'all')
     focusNext.current = 'goalTarget'
+  }
+  /** The names note's "export in batches": opens Export in batches and takes the reader to it. */
+  const openBulk = () => {
+    setBulkOpen(true)
+    bulkToggleRef.current?.focus()
+    bulkToggleRef.current?.scrollIntoView?.({ block: 'nearest' })
   }
   const removeGoal = () => {
     setGoalOpen(false)
@@ -492,12 +515,22 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     focusNext.current = 'cancel'
     try {
       const mod = await (posterModule.current ?? loadPoster())
-      const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null)
-      if (ctl.signal.aborted) return
-      const p = await mod.makePoster(
-        { size, landscape, showNames: effectiveShowNames, entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, pack, latest: withLatest, countSize, theme, transparent, strings: t, nameOf: displayName, signal: ctl.signal },
-        (done, total) => { if (!ctl.signal.aborted) setMaking({ key: forKey, done, total }) },
-      )
+      const progress = (done: number, total: number) => { if (!ctl.signal.aborted) setMaking({ key: forKey, done, total }) }
+      const common = { entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, latest: withLatest, countSize, theme, transparent, strings: t, nameOf: displayName }
+      let p: Poster
+      if (viewImage) {
+        // The Tree or the Map as on screen, drawn at the poster's size (makeViewPoster).
+        const render = await viewImage()
+        if (ctl.signal.aborted) return
+        p = await mod.makeViewPoster(
+          { size, landscape, transparent, signal: ctl.signal, render: (scale) => render({ ...common, format: cardFormat, printSize: size, signal: ctl.signal, scale, ...viewOf() }) },
+          progress,
+        )
+      } else {
+        const pack = await packFor(landscape ? 'printLandscape' : 'print', !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null)
+        if (ctl.signal.aborted) return
+        p = await mod.makePoster({ ...common, size, landscape, showNames: effectiveShowNames, pack, signal: ctl.signal }, progress)
+      }
       if (ctl.signal.aborted) { p.dispose(); return }
       makeCtl.current = null
       posterRef.current = p
@@ -804,12 +837,33 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   }
   /** An option row that is a switch: the whole row presses, the label on the left, the track on the right. */
   const switchRow = (on: boolean, text: string, toggle: () => void, testId?: string) => (
-    <button type="button" role="switch" aria-checked={on} className="eb-switch eb-share-switch eb-share-opt" data-testid={testId} onClick={toggle}>
+    <button key={text} type="button" role="switch" aria-checked={on} className="eb-switch eb-share-switch eb-share-opt" data-testid={testId} onClick={toggle}>
       <span>{text}</span>
       <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
     </button>
   )
+  /** Two switch rows side by side in one row of the group, each on a line of its own where they don't fit (share.css). */
+  const pair = (...items: ReactNode[]) => {
+    const shown = items.filter(Boolean)
+    return shown.length ? <div className="eb-share-pair">{shown}</div> : null
+  }
   const gt = t.share.bigYear
+  const namesSwitch = rows.names && (
+    <button
+      key="names"
+      type="button"
+      role="switch"
+      aria-checked={showNames && namesAvailable}
+      disabled={!namesAvailable}
+      aria-describedby={namesUnavailableReason ? namesNoteId : undefined}
+      className="eb-switch eb-share-switch eb-share-opt"
+      data-testid="share-print-names-switch"
+      onClick={() => setShowNames((v) => !v)}
+    >
+      <span>{pt.showNames}</span>
+      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+    </button>
+  )
   return (
     <div className="eb-share-scrim" data-layout={wideLayout ? 'wide' : 'side'} onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div
@@ -831,51 +885,30 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         </div>
 
         <div className="eb-share-body">
-          {/* Its own column on top of the controls beside the preview; above the preview on phones (share.css): the format
-              (not in the poster), then the orientation and, for the collage image and the poster, Fit or Oval beside it. */}
+          {/* On top of the controls beside the preview, above the preview on phones (share.css): the format (not in the
+              poster) and the orientation on one row, the orientation under the format where the two don't fit. */}
           <div className="eb-share-formats">
-            {!print && (
-              <div className="eb-seg" role="group" aria-label={t.share.formats}>
-                {FORMATS.map(({ id, hint, icon }) => {
-                  // Horizontal, the story is the desktop wallpaper: its name and icon change, the post keeps its name.
-                  const name = landscape && id === 'story' ? t.share.format.desktop : t.share.format[id]
-                  const Glyph = icon[orientation]
-                  return (
-                    <button key={id} type="button" className="eb-seg-btn" aria-label={hint[orientation] ? fmt(t.share.formatName, { name, ratio: hint[orientation] }) : name} aria-pressed={format === id} onClick={() => setFormat(id)}>
-                      <Glyph aria-hidden="true" focusable="false" />
-                      <span className="eb-seg-text">
-                        <span className="eb-seg-label">{name}</span>
-                        {hint[orientation] && <span className="eb-share-hint">{hint[orientation]}</span>}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
             <div className="eb-share-toprow">
-              <div className="eb-seg eb-share-orient" role="group" aria-label={t.share.orientation.group}>
-                {ORIENTATIONS.map((o) => (
-                  <button
-                    key={o} type="button" className="eb-seg-btn" aria-pressed={orientation === o}
-                    onClick={() => setOrientation(o)}
-                  >
-                    <span className="eb-seg-label">{t.share.orientation[o]}</span>
-                  </button>
-                ))}
-              </div>
-              {!viewImage && (
-                <div className="eb-seg eb-share-arrange" role="group" aria-label={t.share.arrange.label} data-testid="share-arrangement">
-                  {/* Two icon buttons, named and titled Fit and Oval: no label to wrap in any language. */}
-                  {ARRANGEMENTS.map((a) => {
-                    const Glyph = ARRANGE_ICON[a]
+              {!print && (
+                <div className="eb-seg eb-share-format" role="group" aria-label={t.share.formats}>
+                  {FORMATS.map(({ id, hint }) => {
+                    // Horizontal, the story is the desktop wallpaper: its name changes, the post keeps its name.
+                    const name = landscape && id === 'story' ? t.share.format.desktop : t.share.format[id]
                     return (
-                      <button key={a} type="button" className="eb-seg-btn" aria-label={t.share.arrange[a]} title={t.share.arrange[a]} aria-pressed={arrangement === a} onClick={() => setArrangement(a)}>
-                        <Glyph aria-hidden="true" focusable="false" />
+                      <button key={id} type="button" className="eb-seg-btn" aria-label={fmt(t.share.formatName, { name, ratio: hint[orientation] })} aria-pressed={format === id} onClick={() => setFormat(id)}>
+                        {name}
                       </button>
                     )
                   })}
                 </div>
               )}
+              <div className="eb-seg eb-share-orient" role="group" aria-label={t.share.orientation.group}>
+                {ORIENTATIONS.map((o) => (
+                  <button key={o} type="button" className="eb-seg-btn" aria-pressed={orientation === o} onClick={() => setOrientation(o)}>
+                    {t.share.orientation[o]}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -903,13 +936,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           </div>
 
           <div className="eb-share-controls">
-            {/* The options: the title, then one row per option in a bordered group (in the poster the size first). */}
+            {/* The options: the title on one line with its label, then one row per option in a bordered group (in the
+                poster the size first), two switches to a row where they fit, Export in batches last. */}
             <div className="eb-share-options">
               <div className="eb-share-field">
-                <div className="eb-share-labelrow">
+                <span className="eb-share-labelrow">
                   <label htmlFor={nameId} className="eb-share-label">{t.share.nameLabel}</label>
                   <span id={optionalId} className="eb-share-optional">{t.share.nameOptional}</span>
-                </div>
+                </span>
                 <input
                   id={nameId}
                   className="eb-share-input"
@@ -938,7 +972,23 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                     />
                   </div>
                 )}
-                {!treeImage && (
+                {rows.arrangement && (
+                  <div className="eb-share-opt">
+                    <span id={arrangeId} className="eb-share-optlabel">{t.share.arrange.label}</span>
+                    <div className="eb-seg eb-share-arrange" role="group" aria-labelledby={arrangeId} data-testid="share-arrangement">
+                      {/* Two icon buttons, named and titled Fit and Oval: no label to wrap in any language. */}
+                      {ARRANGEMENTS.map((a) => {
+                        const Glyph = ARRANGE_ICON[a]
+                        return (
+                          <button key={a} type="button" className="eb-seg-btn" aria-label={t.share.arrange[a]} title={t.share.arrange[a]} aria-pressed={arrangement === a} onClick={() => setArrangement(a)}>
+                            <Glyph aria-hidden="true" focusable="false" />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+                {rows.count && (
                   <div className="eb-share-opt">
                     <span id={countSizeId} className="eb-share-optlabel">{t.share.countSize.label}</span>
                     <MenuSelect
@@ -949,7 +999,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                   </div>
                 )}
 
-                {!viewImage && (
+                {rows.goal && (
                   <div className="eb-share-opt" data-testid="share-goal">
                     <span id={goalId} className="eb-share-optlabel">{gt.label}</span>
                     {!goalOpen ? (
@@ -994,38 +1044,113 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                     )}
                   </div>
                 )}
-                {!viewImage && goalOpen && targetBad && (
+                {rows.goal && goalOpen && targetBad && (
                   <p id={targetNoteId} className="eb-note eb-share-names-note">{fmt(gt.targetInvalid, { max: formatInt(TARGET_MAX, t.num) })}</p>
                 )}
 
-                {hasLatest && !viewImage && switchRow(showLatest, t.share.showLatest, () => setShowLatest((v) => !v))}
-
-                {treeImage && <>
-                  {switchRow(treeMine, t.collage.controls.lifersOnly, () => setTreeMine(!treeMine), 'share-tree-mine')}
-                  {switchRow(hideTotals, t.share.hideTotals, () => setHideTotals((v) => !v), 'share-hide-totals')}
-                </>}
-
-                {print && (
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={showNames && namesAvailable}
-                    disabled={!namesAvailable}
-                    aria-describedby={namesUnavailableReason ? namesNoteId : undefined}
-                    className="eb-switch eb-share-switch eb-share-opt"
-                    data-testid="share-print-names-switch"
-                    onClick={() => setShowNames((v) => !v)}
-                  >
-                    <span>{pt.showNames}</span>
-                    <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
-                  </button>
+                {pair(
+                  hasLatest && rows.latest && switchRow(showLatest, t.share.showLatest, () => setShowLatest((v) => !v)),
+                  namesSwitch,
                 )}
-                {print && namesUnavailableReason && (
-                  <p id={namesNoteId} className="eb-note eb-share-names-note" data-testid="share-print-names-note">{namesUnavailableReason}</p>
+                {rows.names && namesUnavailableReason && (
+                  <p id={namesNoteId} className="eb-note eb-share-names-note" data-testid="share-print-names-note">
+                    {rich(namesUnavailableReason, {
+                      batch: (chunk) => <button type="button" className="eb-textbtn eb-share-inline" onClick={openBulk}>{chunk}</button>,
+                    })}
+                  </p>
+                )}
+                {pair(
+                  rows.lifersOnly && switchRow(treeMine, t.collage.controls.lifersOnly, () => setTreeMine(!treeMine), 'share-tree-mine'),
+                  rows.hideTotals && switchRow(hideTotals, t.share.hideTotals, () => setHideTotals((v) => !v), 'share-hide-totals'),
+                )}
+                {pair(
+                  switchRow(dark, t.share.dark, () => setDark((v) => !v), 'share-dark-switch'),
+                  switchRow(transparent, t.share.transparent, () => setTransparent((v) => !v), 'share-transparent-switch'),
                 )}
 
-                {switchRow(dark, t.share.dark, () => setDark((v) => !v), 'share-dark-switch')}
-                {switchRow(transparent, t.share.transparent, () => setTransparent((v) => !v), 'share-transparent-switch')}
+                {bulkOn && (
+                  // Export in batches: one row with its name and a chevron; open, a ZIP of one image (or, in the poster,
+                  // one poster) per group.
+                  <div className="eb-share-bulk" data-testid="share-bulk">
+                    <button
+                      ref={bulkToggleRef} id={bulkToggleId} type="button" className="eb-share-opt eb-share-disclose"
+                      aria-expanded={bulkShown} aria-controls={bulkShown ? bulkBodyId : undefined} onClick={() => setBulkOpen((v) => !v)}
+                    >
+                      <span>{pt.bulk.title}</span>
+                      <CaretDown aria-hidden="true" focusable="false" weight="bold" />
+                    </button>
+                    {bulkShown && (
+                      <section id={bulkBodyId} className="eb-share-bulk-body" aria-labelledby={bulkToggleId}>
+                        <p className="eb-note">{pt.bulk.lede}</p>
+                        <div className="eb-share-bulk-rows">
+                          <div className="eb-share-opt">
+                            <span id={bulkSplitId} className="eb-share-optlabel">{pt.bulk.splitLabel}</span>
+                            <MenuSelect
+                              labelledBy={bulkSplitId} menuLabel={pt.bulk.splitLabel} escapeRef={menuEsc} testId="bulk-split"
+                              options={rows.splits.map((s) => ({ value: s, label: pt.bulk.splits[s] }))}
+                              value={bulkSplit} onChange={setBulkSplit} disabled={!!bulkMakingNow}
+                            />
+                          </div>
+                          {rows.batchSize && bulkSplit === 'batches' && (
+                            <div className="eb-share-opt">
+                              <span id={bulkSizeId} className="eb-share-optlabel">{pt.bulk.perPoster}</span>
+                              <MenuSelect<BulkBatch>
+                                labelledBy={bulkSizeId} menuLabel={pt.bulk.perPoster} escapeRef={menuEsc} testId="bulk-size"
+                                options={BULK_BATCHES.map((b) => ({ value: b, label: b === 'all' ? pt.bulk.all : formatInt(b, t.num) }))}
+                                value={bulkSize} onChange={setBulkSize} disabled={!!bulkMakingNow}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <p className="eb-note eb-share-bulk-count" data-testid="bulk-count" aria-live="polite">
+                          {bulkList.length > 0
+                            ? plural(print ? pt.bulk.count : pt.bulk.countImages, bulkList.length, { n: formatInt(bulkList.length, t.num) })
+                            : pt.bulk.empty}
+                        </p>
+                        {bulkMakingNow ? (
+                          <div className="eb-share-progress" data-testid="bulk-progress">
+                            <div
+                              className="eb-share-bar" role="progressbar" aria-label={pt.bulk.makingNote}
+                              aria-valuemin={0} aria-valuemax={bulkMakingNow.total} aria-valuenow={bulkMakingNow.done}
+                            >
+                              <span className="eb-share-bar-fill" style={{ width: `${bulkPct}%` }} />
+                            </div>
+                            <span className="eb-share-pct">
+                              {fmt(print ? pt.bulk.progress : pt.bulk.progressImages, {
+                                done: formatInt(Math.min(bulkMakingNow.done + 1, bulkMakingNow.total), t.num),
+                                total: formatInt(bulkMakingNow.total, t.num),
+                              })}
+                            </span>
+                            <button ref={bulkCancelRef} type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
+                          </div>
+                        ) : (
+                          <div className="eb-share-row">
+                            <button
+                              ref={bulkPngRef}
+                              type="button"
+                              className="eb-btn eb-btn-quiet"
+                              disabled={bulkList.length === 0 || !!makingNow}
+                              onClick={() => void makeBulk('png')}
+                            >
+                              <DownloadSimple aria-hidden="true" focusable="false" />
+                              {pt.bulk.png}
+                            </button>
+                            {print && !transparent && <button
+                              ref={bulkPdfRef}
+                              type="button"
+                              className="eb-btn eb-btn-quiet"
+                              disabled={bulkList.length === 0 || !!makingNow}
+                              onClick={() => void makeBulk('pdf')}
+                            >
+                              <FilePdf aria-hidden="true" focusable="false" />
+                              {pt.bulk.pdf}
+                            </button>}
+                          </div>
+                        )}
+                      </section>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1033,79 +1158,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               {primary}
               <div className="eb-share-row">{quiet.map(quietButton)}</div>
             </div>
-
-            {bulkOn && (
-              // One per group: a ZIP of one image (or, in the poster, one poster) per group, under the actions.
-              <section className="eb-share-bulk" data-testid="share-bulk" aria-labelledby={bulkTitleId}>
-                <h3 id={bulkTitleId} className="eb-share-bulk-title">{pt.bulk.title}</h3>
-                <p className="eb-note">{pt.bulk.lede}</p>
-                <div className="eb-share-opts">
-                  <div className="eb-share-opt">
-                    <span id={bulkSplitId} className="eb-share-optlabel">{pt.bulk.splitLabel}</span>
-                    <MenuSelect
-                      labelledBy={bulkSplitId} menuLabel={pt.bulk.splitLabel} escapeRef={menuEsc} testId="bulk-split"
-                      options={BULK_SPLITS.map((s) => ({ value: s, label: pt.bulk.splits[s] }))}
-                      value={bulkSplit} onChange={setBulkSplit} disabled={!!bulkMakingNow}
-                    />
-                  </div>
-                  {bulkSplit === 'batches' && (
-                    <div className="eb-share-opt">
-                      <span id={bulkSizeId} className="eb-share-optlabel">{print ? pt.bulk.perPoster : pt.bulk.perImage}</span>
-                      <MenuSelect<BulkBatch>
-                        labelledBy={bulkSizeId} menuLabel={print ? pt.bulk.perPoster : pt.bulk.perImage} escapeRef={menuEsc} testId="bulk-size"
-                        options={BULK_BATCHES.map((b) => ({ value: b, label: b === 'all' ? pt.bulk.all : formatInt(b, t.num) }))}
-                        value={bulkSize} onChange={setBulkSize} disabled={!!bulkMakingNow}
-                      />
-                    </div>
-                  )}
-                </div>
-                <p className="eb-note eb-share-bulk-count" data-testid="bulk-count" aria-live="polite">
-                  {bulkList.length > 0
-                    ? plural(print ? pt.bulk.count : pt.bulk.countImages, bulkList.length, { n: formatInt(bulkList.length, t.num) })
-                    : pt.bulk.empty}
-                </p>
-                {bulkMakingNow ? (
-                  <div className="eb-share-progress" data-testid="bulk-progress">
-                    <div
-                      className="eb-share-bar" role="progressbar" aria-label={pt.bulk.makingNote}
-                      aria-valuemin={0} aria-valuemax={bulkMakingNow.total} aria-valuenow={bulkMakingNow.done}
-                    >
-                      <span className="eb-share-bar-fill" style={{ width: `${bulkPct}%` }} />
-                    </div>
-                    <span className="eb-share-pct">
-                      {fmt(print ? pt.bulk.progress : pt.bulk.progressImages, {
-                        done: formatInt(Math.min(bulkMakingNow.done + 1, bulkMakingNow.total), t.num),
-                        total: formatInt(bulkMakingNow.total, t.num),
-                      })}
-                    </span>
-                    <button ref={bulkCancelRef} type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
-                  </div>
-                ) : (
-                  <div className="eb-share-row">
-                    <button
-                      ref={bulkPngRef}
-                      type="button"
-                      className="eb-btn eb-btn-quiet"
-                      disabled={bulkList.length === 0 || !!makingNow}
-                      onClick={() => void makeBulk('png')}
-                    >
-                      <DownloadSimple aria-hidden="true" focusable="false" />
-                      {pt.bulk.png}
-                    </button>
-                    {print && !transparent && <button
-                      ref={bulkPdfRef}
-                      type="button"
-                      className="eb-btn eb-btn-quiet"
-                      disabled={bulkList.length === 0 || !!makingNow}
-                      onClick={() => void makeBulk('pdf')}
-                    >
-                      <FilePdf aria-hidden="true" focusable="false" />
-                      {pt.bulk.pdf}
-                    </button>}
-                  </div>
-                )}
-              </section>
-            )}
 
             <p className={note?.error ? 'eb-error' : 'eb-note'} role="status" data-testid="share-note">{note?.text ?? ''}</p>
             {manual && (

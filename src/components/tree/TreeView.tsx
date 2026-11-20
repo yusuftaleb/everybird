@@ -6,8 +6,8 @@
 // is kept beside it. Two menus in the controls bar (rendered here, into the bar's slot, through a portal): Level
 // (Orders | Families | Genera | Species: what the open branch's tips are, a rank that would draw more than MAX_TIPS tips,
 // or more than the Fan or Radial can name, listed but disabled with its reason) and Layout (Fan | Radial | Rectangular,
-// kept on the device; unpicked, the fan from FAN_FROM px wide when it names every tip, rows otherwise). The count line
-// ("18 of 45 orders") heads the drawing. Fan and Radial (fan.ts): the root at the centre, the tips on the arc or all
+// kept on the device; unpicked, the fan from FAN_FROM px wide when it names every tip, rows otherwise). No count line of
+// its own: the chip row is its path, and the page's stats line counts against the taxonomy (CollageView). Fan and Radial (fan.ts): the root at the centre, the tips on the arc or all
 // round, the age axis as rings, and every tip's label past it, along its radius: the dot, a gap, the sticker's box, a
 // gap, the name, the count (fitRound sizes the drawing so that every name fits whole; the counts go first when room is
 // short). Their rows stay in the page, visually hidden, for the keyboard and screen readers. Rectangular draws the tree
@@ -502,7 +502,6 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
           {fmt(tt.oldest, { name: displayName(species.byCode.get(oldest.code)!), age: formatAge(oldest.age, t.num) })}
         </p>
       )}
-      <p className="eb-mono eb-tree-cover">{plural(tt.cover[rank], shown.cover[1], { n: count(shown.cover[0]), total: count(shown.cover[1]) })}</p>
       {view.split && here && <p className="eb-tree-note">{fmt(tt.split, { name: here })}</p>}
       {insideNote && <p className="eb-tree-note">{insideNote}</p>}
       {!shown.rows.length ? <p className="eb-tree-note">{tt.mineNone}</p> : roundNow ? (

@@ -532,11 +532,10 @@ export const fr: Messages = {
         failed: 'Impossible de créer l’affiche. Réessaie.',
         previewAlt: 'Aperçu de l’affiche {size}',
         bulk: {
-          title: 'Un par groupe',
+          title: 'Exporter par lots',
           lede: 'Un ZIP avec une image, ou une affiche, pour chaque groupe.',
           splitLabel: 'Répartir par',
           perPoster: 'Oiseaux par affiche',
-          perImage: 'Oiseaux par image',
           all: 'Tous',
           splits: {
             batches: 'Nombre d’oiseaux',
@@ -562,7 +561,7 @@ export const fr: Messages = {
           namesDropped: { one: '{n} affiche n’a pas de noms\u00a0: ils ne tenaient pas.', other: '{n} affiches n’ont pas de noms\u00a0: ils ne tenaient pas.' },
         },
         showNames: 'Afficher les noms des espèces',
-        namesCap: 'Le format {size} accueille jusqu’à {max} espèces avec leur nom. Choisis une taille plus grande ou filtre ta liste.',
+        namesCap: 'Le format {size} accueille jusqu’à {max} espèces avec leur nom. Choisis une taille plus grande, filtre ta liste ou <batch>exporte par lots</batch>.',
         namesNoFit: 'Les noms ne tiennent pas bien en {size}. Choisis une taille plus grande ou filtre ta liste.',
         namesDropped: 'Les noms ne tenaient pas, donc cette affiche n’en a pas.',
       },

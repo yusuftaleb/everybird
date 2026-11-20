@@ -523,11 +523,10 @@ export const sv: Messages = {
         failed: 'Det gick inte att skapa affischen. Försök igen.',
         previewAlt: 'Förhandsvisning av affischen i {size}',
         bulk: {
-          title: 'En per grupp',
+          title: 'Exportera i omgångar',
           lede: 'En ZIP med en bild, eller en affisch, för varje grupp.',
           splitLabel: 'Dela upp efter',
           perPoster: 'Fåglar per affisch',
-          perImage: 'Fåglar per bild',
           all: 'Alla',
           splits: {
             batches: 'Antal fåglar',
@@ -553,7 +552,7 @@ export const sv: Messages = {
           namesDropped: { one: '{n} affisch saknar namn: de fick inte plats.', other: '{n} affischer saknar namn: de fick inte plats.' },
         },
         showNames: 'Visa artnamn',
-        namesCap: '{size} rymmer upp till {max} arter med namn. Välj en större storlek eller filtrera listan.',
+        namesCap: '{size} rymmer upp till {max} arter med namn. Välj en större storlek, filtrera listan eller <batch>exportera i omgångar</batch>.',
         namesNoFit: 'Namnen får inte plats snyggt på {size}. Välj en större storlek eller filtrera listan.',
         namesDropped: 'Namnen fick inte plats, så den här affischen har inga.',
       },

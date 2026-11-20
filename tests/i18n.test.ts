@@ -48,7 +48,7 @@ const ALLOW_SAME = [
   '{n} region',
   // fr: the same spelling in French.
   '{n} continents', 'Continents', 'Europe', 'Tinamous', 'Orientation',
-  // The share dialog's parts: fr "Image", nl and de "Poster"; fr "{n} image(s)" in One per group's count.
+  // The share dialog's parts: fr "Image", nl and de "Poster"; fr "{n} image(s)" in Export in batches' count.
   'Image', 'Poster', '{n} image', '{n} images',
   // de: months spelled as in English, and "(optional)".
   'Jan', 'Feb', 'Apr', 'Aug', 'Sep', 'Nov', 'April', 'August', 'September', 'November', '(optional)', 'Region (optional)',

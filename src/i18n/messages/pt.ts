@@ -532,11 +532,10 @@ export const pt: Messages = {
         failed: 'Não foi possível criar o pôster. Tente de novo.',
         previewAlt: 'Prévia do pôster {size}',
         bulk: {
-          title: 'Um por grupo',
+          title: 'Exportar em lotes',
           lede: 'Um ZIP com uma imagem, ou um pôster, para cada grupo.',
           splitLabel: 'Dividir por',
           perPoster: 'Aves por pôster',
-          perImage: 'Aves por imagem',
           all: 'Todas',
           splits: {
             batches: 'Número de aves',
@@ -562,7 +561,7 @@ export const pt: Messages = {
           namesDropped: { one: '{n} pôster ficou sem nomes porque eles não couberam.', other: '{n} pôsteres ficaram sem nomes porque eles não couberam.' },
         },
         showNames: 'Mostrar nomes das espécies',
-        namesCap: 'Em {size} cabem até {max} espécies com nomes. Escolha um tamanho maior ou filtre sua lista.',
+        namesCap: 'Em {size} cabem até {max} espécies com nomes. Escolha um tamanho maior, filtre sua lista ou <batch>exporte em lotes</batch>.',
         namesNoFit: 'Os nomes não cabem bem em {size}. Escolha um tamanho maior ou filtre sua lista.',
         namesDropped: 'Os nomes não couberam, então este pôster ficou sem nomes.',
       },

@@ -22,7 +22,11 @@ export const TREE_FOOTER = `${FOOTER_LINE} · tree: AvesData, McTavish et al., C
  *  every tree image draws). */
 export type ShareAt = { place?: string; names?: (key: string) => string; tree?: TreeLevel; mine?: boolean; layout?: TreeLayout }
 /** A view image's input: the share image's, with the view's level, the app state it reads and the UI strings. */
-export type ViewImageOpts = ShareImageOpts & { at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; hideTotals?: boolean }
+export type ViewImageOpts = ShareImageOpts & {
+  at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; hideTotals?: boolean
+  /** Device px per design unit (a poster's, print.ts viewPosterScale); default the format's IMAGE_SCALE, 1 for a poster's preview. */
+  scale?: number
+}
 export type Area = { x: number; y: number; w: number; h: number }
 
 /** A `w` × `h` drawing fitted whole in `area` (contain), centred: its top-left corner and scale. */
@@ -51,18 +55,23 @@ export function wrapParts(parts: readonly string[], width: (text: string) => num
  * `under`: the parts of a line under the count, at the footer's size (two lines when one does not fit); none when the
  * count is hidden. `sample`: every other text `paint` draws, so the fonts it needs are loaded first.
  */
-export async function renderViewImage(opts: ShareImageOpts, footer: string, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[], sample = ''): Promise<Blob> {
+export async function renderViewImage(opts: ShareImageOpts & { scale?: number }, footer: string, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[], sample = ''): Promise<Blob> {
   const card = await prepareCard({ ...opts, footer, pack: NO_BIRDS, latest: false, showNames: false })
   await ensureViewFonts(card, `${(under ?? []).join('')}${sample}`)
   const { L, K } = card
   const c = L.collage
   const blockH = K.size > 0 ? DIGIT_CAP * K.size + K.gap + MONO_CAP * K.labelSize : 0
-  const s = IMAGE_SCALE[opts.format as ImageFormat]
+  const s = opts.scale ?? IMAGE_SCALE[opts.format as ImageFormat] ?? 1
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(L.W * s)
   canvas.height = Math.round(L.H * s)
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas is not available')
+  // A poster's height is fractional (A4 1527.7): Paper over the whole canvas covers its last row.
+  if (!card.transparent && canvas.height > L.H * s) {
+    ctx.fillStyle = card.colors.paper
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+  }
   if (s !== 1) ctx.setTransform(s, 0, 0, s, 0, 0)
   const subPx = L.footer.credit, lineH = Math.round(subPx * 1.5)
   ctx.font = card.fonts.footer(subPx)

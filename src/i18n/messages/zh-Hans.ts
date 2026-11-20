@@ -523,11 +523,10 @@ export const zhHans: Messages = {
         failed: '无法生成海报。再试一次。',
         previewAlt: '{size}海报预览',
         bulk: {
-          title: '每组一份',
+          title: '分批导出',
           lede: '一个 ZIP，每组一张图片或一张海报。',
           splitLabel: '拆分依据',
           perPoster: '每张海报的鸟数',
-          perImage: '每张图片的鸟数',
           all: '全部',
           splits: {
             batches: '按鸟的数量',
@@ -553,7 +552,7 @@ export const zhHans: Messages = {
           namesDropped: { one: '{n}张海报没有名称：放不下。', other: '{n}张海报没有名称：放不下。' },
         },
         showNames: '显示鸟种名称',
-        namesCap: '{size}最多可容纳{max}种带名称的鸟。选择更大的尺寸，或筛选你的清单。',
+        namesCap: '{size}最多可容纳{max}种带名称的鸟。选择更大的尺寸、筛选你的清单，或<batch>分批导出</batch>。',
         namesNoFit: '名称在{size}上放不整齐。选择更大的尺寸，或筛选你的清单。',
         namesDropped: '名称放不下，所以这张海报没有名称。',
       },

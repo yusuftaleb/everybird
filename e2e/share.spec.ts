@@ -361,7 +361,7 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
   const aspect: Record<string, number> = { Story: 9 / 16, Post: 4 / 5, Square: 1 };
   for (const width of [1440, 1280, 1000, 768, 440, 390, 320]) {
     await page.setViewportSize({ width, height: 800 });
-    const seen: { format: string; col: number; icons: boolean; segX: number; segY: number; midY: number; midX: number; boxR: number; share: string }[] = [];
+    const seen: { format: string; col: number; segX: number; segY: number; midY: number; midX: number; boxR: number; share: string }[] = [];
     for (const format of ["Story", "Post", "Square"]) {
       await dialog.getByRole("button", { name: new RegExp(`^${format}`) }).click();
       await expect(dialog.getByTestId("share-preview")).toHaveAttribute("data-format", format.toLowerCase(), { timeout: 30_000 });
@@ -372,7 +372,6 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
         const seg = d.querySelector(".eb-seg")!.getBoundingClientRect();
         const formats = d.querySelector(".eb-share-formats")!.getBoundingClientRect();
         const col = d.querySelector(".eb-share-controls")!.getBoundingClientRect();
-        const icon = d.querySelector(".eb-seg-btn svg")!;
         const box = d.querySelector('[data-testid="share-preview"]')!;
         const img = box.querySelector("img")!;
         const b = box.getBoundingClientRect();
@@ -383,7 +382,6 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
           sw: d.scrollWidth, cw: d.clientWidth, over: seg.right - formats.right, col: col.width, segX: seg.x, segY: seg.y,
           swOver: Math.max(...[...d.querySelectorAll('[role="switch"]')].map((x) => x.getBoundingClientRect().right - col.right)),
           bw: box.clientWidth, bh: box.clientHeight, iw: img.getBoundingClientRect().width, ih: img.getBoundingClientRect().height,
-          icons: getComputedStyle(icon).display !== "none",
         };
       });
       expect(m.sw, `${format} at ${width}px: the dialog scrolls sideways`).toBeLessThanOrEqual(m.cw);
@@ -408,7 +406,7 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
         expect(g.air, `at ${width}px Share image is not on the first screen with air under it`).toBeGreaterThanOrEqual(12);
         expect(g.peek, `at ${width}px the Download row doesn't show its top as a scroll cue`).toBeGreaterThanOrEqual(width >= 390 ? 12 : 4);
       }
-      seen.push({ format, col: m.col, icons: m.icons, segX: m.segX, segY: m.segY, midY: m.midY, midX: m.midX, boxR: m.boxR, share: m.share });
+      seen.push({ format, col: m.col, segX: m.segX, segY: m.segY, midY: m.midY, midX: m.midX, boxR: m.boxR, share: m.share });
       if (shots) {
         // The shots are in the image's current look (the dialog's Dark image switch, at the app's theme).
         await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
@@ -417,7 +415,6 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
     }
     for (const s of seen.slice(1)) {
       expect(s.col, `${s.format} at ${width}px: the controls' column changed with the format`).toBeCloseTo(seen[0].col, 0);
-      expect(s.icons, `${s.format} at ${width}px: the format icons came or went with the format`).toBe(seen[0].icons);
       // The format control and Share image stay put at every width: beside the preview the dialog keeps its height and
       // grows leftward from fixed right and top edges; stacked, the control sits above the preview's area, Share image
       // under it, and the dialog keeps its top.
@@ -430,8 +427,6 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
       if (width >= 720) expect(s.boxR, `${s.format} at ${width}px: the preview's right edge moved`).toBeCloseTo(seen[0].boxR, 0);
       else expect(s.midX, `${s.format} at ${width}px: the preview isn't centred across`).toBeCloseTo(seen[0].midX, 0);
     }
-    // Wide windows have room for the icons beside the preview.
-    if (width >= 1000) expect(seen[0].icons, `at ${width}px the format control has its icons`).toBe(true);
   }
   // A larger text size on a small phone (root font 150% and 200% at 320px, as a reader's setting makes it): the
   // switch's label keeps its 16px and wraps rather than pushing the dialog wider.
@@ -440,11 +435,10 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
     await page.evaluate((s) => { document.documentElement.style.fontSize = s; }, size);
     const m = await dialog.evaluate((d) => {
       const col = d.querySelector(".eb-share-controls")!.getBoundingClientRect();
-      const words = [...d.querySelectorAll(".eb-seg-label")].map((l) => l.getBoundingClientRect());
-      const btns = [...d.querySelectorAll(".eb-seg-btn")].map((l) => l.getBoundingClientRect());
+      const btns = [...d.querySelectorAll(".eb-share-toprow .eb-seg-btn")];
       return {
         sw: d.scrollWidth, cw: d.clientWidth, swOver: Math.max(...[...d.querySelectorAll('[role="switch"]')].map((x) => x.getBoundingClientRect().right - col.right)),
-        wordOver: Math.max(...words.map((w, i) => Math.max(btns[i].left - w.left, w.right - btns[i].right))),
+        wordOver: Math.max(...btns.map((b) => b.scrollWidth - b.clientWidth)),
       };
     });
     expect(m.sw, `at 320px and ${size} text: the dialog scrolls sideways`).toBeLessThanOrEqual(m.cw);
@@ -452,4 +446,21 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
     expect(m.wordOver, `at 320px and ${size} text: a format's word sticks out of its button`).toBeLessThanOrEqual(0.5);
   }
   await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
+});
+
+// No scrolling on a laptop (Yusuf, 2026-11-20): at 1440 × 830 both dialogs show the preview, every option and the
+// actions at once, neither the dialog nor the page scrolling (the sample is over A2's names cap, so the names note shows).
+test("at 1440 × 830 neither Share nor Print scrolls", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 830 });
+  const fits = (d: Element) => ({ dialog: d.scrollHeight - d.clientHeight })
+  const dialog = await openShare(page);
+  await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+  const share = await dialog.evaluate(fits);
+  expect(share.dialog, "Share scrolls").toBeLessThanOrEqual(1);
+  await page.keyboard.press("Escape");
+  await page.getByTestId("print-open").click();
+  const print = page.getByRole("dialog", { name: en.ui.share.print.title });
+  await expect(print.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+  await expect(print.getByTestId("share-print-names-note")).toBeVisible();
+  expect((await print.evaluate(fits)).dialog, "Print scrolls").toBeLessThanOrEqual(1);
 });
