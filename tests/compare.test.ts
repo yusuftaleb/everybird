@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import linkIndex from '../data/link-index.json'
-import { compareGroups, groupPayload, linksIn } from '@/lib/share/compare'
+import { compareGroups, compareTable, groupPayload, linksIn } from '@/lib/share/compare'
 import { makeCompareLink } from '@/lib/share/make-link'
 import { payloadToRecords } from '@/lib/share/convert'
 import { buildList } from '@/lib/list/build-list'
@@ -137,7 +137,40 @@ describe('linksIn', () => {
     expect(lists).toHaveLength(2)
     expect(lists[1].birds).toHaveLength(6)
     expect(bad).toBe(1)
-    expect(linksIn('  \n ', decodeShare)).toEqual({ lists: [], bad: 0 })
+    expect(linksIn('  \n ', decodeShare)).toEqual({ lists: [], bad: 0, compared: false })
+  })
+  it('a comparison link opens its lists in its place; without its decoder, or as a bare word, it is no link', () => {
+    const c = encodeCompare([list(3, 7, 'Ada'), list(4, 8, 'Sam')]).token
+    const text = `look ${SHARE_ORIGIN}/fr/c/${c} and ${SHARE_ORIGIN}/s/${t1} ${c} comparison`
+    const r = linksIn(text, decodeShare, decodeCompare)
+    expect(r.compared).toBe(true)
+    expect(r.bad).toBe(0)
+    expect(r.lists.map((p) => p.name)).toEqual(['Ada', 'Sam', undefined])
+    expect(r.lists[2].birds).toHaveLength(5)
+    expect(linksIn(text, decodeShare)).toMatchObject({ compared: false, bad: 0 })
+    expect(linksIn(`${SHARE_ORIGIN}/c/cbroken`, decodeShare, decodeCompare)).toEqual({ lists: [], bad: 1, compared: false })
+  })
+})
+
+describe('compareGroups and compareTable', () => {
+  const p = (...idx: number[]): SharePayload => ({ v: 1, birds: idx.map((i) => ({ code: C(i) })) })
+  it('your list and one other: the birds you still need first, then both of you, then only you', () => {
+    const g = compareGroups([p(1, 2, 3), p(2, 3, 4, 5)], true)
+    expect(g.map((x) => x.who)).toEqual([1, 'all', 0])
+    expect(g.map((x) => sorted(x.codes))).toEqual([sorted([C(4), C(5)]), sorted([C(2), C(3)]), [C(1)]])
+    // Not the viewer's list, or three lists: everyone first, then each list's own, in list order.
+    expect(compareGroups([p(1), p(2)]).map((x) => x.who)).toEqual(['all', 0, 1])
+    expect(compareGroups([p(1), p(2), p(3)], true).map((x) => x.who)).toEqual(['all', 0, 1, 2])
+  })
+  it('the table holds every bird once, a bird on two of three lists included, with the lists it is on', () => {
+    const lists = [p(1, 2), p(2, 3), p(3, 4, 2)]
+    const rows = compareTable(lists)
+    expect(rows).toHaveLength(4)
+    expect(rows.find((r) => r.code === C(3))!.on).toEqual([false, true, true]) // in no group
+    expect(rows.find((r) => r.code === C(2))!.on).toEqual([true, true, true])
+    expect(rows.find((r) => r.code === C(4))!.on).toEqual([false, false, true])
+    const grouped = new Set(compareGroups(lists).flatMap((g) => g.codes))
+    expect(grouped.has(C(3))).toBe(false)
   })
 })
 

@@ -392,13 +392,28 @@ export const EN_UI = {
     everyone: 'On every list',
     onlyYou: 'Only you',
     only: 'Only {name}',
+    /** With your list and one other: the other list's own birds, first. */
+    need: 'Birds you still need',
     birder: 'Birder {n}',
     empty: 'No birds in this group.',
+    /** Three or more lists: the species × people table. */
+    every: 'Every bird',
+    tableCaption: 'Every bird in this comparison and the lists it is on',
+    bird: 'Bird',
+    onList: 'On this list',
+    /** Renaming the lists for this comparison. */
+    names: 'Names in this comparison',
+    yourList: 'Your list: {name}',
+    listN: 'List {n}',
+    consent: 'A comparison link carries every list in it, so ask the others before you share it.',
+    card: 'Download comparison card',
+    /** The card's counts line, one part per group: "Both of you: 412". */
+    cardCount: '{label}: {n}',
     copyLink: 'Copy comparison link',
     copied: 'Link copied.',
     copyManual: 'Copy this link',
     tooMany: 'A comparison link holds up to {n} lists. Remove some to share it.',
-    tooBig: 'These lists are too big for one link. Compare fewer lists to share it.',
+    tooBig: 'These lists are too big for one link. Download the comparison card instead, or compare fewer lists.',
     sharedTitle: 'Comparing {n} life lists',
   },
   /** Plain labels for the bird orders (scientific name -> label): every order in species.v1.json. English is a copy of
