@@ -314,7 +314,7 @@ export const es: Messages = {
     card: {
       close: 'Cerrar',
       noDrawing: 'Aún no hay dibujo de esta especie.',
-      album: 'Ilustración: Bird Album',
+      album: 'Ilustración',
       albumSpoken: 'Ilustración de Bird Album, se abre en una pestaña nueva',
       assignedRegion: 'Asignada por región',
       assignedDefault: 'Asignada por defecto',

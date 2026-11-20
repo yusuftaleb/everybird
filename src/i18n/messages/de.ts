@@ -310,7 +310,7 @@ export const de: Messages = {
     card: {
       close: 'Schließen',
       noDrawing: 'Für diese Art gibt es noch keine Zeichnung.',
-      album: 'Illustration: Bird Album',
+      album: 'Illustration',
       albumSpoken: 'Illustration von Bird Album, öffnet in einem neuen Tab',
       assignedRegion: 'Nach Region zugeordnet',
       assignedDefault: 'Standardmäßig zugeordnet',

@@ -309,7 +309,7 @@ export const zhHans: Messages = {
     card: {
       close: '关闭',
       noDrawing: '这个物种还没有插画。',
-      album: '插画：Bird Album',
+      album: '插画',
       albumSpoken: '插画来自Bird Album，在新标签页中打开',
       assignedRegion: '按地区归属',
       assignedDefault: '默认归属',

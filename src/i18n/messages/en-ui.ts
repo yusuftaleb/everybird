@@ -386,7 +386,7 @@ export const EN_UI = {
   card: {
     close: 'Close',
     noDrawing: 'No drawing yet for this species.',
-    album: 'Illustration: Bird Album',
+    album: 'Illustration',
     albumSpoken: 'Illustration from Bird Album, opens in a new tab',
     assignedRegion: 'Assigned by region',
     assignedDefault: 'Assigned by default',

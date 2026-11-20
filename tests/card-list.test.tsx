@@ -51,7 +51,7 @@ describe('BirdCard', () => {
     expect(dlg.querySelector('.eb-card-name .eb-mark')).toHaveTextContent(/^\*†$/)
     const mass = dlg.querySelector('.eb-card-mass')!
     expect(mass).toHaveTextContent('Average body mass 400 g')
-    expect(mass).toHaveAttribute('title', 'Average body mass')
+    expect(mass).not.toHaveAttribute('title')
     expect(dlg).not.toHaveTextContent('estimated')
     expect(dlg).not.toHaveAttribute('aria-modal')
   })
@@ -66,7 +66,8 @@ describe('BirdCard', () => {
     expect(dlg.querySelector('.eb-card-place')).toBeNull()
     const mass = dlg.querySelector('.eb-card-mass')!
     expect(mass).toHaveTextContent('~4.3 g')
-    expect(mass).toHaveAttribute('title', 'Average body mass, estimated from its family')
+    expect(mass).toHaveTextContent('Average body mass, estimated from its family')
+    expect(mass).not.toHaveAttribute('title')
   })
 
   it('phone: bottom sheet with aria-modal; Esc closes; focus moves in and returns', () => {
@@ -83,6 +84,8 @@ describe('BirdCard', () => {
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
+    // No visible ×: the close button is visually hidden, for screen readers and the keyboard.
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('eb-sr')
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(2)
     unmount()
@@ -178,7 +181,8 @@ describe('BirdCard Red List pill', () => {
     const pill = screen.getByRole('button', { name: 'Red List: Vulnerable' })
     expect(badge.contains(pill)).toBe(true)
     expect(pill).toHaveTextContent('VU')
-    expect(pill).toHaveAttribute('title', 'Red List: Vulnerable')
+    // One tooltip, the site's: no browser `title` beside it.
+    expect(pill).not.toHaveAttribute('title')
     expect(pill).toHaveAttribute('aria-expanded', 'false')
     expect(pill.style.getPropertyValue('--iucn-fill')).toBe('#f9e814')
     // The full name is only in the aria-hidden tip, not as visible text beside the pill.
@@ -369,7 +373,7 @@ describe('in Spanish', () => {
     render(<BirdCard entry={entry('tinyc')} species={heavy} regions={regions} onClose={() => {}} />, { wrapper: withI18n('es') })
     const mass = screen.getByRole('dialog').querySelector('.eb-card-mass')!
     expect(mass).toHaveTextContent('~4,3 g')
-    expect(mass).toHaveAttribute('title', 'Masa corporal media, estimada a partir de su familia')
+    expect(mass).toHaveTextContent('Masa corporal media, estimada a partir de su familia')
   })
   it("the list view's rows and the direction switch: es.ui's heaviest first", () => {
     render(

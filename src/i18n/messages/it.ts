@@ -307,7 +307,7 @@ export const it: Messages = {
     card: {
       close: 'Chiudi',
       noDrawing: 'Ancora nessun disegno per questa specie.',
-      album: 'Illustrazione: Bird Album',
+      album: 'Illustrazione',
       albumSpoken: 'Illustrazione di Bird Album, si apre in una nuova scheda',
       assignedRegion: 'Assegnata per regione',
       assignedDefault: 'Assegnata per impostazione predefinita',

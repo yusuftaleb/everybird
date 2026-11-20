@@ -313,7 +313,7 @@ export const pl: Messages = {
     card: {
       close: 'Zamknij',
       noDrawing: 'Ten gatunek nie ma jeszcze rysunku.',
-      album: 'Ilustracja: Bird Album',
+      album: 'Ilustracja',
       albumSpoken: 'Ilustracja z Bird Album, otwiera się w nowej karcie',
       assignedRegion: 'Przypisany według regionu',
       assignedDefault: 'Przypisany domyślnie',

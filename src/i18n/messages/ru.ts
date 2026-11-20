@@ -329,7 +329,7 @@ export const ru: Messages = {
     card: {
       close: 'Закрыть',
       noDrawing: 'Для этого вида пока нет рисунка.',
-      album: 'Иллюстрация: Bird Album',
+      album: 'Иллюстрация',
       albumSpoken: 'Иллюстрация из Bird Album, откроется в новой вкладке',
       assignedRegion: 'Определено по региону',
       assignedDefault: 'Определено по умолчанию',

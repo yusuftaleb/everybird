@@ -15,7 +15,6 @@ import { displayName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { albumSlug, albumUrl, loadAlbumSlugs } from '@/lib/bird-album'
-import { CloseIcon } from './icons'
 import { IucnBadge } from './IucnPill'
 import { markLabel, Marks, marksOf } from './Marks'
 import './card-list.css'
@@ -53,7 +52,7 @@ function rectOf(a: CardAnchor): DOMRect | null {
   return 'getBoundingClientRect' in a ? a.getBoundingClientRect() : a
 }
 
-/** The mass label (a tooltip and screen-reader text: the card shows only the value, as on LifeList). */
+/** The mass label (screen-reader text: the card shows only the value, as on LifeList). */
 export function massLabel(row: SpeciesRow, t: Ui): string {
   if (row.gSrc === 'genus') return t.card.massGenus
   if (row.gSrc === 'family') return t.card.massFamily
@@ -171,7 +170,9 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
     entry.assigned === 'region' ? t.card.assignedRegion : entry.assigned === 'default' ? t.card.assignedDefault : '',
   ].filter((n): n is string => !!n)
 
-  // LifeList's card (layout C), with a close button and the edit actions under it.
+  // LifeList's card (layout C), with the edit actions under it and the illustration link in the bottom-right corner. No
+  // visible close button: a press outside and Esc close it; a visually hidden one (shown on keyboard focus) keeps it
+  // closable without a pointer.
   const card = (
     <div
       ref={ref}
@@ -183,15 +184,12 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
       tabIndex={-1}
       onKeyDown={trap}
     >
-      <BirdFacts entry={shown} row={row} regions={regions} sci={sci} statusTip>
-        <button type="button" className="eb-card-close" aria-label={t.card.close} onClick={onClose}>
-          <CloseIcon />
-        </button>
-      </BirdFacts>
+      <button type="button" className="eb-sr eb-card-close" onClick={onClose}>{t.card.close}</button>
+      <BirdFacts entry={shown} row={row} regions={regions} sci={sci} statusTip />
       {!row.st && <p className="eb-card-note" data-testid="no-drawing">{t.card.noDrawing}</p>}
-      {row.st && <AlbumLink row={row} />}
       {notes.length > 0 && <p className="eb-card-note">{notes.join(' · ')}</p>}
       {actions && <div className="eb-card-actions">{actions}</div>}
+      {row.st && <AlbumLink row={row} />}
     </div>
   )
 
@@ -203,15 +201,14 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
 /**
  * What the card and the hover tooltip say (LifeList's card, layout C): the name with its marks and the other name under
  * it on the left; on the right, in a column that never shrinks below its content (`.eb-card-side`), the body mass and,
- * under it, a species' Red List pill alone (then `children`, the card's close button); then the date line (with the
+ * under it, a species' Red List pill alone; then the date line (with the
  * marks in words) and the place, both mono. `heading` names the bird with an h2 (the card) or a plain paragraph (the
  * tooltip). The date and place are the entry's: callers inside a Places or Time filter pass `entryInFilter`'s entry. The card's pill is a button whose tip names the category, the tooltip's a plain aria-hidden span.
  */
-export function BirdFacts({ entry, row, regions, sci = false, heading = true, statusTip = false, children }: {
+export function BirdFacts({ entry, row, regions, sci = false, heading = true, statusTip = false }: {
   entry: ListEntry; row: SpeciesRow; regions: Regions; sci?: boolean; heading?: boolean
   /** The pill is a toggletip button (the card); off, a plain aria-hidden span (the aria-hidden hover tooltip). */
   statusTip?: boolean
-  children?: ReactNode
 }) {
   const { lang, t } = useI18n()
   useNames()
@@ -230,10 +227,9 @@ export function BirdFacts({ entry, row, regions, sci = false, heading = true, st
           <p className="eb-card-other" lang={sci ? undefined : 'la'}>{sci ? com : row.sci}</p>
         </div>
         <div className="eb-card-side">
-          <span className="eb-card-mass" title={massLabel(row, t)}><span className="eb-sr">{massLabel(row, t)} </span>{massValue(row, t)}</span>
+          <span className="eb-card-mass"><span className="eb-sr">{massLabel(row, t)} </span>{massValue(row, t)}</span>
           {badge}
         </div>
-        {children}
       </div>
       {(when.length > 0 || place) && (
         <div className="eb-card-when">
@@ -250,14 +246,17 @@ export function BirdFacts({ entry, row, regions, sci = false, heading = true, st
   )
 }
 
-/** The credit link to the bird's page on Bird Album, where its sticker comes from; shown once the slugs have loaded. */
+/**
+ * The credit link to the bird's page on Bird Album, where its sticker comes from, in the card's bottom-right corner: the
+ * one word "Illustration ↗", named in full for screen readers; shown once the slugs have loaded.
+ */
 function AlbumLink({ row }: { row: SpeciesRow }) {
   const { t, lang } = useI18n()
   const [slugs, setSlugs] = useState<Record<string, string> | null>(null)
   useEffect(() => { loadAlbumSlugs().then(setSlugs, () => {}) }, [])
   if (!slugs) return null
   return (
-    <p className="eb-card-note">
+    <p className="eb-card-note eb-card-credit">
       <a className="eb-card-album" href={albumUrl(slugs[row.code] ?? albumSlug(row.com), lang)} target="_blank" rel="noopener noreferrer"
         aria-label={t.card.albumSpoken}>{t.card.album}<span aria-hidden="true"> ↗</span></a>
     </p>

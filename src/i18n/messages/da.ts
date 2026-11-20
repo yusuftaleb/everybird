@@ -310,7 +310,7 @@ export const da: Messages = {
     card: {
       close: 'Luk',
       noDrawing: 'Endnu ingen tegning af denne art.',
-      album: 'Illustration: Bird Album',
+      album: 'Illustration',
       albumSpoken: 'Illustration fra Bird Album, åbner i en ny fane',
       assignedRegion: 'Tildelt efter region',
       assignedDefault: 'Tildelt som standard',

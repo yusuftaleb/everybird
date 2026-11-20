@@ -309,7 +309,7 @@ export const ja: Messages = {
     card: {
       close: '閉じる',
       noDrawing: 'この種の絵はまだありません。',
-      album: 'イラスト：Bird Album',
+      album: 'イラスト',
       albumSpoken: 'Bird Albumのイラスト、新しいタブで開きます',
       assignedRegion: '地域から割り当て',
       assignedDefault: '既定で割り当て',

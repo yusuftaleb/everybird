@@ -309,7 +309,7 @@ export const zhHant: Messages = {
     card: {
       close: '關閉',
       noDrawing: '這個鳥種還沒有插畫。',
-      album: '插畫：Bird Album',
+      album: '插畫',
       albumSpoken: 'Bird Album 的插畫，在新分頁開啟',
       assignedRegion: '依地區指定',
       assignedDefault: '預設指定',

@@ -308,7 +308,7 @@ export const sv: Messages = {
     card: {
       close: 'Stäng',
       noDrawing: 'Ingen teckning av den här arten än.',
-      album: 'Illustration: Bird Album',
+      album: 'Illustration',
       albumSpoken: 'Illustration från Bird Album, öppnas i en ny flik',
       assignedRegion: 'Tilldelad efter region',
       assignedDefault: 'Tilldelad som standard',
