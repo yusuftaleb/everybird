@@ -332,7 +332,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const shownSize = useRef<[number, number]>([0, 0])
   const first = useRef(true)
   // The Tree's or Map's drawing: the view, its switches.
-  const viewKey = viewImage ? `${subject}|${treeImage ? treeMine : ''}|${hideTotals}` : ''
+  // `at` is the view's level, live (the Tree's follows the taxonomy filter); its JSON leaves out the map's names function.
+  const viewKey = viewImage ? `${subject}|${treeImage ? treeMine : ''}|${hideTotals}|${JSON.stringify(at ?? {})}` : ''
   const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
