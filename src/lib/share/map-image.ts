@@ -5,13 +5,15 @@
 // its count and a bar in its shade. With a province open, the province framed and its counties listed. On top, instead
 // of the big count, two equal totals, the same size and weight as the tree image's: the level's species and its
 // places (countries; with a country open its states and provinces, with a province its counties), each over its word;
-// the open place's name in a Muted line under them ("Hide totals": the species alone). No outline, no tooltip.
+// the open place's name in a Muted line under them ("Hide totals": the species alone). Hairline Paper borders on every
+// shape; the open place (a framed country or province) outlined in Ink after every shape, as on the page (mapEdges).
+// No hover outline, no tooltip.
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { applyFilter, clearPlaces, withPlaces } from '@/lib/list/filters'
 import { parsePlaceKey } from '@/lib/list/place-keys'
 import { flagSrc } from '@/lib/flag'
-import { countRange, loadMapCountries, loadMapProvinces, mapCounts, mapGroupOf, mapLayer, mapRows, RAMP, shadeMix } from '@/lib/map/shapes'
+import { countRange, loadMapCountries, loadMapProvinces, mapCounts, mapEdges, mapGroupOf, mapLayer, mapRows, RAMP, shadeMix } from '@/lib/map/shapes'
 import { MAP_FOOTER, clipText, fitBox, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 
 /** How many places the image lists. */
@@ -21,8 +23,9 @@ const LEGEND = { ramp: 12, size: 20, above: 24, rampMax: 360, gap: 14 }
 const ROW = { name: 26, count: 22, bar: 6, h: 64, barTop: 40 }
 const SIDE = { gap: 48, minW: 280, maxW: 460, share: 0.32, from: 1.2 }
 const LIST_GAP = 40
-/** The borders' width in design units: hairlines. */
+/** The borders' width in design units: hairlines; and the open place's Ink outline, three times as wide (the page's .5px and 1.5px). */
 const STROKE = 0.6
+const EDGE = 1.8
 /** The totals, as the tree image's: the largest number, the gap under the numbers and the labels, room before the map. */
 const TOTAL_MAX = 56, TOTAL_GAP = 12, TOTALS_BELOW = 32
 /** A listed country's flag (design units): flag-icons' 4:3, the Places filter's 18×13 at the names' scale, and its gap. */
@@ -151,6 +154,11 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
       ctx.fill(p, 'evenodd')
       ctx.stroke(p)
     }
+    // The open place's outline last, so no neighbour covers half of it.
+    ctx.strokeStyle = C.ink
+    ctx.lineWidth = EDGE / fit.s
+    ctx.lineCap = 'round'
+    for (const s of mapEdges(shapes, open)) ctx.stroke(new Path2D(s.d))
     ctx.restore()
     const mapBottom = fit.y + box.h * fit.s
     ctx.textBaseline = 'middle'

@@ -1,13 +1,14 @@
-/* The Map view (MapView.tsx): the path above the map (the Places breadcrumb's .eb-path, filters.css), land in Surface,
-   a step darker than the page, each place with species on one continuous scale in the ramp (Accent over Paper, the fill
-   set per path, RAMP in shapes.ts), hairline Paper borders, the hovered place and the open one outlined in Ink; the
-   legend ramp under the map, then the list of the shown level's places in one to three columns. */
+/* The Map view (MapView.tsx): the path above the map (the Places breadcrumb's .eb-path, filters.css) with the legend
+   ramp at the right of its row, land in Surface, a step darker than the page, each place with species on one continuous
+   scale in the ramp (Accent over Paper, the fill set per path, RAMP in shapes.ts), hairline Paper borders on every
+   shape, the hovered place and the open one outlined in Ink above them all (.eb-map-edge, drawn last), then the list of
+   the shown level's places in one to three columns. */
 .eb-map { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; min-width: 0; }
-.eb-map-pic { position: relative; display: flex; flex-direction: column; gap: 10px; }
+.eb-map-pic { position: relative; }
 .eb-map-svg { display: block; width: 100%; height: auto; max-height: 70vh; animation: eb-map-in .28s cubic-bezier(.16, 1, .3, 1) both; }
 .eb-map-wait { aspect-ratio: 2000 / 983; background: var(--surface); border-radius: 8px; animation: none; }
 @keyframes eb-map-in { from { opacity: 0; transform: scale(.985); } }
-.eb-map-svg path {
+.eb-map-svg path:not(.eb-map-edge) {
   fill: var(--surface);
   fill-rule: evenodd;
   stroke: var(--paper);
@@ -17,8 +18,17 @@
   transition: fill .15s var(--ease-ui);
 }
 .eb-map-svg path[data-opens] { cursor: pointer; }
-.eb-map-svg path[data-open] { stroke: var(--ink); stroke-width: 1.5px; }
-.eb-map-svg path[data-hot] { stroke: var(--ink); stroke-width: 1.25px; }
+/* The hovered or open place's outline: its own path after every shape (MapView, mapEdges), so its whole edge shows, one
+   Ink line centred on the fill's edge, the same width at every zoom; it takes no pointer. */
+.eb-map-svg .eb-map-edge {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
 
 /* The tooltip: the bird tooltip's card look (card-list.css .eb-card.eb-tip), above the pointer, its side by where the
    pointer is so it never runs off the map. */
@@ -27,11 +37,13 @@
 .eb-map-tip[data-side="end"] { transform: translate(calc(-100% + 12px), calc(-100% - 12px)); }
 .eb-map-tip-name { font-weight: 600; font-size: 14px; color: var(--ink); }
 
-/* The path: its earlier steps take a 44px press (filters.css, with the Places breadcrumb's). */
+/* The row above the map: the path on the left, the legend at the right; under the path, still at the right, when the
+   two don't share a line. The path's earlier steps take a 44px press (filters.css, with the Places breadcrumb's). */
+.eb-map-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 .eb-map-path { min-height: 24px; }
 
 /* The legend: the lowest count, one continuous ramp, the highest. */
-.eb-map-legend { display: flex; align-items: center; gap: 8px; margin: 0; }
+.eb-map-legend { display: flex; align-items: center; gap: 8px; margin: 0 0 0 auto; }
 .eb-map-legend i { flex: 0 1 200px; min-width: 48px; height: 8px; border-radius: 4px; }
 
 /* The list under the map: the shown level's places, most species first down each column (one on phones, two on medium
@@ -61,5 +73,5 @@ button.eb-map-row:focus-visible { outline: 2px solid var(--accent); outline-offs
 }
 @media (prefers-reduced-motion: reduce) {
   .eb-map-svg { animation: none; }
-  .eb-map-svg path { transition: none; }
+  .eb-map-svg path:not(.eb-map-edge) { transition: none; }
 }

@@ -1,18 +1,19 @@
 'use client'
 // The Map view (the dock's third tab): the world shaded by the birds the filters leave, the same birds the collage
-// shows (mapCounts, the Places filter included), on one continuous log scale with its legend ramp under the map. It has
+// shows (mapCounts, the Places filter included), on one continuous log scale with its legend ramp at the top right,
+// across from the path. It has
 // no filter controls of its own: the bar's Filters button filters it, as every view. A press on a country with birds
 // opens it (its states and provinces where their shapes have them, else the country framed in the world view).
-// Hovering a place shows its name and count in a
-// tooltip beside the pointer; on touch the first tap shows the tooltip and a second tap on the same place opens it.
+// Hovering any place shows its name and count ("0 species" too) in a
+// tooltip beside the pointer, and outlines it in Ink above every other shape (mapEdges), as the open place is; on touch the first tap shows the tooltip and a second tap on the same place opens it.
 // Inside a country, a province with counties opens too: the province framed and outlined, its counties or districts in
 // the list (there are no county shapes). Above the map, the path ("World / Canada / British Columbia", the Places
 // breadcrumb's style) says where the map is; each earlier step goes back to it, and so does Esc while the map has focus.
 // The picture is aria-hidden: the list under it, the shown level's places with their counts, most species first, in
 // one to three columns (map.css), is its text path (a row that opens is a button, exactly as a press on the map; country
 // rows carry the Places filter's flag, components/Flag). The level the map has open is told up (`onLevel`), so Share
-// draws the same map. The ramp (RAMP in shapes.ts) is set per path, the borders and outlines by map.css. The shapes (src/lib/map/shapes.ts) are pre-projected; the world loads with the
-// tab, the provinces on the first open.
+// draws the same map. The ramp (RAMP in shapes.ts) is set per path, the borders and outlines by map.css. The shapes
+// (src/lib/map/shapes.ts) are pre-projected; the world loads with the tab, the provinces on the first open.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -22,7 +23,7 @@ import { regionsIn } from '@/lib/i18n-places'
 import { parsePlaceKey, placeName } from '@/lib/list/place-keys'
 import type { AppState } from '@/lib/list/store'
 import { Flag } from '@/components/Flag'
-import { countRange, loadMapCountries, loadMapProvinces, mapCounts, mapLayer, mapOpens, mapPath, mapRows, placeCount, RAMP, shadeMix, type MapCountries, type MapProvinces } from '@/lib/map/shapes'
+import { countRange, loadMapCountries, loadMapProvinces, mapCounts, mapEdges, mapLayer, mapOpens, mapPath, mapRows, placeCount, RAMP, shadeMix, type MapCountries, type MapProvinces } from '@/lib/map/shapes'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
 import { ChevronDownIcon } from './icons'
@@ -129,7 +130,7 @@ export function MapView({ state, species, regions, onLevel }: Props) {
   useEffect(() => {
     if (!tip) return
     const down = (e: PointerEvent) => {
-      if (!(e.target instanceof Element) || !e.target.closest('.eb-map-svg path[data-press]')) setTip(null)
+      if (!(e.target instanceof Element) || !e.target.closest('.eb-map-svg path[data-key]')) setTip(null)
     }
     document.addEventListener('pointerdown', down)
     return () => document.removeEventListener('pointerdown', down)
@@ -140,7 +141,7 @@ export function MapView({ state, species, regions, onLevel }: Props) {
     if (!r) return
     setTip({ key, x: e.clientX - r.left, y: e.clientY - r.top, w: r.width })
   }
-  const tipShape = tip ? shapes.find((s) => s.key === tip.key && s.n > 0) : undefined
+  const tipShape = tip ? shapes.find((s) => s.key === tip.key) : undefined
   const spoken = (n: number) => plural(t.collage.stats.species, n, { n: formatInt(n, t.num) })
   const stepName = (k: string | undefined) => (k ? name(k) : t.collage.controls.mapWorld)
   const openLevel = open ? parsePlaceKey(open)?.level : undefined
@@ -158,18 +159,28 @@ export function MapView({ state, species, regions, onLevel }: Props) {
         }
       }}
     >
-      <p className="eb-path eb-map-path" data-testid="map-path">
-        {path.map((k, i) => (
-          <span key={k ?? ''} className="eb-path-item">
-            {i > 0 && <span className="eb-path-sep" aria-hidden="true">/</span>}
-            {k === open ? (
-              <span aria-current="location">{stepName(k)}</span>
-            ) : (
-              <button type="button" data-testid={stepId(k)} onClick={() => stepTo(k)}>{stepName(k)}</button>
-            )}
-          </span>
-        ))}
-      </p>
+      {/* The path on the left, the legend at the right of the same row (under it, right-aligned, when both don't fit). */}
+      <div className="eb-map-head">
+        <p className="eb-path eb-map-path" data-testid="map-path">
+          {path.map((k, i) => (
+            <span key={k ?? ''} className="eb-path-item">
+              {i > 0 && <span className="eb-path-sep" aria-hidden="true">/</span>}
+              {k === open ? (
+                <span aria-current="location">{stepName(k)}</span>
+              ) : (
+                <button type="button" data-testid={stepId(k)} onClick={() => stepTo(k)}>{stepName(k)}</button>
+              )}
+            </span>
+          ))}
+        </p>
+        {layer && max > 0 && (
+          <div className="eb-mono eb-map-legend" aria-hidden="true" data-testid="map-legend">
+            <span>{formatInt(min, t.num)}</span>
+            <i style={{ background: `linear-gradient(90deg, ${rampFill(RAMP.lo)}, ${rampFill(RAMP.hi)})` }} />
+            <span>{spoken(max)}</span>
+          </div>
+        )}
+      </div>
       <div ref={pic} className="eb-map-pic">
         {/* The picture only: the list under it has the same places and numbers for the keyboard and screen readers. */}
         <div className="eb-map-art" aria-hidden="true">
@@ -191,22 +202,23 @@ export function MapView({ state, species, regions, onLevel }: Props) {
                     data-key={s.key}
                     data-mix={press ? shadeMix(s.n, min, max).toFixed(2) : undefined}
                     style={press ? { fill: rampFill(shadeMix(s.n, min, max)) } : undefined}
-                    data-hot={s.key === tipShape?.key || undefined}
-                    data-open={s.key === open || undefined}
-                    data-press={press || undefined}
                     data-opens={opens || undefined}
                     onPointerDown={(e) => { pointer.current = e.pointerType }}
-                    onPointerEnter={(e) => { if (e.pointerType === 'mouse') { if (press) tipAt(s.key, e); else setTip(null) } }}
-                    onPointerMove={(e) => { if (press && e.pointerType === 'mouse') tipAt(s.key, e) }}
-                    onClick={press ? (e) => {
+                    onPointerEnter={(e) => { if (e.pointerType === 'mouse') tipAt(s.key, e) }}
+                    onPointerMove={(e) => { if (e.pointerType === 'mouse') tipAt(s.key, e) }}
+                    onClick={(e) => {
                       // Touch: the first tap names the place, a second tap on the same place opens it.
                       if (pointer.current !== 'mouse' && tip?.key !== s.key) { tipAt(s.key, e); return }
                       if (opens) zoom(s.key)
                       else tipAt(s.key, e)
-                    } : undefined}
+                    }}
                   />
                 )
               })}
+              {/* The open and the hovered place's outlines, drawn last so no neighbour covers half the line. */}
+              {mapEdges(shapes, open, tipShape?.key).map((s) => (
+                <path key={`edge-${s.id}`} className="eb-map-edge" d={s.d} data-edge={s.key} />
+              ))}
             </svg>
           ) : (
             !failed && <div className="eb-map-svg eb-map-wait" />
@@ -218,13 +230,6 @@ export function MapView({ state, species, regions, onLevel }: Props) {
             </div>
           )}
         </div>
-        {layer && max > 0 && (
-          <div className="eb-mono eb-map-legend" aria-hidden="true" data-testid="map-legend">
-            <span>{formatInt(min, t.num)}</span>
-            <i style={{ background: `linear-gradient(90deg, ${rampFill(RAMP.lo)}, ${rampFill(RAMP.hi)})` }} />
-            <span>{spoken(max)}</span>
-          </div>
-        )}
       </div>
       {failed && <p className="eb-note" data-testid="map-failed">{t.collage.controls.mapFailed}</p>}
       <ul
