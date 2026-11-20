@@ -1,14 +1,15 @@
 'use client'
 // The filters, as on LifeList (framer-site): one level at a time. Before a choice, the level's row (a mono rank
 // label, then chips with muted counts); once a parent is chosen, a breadcrumb ("All birds / Perching birds") and the
-// next level's row (none for an order with one family: the breadcrumb ends with that family). A leaf level's row
-// stays, with the choice in Accent and the other chips stepped back. On phones the row is one button ("Choose an
-// order 18") that opens the chips in a sheet.
-// Taxonomy (orders, then families) is the only filter outside the controls bar: Places and Time are the bar's
-// Filters panel (Filters.tsx). The same on every page: the landing's sample, the birder's collage, a shared one.
-// In the Tree view it is the tree's path (`tree`, from CollageView): the chosen order and family are the branch the
-// tree has open, an order with one family keeps its families row (the tree shows that family as a tip), and the
-// breadcrumb ends with what the tree opens past the filter (a genus), its steps going back.
+// next level's row. A level with one choice is never a step of its own (round 6): an order with one family shows its
+// genera (the breadcrumb names the lone family), a family with one genus no genera (it keeps its families row, as a
+// leaf). A leaf level's row stays, with the choice in Accent and the other chips stepped back. On phones the row is one button ("Choose an order 18") that
+// opens the chips in a sheet.
+// Taxonomy (orders, then families, then genera: scientific names, in italics) is the only filter outside the controls
+// bar: Places and Time are the bar's Filters panel (Filters.tsx). The same on every page: the landing's sample, the
+// birder's collage, a shared one. In the Tree view it is the tree's path (`tree`, from CollageView): the chosen order,
+// family and genus are the branch the tree has open, and the breadcrumb ends with what the tree opens past the filter
+// (a family or genus the shown index lacks), its steps going back.
 import { memo, useMemo } from 'react'
 import { useIsSheet } from '@/components/dialog-utils'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -35,18 +36,21 @@ type Props = {
   tree?: TreePath
 }
 
-type Level = 'order' | 'family'
-type Group = { nav: string; all: string; levels: [Level, Level?] }
-/** The one taxonomy group: orders, then families; its words from `t.filters`. */
-const LEVELS: [Level, Level?] = ['order', 'family']
-const birds = (t: Ui): Group => ({ nav: t.filters.nav, all: t.filters.all, levels: LEVELS })
-/** Levels named by a scientific name (shown in Latin when Scientific names are on). */
-const LATIN = new Set<Level>(['order', 'family'])
+type Level = 'order' | 'family' | 'genus'
+/** The one taxonomy group: orders, then families, then genera; its words from `t.filters`. */
+const LEVELS: readonly Level[] = ['order', 'family', 'genus']
+const birds = (t: Ui) => ({ nav: t.filters.nav, all: t.filters.all })
 
-/** A change of one level; clearing an order also clears its family. */
-function withLevel(f: Filter, level: Level, value: string | undefined): Filter {
-  const next: Filter = { ...f, [level]: value }
-  if (level === 'order') delete next.family
+/** The filter with `level` set to `value` and every level under it cleared (a family needs its order, a genus its
+ *  family: `implied` gives the lone values a skipped step stands for). */
+function withLevel(f: Filter, level: Level, value: string | undefined, implied: Partial<Record<Level, string>> = {}): Filter {
+  const next: Filter = { ...f }
+  const at = LEVELS.indexOf(level)
+  LEVELS.forEach((l, i) => {
+    if (i > at) delete next[l]
+    else if (i < at && !next[l] && implied[l]) next[l] = implied[l]
+  })
+  next[level] = value
   for (const k of Object.keys(next) as (keyof Filter)[]) if (!next[k]) delete next[k]
   return next
 }
@@ -60,72 +64,75 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, tre
   const { list, filter, sci, seen } = state
   const BIRDS = birds(t)
 
-  // Only the levels on show are counted: orders always, families once an order is chosen.
-  const opts = useMemo(() => {
-    const out: Partial<Record<Level, ChipOption[]>> = {}
-    const [top, child] = LEVELS
-    out[top] = options(list, filter, top, species, undefined, seen, familyName)
-    if (child && filter[top]) out[child] = options(list, filter, child, species, undefined, seen, familyName)
+  // The levels: each chosen one, or (its parent chosen) the one with a choice to make, counted on the list under the
+  // other filters. A level with one option and nothing chosen is a lone step: named, never a row (`implied`).
+  const steps = useMemo(() => {
+    const out: { level: Level; value?: string; implied?: boolean; opts: ChipOption[] }[] = []
+    let f: Filter = filter
+    for (const level of LEVELS) {
+      if (out.length && !out[out.length - 1].value) break
+      const opts = level === 'order' || f[level === 'family' ? 'order' : 'family'] ? options(list, f, level, species, undefined, seen, familyName) : []
+      if (filter[level]) out.push({ level, value: filter[level], opts })
+      else if (level !== 'order' && opts.length === 1) {
+        out.push({ level, value: opts[0].value, implied: true, opts })
+        f = { ...f, [level]: opts[0].value }
+      } else { if (opts.length) out.push({ level, opts }); break }
+    }
+    // A family's one genus is not named: the chosen family keeps its row (a leaf's), a lone family names itself.
+    if (out[out.length - 1]?.implied && out[out.length - 1].level === 'genus') out.pop()
     return out
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
   }, [list, filter, species, seen, names])
+  const implied: Partial<Record<Level, string>> = {}
+  for (const st of steps) if (st.implied) implied[st.level] = st.value
 
-  const set = (level: Level, value: string | undefined) => dispatch({ type: 'filter', filter: withLevel(filter, level, value) })
+  const set = (level: Level, value: string | undefined) => dispatch({ type: 'filter', filter: withLevel(filter, level, value, implied) })
   const toggle = (level: Level, value: string) => set(level, filter[level] === value ? undefined : value)
 
-  /** The label of a level's value: plain words (orders in the UI language), or the scientific name for orders and
-   *  families in Latin mode. */
+  /** A level's value as shown: orders in the UI language, families by their names (the scientific names in Latin mode),
+   *  genera always by their scientific name. */
+  const latinAt = (level: Level) => level === 'genus' || sci
   const nameOf = (level: Level, v: string): string => {
-    if (sci && LATIN.has(level)) return v
+    if (latinAt(level)) return v
     if (level === 'order') return orderLabel(v, t)
-    return opts.family?.find((o) => o.value === v)?.label ?? (() => { const r = species.rows.find((x) => x.fam === v); return r ? familyName(r) : v })()
+    return steps.find((st) => st.level === 'family')?.opts.find((o) => o.value === v)?.label ?? (() => { const r = species.rows.find((x) => x.fam === v); return r ? familyName(r) : v })()
   }
-  const chipText = (level: Level, o: ChipOption) => (sci && LATIN.has(level) ? o.value : level === 'order' ? orderLabel(o.value, t) : o.label)
-  const chipLabel = (level: FilterLevel, o: ChipOption) => chipText(level as Level, o)
+  const chipLabel = (level: FilterLevel, o: ChipOption) => (latinAt(level as Level) ? o.value : level === 'order' ? orderLabel(o.value, t) : o.label)
 
-  /** A group's breadcrumb and its level on show (chips, or the phone's sheet button). */
-  const levels = (g: Group) => {
-    // The level on show: the first level with nothing chosen whose parent is chosen, else the deepest chosen one (a
-    // leaf keeps its row). An order with one family skips the families row: the breadcrumb names that family instead
-    // (every bird of the order is in it).
-    const [top, child] = g.levels
-    const childOpts = child ? opts[child] ?? [] : []
-    const onlyChild = !tree && top === 'order' && !!child && !!filter[top] && !filter[child] && childOpts.length === 1
-    const level: Level | null = !filter[top] ? top : child ? (onlyChild || !childOpts.length ? null : child) : top
-
-    // The breadcrumb, once the top level has a choice: "All birds / Perching birds / Crows". The current place is in
-    // Accent; the others go back up. A single family is named but not a button (there is no level to go back to).
-    const crumbs: Crumb[] = []
-    if (filter[top]) {
-      crumbs.push({ label: g.all, latin: false, to: g.levels.reduce<Filter>((f, l) => (l ? withLevel(f, l, undefined) : f), filter) })
-      const topCrumb: Crumb = { label: nameOf(top, filter[top]!), latin: sci && LATIN.has(top) }
-      if (child && filter[child]) {
-        crumbs.push({ ...topCrumb, to: withLevel(filter, child, undefined) })
-        crumbs.push({ label: nameOf(child, filter[child]!), latin: sci && LATIN.has(child) })
-      } else if (onlyChild && child) {
-        crumbs.push(topCrumb)
-        crumbs.push({ label: chipText(child, childOpts[0]), latin: sci && LATIN.has(child) })
-      } else crumbs.push(topCrumb)
-      // The tree's steps past the filter: the filter's last step goes back to it, each but the last to itself.
-      if (tree?.crumbs.length) {
-        crumbs[crumbs.length - 1].onClick = tree.close
-        tree.crumbs.forEach((c, i) => crumbs.push({ label: c.label, latin: c.latin, onClick: i < tree.crumbs.length - 1 ? c.open : undefined }))
-      }
+  // The level on show: the last step, when it has a choice to make or is chosen (a leaf keeps its row, its choice in
+  // Accent); none when the path ends on a lone step. The breadcrumb, once an order is chosen: "All birds / Perching
+  // birds / Crows". The last step is the current place; a step with a chosen level under it goes back to it; the
+  // others (a lone step, or one with nothing chosen under it) are named, not buttons.
+  const last = steps[steps.length - 1]
+  const row = last && !last.implied ? last : undefined
+  const crumbs: Crumb[] = []
+  if (filter.order) {
+    crumbs.push({ label: BIRDS.all, latin: false, to: withLevel(filter, 'order', undefined) })
+    for (const st of steps) {
+      if (!st.value) continue
+      const under = LEVELS[LEVELS.indexOf(st.level) + 1]
+      crumbs.push({ label: nameOf(st.level, st.value), latin: latinAt(st.level), ...(under && filter[under] ? { to: withLevel(filter, under, undefined) } : {}) })
     }
-    const levelOpts = level ? opts[level] ?? [] : []
-    const chosen = level ? filter[level] : undefined
-    const latin = !!level && sci && LATIN.has(level)
-    return (
-      <nav aria-label={g.nav} className="eb-levels">
+    // The tree's steps past the filter: the filter's last step goes back to it, each but the last to itself.
+    if (tree?.crumbs.length) {
+      crumbs[crumbs.length - 1].onClick = tree.close
+      tree.crumbs.forEach((c, i) => crumbs.push({ label: c.label, latin: c.latin, onClick: i < tree.crumbs.length - 1 ? c.open : undefined }))
+    }
+  }
+  const level = row?.level
+
+  return (
+    <section className="eb-filters" aria-label={t.filters.label} data-testid="filter-bar">
+      <nav aria-label={BIRDS.nav} className="eb-levels">
         {crumbs.length > 0 && (
           <p className="eb-path">
             {crumbs.map((c, i) => {
-              const last = i === crumbs.length - 1
+              const end = i === crumbs.length - 1
               const lang = c.latin ? 'la' : undefined
               return (
                 <span key={i} className="eb-path-item">
                   {i > 0 && <span className="eb-path-sep" aria-hidden="true">/</span>}
-                  {last ? <span aria-current="location" lang={lang}>{c.label}</span>
+                  {end ? <span aria-current="location" lang={lang}>{c.label}</span>
                     : c.onClick ? <button type="button" lang={lang} onClick={c.onClick}>{c.label}</button>
                       : c.to ? <button type="button" lang={lang} onClick={() => dispatch({ type: 'filter', filter: c.to! })}>{c.label}</button> : <span lang={lang}>{c.label}</span>}
                 </span>
@@ -133,25 +140,19 @@ export const FilterBar = memo(function FilterBar({ state, dispatch, species, tre
             })}
           </p>
         )}
-        {level && (
+        {row && level && (
           <LevelRow
             level={level}
-            options={levelOpts}
+            options={row.opts}
             label={chipLabel}
-            latin={latin}
-            value={chosen}
-            chosenName={chosen ? nameOf(level, chosen) : undefined}
+            latin={latinAt(level)}
+            value={row.value}
+            chosenName={row.value ? nameOf(level, row.value) : undefined}
             sheet={sheet}
             onPick={(v) => toggle(level, v)}
           />
         )}
       </nav>
-    )
-  }
-
-  return (
-    <section className="eb-filters" aria-label={t.filters.label} data-testid="filter-bar">
-      {levels(BIRDS)}
     </section>
   )
 })

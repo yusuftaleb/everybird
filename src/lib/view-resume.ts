@@ -44,7 +44,7 @@ const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is
 function filterOf(v: unknown): Filter {
   const r = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>
   const f: Filter = {}
-  for (const k of ['order', 'family', 'group', 'year', 'from', 'to'] as const) {
+  for (const k of ['order', 'family', 'genus', 'group', 'year', 'from', 'to'] as const) {
     const s = str(r[k], 64)
     if (s) f[k] = s
   }

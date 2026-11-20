@@ -35,6 +35,9 @@ import { makeWhere, seenAt, sightingKeys } from './sighting'
 export type Filter = {
   order?: string
   family?: string
+  /** A genus of the family (its scientific name, the first word of a species' `sci`; round 6): set only with its
+   *  family, as a family only with its order. */
+  genus?: string
   countries?: string[]
   provinces?: string[]
   counties?: string[]
@@ -55,8 +58,10 @@ export const emptyFilter = (): Filter => ({})
 export const filterActive = (f: Filter): boolean =>
   (Object.keys(f) as (keyof Filter)[]).some((k) => (Array.isArray(f[k]) ? f[k].length > 0 : !!f[k]))
 export type ChipOption = { value: string; label: string; count: number }
+/** A species' genus: the first word of its scientific name. */
+export const genusOf = (sci: string): string => sci.split(' ')[0]
 /** `country`: the countries' options (the filter holds a set, `countries`); as a skipped dimension, every place level. */
-export type FilterLevel = 'order' | 'family' | 'country' | 'year'
+export type FilterLevel = 'order' | 'family' | 'genus' | 'country' | 'year'
 /** The range (`from`/`to`) and the statuses as dimensions of their own, for skipping them when counting. */
 type Dim = FilterLevel | 'range' | 'status'
 type Level = FilterLevel
@@ -75,6 +80,7 @@ export function filterKey(f: Filter): string {
   const parts: string[] = []
   if (f.order) parts.push(`o:${f.order}`)
   if (f.family) parts.push(`f:${f.family}`)
+  if (f.genus) parts.push(`e:${f.genus}`)
   if (f.group) parts.push(`g:${f.group}`)
   if (f.countries?.length) parts.push(`c:${[...f.countries].sort().join(',')}`)
   if (f.provinces?.length) parts.push(`s:${[...f.provinces].sort().join(',')}`)
@@ -96,6 +102,7 @@ export function filterKey(f: Filter): string {
 function matcher(f: Filter, species: SpeciesIndex, skip: ReadonlySet<Dim>, seen?: SeenIndex) {
   const order = skip.has('order') ? undefined : f.order
   const family = skip.has('family') ? undefined : f.family
+  const genus = skip.has('genus') ? undefined : f.genus
   // Seen in any of the chosen places, at any level.
   const places = !skip.has('country') && filterPlaceKeys(f).length ? filterPlaceKeys(f) : undefined
   const year = skip.has('year') ? undefined : f.year
@@ -108,11 +115,12 @@ function matcher(f: Filter, species: SpeciesIndex, skip: ReadonlySet<Dim>, seen?
   // Basis 'seen' with a range: seen in the places (any, when none) in the period, from the month sets.
   const where = f.basis === 'seen' && (from || to) ? makeWhere(places, from, to) : undefined
   return (e: ListEntry): boolean => {
-    if (order || family || statuses || bounds !== undefined) {
+    if (order || family || genus || statuses || bounds !== undefined) {
       const row = species.byCode.get(e.code)
       if (!row) return false
       if (order && row.ord !== order) return false
       if (family && row.fam !== family) return false
+      if (genus && genusOf(row.sci) !== genus) return false
       if (statuses && !statuses.has(row.iu ?? 'NE')) return false
       if (bounds === null || (bounds && (row.to < bounds.lo || row.to > bounds.hi))) return false
     }
@@ -137,8 +145,9 @@ export function applyFilter(list: ListEntry[], f: Filter, species: SpeciesIndex,
 }
 
 const SKIP: Record<Level, Dim[]> = {
-  order: ['order', 'family'], // a family implies its order
-  family: ['family'],
+  order: ['order', 'family', 'genus'], // a family implies its order, a genus its family
+  family: ['family', 'genus'],
+  genus: ['genus'],
   country: ['country'], // countries are counted whatever is checked (a multi-select)
   year: ['year', 'range'], // years are counted over the whole span
 }
@@ -163,7 +172,7 @@ export function options(
   /** A family's label (the names files' family names); default the English family name. */
   famName: (row: SpeciesRow) => string = (row) => row.famCom,
 ): ChipOption[] {
-  if (level === 'family' && !f.order) return []
+  if ((level === 'family' && !f.order) || (level === 'genus' && !f.family)) return []
   const m = matcher(f, species, new Set(SKIP[level]), seen)
   const counts = new Map<string, number>()
   const bump = (k: string) => counts.set(k, (counts.get(k) ?? 0) + 1)
@@ -172,10 +181,10 @@ export function options(
   const famLabel = new Map<string, string>()
   for (const e of list) {
     if (!m(e)) continue
-    if (level === 'order' || level === 'family') {
+    if (level === 'order' || level === 'family' || level === 'genus') {
       const row = species.byCode.get(e.code)
       if (!row) continue
-      const key = level === 'order' ? row.ord : row.fam
+      const key = level === 'order' ? row.ord : level === 'family' ? row.fam : genusOf(row.sci)
       bump(key)
       if (!firstTo.has(key) || row.to < firstTo.get(key)!) firstTo.set(key, row.to)
       if (level === 'family') famLabel.set(key, famName(row))
@@ -192,7 +201,7 @@ export function options(
   const label = (v: string) =>
     level === 'family' ? famLabel.get(v) || v : level === 'country' ? name(v) : v
   const out = [...counts].map(([value, count]) => ({ value, label: label(value), count }))
-  if (level === 'order' || level === 'family') out.sort((a, b) => firstTo.get(a.value)! - firstTo.get(b.value)!)
+  if (level === 'order' || level === 'family' || level === 'genus') out.sort((a, b) => firstTo.get(a.value)! - firstTo.get(b.value)!)
   else if (level === 'country') out.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
   else out.sort((a, b) => (a.value < b.value ? 1 : -1))
   return out
@@ -205,8 +214,9 @@ export function options(
 export function filterToShow(f: Filter, e: ListEntry, species: SpeciesIndex, seen?: SeenIndex): Filter {
   const row = species.byCode.get(e.code)
   const next: Filter = { ...f }
-  if (next.order && row?.ord !== next.order) { delete next.order; delete next.family }
-  if (next.family && row?.fam !== next.family) delete next.family
+  if (next.order && row?.ord !== next.order) { delete next.order; delete next.family; delete next.genus }
+  if (next.family && row?.fam !== next.family) { delete next.family; delete next.genus }
+  if (next.genus && (!row || genusOf(row.sci) !== next.genus)) delete next.genus
   if (next.group && row && species.groups) {
     const g = species.groups.get(next.group)
     if (!g || row.to < g.lo || row.to > g.hi) delete next.group
@@ -226,7 +236,7 @@ export function filterToShow(f: Filter, e: ListEntry, species: SpeciesIndex, see
   }
   // Each dimension alone includes the bird; under basis 'seen' the places and the range together may still not (Canada in
   // 2019, a range of 2026 the bird was seen in only in Egypt): the range goes.
-  if (next.basis === 'seen' && (next.from || next.to) && hasPlaces(next) && !matcher({ ...next, order: undefined, family: undefined, group: undefined, statuses: undefined }, species, new Set(), seen)(e)) {
+  if (next.basis === 'seen' && (next.from || next.to) && hasPlaces(next) && !matcher({ ...next, order: undefined, family: undefined, genus: undefined, group: undefined, statuses: undefined }, species, new Set(), seen)(e)) {
     delete next.from
     delete next.to
   }
@@ -242,6 +252,7 @@ export function filterToShow(f: Filter, e: ListEntry, species: SpeciesIndex, see
  */
 export function drillTo(f: Filter, group: { order: string; family?: string }, list: ListEntry[], species: SpeciesIndex, seen?: SeenIndex): Filter {
   const next: Filter = { ...f, order: group.order }
+  delete next.genus
   if (group.family) next.family = group.family
   else delete next.family
   return applyFilter(list, next, species, seen).length ? next : { ...group }
