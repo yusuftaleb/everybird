@@ -70,7 +70,7 @@ export function MapView({ state, species, regions, onFilter, note, unplaced }: P
           <svg className="eb-map-svg" viewBox={`0 0 ${layer.w} ${layer.h}`} onPointerLeave={() => setHot(null)}>
             {shapes.map((s) => (
               <path
-                key={s.key}
+                key={s.id}
                 d={s.d}
                 data-key={s.key}
                 data-step={shadeStep(s.n, max)}

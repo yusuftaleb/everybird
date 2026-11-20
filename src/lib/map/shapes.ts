@@ -11,8 +11,8 @@ export type MapLayer = { w: number; h: number; d: Record<string, string> }
 export type MapCountries = MapLayer & { v: 1 }
 export type MapProvinces = { v: 1; groups: Record<string, MapLayer> }
 
-/** One shape to draw: its place key, path, species count and whether the filter has it checked. */
-export type MapShape = { key: string; d: string; n: number; checked: boolean }
+/** One shape to draw: its id in the layer, its place key, path, species count and whether the filter has it checked. */
+export type MapShape = { id: string; key: string; d: string; n: number; checked: boolean }
 
 const cache = new Map<string, Promise<unknown>>()
 /** A map file, fetched once per page (a failure is not cached, so the next open tries again). */
@@ -49,9 +49,14 @@ export function mapShapes(layer: MapLayer, counts: PlaceCounts, checked: Readonl
     const code = own ? sub1 : sourcePlaceId(sub1)
     if (code && (own || !byCode.has(code))) byCode.set(code, { key: `s:${sub1}`, n: t.n })
   }
+  // Northern Cyprus (QY) is a place only iNaturalist records; eBird records the whole island as Cyprus. With Cyprus
+  // counted and no QY, the north is drawn as Cyprus (its shade, name, count and press).
+  const cy = group === undefined && !counts.countries.has('QY') ? counts.countries.get('CY')?.n ?? 0 : 0
   return Object.entries(layer.d).map(([id, d]) => {
-    const hit = group === undefined ? { key: `c:${id}`, n: counts.countries.get(id)?.n ?? 0 } : byCode.get(id) ?? { key: `s:${id}`, n: 0 }
-    return { key: hit.key, d, n: hit.n, checked: checked.has(hit.key) }
+    const hit = group !== undefined ? byCode.get(id) ?? { key: `s:${id}`, n: 0 }
+      : id === 'QY' && cy > 0 ? { key: 'c:CY', n: cy }
+      : { key: `c:${id}`, n: counts.countries.get(id)?.n ?? 0 }
+    return { id, key: hit.key, d, n: hit.n, checked: checked.has(hit.key) }
   })
 }
 
