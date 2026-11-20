@@ -1,9 +1,10 @@
-// The Map and Tree views' share images, their pure parts: how the map is fitted, where its top places go, which tree names are kept.
+// The Map and Tree views' share images, their pure parts: how the map is fitted, where its top places go, which tree
+// names are kept, and where the tree's fan goes.
 import { describe, expect, it } from 'vitest'
 import { mapImageLayout, TOP_PLACES } from '@/lib/share/map-image'
 import { en } from '@/i18n/messages/en'
 import { FOOTER_LINE, SITE_LABEL, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
-import { keepNames } from '@/lib/share/tree-image'
+import { fanFits, imageFanBox, keepNames } from '@/lib/share/tree-image'
 import { MAP_FOOTER, TREE_FOOTER, fitBox, wrapParts } from '@/lib/share/view-image'
 import { buildSpeciesIndex } from '@/lib/species/load'
 
@@ -56,6 +57,25 @@ describe('the tree image keeps the names that fit', () => {
     const rows = [{ y: 0, n: 1 }, { y: 10, n: 5 }, { y: 20, n: 3 }, { y: 30, n: 3 }, { y: 50, n: 3 }]
     // 5 at 10 first; 3 at 20 touches it, 3 at 30 is kept (20 away), then 3 at 50 (20 from 30); 1 at 0 touches 10.
     expect([...keepNames(rows, 20)].sort()).toEqual([1, 3, 4])
+  })
+})
+
+describe('the tree image draws a fan in a wide or square area, rows in a tall one', () => {
+  it('a square, post or horizontal area draws the fan; the story rows', () => {
+    expect(fanFits({ w: 952, h: 700 })).toBe(true)
+    expect(fanFits({ w: 952, h: 1000 })).toBe(true)
+    expect(fanFits({ w: 952, h: 1300 })).toBe(false)
+  })
+  it('the fan and its names fit the area above the axis and key, centred', () => {
+    for (const area of [{ x: 64, y: 300, w: 952, h: 640 }, { x: 64, y: 200, w: 1800, h: 600 }]) {
+      const below = 84
+      const box = imageFanBox(area, below)
+      expect(box.cx).toBe(area.x + area.w / 2)
+      const out = (box.cy - box.R) - area.y // the names' room over the arc's top
+      expect(out).toBeGreaterThanOrEqual(240)
+      expect(box.cx - box.R - 240).toBeGreaterThanOrEqual(area.x - 0.5)
+      expect(box.cy + below).toBeLessThanOrEqual(area.y + area.h + 0.5)
+    }
   })
 })
 
