@@ -2,82 +2,67 @@
 // import: the decoder is passed in, so this stays light.
 import type { SharePayload } from './link'
 
-/** A comparison's group: the species on every list (`who: 'all'`), or those on list `who`'s alone. Its birds are
- *  drawn from list `from` (the first list for 'all'), so a group's dates and places are one birder's. */
-export type CompareGroup = { who: 'all' | number; from: number; codes: string[] }
-
-/** Seen by everyone, then each list's own birds (on no other list), in list order: the groups of three or more lists. */
-export function compareGroups(lists: readonly SharePayload[]): CompareGroup[] {
-  const sets = lists.map((p) => new Set(p.birds.map((b) => b.code)))
-  const count = new Map<string, number>()
-  for (const s of sets) for (const c of s) count.set(c, (count.get(c) ?? 0) + 1)
-  const all: CompareGroup = { who: 'all', from: 0, codes: [...(sets[0] ?? [])].filter((c) => count.get(c) === lists.length) }
-  const own = sets.map((s, i): CompareGroup => ({ who: i, from: i, codes: [...s].filter((c) => count.get(c) === 1) }))
-  return [all, ...own]
+/**
+ * Each species in the comparison with the lists it is on, as a bit mask (bit i: list i), in first-seen order: the one
+ * source of every count Compare shows, so the chips, the diagram and the bars never disagree.
+ */
+export function memberships(lists: readonly SharePayload[]): Map<string, number> {
+  const m = new Map<string, number>()
+  lists.forEach((p, i) => { for (const b of p.birds) m.set(b.code, (m.get(b.code) ?? 0) | (1 << i)) })
+  return m
 }
 
-/** One of the three parts of the first list against another: the other's birds the first lacks, both, the first's alone. */
-export type PairPart = 'other' | 'both' | 'first'
-export type PairGroup = CompareGroup & { part: PairPart }
-export const PAIR_PARTS: readonly PairPart[] = ['other', 'both', 'first']
+/** A chip's group: 'need' (birds on some other list, not the first: "Yet to see"), 'all' (on every list), a list's
+ *  place (on that list alone) or 'every' (every bird in the comparison). */
+export type GroupId = 'need' | 'all' | 'every' | number
+export type CompareGroup = { id: GroupId; codes: string[] }
 
 /**
- * The first list against list `k` (the Venn's two circles), in PAIR_PARTS order: the birds on `k` that the first
- * lacks (drawn from `k`, so its dates and places), those on both and those on the first alone (both from the first).
- * With two lists they are compareGroups' groups; with more, the other lists don't count.
+ * The chips, in their order: Yet to see (only with `you`, the first list the viewer's own), on every list, each list's
+ * own birds (the first list's first), every bird. Each group's codes in first-seen order.
  */
-export function pairGroups(lists: readonly SharePayload[], k: number): PairGroup[] {
-  const a = new Set(lists[0].birds.map((b) => b.code))
-  const b = new Set(lists[k].birds.map((x) => x.code))
+export function compareGroups(lists: readonly SharePayload[], you = false): CompareGroup[] {
+  const m = [...memberships(lists)]
+  const full = (1 << lists.length) - 1
+  const pick = (f: (mask: number) => boolean) => m.flatMap(([c, k]) => (f(k) ? [c] : []))
   return [
-    { part: 'other', who: k, from: k, codes: [...b].filter((c) => !a.has(c)) },
-    { part: 'both', who: 'all', from: 0, codes: [...a].filter((c) => b.has(c)) },
-    { part: 'first', who: 0, from: 0, codes: [...a].filter((c) => !b.has(c)) },
+    ...(you ? [{ id: 'need' as const, codes: pick((k) => !(k & 1)) }] : []),
+    { id: 'all', codes: pick((k) => k === full) },
+    ...lists.map((_, i): CompareGroup => ({ id: i, codes: pick((k) => k === 1 << i) })),
+    { id: 'every', codes: m.map(([c]) => c) },
   ]
 }
 
-/** The lists' places, most species first; equal lists keep their order. */
-export function ranking(lists: readonly SharePayload[]): number[] {
-  const n = lists.map((p) => new Set(p.birds.map((b) => b.code)).size)
-  return n.map((_, i) => i).sort((x, y) => n[y] - n[x] || x - y)
+/** How many species each combination of lists holds, indexed by mask (index 0, on no list, stays 0): the diagram's numbers. */
+export function regionCounts(lists: readonly SharePayload[]): number[] {
+  const out = new Array<number>(1 << lists.length).fill(0)
+  for (const k of memberships(lists).values()) out[k]++
+  return out
 }
 
-/**
- * Up to `n` codes from `groups`, in group order, each group's share in proportion to its size (at least one from every
- * group with birds, while `n` allows), taken in even steps through it: the comparison card's stickers.
- */
-export function spread(groups: readonly (readonly string[])[], n: number): string[] {
-  const total = groups.reduce((s, g) => s + g.length, 0)
-  if (total <= n) return groups.flat()
-  const want = groups.map((g) => (g.length ? Math.max(1, Math.floor((n * g.length) / total)) : 0))
-  // Hand out what rounding left, biggest groups first; or take back what the minimum of one overshot, from the
-  // biggest share, and when every share is one (more groups than `n`), from the smallest groups.
-  const order = groups.map((_, i) => i).sort((x, y) => groups[y].length - groups[x].length)
-  let left = n - want.reduce((s, w) => s + w, 0)
-  for (let j = 0; left > 0; j = (j + 1) % order.length) {
-    const i = order[j]
-    if (want[i] < groups[i].length) { want[i]++; left-- }
-  }
-  while (left < 0) {
-    const i = order.find((x) => want[x] > 1) ?? [...order].reverse().find((x) => want[x] > 0)!
-    want[i]--
-    left++
-  }
-  return groups.flatMap((g, i) => Array.from({ length: want[i] }, (_, j) => g[Math.floor((j * g.length) / want[i])]))
+/** The lists' places by their species counts, most first; equal lists keep their order (the bars). */
+export function ranking(sizes: readonly number[]): number[] {
+  return sizes.map((_, i) => i).sort((x, y) => sizes[y] - sizes[x] || x - y)
 }
 
-/** Every bird in the comparison, once, in first-seen order, with whether each list has it (the species × people table). */
-export function compareTable(lists: readonly SharePayload[]): { code: string; on: boolean[] }[] {
-  const sets = lists.map((p) => new Set(p.birds.map((b) => b.code)))
-  const codes = new Set(lists.flatMap((p) => p.birds.map((b) => b.code)))
-  return [...codes].map((code) => ({ code, on: sets.map((s) => s.has(code)) }))
-}
+/** The sticker grid: tiles at least TILE_MIN px wide with TILE_GAP between, three to six across; GRID_ROWS rows show
+ *  before "Show all". */
+export const TILE_MIN = 104
+export const TILE_GAP = 12
+export const GRID_ROWS = 3
+export const gridCols = (width: number): number => Math.min(6, Math.max(3, Math.floor((width + TILE_GAP) / (TILE_MIN + TILE_GAP))))
 
-/** The group as one list's payload: its birds, with that list's own dates, places, marks and name. */
-export function groupPayload(lists: readonly SharePayload[], g: CompareGroup): SharePayload {
-  const keep = new Set(g.codes)
-  const p = lists[g.from]
-  return { ...p, birds: p.birds.filter((b) => keep.has(b.code)) }
+/** Up to `n` of `codes`, in even steps through them (the card's strip of stickers). */
+export const evenly = (codes: readonly string[], n: number): string[] =>
+  codes.length <= n ? [...codes] : Array.from({ length: n }, (_, j) => codes[Math.floor((j * codes.length) / n)])
+
+/** A group's birds as one payload: each bird from the first list holding it, with that list's date and marks (no places:
+ *  each list numbers its own). */
+export function groupPayload(lists: readonly SharePayload[], codes: readonly string[]): SharePayload {
+  const keep = new Set(codes)
+  const birds = lists.flatMap((l) => l.birds.filter((b) => keep.delete(b.code))).map((b) => ({ ...b }))
+  for (const b of birds) delete b.p
+  return { v: 1, birds }
 }
 
 /**

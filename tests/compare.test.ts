@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import linkIndex from '../data/link-index.json'
-import { compareGroups, compareTable, groupPayload, linksIn, pairGroups, ranking, spread } from '@/lib/share/compare'
+import { compareGroups, evenly, gridCols, groupPayload, linksIn, memberships, ranking, regionCounts, type GroupId } from '@/lib/share/compare'
 import { makeCompareLink } from '@/lib/share/make-link'
 import { payloadToRecords } from '@/lib/share/convert'
 import { buildList } from '@/lib/list/build-list'
@@ -86,46 +86,82 @@ describe('comparison token', () => {
 
 describe('compareGroups', () => {
   const p = (...idx: number[]): SharePayload => ({ v: 1, birds: idx.map((i) => ({ code: C(i) })) })
-  it('two lists: both, only the first, only the second', () => {
-    const g = compareGroups([p(1, 2, 3, 4), p(3, 4, 5)])
-    expect(g.map((x) => x.who)).toEqual(['all', 0, 1])
-    expect(sorted(g[0].codes)).toEqual(sorted([C(3), C(4)]))
-    expect(sorted(g[1].codes)).toEqual(sorted([C(1), C(2)]))
-    expect(g[2].codes).toEqual([C(5)])
+  const byId = (lists: SharePayload[], you = false) => new Map<GroupId, string[]>(compareGroups(lists, you).map((g) => [g.id, sorted(g.codes)]))
+  it('two lists: yet to see (with yours), both, only each, every bird, in the chips’ order', () => {
+    const g = compareGroups([p(1, 2, 3, 4), p(3, 4, 5)], true)
+    expect(g.map((x) => x.id)).toEqual(['need', 'all', 0, 1, 'every'])
+    const m = byId([p(1, 2, 3, 4), p(3, 4, 5)], true)
+    expect(m.get('need')).toEqual([C(5)])
+    expect(m.get('all')).toEqual(sorted([C(3), C(4)]))
+    expect(m.get(0)).toEqual(sorted([C(1), C(2)]))
+    expect(m.get(1)).toEqual([C(5)])
+    expect(m.get('every')).toHaveLength(5)
+    // Without your own list first, no "Yet to see".
+    expect(compareGroups([p(1), p(2)]).map((x) => x.id)).toEqual(['all', 0, 1, 'every'])
   })
-  it('three lists: seen by everyone and each one alone (a bird on two of three is in neither)', () => {
-    const g = compareGroups([p(1, 2, 3), p(2, 3, 4), p(3, 5)])
-    expect(g[0].codes).toEqual([C(3)])
-    expect(g[1].codes).toEqual([C(1)])
-    expect(g[2].codes).toEqual([C(4)])
-    expect(g[3].codes).toEqual([C(5)])
+  it('three lists: on every list and each one alone (a bird on two of three is in neither); yet to see is any other list’s', () => {
+    const m = byId([p(1, 2, 3), p(2, 3, 4), p(3, 5)], true)
+    expect(m.get('all')).toEqual([C(3)])
+    expect(m.get(0)).toEqual([C(1)])
+    expect(m.get(1)).toEqual([C(4)])
+    expect(m.get(2)).toEqual([C(5)])
+    expect(m.get('need')).toEqual(sorted([C(4), C(5)]))
   })
-  it('compares species when a link has no dates or places, and each group keeps its own list’s details', () => {
+  it('the chips, the diagram and the bars count from one source and agree', () => {
+    for (const lists of [[p(1, 2, 3, 4), p(3, 4, 5)], [p(1, 2, 3), p(2, 3, 4), p(3, 5)], [p(1, 2), p(2, 3), p(3, 4, 2), p(2, 6), p(7), p(2, 8)]]) {
+      const n = lists.length, full = (1 << n) - 1
+      const counts = regionCounts(lists)
+      const m = byId(lists, true)
+      expect(counts[full]).toBe(m.get('all')!.length)
+      lists.forEach((_, i) => expect(counts[1 << i]).toBe(m.get(i)!.length))
+      expect(counts.reduce((a, b) => a + b, 0)).toBe(m.get('every')!.length)
+      expect(counts.reduce((a, v, k) => (k & 1 ? a : a + v), 0)).toBe(m.get('need')!.length)
+      // Each list's bar: the regions holding it add up to its species.
+      lists.forEach((l, i) => expect(counts.reduce((a, v, k) => (k & (1 << i) ? a + v : a), 0)).toBe(new Set(l.birds.map((b) => b.code)).size))
+      expect([...memberships(lists).values()].every((k) => k > 0 && k <= full)).toBe(true)
+    }
+  })
+  it('compares species when a link has no dates or places, and a group’s birds keep their own list’s dates', () => {
     const rich = list(50, 9, 'Ada')
     const bare: SharePayload = { v: 1, birds: rich.birds.slice(0, 20).map((b) => ({ code: b.code })).concat([{ code: 'zzz-none' }]) }
-    const g = compareGroups([bare, rich])
-    expect(g[0].codes).toHaveLength(20)
-    expect(g[1].codes).toEqual(['zzz-none'])
-    expect(g[2].codes).toHaveLength(30)
-    const onlyAda = groupPayload([bare, rich], g[2])
-    expect(onlyAda.name).toBe('Ada')
-    expect(onlyAda.birds.every((b) => b.ym !== undefined)).toBe(true)
-    expect(groupPayload([bare, rich], g[0]).birds.every((b) => b.ym === undefined)).toBe(true)
+    const m = byId([bare, rich])
+    expect(m.get('all')).toHaveLength(20)
+    expect(m.get(0)).toEqual(['zzz-none'])
+    expect(m.get(1)).toHaveLength(30)
+    const onlyAda = groupPayload([bare, rich], m.get(1)!)
+    expect(onlyAda.birds.every((b) => b.ym !== undefined && b.p === undefined)).toBe(true)
+    expect(groupPayload([bare, rich], m.get('all')!).birds.every((b) => b.ym === undefined)).toBe(true)
   })
   it("a group's collage holds exactly its count, heard-only and found-dead birds included", () => {
     const a = list(40, 21), b = list(40, 22)
     a.birds.forEach((x, i) => { if (i % 3 === 0) x.m = 1; else if (i % 3 === 1) x.m = 2 })
     const regions = { v: 1 as const, countries: { CA: 'Canada', KE: 'Kenya', AU: 'Australia' }, sub1: {} }
-    for (const g of compareGroups([a, b])) {
-      const { records } = payloadToRecords(groupPayload([a, b], g), regions)
+    for (const g of compareGroups([a, b], true)) {
+      const { records } = payloadToRecords(groupPayload([a, b], g.codes), regions)
       expect(buildList(records, emptySaved().edits, DEFAULT_RULES)).toHaveLength(g.codes.length)
     }
   })
   it('a comparison link reopens to the same groups', () => {
     const lists = [list(80, 11, 'You'), list(90, 12, 'Sam'), list(70, 13)]
     const back = decodeCompare(encodeCompare(lists).token)
-    const a = compareGroups(lists), b = compareGroups(back)
-    expect(b.map((x) => sorted(x.codes))).toEqual(a.map((x) => sorted(x.codes)))
+    expect(compareGroups(back).map((x) => sorted(x.codes))).toEqual(compareGroups(lists).map((x) => sorted(x.codes)))
+  })
+  it('ranks the lists by species, most first, equal lists in their order', () => {
+    expect(ranking([1, 3, 2, 3, 0])).toEqual([1, 3, 2, 0, 4])
+  })
+  it('takes the card’s stickers in even steps through a group', () => {
+    const g = Array.from({ length: 100 }, (_, i) => `b${i}`)
+    expect(evenly(g.slice(0, 3), 18)).toEqual(['b0', 'b1', 'b2'])
+    const out = evenly(g, 4)
+    expect(out).toEqual(['b0', 'b25', 'b50', 'b75'])
+  })
+  it('the sticker grid: three across on phones, up to six on a wide column', () => {
+    expect(gridCols(280)).toBe(3)
+    expect(gridCols(358)).toBe(3)
+    expect(gridCols(460)).toBe(4)
+    expect(gridCols(580)).toBe(5)
+    expect(gridCols(700)).toBe(6)
+    expect(gridCols(1200)).toBe(6)
   })
 })
 
@@ -153,48 +189,6 @@ describe('linksIn', () => {
     expect(r.lists[2].birds).toHaveLength(5)
     expect(linksIn(text, decodeShare)).toMatchObject({ compared: false, bad: 0 })
     expect(linksIn(`${SHARE_ORIGIN}/c/cbroken`, decodeShare, decodeCompare)).toEqual({ lists: [], bad: 1, compared: false })
-  })
-})
-
-describe('compareGroups and compareTable', () => {
-  const p = (...idx: number[]): SharePayload => ({ v: 1, birds: idx.map((i) => ({ code: C(i) })) })
-  it('the first list against another: the other’s birds the first lacks, both, the first’s alone', () => {
-    const lists = [p(1, 2, 3), p(2, 3, 4, 5), p(1, 4, 6)]
-    const g = pairGroups(lists, 1)
-    expect(g.map((x) => [x.part, x.who, x.from])).toEqual([['other', 1, 1], ['both', 'all', 0], ['first', 0, 0]])
-    expect(g.map((x) => sorted(x.codes))).toEqual([sorted([C(4), C(5)]), sorted([C(2), C(3)]), [C(1)]])
-    // Against the third list, the second doesn't count.
-    expect(pairGroups(lists, 2).map((x) => sorted(x.codes))).toEqual([sorted([C(4), C(6)]), [C(1)], sorted([C(2), C(3)])])
-    // With two lists, the same birds as compareGroups' three groups.
-    const two = [p(1, 2, 3), p(2, 3, 4, 5)]
-    const byWho = new Map(compareGroups(two).map((x) => [x.who, sorted(x.codes)]))
-    for (const x of pairGroups(two, 1)) expect(sorted(x.codes)).toEqual(byWho.get(x.who))
-  })
-  it('ranks the lists by species, most first, equal lists in their order', () => {
-    expect(ranking([p(1), p(1, 2, 3), p(4, 5), p(6, 7, 8), p()])).toEqual([1, 3, 2, 0, 4])
-  })
-  it('spreads the card’s stickers over the groups by size, at least one from each, in even steps', () => {
-    const g = (n: number, tag: string) => Array.from({ length: n }, (_, i) => `${tag}${i}`)
-    expect(spread([g(2, 'a'), g(3, 'b')], 10)).toEqual(['a0', 'a1', 'b0', 'b1', 'b2'])
-    const out = spread([g(3, 'a'), g(400, 'b'), g(97, 'c')], 20)
-    expect(out).toHaveLength(20)
-    expect(out.filter((c) => c[0] === 'a')).toHaveLength(1)
-    expect(out.filter((c) => c[0] === 'b')).toHaveLength(16)
-    expect(out.filter((c) => c[0] === 'c')).toHaveLength(3)
-    expect(out.slice(1, 4)).toEqual(['b0', 'b25', 'b50'])
-    expect(new Set(out).size).toBe(20)
-    expect(spread([[], g(50, 'b'), g(1, 'c')], 4)).toEqual(['b0', 'b16', 'b33', 'c0'])
-    expect(spread([g(9, 'a'), g(9, 'b'), g(9, 'c')], 2)).toEqual(['a0', 'b0'])
-  })
-  it('the table holds every bird once, a bird on two of three lists included, with the lists it is on', () => {
-    const lists = [p(1, 2), p(2, 3), p(3, 4, 2)]
-    const rows = compareTable(lists)
-    expect(rows).toHaveLength(4)
-    expect(rows.find((r) => r.code === C(3))!.on).toEqual([false, true, true]) // in no group
-    expect(rows.find((r) => r.code === C(2))!.on).toEqual([true, true, true])
-    expect(rows.find((r) => r.code === C(4))!.on).toEqual([false, false, true])
-    const grouped = new Set(compareGroups(lists).flatMap((g) => g.codes))
-    expect(grouped.has(C(3))).toBe(false)
   })
 })
 
