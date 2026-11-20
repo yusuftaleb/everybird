@@ -795,7 +795,7 @@ export const fr: Messages = {
         one: 'Ne compte les observations iNaturalist qu’une fois que la communauté s’accorde sur l’identification. Concerne {n} oiseau.',
         other: 'Ne compte les observations iNaturalist qu’une fois que la communauté s’accorde sur l’identification. Concerne {n} oiseaux.',
       },
-      researchOff: 'Pour les observations iNaturalist. Ajoute iNaturalist plus haut pour l’utiliser.',
+      researchOff: 'Pour les observations iNaturalist. Ajoute iNaturalist dans Ajouter des oiseaux pour l’utiliser.',
     },
     /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
     demo: {

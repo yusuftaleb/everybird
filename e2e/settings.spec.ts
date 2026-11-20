@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { addDialog, openAdd } from "./add-birds";
 import { LANGS } from "../src/i18n/langs";
 import { es } from "../src/i18n/messages/es";
 import { nl } from "../src/i18n/messages/nl";
@@ -35,17 +36,21 @@ const storedFile = (page: Page) =>
       }),
   );
 
+/** Imports LIFELIST from Settings' Add birds dialog, then closes the dialog. */
 async function importLifeList(page: Page) {
   const dir = mkdtempSync(join(tmpdir(), "everybird-e2e-"));
   const file = join(dir, "ebird_world_life_list.csv");
   writeFileSync(file, LIFELIST);
   try {
     await page.goto("/settings");
+    const dialog = await openAdd(page, "file");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     await page.getByTestId("ebird-input").setInputFiles(file);
-    await expect(page.getByTestId("see-collage")).toContainText("Your collage has 3 species");
+    await expect(page.getByTestId("add-summary")).toContainText("Your collage has 3 species");
     // Saving is debounced: wait until the device copy holds the file's details before moving on.
     await expect.poll(() => storedFile(page), { timeout: 5000 }).toBe("ebird_world_life_list.csv");
+    await dialog.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -90,50 +95,44 @@ test("Collage, Settings and About share one page head at 390, 768 and 1280", asy
   }
 });
 
-test("Tick by hand opens and closes from the keyboard, animated, and at once with reduced motion", async ({ page }) => {
+test("Add by hand: the search has the focus, and When and where opens and closes from the keyboard", async ({ page }) => {
   await page.goto("/settings");
-  const btn = page.getByRole("button", { name: "Tick birds off a list" });
+  const dialog = await openAdd(page, "hand");
+  await expect(dialog.getByLabel("Search birds")).toBeFocused();
+  await expect(dialog.getByRole("listbox", { name: "Species to tick" })).toBeVisible();
+  // Closed by default: a bird added now gets no date or place.
+  const btn = dialog.getByRole("button", { name: "When and where" });
   await expect(btn).toHaveAttribute("aria-expanded", "false");
-  await expect(btn).toHaveAttribute("aria-controls", "tick");
+  await expect(dialog.getByLabel("Date (optional)")).toBeHidden();
   await btn.focus();
   await page.keyboard.press("Enter");
   await expect(btn).toHaveAttribute("aria-expanded", "true");
-  const list = page.getByRole("listbox", { name: "Species to tick" });
-  await expect(list).toBeVisible();
-  // Tab moves on into the panel (its search field).
-  await page.keyboard.press("Tab");
-  await expect(page.getByLabel("Search birds")).toBeFocused();
-  await btn.focus();
+  await expect(dialog.getByText("Applies to the birds you add while this is open.")).toBeVisible();
+  for (const label of ["Date (optional)", "Or a year", "Country (optional)"]) await expect(dialog.getByLabel(label, { exact: true })).toBeVisible();
   await page.keyboard.press("Space");
   await expect(btn).toHaveAttribute("aria-expanded", "false");
-  await expect(page.locator("#tick")).toBeHidden();
-
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.keyboard.press("Enter");
-  // No animation: the panel is open and unclipped straight away.
-  expect(await page.locator("#tick").evaluate((el) => [el.hasAttribute("hidden"), el.getAttribute("data-phase")])).toEqual([false, null]);
-  await page.keyboard.press("Enter");
-  expect(await page.locator("#tick").evaluate((el) => el.hasAttribute("hidden"))).toBe(true);
+  await expect(dialog.getByLabel("Date (optional)")).toBeHidden();
 });
 
 test("each source says what it brings, and the line above them sums them up", async ({ page }) => {
   await page.goto("/settings");
-  // By hand first: Mallard (which the eBird file has too) and Snow Goose (which it doesn't).
-  await page.getByRole("button", { name: "Tick birds off a list" }).click();
-  const list = page.getByRole("listbox", { name: "Species to tick" });
+  // By hand first: Mallard (which the eBird file has too) and Snow Goose (which it doesn't), each added by a tap.
+  const dialog = await openAdd(page, "hand");
+  const list = dialog.getByRole("listbox", { name: "Species to tick" });
   for (const [q, name] of [["mallard", /^Mallard, Anas platyrhynchos/], ["snow goose", /^Snow Goose, Anser caerulescens/]] as const) {
-    await page.getByLabel("Search birds").fill(q);
+    await dialog.getByLabel("Search birds").fill(q);
     await list.getByRole("option", { name }).click();
+    await expect(list.getByRole("option", { name })).toHaveAttribute("aria-selected", "true");
   }
-  await page.getByRole("button", { name: "Add 2 to my list" }).click();
-  const hand = page.locator("#way-tick");
-  await expect(hand).toContainText("Ticked by hand2 species");
-  await expect(page.getByTestId("see-collage")).toHaveText("Your collage has 2 species, all ticked by hand.");
+  await expect(dialog).toContainText("Ticked by hand · 2 species");
+  const summary = page.getByTestId("add-summary");
+  await expect(summary).toHaveText("Your collage has 2 species, all ticked by hand.");
+  await openAdd(page, "file");
   await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
-  const summary = page.getByTestId("see-collage");
   await expect(summary).toHaveText("Your collage has 4 species: 3 from eBird, 1 ticked by hand. See my collage");
   await expect(page.getByTestId("source-ebird-list")).toContainText(/3 species · 2 only here · Imported \d{1,2} \w{3}/);
-  await expect(hand).toContainText("2 species · 1 only here");
+  await openAdd(page, "hand");
+  await expect(dialog).toContainText("Ticked by hand · 2 species · 1 only here");
   await summary.getByRole("link", { name: "See my collage" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("collage-stats")).toHaveText(/^4 species/);
@@ -142,14 +141,16 @@ test("each source says what it brings, and the line above them sums them up", as
 test("an eBird file is remembered on the next visit, and Remove (in its ⋯ menu) takes it away", async ({ page }) => {
   await importLifeList(page);
   await page.reload();
+  await expect(page.getByTestId("see-collage")).toHaveText("Your collage has 3 species, all from eBird."); // no link on a return visit
+  await openAdd(page, "file");
   const line = page.getByTestId("source-ebird-list");
   await expect(line.getByRole("heading", { level: 3 })).toHaveText("eBird life list · ebird_world_life_list.csv");
   await expect(line).toContainText(/csv3 species · Imported \d{1,2} \w{3}/);
-  await expect(page.getByTestId("see-collage")).toHaveText("Your collage has 3 species, all from eBird."); // no link on a return visit
   await line.getByRole("button", { name: "More for eBird life list" }).click();
   await page.getByRole("menuitem", { name: "Remove" }).click();
   await page.getByRole("button", { name: "Yes, remove it" }).click();
   await expect(line).toHaveCount(0);
+  await expect(page.getByTestId("add-summary")).toHaveCount(0);
   await expect(page.getByTestId("see-collage")).toHaveCount(0);
   await expect(page.locator("#way-ebird")).toBeFocused();
 });
@@ -161,6 +162,7 @@ for (const width of [1280, 390]) {
 
   test("the ⋯ menu from the keyboard: open, arrows, Escape returns focus; Remove asks once", async ({ page }) => {
     await importLifeList(page);
+    await openAdd(page, "file");
     const line = page.getByTestId("source-ebird-list");
     const more = line.getByRole("button", { name: "More for eBird life list" });
     await expect(more).toHaveAttribute("aria-haspopup", "menu");
@@ -191,15 +193,16 @@ for (const width of [1280, 390]) {
     await ask.getByRole("button", { name: "Keep it" }).click();
     await expect(more).toBeFocused();
     await expect(line).toHaveCount(1);
-    // A press outside closes it.
+    // A press outside closes it (on the dialog's title: a press outside the dialog would close the dialog too).
     await more.click();
     await expect(menu).toBeVisible();
-    await page.getByRole("heading", { level: 2, name: "Your list" }).click();
+    await addDialog(page).getByRole("heading", { level: 2, name: "Add birds" }).click();
     await expect(menu).toHaveCount(0);
   });
 
   test("Add opens the source's panel under its row, with its guidance and how-to inside", async ({ page }) => {
     await page.goto("/settings");
+    await openAdd(page, "file");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     // No descriptors on the rows: two lines, "Not added", one button.
     const add = page.getByRole("button", { name: "Add eBird life list" });
@@ -230,12 +233,13 @@ for (const width of [1280, 390]) {
 
     test("no row scrolls sideways, and every row keeps its button on the right", async ({ page }) => {
       await importLifeList(page);
+      await openAdd(page, "file");
       const rows = await page.locator(".eb-src-main").evaluateAll((els) => els.map((el) => {
         const r = el.getBoundingClientRect();
         const acts = el.querySelector(".eb-src-acts")!.getBoundingClientRect();
         return { right: Math.round(r.right - acts.right), top: acts.top >= r.top && acts.bottom <= r.bottom };
       }));
-      expect(rows.length).toBe(4);
+      expect(rows.length).toBe(8); // eBird's two, iNaturalist, observation.org's two, spreadsheet, Scythebill, iGoTerra
       for (const r of rows) expect(r).toEqual({ right: width < 480 ? 14 : 16, top: true });
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
     });
@@ -244,6 +248,7 @@ for (const width of [1280, 390]) {
 
 test("a file dropped on a row is read", async ({ page }) => {
   await page.goto("/settings");
+  await openAdd(page, "file");
   const zone = page.getByTestId("ebird-drop");
   await expect(zone).toBeVisible();
   const data = await page.evaluateHandle((text) => {
@@ -260,6 +265,7 @@ test("a file dropped on a row is read", async ({ page }) => {
 
 test('"why?" after the skipped count opens the entries that weren\'t counted', async ({ page }) => {
   await page.goto("/settings");
+  await openAdd(page, "file");
   await expect(page.getByTestId("ebird-drop")).toBeVisible();
   await page.getByTestId("ebird-input").setInputFiles({
     name: "ebird_world_life_list.csv",
@@ -337,12 +343,13 @@ test("Settings fits about 1.5 screens at 1280x800 with a source connected", asyn
   expect(height).toBeLessThanOrEqual(1.6 * 800);
 });
 
-// A life list download knows only where you first recorded each bird: Settings says so under the eBird rows, with
-// an inline link to MyEBirdData's Add panel (each row keeps its one button), and the collage's Places panel links to the
-// same panel (/settings#add-mydata).
+// A life list download knows only where you first recorded each bird: the Add birds dialog says so under the eBird rows,
+// with an inline link to MyEBirdData's Add panel (each row keeps its one button), and the collage's Places panel links to
+// the same panel (/settings#add-mydata, which opens the dialog at "Import a file").
 for (const width of [1280, 390]) test(`after a life list import, Settings and Places say places are first places only, one tap from MyEBirdData (${width}px)`, async ({ page }) => {
   await page.setViewportSize({ width, height: width < 600 ? 844 : 800 });
   await importLifeList(page);
+  const dialog = await openAdd(page, "file");
   const note = page.getByTestId("places-lifer-note");
   await expect(note).toBeVisible();
   await expect(note.getByRole("button")).toHaveCount(0);
@@ -356,6 +363,7 @@ for (const width of [1280, 390]) test(`after a life list import, Settings and Pl
   await page.getByTestId("places-lifer-add").click();
   await expect(group).toBeVisible();
   await expect(choose).toBeFocused();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
 
   await page.getByRole("banner").getByRole("link", { name: "Collage", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
@@ -439,8 +447,8 @@ test("Settings still fits about 1.5 screens at 1280x800 with the language field,
 
 const MESSAGES = { es, pt, nl, pl, fr, de } as const;
 
-// The Settings source rows in Spanish, Portuguese, Dutch and Polish at 390 and 1280: each row's button is whole beside its
-// text (the buttons wrap under the text, never out of the page) and nothing scrolls sideways. For manual runs.
+// Settings' "Add birds" and the dialog's choices and source rows in each language at 390 and 1280: each button is whole
+// (the row buttons wrap under the text, never out of the page) and nothing scrolls sideways. For manual runs.
 for (const lang of LANGS.filter((l) => l !== "en")) {
   for (const width of [390, 1280]) {
     test(`source rows fit in ${lang} at ${width}px`, async ({ page, context, baseURL }) => {
@@ -448,7 +456,7 @@ for (const lang of LANGS.filter((l) => l !== "en")) {
       await context.addCookies([{ name: "everybird-lang", value: lang, url: baseURL! }]);
       await page.setViewportSize({ width, height: width < 600 ? 844 : 900 });
       await page.goto("/settings");
-      for (const label of [ui.import.add, ui.tick.button]) {
+      const fits = async (label: string) => {
         const btns = page.getByRole("button", { name: label, exact: true });
         await expect(btns.first()).toBeVisible();
         for (const b of await btns.all()) {
@@ -456,7 +464,10 @@ for (const lang of LANGS.filter((l) => l !== "en")) {
           expect(box!.x + box!.width, `${label} inside the page`).toBeLessThanOrEqual(width + 0.5);
           expect(box!.x, `${label} inside the page`).toBeGreaterThanOrEqual(0);
         }
-      }
+      };
+      await fits(ui.collage.addBirds);
+      await openAdd(page, "file", ui);
+      for (const label of [ui.add.file, ui.add.hand, ui.import.add]) await fits(label);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     });
   }

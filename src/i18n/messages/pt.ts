@@ -795,7 +795,7 @@ export const pt: Messages = {
         one: 'Conta observações do iNaturalist só quando a comunidade concorda com a identificação. Afeta {n} ave.',
         other: 'Conta observações do iNaturalist só quando a comunidade concorda com a identificação. Afeta {n} aves.',
       },
-      researchOff: 'Para observações do iNaturalist. Adicione o iNaturalist acima para usar.',
+      researchOff: 'Para observações do iNaturalist. Adicione o iNaturalist em Adicionar aves para usar.',
     },
     /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
     demo: {

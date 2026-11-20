@@ -24,7 +24,7 @@ export function SettingRow({ label, note, checked, onChange, disabled }: { label
   )
 }
 
-/** Settings > "Counting": the birder's own rules on top of eBird's, each with how many birds on the list it touches. */
+/** Settings > Your list > "Counting": the birder's own rules on top of eBird's, each with how many birds on the list it touches. */
 export const RulesSwitches = memo(function RulesSwitches({ saved, dispatch }: { saved: Saved; dispatch: (a: Action) => void }) {
   const { t } = useI18n()
   const tr = t.rules
@@ -36,7 +36,7 @@ export const RulesSwitches = memo(function RulesSwitches({ saved, dispatch }: { 
   return (
     <section className="eb-block" aria-labelledby="eb-rules-h">
       <div className="eb-block-head">
-        <h2 id="eb-rules-h" className="eb-h2">{tr.head}</h2>
+        <h3 id="eb-rules-h" className="eb-src-title">{tr.head}</h3>
         <p className="eb-note">{tr.note}</p>
       </div>
       <ul className="eb-setgroup" data-testid="rules">

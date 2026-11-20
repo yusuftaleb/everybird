@@ -21,7 +21,7 @@ const OUT = process.env.SHARE_PNG_DIR;
 /** Opens the share dialog on the restored sample; `t` is the UI language the page is in (English by default). */
 async function openShare(page: Page, t: Ui = en.ui) {
   await page.goto("/settings");
-  await expect(page.getByTestId("ebird-drop")).toBeVisible();
+  await expect(page.getByRole("button", { name: t.collage.addBirds, exact: true })).toBeVisible(); // the bird data is in
   // Restore from backup on Settings opens the collage (/).
   await page.locator('input[type="file"][accept*="json"]').first().setInputFiles({ name: "backup.json", mimeType: "application/json", buffer: Buffer.from(backup) });
   await expect(page).toHaveURL(/\/$/);

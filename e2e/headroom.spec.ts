@@ -146,7 +146,7 @@ test("focus moving into the hidden bar shows it, and it stays while focus is ins
   await scrollTo(page, 400);
   await hidden(page);
   // From the page, Shift+Tab back to the bar's last control (the theme switch).
-  await page.getByRole("link", { name: "Add birds" }).evaluate((el: HTMLElement) => el.focus({ preventScroll: true }));
+  await page.getByRole("button", { name: "Add birds", exact: true }).evaluate((el: HTMLElement) => el.focus({ preventScroll: true }));
   const theme = page.getByRole("switch", { name: "Dark mode" });
   for (let i = 0; i < 6 && !(await theme.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press("Shift+Tab");
   await expect(theme).toBeFocused();

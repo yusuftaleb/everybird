@@ -786,7 +786,7 @@ export const de: Messages = {
         one: 'iNaturalist-Beobachtungen erst zählen, wenn sich die Community über die Bestimmung einig ist. Betrifft {n} Vogel.',
         other: 'iNaturalist-Beobachtungen erst zählen, wenn sich die Community über die Bestimmung einig ist. Betrifft {n} Vögel.',
       },
-      researchOff: 'Für iNaturalist-Beobachtungen. Füge oben iNaturalist hinzu, um das zu nutzen.',
+      researchOff: 'Für iNaturalist-Beobachtungen. Füge iNaturalist über „Vögel hinzufügen“ hinzu, um das zu nutzen.',
     },
     demo: {
       credit: 'Sticker: <link>huashu-bird-sticker</link>, CC BY 4.0',

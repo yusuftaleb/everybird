@@ -10,7 +10,6 @@ import { buildList } from '@/lib/list/build-list'
 import { recordsOf } from '@/lib/list/store'
 import { emptySaved, type Saved } from '@/lib/list/storage'
 import type { SpeciesIndex } from '@/lib/species/load'
-import { regions } from './obsorg-helpers'
 
 const idle: FileJob = { busy: false, rows: 0, error: null }
 const busy: FileJob = { busy: true, rows: 120, error: null }
@@ -32,8 +31,8 @@ function Panel({ saved, j }: { saved: Saved; j: ImportJobs }) {
   const list = buildList(recordsOf(saved), saved.edits, saved.rules)
   return (
     <ImportPanel
-      saved={saved} dispatch={() => {}} species={{ byCode: new Map() } as unknown as SpeciesIndex} regions={regions} jobs={j}
-      onList={new Set()} counts={sourceCounts(saved, list)}
+      saved={saved} dispatch={() => {}} species={{ byCode: new Map() } as unknown as SpeciesIndex} jobs={j}
+      counts={sourceCounts(saved, list)}
     />
   )
 }
@@ -55,9 +54,9 @@ describe('ImportPanel: one file at a time across both file groups', () => {
     rerender(<Panel saved={saved} j={jobs()} />)
     for (const b of buttons('eBird files')) expect(b).toBeEnabled()
     for (const b of buttons(OBSORG_GROUP)) expect(b).toBeEnabled()
-    // iNaturalist and Tick by hand never wait on a file.
+    // iNaturalist never waits on a file.
     rerender(<Panel saved={saved} j={jobs({ obsorg: busy })} />)
-    expect(screen.getByRole('button', { name: 'Tick birds off a list' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Add iNaturalist' })).toBeEnabled()
   })
 })
 

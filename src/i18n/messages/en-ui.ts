@@ -610,7 +610,7 @@ export const EN_UI = {
       namesDropped: 'The names didn’t fit, so this poster has none.',
     },
   },
-  /** Settings > Your list (ImportPanel, SourceLine, SourceMenu, EbirdDrop, InatForm, NotCounted, MatchReport,
+  /** The Add birds dialog and Settings > Your list (AddBirdsDialog, ImportPanel, SourceLine, SourceMenu, EbirdDrop, InatForm, NotCounted, MatchReport,
    *  SpeciesSearch, source-counts.ts) and the import jobs' messages (use-import-jobs.ts). eBird, MyEBirdData and
    *  iNaturalist are names and stay as they are. */
   import: {
@@ -911,7 +911,7 @@ export const EN_UI = {
       one: 'Count iNaturalist sightings only once the community agrees on the ID. Affects {n} bird.',
       other: 'Count iNaturalist sightings only once the community agrees on the ID. Affects {n} birds.',
     },
-    researchOff: 'For iNaturalist sightings. Add iNaturalist above to use it.',
+    researchOff: 'For iNaturalist sightings. Add iNaturalist in Add birds to use it.',
   },
   /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
   demo: {

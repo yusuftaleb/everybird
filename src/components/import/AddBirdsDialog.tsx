@@ -89,17 +89,17 @@ export function AddBirdsDialog({ start, onClose }: { start?: AddWay; onClose: ()
         {way && !data ? (
           !eb.failed && <div className="eb-ways-wait" aria-hidden="true" />
         ) : way === 'file' && data ? (
-          <ImportPanel
-            inDialog
-            saved={saved}
-            dispatch={dispatch}
-            species={data.species}
-            regions={data.regions}
-            jobs={jobs}
-            onList={onList}
-            counts={counts}
-            placesNote={placesNoteFor(saved, state.list.length, state.seen.full)}
-          />
+          <>
+            {!line && <p className="eb-note">{t.import.combine}</p>}
+            <ImportPanel
+              saved={saved}
+              dispatch={dispatch}
+              species={data.species}
+              jobs={jobs}
+              counts={counts}
+              placesNote={placesNoteFor(saved, state.list.length, state.seen.full)}
+            />
+          </>
         ) : way === 'hand' && data ? (
           <>
             {ticked.species > 0 && <p className="eb-mono eb-note">{[t.tick.title, ...countParts(ticked, t)].join(' · ')}</p>}

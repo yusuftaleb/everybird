@@ -784,7 +784,7 @@ export const pl: Messages = {
         one: 'Licz obserwacje iNaturalist dopiero, gdy społeczność zgodzi się co do oznaczenia. Dotyczy {n} ptaka.',
         other: 'Licz obserwacje iNaturalist dopiero, gdy społeczność zgodzi się co do oznaczenia. Dotyczy ptaków: {n}.',
       },
-      researchOff: 'Dotyczy obserwacji iNaturalist. Aby z tego skorzystać, dodaj iNaturalist powyżej.',
+      researchOff: 'Dotyczy obserwacji iNaturalist. Aby z tego skorzystać, dodaj iNaturalist w „Dodaj ptaki”.',
     },
     demo: {
       credit: 'Naklejki: <link>huashu-bird-sticker</link>, CC BY 4.0',

@@ -795,7 +795,7 @@ export const nl: Messages = {
         one: 'Tel iNaturalist-waarnemingen pas als de community het eens is over de determinatie. Geldt voor {n} vogel.',
         other: 'Tel iNaturalist-waarnemingen pas als de community het eens is over de determinatie. Geldt voor {n} vogels.',
       },
-      researchOff: 'Voor iNaturalist-waarnemingen. Voeg hierboven iNaturalist toe om dit te gebruiken.',
+      researchOff: 'Voor iNaturalist-waarnemingen. Voeg iNaturalist toe via Vogels toevoegen om dit te gebruiken.',
     },
     /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
     demo: {

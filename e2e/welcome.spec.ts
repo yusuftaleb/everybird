@@ -58,12 +58,15 @@ for (const [how, close] of [
   });
 }
 
-test("Make mine goes to the ways in on Settings and counts as closed", async ({ page }) => {
+test("Make mine opens the Add birds dialog on Settings, no way chosen yet, and counts as closed", async ({ page }) => {
   await page.goto("/");
   await welcome(page).getByRole("link", { name: /^Make mine/ }).click();
   await expect(page).toHaveURL(/\/settings#sources$/);
-  await expect(page.getByRole("heading", { level: 2, name: "Your list" })).toBeVisible();
-  await expect(page.locator("#sources")).toBeFocused(); // keyboard focus lands on the ways in, not the document top
+  const add = page.getByRole("dialog", { name: "Add birds" });
+  await expect(add).toBeVisible();
+  for (const way of ["Import a file", "Add by hand"]) await expect(add.getByRole("button", { name: way, exact: true })).toHaveAttribute("aria-pressed", "false");
+  // Keyboard focus lands in the dialog, not the document top.
+  await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
   await expect(welcome(page)).toHaveCount(0);
   await page.goto("/");
   await expect(page.getByTestId("collage-stage")).toBeVisible();
