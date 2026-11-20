@@ -520,11 +520,10 @@ export const de: Messages = {
         failed: 'Das Poster ließ sich nicht erstellen. Versuch es noch einmal.',
         previewAlt: 'Vorschau des {size}-Posters',
         bulk: {
-          title: 'Eins pro Gruppe',
+          title: 'In Stapeln exportieren',
           lede: 'Ein ZIP mit einem Bild oder einem Poster für jede Gruppe.',
           splitLabel: 'Aufteilen nach',
           perPoster: 'Vögel pro Poster',
-          perImage: 'Vögel pro Bild',
           all: 'Alle',
           splits: {
             batches: 'Anzahl der Vögel',
@@ -550,7 +549,7 @@ export const de: Messages = {
           namesDropped: { one: '{n} Poster hat keine Namen: Sie passten nicht.', other: '{n} Poster haben keine Namen: Sie passten nicht.' },
         },
         showNames: 'Artnamen zeigen',
-        namesCap: 'Auf {size} passen bis zu {max} Arten mit Namen. Wähle ein größeres Format oder filtere deine Liste.',
+        namesCap: 'Auf {size} passen bis zu {max} Arten mit Namen. Wähle ein größeres Format, filtere deine Liste oder <batch>exportiere in Stapeln</batch>.',
         namesNoFit: 'Die Namen passen nicht sauber auf {size}. Wähle ein größeres Format oder filtere deine Liste.',
         namesDropped: 'Die Namen passten nicht, deshalb hat dieses Poster keine.',
       },

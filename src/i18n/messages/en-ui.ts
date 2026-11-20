@@ -636,14 +636,13 @@ export const EN_UI = {
       failedMemory: 'Couldn’t make the poster. Try a smaller size.',
       failed: 'Couldn’t make the poster. Try again.',
       previewAlt: 'Preview of the {size} poster',
-      /** One per group: a ZIP of one share image (Share) or one poster (Print) per group. `perPoster` and `perImage` name the
-       *  Birds per poster (image) dropdown; `count`, `progress`, `ready` are the poster's, `…Images` the image's. */
+      /** Export in batches (`title`, a collapsed row): a ZIP of one share image (Share) or one poster (Print) per group.
+       *  `perPoster` names Print's Birds per poster dropdown; `count`, `progress`, `ready` are the poster's, `…Images` the image's. */
       bulk: {
-        title: 'One per group',
+        title: 'Export in batches',
         lede: 'A ZIP with one image, or one poster, for each group.',
         splitLabel: 'Split by',
         perPoster: 'Birds per poster',
-        perImage: 'Birds per image',
         all: 'All',
         splits: {
           batches: 'Number of birds',
@@ -669,7 +668,8 @@ export const EN_UI = {
         namesDropped: { one: '{n} poster has no names: they didn’t fit.', other: '{n} posters have no names: they didn’t fit.' },
       },
       showNames: 'Show species names',
-      namesCap: '{size} fits up to {max} species with names. Pick a larger size or filter your list.',
+      /** Under Show species names over the size's cap; `<batch>…</batch>` is a button that opens Export in batches. */
+      namesCap: '{size} fits up to {max} species with names. Pick a larger size, filter your list or <batch>export in batches</batch>.',
       namesNoFit: 'Names won’t fit cleanly on {size}. Pick a larger size or filter your list.',
       namesDropped: 'The names didn’t fit, so this poster has none.',
     },

@@ -517,11 +517,10 @@ export const it: Messages = {
         failed: 'Impossibile creare il poster. Riprova.',
         previewAlt: 'Anteprima del poster {size}',
         bulk: {
-          title: 'Uno per gruppo',
+          title: 'Esporta a lotti',
           lede: 'Uno ZIP con un’immagine, o un poster, per ogni gruppo.',
           splitLabel: 'Dividi per',
           perPoster: 'Uccelli per poster',
-          perImage: 'Uccelli per immagine',
           all: 'Tutti',
           splits: {
             batches: 'Numero di uccelli',
@@ -547,7 +546,7 @@ export const it: Messages = {
           namesDropped: { one: '{n} poster non ha nomi: non ci stavano.', other: '{n} poster non hanno nomi: non ci stavano.' },
         },
         showNames: 'Mostra i nomi delle specie',
-        namesCap: 'Il formato {size} contiene fino a {max} specie con i nomi. Scegli un formato più grande o filtra la tua lista.',
+        namesCap: 'Il formato {size} contiene fino a {max} specie con i nomi. Scegli un formato più grande, filtra la tua lista o <batch>esporta a lotti</batch>.',
         namesNoFit: 'I nomi non ci stanno bene in {size}. Scegli un formato più grande o filtra la tua lista.',
         namesDropped: 'I nomi non ci stavano, quindi questo poster non ne ha.',
       },

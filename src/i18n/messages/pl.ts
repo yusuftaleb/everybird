@@ -523,11 +523,10 @@ export const pl: Messages = {
         failed: 'Nie udało się utworzyć plakatu. Spróbuj ponownie.',
         previewAlt: 'Podgląd plakatu {size}',
         bulk: {
-          title: 'Po jednym na grupę',
+          title: 'Eksportuj partiami',
           lede: 'ZIP z jednym obrazem lub jednym plakatem dla każdej grupy.',
           splitLabel: 'Podziel według',
           perPoster: 'Ptaki na plakat',
-          perImage: 'Ptaki na obraz',
           all: 'Wszystkie',
           splits: {
             batches: 'Liczba ptaków',
@@ -553,7 +552,7 @@ export const pl: Messages = {
           namesDropped: { one: '{n} plakat nie ma nazw: nie zmieściły się.', few: '{n} plakaty nie mają nazw: nie zmieściły się.', many: '{n} plakatów nie ma nazw: nie zmieściły się.', other: 'Plakaty bez nazw, bo się nie zmieściły: {n}.' },
         },
         showNames: 'Pokaż nazwy gatunków',
-        namesCap: 'Na {size} zmieści się najwyżej {max} gatunków z nazwami. Wybierz większy rozmiar albo przefiltruj listę.',
+        namesCap: 'Na {size} zmieści się najwyżej {max} gatunków z nazwami. Wybierz większy rozmiar, przefiltruj listę albo <batch>eksportuj partiami</batch>.',
         namesNoFit: 'Nazwy nie zmieszczą się dobrze na {size}. Wybierz większy rozmiar albo przefiltruj listę.',
         namesDropped: 'Nazwy się nie zmieściły, więc ten plakat ich nie ma.',
       },

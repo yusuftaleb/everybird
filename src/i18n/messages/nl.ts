@@ -528,11 +528,10 @@ export const nl: Messages = {
         failed: 'De poster maken is niet gelukt. Probeer het opnieuw.',
         previewAlt: 'Voorbeeld van de {size}-poster',
         bulk: {
-          title: 'Eén per groep',
+          title: 'In delen exporteren',
           lede: 'Een ZIP met één afbeelding, of één poster, per groep.',
           splitLabel: 'Verdelen op',
           perPoster: 'Vogels per poster',
-          perImage: 'Vogels per afbeelding',
           all: 'Alle',
           splits: {
             batches: 'Aantal vogels',
@@ -558,7 +557,7 @@ export const nl: Messages = {
           namesDropped: { one: '{n} poster heeft geen namen: ze pasten niet.', other: '{n} posters hebben geen namen: ze pasten niet.' },
         },
         showNames: 'Soortnamen tonen',
-        namesCap: 'Op {size} passen tot {max} soorten met namen. Kies een groter formaat of filter je lijst.',
+        namesCap: 'Op {size} passen tot {max} soorten met namen. Kies een groter formaat, filter je lijst of <batch>exporteer in delen</batch>.',
         namesNoFit: 'De namen passen niet netjes op {size}. Kies een groter formaat of filter je lijst.',
         namesDropped: 'De namen pasten niet, dus deze poster heeft geen namen.',
       },

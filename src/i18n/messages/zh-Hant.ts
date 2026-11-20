@@ -519,11 +519,10 @@ export const zhHant: Messages = {
         failed: '無法製作海報。請再試一次。',
         previewAlt: '{size} 海報預覽',
         bulk: {
-          title: '每組一份',
+          title: '分批匯出',
           lede: '一個 ZIP，每組一張圖片或一張海報。',
           splitLabel: '分組依據',
           perPoster: '每張海報的鳥數',
-          perImage: '每張圖片的鳥數',
           all: '全部',
           splits: {
             batches: '按鳥的數量',
@@ -549,7 +548,7 @@ export const zhHant: Messages = {
           namesDropped: { one: '有 {n} 張海報沒有鳥名：放不下。', other: '有 {n} 張海報沒有鳥名：放不下。' },
         },
         showNames: '顯示鳥種名稱',
-        namesCap: '{size} 最多可放 {max} 種並附上名稱。請選擇較大的尺寸，或篩選你的清單。',
+        namesCap: '{size} 最多可放 {max} 種並附上名稱。請選擇較大的尺寸、篩選你的清單，或<batch>分批匯出</batch>。',
         namesNoFit: '名稱在 {size} 上無法整齊排下。請選擇較大的尺寸，或篩選你的清單。',
         namesDropped: '名稱放不下，所以這張海報沒有名稱。',
       },

@@ -519,11 +519,10 @@ export const ja: Messages = {
         failed: 'ポスターを作れませんでした。もう一度お試しください。',
         previewAlt: '{size}ポスターのプレビュー',
         bulk: {
-          title: 'グループごとに1つ',
+          title: '分けて書き出す',
           lede: 'グループごとに画像またはポスターを1つずつ入れたZIP。',
           splitLabel: '分け方',
           perPoster: 'ポスター1枚の鳥の数',
-          perImage: '画像1枚の鳥の数',
           all: 'すべて',
           splits: {
             batches: '鳥の数',
@@ -549,7 +548,7 @@ export const ja: Messages = {
           namesDropped: { one: '{n}枚のポスターには名前がありません：収まりませんでした。', other: '{n}枚のポスターには名前がありません：収まりませんでした。' },
         },
         showNames: '種名を表示',
-        namesCap: '{size}に名前付きで入るのは{max}種までです。大きいサイズを選ぶか、リストを絞り込んでください。',
+        namesCap: '{size}に名前付きで入るのは{max}種までです。大きいサイズを選ぶか、リストを絞り込むか、<batch>分けて書き出して</batch>ください。',
         namesNoFit: '{size}では名前がきれいに収まりません。大きいサイズを選ぶか、リストを絞り込んでください。',
         namesDropped: '名前が収まらなかったため、このポスターには名前がありません。',
       },
