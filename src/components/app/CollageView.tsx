@@ -142,7 +142,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // The level the Map or Tree view has open (their own state, told up as it changes), for Share to draw the same.
   const shareAt = useRef<ShareAt>({})
   const onMapLevel = useCallback((place: string | undefined) => { shareAt.current = { place } }, [])
-  const onTreeLevel = useCallback((tree: TreeLevel) => { shareAt.current = { tree } }, [])
+  const onTreeLevel = useCallback((tree: TreeLevel, mine: boolean) => { shareAt.current = { tree, mine } }, [])
 
   const entries = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
   // The timeline's months (first lifer to today).

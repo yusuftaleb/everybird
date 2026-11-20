@@ -642,6 +642,8 @@ export type ShareImageOpts = {
   pack?: ImagePack
   /** When the image is made, for the footer's date stamp; default `new Date()`. */
   now?: Date
+  /** The footer line before its date stamp; default FOOTER_LINE. The Map and Tree images draw no stickers (view-image.ts). */
+  footer?: string
   /** The latest lifer row; default true. False leaves it out and gives its room to the collage (cardLayout's `latest: false`). */
   latest?: boolean
   markNewest?: boolean
@@ -837,7 +839,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const goalLabel = goal ? goalText(goal, strings) : undefined
   const label = opts.filterLabel?.trim() || goalLabel || undefined
   const name = opts.name?.trim() || undefined
-  const footerLine = withStamp(FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
+  const footerLine = withStamp(opts.footer ?? FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
   const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize }
   const printSize = opts.printSize ?? 'A2'
   const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
