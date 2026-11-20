@@ -298,8 +298,9 @@ describe('MenuSelect', () => {
       </>,
     )
     fireEvent.click(screen.getByRole('button', { name: 'Level Orders' }))
-    const off = screen.getByRole('menuitemradio', { name: 'Genera Open a family to see its genera' })
+    const off = screen.getByRole('menuitemradio', { name: 'Genera' })
     expect(off).toHaveAttribute('aria-disabled', 'true')
+    expect(off).toHaveAccessibleDescription('Open a family to see its genera')
     fireEvent.click(off)
     expect(onChange).not.toHaveBeenCalled()
     expect(screen.getByRole('menu')).toBeInTheDocument()
