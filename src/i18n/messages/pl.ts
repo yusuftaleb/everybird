@@ -16,7 +16,7 @@ export const pl: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: 'Kolaż',
+        collage: 'Moje ptaki',
         compare: 'Porównaj',
         settings: 'Ustawienia',
         about: 'Info',
@@ -65,7 +65,7 @@ export const pl: Messages = {
       },
     },
     collage: {
-      untitled: 'Mój kolaż',
+      untitled: 'Moje ptaki',
       addBirds: 'Dodaj ptaki',
       share: 'Udostępnij',
       print: 'Drukuj',
@@ -326,7 +326,7 @@ export const pl: Messages = {
       marks: 'Oznaczenia',
       markAs: 'Oznacz jako',
       resetMarks: 'Oznaczenia z moich zapisów',
-      remove: 'Usuń z mojej listy',
+      remove: 'Usuń',
     },
     landing: {
       title: 'Ptaki całego życia.',

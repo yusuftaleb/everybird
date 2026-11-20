@@ -141,12 +141,12 @@
   .eb-dock-tools .eb-dock-sw { position: relative; min-height: 36px; }
   .eb-dock-tools .eb-dock-sw::after { content: ''; position: absolute; inset: -4px 0; }
 }
-/* The Tree's controls: the Level and Layout menus (MenuSelect's button, rendered by TreeView into `.eb-dock-menus`), then
-   Lifers only and Scientific. They keep one row with the views and the magnifier whenever they fit; when they don't
-   (ControlsBar measures them: `data-wrap`), they take the second row as the other views' controls do under 820px, and
-   that row wraps whole groups (the two menus together, the two switches together) rather than overflowing. Each control
-   keeps its own width there (no shrinking: the measure reads it). Under 600px the menus take that row to themselves,
-   sharing it evenly, and the switches and Filters the row under it. */
+/* The Tree's controls: Lifers only and Scientific, then the Level and Layout menus (MenuSelect's button, rendered by
+   TreeView into `.eb-dock-menus`), then Filters. They keep one row with the views and the magnifier whenever they fit;
+   when they don't (ControlsBar measures them: `data-wrap`), they take the second row as the other views' controls do
+   under 820px, in the same order, and that row wraps whole groups (the two switches together, the two menus together)
+   rather than overflowing. Each control keeps its own width there (no shrinking: the measure reads it). Under 600px the
+   menus fill the rest of their row, sharing it evenly, and Filters the rest of its own. */
 .eb-dock-menus { display: flex; align-items: center; gap: 4px; flex: none; margin-right: 8px; }
 .eb-dock-menus:empty { display: none; }
 .eb-dock[data-view="tree"] .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
@@ -170,7 +170,7 @@
 .eb-dock-menus .eb-share-dd:disabled { color: inherit; cursor: default; }
 @media (hover: hover) and (pointer: fine) { .eb-dock-menus .eb-share-dd:not(:disabled):hover { opacity: 1; } }
 @container (max-width: 599px) {
-  .eb-dock-menus { flex: 1 0 100%; margin-right: 0; }
+  .eb-dock-menus { flex: 1 0 auto; margin-right: 0; }
   .eb-dock-menus > .eb-share-ddwrap { flex: 1 1 0; min-width: 0; }
   /* As Filters on this row: 36px drawn with a 44px press, the label centred, no caret. */
   .eb-dock-menus .eb-share-dd { width: 100%; min-height: 36px; justify-content: center; padding: 0 10px; }
@@ -438,7 +438,7 @@
 @media (max-width: 499px) {
   .eb-topbar-in { gap: 4px; }
   .eb-wordmark { font-size: 19px; }
-  .eb-nav ul { gap: 2px; }
+  .eb-nav ul { gap: 0px; } /* the nav is on row two here, spread by space-between: no gap needed */
   .eb-nav-link { padding: 0 8px; font-size: 14px; }
   .eb-theme { width: 40px; height: 40px; }
 }
@@ -457,29 +457,23 @@
    staying in row one. Only the padding's block sides change, so the gutter stays 16px (12px under 360, 8px under 240).
    Each split has its twin in tokens.css (--topbar-h 93px), the same media query and selector, so a one-row bar never
    gets a two-row offset; tests/topbar-fit.test.ts checks the pairs and that every row fits.
-   Four links (Collage, Compare, Settings, About) beside the wordmark and the buttons need about 600px of page.
-   a (default): the language button in row one; the nav on row two under 600px, in every language.
-   b (no top-bar button): under 548px in Spanish and Dutch, under 540px in the other languages.
-   c (the language button; Collage hidden under 480px, the wordmark goes home): under 600px. */
-@media (max-width: 599px) {
+   Four links (My birds, Compare, Settings, About) beside the wordmark and the buttons need about 620px of page.
+   a (default): the language button in row one; the nav on row two under 620px, in every language.
+   b (no top-bar button): under 572px.
+   c (the language button; My birds hidden under 480px, the wordmark goes home): under 620px. */
+@media (max-width: 619px) {
   :root:not([data-topbar="b"], [data-topbar="c"]) .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding-block: 4px; min-height: 0; }
   :root:not([data-topbar="b"], [data-topbar="c"]) .eb-topbar-end { order: 1; margin-left: auto; }
   :root:not([data-topbar="b"], [data-topbar="c"]) .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
   :root:not([data-topbar="b"], [data-topbar="c"]) .eb-nav ul { justify-content: space-between; }
 }
-@media (max-width: 547px) {
-  :root[data-topbar="b"]:is(:lang(es), :lang(nl)) .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding-block: 4px; min-height: 0; }
-  :root[data-topbar="b"]:is(:lang(es), :lang(nl)) .eb-topbar-end { order: 1; margin-left: auto; }
-  :root[data-topbar="b"]:is(:lang(es), :lang(nl)) .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
-  :root[data-topbar="b"]:is(:lang(es), :lang(nl)) .eb-nav ul { justify-content: space-between; }
-}
-@media (max-width: 539px) {
+@media (max-width: 571px) {
   :root[data-topbar="b"] .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding-block: 4px; min-height: 0; }
   :root[data-topbar="b"] .eb-topbar-end { order: 1; margin-left: auto; }
   :root[data-topbar="b"] .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
   :root[data-topbar="b"] .eb-nav ul { justify-content: space-between; }
 }
-@media (max-width: 599px) {
+@media (max-width: 619px) {
   :root[data-topbar="c"] .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding-block: 4px; min-height: 0; }
   :root[data-topbar="c"] .eb-topbar-end { order: 1; margin-left: auto; }
   :root[data-topbar="c"] .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
@@ -489,9 +483,9 @@
   :root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }
   :root[data-topbar="c"] .eb-wordmark[aria-current="page"] { color: var(--accent); }
 }
-/* Under 300px of page (a phone at Safari's aA 150% or more) four links can't share row two at the bar's type in most
+/* Under 320px of page (a phone at Safari's aA 150% or more) four links can't share row two at the bar's type in some
    languages: the nav wraps onto a second line there (--topbar-h 133px in tokens.css) rather than shrink. */
-@media (max-width: 299px) {
+@media (max-width: 319px) {
   .eb-nav ul { flex-wrap: wrap; }
 }
 /* Under 240px (a 390px phone at aA 200%): row two's links at 13px with a 8px gutter and 3px inside each pill; the press

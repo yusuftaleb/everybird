@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { createContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { trapTab, useEscapeCapture, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
 import { formatMass, formatMonth } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -18,6 +18,9 @@ import { albumSlug, albumUrl, loadAlbumSlugs } from '@/lib/bird-album'
 import { IucnBadge } from './IucnPill'
 import { markLabel, Marks, marksOf } from './Marks'
 import './card-list.css'
+
+/** The card's illustration link, handed to its actions (EditBird ends its Remove row with it); null when there is none. */
+export const CardEndLink = createContext<ReactNode>(null)
 
 export type CardAnchor = Element | DOMRect | null
 
@@ -170,7 +173,8 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
     entry.assigned === 'region' ? t.card.assignedRegion : entry.assigned === 'default' ? t.card.assignedDefault : '',
   ].filter((n): n is string => !!n)
 
-  // LifeList's card (layout C), with the edit actions under it and the illustration link in the bottom-right corner. No
+  // LifeList's card (layout C), with the edit actions under it and the illustration link in the bottom-right corner (with
+  // actions, at the right of their Remove row: CardEndLink). No
   // visible close button: a press outside and Esc close it; a visually hidden one (shown on keyboard focus) keeps it
   // closable without a pointer.
   const card = (
@@ -188,8 +192,11 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
       <BirdFacts entry={shown} row={row} regions={regions} sci={sci} statusTip />
       {!row.st && <p className="eb-card-note" data-testid="no-drawing">{t.card.noDrawing}</p>}
       {notes.length > 0 && <p className="eb-card-note">{notes.join(' · ')}</p>}
-      {actions && <div className="eb-card-actions">{actions}</div>}
-      {row.st && <AlbumLink row={row} />}
+      {actions ? (
+        <CardEndLink.Provider value={row.st ? <AlbumLink row={row} /> : null}>
+          <div className="eb-card-actions">{actions}</div>
+        </CardEndLink.Provider>
+      ) : row.st && <AlbumLink row={row} />}
     </div>
   )
 

@@ -6,7 +6,7 @@
 //     over the quiet source rows (SourceLine.tsx: a title, " · file" once connected, a muted sentence-case status, one
 //     button and, connected, a ⋯ menu); the eBird rows take a dropped file (EbirdDrop) and read it ("Reading your
 //     file… 4,812 rows").
-//   - The collage page: the page head ("My collage", the title verbatim; Add birds and Share), the stats line, the
+//   - The collage page: the page head ("My birds", the title verbatim; Add birds and Share), the stats line, the
 //     controls bar (ControlsBar: view tabs, True size, Scientific, the one Filters button, search; two rows on
 //     phones), the taxonomy chips (wrapped; the "Choose an order" picker and its sheet on phones), the breadcrumb once
 //     Herons is chosen, and the collage around the count.

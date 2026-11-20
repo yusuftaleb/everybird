@@ -14,7 +14,7 @@ export const de: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: 'Collage',
+        collage: 'Meine Vögel',
         compare: 'Vergleichen',
         settings: 'Optionen',
         about: 'Über',
@@ -63,7 +63,7 @@ export const de: Messages = {
       },
     },
     collage: {
-      untitled: 'Meine Collage',
+      untitled: 'Meine Vögel',
       addBirds: 'Vögel hinzufügen',
       share: 'Teilen',
       print: 'Drucken',
@@ -323,7 +323,7 @@ export const de: Messages = {
       marks: 'Markierungen',
       markAs: 'Markieren als',
       resetMarks: 'Markierungen aus meinen Daten',
-      remove: 'Von meiner Liste entfernen',
+      remove: 'Entfernen',
     },
     landing: {
       title: 'Ein Leben voller Vögel.',

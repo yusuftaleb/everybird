@@ -8,6 +8,8 @@
 .eb-edit .eb-chip { background: transparent; }
 .eb-edit-sym { font-family: var(--font-mono); min-width: 1ch; text-align: center; color: var(--muted); }
 .eb-edit .eb-chip-icon { color: var(--accent); }
-.eb-edit-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.eb-edit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* The card's illustration link ends the row, at its right (BirdCard's CardEndLink). */
+.eb-edit-row > .eb-card-credit { margin-left: auto; }
 .eb-textbtn.eb-edit-remove { color: var(--accent); text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 .eb-textbtn.eb-edit-remove svg { color: var(--accent); }

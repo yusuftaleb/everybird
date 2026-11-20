@@ -176,7 +176,7 @@
 @media (min-width: 720px) { .eb-tick-tools { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
 .eb-tick-count { margin: 0; }
 .eb-ticklist {
-  position: relative; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+  position: relative; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--hairline); /* below it, the bar's Hairline: one line, not two */
   contain: strict; outline: none;
 }
 .eb-ticklist:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }

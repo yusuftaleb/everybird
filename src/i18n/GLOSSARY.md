@@ -17,7 +17,7 @@ Read this before you translate a string or add a language. English (`messages/en
 | Make yours | Haz el tuyo | Faça a sua (a colagem) | Maak de jouwe | Stwórz swój | Crée le tien | Mach deine | Crea il tuo | Gör din egen | Lav din egen | Создай свой | 自分のを作る | 制作你的 | 製作你的 |
 | Settings (top bar) | Ajustes | Ajustes | Instellingen | Ustawienia | Réglages | Optionen ("Einstellungen" doesn't fit the top bar) | Opzioni ("Impostazioni" is long for the top bar) | Alternativ ("Inställningar" is long for the top bar) | Valg ("Indstillinger" is long for the top bar) | Опции ("Настройки" is too wide for the top bar) | 設定 | 设置 | 設定 |
 | About (top bar) | Acerca de | Sobre | Over | Info ("O aplikacji" doesn't fit the top bar) | Infos ("À propos" doesn't fit the top bar) | Über | Info | Om | Om | Инфо | 概要 | 关于 | 關於 |
-| My collage (untitled) | Mi collage | Minha colagem | Mijn collage | Mój kolaż | Mon collage | Meine Collage | Il mio collage | Mitt collage | Min collage | Мой коллаж | マイコラージュ | 我的拼贴画 | 我的拼貼 |
+| My birds (the page with the Collage, List, Map and Tree views: the top bar's link and its heading when untitled; the Collage view keeps its name) | Mis aves | Minhas aves | Mijn vogels | Moje ptaki | Mes oiseaux | Meine Vögel | I miei uccelli | Mina fåglar | Mine fugle | Мои птицы | 自分の鳥 | 我的鸟 | 我的鳥 |
 | Places (filter) | Lugares | Lugares | Plaatsen | Miejsca | Lieux | Orte | Luoghi | Platser | Steder | Места | 場所 | 地点 | 地點 |
 | Map (view tab) | Mapa | Mapa | Kaart | Mapa | Carte | Karte | Mappa | Karta | Kort | Карта | 地図 | 地图 | 地圖 |
 | Time (filter) | Fechas | Datas | Tijd | Czas | Dates | Zeit | Date | Tid | Tid | Время | 期間 | 时间 | 時間 |

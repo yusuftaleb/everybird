@@ -10,9 +10,8 @@
 // breadcrumb's style) says where the map is; each earlier step goes back to it, and so does Esc while the map has focus.
 // The picture is aria-hidden: the list under it, the shown level's places with their counts, most species first, in
 // one to three columns (map.css), is its text path (a row that opens is a button, exactly as a press on the map; country
-// rows carry their flag as an emoji, mapFlag). The level the map has open is told up (`onLevel`), so Share draws the
-// same map. Three looks to compare (`?v=map:a|b|c`, MAP_LOOKS in shapes.ts): the ramp is set per path, the borders and
-// outlines by map.css's `[data-look]`. The shapes (src/lib/map/shapes.ts) are pre-projected; the world loads with the
+// rows carry the Places filter's flag, components/Flag). The level the map has open is told up (`onLevel`), so Share
+// draws the same map. The ramp (RAMP in shapes.ts) is set per path, the borders and outlines by map.css. The shapes (src/lib/map/shapes.ts) are pre-projected; the world loads with the
 // tab, the provinces on the first open.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { fmt, plural } from '@/i18n/core'
@@ -22,10 +21,10 @@ import { HTML_LANG } from '@/i18n/langs'
 import { regionsIn } from '@/lib/i18n-places'
 import { parsePlaceKey, placeName } from '@/lib/list/place-keys'
 import type { AppState } from '@/lib/list/store'
-import { countRange, loadMapCountries, loadMapProvinces, LOOKS, MAP_LOOKS, mapCounts, mapFlag, mapLayer, mapOpens, mapPath, mapRows, placeCount, shadeMix, type MapCountries, type MapLook, type MapProvinces } from '@/lib/map/shapes'
+import { Flag } from '@/components/Flag'
+import { countRange, loadMapCountries, loadMapProvinces, mapCounts, mapLayer, mapOpens, mapPath, mapRows, placeCount, RAMP, shadeMix, type MapCountries, type MapProvinces } from '@/lib/map/shapes'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
-import { useVariant } from '@/lib/variants'
 import { ChevronDownIcon } from './icons'
 import './card-list.css'
 import './map.css'
@@ -36,10 +35,9 @@ export const MAP_FIRST_ROWS = 10
 /** The test id of a step of the path (undefined: World). */
 const stepId = (k: string | undefined) => `map-path-${k ?? 'world'}`
 
-/** The CSS colour of `mix` (0 to 1) on a look's ramp: its hue over its ground, in the theme's tokens. */
-export function lookFill(look: MapLook, mix: number): string {
-  const { hue, over } = LOOKS[look]
-  return `color-mix(in srgb, var(--${hue}) ${Math.round(mix * 1000) / 10}%, var(--${over}))`
+/** The CSS colour of `mix` (0 to 1) on the ramp: Accent over Paper, in the theme's tokens. */
+export function rampFill(mix: number): string {
+  return `color-mix(in srgb, var(--accent) ${Math.round(mix * 1000) / 10}%, var(--paper))`
 }
 
 type Props = {
@@ -54,7 +52,6 @@ type Tip = { key: string; x: number; y: number; w: number }
 
 export function MapView({ state, species, regions, onLevel }: Props) {
   const { t, lang } = useI18n()
-  const look = useVariant('map', MAP_LOOKS)
   const [at, setAt] = useState<string | undefined>()
   const [world, setWorld] = useState<MapCountries | null>(null)
   const [provinces, setProvinces] = useState<MapProvinces | null>(null)
@@ -154,7 +151,6 @@ export function MapView({ state, species, regions, onLevel }: Props) {
       ref={root}
       className="eb-map"
       data-testid="map-view"
-      data-look={look}
       onKeyDown={(e) => {
         if (e.key === 'Escape' && open) {
           e.preventDefault()
@@ -193,8 +189,8 @@ export function MapView({ state, species, regions, onLevel }: Props) {
                     key={s.id}
                     d={s.d}
                     data-key={s.key}
-                    data-mix={press ? shadeMix(s.n, min, max, look).toFixed(2) : undefined}
-                    style={press ? { fill: lookFill(look, shadeMix(s.n, min, max, look)) } : undefined}
+                    data-mix={press ? shadeMix(s.n, min, max).toFixed(2) : undefined}
+                    style={press ? { fill: rampFill(shadeMix(s.n, min, max)) } : undefined}
                     data-hot={s.key === tipShape?.key || undefined}
                     data-open={s.key === open || undefined}
                     data-press={press || undefined}
@@ -225,7 +221,7 @@ export function MapView({ state, species, regions, onLevel }: Props) {
         {layer && max > 0 && (
           <div className="eb-mono eb-map-legend" aria-hidden="true" data-testid="map-legend">
             <span>{formatInt(min, t.num)}</span>
-            <i style={{ background: `linear-gradient(90deg, ${lookFill(look, LOOKS[look].lo)}, ${lookFill(look, LOOKS[look].hi)})` }} />
+            <i style={{ background: `linear-gradient(90deg, ${rampFill(RAMP.lo)}, ${rampFill(RAMP.hi)})` }} />
             <span>{spoken(max)}</span>
           </div>
         )}
@@ -241,7 +237,7 @@ export function MapView({ state, species, regions, onLevel }: Props) {
           const inner = (
             <>
               {/* World rows keep the flag's room, so a place without a flag (Northern Cyprus) lines up with the rest. */}
-              {atWorld && <span className="eb-map-flag" aria-hidden="true">{mapFlag(r.value)}</span>}
+              {atWorld && <span className="eb-flag-slot" aria-hidden="true"><Flag iso={parsePlaceKey(r.value)?.country} /></span>}
               <span className="eb-map-row-name">{r.label}</span>
               <span className="eb-count" aria-hidden="true">{n}</span>
               <span className="eb-sr">, {spoken(r.count)}</span>

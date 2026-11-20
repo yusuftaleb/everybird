@@ -16,7 +16,7 @@ export const ja: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: 'コラージュ',
+        collage: '自分の鳥',
         compare: '比較',
         settings: '設定',
         about: '概要',
@@ -65,7 +65,7 @@ export const ja: Messages = {
       },
     },
     collage: {
-      untitled: 'マイコラージュ',
+      untitled: '自分の鳥',
       addBirds: '鳥を追加',
       share: '共有',
       print: '印刷',
@@ -322,7 +322,7 @@ export const ja: Messages = {
       marks: '印',
       markAs: '印を付ける',
       resetMarks: '自分の記録どおりの印',
-      remove: 'リストから削除',
+      remove: '削除',
     },
     landing: {
       title: '一生分の鳥を。',

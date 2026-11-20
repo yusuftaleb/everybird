@@ -196,8 +196,8 @@ describe('the top bar under a language prefix', () => {
     const plain = current('/settings')
     expect(prefixed.marked).toEqual(['Settings'])
     expect(plain).toEqual(prefixed)
-    expect(current('/nl').marked).toEqual(['Collage'])
-    expect(current('/').marked).toEqual(['Collage'])
+    expect(current('/nl').marked).toEqual(['My birds'])
+    expect(current('/').marked).toEqual(['My birds'])
   }, 15_000)
 })
 
@@ -222,7 +222,7 @@ describe('the Collage page (/)', () => {
     // The top bar: the wordmark home, the three pages (this one current) and the theme switch.
     const bar = screen.getByRole('banner')
     expect(within(bar).getByRole('link', { name: 'Everybird' })).toHaveAttribute('href', '/')
-    expect(within(bar).getByRole('link', { name: 'Collage' })).toHaveAttribute('aria-current', 'page')
+    expect(within(bar).getByRole('link', { name: 'My birds' })).toHaveAttribute('aria-current', 'page')
     expect(within(bar).getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
     expect(within(bar).getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about')
     expect(within(bar).getByRole('switch', { name: 'Dark mode' })).toBeInTheDocument()
@@ -264,7 +264,7 @@ describe('the Collage page (/)', () => {
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await go('/')
-    expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'My birds' })).toBeInTheDocument()
     expect(stats()).toHaveTextContent(/^3 species/)
     // Share is the head's main action, beside Add birds, in every view; the bar has no Share of its own.
     const share = screen.getByRole('button', { name: 'Share' })
@@ -336,7 +336,7 @@ describe('when the bird data fails to load', () => {
 
   it('a birder with a list on this device gets their collage page with the "couldn\'t load" notice', async () => {
     await mount({ path: '/', failSpecies: true, stored: (s) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
-    expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'My birds' })).toBeInTheDocument()
     expect(await screen.findByText(/Couldn't load the bird data/)).toBeInTheDocument()
   })
 })
@@ -375,7 +375,7 @@ describe('Settings and the collage', () => {
     expect((await storage.load())?.records.ebird).toEqual([])
     expect((await storage.load())?.skipped).toEqual({ 'ebird-list': 1 })
     fireEvent.click(within(made()).getByRole('link', { name: 'See my collage' }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'My birds' })).toBeInTheDocument()
     expect(stats()).toHaveTextContent(/^3 species/)
     expect(screen.queryByTestId('unmatched-note')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
@@ -601,7 +601,7 @@ describe('editing', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Heard only/ }))
     expect(screen.getByRole('dialog').querySelector('.eb-card-date')).not.toHaveTextContent('Heard only')
 
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove from my list' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
     expect(screen.queryByRole('dialog')).toBeNull()
     // A few seconds to undo it.
@@ -611,7 +611,7 @@ describe('editing', () => {
     await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
     expect(screen.queryByText('Removed Northern Flicker.')).toBeNull()
     fireEvent.click(within(screen.getByRole('list', { name: 'Life list' })).getByRole('button', { name: /Northern Flicker/ }))
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove from my list' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
 
     // Add by hand (Settings' Add birds): the removed species comes back at once, with a date and a region.
@@ -737,7 +737,7 @@ describe('editing', () => {
     const good = { ...storage.emptySaved(), records: { ebird: [], inat: [], manual: [{ code: 'snogoo', source: 'manual' }] } } // a backup from before the second eBird slot
     const file = new File([JSON.stringify(good)], 'backup.json', { type: 'application/json' })
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
-    expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'My birds' })).toBeInTheDocument()
     await waitFor(() => expect(stats()).toHaveTextContent(/^1 species/))
   })
 
@@ -780,9 +780,9 @@ describe('the collage title (set in the share dialog, no longer on Settings)', (
     expect(screen.queryByLabelText('Name your collage')).toBeNull()
   })
 
-  it('a list with no title is "My collage"', async () => {
+  it('a list with no title is "My birds"', async () => {
     await mount({ path: '/', stored: (s) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
-    expect(await screen.findByRole('heading', { level: 1, name: 'My collage' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'My birds' })).toBeInTheDocument()
   })
 
   it('a list saved with an old bare name shows the title it always had', async () => {

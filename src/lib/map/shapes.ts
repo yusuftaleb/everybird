@@ -2,7 +2,7 @@
 // or requests at run time): map-countries.v1.json (the world) loads with the Map tab, map-provinces.v1.json on the first
 // country opened. Ids are the Places filter's: a world shape `id` is the key `c:<id>`, a province `code` the key
 // `s:<code>`. The map shows the birds the whole filter leaves, the collage's (mapCounts), each counted at every place it
-// was recorded, on one continuous log scale (shadeMix, in one of three looks, MAP_LOOKS). It has no filter of its own: a
+// was recorded, on one continuous log scale (shadeMix, RAMP). It has no filter of its own: a
 // press on a country opens it (its provinces where their shapes hold its species, else the country framed in the world,
 // mapLayer), a press on a province with counties opens that (the province framed and its counties listed: there are no
 // county shapes), and the path above the map goes back.
@@ -178,49 +178,24 @@ export function countRange(shapes: readonly { n: number }[]): [min: number, max:
   return max ? [min, max] : [0, 0]
 }
 
-/** Accent's share over Surface for the lowest count in look a: the legend ramp's light end. */
-export const SHADE_LIGHT = 0.15
-
-/** The map's three looks, a preview variant (`?v=map:b`; `useVariant('map', MAP_LOOKS)`); a, the first, is the default. */
-export const MAP_LOOKS = ['a', 'b', 'c'] as const
-export type MapLook = (typeof MAP_LOOKS)[number]
+/**
+ * The ramp: Accent mixed over Paper by `lo` for the fewest species up to `hi` for the most, a pale tint to a
+ * mid-strength Accent, never near-black. Land with no birds is Surface, a step darker than the page; the hairline
+ * borders and the Ink outlines of the hovered and the open place are map.css's.
+ */
+export const RAMP = { lo: 0.18, hi: 0.62 } as const
 
 /**
- * Each look's ramp: `hue` mixed over `over` (token names) by `lo` for the fewest species up to `hi` for the most. Land
- * with no birds is Surface in every look; the borders and outlines are map.css's (`.eb-map[data-look]`).
- * a: Accent over Surface, 15% to full Accent. b: a pale tint of Accent over Paper up to a mid-strength Accent, never
- * near-black. c: monochrome, a light grey (Ink over Paper) up to Ink; Accent only for the hovered and the open place.
+ * Accent's share (0 to 1) over Paper for a count on a layer whose counts run `min` to `max`: none for no species, then
+ * RAMP.lo at the lowest up to RAMP.hi at the highest, continuous on a log scale (one big country doesn't flatten the
+ * rest).
  */
-export const LOOKS: Record<MapLook, { hue: 'accent' | 'ink'; over: 'surface' | 'paper'; lo: number; hi: number }> = {
-  a: { hue: 'accent', over: 'surface', lo: SHADE_LIGHT, hi: 1 },
-  b: { hue: 'accent', over: 'paper', lo: 0.18, hi: 0.62 },
-  c: { hue: 'ink', over: 'paper', lo: 0.16, hi: 1 },
-}
-
-/**
- * The look's `hue` share (0 to 1) over its `over` for a count on a layer whose counts run `min` to `max`: none for no
- * species, then `lo` at the lowest up to `hi` at the highest, continuous on a log scale (one big country doesn't
- * flatten the rest).
- */
-export function shadeMix(n: number, min: number, max: number, look: MapLook = 'a'): number {
+export function shadeMix(n: number, min: number, max: number): number {
   if (n <= 0 || max <= 0) return 0
-  const { lo, hi } = LOOKS[look]
+  const { lo, hi } = RAMP
   if (max <= min) return hi
   const t = (Math.log(n) - Math.log(min)) / (Math.log(max) - Math.log(min))
   return lo + (hi - lo) * Math.min(1, Math.max(0, t))
-}
-
-/** ISO 3166 codes for private use (AA, QM–QZ, XA–XZ, ZZ; Kosovo's XK has a flag): no flag. */
-const PRIVATE_CODE = /^(AA|Q[M-Z]|X[A-JL-Z]|ZZ)$/
-
-/**
- * A country row's flag as the Unicode regional-indicator emoji of its ISO code (`c:CA` -> 🇨🇦, `c:FR@SA` -> 🇫🇷); ''
- * for a private code (Northern Cyprus `QY`), a province, a county or anything else.
- */
-export function mapFlag(key: string): string {
-  const code = /^c:([A-Z]{2})(?:@|$)/.exec(key)?.[1]
-  if (!code || PRIVATE_CODE.test(code)) return ''
-  return String.fromCodePoint(...[...code].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
 }
 
 /**

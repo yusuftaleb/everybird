@@ -108,6 +108,10 @@ describe('the Tree tab in CollageView', () => {
     expect(within(dock as HTMLElement).getByRole('button', { name: 'Level Orders' })).toBeInTheDocument()
     expect(within(dock as HTMLElement).getByRole('button', { name: 'Layout Rectangular' })).toBeInTheDocument()
     expect(within(dock as HTMLElement).getByRole('switch', { name: /Scientific/ })).toBeInTheDocument()
+    // Round 3: the switches first, then the Level and Layout menus, then Filters.
+    const kids = [...dock.querySelector('.eb-dock-filters')!.children].map((el) => el.className)
+    expect(kids.indexOf('eb-dock-tools')).toBeLessThan(kids.indexOf('eb-dock-menus'))
+    expect(kids.indexOf('eb-dock-menus')).toBe(1)
     expect(screen.queryByRole('group', { name: 'Show tips as' })).toBeNull()
     // No path of the tree's own: the chip row is its path; the count line stays.
     expect(screen.queryByRole('navigation', { name: 'Tree levels' })).toBeNull()

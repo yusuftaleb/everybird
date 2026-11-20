@@ -172,12 +172,14 @@
 .eb-places-path { animation: eb-rise .24s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) both; } /* the sheet sits outside .eb-view */
 .eb-places-path button, .eb-map-path button { position: relative; }
 .eb-places-path button::after, .eb-map-path button::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100% + 8px, 44px); height: 44px; transform: translate(-50%, -50%); }
-/* "Count repeat sightings" (Timeline.tsx RepeatSwitch): the Settings switch row (app.css .eb-setrow-btn) under the Time
-   head, where "Count a bird by" sat, at the panel's text size, the track right after its words (never at the panel's far
-   edge). No Surface band on hover: the track's ring answers, as the share dialog's switches do. */
-.eb-setrow-btn.eb-frepeat { flex: none; justify-content: flex-start; width: auto; max-width: 100%; align-self: flex-start; padding: 4px 0; min-height: 52px; }
+/* "Count repeat sightings" (Timeline.tsx RepeatSwitch): the Settings switch row (app.css .eb-setrow-btn) on the Time
+   section's head row, right-aligned: its label and track only (the note is its tooltip), so nothing moves when it flips.
+   A 44px press; the row wraps it under the title only when both can't share a line. No Surface band on hover: the
+   track's ring answers, as the share dialog's switches do. */
+.eb-fsec-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 16px; margin-bottom: 8px; }
+.eb-fsec-head .eb-fsec-title { margin: 0; }
+.eb-setrow-btn.eb-frepeat { flex: none; gap: 10px; width: auto; max-width: 100%; margin-left: auto; padding: 0; min-height: 44px; }
 .eb-frepeat .eb-setrow-label { font-size: 14px; font-weight: 600; }
-.eb-frepeat .eb-setrow-note { font-size: 13px; }
 .eb-frepeat .eb-track { flex: none; }
 .eb-setrow-btn.eb-frepeat:focus-visible { outline-offset: 2px; border-radius: 8px; }
 @media (hover: hover) and (pointer: fine) {

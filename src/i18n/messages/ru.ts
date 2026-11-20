@@ -16,7 +16,7 @@ export const ru: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: 'Коллаж',
+        collage: 'Мои птицы',
         compare: 'Сравнить',
         settings: 'Опции',
         about: 'Инфо',
@@ -65,7 +65,7 @@ export const ru: Messages = {
       },
     },
     collage: {
-      untitled: 'Мой коллаж',
+      untitled: 'Мои птицы',
       addBirds: 'Добавить птиц',
       share: 'Поделиться',
       print: 'Печать',
@@ -342,7 +342,7 @@ export const ru: Messages = {
       marks: 'Отметки',
       markAs: 'Отметить как',
       resetMarks: 'Отметки из моих записей',
-      remove: 'Убрать из моего списка',
+      remove: 'Убрать',
     },
     landing: {
       title: 'Птицы за всю жизнь.',

@@ -2,7 +2,7 @@
 // One Filters button in the controls bar and one panel behind it (item 10). The button ("Filters · 2": how many of the bird group,
 // Places, Time and Conservation status are in use, not checked boxes) sits in the controls bar between Scientific and the
 // search. It opens one panel holding the Time, Places and Conservation status sections, each keeping its own control: Time
-// (Timeline.tsx, with "Count repeat sightings" under its head on a list with month sets) across the top, Places
+// (Timeline.tsx; "Count repeat sightings" at the right of its head on a list with month sets) across the top, Places
 // (PlacesList.tsx, the drill-down with its breadcrumb) about 2/3 and Conservation status (StatusList.tsx) 1/3 beside each
 // other below it. From 600px the panel is a popover the dock's full width under the chip row (or under the dock with none),
 // inside `.eb-dockwrap`, the same in every view (collage, list, map, tree): the filters drive them all; everything
@@ -33,7 +33,7 @@ import { STATUS_ICON } from './status-icon'
 import type { PlacesNote } from './places-shared'
 import type { PlacesUnplaced } from '@/lib/list/filter-summary'
 import { StatusList } from './StatusList'
-import { Timeline } from './Timeline'
+import { RepeatSwitch, Timeline } from './Timeline'
 import './filters.css'
 
 export type FilterSection = 'places' | 'time' | 'status'
@@ -167,10 +167,20 @@ export function FiltersPanel({ state, onChange, species, regions, sections, open
     const Icon = ICONS[s]
     return (
       <div key={s} className="eb-fsec" role="group" aria-labelledby={`${titles}-${s}`} tabIndex={-1} data-sec={s} data-testid={`filter-panel-${s}`}>
-        <h3 id={`${titles}-${s}`} className="eb-mono eb-fsec-title">
-          <Icon aria-hidden="true" focusable="false" />
-          {t.filters[s]}
-        </h3>
+        {s === 'time' ? (
+          <div className="eb-fsec-head">
+            <h3 id={`${titles}-${s}`} className="eb-mono eb-fsec-title">
+              <Icon aria-hidden="true" focusable="false" />
+              {t.filters[s]}
+            </h3>
+            <RepeatSwitch filter={filter} seen={state.seen} onFilter={onFilter} />
+          </div>
+        ) : (
+          <h3 id={`${titles}-${s}`} className="eb-mono eb-fsec-title">
+            <Icon aria-hidden="true" focusable="false" />
+            {t.filters[s]}
+          </h3>
+        )}
         {s === 'places' ? (
           <PlacesSection state={state} species={species} regions={regions} note={placesNote} unplaced={placesUnplaced} onFilter={onFilter} />
         ) : s === 'status' ? (

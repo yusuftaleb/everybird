@@ -14,7 +14,7 @@ export const nl: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: 'Collage',
+        collage: 'Mijn vogels',
         compare: 'Vergelijken',
         settings: 'Instellingen',
         about: 'Over',
@@ -63,7 +63,7 @@ export const nl: Messages = {
       },
     },
     collage: {
-      untitled: 'Mijn collage',
+      untitled: 'Mijn vogels',
       addBirds: 'Vogels toevoegen',
       share: 'Delen',
       print: 'Printen',
@@ -327,7 +327,7 @@ export const nl: Messages = {
       marks: 'Markeringen',
       markAs: 'Markeer als',
       resetMarks: 'Markeringen uit mijn waarnemingen',
-      remove: 'Verwijderen van mijn lijst',
+      remove: 'Verwijderen',
     },
     landing: {
       title: 'Een leven vol vogels.',

@@ -238,12 +238,11 @@ describe('"Count repeat sightings" (RepeatSwitch)', () => {
     expect(filterOf()).toEqual({})
   })
 
-  it('sits in the Time section, under its head and above the strip, where "Count a bird by" sat', () => {
+  it('its note is the tooltip, not a line of text, and the Timeline no longer holds it (it sits on the Time head, Filters.tsx)', () => {
     const state = withMonths()
-    render(<Timeline entries={state.list} seen={state.seen} filter={state.filter} species={species} months={monthBins(state.list, '2024-06').months} today="2024-06" onFilter={() => {}} />)
-    const sw = within(screen.getByTestId('timeline')).getByRole('switch', { name: 'Count repeat sightings' })
-    const kids = Array.from(screen.getByTestId('timeline').children)
-    expect(kids.indexOf(sw)).toBe(1)
-    expect(kids[2]).toHaveClass('eb-time-scroll')
+    render(<><Switch start={withMonths} /><Timeline entries={state.list} seen={state.seen} filter={state.filter} species={species} months={monthBins(state.list, '2024-06').months} today="2024-06" onFilter={() => {}} /></>)
+    const sw = screen.getByRole('switch', { name: 'Count repeat sightings' })
+    expect(sw).toHaveAttribute('title', 'A bird counts where and when you first recorded it.')
+    expect(within(screen.getByTestId('timeline')).queryByRole('switch')).toBeNull()
   })
 })

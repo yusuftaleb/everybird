@@ -14,7 +14,7 @@ export const fr: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: 'Collage',
+        collage: 'Mes oiseaux',
         compare: 'Comparer',
         settings: 'Réglages',
         about: 'Infos',
@@ -63,7 +63,7 @@ export const fr: Messages = {
       },
     },
     collage: {
-      untitled: 'Mon collage',
+      untitled: 'Mes oiseaux',
       addBirds: 'Ajouter des oiseaux',
       share: 'Partager',
       print: 'Imprimer',
@@ -327,7 +327,7 @@ export const fr: Messages = {
       marks: 'Marques',
       markAs: 'Marquer comme',
       resetMarks: 'Marques d’après mes données',
-      remove: 'Retirer de ma liste',
+      remove: 'Retirer',
     },
     landing: {
       title: 'Toute une vie d’oiseaux.',

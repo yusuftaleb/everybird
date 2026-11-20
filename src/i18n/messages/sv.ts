@@ -14,7 +14,7 @@ export const sv: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: 'Collage',
+        collage: 'Mina fåglar',
         compare: 'Jämför',
         settings: 'Alternativ',
         about: 'Om',
@@ -63,7 +63,7 @@ export const sv: Messages = {
       },
     },
     collage: {
-      untitled: 'Mitt collage',
+      untitled: 'Mina fåglar',
       addBirds: 'Lägg till fåglar',
       share: 'Dela',
       print: 'Skriv ut',
@@ -321,7 +321,7 @@ export const sv: Messages = {
       marks: 'Markeringar',
       markAs: 'Markera som',
       resetMarks: 'Markeringar från mina data',
-      remove: 'Ta bort från min lista',
+      remove: 'Ta bort',
     },
     landing: {
       title: 'Ett liv fullt av fåglar.',

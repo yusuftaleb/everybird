@@ -20,7 +20,7 @@ export const EN_UI = {
     nav: {
       /** The nav's aria-label. */
       label: 'Everybird',
-      collage: 'Collage',
+      collage: 'My birds',
       compare: 'Compare',
       settings: 'Settings',
       about: 'About',
@@ -83,7 +83,7 @@ export const EN_UI = {
    *  Collage's stage, Notices, UndoToast). The stats line and the Timeline readout join their parts with " · " in code. */
   collage: {
     /** The collage page's title when the collage has none (pageTitle). */
-    untitled: 'My collage',
+    untitled: 'My birds',
     addBirds: 'Add birds',
     share: 'Share',
     print: 'Print',
@@ -400,7 +400,7 @@ export const EN_UI = {
     marks: 'Marks',
     markAs: 'Mark as',
     resetMarks: 'Marks from my records',
-    remove: 'Remove from my list',
+    remove: 'Remove',
   },
   /** The landing page (Landing, SampleDemo) and the first visit's welcome (Welcome). */
   landing: {

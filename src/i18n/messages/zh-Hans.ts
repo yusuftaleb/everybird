@@ -16,7 +16,7 @@ export const zhHans: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: '拼贴画',
+        collage: '我的鸟',
         compare: '对比',
         settings: '设置',
         about: '关于',
@@ -65,7 +65,7 @@ export const zhHans: Messages = {
       },
     },
     collage: {
-      untitled: '我的拼贴画',
+      untitled: '我的鸟',
       addBirds: '添加鸟种',
       share: '分享',
       print: '打印',
@@ -322,7 +322,7 @@ export const zhHans: Messages = {
       marks: '标记',
       markAs: '标记为',
       resetMarks: '使用我记录中的标记',
-      remove: '从我的清单中移除',
+      remove: '移除',
     },
     landing: {
       title: '一生的鸟。',

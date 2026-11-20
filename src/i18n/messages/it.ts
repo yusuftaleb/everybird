@@ -14,7 +14,7 @@ export const it: Messages = {
     shell: {
       nav: {
         label: 'Everybird',
-        collage: 'Collage',
+        collage: 'I miei uccelli',
         compare: 'Confronta',
         settings: 'Opzioni',
         about: 'Info',
@@ -63,7 +63,7 @@ export const it: Messages = {
       },
     },
     collage: {
-      untitled: 'Il mio collage',
+      untitled: 'I miei uccelli',
       addBirds: 'Aggiungi uccelli',
       share: 'Condividi',
       print: 'Stampa',
@@ -320,7 +320,7 @@ export const it: Messages = {
       marks: 'Segni',
       markAs: 'Segna come',
       resetMarks: 'Segni dai miei dati',
-      remove: 'Rimuovi dalla mia lista',
+      remove: 'Rimuovi',
     },
     landing: {
       title: 'Una vita di uccelli.',

@@ -213,7 +213,6 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
           <button type="button" className="eb-textbtn" data-testid="time-clear" onClick={clear}>{t.filters.clear}</button>
         )}
       </div>
-      <RepeatSwitch filter={filter} seen={seen} onFilter={onFilter} />
       <div ref={scroller} className="eb-time-scroll" onScroll={edges} data-more={more || undefined}>
         <div ref={track} className="eb-time-track" style={{ width }} data-ranged={ranged ? '' : undefined}>
           <div className="eb-time-bars" aria-hidden="true">
@@ -242,16 +241,18 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
   )
 })
 
-/** "Count repeat sightings" (`Filter.basis`), under the Time head where "Count a bird by" sat: off, a bird counts where and
- *  when it was first seen (the lifer); on ('seen'), everywhere and every year it was seen, so Places and Time mean seen
- *  there in that period. Only for lists with month sets (MyEBirdData, iNaturalist, observation.org observations):
- *  without, nothing changes by it and it isn't shown. */
+/** "Count repeat sightings" (`Filter.basis`), at the right of the Time section's head (Filters.tsx): off, a bird counts
+ *  where and when it was first seen (the lifer); on ('seen'), everywhere and every year it was seen, so Places and Time
+ *  mean seen there in that period. The note saying so is its tooltip and accessible description, never a line of text,
+ *  so the switch never moves when it flips. Only for lists with month sets (MyEBirdData, iNaturalist, observation.org
+ *  observations): without, nothing changes by it and it isn't shown. */
 export function RepeatSwitch({ filter, seen, onFilter }: { filter: Filter; seen?: SeenIndex; onFilter: (f: Filter) => void }) {
   const id = useId()
   const { t } = useI18n()
   const hasMonths = useMemo(() => hasSeenMonths(seen), [seen])
   if (!hasMonths) return null
   const on = filter.basis === 'seen'
+  const note = on ? t.filters.basis.on : t.filters.basis.off
   const toggle = () => {
     const next: Filter = { ...filter }
     if (on) delete next.basis
@@ -259,11 +260,9 @@ export function RepeatSwitch({ filter, seen, onFilter }: { filter: Filter; seen?
     onFilter(next)
   }
   return (
-    <button type="button" role="switch" aria-checked={on} aria-labelledby={`${id}-l`} aria-describedby={`${id}-n`} className="eb-setrow-btn eb-frepeat" data-testid="repeat-sightings" onClick={toggle}>
-      <span className="eb-setrow-text">
-        <span id={`${id}-l`} className="eb-setrow-label">{t.filters.basis.label}</span>
-        <span id={`${id}-n`} className="eb-setrow-note">{on ? t.filters.basis.on : t.filters.basis.off}</span>
-      </span>
+    <button type="button" role="switch" aria-checked={on} aria-labelledby={`${id}-l`} aria-describedby={`${id}-n`} title={note} className="eb-setrow-btn eb-frepeat" data-testid="repeat-sightings" onClick={toggle}>
+      <span id={`${id}-l`} className="eb-setrow-label">{t.filters.basis.label}</span>
+      <span id={`${id}-n`} className="eb-sr">{note}</span>
       <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
     </button>
   )

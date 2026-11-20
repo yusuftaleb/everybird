@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 // The Map view: it shades the birds the filters leave (the Places filter included), a bird seen in two countries counts in
 // both, a press on a country (or its row in the list under the map) opens it, a province with counties opens too, the
-// path above the map goes back, the tooltip names the place, and the map has no filter controls of its own. Its three
-// looks (?v=map:a|b|c), the flags of the list's rows and its columns.
+// path above the map goes back, the tooltip names the place, and the map has no filter controls of its own. Its one
+// ramp, the flags of the list's rows (the Places filter's Flag) and its columns.
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useReducer } from 'react'
@@ -18,7 +18,7 @@ vi.mock('@/lib/data-url', () => ({
 
 const { MapView } = await import('@/components/collage/MapView')
 const { countryRows, placeRows } = await import('@/lib/list/filters')
-const { countRange, frameBox, LOOKS, mapCounts, mapFlag, mapGroupOf, mapLayer, mapOpens, mapPath, mapRows, mapShapes, pathBox, placeCount, shadeMix, SHADE_LIGHT } = await import('@/lib/map/shapes')
+const { countRange, frameBox, mapCounts, mapGroupOf, mapLayer, mapOpens, mapPath, mapRows, mapShapes, pathBox, placeCount, RAMP, shadeMix } = await import('@/lib/map/shapes')
 const { initialState, makeReducer } = await import('@/lib/list/store')
 const { emptySaved } = await import('@/lib/list/storage')
 const { buildSpeciesIndex } = await import('@/lib/species/load')
@@ -119,17 +119,17 @@ describe('the map counts', () => {
 })
 
 describe('the continuous shade (shadeMix) and the legend ends (countRange)', () => {
-  it('none for no species, the light end for the lowest count, full for the highest, rising on a log scale', () => {
+  it('none for no species, the light end for the lowest count, the strong end for the highest, rising on a log scale', () => {
     expect(shadeMix(0, 1, 100)).toBe(0)
     expect(shadeMix(3, 0, 0)).toBe(0)
-    expect(shadeMix(1, 1, 100)).toBeCloseTo(SHADE_LIGHT)
-    expect(shadeMix(100, 1, 100)).toBe(1)
+    expect(shadeMix(1, 1, 100)).toBeCloseTo(RAMP.lo)
+    expect(shadeMix(100, 1, 100)).toBeCloseTo(RAMP.hi)
     // Log scale: 10 is halfway between 1 and 100.
-    expect(shadeMix(10, 1, 100)).toBeCloseTo(SHADE_LIGHT + (1 - SHADE_LIGHT) / 2)
+    expect(shadeMix(10, 1, 100)).toBeCloseTo((RAMP.lo + RAMP.hi) / 2)
     const steps = [1, 2, 5, 20, 50, 100].map((n) => shadeMix(n, 1, 100))
     for (let i = 1; i < steps.length; i++) expect(steps[i]).toBeGreaterThan(steps[i - 1])
-    // One count on the layer: full.
-    expect(shadeMix(7, 7, 7)).toBe(1)
+    // One count on the layer: the strong end.
+    expect(shadeMix(7, 7, 7)).toBe(RAMP.hi)
   })
 
   it('the legend runs from the lowest count with species to the highest', () => {
@@ -253,66 +253,29 @@ describe('the county level (placeCount, mapPath, mapOpens, mapRows, mapLayer)', 
   })
 })
 
-describe('the flags (mapFlag)', () => {
-  it("a country's regional-indicator emoji from its ISO code; none for a private code, a province or a county", () => {
-    expect(mapFlag('c:CA')).toBe('🇨🇦')
-    expect(mapFlag('c:FR@SA')).toBe('🇫🇷')
-    expect(mapFlag('c:XK')).toBe('🇽🇰')
-    expect(mapFlag('c:QY')).toBe('')
-    expect(mapFlag('c:XA')).toBe('')
-    expect(mapFlag('s:CA-BC')).toBe('')
-    expect(mapFlag('k:CA-BC|Capital')).toBe('')
-    expect(mapFlag('n:NA')).toBe('')
+describe('the ramp (RAMP, rampFill): the one look', () => {
+  it('a pale Accent tint over Paper up to a mid-strength Accent, never full', () => {
+    expect(RAMP.lo).toBeLessThan(0.25)
+    expect(RAMP.hi).toBeGreaterThan(0.5)
+    expect(RAMP.hi).toBeLessThan(0.75)
   })
-})
-
-describe('the three looks (LOOKS, shadeMix by look, lookFill, ?v=map:)', () => {
-  it('each look runs from its light end at the fewest species to its strong end at the most, on the log scale', () => {
-    for (const look of ['a', 'b', 'c'] as const) {
-      const { lo, hi } = LOOKS[look]
-      expect(shadeMix(0, 1, 100, look)).toBe(0)
-      expect(shadeMix(1, 1, 100, look)).toBeCloseTo(lo)
-      expect(shadeMix(100, 1, 100, look)).toBeCloseTo(hi)
-      expect(shadeMix(10, 1, 100, look)).toBeCloseTo((lo + hi) / 2)
-      expect(shadeMix(5, 5, 5, look)).toBe(hi)
-    }
-    expect(shadeMix(10, 1, 100)).toBe(shadeMix(10, 1, 100, 'a')) // a is the default, today's look
-  })
-  it('a: Accent over Surface to full Accent; b: a pale Accent tint over Paper up to mid-strength, never full; c: grey to Ink', () => {
-    expect(LOOKS.a).toEqual({ hue: 'accent', over: 'surface', lo: SHADE_LIGHT, hi: 1 })
-    expect(LOOKS.b.hue).toBe('accent')
-    expect(LOOKS.b.over).toBe('paper')
-    expect(LOOKS.b.lo).toBeLessThan(0.25)
-    expect(LOOKS.b.hi).toBeGreaterThan(0.5)
-    expect(LOOKS.b.hi).toBeLessThan(0.75)
-    expect(LOOKS.c).toMatchObject({ hue: 'ink', over: 'paper', hi: 1 })
-    expect(LOOKS.c.lo).toBeLessThan(0.25)
-  })
-  it('the CSS colour mixes the look\'s tokens, so dark mode follows', async () => {
-    const { lookFill } = await import('@/components/collage/MapView')
-    expect(lookFill('a', 1)).toBe('color-mix(in srgb, var(--accent) 100%, var(--surface))')
-    expect(lookFill('b', 0.18)).toBe('color-mix(in srgb, var(--accent) 18%, var(--paper))')
-    expect(lookFill('c', 0.5)).toBe('color-mix(in srgb, var(--ink) 50%, var(--paper))')
-  })
-  it('?v=map:c picks look c on the page: its fills and legend in Ink, the look on the root for map.css', async () => {
+  it("the CSS colour mixes the theme's tokens, so dark mode follows; no look variant on the page", async () => {
+    const { rampFill } = await import('@/components/collage/MapView')
+    expect(rampFill(0.18)).toBe('color-mix(in srgb, var(--accent) 18%, var(--paper))')
     window.history.replaceState(null, '', '/?v=map:c')
     try {
       render(<Harness />)
       await act(async () => {})
-      expect(screen.getByTestId('map-view')).toHaveAttribute('data-look', 'c')
-      expect(shape('c:CA').style.fill).toContain('var(--ink)')
-      expect(screen.getByTestId('map-legend').querySelector('i')!.style.background).toContain('var(--ink)')
+      expect(screen.getByTestId('map-view')).not.toHaveAttribute('data-look')
+      expect(shape('c:CA').style.fill).toContain('var(--accent)')
+      expect(screen.getByTestId('map-legend').querySelector('i')!.style.background).toContain('var(--paper)')
     } finally {
       window.history.replaceState(null, '', '/')
     }
-    cleanup()
-    render(<Harness />)
-    await act(async () => {})
-    expect(screen.getByTestId('map-view')).toHaveAttribute('data-look', 'a')
   })
 })
 
-describe('map.css: the looks, the columns, nothing cut', () => {
+describe('map.css: the borders, the columns, nothing cut', () => {
   it('one column on phones, two from 601px, three from 1024px, a row never split; no ellipsis anywhere', async () => {
     const { readFileSync } = await import('node:fs')
     const { resolve } = await import('node:path')
@@ -320,9 +283,13 @@ describe('map.css: the looks, the columns, nothing cut', () => {
     expect(css).toMatch(/\.eb-map-list \{[^}]*columns: 1;/)
     expect(css).toMatch(/@media \(min-width: 601px\) \{ \.eb-map-list \{ columns: 2; \} \}/)
     expect(css).toMatch(/@media \(min-width: 1024px\) \{ \.eb-map-list \{ columns: 3; \} \}/)
-    expect(css).toMatch(/\.eb-map-list > li \{ break-inside: avoid; \}/)
+    // Each row positions its own screen-reader text: an absolutely placed .eb-sr in a column layout with no positioned
+    // parent lands far below the list and lets the page scroll past the footer.
+    expect(css).toMatch(/\.eb-map-list > li \{ position: relative; break-inside: avoid; \}/)
     expect(css).not.toMatch(/ellipsis/)
-    expect(css).toMatch(/\.eb-map\[data-look="c"\] \.eb-map-svg path:is\(\[data-open\], \[data-hot\]\) \{ stroke: var\(--accent\); \}/)
+    expect(css).not.toMatch(/data-look/)
+    expect(css).toMatch(/\.eb-map-svg path \{[^}]*stroke: var\(--paper\);[^}]*stroke-width: \.5px;/)
+    expect(css).toMatch(/\.eb-map-svg path\[data-hot\] \{ stroke: var\(--ink\);/)
   })
 })
 
@@ -342,8 +309,8 @@ describe('the Map view', () => {
   it('shades by species; has no filter controls: no checkboxes, no counting switch, a press never filters', async () => {
     render(<Harness />)
     await act(async () => {})
-    expect(shape('c:CA')).toHaveAttribute('data-mix', '1.00')
-    expect(Number(shape('c:KE').getAttribute('data-mix'))).toBeCloseTo(SHADE_LIGHT)
+    expect(shape('c:CA')).toHaveAttribute('data-mix', RAMP.hi.toFixed(2))
+    expect(Number(shape('c:KE').getAttribute('data-mix'))).toBeCloseTo(RAMP.lo)
     expect(shape('c:BR')).not.toHaveAttribute('data-mix')
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
     expect(screen.queryByRole('switch')).toBeNull()
@@ -360,7 +327,7 @@ describe('the Map view', () => {
     fireEvent.click(shape('c:CA'))
     await act(async () => {})
     expect(shape('c:CA')).toBeNull()
-    expect(shape('s:CA-BC')).toHaveAttribute('data-mix', '1.00')
+    expect(shape('s:CA-BC')).toHaveAttribute('data-mix', RAMP.hi.toFixed(2))
     expect(levels.at(-1)).toBe('c:CA')
     const back = screen.getByRole('button', { name: 'World' })
     expect(back).toHaveFocus()
@@ -399,8 +366,12 @@ describe('the Map view', () => {
     render(<Harness />)
     await act(async () => {})
     const list = screen.getByRole('list', { name: 'Countries' })
-    expect(within(list).getAllByRole('button').map((b) => b.textContent)).toEqual(['🇨🇦Canada2, 2 species', '🇰🇪Kenya1, 1 species', '🇺🇸United States1, 1 species'])
-    expect(within(list).getByRole('button', { name: 'Canada, 2 species' })).toBeInTheDocument() // the flag is aria-hidden
+    expect(within(list).getAllByRole('button').map((b) => b.textContent)).toEqual(['Canada2, 2 species', 'Kenya1, 1 species', 'United States1, 1 species'])
+    expect(within(list).getByRole('button', { name: 'Canada, 2 species' })).toBeInTheDocument() // the flag is decorative
+    // The Places filter's flag (components/Flag), in its fixed slot.
+    const flag = within(list).getByTestId('map-row-c:CA').querySelector('.eb-flag-slot > img.eb-flag')!
+    expect(flag).toHaveAttribute('alt', '')
+    expect(flag).toHaveAttribute('width', '18')
     expect(screen.getByTestId('map-path')).toHaveTextContent(/^World$/)
     expect(within(screen.getByTestId('map-path')).queryAllByRole('button')).toHaveLength(0)
     expect(screen.queryByTestId('map-all')).toBeNull()
@@ -415,7 +386,7 @@ describe('the Map view', () => {
     await act(async () => {})
     expect(screen.queryByRole('button', { name: 'World' })).toBeNull()
     expect(shape('c:CA')).not.toHaveAttribute('data-mix')
-    expect(within(screen.getByRole('list', { name: 'Countries' })).getAllByRole('button').map((b) => b.textContent)).toEqual(['🇰🇪Kenya1, 1 species'])
+    expect(within(screen.getByRole('list', { name: 'Countries' })).getAllByRole('button').map((b) => b.textContent)).toEqual(['Kenya1, 1 species'])
   })
 
   it('hover shows a tooltip with the name and count; on touch the first tap names the country and the second opens it', async () => {
