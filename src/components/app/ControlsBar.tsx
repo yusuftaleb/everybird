@@ -2,7 +2,8 @@
 // The one horizontal bar above the filters, as LifeList's dock (framer-site), with Photography's search: the views on
 // the left (Collage / List / Map / Tree); then, at even gaps, the view's own controls and the one Filters button
 // (Filters.tsx), then the magnifier. Each switch is one press and shows only in the view it applies to: True size in
-// Collage, the sort direction in List, Lifers only in Tree, Scientific in all three; none in Map. In Tree, the Level and
+// Collage, the sort direction in List, Lifers only in Tree, Scientific in every view, last among them (in Map it is the
+// only one, so the setting can be changed from any view; the map itself has no names to change). In Tree, the Level and
 // Layout menus follow the switches, before Filters (Yusuf, 2026-11-20, round 3): TreeView renders them into the slot
 // `treeMenus` hands it (a portal), since the levels on offer come from the tree it loads. The magnifier turns the dock into the search field (DockSearch.tsx); everything
 // else sits under it, inert, while it is open. Under 820px of bar the view's controls and Filters take a second row of
@@ -136,7 +137,7 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
       <DockSwitch on={mine} onChange={setTreeMine} long={c.lifersOnly} testId="tree-mine" />
       {sciSwitch}
     </>
-  ) : null
+  ) : sciSwitch
   return (
     <div ref={wrap} className="eb-dockwrap">
       <div ref={dock} className="eb-dock" data-view={view} data-wrap={(view === 'tree' && treeWrap) || undefined} data-finding={finding || undefined}>
@@ -149,7 +150,7 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
           ))}
         </div>
         <div className="eb-dock-filters" inert={finding}>
-          {tools && <div className="eb-dock-tools">{tools}</div>}
+          <div className="eb-dock-tools">{tools}</div>
           {view === 'tree' && <div ref={treeMenus} className="eb-dock-menus" />}
           {filters}
         </div>
