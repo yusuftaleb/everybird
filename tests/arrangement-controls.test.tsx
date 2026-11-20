@@ -1,12 +1,20 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ControlsBar } from '@/components/app/ControlsBar'
 import { ARRANGEMENT_KEY, arrangement, setArrangement } from '@/lib/arrangement'
 import { withI18n } from './i18n-render'
 
-afterEach(() => { cleanup(); localStorage.clear() })
+class MemoryStorage {
+  private m = new Map<string, string>()
+  getItem(k: string) { return this.m.get(k) ?? null }
+  setItem(k: string, v: string) { this.m.set(k, String(v)) }
+  removeItem(k: string) { this.m.delete(k) }
+  clear() { this.m.clear() }
+}
+beforeEach(() => { vi.stubGlobal('localStorage', new MemoryStorage()) })
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 function bar(props: Partial<Parameters<typeof ControlsBar>[0]> = {}) {
   const onTrueSize = vi.fn(), onChange = vi.fn()
