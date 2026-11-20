@@ -643,12 +643,13 @@ export const EN_UI = {
       failed: 'Couldn’t make the poster. Try again.',
       previewAlt: 'Preview of the {size} poster',
       /** Export in batches (`title`, a collapsed row): a ZIP of one share image (Share) or one poster (Print) per group.
-       *  `perPoster` names Print's Birds per poster dropdown; `count`, `progress`, `ready` are the poster's, `…Images` the image's. */
+       *  `perImage` and `perPoster` name Birds per image (Share) and per poster (Print); `count`, `progress`, `ready` are the poster's, `…Images` the image's. */
       bulk: {
         title: 'Export in batches',
         lede: 'A ZIP with one image, or one poster, for each group.',
         splitLabel: 'Split by',
         perPoster: 'Birds per poster',
+        perImage: 'Birds per image',
         all: 'All',
         splits: {
           batches: 'Number of birds',

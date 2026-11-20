@@ -66,7 +66,7 @@ describe('the share dialog: no scrolling on a 1440 × 830 window', () => {
     expect(css).toContain('--ph: max(160px, 100dvh - 124px)')
     expect(css).toContain('@media (min-width: 1200px) { .eb-share-scrim { --ctl: 480px; } }')
   })
-  it('the tallest column (the collage poster: the size, Arrangement, Count, Goal, two switch pairs, the names note, Export in batches; a status line and the filters line) fits', () => {
+  it('the tallest column (the collage poster once made: the size, Arrangement, Count, two switch pairs, the names note; Export in batches\' box; two rows of actions, a status line and the filters line) fits', () => {
     // With a mouse (a laptop): option rows, the title field and the actions are 40px.
     const fine = rule('.eb-share .eb-share-opt, .eb-share-input, .eb-share-actions .eb-btn', '@media (pointer: fine)')
     const row = px(fine, 'min-height')
@@ -77,6 +77,12 @@ describe('the share dialog: no scrolling on a 1440 × 830 window', () => {
     const seg = 44 + 2 * 4 + 2 // the segmented control: a 44px button, 4px padding, 1px border
     expect(rule('.eb-seg-btn', '/* The Story / Post / Square choice')).toMatch(/min-height:\s*44px/)
     expect(rule('.eb-seg', '/* The Story / Post / Square choice')).toMatch(/padding:\s*4px/)
+    // The title: its label's line (12px mono at 1.5), the field's gap, the field.
+    expect(rule('.eb-share-label')).toMatch(/font-size:\s*12px/)
+    expect(rule('.eb-share-labelrow')).toMatch(/line-height:\s*1\.5/)
+    const field = rule('.eb-share-field')
+    expect(field).toMatch(/flex-direction:\s*column/)
+    const title = 12 * 1.5 + px(field, 'gap') + row
     const optcol = rule('.eb-share-optcol')
     expect(optcol).toMatch(/padding-block:\s*2px/)
     expect(optcol).toMatch(/line-height:\s*1\.25/)
@@ -85,13 +91,21 @@ describe('the share dialog: no scrolling on a 1440 × 830 window', () => {
     const names = rule('.eb-share-names-note')
     expect(names).toMatch(/padding:\s*4px 12px 6px/)
     const namesNote = 4 + 6 + 2 * 14 * 1.5 // two lines of .eb-note (14px, 1.5)
-    const group = sizeRow + 6 * row + namesNote + 9 // + Arrangement, Count, Goal, two pairs, Export in batches; 9 hairlines
+    // The size, Arrangement, Count, two pairs and the names note: 5 hairlines between 6 rows, and the 1px border. No Goal.
+    expect(rule('.eb-share-opts')).toMatch(/border:\s*1px solid/)
+    const group = sizeRow + 4 * row + namesNote + 5 + 2
+    // Export in batches, closed: its title row in its own 1px box, under the group.
+    expect(rule('.eb-share-bulk')).toMatch(/border:\s*1px solid/)
+    const bulk = row + 2
+    // Once made: Download PNG and Download PDF, then Copy link (before, Make poster and Copy link are one row).
     const actions = row + actionsGap + row
     const status = 14 * 1.5
     const filters = 36 // .eb-textbtn's height
     const coffee = 32 + 2 * 6 - 6 // the image, its press padding, the negative bottom margin
-    const column = seg + gap + row + optionsGap + group + gap + actions + gap + status + gap + filters + gap + coffee
+    const column = seg + gap + title + optionsGap + group + optionsGap + bulk + gap + actions + gap + status + gap + filters + gap + coffee
+    expect(Math.ceil(column)).toBe(687) // the figure share.css's comment gives
     expect(Math.ceil(column)).toBeLessThanOrEqual(H - 124)
+    expect(css).toContain('takes 687')
     // The empty status line gives its gap back, so the usual column is shorter still.
     expect(rule('.eb-share-controls > [role="status"]:empty')).toMatch(new RegExp(`margin-top:\\s*-${gap}px`))
   })

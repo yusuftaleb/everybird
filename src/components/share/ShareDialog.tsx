@@ -6,21 +6,23 @@
 // the poster at the paper's size, makeViewPoster), from Collage or List the collage; dialogRows says which options each
 // shows. On top the format control (Story, Post, Square; Desktop, Post 5:4 and Square when the Vertical | Horizontal
 // switch beside it says Horizontal; the poster has none) and the orientation, on one row where they fit. Beside them the
-// live preview (above them on phones). Then the optional collage title (Saved.name verbatim) on one line with its label,
-// and the option rows in one bordered group (as Settings' Counting group), label left and control right: in the poster
-// the size first (a dropdown, A4 to A1 and the inch sizes, with its line under the label), Arrangement (Fit or Oval),
-// Count (a dropdown), Goal, then the switches two to a row where they fit (Show latest lifer and the poster's species
-// names; the Tree's Lifers only and Hide totals, the Map's Hide totals; Dark image and Transparent background), and last
-// Export in batches, collapsed: a ZIP of one image (PNG, the dialog's format and options) or one poster per group, by
-// the Split by choices (in the poster also Birds per poster). Then Share image (the system share sheet when it takes
-// files, else a download) over Download and Copy link; in the poster Make poster (makePoster, its chunk fetched when the
-// dialog opens) with progress and Cancel, then Download PNG and Download PDF serving the one encode. Last, in the bottom
-// right corner, Buy Me a Coffee's static button (self-hosted, never on the images). Every dropdown is MenuSelect.
+// live preview (above them on phones). Then the optional collage title (Saved.name verbatim), its label above the field,
+// and the option rows in one bordered group (as Settings' Counting group, a Hairline between rows and no other rule),
+// label left and control right: in the poster the size first (a dropdown, A4 to A1 and the inch sizes, with its line
+// under the label), Arrangement (Fit or Oval), Count (a dropdown), Goal (Share only), then the switches two to a row
+// where they fit, each label beside its own switch (Show latest lifer and the poster's species names; the Tree's Lifers
+// only and Hide totals, the Map's Hide totals; Dark image and Transparent background). Under the group Export in
+// batches, its own box, collapsed: a ZIP of one image (PNG, the dialog's format and options) or one poster per group, by
+// the Split by choices (Number of birds first, with Birds per image or per poster). Then Share image (the system share
+// sheet when it takes files, else a download) over Download and Copy link; in the poster Make poster (makePoster, its
+// chunk fetched when the dialog opens) and Copy link side by side, then the progress and Cancel, then Download PNG and
+// Download PDF serving the one encode, side by side the same way. Last, in the bottom right corner, Buy Me a Coffee's
+// static button (self-hosted, never on the images). Every dropdown is MenuSelect.
 // On phones the actions come straight under the preview, so Share image (or Make poster) is on the first screen.
-// The Goal row: "Add a goal" until one is set; then a number box, "species in", a year menu (All time and each year with
-// birds, newest first) and a remove button. With a year the image is that year's birds against the target (the Big
-// Year); with All time, the birds on screen against it. Kept in Saved.bigYear (year left out for All time). The image
-// draws the goal under the count ("OF 150 SPECIES"), the number as large as without one.
+// The Goal row (Share only; posters never draw a goal): "Add a goal" until one is set; then a number box, "species in",
+// a year menu (All time and each year with birds, newest first) and a remove button. With a year the image is that
+// year's birds against the target (the Big Year); with All time, the birds on screen against it. Kept in Saved.bigYear
+// (year left out for All time). The image draws the goal under the count ("OF 150 SPECIES"), the number as large as without one.
 // The link encoder (and its ~111 KB species index) is a separate chunk, fetched when the dialog opens, so a Copy link
 // click awaits nothing slow (iOS drops the clipboard permission once a click handler waits on the network).
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
@@ -204,7 +206,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     return ys.sort((a, b) => b - a)
   }, [goalOpen, dated, known, species, seen, goalYear])
   // A year's goal draws that year's birds even before a target is typed; an All time goal only once it has a target.
-  const goalActive = goalOpen && !viewImage && (goalYear !== 'all' || validTarget !== undefined)
+  // Never in Print: posters draw no goal (its row is Share's alone), so a saved goal waits for Share.
+  const goalActive = rows.goal && goalOpen && !viewImage && (goalYear !== 'all' || validTarget !== undefined)
   const yearGoal = goalActive && goalYear !== 'all' ? goalYear : undefined
   const cardEntries = useMemo(() => (yearGoal !== undefined ? yearList(known, yearGoal, species, seen) : shown), [yearGoal, known, species, seen, shown])
   const cardGoal = useMemo(
@@ -815,6 +818,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     </button>
   )
   const copy: QuietAction = { label: t.share.copyLink, icon: LinkSimple, onClick: () => void copyLink() }
+  // Share: Share image over Download and Copy link. Print: the primary and the first quiet one side by side (Make poster
+  // and Copy link; once made, Download PNG and Download PDF), the rest (Copy link, Make again) in a row under them.
   const quiet: QuietAction[] = !print
     ? [
         { label: t.share.download, short: t.share.downloadShort, icon: DownloadSimple, disabled: busy, onClick: () => void download() },
@@ -825,6 +830,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         copy,
         ...(posterNow && posterNow.missing > 0 ? [{ label: pt.again, icon: ArrowClockwise, onClick: remake }] : []),
       ]
+  const [beside, ...under] = print ? quiet : []
   const quietButton = ({ label: text, short, icon: Glyph, onClick, disabled, ref: btnRef }: QuietAction) => {
     const glyph = <Glyph aria-hidden="true" focusable="false" />
     const shorter = short ?? null
@@ -842,12 +848,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
     </button>
   )
-  /** Two switch rows side by side in one row of the group, each on a line of its own where they don't fit (share.css). */
+  /** Two switches in one row of the group, each label beside its own switch, space between them; each on a line of its
+   *  own where they don't fit (share.css). One alone is a plain row, its switch at the right as the other rows' controls. */
   const pair = (...items: ReactNode[]) => {
     const shown = items.filter(Boolean)
-    return shown.length ? <div className="eb-share-pair">{shown}</div> : null
+    return shown.length > 1 ? <div className="eb-share-pair">{shown}</div> : shown[0] ?? null
   }
   const gt = t.share.bigYear
+  const perBatch = print ? pt.bulk.perPoster : pt.bulk.perImage
   const namesSwitch = rows.names && (
     <button
       key="names"
@@ -936,14 +944,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           </div>
 
           <div className="eb-share-controls">
-            {/* The options: the title on one line with its label, then one row per option in a bordered group (in the
-                poster the size first), two switches to a row where they fit, Export in batches last. */}
+            {/* The options: the title under its label, then one row per option in a bordered group (in the poster the
+                size first), two switches to a row where they fit; Export in batches in its own box under the group. */}
             <div className="eb-share-options">
               <div className="eb-share-field">
-                <span className="eb-share-labelrow">
+                <div className="eb-share-labelrow">
                   <label htmlFor={nameId} className="eb-share-label">{t.share.nameLabel}</label>
                   <span id={optionalId} className="eb-share-optional">{t.share.nameOptional}</span>
-                </span>
+                </div>
                 <input
                   id={nameId}
                   className="eb-share-input"
@@ -1008,12 +1016,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                       <span className="eb-share-goal" role="group" aria-labelledby={goalId}>
                         <input
                           ref={goalTargetRef}
-                          className="eb-share-num"
+                          className="eb-input eb-share-num"
                           type="text"
                           inputMode="numeric"
-                          pattern="[0-9]*"
                           autoComplete="off"
                           maxLength={5}
+                          placeholder={formatInt(150, t.num)}
                           aria-label={gt.target}
                           value={goalTarget}
                           aria-invalid={targetBad || undefined}
@@ -1067,96 +1075,104 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                   switchRow(dark, t.share.dark, () => setDark((v) => !v), 'share-dark-switch'),
                   switchRow(transparent, t.share.transparent, () => setTransparent((v) => !v), 'share-transparent-switch'),
                 )}
-
-                {bulkOn && (
-                  // Export in batches: one row with its name and a chevron; open, a ZIP of one image (or, in the poster,
-                  // one poster) per group.
-                  <div className="eb-share-bulk" data-testid="share-bulk">
-                    <button
-                      ref={bulkToggleRef} id={bulkToggleId} type="button" className="eb-share-opt eb-share-disclose"
-                      aria-expanded={bulkShown} aria-controls={bulkShown ? bulkBodyId : undefined} onClick={() => setBulkOpen((v) => !v)}
-                    >
-                      <span>{pt.bulk.title}</span>
-                      <CaretDown aria-hidden="true" focusable="false" weight="bold" />
-                    </button>
-                    {bulkShown && (
-                      <section id={bulkBodyId} className="eb-share-bulk-body" aria-labelledby={bulkToggleId}>
-                        <p className="eb-note">{pt.bulk.lede}</p>
-                        <div className="eb-share-bulk-rows">
+              </div>
+              {bulkOn && (
+                // Export in batches: its own box under the options, its name and a chevron; open, a ZIP of one image
+                // (or, in the poster, one poster) per group.
+                <div className="eb-share-bulk" data-testid="share-bulk">
+                  <button
+                    ref={bulkToggleRef} id={bulkToggleId} type="button" className="eb-share-opt eb-share-disclose"
+                    aria-expanded={bulkShown} aria-controls={bulkShown ? bulkBodyId : undefined} onClick={() => setBulkOpen((v) => !v)}
+                  >
+                    <span>{pt.bulk.title}</span>
+                    <CaretDown aria-hidden="true" focusable="false" weight="bold" />
+                  </button>
+                  {bulkShown && (
+                    <section id={bulkBodyId} className="eb-share-bulk-body" aria-labelledby={bulkToggleId}>
+                      <p className="eb-note">{pt.bulk.lede}</p>
+                      <div className="eb-share-bulk-rows">
+                        <div className="eb-share-opt">
+                          <span id={bulkSplitId} className="eb-share-optlabel">{pt.bulk.splitLabel}</span>
+                          <MenuSelect
+                            labelledBy={bulkSplitId} menuLabel={pt.bulk.splitLabel} escapeRef={menuEsc} testId="bulk-split"
+                            options={rows.splits.map((s) => ({ value: s, label: pt.bulk.splits[s] }))}
+                            value={bulkSplit} onChange={setBulkSplit} disabled={!!bulkMakingNow}
+                          />
+                        </div>
+                        {rows.batchSize && bulkSplit === 'batches' && (
                           <div className="eb-share-opt">
-                            <span id={bulkSplitId} className="eb-share-optlabel">{pt.bulk.splitLabel}</span>
-                            <MenuSelect
-                              labelledBy={bulkSplitId} menuLabel={pt.bulk.splitLabel} escapeRef={menuEsc} testId="bulk-split"
-                              options={rows.splits.map((s) => ({ value: s, label: pt.bulk.splits[s] }))}
-                              value={bulkSplit} onChange={setBulkSplit} disabled={!!bulkMakingNow}
+                            <span id={bulkSizeId} className="eb-share-optlabel">{perBatch}</span>
+                            <MenuSelect<BulkBatch>
+                              labelledBy={bulkSizeId} menuLabel={perBatch} escapeRef={menuEsc} testId="bulk-size"
+                              options={BULK_BATCHES.map((b) => ({ value: b, label: b === 'all' ? pt.bulk.all : formatInt(b, t.num) }))}
+                              value={bulkSize} onChange={setBulkSize} disabled={!!bulkMakingNow}
                             />
                           </div>
-                          {rows.batchSize && bulkSplit === 'batches' && (
-                            <div className="eb-share-opt">
-                              <span id={bulkSizeId} className="eb-share-optlabel">{pt.bulk.perPoster}</span>
-                              <MenuSelect<BulkBatch>
-                                labelledBy={bulkSizeId} menuLabel={pt.bulk.perPoster} escapeRef={menuEsc} testId="bulk-size"
-                                options={BULK_BATCHES.map((b) => ({ value: b, label: b === 'all' ? pt.bulk.all : formatInt(b, t.num) }))}
-                                value={bulkSize} onChange={setBulkSize} disabled={!!bulkMakingNow}
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <p className="eb-note eb-share-bulk-count" data-testid="bulk-count" aria-live="polite">
-                          {bulkList.length > 0
-                            ? plural(print ? pt.bulk.count : pt.bulk.countImages, bulkList.length, { n: formatInt(bulkList.length, t.num) })
-                            : pt.bulk.empty}
-                        </p>
-                        {bulkMakingNow ? (
-                          <div className="eb-share-progress" data-testid="bulk-progress">
-                            <div
-                              className="eb-share-bar" role="progressbar" aria-label={pt.bulk.makingNote}
-                              aria-valuemin={0} aria-valuemax={bulkMakingNow.total} aria-valuenow={bulkMakingNow.done}
-                            >
-                              <span className="eb-share-bar-fill" style={{ width: `${bulkPct}%` }} />
-                            </div>
-                            <span className="eb-share-pct">
-                              {fmt(print ? pt.bulk.progress : pt.bulk.progressImages, {
-                                done: formatInt(Math.min(bulkMakingNow.done + 1, bulkMakingNow.total), t.num),
-                                total: formatInt(bulkMakingNow.total, t.num),
-                              })}
-                            </span>
-                            <button ref={bulkCancelRef} type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
-                          </div>
-                        ) : (
-                          <div className="eb-share-row">
-                            <button
-                              ref={bulkPngRef}
-                              type="button"
-                              className="eb-btn eb-btn-quiet"
-                              disabled={bulkList.length === 0 || !!makingNow}
-                              onClick={() => void makeBulk('png')}
-                            >
-                              <DownloadSimple aria-hidden="true" focusable="false" />
-                              {pt.bulk.png}
-                            </button>
-                            {print && !transparent && <button
-                              ref={bulkPdfRef}
-                              type="button"
-                              className="eb-btn eb-btn-quiet"
-                              disabled={bulkList.length === 0 || !!makingNow}
-                              onClick={() => void makeBulk('pdf')}
-                            >
-                              <FilePdf aria-hidden="true" focusable="false" />
-                              {pt.bulk.pdf}
-                            </button>}
-                          </div>
                         )}
-                      </section>
-                    )}
-                  </div>
-                )}
-              </div>
+                      </div>
+                      <p className="eb-note eb-share-bulk-count" data-testid="bulk-count" aria-live="polite">
+                        {bulkList.length > 0
+                          ? plural(print ? pt.bulk.count : pt.bulk.countImages, bulkList.length, { n: formatInt(bulkList.length, t.num) })
+                          : pt.bulk.empty}
+                      </p>
+                      {bulkMakingNow ? (
+                        <div className="eb-share-progress" data-testid="bulk-progress">
+                          <div
+                            className="eb-share-bar" role="progressbar" aria-label={pt.bulk.makingNote}
+                            aria-valuemin={0} aria-valuemax={bulkMakingNow.total} aria-valuenow={bulkMakingNow.done}
+                          >
+                            <span className="eb-share-bar-fill" style={{ width: `${bulkPct}%` }} />
+                          </div>
+                          <span className="eb-share-pct">
+                            {fmt(print ? pt.bulk.progress : pt.bulk.progressImages, {
+                              done: formatInt(Math.min(bulkMakingNow.done + 1, bulkMakingNow.total), t.num),
+                              total: formatInt(bulkMakingNow.total, t.num),
+                            })}
+                          </span>
+                          <button ref={bulkCancelRef} type="button" className="eb-btn eb-btn-quiet" onClick={cancelBulk}>{pt.cancel}</button>
+                        </div>
+                      ) : (
+                        <div className="eb-share-row">
+                          <button
+                            ref={bulkPngRef}
+                            type="button"
+                            className="eb-btn eb-btn-quiet"
+                            disabled={bulkList.length === 0 || !!makingNow}
+                            onClick={() => void makeBulk('png')}
+                          >
+                            <DownloadSimple aria-hidden="true" focusable="false" />
+                            {pt.bulk.png}
+                          </button>
+                          {print && !transparent && <button
+                            ref={bulkPdfRef}
+                            type="button"
+                            className="eb-btn eb-btn-quiet"
+                            disabled={bulkList.length === 0 || !!makingNow}
+                            onClick={() => void makeBulk('pdf')}
+                          >
+                            <FilePdf aria-hidden="true" focusable="false" />
+                            {pt.bulk.pdf}
+                          </button>}
+                        </div>
+                      )}
+                    </section>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="eb-share-actions">
-              {primary}
-              <div className="eb-share-row">{quiet.map(quietButton)}</div>
+              {print ? (
+                <>
+                  <div className="eb-share-duo">{primary}{beside && quietButton(beside)}</div>
+                  {under.length > 0 && <div className="eb-share-row">{under.map(quietButton)}</div>}
+                </>
+              ) : (
+                <>
+                  {primary}
+                  <div className="eb-share-row">{quiet.map(quietButton)}</div>
+                </>
+              )}
             </div>
 
             <p className={note?.error ? 'eb-error' : 'eb-note'} role="status" data-testid="share-note">{note?.text ?? ''}</p>

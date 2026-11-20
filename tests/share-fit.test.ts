@@ -132,6 +132,42 @@ describe("the share dialog's rows", () => {
   })
 })
 
+describe('the option switches and Print\'s actions', () => {
+  // Measured advances (Satoshi 500; Noto Sans for what Satoshi lacks; a kana or Han character 1em), as above.
+  const fonts = JSON.parse(readFileSync('tests/fixtures/glyph-advances.json', 'utf8')).fonts
+  const sat = fonts['satoshi-500'].advances as Record<string, number>, noto = fonts['noto-sans-500'].advances as Record<string, number>
+  const measured = (label: string, px: number) => [...label].reduce((n, c) => n + (sat[c] ?? noto[c] ?? 1), 0) * px
+
+  it('keeps every switch on one line, its label beside it, at the 300px column and up (a pair that can\'t share a row wraps whole)', () => {
+    // share.css: a paired switch is its label, 12px, the 36px track; the row has 12px padding each side.
+    expect(css).toMatch(/\.eb-share \.eb-share-pair > \.eb-share-opt \{[^}]*flex: none;[^}]*gap: 12px/)
+    const over: string[] = []
+    for (const [lang, m] of Object.entries(LANG)) {
+      const s = m.ui.share
+      for (const label of [s.showLatest, s.print.showNames, s.dark, s.transparent, m.ui.collage.controls.lifersOnly, s.hideTotals]) {
+        const need = 2 * 12 + measured(label, 16) + 12 + 36
+        if (need > COLUMNS.narrow) over.push(`${lang} "${label}": ${Math.ceil(need)}px`)
+      }
+    }
+    expect(over).toEqual([])
+  })
+
+  it('puts Print\'s two actions on one row at the 420px column in every language, labels never wrapped', () => {
+    // .eb-share-duo: two .eb-btn (18px padding each side, an 18px icon and 8px before the 15px label, 1px border), 8px apart.
+    expect(css).toMatch(/\.eb-share-duo > \.eb-btn \{ white-space: nowrap; \}/)
+    const btn = (label: string) => 2 + 2 * 18 + 18 + 8 + measured(label, 15)
+    const over: string[] = []
+    for (const [lang, m] of Object.entries(LANG)) {
+      const p = m.ui.share.print
+      for (const [a, b] of [[p.make, m.ui.share.copyLink], [p.png, p.pdf]]) {
+        const need = btn(a) + 8 + btn(b)
+        if (need > COLUMNS.desktop) over.push(`${lang} ${a} + ${b}: ${Math.ceil(need)}px`)
+      }
+    }
+    expect(over).toEqual([])
+  })
+})
+
 describe("the desktop's one-line footer", () => {
   // The worst case in every language: the credit at 17px (its smallest), the latest row's label (uppercase mono 20px,
   // tracked .06em) with the longest month, and a 22-character name at 30px (the row clips a name past 480 units). The

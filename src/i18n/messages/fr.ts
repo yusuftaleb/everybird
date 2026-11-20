@@ -536,6 +536,7 @@ export const fr: Messages = {
           lede: 'Un ZIP avec une image, ou une affiche, pour chaque groupe.',
           splitLabel: 'Répartir par',
           perPoster: 'Oiseaux par affiche',
+          perImage: 'Oiseaux par image',
           all: 'Tous',
           splits: {
             batches: 'Nombre d’oiseaux',
