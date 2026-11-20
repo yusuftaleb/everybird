@@ -58,6 +58,7 @@ describe('pickNameLocale', () => {
     expect(pickNameLocale('it', ['it'])).toBe('it')
     expect(pickNameLocale('sv', ['sv-FI'], 'FI')).toBe('sv')
     expect(pickNameLocale('da', ['da'], 'GL')).toBe('da')
+    expect(pickNameLocale('ja', ['ja-JP'], 'JP')).toBe('ja')
     expect(pickNameLocale('ru', ['ru-RU'], 'RU')).toBe('ru')
     expect(pickNameLocale('ru', ['ru-KZ'])).toBe('ru')
   })

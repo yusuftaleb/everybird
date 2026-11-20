@@ -83,7 +83,7 @@ export function familyNames(groups: NameGroup[], species: Pick<SpeciesRow, 'fam'
  * credited on About), which huashu carries in data/names.csv: locale -> that file's column. Only the sets listed here;
  * every other names file stays eBird's alone.
  */
-export const IOC_COLUMNS: Partial<Record<NameLocale, string>> = { it: 'it', sv: 'sv', da: 'da', ru: 'ru' }
+export const IOC_COLUMNS: Partial<Record<NameLocale, string>> = { it: 'it', sv: 'sv', da: 'da', ru: 'ru', ja: 'ja' }
 
 /**
  * eBird code -> the IOC name of the huashu record build-species' crosswalk (matchHuashu) matches the species to. Never

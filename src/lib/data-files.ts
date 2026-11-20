@@ -6,7 +6,7 @@ export const DATA_FILES = {
   'groups.v1.json': 'groups.v1.9fda3b7247.json',
   'masks.v2.json': 'masks.v2.be92aa507b.json',
   'sample.v1.json': 'sample.v1.300671bac4.json',
-  'sample-pack.v1.json': 'sample-pack.v1.0326af28e0.json',
+  'sample-pack.v1.json': 'sample-pack.v1.2a5f113734.json',
   'inat-synonyms.v1.json': 'inat-synonyms.v1.44136fa355.json',
   'vietnam-boundaries.v1.json': 'vietnam-boundaries.v1.1eed73d78b.json',
   'map-countries.v1.json': 'map-countries.v1.b88791b51c.json',
@@ -41,5 +41,6 @@ export const DATA_FILES = {
   'names.sv.v1.json': 'names.sv.v1.04e215bdcf.json',
   'names.da.v1.json': 'names.da.v1.0bf82f63c3.json',
   'names.ru.v1.json': 'names.ru.v1.69822a9271.json',
+  'names.ja.v1.json': 'names.ja.v1.20e1746926.json',
 } as const
 export type DataFile = keyof typeof DATA_FILES

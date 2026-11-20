@@ -24,6 +24,9 @@ const DICT = {
   // Russian declines: "в этом году", "в прошлом году", "последние 3 месяца", "с марта по май", "между мартом и маем".
   // "до" is "before" ("до 2024": up to Dec 2023) on its own, and links a range ("с марта до мая").
   ru: { link: 'по|до', between: 'между', and: 'и', from: 'с|со|от', since: 'с|со|начиная с', after: 'после', before: 'до|раньше', until: 'по|вплоть до', this: 'этот|этом|этого|эта|этой|это|текущий|текущем|текущего|нынешний|нынешнем', last: 'прошлый|прошлом|прошлого|прошлая|прошлой|последний|последнем|последнего|последние|последних|минувший|минувшем|предыдущий|предыдущем', year: 'год|года|году|годом|годы|годов|лет', month: 'месяц|месяца|месяце|месяцем|месяцы|месяцев', quarter: 'квартал|квартала|квартале|кварталы|кварталов' },
+  // Japanese is written on spaces here ("3月 から 5月"); since, after, before and until follow the date ("2024年 から",
+  // POSTFIX). Kana are folded to katakana by searchKey on both sides.
+  ja: { link: 'から', between: '間', and: 'と', from: 'から', since: '以降|から', after: '以降', before: '以前|より前', until: 'まで', this: 'この|今', last: '過去|直近|最近', year: '年|年間', month: 'か月|ヶ月|カ月|ヵ月|箇月', quarter: '四半期' },
 } as const
 export const SEARCH_CONNECTORS: Record<SearchLang, string[]> = {
   en: ['in', 'on', 'at', 'from', 'and'], es: ['en', 'de', 'desde', 'y'], pt: ['em', 'no', 'na', 'de', 'do', 'da', 'e'], nl: ['in', 'uit', 'van', 'en'],
@@ -37,6 +40,7 @@ export const SEARCH_CONNECTORS: Record<SearchLang, string[]> = {
   da: ['i', 'på', 'fra', 'og', 'for'],
   // "за" opens "за последние 3 месяца"; "в"/"во" "в этом году", "в Канаде".
   ru: ['в', 'во', 'на', 'из', 'за', 'и'],
+  ja: ['の', 'で', 'に', 'と'],
 }
 /** Spellings Intl's long month names don't cover (abbreviations and variants that aren't prefixes of them). Polish
  *  months after "od", "do" or a day are genitive ("od marca"), which Intl's standalone names ("marzec") don't cover. */
@@ -107,16 +111,26 @@ const AGO: Record<SearchLang, { before: string[]; after: string[] }> = {
   sv: { before: [], after: ['sedan'] },
   da: { before: [], after: ['siden'] },
   ru: { before: [], after: ['назад', 'тому назад'] },
+  // "2 年 前", "3 か月 前".
+  ja: { before: [], after: ['前'] },
 }
 /** Number words up to twelve in every language, keyed by searchKey; "a", "un", "um" and "een" count as one. */
 const NUMBER_WORDS = new Map<string, number>(
   ([
-    [1, 'one a an uno una un um uma een jeden jedna une ein einem einen einer ett en et один одна одно одну'], [2, 'two dos dois duas twee dwa dwie deux zwei due tva to два две'], [3, 'three tres drie trzy trois drei tre три'],
-    [4, 'four cuatro quatro vier cztery quattro fyra fire четыре'], [5, 'five cinco vijf piec cinq funf cinque fem пять'], [6, 'six seis zes szesc sechs sei sex seks шесть'],
-    [7, 'seven siete sete zeven siedem sept sieben sette sju syv семь'], [8, 'eight ocho oito acht osiem huit otto atta otte восемь'], [9, 'nine nueve nove negen dziewiec neuf neun nio ni девять'],
-    [10, 'ten diez dez tien dziesiec dix zehn dieci tio ti десять'], [11, 'eleven once onze elf jedenascie undici elva elleve одиннадцать'], [12, 'twelve doce doze twaalf dwanascie douze zwolf dodici tolv двенадцать'],
+    [1, 'one a an uno una un um uma een jeden jedna une ein einem einen einer ett en et один одна одно одну 一'], [2, 'two dos dois duas twee dwa dwie deux zwei due tva to два две 二'], [3, 'three tres drie trzy trois drei tre три 三'],
+    [4, 'four cuatro quatro vier cztery quattro fyra fire четыре 四'], [5, 'five cinco vijf piec cinq funf cinque fem пять 五'], [6, 'six seis zes szesc sechs sei sex seks шесть 六'],
+    [7, 'seven siete sete zeven siedem sept sieben sette sju syv семь 七'], [8, 'eight ocho oito acht osiem huit otto atta otte восемь 八'], [9, 'nine nueve nove negen dziewiec neuf neun nio ni девять 九'],
+    [10, 'ten diez dez tien dziesiec dix zehn dieci tio ti десять 十'], [11, 'eleven once onze elf jedenascie undici elva elleve одиннадцать 十一'], [12, 'twelve doce doze twaalf dwanascie douze zwolf dodici tolv двенадцать 十二'],
   ] as [number, string][]).flatMap(([count, words]) => words.split(' ').map((w): [string, number] => [w, count])),
 )
+
+/** One-word periods (Japanese and Chinese write them unspaced, "今年"): this or last year or month, keyed by searchKey. */
+type PeriodWord = 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'
+const PERIOD_WORDS: Partial<Record<string, Record<string, PeriodWord>>> = {
+  ja: { 今年: 'thisYear', 去年: 'lastYear', 昨年: 'lastYear', 今月: 'thisMonth', 先月: 'lastMonth' },
+}
+/** Languages that put since, after, before and until after the date ("2024年 から", "2020年 以来"). */
+const POSTFIX = new Set<string>(['ja'])
 
 /** Date vocabulary and Intl month names are prepared once per parse; never reads the clock. */
 export function dateParser(today: Date, lang: SearchLang) {
@@ -184,11 +198,16 @@ export function dateParser(today: Date, lang: SearchLang) {
     }
     const ago = agoAt(i)
     if (ago) return ago
+    const word = PERIOD_WORDS[lang]?.[keys[i] ?? '']
+    if (word) {
+      const at = word.endsWith('Year') ? y - (word === 'lastYear' ? 1 : 0) : y, m = mo - (word === 'lastMonth' ? 1 : 0)
+      return word.endsWith('Year') ? { from: month(at, 0), to: month(at, 11), n: 1 } : { from: month(at, m), to: month(at, m), n: 1 }
+    }
     const lead = is('from', i) || is('between', i)
     const a = point(i + lead, true)
     if (a) {
       const edge = i + lead + a.n
-      const link = /^[-–—/]$/.test(raw[edge] ?? '') ? 1 : is('link', edge) || (is('between', i) ? is('and', edge) : 0)
+      const link = /^[-–—/〜～]$/.test(raw[edge] ?? '') ? 1 : is('link', edge) || (is('between', i) ? is('and', edge) : 0)
       const b = link ? point(edge + link, true) : undefined
       if (b) {
         // An explicit end year anchors an implicit start; an explicit start anchors an implicit end.
@@ -207,9 +226,11 @@ export function dateParser(today: Date, lang: SearchLang) {
       if (from > now) return undefined
       return { from, to: now, n: 1 + since.n }
     }
+    // A date with since, after, before or until: before it ("since 2020"), or after it in POSTFIX languages.
+    const post = POSTFIX.has(lang) ? point(i, false) : undefined
     for (const kind of ['since', 'after', 'before', 'until'] as const) {
-      const n = is(kind, i)
-      const p = n ? point(i + n, false) : undefined
+      const n = post ? is(kind, i + post.n) : is(kind, i)
+      const p = post ? (n ? { ...post } : undefined) : n ? point(i + n, false) : undefined
       if (!p) continue
       if (!p.explicit && p.m > mo) p.y--
       if (kind === 'since' || kind === 'after') {
