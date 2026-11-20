@@ -28,7 +28,8 @@
   border-top: 1px solid var(--hairline); font-size: 11px; color: var(--muted);
 }
 .eb-tree-order[lang] { font-style: italic; }
-.eb-tree-row { height: 44px; }
+.eb-tree-row { display: flex; height: 44px; }
+.eb-tree-row > .eb-tree-btn { min-width: 0; }
 .eb-tree-btn {
   display: flex; align-items: center; gap: 10px; width: 100%; height: 44px; padding: 0 0 0 0; margin: 0;
   border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; text-align: left;
@@ -43,7 +44,6 @@ button.eb-tree-btn { cursor: pointer; -webkit-tap-highlight-color: transparent; 
 .eb-tree-name > * { overflow: hidden; text-overflow: ellipsis; }
 .eb-tree-name [lang="la"] { font-style: italic; }
 .eb-tree-other { flex: 0 1 auto; font-size: 13px; font-weight: 500; color: var(--muted); }
-.eb-tree-part { flex: none; font-size: 11px; font-weight: 500; color: var(--muted); }
 /* A group that is not one branch of its own (levels.ts foldSplit): a diamond outline after its name, a shape, not a
    colour; the key under the tree says what it means and the row's hidden text says it to a screen reader. */
 .eb-tree-mark { flex: none; align-self: center; width: 7px; height: 7px; margin: 0 1px; box-sizing: border-box; border: 1.5px solid currentColor; transform: rotate(45deg); }
@@ -51,6 +51,16 @@ button.eb-tree-btn { cursor: pointer; -webkit-tap-highlight-color: transparent; 
 @media (hover: hover) and (pointer: fine) { button.eb-tree-btn:hover { background: var(--surface); } }
 /* Phones drop a family's other name, never the groups folded into a row or another group's name inside a branch. */
 @media (max-width: 600px) { .eb-tree-other:not([data-keep]) { display: none; } }
+
+/* A marked row with more than two genera inside: the count after the row, opening their list (PickerSheet). */
+.eb-tree-with {
+  flex: none; min-height: 44px; padding: 0 4px 0 8px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px;
+  text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; cursor: pointer;
+}
+.eb-tree-with:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+.eb-tree-inside { list-style: none; margin: 0; padding: 0 12px 12px 22px; overflow-y: auto; overscroll-behavior: contain; }
+/* Wider than a phone, the sheet keeps to a column's width. */
+@media (min-width: 601px) { .eb-sheet:has(> .eb-tree-inside) { left: max(8px, calc(50% - 220px)); right: max(8px, calc(50% - 220px)); } }
 
 /* The key under the drawing: what the dotted line (and the mark) mean. */
 .eb-tree-key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 13px; color: var(--muted); }

@@ -1,11 +1,9 @@
 // The Tree view's three levels as rows and a drawing (pure). Level one is every family, level two one family's
 // genera, level three one genus's species. Family and genus totals come from the eBird taxonomy the app ships
 // (species.v1.json), so a group's count is "on the list / in the taxonomy"; the tree only decides where it is drawn.
-// A group the tree splits (not one branch of its own) is shown in one of two ways (`foldSplit`). Nearly one branch: the
-// smallest branch holding the whole group holds at most two other groups, each wholly inside it, with fewer species
-// together than the group; it is drawn as one row at that branch ("Macropygia with Turacoena"), counting the whole
-// branch, and the groups inside get no row of their own. Scattered (any other): each part is its own row, counting its
-// own tips only, so nothing is counted twice.
+// A group the tree splits (not one branch of its own) is drawn once (`foldSplit`), as one marked row at the smallest
+// branch holding all of it within the level ("Macropygia with Turacoena"), counting the whole branch; the groups
+// inside get no row of their own. When such a branch lies inside another, the outer one is the row.
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 import { cladeTree, drawTree, isLeaf, leavesOf, type Drawing, type Tree } from './tree'
@@ -21,11 +19,14 @@ export const genusOf = (sci: string): string => sci.split(' ')[0]
 
 export type TreeRow =
   | { kind: 'order'; ord: string; top: number }
-  /** A family (level one) or genus (level two). `row` is one of its species, for names. `part` when the tree scatters
-   *  it; `with` one species of each group folded into its branch. */
-  | { kind: 'group'; key: string; row: SpeciesRow; on: number; total: number; part?: [number, number]; with?: SpeciesRow[]; dotted: boolean; top: number }
+  /** A family (level one) or genus (level two). `row` is one of its species, for names; `with` the groups inside its
+   *  branch when it is marked. */
+  | { kind: 'group'; key: string; row: SpeciesRow; on: number; total: number; with?: Inside[]; dotted: boolean; top: number }
   /** `dotted`: placed without genetic data (a group: one species alone, so drawn by that species' own branch). */
   | { kind: 'species'; row: SpeciesRow; on: boolean; dotted: boolean; top: number }
+
+/** A group inside a marked branch: one of its species, for names, and its own counts. */
+export type Inside = { key: string; row: SpeciesRow; on: number; total: number }
 
 export type LevelView = {
   rows: TreeRow[]
@@ -34,17 +35,18 @@ export type LevelView = {
   drawing: Drawing
   /** The open family or genus is not one branch in the whole tree (the drawing keeps its species alone). */
   split: boolean
-  /** The open group is nearly one branch: one species of each group inside it, which the drawing includes. */
+  /** The open group is a marked branch: one species of each group inside it, which the drawing includes. */
   inside?: SpeciesRow[]
-  /** The level drawn: `level` with a folded family or genus replaced by the one whose branch holds it. */
+  /** The level drawn: `level` with a family inside a marked branch replaced by the family whose row it is. A genus
+   *  inside one opens on its own species. */
   level: TreeLevel
 }
 
 /**
- * The split groups among `tips` (one key per tip): `into` maps a group folded into another's branch to that group,
- * `others` a folding group to the groups folded into it, `scattered` lists the split groups drawn as their parts.
+ * The split groups among `tips` (one key per tip): `into` maps each group inside a marked branch to the group whose
+ * row that branch is, `others` a marked group to the groups inside its branch.
  */
-export type Folds = { into: Map<string, string>; others: Map<string, string[]>; scattered: Set<string> }
+export type Folds = { into: Map<string, string>; others: Map<string, string[]> }
 
 export function foldSplit(tree: Tree, tips: Iterable<number>, keyOf: (tip: number) => string): Folds {
   const n = tree.parent.length
@@ -56,31 +58,33 @@ export function foldSplit(tree: Tree, tips: Iterable<number>, keyOf: (tip: numbe
   const span = new Map<string, { lo: number; hi: number; n: number }>()
   sorted.forEach((t, i) => { const s = span.get(keys[i]); if (s) { s.hi = t; s.n++ } else span.set(keys[i], { lo: t, hi: t, n: 1 }) })
   const from = (x: number) => { let a = 0, b = sorted.length; while (a < b) { const m = (a + b) >> 1; if (sorted[m] < x) a = m + 1; else b = m } return a }
-  const split: { key: string; size: number; others?: string[] }[] = []
+  // Each split group's smallest branch holding all of it (one that holds another group's tips too).
+  const split: { key: string; m: number; n: number; lo: number }[] = []
   for (const [key, s] of span) {
     if (s.n < 2) continue
-    let m = s.lo // the smallest branch holding the whole group
+    let m = s.lo
     while (end[m] <= s.hi) m = tree.parent[m]
-    const inside = new Map<string, number>()
-    for (let i = from(m), j = from(end[m]); i < j; i++) if (keys[i] !== key) inside.set(keys[i], (inside.get(keys[i]) ?? 0) + 1)
-    if (!inside.size) continue
-    const near = inside.size <= 2 && [...inside.values()].reduce((a, b) => a + b) < s.n && [...inside].every(([o, c]) => span.get(o)!.n === c)
-    split.push({ key, size: end[m] - m, others: near ? [...inside.keys()] : undefined })
+    for (let i = from(m), j = from(end[m]); i < j; i++) if (keys[i] !== key) { split.push({ key, m, n: s.n, lo: s.lo }); break }
   }
-  // Smaller branches first, so a group inside two nested ones ends in the outer; a folding group folded itself passes
-  // its groups on (each fold has fewer species than its group, so there is no loop).
-  const into = new Map<string, string>()
-  for (const g of split.filter((g) => g.others).sort((a, b) => a.size - b.size)) for (const o of g.others!) into.set(o, g.key)
-  const others = new Map<string, string[]>()
-  for (const o of into.keys()) { const t = foldedInto(into, o); others.set(t, [...(others.get(t) ?? []), o]) }
-  return { into, others, scattered: new Set(split.filter((g) => !g.others && !into.has(g.key)).map((g) => g.key)) }
+  // Outer branches first (pre-order), the larger group first on one branch: a branch inside a marked one is not marked,
+  // and every tip in a marked branch belongs to its row. A group partly inside a marked branch cannot occur: its own
+  // branch would hold the marked one and be marked instead.
+  split.sort((a, b) => a.m - b.m || b.n - a.n || a.lo - b.lo)
+  const into = new Map<string, string>(), others = new Map<string, string[]>()
+  let last = -1
+  for (const g of split) {
+    if (g.m < last) continue
+    last = end[g.m]
+    const inside = new Set<string>()
+    for (let i = from(g.m), j = from(last); i < j; i++) if (keys[i] !== g.key) inside.add(keys[i])
+    for (const o of inside) into.set(o, g.key)
+    others.set(g.key, [...inside])
+  }
+  return { into, others }
 }
 
-/** The group whose row shows `key` (itself unless folded). */
-export function foldedInto(into: ReadonlyMap<string, string>, key: string): string {
-  while (into.has(key)) key = into.get(key)!
-  return key
-}
+/** The group whose row shows `key` (itself unless inside a marked branch). */
+export const foldedInto = (into: ReadonlyMap<string, string>, key: string): string => into.get(key) ?? key
 
 /** Whether `tips` are exactly the tips under their most recent common ancestor. */
 export function isClade(tree: Tree, tips: readonly number[]): boolean {
@@ -103,41 +107,43 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   const rowOf = (tip: number) => species.byCode.get(tree.code[tip]!)
   const all: number[] = []
   for (const tip of tree.tipOf.values()) if (rowOf(tip)) all.push(tip)
-  // The open family and genus, a folded one replaced by its holder, and the groups in that holder's branch.
+  // The open family (one inside a marked branch replaced by that branch's family) and genus, with the groups inside
+  // a marked one; a genus inside a marked branch opens alone.
   const famFolds = foldSplit(tree, all, (tip) => rowOf(tip)!.fam)
   const fam = level.fam ? foldedInto(famFolds.into, level.fam) : undefined
   const fams = fam ? new Set([fam, ...famFolds.others.get(fam) ?? []]) : undefined
   const famTips = fams ? all.filter((tip) => fams.has(rowOf(tip)!.fam)) : all
   const genFolds = fam ? foldSplit(tree, famTips, (tip) => genusOf(rowOf(tip)!.sci)) : undefined
-  const genus = genFolds && level.genus ? foldedInto(genFolds.into, level.genus) : undefined
-  const genera = genus ? new Set([genus, ...genFolds!.others.get(genus) ?? []]) : undefined
+  const genus = level.genus && genFolds?.into.has(level.genus) ? undefined : level.genus
+  const genera = genus ? new Set([genus, ...genFolds!.others.get(genus) ?? []]) : level.genus ? new Set([level.genus]) : undefined
   const tips = genera ? famTips.filter((tip) => genera.has(genusOf(rowOf(tip)!.sci))) : famTips
   const inScope = (r: SpeciesRow) => (!fams || fams.has(r.fam)) && (!genera || genera.has(genusOf(r.sci)))
-  const folds = genus ? undefined : genFolds ?? famFolds
-  const rawKey = (r: SpeciesRow) => (genus ? r.code : fam ? genusOf(r.sci) : r.fam)
+  const folds = genera ? undefined : genFolds ?? famFolds
+  const rawKey = (r: SpeciesRow) => (genera ? r.code : fam ? genusOf(r.sci) : r.fam)
   const keyOf = (r: SpeciesRow) => (folds ? foldedInto(folds.into, rawKey(r)) : rawKey(r))
   const root = cladeTree(tree, tips, (tip) => keyOf(rowOf(tip)!))
   if (!root) return undefined
-  // One species of a group, for its names (a family's or a genus's: `byGenus`).
-  const rowFor = (key: string, byGenus: boolean) => species.rows.find((r) => (byGenus ? genusOf(r.sci) : r.fam) === key)!
-  // Totals from the taxonomy, within the open scope; a folded group counts toward the row that holds it.
-  const total = new Map<string, number>(), on = new Map<string, number>()
+  // Totals from the taxonomy, within the open scope, per group (`own`) and per row (a group inside a marked branch
+  // counts toward its row).
+  const count = () => ({ total: new Map<string, number>(), on: new Map<string, number>() })
+  const own = count(), byRow = count()
+  const first = new Map<string, SpeciesRow>()
   for (const r of species.rows) {
     if (!inScope(r)) continue
-    const k = keyOf(r)
-    total.set(k, (total.get(k) ?? 0) + 1)
-    if (onList.has(r.code)) on.set(k, (on.get(k) ?? 0) + 1)
+    for (const [c, k] of [[own, rawKey(r)], [byRow, keyOf(r)]] as const) {
+      c.total.set(k, (c.total.get(k) ?? 0) + 1)
+      if (onList.has(r.code)) c.on.set(k, (c.on.get(k) ?? 0) + 1)
+    }
+    if (!first.has(rawKey(r))) first.set(rawKey(r), r)
   }
-  const leaves = leavesOf(root)
-  const parts = new Map<string, number>()
-  for (const l of leaves) parts.set(l.key, (parts.get(l.key) ?? 0) + 1)
-  const seenPart = new Map<string, number>()
+  const insideOf = (keys: string[] | undefined): Inside[] | undefined =>
+    keys?.map((key) => ({ key, row: first.get(key)!, on: own.on.get(key) ?? 0, total: own.total.get(key) ?? 0 }))
   const rows: TreeRow[] = []
   const ys: number[] = []
   let top = 0
   let lastOrd: string | undefined
-  for (const l of leaves) {
-    // The group's own species names the row (a folded branch may start with a species of a group inside it).
+  for (const l of leavesOf(root)) {
+    // The group's own species names the row (a marked branch may start with a species of a group inside it).
     const r = rowOf(l.tips.find((tip) => rawKey(rowOf(tip)!) === l.key) ?? l.tips[0])!
     if (!fam && r.ord !== lastOrd) {
       rows.push({ kind: 'order', ord: r.ord, top })
@@ -146,24 +152,15 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
     }
     ys.push(top + ROW_H / 2)
     const dotted = l.tips.length === 1 && tree.taxOnly[l.tips[0]] === 1
-    if (genus) rows.push({ kind: 'species', row: r, on: onList.has(r.code), dotted, top })
-    else {
-      const n = parts.get(l.key)!
-      const folded = folds!.others.get(l.key)
-      if (n === 1) rows.push({ kind: 'group', key: l.key, row: r, on: on.get(l.key) ?? 0, total: total.get(l.key) ?? l.tips.length, with: folded?.map((o) => rowFor(o, !!fam)), dotted, top })
-      else {
-        const i = (seenPart.get(l.key) ?? 0) + 1
-        seenPart.set(l.key, i)
-        const mine = l.tips.filter((tip) => onList.has(tree.code[tip]!)).length
-        rows.push({ kind: 'group', key: l.key, row: r, on: mine, total: l.tips.length, part: [i, n], dotted, top })
-      }
-    }
+    if (genera) rows.push({ kind: 'species', row: r, on: onList.has(r.code), dotted, top })
+    else rows.push({ kind: 'group', key: l.key, row: r, on: byRow.on.get(l.key) ?? 0, total: byRow.total.get(l.key) ?? l.tips.length, with: insideOf(folds!.others.get(l.key)), dotted, top })
     top += ROW_H
   }
   const tipRows = rows.filter((r) => r.kind !== 'order')
   // One lineage alone (a genus of one species, a family of one genus): its stem, from the split above it.
   const stem = isLeaf(root) && tree.parent[root.node] >= 0 ? tree.age[tree.parent[root.node]] : undefined
   const drawing = drawTree(root, (_, i) => { const r = tipRows[i]; return r.kind === 'species' ? r.on : r.kind === 'group' && r.on > 0 }, (i) => ys[i], stem, (_, i) => tipRows[i].dotted)
-  const inGroup = genus ? genFolds!.others.get(genus)?.map((o) => rowFor(o, true)) : fam ? famFolds.others.get(fam)?.map((o) => rowFor(o, false)) : undefined
-  return { rows, height: top, drawing, split: !inGroup && !!fam && !isClade(tree, tips), inside: inGroup, level: { fam, genus } }
+  const inside = (genus ? genFolds!.others.get(genus) : genera ? undefined : fam ? famFolds.others.get(fam) : undefined)
+    ?.map((key) => species.rows.find((r) => (genus ? genusOf(r.sci) : r.fam) === key)!)
+  return { rows, height: top, drawing, split: !inside && !!fam && !isClade(tree, tips), inside, level: { fam, genus: level.genus } }
 }
