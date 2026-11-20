@@ -34,7 +34,6 @@ export const da: Messages = {
     },
     settings: {
       language: 'Sprog',
-      languageChange: 'Skift sprog',
       enNames: {
         label: 'Vis fuglenavne på engelsk',
         note: 'Overalt hvor der står fuglenavne, på denne enhed.',
@@ -105,7 +104,8 @@ export const da: Messages = {
         collage: 'Collage',
         list: 'Liste',
         map: 'Kort',
-        mapHint: 'Tryk på et sted for at filtrere collagen. Åbn et land i listen nedenfor for at se dets stater og provinser.',
+        mapWorld: 'Verden',
+        mapAll: 'Vis alle {n}',
         mapFailed: 'Kortet kunne ikke indlæses. Listen nedenfor har de samme tal.',
         tree: 'Træ',
         heaviestFirst: 'Tungeste først',
@@ -230,9 +230,9 @@ export const da: Messages = {
         empty: 'Denne liste har ingen datoer, så der er ingen tidslinje.',
       },
       basis: {
-        label: 'Tæl en fugl efter',
-        first: 'Første fund',
-        any: 'Fundet når som helst',
+        label: 'Tæl gentagne observationer',
+        off: 'En fugl tæller, hvor og hvornår du først registrerede den.',
+        on: 'En fugl tæller overalt og hvert år, du har registreret den.',
         seenIn: 'Fundet i {places}',
         seenTime: 'Fundet: {time}',
       },
@@ -241,9 +241,6 @@ export const da: Messages = {
       head: { continent: 'Kontinenter', region: 'Regioner', country: 'Lande', province: 'Stater og provinser', county: 'Amter' },
       find: { continent: 'Find et land eller en region', region: 'Find en region', country: 'Find et land', province: 'Find en stat eller provins', county: 'Find et amt' },
       noMatch: { continent: 'Intet sted passer.', region: 'Ingen region passer.', country: 'Intet land passer.', province: 'Ingen stat eller provins passer.', county: 'Intet amt passer.' },
-      allCountries: 'Alle lande',
-      allContinents: 'Alle kontinenter',
-      allOf: 'Hele {place}',
       drill: { continent: 'Vis lande i {place}', country: 'Vis stater og provinser i {place}', province: 'Vis amter i {place}' },
       group: { continent: 'Lande i {place}', country: 'Stater og provinser i {place}', province: 'Amter i {place}' },
       none: 'Ingen steder på denne liste.',
@@ -847,7 +844,7 @@ export const da: Messages = {
           'Collagen, filtrene og billederne til deling laves alle i din browser.',
         ],
         // The language codes keep “…”: tests/about-i18n.test.tsx matches them.
-        privacy: 'Din liste forlader aldrig din browser. Vi tæller besøg med Cloudflare Web Analytics, anonymt og uden cookies, og nogle få handlinger (en collage lavet, et billede delt eller gemt, et link kopieret) med en lille tæller af vores egen, som aldrig ser dine fugle, navne eller steder. Et anonymt id, der skifter hver dag, lader os tælle unikke besøgende uden at følge nogen fra dag til dag. Ingen af dem kører, hvis din browser beder om ikke at blive sporet. Dit valg af sprog gemmes i en lille cookie på denne enhed; den forlader kun enheden for at vise dig den rigtige side. Besøgstællingen indeholder din browsers sprog (kun “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” eller “zh-Hant”).',
+        privacy: 'Din liste forlader aldrig din browser. Vi tæller besøg med Cloudflare Web Analytics, anonymt og uden cookies, og nogle få handlinger (en collage lavet, et billede delt eller gemt, et link kopieret) med en lille tæller af vores egen, som aldrig ser dine fugle, navne eller steder. Et anonymt id, der skifter hver dag, lader os tælle unikke besøgende uden at følge nogen fra dag til dag. Ingen af dem kører, hvis din browser beder om ikke at blive sporet. Dit valg af sprog gemmes i en lille cookie på denne enhed; den forlader kun enheden for at vise dig den rigtige side. Besøgstællingen indeholder din browsers sprog (kun “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” eller “zh-Hant”). Sider på russisk, japansk og kinesisk henter deres skrifttyper fra Google Fonts, så på de sider kontakter din browser Google.',
       },
       size: {
         head: 'Hvad Ægte mål betyder',

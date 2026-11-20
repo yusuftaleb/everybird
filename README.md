@@ -2,14 +2,14 @@
 
 A lifetime of birds. Everybird turns a birder's life list into a sticker collage. Import an eBird, observation.org, iGoTerra or Scythebill export or a spreadsheet, use an iNaturalist username, or tick birds off by hand, and your list is laid out as a collage you can filter, edit and share, and also read as a list, a map or a tree of birds.
 
-Your list never leaves your browser. The only network calls that carry user input are iNaturalist API requests (a username and place IDs). A share link carries the whole list in the link itself. Anonymous usage counts (visits, and a few actions such as a collage made or an image shared, never list contents) are sent to a stats endpoint, and Cloudflare Web Analytics counts visits without cookies; both are skipped with Do Not Track or Global Privacy Control.
+Your list never leaves your browser. The only network calls that carry user input are iNaturalist API requests (a username and place IDs). A share link carries the whole list in the link itself. Anonymous usage counts (visits, and a few actions such as a collage made or an image shared, never list contents) are sent to a stats endpoint, and Cloudflare Web Analytics counts visits without cookies; both are skipped with Do Not Track or Global Privacy Control. Pages in Russian, Japanese and Chinese load their fonts from Google Fonts.
 
 Live at https://everybird.yusuftaleb.com (share links, link previews and the share images' footer use this origin, `src/lib/share/origin.ts`). It is served by a Cloudflare Worker (OpenNext); the release steps are in `AGENTS.md`.
 
 ## Pages
 
 - **Collage** (`/`): your collage under a head with "Add birds" (one dialog for every import and for adding by hand, opening on Import a file) and Share; the controls bar (the Collage, List, Map and Tree views, each view's own one-press switches (True size, the list's sort direction, Scientific names, Lifers only in the Tree), Filters, search), the active filter chips and bird cards (with a link to the bird's Bird Album page). Without a list on the device it shows a sample, with a short guided tour.
-- **Settings** (`/settings`): your list (its sources, the match report), adding by hand, counting rules, the language, and downloads, backup and restore, all in the page.
+- **Settings** (`/settings`): your list (its sources, the match report), adding by hand, counting rules, bird names in English (in the other languages), and downloads, backup and restore, all in the page.
 - **About** (`/about`): how it works, privacy and every credit.
 - **Compare** (`/compare`, a tab in the top bar): paste a friend's share link, or press "Compare with mine" on a shared collage, and see the comparison card on the page (a Venn of your lists and their stickers) beside the birds you still need, those you both have and your own; add more friends for a ranking. Share the card, a wish list of the birds you still need, or a link to the comparison (`/c/[token]`, read-only).
 - **Shared view** (`/s/[token]`): a read-only collage from a share link. The old `/make`, `/my` and `/credits` redirect to Settings, Collage and About.
@@ -18,9 +18,9 @@ Light by default, with a sun/moon toggle in the top bar. The interface is in Eng
 
 ## Current capabilities
 
-- Smart search and one Filters panel for places, time, taxonomy and conservation status.
+- Smart search and one Filters panel for places, time, taxonomy and conservation status, driving every view alike (the Map has no filter of its own: a press on a country zooms in, "World" zooms out).
 - Share on one screen: Share image is two presses from the collage; the other options are rows under it (a species goal for a year or all time, Fit or Oval, rings on the latest and first lifer, dark and transparent looks). Print poster opens the poster's options, and several posters at once come as one ZIP.
-- Share images of every view (Map and Tree draw their own; the Tree's with Lifers only and Hide totals), with a transparent background and a count size option.
+- Share images of every view (Map and Tree draw their own: the Map's with its five places with the most species; the Tree's with Lifers only and Hide totals), with a transparent background and a count size option.
 - Vertical/Horizontal sharing: Story 9:16 or Desktop 16:9, Post 4:5 or 5:4, and Square; print posters A4–A1 and US 12×18 to 24×36 inches in either orientation.
 - Search metadata in every language, a `WebSite` site-name declaration on the homepage, and the landing demo excluded from search snippets. Google's displayed result can lag a deployment.
 - Private anonymous-usage dashboard at `https://stats.yusuftaleb.com/dashboard`, behind Cloudflare Access. Days now follow America/Vancouver; the completed 2026-11-16 transition is documented in [the stats README](workers/stats/README.md).

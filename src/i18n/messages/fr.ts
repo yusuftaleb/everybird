@@ -34,7 +34,6 @@ export const fr: Messages = {
     },
     settings: {
       language: 'Langue',
-      languageChange: 'Changer de langue',
       enNames: {
         label: 'Afficher les noms des oiseaux en anglais',
         note: 'Partout où des noms d’oiseaux apparaissent, sur cet appareil.',
@@ -105,7 +104,8 @@ export const fr: Messages = {
         collage: 'Collage',
         list: 'Liste',
         map: 'Carte',
-        mapHint: 'Appuie sur un lieu pour filtrer le collage. Ouvre un pays dans la liste ci-dessous pour voir ses États et provinces.',
+        mapWorld: 'Monde',
+        mapAll: 'Tout afficher ({n})',
         mapFailed: 'Impossible de charger la carte. La liste ci-dessous a les mêmes nombres.',
         tree: 'Arbre',
         heaviestFirst: 'Plus lourds d’abord',
@@ -230,9 +230,9 @@ export const fr: Messages = {
         empty: 'Cette liste n’a pas de dates, il n’y a donc pas de frise chronologique.',
       },
       basis: {
-        label: 'Compter un oiseau selon',
-        first: 'Première observation',
-        any: 'Toute observation',
+        label: 'Compter les observations répétées',
+        off: 'Un oiseau compte au lieu et à la date où tu l’as noté pour la première fois.',
+        on: 'Un oiseau compte partout et chaque année où tu l’as noté.',
         seenIn: 'Observés\u00a0: {places}',
         seenTime: 'Observés\u00a0: {time}',
       },
@@ -241,10 +241,6 @@ export const fr: Messages = {
       head: { continent: 'Continents', region: 'Régions', country: 'Pays', province: 'États et provinces', county: 'Comtés' },
       find: { continent: 'Trouver un pays ou une région', region: 'Trouver une région', country: 'Trouver un pays', province: 'Trouver un État ou une province', county: 'Trouver un comté' },
       noMatch: { continent: 'Aucun lieu ne correspond.', region: 'Aucune région ne correspond.', country: 'Aucun pays ne correspond.', province: 'Aucun État ou province ne correspond.', county: 'Aucun comté ne correspond.' },
-      allCountries: 'Tous les pays',
-      /** The breadcrumb's first step when the top level lists the continents. */
-      allContinents: 'Tous les continents',
-      allOf: '{place} en entier',
       drill: { continent: 'Afficher les pays\u00a0: {place}', country: 'Afficher les États et provinces\u00a0: {place}', province: 'Afficher les comtés\u00a0: {place}' },
       group: { continent: 'Pays\u00a0: {place}', country: 'États et provinces\u00a0: {place}', province: 'Comtés\u00a0: {place}' },
       none: 'Aucun lieu dans cette liste.',
@@ -859,7 +855,7 @@ export const fr: Messages = {
           'Chaque oiseau est rapproché de la taxonomie eBird de cette année et garde sa date la plus ancienne. Les lignes qui ne correspondent pas sont listées, donc rien n’est écarté en silence.',
           'Le collage, les filtres et les images de partage sont tous créés dans ton navigateur.',
         ],
-        privacy: 'Ta liste ne quitte jamais ton navigateur. Nous comptons les visites avec Cloudflare Web Analytics, de façon anonyme et sans cookies, et quelques actions (un collage créé, une image partagée ou enregistrée, un lien copié) avec un petit compteur à nous qui ne voit jamais tes oiseaux, tes noms ni tes lieux. Un identifiant anonyme qui change chaque jour nous permet de compter les visiteurs uniques sans suivre personne d’un jour à l’autre. Aucun des deux ne fonctionne si ton navigateur demande à ne pas être suivi. Ton choix de langue est conservé dans un petit cookie sur cet appareil\u00a0; il n’en sort que pour t’afficher la bonne page. Le décompte des visites inclut la langue de ton navigateur (seulement “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” ou “zh-Hant”).',
+        privacy: 'Ta liste ne quitte jamais ton navigateur. Nous comptons les visites avec Cloudflare Web Analytics, de façon anonyme et sans cookies, et quelques actions (un collage créé, une image partagée ou enregistrée, un lien copié) avec un petit compteur à nous qui ne voit jamais tes oiseaux, tes noms ni tes lieux. Un identifiant anonyme qui change chaque jour nous permet de compter les visiteurs uniques sans suivre personne d’un jour à l’autre. Aucun des deux ne fonctionne si ton navigateur demande à ne pas être suivi. Ton choix de langue est conservé dans un petit cookie sur cet appareil\u00a0; il n’en sort que pour t’afficher la bonne page. Le décompte des visites inclut la langue de ton navigateur (seulement “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” ou “zh-Hant”). Les pages en russe, en japonais et en chinois chargent leurs polices depuis Google Fonts, donc sur ces pages ton navigateur contacte Google.',
       },
       size: {
         head: 'Ce que signifie Taille réelle',

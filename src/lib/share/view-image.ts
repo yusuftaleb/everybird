@@ -15,9 +15,9 @@ import { IMAGE_SCALE, SITE_LABEL, ensureViewFonts, paintCard, prepareCard, type 
 export const MAP_FOOTER = SITE_LABEL
 export const TREE_FOOTER = `${SITE_LABEL} · tree: AvesData, McTavish et al., CC BY 4.0`
 
-/** The level the view had open when Share was pressed: the Places level the map follows, or the tree's (`mine`: its
- *  "Only my birds" switch). */
-export type ShareAt = { place?: string; tree?: TreeLevel; mine?: boolean }
+/** The level the view had open when Share was pressed: the country the map has open (`names`: how the map names its
+ *  places, in the UI language), or the tree's (`mine`: its "Only my birds" switch). */
+export type ShareAt = { place?: string; names?: (key: string) => string; tree?: TreeLevel; mine?: boolean }
 /** A view image's input: the share image's, with the view's level, the app state it reads and the UI strings. */
 export type ViewImageOpts = ShareImageOpts & { at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; hideTotals?: boolean }
 export type Area = { x: number; y: number; w: number; h: number }

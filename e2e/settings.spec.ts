@@ -433,15 +433,15 @@ test("Language: Español from the top bar switches every page and stays after a 
   await page.goto("/settings");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "es");
-  await expect(page.getByRole("combobox", { name: "Idioma" })).toHaveValue("es");
+  await expect(page.getByRole("combobox", { name: "Idioma" })).toHaveCount(0); // the language is the top bar's menu
   await expect(page.getByRole("switch", { name: "Mostrar los nombres de las aves en inglés" })).toBeVisible();
 });
 
-test("Settings still fits about 1.5 screens at 1280x800 with the language field, in the Settings-only variant (?v=lang:b)", async ({ page }) => {
+test("Settings still fits about 1.5 screens at 1280x800, with no language select (?v=lang:b: no top-bar button either)", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await importLifeList(page);
   await page.goto("/settings?v=lang:b");
-  await expect(page.getByRole("combobox", { name: "Language" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Language" })).toHaveCount(0);
   await expect(page.getByTestId("topbar").getByRole("button", { name: /^Language/ })).toHaveCount(0);
   const height = await page.evaluate(() => document.documentElement.scrollHeight);
   expect(height).toBeLessThanOrEqual(1.6 * 800);

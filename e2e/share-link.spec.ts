@@ -98,9 +98,9 @@ test("a shared link's Places drills to province and county", async ({ page }) =>
   const panel = page.getByTestId("filter-panel-places");
   await expect(panel.getByTestId("drill-c:EG")).toHaveCount(0);
   await panel.getByTestId("drill-c:CA").click();
-  await expect(panel.locator(".eb-places-head")).toContainText("States and provinces · 2");
+  await expect(panel.getByRole("list", { name: "States and provinces in Canada" })).toBeVisible();
   await panel.getByRole("button", { name: "Show counties in British Columbia" }).click();
-  await expect(panel.locator(".eb-places-head")).toContainText("Counties · 2");
+  await expect(panel.getByRole("list", { name: "Counties in British Columbia" })).toBeVisible();
   await panel.getByText("Capital", { exact: true }).click();
   await expect(stats).toContainText("2 of 6 species");
   await expect(places).toHaveAttribute("aria-label", "Places: Capital, British Columbia");

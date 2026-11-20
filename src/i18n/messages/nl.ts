@@ -34,7 +34,6 @@ export const nl: Messages = {
     },
     settings: {
       language: 'Taal',
-      languageChange: 'Taal wijzigen',
       enNames: {
         label: 'Vogelnamen in het Engels tonen',
         note: 'Overal waar vogelnamen staan, op dit apparaat.',
@@ -105,7 +104,8 @@ export const nl: Messages = {
         collage: 'Collage',
         list: 'Lijst',
         map: 'Kaart',
-        mapHint: 'Klik op een plaats om de collage te filteren. Open een land in de lijst hieronder om de provincies en staten te zien.',
+        mapWorld: 'Wereld',
+        mapAll: 'Alle {n} tonen',
         mapFailed: 'De kaart kon niet laden. De lijst hieronder heeft dezelfde aantallen.',
         tree: 'Boom',
         heaviestFirst: 'Zwaarste eerst',
@@ -230,9 +230,9 @@ export const nl: Messages = {
         empty: 'Deze lijst heeft geen datums, dus er is geen tijdlijn.',
       },
       basis: {
-        label: 'Vogel tellen op',
-        first: 'Eerste keer',
-        any: 'Elke keer',
+        label: 'Herhaalde waarnemingen tellen',
+        off: 'Een vogel telt waar en wanneer je hem voor het eerst hebt vastgelegd.',
+        on: 'Een vogel telt overal en elk jaar waarin je hem hebt vastgelegd.',
         seenIn: 'Gezien in {places}',
         seenTime: 'Gezien: {time}',
       },
@@ -241,10 +241,6 @@ export const nl: Messages = {
       head: { continent: 'Continenten', region: "Regio's", country: 'Landen', province: 'Staten en provincies', county: 'Graafschappen' },
       find: { continent: 'Zoek een land of regio', region: 'Zoek een regio', country: 'Zoek een land', province: 'Zoek een staat of provincie', county: 'Zoek een graafschap' },
       noMatch: { continent: 'Geen plaats gevonden.', region: 'Geen regio gevonden.', country: 'Geen land gevonden.', province: 'Geen staat of provincie gevonden.', county: 'Geen graafschap gevonden.' },
-      allCountries: 'Alle landen',
-      /** The breadcrumb's first step when the top level lists the continents. */
-      allContinents: 'Alle continenten',
-      allOf: 'Heel {place}',
       drill: { continent: 'Toon landen in {place}', country: 'Toon staten en provincies in {place}', province: 'Toon graafschappen in {place}' },
       group: { continent: 'Landen in {place}', country: 'Staten en provincies in {place}', province: 'Graafschappen in {place}' },
       none: 'Geen plaatsen op deze lijst.',
@@ -859,7 +855,7 @@ export const nl: Messages = {
           'Elke vogel wordt gekoppeld aan de eBird-taxonomie van dit jaar en houdt zijn vroegste datum. Rijen die niet passen, staan in een lijst, zodat er niets stilletjes wegvalt.',
           'De collage, de filters en de afbeeldingen om te delen worden allemaal in je browser gemaakt.',
         ],
-        privacy: 'Je lijst verlaat je browser nooit. We tellen bezoeken met Cloudflare Web Analytics, anoniem en zonder cookies, en een paar acties (een collage gemaakt, een afbeelding gedeeld of bewaard, een link gekopieerd) met een kleine eigen teller die nooit je vogels, namen of plaatsen ziet. Een anonieme id die elke dag verandert, laat ons unieke bezoekers tellen zonder iemand van dag tot dag te volgen. Geen van beide draait als je browser vraagt om niet gevolgd te worden. Je taalkeuze wordt bewaard in een klein cookie op dit apparaat; het verlaat het apparaat alleen om je de juiste pagina te tonen. De bezoekteller bevat de taal van je browser (alleen “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” of “zh-Hant”).',
+        privacy: 'Je lijst verlaat je browser nooit. We tellen bezoeken met Cloudflare Web Analytics, anoniem en zonder cookies, en een paar acties (een collage gemaakt, een afbeelding gedeeld of bewaard, een link gekopieerd) met een kleine eigen teller die nooit je vogels, namen of plaatsen ziet. Een anonieme id die elke dag verandert, laat ons unieke bezoekers tellen zonder iemand van dag tot dag te volgen. Geen van beide draait als je browser vraagt om niet gevolgd te worden. Je taalkeuze wordt bewaard in een klein cookie op dit apparaat; het verlaat het apparaat alleen om je de juiste pagina te tonen. De bezoekteller bevat de taal van je browser (alleen “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” of “zh-Hant”). Pagina’s in het Russisch, Japans en Chinees laden hun lettertypen van Google Fonts, dus op die pagina’s maakt je browser contact met Google.',
       },
       size: {
         head: 'Wat Ware grootte betekent',

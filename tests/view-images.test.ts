@@ -1,8 +1,8 @@
-// The Map and Tree views' share images, their pure parts: how the map is fitted, the legend's ranges, which tree names are kept.
+// The Map and Tree views' share images, their pure parts: how the map is fitted, where its top places go, which tree names are kept.
 import { describe, expect, it } from 'vitest'
-import { shadeRanges, shadeStep } from '@/lib/map/shapes'
+import { mapImageLayout, TOP_PLACES } from '@/lib/share/map-image'
 import { en } from '@/i18n/messages/en'
-import { FOOTER_LINE, SITE_LABEL, prepareCard, type ShareImageOpts } from '@/lib/share/image'
+import { FOOTER_LINE, SITE_LABEL, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
 import { keepNames } from '@/lib/share/tree-image'
 import { MAP_FOOTER, TREE_FOOTER, fitBox, wrapParts } from '@/lib/share/view-image'
 import { buildSpeciesIndex } from '@/lib/species/load'
@@ -16,14 +16,33 @@ describe('the map image', () => {
     expect(f).toEqual({ x: 475, y: 0, s: 0.5 })
   })
 
-  it("the legend's ranges are the shade steps' own, every count from 1 to the most in one", () => {
-    const r = shadeRanges(100)
-    expect(r[0][1]).toBe(1)
-    expect(r[r.length - 1]).toEqual([5, expect.any(Number), 100])
-    for (const [step, from, to] of r) for (const n of [from, to]) expect(shadeStep(n, 100)).toBe(step)
-    for (let i = 1; i < r.length; i++) expect(r[i][1]).toBe(r[i - 1][2] + 1)
-    expect(shadeRanges(0)).toEqual([])
-    expect(shadeRanges(1)).toEqual([[5, 1, 1]])
+  it('the top places sit beside the map in a wide area, under it otherwise, every one inside the frame in every image shape', () => {
+    for (const format of ['story', 'post', 'square', 'desktop', 'wide'] as const) {
+      const c = cardLayout(format, { name: true, filter: true, latest: false, count: 318 }).collage
+      // The count's block takes the top of the collage's area (view-image.ts).
+      const area = { x: c.x, y: c.y + 200, w: c.w, h: c.h - 200 }
+      const L = mapImageLayout(area, 12, true)
+      expect(L.rows, format).toBe(TOP_PLACES)
+      const list = L.list!
+      expect(list.x, format).toBeGreaterThanOrEqual(area.x)
+      expect(list.x + list.w, format).toBeLessThanOrEqual(area.x + area.w + 1e-6)
+      expect(list.y, format).toBeGreaterThanOrEqual(area.y - 1e-6)
+      expect(list.y + list.h, format).toBeLessThanOrEqual(area.y + area.h + 1e-6)
+      expect(L.map.w, format).toBeGreaterThan(area.w * 0.5)
+      expect(L.map.h, format).toBeGreaterThan(area.h * 0.3)
+      if (L.side) expect(L.map.x + L.map.w, format).toBeLessThan(list.x)
+      else expect(L.map.y + L.map.h + L.legendH, format).toBeLessThanOrEqual(list.y + 1e-6)
+      expect(L.side, format).toBe(area.w >= area.h * 1.2)
+    }
+  })
+
+  it('fewer places than five list them all; none, no list; a short area lists only what fits', () => {
+    const area = { x: 0, y: 0, w: 952, h: 1000 }
+    expect(mapImageLayout(area, 3, true).rows).toBe(3)
+    expect(mapImageLayout(area, 0, false).list).toBeNull()
+    const short = mapImageLayout({ x: 0, y: 0, w: 1800, h: 200 }, 9, true)
+    expect(short.side).toBe(true)
+    expect(short.rows * 64).toBeLessThanOrEqual(200)
   })
 })
 

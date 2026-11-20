@@ -34,7 +34,6 @@ export const pt: Messages = {
     },
     settings: {
       language: 'Idioma',
-      languageChange: 'Mudar idioma',
       enNames: {
         label: 'Mostrar os nomes das aves em inglês',
         note: 'Onde aparecerem nomes de aves, neste dispositivo.',
@@ -105,7 +104,8 @@ export const pt: Messages = {
         collage: 'Colagem',
         list: 'Lista',
         map: 'Mapa',
-        mapHint: 'Toque em um lugar para filtrar a colagem. Abra um país na lista abaixo para ver seus estados e províncias.',
+        mapWorld: 'Mundo',
+        mapAll: 'Mostrar todos os {n}',
         mapFailed: 'Não foi possível carregar o mapa. A lista abaixo tem as mesmas contagens.',
         tree: 'Árvore',
         heaviestFirst: 'Pesadas primeiro',
@@ -230,9 +230,9 @@ export const pt: Messages = {
         empty: 'Esta lista não tem datas, então não há linha do tempo.',
       },
       basis: {
-        label: 'Contar cada ave por',
-        first: 'Primeira vez',
-        any: 'Qualquer vez',
+        label: 'Contar observações repetidas',
+        off: 'Cada ave conta onde e quando você a registrou pela primeira vez.',
+        on: 'Cada ave conta em cada lugar e em cada ano em que você a registrou.',
         seenIn: 'Vistas em {places}',
         seenTime: 'Vistas: {time}',
       },
@@ -241,10 +241,6 @@ export const pt: Messages = {
       head: { continent: 'Continentes', region: 'Regiões', country: 'Países', province: 'Estados e províncias', county: 'Condados' },
       find: { continent: 'Encontrar um país ou região', region: 'Encontrar uma região', country: 'Encontrar um país', province: 'Encontrar um estado ou província', county: 'Encontrar um condado' },
       noMatch: { continent: 'Nenhum lugar corresponde.', region: 'Nenhuma região corresponde.', country: 'Nenhum país corresponde.', province: 'Nenhum estado ou província corresponde.', county: 'Nenhum condado corresponde.' },
-      allCountries: 'Todos os países',
-      /** The breadcrumb's first step when the top level lists the continents. */
-      allContinents: 'Todos os continentes',
-      allOf: 'Tudo em {place}',
       drill: { continent: 'Mostrar países: {place}', country: 'Mostrar estados e províncias: {place}', province: 'Mostrar condados: {place}' },
       group: { continent: 'Países: {place}', country: 'Estados e províncias: {place}', province: 'Condados: {place}' },
       none: 'Não há lugares nesta lista.',
@@ -859,7 +855,7 @@ export const pt: Messages = {
           'Cada ave é associada à taxonomia do eBird deste ano e mantém a data mais antiga. As linhas que não correspondem aparecem em uma lista, então nada é descartado em silêncio.',
           'A colagem, os filtros e as imagens para compartilhar são feitos no seu navegador.',
         ],
-        privacy: 'Sua lista nunca sai do seu navegador. Contamos as visitas com o Cloudflare Web Analytics, de forma anônima e sem cookies, e algumas ações (uma colagem feita, uma imagem compartilhada ou salva, um link copiado) com um pequeno contador nosso que nunca vê suas aves, nomes ou lugares. Um identificador anônimo que muda todo dia nos deixa contar visitantes únicos sem rastrear ninguém de um dia para o outro. Nenhum dos dois funciona se o seu navegador pedir para não ser rastreado. A sua escolha de idioma fica guardada em um pequeno cookie neste dispositivo; ela só sai dele para mostrar a página certa. A contagem de visitas inclui o idioma do seu navegador (apenas “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” ou “zh-Hant”).',
+        privacy: 'Sua lista nunca sai do seu navegador. Contamos as visitas com o Cloudflare Web Analytics, de forma anônima e sem cookies, e algumas ações (uma colagem feita, uma imagem compartilhada ou salva, um link copiado) com um pequeno contador nosso que nunca vê suas aves, nomes ou lugares. Um identificador anônimo que muda todo dia nos deixa contar visitantes únicos sem rastrear ninguém de um dia para o outro. Nenhum dos dois funciona se o seu navegador pedir para não ser rastreado. A sua escolha de idioma fica guardada em um pequeno cookie neste dispositivo; ela só sai dele para mostrar a página certa. A contagem de visitas inclui o idioma do seu navegador (apenas “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” ou “zh-Hant”). As páginas em russo, japonês e chinês carregam as fontes do Google Fonts, então nessas páginas seu navegador se conecta ao Google.',
       },
       size: {
         head: 'O que significa Tamanho real',

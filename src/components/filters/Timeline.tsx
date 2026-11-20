@@ -5,14 +5,14 @@
 // layout (birds outside it hidden, no re-pack); on release (or KEY_COMMIT_MS after the last key) the range is
 // committed: one re-pack, one travel. Layouts are cached by range. On phones the strip scrolls sideways; the handles are sliders for keyboards (arrows a
 // month, PageUp/PageDown a year, Home/End). Logic in src/lib/list/timeline.ts.
-import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { applyFilter, type Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { barHeight, boundaryAt, monthAxis, monthBins, monthName, monthShort, pickHandle, rangeFilter, rangeIndices, rangeShort, sliderKey, timeless, yearLabels, type Month } from '@/lib/list/timeline'
-import { hasSeenMonths, type SeenIndex } from '@/lib/list/seen'
+import type { SeenIndex } from '@/lib/list/seen'
 import type { SpeciesIndex } from '@/lib/species/load'
 import './timeline.css'
 
@@ -162,8 +162,6 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
     onPointerUp: () => { if (dragging.current) { dragging.current = null; commit() } },
     onPointerCancel: () => { if (dragging.current) { dragging.current = null; commit() } },
   }
-  // The refs are read in the handlers, not in render (the React lint skipped this component until the basis switch moved out).
-  /* eslint-disable react-hooks/refs */
   const handleProps = (which: 'lo' | 'hi') => {
     const v = which === 'lo' ? lo : hi
     const [min, max] = which === 'lo' ? [0, hi] : [lo, N - 1]
@@ -188,7 +186,6 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
       ...pointer,
     } as const
   }
-  /* eslint-enable react-hooks/refs */
 
   // Readout: the range and its species.
   const ranged = lo > 0 || hi < N - 1
@@ -213,7 +210,6 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
           <button type="button" className="eb-textbtn" data-testid="time-clear" onClick={clear}>{t.filters.clear}</button>
         )}
       </div>
-      <BasisSwitch filter={filter} seen={seen} onFilter={onFilter} />
       <div ref={scroller} className="eb-time-scroll" onScroll={edges} data-more={more || undefined}>
         <div ref={track} className="eb-time-track" style={{ width }} data-ranged={ranged ? '' : undefined}>
           <div className="eb-time-bars" aria-hidden="true">
@@ -241,48 +237,3 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
     </div>
   )
 })
-
-/** "Count a bird by: First seen / Seen any time" (`Filter.basis`), for lists with month sets (MyEBirdData,
- *  iNaturalist, observation.org observations); without, nothing changes by it and it isn't shown. The Time panel's and
- *  the Map view's. */
-export function BasisSwitch({ filter, seen, onFilter }: { filter: Filter; seen?: SeenIndex; onFilter: (f: Filter) => void }) {
-  const baseId = useId()
-  const { t } = useI18n()
-  const hasMonths = useMemo(() => hasSeenMonths(seen), [seen])
-  if (!hasMonths) return null
-  const basis = filter.basis === 'seen' ? 'seen' : 'lifer'
-  const setBasis = (b: 'lifer' | 'seen') => {
-    const next: Filter = { ...filter }
-    if (b === 'seen') next.basis = 'seen'
-    else delete next.basis
-    onFilter(next)
-  }
-  return (
-    <div className="eb-time-basis">
-      <p className="eb-time-basis-label" id={`${baseId}-basis`}>{t.filters.basis.label}</p>
-      <div className="eb-time-basis-seg" role="radiogroup" aria-labelledby={`${baseId}-basis`} data-testid="time-basis">
-        {(['lifer', 'seen'] as const).map((b) => (
-          <button
-            key={b}
-            type="button"
-            role="radio"
-            aria-checked={basis === b}
-            tabIndex={basis === b ? 0 : -1}
-            className="eb-time-basis-btn"
-            data-testid={`time-basis-${b}`}
-            onClick={() => setBasis(b)}
-            onKeyDown={(e) => {
-              if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
-              e.preventDefault()
-              const other = b === 'lifer' ? 'seen' : 'lifer'
-              setBasis(other)
-              e.currentTarget.parentElement?.querySelector<HTMLElement>(`[data-testid="time-basis-${other}"]`)?.focus()
-            }}
-          >
-            {b === 'lifer' ? t.filters.basis.first : t.filters.basis.any}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}

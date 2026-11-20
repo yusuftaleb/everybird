@@ -292,13 +292,8 @@
 @media (max-width: 719px) { .eb-namefield { max-width: none; } }
 .eb-namefield-label { font-size: 14px; font-weight: 600; line-height: 20px; }
 .eb-namefield .eb-note { font-size: 13px; line-height: 1.4; }
-/* Your data, first: the language select (as wide as the name field), and under it the English-names switch. */
+/* Settings > Language: the English-names switch (the language itself is the top bar's menu). */
 .eb-langrow { display: flex; flex-direction: column; gap: 12px; }
-.eb-langrow .eb-langfield { flex: none; }
-@media (min-width: 1024px) { .eb-settings-pair .eb-langfield { max-width: 340px; } }
-/* The select and its "Change language" button on one row (the button wraps under on a narrow field). */
-.eb-langfield-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.eb-langfield-row .eb-select { flex: 1 1 160px; }
 .eb-confirm {
   display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; max-width: 560px;
   border: 1px solid var(--accent);

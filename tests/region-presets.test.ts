@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PlacesDrill } from '@/components/filters/PlacesDrill'
+import { PlacesTree } from '@/components/filters/PlacesTree'
 import { withI18n } from './i18n-render'
 import { buildList } from '@/lib/list/build-list'
 import { filterChips, withoutFilterChip } from '@/lib/list/chips'
@@ -160,7 +160,7 @@ describe('overlapping presets and Places UI search', () => {
     }
     const state: AppState = { ...initialState(), list, seen }
     const onFilter = vi.fn()
-    render(createElement(PlacesDrill, { state, species, regions, onFilter }), { wrapper: withI18n('en') })
+    render(createElement(PlacesTree, { state, species, regions, onFilter }), { wrapper: withI18n('en') })
 
     expect(screen.getByTestId('region-latam')).toBeTruthy()
     expect(screen.getByTestId('region-me')).toBeTruthy()
@@ -181,7 +181,7 @@ describe('overlapping presets and Places UI search', () => {
       sub1: { 'FR-973': 'French Guiana' },
     }
     const state: AppState = { ...initialState(), list, seen }
-    render(createElement(PlacesDrill, { state, species, regions, onFilter: vi.fn() }), { wrapper: withI18n('en') })
+    render(createElement(PlacesTree, { state, species, regions, onFilter: vi.fn() }), { wrapper: withI18n('en') })
 
     const find = screen.getByTestId('places-find')
     fireEvent.change(find, { target: { value: 'africa' } })

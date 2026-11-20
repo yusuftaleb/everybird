@@ -1,8 +1,11 @@
-/* The Map view (MapView.tsx): land in Surface, places on the list in five steps of Accent, a checked place outlined in Ink. */
-.eb-map { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
-.eb-map-pic { display: flex; flex-direction: column; gap: 8px; }
-.eb-map-svg { display: block; width: 100%; height: auto; max-height: 70vh; }
-.eb-map-wait { aspect-ratio: 2000 / 983; background: var(--surface); border-radius: 8px; }
+/* The Map view (MapView.tsx): land in Surface, each place with species Accent mixed into Surface on one continuous scale
+   (the fill is set per path), the hovered place and the open country outlined in Ink. The World button sits on the map's
+   top-left corner, the legend ramp under it, then the plain list of the shown level's places. */
+.eb-map { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; min-width: 0; }
+.eb-map-pic { position: relative; display: flex; flex-direction: column; gap: 10px; }
+.eb-map-svg { display: block; width: 100%; height: auto; max-height: 70vh; animation: eb-map-in .28s cubic-bezier(.16, 1, .3, 1) both; }
+.eb-map-wait { aspect-ratio: 2000 / 983; background: var(--surface); border-radius: 8px; animation: none; }
+@keyframes eb-map-in { from { opacity: 0; transform: scale(.985); } }
 .eb-map-svg path {
   fill: var(--surface);
   fill-rule: evenodd;
@@ -12,13 +15,45 @@
   vector-effect: non-scaling-stroke;
   transition: fill .15s var(--ease-ui);
 }
-.eb-map-svg path[data-step="1"] { fill: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
-.eb-map-svg path[data-step="2"] { fill: color-mix(in srgb, var(--accent) 34%, var(--surface)); }
-.eb-map-svg path[data-step="3"] { fill: color-mix(in srgb, var(--accent) 52%, var(--surface)); }
-.eb-map-svg path[data-step="4"] { fill: color-mix(in srgb, var(--accent) 72%, var(--surface)); }
-.eb-map-svg path[data-step="5"] { fill: var(--accent); }
-.eb-map-svg path[data-press] { cursor: pointer; }
+.eb-map-svg path[data-opens] { cursor: pointer; }
+.eb-map-svg path[data-open] { stroke: var(--ink); stroke-width: 1.5px; }
 .eb-map-svg path[data-hot] { stroke: var(--ink); stroke-width: 1.25px; }
-.eb-map-svg path[data-on] { stroke: var(--ink); stroke-width: 2px; }
-.eb-map-line { margin: 0; min-height: 1.5em; color: var(--muted); font-size: 12px; }
-@media (prefers-reduced-motion: reduce) { .eb-map-svg path { transition: none; } }
+
+/* The tooltip: the bird tooltip's card look (card-list.css .eb-card.eb-tip), above the pointer, its side by where the
+   pointer is so it never runs off the map. */
+.eb-map-tip { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; white-space: nowrap; transform: translate(-50%, calc(-100% - 12px)); }
+.eb-map-tip[data-side="start"] { transform: translate(-12px, calc(-100% - 12px)); }
+.eb-map-tip[data-side="end"] { transform: translate(calc(-100% + 12px), calc(-100% - 12px)); }
+.eb-map-tip-name { font-weight: 600; font-size: 14px; color: var(--ink); }
+
+/* "World": a quiet button on the map's top-left corner, on Paper so it reads over any shade. */
+.eb-btn.eb-map-back { position: absolute; left: 8px; top: 8px; z-index: 2; gap: 6px; padding: 0 14px 0 10px; background: var(--paper); border-color: var(--line); font-weight: 600; }
+.eb-map-back svg { width: 16px; height: 16px; }
+
+/* The legend: the lowest count, one continuous ramp, the highest. */
+.eb-map-legend { display: flex; align-items: center; gap: 8px; margin: 0; }
+.eb-map-legend i { flex: 0 1 200px; min-width: 48px; height: 8px; border-radius: 4px; }
+
+/* The list under the map: the shown level's places, most species first, the count beside the name. A world row is a
+   button (a 44px row with the chevron pointing in); a country's rows are plain. */
+.eb-map-list { list-style: none; margin: 0 -8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); column-gap: 16px; }
+.eb-map-row {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 8px; box-sizing: border-box;
+  border: 0; background: none; color: var(--ink); font: inherit; text-align: left;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  -webkit-tap-highlight-color: transparent;
+}
+button.eb-map-row { cursor: pointer; }
+button.eb-map-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.eb-map-row-name { min-width: 0; overflow-wrap: break-word; padding-block: 6px; }
+.eb-map-row .eb-count { flex: none; }
+.eb-map-row-go { flex: none; width: 16px; height: 16px; margin-left: auto; color: var(--muted); transform: rotate(-90deg); }
+.eb-map-all { align-self: flex-start; }
+@media (hover: hover) and (pointer: fine) {
+  button.eb-map-row:hover { background: var(--surface); }
+  button.eb-map-row:hover .eb-map-row-go { color: var(--ink); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eb-map-svg { animation: none; }
+  .eb-map-svg path { transition: none; }
+}
