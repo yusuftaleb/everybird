@@ -222,14 +222,18 @@ for (const width of WIDTHS) {
       await expect(stats(page)).toContainText(`6 of ${TOTAL} species`);
       await expect(shownBirds(page)).toHaveCount(6);
 
-      // True size: the switch flips and every bird stays on the stage.
-      const trueSize = page.getByRole("switch", { name: /sticker sizes/ });
+      // True size (in Style): the switch flips and every bird stays on the stage.
+      await page.getByRole("button", { name: "Style", exact: true }).click();
+      const trueSize = page.getByRole("switch", { name: "True size" });
       await trueSize.click();
       await expect(trueSize).toHaveAttribute("aria-checked", "true");
+      await page.keyboard.press("Escape");
       await expect(shownBirds(page)).toHaveCount(6);
-      // The list view: one row per bird shown.
+      // The list view: one row per bird shown, and Style's sort order now applies.
       await page.getByRole("button", { name: "List", exact: true }).click();
-      await expect(page.getByRole("button", { name: /^Sorted by body mass/ })).toBeVisible();
+      await page.getByRole("button", { name: "Style", exact: true }).click();
+      await expect(page.getByRole("group", { name: "Sort" })).not.toHaveAccessibleDescription(/Only in/);
+      await page.keyboard.press("Escape");
       await expect(page.locator(".eb-lrow")).toHaveCount(6);
       await page.getByRole("button", { name: "Collage", exact: true }).click();
       await expect(shownBirds(page)).toHaveCount(6);
@@ -306,8 +310,12 @@ for (const width of WIDTHS) {
 
     test("your data: name the collage, download a backup, forget the list, restore it (the title with it)", async ({ page }) => {
       await seed(page);
+      // The collage's title is set in the share dialog, and saved with the list.
+      await page.goto("/");
+      await page.getByRole("button", { name: "Share", exact: true }).click();
+      await page.getByRole("dialog", { name: "Share your collage" }).getByLabel("Collage title").fill("Kalin's lifers");
+      await page.keyboard.press("Escape");
       await page.goto("/settings");
-      await page.getByLabel("Name your collage", { exact: true }).fill("Kalin's lifers");
       await expect.poll(() => page.evaluate(() => new Promise<string | undefined>((done) => {
         const r = indexedDB.open("everybird");
         r.onsuccess = () => { const g = r.result.transaction("kv").objectStore("kv").get("everybird:v1"); g.onsuccess = () => { r.result.close(); done(g.result?.name); }; };

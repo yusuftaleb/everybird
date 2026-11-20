@@ -71,10 +71,15 @@ describe('the sample tour', () => {
     expect(toured()).toBe(true)
   })
 
-  it('Escape ends it', () => {
+  it('Escape ends it, unless a dialog opened over it takes that Escape', () => {
     landing()
     const onEnd = vi.fn()
     render(<Tour onOwn={() => {}} onEnd={onEnd} />, { wrapper: withI18n('en') })
+    const taken = (e: KeyboardEvent) => { if (e.key === 'Escape') e.stopImmediatePropagation() }
+    window.addEventListener('keydown', taken, true) // as useEscapeCapture does
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onEnd).not.toHaveBeenCalled()
+    window.removeEventListener('keydown', taken, true)
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(onEnd).toHaveBeenCalledOnce()
     expect(toured()).toBe(true)

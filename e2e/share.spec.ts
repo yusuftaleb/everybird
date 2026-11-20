@@ -410,14 +410,9 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
       }
       seen.push({ format, col: m.col, icons: m.icons, segX: m.segX, segY: m.segY, midY: m.midY, midX: m.midX, boxR: m.boxR, share: m.share });
       if (shots) {
-        const dark = dialog.getByRole("switch", { name: "Dark image" });
-        for (const theme of ["light", "dark"]) {
-          if ((await dark.getAttribute("aria-checked")) !== String(theme === "dark")) await dark.click();
-          await page.waitForTimeout(300); // the image re-renders in the theme
-          await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
-          await dialog.screenshot({ path: `${shots}/after-share-${width}-${format.toLowerCase()}-${theme}-${info.project.name}.png` });
-        }
-        if ((await dark.getAttribute("aria-checked")) === "true") await dark.click();
+        // Dark image is in Style (outside the dialog): the shots are in the image's current look.
+        await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+        await dialog.screenshot({ path: `${shots}/after-share-${width}-${format.toLowerCase()}-${info.project.name}.png` });
       }
     }
     for (const s of seen.slice(1)) {

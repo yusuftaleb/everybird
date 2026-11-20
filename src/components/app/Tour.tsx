@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { reduced } from '@/components/collage/collage-motion'
-import { useEscapeCapture, useHoldTopBar } from '@/components/dialog-utils'
+import { useHoldTopBar } from '@/components/dialog-utils'
 import { fmt } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
 import { rememberToured } from '@/lib/tour'
@@ -41,7 +41,15 @@ export function Tour({ onOwn, onEnd }: { onOwn: () => void; onEnd: () => void })
   const nameId = useId()
   const textId = useId()
   const end = useCallback(() => { rememberToured(); onEnd() }, [onEnd])
-  useEscapeCapture(end)
+  // Esc ends the tour, but only an Esc nothing else took: dialogs and panels opened over it (Filters, Style, Share, Add
+  // birds) catch theirs on window's capture phase and stop it, so this listens in the bubble phase.
+  const endRef = useRef(end)
+  useLayoutEffect(() => { endRef.current = end })
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') endRef.current() }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [])
   useHoldTopBar()
 
   // Find the target (the sample may still be loading), scroll it into view once, ring it, and keep the note beside it

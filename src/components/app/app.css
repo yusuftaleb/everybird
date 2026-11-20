@@ -95,7 +95,6 @@
 /* Three groups: the views | Filters, Style, Share | search. 4px inside a group (LifeList's dock gap),
    12px between groups (a hairline would be one line too many in a bar this quiet). */
 .eb-dock-tabs, .eb-dock-filters, .eb-dock-end { display: flex; align-items: center; gap: 4px; transition: opacity .15s var(--eb-ease); }
-.eb-dock-filters { margin-left: auto; }
 .eb-dock-end { margin-left: 8px; } /* + the dock's 4px gap = 12px between groups */
 .eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-filters,
 .eb-dock[data-finding] .eb-dock-end { opacity: 0; pointer-events: none; }
@@ -114,7 +113,7 @@
    reads whole), and the label shrinks inside it with an ellipsis, so a long summary ("Time · 2022–2024") cuts its own
    label and never pushes the magnifier out of the bar. The accessible name (aria-label) stays whole. Where nothing
    overflows these change nothing. */
-.eb-dock-filters { min-width: 0; }
+.eb-dock-filters { min-width: 0; margin-left: auto; }
 .eb-dock-drop { flex: 0 1 auto; gap: 8px; padding: 0 10px 0 12px; }
 .eb-drop-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .eb-dock-drop svg:not(.eb-drop-caret) { width: 18px; height: 18px; } /* :not() outweighs .eb-dock-tab svg's 20px */

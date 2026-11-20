@@ -312,7 +312,7 @@ describe('share dialog', () => {
     expect(box).toHaveAttribute('data-format', 'story')
     await waitFor(() => expect(renders).toHaveLength(1))
     await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
-    fireEvent.click(screen.getByRole('button', { name: /^Post/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Post, 4:5' }))
     // Until the post image is ready the box keeps the story's shape around the story image.
     expect(box).toHaveAttribute('data-format', 'story')
     await waitFor(() => expect(renders).toHaveLength(2))
@@ -714,9 +714,9 @@ describe('share dialog: the poster module fails to load', () => {
     vi.resetModules()
     const { default: FreshDialog } = await import('@/components/share/ShareDialog')
     render(<FreshDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: /^Print/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Poster' }))
     await waitFor(() => expect(fail.left).toBe(1))
-    // Focus is on Back (print mode's arrival); a real click moves it to Make poster, which fireEvent.click doesn't, and
+    // Focus stays on the Poster part's button; a real click moves it to Make poster, which fireEvent.click doesn't, and
     // only from there (lost when the button goes) does it follow the one that comes back.
     pressFocused('Make poster')
     await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Couldn’t make the poster. Try again.'))
