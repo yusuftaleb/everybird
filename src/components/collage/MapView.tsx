@@ -5,7 +5,9 @@
 // no filter controls of its own: the bar's Filters button filters it, as every view. A press on a country with birds
 // opens it (its states and provinces where their shapes have them, else the country framed in the world view).
 // Hovering any place shows its name and count ("0 species" too) in a
-// tooltip beside the pointer, and outlines it in Ink above every other shape (mapEdges), as the open place is; on touch the first tap shows the tooltip and a second tap on the same place opens it.
+// tooltip beside the pointer, and outlines it in Ink as the open place is: the same shape, its fill unchanged, moved
+// last (mapDrawOrder) so no neighbour covers half the line; on touch the first tap shows the tooltip and a second tap on
+// the same place opens it.
 // Inside a country, a province with counties opens too: the province framed and outlined, its counties or districts in
 // the list (there are no county shapes). Above the map, the path ("World / Canada / British Columbia", the Places
 // breadcrumb's style) says where the map is; each earlier step goes back to it, and so does Esc while the map has focus.
@@ -23,7 +25,7 @@ import { regionsIn } from '@/lib/i18n-places'
 import { parsePlaceKey, placeName } from '@/lib/list/place-keys'
 import type { AppState } from '@/lib/list/store'
 import { Flag } from '@/components/Flag'
-import { countRange, loadMapCountries, loadMapProvinces, mapCounts, mapEdges, mapLayer, mapOpens, mapPath, mapRows, placeCount, RAMP, shadeMix, type MapCountries, type MapProvinces } from '@/lib/map/shapes'
+import { countRange, loadMapCountries, loadMapProvinces, mapCounts, mapDrawOrder, mapLayer, mapOpens, mapPath, mapRows, placeCount, RAMP, shadeMix, type MapCountries, type MapProvinces } from '@/lib/map/shapes'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
 import { ChevronDownIcon } from './icons'
@@ -192,7 +194,8 @@ export function MapView({ state, species, regions, onLevel }: Props) {
               data-level={open ?? 'world'}
               onPointerLeave={(e) => { if (e.pointerType === 'mouse') setTip(null) }}
             >
-              {shapes.map((s) => {
+              {/* One path per place, the outlined ones last: hovering never adds, hides or refills a shape. */}
+              {mapDrawOrder(shapes, open, tipShape?.key).map((s) => {
                 const press = s.n > 0
                 const opens = press && s.key !== open && (s.key.startsWith('c:') || opening.has(s.key))
                 return (
@@ -203,6 +206,7 @@ export function MapView({ state, species, regions, onLevel }: Props) {
                     data-mix={press ? shadeMix(s.n, min, max).toFixed(2) : undefined}
                     style={press ? { fill: rampFill(shadeMix(s.n, min, max)) } : undefined}
                     data-opens={opens || undefined}
+                    data-edge={s.key === open || s.key === tipShape?.key || undefined}
                     onPointerDown={(e) => { pointer.current = e.pointerType }}
                     onPointerEnter={(e) => { if (e.pointerType === 'mouse') tipAt(s.key, e) }}
                     onPointerMove={(e) => { if (e.pointerType === 'mouse') tipAt(s.key, e) }}
@@ -215,10 +219,6 @@ export function MapView({ state, species, regions, onLevel }: Props) {
                   />
                 )
               })}
-              {/* The open and the hovered place's outlines, drawn last so no neighbour covers half the line. */}
-              {mapEdges(shapes, open, tipShape?.key).map((s) => (
-                <path key={`edge-${s.id}`} className="eb-map-edge" d={s.d} data-edge={s.key} />
-              ))}
             </svg>
           ) : (
             !failed && <div className="eb-map-svg eb-map-wait" />

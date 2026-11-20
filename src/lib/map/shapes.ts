@@ -172,13 +172,15 @@ export function mapLayer(world: MapCountries | null, provinces: MapProvinces | n
 }
 
 /**
- * The shapes outlined in Ink, in the order they are drawn after every other shape (so no neighbour painted later covers
- * half the line): the open place's, then the hovered one's, each once (a place drawn by several shapes, Cyprus with the
- * north, has each outlined). The page draws both; the share image the open place only.
+ * Every shape, in the order the map draws it: the rest as they come, then the open place's shapes, then the hovered
+ * one's (`hot`), each once (a place drawn by several shapes, Cyprus with the north, moves whole). Each place is ONE
+ * element with its own fill; the outlined ones come last so their Ink line (the stroke of that same element, over its
+ * own fill) is covered by no neighbour. Nothing is ever left out or drawn twice. The page outlines both; the share
+ * image the open place only.
  */
-export function mapEdges(shapes: readonly MapShape[], open?: string, hot?: string): MapShape[] {
+export function mapDrawOrder(shapes: readonly MapShape[], open?: string, hot?: string): MapShape[] {
   const keys = [open, hot].filter((k, i, a): k is string => !!k && a.indexOf(k) === i)
-  return keys.flatMap((k) => shapes.filter((s) => s.key === k))
+  return [...shapes.filter((s) => !keys.includes(s.key)), ...keys.flatMap((k) => shapes.filter((s) => s.key === k))]
 }
 
 /** The lowest and highest counts over the shapes with species ([0, 0] with none): the legend's ends. */
@@ -191,7 +193,7 @@ export function countRange(shapes: readonly { n: number }[]): [min: number, max:
 /**
  * The ramp: Accent mixed over Paper by `lo` for the fewest species up to `hi` for the most, a pale tint to a
  * mid-strength Accent, never near-black. Land with no birds is Surface, a step darker than the page; the hairline
- * borders and the Ink outlines of the hovered and the open place (mapEdges) are map.css's.
+ * borders and the Ink outlines of the hovered and the open place (drawn last, mapDrawOrder) are map.css's.
  */
 export const RAMP = { lo: 0.18, hi: 0.62 } as const
 

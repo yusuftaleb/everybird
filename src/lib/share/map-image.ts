@@ -6,14 +6,14 @@
 // of the big count, two equal totals, the same size and weight as the tree image's: the level's species and its
 // places (countries; with a country open its states and provinces, with a province its counties), each over its word;
 // the open place's name in a Muted line under them ("Hide totals": the species alone). Hairline Paper borders on every
-// shape; the open place (a framed country or province) outlined in Ink after every shape, as on the page (mapEdges).
+// shape; the open place (a framed country or province) outlined in Ink after every shape, over its own fill, as on the page.
 // No hover outline, no tooltip.
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { applyFilter, clearPlaces, withPlaces } from '@/lib/list/filters'
 import { parsePlaceKey } from '@/lib/list/place-keys'
 import { flagSrc } from '@/lib/flag'
-import { countRange, loadMapCountries, loadMapProvinces, mapCounts, mapEdges, mapGroupOf, mapLayer, mapRows, RAMP, shadeMix } from '@/lib/map/shapes'
+import { countRange, loadMapCountries, loadMapProvinces, mapCounts, mapGroupOf, mapLayer, mapRows, RAMP, shadeMix } from '@/lib/map/shapes'
 import { MAP_FOOTER, clipText, fitBox, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 
 /** How many places the image lists. */
@@ -154,11 +154,11 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
       ctx.fill(p, 'evenodd')
       ctx.stroke(p)
     }
-    // The open place's outline last, so no neighbour covers half of it.
+    // The open place's outline last, over its own fill (every shape is filled above), so no neighbour covers half of it.
     ctx.strokeStyle = C.ink
     ctx.lineWidth = EDGE / fit.s
     ctx.lineCap = 'round'
-    for (const s of mapEdges(shapes, open)) ctx.stroke(new Path2D(s.d))
+    for (const s of shapes) if (s.key === open) ctx.stroke(new Path2D(s.d))
     ctx.restore()
     const mapBottom = fit.y + box.h * fit.s
     ctx.textBaseline = 'middle'

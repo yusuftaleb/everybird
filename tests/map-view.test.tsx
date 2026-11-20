@@ -18,7 +18,7 @@ vi.mock('@/lib/data-url', () => ({
 
 const { MapView } = await import('@/components/collage/MapView')
 const { countryRows, placeRows } = await import('@/lib/list/filters')
-const { countRange, frameBox, mapCounts, mapEdges, mapGroupOf, mapLayer, mapOpens, mapPath, mapRows, mapShapes, pathBox, placeCount, RAMP, shadeMix } = await import('@/lib/map/shapes')
+const { countRange, frameBox, mapCounts, mapDrawOrder, mapGroupOf, mapLayer, mapOpens, mapPath, mapRows, mapShapes, pathBox, placeCount, RAMP, shadeMix } = await import('@/lib/map/shapes')
 const { initialState, makeReducer } = await import('@/lib/list/store')
 const { emptySaved } = await import('@/lib/list/storage')
 const { buildSpeciesIndex } = await import('@/lib/species/load')
@@ -54,7 +54,7 @@ function Harness({ init = start, onLevel }: { init?: typeof start; onLevel?: (at
 const filterOf = () => JSON.parse(screen.getByTestId('filter').textContent || '{}')
 const shape = (key: string) => document.querySelector<SVGPathElement>(`path[data-key="${key}"]`)!
 /** The Ink outlines drawn after every shape, by place key, in drawing order. */
-const edges = () => Array.from(document.querySelectorAll<SVGPathElement>('path.eb-map-edge')).map((p) => p.dataset.edge)
+const edges = () => Array.from(document.querySelectorAll<SVGPathElement>('svg.eb-map-svg path[data-edge]')).map((p) => p.dataset.key)
 const countsOf = (state: ReturnType<typeof start>) => mapCounts(state.list, state.filter, species, state.seen)
 afterEach(cleanup)
 
@@ -255,21 +255,31 @@ describe('the county level (placeCount, mapPath, mapOpens, mapRows, mapLayer)', 
   })
 })
 
-describe('the outlines drawn last (mapEdges)', () => {
+describe('the draw order (mapDrawOrder): every place, the outlined ones last', () => {
   const shapes = [
     { id: 'CY', key: 'c:CY', d: square, n: 2 },
     { id: 'KE', key: 'c:KE', d: square, n: 1 },
     { id: 'QY', key: 'c:CY', d: square, n: 2 },
     { id: 'BR', key: 'c:BR', d: square, n: 0 },
   ]
-  it('the open place, then the hovered one, each shape of a place once; nothing for a key no shape has', () => {
-    expect(mapEdges(shapes).map((s) => s.id)).toEqual([])
-    expect(mapEdges(shapes, 'c:KE').map((s) => s.id)).toEqual(['KE'])
-    expect(mapEdges(shapes, 'c:KE', 'c:BR').map((s) => s.id)).toEqual(['KE', 'BR'])
-    expect(mapEdges(shapes, undefined, 'c:CY').map((s) => s.id)).toEqual(['CY', 'QY'])
-    expect(mapEdges(shapes, 'c:CY', 'c:CY').map((s) => s.id)).toEqual(['CY', 'QY'])
-    // A country open on its provinces' layer has no shape of its own there: no outline.
-    expect(mapEdges(shapes, 'c:CA')).toEqual([])
+  const ids = (o?: string, h?: string) => mapDrawOrder(shapes, o, h).map((s) => s.id)
+  it('the shapes drawn always include every place once, hovered, open or not', () => {
+    for (const o of [undefined, 'c:CY', 'c:KE', 'c:BR', 'c:CA']) {
+      for (const h of [undefined, 'c:CY', 'c:KE', 'c:BR', 'c:XX']) {
+        expect([...ids(o, h)].sort()).toEqual(['BR', 'CY', 'KE', 'QY'])
+        // The very same shapes (fill, count), only moved.
+        for (const s of mapDrawOrder(shapes, o, h)) expect(shapes).toContain(s)
+      }
+    }
+  })
+  it('the open place, then the hovered one, last; each place moves whole; a key no shape has changes nothing', () => {
+    expect(ids()).toEqual(['CY', 'KE', 'QY', 'BR'])
+    expect(ids('c:KE')).toEqual(['CY', 'QY', 'BR', 'KE'])
+    expect(ids('c:KE', 'c:BR')).toEqual(['CY', 'QY', 'KE', 'BR'])
+    expect(ids(undefined, 'c:CY')).toEqual(['KE', 'BR', 'CY', 'QY'])
+    expect(ids('c:CY', 'c:CY')).toEqual(['KE', 'BR', 'CY', 'QY'])
+    // A country open on its provinces' layer has no shape of its own there.
+    expect(ids('c:CA')).toEqual(['CY', 'KE', 'QY', 'BR'])
   })
 })
 
@@ -309,14 +319,17 @@ describe('map.css: the borders, the columns, nothing cut', () => {
     expect(css).not.toMatch(/ellipsis/)
     expect(css).not.toMatch(/data-look/)
     // Every shape: a hairline Paper border, the same on screen at every zoom, round joins.
-    const border = css.match(/\.eb-map-svg path:not\(\.eb-map-edge\) \{([^}]*)\}/)![1]
+    const border = css.match(/\.eb-map-svg path \{([^}]*)\}/)![1]
+    expect(border).toMatch(/fill: var\(--surface\);/)
     expect(border).toMatch(/stroke: var\(--paper\);[^}]*stroke-width: \.5px;/)
     expect(border).toMatch(/stroke-linejoin: round;/)
     expect(border).toMatch(/vector-effect: non-scaling-stroke;/)
-    // The hovered or open place: one Ink line on its own path, unfilled, round joins, non-scaling, taking no pointer.
-    const edge = css.match(/\.eb-map-svg \.eb-map-edge \{([^}]*)\}/)![1]
-    for (const d of ['fill: none', 'stroke: var(--ink)', 'stroke-width: 1.5px', 'stroke-linejoin: round', 'vector-effect: non-scaling-stroke', 'pointer-events: none']) expect(edge).toContain(d)
-    // No other rule strokes a shape in Ink (it would be half covered by the neighbours painted after it).
+    // The hovered or open place: the Ink stroke of its own path, which keeps its fill (no rule sets fill on it).
+    const edge = css.match(/\.eb-map-svg path\[data-edge\] \{([^}]*)\}/)![1]
+    for (const d of ['stroke: var(--ink)', 'stroke-width: 1.5px', 'stroke-linecap: round']) expect(edge).toContain(d)
+    expect(edge).not.toMatch(/fill/)
+    // No other rule strokes a shape in Ink, and none blanks a shape's fill.
+    expect(css).not.toMatch(/fill: (none|transparent)/)
     expect(css.match(/stroke: var\(--ink\)/g)).toHaveLength(1)
   })
 })
@@ -443,11 +456,21 @@ describe('the Map view', () => {
   it('every place shows its tooltip on hover, one with no species too, and is outlined above every shape, after the open one', async () => {
     render(<Harness />)
     await act(async () => {})
+    const drawn = document.querySelectorAll('svg.eb-map-svg path').length
+    // Hovered, a place keeps its own fill and shade, with the Ink outline on that same path.
+    const fill = shape('c:CA').style.fill, mix = shape('c:CA').dataset.mix
+    fireEvent.pointerEnter(shape('c:CA'), { pointerType: 'mouse' })
+    expect(edges()).toEqual(['c:CA'])
+    expect(document.querySelectorAll('path[data-key="c:CA"]')).toHaveLength(1)
+    expect(shape('c:CA').style.fill).toBe(fill)
+    expect(shape('c:CA').dataset.mix).toBe(mix)
+    expect(document.querySelectorAll('svg.eb-map-svg path')).toHaveLength(drawn)
     fireEvent.pointerEnter(shape('c:BR'), { pointerType: 'mouse' })
     expect(screen.getByTestId('map-tip')).toHaveTextContent('Brazil0 species')
     expect(edges()).toEqual(['c:BR'])
-    // The outline is the last thing the map draws.
-    expect(document.querySelector('svg.eb-map-svg')!.lastElementChild).toHaveClass('eb-map-edge')
+    // The outlined place is the last thing the map draws, and every place is still drawn once.
+    expect(document.querySelector('svg.eb-map-svg')!.lastElementChild).toHaveAttribute('data-key', 'c:BR')
+    expect(document.querySelectorAll('svg.eb-map-svg path')).toHaveLength(drawn)
     fireEvent.click(screen.getByTestId('map-row-c:KE'))
     await act(async () => {})
     fireEvent.pointerEnter(shape('c:BR'), { pointerType: 'mouse' })
@@ -468,6 +491,15 @@ describe('the Map view', () => {
     expect(legend).toHaveAttribute('aria-hidden', 'true')
     expect(legend).toHaveTextContent('12 species')
     expect(legend.querySelectorAll('i')).toHaveLength(1)
+    // map.css: one wrapping row, the legend pushed to its end, and right-aligned on a line of its own.
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const css = readFileSync(resolve(__dirname, '../src/components/collage/map.css'), 'utf8')
+    const head = css.match(/\.eb-map-head \{([^}]*)\}/)![1]
+    for (const d of ['display: flex', 'flex-wrap: wrap', 'width: 100%']) expect(head).toContain(d)
+    const leg = css.match(/\.eb-map-head > \.eb-map-legend \{([^}]*)\}/)![1]
+    for (const d of ['display: flex', 'justify-content: flex-end', 'margin: 0 0 0 auto']) expect(leg).toContain(d)
+    expect(css).toMatch(/\.eb-map-head > \.eb-map-path \{[^}]*min-width: 0;/)
   })
 })
 
