@@ -14,29 +14,46 @@ const keyAt = (r: SpeciesRow, depth: number): string => (depth === 0 ? r.ord : d
 /** Whether the species is inside the group `path` names. */
 export const inTaxon = (r: SpeciesRow, path: TaxonPath): boolean => path.every((k, d) => keyAt(r, d) === k)
 
-/** One group of the list: its id (the scientific name), its species count, its first species in taxonomic order (for its
- *  names) and the sticker it shows, its first species in taxonomic order with a sticker (the first species when none has one). */
-export type TaxonGroup = { id: string; n: number; first: SpeciesRow; rep: SpeciesRow }
+/** One group of the list: its id (the scientific name), its species count and its first species in taxonomic order (for its names). */
+export type TaxonGroup = { id: string; n: number; first: SpeciesRow }
 
 /**
  * The groups one level under `path` (the orders, an order's families, a family's genera; none under a genus), in
- * taxonomic order (by each one's first species), with their species counts, first species and representative sticker.
+ * taxonomic order (by each one's first species), with their species counts and first species.
  */
 export function taxonChildren(rows: readonly SpeciesRow[], path: TaxonPath): TaxonGroup[] {
   if (path.length >= 3) return []
-  const out = new Map<string, TaxonGroup & { drawn?: SpeciesRow }>()
+  const out = new Map<string, TaxonGroup>()
   for (const r of rows) {
     if (!inTaxon(r, path)) continue
     const id = keyAt(r, path.length)
     const g = out.get(id)
-    if (!g) out.set(id, { id, n: 1, first: r, rep: r, ...(r.st ? { drawn: r } : {}) })
+    if (!g) out.set(id, { id, n: 1, first: r })
     else {
       g.n++
       if (r.to < g.first.to) g.first = r
-      if (r.st && (!g.drawn || r.to < g.drawn.to)) g.drawn = r
     }
   }
-  return [...out.values()].sort((a, b) => a.first.to - b.first.to).map(({ drawn, ...g }) => ({ ...g, rep: drawn ?? g.first }))
+  return [...out.values()].sort((a, b) => a.first.to - b.first.to)
+}
+
+/** A group of at most this many species opens straight on its species (the Tree's SPECIES_AT, round 6). */
+export const TICK_SPECIES_AT = 12
+
+/**
+ * What an open group of `n` species shows (round 6, the Tree's rule: no lone levels): its species when it has
+ * TICK_SPECIES_AT or fewer, else the groups under it, past every level that holds one group alone (an order with one
+ * family shows that family's genera, a family with one genus its species). `path` is where the shown level sits;
+ * `groups` is empty when the species are shown (those of `path`).
+ */
+export function taxonOpen(rows: readonly SpeciesRow[], path: TaxonPath, n: number): { path: TaxonPath; groups: TaxonGroup[] } {
+  if (n <= TICK_SPECIES_AT) return { path, groups: [] }
+  let groups = taxonChildren(rows, path)
+  while (groups.length === 1) {
+    path = [...path, groups[0].id]
+    groups = taxonChildren(rows, path)
+  }
+  return { path, groups }
 }
 
 /**

@@ -647,27 +647,25 @@ describe('editing', () => {
     await openTick()
     const search = screen.getByLabelText('Search birds')
     expect(search).not.toHaveFocus() // on Settings the list is part of the page: nothing is focused for you
-    // With the search empty: the orders in taxonomic order, each a closed disclosure row with its sticker, name and count.
+    // With the search empty: the orders in taxonomic order, each a closed compact disclosure row (no sticker) with its
+    // name, its scientific name after it and its count.
     const tree = screen.getByRole('list', { name: 'Species to tick' })
     const rowsOf = (el: HTMLElement) => within(el).getAllByRole('button').map((b) => `${b.getAttribute('aria-label')} ${b.getAttribute('aria-expanded')}`)
     expect(rowsOf(tree)).toEqual(['Waterfowl, 1 species false', 'Woodpeckers, 2 species false', 'Perching birds, 2 species false'])
     expect(screen.queryByRole('listbox')).toBeNull() // no species rows until a genus is open
     const order = screen.getByTestId('tick-group-Piciformes')
     expect(order.querySelector('.eb-tickchev svg')).not.toBeNull()
-    expect(order.querySelector('.eb-tickthumb')).not.toBeNull()
+    expect(order.querySelector('.eb-tickthumb')).toBeNull()
+    expect(within(order).getByText('Woodpeckers')).not.toHaveAttribute('lang')
+    expect(within(order).getByText('Piciformes')).toHaveAttribute('lang', 'la')
+    expect(within(order).getByText('Piciformes')).toHaveClass('eb-ticksub')
     expect(within(order).getByText('2')).toBeInTheDocument()
-    // An order opens its families in place, a family its genera (their scientific names), a genus its species.
+    // An order of 12 species or fewer opens straight on its species, in place (no lone family or genus rows).
     fireEvent.click(order)
     expect(order).toHaveAttribute('aria-expanded', 'true')
-    const families = document.getElementById(order.getAttribute('aria-controls')!)!
-    expect(families).toHaveAccessibleName('Woodpeckers, 2 species')
-    expect(rowsOf(families)).toEqual(['Woodpeckers, 2 species false'])
-    fireEvent.click(screen.getByTestId('tick-group-Piciformes/Picidae'))
-    const genus = screen.getByTestId('tick-group-Piciformes/Picidae/Colaptes')
-    expect(genus).toHaveAccessibleName('Colaptes, 2 species')
-    expect(within(genus).getByText('Colaptes')).toHaveAttribute('lang', 'la')
-    fireEvent.click(genus)
-    const colaptes = screen.getByRole('listbox', { name: 'Colaptes, 2 species' })
+    expect(screen.queryByTestId('tick-group-Piciformes/Picidae')).toBeNull()
+    const colaptes = screen.getByRole('listbox', { name: 'Woodpeckers, 2 species' })
+    expect(document.getElementById(order.getAttribute('aria-controls')!)).toContainElement(colaptes)
     expect(colaptes).toHaveAttribute('aria-multiselectable', 'true')
     expect(within(colaptes).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus', 'Gilded Flicker, Colaptes chrysoides'])
     // "When and where" is always there, under the list (no button to open it); empty, a bird gets no date and no place.
@@ -692,7 +690,7 @@ describe('editing', () => {
     fireEvent.change(search, { target: { value: '' } })
     expect(screen.queryByRole('listbox', { name: 'Species to tick' })).toBeNull()
     expect(screen.getByTestId('tick-group-Piciformes')).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('listbox', { name: 'Colaptes, 2 species' })).toBeInTheDocument()
+    expect(screen.getByRole('listbox', { name: 'Woodpeckers, 2 species' })).toBeInTheDocument()
     // Keyboard, in the search, with a year and a country set: the arrows move the active row, Space adds it with them.
     fireEvent.change(screen.getByLabelText('Or a year'), { target: { value: '2018' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
@@ -740,14 +738,16 @@ describe('editing', () => {
     await waitFor(() => expect(screen.queryByText('Removed Northern Flicker.')).toBeNull(), { timeout: 8000 })
   }, 20_000) // the Undo toast's ~6 s
 
-  it('Add by hand with Scientific on names every group by its scientific name', async () => {
+  it('Add by hand with Scientific on leads every group with its scientific name, the common one after it', async () => {
     await mount({ path: '/', stored: (s) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
     fireEvent.click(await screen.findByRole('switch', { name: /Scientific/ }))
     await openTick()
     const tree = screen.getByRole('list', { name: 'Species to tick' })
     expect(within(tree).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Anseriformes, 1 species', 'Piciformes, 2 species', 'Passeriformes, 2 species'])
-    fireEvent.click(screen.getByTestId('tick-group-Piciformes'))
-    expect(screen.getByTestId('tick-group-Piciformes/Picidae')).toHaveAccessibleName('Picidae, 2 species')
+    const order = screen.getByTestId('tick-group-Piciformes')
+    expect(within(order).getByText('Piciformes')).toHaveAttribute('lang', 'la')
+    expect(within(order).getByText('Woodpeckers')).toHaveClass('eb-ticksub')
+    expect(within(order).getByText('Woodpeckers')).not.toHaveAttribute('lang')
   })
 
   it('adding a bird by hand to a list from eBird is an edit, not a new collage; taking an eBird bird off puts it in removed', async () => {
