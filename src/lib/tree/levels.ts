@@ -281,6 +281,15 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   return { ...head, rows, height: top, drawing, root, stem }
 }
 
+/** The rank line above the tree (round 6): the rank drawn and how many of its groups the rows draw, `n` (a marked row
+ *  counts the groups inside it too), with `total`, the rank's groups in the open branch in the taxonomy, only when
+ *  Lifers only (`mine`) leaves some out ("65 of 143 families"; else "29 genera"). */
+export function rankCount(view: Pick<LevelView, 'rows' | 'tips' | 'cover'>, mine: boolean): { rank: TipRank; n: number; total?: number } {
+  let n = 0
+  for (const r of view.rows) if (r.kind === 'species') n++; else if (r.kind === 'group') n += 1 + (r.with?.length ?? 0)
+  return { rank: view.tips, n, ...(mine && n < view.cover[1] ? { total: view.cover[1] } : {}) }
+}
+
 /** Whether the i-th tip of `tips` (a level's rows without headings) has a bird on the list: drawTree's and drawFan's `seen`. */
 export const tipOn = (tips: readonly TreeRow[]) => (_: Leaf, i: number): boolean => {
   const r = tips[i]

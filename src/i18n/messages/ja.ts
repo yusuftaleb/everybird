@@ -188,6 +188,7 @@ export const ja: Messages = {
         noRoom: 'すべての名前が入りきりません',
         rank: { orders: '目', families: '科', genera: '属', species: '種' },
         tipOf: '{total}中{n}',
+        genera: { one: '{n}属', other: '{n}属' },
       },
       close: '閉じる',
       undo: '元に戻す',

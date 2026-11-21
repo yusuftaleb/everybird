@@ -186,6 +186,7 @@ export const sv: Messages = {
         noRoom: 'Inte plats för alla namn',
         rank: { orders: 'Ordningar', families: 'Familjer', genera: 'Släkten', species: 'Arter' },
         tipOf: '{n} av {total}',
+        genera: { one: '{n} släkte', other: '{n} släkten' },
       },
       close: 'Stäng',
       undo: 'Ångra',

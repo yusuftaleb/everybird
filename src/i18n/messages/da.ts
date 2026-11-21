@@ -186,6 +186,7 @@ export const da: Messages = {
         noRoom: 'Ikke plads til alle navne',
         rank: { orders: 'Ordener', families: 'Familier', genera: 'Slægter', species: 'Arter' },
         tipOf: '{n} af {total}',
+        genera: { one: '{n} slægt', other: '{n} slægter' },
       },
       close: 'Luk',
       undo: 'Fortryd',

@@ -197,6 +197,7 @@ export const ru: Messages = {
         noRoom: 'Не хватает места для всех названий',
         rank: { orders: 'Отряды', families: 'Семейства', genera: 'Роды', species: 'Виды' },
         tipOf: '{n} из {total}',
+        genera: { one: '{n} род', few: '{n} рода', many: '{n} родов', other: '{n} рода' },
       },
       close: 'Закрыть',
       undo: 'Отменить',

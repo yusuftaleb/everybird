@@ -11,7 +11,7 @@ import { rowsLabels } from '@/lib/share/tree-image'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 import { clearOfEnds, drawFan, ringLabels, type FanBox } from '@/lib/tree/fan'
-import { MAX_TIPS, SMALL_STEP, SPECIES_AT, groupSticker, levelView, rowsTreeW, type TreeRow } from '@/lib/tree/levels'
+import { MAX_TIPS, SMALL_STEP, SPECIES_AT, groupSticker, levelView, rankCount, rowsTreeW, type TreeRow } from '@/lib/tree/levels'
 import { closeDeep, openBranch, treeBranch } from '@/lib/tree/path'
 import { bySplits, cladeTree, drawTree, isLeaf, parseNewick, type Leaf, type Node } from '@/lib/tree/tree'
 
@@ -140,6 +140,27 @@ describe('a smarter step: three groups or fewer is not worth a step (SMALL_STEP)
   })
   it('the first screen stays on every order, whatever their number', () => {
     expect(levelView(t, idx, {}, none)!.tips).toBe('orders')
+  })
+})
+
+describe('the rank line above the tree (rankCount)', () => {
+  const none = new Set<string>()
+  it('names the rank drawn and how many groups its rows draw', () => {
+    expect(rankCount(levelView(tree, species, {}, none)!, false)).toEqual({ rank: 'orders', n: 3 })
+    expect(rankCount(levelView(tree, species, { ord: 'O3' }, none)!, false)).toEqual({ rank: 'species', n: 15 })
+  })
+  it('a marked row counts the groups inside it', () => {
+    const t2 = parseNewick('(((a1:1,b1:1):1,a2:2):1,(c1:1,d1:1):2);')
+    const i2 = buildSpeciesIndex([sp('a1', 'Aa one', 'O', 'F', 1), sp('a2', 'Aa two', 'O', 'F', 2), sp('b1', 'Bb one', 'O', 'F', 3), sp('c1', 'Cc one', 'O', 'F', 4), sp('d1', 'Dd one', 'O', 'F', 5)])
+    const v = levelView(t2, i2, { ord: 'O', fam: 'F' }, none, false, 'genera')!
+    expect(v.rows.filter((r) => r.kind === 'group')).toHaveLength(3) // Aa with Bb, Cc, Dd
+    expect(rankCount(v, false)).toEqual({ rank: 'genera', n: 4 })
+  })
+  it('with Lifers only leaving some out, how many of the taxonomy\'s groups in the open branch', () => {
+    const on = new Set(['a1', 'x1'])
+    expect(rankCount(levelView(tree, species, {}, on, true)!, true)).toEqual({ rank: 'orders', n: 2, total: 3 })
+    // Every order has a bird: no "of".
+    expect(rankCount(levelView(tree, species, {}, new Set(['a1', 'x1', 'z1']), true)!, true)).toEqual({ rank: 'orders', n: 3 })
   })
 })
 

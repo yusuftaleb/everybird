@@ -188,6 +188,7 @@ export const zhHans: Messages = {
         noRoom: '空间不足，无法显示所有名称',
         rank: { orders: '目', families: '科', genera: '属', species: '种' },
         tipOf: '{n}/{total}',
+        genera: { one: '{n}属', other: '{n}属' },
       },
       close: '关闭',
       undo: '撤销',

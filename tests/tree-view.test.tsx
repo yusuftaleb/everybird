@@ -222,6 +222,9 @@ describe('TreeView', () => {
     // One name per row: the common one, or the scientific one with the Scientific switch.
     expect(within(tips).queryByText('Anseriformes')).toBeNull()
     expect(screen.queryByText('2 of 5 orders')).toBeNull() // no count line: the page's stats line has the counts
+    // The rank line above the tree names the rank drawn and how many (round 6), in the Taxa panel head's mono.
+    expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^5 orders$/)
+    expect(screen.getByTestId('tree-rank')).toHaveClass('eb-mono')
     // No Level menu (round 6): an order of four families and more than SPECIES_AT species opens at its families.
     expect(screen.queryByTestId('tree-level')).toBeNull()
     fireEvent.click(within(tips).getByRole('button', { name: /^Cranes and rails/ }))
@@ -229,6 +232,7 @@ describe('TreeView', () => {
     expect(within(tips).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? b.textContent)).toHaveLength(4)
     expect(within(tips).getByRole('button', { name: /^Rails, 0 of 15 on the list$/ })).toBeInTheDocument()
     expect(within(tips).getByRole('button', { name: /^Cranes, 0 of 1 on the list$/ })).toBeInTheDocument()
+    expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^4 families$/)
     expect(tips.querySelector('.eb-tree-order')).toBeNull() // no order headings: the order is open
     // The oldest lineage is CollageView's legend now, not the tree's own line.
     expect(screen.queryByText(/^Oldest lineage on this list/)).toBeNull()
@@ -313,6 +317,7 @@ describe('TreeView', () => {
     fireEvent.click(pa)
     expect(screen.getByText('Pa is not one branch in this tree. The smallest branch with all of it also holds Pb, so both are shown.')).toBeInTheDocument()
     expect([...screen.getByRole('list', { name: 'Tips of the tree, top to bottom' }).querySelectorAll('.eb-tree-name')].map((n) => n.textContent)).toEqual(['Rail One', 'Rail Two', 'Rail Three'])
+    expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^3 species$/)
   })
 
   it('opening a marked row tells the branch with the other genera it holds (the filter\'s `with`)', async () => {
@@ -352,6 +357,7 @@ describe('TreeView', () => {
     act(() => setTreeMine(true))
     expect(screen.queryByRole('button', { name: /^Waterfowl/ })).toBeNull()
     expect(screen.getByRole('button', { name: /^Woodpeckers, 1 of 2 on the list$/ })).toBeInTheDocument()
+    expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^1 of 5 orders$/) // the Taxa panel head's words
     expect(onLevel).toHaveBeenLastCalledWith(expect.objectContaining({ tree: {}, mine: true, layout: 'rows', time: true }))
     expect(localStorage.getItem(TREE_MINE_KEY)).toBe('1')
     unmount()
@@ -361,6 +367,7 @@ describe('TreeView', () => {
     await screen.findByRole('button', { name: /^Beta Two/ }) // one genus: its species
     rerender(<TreeView entries={['a1'].map(entry)} sci={false} onPick={() => {}} branch={branch} onOpen={() => {}} />)
     expect(screen.getByText('No bird on the list here.')).toBeInTheDocument()
+    expect(screen.queryByTestId('tree-rank')).toBeNull() // nothing drawn, no rank line
     act(() => setTreeMine(false))
     expect(localStorage.getItem(TREE_MINE_KEY)).toBeNull()
     expect(screen.queryByText('No bird on the list here.')).toBeNull()

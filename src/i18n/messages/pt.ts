@@ -186,6 +186,7 @@ export const pt: Messages = {
         noRoom: 'Não há espaço para todos os nomes',
         rank: { orders: 'Ordens', families: 'Famílias', genera: 'Gêneros', species: 'Espécies' },
         tipOf: '{n} de {total}',
+        genera: { one: '{n} gênero', other: '{n} gêneros' },
       },
       close: 'Fechar',
       undo: 'Desfazer',

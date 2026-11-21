@@ -42,7 +42,7 @@ import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { SpeciesRow } from '@/lib/species/types'
 import { FAN_FROM, LABEL_COUNT, LABEL_GAP, LABEL_STICKER, clearOfEnds, drawFan, fanLabel, fanRing, fitRound, ringLabels, type FanShape, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
-import { ROW_H, depthOf, rowsTreeW, genusOf, levelView, tipOn, type Inside, type LevelView, type TipRank, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
+import { ROW_H, depthOf, rankCount, rowsTreeW, genusOf, levelView, tipOn, type Inside, type LevelView, type TipRank, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
 import { loadTree } from '@/lib/tree/load'
 import type { OpenBranch } from '@/lib/tree/path'
 import { TREE_LAYOUTS, setTreeLayout, useTreeLayout, useTreeMine, useTreeTime, type TreeLayout } from '@/lib/tree-mine'
@@ -60,6 +60,8 @@ const ROUND_PAD = 8
 const ROW_STICKER = 24
 const MARK_W = 7 + 8
 const shapeOf = (l: TreeLayout): FanShape => (l === 'circle' ? 'circle' : 'fan')
+/** The Taxa panel head's word for each group rank (its "18 of 45 orders"). */
+const TAXA_HEAD = { orders: 'order', families: 'family', genera: 'genus' } as const
 
 type Props = {
   /** The filtered list. */
@@ -298,6 +300,14 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     const last = names.pop()!
     return names.length ? fmt(tt.insideTwo, { a: names.join(', '), b: last, name: here }) : fmt(tt.insideOne, { a: last, name: here })
   })()
+  // The rank line: the rank drawn and how many, in the Taxa panel head's words ("29 genera"; with Lifers only leaving some
+  // out, "65 of 143 families").
+  const rankLine = (() => {
+    const { rank: k, n, total } = rankCount(shown, mine)
+    const v = { n: count(n), total: count(total ?? n) }
+    if (total === undefined) return plural(k === 'genera' ? tt.genera : t.collage.stats[k], n, v)
+    return plural(k === 'species' ? t.collage.stats.of : t.collage.controls.taxaHead[TAXA_HEAD[k]], total, v)
+  })()
   const ticks = timeScale ? ageTicks(drawing.rootAge).filter((v) => v / drawing.rootAge <= 0.97 || v === 0) : []
   /** The branch a group's tip opens: the path down to it, the ranks above it named from its row. */
   const opens = (k: TipRank, key: string, r: SpeciesRow): OpenBranch =>
@@ -475,6 +485,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   return (
     <div ref={boxRef} className="eb-tree" data-round={roundNow || undefined} style={width ? { ['--tree-w' as string]: `${treeW}px` } : undefined}>
       {layoutChoice}
+      {shown.rows.length > 0 && <p className="eb-mono eb-tree-rank" data-testid="tree-rank">{rankLine}</p>}
       {view.split && here && <p className="eb-tree-note">{fmt(tt.split, { name: here })}</p>}
       {insideNote && <p className="eb-tree-note">{insideNote}</p>}
       {!shown.rows.length ? <p className="eb-tree-note">{tt.mineNone}</p> : roundNow ? (

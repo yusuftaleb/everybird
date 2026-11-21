@@ -186,6 +186,7 @@ export const nl: Messages = {
         noRoom: 'Niet genoeg ruimte voor alle namen',
         rank: { orders: 'Ordes', families: 'Families', genera: 'Geslachten', species: 'Soorten' },
         tipOf: '{n} van {total}',
+        genera: { one: '{n} geslacht', other: '{n} geslachten' },
       },
       close: 'Sluiten',
       undo: 'Ongedaan maken',

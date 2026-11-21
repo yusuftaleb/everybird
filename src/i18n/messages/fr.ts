@@ -186,6 +186,7 @@ export const fr: Messages = {
         noRoom: 'Pas assez de place pour tous les noms',
         rank: { orders: 'Ordres', families: 'Familles', genera: 'Genres', species: 'Espèces' },
         tipOf: '{n} sur {total}',
+        genera: { one: '{n} genre', other: '{n} genres' },
       },
       close: 'Fermer',
       undo: 'Annuler',
