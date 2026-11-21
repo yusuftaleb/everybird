@@ -61,26 +61,23 @@ describe('a branch never opens on one lone tip', () => {
   it('the first screen is still every order', () => {
     expect(levelView(tree, species, {}, none)!.tips).toBe('orders')
   })
-  it('an order with one family opens at its genera; the rank above stays on offer', () => {
+  it('an order with one family opens past it (here, with three species, straight at the species)', () => {
     const v = levelView(tree, species, { ord: 'O1' }, none)!
     // Three species: at most SPECIES_AT, so straight at the species.
     expect(SPECIES_AT).toBe(12)
     expect(v.tips).toBe('species')
-    expect(v.counts.families).toBe(1)
-    expect(v.base).toBe('genera')
   })
   it('a family with one genus opens at its species', () => {
     const v = levelView(tree, species, { ord: 'O2', fam: 'F2' }, none)!
     expect(v.tips).toBe('species')
-    expect(v.base).toBe('species')
     expect(v.rows.filter((r) => r.kind === 'species')).toHaveLength(3)
   })
-  it('a group over SPECIES_AT species opens at its children; a rank asked for is drawn as asked', () => {
+  it('a group over SPECIES_AT species opens at its children (the rank one step under it)', () => {
     const o3 = levelView(tree, species, { ord: 'O3' }, none)!
     expect(o3.tips).toBe('families')
     const f3a = levelView(tree, species, { ord: 'O3', fam: 'F3a' }, none)!
     expect(f3a.tips).toBe('genera')
-    expect(levelView(tree, species, { ord: 'O1', tips: 'families' }, none)!.tips).toBe('families')
+    expect(levelView(tree, species, { ord: 'O1' }, none, false, 'families')!.tips).toBe('families')
   })
   it('Lifers only counts first: a family of 14 with two birds on the list opens at those species', () => {
     const v = levelView(tree, species, { ord: 'O3', fam: 'F3a' }, new Set(['m0', 'm9']), true)!
@@ -99,7 +96,7 @@ describe('a sticker on every group (groupSticker)', () => {
   })
   it('a group with no bird on the list shows its first species in taxonomic order that has a sticker', () => {
     expect(groupSticker(g, new Set())?.code).toBe('p3')
-    const v = levelView(tree, species, { ord: 'O3', tips: 'families' }, new Set(['m3']))!
+    const v = levelView(tree, species, { ord: 'O3' }, new Set(['m3']), false, 'families')!
     const f3b = v.rows.find((r) => r.kind === 'group' && r.key === 'F3b') as Extract<TreeRow, { kind: 'group' }>
     expect(f3b.on).toBe(0)
     expect(f3b.sticker?.code).toBe('z1')

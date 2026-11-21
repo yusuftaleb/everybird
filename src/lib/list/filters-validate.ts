@@ -1,5 +1,5 @@
 import type { SpeciesIndex } from '@/lib/species/load'
-import { filterPlaceKeys, genusOf, inRange, statusCatOf, withPlaces, withStatuses, type Filter } from './filters'
+import { filterPlaceKeys, genusOf, inRange, statusCatOf, taxonLevel, taxonWith, withPlaces, withStatuses, type Filter } from './filters'
 import type { ListEntry } from './model'
 import { keysOf, type SeenIndex } from './seen'
 import { makeWhere, seenAt as seenIn } from './sighting'
@@ -8,7 +8,7 @@ import { MONTH_RE } from './timeline'
 /**
  * Repair a filter so it never holds state the chips can't show.
  * Always: a year becomes the range Jan..Dec of that year (the Time panel shows ranges, not years); a range end that is
- * not YYYY-MM goes, and reversed ends swap; a family needs an order it belongs to, and a genus a family it belongs to; places (countries, provinces,
+ * not YYYY-MM goes, and reversed ends swap; a family needs an order it belongs to, and a genus a family it belongs to; `with` (a marked Tree branch's other groups) keeps only names the index has at the deepest level set, and goes with that level; places (countries, provinces,
  * counties) and continents (known ids only) are well-formed, sorted and deduplicated, and a place whose ancestor is also
  * chosen goes (withPlaces);
  * statuses are known categories (the Red List ones and NE), deduplicated, in `STATUS_FILTER_CATS` order (withStatuses).
@@ -51,12 +51,20 @@ export function applyFilterValidity(f: Filter & Legacy, list: ListEntry[], speci
     const ok = out.family && species.rows.some((r) => r.fam === out.family && genusOf(r.sci) === out.genus)
     if (!ok) delete out.genus
   }
+  // A marked branch's other groups: names of the deepest level's groups that the index has, sorted, none the pick itself.
+  const deepest = taxonLevel(out)
+  const valueOf = { order: (r: (typeof species.rows)[number]) => r.ord, family: (r: (typeof species.rows)[number]) => r.fam, genus: (r: (typeof species.rows)[number]) => genusOf(r.sci) }
+  if (deepest && out.with) {
+    const known = new Set(species.rows.map(valueOf[deepest]))
+    out.with = [...new Set(level(out.with))].filter((v) => v !== out[deepest] && known.has(v)).sort()
+  } else delete out.with
   if (pruneValues) {
     const has = (pred: (e: ListEntry) => boolean) => list.some(pred)
     const row = (e: ListEntry) => species.byCode.get(e.code)
-    if (out.order && !has((e) => row(e)?.ord === out.order)) delete out.order
-    if (out.family && !has((e) => row(e)?.fam === out.family)) delete out.family
-    if (out.genus && !has((e) => { const r = row(e); return !!r && genusOf(r.sci) === out.genus })) delete out.genus
+    const at = (lvl: 'order' | 'family' | 'genus', want: string) => has((e) => { const r = row(e); return !!r && taxonWith(out, lvl, valueOf[lvl](r), want) })
+    if (out.order && !at('order', out.order)) delete out.order
+    if (out.family && !at('family', out.family)) delete out.family
+    if (out.genus && !at('genus', out.genus)) delete out.genus
     const seenAt = (key: string) => has((e) => keysOf(seen, e).has(key))
     out = withPlaces(out, filterPlaceKeys(out).filter(seenAt))
     if (out.group && species.groups) {
@@ -75,7 +83,9 @@ export function applyFilterValidity(f: Filter & Legacy, list: ListEntry[], speci
     }
     if (!out.order) delete out.family
     if (!out.family) delete out.genus
+    if (taxonLevel(out) !== deepest) delete out.with
   }
+  if (!out.with?.length) delete out.with
   for (const k of Object.keys(out) as (keyof Filter)[]) if (!out[k]) delete out[k]
   return out
 }
