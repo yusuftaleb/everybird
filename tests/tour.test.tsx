@@ -96,6 +96,26 @@ describe('the sample tour', () => {
     expect(note()).toBeInTheDocument() // the parent unmounts it (onEnd)
   })
 
+  it('skipped, focus goes to the step\'s target, never the page\'s body (AU2)', async () => {
+    const main = landing()
+    render(<Tour onOwn={() => {}} onEnd={() => {}} />, { wrapper: withI18n('en') })
+    await act(async () => { await new Promise((r) => setTimeout(r, 5)) })
+    fireEvent.click(screen.getByRole('button', { name: 'Skip tour' }))
+    expect(document.activeElement).toBe(main.querySelector('[data-tour="filter"]'))
+  })
+
+  it('a target that never appears (the sample failed) ends the tour by itself after about 3 s (H22)', async () => {
+    const onEnd = vi.fn()
+    render(<Tour onOwn={() => {}} onEnd={onEnd} />, { wrapper: withI18n('en') })
+    const now = vi.spyOn(performance, 'now')
+    await act(async () => { await new Promise((r) => setTimeout(r, 5)) })
+    expect(onEnd).not.toHaveBeenCalled()
+    now.mockReturnValue(performance.now() + 1e9)
+    await act(async () => { await new Promise((r) => setTimeout(r, 5)) })
+    expect(onEnd).toHaveBeenCalledOnce()
+    now.mockRestore()
+  })
+
   it('without storage it is remembered for the page load', () => {
     const blocked = () => { throw new DOMException('blocked', 'SecurityError') }
     vi.stubGlobal('localStorage', { getItem: blocked, setItem: blocked, removeItem: blocked, clear: blocked })

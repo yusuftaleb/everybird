@@ -433,11 +433,11 @@ export const EN_UI = {
   /** The landing page (Landing, SampleDemo) and the first visit's welcome (Welcome). */
   landing: {
     title: 'A lifetime of birds.',
-    lede: 'Your life list as a sticker collage, from eBird, iNaturalist, or by hand.',
+    lede: 'Your life list as a sticker collage, from eBird, iNaturalist, a spreadsheet or by hand.',
     makeYours: 'Make yours',
     samplePrefix: 'Sample',
     sampleFailed: "Couldn't load the sample collage. Check your connection and reload the page.",
-    welcome: 'A lifetime of birds, as a sticker collage.',
+    welcome: 'Your life list as a sticker collage. It stays in your browser.',
     makeMine: 'Make mine',
     explore: 'Explore the sample',
     /** The sample's guided tour (Tour.tsx), started by Explore the sample: the step count, one line per step, the buttons. */
@@ -445,7 +445,7 @@ export const EN_UI = {
       count: '{n} of {total}',
       filter: 'Filter by place, date or conservation status. Every view follows the filter.',
       view: 'See the same birds as a collage, a list, a map or a tree.',
-      bird: 'Press a bird to see when and where it was first seen.',
+      bird: 'Press a bird to see when and where you first recorded it.',
       next: 'Next',
       skip: 'Skip tour',
       end: 'End tour',
@@ -459,7 +459,9 @@ export const EN_UI = {
     lede: "Everybird turns a birder's life list into a sticker collage.",
     /** The h1 of a link without a title. */
     untitled: "A birder's life list",
-    endCta: 'Your list, from eBird, iNaturalist or by hand, as a collage like this.',
+    endCta: 'Your list, from eBird, iNaturalist, a spreadsheet or by hand, as a collage like this.',
+    /** After a load failure (the shared view's and the landing sample's): loads it again. */
+    retry: 'Try again',
     noPlacesDates: 'This link carries no places or dates, so those filters are left out.',
     noPlaces: 'This link carries no places, so those filters are left out.',
     noDates: 'This link carries no dates, so those filters are left out.',
@@ -1051,7 +1053,7 @@ export const EN_UI = {
   search: {
     understood: 'Understood as',
     show: 'Show these birds',
-    note: 'Your list only has first-seen dates; import MyEBirdData.csv for every sighting',
+    note: 'Your list only has the dates you first recorded each bird. Add MyEBirdData to count every sighting.',
   },
 }
 

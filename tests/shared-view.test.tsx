@@ -90,6 +90,22 @@ describe('shared view', () => {
     expect(open).not.toHaveBeenCalled()
   })
 
+  it('waits with the link\'s count (O3); a failed load says so with Try again, which loads again (H4)', async () => {
+    let up = false
+    vi.stubGlobal('fetch', async (u: string | URL) => {
+      const url = String(u)
+      const body = !up ? null : url.includes('species.v1') ? { v: 1, species: [row('a', 1), row('b', 2)] } : url.includes('regions.v1') ? regions : null
+      return body ? new Response(JSON.stringify(body)) : new Response('no', { status: 503 })
+    })
+    render(<SharedView payload={{ v: 1, birds: [{ code: 'a' }, { code: 'b' }] }} />)
+    expect(screen.getByRole('status').textContent).toBe('2arranging the stickers')
+    const retry = await screen.findByRole('button', { name: 'Try again' })
+    expect(screen.getByRole('alert').textContent).toContain("Couldn't load the bird data.")
+    up = true
+    fireEvent.click(retry)
+    await waitFor(() => expect(screen.getByTestId('collage-stats').textContent).toContain('2 species'))
+  })
+
   it('Status filters a link whose birds have statuses', async () => {
     vi.stubGlobal('innerWidth', 1000)
     serve({ v: 1, species: [row('a', 1, 'LC'), row('b', 2, 'VU'), row('c', 3, 'VU'), row('d', 4, 'EN'), row('e', 5)] })

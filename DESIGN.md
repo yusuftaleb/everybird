@@ -164,7 +164,7 @@ Silhouette hit-testing (`collage-hit.ts`) makes a sticker clickable only where i
 ## Components
 
 ### Welcome
-The first visit to `/` with no list (`Welcome.tsx`): one Cabinet 700 line (24px, 22px on phones), "Make mine" (primary, arrow) and "Explore the sample" (quiet), a 44px ✕ top-right. From 601px a 400px card centred over the sample (Paper, Hairline, 20px squircle, the floating shadow); at 600px and under the phones' bottom sheet with full-width buttons. It rises 16px over 320ms on the UI ease; reduced motion fades only.
+The first visit to `/` with no list (`Welcome.tsx`): one Cabinet 700 line (24px, 22px on phones), "Your life list as a sticker collage. It stays in your browser.", "Make mine" (primary, arrow; the Add birds dialog, as the hero's "Make yours") and "Explore the sample" (quiet), a 44px ✕ top-right. From 601px a 400px card centred over the sample (Paper, Hairline, 20px squircle, the floating shadow); at 600px and under the phones' bottom sheet with full-width buttons. It rises 16px over 320ms on the UI ease; reduced motion fades only.
 
 ### Buttons
 - Primary `.eb-btn`: Accent fill, Paper text, 44px high, 12px squircle, Satoshi 700 15px, icon 18px. Big variant 52px / 17px (hero CTA). Hover (fine pointers only): opacity .88.

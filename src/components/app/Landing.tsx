@@ -32,7 +32,7 @@ export function Landing({ onAdd }: { onAdd: () => void }) {
       <AppNotices eb={eb} memory={false} failure={false} />
       {/* The demo's species counts and controls describe a sample, not the product's search result. */}
       <div data-nosnippet style={{ display: 'contents' }}><SampleDemo /></div>
-      <Welcome onExplore={() => setTouring(!toured())} />
+      <Welcome onExplore={() => setTouring(!toured())} onAdd={onAdd} />
       {touring && <Tour onOwn={onAdd} onEnd={() => setTouring(false)} />}
     </main>
   )

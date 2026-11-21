@@ -112,15 +112,15 @@ describe('the seen-dates note', () => {
   it('shows for a dates query on your own list without per-place months, and not with them or on a shared view', async () => {
     const { unmount } = renderSearch({ hasMonths: false })
     await type('canada 2026')
-    expect(screen.getByText('Your list only has first-seen dates; import MyEBirdData.csv for every sighting')).toBeInTheDocument()
+    expect(screen.getByText('Your list only has the dates you first recorded each bird. Add MyEBirdData to count every sighting.')).toBeInTheDocument()
     unmount()
     const withMonths = renderSearch({ hasMonths: true })
     await type('canada 2026')
-    expect(screen.queryByText(/first-seen dates/)).toBeNull()
+    expect(screen.queryByText(/first recorded each bird/)).toBeNull()
     withMonths.unmount()
     renderSearch({ hasMonths: false, whose: 'this' })
     await type('canada 2026')
-    expect(screen.queryByText(/first-seen dates/)).toBeNull()
+    expect(screen.queryByText(/first recorded each bird/)).toBeNull()
   })
 })
 

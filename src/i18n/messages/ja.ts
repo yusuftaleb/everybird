@@ -346,11 +346,11 @@ export const ja: Messages = {
     },
     landing: {
       title: '一生分の鳥たち。',
-      lede: 'あなたのライフリストをステッカーのコラージュに。eBird、iNaturalist、または手動で。',
+      lede: 'あなたのライフリストをステッカーのコラージュに。eBird、iNaturalist、表計算ファイル、または手動で。',
       makeYours: '自分のを作る',
       samplePrefix: 'サンプル',
       sampleFailed: 'サンプルのコラージュを読み込めませんでした。接続を確認して、ページを再読み込みしてください。',
-      welcome: '一生分の鳥を、ステッカーのコラージュに。',
+      welcome: 'あなたのライフリストをステッカーのコラージュに。データはブラウザの中だけに残ります。',
       makeMine: '自分のを作る',
       explore: 'サンプルを見る',
       tour: {
@@ -369,7 +369,8 @@ export const ja: Messages = {
       brokenLede: '途中で切れているか、新しいバージョンのEverybirdで作られた可能性があります。もう一度リンクをもらってください。Everybirdは、バードウォッチャーのライフリストをステッカーのコラージュにします。',
       lede: 'Everybirdは、バードウォッチャーのライフリストをステッカーのコラージュにします。',
       untitled: 'あるバードウォッチャーのライフリスト',
-      endCta: 'eBird、iNaturalist、または手動で作ったあなたのリストを、このようなコラージュに。',
+      endCta: 'eBird、iNaturalist、表計算ファイル、または手動で作ったあなたのリストを、このようなコラージュに。',
+      retry: '再試行',
       noPlacesDates: 'このリンクには場所と日付が含まれないため、それらの絞り込みはありません。',
       noPlaces: 'このリンクには場所が含まれないため、その絞り込みはありません。',
       noDates: 'このリンクには日付が含まれないため、その絞り込みはありません。',
@@ -855,7 +856,7 @@ export const ja: Messages = {
     search: {
       understood: '解釈した条件',
       show: 'これらの鳥を表示',
-      note: 'あなたのリストには初記録の日付しかありません。すべての記録を使うにはMyEBirdData.csvを読み込んでください',
+      note: 'あなたのリストには、各鳥を最初に記録した日付しかありません。すべての観察を数えるにはMyEBirdDataを追加してください。',
     },
   },
   page: {
