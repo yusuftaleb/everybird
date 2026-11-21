@@ -746,6 +746,7 @@ export const zhHans: Messages = {
         keepUser: '保留{user}',
         howTo: '如何找到我的用户名？',
         help: '使用你的用户名（在你的iNaturalist个人资料中，@之后的部分），而不是显示名称。只计入公开的、已鉴定到种的野生鸟类观察记录。',
+        progress: '正在获取你的观察记录',
         fetched: '已获取{n}/{total}',
         lookingUp: '正在查找“{user}”…',
         cancelled: '已取消，没有做任何更改。',

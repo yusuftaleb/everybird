@@ -758,6 +758,7 @@ export const nl: Messages = {
         keepUser: '{user} houden',
         howTo: 'Hoe vind ik mijn gebruikersnaam?',
         help: 'Gebruik je gebruikersnaam (op je iNaturalist-profiel, na de @), niet je weergavenaam. Alleen openbare waarnemingen van wilde vogels die tot op de soort zijn gedetermineerd tellen mee.',
+        progress: 'Je waarnemingen worden opgehaald',
         fetched: '{n} van {total} opgehaald',
         lookingUp: '“{user}” opzoeken…',
         cancelled: 'Geannuleerd. Er is niets veranderd.',

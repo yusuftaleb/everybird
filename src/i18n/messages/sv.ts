@@ -747,6 +747,7 @@ export const sv: Messages = {
         keepUser: 'Behåll {user}',
         howTo: 'Hur hittar jag mitt användarnamn?',
         help: 'Använd ditt användarnamn (på din iNaturalist-profil, efter @), inte ditt visningsnamn. Bara offentliga, artbestämda observationer av vilda fåglar räknas.',
+        progress: 'Hämtar dina observationer',
         fetched: '{n} av {total} hämtade',
         lookingUp: 'Söker efter ”{user}”…',
         cancelled: 'Avbrutet. Inget ändrades.',

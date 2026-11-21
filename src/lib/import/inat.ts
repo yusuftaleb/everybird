@@ -13,6 +13,14 @@ export type InatProgress = { fetched: number; total: number }
 export type InatError = 'unknown-user' | 'no-birds' | 'network' | 'rate-limited'
 
 const API = 'https://api.inaturalist.org/v1'
+/** Observations come from v2, which returns only the `fields` asked for (about 130 KB a page, not v1's ~16 MB). */
+const OBS_API = 'https://api.inaturalist.org/v2/observations'
+/** Exactly the observation fields `importInat` reads (ApiObs); v2 adds `uuid` and `taxon.id`, which are ignored. */
+export const OBS_FIELDS = [
+  'id', 'observed_on', 'quality_grade', 'taxon.name', 'taxon.rank', 'photos.id', 'sounds.id',
+  'annotations.controlled_attribute_id', 'annotations.controlled_value_id', 'place_ids',
+  'obscured', 'geoprivacy', 'taxon_geoprivacy', 'positional_accuracy', 'geojson',
+].join(',')
 const PLACE_BATCH = 100
 const VIETNAM_PLACE_ID = 6847
 const RETRIES_ON_429 = 3
@@ -145,7 +153,7 @@ function makeClient(f: typeof fetch, minIntervalMs: number, signal?: AbortSignal
 }
 
 // ---------------------------------------------------------------------------------------------
-// API shapes (only the fields we read)
+// API shapes (only the fields we read; observations are v2's, the same values as v1's)
 
 type ApiObs = {
   id: number
@@ -322,9 +330,9 @@ export async function importInat(username: string, opts: InatOptions): Promise<I
     for (let page = 0; ; page++) {
       const q = new URLSearchParams({
         user_login: login, iconic_taxa: 'Aves', captive: 'false', per_page: '200', order_by: 'id', order: 'asc',
-        id_above: String(lastId),
+        id_above: String(lastId), fields: OBS_FIELDS,
       })
-      const body = await get<{ total_results?: number; results?: ApiObs[] }>(`${API}/observations?${q}`)
+      const body = await get<{ total_results?: number; results?: ApiObs[] }>(`${OBS_API}?${q}`)
       const results = Array.isArray(body.results) ? body.results : []
       if (page === 0) total = body.total_results ?? results.length
       if (results.length === 0) break

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { importInat, COUNTRY_ALIASES } from '@/lib/import/inat'
+import { importInat, COUNTRY_ALIASES, OBS_FIELDS } from '@/lib/import/inat'
 import { buildTaxonomyIndex } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
 
@@ -20,8 +20,25 @@ const synonyms: Record<string, string> = { 'Colaptes cafer': 'norfli' }
 const PAGE = 3
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
 
+/** What v2 sends for `fields`: only those (a.b picks b from an object, or from each element of an array), plus uuid and taxon.id. */
+function toV2(o: Obs, fields: string): Record<string, unknown> {
+  const out: Record<string, unknown> = { uuid: `uuid-${o.id}` }
+  for (const f of fields.split(',')) {
+    const [top, sub] = f.split('.')
+    const v = o[top]
+    if (v === undefined) continue
+    if (!sub || v === null) out[top] = v
+    else if (Array.isArray(v)) {
+      const prev = (out[top] ?? []) as Record<string, unknown>[]
+      out[top] = v.map((x: Record<string, unknown>, i) => ({ ...prev[i], ...(sub in x ? { [sub]: x[sub] } : {}) }))
+    }
+    else out[top] = { ...(out[top] as object), id: (v as { id?: number }).id ?? 1, [sub]: (v as Record<string, unknown>)[sub] }
+  }
+  return out
+}
+
 type Calls = { url: string; at: number }[]
-function fakeFetch(opts: { obs?: Obs[]; users?: unknown; on?: (url: string, n: number) => Response | undefined } = {}) {
+function fakeFetch(opts: { obs?: Obs[]; users?: unknown; v1Shape?: boolean; on?: (url: string, n: number) => Response | undefined } = {}) {
   const calls: Calls = []
   const obs = opts.obs ?? OBS
   const fn = vi.fn(async (input: RequestInfo | URL) => {
@@ -31,10 +48,12 @@ function fakeFetch(opts: { obs?: Obs[]; users?: unknown; on?: (url: string, n: n
     if (forced) return forced
     const u = new URL(url)
     if (u.pathname === '/v1/users/autocomplete') return json('users' in opts ? opts.users : USERS)
-    if (u.pathname === '/v1/observations') {
+    if (u.pathname === '/v2/observations') {
       const above = Number(u.searchParams.get('id_above') ?? 0)
-      const rest = obs.filter((o) => o.id > above)
-      return json({ total_results: obs.length, page: 1, per_page: 200, results: rest.slice(0, PAGE) })
+      const rest = obs.filter((o) => o.id > above).slice(0, PAGE)
+      const fields = u.searchParams.get('fields')
+      const results = opts.v1Shape || !fields ? rest : rest.map((o) => toV2(o, fields))
+      return json({ total_results: obs.length, page: 1, per_page: 200, results })
     }
     if (u.pathname.startsWith('/v1/places/')) {
       const ids = u.pathname.split('/').pop()!.split(',').map(Number)
@@ -78,7 +97,7 @@ describe('importInat', () => {
   it('pages with id_above until empty', async () => {
     const f = fakeFetch()
     okResult(await run(f))
-    const obsCalls = f.calls.filter((c) => c.url.includes('/v1/observations')).map((c) => new URL(c.url))
+    const obsCalls = f.calls.filter((c) => c.url.includes('/v2/observations')).map((c) => new URL(c.url))
     expect(obsCalls.map((u) => u.searchParams.get('id_above'))).toEqual(['0', '103', '203'])
     const u = obsCalls[0]!
     expect(u.searchParams.get('user_login')).toBe('testbirder')
@@ -88,6 +107,18 @@ describe('importInat', () => {
     expect(u.searchParams.get('order_by')).toBe('id')
     expect(u.searchParams.get('order')).toBe('asc')
     expect(f.calls[0]!.url).toContain('/v1/users/autocomplete?q=testbirder')
+  })
+
+  it('asks v2 for only the fields it reads, and builds the same records as from v1-shaped observations', async () => {
+    const v2 = fakeFetch()
+    const fromV2 = okResult(await run(v2))
+    const u = new URL(v2.calls.find((c) => c.url.includes('/v2/observations'))!.url)
+    expect(u.origin + u.pathname).toBe('https://api.inaturalist.org/v2/observations')
+    expect(u.searchParams.get('fields')).toBe(OBS_FIELDS)
+    expect(OBS_FIELDS.split(',')).toEqual(expect.arrayContaining(['id', 'observed_on', 'taxon.name', 'taxon.rank', 'place_ids', 'geojson']))
+    const fromV1 = okResult(await run(fakeFetch({ v1Shape: true })))
+    expect(fromV1.records.length).toBeGreaterThan(0)
+    expect(fromV2).toEqual(fromV1)
   })
 
   it('reports progress using total_results from the first page', async () => {
@@ -216,9 +247,9 @@ describe('importInat', () => {
   })
 
   it('HTTP 429 gives rate-limited after 3 backoff retries', async () => {
-    const f = fakeFetch({ on: (url) => (url.includes('/v1/observations') ? json({}, 429) : undefined) })
+    const f = fakeFetch({ on: (url) => (url.includes('/v2/observations') ? json({}, 429) : undefined) })
     expect(await run(f, { minIntervalMs: 1000 })).toEqual({ error: 'rate-limited' })
-    const obs = f.calls.filter((c) => c.url.includes('/v1/observations'))
+    const obs = f.calls.filter((c) => c.url.includes('/v2/observations'))
     expect(obs.length).toBe(4) // 1 try + 3 retries
     expect(obs[1]!.at - obs[0]!.at).toBeGreaterThanOrEqual(2000)
     expect(obs[2]!.at - obs[1]!.at).toBeGreaterThanOrEqual(4000)
@@ -228,11 +259,11 @@ describe('importInat', () => {
   it('odd bodies and stuck paging never throw', async () => {
     const nullUsers = fakeFetch({ users: null })
     expect(await run(nullUsers)).toEqual({ error: 'network' })
-    const nullBody = fakeFetch({ on: (url) => (url.includes('/v1/observations') ? new Response('null') : undefined) })
+    const nullBody = fakeFetch({ on: (url) => (url.includes('/v2/observations') ? new Response('null') : undefined) })
     expect(await run(nullBody)).toEqual({ error: 'network' })
-    const stuck = fakeFetch({ on: (url) => (url.includes('/v1/observations') ? json({ total_results: 1, results: [OBS[0]] }) : undefined) })
+    const stuck = fakeFetch({ on: (url) => (url.includes('/v2/observations') ? json({ total_results: 1, results: [OBS[0]] }) : undefined) })
     expect(await run(stuck)).toEqual({ error: 'network' })
-    expect(stuck.calls.filter((c) => c.url.includes('/v1/observations')).length).toBe(2)
+    expect(stuck.calls.filter((c) => c.url.includes('/v2/observations')).length).toBe(2)
   })
 
   it('requests 30 user matches', async () => {
@@ -252,7 +283,7 @@ describe('importInat', () => {
 
   it('a 429 that clears is retried transparently', async () => {
     let seen = 0
-    const f = fakeFetch({ on: (url) => (url.includes('/v1/observations') && seen++ === 0 ? json({}, 429) : undefined) })
+    const f = fakeFetch({ on: (url) => (url.includes('/v2/observations') && seen++ === 0 ? json({}, 429) : undefined) })
     okResult(await run(f))
   })
 

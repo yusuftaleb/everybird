@@ -758,6 +758,7 @@ export const fr: Messages = {
         keepUser: 'Garder {user}',
         howTo: 'Comment trouver mon nom d’utilisateur\u00a0?',
         help: 'Utilise ton nom d’utilisateur (sur ton profil iNaturalist, après le @), pas ton nom affiché. Seules les observations publiques d’oiseaux sauvages identifiés à l’espèce comptent.',
+        progress: 'Récupération de tes observations',
         fetched: '{n} sur {total} récupérées',
         lookingUp: 'Recherche de «\u00a0{user}\u00a0»…',
         cancelled: 'Annulé. Rien n’a été modifié.',

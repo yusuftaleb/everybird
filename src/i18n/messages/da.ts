@@ -748,6 +748,7 @@ export const da: Messages = {
         keepUser: 'Behold {user}',
         howTo: 'Hvordan finder jeg mit brugernavn?',
         help: 'Brug dit brugernavn (på din iNaturalist-profil, efter @), ikke dit visningsnavn. Kun offentlige observationer af vilde fugle, bestemt til art, tæller med.',
+        progress: 'Henter dine observationer',
         fetched: '{n} af {total} hentet',
         lookingUp: 'Slår “{user}” op…',
         cancelled: 'Annulleret. Intet er ændret.',
