@@ -72,7 +72,7 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
     expect(wide.querySelectorAll('.ebd-taxa .ebd-chip')).toHaveLength(7)
     expect(text(compact.querySelector('.ebd-sheet-show .ebd-swap-a'))).toBe(showLabel(TOTAL, ui))
     expect(text(wide.querySelector('.ebd-path-link'))).toBe(ui.filters.all)
-    expect(text(wide.querySelector('.ebd-mid-label'))).toBe(ui.count.label)
+    expect(text(wide.querySelector('.ebd-mid-label'))).toBe(plural(ui.count.word, TOTAL)) // "112 gatunków", "112 видов" (H7)
     expect(text(wide.querySelector('.ebd-num'))).toBe(formatInt(TOTAL, ui.num))
     expect(text(wide.querySelector('.ebd-stats .ebd-swap-a'))).toContain(plural(ui.collage.stats.orders, 7, { n: '7' }))
   })

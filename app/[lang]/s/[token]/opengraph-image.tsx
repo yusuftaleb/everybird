@@ -6,6 +6,7 @@ import { EXP, LAYOUTS } from '@/lib/layout/constants'
 import { packBest, relSizes, type Box } from '@/lib/layout/pack'
 import { latestLifer } from '@/lib/list/build-list'
 import type { ListEntry } from '@/lib/list/model'
+import { plural } from '@/i18n/core'
 import { formatMonth } from '@/i18n/format'
 import { getMessages } from '@/i18n/server'
 import { countDisplay } from '@/lib/layout/count-box'
@@ -100,7 +101,7 @@ export default async function Image({ params }: { params: Promise<{ lang: string
   const K = payload ? ogCount(payload.birds.length) : null
   // The drawn count in the URL's language (K's number and label are the geometry's, the same in every language).
   const countNum = payload ? countDisplay(payload.birds.length, t.num) : ''
-  const countLabel = t.count.label.toUpperCase()
+  const countLabel = plural(t.count.word, payload?.birds.length ?? 0).toUpperCase()
 
   // The footer, as the share images': the wordmark and one quiet line, the site and the sticker credit (FOOTER_LINE, "… ·
   // Stickers: huashu-bird-sticker, CC BY 4.0"). Beside the wordmark on the wide text card; under it beside the collage,

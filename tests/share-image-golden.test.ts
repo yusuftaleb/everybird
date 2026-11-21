@@ -10,6 +10,7 @@
 // Then the cases with the row on the story, post and square again: the collage ends a credit line higher, the room the
 // footer lifts the row by when its credit takes its own line (only the tiles and the count move).
 import { en } from '@/i18n/messages/en'
+import { de } from '@/i18n/messages/de'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as image from '@/lib/share/image'
 import { CASES, caseName, entries, installStubs, NOW, pack, renderLog, species } from './fixtures/share-image-harness'
@@ -173,6 +174,18 @@ describe('the footer is measured once the stickers and the fonts have both settl
     doc.createElement = () => ({ getContext: () => null })
     image.clearStickerCache()
     await expect(image.prepareCard({ format: 'post', entries, species, pack, now: NOW, theme: 'light', strings: en.ui })).rejects.toThrow('Canvas is not available')
+  })
+})
+
+describe('the count word', () => {
+  it('is the form for the number: a one-bird card in German reads "1" over "ART", not "ARTEN" (H7)', async () => {
+    const logs = installStubs()
+    image.clearStickerCache()
+    const one = entries.slice(0, 1)
+    const canvas = await image.drawShareImage({ format: 'story', entries: one, species, pack, now: NOW, theme: 'light', strings: de.ui })
+    const log = logs.get(canvas as unknown as object)!
+    expect(log.some((l) => l.startsWith('fillText("1",'))).toBe(true)
+    expect(log.some((l) => l.startsWith('fillText("ART",'))).toBe(true)
   })
 })
 

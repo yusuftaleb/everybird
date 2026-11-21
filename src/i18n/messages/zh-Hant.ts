@@ -11,6 +11,7 @@ export const zhHant: Messages = {
     },
     count: {
       label: '鳥種',
+      word: { one: '鳥種', other: '鳥種' },
       live: { one: '{n} 種', other: '{n} 種' },
     },
     shell: {

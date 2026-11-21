@@ -410,7 +410,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         ) : (
           <div className="eb-stage-wait" aria-hidden="true">
             <span className="eb-num">{formatInt(shownList.length, t.num)}</span>
-            <span className="eb-mono">{entries.length ? t.collage.arranging : t.count.label}</span>
+            <span className="eb-mono">{entries.length ? t.collage.arranging : plural(t.count.word, shownList.length)}</span>
           </div>
         )
       ) : view === 'map' ? (

@@ -122,6 +122,9 @@ describe('the dictionaries', () => {
     // COUNT_LABEL_CHARS (Task 6) is 8: "ESPECIES" and "ESPÉCIES".
     for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) expect(labelCells(m.ui.count.label)).toBeLessThanOrEqual(8)
     expect([en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant].map((m) => m.ui.count.label)).toEqual(['species', 'especies', 'espécies', 'soorten', 'gatunki', 'espèces', 'Arten', 'specie', 'arter', 'arter', 'виды', '種', '鸟种', '鳥種'])
+    // H7: the word drawn under a number is that number's form, each as short.
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) for (const w of Object.values(m.ui.count.word)) expect(labelCells(w)).toBeLessThanOrEqual(8)
+    expect([de, es, ru, pl].map((m) => m.ui.count.word.one)).toEqual(['Art', 'especie', 'вид', 'gatunek'])
   })
 
   it('the tables: separators, 12 months', () => {

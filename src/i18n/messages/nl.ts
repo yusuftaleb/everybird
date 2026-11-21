@@ -9,6 +9,7 @@ export const nl: Messages = {
     },
     count: {
       label: 'soorten',
+      word: { one: 'soort', other: 'soorten' },
       live: { one: '{n} soort', other: '{n} soorten' },
     },
     shell: {

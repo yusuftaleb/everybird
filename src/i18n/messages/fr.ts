@@ -9,6 +9,7 @@ export const fr: Messages = {
     },
     count: {
       label: 'espèces',
+      word: { one: 'espèce', other: 'espèces' },
       live: { one: '{n} espèce', other: '{n} espèces' },
     },
     shell: {

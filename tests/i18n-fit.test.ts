@@ -70,7 +70,7 @@ describe('tight labels', () => {
   })
 
   it('the count label fits the hole', () => {
-    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) expect(labelCells(m.ui.count.label)).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) for (const w of [m.ui.count.label, ...Object.values(m.ui.count.word)]) expect(labelCells(w)).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
   })
 
   it('language codes are two letters, or Chinese by script', () => {

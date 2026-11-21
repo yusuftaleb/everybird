@@ -11,6 +11,7 @@ export const pl: Messages = {
     },
     count: {
       label: 'gatunki',
+      word: { one: 'gatunek', few: 'gatunki', many: 'gatunków', other: 'gatunku' },
       live: { one: '{n} gatunek', few: '{n} gatunki', many: '{n} gatunków', other: '{n} gatunków' },
     },
     shell: {

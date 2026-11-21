@@ -11,6 +11,7 @@ export const ru: Messages = {
     },
     count: {
       label: 'виды',
+      word: { one: 'вид', few: 'вида', many: 'видов', other: 'вида' },
       live: { one: '{n} вид', few: '{n} вида', many: '{n} видов', other: '{n} вида' },
     },
     shell: {

@@ -9,9 +9,14 @@ export const EN_UI = {
   date: {
     months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   },
-  /** The count's label under the number (Tally, share images, link previews). At most 8 characters: the hole is sized for it. */
+  /** The count's label in its plural form, for any number (the e2e specs read it); what is drawn is `word`'s form for
+   *  the number. At most 8 characters: the hole is sized for it. */
   count: {
     label: 'species',
+    /** The word drawn under the number, the form for that number (H7: "1 SPECIES", "1 ART", "5 ВИДОВ"; no {n}, the number
+     *  is drawn above it), on the collage, the share images, the link previews and About's demo. Every form at most 8
+     *  characters: the hole is sized for it. */
+    word: { one: 'species', other: 'species' },
     /** The settled count for screen readers (Tally's live region): "12 species". {n} is the formatted number. */
     live: { one: '{n} species', other: '{n} species' },
   },

@@ -1076,7 +1076,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   // With a goal the label says it ("/ 150 SPECIES"); the number is the count alone, at its no-goal size.
   // Beside the title the same two parts, on the title's line.
   const numText = countDisplay(content.count, strings.num)
-  const labelText = (goal?.target !== undefined ? plural(strings.share.bigYear.ofTarget, goal.target, { n: countDisplay(goal.target, strings.num) }) : strings.count.label).toUpperCase()
+  const labelText = (goal?.target !== undefined ? plural(strings.share.bigYear.ofTarget, goal.target, { n: countDisplay(goal.target, strings.num) }) : plural(strings.count.word, content.count)).toUpperCase()
   const countNum = K.size > 0 ? numText : ''
   const countLabel = K.size > 0 ? labelText : ''
   const countLine = L.titleCount ? { num: numText, label: labelText } : undefined

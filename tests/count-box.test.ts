@@ -130,9 +130,12 @@ describe('the count in every language (one hole for all)', () => {
     // "ESPÉCIES" (pt) and "ESPECIES" (es) are 8 characters, the most of any language.
     expect(labelEm()).toBeGreaterThanOrEqual('ESPÉCIES'.length * (MONO_EM + MONO_TRACK))
     for (const [lang, m] of Object.entries(LANGS)) {
-      const label = m.ui.count.label.toUpperCase()
-      expect(labelCells(label), lang).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
-      expect(labelEm(), lang).toBeGreaterThanOrEqual(labelCells(label) * (MONO_EM + MONO_TRACK))
+      // The label and every form of the word drawn for a number (H7: "GATUNKÓW", 8).
+      for (const word of [m.ui.count.label, ...Object.values(m.ui.count.word)]) {
+        const label = word.toUpperCase()
+        expect(labelCells(label), lang).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
+        expect(labelEm(), lang).toBeGreaterThanOrEqual(labelCells(label) * (MONO_EM + MONO_TRACK))
+      }
     }
   })
 })

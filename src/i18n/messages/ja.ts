@@ -11,6 +11,7 @@ export const ja: Messages = {
     },
     count: {
       label: '種',
+      word: { one: '種', other: '種' },
       live: { one: '{n}種', other: '{n}種' },
     },
     shell: {

@@ -11,6 +11,7 @@ export const zhHans: Messages = {
     },
     count: {
       label: '鸟种',
+      word: { one: '鸟种', other: '鸟种' },
       live: { one: '{n}种鸟', other: '{n}种鸟' },
     },
     shell: {
