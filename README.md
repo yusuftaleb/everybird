@@ -14,7 +14,7 @@ Live at https://everybird.yusuftaleb.com (share links, link previews and the sha
 - **Compare** (`/compare`, a tab in the top bar): paste up to five friends' share links, a name beside each (filled from the link when it carries one), or press "Compare with mine" on a shared collage, then Compare. Both the set-up and the results have My birds' page head ("Compare life lists" and a line; Edit lists and Share at its right in the results); in the set-up Compare sits at the foot of the rows, after Add a friend. One row of chips chooses what shows: any combination of people (the birds on exactly those lists and no other: one person's own birds, a pair's, everyone's), Yet to see, or Every bird. Pressing a region of the diagram (circles for two or three lists, a flower for four to six, each list in its own colour) chooses its people too; the bars sit beside it. The choice, named with its count, shows underneath by family, one family open at a time, each a sticker grid; on Yet to see and Every bird each sticker has a dot for every list that has it. Edit lists goes back to the names and links. Share opens the site's Share dialog on the comparison: the comparison card (the diagram, its title and counts) or a wish list of the birds you've yet to see, in story, post or square, and Copy link for a link to the comparison (`/c/[token]`, read-only).
 - **Shared view** (`/s/[token]`): a read-only collage from a share link. The old `/make`, `/my` and `/credits` redirect to Settings, Collage and About.
 
-Light by default, with a sun/moon toggle in the top bar. The interface is in English, Español, Português (Brazil), Nederlands, Polski, Français, Deutsch, Italiano, Svenska and Dansk; the language menu sits in the top bar. The design system is in `DESIGN.md`.
+Light by default, with a sun/moon toggle in the top bar. The interface is in English, Español, Português (Brazil), Nederlands, Polski, Français, Deutsch, Italiano, Svenska, Dansk, Русский, 日本語, 简体中文 and 繁體中文; the language menu sits in the top bar. The design system is in `DESIGN.md`.
 
 ## Current capabilities
 
@@ -44,7 +44,7 @@ The generated files in `public/data/` are committed, so you only need this to up
 the raw sources in `data/raw/` (git-ignored) and the stickers repo checked out next to this one as
 `../everybird-stickers` (or set `STICKERS_OUT`). In order:
 
-1. `npx tsx scripts/build-data/fetch-sources.ts`: downloads the eBird taxonomy, huashu-bird-sticker, Natural Earth and iso-codes into `data/raw/` and writes `data/raw/manifest.json`.
+1. `npx tsx scripts/build-data/fetch-sources.ts`: downloads the eBird taxonomy and its name sets, huashu-bird-sticker, Natural Earth, iso-codes and the AvesData tree into `data/raw/` and writes `data/raw/manifest.json`.
 2. `npm run data`, which runs:
    1. `copy-synonyms.ts`: publishes `data/inat-synonyms.json`.
    2. `build-species.ts`: `species.v1.json` and `taxonomy.v1.json` (masses: `data/overrides.json` first, then AVONET, then BIRDBASE by name, then the genus, family or order median).
