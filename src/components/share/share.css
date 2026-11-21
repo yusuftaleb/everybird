@@ -404,6 +404,8 @@
 .eb-share-duo > * { flex: 1 1 auto; }
 .eb-share-duo > .eb-share-primary { flex-grow: 2; }
 .eb-share-duo > .eb-btn { white-space: nowrap; }
+/* Download PNG and Download PDF: the same primary, equal halves (Yusuf, 2026-11-21). */
+.eb-share-duo[data-even] > * { flex: 1 1 0; }
 /* Share image across the column, then one row of quiet buttons (however many print mode has). The buttons take their
    words' width and share what is left, so a long label ("Link kopiëren") keeps its line while "Print" stays small;
    when the row truly runs short they shrink together and wrap alike (equal heights, centred). */

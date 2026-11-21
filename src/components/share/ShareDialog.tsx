@@ -206,6 +206,8 @@ type QuietAction = {
   label: string; short?: string; icon: Icon; onClick: () => void; disabled?: boolean; ref?: RefObject<HTMLButtonElement | null>
   /** Why it can't be used now: it stays focusable (aria-disabled), the reason its tooltip; `describedBy` its note. */
   off?: string; describedBy?: string
+  /** Drawn as the primary (Download PDF beside Download PNG: the two downloads alike; Yusuf, 2026-11-21). */
+  primary?: boolean
 }
 
 /** Why a link carries less than the regions (a large list), or nothing for a full link. */
@@ -1132,17 +1134,17 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         copy,
       ]
     : [
-        ...(posterNow && !transparent ? [{ label: pt.pdf, icon: FilePdf, onClick: () => void savePoster('pdf') }] : []),
+        ...(posterNow && !transparent ? [{ label: pt.pdf, icon: FilePdf, primary: true, onClick: () => void savePoster('pdf') }] : []),
         copy,
         ...(posterNow && posterNow.missing > 0 ? [{ label: pt.again, icon: ArrowClockwise, onClick: remake }] : []),
       ]
   const [beside, ...under] = print ? quiet : []
-  const quietButton = ({ label: text, short, icon: Glyph, onClick, disabled, ref: btnRef, off, describedBy }: QuietAction) => {
+  const quietButton = ({ label: text, short, icon: Glyph, onClick, disabled, ref: btnRef, off, describedBy, primary }: QuietAction) => {
     const glyph = <Glyph aria-hidden="true" focusable="false" />
     const shorter = short ?? null
     return (
       <button
-        key={text} ref={btnRef} type="button" className="eb-btn eb-btn-quiet" aria-label={shorter ? text : undefined} disabled={disabled}
+        key={text} ref={btnRef} type="button" className={primary ? 'eb-btn' : 'eb-btn eb-btn-quiet'} aria-label={shorter ? text : undefined} disabled={disabled}
         aria-disabled={off ? true : undefined} title={off} aria-describedby={describedBy} onClick={off ? undefined : onClick}
       >
         {glyph}
@@ -1574,7 +1576,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               <div className="eb-share-actions">
                 {print ? (
                   <>
-                    <div className="eb-share-duo">{primary}{beside && quietButton(beside)}</div>
+                    <div className="eb-share-duo" data-even={beside?.primary || undefined}>{primary}{beside && quietButton(beside)}</div>
                     {under.length > 0 && <div className="eb-share-row">{under.map(quietButton)}</div>}
                   </>
                 ) : (

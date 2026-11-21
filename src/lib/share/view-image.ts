@@ -9,13 +9,14 @@ import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TipRank, TreeLevel } from '@/lib/tree/levels'
 import type { TreeLayout } from '@/lib/tree-mine'
-import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, dropLast, ensureViewFonts, isPrint, loadStickers, paintCard, paintRow, paintTiles, prepareCard, wrapParts, type CardFonts, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
+import { IMAGE_SCALE, SITE_LABEL, dropLast, ensureViewFonts, isPrint, loadStickers, paintCard, paintRow, paintTiles, prepareCard, wrapParts, type CardFonts, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
 /** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone (it
  *  draws no stickers, so no sticker credit), the tree's FOOTER_LINE (its tips carry stickers) and the tree's credit
  *  (AvesData is CC BY 4.0, so an image of it carries the credit), in the credits' one form. */
 export const MAP_FOOTER = SITE_LABEL
-export const TREE_FOOTER = `${FOOTER_LINE} · Tree: AvesData, CC BY 4.0`
+// CC BY 4.0 once, for both (Yusuf, 2026-11-21): the stickers and the tree are under the same licence.
+export const TREE_FOOTER = `${SITE_LABEL} · Stickers: huashu-bird-sticker · Tree: AvesData · CC BY 4.0`
 
 /** The level the view had open when Share was pressed: the country the map has open (`names`: how the map names its
  *  places, in the UI language), or the tree's (`mine`: its "Lifers only" switch; `layout`: the layout on screen, which
