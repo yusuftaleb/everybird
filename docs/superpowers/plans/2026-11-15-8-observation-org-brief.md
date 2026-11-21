@@ -3,7 +3,7 @@
 Requested by Koen (observation.org user, via the site's contact form). Yusuf approved adding it as item 8, built after item 6 on its own stacked branch, feat/nf-8-observation-org. Turn this brief into a full plan with superpowers:writing-plans first, and add item 8 to the 2026-11-15 checklist.
 
 ## The real export (verified 2026-11-15 from Koen's file)
-A real export sits in the main checkout at /Users/yusuf/orca/projects/everybird/private/observation-org/ (git-ignored). It is personal data: read it for testing, never commit it or copy rows from it. Fixtures must be synthetic.
+A real export sits in the main checkout at private/observation-org/ (git-ignored). It is personal data: read it for testing, never commit it or copy rows from it. Fixtures must be synthetic.
 
 - File name: `observation-<YYYY-MM-DD-HH-MM>-species_observed_<user>.csv`. This is observation.org's "Observed species" (life list) export, not a per-observation export.
 - UTF-8, no BOM, comma-delimited, header row, LF. Dates ISO `YYYY-MM-DD`.
@@ -38,7 +38,7 @@ The "Observed species" export has no locations, so the Places filter knows nothi
 
 
 ### The per-observation export (verified 2026-11-15 from Koen's second file)
-Real file (personal data, never commit): /Users/yusuf/orca/projects/everybird/private/observation-org/observation-<YYYY-MM-DD-HH-MM>-observations-<user>.csv (the file Yusuf received on 2026-11-15), about 6.8 MB, 16,525 rows over 5 years. Parse in a worker like MyEBirdData.csv.
+Real file (personal data, never commit): private/observation-org/observation-<YYYY-MM-DD-HH-MM>-observations-<user>.csv (the file Yusuf received on 2026-11-15), about 6.8 MB, 16,525 rows over 5 years. Parse in a worker like MyEBirdData.csv.
 
 - File name: `observation-<YYYY-MM-DD-HH-MM>-observations-<user>.csv`. UTF-8, no BOM, comma-delimited, quoted fields, English header row.
 - 40 columns: `id,date,time,created,modified,species name,scientific name,family,species type,species group,number,sex,life stage,activity,method,counting method,related species,related species name,source,location,lat,lng,accuracy,country division,country,validation status,validator id,validator name,last validation date,notes,substrate,is certain,is escape,obscurity,embargo date,external reference,uuid,has photos,has sounds,link`.

@@ -168,7 +168,7 @@ Expected: the cardLayout test passes already (it pins today's behaviour); the fo
 
 Run: `npx vitest run tests/share-image.test.ts tests/share-dialog.test.tsx`
 Expected: PASS
-Run: `STICKERS_DIR=/Users/yusuf/orca/projects/everybird-stickers npx playwright test e2e/share.spec.ts --project=chromium --project=webkit`
+Run: `STICKERS_DIR=../everybird-stickers npx playwright test e2e/share.spec.ts --project=chromium --project=webkit`
 Expected: PASS (item 4's tests included)
 
 - [ ] **Step 5: Commit**
@@ -248,7 +248,7 @@ The links sit inline in `<p>`, so `flows.spec.ts`'s 44px rule exempts them as in
 
 Run: `npx vitest run tests/app-routes.test.tsx tests/share-dialog.test.tsx`
 Expected: PASS
-Run: `STICKERS_DIR=/Users/yusuf/orca/projects/everybird-stickers npx playwright test e2e/about.spec.ts --project=chromium --project=webkit`
+Run: `STICKERS_DIR=../everybird-stickers npx playwright test e2e/about.spec.ts --project=chromium --project=webkit`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -287,7 +287,7 @@ expect(fit).toBeGreaterThanOrEqual(0)
 
 - [ ] **Step 2: Run it to see it fail**
 
-Run: `STICKERS_DIR=/Users/yusuf/orca/projects/everybird-stickers npx playwright test e2e/about.spec.ts --project=chromium -g "scene's labels"`
+Run: `STICKERS_DIR=../everybird-stickers npx playwright test e2e/about.spec.ts --project=chromium -g "scene's labels"`
 Expected: FAIL, `.ebd-share-switch` not found.
 
 - [ ] **Step 3: Implement**
@@ -296,7 +296,7 @@ In the scene's `ShareDialog`, between `.ebd-share-field` and `.ebd-share-actions
 
 - [ ] **Step 4: Run it to see it pass**
 
-Run: `STICKERS_DIR=/Users/yusuf/orca/projects/everybird-stickers npx playwright test e2e/about.spec.ts --project=chromium --project=webkit`
+Run: `STICKERS_DIR=../everybird-stickers npx playwright test e2e/about.spec.ts --project=chromium --project=webkit`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -335,8 +335,8 @@ Run each; all must pass:
 npm run lint
 npx next typegen && npx tsc --noEmit
 npm test
-STICKERS_DIR=/Users/yusuf/orca/projects/everybird-stickers npx playwright test e2e/share.spec.ts e2e/about.spec.ts e2e/flows.spec.ts --project=chromium --project=webkit
-STICKERS_DIR=/Users/yusuf/orca/projects/everybird-stickers npx playwright test e2e/text-size.spec.ts e2e/settings.spec.ts --project=chromium
+STICKERS_DIR=../everybird-stickers npx playwright test e2e/share.spec.ts e2e/about.spec.ts e2e/flows.spec.ts --project=chromium --project=webkit
+STICKERS_DIR=../everybird-stickers npx playwright test e2e/text-size.spec.ts e2e/settings.spec.ts --project=chromium
 ```
 
 (`flows.spec.ts` checks the share dialog and every page for 44px presses and no sideways scroll; `text-size.spec.ts` the footer at 195 and 260px.) Look at the dialog once at 390 and 1280 in both themes: `SHOT_DIR=<scratch dir outside the repo> npx playwright test e2e/share.spec.ts --project=chromium -g "never scrolls sideways"`.

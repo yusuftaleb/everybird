@@ -7,12 +7,12 @@ Yusuf wants Everybird's search box to understand plain phrases, like his Nest Le
 - **Languages:** works in the site's language (en/es/pt/nl), and English always works.
 
 ## What exists to reuse
-- **The parser to port:** `/Users/yusuf/orca/projects/nest-ledger/src/lib/search.ts` and its tests in `search.test.ts`. It's local and deterministic, with no AI service.
+- **The parser to port:** another local project's `search.ts` and its tests. It's local and deterministic, with no AI service.
   - Tokenizer with quoted phrases and a `used[]` word marker.
   - Dates: month names and 3+ letter prefixes, years, quarters, ranges (`- / to / through / until / between…and / from…to`), year inference and relative dates (`this/last year`, `last N months`, `since <month>`).
   - Longest-run entity matching (up to 4 words) with plural stripping and 4+ letter prefixes.
   - `Chip {kind,label,token}`, plus `withoutChip` to remove one chip's words.
-- **Alias ideas** from `/Users/yusuf/orca/ratemysupervisor/frontend/src/lib/smart-search.ts`: significant tokens and acronym aliases.
+- **Alias ideas** from another local project's `smart-search.ts`: significant tokens and acronym aliases.
 - **Everybird building blocks**, paths in the Everybird repo:
   - Name search: `src/lib/species/name-search.ts` (`searchKey`, `nameTier`) and `searchCollage(...)`, which already matches orders and families.
   - Filter model in `src/lib/list/filters.ts`: `Filter {order, family, countries, provinces, counties, from, to}`, plus `withPlaces`, `togglePlace` and `filterKey`. Status filter `statuses` and `withStatuses` on feat/nf-3-iucn.
