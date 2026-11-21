@@ -23,7 +23,7 @@ const collage = {
   filter: { order: 'Passeriformes', countries: ['CA', 'EG'], continents: ['NA' as const], regions: ['latam' as const], statuses: ['VU' as const], basis: 'seen' as const, from: '2026-03', to: '2026-09' },
   mode: 'true' as const,
   view: 'list' as const,
-  massOrder: 'lightest' as const,
+  listOrder: 'lightest' as const,
   sci: true,
 }
 const slices = {
@@ -90,7 +90,7 @@ describe('writeResume / readResume', () => {
       v: 1,
       at: 1_000,
       slices: {
-        collage: { filter: { order: 'Owls', continents: ['NA', 'XX'], statuses: ['VU', 'ZZ'], basis: 'bogus', countries: 'CA', extra: 1 }, mode: 'odd', view: 'list', massOrder: 'heaviest', sci: false },
+        collage: { filter: { order: 'Owls', continents: ['NA', 'XX'], statuses: ['VU', 'ZZ'], basis: 'bogus', countries: 'CA', extra: 1 }, mode: 'odd', view: 'list', listOrder: 'heaviest', sci: false },
         search: { open: 'yes' },
         panel: { open: true, at: 'places' },
       },
@@ -101,13 +101,27 @@ describe('writeResume / readResume', () => {
     expect(back.slices.panel).toEqual({ open: true, at: 'places' })
   })
 
+  it("reads the sort: a record from before the rename keeps its mass order, an unknown sort is the default", () => {
+    const at = (c: Record<string, unknown>) => {
+      const store = fakeStore()
+      store.m.set(KEY, JSON.stringify({ v: 1, at: 1_000, slices: { collage: { filter: {}, mode: 'even', view: 'list', sci: false, ...c } } }))
+      return mod.readResume(store, 1_000)!.slices.collage?.listOrder
+    }
+    expect(at({ massOrder: 'lightest' })).toBe('lightest')
+    expect(at({ massOrder: 'heaviest' })).toBe('heaviest')
+    expect(at({ listOrder: 'newest' })).toBe('newest')
+    expect(at({ listOrder: 'family', massOrder: 'lightest' })).toBe('family')
+    expect(at({ listOrder: 'alphabetical' })).toBe('heaviest')
+    expect(at({})).toBe('heaviest')
+  })
+
   it('keeps valid region presets in collage filter and drops unknown ones', () => {
     const store = fakeStore()
     store.m.set(KEY, JSON.stringify({
       v: 1,
       at: 1_000,
       slices: {
-        collage: { filter: { regions: ['me', 'bogus'] }, mode: 'even', view: 'collage', massOrder: 'heaviest', sci: false },
+        collage: { filter: { regions: ['me', 'bogus'] }, mode: 'even', view: 'collage', listOrder: 'heaviest', sci: false },
       },
     }))
     const back = mod.readResume(store, 1_000)!

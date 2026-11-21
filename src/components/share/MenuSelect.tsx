@@ -103,8 +103,8 @@ export function MenuSelect<T extends string | number>({ labelledBy, menuLabel, o
   )
 }
 
-/** The open menu: mounted only while open. */
-function MenuList<T extends string | number>({ id, label, options, value, btn, escapeRef, onPick, onClose }: {
+/** The open menu: mounted only while open (also the List view's Sort menu in the controls bar, ControlsBar.tsx). */
+export function MenuList<T extends string | number>({ id, label, options, value, btn, escapeRef, onPick, onClose }: {
   id: string
   label: string
   options: readonly MenuOption<T>[]

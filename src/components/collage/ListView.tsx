@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import { regionsIn } from '@/lib/i18n-places'
 import { formatPlace } from '@/lib/import/places'
+import { listCompare, type ListOrder } from '@/lib/list/list-order'
 import type { ListEntry } from '@/lib/list/model'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName } from '@/lib/species/names'
@@ -17,13 +18,12 @@ import { StatusMark } from './StatusMark'
 import { Sticker } from './Sticker'
 import './card-list.css'
 
-export type ListOrder = 'heaviest' | 'lightest'
 
 type Props = {
   entries: ListEntry[]
   species: SpeciesIndex
   regions: Regions
-  /** By body mass (the direction lives in the controls bar). */
+  /** The controls bar's Sort menu (list-order.ts). */
   order: ListOrder
   /** Scientific names lead (the Scientific switch). */
   sci?: boolean
@@ -62,7 +62,7 @@ const Row = memo(function Row({ entry, row, place, sci, onPick, t }: RowProps) {
   )
 })
 
-/** One row per bird, by body mass. Rows use content-visibility: auto, so 5,000 of them stay cheap. */
+/** One row per bird, in the Sort menu's order. Rows use content-visibility: auto, so 5,000 of them stay cheap. */
 export function ListView({ entries, species, regions, order, sci = false, onPick }: Props) {
   const { lang, t } = useI18n()
   const rows = useMemo(() => {
@@ -72,8 +72,7 @@ export function ListView({ entries, species, regions, order, sci = false, onPick
       const row = species.byCode.get(entry.code)
       if (row) out.push({ entry, row, place: formatPlace(entry.place, named) })
     }
-    const dir = order === 'heaviest' ? -1 : 1
-    out.sort((a, b) => dir * (a.row.g - b.row.g) || a.row.to - b.row.to)
+    out.sort(listCompare(order))
     return out
   }, [entries, species, regions, order, lang])
 

@@ -146,8 +146,14 @@ export const EN_UI = {
       lightestFirst: 'Lightest first',
       heaviest: 'Heaviest',
       lightest: 'Lightest',
-      sortedHeaviest: 'Sorted by body mass, heaviest first. Reverse order',
-      sortedLightest: 'Sorted by body mass, lightest first. Reverse order',
+      /** The List view's Sort menu: its options (each with a short form for narrow bars, Family has one), and its name
+       *  (the button reads "Sort: Newest first"). */
+      family: 'Family',
+      newestFirst: 'Newest first',
+      oldestFirst: 'Oldest first',
+      newest: 'Newest',
+      oldest: 'Oldest',
+      sort: 'Sort',
       trueSize: 'True size',
       trueShort: 'True',
       trueSr: 'sticker sizes',

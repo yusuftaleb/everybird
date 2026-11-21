@@ -26,7 +26,8 @@ const OTHERS = { es, pt, nl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhH
 /** Resting labels in fixed rows (dotted paths into `ui`). */
 const TIGHT = [
   'collage.controls.collage', 'collage.controls.list', 'collage.controls.tree', 'collage.controls.heaviestFirst', 'collage.controls.lightestFirst',
-  'collage.controls.heaviest', 'collage.controls.lightest', 'collage.controls.trueSize', 'collage.controls.sci',
+  'collage.controls.heaviest', 'collage.controls.lightest', 'collage.controls.family', 'collage.controls.newestFirst', 'collage.controls.oldestFirst',
+  'collage.controls.newest', 'collage.controls.oldest', 'collage.controls.trueSize', 'collage.controls.sci',
   'filters.label', 'filters.clear', 'filters.timeline.sumFrom', 'filters.timeline.sumTo',
   'import.add', 'import.replace', 'import.remove', 'import.inat.refresh', 'import.inat.cancel', 'tick.button',
   'share.format.story', 'share.format.post', 'share.format.square', 'share.shareImage', 'share.download', 'share.copyLink',

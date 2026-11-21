@@ -146,7 +146,7 @@ function latestLine(name: string, date: string | undefined, t: Ui): ReactNode {
 }
 
 export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShareAt, statsAction, whose = 'this' }: Props) {
-  const { list, filter, mode, massOrder, sci, seen } = state
+  const { list, filter, mode, listOrder, sci, seen } = state
   // No places to map (a shared link without them): no Map tab, and a carried-over Map view shows the collage.
   const noMap = !!hideSections?.includes('places')
   const view = noMap && state.view === 'map' ? 'collage' : state.view
@@ -372,8 +372,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         view={view}
         noMap={noMap}
         onView={(v) => { setPick(null); setTip(null); if (!hasDisplay(v)) setPanel((p) => (p === 'display' ? null : p)); dispatch({ type: 'view', view: v }) }}
-        lightFirst={massOrder === 'lightest'}
-        onDirection={() => dispatch({ type: 'massOrder', massOrder: massOrder === 'heaviest' ? 'lightest' : 'heaviest' })}
+        listOrder={listOrder}
+        onListOrder={(o) => dispatch({ type: 'listOrder', listOrder: o })}
         sci={sci}
         onSci={(on) => dispatch({ type: 'sci', sci: on })}
         search={{ entries, shown: fk ? shownCodes : undefined, species, onPick: onSearchPick, whose, filter, onApply, regions, listPlaces, hasMonths }}
@@ -417,7 +417,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       ) : view === 'map' ? (
         <MapView state={state} species={species} regions={regions} onLevel={onMapLevel} />
       ) : view === 'list' ? (
-        <ListView entries={shownList} species={species} regions={regions} order={massOrder} sci={sci} onPick={onPickRow} />
+        <ListView entries={shownList} species={species} regions={regions} order={listOrder} sci={sci} onPick={onPickRow} />
       ) : (
         <Suspense fallback={<p className="eb-mono">{t.collage.tree.loading}</p>}>
           <TreeView entries={shownList} sci={sci} onPick={onPickRow} branch={branch} onOpen={onTreeOpen} onLevel={onTreeLevel} layoutSlot={openPanel === 'display' ? layoutSlot : null} />
