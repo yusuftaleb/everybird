@@ -194,13 +194,14 @@ export function TaxaPath({ crumbs, go, className }: { crumbs: Taxa['crumbs']; go
 }
 
 /** The level's chips (LevelRow): the Taxa panel's body after its head and path. */
-export function TaxaLevel({ taxa }: { taxa: Taxa }): ReactNode {
+export function TaxaLevel({ taxa, rise }: { taxa: Taxa; rise?: boolean }): ReactNode {
   const { row } = taxa
   if (!row) return null
   return (
-    // Keyed by level: each new level mounts afresh and rises in (filters.css), as order to family always did.
+    // Keyed by level: each new level mounts afresh and, with `rise`, rises in (filters.css).
     <LevelRow
       key={row.level}
+      rise={rise}
       level={row.level}
       options={row.opts}
       label={taxa.chipLabel}
