@@ -1,4 +1,4 @@
-// How the collage places the birds, Fit, Oval or Free: a per-device choice kept in localStorage, Packed when unset, unreadable
+// How the collage places the birds, Fit, Oval or Free: a per-device choice kept in localStorage, Free when unset, unreadable
 // or a value no longer offered (the dropped 'family' and 'colour'), the same in every tab. One setting for the collage
 // on the page (the Display panel's Arrangement in the Collage view), the share images and the poster (the share
 // dialog's Arrangement row): changing it in either changes the other.
@@ -15,6 +15,8 @@ export type Arrangement = 'packed' | 'oval' | 'free'
 export const ARRANGEMENTS: readonly Arrangement[] = ['packed', 'oval', 'free']
 
 export const ARRANGEMENT_KEY = 'everybird:arrangement'
+/** Free (Yusuf, 2026-11-21); nothing is stored for it, so a device that never chose follows it. */
+export const DEFAULT_ARRANGEMENT: Arrangement = 'free'
 
 // Phosphor has no oval: one drawn on its 256 grid, as wide as its Rectangle's frame (x 32–224 on the stroke's centre)
 // and shorter (y 56–200), so it reads as an ellipse beside it, never a circle; each weight at Phosphor's stroke width
@@ -41,15 +43,15 @@ export function arrangement(): Arrangement {
   if (memory) return memory
   try {
     const v = localStorage.getItem(ARRANGEMENT_KEY)
-    return (ARRANGEMENTS as readonly string[]).includes(v ?? '') ? (v as Arrangement) : 'packed'
+    return (ARRANGEMENTS as readonly string[]).includes(v ?? '') ? (v as Arrangement) : DEFAULT_ARRANGEMENT
   } catch {
-    return 'packed'
+    return DEFAULT_ARRANGEMENT
   }
 }
 
 export function setArrangement(a: Arrangement): void {
   try {
-    if (a === 'packed') localStorage.removeItem(ARRANGEMENT_KEY)
+    if (a === DEFAULT_ARRANGEMENT) localStorage.removeItem(ARRANGEMENT_KEY)
     else localStorage.setItem(ARRANGEMENT_KEY, a)
     memory = null
   } catch {
@@ -66,5 +68,5 @@ function subscribe(f: () => void): () => void {
 }
 
 export function useArrangement(): Arrangement {
-  return useSyncExternalStore(subscribe, arrangement, () => 'packed')
+  return useSyncExternalStore(subscribe, arrangement, () => DEFAULT_ARRANGEMENT)
 }

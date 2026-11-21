@@ -1,6 +1,7 @@
 // Builds public/data/sample-pack.v1.json, the landing sample packed ahead of time (src/lib/list/sample-pack.ts):
 // public/data/sample.v1.json, the species rows, region names and masks it uses, and its full even collage per layout
-// class, packed with the layout worker's own handler and the masks in public/data/masks; and its names in each base
+// class in Free, the default arrangement (arrangement.ts's DEFAULT_ARRANGEMENT), packed with the layout worker's own
+// handler and the masks in public/data/masks; and its names in each base
 // language, one small file per language (public/data/sample-names.<base>.v1.json), so an English visitor fetches none.
 // Rerun after `npm run data` or build-sample.ts (a unit test fails when the pack and the sample disagree), then
 // data-files.ts.
@@ -65,7 +66,7 @@ export async function makeSamplePack(sample: SampleFile, species: SpeciesRow[], 
   if (ready.type !== 'ready') throw new Error(ready.type === 'error' ? ready.message : 'setList failed')
   const layouts: PackedLayout[] = []
   for (const l of LAYOUTS) {
-    const r = await handle({ type: 'layout', id: 2, key: `${l.name}|even|`, codes, layout: l.name, mode: 'even', fit: false })
+    const r = await handle({ type: 'layout', id: 2, key: `${l.name}|even|`, codes, layout: l.name, mode: 'even', fit: false, free: true })
     if (r.type !== 'result') throw new Error(r.type === 'error' ? r.message : 'layout failed')
     layouts.push({ layout: l.name, W: r2(r.W), H: r2(r.H), base: r.base, codes: r.codes, boxes: Array.from(r.boxes, r2) })
   }

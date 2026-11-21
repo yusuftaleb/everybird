@@ -8,7 +8,7 @@ import { useReducer } from 'react'
 import { beforeAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CollageView } from '@/components/app/CollageView'
 import { TREE_MINE_KEY, TREE_TIME_KEY } from '@/lib/tree-mine'
-import { ARRANGEMENT_KEY, setArrangement } from '@/lib/arrangement'
+import { ARRANGEMENT_KEY, DEFAULT_ARRANGEMENT, setArrangement } from '@/lib/arrangement'
 import type { SourceRecord } from '@/lib/list/model'
 import { emptySaved } from '@/lib/list/storage'
 import { initialState, makeReducer, type AppState } from '@/lib/list/store'
@@ -193,7 +193,7 @@ describe('the bar: one press per switch, each only in its view', () => {
 
 // Round 6 (Yusuf, 2026-11-20): Fit or Oval in the Collage's Display panel, the share dialog's setting (arrangement.ts).
 describe('the Arrangement choice', () => {
-  afterEach(() => { setArrangement('packed') })
+  afterEach(() => { setArrangement(DEFAULT_ARRANGEMENT) })
   it('in the Collage\'s Display panel only, first, a labelled segmented group of two icons; one setting with the share dialog', () => {
     render(<Harness />)
     const view = screen.getByRole('group', { name: 'View' })
@@ -208,18 +208,21 @@ describe('the Arrangement choice', () => {
     // The oval is an ellipse wider than tall, not Phosphor's circle.
     const ellipse = btn('Oval').querySelector('svg ellipse')!
     expect(Number(ellipse.getAttribute('rx'))).toBeGreaterThan(Number(ellipse.getAttribute('ry')))
-    expect(btn('Fit')).toHaveAttribute('aria-pressed', 'true')
+    expect(btn('Free')).toHaveAttribute('aria-pressed', 'true') // the default (Yusuf, 2026-11-21)
     expect(btn('Fit').querySelector('svg')).not.toBeNull()
     // Its place: before the panel's switches.
     const trueSize = screen.getByTestId('dock-true')
     expect(group().compareDocumentPosition(trueSize) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     fireEvent.click(btn('Oval'))
     expect(btn('Oval')).toHaveAttribute('aria-pressed', 'true')
-    expect(btn('Fit')).toHaveAttribute('aria-pressed', 'false')
+    expect(btn('Free')).toHaveAttribute('aria-pressed', 'false')
     expect(localStorage.getItem(ARRANGEMENT_KEY)).toBe('oval')
     // The share dialog's row sets the same store: the panel follows.
     act(() => setArrangement('packed'))
     expect(btn('Fit')).toHaveAttribute('aria-pressed', 'true')
+    expect(localStorage.getItem(ARRANGEMENT_KEY)).toBe('packed')
+    act(() => setArrangement('free'))
+    expect(btn('Free')).toHaveAttribute('aria-pressed', 'true')
     expect(localStorage.getItem(ARRANGEMENT_KEY)).toBeNull()
     // Not in List, Map or Tree.
     for (const v of ['List', 'Map', 'Tree']) {

@@ -31,13 +31,13 @@ describe('the landing sample pack', () => {
     expect(f.regions).toEqual({ v: 1, countries: { CA: 'Canada', EG: 'Egypt' }, sub1: { 'CA-BC': 'British Columbia' } })
   })
 
-  it("packs each layout class's full even collage as the layout worker does", async () => {
+  it("packs each layout class's full even collage in Free, the default arrangement, as the layout worker does", async () => {
     const f = await makeSamplePack(sample, species, regions, noMasks)
     expect(f.layouts.map((l) => l.layout)).toEqual(['wide', 'medium', 'narrow'])
     const handle = createLayoutHandler(noMasks)
     const codes = sampleCodes(sample, new Map(species.map((r) => [r.code, r])))
     await handle({ type: 'setList', id: 1, entries: codes.map((c) => { const r = species.find((s) => s.code === c)!; return { code: c, mass: r.g, ord: r.ord } }) })
-    const r = await handle({ type: 'layout', id: 2, key: 'narrow|even|', codes, layout: 'narrow', mode: 'even', fit: false })
+    const r = await handle({ type: 'layout', id: 2, key: 'narrow|even|', codes, layout: 'narrow', mode: 'even', fit: false, free: true })
     if (r.type !== 'result') throw new Error('no result')
     const narrow = f.layouts[2]
     expect(narrow.codes).toEqual(r.codes)

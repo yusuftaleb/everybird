@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { localDay } from '@/lib/file-name'
 import ShareDialog from '@/components/share/ShareDialog'
 import * as image from '@/lib/share/image'
-import { ARRANGEMENT_KEY, arrangement, setArrangement } from '@/lib/arrangement'
+import { ARRANGEMENT_KEY, DEFAULT_ARRANGEMENT, arrangement, setArrangement } from '@/lib/arrangement'
 import { setTreeLayout, setTreeMine, treeLayout, treeTime } from '@/lib/tree-mine'
 import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
@@ -395,7 +395,7 @@ describe('share dialog', () => {
     await waitFor(() => expect(renders).toHaveLength(2))
     expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)![0].latest).toBe(false)
     expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2]).toEqual(
-      image.imagePackSpec('story', { name: false, filter: false, latest: false, count: 1 }))
+      image.imagePackSpec('story', { name: false, filter: false, latest: false, count: 1 }, undefined, undefined, 'free'))
   })
 
   it('turning the switch off packs for the taller frame the row leaves (no empty bands); on again reuses the first pack', async () => {
@@ -1726,15 +1726,16 @@ describe('share dialog: Fit / Oval / Free', () => {
     const m = new Map<string, string>()
     vi.stubGlobal('localStorage', { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, String(v)) }, removeItem: (k: string) => { m.delete(k) } })
   })
-  afterEach(() => { setArrangement('packed') })
-  it('Fit to start (stored as packed); Oval packs the images inside the ellipse, is kept on the device, and re-renders', async () => {
+  afterEach(() => { setArrangement(DEFAULT_ARRANGEMENT) })
+  it('Free to start (Yusuf, 2026-11-21); Oval packs the images inside the ellipse, is kept on the device, and re-renders', async () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     await waitFor(() => expect(vi.mocked(image.packForImage)).toHaveBeenCalled())
     expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2].oval).toBeUndefined()
     const group = screen.getByRole('group', { name: 'Arrangement' })
     // Three icon buttons, named and titled Fit, Oval and Free: no words to wrap.
     expect(within(group).getAllByRole('button').map((b) => [b.getAttribute('aria-label'), b.getAttribute('title'), b.textContent])).toEqual([['Fit', 'Fit', ''], ['Oval', 'Oval', ''], ['Free', 'Free', '']])
-    expect(within(group).getByRole('button', { name: 'Fit' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(group).getByRole('button', { name: 'Free' })).toHaveAttribute('aria-pressed', 'true')
+    expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2].free).toBe(true)
     fireEvent.click(within(group).getByRole('button', { name: 'Oval' }))
     expect(within(group).getByRole('button', { name: 'Oval' })).toHaveAttribute('aria-pressed', 'true')
     expect(localStorage.getItem(ARRANGEMENT_KEY)).toBe('oval')
@@ -1743,31 +1744,35 @@ describe('share dialog: Fit / Oval / Free', () => {
     expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2].oval).toBe(true)
   })
 
-  it('Free packs the images as Fit did before it filled the rectangle, and is kept on the device', async () => {
+  it('Fit fills the frame and is kept on the device; Free packs as Fit did before it filled the rectangle', async () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     await waitFor(() => expect(vi.mocked(image.packForImage)).toHaveBeenCalled())
     const group = screen.getByRole('group', { name: 'Arrangement' })
+    fireEvent.click(within(group).getByRole('button', { name: 'Fit' }))
+    expect(within(group).getByRole('button', { name: 'Fit' })).toHaveAttribute('aria-pressed', 'true')
+    expect(localStorage.getItem(ARRANGEMENT_KEY)).toBe('packed')
+    await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2]).toEqual(
+      image.imagePackSpec('story', { name: false, filter: false, latest: true, count: 1 }, undefined, undefined, 'packed')))
     fireEvent.click(within(group).getByRole('button', { name: 'Free' }))
-    expect(within(group).getByRole('button', { name: 'Free' })).toHaveAttribute('aria-pressed', 'true')
-    expect(localStorage.getItem(ARRANGEMENT_KEY)).toBe('free')
+    expect(localStorage.getItem(ARRANGEMENT_KEY)).toBeNull() // the default is stored as nothing
     await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2]).toEqual(
       image.imagePackSpec('story', { name: false, filter: false, latest: true, count: 1 }, undefined, undefined, 'free')))
     const spec = vi.mocked(image.packForImage).mock.calls.at(-1)![2]
     expect([spec.free, spec.oval]).toEqual([true, undefined])
   })
 
-  it('a stored Free reads back; an unknown value reads as Fit', () => {
-    localStorage.setItem(ARRANGEMENT_KEY, 'free')
-    expect(arrangement()).toBe('free')
-    localStorage.setItem(ARRANGEMENT_KEY, 'cloud')
+  it('a stored Fit reads back; an unknown value reads as Free, the default', () => {
+    localStorage.setItem(ARRANGEMENT_KEY, 'packed')
     expect(arrangement()).toBe('packed')
+    localStorage.setItem(ARRANGEMENT_KEY, 'cloud')
+    expect(arrangement()).toBe('free')
   })
 
-  it('a stored By family or By colour reads as Packed', () => {
+  it('a stored By family or By colour reads as Free', () => {
     localStorage.setItem(ARRANGEMENT_KEY, 'family')
-    expect(arrangement()).toBe('packed')
+    expect(arrangement()).toBe('free')
     localStorage.setItem(ARRANGEMENT_KEY, 'colour')
-    expect(arrangement()).toBe('packed')
+    expect(arrangement()).toBe('free')
   })
 })
 
