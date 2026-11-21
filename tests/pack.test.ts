@@ -340,7 +340,9 @@ function big(name: string, n = 5000) {
 // count's label box grew to 8 characters for every language, COUNT_LABEL_CHARS), and 2026-11-16 for
 // huashu 3b42ef8's 544 replacements (all 18 old values reproduced exactly using the previous masks), and 2026-11-20
 // (round 6) when each bird began to slide in from its spiral point until it touches (slideIn): the same stage, bases up
-// to 7% larger, a 20-bird collage's trimmed stage a little smaller; a change here means
+// to 7% larger, a 20-bird collage's trimmed stage a little smaller, and again later in round 6 (items 8 and 9) when Fit's
+// full collage began to line its outer birds up along the stage's edges (lineEdges: the same bases and stages, the boxes
+// moved; true size follows the moved centres); a change here means
 // small lists moved, or the pool did (new masks shift the stride).
 const fingerprint = (r: PackResult) => {
   let s = 0
@@ -348,15 +350,15 @@ const fingerprint = (r: PackResult) => {
   return `${r.base.toFixed(6)}|${r.W}x${r.H}|${s.toFixed(3)}`
 }
 const SMALL: [string, number, string, string][] = [
-  ['wide', 20, '80.000000|724x454|2392030.494', '58.582276|724x454|2281156.094'],
-  ['wide', 100, '60.129341|1120x700|13744023.913', '43.097006|1120x700|13155431.994'],
-  ['wide', 200, '37.248748|1120x700|24580728.171', '23.560325|1120x700|23648707.765'],
-  ['medium', 20, '79.922674|620x598|2615140.976', '58.655669|620x598|2495027.925'],
-  ['medium', 100, '50.444588|700x800|12425524.165', '35.086000|700x800|11950560.181'],
-  ['medium', 200, '30.704395|700x800|21978988.771', '19.160801|700x800|21630844.799'],
-  ['narrow', 20, '79.785415|350x862|2874747.006', '59.879701|350x862|2798945.604'],
-  ['narrow', 100, '36.642466|350x900|11265934.108', '25.342351|350x900|11096331.831'],
-  ['narrow', 200, '21.752080|350x900|20212281.489', '13.394802|350x900|19611158.578'],
+  ['wide', 20, '80.000000|724x454|2359373.494', '57.868352|724x454|2161427.017'],
+  ['wide', 100, '60.129341|1120x700|13769057.913', '42.191607|1120x700|13206479.045'],
+  ['wide', 200, '37.248748|1120x700|24603610.171', '23.560325|1120x700|23810041.765'],
+  ['medium', 20, '79.922674|620x598|2632571.976', '57.978071|620x598|2443098.005'],
+  ['medium', 100, '50.444588|700x800|12415621.165', '34.576770|700x800|11896262.820'],
+  ['medium', 200, '30.704395|700x800|21997181.771', '19.160801|700x800|21875194.799'],
+  ['narrow', 20, '79.785415|350x862|2849456.006', '60.245525|350x862|2729855.728'],
+  ['narrow', 100, '36.642466|350x900|11285376.108', '25.342351|350x900|11102917.831'],
+  ['narrow', 200, '21.752080|350x900|20211805.489', '13.609463|350x900|19954261.940'],
 ]
 
 describe('small lists keep their layouts (identical boxes)', () => {
@@ -365,8 +367,8 @@ describe('small lists keep their layouts (identical boxes)', () => {
     it(`${n} birds on ${name}, even and true`, () => {
       const birds = sample(n)
       const r = packBest(birds, byName(name), 'even')
-      expect(fingerprint(r)).toBe(even)
       const t = packBest(birds, byName(name), 'true', { targets: centres(r), fixedStage: [r.W, r.H] })
+      expect(fingerprint(r)).toBe(even)
       expect(fingerprint(t)).toBe(tru)
     })
   }
@@ -459,10 +461,10 @@ function owners(birds: PackBird[], r: PackResult) {
 }
 
 describe('big lists: even density from the centre to the edge, no lattice', () => {
-  for (const name of ['wide', 'narrow']) {
-    it(`723 birds on ${name}: small birds keep GAP, the outer birds sit as close as the inner ones`, () => {
-      const { r } = big(name, 723)
+  for (const [name, free] of [['wide', false], ['narrow', false], ['wide', true], ['narrow', true]] as const) {
+    it(`723 birds on ${name}, ${free ? 'Free' : 'Fit'}: small birds keep GAP, the outer birds sit as close as the inner ones`, () => {
       const birds = sample(723)
+      const r = free ? packBest(birds, byName(name), 'even', { free: true }) : big(name, 723).r
       // 1. No overlaps, and every silhouette keeps at least GAP units (one GAP between small birds, as the
       //    packer promises): grow each by GAP / 2 and nothing clashes.
       const W = Math.ceil(r.W) + 2, H = Math.ceil(r.H) + 2, k = GAP / 2
@@ -511,7 +513,9 @@ describe('big lists: even density from the centre to the edge, no lattice', () =
         if (near.has(id)) resting++
       }
       console.log(`[density] ${name} 723: ${resting} of ${outer} outer birds rest against a neighbour`)
-      expect(resting / outer).toBeGreaterThan(0.9)
+      // Fit lines its edges up (lineEdges: the outer layers share the room the last, part-filled row left), so some outer
+      // birds sit a few units from their neighbours: 0.68 on wide and 0.77 on narrow, still no lattice (narrow had 0).
+      expect(resting / outer).toBeGreaterThan(free ? 0.9 : 0.65)
     }, 60000)
   }
 
@@ -670,8 +674,8 @@ describe('big lists: no pockets inside the outline, an even edge', () => {
       expect(r.boxes.size).toBe(1100)
       expect(p.slots.inner).toBeLessThanOrEqual(12)
       expect(p.pocket).toBeLessThan(0.06)
-      expect(p.rectCv).toBeLessThan(0.016)
-      for (const c of p.corners) expect(c).toBeLessThan(1.25) // within about a sticker of each corner
+      expect(p.rectCv).toBeLessThan(0.008) // lined up along the edges (lineEdges); 0.012 to 0.014 settled alone
+      for (const c of p.corners) expect(c).toBeLessThan(0.8)
     }, 60000)
 
     it(`1,100 birds on ${L.name}, Free: the rounded rectangle`, () => {
@@ -688,9 +692,9 @@ describe('big lists: no pockets inside the outline, an even edge', () => {
   }
 })
 
-// Free is Fit as it was before Fit filled the rectangle (round 6), box for box: an exact hash of every box (and the base and
-// stage) of the page's even and true-size collages on every layout, for a list under denseFrom (never settled, so Fit
-// packs it the same) and a big one, and of share-image frames (packFrame). Recorded from the code before the change.
+// Free on the page is Fit as it was before Fit filled the rectangle (round 6), box for box: an exact hash of every box (and
+// the base and stage) of the page's even and true-size collages on every layout, for a list under denseFrom and a big one.
+// Recorded from the code before the change. (Its share images draw the same cloud since item 8: tests/even-spacing.test.ts.)
 const exact = (r: PackResult) => {
   const f = new Float64Array([r.base, r.W, r.H, ...[...r.boxes.entries()].sort((a, b) => a[0] - b[0]).flatMap(([id, b]) => [id, ...b])])
   let h = 0x811c9dc5
@@ -702,8 +706,7 @@ const FREE: [string, number, string, string][] = [
   ['medium', 200, '200:5b2fd13e', '200:386b9aff'], ['medium', 1100, '1100:f271b651', '1100:d894e790'],
   ['narrow', 200, '200:d72c0469', '200:3f2489b0'], ['narrow', 1100, '1100:a67d2970', '1100:267ff50d'],
 ]
-const FREE_FRAMES: [number, number, string][] = [[952 / 1276, 1000, '1000:92b19bf1'], [952 / 930, 500, '500:b71da951'], [1492 / 728, 1000, '1000:c5607742']]
-describe('Free: today\'s layout before Fit filled the rectangle, box for box', () => {
+describe('Free on the page: the layout before Fit filled the rectangle, box for box', () => {
   beforeAll(() => { if (!POOL.length) POOL = loadPool() })
   for (const [name, n, even, tru] of FREE) {
     it(`${n} birds on ${name}, even and true size`, () => {
@@ -711,13 +714,6 @@ describe('Free: today\'s layout before Fit filled the rectangle, box for box', (
       const r = packBest(birds, byName(name), 'even', { free: true })
       expect(exact(r)).toBe(even)
       expect(exact(packBest(birds, byName(name), 'true', { targets: centres(r), fixedStage: [r.W, r.H], free: true }))).toBe(tru)
-      if (n < byName(name).denseFrom) expect(exact(packBest(birds, byName(name), 'even'))).toBe(even) // Fit too, below denseFrom
-    }, 60000)
-  }
-  for (const [aspect, n, want] of FREE_FRAMES) {
-    it(`a share image's frame: ${n} birds at aspect ${aspect.toFixed(3)}`, () => {
-      const hole = scaleHole(collageHole(n, byName('wide')), 1 / 1120)
-      expect(exact(packFrame(sample(n), aspect, { hole, maxTile: 0.3, free: true }))).toBe(want)
     }, 60000)
   }
 })

@@ -6,7 +6,7 @@ export const DATA_FILES = {
   'groups.v1.json': 'groups.v1.6c343d79c5.json',
   'masks.v2.json': 'masks.v2.be92aa507b.json',
   'sample.v1.json': 'sample.v1.300671bac4.json',
-  'sample-pack.v1.json': 'sample-pack.v1.6a52caee77.json',
+  'sample-pack.v1.json': 'sample-pack.v1.5b5874b9c8.json',
   'inat-synonyms.v1.json': 'inat-synonyms.v1.44136fa355.json',
   'vietnam-boundaries.v1.json': 'vietnam-boundaries.v1.1eed73d78b.json',
   'map-countries.v1.json': 'map-countries.v1.ebf2943ab8.json',
