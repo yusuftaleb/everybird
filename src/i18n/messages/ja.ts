@@ -501,8 +501,6 @@ export const ja: Messages = {
       filtersNoLabel: '絞り込みを反映しています。',
       clearFilters: '絞り込みをクリア',
       latestLifer: '最新のライファー',
-      posterLatest: '最新のライファー：{name}、{date}',
-      posterLatestPlace: '最新のライファー：{name}、{date}、{place}',
       oldLinkTitle: '{name}のライフリスト',
       untitledTitle: { one: 'ライフリスト：{n}種', other: 'ライフリスト：{n}種' },
       colours: { label: '外観', light: 'ライト', dark: 'ダーク' },

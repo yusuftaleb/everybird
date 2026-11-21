@@ -516,8 +516,6 @@ export const ru: Messages = {
       filtersNoLabel: 'С твоими фильтрами.',
       clearFilters: 'Сбросить фильтры',
       latestLifer: 'Последний новый вид',
-      posterLatest: 'Последний новый вид: {name}, {date}',
-      posterLatestPlace: 'Последний новый вид: {name}, {date}, {place}',
       oldLinkTitle: 'Лайф-лист: {name}',
       untitledTitle: { one: 'Лайф-лист: {n} вид', few: 'Лайф-лист: {n} вида', many: 'Лайф-лист: {n} видов', other: 'Лайф-лист: {n} вида' },
       colours: { label: 'Оформление', light: 'Светлое', dark: 'Тёмное' },

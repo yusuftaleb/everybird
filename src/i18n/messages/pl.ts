@@ -505,8 +505,6 @@ export const pl: Messages = {
       filtersNoLabel: 'Z twoimi filtrami.',
       clearFilters: 'Wyczyść filtry',
       latestLifer: 'Najnowszy gatunek',
-      posterLatest: 'Najnowszy gatunek: {name}, {date}',
-      posterLatestPlace: 'Najnowszy gatunek: {name}, {date}, {place}',
       oldLinkTitle: 'Lista życia: {name}',
       untitledTitle: { one: 'Lista życia: {n} gatunek', few: 'Lista życia: {n} gatunki', many: 'Lista życia: {n} gatunków', other: 'Lista życia: {n} gatunków' },
       colours: { label: 'Wygląd', light: 'Jasny', dark: 'Ciemny' },

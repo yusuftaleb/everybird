@@ -137,11 +137,11 @@ describe('the landscape layouts', () => {
     }
   }
 
-  it('the desktop and the 5:4 card draw the row on one line above the hairline; the landscape poster has none (its foot names the lifer)', () => {
+  it('the desktop, the 5:4 card and the landscape poster draw the row on one line above the hairline (the poster since round 6, item 24)', () => {
     const content = { name: true, filter: true, latest: true, count: 197 }
     expect(cardLayout('desktop', content).latest?.inline).toBe(true)
     expect(cardLayout('wide', content).latest?.inline).toBe(true)
-    expect(cardLayout('printLandscape', content).latest).toBeUndefined()
+    expect(cardLayout('printLandscape', content).latest?.inline).toBe(true)
     expect(cardLayout('wide', content).latest?.x).toBe(M)
   })
 

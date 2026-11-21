@@ -629,10 +629,6 @@ export const EN_UI = {
     clearFilters: 'Clear filters',
     /** The latest lifer row's mono label on the images and the link preview ("LATEST LIFER · SEP 2026"; upper-cased in code). */
     latestLifer: 'Latest lifer',
-    /** The poster's foot: the latest lifer in words, before the site and the credit ("Latest lifer: Hooded Crow, Sep 2026"). */
-    posterLatest: 'Latest lifer: {name}, {date}',
-    /** The same with where it was seen: the province or state and the country, or the country alone ({place}). */
-    posterLatestPlace: 'Latest lifer: {name}, {date}, {place}',
     /** A link made before titles carries a bare name: its title (og.ts shareTitle). */
     oldLinkTitle: "{name}'s life list",
     /** The shared page's document title for a link without a title ({n} formatted). */

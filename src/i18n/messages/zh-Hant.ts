@@ -501,8 +501,6 @@ export const zhHant: Messages = {
       filtersNoLabel: '已套用你的篩選。',
       clearFilters: '清除篩選',
       latestLifer: '最新鳥種',
-      posterLatest: '最新鳥種：{name}，{date}',
-      posterLatestPlace: '最新鳥種：{name}，{date}，{place}',
       oldLinkTitle: '{name} 的生涯清單',
       untitledTitle: { one: '一份生涯清單：{n} 種', other: '一份生涯清單：{n} 種' },
       colours: { label: '外觀', light: '淺色', dark: '深色' },

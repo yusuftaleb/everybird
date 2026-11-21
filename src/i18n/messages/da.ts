@@ -502,8 +502,6 @@ export const da: Messages = {
       filtersNoLabel: 'Viser dine filtre.',
       clearFilters: 'Ryd filtre',
       latestLifer: 'Nyeste nye art',
-      posterLatest: 'Nyeste nye art: {name}, {date}',
-      posterLatestPlace: 'Nyeste nye art: {name}, {date}, {place}',
       oldLinkTitle: 'Livsliste fra {name}',
       untitledTitle: { one: 'En livsliste: {n} art', other: 'En livsliste: {n} arter' },
       colours: { label: 'Udseende', light: 'Lys', dark: 'Mørk' },

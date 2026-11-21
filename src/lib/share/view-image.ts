@@ -9,7 +9,7 @@ import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TipRank, TreeLevel } from '@/lib/tree/levels'
 import type { TreeLayout } from '@/lib/tree-mine'
-import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, loadStickers, paintCard, prepareCard, type CardFormat, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
+import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, isPrint, loadStickers, paintCard, paintRow, paintTiles, prepareCard, type CardFonts, type CardFormat, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
 /** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone (it
  *  draws no stickers, so no sticker credit), the tree's FOOTER_LINE (its tips carry stickers) and the tree's credit
@@ -93,8 +93,11 @@ export async function renderViewImage(opts: ShareImageOpts & { scale?: number },
   ctx.font = card.fonts.footer(subPx)
   const lines = blockH && under?.length ? wrapParts(under, (text) => ctx.measureText(text).width, c.w) : []
   const top = blockH ? blockH + lines.length * lineH + COUNT_GAP : 0
+  // A poster's row (the Tree's oldest lineage) is painted after the view, so its name can be the view's largest name
+  // (round 6, item 24: never smaller than the tip names, read from the same distance); elsewhere paintCard draws it.
+  const lateRow = isPrint(card.format) && card.latest && card.lifer && L.latest ? card.latest : undefined
   // paintCard centres the count on fit's centre: moved to the top of the area.
-  paintCard(ctx, { ...card, fit: { ...card.fit, cx: c.x + c.w / 2, cy: c.y + blockH / 2 } }, imgs)
+  paintCard(ctx, { ...card, fit: { ...card.fit, cx: c.x + c.w / 2, cy: c.y + blockH / 2 }, ...(lateRow ? { latest: undefined } : {}) }, imgs)
   ctx.font = card.fonts.footer(subPx)
   ctx.fillStyle = card.colors.muted
   ctx.textAlign = 'center'
@@ -103,10 +106,31 @@ export async function renderViewImage(opts: ShareImageOpts & { scale?: number },
   // A row lifted with the footer (placeFooter's shift) by more than the room kept for it (L.latest.lift): the Tree's
   // longer footer on Post 5:4. The drawing ends that much higher, so the row keeps its gap.
   const lifted = L.latest ? Math.max(0, card.shift - (L.latest.lift ?? 0)) : 0
-  paint(ctx, card, { x: c.x, y: c.y + top, w: c.w, h: c.h - top - lifted })
+  const seen = lateRow ? watchNames(ctx, card.fonts) : undefined
+  paint(ctx, seen ? { ...card, fonts: seen.fonts } : card, { x: c.x, y: c.y + top, w: c.w, h: c.h - top - lifted })
+  if (lateRow && seen && L.latest && card.lifer) {
+    // The row's own size, or the view's largest name if larger (a Tree's tip names, at most 48 units: the sticker's line holds it).
+    const R = L.latest, name = Math.max(R.name, seen.done())
+    paintTiles(ctx, [card.lifer], imgs, card.colors.line)
+    paintRow(ctx, card.fonts, card.colors, { ...R, y: R.y - card.shift, name, label: Math.round((R.label * name) / R.name) }, lateRow)
+  }
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not encode the image'))), 'image/png')
   })
+}
+
+/**
+ * The largest size `paint` draws text at in the row's face (`fonts.lifer`, the Tree's tip names): every face a view
+ * paints with comes from the card's fonts, so the face in use at each fillText is known; measuring (measureText) never
+ * counts. `done` restores fillText and gives that size (0 for none).
+ */
+export function watchNames(ctx: CanvasRenderingContext2D, fonts: CardFonts): { fonts: CardFonts; done: () => number } {
+  let cur = 0, max = 0
+  const wrapped = Object.fromEntries(Object.entries(fonts).map(([k, f]) => [k, (px: number) => { cur = k === 'lifer' ? px : 0; return f(px) }])) as CardFonts
+  const own = Object.prototype.hasOwnProperty.call(ctx, 'fillText')
+  const fill = ctx.fillText
+  ctx.fillText = function (this: CanvasRenderingContext2D, ...a: Parameters<CanvasRenderingContext2D['fillText']>) { max = Math.max(max, cur); return fill.apply(this, a) }
+  return { fonts: wrapped, done: () => { if (own) ctx.fillText = fill; else delete (ctx as { fillText?: unknown }).fillText; return max } }
 }
 
 /** `text` clipped with an ellipsis to `max` px in the context's current font. */
