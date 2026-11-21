@@ -150,6 +150,8 @@ function problems(r: Awaited<ReturnType<typeof render>>, time: boolean): string[
   const axisNums = texts.filter((x) => /mono/.test(x.font) && r.ages.has(x.s))
   const caption = texts.some((x) => x.s.startsWith(r.t.collage.tree.axis.slice(0, 6)))
   if (time && (axisNums.length < 2 || !caption)) out.push(`axis missing (${axisNums.length} numbers, caption ${caption})`)
+  // The caption whole: the drawing leaves it its room after the 0 tick (rowsLabels' maxTree).
+  if (time && !texts.some((x) => x.s === r.t.collage.tree.axis)) out.push('axis caption cut')
   if (!time && axisNums.length) out.push(`ages drawn with the time scale off`)
   // The branches (Ink or Line), not the age rings (Hairline), which the ages sit on by design.
   const branchPts: Pt[] = strokes.filter((_, i) => r.rec.strokeStyles[i] !== '#ddd').flat()

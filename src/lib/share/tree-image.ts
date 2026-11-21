@@ -6,7 +6,7 @@
 // the name, the count. The arrangement picked is always the one drawn (round 6, item 9: every one is offered at every
 // level, on every card): fitImage sizes the fan or circle at the one largest size round it at which every name and count
 // fits whole, as small as that takes; Rectangular's rows run from the top of their room to its bottom (item 11), the
-// drawing takes up to half the width, the names are as large as the pitch allows (a long one wrapping onto two lines
+// drawing takes half the width (up to ROWS_TREE_MAX where the text has room to spare), the names are as large as the pitch allows (a long one wrapping onto two lines
 // before it shrinks), and the counts are right-aligned in a column at the card's right edge. On a share card no name
 // is over NAME_CAP; under NAME_READ (names) or COUNT_READ (counts) the image still draws and tells the dialog
 // (onTreeText), which shows a quiet note offering Print. The dialog draws a Fan horizontally and the others
@@ -136,19 +136,25 @@ export function totalsSize(texts: readonly string[], width: number, widthAt1: (t
  *  least, when the names and counts need the rest (round 6, item 13: the branches give way first). */
 export const ROWS_TREE = 0.5
 export const ROWS_TREE_MIN = 0.2
+/** Where the names have their largest size and room to spare (a long level held small by its rows' pitch, or the cap),
+ *  the drawing takes that room, up to this share of the width, so no wide gap opens between a name and its count
+ *  (round 6, item 9: the share image's spacing tightened). */
+export const ROWS_TREE_MAX = 0.7
 
 /**
  * Rectangular in the image: every tip named and counted (round 6, items 6, 9 and 13). The rows span `width` (the area's,
- * less the tips' dot): the drawing on the left, at most ROWS_TREE of it, then each tip's sticker box, its name and, in
+ * less the tips' dot): the drawing on the left, half of it (ROWS_TREE), or up to ROWS_TREE_MAX where the text has room to
+ * spare, then each tip's sticker box, its name and, in
  * a column at the right edge, its count. The names' size is the largest the rows' `pitch` allows (`cap` at most:
  * NAME_CAP on a share card, NAME_MAX on a poster); when a tip's sticker, name and count don't fit beside a half-width
  * drawing, the drawing gives way first, down to ROWS_TREE_MIN of the width; then a long name with `lines` (its best two
  * lines' widths) wraps onto two where the pitch holds them and that keeps the size larger (item 9); only then do the
  * names shrink, so no count is ever dropped. `treeW`: the drawing's width; `px`, `box`: the names' size and the sticker
  * box's side; `counts`: every tip with a count keeps it; `wrap`: the tips whose names take two lines; `col`: the
- * counts' right edge from the text's start. `name`/`count`/`lines` are widths at size 1.
+ * counts' right edge from the text's start. `name`/`count`/`lines` are widths at size 1. `maxTree`: the most the drawing
+ * may take beyond its half (the axis caption's room after the 0 tick).
  */
-export function rowsLabels(spans: readonly (LabelSpan & { lines?: readonly [number, number] })[], pitch: number, width: number, cap = NAME_MAX): { px: number; box: number; counts: boolean[]; wrap: boolean[]; col: number; treeW: number } {
+export function rowsLabels(spans: readonly (LabelSpan & { lines?: readonly [number, number] })[], pitch: number, width: number, cap = NAME_MAX, maxTree = Infinity): { px: number; box: number; counts: boolean[]; wrap: boolean[]; col: number; treeW: number } {
   const want = Math.min(cap, pitch * 0.75)
   const boxAt = (px: number) => Math.min(pitch * 0.92, px * LABEL_STICKER)
   // A tip's text at size 1: the gap, the box's gap, the name (one line or its longer wrapped line), the count's gap and count.
@@ -157,7 +163,7 @@ export function rowsLabels(spans: readonly (LabelSpan & { lines?: readonly [numb
   const twoLines = pitch / (2 * WRAP_LINE)
   const wrapLen = (sp: (typeof spans)[number]) => (sp.lines ? len(sp, Math.max(sp.lines[0], sp.lines[1])) : Infinity)
   const need = (px: number) => Math.max(0, ...spans.map((sp) => boxAt(px) + px * Math.min(len(sp, sp.name), px <= twoLines ? wrapLen(sp) : Infinity)))
-  const treeW = Math.round(Math.max(width * ROWS_TREE_MIN, Math.min(width * ROWS_TREE, width - need(want))))
+  const treeW = Math.round(Math.max(width * ROWS_TREE_MIN, Math.min(Math.max(width * ROWS_TREE, Math.min(width * ROWS_TREE_MAX, maxTree)), width - need(want))))
   const textW = width - treeW
   // The largest size whose text of length L fits textW (the box either follows the size or is the pitch's).
   const limit = (L: number) => Math.max(textW / (LABEL_STICKER + L), (textW - pitch * 0.92) / L)
@@ -447,7 +453,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     } else {
       const bodyH = drawH
       const top = area.y
-      // The labels first (rowsLabels): the drawing takes what they leave, at most half the width.
+      // The labels first (rowsLabels): the drawing takes what they leave, half the width to ROWS_TREE_MAX.
       // The rows from the area's top to its bottom (round 6, item 11): the first row's text and sticker at the top edge,
       // the last's at the bottom (no half a pitch left under it), so the tree runs down to the gap above the footer's
       // row or hairline. The pitch sets the labels' size and they set the rows' ends, so both are settled together,
@@ -455,7 +461,10 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       const cap = posterSize ? NAME_MAX : NAME_CAP
       const centres = tips.map((r) => r.top + ROW_H / 2)
       const span = centres.length > 1 ? centres[centres.length - 1] - centres[0] : 0
-      const labelsAt = (kk: number) => rowsLabels(spans, ROW_H * kk, area.w - IMAGE_SIZES.dot, cap)
+      // The axis caption follows the 0 tick at the drawing's end (16 units on): the drawing leaves it its room.
+      ctx.font = font.footer(MONO)
+      const maxTree = timeScale ? Math.floor(area.w - 17 - ctx.measureText(tt.axis).width) : Infinity
+      const labelsAt = (kk: number) => rowsLabels(spans, ROW_H * kk, area.w - IMAGE_SIZES.dot, cap, maxTree)
       const half = (lab: ReturnType<typeof labelsAt>) => Math.max(lab.box, lab.px * (lab.wrap.some(Boolean) ? 2 * WRAP_LINE : 1.2), 2 * IMAGE_SIZES.dot) / 2
       let kk = k, lab = labelsAt(kk)
       if (span > 0) {
