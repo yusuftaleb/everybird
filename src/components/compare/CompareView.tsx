@@ -1,12 +1,12 @@
 'use client'
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntry } from '@/lib/list/model'
 import {
-  barInChoice, byFamily, choiceAt, choiceCodes, choiceWords, firstChoice, gridCols, groupPayload, joinNames, listColor, memberships, partInChoice, ranking,
+  barInChoice, byFamily, choiceAt, choiceCodes, choiceWords, firstChoice, gridCols, groupPayload, joinNames, listColor, listFaint, memberships, partInChoice, ranking,
   regionCounts, showsWho, toggleList, type Choice,
 } from '@/lib/share/compare'
 import { ymToDate } from '@/lib/share/convert'
@@ -140,7 +140,7 @@ export type Comparison = ReturnType<typeof useComparison>
 
 /** A list's colour dot (the set-up's rows, the chips, the bars): the list's colour in the diagram. */
 export function ListDot({ i }: { i: number }) {
-  return <span className="eb-compare-dot" style={{ background: listColor(i) }} aria-hidden="true" />
+  return <span className="eb-compare-dot" style={{ background: listColor(i) }} data-faint={listFaint(i) ? '' : undefined} aria-hidden="true" />
 }
 
 /**
@@ -188,7 +188,8 @@ export function CompareResult({ c, sci = false }: { c: Comparison; sci?: boolean
             {(fam) => <Grid codes={c.families.find((f) => f.fam === fam)!.codes} species={c.data!.species} who={showsWho(c.choice) ? c : undefined} />}
           </FamilyAccordion>
         ) : (
-          <p className="eb-note" data-testid="compare-empty">{t.compare.empty}</p>
+          // Yet to see with nothing in it is the milestone (every friend's bird is on your list), not an empty group.
+          <p className="eb-note" data-testid="compare-empty">{c.choice === 'need' ? t.compare.wishNone : t.compare.empty}</p>
         )}
       </section>
     </div>
@@ -314,15 +315,18 @@ function Bars({ c }: { c: Comparison }) {
 /**
  * A family's chosen birds as a grid of stickers, every one in the same box, contained and standing on its bottom, the
  * name under each: three to GRID_MAX across by the grid's width (gridCols), all of them. With `who`, under the name one
- * 8px dot per list that has the bird, in the lists' colours and order, named "Seen by Sam & Ada".
+ * 8px dot per list that has the bird, in the lists' colours and order, named "On Sam & Ada's lists".
  */
 function Grid({ codes, species, who }: { codes: readonly string[]; species: SpeciesIndex; who?: Pick<Comparison, 'labels' | 'listsOf'> }) {
   const { t } = useI18n()
   const [cols, setCols] = useState(4)
   const ref = useRef<HTMLUListElement>(null)
-  useEffect(() => {
+  // Measured before the first paint (an opened family never shows a frame at 4 columns), then followed.
+  useLayoutEffect(() => {
     const el = ref.current
-    if (!el || typeof ResizeObserver === 'undefined') return
+    if (!el) return
+    setCols(gridCols(el.clientWidth))
+    if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(([e]) => setCols(gridCols(e.contentRect.width)))
     ro.observe(el)
     return () => ro.disconnect()
@@ -340,7 +344,7 @@ function Grid({ codes, species, who }: { codes: readonly string[]; species: Spec
               <span className="eb-compare-tile-name">{displayName(row)}</span>
               {on && (
                 <span className="eb-compare-who" role="img" aria-label={fmt(t.compare.seenBy, { names: joinNames(on.map((i) => who!.labels[i])) })} data-testid="compare-who">
-                  {on.map((i) => <span key={i} className="eb-compare-who-dot" style={{ background: listColor(i) }} />)}
+                  {on.map((i) => <span key={i} className="eb-compare-who-dot" style={{ background: listColor(i) }} data-faint={listFaint(i) ? '' : undefined} />)}
                 </span>
               )}
             </li>

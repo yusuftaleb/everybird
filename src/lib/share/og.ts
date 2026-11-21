@@ -52,9 +52,9 @@ export function ogName(p: Pick<SharePayload, 'name' | 'titled'>, t: OgStrings): 
 }
 
 /** The document title: "<title> · Everybird"; "A life list: 197 species" without a title ("Una lista de vida: 1.234
- *  especies"); "Everybird" for a broken link. */
+ *  especies"); "This link didn't open · Everybird" for a broken link. */
 export function ogTitle(p: SharePayload | null, t: OgStrings): string {
-  if (!p) return 'Everybird'
+  if (!p) return `${t.shared.brokenTitle} · Everybird`
   const title = shareTitle(p, t)
   const n = p.birds.length
   return title ? `${title} · Everybird` : plural(t.share.untitledTitle, n, { n: formatInt(n, t.num) })

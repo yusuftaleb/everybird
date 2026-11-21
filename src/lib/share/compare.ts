@@ -120,6 +120,8 @@ type ListTone = 'accent' | 'ink' | 'line' | 'muted'
  */
 const LIST_TONES: readonly (readonly [ListTone, number])[] = [['accent', 1], ['ink', 1], ['line', 1], ['accent', 0.5], ['muted', 1], ['line', 0.5]]
 /** List `i`'s colour in CSS, from the page's tokens (so it follows the theme). */
+/** List `i`'s colour is a 50% tone (lists 4 and 6): under 3:1 on Paper, so its dots carry a Line ring. */
+export const listFaint = (i: number): boolean => LIST_TONES[i % LIST_TONES.length][1] < 1
 export function listColor(i: number): string {
   const [tone, p] = LIST_TONES[i % LIST_TONES.length]
   return p === 1 ? `var(--${tone})` : `color-mix(in srgb, var(--${tone}) ${p * 100}%, var(--paper))`
@@ -157,23 +159,32 @@ type RowCodec = {
 /**
  * `text` typed or pasted into row `at` of `rows` (at most `room` rows: COMPARE_MAX, less the birder's own): one link
  * (or none yet) stays that row's; several links, or a comparison link, fill that row, then the blank rows after it,
- * then new ones after it, a list each, within `room`. `bad`: links that didn't open; `over`: lists left out past `room`.
+ * then new ones after it, a list each, within `room`. `bad`: links that didn't open; `over`: lists left out past `room`;
+ * `dup`: lists another row already holds, left out (a single one leaves the row its text and no list).
  */
-export function pasteRow(rows: readonly CompareRow[], at: number, text: string, room: number, codec: RowCodec): { rows: CompareRow[]; bad: number; over: number } {
+export function pasteRow(
+  rows: readonly CompareRow[], at: number, text: string, room: number, codec: RowCodec,
+): { rows: CompareRow[]; bad: number; over: number; dup: number } {
   const r = linksIn(text, codec.decode, codec.decodeC)
   const row = rows[at]
-  if (r.lists.length <= 1) return { rows: rows.map((x, i) => (i === at ? { ...x, text, list: r.lists[0] ?? null } : x)), bad: r.bad, over: 0 }
+  // A list another row already holds is refused (the same friend twice would draw "Only …: 0").
+  const held = new Set(rows.filter((x, i) => i !== at && x.list).map((x) => sameKey(x.list!)))
+  const fresh = r.lists.filter((p) => !held.has(sameKey(p)))
+  const dup = r.lists.length - fresh.length
+  if (fresh.length <= 1) return { rows: rows.map((x, i) => (i === at ? { ...x, text, list: fresh[0] ?? null } : x)), bad: r.bad, over: 0, dup }
   const before = rows.slice(0, at), after = rows.slice(at + 1)
   const kept = after.filter((x) => !blank(x)), spare = after.filter(blank)
-  const lists = r.lists.slice(0, Math.max(1, room - before.length - kept.length))
+  const lists = fresh.slice(0, Math.max(1, room - before.length - kept.length))
   const ids = [row.id, ...spare.map((x) => x.id)]
   const filled = lists.map((p, j): CompareRow => ({
     id: j < ids.length ? ids[j] : codec.id(), text: codec.link(p), list: p, ...(j === 0 && row.name !== undefined ? { name: row.name } : {}),
   }))
   // The blank rows not filled stay after them, as many as the room leaves.
   const rest = spare.slice(lists.length - 1).slice(0, Math.max(0, room - before.length - kept.length - filled.length))
-  return { rows: [...before, ...filled, ...kept, ...rest], bad: r.bad, over: r.lists.length - lists.length }
+  return { rows: [...before, ...filled, ...kept, ...rest], bad: r.bad, over: fresh.length - lists.length, dup }
 }
+/** Two lists are the same when they carry the same birds, dates, places and name (one link pasted twice). */
+const sameKey = (p: SharePayload) => JSON.stringify(p)
 
 /**
  * The share links in pasted text, chat around them included: every `…/s/<token>` (any origin, any language prefix) and

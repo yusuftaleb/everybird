@@ -452,7 +452,7 @@ export const EN_UI = {
   /** The shared view's page (/s/[token]) and SharedView. A link's own title and the page metadata are og.ts's. */
   shared: {
     brokenTitle: "This link didn't open",
-    brokenLede: "It may be cut off, or made by a newer Everybird. Everybird turns a birder's life list into a sticker collage.",
+    brokenLede: "It may be cut off, or made by a newer Everybird. Ask for the link again. Everybird turns a birder's life list into a sticker collage.",
     lede: "Everybird turns a birder's life list into a sticker collage.",
     /** The h1 of a link without a title. */
     untitled: "A birder's life list",
@@ -469,7 +469,9 @@ export const EN_UI = {
     paste: 'Paste a friend’s Everybird link',
     linkN: 'Link {n}',
     submit: 'Compare',
-    bad: { one: '{n} link didn’t open.', other: '{n} links didn’t open.' },
+    bad: { one: '{n} link didn’t open. It may be cut off, or made by a newer Everybird.', other: '{n} links didn’t open. They may be cut off, or made by a newer Everybird.' },
+    /** A pasted list another row already holds: refused (the row keeps its text, no list). */
+    dup: { one: 'That list is already in this comparison.', other: '{n} of these lists are already in this comparison.' },
     needMore: 'Comparing needs at least two lists.',
     /** After a paste past the cap: the links beyond it weren't added ({n} 6). */
     over: 'Up to {n} lists can be compared, so the rest weren’t added.',
@@ -488,7 +490,7 @@ export const EN_UI = {
     birder: 'Birder {n}',
     empty: 'No birds in this group.',
     /** A tile's dots, one per list that has the bird (Yet to see and Every bird): their accessible name. */
-    seenBy: 'Seen by {names}',
+    seenBy: 'On {names}’s lists',
     /** The bars, one per list; a set-up row's remove button. */
     people: 'Lists in this comparison',
     remove: 'Remove {name}',
@@ -504,7 +506,7 @@ export const EN_UI = {
     /** The share dialog's note beside Copy link; why the wish list is off; why Copy link is off. */
     consent: 'A comparison link carries every list in it, so ask the others before you share it.',
     wishNeedsYours: 'Add your own birds for a wish list.',
-    wishNone: 'You’ve seen every bird on these lists.',
+    wishNone: 'Every bird on these lists is on yours.',
     tooMany: 'A comparison link holds up to {n} lists. Remove some to share it.',
     tooBig: 'These lists are too big for one link. Share the card instead, or compare fewer lists.',
     sharedTitle: 'Comparing {n} life lists',
@@ -519,7 +521,7 @@ export const EN_UI = {
     editLists: 'Edit lists',
     lede: 'See which birds your lists share and which you’re yet to see. Choose people below to see the birds only they share.',
     ledeTheirs: 'See which birds these lists share. Choose people below to see the birds only they share.',
-    diagram: 'Diagram',
+    diagram: 'How the lists overlap',
   },
 
   /** Plain labels for the bird orders (scientific name -> label): every order in species.v1.json. English is a copy of

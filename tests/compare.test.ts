@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import linkIndex from '../data/link-index.json'
 import {
-  barInChoice, byFamily, choiceAt, choiceCodes, choiceWords, firstChoice, gridCols, groupPayload, joinNames, linksIn, listColor, listColorHex, memberships, partInChoice,
+  barInChoice, byFamily, choiceAt, choiceCodes, choiceWords, firstChoice, gridCols, groupPayload, joinNames, linksIn, listColor, listColorHex, listFaint, memberships, partInChoice,
   pasteRow, ranking, regionCounts, rowName, showsWho, toggleList, type Choice, type CompareRow,
 } from '@/lib/share/compare'
 import { SHARE_COLORS } from '@/lib/share/image'
@@ -220,6 +220,8 @@ describe('choosing (the chips and the diagram)', () => {
     expect(light[3]).toBe('#c4847e')
     expect(new Set(light).size).toBe(6)
     expect(new Set([0, 1, 2, 3, 4, 5].map((i) => listColorHex(i, SHARE_COLORS.dark))).size).toBe(6)
+    // The two 50% tones (lists 4 and 6) are the faint ones, whose dots carry a ring.
+    expect([0, 1, 2, 3, 4, 5].map(listFaint)).toEqual([false, false, false, true, false, true])
   })
 })
 
@@ -248,6 +250,18 @@ describe('pasteRow', () => {
     expect(names(r.rows)).toEqual(['A', 'B', 'C', 'D', 'Ada'])
     expect(r.rows[1].text).toBe(link(L('B')))
     expect(r.over).toBe(0)
+  })
+  it('a list another row holds is refused: one keeps its text and no list, several fill rows without it (dup)', () => {
+    // As a pasted row holds it: the list decoded from its link.
+    const ada = { id: 2, text: link(L('Ada')), list: decodeShare(encodeShare(L('Ada')).token) }
+    const one = pasteRow([ada, blank(3)], 1, link(L('Ada')), 5, codec)
+    expect(one).toMatchObject({ dup: 1, bad: 0, over: 0 })
+    expect(one.rows[1]).toEqual({ id: 3, text: link(L('Ada')), list: null })
+    const many = pasteRow([ada, blank(3)], 1, [L('Ada'), L('Sam'), L('Kim')].map(link).join(' '), 5, codec)
+    expect(many.dup).toBe(1)
+    expect(names(many.rows)).toEqual(['Ada', 'Sam', 'Kim'])
+    // Editing a row's own link again is no duplicate.
+    expect(pasteRow([ada], 0, `${link(L('Ada'))} `, 5, codec)).toMatchObject({ dup: 0, rows: [{ list: ada.list }] })
   })
   it('a comparison link fills a row per list, within the room, counting the rest', () => {
     const six = ['a', 'b', 'c', 'd', 'e', 'f'].map(L)

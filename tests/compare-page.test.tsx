@@ -122,7 +122,10 @@ describe('Compare: the set-up', () => {
     paste([1, 2, 3, 4, 5, 6, 7].map((i) => link(`F${i}`, i + 5)).join(' ') + ` ${SHARE_ORIGIN}/s/1broken`)
     expect(rowCount()).toBe(5)
     expect([0, 1, 2, 3, 4].map((i) => (screen.getByTestId(`compare-name-${i}`) as HTMLInputElement).value)).toEqual(['F1', 'F2', 'F3', 'F4', 'F5'])
-    expect(screen.getByTestId('compare-status')).toHaveTextContent('1 link didn’t open. Up to 6 lists can be compared, so the rest weren’t added.')
+    expect(screen.getByTestId('compare-status')).toHaveTextContent(
+      'F1 · 1 species. F2 · 1 species. F3 · 1 species. F4 · 1 species. F5 · 1 species. '
+      + '1 link didn’t open. It may be cut off, or made by a newer Everybird. Up to 6 lists can be compared, so the rest weren’t added.',
+    )
     // Six lists in all: no more rows.
     expect(screen.getByTestId('compare-add')).toBeDisabled()
     fireEvent.click(screen.getByTestId('compare-remove-4'))
@@ -134,6 +137,26 @@ describe('Compare: the set-up', () => {
     expect(rowCount()).toBe(5)
     expect(screen.getByTestId('compare-name-4')).toHaveValue('Ada')
     expect(screen.getByTestId('compare-status')).toHaveTextContent('Up to 6 lists can be compared')
+  })
+  it('a paste that opens a list says so; the same list twice is refused; a box with text and no list is marked once left', () => {
+    render(<ComparePage />)
+    // The one blank row's × does nothing visible: hidden.
+    expect(screen.getByTestId('compare-remove-0')).toHaveStyle({ visibility: 'hidden' })
+    paste(`${SHARE_ORIGIN}/s/${encodeShare({ v: 1, birds: [{ code: C(5) }, { code: C(6) }] }).token}`)
+    expect(screen.getByTestId('compare-status')).toHaveTextContent('Birder 2 · 2 species.') // the birder's own list is Birder 1
+    expect(screen.getByTestId('compare-remove-0')).not.toHaveStyle({ visibility: 'hidden' })
+    fireEvent.click(screen.getByTestId('compare-add'))
+    paste(`${SHARE_ORIGIN}/s/${encodeShare({ v: 1, birds: [{ code: C(5) }, { code: C(6) }] }).token}`, 1)
+    expect(screen.getByTestId('compare-status')).toHaveTextContent('That list is already in this comparison.')
+    const box = screen.getByTestId('compare-link-1')
+    expect(box).toHaveAttribute('autocapitalize', 'none')
+    expect(box).not.toHaveAttribute('aria-invalid')
+    fireEvent.paste(box)
+    expect(box).toHaveAttribute('aria-invalid', 'true') // pasted into, no list
+    paste('hello', 0)
+    expect(screen.getByTestId('compare-link-0')).not.toHaveAttribute('aria-invalid')
+    fireEvent.blur(screen.getByTestId('compare-link-0'))
+    expect(screen.getByTestId('compare-link-0')).toHaveAttribute('aria-invalid', 'true')
   })
   it('Add a friend adds a row and removing one takes it out; the last row is emptied instead', () => {
     render(<ComparePage />)
@@ -320,11 +343,11 @@ describe('Compare: the birds by family, one open at a time, with who has each', 
   })
   it('each tile’s dots name who has it, on Yet to see and Every bird only', async () => {
     await start()
-    expect(who()).toEqual(['Seen by Sam & Ada', 'Seen by Sam'])
+    expect(who()).toEqual(['On Sam & Ada’s lists', 'On Sam’s lists'])
     const dots = screen.getAllByTestId('compare-who')[0].querySelectorAll('.eb-compare-who-dot')
     expect([...dots].map((d) => (d as HTMLElement).style.background)).toEqual([listColor(1), listColor(2)])
     fireEvent.click(chip('every'))
-    expect(who()).toEqual(['Seen by Mine, Sam & Ada', 'Seen by Mine & Sam', 'Seen by Mine', 'Seen by Mine'])
+    expect(who()).toEqual(['On Mine, Sam & Ada’s lists', 'On Mine & Sam’s lists', 'On Mine’s lists', 'On Mine’s lists'])
     // A person's own birds, or a region: the same lists on every tile, so no dots.
     fireEvent.click(chip(1))
     expect(shown()).toBe('Only Sam · 2')

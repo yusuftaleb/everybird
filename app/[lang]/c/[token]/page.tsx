@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from '@/components/app/IntentLink'
 import { ArrowRight } from '@phosphor-icons/react/ssr'
 import { CompareView } from '@/components/compare/CompareView'
+import { SampleDemo } from '@/components/app/SampleDemo'
 import { CompareWithMine } from '@/components/compare/CompareWithMine'
 import { FullNavigation } from '@/components/app/FullNavigation'
 import { SiteFooter } from '@/components/app/SiteFooter'
@@ -28,8 +29,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const lang = await langParam(params)
   const t = getMessages(lang).ui
   const lists = tryDecode((await params).token)
-  const title = lists ? `${fmt(t.compare.sharedTitle, { n: lists.length })} · Everybird` : 'Everybird'
-  const description = t.shared.lede
+  const title = `${lists ? fmt(t.compare.sharedTitle, { n: lists.length }) : t.shared.brokenTitle} · Everybird`
+  const description = lists ? t.compare.ledeTheirs : t.shared.lede
   return {
     title,
     description,
@@ -55,7 +56,8 @@ export default async function ComparedPage({ params }: Props) {
         <div className="eb-hero">
           <div className="eb-hero-text">
             <div className="eb-pagehead-row"><h1 className="eb-pagehead-title">{lists ? fmt(t.compare.sharedTitle, { n: lists.length }) : t.shared.brokenTitle}</h1></div>
-            <p className="eb-hero-lede" role={lists ? undefined : 'alert'}>{lists ? t.shared.lede : t.shared.brokenLede}</p>
+            {/* Its line says what the page does and that its chips and circles can be pressed. */}
+            <p className="eb-hero-lede" role={lists ? undefined : 'alert'}>{lists ? t.compare.ledeTheirs : t.shared.brokenLede}</p>
           </div>
           <div className="eb-compare-ctas">
             {/* The visitor's own list joins these, while a comparison link can still hold it. */}
@@ -66,7 +68,8 @@ export default async function ComparedPage({ params }: Props) {
             </Link>
           </div>
         </div>
-        {lists && <CompareView lists={lists} />}
+        {/* A broken link shows the sample, as a broken /s/ does. */}
+        {lists ? <CompareView lists={lists} /> : <SampleDemo />}
       </main>
       <SiteFooter />
       <FullNavigation />
