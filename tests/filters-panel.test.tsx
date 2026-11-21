@@ -2,9 +2,12 @@
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useCallback, useReducer, useState } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { IucnCat } from '@/lib/species/iucn'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
+import { loadLazyParts } from './lazy-parts'
+
+beforeAll(loadLazyParts, 60_000)
 
 // How many times each section's list renders, watched: a Timeline drag preview must re-render neither.
 const renders = vi.hoisted(() => ({ places: 0, status: 0 }))

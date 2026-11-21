@@ -5,15 +5,20 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'r
 import { refreshLangCookie } from './choose'
 import { tagPlurals } from './core'
 import type { Lang } from './langs'
-import { EN_UI, type Ui } from './messages/en-ui'
+import type { Ui } from './messages/en-ui'
 
 type I18n = { lang: Lang; t: Ui }
 
-/** No provider means English: components not yet wrapped (and their tests) keep rendering today's English text until
- *  the layouts mount the provider. Defaulting rather than throwing is deliberate. */
-const ENGLISH: I18n = { lang: 'en', t: EN_UI }
+// No English default: it would put the whole English dictionary in every page's JavaScript, in every language. The root
+// layout wraps every page; unit tests get English through setI18nFallback (tests/setup-i18n.ts).
+const I18nContext = createContext<I18n | null>(null)
+// On globalThis, so a test's vi.resetModules() (a fresh copy of this module) keeps it.
+const store = globalThis as { __everybirdI18nFallback?: I18n | null }
 
-const I18nContext = createContext<I18n>(ENGLISH)
+/** What useI18n gives outside a provider: tests only (tests/setup-i18n.ts sets English). */
+export function setI18nFallback(v: I18n | null): void {
+  store.__everybirdI18nFallback = v
+}
 
 export function I18nProvider({ lang, ui, children }: { lang: Lang; ui: Ui; children: ReactNode }) {
   // The layout's `ui` arrives as a fresh copy (RSC props), so its plurals are tagged here for `plural`'s few and many.
@@ -26,7 +31,9 @@ export function I18nProvider({ lang, ui, children }: { lang: Lang; ui: Ui; child
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
 
-/** The current language and its strings (English when no provider is mounted). */
+/** The current language and its strings. Outside a provider it throws (unless a test set a fallback). */
 export function useI18n(): I18n {
-  return useContext(I18nContext)
+  const v = useContext(I18nContext) ?? store.__everybirdI18nFallback
+  if (!v) throw new Error('useI18n needs <I18nProvider> (app/[lang]/layout.tsx)')
+  return v
 }

@@ -5,7 +5,7 @@
 // Works in the layout worker too (relative URLs resolve against self.location).
 import { DATA_FILES, type DataFile } from './data-files'
 
-const DATA_BASE = (process.env.NEXT_PUBLIC_DATA_BASE || '').replace(/\/+$/, '')
+export const DATA_BASE = (process.env.NEXT_PUBLIC_DATA_BASE || '').replace(/\/+$/, '')
 
 /** The URLs to try for a data file, in order. */
 export function dataUrls(name: DataFile, base: string = DATA_BASE): string[] {
@@ -35,6 +35,22 @@ export async function fetchData<T>(name: DataFile, init?: RequestInit): Promise<
 }
 
 export type MaskTable = Record<string, [number, number, string]>
+
+const inHand: Record<string, MaskTable> = {}
+/** Masks already on the page without the masks file (the landing sample's, from its pack), by order then code. */
+export function addMasks(tables: Record<string, MaskTable>): void {
+  for (const [ord, t] of Object.entries(tables)) inHand[ord] = { ...inHand[ord], ...t }
+}
+/** These birds' masks by order when every one is in hand (addMasks), else undefined: then the masks file is needed. */
+export function masksInHand(birds: Iterable<{ code: string; ord: string }>): Record<string, MaskTable> | undefined {
+  const out: Record<string, MaskTable> = {}
+  for (const { code, ord } of birds) {
+    const m = inHand[ord]?.[code]
+    if (!m) return undefined
+    ;(out[ord] ??= {})[code] = m
+  }
+  return out
+}
 let masksP: Promise<Record<string, MaskTable>> | null = null
 /** Every order's masks, one request per page or worker (a failure is not cached). */
 export function fetchAllMasks(): Promise<Record<string, MaskTable>> {

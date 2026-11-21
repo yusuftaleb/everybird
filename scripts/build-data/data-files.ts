@@ -12,7 +12,7 @@
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { NAME_LOCALES } from '../../src/lib/species/name-locales'
+import { NAME_BASES, NAME_LOCALES } from '../../src/lib/species/name-locales'
 
 /** The files under public/data the client fetches, by their logical names. */
 export const DATA_FILE_NAMES = [
@@ -21,6 +21,7 @@ export const DATA_FILE_NAMES = [
   'vietnam-boundaries.v1.json', 'map-countries.v1.json', 'tree.v1.json',
   'album.v1.json',
   ...NAME_LOCALES.map((locale) => `names.${locale}.v1.json` as const),
+  ...NAME_BASES.map((base) => `sample-names.${base}.v1.json` as const),
 ] as const
 const MASKS_BUNDLE = 'public/data/masks.v2.json'
 const DATA_FILES_TS = 'src/lib/data-files.ts'

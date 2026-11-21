@@ -1,5 +1,5 @@
 'use client'
-import { Moon, Sun } from '@phosphor-icons/react'
+import { Moon, Sun } from '@/components/phosphor-icons'
 import { useSyncExternalStore } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
 import { applyTheme, currentTheme, subscribeTheme } from '@/lib/theme'

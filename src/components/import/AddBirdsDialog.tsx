@@ -6,7 +6,7 @@
 // full-height sheet on phones. On Add by hand the dialog fits the screen: only the species list scrolls (import.css). Esc, ✕ and a press outside close it; Tab stays inside; focus goes back to the button
 // that opened it (or, when that button has gone, as the landing's does once a first list is made, to the collage's
 // "Add birds"). Imports run in EverybirdProvider, so closing it mid-import loses nothing.
-import { ArrowRight, X } from '@phosphor-icons/react'
+import { ArrowRight, X } from '@/components/phosphor-icons'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import Link from '@/components/app/IntentLink'
 import { useEverybirdContext } from '@/components/app/EverybirdProvider'

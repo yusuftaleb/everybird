@@ -1,5 +1,5 @@
 'use client'
-import { ArrowUp } from '@phosphor-icons/react'
+import { ArrowUp } from '@/components/phosphor-icons'
 import { useEffect, useRef, useState } from 'react'
 import { reduced } from '@/components/collage/collage-motion'
 import { useI18n } from '@/i18n/I18nProvider'

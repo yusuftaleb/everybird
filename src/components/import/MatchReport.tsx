@@ -1,5 +1,5 @@
 'use client'
-import { CaretDown, Check, MagnifyingGlass } from '@phosphor-icons/react'
+import { CaretDown, Check, MagnifyingGlass } from '@/components/phosphor-icons'
 import { memo, useEffect, useState } from 'react'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'

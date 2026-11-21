@@ -3,9 +3,8 @@
 // /about share one store, and an import started on /settings keeps running while the birder moves between them. The
 // shared view (/s/[token]) lives outside this layout, so it never loads or touches the saved list. Every import's toast
 // (ImportToast) is mounted here, so it follows the birder from page to page until the import ends.
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import { track } from '@/lib/analytics'
-import { loadRegions } from '@/lib/import/places'
 import { slotSource, SLOTS, type ImportResult, type Slot } from '@/lib/list/model'
 import type { DetailsFor, Saved } from '@/lib/list/storage'
 import { useEverybird, type Action, type AppState, type EverybirdMeta } from '@/lib/list/store'
@@ -39,16 +38,10 @@ function hasData(s: Saved): boolean {
 const Ctx = createContext<Everybird | null>(null)
 
 export function EverybirdProvider({ children }: { children: ReactNode }) {
-  // On the landing page, a visitor without a list sees the pre-packed sample; the species file can wait.
-  const [state, dispatch, meta] = useEverybird({ deferIfEmpty: useAppPath() === '/' })
+  // A visitor without a list needs neither the species nor the regions yet (the landing shows its pre-packed sample,
+  // About neither, Settings only once something is imported): on every page both wait for an idle moment.
+  const [state, dispatch, meta] = useEverybird({ deferIfEmpty: true })
   useLoadNames(state.list)
-  const [regions, setRegions] = useState<Regions | null>(null)
-  const [regionsFailed, setRegionsFailed] = useState(false)
-  useEffect(() => {
-    let live = true
-    loadRegions().then((r) => { if (live) setRegions(r) }, () => { if (live) setRegionsFailed(true) })
-    return () => { live = false }
-  }, [])
 
   const onImport = useCallback((slot: Slot, result: ImportResult, details: DetailsFor<Slot>) => {
     dispatch({ type: 'import', source: slot, result, details })
@@ -56,13 +49,18 @@ export function EverybirdProvider({ children }: { children: ReactNode }) {
   }, [dispatch])
   const jobs = useImportJobs(onImport)
 
-  const species = meta.species
+  const { species, regions } = meta
   const data = useMemo(() => (meta.ready && species && regions ? { species, regions } : null), [meta.ready, species, regions])
   const mine = hasData(state.saved)
   const mineSoon = meta.ready ? mine : meta.stored === undefined ? null : !!meta.stored && hasData(meta.stored)
+  // On / with a list, the collage's layout worker and its masks start now, beside the species download, not after it.
+  const home = useAppPath() === '/'
+  useEffect(() => {
+    if (home && mineSoon) void import('@/lib/layout/layout-client').then((m) => m.warmLayoutWorker())
+  }, [home, mineSoon])
   const value = useMemo<Everybird>(
-    () => ({ state, dispatch, meta, data, failed: !!meta.error || regionsFailed, mine, mineSoon, jobs }),
-    [state, dispatch, meta, data, regionsFailed, mine, mineSoon, jobs],
+    () => ({ state, dispatch, meta, data, failed: !!meta.error, mine, mineSoon, jobs }),
+    [state, dispatch, meta, data, mine, mineSoon, jobs],
   )
   return <Ctx.Provider value={value}>{children}<ImportToast jobs={jobs} /></Ctx.Provider>
 }

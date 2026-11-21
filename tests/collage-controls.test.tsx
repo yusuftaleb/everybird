@@ -5,7 +5,7 @@
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useReducer } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CollageView } from '@/components/app/CollageView'
 import { TREE_MINE_KEY, TREE_TIME_KEY } from '@/lib/tree-mine'
 import { ARRANGEMENT_KEY, setArrangement } from '@/lib/arrangement'
@@ -17,6 +17,9 @@ import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { fmt } from '@/i18n/core'
 import { es } from '@/i18n/messages/es'
 import { withI18n } from './i18n-render'
+import { loadLazyParts } from './lazy-parts'
+
+beforeAll(loadLazyParts, 60_000)
 
 const sp = (code: string, com: string, sci: string, ord: string, fam: string, famCom: string, to: number, g: number): SpeciesRow =>
   ({ code, com, sci, ord, fam, famCom, to, g, gSrc: 'avonet', st: true, ar: 1, q: true })

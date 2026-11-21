@@ -6,13 +6,11 @@ import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { STICKER_BASE } from '@/lib/sticker-url'
 import { TOTAL } from './how-it-works-data'
-import { demoStickerUrl, poster, POSTER_STICKERS, Scene } from './HowItWorksScene'
+import { demoStickerUrl, poster, POSTER_EAGER, POSTER_STICKERS, Scene } from './HowItWorksScene'
 import { LookContext, type Layout } from './stageshow/looks'
 
 // The live scene (the Stageshow kit and the script) loads on its own, after the page: the poster stands in until then.
 const loadStage = () => import('./HowItWorksStage')
-/** The biggest stickers of the poster are preloaded from the document's head; the rest follow as the poster parses. */
-const PRELOAD = 6
 /** How long the poster holds in view before the story starts, and how long it waits at most for its stickers. */
 const HOLD_MS = 600
 const STICKERS_MS = 3000
@@ -69,7 +67,7 @@ const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: redu
 export function HowItWorksDemo() {
   const { t } = useI18n()
   preconnect(STICKER_BASE)
-  for (const code of POSTER_STICKERS.slice(0, PRELOAD)) preload(demoStickerUrl(code), { as: 'image' })
+  for (const code of POSTER_STICKERS.slice(0, POSTER_EAGER)) preload(demoStickerUrl(code), { as: 'image' })
   const slot = useRef<HTMLDivElement>(null)
   const [Stage, setStage] = useState<ComponentType | null>(null)
   const [posterGone, setPosterGone] = useState(false)
@@ -87,9 +85,11 @@ export function HowItWorksDemo() {
       if (document.readyState === 'complete') idle()
       else window.addEventListener('load', idle, { once: true })
     })
-    // The poster's stickers: every one decoded (or failed), or STICKERS_MS, whichever comes first.
+    // The shown design's stickers: every one decoded (or failed), or STICKERS_MS, whichever comes first. The other design
+    // is display: none, and its lazy stickers never load.
+    const shown = [...el.querySelectorAll<HTMLElement>('[data-poster]')].filter((d) => d.getClientRects().length > 0)
     const stickers = Promise.race([
-      Promise.all([...el.querySelectorAll<HTMLImageElement>('[data-poster] img')].map((img) => img.decode().catch(() => {}))),
+      Promise.all(shown.flatMap((d) => [...d.querySelectorAll('img')]).map((img) => img.decode().catch(() => {}))),
       new Promise((r) => window.setTimeout(r, STICKERS_MS)),
     ])
     const io = new IntersectionObserver(([e]) => {

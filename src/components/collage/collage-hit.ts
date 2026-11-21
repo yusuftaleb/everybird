@@ -4,7 +4,7 @@
 // Until a bird's mask is in, and for species without a sticker, the inscribed ellipse stands in.
 import type { StateLayout } from '@/lib/layout/layout-client'
 import { decodeMask, maskCell, type Mask } from '@/lib/layout/mask'
-import { fetchAllMasks } from '@/lib/data-url'
+import { fetchAllMasks, masksInHand } from '@/lib/data-url'
 
 const orderFiles = new Map<string, Promise<Record<string, [number, number, string]>>>()
 const decoded = new Map<string, Mask>()
@@ -20,8 +20,16 @@ function loadOrder(ord: string) {
   return p
 }
 
-/** Start loading the masks of these orders (once each); resolves when they are decoded. */
-export async function ensureMasks(orders: Iterable<string>): Promise<void> {
+/**
+ * Start loading the masks of these orders (once each); resolves when they are decoded. With `birds`, when every one's
+ * mask is already on the page (the landing sample's pack, data-url.ts addMasks), those are decoded and nothing is fetched.
+ */
+export async function ensureMasks(orders: Iterable<string>, birds?: Iterable<{ code: string; ord: string }>): Promise<void> {
+  const given = birds && masksInHand(birds)
+  if (given) {
+    for (const table of Object.values(given)) for (const [code, raw] of Object.entries(table)) if (!decoded.has(code)) decoded.set(code, decodeMask(raw))
+    return
+  }
   if (typeof fetch !== 'function') return
   await Promise.all([...new Set(orders)].map(async (o) => {
     const table = await loadOrder(o)

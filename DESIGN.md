@@ -227,12 +227,14 @@ Source of truth: `src/components/collage/collage-motion.ts` (ported from LifeLis
 
 | Name | Value | Use |
 |---|---|---|
-| TRAVEL | `cubic-bezier(.45,0,.1,1)`, 640ms | A kept bird moving to its new place; stage height easing |
-| EASE_OUT (arrive) | `cubic-bezier(.25,.8,.25,1)`, 480ms starting at 160ms | An arriving bird grows from `translate(12%,12%) scale(.76)` and fades in; card and hover lift |
+| TRAVEL | `cubic-bezier(.45,0,.1,1)`, 380ms | A kept bird moving to its new place; stage height easing |
+| EASE_OUT (arrive) | `cubic-bezier(.25,.8,.25,1)`, 280ms starting at 100ms (480ms on the first appearance) | An arriving bird grows from `translate(12%,12%) scale(.76)` and fades in; card and hover lift |
 | EASE_IN | `cubic-bezier(.4,0,1,1)`, 180ms | A leaving bird shrinks and fades |
-| Ripple | 0 to 120ms by distance from the count | Delay of each bird's move; first appearance ripples over 0-480ms |
+| Ripple | 0 to 70ms by distance from the count | Delay of each bird's move; first appearance ripples over 0-480ms |
 | UI ease | `cubic-bezier(.16,1,.3,1)` 150-320ms | Chips, switches, sheets, breadcrumb rise (`translateY(-4px)`) |
 | Tab opacity | `cubic-bezier(.25,.1,.25,1)` 250ms | Dock/nav/tab resting to pressed |
+
+A filter change settles in 450ms (travel 70 + 380, arrival 100 + 70 + 280; 760ms before 2026-11-21, the speed audit's finding 20), on the same curves.
 
 - **Compositor only.** Birds move by writing CSS variables (`--x --y --k --md`) and animating `translate`/`scale`/`opacity`; unchanged values are skipped; big changes are written in chunks over several frames (cost units: WRITE_START 100, WRITE_MIN 50, WRITE_MAX 800); birds out of the viewport skip their animation.
 - **The 1,500 rule.** Above 1,500 visible birds (`CROSSFADE_AT`) a change is a 200ms opacity fade instead of travel (`data-fast`, `data-many`).

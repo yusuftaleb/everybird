@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FileJob, ImportJobs, Landed } from '@/components/app/use-import-jobs'
 import { ImportPanel } from '@/components/import/ImportPanel'
-import { OBSORG_GROUP } from '@/components/import/obsorg-copy'
+import { EN_UI } from '@/i18n/messages/en-ui'
 import { sourceCounts } from '@/lib/list/source-counts'
 import { buildList } from '@/lib/list/build-list'
 import { recordsOf } from '@/lib/list/store'
@@ -46,14 +46,14 @@ describe('ImportPanel: one file at a time across both file groups', () => {
     const { rerender } = render(<Panel saved={saved} j={jobs({ obsorg: busy })} />)
     expect(buttons('eBird files').length).toBeGreaterThan(0)
     for (const b of buttons('eBird files')) expect(b).toBeDisabled()
-    for (const b of buttons(OBSORG_GROUP)) expect(b).toBeDisabled()
+    for (const b of buttons(EN_UI.import.obsorg.group)) expect(b).toBeDisabled()
     expect(screen.getByTestId('ebird-input')).toBeDisabled()
     rerender(<Panel saved={saved} j={jobs({ ebird: busy })} />)
-    for (const b of buttons(OBSORG_GROUP)) expect(b).toBeDisabled()
+    for (const b of buttons(EN_UI.import.obsorg.group)) expect(b).toBeDisabled()
     expect(screen.getByTestId('obsorg-input')).toBeDisabled()
     rerender(<Panel saved={saved} j={jobs()} />)
     for (const b of buttons('eBird files')) expect(b).toBeEnabled()
-    for (const b of buttons(OBSORG_GROUP)) expect(b).toBeEnabled()
+    for (const b of buttons(EN_UI.import.obsorg.group)) expect(b).toBeEnabled()
     // iNaturalist never waits on a file.
     rerender(<Panel saved={saved} j={jobs({ obsorg: busy })} />)
     expect(screen.getByRole('button', { name: 'Add iNaturalist' })).toBeEnabled()

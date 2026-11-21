@@ -10,6 +10,7 @@ import { TrackVisit } from '@/components/app/VisitTracker'
 import { fmt } from '@/i18n/core'
 import { getMessages, langParam } from '@/i18n/server'
 import { COMPARE_MAX, decodeCompare, type SharePayload } from '@/lib/share/link'
+import { SPECIES_FILES, preloadData } from '@/lib/data-preload'
 import { OG_LOCALE } from '@/lib/site-meta'
 import '@/components/app/app.css'
 
@@ -48,6 +49,8 @@ export default async function ComparedPage({ params }: Props) {
   const t = getMessages(await langParam(params)).ui
   const { token } = await params
   const lists = tryDecode(token)
+  // The comparison's species file (CompareView draws no collage, so no regions or masks), beside the page's JavaScript.
+  if (lists) preloadData(SPECIES_FILES)
   return (
     <>
       <TopBar />

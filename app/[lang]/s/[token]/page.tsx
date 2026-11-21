@@ -11,6 +11,7 @@ import { TrackVisit } from '@/components/app/VisitTracker'
 import { getMessages, langParam } from '@/i18n/server'
 import type { Ui } from '@/i18n/messages/en'
 import { ogDescription, ogName, ogTitle, tryDecodeShare } from '@/lib/share/og'
+import { SPECIES_FILES, preloadData, sampleFiles } from '@/lib/data-preload'
 import { OG_LOCALE } from '@/lib/site-meta'
 import '@/components/app/app.css'
 
@@ -55,9 +56,14 @@ function MakeYours({ big, t }: { big?: boolean; t: Ui }) {
  */
 export default async function SharedPage({ params }: Props) {
   // The page's own words in its language; the link's title and the metadata above are og.ts's, from the same strings.
-  const t = getMessages(await langParam(params)).ui
+  const lang = await langParam(params)
+  const t = getMessages(lang).ui
   const { token } = await params
   const payload = tryDecodeShare(token)
+  // What the page will fetch, from its head, beside its JavaScript: the shared collage's bird data and masks (the layout
+  // worker's), or the sample a broken link shows.
+  if (payload) preloadData([...SPECIES_FILES, 'regions.v1.json', 'masks.v2.json'])
+  else preloadData(sampleFiles(lang), 'high')
   if (!payload) {
     return (
       <>

@@ -15,7 +15,7 @@
 // the share image is always the whole world. The ramp (RAMP in shapes.ts) is set per path, the borders and the outline
 // by map.css. The shapes (src/lib/map/shapes.ts) are pre-projected and load with the tab.
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { GlobeHemisphereWest, Minus, Plus } from '@phosphor-icons/react'
+import { GlobeHemisphereWest, Minus, Plus } from '@/components/phosphor-icons'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'

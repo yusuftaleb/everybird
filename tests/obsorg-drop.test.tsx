@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ObsOrgDrop, type ObsOrgConnected } from '@/components/import/ObsOrgDrop'
 import { obsorgExcluded } from '@/components/import/obsorg-copy'
+import { EN_UI } from '@/i18n/messages/en-ui'
 import { fmt } from '@/i18n/core'
 import { en } from '@/i18n/messages/en'
 import type { Slot, Unmatched } from '@/lib/list/model'
@@ -243,12 +244,12 @@ describe('ObsOrgDrop: the two observation.org rows', () => {
 
 describe('observation.org copy', () => {
   it('the excluded sentence: each part left out at 0, one and other', () => {
-    expect(obsorgExcluded(0, 0)).toBeNull()
-    expect(obsorgExcluded(1, 0)).toBe("1 observation marked as an escape isn't counted.")
-    expect(obsorgExcluded(0, 1)).toBe("1 observation marked uncertain isn't counted.")
-    expect(obsorgExcluded(0, 3)).toBe("3 observations marked uncertain aren't counted.")
-    expect(obsorgExcluded(1, 1)).toBe("1 observation marked as an escape and 1 marked uncertain aren't counted.")
-    expect(obsorgExcluded(2, 1)).toBe("2 observations marked as escapes and 1 marked uncertain aren't counted.")
+    expect(obsorgExcluded(0, 0, EN_UI)).toBeNull()
+    expect(obsorgExcluded(1, 0, EN_UI)).toBe("1 observation marked as an escape isn't counted.")
+    expect(obsorgExcluded(0, 1, EN_UI)).toBe("1 observation marked uncertain isn't counted.")
+    expect(obsorgExcluded(0, 3, EN_UI)).toBe("3 observations marked uncertain aren't counted.")
+    expect(obsorgExcluded(1, 1, EN_UI)).toBe("1 observation marked as an escape and 1 marked uncertain aren't counted.")
+    expect(obsorgExcluded(2, 1, EN_UI)).toBe("2 observations marked as escapes and 1 marked uncertain aren't counted.")
   })
   it("the match report's place for each export's rows", () => {
     expect(fmt(en.ui.import.obsorg.whereList, { row: 13 })).toBe('observation.org life list row 13')

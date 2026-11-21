@@ -40,6 +40,7 @@ import { filterKey, type Filter } from '@/lib/list/filters'
 import type { Arrangement } from '@/lib/arrangement'
 import type { Box } from './pack'
 import type { LayoutName, ListEntryMsg, WorkerReply, WorkerRequest } from './layout.worker'
+import type { MaskTable } from '../data-url'
 
 export type StateLayout = {
   key: string
@@ -52,7 +53,8 @@ export type StateLayout = {
   base: number
 }
 export type LayoutClient = {
-  setList(entries: ListEntryMsg[], resolve?: (f: Filter) => string[]): void
+  /** `masks`: every entry's mask by order then code (data-url.ts masksInHand), so the worker needn't fetch the masks file. */
+  setList(entries: ListEntryMsg[], resolve?: (f: Filter) => string[], masks?: Record<string, MaskTable>): void
   /** Same entries, new filter resolution: keeps the full collages, drops the filtered states (see the header). */
   refilter(resolve?: (f: Filter) => string[]): void
   /** `arrangement`: Fit (the default), Oval (packed inside the stage's ellipse) or Free (arrangement.ts). */
@@ -80,9 +82,23 @@ const idle = (fn: () => void) => {
 
 const CACHE_CAP = 300
 
+const newWorker = () => new Worker(new URL('./layout.worker.ts', import.meta.url), { type: 'module' })
+let spare: Worker | null = null
+
+/**
+ * Start a layout worker and its masks download before any collage asks for one (`/` as soon as storage says the device
+ * holds a list, EverybirdProvider), so they overlap the species download. The next createLayoutClient() takes it.
+ */
+export function warmLayoutWorker(): void {
+  if (spare || typeof Worker === 'undefined') return
+  spare = newWorker()
+  spare.postMessage({ type: 'warm' })
+}
+
 export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter) => string[]; cacheCap?: number } = {}): LayoutClient {
   const cap = opts.cacheCap ?? CACHE_CAP
-  const w: Worker = worker ?? new Worker(new URL('./layout.worker.ts', import.meta.url), { type: 'module' })
+  const w: Worker = worker ?? spare ?? newWorker()
+  if (w === spare) spare = null
   let epoch = 0
   let hasList = false
   let allCodes: string[] = []
@@ -214,7 +230,7 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
   }
 
   return {
-    setList(entries, resolve) {
+    setList(entries, resolve, masks) {
       if (disposed) return
       epoch++
       cache = new Map()
@@ -227,7 +243,7 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       allCodes = entries.map((e) => e.code)
       hasList = true
       const myEpoch = epoch
-      const job: Job = { prio: HIGH, msg: { type: 'setList', id: nextId++, entries }, resolve: () => {}, reject: (e) => { if (epoch === myEpoch) listError = e instanceof Error ? e : new Error(String(e)) }, epoch }
+      const job: Job = { prio: HIGH, msg: { type: 'setList', id: nextId++, entries, ...(masks ? { masks } : {}) }, resolve: () => {}, reject: (e) => { if (epoch === myEpoch) listError = e instanceof Error ? e : new Error(String(e)) }, epoch }
       queue.unshift(job)
       pump()
     },

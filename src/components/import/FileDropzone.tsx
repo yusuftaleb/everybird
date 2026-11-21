@@ -1,5 +1,5 @@
 'use client'
-import { FileCsv } from '@phosphor-icons/react'
+import { FileCsv } from '@/components/phosphor-icons'
 import { useState, type DragEvent, type Ref } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
 

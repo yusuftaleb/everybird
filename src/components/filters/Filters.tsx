@@ -11,9 +11,9 @@
 // second press of the button closes it. On phones it is the modal bottom sheet, its head the count of species and its
 // bottom button "Show N species". Filters apply live. The active filters show as chips under the dock (ChipRow.tsx).
 // Every word is the language's (`t.filters`, `t.filters.panel`), place names `regionsIn(regions, lang)`.
-import { CalendarBlank, CaretDown, GlobeHemisphereWest } from '@phosphor-icons/react'
+import { CalendarBlank, CaretDown, GlobeHemisphereWest } from '@/components/phosphor-icons'
 import { createPortal } from 'react-dom'
-import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { memo, Suspense, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { CloseIcon, FilterLinesIcon } from '@/components/collage/icons'
 import { revealInScroller, trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
 import { plural } from '@/i18n/core'
@@ -30,14 +30,12 @@ import type { Month } from '@/lib/list/timeline'
 import { groupName as nameOfGroup } from '@/lib/search/groups'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
+import { lazyLoaded } from '@/lib/lazy-loaded'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
 import { ChipRow } from './ChipRow'
-import { PlacesList } from './PlacesList'
 import { STATUS_ICON } from './status-icon'
 import type { PlacesNote } from './places-shared'
 import type { PlacesUnplaced } from '@/lib/list/filter-summary'
-import { StatusList } from './StatusList'
-import { RepeatSwitch, Timeline } from './Timeline'
 import './filters.css'
 
 export type FilterSection = 'places' | 'time' | 'status'
@@ -220,8 +218,14 @@ export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onC
     : body
 }
 
-const PlacesSection = memo(PlacesList)
-const StatusSection = memo(StatusList)
+// The sections' code loads on its own, right after the bar mounts (useFiltersUi), so the page's code parses first; the
+// panel waits for all of it (one Suspense, nothing shown) and opens whole.
+const PlacesSection = memo(lazyLoaded(() => import('./PlacesList').then((m) => m.PlacesList)))
+const StatusSection = memo(lazyLoaded(() => import('./StatusList').then((m) => m.StatusList)))
+const Timeline = lazyLoaded(() => import('./Timeline').then((m) => m.Timeline))
+const RepeatSwitch = lazyLoaded(() => import('./Timeline').then((m) => m.RepeatSwitch))
+/** Every section's code (the bar's mount starts it; tests await it before rendering). */
+export const loadFilterSections = () => Promise.all([PlacesSection.type.load(), StatusSection.type.load(), Timeline.load(), RepeatSwitch.load()]).catch(() => {})
 
 type PanelProps = Shared & {
   /** Every filter change goes through here (useFiltersUi keeps the place around it); stable. */
@@ -386,6 +390,7 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
   const { lang, t } = useI18n()
   const sheet = useIsSheet()
   const [open, setOpen] = useState<FiltersOpen | null>(null)
+  useEffect(() => { void loadFilterSections() }, [])
   // Carried over a language switch (view-resume.ts): the section it was open at, if the birder had it open.
   useTakeResume('panel', (r) => setOpen(r.open ? { at: r.at } : null))
   useOfferResume('panel', () => ({ open: !!open, at: open?.at }))
@@ -443,7 +448,7 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
     below: (
       <>
         <ChipRow chips={chips} label={t.filters.panel.chips} testId="filter-chips" onRemove={onRemove} onOpen={onChip} onEmpty={onEmpty} onClearAll={onClearAll} active={active} />
-        {live && (
+        {live && <Suspense fallback={null}>
           <FiltersPanel
             {...shared}
             onChange={change}
@@ -456,7 +461,7 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
             time={time}
             shown={shown}
           />
-        )}
+        </Suspense>}
       </>
     ),
     dimmed: live && !sheet,

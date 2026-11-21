@@ -11,6 +11,7 @@ import { candidateOrds, ordsIn, whereOf } from '@/lib/list/sighting'
 import { timeless } from '@/lib/list/timeline'
 import type { SeenIndex } from '@/lib/list/seen'
 import type { SpeciesIndex } from '@/lib/species/load'
+import { masksInHand } from '@/lib/data-url'
 
 /** `still`: only visibility changes over the shown layout (a range drag's preview): placed without motion. */
 type CollageLayout = { layout: StateLayout; visible: Set<string>; still?: boolean }
@@ -147,13 +148,11 @@ export function useCollageLayout({ list, seen, filter, mode, species, container,
     const { known } = latest.current
     if (!c || !known.length) return
     if (packed.current?.client !== c || packed.current.sig !== packSig) {
-      c.setList(
-        known.map((e) => {
-          const row = species.byCode.get(e.code)!
-          return { code: e.code, mass: row.g, ord: row.ord }
-        }),
-        resolve,
-      )
+      const entries = known.map((e) => {
+        const row = species.byCode.get(e.code)!
+        return { code: e.code, mass: row.g, ord: row.ord }
+      })
+      c.setList(entries, resolve, masksInHand(entries)) // the landing sample's masks come with its pack
     } else if (packed.current.filterSig !== filterSig) {
       c.refilter(resolve) // same birds, new dates/places: keep the full collages
     }

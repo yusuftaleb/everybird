@@ -1,5 +1,5 @@
 'use client'
-import { CaretDown } from '@phosphor-icons/react'
+import { CaretDown } from '@/components/phosphor-icons'
 import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
 import { useMenuLayer } from '@/components/menu-layer'
 import { fmt, plural } from '@/i18n/core'

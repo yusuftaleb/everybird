@@ -1,6 +1,6 @@
 'use client'
 import { stripLang } from '@/i18n/path'
-import { ArrowRight } from '@phosphor-icons/react'
+import { ArrowRight } from '@/components/phosphor-icons'
 import Link from '@/components/app/IntentLink'
 import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'

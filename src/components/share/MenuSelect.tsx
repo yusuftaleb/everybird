@@ -16,7 +16,7 @@
 // the top layer so no transform, containment or overflow of the dialog contains or clips it, while it stays in the
 // dialog's DOM for the keyboard and assistive technology; without the popover API fixed in the page, the dialog keeping
 // no containing block for it once open).
-import { ArrowLeft, CaretDown, Check, type Icon } from '@phosphor-icons/react'
+import { ArrowLeft, CaretDown, Check, type Icon } from '@/components/phosphor-icons'
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MutableRefObject, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { useMenuLayer } from '@/components/menu-layer'

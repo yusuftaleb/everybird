@@ -12,9 +12,8 @@ import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useId, useLayou
 import { BirdCard } from '@/components/collage/BirdCard'
 import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage, revealBird } from '@/components/collage/Collage'
-import { reduced } from '@/components/collage/collage-motion'
+import { MOVE_MS, reduced, RIPPLE_MS } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
-import { MapView } from '@/components/collage/MapView'
 import { FilterBar, pickWords, type TreePath } from '@/components/filters/FilterBar'
 import { useIsSheet } from '@/components/dialog-utils'
 import { DockPanelButton, useFiltersUi, type FilterSection, type PlacesNote } from '@/components/filters/Filters'
@@ -47,11 +46,14 @@ import { useTreeMine } from '@/lib/tree-mine'
 import { ControlsBar } from './ControlsBar'
 import { useCollageLayout } from './use-collage-layout'
 import './app.css'
+import { lazyLoaded } from '@/lib/lazy-loaded'
 
 /** The stage re-renders only when its own props change (not when a card or tooltip opens). */
 const Stage = memo(Collage)
 /** The Tree tab, and its data, load only when it is opened. */
 const TreeView = lazy(() => import('@/components/tree/TreeView'))
+// The Map view's code and styles load when it first opens (prefetched on intent of its tab, src/lib/prefetch.ts).
+export const MapView = lazyLoaded(() => import('@/components/collage/MapView').then((m) => m.MapView))
 
 type Props = {
   state: AppState
@@ -90,8 +92,8 @@ function threatText(count: number, t: Ui): string {
 }
 /** How long a bird picked from the search wears its Accent ring. */
 const RING_MS = 1600
-/** The collage's glide to a new layout (640 ms) and a little slack: then a bird picked from outside the view is shown. */
-const GLIDE_MS = 760
+/** The collage's glide to a new layout (its travel after the longest ripple, 450 ms): then a bird picked from outside the view is shown. */
+const GLIDE_MS = MOVE_MS + RIPPLE_MS
 /** How long an out-of-view pick waits for its layout before it lapses. */
 const PENDING_MS = 4000
 
@@ -406,7 +408,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
           </div>
         )
       ) : view === 'map' ? (
-        <MapView state={state} species={species} regions={regions} onLevel={onMapLevel} />
+        <Suspense fallback={null}><MapView state={state} species={species} regions={regions} onLevel={onMapLevel} /></Suspense>
       ) : view === 'list' ? (
         <ListView entries={shownList} species={species} regions={regions} order={listOrder} sci={sci} onPick={onPickRow} />
       ) : (

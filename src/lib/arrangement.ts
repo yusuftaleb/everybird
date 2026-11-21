@@ -2,7 +2,8 @@
 // or a value no longer offered (the dropped 'family' and 'colour'), the same in every tab. One setting for the collage
 // on the page (the Display panel's Arrangement in the Collage view), the share images and the poster (the share
 // dialog's Arrangement row): changing it in either changes the other.
-import { Cloud, IconBase, Rectangle, type Icon, type IconWeight } from '@phosphor-icons/react'
+import { IconBase } from '@phosphor-icons/react'
+import { Cloud, Rectangle, type Icon, type IconWeight } from '@/components/phosphor-icons'
 import { createElement, forwardRef, useSyncExternalStore, type ReactElement } from 'react'
 
 /**
