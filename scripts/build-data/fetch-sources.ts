@@ -1,5 +1,5 @@
 // Downloads the raw sources into data/raw/ (git-ignored) and writes data/raw/manifest.json.
-// Run: npx tsx scripts/build-data/fetch-sources.ts [--huashu-only | --names-only] [--taxonomy <YYYY|latest>]
+// Run: npx tsx scripts/build-data/fetch-sources.ts [--huashu-only | --names-only | --tree-only] [--taxonomy <YYYY|latest>]
 // The eBird taxonomy year is public/data/species.v1.json's, else data/raw/manifest.json's; --taxonomy picks another
 // (the yearly upgrade: fetch with --taxonomy latest, then npm run data). --names-only overwrites
 // data/raw/ebird-taxonomy.json too, so names and species always read the same year.
