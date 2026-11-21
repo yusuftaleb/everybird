@@ -16,6 +16,9 @@ import { levelView } from '@/lib/tree/levels'
 import { TIP_R, parseNewick, type TreeFile } from '@/lib/tree/tree'
 import { TREE_LAYOUT_KEY } from '@/lib/tree-mine'
 
+/** The rank line TreeView tells up (the stats line shows it). */
+let rank: string | undefined
+
 const N = 143
 const { fetchData, rows } = vi.hoisted(() => {
   const n = 143
@@ -65,9 +68,9 @@ describe('143 tips on screen: every layout offered, the one picked drawn, the no
   for (const w of [1088, 360]) {
     it(`at ${w}px`, async () => {
       widthOf(w)
-      const { container } = render(<TreeView layoutSlot={slot} entries={entries} sci={false} onPick={() => {}} branch={{ ord: 'Passeriformes' }} onOpen={() => {}} />)
+      const { container } = render(<TreeView onRankLine={(r) => { rank = r }} layoutSlot={slot} entries={entries} sci={false} onPick={() => {}} branch={{ ord: 'Passeriformes' }} onOpen={() => {}} />)
       await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
-      expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^143 families$/i)
+      expect(rank).toMatch(/^143 families$/i)
       for (const [name, round, circle] of [['Fan', true, false], ['Radial', true, true], ['Rectangular', false, false]] as const) {
         fireEvent.click(layoutBtn(name))
         for (const n of ['Fan', 'Radial', 'Rectangular']) expect(layoutBtn(n)).not.toHaveAttribute('aria-disabled')

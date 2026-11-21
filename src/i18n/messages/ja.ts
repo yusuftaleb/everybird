@@ -83,6 +83,7 @@ export const ja: Messages = {
         orders: { one: '{n}目', other: '{n}目' },
         families: { one: '{n}科', other: '{n}科' },
         since: '{date}から',
+        inTree: 'この系統樹に{count}',
         threatened: '絶滅危惧{n}種',
         threatenedSr: '（危急、危機、深刻な危機）',
       },

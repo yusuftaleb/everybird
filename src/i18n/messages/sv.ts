@@ -81,6 +81,7 @@ export const sv: Messages = {
         orders: { one: '{n} ordning', other: '{n} ordningar' },
         families: { one: '{n} familj', other: '{n} familjer' },
         since: 'sedan {date}',
+        inTree: '{count} i det här trädet',
         threatened: '{n} hotade',
         threatenedSr: '(Sårbar, Starkt hotad eller Akut hotad)',
       },

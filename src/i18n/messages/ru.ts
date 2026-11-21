@@ -83,6 +83,7 @@ export const ru: Messages = {
         orders: { one: '{n} отряд', few: '{n} отряда', many: '{n} отрядов', other: '{n} отряда' },
         families: { one: '{n} семейство', few: '{n} семейства', many: '{n} семейств', other: '{n} семейства' },
         since: 'с {date}',
+        inTree: '{count} в этом дереве',
         threatened: '{n} под угрозой',
         threatenedSr: '(уязвимые, вымирающие или на грани исчезновения)',
       },

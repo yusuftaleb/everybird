@@ -15,7 +15,6 @@
 /* The path is the chip row under the dock (FilterBar); the oldest lineage is the legend under the view (CollageView).
    Above the tree, the rank drawn and how many, in the Taxa panel head's mono ("29 GENERA"). */
 .eb-tree-note, .eb-tree-unmapped p { margin: 0; font-size: 14px; color: var(--muted); }
-.eb-tree-rank { margin: 0; }
 
 .eb-tree-head { display: flex; align-items: flex-end; gap: 12px; }
 .eb-tree-axis { position: relative; flex: none; width: var(--tree-w); height: 28px; border-bottom: 1px solid var(--hairline); }

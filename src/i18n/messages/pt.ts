@@ -81,6 +81,7 @@ export const pt: Messages = {
         orders: { one: '{n} ordem', other: '{n} ordens' },
         families: { one: '{n} família', other: '{n} famílias' },
         since: 'desde {date}',
+        inTree: '{count} nesta árvore',
         threatened: '{n} ameaçadas',
         threatenedSr: '(Vulnerável, Em perigo ou Criticamente em perigo)',
       },

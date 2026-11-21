@@ -81,6 +81,7 @@ export const de: Messages = {
         orders: { one: '{n} Ordnung', other: '{n} Ordnungen' },
         families: { one: '{n} Familie', other: '{n} Familien' },
         since: 'seit {date}',
+        inTree: '{count} in diesem Baum',
         threatened: '{n} bedroht',
         threatenedSr: '(gefährdet, stark gefährdet oder vom Aussterben bedroht)',
       },

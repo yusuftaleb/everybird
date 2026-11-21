@@ -83,6 +83,7 @@ export const pl: Messages = {
         orders: { one: '{n} rząd', few: '{n} rzędy', many: '{n} rzędów', other: '{n} rzędów' },
         families: { one: '{n} rodzina', few: '{n} rodziny', many: '{n} rodzin', other: '{n} rodzin' },
         since: 'od {date}',
+        inTree: '{count} w tym drzewie',
         threatened: 'zagrożone: {n}',
         threatenedSr: '(narażone, zagrożone lub krytycznie zagrożone)',
       },

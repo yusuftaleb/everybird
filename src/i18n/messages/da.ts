@@ -81,6 +81,7 @@ export const da: Messages = {
         orders: { one: '{n} orden', other: '{n} ordener' },
         families: { one: '{n} familie', other: '{n} familier' },
         since: 'siden {date}',
+        inTree: '{count} i dette træ',
         threatened: '{n} truede',
         threatenedSr: '(Sårbar, Moderat truet eller Kritisk truet)',
       },

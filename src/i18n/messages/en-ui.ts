@@ -110,6 +110,8 @@ export const EN_UI = {
       orders: { one: '{n} order', other: '{n} orders' },
       families: { one: '{n} family', other: '{n} families' },
       since: 'since {date}',
+      /** In a branch of the Tree: what the tree draws there, after the list's counts; {count} is the rank line ("132 genera"). */
+      inTree: '{count} in this tree',
       threatened: '{n} threatened',
       threatenedSr: '(Vulnerable, Endangered or Critically Endangered)',
     },

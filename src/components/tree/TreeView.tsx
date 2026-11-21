@@ -26,7 +26,7 @@
 // (AD5). The rows are one Tab stop (↑ ↓ Home End, AU3); the chart fades in per branch, rank and layout (AN11); a failed
 // load offers Try again (H4) and Lifers only emptying the view offers Show every group (D9); the ages where no branch
 // runs (under the fan's centre; in the Radial's opening at the top, RADIAL_GAP, on Paper, only where the patch fits it),
-// the axis title under the drawing. Above every layout, the rank line: the rank drawn and how many (rankCount).
+// the axis title under the drawing. The rank drawn and how many (rankCount) goes up to the stats line (onRankLine).
 // Their rows stay in the page, visually hidden, for the keyboard and screen readers. Rectangular draws the tree top to
 // bottom in about half the width (rowsTreeW) beside the rows, which grow with their names and reach the view's right
 // edge, the counts ending there in one column. Between the rows, headings name the group at the rank right above the
@@ -97,6 +97,8 @@ type Props = {
   /** Told the level drawn, "Lifers only" and "Time scale" (the bar's switches, tree-mine.ts), the layout drawn and which
    *  of the Fan and Radial can name every tip here, whenever they change, so Share can draw the same and offer the same. */
   onLevel?: (at: TreeShown) => void
+  /** Told the rank line ("29 genera", "65 of 143 families"), or nothing when nothing is drawn: the stats line shows it. */
+  onRankLine?: (text: string | undefined) => void
   /** The Display panel's slot for the Layout choice (none: the panel is closed). */
   layoutSlot?: HTMLElement | null
 }
@@ -184,7 +186,7 @@ function Thumb({ row, size, off }: { row?: SpeciesRow; size: number; off?: boole
   return <span className="eb-tree-st-in" data-off={off || undefined}><Sticker code={row.code} st={row.st} ar={row.ar} sv={row.sv} w={w} h={h} /></span>
 }
 
-export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel, layoutSlot }: Props) {
+export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel, onRankLine, layoutSlot }: Props) {
   const { t } = useI18n()
   useNames()
   const tt = t.collage.tree
@@ -312,6 +314,17 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `shownLevel` is read through its key
   useEffect(() => { if (shownLevel && shownRank) onLevel?.({ tree: shownLevel, rank: shownRank, mine, layout, time: timeScale }) }, [shownKey, shownRank, mine, layout, timeScale, onLevel])
   const tips = useMemo(() => (shown ? tipsOf(shown) : []), [shown])
+  // The rank drawn and how many, in the Taxa panel head's words ("29 genera"; with Lifers only leaving some out, "65 of
+  // 143 families"), told up for the stats line ("… · 29 genera in this tree"; Yusuf, 2026-11-21: no line of its own).
+  const rankLine = (() => {
+    if (!shown?.rows.length) return undefined
+    const { rank: k, n, total } = rankCount(shown, mine)
+    const v = { n: count(n), total: count(total ?? n) }
+    if (total === undefined) return plural(k === 'genera' ? tt.genera : t.collage.stats[k], n, v)
+    return plural(k === 'species' ? t.collage.stats.of : t.collage.controls.taxaHead[TAXA_HEAD[k]], total, v)
+  })()
+  useEffect(() => { onRankLine?.(rankLine) }, [rankLine, onRankLine])
+  useEffect(() => () => onRankLine?.(undefined), [onRankLine])
 
   // Rows: each row is as tall as its name needs (44px at least), so the drawing follows the rows' measured centres.
   const rowsRef = useRef<HTMLOListElement | null>(null)
@@ -424,14 +437,6 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     const names = view.inside.map((r) => nameAt(r, openRank)[0])
     const last = names.pop()!
     return names.length ? fmt(tt.insideTwo, { a: names.join(', '), b: last, name: here }) : fmt(tt.insideOne, { a: last, name: here })
-  })()
-  // The rank line: the rank drawn and how many, in the Taxa panel head's words ("29 genera"; with Lifers only leaving some
-  // out, "65 of 143 families").
-  const rankLine = (() => {
-    const { rank: k, n, total } = rankCount(shown, mine)
-    const v = { n: count(n), total: count(total ?? n) }
-    if (total === undefined) return plural(k === 'genera' ? tt.genera : t.collage.stats[k], n, v)
-    return plural(k === 'species' ? t.collage.stats.of : t.collage.controls.taxaHead[TAXA_HEAD[k]], total, v)
   })()
   const ticks = timeScale ? ageTicks(drawing.rootAge).filter((v) => v / drawing.rootAge <= 0.97 || v === 0) : []
   /** The branch a group's tip opens: the path down to it, the ranks above it named from its row. */
@@ -677,7 +682,6 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   return (
     <div ref={boxRef} className="eb-tree" data-round={roundNow || undefined} style={width ? { ['--tree-w' as string]: `${treeW}px` } : undefined}>
       {layoutChoice}
-      {shown.rows.length > 0 && <p className="eb-mono eb-tree-rank" data-testid="tree-rank">{rankLine}</p>}
       {view.split && here && <p className="eb-tree-note">{fmt(tt.split, { name: here })}</p>}
       {insideNote && <p className="eb-tree-note">{insideNote}</p>}
       {!shown.rows.length ? (

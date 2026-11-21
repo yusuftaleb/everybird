@@ -81,6 +81,7 @@ export const nl: Messages = {
         orders: { one: '{n} orde', other: '{n} ordes' },
         families: { one: '{n} familie', other: '{n} families' },
         since: 'sinds {date}',
+        inTree: '{count} in deze boom',
         threatened: '{n} bedreigd',
         threatenedSr: '(Kwetsbaar, Bedreigd of Ernstig bedreigd)',
       },

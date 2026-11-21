@@ -83,6 +83,7 @@ export const zhHant: Messages = {
         orders: { one: '{n} 目', other: '{n} 目' },
         families: { one: '{n} 科', other: '{n} 科' },
         since: '自 {date} 起',
+        inTree: '此演化樹中有 {count}',
         threatened: '{n} 種受威脅',
         threatenedSr: '（易危、瀕危或極危）',
       },

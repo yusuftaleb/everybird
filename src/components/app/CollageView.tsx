@@ -155,6 +155,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // The level the Map or Tree view has open (their own state, told up as it changes), for Share to draw the same.
   const onMapLevel = useCallback((place: string | undefined, names: (key: string) => string) => onShareAt?.({ place, names }), [onShareAt])
   const onTreeLevel = useCallback((at: TreeShown) => onShareAt?.(at), [onShareAt])
+  // The Tree's rank line, for the stats line ("… · 132 genera in this tree").
+  const [treeRank, setTreeRank] = useState<string>()
   // The Display panel's slot for the Tree's Layout choice, which TreeView fills.
   const [layoutSlot, setLayoutSlot] = useState<HTMLDivElement | null>(null)
   // The tree's open branch is the taxonomy filter's order, family and genus (the chip row is its path, path.ts), with
@@ -357,7 +359,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const statsP = (
     <p className="eb-mono eb-stats" data-testid="collage-stats">
       {/* Each part keeps its words on one line ("since May 2022" never splits); the line wraps between parts. */}
-      {(statsPrefix ? `${statsPrefix} · ${stats}` : stats).split(' · ').map((part, i) => (
+      {/* In a branch of the Tree (the line counts what's filtered), what the tree draws there, "in this tree" so it doesn't
+          read as the list's; at the top the totals already say it ("20 / 41 orders"). */}
+      {[statsPrefix, stats, view === 'tree' && treeRank && shownList.length < entries.length ? fmt(t.collage.stats.inTree, { count: treeRank }) : undefined].filter(Boolean).join(' · ').split(' · ').map((part, i) => (
         <Fragment key={i}>{i > 0 && ' · '}<span className="eb-stat">{part}{part === threatPart && <span className="eb-sr"> {t.collage.stats.threatenedSr}</span>}</span></Fragment>
       ))}
     </p>
@@ -421,7 +425,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       ) : (
         // The same loading line as TreeView's own while its data loads (O8): one element, one size, no margin.
         <Suspense fallback={<div className="eb-mono" role="status">{t.collage.tree.loading}</div>}>
-          <TreeView entries={shownList} sci={sci} onPick={onPickRow} branch={branch} onOpen={onTreeOpen} onLevel={onTreeLevel} layoutSlot={openPanel === 'display' ? layoutSlot : null} />
+          <TreeView entries={shownList} sci={sci} onPick={onPickRow} branch={branch} onOpen={onTreeOpen} onLevel={onTreeLevel} onRankLine={setTreeRank} layoutSlot={openPanel === 'display' ? layoutSlot : null} />
         </Suspense>
       )}
 
