@@ -46,7 +46,7 @@ type Props = {
 
 export function TaxaPanel({ state, dispatch, species, tree, id, buttonRef, onClose, shown }: Props): ReactNode {
   const { t } = useI18n()
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const taxa = useTaxa({ state, dispatch, species, tree })
   // The taxonomy's totals come from the full species file (the landing sample's index holds only its birds).
   const [all, setAll] = useState<readonly SpeciesRow[] | null>(null)

@@ -123,6 +123,11 @@
   cursor: pointer;
 }
 .eb-row-btn[data-ring] { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+/* Rows open the card: on fine pointers a Surface band under the row, the Places rows' hover (filters.css). */
+@media (hover: hover) and (pointer: fine) {
+  .eb-row-btn { border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); transition: background-color .15s var(--ease-ui); }
+  .eb-row-btn:hover { background: var(--surface); }
+}
 .eb-row-thumb { display: grid; place-items: center; width: 56px; height: 40px; }
 .eb-row-thumb > span { display: block; }
 .eb-row-thumb img, .eb-row-thumb .eb-sil { display: block; width: 100%; height: 100%; object-fit: contain; }
@@ -145,6 +150,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .eb-card, .eb-card[data-variant="sheet"] { animation: eb-card-in .15s linear both; }
+  .eb-row-btn { transition: none; }
 }
 
 /* The hover tooltip: the card's look, placed in the stage wrapper, never in the way of the pointer. */

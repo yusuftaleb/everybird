@@ -204,3 +204,19 @@ describe("round 6 design proposals: the panels' CSS (AU4, AN5, AD1, H11)", () =>
     for (const sel of [".eb-card-name", ".eb-lhead-name", ".eb-row-primary"]) expect(topLevelRule(cardCss, sel)).toMatch(/hyphens:\s*auto/);
   });
 });
+
+describe("round 6 design proposals: the dock's motion (AN8, AU16) and the list rows' hover (P6)", () => {
+  const cardCss = readFileSync(resolve(__dirname, "../src/components/collage/card-list.css"), "utf8");
+  it("a panel button's Accent text eases in, as its fill does; the theme and language buttons ease their fill", () => {
+    expect(topLevelRule(css, ".eb-dock-tab")).toMatch(/transition:[^;]*color \.15s/);
+    expect(topLevelRule(css, ".eb-theme")).toMatch(/transition:\s*background-color \.15s/);
+  });
+  it("under reduced motion the panel buttons' caret turns at once, and the theme button's fill too", () => {
+    const reduced = block(css, /@media \(prefers-reduced-motion: reduce\) \{\n  \.eb-btn, \.eb-dock-tab/);
+    expect(reduced).toMatch(/\.eb-dock-drop \.eb-drop-caret/);
+    expect(reduced).toMatch(/\.eb-theme \{ transition: none; \}|\.eb-theme[^{]*\{ transition: none; \}/);
+  });
+  it("list rows show a Surface band on hover, fine pointers only", () => {
+    expect(block(cardCss, /@media \(hover: hover\) and \(pointer: fine\) \{\n  \.eb-row-btn \{/)).toMatch(/\.eb-row-btn:hover \{ background: var\(--surface\); \}/);
+  });
+});

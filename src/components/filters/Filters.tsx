@@ -151,7 +151,7 @@ export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onC
   children: ReactNode
 }): ReactNode {
   const { t } = useI18n()
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const own = useRef<HTMLDivElement>(null)
   const ref = panelRef ?? own
   useEscapeCapture(onClose)
@@ -260,7 +260,7 @@ type PanelProps = Shared & {
 /** In ControlsBar's `below` slot, after the chip row (the popover sits right under the dock, over it), or portalled as the sheet. */
 function FiltersPanel({ state, onChange, species, regions, sections, open, onOpen, id, buttonRef, returnFocus, placesNote, placesUnplaced, time, threatLine, shown }: PanelProps): ReactNode {
   const { t } = useI18n()
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const ref = useRef<HTMLDivElement>(null)
   const titles = useId()
   const { filter } = state
@@ -407,7 +407,7 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
 } {
   const base = useId()
   const { lang, t } = useI18n()
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const [open, setOpen] = useState<FiltersOpen | null>(null)
   // Carried over a language switch (view-resume.ts): the section it was open at, if the birder had it open.
   useTakeResume('panel', (r) => setOpen(r.open ? { at: r.at } : null))

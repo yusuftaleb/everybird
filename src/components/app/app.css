@@ -160,7 +160,7 @@
   display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; min-width: 44px;
   padding: 0 16px 0 14px; border: 0; border-radius: 12px; background: transparent; color: inherit;
   font: inherit; white-space: nowrap; cursor: pointer; opacity: .66; -webkit-tap-highlight-color: transparent;
-  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease);
+  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease), color .15s var(--eb-ease);
 }
 .eb-dock-tab svg { width: 20px; height: 20px; flex: none; }
 .eb-dock-tab[aria-pressed="true"] { opacity: 1; color: var(--accent); background: var(--surface); font-weight: 600; }
@@ -368,6 +368,7 @@
   position: relative; display: grid; place-items: center; width: 44px; height: 44px; flex: none; padding: 0;
   border: 0; background: transparent; color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent;
   border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: background-color .15s cubic-bezier(.16, 1, .3, 1); /* the nav pills' fill ease, beside them */
 }
 .eb-theme svg { width: 22px; height: 22px; }
 .eb-theme::after { content: ''; position: absolute; inset: min(0px, calc((100% - 44px) / 2)); } /* 44px even when drawn at 40 or 36 */
@@ -528,7 +529,7 @@
 @media (hover: hover) and (pointer: fine) { .eb-footer .eb-footer-gh:hover { color: var(--ink); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .eb-btn, .eb-dock-tab, .eb-dock-dir .eb-drop-caret, .eb-dock-tabs, .eb-dock-tools, .eb-dock-filters, .eb-nav-link, .eb-footer-gh { transition: none; }
+  .eb-btn, .eb-dock-tab, .eb-dock-dir .eb-drop-caret, .eb-dock-drop .eb-drop-caret, .eb-dock-tabs, .eb-dock-tools, .eb-dock-filters, .eb-nav-link, .eb-footer-gh, .eb-theme { transition: none; }
   .eb-menu { animation: none; }
   .eb-find, .eb-find-drop { animation: none; }
 }
@@ -706,6 +707,10 @@ main[tabindex="-1"]:focus { outline: none; }
 .eb-disp { display: flex; flex-direction: column; gap: 10px; font-size: 14px; font-weight: 500; }
 .eb-disp-seg { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; min-height: 32px; }
 .eb-disp-slot:empty { display: none; }
+/* An unavailable choice pressed: its reason in one Muted line under the row. Empty, the status stays in the page (so
+   its first words are read) but out of the flow, adding no gap. */
+.eb-disp-why { flex: 1 0 100%; margin: 0; font-size: 13px; }
+.eb-disp-why:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .eb-disp-slot { display: contents; }
 .eb-disp-label { margin: 0; }
 .eb-disp .eb-seg {

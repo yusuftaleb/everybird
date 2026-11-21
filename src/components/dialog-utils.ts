@@ -4,21 +4,27 @@ import { holdTopBar } from '@/lib/headroom'
 
 /** At or below this width (phones, as /lifelist's max-width:600px), popovers become bottom sheets. */
 const SHEET_AT = 600
+/** At or below this height (a landscape phone's), the controls bar's panels and the bird card are sheets too: a popover
+ *  under the dock would run off the window's bottom. */
+const SHORT_AT = 500
 const FOCUSABLE = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 
 /** Screens wider than 600px get a popover; 600px and narrower a bottom sheet (the phone controls bar's breakpoint
- * too, app.css). Read synchronously on first render. */
-export function useIsSheet(): boolean {
-  const query = () => (typeof window.matchMedia === 'function' ? window.matchMedia(`(max-width: ${SHEET_AT}px)`) : null)
-  const [sheet, setSheet] = useState(() => (typeof window === 'undefined' ? false : (query()?.matches ?? window.innerWidth <= SHEET_AT)))
+ * too, app.css). With `short`, a window 500px tall or less is a sheet too (the dock's panels and the bird card, on a
+ * landscape phone). Read synchronously on first render. */
+export function useIsSheet({ short = false }: { short?: boolean } = {}): boolean {
+  const [sheet, setSheet] = useState(() => (typeof window === 'undefined' ? false : sheetNow(short)))
   useLayoutEffect(() => {
-    const mq = query()
-    const read = () => setSheet(mq ? mq.matches : window.innerWidth <= SHEET_AT)
+    const mq = sheetQuery(short)
+    const read = () => setSheet(sheetNow(short))
     mq?.addEventListener?.('change', read)
     return () => mq?.removeEventListener?.('change', read)
-  }, [])
+  }, [short])
   return sheet
 }
+const sheetQuery = (short: boolean) =>
+  typeof window.matchMedia === 'function' ? window.matchMedia(short ? `(max-width: ${SHEET_AT}px), (max-height: ${SHORT_AT}px)` : `(max-width: ${SHEET_AT}px)`) : null
+const sheetNow = (short: boolean) => sheetQuery(short)?.matches ?? (window.innerWidth <= SHEET_AT || (short && window.innerHeight <= SHORT_AT))
 
 /**
  * Esc closes. Captured on window and stopped, so nothing underneath (a dialog, the page) also sees this Esc.

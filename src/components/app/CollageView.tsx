@@ -244,7 +244,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const display = hasDisplay(view)
   const openPanel = panel === 'display' && !display ? null : panel // List and Map have no Display panel
   const taxaSpoken = useMemo(() => pickWords(filter, species, sci, t), [filter, species, sci, t])
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const panelButtons = (
     <>
       <DockPanelButton
