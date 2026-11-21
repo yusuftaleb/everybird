@@ -511,7 +511,7 @@ export const es: Messages = {
       /** The Colours row: the images' and the poster's look, Light or Dark. */
       colours: { label: 'Colores', light: 'Claro', dark: 'Oscuro' },
       transparent: 'Fondo transparente',
-      arrange: { label: 'Disposición', packed: 'Ajustada', oval: 'Ovalada' },
+      arrange: { label: 'Disposición', packed: 'Ajustada', oval: 'Ovalada', free: 'Libre' },
       hideTotals: 'Ocultar totales',
       bigYear: {
         label: 'Meta',

@@ -7,14 +7,17 @@
 // - pocket: the share of the outline's area (less the hole) further than GAP + 0.3 x the smallest sticker's long side
 //   from every silhouette and the hole: room a small bird would fit in.
 // - edgeCv: in 120 directions about the stage centre, the outermost silhouette's rounded-rectangle radius ((u^8 + v^8)^(1/8)
-//   over the stage's half sizes); their coefficient of variation. A ragged edge, loose birds out past it, shows here.
+//   over the stage's half sizes); their coefficient of variation. A ragged edge, loose birds out past it, shows here. Free's
+//   rounded outline is measured so; Fit's rectangle by rectCv, the same with the rectangle's radius max(|u|, |v|).
+// - corners: each corner of the silhouettes' bounding box (top-left, top-right, bottom-left, bottom-right), its chessboard
+//   distance to the nearest silhouette, in median sticker long sides: an empty corner shows as a large one.
 import { GAP } from '../src/lib/layout/constants'
 import { rectGap, type Hole } from '../src/lib/layout/count-box'
 import { Grid, cellMask, coreMask } from '../src/lib/layout/grid'
 import { maskCell } from '../src/lib/layout/mask'
 import type { Box, PackBird } from '../src/lib/layout/pack'
 
-export type Pockets = { slots: { inner: number; edge: number }; pocket: number; edgeCv: number }
+export type Pockets = { slots: { inner: number; edge: number }; pocket: number; edgeCv: number; rectCv: number; corners: number[] }
 
 export function pockets(birds: PackBird[], r: { W: number; H: number; boxes: Map<number, Box> }, hole: Hole): Pockets {
   const W = Math.ceil(r.W), H = Math.ceil(r.H), cx = r.W / 2, cy = r.H / 2
@@ -92,15 +95,27 @@ export function pockets(birds: PackBird[], r: { W: number; H: number; boxes: Map
       else slots.edge++
     }
   }
-  // The edge's evenness.
-  const N = 120, reach = new Array<number>(N).fill(0)
+  // The edge's evenness, about the rounded rectangle and the rectangle.
+  const N = 120, reach = new Array<number>(N).fill(0), rect = new Array<number>(N).fill(0)
+  let bx0 = W, bx1 = 0, by0 = H, by1 = 0
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     if (own[y * W + x] < 0) continue
+    bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); by0 = Math.min(by0, y); by1 = Math.max(by1, y)
     const u = (x + 0.5 - cx) / cx, v = (y + 0.5 - cy) / cy
     const k = Math.floor(((Math.atan2(v, u) + Math.PI) / (2 * Math.PI)) * N) % N
     reach[k] = Math.max(reach[k], (u ** 8 + v ** 8) ** 0.125)
+    rect[k] = Math.max(rect[k], Math.max(Math.abs(u), Math.abs(v)))
   }
-  const mean = reach.reduce((a, b) => a + b, 0) / N
-  const edgeCv = Math.sqrt(reach.reduce((a, b) => a + (b - mean) ** 2, 0) / N) / mean
-  return { slots, pocket: room / Math.max(1, area), edgeCv }
+  const cv = (r: number[]) => {
+    const mean = r.reduce((a, b) => a + b, 0) / N
+    return Math.sqrt(r.reduce((a, b) => a + (b - mean) ** 2, 0) / N) / mean
+  }
+  const longs = [...r.boxes.values()].map((b) => Math.max(b[2], b[3])).sort((a, b) => a - b)
+  const med = longs[longs.length >> 1]
+  const corners = [[bx0, by0], [bx1, by0], [bx0, by1], [bx1, by1]].map(([qx, qy]) => {
+    let best = Infinity
+    for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) if (own[y * W + x] >= 0) best = Math.min(best, Math.max(Math.abs(x - qx), Math.abs(y - qy)))
+    return best / med
+  })
+  return { slots, pocket: room / Math.max(1, area), edgeCv: cv(reach), rectCv: cv(rect), corners }
 }

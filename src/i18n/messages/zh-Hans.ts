@@ -503,7 +503,7 @@ export const zhHans: Messages = {
       untitledTitle: { one: '一份生涯清单：{n}种', other: '一份生涯清单：{n}种' },
       colours: { label: '配色', light: '浅色', dark: '深色' },
       transparent: '透明背景',
-      arrange: { label: '排列方式', packed: '适配', oval: '椭圆' },
+      arrange: { label: '排列方式', packed: '适配', oval: '椭圆', free: '自由' },
       hideTotals: '隐藏目科属总数',
       bigYear: {
         label: '目标',

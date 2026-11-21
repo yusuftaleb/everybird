@@ -628,7 +628,7 @@ export const EN_UI = {
     colours: { label: 'Colours', light: 'Light', dark: 'Dark' },
     transparent: 'Transparent background',
     /** How the images and the poster place the birds (the stored value stays 'packed'): fitted to the frame, or in an oval. */
-    arrange: { label: 'Arrangement', packed: 'Fit', oval: 'Oval' },
+    arrange: { label: 'Arrangement', packed: 'Fit', oval: 'Oval', free: 'Free' },
     /** The Tree image's switch: keep the species count, drop the orders, families and genera totals under it. */
     hideTotals: 'Hide totals',
     /** The Goal row: "Add a goal", then "[300] species in [2026 ▾] ✕". `target` names the number box, `year` the year

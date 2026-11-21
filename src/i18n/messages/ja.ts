@@ -503,7 +503,7 @@ export const ja: Messages = {
       untitledTitle: { one: 'ライフリスト：{n}種', other: 'ライフリスト：{n}種' },
       colours: { label: '配色', light: 'ライト', dark: 'ダーク' },
       transparent: '透明な背景',
-      arrange: { label: '配置', packed: 'フィット', oval: '楕円' },
+      arrange: { label: '配置', packed: 'フィット', oval: '楕円', free: '自由' },
       hideTotals: '合計を非表示',
       bigYear: {
         label: '目標',

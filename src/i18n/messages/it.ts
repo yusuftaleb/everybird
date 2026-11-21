@@ -501,7 +501,7 @@ export const it: Messages = {
       untitledTitle: { one: 'Una lista di vita: {n} specie', other: 'Una lista di vita: {n} specie' },
       colours: { label: 'Colori', light: 'Chiaro', dark: 'Scuro' },
       transparent: 'Sfondo trasparente',
-      arrange: { label: 'Disposizione', packed: 'Adatta', oval: 'Ovale' },
+      arrange: { label: 'Disposizione', packed: 'Adatta', oval: 'Ovale', free: 'Libera' },
       hideTotals: 'Nascondi i totali',
       bigYear: {
         label: 'Obiettivo',

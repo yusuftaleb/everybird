@@ -504,7 +504,7 @@ export const de: Messages = {
       untitledTitle: { one: 'Eine Lebensliste: {n} Art', other: 'Eine Lebensliste: {n} Arten' },
       colours: { label: 'Farben', light: 'Hell', dark: 'Dunkel' },
       transparent: 'Transparenter Hintergrund',
-      arrange: { label: 'Anordnung', packed: 'Eingepasst', oval: 'Oval' },
+      arrange: { label: 'Anordnung', packed: 'Eingepasst', oval: 'Oval', free: 'Frei' },
       hideTotals: 'Summen ausblenden',
       bigYear: {
         label: 'Ziel',

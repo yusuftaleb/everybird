@@ -189,7 +189,7 @@ describe('the Arrangement choice', () => {
     expect(group()).toHaveAttribute('role', 'group')
     expect(group()).toHaveAccessibleName('Arrangement')
     const btn = (name: string) => within(group()).getByRole('button', { name })
-    expect(within(group()).getAllByRole('button').map((b) => b.textContent)).toEqual(['Fit', 'Oval'])
+    expect(within(group()).getAllByRole('button').map((b) => b.textContent)).toEqual(['Fit', 'Oval', 'Free'])
     expect(btn('Fit')).toHaveAttribute('aria-pressed', 'true')
     expect(btn('Fit').querySelector('svg')).not.toBeNull()
     // Its place: before the panel's switches.

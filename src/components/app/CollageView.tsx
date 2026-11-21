@@ -2,7 +2,7 @@
 // The collage block shared by the landing sample, the birder's own collage and the shared view: the stats line, the
 // controls bar (view tabs, List's and Map's own switches, the Taxa, Display and Filters buttons with their panels, one
 // open at a time, and the search), the taxonomy path, the collage, list, map or tree, the legend (in the tree, its
-// oldest lineage), the hover tooltip and the bird card. The collage follows the Arrangement (Fit or Oval,
+// oldest lineage), the hover tooltip and the bird card. The collage follows the Arrangement (Fit, Oval or Free,
 // arrangement.ts: the Display panel's choice in the Collage view and the share dialog's row are one setting).
 // Composition after LifeList.tsx (framer-site).
 import { trackFilterUsed } from '@/lib/analytics'
@@ -186,8 +186,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // A range drag's preview (Timeline): shown over the current layout until the committed range's layout lands.
   const [preview, setPreview] = useState<{ from?: string; to?: string; committed?: boolean } | null>(null)
   const onPreview = useCallback((r: { from?: string; to?: string } | null) => setPreview((p) => (r ? r : p ? { ...p, committed: true } : null)), [])
-  const oval = useArrangement() === 'oval'
-  const lay = useCollageLayout({ list, seen, filter, mode, species, container: box, seed, preview, oval })
+  const arrangement = useArrangement()
+  const lay = useCollageLayout({ list, seen, filter, mode, species, container: box, seed, preview, arrangement })
   const layKey = lay ? lay.layout.key.split('|').slice(2).join('|') : undefined
   useEffect(() => {
     if (!preview?.committed || layKey !== filterKey(filter)) return

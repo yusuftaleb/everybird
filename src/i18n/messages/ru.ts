@@ -518,7 +518,7 @@ export const ru: Messages = {
       untitledTitle: { one: 'Лайф-лист: {n} вид', few: 'Лайф-лист: {n} вида', many: 'Лайф-лист: {n} видов', other: 'Лайф-лист: {n} вида' },
       colours: { label: 'Цвета', light: 'Светлые', dark: 'Тёмные' },
       transparent: 'Прозрачный фон',
-      arrange: { label: 'Расположение', packed: 'По рамке', oval: 'Овал' },
+      arrange: { label: 'Расположение', packed: 'По рамке', oval: 'Овал', free: 'Свободно' },
       hideTotals: 'Скрыть итоги',
       bigYear: {
         label: 'Цель',

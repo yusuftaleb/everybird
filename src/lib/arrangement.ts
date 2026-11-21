@@ -1,18 +1,22 @@
-// How the collage places the birds, Fit or Oval: a per-device choice kept in localStorage, Packed when unset, unreadable
+// How the collage places the birds, Fit, Oval or Free: a per-device choice kept in localStorage, Packed when unset, unreadable
 // or a value no longer offered (the dropped 'family' and 'colour'), the same in every tab. One setting for the collage
 // on the page (the Display panel's Arrangement in the Collage view), the share images and the poster (the share
 // dialog's Arrangement row): changing it in either changes the other.
-import { Circle, Rectangle, type Icon } from '@phosphor-icons/react'
+import { Circle, Cloud, Rectangle, type Icon } from '@phosphor-icons/react'
 import { useSyncExternalStore } from 'react'
 
-/** 'oval': packed inside the ellipse inscribed in the frame (pack.ts packBest's and packFrame's `oval`). */
-export type Arrangement = 'packed' | 'oval'
-export const ARRANGEMENTS: readonly Arrangement[] = ['packed', 'oval']
+/**
+ * 'packed' (Fit): the birds fill the stage's or the frame's rectangle, corners included. 'oval': packed inside the ellipse
+ * inscribed in the frame (pack.ts packBest's and packFrame's `oval`). 'free': the soft rounded cluster Fit drew before
+ * round 6 made it fill the rectangle (pack.ts `free`).
+ */
+export type Arrangement = 'packed' | 'oval' | 'free'
+export const ARRANGEMENTS: readonly Arrangement[] = ['packed', 'oval', 'free']
 
 export const ARRANGEMENT_KEY = 'everybird:arrangement'
 
-/** Fit or Oval's icons: the frame the birds fill, or the oval they sit in. */
-export const ARRANGE_ICON: Record<Arrangement, Icon> = { packed: Rectangle, oval: Circle }
+/** Fit, Oval and Free's icons: the frame the birds fill, the oval they sit in, the cloud they gather in (Phosphor Cloud). */
+export const ARRANGE_ICON: Record<Arrangement, Icon> = { packed: Rectangle, oval: Circle, free: Cloud }
 
 let memory: Arrangement | null = null
 const listeners = new Set<() => void>()

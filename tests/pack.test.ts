@@ -654,18 +654,70 @@ describe('compact outline: no box detached from the collage', () => {
 // Measured on 1,100 birds (tests/pockets.ts), before -> after: room for another smallest sticker inside the outline's
 // inner part 69 / 83 / 56 times -> 3 / 6 / 5 (wide / medium / narrow), the share of the outline a small bird would fit
 // in 7.9% / 8.8% / 9.3% -> 3.7% / 4.6% / 4.4%, the edge's variation 0.031 / 0.042 / 0.049 -> 0.011 / 0.011 / 0.012.
+// That outline was a rounded rectangle with empty corners (Yusuf, round 6: Fit no longer looked like a rectangle): it is
+// Free now, and Fit settles into the rectangle (pack.ts settle). Fit on 1,100 birds, Free -> Fit: the corners 1.7 to 2.4
+// median stickers from the nearest silhouette -> 0.2 to 1.1, the edge's variation about the rectangle 0.020 / 0.020 / 0.020
+// -> 0.012 / 0.014 / 0.012, the inner slots 3 / 6 / 5 -> 4 / 7 / 4, the room 3.7% / 4.6% / 4.4% -> 4.7% / 5.7% / 4.5% (the
+// rectangle's hull takes in its corners, where the edge's last birds leave room the rounded outline's hull left out).
 describe('big lists: no pockets inside the outline, an even edge', () => {
   beforeAll(() => { if (!POOL.length) POOL = loadPool() })
   for (const L of LAYOUTS) {
-    it(`1,100 birds on ${L.name}`, () => {
+    it(`1,100 birds on ${L.name}, Fit: the rectangle, corners filled`, () => {
       const birds = sample(1100)
       const r = packBest(birds, L, 'even')
       const p = pockets(birds, r, collageHole(1100, L))
-      console.log(`[pockets] ${L.name} 1,100: ${p.slots.inner} inner slots, ${p.slots.edge} at the edge, room ${(100 * p.pocket).toFixed(1)}%, edge cv ${p.edgeCv.toFixed(3)}`)
+      console.log(`[pockets] Fit ${L.name} 1,100: ${p.slots.inner} inner slots, ${p.slots.edge} at the edge, room ${(100 * p.pocket).toFixed(1)}%, rectangle edge cv ${p.rectCv.toFixed(3)}, corners ${p.corners.map((c) => c.toFixed(2)).join(' ')}`)
+      expect(r.boxes.size).toBe(1100)
+      expect(p.slots.inner).toBeLessThanOrEqual(12)
+      expect(p.pocket).toBeLessThan(0.06)
+      expect(p.rectCv).toBeLessThan(0.016)
+      for (const c of p.corners) expect(c).toBeLessThan(1.25) // within about a sticker of each corner
+    }, 60000)
+
+    it(`1,100 birds on ${L.name}, Free: the rounded rectangle`, () => {
+      const birds = sample(1100)
+      const r = packBest(birds, L, 'even', { free: true })
+      const p = pockets(birds, r, collageHole(1100, L))
+      console.log(`[pockets] Free ${L.name} 1,100: ${p.slots.inner} inner slots, ${p.slots.edge} at the edge, room ${(100 * p.pocket).toFixed(1)}%, edge cv ${p.edgeCv.toFixed(3)}, corners ${p.corners.map((c) => c.toFixed(2)).join(' ')}`)
       expect(r.boxes.size).toBe(1100)
       expect(p.slots.inner).toBeLessThanOrEqual(12)
       expect(p.pocket).toBeLessThan(0.06)
       expect(p.edgeCv).toBeLessThan(0.02)
+      expect(Math.min(...p.corners)).toBeGreaterThan(1.25) // its corners stay open
+    }, 60000)
+  }
+})
+
+// Free is Fit as it was before Fit filled the rectangle (round 6), box for box: an exact hash of every box (and the base and
+// stage) of the page's even and true-size collages on every layout, for a list under denseFrom (never settled, so Fit
+// packs it the same) and a big one, and of share-image frames (packFrame). Recorded from the code before the change.
+const exact = (r: PackResult) => {
+  const f = new Float64Array([r.base, r.W, r.H, ...[...r.boxes.entries()].sort((a, b) => a[0] - b[0]).flatMap(([id, b]) => [id, ...b])])
+  let h = 0x811c9dc5
+  for (const byte of new Uint8Array(f.buffer)) h = Math.imul(h ^ byte, 0x01000193) >>> 0
+  return `${r.boxes.size}:${h.toString(16)}`
+}
+const FREE: [string, number, string, string][] = [
+  ['wide', 200, '200:43af54d5', '200:c216b5f8'], ['wide', 1100, '1100:42495cc3', '1100:d0414a24'],
+  ['medium', 200, '200:5b2fd13e', '200:386b9aff'], ['medium', 1100, '1100:f271b651', '1100:d894e790'],
+  ['narrow', 200, '200:d72c0469', '200:3f2489b0'], ['narrow', 1100, '1100:a67d2970', '1100:267ff50d'],
+]
+const FREE_FRAMES: [number, number, string][] = [[952 / 1276, 1000, '1000:92b19bf1'], [952 / 930, 500, '500:b71da951'], [1492 / 728, 1000, '1000:c5607742']]
+describe('Free: today\'s layout before Fit filled the rectangle, box for box', () => {
+  beforeAll(() => { if (!POOL.length) POOL = loadPool() })
+  for (const [name, n, even, tru] of FREE) {
+    it(`${n} birds on ${name}, even and true size`, () => {
+      const birds = sample(n)
+      const r = packBest(birds, byName(name), 'even', { free: true })
+      expect(exact(r)).toBe(even)
+      expect(exact(packBest(birds, byName(name), 'true', { targets: centres(r), fixedStage: [r.W, r.H], free: true }))).toBe(tru)
+      if (n < byName(name).denseFrom) expect(exact(packBest(birds, byName(name), 'even'))).toBe(even) // Fit too, below denseFrom
+    }, 60000)
+  }
+  for (const [aspect, n, want] of FREE_FRAMES) {
+    it(`a share image's frame: ${n} birds at aspect ${aspect.toFixed(3)}`, () => {
+      const hole = scaleHole(collageHole(n, byName('wide')), 1 / 1120)
+      expect(exact(packFrame(sample(n), aspect, { hole, maxTile: 0.3, free: true }))).toBe(want)
     }, 60000)
   }
 })

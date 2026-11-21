@@ -9,7 +9,8 @@
 //           34px, Accent). With the Count menu's "Beside title" the count is on the name's line, at its right, in the
 //           label style ("96 SPECIES", Geist Mono 34px, Ink), or alone at the top left without a name.
 //   middle  the collage, packed for the space left (layout worker 'image' message: packFrame, the count's hole at its
-//           centre, the birds spread evenly to the frame's edges); no sticker longer than 30% of the collage wide (36% up
+//           centre, the birds spread evenly to the frame's edges; under Fit a big list packed dense, as on the page, and
+//           settled into the rectangle); no sticker longer than 30% of the collage wide (36% up
 //           to 24 birds)
 //   bottom  the latest lifer row, the head's gap under the collage (round 6): its sticker, then "LATEST LIFER · SEP 2026 ·
 //           BRITISH COLUMBIA, CANADA" (the province or state and the country where it was seen, in the image's language:
@@ -414,8 +415,8 @@ export function cardDims(format: CardFormat, size: PrintSize = 'A2'): [number, n
 }
 
 /** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
-/** `oval`: the share dialog's Oval (arrangement.ts); left out for Packed. */
-export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number }>; oval?: true }
+/** `oval` and `free`: the share dialog's Oval and Free (arrangement.ts); both left out for Fit. */
+export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number }>; oval?: true; free?: true }
 export function packSpec(L: CardLayout): PackSpec {
   const { w, h } = L.collage
   // The tile cap the drawing keeps (maxTileSide: the share, and the sticker files' sharp size), so the pack is made at the
@@ -465,7 +466,7 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, spec: 
     }
     w.onerror = (e) => { done(); reject(new Error(`layout worker failed: ${e.message ?? 'error'}`)) }
     const captions = spec.captionBoxes ? birds.map((b) => spec.captionBoxes![b.code] ?? { w: 0, h: 0 }) : undefined
-    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}), ...(spec.oval ? { oval: true } : {}) }
+    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}), ...(spec.oval ? { oval: true } : {}), ...(spec.free ? { free: true } : {}) }
     w.postMessage(msg)
   })
 }
@@ -493,7 +494,7 @@ export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSi
   // Always the frame with the latest lifer row (the smaller one): the "Show latest lifer" switch never changes the pack.
   // With the row off, the same pack is fitted into the taller area (fitPack), so every bird keeps its place.
   const L = cardLayout(format, { ...c, latest: true }, cardDims(format, size))
-  const spec: PackSpec = { ...packSpec(L), ...(arrangement === 'oval' ? { oval: true } : {}) }
+  const spec: PackSpec = { ...packSpec(L), ...(arrangement === 'oval' ? { oval: true } : arrangement === 'free' ? { free: true } : {}) }
   if (!captionPlan) return spec
   const captionBoxes: NonNullable<PackSpec['captionBoxes']> = {}
   for (const [code, entry] of captionPlan.byCode) {

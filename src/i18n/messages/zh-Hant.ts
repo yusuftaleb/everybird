@@ -503,7 +503,7 @@ export const zhHant: Messages = {
       untitledTitle: { one: '一份生涯清單：{n} 種', other: '一份生涯清單：{n} 種' },
       colours: { label: '配色', light: '淺色', dark: '深色' },
       transparent: '透明背景',
-      arrange: { label: '排列', packed: '填滿', oval: '橢圓' },
+      arrange: { label: '排列', packed: '填滿', oval: '橢圓', free: '自由' },
       hideTotals: '隱藏總數',
       bigYear: {
         label: '目標',
