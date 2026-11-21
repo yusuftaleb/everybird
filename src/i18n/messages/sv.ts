@@ -500,8 +500,6 @@ export const sv: Messages = {
       filtersNoLabel: 'Visar dina filter.',
       clearFilters: 'Rensa filter',
       latestLifer: 'Senaste nya art',
-      posterLatest: 'Senaste nya art: {name}, {date}',
-      posterLatestPlace: 'Senaste nya art: {name}, {date}, {place}',
       // No genitive "{name}s": a name ending in s would read wrong, and the variable can't follow.
       oldLinkTitle: 'Livslista: {name}',
       untitledTitle: { one: 'En livslista: {n} art', other: 'En livslista: {n} arter' },

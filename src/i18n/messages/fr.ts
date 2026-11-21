@@ -508,8 +508,6 @@ export const fr: Messages = {
       filtersNoLabel: 'Avec tes filtres.',
       clearFilters: 'Effacer les filtres',
       latestLifer: 'Dernière nouvelle espèce',
-      posterLatest: 'Dernière nouvelle espèce\u00a0: {name}, {date}',
-      posterLatestPlace: 'Dernière nouvelle espèce\u00a0: {name}, {date}, {place}',
       oldLinkTitle: 'La liste de vie de {name}',
       untitledTitle: { one: 'Une liste de vie\u00a0: {n} espèce', other: 'Une liste de vie\u00a0: {n} espèces' },
       /** The Appearance row: the images' and the poster's look, Light or Dark. */

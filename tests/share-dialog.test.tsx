@@ -294,8 +294,18 @@ describe('share dialog', () => {
     expect(viewRenders.map.mock.calls[0]).toMatchObject([{ totals: ['species', 'countries'] }])
     const mapTotals = within(screen.getByRole('group', { name: 'Totals' }))
     expect(mapTotals.getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([['Species', 'true'], ['Countries', 'true']])
+    // Pick several (round 6, item 25): the site's chips, not joined segments; a check before the word while on.
+    expect(screen.getByTestId('share-totals')).toHaveClass('eb-share-chips')
+    expect(screen.getByTestId('share-totals')).not.toHaveClass('eb-seg')
+    for (const b of mapTotals.getAllByRole('button')) {
+      expect(b).toHaveClass('eb-chip')
+      expect(b).toHaveAttribute('data-selected')
+      expect(b.querySelector('svg.eb-chip-icon')).not.toBeNull()
+    }
     fireEvent.click(mapTotals.getByRole('button', { name: 'Species' }))
     expect(mapTotals.getByRole('button', { name: 'Species' })).toHaveAttribute('aria-pressed', 'false')
+    expect(mapTotals.getByRole('button', { name: 'Species' })).not.toHaveAttribute('data-selected')
+    expect(mapTotals.getByRole('button', { name: 'Species' }).querySelector('svg')).toBeNull()
     await waitFor(() => expect(viewRenders.map).toHaveBeenLastCalledWith(expect.objectContaining({ totals: ['countries'] })))
     fireEvent.click(mapTotals.getByRole('button', { name: 'Countries' }))
     await waitFor(() => expect(viewRenders.map).toHaveBeenLastCalledWith(expect.objectContaining({ totals: [] })))

@@ -508,8 +508,6 @@ export const nl: Messages = {
       filtersNoLabel: 'Je filters zijn actief.',
       clearFilters: 'Filters wissen',
       latestLifer: 'Nieuwste soort',
-      posterLatest: 'Nieuwste soort: {name}, {date}',
-      posterLatestPlace: 'Nieuwste soort: {name}, {date}, {place}',
       oldLinkTitle: 'Levenslijst van {name}',
       untitledTitle: { one: 'Een levenslijst: {n} soort', other: 'Een levenslijst: {n} soorten' },
       /** The Appearance row: the images' and the poster's look, Light or Dark. */

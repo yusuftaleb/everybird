@@ -1,13 +1,13 @@
 // The Count menu's "Beside title" (the count on the title's line in the big count's type, no hole in the middle) and the
-// poster's quiet head and foot (the title alone in Accent; one line under the hairline, the latest lifer in words at its
-// right end or on a second line, right-aligned; no lifer row).
+// poster's quiet head and foot (the title alone in Accent; one line under the hairline, the wordmark and the credit; the
+// latest lifer the images' one-line row above it, round 6, item 24).
 // Drawn on the recording canvas of tests/fixtures/share-image-harness.ts, synthetic birds only.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { en } from '@/i18n/messages/en'
 import { ja } from '@/i18n/messages/ja'
 import { NO_HOLE } from '@/lib/layout/count-box'
 import * as image from '@/lib/share/image'
-import { printDesign } from '@/lib/share/print'
+import { PRINT_SIZES, printDesign } from '@/lib/share/print'
 import { drawsOnly, entries, installStubs, NOW, pack, species } from './fixtures/share-image-harness'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -83,43 +83,50 @@ describe('the poster\'s head and foot', () => {
     expect(filtered.find((l) => l.startsWith('fillText("Perching birds"'))).toMatch(/, 64, 64\) \{fillStyle: "#92140c", font: "700 60px/)
   })
 
-  it('ends with one quiet line: the wordmark, the site, the credit and the date at the left, the latest lifer\'s sticker and words at the right end; no lifer row', async () => {
-    // A landscape poster's line holds both (a portrait one moves this lifer to its second line, below).
-    const log = await poster({ name: 'Ada’s birds', format: 'printLandscape' })
-    const foot = texts(log).find((l) => l.includes('Stickers: huashu-bird-sticker'))!
-    expect(foot.startsWith(`fillText(${JSON.stringify(`${image.FOOTER_LINE} · 15 Nov 2026`)}, `)).toBe(true)
-    expect(foot).toContain(`fillStyle: "${C.muted}"`)
-    const brand = texts(log).find((l) => l.startsWith('fillText("Everybird"'))!
-    expect(brand).toContain(`font: "700 ${image.POSTER_FOOT.brand}px`)
-    const lifer = texts(log).find((l) => l.startsWith('fillText("Latest lifer: Synthetic Bird 13, May 2023"'))!
-    expect(Number(/, ([\d.]+), [\d.]+\) /.exec(lifer)![1])).toBeCloseTo(printDesign('A4', true)[0] - 64, 4)
-    expect(lifer).toContain('textAlign: "right"')
-    expect(lifer).toContain(`fillStyle: "${C.muted}"`)
-    // All three on the wordmark's baseline: the line beside the wordmark, the lifer ending at the right margin.
-    const y = (l: string) => /, ([\d.]+)\) \{/.exec(l)![1]
-    expect(y(foot)).toBe(y(brand))
-    expect(y(lifer)).toBe(y(brand))
-    expect(texts(log).some((l) => l.startsWith('fillText("LATEST LIFER'))).toBe(false)
-    // The collage's stickers (13 tiles, one of them an outline), then the latest lifer's before its words (round 6), a
-    // square of posterIcon(16) on the foot's line: its middle on the capitals' middle, ending before the words start.
-    const draws = log.filter((l) => l.startsWith('drawImage('))
-    expect(draws).toHaveLength(12)
-    const [sx, sy, w, h] = /, ([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\)/.exec(draws.at(-1)!)!.slice(1).map(Number)
-    expect(Math.max(w, h)).toBeCloseTo(image.posterIcon(image.POSTER_FOOT.line), 4)
-    expect(sx + w).toBeLessThan(printDesign('A4', true)[0] - 64)
-    expect(sy + h / 2).toBeCloseTo(Number(y(lifer)) - 0.35 * image.POSTER_FOOT.line, 4)
+  it('ends with one quiet line, the wordmark then the site, the credit and the date; the latest lifer is the images\' row above the hairline (round 6, item 24)', async () => {
+    for (const format of ['print', 'printLandscape'] as const) {
+      const log = await poster({ name: 'Ada’s birds', format })
+      const foot = texts(log).find((l) => l.includes('Stickers: huashu-bird-sticker'))!
+      expect(foot.startsWith(`fillText(${JSON.stringify(`${image.FOOTER_LINE} · 15 Nov 2026`)}, `)).toBe(true)
+      expect(foot).toContain(`fillStyle: "${C.muted}"`)
+      const brand = texts(log).find((l) => l.startsWith('fillText("Everybird"'))!
+      expect(brand).toContain(`font: "700 ${image.POSTER_FOOT.brand}px`)
+      const y = (l: string) => Number(/, ([\d.]+)\) \{/.exec(l)![1])
+      expect(y(foot)).toBe(y(brand))
+      // Nothing of the lifer in the foot any more.
+      expect(texts(log).some((l) => l.includes('Latest lifer:'))).toBe(false)
+      // The row: the sticker in its 40-unit square at the left margin, the name right after it in the row's face, then
+      // the detail in small mono Muted, all above the hairline (its gap, GAPS.latest, kept) and inside the content's width.
+      const L = image.cardLayout(format, { name: true, filter: false, latest: true, count: 14 }, printDesign('A4', format === 'printLandscape'))
+      const R = L.latest!
+      expect(R).toMatchObject({ x: 64, icon: image.SMALL_INLINE.icon, name: image.SMALL_INLINE.name, label: image.SMALL_INLINE.label, inline: true })
+      expect(R.y + R.icon + image.GAPS[format].latest).toBe(L.rule.y)
+      const name = texts(log).find((l) => l.startsWith('fillText("Synthetic Bird 13"'))!
+      expect(name).toMatch(/, 120, [\d.]+\) .*font: "600 26px/)
+      expect(y(name)).toBeCloseTo(R.y + R.icon / 2, 6)
+      const detail = texts(log).find((l) => l.startsWith('fillText("Latest lifer · May 2023"'))!
+      expect(detail).toContain(`fillStyle: "${C.muted}"`)
+      expect(detail).toContain('font: "500 18px')
+      const sticker = log.filter((l) => l.startsWith('drawImage(')).at(-1)!
+      const [sx, sy, w, h] = /, ([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\)/.exec(sticker)!.slice(1).map(Number)
+      expect(Math.max(w, h)).toBeCloseTo(R.icon, 6)
+      expect(sx).toBe(64)
+      expect(sy + h / 2).toBeCloseTo(R.y + R.icon / 2, 6)
+      const rule = log.find((l) => l.startsWith('fillRect(64, ') && l.includes(C.hairline))!
+      expect(sy + h).toBeLessThan(Number(/fillRect\(64, ([\d.]+),/.exec(rule)![1]))
+    }
   })
 
-  // Item 10: with the latest lifer the portrait poster keeps room for its own line under the foot's (placePosterFoot
-  // moves it there when the two don't fit beside each other), so the collage never meets the raised hairline; off, the
-  // collage takes that room.
-  it('leaves the latest lifer out of the line with "Show latest lifer" off, the collage taking its line', async () => {
+  // Round 6, item 24: the row's room comes out of the collage's area; off, the collage takes it.
+  it('leaves the latest lifer\'s row out with "Show latest lifer" off, the collage taking its room', async () => {
     const log = await poster({ name: 'Ada’s birds', latest: false })
     expect(texts(log).find((l) => l.includes('Stickers: huashu-bird-sticker'))).toMatch(/^fillText\("everybird\.yusuftaleb\.com · Stickers: huashu-bird-sticker, CC BY 4\.0 · 15 Nov 2026"/)
     const on = image.cardLayout('print', { name: true, filter: false, latest: true, count: 14 }, printDesign('A4'))
     const off = image.cardLayout('print', { name: true, filter: false, latest: false, count: 14 }, printDesign('A4'))
-    expect(off.collage).toEqual({ ...on.collage, h: on.collage.h + image.POSTER_FOOT.line + 12 })
-    expect(on.latest).toBeUndefined()
+    expect({ ...off.collage, h: 0 }).toEqual({ ...on.collage, h: 0 })
+    expect(off.collage.h).toBeCloseTo(on.collage.h + image.SMALL_INLINE.icon + 2 * image.GAPS.print.latest - image.GAPS.print.collage, 6)
+    expect(off.latest).toBeUndefined()
+    expect(texts(log).some((l) => l.startsWith('fillText("Synthetic Bird 13"'))).toBe(false)
   })
 
   it('puts the count on the title\'s line with "Beside title"', async () => {
@@ -140,32 +147,25 @@ describe('the poster\'s head and foot', () => {
     }
   })
 
-  it('keeps the foot on one line, the latest lifer at its right end, shrinking no smaller than POSTER_FOOT.min; else the lifer takes a second line', () => {
-    const credit = `${image.FOOTER_LINE} · 20 Nov 2026`
-    expect(image.posterLatest('Rock Sandpiper', '2026-10', en.ui)).toBe('Latest lifer: Rock Sandpiper, Oct 2026')
-    // Geist Mono is 0.6 em a character; the wordmark about 0.55 em, 16 after it.
-    const mono = (text: string) => (px: number) => text.length * 0.6 * px
-    const brandW = 9 * 0.55 * image.POSTER_FOOT.brand + 16
-    const place = (name: string, maxW = 952) => image.placePosterFoot(mono(credit), mono(image.posterLatest(name, '2026-10', en.ui)), maxW, brandW)
-    // On a portrait poster a typical name moves to a line of its own; the site and credit keep the wordmark's line at the
-    // largest size that fits.
-    expect(place('Rock Sandpiper')).toEqual({ size: image.POSTER_FOOT.line, below: false, latestBelow: true })
-    expect(place('Northern Rough-winged Swallow')).toEqual({ size: image.POSTER_FOOT.line, below: false, latestBelow: true })
-    // A landscape poster's wider line holds both: a typical name at the full size, a long one a size smaller.
-    expect(place('Rock Sandpiper', 1527 - 128)).toEqual({ size: image.POSTER_FOOT.line, below: false, latestBelow: false })
-    expect(place('Northern Rough-winged Swallow', 1527 - 128)).toEqual({ size: 15, below: false, latestBelow: false })
+  it('puts the row above the hairline inside the content box on every size and orientation, the collage above it', () => {
+    for (const size of PRINT_SIZES) for (const landscape of [false, true]) {
+      const format = landscape ? 'printLandscape' : 'print'
+      const L = image.cardLayout(format, { name: true, filter: false, latest: true, count: 300 }, printDesign(size, landscape))
+      const R = L.latest!
+      expect(R.x).toBe(L.collage.x)
+      expect(R.x + R.icon + 20 + R.tw).toBeCloseTo(L.collage.x + L.collage.w, 6)
+      expect(R.y + R.icon + image.GAPS[format].latest).toBe(L.rule.y)
+      expect(L.collage.y + L.collage.h + image.GAPS[format].latest).toBe(R.y)
+    }
   })
 
-  it('draws a latest lifer that needs its own line at the bottom, right-aligned, the wordmark\'s line a line above', async () => {
-    // The latest lifer is Synthetic Bird 13 (as above), here with a long name.
+  it('draws a long latest lifer\'s name whole on its row; the foot stays one line', async () => {
     const nameOf = (r: { com: string }) => (r.com === 'Synthetic Bird 13' ? 'A Very Long Synthetic Bird Name For The Foot' : r.com)
     const log = await poster({ name: 'Ada’s birds', nameOf })
     const y = (l: string) => Number(/, ([\d.]+)\) \{/.exec(l)![1])
-    const lifer = texts(log).find((l) => l.startsWith('fillText("Latest lifer: A Very Long'))!
+    expect(texts(log).find((l) => l.startsWith('fillText("A Very Long Synthetic Bird Name For The Foot"'))).toMatch(/, 120, /)
     const foot = texts(log).find((l) => l.includes('Stickers: huashu-bird-sticker'))!
     const brand = texts(log).find((l) => l.startsWith('fillText("Everybird"'))!
-    expect(lifer).toMatch(/, 1016, [\d.]+\) .*textAlign: "right"/)
     expect(y(foot)).toBe(y(brand))
-    expect(y(lifer) - y(foot)).toBe(image.POSTER_FOOT.line + 12)
   })
 })

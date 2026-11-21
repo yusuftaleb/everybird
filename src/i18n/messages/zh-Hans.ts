@@ -501,8 +501,6 @@ export const zhHans: Messages = {
       filtersNoLabel: '按你的筛选显示。',
       clearFilters: '清除筛选',
       latestLifer: '最新加新',
-      posterLatest: '最新加新：{name}，{date}',
-      posterLatestPlace: '最新加新：{name}，{date}，{place}',
       oldLinkTitle: '{name}的生涯清单',
       untitledTitle: { one: '一份生涯清单：{n}种', other: '一份生涯清单：{n}种' },
       colours: { label: '外观', light: '浅色', dark: '深色' },

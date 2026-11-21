@@ -141,14 +141,18 @@ describe('everything on the desktop is inside the central column, clear of the t
 // room is kept without the row too (story, post, square: the collage ends a credit line higher, so the birds clear the
 // lifted hairline), and the portrait poster keeps room for its foot's second line with the latest lifer (print).
 // The layouts retaken for round 6, item 12: a small group's size cap (maxTile and maxSide of the 12-bird layouts, GROUP_TILE
-// of the collage's shorter side; nothing else; the draws unchanged). tests/share-image-golden.test.ts's logs show each difference.
+// of the collage's shorter side; nothing else; the draws unchanged). Retaken for round 6, item 24 (print and printLandscape
+// only): the latest lifer is the images' one-line row above the hairline, so with it on the poster's collage ends the row
+// and its gaps higher (its tiles and count move), the row's sticker, name and detail are drawn there, and the foot is the
+// wordmark and the credit alone (no "Latest lifer: …" line, no sticker in it); with it off the portrait poster's collage
+// takes back the second foot line it kept. tests/share-image-golden.test.ts's logs show each difference.
 const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: string }> = {
   story: { layout: '2a758cf254b2e9b93ad225fc67ab50c7ea0161d7', draws: 'cedcdd4cd0cf1f37033095f2a7dc1f4595e5c5d4' },
   post: { layout: '12fe6e864052a8f663dcdf9454cf6038aab9411e', draws: 'f28f3813bc7e18df968ddf2573d5e089dab88981' },
   square: { layout: '50f8870f865f176da7c25b3912113ad1485a0108', draws: '6c59127de854f9b1bf552bc828edf785853259c4' },
   wide: { layout: '08fbc77c3a7dddb33e4fcb3a29470b3c95206cc9', draws: '162f057d61c2a3b975bce863d8827669c71fa798' },
-  print: { layout: '7e31248b24570465c3ee08f396f08f59412dc880', draws: '2c3bb2a19c65614da6256d60b9f3f825681e85cb' },
-  printLandscape: { layout: '4753e9a64f9078440232e31ba21e5fc80f46ba12', draws: '21ba5288b3d830e3e1713889de2e15291860baa5' },
+  print: { layout: '539e3566a02bffc91eef031e75e05d75616f1d1e', draws: '6d6b3d85b3a21241845b45a826a57b252c2e90c0' },
+  printLandscape: { layout: 'be645517b968335ba79d09e666410a687dbfb1e8', draws: '5707da805c7105549222c84867ae39ba98e870ee' },
 }
 const sha = (s: string) => createHash('sha1').update(s).digest('hex')
 
@@ -180,18 +184,14 @@ describe('the other formats draw as before', () => {
 describe('the latest lifer switch', () => {
   const ALL: CardFormat[] = ['story', 'post', 'square', 'wide', 'desktop', 'print', 'printLandscape']
   for (const f of ALL) {
-    // Round 6: without the row an image's collage takes its room, so it packs for that taller frame (no empty bands); a
-    // poster has no row (its foot names the lifer), so the landscape one's pack is the same either way, and the portrait
-    // one's, whose foot keeps room for the lifer's own line (item 10), is made for its taller frame without it.
-    it(`${f}: ${f === 'printLandscape' ? 'the pack spec is the same with the row on and off' : 'without the row the pack is made for the taller frame'}, with and without a name and a filter`, () => {
+    // Round 6: without the row the collage takes its room, so it packs for that taller frame (no empty bands); a poster
+    // too, since its latest lifer is the images' row above the hairline (item 24).
+    it(`${f}: without the row the pack is made for the taller frame, with and without a name and a filter`, () => {
       for (const name of [false, true]) for (const filter of [false, true]) {
         const on = imagePackSpec(f, { name, filter, latest: true, count: 185 })
         const off = imagePackSpec(f, { name, filter, latest: false, count: 185 })
-        if (f === 'printLandscape') expect(off).toEqual(on)
-        else {
-          expect(off.aspect).toBeLessThan(on.aspect)
-          expect(off.maxTile).toBe(on.maxTile)
-        }
+        expect(off.aspect).toBeLessThan(on.aspect)
+        expect(off.maxTile).toBe(on.maxTile)
       }
     })
     it(`${f}: the tiles keep their order and their relative places with the row off`, async () => {
@@ -205,10 +205,8 @@ describe('the latest lifer switch', () => {
       expect(off.tiles.map((t) => bird(t.url))).toEqual(on.tiles.map((t) => bird(t.url)))
       const rank = (xs: number[]) => xs.map((v) => xs.filter((u) => u < v - 1e-6).length)
       for (const k of [0, 1]) expect(rank(off.tiles.map((t) => mid(t)[k]))).toEqual(rank(on.tiles.map((t) => mid(t)[k])))
-      // The images: the same pack, fitted into the taller area. The poster has no row (its foot names the lifer), so the
-      // landscape one's collage is the same with the switch on or off; the portrait one's takes its foot's second line.
-      if (f === 'printLandscape') expect(off.L.collage).toEqual(on.L.collage)
-      else expect(off.L.collage.h).toBeGreaterThan(on.L.collage.h)
+      // The same pack, fitted into the taller area (a poster's too: its row is above the hairline, item 24).
+      expect(off.L.collage.h).toBeGreaterThan(on.L.collage.h)
     })
   }
 })

@@ -4,7 +4,6 @@
 // its words (the collage's latest lifer and the Tree's oldest lineage alike). Synthetic list only.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { en } from '@/i18n/messages/en'
-import { ja } from '@/i18n/messages/ja'
 import type { ListEntry } from '@/lib/list/model'
 import * as image from '@/lib/share/image'
 import { printDesign, printScale } from '@/lib/share/print'
@@ -23,24 +22,22 @@ describe('where the latest lifer was seen', () => {
     expect(image.liferPlace({ country: 'KE' }, regions)).toBe('Kenya')
     expect(image.liferPlace(undefined, regions)).toBe('')
   })
-  it('follows the date on the row\'s label and in the poster\'s words', () => {
+  it('follows the date on the row\'s label', () => {
     expect(image.latestText({ com: 'Rock Sandpiper', date: '2026-10', place: 'British Columbia, Canada' }, en.ui))
       .toEqual({ label: 'Latest lifer · Oct 2026 · British Columbia, Canada', name: 'Rock Sandpiper', head: 'Latest lifer · Oct 2026', place: 'British Columbia, Canada' })
     expect(image.latestText({ com: 'Rock Sandpiper', date: '2026-10' }, en.ui)).toEqual({ label: 'Latest lifer · Oct 2026', name: 'Rock Sandpiper' })
-    expect(image.posterLatest('Rock Sandpiper', '2026-10', en.ui, 'British Columbia, Canada')).toBe('Latest lifer: Rock Sandpiper, Oct 2026, British Columbia, Canada')
-    expect(image.posterLatest('Rock Sandpiper', '2026-10', en.ui)).toBe('Latest lifer: Rock Sandpiper, Oct 2026')
-    expect(image.posterLatest('イワトウネン', '2026-10', ja.ui, 'カナダ')).toBe(`${ja.ui.share.latestLifer}：イワトウネン、2026年10月、カナダ`)
   })
-  it('is drawn on the share image and named on the poster only when the dialog gives the places\' names', async () => {
+  it('is drawn on the share image and the poster\'s row only when the dialog gives the places\' names', async () => {
     const logs = installStubs()
     image.clearStickerCache()
     const canvas = await image.drawShareImage({ format: 'story', entries: seenAt({ country: 'CA', sub1: 'CA-BC' }), species, pack, now: NOW, theme: 'light', strings: en.ui, regions })
     const texts = drawsOnly(logs.get(canvas as unknown as object)!).filter((l) => l.startsWith('fillText('))
     expect(texts.some((l) => l.startsWith('fillText("LATEST LIFER · ') && l.includes(' · BRITISH COLUMBIA, CANADA"'))).toBe(true)
     const card = await image.prepareCard({ format: 'print', printSize: 'A2', entries: seenAt({ country: 'KE' }), species, pack, now: NOW, theme: 'light', strings: en.ui, regions })
-    expect(card.posterLatest).toMatch(/^Latest lifer: Synthetic Bird 13, .*, Kenya$/)
+    expect(card.latest).toMatchObject({ name: 'Synthetic Bird 13', place: 'Kenya' })
+    expect(card.latest!.label).toMatch(/^Latest lifer · .* · Kenya$/)
     const none = await image.prepareCard({ format: 'print', printSize: 'A2', entries: seenAt({ country: 'KE' }), species, pack, now: NOW, theme: 'light', strings: en.ui })
-    expect(none.posterLatest).not.toContain('Kenya')
+    expect(none.latest!.label).not.toContain('Kenya')
   })
   it('on one line (Post): the name, then the detail; a place too long for the line beside the name is dropped, nothing cut', async () => {
     const draw = async (monoEm: number) => {
@@ -106,48 +103,37 @@ describe('the room above the latest lifer row', () => {
   })
 })
 
-describe('the poster foot\'s sticker', () => {
+describe('the poster\'s row (round 6, item 24: the images\' row above the hairline, no longer a line in the foot)', () => {
   const opts = (format: 'print' | 'printLandscape', over: Partial<image.ShareImageOpts> = {}) =>
     ({ format, printSize: 'A2', entries, species, pack, now: NOW, theme: 'light', strings: en.ui, ...over }) as image.ShareImageOpts
-  it('draws the bird\'s sticker before its words at the foot\'s right end, sized to the line, on the line\'s capitals', async () => {
-    // Without a DOM the measures are estimates: Geist Mono 0.6 em a character.
-    const card = await image.prepareCard(opts('printLandscape'), printScale('A2'))
-    const { L } = card
-    expect(L.latest).toBeUndefined()
-    expect(card.credit.latestBelow).toBe(false)
-    const px = card.credit.size, side = image.posterIcon(px)
-    expect(side).toBe(24)
-    const row = species.byCode.get('bird13')!
-    const textW = card.posterLatest!.length * 0.6 * px
-    const lifer = card.lifer!
-    expect(Math.max(lifer.w, lifer.h)).toBeCloseTo(side, 6)
-    // Contained in its square, which ends half the line's size before the words.
-    expect(lifer.x + lifer.w / 2).toBeCloseTo(L.collage.x + L.collage.w - textW - px * 0.5 - side / 2, 6)
-    expect(lifer.y + lifer.h / 2).toBeCloseTo(L.footer.y + L.footer.size * 0.8 - 0.35 * px, 6)
-    expect(lifer.url).toContain(row.code)
-    // The poster's tiles include it, so its strips fetch and draw it.
-    expect(image.cardUrls(card)).toContain(lifer.url)
+  it('draws the bird\'s sticker in the row\'s square at the left of the content, above the hairline, in both orientations', async () => {
+    for (const format of ['print', 'printLandscape'] as const) {
+      const card = await image.prepareCard(opts(format), printScale('A2'))
+      const { L } = card
+      const R = L.latest!
+      expect(R).toMatchObject({ x: L.collage.x, icon: image.SMALL_INLINE.icon, inline: true })
+      expect(R.y + R.icon).toBeLessThan(L.rule.y)
+      expect(card.credit).toEqual({ size: image.POSTER_FOOT.line, below: false })
+      const lifer = card.lifer!
+      expect(Math.max(lifer.w, lifer.h)).toBeCloseTo(R.icon, 6)
+      expect(lifer.x + lifer.w / 2).toBeCloseTo(R.x + R.icon / 2, 6)
+      expect(lifer.y + lifer.h / 2).toBeCloseTo(R.y + R.icon / 2, 6)
+      expect(lifer.url).toContain('bird13')
+      // The poster's tiles include it, so its strips fetch and draw it.
+      expect(image.cardUrls(card)).toContain(lifer.url)
+    }
   })
-  it('keeps it before the words when they take a line of their own', async () => {
-    const card = await image.prepareCard(opts('print', { nameOf: (r) => (r.code === 'bird13' ? 'A Very Long Synthetic Bird Name For The Foot' : r.com) }), printScale('A2'))
-    expect(card.credit.latestBelow).toBe(true)
-    const px = card.credit.size
-    const textW = card.posterLatest!.length * 0.6 * px
-    expect(card.lifer!.x + card.lifer!.w / 2).toBeCloseTo(card.L.collage.x + card.L.collage.w - textW - px * 0.5 - image.posterIcon(px) / 2, 6)
-    // On the bottom line, the right part's own.
-    expect(card.lifer!.y + card.lifer!.h / 2).toBeCloseTo(card.L.footer.y + card.L.footer.size * 0.8 - 0.35 * px, 6)
-  })
-  it('is the Tree\'s oldest lineage too: one foot line, the bird\'s sticker then "Oldest lineage: …", no big block', async () => {
+  it('is the Tree\'s oldest lineage too, in the same row: the name, then "Oldest lineage · …"', async () => {
     const row = species.byCode.get('bird3')!
-    const card = await image.prepareCard(opts('print', { latestAs: { row, label: 'Oldest lineage · about 39 million years', poster: 'Oldest lineage: Synthetic Bird 3, about 39 million years' } }), printScale('A2'))
-    expect(card.L.latest).toBeUndefined()
-    expect(card.posterLatest).toBe('Oldest lineage: Synthetic Bird 3, about 39 million years')
+    const card = await image.prepareCard(opts('print', { latestAs: { row, label: 'Oldest lineage · about 39 million years', detail: 'Oldest lineage · split from its closest relatives about 39 million years ago' } }), printScale('A2'))
+    expect(card.L.latest).toMatchObject({ inline: true })
+    expect(card.latest).toEqual({ label: 'Oldest lineage · about 39 million years', name: 'Synthetic Bird 3', detail: 'Oldest lineage · split from its closest relatives about 39 million years ago' })
     expect(card.lifer!.url).toContain('bird3')
-    expect(Math.max(card.lifer!.w, card.lifer!.h)).toBeCloseTo(image.posterIcon(card.credit.size), 6)
   })
   it('draws no sticker without the latest lifer (Show latest lifer off)', async () => {
     const card = await image.prepareCard(opts('print', { latest: false }), printScale('A2'))
-    expect(card.posterLatest).toBeUndefined()
+    expect(card.latest).toBeUndefined()
+    expect(card.L.latest).toBeUndefined()
     expect(card.lifer).toBeNull()
     expect(printDesign('A2')[0]).toBe(1080)
   })

@@ -502,8 +502,6 @@ export const de: Messages = {
       filtersNoLabel: 'Mit deinen Filtern.',
       clearFilters: 'Filter löschen',
       latestLifer: 'Neueste Art',
-      posterLatest: 'Neueste Art: {name}, {date}',
-      posterLatestPlace: 'Neueste Art: {name}, {date}, {place}',
       oldLinkTitle: 'Lebensliste von {name}',
       untitledTitle: { one: 'Eine Lebensliste: {n} Art', other: 'Eine Lebensliste: {n} Arten' },
       colours: { label: 'Darstellung', light: 'Hell', dark: 'Dunkel' },

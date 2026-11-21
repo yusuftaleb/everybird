@@ -499,8 +499,6 @@ export const it: Messages = {
       filtersNoLabel: 'Con i tuoi filtri.',
       clearFilters: 'Rimuovi i filtri',
       latestLifer: 'Ultima specie nuova',
-      posterLatest: 'Ultima specie nuova: {name}, {date}',
-      posterLatestPlace: 'Ultima specie nuova: {name}, {date}, {place}',
       oldLinkTitle: 'La lista di vita di {name}',
       untitledTitle: { one: 'Una lista di vita: {n} specie', other: 'Una lista di vita: {n} specie' },
       colours: { label: 'Aspetto', light: 'Chiaro', dark: 'Scuro' },

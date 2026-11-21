@@ -167,17 +167,34 @@ describe('the option rows and Print\'s actions', () => {
     expect(css).toMatch(/@container \(max-width: 399px\) \{[^}]*\}\s*\.eb-share \.eb-share-seg \.eb-seg-btn \{ padding: 0 6px; \}/)
     expect(css).toMatch(/@container \(max-width: 289px\) \{[^}]*\}\s*\.eb-share \.eb-share-seg \.eb-seg-btn \{ padding: 0 4px; font-size: 12px; \}/)
   })
-  /** The Totals row's chips (round 6): the Map's species and countries, the Tree's four ranks, in the image's words. */
+  /** The Totals row's chips (round 6, item 25: the site's .eb-chip, a pick-several row): the Map's species and
+   *  countries, the Tree's four ranks, in the image's words. A chip is its 1px border, 12px of padding a side and its
+   *  14px word, with the 14px check and the chip's 6px gap while on (all on at every open); 8px apart. */
+  const chipW = (label: string) => 2 + 2 * 12 + 14 + 6 + measured(label, 14)
+  const chipsW = (labels: string[]) => labels.reduce((n, l) => n + chipW(l), 0) + 8 * (labels.length - 1)
+  it('has the chips\' numbers the budget assumes', () => {
+    const filters = readFileSync('src/components/filters/filters.css', 'utf8')
+    expect(filters).toMatch(/\.eb-chip \{[^}]*gap: 6px;[^}]*padding: 4px 12px;[^}]*border: 1px solid[^}]*font-size: 14px;/)
+    expect(css).toMatch(/\.eb-share-chips \{[^}]*gap: 8px;/)
+    expect(css).toMatch(/\.eb-share-chips \.eb-chip-icon \{ width: 14px; height: 14px; \}/)
+  })
+  it('keeps every Totals chip whole at every column: the row wraps between chips, never inside one', () => {
+    const over: string[] = []
+    for (const [lang, m] of Object.entries(LANG)) for (const label of Object.values(totalChips(m)).flat()) {
+      if (chipW(label) > COLUMNS.phone) over.push(`${lang} "${label}" on a phone`)
+    }
+    expect(over).toEqual([])
+  })
   const totalChips = (m: (typeof LANG)[keyof typeof LANG]) => {
     const r = m.ui.collage.tree.rank
     return { mapTotals: [r.species, m.ui.places.head.country], treeTotals: [r.species, r.genera, r.families, r.orders] }
   }
-  it('keeps Count, Appearance, the Tree\'s arrangement, the Totals chips and Compare\'s What whole in every language at every column', () => {
+  it('keeps Count, Appearance, the Tree\'s arrangement and Compare\'s What whole in every language at every column', () => {
     const over: string[] = []
     for (const [lang, m] of Object.entries(LANG)) {
       const c = m.ui.share.countSize, col = m.ui.share.colours, tl = m.ui.collage.tree.layouts
       const w = m.ui.share.what
-      const sets = { count: [c.hide, c.short.small, c.short.medium, c.short.large, c.title], colours: [col.light, col.dark], tree: [tl.fan, tl.circle, tl.rows], what: [w.comparison, w.wish], ...totalChips(m) }
+      const sets = { count: [c.hide, c.short.small, c.short.medium, c.short.large, c.title], colours: [col.light, col.dark], tree: [tl.fan, tl.circle, tl.rows], what: [w.comparison, w.wish] }
       for (const [name, labels] of Object.entries(sets)) {
         if (segW(labels, 14, 10) > COLUMNS.desktop) over.push(`${lang} ${name} in the 420px column`)
         if (segW(labels, 14, 6) > COLUMNS.narrow) over.push(`${lang} ${name} in the 300px column`)
@@ -195,14 +212,19 @@ describe('the option rows and Print\'s actions', () => {
       const rows: [string, string[]][] = [
         [c.label, [c.hide, c.short.small, c.short.medium, c.short.large, c.title]], [s.colours.label, [s.colours.light, s.colours.dark]],
         [s.arrange.label, [tl.fan, tl.circle, tl.rows]], [s.what.label, [s.what.comparison, s.what.wish]],
-        [s.totals, totalChips(m).mapTotals], [s.totals, totalChips(m).treeTotals],
       ]
       for (const [label, labels] of rows) {
         const need = measured(label, 16) + 16 + segW(labels, 14, 10)
         if (need > COLUMNS.laptop) over.push(`${lang} "${label}": ${Math.ceil(need)}px`)
       }
+      for (const labels of Object.values(totalChips(m))) {
+        const need = measured(s.totals, 16) + 16 + chipsW(labels)
+        if (need > COLUMNS.laptop) over.push(`${lang} ${labels.length === 4 ? 'tree' : 'map'} Totals`)
+      }
     }
-    expect(over).toEqual([])
+    // The Tree's four Totals chips take a line under their label in Spanish, Dutch and German (round 6, item 25: chips are
+    // wider than segments; the row is 40px taller there, inside the closed column's budget, tests/share-layout.test.ts).
+    expect(over).toEqual(['es tree Totals', 'nl tree Totals', 'de tree Totals'])
   })
 
   it('puts Print\'s two actions on one row at the 420px column in every language, labels never wrapped', () => {
