@@ -25,7 +25,9 @@ const ShareDialog = lazy(() => import('@/components/share/ShareDialog'))
 /**
  * `/` with a list: the birder's collage (count, filters, controls, search, the view, tooltip, card and editing, legend)
  * under a one-row head with "Add birds" (`onAdd`, the Add birds dialog), Print and Share, the page's main action: Share
- * opens the share dialog for the birds on screen in whichever view is open, Print the same dialog on the poster. Removing a bird can be undone for a few seconds.
+ * opens the share dialog for the birds on screen in whichever view is open, Print the same dialog on the poster. Removing a bird can be undone for a few seconds:
+ * a removal from the keyboard puts focus on Undo (the card and its Remove are gone), one by mouse or touch leaves focus
+ * alone so the toast times out; after Undo, focus goes to the restored bird (CollageView's `showRef`, the search's path).
  * Unmatched rows are mentioned under the stats, with the way to fix them on Settings.
  */
 export function CollagePage({ onAdd }: { onAdd: () => void }) {
@@ -37,7 +39,9 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
   // Live, not taken when Share is pressed: the Tree's level follows the taxonomy filter, so after the dialog's Clear
   // filters its image draws the level on screen, as if opened unfiltered.
   const [shareAt, onShareAt] = useState<ShareAt>({})
-  const [removed, setRemoved] = useState<(Removal & { before: Edits }) | null>(null)
+  const [removed, setRemoved] = useState<(Removal & { before: Edits; keyboard: boolean }) | null>(null)
+  // Shows a bird where it stands (scrolled to, ringed, focused), once its layout has it: the restored bird after Undo.
+  const showBird = useRef<((code: string) => void) | null>(null)
   const { saved } = state
   const ready = !!data
 
@@ -46,6 +50,8 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
     if (!removed) return
     dispatch({ type: 'edit', edits: undoEdit(state.saved.edits, removed.before, removed.codes) })
     setRemoved(null)
+    // Undo goes with its toast: focus moves to the bird it put back.
+    if (removed.codes[0]) showBird.current?.(removed.codes[0])
   }, [removed, state.saved.edits, dispatch])
   const dismiss = useCallback(() => setRemoved(null), [])
 
@@ -57,8 +63,8 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
         entry={entry}
         edits={saved.edits}
         dispatch={dispatch}
-        onRemoved={() => {
-          setRemoved({ codes: [entry.code], text: removedText([data ? nameOfCode(data.species.byCode, entry.code) : entry.code], t), before: editsRef.current })
+        onRemoved={(keyboard) => {
+          setRemoved({ codes: [entry.code], text: removedText([data ? nameOfCode(data.species.byCode, entry.code) : entry.code], t), before: editsRef.current, keyboard })
           close()
         }}
       />
@@ -109,6 +115,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
             whose="your"
             cardActions={actions}
             onShareAt={onShareAt}
+            showRef={showBird}
             notice={unmatched > 0 ? (
               <p className="eb-mono eb-unmatched" data-testid="unmatched-note">
                 {plural(t.collage.unmatched, unmatched, { n: formatInt(unmatched, t.num) })} · <Link href="/settings#match">{plural(t.collage.fix, unmatched)}</Link>
@@ -122,7 +129,8 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
           )}
         </>
       )}
-      <UndoToast removal={removed} onUndo={undo} onDone={dismiss} />
+      {/* Focus moves to Undo only for a keyboard removal: a mouse or touch removal leaves it, so the toast times out. */}
+      <UndoToast removal={removed} onUndo={undo} onDone={dismiss} focus={!!removed?.keyboard} />
     </main>
   )
 }

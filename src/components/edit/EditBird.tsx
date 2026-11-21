@@ -14,7 +14,8 @@ const MARKS: { k: MarkKey & ('heard' | 'dead'); sym: string }[] = [
   { k: 'dead', sym: '†' },
 ]
 
-type Props = { entry: ListEntry; edits: Edits; dispatch: (a: Action) => void; onRemoved: () => void }
+/** `onRemoved(keyboard)`: the bird was removed; `keyboard` when Remove was pressed from the keyboard (Enter or Space). */
+type Props = { entry: ListEntry; edits: Edits; dispatch: (a: Action) => void; onRemoved: (keyboard: boolean) => void }
 
 /** In the bird card: set or clear each mark, go back to the marks from the records (under the marks), or remove the
  *  bird; the card's illustration link (CardEndLink) shares the Remove row, at its right, never wrapping under it. */
@@ -29,12 +30,12 @@ export function EditBird({ entry, edits, dispatch, onRemoved }: Props) {
     delete marks[entry.code]
     edit({ marks })
   }
-  const remove = () => {
+  const remove = (keyboard: boolean) => {
     edit({
       removed: edits.removed.includes(entry.code) ? edits.removed : [...edits.removed, entry.code],
       added: edits.added.filter((r) => r.code !== entry.code),
     })
-    onRemoved()
+    onRemoved(keyboard)
   }
   return (
     <div className="eb-edit">
@@ -54,7 +55,7 @@ export function EditBird({ entry, edits, dispatch, onRemoved }: Props) {
         </button>
       )}
       <div className="eb-edit-row">
-        <button type="button" className="eb-textbtn eb-edit-remove" onClick={remove}>
+        <button type="button" className="eb-textbtn eb-edit-remove" onClick={(e) => remove(e.detail === 0)}>
           <Trash aria-hidden="true" focusable="false" />
           {t.card.remove}
         </button>

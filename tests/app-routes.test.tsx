@@ -631,18 +631,24 @@ describe('editing', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Heard only/ }))
     expect(screen.getByRole('dialog').querySelector('.eb-card-date')).not.toHaveTextContent('Heard only')
 
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
+    // A mouse press (detail 1) removes it and leaves focus alone, so the toast can time out.
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }), { detail: 1 })
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
     expect(screen.queryByRole('dialog')).toBeNull()
     // A few seconds to undo it.
     expect(screen.getByText('Removed Northern Flicker.')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus()) // keyboard users land on it
+    await new Promise((r) => requestAnimationFrame(r))
+    expect(screen.getByRole('button', { name: 'Undo' })).not.toHaveFocus()
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^3 species/))
     expect(screen.queryByText('Removed Northern Flicker.')).toBeNull()
+    // Undo's button goes with its toast: focus moves to the bird it put back.
+    await waitFor(() => expect(within(screen.getByRole('list', { name: 'Life list' })).getByRole('button', { name: /Northern Flicker/ })).toHaveFocus())
     fireEvent.click(within(screen.getByRole('list', { name: 'Life list' })).getByRole('button', { name: /Northern Flicker/ }))
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
+    // From the keyboard (Enter or Space: detail 0) the card's Remove hands focus to Undo, since the card has gone.
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }), { detail: 0 })
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 species/))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus())
 
     // Add by hand (Settings' Add birds): the removed species comes back at once, with a date and a region.
     await go('/settings')

@@ -1,7 +1,7 @@
 'use client'
 // "Removed … · Undo": the toast after a removal (the bird card's Remove) or a change by hand ("Added … · Undo" too). It
 // takes focus as it appears (the control that removed the bird has gone, so keyboard users land on Undo) unless
-// `focus` is false (Add by hand keeps focus on its list), stays 5 s, and waits while it has focus or the pointer
+// `focus` is false (Add by hand keeps focus on its list; the collage asks only after a keyboard removal), stays 5 s, and waits while it has focus or the pointer
 // is on it. The slot is a live region, so the line is announced. Built on the site's one toast (Toast.tsx).
 import { useEffect, useRef } from 'react'
 import { plural } from '@/i18n/core'

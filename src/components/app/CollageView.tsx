@@ -8,7 +8,7 @@
 import { trackFilterUsed } from '@/lib/analytics'
 import { useArrangement } from '@/lib/arrangement'
 import { newlySetKinds } from '@/lib/list/filter-kinds'
-import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { BirdCard } from '@/components/collage/BirdCard'
 import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage, revealBird } from '@/components/collage/Collage'
@@ -81,6 +81,8 @@ type Props = {
   seed?: readonly StateLayout[]
   /** Told the level the Map or Tree view has open as it changes, for the page's Share button to draw the same. */
   onShareAt?: (at: ShareAt) => void
+  /** Filled with a function that shows a bird as a search pick does, once the layout has it (CollagePage: the bird put back by Undo). */
+  showRef?: RefObject<((code: string) => void) | null>
 }
 
 const pad = (d: string) => (d.length === 4 ? `${d}-00-00` : d.length === 7 ? `${d}-00` : d)
@@ -143,7 +145,7 @@ function latestLine(name: string, date: string | undefined, t: Ui): ReactNode {
   return rich(fmt(t.collage.legend.latestOn, { name, date: shown }), { time: (chunk) => <time dateTime={date}>{chunk}</time> })
 }
 
-export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShareAt, whose = 'this' }: Props) {
+export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShareAt, showRef, whose = 'this' }: Props) {
   const { list, filter, mode, listOrder, sci, seen } = state
   // No places to map (a shared link without them): no Map tab, and a carried-over Map view shows the collage.
   const noMap = !!hideSections?.includes('places')
@@ -324,6 +326,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
     dispatch({ type: 'filter', filter: next })
     setPending({ code: h.value, key: filterKey(next), at: Date.now() })
   }, [filter, fk, shownList, entries, species, seen, dispatch, show, view])
+  // The page's way to show a bird the list is about to have again (Undo): the out-of-view pick's wait, below.
+  useImperativeHandle(showRef, () => (code: string) => setPending({ code, key: fk, at: Date.now() }), [fk])
   // The out-of-view pick: wait for the new filter's layout (the list re-renders at once), then for the glide. It lapses
   // when the filter is changed by hand meanwhile, or after PENDING_MS, so a stale tooltip can't pop up later.
   useEffect(() => {
