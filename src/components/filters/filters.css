@@ -20,11 +20,11 @@
   border: 1px solid var(--hairline); background: var(--surface); color: var(--ink);
   font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; -webkit-tap-highlight-color: transparent;
   border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  transition: border-color .15s var(--eb-ease), opacity .2s ease;
+  transition: border-color .15s var(--eb-ease), color .15s var(--eb-ease), opacity .2s ease;
 }
 .eb-chip::after { content: ''; position: absolute; inset: -6px -3px; } /* 44px tall tap target */
 .eb-chip[lang] { font-style: italic; }
-.eb-chip[data-selected] { border-color: var(--accent); }
+.eb-chip[data-selected] { border-color: var(--accent); color: var(--accent); } /* the count keeps its Muted (.eb-count) */
 .eb-level[data-chosen] .eb-chip:not([data-selected]) { opacity: .7; }
 .eb-count { color: var(--muted); font-style: normal; font-variant-numeric: tabular-nums; font-weight: 500; }
 /* A country's flag (components/Flag.tsx), as yusuftaleb.com's places: 18×13, 2px corners. */

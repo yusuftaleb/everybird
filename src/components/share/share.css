@@ -296,9 +296,8 @@
 }
 @container (max-width: 289px) { @media (pointer: coarse) { .eb-share .eb-share-count .eb-seg-btn:nth-child(n+2):nth-child(-n+4) { flex-basis: 32px; } } }
 /* Pick several (Totals, round 6, item 25): the site's chips (filters.css .eb-chip), 8px apart, at the row's right and
-   wrapping; on, the Accent border and text with a 14px check before the word. Pick-one choices stay segmented. */
+   wrapping; on, the Accent border and text (every selected chip's). Pick-one choices stay segmented. */
 .eb-share-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; min-width: 0; }
-.eb-share-chips .eb-chip[data-selected] { color: var(--accent); }
 @media (pointer: fine) { .eb-share .eb-share-opt:has(> .eb-share-chips) { min-height: 40px; } }
 /* A choice that can't be picked (Compare's Wish list with no wish list): Muted text at full strength, as the disabled
    switch (the Quiet Disabled Rule, P3; never a fade), still focusable, its reason its tooltip and description. */
