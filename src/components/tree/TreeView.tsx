@@ -114,7 +114,7 @@ function useWidth(el: HTMLElement | null): number {
   return w
 }
 
-type Measure = (text: string, px: number, weight: number, mono?: boolean) => number
+type Measure = (text: string, px: number, weight: number, mono?: boolean, italic?: boolean) => number
 /** Text widths measured so far (by font and text), and the canvas they are measured on (null where there is none). */
 const widths = new Map<string, number>()
 let measuring: CanvasRenderingContext2D | null | undefined
@@ -144,9 +144,10 @@ function useMeasure(el: HTMLElement | null): Measure {
     const body = css?.fontFamily || 'sans-serif'
     const mono = css?.getPropertyValue('--font-mono').trim() || 'monospace'
     // The counts are .eb-mono: upper case with .06em letter-spacing, which the canvas does not apply, so add both.
-    return (text, px, weight, isMono) => isMono
+    // Latin is drawn italic (tree.css), and a bold italic runs a little wider: measure it italic.
+    return (text, px, weight, isMono, italic) => isMono
       ? textWidth(text.toUpperCase(), `${weight} ${px}px ${mono}`, text.length * px * 0.62) + text.length * px * 0.06
-      : textWidth(text, `${weight} ${px}px ${body}`, text.length * px * 0.56)
+      : textWidth(text, `${italic ? 'italic ' : ''}${weight} ${px}px ${body}`, text.length * px * 0.56)
     // `fonts` only says the fonts have loaded: measure again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [el, fonts])
@@ -265,12 +266,19 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const spans = useMemo((): LabelSpan[] => {
     if (!view || !width) return []
     return tipsOf(view).map((r) => {
-      const name = r.kind === 'species' ? (sci ? r.row.sci : displayName(r.row)) : nameAt(r.row, view.tips)[0]
+      const [name, latin] = r.kind === 'species' ? [sci ? r.row.sci : displayName(r.row), sci] : nameAt(r.row, view.tips)
       const c = tipOfText(r)
-      // The mark of a split group, then right after it the groups inside (in the label's flex gap).
-      const other = r.kind === 'group' && r.with?.length ? LABEL_GAP * 13 + measure(withWords(r.with, view.tips).replace(/<\/?[ab]>/g, ''), 13, 500) : 0
+      // The mark of a split group, then right after it the groups inside (in the label's flex gap): "with" and "and"
+      // upright, the names between <a> and <b> italic where they are Latin, as withText draws them.
+      const withLatin = view.tips === 'genera' || sci
+      const other = r.kind === 'group' && r.with?.length
+        ? LABEL_GAP * 13 + withWords(r.with, view.tips).split(/(<a>.*?<\/a>|<b>.*?<\/b>)/).reduce((w, part) => {
+          const inner = part.replace(/<\/?[ab]>/g, '')
+          return w + (inner ? measure(inner, 13, 500, false, inner !== part && withLatin) : 0)
+        }, 0)
+        : 0
       return {
-        name: (measure(name, 13, 600) + (r.kind === 'group' && r.with ? MARK_W : 0) + other) / 13,
+        name: (measure(name, 13, 600, false, latin) + (r.kind === 'group' && r.with ? MARK_W : 0) + other) / 13,
         count: c ? measure(c, 11, 500, true) / 13 : 0,
         on: r.kind === 'species' ? r.on : r.on > 0,
       }
