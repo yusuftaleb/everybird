@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import linkIndex from '../data/link-index.json'
 import {
-  barInGroup, compareGroups, evenly, gridCols, groupOfMask, partInGroup, groupPayload, linksIn, listColor, listColorHex, memberships, pasteRow, ranking, regionCounts, rowName,
-  type CompareRow, type GroupId,
+  barInChoice, choiceAt, choiceCodes, choiceWords, firstChoice, gridCols, groupPayload, joinNames, linksIn, listColor, listColorHex, memberships, partInChoice,
+  pasteRow, ranking, regionCounts, rowName, toggleList, type Choice, type CompareRow,
 } from '@/lib/share/compare'
 import { SHARE_COLORS } from '@/lib/share/image'
 import { makeCompareLink } from '@/lib/share/make-link'
@@ -88,76 +88,107 @@ describe('comparison token', () => {
   })
 })
 
-describe('compareGroups', () => {
+describe('what Compare shows (choiceCodes)', () => {
   const p = (...idx: number[]): SharePayload => ({ v: 1, birds: idx.map((i) => ({ code: C(i) })) })
-  const byId = (lists: SharePayload[], you = false) => new Map<GroupId, string[]>(compareGroups(lists, you).map((g) => [g.id, sorted(g.codes)]))
-  it('two lists: yet to see (with yours), both, only each, every bird, in the chips’ order', () => {
-    const g = compareGroups([p(1, 2, 3, 4), p(3, 4, 5)], true)
-    expect(g.map((x) => x.id)).toEqual(['need', 'all', 0, 1, 'every'])
-    const m = byId([p(1, 2, 3, 4), p(3, 4, 5)], true)
-    expect(m.get('need')).toEqual([C(5)])
-    expect(m.get('all')).toEqual(sorted([C(3), C(4)]))
-    expect(m.get(0)).toEqual(sorted([C(1), C(2)]))
-    expect(m.get(1)).toEqual([C(5)])
-    expect(m.get('every')).toHaveLength(5)
-    // Without your own list first, no "Yet to see".
-    expect(compareGroups([p(1), p(2)]).map((x) => x.id)).toEqual(['all', 0, 1, 'every'])
+  const of = (lists: SharePayload[], c: Choice) => sorted(choiceCodes(lists, c))
+  it('two lists: yet to see, each alone, both, every bird', () => {
+    const l = [p(1, 2, 3, 4), p(3, 4, 5)]
+    expect(of(l, 'need')).toEqual([C(5)])
+    expect(of(l, 0b01)).toEqual(sorted([C(1), C(2)]))
+    expect(of(l, 0b10)).toEqual([C(5)])
+    expect(of(l, 0b11)).toEqual(sorted([C(3), C(4)]))
+    expect(of(l, 'every')).toHaveLength(5)
   })
-  it('three lists: on every list and each one alone (a bird on two of three is in neither); yet to see is any other list’s', () => {
-    const m = byId([p(1, 2, 3), p(2, 3, 4), p(3, 5)], true)
-    expect(m.get('all')).toEqual([C(3)])
-    expect(m.get(0)).toEqual([C(1)])
-    expect(m.get(1)).toEqual([C(4)])
-    expect(m.get(2)).toEqual([C(5)])
-    expect(m.get('need')).toEqual(sorted([C(4), C(5)]))
+  it('people chosen: the birds on exactly those lists and on no other, a region of the circles', () => {
+    // Kalvin, Kalin, Isis (synthetic): 1 only Kalvin's, 2 Kalvin's and Kalin's, 3 on every list, 4 Kalin's and Isis's, 5 only Isis's.
+    const l = [p(1, 2, 3), p(2, 3, 4), p(3, 4, 5)]
+    expect(of(l, 0b001)).toEqual([C(1)])
+    expect(of(l, 0b011)).toEqual([C(2)])
+    expect(of(l, 0b111)).toEqual([C(3)])
+    expect(of(l, 0b110)).toEqual([C(4)])
+    expect(of(l, 0b101)).toEqual([])
+    expect(of(l, 'need')).toEqual(sorted([C(4), C(5)]))
   })
-  it('the chips, the diagram and the bars count from one source and agree', () => {
+  it('every combination of people, the diagram and the bars count from one source and agree', () => {
     for (const lists of [[p(1, 2, 3, 4), p(3, 4, 5)], [p(1, 2, 3), p(2, 3, 4), p(3, 5)], [p(1, 2), p(2, 3), p(3, 4, 2), p(2, 6), p(7), p(2, 8)]]) {
       const n = lists.length, full = (1 << n) - 1
       const counts = regionCounts(lists)
-      const m = byId(lists, true)
-      expect(counts[full]).toBe(m.get('all')!.length)
-      lists.forEach((_, i) => expect(counts[1 << i]).toBe(m.get(i)!.length))
-      expect(counts.reduce((a, b) => a + b, 0)).toBe(m.get('every')!.length)
-      expect(counts.reduce((a, v, k) => (k & 1 ? a : a + v), 0)).toBe(m.get('need')!.length)
+      for (let m = 1; m <= full; m++) expect(choiceCodes(lists, m)).toHaveLength(counts[m])
+      expect(counts.reduce((a, b) => a + b, 0)).toBe(choiceCodes(lists, 'every').length)
+      expect(counts.reduce((a, v, k) => (k & 1 ? a : a + v), 0)).toBe(choiceCodes(lists, 'need').length)
       // Each list's bar: the regions holding it add up to its species.
       lists.forEach((l, i) => expect(counts.reduce((a, v, k) => (k & (1 << i) ? a + v : a), 0)).toBe(new Set(l.birds.map((b) => b.code)).size))
       expect([...memberships(lists).values()].every((k) => k > 0 && k <= full)).toBe(true)
     }
   })
-  it('compares species when a link has no dates or places, and a group’s birds keep their own list’s dates', () => {
+  it('compares species when a link has no dates or places, and a choice’s birds keep their own list’s dates', () => {
     const rich = list(50, 9, 'Ada')
     const bare: SharePayload = { v: 1, birds: rich.birds.slice(0, 20).map((b) => ({ code: b.code })).concat([{ code: 'zzz-none' }]) }
-    const m = byId([bare, rich])
-    expect(m.get('all')).toHaveLength(20)
-    expect(m.get(0)).toEqual(['zzz-none'])
-    expect(m.get(1)).toHaveLength(30)
-    const onlyAda = groupPayload([bare, rich], m.get(1)!)
+    expect(choiceCodes([bare, rich], 0b11)).toHaveLength(20)
+    expect(choiceCodes([bare, rich], 0b01)).toEqual(['zzz-none'])
+    expect(choiceCodes([bare, rich], 0b10)).toHaveLength(30)
+    const onlyAda = groupPayload([bare, rich], choiceCodes([bare, rich], 0b10))
     expect(onlyAda.birds.every((b) => b.ym !== undefined && b.p === undefined)).toBe(true)
-    expect(groupPayload([bare, rich], m.get('all')!).birds.every((b) => b.ym === undefined)).toBe(true)
+    expect(groupPayload([bare, rich], choiceCodes([bare, rich], 0b11)).birds.every((b) => b.ym === undefined)).toBe(true)
   })
-  it("a group's collage holds exactly its count, heard-only and found-dead birds included", () => {
+  it("a choice's collage holds exactly its count, heard-only and found-dead birds included", () => {
     const a = list(40, 21), b = list(40, 22)
     a.birds.forEach((x, i) => { if (i % 3 === 0) x.m = 1; else if (i % 3 === 1) x.m = 2 })
     const regions = { v: 1 as const, countries: { CA: 'Canada', KE: 'Kenya', AU: 'Australia' }, sub1: {} }
-    for (const g of compareGroups([a, b], true)) {
-      const { records } = payloadToRecords(groupPayload([a, b], g.codes), regions)
-      expect(buildList(records, emptySaved().edits, DEFAULT_RULES)).toHaveLength(g.codes.length)
+    for (const c of ['need', 'every', 1, 2, 3] as Choice[]) {
+      const codes = choiceCodes([a, b], c)
+      const { records } = payloadToRecords(groupPayload([a, b], codes), regions)
+      expect(buildList(records, emptySaved().edits, DEFAULT_RULES)).toHaveLength(codes.length)
     }
   })
-  it('a comparison link reopens to the same groups', () => {
+  it('a comparison link reopens to the same birds for every choice', () => {
     const lists = [list(80, 11, 'You'), list(90, 12, 'Sam'), list(70, 13)]
     const back = decodeCompare(encodeCompare(lists).token)
-    expect(compareGroups(back).map((x) => sorted(x.codes))).toEqual(compareGroups(lists).map((x) => sorted(x.codes)))
+    for (const c of ['need', 'every', 1, 2, 3, 4, 5, 6, 7] as Choice[]) expect(sorted(choiceCodes(back, c))).toEqual(sorted(choiceCodes(lists, c)))
+  })
+})
+
+describe('choosing (the chips and the diagram)', () => {
+  it('opens on Yet to see with your own list, else every bird', () => {
+    expect(firstChoice(true)).toBe('need')
+    expect(firstChoice(false)).toBe('every')
+  })
+  it('a person’s chip adds or removes that person; Yet to see and Every bird give way; none left is every bird', () => {
+    expect(toggleList('need', 0)).toBe(0b001)
+    expect(toggleList('every', 2)).toBe(0b100)
+    expect(toggleList(0b001, 1)).toBe(0b011)
+    expect(toggleList(0b011, 2)).toBe(0b111)
+    expect(toggleList(0b011, 0)).toBe(0b010)
+    expect(toggleList(0b010, 1)).toBe('every')
+  })
+  it('a region of the circles chooses its people; outside them, every bird', () => {
+    expect([1, 3, 6, 7].map(choiceAt)).toEqual([1, 3, 6, 7])
+    expect(choiceAt(0)).toBe('every')
+  })
+  it('names the choice for the heading: one person, several, every list, yours alone', () => {
+    expect(choiceWords(0b001, 3, false)).toEqual({ kind: 'one', lists: [0] })
+    expect(choiceWords(0b001, 3, true)).toEqual({ kind: 'you', lists: [0] })
+    expect(choiceWords(0b011, 3, true)).toEqual({ kind: 'some', lists: [0, 1] })
+    expect(choiceWords(0b111, 3, true)).toEqual({ kind: 'all', lists: [0, 1, 2] })
+    expect(choiceWords('need', 3, true)).toEqual({ kind: 'need', lists: [] })
+    expect(choiceWords('every', 2, false)).toEqual({ kind: 'every', lists: [] })
+    expect(joinNames(['Kalvin', 'Kalin'])).toBe('Kalvin & Kalin')
+    expect(joinNames(['Robin', 'Sam', 'Ada'])).toBe('Robin, Sam & Ada')
+  })
+  it('the diagram marks the choice: its parts at full strength, the others faded; the bars the same', () => {
+    const on = (c: Choice, n: number) => Array.from({ length: (1 << n) - 1 }, (_, k) => k + 1).filter((m) => partInChoice(c, m))
+    expect(on('need', 3)).toEqual([2, 4, 6])
+    expect(on(7, 3)).toEqual([7])
+    expect(on(3, 3)).toEqual([3])
+    expect(on(2, 3)).toEqual([2])
+    expect(on('every', 2)).toEqual([1, 2, 3])
+    expect([0, 1, 2].map((i) => barInChoice('need', i))).toEqual([false, true, true])
+    expect([0, 1, 2].map((i) => barInChoice(0b100, i))).toEqual([false, false, true])
+    expect([0, 1, 2].map((i) => barInChoice(0b011, i))).toEqual([true, true, false])
+    expect([0, 1, 2].every((i) => barInChoice(7, i) && barInChoice('every', i))).toBe(true)
   })
   it('ranks the lists by species, most first, equal lists in their order', () => {
     expect(ranking([1, 3, 2, 3, 0])).toEqual([1, 3, 2, 0, 4])
-  })
-  it('takes the card’s stickers in even steps through a group', () => {
-    const g = Array.from({ length: 100 }, (_, i) => `b${i}`)
-    expect(evenly(g.slice(0, 3), 18)).toEqual(['b0', 'b1', 'b2'])
-    const out = evenly(g, 4)
-    expect(out).toEqual(['b0', 'b25', 'b50', 'b75'])
   })
   it('the sticker grid, the page’s width: three across on phones, up to ten on a wide page', () => {
     expect(gridCols(280)).toBe(3)
@@ -166,23 +197,6 @@ describe('compareGroups', () => {
     expect(gridCols(700)).toBe(6)
     expect(gridCols(1088)).toBe(9)
     expect(gridCols(1400)).toBe(10)
-  })
-  it('a part of the diagram chooses its group: a list’s own birds, or every list’s; none for a part some lists share', () => {
-    expect([1, 2, 3, 0].map((m) => groupOfMask(m, 2))).toEqual([0, 1, 'all', null])
-    expect([1, 2, 4, 7, 3, 5, 6].map((m) => groupOfMask(m, 3))).toEqual([0, 1, 2, 'all', null, null, null])
-    expect(groupOfMask(63, 6)).toBe('all')
-    expect(groupOfMask(32, 6)).toBe(5)
-  })
-  it('the diagram shows the chosen group: its parts at full strength, the others faded; the bars the same', () => {
-    const on = (id: GroupId, n: number) => Array.from({ length: (1 << n) - 1 }, (_, k) => k + 1).filter((m) => partInGroup(id, m, n))
-    expect(on('need', 3)).toEqual([2, 4, 6])
-    expect(on('all', 3)).toEqual([7])
-    expect(on(1, 3)).toEqual([2])
-    expect(on('every', 2)).toEqual([1, 2, 3])
-    expect(on('all', 2)).toEqual([3])
-    expect([0, 1, 2].map((i) => barInGroup('need', i))).toEqual([false, true, true])
-    expect([0, 1, 2].map((i) => barInGroup(2, i))).toEqual([false, false, true])
-    expect([0, 1, 2].every((i) => barInGroup('all', i) && barInGroup('every', i))).toBe(true)
   })
   it('each list’s colour: the tokens in CSS, the same mix in hex for the card, six apart', () => {
     expect([0, 1, 2, 3].map(listColor)).toEqual(['var(--accent)', 'var(--ink)', 'var(--line)', 'color-mix(in srgb, var(--accent) 50%, var(--paper))'])
