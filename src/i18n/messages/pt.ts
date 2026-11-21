@@ -79,7 +79,6 @@ export const pt: Messages = {
         families: { one: '{n} família', other: '{n} famílias' },
         since: 'desde {date}',
         threatened: '{n} ameaçadas',
-        threatenedGlobal: '{n} ameaçadas no mundo',
         threatenedSr: '(Vulnerável, Em perigo ou Criticamente em perigo)',
       },
       arranging: 'organizando os adesivos',
@@ -324,7 +323,6 @@ export const pt: Messages = {
     },
     /** The Status panel (StatusList). {n} is formatted. */
     status: {
-      threatenedNote: '{n} ameaçadas: Vulnerável, Em perigo ou Criticamente em perigo.',
       list: 'Categorias',
       none: 'Nenhuma categoria aqui com os outros filtros.',
     },

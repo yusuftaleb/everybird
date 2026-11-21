@@ -79,7 +79,6 @@ export const nl: Messages = {
         families: { one: '{n} familie', other: '{n} families' },
         since: 'sinds {date}',
         threatened: '{n} bedreigd',
-        threatenedGlobal: '{n} wereldwijd bedreigd',
         threatenedSr: '(Kwetsbaar, Bedreigd of Ernstig bedreigd)',
       },
       arranging: 'stickers worden geschikt',
@@ -322,9 +321,8 @@ export const nl: Messages = {
       threatened: 'Bedreigd',
       pillName: 'Rode Lijst: {name}',
     },
-    /** The Status panel (StatusList). {n} is formatted. */
+    /** The Status panel (StatusList). */
     status: {
-      threatenedNote: '{n} bedreigd: Kwetsbaar, Bedreigd of Ernstig bedreigd.',
       list: 'Categorieën',
       none: 'Geen categorieën hier met de andere filters.',
     },

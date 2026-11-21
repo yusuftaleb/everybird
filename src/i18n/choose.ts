@@ -36,11 +36,6 @@ export function refreshLangCookie(doc: CookieDoc = document): void {
   }
 }
 
-/** The language picker's preview variants (`useVariant('lang', LANG_VARIANTS)`): a, the top bar's LanguageMenu beside
- *  the theme toggle plus the Settings field (default; the nav on a second row under 620px); b, the Settings field only;
- *  c, as a, but under 480px the My birds link is hidden (the wordmark goes home). */
-export const LANG_VARIANTS = ['a', 'b', 'c'] as const
-
 /** A new choice: the cookie, then a full reload, because the router cache and the page's HTML belong to the old
  *  language. The callers skip the current language (it only closes the menu). */
 export function chooseLang(lang: Lang): void {

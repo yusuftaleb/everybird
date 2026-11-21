@@ -79,7 +79,6 @@ export const fr: Messages = {
         families: { one: '{n} famille', other: '{n} familles' },
         since: 'depuis {date}',
         threatened: '{n} menacées',
-        threatenedGlobal: '{n} menacées à l’échelle mondiale',
         threatenedSr: '(Vulnérable, En danger ou En danger critique)',
       },
       arranging: 'placement des autocollants',
@@ -322,9 +321,8 @@ export const fr: Messages = {
       threatened: 'Menacées',
       pillName: 'Liste rouge\u00a0: {name}',
     },
-    /** The Status panel (StatusList). {n} is formatted. */
+    /** The Status panel (StatusList). */
     status: {
-      threatenedNote: '{n} menacées\u00a0: Vulnérable, En danger ou En danger critique.',
       list: 'Catégories',
       none: 'Aucune catégorie ici avec les autres filtres.',
     },

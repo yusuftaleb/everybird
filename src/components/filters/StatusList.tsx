@@ -11,19 +11,17 @@ import { statusOptions, toggleStatus, withStatuses, type Filter } from '@/lib/li
 import type { AppState } from '@/lib/list/store'
 import { STATUS_FILTER_CATS, type StatusFilterCat } from '@/lib/species/status-filter'
 import type { SpeciesIndex } from '@/lib/species/load'
-import { plural, fmt as fill } from '@/i18n/core'
+import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 
 type Props = {
   state: AppState
   species: SpeciesIndex
-  /** The list's threatened count, for the line under the head (the `threat` preview's c); none: no line. */
-  threatLine?: number
   onFilter: (f: Filter) => void
 }
 
-export function StatusList({ state, species, threatLine, onFilter }: Props) {
+export function StatusList({ state, species, onFilter }: Props) {
   const { list, filter, seen } = state
   const { t } = useI18n()
   const fmt = (x: number) => formatInt(x, t.num)
@@ -43,11 +41,6 @@ export function StatusList({ state, species, threatLine, onFilter }: Props) {
           <button type="button" className="eb-textbtn" data-testid="status-clear" onClick={() => onFilter(withStatuses(filter, []))}>{t.filters.clear}</button>
         )}
       </div>
-      {threatLine !== undefined && threatLine > 0 && (
-        <p className="eb-note eb-places-note" data-testid="status-threatened">
-          {fill(t.status.threatenedNote, { n: fmt(threatLine) })}
-        </p>
-      )}
       <ul className="eb-checklist" aria-label={t.status.list}>
         {rows.map(({ cat, count }) => {
           const on = checked.has(cat)

@@ -81,7 +81,6 @@ export const pl: Messages = {
         families: { one: '{n} rodzina', few: '{n} rodziny', many: '{n} rodzin', other: '{n} rodzin' },
         since: 'od {date}',
         threatened: 'zagrożone: {n}',
-        threatenedGlobal: 'zagrożone globalnie: {n}',
         threatenedSr: '(narażone, zagrożone lub krytycznie zagrożone)',
       },
       arranging: 'układanie naklejek',
@@ -323,7 +322,6 @@ export const pl: Messages = {
       pillName: 'Czerwona lista: {name}',
     },
     status: {
-      threatenedNote: 'Zagrożone: {n} (narażone, zagrożone lub krytycznie zagrożone).',
       list: 'Kategorie',
       none: 'Przy pozostałych filtrach nie ma tu kategorii.',
     },

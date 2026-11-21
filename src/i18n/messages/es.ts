@@ -79,7 +79,6 @@ export const es: Messages = {
         families: { one: '{n} familia', other: '{n} familias' },
         since: 'desde {date}',
         threatened: '{n} amenazadas',
-        threatenedGlobal: '{n} amenazadas a escala mundial',
         threatenedSr: '(Vulnerable, En peligro o En peligro crítico)',
       },
       arranging: 'colocando los stickers',
@@ -322,9 +321,8 @@ export const es: Messages = {
       threatened: 'Amenazadas',
       pillName: 'Lista Roja: {name}',
     },
-    /** The Status panel (StatusList). {n} is formatted. */
+    /** The Status panel (StatusList). */
     status: {
-      threatenedNote: '{n} amenazadas: Vulnerable, En peligro o En peligro crítico.',
       list: 'Categorías',
       none: 'No hay categorías aquí con los otros filtros.',
     },

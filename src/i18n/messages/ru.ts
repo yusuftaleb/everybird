@@ -81,7 +81,6 @@ export const ru: Messages = {
         families: { one: '{n} семейство', few: '{n} семейства', many: '{n} семейств', other: '{n} семейства' },
         since: 'с {date}',
         threatened: '{n} под угрозой',
-        threatenedGlobal: '{n} под угрозой в мире',
         threatenedSr: '(уязвимые, вымирающие или на грани исчезновения)',
       },
       arranging: 'наклейки раскладываются',
@@ -329,7 +328,6 @@ export const ru: Messages = {
       pillName: 'Красный список: {name}',
     },
     status: {
-      threatenedNote: '{n} под угрозой: уязвимые, вымирающие или на грани исчезновения.',
       list: 'Категории',
       none: 'С учётом других фильтров здесь нет категорий.',
     },

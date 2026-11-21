@@ -81,7 +81,6 @@ export const ja: Messages = {
         families: { one: '{n}科', other: '{n}科' },
         since: '{date}から',
         threatened: '絶滅危惧{n}種',
-        threatenedGlobal: '世界的な絶滅危惧{n}種',
         threatenedSr: '（危急、危機、深刻な危機）',
       },
       arranging: 'ステッカーを配置しています',
@@ -319,7 +318,6 @@ export const ja: Messages = {
       pillName: 'レッドリスト：{name}',
     },
     status: {
-      threatenedNote: '絶滅危惧{n}種：危急、危機、深刻な危機。',
       list: '区分',
       none: 'ほかの絞り込みの条件に合う区分はありません。',
     },

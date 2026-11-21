@@ -1,13 +1,11 @@
 // The top bar's fit, without a browser: a model of the bar (src/components/app/app.css, the .eb-topbar… rules) fed
 // with the served fonts' advance widths (tests/fixtures/glyph-advances.json, from scripts/dev/measure-glyphs.ts) and
-// the nav labels of all four dictionaries. For each preview variant (lang:a|b|c) and language, row one, and row two
-// where the nav has its own row, fit inside the bar's padding with a 4px margin at every phone, tablet and desktop
+// the nav labels of every dictionary. For each language, row one, and row two where the nav has its own row, fit inside the bar's padding with a 4px margin at every phone, tablet and desktop
 // width we care about and at both sides of every breakpoint. A second test reads app.css and tokens.css and checks
 // they still say what the model assumes, so a CSS change that would break the fit has to update the model too.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { LANG_VARIANTS } from '@/i18n/choose'
 import { LANGS, langBadge, type Lang } from '@/i18n/langs'
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
@@ -26,7 +24,6 @@ import { pt } from '@/i18n/messages/pt'
 import { WIDE_CHAR } from '@/lib/layout/count-box'
 import glyphs from './fixtures/glyph-advances.json'
 
-type Variant = (typeof LANG_VARIANTS)[number]
 type FontKey = keyof typeof glyphs.fonts
 
 const NAV = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant }
@@ -96,19 +93,11 @@ function sizesAt(w: number): Sizes {
   return { ...WIDE, ...SMALL, ...TINY, ...MICRO }
 }
 
-/** Where the nav takes its own row (app.css's split rules, each paired with a --topbar-h rule in tokens.css): under
- *  `below` px, for the variant and languages `selector` matches. */
-const SPLITS: { selector: string; below: number; applies: (v: Variant, l: Lang) => boolean }[] = [
-  { selector: ':root:not([data-topbar="b"], [data-topbar="c"])', below: 620, applies: (v) => v === 'a' },
-  { selector: ':root[data-topbar="b"]', below: 572, applies: (v) => v === 'b' },
-  { selector: ':root[data-topbar="c"]', below: 620, applies: (v) => v === 'c' },
-]
-/** c hides the My birds link (its key is still `collage`) under 480px: `:root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }`. */
-const C_HIDES_COLLAGE_BELOW = 480
+/** Where the nav takes its own row (app.css's split rule, paired with a --topbar-h rule in tokens.css): under
+ *  `below` px. */
+const SPLITS: { selector: string; below: number }[] = [{ selector: ':root', below: 620 }]
 
-const splitAt = (v: Variant, l: Lang, w: number) => SPLITS.some((s) => s.applies(v, l) && w < s.below)
-const hasLangButton = (v: Variant) => v !== 'b'
-const pagesShown = (v: Variant, w: number) => PAGES.filter((p) => !(p === 'collage' && v === 'c' && w < C_HIDES_COLLAGE_BELOW))
+const splitAt = (w: number) => SPLITS.some((s) => w < s.below)
 
 /** The nav's width: every link at 500, plus the widest 600 (drawn 700) difference, for the current page. */
 function navWidth(l: Lang, pages: readonly (typeof PAGES)[number][], s: Sizes): number {
@@ -133,15 +122,15 @@ function navLines(l: Lang, pages: readonly (typeof PAGES)[number][], s: Sizes, i
   return { lines, widest: Math.max(widest, cur) }
 }
 
-function fit(v: Variant, l: Lang, w: number): Fit {
+function fit(l: Lang, w: number): Fit {
   const s = sizesAt(w)
   const inner = Math.min(w, s.maxWidth) - 2 * s.gutter
   const wordmark = textWidth('cabinet-grotesk-700', 'Everybird', s.wordmark, -0.01)
-  const end = s.button + (hasLangButton(v) ? s.endGap + s.button : 0)
-  const nav = navWidth(l, pagesShown(v, w), s)
-  const split = splitAt(v, l, w)
+  const end = s.button + s.endGap + s.button // the theme switch and the language button
+  const nav = navWidth(l, PAGES, s)
+  const split = splitAt(w)
   if (split && w < NAV_WRAPS_BELOW) {
-    const { lines, widest } = navLines(l, pagesShown(v, w), s, inner)
+    const { lines, widest } = navLines(l, PAGES, s, inner)
     return { split, inner, one: wordmark + s.gap + end, two: widest, lines }
   }
   if (split) return { split, inner, one: wordmark + s.gap + end, two: nav }
@@ -152,40 +141,32 @@ const BREAKPOINT_EDGES = [239, 240, 319, 320, 359, 360, 479, 480, 499, 500, 571,
 const WIDTHS = [...new Set([195, 260, 300, 320, 340, 360, 375, 390, 414, 430, 480, 560, 600, 640, 720, 768, 1280, ...BREAKPOINT_EDGES])].sort((a, b) => a - b)
 
 describe('the top bar fits (fontkit advances of the served fonts)', () => {
-  for (const v of LANG_VARIANTS) {
-    for (const l of LANGS) {
-      it(`lang:${v}, ${l}: row one, and row two where the nav has it, fit at every width`, () => {
-        const bad: string[] = []
-        for (const w of WIDTHS) {
-          const f = fit(v, l, w)
-          if (f.one + MARGIN > f.inner) bad.push(`${w}px: row one ${f.one.toFixed(1)} in ${f.inner}`)
-          if (f.two !== undefined && f.two + MARGIN > f.inner) bad.push(`${w}px: row two ${f.two.toFixed(1)} in ${f.inner}`)
-          if ((f.lines ?? 1) > 2) bad.push(`${w}px: the nav takes ${f.lines} lines`)
-        }
-        expect(bad).toEqual([])
-      })
-    }
+  for (const l of LANGS) {
+    it(`${l}: row one, and row two where the nav has it, fit at every width`, () => {
+      const bad: string[] = []
+      for (const w of WIDTHS) {
+        const f = fit(l, w)
+        if (f.one + MARGIN > f.inner) bad.push(`${w}px: row one ${f.one.toFixed(1)} in ${f.inner}`)
+        if (f.two !== undefined && f.two + MARGIN > f.inner) bad.push(`${w}px: row two ${f.two.toFixed(1)} in ${f.inner}`)
+        if ((f.lines ?? 1) > 2) bad.push(`${w}px: the nav takes ${f.lines} lines`)
+      }
+      expect(bad).toEqual([])
+    })
   }
 
   it('the language code fits its button at its narrowest (Geist Mono 13px, letter-spacing .06em)', () => {
     for (const l of LANGS) expect(textWidth('geist-mono-500', langBadge(l), 13, 0.06)).toBeLessThan(TINY.button! - 2 * MARGIN)
   })
 
-  it('every split rule matches some language (no dead rule)', () => {
-    for (const s of SPLITS) expect(LANG_VARIANTS.some((v) => LANGS.some((l) => s.applies(v, l)))).toBe(true)
-  })
-
   if (process.env.TOPBAR_FIT_TABLE) {
     it('prints the table', () => {
-      for (const v of LANG_VARIANTS) {
-        for (const l of LANGS) {
-          const cells = WIDTHS.map((w) => {
-            const f = fit(v, l, w)
-            const spare = Math.min(f.inner - f.one, f.two === undefined ? Infinity : f.inner - f.two)
-            return `${w}${f.split ? '²' : ''}:${spare.toFixed(0)}`
-          })
-          console.log(`${v} ${l} ${cells.join(' ')}`)
-        }
+      for (const l of LANGS) {
+        const cells = WIDTHS.map((w) => {
+          const f = fit(l, w)
+          const spare = Math.min(f.inner - f.one, f.two === undefined ? Infinity : f.inner - f.two)
+          return `${w}${f.split ? '²' : ''}:${spare.toFixed(0)}`
+        })
+        console.log(`${l} ${cells.join(' ')}`)
       }
     })
   }
@@ -245,7 +226,7 @@ describe('the model mirrors the CSS', () => {
     expect(app).toContain(".eb-nav-link::after { content: ''; position: absolute; inset: -2px min(0px, calc((100% - 44px) / 2)); }")
   })
 
-  it('each split in app.css has its --topbar-h twin in tokens.css, with the same query and selector, and no others', () => {
+  it('the split in app.css has its --topbar-h twin in tokens.css, with the same query and selector, and no others', () => {
     for (const s of SPLITS) {
       const q = `max-width: ${s.below - 1}px`
       const body = block(app, q, `${s.selector} .eb-topbar-in`)
@@ -256,12 +237,13 @@ describe('the model mirrors the CSS', () => {
     }
     expect(tokens.match(/--topbar-h: 93px/g)).toHaveLength(SPLITS.length)
     expect(app).toContain(`@media (max-width: ${NAV_WRAPS_BELOW - 1}px) {\n  .eb-nav ul { flex-wrap: wrap; }`)
-    expect(tokens).toContain(`@media (max-width: ${NAV_WRAPS_BELOW - 1}px) { :root:not(:lang(zh-Hans), :lang(zh-Hant)):not([data-topbar="-"]) { --topbar-h: 133px; } }`)
+    expect(tokens).toContain(`@media (max-width: ${NAV_WRAPS_BELOW - 1}px) { :root:not(:lang(zh-Hans), :lang(zh-Hant)) { --topbar-h: 133px; } }`)
     expect(4 + 44 + 2 * 40 + 4 + 1).toBe(133)
     // Every split starts at or above the wrap, so a wrapped nav is always on its own row.
     for (const s of SPLITS) expect(s.below).toBeGreaterThanOrEqual(NAV_WRAPS_BELOW)
     expect(app.match(/\.eb-topbar-in \{ flex-wrap: wrap;/g)).toHaveLength(SPLITS.length)
-    expect(app).toContain(`@media (max-width: ${C_HIDES_COLLAGE_BELOW - 1}px) {\n  :root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }`)
+    expect(app).not.toContain('data-topbar')
+    expect(tokens).not.toContain('data-topbar')
   })
 
   it('--topbar-h is the bar: 8 + 44 + 8 and the hairline in one row (10 + 44 + 10 from 720px), 4 + 44 + 40 + 4 in two', () => {

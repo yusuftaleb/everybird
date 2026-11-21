@@ -79,7 +79,6 @@ export const sv: Messages = {
         families: { one: '{n} familj', other: '{n} familjer' },
         since: 'sedan {date}',
         threatened: '{n} hotade',
-        threatenedGlobal: '{n} globalt hotade',
         threatenedSr: '(Sårbar, Starkt hotad eller Akut hotad)',
       },
       arranging: 'klistermärkena ordnas',
@@ -318,7 +317,6 @@ export const sv: Messages = {
       pillName: 'Rödlistan: {name}',
     },
     status: {
-      threatenedNote: '{n} hotade: Sårbar, Starkt hotad eller Akut hotad.',
       list: 'Kategorier',
       none: 'Inga kategorier här med de andra filtren.',
     },

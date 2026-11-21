@@ -81,7 +81,6 @@ export const zhHans: Messages = {
         families: { one: '{n}科', other: '{n}科' },
         since: '自{date}起',
         threatened: '{n}种受威胁',
-        threatenedGlobal: '{n}种全球受威胁',
         threatenedSr: '（易危、濒危或极危）',
       },
       arranging: '正在排列贴纸',
@@ -319,7 +318,6 @@ export const zhHans: Messages = {
       pillName: '红色名录：{name}',
     },
     status: {
-      threatenedNote: '{n}种受威胁：易危、濒危或极危。',
       list: '等级',
       none: '在其他筛选条件下，这里没有等级。',
     },

@@ -79,7 +79,6 @@ export const it: Messages = {
         families: { one: '{n} famiglia', other: '{n} famiglie' },
         since: 'dal {date}',
         threatened: '{n} minacciate',
-        threatenedGlobal: '{n} minacciate a livello globale',
         threatenedSr: '(Vulnerabile, In pericolo o In pericolo critico)',
       },
       arranging: 'disposizione degli adesivi',
@@ -317,7 +316,6 @@ export const it: Messages = {
       pillName: 'Lista rossa: {name}',
     },
     status: {
-      threatenedNote: '{n} minacciate: Vulnerabile, In pericolo o In pericolo critico.',
       list: 'Categorie',
       none: 'Nessuna categoria qui con gli altri filtri.',
     },

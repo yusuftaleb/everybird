@@ -81,7 +81,6 @@ export const zhHant: Messages = {
         families: { one: '{n} 科', other: '{n} 科' },
         since: '自 {date} 起',
         threatened: '{n} 種受威脅',
-        threatenedGlobal: '{n} 種全球受威脅',
         threatenedSr: '（易危、瀕危或極危）',
       },
       arranging: '正在排列貼紙',
@@ -319,7 +318,6 @@ export const zhHant: Messages = {
       pillName: '紅皮書：{name}',
     },
     status: {
-      threatenedNote: '{n} 種受威脅：易危、瀕危或極危。',
       list: '等級',
       none: '在其他篩選條件下，這裡沒有等級。',
     },

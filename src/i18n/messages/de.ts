@@ -79,7 +79,6 @@ export const de: Messages = {
         families: { one: '{n} Familie', other: '{n} Familien' },
         since: 'seit {date}',
         threatened: '{n} bedroht',
-        threatenedGlobal: '{n} weltweit bedroht',
         threatenedSr: '(gefährdet, stark gefährdet oder vom Aussterben bedroht)',
       },
       arranging: 'Sticker werden angeordnet',
@@ -320,7 +319,6 @@ export const de: Messages = {
       pillName: 'Rote Liste: {name}',
     },
     status: {
-      threatenedNote: '{n} bedroht: gefährdet, stark gefährdet oder vom Aussterben bedroht.',
       list: 'Kategorien',
       none: 'Mit den anderen Filtern gibt es hier keine Kategorien.',
     },

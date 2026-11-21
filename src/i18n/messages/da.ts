@@ -79,7 +79,6 @@ export const da: Messages = {
         families: { one: '{n} familie', other: '{n} familier' },
         since: 'siden {date}',
         threatened: '{n} truede',
-        threatenedGlobal: '{n} globalt truede',
         threatenedSr: '(Sårbar, Moderat truet eller Kritisk truet)',
       },
       arranging: 'klistermærkerne lægges ud',
@@ -320,7 +319,6 @@ export const da: Messages = {
       pillName: 'Rødlisten: {name}',
     },
     status: {
-      threatenedNote: '{n} truede: Sårbar, Moderat truet eller Kritisk truet.',
       list: 'Kategorier',
       none: 'Ingen kategorier her med de andre filtre.',
     },

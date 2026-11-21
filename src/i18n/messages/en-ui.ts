@@ -103,7 +103,6 @@ export const EN_UI = {
       families: { one: '{n} family', other: '{n} families' },
       since: 'since {date}',
       threatened: '{n} threatened',
-      threatenedGlobal: '{n} globally threatened',
       threatenedSr: '(Vulnerable, Endangered or Critically Endangered)',
     },
     /** The stage's placeholder while the first layout is packed. */
@@ -398,9 +397,8 @@ export const EN_UI = {
     /** The card pill's name (a button whose tip shows the full name). */
     pillName: 'Red List: {name}',
   },
-  /** The Status panel (StatusList). {n} is formatted. */
+  /** The Status panel (StatusList). */
   status: {
-    threatenedNote: '{n} threatened: Vulnerable, Endangered or Critically Endangered.',
     list: 'Categories',
     none: 'No categories here under the other filters.',
   },
