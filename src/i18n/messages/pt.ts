@@ -418,11 +418,11 @@ export const pt: Messages = {
       note: 'Cole os links do Everybird dos seus amigos para ver quais aves vocês têm em comum. Até {n} listas.',
       yourList: 'Sua lista',
       nameN: 'Nome da lista {n}',
-      addFriend: 'Adicionar um amigo',
+      addBirder: 'Adicionar um observador',
       editLists: 'Editar listas',
       lede: 'Veja quais aves as listas têm em comum e quais você ainda não viu. Escolha pessoas abaixo para ver as aves que só elas têm em comum.',
       ledeTheirs: 'Veja quais aves estas listas têm em comum. Escolha pessoas abaixo para ver as aves que só elas têm em comum.',
-      diagram: 'Como as listas se sobrepõem',
+      diagram: 'Diagrama',
     },
     orders: {
       Struthioniformes: 'Avestruzes',

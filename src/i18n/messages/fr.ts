@@ -418,11 +418,11 @@ export const fr: Messages = {
       note: 'Colle les liens Everybird de tes amis pour voir quels oiseaux vous avez en commun. Jusqu’à {n} listes.',
       yourList: 'Ta liste',
       nameN: 'Nom de la liste {n}',
-      addFriend: 'Ajouter un ami',
+      addBirder: 'Ajouter un observateur',
       editLists: 'Modifier les listes',
       lede: 'Vois quels oiseaux vos listes ont en commun et lesquels tu n’as pas encore vus. Choisis des personnes ci-dessous pour voir les oiseaux qu’elles seules ont en commun.',
       ledeTheirs: 'Vois quels oiseaux ces listes ont en commun. Choisis des personnes ci-dessous pour voir les oiseaux qu’elles seules ont en commun.',
-      diagram: 'Comment les listes se recoupent',
+      diagram: 'Diagramme',
     },
     orders: {
       Struthioniformes: 'Autruches',

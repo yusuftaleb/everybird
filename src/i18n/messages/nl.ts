@@ -418,11 +418,11 @@ export const nl: Messages = {
       note: 'Plak de Everybird-links van je vrienden om te zien welke vogels jullie delen. Maximaal {n} lijsten.',
       yourList: 'Jouw lijst',
       nameN: 'Naam van lijst {n}',
-      addFriend: 'Vriend toevoegen',
+      addBirder: 'Vogelaar toevoegen',
       editLists: 'Lijsten bewerken',
       lede: 'Zie welke vogels jullie lijsten delen en welke je nog mist. Kies hieronder mensen om de vogels te zien die alleen zij delen.',
       ledeTheirs: 'Zie welke vogels deze lijsten delen. Kies hieronder mensen om de vogels te zien die alleen zij delen.',
-      diagram: 'Hoe de lijsten overlappen',
+      diagram: 'Diagram',
     },
     orders: {
       Struthioniformes: 'Struisvogels',

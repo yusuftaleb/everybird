@@ -413,11 +413,11 @@ export const zhHans: Messages = {
       note: '粘贴朋友的Everybird链接，看看你们有哪些共同的鸟。最多{n}份清单。',
       yourList: '你的清单',
       nameN: '清单{n}的名称',
-      addFriend: '添加朋友',
+      addBirder: '添加观鸟者',
       editLists: '编辑清单',
       lede: '看看你们的清单有哪些共同的鸟，以及哪些你还没见过。在下方选择人，查看只有他们共有的鸟。',
       ledeTheirs: '看看这些清单有哪些共同的鸟。在下方选择人，查看只有他们共有的鸟。',
-      diagram: '清单的重叠情况',
+      diagram: '图表',
     },
     orders: {
       Struthioniformes: '鸵鸟',

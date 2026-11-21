@@ -45,7 +45,7 @@ const keep = (k: Kept) => {
  * set-up to the comparison changes only the line and the buttons (the set-up's head has none). First the set-up, on the page's width (no box,
  * the head's line "Paste your friends' Everybird links to see which birds you share. Up to 6 lists."), a
  * row per list (its colour dot, a name box, the link box, a remove button), the birder's own list first when there is
- * one (its name editable, "Your list · 1,092 species" for a link, no remove) and "Add a friend" (a row, up to COMPARE_MAX
+ * one (its name editable, "Your list · 1,092 species" for a link, no remove) and "Add a birder" (a row, up to COMPARE_MAX
  * lists in all) at the foot's left, Compare at its right (its edge on the link boxes'), waiting for two lists. A link fills its row's name with the name or
  * title it carries ("Birder 2" until one is typed, without); several links, or a comparison link (/c/), pasted at once
  * fill a row each (pasteRow), within the cap, with a note for the links that didn't open and the lists past it. The
@@ -154,9 +154,16 @@ export function ComparePage() {
     ;(shown ? editRef : titleRef).current?.focus()
   }, [shown])
   const go = (v: boolean) => { moved.current = true; setOpen(v) }
-  // After a remove, Add a friend (enabled again if the rows were full).
+  // After a remove, Add a birder (back again if the rows were full). After the add that fills the rows (the button
+  // goes), the new row's name box, never the page.
   const toAdd = useRef(false)
+  const toNew = useRef(false)
+  const formRef = useRef<HTMLFormElement>(null)
   useEffect(() => {
+    if (toNew.current) {
+      toNew.current = false
+      formRef.current?.querySelector<HTMLInputElement>(`[data-testid="compare-name-${rows.length - 1}"]`)?.focus()
+    }
     if (!toAdd.current) return
     toAdd.current = false
     addRef.current?.focus()
@@ -184,8 +191,11 @@ export function ComparePage() {
     setNotes(null)
     toAdd.current = true
   }
-  const add = () => setRows([...rows, { id: newId(), text: '', list: null }])
   const full = (own ? 1 : 0) + rows.length >= COMPARE_MAX
+  const add = () => {
+    if ((own ? 1 : 0) + rows.length + 1 >= COMPARE_MAX) toNew.current = true
+    setRows([...rows, { id: newId(), text: '', list: null }])
+  }
   // No list of the birder's own yet: the friend's list waits for it.
   const waiting = !own && mineSoon === false && friends.length > 0 && lists.length < 2
   const blocked = link && 'blocked' in link ? (link.blocked === 'tooMany' ? fmt(t.compare.tooMany, { n: COMPARE_MAX }) : t.compare.tooBig) : ''
@@ -235,7 +245,7 @@ export function ComparePage() {
             lede={<span id={`${id}-note`}>{fmt(t.compare.note, { n: COMPARE_MAX })}</span>}
             titleRef={titleRef}
           />
-          <form id={`${id}-form`} className="eb-compare-setup" onSubmit={(e) => { e.preventDefault(); if (lists.length >= 2) go(true) }} data-testid="compare-setup">
+          <form ref={formRef} id={`${id}-form`} className="eb-compare-setup" onSubmit={(e) => { e.preventDefault(); if (lists.length >= 2) go(true) }} data-testid="compare-setup">
             <ul className="eb-compare-rows" data-testid="compare-rows">
               {own && (
                 <li className="eb-compare-row" data-testid="compare-row-mine">
@@ -253,7 +263,7 @@ export function ComparePage() {
               )}
               {rows.map((r, i) => {
                 // A filled row by its place in the comparison; one without a list yet by its own place (they agree while the
-                // empty rows are last, as Add a friend puts them).
+                // empty rows are last, as Add a birder puts them).
                 const n = r.list ? place(i) : (own ? 1 : 0) + i + 1
                 const label = rowName(r).trim() || fmt(t.compare.birder, { n })
                 return (
@@ -296,10 +306,13 @@ export function ComparePage() {
               </p>
             )}
             <div className="eb-compare-foot">
-              <button ref={addRef} type="button" className="eb-textbtn" disabled={full} aria-describedby={`${id}-note`} onClick={add} data-testid="compare-add">
-                <Plus aria-hidden="true" focusable="false" />
-                {t.compare.addFriend}
-              </button>
+              {/* Gone at COMPARE_MAX lists (the head's line says "Up to 6 lists."); back when a row is removed. */}
+              {!full && (
+                <button ref={addRef} type="button" className="eb-textbtn" onClick={add} data-testid="compare-add">
+                  <Plus aria-hidden="true" focusable="false" />
+                  {t.compare.addBirder}
+                </button>
+              )}
               {/* Compare at the foot's right, its edge on the link boxes' (Enter in a box submits too). */}
               <button type="submit" className="eb-btn eb-compare-submit" disabled={lists.length < 2} aria-describedby={lists.length < 2 ? `${id}-wait` : undefined} data-testid="compare-submit">
                 {t.compare.submit}

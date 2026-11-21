@@ -417,11 +417,11 @@ export const pl: Messages = {
       note: 'Wklej linki Everybird od znajomych, by zobaczyć, które ptaki macie wspólne. Do {n} list.',
       yourList: 'Twoja lista',
       nameN: 'Nazwa listy {n}',
-      addFriend: 'Dodaj znajomego',
+      addBirder: 'Dodaj obserwatora',
       editLists: 'Edytuj listy',
       lede: 'Zobacz, które ptaki są wspólne dla waszych list, a które są jeszcze przed tobą. Wybierz osoby poniżej, by zobaczyć ptaki wspólne tylko dla nich.',
       ledeTheirs: 'Zobacz, które ptaki są wspólne dla tych list. Wybierz osoby poniżej, by zobaczyć ptaki wspólne tylko dla nich.',
-      diagram: 'Jak listy się pokrywają',
+      diagram: 'Wykres',
     },
     orders: {
       Struthioniformes: 'Strusie',

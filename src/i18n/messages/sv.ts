@@ -412,11 +412,11 @@ export const sv: Messages = {
       note: 'Klistra in dina vänners Everybird-länkar för att se vilka fåglar ni har gemensamt. Upp till {n} listor.',
       yourList: 'Din lista',
       nameN: 'Namn på lista {n}',
-      addFriend: 'Lägg till en vän',
+      addBirder: 'Lägg till en fågelskådare',
       editLists: 'Redigera listor',
       lede: 'Se vilka fåglar era listor har gemensamt och vilka du har kvar att se. Välj personer nedan för att se fåglarna som bara de har gemensamt.',
       ledeTheirs: 'Se vilka fåglar listorna har gemensamt. Välj personer nedan för att se fåglarna som bara de har gemensamt.',
-      diagram: 'Hur listorna överlappar',
+      diagram: 'Diagram',
     },
     orders: {
       Struthioniformes: 'Strutsar',

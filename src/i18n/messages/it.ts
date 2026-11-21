@@ -411,11 +411,11 @@ export const it: Messages = {
       note: 'Incolla i link Everybird dei tuoi amici per vedere quali uccelli avete in comune. Fino a {n} liste.',
       yourList: 'La tua lista',
       nameN: 'Nome della lista {n}',
-      addFriend: 'Aggiungi un amico',
+      addBirder: 'Aggiungi un birdwatcher',
       editLists: 'Modifica le liste',
       lede: 'Scopri quali uccelli hanno in comune le vostre liste e quali devi ancora vedere. Scegli delle persone qui sotto per vedere gli uccelli che hanno in comune solo loro.',
       ledeTheirs: 'Scopri quali uccelli hanno in comune queste liste. Scegli delle persone qui sotto per vedere gli uccelli che hanno in comune solo loro.',
-      diagram: 'Come si sovrappongono le liste',
+      diagram: 'Diagramma',
     },
     orders: {
       Struthioniformes: 'Struzzi',

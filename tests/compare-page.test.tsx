@@ -86,7 +86,7 @@ describe('Compare: the set-up', () => {
     expect(title).toHaveTextContent('Compare life lists')
     expect(title).toHaveClass('eb-pagehead-title')
     expect(title.closest('.eb-pagehead')!.querySelector('.eb-lede-sm')).toHaveTextContent('Paste your friends’ Everybird links to see which birds you share. Up to 6 lists.')
-    // The head has the title and its line only; Compare is the form's, at its foot after Add a friend.
+    // The head has the title and its line only; Compare is the form's, at its foot after Add a birder.
     expect(title.closest('.eb-pagehead')!.querySelector('.eb-pagehead-actions')).toBeNull()
     const foot = screen.getByTestId('compare-add').parentElement!
     expect(foot).toHaveClass('eb-compare-foot')
@@ -126,11 +126,11 @@ describe('Compare: the set-up', () => {
       'F1 · 1 species. F2 · 1 species. F3 · 1 species. F4 · 1 species. F5 · 1 species. '
       + '1 link didn’t open. It may be cut off, or made by a newer Everybird. Up to 6 lists can be compared, so the rest weren’t added.',
     )
-    // Six lists in all: no more rows.
-    expect(screen.getByTestId('compare-add')).toBeDisabled()
+    // Six lists in all: Add a birder is gone (not disabled), and back once a row goes.
+    expect(screen.queryByTestId('compare-add')).toBeNull()
     fireEvent.click(screen.getByTestId('compare-remove-4'))
     expect(rowCount()).toBe(4)
-    expect(screen.getByTestId('compare-add')).toBeEnabled()
+    expect(screen.getByTestId('compare-add')).toHaveFocus()
     // A comparison link pasted into a new row: a row per list it holds, within the cap.
     fireEvent.click(screen.getByTestId('compare-add'))
     paste(comparison(payload('Ada', 1, 2), payload('Lee', 2, 3)), 4)
@@ -158,8 +158,10 @@ describe('Compare: the set-up', () => {
     fireEvent.blur(screen.getByTestId('compare-link-0'))
     expect(screen.getByTestId('compare-link-0')).toHaveAttribute('aria-invalid', 'true')
   })
-  it('Add a friend adds a row and removing one takes it out; the last row is emptied instead', () => {
+  it('Add a birder adds a row and removing one takes it out; the last row is emptied instead', () => {
     render(<ComparePage />)
+    expect(screen.getByTestId('compare-add')).toHaveAccessibleName('Add a birder')
+    expect(screen.getByTestId('compare-add')).not.toHaveAttribute('aria-describedby')
     fireEvent.click(screen.getByTestId('compare-add'))
     expect(rowCount()).toBe(2)
     paste(link('Sam', 5), 1)
@@ -170,6 +172,16 @@ describe('Compare: the set-up', () => {
     expect(rowCount()).toBe(1)
     expect(screen.getByTestId('compare-link-0')).toHaveValue('')
     expect(screen.getByTestId('compare-add')).toHaveFocus()
+  })
+  it('the add that makes six lists takes the button away and puts focus in the new row\'s name box', () => {
+    render(<ComparePage />)
+    // Yours and the first row are two lists: four adds make six.
+    for (let i = 0; i < 3; i++) fireEvent.click(screen.getByTestId('compare-add'))
+    expect(screen.getByTestId('compare-add')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('compare-add'))
+    expect(rowCount()).toBe(5)
+    expect(screen.queryByTestId('compare-add')).toBeNull()
+    expect(screen.getByTestId('compare-name-4')).toHaveFocus()
   })
   it('with no list of your own yet, says so and keeps the friend’s list for when you have one', () => {
     ctx.list = []

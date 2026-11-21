@@ -1,7 +1,7 @@
 /* Compare with friends. One page head in both states (PageHead, as My birds: the title, a line; the set-up's head has
    nothing at its right, the comparison's Edit lists and Share). The set-up sits on the page itself under it, no box,
    the page's content width as the results: a row per list (its colour dot, a name box, the link box, a remove button;
-   the birder's own row a quiet box in the link's place, the remove column kept empty), then the foot, "Add a friend"
+   the birder's own row a quiet box in the link's place, the remove column kept empty), then the foot, "Add a birder"
    at its left and Compare at its right, its edge on the link boxes'. The comparison: one row of chips, then the
    circles and the bars side by side from 640px (stacked under it), then what is chosen, named, over its birds across
    the page. */
@@ -73,9 +73,9 @@
 .eb-compare-ring { fill: none; stroke: none; pointer-events: none; }
 .eb-compare-region:focus-visible .eb-compare-ring { stroke: var(--accent); stroke-width: 2; }
 /* The parts outside the chosen group: a Paper veil over their fills and outlines, their numbers faded; eased. */
-.eb-compare-veil { fill: var(--paper); fill-opacity: 0; pointer-events: none; transition: fill-opacity .2s var(--ease-ui); }
+.eb-compare-veil { fill: var(--paper); fill-opacity: 0; pointer-events: none; transition: fill-opacity .2s cubic-bezier(.25, .8, .25, 1); }
 .eb-compare-veil[data-off] { fill-opacity: .65; }
-.eb-compare-num, .eb-compare-bar { transition: opacity .2s var(--ease-ui); }
+.eb-compare-num, .eb-compare-bar { transition: opacity .2s cubic-bezier(.25, .8, .25, 1); }
 .eb-compare-num[data-off], .eb-compare-pick[data-off] .eb-compare-bar { opacity: .3; }
 
 /* The bars: one per list, most species first, the name and count over a bar to scale in the list's colour. */
@@ -90,6 +90,7 @@
 .eb-compare-pick[aria-pressed="true"] { background: var(--surface); }
 .eb-compare-name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 .eb-compare-count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.eb-compare-bar { transition-timing-function: var(--ease-ui); } /* UI state, not a bird: the UI ease (AN10) */
 .eb-compare-bar { grid-column: 1 / -1; display: block; min-inline-size: 3px; height: 6px; border-radius: 3px; }
 
 @media (hover: hover) and (pointer: fine) { .eb-compare-pick:hover { background: var(--surface); } }

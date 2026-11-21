@@ -413,11 +413,11 @@ export const ja: Messages = {
       note: '友だちのEverybirdリンクを貼り付けると、共通する鳥がわかります。リストは{n}件までです。',
       yourList: 'あなたのリスト',
       nameN: 'リスト{n}の名前',
-      addFriend: '友だちを追加',
+      addBirder: 'バードウォッチャーを追加',
       editLists: 'リストを編集',
       lede: 'リストに共通する鳥と、あなたがまだ見ていない鳥がわかります。下で人を選ぶと、その人たちだけに共通する鳥が表示されます。',
       ledeTheirs: 'これらのリストに共通する鳥がわかります。下で人を選ぶと、その人たちだけに共通する鳥が表示されます。',
-      diagram: 'リストの重なり',
+      diagram: '図',
     },
     orders: {
       Struthioniformes: 'ダチョウ類',

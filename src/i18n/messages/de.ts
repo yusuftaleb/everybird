@@ -414,11 +414,11 @@ export const de: Messages = {
       note: 'Füge die Everybird-Links deiner Freunde ein, um zu sehen, welche Vögel ihr gemeinsam habt. Bis zu {n} Listen.',
       yourList: 'Deine Liste',
       nameN: 'Name der Liste {n}',
-      addFriend: 'Freund hinzufügen',
+      addBirder: 'Vogelbeobachter hinzufügen',
       editLists: 'Listen bearbeiten',
       lede: 'Sieh, welche Vögel eure Listen gemeinsam haben und welche du noch nicht gesehen hast. Wähle unten Personen, um die Vögel zu sehen, die nur sie gemeinsam haben.',
       ledeTheirs: 'Sieh, welche Vögel diese Listen gemeinsam haben. Wähle unten Personen, um die Vögel zu sehen, die nur sie gemeinsam haben.',
-      diagram: 'Wie sich die Listen überschneiden',
+      diagram: 'Diagramm',
     },
     orders: {
       Struthioniformes: 'Strauße',

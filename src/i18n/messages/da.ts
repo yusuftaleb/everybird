@@ -414,11 +414,11 @@ export const da: Messages = {
       note: 'Indsæt dine venners Everybird-links for at se, hvilke fugle I har til fælles. Op til {n} lister.',
       yourList: 'Din liste',
       nameN: 'Navn på liste {n}',
-      addFriend: 'Tilføj en ven',
+      addBirder: 'Tilføj en fuglekigger',
       editLists: 'Redigér lister',
       lede: 'Se hvilke fugle jeres lister har til fælles, og hvilke du endnu ikke har set. Vælg personer herunder for at se de fugle, kun de har til fælles.',
       ledeTheirs: 'Se hvilke fugle listerne har til fælles. Vælg personer herunder for at se de fugle, kun de har til fælles.',
-      diagram: 'Hvordan listerne overlapper',
+      diagram: 'Diagram',
     },
     orders: {
       Struthioniformes: 'Strudse',

@@ -519,16 +519,16 @@ export const EN_UI = {
     sharedTitle: 'Comparing {n} life lists',
     /** On a shared collage or comparison: open Compare with it and your own list. */
     withMine: 'Compare with mine',
-    /** The set-up: the page head's line ({n} 6), the birder's own row, each row's name box, Add a friend. */
+    /** The set-up: the page head's line ({n} 6), the birder's own row, each row's name box, Add a birder (the rows' "Birder {n}" word; gone at 6 lists). */
     note: 'Paste your friends’ Everybird links to see which birds you share. Up to {n} lists.',
     yourList: 'Your list',
     nameN: 'Name of list {n}',
-    addFriend: 'Add a friend',
+    addBirder: 'Add a birder',
     /** The results: back to the set-up; the page head's line (with your own list, and without); the circles' name. */
     editLists: 'Edit lists',
     lede: 'See which birds your lists share and which you’re yet to see. Choose people below to see the birds only they share.',
     ledeTheirs: 'See which birds these lists share. Choose people below to see the birds only they share.',
-    diagram: 'How the lists overlap',
+    diagram: 'Diagram',
   },
 
   /** Plain labels for the bird orders (scientific name -> label): every order in species.v1.json. English is a copy of
