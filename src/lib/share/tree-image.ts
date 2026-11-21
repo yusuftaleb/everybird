@@ -112,7 +112,7 @@ export function clearTicks<T extends { v: number; x0: number; x1: number; y0: nu
 /** The totals: the largest number, the gap under the numbers, and before the drawing (round 6, item 9: 20, was 32). */
 const TOTAL_MAX = 56, TOTAL_GAP = 12, TOTALS_BELOW = 20
 
-type Tip = Exclude<TreeRow, { kind: 'order' }>
+type Tip = Exclude<TreeRow, { kind: 'head' }>
 export type TotalRank = 'species' | 'genera' | 'families' | 'orders'
 /** The four totals, in this order. */
 export const TOTALS: readonly TotalRank[] = ['species', 'genera', 'families', 'orders']
@@ -201,7 +201,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
         : rank === 'genera' ? r.key
           : rank === 'orders' ? (state.sci ? r.row.ord : (t.orders as Record<string, string>)[r.row.ord] ?? r.row.ord)
             : state.sci ? r.row.fam : familyName(r.row)
-    const tips = view.rows.filter((r): r is Tip => r.kind !== 'order')
+    const tips = view.rows.filter((r): r is Tip => r.kind !== 'head')
     return { view, root: view.root && (timeScale ? view.root : bySplits(view.root)), stem: timeScale ? view.stem : 1, nameOf, tips }
   }
   const shown = prep(shownView)

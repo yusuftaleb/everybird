@@ -79,7 +79,7 @@ const CARDS: Record<Layout, CardFormat[]> = { fan: ['desktop', 'wide', 'square']
 const LEVELS: { name: string; level: TreeLevel }[] = [{ name: '5 families', level: { ord: 'Galliformes' } }, { name: '27 genera', level: { ord: 'Cuculiformes' } }, { name: '93 genera', level: { ord: 'Passeriformes', fam: 'Thraupidae' } }, { name: '141 families', level: { ord: 'Passeriformes' } }]
 const LANGS = { en, de }
 
-type Tip = Exclude<TreeRow, { kind: 'order' }>
+type Tip = Exclude<TreeRow, { kind: 'head' }>
 /** What one render drew, and what it should have. */
 async function render(o: { layout: Layout; format: CardFormat; time: boolean; totals: boolean; level: TreeLevel; lang: 'en' | 'de'; title?: boolean; size?: PrintSize; oldest?: boolean }) {
   const t = LANGS[o.lang].ui
@@ -91,7 +91,7 @@ async function render(o: { layout: Layout; format: CardFormat; time: boolean; to
     totals: o.totals ? undefined : [], oldest: o.oldest ?? true, onTreeText: (x: { layout: Layout; px: number; small: boolean }) => told.push(x),
   } as unknown as Parameters<typeof renderTreeImage>[0])
   const v = levelView(tree, species, o.level, codes)!
-  const tips = v.rows.filter((r): r is Tip => r.kind !== 'order')
+  const tips = v.rows.filter((r): r is Tip => r.kind !== 'head')
   const nameOf = (r: Tip) => (r.kind === 'species' ? r.row.com : v.tips === 'genera' ? r.key : v.tips === 'orders' ? (t.orders as Record<string, string>)[r.row.ord] ?? r.row.ord : familyName(r.row))
   const countOf = (r: Tip) => (r.kind === 'group' ? fmt(t.collage.tree.tipOf, { n: formatInt(r.on, t.num), total: formatInt(r.total, t.num) }) : '')
   const ages = new Set(Array.from({ length: 400 }, (_, i) => formatAge(i * 5, t.num)).concat(Array.from({ length: 400 }, (_, i) => formatAge(i, t.num))))
