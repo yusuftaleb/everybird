@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useReducer } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { CollageView } from '@/components/app/CollageView'
 import type { FilterSection } from '@/components/filters/Filters'
 import { FiltersDock } from './filters-dock'
@@ -14,6 +14,9 @@ import { monthBins } from '@/lib/list/timeline'
 import type { IucnCat } from '@/lib/species/iucn'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
+import { loadLazyParts } from './lazy-parts'
+
+beforeAll(loadLazyParts, 60_000)
 
 const row = (code: string, ord: string, fam: string, to: number, iu?: IucnCat): SpeciesRow => ({
   code, com: code, sci: `Avis ${code}`, ord, fam, famCom: fam, to, g: 100, gSrc: 'avonet', st: true, ar: 1, q: true, ...(iu ? { iu } : {}),

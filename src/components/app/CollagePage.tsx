@@ -1,5 +1,5 @@
 'use client'
-import { Plus, Printer, ShareNetwork } from '@phosphor-icons/react'
+import { Plus, Printer, ShareNetwork } from '@/components/phosphor-icons'
 import Link from '@/components/app/IntentLink'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { EditBird } from '@/components/edit/EditBird'
@@ -12,7 +12,7 @@ import { nameOfCode } from '@/lib/species/names'
 import type { Edits, ListEntry } from '@/lib/list/model'
 import type { ViewKind } from '@/lib/view-resume'
 import type { ShareAt } from '@/lib/share/view-image'
-import { onIntent, warmPrint, warmShare } from '@/lib/prefetch'
+import { onIntent, warmAddBirds, warmPrint, warmShare } from '@/lib/prefetch'
 import { CollageView } from './CollageView'
 import { useEverybirdContext } from './EverybirdProvider'
 import { AppNotices } from './Notices'
@@ -73,7 +73,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
       <PageHead
         title={t.collage.untitled}
         actions={<>
-          <button type="button" className="eb-btn eb-btn-quiet" aria-label={t.collage.addBirds} aria-haspopup="dialog" data-add-birds="" onClick={onAdd}>
+          <button type="button" className="eb-btn eb-btn-quiet" aria-label={t.collage.addBirds} aria-haspopup="dialog" data-add-birds="" onClick={onAdd} {...onIntent(warmAddBirds)}>
             <Plus aria-hidden="true" focusable="false" />
             <span className="eb-sm-hide">{t.collage.addBirds}</span>
           </button>

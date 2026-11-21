@@ -14,7 +14,7 @@
 // added a date (the system picker, or a year alone) and a country and region, when set. The search's list is windowed
 // (only the rows in view are in the DOM); both lists keep one height (`view` rows, fewer where the box shrinks to fit
 // the dialog).
-import { Check } from '@phosphor-icons/react'
+import { Check } from '@/components/phosphor-icons'
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { removedText, UndoToast, type Removal } from '@/components/app/UndoToast'
 import { Sticker } from '@/components/collage/Sticker'

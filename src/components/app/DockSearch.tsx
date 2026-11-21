@@ -77,16 +77,6 @@ function firstOfEachFamily(entries: readonly { code: string }[], species: Specie
   return [...byFam.values()]
 }
 
-/** The magnifier button (in the dock's tools). */
-export function SearchButton({ onOpen, open, buttonRef }: { onOpen: () => void; open: boolean; buttonRef: React.RefObject<HTMLButtonElement | null> }) {
-  const { t } = useI18n()
-  return (
-    <button ref={buttonRef} type="button" className="eb-dock-tab eb-dock-find" aria-label={t.collage.search.find} aria-expanded={open} onClick={onOpen}>
-      <SearchIcon />
-    </button>
-  )
-}
-
 /** Where a hit lives, in the results' right-hand column: its kind and count, and its order when outside the filter. */
 function rankText(h: CollageHit, filtered: boolean, t: Ui): string {
   const rank = t.collage.search[h.kind]

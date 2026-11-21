@@ -1,9 +1,12 @@
 'use client'
-import { useState } from 'react'
-import { AddBirdsDialog } from '@/components/import/AddBirdsDialog'
+import { Suspense, useState } from 'react'
+import { lazyLoaded } from '@/lib/lazy-loaded'
 import { CollagePage } from './CollagePage'
 import { useEverybirdContext } from './EverybirdProvider'
 import { Landing } from './Landing'
+
+// The import code loads when the dialog first opens (prefetched on intent of the Add birds buttons, src/lib/prefetch.ts).
+export const AddBirdsDialog = lazyLoaded(() => import('@/components/import/AddBirdsDialog').then((m) => m.AddBirdsDialog))
 
 /**
  * `/` (Collage): the birder's own collage when this device holds a list, else the landing with the sample collage.
@@ -19,7 +22,7 @@ export function Home() {
   return (
     <>
       {eb.mineSoon ? <CollagePage onAdd={add} /> : <Landing onAdd={add} />}
-      {adding && <AddBirdsDialog onClose={() => setAdding(false)} />}
+      {adding && <Suspense fallback={null}><AddBirdsDialog onClose={() => setAdding(false)} /></Suspense>}
     </>
   )
 }

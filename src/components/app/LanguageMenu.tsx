@@ -4,7 +4,7 @@
 // small menu of the four languages, each in its own language, the current one checked. Its keyboard copies SourceMenu
 // (src/components/import/SourceMenu.tsx). A new choice sets the cookie and reloads (chooseLang); the current one only
 // closes the menu.
-import { Check } from '@phosphor-icons/react'
+import { Check } from '@/components/phosphor-icons'
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { useHoldTopBar } from '@/components/dialog-utils'
 import { chooseLang } from '@/i18n/choose'

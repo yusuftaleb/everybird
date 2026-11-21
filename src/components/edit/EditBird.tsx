@@ -1,5 +1,5 @@
 'use client'
-import { ArrowCounterClockwise, Check, Trash } from '@phosphor-icons/react'
+import { ArrowCounterClockwise, Check, Trash } from '@/components/phosphor-icons'
 import { useContext } from 'react'
 import { CardEndLink } from '@/components/collage/BirdCard'
 import { markLabel } from '@/components/collage/Marks'

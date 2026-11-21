@@ -1,6 +1,6 @@
 'use client'
 import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { PencilSimple, Plus, ShareNetwork, X } from '@phosphor-icons/react'
+import { PencilSimple, Plus, ShareNetwork, X } from '@/components/phosphor-icons'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'

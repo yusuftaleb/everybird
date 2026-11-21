@@ -1,5 +1,5 @@
 'use client'
-import { GithubLogo } from '@phosphor-icons/react/dist/ssr'
+import { GithubLogo } from '@/components/phosphor-icons'
 import { BackToTop } from '@/components/app/BackToTop'
 import Link from '@/components/app/IntentLink'
 import { useI18n } from '@/i18n/I18nProvider'

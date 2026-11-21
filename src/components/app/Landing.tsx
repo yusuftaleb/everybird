@@ -1,6 +1,7 @@
 'use client'
-import { ArrowRight } from '@phosphor-icons/react'
+import { ArrowRight } from '@/components/phosphor-icons'
 import { useState } from 'react'
+import { onIntent, warmAddBirds } from '@/lib/prefetch'
 import { toured } from '@/lib/tour'
 import { useI18n } from '@/i18n/I18nProvider'
 import { useEverybirdContext } from './EverybirdProvider'
@@ -23,7 +24,7 @@ export function Landing({ onAdd }: { onAdd: () => void }) {
           <div className="eb-pagehead-row"><h1 className="eb-pagehead-title">{t.landing.title}</h1></div>
           <p className="eb-hero-lede">{t.landing.lede}</p>
         </div>
-        <button type="button" className="eb-btn eb-btn-big eb-hero-cta" aria-haspopup="dialog" onClick={onAdd}>
+        <button type="button" className="eb-btn eb-btn-big eb-hero-cta" aria-haspopup="dialog" onClick={onAdd} {...onIntent(warmAddBirds)}>
           {t.landing.makeYours}
           <ArrowRight aria-hidden="true" focusable="false" weight="bold" />
         </button>

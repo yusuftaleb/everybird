@@ -25,5 +25,8 @@ export const warmMap = () => {
   quiet(import('@/lib/map/shapes').then((m) => m.loadMapCountries()))
 }
 
+/** The Add birds dialog and its import UI. */
+export const warmAddBirds = () => quiet(import('@/components/import/AddBirdsDialog'))
+
 /** The handlers that run `warm` on intent; spread them on the control (it must not set these handlers itself). */
 export const onIntent = (warm: () => void) => ({ onPointerEnter: warm, onFocus: warm, onTouchStart: warm })

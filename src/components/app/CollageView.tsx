@@ -14,7 +14,6 @@ import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage, revealBird } from '@/components/collage/Collage'
 import { reduced } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
-import { MapView } from '@/components/collage/MapView'
 import { FilterBar, pickWords, type TreePath } from '@/components/filters/FilterBar'
 import { useIsSheet } from '@/components/dialog-utils'
 import { DockPanelButton, useFiltersUi, type FilterSection, type PlacesNote } from '@/components/filters/Filters'
@@ -47,11 +46,14 @@ import { useTreeMine } from '@/lib/tree-mine'
 import { ControlsBar } from './ControlsBar'
 import { useCollageLayout } from './use-collage-layout'
 import './app.css'
+import { lazyLoaded } from '@/lib/lazy-loaded'
 
 /** The stage re-renders only when its own props change (not when a card or tooltip opens). */
 const Stage = memo(Collage)
 /** The Tree tab, and its data, load only when it is opened. */
 const TreeView = lazy(() => import('@/components/tree/TreeView'))
+// The Map view's code and styles load when it first opens (prefetched on intent of its tab, src/lib/prefetch.ts).
+export const MapView = lazyLoaded(() => import('@/components/collage/MapView').then((m) => m.MapView))
 
 type Props = {
   state: AppState
@@ -406,7 +408,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
           </div>
         )
       ) : view === 'map' ? (
-        <MapView state={state} species={species} regions={regions} onLevel={onMapLevel} />
+        <Suspense fallback={null}><MapView state={state} species={species} regions={regions} onLevel={onMapLevel} /></Suspense>
       ) : view === 'list' ? (
         <ListView entries={shownList} species={species} regions={regions} order={listOrder} sci={sci} onPick={onPickRow} />
       ) : (

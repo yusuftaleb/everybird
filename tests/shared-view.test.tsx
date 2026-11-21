@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { SharedView, missingFilters } from '@/components/app/SharedView'
 import { formatPlace } from '@/lib/import/places'
 import { dateToYm, payloadToRecords, ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import { resetCaches } from '@/lib/species/load'
+import { loadLazyParts } from './lazy-parts'
+
+beforeAll(loadLazyParts, 60_000)
 
 const row = (code: string, to: number, iu?: string) => ({ code, com: code, sci: code, ord: 'Passeriformes', fam: 'Corvidae', famCom: 'Crows', to, g: 1, gSrc: 'family', st: true, ar: 1, q: true, ...(iu ? { iu } : {}) })
 const regions = { v: 1 as const, countries: { CA: 'Canada', EG: 'Egypt [x]' }, sub1: { 'CA-BC': 'British Columbia' } }

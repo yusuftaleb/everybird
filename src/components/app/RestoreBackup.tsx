@@ -1,5 +1,5 @@
 'use client'
-import { UploadSimple } from '@phosphor-icons/react'
+import { UploadSimple } from '@/components/phosphor-icons'
 import { useId, useState } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
 import { BackupError, fromJson } from '@/lib/list/export'

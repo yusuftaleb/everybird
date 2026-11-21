@@ -1,5 +1,5 @@
 'use client'
-import { DotsThree } from '@phosphor-icons/react'
+import { DotsThree } from '@/components/phosphor-icons'
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, type KeyboardEvent } from 'react'
 import { useMenuLayer } from '@/components/menu-layer'
 

@@ -1,5 +1,5 @@
 'use client'
-import { ArrowsLeftRight } from '@phosphor-icons/react'
+import { ArrowsLeftRight } from '@/components/phosphor-icons'
 import { useI18n } from '@/i18n/I18nProvider'
 import { handOff } from '@/lib/share/compare-handoff'
 import Link from '@/components/app/IntentLink'

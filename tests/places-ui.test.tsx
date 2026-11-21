@@ -2,12 +2,15 @@
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useReducer } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { fmt } from '@/i18n/core'
 import { es } from '@/i18n/messages/es'
 import { withI18n } from './i18n-render'
 import type { PlacesUnplaced } from '@/lib/list/filter-summary'
+import { loadLazyParts } from './lazy-parts'
+
+beforeAll(loadLazyParts, 60_000)
 
 // The one pass over the list that counts every place level, watched: a checkbox must not count the list again.
 vi.mock('@/lib/list/filters', async (importOriginal) => {

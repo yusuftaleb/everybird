@@ -12,7 +12,7 @@
 // Every setting keeps its stored value and behaviour (arrangement.ts, tree-mine.ts; True size and Scientific are the
 // list store's).
 import { useId, type ReactNode, type RefObject } from 'react'
-import type { Icon } from '@phosphor-icons/react'
+import type { Icon } from '@/components/phosphor-icons'
 import { DockPanel } from '@/components/filters/Filters'
 import { useI18n } from '@/i18n/I18nProvider'
 import { ARRANGEMENTS, ARRANGE_ICON, setArrangement, useArrangement } from '@/lib/arrangement'

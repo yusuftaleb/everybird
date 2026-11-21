@@ -111,6 +111,7 @@ async function mount(opts: { blockStorage?: boolean; failForget?: boolean; path?
   const { SettingsPage } = await import('@/components/app/SettingsPage')
   const { SiteFooter } = await import('@/components/app/SiteFooter')
   const { TopBar } = await import('@/components/app/TopBar')
+  await (await import('./lazy-parts')).loadLazyParts() // these module copies' lazy parts, after resetModules
   // After resetModules: the same I18nProvider module instance the components above read their context from.
   const { withI18n } = await import('./i18n-render')
   const storage = await import('@/lib/list/storage')
@@ -184,6 +185,8 @@ afterEach(() => {
 describe('the top bar under a language prefix', () => {
   it('TopBar marks the current page from the unprefixed path', async () => {
     const { TopBar } = await import('@/components/app/TopBar')
+    await (await import('./lazy-parts')).loadLazyParts() // these module copies' lazy parts, after resetModules
+  await (await import('./lazy-parts')).loadLazyParts() // these module copies' lazy parts, after resetModules
     const { withI18n } = await import('./i18n-render')
     // The server prerenders /es/settings, the browser shows /settings: the same aria-current both times (no mismatch).
     const current = (path: string) => {

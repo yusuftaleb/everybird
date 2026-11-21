@@ -50,7 +50,7 @@
 // isn't, from the poster; the ZIPs aren't counted.
 import {
   ArrowClockwise, CaretDown, DownloadSimple, FilePdf, LinkSimple, Printer, ShareNetwork, X, type Icon,
-} from '@phosphor-icons/react'
+} from '@/components/phosphor-icons'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar } from '@/components/dialog-utils'
 import { Chip } from '@/components/filters/Chip'

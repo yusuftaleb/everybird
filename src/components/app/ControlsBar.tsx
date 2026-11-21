@@ -14,16 +14,22 @@
 // open. Under 820px of bar the controls and panel buttons take a second row of their own; under 1100px the views are
 // icons only; under 540px of bar (and on phones) the switches and the sort shorten ("Sci."; "Newest" in list view), and under 330px
 // and 310px everything tightens, so row one (the views and the magnifier) never breaks from 280px of bar.
-import { CaretDown } from '@phosphor-icons/react'
-import { useCallback, useId, useRef, useState, type ReactNode } from 'react'
+import { CaretDown } from '@/components/phosphor-icons'
+import { Suspense, useCallback, useId, useRef, useState, type ReactNode } from 'react'
 import { CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
 import { MenuList } from '@/components/share/MenuSelect'
 import { useI18n } from '@/i18n/I18nProvider'
 import { LIST_ORDERS, type ListOrder } from '@/lib/list/list-order'
+import { lazyLoaded } from '@/lib/lazy-loaded'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
 import type { ViewKind } from '@/lib/view-resume'
-import { DockSearchField, SearchButton, type DockSearchProps } from './DockSearch'
+import type { DockSearchProps } from './DockSearch'
+import { SearchButton } from './DockSearchButton'
 import { onIntent, warmMap, warmTree } from '@/lib/prefetch'
+
+// The search field and its smart search load on their own, right after the bar mounts (the field is mounted closed, as
+// before, so its first opening fades in as every later one): the page's own code parses first.
+export const DockSearchField = lazyLoaded(() => import('./DockSearch').then((m) => m.DockSearchField))
 
 type Props = {
   view: ViewKind
@@ -160,7 +166,7 @@ export function ControlsBar({ view, onView, noMap, listOrder, onListOrder, sci, 
           {filters}
         </div>
         {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => { onOpening?.(); setFinding(true) }} buttonRef={findBtn} /></div>}
-        {search && <DockSearchField {...search} onPick={onPick} open={finding} onClose={close} within={wrap} />}
+        {search && <Suspense fallback={null}><DockSearchField {...search} onPick={onPick} open={finding} onClose={close} within={wrap} /></Suspense>}
       </div>
       {below}
     </div>
