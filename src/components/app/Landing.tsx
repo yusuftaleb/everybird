@@ -17,10 +17,10 @@ export function Landing({ onAdd }: { onAdd: () => void }) {
   const { t } = useI18n()
   const [touring, setTouring] = useState(false)
   return (
-    <main className="eb-page eb-page-collage eb-page-landing">
+    <main className="eb-page eb-page-collage eb-page-landing eb-page-titled">
       <div className="eb-hero">
         <div className="eb-hero-text">
-          <h1 className="eb-hero-title">{t.landing.title}</h1>
+          <div className="eb-pagehead-row"><h1 className="eb-pagehead-title">{t.landing.title}</h1></div>
           <p className="eb-hero-lede">{t.landing.lede}</p>
         </div>
         <button type="button" className="eb-btn eb-btn-big eb-hero-cta" aria-haspopup="dialog" onClick={onAdd}>

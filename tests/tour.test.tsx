@@ -21,7 +21,6 @@ function landing() {
   main.innerHTML = `<section class="eb-view">
     <div data-tour="view"><button>Collage</button></div>
     <button data-tour="filter">Filters</button>
-    <button data-tour="share">Share</button>
     <div class="eb-stagewrap"><button class="eb-bird" data-code="a">A</button></div>
   </section>`
   document.body.append(main)
@@ -42,21 +41,21 @@ afterEach(() => { cleanup(); document.body.innerHTML = ''; vi.unstubAllGlobals()
 const note = () => screen.queryByTestId('tour')
 
 describe('the sample tour', () => {
-  it('walks Filter, View, a bird and Share, each note announced by its step and ringing its target', async () => {
+  it('walks Filter, View and a bird, each note announced by its step and ringing its target', async () => {
     const main = landing()
     render(<Tour onOwn={() => {}} onEnd={() => {}} />, { wrapper: withI18n('en') })
     const steps: string[] = []
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       await act(async () => { await new Promise((r) => setTimeout(r, 5)) })
       const d = screen.getByRole('dialog')
       steps.push(d.getAttribute('data-step')!)
       expect(d).toHaveFocus()
-      expect(d).toHaveAccessibleName(`${i + 1} of 4`)
+      expect(d).toHaveAccessibleName(`${i + 1} of 3`)
       expect(main.querySelectorAll('[data-tour-on]')).toHaveLength(1)
-      if (i < 3) fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+      if (i < 2) fireEvent.click(screen.getByRole('button', { name: 'Next' }))
     }
-    expect(steps).toEqual(['filter', 'view', 'bird', 'share'])
-    expect(main.querySelector('[data-tour-on]')).toHaveAttribute('data-tour', 'share')
+    expect(steps).toEqual(['filter', 'view', 'bird'])
+    expect(main.querySelector('[data-tour-on]')).toHaveClass('eb-bird')
     expect(screen.getByRole('button', { name: 'Use your own list' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Next' })).toBeNull()
   })
@@ -89,7 +88,7 @@ describe('the sample tour', () => {
     landing()
     const onOwn = vi.fn(), onEnd = vi.fn()
     render(<Tour onOwn={onOwn} onEnd={onEnd} />, { wrapper: withI18n('en') })
-    for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    for (let i = 0; i < 2; i++) fireEvent.click(screen.getByRole('button', { name: 'Next' }))
     fireEvent.click(screen.getByRole('button', { name: 'Use your own list' }))
     expect(onEnd).toHaveBeenCalledOnce()
     expect(onOwn).toHaveBeenCalledOnce()
