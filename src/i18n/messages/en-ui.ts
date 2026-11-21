@@ -155,8 +155,6 @@ export const EN_UI = {
       oldest: 'Oldest',
       sort: 'Sort',
       trueSize: 'True size',
-      trueShort: 'True',
-      trueSr: 'sticker sizes',
       trueTitle: 'Size by body mass at true scale (big birds dwarf small ones)',
       sci: 'Scientific',
       sciShort: 'Sci.',
@@ -785,7 +783,6 @@ export const EN_UI = {
     whyLabel: { one: 'Why {n} skipped?', other: 'Why {n} skipped?' },
     /** A row's status. */
     notAdded: 'Not added',
-    noneYet: 'None yet',
     detailsUnknown: 'Details unknown',
     usernameUnknown: 'Username unknown: enter it again to refresh',
     imported: 'Imported {date}',
