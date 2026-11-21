@@ -119,8 +119,16 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       // From here on (WebKit reports the seed's page's fetches, cut short by the next page load, as errors).
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
-      await expect(page.getByRole("heading", { level: 1, name: "Compare with friends" })).toBeVisible();
-      await expect(page.getByText("Paste your friends’ Everybird links. Up to 6 lists.")).toBeVisible();
+      // The same page head as the comparison's and My birds': the title, its line, Compare at its right (where Share will be).
+      const title = page.getByRole("heading", { level: 1, name: "Compare life lists" });
+      await expect(title).toBeVisible();
+      await expect(title).toHaveClass(/eb-pagehead-title/);
+      await expect(page.locator(".eb-pagehead .eb-lede-sm")).toHaveText("Paste your friends’ Everybird links to see which birds you share. Up to 6 lists.");
+      await expect(page.locator(".eb-pagehead-actions").getByRole("button")).toHaveText(["Compare"]);
+      const setupTitle = (await title.boundingBox())!;
+      const setupHead = (await page.locator(".eb-pagehead").boundingBox())!;
+      const setupFont = await title.evaluate((el) => getComputedStyle(el).fontSize);
+      const submitBox = async () => (await page.getByTestId("compare-submit").boundingBox())!;
       await expect(page.getByTestId("compare-name-mine")).toHaveValue(ME);
       const submit = page.getByTestId("compare-submit");
       await expect(submit).toBeDisabled();
@@ -133,10 +141,19 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await page.getByTestId("compare-link-1").fill(link(baseURL!, "Ada", ADA));
       await expect(page.getByTestId("compare-name-1")).toHaveValue("Ada");
       await shot(page, "setup", browserName);
+      const compareAt = await submitBox();
 
       await submit.click();
       // The page head, as My birds': the title, the line, Edit lists and Share at its right end.
       await expect(page.getByRole("heading", { level: 1, name: "Compare life lists" })).toBeVisible();
+      // The head where it was in the set-up, its title in the same type: only the line and the buttons change. (On a
+      // phone the title may wrap beside Edit lists and Share where it fit on one line beside Compare.)
+      const resultsTitle = (await title.boundingBox())!;
+      const resultsHead = (await page.locator(".eb-pagehead").boundingBox())!;
+      expect(Math.abs(resultsHead.y - setupHead.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(resultsTitle.x - setupTitle.x)).toBeLessThanOrEqual(1);
+      if (viewport.width >= 640) expect(Math.abs(resultsTitle.y - setupTitle.y)).toBeLessThanOrEqual(1);
+      expect(await title.evaluate((el) => getComputedStyle(el).fontSize)).toBe(setupFont);
       await expect(page.getByText("See which birds your lists share and which you’re yet to see. Choose people below to see the birds only they share.")).toBeVisible();
       await expect(page.getByTestId("compare-edit")).toBeFocused();
       await expect(page.getByTestId("compare-edit")).toHaveAccessibleName("Edit lists");
@@ -144,6 +161,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       const head = (await page.locator(".eb-pagehead-row").boundingBox())!;
       const shareBox = (await page.getByTestId("compare-share").boundingBox())!;
       expect(Math.abs(shareBox.x + shareBox.width - (head.x + head.width))).toBeLessThanOrEqual(1);
+      // Share where Compare was (on a phone the buttons centre on the title, which may take a second line here).
+      expect(Math.abs(shareBox.x + shareBox.width - (compareAt.x + compareAt.width))).toBeLessThanOrEqual(1);
+      if (viewport.width >= 640) expect(Math.abs(shareBox.y - compareAt.y)).toBeLessThanOrEqual(1);
       for (const b of [page.getByTestId("compare-edit"), page.getByTestId("compare-share")]) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 
       // The chips: each person with their count, then Yet to see and Every bird; it opens on Yet to see.
@@ -237,7 +257,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
 
       // Edit lists: the rows as left; removing one leaves two lists.
       await page.getByTestId("compare-edit").click();
-      await expect(page.getByRole("heading", { level: 1, name: "Compare with friends" })).toBeFocused();
+      await expect(page.getByRole("heading", { level: 1, name: "Compare life lists" })).toBeFocused();
+      await expect(page.locator(".eb-pagehead-actions").getByRole("button")).toHaveText(["Compare"]);
       await expect(page.getByTestId("compare-name-0")).toHaveValue("Sam");
       await expect(page.getByTestId("compare-name-1")).toHaveValue("Ada");
       await page.getByRole("button", { name: "Remove Ada" }).click();

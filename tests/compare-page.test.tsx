@@ -69,8 +69,13 @@ afterEach(() => {
 describe('Compare: the set-up', () => {
   it('your list first, named, with its count; a pasted link fills its row’s name; Compare waits for two lists', () => {
     render(<ComparePage />)
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Compare with friends')
-    expect(screen.getByTestId('compare-setup')).toHaveTextContent('Paste your friends’ Everybird links. Up to 6 lists.')
+    // The same page head as the comparison's (and My birds'): the title, the line under it, Compare at its right.
+    const title = screen.getByRole('heading', { level: 1 })
+    expect(title).toHaveTextContent('Compare life lists')
+    expect(title).toHaveClass('eb-pagehead-title')
+    expect(title.closest('.eb-pagehead')!.querySelector('.eb-lede-sm')).toHaveTextContent('Paste your friends’ Everybird links to see which birds you share. Up to 6 lists.')
+    expect(title.closest('.eb-pagehead')!.querySelector('.eb-pagehead-actions')).toContainElement(screen.getByTestId('compare-submit'))
+    expect(screen.getByTestId('compare-link-0')).toHaveAccessibleDescription('Paste your friends’ Everybird links to see which birds you share. Up to 6 lists.')
     expect(screen.getByTestId('compare-name-mine')).toHaveValue('Mine')
     expect(screen.getByTestId('compare-row-mine')).toHaveTextContent('Your list · 4 species')
     expect(screen.queryByTestId('compare-remove-mine')).toBeNull()

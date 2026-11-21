@@ -1,16 +1,17 @@
-/* Compare with friends. The set-up sits on the page itself, no box, at most 760px wide: the title, a line, a row per
-   list (its colour dot, a name box, the link box, a remove button; the birder's own row a quiet box in the link's place), then "Add a friend" and Compare. The comparison: the page head (PageHead, as My birds: the title, a line, Edit lists
-   and Share), one row of chips, then the circles and the bars side by side from 640px (stacked under it), then what
-   is chosen, named, over its birds across the page. */
+/* Compare with friends. One page head in both states (PageHead, as My birds: the title, a line; at its right the
+   set-up's Compare, then the comparison's Edit lists and Share in its place). The set-up sits on the page itself under
+   it, no box, at most 760px wide: a row per list (its colour dot, a name box, the link box, a remove button; the
+   birder's own row a quiet box in the link's place), then "Add a friend". The comparison: one row of chips, then the
+   circles and the bars side by side from 640px (stacked under it), then what is chosen, named, over its birds across
+   the page. */
 
 /* A list's colour: a 12px dot (compare.ts listColor). */
 .eb-compare-dot { flex: none; display: block; width: 12px; height: 12px; border-radius: 50%; }
 
 .eb-compare-setup { container-type: inline-size; width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 8px; }
-.eb-compare-title { flex: none; }
-.eb-compare-title:focus { outline: none; }
-.eb-compare-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-.eb-compare-setup > .eb-note { margin-bottom: 12px; }
+/* The page head's title takes focus from Edit lists: a ring only when the keyboard put it there. */
+.eb-pagehead-title[tabindex]:focus { outline: none; }
+.eb-pagehead-title[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .eb-compare-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 /* A row: the dot, the name (about 11 characters wide), the link (the rest), the remove button. */
 .eb-compare-row {
@@ -38,8 +39,7 @@
 }
 .eb-compare-remove svg { width: 18px; height: 18px; }
 @media (hover: hover) and (pointer: fine) { .eb-compare-remove:hover { color: var(--ink); background: var(--surface); } }
-.eb-compare-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
-.eb-compare-foot .eb-btn { margin-inline-start: auto; padding: 0 28px; }
+.eb-compare-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; }
 /* An empty status line takes no room (no gap either), yet stays in the set-up, so its first message is announced. */
 .eb-compare-setup > .eb-status:empty { position: absolute; }
 .eb-compare-wait-note a { color: var(--accent); font-weight: 600; }

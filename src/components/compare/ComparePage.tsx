@@ -33,10 +33,12 @@ export function forgetCompare(): void {
 const newId = () => kept.next++
 
 /**
- * /compare. First the set-up, on the page itself (no box): the title, a line ("Paste your friends' Everybird links. Up to 6 lists."), a
+ * /compare. One page head in both states (PageHead, as My birds: "Compare life lists" and a line), so going from the
+ * set-up to the comparison changes only the line and the head's buttons. First the set-up, on the page itself (no box,
+ * the head's line "Paste your friends' Everybird links to see which birds you share. Up to 6 lists."), a
  * row per list (its colour dot, a name box, the link box, a remove button), the birder's own list first when there is
- * one (its name editable, "Your list · 1,092 species" for a link, no remove), "Add a friend" (a row, up to COMPARE_MAX
- * lists in all) and Compare at the bottom right, waiting for two lists. A link fills its row's name with the name or
+ * one (its name editable, "Your list · 1,092 species" for a link, no remove) and "Add a friend" (a row, up to COMPARE_MAX
+ * lists in all); Compare sits at the head's right (where Share will be), waiting for two lists. A link fills its row's name with the name or
  * title it carries ("Birder 2" until one is typed, without); several links, or a comparison link (/c/), pasted at once
  * fill a row each (pasteRow), within the cap, with a note for the links that didn't open and the lists past it. The
  * names typed are the comparison's, its images' and its link's. Compare shows the comparison: My birds' page head
@@ -146,10 +148,13 @@ export function ComparePage() {
 
   return (
     <main className="eb-page eb-page-collage eb-page-titled">
+      {/* One page head in both states: only its line and its buttons change. */}
       {shown ? (
         <>
+          {/* Keyed apart from the set-up's head, so its buttons are new ones (focus goes to the title, not a reused button). */}
           <PageHead
-            title={t.compare.resultsTitle}
+            key="results"
+            title={t.compare.title}
             lede={c.you ? t.compare.lede : t.compare.ledeTheirs}
             actions={<>
               <button ref={editRef} type="button" className="eb-btn eb-btn-quiet" aria-label={t.compare.editLists} onClick={() => go(false)} data-testid="compare-edit">
@@ -170,72 +175,82 @@ export function ComparePage() {
           )}
         </>
       ) : (
-        <form className="eb-compare-setup" onSubmit={(e) => { e.preventDefault(); if (lists.length >= 2) go(true) }} data-testid="compare-setup">
-          <h1 ref={titleRef} tabIndex={-1} className="eb-pagehead-title eb-compare-title">{t.compare.title}</h1>
-          <p className="eb-note" id={`${id}-note`}>{fmt(t.compare.note, { n: COMPARE_MAX })}</p>
-          <ul className="eb-compare-rows" data-testid="compare-rows">
-            {own && (
-              <li className="eb-compare-row" data-testid="compare-row-mine">
-                <ListDot i={0} />
-                <input
-                  className="eb-input eb-compare-namebox" type="text" autoComplete="off" maxLength={NAME_MAX} value={mine ?? saved ?? ''}
-                  placeholder={fmt(t.compare.birder, { n: 1 })} aria-label={fmt(t.compare.nameN, { n: 1 })}
-                  onChange={(e) => setMine(e.target.value)} data-testid="compare-name-mine"
-                />
-                <span className="eb-compare-mine">
-                  {t.compare.yourList}
-                  {you && ` · ${plural(t.count.live, state.list.length, { n: formatInt(state.list.length, t.num) })}`}
-                </span>
-              </li>
-            )}
-            {rows.map((r, i) => {
-              // A filled row by its place in the comparison; one without a list yet by its own place (they agree while the
-              // empty rows are last, as Add a friend puts them).
-              const n = r.list ? place(i) : (own ? 1 : 0) + i + 1
-              const label = rowName(r).trim() || fmt(t.compare.birder, { n })
-              return (
-                <li key={r.id} className="eb-compare-row" data-testid={`compare-row-${i}`}>
-                  <ListDot i={n - 1} />
+        <>
+          {/* Compare at the head's right, where Share will be: the title wraps the same in both states, so nothing at the
+              top moves but the buttons. It submits the form below (Enter in a box too). */}
+          <PageHead
+            key="setup"
+            title={t.compare.title}
+            lede={<span id={`${id}-note`}>{fmt(t.compare.note, { n: COMPARE_MAX })}</span>}
+            titleRef={titleRef}
+            actions={<>
+              <button type="submit" form={`${id}-form`} className="eb-btn" disabled={lists.length < 2} aria-describedby={lists.length < 2 ? `${id}-wait` : undefined} data-testid="compare-submit">
+                {t.compare.submit}
+              </button>
+              <span id={`${id}-wait`} hidden>{t.compare.needMore}</span>
+            </>}
+          />
+          <form id={`${id}-form`} className="eb-compare-setup" onSubmit={(e) => { e.preventDefault(); if (lists.length >= 2) go(true) }} data-testid="compare-setup">
+            <ul className="eb-compare-rows" data-testid="compare-rows">
+              {own && (
+                <li className="eb-compare-row" data-testid="compare-row-mine">
+                  <ListDot i={0} />
                   <input
-                    className="eb-input eb-compare-namebox" type="text" autoComplete="off" maxLength={NAME_MAX} value={rowName(r)}
-                    placeholder={fmt(t.compare.birder, { n })} aria-label={fmt(t.compare.nameN, { n })}
-                    onChange={(e) => setName(i, e.target.value)} data-testid={`compare-name-${i}`}
+                    className="eb-input eb-compare-namebox" type="text" autoComplete="off" maxLength={NAME_MAX} value={mine ?? saved ?? ''}
+                    placeholder={fmt(t.compare.birder, { n: 1 })} aria-label={fmt(t.compare.nameN, { n: 1 })}
+                    onChange={(e) => setMine(e.target.value)} data-testid="compare-name-mine"
                   />
-                  <input
-                    className="eb-input eb-compare-linkbox" type="text" inputMode="url" autoComplete="off" spellCheck={false} value={r.text}
-                    placeholder={t.compare.paste} aria-label={fmt(t.compare.linkN, { n })} aria-describedby={`${id}-note`}
-                    onChange={(e) => setText(i, e.target.value)} data-testid={`compare-link-${i}`}
-                  />
-                  <button type="button" className="eb-compare-remove" aria-label={fmt(t.compare.remove, { name: label })} onClick={() => remove(i)} data-testid={`compare-remove-${i}`}>
-                    <X aria-hidden="true" focusable="false" />
-                  </button>
+                  <span className="eb-compare-mine">
+                    {t.compare.yourList}
+                    {you && ` · ${plural(t.count.live, state.list.length, { n: formatInt(state.list.length, t.num) })}`}
+                  </span>
                 </li>
-              )
-            })}
-          </ul>
-          <p className="eb-status" role="status" data-testid="compare-status">
-            {notes && [
-              notes.bad ? plural(t.compare.bad, notes.bad, { n: formatInt(notes.bad, t.num) }) : '',
-              notes.over ? fmt(t.compare.over, { n: COMPARE_MAX }) : '',
-            ].filter(Boolean).join(' ')}
-          </p>
-          {waiting && (
-            <p className="eb-note eb-compare-wait-note" data-testid="compare-no-list">
-              {fmt(t.compare.noList, { name: c.labels[0] ?? rowName(friends[0]) })}{' '}
-              <Link href="/settings">{t.collage.addBirds}</Link>
+              )}
+              {rows.map((r, i) => {
+                // A filled row by its place in the comparison; one without a list yet by its own place (they agree while the
+                // empty rows are last, as Add a friend puts them).
+                const n = r.list ? place(i) : (own ? 1 : 0) + i + 1
+                const label = rowName(r).trim() || fmt(t.compare.birder, { n })
+                return (
+                  <li key={r.id} className="eb-compare-row" data-testid={`compare-row-${i}`}>
+                    <ListDot i={n - 1} />
+                    <input
+                      className="eb-input eb-compare-namebox" type="text" autoComplete="off" maxLength={NAME_MAX} value={rowName(r)}
+                      placeholder={fmt(t.compare.birder, { n })} aria-label={fmt(t.compare.nameN, { n })}
+                      onChange={(e) => setName(i, e.target.value)} data-testid={`compare-name-${i}`}
+                    />
+                    <input
+                      className="eb-input eb-compare-linkbox" type="text" inputMode="url" autoComplete="off" spellCheck={false} value={r.text}
+                      placeholder={t.compare.paste} aria-label={fmt(t.compare.linkN, { n })} aria-describedby={`${id}-note`}
+                      onChange={(e) => setText(i, e.target.value)} data-testid={`compare-link-${i}`}
+                    />
+                    <button type="button" className="eb-compare-remove" aria-label={fmt(t.compare.remove, { name: label })} onClick={() => remove(i)} data-testid={`compare-remove-${i}`}>
+                      <X aria-hidden="true" focusable="false" />
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="eb-status" role="status" data-testid="compare-status">
+              {notes && [
+                notes.bad ? plural(t.compare.bad, notes.bad, { n: formatInt(notes.bad, t.num) }) : '',
+                notes.over ? fmt(t.compare.over, { n: COMPARE_MAX }) : '',
+              ].filter(Boolean).join(' ')}
             </p>
-          )}
-          <div className="eb-compare-foot">
-            <button ref={addRef} type="button" className="eb-textbtn" disabled={full} aria-describedby={`${id}-note`} onClick={add} data-testid="compare-add">
-              <Plus aria-hidden="true" focusable="false" />
-              {t.compare.addFriend}
-            </button>
-            <button type="submit" className="eb-btn" disabled={lists.length < 2} aria-describedby={lists.length < 2 ? `${id}-wait` : undefined} data-testid="compare-submit">
-              {t.compare.submit}
-            </button>
-            <span id={`${id}-wait`} hidden>{t.compare.needMore}</span>
-          </div>
-        </form>
+            {waiting && (
+              <p className="eb-note eb-compare-wait-note" data-testid="compare-no-list">
+                {fmt(t.compare.noList, { name: c.labels[0] ?? rowName(friends[0]) })}{' '}
+                <Link href="/settings">{t.collage.addBirds}</Link>
+              </p>
+            )}
+            <div className="eb-compare-foot">
+              <button ref={addRef} type="button" className="eb-textbtn" disabled={full} aria-describedby={`${id}-note`} onClick={add} data-testid="compare-add">
+                <Plus aria-hidden="true" focusable="false" />
+                {t.compare.addFriend}
+              </button>
+            </div>
+          </form>
+        </>
       )}
     </main>
   )

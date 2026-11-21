@@ -462,7 +462,8 @@ export const EN_UI = {
   },
   /** Compare with friends (issue #10): /compare, and a comparison link's page, /c/<token>. */
   compare: {
-    title: 'Compare with friends',
+    /** The page head's title, the same before and after comparing (and the page's name in the browser). */
+    title: 'Compare life lists',
     /** A row's link box (its placeholder; named "Link N"), the main button, and why it waits (its description). */
     paste: 'Paste a friend’s Everybird link',
     linkN: 'Link {n}',
@@ -507,15 +508,13 @@ export const EN_UI = {
     sharedTitle: 'Comparing {n} life lists',
     /** On a shared collage or comparison: open Compare with it and your own list. */
     withMine: 'Compare with mine',
-    /** The set-up: the line under the title ({n} 6), the birder's own row, each row's name box, Add a friend. */
-    note: 'Paste your friends’ Everybird links. Up to {n} lists.',
+    /** The set-up: the page head's line ({n} 6), the birder's own row, each row's name box, Add a friend. */
+    note: 'Paste your friends’ Everybird links to see which birds you share. Up to {n} lists.',
     yourList: 'Your list',
     nameN: 'Name of list {n}',
     addFriend: 'Add a friend',
-    /** The results: back to the set-up; the page head's title and its line (with your own list, and without); the
-     *  circles' name. */
+    /** The results: back to the set-up; the page head's line (with your own list, and without); the circles' name. */
     editLists: 'Edit lists',
-    resultsTitle: 'Compare life lists',
     lede: 'See which birds your lists share and which you’re yet to see. Choose people below to see the birds only they share.',
     ledeTheirs: 'See which birds these lists share. Choose people below to see the birds only they share.',
     diagram: 'Diagram',
