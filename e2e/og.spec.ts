@@ -84,9 +84,9 @@ test("the page head carries the collage title, og:image and the large twitter ca
   await expect(page).toHaveTitle("A life list: 197 species");
 });
 
-test("a broken token's head is generic", async ({ page }) => {
+test("a broken token's head says so", async ({ page }) => {
   await page.goto("/s/garbage");
-  await expect(page).toHaveTitle("Everybird");
+  await expect(page).toHaveTitle("This link didn't open · Everybird");
   expect(await page.locator('meta[property="og:image"]').count()).toBeGreaterThan(0);
 });
 

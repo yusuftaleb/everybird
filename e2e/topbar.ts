@@ -21,7 +21,8 @@ export const NAV: Record<TopbarLang, string[]> = Object.fromEntries(
     return [l, [n.collage, n.compare, n.settings, n.about]];
   }),
 ) as Record<TopbarLang, string[]>;
-const BUTTON: Record<TopbarLang, string> = { en: "Language: English", es: "Idioma: Español", pt: "Idioma: Português", nl: "Taal: Nederlands" };
+// Named with the visible code first (WCAG 2.5.3, LanguageMenu.tsx).
+const BUTTON: Record<TopbarLang, string> = { en: "EN, Language: English", es: "ES, Idioma: Español", pt: "PT, Idioma: Português", nl: "NL, Taal: Nederlands" };
 
 export async function useLang(context: BrowserContext, baseURL: string, lang: TopbarLang) {
   if (lang !== "en") await context.addCookies([{ name: "everybird-lang", value: lang, url: baseURL }]);

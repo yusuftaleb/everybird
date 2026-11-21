@@ -7,7 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
 // WELCOME_PNG_DIR (optional) saves screenshots of the card and the sheet in both themes there.
 test.use({ storageState: { cookies: [], origins: [] } });
 
-const LINE = "A lifetime of birds, as a sticker collage.";
+const LINE = "Your life list as a sticker collage. It stays in your browser.";
 const welcome = (page: Page) => page.getByRole("dialog", { name: LINE });
 const frozen = readFileSync("tests/fixtures/share/v1-frozen.txt", "utf8").trim();
 const OUT = process.env.WELCOME_PNG_DIR;
@@ -19,9 +19,9 @@ test("a first visit shows the welcome over the sample, focus on Make mine and ke
   const d = welcome(page);
   await expect(d).toBeVisible();
   await expect(d).toHaveAttribute("aria-modal", "true");
-  const make = d.getByRole("link", { name: /^Make mine/ });
+  const make = d.getByRole("button", { name: /^Make mine/ });
   await expect(make).toBeFocused();
-  await expect(make).toHaveAttribute("href", "/settings#sources");
+  await expect(make).toHaveAttribute("aria-haspopup", "dialog"); // the Add birds dialog, as the hero's Make yours
   // The sample stays on show behind it.
   await expect(page.getByTestId("collage-stage")).toBeVisible();
   // Tab and Shift+Tab stay inside: Make mine, Explore the sample, Close, and round again.
@@ -68,15 +68,17 @@ for (const [how, close] of [
   });
 }
 
-test("Make mine lands on Settings' sources, in the page with no dialog, and counts as closed", async ({ page }) => {
+test("Make mine opens the Add birds dialog on the landing, counts as closed, and gives focus back to Make yours", async ({ page }) => {
   await page.goto("/");
-  await welcome(page).getByRole("link", { name: /^Make mine/ }).click();
-  await expect(page).toHaveURL(/\/settings#sources$/);
-  await expect(page.getByRole("dialog", { name: "Add birds" })).toHaveCount(0);
-  await expect(page.getByTestId("ebird-drop")).toBeVisible();
-  // Keyboard focus lands on the sources, not the document top.
-  await expect(page.locator("#sources")).toBeFocused();
+  await welcome(page).getByRole("button", { name: /^Make mine/ }).click();
+  await expect(page).toHaveURL(/\/$/);
+  const add = page.getByRole("dialog", { name: "Add birds" });
+  await expect(add).toBeVisible();
+  await expect(add.getByTestId("ebird-drop")).toBeVisible();
   await expect(welcome(page)).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(add).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Make yours/ })).toBeFocused();
   await page.goto("/");
   await expect(page.getByTestId("collage-stage")).toBeVisible();
   await expect(welcome(page)).toHaveCount(0);

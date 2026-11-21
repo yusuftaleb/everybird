@@ -162,9 +162,10 @@ for (const { layout, width, height } of SIZES) {
     const poster = slot.locator(`[data-poster="${layout}"]`)
     await expect(poster).toBeVisible({ timeout: 1000 })
     await expect(poster.locator(".ebd-num")).toHaveText(String(TOTAL), { timeout: 1000 })
-    // Every collage sticker of the poster shows (data-ld), drawn once its file is in
-    await expect(poster.locator(".ebd-collage img.ebd-st[data-ld]")).toHaveCount(BIRDS.length, { timeout: 15_000 })
+    // Only the six biggest stickers load at once; the rest are lazy, so scroll the figure into view first. Every
+    // collage sticker of the poster then shows (data-ld), drawn once its file is in, before the stage takes over.
     await slot.scrollIntoViewIfNeeded()
+    await expect(poster.locator(".ebd-collage img.ebd-st[data-ld]")).toHaveCount(BIRDS.length, { timeout: 15_000 })
     await expect(slot).toHaveAttribute("data-live", "", { timeout: 15_000 })
     await expect(slot.getByTestId("howto-poster")).toHaveCount(0, { timeout: 3000 })
     const live = slot.locator(".ss-stage:not([data-still])")
@@ -237,6 +238,8 @@ for (const { layout, width, height } of SIZES) {
     const page = await ctx.newPage()
     await page.goto("/about")
     const poster = page.locator(`[data-poster="${layout}"]`)
+    // The poster's stickers past the first six are lazy: in view, they load
+    await page.getByTestId("howto-demo").scrollIntoViewIfNeeded()
     await expect(poster.locator(".ebd-collage img.ebd-st[data-ld]")).toHaveCount(BIRDS.length, { timeout: 15_000 })
     // Each sticker's opaque pixels (its file's alpha, drawn where object-fit: contain puts it) against the count's text
     // boxes (the number's line box and the label's), in the collage and in each share image.
