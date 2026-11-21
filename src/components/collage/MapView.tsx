@@ -378,9 +378,10 @@ export function MapView({ state, species, regions, onLevel }: Props) {
         ))}
         {rows.length === 0 && <li className="eb-note eb-check-none">{t.places.none}</li>}
       </ul>
-      {rows.length > shownRows.length && (
-        <button type="button" className="eb-textbtn eb-map-all" data-testid="map-all" onClick={() => setAll(true)}>
-          {fmt(c.mapAll, { n: formatInt(rows.length, t.num) })}
+      {/* One button that stays (so focus never falls to the page): Show all, then Show fewer. */}
+      {rows.length > MAP_FIRST_ROWS && (
+        <button type="button" className="eb-textbtn eb-map-all" aria-expanded={all} data-testid="map-all" onClick={() => setAll(!all)}>
+          {all ? c.mapFewer : fmt(c.mapAll, { n: formatInt(rows.length, t.num) })}
         </button>
       )}
     </div>

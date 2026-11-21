@@ -109,6 +109,7 @@ export const zhHans: Messages = {
         list: '列表',
         map: '地图',
         mapAll: '显示全部（{n}）',
+        mapFewer: '收起',
         mapFailed: '无法加载地图。下方列表有相同的计数。',
         mapHint: '双指捏合或按+/−缩放 · 拖动平移',
         mapZoomIn: '放大',

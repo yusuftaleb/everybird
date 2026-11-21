@@ -138,6 +138,8 @@ export const EN_UI = {
       /** The Map view (MapView): "Show all" under its list ({n} the number of places), the note when its shapes don't
        *  load, the caption under the map (how to zoom and pan), and its buttons' names (+, −, and back to the whole world). */
       mapAll: 'Show all {n}',
+      /** The same button once every row shows: back to the first rows (focus stays on it). */
+      mapFewer: 'Show fewer',
       mapFailed: "Couldn't load the map. The list below has the same counts.",
       mapHint: 'Pinch or +/− to zoom · drag to pan',
       mapZoomIn: 'Zoom in',

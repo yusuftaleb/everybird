@@ -109,6 +109,7 @@ export const ja: Messages = {
         list: 'リスト',
         map: '地図',
         mapAll: 'すべて表示（{n}）',
+        mapFewer: '表示を減らす',
         mapFailed: '地図を読み込めませんでした。下のリストで同じ数を確認できます。',
         mapHint: 'ピンチまたは+/−でズーム · ドラッグで移動',
         mapZoomIn: 'ズームイン',

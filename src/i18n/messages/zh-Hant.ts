@@ -109,6 +109,7 @@ export const zhHant: Messages = {
         list: '清單',
         map: '地圖',
         mapAll: '顯示全部（{n}）',
+        mapFewer: '收合',
         mapFailed: '無法載入地圖。下方清單有相同的數字。',
         mapHint: '雙指或 +/− 縮放 · 拖曳平移',
         mapZoomIn: '放大',

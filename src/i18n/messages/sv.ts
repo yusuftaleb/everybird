@@ -107,6 +107,7 @@ export const sv: Messages = {
         list: 'Lista',
         map: 'Karta',
         mapAll: 'Visa alla {n}',
+        mapFewer: 'Visa färre',
         mapFailed: 'Kartan kunde inte laddas. Listan nedan har samma siffror.',
         mapHint: 'Nyp eller +/− för att zooma · dra för att flytta',
         mapZoomIn: 'Zooma in',

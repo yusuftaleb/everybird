@@ -107,6 +107,7 @@ export const fr: Messages = {
         list: 'Liste',
         map: 'Carte',
         mapAll: 'Tout afficher ({n})',
+        mapFewer: 'Afficher moins',
         mapFailed: 'Impossible de charger la carte. La liste ci-dessous a les mêmes nombres.',
         mapHint: 'Pince ou +/− pour zoomer · fais glisser pour déplacer',
         mapZoomIn: 'Zoom avant',

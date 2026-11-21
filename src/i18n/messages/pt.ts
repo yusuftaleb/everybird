@@ -107,6 +107,7 @@ export const pt: Messages = {
         list: 'Lista',
         map: 'Mapa',
         mapAll: 'Mostrar todos os {n}',
+        mapFewer: 'Mostrar menos',
         mapFailed: 'Não foi possível carregar o mapa. A lista abaixo tem as mesmas contagens.',
         mapHint: 'Use dois dedos ou +/− para dar zoom · arraste para mover',
         mapZoomIn: 'Aumentar o zoom',

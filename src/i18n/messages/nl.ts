@@ -107,6 +107,7 @@ export const nl: Messages = {
         list: 'Lijst',
         map: 'Kaart',
         mapAll: 'Alle {n} tonen',
+        mapFewer: 'Minder tonen',
         mapFailed: 'De kaart kon niet worden geladen. De lijst hieronder heeft dezelfde aantallen.',
         mapHint: 'Zoom met twee vingers of +/− · sleep om te verschuiven',
         mapZoomIn: 'Inzoomen',

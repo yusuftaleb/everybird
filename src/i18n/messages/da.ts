@@ -107,6 +107,7 @@ export const da: Messages = {
         list: 'Liste',
         map: 'Kort',
         mapAll: 'Vis alle {n}',
+        mapFewer: 'Vis færre',
         mapFailed: 'Kortet kunne ikke indlæses. Listen nedenfor har de samme tal.',
         mapHint: 'Knib eller +/− for at zoome · træk for at flytte',
         mapZoomIn: 'Zoom ind',

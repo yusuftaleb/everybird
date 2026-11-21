@@ -113,6 +113,7 @@ export const pl: Messages = {
         list: 'Lista',
         map: 'Mapa',
         mapAll: 'Pokaż wszystkie ({n})',
+        mapFewer: 'Pokaż mniej',
         mapFailed: 'Nie udało się wczytać mapy. Lista poniżej pokazuje te same liczby.',
         mapHint: 'Przybliżaj palcami lub przyciskami +/− · przeciągnij, aby przesunąć',
         mapZoomIn: 'Przybliż',
