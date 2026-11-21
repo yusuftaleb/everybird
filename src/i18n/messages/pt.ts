@@ -539,8 +539,6 @@ export const pt: Messages = {
         nameLabel: 'Título do pôster',
         size: 'Tamanho do pôster',
         downTo: 'Nível',
-        deeperLarger: 'Um pôster maior imprime todos os nomes',
-        deeperNone: 'Nomes demais para imprimir de forma legível',
         orientNote: { fan: 'Árvores em leque são impressas na horizontal', upright: 'Árvores retangulares e radiais são impressas na vertical' },
         inches: '{w} × {h} pol.',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px a 150 dpi',

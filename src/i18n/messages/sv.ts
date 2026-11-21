@@ -530,8 +530,6 @@ export const sv: Messages = {
         nameLabel: 'Affischens titel',
         size: 'Affischstorlek',
         downTo: 'Nivå',
-        deeperLarger: 'På en större affisch får alla namn plats',
-        deeperNone: 'För många namn för läsbar utskrift',
         orientNote: { fan: 'Solfjäderträd skrivs ut liggande', upright: 'Rektangulära och radiella träd skrivs ut stående' },
         inches: '{w} × {h} tum',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px vid 150 dpi',

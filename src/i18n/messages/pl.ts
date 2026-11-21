@@ -534,8 +534,6 @@ export const pl: Messages = {
         nameLabel: 'Tytuł plakatu',
         size: 'Rozmiar plakatu',
         downTo: 'Poziom',
-        deeperLarger: 'Na większym plakacie zmieszczą się wszystkie nazwy',
-        deeperNone: 'Za dużo nazw, by wydrukować je czytelnie',
         orientNote: { fan: 'Drzewa wachlarzowe drukują się poziomo', upright: 'Drzewa prostokątne i promieniste drukują się pionowo' },
         inches: '{w} × {h} cali',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px przy 150 dpi',

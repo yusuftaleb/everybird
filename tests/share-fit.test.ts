@@ -205,20 +205,6 @@ describe('the option rows and Print\'s actions', () => {
     expect(over).toEqual([])
   })
 
-  it('keeps the Tree poster\'s Down to (the screen\'s rank and the next one down) on one line beside its label at the 300px column, and whole on a phone, in every language', () => {
-    const over: string[] = []
-    for (const [lang, m] of Object.entries(LANG)) {
-      const r = m.ui.collage.tree.rank, label = m.ui.share.print.downTo
-      for (const pair of [[r.orders, r.families], [r.families, r.genera], [r.genera, r.species]]) {
-        const beside = measured(label, 16) + 16 + segW(pair, 14, 6)
-        if (beside > COLUMNS.narrow) over.push(`${lang} "${label}" ${pair.join(' | ')}: ${Math.ceil(beside)}px at the 300px column`)
-        if (measured(label, 16) + 16 + segW(pair, 14, 10) > COLUMNS.desktop) over.push(`${lang} "${label}" ${pair.join(' | ')} at the 420px column`)
-        if (segW(pair, 12, 4) > COLUMNS.phone) over.push(`${lang} ${pair.join(' | ')} on a phone`)
-      }
-    }
-    expect(over).toEqual([])
-  })
-
   it('puts Print\'s two actions on one row at the 420px column in every language, labels never wrapped', () => {
     // .eb-share-duo: two .eb-btn (18px padding each side, an 18px icon and 8px before the 15px label, 1px border), 8px apart.
     expect(css).toMatch(/\.eb-share-duo > \.eb-btn \{ white-space: nowrap; \}/)

@@ -530,8 +530,6 @@ export const ja: Messages = {
         nameLabel: 'ポスターのタイトル',
         size: 'ポスターのサイズ',
         downTo: '階層',
-        deeperLarger: 'より大きなポスターなら、すべての名前を印刷できます',
-        deeperNone: '名前が多すぎて読みやすく印刷できません',
         orientNote: { fan: '扇形の系統樹は横向きで印刷されます', upright: '矩形と放射状の系統樹は縦向きで印刷されます' },
         inches: '{w} × {h}インチ',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px（150 dpi）',

@@ -11,9 +11,8 @@
 // (above them on phones), as large as the room left of the controls' column allows, at its top.
 // Then the optional collage title (Saved.name verbatim), its label above the field, and the options as one plain list
 // (round 6, the maintainer's layout: no box, no rules), one row each, the label at the left and its control at the right
-// edge: in the poster the size first (a dropdown, A4 to A1 and the inch sizes, with its line under the label; from the
-// Tree, Down to under it: the screen's rank or the next one down, the deeper one off with its reason at a size where its
-// names would print under 9 pt), then the
+// edge: in the poster the size first (a dropdown, A4 to A1 and the inch sizes, with its line under the label; a Tree
+// poster draws the screen's rank, its Level, as its share image does: round 6, item 22), then the
 // choices as small segmented controls (Arrangement: Fit, Oval or Free, or the Tree's Fan, Radial or Rectangular, one that can't
 // name every tip off with its reason; Appearance: Light or Dark; Count: Hide, S, M, L or Beside title, under its label
 // where it doesn't fit beside it), the switches one to a row (Show latest lifer, the poster's Show species names, the
@@ -68,7 +67,7 @@ import { downloadBlob } from '@/lib/download'
 import { fileName as nameFile, splitPart } from '@/lib/file-name'
 import { BULK_BATCH_OPTIONS, bulkGroups, bulkPackSpec, hasRepeats, makeBulkZip, makeImageZip, type BulkBatch, type BulkSplit } from '@/lib/share/bulk'
 import type { Poster } from '@/lib/share/poster'
-import { CAPTION_CAPS, PRINT_IN, PRINT_PT, PRINT_SIZES, captionMinPx, isUsSize, printCm, printDesign, printFormat, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
+import { CAPTION_CAPS, PRINT_IN, PRINT_SIZES, captionMinPx, isUsSize, printCm, printDesign, printFormat, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
 import { planCaptions, type CaptionPlan } from '@/lib/share/captions'
 import { goalBasis, hasDates, isTarget, listYears, TARGET_MAX, yearFilter, yearList, type BigYear } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
@@ -85,8 +84,7 @@ import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { Regions } from '@/lib/species/types'
 import type { ViewKind } from '@/lib/view-resume'
-import type { DeeperFits, ShareAt, TotalKey, ViewImageOpts } from '@/lib/share/view-image'
-import { RANKS } from '@/lib/tree/levels'
+import type { ShareAt, TotalKey, ViewImageOpts } from '@/lib/share/view-image'
 import '@/components/app/app.css'
 import '@/components/collage/collage.css'
 import { dialogRows, dialogTitle, optionRows, subjectOf, toggleTotal, treeOrientation, treeTotals, type CompareShare, type CompareWhat, type OptionRow } from './dialog-options'
@@ -124,8 +122,6 @@ export function closedHeight(col: HTMLElement): number {
   }
   return h
 }
-/** A poster size's paper area (pt²), for "A larger poster prints every name". */
-const paperArea = (s: PrintSize) => PRINT_PT[s][0] * PRINT_PT[s][1]
 
 /** The format buttons: each slot's ratio in each orientation (the square is square in both), in its spoken name. */
 const FORMATS: { id: FormatSlot; hint: Record<Orientation, string> }[] = [
@@ -179,7 +175,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const totalsId = useId()
   const orientWhyId = useId()
   const treeLayoutId = useId()
-  const treeDepthId = useId()
   const bulkSplitId = useId()
   const bulkSizeId = useId()
   const sizeId = useId()
@@ -230,9 +225,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const landscape = orientation === 'horizontal'
   /** The share image's shape: the slot in this orientation (story is desktop, post is wide when horizontal). */
   const shape = imageShape(format, orientation)
-  /** Keeps what a Tree poster render found about the deeper rank, for the inputs `k` (deeperKey). */
-  const noteDeeper = (k: string) => (d: DeeperFits | null) =>
-    setDeeperFit((was) => (was?.key === k && JSON.stringify(was.d) === JSON.stringify(d) ? was : { key: k, d }))
   /** Keeps what a Tree render on card `k` found, and what it found for that card's other orientation (byCard, keyed by
    *  card format; a poster's with its size), so a layout its image can't draw is off before it is picked (no new state
    *  when nothing changed). */
@@ -258,13 +250,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     setTotalsFor(offeredKey)
     setTotals(totalsOffered)
   }
-  // Print's "Down to" (the Tree poster; round 6, "One step + size"): the screen's rank, or the next one down where every
-  // name prints at TREE_NAME_MIN_PT or more at this size, orientation and arrangement. Starts at the screen's rank at
-  // every open and is not stored. Each poster render reports, for every size, whether the deeper rank prints readably
-  // (onDeeper, kept with the key of what it depends on); where it does not, the screen's rank is drawn and the deeper
-  // segment is off with its reason, as the Arrangement row does for a layout that cannot name every tip.
-  const [wantDeeper, setWantDeeper] = useState(false)
-  const [deeperFit, setDeeperFit] = useState<{ key: string; d: DeeperFits | null } | null>(null)
   // The collage's title: saved with the list as it is typed (the store trims it), so it also names the page.
   const [name, setName] = useState(saved.name ?? '')
   const [countSizeChoice, setCountSize] = useState<CountSize>('medium')
@@ -426,7 +411,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const viewOf = () => ({
     at: treeImage ? { ...at, mine: treeMine, layout: treeLayout, time: timeScale } : at ?? {}, state: { list, filter, seen, sci }, t, totals, oldest: treeImage && showOldest,
     ...(treeImage ? { onTreeFits: noteTreeFits(print ? `${cardFormat}|${size}` : cardFormat, print ? size : undefined) } : {}),
-    ...(treeImage && print ? { deeper: deeperOn, onDeeper: noteDeeper(deeperKey) } : {}),
   })
   const [preview, setPreview] = useState<{ url: string; format: CardFormat; size: PrintSize; key: string } | null>(null)
   const [failedKey, setFailedKey] = useState<string | null>(null)
@@ -443,16 +427,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // The Tree's or Map's drawing: the view, its switches.
   // `at` is the view's level, live (the Tree's follows the taxonomy filter); its JSON leaves out the map's names function.
   const viewKey = viewImage ? `${subject}|${treeImage ? `${treeMine}|${treeLayout}|${showOldest}|${timeScale}` : ''}|${totals.join(',')}|${JSON.stringify(at ?? {})}` : ''
-  // What the deeper rank's fit depends on besides the size (the card, the tree drawn, the title, the names).
-  const deeperKey = `${landscape}|${viewKey}|${trimmed}|${lang}|${names}|${fk}`
-  const deeper = treeImage && print && deeperFit?.key === deeperKey ? deeperFit.d : undefined
-  /** Why the deeper rank cannot be picked at this size (unknown until a render reports: then allowed, and the render
-   *  itself draws the screen's rank where it does not fit). */
-  const deeperOff = deeper && !deeper.fits[size]
-    ? (PRINT_SIZES.some((s) => deeper.fits[s] && paperArea(s) > paperArea(size)) ? pt.deeperLarger : pt.deeperNone)
-    : undefined
-  const deeperOn = wantDeeper && deeper !== null && !deeperOff
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}|${treeImage && deeperOn}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   useEffect(() => {
@@ -691,7 +666,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   }
   /** A saved file's name (fileName in file-name.ts): the title, what the card shows, its format, the batch split, today. */
   const exportName = (ext: string, format: string, split?: string) => {
-    const rank = at?.rank && (print && deeperOn ? deeper?.rank ?? RANKS[RANKS.indexOf(at.rank) + 1] : at.rank)
+    const rank = at?.rank
     const shows = compare ? (what === 'wish' ? 'wish-list' : 'comparison') : subject === 'map' ? 'map' : treeImage ? ['tree', rank].filter(Boolean).join('-') : ''
     return nameFile({ title: compare ? undefined : trimmed, shows, format, split, ext })
   }
@@ -1115,19 +1090,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
             return { value: a, label: <Glyph aria-hidden="true" focusable="false" />, name: t.share.arrange[a], title: t.share.arrange[a] }
           }),
         }))
-      case 'treeDepth': {
-        // The screen's rank and the next one down, in the rank words: only when the screen's rank has one under it (a
-        // render that finds none, null, hides it).
-        if (!at?.rank || at.rank === 'species' || deeper === null) return null
-        const ranks = t.collage.tree.rank
-        return optRow(r, treeDepthId, pt.downTo, segmented({
-          className: 'eb-share-seg', labelledBy: treeDepthId, value: deeperOn ? 'deeper' : 'shown', pick: (v) => setWantDeeper(v === 'deeper'), testId: 'share-tree-depth',
-          options: [
-            { value: 'shown' as const, label: ranks[at.rank] },
-            { value: 'deeper' as const, label: ranks[deeper?.rank ?? RANKS[RANKS.indexOf(at.rank) + 1]], off: deeperOff },
-          ],
-        }))
-      }
       case 'treeLayout':
         return optRow(r, treeLayoutId, t.share.arrange.label, segmented({
           className: 'eb-share-seg', labelledBy: treeLayoutId, value: treeLayout, pick: pickTreeLayout, testId: 'share-tree-layout',

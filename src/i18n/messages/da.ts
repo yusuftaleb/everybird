@@ -531,8 +531,6 @@ export const da: Messages = {
         nameLabel: 'Plakatens titel',
         size: 'Plakatstørrelse',
         downTo: 'Niveau',
-        deeperLarger: 'En større plakat har plads til alle navne',
-        deeperNone: 'For mange navne til at udskrive læseligt',
         orientNote: { fan: 'Viftetræer udskrives vandret', upright: 'Rektangulære og radiale træer udskrives lodret' },
         inches: '{w} × {h} tommer',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px ved 150 dpi',

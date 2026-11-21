@@ -530,8 +530,6 @@ export const zhHans: Messages = {
         nameLabel: '海报标题',
         size: '海报尺寸',
         downTo: '层级',
-        deeperLarger: '更大的海报能印出所有名称',
-        deeperNone: '名称太多，无法清晰打印',
         orientNote: { fan: '扇形进化树只能横向打印', upright: '矩形和放射状进化树只能竖向打印' },
         inches: '{w} × {h}英寸',
         sizeLine: '{size} · {w} × {h}厘米 · {pw} × {ph}像素（150 dpi）',

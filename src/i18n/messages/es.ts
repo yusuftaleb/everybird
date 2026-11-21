@@ -539,8 +539,6 @@ export const es: Messages = {
         nameLabel: 'Título del póster',
         size: 'Tamaño del póster',
         downTo: 'Nivel',
-        deeperLarger: 'En un póster más grande caben todos los nombres',
-        deeperNone: 'Demasiados nombres para imprimirlos de forma legible',
         orientNote: { fan: 'Los árboles en abanico se imprimen en horizontal', upright: 'Los árboles rectangulares y radiales se imprimen en vertical' },
         inches: '{w} × {h} pulg.',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px a 150 dpi',
