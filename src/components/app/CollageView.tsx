@@ -27,7 +27,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import { latestLifer, liferOrder } from '@/lib/list/build-list'
 import { hasSeenMonths } from '@/lib/list/seen'
-import { applyFilter, drillTo, filterKey, filterToShow, genusOf, threatenedCount, type Filter } from '@/lib/list/filters'
+import { applyFilter, drillTo, emptyFilter, filterKey, filterToShow, genusOf, threatenedCount, type Filter } from '@/lib/list/filters'
 import type { PlacesUnplaced } from '@/lib/list/filter-summary'
 import type { ListEntry } from '@/lib/list/model'
 import { monthBins, todayMonth } from '@/lib/list/timeline'
@@ -261,7 +261,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // time to avoid the jump). `.eb-view-below` is display: contents, so the freeze goes on this section, which is a box.
   // Only growth still shows; the height is released on close.
   const frozen = filtersUi.frozen || !!openPanel
-  const dimmed = filtersUi.dimmed || (!!openPanel && !sheet)
+  // Everything under an open popover is inert; it dims too, except under Display, whose whole job is how the view looks.
+  const inertBelow = filtersUi.dimmed || (!!openPanel && !sheet)
+  const dimmed = filtersUi.dimmed || (!!openPanel && openPanel !== 'display' && !sheet)
   useLayoutEffect(() => {
     const el = box.current
     if (!frozen || !el) return
@@ -400,8 +402,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         panelOpen={frozen}
       />
 
-      {/* Everything under the dock: dimmed and inert while the Filters popover is open (a press there closes it). */}
-      <div className="eb-view-below" inert={dimmed || undefined} data-dim={dimmed || undefined}>
+      {/* Everything under the dock: inert while a popover is open (a press there closes it), dimmed but under Display. */}
+      <div className="eb-view-below" inert={inertBelow || undefined} data-dim={dimmed || undefined}>
       <FilterBar state={state} dispatch={dispatch} species={species} tree={treePath} />
       {filterNote}
 
@@ -425,6 +427,16 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         <Suspense fallback={<p className="eb-mono">{t.collage.tree.loading}</p>}>
           <TreeView entries={shownList} sci={sci} onPick={onPickRow} branch={branch} onOpen={onTreeOpen} onLevel={onTreeLevel} layoutSlot={openPanel === 'display' ? layoutSlot : null} />
         </Suspense>
+      )}
+
+      {/* The filters leave none of the list's birds: say so under the empty stage or list, with the way out. */}
+      {(view === 'collage' || view === 'list') && entries.length > 0 && shownList.length === 0 && (
+        <p className="eb-note eb-view-empty" data-testid="view-empty">
+          <span>{whose === 'your' ? t.collage.noMatch.your : t.collage.noMatch.this}</span>
+          <button type="button" className="eb-textbtn" aria-label={t.filters.panel.clearAllLabel} data-testid="view-empty-clear" onClick={() => dispatch({ type: 'filter', filter: emptyFilter() })}>
+            {t.filters.panel.clearAll}
+          </button>
+        </p>
       )}
 
       {view !== 'map' && view !== 'tree' && <div className="eb-mono eb-legend">

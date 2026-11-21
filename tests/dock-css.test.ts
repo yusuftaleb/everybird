@@ -96,10 +96,13 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(filtersCss).not.toMatch(/data-view[^{]*\.eb-drop/);
   });
 
-  it("the content under the dock dims to 30% while Filters is open, with no transition under reduced motion", () => {
+  it("the content under the dock dims to 30% while Filters is open, easing both ways, with no transition under reduced motion", () => {
     expect(topLevelRule(css, ".eb-view-below")).toMatch(/display:\s*contents/);
     expect(topLevelRule(css, ".eb-view-below[data-dim] > *")).toMatch(/opacity:\s*\.3/);
-    expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.eb-view-below\[data-dim\] > \*\s*\{\s*transition:\s*none/);
+    // On the children at rest, not with the attribute: undimming eases too (AN2).
+    expect(topLevelRule(css, ".eb-view-below > *")).toMatch(/transition:\s*opacity/);
+    expect(topLevelRule(css, ".eb-view-below[data-dim] > *")).not.toMatch(/transition/);
+    expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.eb-view-below > \*\s*\{\s*transition:\s*none/);
   });
 
   it("the Conservation status panel's long category names wrap rather than cut", () => {

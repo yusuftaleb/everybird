@@ -83,6 +83,7 @@ export const de: Messages = {
         threatenedSr: '(gefährdet, stark gefährdet oder vom Aussterben bedroht)',
       },
       arranging: 'Sticker werden angeordnet',
+      noMatch: { your: 'Keine Vögel auf deiner Liste passen zu diesen Filtern.', this: 'Keine Vögel auf dieser Liste passen zu diesen Filtern.' },
       legend: {
         latest: 'Neueste: {name}',
         latestOn: 'Neueste: {name}, <time>{date}</time>',

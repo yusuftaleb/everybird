@@ -108,6 +108,8 @@ export const EN_UI = {
     },
     /** The stage's placeholder while the first layout is packed. */
     arranging: 'arranging the stickers',
+    /** Under the collage or list when the filters leave none of the list's birds (CollageView), before Clear all. */
+    noMatch: { your: 'No birds on your list match these filters.', this: 'No birds on this list match these filters.' },
     /** The legend under the collage (its parts joined by " · " in code). */
     legend: {
       latest: 'Latest: {name}',

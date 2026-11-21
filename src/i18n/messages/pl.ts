@@ -85,6 +85,7 @@ export const pl: Messages = {
         threatenedSr: '(narażone, zagrożone lub krytycznie zagrożone)',
       },
       arranging: 'układanie naklejek',
+      noMatch: { your: 'Żaden ptak z Twojej listy nie pasuje do tych filtrów.', this: 'Żaden ptak z tej listy nie pasuje do tych filtrów.' },
       legend: {
         latest: 'Najnowszy: {name}',
         latestOn: 'Najnowszy: {name}, <time>{date}</time>',

@@ -83,6 +83,7 @@ export const es: Messages = {
         threatenedSr: '(Vulnerable, En peligro o En peligro crítico)',
       },
       arranging: 'colocando los stickers',
+      noMatch: { your: 'Ninguna ave de tu lista coincide con estos filtros.', this: 'Ninguna ave de esta lista coincide con estos filtros.' },
       legend: {
         latest: 'Última: {name}',
         latestOn: 'Última: {name}, <time>{date}</time>',

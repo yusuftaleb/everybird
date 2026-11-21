@@ -85,6 +85,7 @@ export const ja: Messages = {
         threatenedSr: '（危急、危機、深刻な危機）',
       },
       arranging: 'ステッカーを配置しています',
+      noMatch: { your: 'あなたのリストに、この条件に合う鳥はいません。', this: 'このリストに、この条件に合う鳥はいません。' },
       legend: {
         latest: '最新：{name}',
         latestOn: '最新：{name}、<time>{date}</time>',

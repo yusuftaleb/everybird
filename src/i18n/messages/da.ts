@@ -83,6 +83,7 @@ export const da: Messages = {
         threatenedSr: '(Sårbar, Moderat truet eller Kritisk truet)',
       },
       arranging: 'klistermærkerne lægges ud',
+      noMatch: { your: 'Ingen fugle på din liste passer til disse filtre.', this: 'Ingen fugle på denne liste passer til disse filtre.' },
       legend: {
         latest: 'Nyeste: {name}',
         latestOn: 'Nyeste: {name}, <time>{date}</time>',

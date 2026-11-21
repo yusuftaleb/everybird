@@ -282,6 +282,51 @@ describe('spec 15: the content below the panel', () => {
     expect(below).not.toHaveAttribute('data-dim')
   })
 
+  it('the Display panel leaves the view inert but undimmed: its choices are judged on the view (C11)', () => {
+    vi.stubGlobal('innerWidth', 1000)
+    render(<View />)
+    const below = document.querySelector('.eb-view-below')!
+    fireEvent.click(screen.getByTestId('display-button'))
+    expect(screen.getByRole('dialog', { name: 'Display options' })).toBeInTheDocument()
+    expect(below).toHaveAttribute('inert')
+    expect(below).not.toHaveAttribute('data-dim')
+  })
+
+  // A filter no bird on the list passes: crow1 is the only perching bird and is Vulnerable.
+  function Empty() {
+    const [state, dispatch] = useReducer(reduce, undefined, seeded)
+    return (
+      <>
+        <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Test collage" />
+        <button type="button" onClick={() => dispatch({ type: 'filter', filter: { order: 'Passeriformes', statuses: ['EN'] } })}>none left</button>
+      </>
+    )
+  }
+
+  it('filters that leave no bird: one line under the view and a Clear all that clears every filter (C1)', () => {
+    vi.stubGlobal('innerWidth', 1000)
+    render(<Empty />)
+    expect(screen.queryByTestId('view-empty')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'none left' }))
+    expect(screen.getByTestId('view-empty')).toHaveTextContent('No birds on this list match these filters.')
+    const clear = within(screen.getByTestId('view-empty')).getByRole('button', { name: 'Clear all filters' })
+    fireEvent.click(clear)
+    expect(screen.queryByTestId('view-empty')).toBeNull()
+    expect(screen.getByTestId('collage-stats')).toHaveTextContent(/^3 species/)
+  })
+
+  it("on phones the sheet's foot reads Clear all, not Show 0 species, when the filters leave none (C1)", () => {
+    vi.stubGlobal('innerWidth', 390)
+    render(<Empty />)
+    fireEvent.click(screen.getByRole('button', { name: 'none left' }))
+    fireEvent.click(button())
+    const foot = within(screen.getByRole('dialog', { name: 'Filters' })).getByTestId('filters-show')
+    expect(foot).toHaveTextContent('Clear all')
+    fireEvent.click(foot)
+    expect(screen.getByTestId('collage-stats')).toHaveTextContent(/^3 species/)
+    expect(within(screen.getByRole('dialog', { name: 'Filters' })).getByTestId('filters-show')).toHaveTextContent('Show 3 species')
+  })
+
   it('on phones the sheet has its own scrim: no dim', () => {
     vi.stubGlobal('innerWidth', 390)
     render(<View />)

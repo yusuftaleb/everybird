@@ -83,6 +83,7 @@ export const nl: Messages = {
         threatenedSr: '(Kwetsbaar, Bedreigd of Ernstig bedreigd)',
       },
       arranging: 'stickers worden geschikt',
+      noMatch: { your: 'Geen vogels op je lijst passen bij deze filters.', this: 'Geen vogels op deze lijst passen bij deze filters.' },
       legend: {
         latest: 'Nieuwste: {name}',
         latestOn: 'Nieuwste: {name}, <time>{date}</time>',

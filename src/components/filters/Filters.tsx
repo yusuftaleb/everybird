@@ -9,7 +9,7 @@
 // inside `.eb-dockwrap`, the same in every view (collage, list, map, tree): the filters drive them all; everything
 // after the dock wrap dims and goes inert while it is open (CollageView's `.eb-view-below`), and a press there, Esc or a
 // second press of the button closes it. On phones it is the modal bottom sheet, its head the count of species and its
-// bottom button "Show N species". Filters apply live. The active filters show as chips under the dock (ChipRow.tsx).
+// bottom button "Show N species" ("Clear all" when the filters leave none). Filters apply live. The active filters show as chips under the dock (ChipRow.tsx).
 // Every word is the language's (`t.filters`, `t.filters.panel`), place names `regionsIn(regions, lang)`.
 import { CalendarBlank, CaretDown, GlobeHemisphereWest } from '@phosphor-icons/react'
 import { createPortal } from 'react-dom'
@@ -314,7 +314,10 @@ function FiltersPanel({ state, onChange, species, regions, sections, open, onOpe
     <DockPanel
       id={id} label={t.filters.label} kind="filters" testId="filters-panel" buttonRef={buttonRef} returnFocus={returnFocus} onClose={onClose} panelRef={ref}
       sheetHead={<><span className="eb-mono" role="status" data-testid="filters-head">{head}</span>{clearButton}</>}
-      foot={<button type="button" className="eb-btn" data-testid="filters-show" onClick={onClose}>{showLabel(shown, t)}</button>}
+      foot={shown === 0 && filterActive(filter)
+        // Nothing left to show: the sheet's one button is the way back, not "Show 0 species".
+        ? <button type="button" className="eb-btn" aria-label={t.filters.panel.clearAllLabel} data-testid="filters-show" onClick={clearAll}>{t.filters.panel.clearAll}</button>
+        : <button type="button" className="eb-btn" data-testid="filters-show" onClick={onClose}>{showLabel(shown, t)}</button>}
     >
       {!sheet && (
         <div className="eb-fpanel-headrow">

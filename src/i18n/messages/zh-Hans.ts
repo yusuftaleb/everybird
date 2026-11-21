@@ -85,6 +85,7 @@ export const zhHans: Messages = {
         threatenedSr: '（易危、濒危或极危）',
       },
       arranging: '正在排列贴纸',
+      noMatch: { your: '你的清单里没有符合这些筛选条件的鸟。', this: '这份清单里没有符合这些筛选条件的鸟。' },
       legend: {
         latest: '最新：{name}',
         latestOn: '最新：{name}，<time>{date}</time>',

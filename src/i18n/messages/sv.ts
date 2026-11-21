@@ -83,6 +83,7 @@ export const sv: Messages = {
         threatenedSr: '(Sårbar, Starkt hotad eller Akut hotad)',
       },
       arranging: 'klistermärkena ordnas',
+      noMatch: { your: 'Inga fåglar på din lista matchar de här filtren.', this: 'Inga fåglar på den här listan matchar de här filtren.' },
       legend: {
         latest: 'Senaste: {name}',
         latestOn: 'Senaste: {name}, <time>{date}</time>',

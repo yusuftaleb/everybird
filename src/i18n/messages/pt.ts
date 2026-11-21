@@ -83,6 +83,7 @@ export const pt: Messages = {
         threatenedSr: '(Vulnerável, Em perigo ou Criticamente em perigo)',
       },
       arranging: 'organizando os adesivos',
+      noMatch: { your: 'Nenhuma ave da sua lista corresponde a estes filtros.', this: 'Nenhuma ave desta lista corresponde a estes filtros.' },
       legend: {
         latest: 'Última: {name}',
         latestOn: 'Última: {name}, <time>{date}</time>',

@@ -150,8 +150,12 @@
   .eb-dock-filters .eb-dock-drop { flex: 1 1 auto; min-width: max-content; }
 }
 .eb-view-below { display: contents; } /* the column's gaps stay; Filters dims and inertes everything in it while open */
-.eb-view-below[data-dim] > * { opacity: .3; transition: opacity .2s var(--eb-ease); }
-@media (prefers-reduced-motion: reduce) { .eb-view-below[data-dim] > * { transition: none; } }
+/* The transition sits on the children at rest too, so undimming eases as dimming does. */
+.eb-view-below > * { transition: opacity .2s var(--eb-ease); }
+.eb-view-below[data-dim] > * { opacity: .3; }
+@media (prefers-reduced-motion: reduce) { .eb-view-below > * { transition: none; } }
+/* The filters leave none of the list's birds (CollageView): one Muted line under the stage or list, and Clear all. */
+.eb-view-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; margin: 0; }
 .eb-dock-tab {
   display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; min-width: 44px;
   padding: 0 16px 0 14px; border: 0; border-radius: 12px; background: transparent; color: inherit;

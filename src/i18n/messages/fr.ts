@@ -83,6 +83,7 @@ export const fr: Messages = {
         threatenedSr: '(Vulnérable, En danger ou En danger critique)',
       },
       arranging: 'placement des autocollants',
+      noMatch: { your: 'Aucun oiseau de ta liste ne correspond à ces filtres.', this: 'Aucun oiseau de cette liste ne correspond à ces filtres.' },
       legend: {
         latest: 'Dernière\u00a0: {name}',
         latestOn: 'Dernière\u00a0: {name}, <time>{date}</time>',
