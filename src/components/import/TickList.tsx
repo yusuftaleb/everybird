@@ -1,8 +1,10 @@
 'use client'
 // Add by hand (the Add birds dialog and Settings): the whole eBird taxonomy (~11,000 species). With the search empty it
-// is one list that opens in place, as the Places list did (a disclosure list): the orders, each a row with a chevron, a
-// representative sticker (its first species in taxonomic order with one), its name and its species count; opening an
-// order shows its families under it, a family its genera, a genus its species. Typing in the search shows the matches
+// is one list that opens in place, as the Places list did (a disclosure list): the orders, each a compact row with a
+// chevron, its name, its scientific name after it (smaller, Muted; with Scientific on the scientific name leads and the
+// common one follows) and its species count; opening an order shows its families under it, a family its genera, a genus
+// its species, with no lone levels (the Tree's rule, `taxonOpen`: an order with one family shows its genera, a family with
+// one genus its species, a group of 12 species or fewer its species). Only species rows carry stickers. Typing in the search shows the matches
 // instead (by word prefixes of either name), and clearing it brings the list back with the same rows open. Species rows
 // are a multi-select listbox whose selected options are the birds on the list (the search's, and each open genus's): the
 // arrow keys move the active row, Space or Enter flips it; a click flips a row. A tap adds a bird to the list at once and a tap on a bird already on it takes it off at
@@ -27,7 +29,7 @@ import { today } from '@/lib/download'
 import { stripBracket } from '@/lib/import/places'
 import type { Edits, Place } from '@/lib/list/model'
 import type { Action } from '@/lib/list/store'
-import { addTicked, filterTickRows, removeTicked, taxonChildren, undoEdit, type TaxonGroup, type TaxonPath } from '@/lib/list/tick'
+import { addTicked, filterTickRows, removeTicked, taxonChildren, taxonOpen, undoEdit, type TaxonGroup, type TaxonPath } from '@/lib/list/tick'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName, nameOfCode } from '@/lib/species/names'
 import { orderLabel } from '@/lib/species/orders'
@@ -48,7 +50,7 @@ type Props = {
   autoFocus?: boolean
   /** Rows the list shows at most (8; the dialog's 7, so it fits a laptop's screen). */
   view?: number
-  /** Scientific names lead (the Scientific switch): the groups' names are scientific. */
+  /** Scientific names lead (the Scientific switch): the groups' scientific names come first. */
   sci?: boolean
 }
 
@@ -56,7 +58,7 @@ const ROW = 56
 const VIEW = 8 // rows in view at most (the list's height)
 const OVER = 6 // rows drawn above and below the view
 
-/** A species' sticker in the rows' box (48 × 36): the species rows' and, for a group, its representative's. */
+/** A species' sticker in the species rows' box (48 × 36). */
 function Thumb({ r }: { r: SpeciesRow }) {
   const fit = Math.min(48 / Math.max(r.ar, 0.01), 36)
   return (
@@ -147,7 +149,7 @@ function TickOptions({ rows, onList, onFlip, view, inline, boxRef, label, labell
               <Thumb r={r} />
               <span className="eb-tickname">
                 <span>{displayName(r)}</span>
-                <i lang="la">{r.sci}</i>
+                <i className="eb-ticksub" lang="la">{r.sci}</i>
               </span>
               {on && <span className="eb-mono eb-tickon">{tt.onList}</span>}
             </div>
@@ -165,53 +167,56 @@ type Tree = {
 }
 
 /**
- * One group (an order, a family or a genus): a disclosure row (the chevron, its sticker, its name, its species count)
- * and, while open, what is under it, indented a step: its groups, or for a genus its species.
+ * One group (an order, a family or a genus) `depth` steps in: a compact disclosure row (the chevron, its names, its
+ * species count) and, while open, what is under it, indented a step: its groups or its species (`taxonOpen`).
  */
-function GroupNode({ path, g, tree }: { path: TaxonPath; g: TaxonGroup; tree: Tree }) {
+function GroupNode({ path, g, depth, tree }: { path: TaxonPath; g: TaxonGroup; depth: number; tree: Tree }) {
   const id = useId()
   const { t } = useI18n()
   const at = [...path, g.id]
   const key = at.join('/')
   const isOpen = tree.open.has(key)
-  const depth = path.length
-  // Orders by the dictionary's names, families by their names, genera by their scientific name; all scientific with Scientific on.
-  const latin = tree.sci || depth === 2
-  const label = latin ? g.id : depth === 0 ? orderLabel(g.id, t) : familyName(g.first)
+  // Orders by the dictionary's names, families by their names, each with its scientific name after it (first with
+  // Scientific on); genera by their scientific name alone.
+  const common = at.length === 1 ? orderLabel(g.id, t) : at.length === 2 ? familyName(g.first) : undefined
+  const lead = tree.sci || !common ? g.id : common
+  const second = common === undefined ? undefined : tree.sci ? common : g.id
   const count = formatInt(g.n, t.num)
   return (
     <li>
       <button
         type="button" id={`${id}-b`} className="eb-tickgroup" aria-expanded={isOpen} aria-controls={isOpen ? id : undefined}
-        aria-label={`${label}, ${plural(t.import.species, g.n, { n: count })}`} data-testid={`tick-group-${key}`}
+        aria-label={`${lead}, ${plural(t.import.species, g.n, { n: count })}`} data-testid={`tick-group-${key}`}
         style={depth ? { paddingLeft: `calc(8px + ${depth} * var(--eb-tick-indent))` } : undefined} onClick={() => tree.toggle(key)}
       >
         <span className="eb-tickchev" aria-hidden="true"><ChevronDownIcon /></span>
-        <Thumb r={g.rep} />
-        <span className="eb-tickgroup-name" lang={latin ? 'la' : undefined}>{label}</span>
+        <span className="eb-tickgroup-name">
+          <span lang={lead === g.id ? 'la' : undefined}>{lead}</span>
+          {second !== undefined && <>{' '}{tree.sci ? <span className="eb-ticksub">{second}</span> : <i className="eb-ticksub" lang="la">{second}</i>}</>}
+        </span>
         <span className="eb-mono eb-langcode eb-tickgroup-n" aria-hidden="true">{count}</span>
       </button>
-      {isOpen && <GroupBody id={id} labelledBy={`${id}-b`} path={at} tree={tree} />}
+      {isOpen && <GroupBody id={id} labelledBy={`${id}-b`} path={at} n={g.n} depth={depth + 1} tree={tree} />}
     </li>
   )
 }
 
-/** Under an open group: its groups (an order's families, a family's genera), or a genus's species as tickable rows. */
-function GroupBody({ id, labelledBy, path, tree }: { id: string; labelledBy: string; path: TaxonPath; tree: Tree }) {
+/** Under an open group: the groups `taxonOpen` shows (an order's families, or past a lone level the genera), or its species as tickable rows. */
+function GroupBody({ id, labelledBy, path, n, depth, tree }: { id: string; labelledBy: string; path: TaxonPath; n: number; depth: number; tree: Tree }) {
   const { species } = tree
-  const key = path.join('/') // the path is a new array each render; its groups are worked out once per group
-  const groups = useMemo(() => (path.length < 3 ? taxonChildren(species.rows, key.split('/')) : []), [species, key]) // eslint-disable-line react-hooks/exhaustive-deps -- `path` is read through `key`
-  const rows = useMemo(() => (path.length === 3 ? filterTickRows(species.rows, { taxon: key.split('/') }) : []), [species, key]) // eslint-disable-line react-hooks/exhaustive-deps -- `path` is read through `key`
-  if (path.length === 3) {
+  const key = path.join('/') // the path is a new array each render; what it shows is worked out once per group
+  const shown = useMemo(() => taxonOpen(species.rows, key.split('/'), n), [species, key, n])
+  const rows = useMemo(() => (shown.groups.length ? [] : filterTickRows(species.rows, { taxon: shown.path })), [species, shown])
+  if (!shown.groups.length) {
     return (
-      <div id={id} className="eb-ticktree-sub" style={{ paddingLeft: `calc(${path.length} * var(--eb-tick-indent))` }}>
+      <div id={id} className="eb-ticktree-sub" style={{ paddingLeft: `calc(${depth} * var(--eb-tick-indent))` }}>
         <TickOptions rows={rows} onList={tree.onList} onFlip={tree.onFlip} view={rows.length} inline labelledBy={labelledBy} />
       </div>
     )
   }
   return (
     <ul id={id} className="eb-ticktree-sub" aria-labelledby={labelledBy}>
-      {groups.map((g) => <GroupNode key={g.id} path={path} g={g} tree={tree} />)}
+      {shown.groups.map((g) => <GroupNode key={g.id} path={shown.path} g={g} depth={depth} tree={tree} />)}
     </ul>
   )
 }
@@ -322,7 +327,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
       ) : (
         <div ref={treeBox} className="eb-ticklist eb-ticktree" style={{ height: view * ROW }} data-testid="tick-tree">
           <ul aria-label={tt.list}>
-            {orders.map((g) => <GroupNode key={g.id} path={[]} g={g} tree={tree} />)}
+            {orders.map((g) => <GroupNode key={g.id} path={[]} g={g} depth={0} tree={tree} />)}
           </ul>
         </div>
       )}

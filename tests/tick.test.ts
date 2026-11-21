@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { addTicked, filterTickRows, genusOf, removeTicked, taxonChildren, undoEdit } from '@/lib/list/tick'
+import { addTicked, filterTickRows, genusOf, removeTicked, taxonChildren, taxonOpen, TICK_SPECIES_AT, undoEdit } from '@/lib/list/tick'
+import { SPECIES_AT } from '@/lib/tree/levels'
 import type { Edits } from '@/lib/list/model'
 import type { SpeciesRow } from '@/lib/species/types'
 
@@ -46,23 +47,35 @@ describe('taxonChildren (Add by hand: the levels of the list that opens in place
     expect(taxonChildren(shuffled, []).map((c) => c.id)).toEqual(['Anseriformes', 'Piciformes', 'Passeriformes'])
     expect(taxonChildren(shuffled, ['Piciformes'])[0].first.code).toBe('norfli')
   })
-  it("shows each group's first species in taxonomic order that has a sticker, else its first species (the outline)", () => {
-    const drawn = (code: string, st: boolean, to: number, sci: string, fam = 'Picidae') => ({ ...sp(code, code, sci, 'Piciformes', fam, to), st })
-    const birds = [
-      drawn('c3', true, 30, 'Colaptes c'), drawn('c1', false, 10, 'Colaptes a'), drawn('c2', true, 20, 'Colaptes b'),
-      drawn('m1', false, 40, 'Melanerpes a'), drawn('m2', false, 50, 'Melanerpes b'),
-      drawn('r1', true, 60, 'Ramphastos a', 'Ramphastidae'),
-    ]
-    const at = (path: string[]) => taxonChildren(birds, path).map((g) => [g.id, g.n, g.first.code, g.rep.code])
-    // The order: its first species (c1) has no sticker, the next in taxonomic order (c2) has, wherever the rows sit.
-    expect(at([])).toEqual([['Piciformes', 6, 'c1', 'c2']])
-    expect(at(['Piciformes'])).toEqual([['Picidae', 5, 'c1', 'c2'], ['Ramphastidae', 1, 'r1', 'r1']])
-    // A genus with no sticker at all shows its first species (drawn as the outline).
-    expect(at(['Piciformes', 'Picidae'])).toEqual([['Colaptes', 3, 'c1', 'c2'], ['Melanerpes', 2, 'm1', 'm1']])
-  })
   it('a genus is the first word of the scientific name', () => {
     expect(genusOf('Colaptes auratus')).toBe('Colaptes')
     expect(genusOf('Anser')).toBe('Anser')
+  })
+})
+
+describe('taxonOpen (Add by hand: no lone levels, the Tree\'s rule)', () => {
+  // Synthetic: an order of 20 species in one family; the family's two genera (Aa 13, Ab 7); an order of 14 in one family
+  // and one genus; an order of 13 in two families.
+  const many = (n: number, sci: string, ord: string, fam: string, from: number) =>
+    Array.from({ length: n }, (_, i) => sp(`${sci.toLowerCase()}${i}`, `${sci} ${i}`, `${sci} s${i}`, ord, fam, from + i))
+  const big = [
+    ...many(13, 'Aa', 'Aformes', 'Aidae', 0), ...many(7, 'Ab', 'Aformes', 'Aidae', 100),
+    ...many(14, 'Ba', 'Bformes', 'Bidae', 200),
+    ...many(6, 'Ca', 'Cformes', 'Cidae', 300), ...many(7, 'Cb', 'Cformes', 'Cbidae', 400),
+  ]
+  const open = (path: string[], n: number) => { const o = taxonOpen(big, path, n); return [o.path, o.groups.map((g) => [g.id, g.n])] }
+  it('follows the Tree: the same 12 species', () => expect(TICK_SPECIES_AT).toBe(SPECIES_AT))
+  it('an order with one family shows its genera directly', () => {
+    expect(open(['Aformes'], 20)).toEqual([['Aformes', 'Aidae'], [['Aa', 13], ['Ab', 7]]])
+  })
+  it('a family with one genus shows its species directly (here an order with one family and one genus)', () => {
+    expect(open(['Bformes'], 14)).toEqual([['Bformes', 'Bidae', 'Ba'], []])
+  })
+  it('a group of 12 species or fewer opens straight on its species; more shows its groups', () => {
+    expect(open(['Aformes', 'Aidae', 'Ab'], 7)).toEqual([['Aformes', 'Aidae', 'Ab'], []])
+    expect(open(['Cformes'], 13)).toEqual([['Cformes'], [['Cidae', 6], ['Cbidae', 7]]])
+    expect(open(['Cformes', 'Cbidae'], 7)).toEqual([['Cformes', 'Cbidae'], []])
+    expect(open(['Aformes'], 12)).toEqual([['Aformes'], []])
   })
 })
 
