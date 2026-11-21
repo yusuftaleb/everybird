@@ -6,10 +6,11 @@ import { localDay } from '@/lib/file-name'
 import linkIndex from '../data/link-index.json'
 import { ComparePage, forgetCompare } from '@/components/compare/ComparePage'
 import * as load from '@/lib/species/load'
-import { decodeCompare, encodeCompare, encodeShare, SHARE_ORIGIN, type SharePayload } from '@/lib/share/link'
+import { decodeCompare, decodeShare, encodeCompare, encodeShare, SHARE_ORIGIN, type SharePayload } from '@/lib/share/link'
 import { renderShareImage } from '@/lib/share/image'
 import { drawCompareCard } from '@/lib/share/compare-image'
 import { HANDOFF_KEY } from '@/lib/share/compare-handoff'
+import { COMPARE_KEY, readCompare } from '@/lib/share/compare-store'
 import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
 import type { Regions } from '@/lib/species/types'
@@ -51,6 +52,11 @@ const pressed = () => screen.getAllByRole('button', { pressed: true }).map((b) =
 const shown = () => screen.getByTestId('compare-shown').textContent
 const rowCount = () => screen.queryAllByTestId(/^compare-row-\d+$/).length
 const card = () => vi.mocked(drawCompareCard).mock.calls.at(-1)![0]
+/** localStorage, in memory (jsdom's isn't there under this Node). */
+const memoryStorage = () => {
+  const m = new Map<string, string>()
+  return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, String(v)) }, removeItem: (k: string) => { m.delete(k) } }
+}
 
 beforeEach(() => {
   ctx.list = [1, 2, 3, 4].map((i) => ({ code: C(i), heard: false, dead: false, media: false, sources: ['ebird'] }))
@@ -60,6 +66,7 @@ beforeEach(() => {
   vi.spyOn(load, 'loadSpecies').mockResolvedValue({ byCode } as unknown as load.SpeciesIndex)
   URL.createObjectURL = vi.fn(() => 'blob:card')
   URL.revokeObjectURL = vi.fn()
+  vi.stubGlobal('localStorage', memoryStorage())
 })
 afterEach(() => {
   cleanup()
@@ -264,6 +271,84 @@ describe('Compare: the comparison', () => {
     expect(names(await screen.findByTestId('compare-birds'))).toHaveLength(12)
     fireEvent.click(screen.getByTestId('compare-more'))
     expect(names(screen.getByTestId('compare-birds'))).toHaveLength(15)
+  })
+})
+
+describe('Compare: kept on this device (a language switch reloads the page)', () => {
+  /** A reload: the page gone, its memory with it; localStorage stays. */
+  const reload = () => { cleanup(); forgetCompare(); render(<ComparePage />) }
+  /** Each kept row's list by its name, as a reload would read it. */
+  const keptRows = () => readCompare()?.rows.map((r) => decodeShare(r.text.split('/s/')[1]).name)
+  it('the rows, the names, the comparison and the chips come back after a reload', async () => {
+    render(<ComparePage />)
+    paste(`${link('Sam', 3, 5)} ${link('Ada', 1, 9)} ${SHARE_ORIGIN}/s/1broken`)
+    fireEvent.change(screen.getByTestId('compare-name-1'), { target: { value: 'Ada L' } })
+    fireEvent.change(screen.getByTestId('compare-name-mine'), { target: { value: 'Yusuf' } })
+    compare()
+    fireEvent.click(chip(1))
+    fireEvent.click(chip(2))
+    expect(shown()).toBe('Sam & Ada L · 0')
+    reload()
+    expect(await screen.findByTestId('compare-shown')).toHaveTextContent('Sam & Ada L · 0')
+    expect(pills()).toEqual(['Yusuf4', 'Sam2', 'Ada L2'])
+    expect(pressed()).toEqual(expect.arrayContaining(['compare-chip-1', 'compare-chip-2']))
+    // The set-up as left, a link that didn't open included.
+    fireEvent.click(screen.getByTestId('compare-edit'))
+    reload()
+    await waitFor(() => expect(screen.getByTestId('compare-name-1')).toHaveValue('Ada L'))
+    expect(screen.getByTestId('compare-name-mine')).toHaveValue('Yusuf')
+    expect(screen.getByTestId('compare-name-0')).toHaveValue('Sam')
+    expect(screen.queryByTestId('compare-shown')).toBeNull()
+  })
+  it('a link that didn’t open is kept as pasted', async () => {
+    render(<ComparePage />)
+    paste(`${SHARE_ORIGIN}/s/1broken`)
+    reload()
+    await waitFor(() => expect(screen.getByTestId('compare-link-0')).toHaveValue(`${SHARE_ORIGIN}/s/1broken`))
+  })
+  it('a removed row is removed from storage too; no rows left, nothing kept', () => {
+    render(<ComparePage />)
+    paste(`${link('Sam', 3)} ${link('Ada', 1)}`)
+    expect(keptRows()).toEqual(['Sam', 'Ada'])
+    fireEvent.click(screen.getByTestId('compare-remove-0'))
+    expect(keptRows()).toEqual(['Ada'])
+    fireEvent.click(screen.getByTestId('compare-remove-0'))
+    expect(localStorage.getItem(COMPARE_KEY)).toBeNull()
+  })
+  it('Compare with mine replaces what was kept', async () => {
+    render(<ComparePage />)
+    paste(link('Ada', 1, 9))
+    cleanup()
+    forgetCompare()
+    sessionStorage.setItem(HANDOFF_KEY, `/s/${link('Sam', 3, 5).split('/s/')[1]}`)
+    render(<ComparePage />)
+    expect(pills()).toEqual(['Mine4', 'Sam2'])
+    expect(keptRows()).toEqual(['Sam'])
+    reload()
+    expect(await screen.findByTestId('compare-shown')).toBeInTheDocument()
+    expect(pills()).toEqual(['Mine4', 'Sam2'])
+  })
+  it('unreadable storage is ignored: Compare opens empty and still works', () => {
+    localStorage.setItem(COMPARE_KEY, '{"v":1,"rows":[{"text":3}],"open":true}')
+    render(<ComparePage />)
+    expect(rowCount()).toBe(1)
+    expect(screen.getByTestId('compare-link-0')).toHaveValue('')
+    cleanup()
+    forgetCompare()
+    const blocked = () => { throw new Error('blocked') }
+    vi.stubGlobal('localStorage', { getItem: blocked, setItem: blocked, removeItem: blocked })
+    render(<ComparePage />)
+    paste(link('Sam', 3))
+    compare()
+    expect(pills()).toEqual(['Mine4', 'Sam1'])
+  })
+  it('readCompare reads only its own version and shape', () => {
+    for (const bad of ['nope', '{"v":2,"rows":[{"text":""}],"open":false}', '{"v":1,"rows":[],"open":false}', '{"v":1,"rows":[{"text":"a","name":1}],"open":false}']) {
+      localStorage.setItem(COMPARE_KEY, bad)
+      expect(readCompare()).toBeNull()
+    }
+    localStorage.setItem(COMPARE_KEY, '{"v":1,"rows":[{"text":"a"}],"open":true,"pick":{"key":"k","choice":-1}}')
+    expect(readCompare()).toEqual({ rows: [{ text: 'a' }], open: true })
   })
 })
 

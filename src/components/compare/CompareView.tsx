@@ -11,6 +11,7 @@ import {
 } from '@/lib/share/compare'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
+import type { CompareShown } from '@/lib/share/compare-store'
 import { shareTitle } from '@/lib/share/og'
 import { diagramLayout, maskAt, type Diagram } from '@/lib/share/venn'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
@@ -38,14 +39,19 @@ const byTaxon = (codes: readonly string[], species: SpeciesIndex) =>
  * A comparison's state: what is shown (`choice`: Yet to see, Every bird, or the birds on exactly the people chosen) and
  * `draw`, the Share dialog's two pictures (the comparison card and the wish list). `lists`: two or more (fewer: nothing
  * to show). `you`: the first list is the viewer's own (it opens on Yet to see and offers the wish list). Each list's
- * name is its title (listLabels). Reads and writes nothing of the saved list.
+ * name is its title (listLabels). `keep`: the choice held by the caller (Compare keeps it on the device), else here.
+ * Reads and writes nothing of the saved list.
  */
-export function useComparison(lists: readonly SharePayload[], { you = false }: { you?: boolean } = {}) {
+export function useComparison(
+  lists: readonly SharePayload[],
+  { you = false, keep }: { you?: boolean; keep?: { pick: CompareShown | undefined; set: (p: CompareShown) => void } } = {},
+) {
   const { t } = useI18n()
   const [data, setData] = useState<{ species: SpeciesIndex } | null>(null)
   const [failed, setFailed] = useState(false)
   // The choice belongs to these lists (by their names and sizes): other lists (Edit lists) open on the first choice again.
-  const [pick, setPick] = useState<{ key: string; choice: Choice } | null>(null)
+  const [own, setOwn] = useState<CompareShown | undefined>()
+  const [pick, setPick] = keep ? [keep.pick, keep.set] : [own, setOwn]
   useEffect(() => {
     let live = true
     loadSpecies().then((species) => { if (live) setData({ species }) }, () => { if (live) setFailed(true) })
