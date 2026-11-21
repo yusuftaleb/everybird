@@ -254,6 +254,33 @@ describe('the chip row', () => {
   })
 })
 
+describe('round 6 design proposals in the Filters panel (AU7, AU8)', () => {
+  it("each section's Clear is named by its section", () => {
+    vi.stubGlobal('innerWidth', 1000)
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: /^everyth/ }))
+    fireEvent.click(button())
+    const panel = screen.getByRole('dialog', { name: 'Filters' })
+    expect(within(panel).getByTestId('places-clear')).toHaveAccessibleName('Clear Places')
+    fireEvent.keyDown(within(panel).getByRole('slider', { name: 'End month' }), { key: 'ArrowLeft' }) // a range: Time's Clear shows
+    expect(within(panel).getByTestId('time-clear')).toHaveAccessibleName('Clear Time')
+    expect(within(panel).getByTestId('status-clear')).toHaveAccessibleName('Clear Conservation status')
+  })
+
+  it('focus leaving the dock wrap closes the popover, and stays where it went', () => {
+    vi.stubGlobal('innerWidth', 1000)
+    render(<Harness />)
+    fireEvent.click(button())
+    const inside = within(screen.getByRole('dialog', { name: 'Filters' })).getAllByRole('checkbox')[0]
+    act(() => inside.focus())
+    expect(screen.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument()
+    const away = screen.getByRole('button', { name: 'elsewhere' })
+    act(() => away.focus())
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).toBeNull()
+    expect(away).toHaveFocus()
+  })
+})
+
 describe('spec 15: the content below the panel', () => {
   function View() {
     const [state, dispatch] = useReducer(reduce, undefined, seeded)

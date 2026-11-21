@@ -6,7 +6,9 @@
 /* Breadcrumb: "All birds / Perching birds / Crows", the current place in Accent. */
 .eb-path { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 14px; animation: eb-rise .24s var(--eb-ease) both; }
 .eb-path-item { display: contents; }
-.eb-path button { font: inherit; color: inherit; background: none; border: 0; padding: 0; min-height: 24px; cursor: pointer; opacity: .66; transition: opacity .15s ease; }
+.eb-path button { position: relative; font: inherit; color: inherit; background: none; border: 0; padding: 0; min-height: 24px; cursor: pointer; opacity: .66; transition: opacity .15s ease; }
+/* Every breadcrumb step is drawn 24px with a 44px press (the Taxa path, the Places drill, the Tree's). */
+.eb-path button::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100% + 8px, 44px); height: 44px; transform: translate(-50%, -50%); }
 .eb-path [aria-current] { color: var(--accent); font-weight: 600; }
 .eb-path [lang] { font-style: italic; }
 .eb-path-sep { color: var(--muted); }
@@ -79,7 +81,8 @@
   background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
-  animation: eb-fade-in .15s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) both;
+  /* Rises 4px from its button, as the breadcrumb does; `backwards`, so no transform stays on it once it has landed. */
+  animation: eb-rise .2s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) backwards;
   font-size: 14px; font-weight: 500;
 }
 .eb-drop[data-kind="filters"], .eb-drop[data-kind="taxa"] { left: 0; right: 0; width: auto; }
@@ -111,6 +114,17 @@
 .eb-fpanel-row > [data-sec="places"] { flex: 2 1 0; }
 .eb-fpanel-row > [data-sec="status"] { flex: 1 1 0; }
 .eb-fpanel-row > .eb-fsec { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+/* Under 760px of bar (a tablet's, a narrow window's) Conservation status stacks under Places, as on the sheet, rather
+   than leave its names about 75px: the sections flow at full height and the panel's body scrolls as one. */
+@container (max-width: 759px) {
+  .eb-drop[data-kind="filters"] .eb-fpanel-row { flex-direction: column; flex: none; }
+  .eb-drop[data-kind="filters"] .eb-fpanel-row > .eb-fsec { flex: none; }
+  .eb-drop[data-kind="filters"] .eb-fpanel-row .eb-places,
+  .eb-drop[data-kind="filters"] .eb-fpanel-row .eb-places-scroll,
+  .eb-drop[data-kind="filters"] .eb-fpanel-row [data-sec="status"] .eb-checklist { flex: none; min-height: 0; overflow-y: visible; }
+  .eb-fpanel-row > [data-sec="places"]:has(+ [data-sec="status"]) { padding-right: 0; }
+  .eb-fpanel-row > [data-sec="places"] + [data-sec="status"] { border-left: 0; padding-left: 0; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hairline); }
+}
 .eb-drop[data-kind="filters"] .eb-fpanel-row .eb-places { flex: 1 1 auto; min-height: 0; }
 /* One scroller per column, always its last part: Places' level with the regions under it (PlacesDrill's .eb-places-scroll),
    Status' checklist. Nothing follows a scroller in its column, so a column squeezed below its fixed parts runs on into
@@ -147,8 +161,9 @@
 .eb-check input:checked { background: var(--accent); border-color: var(--accent); }
 .eb-check input:checked::after { transform: rotate(-45deg) scale(1); }
 .eb-check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* Long names ("South Georgia and the South Sandwich Islands") wrap onto a second line rather than being cut off. */
-.eb-check-name { flex: 1; min-width: 0; padding-block: 6px; overflow-wrap: break-word; }
+/* Long names ("South Georgia and the South Sandwich Islands") wrap onto a second line rather than being cut off; long
+   compounds (German, Russian) break at a hyphenation point, by `<html lang>`, before mid-word. */
+.eb-check-name { flex: 1; min-width: 0; padding-block: 6px; overflow-wrap: break-word; hyphens: auto; }
 .eb-check[data-checked] .eb-check-name { font-weight: 600; }
 .eb-check-none { padding: 8px; }
 /* Drilling down (PlacesDrill.tsx): a level's list rises in as the taxonomy's levels do; a row with places under it
@@ -175,8 +190,6 @@
 .eb-drill svg { width: 18px; height: 18px; transform: rotate(-90deg); }
 .eb-drill:focus-visible { color: var(--ink); }
 .eb-places-path { animation: eb-rise .24s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) both; } /* the sheet sits outside .eb-view */
-.eb-places-path button { position: relative; }
-.eb-places-path button::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100% + 8px, 44px); height: 44px; transform: translate(-50%, -50%); }
 /* "Count repeat sightings" (Timeline.tsx RepeatSwitch): the Settings switch row (app.css .eb-setrow-btn) on the Time
    section's head row, right-aligned: its label and track only (the note is its tooltip), so nothing moves when it flips.
    A 44px press; the row wraps it under the title only when both can't share a line. No Surface band on hover: the

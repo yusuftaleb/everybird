@@ -43,7 +43,7 @@
 @keyframes eb-sheet-in { from { opacity: 0; transform: translateY(24px); } }
 .eb-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .eb-card-names { flex: 1 1 auto; min-width: 0; }
-.eb-card-name { margin: 0; overflow-wrap: break-word; font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.2; }
+.eb-card-name { margin: 0; overflow-wrap: break-word; hyphens: auto; font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.2; }
 .eb-card-name[lang] { font-family: var(--font-body); font-weight: 600; font-size: 16px; font-style: italic; }
 .eb-card-other { margin: 2px 0 0; overflow-wrap: break-word; font-size: 13px; color: var(--muted); }
 .eb-card-other[lang] { font-style: italic; }
@@ -95,7 +95,7 @@
   transition: top .2s var(--ease-ui);
 }
 :root:has(.eb-topbar:not([data-hidden])) .eb-lhead { top: var(--topbar-h); }
-.eb-lhead-name { min-width: 0; overflow-wrap: break-word; }
+.eb-lhead-name { min-width: 0; overflow-wrap: break-word; hyphens: auto; }
 .eb-lhead-name[lang="la"] { text-transform: none; font-style: italic; letter-spacing: 0; }
 .eb-lhead-count { flex: none; margin-left: auto; font-variant-numeric: tabular-nums; text-align: right; }
 @media (prefers-reduced-motion: reduce) { .eb-lhead { transition: none; } }
@@ -128,6 +128,8 @@
 .eb-row-thumb img, .eb-row-thumb .eb-sil { display: block; width: 100%; height: 100%; object-fit: contain; }
 .eb-row-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 15px; font-weight: 600; }
 .eb-row-name [lang] { font-style: italic; }
+/* A long compound name (German, Russian) breaks at a hyphenation point (by `<html lang>`), never mid-word. */
+.eb-row-primary { overflow-wrap: break-word; hyphens: auto; }
 .eb-row-other { font-size: 13px; font-weight: 500; color: var(--muted); }
 .eb-row-meta { display: contents; }
 .eb-row-mass { white-space: nowrap; text-transform: none; }

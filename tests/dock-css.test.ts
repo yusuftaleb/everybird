@@ -181,3 +181,26 @@ describe("the dock's right side: one padding, one gap, at every breakpoint", () 
     });
   });
 });
+
+describe("round 6 design proposals: the panels' CSS (AU4, AN5, AD1, H11)", () => {
+  const cardCss = readFileSync(resolve(__dirname, "../src/components/collage/card-list.css"), "utf8");
+  it("every breadcrumb step, the Taxa path's too, has a 44px press", () => {
+    expect(topLevelRule(filtersCss, ".eb-path button")).toMatch(/position:\s*relative/);
+    expect(topLevelRule(filtersCss, ".eb-path button::after")).toMatch(/height:\s*44px/);
+  });
+  it("a popover rises 4px from its button, with no transform left once it lands, and none under reduced motion", () => {
+    const drop = topLevelRule(filtersCss, ".eb-drop");
+    expect(drop).toMatch(/animation:\s*eb-rise\s[^;]*backwards/);
+    expect(filtersCss).toMatch(/@keyframes eb-rise \{ from \{ opacity: 0; transform: translateY\(-4px\); \} \}/);
+    expect(block(filtersCss, /@media \(prefers-reduced-motion: reduce\) \{\n  \.eb-chip/)).toMatch(/\.eb-drop \{ animation: none; \}/);
+  });
+  it("under 760px of bar Conservation status stacks under Places", () => {
+    const stacked = block(filtersCss, /@container \(max-width: 759px\)/);
+    expect(stacked).toMatch(/\.eb-fpanel-row \{ flex-direction: column;/);
+    expect(stacked).toMatch(/\[data-sec="status"\] \{ border-left: 0;[^}]*border-top: 1px solid var\(--hairline\)/);
+  });
+  it("long compound names hyphenate before they break mid-word", () => {
+    expect(topLevelRule(filtersCss, ".eb-check-name")).toMatch(/hyphens:\s*auto/);
+    for (const sel of [".eb-card-name", ".eb-lhead-name", ".eb-row-primary"]) expect(topLevelRule(cardCss, sel)).toMatch(/hyphens:\s*auto/);
+  });
+});

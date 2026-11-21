@@ -73,6 +73,20 @@ describe('Timeline', () => {
     expect(filterOf()).toEqual({}) // the whole span again: no range
   })
 
+  it('a tap on the strip moves the nearer handle there and commits at once; the readout is no live region', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 600, top: 0, height: 100, right: 600, bottom: 100, x: 0, y: 0, toJSON: () => ({}) })
+    render(<Harness />)
+    expect(screen.getByTestId('timeline-read')).not.toHaveAttribute('aria-live')
+    const bars = screen.getByTestId('timeline').querySelector('.eb-time-bars')!
+    fireEvent.click(bars, { clientX: 450 }) // nearer the end: the end handle moves back to May
+    expect(filterOf()).toEqual({ to: '2020-05' })
+    fireEvent.click(bars, { clientX: 130 }) // nearer the start: the start moves to February
+    expect(filterOf()).toEqual({ from: '2020-02', to: '2020-05' })
+    // A press on a handle is the handle's: no jump.
+    fireEvent.click(screen.getByRole('slider', { name: 'End month' }), { clientX: 10 })
+    expect(filterOf()).toEqual({ from: '2020-02', to: '2020-05' })
+  })
+
   it('dragging a handle previews the range live without committing; letting go commits it once', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 600, top: 0, height: 100, right: 600, bottom: 100, x: 0, y: 0, toJSON: () => ({}) })
     const onPreview = vi.fn()

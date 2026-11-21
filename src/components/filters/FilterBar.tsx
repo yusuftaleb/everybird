@@ -198,7 +198,9 @@ export function TaxaLevel({ taxa }: { taxa: Taxa }): ReactNode {
   const { row } = taxa
   if (!row) return null
   return (
+    // Keyed by level: each new level mounts afresh and rises in (filters.css), as order to family always did.
     <LevelRow
+      key={row.level}
       level={row.level}
       options={row.opts}
       label={taxa.chipLabel}
