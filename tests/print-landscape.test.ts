@@ -2,7 +2,7 @@
 // landscape flag, through the same fakes as poster.test.ts (no canvas, worker or network). Portrait is unchanged.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { en } from '@/i18n/messages/en'
-import { POSTER_FOOT, prepareCard, type ImagePack } from '@/lib/share/image'
+import { POSTER_FOOT, posterIcon, prepareCard, type ImagePack } from '@/lib/share/image'
 import {
   PRINT_CM, PRINT_IN, PRINT_PT, PRINT_PX, isUsSize, printCm, printDesign, printDesignH, printFileStem, printIn, printPt, printPx, printScale, stripRanges, type PrintSize,
 } from '@/lib/share/print'
@@ -64,10 +64,10 @@ describe('the landscape sizes', () => {
     const pack: ImagePack = { W: 1000, H: 800, boxes: new Map(codes.map((c, i) => [c, [200 + i * 250, 300, 160, 120]])) }
     const card = await prepareCard({ format: 'printLandscape', printSize: 'A2', theme: 'light', entries: es, species: sp, pack, now: new Date(2026, 10, 15), strings: en.ui }, printScale('A2'))
     expect([card.L.W, card.L.H]).toEqual([printDesign('A2', true)[0], 1080])
-    // No latest lifer row: the foot names the lifer at its right end (POSTER_FOOT), and draws no sticker for it; the
-    // landscape line holds both at the full size.
+    // No latest lifer row: the foot names the lifer at its right end (POSTER_FOOT), its sticker before the words, sized
+    // to the line (posterIcon); the landscape line holds both at the full size.
     expect(card.L.latest).toBeUndefined()
-    expect(card.lifer).toBeNull()
+    expect(card.lifer).toMatchObject({ w: posterIcon(POSTER_FOOT.line), h: posterIcon(POSTER_FOOT.line) })
     expect(card.posterLatest).toBe('Latest lifer: synl0, May 2024')
     expect(card.footerLine.startsWith('everybird.yusuftaleb.com · ')).toBe(true)
     expect(card.credit).toEqual({ size: POSTER_FOOT.line, below: false, latestBelow: false })

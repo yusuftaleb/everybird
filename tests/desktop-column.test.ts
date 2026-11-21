@@ -138,14 +138,17 @@ describe('everything on the desktop is inside the central column, clear of the t
 // and the poster's quiet head and foot (print and printLandscape); the square and the 5:4 wide stayed identical. The
 // poster draws retaken for round 5 (the latest lifer at the foot's right end; layouts unchanged). Every format's draws
 // retaken for round 6 (the footer's credit "Stickers: huashu-bird-sticker, CC BY 4.0", on its own line where it no longer
-// fits beside the wordmark; layouts unchanged).
+// fits beside the wordmark; layouts unchanged). Retaken again for round 6's Share and Print: the stacked latest lifer row
+// keeps the head's gap from the collage (story, post, square and wide: their collages give up the room, so their tiles,
+// count and outlines move; with the row off nothing changes), and the poster's foot draws the latest lifer's sticker
+// before its words (print and printLandscape: one more drawImage; layouts unchanged).
 const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: string }> = {
-  story: { layout: '42ea58674d4ee8d18505c49684fe983e7edf1b10', draws: '38828cc34e287758c20ef2a4f22c182f1aef2054' },
-  post: { layout: '6385621f4f386188b50d6ff70c67618f6e3644a4', draws: 'c1230f1ccbd2e327a4d709b70398407ed8d5cfa4' },
-  square: { layout: '9baa675c2529f2777654d3ec49d5940ebd5ad2f4', draws: '23f0ea694f518b3c85a5c5fe784784ca9445318c' },
-  wide: { layout: '4e9d6e75750df1125d6ac5c9c4159790b8af3f4b', draws: 'fc6487d757a4baf5200a6638cd44b650fa102f56' },
-  print: { layout: 'aee75945aabf33f4b0969088c020f9966dc88af1', draws: '94db1cda530b078332372947185a1a7c8e7c8413' },
-  printLandscape: { layout: '6420700515cec114ad51c385b3bc919e11dc6d0c', draws: '4cfc1b0122a8940fa644676f8e72f82b5cddc4af' },
+  story: { layout: 'e17400f0ee5b417522711b695f49b1f3124d3813', draws: '865d62dd2c71ba7d29c084298d0727aad073b57b' },
+  post: { layout: '96c4e6cc46cf18859f15c72a35c7c5c8de7937fa', draws: '8e8fddb1163b0d6a698bb97e283af0b9c7ded646' },
+  square: { layout: 'd9e09652d42205ef5d25f700eb1d67f4a3316d61', draws: 'b53e01311ec15437a5f55a7b0cf8c14daad0bb18' },
+  wide: { layout: 'f9749cd1ba890b7fdad56fdc5f1cfffd102e5c82', draws: 'e1f8bf571c21f5a6f007fa5e19315eaef8f00fd9' },
+  print: { layout: 'aee75945aabf33f4b0969088c020f9966dc88af1', draws: '300606a79087ba034e12c506f36eed3e377ee4f7' },
+  printLandscape: { layout: '6420700515cec114ad51c385b3bc919e11dc6d0c', draws: '21ba5288b3d830e3e1713889de2e15291860baa5' },
 }
 const sha = (s: string) => createHash('sha1').update(s).digest('hex')
 

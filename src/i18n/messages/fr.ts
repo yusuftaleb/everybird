@@ -462,7 +462,8 @@ export const fr: Messages = {
       formatName: '{name}, format {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Orientation', vertical: 'Portrait', horizontal: 'Paysage' },
-      countSize: { label: 'Nombre', small: 'Petit', medium: 'Moyen', large: 'Grand', hide: 'Masquer', title: 'À côté du titre' },
+      countSize: { label: 'Nombre', small: 'Petit', medium: 'Moyen', large: 'Grand', hide: 'Masquer', title: 'À côté du titre', short: { small: 'S', medium: 'M', large: 'L' } },
+      orientNote: { fan: 'Les arbres en éventail sont en paysage', upright: 'Les arbres rectangulaires et radiaux sont en portrait' },
       preview: { story: 'Aperçu de l’image au format Story', post: 'Aperçu de l’image au format Post', square: 'Aperçu de l’image carrée', desktop: 'Aperçu de l’image au format Bureau', wide: 'Aperçu de l’image au format Post paysage' },
       failed: 'Impossible de créer l’image.',
       imageFailed: 'Impossible de créer l’image. Réessaie.',
@@ -492,10 +493,11 @@ export const fr: Messages = {
       clearFilters: 'Retirer les filtres',
       latestLifer: 'Dernière nouvelle espèce',
       posterLatest: 'Dernière nouvelle espèce : {name}, {date}',
+      posterLatestPlace: 'Dernière nouvelle espèce : {name}, {date}, {place}',
       oldLinkTitle: 'La liste de vie de {name}',
       untitledTitle: { one: 'Une liste de vie\u00a0: {n} espèce', other: 'Une liste de vie\u00a0: {n} espèces' },
-      /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
-      dark: 'Image sombre',
+      /** The Colours row: the images' and the poster's look, Light or Dark. */
+      colours: { label: 'Couleurs', light: 'Clair', dark: 'Sombre' },
       transparent: 'Fond transparent',
       arrange: { label: 'Disposition', packed: 'Ajusté', oval: 'Ovale' },
       hideTotals: 'Masquer les totaux',
@@ -517,6 +519,7 @@ export const fr: Messages = {
       print: {
         title: 'Imprimer l’affiche',
         size: 'Taille de l’affiche',
+        orientNote: { fan: 'Les arbres en éventail s’impriment en paysage', upright: 'Les arbres rectangulaires et radiaux s’impriment en portrait' },
         inches: '{w} × {h} po',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px à 150 dpi',
         sizeLineIn: '{w} × {h} po · {pw} × {ph} px à 150 dpi',

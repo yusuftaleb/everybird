@@ -132,21 +132,64 @@ describe("the share dialog's rows", () => {
   })
 })
 
-describe('the option switches and Print\'s actions', () => {
+describe('the option rows and Print\'s actions', () => {
   // Measured advances (Satoshi 500; Noto Sans for what Satoshi lacks; a kana or Han character 1em), as above.
   const fonts = JSON.parse(readFileSync('tests/fixtures/glyph-advances.json', 'utf8')).fonts
   const sat = fonts['satoshi-500'].advances as Record<string, number>, noto = fonts['noto-sans-500'].advances as Record<string, number>
   const measured = (label: string, px: number) => [...label].reduce((n, c) => n + (sat[c] ?? noto[c] ?? 1), 0) * px
 
-  it('keeps every switch on one line, its label beside it, at the 300px column and up (a pair that can\'t share a row wraps whole)', () => {
-    // share.css: a paired switch is its label, 12px, the 36px track; the row has 12px padding each side.
-    expect(css).toMatch(/\.eb-share \.eb-share-pair > \.eb-share-opt \{[^}]*flex: none;[^}]*gap: 12px/)
+  it('keeps every switch on one line, its label at the left and its track at the right edge: at 15px in the 300px column, at 14px on a phone', () => {
+    // share.css: a switch row is its label, 12px, the 34px track (collage.css), with no padding of its own; the label
+    // takes 15px under 400px of column and 14px under 290px.
+    expect(css).toMatch(/\.eb-share \.eb-share-switch \{[^}]*padding: 0; gap: 12px;/)
+    expect(css).toMatch(/@container \(max-width: 399px\) \{\s*\.eb-share \.eb-share-switch \{ font-size: 15px; \}/)
+    expect(css).toMatch(/@container \(max-width: 289px\) \{\s*\.eb-share \.eb-share-switch \{ font-size: 14px; \}/)
     const over: string[] = []
     for (const [lang, m] of Object.entries(LANG)) {
       const s = m.ui.share
-      for (const label of [s.showLatest, s.print.showNames, s.dark, s.transparent, m.ui.collage.controls.lifersOnly, s.hideTotals]) {
-        const need = 2 * 12 + measured(label, 16) + 12 + 36
-        if (need > COLUMNS.narrow) over.push(`${lang} "${label}": ${Math.ceil(need)}px`)
+      for (const label of [s.showLatest, s.print.showNames, s.transparent, m.ui.collage.controls.lifersOnly, s.hideTotals, m.ui.collage.tree.showOldest]) {
+        if (measured(label, 16) + 12 + 34 > COLUMNS.desktop) over.push(`${lang} "${label}" at the 420px column`)
+        if (measured(label, 15) + 12 + 34 > COLUMNS.narrow) over.push(`${lang} "${label}" at the 300px column`)
+        if (measured(label, 14) + 12 + 34 > COLUMNS.phone) over.push(`${lang} "${label}" on a phone`)
+      }
+    }
+    // The one that wraps: Russian's "Show oldest lineage" on a phone (collage.tree.showOldest, the Tree bar's words too).
+    expect(over).toEqual([`ru "${ru.ui.collage.tree.showOldest}" on a phone`])
+  })
+
+  // The option rows' small segmented controls (share.css .eb-share-seg): a 1px border, a 2px inset and 2px gaps; each
+  // segment 10px of padding a side at 14px, 6px under 400px of column, and 4px at 12px under 290px. Their words never
+  // wrap, so each control must fit the column whole (beside its label or on a line under it).
+  const segW = (labels: string[], px: number, pad: number) => 2 + 2 * 2 + (labels.length - 1) * 2 + labels.reduce((n, l) => n + 2 * pad + measured(l, px), 0)
+  it('has the segmented controls\' numbers the budget assumes', () => {
+    expect(css).toMatch(/\.eb-share \.eb-share-seg \{[^}]*gap: 2px; padding: 2px;/)
+    expect(css).toMatch(/\.eb-share \.eb-share-seg \.eb-seg-btn \{[^}]*padding: 0 10px; font-size: 14px; white-space: nowrap;/)
+    expect(css).toMatch(/@container \(max-width: 399px\) \{[^}]*\}\s*\.eb-share \.eb-share-seg \.eb-seg-btn \{ padding: 0 6px; \}/)
+    expect(css).toMatch(/@container \(max-width: 289px\) \{[^}]*\}\s*\.eb-share \.eb-share-seg \.eb-seg-btn \{ padding: 0 4px; font-size: 12px; \}/)
+  })
+  it('keeps Count, Colours and the Tree\'s arrangement whole in every language at every column', () => {
+    const over: string[] = []
+    for (const [lang, m] of Object.entries(LANG)) {
+      const c = m.ui.share.countSize, col = m.ui.share.colours, tl = m.ui.collage.tree.layouts
+      const sets = { count: [c.hide, c.short.small, c.short.medium, c.short.large, c.title], colours: [col.light, col.dark], tree: [tl.fan, tl.circle, tl.rows] }
+      for (const [name, labels] of Object.entries(sets)) {
+        if (segW(labels, 14, 10) > COLUMNS.desktop) over.push(`${lang} ${name} in the 420px column`)
+        if (segW(labels, 14, 6) > COLUMNS.narrow) over.push(`${lang} ${name} in the 300px column`)
+        if (segW(labels, 12, 4) > COLUMNS.phone) over.push(`${lang} ${name} on a phone`)
+      }
+    }
+    expect(over).toEqual([])
+  })
+  it('keeps each choice beside its label at the 480px column in every language, so a 1440 × 830 window\'s rows stay 36px (tests/share-layout.test.ts)', () => {
+    // .eb-share-opt: the label (16/500), a 16px gap, the control; under it only where the two don't fit.
+    expect(css).toMatch(/\.eb-share \.eb-share-opt \{[^}]*gap: 4px 16px;/)
+    const over: string[] = []
+    for (const [lang, m] of Object.entries(LANG)) {
+      const s = m.ui.share, c = s.countSize, tl = m.ui.collage.tree.layouts
+      const rows: [string, string[]][] = [[c.label, [c.hide, c.short.small, c.short.medium, c.short.large, c.title]], [s.colours.label, [s.colours.light, s.colours.dark]], [s.arrange.label, [tl.fan, tl.circle, tl.rows]]]
+      for (const [label, labels] of rows) {
+        const need = measured(label, 16) + 16 + segW(labels, 14, 10)
+        if (need > COLUMNS.laptop) over.push(`${lang} "${label}": ${Math.ceil(need)}px`)
       }
     }
     expect(over).toEqual([])

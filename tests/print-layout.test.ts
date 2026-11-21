@@ -4,7 +4,7 @@ import {
   IOS_CANVAS_AREA, PRINT_CM, PRINT_DESIGN_H, PRINT_IN, PRINT_PT, PRINT_PX, PRINT_SIZES, STRIP_AREA,
   isUsSize, printDesignH, printPackH, printScale, stripRanges,
 } from '@/lib/share/print'
-import { POSTER_FOOT, SAFE, SHARE_COLORS, TITLE_TOP, cardDims, cardLayout, imagePackSpec, prepareCard, type ImagePack } from '@/lib/share/image'
+import { POSTER_FOOT, SAFE, posterIcon, SHARE_COLORS, TITLE_TOP, cardDims, cardLayout, imagePackSpec, prepareCard, type ImagePack } from '@/lib/share/image'
 import type { ListEntry } from '@/lib/list/model'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -111,8 +111,8 @@ describe('the print card', () => {
       expect(t.url).toMatch(/\/v1\/1024\/(ostric2|emu1)\.webp$/)
       expect(t.fallback).toBe(t.url!.replace('/1024/', '/384/'))
     }
-    // No latest lifer's sticker on a poster (its foot names it).
-    expect(a1.lifer).toBeNull()
+    // The latest lifer's sticker sits before its words in the foot, sized to the line (round 6; posterIcon).
+    expect(Math.max(a1.lifer!.w, a1.lifer!.h)).toBe(posterIcon(POSTER_FOOT.line))
     // The preview (scale 1): the same layout, the 384 file and no fallback.
     const preview = await prepareCard(opts)
     expect(preview.tiles.map((t) => [t.x, t.y, t.w, t.h])).toEqual(a1.tiles.map((t) => [t.x, t.y, t.w, t.h]))

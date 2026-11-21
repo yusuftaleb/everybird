@@ -82,7 +82,9 @@ describe('cardLayout', () => {
       const off = cardLayout(format, { name: true, filter: false, latest: false, count: 197 })
       expect(off.collage.y).toBe(on.collage.y)
       expect(off.rule.y).toBe(on.rule.y)
-      expect(off.collage.h - on.collage.h).toBe(on.rule.y - on.latest!.y) // the row's icon and its gap to the rule
+      expect(off.collage.h).toBeGreaterThan(on.collage.h) // the row's icon, its gap to the rule and its gap from the collage
+      // Round 6: the row keeps the head's gap from the collage (the head's gap above it: the name's bottom to its top).
+      expect(on.latest!.y - (on.collage.y + on.collage.h)).toBe(on.collage.y - (on.name!.y + on.name!.size))
       expect(packSpec(off).aspect).toBeLessThan(packSpec(on).aspect) // the taller area: the pack is NOT remade for it (imagePackSpec)
     }
   })
@@ -136,12 +138,12 @@ describe('cardLayout', () => {
     expect(L.collage.h / L.collage.w).toBeGreaterThan(1.25)
     expect(packSpec(L).aspect).toBeCloseTo(L.collage.w / L.collage.h)
   })
-  it('post: taller than before (914px with a name and the latest lifer), still inside 64px margins', () => {
+  it('post: taller than before (914px with a name and the latest lifer; 930 since the row keeps the head\'s gap above it), still inside 64px margins', () => {
     const L = cardLayout('post', { name: true, filter: false, latest: true, count: 197 })
     expect(L.name!.y).toBe(64)
     expect(L.footer.y + L.footer.size).toBe(1350 - 64)
-    expect(L.collage.h).toBeGreaterThanOrEqual(935)
-    expect(L.collage.h).toBeGreaterThan(L.collage.w * 0.98)
+    expect(L.collage.h).toBeGreaterThanOrEqual(930)
+    expect(L.collage.h).toBeGreaterThan(L.collage.w * 0.97)
   })
   it('square: the same centre-count card in 1080×1080, the count a little smaller than the post\'s, its collage wider than tall', () => {
     const L = cardLayout('square', { name: true, filter: true, latest: true, count: 197 })

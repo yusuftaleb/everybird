@@ -4,7 +4,8 @@
 // Line, rounded corners, branches simply joining, every tip one small hollow dot, a tip placed without genetic data
 // dotted. Every tip is named, as on screen: along its radius (or row) its dot, a gap, its sticker in a fixed box, a gap,
 // the name, the count; fitRound sizes the fan or circle so every name fits whole, the counts going first when room is
-// short (a fan or circle that cannot name every tip even so is drawn as rows); Rectangular gives the drawing half the
+// short (a fan or circle that cannot name every tip even so is drawn as rows, and onTreeFits tells the dialog, which
+// shows it off with its reason; the dialog draws a Fan horizontally and the others vertically); Rectangular gives the drawing half the
 // width and sets the counts right-aligned in a column just after the longest name. A group with no bird on the list
 // shows its representative sticker dimmed (groupSticker). Under it, when there is room and the time scale is on
 // (`at.time`, the bar's switch; off: the splits spaced evenly, bySplits, and no axis, rings or ages), the age axis (the
@@ -199,8 +200,13 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     let y: number
     let axisAt: (v: number) => number[]
     let axisY: number
+    // Whether each round layout names every tip here, told to the dialog (onTreeFits), which shows one that cannot as off
+    // and asks for Rectangular instead; a layout that cannot is drawn as rows meanwhile, never cut.
+    const round = (kind: 'fan' | 'circle') => (root ? fitRound(spans, kind, { w: area.w, h: area.h - bottom }, IMAGE_SIZES) : undefined)
+    const fans = { fan: round('fan'), circle: round('circle') }
+    o.onTreeFits?.({ fan: !!fans.fan, circle: !!fans.circle })
     const want = root ? at.layout ?? 'rows' : 'rows'
-    const fit = want === 'rows' ? undefined : fitRound(spans, want === 'circle' ? 'circle' : 'fan', { w: area.w, h: area.h - bottom }, IMAGE_SIZES)
+    const fit = want === 'rows' ? undefined : fans[want]
     const shape = fit ? (fit.shape ?? 'fan') : 'rows'
 
     if (fit) {

@@ -408,7 +408,7 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
       }
       seen.push({ format, col: m.col, segX: m.segX, segY: m.segY, midY: m.midY, midX: m.midX, boxR: m.boxR, share: m.share });
       if (shots) {
-        // The shots are in the image's current look (the dialog's Dark image switch, at the app's theme).
+        // The shots are in the image's current look (the dialog's Colours control, at the app's theme).
         await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
         await dialog.screenshot({ path: `${shots}/after-share-${width}-${format.toLowerCase()}-${info.project.name}.png` });
       }
@@ -452,7 +452,11 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
 // actions at once, neither the dialog nor the page scrolling (the sample is over A2's names cap, so the names note shows).
 test("at 1440 × 830 neither Share nor Print scrolls", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 830 });
-  const fits = (d: Element) => ({ dialog: d.scrollHeight - d.clientHeight })
+  // Beside the preview the controls' column scrolls inside the pinned dialog (round 6), so neither may overflow.
+  const fits = (d: Element) => {
+    const col = d.querySelector(".eb-share-scroll")!
+    return { dialog: Math.max(d.scrollHeight - d.clientHeight, col.scrollHeight - col.clientHeight) }
+  }
   const dialog = await openShare(page);
   await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
   const share = await dialog.evaluate(fits);

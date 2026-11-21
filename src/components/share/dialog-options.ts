@@ -3,8 +3,11 @@
 // Print alike, so they show only what that drawing reads: the Tree its Arrangement (Fan, Radial or Rectangular: the
 // dock's Layout), Show oldest lineage, Lifers only and Hide totals, the Map Hide totals.
 // The Goal is Share's alone (posters never draw one). Export in batches is the collage's alone, with the same Split by
-// in both, Number of birds first (Birds per image or per poster under it).
+// in both, Number of birds first (Birds per image or per poster under it). optionRows puts them in the one list's order
+// (round 6); treeOrientation is the Tree's rule for its image and poster: Fan horizontal, Rectangular and Radial vertical.
 import type { BulkSplit } from '@/lib/share/bulk'
+import type { Orientation } from '@/lib/share/image'
+import type { TreeLayout } from '@/lib/tree-mine'
 import type { ViewKind } from '@/lib/view-resume'
 
 export type Subject = 'collage' | 'tree' | 'map'
@@ -51,3 +54,23 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
     splits: collage ? BULK_SPLITS : [],
   }
 }
+
+/** One row of the options list. */
+export type OptionRow = 'size' | 'arrangement' | 'treeLayout' | 'colours' | 'count' | 'latest' | 'names' | 'lifersOnly' | 'hideTotals' | 'oldest' | 'transparent' | 'goal'
+
+/**
+ * The options list, top to bottom (round 6, the maintainer's layout): Print's Poster size first, the choices
+ * (Arrangement, Colours, Count), then the switches, Transparent background last of them, and Share's Goal at the end.
+ * Show latest lifer is listed wherever the image can draw one; the dialog leaves it out when no bird in view has a date.
+ */
+export function optionRows(rows: DialogRows, print: boolean): OptionRow[] {
+  const order: [OptionRow, boolean][] = [
+    ['size', print], ['arrangement', rows.arrangement], ['treeLayout', rows.treeLayout], ['colours', true], ['count', rows.count],
+    ['latest', rows.latest], ['names', rows.names], ['lifersOnly', rows.lifersOnly], ['hideTotals', rows.hideTotals], ['oldest', rows.oldest],
+    ['transparent', true], ['goal', rows.goal],
+  ]
+  return order.filter(([, on]) => on).map(([r]) => r)
+}
+
+/** The one orientation a tree arrangement is drawn in (the maintainer's rule): a Fan is horizontal, Rectangular and Radial vertical. */
+export const treeOrientation = (layout: TreeLayout): Orientation => (layout === 'fan' ? 'horizontal' : 'vertical')

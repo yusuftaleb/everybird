@@ -1,10 +1,9 @@
-/* The share dialog: a modal, preview beside the controls from 720px, stacked below. The preview is as large
-   as the window allows (Yusuf, 2026-11-15: no narrow story between grey bands): its box takes the shown image's own
-   shape (data-format: 9:16, 4:5 or 1:1, or horizontal 16:9, 5:4 and the landscape poster), so nothing is letterboxed, and it sits centred in an area as large as the
-   story's box (the tallest), which the story fills and a post or square sits in the middle of (Yusuf, 2026-11-15).
-   The area keeps its height in every format, so the controls never move: beside them the dialog's width follows the
-   format leftward from a fixed right edge; stacked, the buttons under the area keep their place.
-   It never scrolls sideways: the preview's size is bound by the window's width as well as its height. */
+/* The share dialog: a modal, preview beside the controls from 720px, stacked below. The preview is as large as its
+   column allows (Yusuf, 2026-11-15: no narrow story between grey bands; round 6: no empty bands at all): its box takes
+   the shown image's own shape (data-format: 9:16, 4:5 or 1:1, or horizontal 16:9, 5:4 and the landscape poster), so
+   nothing is letterboxed. Beside the controls it is as tall as the controls' column (--col-h, measured by ShareDialog),
+   its top on the column's top, so the dialog is only as tall as its content; it is pinned at its top and grows
+   downward. It never scrolls sideways: the preview's size is bound by the window's width as well as its height. */
 .eb-share-scrim { position: fixed; inset: 0; z-index: var(--z-dialog-scrim); background: rgb(0 0 0 / .28); display: grid; place-items: center; padding: 16px; }
 /* Stacked, the dialog keeps its top edge (a shorter preview never moves the format control above it). The body is a
    size container here only, so the preview's width and height are both explicit (from the body's width and --cap) and
@@ -45,15 +44,15 @@
 /* The body: the format control, the preview, then the rest of the controls; stacked on phones (the format control
    above the preview's area, the controls under it, so neither moves when the preview changes shape), a grid from 720px
    (the preview on the left down both rows, the format control over the rest of the controls on the right).
-   No scrolling on a laptop (Yusuf, 2026-11-20: a 1440 × 830 window shows the preview, every option and the actions at
-   once). From 1200px the controls' column is 480px; the window leaves the body 830 − 124 (the scrim's 16px twice, the
-   dialog's border, padding, head and gap) = 706px, and the tallest column, the collage poster once made with the names
-   note, a status line and the filters line, takes 687: the top row 54, 12, the title 64 (its label's 18px line, 6, the
-   40px field), 8, the options group 268 (the size 48, Arrangement, Count and two switch pairs 40 each, the names note's
-   two lines 52, 4 hairlines and the 2px border), 8, Export in batches' box 42, 12, the actions 88 (Download PNG and
-   Download PDF, then Copy link), the status 12 + 21, the filters line 12 + 36, the coffee button 12 + 38. Print has no
-   Goal. Rows are 40px with a mouse, 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css
-   still says them. */
+   No scrolling on a laptop with everything closed (Yusuf, 2026-11-20; round 6): from 1200px the controls' column is
+   480px; a 1440 × 830 window leaves the body 830 − 140 (the dialog pinned 32px from the top, 16px under it, its border,
+   padding, head and gap) = 690px, and the tallest column with everything closed, the collage poster once made with a
+   status line and the filters line, takes 674: the top row 54, 12, the title 64 (its label's 18px line, 6, the 40px
+   field), 8, the list 261 (the size 45, then Arrangement, Colours, Count, Show latest lifer, Show species names and
+   Transparent background, 36 each), 8, Export in batches' row 36, 12, the actions 88 (Download PNG and Download PDF,
+   then Copy link), the status 12 + 21, the filters line 12 + 36, the coffee button 12 + 38. Print has no Goal. Rows
+   are 36px with a mouse, 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css still
+   says them. Opened further (Export in batches, a goal, a note), the column scrolls inside the dialog. */
 .eb-share-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 20px; min-width: 0; }
 /* One row: the format control (not in the poster) and the orientation switch, words only (each button's spoken name
    keeps its ratio). Where the two don't fit side by side (German and Russian at 480px, every language on a phone) the
@@ -106,61 +105,47 @@
    ways: the story fills its height, a post or square leaves equal bands above and below. */
 .eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 340px, 600px)); grid-template-rows: auto var(--cap) auto; }
 
-/* Beside the controls: the window's height minus the chrome (16px scrim padding twice, the dialog's padding, head,
-   gap and 1px borders: 124px), at most 760px, and never wider than the window leaves beside the controls' column
-   (--ctl: 300px, 420px from 1000px, 480px from 1200px so the format and the orientation share one row; 92px of padding
-   and gap, 16px of slack for a scrollbar). The height is --pv-h, not --h, which collage.css registers as a number.
-   No preview is wider than 560px (--wide), so a square leaves the dialog only a little wider than a story's.
-   Each format's box is --pv-h tall; the story's, --story-h, is the tallest (room / ar is largest for the narrowest
-   shape), and the body is at least that tall in every format (min-height: the controls' row, 1fr, takes the rest), so
-   the box, spanning both rows and centred, sits in the middle of the story's height: the story fills it, a post or
-   square leaves equal bands above and below. Column 1 is the box's own width (the dialog's width follows the format),
-   so it is centred across too. The dialog's height is then the same in every format, and it is anchored by its right
-   edge where the widest (square) dialog's right edge would be when centred, and by its top edge where the story's
-   dialog would start (its box plus 92px of chrome, centred): the preview grows to the left, and the format control,
-   the controls and the close button stay put at every width. */
+/* Beside the controls: the dialog is pinned 32px from the window's top (--top) and grows downward, at most to 16px
+   above the window's bottom; it never re-centres, so opening Export in batches or adding a goal never moves it. The
+   body has at most --tall (the window less those 48px and the dialog's 92px of chrome: border, padding, head, gap); the
+   controls' column scrolls inside it when taller (.eb-share-scroll), the format row staying. The preview is --pv-h tall:
+   the controls' column's height (--col-h: the format row, the gap and the controls, measured), never more than --tall,
+   and never wider than the window leaves beside the column (--room: --ctl 300px, 420px from 1000px, 480px from 1200px,
+   so the format and the orientation share one row; 92px of padding and gap, 16px of slack for a scrollbar; no preview
+   wider than 560px, --wide). The height is --pv-h, not --h, which collage.css registers as a number. Its top is the
+   column's top, nothing centred in leftover room. The dialog's right edge stays where the widest (square) dialog's
+   would end when centred, so a narrower format grows the dialog leftward and the controls never move. */
 @media (min-width: 720px) {
   .eb-share-scrim {
-    --ctl: 300px; --wide: 560px; --room: min(100vw - var(--ctl) - 108px, var(--wide)); --tall: min(100dvh - 124px, 760px);
-    --story-h: max(240px, min(var(--tall), var(--room) / (9 / 16)));
-    --top: max(16px, (100dvh - (var(--story-h) + 92px)) / 2);
+    --ctl: 300px; --wide: 560px; --top: 32px; --room: min(100vw - var(--ctl) - 108px, var(--wide));
+    --tall: max(240px, 100dvh - var(--top) - 16px - 92px);
     place-items: start end; padding-top: var(--top);
     padding-right: max(16px, (100% - (max(240px, min(var(--tall), var(--room))) + var(--ctl) + 62px)) / 2);
   }
-  .eb-share-scrim .eb-share { max-height: calc(100dvh - var(--top) - 16px); }
+  .eb-share-scrim .eb-share { max-height: calc(100dvh - var(--top) - 16px); overflow: hidden; }
   .eb-share { width: fit-content; max-width: 100%; }
-  /* The first row is max-content (the format control and the orientation switch, 54px, or 116 where they wrap), never less: the body is
-     min-height story-h and may be squeezed to it, and an auto row would give up its growth to the 1fr row's minimum, so
-     the second control would overlap the options box (the 16px row gap gone). The body keeps its content height too
-     (flex: none), so the dialog scrolls instead. */
-  .eb-share-body { grid-template-columns: auto var(--ctl); grid-template-rows: max-content 1fr; min-height: var(--story-h); flex: none; }
-  .eb-share-preview { grid-column: 1; grid-row: 1 / span 2; }
-  .eb-share-formats, .eb-share-controls { grid-column: 2; }
-  .eb-share-formats { grid-row: 1; }
-  /* The controls fill the column's height, so the coffee button can sit at its bottom right. */
-  .eb-share-controls { grid-row: 2; align-self: stretch; }
+  /* The first row is max-content (the format control and the orientation, 54px, or 116 where they wrap), never less;
+     the second takes what is left of the body, which shrinks to the dialog's room (flex: 0 1 auto). */
+  .eb-share-body { grid-template-columns: auto var(--ctl); grid-template-rows: max-content minmax(0, 1fr); flex: 0 1 auto; min-height: 0; }
   .eb-share-preview {
-    --pv-h: max(240px, min(var(--tall), var(--room) / var(--ar)));
+    grid-column: 1; grid-row: 1 / span 2; align-self: start;
+    --pv-h: max(160px, min(var(--col-h, var(--tall)), var(--tall), var(--room) / var(--ar)));
     height: var(--pv-h); width: calc(var(--pv-h) * var(--ar));
   }
+  .eb-share-formats, .eb-share-scroll { grid-column: 2; }
+  .eb-share-formats { grid-row: 1; }
+  /* The column scrolls on its own; its 8px inset (padding, taken back by the margin) keeps focus rings and the coffee
+     button's press inside what it shows. */
+  .eb-share-scroll { grid-row: 2; min-height: 0; overflow: hidden auto; overscroll-behavior: contain; padding: 8px; margin: -8px; }
 }
-/* Horizontal (the desktop, the wide post, the landscape poster): the same side-by-side structure as Vertical (the preview
-   on the left, the controls' column on the right, --ctl wide), but the dialog is as wide as the window allows
-   (--wide-w: 1400px, 94vw) and centred in it both ways. The preview takes the width left after the column (--pw) and its
-   height follows its shape, shorter than Vertical's; if the window is too short (--ph: the dialog's room minus its 92px
-   of chrome) its height is the limit and its width shrinks with it, the dialog (fit-content) with it. The body is as tall
-   as the taller of the preview and the controls (no story-h), the dialog centred, with the coffee button at the column's
-   foot as in Vertical. */
+/* Horizontal (the desktop, the wide post, the landscape poster): the same structure as Vertical (the preview on the
+   left, the controls' column on the right, --ctl wide), but the dialog may be as wide as the window allows (--wide-w:
+   1400px, 94vw): the preview's room is the width left after the column, its height following its shape, at most the
+   column's and the window's. Pinned at the top as Vertical, its right edge where the widest one's would end. */
 @media (min-width: 720px) {
   .eb-share-scrim[data-layout="wide"] {
-    --wide-w: min(1400px, 94vw); --pw: calc(var(--wide-w) - var(--ctl) - 62px); --ph: max(160px, 100dvh - 124px);
-    place-items: center; padding: 16px;
-  }
-  .eb-share-scrim[data-layout="wide"] .eb-share { max-height: calc(100dvh - 32px); }
-  .eb-share[data-layout="wide"] .eb-share-body { min-height: 0; }
-  .eb-share[data-layout="wide"] .eb-share-preview {
-    --pv-h: min(var(--ph), var(--pw) / var(--ar));
-    height: var(--pv-h); width: calc(var(--pv-h) * var(--ar)); align-self: center;
+    --wide-w: min(1400px, 94vw); --room: calc(var(--wide-w) - var(--ctl) - 62px);
+    padding-right: max(16px, (100% - var(--wide-w)) / 2);
   }
   .eb-share[data-layout="wide"][data-changing] .eb-share-body > * { animation: eb-share-fade-in .42s cubic-bezier(.22, 1, .36, 1) both; }
 }
@@ -209,49 +194,60 @@
 .eb-share .eb-share-switch:disabled { cursor: default; color: var(--muted); }
 .eb-share .eb-share-switch:disabled .eb-track { background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline); }
 .eb-share .eb-share-switch:disabled .eb-knob { background: var(--muted); }
-.eb-share-names-note { margin: 0; padding: 4px 12px 6px; }
+/* A note under its row (the names switch's reason, an invalid goal). */
+.eb-share-opt-note { margin: 0; padding-bottom: 6px; }
 /* The names note's "export in batches": a text button inside the sentence. */
 .eb-share .eb-share-inline { display: inline; min-height: 0; padding: 0; font-size: inherit; line-height: inherit; color: var(--ink); }
-/* The options, with no heading: the title field, then the option rows. */
+/* The options, with no heading: the title field, then the list. */
 .eb-share-options { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-/* The option rows in one bordered group, as Settings' Counting group (.eb-setgroup: 1px Hairline, 16px squircle, a
-   Hairline between rows), all the same height (44px on touch, 40px with a mouse; a goal that can't fit its row wraps
-   under its label, right-aligned): the label (16/500, as Settings' rows) on the left, its control on the right. A
-   switch row is the switch itself, so the whole row presses. No overflow: hidden, so a dropdown's menu can reach past
-   the group. */
-.eb-share-opts {
-  display: flex; flex-direction: column; min-width: 0; background: var(--paper); border: 1px solid var(--hairline);
-  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-}
+/* The list (round 6, the maintainer's layout): no box, no rules between rows, nothing paired; one row per option, all
+   the same height (36px with a mouse, 44px on touch), the label (16/500, as Settings' rows) at the left and its control
+   at the right edge. A control that can't share its row (Count in a narrow column) takes a line under the label,
+   right-aligned; its own words never wrap. A switch row is the switch itself, so the whole row presses. */
+.eb-share-opts { display: flex; flex-direction: column; min-width: 0; }
 .eb-share .eb-share-opt {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px;
-  align-self: stretch; width: 100%; min-width: 0; min-height: 44px; padding: 2px 12px; box-sizing: border-box;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px;
+  align-self: stretch; width: 100%; min-width: 0; min-height: 44px; padding: 0; box-sizing: border-box;
   border: 0; border-radius: 0; background: transparent;
   font-size: 16px; font-weight: 500; text-align: start;
 }
-.eb-share .eb-share-opts > * + * { border-top: 1px solid var(--hairline); }
+.eb-share-opt > :last-child:not(:first-child) { margin-inline-start: auto; }
 .eb-share .eb-share-switch.eb-share-opt { flex-wrap: nowrap; }
-.eb-share .eb-share-opt:focus-visible { outline-offset: -2px; }
 @media (pointer: fine) {
-  .eb-share .eb-share-opt, .eb-share-input, .eb-share-actions .eb-btn { min-height: 40px; }
+  .eb-share .eb-share-opt { min-height: 36px; }
+  .eb-share-input, .eb-share-actions .eb-btn { min-height: 40px; }
 }
-/* Two switches in one row (Dark image and Transparent background; Show latest lifer and Show species names; the Tree's
-   Lifers only and Hide totals), read as a list, not a table: no rule between them, each label 12px from its own switch,
-   the first at the row's left, the second ending at its right edge (as the other rows' controls), at least 24px apart.
-   Where the two don't fit side by side, the second takes a line of its own with the row's Hairline above it: each
-   child draws a full-width Hairline 1px above itself, which the row clips, so only a wrapped one's shows. A lone switch
-   is a plain row (ShareDialog's pair). */
-.eb-share-pair { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 24px; padding-inline: 12px; overflow: hidden; }
-.eb-share .eb-share-pair > .eb-share-opt { position: relative; flex: none; width: auto; max-width: 100%; justify-content: flex-start; gap: 12px; padding-inline: 0; }
-.eb-share-pair > .eb-share-opt::before { content: ''; position: absolute; top: -1px; left: -100vw; right: -100vw; border-top: 1px solid var(--hairline); }
-/* Arrangement: Fit and Oval as two icon buttons in the row, 32px drawn with a 44px press. */
-.eb-share .eb-share-arrange { flex: none; gap: 2px; padding: 2px; }
-.eb-share .eb-share-arrange .eb-seg-btn { position: relative; flex: none; width: 40px; min-height: 32px; padding: 0; }
-.eb-share .eb-share-arrange .eb-seg-btn::after { content: ''; position: absolute; inset: -6px -2px; }
-.eb-share .eb-share-arrange .eb-seg-btn svg { display: block; }
+/* Narrow columns (tests/share-fit.test.ts): the 300px column keeps every switch's label on its line at 15px; a 320px
+   phone at 14px (all but Russian's "Show oldest lineage", the Tree bar's own words, which wrap there). */
+@container (max-width: 399px) {
+  .eb-share .eb-share-switch { font-size: 15px; }
+  .eb-share .eb-share-seg .eb-seg-btn { padding: 0 6px; }
+}
+@container (max-width: 289px) {
+  .eb-share .eb-share-switch { font-size: 14px; }
+  .eb-share .eb-share-seg .eb-seg-btn { padding: 0 4px; font-size: 12px; }
+}
 .eb-share-optlabel { min-width: 0; }
-/* A dropdown that can't share its row (a long size name in a narrow column) wraps under the label, right-aligned. */
-.eb-share-opt > .eb-share-ddwrap { margin-inline-start: auto; }
+/* The choices in the rows (Arrangement, Colours, Count): the format control's look, small: 28px segments in a 2px
+   inset and a 1px border, 34px in all, so a row stays 36px with a mouse; on touch 32px drawn with a 44px press. Words
+   at 14px on one line, never wrapped; the padding tightens under 400px of column and the words take 12px under 290px
+   (a 320px phone), where German's and Russian's Count and Russian's tree layouts still fit (tests/share-fit.test.ts). */
+.eb-share .eb-share-seg {
+  flex: none; gap: 2px; padding: 2px;
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-share .eb-share-seg .eb-seg-btn {
+  position: relative; min-height: 28px; padding: 0 10px; font-size: 14px; white-space: nowrap;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-share .eb-share-seg .eb-seg-btn svg { display: block; }
+@media (pointer: coarse) {
+  .eb-share .eb-share-seg .eb-seg-btn { min-height: 32px; }
+  .eb-share .eb-share-seg .eb-seg-btn::after { content: ''; position: absolute; inset: -6px 0; }
+}
+/* A choice that can't be picked (the Tree's other orientation; a layout without room for every name): dimmed, still
+   focusable, its reason its tooltip and description. */
+.eb-share .eb-seg-btn[aria-disabled="true"] { opacity: .4; cursor: default; }
 /* A row with a muted line under its label (the poster's size: "A2 · 42 × 59.4 cm · …"), as Settings' rows' notes. */
 .eb-share-optcol { display: flex; flex: 1 1 10em; flex-direction: column; gap: 2px; min-width: 0; padding-block: 2px; line-height: 1.25; }
 .eb-share-optnote { font-size: 14px; font-weight: 400; line-height: 1.3; color: var(--muted); }
@@ -311,22 +307,24 @@
 .eb-share-bar { flex: 1 1 auto; height: 4px; min-width: 0; overflow: hidden; background: var(--hairline); border-radius: 2px; }
 .eb-share-bar-fill { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width .15s var(--ease-ui); }
 .eb-share-pct { flex: none; min-width: 4ch; text-align: end; font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-/* Export in batches: its own box under the options group, the group's look (1px Hairline, 16px squircle, Paper); its
-   title row, its name and a chevron (turned while open); open, under it one sentence, the Split by row (by number of
-   birds, Birds per image or per poster), the live count, then the ZIP downloads (PNGs; in the poster PDFs too) or the
-   progress row. */
+/* Export in batches: one more row under the list, in a Surface panel with rounded corners, its name at the left and
+   the chevron at the right (turned while open); open, under it in the same panel one sentence, the Split by row (by
+   number of birds, Birds per image or per poster), the live count, then the ZIP downloads (PNGs; in the poster PDFs
+   too) or the progress row. On the Surface panel the dropdowns' and the buttons' fills are Paper. */
 .eb-share-bulk {
-  min-width: 0; background: var(--paper); border: 1px solid var(--hairline);
-  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  min-width: 0; background: var(--surface);
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
-.eb-share .eb-share-disclose { color: var(--ink); cursor: pointer; border-radius: inherit; }
+.eb-share .eb-share-disclose { padding-inline: 12px; color: var(--ink); cursor: pointer; border-radius: inherit; }
+.eb-share .eb-share-disclose:focus-visible { outline-offset: -2px; }
 .eb-share-disclose svg { width: 12px; height: 12px; flex: none; color: var(--muted); transition: transform .2s var(--ease-ui); }
 .eb-share-disclose[aria-expanded="true"] svg { transform: rotate(180deg); }
 @media (hover: hover) and (pointer: fine) { .eb-share-disclose:hover svg { color: var(--ink); } }
-.eb-share-bulk-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 0 12px 12px; }
-.eb-share-bulk-rows { display: flex; flex-direction: column; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
-.eb-share-bulk-rows > * + * { border-top: 1px solid var(--hairline); }
-.eb-share .eb-share-bulk-body .eb-share-opt { padding-inline: 0; }
+.eb-share-bulk-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0 12px 12px; }
+.eb-share-bulk-body > .eb-share-row, .eb-share-bulk-body > .eb-share-progress { margin-top: 4px; }
+.eb-share-bulk .eb-btn-quiet { background: var(--paper); }
+.eb-share-bulk .eb-share-dd[aria-expanded="true"] { background: var(--paper); }
+@media (hover: hover) and (pointer: fine) { .eb-share-bulk .eb-share-dd:not(:disabled):hover { background: var(--paper); } }
 .eb-share-bulk .eb-share-pct { min-width: 0; white-space: nowrap; }
 /* The four actions (print mode's in the same places), 8px apart. A label wraps to a second line only where it must,
    at 1.2 with 3px padding so two lines still make 44px, centred; a word longer than its cell breaks rather than spill
@@ -380,9 +378,8 @@
   .eb-share-disclose svg { transition: none; }
 }
 
-/* The orientation switch (Vertical | Horizontal) beside the format control: the same control. Square is the same in
-   both, so it never disables. */
-.eb-share-orient .eb-seg-btn:disabled { opacity: .4; cursor: default; }
+/* The orientation (Vertical | Horizontal) beside the format control: the same control. Square is the same in both.
+   From the Tree it follows the arrangement, the other one off (the aria-disabled rule above). */
 
 /* The Story / Post / Square choice (and Vertical | Horizontal, Add birds' ways): a small segmented control in the dock's style. */
 .eb-seg {

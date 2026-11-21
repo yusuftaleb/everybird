@@ -1,7 +1,7 @@
 // Print follows the view (2026-11-20): the Tree's and the Map's posters are their own drawing at the paper's size
 // (viewPosterScale, makeViewPoster), and the dialog shows only the options that drawing reads (dialogRows).
 import { describe, expect, it, vi } from 'vitest'
-import { BULK_SPLITS, dialogRows, subjectOf } from '@/components/share/dialog-options'
+import { BULK_SPLITS, dialogRows, optionRows, subjectOf, treeOrientation } from '@/components/share/dialog-options'
 import { makeViewPoster, posterRows, type EncoderPort } from '@/lib/share/poster'
 import { IOS_CANVAS_AREA, PRINT_PT, PRINT_SIZES, printDesign, printPx, printScale, stripRanges, viewPosterScale } from '@/lib/share/print'
 
@@ -28,6 +28,24 @@ describe('dialogRows: what each dialog shows', () => {
       expect(dialogRows('tree', print)).toEqual({ arrangement: false, count: false, goal: false, latest: false, treeLayout: true, oldest: true, names: false, lifersOnly: true, hideTotals: true, bulk: false, batchSize: false, splits: [] })
       expect(dialogRows('map', print)).toEqual({ arrangement: false, count: false, goal: false, latest: false, treeLayout: false, oldest: false, names: false, lifersOnly: false, hideTotals: true, bulk: false, batchSize: false, splits: [] })
     }
+  })
+})
+
+describe('optionRows: the options list\'s order (round 6)', () => {
+  it('Share\'s collage: the choices, the switches, then the Goal; Print\'s: the size first and the names switch, no Goal', () => {
+    expect(optionRows(dialogRows('collage', false), false)).toEqual(['arrangement', 'colours', 'count', 'latest', 'transparent', 'goal'])
+    expect(optionRows(dialogRows('collage', true), true)).toEqual(['size', 'arrangement', 'colours', 'count', 'latest', 'names', 'transparent'])
+  })
+  it('the Tree: its Arrangement, Colours, then Lifers only, Hide totals, Show oldest lineage and Transparent background; the Map: Colours, Hide totals, Transparent background', () => {
+    expect(optionRows(dialogRows('tree', false), false)).toEqual(['treeLayout', 'colours', 'lifersOnly', 'hideTotals', 'oldest', 'transparent'])
+    expect(optionRows(dialogRows('tree', true), true)).toEqual(['size', 'treeLayout', 'colours', 'lifersOnly', 'hideTotals', 'oldest', 'transparent'])
+    expect(optionRows(dialogRows('map', false), false)).toEqual(['colours', 'hideTotals', 'transparent'])
+    expect(optionRows(dialogRows('map', true), true)).toEqual(['size', 'colours', 'hideTotals', 'transparent'])
+  })
+  it('a tree\'s orientation is its arrangement\'s: a Fan horizontal, Rectangular and Radial vertical', () => {
+    expect(treeOrientation('fan')).toBe('horizontal')
+    expect(treeOrientation('rows')).toBe('vertical')
+    expect(treeOrientation('circle')).toBe('vertical')
   })
 })
 

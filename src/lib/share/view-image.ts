@@ -1,5 +1,5 @@
 // The Map and Tree views' share images (map-image.ts, tree-image.ts): the collage card's frame from image.ts (the title,
-// the count, the filter in words, the footer line with the sticker credit and the date stamp, Dark image and Transparent
+// the count, the filter in words, the footer line with the sticker credit and the date stamp, Colours and Transparent
 // background), with no stickers, around a drawing of the view in the area the collage would take. The count sits on top
 // of that area, centred, with an optional line under it (the tree's orders, families and genera); the drawing gets the
 // rest. The map's footer is the site alone (MAP_FOOTER: it draws no stickers); the tree's adds the tree's credit (TREE_FOOTER).
@@ -28,6 +28,9 @@ export type ViewImageOpts = ShareImageOpts & {
   at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; hideTotals?: boolean; oldest?: boolean
   /** Device px per design unit (a poster's, print.ts viewPosterScale); default the format's IMAGE_SCALE, 1 for a poster's preview. */
   scale?: number
+  /** The Tree image's: called with whether the Fan and the Radial name every tip in this image's area, so the dialog
+   *  shows one that cannot as off (its reason) rather than drawing another layout without a word. */
+  onTreeFits?: (fits: Record<'fan' | 'circle', boolean>) => void
 }
 export type Area = { x: number; y: number; w: number; h: number }
 
