@@ -515,7 +515,7 @@ export const pt: Messages = {
       /** The Appearance row: the images' and the poster's look, Light or Dark. */
       colours: { label: 'Aparência', light: 'Claro', dark: 'Escuro' },
       transparent: 'Fundo transparente',
-      arrange: { label: 'Disposição', packed: 'Ajustar', oval: 'Oval' },
+      arrange: { label: 'Disposição', packed: 'Ajustar', oval: 'Oval', free: 'Livre' },
       totals: 'Totais',
       bigYear: {
         label: 'Meta',

@@ -69,6 +69,28 @@ describe('the room above the latest lifer row', () => {
     expect(D.collage.y + D.collage.h).toBeLessThan(D.rule.y)
     expect(D.latest!.y).toBeGreaterThan(D.rule.y)
   })
+
+  // Round 6: the pack was made for the frame with the row and fitted into the taller one without it, which left an empty
+  // band above and below the birds. Now each packs for its own frame: the pack's aspect is the collage's, so fitPack maps
+  // it edge to edge.
+  it('without the row the collage takes its room: the pack is made for the taller frame, in every format and orientation', () => {
+    for (const format of ['story', 'post', 'square', 'desktop', 'wide'] as const) {
+      for (const countSize of ['medium', 'title'] as const) {
+        for (const target of [undefined, 1500]) {
+          const c = { name: true, filter: target !== undefined, count: 1092, countSize, target }
+          const on = image.cardLayout(format, { ...c, latest: true }), off = image.cardLayout(format, { ...c, latest: false })
+          const what = `${format} ${countSize} ${target ?? 'no goal'}`
+          expect(off.collage.w, what).toBe(on.collage.w)
+          expect(off.collage.y, what).toBe(on.collage.y)
+          expect(off.collage.h, what).toBeGreaterThan(on.collage.h)
+          for (const L of [on, off]) {
+            const spec = image.imagePackSpec(format, { ...c, latest: L === on })
+            expect(spec.aspect, what).toBeCloseTo(L.collage.w / L.collage.h, 12)
+          }
+        }
+      }
+    }
+  })
 })
 
 describe('the poster foot\'s sticker', () => {

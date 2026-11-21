@@ -507,7 +507,7 @@ export const sv: Messages = {
       untitledTitle: { one: 'En livslista: {n} art', other: 'En livslista: {n} arter' },
       colours: { label: 'Utseende', light: 'Ljust', dark: 'Mörkt' },
       transparent: 'Genomskinlig bakgrund',
-      arrange: { label: 'Placering', packed: 'Anpassa', oval: 'Oval' },
+      arrange: { label: 'Placering', packed: 'Anpassa', oval: 'Oval', free: 'Fri' },
       totals: 'Summor',
       bigYear: {
         label: 'Mål',

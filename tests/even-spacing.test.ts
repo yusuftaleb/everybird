@@ -10,7 +10,7 @@ import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { scaleHole } from '../src/lib/layout/count-box'
 import { decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
-import { packFrame, type PackBird, type PackResult } from '../src/lib/layout/pack'
+import { FRAME_DENSE_FROM, packFrame, type PackBird, type PackResult } from '../src/lib/layout/pack'
 import { cardDims, cardLayout, packSpec, type CardFormat } from '../src/lib/share/image'
 import { evenness } from './evenness'
 
@@ -56,6 +56,7 @@ describe('even spacing in the share images and the poster', () => {
   const CASES: [CardFormat, number, 'medium' | 'title'][] = [
     ['story', 60, 'medium'], ['post', 197, 'medium'], ['square', 197, 'title'], ['desktop', 197, 'medium'],
     ['print', 600, 'medium'], ['print', 197, 'title'], ['printLandscape', 300, 'medium'], ['story', 12, 'medium'],
+    ['story', 1092, 'medium'], ['post', 800, 'title'],
   ]
   for (const oval of [false, true]) {
     for (const [format, n, countSize] of CASES) {
@@ -72,11 +73,27 @@ describe('even spacing in the share images and the poster', () => {
         // No hole much wider than a sticker: a short list (capped sizes) gets wide, even gaps instead.
         expect(e.maxVoid / e.medianL).toBeLessThan(n < 24 ? 5 : 3.2)
         // Nearest neighbours about equally far apart (a short list's wide gaps meet the hole and the oval's curve unevenly).
-        expect(e.p90).toBeLessThan(n < 24 ? 3 : 2)
+        // Fit's dense frames (FRAME_DENSE_FROM) keep one GAP between birds, so the median gap halves (6 -> 3 units on a
+        // 1,092-species story) and the 90th percentile over it rises (1.3 -> 2.1) though it is smaller too (8 -> 6.3 units).
+        expect(e.p90).toBeLessThan(n < 24 ? 3 : !oval && n >= FRAME_DENSE_FROM ? 2.5 : 2)
         // Fit: a bird within a sticker's length of every corner.
         if (!oval) for (const c of e.corners) expect(c / e.medianL).toBeLessThan(0.75)
       }, 60_000)
     }
+  }
+
+  // Round 6 (Yusuf, on a 1,092-species story: "the birds look tiny"): from FRAME_DENSE_FROM birds Fit packs a frame as the
+  // page packs a big collage, one GAP between birds, so the same frame holds bigger stickers; Free keeps the loose pack.
+  for (const format of ['story', 'post', 'square', 'desktop', 'wide'] as const) {
+    it(`Fit, ${format}, 1,092 species: packed dense, the stickers at least 5% bigger than Free's in the same frame`, () => {
+      const spec = packSpec(cardLayout(format, { name: true, filter: false, latest: true, count: 1092 }, cardDims(format)))
+      const birds = sample(1092)
+      const fit = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile })
+      const free = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile, free: true })
+      expect([fit.W, fit.H]).toEqual([free.W, free.H])
+      expect(fit.base / free.base).toBeGreaterThan(1.05)
+      expect(clean(birds, fit)).toBe(true)
+    }, 60_000)
   }
 
   it('is deterministic: the same list packs to the same boxes', () => {

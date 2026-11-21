@@ -511,7 +511,7 @@ export const pl: Messages = {
       untitledTitle: { one: 'Lista życia: {n} gatunek', few: 'Lista życia: {n} gatunki', many: 'Lista życia: {n} gatunków', other: 'Lista życia: {n} gatunków' },
       colours: { label: 'Wygląd', light: 'Jasny', dark: 'Ciemny' },
       transparent: 'Przezroczyste tło',
-      arrange: { label: 'Układ', packed: 'Dopasowany', oval: 'Owalny' },
+      arrange: { label: 'Układ', packed: 'Dopasowany', oval: 'Owalny', free: 'Swobodny' },
       totals: 'Sumy',
       bigYear: {
         label: 'Cel',

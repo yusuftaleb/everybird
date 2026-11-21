@@ -508,7 +508,7 @@ export const da: Messages = {
       untitledTitle: { one: 'En livsliste: {n} art', other: 'En livsliste: {n} arter' },
       colours: { label: 'Udseende', light: 'Lys', dark: 'Mørk' },
       transparent: 'Gennemsigtig baggrund',
-      arrange: { label: 'Opstilling', packed: 'Tilpas', oval: 'Oval' },
+      arrange: { label: 'Opstilling', packed: 'Tilpas', oval: 'Oval', free: 'Fri' },
       totals: 'Totaler',
       bigYear: {
         label: 'Mål',

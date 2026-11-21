@@ -348,9 +348,12 @@ export type ImageZipOpts = {
   }
 }
 
-/** What to pack for one group's share image: the dialog's own pack for its format, with the group's label line. */
-export function bulkImagePackSpec(entries: ListEntry[], o: Pick<BulkImageOpts, 'format' | 'name' | 'goal' | 'countSize' | 'arrangement'>): PackSpec {
-  return imagePackSpec(o.format, { name: !!o.name?.trim(), filter: true, latest: true, count: entries.length, target: o.goal?.target, countSize: o.countSize }, undefined, undefined, o.arrangement)
+/**
+ * What to pack for one group's share image: the dialog's own pack for its format, with the group's label line, and the
+ * latest lifer row unless it is off (a group with no dated bird has none either; its collage then keeps the row's room).
+ */
+export function bulkImagePackSpec(entries: ListEntry[], o: Pick<BulkImageOpts, 'format' | 'name' | 'goal' | 'countSize' | 'arrangement' | 'latest'>): PackSpec {
+  return imagePackSpec(o.format, { name: !!o.name?.trim(), filter: true, latest: o.latest !== false, count: entries.length, target: o.goal?.target, countSize: o.countSize }, undefined, undefined, o.arrangement)
 }
 
 /** A ZIP of one share image (PNG) per group, in the dialog's format and with its options. */

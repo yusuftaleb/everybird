@@ -177,14 +177,20 @@ describe('the other formats draw as before', () => {
 
 // The "Show latest lifer" switch never changes the arrangement: one pack spec for on and off, and the same pack fitted into
 // the (for the stacked formats taller) area, so every bird keeps its place.
-describe('the latest lifer switch does not rearrange the collage', () => {
+describe('the latest lifer switch', () => {
   const ALL: CardFormat[] = ['story', 'post', 'square', 'wide', 'desktop', 'print', 'printLandscape']
   for (const f of ALL) {
-    it(`${f}: the pack spec is the same with the row on and off, with and without a name and a filter`, () => {
+    // Round 6: without the row an image's collage takes its room, so it packs for that taller frame (no empty bands); a
+    // poster has no row (its foot names the lifer), so its pack is the same either way.
+    it(`${f}: ${f.startsWith('print') ? 'the pack spec is the same with the row on and off' : 'without the row the pack is made for the taller frame'}, with and without a name and a filter`, () => {
       for (const name of [false, true]) for (const filter of [false, true]) {
         const on = imagePackSpec(f, { name, filter, latest: true, count: 185 })
         const off = imagePackSpec(f, { name, filter, latest: false, count: 185 })
-        expect(off).toEqual(on)
+        if (f.startsWith('print')) expect(off).toEqual(on)
+        else {
+          expect(off.aspect).toBeLessThan(on.aspect)
+          expect(off.maxTile).toBe(on.maxTile)
+        }
       }
     })
     it(`${f}: the tiles keep their order and their relative places with the row off`, async () => {

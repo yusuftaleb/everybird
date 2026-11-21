@@ -507,7 +507,7 @@ export const ja: Messages = {
       untitledTitle: { one: 'ライフリスト：{n}種', other: 'ライフリスト：{n}種' },
       colours: { label: '外観', light: 'ライト', dark: 'ダーク' },
       transparent: '透明な背景',
-      arrange: { label: '配置', packed: 'フィット', oval: '楕円' },
+      arrange: { label: '配置', packed: 'フィット', oval: '楕円', free: '自由' },
       totals: '合計',
       bigYear: {
         label: '目標',

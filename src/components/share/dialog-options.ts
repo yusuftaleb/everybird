@@ -69,7 +69,7 @@ export const subjectOf = (view: ViewKind | undefined): Subject => (view === 'tre
 export type DialogRows = {
   /** Compare's What: Comparison or Wish list. */
   what: boolean
-  /** Fit or Oval. */
+  /** Fit, Oval or Free. */
   arrangement: boolean
   count: boolean
   goal: boolean

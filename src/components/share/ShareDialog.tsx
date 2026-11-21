@@ -14,7 +14,7 @@
 // edge: in the poster the size first (a dropdown, A4 to A1 and the inch sizes, with its line under the label; from the
 // Tree, Down to under it: the screen's rank or the next one down, the deeper one off with its reason at a size where its
 // names would print under 9 pt), then the
-// choices as small segmented controls (Arrangement: Fit or Oval, or the Tree's Fan, Radial or Rectangular, one that can't
+// choices as small segmented controls (Arrangement: Fit, Oval or Free, or the Tree's Fan, Radial or Rectangular, one that can't
 // name every tip off with its reason; Appearance: Light or Dark; Count: Hide, S, M, L or Beside title, under its label
 // where it doesn't fit beside it), the switches one to a row (Show latest lifer, the poster's Show species names, the
 // Tree's Lifers only and Show oldest lineage, Transparent background) and Share's Goal last; the Tree's and the Map's
@@ -353,8 +353,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       ? fmt(pt.namesNoFit, { size: sizeName(size) })
       : null
 
-  // One pack per format and name-or-not while the dialog is open (the view can't change underneath it; a
-  // name takes a line off the collage, so each gets its own pack; the latest lifer switch never changes the pack), and for the
+  // One pack per format, name-or-not and latest-lifer-row-or-not while the dialog is open (the view can't change underneath
+  // it; a name takes a line off the collage and the row its foot, so each gets its own pack), and for the
   // poster per shape (printPackH: the A sizes share one, the US 2:3 sizes another); workers end on close.
   const life = useRef<AbortController | null>(null)
   useEffect(() => {
@@ -372,14 +372,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       if (!planIds.has(plan)) planIds.set(plan, nextPlan++)
       return planIds.get(plan)!
     }
-    // Not keyed by the latest lifer switch: imagePackSpec packs for the with-row frame, so on and off share one pack.
-    return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize, plan?: Extract<CaptionPlan, { ok: true }> | null, signal?: AbortSignal) => {
+    // Keyed by the latest lifer row on an image (without it the collage takes the row's room); a poster has no row.
+    return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize, plan?: Extract<CaptionPlan, { ok: true }> | null, signal?: AbortSignal, latest = true) => {
       const hasPlan = !!plan?.ok && isPrint(f)
       // With names, the paper size too: the caption font follows the paper, though every A size shares one pack height.
-      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : ''}|${cs}|${hasPlan ? `${printSize}|plan${planId(plan)}` : ''}`
+      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : latest}|${cs}|${hasPlan ? `${printSize}|plan${planId(plan)}` : ''}`
       let p = packs.get(k)
       if (!p) {
-        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest: true, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined, arrangement)
+        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined, arrangement)
         p = packForImage(cardEntries, species, spec, signal ?? life.current?.signal)
         packs.set(k, p)
         p.catch(() => packs.delete(k))
@@ -464,7 +464,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         }
         if (compare) return compare.draw(what, { format, theme, transparent })
         if (viewImage) return (await viewImage())({ ...opts, ...viewOf() })
-        const pack = await packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null)
+        const pack = await packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null, undefined, withLatest)
         return renderShareImage({ ...opts, pack })
       })
     current.current = job

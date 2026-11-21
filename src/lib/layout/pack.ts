@@ -151,18 +151,28 @@ function packGrid(
   return { boxes, placed }
 }
 
+/** What settle walks the birds towards: Fit's rectangle, Free's rounded rectangle or Oval's ellipse (see settle). */
+type Settle = 'rect' | 'round' | 'oval'
+
 /**
  * Settle a dense collage (a big list, centre-packed), on a fresh grid of one layout unit per cell (the packer's
  * is 2, too coarse for small stickers): every bird is stamped there as its bare silhouette. Then each bird,
  * nearest the count first, is lifted and walked one unit at a time to the free neighbouring position (of 8) that
  * is most central, until none is, and put down; it is tested dilated by GAP, so it ends at least GAP from every
- * silhouette. "Central" is a rounded-rectangle distance (|dx|/ax)^8 + (|dy|/ay)^8 over the stage's half sizes,
- * so the outer birds close up towards the middle and the stage corners stay filled (Oval: the ellipse's
- * (dx/ax)^2 + (dy/ay)^2). This closes the gaps the spiral's coarse steps (about 14 units between turns) leave between
+ * silhouette. "Central" is a distance over the stage's half sizes ax, ay (u = dx / ax, v = dy / ay) whose level lines
+ * are the shape the collage closes up into:
+ * - 'rect' (Fit): the rectangle's max(|u|, |v|), plus a thousandth of u² + v² so a bird against an edge still drifts
+ *   towards the middle instead of stopping anywhere along it. A corner bird is no further out than one on an edge, so
+ *   the corners stay filled and the edges straight (round 6: the rounded rectangle's corner birds were the outermost,
+ *   walked in first and moved into pockets first, so a big collage came out a soft cloud with empty corners).
+ * - 'round' (Free): the rounded rectangle u^8 + v^8.
+ * - 'oval' (Oval): the ellipse's u² + v².
+ * This closes the gaps the spiral's coarse steps (about 14 units between turns) leave between
  * small stickers, which read as a loose lattice at the edge; every step is a collision test, so it never makes an
- * overlap. Then fillPockets moves the outermost birds into the pockets still left inside. Deterministic.
+ * overlap. Then (`fill`) fillPockets moves the outermost birds into the pockets still left inside. Deterministic.
  */
-function settle(p: Packed, W: number, H: number, hole: Hole, oval: boolean, fill = true): Map<number, Box> {
+function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill = true): Map<number, Box> {
+  const oval = shape === 'oval'
   const grid = blankGrid(W, H, 1, hole, oval)
   const pad = GAP
   const todo: Settling[] = []
@@ -177,11 +187,18 @@ function settle(p: Packed, W: number, H: number, hole: Hole, oval: boolean, fill
   const ax = W / 2, ay = H / 2
   // Oval: the ellipse's own distance, so the birds close up evenly all round it (the rounded rectangle would draw them
   // in from the ends of its axes and leave those empty).
-  const centrality = (cx: number, cy: number) => {
-    const u = (cx - ax) / ax, v = (cy - ay) / ay
-    const u2 = u * u, v2 = v * v, u4 = u2 * u2, v4 = v2 * v2
-    return oval ? u2 + v2 : u4 * u4 + v4 * v4
-  }
+  const centrality = shape === 'rect'
+    ? (cx: number, cy: number) => {
+      const u = (cx - ax) / ax, v = (cy - ay) / ay
+      return Math.max(Math.abs(u), Math.abs(v)) + 1e-3 * (u * u + v * v)
+    }
+    : oval
+      ? (cx: number, cy: number) => { const u = (cx - ax) / ax, v = (cy - ay) / ay; return u * u + v * v }
+      : (cx: number, cy: number) => {
+        const u = (cx - ax) / ax, v = (cy - ay) / ay
+        const u2 = u * u, v2 = v * v, u4 = u2 * u2, v4 = v2 * v2
+        return u4 * u4 + v4 * v4
+      }
   const dist = (q: Settling, gx: number, gy: number) => centrality(gx + q.m.pw / 2, gy + q.m.ph / 2)
   // Walk a lifted bird inwards until no neighbouring position is more central and free.
   const walkIn = (q: Settling) => {
@@ -597,16 +614,22 @@ export function stretchAt(layout: Pick<Layout, 'H' | 'stretch' | 'maxH'>, H: num
  * - With oval (the Oval arrangement: the page's collage, through the worker's layout request, and packFrame's share
  *   images): every bird stays inside the ellipse inscribed in the stage packed in (the grown stage, fixedStage or the
  *   frame), and the size estimate counts the ellipse's area (π/4 of the stage's).
+ * - Fit (neither oval nor free) settles a dense collage into its stage's rectangle; with free (the Free arrangement) into
+ *   the rounded rectangle, the layout Fit made before (see settle).
+ * - With settleFrame (packFrame: Fit's share images and posters of a big list): packed dense and settled as a big page
+ *   collage is, without moving birds into pockets (spreadEven evens out the room afterwards).
  */
 export function packBest(
   birds: PackBird[], layout: Layout, mode: 'even' | 'true',
   opts: {
     targets?: Map<number, [number, number]>; refBase?: number; fixedStage?: [number, number]
     rel?: Map<number, number>; fit?: boolean; hole?: Hole; maxBase?: number; captions?: Map<number, CaptionRoom>; oval?: boolean
+    free?: boolean; settleFrame?: boolean
   } = {},
 ): PackResult {
   const { targets, refBase, fixedStage, fit, captions } = opts
   const oval = !!opts.oval
+  const shape: Settle = oval ? 'oval' : opts.free ? 'round' : 'rect'
   if (!birds.length) {
     const [W, H] = fixedStage ?? [layout.W, layout.H]
     return { base: refBase ?? 0, ...(fit && fixedStage ? fitStage(new Map(), W, H, holeExtent(collageHole(0, layout))[1]) : { W, H, boxes: new Map() }) }
@@ -624,14 +647,16 @@ export function packBest(
   // mode, whatever the whole list's size) is settled too, and spirals round rather than stretched: two or three birds
   // then pack around the count instead of strung out along the stage's width, where the settling pass can't close the gap.
   const small = !!layout.denseFrom && birds.length < SMALL_SET
-  const dense = small || (!!layout.denseFrom && mode === 'even' && !targets && rel.size >= layout.denseFrom)
+  const dense = small || !!opts.settleFrame || (!!layout.denseFrom && mode === 'even' && !targets && rel.size >= layout.denseFrom)
   // The spiral of the pass in hand: a small set's filtered state tries a round one and the stage's own, keeps the tighter.
   // A small set neither slides nor fills pockets: sliding pulls each bird onto the count and away from its neighbour,
   // and the round / stage spiral test (worstGap) already keeps the snugger of two arrangements.
   let round = small
   const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions, oval, !small)
   // Settled (dense), then any detached birds gathered back to the group (gather): the outline stays compact.
-  const boxesOf = (p: Packed, W: number, H: number) => gather(dense ? settle(p, W, H, hole, oval, !small) : p.boxes, birds, W, H, hole, captions, oval)
+  // A small set keeps the rounded rectangle under Fit too: a few birds close up round the count, not into a rectangle.
+  const boxesOf = (p: Packed, W: number, H: number) =>
+    gather(dense ? settle(p, W, H, hole, small && shape === 'rect' ? 'round' : shape, !small && !opts.settleFrame) : p.boxes, birds, W, H, hole, captions, oval)
 
   // Search range. Full collage: [0.6, 1.6] x the area estimate, capped at MAX_BASE. With refBase (filtered
   // states): the reference's window [0.7, MAXUP] x refBase, searched directly (it may exceed MAX_BASE).
@@ -751,6 +776,11 @@ const frameBase = (n: number) => (n <= 300 ? 28 : Math.max(10, 28 * (300 / n) **
  * - captions: each bird's name room under it (a poster's names), as fractions of the frame's width. When no base packs
  *   the birds with their names, the pack is made as without them: the caller's caption check (image.ts fitCaptionPack)
  *   then finds the names don't fit and draws the poster without them.
+ * - free: the Free arrangement, packed as Fit was before it filled the rectangle (no settling).
+ * Fit (neither oval nor free) packs a list of FRAME_DENSE_FROM birds or more dense and settles it into the frame's
+ * rectangle (packBest's settleFrame), as the page packs a big collage: one GAP between birds instead of two, so the
+ * stickers come out about a tenth bigger in the same frame (round 6: a 1,092-species story read as a field of tiny
+ * birds). A poster with names keeps the loose pack (settling doesn't know the names' room).
  * Then spreadEven spreads the birds evenly over the frame (or its oval), edge to edge.
  */
 export function packFrame(birds: PackBird[], aspect: number, opts: FrameOpts = {}): PackResult {
@@ -761,7 +791,9 @@ export function packFrame(birds: PackBird[], aspect: number, opts: FrameOpts = {
     return packFrameWith(birds, aspect, { ...opts, captions: undefined })
   }
 }
-type FrameOpts = { hole?: Hole; maxTile?: number; captions?: Map<number, CaptionRoom>; oval?: boolean }
+type FrameOpts = { hole?: Hole; maxTile?: number; captions?: Map<number, CaptionRoom>; oval?: boolean; free?: boolean }
+/** Fit's share images pack dense from this many birds: the wide and medium layouts' denseFrom. */
+export const FRAME_DENSE_FROM = 380
 function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): PackResult {
   const rel = relSizes(birds, EXP)
   let area = 0, maxRel = 1
@@ -781,6 +813,7 @@ function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): Pack
   const captions = opts.captions
     ? new Map([...opts.captions].map(([id, c]) => [id, { w: c.w * W, h: c.h * W, ...(c.ring ? { ring: c.ring * W } : {}) }]))
     : undefined
-  const r = packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : {}) })
+  const settleFrame = !opts.oval && !opts.free && !captions && birds.length >= FRAME_DENSE_FROM
+  const r = packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : {}), ...(settleFrame ? { settleFrame } : {}) })
   return { ...r, boxes: spreadEven(r.boxes, birds, r.W, r.H, hole, captions, !!opts.oval) }
 }

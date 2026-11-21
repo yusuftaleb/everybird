@@ -515,7 +515,7 @@ export const nl: Messages = {
       /** The Appearance row: the images' and the poster's look, Light or Dark. */
       colours: { label: 'Uiterlijk', light: 'Licht', dark: 'Donker' },
       transparent: 'Transparante achtergrond',
-      arrange: { label: 'Indeling', packed: 'Passend', oval: 'Ovaal' },
+      arrange: { label: 'Indeling', packed: 'Passend', oval: 'Ovaal', free: 'Vrij' },
       totals: 'Totalen',
       bigYear: {
         label: 'Doel',

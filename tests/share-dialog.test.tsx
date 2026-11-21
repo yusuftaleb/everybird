@@ -183,7 +183,7 @@ describe('share dialog', () => {
       image.imagePackSpec('story', { name: false, filter: false, latest: false, count: 1 }))
   })
 
-  it('turning the switch off and on again never makes another pack: one pack, the same object, for both', async () => {
+  it('turning the switch off packs for the taller frame the row leaves (no empty bands); on again reuses the first pack', async () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     await waitFor(() => expect(renders).toHaveLength(1))
     const sw = screen.getByRole('switch', { name: 'Show latest lifer' })
@@ -191,10 +191,12 @@ describe('share dialog', () => {
     await waitFor(() => expect(renders).toHaveLength(2))
     fireEvent.click(sw)
     await waitFor(() => expect(renders).toHaveLength(3))
-    expect(vi.mocked(image.packForImage)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(image.packForImage)).toHaveBeenCalledTimes(2)
+    const [on, off] = vi.mocked(image.packForImage).mock.calls.map((c) => c[2])
+    expect(off.aspect).toBeLessThan(on.aspect) // the same width, taller
     const calls = vi.mocked(image.renderShareImage).mock.calls.map((c) => c[0])
     expect(calls.map((o) => o.latest)).toEqual([true, false, true])
-    expect(calls[1].pack).toBe(calls[0].pack)
+    expect(calls[1].pack).not.toBe(calls[0].pack)
     expect(calls[2].pack).toBe(calls[0].pack)
   })
 
@@ -380,7 +382,7 @@ describe('share dialog', () => {
     expect(transparent.parentElement).toBe(list)
     expect([...transparent.children].map((c) => c.className)).toEqual(['', 'eb-track'])
     // The choices are small segmented controls named by their row; Count's sizes show S, M, L, named in full.
-    expect(within(screen.getByRole('group', { name: 'Arrangement' })).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Fit', 'Oval'])
+    expect(within(screen.getByRole('group', { name: 'Arrangement' })).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Fit', 'Oval', 'Free'])
     expect(within(screen.getByRole('group', { name: 'Appearance' })).getAllByRole('button').map((b) => b.textContent)).toEqual(['Light', 'Dark'])
     const count = within(screen.getByRole('group', { name: 'Count' })).getAllByRole('button')
     expect(count.map((b) => b.textContent)).toEqual(['Hide', 'S', 'M', 'L', 'Beside title'])
@@ -1482,7 +1484,7 @@ describe('the orientation switch', () => {
   })
 })
 
-describe('share dialog: Fit / Oval', () => {
+describe('share dialog: Fit / Oval / Free', () => {
   beforeEach(() => {
     const m = new Map<string, string>()
     vi.stubGlobal('localStorage', { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, String(v)) }, removeItem: (k: string) => { m.delete(k) } })
@@ -1493,8 +1495,8 @@ describe('share dialog: Fit / Oval', () => {
     await waitFor(() => expect(vi.mocked(image.packForImage)).toHaveBeenCalled())
     expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2].oval).toBeUndefined()
     const group = screen.getByRole('group', { name: 'Arrangement' })
-    // Two icon buttons, named and titled Fit and Oval: no words to wrap.
-    expect(within(group).getAllByRole('button').map((b) => [b.getAttribute('aria-label'), b.getAttribute('title'), b.textContent])).toEqual([['Fit', 'Fit', ''], ['Oval', 'Oval', '']])
+    // Three icon buttons, named and titled Fit, Oval and Free: no words to wrap.
+    expect(within(group).getAllByRole('button').map((b) => [b.getAttribute('aria-label'), b.getAttribute('title'), b.textContent])).toEqual([['Fit', 'Fit', ''], ['Oval', 'Oval', ''], ['Free', 'Free', '']])
     expect(within(group).getByRole('button', { name: 'Fit' })).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(within(group).getByRole('button', { name: 'Oval' }))
     expect(within(group).getByRole('button', { name: 'Oval' })).toHaveAttribute('aria-pressed', 'true')
@@ -1502,6 +1504,26 @@ describe('share dialog: Fit / Oval', () => {
     await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2]).toEqual(
       image.imagePackSpec('story', { name: false, filter: false, latest: true, count: 1 }, undefined, undefined, 'oval')))
     expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2].oval).toBe(true)
+  })
+
+  it('Free packs the images as Fit did before it filled the rectangle, and is kept on the device', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(vi.mocked(image.packForImage)).toHaveBeenCalled())
+    const group = screen.getByRole('group', { name: 'Arrangement' })
+    fireEvent.click(within(group).getByRole('button', { name: 'Free' }))
+    expect(within(group).getByRole('button', { name: 'Free' })).toHaveAttribute('aria-pressed', 'true')
+    expect(localStorage.getItem(ARRANGEMENT_KEY)).toBe('free')
+    await waitFor(() => expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2]).toEqual(
+      image.imagePackSpec('story', { name: false, filter: false, latest: true, count: 1 }, undefined, undefined, 'free')))
+    const spec = vi.mocked(image.packForImage).mock.calls.at(-1)![2]
+    expect([spec.free, spec.oval]).toEqual([true, undefined])
+  })
+
+  it('a stored Free reads back; an unknown value reads as Fit', () => {
+    localStorage.setItem(ARRANGEMENT_KEY, 'free')
+    expect(arrangement()).toBe('free')
+    localStorage.setItem(ARRANGEMENT_KEY, 'cloud')
+    expect(arrangement()).toBe('packed')
   })
 
   it('a stored By family or By colour reads as Packed', () => {

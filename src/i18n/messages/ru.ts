@@ -522,7 +522,7 @@ export const ru: Messages = {
       untitledTitle: { one: 'Лайф-лист: {n} вид', few: 'Лайф-лист: {n} вида', many: 'Лайф-лист: {n} видов', other: 'Лайф-лист: {n} вида' },
       colours: { label: 'Оформление', light: 'Светлое', dark: 'Тёмное' },
       transparent: 'Прозрачный фон',
-      arrange: { label: 'Расположение', packed: 'По рамке', oval: 'Овал' },
+      arrange: { label: 'Расположение', packed: 'По рамке', oval: 'Овал', free: 'Свободно' },
       totals: 'Итоги',
       bigYear: {
         label: 'Цель',

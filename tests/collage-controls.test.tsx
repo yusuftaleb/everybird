@@ -191,8 +191,8 @@ describe('the Arrangement choice', () => {
     expect(group()).toHaveAttribute('role', 'group')
     expect(group()).toHaveAccessibleName('Arrangement')
     const btn = (name: string) => within(group()).getByRole('button', { name })
-    // Two small icons, no words: each segment named and titled "Fit" / "Oval".
-    expect(within(group()).getAllByRole('button').map((b) => [b.textContent, b.getAttribute('title')])).toEqual([['', 'Fit'], ['', 'Oval']])
+    // Three small icons, no words: each segment named and titled "Fit" / "Oval" / "Free".
+    expect(within(group()).getAllByRole('button').map((b) => [b.textContent, b.getAttribute('title')])).toEqual([['', 'Fit'], ['', 'Oval'], ['', 'Free']])
     // The oval is an ellipse wider than tall, not Phosphor's circle.
     const ellipse = btn('Oval').querySelector('svg ellipse')!
     expect(Number(ellipse.getAttribute('rx'))).toBeGreaterThan(Number(ellipse.getAttribute('ry')))

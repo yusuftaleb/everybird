@@ -46,6 +46,7 @@ Settled in the round 6 review (es, pt, fr, it, de, nl, sv, da; the other languag
 | lineage (Tree) | linaje | linhagem | lignée | lignaggio | Linie | lijn | linje | slægtslinje |
 | Down to (a rank) | Hasta | Até | Jusqu’à | Fino a | Bis | Tot op | Ner till | Ned til |
 | Fit (share arrangement) | Ajustada | Ajustar | Ajusté | Adatta | Eingepasst | Passend | Anpassa | Tilpas |
+| Free (share arrangement, the free cloud; an adjective like Fit) | Libre | Livre | Libre | Libera | Frei | Vrij | Fri | Fri |
 | All time (a goal's period, read as "N species in …") | Toda la vida | Desde sempre | Depuis toujours | Da sempre | Alle Jahre | Alle jaren | Alla år | Alle år |
 | Sort options (List view: no "first" where the language drops it, the same for dates and masses) | Más recientes, Más pesadas | Mais recentes, Mais pesadas | Plus récents, Plus lourds | Più recenti, Più pesanti | Neueste zuerst | Nieuwste eerst | Nyast först | Nyeste først |
 
