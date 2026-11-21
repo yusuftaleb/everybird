@@ -896,7 +896,9 @@ export const EN_UI = {
       keepUser: 'Keep {user}',
       howTo: 'How do I find my username?',
       help: 'Use your username (on your iNaturalist profile, after the @), not your display name. Only public, wild bird observations identified to species count.',
-      fetched: 'Fetched {n} of {total}',
+      /** The progress bar's name; `fetched` is its value for screen readers. */
+      progress: 'Fetching your observations',
+      fetched: '{n} of {total}',
       lookingUp: 'Looking up “{user}”…',
       cancelled: 'Cancelled. Nothing was changed.',
       /** use-import-jobs.ts inatMessage, by the import's error code. */

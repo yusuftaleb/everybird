@@ -746,6 +746,7 @@ export const zhHant: Messages = {
         keepUser: '保留 {user}',
         howTo: '怎麼找到我的使用者名稱？',
         help: '請使用你的使用者名稱（在你的 iNaturalist 個人檔案中，@ 後面那段），不是顯示名稱。只計入公開、野生且鑑定到種的鳥類觀察紀錄。',
+        progress: '正在擷取你的觀察紀錄',
         fetched: '已擷取 {n} / {total}',
         lookingUp: '正在查詢「{user}」…',
         cancelled: '已取消。沒有任何變更。',

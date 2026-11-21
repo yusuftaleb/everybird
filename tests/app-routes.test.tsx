@@ -440,6 +440,17 @@ describe('Settings and the collage', () => {
     expect(vi.mocked(analytics.track)).not.toHaveBeenCalled() // failed iNat imports send no event
   })
 
+  it('the iNat progress bar is indeterminate until the first page gives the total', async () => {
+    const { inat } = await mount()
+    vi.mocked(inat.importInat).mockImplementationOnce(async () => new Promise(() => {}) as never)
+    fireEvent.change(inatField(), { target: { value: 'birder' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
+    const bar = await screen.findByRole('progressbar', { name: 'Fetching your observations' })
+    expect(bar).not.toHaveAttribute('aria-valuenow')
+    expect(bar).toHaveAttribute('data-indeterminate')
+    expect(screen.getByText('Looking up “birder”…')).toBeInTheDocument()
+  })
+
   it('iNat import shows progress and adds its birds as another source', async () => {
     const { inat, analytics } = await mount()
     let finish: (v: unknown) => void = () => {}
@@ -449,7 +460,8 @@ describe('Settings and the collage', () => {
     })
     fireEvent.change(inatField(), { target: { value: 'birder' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
-    expect(await screen.findByText('Fetched 400 of 576')).toBeInTheDocument()
+    expect(await screen.findByRole('progressbar', { name: 'Fetching your observations' })).toHaveAttribute('aria-valuetext', '400 of 576')
+    expect(screen.getByText('400 / 576')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     expect(vi.mocked(analytics.track)).not.toHaveBeenCalled()
     await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }) })
@@ -468,14 +480,14 @@ describe('Settings and the collage', () => {
     })
     fireEvent.change(inatField(), { target: { value: 'birder' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
-    expect(await screen.findByText('Fetched 400 of 576')).toBeInTheDocument()
+    expect(await screen.findByRole('progressbar', { name: 'Fetching your observations' })).toHaveAttribute('aria-valuetext', '400 of 576')
     await drop(csv(...ROWS))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await go('/')
     expect(stats()).toHaveTextContent(/^3 species/)
     await go('/settings')
     await openAdd('Import a file')
-    expect(screen.getByText('Fetched 400 of 576')).toBeInTheDocument() // the fetch and its progress outlived the pages
+    expect(screen.getByRole('progressbar', { name: 'Fetching your observations' })).toHaveAttribute('aria-valuenow', '400') // the fetch and its progress outlived the pages
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     expect(aborted).toBe(false)
     await go('/')
@@ -903,7 +915,7 @@ describe('remembered sources', () => {
     })
     await act(async () => { fireEvent.click(within(line).getByRole('button', { name: 'Refresh sam_birds from iNaturalist' })) })
     expect(vi.mocked(inat.importInat).mock.calls.at(-1)![0]).toBe('sam_birds')
-    expect(await screen.findByText('Fetched 10 of 600')).toBeInTheDocument()
+    expect(await screen.findByRole('progressbar', { name: 'Fetching your observations' })).toHaveAttribute('aria-valuetext', '10 of 600')
     expect(within(screen.getByTestId('source-inat')).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }, { code: 'snogoo', source: 'inat', date: '2024-06-01' }], unmatched: [], skipped: 0 }) })
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 5 species'))

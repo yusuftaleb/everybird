@@ -758,6 +758,7 @@ export const es: Messages = {
         keepUser: 'Conservar {user}',
         howTo: '¿Cómo encuentro mi nombre de usuario?',
         help: 'Usa tu nombre de usuario (en tu perfil de iNaturalist, después de la @), no tu nombre visible. Solo cuentan las observaciones públicas de aves silvestres identificadas hasta especie.',
+        progress: 'Descargando tus observaciones',
         fetched: '{n} de {total} descargadas',
         lookingUp: 'Buscando “{user}”…',
         cancelled: 'Cancelado. No se cambió nada.',

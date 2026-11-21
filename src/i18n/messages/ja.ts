@@ -746,6 +746,7 @@ export const ja: Messages = {
         keepUser: '{user}のままにする',
         howTo: 'ユーザー名の調べ方',
         help: '表示名ではなく、ユーザー名（iNaturalistのプロフィールで@の後ろにあるもの）を使ってください。種まで同定された、公開の野生の鳥の観察記録だけが数えられます。',
+        progress: '観察記録を取得しています',
         fetched: '{total}件中{n}件を取得',
         lookingUp: '「{user}」を検索しています…',
         cancelled: 'キャンセルしました。何も変更していません。',

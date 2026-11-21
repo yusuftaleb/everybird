@@ -750,6 +750,7 @@ export const pl: Messages = {
         keepUser: 'Zachowaj {user}',
         howTo: 'Jak znaleźć nazwę użytkownika?',
         help: 'Użyj nazwy użytkownika (w profilu iNaturalist, po @), a nie wyświetlanej nazwy. Liczą się tylko publiczne obserwacje dzikich ptaków oznaczone do gatunku.',
+        progress: 'Pobieranie twoich obserwacji',
         fetched: 'Pobrano {n} z {total}',
         lookingUp: 'Wyszukiwanie „{user}”…',
         cancelled: 'Anulowano. Nic nie zostało zmienione.',

@@ -749,6 +749,7 @@ export const de: Messages = {
         keepUser: '{user} behalten',
         howTo: 'Wie finde ich meinen Benutzernamen?',
         help: 'Nutze deinen Benutzernamen (auf deinem iNaturalist-Profil, nach dem @), nicht deinen Anzeigenamen. Nur öffentliche Beobachtungen wilder Vögel, die bis zur Art bestimmt sind, zählen.',
+        progress: 'Deine Beobachtungen werden abgerufen',
         fetched: '{n} von {total} abgerufen',
         lookingUp: 'Suche „{user}“…',
         cancelled: 'Abgebrochen. Nichts wurde geändert.',
