@@ -6,10 +6,10 @@
 // not one of its controls closes it, as a press outside does); then the magnifier. One open thing in the dock at a time
 // (round 6): the search and the List's sort menu close the open panel as they open, and a panel opening closes the menu. In
 // Collage and Tree nothing else sits in the bar: their switches and choices are the Display panel's (DisplayPanel.tsx).
-// List and Map keep their few controls in the bar, before the panel buttons: the Scientific switch (both; in Map it changes
-// nothing on the map, so the setting can be changed from any view), then in List the Sort menu after it (Family (with family
+// List keeps its few controls in the bar, before the panel buttons: the Scientific switch, then the Sort menu after it (Family (with family
 // headings, ListView), Newest first (the default), Oldest first, Heaviest first, Lightest first; a dock button showing the
-// current order and a caret, opening MenuSelect's small menu with its keyboard). The
+// current order and a caret, opening MenuSelect's small menu with its keyboard). The Map has none (2026-11-21: nothing on
+// it reads Scientific names, so the switch would change nothing there). The
 // magnifier turns the dock into the search field (DockSearch.tsx); everything else sits under it, inert, while it is
 // open. Under 820px of bar the controls and panel buttons take a second row of their own; under 1100px the views are
 // icons only; under 540px of bar (and on phones) the switches and the sort shorten ("Sci."; "Newest" in list view), and under 330px
@@ -134,13 +134,13 @@ export function ControlsBar({ view, onView, noMap, listOrder, onListOrder, sci, 
     search?.onPick(h)
   }
   const sciSwitch = <DockSwitch on={sci} onChange={onSci} long={c.sci} short={c.sciShort} sr={c.sciSr} className="eb-dock-sci" testId="dock-sci" />
-  // Only List and Map keep controls in the bar (Collage's and Tree's are the Display panel's).
+  // Only List keeps controls in the bar (Collage's and Tree's are the Display panel's; the Map has none).
   const tools = view === 'list' ? (
     <>
       {sciSwitch}
       <SortMenu value={listOrder} onChange={onListOrder} shut={panelOpen || finding} onOpening={onOpening} />
     </>
-  ) : view === 'map' ? sciSwitch : null
+  ) : null
   return (
     <div ref={wrap} className="eb-dockwrap">
       <div className="eb-dock" data-view={view} data-finding={finding || undefined}>

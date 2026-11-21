@@ -145,7 +145,7 @@ describe('controls bar', () => {
 })
 
 describe('the bar: one press per switch, each only in its view', () => {
-  it('Map shows Scientific alone in the bar; Tree\'s Display panel shows Lifers only, held on the device, Time scale and Scientific; no Style, Share or Compare in the bar', () => {
+  it('Map has no switch in the bar (nothing on it reads Scientific names); Tree\'s Display panel shows Lifers only, held on the device, Time scale and Scientific; no Style, Share or Compare in the bar', () => {
     render(<Harness />)
     const view = screen.getByRole('group', { name: 'View' })
     expect(screen.queryByRole('button', { name: 'Style' })).toBeNull()
@@ -157,13 +157,13 @@ describe('the bar: one press per switch, each only in its view', () => {
     fireEvent.click(sci())
     openDisplay() // closed again
     fireEvent.click(within(view).getByRole('button', { name: 'Map' }))
-    // One setting: the bar's switch in Map keeps it from view to view and changes it from the map.
+    // The Map's bar holds no switch and no Display panel; the setting is kept for the other views.
     expect(screen.queryByTestId('display-button')).toBeNull()
-    expect(screen.getAllByRole('switch')).toEqual([sci()])
-    expect(sci()).toHaveAttribute('aria-checked', 'true')
-    fireEvent.click(sci())
-    expect(sci()).toHaveAttribute('aria-checked', 'false')
+    expect(screen.queryAllByRole('switch')).toEqual([])
+    expect(screen.queryByTestId('dock-sci')).toBeNull()
     expect(screen.queryByRole('button', { name: /^Sorted by body mass/ })).toBeNull()
+    fireEvent.click(within(view).getByRole('button', { name: 'List' }))
+    expect(sci()).toHaveAttribute('aria-checked', 'true')
     fireEvent.click(within(view).getByRole('button', { name: 'Tree' }))
     // In the tree the bar holds no switch; its Display panel does.
     expect(screen.queryAllByRole('switch')).toEqual([])
