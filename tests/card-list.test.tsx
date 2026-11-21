@@ -472,7 +472,7 @@ describe('the card\'s Remove row (EditBird)', () => {
     expect(css).toMatch(/\.eb-edit-row \{ display: flex; align-items: center; justify-content: space-between; gap: 8px; \}/)
     expect(css).not.toMatch(/\.eb-edit-row \{[^}]*flex-wrap/)
     expect(css).toMatch(/\.eb-edit-row > \* \{ flex: none; white-space: nowrap; \}/)
-    expect(css).toMatch(/\.eb-edit-row > \.eb-card-credit \{ margin-left: auto; \}/)
+    expect(css).toMatch(/\.eb-edit-row > \.eb-card-credit \{ margin-left: auto; align-self: center; \}/) // on Remove's line, not the card's corner rule
     expect(readFileSync(resolve(__dirname, '../src/components/collage/card-list.css'), 'utf8')).toMatch(/\.eb-card-credit \{ align-self: flex-end; white-space: nowrap; \}/)
   })
 })
