@@ -20,6 +20,8 @@
   animation: eb-card-in .15s var(--eb-arrive) both;
 }
 .eb-card:focus { outline: none; }
+/* With its sticker the popover takes its full width, so the sticker's box is the same for every bird. */
+.eb-card[data-variant="popover"][data-sticker] { width: min(300px, calc(100vw - 16px)); }
 .eb-card[data-variant="sheet"] {
   left: 8px;
   right: 8px;
@@ -34,6 +36,10 @@
 }
 .eb-card-scrim { position: fixed; inset: 0; z-index: var(--z-dialog-scrim); background: rgb(0 0 0 / .28); }
 @keyframes eb-card-in { from { opacity: 0; } }
+/* The card's sticker (BirdCard's CardSticker): a fixed box on the card's paper, no panel, the sticker contained in it. */
+.eb-card-sticker { flex: none; height: 180px; margin: 2px 0 6px; }
+.eb-card[data-variant="sheet"] .eb-card-sticker { height: 230px; }
+.eb-card-sticker img { display: block; width: 100%; height: 100%; object-fit: contain; }
 @keyframes eb-sheet-in { from { opacity: 0; transform: translateY(24px); } }
 .eb-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .eb-card-names { flex: 1 1 auto; min-width: 0; }
