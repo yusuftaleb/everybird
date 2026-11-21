@@ -1,5 +1,5 @@
 import type { SpeciesFile, SpeciesRow, TaxonRow, TaxonomyFile } from './types'
-import { prepared, rankByName } from './name-search'
+import { rankByName } from './name-search'
 import { exactSci, foldName, normalizeSci } from './resolve'
 import { fetchData } from '../data-url'
 import type { BirdGroup, GroupsFile } from '../search/groups'
@@ -102,7 +102,8 @@ export function buildTaxonomyIndex(rows: TaxonRow[]): TaxonomyIndex {
 }
 
 export function buildSpeciesIndex(rows: SpeciesRow[]): SpeciesIndex {
+  // No name preparation here: rankByName prepares each row's names on first use (cached per row), so loading the 11,201
+  // species is not a ~200 ms main-thread task; the first search pays for it instead.
   const byCode = new Map(rows.map((r) => [r.code, r]))
-  for (const r of rows) prepared(r) // normalise the names once, up front
   return { rows, byCode, search: (q: string, limit = 20) => rankByName(rows, q, limit) }
 }
