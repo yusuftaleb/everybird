@@ -169,14 +169,14 @@ describe('the option rows and Print\'s actions', () => {
   })
   /** The Totals row's chips (round 6, item 25: the site's .eb-chip, a pick-several row): the Map's species and
    *  countries, the Tree's four ranks, in the image's words. A chip is its 1px border, 12px of padding a side and its
-   *  14px word, with the 14px check and the chip's 6px gap while on (all on at every open); 8px apart. */
-  const chipW = (label: string) => 2 + 2 * 12 + 14 + 6 + measured(label, 14)
+   *  14px word (no check: on is the Accent border and text); 8px apart. */
+  const chipW = (label: string) => 2 + 2 * 12 + measured(label, 14)
   const chipsW = (labels: string[]) => labels.reduce((n, l) => n + chipW(l), 0) + 8 * (labels.length - 1)
   it('has the chips\' numbers the budget assumes', () => {
     const filters = readFileSync('src/components/filters/filters.css', 'utf8')
     expect(filters).toMatch(/\.eb-chip \{[^}]*gap: 6px;[^}]*padding: 4px 12px;[^}]*border: 1px solid[^}]*font-size: 14px;/)
     expect(css).toMatch(/\.eb-share-chips \{[^}]*gap: 8px;/)
-    expect(css).toMatch(/\.eb-share-chips \.eb-chip-icon \{ width: 14px; height: 14px; \}/)
+    expect(css).not.toMatch(/\.eb-share-chips \.eb-chip-icon/)
   })
   it('keeps every Totals chip whole at every column: the row wraps between chips, never inside one', () => {
     const over: string[] = []
@@ -222,9 +222,8 @@ describe('the option rows and Print\'s actions', () => {
         if (need > COLUMNS.laptop) over.push(`${lang} ${labels.length === 4 ? 'tree' : 'map'} Totals`)
       }
     }
-    // The Tree's four Totals chips take a line under their label in Spanish, Dutch and German (round 6, item 25: chips are
-    // wider than segments; the row is 40px taller there, inside the closed column's budget, tests/share-layout.test.ts).
-    expect(over).toEqual(['es tree Totals', 'nl tree Totals', 'de tree Totals'])
+    // Without the check (Yusuf, 2026-11-21) every language's Totals chips fit beside their label at 480px.
+    expect(over).toEqual([])
   })
 
   it('puts Print\'s two actions on one row at the 420px column in every language, labels never wrapped', () => {
