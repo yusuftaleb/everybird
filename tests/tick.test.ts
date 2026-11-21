@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addTicked, filterTickRows, genusOf, removeTicked, taxonChildren, taxonOpen, TICK_SPECIES_AT, undoEdit } from '@/lib/list/tick'
+import { addTicked, filterTickRows, genusOf, removeTicked, taxonChildren, taxonOpen, TICK_SPECIES_AT, toggleOpen, undoEdit } from '@/lib/list/tick'
 import { SPECIES_AT } from '@/lib/tree/levels'
 import type { Edits } from '@/lib/list/model'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -76,6 +76,25 @@ describe('taxonOpen (Add by hand: no lone levels, the Tree\'s rule)', () => {
     expect(open(['Cformes'], 13)).toEqual([['Cformes'], [['Cidae', 6], ['Cbidae', 7]]])
     expect(open(['Cformes', 'Cbidae'], 7)).toEqual([['Cformes', 'Cbidae'], []])
     expect(open(['Aformes'], 12)).toEqual([['Aformes'], []])
+  })
+})
+
+describe('toggleOpen (Add by hand: one group open at a time at each level)', () => {
+  const press = (open: string[], key: string) => [...toggleOpen(new Set(open), key)].sort()
+  it('opening an order closes the other orders, with everything open under them', () => {
+    expect(press(['Suliformes', 'Suliformes/Phalacrocoracidae'], 'Ciconiiformes')).toEqual(['Ciconiiformes'])
+  })
+  it('opening a family closes its sibling families (and their genera), never its order or another order\'s', () => {
+    expect(press(['P', 'P/A', 'P/A/Ga', 'P/Ab'], 'P/B')).toEqual(['P', 'P/B'])
+    // A family whose name starts like another's is still its sibling.
+    expect(press(['P', 'P/Ab'], 'P/A')).toEqual(['P', 'P/A'])
+  })
+  it('a skipped level: genera shown under an order with one family are siblings under the full path', () => {
+    expect(press(['O', 'O/F/G1'], 'O/F/G2')).toEqual(['O', 'O/F/G2'])
+  })
+  it('closing a group keeps what is open under it for its next opening, and leaves the rest alone', () => {
+    expect(press(['P', 'P/A', 'P/A/Ga'], 'P/A')).toEqual(['P', 'P/A/Ga'])
+    expect(press(['P', 'P/A/Ga'], 'P/A')).toEqual(['P', 'P/A', 'P/A/Ga'])
   })
 })
 

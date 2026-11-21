@@ -218,6 +218,30 @@
    matches), and under it the "When and where" bar (the old "Add N" bar's design: Paper, a Hairline above, sticky at the screen's bottom while the
    list is in view), always shown. */
 .eb-tick { display: flex; flex-direction: column; gap: 10px; }
+/* Settings' Add by hand, folded in a box of its own with the sources grid's border: the head (the title, what was
+   ticked, the site's chevron at the right, turned up while open) is one press, its button's ::after covering it; the
+   body opens in place under it. */
+.eb-block.eb-handbox {
+  gap: 0; background: var(--paper); border: 1px solid var(--hairline);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-handbox-head { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 14px 16px; }
+.eb-handbox-head > .eb-block-head { min-width: 0; }
+.eb-handbox-btn { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.eb-handbox-btn::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-handbox-btn:focus-visible { outline: none; }
+.eb-handbox-btn:focus-visible::after { outline: 2px solid var(--accent); outline-offset: -2px; }
+.eb-handbox-chev { flex: none; display: grid; place-items: center; width: 24px; color: var(--muted); pointer-events: none; }
+.eb-handbox-chev svg { width: 20px; height: 20px; transition: transform .2s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)); }
+.eb-handbox-head[data-open] .eb-handbox-chev svg { transform: rotate(180deg); }
+@media (hover: hover) and (pointer: fine) { .eb-handbox-head:hover .eb-handbox-chev { color: var(--ink); } }
+.eb-handbox-body { padding: 0 16px; }
+.eb-handbox-body[hidden] { display: none; }
+@media (max-width: 479px) { .eb-handbox-head { padding: 12px 14px; } .eb-handbox-body { padding: 0 14px; } }
+@media (prefers-reduced-motion: reduce) { .eb-handbox-chev svg { transition: none; } }
 .eb-tickbar {
   position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 14px;
   background: var(--paper); border-top: 1px solid var(--hairline);
@@ -238,7 +262,9 @@
   position: absolute; left: 0; right: 0; height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 8px;
   border-bottom: 1px solid var(--hairline); cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
-.eb-tickrow[data-active] { background: var(--surface); }
+/* No row darker than another: a fill only under the pointer and on the keyboard's active row while its list has the
+   keyboard's focus. */
+.eb-ticklist:focus-visible .eb-tickrow[data-active] { background: var(--surface); }
 .eb-tickbox {
   display: grid; place-items: center; width: 22px; height: 22px; flex: none; border: 1.5px solid var(--line); border-radius: 6px; color: var(--paper);
 }
@@ -254,7 +280,7 @@
 @media (hover: hover) and (pointer: fine) { .eb-tickrow:hover { background: var(--surface); } }
 /* The list that opens in place (TickList's GroupNode, the Places list's pattern): each order, family and genus a
    compact disclosure row (one line of text tall, 44px on touch), the site's chevron pointing right, turned down while
-   open, its name with its other name after it in the species rows' small Muted style (.eb-ticksub), and its species
+   open, its common name (Ink) with its scientific name after it in the species rows' small Muted italic (.eb-ticksub), and its species
    count (mono Muted, as the old picker's menu had it); no sticker (only species rows carry one). What is under it opens
    indented one step (rising in as the Places list's levels did). A long name wraps under itself. */
 .eb-ticktree { --eb-tick-indent: 16px; }
@@ -266,7 +292,7 @@
   display: flex; align-items: center; gap: 12px; width: 100%; min-height: 40px; padding: 8px; border: 0; border-bottom: 1px solid var(--hairline);
   background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
-.eb-tickgroup:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+.eb-tickgroup:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; background: var(--surface); }
 .eb-tickchev { display: grid; place-items: center; width: 22px; flex: none; color: var(--muted); }
 .eb-tickchev svg { width: 18px; height: 18px; transform: rotate(-90deg); transition: transform .2s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)); }
 .eb-tickgroup[aria-expanded="true"] .eb-tickchev svg { transform: none; }

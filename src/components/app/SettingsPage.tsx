@@ -8,6 +8,7 @@ import { ImportPanel } from '@/components/import/ImportPanel'
 import { MatchReport } from '@/components/import/MatchReport'
 import { RulesSwitches } from '@/components/import/RulesSwitches'
 import { TickList } from '@/components/import/TickList'
+import { ChevronDownIcon } from '@/components/collage/icons'
 import { downloadText, today } from '@/lib/download'
 import { toCsv, toJson } from '@/lib/list/export'
 import { placesNoteFor } from '@/lib/list/filter-summary'
@@ -21,8 +22,8 @@ import { RestoreBackup } from './RestoreBackup'
 import './app.css'
 
 /**
- * `/settings`, everything in the page, behind no click: "Your list" (the summary line, one row per source, the match
- * report, the privacy footnote), "Add by hand" (the whole taxonomy to tick, open), then "Counting" (the rules) beside
+ * `/settings`: "Your list" (the summary line, one cell per source, the match report, the privacy footnote), "Add by
+ * hand" (the whole taxonomy to tick, folded in its own box, opening in place), then "Counting" (the rules) beside
  * "Your data" (downloads, restore, forget; the collage's title is in the share dialog) in two columns from 1024px, then
  * "Language" (only the English-names switch, when the UI isn't English: the language is the top bar's menu). Arriving at
  * /settings#sources (the welcome's "Make mine") focuses the sources; #tick lands on Add by hand; the Places notes'
@@ -36,6 +37,7 @@ export function SettingsPage() {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
   const [restoring, setRestoring] = useState<Saved | null>(null)
+  const [handOpen, setHandOpen] = useState(false)
   const sources = useRef<HTMLElement>(null)
   useEffect(() => {
     if (data && location.hash === '#sources') sources.current?.focus({ preventScroll: true })
@@ -81,12 +83,26 @@ export function SettingsPage() {
             {/* Where files and usernames are handed over; the full privacy note is on About. */}
             <p className="eb-privacy"><LockSimple aria-hidden="true" focusable="false" weight="bold" />{t.import.privacy}</p>
           </section>
-          <section id="tick" className="eb-block eb-import" aria-labelledby="eb-tick-h">
-            <div className="eb-block-head">
-              <h2 id="eb-tick-h" className="eb-h2">{t.add.hand}</h2>
-              {ticked.species > 0 && <p className="eb-mono eb-note">{[t.tick.title, ...countParts(ticked, t)].join(' · ')}</p>}
+          {/* Add by hand, folded in its own box: its title, what was ticked and a chevron; a press anywhere on the head
+              opens it in place (the search, the list and When and where). */}
+          <section id="tick" className="eb-block eb-import eb-handbox" aria-labelledby="eb-tick-h">
+            <div className="eb-handbox-head" data-open={handOpen || undefined}>
+              <div className="eb-block-head">
+                <h2 id="eb-tick-h" className="eb-h2">
+                  <button
+                    type="button" className="eb-handbox-btn" aria-expanded={handOpen} aria-controls="eb-tick-body"
+                    aria-describedby={ticked.species > 0 ? 'eb-tick-line' : undefined} onClick={() => setHandOpen((o) => !o)}
+                  >
+                    {t.add.hand}
+                  </button>
+                </h2>
+                {ticked.species > 0 && <p id="eb-tick-line" className="eb-mono eb-note">{[t.tick.title, ...countParts(ticked, t)].join(' · ')}</p>}
+              </div>
+              <span className="eb-handbox-chev" aria-hidden="true"><ChevronDownIcon /></span>
             </div>
-            <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} sci={state.sci} />
+            <div id="eb-tick-body" className="eb-handbox-body" hidden={!handOpen}>
+              <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} />
+            </div>
           </section>
         </>
       ) : (

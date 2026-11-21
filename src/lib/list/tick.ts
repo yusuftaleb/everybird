@@ -57,6 +57,20 @@ export function taxonOpen(rows: readonly SpeciesRow[], path: TaxonPath, n: numbe
 }
 
 /**
+ * The open groups (keys "order", "order/family", "order/family/genus", the full path even where a level is skipped)
+ * after a press on `key`, one group open at a time at each level: an open one closes (what is open under it is kept
+ * for its next opening); a closed one opens and its siblings (the keys under the same parent) close, with everything
+ * open under them.
+ */
+export function toggleOpen(open: ReadonlySet<string>, key: string): Set<string> {
+  const next = new Set(open)
+  if (next.delete(key)) return next
+  const parent = key.slice(0, key.lastIndexOf('/') + 1) // '' for an order
+  for (const k of open) if (k.startsWith(parent) && !k.startsWith(`${key}/`)) next.delete(k)
+  return next.add(key)
+}
+
+/**
  * The rows to show: the whole taxonomy in taxonomic order, narrowed to a group when given (a genus's species); with a search,
  * only rows whose common or scientific name matches by word prefixes (accent-insensitive), best match first.
  */

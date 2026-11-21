@@ -104,7 +104,7 @@ export function AddBirdsDialog({ onClose }: { onClose: () => void }) {
         ) : way === 'hand' && data ? (
           <>
             {ticked.species > 0 && <p className="eb-mono eb-note">{[t.tick.title, ...countParts(ticked, t)].join(' · ')}</p>}
-            <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} autoFocus view={7} sci={state.sci} />
+            <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} autoFocus view={7} />
           </>
         ) : null}
         {/* Where files and usernames are handed over; the full privacy note is on About. */}
