@@ -209,7 +209,6 @@ export const pl: Messages = {
       nav: 'Filtruj według grupy',
       all: 'Wszystkie ptaki',
       rank: { order: 'Rzędy', family: 'Rodziny', genus: 'Rodzaje', country: 'Kraje', year: 'Lata' },
-      choose: { order: 'Wybierz rząd', family: 'Wybierz rodzinę', genus: 'Wybierz rodzaj', country: 'Wybierz kraj', year: 'Wybierz rok' },
       remove: 'Usuń filtr {label}',
       group: 'Grupa ptaków',
       places: 'Miejsca',

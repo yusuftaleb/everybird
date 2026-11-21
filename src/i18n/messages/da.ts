@@ -203,7 +203,6 @@ export const da: Messages = {
       nav: 'Filtrér efter gruppe',
       all: 'Alle fugle',
       rank: { order: 'Ordener', family: 'Familier', genus: 'Slægter', country: 'Lande', year: 'År' },
-      choose: { order: 'Vælg en orden', family: 'Vælg en familie', genus: 'Vælg en slægt', country: 'Vælg et land', year: 'Vælg et år' },
       remove: 'Fjern filteret {label}',
       group: 'Fuglegruppe',
       places: 'Steder',

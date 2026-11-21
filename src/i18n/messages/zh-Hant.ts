@@ -205,7 +205,6 @@ export const zhHant: Messages = {
       nav: '依分類篩選',
       all: '所有鳥類',
       rank: { order: '目', family: '科', genus: '屬', country: '國家', year: '年份' },
-      choose: { order: '選擇一個目', family: '選擇一個科', genus: '選擇一個屬', country: '選擇一個國家', year: '選擇一個年份' },
       remove: '移除「{label}」篩選',
       group: '鳥類類群',
       places: '地點',

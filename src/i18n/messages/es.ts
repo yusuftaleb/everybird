@@ -203,7 +203,6 @@ export const es: Messages = {
       nav: 'Filtrar por grupo',
       all: 'Todas las aves',
       rank: { order: 'Órdenes', family: 'Familias', genus: 'Géneros', country: 'Países', year: 'Años' },
-      choose: { order: 'Elige un orden', family: 'Elige una familia', genus: 'Elige un género', country: 'Elige un país', year: 'Elige un año' },
       remove: 'Quitar el filtro {label}',
       group: 'Grupo de aves',
       places: 'Lugares',

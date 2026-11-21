@@ -254,7 +254,7 @@ export const EN_UI = {
       loadFailed: "Couldn't load the bird data. Check your connection and reload the page.",
     },
   },
-  /** The taxonomy filter (FilterBar, LevelRow, SheetPicker, PickerSheet, Chip), the Filters button, panel and chips
+  /** The taxonomy filter (FilterBar, LevelRow, PickerSheet, Chip), the Filters button, panel and chips
    *  (Filters, filter-summary.ts) and the Time panel (Timeline, timeline.ts). */
   filters: {
     label: 'Filters',
@@ -262,8 +262,6 @@ export const EN_UI = {
     all: 'All birds',
     /** A level's mono label and its sheet's title. */
     rank: { order: 'Orders', family: 'Families', genus: 'Genera', country: 'Countries', year: 'Years' },
-    /** The phone's picker button. */
-    choose: { order: 'Choose an order', family: 'Choose a family', genus: 'Choose a genus', country: 'Choose a country', year: 'Choose a year' },
     /** A removable chip's aria-label. */
     remove: 'Remove {label} filter',
     /** The Filters sections' names (the panel, the chips and the button's spoken text). */

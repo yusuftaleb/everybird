@@ -203,7 +203,6 @@ export const fr: Messages = {
       nav: 'Filtrer par groupe',
       all: 'Tous les oiseaux',
       rank: { order: 'Ordres', family: 'Familles', genus: 'Genres', country: 'Pays', year: 'Années' },
-      choose: { order: 'Choisis un ordre', family: 'Choisis une famille', genus: 'Choisis un genre', country: 'Choisis un pays', year: 'Choisis une année' },
       remove: 'Retirer le filtre {label}',
       group: 'Groupe d’oiseaux',
       places: 'Lieux',

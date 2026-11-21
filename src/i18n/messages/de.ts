@@ -203,7 +203,6 @@ export const de: Messages = {
       nav: 'Nach Gruppe filtern',
       all: 'Alle Vögel',
       rank: { order: 'Ordnungen', family: 'Familien', genus: 'Gattungen', country: 'Länder', year: 'Jahre' },
-      choose: { order: 'Ordnung wählen', family: 'Familie wählen', genus: 'Gattung wählen', country: 'Land wählen', year: 'Jahr wählen' },
       remove: 'Filter {label} entfernen',
       group: 'Vogelgruppe',
       places: 'Orte',

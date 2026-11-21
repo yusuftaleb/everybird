@@ -205,7 +205,6 @@ export const ja: Messages = {
       nav: 'グループで絞り込む',
       all: 'すべての鳥',
       rank: { order: '目', family: '科', genus: '属', country: '国', year: '年' },
-      choose: { order: '目を選ぶ', family: '科を選ぶ', genus: '属を選ぶ', country: '国を選ぶ', year: '年を選ぶ' },
       remove: '「{label}」の絞り込みを解除',
       group: '鳥のグループ',
       places: '場所',

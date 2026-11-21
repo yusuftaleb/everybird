@@ -203,7 +203,6 @@ export const nl: Messages = {
       nav: 'Filter op groep',
       all: 'Alle vogels',
       rank: { order: 'Ordes', family: 'Families', genus: 'Geslachten', country: 'Landen', year: 'Jaren' },
-      choose: { order: 'Kies een orde', family: 'Kies een familie', genus: 'Kies een geslacht', country: 'Kies een land', year: 'Kies een jaar' },
       remove: 'Filter {label} verwijderen',
       group: 'Vogelgroep',
       places: 'Plaatsen',

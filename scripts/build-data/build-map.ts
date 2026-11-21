@@ -1,38 +1,32 @@
 // Writes the Map view's shapes, pre-projected SVG paths (the app ships no projection code and makes no map requests):
 //   public/data/map-countries.v1.json  { v, w, h, d: { <country id>: path } }  the world, Equal Earth
-//   public/data/map-provinces.v1.json  { v, groups: { <country id>: { w, h, d: { <sub1 code>: path } } } }
 // Country ids are the Places filter's (`c:` keys without the prefix): ISO 3166-1 codes from Natural Earth's ISO_A2_EH,
 // plus, painted over their country, the parts that are their own place: eBird's GF, GP, MQ, RE and YT (Natural Earth
 // draws them inside France), the `<country>@<continent>` parts (US@OC, Hawaii) and OWN_SHAPE's places (Svalbard, Bonaire),
 // from the admin-1 shapes.
-// Province codes are the app's canonical sub1 ids (regions.v1.json): Natural Earth's iso_3166_2, rolled up by
-// SUB1_PARENT (French departments to their region); several features of one code are dissolved (shared edges cancel).
-// Each province group is projected on its own (azimuthal equal-area centred on it, so the US, Russia and Fiji don't
-// span the world) and fitted to SIDE units. Coordinates are quantised before simplification, so neighbours keep identical
-// borders: the world to tenths of a unit (WORLD_Q, so its coasts hold up when the map is zoomed), the provinces to whole
-// units. Nothing reads map-provinces.v1.json since the Map became the world only (round 6); it is still written.
+// The admin-1 features are matched by the app's canonical sub1 ids (regions.v1.json): Natural Earth's iso_3166_2,
+// rolled up by SUB1_PARENT (French departments to their region). Coordinates are quantised before simplification, so
+// neighbours keep identical borders: tenths of a unit (WORLD_Q, so the coasts hold up when the map is zoomed).
 // Source: Natural Earth 1:50m countries and 1:10m states and provinces (public domain), which fetch-sources.ts downloads.
 // Run: DATA_RAW=<data/raw> npx tsx scripts/build-data/build-map.ts, then npx tsx scripts/build-data/data-files.ts
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { gzipSync } from 'node:zlib'
-import { geoAzimuthalEqualArea, geoEqualEarth, type GeoProjection } from 'd3-geo'
+import { geoEqualEarth, type GeoProjection } from 'd3-geo'
 import { SUB1_PARENT } from '../../src/lib/import/sub1-parents'
 import { parentKey } from '../../src/lib/list/place-keys'
 
 const ROOT = resolve(__dirname, '../..')
 const RAW = resolve(ROOT, process.env.DATA_RAW ?? 'data/raw')
 const OUT_COUNTRIES = resolve(ROOT, 'public/data/map-countries.v1.json')
-const OUT_PROVINCES = resolve(ROOT, 'public/data/map-provinces.v1.json')
 
 const WORLD_W = 2000 // the world layer's width in units (Equal Earth's height follows)
-const SIDE = 1000 // a province group's longer side
 /** Steps per unit: the world keeps tenths of a unit (about 2 km at the equator, the 1:50m source's own precision, so its
- * coasts hold up when the map is zoomed); the provinces, never zoomed, whole units. */
+ * coasts hold up when the map is zoomed). */
 const WORLD_Q = 10
 const EPS = 1 // Douglas-Peucker tolerance, in steps (the world: 0.1 unit, under a pixel at the Map's deepest zoom)
 const MIN_AREA = 2 // loops under this (steps²: the world's 0.02 units², about 8 km²) are dropped
-const GZIP_BUDGET = { countries: 250_000, provinces: 1_500_000 }
+const GZIP_BUDGET = 250_000
 /** Natural Earth features with no ISO code that are part of a country eBird lists. */
 const NO_ISO: Record<string, string> = { Somaliland: 'SO', 'N. Cyprus': 'QY' }
 /** Places the app lists as countries that Natural Earth has only as admin-1 features (by name): drawn as their own
@@ -220,9 +214,6 @@ function main() {
   // Where an overlay lies, its country's own polygons there are dropped, so only the overlay is drawn and pressed.
   // `country` unset: carved out of any country (Svalbard from Norway, Cocos from Australia's Indian Ocean territories).
   const carved: { country?: string; box: [number, number, number, number] }[] = []
-  // The provinces, by group (the country key `parentKey` gives the province: US-HI is in US@OC) and code.
-  const groups = new Map<string, Map<string, { polys: Poly[]; lon: number; lat: number }>>()
-  let skipped = 0
   // A carved part's own polygons, each by its box: a country's polygon whose ring centroid falls in one is dropped.
   const carve = (polys: Poly[], country?: string) => {
     for (const poly of polys) {
@@ -239,7 +230,8 @@ function main() {
     }
     const iso = f.properties.iso_3166_2
     const code = Object.hasOwn(SUB1_PARENT, iso) ? SUB1_PARENT[iso] : iso
-    if (!code || !Object.hasOwn(regions.sub1, code)) { skipped++; continue }
+    if (!code || !Object.hasOwn(regions.sub1, code)) continue
+    // The country key `parentKey` gives the province: US-HI is in US@OC.
     const group = parentKey(`s:${code}`)?.slice(2)
     if (!group) throw new Error(`no country key for ${code}`)
     if (group.includes('@') && !own) {
@@ -250,11 +242,6 @@ function main() {
         carve(polysOf(f), f.properties.iso_a2)
       }
     }
-    const g = groups.get(group) ?? new Map()
-    const at = g.get(code) ?? { polys: [], lon: Number(f.properties.longitude), lat: Number(f.properties.latitude) }
-    at.polys.push(...polysOf(f))
-    g.set(code, at)
-    groups.set(group, g)
   }
 
   // By the ring's centroid, not its first point: Natural Earth's 1:50m and 1:10m outlines differ, so a first point can
@@ -277,34 +264,11 @@ function main() {
   if (!(y([10, 62]) < y([25, -30]))) throw new Error('Norway is not above South Africa')
   if (!(x([-100, 40]) < x([138, 36]))) throw new Error('the US is not left of Japan')
 
-  const groupsOut: Record<string, { w: number; h: number; d: Record<string, string> }> = {}
-  let cancelledAll = 0
-  for (const [group, codes] of [...groups].sort(([a], [b]) => (a < b ? -1 : 1))) {
-    // Centred on the group: the circular mean of its label points' longitudes, the mean latitude.
-    const list = [...codes.values()]
-    const sx = list.reduce((s, c) => s + Math.sin((c.lon * Math.PI) / 180), 0)
-    const cx = list.reduce((s, c) => s + Math.cos((c.lon * Math.PI) / 180), 0)
-    const lon = (Math.atan2(sx, cx) * 180) / Math.PI
-    const lat = list.reduce((s, c) => s + c.lat, 0) / list.length
-    const fit = fitter(geoAzimuthalEqualArea().rotate([-lon, -lat]), list.flatMap((c) => c.polys), SIDE)
-    const d: Record<string, string> = {}
-    for (const [code, c] of [...codes].sort(([a], [b]) => (a < b ? -1 : 1))) {
-      const { loops, cancelled } = dissolve(rings(c.polys, fit.at))
-      cancelledAll += cancelled
-      d[code] = pathOf(loops, fit.w, fit.h, SIDE * 0.75, code) || dot(fit.at(c.polys[0][0][0]), fit.w, fit.h)
-    }
-    groupsOut[group] = { w: fit.w, h: fit.h, d }
-  }
-
   const countriesJson = JSON.stringify({ v: 1, w: wf.w / WORLD_Q, h: wf.h / WORLD_Q, d: Object.fromEntries(Object.entries(worldD).filter(([, p]) => p).sort(([a], [b]) => (a < b ? -1 : 1))) })
-  const provincesJson = JSON.stringify({ v: 1, groups: groupsOut })
-  const gz = { countries: gzipSync(countriesJson).length, provinces: gzipSync(provincesJson).length }
-  for (const k of ['countries', 'provinces'] as const) if (gz[k] > GZIP_BUDGET[k]) throw new Error(`${k}: ${gz[k]} bytes gzipped, over ${GZIP_BUDGET[k]}`)
+  const gz = gzipSync(countriesJson).length
+  if (gz > GZIP_BUDGET) throw new Error(`countries: ${gz} bytes gzipped, over ${GZIP_BUDGET}`)
   writeFileSync(OUT_COUNTRIES, countriesJson + '\n')
-  writeFileSync(OUT_PROVINCES, provincesJson + '\n')
-  const nProv = Object.values(groupsOut).reduce((s, g) => s + Object.keys(g.d).length, 0)
-  console.log(`countries: ${Object.keys(worldD).length} (overlays ${[...overlay.keys()].join(' ')}), ${countriesJson.length} bytes, ${gz.countries} gzipped`)
-  console.log(`provinces: ${nProv} in ${Object.keys(groupsOut).length} groups, ${provincesJson.length} bytes, ${gz.provinces} gzipped; ${skipped} features with no app code; ${cancelledAll} shared edges cancelled`)
+  console.log(`countries: ${Object.keys(worldD).length} (overlays ${[...overlay.keys()].join(' ')}), ${countriesJson.length} bytes, ${gz} gzipped`)
 }
 
 main()

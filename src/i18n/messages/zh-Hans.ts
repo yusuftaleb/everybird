@@ -205,7 +205,6 @@ export const zhHans: Messages = {
       nav: '按类群筛选',
       all: '所有鸟',
       rank: { order: '目', family: '科', genus: '属', country: '国家', year: '年份' },
-      choose: { order: '选择目', family: '选择科', genus: '选择属', country: '选择国家', year: '选择年份' },
       remove: '移除“{label}”筛选',
       group: '鸟类类群',
       places: '地点',

@@ -203,7 +203,6 @@ export const sv: Messages = {
       nav: 'Filtrera efter grupp',
       all: 'Alla fåglar',
       rank: { order: 'Ordningar', family: 'Familjer', genus: 'Släkten', country: 'Länder', year: 'År' },
-      choose: { order: 'Välj en ordning', family: 'Välj en familj', genus: 'Välj ett släkte', country: 'Välj ett land', year: 'Välj ett år' },
       remove: 'Ta bort filtret {label}',
       group: 'Fågelgrupp',
       places: 'Platser',

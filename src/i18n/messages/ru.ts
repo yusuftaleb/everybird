@@ -215,7 +215,6 @@ export const ru: Messages = {
       nav: 'Фильтр по группе',
       all: 'Все птицы',
       rank: { order: 'Отряды', family: 'Семейства', genus: 'Роды', country: 'Страны', year: 'Годы' },
-      choose: { order: 'Выбери отряд', family: 'Выбери семейство', genus: 'Выбери род', country: 'Выбери страну', year: 'Выбери год' },
       remove: 'Убрать фильтр «{label}»',
       group: 'Группа птиц',
       places: 'Места',
