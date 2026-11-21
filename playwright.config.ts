@@ -27,7 +27,7 @@ export default defineConfig({
     // The flow matrix (flows.spec.ts: every way in, filters, card, share, backup; each engine samples two widths, MATRIX=full
     // walks all five), the timeline, the share dialog, Settings (page heads, Tick by hand), the top bar's headroom and About
     // (its "How it works" poster and stage) and the Red List status (status.spec.ts) in Safari's engine too.
-    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(flows|timeline|share|settings|responsive|dock-sweep|sticker-loading|welcome|headroom|about|text-size|count-hole|status)\.spec\.ts/ },
+    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(flows|timeline|share|settings|responsive|dock-sweep|sticker-loading|welcome|headroom|about|text-size|count-hole|status|compare)\.spec\.ts/ },
     // Gecko: the flow matrix and the specs that drive the dropdowns, the timeline, the share dialog, Settings, About, the
     // shared view, the theme and the Red List status. The first-visit welcome (welcome.spec.ts) runs in Chromium and WebKit.
     {
