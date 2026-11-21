@@ -34,7 +34,7 @@ export const DRAW_CAP = 2000
 export type TreeLevel = { ord?: string; fam?: string; genus?: string }
 
 /** Row heights in px: a tip (a 44px press; on screen a row grows with its name and the drawing follows the rows'
- *  measured centres, so these place the share image's rows and the drawing before measuring) and the order headings. */
+ *  measured centres, so these place the share image's rows and the drawing before measuring) and the group headings. */
 export const ROW_H = 44
 export const HEAD_H = 32
 /** Rectangular: the drawing's column (px) for a view `width` px wide, half of it (round 6), between 112 and 640, leaving
@@ -43,8 +43,19 @@ export const rowsTreeW = (width: number): number => Math.round(Math.min(640, Mat
 
 export { genusOf }
 
+/** A rank a heading names: any group rank above the tips. */
+export type HeadRank = Exclude<TipRank, 'species'>
+/** One group a heading names: its rank, its key (order, family or genus) and one of its species, for names. */
+export type HeadPart = { rank: HeadRank; key: string; row: SpeciesRow }
+/** A run of tips in one group a heading names (round 6, item 10): the i-th tips `first` to `last` (in leaf order), for
+ *  the named nodes (nodes.ts). A group split into runs by the tree has one per run. */
+export type TipGroup = HeadPart & { first: number; last: number }
+
 export type TreeRow =
-  | { kind: 'order'; ord: string; top: number }
+  /** A heading between the rows (round 6, item 10): the group at the rank right above the tips (families above genera,
+   *  genera above species, orders above families), after the higher ranks that change at the same row, highest first
+   *  ("Passeriformes · Thraupidae"). None for a rank the open branch fixes. */
+  | { kind: 'head'; parts: HeadPart[]; top: number }
   /** An order, family or genus (LevelView.tips). `row` is one of its species, for names; `with` the groups inside its
    *  branch when it is marked (with Lifers only, those with a bird on the list), `holds` all of their keys (what opening
    *  the row filters to, beside its own); `sticker` the bird its tip shows (groupSticker). */
@@ -74,6 +85,8 @@ export type LevelView = {
   downTo: { rank: TipRank; n: number }[]
   /** The groups of the drawn rank in the open branch with a bird on the list, and all of them, in the taxonomy. */
   cover: [number, number]
+  /** The runs of tips in each group the headings name, highest rank first (round 6, item 10: the named nodes). */
+  groups: TipGroup[]
   /** The drawing's tree and the stem of a lone lineage (drawFan draws the same). */
   root?: Node | Leaf
   stem?: number
@@ -268,30 +281,44 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   const drawn = mine ? tips.filter((tip) => (byRow.on.get(keyOf(rowOf(tip)!)) ?? 0) > 0) : tips
   const root = cladeTree(tree, drawn, (tip) => keyOf(rowOf(tip)!))
   const head = { split, inside, level: at, tips: drawnRank, cover, downTo }
-  if (!root) return mine && tips.length ? { ...head, rows: [], height: 0, drawing: NO_DRAWING } : undefined
+  if (!root) return mine && tips.length ? { ...head, rows: [], height: 0, drawing: NO_DRAWING, groups: [] } : undefined
   const rows: TreeRow[] = []
   const ys: number[] = []
   let top = 0
-  let lastOrd: string | undefined
+  // The headings' ranks (round 6, item 10): every rank between the open branch and the tips, so the last is the rank
+  // right above the tips; a heading names the highest of them that changes at its row and every one under it.
+  const headRanks = RANKS.slice(depthOf(at), RANKS.indexOf(drawnRank)) as HeadRank[]
+  const headKey = (k: HeadRank, r: SpeciesRow) => RAW_KEY[k](r)
+  let last: string[] = []
+  const groups: TipGroup[] = []
+  const open: TipGroup[] = []
+  let tipNo = 0
   for (const l of leavesOf(root)) {
     // The group's own species names the row (a marked branch may start with a species of a group inside it).
     const r = rowOf(l.tips.find((tip) => rawKey(rowOf(tip)!) === l.key) ?? l.tips[0])!
-    if (!ord && !fam && drawnRank !== 'orders' && r.ord !== lastOrd) {
-      rows.push({ kind: 'order', ord: r.ord, top })
+    const keys = headRanks.map((k) => headKey(k, r))
+    const from = keys.findIndex((k, j) => k !== last[j])
+    if (from >= 0) {
+      rows.push({ kind: 'head', parts: headRanks.slice(from).map((k, j) => ({ rank: k, key: keys[from + j], row: r })), top })
       top += HEAD_H
-      lastOrd = r.ord
+      last = keys
+      for (let j = from; j < headRanks.length; j++) groups.push((open[j] = { rank: headRanks[j], key: keys[j], row: r, first: tipNo, last: tipNo }))
     }
+    for (const g of open) g.last = tipNo
+    tipNo++
     ys.push(top + ROW_H / 2)
     const dotted = l.tips.length === 1 && tree.taxOnly[l.tips[0]] === 1
     if (drawnRank === 'species') rows.push({ kind: 'species', row: r, on: onList.has(r.code), dotted, top })
     else rows.push({ kind: 'group', key: l.key, row: r, on: byRow.on.get(l.key) ?? 0, total: byRow.total.get(l.key) ?? l.tips.length, with: insideOf(folds!.others.get(l.key)), holds: folds!.others.get(l.key), dotted, sticker: groupSticker(members.get(l.key) ?? [], onList), top })
     top += ROW_H
   }
-  const tipRows = rows.filter((r) => r.kind !== 'order')
+  const tipRows = rows.filter((r) => r.kind !== 'head')
   // One lineage alone (a genus of one species, a family of one genus): its stem, from the split above it.
   const stem = isLeaf(root) && tree.parent[root.node] >= 0 ? tree.age[tree.parent[root.node]] : undefined
   const drawing = drawTree(root, tipOn(tipRows), (i) => ys[i], stem, (_, i) => tipRows[i].dotted)
-  return { ...head, rows, height: top, drawing, root, stem }
+  // Highest rank first, the larger runs before the smaller (the named nodes place them in this order).
+  groups.sort((a, b) => headRanks.indexOf(a.rank) - headRanks.indexOf(b.rank) || a.first - b.first)
+  return { ...head, rows, height: top, drawing, root, stem, groups }
 }
 
 /** The rank line above the tree (round 6): the rank drawn and how many of its groups the rows draw, `n` (a marked row

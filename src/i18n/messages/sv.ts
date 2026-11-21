@@ -482,6 +482,7 @@ export const sv: Messages = {
       nameOptional: '(valfritt)',
       nameHelper: 'Visas som titel på ditt collage och när du delar.',
       showLatest: 'Visa senaste nya art',
+      treeSmall: 'Namnen blir små i den här storleken. <print>En affisch skriver ut dem större.</print>',
       shareImage: 'Dela bild',
       download: 'Ladda ner bild',
       copyLink: 'Kopiera länk',

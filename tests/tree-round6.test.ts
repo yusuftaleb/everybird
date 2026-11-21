@@ -285,7 +285,7 @@ describe('the genus is a taxonomy filter', () => {
   })
 })
 
-describe('Rectangular: half the width, the counts at the right edge', () => {
+describe('Rectangular: half the width or more, the counts at the right edge', () => {
   it('rowsTreeW: half of the view, between 112 and 640, the rows keeping 200px', () => {
     expect(rowsTreeW(1000)).toBe(500)
     expect(rowsTreeW(1600)).toBe(640)
@@ -296,9 +296,9 @@ describe('Rectangular: half the width, the counts at the right edge', () => {
     const spans = [{ name: 4, count: 2, on: true }, { name: 6, count: 2.5, on: true }]
     const { counts, col, treeW } = rowsLabels(spans, 44, 2000)
     expect(counts).toEqual([true, true])
-    // Room to spare: the drawing takes half the width, the text the other half, its counts at the edge.
-    expect(treeW).toBe(1000)
-    expect(col).toBe(1000)
+    // Room to spare: the drawing takes it, up to ROWS_TREE_MAX of the width, the counts at the edge (item 9).
+    expect(treeW).toBe(1400)
+    expect(col).toBe(600)
     // A narrow area: the drawing gives way first (down to a fifth), then the names shrink; every count stays.
     const tight = rowsLabels([{ name: 4, count: 2, on: true }, { name: 9, count: 3, on: true }], 44, 300)
     expect(tight.counts).toEqual([true, true])

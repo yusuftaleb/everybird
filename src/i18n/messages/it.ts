@@ -481,6 +481,7 @@ export const it: Messages = {
       nameOptional: '(facoltativo)',
       nameHelper: 'Mostrato come titolo del tuo collage e nelle condivisioni.',
       showLatest: 'Ultima specie nuova',
+      treeSmall: 'A questa dimensione i nomi sono piccoli. <print>Un poster li stampa più grandi.</print>',
       shareImage: 'Condividi',
       download: 'Scarica l’immagine',
       copyLink: 'Copia link',

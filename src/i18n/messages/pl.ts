@@ -487,6 +487,7 @@ export const pl: Messages = {
       nameOptional: '(opcjonalnie)',
       nameHelper: 'Widoczne jako tytuł kolażu i przy udostępnianiu.',
       showLatest: 'Pokaż najnowszy gatunek',
+      treeSmall: 'W tym rozmiarze nazwy są małe. <print>Plakat wydrukuje je większe.</print>',
       shareImage: 'Udostępnij obraz',
       download: 'Pobierz obraz',
       copyLink: 'Kopiuj link',

@@ -300,7 +300,12 @@ export type CardContent = {
   /** A view image's own footer (view-image.ts MAP_FOOTER, TREE_FOOTER): short enough to sit beside the wordmark, so
    *  without a row no room is kept for the credit's own line. */
   viewFooter?: boolean
+  /** The Tree image's tighter spacing (round 6, item 9; the collage card keeps GAPS): TIGHT_GAPS under the head and
+   *  around the row above the hairline. */
+  tight?: boolean
 }
+/** The Tree image's gaps under the head (the filter label or title) and around its oldest lineage row (design units). */
+export const TIGHT_GAPS = { head: 24, latest: 16 }
 
 /**
  * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: the shown count over "SPECIES" (a filtered
@@ -369,14 +374,14 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
     // the hairline as on the images (round 6, item 24), its room taken from the collage's (or the view's) area.
     const footer = { y: H - B - POSTER_FOOT.brand, size: POSTER_FOOT.brand, credit: POSTER_FOOT.line }
     const rule = { y: footer.y - 24 }
-    const G = GAPS[format], S = SMALL_INLINE
+    const G = c.tight ? { ...GAPS[format], ...TIGHT_GAPS } : GAPS[format], S = SMALL_INLINE
     const latest: CardLayout['latest'] = c.latest ? { x: X, y: rule.y - G.latest - S.icon, icon: S.icon, tw: W - 2 * X - S.icon - 20, label: S.label, name: S.name, inline: true } : undefined
     const top = headBottom === undefined ? T : headBottom + G.head
     const collage = { x: X, y: top, w: W - 2 * X, h: (latest ? latest.y - G.latest : rule.y - G.collage) - top }
     return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, ...tileCaps(format, c.count, collage) }
   }
   const footer = { y: H - B - 30 - (format === 'story' ? 4 : 0), size: 30, credit: 20 }
-  const G = GAPS[format]
+  const G = c.tight ? { ...GAPS[format], ...TIGHT_GAPS } : GAPS[format]
   // The row above the hairline (round 6, item 17: the oldest lineage's form and size, SMALL_INLINE or SMALL_ROW), 30
   // above the footer line; without it the collage takes its room (and on the desktop the hairline sits 20 above the
   // footer line). The pack is made for that frame (imagePackSpec), so no empty band is left above or below the birds.
@@ -760,6 +765,8 @@ export type ShareImageOpts = {
   now?: Date
   /** The footer line before its date stamp; default FOOTER_LINE. The Map and Tree images draw no stickers (view-image.ts). */
   footer?: string
+  /** The Tree image's tighter gaps (CardContent's `tight`). */
+  tight?: boolean
   /** The latest lifer row; default true. False leaves it out and gives its room to the collage (cardLayout's `latest: false`). */
   latest?: boolean
   /** Another bird in the latest lifer's place and style, with its own words (the Tree image's oldest lineage): `label`
@@ -944,7 +951,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const goalLabel = goal ? goalText(goal, strings) : undefined
   const filterText = opts.filterLabel?.trim() || goalLabel || undefined
   const named = opts.name?.trim() || undefined
-  const content: CardContent = { name: !!named, filter: !!filterText, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize, ...(opts.footer ? { viewFooter: true } : {}) }
+  const content: CardContent = { name: !!named, filter: !!filterText, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize, ...(opts.footer ? { viewFooter: true } : {}), ...(opts.tight ? { tight: true } : {}) }
   // A poster's head is its title alone: the name, else the filter in words.
   const name = print ? named ?? filterText : named
   const label = print ? undefined : filterText

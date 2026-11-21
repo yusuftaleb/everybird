@@ -35,14 +35,25 @@
 .eb-tree-tipdot.eb-tree-off { opacity: 1; stroke: color-mix(in srgb, var(--line) 55%, var(--paper)); }
 .eb-tree-tiphit { fill: transparent; cursor: pointer; }
 .eb-tree-rows { position: relative; list-style: none; margin: 0; padding: 0 0 0 var(--tree-w); width: 100%; box-sizing: border-box; } /* over the drawing: the tip dots cover the branch ends */
-.eb-tree-order {
+/* A heading between the rows (round 6, item 10): the group at the rank right above the tips, after the higher ranks that
+   change there ("Passeriformes · Thraupidae"). Plain Muted mono under the hairline: no fill, and not selectable, so a
+   quick double press on the tips beside it never tints it with the Accent selection (which read as a highlight). */
+.eb-tree-heading {
   display: flex; align-items: flex-end; height: 32px; padding: 0 0 4px 12px; box-sizing: border-box;
-  border-top: 1px solid var(--hairline); font-size: 11px; color: var(--muted);
+  border-top: 1px solid var(--hairline); font-size: 11px; color: var(--muted); background: none;
+  user-select: none; -webkit-user-select: none;
 }
-.eb-tree-order[lang] { font-style: italic; }
+.eb-tree-heading > span { overflow-wrap: anywhere; }
+.eb-tree-heading [lang] { font-style: italic; }
 /* The first heading has no rule: the time axis (or nothing) sits right above it, and its rule read as the axis running on
    past 0 under the caption (Yusuf, 2026-11-21). */
-.eb-tree-rows > .eb-tree-order:first-child { border-top: 0; }
+.eb-tree-rows > .eb-tree-heading:first-child { border-top: 0; }
+/* The named nodes (nodes.ts): a small Muted dot where a group begins and its name along its stem, in the headings' mono. */
+.eb-tree-node circle { fill: var(--muted); stroke: none; }
+.eb-tree-node text {
+  fill: var(--muted); font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .06em;
+  text-anchor: middle; dominant-baseline: central; user-select: none; -webkit-user-select: none;
+}
 .eb-tree-row { display: flex; min-height: 44px; }
 /* Each row holds its own hidden words (.eb-sr is absolutely placed): they stay inside it, never below the page. */
 .eb-tree-row > .eb-tree-btn { flex: 1 1 0; width: auto; min-width: 0; }

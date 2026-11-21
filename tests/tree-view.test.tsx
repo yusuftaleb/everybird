@@ -233,7 +233,7 @@ describe('TreeView', () => {
     expect(within(tips).getByRole('button', { name: /^Rails, 0 of 15 on the list$/ })).toBeInTheDocument()
     expect(within(tips).getByRole('button', { name: /^Cranes, 0 of 1 on the list$/ })).toBeInTheDocument()
     expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^4 families$/)
-    expect(tips.querySelector('.eb-tree-order')).toBeNull() // no order headings: the order is open
+    expect(tips.querySelector('.eb-tree-heading')).toBeNull() // no headings: the order is open and its families are the tips
     // The oldest lineage is CollageView's legend now, not the tree's own line.
     expect(screen.queryByText(/^Oldest lineage on this list/)).toBeNull()
     expect(screen.getByText('1 bird on this list has no place in this tree:')).toBeInTheDocument()
@@ -391,6 +391,24 @@ describe('TreeView', () => {
     const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
     expect([...tips.querySelectorAll('.eb-tree-name')].map((n) => n.textContent)).toEqual(['Anseriformes', 'Piciformes', 'Cuculiformes', 'Columbiformes', 'Gruiformes'])
     expect(within(tips).queryByText('Waterfowl')).toBeNull()
+  })
+
+  it('headings at the rank right above the tips (round 6, item 10): genera under their families, the order too where it changes; plain text, no mark', async () => {
+    const kept = new Map<string, string>([[TREE_DOWN_KEY, 'genera']])
+    vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
+    render(<Tree entries={['a1'].map(entry)} sci />)
+    const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    const heads = [...tips.querySelectorAll('.eb-tree-heading')]
+    // Where the order changes with the family the heading names both, order first; the cranes' other families, the
+    // order unchanged, by their family alone.
+    expect(heads.map((h) => h.textContent)).toEqual(['Anseriformes · Anatidae', 'Piciformes · Picidae', 'Cuculiformes · Cuculidae', 'Columbiformes · Columbidae', 'Gruiformes · Rallidae', 'Gruidae', 'Aramidae', 'Psophiidae'])
+    // Plain: no mark or highlight element inside, the Latin parts marked as Latin.
+    for (const h of heads) {
+      expect(h.querySelector('mark')).toBeNull()
+      expect(h.className).toBe('eb-mono eb-tree-heading')
+    }
+    expect([...heads[0].querySelectorAll('[lang="la"]')].map((x) => x.textContent)).toEqual(['Anseriformes', 'Anatidae'])
+    vi.unstubAllGlobals()
   })
 
   it('the Layout choice (in the Display panel\'s slot): Fan, Radial and Rectangular, the choice kept on the device under its first names', async () => {

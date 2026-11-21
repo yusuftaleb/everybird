@@ -61,7 +61,7 @@ describe('a Tree poster\'s oldest lineage row', () => {
     it(`sits above the hairline, inside the content box, its name at least the tip names' size (${what})`, async () => {
       const log = await poster(level, layout)
       const format = layout === 'fan' ? 'printLandscape' : 'print'
-      const L = image.cardLayout(format, { name: false, filter: false, latest: true, count: 0, countSize: 'hide' }, printDesign('A4', layout === 'fan'))
+      const L = image.cardLayout(format, { name: false, filter: false, latest: true, count: 0, countSize: 'hide', tight: true }, printDesign('A4', layout === 'fan')) // the Tree card's gaps (round 6, item 9)
       const texts = log.filter((l) => l.startsWith('fillText('))
       const name = texts.find((l) => l.startsWith(`fillText(${JSON.stringify(oldName)}, `) && l.includes('textBaseline: "alphabetic"'))!
       expect(name, 'the row\'s name').toBeTruthy()

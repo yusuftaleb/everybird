@@ -490,6 +490,7 @@ export const nl: Messages = {
       nameOptional: '(optioneel)',
       nameHelper: 'Getoond als titel van je collage en bij het delen.',
       showLatest: 'Nieuwste soort tonen',
+      treeSmall: 'De namen zijn klein op dit formaat. <print>Een poster drukt ze groter af.</print>',
       shareImage: 'Beeld delen',
       download: 'Beeld downloaden',
       copyLink: 'Link kopiëren',

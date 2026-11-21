@@ -24,7 +24,11 @@
 // the axis title under the drawing. Above every layout, the rank line: the rank drawn and how many (rankCount).
 // Their rows stay in the page, visually hidden, for the keyboard and screen readers. Rectangular draws the tree top to
 // bottom in about half the width (rowsTreeW) beside the rows, which grow with their names and reach the view's right
-// edge, the counts ending there in one column. Branches have rounded corners and simply join; every tip has one small
+// edge, the counts ending there in one column. Between the rows, headings name the group at the rank right above the
+// tips (families over genera, genera over species, orders over families), after the higher ranks that change at the
+// same row ("Passeriformes · Thraupidae"; levels.ts), in plain Muted mono, never selectable (round 6, item 10). In
+// every layout, where such a group begins its most recent common ancestor keeps a small dot and the group's name along
+// its stem, only where it touches no branch, row or other name (nodes.ts; the rule is in its header). Branches have rounded corners and simply join; every tip has one small
 // hollow dot. Each tip shows a sticker: the species' own, else one bird of the group on the list, else (no bird on the
 // list) the group's first species with a sticker, dimmed as a species off the list (groupSticker). One name per tip,
 // following the Scientific switch. Hovering a tip, or focusing it from the keyboard, turns its name Accent with an
@@ -33,7 +37,7 @@
 // inside are a button opening their list (PickerSheet), each opening its own species. Under it: the key (the mark and the dotted line of a
 // tip placed without genetic data, each when the drawing has it) and the birds the tree does not place. The credit is
 // About's. levels.ts, fan.ts and tree.ts hold the logic.
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -49,6 +53,7 @@ import type { SpeciesRow } from '@/lib/species/types'
 import { FAN_FROM, LABEL_COUNT, LABEL_GAP, RADIAL_GAP, SCREEN_SIZES, drawFan, fanLabel, fanRing, fitRound, inOpening, ringLabels, type FanShape, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
 import { ROW_H, depthOf, downOptions, rankCount, rowsTreeW, genusOf, levelView, tipOn, type Inside, type LevelView, type TipRank, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
 import { loadTree } from '@/lib/tree/load'
+import { rowNodeLabels, roundNodeLabels, type NodeLabel } from '@/lib/tree/nodes'
 import type { OpenBranch } from '@/lib/tree/path'
 import { TREE_LAYOUTS, setTreeDown, setTreeLayout, useTreeDown, useTreeLayout, useTreeMine, useTreeTime, type TreeLayout } from '@/lib/tree-mine'
 import { TIP_R, ageTicks, bySplits, circlePath, drawTree, formatAge, type Tree, type TreeFile } from '@/lib/tree/tree'
@@ -57,13 +62,16 @@ import './tree.css'
 type Loaded = { file: TreeFile; tree: Tree; species: SpeciesIndex }
 /** What the view draws, for Share (view-image.ts ShareAt). */
 export type TreeShown = { tree: TreeLevel; rank: TipRank; mine: boolean; layout: TreeLayout; time: boolean; fits: Record<FanShape, boolean> }
-type Tip = Exclude<TreeRow, { kind: 'order' }>
+type Tip = Exclude<TreeRow, { kind: 'head' }>
 
 /** Under the Fan and Radial, below their lowest label: air before the axis title. */
 const ROUND_PAD = 8
 /** A row's sticker (px); the split-group mark's width with its margins (px, at the 13px names). */
 const ROW_STICKER = 24
 const MARK_W = 7 + 8
+/** The named nodes' text (px; the headings' Muted mono) and its line. */
+const NODE_PX = 11
+const NODE_LINE = 13
 const shapeOf = (l: TreeLayout): FanShape => (l === 'circle' ? 'circle' : 'fan')
 /** The Taxa panel head's word for each group rank (its "18 of 45 orders"). */
 const TAXA_HEAD = { orders: 'order', families: 'family', genera: 'genus' } as const
@@ -196,7 +204,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     k === 'orders' ? [ordLabel(r.ord), sci] : k === 'families' ? [sci ? r.fam : familyName(r), sci] : k === 'genera' ? [genusOf(r.sci), true] : [sci ? r.sci : displayName(r), sci], [ordLabel, sci])
   const count = useCallback((n: number) => formatInt(n, t.num), [t])
   const tipOfText = useCallback((r: Tip) => (r.kind === 'group' ? fmt(tt.tipOf, { n: count(r.on), total: count(r.total) }) : ''), [tt, count])
-  const tipsOf = (v: LevelView) => v.rows.filter((r): r is Tip => r.kind !== 'order')
+  const tipsOf = (v: LevelView) => v.rows.filter((r): r is Tip => r.kind !== 'head')
   /** "with Turacoena", "with Urolestes and Corvinella" (the groups folded into a row's branch, named as the row's own,
    *  between <a> and <b> tags), or more than two genera "with 5 other genera" (a button opening their list). */
   const withWords = useCallback((ws: Inside[], k: TipRank) => {
@@ -272,6 +280,35 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     if (fit) return drawFan(root, tipOn(tips), stem, dotted, fit)
     return drawTree(root, tipOn(tips), (i) => ys?.y[i] ?? tips[i].top + ROW_H / 2, stem, dotted, width ? treeW : 1000)
   }, [shown, tips, fit, width, treeW, ys, timeScale])
+
+  // The named nodes (round 6, item 10; nodes.ts): where each group the headings name begins, its name along its stem,
+  // only where it touches nothing. The Radial's ages in its opening stay clear (the points of their patches).
+  const nodeLabels = useMemo((): NodeLabel[] => {
+    if (!shown?.root || !width || !shown.groups.length) return []
+    const root = timeScale ? shown.root : bySplits(shown.root)
+    const stemAge = timeScale ? shown.stem : 1
+    const groups = shown.groups.map((g) => { const [text, latin] = nameAt(g.row, g.rank); return { text, latin, first: g.first, last: g.last } })
+    const mono = (text: string) => measure(text, NODE_PX, 500, true)
+    if (fit) {
+      const avoid: [number, number][] = []
+      if (fit.shape === 'circle' && timeScale) {
+        for (const v of ageTicks(drawing!.rootAge)) {
+          const [x, y] = ringLabels(fit, (1 - v / drawing!.rootAge) * fit.R)[0]
+          const w = measure(formatAge(v, t.num), 11, 400, true) + 6
+          for (let dx = -w / 2; dx <= w / 2; dx += 2) for (let dy = -8; dy <= 8; dy += 2) avoid.push([x + dx, y + dy])
+        }
+      }
+      return roundNodeLabels(root, groups, fit, { n: tips.length, stemAge, measure: mono, h: NODE_LINE, avoid })
+    }
+    if (!ys) return []
+    return rowNodeLabels(root, groups, { yOf: (i) => ys.y[i], width: treeW, height: ys.h, stemAge, measure: mono, h: NODE_LINE })
+  }, [shown, width, timeScale, nameAt, measure, fit, drawing, t, tips.length, ys, treeW])
+  const nodeMarks = nodeLabels.map((l, i) => (
+    <g key={i} className="eb-tree-node">
+      <circle cx={l.node[0]} cy={l.node[1]} r={2.5} />
+      <text x={l.x} y={l.y} transform={l.rot ? `rotate(${l.rot.toFixed(2)} ${l.x} ${l.y})` : undefined} fontStyle={l.latin ? 'italic' : undefined}>{l.text.toUpperCase()}</text>
+    </g>
+  ))
 
   // Focus follows the branch, from the keyboard only (a pointer press moves none): opening one focuses its first tip, a
   // step back (the chip row's path) the tip of the branch it came from. Never a scroll: the page stays where it is.
@@ -459,6 +496,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         <path className="eb-tree-on eb-tree-dash" d={drawing.seenDot} />
         <path className="eb-tree-tipdot eb-tree-off" d={roundTips.filter((_, i) => !isOn(tips[i])).map((p) => circlePath(p.x, p.y)).join('')} />
         <path className="eb-tree-tipdot eb-tree-on" d={roundTips.filter((_, i) => isOn(tips[i])).map((p) => circlePath(p.x, p.y)).join('')} />
+        {nodeMarks}
         {roundTips.map((p, i) => <circle key={i} className="eb-tree-tiphit" data-i={i} data-live={live(tips[i]) || undefined} cx={p.x} cy={p.y} r={8} />)}
       </svg>
       {roundTips.map(label)}
@@ -478,7 +516,18 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const listRow = list ? shown.rows.find((r): r is Extract<TreeRow, { kind: 'group' }> => r.kind === 'group' && r.key === list && !!r.with) : undefined
   let tipNo = 0
   const rowItems = shown.rows.map((r) => {
-    if (r.kind === 'order') return <li key={`o:${r.ord}:${r.top}`} className="eb-mono eb-tree-order" lang={sci ? 'la' : undefined}>{ordLabel(r.ord)}</li>
+    if (r.kind === 'head') {
+      return (
+        <li key={`h:${r.parts.map((p) => p.key).join('|')}:${r.top}`} className="eb-mono eb-tree-heading">
+          <span>
+            {r.parts.map((p, j) => {
+              const [text, latin] = nameAt(p.row, p.rank)
+              return <Fragment key={p.rank}>{j > 0 && ' · '}<span lang={latin ? 'la' : undefined}>{text}</span></Fragment>
+            })}
+          </span>
+        </li>
+      )
+    }
     const i = tipNo++
     return <li key={`${r.kind === 'group' ? r.key : r.row.code}:${r.top}`} className="eb-tree-row">{r.kind === 'group' ? groupRow(r, i) : speciesRow(r, i)}</li>
   })
@@ -541,6 +590,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
               <path className="eb-tree-on" d={drawing.seen} />
               <path className="eb-tree-off eb-tree-dash" d={drawing.unseenDot} />
               <path className="eb-tree-on eb-tree-dash" d={drawing.seenDot} />
+              {nodeMarks}
             </svg>
             <ol ref={rowsRef} className="eb-tree-rows" aria-label={tt.tips}>{rowItems}</ol>
           </div>

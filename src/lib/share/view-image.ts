@@ -9,7 +9,7 @@ import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TipRank, TreeLevel } from '@/lib/tree/levels'
 import type { TreeLayout } from '@/lib/tree-mine'
-import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, isPrint, loadStickers, paintCard, paintRow, paintTiles, prepareCard, type CardFonts, type CardFormat, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
+import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, isPrint, loadStickers, paintCard, paintRow, paintTiles, prepareCard, type CardFonts, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
 /** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone (it
  *  draws no stickers, so no sticker credit), the tree's FOOTER_LINE (its tips carry stickers) and the tree's credit
@@ -33,10 +33,9 @@ export type ViewImageOpts = ShareImageOpts & {
   at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; totals?: readonly TotalKey[]; oldest?: boolean
   /** Device px per design unit (a poster's, print.ts viewPosterScale); default the format's IMAGE_SCALE, 1 for a poster's preview. */
   scale?: number
-  /** The Tree image's: called with whether the Fan and the Radial name every tip in this image's area, so the dialog
-   *  shows one that cannot as off (its reason) rather than drawing another layout without a word; `byCard` has the same
-   *  for this card and its other orientation's (round 6, item 11), keyed by card format. */
-  onTreeFits?: (fits: Record<'fan' | 'circle', boolean>, byCard?: Partial<Record<CardFormat, Record<'fan' | 'circle', boolean>>>) => void
+  /** The Tree image's (round 6, item 9): called with the arrangement drawn (always the one asked for), its names' size
+   *  and whether names or counts are under the readable sizes (NAME_READ, COUNT_READ), for the dialog's note. */
+  onTreeText?: (text: { layout: 'fan' | 'circle' | 'rows'; px: number; small: boolean }) => void
 }
 export type Area = { x: number; y: number; w: number; h: number }
 

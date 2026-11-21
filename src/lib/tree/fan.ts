@@ -37,8 +37,8 @@ export type LabelSpan = { name: number; count: number; on: boolean }
  *  and the room under the fan's centre. `stFloor`: the smallest the sticker's box may get, in units of the name's size
  *  (LABEL_STICKER, the default, keeps it). `fill`: the labels' reach, not the centre, is centred in the width, so the
  *  drawing may use all of it (no `room.h` then). `gap` (the circle): the least angle (radians) between its last tip and
- *  its first, for its opening. */
-export type LabelSizes = { base: number; floor: number; dot: number; rMin?: number; rMax?: number; below?: number; stFloor?: number; fill?: boolean; gap?: number }
+ *  its first, for its opening. `keepCounts`: no count goes (the share image shrinks instead, round 6, item 9). */
+export type LabelSizes = { base: number; floor: number; dot: number; rMin?: number; rMax?: number; below?: number; stFloor?: number; fill?: boolean; gap?: number; keepCounts?: boolean }
 /** On screen (round 6, for big steps): 13px names, never under 11px; the whole width; and, last before refusing, the
  *  sticker's box down to the name's line. */
 export const SCREEN_SIZES: LabelSizes = { base: 13, floor: 11, dot: 3.5, stFloor: LABEL_LINE, fill: true }
@@ -64,7 +64,7 @@ export type RoundFit = FanBox & { w: number; h: number; px: number; st: number; 
 export function fitRound(spans: readonly LabelSpan[], shape: FanShape, room: { w: number; h?: number }, sizes: LabelSizes = SCREEN_SIZES): RoundFit | undefined {
   const n = spans.length
   if (!n) return undefined
-  const { base, floor, dot, rMin = FAN_R_MIN, rMax = FAN_R_MAX, below = FAN_BELOW, stFloor = LABEL_STICKER, fill = false, gap = 0 } = sizes
+  const { base, floor, dot, rMin = FAN_R_MIN, rMax = FAN_R_MAX, below = FAN_BELOW, stFloor = LABEL_STICKER, fill = false, gap = 0, keepCounts = false } = sizes
   const circle = shape === 'circle'
   // The circle's opening: what its last and first tips' slot (2π / n) lacks of `gap`, taken from the tips' turn.
   const open = circle && n > 1 ? Math.max(0, (n * gap - 2 * Math.PI) / (n - 1)) : 0
@@ -119,7 +119,7 @@ export function fitRound(spans: readonly LabelSpan[], shape: FanShape, room: { w
     counts = all
     f = tryFit(px, counts)
     for (let j = 1; !f.ok && j <= 8; j++) { px = base - ((base - floor) * j) / 8; f = tryFit(px, counts) }
-    for (const on of [false, true]) {
+    for (const on of keepCounts ? [] : [false, true]) {
       while (!f.ok) {
         const cut = (i: number) => counts[i] && !!spans[i].count && spans[i].on === on
         let drop: boolean[]

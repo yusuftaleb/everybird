@@ -484,6 +484,7 @@ export const de: Messages = {
       nameOptional: '(optional)',
       nameHelper: 'Erscheint als Titel deiner Collage und beim Teilen.',
       showLatest: 'Neueste Art zeigen',
+      treeSmall: 'Die Namen sind in dieser Größe klein. <print>Ein Poster druckt sie größer.</print>',
       shareImage: 'Bild teilen',
       download: 'Bild herunterladen',
       copyLink: 'Link kopieren',

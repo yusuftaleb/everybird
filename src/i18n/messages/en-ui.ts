@@ -606,6 +606,8 @@ export const EN_UI = {
     /** The title field's description (read by screen readers): it is saved with the list and names the collage page. */
     nameHelper: 'Shown as your collage’s title and on shares.',
     showLatest: 'Show latest lifer',
+    /** The Tree image's note when its names are under the readable size; <print> opens Print. */
+    treeSmall: 'Names are small at this size. <print>A poster prints them larger.</print>',
     shareImage: 'Share image',
     download: 'Download image',
     copyLink: 'Copy link',

@@ -490,6 +490,7 @@ export const pt: Messages = {
       nameOptional: '(opcional)',
       nameHelper: 'Aparece como título da sua colagem e ao compartilhar.',
       showLatest: 'Última espécie nova',
+      treeSmall: 'Os nomes ficam pequenos neste tamanho. <print>Um pôster os imprime maiores.</print>',
       shareImage: 'Compartilhar',
       download: 'Baixar imagem',
       copyLink: 'Copiar link',

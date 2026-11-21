@@ -483,6 +483,7 @@ export const zhHans: Messages = {
       nameOptional: '（可选）',
       nameHelper: '用作你的拼贴画标题，也显示在分享内容上。',
       showLatest: '显示最新加新',
+      treeSmall: '此尺寸下名称较小。<print>海报会印得更大。</print>',
       shareImage: '分享图片',
       download: '下载图片',
       copyLink: '复制链接',
