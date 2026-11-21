@@ -83,7 +83,7 @@ describe('the poster\'s head and foot', () => {
     expect(filtered.find((l) => l.startsWith('fillText("Perching birds"'))).toMatch(/, 64, 64\) \{fillStyle: "#92140c", font: "700 60px/)
   })
 
-  it('ends with one quiet line: the wordmark, the site, the credit and the date at the left, the latest lifer at the right end; no lifer row', async () => {
+  it('ends with one quiet line: the wordmark, the site, the credit and the date at the left, the latest lifer\'s sticker and words at the right end; no lifer row', async () => {
     // A landscape poster's line holds both (a portrait one moves this lifer to its second line, below).
     const log = await poster({ name: 'Ada’s birds', format: 'printLandscape' })
     const foot = texts(log).find((l) => l.includes('Stickers: huashu-bird-sticker'))!
@@ -100,8 +100,14 @@ describe('the poster\'s head and foot', () => {
     expect(y(foot)).toBe(y(brand))
     expect(y(lifer)).toBe(y(brand))
     expect(texts(log).some((l) => l.startsWith('fillText("LATEST LIFER'))).toBe(false)
-    // Only the collage's stickers are drawn: no latest lifer's sticker beside the foot (13 tiles, one of them an outline).
-    expect(log.filter((l) => l.startsWith('drawImage(')).length).toBe(11)
+    // The collage's stickers (13 tiles, one of them an outline), then the latest lifer's before its words (round 6), a
+    // square of posterIcon(16) on the foot's line: its middle on the capitals' middle, ending before the words start.
+    const draws = log.filter((l) => l.startsWith('drawImage('))
+    expect(draws).toHaveLength(12)
+    const [sx, sy, w, h] = /, ([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\)/.exec(draws.at(-1)!)!.slice(1).map(Number)
+    expect(Math.max(w, h)).toBeCloseTo(image.posterIcon(image.POSTER_FOOT.line), 4)
+    expect(sx + w).toBeLessThan(printDesign('A4', true)[0] - 64)
+    expect(sy + h / 2).toBeCloseTo(Number(y(lifer)) - 0.35 * image.POSTER_FOOT.line, 4)
   })
 
   it('leaves the latest lifer out of the line with "Show latest lifer" off, and keeps the collage where it was', async () => {

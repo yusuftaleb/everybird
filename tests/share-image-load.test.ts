@@ -239,9 +239,10 @@ describe('painting in ranges (the poster strips)', () => {
 
   it('paintCard over bands covering the card: each tile in exactly the bands it meets, all the text in every band', async () => {
     const card = await ringCard()
-    expect(card.lifer).toBeNull() // a poster names its latest lifer in the foot, with no sticker
+    // A poster names its latest lifer in the foot, its sticker before the words (round 6): painted after the collage's.
+    expect(card.lifer).not.toBeNull()
     // Half the stickers loaded, the rest (and bird3, which has none) drawn as outlines.
-    const all = [...card.tiles]
+    const all = [...card.tiles, card.lifer!]
     const imgs = new Map<string, CanvasImageSource | null>()
     all.forEach((t, i) => { if (t.url) imgs.set(t.url, i % 2 ? null : ({ id: t.url } as unknown as CanvasImageSource)) })
     const loaded = (t: Tile) => !!(t.url && imgs.get(t.url))

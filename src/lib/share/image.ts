@@ -11,8 +11,11 @@
 //   middle  the collage, packed for the space left (layout worker 'image' message: packFrame, the count's hole at its
 //           centre, the birds spread evenly to the frame's edges); no sticker longer than 30% of the collage wide (36% up
 //           to 24 birds)
-//   bottom  a Hairline rule, "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px; unless the dialog's "Show latest
-//           lifer" switch is off, when the collage takes its room), then the footer: the Everybird wordmark and one
+//   bottom  the latest lifer row, the head's gap under the collage (round 6): its sticker, then "LATEST LIFER · SEP 2026 ·
+//           BRITISH COLUMBIA, CANADA" (the province or state and the country where it was seen, in the image's language:
+//           liferPlace; the place on its own line where the label doesn't fit, never cut) over the name; unless the
+//           dialog's "Show latest lifer" switch is off, when the collage takes its room. Then a Hairline rule and the
+//           footer: the Everybird wordmark and one
 //           quiet line beside it, the site, the sticker credit and the date the image was made
 //           ("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", stamp.ts; Geist Mono
 //           20px, Muted; on its own line under the wordmark where it does not fit beside it: placeCredit).
@@ -33,9 +36,11 @@
 // picks its sticker tier (printStickerUrl: 1024 with the 384 fallback for big tiles), and the poster paints it in strips.
 // Its head and foot are quieter than an image's: the head is the title alone (the collage title, else the filter in
 // words, in Accent), with the count at its right under "Beside title"; the foot is one line under the hairline, the
-// wordmark then "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 20 Nov 2026" at the left and "Latest lifer: Hooded
-// Crow, Sep 2026" at the right end (POSTER_FOOT; the latest lifer only with "Show latest lifer", on a second line,
-// right-aligned, where the two don't fit on one: placePosterFoot), with no latest lifer row or sticker.
+// wordmark then "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 20 Nov 2026" at the left and, at the
+// right end in the same size and style, the bird's sticker (posterIcon, sized to the line) then "Latest lifer: Hooded
+// Crow, Sep 2026, British Columbia, Canada" (POSTER_FOOT; the latest lifer only with "Show latest lifer"; on a second
+// line, right-aligned, where the two don't fit on one: placePosterFoot), with no latest lifer row. The Tree's poster
+// has the same foot, "Oldest lineage: Osprey, about 39 million years" in the lifer's place (latestAs).
 import { SHARE_ORIGIN } from '@/lib/share/origin'
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { printStickerUrl, stickerUrl } from '@/lib/sticker-url'
@@ -1220,9 +1225,12 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
     const tx = L.latest.x + icon + 20, tw = L.latest.tw
     const ls = L.latest.label
     // The label on one line where it fits at 16px or more; else the place takes a line of its own under it, never cut.
-    ctx.font = font.mono(16)
-    track(0.06, 16)
-    const lines = latest.place && latest.head && ctx.measureText(latest.label.toUpperCase()).width > tw ? [latest.head, latest.place] : [latest.label]
+    const tooLong = () => {
+      ctx.font = font.mono(16)
+      track(0.06, 16)
+      return ctx.measureText(latest.label.toUpperCase()).width > tw
+    }
+    const lines = latest.place && latest.head && tooLong() ? [latest.head, latest.place] : [latest.label]
     const blockH = lines.length * ls + (lines.length - 1) * 6 + 10 + L.latest.name
     const top = y + (icon - blockH) / 2
     track(0.06, ls)
