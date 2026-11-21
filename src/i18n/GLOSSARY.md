@@ -37,6 +37,18 @@ Read this before you translate a string or add a language. English (`messages/en
 | Taxa (the controls bar's button: orders, families and genera) | Taxones | Táxons | Taxa | Taksony | Taxons | Taxa | Taxa | Taxa | Taxa | Таксоны | 分類群 | 类群 | 類群 |
 | Display (the controls bar's button: how the view looks; never the word for the View tabs' group) | Aspecto | Exibição | Opmaak | Wygląd | Apparence | Anzeige | Aspetto | Visning | Udseende | Оформление | 表示設定 | 显示 | 顯示 |
 
+Settled in the round 6 review (es, pt, fr, it, de, nl, sv, da; the other languages keep theirs):
+
+| English | es | pt | fr | it | de | nl | sv | da |
+|---|---|---|---|---|---|---|---|---|
+| View (the tabs' group; Display stays apart from it) | Vista | Visualização | Vue | Vista | Ansicht | Weergave | Vy | Visning |
+| record (a bird; never "see") | registrar | registrar | noter | registrare | erfassen | vastleggen / waarnemen | registrera | registrere |
+| lineage (Tree) | linaje | linhagem | lignée | lignaggio | Linie | lijn | linje | slægtslinje |
+| Down to (a rank) | Hasta | Até | Jusqu’à | Fino a | Bis | Tot op | Ner till | Ned til |
+| Fit (share arrangement) | Ajustada | Ajustar | Ajusté | Adatta | Eingepasst | Passend | Anpassa | Tilpas |
+| All time (a goal's period, read as "N species in …") | Toda la vida | Desde sempre | Depuis toujours | Da sempre | Alle Jahre | Alle jaren | Alla år | Alle år |
+| Sort options (List view: no "first" where the language drops it, the same for dates and masses) | Más recientes, Más pesadas | Mais recentes, Mais pesadas | Plus récents, Plus lourds | Più recenti, Più pesanti | Neueste zuerst | Nieuwste eerst | Nyast först | Nyeste først |
+
 ## Register
 
 - **Spanish (es):** neutral, reading naturally in Spain and Latin America. "Tú", never "vosotros" or "usted". No regional words: "dispositivo" (not "ordenador" or "computadora"), "archivo", "descargar", "compartir".
