@@ -4,6 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { openAdd } from "./add-birds";
 import { pressAreas } from "./press-areas";
 import { SAMPLE_COUNT } from "./sample";
+import { fmt } from "../src/i18n/core";
 import { HTML_LANG, LANGS } from "../src/i18n/langs";
 import { es } from "../src/i18n/messages/es";
 import { nl } from "../src/i18n/messages/nl";
@@ -109,13 +110,14 @@ async function settled(page: Page) {
   await page.waitForFunction(() => document.getAnimations().filter((a) => a.playState === "running").length === 0, null, { timeout: 10_000 });
 }
 
-/** iNaturalist's API, answered from the synthetic fixtures (one user "testbirder" with six observations). */
+/** iNaturalist's API, answered from the synthetic fixtures (one user "testbirder" with six observations): the user lookup
+ *  and the places on v1, the observations on v2 (src/lib/import/inat.ts). */
 async function mockInat(page: Page) {
-  await page.route("https://api.inaturalist.org/v1/**", (route) => {
+  await page.route("https://api.inaturalist.org/**", (route) => {
     const url = new URL(route.request().url());
     const json = (body: string) => route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body });
     if (url.pathname.startsWith("/v1/users/autocomplete")) return json(inat("users"));
-    if (url.pathname.startsWith("/v1/observations")) return json(url.searchParams.get("id_above") === "0" ? inat("observations") : '{"total_results":6,"results":[]}');
+    if (url.pathname.startsWith("/v2/observations")) return json(url.searchParams.get("id_above") === "0" ? inat("observations") : '{"total_results":6,"results":[]}');
     if (url.pathname.startsWith("/v1/places/")) return json(inat("places"));
     return route.fulfill({ status: 404, body: "{}" });
   });
@@ -201,6 +203,8 @@ for (const width of WIDTHS) {
       await panel.getByTestId("drill-n:AF").click();
       await panel.getByText("Egypt", { exact: true }).click();
       await panel.getByTestId("places-path").getByRole("button", { name: "All continents" }).click();
+      // Back at the top, focus is on the drill button of the row it came from (wait for it: the level re-renders).
+      await expect(panel.getByTestId("drill-n:AF")).toBeFocused();
       await panel.getByTestId("drill-n:NA").click();
       await panel.getByText("Costa Rica", { exact: true }).click();
       await expect(stats(page)).toContainText(`11 of ${TOTAL} species`);
@@ -289,7 +293,7 @@ for (const width of WIDTHS) {
         await expect(preview.getByRole("img", { name: `Preview of the ${format.toLowerCase()} image` })).toBeVisible({ timeout: 30_000 });
         await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
         const size = await page.evaluate(async () => {
-          const img = document.querySelector<HTMLImageElement>('[data-testid="share-preview"] img')!;
+          const img = document.querySelector<HTMLImageElement>('[data-testid="share-preview"] img.eb-share-in')!;
           const blob = await (await fetch(img.src)).blob();
           const bmp = await createImageBitmap(blob);
           return { w: bmp.width, h: bmp.height, type: blob.type };
@@ -322,11 +326,13 @@ for (const width of WIDTHS) {
       await page.getByRole("button", { name: "Share", exact: true }).click();
       await page.getByRole("dialog", { name: "Share your collage" }).getByLabel("Collage title").fill("Kalin's lifers");
       await page.keyboard.press("Escape");
-      await page.goto("/settings");
-      await expect.poll(() => page.evaluate(() => new Promise<string | undefined>((done) => {
+      const storedName = () => page.evaluate(() => new Promise<string | undefined>((done) => {
         const r = indexedDB.open("everybird");
         r.onsuccess = () => { const g = r.result.transaction("kv").objectStore("kv").get("everybird:v1"); g.onsuccess = () => { r.result.close(); done(g.result?.name); }; };
-      }))).toBe("Kalin's lifers");
+      }));
+      await expect.poll(storedName).toBe("Kalin's lifers");
+      await page.goto("/settings");
+      await expect.poll(storedName).toBe("Kalin's lifers");
       const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download JSON backup" }).click()]);
       expect(dl.suggestedFilename()).toMatch(/^everybird-backup-\d{4}-\d{2}-\d{2}\.json$/);
       const backup = readFileSync((await dl.path())!);
@@ -381,11 +387,11 @@ for (const width of WIDTHS) {
       await check("share dialog");
       await page.goto("/settings");
       await check("settings");
-      const dialog = await openAdd(page, "file");
+      await openAdd(page, "file");
       await expect(page.getByTestId("ebird-drop")).toBeVisible();
       await check("add birds: import a file");
-      await openAdd(page, "hand");
-      await expect(dialog.getByRole("list", { name: "Species to tick" })).toBeVisible();
+      const hand = await openAdd(page, "hand");
+      await expect(hand.getByRole("list", { name: "Species to tick" })).toBeVisible();
       await check("add birds: by hand");
     });
   });
@@ -408,7 +414,10 @@ test.describe("on a touch screen (pointer: coarse)", () => {
     await expect(seeCollage(page)).toContainText("Your collage has 4 species");
     const small = page.locator(".eb-btn-sm");
     expect(await small.count(), "the source row's small buttons").toBeGreaterThan(0);
-    for (const h of await small.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))) expect(Math.round(h)).toBeGreaterThanOrEqual(44);
+    // Every one on screen (the hidden ones, in folded panels, take no room)
+    const heights = (await small.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))).filter((h) => h > 0);
+    expect(heights.length, "the source row's small buttons on screen").toBeGreaterThan(0);
+    for (const h of heights) expect(Math.round(h)).toBeGreaterThanOrEqual(44);
     expect((await pressAreas(page)).small, "Add birds: controls under 44px").toEqual([]);
     await seeCollage(page).getByRole("link", { name: "See my collage" }).click();
     await expect(shownBirds(page)).toHaveCount(4);
@@ -429,10 +438,12 @@ for (const lang of LANGS.filter((l) => l !== "en")) {
       await page.goto("/");
       await expect(page.locator("html")).toHaveAttribute("lang", HTML_LANG[lang]);
       await expect(shownBirds(page).first()).toBeVisible();
-      await expect(page.getByTestId("collage-stage")).toContainText(ui.count.label.toUpperCase());
+      await expect(page.getByTestId("collage-stage")).toContainText(ui.count.label);
       await page.goto("/settings");
       const sources = await openAdd(page, "file", ui);
-      await expect(sources.getByRole("button", { name: ui.import.add, exact: true }).first()).toBeVisible();
+      // Each source row's button reads "Add", named "Add <the row's title>"
+      const add = sources.getByRole("button", { name: fmt(ui.import.addLabel, { title: ui.import.ebird.listTitle }), exact: true });
+      await expect(add).toHaveText(ui.import.add);
       await expect(page.getByRole("heading", { level: 2, name: ui.add.hand })).toBeVisible();
     });
   });

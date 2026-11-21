@@ -48,9 +48,19 @@ for (const [how, close] of [
     await expect(page.getByTestId("collage-stage")).toBeVisible(); // the sample is there to return to
     await close(page);
     await expect(welcome(page)).toHaveCount(0);
-    await expect(page.getByRole("dialog")).toHaveCount(0); // a press outside opened nothing underneath
-    // Focus returns to the sample's controls, not lost on the body.
-    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest(".eb-view"))).toBe(true);
+    if (how === "Explore the sample") {
+      // Explore starts the tour on the sample (Tour.tsx): its first note, the only dialog, takes focus; Skip tour ends it.
+      const tour = page.getByTestId("tour");
+      await expect(tour).toBeVisible();
+      await expect(page.getByRole("dialog")).toHaveCount(1);
+      await expect(tour).toBeFocused();
+      await tour.getByRole("button", { name: "Skip tour" }).click();
+      await expect(tour).toHaveCount(0);
+    } else {
+      await expect(page.getByRole("dialog")).toHaveCount(0); // a press outside opened nothing underneath
+      // Focus returns to the sample's controls, not lost on the body.
+      await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest(".eb-view"))).toBe(true);
+    }
     expect(await page.evaluate(() => localStorage.getItem("everybird:welcomed"))).toBe("1");
     await page.reload();
     await expect(page.getByTestId("collage-stage")).toBeVisible();

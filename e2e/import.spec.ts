@@ -47,9 +47,10 @@ test("the landing sample is pre-packed: its stickers show without the species fi
 // 1280 the order chips wrap, at 390 the "Choose an order" button and the bar's 4px insets sit over the stage (0.47).
 // The demo birder (2026-11-06) has 29 orders where the old sample had 18, so at 1280 the chips wrap onto four rows
 // instead of three and the stage starts 40px lower (0.45 of the screen, was 0.50); 390 is unchanged. The bounds keep a
-// couple of percent of slack under those.
+// couple of percent of slack under those. Since round 3 the top bar's nav takes its own row under 620px (--topbar-h 93px,
+// was 61px): 32px more above the stage at 390 (3.8% of 844), so 0.45 there became 0.41.
 test("at 1280x800 and 390x844 the landing's birds fill a little under half of the first screen", async ({ page }) => {
-  for (const [width, height, share] of [[1280, 800, 0.43], [390, 844, 0.45]] as const) {
+  for (const [width, height, share] of [[1280, 800, 0.43], [390, 844, 0.41]] as const) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
     const stage = page.getByTestId("collage-stage");
