@@ -28,24 +28,64 @@ import { loadSpecies } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
 import type { SpeciesRow } from '@/lib/species/types'
 import { stickerUrl } from '@/lib/sticker-url'
-import { LABEL_COUNT, LABEL_GAP, LABEL_STICKER, clearOfEnds, drawFan, fanLabel, fanRing, fitRound, polar, ringLabels, type FanBox, type LabelSizes, type LabelSpan } from '@/lib/tree/fan'
+import { LABEL_COUNT, LABEL_GAP, LABEL_STICKER, RADIAL_GAP, drawFan, fanLabel, fanRing, fitRound, inOpening, polar, ringLabels, type FanBox, type LabelSizes, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
 import { loadTree } from '@/lib/tree/load'
 import { levelView, ROW_H, taxonCover, tipOn, type LevelView, type TreeRow } from '@/lib/tree/levels'
 import { ageTicks, bySplits, circlePath, drawTree, formatAge, oldestLineage, type Drawing } from '@/lib/tree/tree'
-import { IMAGE_SCALE, loadStickers, type ImageFormat } from './image'
+import { IMAGE_SCALE, cardLayout, loadStickers, type CardFormat, type ImageFormat } from './image'
 import { PRINT_SIZES, printDesign, treeNameMinPx, type PrintSize } from './print'
 import { TREE_FOOTER, chosenTotals, clipText, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 
 /** The Rectangular image's names: the largest size (round 6: as large as the room allows, up to this). */
-const NAME_MAX = 40
-/** A row is never drawn taller than this (a genus of three species would fill the card); round 6: rows use the room. */
-const PITCH_MAX = 104
+const NAME_MAX = 48
 const AXIS_H = 44, KEY_H = 40, MONO = 18
+/** The row pitch a full-size tip dot and its stroke need (a 5 radius, 2.5 stroke) with a little air. */
+const DOT_PITCH = 14
 /** The round layouts' axis beyond their own room: the fan's title line under the ages its `below` holds; the circle's title. */
 const FAN_AXIS = 26, CIRCLE_AXIS = 34
-/** The Fan's and Radial's names in the image (design units): as on screen at about twice the size, shrinking further
- *  than the screen's, so a level the screen names whole is named whole in the image too. */
-export const IMAGE_SIZES: LabelSizes = { base: 24, floor: 9, dot: 5, rMin: 40, rMax: Infinity, below: 40 }
+/** The Fan's and Radial's names in the image (design units): as on screen at about twice the size or more where the
+ *  card has room (round 6, item 5: up to 32), shrinking further than the screen's, so a level the screen names whole is
+ *  named whole in the image too. */
+export const IMAGE_SIZES: LabelSizes = { base: 32, floor: 9, dot: 5, rMin: 40, rMax: Infinity, below: 40 }
+/** The image's Fan and Radial keep their radius at least this share of their reach (the radius and the longest label):
+ *  never a tiny knot under long labels (round 6, item 15). */
+export const BALANCE = 0.33
+
+/**
+ * The share image's Fan or Radial (round 6, items 5 and 15): fitRound with the labels' reach centred in the width
+ * (`fill`), at the largest name size up to `sizes.base` whose radius is at least BALANCE of the reach, so the drawing
+ * and its names share the card; when no size balances, the plain fit. Undefined when not every tip can be named.
+ */
+export function fitImage(spans: readonly LabelSpan[], shape: 'fan' | 'circle', room: { w: number; h: number }, sizes: LabelSizes = IMAGE_SIZES): RoundFit | undefined {
+  const at = (base: number) => fitRound(spans, shape, room, { ...sizes, base: Math.max(sizes.floor, base), fill: true })
+  const reach = (f: RoundFit) => Math.max(0, ...spans.map((sp, i) => (sizes.dot) + f.st + f.px * (2 * LABEL_GAP + sp.name + (f.counts[i] && sp.count ? LABEL_GAP + sp.count : 0))))
+  const balanced = (f: RoundFit) => f.R >= BALANCE * (f.R + reach(f))
+  const first = at(sizes.base)
+  if (!first || balanced(first)) return first
+  let lo = sizes.floor, hi = first.px, best: RoundFit | undefined
+  for (let i = 0; i < 12; i++) {
+    const m = (lo + hi) / 2
+    const f = at(m)
+    if (f && balanced(f) && f.px <= m + 1e-9) { best = f; lo = m } else hi = m
+  }
+  return best ?? first
+}
+
+/**
+ * The age labels to write of `items` (any order, an age on both sides of the Fan's centre twice): none over another
+ * (`pad` units of air). The youngest (0) and the oldest are taken first (round 6, item 15), then the others, youngest
+ * first, each only where it clears those taken. Each item: its age and its box.
+ */
+export function clearTicks<T extends { v: number; x0: number; x1: number; y0: number; y1: number }>(items: readonly T[], pad = 6): T[] {
+  if (!items.length) return []
+  const lo = Math.min(...items.map((x) => x.v)), hi = Math.max(...items.map((x) => x.v))
+  const rank = (x: T) => (x.v === lo ? 0 : x.v === hi ? 1 : 2)
+  const order = [...items].sort((a, b) => rank(a) - rank(b) || a.v - b.v)
+  const clear = (a: T, b: T) => a.x1 + pad <= b.x0 || b.x1 + pad <= a.x0 || a.y1 + pad <= b.y0 || b.y1 + pad <= a.y0
+  const kept: T[] = []
+  for (const it of order) if (kept.every((k) => clear(it, k))) kept.push(it)
+  return kept.sort((a, b) => a.v - b.v)
+}
 /** The totals: the largest number, the gap under the numbers, and before the drawing. */
 const TOTAL_MAX = 56, TOTAL_GAP = 12, TOTALS_BELOW = 32
 
@@ -65,30 +105,41 @@ export function totalsSize(texts: readonly string[], width: number, widthAt1: (t
   return { num, label: Math.max(16, Math.min(22, Math.round(num * 0.4))) }
 }
 
-/** The share of the area's width the Rectangular image's drawing takes (round 6: half, as on screen). */
+/** The share of the area's width the Rectangular image's drawing takes at most (round 6: half, as on screen), and at
+ *  least, when the names and counts need the rest (round 6, item 13: the branches give way first). */
 export const ROWS_TREE = 0.5
+export const ROWS_TREE_MIN = 0.2
 
 /**
- * Rectangular in the image: every tip named. The names' size (the largest the rows' `pitch` allows, NAME_MAX at most,
- * and smaller where a name would not fit `textW` beside its sticker's box), the box's side, which tips keep their count
- * (dropped where it would touch the name) and `col`, the right edge of the counts' column from the text's start: the
- * text's own right edge, `textW` (round 6: the counts in their column at the card's right edge, so the tree and its
- * labels span the card). `name`/`count` are widths at size 1.
+ * Rectangular in the image: every tip named and counted (round 6, items 6 and 13). The rows span `width` (the area's,
+ * less the tips' dot): the drawing on the left, at most ROWS_TREE of it, then each tip's sticker box, its name and, in
+ * a column at the right edge, its count. The names' size is the largest the rows' `pitch` allows (NAME_MAX at most);
+ * when a tip's sticker, name and count don't fit beside a half-width drawing, the drawing gives way first, down to
+ * ROWS_TREE_MIN of the width, and only then do the names shrink, so no count is ever dropped. `treeW`: the drawing's
+ * width; `px`, `box`: the names' size and the sticker box's side; `counts`: every tip with a count keeps it; `col`: the
+ * counts' right edge from the text's start. `name`/`count` are widths at size 1.
  */
-export function rowsLabels(spans: readonly LabelSpan[], pitch: number, textW: number): { px: number; box: number; counts: boolean[]; col: number } {
-  let px = Math.min(NAME_MAX, pitch * 0.75)
-  const box = Math.min(pitch * 0.92, px * LABEL_STICKER)
-  for (const s of spans) px = Math.min(px, (textW - box - 2 * LABEL_GAP * px) / Math.max(1e-6, s.name))
+export function rowsLabels(spans: readonly LabelSpan[], pitch: number, width: number): { px: number; box: number; counts: boolean[]; col: number; treeW: number } {
+  const want = Math.min(NAME_MAX, pitch * 0.75)
+  const boxAt = (px: number) => Math.min(pitch * 0.92, px * LABEL_STICKER)
+  // A tip's text at size px: the gap, the box, the gap, the name, then the gap and the count when it has one.
+  const len = (sp: LabelSpan) => 2 * LABEL_GAP + sp.name + (sp.count ? LABEL_GAP + sp.count : 0)
+  const need = (px: number) => Math.max(0, ...spans.map((sp) => boxAt(px) + px * len(sp)))
+  const treeW = Math.round(Math.max(width * ROWS_TREE_MIN, Math.min(width * ROWS_TREE, width - need(want))))
+  const textW = width - treeW
+  // The largest size up to `want` whose every row fits textW (the box either follows the size or is the pitch's).
+  let px = want
+  for (const sp of spans) {
+    const L = len(sp)
+    px = Math.min(px, Math.max(textW / (LABEL_STICKER + L), (textW - pitch * 0.92) / L))
+  }
   px = Math.max(1, px)
-  const reach = (s: LabelSpan) => box + px * (2 * LABEL_GAP + s.name + (s.count ? LABEL_GAP + s.count : 0))
-  const counts = spans.map((s) => !!s.count && reach(s) <= textW)
-  return { px, box, counts, col: textW }
+  return { px, box: boxAt(px), counts: spans.map((sp) => !!sp.count), col: textW, treeW }
 }
 
 /** The Rectangular image's name size for `spans` in `room` (the drawing's rows `height` px tall on screen, ROW_H each). */
 export function rowsNamePx(spans: readonly LabelSpan[], height: number, room: { w: number; h: number }): number {
-  const k = Math.min(room.h / height, PITCH_MAX / ROW_H)
-  return rowsLabels(spans, ROW_H * k, room.w - Math.round(room.w * ROWS_TREE) - IMAGE_SIZES.dot).px
+  return rowsLabels(spans, ROW_H * (room.h / height), room.w - IMAGE_SIZES.dot).px
 }
 
 /**
@@ -116,7 +167,9 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const old = o.oldest ? oldestLineage(tree, codes) : undefined
   const oldRow = old && (o.species.byCode.get(old.code) ?? all.byCode.get(old.code))
   const oldAge = old ? formatAge(old.age, t.num) : ''
-  const latestAs = oldRow ? { row: oldRow, label: fmt(tt.oldestLabel, { age: oldAge }), poster: fmt(tt.oldestPoster, { name: o.nameOf?.(oldRow) ?? oldRow.com, age: oldAge }) } : undefined
+  // The frame draws it as the latest lifer's row (image.ts paintRow, round 6, items 4 and 17): on Desktop, Post and
+  // Square one line, the name first and then the detail (or its short form, `label`); stacked on the Story; a poster's foot.
+  const latestAs = oldRow ? { row: oldRow, label: fmt(tt.oldestLabel, { age: oldAge }), detail: fmt(tt.oldestDetail, { age: oldAge }), poster: fmt(tt.oldestPoster, { name: o.nameOf?.(oldRow) ?? oldRow.com, age: oldAge }) } : undefined
   const cover = taxonCover(all.rows, codes)
   const totals = chosenTotals(TOTALS, o.totals).map((k) => ({ k, n: formatInt(cover[k][0], t.num), total: formatInt(cover[k][1], t.num), label: tt.rank[k].toUpperCase() }))
   /** What drawing a level takes: its drawing's tree (without its time scale when that is off), its tips and their names. */
@@ -172,16 +225,20 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     // once its height is known (round 6: no empty band above or below it).
     const room: Area = { x: full.x, y: full.y + head, w: full.w, h: full.h - head }
 
-    const axisIn = (h: number) => timeScale && h >= 520 && shown.tips.length > 0
+    // The axis wherever the time scale is on (round 6, item 14: no height it needs first; Square had none).
+    const axisIn = (h: number) => timeScale && h > 0 && shown.tips.length > 0
     const axis = axisIn(room.h)
     // The key's line only when the image has a mark or a dotted tip (either rank that may be drawn).
     const keyH = [...shown.tips, ...(deep?.tips ?? [])].some((r) => r.dotted || (r.kind === 'group' && !!r.with)) ? KEY_H : 0
     /** What a layout needs under its drawing: the axis's lines beyond the drawing's own room, then the key. */
     const under = (kind: 'fan' | 'circle' | 'rows') => (axis ? (kind === 'rows' ? AXIS_H : kind === 'fan' ? FAN_AXIS : CIRCLE_AXIS) : 0) + keyH
+    // The lines' and dots' scale: 1, except for rows closer than a dot and its stroke (DOT_PITCH), where both shrink with
+    // the pitch so neighbouring dots never run together (Perching birds' 141 families).
+    let lineK = 1
     const stroke = (on: boolean) => {
       ctx.strokeStyle = on ? C.ink : C.line
       ctx.globalAlpha = on ? 1 : 0.55
-      ctx.lineWidth = on ? 2.5 : 1.5
+      ctx.lineWidth = (on ? 2.5 : 1.5) * lineK
     }
     const branch = (d: string, on: boolean, dash: boolean) => {
       if (!d) return
@@ -196,7 +253,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     // The tips' hollow dots: Paper inside (the line's colour on a transparent image), so no branch shows through.
     const tipDots = (points: [number, number][], on: (i: number) => boolean) => {
       for (const want of [false, true]) {
-        const d = points.filter((_, i) => on(i) === want).map(([x, y]) => circlePath(x, y, IMAGE_SIZES.dot)).join('')
+        const d = points.filter((_, i) => on(i) === want).map(([x, y]) => circlePath(x, y, IMAGE_SIZES.dot * lineK)).join('')
         if (!d) continue
         const p = new Path2D(d)
         ctx.save()
@@ -256,17 +313,52 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     let y: number
     let axisAt: (v: number) => number[]
     let axisY: number
+    let rowsTreeEnd = 0
     // Whether each round layout names every tip of the screen's rank here, told to the dialog (onTreeFits), which shows
     // one that cannot as off and asks for Rectangular instead; a layout that cannot is drawn as rows meanwhile, never cut.
     // The deeper rank is drawn with the floor it was checked at, so its names print at TREE_NAME_MIN_PT or more.
-    const round = (sp: LabelSpan[], kind: 'fan' | 'circle', sizes: LabelSizes) => (shown.root ? fitRound(sp, kind, { w: room.w, h: room.h - under(kind) }, sizes) : undefined)
-    const shownFans = { fan: round(shownSpans, 'fan', IMAGE_SIZES), circle: round(shownSpans, 'circle', IMAGE_SIZES) }
-    o.onTreeFits?.({ fan: !!shownFans.fan, circle: !!shownFans.circle })
+    // The Radial with its time scale opens at the top (RADIAL_GAP), as on screen, and its ages are written there, where
+    // no branch runs (round 6, item 5): each that fits the opening, 0 on the tips' ring included.
+    const ageW = (v: number) => { ctx.font = font.footer(MONO); return ctx.measureText(formatAge(v, t.num)).width + 10 }
+    const AGE_H = MONO * 1.4
+    // The image's ages are larger than the screen's, so the opening widens (4° at a time, to 48° at most) until 0 and
+    // the next age fit it, as long as the names keep three quarters of their size.
+    const fitIn = (sp: LabelSpan[], kind: 'fan' | 'circle', rm: { w: number; h: number }, sizes: LabelSizes, rootAge: number) => {
+      if (kind === 'fan' || !timeScale) return fitImage(sp, kind, rm, sizes)
+      // 0 on the tips' ring and the first age far enough inside it not to touch 0's label.
+      const fits = (f: RoundFit) => {
+        const next = ageTicks(rootAge).find((a) => a > 0 && a / rootAge <= 0.97 && (a / rootAge) * f.R >= AGE_H + 2)
+        return inOpening(f, sp.length, f.R, ageW(0) + f.st, AGE_H) && (next === undefined || inOpening(f, sp.length, (1 - next / rootAge) * f.R, ageW(next), AGE_H))
+      }
+      const first = fitImage(sp, kind, rm, { ...sizes, gap: RADIAL_GAP })
+      if (!first || fits(first)) return first
+      for (let deg = 20; deg <= 48; deg += 4) {
+        const f = fitImage(sp, kind, rm, { ...sizes, gap: (deg * Math.PI) / 180 })
+        if (!f || f.px < first.px * 0.75) break
+        if (fits(f)) return f
+      }
+      return first
+    }
+    const round = (sp: LabelSpan[], kind: 'fan' | 'circle', sizes: LabelSizes, rootAge: number) => (shown.root ? fitIn(sp, kind, { w: room.w, h: room.h - under(kind) }, sizes, rootAge) : undefined)
+    const shownAge = shown.view.drawing.rootAge
+    const shownFans = { fan: round(shownSpans, 'fan', IMAGE_SIZES, shownAge), circle: round(shownSpans, 'circle', IMAGE_SIZES, shownAge) }
+    // The same for this card's other orientation (round 6, item 11: the Fan is drawn on the horizontal card, the others on
+    // the vertical one), so the dialog offers only what each one's image can draw, before it is drawn.
+    const pair = PAIR_CARD[o.format]
+    const byCard: Partial<Record<CardFormat, Record<'fan' | 'circle', boolean>>> = { [o.format]: { fan: !!shownFans.fan, circle: !!shownFans.circle } }
+    if (pair && shown.root) {
+      const c2 = cardLayout(pair, { name: !!o.name?.trim(), filter: !!o.filterLabel?.trim(), latest: !!oldRow, count: 0, countSize: 'hide' }, posterSize ? printDesign(posterSize, pair === 'printLandscape') : undefined).collage
+      const h2 = c2.h - totalsAt(c2.w).head
+      const fitsOn = (kind: 'fan' | 'circle') => !!fitIn(shownSpans, kind, { w: c2.w, h: h2 - (axisIn(h2) ? (kind === 'fan' ? FAN_AXIS : CIRCLE_AXIS) : 0) - keyH }, IMAGE_SIZES, shownAge)
+      byCard[pair] = { fan: fitsOn('fan'), circle: fitsOn('circle') }
+    }
+    o.onTreeFits?.({ fan: !!shownFans.fan, circle: !!shownFans.circle }, byCard)
     const deepSizes = { ...IMAGE_SIZES, floor: Math.max(IMAGE_SIZES.floor, posterSize ? treeNameMinPx(posterSize) : 0) }
-    const fit = want === 'rows' ? undefined : drawDeep ? round(spans, want, deepSizes) : shownFans[want]
+    const fit = want === 'rows' ? undefined : drawDeep ? round(spans, want, deepSizes, view.drawing.rootAge) : shownFans[want]
     const shape = fit ? (fit.shape ?? 'fan') : 'rows'
-    // The rows' scale (the largest pitch the room allows, PITCH_MAX at most) and the drawing's height, then the block's top.
-    const k = Math.min((room.h - under('rows')) / view.height, PITCH_MAX / ROW_H)
+    // The rows' scale (round 6, item 5: the pitch the whole room allows, so the rows fill it) and the drawing's height,
+    // then the block's top.
+    const k = (room.h - under('rows')) / view.height
     const drawH = fit ? fit.up + fit.down : view.height * k
     const blockTop = full.y + Math.max(0, (full.h - head - drawH - under(shape)) / 2)
     drawTotals(blockTop)
@@ -274,7 +366,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
 
     if (fit) {
       // The fan or circle, centred across, its top at the block's.
-      const box: FanBox = { cx: area.x + fit.cx, cy: area.y + fit.up, R: fit.R, shape: fit.shape }
+      const box: FanBox = { cx: area.x + fit.cx, cy: area.y + fit.up, R: fit.R, shape: fit.shape, ...(fit.open ? { open: fit.open } : {}) }
       const d = drawFan(root!, tipOn(tips), stem, (_, i) => tips[i].dotted, box)
       if (timeScale) {
         ctx.save()
@@ -330,29 +422,34 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
         axisAt = (v) => ringLabels(box, (1 - v / d.rootAge) * box.R).map(([x]) => x)
       }
       if (axis && shape === 'circle') {
+        // The ages on the radius straight up, inside the opening (round 6: where no branch runs, as on screen), 0 on
+        // the tips' ring included; on Paper over their rings, none over another (clearTicks keeps 0 and the oldest).
+        const items = ageTicks(d.rootAge).filter((a) => a / d.rootAge <= 0.97).flatMap((v) => {
+          const rr = (1 - v / d.rootAge) * box.R, w = ageW(v)
+          if (!inOpening(box, tips.length, rr, w + (v === 0 ? S : 0), AGE_H)) return []
+          const [x, ry] = ringLabels(box, rr)[0]
+          return [{ v, x, ry, w, x0: x - w / 2, x1: x + w / 2, y0: ry - AGE_H / 2, y1: ry + AGE_H / 2 }]
+        })
         ctx.font = font.footer(MONO)
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        for (const v of ageTicks(d.rootAge).filter((a) => a > 0 && a / d.rootAge <= 0.97)) {
-          for (const [x, ry] of ringLabels(box, (1 - v / d.rootAge) * box.R)) {
-            const text = formatAge(v, t.num)
-            const w = ctx.measureText(text).width + 10
-            if (!clearOfEnds(d.ends, x, ry, w, MONO * 1.4)) continue
-            if (!card.transparent) {
-              ctx.fillStyle = C.paper
-              ctx.fillRect(x - w / 2, ry - MONO * 0.7, w, MONO * 1.4)
-            }
-            ctx.fillStyle = C.muted
-            ctx.fillText(text, x, ry)
+        for (const a of clearTicks(items, 0)) {
+          if (!card.transparent) {
+            ctx.fillStyle = C.paper
+            ctx.fillRect(a.x0, a.y0, a.w, AGE_H)
           }
+          ctx.fillStyle = C.muted
+          ctx.fillText(formatAge(a.v, t.num), a.x, a.ry)
         }
       }
     } else {
       const bodyH = drawH
       const top = area.y
-      const treeW = Math.round(area.w * ROWS_TREE)
+      // The labels first (rowsLabels): the drawing takes what they leave, at most half the width.
+      const { px, box, counts, col, treeW } = rowsLabels(spans, ROW_H * k, area.w - IMAGE_SIZES.dot)
       const dotX = area.x + treeW
       const ys = tips.map((r) => top + (r.top + ROW_H / 2) * k)
+      lineK = Math.min(1, (ROW_H * k) / DOT_PITCH)
       if (root) {
         ctx.save()
         ctx.translate(area.x, 0)
@@ -363,7 +460,6 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       // Every tip named: past its dot a gap, the sticker's box, a gap, the name; the count right-aligned in the column
       // just after the longest name, where it fits.
       const textX = dotX + IMAGE_SIZES.dot
-      const { px, box, counts, col } = rowsLabels(spans, ROW_H * k, area.x + area.w - textX)
       const g = px * LABEL_GAP
       ctx.textBaseline = 'middle'
       tips.forEach((r, i) => {
@@ -389,6 +485,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       y = top + bodyH
       axisY = y + 18
       axisAt = (v) => [area.x + (1 - v / view.drawing.rootAge) * treeW]
+      rowsTreeEnd = area.x + treeW
       if (axis) {
         ctx.fillStyle = C.hairline
         ctx.fillRect(area.x, y + 8, treeW, 2)
@@ -403,11 +500,17 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       const rootAge = view.drawing.rootAge
       ctx.textBaseline = 'top'
       ctx.textAlign = 'center'
-      for (const v of ageTicks(rootAge).filter((a) => a / rootAge <= 0.97 || a === 0)) for (const x of axisAt(v)) ctx.fillText(formatAge(v, t.num), x, axisY)
+      // Each side's ages none over another (the Fan's two sides apart): 0 and the oldest kept first (clearTicks).
+      const ticks = ageTicks(rootAge).filter((a) => a / rootAge <= 0.97 || a === 0)
+      const items = ticks.flatMap((v) => axisAt(v).map((x) => {
+        const w = ctx.measureText(formatAge(v, t.num)).width
+        return { v, x, x0: x - w / 2, x1: x + w / 2, y0: axisY, y1: axisY + MONO }
+      }))
+      for (const a of clearTicks(items)) ctx.fillText(formatAge(a.v, t.num), a.x, axisY)
       if (shape === 'fan') ctx.fillText(clipText(ctx, tt.axis, area.w), area.x + area.w / 2, axisY + MONO + 6)
       else if (shape === 'circle') ctx.fillText(clipText(ctx, tt.axis, area.w), area.x + area.w / 2, axisY)
       else {
-        const textX = area.x + Math.round(area.w * ROWS_TREE) + 16
+        const textX = rowsTreeEnd + 16
         ctx.textAlign = 'left'
         ctx.fillText(clipText(ctx, tt.axis, area.x + area.w - textX), textX, axisY)
       }
@@ -442,6 +545,8 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   }, undefined, sampleText([...shown.tips.map(shown.nameOf), ...(deep?.tips.map(deep.nameOf) ?? [])], [...shown.tips, ...(deep?.tips ?? [])].map(countText), totals, tt))
 }
 
+/** Each card's other orientation: the Fan's horizontal card for the others' vertical one, and back (Square is both). */
+const PAIR_CARD: Partial<Record<CardFormat, CardFormat>> = { story: 'desktop', desktop: 'story', post: 'wide', wide: 'post', print: 'printLandscape', printLandscape: 'print' }
 /** Every text the image draws besides the frame's, so its fonts are loaded first. */
 function sampleText(names: string[], counts: string[], totals: readonly { n: string; total: string; label: string }[], tt: Ui['collage']['tree']): string {
   return `${names.join('')}${counts.join('')}${totals.map((x) => `${x.n}${x.label}`).join('')}${tt.axis}${tt.keyMark}${tt.keyDotted}`

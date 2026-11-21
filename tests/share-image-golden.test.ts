@@ -4,6 +4,11 @@
 // checked against the renderer from before the prepareCard / paintCard split (4c1dce0^): every draw, with the state it
 // is drawn in, was identical; the only difference was that the footer is now measured on a scratch canvas, so the old
 // log's measureText calls (and their font and textBaseline sets) between the filter line and the latest lifer are gone.
+// Retaken 2026-11-20 for round 6, item 17: the latest lifer row is the Tree's oldest lineage row (one line, name first,
+// on the post and the square; the smaller stacked row on the story); the only other change is the collage taking the room
+// it frees (the count and the tiles lower); every case without the row is byte-identical.
+// Then the cases with the row on the story, post and square again: the collage ends a credit line higher, the room the
+// footer lifts the row by when its credit takes its own line (only the tiles and the count move).
 import { en } from '@/i18n/messages/en'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as image from '@/lib/share/image'

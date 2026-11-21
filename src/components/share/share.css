@@ -1,16 +1,16 @@
 /* The share dialog: a modal, preview beside the controls from 720px, stacked below. The preview is as large as its
-   column allows (Yusuf, 2026-11-15: no narrow story between grey bands; round 6: no empty bands at all): its box takes
-   the shown image's own shape (data-format: 9:16, 4:5 or 1:1, or horizontal 16:9, 5:4 and the landscape poster), so
-   nothing is letterboxed. Beside the controls it is as tall as the controls' column (--col-h, measured by ShareDialog),
-   its top on the column's top, so the dialog is only as tall as its content; it is pinned at its top and grows
-   downward. It never scrolls sideways: the preview's size is bound by the window's width as well as its height. */
+   room allows (Yusuf, 2026-11-15: no narrow story between grey bands): its box takes the shown image's own shape
+   (data-format: 9:16, 4:5 or 1:1, or horizontal 16:9, 5:4 and the landscape poster), so nothing is letterboxed. Beside
+   the controls (round 6, item 10) the dialog is as large as the window allows, centred, and the preview fills the room
+   left of the column, at its top. It never scrolls sideways: the preview's size is bound by the window's width as
+   well as its height. */
 .eb-share-scrim { position: fixed; inset: 0; z-index: var(--z-dialog-scrim); background: rgb(0 0 0 / .28); display: grid; place-items: center; padding: 16px; }
 /* Stacked, the dialog keeps its top edge (a shorter preview never moves the format control above it). The body is a
    size container here only, so the preview's width and height are both explicit (from the body's width and --cap) and
-   can ease to a new shape; an aspect-ratio would snap. Never in the desktop layout: there the dialog is
-   width: fit-content, which inline-size containment would collapse. */
+   can ease to a new shape; an aspect-ratio would snap. The preview's area is no box of its own here. */
 @media (max-width: 719.98px) {
   .eb-share-scrim { align-items: start; }
+  .eb-share-area { display: contents; }
   .eb-share-body { container-type: inline-size; }
   .eb-share-preview { width: min(100cqw, var(--cap) * var(--ar)); height: min(var(--cap), 100cqw / var(--ar)); }
   /* The actions come straight under the preview (Share image, or in the poster Make poster, on the first screen; the
@@ -43,17 +43,16 @@
 
 /* The body: the format control, the preview, then the rest of the controls; stacked on phones (the format control
    above the preview's area, the controls under it, so neither moves when the preview changes shape), a grid from 720px
-   (the preview on the left down both rows, the format control over the rest of the controls on the right).
+   (the preview's area on the left down both rows, the format control over the rest of the controls on the right).
    No scrolling on a laptop with everything closed (Yusuf, 2026-11-20; round 6): from 1200px the controls' column is
-   480px; a 1440 × 830 window leaves the body 830 − 140 (the dialog pinned 32px from the top, 16px under it, its border,
+   480px; a 1440 × 830 window leaves the body 830 − 140 (the dialog 32px from the top, 16px from the bottom, its border,
    padding, head and gap) = 690px, and the tallest column with everything closed, the collage poster once made with a
-   status line and the filters line, takes 688: the top row 54, 12, the title 64 (its label's 18px line, 6, the 40px
+   status line and the filters line, takes 674: the top row 40, 12, the title 64 (its label's 18px line, 6, the 40px
    field), 8, the list 273 (the size 45, then Arrangement, Appearance and Count, 40 each, Show latest lifer, Show species
    names and Transparent background, 36 each), 8, Export in batches' row 36 in its box's 1px border, 38, 12, the actions 88 (Download PNG and Download PDF,
    then Copy link), the status 12 + 21, the filters line 12 + 36, the coffee button 12 + 38. Print has no Goal. Rows
    are 36px with a mouse (40 with a segmented control), 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css still
-   says them. Opened (Export in batches, a goal), the column scrolls inside the dialog: the dialog and the preview keep
-   the closed column's size (--scroll-h, ShareDialog's closedHeight). */
+   says them. Opened (Export in batches, a goal), the column scrolls inside the dialog, which keeps its size. */
 .eb-share-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 20px; min-width: 0; }
 /* One row: the format control (not in the poster) and the orientation switch, words only (each button's spoken name
    keeps its ratio). Where the two don't fit side by side (German and Russian at 480px, every language on a phone) the
@@ -106,50 +105,30 @@
    a square), so the buttons under it move with the format. From 720px the media query below sets the rows. */
 .eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 340px, 600px)); grid-template-rows: auto auto auto; }
 
-/* Beside the controls: the dialog is pinned 32px from the window's top (--top) and grows downward, at most to 16px
-   above the window's bottom; it never re-centres, so opening Export in batches or adding a goal never moves it. The
-   body has at most --tall (the window less those 48px and the dialog's 92px of chrome: border, padding, head, gap); the
-   controls' column scrolls inside it when taller (.eb-share-scroll), the format row staying. The preview is --pv-h tall:
-   the controls' column's height (--col-h: the format row, the gap and the controls, measured), never more than --tall,
-   and never wider than the window leaves beside the column (--room: --ctl 300px, 420px from 1000px, 480px from 1200px,
-   so the format and the orientation share one row; 92px of padding and gap, 16px of slack for a scrollbar; no preview
-   wider than 560px, --wide). The height is --pv-h, not --h, which collage.css registers as a number. Its top is the
-   column's top, nothing centred in leftover room. The dialog's right edge (--pad-r from the window's) stays where the
-   widest vertical (square) dialog's would end when centred, in every format and orientation (round 6: nothing moves),
-   so another format grows or shrinks the dialog leftward and the controls never move. */
+/* Beside the controls (round 6, item 10, the maintainer: as big as possible, centred): the dialog is centred across
+   the window and pinned 32px from its top (--top), 16px from its sides and its bottom, and as large as that leaves, at
+   most 1,440 × 1,000 (--dlg-w, --dlg-h). Its size comes from the window alone: never from the format, the
+   orientation, the subject, the options shown or anything opened, so nothing moves when any of those change. Inside,
+   two parts, both top-aligned: the controls' column at the right (--ctl: 300px, 420px from 1000px, 480px from 1200px;
+   the format row over the rest, which scrolls only when taller than the dialog) and the preview's area taking all the
+   rest (.eb-share-area, a size container). The preview's box, the image's own shape, is as large as that area allows
+   (contain: never cropped, never letterboxed), at its top and centred across it; a narrower shape leaves room at its
+   sides. */
 @media (min-width: 720px) {
-  .eb-share-scrim {
-    --ctl: 300px; --wide: 560px; --top: 32px; --room: min(100vw - var(--ctl) - 108px, var(--wide));
-    --tall: max(240px, 100dvh - var(--top) - 16px - 92px);
-    --pad-r: max(16px, (100vw - (max(240px, min(var(--tall), var(--room))) + var(--ctl) + 62px)) / 2);
-    place-items: start end; padding-top: var(--top); padding-right: var(--pad-r);
+  .eb-share-scrim { --ctl: 300px; --top: 32px; --dlg-w: 1440px; --dlg-h: 1000px; place-items: start center; padding-top: var(--top); }
+  .eb-share-scrim .eb-share {
+    width: min(100%, var(--dlg-w)); height: min(100dvh - var(--top) - 16px, var(--dlg-h)); max-height: none; overflow: hidden;
   }
-  .eb-share-scrim .eb-share { max-height: calc(100dvh - var(--top) - 16px); overflow: hidden; }
-  .eb-share { width: fit-content; max-width: 100%; }
-  /* The first row is max-content (the format control and the orientation, 54px, or 116 where they wrap), never less;
-     the second takes what is left of the body, which shrinks to the dialog's room (flex: 0 1 auto). */
-  .eb-share-body { grid-template-columns: auto var(--ctl); grid-template-rows: max-content minmax(0, 1fr); flex: 0 1 auto; min-height: 0; }
-  .eb-share-preview {
-    grid-column: 1; grid-row: 1 / span 2; align-self: start;
-    --pv-h: max(160px, min(var(--col-h, var(--tall)), var(--tall), var(--room) / var(--ar)));
-    height: var(--pv-h); width: calc(var(--pv-h) * var(--ar));
-  }
+  /* The first row is max-content (the format control and the orientation), the second takes the rest of the body. */
+  .eb-share-body { grid-template-columns: minmax(0, 1fr) var(--ctl); grid-template-rows: max-content minmax(0, 1fr); flex: 1 1 auto; min-height: 0; }
+  .eb-share-area { grid-column: 1; grid-row: 1 / span 2; min-width: 0; min-height: 0; container-type: size; display: flex; justify-content: center; align-items: flex-start; }
+  .eb-share-preview { flex: none; width: min(100cqw, 100cqh * var(--ar)); height: min(100cqh, 100cqw / var(--ar)); }
   .eb-share-formats, .eb-share-scroll { grid-column: 2; }
   .eb-share-formats { grid-row: 1; }
-  /* The column scrolls on its own; its 8px inset (padding, taken back by the margin) keeps focus rings and the coffee
-     button's press inside what it shows. */
+  /* The column scrolls on its own, only when taller than the dialog; its 8px inset (padding, taken back by the margin)
+     keeps focus rings and the coffee button's press inside what it shows. It fills its row, so the coffee button sits
+     at the dialog's foot. */
   .eb-share-scroll { grid-row: 2; min-height: 0; overflow: hidden auto; overscroll-behavior: contain; padding: 8px; margin: -8px; }
-  /* At most the closed column's height (measured without what Export in batches and the goal open): opening them scrolls
-     the column, never resizes the dialog or the preview (round 6). */
-  .eb-share-scroll { max-height: var(--scroll-h, none); }
-}
-/* Horizontal (the desktop, the wide post, the landscape poster): the same dialog, its right edge and its controls'
-   column where Vertical has them (the scrim's --pad-r, the same --ctl), so switching moves nothing but the preview.
-   The preview may take the whole width left of the column (--room on the preview: the window less --pad-r, the column,
-   the dialog's 62px of padding, border and gap, the scrim's 16px on the left and 16px of slack for a scrollbar), its
-   height following its shape, at most the column's and the window's. */
-@media (min-width: 720px) {
-  .eb-share-scrim[data-layout="wide"] .eb-share-preview { --room: calc(100vw - var(--pad-r) - var(--ctl) - 94px); }
 }
 @media (min-width: 1000px) { .eb-share-scrim { --ctl: 420px; } }
 @media (min-width: 1200px) { .eb-share-scrim { --ctl: 480px; } }
@@ -161,7 +140,9 @@
 @keyframes eb-share-spin { to { transform: rotate(360deg); } }
 .eb-share-failed { position: absolute; inset: auto 12px 12px; text-align: center; }
 
-.eb-share-controls { display: flex; flex-direction: column; gap: 12px; min-width: 0; container-type: inline-size; }
+.eb-share-controls { display: flex; flex: none; flex-direction: column; gap: 12px; min-width: 0; container-type: inline-size; }
+/* The column: the controls, then the coffee button at its foot. */
+.eb-share-scroll { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 /* An empty status line takes no room: its gap is taken back (it stays in the page, so what it says later is read). */
 .eb-share-controls > [role="status"]:empty { margin-top: -12px; }
 /* The title: its label (and the muted "(optional)") above the field, the field the column's full width. */
@@ -400,11 +381,19 @@
 }
 .eb-seg-btn svg { display: block; flex: none; width: 18px; height: 18px; }
 .eb-seg-btn[aria-pressed="true"] { opacity: 1; background: var(--surface); }
+/* In the dialog the chosen segment's words (or icon) are Accent on its Surface, as the dock's active view tab
+   (round 6, item 7): the format, the orientation and every choice and Totals chip in the rows. */
+.eb-share .eb-seg-btn[aria-pressed="true"] { color: var(--accent); }
 /* The format and orientation words keep 16px (in px, as the switch's label does), so a reader's larger text size never
    pushes them past the control on a small phone (at 320px and 200% they overlapped). Under 290px of column (a 320px
    phone gives 246px) the gaps, padding and text shrink (under 400px, the 300px column, the padding first), so Russian's "Вертикально | Горизонтально" keeps its line
    (tests/share-fit.test.ts). */
 .eb-share .eb-seg-btn { font-size: 16px; }
+/* The format and orientation controls are as tall as the title field and the action buttons (round 6, item 8): 44px
+   drawn (34px segments in the 4px inset and 1px border), 40px with a mouse; on touch the segments' press is 44px. */
+.eb-share .eb-share-toprow .eb-seg-btn { position: relative; min-height: 34px; }
+.eb-share .eb-share-toprow .eb-seg-btn::after { content: ''; position: absolute; inset: -5px 0; }
+@media (pointer: fine) { .eb-share .eb-share-toprow .eb-seg-btn { min-height: 30px; } }
 @container (max-width: 499px) { .eb-seg-btn svg { display: none; } }
 @container (max-width: 399px) { .eb-share .eb-share-toprow .eb-seg-btn { padding: 0 8px; } }
 @container (max-width: 289px) {

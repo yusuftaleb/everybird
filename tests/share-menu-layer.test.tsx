@@ -1,12 +1,10 @@
 // @vitest-environment jsdom
-// The share dialog's round 6, items 7 and 9: opening Export in batches or a goal leaves the dialog's and the preview's
-// size to the closed column (closedHeight), and its dropdowns open in a layer over everything, fixed to their button,
-// upward when there is no room below (menuPlace).
+// The share dialog's round 6, item 9: its dropdowns open in a layer over everything, fixed to their button, upward when
+// there is no room below (menuPlace). (Item 7's closed-height measure is gone: the dialog's size is the window's.)
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createRef, useRef } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { closedHeight } from '@/components/share/ShareDialog'
 import { MenuSelect, menuPlace } from '@/components/share/MenuSelect'
 
 afterEach(cleanup)
@@ -32,25 +30,6 @@ describe('menuPlace: a menu fixed to its button', () => {
   it('never past the window: its left edge kept 8px inside', () => {
     expect(menuPlace({ top: 100, bottom: 136, right: 150 }, 100, 200, vw, vh).right).toBe(vw - 8 - 200)
     expect(menuPlace({ top: 100, bottom: 136, right: 1439 }, 100, 200, vw, vh).right).toBe(8)
-  })
-})
-
-describe('closedHeight: the column as if nothing were opened', () => {
-  const sized = (el: HTMLElement, h: number) => Object.defineProperty(el, 'offsetHeight', { configurable: true, value: h })
-  it('leaves out what Export in batches and a goal open', () => {
-    const col = document.createElement('div')
-    const body = document.createElement('section')
-    body.dataset.opened = ''
-    const goal = document.createElement('div')
-    goal.dataset.opened = 'grow'
-    goal.style.minHeight = '36px'
-    col.append(body, goal)
-    sized(col, 900)
-    sized(body, 180)
-    sized(goal, 80) // the open goal wrapped to two lines: 44px more than its closed row
-    expect(closedHeight(col)).toBe(900 - 180 - 44)
-    sized(goal, 36)
-    expect(closedHeight(col)).toBe(900 - 180)
   })
 })
 

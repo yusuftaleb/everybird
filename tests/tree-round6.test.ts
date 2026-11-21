@@ -229,15 +229,18 @@ describe('Rectangular: half the width, the counts at the right edge', () => {
     expect(rowsTreeW(320)).toBe(120)
     expect(rowsTreeW(200)).toBe(112)
   })
-  it("rowsLabels (the share image): the counts in their own column at the text's right edge, the card's (round 6)", () => {
+  it("rowsLabels (the share image): the counts in their own column at the card's right edge, never dropped (round 6)", () => {
     const spans = [{ name: 4, count: 2, on: true }, { name: 6, count: 2.5, on: true }]
-    const { counts, col } = rowsLabels(spans, 44, 2000)
+    const { counts, col, treeW } = rowsLabels(spans, 44, 2000)
     expect(counts).toEqual([true, true])
-    expect(col).toBe(2000)
-    // A narrow area drops a count that would touch its name; the column stays at the edge.
+    // Room to spare: the drawing takes half the width, the text the other half, its counts at the edge.
+    expect(treeW).toBe(1000)
+    expect(col).toBe(1000)
+    // A narrow area: the drawing gives way first (down to a fifth), then the names shrink; every count stays.
     const tight = rowsLabels([{ name: 4, count: 2, on: true }, { name: 9, count: 3, on: true }], 44, 300)
-    expect(tight.col).toBe(300)
-    expect(tight.counts[0]).toBe(true)
+    expect(tight.counts).toEqual([true, true])
+    expect(tight.treeW).toBe(60)
+    expect(tight.col).toBe(240)
   })
 })
 

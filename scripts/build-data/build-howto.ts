@@ -107,9 +107,10 @@ export function makeHowtoData(readData: <T>(file: string) => T = read): string {
     const tiles = Object.fromEntries([...p.boxes].map(([id, b]) => [BIRDS[id], box(fitBox(fit, b))]))
     const g = Math.min(fit.grow, 1.3)
     const count = { cx: r1(fit.cx), cy: r1(fit.cy), size: Math.round(L.count.size * g), labelSize: Math.round(L.count.labelSize * Math.min(g, 1.15)), gap: Math.round(L.count.gap * g) }
-    // The row's four numbers (the About demo draws the row above the hairline; x and the column width are the card's own).
-    const { y, icon, label, name } = L.latest!
-    return [format, { W: L.W, H: L.H, tiles, count, latest: { y, icon, label, name }, rule: L.rule.y, footer: L.footer.y }]
+    // The row's numbers (the About demo draws the row above the hairline; x and the column width are the card's own), and
+    // whether it is the one-line row (round 6, item 17: Post and Square; the Story stacks it).
+    const { y, icon, label, name, inline } = L.latest!
+    return [format, { W: L.W, H: L.H, tiles, count, latest: { y, icon, label, name, ...(inline ? { inline } : {}) }, rule: L.rule.y, footer: L.footer.y }]
   }))
 
   const threatened = BIRDS.filter((c) => { const iu = byCode.get(c)!.iu; return !!iu && THREAT_CATS.includes(iu) }).length
@@ -139,7 +140,7 @@ export const NAMES: Record<string, string> = ${JSON.stringify(names)}
  * box, drawn at 1/z), each sticker's box (px, from the box's top left). */
 export const COLLAGE: Record<'wide' | 'compact', { W: number; H: number; F: number; z: number; all: Record<string, Box>; herons: Record<string, Box> }> = ${JSON.stringify(collage)}
 /** The share images (px of the 1080-wide image): sticker tiles, the count at the collage's centre, the latest lifer row, the rule and the footer. */
-export const SHARE: Record<'story' | 'post' | 'square', { W: number; H: number; tiles: Record<string, Box>; count: { cx: number; cy: number; size: number; labelSize: number; gap: number }; latest: { y: number; icon: number; label: number; name: number }; rule: number; footer: number }> = ${JSON.stringify(share)}
+export const SHARE: Record<'story' | 'post' | 'square', { W: number; H: number; tiles: Record<string, Box>; count: { cx: number; cy: number; size: number; labelSize: number; gap: number }; latest: { y: number; icon: number; label: number; name: number; inline?: boolean }; rule: number; footer: number }> = ${JSON.stringify(share)}
 `
   return out
 }

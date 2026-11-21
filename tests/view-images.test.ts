@@ -29,15 +29,29 @@ describe('the map image', () => {
       const area = { x: c.x, y: c.y + 100, w: c.w, h: c.h - 100 }
       const grid = !mapListsInColumn(format)
       expect(grid, format).toBe(format !== 'story' && format !== 'print')
-      const L = mapImageLayout(area, 12, true, grid)
+      // The world (2000 × 983) at the area's full width.
+      const mapH = (983 * area.w) / 2000
+      const L = mapImageLayout(area, 12, true, grid, mapH)
       expect(L.rows, format).toBe(6)
       expect(L.cols, format).toBe(grid ? 3 : 1)
       const list = L.list!
-      expect(list.h, format).toBe(grid ? 64 + 46 : 5 * 64 + 46)
       expect(list.y + list.h, format).toBeLessThanOrEqual(area.y + area.h + 1e-6)
       // The map's box is the area's width, the rest of its height once the legend and the list are under it.
       expect(L.map.w, format).toBe(area.w)
       expect(L.map.y + L.map.h + L.legendH, format).toBeLessThan(list.y)
+      if (grid) {
+        expect(L, format).toMatchObject({ k: 1, pitch: 64 })
+        expect(list.h, format).toBe(64 + 46)
+      } else {
+        // The column (round 6): the map at the full width, its box exactly the map's height, and the rows grown to fill
+        // the rest down to the area's foot, nothing left over (no empty band under the six countries).
+        expect(L.map.h, format).toBeCloseTo(mapH, 6)
+        expect(list.y + list.h, format).toBeCloseTo(area.y + area.h, 6)
+        expect(L.k, format).toBeGreaterThan(1.4)
+        expect(L.k, format).toBeLessThanOrEqual(2)
+        expect(L.pitch, format).toBeGreaterThanOrEqual(64 * L.k - 1e-6)
+        expect(fitBox(2000, 983, L.map).s * 2000, format).toBeCloseTo(area.w, 6)
+      }
       if (grid) {
         // The world (2000 × 983) takes the whole width where the height allows (Post), else as much as it allows: in
         // every format larger than with the places in a column.
@@ -71,6 +85,12 @@ describe('the map image', () => {
     expect(mapImageLayout(area, 0, false, true).list).toBeNull()
     const short = mapImageLayout({ x: 0, y: 0, w: 952, h: 300 }, 9, true, false)
     expect(short.rows).toBe(2)
+    // No room under a full-width map: the rows keep their size and the map shrinks into what is left.
+    expect(mapImageLayout({ x: 0, y: 0, w: 952, h: 600 }, 6, true, false, 468)).toMatchObject({ k: 1, pitch: 64 })
+    // Two places in a tall column: grown to the cap, spread at most a quarter more, the rest left to the centring.
+    const two = mapImageLayout({ x: 0, y: 0, w: 952, h: 1400 }, 2, true, false, 468)
+    expect(two).toMatchObject({ k: 2, pitch: 2 * 64 * 1.25 })
+    expect(two.map.h).toBeGreaterThan(468)
     expect(mapImageLayout({ x: 0, y: 0, w: 1800, h: 200 }, 9, true, true).rows).toBe(3)
   })
 })
@@ -103,21 +123,21 @@ describe('the tree image: four equal totals on top', () => {
   })
 })
 
-describe("the tree image's oldest lineage: a small row (round 6)", () => {
+describe("the row: the tree's oldest lineage and the collage's latest lifer, one form (round 6, items 4 and 17)", () => {
   const content = { name: true, filter: true, latest: true, count: 200 }
-  it('stacked, smaller than the latest lifer row and only the row gap from the drawing, so the drawing has more room', () => {
-    for (const format of ['story', 'post', 'square', 'wide'] as const) {
-      const big = cardLayout(format, content), small = cardLayout(format, { ...content, small: true })
-      expect(small.latest, format).toMatchObject({ icon: SMALL_ROW.icon, label: SMALL_ROW.label, name: SMALL_ROW.name, oneLine: false })
-      expect(small.latest!.icon).toBeLessThan(big.latest!.icon)
-      expect(small.collage.h, format).toBeGreaterThan(big.collage.h)
-    }
+  it('the Story stacks it (SMALL_ROW): the sticker and two lines, only the row gap from the drawing', () => {
+    const L = cardLayout('story', content)
+    expect(L.latest).toMatchObject({ icon: SMALL_ROW.icon, label: SMALL_ROW.label, name: SMALL_ROW.name })
+    expect(L.latest!.inline).toBeUndefined()
+    expect(L.latest!.y - (L.collage.y + L.collage.h)).toBe(24 + L.latest!.lift!)
   })
-  it('on the desktop, one line just above the hairline: the sticker, the label, the name', () => {
-    const L = cardLayout('desktop', { ...content, small: true })
-    expect(L.latest).toMatchObject({ icon: SMALL_INLINE.icon, inline: true, oneLine: false })
-    expect(L.latest!.y + L.latest!.icon).toBeLessThan(L.rule.y)
-    expect(L.collage.y + L.collage.h).toBeLessThan(L.latest!.y)
+  it('Desktop, Post (and its 5:4) and Square: one line just above the hairline (SMALL_INLINE), name first', () => {
+    for (const format of ['desktop', 'post', 'wide', 'square'] as const) {
+      const L = cardLayout(format, content)
+      expect(L.latest, format).toMatchObject({ icon: SMALL_INLINE.icon, label: SMALL_INLINE.label, name: SMALL_INLINE.name, inline: true })
+      expect(L.latest!.y + L.latest!.icon).toBeLessThan(L.rule.y)
+      expect(L.collage.y + L.collage.h).toBeLessThan(L.latest!.y)
+    }
   })
 })
 
@@ -135,13 +155,14 @@ describe('the round trees report how far they reach (round 6: the block is centr
 })
 
 describe('the tree image names every tip', () => {
-  it('Rectangular: one size for every name, small enough for the longest; the counts only where they fit', () => {
+  it('Rectangular: one size for every name, small enough for the longest with its count; every count kept (round 6)', () => {
     const spans = [{ name: 5, count: 3, on: true }, { name: 20, count: 3, on: false }, { name: 4, count: 0, on: false }]
-    const { px, box, counts } = rowsLabels(spans, 40, 500)
+    const { px, box, counts, col } = rowsLabels(spans, 40, 1000)
     expect(px).toBeLessThanOrEqual(30)
-    expect(box + px * (2 * LABEL_GAP + 20)).toBeLessThanOrEqual(500 + 1e-9) // the longest name fits whole
+    // The longest name and its count fit whole beside the drawing, which gave way first.
+    expect(box + px * (3 * LABEL_GAP + 20 + 3)).toBeLessThanOrEqual(col + 1e-9)
     expect(box).toBeLessThanOrEqual(40)
-    expect(counts).toEqual([true, false, false])
+    expect(counts).toEqual([true, true, false])
   })
   it('Fan and Radial: the image fits whatever the screen named, at its own scale', () => {
     // 45 tips the screen names at 900px wide fit the story's 952-unit area.

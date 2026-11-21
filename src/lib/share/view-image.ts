@@ -10,7 +10,7 @@ import type { AppState } from '@/lib/list/store'
 import type { TipRank, TreeLevel } from '@/lib/tree/levels'
 import type { TreeLayout } from '@/lib/tree-mine'
 import type { PrintSize } from './print'
-import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, loadStickers, paintCard, prepareCard, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
+import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, loadStickers, paintCard, prepareCard, type CardFormat, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
 /** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone (it
  *  draws no stickers, so no sticker credit), the tree's FOOTER_LINE (its tips carry stickers) and the tree's credit
@@ -35,8 +35,9 @@ export type ViewImageOpts = ShareImageOpts & {
   /** Device px per design unit (a poster's, print.ts viewPosterScale); default the format's IMAGE_SCALE, 1 for a poster's preview. */
   scale?: number
   /** The Tree image's: called with whether the Fan and the Radial name every tip in this image's area, so the dialog
-   *  shows one that cannot as off (its reason) rather than drawing another layout without a word. */
-  onTreeFits?: (fits: Record<'fan' | 'circle', boolean>) => void
+   *  shows one that cannot as off (its reason) rather than drawing another layout without a word; `byCard` has the same
+   *  for this card and its other orientation's (round 6, item 11), keyed by card format. */
+  onTreeFits?: (fits: Record<'fan' | 'circle', boolean>, byCard?: Partial<Record<CardFormat, Record<'fan' | 'circle', boolean>>>) => void
   /** The Tree poster's (Print's "Down to"): draw the rank under the one on screen, where every name prints at
    *  TREE_NAME_MIN_PT or more at this size; at a size where it does not, the screen's rank. */
   deeper?: boolean
@@ -109,7 +110,10 @@ export async function renderViewImage(opts: ShareImageOpts & { scale?: number },
   ctx.textAlign = 'center'
   ctx.textBaseline = 'alphabetic'
   lines.forEach((line, i) => ctx.fillText(line, c.x + c.w / 2, c.y + blockH + (i + 1) * lineH))
-  paint(ctx, card, { x: c.x, y: c.y + top, w: c.w, h: c.h - top })
+  // A row lifted with the footer (placeFooter's shift) by more than the room kept for it (L.latest.lift): the Tree's
+  // longer footer on Post 5:4. The drawing ends that much higher, so the row keeps its gap.
+  const lifted = L.latest ? Math.max(0, card.shift - (L.latest.lift ?? 0)) : 0
+  paint(ctx, card, { x: c.x, y: c.y + top, w: c.w, h: c.h - top - lifted })
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not encode the image'))), 'image/png')
   })

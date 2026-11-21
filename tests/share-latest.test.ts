@@ -1,6 +1,7 @@
 // Round 6's latest lifer on the images and posters: where it was seen (the province or state and the country, or the
-// country alone; never a county), the same gap above its row as the head has above the collage, and the poster foot's
-// sticker before its words (the collage's latest lifer and the Tree's oldest lineage alike). Synthetic list only.
+// country alone; never a county), its row the Tree's oldest lineage row (item 17: one line, name first, on Desktop, Post
+// and Square; stacked on the Story; the place dropped before the name is ever cut), and the poster foot's sticker before
+// its words (the collage's latest lifer and the Tree's oldest lineage alike). Synthetic list only.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { en } from '@/i18n/messages/en'
 import { ja } from '@/i18n/messages/ja'
@@ -41,10 +42,25 @@ describe('where the latest lifer was seen', () => {
     const none = await image.prepareCard({ format: 'print', printSize: 'A2', entries: seenAt({ country: 'KE' }), species, pack, now: NOW, theme: 'light', strings: en.ui })
     expect(none.posterLatest).not.toContain('Kenya')
   })
-  it('puts a place too long for the row\'s label on a line of its own under it, never cut', async () => {
+  it('on one line (Post): the name, then the detail; a place too long for the line beside the name is dropped, nothing cut', async () => {
+    const draw = async (monoEm: number) => {
+      const logs = installStubs({ monoEm })
+      image.clearStickerCache()
+      const canvas = await image.drawShareImage({ format: 'post', entries: seenAt({ country: 'CA', sub1: 'CA-NL' }), species, pack, now: NOW, theme: 'light', strings: en.ui, regions })
+      return drawsOnly(logs.get(canvas as unknown as object)!).filter((l) => l.startsWith('fillText('))
+    }
+    const fits = await draw(0.6)
+    expect(fits.some((l) => l.startsWith('fillText("Synthetic Bird 13"'))).toBe(true)
+    expect(fits.some((l) => /^fillText\("Latest lifer · [^"]*\d{4} · Newfoundland and Labrador, Canada"/.test(l))).toBe(true)
+    const tight = await draw(1.5)
+    expect(tight.some((l) => l.startsWith('fillText("Synthetic Bird 13"'))).toBe(true)
+    expect(tight.some((l) => /^fillText\("Latest lifer · [^"·]*\d{4}"/.test(l))).toBe(true)
+    expect(tight.some((l) => l.includes('Newfoundland') || l.includes('…'))).toBe(false)
+  })
+  it('stacked (Story): a place too long for the label takes a line of its own under it, never cut', async () => {
     const logs = installStubs({ monoEm: 1.2 })
     image.clearStickerCache()
-    const canvas = await image.drawShareImage({ format: 'post', entries: seenAt({ country: 'CA', sub1: 'CA-NL' }), species, pack, now: NOW, theme: 'light', strings: en.ui, regions })
+    const canvas = await image.drawShareImage({ format: 'story', entries: seenAt({ country: 'CA', sub1: 'CA-NL' }), species, pack, now: NOW, theme: 'light', strings: en.ui, regions })
     const texts = drawsOnly(logs.get(canvas as unknown as object)!).filter((l) => l.startsWith('fillText('))
     expect(texts.some((l) => /^fillText\("LATEST LIFER · [^"]*\d{4}"/.test(l))).toBe(true)
     expect(texts.some((l) => l.startsWith('fillText("NEWFOUNDLAND AND LABRADOR, CANADA"'))).toBe(true)
@@ -53,21 +69,18 @@ describe('where the latest lifer was seen', () => {
 })
 
 describe('the room above the latest lifer row', () => {
-  it('is the head\'s gap above the collage, in every format and orientation with a stacked row; without the row, as before', () => {
-    for (const format of ['story', 'post', 'square', 'wide'] as const) {
+  it('is the row\'s own gap (the oldest lineage row\'s, round 6 item 17), in every format; without the row, the collage takes it', () => {
+    for (const format of ['story', 'post', 'square', 'wide', 'desktop'] as const) {
       const L = image.cardLayout(format, { name: true, filter: false, latest: true, count: 120 })
-      const head = L.collage.y - (L.name!.y + L.name!.size)
-      expect(L.latest!.oneLine).toBe(false)
-      expect(L.latest!.y - (L.collage.y + L.collage.h), format).toBe(head)
+      // The 1080-wide cards keep the credit line placeFooter lifts the row by (`lift`); Post 5:4 and Desktop lift nothing.
+      expect(L.latest!.lift ?? 0, format).toBe(['story', 'post', 'square'].includes(format) ? L.footer.credit + 12 : 0)
+      expect(L.latest!.y - (L.collage.y + L.collage.h) - (L.latest!.lift ?? 0), format).toBe(format === 'square' ? 32 : 24)
+      expect(L.latest!.y + L.latest!.icon, format).toBeLessThan(L.rule.y)
+      expect(L.latest!.inline, format).toBe(format === 'story' ? undefined : true)
       const off = image.cardLayout(format, { name: true, filter: false, latest: false, count: 120 })
       expect(off.collage.y + off.collage.h).toBeGreaterThan(L.collage.y + L.collage.h)
       expect(off.collage.y + off.collage.h).toBeLessThan(off.rule.y)
     }
-    // The desktop's row is on the footer's line: its collage ends above the hairline, the row below it.
-    const D = image.cardLayout('desktop', { name: true, filter: false, latest: true, count: 120 })
-    expect(D.latest!.oneLine).toBe(true)
-    expect(D.collage.y + D.collage.h).toBeLessThan(D.rule.y)
-    expect(D.latest!.y).toBeGreaterThan(D.rule.y)
   })
 
   // Round 6: the pack was made for the frame with the row and fitted into the taller one without it, which left an empty
@@ -128,7 +141,6 @@ describe('the poster foot\'s sticker', () => {
     const row = species.byCode.get('bird3')!
     const card = await image.prepareCard(opts('print', { latestAs: { row, label: 'Oldest lineage · about 39 million years', poster: 'Oldest lineage: Synthetic Bird 3, about 39 million years' } }), printScale('A2'))
     expect(card.L.latest).toBeUndefined()
-    expect(card.oneLine).toBeUndefined()
     expect(card.posterLatest).toBe('Oldest lineage: Synthetic Bird 3, about 39 million years')
     expect(card.lifer!.url).toContain('bird3')
     expect(Math.max(card.lifer!.w, card.lifer!.h)).toBeCloseTo(image.posterIcon(card.credit.size), 6)
@@ -138,5 +150,18 @@ describe('the poster foot\'s sticker', () => {
     expect(card.posterLatest).toBeUndefined()
     expect(card.lifer).toBeNull()
     expect(printDesign('A2')[0]).toBe(1080)
+  })
+})
+
+describe('the row lifted with the footer', () => {
+  // The rule and the row move up by a line when the credit takes its own line under the wordmark (placeFooter's shift):
+  // the collage still ends the row's own gap above the row as drawn.
+  it('keeps the row\'s gap from the collage once the footer is placed, in every format', async () => {
+    for (const format of ['story', 'post', 'square', 'wide', 'desktop'] as const) {
+      const card = await image.prepareCard({ format, entries, species, pack, now: NOW, theme: 'light', strings: en.ui, name: 'A title' })
+      const { L } = card
+      const gap = L.latest!.y - card.shift - (L.collage.y + L.collage.h)
+      expect(gap, format).toBeGreaterThanOrEqual(format === 'square' ? 32 : 24)
+    }
   })
 })

@@ -8,7 +8,7 @@
 // Desktop, Post 5:4 and Square when the Vertical | Horizontal control beside it says Horizontal; the poster has none) and
 // the orientation, on one row where they fit; from the Tree the orientation follows the arrangement (treeOrientation: a
 // Fan is horizontal, Rectangular and Radial vertical), the other one off with its reason. Beside them the live preview
-// (above them on phones), as tall as the controls' column and no taller (--col-h, measured), its top on the column's.
+// (above them on phones), as large as the room left of the controls' column allows, at its top.
 // Then the optional collage title (Saved.name verbatim), its label above the field, and the options as one plain list
 // (round 6, the maintainer's layout: no box, no rules), one row each, the label at the left and its control at the right
 // edge: in the poster the size first (a dropdown, A4 to A1 and the inch sizes, with its line under the label; from the
@@ -26,11 +26,11 @@
 // then the progress and Cancel, then Download PNG and Download PDF serving the one encode, side by side the same way.
 // Last, in the bottom right corner, Buy Me a Coffee's static button (self-hosted, never on the images). Every dropdown is
 // MenuSelect, its menu rendered into the dialog over everything (not clipped by the scrolling column; upward when there
-// is no room below). Beside the preview the dialog is pinned at its top, and its controls' column keeps its place and
-// width in every format and orientation: only the preview changes, on its own side (share.css). Its size, and the
-// preview's, are the closed column's: opening Export in batches or adding a goal never resizes either (round 6): what
-// opened (data-opened) is left out of the measure and the column scrolls inside, just enough to show it; taller than the
-// window, the column scrolls too.
+// is no room below). Beside the preview (round 6, item 10) the dialog is centred, pinned near the window's top and as
+// large as the window allows (at most 1,440 × 1,000): its size comes from the window alone, so no format, orientation,
+// subject, option or anything opened moves or resizes it. The controls' column at its right scrolls only when taller
+// than the dialog (opening Export in batches or a goal scrolls it just enough to show what opened); the preview takes
+// the rest, the image as large as that allows, at its top (share.css).
 // On phones the actions come straight under the preview, so Share image (or Make poster) is on the first screen.
 // The Goal row (Share only; posters never draw a goal): "Add a goal" until one is set; then a number box, "species in",
 // a year menu (All time and each year with birds, newest first) and a remove button. With a year the image is that
@@ -112,17 +112,6 @@ export const VIEW_IMAGE: Partial<Record<ViewKind, () => Promise<(o: ViewImageOpt
 }
 
 const RENDER_DELAY_MS = 250
-/**
- * The controls' column's height as if Export in batches and the goal were closed: its height less what they add once
- * open (each `[data-opened]` element's height; a `grow` one's beyond its row's closed min-height).
- */
-export function closedHeight(col: HTMLElement): number {
-  let h = col.offsetHeight
-  for (const x of col.querySelectorAll<HTMLElement>('[data-opened]')) {
-    h -= x.dataset.opened === 'grow' ? Math.max(0, x.offsetHeight - (parseFloat(getComputedStyle(x).minHeight) || 0)) : x.offsetHeight
-  }
-  return h
-}
 /** A poster size's paper area (pt²), for "A larger poster prints every name". */
 const paperArea = (s: PrintSize) => PRINT_PT[s][0] * PRINT_PT[s][1]
 
@@ -232,10 +221,20 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   /** Keeps what a Tree poster render found about the deeper rank, for the inputs `k` (deeperKey). */
   const noteDeeper = (k: string) => (d: DeeperFits | null) =>
     setDeeperFit((was) => (was?.key === k && JSON.stringify(was.d) === JSON.stringify(d) ? was : { key: k, d }))
-  /** Keeps what a Tree render on card `k` found (no new state when nothing changed). */
-  const noteTreeFits = (k: string) => (f: TreeFits) =>
-    setTreeFitsBy((was) => (was[k]?.fan === f.fan && was[k]?.circle === f.circle ? was : { ...was, [k]: f }))
+  /** Keeps what a Tree render on card `k` found, and what it found for that card's other orientation (byCard, keyed by
+   *  card format; a poster's with its size), so a layout its image can't draw is off before it is picked (no new state
+   *  when nothing changed). */
+  const noteTreeFits = (k: string, sizeKey?: PrintSize) => (f: TreeFits, byCard?: Partial<Record<CardFormat, TreeFits>>) =>
+    setTreeFitsBy((was) => {
+      let next = was
+      const keep = (key: string, v: TreeFits) => { if (next[key]?.fan !== v.fan || next[key]?.circle !== v.circle) next = { ...next, [key]: v } }
+      keep(k, f)
+      for (const [card, v] of Object.entries(byCard ?? {})) if (v) keep(sizeKey ? `${card}|${sizeKey}` : card, v)
+      return next
+    })
   const [showOldest, setShowOldest] = useState(true)
+  // The Tree image's Time scale starts as the screen's switch is (round 6, item 12); the dialog's own after that.
+  const [timeScale, setTimeScale] = useState(at?.time !== false)
   // The Tree's and Map's Totals: every total its image draws, on at every open, not stored.
   // The Tree's only the ranks at and below the level on screen (treeTotals: inside a family, Species and Genera).
   const totalsOffered = treeImage ? treeTotals(at?.tree) : rows.totals
@@ -254,11 +253,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // segment is off with its reason, as the Arrangement row does for a layout that cannot name every tip.
   const [wantDeeper, setWantDeeper] = useState(false)
   const [deeperFit, setDeeperFit] = useState<{ key: string; d: DeeperFits | null } | null>(null)
-  // Square is the same in both orientations (its image doesn't change; the dialog keeps its narrow layout for it).
-  const squareShare = !print && format === 'square'
-  // Horizontal (a desktop or wide image, or a landscape poster) lays out wide: the preview may take the width left of the
-  // controls' column, which keeps its place (share.css, data-layout).
-  const wideLayout = landscape && !squareShare
   // The collage's title: saved with the list as it is typed (the store trims it), so it also names the page.
   const [name, setName] = useState(saved.name ?? '')
   const [countSizeChoice, setCountSize] = useState<CountSize>('medium')
@@ -417,8 +411,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // size instead of the format).
   /** What the Tree or Map image reads besides the share image's options: the view's level, the app state, its switches. */
   const viewOf = () => ({
-    at: treeImage ? { ...at, mine: treeMine, layout: treeLayout } : at ?? {}, state: { list, filter, seen, sci }, t, totals, oldest: treeImage && showOldest,
-    ...(treeImage ? { onTreeFits: noteTreeFits(print ? `${cardFormat}|${size}` : cardFormat) } : {}),
+    at: treeImage ? { ...at, mine: treeMine, layout: treeLayout, time: timeScale } : at ?? {}, state: { list, filter, seen, sci }, t, totals, oldest: treeImage && showOldest,
+    ...(treeImage ? { onTreeFits: noteTreeFits(print ? `${cardFormat}|${size}` : cardFormat, print ? size : undefined) } : {}),
     ...(treeImage && print ? { deeper: deeperOn, onDeeper: noteDeeper(deeperKey) } : {}),
   })
   const [preview, setPreview] = useState<{ url: string; format: CardFormat; size: PrintSize; key: string } | null>(null)
@@ -435,7 +429,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const first = useRef(true)
   // The Tree's or Map's drawing: the view, its switches.
   // `at` is the view's level, live (the Tree's follows the taxonomy filter); its JSON leaves out the map's names function.
-  const viewKey = viewImage ? `${subject}|${treeImage ? `${treeMine}|${treeLayout}|${showOldest}` : ''}|${totals.join(',')}|${JSON.stringify(at ?? {})}` : ''
+  const viewKey = viewImage ? `${subject}|${treeImage ? `${treeMine}|${treeLayout}|${showOldest}|${timeScale}` : ''}|${totals.join(',')}|${JSON.stringify(at ?? {})}` : ''
   // What the deeper rank's fit depends on besides the size (the card, the tree drawn, the title, the names).
   const deeperKey = `${landscape}|${viewKey}|${trimmed}|${lang}|${names}|${fk}`
   const deeper = treeImage && print && deeperFit?.key === deeperKey ? deeperFit.d : undefined
@@ -494,7 +488,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       },
     )
     return () => { live = false; cancel() }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- viewOf reads treeImage, treeMine, treeLayout, showOldest, totals, at, list, filter, seen and sci, all in `key` or below
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- viewOf reads treeImage, treeMine, treeLayout, showOldest, timeScale, totals, at, list, filter, seen and sci, all in `key` or below
   }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, totals, at, list, filter, seen, sci, named, compare, what, format])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
@@ -605,27 +599,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // Opening Export in batches scrolls the column (or, on phones, the dialog) just enough to show what opened.
   const bulkBodyRef = useRef<HTMLElement>(null)
   useEffect(() => { if (bulkOpen) bulkBodyRef.current?.scrollIntoView?.({ block: 'nearest' }) }, [bulkOpen])
-  // Beside the preview, the preview is as tall as the controls' column (the format row, the gap and the controls), so
-  // neither leaves an empty band: --col-h, measured (no CSS sizes an item by its neighbour's height and its own shape).
-  // Measured closed (closedHeight): what opening Export in batches or a goal adds is left out, and --scroll-h caps the
-  // column there, so opening them scrolls the column instead of resizing the dialog and the preview.
-  const formatsRef = useRef<HTMLDivElement>(null)
-  const controlsRef = useRef<HTMLDivElement>(null)
-  useLayoutEffect(() => {
-    const el = ref.current, top = formatsRef.current, col = controlsRef.current
-    if (!el || !top || !col || typeof ResizeObserver === 'undefined') return
-    const measure = () => {
-      const gap = parseFloat(getComputedStyle(top.parentElement!).rowGap) || 0
-      const closed = closedHeight(col)
-      el.style.setProperty('--scroll-h', `${Math.ceil(closed)}px`)
-      el.style.setProperty('--col-h', `${Math.ceil(top.offsetHeight + gap + closed)}px`)
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(top)
-    ro.observe(col)
-    return () => ro.disconnect()
-  }, [])
   /** The names note's "export in batches": opens Export in batches and takes the reader to it. */
   const openBulk = () => {
     setBulkOpen(true)
@@ -1121,6 +1094,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         ]
       case 'lifersOnly':
         return switchRow(treeMine, t.collage.controls.lifersOnly, () => setTreeMine(!treeMine), 'share-tree-mine')
+      case 'timeScale':
+        return switchRow(timeScale, t.collage.controls.timeScale, () => setTimeScale((v) => !v), 'share-tree-time')
       case 'oldest':
         return switchRow(showOldest, t.collage.tree.showOldest, () => setShowOldest((v) => !v), 'share-tree-oldest')
       case 'transparent':
@@ -1175,12 +1150,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     }
   }
   return (
-    <div className="eb-share-scrim" data-layout={wideLayout ? 'wide' : 'side'} onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+    <div className="eb-share-scrim" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div
         ref={ref}
         className="eb-share"
         data-mode={print ? 'print' : 'share'}
-        data-layout={wideLayout ? 'wide' : 'side'}
+       
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -1197,7 +1172,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         <div className="eb-share-body">
           {/* On top of the controls beside the preview, above the preview on phones (share.css): the format (not in the
               poster) and the orientation on one row, the orientation under the format where the two don't fit. */}
-          <div ref={formatsRef} className="eb-share-formats">
+          <div className="eb-share-formats">
             <div className="eb-share-toprow">
               {!print && (
                 <div className="eb-seg eb-share-format" role="group" aria-label={t.share.formats}>
@@ -1219,8 +1194,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
             </div>
           </div>
 
-          {/* The box takes the shown image's format (share.css), so it changes shape with the image, not before it; it sits
-              centred in an area the story's size, so the controls keep their place in every format. */}
+          {/* The box takes the shown image's format (share.css), so it changes shape with the image, not before it; beside
+              the controls it is as large as its area (everything left of the column) allows, at the area's top. */}
+          <div className="eb-share-area">
           <div
             ref={previewBox} className="eb-share-preview" data-format={shownCard} data-size={isPrint(shownCard) ? (preview?.size ?? size) : undefined}
             aria-busy={busy} data-testid="share-preview" data-transparent={transparent || undefined}
@@ -1241,16 +1217,17 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
             {busy && <span className="eb-share-spin" aria-hidden="true" />}
             {failed && !busy && <p className="eb-error eb-share-failed">{t.share.failed}</p>}
           </div>
+          </div>
 
-          {/* The controls' column: beside the preview it scrolls inside the dialog when taller than the window. */}
+          {/* The controls' column: beside the preview it scrolls inside the dialog, only when taller than it. */}
           <div className="eb-share-scroll">
-            <div ref={controlsRef} className="eb-share-controls">
+            <div className="eb-share-controls">
               {/* The options: the title under its label, then the list, one row per option (in the poster the size
                   first); Export in batches, a row in its own panel, under it. */}
               <div className="eb-share-options">
                 {!compare && <div className="eb-share-field">
                   <div className="eb-share-labelrow">
-                    <label htmlFor={nameId} className="eb-share-label">{t.share.nameLabel}</label>
+                    <label htmlFor={nameId} className="eb-share-label">{print ? t.share.print.nameLabel : t.share.nameLabel}</label>
                     <span id={optionalId} className="eb-share-optional">{t.share.nameOptional}</span>
                   </div>
                   <input
@@ -1378,14 +1355,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                   <button type="button" className="eb-textbtn" onClick={() => dispatch({ type: 'filter', filter: {} })}>{t.share.clearFilters}</button>
                 </div>
               )}
-              {/* Buy Me a Coffee's standard static button, self-hosted as on About (no script, nothing from their servers),
-                  at 32px tall in the column's bottom right corner; never on the images. */}
-              <a className="eb-share-coffee" href={COFFEE_URL} target="_blank" rel="noopener noreferrer">
-                {/* A fixed static image: next/image has nothing to optimise here. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/buy-me-a-coffee.png" width={114} height={32} alt={t.shell.footer.coffee} />
-              </a>
             </div>
+            {/* Buy Me a Coffee's standard static button, self-hosted as on About (no script, nothing from their servers),
+                at 32px tall in the column's bottom right corner; never on the images. */}
+            <a className="eb-share-coffee" href={COFFEE_URL} target="_blank" rel="noopener noreferrer">
+              {/* A fixed static image: next/image has nothing to optimise here. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/buy-me-a-coffee.png" width={114} height={32} alt={t.shell.footer.coffee} />
+            </a>
           </div>
         </div>
       </div>

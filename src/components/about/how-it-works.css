@@ -406,6 +406,9 @@
 .ebd .ebd-img-latest-text { display: flex; flex-direction: column; gap: 1px; }
 .ebd .ebd-img-latest-label { font-family: var(--font-mono); font-weight: 500; line-height: 1; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .ebd .ebd-img-latest-name { font-weight: 600; line-height: 1.1; }
+/* Post and Square: one line, the name then the detail in sentence case (the product's one-line row, round 6). */
+.ebd .ebd-img-latest[data-inline] .ebd-img-latest-text { flex-direction: row; align-items: baseline; gap: .6em; }
+.ebd .ebd-img-latest[data-inline] .ebd-img-latest-label { text-transform: none; letter-spacing: 0; }
 .ebd .ebd-img-rule { height: 1px; background: var(--hairline); }
 .ebd .ebd-img-foot { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
 .ebd .ebd-img-mark { font-family: var(--font-display); font-weight: 700; line-height: 1; }

@@ -587,14 +587,22 @@ function ShareImage({ format, box, show }: { format: Format; box: { w: number; h
         <span className="ebd-img-num" style={{ fontSize: K.size * k }}>{formatInt(TOTAL, t.num)}</span>
         <span className="ebd-img-label" style={{ fontSize: Math.max(3, K.labelSize * k) }}>{t.count.label}</span>
       </span>
-      <span className="ebd-img-latest" style={{ left: M, top: L.latest.y * k - lift, height: icon, gap: 20 * k }}>
+      <span className="ebd-img-latest" data-inline={L.latest.inline || undefined} style={{ left: M, top: L.latest.y * k - lift, height: icon, gap: (L.latest.inline ? 16 : 20) * k }}>
         <span className="ebd-img-latest-icon" style={{ width: icon, height: icon }}>
           <span style={{ width: ar >= 1 ? '100%' : `${ar * 100}%`, height: ar >= 1 ? `${100 / ar}%` : '100%' }}><Sticker code={LATEST.code} /></span>
         </span>
-        <span className="ebd-img-latest-text">
-          <span className="ebd-img-latest-label" style={{ fontSize: L.latest.label * k * 1.5 }}>{latest.label}</span>
-          <span className="ebd-img-latest-name" style={{ fontSize: L.latest.name * k * 1.5 }}>{latest.name}</span>
-        </span>
+        {L.latest.inline ? (
+          // One line, as the product's Post and Square: the name, then the detail (round 6, item 17).
+          <span className="ebd-img-latest-text">
+            <span className="ebd-img-latest-name" style={{ fontSize: L.latest.name * k * 1.5 }}>{latest.name}</span>
+            <span className="ebd-img-latest-label" style={{ fontSize: L.latest.label * k * 1.5 }}>{latest.head ?? latest.label}</span>
+          </span>
+        ) : (
+          <span className="ebd-img-latest-text">
+            <span className="ebd-img-latest-label" style={{ fontSize: L.latest.label * k * 1.5 }}>{latest.label}</span>
+            <span className="ebd-img-latest-name" style={{ fontSize: L.latest.name * k * 1.5 }}>{latest.name}</span>
+          </span>
+        )}
       </span>
       <span className="ebd-img-rule" style={{ left: M, right: M, top: L.rule * k - lift }} />
       <span className="ebd-img-foot" style={{ left: M, top: L.footer * k - lift, height: 30 * k * 1.25, ...(credit.below ? { flexDirection: 'column', alignItems: 'flex-start', gap: 12 * k } : {}) }}>

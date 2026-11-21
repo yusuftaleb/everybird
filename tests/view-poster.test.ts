@@ -24,14 +24,14 @@ describe('dialogRows: what each dialog shows', () => {
       expect(rows.splits[0]).toBe('batches')
     }
   })
-  it('the Tree: its Arrangement, Show oldest lineage, Lifers only and Totals (species, genera, families, orders), and in Print Down to; the Map: Totals (species, countries); neither has sticker options or Export in batches, in Share or Print', () => {
+  it('the Tree: its Arrangement, Show oldest lineage, Lifers only, Time scale and Totals (species, genera, families, orders), and in Print Down to; the Map: Totals (species, countries); neither has sticker options or Export in batches, in Share or Print', () => {
     for (const print of [false, true]) {
-      expect(dialogRows('tree', print)).toEqual({ what: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: true, treeDepth: print, oldest: true, names: false, lifersOnly: true, totals: ['species', 'genera', 'families', 'orders'], bulk: false, batchSize: false, splits: [] })
-      expect(dialogRows('map', print)).toEqual({ what: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, treeDepth: false, oldest: false, names: false, lifersOnly: false, totals: ['species', 'countries'], bulk: false, batchSize: false, splits: [] })
+      expect(dialogRows('tree', print)).toEqual({ what: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: true, treeDepth: print, oldest: true, timeScale: true, names: false, lifersOnly: true, totals: ['species', 'genera', 'families', 'orders'], bulk: false, batchSize: false, splits: [] })
+      expect(dialogRows('map', print)).toEqual({ what: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, treeDepth: false, oldest: false, timeScale: false, names: false, lifersOnly: false, totals: ['species', 'countries'], bulk: false, batchSize: false, splits: [] })
     }
   })
   it('Compare: What, and only the rows a comparison draws (no sticker options, Goal, Count, latest lifer, totals or batches)', () => {
-    expect(dialogRows('compare', false)).toEqual({ what: true, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, treeDepth: false, oldest: false, names: false, lifersOnly: false, totals: [], bulk: false, batchSize: false, splits: [] })
+    expect(dialogRows('compare', false)).toEqual({ what: true, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, treeDepth: false, oldest: false, timeScale: false, names: false, lifersOnly: false, totals: [], bulk: false, batchSize: false, splits: [] })
     expect(optionRows(dialogRows('compare', false), false)).toEqual(['what', 'colours', 'transparent'])
   })
 })
@@ -55,9 +55,9 @@ describe('optionRows: the options list\'s order (round 6)', () => {
     expect(optionRows(dialogRows('collage', false), false)).toEqual(['arrangement', 'colours', 'count', 'latest', 'transparent', 'goal'])
     expect(optionRows(dialogRows('collage', true), true)).toEqual(['size', 'arrangement', 'colours', 'count', 'latest', 'names', 'transparent'])
   })
-  it('the Tree: its Arrangement, Appearance, Totals, then Lifers only, Show oldest lineage and Transparent background (in Print, Down to after the size); the Map: Appearance, Totals, Transparent background', () => {
-    expect(optionRows(dialogRows('tree', false), false)).toEqual(['treeLayout', 'colours', 'totals', 'lifersOnly', 'oldest', 'transparent'])
-    expect(optionRows(dialogRows('tree', true), true)).toEqual(['size', 'treeDepth', 'treeLayout', 'colours', 'totals', 'lifersOnly', 'oldest', 'transparent'])
+  it('the Tree: its Arrangement, Appearance, Totals, then Lifers only, Time scale, Show oldest lineage and Transparent background (in Print, Down to after the size); the Map: Appearance, Totals, Transparent background', () => {
+    expect(optionRows(dialogRows('tree', false), false)).toEqual(['treeLayout', 'colours', 'totals', 'lifersOnly', 'timeScale', 'oldest', 'transparent'])
+    expect(optionRows(dialogRows('tree', true), true)).toEqual(['size', 'treeDepth', 'treeLayout', 'colours', 'totals', 'lifersOnly', 'timeScale', 'oldest', 'transparent'])
     expect(optionRows(dialogRows('map', false), false)).toEqual(['colours', 'totals', 'transparent'])
     expect(optionRows(dialogRows('map', true), true)).toEqual(['size', 'colours', 'totals', 'transparent'])
   })

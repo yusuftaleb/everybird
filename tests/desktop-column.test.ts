@@ -18,7 +18,7 @@ import { ja } from '@/i18n/messages/ja'
 import { zhHans } from '@/i18n/messages/zh-Hans'
 import { zhHant } from '@/i18n/messages/zh-Hant'
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { CREDIT_MIN, DESKTOP_SIDE, FOOTER_LIFT, IMAGE_SCALE, IMAGE_SIZE, cardDims, cardLayout, clearStickerCache, drawShareImage, imagePackSpec, prepareCard, renderShareImage, type CardFormat } from '@/lib/share/image'
+import { CREDIT_MIN, DESKTOP_SIDE, IMAGE_SCALE, SMALL_INLINE, IMAGE_SIZE, cardDims, cardLayout, clearStickerCache, drawShareImage, imagePackSpec, prepareCard, renderShareImage, type CardFormat } from '@/lib/share/image'
 import { entries, installStubs, NOW, pack, species } from './fixtures/share-image-harness'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -75,17 +75,9 @@ describe('everything on the desktop is inside the central column, clear of the t
         // latest-lifer row end inside it.
         expect(L.rule.y).toBeGreaterThan(L.collage.y)
         if (L.latest) expect(L.latest.x).toBeGreaterThanOrEqual(LEFT + M)
-        if (card.oneLine) {
-          const { icon } = L.latest!
-          const blockEnd = card.oneLine.x + icon + 14 + Math.max(card.oneLine.labelW, card.oneLine.nameText.length * 0.5 * card.oneLine.nameSize)
-          expect(card.oneLine.x).toBeGreaterThanOrEqual(LEFT + M)
-          expect(blockEnd).toBeLessThanOrEqual(RIGHT - M + 1)
-          // A long name keeps its room: the credit takes its own line under the wordmark, whole, at CREDIT_MIN or more.
-          expect(card.credit.size).toBeGreaterThanOrEqual(CREDIT_MIN)
-          expect(LEFT + M + (card.credit.below ? 0 : card.brandW) + card.footerLine.length * 0.6 * card.credit.size).toBeLessThanOrEqual(card.oneLine.x - 32)
-        } else {
-          expect(LEFT + M + card.brandW + card.footerLine.length * 0.6 * card.credit.size).toBeLessThanOrEqual(RIGHT - M)
-        }
+        if (L.latest) expect(L.latest.x + L.latest.icon + 20 + L.latest.tw).toBeLessThanOrEqual(RIGHT - M)
+        expect(card.credit.size).toBeGreaterThanOrEqual(CREDIT_MIN)
+        expect(LEFT + M + (card.credit.below ? 0 : card.brandW) + card.footerLine.length * 0.6 * card.credit.size).toBeLessThanOrEqual(RIGHT - M)
         // Vertical clearance.
         if (L.name) expect(L.name.y).toBeGreaterThanOrEqual(TOP_CLEAR)
         expect(L.collage.y).toBeGreaterThanOrEqual(TOP_CLEAR)
@@ -141,12 +133,17 @@ describe('everything on the desktop is inside the central column, clear of the t
 // fits beside the wordmark; layouts unchanged). Retaken again for round 6's Share and Print: the stacked latest lifer row
 // keeps the head's gap from the collage (story, post, square and wide: their collages give up the room, so their tiles,
 // count and outlines move; with the row off nothing changes), and the poster's foot draws the latest lifer's sticker
-// before its words (print and printLandscape: one more drawImage; layouts unchanged).
+// before its words (print and printLandscape: one more drawImage; layouts unchanged). Retaken for round 6, item 17: the
+// latest lifer row is the Tree's oldest lineage row (one line on the post, the 5:4 and the square, the smaller stacked row
+// on the story), its gap the row's own, the room it frees the collage's (their row, tiles and count move; with the row off
+// nothing changes; the posters are unchanged), then for the room kept under the collage on the story, the post and the
+// square for the credit line the footer lifts the row by (their tiles and count move). tests/share-image-golden.test.ts's
+// logs show each difference.
 const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: string }> = {
-  story: { layout: 'e17400f0ee5b417522711b695f49b1f3124d3813', draws: '865d62dd2c71ba7d29c084298d0727aad073b57b' },
-  post: { layout: '96c4e6cc46cf18859f15c72a35c7c5c8de7937fa', draws: '8e8fddb1163b0d6a698bb97e283af0b9c7ded646' },
-  square: { layout: 'd9e09652d42205ef5d25f700eb1d67f4a3316d61', draws: 'b53e01311ec15437a5f55a7b0cf8c14daad0bb18' },
-  wide: { layout: 'f9749cd1ba890b7fdad56fdc5f1cfffd102e5c82', draws: 'e1f8bf571c21f5a6f007fa5e19315eaef8f00fd9' },
+  story: { layout: 'b176e5a3d678a496d9cc2c532a773497187a2b2d', draws: '28d06cdad343cc92aedad49f329204995de5be95' },
+  post: { layout: '2fc892ebbfd091b176f5a55e90be3b66f14c0b7a', draws: '5f1f139d5d891eef6095aeed42691044f50b03a5' },
+  square: { layout: '151fd032f513b60961b619c96348f6258a49538e', draws: 'ffbbba2c4c348f9f53b3c19c0c2ba6dc594f42a6' },
+  wide: { layout: '2ef1edc25ca86d9298033672f889811ebc6ee68a', draws: 'b697c1cdc3cbbc3e8347d352fcad3f9168887863' },
   print: { layout: 'aee75945aabf33f4b0969088c020f9966dc88af1', draws: '300606a79087ba034e12c506f36eed3e377ee4f7' },
   printLandscape: { layout: '6420700515cec114ad51c385b3bc919e11dc6d0c', draws: '21ba5288b3d830e3e1713889de2e15291860baa5' },
 }
@@ -212,9 +209,10 @@ describe('the latest lifer switch', () => {
   }
 })
 
-// The latest lifer's name on the desktop footer: the label over the name, the name gets the whole right-hand room (the credit
-// moving under the wordmark for it), shrinks to 80% before it is clipped, and is never clipped up to about 40 characters, in the longest common names of every language.
-describe('long latest-lifer names on the desktop footer', () => {
+// The latest lifer's row (round 6, item 17: the Tree's oldest lineage row): on one line on the desktop, the post (and
+// its 5:4) and the square, the name right after the sticker, never cut, in the longest common names of every language;
+// the detail after it, its place dropped where it doesn't fit.
+describe('long latest-lifer names on the one-line row', () => {
   const data = (f: string) => JSON.parse(readFileSync(`public/data/${f}`, 'utf8'))
   const longest = (names: string[]) => names.filter((n) => n.length <= 40).sort((a, b) => b.length - a.length)[0]
   const NAMES: Record<string, string> = {
@@ -235,62 +233,35 @@ describe('long latest-lifer names on the desktop footer', () => {
     forty: 'Northern Rough-winged Swallow-and-Martin!',
   }
   for (const [lang, name] of Object.entries(NAMES)) {
-    it(`${lang}: "${name}" (${name.length}) is drawn whole, at 80% of its size or more`, async () => {
-      installStubs()
+    it(`${lang}: "${name}" (${name.length}) is drawn whole at its size on every one-line card, the detail after it`, async () => {
       const m = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant, forty: en }[lang as 'en']
-      const card = await prepareCard({ format: 'desktop', theme: 'light', entries, species, pack, now: NOW, strings: m.ui, nameOf: () => name }, IMAGE_SCALE.desktop)
-      expect(card.oneLine!.nameText).toBe(name)
-      expect(card.oneLine!.nameSize).toBeGreaterThanOrEqual(30 * 0.8)
-      // The credit gives way first: beside the wordmark or, for a long name, on its own line under it, at 17px or more.
-      expect(card.credit.size).toBeGreaterThanOrEqual(CREDIT_MIN)
+      for (const format of ['desktop', 'post', 'wide', 'square'] as const) {
+        const logs = installStubs()
+        clearStickerCache()
+        const canvas = await drawShareImage({ format, theme: 'light', entries, species, pack, now: NOW, strings: m.ui, nameOf: () => name })
+        const log = logs.get(canvas as unknown as object)!
+        const i = log.findIndex((l) => l.startsWith(`fillText(${JSON.stringify(name)},`))
+        expect(i, `${lang} ${format}`).toBeGreaterThan(-1)
+        expect(log.slice(0, i).reverse().find((l) => l.startsWith('font = '))).toContain(`${SMALL_INLINE.name}px`)
+        expect(log.slice(i + 1).some((l) => l.startsWith(`fillText(${JSON.stringify(m.ui.share.latestLifer)}`) || l.startsWith(`fillText("${m.ui.share.latestLifer} ·`))).toBe(true)
+      }
     })
   }
-  it('with the credit under the wordmark, the two sit on the row\'s baselines: the wordmark on the label\'s, the credit on the name\'s', async () => {
+  it('a name too long for the line shrinks to fit, never cut; the detail gives way', async () => {
     const logs = installStubs()
-    const name = 'Northern Rough-winged Swallow-and-Martin!'
-    const canvas = await drawShareImage({ format: 'desktop', theme: 'light', entries, species, pack, now: NOW, strings: en.ui, nameOf: () => name })
-    const at = (start: string) => {
-      const l = logs.get(canvas as unknown as object)!.find((x) => x.startsWith(start))!
-      return /, ([\d.]+), ([\d.]+)\)/.exec(l)!.slice(1).map(Number)
-    }
-    const [bx, by] = at('fillText("Everybird"'), [cx, cy] = at('fillText("everybird.yusuftaleb.com · Stickers:')
-    const [, ly] = at('fillText("LATEST LIFER'), [, ny] = at(`fillText(${JSON.stringify(name)}`)
-    expect([bx, cx]).toEqual([LEFT + M, LEFT + M])
-    expect(by).toBe(ly)
-    expect(cy).toBe(ny)
-    expect(cy - by).toBe(30)
+    const name = 'A Very Long Imaginary Bird Name That Cannot Possibly Fit Here, Not Even On A Desktop Wallpaper At All, Truly'
+    const canvas = await drawShareImage({ format: 'square', theme: 'light', entries, species, pack, now: NOW, strings: en.ui, nameOf: () => name })
+    const log = logs.get(canvas as unknown as object)!
+    expect(log.some((l) => l.startsWith(`fillText(${JSON.stringify(name)},`))).toBe(true)
+    expect(log.some((l) => l.includes('…'))).toBe(false)
   })
-  it('a name of 60 characters shrinks to 80% and only then gets an ellipsis', async () => {
-    installStubs()
-    const name = 'A Very Long Imaginary Bird Name That Cannot Possibly Fit Here'
-    const card = await prepareCard({ format: 'desktop', theme: 'light', entries, species, pack, now: NOW, strings: en.ui, nameOf: () => name }, 2)
-    expect(card.oneLine!.nameSize).toBe(24)
-    expect(card.oneLine!.nameText.endsWith('…')).toBe(true)
-  })
-  it('the stack stays inside the footer band: the hairline above the label, the sticker clear of the bottom', () => {
+  it('the row stays above the hairline, clear of the bottom; lifer off: the hairline 20 above the footer line', () => {
     const L = cardLayout('desktop', { name: false, filter: false, latest: true, count: 185 })
-    expect(L.rule.y).toBeLessThan(L.footer.y - 20) // above the label's top
-    expect(L.latest!.y).toBeGreaterThan(L.rule.y)
+    expect(L.latest!.y + L.latest!.icon).toBeLessThan(L.rule.y)
     expect(1080 - (L.latest!.y + L.latest!.icon)).toBeGreaterThanOrEqual(BOTTOM_CLEAR)
-  })
-  it('lifer off: the hairline is 20 above the footer line (no gap), the collage taller by the 20 that frees', () => {
-    const on = cardLayout('desktop', { name: false, filter: false, latest: true, count: 185 })
     const off = cardLayout('desktop', { name: false, filter: false, latest: false, count: 185 })
     expect(off.rule.y).toBe(off.footer.y - 20)
-    expect(on.rule.y).toBe(on.footer.y - 40)
-    expect(off.collage.h - on.collage.h).toBe(20)
-    expect(off.footer.y).toBe(on.footer.y)
-    expect(1080 - (off.footer.y + off.footer.size)).toBeGreaterThanOrEqual(BOTTOM_CLEAR)
-  })
-  it('lifer on: the wordmark and credit caps are centred on the two-line block (equal air above and below)', async () => {
-    installStubs()
-    const card = await prepareCard({ format: 'desktop', theme: 'light', entries, species, pack, now: NOW, strings: en.ui }, 2)
-    const { L } = card
-    const baseline = L.footer.y + L.footer.size * 0.8 - FOOTER_LIFT
-    const capsMid = baseline - 0.35 * L.footer.size // Cabinet caps are about 0.7 em tall
-    const blockTop = L.footer.y + L.footer.size * 0.8 - 44 // the label's cap top
-    const blockBottom = L.footer.y + L.footer.size * 0.8 // the name's baseline
-    expect(capsMid).toBeCloseTo((blockTop + blockBottom) / 2, 0)
-    expect(capsMid).toBeCloseTo(L.latest!.y + L.latest!.icon / 2, 0)
+    expect(off.collage.h).toBeGreaterThan(L.collage.h)
+    expect(off.footer.y).toBe(L.footer.y)
   })
 })
