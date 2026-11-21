@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { makeSamplePack, packNames, sampleCodes, sampleNameFiles } from '../scripts/build-data/build-sample-pack'
+import { readOrderMasks } from '../scripts/build-data/data-files'
 import { createLayoutHandler } from '@/lib/layout/layout.worker'
 import type { SampleFile } from '@/lib/list/sample'
 import { fromPackFile, seedLayouts, type SamplePackFile } from '@/lib/list/sample-pack'
@@ -80,10 +81,10 @@ describe('the landing sample pack', () => {
     expect(Object.keys(read<{ names: object }>('sample-names.es.v1.json').names).length).toBeGreaterThan(100)
   })
 
-  it("carries every one of its birds' masks, as masks.v2.json has them, so the landing never fetches that file", () => {
+  it("carries every one of its birds' masks, as the order files have them, so the landing never fetches masks.v3.bin", () => {
     const read = <T,>(f: string) => JSON.parse(readFileSync(join(process.cwd(), 'public/data', f), 'utf8')) as T
     const pack = read<SamplePackFile>('sample-pack.v1.json')
-    const all = read<Record<string, Record<string, unknown>>>('masks.v2.json')
+    const all = Object.fromEntries(readOrderMasks(join(process.cwd(), 'public/data/masks')))
     for (const r of pack.species) expect(pack.masks[r.ord]?.[r.code], r.code).toEqual(all[r.ord][r.code])
     expect(Object.values(pack.masks).reduce((n, t) => n + Object.keys(t).length, 0)).toBe(pack.species.length)
   })

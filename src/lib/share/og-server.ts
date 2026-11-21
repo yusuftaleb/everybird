@@ -1,8 +1,9 @@
 // Server side of the link preview: species and masks read from public/data (from disk on Node, from the Worker's static
 // assets on Cloudflare: public-text.ts), fonts from Fontshare and Google (cached in memory), sticker bytes fetched with a
 // timeout, converted to PNG (sticker-png.ts) and embedded as data URLs.
-import type { MaskLoader, MaskTable } from '@/lib/layout/layout.worker'
-import { readPublicText } from './public-text'
+import type { MaskLoader } from '@/lib/layout/layout.worker'
+import { readMaskFile, type MaskSet } from '@/lib/layout/mask-file'
+import { readPublicBytes, readPublicText } from './public-text'
 import { stickerPng } from './sticker-png'
 import { stickerUrl } from '@/lib/sticker-url'
 import { baseOfLang } from '@/lib/species/name-locales'
@@ -38,16 +39,15 @@ export function serverNames(lang: string): Promise<Record<string, string> | null
   return p.catch(() => null)
 }
 
-const maskTables = new Map<string, Promise<MaskTable>>()
-/** The layout worker's MaskLoader, reading the order's file from disk (loadBirds falls back to ellipses on failure). */
-export const serverMasks: MaskLoader = (order) => {
-  let p = maskTables.get(order)
-  if (!p) {
-    p = readPublicText(dataFile('masks', `${order}.v1.json`)).then((t) => JSON.parse(t) as MaskTable)
-    maskTables.set(order, p)
-    p.catch(() => maskTables.delete(order))
+let masksP: Promise<MaskSet> | null = null
+/** The layout worker's MaskLoader: every order from masks.v3.bin, read once per server process (a failure is not kept;
+ *  loadBirds falls back to ellipses). */
+export const serverMasks: MaskLoader = async (order) => {
+  if (!masksP) {
+    masksP = readPublicBytes(dataFile('masks.v3.bin')).then(readMaskFile)
+    masksP.catch(() => { masksP = null })
   }
-  return p
+  return (await masksP)[order] ?? {}
 }
 
 // --- fonts ---

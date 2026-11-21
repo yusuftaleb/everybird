@@ -21,7 +21,7 @@ export type PackedLayout = { layout: LayoutName; W: number; H: number; base: num
 export type SampleNames = Pick<NameSet, 'names' | 'fam'>
 /** Every base language's (the build writes one sample-names.<base>.v1.json each). */
 export type PackNames = Record<NameBase, SampleNames>
-/** `masks`: the sample's own, by order then code (what masks.v2.json has for them). */
+/** `masks`: the sample's own, by order then code (what the order files, public/data/masks/<Order>.v1.json, have for them). */
 export type SamplePackFile = SampleFile & { species: SpeciesRow[]; regions: Regions; layouts: PackedLayout[]; masks: Record<string, MaskTable> }
 export type SamplePack = { saved: Saved; species: SpeciesIndex; regions: Regions; seed: StateLayout[] }
 
@@ -48,7 +48,7 @@ export function loadSamplePack(): Promise<SamplePack> {
   const p = (async () => {
     // The small, shared groups file rides along; without it the sample's search just offers no group chip.
     const [file, groups] = await Promise.all([fetchData<SamplePackFile>('sample-pack.v1.json', { priority: 'high' } as RequestInit), loadGroupMap()])
-    addMasks(file.masks ?? {}) // the layout worker and hit-testing take these instead of fetching masks.v2.json
+    addMasks(file.masks ?? {}) // the layout worker and hit-testing take these instead of fetching masks.v3.bin
     return fromPackFile(file, groups)
   })().catch((e) => {
     packP = null

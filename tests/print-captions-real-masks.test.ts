@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { readOrderMasks } from '../scripts/build-data/data-files'
 import { createLayoutHandler, type MaskLoader } from '@/lib/layout/layout.worker'
 import type { ListEntry } from '@/lib/list/model'
 import { buildSpeciesIndex } from '@/lib/species/load'
@@ -12,7 +13,7 @@ import { printDesign, type PrintSize } from '@/lib/share/print'
 // The real species file and masks (public data, no personal data): names and silhouettes as the poster gets them.
 const data = (f: string) => JSON.parse(readFileSync(join(__dirname, '..', 'public', 'data', f), 'utf8'))
 const rows = (data('species.v1.json') as { species: SpeciesRow[] }).species
-const masks = data('masks.v2.json') as Record<string, Record<string, [number, number, string]>>
+const masks = Object.fromEntries(readOrderMasks(join(__dirname, '..', 'public', 'data', 'masks')))
 const species = buildSpeciesIndex(rows)
 const drawn = rows.filter((r) => r.st && masks[r.ord]?.[r.code])
 
