@@ -208,7 +208,7 @@ export const TITLE_TOP: Record<CardFormat, number> = { story: 184, post: M, squa
  * and two lines, the label over the name. Posters draw the one-line row too (round 6, item 24: no longer a line in
  * their foot); a Tree poster's name is never smaller than its tip names (view-image.ts).
  */
-export const SMALL_ROW = { icon: 56, label: 16, name: 26 }
+export const SMALL_ROW = { icon: 56, label: 20, name: 26 }
 export const SMALL_INLINE = { icon: 40, label: 18, name: 26, gap: 16 }
 export const INLINE_ROW: ReadonlySet<CardFormat> = new Set<CardFormat>(['desktop', 'post', 'wide', 'square', 'print', 'printLandscape'])
 /**
@@ -389,10 +389,10 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   const rule = { y: footer.y - (c.latest || format !== 'desktop' ? 30 : 20) }
   const S = inline ? SMALL_INLINE : SMALL_ROW
   // On the 1080-wide cards the stamped footer line never fits beside the wordmark, so placeFooter lifts the hairline and
-  // the row by a credit line (its `shift`, at most the credit's size + 12): that room is kept under the collage, with the
+  // the row by its two lines (its `shift`, at most 2 × (FOOT_TWO.size + FOOT_TWO.gap)): that room is kept under the collage, with the
   // row or without it, so the lifted row, or the hairline itself, keeps its gap above it (round 6, item 10: without the
   // row the birds came down to the lifted hairline).
-  const lift = W === 1080 && (c.latest || !c.viewFooter) ? footer.credit + 12 : 0
+  const lift = W === 1080 && (c.latest || !c.viewFooter) ? 2 * (FOOT_TWO.size + FOOT_TWO.gap) : 0
   const latest: CardLayout['latest'] = c.latest ? { x: X, y: rule.y - G.latest - S.icon, icon: S.icon, tw: W - 2 * X - S.icon - 20, label: S.label, name: S.name, ...(inline ? { inline: true } : {}), ...(lift ? { lift } : {}) } : undefined
   const top = headBottom === undefined ? T : headBottom + G.head
   const bottom = (latest ? latest.y - G.latest : rule.y - G.collage) - lift
@@ -737,8 +737,8 @@ export function paintRow(ctx: CanvasRenderingContext2D, font: Pick<CardFonts, 'l
   }
   const tx = at.x + icon + 20, tw = at.tw
   ctx.textBaseline = 'top'
-  ctx.font = font.mono(16)
-  track(0.06, 16)
+  ctx.font = font.mono(ls)
+  track(0.06, ls)
   const tooLong = ctx.measureText(words.label.toUpperCase()).width > tw
   const lines = words.place && words.head && tooLong ? [words.head, words.place] : [words.label]
   const blockH = lines.length * ls + (lines.length - 1) * 6 + 10 + ns
@@ -757,6 +757,12 @@ export function paintRow(ctx: CanvasRenderingContext2D, font: Pick<CardFonts, 'l
 
 /** The smallest size the footer line takes beside the wordmark before it moves to its own line. */
 export const CREDIT_MIN = 17
+/**
+ * A share image's footer where it can't sit beside the wordmark (AD7: one line under it shrank the credit to 5–7 pt on a
+ * phone): two lines under the wordmark, the site and the date, then the credit, at `size` units (shrunk only if one of
+ * them is wider than the content), `gap` between lines. The poster keeps its one line (POSTER_FOOT).
+ */
+export const FOOT_TWO = { size: 22, gap: 10 }
 /**
  * Where the footer line (the site and the sticker credit) goes, never truncated and never without the credit: beside
  * the wordmark (`inlineRoom` px) at `size` down to `min` (CREDIT_MIN; the poster's POSTER_FOOT.min), else on its own line
@@ -920,6 +926,9 @@ export type PreparedCard = {
   /** "Beside title": the count on the title's line, its number and its upper-cased label ("96", "SPECIES" or "/ 150 SPECIES"). */
   countLine?: { num: string; label: string }
   footerLine: string
+  /** The footer's two lines, the site and the date, then the credit (FOOT_TWO), drawn when `credit.below`; absent for
+   *  the poster and a footer that is the site alone (the Map's). */
+  footerTwo?: [string, string]
   /** The row's words (the Tree's oldest lineage adds its long `detail`). */
   latest?: LatestText & { detail?: string }
   name?: string
@@ -1004,8 +1013,12 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   // A poster's head is its title alone: the name, else the filter in words.
   const name = print ? named ?? filterText : named
   const label = print ? undefined : filterText
-  const stamped = withStamp(opts.footer ?? FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
-  const footerLine = stamped
+  const stamp = stampDate(opts.now ?? new Date(), stampStrings(strings))
+  const footerBase = opts.footer ?? FOOTER_LINE
+  const footerLine = withStamp(footerBase, stamp)
+  // Its two lines where it can't sit beside the wordmark (FOOT_TWO): the site and the date, then the credit(s).
+  const sitePart = `${SITE_LABEL} · `
+  const footerTwo = !print && footerBase.startsWith(sitePart) ? [withStamp(SITE_LABEL, stamp), footerBase.slice(sitePart.length)] as [string, string] : undefined
   const printSize = opts.printSize ?? 'A2'
   const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
   let captionPlan: CaptionPlan | undefined
@@ -1067,7 +1080,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const countNum = K.size > 0 ? numText : ''
   const countLabel = K.size > 0 ? labelText : ''
   const countLine = L.titleCount ? { num: numText, label: labelText } : undefined
-  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, ...(countLine ? { countLine } : {}), footerLine, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}) }
+  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, ...(countLine ? { countLine } : {}), footerLine, ...(footerTwo ? { footerTwo } : {}), latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}) }
 }
 
 export function captionMeasurer(): TextMeasurer {
@@ -1117,9 +1130,14 @@ function placeFooter(d: CardDraft): PreparedCard {
   const measure = textMeasurer()
   const brandW = measure(font.brand(L.footer.size), L.footer.size, 'Everybird', 0.55) + 16
   const footerW = (px: number) => measure(font.footer(px), px, footerLine, 0.6)
-  const credit = placeCredit(footerW, maxW - brandW, maxW, L.footer.credit, isPrint(d.format) ? POSTER_FOOT.min : CREDIT_MIN)
-  // A line under the wordmark's lifts the wordmark, the hairline and the latest lifer row by a line.
-  const shift = (credit.below ? 1 : 0) * (credit.size + 12)
+  const one = placeCredit(footerW, maxW - brandW, maxW, L.footer.credit, isPrint(d.format) ? POSTER_FOOT.min : CREDIT_MIN)
+  // Below the wordmark, a share image's footer is two lines at FOOT_TWO's size (shrunk only past the content's width).
+  const two = one.below && d.footerTwo
+  let twoPx = FOOT_TWO.size
+  if (two) while (twoPx > 8 && Math.max(...d.footerTwo!.map((t) => measure(font.footer(twoPx), twoPx, t, 0.6))) > maxW) twoPx--
+  const credit = two ? { size: twoPx, below: true } : one
+  // A line under the wordmark lifts the wordmark, the hairline and the latest lifer row by a line (two by two).
+  const shift = !credit.below ? 0 : two ? 2 * (twoPx + FOOT_TWO.gap) : credit.size + 12
   const lifer = d.lifer && { ...d.lifer, y: d.lifer.y - shift }
   // The filter label (H6): on two lines, broken at its " · ", before it shrinks; the second line takes the head's gap
   // and the collage's top moves down by it (clearHead).
@@ -1312,7 +1330,10 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
   ctx.fillText('Everybird', X0, base - shift)
   ctx.font = font.footer(credit.size)
   ctx.fillStyle = C.muted
-  ctx.fillText(footerLine, credit.below ? X0 : X0 + brandW, base)
+  if (credit.below && card.footerTwo) {
+    ctx.fillText(card.footerTwo[0], X0, base - credit.size - FOOT_TWO.gap)
+    ctx.fillText(card.footerTwo[1], X0, base)
+  } else ctx.fillText(footerLine, credit.below ? X0 : X0 + brandW, base)
 }
 
 /**
@@ -1337,7 +1358,8 @@ async function loadCard(opts: ShareImageOpts): Promise<{ card: PreparedCard; img
   if (signal?.aborted) throw abortError()
   for (const t of tiles) if (t.url && t.fallback && !imgs.get(t.url)) imgs.set(t.url, imgs.get(t.fallback) ?? null)
   const missing = tiles.filter((t) => t.url && !imgs.get(t.url)).length
-  return { card: placeFooter(draft), imgs, s, missing }
+  // keepClear: a footer lifted past the room the layout kept (a wide post whose footer took its two lines) keeps the birds clear.
+  return { card: keepClear(placeFooter(draft)), imgs, s, missing }
 }
 
 /** Paint `card` at `k` device px per design unit, on `into` (resized, so cleared) or a new canvas. */

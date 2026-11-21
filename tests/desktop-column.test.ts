@@ -145,11 +145,13 @@ describe('everything on the desktop is inside the central column, clear of the t
 // only): the latest lifer is the images' one-line row above the hairline, so with it on the poster's collage ends the row
 // and its gaps higher (its tiles and count move), the row's sticker, name and detail are drawn there, and the foot is the
 // wordmark and the credit alone (no "Latest lifer: …" line, no sticker in it); with it off the portrait poster's collage
-// takes back the second foot line it kept. tests/share-image-golden.test.ts's logs show each difference.
+// takes back the second foot line it kept. Retaken for the round 6 proposals' AD7 (story, post, square): the footer under
+// the wordmark is two lines at 22 (the site and the date, then the credit), so the collage ends a line higher, and the
+// Story's stacked row's label is 20. tests/share-image-golden.test.ts's logs show each difference.
 const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: string }> = {
-  story: { layout: '2a758cf254b2e9b93ad225fc67ab50c7ea0161d7', draws: 'cedcdd4cd0cf1f37033095f2a7dc1f4595e5c5d4' },
-  post: { layout: '12fe6e864052a8f663dcdf9454cf6038aab9411e', draws: '4da784aead2e9ef108e32859bb5005684487a4e2' },
-  square: { layout: '50f8870f865f176da7c25b3912113ad1485a0108', draws: '6f71868421ea7444bc41cd9f705be7b10d36afec' },
+  story: { layout: 'a71f8e947914dd4a99d07238fe1e272a82488acf', draws: 'e1dbbefa6ce27b024a2afe12d607cc4fc8f6ed0f' },
+  post: { layout: '4280553701155c23ef7e570949bbfa4d953b9b53', draws: '47ff51b57908cb67237c843f04a08c087f391ac2' },
+  square: { layout: 'bc72454ab59ab999e4391ea9259179482d237a65', draws: 'cc48c37cfe35369838caeb958e0534ec242908b5' },
   wide: { layout: '08fbc77c3a7dddb33e4fcb3a29470b3c95206cc9', draws: 'c0110aee3e1af65c03ac44941f512b24c6a8dc6a' },
   print: { layout: '539e3566a02bffc91eef031e75e05d75616f1d1e', draws: 'e90a3efff53745b4d3ba50afedc818d54056a48f' },
   printLandscape: { layout: 'be645517b968335ba79d09e666410a687dbfb1e8', draws: 'db6dcc195e02e0d00d00d7c6316b23b4e633b8c9' },

@@ -96,9 +96,10 @@ export async function renderViewImage(opts: ShareImageOpts & { scale?: number },
   ctx.textAlign = 'center'
   ctx.textBaseline = 'alphabetic'
   lines.forEach((line, i) => ctx.fillText(line, c.x + c.w / 2, c.y + blockH + (i + 1) * lineH))
-  // A row lifted with the footer (placeFooter's shift) by more than the room kept for it (L.latest.lift): the Tree's
-  // longer footer on Post 5:4. The drawing ends that much higher, so the row keeps its gap.
-  const lifted = L.latest ? Math.max(0, card.shift - (L.latest.lift ?? 0)) : 0
+  // The footer lifted (placeFooter's shift) by more than the room kept for it (L.latest.lift; none without the row): the
+  // Tree's longer footer on Post 5:4, or its two lines under the wordmark (AD7). The drawing ends that much higher, so the
+  // row, or the hairline, keeps its gap.
+  const lifted = Math.max(0, card.shift - (L.latest?.lift ?? 0))
   const seen = lateRow ? watchNames(ctx, card.fonts) : undefined
   paint(ctx, seen ? { ...card, fonts: seen.fonts } : card, { x: c.x, y: c.y + top, w: c.w, h: c.h - top - lifted })
   if (lateRow && seen && L.latest && card.lifer) {

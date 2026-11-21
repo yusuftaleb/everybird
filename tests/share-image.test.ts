@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { GROUP_SIDE, GROUP_TILE, IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, fitBox, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
+import { FOOT_TWO, GROUP_SIDE, GROUP_TILE, IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, fitBox, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
 import { SMALL_GROUP } from '../src/lib/layout/pack'
 import { SMALL_INLINE } from '@/lib/share/image'
 import { MONO_CAP, MONO_CAP_ACCENT, countText, holeExtent, numberEm } from '@/lib/layout/count-box'
@@ -89,8 +89,8 @@ describe('cardLayout', () => {
       expect(off.rule.y).toBe(on.rule.y)
       expect(off.collage.h).toBeGreaterThan(on.collage.h) // the row's icon, its gap to the rule and its gap from the collage
       // Round 6, item 17: the row is the Tree's oldest lineage row, its gap from the collage the row's own (GAPS' latest),
-      // plus the credit line placeFooter lifts it by on these 1080-wide cards.
-      expect(on.latest!.y - (on.collage.y + on.collage.h)).toBe((format === 'square' ? 32 : 24) + on.footer.credit + 12)
+      // plus the footer's two lines placeFooter lifts it by on these 1080-wide cards (AD7, FOOT_TWO).
+      expect(on.latest!.y - (on.collage.y + on.collage.h)).toBe((format === 'square' ? 32 : 24) + 2 * (FOOT_TWO.size + FOOT_TWO.gap))
       expect(packSpec(off).aspect).toBeLessThan(packSpec(on).aspect) // the taller area: the pack is NOT remade for it (imagePackSpec)
     }
   })
@@ -126,7 +126,8 @@ describe('cardLayout', () => {
         expect(L.footer.y).toBeGreaterThan(L.rule.y)
         expect(L.footer.y + L.footer.size).toBeLessThanOrEqual(H - bottom)
         expect(L.footer.credit).toBeLessThan(L.footer.size)
-        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 1150 : format === 'post' ? 870 : 560)
+        // AD7: the footer's two lines take 32 more under the collage than its one line did.
+        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 1118 : format === 'post' ? 838 : 528)
         // Nothing (the name on top, the footer at the bottom) inside the platform's safe zones.
         if (L.name) expect(L.name.y).toBeGreaterThanOrEqual(top)
         expect(L.collage.y).toBeGreaterThanOrEqual(top)
@@ -144,12 +145,12 @@ describe('cardLayout', () => {
     expect(L.collage.h / L.collage.w).toBeGreaterThan(1.25)
     expect(packSpec(L).aspect).toBeCloseTo(L.collage.w / L.collage.h)
   })
-  it('post: taller than before (914px with a name and the latest lifer; 930 since the row keeps the head\'s gap above it), still inside 64px margins', () => {
+  it('post: taller than before (914px with a name and the latest lifer; 930 since the row keeps the head\'s gap above it, 898 since the footer takes two lines), still inside 64px margins', () => {
     const L = cardLayout('post', { name: true, filter: false, latest: true, count: 197 })
     expect(L.name!.y).toBe(64)
     expect(L.footer.y + L.footer.size).toBe(1350 - 64)
-    expect(L.collage.h).toBeGreaterThanOrEqual(930)
-    expect(L.collage.h).toBeGreaterThan(L.collage.w * 0.97)
+    expect(L.collage.h).toBeGreaterThanOrEqual(898)
+    expect(L.collage.h).toBeGreaterThan(L.collage.w * 0.94)
   })
   it('square: the same centre-count card in 1080×1080, the count a little smaller than the post\'s, its collage wider than tall', () => {
     const L = cardLayout('square', { name: true, filter: true, latest: true, count: 197 })

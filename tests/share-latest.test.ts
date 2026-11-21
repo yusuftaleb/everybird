@@ -69,8 +69,8 @@ describe('the room above the latest lifer row', () => {
   it('is the row\'s own gap (the oldest lineage row\'s, round 6 item 17), in every format; without the row, the collage takes it', () => {
     for (const format of ['story', 'post', 'square', 'wide', 'desktop'] as const) {
       const L = image.cardLayout(format, { name: true, filter: false, latest: true, count: 120 })
-      // The 1080-wide cards keep the credit line placeFooter lifts the row by (`lift`); Post 5:4 and Desktop lift nothing.
-      expect(L.latest!.lift ?? 0, format).toBe(['story', 'post', 'square'].includes(format) ? L.footer.credit + 12 : 0)
+      // The 1080-wide cards keep the footer's two lines placeFooter lifts the row by (`lift`, AD7); Post 5:4 and Desktop lift nothing.
+      expect(L.latest!.lift ?? 0, format).toBe(['story', 'post', 'square'].includes(format) ? 2 * (image.FOOT_TWO.size + image.FOOT_TWO.gap) : 0)
       expect(L.latest!.y - (L.collage.y + L.collage.h) - (L.latest!.lift ?? 0), format).toBe(format === 'square' ? 32 : 24)
       expect(L.latest!.y + L.latest!.icon, format).toBeLessThan(L.rule.y)
       expect(L.latest!.inline, format).toBe(format === 'story' ? undefined : true)

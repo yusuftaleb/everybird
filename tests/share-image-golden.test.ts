@@ -25,17 +25,21 @@ describe('share image draw calls', () => {
       expect(log).toMatchSnapshot()
     })
   }
-  // Mono at 0.85 em: the stamped footer line (59 characters) no longer fits beside the wordmark and takes its own
-  // line; the rows above move up.
+  // Mono at 0.85 em: the stamped footer line (59 characters) no longer fits beside the wordmark and takes two lines
+  // under it at 22 (AD7): the site and the date, then the credit; the rows above move up.
   for (const c of CASES.filter((x) => x.name && x.latest)) {
     it(`${caseName(c)}, footer on its own line`, async () => {
       const logs = installStubs({ monoEm: 0.85 })
       const log = await renderLog(image, logs, c)
       const texts = log.filter((l) => l.startsWith('fillText'))
       const brand = texts.find((l) => l.startsWith('fillText("Everybird"'))!
-      const line = texts.at(-1)!
-      expect(line).toMatch(/^fillText\("everybird\.yusuftaleb\.com.*", 64, /) // under the wordmark, at the margin
-      expect(Number(/, ([\d.]+)\)$/.exec(brand)![1])).toBeLessThan(Number(/, ([\d.]+)\)$/.exec(line)![1]))
+      const [site, line] = texts.slice(-2)
+      expect(site).toMatch(/^fillText\("everybird\.yusuftaleb\.com · 15 Nov 2026", 64, /) // under the wordmark, at the margin
+      expect(line).toMatch(/^fillText\("Stickers: huashu-bird-sticker, CC BY 4\.0", 64, /)
+      const y = (l: string) => Number(/, ([\d.]+)\)$/.exec(l)![1])
+      expect(y(brand)).toBeLessThan(y(site))
+      expect(y(line) - y(site)).toBe(image.FOOT_TWO.size + image.FOOT_TWO.gap)
+      expect(log).toContain(`font = ${JSON.stringify(`400 ${image.FOOT_TWO.size}px "Geist Mono", ui-monospace, Menlo, monospace`)}`)
       expect(log).toMatchSnapshot()
     })
   }
