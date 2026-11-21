@@ -10,8 +10,8 @@
 //           label style ("96 SPECIES", Geist Mono 34px, Ink), or alone at the top left without a name.
 //   middle  the collage, packed for the space left (layout worker 'image' message: packFrame, the count's hole at its
 //           centre, the birds spread evenly to the frame's edges; under Fit a big list packed dense, as on the page, and
-//           settled into the rectangle); no sticker longer than 30% of the collage wide (36% up
-//           to 24 birds)
+//           settled into the rectangle; without the latest lifer row, the taller frame it leaves); no sticker longer than
+//           30% of the collage wide (36% up to 24 birds)
 //   bottom  the latest lifer row, the head's gap under the collage (round 6): its sticker, then "LATEST LIFER · SEP 2026 ·
 //           BRITISH COLUMBIA, CANADA" (the province or state and the country where it was seen, in the image's language:
 //           liferPlace; the place on its own line where the label doesn't fit, never cut) over the name; unless the
@@ -382,14 +382,14 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   const G = GAPS[format]
   // One line (LATEST_ONE_LINE): the row is on the footer's own line, on its right, so the hairline sits just above the
   // footer and the collage gets the height a stacked row took. Otherwise the row stacks above the hairline.
-  // The one-line formats keep that geometry with the row off too (the row only leaves the line), so the collage's frame,
-  // and with it the pack, is the same either way: the switch never moves a bird.
+  // Without the row the collage takes its room (and, on a one-line card, the 20 units of air over it): the pack is made
+  // for that taller frame (imagePackSpec), so no empty band is left above or below the birds.
   const oneLine = !!LATEST_ONE_LINE[format]
   let rule: { y: number }
   let latest: CardLayout['latest']
   if (oneLine) {
     // With the row: the label's caps start at footer.y - 20, so the hairline is 40 above the footer line (20 of air over the
-    // row). Without it the hairline is 20 above, as a one-line footer needs, and the collage fits the same pack to the room.
+    // row). Without it the hairline is 20 above, as a one-line footer needs.
     rule = { y: footer.y - (c.latest ? 40 : 20) }
     latest = c.latest ? { x: X, y: footer.y - 18, icon: ONE_LINE.icon, tw: 0, label: ONE_LINE.label, name: ONE_LINE.name, oneLine } : undefined
   } else {
@@ -487,13 +487,13 @@ export const abortError = (message = 'share image cancelled') => {
 
 /**
  * What to pack for a format and a view: the collage frame (with or without the name, the filter line and the latest
- * lifer) and the count's hole. The dialog packs once per format, name-or-not and lifer-or-not; the drawing maps the pack onto
- * whatever frame it gets. The print packs once per shape (cardDims with `size`: every A size at PRINT_DESIGN_H).
+ * lifer row) and the count's hole. The dialog packs once per format, name-or-not and lifer-or-not; the drawing maps the
+ * pack onto the card's frame. The print packs once per shape (cardDims with `size`: every A size at PRINT_DESIGN_H).
+ * Without the latest lifer row (the dialog's "Show latest lifer" off, or no dated bird) the frame is the taller one that
+ * takes the row's room and its gap (round 6: the with-row pack fitted into it left an empty band above and below).
  */
 export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSize, captionPlan?: Extract<CaptionPlan, { ok: true }>, arrangement: Arrangement = 'packed'): PackSpec {
-  // Always the frame with the latest lifer row (the smaller one): the "Show latest lifer" switch never changes the pack.
-  // With the row off, the same pack is fitted into the taller area (fitPack), so every bird keeps its place.
-  const L = cardLayout(format, { ...c, latest: true }, cardDims(format, size))
+  const L = cardLayout(format, c, cardDims(format, size))
   const spec: PackSpec = { ...packSpec(L), ...(arrangement === 'oval' ? { oval: true } : arrangement === 'free' ? { free: true } : {}) }
   if (!captionPlan) return spec
   const captionBoxes: NonNullable<PackSpec['captionBoxes']> = {}

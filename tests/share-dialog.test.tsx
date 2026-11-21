@@ -183,7 +183,7 @@ describe('share dialog', () => {
       image.imagePackSpec('story', { name: false, filter: false, latest: false, count: 1 }))
   })
 
-  it('turning the switch off and on again never makes another pack: one pack, the same object, for both', async () => {
+  it('turning the switch off packs for the taller frame the row leaves (no empty bands); on again reuses the first pack', async () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     await waitFor(() => expect(renders).toHaveLength(1))
     const sw = screen.getByRole('switch', { name: 'Show latest lifer' })
@@ -191,10 +191,12 @@ describe('share dialog', () => {
     await waitFor(() => expect(renders).toHaveLength(2))
     fireEvent.click(sw)
     await waitFor(() => expect(renders).toHaveLength(3))
-    expect(vi.mocked(image.packForImage)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(image.packForImage)).toHaveBeenCalledTimes(2)
+    const [on, off] = vi.mocked(image.packForImage).mock.calls.map((c) => c[2])
+    expect(off.aspect).toBeLessThan(on.aspect) // the same width, taller
     const calls = vi.mocked(image.renderShareImage).mock.calls.map((c) => c[0])
     expect(calls.map((o) => o.latest)).toEqual([true, false, true])
-    expect(calls[1].pack).toBe(calls[0].pack)
+    expect(calls[1].pack).not.toBe(calls[0].pack)
     expect(calls[2].pack).toBe(calls[0].pack)
   })
 
