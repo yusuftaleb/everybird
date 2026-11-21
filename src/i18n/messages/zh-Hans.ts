@@ -422,6 +422,8 @@ export const zhHans: Messages = {
       lede: '看看你们的清单有哪些共同的鸟，以及哪些你还没见过。在下方选择人，查看只有他们共有的鸟。',
       ledeTheirs: '看看这些清单有哪些共同的鸟。在下方选择人，查看只有他们共有的鸟。',
       diagram: '图表',
+      cantShow: { one: '有{n}种鸟的共有组合无法用圆圈显示。', other: '有{n}种鸟的共有组合无法用圆圈显示。' },
+      cantShowPick: '在上方选择人即可查看。',
     },
     orders: {
       Struthioniformes: '鸵鸟',

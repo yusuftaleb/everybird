@@ -423,6 +423,8 @@ export const da: Messages = {
       lede: 'Se hvilke fugle jeres lister har til fælles, og hvilke du endnu ikke har set. Vælg personer herunder for at se de fugle, kun de har til fælles.',
       ledeTheirs: 'Se hvilke fugle listerne har til fælles. Vælg personer herunder for at se de fugle, kun de har til fælles.',
       diagram: 'Diagram',
+      cantShow: { one: '{n} fugl deles i en kombination, cirklerne ikke kan vise.', other: '{n} fugle deles i kombinationer, cirklerne ikke kan vise.' },
+      cantShowPick: 'Vælg personer ovenfor for at se dem.',
     },
     orders: {
       Struthioniformes: 'Strudse',

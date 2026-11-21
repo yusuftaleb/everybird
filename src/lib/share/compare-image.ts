@@ -3,19 +3,21 @@
 // dialog's colours) holding, top down:
 // - the title, the lists' names joined the usual way, "Robin, Sam & Ada" (titlePart; one or two lines), and under it each list's species count on one line,
 //   most first; when even the smallest size is too wide, the names are shortened evenly, never the numbers;
-// - the diagram (venn.ts: two circles, three, or the flower from four lists), each circle in its list's colour
-//   (compare.ts listColorHex, as on the page), each region's number with its name, as large as the room between the
-//   head and the footer's hairline allows, keeping the collage card's gaps to both (diagramBox). No birds: the wish
-//   list is the picture with the birds.
+// - the diagram (venn.ts: two circles, three, or from four lists a ring of equal circles), drawn by the page's rules:
+//   each circle a light wash of its list's colour (compare.ts listColorHex, as on the page) with an outline in it and
+//   its name outside its edge, each region's number in mono Ink in it (a 0 in Muted; a region too small for its number
+//   at the card's size shows none), as large as the room between the head and the footer's hairline allows, keeping the
+//   collage card's gaps to both (diagramBox); under it, when the ring has no region for some birds' combination, the
+//   line saying how many (the page's first sentence). No birds: the wish list is the picture with the birds.
 // Loaded only when the dialog draws it.
-import { fmt } from '@/i18n/core'
+import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import type { Ui } from '@/i18n/messages/en'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { clipText } from './view-image'
 import { ensureViewFonts, GAPS, paintCard, prepareCard, type CardFormat, type CardLayout, type FormatSlot, type ImagePack } from './image'
 import { listColorHex, ranking, titlePart } from './compare'
-import { diagramLayout, type Box, type Diagram } from './venn'
+import { diagramLayout, numberSize, unshownCount, type Box } from './venn'
 
 export { titlePart }
 
@@ -39,8 +41,9 @@ type CompareCard = { blob: Blob; W: number; H: number }
 
 const NO_BIRDS: ImagePack = { W: 1, H: 1, boxes: new Map() }
 /** Type sizes (px, design units) and their floors: the title (Cabinet 700), the counts line (Satoshi), each region's
- *  number (Cabinet 700) and its name (Satoshi 600) under it. */
-const TITLE = [60, 40], LINE = [30, 22], NUM = [84, 24], NAME = [28, 16]
+ *  number (Geist Mono 500). Each circle's name (Satoshi 500) is NAME px, at most NAME_CAP of the width, NAME_GAP past its
+ *  edge. The line under the diagram is LINE's, UNSHOWN_GAP under it. */
+const TITLE = [60, 40], LINE = [30, 22], NUM = [84, 24], NAME = 30, NAME_CAP = 0.24, NAME_GAP = 12, UNSHOWN_GAP = 24
 
 type Measure = { ctx: CanvasRenderingContext2D; font: (px: number) => string }
 
@@ -95,20 +98,12 @@ const cardGaps = (format: CardFormat): { head: number; collage: number } => GAPS
  * own (image.ts placeFooter), less the outline's outer half all round. diagramLayout draws the diagram as large as
  * this allows, centred in it.
  */
-export function diagramBox(format: CardFormat, L: CardLayout, headBottom: number, shift: number): Box {
+export function diagramBox(format: CardFormat, L: CardLayout, headBottom: number, shift: number, foot = 0): Box {
   const g = cardGaps(format)
   const top = headBottom + g.head + OUTLINE / 2
-  const bottom = L.rule.y - shift - g.collage - OUTLINE / 2
+  // `foot`: the room the line under the diagram takes.
+  const bottom = L.rule.y - shift - g.collage - foot - OUTLINE / 2
   return { x: L.collage.x + OUTLINE / 2, y: top, w: L.collage.w - OUTLINE, h: Math.max(0, bottom - top) }
-}
-
-/** The name drawn under a region's number: two lists' "Only Ada" and "Both"; a list's own name; the flower's centre. */
-function regionName(d: Diagram, mask: number, names: readonly string[], t: Ui): string {
-  const n = names.length
-  const one = mask && !(mask & (mask - 1)) ? Math.log2(mask) : -1
-  if (d.kind === 'two') return mask === 3 ? t.compare.both : fmt(t.compare.only, { name: names[one] })
-  if (one >= 0) return names[one]
-  return d.kind === 'flower' && mask === (1 << n) - 1 ? t.compare.everyone : ''
 }
 
 export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> {
@@ -117,7 +112,7 @@ export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> 
     format: o.format ?? 'post', entries: [], species, theme: o.theme, transparent: o.transparent, strings: t, pack: NO_BIRDS, latest: false, countSize: 'hide', now: o.now,
   })
   const order = ranking(sizes)
-  const sample = `${names.join('')}${t.compare.both}${t.compare.everyone}${t.compare.only}0123456789,.`
+  const sample = `${names.join('')}${t.compare.cantShow.other}0123456789,.`
   await ensureViewFonts(card, sample)
   if (typeof document !== 'undefined' && document.fonts) {
     // The title and the numbers' face, for the names' letters (ensureViewFonts loads the body and mono faces).
@@ -154,46 +149,51 @@ export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> 
   ctx.fillText(counts.lines[0], X, y + counts.px * 0.8)
   y += counts.px
 
-  // The diagram, between the head and the footer's hairline.
-  const d = diagramLayout(o.counts, diagramBox(card.format, L, y, card.shift))
+  // The line under the diagram, when the ring has no region for some birds: as large as fits the width, else cut.
+  const unshown = unshownCount(o.counts)
+  let line = '', lp = LINE[0]
+  if (unshown) {
+    line = plural(t.compare.cantShow, unshown, { n: formatInt(unshown, t.num) })
+    ctx.font = fonts.filter(lp)
+    while (lp > LINE[1] && ctx.measureText(line).width > CW) ctx.font = fonts.filter((lp -= 2))
+    line = clipText(ctx, line, CW)
+  }
+
+  // The diagram, between the head and the footer's hairline (less that line's room), the names outside the circles.
+  ctx.font = fonts.filter(NAME)
+  const nameText = names.map((n) => clipText(ctx, n, CW * NAME_CAP))
+  const d = diagramLayout(
+    o.counts, diagramBox(card.format, L, y, card.shift, line ? UNSHOWN_GAP + lp : 0),
+    { w: nameText.map((n) => Math.ceil(ctx.measureText(n).width)), h: Math.round(NAME * 1.2), gap: NAME_GAP },
+  )
   const circle = (c: { cx: number; cy: number; r: number }) => { ctx.beginPath(); ctx.arc(c.cx, c.cy, c.r, 0, Math.PI * 2) }
-  // Each circle a light wash of its list's colour (where circles overlap the washes add up) and a 4px outline in it.
+  // Each circle a light wash of its list's colour (where circles overlap the washes add up) and an outline in it.
   const colour = d.circles.map((_, i) => listColorHex(i, C))
-  ctx.globalAlpha = 0.14
+  ctx.globalAlpha = 0.1
   d.circles.forEach((c, i) => { ctx.fillStyle = colour[i]; circle(c); ctx.fill() })
   ctx.globalAlpha = 1
   ctx.lineWidth = OUTLINE
   d.circles.forEach((c, i) => { ctx.strokeStyle = colour[i]; circle(c); ctx.stroke() })
-  if (d.core) {
-    // The flower's centre, every list's: Surface over the petals' inner ends, outlined in Ink.
-    circle(d.core)
-    ctx.fillStyle = C.surface
-    ctx.fill()
-    ctx.strokeStyle = C.ink
-    ctx.stroke()
-  }
   ctx.textAlign = 'center'
+  ctx.font = fonts.filter(NAME)
+  ctx.fillStyle = C.ink
+  d.names?.forEach((b, i) => ctx.fillText(nameText[i], b.x + b.w / 2, b.y + b.h * 0.78))
+  ctx.textBaseline = 'middle'
   for (const s of d.spots) {
-    const num = formatInt(o.counts[s.mask] ?? 0, t.num)
-    const label = regionName(d, s.mask, names, t)
-    const room = s.w * 0.82
-    let np = Math.max(NUM[1], Math.min(NUM[0], Math.round(s.h * (label ? 0.42 : 0.6))))
-    ctx.font = fonts.count(np)
-    while (np > NUM[1] && ctx.measureText(num).width > room) ctx.font = fonts.count((np -= 2))
-    let lp = Math.max(NAME[1], Math.min(NAME[0], Math.round(np * 0.4)))
-    ctx.font = fonts.lifer(lp)
-    while (lp > NAME[1] && ctx.measureText(label).width > room) ctx.font = fonts.lifer((lp -= 1))
-    const name = label ? clipText(ctx, label, Math.max(room, 1)) : ''
-    const blockH = np * 0.72 + (name ? 10 + lp * 0.72 : 0)
-    const top = s.y - blockH / 2
-    ctx.font = fonts.count(np)
-    ctx.fillStyle = C.ink
-    ctx.fillText(num, s.x, top + np * 0.72)
-    if (name) {
-      ctx.font = fonts.lifer(lp)
-      ctx.fillStyle = C.muted
-      ctx.fillText(name, s.x, top + blockH)
-    }
+    const v = o.counts[s.mask] ?? 0
+    const num = formatInt(v, t.num)
+    const px = numberSize(d, s, num.length, NUM[0], NUM[1])
+    if (!px) continue
+    ctx.font = fonts.mono(px)
+    ctx.fillStyle = v ? C.ink : C.muted
+    ctx.fillText(num, s.x, s.y)
+  }
+  ctx.textBaseline = 'alphabetic'
+  if (line) {
+    const low = Math.max(...d.circles.map((c) => c.cy + c.r + OUTLINE / 2), ...(d.names ?? []).map((b) => b.y + b.h))
+    ctx.font = fonts.filter(lp)
+    ctx.fillStyle = C.muted
+    ctx.fillText(line, X + CW / 2, low + UNSHOWN_GAP + lp * 0.8)
   }
 
   const blob = await new Promise<Blob>((resolve, reject) => {
