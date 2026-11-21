@@ -81,7 +81,6 @@ export const pl: Messages = {
         families: { one: '{n} rodzina', few: '{n} rodziny', many: '{n} rodzin', other: '{n} rodzin' },
         since: 'od {date}',
         threatened: 'zagrożone: {n}',
-        threatenedGlobal: 'zagrożone globalnie: {n}',
         threatenedSr: '(narażone, zagrożone lub krytycznie zagrożone)',
       },
       arranging: 'układanie naklejek',
@@ -211,7 +210,6 @@ export const pl: Messages = {
       nav: 'Filtruj według grupy',
       all: 'Wszystkie ptaki',
       rank: { order: 'Rzędy', family: 'Rodziny', genus: 'Rodzaje', country: 'Kraje', year: 'Lata' },
-      choose: { order: 'Wybierz rząd', family: 'Wybierz rodzinę', genus: 'Wybierz rodzaj', country: 'Wybierz kraj', year: 'Wybierz rok' },
       remove: 'Usuń filtr {label}',
       group: 'Grupa ptaków',
       places: 'Miejsca',
@@ -326,7 +324,6 @@ export const pl: Messages = {
       pillName: 'Czerwona lista: {name}',
     },
     status: {
-      threatenedNote: 'Zagrożone: {n} (narażone, zagrożone lub krytycznie zagrożone).',
       list: 'Kategorie',
       none: 'Przy pozostałych filtrach nie ma tu kategorii.',
     },
@@ -885,7 +882,7 @@ export const pl: Messages = {
           'Każdy ptak jest dopasowywany do tegorocznej taksonomii eBird i zachowuje najwcześniejszą datę. Niedopasowane wiersze są wypisane, więc nic nie znika po cichu.',
           'Kolaż i jego widoki, filtry, obrazy do udostępnienia i plakaty powstają w twojej przeglądarce.',
         ],
-        privacy: 'Twoja lista nigdy nie opuszcza przeglądarki. Odwiedziny liczymy za pomocą Cloudflare Web Analytics, anonimowo i bez plików cookie, a kilka działań (utworzony kolaż, udostępniony lub zapisany obraz, skopiowany link) małym własnym licznikiem, który nigdy nie widzi twoich ptaków, nazw ani miejsc. Anonimowy identyfikator zmieniany codziennie pozwala liczyć unikalnych odwiedzających bez śledzenia kogokolwiek z dnia na dzień. Żadne z nich nie działa, jeśli przeglądarka prosi o niestosowanie śledzenia. Wybór języka zapisujemy w małym pliku cookie na tym urządzeniu; opuszcza je tylko po to, by pokazać ci właściwą stronę. Licznik odwiedzin zapisuje język przeglądarki (tylko „es”, „pt”, „nl”, „pl”, „fr”, „de”, „it”, „sv”, „da”, „ru”, „ja”, „zh-Hans” lub „zh-Hant”). Strony po rosyjsku, japońsku i chińsku wczytują czcionki z Google Fonts, więc na tych stronach przeglądarka łączy się z Google.',
+        privacy: 'Twoja lista nigdy nie opuszcza przeglądarki. Odwiedziny liczymy za pomocą Cloudflare Web Analytics, anonimowo i bez plików cookie. Mały własny licznik zapisuje odwiedziny stron i kilka działań (utworzony kolaż, udostępniony lub zapisany obraz, skopiowany link, zmieniony język, utworzony lub zapisany plakat, zastosowane wyszukiwanie, rodzaje użytych filtrów), każde z krajem i rodzajem urządzenia, nigdy liczby, nazwy, gatunki ani miejsca. Anonimowy identyfikator zmieniany codziennie pozwala liczyć unikalnych odwiedzających bez śledzenia kogokolwiek z dnia na dzień. Żadne z nich nie działa, jeśli przeglądarka prosi o niestosowanie śledzenia. Wybór języka zapisujemy w małym pliku cookie na tym urządzeniu; opuszcza je tylko po to, by pokazać ci właściwą stronę. Licznik odwiedzin zapisuje język przeglądarki (tylko „es”, „pt”, „nl”, „pl”, „fr”, „de”, „it”, „sv”, „da”, „ru”, „ja”, „zh-Hans” lub „zh-Hant”). Strony po rosyjsku, japońsku i chińsku wczytują czcionki z Google Fonts, więc na tych stronach przeglądarka łączy się z Google.',
       },
       size: {
         head: 'Co oznacza Prawdziwy rozmiar',

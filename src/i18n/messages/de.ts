@@ -79,7 +79,6 @@ export const de: Messages = {
         families: { one: '{n} Familie', other: '{n} Familien' },
         since: 'seit {date}',
         threatened: '{n} bedroht',
-        threatenedGlobal: '{n} weltweit bedroht',
         threatenedSr: '(gefährdet, stark gefährdet oder vom Aussterben bedroht)',
       },
       arranging: 'Sticker werden angeordnet',
@@ -205,7 +204,6 @@ export const de: Messages = {
       nav: 'Nach Gruppe filtern',
       all: 'Alle Vögel',
       rank: { order: 'Ordnungen', family: 'Familien', genus: 'Gattungen', country: 'Länder', year: 'Jahre' },
-      choose: { order: 'Ordnung wählen', family: 'Familie wählen', genus: 'Gattung wählen', country: 'Land wählen', year: 'Jahr wählen' },
       remove: 'Filter {label} entfernen',
       group: 'Vogelgruppe',
       places: 'Orte',
@@ -323,7 +321,6 @@ export const de: Messages = {
       pillName: 'Rote Liste: {name}',
     },
     status: {
-      threatenedNote: '{n} bedroht: gefährdet, stark gefährdet oder vom Aussterben bedroht.',
       list: 'Kategorien',
       none: 'Mit den anderen Filtern gibt es hier keine Kategorien.',
     },
@@ -877,7 +874,7 @@ export const de: Messages = {
           'Die Collage und ihre Ansichten, die Filter, die Bilder zum Teilen und die Poster entstehen alle in deinem Browser.',
         ],
         // The language codes keep “…” (not „…“): tests/about-i18n.test.tsx matches them.
-        privacy: 'Deine Liste verlässt nie deinen Browser. Wir zählen Besuche mit Cloudflare Web Analytics, anonym und ohne Cookies, und ein paar Aktionen (eine Collage erstellt, ein Bild geteilt oder gespeichert, ein Link kopiert) mit einem kleinen eigenen Zähler, der nie deine Vögel, Namen oder Orte sieht. Eine anonyme ID, die sich täglich ändert, lässt uns einzelne Besucher zählen, ohne jemanden über mehrere Tage zu verfolgen. Beides läuft nicht, wenn dein Browser darum bittet, nicht verfolgt zu werden. Deine Sprachwahl wird in einem kleinen Cookie auf diesem Gerät gespeichert; es verlässt das Gerät nur, um dir die richtige Seite zu zeigen. Die Besuchszählung enthält die Sprache deines Browsers (nur “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” oder “zh-Hant”). Seiten auf Russisch, Japanisch und Chinesisch laden ihre Schriften von Google Fonts, daher nimmt dein Browser auf diesen Seiten Kontakt zu Google auf.',
+        privacy: 'Deine Liste verlässt nie deinen Browser. Wir zählen Besuche mit Cloudflare Web Analytics, anonym und ohne Cookies. Ein kleiner eigener Zähler erfasst Seitenbesuche und ein paar Aktionen (eine Collage erstellt, ein Bild geteilt oder gespeichert, ein Link kopiert, die Sprache gewechselt, ein Poster erstellt oder gespeichert, eine Suche angewendet, welche Filter genutzt wurden), jeweils mit deinem Land und deiner Geräteart, nie Zahlen, Namen, Arten oder Orte. Eine anonyme ID, die sich täglich ändert, lässt uns einzelne Besucher zählen, ohne jemanden über mehrere Tage zu verfolgen. Beides läuft nicht, wenn dein Browser darum bittet, nicht verfolgt zu werden. Deine Sprachwahl wird in einem kleinen Cookie auf diesem Gerät gespeichert; es verlässt das Gerät nur, um dir die richtige Seite zu zeigen. Die Besuchszählung enthält die Sprache deines Browsers (nur “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” oder “zh-Hant”). Seiten auf Russisch, Japanisch und Chinesisch laden ihre Schriften von Google Fonts, daher nimmt dein Browser auf diesen Seiten Kontakt zu Google auf.',
       },
       size: {
         head: 'Was Echte Größe bedeutet',

@@ -17,8 +17,8 @@ import { NAME_LOCALES } from '../../src/lib/species/name-locales'
 /** The files under public/data the client fetches, by their logical names. */
 export const DATA_FILE_NAMES = [
   'species.v1.json', 'taxonomy.v1.json', 'regions.v1.json', 'groups.v1.json', 'masks.v2.json',
-  'sample.v1.json', 'sample-pack.v1.json', 'inat-synonyms.v1.json',
-  'vietnam-boundaries.v1.json', 'map-countries.v1.json', 'map-provinces.v1.json', 'tree.v1.json',
+  'sample-pack.v1.json', 'inat-synonyms.v1.json',
+  'vietnam-boundaries.v1.json', 'map-countries.v1.json', 'tree.v1.json',
   'album.v1.json',
   ...NAME_LOCALES.map((locale) => `names.${locale}.v1.json` as const),
 ] as const

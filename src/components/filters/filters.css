@@ -10,7 +10,7 @@
 .eb-path [aria-current] { color: var(--accent); font-weight: 600; }
 .eb-path [lang] { font-style: italic; }
 .eb-path-sep { color: var(--muted); }
-.eb-path + .eb-level, .eb-path + .eb-pick { animation: eb-rise .24s var(--eb-ease) both; }
+.eb-path + .eb-level { animation: eb-rise .24s var(--eb-ease) both; }
 @keyframes eb-rise { from { opacity: 0; transform: translateY(-4px); } }
 
 .eb-level { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; }
@@ -25,7 +25,7 @@
 .eb-chip::after { content: ''; position: absolute; inset: -6px -3px; } /* 44px tall tap target */
 .eb-chip[lang] { font-style: italic; }
 .eb-chip[data-selected] { border-color: var(--accent); }
-.eb-level[data-chosen] .eb-chip:not([data-selected]), .eb-picklist[data-chosen] .eb-chip:not([data-selected]) { opacity: .7; }
+.eb-level[data-chosen] .eb-chip:not([data-selected]) { opacity: .7; }
 .eb-count { color: var(--muted); font-style: normal; font-variant-numeric: tabular-nums; font-weight: 500; }
 /* A country's flag (components/Flag.tsx), as yusuftaleb.com's places: 18×13, 2px corners. */
 .eb-flag { display: block; width: 18px; height: 13px; border-radius: 2px; object-fit: cover; flex: none; }
@@ -37,16 +37,6 @@
   .eb-path button:hover { opacity: 1; }
   .eb-chip:not([data-selected]):hover { border-color: var(--line); opacity: 1; }
 }
-
-/* Phones: the level is a button that opens a sheet of wrapped chips. */
-.eb-pick {
-  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; width: 100%;
-  border: 1px solid var(--hairline); border-radius: 12px; background: var(--surface); color: var(--ink);
-  font: inherit; font-weight: 500; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
-}
-.eb-pick svg { width: 20px; height: 20px; flex: none; }
-.eb-pick-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.eb-pick-label[lang] { font-style: italic; }
 .eb-sheet-scrim { position: fixed; inset: 0; z-index: var(--z-sheet-scrim); background: rgb(0 0 0 / .28); animation: eb-fade-in .2s ease both; }
 .eb-sheet {
   position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: var(--z-sheet);
@@ -60,8 +50,6 @@
 .eb-sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 4px 18px; }
 .eb-sheet-close { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: none; color: var(--muted); cursor: pointer; }
 .eb-sheet-close svg { width: 20px; height: 20px; }
-.eb-picklist { display: flex; flex-wrap: wrap; gap: 8px 6px; padding: 6px 16px 18px; overflow-y: auto; overscroll-behavior: contain; }
-.eb-picklist .eb-chip { min-height: 40px; }
 @keyframes eb-sheet-up { from { opacity: 0; transform: translateY(16px); } }
 @keyframes eb-fade-in { from { opacity: 0; } }
 
@@ -199,7 +187,7 @@
 @media (prefers-reduced-motion: reduce) {
   .eb-chip, .eb-check input::after { transition: none; }
   .eb-drop { animation: none; }
-  .eb-sheet, .eb-path, .eb-path + .eb-level, .eb-path + .eb-pick, .eb-places-level { animation-name: eb-fade-in; }
+  .eb-sheet, .eb-path, .eb-path + .eb-level, .eb-places-level { animation-name: eb-fade-in; }
   .eb-drill { transition: none; }
 }
 

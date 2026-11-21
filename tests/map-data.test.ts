@@ -1,18 +1,13 @@
-// The committed map shapes (scripts/build-data/build-map.ts): every id is a Places key, every province sits in the group
-// its key's parent names, and every path stays inside its box without a long jump (a wrap at the antimeridian). The world
-// keeps one decimal place (the Map zooms); the provinces, which nothing reads since round 6, whole units.
+// The committed map shapes (scripts/build-data/build-map.ts): every id is a Places key, and every path stays inside its
+// box without a long jump (a wrap at the antimeridian). The world keeps one decimal place (the Map zooms).
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { parentKey, parsePlaceKey } from '@/lib/list/place-keys'
+import { parsePlaceKey } from '@/lib/list/place-keys'
 import type { MapCountries, MapLayer } from '@/lib/map/shapes'
 import { MAP_EDGE } from '@/lib/map/zoom'
 
-/** The provinces file, which build-map.ts still writes and nothing in the app reads since round 6. */
-type MapProvinces = { v: 1; groups: Record<string, MapLayer> }
-
 const read = <T>(name: string) => JSON.parse(readFileSync(`public/data/${name}`, 'utf8')) as T
 const world = read<MapCountries>('map-countries.v1.json')
-const provinces = read<MapProvinces>('map-provinces.v1.json')
 const regions = read<{ countries: Record<string, string>; sub1: Record<string, string> }>('regions.v1.json')
 
 /** A number as build-map.ts writes it: at most one decimal place, no leading zero ("12", "-1.5", ".5", "-.5"). */
@@ -22,8 +17,8 @@ const N = NUM.source
 const add = (a: number, b: number) => Math.round((a + b) * 10) / 10
 
 /** The longest segment of a path, after checking its commands and that every point is inside the layer. */
-function longest(d: string, layer: MapLayer, decimals = true): number {
-  expect(d).toMatch(decimals ? new RegExp(`^(M${N} ${N}(l(${N}| )+|h2v2h-2)z)+$`) : /^(M-?\d+ -?\d+(l[-\d ]+|h2v2h-2)z)+$/)
+function longest(d: string, layer: MapLayer): number {
+  expect(d).toMatch(new RegExp(`^(M${N} ${N}(l(${N}| )+|h2v2h-2)z)+$`))
   let max = 0
   for (const loop of d.split('z').filter(Boolean)) {
     const [start, rest = ''] = loop.slice(1).split('l')
@@ -91,24 +86,5 @@ describe('the map shapes', () => {
     lens.sort((a, b) => a - b)
     expect(lens[lens.length >> 1]).toBeLessThanOrEqual(2 * MAP_EDGE)
     expect(Object.values(world.d).some((d) => /\d\.\d/.test(d))).toBe(true) // one decimal place, not whole units
-  })
-
-  it('provinces: every code a region, in the group its key belongs to', () => {
-    let n = 0
-    for (const [group, layer] of Object.entries(provinces.groups)) {
-      expect(Math.max(layer.w, layer.h)).toBe(1000)
-      for (const [code, d] of Object.entries(layer.d)) {
-        expect(Object.hasOwn(regions.sub1, code), code).toBe(true)
-        expect(parentKey(`s:${code}`), code).toBe(`c:${group}`)
-        longest(d, layer, false)
-        n++
-      }
-    }
-    expect(n).toBeGreaterThan(3500)
-    expect(Object.keys(provinces.groups['US@OC'].d)).toContain('US-HI')
-    expect(Object.keys(provinces.groups.US.d)).not.toContain('US-HI')
-    // French departments are dissolved into the regions the app uses.
-    expect(Object.keys(provinces.groups.FR.d)).toContain('FR-ARA')
-    expect(Object.keys(provinces.groups.FR.d)).not.toContain('FR-01')
   })
 })

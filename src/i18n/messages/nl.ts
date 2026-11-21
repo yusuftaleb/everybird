@@ -79,7 +79,6 @@ export const nl: Messages = {
         families: { one: '{n} familie', other: '{n} families' },
         since: 'sinds {date}',
         threatened: '{n} bedreigd',
-        threatenedGlobal: '{n} wereldwijd bedreigd',
         threatenedSr: '(Kwetsbaar, Bedreigd of Ernstig bedreigd)',
       },
       arranging: 'stickers worden geschikt',
@@ -205,7 +204,6 @@ export const nl: Messages = {
       nav: 'Filter op groep',
       all: 'Alle vogels',
       rank: { order: 'Ordes', family: 'Families', genus: 'Geslachten', country: 'Landen', year: 'Jaren' },
-      choose: { order: 'Kies een orde', family: 'Kies een familie', genus: 'Kies een geslacht', country: 'Kies een land', year: 'Kies een jaar' },
       remove: 'Filter {label} verwijderen',
       group: 'Vogelgroep',
       places: 'Plaatsen',
@@ -325,9 +323,8 @@ export const nl: Messages = {
       threatened: 'Bedreigd',
       pillName: 'Rode Lijst: {name}',
     },
-    /** The Status panel (StatusList). {n} is formatted. */
+    /** The Status panel (StatusList). */
     status: {
-      threatenedNote: '{n} bedreigd: Kwetsbaar, Bedreigd of Ernstig bedreigd.',
       list: 'Categorieën',
       none: 'Geen categorieën hier met de andere filters.',
     },
@@ -888,7 +885,7 @@ export const nl: Messages = {
           'Elke vogel wordt gekoppeld aan de eBird-taxonomie van dit jaar en houdt zijn vroegste datum. Rijen die niet passen, staan in een lijst, zodat er niets stilletjes wegvalt.',
           'De collage en zijn weergaven, de filters, de afbeeldingen om te delen en de posters worden allemaal in je browser gemaakt.',
         ],
-        privacy: 'Je lijst verlaat je browser nooit. We tellen bezoeken met Cloudflare Web Analytics, anoniem en zonder cookies, en een paar acties (een collage gemaakt, een afbeelding gedeeld of bewaard, een link gekopieerd) met een kleine eigen teller die nooit je vogels, namen of plaatsen ziet. Een anonieme id die elke dag verandert, laat ons unieke bezoekers tellen zonder iemand van dag tot dag te volgen. Geen van beide draait als je browser vraagt om niet gevolgd te worden. Je taalkeuze wordt bewaard in een klein cookie op dit apparaat; het verlaat het apparaat alleen om je de juiste pagina te tonen. De bezoekteller bevat de taal van je browser (alleen “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” of “zh-Hant”). Pagina’s in het Russisch, Japans en Chinees laden hun lettertypen van Google Fonts, dus op die pagina’s maakt je browser contact met Google.',
+        privacy: 'Je lijst verlaat je browser nooit. We tellen bezoeken met Cloudflare Web Analytics, anoniem en zonder cookies. Een kleine eigen teller registreert paginabezoeken en een paar acties (een collage gemaakt, een afbeelding gedeeld of bewaard, een link gekopieerd, de taal gewisseld, een poster gemaakt of bewaard, een zoekopdracht toegepast, welke soorten filters zijn gebruikt), elk met je land en het soort apparaat, nooit aantallen, namen, vogelsoorten of plaatsen. Een anonieme id die elke dag verandert, laat ons unieke bezoekers tellen zonder iemand van dag tot dag te volgen. Geen van beide draait als je browser vraagt om niet gevolgd te worden. Je taalkeuze wordt bewaard in een klein cookie op dit apparaat; het verlaat het apparaat alleen om je de juiste pagina te tonen. De bezoekteller bevat de taal van je browser (alleen “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” of “zh-Hant”). Pagina’s in het Russisch, Japans en Chinees laden hun lettertypen van Google Fonts, dus op die pagina’s maakt je browser contact met Google.',
       },
       size: {
         head: 'Wat Ware grootte betekent',

@@ -79,7 +79,6 @@ export const pt: Messages = {
         families: { one: '{n} família', other: '{n} famílias' },
         since: 'desde {date}',
         threatened: '{n} ameaçadas',
-        threatenedGlobal: '{n} ameaçadas no mundo',
         threatenedSr: '(Vulnerável, Em perigo ou Criticamente em perigo)',
       },
       arranging: 'organizando os adesivos',
@@ -205,7 +204,6 @@ export const pt: Messages = {
       nav: 'Filtrar por grupo',
       all: 'Todas as aves',
       rank: { order: 'Ordens', family: 'Famílias', genus: 'Gêneros', country: 'Países', year: 'Anos' },
-      choose: { order: 'Escolha uma ordem', family: 'Escolha uma família', genus: 'Escolha um gênero', country: 'Escolha um país', year: 'Escolha um ano' },
       remove: 'Remover o filtro {label}',
       group: 'Grupo de aves',
       places: 'Lugares',
@@ -327,7 +325,6 @@ export const pt: Messages = {
     },
     /** The Status panel (StatusList). {n} is formatted. */
     status: {
-      threatenedNote: '{n} ameaçadas: Vulnerável, Em perigo ou Criticamente em perigo.',
       list: 'Categorias',
       none: 'Nenhuma categoria aqui com os outros filtros.',
     },
@@ -888,7 +885,7 @@ export const pt: Messages = {
           'Cada ave é associada à taxonomia do eBird deste ano e mantém a data mais antiga. As linhas que não correspondem aparecem em uma lista, então nada é descartado em silêncio.',
           'A colagem e suas visualizações, os filtros, as imagens para compartilhar e os pôsteres são feitos no seu navegador.',
         ],
-        privacy: 'Sua lista nunca sai do seu navegador. Contamos as visitas com o Cloudflare Web Analytics, de forma anônima e sem cookies, e algumas ações (uma colagem feita, uma imagem compartilhada ou salva, um link copiado) com um pequeno contador nosso que nunca vê suas aves, nomes ou lugares. Um identificador anônimo que muda todo dia nos deixa contar visitantes únicos sem rastrear ninguém de um dia para o outro. Nenhum dos dois funciona se o seu navegador pedir para não ser rastreado. A sua escolha de idioma fica guardada em um pequeno cookie neste dispositivo; ela só sai dele para mostrar a página certa. A contagem de visitas inclui o idioma do seu navegador (apenas “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” ou “zh-Hant”). As páginas em russo, japonês e chinês carregam as fontes do Google Fonts, então nessas páginas seu navegador se conecta ao Google.',
+        privacy: 'Sua lista nunca sai do seu navegador. Contamos as visitas com o Cloudflare Web Analytics, de forma anônima e sem cookies. Um pequeno contador nosso registra as visitas às páginas e algumas ações (uma colagem feita, uma imagem compartilhada ou salva, um link copiado, o idioma trocado, um pôster criado ou salvo, uma busca aplicada, os tipos de filtro usados), cada uma com o seu país e o tipo de dispositivo, nunca contagens, nomes, espécies ou lugares. Um identificador anônimo que muda todo dia nos deixa contar visitantes únicos sem rastrear ninguém de um dia para o outro. Nenhum dos dois funciona se o seu navegador pedir para não ser rastreado. A sua escolha de idioma fica guardada em um pequeno cookie neste dispositivo; ela só sai dele para mostrar a página certa. A contagem de visitas inclui o idioma do seu navegador (apenas “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” ou “zh-Hant”). As páginas em russo, japonês e chinês carregam as fontes do Google Fonts, então nessas páginas seu navegador se conecta ao Google.',
       },
       size: {
         head: 'O que significa Tamanho real',

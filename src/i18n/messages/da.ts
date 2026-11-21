@@ -79,7 +79,6 @@ export const da: Messages = {
         families: { one: '{n} familie', other: '{n} familier' },
         since: 'siden {date}',
         threatened: '{n} truede',
-        threatenedGlobal: '{n} globalt truede',
         threatenedSr: '(Sårbar, Moderat truet eller Kritisk truet)',
       },
       arranging: 'klistermærkerne lægges ud',
@@ -205,7 +204,6 @@ export const da: Messages = {
       nav: 'Filtrér efter gruppe',
       all: 'Alle fugle',
       rank: { order: 'Ordener', family: 'Familier', genus: 'Slægter', country: 'Lande', year: 'År' },
-      choose: { order: 'Vælg en orden', family: 'Vælg en familie', genus: 'Vælg en slægt', country: 'Vælg et land', year: 'Vælg et år' },
       remove: 'Fjern filteret {label}',
       group: 'Fuglegruppe',
       places: 'Steder',
@@ -323,7 +321,6 @@ export const da: Messages = {
       pillName: 'Rødlisten: {name}',
     },
     status: {
-      threatenedNote: '{n} truede: Sårbar, Moderat truet eller Kritisk truet.',
       list: 'Kategorier',
       none: 'Ingen kategorier her med de andre filtre.',
     },
@@ -876,7 +873,7 @@ export const da: Messages = {
           'Collagen og dens visninger, filtrene, billederne til deling og plakaterne laves alle i din browser.',
         ],
         // The language codes keep “…”: tests/about-i18n.test.tsx matches them.
-        privacy: 'Din liste forlader aldrig din browser. Vi tæller besøg med Cloudflare Web Analytics, anonymt og uden cookies, og nogle få handlinger (en collage lavet, et billede delt eller gemt, et link kopieret) med vores egen lille tæller, som aldrig ser dine fugle, navne eller steder. Et anonymt id, der skifter hver dag, lader os tælle unikke besøgende uden at følge nogen fra dag til dag. Ingen af dem kører, hvis din browser beder om ikke at blive sporet. Dit valg af sprog gemmes i en lille cookie på denne enhed; den forlader kun enheden for at vise dig den rigtige side. Besøgstællingen indeholder din browsers sprog (kun “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” eller “zh-Hant”). Sider på russisk, japansk og kinesisk henter deres skrifttyper fra Google Fonts, så på de sider kontakter din browser Google.',
+        privacy: 'Din liste forlader aldrig din browser. Vi tæller besøg med Cloudflare Web Analytics, anonymt og uden cookies. Vores egen lille tæller registrerer sidebesøg og nogle få handlinger (en collage lavet, et billede delt eller gemt, et link kopieret, sproget skiftet, en plakat lavet eller gemt, en søgning brugt, hvilke slags filtre der blev brugt), hver med dit land og din type enhed, aldrig antal, navne, arter eller steder. Et anonymt id, der skifter hver dag, lader os tælle unikke besøgende uden at følge nogen fra dag til dag. Ingen af dem kører, hvis din browser beder om ikke at blive sporet. Dit valg af sprog gemmes i en lille cookie på denne enhed; den forlader kun enheden for at vise dig den rigtige side. Besøgstællingen indeholder din browsers sprog (kun “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” eller “zh-Hant”). Sider på russisk, japansk og kinesisk henter deres skrifttyper fra Google Fonts, så på de sider kontakter din browser Google.',
       },
       size: {
         head: 'Hvad Ægte mål betyder',

@@ -79,7 +79,6 @@ export const fr: Messages = {
         families: { one: '{n} famille', other: '{n} familles' },
         since: 'depuis {date}',
         threatened: '{n} menacées',
-        threatenedGlobal: '{n} menacées à l’échelle mondiale',
         threatenedSr: '(Vulnérable, En danger ou En danger critique)',
       },
       arranging: 'placement des autocollants',
@@ -205,7 +204,6 @@ export const fr: Messages = {
       nav: 'Filtrer par groupe',
       all: 'Tous les oiseaux',
       rank: { order: 'Ordres', family: 'Familles', genus: 'Genres', country: 'Pays', year: 'Années' },
-      choose: { order: 'Choisis un ordre', family: 'Choisis une famille', genus: 'Choisis un genre', country: 'Choisis un pays', year: 'Choisis une année' },
       remove: 'Retirer le filtre {label}',
       group: 'Groupe d’oiseaux',
       places: 'Lieux',
@@ -325,9 +323,8 @@ export const fr: Messages = {
       threatened: 'Menacées',
       pillName: 'Liste rouge\u00a0: {name}',
     },
-    /** The Status panel (StatusList). {n} is formatted. */
+    /** The Status panel (StatusList). */
     status: {
-      threatenedNote: '{n} menacées\u00a0: Vulnérable, En danger ou En danger critique.',
       list: 'Catégories',
       none: 'Aucune catégorie ici avec les autres filtres.',
     },
@@ -888,7 +885,7 @@ export const fr: Messages = {
           'Chaque oiseau est rapproché de la taxonomie eBird de cette année et garde sa date la plus ancienne. Les lignes qui ne correspondent pas sont listées, donc rien n’est écarté en silence.',
           'Le collage et ses vues, les filtres, les images de partage et les affiches sont tous créés dans ton navigateur.',
         ],
-        privacy: 'Ta liste ne quitte jamais ton navigateur. Nous comptons les visites avec Cloudflare Web Analytics, de façon anonyme et sans cookies, et quelques actions (un collage créé, une image partagée ou enregistrée, un lien copié) avec notre propre petit compteur, qui ne voit jamais tes oiseaux, tes noms ni tes lieux. Un identifiant anonyme qui change chaque jour nous permet de compter les visiteurs uniques sans suivre personne d’un jour à l’autre. Aucun des deux ne fonctionne si ton navigateur demande à ne pas être suivi. Ton choix de langue est conservé dans un petit cookie sur cet appareil\u00a0; il n’en sort que pour t’afficher la bonne page. Le décompte des visites inclut la langue de ton navigateur (seulement “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” ou “zh-Hant”). Les pages en russe, en japonais et en chinois chargent leurs polices depuis Google Fonts, donc sur ces pages ton navigateur contacte Google.',
+        privacy: 'Ta liste ne quitte jamais ton navigateur. Nous comptons les visites avec Cloudflare Web Analytics, de façon anonyme et sans cookies. Notre propre petit compteur enregistre les visites des pages et quelques actions (un collage créé, une image partagée ou enregistrée, un lien copié, la langue changée, une affiche créée ou enregistrée, une recherche appliquée, les types de filtre utilisés), chacune avec ton pays et ton type d’appareil, jamais de nombres, de noms, d’espèces ni de lieux. Un identifiant anonyme qui change chaque jour nous permet de compter les visiteurs uniques sans suivre personne d’un jour à l’autre. Aucun des deux ne fonctionne si ton navigateur demande à ne pas être suivi. Ton choix de langue est conservé dans un petit cookie sur cet appareil\u00a0; il n’en sort que pour t’afficher la bonne page. Le décompte des visites inclut la langue de ton navigateur (seulement “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” ou “zh-Hant”). Les pages en russe, en japonais et en chinois chargent leurs polices depuis Google Fonts, donc sur ces pages ton navigateur contacte Google.',
       },
       size: {
         head: 'Ce que signifie Taille réelle',

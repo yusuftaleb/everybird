@@ -235,13 +235,12 @@ type PanelProps = Shared & {
   /** The Places section's line about observation.org birds with no places. */
   placesUnplaced?: PlacesUnplaced
   time: { entries: ListEntry[]; months: Month[]; today: Month; onPreview?: (r: { from?: Month; to?: Month } | null) => void }
-  threatLine?: number
   /** Species under the whole filter (CollageView's shownList.length): the head and the sheet's button. */
   shown: number
 }
 
 /** In ControlsBar's `below` slot, after the chip row (the popover sits right under the dock, over it), or portalled as the sheet. */
-function FiltersPanel({ state, onChange, species, regions, sections, open, onOpen, id, buttonRef, returnFocus, placesNote, placesUnplaced, time, threatLine, shown }: PanelProps): ReactNode {
+function FiltersPanel({ state, onChange, species, regions, sections, open, onOpen, id, buttonRef, returnFocus, placesNote, placesUnplaced, time, shown }: PanelProps): ReactNode {
   const { t } = useI18n()
   const sheet = useIsSheet()
   const ref = useRef<HTMLDivElement>(null)
@@ -291,7 +290,7 @@ function FiltersPanel({ state, onChange, species, regions, sections, open, onOpe
         {s === 'places' ? (
           <PlacesSection state={state} species={species} regions={regions} note={placesNote} unplaced={placesUnplaced} onFilter={onFilter} />
         ) : s === 'status' ? (
-          <StatusSection state={state} species={species} threatLine={threatLine} onFilter={onFilter} />
+          <StatusSection state={state} species={species} onFilter={onFilter} />
         ) : (
           <Timeline
             entries={time.entries}
@@ -365,7 +364,6 @@ type UiArgs = {
   placesNote?: PlacesNote
   placesUnplaced?: PlacesUnplaced
   time: PanelProps['time']
-  threatLine?: number
   shown: number
   /** The panel is opening: the caller closes the bar's other panels (one open at a time). */
   onOpening?: () => void
@@ -375,7 +373,7 @@ type UiArgs = {
  * The button, the chip row and the panel, wired together as CollageView uses them: `button` for the dock's
  * `filters` slot, `below` for ControlsBar's, `dimmed` for the content after the dock wrap.
  */
-export function useFiltersUi({ state, dispatch, species, regions, hide, placesNote, placesUnplaced, time, threatLine, shown, onOpening }: UiArgs): {
+export function useFiltersUi({ state, dispatch, species, regions, hide, placesNote, placesUnplaced, time, shown, onOpening }: UiArgs): {
   button: ReactNode
   below: ReactNode
   dimmed: boolean
@@ -456,7 +454,6 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
             placesNote={placesNote}
             placesUnplaced={placesUnplaced}
             time={time}
-            threatLine={threatLine}
             shown={shown}
           />
         )}

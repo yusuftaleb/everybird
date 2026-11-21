@@ -44,7 +44,6 @@ import { loadTree } from '@/lib/tree/load'
 import { closeDeep, openBranch, treeBranch, type OpenBranch, type TreeDeep } from '@/lib/tree/path'
 import { formatAge, oldestLineage, type Tree } from '@/lib/tree/tree'
 import { useTreeMine } from '@/lib/tree-mine'
-import { useVariant } from '@/lib/variants'
 import { ControlsBar } from './ControlsBar'
 import { useCollageLayout } from './use-collage-layout'
 import './app.css'
@@ -84,14 +83,10 @@ type Props = {
 }
 
 const pad = (d: string) => (d.length === 4 ? `${d}-00-00` : d.length === 7 ? `${d}-00` : d)
-/** Preview variants of the threatened count: a "12 threatened" on the stats line, b "12 globally threatened", c in
- *  the Status panel instead. */
-const THREAT_VARIANTS = ['a', 'b', 'c'] as const
-type ThreatVariant = (typeof THREAT_VARIANTS)[number]
-/** The stats line's threatened part ("12 threatened", "1,200 globally threatened"); screen readers hear
- *  `t.collage.stats.threatenedSr` after it: the categories it counts, which the visible line leaves to the Status panel. */
-function threatText(count: number, threat: ThreatVariant, t: Ui): string {
-  return fmt(threat === 'b' ? t.collage.stats.threatenedGlobal : t.collage.stats.threatened, { n: formatInt(count, t.num) })
+/** The stats line's threatened part ("12 threatened"); screen readers hear `t.collage.stats.threatenedSr` after it:
+ *  the categories it counts, which the visible line leaves to the Status panel. */
+function threatText(count: number, t: Ui): string {
+  return fmt(t.collage.stats.threatened, { n: formatInt(count, t.num) })
 }
 /** How long a bird picked from the search wears its Accent ring. */
 const RING_MS = 1600
@@ -108,11 +103,10 @@ export function taxonomyTotals(rows: readonly SpeciesRow[]): TaxonomyTotals {
 
 /**
  * "197 species · 20 orders · 50 families · 12 threatened · since Jan 2020", or "12 of 197 species · 3 families" when
- * filtered, in `t`'s language. The threatened count (VU + EN + CR) is left out at 0 and in variant c; b reads
- * "12 globally threatened". With `totals` (the Tree with Lifers only off) the unfiltered line counts against the
+ * filtered, in `t`'s language. The threatened count (VU + EN + CR) is left out at 0. With `totals` (the Tree with Lifers only off) the unfiltered line counts against the
  * taxonomy: "197 / 11,201 species · 20 / 45 orders · 50 / 250 families · …".
  */
-export function statsLine(all: ListEntry[], shown: ListEntry[], species: SpeciesIndex, t: Ui, threat: ThreatVariant = 'a', totals?: TaxonomyTotals): string {
+export function statsLine(all: ListEntry[], shown: ListEntry[], species: SpeciesIndex, t: Ui, totals?: TaxonomyTotals): string {
   const ords = new Set<string>(), fams = new Set<string>()
   for (const e of shown) {
     const r = species.byCode.get(e.code)
@@ -129,8 +123,8 @@ export function statsLine(all: ListEntry[], shown: ListEntry[], species: Species
   // Against a total: the number, then the total in the count's own words ("197 / 11,201 species").
   const part = (p: typeof s.species, x: number, total?: number) => (total === undefined ? count(p, x) : `${formatInt(x, t.num)} / ${count(p, total)}`)
   const parts = [part(s.species, all.length, totals?.species), part(s.orders, ords.size, totals?.orders), part(s.families, fams.size, totals?.families)]
-  const threatened = threat === 'c' ? 0 : threatenedCount(all, species)
-  if (threatened > 0) parts.push(threatText(threatened, threat, t))
+  const threatened = threatenedCount(all, species)
+  if (threatened > 0) parts.push(threatText(threatened, t))
   const since = formatMonth(first, t.date.months)
   if (since) parts.push(fmt(s.since, { date: since }))
   return parts.join(' · ')
@@ -195,7 +189,6 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const time = useMemo(() => ({ entries, months, today, onPreview }), [entries, months, today, onPreview])
   const fk = filterKey(filter)
   const shownList = useMemo(() => (fk ? applyFilter(entries, filter, species, seen) : entries), [entries, filter, fk, species, seen])
-  const threat = useVariant('threat', THREAT_VARIANTS)
   // The Tree with Lifers only off draws the whole taxonomy, so the line counts against it: the full species file's
   // totals (the Tree's own data; the landing sample's index holds only its birds), fetched the first time.
   const treeMine = useTreeMine()
@@ -208,10 +201,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
     return () => { live = false }
   }, [wantTotals, taxonomy])
   const totals = wantTotals ? taxonomy ?? undefined : undefined
-  const stats = useMemo(() => statsLine(entries, shownList, species, t, threat, totals), [entries, shownList, species, t, threat, totals])
+  const stats = useMemo(() => statsLine(entries, shownList, species, t, totals), [entries, shownList, species, t, totals])
   // Variant c: the count moves to the Status panel.
-  const threatPart = useMemo(() => (threat === 'c' ? undefined : threatText(threatenedCount(entries, species), threat, t)), [threat, entries, species, t])
-  const threatLine = useMemo(() => (threat === 'c' ? threatenedCount(entries, species) : undefined), [threat, entries, species])
+  const threatPart = useMemo(() => threatText(threatenedCount(entries, species), t), [entries, species, t])
   const shownCodes = useMemo(() => new Set(shownList.map((e) => e.code)), [shownList])
   const order = useMemo(() => liferOrder(species.byCode), [species])
   // The legend's latest lifer: the newest bird shown, as the share image's latest lifer row.
@@ -234,7 +226,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // The bar's Taxa and Display panels (Filters keeps its own state in useFiltersUi): one panel open at a time.
   const [panel, setPanel] = useState<Exclude<DockPanelId, 'filters'> | null>(null)
   const closePanel = useCallback(() => setPanel(null), [])
-  const filtersUi = useFiltersUi({ state, dispatch, species, regions, hide: hideSections, placesNote, placesUnplaced, time, threatLine, shown: shownList.length, onOpening: closePanel })
+  const filtersUi = useFiltersUi({ state, dispatch, species, regions, hide: hideSections, placesNote, placesUnplaced, time, shown: shownList.length, onOpening: closePanel })
   const press = (p: Exclude<DockPanelId, 'filters'>) => { filtersUi.close(); setPanel((open) => pressPanel(open, p) as typeof open) }
   const ids = useId()
   const taxaBtn = useRef<HTMLButtonElement>(null)

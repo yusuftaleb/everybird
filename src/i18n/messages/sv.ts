@@ -79,7 +79,6 @@ export const sv: Messages = {
         families: { one: '{n} familj', other: '{n} familjer' },
         since: 'sedan {date}',
         threatened: '{n} hotade',
-        threatenedGlobal: '{n} globalt hotade',
         threatenedSr: '(Sårbar, Starkt hotad eller Akut hotad)',
       },
       arranging: 'klistermärkena ordnas',
@@ -205,7 +204,6 @@ export const sv: Messages = {
       nav: 'Filtrera efter grupp',
       all: 'Alla fåglar',
       rank: { order: 'Ordningar', family: 'Familjer', genus: 'Släkten', country: 'Länder', year: 'År' },
-      choose: { order: 'Välj en ordning', family: 'Välj en familj', genus: 'Välj ett släkte', country: 'Välj ett land', year: 'Välj ett år' },
       remove: 'Ta bort filtret {label}',
       group: 'Fågelgrupp',
       places: 'Platser',
@@ -321,7 +319,6 @@ export const sv: Messages = {
       pillName: 'Rödlistan: {name}',
     },
     status: {
-      threatenedNote: '{n} hotade: Sårbar, Starkt hotad eller Akut hotad.',
       list: 'Kategorier',
       none: 'Inga kategorier här med de andra filtren.',
     },
@@ -874,7 +871,7 @@ export const sv: Messages = {
           'Varje fågel matchas mot årets eBird-taxonomi och behåller sitt tidigaste datum. Rader som inte matchar listas, så inget försvinner i tysthet.',
           'Collaget och dess vyer, filtren, delningsbilderna och affischerna skapas helt i din webbläsare.',
         ],
-        privacy: 'Din lista lämnar aldrig din webbläsare. Vi räknar besök med Cloudflare Web Analytics, anonymt och utan cookies, och några handlingar (ett collage skapat, en bild delad eller sparad, en länk kopierad) med en liten egen räknare som aldrig ser dina fåglar, namn eller platser. Ett anonymt id som byts varje dag låter oss räkna unika besökare utan att följa någon över flera dagar. Inget av dem körs om din webbläsare ber om att inte spåras. Ditt språkval sparas i en liten cookie på den här enheten; den lämnar enheten bara för att visa dig rätt sida. Besöksräkningen innehåller din webbläsares språk (bara ”es”, ”pt”, ”nl”, ”pl”, ”fr”, ”de”, ”it”, ”sv”, ”da”, ”ru”, ”ja”, ”zh-Hans” eller ”zh-Hant”). Sidor på ryska, japanska och kinesiska hämtar sina typsnitt från Google Fonts, så på de sidorna kontaktar din webbläsare Google.',
+        privacy: 'Din lista lämnar aldrig din webbläsare. Vi räknar besök med Cloudflare Web Analytics, anonymt och utan cookies. En liten egen räknare registrerar sidbesök och några handlingar (ett collage skapat, en bild delad eller sparad, en länk kopierad, språket bytt, en affisch skapad eller sparad, en sökning använd, vilka slags filter som användes), var och en med ditt land och din typ av enhet, aldrig antal, namn, arter eller platser. Ett anonymt id som byts varje dag låter oss räkna unika besökare utan att följa någon över flera dagar. Inget av dem körs om din webbläsare ber om att inte spåras. Ditt språkval sparas i en liten cookie på den här enheten; den lämnar enheten bara för att visa dig rätt sida. Besöksräkningen innehåller din webbläsares språk (bara ”es”, ”pt”, ”nl”, ”pl”, ”fr”, ”de”, ”it”, ”sv”, ”da”, ”ru”, ”ja”, ”zh-Hans” eller ”zh-Hant”). Sidor på ryska, japanska och kinesiska hämtar sina typsnitt från Google Fonts, så på de sidorna kontaktar din webbläsare Google.',
       },
       size: {
         head: 'Vad Sann storlek betyder',
