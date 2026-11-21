@@ -3,10 +3,12 @@ import linkIndex from "../data/link-index.json";
 import { decodeCompare, encodeShare } from "../src/lib/share/link";
 
 // Compare (/compare, src/components/compare/): the set-up (a name beside each link, Add a friend, the cap, Compare at
-// two lists), the comparison (the pills, the diagram and its Circles | Bars, the groups, the stickers, Edit lists) and
-// Share into the site's Share dialog in its Compare mode (What, the formats, Share image, Download, Copy link). Runs in
-// Chromium and WebKit at 1440 × 900 and 390 × 844. Every list is synthetic: species from the link index, made-up names.
-// COMPARE_PNG_DIR=<dir> (outside the repo) saves screenshots of the set-up, the comparison and the dialog.
+// two lists), the comparison (My birds' page head with Edit lists and Share, the chips: a person, a pair, all three,
+// Yet to see, Every bird; every region of the circles pressed, by pointer and keyboard; the bars beside the circles;
+// the heading and the stickers; Edit lists) and Share into the site's Share dialog in its Compare mode (What, the
+// formats, Share image, Download, Copy link). Runs in Chromium and WebKit at 1440 × 900 and 390 × 844. Every list is
+// synthetic: species from the link index, made-up names. COMPARE_PNG_DIR=<dir> (outside the repo) saves screenshots
+// of the set-up, the comparison and the dialog.
 
 const codes = linkIndex as string[];
 const range = (from: number, n: number) => codes.slice(from, from + n);
@@ -50,8 +52,11 @@ async function seed(page: Page) {
 
 const link = (origin: string, name: string, birds: string[]) => `${origin}/s/${encodeShare({ v: 1, name, titled: true, birds: birds.map((code) => ({ code })) }).token}`;
 const rows = (page: Page) => page.getByTestId(/^compare-row-\d+$/);
-const group = (page: Page, id: string | number) => page.getByTestId(`compare-group-${id}`);
-const pills = (page: Page) => page.getByTestId("compare-pills").getByRole("listitem");
+const chip = (page: Page, id: string | number) => page.getByTestId(`compare-chip-${id}`);
+/** The people's chips (each its name, its count in `.eb-count`). */
+const pills = (page: Page) => page.getByTestId(/^compare-chip-\d+$/);
+const shown = (page: Page) => page.getByTestId("compare-shown");
+type C = { cx: number; cy: number; r: number };
 async function shot(page: Page, name: string, browser: string) {
   const dir = process.env.COMPARE_PNG_DIR;
   if (dir) await page.screenshot({ path: `${dir}/${browser}-${page.viewportSize()!.width}-${name}.png`, fullPage: true });
@@ -65,8 +70,20 @@ async function expectAll(page: Page, n: number) {
     await expect(page.getByTestId("compare-birds").getByRole("listitem")).toHaveCount(n, { timeout: 500 });
   }).toPass({ timeout: 10_000 });
 }
+/** The point of region `mask` (bit i: inside circle i, outside the others) farthest from every circle's edge, in the
+ *  drawing's units: a press there is surely in that region. */
+function inRegion(circles: C[], mask: number): [number, number] {
+  let best: [number, number] = [0, 0], room = -1;
+  for (let x = 0; x <= 320; x += 2) for (let y = 0; y <= 260; y += 2) {
+    const d = circles.map((c) => Math.hypot(x - c.cx, y - c.cy) - c.r);
+    if (!d.every((v, i) => (mask & (1 << i) ? v < 0 : v > 0))) continue;
+    const m = Math.min(...d.map(Math.abs));
+    if (m > room) { room = m; best = [x, y]; }
+  }
+  return best;
+}
 /** Clicks the diagram at (x, y) in its drawing's units (its viewBox). */
-async function pressDiagram(page: Page, at: (circles: { cx: number; cy: number; r: number }[]) => [number, number]) {
+async function pressDiagram(page: Page, at: (circles: C[]) => [number, number]) {
   const svg = page.getByTestId("compare-diagram");
   const circles = await svg.locator("circle.eb-compare-circle").evaluateAll((els) =>
     els.map((e) => ({ cx: +e.getAttribute("cx")!, cy: +e.getAttribute("cy")!, r: +e.getAttribute("r")! })));
@@ -102,8 +119,16 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       // From here on (WebKit reports the seed's page's fetches, cut short by the next page load, as errors).
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
-      await expect(page.getByRole("heading", { level: 1, name: "Compare with friends" })).toBeVisible();
-      await expect(page.getByText("Paste your friends’ Everybird links. Up to 6 lists.")).toBeVisible();
+      // The same page head as the comparison's and My birds': the title, its line, Compare at its right (where Share will be).
+      const title = page.getByRole("heading", { level: 1, name: "Compare life lists" });
+      await expect(title).toBeVisible();
+      await expect(title).toHaveClass(/eb-pagehead-title/);
+      await expect(page.locator(".eb-pagehead .eb-lede-sm")).toHaveText("Paste your friends’ Everybird links to see which birds you share. Up to 6 lists.");
+      await expect(page.locator(".eb-pagehead-actions").getByRole("button")).toHaveText(["Compare"]);
+      const setupTitle = (await title.boundingBox())!;
+      const setupHead = (await page.locator(".eb-pagehead").boundingBox())!;
+      const setupFont = await title.evaluate((el) => getComputedStyle(el).fontSize);
+      const submitBox = async () => (await page.getByTestId("compare-submit").boundingBox())!;
       await expect(page.getByTestId("compare-name-mine")).toHaveValue(ME);
       const submit = page.getByTestId("compare-submit");
       await expect(submit).toBeDisabled();
@@ -116,66 +141,136 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await page.getByTestId("compare-link-1").fill(link(baseURL!, "Ada", ADA));
       await expect(page.getByTestId("compare-name-1")).toHaveValue("Ada");
       await shot(page, "setup", browserName);
+      const compareAt = await submitBox();
 
       await submit.click();
-      await expect(pills(page)).toHaveText([`${ME}60`, "Sam50", "Ada40"]);
+      // The page head, as My birds': the title, the line, Edit lists and Share at its right end.
+      await expect(page.getByRole("heading", { level: 1, name: "Compare life lists" })).toBeVisible();
+      // The head where it was in the set-up, its title in the same type: only the line and the buttons change. (On a
+      // phone the title may wrap beside Edit lists and Share where it fit on one line beside Compare.)
+      const resultsTitle = (await title.boundingBox())!;
+      const resultsHead = (await page.locator(".eb-pagehead").boundingBox())!;
+      expect(Math.abs(resultsHead.y - setupHead.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(resultsTitle.x - setupTitle.x)).toBeLessThanOrEqual(1);
+      if (viewport.width >= 640) expect(Math.abs(resultsTitle.y - setupTitle.y)).toBeLessThanOrEqual(1);
+      expect(await title.evaluate((el) => getComputedStyle(el).fontSize)).toBe(setupFont);
+      await expect(page.getByText("See which birds your lists share and which you’re yet to see. Choose people below to see the birds only they share.")).toBeVisible();
       await expect(page.getByTestId("compare-edit")).toBeFocused();
+      await expect(page.getByTestId("compare-edit")).toHaveAccessibleName("Edit lists");
       await expect(page.getByTestId("compare-share")).toBeEnabled();
-      await expect(page.getByTestId("compare-summary")).toHaveText("3 lists · 110 species");
-      await expect(page.getByTestId("compare-groups").getByRole("button")).toHaveText([
-        "Yet to see50", "On every list10", "Only you40", "Only Sam20", "Only Ada20", "Every bird110",
-      ]);
-      await expect(group(page, "need")).toHaveAttribute("aria-pressed", "true");
+      const head = (await page.locator(".eb-pagehead-row").boundingBox())!;
+      const shareBox = (await page.getByTestId("compare-share").boundingBox())!;
+      expect(Math.abs(shareBox.x + shareBox.width - (head.x + head.width))).toBeLessThanOrEqual(1);
+      // Share where Compare was (on a phone the buttons centre on the title, which may take a second line here).
+      expect(Math.abs(shareBox.x + shareBox.width - (compareAt.x + compareAt.width))).toBeLessThanOrEqual(1);
+      if (viewport.width >= 640) expect(Math.abs(shareBox.y - compareAt.y)).toBeLessThanOrEqual(1);
+      for (const b of [page.getByTestId("compare-edit"), page.getByTestId("compare-share")]) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+      // The chips: each person with their count, then Yet to see and Every bird; it opens on Yet to see.
+      await expect(pills(page).locator(".eb-compare-chip-name")).toHaveText([ME, "Sam", "Ada"]);
+      await expect(pills(page).locator(".eb-count")).toHaveText(["60", "50", "40"]);
+      await expect(chip(page, "need").locator(".eb-count")).toHaveText("50");
+      await expect(chip(page, "every").locator(".eb-count")).toHaveText("110");
+      await expect(chip(page, "need")).toHaveAttribute("aria-pressed", "true");
+      await expect(shown(page)).toHaveText("Yet to see · 50");
       const birds = page.getByTestId("compare-birds").getByRole("listitem");
       await expect(birds.first()).toBeVisible();
       await expect(page.getByTestId("compare-more")).toHaveText("Show all 50");
-      await expect(page.getByTestId("compare-diagram")).toHaveAttribute("aria-label",
-        `Only ${ME}: 40. Only Sam: 20. Only Ada: 20. Only ${ME} and Sam: 10. Only ${ME} and Ada: 0. Only Sam and Ada: 10. On every list: 10.`);
-      // From 640px the diagram and the groups are two equal columns across the content: the counts end under Share.
+      await expect(page.getByTestId("compare-region-1")).toHaveAccessibleName(`Only ${ME}: 40.`);
+      await expect(page.getByTestId("compare-region-6")).toHaveAccessibleName("Only Sam and Ada: 10.");
+      // The circles at the left, the bars at the right, side by side from 640px; stacked under it.
+      const circlesBox = (await page.getByTestId("compare-diagram").boundingBox())!;
+      const barsBox = (await page.getByTestId("compare-bars").boundingBox())!;
       if (viewport.width >= 640) {
-        const share = (await page.getByTestId("compare-share").boundingBox())!;
-        const groups = (await page.getByTestId("compare-groups").boundingBox())!;
-        expect(Math.abs(groups.x + groups.width - (share.x + share.width))).toBeLessThanOrEqual(1);
+        expect(barsBox.x).toBeGreaterThan(circlesBox.x + circlesBox.width);
+        expect(barsBox.y).toBeLessThan(circlesBox.y + circlesBox.height);
+      } else {
+        expect(barsBox.y).toBeGreaterThanOrEqual(circlesBox.y + circlesBox.height);
       }
+      await expect(page.getByTestId("compare-bars").getByRole("button")).toHaveText([`${ME}60`, "Sam50", "Ada40"]);
+      // Every sticker in the same box, contained, never cropped.
+      const pics = await page.locator(".eb-compare-tile-pic").evaluateAll((els) => els.map((e) => {
+        const r = e.getBoundingClientRect();
+        const img = e.querySelector("img");
+        return { w: Math.round(r.width), h: Math.round(r.height), fit: img ? getComputedStyle(img).objectFit : "contain", over: e.scrollHeight > e.clientHeight + 1 };
+      }));
+      expect(new Set(pics.map((p) => `${p.w}x${p.h}`)).size).toBe(1);
+      expect(pics.every((p) => p.fit === "contain" && !p.over)).toBe(true);
       // Nothing scrolls sideways.
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
-      await shot(page, "results", browserName);
+      await shot(page, "results-yet-to-see", browserName);
 
-      // A group from the list, then from the diagram: a list's own part, the middle (every list).
-      await group(page, 1).click();
-      await expect(group(page, 1)).toHaveAttribute("aria-pressed", "true");
-      await expect(group(page, "need")).toHaveAttribute("aria-pressed", "false");
+      // A person: only Sam's birds, Sam's region and bar marked.
+      await chip(page, 1).click();
+      await expect(chip(page, 1)).toHaveAttribute("aria-pressed", "true");
+      await expect(chip(page, "need")).toHaveAttribute("aria-pressed", "false");
+      await expect(shown(page)).toHaveText("Only Sam · 20");
       await expectAll(page, 20);
-      // The diagram shows the chosen group: Sam's own part (mask 2) at full strength, the rest faded.
       await expect(page.getByTestId("compare-part-2")).not.toHaveAttribute("data-off");
       await expect(page.getByTestId("compare-part-1")).toHaveAttribute("data-off", "");
       await expect(page.getByTestId("compare-part-7")).toHaveAttribute("data-off", "");
-      await shot(page, "results-chosen", browserName);
-      await pressDiagram(page, ([a]) => [a.cx - 0.75 * a.r * Math.sqrt(3) / 2, a.cy - 0.75 * a.r / 2]);
-      await expect(group(page, 0)).toHaveAttribute("aria-pressed", "true");
-      await pressDiagram(page, (cs) => [cs.reduce((s, c) => s + c.cx, 0) / 3, cs.reduce((s, c) => s + c.cy, 0) / 3]);
-      await expect(group(page, "all")).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByTestId("compare-rank-1")).not.toHaveAttribute("data-off");
+      await expect(page.getByTestId("compare-rank-0")).toHaveAttribute("data-off", "");
+      await shot(page, "results-person", browserName);
+      // A pair: the birds on exactly those two lists.
+      await chip(page, 0).click();
+      await expect(shown(page)).toHaveText(`${ME} & Sam · 10`);
+      await expect(page.getByTestId("compare-part-3")).not.toHaveAttribute("data-off");
+      await expect(page.getByTestId("compare-region-3")).toHaveAttribute("aria-pressed", "true");
       await expectAll(page, 10);
+      await shot(page, "results-pair", browserName);
+      // All three.
+      await chip(page, 2).click();
+      await expect(shown(page)).toHaveText("On every list · 10");
+      await expect(page.getByTestId("compare-part-7")).not.toHaveAttribute("data-off");
+      await shot(page, "results-all", browserName);
 
-      // Circles | Bars: the bars, most species first, each choosing its list's own birds.
-      await page.getByTestId("compare-view-bars").click();
-      await expect(page.getByTestId("compare-diagram")).toHaveCount(0);
-      await expect(page.getByTestId("compare-bars").getByRole("button")).toHaveText([`${ME}60`, "Sam50", "Ada40"]);
-      await page.getByTestId("compare-rank-2").click();
-      await expect(group(page, 2)).toHaveAttribute("aria-pressed", "true");
-      await page.getByTestId("compare-view-circles").click();
-      await expect(page.getByTestId("compare-diagram")).toBeVisible();
+      // Every region of the circles, pressed: its people chosen.
+      const expected: Record<number, string> = {
+        1: "Only you · 40", 2: "Only Sam · 20", 4: "Only Ada · 20", 3: `${ME} & Sam · 10`, 5: `${ME} & Ada · 0`, 6: "Sam & Ada · 10", 7: "On every list · 10",
+      };
+      for (const [mask, text] of Object.entries(expected)) {
+        await pressDiagram(page, (cs) => inRegion(cs, +mask));
+        await expect(shown(page)).toHaveText(text);
+        await expect(page.getByTestId(`compare-region-${mask}`)).toHaveAttribute("aria-pressed", "true");
+      }
+      // Outside the circles: every bird.
+      await pressDiagram(page, () => [2, 2]);
+      await expect(chip(page, "every")).toHaveAttribute("aria-pressed", "true");
+      await expect(shown(page)).toHaveText("Every bird · 110");
+      // The keyboard: Tab reaches each region, Enter chooses it.
+      await page.getByTestId("compare-chip-every").focus();
+      await page.keyboard.press("Tab");
+      await expect(page.locator(".eb-compare-region").first()).toBeFocused();
+      await page.getByTestId("compare-region-6").focus();
+      await page.keyboard.press("Enter");
+      await expect(shown(page)).toHaveText("Sam & Ada · 10");
+      await page.getByTestId("compare-region-4").focus();
+      await page.keyboard.press(" ");
+      await expect(shown(page)).toHaveText("Only Ada · 20");
+      // A bar chooses its person.
+      await page.getByTestId("compare-rank-0").click();
+      await expect(shown(page)).toHaveText("Only you · 40");
+      // Yet to see again clears the people.
+      await chip(page, "need").click();
+      await expect(page.getByRole("button", { pressed: true })).toHaveCount(1);
 
       // Edit lists: the rows as left; removing one leaves two lists.
       await page.getByTestId("compare-edit").click();
-      await expect(page.getByRole("heading", { level: 1, name: "Compare with friends" })).toBeFocused();
+      await expect(page.getByRole("heading", { level: 1, name: "Compare life lists" })).toBeFocused();
+      await expect(page.locator(".eb-pagehead-actions").getByRole("button")).toHaveText(["Compare"]);
       await expect(page.getByTestId("compare-name-0")).toHaveValue("Sam");
       await expect(page.getByTestId("compare-name-1")).toHaveValue("Ada");
       await page.getByRole("button", { name: "Remove Ada" }).click();
       await expect(rows(page)).toHaveCount(1);
       await submit.click();
-      await expect(pills(page)).toHaveText([`${ME}60`, "Sam50"]);
-      await expect(page.getByTestId("compare-groups").getByRole("button")).toHaveText(["Yet to see30", "Both20", "Only you40", "Only Sam30", "Every bird90"]);
+      await expect(pills(page).locator(".eb-compare-chip-name")).toHaveText([ME, "Sam"]);
+      await expect(shown(page)).toHaveText("Yet to see · 30");
+      await chip(page, 0).click();
+      await chip(page, 1).click();
+      await expect(shown(page)).toHaveText("Both · 20");
+      await chip(page, "every").click();
+      await expect(shown(page)).toHaveText("Every bird · 90");
       expect(errors).toEqual([]);
     });
 
@@ -189,6 +284,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(page.getByTestId("compare-add")).toBeDisabled();
       await page.getByTestId("compare-submit").click();
       await expect(pills(page)).toHaveCount(6);
+      await expect(chip(page, "need")).toBeVisible();
       // Six lists: the flower, a petal each, and its middle.
       await expect(page.getByTestId("compare-diagram").locator("circle.eb-compare-circle, circle.eb-compare-core")).toHaveCount(7);
     });
@@ -236,7 +332,6 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(preview.getByRole("img")).toHaveAttribute("alt", new RegExp(`^Only ${ME}: 40\\.`));
       const note = dialog.getByTestId("share-link-note");
       await expect(note).toHaveText("A comparison link carries every list in it, so ask the others before you share it.");
-      await shot(page, "share", browserName);
 
       // On a phone the preview's row is as tall as the card it shows: nothing empty above or below it.
       if (viewport.width < 720) await expectNoBands(dialog);
@@ -251,6 +346,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
           return [bmp.width, bmp.height];
         });
         expect(size).toEqual([w, h]);
+        if (format !== "Square") await shot(page, `share-comparison-${format.toLowerCase()}`, browserName);
         const [dl] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
         expect(dl.suggestedFilename()).toBe("everybird-compare.png");
       }
@@ -263,6 +359,12 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await what.getByRole("button", { name: "Wish list" }).click();
       await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
       await expect(preview.getByRole("img")).toHaveAttribute("alt", "50 of your friends’ birds you’ve yet to see");
+      for (const format of ["Story", "Post", "Square"]) {
+        await dialog.getByRole("button", { name: new RegExp(`^${format}`) }).click();
+        await expect(preview).toHaveAttribute("data-format", format.toLowerCase());
+        await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+        if (format !== "Square") await shot(page, `share-wish-${format.toLowerCase()}`, browserName);
+      }
       const [wish] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
       expect(wish.suggestedFilename()).toBe("everybird-wish-list.png");
       // Copy link: the comparison link, every list in it by its name.

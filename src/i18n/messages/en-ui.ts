@@ -461,7 +461,8 @@ export const EN_UI = {
   },
   /** Compare with friends (issue #10): /compare, and a comparison link's page, /c/<token>. */
   compare: {
-    title: 'Compare with friends',
+    /** The page head's title, the same before and after comparing (and the page's name in the browser). */
+    title: 'Compare life lists',
     /** A row's link box (its placeholder; named "Link N"), the main button, and why it waits (its description). */
     paste: 'Paste a friend’s Everybird link',
     linkN: 'Link {n}',
@@ -472,8 +473,9 @@ export const EN_UI = {
     over: 'Up to {n} lists can be compared, so the rest weren’t added.',
     /** "Compare with mine" sent a friend's list, and the visitor has none yet (followed by the "Add birds" link). */
     noList: 'To compare with {name}, add your own birds first.',
-    /** The groups' name, and the groups: the birds on the others' lists you lack, on both or every list, one list's
-     *  alone (yours: "Only you"), every bird. */
+    /** The chips' name, and what they show (also the heading over the birds): the birds on the others' lists you lack, on
+     *  both or every list, one list's alone (yours: "Only you"), every bird. Several people chosen are their names,
+     *  "Kalvin & Kalin", joined the same way in every language. */
     groups: 'Which birds',
     yetToSee: 'Yet to see',
     both: 'Both',
@@ -484,15 +486,16 @@ export const EN_UI = {
     birder: 'Birder {n}',
     empty: 'No birds in this group.',
     showAll: 'Show all {n}',
-    /** The pills (and the bars), one per list; a set-up row's remove button. */
+    /** The bars, one per list; a set-up row's remove button. */
     people: 'Lists in this comparison',
     remove: 'Remove {name}',
-    /** The card's text alternative, every number in the diagram: "Only Ada: 12." "Only Ada and Sam: 3." */
+    /** Each region of the diagram (its button's name) and the card's text alternative, every number in the diagram:
+     *  "Only Ada: 12." "Only Ada and Sam: 3." */
     onlyTwo: 'Only {a} and {b}',
     altPart: '{label}: {n}.',
-    /** The card's counts line, one part per list ("Sam: 412"), and a group's caption over its stickers ("Both: 15"). */
+    /** The card's counts line, one part per list ("Sam: 412"). */
     cardCount: '{label}: {n}',
-    /** The birds you've yet to see, with one friend and with several: the card's caption and the wish list's title. */
+    /** The birds you've yet to see, with one friend and with several: the wish list's title. */
     wish: { one: '{n} of {name}’s birds you’ve yet to see', other: '{n} of {name}’s birds you’ve yet to see' },
     wishAll: { one: '{n} of your friends’ birds you’ve yet to see', other: '{n} of your friends’ birds you’ve yet to see' },
     /** The share dialog's note beside Copy link; why the wish list is off; why Copy link is off. */
@@ -504,17 +507,16 @@ export const EN_UI = {
     sharedTitle: 'Comparing {n} life lists',
     /** On a shared collage or comparison: open Compare with it and your own list. */
     withMine: 'Compare with mine',
-    /** The set-up: the line under the title ({n} 6), the birder's own row, each row's name box, Add a friend. */
-    note: 'Paste your friends’ Everybird links. Up to {n} lists.',
+    /** The set-up: the page head's line ({n} 6), the birder's own row, each row's name box, Add a friend. */
+    note: 'Paste your friends’ Everybird links to see which birds you share. Up to {n} lists.',
     yourList: 'Your list',
     nameN: 'Name of list {n}',
     addFriend: 'Add a friend',
-    /** The results: back to the set-up; the diagram's Circles | Bars (named Diagram); its head's count of lists. */
+    /** The results: back to the set-up; the page head's line (with your own list, and without); the circles' name. */
     editLists: 'Edit lists',
-    circles: 'Circles',
-    bars: 'Bars',
+    lede: 'See which birds your lists share and which you’re yet to see. Choose people below to see the birds only they share.',
+    ledeTheirs: 'See which birds these lists share. Choose people below to see the birds only they share.',
     diagram: 'Diagram',
-    lists: { one: '{n} list', other: '{n} lists' },
   },
 
   /** Plain labels for the bird orders (scientific name -> label): every order in species.v1.json. English is a copy of

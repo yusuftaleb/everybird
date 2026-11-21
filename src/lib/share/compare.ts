@@ -1,10 +1,10 @@
-// Compare with friends (issue #10), the pure parts: the groups of a comparison and the links pasted in. No link-index
+// Compare with friends (issue #10), the pure parts: what a comparison shows (a choice of people, Yet to see, Every bird) and the links pasted in. No link-index
 // import: the decoder is passed in, so this stays light.
 import type { SharePayload } from './link'
 
 /**
  * Each species in the comparison with the lists it is on, as a bit mask (bit i: list i), in first-seen order: the one
- * source of every count Compare shows, so the chips, the diagram and the bars never disagree.
+ * source of every count Compare shows, so the chips, the diagram, the bars and the grid never disagree.
  */
 export function memberships(lists: readonly SharePayload[]): Map<string, number> {
   const m = new Map<string, number>()
@@ -12,26 +12,53 @@ export function memberships(lists: readonly SharePayload[]): Map<string, number>
   return m
 }
 
-/** A chip's group: 'need' (birds on some other list, not the first: "Yet to see"), 'all' (on every list), a list's
- *  place (on that list alone) or 'every' (every bird in the comparison). */
-export type GroupId = 'need' | 'all' | 'every' | number
-export type CompareGroup = { id: GroupId; codes: string[] }
+/**
+ * What Compare shows (its chips, the pressed region of the diagram): 'need' (Yet to see: birds on some other list, not
+ * the first), 'every' (every bird in the comparison), or a set of lists as a mask (bit i: list i): the birds on exactly
+ * those lists and on no other, a region of the diagram (Kalvin alone, the pair Kalvin and Kalin, all three).
+ */
+export type Choice = 'need' | 'every' | number
+
+/** The birds `choice` shows, in first-seen order. */
+export function choiceCodes(lists: readonly SharePayload[], choice: Choice): string[] {
+  const keep = (k: number) => (choice === 'every' ? true : choice === 'need' ? !(k & 1) : k === choice)
+  return [...memberships(lists)].flatMap(([c, k]) => (keep(k) ? [c] : []))
+}
+
+/** Where Compare opens: Yet to see with the viewer's own list (`you`), else every bird. */
+export const firstChoice = (you: boolean): Choice => (you ? 'need' : 'every')
+
+/** A person's chip pressed: list `i` joins or leaves the people chosen (Yet to see and Every bird give way to it); none
+ *  left is every bird. */
+export function toggleList(choice: Choice, i: number): Choice {
+  const next = (typeof choice === 'number' ? choice : 0) ^ (1 << i)
+  return next || 'every'
+}
+
+/** A press on the diagram at a region of `mask` (diagram's maskAt): its people; outside the circles (0), every bird. */
+export const choiceAt = (mask: number): Choice => mask || 'every'
 
 /**
- * The chips, in their order: Yet to see (only with `you`, the first list the viewer's own), on every list, each list's
- * own birds (the first list's first), every bird. Each group's codes in first-seen order.
+ * How the heading over the grid names `choice` (the words are the caller's): 'need', 'every', 'all' (on every list),
+ * 'you' (the viewer's own list alone), 'one' (another list alone: `names` its name) or 'some' (several lists, not all:
+ * `names` theirs, in list order).
  */
-export function compareGroups(lists: readonly SharePayload[], you = false): CompareGroup[] {
-  const m = [...memberships(lists)]
-  const full = (1 << lists.length) - 1
-  const pick = (f: (mask: number) => boolean) => m.flatMap(([c, k]) => (f(k) ? [c] : []))
-  return [
-    ...(you ? [{ id: 'need' as const, codes: pick((k) => !(k & 1)) }] : []),
-    { id: 'all', codes: pick((k) => k === full) },
-    ...lists.map((_, i): CompareGroup => ({ id: i, codes: pick((k) => k === 1 << i) })),
-    { id: 'every', codes: m.map(([c]) => c) },
-  ]
+export function choiceWords(choice: Choice, n: number, you: boolean): { kind: 'need' | 'every' | 'all' | 'you' | 'one' | 'some'; lists: number[] } {
+  if (choice === 'need' || choice === 'every') return { kind: choice, lists: [] }
+  const lists = Array.from({ length: n }, (_, i) => i).filter((i) => choice & (1 << i))
+  if (choice === (1 << n) - 1) return { kind: 'all', lists }
+  if (lists.length === 1) return { kind: you && lists[0] === 0 ? 'you' : 'one', lists }
+  return { kind: 'some', lists }
 }
+
+/**
+ * Name `i` of `n` as a piece of a list of names, whose pieces join with spaces: commas between the names, " & " before
+ * the last ("Robin, Sam & Ada"; two: "Ada & Sam"), the same in every language. A line break between pieces leaves a
+ * comma at a line's end or "&" at the next one's start, never alone.
+ */
+export const titlePart = (name: string, i: number, n: number): string => (i === n - 1 && n > 1 ? `& ${name}` : i < n - 2 ? `${name},` : name)
+/** Names joined as titlePart's pieces on one line: "Kalvin & Kalin", "Robin, Sam & Ada". */
+export const joinNames = (names: readonly string[]): string => names.map((x, i) => titlePart(x, i, names.length)).join(' ')
 
 /** How many species each combination of lists holds, indexed by mask (index 0, on no list, stays 0): the diagram's numbers. */
 export function regionCounts(lists: readonly SharePayload[]): number[] {
@@ -53,27 +80,20 @@ export const GRID_ROWS = 3
 export const GRID_MAX = 10
 export const gridCols = (width: number): number => Math.min(GRID_MAX, Math.max(3, Math.floor((width + TILE_GAP) / (TILE_MIN + TILE_GAP))))
 
-/** A part of the diagram's group, by the lists it holds (`mask`, of `n`): every list's 'all', one list's own birds, or
- *  null for birds on some lists only (three circles' pairs) and outside the circles. */
-export function groupOfMask(mask: number, n: number): GroupId | null {
-  if (mask === (1 << n) - 1) return 'all'
-  return mask > 0 && !(mask & (mask - 1)) ? Math.log2(mask) : null
-}
-
 /**
- * Whether the diagram's part `mask` (the birds on exactly those of `n` lists) holds group `id`'s birds, so the diagram
- * shows the chosen group at full strength and fades the rest: Yet to see is every part outside the first list; Every
- * bird every part.
+ * Whether the diagram's part `mask` (the birds on exactly those of `n` lists) is `choice`'s, so the diagram marks it
+ * and fades the rest: Yet to see is every part outside the first list; Every bird every part; a set of lists its own
+ * part only (none in the flower for a set it has no part for).
  */
-export function partInGroup(id: GroupId, mask: number, n: number): boolean {
-  if (id === 'every') return true
-  if (id === 'need') return !(mask & 1)
-  if (id === 'all') return mask === (1 << n) - 1
-  return mask === 1 << id
+export function partInChoice(choice: Choice, mask: number): boolean {
+  if (choice === 'every') return true
+  if (choice === 'need') return !(mask & 1)
+  return mask === choice
 }
-/** Whether list `i`'s bar holds some of group `id`'s birds (the bars' view of the same): every list's for Both and Every
- *  bird, the others' for Yet to see, its own for a list's own birds. */
-export const barInGroup = (id: GroupId, i: number): boolean => id === 'every' || id === 'all' || (id === 'need' ? i !== 0 : id === i)
+/** Whether list `i`'s bar holds some of `choice`'s birds (the bars' view of the same): every list's for Every bird,
+ *  the others' for Yet to see, those of the lists chosen. */
+export const barInChoice = (choice: Choice, i: number): boolean =>
+  choice === 'every' || (choice === 'need' ? i !== 0 : !!(choice & (1 << i)))
 
 /** The site's tokens a list's colour is made of (DESIGN.md Colors). */
 export type ListTone = 'accent' | 'ink' | 'line' | 'muted'
@@ -93,10 +113,6 @@ export function listColorHex(i: number, c: Record<ListTone | 'paper', string>): 
   const ch = (h: string, k: number) => parseInt(h.slice(1 + 2 * k, 3 + 2 * k), 16)
   return `#${[0, 1, 2].map((k) => Math.round(ch(c[tone], k) * p + ch(c.paper, k) * (1 - p)).toString(16).padStart(2, '0')).join('')}`
 }
-
-/** Up to `n` of `codes`, in even steps through them (the card's strip of stickers). */
-export const evenly = (codes: readonly string[], n: number): string[] =>
-  codes.length <= n ? [...codes] : Array.from({ length: n }, (_, j) => codes[Math.floor((j * codes.length) / n)])
 
 /** A group's birds as one payload: each bird from the first list holding it, with that list's date and marks (no places:
  *  each list numbers its own). */
