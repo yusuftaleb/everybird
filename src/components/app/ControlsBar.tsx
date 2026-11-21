@@ -4,9 +4,10 @@
 // DockPanelButton; round 6, Yusuf, 2026-11-20): Taxa (the taxonomy chips), Display (what changes how the view looks:
 // Collage and Tree only) and Filters, one panel open at a time (CollageView, dock-panels.ts); then the magnifier. In
 // Collage and Tree nothing else sits in the bar: their switches and choices are the Display panel's (DisplayPanel.tsx).
-// List and Map keep their few controls in the bar, before the panel buttons: the Sort menu (List: Family (with family
-// headings, ListView), Newest first (the default), Oldest first, Heaviest first, Lightest first; a dock button showing the current order and a caret, opening
-// MenuSelect's small menu with its keyboard) and the Scientific switch (both; in Map it changes nothing on the map, so the setting can be changed from any view). The
+// List and Map keep their few controls in the bar, before the panel buttons: the Scientific switch (both; in Map it changes
+// nothing on the map, so the setting can be changed from any view), then in List the Sort menu after it (Family (with family
+// headings, ListView), Newest first (the default), Oldest first, Heaviest first, Lightest first; a dock button showing the
+// current order and a caret, opening MenuSelect's small menu with its keyboard). The
 // magnifier turns the dock into the search field (DockSearch.tsx); everything else sits under it, inert, while it is
 // open. Under 820px of bar the controls and panel buttons take a second row of their own; under 1100px the views are
 // icons only; under 540px of bar (and on phones) the switches and the sort shorten ("Sci."; "Newest" in list view), and under 330px
@@ -70,7 +71,7 @@ function SortMenu({ value, onChange }: { value: ListOrder; onChange: (o: ListOrd
   const short = (o: ListOrder) => (o === 'family' ? c.family : c[o])
   const close = (refocus: boolean) => {
     setOpen(false)
-    if (refocus) btn.current?.focus()
+    if (refocus) btn.current?.focus({ preventScroll: true })
   }
   return (
     <div className="eb-dock-sortwrap">
@@ -124,8 +125,8 @@ export function ControlsBar({ view, onView, noMap, listOrder, onListOrder, sci, 
   // Only List and Map keep controls in the bar (Collage's and Tree's are the Display panel's).
   const tools = view === 'list' ? (
     <>
-      <SortMenu value={listOrder} onChange={onListOrder} />
       {sciSwitch}
+      <SortMenu value={listOrder} onChange={onListOrder} />
     </>
   ) : view === 'map' ? sciSwitch : null
   return (
