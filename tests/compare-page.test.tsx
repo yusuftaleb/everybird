@@ -206,8 +206,8 @@ describe('Compare: the comparison', () => {
     paste(link('Sam', 3, 4, 5))
     compare()
     const svg = screen.getByTestId('compare-diagram')
-    // The drawing box is 320 × 260 units; the page shows it at that size here.
-    svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 320, height: 260, right: 320, bottom: 260, x: 0, y: 0, toJSON: () => ({}) })
+    // The drawing is 443 × 360, its units CSS px (jsdom has no ResizeObserver, so it keeps its largest size).
+    svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 443, height: 360, right: 443, bottom: 360, x: 0, y: 0, toJSON: () => ({}) })
     const circles = svg.querySelectorAll('circle.eb-compare-circle')
     const [a, b] = [...circles].map((c) => ({ x: +c.getAttribute('cx')!, y: +c.getAttribute('cy')!, r: +c.getAttribute('r')! }))
     const off = () => [1, 2, 3].filter((m) => screen.getByTestId(`compare-part-${m}`).hasAttribute('data-off'))
@@ -254,6 +254,68 @@ describe('Compare: the comparison', () => {
     fireEvent.click(screen.getByTestId('compare-edit'))
     expect(screen.getByRole('heading', { level: 1 })).toHaveFocus()
     expect([0, 1].map((i) => (screen.getByTestId(`compare-name-${i}`) as HTMLInputElement).value)).toEqual(['Sam', 'Ada'])
+  })
+  it('four lists: a ring of 13 regions, each named; a region and its chips choose the same; the combinations it can’t show in one line', () => {
+    // Mine 1–4; Sam 2, 5; Ada 3, 6; Kim 2, 4, 7. Bird 3 is on Mine and Ada alone, lists the ring doesn't put side by side.
+    render(<ComparePage />)
+    paste(`${link('Sam', 2, 5)}\n${link('Ada', 3, 6)}\n${link('Kim', 2, 4, 7)}`)
+    compare()
+    const regionsShown = screen.getAllByTestId(/^compare-region-\d+$/)
+    expect(regionsShown).toHaveLength(13)
+    expect(screen.queryByTestId('compare-region-5')).toBeNull()
+    expect(screen.queryByTestId('compare-region-10')).toBeNull()
+    // The words for screen readers name every region's number.
+    expect(regionsShown.map((r) => r.getAttribute('aria-label'))).toEqual([
+      'Only Mine: 1.', 'Only Sam: 1.', 'Only Ada: 1.', 'Only Kim: 1.',
+      'Only Mine and Sam: 0.', 'Only Sam and Ada: 0.', 'Only Ada and Kim: 0.', 'Only Mine and Kim: 1.',
+      'Only Mine, Sam & Ada: 0.', 'Only Sam, Ada & Kim: 0.', 'Only Mine, Ada & Kim: 0.', 'Only Mine, Sam & Kim: 1.',
+      'On every list: 0.',
+    ])
+    expect(screen.getByTestId('compare-unshown')).toHaveTextContent('1 bird is shared in a combination the circles can’t show. Choose people above to see them.')
+    // A region by the keyboard, then by a press on its number, and the same people by their chips: one choice.
+    fireEvent.keyDown(screen.getByTestId('compare-region-11'), { key: 'Enter' })
+    const byRegion = pressed()
+    expect(byRegion).toEqual(['compare-chip-0', 'compare-chip-1', 'compare-chip-3', 'compare-region-11'])
+    expect(shown()).toBe('Mine, Sam & Kim · 1')
+    fireEvent.click(chip('every'))
+    const svg = screen.getByTestId('compare-diagram')
+    svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 443, height: 360, right: 443, bottom: 360, x: 0, y: 0, toJSON: () => ({}) })
+    const ring = screen.getByTestId('compare-region-11').querySelector('rect')!
+    fireEvent.click(svg, { clientX: +ring.getAttribute('x')! + +ring.getAttribute('width')! / 2, clientY: +ring.getAttribute('y')! + +ring.getAttribute('height')! / 2 })
+    expect(pressed()).toEqual(byRegion)
+    fireEvent.click(chip('every'))
+    for (const i of [0, 1, 3]) fireEvent.click(chip(i))
+    expect(pressed()).toEqual(byRegion)
+    // The combination with no region: its chips still reach its bird.
+    fireEvent.click(chip(1))
+    fireEvent.click(chip(3))
+    fireEvent.click(chip(2))
+    expect(shown()).toBe('Mine & Ada · 1')
+  })
+  it('the line under the circles only when some birds sit on a combination they can’t show', () => {
+    render(<ComparePage />)
+    paste(`${link('Sam', 2, 5)}\n${link('Ada', 6)}\n${link('Kim', 4, 7)}`)
+    compare()
+    expect(screen.getAllByTestId(/^compare-region-\d+$/)).toHaveLength(13)
+    expect(screen.queryByTestId('compare-unshown')).toBeNull()
+  })
+  it('six lists: 31 regions; a region too small for its number shows it in the tooltip on focus', () => {
+    render(<ComparePage />)
+    paste(['Sam', 'Ada', 'Kim', 'Lee', 'Bo'].map((name, i) => link(name, 2 + i, 3 + i, 10 + i)).join('\n'))
+    compare()
+    const all = screen.getAllByTestId(/^compare-region-\d+$/)
+    expect(all).toHaveLength(31)
+    const small = all.filter((r) => r.hasAttribute('data-hidden'))
+    expect(small.length).toBeGreaterThan(0)
+    expect(small.every((r) => !r.querySelector('text'))).toBe(true)
+    expect(all.filter((r) => !r.hasAttribute('data-hidden')).every((r) => r.querySelector('text'))).toBe(true)
+    fireEvent.focus(small[0])
+    expect(screen.getByTestId('compare-tip')).toHaveTextContent(small[0].getAttribute('aria-label')!)
+    fireEvent.blur(small[0])
+    expect(screen.queryByTestId('compare-tip')).toBeNull()
+    // A region with its number shows no tooltip.
+    fireEvent.focus(all.find((r) => !r.hasAttribute('data-hidden'))!)
+    expect(screen.queryByTestId('compare-tip')).toBeNull()
   })
   it('Compare with mine: the handed-over link opens the comparison with your list, once', () => {
     sessionStorage.setItem(HANDOFF_KEY, `/s/${link('Sam', 3, 5).split('/s/')[1]}`)

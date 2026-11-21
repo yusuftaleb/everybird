@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -13,7 +13,7 @@ import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import type { CompareShown } from '@/lib/share/compare-store'
 import { shareTitle } from '@/lib/share/og'
-import { diagramLayout, maskAt, type Diagram } from '@/lib/share/venn'
+import { diagramLayout, maskAt, numberSize, regionMasks, unshownCount, type Diagram } from '@/lib/share/venn'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { displayName } from '@/lib/species/names'
 import { useLoadNames, useNames } from '@/lib/species/use-names'
@@ -91,12 +91,16 @@ export function useComparison(
   /** A region of the diagram in words, its number after it: "Only Ada: 12.", "Only Ada and Sam: 3.", "Both: 15." */
   const regionLabel = (m: number) => {
     const on = labels.filter((_, i) => m & (1 << i))
-    const label = m === full ? (two ? t.compare.both : t.compare.everyone) : on.length === 1 ? fmt(t.compare.only, { name: on[0] }) : fmt(t.compare.onlyTwo, { a: on[0], b: on[1] })
+    const label = m === full ? (two ? t.compare.both : t.compare.everyone)
+      : on.length === 1 ? fmt(t.compare.only, { name: on[0] })
+        : on.length === 2 ? fmt(t.compare.onlyTwo, { a: on[0], b: on[1] }) : fmt(t.compare.only, { name: joinNames(on) })
     return fmt(t.compare.altPart, { label, n: formatInt(counts[m] ?? 0, t.num) })
   }
-  // Every number in the diagram, in words: the card's text alternative.
-  const masks = n === 2 ? [1, 3, 2] : n === 3 ? [1, 2, 4, 3, 5, 6, 7] : [full, ...lists.map((_, i) => 1 << i)]
-  const alt = masks.map(regionLabel).join(' ')
+  /** The birds on combinations the circles have no region for (from four lists), and the line saying so. */
+  const unshown = useMemo(() => (ready ? unshownCount(counts) : 0), [ready, counts])
+  const unshownLine = unshown ? plural(t.compare.cantShow, unshown, { n: formatInt(unshown, t.num) }) : ''
+  // Every number in the diagram, in words, then that line: the card's text alternative.
+  const alt = [...regionMasks(n).map(regionLabel), ...(unshownLine ? [unshownLine] : [])].join(' ')
 
   const codes = data ? byTaxon(shown, data.species) : []
   /** The chosen birds by family, taxonomic, the birds most lists have first inside each (byFamily). */
@@ -130,7 +134,7 @@ export function useComparison(
 
   return {
     ready, data, failed, labels, sizes, counts, you, choice, choose, choiceLabel, regionLabel, shown, needCount: need?.length ?? 0, every,
-    alt, codes, families, listsOf, canWish, wishReason, draw,
+    unshown, unshownLine, alt, codes, families, listsOf, canWish, wishReason, draw,
     /** What the drawings show, for the dialog: it draws again when this changes. */
     drawKey,
     wishAlt: need ? wishTitle(need.length) : '',
@@ -200,41 +204,84 @@ export function CompareView({ lists }: { lists: readonly SharePayload[] }) {
   return <CompareResult c={useComparison(lists)} />
 }
 
-/** The diagram's drawing box (SVG units): its width, its height. */
-const VB = [320, 260] as const
-const PAD = 4
+/** The drawing at its largest (CSS px; under that, its column's width) and its shape. SVG units are CSS px, so the
+ *  names, numbers and the tooltip are their true size at every width. */
+const MAX_W = 443, SHAPE = 260 / 320, PAD = 4
+/** The circles' names (14px, a line 18px tall), 6px past the edge, each at most NAME_CAP of the drawing's width. */
+const NAME = { h: 18, gap: 6 }, NAME_CAP = 0.24
+/** A number's size (px), most and least: a region too small for its number at NUM[1] shows it in the tooltip. */
+const NUM = [24, 11] as const
 
-/** A part of the drawing: inside every circle `clip` names (the flower's centre is 'core'), outside every one `out` names. */
-type Part = { mask: number; clip: (number | 'core')[]; out: (number | 'core')[] }
-/** The drawing's parts, one per numbered region: every combination of two or three circles; the flower's petals (each
- *  petal outside the centre) and its centre. */
-function partsOf(d: Diagram): Part[] {
-  const n = d.circles.length, all = d.circles.map((_, i) => i)
-  if (d.core) return [...all.map((i) => ({ mask: 1 << i, clip: [i], out: ['core' as const] })), { mask: (1 << n) - 1, clip: ['core'], out: [] }]
-  return Array.from({ length: (1 << n) - 1 }, (_, k) => {
-    const mask = k + 1
-    return { mask, clip: all.filter((i) => mask & (1 << i)), out: all.filter((i) => !(mask & (1 << i))) }
-  })
+/** The drawing's parts, one per region (diagramLayout's spots): inside its circles (`clip`), outside the others (`out`). */
+function partsOf(d: Diagram): { mask: number; clip: number[]; out: number[] }[] {
+  const all = d.circles.map((_, i) => i)
+  return d.spots.map(({ mask }) => ({ mask, clip: all.filter((i) => mask & (1 << i)), out: all.filter((i) => !(mask & (1 << i))) }))
 }
 
 /**
- * The circles (two or three lists) or the flower (four to six): each circle a wash of its list's colour with an
- * outline in it, each region's number in it. The choice's parts stay at full strength; every other part takes a Paper
- * veil (the same fills, fainter) and its number fades, eased (Every bird: none faded). A press anywhere chooses the
- * region under it (choiceAt: its people; outside the circles, every bird). For the keyboard each region's number is a
- * button, named by its region and number ("Only Ada: 12."), pressed while its region is the choice.
+ * The circles: two or three sized by their lists, or from four a ring of equal circles (venn.ts), each a light wash of
+ * its list's colour (overlaps build up darker) with a 1.5px outline in it and its name outside its edge, each region's
+ * number in it, Ink (a 0 and the regions outside the choice in Muted). The choice's parts stay at full strength; every
+ * other part takes a Paper veil, eased (Every bird: none). A press anywhere chooses the region under it (choiceAt: its
+ * people; outside the circles, every bird). For the keyboard each region is a button at its number, named by its region
+ * and number ("Only Ada: 12."), pressed while it is the choice. A region too small for its number at this width shows
+ * none; its number shows in the site's tooltip on hover and focus. Under the drawing, when the ring has no region for
+ * some birds' combination, one quiet line says how many and how to see them.
  */
 function Circles({ c }: { c: Comparison }) {
   const { t } = useI18n()
-  const d: Diagram = useMemo(() => diagramLayout(c.counts, { x: PAD, y: PAD, w: VB[0] - 2 * PAD, h: VB[1] - 2 * PAD }), [c.counts])
+  const wrap = useRef<HTMLDivElement>(null)
+  const [W, setW] = useState(MAX_W)
+  useEffect(() => {
+    const el = wrap.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([e]) => { if (e.contentRect.width > 0) setW(Math.min(MAX_W, Math.round(e.contentRect.width))) })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const H = Math.round(W * SHAPE)
+  // Each name's own width, read from the page once it is drawn (until then, and where nothing is drawn, the cap).
+  const nameEls = useRef<(HTMLSpanElement | null)[]>([])
+  const [natural, setNatural] = useState<readonly number[]>([])
+  const names = c.labels.join('\n')
+  useLayoutEffect(() => {
+    let live = true
+    const read = () => {
+      if (!live) return
+      const w = c.labels.map((_, i) => Math.ceil(nameEls.current[i]?.getBoundingClientRect().width ?? 0))
+      setNatural((p) => (p.length === w.length && p.every((v, i) => v === w[i]) ? p : w))
+    }
+    read()
+    document.fonts?.ready.then(read, () => {})
+    return () => { live = false }
+    // names is the labels'
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [names])
+  const cap = Math.round(W * NAME_CAP)
+  const nameW = c.labels.map((_, i) => Math.min(cap, natural[i] || cap)).join(',')
+  const d: Diagram = useMemo(
+    () => diagramLayout(c.counts, { x: PAD, y: PAD, w: W - 2 * PAD, h: H - 2 * PAD }, { w: nameW.split(',').map(Number), h: NAME.h, gap: NAME.gap }),
+    [c.counts, W, H, nameW],
+  )
   const parts = useMemo(() => partsOf(d), [d])
+  const nums = useMemo(
+    () => d.spots.map((s) => { const text = formatInt(c.counts[s.mask] ?? 0, t.num); return { s, text, px: numberSize(d, s, text.length, NUM[0], NUM[1]) } }),
+    [d, c.counts, t.num],
+  )
+  const hidden = (mask: number) => nums.some((m) => m.s.mask === mask && !m.px)
+  const [tip, setTip] = useState<number | null>(null)
+  const tipAt = tip == null ? undefined : nums.find((m) => m.s.mask === tip)
   const uid = useId().replace(/[^\w-]/g, '')
-  const ref = (k: number | 'core') => `url(#${uid}-c${k})`
   const on = (mask: number) => partInChoice(c.choice, mask)
-  const pick = (e: MouseEvent<SVGSVGElement>) => {
+  const at = (e: { clientX: number; clientY: number; currentTarget: SVGSVGElement }) => {
     const box = e.currentTarget.getBoundingClientRect()
-    if (!box.width || !box.height) return
-    c.choose(choiceAt(maskAt(d, ((e.clientX - box.left) * VB[0]) / box.width, ((e.clientY - box.top) * VB[1]) / box.height)))
+    return box.width && box.height ? maskAt(d, ((e.clientX - box.left) * W) / box.width, ((e.clientY - box.top) * H) / box.height) : -1
+  }
+  const pick = (e: MouseEvent<SVGSVGElement>) => { const m = at(e); if (m >= 0) c.choose(choiceAt(m)) }
+  const hover = (e: PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType !== 'mouse') return
+    const m = at(e)
+    setTip(m > 0 && hidden(m) ? m : null)
   }
   const key = (mask: number) => (e: KeyboardEvent<SVGGElement>) => {
     if (e.key !== 'Enter' && e.key !== ' ') return
@@ -242,49 +289,63 @@ function Circles({ c }: { c: Comparison }) {
     c.choose(mask)
   }
   return (
-    <svg className="eb-compare-venn" viewBox={`0 0 ${VB[0]} ${VB[1]}`} role="group" aria-label={t.compare.diagram} onClick={pick} data-testid="compare-diagram">
-      <defs>
-        {[...d.circles.map((k, i) => [i, k] as const), ...(d.core ? [['core', d.core] as const] : [])].map(([i, k]) => (
-          <clipPath key={i} id={`${uid}-c${i}`}><circle cx={k.cx} cy={k.cy} r={k.r} /></clipPath>
+    <div className="eb-compare-venn-col">
+      <div className="eb-compare-venn-wrap" ref={wrap}>
+        <svg
+          className="eb-compare-venn" viewBox={`0 0 ${W} ${H}`} role="group" aria-label={t.compare.diagram} onClick={pick}
+          onPointerMove={hover} onPointerLeave={() => setTip(null)} data-testid="compare-diagram"
+        >
+          <defs>
+            {d.circles.map((k, i) => <clipPath key={i} id={`${uid}-c${i}`}><circle cx={k.cx} cy={k.cy} r={k.r} /></clipPath>)}
+            {parts.filter((p) => p.out.length).map((p) => (
+              <mask key={p.mask} id={`${uid}-o${p.mask}`} maskUnits="userSpaceOnUse" x={0} y={0} width={W} height={H}>
+                <rect width={W} height={H} fill="#fff" />
+                {p.out.map((i) => <circle key={i} cx={d.circles[i].cx} cy={d.circles[i].cy} r={d.circles[i].r} fill="#000" />)}
+              </mask>
+            ))}
+          </defs>
+          {d.circles.map((k, i) => (
+            <circle key={i} cx={k.cx} cy={k.cy} r={k.r} style={{ '--c': listColor(i) } as CSSProperties} className="eb-compare-circle" />
+          ))}
+          {parts.map((p) => (
+            <g key={p.mask} mask={p.out.length ? `url(#${uid}-o${p.mask})` : undefined}>
+              {p.clip.reduceRight<ReactNode>(
+                (inner, k) => <g clipPath={`url(#${uid}-c${k})`}>{inner}</g>,
+                <rect width={W} height={H} className="eb-compare-veil" data-off={on(p.mask) ? undefined : ''} data-testid={`compare-part-${p.mask}`} />,
+              )}
+            </g>
+          ))}
+          {nums.map(({ s, text, px }) => {
+            // The focus ring: round the number, or a small round mark where there is none.
+            const b = px ? { w: 0.6 * px * text.length + 12, h: px + 10 } : { w: 14, h: 14 }
+            const quiet = !on(s.mask) || !c.counts[s.mask]
+            return (
+              <g
+                key={s.mask} className="eb-compare-region" role="button" tabIndex={0} aria-label={c.regionLabel(s.mask)} aria-pressed={c.choice === s.mask}
+                onKeyDown={key(s.mask)} onFocus={() => setTip(px ? null : s.mask)} onBlur={() => setTip(null)} data-testid={`compare-region-${s.mask}`}
+                data-hidden={px ? undefined : ''}
+              >
+                <rect className="eb-compare-ring" x={s.x - b.w / 2} y={s.y - b.h / 2} width={b.w} height={b.h} rx={b.h / 2} />
+                {px > 0 && <text x={s.x} y={s.y} fontSize={px} className="eb-compare-num" data-quiet={quiet ? '' : undefined}>{text}</text>}
+              </g>
+            )
+          })}
+        </svg>
+        {d.names?.map((b, i) => (
+          <span key={i} className="eb-compare-label" style={{ left: b.x, top: b.y, width: b.w, height: b.h }} aria-hidden="true">
+            <span ref={(el) => { nameEls.current[i] = el }}>{c.labels[i]}</span>
+          </span>
         ))}
-        {parts.filter((p) => p.out.length).map((p) => (
-          <mask key={p.mask} id={`${uid}-o${p.mask}`} maskUnits="userSpaceOnUse" x={0} y={0} width={VB[0]} height={VB[1]}>
-            <rect width={VB[0]} height={VB[1]} fill="#fff" />
-            {p.out.map((i) => {
-              const k = i === 'core' ? d.core! : d.circles[i]
-              return <circle key={i} cx={k.cx} cy={k.cy} r={k.r} fill="#000" />
-            })}
-          </mask>
-        ))}
-      </defs>
-      {d.circles.map((k, i) => (
-        <circle key={i} cx={k.cx} cy={k.cy} r={k.r} style={{ '--c': listColor(i) } as CSSProperties} className="eb-compare-circle" />
-      ))}
-      {d.core && <circle cx={d.core.cx} cy={d.core.cy} r={d.core.r} className="eb-compare-core" />}
-      {parts.map((p) => (
-        <g key={p.mask} mask={p.out.length ? `url(#${uid}-o${p.mask})` : undefined}>
-          {p.clip.reduceRight<ReactNode>(
-            (inner, k) => <g clipPath={ref(k)}>{inner}</g>,
-            <rect width={VB[0]} height={VB[1]} className="eb-compare-veil" data-off={on(p.mask) ? undefined : ''} data-testid={`compare-part-${p.mask}`} />,
-          )}
-        </g>
-      ))}
-      {d.spots.map((s) => {
-        const num = formatInt(c.counts[s.mask] ?? 0, t.num)
-        // Mono digits are about .6em wide: as large as the region's room allows, 10 to 20 units.
-        const size = Math.max(10, Math.min(20, s.h * 0.5, (s.w * 0.8) / (0.6 * Math.max(1, num.length))))
-        const w = 0.6 * size * num.length + 12, h = size + 10
-        return (
-          <g
-            key={s.mask} className="eb-compare-region" role="button" tabIndex={0} aria-label={c.regionLabel(s.mask)} aria-pressed={c.choice === s.mask}
-            onKeyDown={key(s.mask)} data-testid={`compare-region-${s.mask}`}
-          >
-            <rect className="eb-compare-ring" x={s.x - w / 2} y={s.y - h / 2} width={w} height={h} rx={h / 2} />
-            <text x={s.x} y={s.y} fontSize={size} className="eb-compare-num" data-off={on(s.mask) ? undefined : ''}>{num}</text>
-          </g>
-        )
-      })}
-    </svg>
+        {tipAt && (
+          <div className="eb-card eb-tip eb-compare-tip" style={{ left: tipAt.s.x, top: tipAt.s.y - 10 }} aria-hidden="true" data-testid="compare-tip">
+            {c.regionLabel(tipAt.s.mask)}
+          </div>
+        )}
+      </div>
+      {c.unshown > 0 && (
+        <p className="eb-note eb-compare-unshown" data-testid="compare-unshown">{c.unshownLine} {t.compare.cantShowPick}</p>
+      )}
+    </div>
   )
 }
 

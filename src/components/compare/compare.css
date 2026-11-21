@@ -56,21 +56,37 @@
 .eb-compare-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: center; }
 @media (min-width: 640px) { .eb-compare-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; } }
 
-/* The circles: each a wash of its list's colour (--c) with an outline in it; the flower's centre Surface outlined in Ink.
-   The drawing grows with its column at its own shape (320 × 260) up to 360px tall. */
-.eb-compare-venn { display: block; width: min(100%, 443px); height: auto; margin: 0 auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.eb-compare-circle { fill: var(--c); fill-opacity: .12; stroke: var(--c); stroke-width: 2; }
-.eb-compare-core { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
-.eb-compare-num { font-family: var(--font-mono); font-weight: 500; fill: var(--ink); text-anchor: middle; dominant-baseline: central; font-variant-numeric: tabular-nums; pointer-events: none; }
+/* The circles: each a light wash of its list's colour (--c), so overlaps build up darker, with a 1.5px outline in it;
+   its name outside its edge (14px 500 Ink, cut with an ellipsis past its room). The drawing grows with its column at its
+   own shape (320 × 260) up to 443 × 360; its SVG units are CSS px (CompareView measures the column). */
+.eb-compare-venn-col { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.eb-compare-venn-wrap { position: relative; width: min(100%, 443px); }
+.eb-compare-venn { display: block; width: 100%; height: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.eb-compare-circle { fill: var(--c); fill-opacity: .1; stroke: var(--c); stroke-width: 1.5; }
+.eb-compare-label {
+  position: absolute; display: block; font-size: 14px; font-weight: 500; line-height: 18px; color: var(--ink); text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+}
+/* Numbers in Ink, at least 7.4:1 on the darkest overlap (six washes) in both themes; a 0 and the regions outside the
+   choice in Muted (at least 4.5:1 on a veiled part). */
+.eb-compare-num {
+  font-family: var(--font-mono); font-weight: 500; fill: var(--ink); text-anchor: middle; dominant-baseline: central; font-variant-numeric: tabular-nums;
+  pointer-events: none; transition: fill .2s cubic-bezier(.25, .8, .25, 1);
+}
+.eb-compare-num[data-quiet] { fill: var(--muted); }
 /* A region's number is its button for the keyboard (a press anywhere goes through the drawing): the focus ring around it. */
 .eb-compare-region { outline: none; }
 .eb-compare-ring { fill: none; stroke: none; pointer-events: none; }
 .eb-compare-region:focus-visible .eb-compare-ring { stroke: var(--accent); stroke-width: 2; }
-/* The parts outside the chosen group: a Paper veil over their fills and outlines, their numbers faded; eased. */
+/* The parts outside the chosen group: a Paper veil over their fills and outlines; eased. */
 .eb-compare-veil { fill: var(--paper); fill-opacity: 0; pointer-events: none; transition: fill-opacity .2s cubic-bezier(.25, .8, .25, 1); }
 .eb-compare-veil[data-off] { fill-opacity: .65; }
-.eb-compare-num, .eb-compare-bar { transition: opacity .2s cubic-bezier(.25, .8, .25, 1); }
-.eb-compare-num[data-off], .eb-compare-pick[data-off] .eb-compare-bar { opacity: .3; }
+.eb-compare-bar { transition: opacity .2s cubic-bezier(.25, .8, .25, 1); }
+.eb-compare-pick[data-off] .eb-compare-bar { opacity: .3; }
+/* A region too small for its number: the number in the site's tooltip, over the region. */
+.eb-compare-tip { width: max-content; padding: 6px 10px; font-family: var(--font-mono); font-size: 13px; color: var(--ink); transform: translate(-50%, -100%); }
+/* The birds on combinations the ring can't draw: one quiet line under it. */
+.eb-compare-unshown { margin: 0; max-width: 443px; text-align: center; }
 
 /* The bars: one per list, most species first, the name and count over a bar to scale in the list's colour. */
 .eb-compare-bars { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hairline); }
