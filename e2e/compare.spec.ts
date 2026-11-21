@@ -1,11 +1,12 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import linkIndex from "../data/link-index.json";
+import { localDay } from "../src/lib/file-name";
 import { decodeCompare, encodeShare } from "../src/lib/share/link";
 
 // Compare (/compare, src/components/compare/): the set-up (a name beside each link, Add a friend, the cap, Compare at
-// two lists), the comparison (My birds' page head with Edit lists and Share, the chips: a person, a pair, all three,
-// Yet to see, Every bird; every region of the circles pressed, by pointer and keyboard; the bars beside the circles;
-// the heading and the stickers; Edit lists) and Share into the site's Share dialog in its Compare mode (What, the
+// two lists, at the form's foot), the comparison (My birds' page head with Edit lists and Share, the chips: a person, a
+// pair, all three, Yet to see, Every bird; every region of the circles pressed, by pointer and keyboard; the bars beside
+// the circles; the heading and the stickers under one heading per family, one family open at a time; Edit lists) and Share into the site's Share dialog in its Compare mode (What, the
 // formats, Share image, Download, Copy link). Runs in Chromium and WebKit at 1440 × 900 and 390 × 844. Every list is
 // synthetic: species from the link index, made-up names. COMPARE_PNG_DIR=<dir> (outside the repo) saves screenshots
 // of the set-up, the comparison and the dialog.
@@ -61,13 +62,19 @@ async function shot(page: Page, name: string, browser: string) {
   const dir = process.env.COMPARE_PNG_DIR;
   if (dir) await page.screenshot({ path: `${dir}/${browser}-${page.viewportSize()!.width}-${name}.png`, fullPage: true });
 }
-/** The chosen group's whole grid holds `n` birds (on a phone its first three rows hold fewer: "Show all" first). Retried,
- *  since the grid of the group chosen before may still show for a frame. */
+/** The families' counts (each heading's, in taxonomic order) of the chosen group's birds (FamilyAccordion). */
+const famCounts = async (page: Page) =>
+  (await page.getByTestId("family-accordion").locator(".eb-lhead-count").allTextContents()).map((c) => +c.replace(/\D/g, ""));
+/** The chosen group holds `n` birds: its families' counts sum to `n`, the first family alone is open (on a new choice)
+ *  and its grid holds that family's birds. Retried, since the group chosen before may still show for a frame. */
 async function expectAll(page: Page, n: number) {
   await expect(async () => {
-    const more = page.getByTestId("compare-more");
-    if (await more.isVisible()) await more.click({ timeout: 1000 });
-    await expect(page.getByTestId("compare-birds").getByRole("listitem")).toHaveCount(n, { timeout: 500 });
+    const counts = await famCounts(page);
+    expect(counts.reduce((a, b) => a + b, 0)).toBe(n);
+    const heads = page.getByTestId("family-accordion").locator(".eb-facc-btn");
+    await expect(heads.first()).toHaveAttribute("aria-expanded", "true", { timeout: 500 });
+    await expect(page.getByTestId("family-accordion").locator('.eb-facc-btn[aria-expanded="true"]')).toHaveCount(1, { timeout: 500 });
+    await expect(page.getByTestId("compare-birds").getByRole("listitem")).toHaveCount(counts[0], { timeout: 500 });
   }).toPass({ timeout: 10_000 });
 }
 /** The point of region `mask` (bit i: inside circle i, outside the others) farthest from every circle's edge, in the
@@ -119,16 +126,21 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       // From here on (WebKit reports the seed's page's fetches, cut short by the next page load, as errors).
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
-      // The same page head as the comparison's and My birds': the title, its line, Compare at its right (where Share will be).
+      // The same page head as the comparison's and My birds': the title and its line, no buttons (Compare is the form's, at
+      // its foot: Add a friend at the left, Compare at the right, its right edge on the link boxes').
       const title = page.getByRole("heading", { level: 1, name: "Compare life lists" });
       await expect(title).toBeVisible();
       await expect(title).toHaveClass(/eb-pagehead-title/);
       await expect(page.locator(".eb-pagehead .eb-lede-sm")).toHaveText("Paste your friends’ Everybird links to see which birds you share. Up to 6 lists.");
-      await expect(page.locator(".eb-pagehead-actions").getByRole("button")).toHaveText(["Compare"]);
+      await expect(page.locator(".eb-pagehead-actions").getByRole("button")).toHaveCount(0);
+      await expect(page.locator(".eb-compare-foot").getByRole("button")).toHaveText(["Add a friend", "Compare"]);
+      const linkBox = (await page.getByTestId("compare-link-0").boundingBox())!;
+      const foot = (await page.getByTestId("compare-submit").boundingBox())!;
+      expect(Math.abs(foot.x + foot.width - (linkBox.x + linkBox.width))).toBeLessThanOrEqual(1);
+      expect(foot.y).toBeGreaterThan(linkBox.y + linkBox.height);
       const setupTitle = (await title.boundingBox())!;
       const setupHead = (await page.locator(".eb-pagehead").boundingBox())!;
       const setupFont = await title.evaluate((el) => getComputedStyle(el).fontSize);
-      const submitBox = async () => (await page.getByTestId("compare-submit").boundingBox())!;
       await expect(page.getByTestId("compare-name-mine")).toHaveValue(ME);
       const submit = page.getByTestId("compare-submit");
       await expect(submit).toBeDisabled();
@@ -141,13 +153,12 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await page.getByTestId("compare-link-1").fill(link(baseURL!, "Ada", ADA));
       await expect(page.getByTestId("compare-name-1")).toHaveValue("Ada");
       await shot(page, "setup", browserName);
-      const compareAt = await submitBox();
 
       await submit.click();
       // The page head, as My birds': the title, the line, Edit lists and Share at its right end.
       await expect(page.getByRole("heading", { level: 1, name: "Compare life lists" })).toBeVisible();
       // The head where it was in the set-up, its title in the same type: only the line and the buttons change. (On a
-      // phone the title may wrap beside Edit lists and Share where it fit on one line beside Compare.)
+      // phone the title may wrap beside Edit lists and Share where it fit on one line alone.)
       const resultsTitle = (await title.boundingBox())!;
       const resultsHead = (await page.locator(".eb-pagehead").boundingBox())!;
       expect(Math.abs(resultsHead.y - setupHead.y)).toBeLessThanOrEqual(1);
@@ -161,9 +172,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       const head = (await page.locator(".eb-pagehead-row").boundingBox())!;
       const shareBox = (await page.getByTestId("compare-share").boundingBox())!;
       expect(Math.abs(shareBox.x + shareBox.width - (head.x + head.width))).toBeLessThanOrEqual(1);
-      // Share where Compare was (on a phone the buttons centre on the title, which may take a second line here).
-      expect(Math.abs(shareBox.x + shareBox.width - (compareAt.x + compareAt.width))).toBeLessThanOrEqual(1);
-      if (viewport.width >= 640) expect(Math.abs(shareBox.y - compareAt.y)).toBeLessThanOrEqual(1);
+      // Share in the head's row, beside the title (on a phone the buttons centre on the title, which may take two lines).
+      if (viewport.width >= 640) expect(Math.abs(shareBox.y + shareBox.height / 2 - (resultsTitle.y + resultsTitle.height / 2))).toBeLessThanOrEqual(8);
+      await expect(page.getByTestId("compare-submit")).toHaveCount(0);
       for (const b of [page.getByTestId("compare-edit"), page.getByTestId("compare-share")]) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 
       // The chips: each person with their count, then Yet to see and Every bird; it opens on Yet to see.
@@ -175,7 +186,22 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(shown(page)).toHaveText("Yet to see · 50");
       const birds = page.getByTestId("compare-birds").getByRole("listitem");
       await expect(birds.first()).toBeVisible();
-      await expect(page.getByTestId("compare-more")).toHaveText("Show all 50");
+      // The birds under one heading per family, every bird in some family, no "Show all": the first family open.
+      await expect(page.getByTestId("compare-more")).toHaveCount(0);
+      await expectAll(page, 50);
+      // One family open at a time: opening the second closes the first; pressing the open one closes it, so none is open.
+      const heads = page.getByTestId("family-accordion").locator(".eb-facc-btn");
+      const counts = await famCounts(page);
+      expect(counts.length).toBeGreaterThan(1);
+      await heads.nth(1).click();
+      await expect(heads.nth(1)).toHaveAttribute("aria-expanded", "true");
+      await expect(heads.first()).toHaveAttribute("aria-expanded", "false");
+      await expect(birds).toHaveCount(counts[1]);
+      await heads.nth(1).click();
+      await expect(heads.nth(1)).toHaveAttribute("aria-expanded", "false");
+      await expect(page.getByTestId("compare-birds")).toHaveCount(0);
+      await heads.first().click();
+      await expect(birds).toHaveCount(counts[0]);
       await expect(page.getByTestId("compare-region-1")).toHaveAccessibleName(`Only ${ME}: 40.`);
       await expect(page.getByTestId("compare-region-6")).toHaveAccessibleName("Only Sam and Ada: 10.");
       // The circles at the left, the bars at the right, side by side from 640px; stacked under it.
@@ -258,7 +284,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       // Edit lists: the rows as left; removing one leaves two lists.
       await page.getByTestId("compare-edit").click();
       await expect(page.getByRole("heading", { level: 1, name: "Compare life lists" })).toBeFocused();
-      await expect(page.locator(".eb-pagehead-actions").getByRole("button")).toHaveText(["Compare"]);
+      await expect(page.locator(".eb-pagehead-actions").getByRole("button")).toHaveCount(0);
+      await expect(page.locator(".eb-compare-foot").getByRole("button")).toHaveText(["Add a friend", "Compare"]);
       await expect(page.getByTestId("compare-name-0")).toHaveValue("Sam");
       await expect(page.getByTestId("compare-name-1")).toHaveValue("Ada");
       await page.getByRole("button", { name: "Remove Ada" }).click();
@@ -324,7 +351,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(what.getByRole("button", { name: "Comparison" })).toHaveAttribute("aria-pressed", "true");
       await expect(dialog.getByRole("button", { name: /^Post/ })).toHaveAttribute("aria-pressed", "true");
       await expect(dialog.getByRole("group", { name: "Image format" }).getByRole("button")).toHaveText(["Story", "Post", "Square"]);
-      await expect(dialog.getByLabel("Collage title")).toHaveCount(0);
+      await expect(dialog.getByLabel("Card title")).toHaveCount(0);
       await expect(dialog.getByRole("group", { name: "Orientation" })).toHaveCount(0);
       await expect(dialog.getByTestId("share-options").getByRole("switch")).toHaveText(["Transparent background"]);
       const preview = dialog.getByTestId("share-preview");
@@ -348,12 +375,12 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         expect(size).toEqual([w, h]);
         if (format !== "Square") await shot(page, `share-comparison-${format.toLowerCase()}`, browserName);
         const [dl] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
-        expect(dl.suggestedFilename()).toBe("everybird-compare.png");
+        expect(dl.suggestedFilename()).toBe(`everybird-comparison-${format.toLowerCase()}-${localDay()}.png`);
       }
-      // Share image: the share sheet gets the PNG and the full sticker credit.
+      // Share image (on the last format, Square): the share sheet gets the PNG and the full sticker credit.
       await dialog.getByRole("button", { name: "Share image" }).click();
       await expect.poll(() => page.evaluate(() => (window as unknown as { __shared: unknown[] }).__shared)).toEqual([
-        { name: "everybird-compare.png", text: "Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker" },
+        { name: `everybird-comparison-square-${localDay()}.png`, text: "Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker" },
       ]);
       // The wish list: the birds Robin has yet to see.
       await what.getByRole("button", { name: "Wish list" }).click();
@@ -366,7 +393,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         if (format !== "Square") await shot(page, `share-wish-${format.toLowerCase()}`, browserName);
       }
       const [wish] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
-      expect(wish.suggestedFilename()).toBe("everybird-wish-list.png");
+      expect(wish.suggestedFilename()).toBe(`everybird-wish-list-square-${localDay()}.png`);
       // Copy link: the comparison link, every list in it by its name.
       await dialog.getByRole("button", { name: "Copy link" }).click();
       await expect(dialog.getByTestId("share-note")).toHaveText(/^Link copied/);

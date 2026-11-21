@@ -63,8 +63,8 @@ for (const width of [1280, 390]) {
       await panel.getByText("Costa Rica", { exact: true }).click();
       await expect(panel.getByTestId("country-CR")).toBeChecked();
       await expect(page.getByTestId("collage-stats")).toContainText("11 of 53 species");
-      await expect(filters.getByTestId("filters-count")).toHaveText("1");
-      await expect(filters).toHaveAttribute("aria-label", "Filters: Places: Costa Rica, Egypt");
+      await expect(filters).toHaveText(/^Filters$/); // the dock shows no count: the name says it
+      await expect(filters).toHaveAttribute("aria-label", "Filters, 1 in use: Places: Costa Rica, Egypt");
       await expect(panel.locator("img.eb-flag")).toHaveCount(2); // flag-icons, same origin: North America's two countries
       await page.keyboard.press("Escape");
       await expect(page.getByTestId("filters-panel")).toHaveCount(0);
@@ -221,8 +221,8 @@ for (const width of [1280, 390]) {
       await press(row(panel, "place-s:CA-BC"));
       await expect(panel.getByTestId("place-s:CA-BC")).toBeChecked();
       await expect(stats).toContainText("14 of 21 species");
-      await expect(places.getByTestId("filters-count")).toHaveText("1");
-      await expect(places).toHaveAttribute("aria-label", "Filters: Places: British Columbia, Canada");
+      await expect(places).toHaveText(/^Filters$/); // the dock shows no count: the name says it
+      await expect(places).toHaveAttribute("aria-label", "Filters, 1 in use: Places: British Columbia, Canada");
       await pressable(page, panel, "provinces");
 
       await press(panel.getByTestId("drill-s:CA-BC"));
@@ -233,8 +233,8 @@ for (const width of [1280, 390]) {
       await expect(panel.getByTestId("place-k:CA-BC|Capital")).toBeChecked();
       await expect(panel.getByTestId("place-all")).not.toBeChecked(); // the county narrows its province away
       await expect(stats).toContainText("10 of 21 species");
-      await expect(places.getByTestId("filters-count")).toHaveText("1");
-      await expect(places).toHaveAttribute("aria-label", "Filters: Places: Capital, British Columbia");
+      await expect(places).toHaveText(/^Filters$/); // the dock shows no count: the name says it
+      await expect(places).toHaveAttribute("aria-label", "Filters, 1 in use: Places: Capital, British Columbia");
       await pressable(page, panel, "counties");
       let m = await sideways(page);
       expect(m.body).not.toBeNull();
@@ -289,11 +289,11 @@ test("a province, then a county", async ({ page }) => {
   await panel.getByTestId("drill-c:CA").click();
   await expect(panel.getByTestId("places-path")).toContainText("Canada");
   await panel.getByTestId("place-s:CA-BC").check();
-  await expect(places).toHaveAttribute("aria-label", "Filters: Places: British Columbia, Canada");
+  await expect(places).toHaveAttribute("aria-label", "Filters, 1 in use: Places: British Columbia, Canada");
   await expect(page.getByTestId("collage-stats")).toContainText("3 of 6 species");
   await panel.getByTestId("drill-s:CA-BC").click();
   await panel.getByTestId("place-k:CA-BC|Capital").check();
-  await expect(places).toHaveAttribute("aria-label", "Filters: Places: Capital, British Columbia");
+  await expect(places).toHaveAttribute("aria-label", "Filters, 1 in use: Places: Capital, British Columbia");
   await expect(page.getByTestId("collage-stats")).toContainText("2 of 6 species");
   const m = await page.evaluate(() => {
     const b = document.querySelector<HTMLElement>(".eb-drop-body")!;

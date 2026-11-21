@@ -163,7 +163,7 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
   // thread at every poll, inside the probe window, which would measure Playwright, not the app.
   const taxaSheet = page.locator('.eb-sheet[role="dialog"][data-testid="taxa-panel"]');
 
-  // 1. Tap an order (in the Taxa sheet, round 6: it stays open after a pick, the Taxa button counts it, and the page
+  // 1. Tap an order (in the Taxa sheet, round 6: it stays open after a pick, the Taxa button is marked in use, and the page
   // shows the breadcrumb). The sheet is closed after the measure.
   await measure(
     "choosing an order",
@@ -171,7 +171,11 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
       await page.getByTestId("taxa-button").tap();
       await taxaSheet.locator(".eb-chip:not([data-selected])").first().tap();
     },
-    () => expect(page.getByTestId("taxa-button-count")).toHaveText("1"),
+    // The Taxa button shows no count (round 6): it is marked in use and its name says the pick.
+    async () => {
+      await expect(page.getByTestId("taxa-button")).toHaveAttribute("data-active", "");
+      await expect(page.getByTestId("taxa-button")).toHaveAttribute("aria-label", /^Taxa: ./);
+    },
   );
   await taxaSheet.getByRole("button", { name: "Close" }).tap();
   await expect(taxaSheet).toHaveCount(0);
