@@ -1,11 +1,11 @@
 'use client'
-// "Add birds": one modal for every way in, opened from the collage's head and the landing's main button (Settings has
-// the same rows in the page). It opens on "Import a file" (the source rows, ImportPanel); "Add by hand" (TickList) is
-// one press away in the same control. Centred from 601px, a
+// "Add birds": one modal for every way in, opened from the collage's head and the landing's main button on "Import a
+// file" (the source rows, ImportPanel), and from Settings' "Add by hand" on "Add by hand" (TickList); the other is one
+// press away in the same control. Fits a 1440 × 830 window with any Add panel open (compact cells, import.css). Centred from 601px, a
 // full-height sheet on phones. On Add by hand the dialog fits the screen: only the species list scrolls (import.css). Esc, ✕ and a press outside close it; Tab stays inside; focus goes back to the button
 // that opened it (or, when that button has gone, as the landing's does once a first list is made, to the collage's
 // "Add birds"). Imports run in EverybirdProvider, so closing it mid-import loses nothing.
-import { ArrowRight, LockSimple, X } from '@phosphor-icons/react'
+import { ArrowRight, X } from '@phosphor-icons/react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import Link from '@/components/app/IntentLink'
 import { useEverybirdContext } from '@/components/app/EverybirdProvider'
@@ -23,14 +23,15 @@ export type AddWay = 'file' | 'hand'
 /** The element "Add birds" buttons carry, so focus can return to one when the opener has gone. */
 export const ADD_BIRDS_ATTR = 'data-add-birds'
 
-export function AddBirdsDialog({ onClose }: { onClose: () => void }) {
+/** `way`: the tab it opens on (Import a file, or Settings' Add by hand). */
+export function AddBirdsDialog({ onClose, way: start = 'file' }: { onClose: () => void; way?: AddWay }) {
   const eb = useEverybirdContext()
   const { state, dispatch, data, jobs, mine } = eb
   const { saved } = state
   const { t } = useI18n()
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  const [way, setWay] = useState<AddWay>('file')
+  const [way, setWay] = useState<AddWay>(start)
   const [opener] = useState(() => document.activeElement as HTMLElement | null)
   useFocusInAndBack(ref, () => (opener?.isConnected ? opener : document.querySelector<HTMLElement>(`[${ADD_BIRDS_ATTR}]`)))
   useHoldTopBar()
@@ -107,8 +108,6 @@ export function AddBirdsDialog({ onClose }: { onClose: () => void }) {
             <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} autoFocus view={7} />
           </>
         ) : null}
-        {/* Where files and usernames are handed over; the full privacy note is on About. */}
-        <p className="eb-privacy"><LockSimple aria-hidden="true" focusable="false" weight="bold" />{t.import.privacy}</p>
       </div>
     </div>
   )

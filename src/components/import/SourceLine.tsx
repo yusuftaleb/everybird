@@ -1,6 +1,6 @@
 'use client'
 import { CaretDown } from '@phosphor-icons/react'
-import { useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt, shortDay } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -88,14 +88,30 @@ type Props = {
  * username), a muted sentence-case status ("185 species · 12 only here · 10 skipped · Updated 6 Nov"), and the row's primary
  * button on the right; a connected source's line leads with its counts ("185 species · 12 only here") and adds a ⋯ menu (SourceMenu) holding its other actions and Remove. Remove asks
  * once, inline, before taking the source's birds away. Edits always stay. "why?" after the skipped count opens the
- * entries that weren't counted under the row. `.eb-src-main` is the source's cell in the list's grid; everything after
- * it (the "why?" entries, the Remove question, `children`) spans the grid under the cell's row (import.css).
+ * entries that weren't counted in a small popover beside it (WhyPopover). `.eb-src-main` is the source's cell in the
+ * list's grid; everything after it (the Remove question, `children`) spans the grid under the cell's row, the Add
+ * panels under the whole grid (import.css).
  */
 export function SourceRow({ title, name, parts, counts, skipped, primary, menu, what, onRemove, disabled, children, testId }: Props) {
   const id = useId()
   const { t } = useI18n()
   const [asking, setAsking] = useState(false)
   const [why, setWhy] = useState(false)
+  const whyBtn = useRef<HTMLButtonElement>(null)
+  const whyPop = useRef<HTMLDivElement>(null)
+  const whyKeys = useWhyPopover(why, () => setWhy(false), whyBtn, whyPop)
+  // The popover under the link, its left edge on the link's, kept 8px inside the window.
+  useLayoutEffect(() => {
+    const b = whyBtn.current
+    const el = whyPop.current
+    const cell = el?.offsetParent
+    if (!why || !b || !el || !cell) return
+    const at = b.getBoundingClientRect()
+    const box = cell.getBoundingClientRect()
+    el.style.top = `${at.bottom - box.top + 6}px`
+    const left = Math.max(8, Math.min(at.left, document.documentElement.clientWidth - 8 - el.offsetWidth))
+    el.style.left = `${left - box.left}px`
+  }, [why])
   const menuBtn = useRef<SourceMenuHandle>(null)
   const items: MenuItem[] = [...(menu ?? []), ...(what ? [{ label: t.import.remove, danger: true, keepFocus: true, onSelect: () => setAsking(true) }] : [])]
   const skippedN = { n: formatInt(skipped?.n ?? 0, t.num) }
@@ -119,12 +135,15 @@ export function SourceRow({ title, name, parts, counts, skipped, primary, menu, 
           </h3>
           <p className="eb-src-meta">
             {lead.map((p, i) => <span key={p}>{i > 0 && ' · '}<span className="eb-nowrap">{p}</span></span>)}
-            {why0 && (
+            {why0 && skipped && (
               <>
                 {' · '}
                 <span className="eb-nowrap">
                   {why0.label}{' '}
-                  <button type="button" className="eb-whybtn" aria-expanded={why} aria-controls={`${id}-why`} aria-label={why0.ask} onClick={() => setWhy((w) => !w)}>
+                  <button
+                    ref={whyBtn} type="button" className="eb-whybtn" aria-expanded={why} aria-controls={`${id}-why`} aria-label={why0.ask}
+                    onClick={() => setWhy((w) => !w)} {...whyKeys}
+                  >
                     {t.import.why}
                   </button>
                 </span>
@@ -137,12 +156,13 @@ export function SourceRow({ title, name, parts, counts, skipped, primary, menu, 
           {primary}
           {items.length > 0 && <SourceMenu ref={menuBtn} label={fmt(t.import.more, { title })} items={items} disabled={disabled} />}
         </div>
+        {why0 && skipped && (
+          // What "why?" explains, in a small popover under it (useWhyPopover places it), over the grid.
+          <div ref={whyPop} id={`${id}-why`} className="eb-whypop" hidden={!why} data-testid="not-counted" {...whyKeys}>
+            {skipped.body}
+          </div>
+        )}
       </div>
-      {why0 && skipped && (
-        <div id={`${id}-why`} className="eb-src-why" hidden={!why} data-testid="not-counted">
-          {skipped.body}
-        </div>
-      )}
       {what && asking && (
         <div className="eb-confirm eb-src-confirm" role="group" aria-label={fmt(t.import.removeLabel, { what })}>
           <p>{fmt(t.import.removeAsk, { what })}</p>
@@ -155,6 +175,31 @@ export function SourceRow({ title, name, parts, counts, skipped, primary, menu, 
       {children}
     </div>
   )
+}
+
+/**
+ * "why?"'s popover (placed by SourceRow under the link, inside the cell, `.eb-src-main`): it closes on a press outside, Esc (focus back on "why?"), focus leaving
+ * the link and the popover, or "why?" again (SourceRow's button).
+ */
+function useWhyPopover(open: boolean, close: () => void, btn: RefObject<HTMLButtonElement | null>, pop: RefObject<HTMLDivElement | null>) {
+  const inside = (n: Node | null) => !!n && (!!btn.current?.contains(n) || !!pop.current?.contains(n))
+  useEffect(() => {
+    if (!open) return
+    const down = (e: PointerEvent) => { if (!inside(e.target as Node)) close() }
+    document.addEventListener('pointerdown', down)
+    return () => document.removeEventListener('pointerdown', down)
+  })
+  return {
+    onKeyDown: (e: KeyboardEvent) => {
+      // Esc closes the popover only (the Add birds dialog checks defaultPrevented before closing itself).
+      if (e.key !== 'Escape' || !open) return
+      e.preventDefault()
+      e.stopPropagation()
+      close()
+      btn.current?.focus()
+    },
+    onBlur: (e: FocusEvent) => { if (open && !inside(e.relatedTarget as Node | null)) close() },
+  }
 }
 
 /** Inside an Add panel: the how-to behind a small disclosure ("How do I get this file?"). */
