@@ -7,12 +7,12 @@ import { HowItWorksDemo } from '@/components/about/HowItWorksDemo'
 import { PageHead } from '@/components/app/PageHead'
 import { fmt, rich } from '@/i18n/core'
 import { getMessages, langParam } from '@/i18n/server'
-import { COFFEE_URL, pageSeo, siteTitle } from '@/lib/site-meta'
+import { COFFEE_URL, REPO_URL, pageSeo, siteTitle } from '@/lib/site-meta'
 import { AVILIST, IUCN_SOURCE } from '@/lib/species/iucn'
 import '@/components/app/app.css'
 import './about.css'
 
-// Only the layout's four languages exist: any other first segment (/nope) is the static 404, never a render.
+// Only the layout's 14 languages exist: any other first segment (/nope) is the static 404, never a render.
 export const dynamicParams = false
 
 /** About's title and description in the page's language. */
@@ -24,7 +24,6 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
 }
 
 /** The public repo (created at launch, Task 25). */
-const REPO_URL = 'https://github.com/yusuftaleb/everybird'
 const HUASHU_URL = 'https://github.com/alchaincyf/huashu-bird-sticker'
 const AVES_URL = 'https://github.com/McTavishLab/AvesData'
 

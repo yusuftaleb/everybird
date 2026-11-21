@@ -1,5 +1,5 @@
 'use client'
-// The top bar's language button (preview variants lang:a, the default, and c): ThemeToggle's size and look, showing the
+// The top bar's language button: ThemeToggle's size and look, showing the
 // current language's code ("EN", "ES", "PT", "NL"; 简 and 繁 for Chinese, langBadge), named with that code first and
 // then in full ("ES, Idioma: Español"), so the visible text is in its name. It opens a menu of the 14 languages, each in
 // its own language, the current one checked, on the shared floating layer (menu-layer.ts: fixed to the button, capped at
