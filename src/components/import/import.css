@@ -120,9 +120,10 @@
 .eb-src-help[hidden] { display: none; }
 .eb-src-help p { margin: 0; }
 /* "why?"'s popover (SourceRow): the cards' floating look (the bird card's Paper, Hairline and shadow, the menu's 12px
-   squircle) in small, in the cell (.eb-src-main), placed by script 6px under the link with its left edge on the link's
-   (shifted left where it would leave the window); over the grid (the list is its stacking context), never pushing
-   it. Long name lists scroll. */
+   squircle) in small. While open it is in the top layer, fixed 6px under the link with its left edge on the link's
+   (over it when there is no room below; shifted left where it would leave the window: menu-layer.ts), never pushing
+   the grid nor clipped by the Add birds dialog; its top and left here are only the fallback's start. Long name lists
+   scroll. */
 .eb-whypop {
   position: absolute; top: 100%; left: 12px; z-index: 5; box-sizing: border-box;
   display: flex; flex-direction: column; gap: 6px; width: max-content; max-width: min(320px, calc(100vw - 32px));
@@ -133,6 +134,7 @@
   font-size: 14px; line-height: 1.45; text-align: left; white-space: normal; overflow-wrap: break-word; cursor: auto;
 }
 .eb-whypop[hidden] { display: none; }
+.eb-whypop[popover] { margin: 0; } /* in the top layer: no auto margin (menu-layer.ts) */
 .eb-whypop .eb-note { margin: 0; }
 .eb-whypop ul { margin: 0; padding-left: 18px; }
 .eb-whypop a { color: var(--accent); font-weight: 600; }
@@ -309,7 +311,7 @@
   background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
   border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
-  animation: eb-add-in .24s cubic-bezier(.25, .8, .25, 1) both;
+  animation: eb-add-in .24s cubic-bezier(.25, .8, .25, 1) backwards; /* not forwards: a transform kept in effect would hold the Undo toast and fixed menus to the dialog (menu-layer.ts) */
 }
 .eb-add:focus { outline: none; }
 @keyframes eb-add-in { from { opacity: 0; transform: translateY(12px); } }

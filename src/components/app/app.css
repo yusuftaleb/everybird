@@ -383,6 +383,12 @@
   animation: eb-menu-in .16s var(--ease-ui);
 }
 @keyframes eb-menu-in { from { opacity: 0; translate: 0 -4px; } }
+/* A menu in the shared top layer (menu-layer.ts: the share dialog's dropdowns, the ⋯ source menus), where nothing in the
+   page contains or clips it: the popover's own box rules give way to the menu's (placed by its inline coordinates, no
+   auto margin, the page's ink); opened upward (data-up), it eases in from below. */
+.eb-menu[popover] { margin: 0; color: var(--ink); }
+.eb-menu[data-up] { animation-name: eb-menu-up; }
+@keyframes eb-menu-up { from { opacity: 0; translate: 0 4px; } }
 .eb-menuitem {
   display: flex; align-items: center; min-height: 44px; padding: 0 12px; border: 0; background: none; color: var(--ink);
   font: inherit; font-size: 15px; font-weight: 500; text-align: left; white-space: nowrap; cursor: pointer;

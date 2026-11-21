@@ -159,6 +159,20 @@ describe('BirdCard', () => {
     expect(left).toBeLessThanOrEqual(1000)
     anchor.remove()
   })
+
+  it('the popover is fixed at its bird in window coordinates: centred on it, 10px under it (menu audit, round 6)', () => {
+    setWidth(1000)
+    vi.stubGlobal('innerHeight', 800)
+    const anchor = document.createElement('button')
+    anchor.getBoundingClientRect = () => ({ left: 400, right: 440, top: 300, bottom: 340, width: 40, height: 40, x: 400, y: 300, toJSON() {} })
+    document.body.append(anchor)
+    render(<BirdCard entry={full} species={species} regions={regions} anchor={anchor} onClose={() => {}} />)
+    const dlg = screen.getByRole('dialog')
+    // jsdom measures the card 0 × 0: its left is the bird's centre, its top 10px under the bird.
+    expect(dlg.style.left).toBe('420px')
+    expect(dlg.style.top).toBe('350px')
+    anchor.remove()
+  })
 })
 
 describe('BirdCard sticker', () => {
