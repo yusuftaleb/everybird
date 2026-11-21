@@ -73,40 +73,53 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
     <main className="eb-page eb-about eb-page-titled">
       <PageHead title={page.meta.about.title} lede={a.lede} />
 
+      {/* From 1024px the page's width holds two equal columns (Settings' pair, .eb-about-cols): parts that pair (two
+          paragraphs, the steps and the privacy note, True size and Conservation status) sit side by side, each at a
+          reading measure; the demo spans the content width. One column under 1024px. */}
       <section className="eb-block" aria-labelledby="eb-what-h">
         <h2 id="eb-what-h" className="eb-h2">{a.what.head}</h2>
-        <p className="eb-prose">{a.what.body}</p>
+        <div className="eb-about-cols">
+          <p className="eb-prose">{a.what.body}</p>
+          <p className="eb-prose">{a.what.more}</p>
+        </div>
       </section>
 
       <section className="eb-block" aria-labelledby="eb-how-h">
         <h2 id="eb-how-h" className="eb-h2">{a.how.head}</h2>
         <HowItWorksDemo />
-        <ol className="eb-steps">
-          <li>{rich(a.how.steps[0], { link: (chunk) => <Link href="/settings">{chunk}</Link> })}</li>
-          <li>{a.how.steps[1]}</li>
-          <li>{a.how.steps[2]}</li>
-        </ol>
-        <p className="eb-prose">{a.how.privacy}</p>
+        <div className="eb-about-cols">
+          <ol className="eb-steps">
+            <li>{rich(a.how.steps[0], { link: (chunk) => <Link href="/settings">{chunk}</Link> })}</li>
+            <li>{a.how.steps[1]}</li>
+            <li>{a.how.steps[2]}</li>
+          </ol>
+          <p className="eb-prose">{a.how.privacy}</p>
+        </div>
       </section>
 
-      <section className="eb-block" aria-labelledby="eb-size-h">
-        <h2 id="eb-size-h" className="eb-h2">{a.size.head}</h2>
-        <p className="eb-prose">{a.size.even}</p>
-        <p className="eb-prose">{a.size.true}</p>
-      </section>
+      <div className="eb-about-cols eb-about-pair">
+        <section className="eb-block" aria-labelledby="eb-size-h">
+          <h2 id="eb-size-h" className="eb-h2">{a.size.head}</h2>
+          <p className="eb-prose">{a.size.even}</p>
+          <p className="eb-prose">{a.size.true}</p>
+        </section>
 
-      <section className="eb-block" aria-labelledby="eb-status-h">
-        <h2 id="eb-status-h" className="eb-h2">{a.status.head}</h2>
-        <p className="eb-prose">{fmt(a.status.body, { source: IUCN_SOURCE })}</p>
-      </section>
+        <section className="eb-block" aria-labelledby="eb-status-h">
+          <h2 id="eb-status-h" className="eb-h2">{a.status.head}</h2>
+          <p className="eb-prose">{fmt(a.status.body, { source: IUCN_SOURCE })}</p>
+        </section>
+      </div>
 
       <section id="credits" className="eb-block" aria-labelledby="eb-credits-h" tabIndex={-1}>
         <h2 id="eb-credits-h" className="eb-h2">{c.head}</h2>
-        <p className="eb-prose">
-          {rich(c.madeBy, { you: link('https://www.yusuftaleb.com'), life: link('https://www.yusuftaleb.com/lifelist') })}
-        </p>
+        {/* "Made by" and the coffee sentence are one paragraph, Buy Me a Coffee's button at its right where both fit,
+            under it where they don't. Languages that end a sentence with 。 join sentences without a space. */}
         <div className="eb-coffee">
-          <p className="eb-prose">{c.coffee}</p>
+          <p className="eb-prose">
+            {rich(c.madeBy, { you: link('https://www.yusuftaleb.com'), life: link('https://www.yusuftaleb.com/lifelist') })}
+            {c.madeBy.endsWith('。') ? '' : ' '}
+            {c.coffee}
+          </p>
           <a className="eb-coffee-btn" href={COFFEE_URL} target="_blank" rel="noopener noreferrer">
             {/* Buy Me a Coffee's standard static button (https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png, 545 × 153),
                 self-hosted so nothing loads from them before a click: no widget, no script, no cookies. The image says
@@ -115,6 +128,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
             <img src="/buy-me-a-coffee.png" width={143} height={40} alt="Buy me a coffee" />
           </a>
         </div>
+        <p className="eb-prose">{c.thanks}</p>
         <ul className="eb-credits">
           <Credit label={c.label.stickers} title={<A href={HUASHU_URL}>huashu-bird-sticker</A>}>
             {rich(c.stickers.lead, { cc: link('https://creativecommons.org/licenses/by/4.0/'), how: link('https://birdalbum.com/how-stickers-are-made/') })}

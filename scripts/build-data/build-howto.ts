@@ -42,10 +42,11 @@ const LATEST = 'triher'
 const HERON_FAMILY = 'Ardeidae'
 
 /** The demo's collage box per design (px; layout units are px), its stretch, and the count's font size (F). The box is
- * the part of the window the stage shows below the filter (wide: 300-470 of the 720x470 stage; compact: 253-356 of
- * 358x356), so every bird packed into it is on screen; e2e/about.spec.ts checks the rendered stickers against it. */
+ * the part of the window the stage shows below the breadcrumb's row (wide: 268-470 of the 720x470 stage; compact:
+ * 253-356 of 358x356), so every bird packed into it is on screen; e2e/about.spec.ts checks the rendered stickers
+ * against it. */
 const STAGE = {
-  wide: { W: 524, H: 166, stretch: 3.1, F: 44, z: 2 },
+  wide: { W: 524, H: 198, stretch: 2.6, F: 44, z: 2 },
   compact: { W: 310, H: 100, stretch: 2.9, F: 32, z: 3 },
 } as const
 

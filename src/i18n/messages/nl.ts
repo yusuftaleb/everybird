@@ -882,19 +882,19 @@ export const nl: Messages = {
     /** About (app/[lang]/(app)/about/page.tsx). `<tag>` words become links; proper names, licences and the Buy Me a Coffee button stay as they are. */
     about: {
       lede: 'Everybird maakt van de levenslijst van elke vogelaar een stickercollage.',
-      what: { head: 'Wat het is', body: 'Je levenslijst is al het verslag van een leven vol vogels. Everybird legt hem uit als één collage: elke soort een sticker, geschaald op lichaamsgewicht, met het aantal in het midden. Filter op groep, plaats, jaar of beschermingsstatus en deel hem als afbeelding of link.' },
+      what: { head: 'Wat het is', body: 'Je levenslijst is al het verslag van een leven vol vogels. Everybird legt hem uit als één collage: elke soort een sticker, geschaald op lichaamsgewicht, met het aantal in het midden. Filter op groep, plaats, jaar of beschermingsstatus en deel hem als afbeelding of link.', more: 'Bekijk hem als collage, als lijst, op een wereldkaart of in de stamboom van de vogels. Deel hem als afbeelding of link, print hem als poster of exporteer hem in delen: één afbeelding of poster per familie, land, jaar of andere groep. Met Vergelijken zet je je lijst naast die van je vrienden en zie je welke vogels jullie delen.' },
       how: {
         head: 'Hoe het werkt',
         steps: [
-          'Breng je lijst binnen via <link>Instellingen</link>: een bestand van eBird of observation.org, een iNaturalist-gebruikersnaam of vogels die je met de hand aanvinkt. Combineer ze als je meer dan één lijst bijhoudt.',
+          'Breng je lijst binnen via <link>Instellingen</link>: een bestand van eBird, observation.org, Scythebill of iGoTerra, een spreadsheet of een geplakte lijst, een iNaturalist-gebruikersnaam of vogels die je met de hand toevoegt. Combineer ze als je meer dan één lijst bijhoudt.',
           'Elke vogel wordt gekoppeld aan de eBird-taxonomie van dit jaar en houdt zijn vroegste datum. Rijen die niet passen, staan in een lijst, zodat er niets stilletjes wegvalt.',
-          'De collage, de filters en de afbeeldingen om te delen worden allemaal in je browser gemaakt.',
+          'De collage en zijn weergaven, de filters, de afbeeldingen om te delen en de posters worden allemaal in je browser gemaakt.',
         ],
         privacy: 'Je lijst verlaat je browser nooit. We tellen bezoeken met Cloudflare Web Analytics, anoniem en zonder cookies, en een paar acties (een collage gemaakt, een afbeelding gedeeld of bewaard, een link gekopieerd) met een kleine eigen teller die nooit je vogels, namen of plaatsen ziet. Een anonieme id die elke dag verandert, laat ons unieke bezoekers tellen zonder iemand van dag tot dag te volgen. Geen van beide draait als je browser vraagt om niet gevolgd te worden. Je taalkeuze wordt bewaard in een klein cookie op dit apparaat; het verlaat het apparaat alleen om je de juiste pagina te tonen. De bezoekteller bevat de taal van je browser (alleen “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” of “zh-Hant”). Pagina’s in het Russisch, Japans en Chinees laden hun lettertypen van Google Fonts, dus op die pagina’s maakt je browser contact met Google.',
       },
       size: {
         head: 'Wat Ware grootte betekent',
-        even: 'Elke sticker wordt geschaald op het gemiddelde lichaamsgewicht van de vogel, uit AVONET, naar de oppervlakte die hij op de pagina beslaat, zodat de sleep van een pauw of de poten van een reiger hem niet klein laten lijken. Standaard worden de groottes gelijkgetrokken: de oppervlakte volgt het gewicht tot de macht 0,4, zodat kleine vogels zichtbaar blijven naast grote.',
+        even: 'Elke sticker wordt geschaald op het gemiddelde lichaamsgewicht van de vogel, uit AVONET (of BIRDBASE als AVONET er geen heeft), naar de oppervlakte die hij op de pagina beslaat, zodat de sleep van een pauw of de poten van een reiger hem niet klein laten lijken. Standaard worden de groottes gelijkgetrokken: de oppervlakte volgt het gewicht tot de macht 0,4, zodat kleine vogels zichtbaar blijven naast grote.',
         true: 'Ware grootte gebruikt in plaats daarvan de derdemachtswortel van het gewicht voor de lengte. Vogels hebben ongeveer dezelfde dichtheid, dus gewicht volgt volume en de derdemachtswortel volgt lengte: een vogel die acht keer zwaarder is, wordt ongeveer twee keer zo lang getekend en beslaat vier keer de oppervlakte. Het is een schatting van de relatieve grootte, geen gemeten lengte. Slanke vogels met een lange hals kunnen wat klein lijken en gedrongen vogels wat groot, zwemhoudingen verbergen een deel van het lijf en elke soort gebruikt één gemiddeld gewicht, dus mannetjes, vrouwtjes en seizoenen worden niet onderscheiden.',
       },
       status: {
@@ -905,6 +905,7 @@ export const nl: Messages = {
         head: 'Credits',
         madeBy: 'Gemaakt door <you>Yusuf Taleb</you>. Het groeide uit de <life>levenslijst op zijn site</life> en is gebouwd met het gul gedeelde werk van anderen.',
         coffee: 'Als je Everybird leuk vindt, kun je Yusuf op een kop koffie trakteren.',
+        thanks: 'Dank aan iedereen die het idee aanmoedigde, vroege versies uitprobeerde en onderweg feedback stuurde. Everybird is er beter door geworden.',
         /** Each credit's mono label (its kind, then the licence). */
         label: {
           stickers: 'AI-gegenereerde stickers · CC BY 4.0',
@@ -927,13 +928,13 @@ export const nl: Messages = {
         stickers: { lead: 'Elke vogelsticker is een met AI gegenereerde illustratie uit huashu-bird-sticker van alchaincyf, onder de licentie <cc>CC BY 4.0</cc>. Elke sticker is met GPT-image gemaakt op basis van een geschreven beschrijving van de veldkenmerken van de soort en, voor de meeste soorten, referentiefoto’s, waarvan de fotografen in dat project worden vermeld. <how>Hoe de stickers worden gemaakt</how>. Everybird heeft ze verkleind en bijgesneden voor het web; verder is er niets aan veranderd.', commit: 'Bron-commit <code>{sha}</code>.', tail: 'Minder dan 2% van de soorten heeft nog geen sticker en verschijnt als een omtrek. We zoeken elke week naar nieuwe tekeningen en voegen ze toe in Everybird-updates.' },
         inspiration: 'Avian Visitors van Teddy Warner liet zien hoe mooi een muur vol vogels kan zijn. Everybird begon daar.',
         taxonomyTitle: 'eBird en Clements',
-        taxonomy: 'Vogelnamen, soorten en hun volgorde volgen de eBird/Clements-taxonomie, versie {version}, van het Cornell Lab of Ornithology. Bestanden van eBird en observation.org worden in je browser gelezen.',
+        taxonomy: 'Vogelnamen, soorten en hun volgorde volgen de eBird/Clements-taxonomie, versie {version}, van het Cornell Lab of Ornithology. Elk bestand dat je importeert, wordt in je browser gelezen.',
         masses: 'De stickergroottes gebruiken lichaamsgewichten uit AVONET (Tobias et al. 2022, Ecology Letters), via de soortentabel van huashu.',
         birdbase: 'Stickergroottes van soorten zonder lichaamsgewicht in AVONET gebruiken lichaamsgewichten uit BIRDBASE (Şekercioğlu et al. 2025, Scientific Data).',
         redList: 'Categorieën van de Rode Lijst van de IUCN zoals opgegeven voor BirdLife {birdlife} in AviList: The Global Avian Checklist, {version} (AviList Core Team, {year}), via de soortentabel van huashu, onder de licentie <cc>CC BY 4.0</cc>. Everybird heeft ze aan eBird-soorten gekoppeld.',
         tree: 'De weergave Boom tekent de gedateerde vogelboom {tree} ({taxonomy}) van McTavish et al., onder de licentie <cc>CC BY 4.0</cc>. Everybird heeft de uiteinden gekoppeld aan de eBird-taxonomie {year}, die de families, geslachten en totalen geeft. Soorten die nieuw zijn in de taxonomie {year} staan naast hun naaste verwant.',
         api: 'Waarnemingen komen uit de openbare API van iNaturalist, rechtstreeks vanuit je browser aangeroepen, ongeveer één keer per seconde.',
-        countries: 'Landnamen, de meeste regionamen en de kustlijnen van de continentbollen komen van Natural Earth.',
+        countries: 'Landnamen, de meeste regionamen, de wereldkaart en de kustlijnen van de continentbollen komen van Natural Earth.',
         regions: 'De rest van de namen van staten en provincies komt uit de ISO 3166-2-gegevens van Debian iso-codes, alleen gebruikt voor de namen.',
         vietnamBoundariesTitle: 'Provinciegrenzen van Vietnam',
         vietnamBoundaries: 'De Vietnamese provinciegrenzen van 2025 komen van het General Statistics Office of Vietnam via OCHA en HDX, onder <cc>CC BY 3.0 IGO</cc>. Everybird vereenvoudigde de grenzen voor lokale zoekopdrachten in de browser.',

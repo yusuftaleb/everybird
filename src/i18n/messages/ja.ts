@@ -867,19 +867,19 @@ export const ja: Messages = {
     },
     about: {
       lede: 'Everybirdは、どんなバードウォッチャーのライフリストもステッカーのコラージュにします。',
-      what: { head: 'Everybirdとは', body: 'ライフリストは、すでに一生分の鳥の記録です。Everybirdはそれを一枚のコラージュに並べます。どの種も一枚のステッカーで、体重に合わせた大きさになり、中央には種数が入ります。グループ、場所、年、保全状況で絞り込み、画像やリンクで共有できます。' },
+      what: { head: 'Everybirdとは', body: 'ライフリストは、すでに一生分の鳥の記録です。Everybirdはそれを一枚のコラージュに並べます。どの種も一枚のステッカーで、体重に合わせた大きさになり、中央には種数が入ります。グループ、場所、年、保全状況で絞り込み、画像やリンクで共有できます。', more: 'コラージュ、リスト、世界地図、鳥の系統樹で見られます。画像やリンクで共有したり、ポスターとして印刷したり、科・国・年などのグループごとに画像やポスターを分けて書き出したりできます。「比較」では、友だちのリストと並べて、共通する鳥がわかります。' },
       how: {
         head: '仕組み',
         steps: [
-          '<link>設定</link>でリストを持ち込みます：eBirdかobservation.orgのファイル、iNaturalistのユーザー名、または手動で選んだ鳥です。記録を複数つけているなら、組み合わせられます。',
+          '<link>設定</link>でリストを持ち込みます：eBird、observation.org、Scythebill、iGoTerraのファイル、スプレッドシートや貼り付けたリスト、iNaturalistのユーザー名、または手動で追加した鳥です。記録を複数つけているなら、組み合わせられます。',
           'それぞれの鳥は今年のeBird分類に照合され、最も古い日付が残ります。照合できなかった行は一覧になるので、知らないうちに除外されるものはありません。',
-          'コラージュ、絞り込み、共有画像は、すべてあなたのブラウザの中で作られます。',
+          'コラージュとその表示、絞り込み、共有画像、ポスターは、すべてあなたのブラウザの中で作られます。',
         ],
         privacy: 'あなたのリストがブラウザの外に出ることはありません。訪問はCloudflare Web Analyticsで、匿名かつクッキーなしで数えています。いくつかの操作（コラージュの作成、画像の共有や保存、リンクのコピー）は、あなたの鳥、名前、場所を一切見ない小さな独自のカウンターで数えています。毎日変わる匿名のIDで、日をまたいで誰かを追跡することなく、ユニーク訪問者を数えます。ブラウザが追跡しないよう求めている場合は、どちらも動きません。選んだ言語はこのデバイスの小さなクッキーに保存され、正しいページを表示するため以外にデバイスの外に出ることはありません。訪問数にはブラウザの言語が含まれます（“es”、“pt”、“nl”、“pl”、“fr”、“de”、“it”、“sv”、“da”、“ru”、“ja”、“zh-Hans”、“zh-Hant”のいずれかのみ）。ロシア語、日本語、中国語のページはGoogle Fontsからフォントを読み込むため、これらのページではブラウザがGoogleに接続します。',
       },
       size: {
         head: '「実寸」の意味',
-        even: 'それぞれのステッカーは、AVONETによる鳥の平均体重から、ページ上で占める面積で大きさを決めています。そのため、クジャクの尾やサギの脚のせいで小さく見えることはありません。既定では大きさの差を抑えています：面積は体重の0.4乗に従うので、小さな鳥も大きな鳥の隣で見えたままです。',
+        even: 'それぞれのステッカーは、AVONET（AVONETにない種はBIRDBASE）による鳥の平均体重から、ページ上で占める面積で大きさを決めています。そのため、クジャクの尾やサギの脚のせいで小さく見えることはありません。既定では大きさの差を抑えています：面積は体重の0.4乗に従うので、小さな鳥も大きな鳥の隣で見えたままです。',
         true: '「実寸」では代わりに、体重の立方根を長さに使います。鳥の密度はおおよそ同じなので、体重は体積に比例し、その立方根は長さに比例します：8倍重い鳥は約2倍の長さで描かれ、4倍の面積を占めます。これは相対的な大きさの推定で、測った長さではありません。首の長い細い鳥は少し小さく、ずんぐりした鳥は少し大きく見えることがあり、泳ぐ姿勢では体の一部が隠れます。また各種は平均体重を一つだけ使うため、雄と雌、季節による違いは区別されません。',
       },
       status: {
@@ -890,6 +890,7 @@ export const ja: Messages = {
         head: 'クレジット',
         madeBy: '制作：<you>Yusuf Taleb</you>。彼のサイトの<life>ライフリスト</life>から生まれ、ほかの人々の惜しみない仕事の上に作られています。',
         coffee: 'Everybirdを気に入ったら、Yusufにコーヒーをおごることができます。',
+        thanks: 'アイデアを応援してくれた方、初期のバージョンを試してくれた方、感想を送ってくれた方、みなさんに感謝します。おかげでEverybirdはよくなりました。',
         label: {
           stickers: 'AI生成のステッカー · CC BY 4.0',
           inspiration: 'インスピレーション',
@@ -911,13 +912,13 @@ export const ja: Messages = {
         stickers: { lead: '鳥のステッカーはすべて、alchaincyfによるhuashu-bird-stickerのAI生成イラストで、<cc>CC BY 4.0</cc>のライセンスです。それぞれ、その種の識別点を書いた説明と、ほとんどの種では参考写真をもとに、GPT-imageで作られました。写真の撮影者はそのプロジェクトでクレジットされています。<how>ステッカーの作り方</how>。Everybirdはウェブ用に縮小とトリミングをしただけで、ほかには何も変えていません。', commit: 'ソースのコミット<code>{sha}</code>。', tail: 'まだステッカーのない種は2%未満で、輪郭で表示されます。新しい絵は毎週確認し、Everybirdの更新で追加しています。' },
         inspiration: 'Teddy WarnerのAvian Visitorsが、鳥の壁がどれほど美しくなれるかを見せてくれました。Everybirdはそこから始まりました。',
         taxonomyTitle: 'eBirdとClements',
-        taxonomy: '鳥の名前、種、その並び順は、Cornell Lab of OrnithologyのeBird/Clements分類、バージョン{version}に従います。eBirdとobservation.orgのファイルは、あなたのブラウザの中で読み込まれます。eBirdにない和名は、IOC World Bird List v15.2（Gill, Donsker & Rasmussen）によるもので、<cc>CC BY 3.0</cc>のライセンスです。',
+        taxonomy: '鳥の名前、種、その並び順は、Cornell Lab of OrnithologyのeBird/Clements分類、バージョン{version}に従います。取り込んだファイルは、すべてあなたのブラウザの中で読み込まれます。eBirdにない和名は、IOC World Bird List v15.2（Gill, Donsker & Rasmussen）によるもので、<cc>CC BY 3.0</cc>のライセンスです。',
         masses: 'ステッカーの大きさには、huashuの種の表を通じて、AVONET（Tobias et al. 2022, Ecology Letters）の体重を使っています。',
         birdbase: 'AVONETに体重がない種のステッカーの大きさには、BIRDBASE（Şekercioğlu et al. 2025, Scientific Data）の体重を使っています。',
         redList: 'IUCNレッドリストのカテゴリーは、AviList: The Global Avian Checklist, {version}（AviList Core Team, {year}）でBirdLife {birdlife}として示されたもので、huashuの種の表を通じ、<cc>CC BY 4.0</cc>のライセンスです。EverybirdがそれをeBirdの種に照合しました。',
         tree: '系統樹ビューは、McTavish et al.による年代付きの鳥の系統樹{tree}（{taxonomy}）を描いています。ライセンスは<cc>CC BY 4.0</cc>です。Everybirdはその末端をeBird {year}分類に照合し、科、属、合計はそれに従います。{year}分類で新しく加わった種は、最も近い仲間の隣に置いています。',
         api: '観察記録はiNaturalistの公開APIから、あなたのブラウザが直接、約1秒に1回呼び出して取得します。',
-        countries: '国名、ほとんどの地域名、大陸の地球儀の海岸線は、Natural Earthによるものです。',
+        countries: '国名、ほとんどの地域名、世界地図、大陸の地球儀の海岸線は、Natural Earthによるものです。',
         regions: '残りの州・県の名前は、Debianのiso-codesのISO 3166-2データによるもので、名前だけに使っています。',
         vietnamBoundariesTitle: 'ベトナムの省の境界',
         vietnamBoundaries: 'ベトナムの2025年の省の境界は、OCHAとHDXを通じたベトナム統計総局によるもので、<cc>CC BY 3.0 IGO</cc>のライセンスです。Everybirdは形を簡略化し、その場での検索に使っています。',

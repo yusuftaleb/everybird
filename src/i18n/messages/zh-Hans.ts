@@ -867,19 +867,19 @@ export const zhHans: Messages = {
     },
     about: {
       lede: 'Everybird把任何观鸟者的生涯清单变成贴纸拼贴画。',
-      what: { head: '这是什么', body: '你的生涯清单本身就是一生观鸟的记录。Everybird把它排成一张拼贴画：每个物种一张贴纸，大小按体重决定，中间是总数。可以按类群、地点、年份或保护状况筛选，然后以图片或链接分享。' },
+      what: { head: '这是什么', body: '你的生涯清单本身就是一生观鸟的记录。Everybird把它排成一张拼贴画：每个物种一张贴纸，大小按体重决定，中间是总数。可以按类群、地点、年份或保护状况筛选，然后以图片或链接分享。', more: '可以用拼贴画、列表、世界地图或鸟类进化树来查看。可以以图片或链接分享，打印成海报，或分批导出：按科、国家、年份或其他类群，每组一张图片或海报。在“对比”中，你的清单会和朋友的清单并排，看看你们有哪些共同的鸟。' },
       how: {
         head: '如何运作',
         steps: [
-          '在<link>设置</link>中导入你的清单：eBird或observation.org文件、iNaturalist用户名，或手动勾选的鸟。如果你有多份记录，可以把它们合并。',
+          '在<link>设置</link>中导入你的清单：eBird、observation.org、Scythebill或iGoTerra文件、表格或粘贴的列表、iNaturalist用户名，或手动添加的鸟。如果你有多份记录，可以把它们合并。',
           '每种鸟都会匹配到今年的eBird分类，并保留最早的日期。无法匹配的行会列出来，不会被悄悄丢掉。',
-          '拼贴画、筛选和分享图片全部在你的浏览器中生成。',
+          '拼贴画及其各种视图、筛选、分享图片和海报全部在你的浏览器中生成。',
         ],
         privacy: '你的清单从不离开你的浏览器。我们用Cloudflare Web Analytics统计访问量，匿名且不使用cookie；另有一个我们自己的小计数器统计少数操作（生成拼贴画、分享或保存图片、复制链接），它从不接触你的鸟、名称或地点。一个每天更换的匿名标识让我们能统计独立访客，而不会跨天追踪任何人。如果你的浏览器要求不被追踪，两者都不会运行。你选择的语言保存在此设备上的一个小cookie里；除了用来向你显示正确语言的页面，它不会离开此设备。访问统计包含你浏览器的语言（只有“es”、“pt”、“nl”、“pl”、“fr”、“de”、“it”、“sv”、“da”、“ru”、“ja”、“zh-Hans”或“zh-Hant”）。俄语、日语和中文页面从Google Fonts加载字体，因此在这些页面上，你的浏览器会连接Google。',
       },
       size: {
         head: '“真实大小”是什么意思',
-        even: '每张贴纸的大小取自这种鸟的平均体重（来自AVONET），按它在页面上覆盖的面积计算，所以孔雀的尾屏或鹭的长腿不会让它显得小。默认会均衡大小：面积随体重的0.4次方变化，让小鸟在大鸟旁边也看得清。',
+        even: '每张贴纸的大小取自这种鸟的平均体重（来自AVONET；AVONET没有的来自BIRDBASE），按它在页面上覆盖的面积计算，所以孔雀的尾屏或鹭的长腿不会让它显得小。默认会均衡大小：面积随体重的0.4次方变化，让小鸟在大鸟旁边也看得清。',
         true: '“真实大小”则用体重的立方根来表示长度。鸟类的密度大致相近，所以体重反映体积，体重的立方根反映长度：重八倍的鸟画出来约长两倍，覆盖四倍的面积。这是相对大小的估计，不是实测的长度。细长、长颈的鸟可能显得略小，矮胖的鸟略大，游泳姿态会遮住部分身体，而且每个物种只用一个平均体重，所以不区分雄鸟、雌鸟和季节。',
       },
       status: {
@@ -890,6 +890,7 @@ export const zhHans: Messages = {
         head: '致谢',
         madeBy: '由<you>Yusuf Taleb</you>制作。它源自<life>他网站上的生涯清单</life>，建立在许多人慷慨付出的成果之上。',
         coffee: '如果你喜欢Everybird，可以请Yusuf喝杯咖啡。',
+        thanks: '感谢每一位支持这个想法、试用早期版本并提出反馈的人。Everybird因你们而变得更好。',
         label: {
           stickers: 'AI生成的贴纸 · CC BY 4.0',
           inspiration: '灵感',
@@ -911,13 +912,13 @@ export const zhHans: Messages = {
         stickers: { lead: '每张鸟类贴纸都是AI生成的插画，来自alchaincyf的huashu-bird-sticker，采用<cc>CC BY 4.0</cc>许可。每一张都由GPT-image根据对该物种野外识别特征的文字描述生成，大多数物种还参考了照片，摄影师在那个项目中均有署名。<how>贴纸是如何制作的</how>。Everybird为网页调整了它们的大小并做了裁切，没有其他改动。', commit: '源提交<code>{sha}</code>。', tail: '不到2%的物种还没有贴纸，以轮廓显示。我们每周检查一次新画作，并在Everybird更新时加入。' },
         inspiration: 'Teddy Warner的Avian Visitors展示了一整面墙的鸟可以多么可爱。Everybird由此起步。',
         taxonomyTitle: 'eBird和Clements',
-        taxonomy: '鸟名、物种及其顺序依据康奈尔鸟类学实验室（Cornell Lab of Ornithology）的eBird/Clements分类，版本{version}。eBird和observation.org文件在你的浏览器中读取。eBird缺少的中文名来自IOC World Bird List v15.2（Gill, Donsker & Rasmussen），采用<cc>CC BY 3.0</cc>许可。',
+        taxonomy: '鸟名、物种及其顺序依据康奈尔鸟类学实验室（Cornell Lab of Ornithology）的eBird/Clements分类，版本{version}。你导入的每个文件都在你的浏览器中读取。eBird缺少的中文名来自IOC World Bird List v15.2（Gill, Donsker & Rasmussen），采用<cc>CC BY 3.0</cc>许可。',
         masses: '贴纸大小使用AVONET（Tobias et al. 2022, Ecology Letters）的体重数据，经由huashu的物种表。',
         birdbase: 'AVONET没有体重数据的物种，贴纸大小使用BIRDBASE（Şekercioğlu et al. 2025, Scientific Data）的体重数据。',
         redList: 'IUCN红色名录等级依据AviList: The Global Avian Checklist, {version}（AviList Core Team, {year}）中为BirdLife {birdlife}给出的等级，经由huashu的物种表，采用<cc>CC BY 4.0</cc>许可。Everybird把它们匹配到了eBird物种。',
         tree: '进化树视图绘制的是McTavish等的鸟类定年进化树{tree}（{taxonomy}），采用<cc>CC BY 4.0</cc>许可。Everybird把它的末端匹配到了eBird {year}分类，科、属和总数都以它为准。{year}分类中新增的物种放在了最近的亲缘种旁边。',
         api: '观察记录来自iNaturalist的公开API，直接从你的浏览器调用，大约每秒一次。',
-        countries: '国家名称、大部分地区名称和大洲地球仪的海岸线来自Natural Earth。',
+        countries: '国家名称、大部分地区名称、世界地图和大洲地球仪的海岸线来自Natural Earth。',
         regions: '其余的州和省名称来自Debian iso-codes的ISO 3166-2数据，仅用于名称。',
         vietnamBoundariesTitle: '越南省级边界',
         vietnamBoundaries: '越南2025年的省级边界来自越南统计总局，经由OCHA和HDX，采用<cc>CC BY 3.0 IGO</cc>许可。Everybird简化了形状，用于本地查找。',

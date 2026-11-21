@@ -25,19 +25,19 @@ const page = {
   /** About (app/[lang]/(app)/about/page.tsx). `<tag>` words become links; proper names, licences and the Buy Me a Coffee button stay as they are. */
   about: {
     lede: "Everybird turns any birder's life list into a sticker collage.",
-    what: { head: 'What it is', body: 'Your life list is already the record of a lifetime of birds. Everybird lays it out as one collage: every species a sticker, sized by its body mass, with the count in the middle. Filter it by group, place, year or conservation status, then share it as an image or a link.' },
+    what: { head: 'What it is', body: 'Your life list is already the record of a lifetime of birds. Everybird lays it out as one collage: every species a sticker, sized by its body mass, with the count in the middle. Filter it by group, place, year or conservation status, then share it as an image or a link.', more: 'Look at it as the collage, a list, a world map or the tree of birds. Share it as an image or a link, print it as a poster, or export it in batches: one image or poster for each family, country, year or other group. Compare puts your list beside your friends’ lists and shows which birds you share.' },
     how: {
       head: 'How it works',
       steps: [
-        'Bring your list on <link>Settings</link>: an eBird or observation.org file, an iNaturalist username, or birds ticked by hand. Combine them if you keep more than one record.',
+        'Bring your list on <link>Settings</link>: a file from eBird, observation.org, Scythebill or iGoTerra, a spreadsheet or a pasted list, an iNaturalist username, or birds added by hand. Combine them if you keep more than one record.',
         "Each bird is matched to this year's eBird taxonomy and keeps its earliest date. Rows that don't match are listed, so nothing is dropped quietly.",
-        'The collage, the filters and the share images are all made in your browser.',
+        'The collage and its views, the filters, the share images and the posters are all made in your browser.',
       ],
       privacy: "Your list never leaves your browser. We count visits with Cloudflare Web Analytics, anonymous and cookieless, and a few actions (a collage made, an image shared or saved, a link copied) with a small counter of our own that never sees your birds, names or places. A daily-changing anonymous id lets us count unique visitors without tracking anyone across days. Neither runs if your browser asks not to be tracked. Your language choice is kept in a small cookie on this device; it never leaves it except to show you the right page. The visit count includes your browser's language (just “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” or “zh-Hant”). Pages in Russian, Japanese and Chinese load their fonts from Google Fonts, so on those pages your browser contacts Google.",
     },
     size: {
       head: 'What True size means',
-      even: "Each sticker is sized from the bird's average body mass, from AVONET, by the area it covers on the page, so a peafowl's train or a heron's legs don't make it read small. The default evens sizes out: the area follows mass to the power of 0.4, so small birds stay visible next to big ones.",
+      even: "Each sticker is sized from the bird's average body mass, from AVONET (or BIRDBASE where AVONET has none), by the area it covers on the page, so a peafowl's train or a heron's legs don't make it read small. The default evens sizes out: the area follows mass to the power of 0.4, so small birds stay visible next to big ones.",
       true: "True size uses the cube root of mass for length instead. Birds are roughly similar in density, so mass tracks volume, and its cube root tracks length: a bird eight times heavier is drawn about twice as long, covering four times the area. It's an estimate of relative size, not a measured length. Slim, long-necked birds can look a little small and chunky ones a little big, swimming poses hide part of the body, and each species uses one average mass, so males, females and seasons aren't told apart.",
     },
     status: {
@@ -48,6 +48,7 @@ const page = {
       head: 'Credits',
       madeBy: "Made by <you>Yusuf Taleb</you>. It grew out of the <life>life list on his site</life>, and is built from other people's generous work.",
       coffee: 'If you enjoy Everybird, you can buy Yusuf a coffee.',
+      thanks: 'Thank you to everyone who encouraged the idea, tested early versions and sent feedback along the way. Everybird is better for it.',
       /** Each credit's mono label (its kind, then the licence). */
       label: {
         stickers: 'AI-generated stickers · CC BY 4.0',
@@ -70,13 +71,13 @@ const page = {
       stickers: { lead: 'Every bird sticker is an AI-generated illustration from huashu-bird-sticker by alchaincyf, licensed <cc>CC BY 4.0</cc>. Each one was made with GPT-image from a written description of the species’ field marks and, for most species, reference photos, whose photographers are credited in that project. <how>How the stickers are made</how>. Everybird resized and trimmed them for the web; nothing else was changed.', commit: 'Source commit <code>{sha}</code>.', tail: "Less than 2% of species don't have a sticker yet and show as an outline. We check for new drawings weekly and add them in Everybird updates." },
       inspiration: "Teddy Warner's Avian Visitors showed how lovely a wall of birds can be. Everybird started there.",
       taxonomyTitle: 'eBird and Clements',
-      taxonomy: 'Bird names, species and their order follow the eBird/Clements taxonomy, version {version}, from the Cornell Lab of Ornithology. eBird and observation.org files are read in your browser.',
+      taxonomy: 'Bird names, species and their order follow the eBird/Clements taxonomy, version {version}, from the Cornell Lab of Ornithology. Every file you import is read in your browser.',
       masses: "Sticker sizes use body masses from AVONET (Tobias et al. 2022, Ecology Letters), via huashu's species table.",
       birdbase: "Sticker sizes for species that AVONET has no mass for use body masses from BIRDBASE (Şekercioğlu et al. 2025, Scientific Data).",
       redList: "IUCN Red List categories as given for BirdLife {birdlife} in AviList: The Global Avian Checklist, {version} (AviList Core Team, {year}), via huashu's species table, licensed <cc>CC BY 4.0</cc>. Everybird matched them to eBird species.",
       tree: 'The Tree view draws the dated tree of birds {tree} ({taxonomy}) by McTavish et al., licensed <cc>CC BY 4.0</cc>. Everybird matched its tips to the eBird {year} taxonomy, which gives the families, genera and totals. Species new in the {year} taxonomy were placed beside their closest relative.',
       api: "Observations come from iNaturalist's public API, called straight from your browser, about once a second.",
-      countries: 'Country names, most region names and the continent globes’ coastlines come from Natural Earth.',
+      countries: 'Country names, most region names, the world map and the continent globes’ coastlines come from Natural Earth.',
       regions: "The rest of the state and province names come from Debian's iso-codes ISO 3166-2 data, used for names only.",
       vietnamBoundariesTitle: 'Vietnam province boundaries',
       vietnamBoundaries: 'Vietnam’s 2025 provincial boundaries come from the General Statistics Office of Vietnam via OCHA and HDX, under <cc>CC BY 3.0 IGO</cc>. Everybird simplified the shapes and uses them for local lookups.',

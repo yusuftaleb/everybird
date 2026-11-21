@@ -23,6 +23,12 @@ describe('About: Buy me a coffee', () => {
     expect(img.getAttribute('src')).toBe('/buy-me-a-coffee.png') // this origin: nothing loads from a third party
     expect(Number(img.getAttribute('height'))).toBe(40)
     expect(Number(img.getAttribute('width'))).toBe(143) // 545 × 153 at 40px tall
+    // At the right of the one paragraph that says who made Everybird and asks for the coffee
+    const p = link.previousElementSibling!
+    expect(p.textContent).toBe("Made by Yusuf Taleb. It grew out of the life list on his site, and is built from other people's generous work. If you enjoy Everybird, you can buy Yusuf a coffee.")
+    expect(link.parentElement).toHaveClass('eb-coffee')
+    // The thank-you after it, in plain words, no names
+    expect(link.parentElement!.nextElementSibling!.textContent).toBe('Thank you to everyone who encouraged the idea, tested early versions and sent feedback along the way. Everybird is better for it.')
     // The text link it replaces is gone from About (the footer keeps its own).
     expect(screen.queryByRole('link', { name: 'buy Yusuf a coffee' })).toBeNull()
   })

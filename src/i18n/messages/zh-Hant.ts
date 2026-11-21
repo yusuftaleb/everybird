@@ -867,19 +867,19 @@ export const zhHant: Messages = {
     },
     about: {
       lede: 'Everybird 能把任何賞鳥人的生涯清單變成貼紙拼貼。',
-      what: { head: '這是什麼', body: '你的生涯清單本來就是一輩子賞鳥的紀錄。Everybird 把它排成一張拼貼：每個鳥種一張貼紙，大小依體重而定，數字放在正中間。你可以依類群、地點、年份或保育狀態篩選，然後以圖片或連結分享。' },
+      what: { head: '這是什麼', body: '你的生涯清單本來就是一輩子賞鳥的紀錄。Everybird 把它排成一張拼貼：每個鳥種一張貼紙，大小依體重而定，數字放在正中間。你可以依類群、地點、年份或保育狀態篩選，然後以圖片或連結分享。', more: '可以用拼貼、清單、世界地圖或鳥類演化樹來看。你可以用圖片或連結分享、印成海報，或分批匯出：依科、國家、年份或其他類群，每組一張圖片或海報。在「比較」裡，你的清單會和朋友的清單並排，看看你們有哪些共同的鳥。' },
       how: {
         head: '怎麼運作',
         steps: [
-          '在<link>設定</link>帶入你的清單：eBird 或 observation.org 的檔案、iNaturalist 使用者名稱，或手動勾選的鳥。如果你有不只一份紀錄，可以把它們合併。',
+          '在<link>設定</link>帶入你的清單：eBird、observation.org、Scythebill 或 iGoTerra 的檔案、試算表或貼上的清單、iNaturalist 使用者名稱，或手動新增的鳥。如果你有不只一份紀錄，可以把它們合併。',
           '每種鳥都會對應到今年的 eBird 分類系統，並保留最早的日期。無法對應的資料列會列出來，不會悄悄刪掉任何東西。',
-          '拼貼、篩選和分享圖片都在你的瀏覽器中產生。',
+          '拼貼和它的各種檢視、篩選、分享圖片和海報都在你的瀏覽器中產生。',
         ],
         privacy: '你的清單不會離開你的瀏覽器。我們用 Cloudflare Web Analytics 計算造訪次數，匿名且不使用 Cookie；也用我們自己的小計數器計算少數幾個動作（製作拼貼、分享或儲存圖片、複製連結），它不會看到你的鳥、名稱或地點。一個每天更換的匿名識別碼讓我們能計算不重複訪客，但不會跨日追蹤任何人。如果你的瀏覽器要求不要追蹤，兩者都不會執行。你選擇的語言會存在這台裝置上的一個小 Cookie 中；除了為你顯示正確的頁面之外，它不會離開這台裝置。造訪次數會包含你瀏覽器的語言（只有 “es”、“pt”、“nl”、“pl”、“fr”、“de”、“it”、“sv”、“da”、“ru”、“ja”、“zh-Hans” 或 “zh-Hant”）。俄文、日文和中文頁面會從 Google Fonts 載入字型，因此在這些頁面上，你的瀏覽器會連線到 Google。',
       },
       size: {
         head: '「真實大小」是什麼意思',
-        even: '每張貼紙依該鳥種的平均體重（來自 AVONET）決定它在頁面上佔的面積，所以孔雀的尾羽或鷺的長腳不會讓牠看起來變小。預設會把大小調勻：面積隨體重的 0.4 次方變化，讓小鳥在大鳥旁邊也看得見。',
+        even: '每張貼紙依該鳥種的平均體重（來自 AVONET；AVONET 沒有的來自 BIRDBASE）決定它在頁面上佔的面積，所以孔雀的尾羽或鷺的長腳不會讓牠看起來變小。預設會把大小調勻：面積隨體重的 0.4 次方變化，讓小鳥在大鳥旁邊也看得見。',
         true: '「真實大小」改用體重的立方根來決定長度。鳥類的密度大致相近，所以體重反映體積，而體重的立方根反映長度：重八倍的鳥畫出來大約長兩倍，佔四倍的面積。這是相對大小的估計，不是量測出來的長度。細長、長頸的鳥看起來可能小一點，矮胖的鳥大一點；游泳的姿勢會遮住部分身體；每個鳥種只用一個平均體重，所以不分雌雄和季節。',
       },
       status: {
@@ -890,6 +890,7 @@ export const zhHant: Messages = {
         head: '致謝',
         madeBy: '由 <you>Yusuf Taleb</you> 製作。它源自<life>他網站上的生涯清單</life>，並建立在許多人慷慨分享的成果之上。',
         coffee: '如果你喜歡 Everybird，可以請 Yusuf 喝杯咖啡。',
+        thanks: '感謝每一位支持這個想法、試用早期版本並提供意見的人。Everybird 因為你們而變得更好。',
         label: {
           stickers: 'AI 生成的貼紙 · CC BY 4.0',
           inspiration: '靈感',
@@ -911,13 +912,13 @@ export const zhHant: Messages = {
         stickers: { lead: '每張鳥類貼紙都是 AI 生成的插畫，來自 alchaincyf 的 huashu-bird-sticker，以 <cc>CC BY 4.0</cc> 授權。每一張都是用 GPT-image 根據該鳥種辨識特徵的文字描述製作，大多數鳥種也參考了照片，攝影者在該專案中都有列名。<how>貼紙是怎麼做的</how>。Everybird 為網頁調整了它們的大小並裁切邊緣，沒有做其他修改。', commit: '來源提交 <code>{sha}</code>。', tail: '不到 2% 的鳥種還沒有貼紙，會以外框顯示。我們每週檢查有沒有新的插畫，並在 Everybird 更新時加入。' },
         inspiration: 'Teddy Warner 的 Avian Visitors 讓人看見一整面牆的鳥有多美。Everybird 就是從那裡開始的。',
         taxonomyTitle: 'eBird 與 Clements',
-        taxonomy: '鳥名、鳥種及其順序依照康乃爾大學鳥類學研究室（Cornell Lab of Ornithology）的 eBird/Clements 分類系統 {version} 版。eBird 和 observation.org 的檔案在你的瀏覽器中讀取。eBird 缺少的中文鳥名來自 IOC World Bird List v15.2（Gill, Donsker & Rasmussen），以 <cc>CC BY 3.0</cc> 授權。',
+        taxonomy: '鳥名、鳥種及其順序依照康乃爾大學鳥類學研究室（Cornell Lab of Ornithology）的 eBird/Clements 分類系統 {version} 版。你匯入的每個檔案都在你的瀏覽器中讀取。eBird 缺少的中文鳥名來自 IOC World Bird List v15.2（Gill, Donsker & Rasmussen），以 <cc>CC BY 3.0</cc> 授權。',
         masses: '貼紙大小使用 AVONET（Tobias et al. 2022, Ecology Letters）的體重資料，經由 huashu 的鳥種表取得。',
         birdbase: 'AVONET 沒有體重資料的鳥種，貼紙大小使用 BIRDBASE（Şekercioğlu et al. 2025, Scientific Data）的體重資料。',
         redList: 'IUCN 紅皮書等級依 AviList: The Global Avian Checklist {version}（AviList Core Team, {year}）中 BirdLife {birdlife} 所列，經由 huashu 的鳥種表取得，以 <cc>CC BY 4.0</cc> 授權。Everybird 將它們對應到 eBird 的鳥種。',
         tree: '演化樹檢視繪製的是 McTavish 等人的鳥類定年演化樹 {tree}（{taxonomy}），以 <cc>CC BY 4.0</cc> 授權。Everybird 將它的末端對應到 eBird {year} 分類系統，科、屬和總數以它為準。{year} 分類系統新增的鳥種放在親緣最近的鳥種旁邊。',
         api: '觀察紀錄來自 iNaturalist 的公開 API，直接從你的瀏覽器呼叫，大約每秒一次。',
-        countries: '國家名稱、大部分地區名稱，以及各洲地球圖示的海岸線來自 Natural Earth。',
+        countries: '國家名稱、大部分地區名稱、世界地圖，以及各洲地球圖示的海岸線來自 Natural Earth。',
         regions: '其餘的州和省名稱來自 Debian 的 iso-codes ISO 3166-2 資料，只用於名稱。',
         vietnamBoundariesTitle: '越南省界',
         vietnamBoundaries: '越南 2025 年的省界來自越南統計總局，經由 OCHA 和 HDX 提供，以 <cc>CC BY 3.0 IGO</cc> 授權。Everybird 簡化了這些形狀，並用於本機查詢。',

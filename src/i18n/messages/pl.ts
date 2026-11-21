@@ -879,19 +879,19 @@ export const pl: Messages = {
     },
     about: {
       lede: 'Everybird zamienia listę życia każdego obserwatora ptaków w kolaż naklejek.',
-      what: { head: 'Czym jest', body: 'Twoja lista życia to już zapis ptaków całego życia. Everybird układa ją w jeden kolaż: każdy gatunek to naklejka o rozmiarze zależnym od masy ciała, a licznik jest pośrodku. Filtruj według grupy, miejsca, roku lub statusu ochronnego, a potem udostępnij kolaż jako obraz albo link.' },
+      what: { head: 'Czym jest', body: 'Twoja lista życia to już zapis ptaków całego życia. Everybird układa ją w jeden kolaż: każdy gatunek to naklejka o rozmiarze zależnym od masy ciała, a licznik jest pośrodku. Filtruj według grupy, miejsca, roku lub statusu ochronnego, a potem udostępnij kolaż jako obraz albo link.', more: 'Oglądaj ją jako kolaż, listę, mapę świata albo drzewo ptaków. Udostępnij ją jako obraz lub link, wydrukuj jako plakat albo eksportuj partiami: jeden obraz lub plakat na każdą rodzinę, kraj, rok czy inną grupę. Na stronie „Porównaj” zestawisz swoją listę z listami znajomych i zobaczysz, które ptaki macie wspólne.' },
       how: {
         head: 'Jak to działa',
         steps: [
-          'Dodaj swoją listę w sekcji <link>Ustawienia</link>: plik eBird lub observation.org, nazwę użytkownika iNaturalist albo ptaki zaznaczone ręcznie. Połącz je, jeśli prowadzisz więcej niż jeden rejestr.',
+          'Dodaj swoją listę w sekcji <link>Ustawienia</link>: plik z eBird, observation.org, Scythebill lub iGoTerra, arkusz albo wklejoną listę, nazwę użytkownika iNaturalist albo ptaki dodane ręcznie. Połącz je, jeśli prowadzisz więcej niż jeden rejestr.',
           'Każdy ptak jest dopasowywany do tegorocznej taksonomii eBird i zachowuje najwcześniejszą datę. Niedopasowane wiersze są wypisane, więc nic nie znika po cichu.',
-          'Kolaż, filtry i obrazy do udostępnienia powstają w twojej przeglądarce.',
+          'Kolaż i jego widoki, filtry, obrazy do udostępnienia i plakaty powstają w twojej przeglądarce.',
         ],
         privacy: 'Twoja lista nigdy nie opuszcza przeglądarki. Odwiedziny liczymy za pomocą Cloudflare Web Analytics, anonimowo i bez plików cookie, a kilka działań (utworzony kolaż, udostępniony lub zapisany obraz, skopiowany link) małym własnym licznikiem, który nigdy nie widzi twoich ptaków, nazw ani miejsc. Anonimowy identyfikator zmieniany codziennie pozwala liczyć unikalnych odwiedzających bez śledzenia kogokolwiek z dnia na dzień. Żadne z nich nie działa, jeśli przeglądarka prosi o niestosowanie śledzenia. Wybór języka zapisujemy w małym pliku cookie na tym urządzeniu; opuszcza je tylko po to, by pokazać ci właściwą stronę. Licznik odwiedzin zapisuje język przeglądarki (tylko „es”, „pt”, „nl”, „pl”, „fr”, „de”, „it”, „sv”, „da”, „ru”, „ja”, „zh-Hans” lub „zh-Hant”). Strony po rosyjsku, japońsku i chińsku wczytują czcionki z Google Fonts, więc na tych stronach przeglądarka łączy się z Google.',
       },
       size: {
         head: 'Co oznacza Prawdziwy rozmiar',
-        even: 'Rozmiar każdej naklejki wynika ze średniej masy ciała ptaka według AVONET i odnosi się do powierzchni, jaką naklejka zajmuje, więc ogon pawia czy nogi czapli nie sprawiają, że ptak wygląda na mniejszego. Domyślnie rozmiary są wyrównane: powierzchnia rośnie jak masa do potęgi 0,4, więc małe ptaki pozostają widoczne obok dużych.',
+        even: 'Rozmiar każdej naklejki wynika ze średniej masy ciała ptaka według AVONET (lub BIRDBASE, gdy AVONET jej nie podaje) i odnosi się do powierzchni, jaką naklejka zajmuje, więc ogon pawia czy nogi czapli nie sprawiają, że ptak wygląda na mniejszego. Domyślnie rozmiary są wyrównane: powierzchnia rośnie jak masa do potęgi 0,4, więc małe ptaki pozostają widoczne obok dużych.',
         true: 'Prawdziwy rozmiar zamiast tego bierze pierwiastek sześcienny z masy jako długość. Ptaki mają podobną gęstość, więc masa odpowiada objętości, a jej pierwiastek sześcienny długości: ptak osiem razy cięższy jest narysowany mniej więcej dwa razy dłuższy i zajmuje cztery razy większą powierzchnię. To szacunek względnego rozmiaru, nie zmierzona długość. Smukłe ptaki o długiej szyi mogą wyglądać na nieco mniejsze, a krępe na nieco większe, pozy pływające zasłaniają część ciała, a każdy gatunek ma jedną średnią masę, więc samce, samice i pory roku się nie różnią.',
       },
       status: {
@@ -902,6 +902,7 @@ export const pl: Messages = {
         head: 'Autorzy i źródła',
         madeBy: 'Autor: <you>Yusuf Taleb</you>. Everybird wyrósł z <life>listy życia na jego stronie</life> i powstał dzięki hojnej pracy innych ludzi.',
         coffee: 'Jeśli lubisz Everybird, możesz postawić Yusufowi kawę.',
+        thanks: 'Podziękowania dla wszystkich, którzy wspierali ten pomysł, testowali wczesne wersje i przysyłali uwagi. Dzięki nim Everybird jest lepszy.',
         label: {
           stickers: 'Naklejki wygenerowane przez AI · CC BY 4.0',
           inspiration: 'Inspiracja',
@@ -923,13 +924,13 @@ export const pl: Messages = {
         stickers: { lead: 'Każda naklejka ptaka to ilustracja wygenerowana przez AI z huashu-bird-sticker autorstwa alchaincyf, na licencji <cc>CC BY 4.0</cc>. Każdą utworzono za pomocą GPT-image na podstawie opisu cech terenowych gatunku oraz, dla większości gatunków, zdjęć referencyjnych, których autorzy są wymienieni w tamtym projekcie. <how>Jak powstają naklejki</how>. Everybird przeskalował je i przyciął na potrzeby strony; nic więcej nie zostało zmienione.', commit: 'Commit źródłowy <code>{sha}</code>.', tail: 'Mniej niż 2% gatunków nie ma jeszcze naklejki i widać je jako kontur. Co tydzień sprawdzamy, czy są nowe rysunki, i dodajemy je w aktualizacjach Everybird.' },
         inspiration: 'Avian Visitors Teddy’ego Warnera pokazało, jak pięknie może wyglądać ściana ptaków. Od tego zaczął się Everybird.',
         taxonomyTitle: 'eBird i Clements',
-        taxonomy: 'Nazwy ptaków, gatunki i ich kolejność są zgodne z taksonomią eBird/Clements w wersji {version}, z Cornell Lab of Ornithology. Pliki eBird i observation.org są odczytywane w twojej przeglądarce.',
+        taxonomy: 'Nazwy ptaków, gatunki i ich kolejność są zgodne z taksonomią eBird/Clements w wersji {version}, z Cornell Lab of Ornithology. Każdy importowany plik jest odczytywany w twojej przeglądarce.',
         masses: 'Rozmiary naklejek opierają się na masach ciała z AVONET (Tobias i in. 2022, Ecology Letters), za pośrednictwem tabeli gatunków huashu.',
         birdbase: 'Rozmiary naklejek gatunków, dla których AVONET nie podaje masy, opierają się na masach ciała z BIRDBASE (Şekercioğlu i in. 2025, Scientific Data).',
         redList: 'Kategorie Czerwonej listy IUCN według BirdLife {birdlife} w AviList: The Global Avian Checklist, {version} (AviList Core Team, {year}), za pośrednictwem tabeli gatunków huashu, na licencji <cc>CC BY 4.0</cc>. Everybird dopasował je do gatunków eBird.',
         tree: 'Widok Drzewo rysuje datowane drzewo ptaków {tree} ({taxonomy}) autorstwa McTavish i in., na licencji <cc>CC BY 4.0</cc>. Everybird dopasował jego końce do taksonomii eBird {year}, z której pochodzą rodziny, rodzaje i liczby. Gatunki nowe w taksonomii {year} umieszczono obok ich najbliższego krewnego.',
         api: 'Obserwacje pochodzą z publicznego API iNaturalist, wywoływanego bezpośrednio z twojej przeglądarki, mniej więcej raz na sekundę.',
-        countries: 'Nazwy krajów, większości regionów i linie brzegowe globusów kontynentów pochodzą z Natural Earth.',
+        countries: 'Nazwy krajów, większości regionów, mapa świata i linie brzegowe globusów kontynentów pochodzą z Natural Earth.',
         regions: 'Pozostałe nazwy stanów i prowincji pochodzą z danych ISO 3166-2 projektu iso-codes Debiana, używanych tylko do nazw.',
         vietnamBoundariesTitle: 'Granice prowincji Wietnamu',
         vietnamBoundaries: 'Granice prowincji Wietnamu z 2025 roku pochodzą z Głównego Urzędu Statystycznego Wietnamu za pośrednictwem OCHA i HDX, na licencji <cc>CC BY 3.0 IGO</cc>. Everybird uprościł ich kształty i używa ich do wyszukiwania na urządzeniu.',

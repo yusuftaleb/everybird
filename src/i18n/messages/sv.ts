@@ -868,19 +868,19 @@ export const sv: Messages = {
     },
     about: {
       lede: 'Everybird gör varje fågelskådares livslista till ett klistermärkescollage.',
-      what: { head: 'Vad det är', body: 'Din livslista är redan berättelsen om ett liv fullt av fåglar. Everybird ordnar den i ett collage: varje art ett klistermärke, i storlek efter kroppsvikt, med antalet i mitten. Filtrera den efter grupp, plats, år eller hotstatus, och dela den sedan som bild eller länk.' },
+      what: { head: 'Vad det är', body: 'Din livslista är redan berättelsen om ett liv fullt av fåglar. Everybird ordnar den i ett collage: varje art ett klistermärke, i storlek efter kroppsvikt, med antalet i mitten. Filtrera den efter grupp, plats, år eller hotstatus, och dela den sedan som bild eller länk.', more: 'Se den som collage, som lista, på en världskarta eller i fåglarnas släktträd. Dela den som bild eller länk, skriv ut den som affisch eller exportera den i omgångar: en bild eller affisch för varje familj, land, år eller annan grupp. Jämför ställer din lista bredvid dina vänners och visar vilka fåglar ni har gemensamt.' },
       how: {
         head: 'Så fungerar det',
         steps: [
-          'Lägg till din lista under <link>Alternativ</link>: en fil från eBird eller observation.org, ett användarnamn på iNaturalist eller fåglar bockade för hand. Kombinera dem om du för mer än en lista.',
+          'Lägg till din lista under <link>Alternativ</link>: en fil från eBird, observation.org, Scythebill eller iGoTerra, ett kalkylark eller en inklistrad lista, ett användarnamn på iNaturalist eller fåglar tillagda för hand. Kombinera dem om du för mer än en lista.',
           'Varje fågel matchas mot årets eBird-taxonomi och behåller sitt tidigaste datum. Rader som inte matchar listas, så inget försvinner i tysthet.',
-          'Collaget, filtren och delningsbilderna skapas helt i din webbläsare.',
+          'Collaget och dess vyer, filtren, delningsbilderna och affischerna skapas helt i din webbläsare.',
         ],
         privacy: 'Din lista lämnar aldrig din webbläsare. Vi räknar besök med Cloudflare Web Analytics, anonymt och utan cookies, och några handlingar (ett collage skapat, en bild delad eller sparad, en länk kopierad) med en liten egen räknare som aldrig ser dina fåglar, namn eller platser. Ett anonymt id som byts varje dag låter oss räkna unika besökare utan att följa någon över flera dagar. Inget av dem körs om din webbläsare ber om att inte spåras. Ditt språkval sparas i en liten cookie på den här enheten; den lämnar enheten bara för att visa dig rätt sida. Besöksräkningen innehåller din webbläsares språk (bara ”es”, ”pt”, ”nl”, ”pl”, ”fr”, ”de”, ”it”, ”sv”, ”da”, ”ru”, ”ja”, ”zh-Hans” eller ”zh-Hant”). Sidor på ryska, japanska och kinesiska hämtar sina typsnitt från Google Fonts, så på de sidorna kontaktar din webbläsare Google.',
       },
       size: {
         head: 'Vad Sann storlek betyder',
-        even: 'Varje klistermärke får sin storlek från fågelns genomsnittliga kroppsvikt, från AVONET, efter ytan det täcker på sidan, så att en påfågels släp eller en hägers ben inte får den att se liten ut. Standardläget jämnar ut storlekarna: ytan följer vikten upphöjt till 0,4, så att små fåglar syns bredvid stora.',
+        even: 'Varje klistermärke får sin storlek från fågelns genomsnittliga kroppsvikt, från AVONET (eller BIRDBASE där AVONET saknar den), efter ytan det täcker på sidan, så att en påfågels släp eller en hägers ben inte får den att se liten ut. Standardläget jämnar ut storlekarna: ytan följer vikten upphöjt till 0,4, så att små fåglar syns bredvid stora.',
         true: 'Sann storlek använder i stället kubikroten ur vikten för längden. Fåglar har ungefär samma densitet, så vikten följer volymen och kubikroten följer längden: en fågel som är åtta gånger tyngre ritas ungefär dubbelt så lång och täcker fyra gånger så stor yta. Det är en uppskattning av relativ storlek, inte en uppmätt längd. Smala fåglar med lång hals kan se lite små ut och kompakta lite stora, fåglar som ritats simmande visar inte hela kroppen, och varje art har en genomsnittsvikt, så hanar, honor och årstider skiljs inte åt.',
       },
       status: {
@@ -891,6 +891,7 @@ export const sv: Messages = {
         head: 'Erkännanden',
         madeBy: 'Gjord av <you>Yusuf Taleb</you>. Den växte fram ur <life>livslistan på hans webbplats</life> och bygger på andras generösa arbete.',
         coffee: 'Om du gillar Everybird kan du bjuda Yusuf på en kaffe.',
+        thanks: 'Tack till alla som uppmuntrade idén, testade tidiga versioner och skickade synpunkter längs vägen. Everybird blev bättre tack vare dem.',
         label: {
           stickers: 'AI-genererade klistermärken · CC BY 4.0',
           inspiration: 'Förebild',
@@ -912,13 +913,13 @@ export const sv: Messages = {
         stickers: { lead: 'Varje fågelklistermärke är en AI-genererad illustration från huashu-bird-sticker av alchaincyf, licensierad under <cc>CC BY 4.0</cc>. Vart och ett gjordes med GPT-image utifrån en skriven beskrivning av artens fältkännetecken och, för de flesta arter, referensfoton, vars fotografer krediteras i det projektet. <how>Så görs klistermärkena</how>. Everybird har skalat ner och beskurit dem för webben; inget annat har ändrats.', commit: 'Käll-commit <code>{sha}</code>.', tail: 'Mindre än 2 % av arterna har inget klistermärke än och visas som en kontur. Vi letar efter nya teckningar varje vecka och lägger till dem i uppdateringar av Everybird.' },
         inspiration: 'Teddy Warners Avian Visitors visade hur vacker en vägg full av fåglar kan vara. Där började Everybird.',
         taxonomyTitle: 'eBird och Clements',
-        taxonomy: 'Fågelnamn, arter och deras ordning följer eBird/Clements-taxonomin, version {version}, från Cornell Lab of Ornithology. Filer från eBird och observation.org läses i din webbläsare. De svenska namn som eBird saknar kommer från IOC World Bird List v15.2 (Gill, Donsker & Rasmussen), licensierad under <cc>CC BY 3.0</cc>.',
+        taxonomy: 'Fågelnamn, arter och deras ordning följer eBird/Clements-taxonomin, version {version}, från Cornell Lab of Ornithology. Varje fil du importerar läses i din webbläsare. De svenska namn som eBird saknar kommer från IOC World Bird List v15.2 (Gill, Donsker & Rasmussen), licensierad under <cc>CC BY 3.0</cc>.',
         masses: 'Klistermärkenas storlekar bygger på kroppsvikter från AVONET (Tobias et al. 2022, Ecology Letters), via huashus arttabell.',
         birdbase: 'För arter som AVONET saknar vikt för bygger klistermärkenas storlekar på kroppsvikter från BIRDBASE (Şekercioğlu et al. 2025, Scientific Data).',
         redList: 'IUCN:s rödlistekategorier så som de anges för BirdLife {birdlife} i AviList: The Global Avian Checklist, {version} (AviList Core Team, {year}), via huashus arttabell, licensierade under <cc>CC BY 4.0</cc>. Everybird har matchat dem mot eBirds arter.',
         tree: 'Vyn Träd ritar fåglarnas daterade släktträd {tree} ({taxonomy}) av McTavish et al., licensierat under <cc>CC BY 4.0</cc>. Everybird har matchat dess spetsar mot eBirds taxonomi {year}, som ger familjer, släkten och totaler. Arter som är nya i taxonomin {year} står bredvid sin närmaste släkting.',
         api: 'Observationerna kommer från iNaturalists öppna API, anropat direkt från din webbläsare, ungefär en gång per sekund.',
-        countries: 'Landsnamn, de flesta regionnamn och kontinentglobernas kustlinjer kommer från Natural Earth.',
+        countries: 'Landsnamn, de flesta regionnamn, världskartan och kontinentglobernas kustlinjer kommer från Natural Earth.',
         regions: 'Övriga namn på delstater och provinser kommer från Debians iso-codes-data för ISO 3166-2, som bara används för namnen.',
         vietnamBoundariesTitle: 'Vietnams provinsgränser',
         vietnamBoundaries: 'Vietnams provinsgränser från 2025 kommer från General Statistics Office of Vietnam via OCHA och HDX, under <cc>CC BY 3.0 IGO</cc>. Everybird har förenklat formerna och använder dem för lokala uppslag.',
