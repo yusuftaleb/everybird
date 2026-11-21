@@ -53,6 +53,8 @@ export const pt: Messages = {
         forgetAsk: 'Esquecer esta lista neste dispositivo? Baixe um backup antes, se quiser mantê-la.',
         forgetYes: 'Sim, esquecer',
         forgetKeep: 'Manter',
+        restored: 'Backup restaurado.',
+        forgotten: 'Este dispositivo não guarda mais sua lista.',
         restoreFailed: 'Não foi possível restaurar este backup.',
         restoreWhy: {
           json: 'Este arquivo não é um JSON válido.',
@@ -593,6 +595,8 @@ export const pt: Messages = {
       privacy: 'Sua lista nunca sai do seu navegador. Contamos as visitas de forma anônima.',
       ebirdGroup: 'Arquivos do eBird',
       toastDone: 'Pronto · {result}',
+      toastNew: { one: '{n} espécie nova', other: '{n} espécies novas' },
+      toastNone: 'nenhuma espécie nova',
       summary: {
         head: { one: 'Sua colagem tem {n} espécie', other: 'Sua colagem tem {n} espécies' },
         list: '{head}: {parts}.',
@@ -758,10 +762,12 @@ export const pt: Messages = {
         input: 'Arquivo do eBird',
         reading: 'Lendo seu arquivo…',
         readingRows: { one: 'Lendo seu arquivo… {n} linha', other: 'Lendo seu arquivo… {n} linhas' },
+        percent: '{n}%',
         liferNote: 'Sua lista de vida do eBird só diz onde você registrou cada ave pela primeira vez, então Lugares filtra por esses primeiros lugares. <link>Adicione o MyEBirdData</link> para filtrar por todos os lugares onde você registrou cada ave, até o condado.',
         liferLink: 'Adicionar o MyEBirdData para todos os lugares',
         unknownFile: 'Não foi possível ler este arquivo. Use o download da lista de vida do eBird ou o MyEBirdData.csv.',
         damaged: 'Não foi possível ler este arquivo. Ele pode estar danificado ou não ser uma exportação do eBird.',
+        noBirds: 'Este arquivo não tem aves, então sua lista não mudou.',
       },
       inat: {
         what: 'suas aves do iNaturalist',
@@ -838,6 +844,7 @@ export const pt: Messages = {
       region: 'Região (opcional)',
       wholeCountry: 'País inteiro',
       added: 'Adicionado: {name}.',
+      addedAt: 'Adicionado: {name} · {details}.',
     },
     rules: {
       head: 'Contagem',

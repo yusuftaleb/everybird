@@ -53,6 +53,8 @@ export const de: Messages = {
         forgetAsk: 'Diese Liste auf diesem Gerät vergessen? Lade vorher eine Sicherung herunter, wenn du sie behalten willst.',
         forgetYes: 'Ja, vergessen',
         forgetKeep: 'Behalten',
+        restored: 'Sicherung wiederhergestellt.',
+        forgotten: 'Dieses Gerät speichert deine Liste nicht mehr.',
         restoreFailed: 'Diese Sicherung ließ sich nicht wiederherstellen.',
         restoreWhy: {
           json: 'Diese Datei ist kein gültiges JSON.',
@@ -585,6 +587,8 @@ export const de: Messages = {
       privacy: 'Deine Liste verlässt nie deinen Browser. Wir zählen Besuche anonym.',
       ebirdGroup: 'eBird-Dateien',
       toastDone: 'Fertig · {result}',
+      toastNew: { one: '{n} neue Art', other: '{n} neue Arten' },
+      toastNone: 'keine neuen Arten',
       summary: {
         head: { one: 'Deine Collage hat {n} Art', other: 'Deine Collage hat {n} Arten' },
         list: '{head}: {parts}.',
@@ -749,10 +753,12 @@ export const de: Messages = {
         input: 'eBird-Datei',
         reading: 'Deine Datei wird gelesen…',
         readingRows: { one: 'Deine Datei wird gelesen… {n} Zeile', other: 'Deine Datei wird gelesen… {n} Zeilen' },
+        percent: '{n} %',
         liferNote: 'Deine eBird-Lebensliste sagt nur, wo du jeden Vogel zum ersten Mal erfasst hast, daher filtert der Ortsfilter nach diesen ersten Orten. <link>Füge MyEBirdData hinzu</link>, um nach jedem Ort zu filtern, an dem du einen Vogel erfasst hast, bis hinunter zum Kreis.',
         liferLink: 'MyEBirdData für jeden Ort hinzufügen',
         unknownFile: 'Diese Datei ließ sich nicht lesen. Nutze den Lebenslisten-Download von eBird oder MyEBirdData.csv.',
         damaged: 'Diese Datei ließ sich nicht lesen. Sie ist vielleicht beschädigt oder kein eBird-Export.',
+        noBirds: 'In dieser Datei sind keine Vögel, deine Liste bleibt also unverändert.',
       },
       inat: {
         what: 'deine iNaturalist-Vögel',
@@ -829,6 +835,7 @@ export const de: Messages = {
       region: 'Region (optional)',
       wholeCountry: 'Ganzes Land',
       added: '{name} hinzugefügt.',
+      addedAt: '{name} hinzugefügt · {details}.',
     },
     rules: {
       head: 'Zählung',

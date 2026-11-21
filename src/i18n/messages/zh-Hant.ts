@@ -55,6 +55,8 @@ export const zhHant: Messages = {
         forgetAsk: '要從這台裝置刪除這份清單嗎？如果想保留，請先下載備份。',
         forgetYes: '是，刪除',
         forgetKeep: '保留',
+        restored: '已還原備份。',
+        forgotten: '這台裝置已不再保存你的清單。',
         restoreFailed: '無法還原這個備份。',
         restoreWhy: {
           json: '這個檔案不是有效的 JSON。',
@@ -584,6 +586,8 @@ export const zhHant: Messages = {
       privacy: '你的清單不會離開你的瀏覽器。我們以匿名方式計算造訪次數。',
       ebirdGroup: 'eBird 檔案',
       toastDone: '完成 · {result}',
+      toastNew: { one: '新增 {n} 種', other: '新增 {n} 種' },
+      toastNone: '沒有新增鳥種',
       summary: {
         head: { one: '你的拼貼有 {n} 種', other: '你的拼貼有 {n} 種' },
         list: '{head}：{parts}。',
@@ -746,10 +750,12 @@ export const zhHant: Messages = {
         input: 'eBird 檔案',
         reading: '正在讀取你的檔案…',
         readingRows: { one: '正在讀取你的檔案… {n} 列', other: '正在讀取你的檔案… {n} 列' },
+        percent: '{n}%',
         liferNote: '你的 eBird 生涯清單只記載你第一次記錄每種鳥的地方，所以「地點」依這些第一次的地點篩選。<link>加入 MyEBirdData</link>，就能依你記錄每種鳥的所有地點篩選，細到郡。',
         liferLink: '加入 MyEBirdData 以取得所有地點',
         unknownFile: '無法讀取這個檔案。請使用 eBird 的生涯清單下載檔或 MyEBirdData.csv。',
         damaged: '無法讀取這個檔案。它可能已損壞，或不是 eBird 的匯出檔。',
+        noBirds: '這個檔案裡沒有鳥，你的清單沒有變動。',
       },
       inat: {
         what: '你在 iNaturalist 的鳥',
@@ -826,6 +832,7 @@ export const zhHant: Messages = {
       region: '地區（選填）',
       wholeCountry: '整個國家',
       added: '已新增 {name}。',
+      addedAt: '已新增 {name}（{details}）。',
     },
     rules: {
       head: '計數',

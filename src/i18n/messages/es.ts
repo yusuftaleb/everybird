@@ -53,6 +53,8 @@ export const es: Messages = {
         forgetAsk: '¿Olvidar esta lista en este dispositivo? Descarga antes una copia de seguridad si quieres conservarla.',
         forgetYes: 'Sí, olvidarla',
         forgetKeep: 'Conservarla',
+        restored: 'Copia de seguridad restaurada.',
+        forgotten: 'Este dispositivo ya no guarda tu lista.',
         restoreFailed: 'No se pudo restaurar esta copia de seguridad.',
         restoreWhy: {
           json: 'Este archivo no es un JSON válido.',
@@ -593,6 +595,8 @@ export const es: Messages = {
       privacy: 'Tu lista nunca sale de tu navegador. Contamos las visitas de forma anónima.',
       ebirdGroup: 'Archivos de eBird',
       toastDone: 'Listo · {result}',
+      toastNew: { one: '{n} especie nueva', other: '{n} especies nuevas' },
+      toastNone: 'ninguna especie nueva',
       summary: {
         head: { one: 'Tu collage tiene {n} especie', other: 'Tu collage tiene {n} especies' },
         list: '{head}: {parts}.',
@@ -758,10 +762,12 @@ export const es: Messages = {
         input: 'Archivo de eBird',
         reading: 'Leyendo tu archivo…',
         readingRows: { one: 'Leyendo tu archivo… {n} fila', other: 'Leyendo tu archivo… {n} filas' },
+        percent: '{n} %',
         liferNote: 'Tu lista de vida de eBird solo dice dónde registraste cada ave por primera vez, así que Lugares filtra por esos primeros lugares. <link>Añade MyEBirdData</link> para filtrar por todos los lugares donde registraste cada ave, hasta el condado.',
         liferLink: 'Añadir MyEBirdData para todos los lugares',
         unknownFile: 'No se pudo leer este archivo. Usa la descarga de la lista de vida de eBird o MyEBirdData.csv.',
         damaged: 'No se pudo leer este archivo. Puede estar dañado o no ser una exportación de eBird.',
+        noBirds: 'Este archivo no tiene aves, así que tu lista no cambia.',
       },
       inat: {
         what: 'tus aves de iNaturalist',
@@ -838,6 +844,7 @@ export const es: Messages = {
       region: 'Región (opcional)',
       wholeCountry: 'Todo el país',
       added: 'Se añadió {name}.',
+      addedAt: 'Se añadió {name} · {details}.',
     },
     rules: {
       head: 'Recuento',

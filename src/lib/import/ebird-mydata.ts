@@ -49,7 +49,7 @@ const earlier = (date: string | undefined, prev: string | undefined) => !!date &
  *   seen in, with the earliest date there; seenMonths keeps all distinct months at each place. Aggregated per species and place as the rows stream by; rows are not kept.
  */
 export async function parseEbirdMyData(
-  csv: string | File, t: TaxonomyIndex, onProgress?: (rows: number) => void,
+  csv: string | File, t: TaxonomyIndex, onProgress?: (rows: number, frac?: number) => void,
   loadCoordinates: () => Promise<CoordinateRegion | undefined> = loadVietnamCoordinateRegion,
   regions?: Regions,
 ): Promise<ImportResult> {
@@ -73,10 +73,13 @@ export async function parseEbirdMyData(
   const seenUnmatched = new SeenAgg()
   let skipped = 0
   let rowNo = 0
+  // How far through the file the main pass is: papaparse's cursor (characters) over the file's size (bytes, near enough).
+  const total = typeof input === 'string' ? input.length : input.size
+  let cursor = 0
 
   function onRow(r: Row) {
     rowNo++
-    if (onProgress && rowNo % PROGRESS_EVERY === 0) onProgress(rowNo)
+    if (onProgress && rowNo % PROGRESS_EVERY === 0) onProgress(rowNo, total ? cursor / total : undefined)
     const sci = r['Scientific Name']?.trim() || undefined
     const com = r['Common Name']?.trim() || undefined
     if (!sci && !com) return
@@ -142,7 +145,10 @@ export async function parseEbirdMyData(
       Papa.parse<Row>(input as never, {
         header: true,
         skipEmptyLines: true,
-        step: (results) => onRow(results.data),
+        step: (results) => {
+          cursor = results.meta.cursor
+          onRow(results.data)
+        },
         complete: () => resolve(finish()),
         error: (e: unknown) => reject(e instanceof Error ? e : new Error(String(e))),
       })

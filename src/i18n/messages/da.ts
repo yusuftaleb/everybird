@@ -53,6 +53,8 @@ export const da: Messages = {
         forgetAsk: 'Glem denne liste på denne enhed? Hent en sikkerhedskopi først, hvis du vil beholde den.',
         forgetYes: 'Ja, glem den',
         forgetKeep: 'Behold den',
+        restored: 'Sikkerhedskopien er gendannet.',
+        forgotten: 'Denne enhed har ikke længere din liste.',
         restoreFailed: 'Sikkerhedskopien kunne ikke gendannes.',
         restoreWhy: {
           json: 'Filen er ikke gyldig JSON.',
@@ -585,6 +587,8 @@ export const da: Messages = {
       privacy: 'Din liste forlader aldrig din browser. Vi tæller besøg anonymt.',
       ebirdGroup: 'eBird-filer',
       toastDone: 'Færdig · {result}',
+      toastNew: { one: '{n} ny art', other: '{n} nye arter' },
+      toastNone: 'ingen nye arter',
       summary: {
         head: { one: 'Din collage har {n} art', other: 'Din collage har {n} arter' },
         list: '{head}: {parts}.',
@@ -748,10 +752,12 @@ export const da: Messages = {
         input: 'eBird-fil',
         reading: 'Din fil læses…',
         readingRows: { one: 'Din fil læses… {n} række', other: 'Din fil læses… {n} rækker' },
+        percent: '{n} %',
         liferNote: 'Din eBird-livsliste siger kun, hvor du først registrerede hver fugl, så Steder filtrerer efter de første steder. <link>Tilføj MyEBirdData</link> for at filtrere efter alle steder, hvor du har registreret hver fugl, helt ned til amtet.',
         liferLink: 'Tilføj MyEBirdData for alle steder',
         unknownFile: 'Filen kunne ikke læses. Brug eBirds download af livslisten eller MyEBirdData.csv.',
         damaged: 'Filen kunne ikke læses. Den er måske beskadiget eller ikke en eksport fra eBird.',
+        noBirds: 'Filen indeholder ingen fugle, så din liste er uændret.',
       },
       inat: {
         what: 'dine iNaturalist-fugle',
@@ -828,6 +834,7 @@ export const da: Messages = {
       region: 'Region (valgfri)',
       wholeCountry: 'Hele landet',
       added: '{name} tilføjet.',
+      addedAt: '{name} tilføjet · {details}.',
     },
     rules: {
       head: 'Optælling',

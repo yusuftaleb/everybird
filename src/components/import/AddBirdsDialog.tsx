@@ -14,7 +14,7 @@ import { trapTab, useFocusInAndBack, useHoldTopBar } from '@/components/dialog-u
 import { useI18n } from '@/i18n/I18nProvider'
 import { placesNoteFor } from '@/lib/list/filter-summary'
 import { countParts, sourceCounts, summaryLine } from '@/lib/list/source-counts'
-import { ImportPanel } from './ImportPanel'
+import { ImportFrame, ImportPanel } from './ImportPanel'
 import { TickList } from './TickList'
 import '@/components/share/share.css' // .eb-seg, the share dialog's segmented control
 import './import.css'
@@ -82,7 +82,8 @@ export function AddBirdsDialog({ onClose, way: start = 'file' }: { onClose: () =
           </div>
         )}
         {line && (
-          <p className="eb-summary" role="status" data-testid="add-summary">
+          // No live region: the import toast announces each landing.
+          <p className="eb-summary" data-testid="add-summary">
             {line}
             {jobs.landed && state.list.length > 0 && (
               <>
@@ -93,7 +94,9 @@ export function AddBirdsDialog({ onClose, way: start = 'file' }: { onClose: () =
           </p>
         )}
         {!data ? (
-          !eb.failed && <div className="eb-ways-wait" aria-hidden="true" />
+          // The bird data failed: say so here too (Settings shows the notice). While it loads, the grid's frame.
+          eb.failed ? <p className="eb-error eb-notice" role="alert">{t.collage.notices.loadFailed}</p>
+            : way === 'file' ? <ImportFrame /> : <div className="eb-ways-wait" aria-hidden="true" />
         ) : way === 'file' && data ? (
           <>
             {!line && <p className="eb-note">{t.import.combine}</p>}

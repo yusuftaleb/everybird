@@ -54,7 +54,13 @@ export function EverybirdProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'import', source: slot, result, details })
     track('collage_made', { source: slotSource(slot) })
   }, [dispatch])
-  const jobs = useImportJobs(onImport)
+  // The list before an import lands: the toast names a first collage, or what a Refresh or Replace added.
+  const saved = state.saved
+  const before = useCallback((slot: Slot) => {
+    const held = saved.records[slot]
+    return { empty: !hasData(saved), codes: held?.length ? new Set(held.map((r) => r.code)) : null }
+  }, [saved])
+  const jobs = useImportJobs(onImport, before)
 
   const species = meta.species
   const data = useMemo(() => (meta.ready && species && regions ? { species, regions } : null), [meta.ready, species, regions])

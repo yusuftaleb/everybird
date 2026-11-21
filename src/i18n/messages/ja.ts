@@ -55,6 +55,8 @@ export const ja: Messages = {
         forgetAsk: 'このデバイスからこのリストを消去しますか。残したい場合は、先にバックアップをダウンロードしてください。',
         forgetYes: '消去する',
         forgetKeep: '残す',
+        restored: 'バックアップを復元しました。',
+        forgotten: 'このデバイスからリストを削除しました。',
         restoreFailed: 'このバックアップを復元できませんでした。',
         restoreWhy: {
           json: 'このファイルは有効なJSONではありません。',
@@ -584,6 +586,8 @@ export const ja: Messages = {
       privacy: 'リストがブラウザの外に出ることはありません。訪問は匿名で数えています。',
       ebirdGroup: 'eBirdファイル',
       toastDone: '完了 · {result}',
+      toastNew: { one: '新たに{n}種', other: '新たに{n}種' },
+      toastNone: '新しい種はありません',
       summary: {
         head: { one: 'コラージュの{n}種', other: 'コラージュの{n}種' },
         list: '{head}：{parts}。',
@@ -746,10 +750,12 @@ export const ja: Messages = {
         input: 'eBirdファイル',
         reading: 'ファイルを読み込んでいます…',
         readingRows: { one: 'ファイルを読み込んでいます…（{n}行）', other: 'ファイルを読み込んでいます…（{n}行）' },
+        percent: '{n}%',
         liferNote: 'eBirdのライフリストには、それぞれの鳥を最初に記録した場所しかないため、「場所」はその最初の場所で絞り込みます。<link>MyEBirdDataを追加</link>すると、それぞれの鳥を記録したすべての場所で、郡まで絞り込めます。',
         liferLink: 'MyEBirdDataを追加してすべての場所に対応',
         unknownFile: 'このファイルを読み込めませんでした。eBirdのライフリストのダウンロードかMyEBirdData.csvを使ってください。',
         damaged: 'このファイルを読み込めませんでした。壊れているか、eBirdのエクスポートではない可能性があります。',
+        noBirds: 'このファイルには鳥がありません。リストは変わっていません。',
       },
       inat: {
         what: 'iNaturalistの鳥',
@@ -826,6 +832,7 @@ export const ja: Messages = {
       region: '地域（任意）',
       wholeCountry: '国全体',
       added: '{name}を追加しました。',
+      addedAt: '{name}を追加しました（{details}）。',
     },
     rules: {
       head: '集計',

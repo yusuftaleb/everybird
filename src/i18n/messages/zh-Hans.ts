@@ -55,6 +55,8 @@ export const zhHans: Messages = {
         forgetAsk: '从此设备上清除这份清单？如果想保留，先下载备份。',
         forgetYes: '是，清除',
         forgetKeep: '保留',
+        restored: '已恢复备份。',
+        forgotten: '这台设备上已不再保存你的清单。',
         restoreFailed: '无法恢复这个备份。',
         restoreWhy: {
           json: '这个文件不是有效的JSON。',
@@ -584,6 +586,8 @@ export const zhHans: Messages = {
       privacy: '你的清单从不离开你的浏览器。我们匿名统计访问量。',
       ebirdGroup: 'eBird文件',
       toastDone: '完成 · {result}',
+      toastNew: { one: '新增{n}种', other: '新增{n}种' },
+      toastNone: '没有新增鸟种',
       summary: {
         head: { one: '你的拼贴画有{n}种', other: '你的拼贴画有{n}种' },
         list: '{head}：{parts}。',
@@ -746,10 +750,12 @@ export const zhHans: Messages = {
         input: 'eBird文件',
         reading: '正在读取你的文件…',
         readingRows: { one: '正在读取你的文件…已读{n}行', other: '正在读取你的文件…已读{n}行' },
+        percent: '{n}%',
         liferNote: '你的eBird生涯清单只记录你首次记录每种鸟的地点，所以地点筛选按这些首次地点筛选。<link>添加MyEBirdData</link>，就能按你记录每种鸟的所有地点筛选，细到县。',
         liferLink: '添加MyEBirdData以获取所有地点',
         unknownFile: '无法读取这个文件。使用eBird的生涯清单下载或MyEBirdData.csv。',
         damaged: '无法读取这个文件。它可能已损坏，或不是eBird导出文件。',
+        noBirds: '这个文件里没有鸟，你的清单没有变化。',
       },
       inat: {
         what: '你在iNaturalist上的鸟',
@@ -826,6 +832,7 @@ export const zhHans: Messages = {
       region: '地区（可选）',
       wholeCountry: '整个国家',
       added: '已添加{name}。',
+      addedAt: '已添加{name}（{details}）。',
     },
     rules: {
       head: '计数',

@@ -53,6 +53,8 @@ export const it: Messages = {
         forgetAsk: 'Dimenticare questa lista su questo dispositivo? Scarica prima una copia di backup se vuoi conservarla.',
         forgetYes: 'Sì, dimenticala',
         forgetKeep: 'Tienila',
+        restored: 'Backup ripristinato.',
+        forgotten: 'Questo dispositivo non conserva più la tua lista.',
         restoreFailed: 'Impossibile ripristinare questo backup.',
         restoreWhy: {
           json: 'Questo file non è un JSON valido.',
@@ -582,6 +584,8 @@ export const it: Messages = {
       privacy: 'La tua lista non lascia mai il tuo browser. Contiamo le visite in forma anonima.',
       ebirdGroup: 'File eBird',
       toastDone: 'Fatto · {result}',
+      toastNew: { one: '{n} specie nuova', other: '{n} specie nuove' },
+      toastNone: 'nessuna specie nuova',
       summary: {
         head: { one: 'Il tuo collage ha {n} specie', other: 'Il tuo collage ha {n} specie' },
         list: '{head}: {parts}.',
@@ -744,10 +748,12 @@ export const it: Messages = {
         input: 'File eBird',
         reading: 'Lettura del file…',
         readingRows: { one: 'Lettura del file… {n} riga', other: 'Lettura del file… {n} righe' },
+        percent: '{n}%',
         liferNote: 'La tua lista di vita eBird indica solo dove hai registrato ogni uccello per la prima volta, quindi Luoghi filtra per quei primi luoghi. <link>Aggiungi MyEBirdData</link> per filtrare per ogni luogo in cui hai registrato ogni uccello, fino alla contea.',
         liferLink: 'Aggiungi MyEBirdData per ogni luogo',
         unknownFile: 'Impossibile leggere questo file. Usa il download della lista di vita eBird o MyEBirdData.csv.',
         damaged: 'Impossibile leggere questo file. Potrebbe essere danneggiato o non essere un’esportazione eBird.',
+        noBirds: 'In questo file non ci sono uccelli, quindi la tua lista non cambia.',
       },
       inat: {
         what: 'i tuoi uccelli iNaturalist',
@@ -824,6 +830,7 @@ export const it: Messages = {
       region: 'Regione (facoltativa)',
       wholeCountry: 'Tutto il paese',
       added: 'Aggiunto: {name}.',
+      addedAt: 'Aggiunto: {name} · {details}.',
     },
     rules: {
       head: 'Conteggio',

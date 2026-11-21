@@ -53,6 +53,8 @@ export const sv: Messages = {
         forgetAsk: 'Glömma den här listan på den här enheten? Ladda ner en säkerhetskopia först om du vill behålla den.',
         forgetYes: 'Ja, glöm den',
         forgetKeep: 'Behåll den',
+        restored: 'Säkerhetskopian är återställd.',
+        forgotten: 'Den här enheten har inte längre din lista.',
         restoreFailed: 'Det gick inte att återställa den här säkerhetskopian.',
         restoreWhy: {
           json: 'Filen är inte giltig JSON.',
@@ -584,6 +586,8 @@ export const sv: Messages = {
       privacy: 'Din lista lämnar aldrig din webbläsare. Vi räknar besök anonymt.',
       ebirdGroup: 'eBird-filer',
       toastDone: 'Klart · {result}',
+      toastNew: { one: '{n} ny art', other: '{n} nya arter' },
+      toastNone: 'inga nya arter',
       summary: {
         head: { one: 'Ditt collage har {n} art', other: 'Ditt collage har {n} arter' },
         list: '{head}: {parts}.',
@@ -747,10 +751,12 @@ export const sv: Messages = {
         input: 'eBird-fil',
         reading: 'Läser din fil…',
         readingRows: { one: 'Läser din fil… {n} rad', other: 'Läser din fil… {n} rader' },
+        percent: '{n} %',
         liferNote: 'Din eBird-livslista säger bara var du först registrerade varje fågel, så Platser filtrerar efter de första platserna. <link>Lägg till MyEBirdData</link> för att filtrera efter alla platser där du har registrerat varje fågel, ner till län.',
         liferLink: 'Lägg till MyEBirdData för alla platser',
         unknownFile: 'Det gick inte att läsa filen. Använd eBirds nedladdade livslista eller MyEBirdData.csv.',
         damaged: 'Det gick inte att läsa filen. Den kan vara skadad eller inte en export från eBird.',
+        noBirds: 'Filen innehåller inga fåglar, så din lista är oförändrad.',
       },
       inat: {
         what: 'dina fåglar från iNaturalist',
@@ -827,6 +833,7 @@ export const sv: Messages = {
       region: 'Region (valfritt)',
       wholeCountry: 'Hela landet',
       added: '{name} tillagd.',
+      addedAt: '{name} tillagd · {details}.',
     },
     rules: {
       head: 'Räkning',

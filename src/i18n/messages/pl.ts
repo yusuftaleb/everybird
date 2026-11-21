@@ -55,6 +55,8 @@ export const pl: Messages = {
         forgetAsk: 'Zapomnieć tę listę na tym urządzeniu? Jeśli chcesz ją zachować, najpierw pobierz kopię zapasową.',
         forgetYes: 'Tak, zapomnij ją',
         forgetKeep: 'Zachowaj ją',
+        restored: 'Przywrócono kopię zapasową.',
+        forgotten: 'To urządzenie nie przechowuje już Twojej listy.',
         restoreFailed: 'Nie udało się przywrócić tej kopii zapasowej.',
         restoreWhy: {
           json: 'Ten plik nie jest poprawnym plikiem JSON.',
@@ -588,6 +590,8 @@ export const pl: Messages = {
       privacy: 'Twoja lista nigdy nie opuszcza przeglądarki. Odwiedziny liczymy anonimowo.',
       ebirdGroup: 'Pliki eBird',
       toastDone: 'Gotowe · {result}',
+      toastNew: { one: '{n} nowy gatunek', few: '{n} nowe gatunki', many: '{n} nowych gatunków', other: '{n} nowego gatunku' },
+      toastNone: 'brak nowych gatunków',
       summary: {
         head: { one: 'Twój kolaż ma {n} gatunek', few: 'Twój kolaż ma {n} gatunki', many: 'Twój kolaż ma {n} gatunków', other: 'Gatunki w twoim kolażu: {n}' },
         list: '{head}: {parts}.',
@@ -750,10 +754,12 @@ export const pl: Messages = {
         input: 'Plik eBird',
         reading: 'Wczytywanie pliku…',
         readingRows: { one: 'Wczytywanie pliku… {n} wiersz', few: 'Wczytywanie pliku… {n} wiersze', many: 'Wczytywanie pliku… {n} wierszy', other: 'Wczytywanie pliku… wiersze: {n}' },
+        percent: '{n}%',
         liferNote: 'Twoja lista życia eBird mówi tylko, gdzie każdy ptak został zapisany po raz pierwszy, więc filtr Miejsca uwzględnia tylko te pierwsze miejsca. <link>Dodaj MyEBirdData</link>, aby filtrować według wszystkich miejsc, w których zapisano ptaka, aż do poziomu hrabstwa.',
         liferLink: 'Dodaj MyEBirdData, aby mieć wszystkie miejsca',
         unknownFile: 'Nie udało się odczytać tego pliku. Użyj pobranej listy życia eBird albo MyEBirdData.csv.',
         damaged: 'Nie udało się odczytać tego pliku. Może być uszkodzony albo nie jest eksportem eBird.',
+        noBirds: 'W tym pliku nie ma ptaków, więc lista się nie zmieniła.',
       },
       inat: {
         what: 'twoje ptaki z iNaturalist',
@@ -836,6 +842,7 @@ export const pl: Messages = {
       region: 'Region (opcjonalnie)',
       wholeCountry: 'Cały kraj',
       added: 'Dodano: {name}.',
+      addedAt: 'Dodano: {name} · {details}.',
     },
     rules: {
       head: 'Liczenie',

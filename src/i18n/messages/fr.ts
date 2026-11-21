@@ -53,6 +53,8 @@ export const fr: Messages = {
         forgetAsk: 'Oublier cette liste sur cet appareil\u00a0? Télécharge d’abord une sauvegarde si tu veux la garder.',
         forgetYes: 'Oui, l’oublier',
         forgetKeep: 'La garder',
+        restored: 'Sauvegarde restaurée.',
+        forgotten: 'Cet appareil ne garde plus ta liste.',
         restoreFailed: 'Impossible de restaurer cette sauvegarde.',
         restoreWhy: {
           json: 'Ce fichier n’est pas un JSON valide.',
@@ -593,6 +595,8 @@ export const fr: Messages = {
       privacy: 'Ta liste ne quitte jamais ton navigateur. Nous comptons les visites de façon anonyme.',
       ebirdGroup: 'Fichiers eBird',
       toastDone: 'Terminé · {result}',
+      toastNew: { one: '{n} nouvelle espèce', other: '{n} nouvelles espèces' },
+      toastNone: 'aucune nouvelle espèce',
       summary: {
         head: { one: 'Ton collage compte {n} espèce', other: 'Ton collage compte {n} espèces' },
         list: '{head}\u00a0: {parts}.',
@@ -758,10 +762,12 @@ export const fr: Messages = {
         input: 'Fichier eBird',
         reading: 'Lecture de ton fichier…',
         readingRows: { one: 'Lecture de ton fichier… {n} ligne', other: 'Lecture de ton fichier… {n} lignes' },
+        percent: '{n} %',
         liferNote: 'Ta liste de vie eBird indique seulement où tu as noté chaque oiseau pour la première fois, donc Lieux filtre selon ces premiers lieux. <link>Ajoute MyEBirdData</link> pour filtrer par tous les lieux où tu as noté chaque oiseau, jusqu’au comté.',
         liferLink: 'Ajouter MyEBirdData pour tous les lieux',
         unknownFile: 'Impossible de lire ce fichier. Utilise le téléchargement de la liste de vie eBird ou MyEBirdData.csv.',
         damaged: 'Impossible de lire ce fichier. Il est peut-être endommagé, ou ce n’est pas un export eBird.',
+        noBirds: 'Ce fichier ne contient aucun oiseau, ta liste reste donc inchangée.',
       },
       inat: {
         what: 'tes oiseaux iNaturalist',
@@ -838,6 +844,7 @@ export const fr: Messages = {
       region: 'Région (facultative)',
       wholeCountry: 'Tout le pays',
       added: 'Ajouté\u00a0: {name}.',
+      addedAt: 'Ajouté : {name} · {details}.',
     },
     rules: {
       head: 'Décompte',

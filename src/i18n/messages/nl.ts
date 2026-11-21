@@ -53,6 +53,8 @@ export const nl: Messages = {
         forgetAsk: 'Deze lijst op dit apparaat vergeten? Download eerst een back-up als je hem wilt bewaren.',
         forgetYes: 'Ja, vergeten',
         forgetKeep: 'Houden',
+        restored: 'Back-up teruggezet.',
+        forgotten: 'Dit apparaat bewaart je lijst niet meer.',
         restoreFailed: 'Deze back-up kon niet worden teruggezet.',
         restoreWhy: {
           json: 'Dit bestand is geen geldige JSON.',
@@ -593,6 +595,8 @@ export const nl: Messages = {
       privacy: 'Je lijst verlaat je browser nooit. We tellen bezoeken anoniem.',
       ebirdGroup: 'eBird-bestanden',
       toastDone: 'Klaar · {result}',
+      toastNew: { one: '{n} nieuwe soort', other: '{n} nieuwe soorten' },
+      toastNone: 'geen nieuwe soorten',
       summary: {
         head: { one: 'Je collage heeft {n} soort', other: 'Je collage heeft {n} soorten' },
         list: '{head}: {parts}.',
@@ -758,10 +762,12 @@ export const nl: Messages = {
         input: 'eBird-bestand',
         reading: 'Je bestand wordt gelezen…',
         readingRows: { one: 'Je bestand wordt gelezen… {n} rij', other: 'Je bestand wordt gelezen… {n} rijen' },
+        percent: '{n}%',
         liferNote: 'Je eBird-levenslijst zegt alleen waar je elke vogel voor het eerst hebt vastgelegd, dus Plaatsen filtert op die eerste plaatsen. <link>Voeg MyEBirdData toe</link> om te filteren op elke plaats waar je elke vogel hebt vastgelegd, tot op het graafschap.',
         liferLink: 'MyEBirdData toevoegen voor elke plaats',
         unknownFile: 'Dit bestand kon niet worden gelezen. Gebruik de levenslijstdownload van eBird of MyEBirdData.csv.',
         damaged: 'Dit bestand kon niet worden gelezen. Het is misschien beschadigd of geen eBird-export.',
+        noBirds: 'Dit bestand bevat geen vogels, dus je lijst blijft zoals hij was.',
       },
       inat: {
         what: 'je iNaturalist-vogels',
@@ -838,6 +844,7 @@ export const nl: Messages = {
       region: 'Regio (optioneel)',
       wholeCountry: 'Heel het land',
       added: '{name} toegevoegd.',
+      addedAt: '{name} toegevoegd · {details}.',
     },
     rules: {
       head: 'Tellen',

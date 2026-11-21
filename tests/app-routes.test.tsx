@@ -443,8 +443,11 @@ describe('Settings and the collage', () => {
       vi.mocked(inat.importInat).mockResolvedValueOnce({ error } as never)
       fireEvent.change(inatField(), { target: { value: 'nobody' } })
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
-      const alert = await screen.findByText(message)
-      expect(alert.closest('[role=alert]')).not.toBeNull()
+      // In the row (an alert) and, for DONE_MS, in the import toast (C10: the fetch outlives the dialog).
+      const shown = await screen.findAllByText(message)
+      const alert = shown.find((el) => el.closest('[role=alert]'))!
+      expect(alert).toBeDefined()
+      expect(screen.getByTestId('import-toast')).toHaveTextContent(message)
       expect(alert.textContent).not.toMatch(/error|exception|undefined|status/i)
       expect(made()).toHaveTextContent('Your collage has 3 species')
     }
@@ -483,7 +486,8 @@ describe('Settings and the collage', () => {
     expect(vi.mocked(analytics.track)).not.toHaveBeenCalled()
     await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }) })
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species, all from iNaturalist. See my collage'))
-    expect(screen.getByTestId('import-toast')).toHaveTextContent(/^Done · 1 from iNaturalist$/)
+    // The first birds into an empty list: the milestone (D1).
+    expect(screen.getByTestId('import-toast')).toHaveTextContent(/^Your collage has 1 species$/)
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'inat' }]])
   })
 
@@ -583,6 +587,9 @@ describe('Settings and the collage', () => {
     expect(made()).toHaveTextContent('Your collage has 3 species') // nothing cleared yet
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Yes, forget it' })) })
     await waitFor(() => expect(screen.queryByTestId('see-collage')).toBeNull())
+    // The buttons pressed are gone: focus on Your data, and a toast says it's done (AU2).
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Your data' })).toHaveFocus())
+    expect(screen.getByTestId('data-toast')).toHaveTextContent('This device no longer holds your list.')
     // Without a list, Your data keeps only Restore from backup.
     expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull()
     expect(screen.getByLabelText('Restore from backup')).toBeInTheDocument()
@@ -693,8 +700,9 @@ describe('editing', () => {
     // A tap in an open genus adds the bird: selected, and says so in words; announced with Undo, focus left on its list.
     fireEvent.click(within(colaptes).getByRole('option', { name: /^Northern Flicker/ }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species, all ticked by hand.'))
-    expect(screen.getByText('Added Northern Flicker.')).toBeInTheDocument()
-    expect(screen.getByText('Added Northern Flicker.').closest('[role=status]')).not.toBeNull()
+    // The first bird into an empty list: the collage it starts, too (D1).
+    expect(screen.getByText('Added Northern Flicker. Your collage has 1 species.')).toBeInTheDocument()
+    expect(screen.getByText('Added Northern Flicker. Your collage has 1 species.').closest('[role=status]')).not.toBeNull()
     const flicker = within(colaptes).getByRole('option', { name: /^Northern Flicker, Colaptes auratus, already on your list/ })
     expect(flicker).toHaveAttribute('aria-selected', 'true')
     expect(within(flicker).getByText('On your list')).toBeInTheDocument()
@@ -719,7 +727,8 @@ describe('editing', () => {
     fireEvent.keyDown(flickers, { key: 'ArrowDown' }) // the Gilded Flicker
     fireEvent.keyDown(flickers, { key: ' ' })
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 2 species'))
-    expect(screen.getByText('Added Gilded Flicker.')).toBeInTheDocument()
+    // The year and country the bar gave it, named (C8).
+    expect(screen.getByText('Added Gilded Flicker · 2018 · United States.')).toBeInTheDocument()
     expect(vi.mocked(analytics.track)).toHaveBeenCalledTimes(1) // only the first bird starts a collage
     await waitFor(async () => expect((await storage.load())?.edits.added).toEqual([
       { code: 'norfli', source: 'manual' },
@@ -736,6 +745,10 @@ describe('editing', () => {
     fireEvent.click(tickOption(/^Gilded Flicker/))
     await waitFor(async () => expect((await storage.load())?.edits.added.at(-1)).toEqual({ code: 'gilfli', source: 'manual' }), { timeout: 2000 })
     // The search matches word prefixes of either name.
+    // No match: the note alone, no empty listbox (P13).
+    fireEvent.change(search, { target: { value: 'zzzz' } })
+    expect(screen.queryByRole('listbox', { name: 'Species to tick' })).toBeNull()
+    expect(screen.getByText("No bird by that name in eBird's taxonomy.")).toBeInTheDocument()
     fireEvent.change(search, { target: { value: 'colaptes aur' } })
     expect(within(screen.getByRole('listbox', { name: 'Species to tick' })).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus, already on your list'])
     // A tap on a bird on the list takes it off at once, as the card's Remove does; Undo puts back exactly what was there.
@@ -828,6 +841,7 @@ describe('editing', () => {
     await act(async () => { fireEvent.change(screen.getByLabelText('Restore from backup'), { target: { files: [file] } }) })
     fireEvent.click(screen.getByRole('button', { name: 'Yes, replace it' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species'))
+    expect(screen.getByTestId('data-toast')).toHaveTextContent('Your backup is restored.')
   })
 
   it('downloads the list as CSV and as a JSON backup from "Your data" on Settings', async () => {

@@ -68,6 +68,9 @@ export const EN_UI = {
       forgetAsk: 'Forget this list on this device? Download a backup first if you want to keep it.',
       forgetYes: 'Yes, forget it',
       forgetKeep: 'Keep it',
+      /** The toast after Yes, replace it and after Yes, forget it. */
+      restored: 'Your backup is restored.',
+      forgotten: 'This device no longer holds your list.',
       /** A backup that couldn't be read: the lead, then why (fromJson's BackupError reason). English shows fromJson's
        *  own message as the reason, so its wording stays exactly as it was. */
       restoreFailed: "Couldn't restore this backup.",
@@ -737,6 +740,9 @@ export const EN_UI = {
     ebirdGroup: 'eBird files',
     /** The import toast's last line (ImportToast): {result} is the summary's first part, "282 from iNaturalist". */
     toastDone: 'Done · {result}',
+    /** After a Refresh or Replace of a source that had birds: what it added ("Done · 282 from iNaturalist · 4 new species"), or none. */
+    toastNew: { one: '{n} new species', other: '{n} new species' },
+    toastNone: 'no new species',
     /** The summary line ("Your collage has 199 species: 185 from eBird, 11 more from iNaturalist, 3 ticked by hand.").
      *  `head` is plural on the total, each part on its own number; the parts are joined with ", " in code. */
     summary: {
@@ -916,12 +922,16 @@ export const EN_UI = {
       input: 'eBird file',
       reading: 'Reading your file…',
       readingRows: { one: 'Reading your file… {n} row', other: 'Reading your file… {n} rows' },
+      /** How far through a file the read is, after its row count (ImportToast): "· 45%". */
+      percent: '{n}%',
       /** Under the rows with only the life list download; <link> opens MyEBirdData's Add panel. */
       liferNote: 'Your eBird life list only says where you first recorded each bird, so Places filters by those first places. <link>Add MyEBirdData</link> to filter by every place you recorded each bird, down to the county.',
       liferLink: 'Add MyEBirdData for every place',
       /** use-import-jobs.ts: a file that isn't an eBird export, and one that failed to read. */
       unknownFile: "Couldn't read this file. Use eBird's life list download or MyEBirdData.csv.",
       damaged: "Couldn't read this file. It may be damaged or not an eBird export.",
+      /** An eBird export with no bird in it: nothing is imported (it would empty that source). */
+      noBirds: 'No birds in this file, so your list is unchanged.',
     },
     /** iNaturalist's row (InatForm). */
     inat: {
@@ -1014,6 +1024,8 @@ export const EN_UI = {
     wholeCountry: 'Whole country',
     /** The Undo notice after a tap adds a bird ("Removed {name}." after one takes it off: collage.removed). */
     added: 'Added {name}.',
+    /** The same, with the date and place the bar gave it ({details}: "May 2024 · France"). */
+    addedAt: 'Added {name} · {details}.',
   },
   /** Settings > Counting (RulesSwitches). */
   rules: {

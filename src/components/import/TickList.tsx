@@ -19,7 +19,7 @@ import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useSt
 import { removedText, UndoToast, type Removal } from '@/components/app/UndoToast'
 import { Sticker } from '@/components/collage/Sticker'
 import { fmt, plural } from '@/i18n/core'
-import { formatInt } from '@/i18n/format'
+import { dayText, formatInt, formatMonth } from '@/i18n/format'
 import { HTML_LANG } from '@/i18n/langs'
 import { useI18n } from '@/i18n/I18nProvider'
 import { ChevronDownIcon } from '@/components/collage/icons'
@@ -273,7 +273,15 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
     dispatch({ type: 'edit', edits: addTicked(edits, [code], { date: d || undefined, place }) })
     // Only the first bird into an empty list starts a hand-made collage; later ones are edits.
     if (listEmpty) track('collage_made', { source: 'manual' })
-    setChange({ codes: [code], text: fmt(tt.added, { name }), before: edits })
+    // The date and place the bar gave it, named, so a value left from earlier ticks never goes unnoticed: "Added
+    // Mallard · May 2024 · France." The first bird into an empty list adds "Your collage has 1 species."
+    const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d)
+    const when = day ? dayText(new Date(+day[1], +day[2] - 1, +day[3]), t.date.months, true) : formatMonth(d, t.date.months)
+    const countryName = countries.find(([iso]) => iso === country)?.[1]
+    const where = countryName && (sub1 ? `${subs.find(([c]) => c === sub1)?.[1] ?? sub1}, ${countryName}` : countryName)
+    const details = [when, where].filter(Boolean).join(' · ')
+    const added = details ? fmt(tt.addedAt, { name, details }) : fmt(tt.added, { name })
+    setChange({ codes: [code], text: listEmpty ? `${added} ${plural(t.import.summary.head, 1, { n: num(1) })}.` : added, before: edits })
   }
   const toggle = useCallback((key: string) => setOpen((prev) => toggleOpen(prev, key)), [])
   // Undo: exactly what the change touched comes back (on or off the list, hand records as they were), later edits kept.
@@ -313,9 +321,10 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
 
       {searching ? (
         <>
-          {/* A new search starts at the top (key): its active row and scroll. */}
-          <TickOptions key={dq} rows={rows} onList={onList} onFlip={flip} view={view} boxRef={box} label={tt.list} />
-          {!rows.length && <p className="eb-note">{t.import.search.none}</p>}
+          {/* A new search starts at the top (key): its active row and scroll. No match: the note alone (no empty box). */}
+          {rows.length
+            ? <TickOptions key={dq} rows={rows} onList={onList} onFlip={flip} view={view} boxRef={box} label={tt.list} />
+            : <p className="eb-note">{t.import.search.none}</p>}
         </>
       ) : (
         <div ref={treeBox} className="eb-ticklist eb-ticktree" style={{ height: view * ROW }} data-testid="tick-tree">
@@ -327,48 +336,54 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
 
       <div className="eb-tickbar" role="group" aria-labelledby={`${ids}-w`}>
         <p id={`${ids}-w`} className="eb-tickbar-n">{tt.when}</p>
+        {/* Each field under its own visible label (an empty date input draws as a blank box on iOS). */}
         <div className="eb-tick-fields">
-          <label className="eb-sr" htmlFor={`${ids}-d`}>{tt.date}</label>
-          <input
-            id={`${ids}-d`}
-            className="eb-input"
-            type="date"
-            min="1800-01-01"
-            max={today()}
-            value={date}
-            onChange={(e) => { setDate(e.target.value); if (e.target.value) setYear('') }}
-          />
-          <label className="eb-sr" htmlFor={`${ids}-y`}>{tt.year}</label>
-          <input
-            ref={yearRef}
-            id={`${ids}-y`}
-            className="eb-input"
-            inputMode="numeric"
-            autoComplete="off"
-            maxLength={4}
-            placeholder={tt.year}
-            value={year}
-            aria-invalid={yearBad || undefined}
-            aria-describedby={yearBad ? `${ids}-ye` : undefined}
-            onChange={(e) => { setYear(e.target.value); if (e.target.value) setDate('') }}
-          />
-          <label className="eb-sr" htmlFor={`${ids}-c`}>{tt.country}</label>
-          <span className="eb-select">
-            <select id={`${ids}-c`} className="eb-input" value={country} onChange={(e) => { setCountry(e.target.value); setSub1('') }}>
-              <option value="">{tt.noCountry}</option>
-              {countries.map(([iso, name]) => <option key={iso} value={iso}>{name}</option>)}
-            </select>
-          </span>
+          <div className="eb-tickfield">
+            <label className="eb-label" htmlFor={`${ids}-d`}>{tt.date}</label>
+            <input
+              id={`${ids}-d`}
+              className="eb-input"
+              type="date"
+              min="1800-01-01"
+              max={today()}
+              value={date}
+              onChange={(e) => { setDate(e.target.value); if (e.target.value) setYear('') }}
+            />
+          </div>
+          <div className="eb-tickfield">
+            <label className="eb-label" htmlFor={`${ids}-y`}>{tt.year}</label>
+            <input
+              ref={yearRef}
+              id={`${ids}-y`}
+              className="eb-input"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={4}
+              value={year}
+              aria-invalid={yearBad || undefined}
+              aria-describedby={yearBad ? `${ids}-ye` : undefined}
+              onChange={(e) => { setYear(e.target.value); if (e.target.value) setDate('') }}
+            />
+          </div>
+          <div className="eb-tickfield">
+            <label className="eb-label" htmlFor={`${ids}-c`}>{tt.country}</label>
+            <span className="eb-select">
+              <select id={`${ids}-c`} className="eb-input" value={country} onChange={(e) => { setCountry(e.target.value); setSub1('') }}>
+                <option value="">{tt.noCountry}</option>
+                {countries.map(([iso, name]) => <option key={iso} value={iso}>{name}</option>)}
+              </select>
+            </span>
+          </div>
           {subs.length > 0 && (
-            <>
-              <label className="eb-sr" htmlFor={`${ids}-s`}>{tt.region}</label>
+            <div className="eb-tickfield">
+              <label className="eb-label" htmlFor={`${ids}-s`}>{tt.region}</label>
               <span className="eb-select">
                 <select id={`${ids}-s`} className="eb-input" value={sub1} onChange={(e) => setSub1(e.target.value)}>
                   <option value="">{tt.wholeCountry}</option>
                   {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
                 </select>
               </span>
-            </>
+            </div>
           )}
         </div>
         {yearBad && <p id={`${ids}-ye`} className="eb-error">{tt.dateError}</p>}
