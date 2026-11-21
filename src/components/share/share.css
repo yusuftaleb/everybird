@@ -28,7 +28,10 @@
   background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
   border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04); /* the one floating shadow (DESIGN.md) */
-  animation: eb-share-in .24s cubic-bezier(.25, .8, .25, 1) both;
+  /* backwards, not both: a transform filling forwards stays in effect after the entry, which made the dialog the
+     containing block of its fixed menus (they opened against its box, far from their button, and its overflow cut them;
+     round 6, item 19). */
+  animation: eb-share-in .24s cubic-bezier(.25, .8, .25, 1) backwards;
 }
 .eb-share:focus { outline: none; }
 @keyframes eb-share-in { from { opacity: 0; transform: translateY(12px); } }
@@ -266,6 +269,9 @@
 /* In the dialog the menu is a layer over everything (MenuSelect's `layer`: fixed to its button, outside the scrolling
    column); opened upward (data-up), it eases in from below. */
 .eb-share-menu[data-up] { animation-name: eb-share-menu-up; }
+/* In the top layer (round 6, item 19: MenuSelect's popover, where nothing in the page contains or clips it) the
+   popover's own box rules give way to the menu's: placed by its inline coordinates, no auto margin, the page's ink. */
+.eb-share-menu[popover] { margin: 0; color: var(--ink); }
 @keyframes eb-share-menu-up { from { opacity: 0; translate: 0 4px; } }
 /* The goal's number box: the site's text field (.eb-input, its border, Surface, placeholder, invalid border and the
    global focus ring) at the row's control height, the dropdowns' 36px with a mouse and 44px on touch, five digits wide
