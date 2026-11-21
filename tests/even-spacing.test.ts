@@ -82,17 +82,26 @@ describe('even spacing in the share images and the poster', () => {
     }
   }
 
-  // Round 6 (Yusuf, on a 1,092-species story: "the birds look tiny"): from FRAME_DENSE_FROM birds Fit packs a frame as the
-  // page packs a big collage, one GAP between birds, so the same frame holds bigger stickers; Free keeps the loose pack.
+  // Round 6 (Yusuf, on a 1,092-species story: "the birds look tiny"): from FRAME_DENSE_FROM birds a frame is packed as the
+  // page packs a big collage, one GAP between birds, so the same frame holds bigger stickers than the loose pack it had
+  // (LOOSE: that pack's base for these 1,092 birds, recorded before the change). Item 8: Free draws its cloud in the images
+  // as on the page (settled into the rounded rectangle, nothing spread to the walls), so its corners stay open; Fit's reach
+  // the frame's corners.
+  const LOOSE = { story: 16.9661, post: 16.9627, square: 16.8159, desktop: 16.5372, wide: 16.6769 } as const
   for (const format of ['story', 'post', 'square', 'desktop', 'wide'] as const) {
-    it(`Fit, ${format}, 1,092 species: packed dense, the stickers at least 5% bigger than Free's in the same frame`, () => {
+    it(`${format}, 1,092 species: Fit and Free packed dense, the stickers bigger than the loose pack's; Free's corners open, Fit's filled`, () => {
       const spec = packSpec(cardLayout(format, { name: true, filter: false, latest: true, count: 1092 }, cardDims(format)))
       const birds = sample(1092)
       const fit = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile })
       const free = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile, free: true })
-      expect([fit.W, fit.H]).toEqual([free.W, free.H])
-      expect(fit.base / free.base).toBeGreaterThan(1.05)
-      expect(clean(birds, fit)).toBe(true)
+      for (const r of [fit, free]) {
+        expect(r.base / LOOSE[format]).toBeGreaterThan(1.05)
+        expect(clean(birds, r)).toBe(true)
+      }
+      const corners = (r: PackResult) => { const e = evenness(birds, r, { hole: scaleHole(spec.hole, r.W) }); return e.corners.map((c) => c / e.medianL) }
+      console.log(`[corners] ${format} 1,092: Fit ${corners(fit).map((c) => c.toFixed(2)).join(' ')}, Free ${corners(free).map((c) => c.toFixed(2)).join(' ')}`)
+      for (const c of corners(fit)) expect(c).toBeLessThan(0.75)
+      for (const c of corners(free)) expect(c).toBeGreaterThan(1.25)
     }, 60_000)
   }
 

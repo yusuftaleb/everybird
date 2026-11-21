@@ -171,7 +171,7 @@ type Settle = 'rect' | 'round' | 'oval'
  * small stickers, which read as a loose lattice at the edge; every step is a collision test, so it never makes an
  * overlap. Then (`fill`) fillPockets moves the outermost birds into the pockets still left inside. Deterministic.
  */
-function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill = true): Map<number, Box> {
+function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill = true, keep?: UnitMasks): Map<number, Box> {
   const oval = shape === 'oval'
   const grid = blankGrid(W, H, 1, hole, oval)
   const pad = GAP
@@ -181,6 +181,7 @@ function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill
     const gx = Math.round(x) - pad, gy = Math.round(y) - pad
     const m = cellMask(q.mask, q.w, q.h, 1, pad)
     const s = coreMask(q.mask, q.w, q.h, 1, pad)
+    keep?.set(q.id, { m, s })
     grid.stamp(s, gx, gy)
     todo.push({ id: q.id, m, s, gx, gy, w: q.w, h: q.h })
   }
@@ -229,6 +230,9 @@ function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill
   for (const q of todo) p.boxes.set(q.id, [q.gx + pad, q.gy + pad, q.w, q.h])
   return p.boxes
 }
+
+/** Each bird's masks on a one-unit grid, tested (dilated by GAP) and stamped (bare): settle's, kept for lineEdges. */
+type UnitMasks = Map<number, { m: CellMask; s: CellMask }>
 
 /** A bird on settle's grid: its tested (dilated) and stamped (bare) masks, and its mask's top-left cell. */
 type Settling = { id: number; m: CellMask; s: CellMask; gx: number; gy: number; w: number; h: number }
@@ -479,15 +483,17 @@ const SPREAD_ROUNDS = 32
  * Even out a frame's pack (packFrame: the share images and the posters), so the gaps are about the same everywhere and
  * the birds fill the frame (or its oval) to its edge: no clumps, no holes, no empty corners. On a grid of one layout
  * unit per cell, every bird is stamped as its bare silhouette (a captioned one as its box and its name's box, as
- * gather). Then, pass after pass, each bird is lifted and its free run measured in the four directions (how far it can
+ * gather; with `wide`, dilated by GAP as a loose pack stamps it, so neighbours stay two GAPs apart). Then, pass after pass, each bird is lifted and its free run measured in the four directions (how far it can
  * go, tested dilated by GAP, before it meets another bird or a wall: the frame's edge, the count's hole, outside the
  * oval). Along each axis it moves to the middle of its two runs, so it sits halfway between its neighbours; next to a
  * wall, it moves right up to the wall instead, so the outer birds line the frame and the free room goes between birds.
  * The free room so flows to where it is short until the gaps even out. Every move stays inside a measured free run, so
  * it never makes an overlap; the order is fixed (by id, forwards then backwards), so the result is deterministic.
+ * `rounds`: at most this many passes (the page's lineEdges takes 3); `known`: masks already made (settle's), by bird.
  */
 function spreadEven(
   boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions: Map<number, CaptionRoom> | undefined, oval: boolean,
+  wide = false, rounds = SPREAD_ROUNDS, known?: UnitMasks,
 ): Map<number, Box> {
   // The walls alone, and the walls with every bird's core. No core overlaps a wall (the pack kept every bird GAP from them
   // on a coarser, more cautious grid), so clearing a core never clears a wall.
@@ -500,8 +506,10 @@ function spreadEven(
   for (const id of [...boxes.keys()].sort((a, b) => a - b)) {
     const [x, y, w, h] = boxes.get(id)!
     const cap = captions?.get(id)
-    const { mask: s, offX, offY } = cap ? captionCellMask(w, h, cap, 1, pad, false) : { mask: coreMask(byId.get(id)!.mask, w, h, 1, pad), offX: 0, offY: 0 }
-    const m = cap ? captionCellMask(w, h, cap, 1, pad, true).mask : cellMask(byId.get(id)!.mask, w, h, 1, pad)
+    const k = cap ? undefined : known?.get(id)
+    const m = k?.m ?? (cap ? captionCellMask(w, h, cap, 1, pad, true).mask : cellMask(byId.get(id)!.mask, w, h, 1, pad))
+    const { mask: s, offX, offY } = wide ? { mask: m, offX: 0, offY: 0 } : k ? { mask: k.s, offX: 0, offY: 0 }
+      : cap ? captionCellMask(w, h, cap, 1, pad, false) : { mask: coreMask(byId.get(id)!.mask, w, h, 1, pad), offX: 0, offY: 0 }
     const q = { id, s, m, gx: Math.round(x) - pad - offX, gy: Math.round(y) - pad - offY, offX, offY, w, h }
     occ.stamp(s, q.gx, q.gy)
     qs.push(q)
@@ -517,7 +525,7 @@ function spreadEven(
   }
   // The move along one axis: to the wall when one side is a wall and the other a bird, else to the middle.
   const shift = ([a, aWall]: [number, boolean], [b, bWall]: [number, boolean]) => (aWall && !bWall ? -a : bWall && !aWall ? b : Math.trunc((b - a) / 2))
-  for (let round = 0; round < SPREAD_ROUNDS; round++) {
+  for (let round = 0; round < rounds; round++) {
     let moved = 0
     for (let i = 0; i < qs.length; i++) {
       const q = qs[round % 2 ? qs.length - 1 - i : i]
@@ -558,6 +566,31 @@ function trimToContent(boxes: Map<number, Box>, W: number, H: number): { W: numb
   const out = new Map<number, Box>()
   for (const [id, [x, y, w, h]] of boxes) out.set(id, [x - dx, y - dy, w, h])
   return { W: W - 2 * dx, H: H - 2 * dy, boxes: out }
+}
+
+/**
+ * Fit on the page (round 6, items 8 and 9: the page's Fit read as a soft rectangle while the share image's was crisp):
+ * spreadEven over the trimmed stage, so the outer birds line its four edges and the free room goes evenly between the
+ * birds, as on a share image. A bird left standing apart (a corner bird sent to both walls while its neighbours moved
+ * along one) is gathered back to the group, as after packing. The walls sit TRIM_PAD - GAP inside the stage (less where a bird is nearer it), so the
+ * margin stays TRIM_PAD. `wide` (a collage not packed dense): each bird is stamped dilated by GAP, as the pack stamps it,
+ * so neighbours keep their two GAPs.
+ */
+/** lineEdges' passes: three line the edges up and spread the room over the outer few layers only. The share images' 32
+ *  even it out over the whole collage, so most birds would no longer rest against their neighbours, and the edge is
+ *  hardly straighter for it (on 1,100 birds, its variation about the rectangle 0.004 against 0.005); two leave a corner
+ *  bird apart now and then. */
+const LINE_ROUNDS = 3
+function lineEdges(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions: Map<number, CaptionRoom> | undefined, wide: boolean, known?: UnitMasks): Map<number, Box> {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+  for (const [x, y, w, h] of boxes.values()) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + w); y1 = Math.max(y1, y + h) }
+  const inset = (a: number, b: number) => Math.max(0, Math.min(TRIM_PAD - GAP, Math.floor(Math.min(a, b)) - GAP))
+  const ix = inset(x0, W - x1), iy = inset(y0, H - y1)
+  const moved = new Map<number, Box>()
+  for (const [id, [x, y, w, h]] of boxes) moved.set(id, [x - ix, y - iy, w, h])
+  const out = new Map<number, Box>()
+  for (const [id, [x, y, w, h]] of spreadEven(moved, birds, W - 2 * ix, H - 2 * iy, hole, captions, false, wide, LINE_ROUNDS, known)) out.set(id, [x + ix, y + iy, w, h])
+  return gather(out, birds, W, H, hole, captions)
 }
 
 const FIT_MARGIN = 10, FIT_HOLE = 24
@@ -614,10 +647,12 @@ export function stretchAt(layout: Pick<Layout, 'H' | 'stretch' | 'maxH'>, H: num
  * - With oval (the Oval arrangement: the page's collage, through the worker's layout request, and packFrame's share
  *   images): every bird stays inside the ellipse inscribed in the stage packed in (the grown stage, fixedStage or the
  *   frame), and the size estimate counts the ellipse's area (π/4 of the stage's).
- * - Fit (neither oval nor free) settles a dense collage into its stage's rectangle; with free (the Free arrangement) into
- *   the rounded rectangle, the layout Fit made before (see settle).
- * - With settleFrame (packFrame: Fit's share images and posters of a big list): packed dense and settled as a big page
- *   collage is, without moving birds into pockets (spreadEven evens out the room afterwards).
+ * - Fit (neither oval nor free) settles a dense collage into its stage's rectangle, and a full even collage then lines
+ *   its outer birds up along the trimmed stage's edges (lineEdges); with free (the Free arrangement) it settles into the
+ *   rounded rectangle and lines nothing up: the soft cloud (see settle).
+ * - With settleFrame (packFrame: the share images and posters of a big list): packed dense and settled as a big page
+ *   collage is; Fit without moving birds into pockets (spreadEven evens out the room afterwards), Free with them, as on
+ *   the page.
  */
 export function packBest(
   birds: PackBird[], layout: Layout, mode: 'even' | 'true',
@@ -654,9 +689,10 @@ export function packBest(
   let round = small
   const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions, oval, !small)
   // Settled (dense), then any detached birds gathered back to the group (gather): the outline stays compact.
+  const unitMasks: UnitMasks = new Map() // settle's, for lineEdges
   // A small set keeps the rounded rectangle under Fit too: a few birds close up round the count, not into a rectangle.
   const boxesOf = (p: Packed, W: number, H: number) =>
-    gather(dense ? settle(p, W, H, hole, small && shape === 'rect' ? 'round' : shape, !small && !opts.settleFrame) : p.boxes, birds, W, H, hole, captions, oval)
+    gather(dense ? settle(p, W, H, hole, small && shape === 'rect' ? 'round' : shape, !small && !(opts.settleFrame && shape === 'rect'), unitMasks) : p.boxes, birds, W, H, hole, captions, oval)
 
   // Search range. Full collage: [0.6, 1.6] x the area estimate, capped at MAX_BASE. With refBase (filtered
   // states): the reference's window [0.7, MAXUP] x refBase, searched directly (it may exceed MAX_BASE).
@@ -757,7 +793,9 @@ export function packBest(
   }
   got ??= fallback(W, H)
   const t = trimToContent(boxesOf(got.packed, W, H), W, H)
-  return { base: got.base, W: t.W, H: t.H, boxes: t.boxes }
+  // Fit's full collage lines its outer birds up along the trimmed stage's edges, as a share image's frame (spreadEven).
+  const lined = shape === 'rect' && mode === 'even' && !targets ? lineEdges(t.boxes, birds, t.W, t.H, hole, captions, !dense, unitMasks) : t.boxes
+  return { base: got.base, W: t.W, H: t.H, boxes: lined }
 }
 
 // packFrame's target base: the site's typical sizes (so GAP and the cell grid look the same) up to 300 birds,
@@ -776,12 +814,14 @@ const frameBase = (n: number) => (n <= 300 ? 28 : Math.max(10, 28 * (300 / n) **
  * - captions: each bird's name room under it (a poster's names), as fractions of the frame's width. When no base packs
  *   the birds with their names, the pack is made as without them: the caller's caption check (image.ts fitCaptionPack)
  *   then finds the names don't fit and draws the poster without them.
- * - free: the Free arrangement, packed as Fit was before it filled the rectangle (no settling).
+ * - free: the Free arrangement, its cloud as on the page: a list of FRAME_DENSE_FROM birds or more packed dense and
+ *   settled into the rounded rectangle, pockets filled, and nothing spread to the frame's walls, so its corners stay open
+ *   (round 6, item 8: the images drew a rectangle under Free).
  * Fit (neither oval nor free) packs a list of FRAME_DENSE_FROM birds or more dense and settles it into the frame's
  * rectangle (packBest's settleFrame), as the page packs a big collage: one GAP between birds instead of two, so the
  * stickers come out about a tenth bigger in the same frame (round 6: a 1,092-species story read as a field of tiny
  * birds). A poster with names keeps the loose pack (settling doesn't know the names' room).
- * Then spreadEven spreads the birds evenly over the frame (or its oval), edge to edge.
+ * Then, but for Free, spreadEven spreads the birds evenly over the frame (or its oval), edge to edge.
  */
 export function packFrame(birds: PackBird[], aspect: number, opts: FrameOpts = {}): PackResult {
   if (!opts.captions) return packFrameWith(birds, aspect, opts)
@@ -813,7 +853,8 @@ function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): Pack
   const captions = opts.captions
     ? new Map([...opts.captions].map(([id, c]) => [id, { w: c.w * W, h: c.h * W, ...(c.ring ? { ring: c.ring * W } : {}) }]))
     : undefined
-  const settleFrame = !opts.oval && !opts.free && !captions && birds.length >= FRAME_DENSE_FROM
-  const r = packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : {}), ...(settleFrame ? { settleFrame } : {}) })
-  return { ...r, boxes: spreadEven(r.boxes, birds, r.W, r.H, hole, captions, !!opts.oval) }
+  const settleFrame = !opts.oval && !captions && birds.length >= FRAME_DENSE_FROM
+  const r = packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : opts.free ? { free: true } : {}), ...(settleFrame ? { settleFrame } : {}) })
+  // Free keeps its cloud: nothing spreads it to the frame's walls.
+  return opts.free ? r : { ...r, boxes: spreadEven(r.boxes, birds, r.W, r.H, hole, captions, !!opts.oval) }
 }
