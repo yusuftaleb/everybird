@@ -61,7 +61,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { countryName, regionsIn } from '@/lib/i18n-places'
 import { track, type PosterSizeWire } from '@/lib/analytics'
 import { currentTheme, type Theme } from '@/lib/theme'
-import { TREE_LAYOUTS, setTreeLayout, setTreeMine, treeLayout as treeLayoutStored, useTreeMine, type TreeLayout } from '@/lib/tree-mine'
+import { TREE_LAYOUTS, setTreeLayout, setTreeMine, setTreeTime, treeLayout as treeLayoutStored, useTreeMine, useTreeTime, type TreeLayout } from '@/lib/tree-mine'
 import { ARRANGEMENTS, ARRANGE_ICON, setArrangement, useArrangement } from '@/lib/arrangement'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
@@ -225,8 +225,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   /** The share image's shape: the slot in this orientation (story is desktop, post is wide when horizontal). */
   const shape = imageShape(format, orientation)
   const [showOldest, setShowOldest] = useState(true)
-  // The Tree image's Time scale starts as the screen's switch is (round 6, item 12); the dialog's own after that.
-  const [timeScale, setTimeScale] = useState(at?.time !== false)
+  // The Tree's Time scale and Scientific names are the screen's own switches (round 6, item 12 of the Tree's brief: one
+  // setting, as Arrangement and Lifers only already were): the dialog shows them and a change here changes the screen too.
+  const timeScale = useTreeTime()
   // The Tree's and Map's Totals: every total its image draws, on at every open, not stored.
   // The Tree's only the ranks at and below the level on screen (treeTotals: inside a family, Species and Genera).
   const totalsOffered = treeImage ? treeTotals(at?.tree) : rows.totals
@@ -1128,7 +1129,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       case 'lifersOnly':
         return switchRow(treeMine, t.collage.controls.lifersOnly, () => setTreeMine(!treeMine), 'share-tree-mine')
       case 'timeScale':
-        return switchRow(timeScale, t.collage.controls.timeScale, () => setTimeScale((v) => !v), 'share-tree-time')
+        return switchRow(timeScale, t.collage.controls.timeScale, () => setTreeTime(!timeScale), 'share-tree-time')
+      case 'sci':
+        return switchRow(sci, t.collage.controls.sciNames, () => dispatch({ type: 'sci', sci: !sci }), 'share-tree-sci')
       case 'oldest':
         return switchRow(showOldest, t.collage.tree.showOldest, () => setShowOldest((v) => !v), 'share-tree-oldest')
       case 'transparent':

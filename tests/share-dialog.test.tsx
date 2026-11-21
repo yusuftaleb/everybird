@@ -7,7 +7,7 @@ import { localDay } from '@/lib/file-name'
 import ShareDialog from '@/components/share/ShareDialog'
 import * as image from '@/lib/share/image'
 import { ARRANGEMENT_KEY, arrangement, setArrangement } from '@/lib/arrangement'
-import { setTreeLayout, setTreeMine, treeLayout } from '@/lib/tree-mine'
+import { setTreeLayout, setTreeMine, treeLayout, treeTime } from '@/lib/tree-mine'
 import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
@@ -337,7 +337,8 @@ describe('share dialog', () => {
     makes.length = 0
 
     viewRenders.map.mockClear()
-    const tree = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { fam: 'Struthionidae' } }} onClose={() => {}} />)
+    const treeDispatch = vi.fn()
+    const tree = render(<ShareDialog state={st} dispatch={treeDispatch} species={species} regions={regions} view="tree" at={{ tree: { fam: 'Struthionidae' } }} onClose={() => {}} />)
     await waitFor(() => expect(viewRenders.tree).toHaveBeenCalledTimes(1))
     // Inside a family: only Species and Genera are offered, both on (round 6).
     expect(viewRenders.tree.mock.calls[0]).toMatchObject([{ at: { tree: { fam: 'Struthionidae' }, mine: false }, totals: ['species', 'genera'] }])
@@ -358,7 +359,15 @@ describe('share dialog', () => {
     expect(time).toHaveAttribute('aria-checked', 'true')
     fireEvent.click(time)
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: expect.objectContaining({ time: false }) })))
+    // One setting with the screen's (the Tree brief, item 12): the dialog's switch is the Display panel's.
+    expect(treeTime()).toBe(false)
     fireEvent.click(time)
+    expect(treeTime()).toBe(true)
+    // Scientific names, the screen's switch too: the dialog's row sets it.
+    const sciRow = screen.getByRole('switch', { name: 'Scientific names' })
+    expect(sciRow).toHaveAttribute('aria-checked', String(!!st.sci))
+    fireEvent.click(sciRow)
+    expect(treeDispatch).toHaveBeenCalledWith({ type: 'sci', sci: !st.sci })
     // Round 6: Show oldest lineage (on at first, as Show latest lifer) and the Arrangement row, the dock's Layout menu.
     const oldest = screen.getByRole('switch', { name: 'Show oldest lineage' })
     expect(oldest).toHaveAttribute('aria-checked', 'true')

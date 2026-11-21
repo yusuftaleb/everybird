@@ -83,6 +83,8 @@ export type DialogRows = {
   oldest: boolean
   /** The Tree's Time scale (the dock's switch): its ages, axis and rings, or the splits spaced evenly (round 6, item 12). */
   timeScale: boolean
+  /** The Tree's Scientific names (the dock's switch, round 6, item 12: its tips' names in the image as on screen). */
+  sci: boolean
   /** Show species names (the collage poster). */
   names: boolean
   lifersOnly: boolean
@@ -107,6 +109,7 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
     treeLayout: subject === 'tree',
     oldest: subject === 'tree',
     timeScale: subject === 'tree',
+    sci: subject === 'tree',
     names: collage && print,
     lifersOnly: subject === 'tree',
     totals: subject === 'tree' || subject === 'map' ? VIEW_TOTALS[subject] : [],
@@ -117,7 +120,7 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
 }
 
 /** One row of the options list. */
-export type OptionRow = 'what' | 'size' | 'arrangement' | 'treeLayout' | 'colours' | 'count' | 'totals' | 'latest' | 'names' | 'lifersOnly' | 'timeScale' | 'oldest' | 'transparent' | 'goal'
+export type OptionRow = 'what' | 'size' | 'arrangement' | 'treeLayout' | 'colours' | 'count' | 'totals' | 'latest' | 'names' | 'lifersOnly' | 'timeScale' | 'sci' | 'oldest' | 'transparent' | 'goal'
 
 /**
  * The options list, top to bottom (round 6, the maintainer's layout): Compare's What or Print's Poster size first, the choices
@@ -127,7 +130,7 @@ export type OptionRow = 'what' | 'size' | 'arrangement' | 'treeLayout' | 'colour
 export function optionRows(rows: DialogRows, print: boolean): OptionRow[] {
   const order: [OptionRow, boolean][] = [
     ['what', rows.what], ['size', print], ['arrangement', rows.arrangement], ['treeLayout', rows.treeLayout], ['colours', true], ['count', rows.count], ['totals', rows.totals.length > 0],
-    ['latest', rows.latest], ['names', rows.names], ['lifersOnly', rows.lifersOnly], ['timeScale', rows.timeScale], ['oldest', rows.oldest],
+    ['latest', rows.latest], ['names', rows.names], ['lifersOnly', rows.lifersOnly], ['timeScale', rows.timeScale], ['sci', rows.sci], ['oldest', rows.oldest],
     ['transparent', true], ['goal', rows.goal],
   ]
   return order.filter(([, on]) => on).map(([r]) => r)
