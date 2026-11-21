@@ -8,7 +8,8 @@ import { ImportPanel } from '@/components/import/ImportPanel'
 import { MatchReport } from '@/components/import/MatchReport'
 import { RulesSwitches } from '@/components/import/RulesSwitches'
 import { AddBirdsDialog } from '@/components/import/AddBirdsDialog'
-import { downloadText, today } from '@/lib/download'
+import { downloadText } from '@/lib/download'
+import { fileName } from '@/lib/file-name'
 import { toCsv, toJson } from '@/lib/list/export'
 import { placesNoteFor } from '@/lib/list/filter-summary'
 import { sourceCounts, summaryLine } from '@/lib/list/source-counts'
@@ -100,11 +101,11 @@ export function SettingsPage() {
           </div>
           {mine ? (
             <div className="eb-tools">
-              <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} onClick={() => data && downloadText(toCsv(state.list, data.species, data.regions, state.seen), `everybird-${today()}.csv`, 'text/csv')}>
+              <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} onClick={() => data && downloadText(toCsv(state.list, data.species, data.regions, state.seen), fileName({ title: saved.name, shows: 'life-list', ext: 'csv' }), 'text/csv')}>
                 <DownloadSimple aria-hidden="true" focusable="false" />
                 {d.downloadCsv}
               </button>
-              <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} onClick={() => downloadText(toJson(saved), `everybird-backup-${today()}.json`, 'application/json')}>
+              <button type="button" className="eb-btn eb-btn-quiet" disabled={!data} onClick={() => downloadText(toJson(saved), fileName({ shows: 'backup', ext: 'json' }), 'application/json')}>
                 <DownloadSimple aria-hidden="true" focusable="false" />
                 {d.downloadJson}
               </button>

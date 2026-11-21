@@ -1,4 +1,5 @@
 import { Zip, ZipPassThrough } from 'fflate'
+import { safeName, zipEntryName } from '@/lib/file-name'
 import { filterPlaceKeys, seenBasis, type Filter } from '@/lib/list/filters'
 import { inRange } from '@/lib/list/in-range'
 import type { ListEntry } from '@/lib/list/model'
@@ -48,33 +49,17 @@ export type BulkGroupsOpts = {
   batchSize?: BulkBatch
 }
 
-const RESERVED_WINDOWS = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i
 const YEAR_RE = /^(\d{4})/
 
-/** Latin letters NFKD does not split into a base letter and a mark, spelled in ASCII. */
-const LATIN_EXTRA: Record<string, string> = { 'ł': 'l', 'đ': 'd', 'ð': 'd', 'ø': 'o', 'æ': 'ae', 'œ': 'oe', 'ß': 'ss', 'þ': 'th', 'ı': 'i', 'ħ': 'h', 'ŧ': 't', 'ŋ': 'ng' }
-
+/** A group's file stem inside the ZIP: its shown name made safe (safeName), letters of every script kept. */
 export function sanitizeGroupStem(label: string, fallback = 'group'): string {
-  const ascii = label
-    .toLowerCase()
-    .replace(/[łđðøæœßþıħŧŋ]/g, (c) => LATIN_EXTRA[c])
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[/\\]+/g, ' ')
-    .replace(/\.{2,}/g, ' ')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80)
-    .replace(/-+$/g, '')
-  const base = ascii || fallback
-  return RESERVED_WINDOWS.test(base) ? `${base}-group` : base
+  return safeName(label) || fallback
 }
 
-function uniqueStems(groups: { id: string; label: string; entries: ListEntry[] }[]): BulkGroup[] {
+function uniqueStems(groups: { id: string; label: string; stem?: string; entries: ListEntry[] }[]): BulkGroup[] {
   const used = new Set<string>()
   return groups.map((g, i) => {
-    const base = sanitizeGroupStem(g.label, `group-${i + 1}`)
+    const base = g.stem ?? sanitizeGroupStem(g.label, `group-${i + 1}`)
     let stem = base
     let n = 2
     while (used.has(stem)) {
@@ -117,12 +102,14 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
   if (split === 'batches') {
     const choice = batchChoice(opts.batchSize ?? 'all')
     const size = choice === 'all' ? sorted.length : choice
-    const out: { id: string; label: string; entries: ListEntry[] }[] = []
+    const out: { id: string; label: string; stem: string; entries: ListEntry[] }[] = []
     for (let i = 0; i < sorted.length; i += size) {
       const n = Math.floor(i / size) + 1
       out.push({
         id: `batch-${n}`,
         label: opts.batchLabel ? opts.batchLabel(n) : `Batch ${n}`,
+        // The file says which birds it holds, in taxonomic order: "birds-101-200".
+        stem: `birds-${i + 1}-${Math.min(i + size, sorted.length)}`,
         entries: sorted.slice(i, i + size),
       })
     }
@@ -276,7 +263,7 @@ async function zipGroups(
   groups: readonly BulkGroup[],
   signal: AbortSignal | undefined,
   onProgress: BulkZipOpts['onProgress'],
-  file: (group: BulkGroup, check: () => void) => Promise<{ name: string; bytes: Uint8Array }>,
+  file: (group: BulkGroup, check: () => void) => Promise<{ ext: string; bytes: Uint8Array }>,
 ): Promise<Blob> {
   const check = () => { if (signal?.aborted) throw abortError() }
   check()
@@ -291,9 +278,9 @@ async function zipGroups(
     for (let i = 0; i < total; i++) {
       check()
       const group = groups[i]
-      const { name, bytes } = await file(group, check)
+      const { ext, bytes } = await file(group, check)
       check()
-      const entry = new ZipPassThrough(name)
+      const entry = new ZipPassThrough(zipEntryName(i, total, group.stem, ext))
       zip.add(entry)
       entry.push(bytes, true)
       if (zipError) throw zipError
@@ -328,7 +315,7 @@ export async function makeBulkZip(opts: BulkZipOpts): Promise<{ blob: Blob; name
       check()
       const bytes = new Uint8Array(await (await p.file(kind)).arrayBuffer())
       if (p.namesDropped) namesDropped++
-      return { name: `${group.stem}.${kind}`, bytes }
+      return { ext: kind, bytes }
     } finally {
       p?.dispose()
     }
@@ -368,6 +355,6 @@ export async function makeImageZip(opts: ImageZipOpts): Promise<Blob> {
     const pack = await packFn(group.entries, species, bulkImagePackSpec(group.entries, image), image.signal)
     check()
     const png = await render({ ...image, entries: group.entries, species, pack, filterLabel: groupLabel(view, group) })
-    return { name: `${group.stem}.png`, bytes: new Uint8Array(await png.arrayBuffer()) }
+    return { ext: 'png', bytes: new Uint8Array(await png.arrayBuffer()) }
   })
 }
