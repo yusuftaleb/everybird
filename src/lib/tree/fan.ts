@@ -37,8 +37,9 @@ export type LabelSizes = { base: number; floor: number; dot: number; rMin?: numb
 export const SCREEN_SIZES: LabelSizes = { base: 13, floor: 11, dot: 3.5 }
 
 /** A fan or circle in which every tip has its name: the box (its centre about its own top-left corner), its size, the
- *  names' size `px` and which tips keep their count. */
-export type RoundFit = FanBox & { w: number; h: number; px: number; counts: boolean[] }
+ *  names' size `px`, which tips keep their count, and how far the drawing and its labels reach above (`up`) and below
+ *  (`down`) the centre (the fan's `down` is the room kept under it), whatever height `h` was given. */
+export type RoundFit = FanBox & { w: number; h: number; px: number; counts: boolean[]; up: number; down: number }
 
 /**
  * The fan or circle (`shape`) whose every tip has its name in full, in `room` (its width; `h` caps its height when
@@ -101,7 +102,7 @@ export function fitRound(spans: readonly LabelSpan[], shape: FanShape, room: { w
   top = Math.ceil(top)
   const h = room.h !== undefined && circle ? room.h : circle ? top + Math.ceil(bottom) : top + below
   const cy = room.h !== undefined && circle ? room.h / 2 : top
-  return { cx: room.w / 2, cy, R, ...(circle ? { shape } : {}), w: room.w, h: room.h !== undefined && !circle ? Math.min(h, room.h) : h, px, counts }
+  return { cx: room.w / 2, cy, R, ...(circle ? { shape } : {}), w: room.w, h: room.h !== undefined && !circle ? Math.min(h, room.h) : h, px, counts, up: top, down: circle ? Math.ceil(bottom) : below }
 }
 
 /** The angle (radians) at `y` leaf units of `n` leaves, each tip mid-slot: the fan from π at the left end to 0 at the

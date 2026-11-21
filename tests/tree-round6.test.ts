@@ -144,23 +144,22 @@ describe('the genus is a taxonomy filter', () => {
   })
 })
 
-describe('Rectangular: half the width, the counts just after the longest name', () => {
+describe('Rectangular: half the width, the counts at the right edge', () => {
   it('rowsTreeW: half of the view, between 112 and 640, the rows keeping 200px', () => {
     expect(rowsTreeW(1000)).toBe(500)
     expect(rowsTreeW(1600)).toBe(640)
     expect(rowsTreeW(320)).toBe(120)
     expect(rowsTreeW(200)).toBe(112)
   })
-  it("rowsLabels: the counts' column ends after the longest name and count, not at the far edge", () => {
+  it("rowsLabels (the share image): the counts in their own column at the text's right edge, the card's (round 6)", () => {
     const spans = [{ name: 4, count: 2, on: true }, { name: 6, count: 2.5, on: true }]
-    const { px, box, counts, col } = rowsLabels(spans, 44, 2000)
+    const { counts, col } = rowsLabels(spans, 44, 2000)
     expect(counts).toEqual([true, true])
-    const g = px * 6 / 13
-    expect(col).toBeCloseTo(box + 2 * g + 6 * px + g + 2.5 * px)
-    expect(col).toBeLessThan(2000)
-    // A narrow area caps the column at its edge, dropping a count that would touch its name.
+    expect(col).toBe(2000)
+    // A narrow area drops a count that would touch its name; the column stays at the edge.
     const tight = rowsLabels([{ name: 4, count: 2, on: true }, { name: 9, count: 3, on: true }], 44, 300)
-    expect(tight.col).toBeLessThanOrEqual(300)
+    expect(tight.col).toBe(300)
+    expect(tight.counts[0]).toBe(true)
   })
 })
 

@@ -6,7 +6,7 @@ import { MAP_TOTALS, gridColumns, mapImageLayout, mapListsInColumn, TOP_PLACES }
 import { printDesign } from '@/lib/share/print'
 import { VIEW_TOTALS } from '@/components/share/dialog-options'
 import { en } from '@/i18n/messages/en'
-import { FOOTER_LINE, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
+import { FOOTER_LINE, SMALL_INLINE, SMALL_ROW, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
 import { IMAGE_SIZES, TOTALS, rowsLabels, totalsSize } from '@/lib/share/tree-image'
 import { LABEL_GAP, fitRound } from '@/lib/tree/fan'
 import { MAP_FOOTER, TREE_FOOTER, chosenTotals, fitBox, wrapParts } from '@/lib/share/view-image'
@@ -100,6 +100,37 @@ describe('the tree image: four equal totals on top', () => {
     expect(label).toBeLessThan(num)
     // Never larger than the cap, however wide the image; one total (the Totals row's species alone) as large as that.
     expect(totalsSize(['1 / 2'], 1800, w).num).toBe(56)
+  })
+})
+
+describe("the tree image's oldest lineage: a small row (round 6)", () => {
+  const content = { name: true, filter: true, latest: true, count: 200 }
+  it('stacked, smaller than the latest lifer row and only the row gap from the drawing, so the drawing has more room', () => {
+    for (const format of ['story', 'post', 'square', 'wide'] as const) {
+      const big = cardLayout(format, content), small = cardLayout(format, { ...content, small: true })
+      expect(small.latest, format).toMatchObject({ icon: SMALL_ROW.icon, label: SMALL_ROW.label, name: SMALL_ROW.name, oneLine: false })
+      expect(small.latest!.icon).toBeLessThan(big.latest!.icon)
+      expect(small.collage.h, format).toBeGreaterThan(big.collage.h)
+    }
+  })
+  it('on the desktop, one line just above the hairline: the sticker, the label, the name', () => {
+    const L = cardLayout('desktop', { ...content, small: true })
+    expect(L.latest).toMatchObject({ icon: SMALL_INLINE.icon, inline: true, oneLine: false })
+    expect(L.latest!.y + L.latest!.icon).toBeLessThan(L.rule.y)
+    expect(L.collage.y + L.collage.h).toBeLessThan(L.latest!.y)
+  })
+})
+
+describe('the round trees report how far they reach (round 6: the block is centred on what is drawn)', () => {
+  it('a circle given a height reaches no further than half of it each way; a fan keeps its room under the centre', () => {
+    const spans = Array.from({ length: 30 }, (_, i) => ({ name: 6, count: 2, on: i % 3 > 0 }))
+    const c = fitRound(spans, 'circle', { w: 952, h: 1100 }, IMAGE_SIZES)!
+    expect(c.up).toBeLessThanOrEqual(550)
+    expect(c.down).toBeLessThanOrEqual(550)
+    expect(c.up + c.down).toBeLessThan(1100)
+    const f = fitRound(spans, 'fan', { w: 1492, h: 600 }, IMAGE_SIZES)!
+    expect(f.down).toBe(IMAGE_SIZES.below)
+    expect(f.up + f.down).toBeLessThanOrEqual(600)
   })
 })
 

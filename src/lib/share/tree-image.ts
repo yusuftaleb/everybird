@@ -6,14 +6,17 @@
 // the name, the count; fitRound sizes the fan or circle so every name fits whole, the counts going first when room is
 // short (a fan or circle that cannot name every tip even so is drawn as rows, and onTreeFits tells the dialog, which
 // shows it off with its reason; the dialog draws a Fan horizontally and the others vertically); Rectangular gives the drawing half the
-// width and sets the counts right-aligned in a column just after the longest name. A group with no bird on the list
+// width, its rows and names as large as the room allows, and sets the counts right-aligned in a column at the card's
+// right edge. The totals, the drawing, its axis and key are one block centred in the card's area (round 6), so neither a
+// Fan, a Radial nor the rows leave an empty band above or below them; room is kept only for the axis and key drawn. A group with no bird on the list
 // shows its representative sticker dimmed (groupSticker). Under it, when there is room and the time scale is on
 // (`at.time`, the bar's switch; off: the splits spaced evenly, bySplits, and no axis, rings or ages), the age axis (the
 // circle's ages on its radius straight up, never over a branch end), and a one-line key for the mark and the dotted
 // line when the image has them. "Lifers only" (`at.mine`) as on screen. With "Show oldest lineage" (`oldest`) the
 // oldest lineage takes the latest lifer's place and style (latestAs; on a poster, its foot). On top, instead of the
-// big count, the totals the dialog's Totals row keeps (species, genera, families and orders, any of them, none
-// included), each "count / total" over its rank, the same size and weight; with none, the drawing has their room. The footer credits the stickers and the tree (TREE_FOOTER).
+// big count, the totals the dialog's Totals row keeps (species, genera, families and orders at and below the level on
+// screen, any of them, none included), each a plain count over its rank ("65" over "FAMILIES", no "/ 250"), the same
+// size and weight; with none, the drawing has their room. The oldest lineage is the card's small row (SMALL_ROW). The footer credits the stickers and the tree (TREE_FOOTER).
 // A share image always draws the rank on screen. Only a poster may go one rank deeper (Print's "Down to", `deeper`;
 // levelView's 'deeper'): every render of a poster checks, for each poster size in its orientation and arrangement,
 // whether every name of that rank prints whole at TREE_NAME_MIN_PT or more on paper (onDeeper), and draws it only at a
@@ -33,11 +36,13 @@ import { IMAGE_SCALE, loadStickers, type ImageFormat } from './image'
 import { PRINT_SIZES, printDesign, treeNameMinPx, type PrintSize } from './print'
 import { TREE_FOOTER, chosenTotals, clipText, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 
-/** The Rectangular image's names: the largest size, and how much of a row's pitch they and the sticker's box take. */
-const NAME_MAX = 30
-/** A row is never drawn taller than this (a genus of three species would fill the card). */
-const PITCH_MAX = 72
+/** The Rectangular image's names: the largest size (round 6: as large as the room allows, up to this). */
+const NAME_MAX = 40
+/** A row is never drawn taller than this (a genus of three species would fill the card); round 6: rows use the room. */
+const PITCH_MAX = 104
 const AXIS_H = 44, KEY_H = 40, MONO = 18
+/** The round layouts' axis beyond their own room: the fan's title line under the ages its `below` holds; the circle's title. */
+const FAN_AXIS = 26, CIRCLE_AXIS = 34
 /** The Fan's and Radial's names in the image (design units): as on screen at about twice the size, shrinking further
  *  than the screen's, so a level the screen names whole is named whole in the image too. */
 export const IMAGE_SIZES: LabelSizes = { base: 24, floor: 9, dot: 5, rMin: 40, rMax: Infinity, below: 40 }
@@ -66,9 +71,9 @@ export const ROWS_TREE = 0.5
 /**
  * Rectangular in the image: every tip named. The names' size (the largest the rows' `pitch` allows, NAME_MAX at most,
  * and smaller where a name would not fit `textW` beside its sticker's box), the box's side, which tips keep their count
- * (dropped where it would touch the name) and `col`, the right edge of the counts' column from the text's start: just
- * after the longest name and count (plus the gap), never past `textW`, so the counts line up right-aligned without a
- * wide gap. `name`/`count` are widths at size 1.
+ * (dropped where it would touch the name) and `col`, the right edge of the counts' column from the text's start: the
+ * text's own right edge, `textW` (round 6: the counts in their column at the card's right edge, so the tree and its
+ * labels span the card). `name`/`count` are widths at size 1.
  */
 export function rowsLabels(spans: readonly LabelSpan[], pitch: number, textW: number): { px: number; box: number; counts: boolean[]; col: number } {
   let px = Math.min(NAME_MAX, pitch * 0.75)
@@ -76,11 +81,8 @@ export function rowsLabels(spans: readonly LabelSpan[], pitch: number, textW: nu
   for (const s of spans) px = Math.min(px, (textW - box - 2 * LABEL_GAP * px) / Math.max(1e-6, s.name))
   px = Math.max(1, px)
   const reach = (s: LabelSpan) => box + px * (2 * LABEL_GAP + s.name + (s.count ? LABEL_GAP + s.count : 0))
-  const fits = spans.map((s) => !!s.count && reach(s) <= textW)
-  const name = Math.max(0, ...spans.map((s) => s.name)), count = Math.max(0, ...spans.filter((_, i) => fits[i]).map((s) => s.count))
-  const col = Math.min(textW, box + px * (2 * LABEL_GAP + name + (count ? LABEL_GAP + count : 0)))
-  const counts = spans.map((s, i) => fits[i] && reach(s) <= col + 1e-6)
-  return { px, box, counts, col }
+  const counts = spans.map((s) => !!s.count && reach(s) <= textW)
+  return { px, box, counts, col: textW }
 }
 
 /** The Rectangular image's name size for `spans` in `room` (the drawing's rows `height` px tall on screen, ROW_H each). */
@@ -143,35 +145,39 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   return renderViewImage({ ...o, countSize: 'hide', latestAs }, TREE_FOOTER, (ctx, card, full) => {
     const C = card.colors
     const font = card.fonts
-    // The totals on top: the same size for all, "count" in Ink and " / total" in Muted, the rank under it.
+    // The totals on top of the drawing (round 6: counts only, "65" over "FAMILIES"): the same size for all, in Ink, the
+    // rank under it; drawn with the block once it is placed (drawTotals).
     const totalsAt = (w: number) => {
-      const { num, label } = totalsSize(totals.map((x) => `${x.n} / ${x.total}`), w, (s) => { ctx.font = font.count(100); return ctx.measureText(s).width / 100 })
+      const { num, label } = totalsSize(totals.map((x) => x.n), w, (s) => { ctx.font = font.count(100); return ctx.measureText(s).width / 100 })
       return { num, label, head: totals.length ? num * 0.72 + TOTAL_GAP + label * 0.72 + TOTALS_BELOW : 0 }
     }
     const { num, label: labelPx, head } = totalsAt(full.w)
-    const col = full.w / totals.length
-    ctx.textBaseline = 'alphabetic'
-    ctx.textAlign = 'left'
-    const numCap = num * 0.72, labelCap = labelPx * 0.72
-    totals.forEach((x, i) => {
-      const cx = full.x + col * (i + 0.5)
-      ctx.font = font.count(num)
-      const nw = ctx.measureText(x.n).width, rest = ` / ${x.total}`
-      const w = nw + ctx.measureText(rest).width
-      ctx.fillStyle = C.ink
-      ctx.fillText(x.n, cx - w / 2, full.y + numCap)
-      ctx.fillStyle = C.muted
-      ctx.fillText(rest, cx - w / 2 + nw, full.y + numCap)
-      ctx.font = font.footer(labelPx)
+    const drawTotals = (y0: number) => {
+      const col = full.w / Math.max(1, totals.length)
+      const numCap = num * 0.72, labelCap = labelPx * 0.72
+      ctx.textBaseline = 'alphabetic'
       ctx.textAlign = 'center'
-      ctx.fillText(x.label, cx, full.y + numCap + TOTAL_GAP + labelCap)
+      totals.forEach((x, i) => {
+        const cx = full.x + col * (i + 0.5)
+        ctx.font = font.count(num)
+        ctx.fillStyle = C.ink
+        ctx.fillText(x.n, cx, y0 + numCap)
+        ctx.font = font.footer(labelPx)
+        ctx.fillStyle = C.muted
+        ctx.fillText(x.label, cx, y0 + numCap + TOTAL_GAP + labelCap)
+      })
       ctx.textAlign = 'left'
-    })
-    const area: Area = { x: full.x, y: full.y + head, w: full.w, h: full.h - head }
+    }
+    // The room under the totals, for fitting the drawing; the block (totals, drawing, axis, key) is centred in `full`
+    // once its height is known (round 6: no empty band above or below it).
+    const room: Area = { x: full.x, y: full.y + head, w: full.w, h: full.h - head }
 
     const axisIn = (h: number) => timeScale && h >= 520 && shown.tips.length > 0
-    const axis = axisIn(area.h)
-    const bottom = (axis ? AXIS_H : 0) + KEY_H
+    const axis = axisIn(room.h)
+    // The key's line only when the image has a mark or a dotted tip (either rank that may be drawn).
+    const keyH = [...shown.tips, ...(deep?.tips ?? [])].some((r) => r.dotted || (r.kind === 'group' && !!r.with)) ? KEY_H : 0
+    /** What a layout needs under its drawing: the axis's lines beyond the drawing's own room, then the key. */
+    const under = (kind: 'fan' | 'circle' | 'rows') => (axis ? (kind === 'rows' ? AXIS_H : kind === 'fan' ? FAN_AXIS : CIRCLE_AXIS) : 0) + keyH
     const stroke = (on: boolean) => {
       ctx.strokeStyle = on ? C.ink : C.line
       ctx.globalAlpha = on ? 1 : 0.55
@@ -253,16 +259,22 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     // Whether each round layout names every tip of the screen's rank here, told to the dialog (onTreeFits), which shows
     // one that cannot as off and asks for Rectangular instead; a layout that cannot is drawn as rows meanwhile, never cut.
     // The deeper rank is drawn with the floor it was checked at, so its names print at TREE_NAME_MIN_PT or more.
-    const round = (sp: LabelSpan[], kind: 'fan' | 'circle', sizes: LabelSizes) => (shown.root ? fitRound(sp, kind, { w: area.w, h: area.h - bottom }, sizes) : undefined)
+    const round = (sp: LabelSpan[], kind: 'fan' | 'circle', sizes: LabelSizes) => (shown.root ? fitRound(sp, kind, { w: room.w, h: room.h - under(kind) }, sizes) : undefined)
     const shownFans = { fan: round(shownSpans, 'fan', IMAGE_SIZES), circle: round(shownSpans, 'circle', IMAGE_SIZES) }
     o.onTreeFits?.({ fan: !!shownFans.fan, circle: !!shownFans.circle })
     const deepSizes = { ...IMAGE_SIZES, floor: Math.max(IMAGE_SIZES.floor, posterSize ? treeNameMinPx(posterSize) : 0) }
     const fit = want === 'rows' ? undefined : drawDeep ? round(spans, want, deepSizes) : shownFans[want]
     const shape = fit ? (fit.shape ?? 'fan') : 'rows'
+    // The rows' scale (the largest pitch the room allows, PITCH_MAX at most) and the drawing's height, then the block's top.
+    const k = Math.min((room.h - under('rows')) / view.height, PITCH_MAX / ROW_H)
+    const drawH = fit ? fit.up + fit.down : view.height * k
+    const blockTop = full.y + Math.max(0, (full.h - head - drawH - under(shape)) / 2)
+    drawTotals(blockTop)
+    const area: Area = { x: full.x, y: blockTop + head, w: full.w, h: drawH }
 
     if (fit) {
-      // The fan or circle, centred in the area above the axis and the key.
-      const box: FanBox = { cx: area.x + fit.cx, cy: area.y + (area.h - bottom - fit.h) / 2 + fit.cy, R: fit.R, shape: fit.shape }
+      // The fan or circle, centred across, its top at the block's.
+      const box: FanBox = { cx: area.x + fit.cx, cy: area.y + fit.up, R: fit.R, shape: fit.shape }
       const d = drawFan(root!, tipOn(tips), stem, (_, i) => tips[i].dotted, box)
       if (timeScale) {
         ctx.save()
@@ -309,7 +321,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       if (shape === 'circle') {
         // The ages on their rings where they cross the radius straight up (no branch runs there), on Paper, except one
         // whose patch would hide a branch end; the axis's title under the circle.
-        y = box.cy + fit.h / 2
+        y = box.cy + fit.down
         axisY = y + 10
         axisAt = () => []
       } else {
@@ -336,9 +348,8 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
         }
       }
     } else {
-      const k = Math.min((area.h - bottom) / view.height, PITCH_MAX / ROW_H)
-      const bodyH = view.height * k
-      const top = area.y + (area.h - bottom - bodyH) / 2
+      const bodyH = drawH
+      const top = area.y
       const treeW = Math.round(area.w * ROWS_TREE)
       const dotX = area.x + treeW
       const ys = tips.map((r) => top + (r.top + ROW_H / 2) * k)
@@ -400,7 +411,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
         ctx.textAlign = 'left'
         ctx.fillText(clipText(ctx, tt.axis, area.x + area.w - textX), textX, axisY)
       }
-      y += AXIS_H + (shape === 'fan' ? MONO + 6 : 0)
+      y = shape === 'fan' ? axisY + 2 * MONO + 12 : shape === 'circle' ? axisY + MONO + 6 : y + AXIS_H
     }
     // The key: only what the image shows.
     let x = area.x
@@ -433,7 +444,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
 
 /** Every text the image draws besides the frame's, so its fonts are loaded first. */
 function sampleText(names: string[], counts: string[], totals: readonly { n: string; total: string; label: string }[], tt: Ui['collage']['tree']): string {
-  return `${names.join('')}${counts.join('')}${totals.map((x) => `${x.n} / ${x.total}${x.label}`).join('')}${tt.axis}${tt.keyMark}${tt.keyDotted}`
+  return `${names.join('')}${counts.join('')}${totals.map((x) => `${x.n}${x.label}`).join('')}${tt.axis}${tt.keyMark}${tt.keyDotted}`
 }
 
 /** The split-group mark: a diamond outline (the screen's rotated square), after a name and in the key. */
