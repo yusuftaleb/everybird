@@ -217,7 +217,7 @@ const FOOTER_GAP = 32
  * the hairline (`latest`). A stacked latest lifer row keeps the head's gap above it, from the collage (cardLayout). The
  * story, the post and the print keep them tighter so their collages take the height; the square keeps its own.
  */
-const GAPS: Record<CardFormat, { head: number; collage: number; latest: number }> = {
+export const GAPS: Record<CardFormat, { head: number; collage: number; latest: number }> = {
   story: { head: 40, collage: 32, latest: 24 }, post: { head: 40, collage: 32, latest: 24 }, square: { head: 48, collage: 40, latest: 32 },
   print: { head: 40, collage: 32, latest: 24 }, desktop: { head: 40, collage: 24, latest: 24 }, wide: { head: 40, collage: 32, latest: 24 },
   printLandscape: { head: 40, collage: 32, latest: 24 },
@@ -300,7 +300,12 @@ export const POSTER_FOOT = { brand: 24, line: 16, min: 12 }
 export const posterIcon = (px: number) => Math.round(px * 1.5)
 const posterIconGap = (px: number) => Math.round(px * 0.5)
 
-export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; target?: number; countSize?: CountSize }
+export type CardContent = {
+  name: boolean; filter: boolean; latest: boolean; count: number; target?: number; countSize?: CountSize
+  /** A view image's own footer (view-image.ts MAP_FOOTER, TREE_FOOTER): short enough to sit beside the wordmark, so
+   *  without a row no room is kept for the credit's own line. */
+  viewFooter?: boolean
+}
 
 /**
  * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: the shown count over "SPECIES" (a filtered
@@ -369,7 +374,10 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
     const footer = { y: H - B - POSTER_FOOT.brand, size: POSTER_FOOT.brand, credit: POSTER_FOOT.line }
     const rule = { y: footer.y - 24 }
     const top = headBottom === undefined ? T : headBottom + GAPS[format].head
-    const collage = { x: X, y: top, w: W - 2 * X, h: rule.y - GAPS[format].collage - top }
+    // On a portrait poster the latest lifer's words never fit beside the credit (placePosterFoot), so they take a second
+    // line and the hairline rises by it: that room is kept under the collage (round 6, item 10: the birds met the hairline).
+    const lift = c.latest && W === PRINT_DESIGN_W ? POSTER_FOOT.line + 12 : 0
+    const collage = { x: X, y: top, w: W - 2 * X, h: rule.y - GAPS[format].collage - lift - top }
     return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
   }
   const footer = { y: H - B - 30 - (format === 'story' ? 4 : 0), size: 30, credit: 20 }
@@ -381,12 +389,13 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   const rule = { y: footer.y - (c.latest || format !== 'desktop' ? 30 : 20) }
   const S = inline ? SMALL_INLINE : SMALL_ROW
   // On the 1080-wide cards the stamped footer line never fits beside the wordmark, so placeFooter lifts the hairline and
-  // the row by a credit line (its `shift`, at most the credit's size + 12): that room is kept under the collage, so the
-  // lifted row still has its gap above it.
-  const lift = c.latest && W === 1080 ? footer.credit + 12 : 0
+  // the row by a credit line (its `shift`, at most the credit's size + 12): that room is kept under the collage, with the
+  // row or without it, so the lifted row, or the hairline itself, keeps its gap above it (round 6, item 10: without the
+  // row the birds came down to the lifted hairline).
+  const lift = W === 1080 && (c.latest || !c.viewFooter) ? footer.credit + 12 : 0
   const latest: CardLayout['latest'] = c.latest ? { x: X, y: rule.y - G.latest - S.icon, icon: S.icon, tw: W - 2 * X - S.icon - 20, label: S.label, name: S.name, ...(inline ? { inline: true } : {}), ...(lift ? { lift } : {}) } : undefined
   const top = headBottom === undefined ? T : headBottom + G.head
-  const bottom = latest ? latest.y - G.latest - lift : rule.y - G.collage
+  const bottom = (latest ? latest.y - G.latest : rule.y - G.collage) - lift
   const collage = { x: X, y: top, w: W - 2 * X, h: bottom - top }
   return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
 }
@@ -945,7 +954,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const goalLabel = goal ? goalText(goal, strings) : undefined
   const filterText = opts.filterLabel?.trim() || goalLabel || undefined
   const named = opts.name?.trim() || undefined
-  const content: CardContent = { name: !!named, filter: !!filterText, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize }
+  const content: CardContent = { name: !!named, filter: !!filterText, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize, ...(opts.footer ? { viewFooter: true } : {}) }
   // A poster's head is its title alone: the name, else the filter in words. Its foot carries the latest lifer in words.
   const name = print ? named ?? filterText : named
   const label = print ? undefined : filterText
@@ -1104,7 +1113,32 @@ export async function prepareCard(opts: ShareImageOpts, scale = 1): Promise<Prep
   const draft = await draftCard(opts, scale)
   await cardFontsReady(draft)
   if (opts.signal?.aborted) throw abortError()
-  return placeFooter(draft)
+  return keepClear(placeFooter(draft))
+}
+
+/**
+ * The birds' lowest edge stays the card's gap (GAPS: `collage`, or `latest` above the latest lifer row) above
+ * where the footer ended up: cardLayout keeps room for the lift it can foresee (a 1080-wide card's credit line, a portrait
+ * poster's second foot line), and where placeFooter lifted the hairline further (a landscape poster whose latest lifer took
+ * its own line), the collage is fitted again into the area that leaves, about its centre, as fitPack would (round 6, item 10).
+ */
+function keepClear(card: PreparedCard): PreparedCard {
+  const { L, shift, fit } = card
+  const G = GAPS[card.format]
+  const limit = L.latest ? L.latest.y - shift - G.latest : L.rule.y - shift - G.collage
+  let low = -Infinity, top = Infinity
+  for (const t of card.tiles) { low = Math.max(low, t.y + t.h); top = Math.min(top, t.y) }
+  for (const c of card.captions ?? []) low = Math.max(low, c.y + c.h)
+  if (!card.tiles.length || low <= limit + 0.5) return card
+  // The area's bottom moves up to the limit; its centre (the count's) moves up by half that, and the birds shrink about it
+  // only as much as their reach below and above the centre needs.
+  const a = L.collage, cy = fit.cy, ny = cy - (low - limit) / 2
+  const half = (limit - a.y) / 2
+  const r = Math.min(1, half / Math.max(low - cy, cy - top, 1e-9))
+  const move = (x: number, y: number) => [fit.cx + (x - fit.cx) * r, ny + (y - cy) * r] as const
+  const tiles = card.tiles.map((t) => { const [x, y] = move(t.x, t.y); return { ...t, x, y, w: t.w * r, h: t.h * r } })
+  const captions = card.captions?.map((c) => { const [cx, y] = move(c.cx, c.y); return { ...c, cx, x: c.x + cx - c.cx, y } })
+  return { ...card, tiles, ...(captions ? { captions } : {}), fit: { ...fit, cy: ny, s: fit.s * r } }
 }
 
 /** The unique sticker URLs a card draws (tiles, then the latest lifer), in that order. Fallbacks are not included. */

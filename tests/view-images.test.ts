@@ -24,7 +24,7 @@ describe('the map image', () => {
   it('six places: in a column under the map in the Story and the portrait poster, in three columns by two rows in every other format, inside the frame', () => {
     expect(TOP_PLACES).toBe(6)
     for (const format of ['story', 'post', 'square', 'desktop', 'wide', 'print', 'printLandscape'] as const) {
-      const c = cardLayout(format, { name: true, filter: true, latest: false, count: 318 }, format.startsWith('print') ? printDesign('A2', format === 'printLandscape') : undefined).collage
+      const c = cardLayout(format, { name: true, filter: true, latest: false, count: 318, viewFooter: true }, format.startsWith('print') ? printDesign('A2', format === 'printLandscape') : undefined).collage
       // The totals take the top of the collage's area (view-image.ts).
       const area = { x: c.x, y: c.y + 100, w: c.w, h: c.h - 100 }
       const grid = !mapListsInColumn(format)

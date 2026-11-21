@@ -347,7 +347,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     const pair = PAIR_CARD[o.format]
     const byCard: Partial<Record<CardFormat, Record<'fan' | 'circle', boolean>>> = { [o.format]: { fan: !!shownFans.fan, circle: !!shownFans.circle } }
     if (pair && shown.root) {
-      const c2 = cardLayout(pair, { name: !!o.name?.trim(), filter: !!o.filterLabel?.trim(), latest: !!oldRow, count: 0, countSize: 'hide' }, posterSize ? printDesign(posterSize, pair === 'printLandscape') : undefined).collage
+      const c2 = cardLayout(pair, { name: !!o.name?.trim(), filter: !!o.filterLabel?.trim(), latest: !!oldRow, count: 0, countSize: 'hide', viewFooter: true }, posterSize ? printDesign(posterSize, pair === 'printLandscape') : undefined).collage
       const h2 = c2.h - totalsAt(c2.w).head
       const fitsOn = (kind: 'fan' | 'circle') => !!fitIn(shownSpans, kind, { w: c2.w, h: h2 - (axisIn(h2) ? (kind === 'fan' ? FAN_AXIS : CIRCLE_AXIS) : 0) - keyH }, IMAGE_SIZES, shownAge)
       byCard[pair] = { fan: fitsOn('fan'), circle: fitsOn('circle') }

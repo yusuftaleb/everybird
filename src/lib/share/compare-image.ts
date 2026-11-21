@@ -13,7 +13,7 @@ import { formatInt } from '@/i18n/format'
 import type { Ui } from '@/i18n/messages/en'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { clipText } from './view-image'
-import { cardLayout, ensureViewFonts, paintCard, prepareCard, type CardFormat, type CardLayout, type FormatSlot, type ImagePack } from './image'
+import { ensureViewFonts, GAPS, paintCard, prepareCard, type CardFormat, type CardLayout, type FormatSlot, type ImagePack } from './image'
 import { listColorHex, ranking, titlePart } from './compare'
 import { diagramLayout, type Box, type Diagram } from './venn'
 
@@ -86,13 +86,9 @@ export function fitParts(
 
 /** The circles' outline on the card (px): half of it lies outside each circle. */
 const OUTLINE = 4
-/** The collage card's gaps in `format`, read from its own layout (image.ts cardLayout): `head` under the head's last
- *  line, `collage` above the footer's hairline. */
-function cardGaps(format: CardFormat): { head: number; collage: number } {
-  const plain = cardLayout(format, { name: false, filter: false, latest: false, count: 0, countSize: 'hide' })
-  const named = cardLayout(format, { name: true, filter: false, latest: false, count: 0, countSize: 'hide' })
-  return { head: named.collage.y - (named.name!.y + named.name!.size), collage: plain.rule.y - (plain.collage.y + plain.collage.h) }
-}
+/** The collage card's gaps in `format` (image.ts GAPS): `head` under the head's last line, `collage` above the footer's
+ *  hairline. */
+const cardGaps = (format: CardFormat): { head: number; collage: number } => GAPS[format]
 /**
  * The diagram's room on the card: from the collage card's head gap under the head (`headBottom`, the counts line's
  * foot) to its collage gap above the footer's hairline, which sits `shift` higher when the credit takes a line of its
