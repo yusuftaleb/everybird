@@ -242,6 +242,12 @@
   .eb-share .eb-share-seg .eb-seg-btn { min-height: 32px; }
   .eb-share .eb-share-seg .eb-seg-btn::after { content: ''; position: absolute; inset: -6px 0; }
 }
+/* Pick several (Totals, round 6, item 25): the site's chips (filters.css .eb-chip), 8px apart, at the row's right and
+   wrapping; on, the Accent border and text with a 14px check before the word. Pick-one choices stay segmented. */
+.eb-share-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; min-width: 0; }
+.eb-share-chips .eb-chip[data-selected] { color: var(--accent); }
+.eb-share-chips .eb-chip-icon { width: 14px; height: 14px; }
+@media (pointer: fine) { .eb-share .eb-share-opt:has(> .eb-share-chips) { min-height: 40px; } }
 /* A choice that can't be picked (the Tree's other orientation; a layout without room for every name): dimmed, still
    focusable, its reason its tooltip and description. */
 .eb-share .eb-seg-btn[aria-disabled="true"] { opacity: .4; cursor: default; }

@@ -49,10 +49,11 @@
 // Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied
 // isn't, from the poster; the ZIPs aren't counted.
 import {
-  ArrowClockwise, CaretDown, DownloadSimple, FilePdf, LinkSimple, Printer, ShareNetwork, X, type Icon,
+  ArrowClockwise, CaretDown, Check, DownloadSimple, FilePdf, LinkSimple, Printer, ShareNetwork, X, type Icon,
 } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar } from '@/components/dialog-utils'
+import { Chip } from '@/components/filters/Chip'
 import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { HTML_LANG } from '@/i18n/langs'
@@ -1110,15 +1111,17 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         }))
       }
       case 'totals':
-        // One toggle chip per total the image draws, each on or off (none included), in the segments' look; under the
-        // label where they don't fit beside it, as Count.
+        // Pick several (round 6, item 25): the site's chips, one toggle each (none included), a check before the word while
+        // on; pick-one choices stay segmented. At the row's right, wrapping under the label where they don't fit beside it.
         return optRow(r, totalsId, t.share.totals, (
-          <div className="eb-seg eb-share-seg" role="group" aria-labelledby={totalsId} data-testid="share-totals">
-            {totalsOffered.map((k) => (
-              <button key={k} type="button" className="eb-seg-btn" aria-pressed={totals.includes(k)} onClick={() => setTotals((was) => toggleTotal(totalsOffered, was, k))}>
-                {k === 'countries' ? t.places.head.country : t.collage.tree.rank[k]}
-              </button>
-            ))}
+          <div className="eb-share-chips" role="group" aria-labelledby={totalsId} data-testid="share-totals">
+            {totalsOffered.map((k) => {
+              const on = totals.includes(k)
+              return (
+                <Chip key={k} selected={on} onClick={() => setTotals((was) => toggleTotal(totalsOffered, was, k))}
+                  label={<>{on && <Check aria-hidden="true" focusable="false" weight="bold" className="eb-chip-icon" />}{k === 'countries' ? t.places.head.country : t.collage.tree.rank[k]}</>} />
+              )
+            })}
           </div>
         ))
       case 'latest':
