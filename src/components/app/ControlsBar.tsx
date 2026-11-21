@@ -4,15 +4,19 @@
 // DockPanelButton; round 6, Yusuf, 2026-11-20): Taxa (the taxonomy chips), Display (what changes how the view looks:
 // Collage and Tree only) and Filters, one panel open at a time (CollageView, dock-panels.ts); then the magnifier. In
 // Collage and Tree nothing else sits in the bar: their switches and choices are the Display panel's (DisplayPanel.tsx).
-// List and Map keep their few controls in the bar, before the panel buttons: the sort direction (List) and the
-// Scientific switch (both; in Map it changes nothing on the map, so the setting can be changed from any view). The
+// List and Map keep their few controls in the bar, before the panel buttons: the Sort menu (List: Family (with family
+// headings, ListView), Newest first (the default), Oldest first, Heaviest first, Lightest first; a dock button showing the current order and a caret, opening
+// MenuSelect's small menu with its keyboard) and the Scientific switch (both; in Map it changes nothing on the map, so the setting can be changed from any view). The
 // magnifier turns the dock into the search field (DockSearch.tsx); everything else sits under it, inert, while it is
 // open. Under 820px of bar the controls and panel buttons take a second row of their own; under 1100px the views are
-// icons only; under 540px of bar (and on phones) the switches shorten ("Sci."; "Heaviest" in list view), and under 330px
+// icons only; under 540px of bar (and on phones) the switches and the sort shorten ("Sci."; "Newest" in list view), and under 330px
 // and 310px everything tightens, so row one (the views and the magnifier) never breaks from 280px of bar.
-import { useCallback, useRef, useState, type ReactNode } from 'react'
-import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
+import { CaretDown } from '@phosphor-icons/react'
+import { useCallback, useId, useRef, useState, type ReactNode } from 'react'
+import { CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
+import { MenuList } from '@/components/share/MenuSelect'
 import { useI18n } from '@/i18n/I18nProvider'
+import { LIST_ORDERS, type ListOrder } from '@/lib/list/list-order'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
 import type { ViewKind } from '@/lib/view-resume'
 import { DockSearchField, SearchButton, type DockSearchProps } from './DockSearch'
@@ -22,8 +26,8 @@ type Props = {
   onView: (v: ViewKind) => void
   /** No Map tab (a view with no places). */
   noMap?: boolean
-  lightFirst: boolean
-  onDirection: () => void
+  listOrder: ListOrder
+  onListOrder: (o: ListOrder) => void
   sci: boolean
   onSci: (on: boolean) => void
   /** The search (left out: no magnifier). */
@@ -52,7 +56,53 @@ function DockSwitch({ on, onChange, long, short, sr, className, title, testId }:
   )
 }
 
-export function ControlsBar({ view, onView, noMap, lightFirst, onDirection, sci, onSci, search, panels, filters, below, onFind }: Props) {
+/** The List view's Sort menu: a dock button with the current order (its short form on narrow bars and phones) and a
+ *  caret, named "Sort: Newest first"; the menu is MenuSelect's (a check on the current order, arrows, Home, End,
+ *  Escape back to the button, Tab or a press outside closes it). */
+function SortMenu({ value, onChange }: { value: ListOrder; onChange: (o: ListOrder) => void }) {
+  const { t } = useI18n()
+  const c = t.collage.controls
+  const id = useId()
+  const [open, setOpen] = useState(false)
+  const btn = useRef<HTMLButtonElement>(null)
+  const esc = useRef<(() => void) | null>(null) // MenuList's hook for a dialog's Escape; the menu takes its own here
+  const long = (o: ListOrder) => (o === 'family' ? c.family : c[`${o}First`])
+  const short = (o: ListOrder) => (o === 'family' ? c.family : c[o])
+  const close = (refocus: boolean) => {
+    setOpen(false)
+    if (refocus) btn.current?.focus()
+  }
+  return (
+    <div className="eb-dock-sortwrap">
+      <button
+        ref={btn} type="button" className="eb-dock-tab eb-dock-sw eb-dock-dir"
+        aria-haspopup="menu" aria-expanded={open} aria-controls={open ? `${id}-menu` : undefined}
+        aria-label={`${c.sort}: ${long(value)}`} data-testid="dock-sort"
+        onClick={() => (open ? close(false) : setOpen(true))}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault()
+            setOpen(true)
+          }
+        }}
+      >
+        <span>
+          <span className="eb-long">{long(value)}</span>
+          <span className="eb-short">{short(value)}</span>
+        </span>
+        <CaretDown aria-hidden="true" focusable="false" className="eb-drop-caret" />
+      </button>
+      {open && (
+        <MenuList
+          id={`${id}-menu`} label={c.sort} options={LIST_ORDERS.map((o) => ({ value: o, label: long(o) }))} value={value}
+          btn={btn} escapeRef={esc} onPick={(o) => { close(true); if (o !== value) onChange(o) }} onClose={close}
+        />
+      )}
+    </div>
+  )
+}
+
+export function ControlsBar({ view, onView, noMap, listOrder, onListOrder, sci, onSci, search, panels, filters, below, onFind }: Props) {
   const [finding, setFinding] = useState(false)
   // Whether the search is open is carried over a language switch (view-resume.ts); the typed text is not.
   const hasSearch = !!search
@@ -74,13 +124,7 @@ export function ControlsBar({ view, onView, noMap, lightFirst, onDirection, sci,
   // Only List and Map keep controls in the bar (Collage's and Tree's are the Display panel's).
   const tools = view === 'list' ? (
     <>
-      <button type="button" className="eb-dock-tab eb-dock-sw eb-dock-dir" aria-label={lightFirst ? c.sortedLightest : c.sortedHeaviest} data-testid="dock-sort" onClick={onDirection}>
-        <span>
-          <span className="eb-long">{lightFirst ? c.lightestFirst : c.heaviestFirst}</span>
-          <span className="eb-short">{lightFirst ? c.lightest : c.heaviest}</span>
-        </span>
-        <ArrowDownIcon up={lightFirst} />
-      </button>
+      <SortMenu value={listOrder} onChange={onListOrder} />
       {sciSwitch}
     </>
   ) : view === 'map' ? sciSwitch : null

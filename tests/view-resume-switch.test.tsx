@@ -32,7 +32,7 @@ function stubFetch() {
 
 const KEY = 'everybird:resume:v1'
 const carried = {
-  collage: { filter: { order: 'Passeriformes' }, mode: 'true', view: 'list', massOrder: 'lightest', sci: true },
+  collage: { filter: { order: 'Passeriformes' }, mode: 'true', view: 'list', listOrder: 'lightest', sci: true },
   search: { open: true },
 }
 
@@ -70,7 +70,7 @@ describe('the list store after a language switch', () => {
     expect(s.filter).toEqual({ order: 'Passeriformes' })
     expect(s.mode).toBe('true')
     expect(s.view).toBe('list')
-    expect(s.massOrder).toBe('lightest')
+    expect(s.listOrder).toBe('lightest')
     expect(s.sci).toBe(true)
     expect(spy.track).not.toHaveBeenCalled()
     expect(spy.trackFilterUsed).not.toHaveBeenCalled()
@@ -145,7 +145,7 @@ describe('the dock search after a language switch', () => {
     render(
       <StrictMode>
         <I18n>
-          <ControlsBar view="collage" onView={() => {}} lightFirst={false} onDirection={() => {}} sci={false} onSci={() => {}} search={search} />
+          <ControlsBar view="collage" onView={() => {}} listOrder="heaviest" onListOrder={() => {}} sci={false} onSci={() => {}} search={search} />
         </I18n>
       </StrictMode>,
     )
@@ -177,7 +177,7 @@ describe('the collage after a restore', () => {
     // The order the provider applies: the stored list, then the carried view, before the first render.
     const init = reduce(reduce(initialState(), { type: 'restore', saved }), {
       type: 'resume',
-      view: { filter: { order: 'Piciformes' }, mode: 'even', view: 'collage', massOrder: 'heaviest', sci: false },
+      view: { filter: { order: 'Piciformes' }, mode: 'even', view: 'collage', listOrder: 'heaviest', sci: false },
     })
     const api: { dispatch?: (a: Parameters<typeof reduce>[1]) => void } = {}
     function Harness() {

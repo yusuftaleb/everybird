@@ -8,6 +8,7 @@
 import { isContinentId } from './places/continents'
 import { isRegionPresetId } from './places/presets'
 import type { Filter } from './list/filters'
+import { listOrderOf, type ListOrder } from './list/list-order'
 import { STATUS_FILTER_CATS, type StatusFilterCat } from './species/status-filter'
 
 export const RESUME_KEY = 'everybird:resume:v1'
@@ -21,7 +22,7 @@ export type CollageResume = {
   filter: Filter
   mode: 'even' | 'true'
   view: ViewKind
-  massOrder: 'heaviest' | 'lightest'
+  listOrder: ListOrder
   sci: boolean
 }
 /** The collage search: whether its field is open. The typed text is not carried: it would be read again in the new language. */
@@ -71,9 +72,10 @@ function slicesOf(v: unknown): Slices {
   if (c && typeof c === 'object') {
     const mode = one(c.mode, ['even', 'true'] as const)
     const view = one(c.view, ['collage', 'list', 'map', 'tree'] as const)
-    const massOrder = one(c.massOrder, ['heaviest', 'lightest'] as const)
+    // An unknown sort is the default, not a dropped slice; a record from before the rename carries `massOrder`.
+    const listOrder = listOrderOf(c.listOrder ?? c.massOrder)
     const sci = bool(c.sci)
-    if (mode && view && massOrder && sci !== undefined) out.collage = { filter: filterOf(c.filter), mode, view, massOrder, sci }
+    if (mode && view && sci !== undefined) out.collage = { filter: filterOf(c.filter), mode, view, listOrder, sci }
   }
   const s = (r.search ?? undefined) as Record<string, unknown> | undefined
   if (s && typeof s === 'object' && bool(s.open) !== undefined) out.search = { open: bool(s.open)! }

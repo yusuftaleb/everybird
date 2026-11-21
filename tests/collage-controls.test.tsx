@@ -90,13 +90,46 @@ describe('controls bar', () => {
     expect(screen.queryByTestId('display-button')).toBeNull()
     expect(screen.queryByTestId('display-panel')).toBeNull()
     expect(screen.getByTestId('dock-sci')).toHaveAccessibleName(/^Scientific.*names$/) // jsdom reads the short label too
-    const dir = screen.getByRole('button', { name: 'Sorted by body mass, heaviest first. Reverse order' })
-    expect(dir).toHaveTextContent('Heaviest first')
-    const rowNames = () => screen.getAllByRole('listitem').map((li) => li.querySelector('.eb-row-primary')!.textContent)
+    // The default is Newest first; the rest of the five are in the menu.
+    const sort = screen.getByRole('button', { name: 'Sort: Newest first' })
+    expect(sort).toHaveTextContent('Newest first')
+    expect(sort).toHaveAttribute('aria-haspopup', 'menu')
+    const rowNames = () => [...document.querySelectorAll('.eb-lrow .eb-row-primary')].map((el) => el.textContent)
+    expect(rowNames()).toEqual(['Yellow-rumped Warbler', 'American Robin', 'Gilded Flicker', 'Northern Flicker', 'Snow Goose'])
+    expect(screen.queryByRole('heading', { level: 2 })).toBeNull() // headings only in Family
+    fireEvent.click(sort)
+    const menu = screen.getByRole('menu', { name: 'Sort' })
+    const items = within(menu).getAllByRole('menuitemradio')
+    expect(items.map((i) => i.textContent)).toEqual(['Family', 'Newest first', 'Oldest first', 'Heaviest first', 'Lightest first'])
+    expect(items[1]).toHaveAttribute('aria-checked', 'true')
+    expect(items[1]).toHaveFocus()
+    fireEvent.keyDown(items[1], { key: 'ArrowDown' })
+    fireEvent.keyDown(items[2], { key: 'ArrowDown' })
+    expect(items[3]).toHaveFocus()
+    fireEvent.click(items[3])
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Sort: Heaviest first' })).toHaveFocus()
     expect(rowNames()[0]).toBe('Snow Goose')
-    fireEvent.click(dir)
-    expect(screen.getByRole('button', { name: 'Sorted by body mass, lightest first. Reverse order' })).toHaveTextContent('Lightest first')
-    expect(rowNames()[0]).toBe('Yellow-rumped Warbler')
+    // Escape closes the menu without a change and gives the button its focus back.
+    fireEvent.keyDown(screen.getByTestId('dock-sort'), { key: 'ArrowDown' })
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(screen.getByTestId('dock-sort')).toHaveFocus()
+    expect(screen.getByTestId('dock-sort')).toHaveAccessibleName('Sort: Heaviest first')
+    // Family: taxonomic order under one heading per family, named as the Tree's rows, with its count on the list.
+    fireEvent.click(screen.getByTestId('dock-sort'))
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitemradio', { name: 'Family' }))
+    expect(rowNames()).toEqual(['Snow Goose', 'Northern Flicker', 'Gilded Flicker', 'American Robin', 'Yellow-rumped Warbler'])
+    const heads = screen.getAllByRole('heading', { level: 2 })
+    expect(heads.map((h) => h.querySelector('.eb-lhead-name')!.textContent)).toEqual(['Ducks, Geese, and Waterfowl', 'Woodpeckers', 'Thrushes', 'New World Warblers'])
+    expect(heads.map((h) => h.querySelector('.eb-lhead-count')!.textContent)).toEqual(['1', '2', '1', '1'])
+    expect(heads[1]).toHaveAccessibleName('Woodpeckers, 2 species')
+    // The Scientific switch names the families as the Tree does.
+    fireEvent.click(screen.getByTestId('dock-sci'))
+    const sciHead = screen.getAllByRole('heading', { level: 2 })[1].querySelector('.eb-lhead-name')!
+    expect(sciHead).toHaveTextContent('Picidae')
+    expect(sciHead).toHaveAttribute('lang', 'la')
+    fireEvent.click(screen.getByTestId('dock-sci'))
   })
 })
 
@@ -257,7 +290,7 @@ describe('Scientific names', () => {
     expect(screen.getByRole('navigation', { name: 'Filter by group' })).toHaveTextContent('All birds/Piciformes')
     // List rows: scientific first, common second.
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
-    const li = screen.getAllByRole('listitem')[0]
+    const li = screen.getAllByRole('listitem').find((el) => el.querySelector('[data-code="norfli"]'))!
     const primary = li.querySelector('.eb-row-primary')!
     expect(primary).toHaveTextContent('Colaptes auratus')
     expect(primary).toHaveAttribute('lang', 'la')

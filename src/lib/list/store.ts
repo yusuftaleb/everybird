@@ -8,6 +8,7 @@ import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { validBigYear, type BigYear } from './big-year'
 import { buildList } from './build-list'
 import type { Filter } from './filters'
+import { DEFAULT_LIST_ORDER, type ListOrder } from './list-order'
 import { applyFilterValidity } from './filters-validate'
 import { slotSource, unmatchedKey } from './model'
 import { slottedRecords } from './source-counts'
@@ -28,7 +29,8 @@ export type AppState = {
   filter: Filter
   mode: 'even' | 'true'
   view: ViewKind
-  massOrder: 'heaviest' | 'lightest'
+  /** The List view's sort (list-order.ts); carried over a language switch, never stored. */
+  listOrder: ListOrder
   /** Scientific names lead wherever a bird or group is named (LifeList's Scientific switch); never stored. */
   sci: boolean
   persistence: 'saved' | 'memory-only' | 'idle'
@@ -44,7 +46,7 @@ export type Action =
   | { type: 'filter'; filter: Filter }
   | { type: 'mode'; mode: AppState['mode'] }
   | { type: 'view'; view: AppState['view'] }
-  | { type: 'massOrder'; massOrder: AppState['massOrder'] }
+  | { type: 'listOrder'; listOrder: ListOrder }
   | { type: 'sci'; sci: boolean }
   | { type: 'restore'; saved: Saved }
   /** The view carried over a language switch (view-resume.ts): applied with the stored list, before the first paint. */
@@ -116,7 +118,7 @@ export function initialState(): AppState {
     filter: {},
     mode: 'even',
     view: 'collage',
-    massOrder: 'heaviest',
+    listOrder: DEFAULT_LIST_ORDER,
     sci: false,
     persistence: 'idle',
   }
@@ -145,8 +147,8 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
         return { ...s, mode: a.mode }
       case 'view':
         return { ...s, view: a.view }
-      case 'massOrder':
-        return { ...s, massOrder: a.massOrder }
+      case 'listOrder':
+        return { ...s, listOrder: a.listOrder }
       case 'sci':
         return { ...s, sci: a.sci }
       case 'resume':
@@ -155,7 +157,7 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
           filter: applyFilterValidity(a.view.filter, s.list, ctx.species, true, s.seen),
           mode: a.view.mode,
           view: a.view.view,
-          massOrder: a.view.massOrder,
+          listOrder: a.view.listOrder,
           sci: a.view.sci,
         }
       case 'persistence':
@@ -226,7 +228,7 @@ export function useEverybird(opts: { deferIfEmpty?: boolean } = {}): [AppState, 
   const carried = useRef<CollageResume | null | undefined>(undefined)
   const [meta, setMeta] = useState<EverybirdMeta>({ ready: false })
   // Until the carried view is applied (ready), it is what a switch carries on, not the default state.
-  useOfferResume('collage', () => (!meta.ready && carried.current ? carried.current : { filter: state.filter, mode: state.mode, view: state.view, massOrder: state.massOrder, sci: state.sci }))
+  useOfferResume('collage', () => (!meta.ready && carried.current ? carried.current : { filter: state.filter, mode: state.mode, view: state.view, listOrder: state.listOrder, sci: state.sci }))
   const seen = useRef(state.saved) // last `saved` we looked at; only a different one schedules a save
   const skipSave = useRef(false) // the next change to `saved` comes from load/forget and must not be written
   const pending = useRef<Saved | null>(null)

@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { useState } from 'react'
+import type { ListOrder } from '@/lib/list/list-order'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BirdCard, BirdFacts } from '@/components/collage/BirdCard'
 import { ListView } from '@/components/collage/ListView'
@@ -255,23 +255,23 @@ describe('ListView', () => {
     entry('tinyc'),
     entry('bigge'),
   ]
-  const names = () => screen.getAllByRole('listitem').map((li) => within(li).getByText(/^(Alpha|Beta|Gamma|Delta) /).textContent)
+  const names = () => [...document.querySelectorAll('.eb-lrow')].map((li) => within(li as HTMLElement).getByText(/^(Alpha|Beta|Gamma|Delta) /).textContent)
 
-  function Harness({ onPick = () => {} }: { onPick?: (c: string) => void }) {
-    const [order, setOrder] = useState<'heaviest' | 'lightest'>('heaviest')
-    return (
-      <>
-        <button onClick={() => setOrder(order === 'heaviest' ? 'lightest' : 'heaviest')}>Reverse</button>
-        <ListView entries={entries} species={species} regions={regions} order={order} onPick={onPick} />
-      </>
-    )
+  function Harness({ onPick = () => {}, order = 'heaviest' }: { onPick?: (c: string) => void; order?: ListOrder }) {
+    return <ListView entries={entries} species={species} regions={regions} order={order} onPick={onPick} />
   }
 
-  it('list sorts by mass, heaviest or lightest first (the direction lives in the controls bar)', () => {
-    render(<Harness />)
+  it('list sorts by the Sort menu: family, newest or oldest (undated last), heaviest or lightest', () => {
+    const { rerender } = render(<Harness />)
     expect(names()).toEqual(['Delta Heavy', 'Alpha Crow', 'Beta Wren', 'Gamma Tiny'])
-    fireEvent.click(screen.getByRole('button', { name: 'Reverse' }))
+    rerender(<Harness order="lightest" />)
     expect(names()).toEqual(['Gamma Tiny', 'Beta Wren', 'Alpha Crow', 'Delta Heavy'])
+    rerender(<Harness order="family" />)
+    expect(names()).toEqual(['Alpha Crow', 'Beta Wren', 'Gamma Tiny', 'Delta Heavy'])
+    rerender(<Harness order="newest" />)
+    expect(names()).toEqual(['Beta Wren', 'Alpha Crow', 'Gamma Tiny', 'Delta Heavy'])
+    rerender(<Harness order="oldest" />)
+    expect(names()).toEqual(['Alpha Crow', 'Beta Wren', 'Gamma Tiny', 'Delta Heavy'])
   })
 
   it('rows show mass, place and date, and open the card', () => {
@@ -283,6 +283,23 @@ describe('ListView', () => {
     expect(li).toHaveTextContent('2022')
     fireEvent.click(within(li).getByRole('button'))
     expect(onPick).toHaveBeenCalledWith('crowa', expect.any(HTMLElement))
+  })
+
+  it('Family puts one heading per family over its rows; the other orders have none', () => {
+    const fams = buildSpeciesIndex([
+      { ...row('a1', 'Alpha One', 1, 50), fam: 'Anatidae', famCom: 'Ducks' },
+      { ...row('a2', 'Alpha Two', 2, 900), fam: 'Anatidae', famCom: 'Ducks' },
+      { ...row('b1', 'Beta One', 3, 10), fam: 'Picidae', famCom: 'Woodpeckers' },
+    ])
+    const list = [entry('b1'), entry('a2'), entry('a1')]
+    const { rerender } = render(<ListView entries={list} species={fams} regions={regions} order="family" onPick={() => {}} />)
+    const heads = screen.getAllByRole('heading', { level: 2 })
+    expect(heads.map((h) => h.textContent)).toEqual(['Ducks2, 2 species', 'Woodpeckers1, 1 species'])
+    expect(heads[0].closest('li')!.querySelectorAll('.eb-lrow')).toHaveLength(2)
+    rerender(<ListView entries={list} species={fams} regions={regions} order="family" sci onPick={() => {}} />)
+    expect(screen.getAllByRole('heading', { level: 2 })[0]).toHaveAccessibleName('Anatidae, 2 species')
+    rerender(<ListView entries={list} species={fams} regions={regions} order="newest" onPick={() => {}} />)
+    expect(screen.queryByRole('heading')).toBeNull()
   })
 
   it('renders 5,000 rows', () => {
@@ -375,16 +392,16 @@ describe('in Spanish', () => {
     expect(mass).toHaveTextContent('~4,3 g')
     expect(mass).toHaveTextContent('Masa corporal media, estimada a partir de su familia')
   })
-  it("the list view's rows and the direction switch: es.ui's heaviest first", () => {
+  it("the list view's rows and the Sort menu: es.ui's heaviest first", () => {
     render(
       <>
-        <ControlsBar view="list" onView={() => {}} lightFirst={false} onDirection={() => {}} sci={false} onSci={() => {}} />
+        <ControlsBar view="list" onView={() => {}} listOrder="heaviest" onListOrder={() => {}} sci={false} onSci={() => {}} />
         <ListView entries={[entry('pelica', { date: '2026-09-02' })]} species={heavy} regions={regions} order="heaviest" onPick={() => {}} />
       </>,
       { wrapper: withI18n('es') },
     )
     const c = es.ui.collage.controls
-    const dir = screen.getByRole('button', { name: c.sortedHeaviest })
+    const dir = screen.getByRole('button', { name: `${c.sort}: ${c.heaviestFirst}` })
     expect(dir).toHaveTextContent(c.heaviestFirst)
     const list = screen.getByRole('list', { name: 'Lista de vida' })
     expect(list).toHaveTextContent('2,4 kg')
