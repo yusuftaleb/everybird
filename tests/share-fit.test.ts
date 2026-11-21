@@ -167,11 +167,12 @@ describe('the option rows and Print\'s actions', () => {
     expect(css).toMatch(/@container \(max-width: 399px\) \{[^}]*\}\s*\.eb-share \.eb-share-seg \.eb-seg-btn \{ padding: 0 6px; \}/)
     expect(css).toMatch(/@container \(max-width: 289px\) \{[^}]*\}\s*\.eb-share \.eb-share-seg \.eb-seg-btn \{ padding: 0 4px; font-size: 12px; \}/)
   })
-  it('keeps Count, Colours and the Tree\'s arrangement whole in every language at every column', () => {
+  it('keeps Count, Colours, the Tree\'s arrangement and Compare\'s What whole in every language at every column', () => {
     const over: string[] = []
     for (const [lang, m] of Object.entries(LANG)) {
       const c = m.ui.share.countSize, col = m.ui.share.colours, tl = m.ui.collage.tree.layouts
-      const sets = { count: [c.hide, c.short.small, c.short.medium, c.short.large, c.title], colours: [col.light, col.dark], tree: [tl.fan, tl.circle, tl.rows] }
+      const w = m.ui.share.what
+      const sets = { count: [c.hide, c.short.small, c.short.medium, c.short.large, c.title], colours: [col.light, col.dark], tree: [tl.fan, tl.circle, tl.rows], what: [w.comparison, w.wish] }
       for (const [name, labels] of Object.entries(sets)) {
         if (segW(labels, 14, 10) > COLUMNS.desktop) over.push(`${lang} ${name} in the 420px column`)
         if (segW(labels, 14, 6) > COLUMNS.narrow) over.push(`${lang} ${name} in the 300px column`)
@@ -186,7 +187,10 @@ describe('the option rows and Print\'s actions', () => {
     const over: string[] = []
     for (const [lang, m] of Object.entries(LANG)) {
       const s = m.ui.share, c = s.countSize, tl = m.ui.collage.tree.layouts
-      const rows: [string, string[]][] = [[c.label, [c.hide, c.short.small, c.short.medium, c.short.large, c.title]], [s.colours.label, [s.colours.light, s.colours.dark]], [s.arrange.label, [tl.fan, tl.circle, tl.rows]]]
+      const rows: [string, string[]][] = [
+        [c.label, [c.hide, c.short.small, c.short.medium, c.short.large, c.title]], [s.colours.label, [s.colours.light, s.colours.dark]],
+        [s.arrange.label, [tl.fan, tl.circle, tl.rows]], [s.what.label, [s.what.comparison, s.what.wish]],
+      ]
       for (const [label, labels] of rows) {
         const need = measured(label, 16) + 16 + segW(labels, 14, 10)
         if (need > COLUMNS.laptop) over.push(`${lang} "${label}": ${Math.ceil(need)}px`)

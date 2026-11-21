@@ -1,23 +1,21 @@
 'use client'
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
-import { PencilSimple, X } from '@phosphor-icons/react'
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
-import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
-import { compareGroups, gridCols, GRID_ROWS, groupPayload, ranking, regionCounts, type CompareGroup, type GroupId } from '@/lib/share/compare'
-import type { CompareCard } from '@/lib/share/compare-image'
+import { compareGroups, gridCols, GRID_ROWS, groupOfMask, groupPayload, listColor, ranking, regionCounts, type CompareGroup, type GroupId } from '@/lib/share/compare'
 import { ymToDate } from '@/lib/share/convert'
-import { NAME_MAX, type SharePayload } from '@/lib/share/link'
+import type { SharePayload } from '@/lib/share/link'
 import { shareTitle } from '@/lib/share/og'
+import { diagramLayout, maskAt, type Diagram } from '@/lib/share/venn'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { displayName } from '@/lib/species/names'
 import { useLoadNames, useNames } from '@/lib/species/use-names'
-import { currentTheme, subscribeTheme, type Theme } from '@/lib/theme'
-import { Chip } from '@/components/filters/Chip'
+import type { CompareShare } from '@/components/share/dialog-options'
 import { Sticker } from '@/components/collage/Sticker'
+import '@/components/share/share.css' // .eb-seg, the share dialog's segmented control (Circles | Bars)
 import './compare.css'
 
 /** Each list's name in the comparison: its title, else "Birder 2" by its place in the comparison. */
@@ -25,52 +23,25 @@ export function listLabels(lists: readonly SharePayload[], t: Ui): string[] {
   return lists.map((p, i) => shareTitle(p, t) ?? fmt(t.compare.birder, { n: i + 1 }))
 }
 
-/** Renaming every list and removing the pasted ones (the Compare page's; a shared comparison has neither). */
-export type CompareEdit = { rename: (i: number, name: string) => void; canRemove: (i: number) => boolean; remove: (i: number) => void }
-
 const entriesOf = (p: SharePayload): ListEntry[] =>
   p.birds.map((b) => ({ code: b.code, ...(b.ym !== undefined ? { date: ymToDate(b.ym, b.yearOnly) } : {}), heard: false, dead: false, media: false, sources: ['ebird'] }))
 const sizeOf = (p: SharePayload) => new Set(p.birds.map((b) => b.code)).size
-const lightOnServer = (): Theme => 'light'
 const NO_LIST: ListEntry[] = []
 /** A group's birds in taxonomic order (those the species file knows). */
 const byTaxon = (codes: readonly string[], species: SpeciesIndex) =>
   codes.filter((c) => species.byCode.has(c)).sort((a, b) => species.byCode.get(a)!.to - species.byCode.get(b)!.to)
 
 /**
- * Share `blob` through the system sheet where the browser takes files (with the full sticker credit as its text), else
- * download it. 'cancelled': the birder closed the sheet.
+ * A comparison's state: the groups, the chosen one, and `draw`, the Share dialog's two pictures (the comparison card
+ * and the wish list). `lists`: two or more (fewer: nothing to show). `you`: the first list is the viewer's own (it opens
+ * on "Yet to see" and offers the wish list). Each list's name is its title (listLabels). Reads and writes nothing of
+ * the saved list.
  */
-async function shareOrSave(blob: Blob, file: string, text: string): Promise<'shared' | 'saved' | 'cancelled'> {
-  const f = new File([blob], file, { type: 'image/png' })
-  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
-  if (typeof nav.share === 'function' && nav.canShare?.({ files: [f] })) {
-    try {
-      await nav.share({ files: [f], title: 'Everybird', text })
-      return 'shared'
-    } catch (e) {
-      if ((e as Error)?.name === 'AbortError') return 'cancelled'
-    }
-  }
-  downloadBlob(blob, file)
-  return 'saved'
-}
-
-/**
- * A comparison's state and its sharing, for the page head's buttons and the result under it. `lists`: two or more
- * (fewer: nothing is drawn, nothing can be shared). `you`: the first list is the viewer's own (it opens on "Yet to see"
- * and offers the wish list). `labels`: the lists' names here (default listLabels). Reads and writes nothing of the
- * saved list.
- */
-export function useComparison(lists: readonly SharePayload[], { you = false, labels: named }: { you?: boolean; labels?: readonly string[] } = {}) {
+export function useComparison(lists: readonly SharePayload[], { you = false }: { you?: boolean } = {}) {
   const { t } = useI18n()
   const [data, setData] = useState<{ species: SpeciesIndex } | null>(null)
   const [failed, setFailed] = useState(false)
   const [chosen, setChosen] = useState<GroupId | null>(null)
-  const [card, setCard] = useState<(CompareCard & { url: string }) | null>(null)
-  const [note, setNote] = useState<{ text: string; error?: boolean } | null>(null)
-  const [busy, setBusy] = useState(false)
-  const theme = useSyncExternalStore(subscribeTheme, currentTheme, lightOnServer)
   useEffect(() => {
     let live = true
     loadSpecies().then((species) => { if (live) setData({ species }) }, () => { if (live) setFailed(true) })
@@ -80,15 +51,14 @@ export function useComparison(lists: readonly SharePayload[], { you = false, lab
   useNames()
 
   const ready = lists.length >= 2
-  const fallback = listLabels(lists, t)
-  const labels = named ?? fallback
+  const labels = listLabels(lists, t)
   const sizes = useMemo(() => lists.map(sizeOf), [lists])
   const groups = useMemo(() => compareGroups(lists, you), [lists, you])
   const counts = useMemo(() => regionCounts(lists), [lists])
   const group = groups.find((g) => g.id === chosen) ?? groups.find((g) => g.id === (you ? 'need' : 'all'))!
   const need = groups.find((g) => g.id === 'need')
   const two = lists.length === 2
-  /** A chip's words: on the page "Only you" for the viewer's own; on the card (which travels) always a name. */
+  /** A group's words: on the page "Only you" for the viewer's own; on the card (which travels) always a name. */
   const groupLabel = (g: CompareGroup, onCard = false) =>
     g.id === 'need' ? t.compare.yetToSee
       : g.id === 'all' ? (two ? t.compare.both : t.compare.everyone)
@@ -98,7 +68,7 @@ export function useComparison(lists: readonly SharePayload[], { you = false, lab
     two ? plural(t.compare.wish, n, { n: formatInt(n, t.num), name: labels[1] }) : plural(t.compare.wishAll, n, { n: formatInt(n, t.num) })
   const caption = group.id === 'need' ? wishTitle(group.codes.length) : fmt(t.compare.cardCount, { label: groupLabel(group, true), n: formatInt(group.codes.length, t.num) })
 
-  // Every number in the diagram, in words: the card's text alternative.
+  // Every number in the diagram, in words: the diagram's and the card's text alternative.
   const n = lists.length
   const full = (1 << n) - 1
   const masks = n === 2 ? [1, 3, 2] : n === 3 ? [1, 2, 4, 3, 5, 6, 7] : [full, ...lists.map((_, i) => 1 << i)]
@@ -108,96 +78,104 @@ export function useComparison(lists: readonly SharePayload[], { you = false, lab
     return fmt(t.compare.altPart, { label, n: formatInt(counts[m] ?? 0, t.num) })
   }).join(' ')
 
-  // The card, drawn again whenever what it shows changes (and in the page's theme).
-  const codes = useMemo(() => (data ? byTaxon(group.codes, data.species) : []), [data, group])
-  const key = `${labels.join('\n')}\n${caption}\n${theme}`
-  useEffect(() => {
-    if (!data || !ready) return
-    let live = true
-    import('@/lib/share/compare-image')
-      .then((m) => m.drawCompareCard({ names: [...labels], sizes, counts, caption, codes, species: data.species, theme, t }))
-      .then((c) => { if (live) setCard({ ...c, url: URL.createObjectURL(c.blob) }) }, () => { if (live) setNote({ text: t.share.imageFailed, error: true }) })
-    return () => { live = false }
-    // labels, caption and theme are in key
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, ready, key, sizes, counts, codes, t])
-  const url = card?.url
-  useEffect(() => () => { if (url) URL.revokeObjectURL(url) }, [url])
-
-  const send = async (blob: Blob, file: string) => {
-    const { SHARE_CREDIT } = await import('@/lib/share/image')
-    const r = await shareOrSave(blob, file, SHARE_CREDIT)
-    setNote(r === 'saved' ? { text: fmt(t.share.saved, { file }) } : null)
-  }
-  const shareCard = () => { if (card) void send(card.blob, 'everybird-compare.png') }
-  // The wish list: the birds on the others' lists the viewer has yet to see, as a share image of its own.
+  const codes = data ? byTaxon(group.codes, data.species) : []
+  // The wish list: the birds on the others' lists the viewer has yet to see.
   const canWish = ready && you && !!need?.codes.length
-  const shareWish = async () => {
-    if (!data || !need || busy) return
-    setBusy(true)
-    try {
-      const { renderShareImage } = await import('@/lib/share/image')
-      const blob = await renderShareImage({
-        format: 'post', entries: entriesOf(groupPayload(lists, need.codes)), species: data.species, theme, latest: false, countSize: 'hide',
-        name: wishTitle(need.codes.length), strings: t, nameOf: displayName,
-      })
-      await send(blob, 'everybird-wish-list.png')
-    } catch {
-      setNote({ text: t.share.imageFailed, error: true })
-    } finally {
-      setBusy(false)
-    }
-  }
   /** Why the wish list can't be made, once a comparison shows ('' when it can). */
   const wishReason = !ready || canWish ? '' : you ? t.compare.wishNone : t.compare.wishNeedsYours
+  /** The Share dialog's pictures, in its format and colours: the card (the chosen group's caption and strip) or the wish list. */
+  const draw: CompareShare['draw'] = async (what, { format, theme, transparent }) => {
+    if (!data) throw new Error('The species are not loaded yet')
+    if (what === 'wish') {
+      if (!need) throw new Error('No wish list without a list of your own')
+      const { renderShareImage } = await import('@/lib/share/image')
+      return renderShareImage({
+        format, entries: entriesOf(groupPayload(lists, need.codes)), species: data.species, theme, transparent, latest: false, countSize: 'hide',
+        name: wishTitle(need.codes.length), strings: t, nameOf: displayName,
+      })
+    }
+    const { drawCompareCard } = await import('@/lib/share/compare-image')
+    const card = await drawCompareCard({ names: [...labels], sizes, counts, caption, codes, species: data.species, theme, format, transparent, t })
+    return card.blob
+  }
 
   return {
-    // A card of an earlier comparison never stays on screen or in the share.
-    ready, data, failed, labels, sizes, groups, group, groupLabel, choose: setChosen, card: ready ? card : null, alt, codes,
-    note, busy, shareCard, shareWish, canWish, wishReason,
+    ready, data, failed, labels, sizes, groups, group, groupLabel, choose: setChosen, counts, alt, codes, canWish, wishReason, draw,
+    /** What the drawings show, for the dialog: it draws again when this changes. */
+    drawKey: `${labels.join('\n')}\n${sizes.join(',')}\n${caption}`,
+    wishAlt: need ? wishTitle(need.codes.length) : '',
   }
 }
 export type Comparison = ReturnType<typeof useComparison>
 
+/** A list's colour dot (the set-up's rows, the pills): the list's colour in the diagram. */
+export function ListDot({ i }: { i: number }) {
+  return <span className="eb-compare-dot" style={{ background: listColor(i) }} aria-hidden="true" />
+}
+
 /**
- * The comparison under the page head: the card on the left with one bar per list under it, and the birds on the right
- * (stacked on phones, the card first): one row of chips, one per group, and the chosen group's birds as a sticker grid.
- * `edit`: renaming every list and removing the pasted ones (the Compare page's).
+ * The comparison: on top the lists as pills (colour dot, name, species count), `edit` after them and `share` at the
+ * row's right end (the Compare page's Edit lists and Share; a comparison link's page has neither); then, side by side
+ * from 640px, the diagram (Circles or Bars, chosen in its head row) and the groups as a list of rows, one chosen;
+ * pressing a part of the diagram chooses its group too. Under both, the chosen group's birds as a sticker grid.
  */
-export function CompareResult({ c, you = false, edit }: { c: Comparison; you?: boolean; edit?: CompareEdit }) {
+export function CompareResult({ c, edit, share }: { c: Comparison; edit?: ReactNode; share?: ReactNode }) {
   const { t } = useI18n()
+  const [view, setView] = useState<'circles' | 'bars'>('circles')
+  const diagramId = useId()
   if (c.failed) return <p className="eb-error eb-notice" role="alert">{t.collage.notices.loadFailed}</p>
+  const every = c.groups.find((g) => g.id === 'every')!.codes.length
   return (
     <div className="eb-compare-result">
-      <div className="eb-compare-left">
-        <figure className="eb-compare-card" data-testid="compare-card-figure">
-          <div className="eb-compare-pic">
-            {c.card ? (
-              // The live card is a blob URL, never optimised.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={c.card.url} width={c.card.W} height={c.card.H} alt={c.alt} data-testid="compare-card-image" />
-            ) : (
-              <div className="eb-compare-wait" role="img" aria-label={c.alt} />
-            )}
-          </div>
-        </figure>
-        <Bars c={c} you={you} edit={edit} />
+      {/* One wrapping row: the pills, Edit lists after them, Share at the right end (on a phone the two buttons share the line under the pills). */}
+      <div className="eb-compare-top">
+        <ul className="eb-compare-pills" aria-label={t.compare.people} data-testid="compare-pills">
+          {c.labels.map((name, i) => (
+            <li key={i} className="eb-compare-pill" data-testid={`compare-pill-${i}`}>
+              <ListDot i={i} />
+              <span className="eb-compare-pill-name">{name}</span>
+              <span className="eb-compare-pill-count">{formatInt(c.sizes[i], t.num)}</span>
+            </li>
+          ))}
+        </ul>
+        {edit}
+        {share}
       </div>
-      <div className="eb-compare-side">
+      <div className="eb-compare-cols">
+        <section className="eb-compare-diagram" aria-labelledby={diagramId}>
+          <div className="eb-compare-diagram-head">
+            <h2 id={diagramId} className="eb-compare-label" data-testid="compare-summary">
+              {plural(t.compare.lists, c.labels.length, { n: formatInt(c.labels.length, t.num) })} · {plural(t.count.live, every, { n: formatInt(every, t.num) })}
+            </h2>
+            <div className="eb-seg eb-compare-seg" role="group" aria-label={t.compare.diagram} data-testid="compare-view">
+              {(['circles', 'bars'] as const).map((v) => (
+                <button key={v} type="button" className="eb-seg-btn" aria-pressed={view === v} onClick={() => setView(v)} data-testid={`compare-view-${v}`}>
+                  {t.compare[v]}
+                </button>
+              ))}
+            </div>
+          </div>
+          {view === 'circles' ? <Circles c={c} /> : <Bars c={c} />}
+        </section>
         <div className="eb-compare-groups" role="group" aria-label={t.compare.groups} data-testid="compare-groups">
           {c.groups.map((g) => (
-            <Chip key={String(g.id)} label={c.groupLabel(g)} count={g.codes.length} selected={g === c.group} onClick={() => c.choose(g.id)} testId={`compare-group-${g.id}`} />
+            <button
+              key={String(g.id)} type="button" className="eb-compare-group" aria-pressed={g === c.group} onClick={() => c.choose(g.id)}
+              data-testid={`compare-group-${g.id}`}
+            >
+              <span className="eb-compare-group-name">{c.groupLabel(g)}</span>
+              <span className="eb-compare-group-count">{formatInt(g.codes.length, t.num)}</span>
+            </button>
           ))}
         </div>
-        {!c.data ? (
-          <div className="eb-compare-birds-wait" aria-hidden="true" />
-        ) : c.codes.length ? (
-          <Grid key={String(c.group.id)} codes={c.codes} species={c.data.species} />
-        ) : (
-          <p className="eb-note" data-testid="compare-empty">{t.compare.empty}</p>
-        )}
-        <p className={c.note?.error ? 'eb-status eb-error' : 'eb-status'} role="status" data-testid="compare-card-status">{c.note?.text ?? ''}</p>
       </div>
+      {!c.data ? (
+        <div className="eb-compare-birds-wait" aria-hidden="true" />
+      ) : c.codes.length ? (
+        <Grid key={String(c.group.id)} codes={c.codes} species={c.data.species} />
+      ) : (
+        <p className="eb-note" data-testid="compare-empty">{t.compare.empty}</p>
+      )}
     </div>
   )
 }
@@ -207,71 +185,55 @@ export function CompareView({ lists }: { lists: readonly SharePayload[] }) {
   return <CompareResult c={useComparison(lists)} />
 }
 
+/** The diagram's drawing box (SVG units): its width, its height. */
+const VB = [320, 260] as const
+const PAD = 4
+
 /**
- * One bar per list, most species first: its name, its count and a bar to scale, the viewer's own marked. Pressing a
- * name chooses that list's own birds. A name has a pencil (it turns into a field in place); a pasted list a remove.
+ * The circles (two or three lists) or the flower (four to six): each circle a wash of its list's colour with an
+ * outline in it, each region's number in it. The picture's text is every number in words (`alt`); pressing a list's own
+ * part, or the part on every list, chooses that group (the groups list is the keyboard's way to them).
  */
-function Bars({ c, you, edit }: { c: Comparison; you: boolean; edit?: CompareEdit }) {
+function Circles({ c }: { c: Comparison }) {
   const { t } = useI18n()
-  const { labels, sizes } = c
-  const [editing, setEditing] = useState<number | null>(null)
-  // The field open now (Escape, Enter and the blur that may follow either close it once) and the pencil to focus once
-  // it has closed.
-  const open = useRef<number | null>(null)
-  const back = useRef<number | null>(null)
-  const list = useRef<HTMLUListElement>(null)
-  const max = Math.max(1, ...sizes)
-  useEffect(() => {
-    if (editing !== null || back.current === null) return
-    list.current?.querySelector<HTMLElement>(`[data-testid="compare-rename-${back.current}"]`)?.focus()
-    back.current = null
-  }, [editing])
-  const start = (i: number) => { open.current = i; setEditing(i) }
-  const done = (i: number, value: string | null) => {
-    if (open.current !== i) return
-    open.current = null
-    if (value !== null && value !== labels[i]) edit?.rename(i, value.trim())
-    back.current = i
-    setEditing(null)
+  const d: Diagram = useMemo(() => diagramLayout(c.counts, { x: PAD, y: PAD, w: VB[0] - 2 * PAD, h: VB[1] - 2 * PAD }), [c.counts])
+  const n = c.labels.length
+  const pick = (e: MouseEvent<SVGSVGElement>) => {
+    const box = e.currentTarget.getBoundingClientRect()
+    if (!box.width || !box.height) return
+    const g = groupOfMask(maskAt(d, ((e.clientX - box.left) * VB[0]) / box.width, ((e.clientY - box.top) * VB[1]) / box.height), n)
+    if (g !== null) c.choose(g)
   }
-  const order = ranking(sizes)
   return (
-    <ul className="eb-compare-people" aria-label={t.compare.people} ref={list} data-testid="compare-people">
-      {order.map((i) => (
-        <li key={i} className="eb-compare-person">
-          {editing === i ? (
-            <input
-              className="eb-input eb-compare-rename" defaultValue={labels[i]} maxLength={NAME_MAX} autoFocus
-              placeholder={fmt(t.compare.birder, { n: i + 1 })} aria-label={fmt(t.compare.rename, { name: labels[i] })}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') done(i, e.currentTarget.value)
-                else if (e.key === 'Escape') { e.preventDefault(); done(i, null) }
-              }}
-              onBlur={(e) => done(i, e.currentTarget.value)}
-              data-testid={`compare-name-${i}`}
-            />
-          ) : (
-            <button type="button" className="eb-compare-pick" aria-pressed={c.group.id === i} onClick={() => c.choose(i)} data-testid={`compare-rank-${i}`}>
-              <span className="eb-compare-name">
-                {labels[i]}
-                {you && i === 0 && <span className="eb-compare-you">{t.compare.you}</span>}
-              </span>
-              <span className="eb-compare-count">{formatInt(sizes[i], t.num)}</span>
-              <span className="eb-compare-bar" style={{ inlineSize: `${(100 * sizes[i]) / max}%` }} aria-hidden="true" />
-            </button>
-          )}
-          {edit && editing !== i && (
-            <>
-              <button type="button" className="eb-compare-icon" aria-label={fmt(t.compare.rename, { name: labels[i] })} onClick={() => start(i)} data-testid={`compare-rename-${i}`}>
-                <PencilSimple aria-hidden="true" focusable="false" />
-              </button>
-              {edit.canRemove(i) && (
-                <button type="button" className="eb-compare-icon" aria-label={fmt(t.compare.remove, { name: labels[i] })} onClick={() => edit.remove(i)} data-testid={`compare-remove-${i}`}>
-                  <X aria-hidden="true" focusable="false" />
-                </button>
-              )}
-            </>
-          )}
+    // A pointer shortcut beside the groups list, which holds every group for the keyboard.
+    <svg className="eb-compare-venn" viewBox={`0 0 ${VB[0]} ${VB[1]}`} role="img" aria-label={c.alt} onClick={pick} data-testid="compare-diagram">
+      {d.circles.map((k, i) => (
+        <circle key={i} cx={k.cx} cy={k.cy} r={k.r} style={{ '--c': listColor(i) } as CSSProperties} className="eb-compare-circle" />
+      ))}
+      {d.core && <circle cx={d.core.cx} cy={d.core.cy} r={d.core.r} className="eb-compare-core" />}
+      {d.spots.map((s) => {
+        const num = formatInt(c.counts[s.mask] ?? 0, t.num)
+        // Mono digits are about .6em wide: as large as the region's room allows, 10 to 20 units.
+        const size = Math.max(10, Math.min(20, s.h * 0.5, (s.w * 0.8) / (0.6 * Math.max(1, num.length))))
+        return <text key={s.mask} x={s.x} y={s.y} fontSize={size} className="eb-compare-num" aria-hidden="true">{num}</text>
+      })}
+    </svg>
+  )
+}
+
+/** One bar per list, most species first: its name, its count and a bar to scale in its colour. A bar chooses that list's own birds. */
+function Bars({ c }: { c: Comparison }) {
+  const { t } = useI18n()
+  const max = Math.max(1, ...c.sizes)
+  return (
+    <ul className="eb-compare-bars" aria-label={t.compare.people} data-testid="compare-bars">
+      {ranking(c.sizes).map((i) => (
+        <li key={i}>
+          <button type="button" className="eb-compare-pick" aria-pressed={c.group.id === i} onClick={() => c.choose(i)} data-testid={`compare-rank-${i}`}>
+            <span className="eb-compare-name">{c.labels[i]}</span>
+            <span className="eb-compare-count">{formatInt(c.sizes[i], t.num)}</span>
+            <span className="eb-compare-bar" style={{ inlineSize: `${(100 * c.sizes[i]) / max}%`, background: listColor(i) }} aria-hidden="true" />
+          </button>
         </li>
       ))}
     </ul>
@@ -279,7 +241,7 @@ function Bars({ c, you, edit }: { c: Comparison; you: boolean; edit?: CompareEdi
 }
 
 /**
- * The chosen group's birds as a grid of stickers in equal boxes, the name under each: three to six across by the
+ * The chosen group's birds as a grid of stickers in equal boxes, the name under each: three to GRID_MAX across by the
  * grid's width (gridCols), the first GRID_ROWS rows, then "Show all N".
  */
 function Grid({ codes, species }: { codes: readonly string[]; species: SpeciesIndex }) {
@@ -296,7 +258,7 @@ function Grid({ codes, species }: { codes: readonly string[]; species: SpeciesIn
   }, [])
   const first = cols * GRID_ROWS
   return (
-    <>
+    <div className="eb-compare-birds-wrap">
       <ul className="eb-compare-grid" style={{ '--cols': cols } as CSSProperties} ref={ref} data-testid="compare-birds">
         {(all ? codes : codes.slice(0, first)).map((code) => {
           const row = species.byCode.get(code)!
@@ -315,6 +277,6 @@ function Grid({ codes, species }: { codes: readonly string[]; species: SpeciesIn
           {fmt(t.compare.showAll, { n: formatInt(codes.length, t.num) })}
         </button>
       )}
-    </>
+    </div>
   )
 }

@@ -35,6 +35,10 @@
 // Every word is the UI language's (ui.share), the image's and the poster's too (the latest lifer's place in it, from
 // regionsIn); the credit line, the share text (SHARE_CREDIT), the download names and the link stay the same in every
 // language (a link carries no language).
+// Compare opens it too (`compare`, Share only): the What control first (Comparison | Wish list, the wish list off with
+// its reason when there is none), the format (no orientation, no title field), Colours and Transparent background; the
+// drawings are Compare's (CompareShare.draw), Copy link copies the comparison link (off over its limits, with the
+// reason), with the consent note beside it. Nothing from Compare is counted.
 // Changing the size, title or a choice, or closing the dialog cancels a poster make and drops a finished poster.
 // Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied
 // isn't, from the poster; the ZIPs aren't counted.
@@ -76,7 +80,7 @@ import type { ViewKind } from '@/lib/view-resume'
 import type { ShareAt, ViewImageOpts } from '@/lib/share/view-image'
 import '@/components/app/app.css'
 import '@/components/collage/collage.css'
-import { dialogRows, optionRows, subjectOf, treeOrientation, type OptionRow } from './dialog-options'
+import { dialogRows, optionRows, subjectOf, treeOrientation, type CompareShare, type CompareWhat, type OptionRow } from './dialog-options'
 import { MenuSelect } from './MenuSelect'
 import './share.css'
 
@@ -85,7 +89,12 @@ const PREVIEW_EASE_MS = 420
 
 /** `view`: the view Share was pressed in, `at` the level it had open (the Map's place, the Tree's family or genus).
  *  Every view shares the birds on screen (the filter applied). `print`: opened by Print, on the poster. */
-type Props = { state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; view?: ViewKind; at?: ShareAt; print?: boolean; onClose: () => void }
+type Props = {
+  state: AppState; dispatch: (a: Action) => void; species: SpeciesIndex; regions: Regions; view?: ViewKind; at?: ShareAt; print?: boolean
+  /** Compare's dialog: it draws the comparison or the wish list instead of the view (state then only fills the props). */
+  compare?: CompareShare
+  onClose: () => void
+}
 
 /** The views that draw their own image and poster: each module loads only when Share or Print is pressed there.
  *  Unset, a view shares and prints the collage of the birds on screen. */
@@ -120,12 +129,16 @@ type SegOption<T extends string> = { value: T; label: ReactNode; name?: string; 
 type TreeFits = Record<'fan' | 'circle', boolean>
 
 /** A quiet action: a full label (its accessible name), a shorter one for the row, an icon. */
-type QuietAction = { label: string; short?: string; icon: Icon; onClick: () => void; disabled?: boolean; ref?: RefObject<HTMLButtonElement | null> }
+type QuietAction = {
+  label: string; short?: string; icon: Icon; onClick: () => void; disabled?: boolean; ref?: RefObject<HTMLButtonElement | null>
+  /** Why it can't be used now: it stays focusable (aria-disabled), the reason its tooltip; `describedBy` its note. */
+  off?: string; describedBy?: string
+}
 
 /** Why a link carries less than the regions (a large list), or nothing for a full link. */
 const levelReason = (level: ShareLevel, t: ReturnType<typeof useI18n>['t']) => (level === 'regions' ? '' : t.share.level[level])
 
-export default function ShareDialog({ state, dispatch, species, regions, view, at, print = false, onClose }: Props) {
+export default function ShareDialog({ state, dispatch, species, regions, view, at, print = false, compare, onClose }: Props) {
   const names = useNames()
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
@@ -146,6 +159,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const bulkSizeId = useId()
   const sizeId = useId()
   const namesNoteId = useId()
+  const whatId = useId()
+  const linkNoteId = useId()
   // An open dropdown takes Escape first (the dialog catches it on the window before the menu could): it closes the menu.
   const menuEsc = useRef<(() => void) | null>(null)
   useEscapeCapture(() => (menuEsc.current ? menuEsc.current() : onClose()))
@@ -159,12 +174,15 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     [fmt(pt.ready, { size: sizeName(p.size) }), p.namesDropped ? pt.namesDropped : '', p.soft > 0 ? pt.soft : '', p.missing > 0 ? plural(pt.missing, p.missing, { n: formatInt(p.missing, t.num) }) : ''].filter(Boolean).join(' ')
 
   const { list, filter, saved, seen, sci } = state
-  const [format, setFormat] = useState<FormatSlot>('story')
+  // Compare's card has been a post since round 3: it opens there.
+  const [format, setFormat] = useState<FormatSlot>(compare ? 'post' : 'story')
   const [size, setSize] = useState<PrintSize>('A2')
   // In the Map or Tree view the image and the poster draw that view: no stickers, so no sticker options (dialogRows).
-  const subject = subjectOf(view)
+  const subject = compare ? 'compare' : subjectOf(view)
   const rows = dialogRows(subject, print)
-  const viewImage = subject === 'collage' ? undefined : VIEW_IMAGE[subject]
+  const viewImage = subject === 'tree' || subject === 'map' ? VIEW_IMAGE[subject] : undefined
+  // Compare's: the comparison card or the wish list (the wish list can't be picked when it is off).
+  const [what, setWhat] = useState<CompareWhat>('comparison')
   const treeImage = subject === 'tree'
   // The Tree image's "Lifers only" is the bar's switch (tree-mine.ts), so the image and the view agree.
   const treeMine = useTreeMine()
@@ -182,7 +200,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const treeOff = (l: TreeLayout) => l !== 'rows' && treeFitsBy[cardKey(treeOrientation(l))]?.[l] === false
   const wantTree: TreeLayout = pickedTreeLayout ?? at?.layout ?? 'rows'
   const treeLayout: TreeLayout = treeOff(wantTree) ? 'rows' : wantTree
-  const orientation: Orientation = treeImage ? treeOrientation(treeLayout) : orientationChoice
+  const orientation: Orientation = treeImage ? treeOrientation(treeLayout) : compare ? 'vertical' : orientationChoice
   const landscape = orientation === 'horizontal'
   /** The share image's shape: the slot in this orientation (story is desktop, post is wide when horizontal). */
   const shape = imageShape(format, orientation)
@@ -372,7 +390,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // The Tree's or Map's drawing: the view, its switches.
   // `at` is the view's level, live (the Tree's follows the taxonomy filter); its JSON leaves out the map's names function.
   const viewKey = viewImage ? `${subject}|${treeImage ? `${treeMine}|${treeLayout}|${showOldest}` : ''}|${hideTotals}|${JSON.stringify(at ?? {})}` : ''
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   useEffect(() => {
@@ -389,6 +407,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
           theme, transparent, latest: withLatest, countSize, strings: t, nameOf: displayName, regions: named, signal: life.current?.signal,
         }
+        if (compare) return compare.draw(what, { format, theme, transparent })
         if (viewImage) return (await viewImage())({ ...opts, ...viewOf() })
         const pack = await packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null)
         return renderShareImage({ ...opts, pack })
@@ -421,7 +440,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     )
     return () => { live = false; cancel() }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- viewOf reads treeImage, treeMine, treeLayout, showOldest, hideTotals, at, list, filter, seen and sci, all in `key` or below
-  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, hideTotals, at, list, filter, seen, sci, named])
+  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, hideTotals, at, list, filter, seen, sci, named, compare, what, format])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -733,7 +752,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     setNote({ text: fmt(t.share.saved, { file }), print: true })
   }
 
-  const fileName = `everybird-${shape}.png`
+  const fileName = compare ? (what === 'wish' ? 'everybird-wish-list.png' : 'everybird-compare.png') : `everybird-${shape}.png`
   /** The newest render's PNG: at hand once it's done (the buttons are disabled before), else waiting for it; null if it failed. */
   const getBlob = async (): Promise<Blob | null> => {
     if (ready.current?.key === key) return ready.current.blob
@@ -752,7 +771,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     const blob = await getBlob()
     if (!blob) return setNote({ text: t.share.imageFailed, error: true })
     downloadBlob(blob, fileName)
-    track('image_downloaded', { format: shape })
+    if (!compare) track('image_downloaded', { format: shape })
     setNote({ text: fmt(t.share.saved, { file: fileName }) })
   }
   const share = async () => {
@@ -764,7 +783,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       try {
         // The image says "Stickers: huashu-bird-sticker, CC BY 4.0"; the post's text carries the full CC BY 4.0 credit and its link.
         await nav.share({ files: [file], title: 'Everybird', text: SHARE_CREDIT })
-        track('shared', { via: shape })
+        if (!compare) track('shared', { via: shape })
         return
       } catch (e) {
         if ((e as Error)?.name === 'AbortError') return // the birder closed the share sheet: not shared, nothing sent
@@ -772,13 +791,16 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       }
     }
     downloadBlob(blob, fileName)
-    track('image_downloaded', { format: shape })
+    if (!compare) track('image_downloaded', { format: shape })
     setNote({ text: fmt(t.share.savedPost, { file: fileName }) })
   }
   const copyLink = async () => {
     setManual(null)
-    const mod = (linkModule.current ??= loadLinkModule())
-    const linking: Promise<LinkResult> = mod.then((m) => m.makeShareLink(list, regions, trimmed || undefined, window.location.origin))
+    const compared = compare && 'url' in compare.link ? compare.link.url : null
+    if (compare && !compared) return
+    const linking: Promise<LinkResult> = compared
+      ? Promise.resolve({ url: compared, level: 'regions', dropped: 0 })
+      : (linkModule.current ??= loadLinkModule()).then((m) => m.makeShareLink(list, regions, trimmed || undefined, window.location.origin))
     // Where the clipboard takes a promised item (Safari, Chromium), hand it over now, inside the click, and let the
     // link arrive later. Otherwise writeText after the (normally already loaded) module, then the manual field.
     let copied: Promise<boolean> = Promise.resolve(false)
@@ -801,7 +823,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     }
     const { url, level, dropped } = link
     // Counted once the link exists, whether the clipboard takes it or the birder copies it by hand; never in print mode.
-    if (!print) track('link_copied', { level })
+    if (!print && !compare) track('link_copied', { level })
     // The note's sentences, joined by a space: why the link carries less (a large list), then the birds left out.
     const why = [levelReason(level, t), dropped ? plural(t.share.dropped, dropped, { n: formatInt(dropped, t.num) }) : ''].filter(Boolean)
     let ok = await copied
@@ -875,7 +897,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       {pt.make}
     </button>
   )
-  const copy: QuietAction = { label: t.share.copyLink, icon: LinkSimple, onClick: () => void copyLink() }
+  // Compare's Copy link: off over the comparison link's limits, with the reason; the consent note beside it either way.
+  const linkOff = compare && 'blocked' in compare.link ? compare.link.blocked : undefined
+  const copy: QuietAction = { label: t.share.copyLink, icon: LinkSimple, onClick: () => void copyLink(), off: linkOff, describedBy: compare ? linkNoteId : undefined }
   // Share: Share image over Download and Copy link. Print: the primary and the first quiet one side by side (Make poster
   // and Copy link; once made, Download PNG and Download PDF), the rest (Copy link, Make again) in a row under them.
   const quiet: QuietAction[] = !print
@@ -889,11 +913,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         ...(posterNow && posterNow.missing > 0 ? [{ label: pt.again, icon: ArrowClockwise, onClick: remake }] : []),
       ]
   const [beside, ...under] = print ? quiet : []
-  const quietButton = ({ label: text, short, icon: Glyph, onClick, disabled, ref: btnRef }: QuietAction) => {
+  const quietButton = ({ label: text, short, icon: Glyph, onClick, disabled, ref: btnRef, off, describedBy }: QuietAction) => {
     const glyph = <Glyph aria-hidden="true" focusable="false" />
     const shorter = short ?? null
     return (
-      <button key={text} ref={btnRef} type="button" className="eb-btn eb-btn-quiet" aria-label={shorter ? text : undefined} disabled={disabled} onClick={onClick}>
+      <button
+        key={text} ref={btnRef} type="button" className="eb-btn eb-btn-quiet" aria-label={shorter ? text : undefined} disabled={disabled}
+        aria-disabled={off ? true : undefined} title={off} aria-describedby={describedBy} onClick={off ? undefined : onClick}
+      >
         {glyph}
         {shorter ?? text}
       </button>
@@ -957,6 +984,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   /** One row of the options list, by its name (optionRows gives them in order). */
   const option = (r: OptionRow): ReactNode => {
     switch (r) {
+      case 'what':
+        return optRow(r, whatId, t.share.what.label, segmented({
+          className: 'eb-share-seg', labelledBy: whatId, value: what, pick: setWhat, testId: 'share-what',
+          options: (['comparison', 'wish'] as const).map((v) => ({ value: v, label: t.share.what[v], off: v === 'wish' ? compare?.wishOff : undefined })),
+        }))
       case 'size':
         return (
           <div key={r} className="eb-share-opt">
@@ -1084,7 +1116,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         onKeyDown={(e) => trapTab(e, ref.current)}
       >
         <div className="eb-share-head">
-          <h2 id={titleId} className="eb-share-title">{print ? pt.title : t.share.title}</h2>
+          <h2 id={titleId} className="eb-share-title">{print ? pt.title : compare ? t.collage.share : t.share.title}</h2>
           <button type="button" className="eb-share-close" aria-label={t.collage.close} onClick={onClose}>
             <X aria-hidden="true" focusable="false" weight="bold" />
           </button>
@@ -1108,7 +1140,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                   })}
                 </div>
               )}
-              {segmented({
+              {!compare && segmented({
                 className: 'eb-share-orient', label: t.share.orientation.group, value: orientation, pick: setOrientation,
                 options: ORIENTATIONS.map((o) => ({ value: o, label: t.share.orientation[o], off: orientOff(o) })),
               })}
@@ -1131,7 +1163,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={preview.url} className="eb-share-in" src={preview.url} width={w} height={h}
-                alt={isPrint(preview.format) ? fmt(t.share.print.previewAlt, { size: sizeName(preview.size) }) : t.share.preview[preview.format]}
+                alt={compare ? compare.alt[what] : isPrint(preview.format) ? fmt(t.share.print.previewAlt, { size: sizeName(preview.size) }) : t.share.preview[preview.format]}
               />
             )}
             {busy && <span className="eb-share-spin" aria-hidden="true" />}
@@ -1144,7 +1176,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               {/* The options: the title under its label, then the list, one row per option (in the poster the size
                   first); Export in batches, a row in its own panel, under it. */}
               <div className="eb-share-options">
-                <div className="eb-share-field">
+                {!compare && <div className="eb-share-field">
                   <div className="eb-share-labelrow">
                     <label htmlFor={nameId} className="eb-share-label">{t.share.nameLabel}</label>
                     <span id={optionalId} className="eb-share-optional">{t.share.nameOptional}</span>
@@ -1161,7 +1193,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                     onChange={(e) => { setName(e.target.value); dispatch({ type: 'name', name: e.target.value }) }}
                   />
                   <p id={helperId} className="eb-sr">{t.share.nameHelper}</p>
-                </div>
+                </div>}
 
                 <div className="eb-share-opts" data-testid="share-options">
                   {optionRows(rows, print).map(option)}
@@ -1259,6 +1291,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                   <>
                     {primary}
                     <div className="eb-share-row">{quiet.map(quietButton)}</div>
+                    {compare && <p id={linkNoteId} className="eb-note" data-testid="share-link-note">{linkOff ?? t.compare.consent}</p>}
                   </>
                 )}
               </div>
@@ -1267,7 +1300,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               {manual && (
                 <input ref={manualRef} className="eb-share-input" type="text" readOnly value={manual} aria-label={t.share.linkField} onFocus={(e) => e.currentTarget.select()} />
               )}
-              {fk && yearGoal === undefined && (
+              {!compare && fk && yearGoal === undefined && (
                 <div className="eb-note eb-share-filters" data-testid="share-filters">
                   <span>{label ? fmt(t.share.filters, { label }) : t.share.filtersNoLabel}</span>
                   <button type="button" className="eb-textbtn" onClick={() => dispatch({ type: 'filter', filter: {} })}>{t.share.clearFilters}</button>
