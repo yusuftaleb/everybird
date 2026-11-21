@@ -66,7 +66,8 @@
 .eb-compare-share { flex: none; margin-inline-start: auto; }
 
 .eb-compare-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
-@media (min-width: 640px) { .eb-compare-cols { grid-template-columns: minmax(0, 380px) minmax(0, 440px); gap: 40px; } }
+/* From 640px two equal columns across the content, so the groups' counts end under Share's right edge. */
+@media (min-width: 640px) { .eb-compare-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; } }
 .eb-compare-diagram { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 /* The diagram's head: its mono label at the left, Circles | Bars at the right edge. */
 .eb-compare-diagram-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; min-height: 36px; }
@@ -82,11 +83,18 @@
 }
 @media (pointer: coarse) { .eb-compare-seg .eb-seg-btn::after { content: ''; position: absolute; inset: -6px 0; } }
 
-/* The circles: each a wash of its list's colour (--c) with an outline in it; the flower's centre Surface outlined in Ink. */
-.eb-compare-venn { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* The circles: each a wash of its list's colour (--c) with an outline in it; the flower's centre Surface outlined in Ink.
+   The drawing grows with its column at its own shape (320 × 260) up to 360px tall, so it never stands far above the
+   groups' list beside it. */
+.eb-compare-venn { display: block; width: min(100%, 443px); height: auto; margin: 0 auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .eb-compare-circle { fill: var(--c); fill-opacity: .12; stroke: var(--c); stroke-width: 2; }
 .eb-compare-core { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
 .eb-compare-num { font-family: var(--font-mono); font-weight: 500; fill: var(--ink); text-anchor: middle; dominant-baseline: central; font-variant-numeric: tabular-nums; pointer-events: none; }
+/* The parts outside the chosen group: a Paper veil over their fills and outlines, their numbers faded; eased. */
+.eb-compare-veil { fill: var(--paper); fill-opacity: 0; pointer-events: none; transition: fill-opacity .2s cubic-bezier(.25, .8, .25, 1); }
+.eb-compare-veil[data-off] { fill-opacity: .65; }
+.eb-compare-num, .eb-compare-bar { transition: opacity .2s cubic-bezier(.25, .8, .25, 1); }
+.eb-compare-num[data-off], .eb-compare-bar[data-off] { opacity: .3; }
 
 /* The bars: one per list, most species first, the name and count over a bar to scale in the list's colour. */
 .eb-compare-bars { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hairline); }
@@ -117,7 +125,7 @@
 @media (hover: hover) and (pointer: fine) {
   .eb-compare-pick:hover, .eb-compare-group:hover { background: var(--surface); }
 }
-@media (prefers-reduced-motion: reduce) { .eb-compare-pick, .eb-compare-group { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .eb-compare-pick, .eb-compare-group, .eb-compare-veil, .eb-compare-num, .eb-compare-bar { transition: none; } }
 
 /* The chosen group's birds: equal tiles, each sticker contained in the same box (never larger), the name under it. */
 .eb-compare-birds-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; min-width: 0; }

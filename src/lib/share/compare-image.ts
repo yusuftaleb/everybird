@@ -1,7 +1,7 @@
 // The comparison card (the Share dialog's Comparison on /compare): the share image's frame from image.ts in the dialog's
 // format, Story, Post or Square (Paper unless transparent, the footer with the sticker credit and the date stamp, in the
 // dialog's colours) holding, top down:
-// - the title, the lists' names joined by " & " (one or two lines), and under it each list's species count on one line,
+// - the title, the lists' names joined the usual way, "Robin, Sam & Ada" (titlePart; one or two lines), and under it each list's species count on one line,
 //   most first; when even the smallest size is too wide, the names are shortened evenly, never the numbers;
 // - the diagram (venn.ts: two circles, three, or the flower from four lists), each circle in its list's colour
 //   (compare.ts listColorHex, as on the page), each region's number with its name;
@@ -89,6 +89,13 @@ export function fitParts(
   return { px: min, lines: split(texts) ?? [clipText(ctx, texts.join(sep), maxW)] }
 }
 
+/**
+ * Name `i` of `n` as a piece of the card's title, whose pieces join with spaces: commas between the names, " & " before
+ * the last ("Robin, Sam & Ada"; two: "Ada & Sam"). A line break between pieces leaves a comma at a line's end or "&" at
+ * the next one's start, never alone.
+ */
+export const titlePart = (name: string, i: number, n: number): string => (i === n - 1 && n > 1 ? `& ${name}` : i < n - 2 ? `${name},` : name)
+
 /** The name drawn under a region's number: two lists' "Only Ada" and "Both"; a list's own name; the flower's centre. */
 function regionName(d: Diagram, mask: number, names: readonly string[], t: Ui): string {
   const n = names.length
@@ -124,7 +131,7 @@ export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> 
 
   // The head: the names, then each list's count.
   let y = L.collage.y
-  const title = fitParts({ ctx, font: fonts.name }, names, (n) => n, ' & ', TITLE, CW, 2)
+  const title = fitParts({ ctx, font: fonts.name }, names, (n, i) => titlePart(n, i, names.length), ' ', TITLE, CW, 2)
   ctx.font = fonts.name(title.px)
   ctx.fillStyle = C.ink
   for (const line of title.lines) {
