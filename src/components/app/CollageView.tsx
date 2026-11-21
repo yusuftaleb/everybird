@@ -8,7 +8,7 @@
 import { track, trackFilterUsed } from '@/lib/analytics'
 import { useArrangement } from '@/lib/arrangement'
 import { newlySetKinds } from '@/lib/list/filter-kinds'
-import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { Fragment, lazy, memo, Suspense, useCallback, useDeferredValue, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { BirdCard } from '@/components/collage/BirdCard'
 import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage, revealBird } from '@/components/collage/Collage'
@@ -146,6 +146,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // No places to map (a shared link without them): no Map tab, and a carried-over Map view shows the collage.
   const noMap = !!hideSections?.includes('places')
   const view = noMap && state.view === 'map' ? 'collage' : state.view
+  // The view's content follows a beat behind the tab (O16): the tab and the bar change at once, and a big view (List with
+  // thousands of rows) builds in the background, interruptible, with the old one shown until it's ready, never a frozen tap.
+  const contentView = useDeferredValue(view)
   const { t } = useI18n()
   useNames() // the legend's latest lifer, the search results and the filters follow the names
   const box = useRef<HTMLElement>(null)
@@ -406,7 +409,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       <FilterBar state={state} dispatch={dispatch} species={species} tree={treePath} />
       {filterNote}
 
-      {view === 'collage' ? (
+      {contentView === 'collage' ? (
         lay ? (
           <div ref={wrap} className="eb-stagewrap">
             <Stage entries={entries} species={species} layout={lay.layout} visible={lay.visible} mode={mode} onPick={onPickBird} onHover={onHover} still={lay.still} />
@@ -418,9 +421,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
             <span className="eb-mono">{entries.length ? t.collage.arranging : plural(t.count.word, shownList.length)}</span>
           </div>
         )
-      ) : view === 'map' ? (
+      ) : contentView === 'map' ? (
         <Suspense fallback={null}><MapView state={state} species={species} regions={regions} onLevel={onMapLevel} /></Suspense>
-      ) : view === 'list' ? (
+      ) : contentView === 'list' ? (
         <ListView entries={shownList} species={species} regions={regions} order={listOrder} sci={sci} onPick={onPickRow} />
       ) : (
         // The same loading line as TreeView's own while its data loads (O8): one element, one size, no margin.
