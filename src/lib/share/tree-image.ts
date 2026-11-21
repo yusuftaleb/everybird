@@ -21,7 +21,7 @@
 // levelView's 'deeper'): every render of a poster checks, for each poster size in its orientation and arrangement,
 // whether every name of that rank prints whole at TREE_NAME_MIN_PT or more on paper (onDeeper), and draws it only at a
 // size where it does, its round layouts then sized with that floor, so the poster is the one checked.
-import { fmt } from '@/i18n/core'
+import { fmt, pluralWord, type Plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import type { Ui } from '@/i18n/messages/en'
 import { loadSpecies } from '@/lib/species/load'
@@ -93,6 +93,10 @@ type Tip = Exclude<TreeRow, { kind: 'order' }>
 export type TotalRank = 'species' | 'genera' | 'families' | 'orders'
 /** The four totals, in this order. */
 export const TOTALS: readonly TotalRank[] = ['species', 'genera', 'families', 'orders']
+/** Each total's word, by its count ("1 family", "5 families"; Russian's few and many forms too). */
+const RANK_WORD: Record<TotalRank, (t: Ui) => Plural> = {
+  species: (t) => t.collage.stats.species, genera: (t) => t.collage.tree.genera, families: (t) => t.collage.stats.families, orders: (t) => t.collage.stats.orders,
+}
 
 /**
  * The totals' size: one number size for every block (the largest that fits each "count / total" in its share of
@@ -172,7 +176,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   // Square one line, the name first and then the detail (or its short form, `label`); stacked on the Story; a poster's foot.
   const latestAs = oldRow ? { row: oldRow, label: fmt(tt.oldestLabel, { age: oldAge }), detail: fmt(tt.oldestDetail, { age: oldAge }), poster: fmt(tt.oldestPoster, { name: o.nameOf?.(oldRow) ?? oldRow.com, age: oldAge }) } : undefined
   const cover = taxonCover(all.rows, codes)
-  const totals = chosenTotals(TOTALS, o.totals).map((k) => ({ k, n: formatInt(cover[k][0], t.num), total: formatInt(cover[k][1], t.num), label: tt.rank[k].toUpperCase() }))
+  const totals = chosenTotals(TOTALS, o.totals).map((k) => ({ k, n: formatInt(cover[k][0], t.num), total: formatInt(cover[k][1], t.num), label: pluralWord(RANK_WORD[k](t), cover[k][0]).toUpperCase() }))
   /** What drawing a level takes: its drawing's tree (without its time scale when that is off), its tips and their names. */
   const prep = (view: LevelView) => {
     const rank = view.tips

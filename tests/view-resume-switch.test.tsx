@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The view across a language switch, on the real paths: chooseLang stashes it before the reload; the list store takes
+// The view across a language switch and a refresh (pagehide), on the real paths: chooseLang stashes it before the reload; the list store takes
 // the filter, layout switches back with the stored list; the dock search takes its typed text and open state back. None
 // of the restores emits analytics (filter_used, search_applied, ui_language is the switch's own beacon, not a restore).
 import 'fake-indexeddb/auto'
@@ -107,6 +107,19 @@ describe('the list store after a language switch', () => {
     expect(result.current[0].filter).toEqual({})
     expect(result.current[0].view).toBe('collage')
     expect(result.current[0].sci).toBe(false)
+  })
+})
+
+describe('a refresh', () => {
+  it('stashes the view on pagehide, and the reloaded page takes it back (the Map stays the Map)', async () => {
+    const first = await import('@/lib/view-resume')
+    first.offerResume('collage', () => ({ ...carried.collage, view: 'map' }) as never)
+    window.dispatchEvent(new Event('pagehide'))
+    expect(JSON.parse(window.sessionStorage.getItem(KEY)!).slices.collage.view).toBe('map')
+    vi.resetModules()
+    const reloaded = await import('@/lib/view-resume')
+    expect(reloaded.takeResume('collage')?.view).toBe('map')
+    expect(window.sessionStorage.getItem(KEY)).toBeNull()
   })
 })
 

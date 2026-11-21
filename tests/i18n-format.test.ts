@@ -106,3 +106,13 @@ describe('core', () => {
     expect(rich('an <x>unknown</x> tag', {}).join('')).toBe('an unknown tag')
   })
 })
+
+describe('pluralWord', () => {
+  it('is the form for the count without the number (a label under a big number)', async () => {
+    const { pluralWord } = await import('@/i18n/core')
+    expect(pluralWord({ one: '{n} family', other: '{n} families' }, 1)).toBe('family')
+    expect(pluralWord({ one: '{n} family', other: '{n} families' }, 5)).toBe('families')
+    expect(pluralWord({ one: '{n}科', other: '{n}科' }, 3)).toBe('科')
+    expect(pluralWord({ one: '{n} kraj', other: 'Kraje: {n}' }, 5)).toBe('Kraje')
+  })
+})

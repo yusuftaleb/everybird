@@ -39,6 +39,12 @@ export function plural(p: Plural, n: number, vars?: Record<string, string | numb
   return fmt(formOf(p, n), { n, ...vars })
 }
 
+/** The word of `p` for `n` without the number, for a label drawn under a big number ("1" over "family", "5" over
+ *  "семейств"): the form with `{n}` and its spacing or colon removed. */
+export function pluralWord(p: Plural, n: number): string {
+  return formOf(p, n).replace(/\s*:?\s*\{n\}\s*:?\s*/, ' ').trim()
+}
+
 const TAG = /<(\w+)>(.*?)<\/\1>/g
 
 /**

@@ -100,7 +100,8 @@ describe('the orientation shapes', () => {
     expect(IMAGE_SIZE.desktop).toEqual([1920, 1080])
     expect(IMAGE_SIZE.wide).toEqual([1350, 1080])
     expect(IMAGE_SCALE.desktop).toBe(2) // the PNG is 3840 × 2160
-    expect(IMAGE_SCALE.wide).toBe(1)
+    expect(IMAGE_SCALE.wide).toBe(2) // every image at twice its design (Yusuf, 2026-11-21)
+    expect(IMAGE_SCALE.story).toBe(2)
   })
 
   it('tells a poster from a share image', () => {
@@ -197,7 +198,7 @@ describe('the packed collage uses the frame', () => {
 })
 
 describe('the 4K desktop image', () => {
-  it('draws 3840 × 2160: the design at 2× (a setTransform of 2), and the vertical story at 1080 × 1920 without one', async () => {
+  it('draws 3840 × 2160: the design at 2× (a setTransform of 2), and the vertical story at 2160 × 3840 the same way', async () => {
     const logs = installStubs()
     const desktop = await drawShareImage({ format: 'desktop', theme: 'light', entries, species, pack: harnessPack, now: NOW, strings: en.ui })
     expect([desktop.width, desktop.height]).toEqual([3840, 2160])
@@ -206,14 +207,14 @@ describe('the 4K desktop image', () => {
     expect(dLog.filter((l) => l.startsWith('fillText')).length).toBeGreaterThan(3)
 
     const story = await drawShareImage({ format: 'story', theme: 'light', entries, species, pack: harnessPack, now: NOW, strings: en.ui })
-    expect([story.width, story.height]).toEqual([1080, 1920])
-    expect(logs.get(story as unknown as object)!.some((l) => l.startsWith('setTransform'))).toBe(false)
+    expect([story.width, story.height]).toEqual([2160, 3840])
+    expect(logs.get(story as unknown as object)!).toContain('setTransform(2, 0, 0, 2, 0, 0)')
   })
 
-  it('the wide 5:4 image is 1350 × 1080 at 1×', async () => {
+  it('the wide 5:4 image is 2700 × 2160, its 1350 × 1080 design at 2×', async () => {
     installStubs()
     const wide = await drawShareImage({ format: 'wide', theme: 'dark', entries, species, pack: harnessPack, now: NOW, strings: en.ui })
-    expect([wide.width, wide.height]).toEqual([1350, 1080])
+    expect([wide.width, wide.height]).toEqual([2700, 2160])
   })
 })
 

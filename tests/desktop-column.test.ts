@@ -142,10 +142,10 @@ describe('everything on the desktop is inside the central column, clear of the t
 // lifted hairline), and the portrait poster keeps room for its foot's second line with the latest lifer (print).
 // tests/share-image-golden.test.ts's logs show each difference.
 const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: string }> = {
-  story: { layout: 'c5e241e2bec510622a9d78dd632935d5f3a45496', draws: 'a6510af37bdf6310ceee486709103ed6fafbd67c' },
-  post: { layout: '09575c4b18de84c8fb11014f3ed55a3bb74da545', draws: 'ac03e3b5d68c16b0863f86fed8ee8a1ccc211b48' },
-  square: { layout: '67cbc8d79a50f624c095e32223e0d74d05d018ae', draws: 'afdda9c8379f5ea661d14bb9125444023a12cb18' },
-  wide: { layout: '2ef1edc25ca86d9298033672f889811ebc6ee68a', draws: 'b697c1cdc3cbbc3e8347d352fcad3f9168887863' },
+  story: { layout: 'c5e241e2bec510622a9d78dd632935d5f3a45496', draws: 'cedcdd4cd0cf1f37033095f2a7dc1f4595e5c5d4' },
+  post: { layout: '09575c4b18de84c8fb11014f3ed55a3bb74da545', draws: 'f28f3813bc7e18df968ddf2573d5e089dab88981' },
+  square: { layout: '67cbc8d79a50f624c095e32223e0d74d05d018ae', draws: '6c59127de854f9b1bf552bc828edf785853259c4' },
+  wide: { layout: '2ef1edc25ca86d9298033672f889811ebc6ee68a', draws: '162f057d61c2a3b975bce863d8827669c71fa798' },
   print: { layout: '1b883b8a0e064da2633b0498d08889122625f923', draws: '2c3bb2a19c65614da6256d60b9f3f825681e85cb' },
   printLandscape: { layout: '6420700515cec114ad51c385b3bc919e11dc6d0c', draws: '21ba5288b3d830e3e1713889de2e15291860baa5' },
 }

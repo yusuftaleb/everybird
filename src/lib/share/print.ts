@@ -85,9 +85,9 @@ export const printPackH = (s: PrintSize): number => (isUsSize(s) ? Math.round(pr
  * for landscape (the short side is always PRINT_DESIGN_W units, so the landscape card is printDesignH(s) by 1080).
  */
 export const printDesign = (s: PrintSize, landscape = false): [number, number] => (landscape ? [printDesignH(s), PRINT_DESIGN_W] : [PRINT_DESIGN_W, printDesignH(s)])
-/** A poster's file stem: "everybird-a2", "everybird-a2-landscape", "everybird-24x36in". */
-export const printFileStem = (s: PrintSize, landscape = false): string =>
-  `everybird-${isUsSize(s) ? `${PRINT_IN[s][0]}x${PRINT_IN[s][1]}in` : s.toLowerCase()}${landscape ? '-landscape' : ''}`
+/** A poster's format in its file name (fileName): "a2", "a2-landscape", "24x36in". */
+export const printFormat = (s: PrintSize, landscape = false): string =>
+  `${isUsSize(s) ? `${PRINT_IN[s][0]}x${PRINT_IN[s][1]}in` : s.toLowerCase()}${landscape ? '-landscape' : ''}`
 
 /** iOS Safari's largest canvas, in px. No canvas the poster makes may be larger. */
 export const IOS_CANVAS_AREA = 16_777_216

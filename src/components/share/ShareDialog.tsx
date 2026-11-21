@@ -65,9 +65,10 @@ import { TREE_LAYOUTS, setTreeLayout, setTreeMine, treeLayout as treeLayoutStore
 import { ARRANGEMENTS, ARRANGE_ICON, setArrangement, useArrangement } from '@/lib/arrangement'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
+import { fileName as nameFile, splitPart } from '@/lib/file-name'
 import { BULK_BATCH_OPTIONS, bulkGroups, bulkPackSpec, makeBulkZip, makeImageZip, type BulkBatch, type BulkSplit } from '@/lib/share/bulk'
 import type { Poster } from '@/lib/share/poster'
-import { CAPTION_CAPS, PRINT_IN, PRINT_PT, PRINT_SIZES, captionMinPx, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
+import { CAPTION_CAPS, PRINT_IN, PRINT_PT, PRINT_SIZES, captionMinPx, isUsSize, printCm, printDesign, printFormat, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
 import { planCaptions, type CaptionPlan } from '@/lib/share/captions'
 import { goalBasis, hasDates, isTarget, listYears, TARGET_MAX, yearFilter, yearList, type BigYear } from '@/lib/list/big-year'
 import { applyFilter, filterKey } from '@/lib/list/filters'
@@ -680,6 +681,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     setNote((n) => (n?.print ? null : n))
     focusNext.current = 'make'
   }
+  /** A saved file's name (fileName in file-name.ts): the title, what the card shows, its format, the batch split, today. */
+  const exportName = (ext: string, format: string, split?: string) => {
+    const rank = at?.rank && (print && deeperOn ? deeper?.rank ?? RANKS[RANKS.indexOf(at.rank) + 1] : at.rank)
+    const shows = compare ? (what === 'wish' ? 'wish-list' : 'comparison') : subject === 'map' ? 'map' : treeImage ? ['tree', rank].filter(Boolean).join('-') : ''
+    return nameFile({ title: compare ? undefined : trimmed, shows, format, split, ext })
+  }
   const makeBulk = async (kind: 'png' | 'pdf') => {
     if (!bulkList.length) return
     makeCtl.current?.abort()
@@ -710,7 +717,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           },
           onProgress,
         })
-        file = `everybird-${shape}-groups.zip`
+        file = exportName('zip', shape, splitPart(bulkSplit, bulkSize))
       } else {
         const mod = await (posterModule.current ?? loadPoster())
         if (effectiveShowNames) {
@@ -738,7 +745,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         })
         blob = made.blob
         namesDropped = made.namesDropped
-        file = `${printFileStem(size, landscape)}-bulk.zip`
+        file = exportName('zip', printFormat(size, landscape), splitPart(bulkSplit, bulkSize))
       }
       if (ctl.signal.aborted) return
       bulkCtl.current = null
@@ -777,7 +784,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const savePoster = async (kind: 'png' | 'pdf') => {
     const p = posterNow
     if (!p) return
-    const file = `${printFileStem(p.size, p.landscape)}.${kind}`
+    const file = exportName(kind, printFormat(p.size, p.landscape))
     let blob: Blob
     try {
       blob = await p.file(kind)
@@ -796,7 +803,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     setNote({ text: fmt(t.share.saved, { file }), print: true })
   }
 
-  const fileName = compare ? (what === 'wish' ? 'everybird-wish-list.png' : 'everybird-compare.png') : `everybird-${shape}.png`
+  const fileName = exportName('png', shape)
   /** The newest render's PNG: at hand once it's done (the buttons are disabled before), else waiting for it; null if it failed. */
   const getBlob = async (): Promise<Blob | null> => {
     if (ready.current?.key === key) return ready.current.blob
