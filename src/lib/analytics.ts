@@ -13,9 +13,9 @@ import { langCode, type Lang } from '@/i18n/langs'
  * Sent only from the production hostname, never with Do Not Track or Global Privacy Control on, and never throws.
  * Page visits are counted separately by Cloudflare Web Analytics (src/components/app/CloudflareBeacon.tsx).
  */
-export type VisitPage = 'landing' | 'collage' | 'settings' | 'about' | 'shared'
+export type VisitPage = 'landing' | 'collage' | 'settings' | 'about' | 'shared' | 'compare' | 'compare-shared'
 type AnalyticsEvents = {
-  /** Once per page view. `shared` is /s/[token], never with the token. */
+  /** Once per page view. `shared` is /s/[token] and `compare-shared` /c/[token], never with the token. */
   visit: { page: VisitPage }
   collage_made: { source: Source }
   /** Saved to the device (Download image, or Share image where the share sheet can't take files). */
@@ -33,7 +33,18 @@ type AnalyticsEvents = {
   search_applied: { kind: 'smart' | 'bird' }
   /** A kind of filter was set, at most once per kind per page load (`trackFilterUsed`). */
   filter_used: { kind: FilterKind }
+  /** Compare showed results from its set-up (never a /c/ link, a reload or a language switch): how many lists. */
+  compare_made: { lists: CompareLists }
+  /** Sent with each image download or share: the view the image is of. */
+  image_view: { view: ImageView }
+  /** The reader switched to a view (never the Collage, the default, nor a view restored); the Worker keeps one per person, view and day. */
+  view_opened: { view: 'list' | 'map' | 'tree' }
+  /** An Export in batches ZIP was saved, by its split (`batches`, by number of birds, as `size`). */
+  batch_exported: { split: 'family' | 'order' | 'country' | 'continent' | 'province' | 'year' | 'size' }
 }
+/** How many lists a comparison holds (COMPARE_MAX is 6). */
+export type CompareLists = '2' | '3' | '4' | '5' | '6'
+export type ImageView = 'collage' | 'list' | 'map' | 'tree' | 'comparison' | 'wish-list'
 /** A poster's size on the wire: a4 to a1 and us12x18/us18x24/us24x36 (portrait), and -l (landscape). */
 export type PosterSizeWire =
   | 'a4' | 'a3' | 'a2' | 'a1' | 'us12x18' | 'us18x24' | 'us24x36'
@@ -50,7 +61,7 @@ export const PRODUCTION_HOST = 'everybird.yusuftaleb.com'
  * detail (WIRE_LEVEL) until the Worker lists the app's own names.
  */
 export const ALLOWED: Record<EventName, readonly string[]> = {
-  visit: ['landing', 'collage', 'settings', 'about', 'shared'],
+  visit: ['landing', 'collage', 'settings', 'about', 'shared', 'compare', 'compare-shared'],
   collage_made: ['ebird', 'ebird-list', 'inat', 'obsorg', 'sheet', 'scythebill', 'igoterra', 'manual', 'sample', 'restore', 'mixed'],
   image_downloaded: ['story', 'post', 'square', 'desktop', 'wide'],
   shared: ['story', 'post', 'square', 'desktop', 'wide', 'link'],
@@ -60,6 +71,10 @@ export const ALLOWED: Record<EventName, readonly string[]> = {
   poster_downloaded: ['png', 'pdf'],
   search_applied: ['smart', 'bird'],
   filter_used: ['place', 'continent', 'time', 'status', 'group', 'taxonomy'],
+  compare_made: ['2', '3', '4', '5', '6'],
+  image_view: ['collage', 'list', 'map', 'tree', 'comparison', 'wish-list'],
+  view_opened: ['list', 'map', 'tree'],
+  batch_exported: ['family', 'order', 'country', 'continent', 'province', 'year', 'size'],
 }
 export const WIRE_LEVEL: Record<ShareLevel, string> = { regions: 'full', countries: 'compact', dates: 'minimal', species: 'species' }
 

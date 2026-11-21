@@ -240,6 +240,19 @@ describe('the newer events', () => {
     expect(payloadFor('filter_used', { kind: 'Canada' as never })).toBeNull()
     expect(payloadFor('ui_language', { lang: 'es' }, false, 'es-MX')).toEqual({ n: 'ui_language', p: 'es' }) // no browser language off a visit
   })
+  it('round 6: Compare, what an image shows, views opened and Export in batches, from fixed lists only', () => {
+    for (const page of ['compare', 'compare-shared'] as const) expect(payloadFor('visit', { page })).toEqual({ n: 'visit', p: page })
+    for (const lists of ['2', '3', '4', '5', '6'] as const) expect(payloadFor('compare_made', { lists })).toEqual({ n: 'compare_made', p: lists })
+    for (const view of ['collage', 'list', 'map', 'tree', 'comparison', 'wish-list'] as const) expect(payloadFor('image_view', { view })).toEqual({ n: 'image_view', p: view })
+    for (const view of ['list', 'map', 'tree'] as const) expect(payloadFor('view_opened', { view })).toEqual({ n: 'view_opened', p: view })
+    for (const split of ['family', 'order', 'country', 'continent', 'province', 'year', 'size'] as const) expect(payloadFor('batch_exported', { split })).toEqual({ n: 'batch_exported', p: split })
+    expect(payloadFor('compare_made', { lists: '1' as never })).toBeNull()
+    expect(payloadFor('compare_made', { lists: '7' as never })).toBeNull()
+    expect(payloadFor('image_view', { view: 'poster' as never })).toBeNull()
+    expect(payloadFor('view_opened', { view: 'collage' as never })).toBeNull() // the default view is never counted
+    expect(payloadFor('batch_exported', { split: 'batches' as never })).toBeNull() // on the wire as 'size'
+    expect(payloadFor('visit', { page: 'c/abc' as never })).toBeNull()
+  })
   it('trackFilterUsed sends each kind once per page load', () => {
     const bodies: string[] = []
     ;(window as StatsHookWindow).__everybirdStats = (b) => bodies.push(b)
