@@ -521,7 +521,7 @@ export const zhHant: Messages = {
         targetInvalid: '請輸入 1 到 {max} 的整數。',
         card: '{year} 年度清單',
         cardLifer: '{year} 年的新鳥種',
-        ofTarget: { one: '目標 {n} 種', other: '目標 {n} 種' },
+        ofTarget: { one: '/ {n} 種', other: '/ {n} 種' },
       },
       downloadShort: '下載',
       print: {

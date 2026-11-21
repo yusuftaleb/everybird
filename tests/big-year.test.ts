@@ -109,7 +109,7 @@ describe('bigYear helpers', () => {
 })
 
 describe('year list share card', () => {
-  it('draws 120 over OF 300 SPECIES with 2027 year list (seen) and 2027 lifers (lifer), in every language', async () => {
+  it('draws 120 over / 300 SPECIES with 2027 year list (seen) and 2027 lifers (lifer), in every language', async () => {
     const species = makeSpecies(120)
     const entries: ListEntry[] = Array.from({ length: 120 }, (_, i) => ({
       code: `sp${i}`, date: '2027-03-01', heard: false, dead: false, media: false, sources: ['ebird'],
@@ -121,7 +121,7 @@ describe('year list share card', () => {
       goal: { year: 2027, target: 300, basis: 'seen' }, strings: en.ui,
     })
     expect(seenCard.countNum).toBe('120')
-    expect(seenCard.countLabel).toBe('OF 300 SPECIES')
+    expect(seenCard.countLabel).toBe('/ 300 SPECIES')
     expect(seenCard.label).toBe('2027 year list')
 
     const liferCard = await prepareCard({

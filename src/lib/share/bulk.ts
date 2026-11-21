@@ -228,7 +228,7 @@ export type BulkPackOpts = {
   /** The poster has a title line. */
   named: boolean
   countSize: CountSize
-  /** The Big Year goal's target: the label under the count reads "OF 300 SPECIES", so its hole is sized for that. */
+  /** The Big Year goal's target: the label under the count reads "/ 300 SPECIES", so its hole is sized for that. */
   target?: number
   showNames: boolean
   species: SpeciesIndex

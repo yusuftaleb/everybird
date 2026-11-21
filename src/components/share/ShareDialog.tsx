@@ -35,7 +35,7 @@
 // The Goal row (Share only; posters never draw a goal): "Add a goal" until one is set; then a number box, "species in",
 // a year menu (All time and each year with birds, newest first) and a remove button. With a year the image is that
 // year's birds against the target (the Big Year); with All time, the birds on screen against it. Kept in Saved.bigYear
-// (year left out for All time). The image draws the goal under the count ("OF 150 SPECIES"), the number as large as without one.
+// (year left out for All time). The image draws the goal under the count ("/ 150 SPECIES"), the number as large as without one.
 // The link encoder (and its ~111 KB species index) is a separate chunk, fetched when the dialog opens, so a Copy link
 // click awaits nothing slow (iOS drops the clipboard permission once a click handler waits on the network).
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.

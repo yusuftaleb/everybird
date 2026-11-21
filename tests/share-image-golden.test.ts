@@ -49,7 +49,7 @@ describe('share image draw calls', () => {
     const log = logs.get(canvas as unknown as object)!
     // The goal is in the label under the count; the number is the count alone, at its no-goal size.
     expect(log.some((l) => l.startsWith('fillText("14",'))).toBe(true)
-    expect(log.some((l) => l.startsWith('fillText("OF 300 SPECIES",'))).toBe(true)
+    expect(log.some((l) => l.startsWith('fillText("/ 300 SPECIES",'))).toBe(true)
     expect(log.some((l) => l.includes(' / 300'))).toBe(false)
     expect(log).toContain('fillText("2027 year list", 64, 160)')
     expect(log).toMatchSnapshot()

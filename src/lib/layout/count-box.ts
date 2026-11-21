@@ -55,7 +55,7 @@ export const LABEL = 'SPECIES'
  */
 export const COUNT_LABEL_CHARS = 8
 /**
- * With a goal the share images' label reads "OF 150 SPECIES" (share.bigYear.ofTarget, the number as large as without
+ * With a goal the share images' label reads "/ 150 SPECIES" (share.bigYear.ofTarget, the number as large as without
  * one): its box holds the target's en-US digits and this many characters more, the words around the number in the
  * longest language ("sur  espèces", "van  soorten" 12). tests/count-box.test.ts checks every language's against it.
  */

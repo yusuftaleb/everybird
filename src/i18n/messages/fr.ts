@@ -529,7 +529,7 @@ export const fr: Messages = {
         targetInvalid: 'Saisis un nombre entier de 1 à {max}.',
         card: 'Liste annuelle {year}',
         cardLifer: 'Nouvelles espèces en {year}',
-        ofTarget: { one: 'sur {n} espèce', other: 'sur {n} espèces' },
+        ofTarget: { one: '/ {n} espèce', other: '/ {n} espèces' },
       },
       downloadShort: 'Télécharger',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */

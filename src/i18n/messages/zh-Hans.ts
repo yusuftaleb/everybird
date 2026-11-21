@@ -521,7 +521,7 @@ export const zhHans: Messages = {
         targetInvalid: '输入1到{max}之间的整数。',
         card: '{year}年度清单',
         cardLifer: '{year}年加新',
-        ofTarget: { one: '目标{n}种', other: '目标{n}种' },
+        ofTarget: { one: '/ {n}种', other: '/ {n}种' },
       },
       downloadShort: '下载',
       print: {

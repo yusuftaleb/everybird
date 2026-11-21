@@ -659,7 +659,8 @@ export const EN_UI = {
       targetInvalid: 'Enter a whole number from 1 to {max}.',
       card: '{year} year list',
       cardLifer: '{year} lifers',
-      ofTarget: { one: 'of {n} species', other: 'of {n} species' },
+      /** With a goal, the count's label: "632 / 100 SPECIES" (a slash, not "of": Yusuf, 2026-11-21), beside the title or under the number. */
+      ofTarget: { one: '/ {n} species', other: '/ {n} species' },
     },
     /** Download's short label in the row of quiet buttons. */
     downloadShort: 'Download',

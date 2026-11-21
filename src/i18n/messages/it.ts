@@ -519,7 +519,7 @@ export const it: Messages = {
         targetInvalid: 'Inserisci un numero intero da 1 a {max}.',
         card: 'Lista annuale {year}',
         cardLifer: 'Specie nuove nel {year}',
-        ofTarget: { one: 'su {n} specie', other: 'su {n} specie' },
+        ofTarget: { one: '/ {n} specie', other: '/ {n} specie' },
       },
       downloadShort: 'Scarica',
       print: {

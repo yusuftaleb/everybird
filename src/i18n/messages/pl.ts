@@ -525,7 +525,7 @@ export const pl: Messages = {
         targetInvalid: 'Wpisz liczbę całkowitą od 1 do {max}.',
         card: 'Lista roczna {year}',
         cardLifer: 'Nowe gatunki w roku {year}',
-        ofTarget: { one: 'z {n} gatunku', few: 'z {n} gatunków', many: 'z {n} gatunków', other: 'z {n} gatunku' },
+        ofTarget: { one: '/ {n} gatunku', few: '/ {n} gatunków', many: '/ {n} gatunków', other: '/ {n} gatunku' },
       },
       downloadShort: 'Pobierz',
       print: {

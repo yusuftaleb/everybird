@@ -521,7 +521,7 @@ export const sv: Messages = {
         targetInvalid: 'Ange ett heltal från 1 till {max}.',
         card: 'Årslista {year}',
         cardLifer: 'Nya arter {year}',
-        ofTarget: { one: 'av {n} art', other: 'av {n} arter' },
+        ofTarget: { one: '/ {n} art', other: '/ {n} arter' },
       },
       downloadShort: 'Ladda ner',
       print: {

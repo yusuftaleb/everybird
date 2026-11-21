@@ -522,7 +522,7 @@ export const de: Messages = {
         targetInvalid: 'Gib eine ganze Zahl von 1 bis {max} ein.',
         card: 'Jahresliste {year}',
         cardLifer: 'Neue Arten {year}',
-        ofTarget: { one: 'von {n} Art', other: 'von {n} Arten' },
+        ofTarget: { one: '/ {n} Art', other: '/ {n} Arten' },
       },
       downloadShort: 'Speichern',
       print: {

@@ -522,7 +522,7 @@ export const da: Messages = {
         targetInvalid: 'Skriv et helt tal fra 1 til {max}.',
         card: 'Årsliste {year}',
         cardLifer: 'Nye arter i {year}',
-        ofTarget: { one: 'af {n} art', other: 'af {n} arter' },
+        ofTarget: { one: '/ {n} art', other: '/ {n} arter' },
       },
       downloadShort: 'Hent',
       print: {

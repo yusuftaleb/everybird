@@ -2447,7 +2447,7 @@ exports[`share image draw calls > story year list progress card 1`] = `
   "font = "500 25px \\"Geist Mono\\", ui-monospace, Menlo, monospace"",
   "letterSpacing = "1.50px"",
   "fillStyle = "#5f5f69"",
-  "fillText("OF 300 SPECIES", 540, 961.2)",
+  "fillText("/ 300 SPECIES", 540, 961.2)",
   "letterSpacing = "0.00px"",
   "textBaseline = "top"",
   "textAlign = "left"",

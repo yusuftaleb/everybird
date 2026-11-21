@@ -316,7 +316,7 @@ export function countLayout(format: CardFormat | number, count: number, collageW
   const baseMax = typeof format === 'number' ? format : COUNT_MAX[format]
   const max = countSize === 'small' ? baseMax * 0.72 : countSize === 'large' ? baseMax * 1.28 : baseMax
   const countW = countSize === 'small' ? COUNT_W * 0.72 : countSize === 'large' ? Math.min(0.68, COUNT_W * 1.2) : COUNT_W
-  // A goal never changes the number (its size stays the no-goal one): it goes in the label, "OF 150 SPECIES".
+  // A goal never changes the number (its size stays the no-goal one): it goes in the label, "/ 150 SPECIES".
   const number = countText(count)
   const label = LABEL
   const cells = target !== undefined ? goalLabelCells(target) : undefined
@@ -767,7 +767,7 @@ export type ShareImageOpts = {
   /** The places' names in the image's language (i18n-places.ts regionsIn), for where the latest lifer was seen
    *  (liferPlace); without them the row and the poster's foot name no place. */
   regions?: Regions
-  /** A species goal: the label under the count reads "OF 300 SPECIES". With `year`, the card's line names it ("Big Year 2026"); without, it is
+  /** A species goal: the label under the count reads "/ 300 SPECIES". With `year`, the card's line names it ("Big Year 2026"); without, it is
    *  the shown list's goal (All time) and the line is the filter's. */
   goal?: { year?: number; target?: number; basis: 'seen' | 'lifer' }
   countSize?: CountSize
@@ -857,7 +857,7 @@ export type PreparedCard = {
   /** What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's. */
   countNum: string
   countLabel: string
-  /** "Beside title": the count on the title's line, its number and its upper-cased label ("96", "SPECIES" or "OF 150 SPECIES"). */
+  /** "Beside title": the count on the title's line, its number and its upper-cased label ("96", "SPECIES" or "/ 150 SPECIES"). */
   countLine?: { num: string; label: string }
   footerLine: string
   /** The poster's latest lifer in words ("Latest lifer: Hooded Crow, Sep 2026"), drawn at the foot's right end. */
@@ -1007,7 +1007,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const g = Math.min(fit.grow, 1.3)
   const K = { ...L.count, size: Math.round(L.count.size * g), labelSize: Math.round(L.count.labelSize * Math.min(g, 1.15)), gap: Math.round(L.count.gap * g) }
   // What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's.
-  // With a goal the label says it ("OF 150 SPECIES"); the number is the count alone, at its no-goal size.
+  // With a goal the label says it ("/ 150 SPECIES"); the number is the count alone, at its no-goal size.
   // Beside the title the same two parts, on the title's line.
   const numText = countDisplay(content.count, strings.num)
   const labelText = (goal?.target !== undefined ? plural(strings.share.bigYear.ofTarget, goal.target, { n: countDisplay(goal.target, strings.num) }) : strings.count.label).toUpperCase()

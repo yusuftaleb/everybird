@@ -536,7 +536,7 @@ export const ru: Messages = {
         targetInvalid: 'Введи целое число от 1 до {max}.',
         card: 'Годовой список {year}',
         cardLifer: 'Новые виды за {year}',
-        ofTarget: { one: 'из {n} вида', few: 'из {n} видов', many: 'из {n} видов', other: 'из {n} вида' },
+        ofTarget: { one: '/ {n} вида', few: '/ {n} видов', many: '/ {n} видов', other: '/ {n} вида' },
       },
       downloadShort: 'Скачать',
       print: {

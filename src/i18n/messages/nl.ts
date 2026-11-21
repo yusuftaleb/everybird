@@ -529,7 +529,7 @@ export const nl: Messages = {
         targetInvalid: 'Vul een heel getal van 1 tot en met {max} in.',
         card: 'Jaarlijst {year}',
         cardLifer: 'Nieuwe soorten in {year}',
-        ofTarget: { one: 'van {n} soort', other: 'van {n} soorten' },
+        ofTarget: { one: '/ {n} soort', other: '/ {n} soorten' },
       },
       downloadShort: 'Downloaden',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */

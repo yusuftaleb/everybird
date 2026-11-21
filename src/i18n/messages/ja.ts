@@ -521,7 +521,7 @@ export const ja: Messages = {
         targetInvalid: '1から{max}までの整数を入力してください。',
         card: '{year}年のイヤーリスト',
         cardLifer: '{year}年のライファー',
-        ofTarget: { one: '目標{n}種', other: '目標{n}種' },
+        ofTarget: { one: '/ {n}種', other: '/ {n}種' },
       },
       downloadShort: 'ダウンロード',
       print: {
