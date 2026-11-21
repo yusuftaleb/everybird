@@ -396,7 +396,7 @@ export const da: Messages = {
       sharedTitle: 'Sammenligning af {n} livslister',
       paste: 'Indsæt en vens Everybird-link',
       noList: 'Tilføj først dine egne fugle for at sammenligne med {name}.',
-      showAll: 'Vis alle {n}',
+      seenBy: 'Set af {names}',
       people: 'Lister i sammenligningen',
       remove: 'Fjern {name}',
       withMine: 'Sammenlign med min',

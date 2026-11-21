@@ -395,7 +395,7 @@ export const zhHans: Messages = {
       sharedTitle: '对比{n}份生涯清单',
       paste: '粘贴朋友的Everybird链接',
       noList: '要和{name}对比，请先添加你自己的鸟。',
-      showAll: '显示全部（{n}）',
+      seenBy: '看到过的人：{names}',
       people: '本次对比的清单',
       remove: '移除{name}',
       withMine: '和我的对比',

@@ -395,7 +395,7 @@ export const ja: Messages = {
       sharedTitle: '{n}件のライフリストを比較',
       paste: '友だちのEverybirdリンクを貼り付け',
       noList: '{name}と比較するには、まず自分の鳥を追加してください。',
-      showAll: 'すべて表示（{n}）',
+      seenBy: '見た人：{names}',
       people: 'この比較のリスト',
       remove: '{name}を外す',
       withMine: '自分のと比較',

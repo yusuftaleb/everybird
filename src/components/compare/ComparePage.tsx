@@ -196,7 +196,7 @@ export function ComparePage() {
               </button>
             </>}
           />
-          <CompareResult c={c} />
+          <CompareResult c={c} sci={state.sci} />
           {sharing && share && c.data && (
             <Suspense fallback={null}>
               <ShareDialog state={state} dispatch={dispatch} species={c.data.species} regions={data?.regions ?? NO_REGIONS} compare={share} onClose={() => setSharing(false)} />

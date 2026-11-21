@@ -400,7 +400,7 @@ export const nl: Messages = {
       sharedTitle: '{n} levenslijsten vergeleken',
       paste: 'Plak de Everybird-link van een vriend',
       noList: 'Voeg eerst je eigen vogels toe om met {name} te vergelijken.',
-      showAll: 'Alle {n} tonen',
+      seenBy: 'Gezien door {names}',
       people: 'Lijsten in deze vergelijking',
       remove: '{name} verwijderen',
       withMine: 'Vergelijk met de mijne',

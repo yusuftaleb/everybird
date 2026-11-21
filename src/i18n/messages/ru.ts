@@ -405,7 +405,7 @@ export const ru: Messages = {
       sharedTitle: 'Сравнение лайф-листов: {n}',
       paste: 'Вставь ссылку Everybird друга',
       noList: 'Чтобы сравнить со списком «{name}», сначала добавь своих птиц.',
-      showAll: 'Показать все ({n})',
+      seenBy: 'Видели: {names}',
       people: 'Списки в сравнении',
       remove: 'Убрать: {name}',
       withMine: 'Сравнить с моим',
