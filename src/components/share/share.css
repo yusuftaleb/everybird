@@ -1,9 +1,9 @@
 /* The share dialog: a modal, preview beside the controls from 720px, stacked below. The preview is as large as its
    room allows (Yusuf, 2026-11-15: no narrow story between grey bands): its box takes the shown image's own shape
    (data-format: 9:16, 4:5 or 1:1, or horizontal 16:9, 5:4 and the landscape poster), so nothing is letterboxed. Beside
-   the controls (round 6, item 10) the dialog is as large as the window allows, centred, and the preview fills the room
-   left of the column, at its top. It never scrolls sideways: the preview's size is bound by the window's width as
-   well as its height. */
+   the controls (round 6, item 18) the card is as large as the window allows and the dialog wraps it and the column,
+   centred in the window. It never scrolls sideways: the card's size is bound by the window's width as well as its
+   height. */
 .eb-share-scrim { position: fixed; inset: 0; z-index: var(--z-dialog-scrim); background: rgb(0 0 0 / .28); display: grid; place-items: center; padding: 16px; }
 /* Stacked, the dialog keeps its top edge (a shorter preview never moves the format control above it). The body is a
    size container here only, so the preview's width and height are both explicit (from the body's width and --cap) and
@@ -45,14 +45,15 @@
    above the preview's area, the controls under it, so neither moves when the preview changes shape), a grid from 720px
    (the preview's area on the left down both rows, the format control over the rest of the controls on the right).
    No scrolling on a laptop with everything closed (Yusuf, 2026-11-20; round 6): from 1200px the controls' column is
-   480px; a 1440 × 830 window leaves the body 830 − 140 (the dialog 32px from the top, 16px from the bottom, its border,
-   padding, head and gap) = 690px, and the tallest column with everything closed, the collage poster once made with a
+   480px; a 1440 × 830 window leaves the body 830 − 124 (the scrim's 16px above and below, then the dialog's chrome,
+   --chrome-h: its border, padding, head and gap, 92) = 706px, and the tallest column with everything closed, the collage poster once made with a
    status line and the filters line, takes 674: the top row 40, 12, the title 64 (its label's 18px line, 6, the 40px
    field), 8, the list 273 (the size 45, then Arrangement, Appearance and Count, 40 each, Show latest lifer, Show species
    names and Transparent background, 36 each), 8, Export in batches' row 36 in its box's 1px border, 38, 12, the actions 88 (Download PNG and Download PDF,
    then Copy link), the status 12 + 21, the filters line 12 + 36, the coffee button 12 + 38. Print has no Goal. Rows
    are 36px with a mouse (40 with a segmented control), 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css still
-   says them. Opened (Export in batches, a goal), the column scrolls inside the dialog, which keeps its size. */
+   says them. Opened (Export in batches, a goal), the column grows at most to the card's height, then scrolls inside the
+   dialog, which keeps its size. */
 .eb-share-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 20px; min-width: 0; }
 /* One row: the format control (not in the poster) and the orientation switch, words only (each button's spoken name
    keeps its ratio). Where the two don't fit side by side (German and Russian at 480px, every language on a phone) the
@@ -105,30 +106,37 @@
    a square), so the buttons under it move with the format. From 720px the media query below sets the rows. */
 .eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 340px, 600px)); grid-template-rows: auto auto auto; }
 
-/* Beside the controls (round 6, item 10, the maintainer: as big as possible, centred): the dialog is centred across
-   the window and pinned 32px from its top (--top), 16px from its sides and its bottom, and as large as that leaves, at
-   most 1,440 × 1,000 (--dlg-w, --dlg-h). Its size comes from the window alone: never from the format, the
-   orientation, the subject, the options shown or anything opened, so nothing moves when any of those change. Inside,
-   two parts, both top-aligned: the controls' column at the right (--ctl: 300px, 420px from 1000px, 480px from 1200px;
-   the format row over the rest, which scrolls only when taller than the dialog) and the preview's area taking all the
-   rest (.eb-share-area, a size container). The preview's box, the image's own shape, is as large as that area allows
-   (contain: never cropped, never letterboxed), at its top and centred across it; a narrower shape leaves room at its
-   sides. */
+/* Beside the controls (round 6, item 18, the maintainer: the dialog wraps its card, centred; it replaced item 10's
+   window-sized dialog). The scrim is a size container, so 100cqw × 100cqh is the window less its 16px margins. The card
+   (the preview's box, the image's own shape) is as large as that allows, fitted whole: at most the window's height less
+   the dialog's chrome (--chrome-h: its 1px borders, 16px and 18px padding, the 44px head and its 12px gap = 92px) and
+   at most the window's width less the chrome across (--chrome-w: its borders, 20px padding each side and the 20px gap
+   to the column = 62px) and the column (--ctl: 300px, 420px from 1000px, 480px from 1200px). It sits at the body's top
+   left, the column beside it, both top-aligned; the dialog is as wide as the two and the gap (max-content) and as tall
+   as its head and the taller of the card and the closed column, and the scrim centres it, so it re-centres when the
+   format, the orientation or the subject changes its size. The column's end follows its content (the coffee button
+   last, nothing pinned to the dialog's foot). Opening Export in batches or a goal resizes nothing (item 7): the column
+   may grow to the card's height (--pv-h less the top row, --top-h), never past its closed height beyond that
+   (--scroll-h, measured closed in ShareDialog.tsx), and scrolls inside; it never takes more than the window leaves. */
 @media (min-width: 720px) {
-  .eb-share-scrim { --ctl: 300px; --top: 32px; --dlg-w: 1440px; --dlg-h: 1000px; place-items: start center; padding-top: var(--top); }
-  .eb-share-scrim .eb-share {
-    width: min(100%, var(--dlg-w)); height: min(100dvh - var(--top) - 16px, var(--dlg-h)); max-height: none; overflow: hidden;
+  .eb-share-scrim { --ctl: 300px; --chrome-h: 92px; --chrome-w: 62px; container-type: size; }
+  .eb-share-scrim .eb-share { width: max-content; max-width: 100%; max-height: 100%; }
+  /* The second row flexible: a card taller than the column gives its extra height to it, never to the top row (an item
+     crossing a flexible track is left out of the other rows' sizing). */
+  .eb-share-body { grid-template-columns: max-content var(--ctl); grid-template-rows: max-content minmax(0, 1fr); }
+  .eb-share-area { grid-column: 1; grid-row: 1 / span 2; }
+  .eb-share-preview {
+    --card-h: min(100cqh - var(--chrome-h), (100cqw - var(--chrome-w) - var(--ctl)) / var(--ar));
+    justify-self: start; align-self: start; width: calc(var(--card-h) * var(--ar)); height: var(--card-h);
   }
-  /* The first row is max-content (the format control and the orientation), the second takes the rest of the body. */
-  .eb-share-body { grid-template-columns: minmax(0, 1fr) var(--ctl); grid-template-rows: max-content minmax(0, 1fr); flex: 1 1 auto; min-height: 0; }
-  .eb-share-area { grid-column: 1; grid-row: 1 / span 2; min-width: 0; min-height: 0; container-type: size; display: flex; justify-content: center; align-items: flex-start; }
-  .eb-share-preview { flex: none; width: min(100cqw, 100cqh * var(--ar)); height: min(100cqh, 100cqw / var(--ar)); }
   .eb-share-formats, .eb-share-scroll { grid-column: 2; }
   .eb-share-formats { grid-row: 1; }
-  /* The column scrolls on its own, only when taller than the dialog; its 8px inset (padding, taken back by the margin)
-     keeps focus rings and the coffee button's press inside what it shows. It fills its row, so the coffee button sits
-     at the dialog's foot. */
-  .eb-share-scroll { grid-row: 2; min-height: 0; overflow: hidden auto; overscroll-behavior: contain; padding: 8px; margin: -8px; }
+  /* Its 8px inset (padding, taken back by the margin) keeps focus rings and the coffee button's press inside what it
+     shows; border-box, so its max-height adds the inset back. */
+  .eb-share-scroll {
+    grid-row: 2; align-self: start; overflow: hidden auto; overscroll-behavior: contain; padding: 8px; margin: -8px;
+    max-height: calc(min(max(var(--scroll-h, 100cqh), var(--pv-h, 0px) - var(--top-h, 0px)), 100cqh - var(--chrome-h) - var(--top-h, 0px)) + 16px);
+  }
 }
 @media (min-width: 1000px) { .eb-share-scrim { --ctl: 420px; } }
 @media (min-width: 1200px) { .eb-share-scrim { --ctl: 480px; } }

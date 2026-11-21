@@ -26,11 +26,11 @@
 // then the progress and Cancel, then Download PNG and Download PDF serving the one encode, side by side the same way.
 // Last, in the bottom right corner, Buy Me a Coffee's static button (self-hosted, never on the images). Every dropdown is
 // MenuSelect, its menu rendered into the dialog over everything (not clipped by the scrolling column; upward when there
-// is no room below). Beside the preview (round 6, item 10) the dialog is centred, pinned near the window's top and as
-// large as the window allows (at most 1,440 × 1,000): its size comes from the window alone, so no format, orientation,
-// subject, option or anything opened moves or resizes it. The controls' column at its right scrolls only when taller
-// than the dialog (opening Export in batches or a goal scrolls it just enough to show what opened); the preview takes
-// the rest, the image as large as that allows, at its top (share.css).
+// is no room below). Beside the preview (round 6, item 18) the card is as large as the window allows, at the body's top
+// left with the controls' column beside it, and the dialog wraps the two, centred in the window: a Story makes a
+// narrow, tall dialog, a Desktop a wide, shorter one, and it re-centres when either changes. Opening Export in batches
+// or a goal resizes nothing: the column scrolls inside (just enough to show what opened), and only scrolls closed when
+// the window is too short for it (share.css).
 // On phones the actions come straight under the preview, so Share image (or Make poster) is on the first screen.
 // The Goal row (Share only; posters never draw a goal): "Add a goal" until one is set; then a number box, "species in",
 // a year menu (All time and each year with birds, newest first) and a remove button. With a year the image is that
@@ -112,6 +112,17 @@ export const VIEW_IMAGE: Partial<Record<ViewKind, () => Promise<(o: ViewImageOpt
 }
 
 const RENDER_DELAY_MS = 250
+/**
+ * The controls' column's height as if Export in batches and the goal were closed: its height less what they add once
+ * open (each `[data-opened]` element's height; a `grow` one's beyond its row's closed min-height).
+ */
+export function closedHeight(col: HTMLElement): number {
+  let h = col.offsetHeight
+  for (const x of col.querySelectorAll<HTMLElement>('[data-opened]')) {
+    h -= x.dataset.opened === 'grow' ? Math.max(0, x.offsetHeight - (parseFloat(getComputedStyle(x).minHeight) || 0)) : x.offsetHeight
+  }
+  return h
+}
 /** A poster size's paper area (pt²), for "A larger poster prints every name". */
 const paperArea = (s: PrintSize) => PRINT_PT[s][0] * PRINT_PT[s][1]
 
@@ -877,6 +888,29 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const sizeLine = fmt(isUsSize(size) ? pt.sizeLineIn : pt.sizeLine, { size, w: dimW, h: dimH, pw: pxW, ph: pxH })
   // The box eases to a new format's shape (data-resizing, share.css), but follows a window resize at once.
   const previewBox = useRef<HTMLDivElement>(null)
+  // Beside the preview (round 6, item 18) the dialog wraps the card and the column, so opening Export in batches or a
+  // goal must not make it taller: the column's height for the layout is the card's less the top row (--pv-h, --top-h),
+  // or its own closed height when that is taller (--scroll-h: closedHeight, then its gap and the coffee button's margin
+  // box), and it scrolls past that (share.css).
+  const formatsRef = useRef<HTMLDivElement>(null)
+  const controlsRef = useRef<HTMLDivElement>(null)
+  const coffeeRef = useRef<HTMLAnchorElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current, top = formatsRef.current, col = controlsRef.current, coffee = coffeeRef.current, pv = previewBox.current
+    if (!el || !top || !col || !coffee || !pv || typeof ResizeObserver === 'undefined') return
+    const measure = () => {
+      const gap = parseFloat(getComputedStyle(top.parentElement!).rowGap) || 0
+      const colGap = parseFloat(getComputedStyle(col.parentElement!).rowGap) || 0
+      const closed = closedHeight(col) + colGap + coffee.offsetHeight + (parseFloat(getComputedStyle(coffee).marginBottom) || 0)
+      el.style.setProperty('--scroll-h', `${Math.ceil(closed)}px`)
+      el.style.setProperty('--top-h', `${Math.ceil(top.offsetHeight + gap)}px`)
+      el.style.setProperty('--pv-h', `${Math.floor(pv.offsetHeight)}px`)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    for (const x of [top, col, pv]) ro.observe(x)
+    return () => ro.disconnect()
+  }, [])
   const shownFormat = preview && isPrint(preview.format) ? `${preview.format}|${printPackH(preview.size)}` : preview?.format
   const lastShown = useRef(shownFormat)
   useLayoutEffect(() => {
@@ -1172,7 +1206,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         <div className="eb-share-body">
           {/* On top of the controls beside the preview, above the preview on phones (share.css): the format (not in the
               poster) and the orientation on one row, the orientation under the format where the two don't fit. */}
-          <div className="eb-share-formats">
+          <div ref={formatsRef} className="eb-share-formats">
             <div className="eb-share-toprow">
               {!print && (
                 <div className="eb-seg eb-share-format" role="group" aria-label={t.share.formats}>
@@ -1221,7 +1255,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
 
           {/* The controls' column: beside the preview it scrolls inside the dialog, only when taller than it. */}
           <div className="eb-share-scroll">
-            <div className="eb-share-controls">
+            <div ref={controlsRef} className="eb-share-controls">
               {/* The options: the title under its label, then the list, one row per option (in the poster the size
                   first); Export in batches, a row in its own panel, under it. */}
               <div className="eb-share-options">
@@ -1358,7 +1392,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
             </div>
             {/* Buy Me a Coffee's standard static button, self-hosted as on About (no script, nothing from their servers),
                 at 32px tall in the column's bottom right corner; never on the images. */}
-            <a className="eb-share-coffee" href={COFFEE_URL} target="_blank" rel="noopener noreferrer">
+            <a ref={coffeeRef} className="eb-share-coffee" href={COFFEE_URL} target="_blank" rel="noopener noreferrer">
               {/* A fixed static image: next/image has nothing to optimise here. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/buy-me-a-coffee.png" width={114} height={32} alt={t.shell.footer.coffee} />
