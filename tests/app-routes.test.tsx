@@ -149,12 +149,11 @@ function inatField() {
 }
 
 const stats = () => screen.getByTestId('collage-stats')
-/** Settings lays the source rows out in the page and folds Add by hand in its box (`way` opens it); elsewhere (the
- *  collage's head) "Add birds" opens the dialog, at Import a file, and `way` picks one of its two choices. */
+/** Settings lays the source rows out in the page, and its "Add by hand" opens the Add birds dialog on Add by hand;
+ *  elsewhere (the collage's head) "Add birds" opens the dialog, at Import a file, and `way` picks one of its two choices. */
 async function openAdd(way: 'Import a file' | 'Add by hand') {
-  if (document.querySelector('.eb-page-settings')) {
-    const hand = screen.getByRole('button', { name: 'Add by hand' })
-    if (way === 'Add by hand' && hand.getAttribute('aria-expanded') === 'false') fireEvent.click(hand)
+  if (document.querySelector('.eb-page-settings') && !screen.queryByRole('dialog', { name: 'Add birds' })) {
+    if (way === 'Add by hand') fireEvent.click(screen.getByRole('button', { name: 'Add by hand' }))
     return
   }
   if (!screen.queryByRole('dialog', { name: 'Add birds' })) fireEvent.click(await screen.findByRole('button', { name: 'Add birds' }))
@@ -261,7 +260,8 @@ describe('the Collage page (/)', () => {
     await within(dialog).findByTestId('ebird-drop')
     for (const h of [/^eBird life list/, /^MyEBirdData/, /^iNaturalist/, /^observation\.org life list/, /^observation\.org observations/, /^Spreadsheet or list/, /^Scythebill/, /^iGoTerra/]) expect(within(dialog).getByRole('heading', { level: 3, name: h })).toBeInTheDocument()
     expect(within(dialog).getAllByText('Not added')).toHaveLength(8)
-    expect(within(dialog).getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
+    // The privacy line is Settings' alone (round 6: the dialog fits the screen without it).
+    expect(within(dialog).queryByText('Your list never leaves your browser. We count visits anonymously.')).toBeNull()
     // Esc closes it, and focus goes back to "Make yours".
     fireEvent.keyDown(dialog, { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'Add birds' })).toBeNull()
@@ -655,7 +655,7 @@ describe('editing', () => {
     const { storage, analytics } = await mount()
     await openTick()
     const search = screen.getByLabelText('Search birds')
-    expect(search).not.toHaveFocus() // on Settings the list is part of the page: nothing is focused for you
+    expect(search).toHaveFocus() // Settings' Add by hand opens the Add birds dialog on it, the search focused
     // With the search empty: the orders in taxonomic order, each a closed compact disclosure row (no sticker) with its
     // name, its scientific name after it and its count.
     const tree = screen.getByRole('list', { name: 'Species to tick' })
@@ -968,22 +968,30 @@ describe('remembered sources', () => {
     await waitFor(async () => expect((await storage.load())?.sources?.inat?.user).toBe('sam_birds'), { timeout: 2000 })
   })
 
-  it('Settings lays out the sources, then Add by hand folded in its box, each under its heading, with no Add birds button and no dialog', async () => {
+  it('Settings lays out the sources; its Add by hand, at the end of their heading row, opens the Add birds dialog on Add by hand', async () => {
     await mount({ stored: (s) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Add birds' })).toBeNull()
     const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
-    expect(headings.slice(0, 2)).toEqual(['Your list', 'Add by hand'])
-    // The rows are in the page; Add by hand is folded: its title, what was ticked, and a press opens it in place.
+    expect(headings.slice(0, 2)).toEqual(['Your list', 'Counting'])
+    expect(document.getElementById('tick')).toBeNull()
     expect(screen.getByTestId('ebird-drop')).toBeVisible()
-    const hand = screen.getByRole('button', { name: 'Add by hand' })
-    expect(hand).toHaveAttribute('aria-expanded', 'false')
-    expect(hand).toHaveAccessibleDescription(/^Ticked by hand · 1 species/)
-    expect(screen.queryByRole('list', { name: 'Species to tick' })).toBeNull()
-    fireEvent.click(hand)
-    expect(hand).toHaveAttribute('aria-expanded', 'true')
-    expect(document.getElementById('tick')).toContainElement(screen.getByRole('list', { name: 'Species to tick' }))
     expect(screen.getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
+    const hand = screen.getByRole('button', { name: 'Add by hand' })
+    expect(hand.closest('.eb-block-headrow')).toContainElement(screen.getByRole('heading', { level: 2, name: 'Your list' }))
+    expect(hand).toHaveAttribute('aria-haspopup', 'dialog')
+    hand.focus()
+    fireEvent.click(hand)
+    const dialog = screen.getByRole('dialog', { name: 'Add birds' })
+    expect(within(dialog).getByRole('button', { name: 'Add by hand' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(dialog).getByRole('list', { name: 'Species to tick' })).toBeInTheDocument()
+    expect(within(dialog).getByText(/^Ticked by hand · 1 species/)).toBeInTheDocument()
+    // The same dialog as the collage's: Import a file is one press away; Esc closes it, focus back on Add by hand.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Import a file' }))
+    expect(within(dialog).getByTestId('ebird-drop')).toBeInTheDocument()
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(hand).toHaveFocus()
   })
 
   it('in the dialog Add by hand is one press away, Tab stays inside, and Esc closes it with focus back on Add birds', async () => {

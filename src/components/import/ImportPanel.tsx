@@ -1,5 +1,5 @@
 'use client'
-import { memo, useMemo, useState, type ReactNode } from 'react'
+import { memo, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { ImportJobs } from '@/components/app/use-import-jobs'
 import { useI18n } from '@/i18n/I18nProvider'
 import { slotConnected, type SourceCounts } from '@/lib/list/source-counts'
@@ -59,8 +59,10 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
   const sheetOn = slotConnected(saved, 'sheet')
   const scythebillOn = slotConnected(saved, 'scythebill')
   const igoterraOn = slotConnected(saved, 'igoterra')
+  // Looked up inside this list: on Settings the Add birds dialog can hold a second one, with the same group ids.
+  const root = useRef<HTMLDivElement>(null)
   const focusWay = (id: string) => requestAnimationFrame(() => {
-    const way = document.getElementById(id)
+    const way = root.current?.querySelector<HTMLElement>(`#${id}`)
     way?.focus({ preventScroll: true })
     // A boxless (display: contents) group can't take focus in every browser: then its first button does.
     if (way && document.activeElement !== way) way.querySelector<HTMLElement>('button:not(:disabled)')?.focus({ preventScroll: true })
@@ -100,7 +102,7 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
   const shared = useMemo((): [string | null, typeof setPanel] => [panel, setPanel], [panel])
   return (
     <AddPanels.Provider value={shared}>
-      <div className="eb-srclist">
+      <div ref={root} className="eb-srclist">
         <Group id="way-ebird" label={t.import.ebirdGroup}>
           <EbirdDrop
             job={jobs.ebird}

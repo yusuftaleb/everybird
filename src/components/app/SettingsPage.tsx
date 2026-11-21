@@ -1,5 +1,5 @@
 'use client'
-import { ArrowRight, DownloadSimple, LockSimple, Trash } from '@phosphor-icons/react'
+import { ArrowRight, DownloadSimple, LockSimple, Plus, Trash } from '@phosphor-icons/react'
 import Link from '@/components/app/IntentLink'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -7,12 +7,11 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { ImportPanel } from '@/components/import/ImportPanel'
 import { MatchReport } from '@/components/import/MatchReport'
 import { RulesSwitches } from '@/components/import/RulesSwitches'
-import { TickList } from '@/components/import/TickList'
-import { ChevronDownIcon } from '@/components/collage/icons'
+import { AddBirdsDialog } from '@/components/import/AddBirdsDialog'
 import { downloadText, today } from '@/lib/download'
 import { toCsv, toJson } from '@/lib/list/export'
 import { placesNoteFor } from '@/lib/list/filter-summary'
-import { countParts, sourceCounts, summaryLine } from '@/lib/list/source-counts'
+import { sourceCounts, summaryLine } from '@/lib/list/source-counts'
 import type { Saved } from '@/lib/list/storage'
 import { useEverybirdContext } from './EverybirdProvider'
 import { EnglishNamesSwitch } from './LanguageField'
@@ -22,11 +21,11 @@ import { RestoreBackup } from './RestoreBackup'
 import './app.css'
 
 /**
- * `/settings`: "Your list" (the summary line, one cell per source, the match report, the privacy footnote), "Add by
- * hand" (the whole taxonomy to tick, folded in its own box, opening in place), then "Counting" (the rules) beside
+ * `/settings`: "Your list" (its heading row ending in "Add by hand", which opens the Add birds dialog on Add by hand;
+ * the summary line, one cell per source, the match report, the privacy footnote), then "Counting" (the rules) beside
  * "Your data" (downloads, restore, forget; the collage's title is in the share dialog) in two columns from 1024px, then
  * "Language" (only the English-names switch, when the UI isn't English: the language is the top bar's menu). Arriving at
- * /settings#sources (the welcome's "Make mine") focuses the sources; #tick lands on Add by hand; the Places notes'
+ * /settings#sources (the welcome's "Make mine") focuses the sources; the Places notes'
  * #add-mydata and #add-obsorg open their row's Add panel (use-anchor-target.ts); #match opens the match report.
  */
 export function SettingsPage() {
@@ -37,7 +36,7 @@ export function SettingsPage() {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
   const [restoring, setRestoring] = useState<Saved | null>(null)
-  const [handOpen, setHandOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
   const sources = useRef<HTMLElement>(null)
   useEffect(() => {
     if (data && location.hash === '#sources') sources.current?.focus({ preventScroll: true })
@@ -45,11 +44,8 @@ export function SettingsPage() {
   const landed = jobs.landed
   const count = state.list.length
   const { saved } = state
-  const onList = useMemo(() => new Set(state.list.map((e) => e.code)), [state.list])
   const counts = useMemo(() => sourceCounts(saved, state.list), [saved, state.list])
   const line = mine ? summaryLine(counts, t) : null
-  const ticked = counts.rows.manual
-  const listEmpty = Object.values(saved.records).every((r) => r.length === 0) && saved.edits.added.length === 0
   return (
     <main className="eb-page eb-page-settings eb-page-titled">
       <PageHead title={t.shell.nav.settings} />
@@ -58,7 +54,14 @@ export function SettingsPage() {
         <>
           <section ref={sources} id="sources" className="eb-block eb-import" aria-labelledby="eb-sources-h" tabIndex={-1}>
             <div className="eb-block-head">
-              <h2 id="eb-sources-h" className="eb-h2">{t.import.head}</h2>
+              {/* Add by hand at the heading row's right end: the Add birds dialog (the collage's), on its Add by hand tab. */}
+              <div className="eb-block-headrow">
+                <h2 id="eb-sources-h" className="eb-h2">{t.import.head}</h2>
+                <button type="button" className="eb-btn eb-btn-quiet" aria-haspopup="dialog" onClick={() => setAdding(true)}>
+                  <Plus aria-hidden="true" focusable="false" />
+                  {t.add.hand}
+                </button>
+              </div>
               {line ? (
                 <p className="eb-summary" role="status" data-testid="see-collage">
                   {line}
@@ -82,27 +85,6 @@ export function SettingsPage() {
             <MatchReport open={state.openUnmatched} saved={saved} species={data.species} dispatch={dispatch} />
             {/* Where files and usernames are handed over; the full privacy note is on About. */}
             <p className="eb-privacy"><LockSimple aria-hidden="true" focusable="false" weight="bold" />{t.import.privacy}</p>
-          </section>
-          {/* Add by hand, folded in its own box: its title, what was ticked and a chevron; a press anywhere on the head
-              opens it in place (the search, the list and When and where). */}
-          <section id="tick" className="eb-block eb-import eb-handbox" aria-labelledby="eb-tick-h">
-            <div className="eb-handbox-head" data-open={handOpen || undefined}>
-              <div className="eb-block-head">
-                <h2 id="eb-tick-h" className="eb-h2">
-                  <button
-                    type="button" className="eb-handbox-btn" aria-expanded={handOpen} aria-controls="eb-tick-body"
-                    aria-describedby={ticked.species > 0 ? 'eb-tick-line' : undefined} onClick={() => setHandOpen((o) => !o)}
-                  >
-                    {t.add.hand}
-                  </button>
-                </h2>
-                {ticked.species > 0 && <p id="eb-tick-line" className="eb-mono eb-note">{[t.tick.title, ...countParts(ticked, t)].join(' · ')}</p>}
-              </div>
-              <span className="eb-handbox-chev" aria-hidden="true"><ChevronDownIcon /></span>
-            </div>
-            <div id="eb-tick-body" className="eb-handbox-body" hidden={!handOpen}>
-              <TickList species={data.species} regions={data.regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} />
-            </div>
           </section>
         </>
       ) : (
@@ -167,6 +149,7 @@ export function SettingsPage() {
           <EnglishNamesSwitch />
         </div>
       </section>}
+      {adding && <AddBirdsDialog way="hand" onClose={() => setAdding(false)} />}
     </main>
   )
 }
