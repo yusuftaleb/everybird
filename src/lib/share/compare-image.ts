@@ -4,19 +4,19 @@
 // - the title, the lists' names joined the usual way, "Robin, Sam & Ada" (titlePart; one or two lines), and under it each list's species count on one line,
 //   most first; when even the smallest size is too wide, the names are shortened evenly, never the numbers;
 // - the diagram (venn.ts: two circles, three, or the flower from four lists), each circle in its list's colour
-//   (compare.ts listColorHex, as on the page), each region's number with its name;
-// - the caption ("55 of Sam's birds you've yet to see", or the chosen group's) over an even strip of up to
-//   STRIP_MAX of those birds' stickers, every one in the same square.
+//   (compare.ts listColorHex, as on the page), each region's number with its name, as large as the rest of the card
+//   allows. No birds: the wish list is the picture with the birds.
 // Loaded only when the dialog draws it.
 import { fmt } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import type { Ui } from '@/i18n/messages/en'
 import type { SpeciesIndex } from '@/lib/species/load'
-import { stickerUrl } from '@/lib/sticker-url'
 import { clipText } from './view-image'
-import { ensureViewFonts, loadStickers, paintCard, paintTiles, prepareCard, type FormatSlot, type ImagePack, type Tile } from './image'
-import { evenly, listColorHex, ranking } from './compare'
+import { ensureViewFonts, paintCard, prepareCard, type FormatSlot, type ImagePack } from './image'
+import { listColorHex, ranking, titlePart } from './compare'
 import { diagramLayout, type Diagram } from './venn'
+
+export { titlePart }
 
 export type CompareCardOpts = {
   /** Every list's name, in list order. */
@@ -25,9 +25,6 @@ export type CompareCardOpts = {
   sizes: number[]
   /** The diagram's numbers: species per combination of lists, by mask (compare.ts regionCounts). */
   counts: number[]
-  /** The line over the strip, and the birds it shows (in order; the strip takes up to STRIP_MAX, evenly). */
-  caption: string
-  codes: string[]
   species: SpeciesIndex
   theme: 'light' | 'dark'
   /** Default 'post'. */
@@ -40,12 +37,9 @@ export type CompareCardOpts = {
 export type CompareCard = { blob: Blob; W: number; H: number }
 
 const NO_BIRDS: ImagePack = { W: 1, H: 1, boxes: new Map() }
-/** The strip: STRIP_COLS stickers a row, two rows at most, each in a square a STRIP_COLS-th of the width. */
-export const STRIP_COLS = 9
-export const STRIP_MAX = 2 * STRIP_COLS
-/** Type sizes (px, design units) and their floors: the title (Cabinet 700), the counts line and the caption (Satoshi),
- *  each region's number (Cabinet 700) and its name (Satoshi 600) under it. */
-const TITLE = [60, 40], LINE = [30, 22], CAPTION = [30, 22], NUM = [84, 24], NAME = [28, 16]
+/** Type sizes (px, design units) and their floors: the title (Cabinet 700), the counts line (Satoshi), each region's
+ *  number (Cabinet 700) and its name (Satoshi 600) under it. */
+const TITLE = [60, 40], LINE = [30, 22], NUM = [84, 24], NAME = [28, 16]
 
 type Measure = { ctx: CanvasRenderingContext2D; font: (px: number) => string }
 
@@ -89,13 +83,6 @@ export function fitParts(
   return { px: min, lines: split(texts) ?? [clipText(ctx, texts.join(sep), maxW)] }
 }
 
-/**
- * Name `i` of `n` as a piece of the card's title, whose pieces join with spaces: commas between the names, " & " before
- * the last ("Robin, Sam & Ada"; two: "Ada & Sam"). A line break between pieces leaves a comma at a line's end or "&" at
- * the next one's start, never alone.
- */
-export const titlePart = (name: string, i: number, n: number): string => (i === n - 1 && n > 1 ? `& ${name}` : i < n - 2 ? `${name},` : name)
-
 /** The name drawn under a region's number: two lists' "Only Ada" and "Both"; a list's own name; the flower's centre. */
 function regionName(d: Diagram, mask: number, names: readonly string[], t: Ui): string {
   const n = names.length
@@ -111,7 +98,7 @@ export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> 
     format: o.format ?? 'post', entries: [], species, theme: o.theme, transparent: o.transparent, strings: t, pack: NO_BIRDS, latest: false, countSize: 'hide', now: o.now,
   })
   const order = ranking(sizes)
-  const sample = `${names.join('')}${o.caption}${t.compare.both}${t.compare.everyone}${t.compare.only}0123456789,.`
+  const sample = `${names.join('')}${t.compare.both}${t.compare.everyone}${t.compare.only}0123456789,.`
   await ensureViewFonts(card, sample)
   if (typeof document !== 'undefined' && document.fonts) {
     // The title and the numbers' face, for the names' letters (ensureViewFonts loads the body and mono faces).
@@ -148,17 +135,8 @@ export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> 
   ctx.fillText(counts.lines[0], X, y + counts.px * 0.8)
   y += counts.px + 40
 
-  // The bottom, upwards: the strip, the caption over it.
-  const drawable = o.codes.filter((c) => species.byCode.get(c)?.st)
-  const shown = evenly(drawable.length ? drawable : o.codes, STRIP_MAX)
-  const cell = CW / STRIP_COLS
-  const rows = Math.ceil(shown.length / STRIP_COLS)
-  const stripTop = bottom - rows * cell
-  const caption = fitParts({ ctx, font: fonts.lifer }, [o.caption], (n) => n, '', CAPTION, CW, 1)
-  const captionY = stripTop - (rows ? 20 : 0)
-
-  // The diagram, between the head and the caption.
-  const box = { x: X, y, w: CW, h: captionY - caption.px - 48 - y }
+  // The diagram, in the rest of the card.
+  const box = { x: X, y, w: CW, h: bottom - y }
   const d = diagramLayout(o.counts, box)
   const circle = (c: { cx: number; cy: number; r: number }) => { ctx.beginPath(); ctx.arc(c.cx, c.cy, c.r, 0, Math.PI * 2) }
   // Each circle a light wash of its list's colour (where circles overlap the washes add up) and a 4px outline in it.
@@ -199,26 +177,6 @@ export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> 
       ctx.fillText(name, s.x, top + blockH)
     }
   }
-
-  ctx.textAlign = 'left'
-  ctx.font = fonts.lifer(caption.px)
-  ctx.fillStyle = C.accent
-  ctx.fillText(caption.lines[0], X, captionY)
-
-  // The strip: each sticker contained in its square, at its own aspect.
-  const pad = cell * 0.08
-  const tiles: Tile[] = shown.flatMap((code, i) => {
-    const row = species.byCode.get(code)
-    if (!row) return []
-    const side = cell - 2 * pad
-    const ar = row.st && row.ar > 0 ? row.ar : 1
-    const [w, h] = ar >= 1 ? [side, side / ar] : [side * ar, side]
-    return [{ x: X + (i % STRIP_COLS) * cell + (cell - w) / 2, y: stripTop + Math.floor(i / STRIP_COLS) * cell + (cell - h) / 2, w, h, url: row.st ? stickerUrl(code, side, 1, row.sv) : null }]
-  })
-  const imgs = await loadStickers([...new Set(tiles.flatMap((x) => (x.url ? [x.url] : [])))])
-  ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'high'
-  paintTiles(ctx, tiles, imgs, C.line)
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not encode the image'))), 'image/png')
