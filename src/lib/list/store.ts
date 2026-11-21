@@ -200,6 +200,8 @@ export type EverybirdMeta = {
   forgetOutcome?: 'forgotten' | 'failed'
   /** Species index, once loaded. */
   species?: SpeciesIndex
+  /** Region names, loaded with the species. */
+  regions?: Regions
   /** The stored list as first read (null: none; undefined: not read yet). Known well before `ready`. */
   stored?: Saved | null
 }
@@ -211,8 +213,8 @@ function whenIdle(timeout: number): Promise<void> {
 }
 
 /**
- * Loads species, regions and the stored list on mount (`deferIfEmpty`: with no stored list, the species wait for an idle
- * moment), then keeps `saved` persisted
+ * Loads species, regions and the stored list on mount (`deferIfEmpty`: with no stored list, species and regions wait for
+ * an idle moment), then keeps `saved` persisted
  * (debounced 500 ms, flushed on pagehide / tab hidden). Nothing is saved before the initial load,
  * so a stored list is never overwritten by the empty initial state. Actions dispatched before ready are
  * queued and replayed, in order, after the stored list is restored. A successful save or a new forget clears
@@ -246,8 +248,9 @@ export function useEverybird(opts: { deferIfEmpty?: boolean } = {}): [AppState, 
         if (carried.current === undefined) carried.current = takeResume('collage') ?? null
         const resumed = carried.current
         const storedP = storage.load()
-        // A visitor with no list on the landing page sees the pre-packed sample: let its stickers have the network
-        // first, and fetch the big species file once the browser is idle.
+        // A visitor with no list (the landing's pre-packed sample, About, a first Settings visit) needs no bird data yet: let
+        // the page have the network first, and fetch species and regions once the browser is idle. Actions dispatched
+        // meanwhile (an import) wait in the queue.
         const stored0 = deferIfEmpty.current ? await storedP : undefined
         if (cancelled) return
         if (deferIfEmpty.current) {
@@ -267,7 +270,7 @@ export function useEverybird(opts: { deferIfEmpty?: boolean } = {}): [AppState, 
         // After the list, so its filter is checked against it; the same batch as `ready`, so the first collage render has it.
         if (resumed) rawDispatch({ type: 'resume', view: resumed })
         if (storage.isMemoryOnly()) rawDispatch({ type: 'persistence', persistence: 'memory-only' })
-        setMeta({ ready: true, species, stored })
+        setMeta({ ready: true, species, regions, stored })
         // Actions dispatched before ready run now, on top of the stored list, with the loaded species.
         for (const a of early) dispatchRef.current(a)
       } catch (e) {
