@@ -9,9 +9,14 @@ export const EN_UI = {
   date: {
     months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   },
-  /** The count's label under the number (Tally, share images, link previews). At most 8 characters: the hole is sized for it. */
+  /** The count's label in its plural form, for any number (the e2e specs read it); what is drawn is `word`'s form for
+   *  the number. At most 8 characters: the hole is sized for it. */
   count: {
     label: 'species',
+    /** The word drawn under the number, the form for that number (H7: "1 SPECIES", "1 ART", "5 ВИДОВ"; no {n}, the number
+     *  is drawn above it), on the collage, the share images, the link previews and About's demo. Every form at most 8
+     *  characters: the hole is sized for it. */
+    word: { one: 'species', other: 'species' },
     /** The settled count for screen readers (Tally's live region): "12 species". {n} is the formatted number. */
     live: { one: '{n} species', other: '{n} species' },
   },
@@ -592,13 +597,20 @@ export const EN_UI = {
     countSize: { label: 'Count', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide', title: 'Beside title', short: { small: 'S', medium: 'M', large: 'L' } },
     /** The preview image's alt text, per format. */
     preview: { story: 'Preview of the story image', post: 'Preview of the post image', square: 'Preview of the square image', desktop: 'Preview of the desktop image', wide: 'Preview of the wide post image' },
-    failed: "Couldn't make the image.",
+    failed: 'Couldn’t make the image.',
+    /** A failed preview's (and the outlines' note's) text button: renders the image again. */
+    retry: 'Try again',
+    /** Under the actions when stickers didn't load for the image (it draws them as outlines); Try again (`retry`) follows. */
+    missing: { one: '1 sticker didn’t load and is drawn as an outline.', other: '{n} stickers didn’t load and are drawn as outlines.' },
+    /** In the empty preview box when the first image takes over 1.5 s ({n} formatted). */
+    arranging: { one: 'Arranging {n} bird…', other: 'Arranging {n} birds…' },
     imageFailed: 'Couldn’t make the image. Try again.',
     linkFailed: 'Couldn’t make the link. Try again.',
     tooLarge: 'This list is too large for a link. Share the image instead.',
     /** The title field's label in Share, for every subject (round 6, item 9); Print's is print.nameLabel. */
     nameLabel: 'Card title',
-    namePlaceholder: 'My 2024 birds',
+    /** The title field's placeholder, {year} this year (D7). */
+    namePlaceholder: 'My {year} birds',
     nameOptional: '(optional)',
     /** The title field's description (read by screen readers): it is saved with the list and names the collage page. */
     nameHelper: 'Shown as your collage’s title and on shares.',
@@ -626,6 +638,13 @@ export const EN_UI = {
     filters: 'Showing your filters: {label}',
     filtersNoLabel: 'Showing your filters.',
     clearFilters: 'Clear filters',
+    /** In the empty preview when the filters leave no birds (H8); Clear filters (`clearFilters`) follows. Also the reason Share image, Download and Make poster are off. */
+    noMatch: 'No birds match your filters.',
+    /** After Copy link's note when filters are on (C7): the link carries the whole list. */
+    linkWhole: 'The link opens your whole list, without the filters.',
+    /** The preview's accessible name with what it shows (AU15): `preview` is preview.* or print.previewAlt, `count` count.live. */
+    previewOf: '{preview}: {title}, {count}',
+    previewOfCount: '{preview}: {count}',
     /** The latest lifer row's mono label on the images and the link preview ("LATEST LIFER · SEP 2026"; upper-cased in code). */
     latestLifer: 'Latest lifer',
     /** A link made before titles carries a bare name: its title (og.ts shareTitle). */
@@ -650,6 +669,8 @@ export const EN_UI = {
       allTime: 'All time',
       remove: 'Remove goal',
       targetInvalid: 'Enter a whole number from 1 to {max}.',
+      /** Under the Goal row once the shown birds meet the target (D6). */
+      reached: 'Goal reached: {n} of {target}.',
       card: '{year} year list',
       cardLifer: '{year} lifers',
       /** With a goal, the count's label: "632 / 100 SPECIES" (a slash, not "of": Yusuf, 2026-11-21), beside the title or under the number. */
@@ -683,6 +704,8 @@ export const EN_UI = {
       missing: { one: '1 sticker didn’t load and is drawn as an outline. Make the poster again to retry.', other: '{n} stickers didn’t load and are drawn as outlines. Make the poster again to retry.' },
       soft: 'Some stickers come from smaller files for now, so the biggest birds may print a little soft.',
       failedMemory: 'Couldn’t make the poster. Try a smaller size.',
+      /** When a change to an option drops a finished poster (C6). */
+      changed: 'The options changed. Make the poster again.',
       failed: 'Couldn’t make the poster. Try again.',
       previewAlt: 'Preview of the {size} poster',
       /** Export in batches (`title`, a collapsed row): a ZIP of one share image (Share) or one poster (Print) per group.

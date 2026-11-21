@@ -195,10 +195,11 @@ describe('the share dialog: no scrolling on a 1440 × 830 window with everything
     const status = 14 * 1.5
     const filters = 36 // .eb-textbtn's height
     const coffee = 32 + 2 * 6 - 6 // the image, its press padding, the negative bottom margin
-    const column = seg + gap + title + optionsGap + list + optionsGap + bulk + gap + actions + gap + status + gap + filters + gap + coffee
-    expect(Math.ceil(column)).toBe(674) // the figure share.css's comment gives
+    // The filters line sits under the title, in the options' 8px gaps (P12).
+    const column = seg + gap + title + optionsGap + filters + optionsGap + list + optionsGap + bulk + gap + actions + gap + status + gap + coffee
+    expect(Math.ceil(column)).toBe(670) // the figure share.css's comment gives
     expect(Math.ceil(column)).toBeLessThanOrEqual(H - 124)
-    expect(css).toContain('takes 674')
+    expect(css).toContain('takes 670')
     // The empty status line gives its gap back, so the usual column is shorter still.
     expect(rule('.eb-share-controls > [role="status"]:empty')).toMatch(new RegExp(`margin-top:\\s*-${gap}px`))
   })

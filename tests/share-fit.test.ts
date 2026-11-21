@@ -203,6 +203,24 @@ describe('the option rows and Print\'s actions', () => {
     }
     expect(over).toEqual([])
   })
+  it('gives Count\'s S, M and L 36px on touch where the row has room, never overflowing where it hasn\'t (AU5)', () => {
+    // A basis they shrink from (to their letter, never below: the words don't wrap), in a control at most the row's width.
+    expect(css).toMatch(/@media \(pointer: coarse\) \{[^@]*\.eb-share \.eb-share-count \{ max-width: 100%; \}\s*\.eb-share \.eb-share-count \.eb-seg-btn:nth-child\(n\+2\):nth-child\(-n\+4\) \{ flex: 0 1 36px; box-sizing: border-box; \}/)
+    expect(css).toMatch(/@container \(max-width: 289px\) \{ @media \(pointer: coarse\) \{ \.eb-share \.eb-share-count \.eb-seg-btn:nth-child\(n\+2\):nth-child\(-n\+4\) \{ flex-basis: 32px; \} \} \}/)
+    // A segment: its padding and word, or the basis when that is wider.
+    const countW = (labels: string[], px: number, pad: number, basis: number) =>
+      2 + 2 * 2 + (labels.length - 1) * 2 + labels.reduce((n, l, i) => n + Math.max(i >= 1 && i <= 3 ? basis : 0, 2 * pad + measured(l, px)), 0)
+    const short: string[] = []
+    for (const [lang, m] of Object.entries(LANG)) {
+      const c = m.ui.share.countSize
+      const labels = [c.hide, c.short.small, c.short.medium, c.short.large, c.title]
+      // At the 420px and 480px columns (a tablet beside the preview) every language takes the full 36px.
+      if (countW(labels, 14, 10, 36) > COLUMNS.desktop) short.push(`${lang} in the 420px column`)
+    }
+    expect(short).toEqual([])
+    // Where the full basis doesn't fit (a 320px phone), the shrunk control is its no-basis width, which the test above
+    // keeps inside every column.
+  })
   it('keeps each choice beside its label at the 480px column in every language, so a 1440 × 830 window\'s rows stay 36px (tests/share-layout.test.ts)', () => {
     // .eb-share-opt: the label (16/500), a 16px gap, the control; under it only where the two don't fit.
     expect(css).toMatch(/\.eb-share \.eb-share-opt \{[^}]*gap: 4px 16px;/)

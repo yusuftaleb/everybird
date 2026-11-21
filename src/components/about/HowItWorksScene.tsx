@@ -437,7 +437,7 @@ function CollagePage({ s, layout }: { s: S; layout: Layout }) {
         })}
         <div className="ebd-mid" data-testid="howto-count">
           <span className="ebd-num"><Tick value={s.count} ms={s.count === TOTAL && !s.herons ? 1400 : 640} /></span>
-          <span className="ebd-mid-label">{t.count.label}</span>
+          <span className="ebd-mid-label">{plural(t.count.word, s.count)}</span>
         </div>
       </div>
     </div>
@@ -612,7 +612,7 @@ function ShareImage({ format, box, show }: { format: Format; box: { w: number; h
       ))}
       <span className="ebd-img-mid" style={{ left: K.cx * k, top: K.cy * k, gap: K.gap * k }}>
         <span className="ebd-img-num" style={{ fontSize: K.size * k }}>{formatInt(TOTAL, t.num)}</span>
-        <span className="ebd-img-label" style={{ fontSize: Math.max(3, K.labelSize * k) }}>{t.count.label}</span>
+        <span className="ebd-img-label" style={{ fontSize: Math.max(3, K.labelSize * k) }}>{plural(t.count.word, TOTAL)}</span>
       </span>
       <span className="ebd-img-latest" data-inline={L.latest.inline || undefined} style={{ left: M, top: L.latest.y * k - lift, height: icon, gap: (L.latest.inline ? 16 : 20) * k }}>
         <span className="ebd-img-latest-icon" style={{ width: icon, height: icon }}>

@@ -694,7 +694,8 @@ main[tabindex="-1"]:focus { outline: none; }
 .eb-disp .eb-seg-btn::after { content: ''; position: absolute; inset: -8px 0; } /* 44px press */
 .eb-disp .eb-seg-btn svg { display: block; flex: none; width: 16px; height: 16px; }
 .eb-disp .eb-seg-btn[aria-pressed="true"] { opacity: 1; background: var(--surface); }
-.eb-disp .eb-seg-btn[aria-disabled="true"] { opacity: .4; cursor: default; }
+/* An option that can't be picked: Muted text at full strength, the share dialog's rule (the Quiet Disabled Rule, P3). */
+.eb-disp .eb-seg-btn[aria-disabled="true"] { opacity: 1; color: var(--muted); cursor: default; }
 .eb-disp .eb-seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .eb-disp-switches { display: flex; flex-direction: column; margin: 0 -8px; }
 .eb-setrow-btn.eb-disp-sw { min-height: 32px; padding: 0 8px; gap: 12px; border-radius: 8px; }

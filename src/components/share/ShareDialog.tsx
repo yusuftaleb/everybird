@@ -38,6 +38,11 @@
 // The link encoder (and its ~111 KB species index) is a separate chunk, fetched when the dialog opens, so a Copy link
 // click awaits nothing slow (iOS drops the clipboard permission once a click handler waits on the network).
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
+// The collage's preview is a canvas painted at the box's size (readyShareImage), and its full 2× PNG is encoded in idle
+// time once the preview shows (speed audit finding 8), so they wait for that too; in Print nothing encodes it. A failed
+// render keeps the last image dimmed under Try again, and Share or Download render it again; stickers drawn as outlines
+// are named, with Try again. Filters that leave no birds (and no goal) show "No birds match your filters." in the box,
+// and Share, Download and Make poster are off with that reason.
 // Every word is the UI language's (ui.share), the image's and the poster's too (the latest lifer's place in it, from
 // regionsIn); the credit line, the share text (SHARE_CREDIT), the download names and the link stay the same in every
 // language (a link carries no language).
@@ -45,7 +50,8 @@
 // its reason when there is none), the format (no orientation, no title field), Appearance and Transparent background; the
 // drawings are Compare's (CompareShare.draw), Copy link copies the comparison link (off over its limits, with the
 // reason), with the consent note beside it. Nothing from Compare is counted.
-// Changing the size, title or a choice, or closing the dialog cancels a poster make and drops a finished poster.
+// Changing the size, title or a choice, or closing the dialog cancels a poster make and drops a finished poster (the
+// status line says so: "The options changed. Make the poster again.").
 // Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied
 // isn't, from the poster; the ZIPs aren't counted.
 import {
@@ -75,8 +81,8 @@ import { applyFilter, filterKey } from '@/lib/list/filters'
 import { groupName } from '@/lib/search/groups'
 import type { Action, AppState } from '@/lib/list/store'
 import {
-  NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, captionMeasurer, cardLayout, clearStickerCache, ensureCaptionFont, filterLabel as labelFor, fitCaptionPack, imagePackSpec, imageShape, isPrint, packForImage, renderShareImage,
-  type CardFormat, type CountSize, type FormatSlot, type ImagePack, type Orientation,
+  NAME_MAX_LEN, SHARE_CREDIT, abortError, IMAGE_SIZE, captionMeasurer, cardLayout, clearStickerCache, ensureCaptionFont, filterLabel as labelFor, fitCaptionPack, imagePackSpec, imageShape, isPrint, packForImage, readyShareImage,
+  type CardFormat, type CountSize, type FormatSlot, type ImagePack, type Orientation, type ReadyImage,
 } from '@/lib/share/image'
 import type { ShareLevel } from '@/lib/share/link'
 import type { makeShareLink as MakeShareLink } from '@/lib/share/make-link'
@@ -114,6 +120,51 @@ export const VIEW_IMAGE: Partial<Record<ViewKind, () => Promise<(o: ViewImageOpt
 }
 
 const RENDER_DELAY_MS = 250
+/** How long the first image may take before the empty box says what it is doing (O2). */
+const SLOW_MS = 1500
+
+/** A finished render: the PNG Share and Download use, and for the collage the image ready to paint at any size
+ *  (speed audit finding 8: the preview is painted at its display size, the full PNG encoded only for Share or Download,
+ *  in idle time once the preview shows). The Map, Tree and Compare images come as a PNG alone. */
+type Rendered = { blob: () => Promise<Blob>; ready?: ReadyImage }
+/** One layer of the preview: the full PNG's blob URL, or a canvas painted at the preview's size. */
+type Layer = { url?: string; canvas?: HTMLCanvasElement }
+/** Repaint the preview's canvas only once its box needs this much more than it has, then with this much to spare (a
+ *  format's 420 ms ease grows the box every frame). */
+const REPAINT_AT = 1.15, REPAINT_SPARE = 1.25
+/** Device px per design unit that fill the preview's box at `ready`'s shape (cover, so the box's old shape never
+ *  leaves the new image soft), never more than the full image's. */
+function previewScale(box: HTMLElement | null, ready: ReadyImage): number {
+  const bw = box?.clientWidth ?? 0, bh = box?.clientHeight ?? 0
+  if (!bw || !bh) return ready.scale
+  const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
+  return Math.min(ready.scale, Math.max(bw / ready.W, bh / ready.H) * dpr)
+}
+/** Run `f` when the browser is idle (soon at the latest), else on the next task; returns its cancel. */
+function whenIdle(f: () => void): () => void {
+  if (typeof requestIdleCallback === 'function') {
+    const id = requestIdleCallback(f, { timeout: 500 })
+    return () => cancelIdleCallback(id)
+  }
+  const t = setTimeout(f, 0)
+  return () => clearTimeout(t)
+}
+/** A preview layer: the PNG as an img, or the canvas painted for it, named as the img would be. */
+function PreviewLayer({ layer, className, label, w, h }: { layer: Layer; className: string; label?: string; w: number; h: number }) {
+  const host = useRef<HTMLSpanElement>(null)
+  useLayoutEffect(() => {
+    const el = host.current, c = layer.canvas
+    if (!el || !c) return
+    el.replaceChildren(c)
+    return () => { if (c.parentNode === el) el.removeChild(c) }
+  }, [layer.canvas])
+  if (layer.canvas) {
+    return <span ref={host} className={`eb-share-layer ${className}`} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} />
+  }
+  // A blob URL of the rendered PNG: next/image has nothing to optimise here.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className={className} src={layer.url} width={w} height={h} alt={label ?? ''} aria-hidden={label ? undefined : true} />
+}
 /**
  * The controls' column's height as if Export in batches and the goal were closed: its height less what they add once
  * open (each `[data-opened]` element's height; a `grow` one's beyond its row's closed min-height).
@@ -182,6 +233,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const namesNoteId = useId()
   const whatId = useId()
   const linkNoteId = useId()
+  const emptyId = useId()
   // An open dropdown takes Escape first (the dialog catches it on the window before the menu could): it closes the menu.
   const menuEsc = useRef<(() => void) | null>(null)
   useEscapeCapture(() => (menuEsc.current ? menuEsc.current() : onClose()))
@@ -401,27 +453,52 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     at: treeImage ? { ...at, mine: treeMine, layout: treeLayout, time: timeScale } : at ?? {}, state: { list, filter, seen, sci }, t, totals, oldest: treeImage && showOldest,
     ...(treeImage ? { onTreeText: (x: { small: boolean }) => setTreeSmall(x.small) } : {}),
   })
-  const [preview, setPreview] = useState<{ url: string; format: CardFormat; size: PrintSize; key: string } | null>(null)
+  const [preview, setPreview] = useState<{ layer: Layer; ready?: ReadyImage; format: CardFormat; size: PrintSize; key: string; n: number } | null>(null)
   const [failedKey, setFailedKey] = useState<string | null>(null)
-  const current = useRef<Promise<Blob> | null>(null)
-  /** The finished PNG for `key`, so Share and Download can use it without awaiting anything. */
+  const current = useRef<Promise<Rendered> | null>(null)
+  /** The finished PNG for `key`, so Share and Download can use it without awaiting anything; `blobKey` says it's in. */
   const ready = useRef<{ key: string; blob: Blob } | null>(null)
+  const [blobKey, setBlobKey] = useState<string | null>(null)
   const previewUrl = useRef<string | null>(null)
   // The image being replaced stays a layer over the frame while it fades out (share.css); its blob URL is revoked after.
-  const [outgoing, setOutgoing] = useState<{ url: string; w: number; h: number } | null>(null)
+  const [outgoing, setOutgoing] = useState<{ layer: Layer; w: number; h: number } | null>(null)
   const outgoingUrl = useRef<string | null>(null)
   const outgoingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const shownSize = useRef<[number, number]>([0, 0])
+  const previewLayer = useRef<Layer | null>(null)
   const first = useRef(true)
   // The Tree's or Map's drawing: the view, its switches.
   // `at` is the view's level, live (the Tree's follows the taxonomy filter); its JSON leaves out the map's names function.
   const viewKey = viewImage ? `${subject}|${treeImage ? `${treeMine}|${treeLayout}|${showOldest}|${timeScale}` : ''}|${totals.join(',')}|${JSON.stringify(at ?? {})}` : ''
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
-  const busy = preview?.key !== key && failedKey !== key
+  // Try again (a failed render, stickers that didn't load) renders the same image anew: `retry` is in the key.
+  const [retry, setRetry] = useState(0)
+  const renderAgain = () => setRetry((n) => n + 1)
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}|${retry}`
+  // The filters leave no birds and no goal is drawn (H8): the box says so, with Clear filters, instead of a "0 SPECIES"
+  // card; nothing renders, and Share image, Download and Make poster are off with that reason. A goal's "0 / 300" stays.
+  const empty = !compare && !!fk && cardEntries.length === 0 && !cardGoal
+  const clearFilters = () => dispatch({ type: 'filter', filter: {} })
+  const busy = !empty && preview?.key !== key && failedKey !== key
   const failed = failedKey === key
+  /** Share and Download wait for the full PNG (in at once for the Map, Tree and Compare; encoded in idle time for the
+   *  collage), so a click has it at hand (iOS shares only inside the click). */
+  const blobIn = blobKey === key
+  // The first image taking long (a big first pack, stickers still coming): the empty box says so after SLOW_MS.
+  const [slow, setSlow] = useState(false)
+  const waiting = busy && !preview
+  useEffect(() => {
+    if (!waiting) return
+    const t = setTimeout(() => setSlow(true), SLOW_MS)
+    return () => clearTimeout(t)
+  }, [waiting])
+  /** The stickers the shown image draws as outlines (they failed or ran out of time); Try again loads them anew (the
+   *  ones that loaded stay cached). The Share image's alone: a poster reports its own after Make poster. */
+  const missing = !print && !busy && preview?.key === key ? (preview.ready?.missing ?? 0) : 0
   useEffect(() => {
     let live = true
     let cancel = () => {}
+    let cancelEncode = () => {}
+    if (empty) return
     const delay = first.current ? 0 : RENDER_DELAY_MS
     first.current = false
     const job = new Promise<void>((resolve, reject) => {
@@ -433,30 +510,49 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
           theme, transparent, latest: withLatest, countSize, strings: t, nameOf: displayName, regions: named, signal: life.current?.signal,
         }
-        if (compare) return compare.draw(what, { format, theme, transparent })
-        if (viewImage) return (await viewImage())({ ...opts, ...viewOf() })
+        const png = (b: Blob): Rendered => ({ blob: () => Promise.resolve(b) })
+        if (compare) return png(await compare.draw(what, { format, theme, transparent }))
+        if (viewImage) return png(await (await viewImage())({ ...opts, ...viewOf() }))
         const pack = await packFor(cardFormat, !!trimmed, size, countSize, effectiveShowNames && captionPlan?.ok ? captionPlan : null, undefined, withLatest)
-        return renderShareImage({ ...opts, pack })
+        const r = await readyShareImage({ ...opts, pack })
+        return { blob: r.blob, ready: r }
       })
     current.current = job
     job.then(
-      (blob) => {
+      async ({ blob, ready: r }) => {
+        // The Map, Tree and Compare PNGs are in already; the collage's is painted for the preview and encoded later.
+        const whole = r ? null : await blob()
         if (!live) return
         clearTimeout(outgoingTimer.current)
         if (outgoingUrl.current) URL.revokeObjectURL(outgoingUrl.current)
         outgoingUrl.current = previewUrl.current
-        if (outgoingUrl.current) {
+        const was = previewLayer.current
+        if (was) {
           const gone = outgoingUrl.current
-          setOutgoing({ url: gone, w: shownSize.current[0], h: shownSize.current[1] })
+          setOutgoing({ layer: was, w: shownSize.current[0], h: shownSize.current[1] })
           outgoingTimer.current = setTimeout(() => {
-            URL.revokeObjectURL(gone)
-            if (outgoingUrl.current === gone) outgoingUrl.current = null
+            if (gone) URL.revokeObjectURL(gone)
+            if (gone && outgoingUrl.current === gone) outgoingUrl.current = null
             setOutgoing(null)
           }, PREVIEW_EASE_MS)
         }
-        ready.current = { key, blob }
-        previewUrl.current = URL.createObjectURL(blob)
-        setPreview({ url: previewUrl.current, format: cardFormat, size, key })
+        previewUrl.current = whole ? URL.createObjectURL(whole) : null
+        const layer: Layer = r ? { canvas: r.paint(previewScale(previewBox.current, r)) } : { url: previewUrl.current! }
+        previewLayer.current = layer
+        setPreview((p) => ({ layer, ready: r, format: cardFormat, size, key, n: (p?.n ?? 0) + 1 }))
+        if (whole) {
+          ready.current = { key, blob: whole }
+          setBlobKey(key)
+        } else if (!print) {
+          // Print mode never needs this PNG: Make poster draws its own.
+          cancelEncode = whenIdle(() => {
+            blob().then((b) => {
+              if (!live) return
+              ready.current = { key, blob: b }
+              setBlobKey(key)
+            }, (e: unknown) => { if (live) { console.warn('Everybird share image failed:', e); setFailedKey(key) } })
+          })
+        }
       },
       (e: unknown) => {
         if (!live || (e as Error)?.name === 'AbortError') return
@@ -464,9 +560,20 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         setFailedKey(key)
       },
     )
-    return () => { live = false; cancel() }
+    return () => { live = false; cancel(); cancelEncode() }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- viewOf reads treeImage, treeMine, treeLayout, showOldest, timeScale, totals, at, list, filter, seen and sci, all in `key` or below
-  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, totals, at, list, filter, seen, sci, named, compare, what, format])
+  }, [key, empty, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, totals, at, list, filter, seen, sci, named, compare, what, format])
+  // The canvas is repainted, larger, when its box outgrows it (a new format's shape easing in, a larger window).
+  useEffect(() => {
+    const box = previewBox.current, r = preview?.ready, c = preview?.layer.canvas
+    if (!box || !r || !c || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => {
+      const k = previewScale(box, r)
+      if (k > (c.width / r.W) * REPAINT_AT) r.paint(Math.min(r.scale, k * REPAINT_SPARE), c)
+    })
+    ro.observe(box)
+    return () => ro.disconnect()
+  }, [preview])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -482,7 +589,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   }, [])
 
   // `print` marks a note about the poster, dropped with the poster.
-  const [note, setNote] = useState<{ text: string; error?: boolean; print?: boolean } | null>(null)
+  type Note = { text: string; error?: boolean; print?: boolean }
+  // Each note is numbered (`n`): the status line draws it in a new span, which fades in and is read again even when its
+  // words are the last note's (AN15: a second Copy link).
+  const [note, setNoteN] = useState<(Note & { n: number }) | null>(null)
+  const setNote = (v: Note | null | ((n: Note | null) => Note | null)) => setNoteN((was) => {
+    const next = typeof v === 'function' ? v(was) : v
+    return next === was ? was : next && { ...next, n: (was?.n ?? 0) + 1 }
+  })
   const [manual, setManual] = useState<string | null>(null)
   const manualRef = useRef<HTMLInputElement>(null)
   useEffect(() => { if (manual) manualRef.current?.select() }, [manual])
@@ -519,12 +633,16 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     makeCtl.current = null
     bulkCtl.current?.abort()
     bulkCtl.current = null
+    // A finished poster dropped by a change says so (C6: Download PNG turning back into Make poster, after an A1 make
+    // that took minutes); the line stays until the next make.
+    const dropped = !!posterRef.current
     posterRef.current?.dispose()
     posterRef.current = null
     setPoster(null)
     setMaking(null)
     setBulkMaking(null)
-    setNote((n) => (n?.print ? null : n))
+    setNote((n) => (dropped ? { text: pt.changed, print: true } : n?.print && n.text !== pt.changed ? null : n))
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- pt.changed is read when the key changes, not a reason to run
   }, [posterKey])
   const posterNow = print && poster?.key === posterKey ? poster.p : null
   const makingNow = print && making?.key === posterKey ? making : null
@@ -783,7 +901,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       const p = current.current
       if (!p) return null
       try {
-        const b = await p
+        const b = await (await p).blob()
         if (p === current.current) return b
       } catch {
         if (p === current.current) return null
@@ -791,6 +909,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     }
   }
   const download = async () => {
+    if (empty) return
+    if (failed) return renderAgain() // a failed render: pressing renders it again
     const blob = await getBlob()
     if (!blob) return setNote({ text: t.share.imageFailed, error: true })
     downloadBlob(blob, fileName)
@@ -798,6 +918,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     setNote({ text: fmt(t.share.saved, { file: fileName }) })
   }
   const share = async () => {
+    if (empty) return
+    if (failed) return renderAgain()
     const blob = await getBlob()
     if (!blob) return setNote({ text: t.share.imageFailed, error: true })
     const file = new File([blob], fileName, { type: 'image/png' })
@@ -851,11 +973,21 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     const why = [levelReason(level, t), dropped ? plural(t.share.dropped, dropped, { n: formatInt(dropped, t.num) }) : ''].filter(Boolean)
     let ok = await copied
     if (!ok && typeof clip?.writeText === 'function') ok = await clip.writeText(url).then(() => true, () => false)
-    if (ok) return setNote({ text: [t.share.copied, ...why].join(' ') })
+    // The image follows the filters, the link carries the whole list (C7): said whenever filters are on.
+    const whole = !compare && fk ? [t.share.linkWhole] : []
+    if (ok) return setNote({ text: [t.share.copied, ...why, ...whole].join(' ') })
     setManual(url)
-    setNote({ text: [...why, t.share.copyThis].join(' ') })
+    setNote({ text: [...why, ...whole, t.share.copyThis].join(' ') })
   }
 
+  /** The preview's accessible name: what the image is, then (AU15) its title and count, "Preview of the story image:
+   *  Ada’s life list, 1,089 species". Compare's cards keep their own. */
+  const previewName = (p: NonNullable<typeof preview>) => {
+    if (compare) return compare.alt[what]
+    const base = isPrint(p.format) ? fmt(t.share.print.previewAlt, { size: sizeName(p.size) }) : t.share.preview[p.format]
+    const count = plural(t.count.live, cardEntries.length, { n: formatInt(cardEntries.length, t.num) })
+    return trimmed ? fmt(t.share.previewOf, { preview: base, title: trimmed, count }) : fmt(t.share.previewOfCount, { preview: base, count })
+  }
   const shownCard: CardFormat = preview?.format ?? cardFormat
   const [w, h] = isPrint(shownCard)
     ? (printDesign(preview?.size ?? size, shownCard === 'printLandscape').map(Math.round) as [number, number])
@@ -938,7 +1070,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // Download PNG; each its own key, so a change of state is a new element and the focus moves below run instead of
   // focus staying on a renamed button), then the quiet ones (a row of three).
   const primary: ReactNode = !print ? (
-    <button key="share" type="button" className="eb-btn eb-share-primary" disabled={busy} onClick={() => void share()}>
+    <button
+      key="share" type="button" className="eb-btn eb-share-primary" disabled={!empty && !failed && (busy || !blobIn)}
+      aria-disabled={empty || undefined} title={empty ? t.share.noMatch : undefined} aria-describedby={empty ? emptyId : undefined}
+      onClick={() => void share()}
+    >
       <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
       {t.share.shareImage}
     </button>
@@ -959,7 +1095,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       {pt.png}
     </button>
   ) : (
-    <button key="make" ref={makeRef} type="button" className="eb-btn eb-share-primary" disabled={!!bulkMakingNow} onClick={() => void makePoster()}>
+    <button
+      key="make" ref={makeRef} type="button" className="eb-btn eb-share-primary" disabled={!!bulkMakingNow}
+      aria-disabled={empty || undefined} title={empty ? t.share.noMatch : undefined} aria-describedby={empty ? emptyId : undefined}
+      onClick={() => { if (!empty) void makePoster() }}
+    >
       <Printer aria-hidden="true" focusable="false" weight="bold" />
       {pt.make}
     </button>
@@ -971,7 +1111,10 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // and Copy link; once made, Download PNG and Download PDF), the rest (Copy link, Make again) in a row under them.
   const quiet: QuietAction[] = !print
     ? [
-        { label: t.share.download, short: t.share.downloadShort, icon: DownloadSimple, disabled: busy, onClick: () => void download() },
+        {
+          label: t.share.download, short: t.share.downloadShort, icon: DownloadSimple, disabled: !empty && !failed && (busy || !blobIn), onClick: () => void download(),
+          ...(empty ? { off: t.share.noMatch, describedBy: emptyId } : {}),
+        },
         copy,
       ]
     : [
@@ -1091,7 +1234,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       case 'count': {
         const cs = t.share.countSize
         return optRow(r, countSizeId, cs.label, segmented({
-          className: 'eb-share-seg', labelledBy: countSizeId, value: countSizeChoice, pick: setCountSize, testId: 'share-count-size',
+          className: 'eb-share-seg eb-share-count', labelledBy: countSizeId, value: countSizeChoice, pick: setCountSize, testId: 'share-count-size',
           options: COUNT_SIZES.map((v) => {
             const short = SHORT_SIZES.has(v) ? cs.short[v as keyof typeof cs.short] : cs[v]
             return { value: v, label: short, name: short === cs[v] ? undefined : cs[v] }
@@ -1182,6 +1325,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
             )}
           </div>,
           goalOpen && targetBad && <p key="goal-note" id={targetNoteId} className="eb-note eb-share-opt-note" data-opened="">{fmt(gt.targetInvalid, { max: formatInt(TARGET_MAX, t.num) })}</p>,
+          // The goal met (D6): one Muted line, so the dialog says it too, not only the card's "312 / 300".
+          goalActive && !targetBad && validTarget !== undefined && cardEntries.length >= validTarget && (
+            <p key="goal-reached" className="eb-note eb-share-opt-note" data-opened="" data-testid="share-goal-reached">
+              {fmt(gt.reached, { n: formatInt(cardEntries.length, t.num), target: formatInt(validTarget, t.num) })}
+            </p>
+          ),
         ]
     }
   }
@@ -1236,23 +1385,35 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           <div className="eb-share-area">
           <div
             ref={previewBox} className="eb-share-preview" data-format={shownCard} data-size={isPrint(shownCard) ? (preview?.size ?? size) : undefined}
-            aria-busy={busy} data-testid="share-preview" data-transparent={transparent || undefined}
+            aria-busy={busy} data-testid="share-preview" data-transparent={transparent || undefined} data-failed={failed || undefined}
           >
             {outgoing && (
               // The image just replaced, fading out over the frame while it changes shape.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className="eb-share-out" src={outgoing.url} width={outgoing.w} height={outgoing.h} alt="" aria-hidden="true" />
+              <PreviewLayer layer={outgoing.layer} className="eb-share-out" w={outgoing.w} h={outgoing.h} />
             )}
-            {preview && (
-              // A blob URL of the rendered PNG: next/image has nothing to optimise here.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={preview.url} className="eb-share-in" src={preview.url} width={w} height={h}
-                alt={compare ? compare.alt[what] : isPrint(preview.format) ? fmt(t.share.print.previewAlt, { size: sizeName(preview.size) }) : t.share.preview[preview.format]}
-              />
+            {preview && !empty && (
+              <PreviewLayer key={preview.n} layer={preview.layer} className="eb-share-in" w={w} h={h} label={previewName(preview)} />
+            )}
+            {empty && (
+              <div className="eb-share-empty" data-testid="share-empty">
+                <p id={emptyId} className="eb-note">{t.share.noMatch}</p>
+                <button type="button" className="eb-textbtn" onClick={clearFilters}>{t.share.clearFilters}</button>
+              </div>
             )}
             {busy && <span className="eb-share-spin" aria-hidden="true" />}
-            {failed && !busy && <p className="eb-error eb-share-failed">{t.share.failed}</p>}
+            {/* The first image taking long: what it is doing, under the spinner (polite, so it is read once). */}
+            {!compare && !viewImage && (
+              <p className="eb-note eb-share-slow" aria-live="polite" data-testid="share-slow">
+                {slow && waiting ? plural(t.share.arranging, cardEntries.length, { n: formatInt(cardEntries.length, t.num) }) : ''}
+              </p>
+            )}
+            {failed && !busy && (
+              // The last image stays, dimmed, under the message (share.css); Try again renders it anew.
+              <div className="eb-share-failed" data-testid="share-failed">
+                <p className="eb-error">{t.share.failed}</p>
+                <button type="button" className="eb-textbtn" onClick={renderAgain}>{t.share.retry}</button>
+              </div>
+            )}
           </div>
           </div>
 
@@ -1273,13 +1434,20 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                     type="text"
                     autoComplete="off"
                     maxLength={NAME_MAX_LEN}
-                    placeholder={t.share.namePlaceholder}
+                    placeholder={fmt(t.share.namePlaceholder, { year: new Date().getFullYear() })}
                     aria-describedby={`${optionalId} ${helperId}`}
                     value={name}
                     onChange={(e) => { setName(e.target.value); dispatch({ type: 'name', name: e.target.value }) }}
                   />
                   <p id={helperId} className="eb-sr">{t.share.nameHelper}</p>
                 </div>}
+                {/* What the image shows, read before the options and the actions (P12): the filters, and Clear filters. */}
+              {!compare && fk && yearGoal === undefined && (
+                <div className="eb-note eb-share-filters" data-testid="share-filters">
+                  <span>{label ? fmt(t.share.filters, { label }) : t.share.filtersNoLabel}</span>
+                  <button type="button" className="eb-textbtn" onClick={clearFilters}>{t.share.clearFilters}</button>
+                </div>
+              )}
 
                 <div className="eb-share-opts" data-testid="share-options">
                   {optionRows(rows, print).map(option)}
@@ -1389,15 +1557,15 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                 )}
               </div>
 
-              <p className={note?.error ? 'eb-error' : 'eb-note'} role="status" data-testid="share-note">{note?.text ?? ''}</p>
+              {missing > 0 && (
+                <p className="eb-note eb-share-missing" data-testid="share-missing">
+                  {plural(t.share.missing, missing, { n: formatInt(missing, t.num) })}{' '}
+                  <button type="button" className="eb-textbtn eb-share-inline" onClick={renderAgain}>{t.share.retry}</button>
+                </p>
+              )}
+              <p className={note?.error ? 'eb-error' : 'eb-note'} role="status" data-testid="share-note">{note && <span key={note.n} className="eb-share-say">{note.text}</span>}</p>
               {manual && (
                 <input ref={manualRef} className="eb-share-input" type="text" readOnly value={manual} aria-label={t.share.linkField} onFocus={(e) => e.currentTarget.select()} />
-              )}
-              {!compare && fk && yearGoal === undefined && (
-                <div className="eb-note eb-share-filters" data-testid="share-filters">
-                  <span>{label ? fmt(t.share.filters, { label }) : t.share.filtersNoLabel}</span>
-                  <button type="button" className="eb-textbtn" onClick={() => dispatch({ type: 'filter', filter: {} })}>{t.share.clearFilters}</button>
-                </div>
               )}
             </div>
             {/* Buy Me a Coffee's standard static button, self-hosted as on About (no script, nothing from their servers),

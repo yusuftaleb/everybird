@@ -4,7 +4,12 @@
    the controls (round 6, item 18) the card is as large as the window allows and the dialog wraps it and the column,
    centred in the window. It never scrolls sideways: the card's size is bound by the window's width as well as its
    height. */
-.eb-share-scrim { position: fixed; inset: 0; z-index: var(--z-dialog-scrim); background: rgb(0 0 0 / .28); display: grid; place-items: center; padding: 16px; }
+.eb-share-scrim {
+  position: fixed; inset: 0; z-index: var(--z-dialog-scrim); background: rgb(0 0 0 / .28); display: grid; place-items: center; padding: 16px;
+  /* Its colour fades in with the dialog's entry (AN13), as the phone sheet's scrim does (filters.css). */
+  animation: eb-share-scrim-in .2s var(--ease-ui) backwards;
+}
+@keyframes eb-share-scrim-in { from { background-color: transparent; } }
 /* Stacked, the dialog keeps its top edge (a shorter preview never moves the format control above it). The body is a
    size container here only, so the preview's width and height are both explicit (from the body's width and --cap) and
    can ease to a new shape; an aspect-ratio would snap. The preview's area is no box of its own here. */
@@ -43,6 +48,8 @@
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-share-close svg { width: 18px; height: 18px; }
+/* The Surface hover the goal's × and Compare's × have (P2). */
+@media (hover: hover) and (pointer: fine) { .eb-share-close:hover { background: var(--surface); } }
 
 /* The body: the format control, the preview, then the rest of the controls; stacked on phones (the format control
    above the preview's area, the controls under it, so neither moves when the preview changes shape), a grid from 720px
@@ -50,10 +57,11 @@
    No scrolling on a laptop with everything closed (Yusuf, 2026-11-20; round 6): from 1200px the controls' column is
    480px; a 1440 × 830 window leaves the body 830 − 124 (the scrim's 16px above and below, then the dialog's chrome,
    --chrome-h: its border, padding, head and gap, 92) = 706px, and the tallest column with everything closed, the collage poster once made with a
-   status line and the filters line, takes 674: the top row 40, 12, the title 64 (its label's 18px line, 6, the 40px
-   field), 8, the list 273 (the size 45, then Arrangement, Appearance and Count, 40 each, Show latest lifer, Show species
-   names and Transparent background, 36 each), 8, Export in batches' row 36 in its box's 1px border, 38, 12, the actions 88 (Download PNG and Download PDF,
-   then Copy link), the status 12 + 21, the filters line 12 + 36, the coffee button 12 + 38. Print has no Goal. Rows
+   status line and the filters line, takes 670: the top row 40, 12, the title 64 (its label's 18px line, 6, the 40px
+   field), 8, the filters line 36 (under the title since P12), 8, the list 273 (the size 45, then Arrangement, Appearance
+   and Count, 40 each, Show latest lifer, Show species names and Transparent background, 36 each), 8, Export in batches'
+   row 36 in its box's 1px border, 38, 12, the actions 88 (Download PNG and Download PDF, then Copy link), the status
+   12 + 21, the coffee button 12 + 38. Print has no Goal. Rows
    are 36px with a mouse (40 with a segmented control), 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css still
    says them. Opened (Export in batches, a goal), the column grows at most to the card's height, then scrolls inside the
    dialog, which keeps its size. */
@@ -94,13 +102,20 @@
 /* A new format's shape eases in as the site's photo lightbox does (420ms, ease-out-quint); a window resize is followed
    at once (data-resizing is set only for a format change, ShareDialog.tsx, for the same time and a little more). */
 .eb-share-preview[data-resizing] { transition: width .42s cubic-bezier(.22, 1, .36, 1), height .42s cubic-bezier(.22, 1, .36, 1); }
-/* The images are layers filling the frame: the new one fades in over the old one, which fades out (and is dropped). */
-.eb-share-preview img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
+/* The images are layers filling the frame: the new one fades in over the old one, which fades out (and is dropped). A
+   layer is the PNG (an img: the Map, Tree and Compare images) or the collage's canvas, painted at the box's size
+   (ShareDialog.tsx PreviewLayer). */
+.eb-share-preview img, .eb-share-preview .eb-share-layer { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
+.eb-share-layer > canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
 .eb-share-preview .eb-share-in { animation: eb-share-fade-in .42s cubic-bezier(.22, 1, .36, 1) both; transition: opacity .2s cubic-bezier(.25, .8, .25, 1); }
 .eb-share-preview .eb-share-out { pointer-events: none; animation: eb-share-fade-out .36s cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes eb-share-fade-in { from { opacity: 0; } }
 @keyframes eb-share-fade-out { to { opacity: 0; } }
-.eb-share-preview[aria-busy="true"] .eb-share-in { opacity: .55; }
+/* Busy cues wait 300ms (O1: a quick render, a title keystroke, shows none): the dim, the spinner (below) and the primary
+   button's quiet colours. The dim fades in after the wait and lifts at once. A failed render keeps the last image,
+   dimmed, under its message. */
+.eb-share-preview[aria-busy="true"] .eb-share-in { opacity: .55; transition-delay: .3s; }
+.eb-share-preview[data-failed] .eb-share-in { opacity: .55; }
 /* A transparent image over a checkerboard, so either ink shows. */
 .eb-share-preview[data-transparent] .eb-share-in { background: repeating-conic-gradient(var(--surface) 0 25%, var(--paper) 0 50%) 0 0 / 16px 16px; }
 
@@ -123,7 +138,7 @@
    may grow to the card's height (--pv-h less the top row, --top-h), never past its closed height beyond that
    (--scroll-h, measured closed in ShareDialog.tsx), and scrolls inside; it never takes more than the window leaves. */
 @media (min-width: 720px) {
-  .eb-share-scrim { --ctl: 300px; --chrome-h: 92px; --chrome-w: 62px; container-type: size; }
+  .eb-share-scrim { --ctl: 300px; --chrome-h: 92px; --chrome-w: 62px; container-type: size; container-name: eb-share-scrim; }
   .eb-share-scrim .eb-share { width: max-content; max-width: 100%; max-height: 100%; }
   /* The second row flexible: a card taller than the column gives its extra height to it, never to the top row (an item
      crossing a flexible track is left out of the other rows' sizing). */
@@ -142,15 +157,39 @@
     max-height: calc(min(max(var(--scroll-h, 100cqh), var(--pv-h, 0px) - var(--top-h, 0px)), 100cqh - var(--chrome-h) - var(--top-h, 0px)) + 16px);
   }
 }
+/* A short window beside the preview (a landscape phone, 844 × 390, shows about 220px of the column): the actions come
+   first in the column, as they do stacked, so Share image or Make poster is in view (AD6). */
+@container eb-share-scrim (max-height: 539.98px) { .eb-share-actions { order: -1; } }
 @media (min-width: 1000px) { .eb-share-scrim { --ctl: 420px; } }
 @media (min-width: 1200px) { .eb-share-scrim { --ctl: 480px; } }
 .eb-share-spin {
   position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px;
   border: 3px solid var(--hairline); border-top-color: var(--accent); border-radius: 50%;
-  animation: eb-share-spin .8s linear infinite;
+  animation: eb-share-spin .8s linear .3s infinite, eb-share-wait .01s .3s backwards;
 }
 @keyframes eb-share-spin { to { transform: rotate(360deg); } }
-.eb-share-failed { position: absolute; inset: auto 12px 12px; text-align: center; }
+/* Hidden through the wait (its `from`, filled backwards), then shown. */
+@keyframes eb-share-wait { from { opacity: 0; } }
+/* The first image taking long: one Muted line under the spinner. */
+.eb-share-slow { position: absolute; inset: calc(50% + 28px) 12px auto; margin: 0; text-align: center; }
+.eb-share-slow:empty { display: none; }
+/* A failed render: the message and Try again, over the last image's foot, on a Paper plate so either ink reads. */
+.eb-share-failed {
+  position: absolute; inset: auto 12px 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 12px;
+  padding: 4px 12px; text-align: center; background: var(--paper);
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-share-failed .eb-error { margin: 0; }
+/* No birds under the filters (H8): the box holds one Muted line and Clear filters, centred, instead of an image. */
+.eb-share-empty {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 16px; text-align: center;
+}
+.eb-share-empty .eb-note { margin: 0; }
+/* An action that can't be used (Share image, Download or Make poster with nothing to make; Compare's Copy link over its
+   limits): the quiet disabled colours (the Quiet Disabled Rule), still focusable (aria-disabled), the reason its
+   description. */
+.eb-share-actions .eb-btn[aria-disabled="true"] { background: var(--surface); border-color: var(--hairline); color: var(--muted); cursor: default; }
 
 .eb-share-controls { display: flex; flex: none; flex-direction: column; gap: 12px; min-width: 0; container-type: inline-size; }
 /* The column: the controls, then the coffee button at its foot. */
@@ -241,15 +280,21 @@
 @media (pointer: coarse) {
   .eb-share .eb-share-seg .eb-seg-btn { min-height: 32px; }
   .eb-share .eb-share-seg .eb-seg-btn::after { content: ''; position: absolute; inset: -6px 0; }
+  /* Count's S, M and L are a letter wide: on touch each is 36px across (32px under 290px of column; AU5), shrinking
+     only as far as its letter where the row is too narrow for that (German and Russian on a phone), so Count never
+     overflows: a basis, not a minimum, in a control at most the row's width. */
+  .eb-share .eb-share-count { max-width: 100%; }
+  .eb-share .eb-share-count .eb-seg-btn:nth-child(n+2):nth-child(-n+4) { flex: 0 1 36px; box-sizing: border-box; }
 }
+@container (max-width: 289px) { @media (pointer: coarse) { .eb-share .eb-share-count .eb-seg-btn:nth-child(n+2):nth-child(-n+4) { flex-basis: 32px; } } }
 /* Pick several (Totals, round 6, item 25): the site's chips (filters.css .eb-chip), 8px apart, at the row's right and
    wrapping; on, the Accent border and text with a 14px check before the word. Pick-one choices stay segmented. */
 .eb-share-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; min-width: 0; }
 .eb-share-chips .eb-chip[data-selected] { color: var(--accent); }
 @media (pointer: fine) { .eb-share .eb-share-opt:has(> .eb-share-chips) { min-height: 40px; } }
-/* A choice that can't be picked (the Tree's other orientation; a layout without room for every name): dimmed, still
-   focusable, its reason its tooltip and description. */
-.eb-share .eb-seg-btn[aria-disabled="true"] { opacity: .4; cursor: default; }
+/* A choice that can't be picked (Compare's Wish list with no wish list): Muted text at full strength, as the disabled
+   switch (the Quiet Disabled Rule, P3; never a fade), still focusable, its reason its tooltip and description. */
+.eb-share .eb-seg-btn[aria-disabled="true"] { opacity: 1; color: var(--muted); cursor: default; }
 /* A row with a muted line under its label (the poster's size: "A2 · 42 × 59.4 cm · …"), as Settings' rows' notes. */
 .eb-share-optcol { display: flex; flex: 1 1 10em; flex-direction: column; gap: 2px; min-width: 0; padding-block: 2px; line-height: 1.25; }
 .eb-share-optnote { font-size: 14px; font-weight: 400; line-height: 1.3; color: var(--muted); }
@@ -325,6 +370,12 @@
 .eb-share-disclose[aria-expanded="true"] svg { transform: rotate(180deg); }
 @media (hover: hover) and (pointer: fine) { .eb-share-disclose:hover svg { color: var(--ink); } }
 .eb-share-bulk-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0 12px 12px; }
+/* What opens in place (Export in batches' body, the goal's controls) rises in (AN14): transform only, so the column's
+   measure is untouched; backwards, so no transform stays after it (it would hold the menus' fixed layer). */
+.eb-share-bulk-body, .eb-share-goal { animation: eb-share-rise .18s var(--ease-ui) backwards; }
+@keyframes eb-share-rise { from { opacity: 0; transform: translateY(-4px); } }
+/* Each note fades in (AN15), a new span each time, so a second Copy link shows and is read again. */
+.eb-share-say { animation: eb-share-fade-in .16s var(--ease-ui) backwards; }
 .eb-share-bulk-body > .eb-share-row, .eb-share-bulk-body > .eb-share-progress { margin-top: 4px; }
 .eb-share-bulk .eb-share-pct { min-width: 0; white-space: nowrap; }
 /* The four actions (print mode's in the same places), 8px apart. A label wraps to a second line only where it must,
@@ -334,7 +385,11 @@
 .eb-share-actions { display: grid; gap: 8px; min-width: 0; font-size: 15px; }
 .eb-share-actions .eb-btn {
   min-width: 0; white-space: normal; text-align: center; line-height: 1.2; padding-block: 3px; overflow-wrap: break-word;
+  transition: opacity .15s var(--ease-ui), border-color .15s var(--ease-ui), background-color .15s var(--ease-ui), color .15s var(--ease-ui);
 }
+/* A button the render holds back turns quiet only after the busy cues' 300ms wait, and comes back at once (O1). It is
+   disabled all along: Share keeps the click's activation for a PNG at hand. */
+.eb-share-actions .eb-btn:disabled { transition-delay: .3s; }
 /* Print: the primary (Make poster, the progress, Download PNG) and one quiet button (Copy link; once made, Download PDF)
    on one row, the primary taking twice the leftover room; their labels never wrap: where the two don't fit side by
    side, the quiet one takes the next line. */
@@ -368,19 +423,21 @@
 .eb-share button:focus-visible, .eb-share input:focus-visible, .eb-share select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .eb-share { animation: none; }
-  .eb-share-preview, .eb-share-preview[data-resizing], .eb-share-preview img { transition: none; }
+  .eb-share, .eb-share-scrim, .eb-share-bulk-body, .eb-share-goal, .eb-share-say { animation: none; }
+  .eb-share-preview, .eb-share-preview[data-resizing], .eb-share-preview img, .eb-share-preview .eb-share-layer { transition: none; }
   /* A plain swap: the new image just appears, the old one is gone. */
   .eb-share-preview .eb-share-in { animation: none; }
   .eb-share-preview .eb-share-out { display: none; }
-  .eb-share-spin { animation: none; border-color: var(--accent); opacity: .5; }
+  /* Still after the wait, but never turning. */
+  .eb-share-spin { animation: eb-share-wait .01s .3s backwards; border-color: var(--accent); opacity: .5; }
+  .eb-share-actions .eb-btn { transition-duration: 0s; }
   .eb-share .eb-share-switch, .eb-share-switch .eb-track, .eb-share-switch .eb-knob { transition: none; }
   .eb-share-bar-fill { transition: none; }
   .eb-share-disclose svg { transition: none; }
 }
 
 /* The orientation (Vertical | Horizontal) beside the format control: the same control. Square is the same in both.
-   From the Tree it follows the arrangement, the other one off (the aria-disabled rule above). */
+   The Tree has none (its arrangement picks it). */
 
 /* The Story / Post / Square choice (and Vertical | Horizontal, Add birds' ways): a small segmented control in the dock's style. */
 .eb-seg {

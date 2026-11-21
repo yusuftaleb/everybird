@@ -13,9 +13,9 @@ import { MOVE_MS, reduced } from './collage-motion'
  * as /lifelist's .yt-ll-mid: the filters and the stats line say what it is out of.
  * The packer keeps the hole for this text (count-box.ts collageHole: the number at F · countScale, the 12px label), so a
  * five-digit count is drawn at countScale of F here too (--fs), for the whole tick towards it.
- * The number and label are drawn in the UI language ("1.089", `count.label`, upper-cased by .eb-mono); the hole and the
+ * The number and label are drawn in the UI language ("1.089", `count.word`, upper-cased by .eb-mono); the hole and the
  * scale key on the en-US geometry text (countText) and an 8-character label, so every language shares one hole.
- * `label` defaults to the language's `count.label`.
+ * `label` defaults to the language's `count.word`, its form for `value` (H7: "1 Art", "5 видов"; the hole holds every form).
  */
 export function Tally({ value, label }: { value: number; label?: string }) {
   const { t } = useI18n()
@@ -45,7 +45,7 @@ export function Tally({ value, label }: { value: number; label?: string }) {
     <>
       <div className="eb-mid" aria-hidden="true" style={{ '--fs': countScale(countText(value)) } as CSSProperties}>
         <span className="eb-num" ref={num} />
-        <span className="eb-mono">{label ?? t.count.label}</span>
+        <span className="eb-mono">{label ?? plural(t.count.word, value)}</span>
       </div>
       <p className="eb-sr" aria-live="polite">{plural(t.count.live, value, { n: countDisplay(value, numFmt) })}</p>
     </>

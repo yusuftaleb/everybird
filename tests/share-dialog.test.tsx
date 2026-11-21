@@ -23,13 +23,22 @@ import { MESSAGES, withI18n } from './i18n-render'
 const D = localDay()
 
 // The renderer is replaced by a promise the test resolves, so "busy" is under the test's control.
-const renders: { resolve: (b: Blob) => void }[] = []
-vi.mock('@/lib/share/image', async (orig) => ({
-  ...(await orig<typeof import('@/lib/share/image')>()),
-  packForImage: vi.fn(async () => ({ boxes: [] })),
-  renderShareImage: vi.fn(() => new Promise<Blob>((resolve) => renders.push({ resolve }))),
-  clearStickerCache: vi.fn(),
-}))
+const renders: { resolve: (b: Blob) => void; reject: (e: unknown) => void; opts?: { filterLabel?: string } }[] = []
+/** The stickers the next renders report as drawn outlines (ReadyImage.missing). */
+const mockMissing = { n: 0 }
+// The dialog's readyShareImage records its opts on renderShareImage (one call per render), and paints a stand-in canvas.
+vi.mock('@/lib/share/image', async (orig) => {
+  const render = vi.fn<(opts: unknown) => Promise<Blob>>((opts) => new Promise((resolve, reject) => renders.push({ resolve, reject, opts: opts as { filterLabel?: string } })))
+  return {
+    ...(await orig<typeof import('@/lib/share/image')>()),
+    packForImage: vi.fn(async () => ({ boxes: [] })),
+    renderShareImage: render,
+    readyShareImage: vi.fn((opts: unknown) => render(opts).then((b) => ({
+      W: 1080, H: 1920, scale: 2, missing: mockMissing.n, paint: () => document.createElement('canvas'), blob: () => Promise.resolve(b),
+    }))),
+    clearStickerCache: vi.fn(),
+  }
+})
 vi.mock('@/lib/download', () => ({ downloadBlob: vi.fn() }))
 // The Map and Tree views' own images (loaded only from those views).
 type TreeFitsCb = { onTreeText?: (x: { layout: 'fan' | 'circle' | 'rows'; px: number; small: boolean }) => void }
@@ -78,6 +87,7 @@ const pressFocused = (name: string) => {
 
 beforeEach(() => {
   renders.length = 0
+  mockMissing.n = 0
   makes.length = 0
   vi.mocked(track).mockClear()
   vi.mocked(downloadBlob).mockClear()
@@ -112,6 +122,132 @@ describe('share dialog', () => {
     await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
     await waitFor(() => expect(shareBtn.disabled).toBe(false))
     expect(dlBtn.disabled).toBe(false)
+  })
+
+  it('a failed render says so over the last image, and Try again (or Share image) renders it again (H3)', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    await act(async () => renders[0].reject(new Error('boom')))
+    const box = screen.getByTestId('share-preview')
+    await waitFor(() => expect(box).toHaveAttribute('data-failed'))
+    expect(within(box).getByText('Couldn’t make the image.')).toBeInTheDocument()
+    // Share image and Download stay pressable: pressing renders again.
+    const shareBtn = screen.getByRole('button', { name: 'Share image' }) as HTMLButtonElement
+    expect(shareBtn.disabled).toBe(false)
+    fireEvent.click(within(box).getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(renders).toHaveLength(2))
+    expect(box).not.toHaveAttribute('data-failed')
+    await act(async () => renders[1].reject(new Error('boom')))
+    await waitFor(() => expect(box).toHaveAttribute('data-failed'))
+    fireEvent.click(shareBtn)
+    await waitFor(() => expect(renders).toHaveLength(3))
+    await act(async () => renders[2].resolve(new Blob(['png'], { type: 'image/png' })))
+    await waitFor(() => expect(box).toHaveAttribute('aria-busy', 'false'))
+    expect(box).not.toHaveAttribute('data-failed')
+  })
+
+  it('says how many stickers are drawn as outlines, and Try again renders the image again (H5)', async () => {
+    mockMissing.n = 3
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
+    const note = await screen.findByTestId('share-missing')
+    expect(note).toHaveTextContent('3 stickers didn’t load and are drawn as outlines. Try again')
+    mockMissing.n = 0
+    fireEvent.click(within(note).getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(renders).toHaveLength(2))
+    expect(screen.queryByTestId('share-missing')).toBeNull()
+    await act(async () => renders[1].resolve(new Blob(['png'], { type: 'image/png' })))
+    await waitFor(() => expect(screen.getByTestId('share-preview')).toHaveAttribute('aria-busy', 'false'))
+    expect(screen.queryByTestId('share-missing')).toBeNull()
+  })
+
+  it('a first image taking over 1.5 s says it is arranging the birds (O2)', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    const slow = screen.getByTestId('share-slow')
+    expect(slow).toHaveTextContent('')
+    expect(slow).toHaveAttribute('aria-live', 'polite')
+    await waitFor(() => expect(slow).toHaveTextContent('Arranging 2 birds…'), { timeout: 3000 })
+    await waitFor(() => expect(renders).toHaveLength(1))
+    await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
+    await waitFor(() => expect(slow).toHaveTextContent(''))
+  })
+
+  it('the title field\'s example is this year\'s (D7)', () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.getByLabelText('Card title')).toHaveAttribute('placeholder', `My ${new Date().getFullYear()} birds`)
+  })
+
+  it('the preview is named with its title and count (AU15)', async () => {
+    const state = stateWith([entry('ostric2'), entry('emu1')])
+    state.saved = { ...state.saved, name: 'Ada’s life list' }
+    render(<ShareDialog state={state} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
+    expect(await within(screen.getByTestId('share-preview')).findByRole('img', { name: 'Preview of the story image: Ada’s life list, 2 species' })).toBeInTheDocument()
+  })
+
+  it('filters that leave no birds: the box says so with Clear filters, nothing renders, and Share image and Download are off with that reason (H8)', async () => {
+    const dispatch = vi.fn()
+    const st = { ...stateWith([entry('ostric2')]), filter: { countries: ['KE'] } }
+    render(<ShareDialog state={st} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
+    const box = screen.getByTestId('share-preview')
+    expect(within(box).getByText('No birds match your filters.')).toBeInTheDocument()
+    expect(box).toHaveAttribute('aria-busy', 'false')
+    const shareBtn = screen.getByRole('button', { name: 'Share image' })
+    expect(shareBtn).toHaveAttribute('aria-disabled', 'true')
+    expect(shareBtn).toHaveAccessibleDescription('No birds match your filters.')
+    expect(screen.getByRole('button', { name: 'Download image' })).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(shareBtn)
+    await new Promise((r) => setTimeout(r, 300))
+    expect(renders).toHaveLength(0)
+    expect(downloadBlob).not.toHaveBeenCalled()
+    fireEvent.click(within(box).getByRole('button', { name: 'Clear filters' }))
+    expect(dispatch).toHaveBeenCalledWith({ type: 'filter', filter: {} })
+  })
+
+  it('with filters on, Copy link says the link opens the whole list (C7)', async () => {
+    const writeText = vi.fn(async () => {})
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    vi.stubGlobal('ClipboardItem', undefined)
+    const st = { ...stateWith([entry('ostric2'), entry('emu1')]), filter: { countries: ['CA'] } }
+    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }))
+    await waitFor(() => expect(screen.getByTestId('share-note')).toHaveTextContent('Link copied. The link opens your whole list, without the filters.'))
+  })
+
+  it('the filters line comes right under the title field, before the options and the actions (P12)', () => {
+    const st = { ...stateWith([entry('ostric2')]), filter: { countries: ['CA'] } }
+    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    const filters = screen.getByTestId('share-filters')
+    const follows = (a: Node, b: Node) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(follows(screen.getByLabelText('Card title'), filters)).toBe(true)
+    expect(follows(filters, screen.getByTestId('share-options'))).toBe(true)
+    expect(follows(filters, screen.getByRole('button', { name: 'Share image' }))).toBe(true)
+  })
+
+  it('each note is a new span, so a second Copy link shows and is read again (AN15)', async () => {
+    const writeText = vi.fn(async () => {})
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    vi.stubGlobal('ClipboardItem', undefined)
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    const note = screen.getByTestId('share-note')
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }))
+    await waitFor(() => expect(note).toHaveTextContent('Link copied.'))
+    const first = note.querySelector('.eb-share-say')
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(note.querySelector('.eb-share-say')).not.toBe(first))
+    expect(note).toHaveTextContent('Link copied.')
+  })
+
+  it('a goal met says so under the Goal row (D6)', async () => {
+    const st = stateWith([entry('ostric2'), entry('emu1')])
+    st.saved = { ...st.saved, bigYear: { target: 2 } }
+    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.getByTestId('share-goal-reached')).toHaveTextContent('Goal reached: 2 of 2.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Goal in species' }), { target: { value: '3' } })
+    expect(screen.queryByTestId('share-goal-reached')).toBeNull()
   })
 
   it('Share image hands the share sheet the image and the full sticker credit as its text', async () => {
@@ -504,7 +640,7 @@ describe('share dialog', () => {
   it('the title label says "(optional)" beside it and the placeholder is an example', () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     const input = screen.getByLabelText('Card title')
-    expect(input).toHaveAttribute('placeholder', 'My 2024 birds')
+    expect(input).toHaveAttribute('placeholder', `My ${new Date().getFullYear()} birds`)
     expect(screen.getByText('(optional)')).toBeInTheDocument()
     expect(input).toHaveAccessibleDescription('(optional) Shown as your collage’s title and on shares.')
   })
@@ -723,9 +859,9 @@ describe('share dialog: print mode', () => {
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', printSize: 'A2', theme: 'light' }))
     await act(async () => renders.at(-1)!.resolve(new Blob(['png'], { type: 'image/png' })))
     await waitFor(() => expect(screen.getByTestId('share-preview')).toHaveAttribute('data-format', 'print'))
-    const img = screen.getByAltText('Preview of the A2 poster')
-    expect(img).toHaveAttribute('width', '1080')
-    expect(img).toHaveAttribute('height', String(Math.round(1080 * 3508 / 2480)))
+    // The collage's preview is a canvas painted at the box's size (speed audit finding 8), named as its image.
+    expect(within(screen.getByTestId('share-preview')).getByRole('img', { name: 'Preview of the A2 poster: 1 species' })).toBeInTheDocument()
+    expect(screen.getByTestId('share-preview')).toHaveAttribute('data-size', 'A2')
   })
 
   it('"Transparent background" is off at first; on, the poster is made transparent and offers the PNG only', async () => {
@@ -817,7 +953,10 @@ describe('share dialog: print mode', () => {
     fireEvent.change(screen.getByLabelText('Poster title'), { target: { value: 'Kenya' } })
     expect(p.dispose).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('button', { name: 'Download PNG' })).toBeNull()
-    expect(screen.getByTestId('share-note').textContent).toBe('')
+    // C6: the dropped poster is named, and the line stays through the next change, until a make.
+    expect(screen.getByTestId('share-note').textContent).toBe('The options changed. Make the poster again.')
+    fireEvent.change(screen.getByLabelText('Poster title'), { target: { value: 'Kenya 2026' } })
+    expect(screen.getByTestId('share-note').textContent).toBe('The options changed. Make the poster again.')
     expect(downloadBlob).not.toHaveBeenCalled()
 
     async function startMakeAgain() {
@@ -1380,9 +1519,11 @@ describe('the orientation switch', () => {
     expect(bulkCall).toMatchObject({ format: 'post', theme: 'light' })
     expect(bulkCall.entries.map((e) => e.code)).toEqual(['ostric2'])
     expect(makes).toHaveLength(0)
-    for (let k = before; k < before + 2; k++) {
-      await waitFor(() => expect(renders.length).toBeGreaterThan(k))
-      await act(async () => renders[k].resolve(new Blob(['png'], { type: 'image/png' })))
+    // The ZIP's own renders, by their group: the Post preview's debounced render lands in `renders` too, between or
+    // after them, so an index (renders[before + 1]) was sometimes the preview and the ZIP never finished.
+    for (const group of ['Ostriches', 'Cassowaries and Emu']) {
+      await waitFor(() => expect(renders.slice(before).some((r) => r.opts?.filterLabel === group)).toBe(true))
+      await act(async () => renders.slice(before).find((r) => r.opts?.filterLabel === group)!.resolve(new Blob(['png'], { type: 'image/png' })))
     }
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
     const [blob, filename] = vi.mocked(downloadBlob).mock.calls[0]
