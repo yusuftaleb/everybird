@@ -157,7 +157,8 @@ export const pt: Messages = {
       },
       tree: {
         loading: 'Carregando a árvore',
-        failed: 'A árvore não carregou. Para tentar de novo, abra a visualização Árvore outra vez.',
+        failed: 'A árvore não carregou.',
+        retry: 'Tentar de novo',
         tips: 'Pontas da árvore, de cima para baixo',
         axis: 'Milhões de anos atrás (estimativas)',
         onList: '{n} de {total} na lista',
@@ -182,6 +183,7 @@ export const pt: Messages = {
         showOldest: 'Mostrar linhagem mais antiga',
         unmapped: { one: '{n} ave desta lista não tem lugar nesta árvore:', other: '{n} aves desta lista não têm lugar nesta árvore:' },
         mineNone: 'Nenhuma ave da lista aqui.',
+        showAll: 'Mostrar todos os grupos',
         layout: 'Formato',
         layouts: { fan: 'Leque', circle: 'Radial', rows: 'Retangular' },
         small: 'Os nomes ficam pequenos neste formato. <rows>Retangular</rows> mostra todos os nomes em tamanho normal.',

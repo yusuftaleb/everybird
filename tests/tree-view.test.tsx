@@ -130,6 +130,11 @@ describe('the Tree tab in CollageView', () => {
     expect(within(layout).getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([['Fan', 'false'], ['Radial', 'false'], ['Rectangular', 'true']])
     expect(within(panel).getAllByRole('switch').map((b) => b.getAttribute('data-testid'))).toEqual(['tree-mine', 'tree-time', 'dock-sci'])
     expect(layout.compareDocumentPosition(within(panel).getByTestId('tree-mine')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // P9 (the Tree brief, item 13): the oldest lineage follows the Scientific switch, as every tip does.
+    fireEvent.click(within(panel).getByTestId('dock-sci'))
+    expect(container.querySelector('.eb-legend')).toHaveTextContent('Oldest lineage on this list: Bb two, which split')
+    fireEvent.click(within(panel).getByTestId('dock-sci'))
+    expect(container.querySelector('.eb-legend')).toHaveTextContent('Oldest lineage on this list: Beta Two, which split')
     fireEvent.click(screen.getByTestId('display-button'))
     expect(screen.queryByRole('group', { name: 'Layout' })).toBeNull() // only while the panel is open
     expect(screen.queryByRole('group', { name: 'Show tips as' })).toBeNull()
@@ -141,6 +146,12 @@ describe('the Tree tab in CollageView', () => {
     // Every other view keeps today's line.
     fireEvent.click(within(view).getByRole('button', { name: 'Collage' }))
     expect(screen.getByTestId('collage-stats')).toHaveTextContent('2 species · 2 orders · 2 families · since Jan 2024')
+    // P9: the Collage's latest-lifer line follows the Scientific switch the same way.
+    const legend = () => container.querySelector('.eb-legend')!.textContent!
+    expect(legend()).toMatch(/Latest: (Alpha One|Beta Two)/)
+    fireEvent.click(screen.getByTestId('display-button'))
+    fireEvent.click(within(screen.getByTestId('display-panel')).getByTestId('dock-sci'))
+    expect(legend()).toMatch(/Latest: (Aa one|Bb two)/)
   })
 
   it("the taxonomy path is the tree's path: a chip opens the branch, a tip picks the chip, a genus is a chip too, and the steps go back", async () => {
@@ -508,7 +519,8 @@ describe('the Fan and Radial on a measured width', () => {
     const { container } = render(<Tree entries={['qc1'].map(entry)} />)
     const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
     fireEvent.click(within(tips).getByRole('button', { name: /^Cranes and rails/ }))
-    fireEvent.click(within(tips).getByRole('button', { name: /^Rails, / }))
+    // The chart is keyed by the branch (AN11): the rows list is a new one.
+    fireEvent.click(within(screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })).getByRole('button', { name: /^Rails, / }))
     const label = (name: string) => [...container.querySelectorAll('.eb-tree-fan-label')].find((l) => l.querySelector('.eb-tree-fan-text')!.textContent === name)!
     expect([...label('Pa').children].map((c) => c.className)).toEqual(['eb-tree-fan-st', 'eb-tree-fan-text', 'eb-tree-mark', 'eb-tree-other', 'eb-mono eb-tree-fan-count'])
     expect(label('Pa').querySelector('.eb-tree-other')).toHaveTextContent(/^with Pb$/)

@@ -157,7 +157,8 @@ export const sv: Messages = {
       },
       tree: {
         loading: 'Trädet laddas',
-        failed: 'Trädet kunde inte laddas. Öppna Träd igen för att försöka på nytt.',
+        failed: 'Trädet kunde inte laddas.',
+        retry: 'Försök igen',
         tips: 'Trädets grenspetsar, uppifrån och ned',
         axis: 'Miljoner år sedan (uppskattningar)',
         onList: '{n} av {total} på listan',
@@ -182,6 +183,7 @@ export const sv: Messages = {
         showOldest: 'Visa äldsta linjen',
         unmapped: { one: '{n} fågel på den här listan har ingen plats i det här trädet:', other: '{n} fåglar på den här listan har ingen plats i det här trädet:' },
         mineNone: 'Inga fåglar på listan här.',
+        showAll: 'Visa alla grupper',
         layout: 'Form',
         layouts: { fan: 'Solfjäder', circle: 'Radiell', rows: 'Rektangulär' },
         small: 'Namnen är små i den här layouten. <rows>Rektangulär</rows> visar varje namn i full storlek.',

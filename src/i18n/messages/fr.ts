@@ -157,7 +157,8 @@ export const fr: Messages = {
       },
       tree: {
         loading: 'Chargement de l’arbre',
-        failed: 'L’arbre ne s’est pas chargé. Ouvre Arbre à nouveau pour réessayer.',
+        failed: 'L’arbre ne s’est pas chargé.',
+        retry: 'Réessayer',
         tips: 'Extrémités de l’arbre, de haut en bas',
         axis: 'Millions d’années avant le présent (estimations)',
         onList: '{n} sur {total} dans la liste',
@@ -182,6 +183,7 @@ export const fr: Messages = {
         showOldest: 'Afficher la plus ancienne lignée',
         unmapped: { one: '{n} oiseau de cette liste n’a pas de place dans cet arbre\u00a0:', other: '{n} oiseaux de cette liste n’ont pas de place dans cet arbre\u00a0:' },
         mineNone: 'Aucun oiseau de la liste ici.',
+        showAll: 'Afficher tous les groupes',
         layout: 'Forme',
         layouts: { fan: 'Éventail', circle: 'Radial', rows: 'Rectangulaire' },
         small: 'Les noms sont petits dans cette disposition. <rows>Rectangulaire</rows> affiche chaque nom en taille normale.',

@@ -157,7 +157,8 @@ export const de: Messages = {
       },
       tree: {
         loading: 'Baum wird geladen',
-        failed: 'Der Baum ließ sich nicht laden. Öffne „Baum“ noch einmal, um es erneut zu versuchen.',
+        failed: 'Der Baum ließ sich nicht laden.',
+        retry: 'Erneut versuchen',
         tips: 'Enden des Baums, von oben nach unten',
         axis: 'Millionen Jahre vor heute (Schätzungen)',
         onList: '{n} von {total} auf der Liste',
@@ -182,6 +183,7 @@ export const de: Messages = {
         showOldest: 'Älteste Linie zeigen',
         unmapped: { one: '{n} Vogel auf dieser Liste hat keinen Platz in diesem Baum:', other: '{n} Vögel auf dieser Liste haben keinen Platz in diesem Baum:' },
         mineNone: 'Hier ist kein Vogel der Liste.',
+        showAll: 'Alle Gruppen zeigen',
         layout: 'Form',
         layouts: { fan: 'Fächer', circle: 'Radial', rows: 'Rechteckig' },
         small: 'In dieser Darstellung sind die Namen klein. <rows>Rechteckig</rows> zeigt jeden Namen in voller Größe.',

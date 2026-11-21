@@ -157,7 +157,8 @@ export const it: Messages = {
       },
       tree: {
         loading: 'Caricamento dell’albero',
-        failed: 'L’albero non si è caricato. Apri di nuovo Albero per riprovare.',
+        failed: 'L’albero non si è caricato.',
+        retry: 'Riprova',
         tips: 'Foglie dell’albero, dall’alto in basso',
         axis: 'Milioni di anni fa (stime)',
         onList: '{n} di {total} nella lista',
@@ -182,6 +183,7 @@ export const it: Messages = {
         showOldest: 'Mostra il lignaggio più antico',
         unmapped: { one: '{n} uccello di questa lista non ha un posto in questo albero:', other: '{n} uccelli di questa lista non hanno un posto in questo albero:' },
         mineNone: 'Nessun uccello della lista qui.',
+        showAll: 'Mostra tutti i gruppi',
         layout: 'Forma',
         layouts: { fan: 'Ventaglio', circle: 'Radiale', rows: 'Rettangolare' },
         small: 'In questa disposizione i nomi sono piccoli. <rows>Rettangolare</rows> mostra ogni nome a grandezza piena.',

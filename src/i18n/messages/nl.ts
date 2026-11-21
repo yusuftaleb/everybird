@@ -157,7 +157,8 @@ export const nl: Messages = {
       },
       tree: {
         loading: 'De boom wordt geladen',
-        failed: 'De boom kon niet worden geladen. Open Boom opnieuw om het nog eens te proberen.',
+        failed: 'De boom kon niet worden geladen.',
+        retry: 'Opnieuw proberen',
         tips: 'Uiteinden van de boom, van boven naar beneden',
         axis: 'Miljoen jaar geleden (schattingen)',
         onList: '{n} van {total} op de lijst',
@@ -182,6 +183,7 @@ export const nl: Messages = {
         showOldest: 'Oudste lijn tonen',
         unmapped: { one: '{n} vogel op deze lijst heeft geen plaats in deze boom:', other: '{n} vogels op deze lijst hebben geen plaats in deze boom:' },
         mineNone: 'Hier staat geen vogel van de lijst.',
+        showAll: 'Alle groepen tonen',
         layout: 'Vorm',
         layouts: { fan: 'Waaier', circle: 'Radiaal', rows: 'Rechthoekig' },
         small: 'De namen zijn klein in deze weergave. <rows>Rechthoekig</rows> toont elke naam op volle grootte.',

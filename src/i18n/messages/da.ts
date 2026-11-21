@@ -157,7 +157,8 @@ export const da: Messages = {
       },
       tree: {
         loading: 'Træet indlæses',
-        failed: 'Træet blev ikke indlæst. Åbn Træ igen for at prøve en gang til.',
+        failed: 'Træet blev ikke indlæst.',
+        retry: 'Prøv igen',
         tips: 'Træets spidser, oppefra og ned',
         axis: 'Millioner år siden (skøn)',
         onList: '{n} af {total} på listen',
@@ -182,6 +183,7 @@ export const da: Messages = {
         showOldest: 'Vis ældste slægtslinje',
         unmapped: { one: '{n} fugl på denne liste har ingen plads i dette træ:', other: '{n} fugle på denne liste har ingen plads i dette træ:' },
         mineNone: 'Ingen fugl fra listen her.',
+        showAll: 'Vis alle grupper',
         layout: 'Form',
         layouts: { fan: 'Vifte', circle: 'Radial', rows: 'Rektangulær' },
         small: 'Navnene er små i dette layout. <rows>Rektangulær</rows> viser hvert navn i fuld størrelse.',

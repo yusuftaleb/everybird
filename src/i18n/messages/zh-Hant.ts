@@ -159,7 +159,8 @@ export const zhHant: Messages = {
       },
       tree: {
         loading: '正在載入演化樹',
-        failed: '演化樹沒有載入。再開一次演化樹試試看。',
+        failed: '演化樹沒有載入。',
+        retry: '重試',
         tips: '演化樹的末端，由上而下',
         axis: '百萬年前（估計值）',
         onList: '清單上有 {n} / {total}',
@@ -184,6 +185,7 @@ export const zhHant: Messages = {
         showOldest: '顯示最古老的譜系',
         unmapped: { one: '這份清單上有 {n} 種鳥不在這棵演化樹中：', other: '這份清單上有 {n} 種鳥不在這棵演化樹中：' },
         mineNone: '這裡沒有清單上的鳥。',
+        showAll: '顯示所有類群',
         layout: '版面',
         layouts: { fan: '扇形', circle: '放射狀', rows: '矩形' },
         small: '此版面中名稱較小。<rows>矩形</rows>版面可依正常大小顯示所有名稱。',

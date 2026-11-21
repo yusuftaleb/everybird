@@ -163,7 +163,8 @@ export const pl: Messages = {
       },
       tree: {
         loading: 'Wczytywanie drzewa',
-        failed: 'Nie udało się wczytać drzewa. Otwórz Drzewo ponownie, aby spróbować jeszcze raz.',
+        failed: 'Nie udało się wczytać drzewa.',
+        retry: 'Spróbuj ponownie',
         tips: 'Końce gałęzi, od góry do dołu',
         axis: 'Miliony lat temu (szacunkowo)',
         onList: 'Na liście: {n} z {total}',
@@ -188,6 +189,7 @@ export const pl: Messages = {
         showOldest: 'Pokaż najstarszą linię',
         unmapped: { one: 'Ptaki z tej listy bez miejsca w tym drzewie ({n}):', few: 'Ptaki z tej listy bez miejsca w tym drzewie ({n}):', many: 'Ptaki z tej listy bez miejsca w tym drzewie ({n}):', other: 'Ptaki z tej listy bez miejsca w tym drzewie ({n}):' },
         mineNone: 'Nie ma tu żadnego ptaka z listy.',
+        showAll: 'Pokaż wszystkie grupy',
         layout: 'Układ',
         layouts: { fan: 'Wachlarzowy', circle: 'Promienisty', rows: 'Prostokątny' },
         small: 'W tym układzie nazwy są małe. Układ <rows>Prostokątny</rows> pokazuje wszystkie nazwy w pełnym rozmiarze.',

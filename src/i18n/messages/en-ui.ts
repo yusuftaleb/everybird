@@ -207,7 +207,8 @@ export const EN_UI = {
      *  `tooMany`/`tooManyMine` why a rank in the Display panel's Down to is off (too many tips to draw on screen). */
     tree: {
       loading: 'Loading the tree',
-      failed: "The tree didn't load. Open Tree again to try once more.",
+      failed: "The tree didn't load.",
+      retry: 'Try again',
       tips: 'Tips of the tree, top to bottom',
       axis: 'Million years ago (estimates)',
       onList: '{n} of {total} on the list',
@@ -235,6 +236,7 @@ export const EN_UI = {
       showOldest: 'Show oldest lineage',
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
       mineNone: 'No bird on the list here.',
+      showAll: 'Show every group',
       layout: 'Layout',
       layouts: { fan: 'Fan', circle: 'Radial', rows: 'Rectangular' },
       /** Under a Fan or Radial whose names are under the screen's floor (round 6, item 12): <rows> is a button switching to Rectangular. */
