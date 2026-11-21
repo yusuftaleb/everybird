@@ -538,7 +538,7 @@ export const es: Messages = {
         viewTitle: { map: 'Imprimir tu mapa', tree: 'Imprimir tu árbol' },
         nameLabel: 'Título del póster',
         size: 'Tamaño del póster',
-        downTo: 'Hasta',
+        downTo: 'Nivel',
         deeperLarger: 'En un póster más grande caben todos los nombres',
         deeperNone: 'Demasiados nombres para imprimirlos de forma legible',
         orientNote: { fan: 'Los árboles en abanico se imprimen en horizontal', upright: 'Los árboles rectangulares y radiales se imprimen en vertical' },

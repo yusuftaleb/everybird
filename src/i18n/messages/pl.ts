@@ -533,7 +533,7 @@ export const pl: Messages = {
         viewTitle: { map: 'Drukuj swoją mapę', tree: 'Drukuj swoje drzewo' },
         nameLabel: 'Tytuł plakatu',
         size: 'Rozmiar plakatu',
-        downTo: 'Szczegółowość',
+        downTo: 'Poziom',
         deeperLarger: 'Na większym plakacie zmieszczą się wszystkie nazwy',
         deeperNone: 'Za dużo nazw, by wydrukować je czytelnie',
         orientNote: { fan: 'Drzewa wachlarzowe drukują się poziomo', upright: 'Drzewa prostokątne i promieniste drukują się pionowo' },

@@ -529,7 +529,7 @@ export const zhHant: Messages = {
         viewTitle: { map: '列印你的地圖', tree: '列印你的演化樹' },
         nameLabel: '海報標題',
         size: '海報尺寸',
-        downTo: '展開到',
+        downTo: '層級',
         deeperLarger: '更大的海報能印出所有名稱',
         deeperNone: '名稱太多，無法清楚列印',
         orientNote: { fan: '扇形演化樹以橫向列印', upright: '矩形和放射狀演化樹以直向列印' },

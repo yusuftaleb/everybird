@@ -415,7 +415,7 @@ describe('TreeView', () => {
     await screen.findByRole('button', { name: /^Waterfowl/ })
     const groups = within(slot).getAllByRole('group')
     expect(groups.map((g) => g.getAttribute('data-testid'))).toEqual(['tree-layout', 'tree-down'])
-    const down = () => within(within(slot).getByRole('group', { name: 'Down to' }))
+    const down = () => within(within(slot).getByRole('group', { name: 'Level' }))
     expect(down().getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed'), b.getAttribute('aria-disabled')])).toEqual([['Orders', 'true', null], ['Families', 'false', null], ['Genera', 'false', null], ['Species', 'false', null]])
     fireEvent.click(down().getByRole('button', { name: 'Families' }))
     expect(kept.get(TREE_DOWN_KEY)).toBe('families')
@@ -429,7 +429,7 @@ describe('TreeView', () => {
     expect(down().getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([['Genera', 'true'], ['Species', 'false']])
     // In a genus, always its species: no row.
     fireEvent.click(within(screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })).getByRole('button', { name: /^Ra, / }))
-    expect(within(slot).queryByRole('group', { name: 'Down to' })).toBeNull()
+    expect(within(slot).queryByRole('group', { name: 'Level' })).toBeNull()
     unmount()
     // Back at All birds (a new page), families again.
     render(<Tree entries={['a1', 'pa1'].map(entry)} />)

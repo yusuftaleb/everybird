@@ -538,7 +538,7 @@ export const nl: Messages = {
         viewTitle: { map: 'Je kaart printen', tree: 'Je boom printen' },
         nameLabel: 'Titel van de poster',
         size: 'Postergrootte',
-        downTo: 'Tot op',
+        downTo: 'Niveau',
         deeperLarger: 'Op een grotere poster passen alle namen',
         deeperNone: 'Te veel namen om leesbaar af te drukken',
         orientNote: { fan: 'Waaierbomen worden liggend afgedrukt', upright: 'Rechthoekige en radiale bomen worden staand afgedrukt' },

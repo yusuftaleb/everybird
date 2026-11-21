@@ -527,7 +527,7 @@ export const it: Messages = {
         viewTitle: { map: 'Stampa la tua mappa', tree: 'Stampa il tuo albero' },
         nameLabel: 'Titolo del poster',
         size: 'Formato del poster',
-        downTo: 'Fino a',
+        downTo: 'Livello',
         deeperLarger: 'Con un poster più grande si stampano tutti i nomi',
         deeperNone: 'Troppi nomi per una stampa leggibile',
         orientNote: { fan: 'Gli alberi a ventaglio si stampano in orizzontale', upright: 'Gli alberi rettangolari e radiali si stampano in verticale' },

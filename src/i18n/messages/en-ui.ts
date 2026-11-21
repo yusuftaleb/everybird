@@ -673,9 +673,9 @@ export const EN_UI = {
       /** The title field's label in Print (round 6, item 9). */
       nameLabel: 'Poster title',
       size: 'Poster size',
-      /** The Tree poster's Down to: the screen's rank or the next one down, and why the deeper one can't be picked at this size
+      /** The Tree's Level (the Display panel's row, and the poster's: the screen's rank or the next one down; "Down to" until Yusuf renamed it, 2026-11-21), and why the deeper one can't be picked at this size
        *  (every name must print at 9 pt or more: a larger size would, or none does). */
-      downTo: 'Down to',
+      downTo: 'Level',
       deeperLarger: 'A larger poster prints every name',
       deeperNone: 'Too many names to print readably',
       /** Why the Tree poster's other orientation is off (as `share.orientNote`, in the poster's words). */

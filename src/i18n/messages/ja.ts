@@ -529,7 +529,7 @@ export const ja: Messages = {
         viewTitle: { map: '地図を印刷', tree: '系統樹を印刷' },
         nameLabel: 'ポスターのタイトル',
         size: 'ポスターのサイズ',
-        downTo: '表示する階層',
+        downTo: '階層',
         deeperLarger: 'より大きなポスターなら、すべての名前を印刷できます',
         deeperNone: '名前が多すぎて読みやすく印刷できません',
         orientNote: { fan: '扇形の系統樹は横向きで印刷されます', upright: '矩形と放射状の系統樹は縦向きで印刷されます' },

@@ -538,7 +538,7 @@ export const pt: Messages = {
         viewTitle: { map: 'Imprimir seu mapa', tree: 'Imprimir sua árvore' },
         nameLabel: 'Título do pôster',
         size: 'Tamanho do pôster',
-        downTo: 'Até',
+        downTo: 'Nível',
         deeperLarger: 'Um pôster maior imprime todos os nomes',
         deeperNone: 'Nomes demais para imprimir de forma legível',
         orientNote: { fan: 'Árvores em leque são impressas na horizontal', upright: 'Árvores retangulares e radiais são impressas na vertical' },

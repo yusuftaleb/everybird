@@ -538,7 +538,7 @@ export const fr: Messages = {
         viewTitle: { map: 'Imprimer ta carte', tree: 'Imprimer ton arbre' },
         nameLabel: 'Titre de l’affiche',
         size: 'Taille de l’affiche',
-        downTo: 'Jusqu’à',
+        downTo: 'Niveau',
         deeperLarger: 'Une affiche plus grande imprime tous les noms',
         deeperNone: 'Trop de noms pour les imprimer lisiblement',
         orientNote: { fan: 'Les arbres en éventail s’impriment en paysage', upright: 'Les arbres rectangulaires et radiaux s’impriment en portrait' },

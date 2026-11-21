@@ -529,7 +529,7 @@ export const sv: Messages = {
         viewTitle: { map: 'Skriv ut din karta', tree: 'Skriv ut ditt träd' },
         nameLabel: 'Affischens titel',
         size: 'Affischstorlek',
-        downTo: 'Ner till',
+        downTo: 'Nivå',
         deeperLarger: 'På en större affisch får alla namn plats',
         deeperNone: 'För många namn för läsbar utskrift',
         orientNote: { fan: 'Solfjäderträd skrivs ut liggande', upright: 'Rektangulära och radiella träd skrivs ut stående' },

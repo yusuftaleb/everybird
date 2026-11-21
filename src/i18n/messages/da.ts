@@ -530,7 +530,7 @@ export const da: Messages = {
         viewTitle: { map: 'Udskriv dit kort', tree: 'Udskriv dit træ' },
         nameLabel: 'Plakatens titel',
         size: 'Plakatstørrelse',
-        downTo: 'Ned til',
+        downTo: 'Niveau',
         deeperLarger: 'En større plakat har plads til alle navne',
         deeperNone: 'For mange navne til at udskrive læseligt',
         orientNote: { fan: 'Viftetræer udskrives vandret', upright: 'Rektangulære og radiale træer udskrives lodret' },

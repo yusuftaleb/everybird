@@ -529,7 +529,7 @@ export const zhHans: Messages = {
         viewTitle: { map: '打印你的地图', tree: '打印你的进化树' },
         nameLabel: '海报标题',
         size: '海报尺寸',
-        downTo: '展开到',
+        downTo: '层级',
         deeperLarger: '更大的海报能印出所有名称',
         deeperNone: '名称太多，无法清晰打印',
         orientNote: { fan: '扇形进化树只能横向打印', upright: '矩形和放射状进化树只能竖向打印' },
