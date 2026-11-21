@@ -9,7 +9,7 @@ import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TipRank, TreeLevel } from '@/lib/tree/levels'
 import type { TreeLayout } from '@/lib/tree-mine'
-import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, isPrint, loadStickers, paintCard, paintRow, paintTiles, prepareCard, type CardFonts, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
+import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, dropLast, ensureViewFonts, isPrint, loadStickers, paintCard, paintRow, paintTiles, prepareCard, wrapParts, type CardFonts, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
 /** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone (it
  *  draws no stickers, so no sticker credit), the tree's FOOTER_LINE (its tips carry stickers) and the tree's credit
@@ -49,16 +49,8 @@ const NO_BIRDS: ImagePack = { W: 1, H: 1, boxes: new Map() }
 /** Between the count and the drawing under it. */
 const COUNT_GAP = 32
 
-/** `parts` joined with " · ", broken between parts onto as many lines as `max` (in `width`'s units) needs. */
-export function wrapParts(parts: readonly string[], width: (text: string) => number, max: number): string[] {
-  const lines: string[] = []
-  for (const p of parts) {
-    const joined = lines.length ? `${lines[lines.length - 1]} · ${p}` : ''
-    if (joined && width(joined) <= max) lines[lines.length - 1] = joined
-    else lines.push(p)
-  }
-  return lines
-}
+// wrapParts lives in image.ts now (the collage card's filter label wraps with it too); re-exported for the views.
+export { wrapParts }
 
 /**
  * The card's frame, its footer line `footer`, with `paint` drawing the view into its area (design units), as a PNG.
@@ -75,7 +67,9 @@ export async function renderViewImage(opts: ShareImageOpts & { scale?: number },
   if (lifer?.fallback && !imgs.get(lifer.url!)) imgs.set(lifer.url!, imgs.get(lifer.fallback) ?? null)
   await ensureViewFonts(card, `${(under ?? []).join('')}${sample}`)
   const { L, K } = card
-  const c = L.collage
+  // A two-line filter label (image.ts labelLines) moves the area's top down by its second line.
+  const drop = card.headDrop ?? 0
+  const c = drop ? { ...L.collage, y: L.collage.y + drop, h: L.collage.h - drop } : L.collage
   const blockH = K.size > 0 ? DIGIT_CAP * K.size + K.gap + MONO_CAP * K.labelSize : 0
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(L.W * s)
@@ -136,6 +130,6 @@ function watchNames(ctx: CanvasRenderingContext2D, fonts: CardFonts): { fonts: C
 export function clipText(ctx: CanvasRenderingContext2D, text: string, max: number): string {
   if (ctx.measureText(text).width <= max) return text
   let t = text
-  while (t.length > 1 && ctx.measureText(`${t}…`).width > max) t = t.slice(0, -1)
+  while (Array.from(t).length > 1 && ctx.measureText(`${t}…`).width > max) t = dropLast(t)
   return `${t.trimEnd()}…`
 }

@@ -83,6 +83,58 @@ describe('the preview and the exported image', () => {
   }
 })
 
+// H6: nothing on the card is cut before it must be. The harness measures each character as 0.5 em (mono 0.6).
+describe('titles and filter labels', () => {
+  const texts = (log: string[]) => log.filter((l) => l.startsWith('fillText('))
+  it('a long filter label breaks at its " · " onto two lines, and the birds move down clear of the second', async () => {
+    const logs = installStubs()
+    const short = await renderLog(image, logs, { format: 'story', latest: true, theme: 'light', filterLabel: 'Perching birds' })
+    // 80 characters at 34px: 1,360 px, past the story's 952; each half fits.
+    const label = 'Perching birds and their many relatives · Canada + Egypt + Kenya + Tanzania + Peru'
+    const long = await renderLog(image, logs, { format: 'story', latest: true, theme: 'light', filterLabel: label })
+    const lines = texts(long).filter((l) => l.includes('Perching birds and') || l.includes('Canada + Egypt'))
+    expect(lines).toEqual(['fillText("Perching birds and their many relatives", 64, 160)', 'fillText("Canada + Egypt + Kenya + Tanzania + Peru", 64, 202)'])
+    expect(long.some((l) => l.includes('…'))).toBe(false)
+    // Every sticker (and outline) stays below the second line and the head's gap: here the fitted birds already were,
+    // so nothing moved; a pack reaching the top moves down (clearHead).
+    const tops = (log: string[]) => log.filter((l) => l.startsWith('drawImage(')).map((l) => Number(l.split(', ')[2]))
+    expect(Math.min(...tops(long))).toBeGreaterThanOrEqual(202 + 34)
+    expect(tops(long)).toEqual(tops(short))
+  })
+  it('birds reaching the top move down, and shrink about the count, by the second line', async () => {
+    const logs = installStubs()
+    // A tall pack, its top and bottom birds at the frame's edges: the fit fills the collage's height.
+    const tall = { W: 1000, H: 1600, boxes: new Map<string, [number, number, number, number]>([['bird0', [450, 0, 100, 100]], ['bird1', [450, 1500, 100, 100]]]) }
+    const draw = async (filterLabel: string) => {
+      image.clearStickerCache(); logs.clear()
+      const canvas = await image.drawShareImage({ format: 'story', entries, species, pack: tall, now: NOW, theme: 'light', latest: false, filterLabel, strings: en.ui })
+      return logs.get(canvas as unknown as object)!
+    }
+    const tops = (log: string[]) => log.filter((l) => l.startsWith('drawImage(')).map((l) => Number(l.split(', ')[2]))
+    const one = await draw('Perching birds')
+    const two = await draw('Perching birds and their many relatives · Canada + Egypt + Kenya + Tanzania + Peru')
+    expect(Math.min(...tops(one))).toBeLessThan(202 + 34)
+    expect(Math.min(...tops(two))).toBeGreaterThanOrEqual(202 + 34 - 0.5)
+    // The lowest bird's bottom stays where it was (the collage's foot is unchanged).
+    const bottom = (log: string[]) => Math.max(...log.filter((l) => l.startsWith('drawImage(')).map((l) => { const p = l.split(', '); return Number(p[2]) + Number(p[4].replace(')', '')) }))
+    expect(bottom(two)).toBeLessThanOrEqual(bottom(one) + 0.5)
+  })
+
+  it('a title shrinks to 24px before any ellipsis', async () => {
+    const logs = installStubs()
+    const name = 'Ada Lovelace and Charles Babbage, 2026 birds' // 44 characters: 1,320 px at 60, 528 at 24
+    const log = await renderLog(image, logs, { format: 'story', latest: true, theme: 'light', name })
+    expect(texts(log)).toContain(`fillText(${JSON.stringify(name)}, 64, 184)`)
+  })
+  it('an ellipsis never splits a character in two (code points, not UTF-16 units)', async () => {
+    const logs = installStubs()
+    const log = await renderLog(image, logs, { format: 'story', latest: true, theme: 'light', name: '𠀋'.repeat(40) })
+    const drawn = texts(log).find((l) => l.includes('𠀋'))!
+    expect(drawn).toContain('…')
+    expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(JSON.parse(/^fillText\((".*?"),/.exec(drawn)![1]))).toBe(false)
+  })
+})
+
 describe('the footer is measured once the stickers and the fonts have both settled', () => {
   it('no measuring canvas exists until the last sticker and the fonts are in', async () => {
     const logs = installStubs()

@@ -668,6 +668,9 @@ async function fontsReady(fonts: string[], sample: string): Promise<void> {
   await Promise.race([load, new Promise((r) => setTimeout(r, 3000))])
 }
 
+/** `text` without its last character, by code point (never half an emoji or a rare Han character's surrogate pair). */
+export const dropLast = (text: string): string => Array.from(text).slice(0, -1).join('')
+
 /** Set the font at `size`, shrinking (to `min`) and then ellipsizing so `text` fits `maxW`; returns the text to draw. */
 function fitText(ctx: CanvasRenderingContext2D, text: string, font: (px: number) => string, size: number, min: number, maxW: number): string {
   let px = size
@@ -675,8 +678,28 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, font: (px: number)
   while (px > min && ctx.measureText(text).width > maxW) ctx.font = font((px -= 2))
   if (ctx.measureText(text).width <= maxW) return text
   let t = text
-  while (t.length > 1 && ctx.measureText(`${t}…`).width > maxW) t = t.slice(0, -1)
+  while (Array.from(t).length > 1 && ctx.measureText(`${t}…`).width > maxW) t = dropLast(t)
   return `${t.trimEnd()}…`
+}
+
+/** The filter label's lines: one where it fits at its size, else broken at its " · " (wrapParts) onto two, the rest
+ *  of the parts on the second (which then shrinks, as one line does). */
+export const FILTER_LINE_H = 42
+export function labelLines(label: string, width: (text: string) => number, maxW: number): string[] {
+  if (width(label) <= maxW) return [label]
+  const lines = wrapParts(label.split(' · '), width, maxW)
+  return lines.length <= 2 ? lines : [lines[0], lines.slice(1).join(' · ')]
+}
+
+/** `parts` joined with " · ", broken between parts onto as many lines as `max` (in `width`'s units) needs. */
+export function wrapParts(parts: readonly string[], width: (text: string) => number, max: number): string[] {
+  const lines: string[] = []
+  for (const p of parts) {
+    const joined = lines.length ? `${lines[lines.length - 1]} · ${p}` : ''
+    if (joined && width(joined) <= max) lines[lines.length - 1] = joined
+    else lines.push(p)
+  }
+  return lines
 }
 
 /**
@@ -908,13 +931,16 @@ export type PreparedCard = {
   credit: { size: number; below: boolean }
   /** How far the wordmark, the hairline and the latest lifer row move up when the footer line is below the wordmark. */
   shift: number
+  /** The filter label's lines when it took two (labelLines), and how far that moved the collage's top down. */
+  labelLines?: string[]
+  headDrop?: number
   captions?: CaptionBox[]
   /** Print names were asked for (showNames) but none are drawn: they didn't fit. */
   namesDropped?: true
   /** No Paper fill (ShareImageOpts.transparent). */
   transparent?: true
 }
-type CardDraft = Omit<PreparedCard, 'brandW' | 'credit' | 'shift'>
+type CardDraft = Omit<PreparedCard, 'brandW' | 'credit' | 'shift' | 'labelLines' | 'headDrop'>
 
 export function fitCaptionPack(
   pack: ImagePack,
@@ -1095,14 +1121,36 @@ function placeFooter(d: CardDraft): PreparedCard {
   // A line under the wordmark's lifts the wordmark, the hairline and the latest lifer row by a line.
   const shift = (credit.below ? 1 : 0) * (credit.size + 12)
   const lifer = d.lifer && { ...d.lifer, y: d.lifer.y - shift }
-  return { ...d, lifer, brandW, credit, shift }
+  // The filter label (H6): on two lines, broken at its " · ", before it shrinks; the second line takes the head's gap
+  // and the collage's top moves down by it (clearHead).
+  const lines = d.label && L.filter ? labelLines(d.label, (t) => measure(font.filter(L.filter!.size), L.filter!.size, t, 0.5), maxW) : []
+  const placed = { ...d, lifer, brandW, credit, shift }
+  return lines.length > 1 ? clearHead({ ...placed, labelLines: lines, headDrop: FILTER_LINE_H * (lines.length - 1) }) : placed
+}
+
+/** The birds clear of a two-line filter label: the collage's top moves down by `headDrop`, its centre (the count's)
+ *  by half that, and the birds shrink about it only as much as their reach above and below the centre needs. */
+function clearHead(card: PreparedCard): PreparedCard {
+  const drop = card.headDrop ?? 0
+  if (!drop || !card.tiles.length) return card
+  const { L, fit } = card
+  const a = L.collage, cy = fit.cy, ny = cy + drop / 2
+  let low = -Infinity, top = Infinity
+  for (const t of card.tiles) { low = Math.max(low, t.y + t.h); top = Math.min(top, t.y) }
+  for (const c of card.captions ?? []) low = Math.max(low, c.y + c.h)
+  if (top >= a.y + drop) return card
+  const r = Math.min(1, (a.h - drop) / 2 / Math.max(low - cy, cy - top, 1e-9))
+  const move = (x: number, y: number) => [fit.cx + (x - fit.cx) * r, ny + (y - cy) * r] as const
+  const tiles = card.tiles.map((t) => { const [x, y] = move(t.x, t.y); return { ...t, x, y, w: t.w * r, h: t.h * r } })
+  const captions = card.captions?.map((c) => { const [cx, y] = move(c.cx, c.y); return { ...c, cx, x: c.x + cx - c.cx, y } })
+  return { ...card, tiles, ...(captions ? { captions } : {}), fit: { ...fit, cy: ny, s: fit.s * r } }
 }
 
 /** `text` as `width` says it fits `max`, clipped with an ellipsis (the footer's one-line name). */
 function clipTo(width: (t: string) => number, text: string, max: number): string {
   if (width(text) <= max) return text
   let t = text
-  while (t.length > 1 && width(`${t}…`) > max) t = t.slice(0, -1)
+  while (Array.from(t).length > 1 && width(`${t}…`) > max) t = dropLast(t)
   return `${t.trimEnd()}…`
 }
 
@@ -1241,8 +1289,12 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
     ctx.textBaseline = 'top'
     nameW = maxW - w - 32
   }
-  if (name && L.name) draw(name, font.name, L.name, 36, isPrint(card.format) ? C.accent : C.ink, X0, nameW)
-  if (label && L.filter) draw(label, font.filter, L.filter, 24, C.accent)
+  // A title shrinks to 24 before any ellipsis (H6: a 40-character title beside a goal, a long CJK title).
+  if (name && L.name) draw(name, font.name, L.name, 24, isPrint(card.format) ? C.accent : C.ink, X0, nameW)
+  if (label && L.filter) {
+    const F = L.filter
+    ;(card.labelLines ?? [label]).forEach((line, i) => draw(line, font.filter, { y: F.y + i * FILTER_LINE_H, size: F.size }, 24, C.accent))
+  }
 
   // The latest lifer (or the Tree's oldest lineage): its sticker, then its words (paintRow).
   if (latest && lifer && L.latest) {
