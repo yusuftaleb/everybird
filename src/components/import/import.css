@@ -116,12 +116,23 @@
 .eb-src-help { display: flex; flex-direction: column; gap: 6px; max-width: 62ch; }
 .eb-src-help[hidden] { display: none; }
 .eb-src-help p { margin: 0; }
-.eb-src-why { display: flex; flex-direction: column; gap: 6px; margin: -4px 16px 14px; padding: 12px 14px; max-width: 640px; background: var(--surface);
-  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
-.eb-src-why[hidden] { display: none; }
-.eb-src-why .eb-note { margin: 0; }
-.eb-src-why ul { margin: 0; padding-left: 18px; }
-.eb-src-why a { color: var(--accent); font-weight: 600; }
+/* "why?"'s popover (SourceRow): the cards' floating look (the bird card's Paper, Hairline and shadow, the menu's 12px
+   squircle) in small, in the cell (.eb-src-main), placed by script 6px under the link with its left edge on the link's
+   (shifted left where it would leave the window); over the grid (the list is its stacking context), never pushing
+   it. Long name lists scroll. */
+.eb-whypop {
+  position: absolute; top: 100%; left: 12px; z-index: 5; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 6px; width: max-content; max-width: min(320px, calc(100vw - 32px));
+  max-height: 260px; overflow-y: auto; overscroll-behavior: contain; padding: 10px 12px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+  font-size: 14px; line-height: 1.45; text-align: left; white-space: normal; overflow-wrap: break-word; cursor: auto;
+}
+.eb-whypop[hidden] { display: none; }
+.eb-whypop .eb-note { margin: 0; }
+.eb-whypop ul { margin: 0; padding-left: 18px; }
+.eb-whypop a { color: var(--accent); font-weight: 600; }
 .eb-src-confirm { margin: 0 16px 14px; }
 .eb-src-form { display: block; }
 .eb-src-formrow { max-width: 560px; }
@@ -149,7 +160,6 @@
   .eb-src-main { padding: 12px 14px; }
   .eb-src-status { padding-left: 14px; padding-right: 14px; } /* the notes under the rows keep the rows' title edge */
   .eb-src-panel { padding: 12px 14px; }
-  .eb-src-why { margin-left: 14px; margin-right: 14px; padding: 12px; }
   .eb-dropzone > .eb-btn { flex: 1 1 100%; }
   .eb-src-formrow > .eb-input { flex-basis: 100%; }
   .eb-src-formrow > .eb-btn { flex: 1 1 auto; }

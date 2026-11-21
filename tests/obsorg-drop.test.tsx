@@ -89,6 +89,34 @@ describe('ObsOrgDrop: the two observation.org rows', () => {
     expect(within(row).getByRole('group', { name: 'Remove your observation.org life list' })).toHaveTextContent(/^Remove your observation\.org life list\? Its birds leave your collage/)
   })
 
+  it('"why?" opens a popover over the grid: it closes on Esc (focus back on why?), a press outside, focus leaving, or why? again', () => {
+    render(<ObsOrgDrop job={idle} onFile={() => {}} connected={lifeList} saved={lifeListSaved()} counts={countsWith({ 'obsorg-list': { species: 6, only: 2, onlyIn: 'here' } })} onRemove={() => {}} />)
+    const row = screen.getByTestId('source-obsorg-list')
+    const btn = within(row).getByRole('button', { name: 'Why 7 skipped?' })
+    const pop = within(row).getByTestId('not-counted')
+    // In the cell, not under the row: nothing in the grid moves when it opens.
+    expect(pop.parentElement).toHaveClass('eb-src-main')
+    expect(pop).toHaveClass('eb-whypop')
+    btn.focus()
+    fireEvent.click(btn)
+    expect(pop).toBeVisible()
+    fireEvent.keyDown(pop, { key: 'Escape' })
+    expect(pop).not.toBeVisible()
+    expect(btn).toHaveFocus()
+    fireEvent.click(btn)
+    fireEvent.pointerDown(pop)
+    expect(pop).toBeVisible() // a press inside keeps it
+    fireEvent.pointerDown(document.body)
+    expect(pop).not.toBeVisible()
+    fireEvent.click(btn)
+    fireEvent.blur(btn, { relatedTarget: document.body })
+    expect(pop).not.toBeVisible()
+    fireEvent.click(btn)
+    fireEvent.click(btn)
+    expect(pop).not.toBeVisible()
+    expect(btn).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('without details: the fallback name and "Details unknown"', () => {
     render(<ObsOrgDrop job={idle} onFile={() => {}} connected={[{ slot: 'obsorg-list' }]} />)
     expect(screen.getByTestId('source-obsorg-list')).toHaveTextContent('observation.org life list · observation.org Observed species')
