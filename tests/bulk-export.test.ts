@@ -332,7 +332,7 @@ describe('bulk export', () => {
     expect(namesDropped).toBe(1)
   })
 
-  it('keeps the active filter label or the Big Year goal on each poster, with the group after it', async () => {
+  it('keeps the active filter label or the year goal on each poster, with the group after it', async () => {
     const species = buildSpeciesIndex([row('a', 1, 'O1', 'F1', 'Ostriches'), row('b', 2, 'O2', 'F2', 'Ducks')])
     const groups = bulkGroups('family', [entry('a'), entry('b')], { species, regions })
     const seenOpts: { filterLabel?: string; goal?: unknown }[] = []
@@ -352,12 +352,12 @@ describe('bulk export', () => {
     const goal = { year: 2027, target: 300, basis: 'lifer' as const }
     await run({ goal })
     expect(seenOpts).toEqual([
-      { filterLabel: 'Big Year 2027 · New species in 2027 · Ostriches', goal },
-      { filterLabel: 'Big Year 2027 · New species in 2027 · Ducks', goal },
+      { filterLabel: '2027 lifers · Ostriches', goal },
+      { filterLabel: '2027 lifers · Ducks', goal },
     ])
   })
 
-  it('sizes each group\'s count hole for the Big Year target', () => {
+  it('sizes each group\'s count hole for the year goal\'s target', () => {
     const species = buildSpeciesIndex([row('a', 1)])
     const opts = { size: 'A2' as const, landscape: false, named: false, countSize: 'medium' as const, showNames: false, species }
     const plain = bulkPackSpec([entry('a')], opts).hole

@@ -32,6 +32,10 @@ Read this before you translate a string or add a language. English (`messages/en
 | Your list (Settings) | Tu lista | Sua lista | Je lijst | Twoja lista | Ta liste | Deine Liste | La tua lista | Din lista | Din liste | Твой список | あなたのリスト | 你的清单 | 你的清單 |
 | Conservation status | Estado de conservación | Estado de conservação | Beschermingsstatus | Status ochronny | Statut de conservation | Gefährdungsstatus | Stato di conservazione | Hotstatus | Bevaringsstatus | Охранный статус | 保全状況 | 保护状况 | 保育狀態 |
 | order / family (ranks) | orden / familia | ordem / família | orde / familie | rząd / rodzina | ordre / famille | Ordnung / Familie | ordine / famiglia | ordning / familj | orden / familie | отряд / семейство | 目 / 科 | 目 / 科 | 目 / 科 |
+| year list (a year's goal on the share card, "2026 year list"; never "Big Year") | lista anual | lista anual | jaarlijst | lista roczna | liste annuelle | Jahresliste | lista annuale | årslista | årsliste | годовой список | イヤーリスト | 年度清单 | 年度清單 |
+| a year's lifers (the goal's line with the lifer basis, "2026 lifers") | especies nuevas en {year} | espécies novas em {year} | nieuwe soorten in {year} | nowe gatunki w roku {year} | nouvelles espèces en {year} | neue Arten {year} | specie nuove nel {year} | nya arter {year} | nye arter i {year} | новые виды за {year} | {year}年のライファー | {year}年加新 | {year} 年的新鳥種 |
+| Taxa (the controls bar's button: orders, families and genera) | Taxones | Táxons | Taxa | Taksony | Taxons | Taxa | Taxa | Taxa | Taxa | Таксоны | 分類群 | 类群 | 類群 |
+| Display (the controls bar's button: how the view looks; never the word for the View tabs' group) | Aspecto | Exibição | Opmaak | Wygląd | Apparence | Anzeige | Aspetto | Visning | Udseende | Оформление | 表示設定 | 显示 | 顯示 |
 
 ## Register
 
