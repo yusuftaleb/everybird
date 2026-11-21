@@ -3,7 +3,7 @@
 // filters-validate.ts, path.ts), the representative sticker of a group with no bird on the list (groupSticker), the
 // Rectangular drawing's half of the width and its counts' column (rowsTreeW, rowsLabels), and the Radial's ages where no
 // branch runs (ringLabels, clearOfEnds; on screen inside its opening, inOpening).
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { applyFilter, drillTo, filterKey, filterToShow, genusOf, options, type Filter } from '@/lib/list/filters'
 import { applyFilterValidity } from '@/lib/list/filters-validate'
 import type { ListEntry } from '@/lib/list/model'
@@ -203,6 +203,18 @@ describe("Down to: the rank drawn at the least, the Display panel's (round 6)", 
     expect(treeDown()).toBeNull()
     setTreeDown(null)
     expect(TREE_DOWN_KEY).toBe('everybird:tree-down')
+  })
+
+  it('keeps the Level for the tab only (sessionStorage), not the device: a new visit starts at the default', () => {
+    const area = () => { const m = new Map<string, string>(); return { m, getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) } }
+    const local = area(), session = area()
+    vi.stubGlobal('localStorage', local)
+    vi.stubGlobal('sessionStorage', session)
+    setTreeDown('genera')
+    expect(session.m.get(TREE_DOWN_KEY)).toBe('genera')
+    expect(local.m.has(TREE_DOWN_KEY)).toBe(false)
+    setTreeDown(null)
+    vi.unstubAllGlobals()
   })
 })
 

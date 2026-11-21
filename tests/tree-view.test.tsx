@@ -350,6 +350,7 @@ describe('TreeView', () => {
     // Node 25+ has its own unconfigured localStorage that shadows jsdom's.
     const kept = new Map<string, string>()
     vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
+    vi.stubGlobal('sessionStorage', globalThis.localStorage)
     const onLevel = vi.fn()
     const { unmount } = render(<Tree entries={['b2'].map(entry)} onLevel={onLevel} />)
     expect(await screen.findByRole('button', { name: /^Waterfowl/ })).toBeInTheDocument()
@@ -396,6 +397,7 @@ describe('TreeView', () => {
   it('headings at the rank right above the tips (round 6, item 10): genera under their families, the order too where it changes; plain text, no mark', async () => {
     const kept = new Map<string, string>([[TREE_DOWN_KEY, 'genera']])
     vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
+    vi.stubGlobal('sessionStorage', globalThis.localStorage)
     render(<Tree entries={['a1'].map(entry)} sci />)
     const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
     const heads = [...tips.querySelectorAll('.eb-tree-heading')]
@@ -414,6 +416,7 @@ describe('TreeView', () => {
   it('the Layout choice (in the Display panel\'s slot): Fan, Radial and Rectangular, the choice kept on the device under its first names', async () => {
     const kept = new Map<string, string>([[TREE_LAYOUT_KEY, 'rows']])
     vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
+    vi.stubGlobal('sessionStorage', globalThis.localStorage)
     render(<Tree entries={['a1'].map(entry)} />)
     await screen.findByRole('button', { name: /^Waterfowl/ })
     // An old stored "rows" reads as Rectangular. No width in jsdom: rows, whatever is picked.
@@ -429,6 +432,7 @@ describe('TreeView', () => {
   it("Down to, under Layout: the ranks under the open branch, the one drawn pressed, the choice kept on the device and across branches", async () => {
     const kept = new Map<string, string>()
     vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
+    vi.stubGlobal('sessionStorage', globalThis.localStorage)
     const { unmount } = render(<Tree entries={['a1', 'pa1'].map(entry)} />)
     await screen.findByRole('button', { name: /^Waterfowl/ })
     const groups = within(slot).getAllByRole('group')
@@ -528,6 +532,7 @@ describe('the Fan and Radial on a measured width', () => {
     const kept = new Map<string, string>([[TREE_LAYOUT_KEY, 'fan']])
     const undo = widthOf(300)
     vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
+    vi.stubGlobal('sessionStorage', globalThis.localStorage)
     const { container } = render(<Tree entries={['a1', 'b2'].map(entry)} />)
     await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
     expect(container.querySelector('.eb-tree')).not.toHaveAttribute('data-round')

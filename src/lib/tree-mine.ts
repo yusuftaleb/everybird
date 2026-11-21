@@ -1,8 +1,9 @@
 // The Tree view's per-device choices, kept in localStorage, the same in every tab; without storage a choice holds for
 // the page load. "Lifers only" (the Display panel's switch; TreeView reads it, and the tree's share image follows it),
 // off when unset or unreadable; "Time scale" (the Display panel's switch, round 6: branches at their true ages, or the
-// splits spaced evenly by branching order), on unless turned off; Down to (round 6, the Display panel's: the rank the
-// tree draws at the least, under every branch), unset until one is picked (the one step under the open branch); and the Layout choice (the Display panel's) (also the share dialog's Arrangement row), unset until one is picked, when the view draws the fan from
+// splits spaced evenly by branching order), on unless turned off; Level (round 6, the Display panel's: the rank the
+// tree draws at the least, under every branch), unset until one is picked (the one step under the open branch), kept for
+// the tab only (sessionStorage: a refresh keeps it, a new visit starts at the default; Yusuf, 2026-11-21); and the Layout choice (the Display panel's) (also the share dialog's Arrangement row), unset until one is picked, when the view draws the fan from
 // FAN_FROM px wide (where it names every tip) and rows under it. The stored values keep their first names: 'fan' is the
 // Fan, 'circle' the Radial and 'rows' the Rectangular layout.
 import { useSyncExternalStore } from 'react'
@@ -17,21 +18,21 @@ export type TreeLayout = 'fan' | 'circle' | 'rows'
 export const TREE_LAYOUTS: readonly TreeLayout[] = ['fan', 'circle', 'rows']
 
 /** One stored string: read, written (null removes it) and watched. */
-function stored(key: string) {
+function stored(key: string, area: () => Storage = () => localStorage) {
   let memory: string | null | undefined
   const listeners = new Set<() => void>()
   const get = (): string | null => {
     if (memory !== undefined) return memory
     try {
-      return localStorage.getItem(key)
+      return area().getItem(key)
     } catch {
       return null
     }
   }
   const set = (v: string | null) => {
     try {
-      if (v === null) localStorage.removeItem(key)
-      else localStorage.setItem(key, v)
+      if (v === null) area().removeItem(key)
+      else area().setItem(key, v)
       memory = undefined
     } catch {
       memory = v
@@ -50,7 +51,7 @@ function stored(key: string) {
 const mineStore = stored(TREE_MINE_KEY)
 const layoutStore = stored(TREE_LAYOUT_KEY)
 const timeStore = stored(TREE_TIME_KEY)
-const downStore = stored(TREE_DOWN_KEY)
+const downStore = stored(TREE_DOWN_KEY, () => sessionStorage)
 
 export const treeMine = (): boolean => mineStore.get() === '1'
 export const setTreeMine = (on: boolean): void => mineStore.set(on ? '1' : null)
