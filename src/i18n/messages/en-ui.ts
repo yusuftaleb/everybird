@@ -171,6 +171,9 @@ export const EN_UI = {
       taxaPanel: 'Orders, families and genera',
       display: 'Display',
       displayPanel: 'Display options',
+      /** The Filters button's accessible name while filters are on ({label} the button's label, {n} how many of the
+       *  bird group, Places, Time and Conservation status are in use): the dock shows no count, the name says it. */
+      inUse: { one: '{label}, {n} in use', other: '{label}, {n} in use' },
       sciNames: 'Scientific names',
       taxaHead: {
         order: { one: '{n} of {total} order', other: '{n} of {total} orders' },

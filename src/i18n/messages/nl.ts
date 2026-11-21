@@ -135,6 +135,7 @@ export const nl: Messages = {
         taxaPanel: 'Ordes, families en geslachten',
         display: 'Opmaak',
         displayPanel: 'Opmaakopties',
+        inUse: { one: '{label}, {n} in gebruik', other: '{label}, {n} in gebruik' },
         sciNames: 'Wetenschappelijke namen',
         taxaHead: {
           order: { one: '{n} van {total} orde', other: '{n} van {total} ordes' },

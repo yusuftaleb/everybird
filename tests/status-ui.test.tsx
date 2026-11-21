@@ -87,9 +87,8 @@ describe('Status: a section of the Filters panel', () => {
     fireEvent.click(screen.getByTestId('status-EN'))
     expect(filterOf()).toEqual({ statuses: ['VU', 'EN'] })
     expect(screen.getByTestId('status-VU')).toBeChecked()
-    // One group in use: the badge's 1, and two chips.
-    expect(screen.getByTestId('filters-count')).toHaveTextContent(/^1$/)
-    expect(statusBtn()).toHaveAccessibleName('Filters: Conservation status: Vulnerable, Endangered')
+    // One group in use: the button's name says 1, and two chips.
+    expect(statusBtn()).toHaveAccessibleName('Filters, 1 in use: Conservation status: Vulnerable, Endangered')
     expect(screen.getByTestId('chip-status-VU')).toBeInTheDocument()
     expect(screen.getByTestId('chip-status-EN')).toBeInTheDocument()
     // The counts are under the other filters: checking a category changes none of them.
@@ -162,7 +161,7 @@ describe('Status: a section of the Filters panel', () => {
     fireEvent.click(screen.getByTestId('status-NE'))
     expect(filterOf()).toEqual({ statuses: ['NE'] })
     expect(screen.getByTestId('chip-status-NE')).toHaveTextContent('Not evaluated')
-    expect(statusBtn()).toHaveAccessibleName('Filters: Conservation status: Not evaluated')
+    expect(statusBtn()).toHaveAccessibleName('Filters, 1 in use: Conservation status: Not evaluated')
   })
 
   it('Esc closes the panel and focus returns to the Filters button; at phone width it is the bottom sheet', () => {

@@ -82,7 +82,9 @@
 .eb-textbtn::after { content: ''; position: absolute; inset: -4px min(0px, calc(50% - 22px)); }
 
 /* The collage block: LifeList's column (12px between the stats line, the dock, the filters and the stage). */
-.eb-view { --eb-ease: cubic-bezier(.16, 1, .3, 1); display: flex; flex-direction: column; gap: 12px; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.3; }
+/* No scroll anchoring inside the view (round 6 polish): a chip row, path line, collage, list or tree that changes height
+   when something is chosen must never make the browser scroll the page (it would carry the dock and an open panel). */
+.eb-view { overflow-anchor: none; --eb-ease: cubic-bezier(.16, 1, .3, 1); display: flex; flex-direction: column; gap: 12px; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.3; }
 .eb-stats { margin: 0; }
 /* The landing sample's stats line with its Share button at the row's end (the button wraps under a long line). */
 .eb-stats-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
@@ -107,9 +109,9 @@
 .eb-dock-end { margin-left: 8px; } /* + the dock's 4px gap = 12px between groups */
 .eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools,
 .eb-dock[data-finding] .eb-dock-filters, .eb-dock[data-finding] .eb-dock-end { opacity: 0; pointer-events: none; }
-/* The panel buttons (Filters.tsx DockPanelButton): Filters with its glyph (how many filter groups are on as a small
-   badge on it), Taxa and Display with the label alone (Taxa's badge on the label); the label, a caret. Open: the pressed
-   tab's Surface; filtering: Accent text and full opacity, at the label's one weight (nothing changes width). */
+/* The panel buttons (Filters.tsx DockPanelButton): Filters with its glyph, Taxa and Display with the label alone; the
+   label, a caret. Open: the pressed tab's Surface; something chosen: Accent text and full opacity, at the label's one
+   weight (nothing changes width). No count: how many is said only in the accessible name. */
 /* At every width the button can give way: the group may shrink, each drop may shrink (flex's default, said here so the rule
    reads whole), and the label shrinks inside it with an ellipsis, so a long summary ("Time · 2022–2024") cuts its own
    label and never pushes the magnifier out of the bar. The accessible name (aria-label) stays whole. Where nothing
@@ -122,20 +124,6 @@
 .eb-dock-drop[aria-expanded="true"] { opacity: 1; background: var(--surface); }
 .eb-dock-drop[aria-expanded="true"] .eb-drop-caret { transform: rotate(180deg); }
 .eb-dock-drop[data-active] { opacity: 1; color: var(--accent); }
-/* The count: a 14px Accent pill on the glyph's top right (the StatusMark pill's size and type), placed absolutely so it
-   moves nothing in the bar, knocked out of the glyph by a 2px ring of the button's own background (an outline, not a
-   shadow: DESIGN.md's Elevation). Decorative: the button's name has the count. */
-.eb-drop-icon { position: relative; display: flex; flex: none; }
-.eb-drop-badge {
-  position: absolute; top: -5px; right: -6px; box-sizing: border-box; min-width: 14px; height: 14px; padding: 0 3px;
-  display: flex; align-items: center; justify-content: center; border-radius: 7px;
-  background: var(--accent); color: var(--paper); outline: 2px solid var(--paper);
-  font: 600 9px/1 var(--font-mono); font-variant-numeric: tabular-nums; pointer-events: none;
-}
-.eb-dock-drop[aria-expanded="true"] .eb-drop-badge { outline-color: var(--surface); }
-/* A panel button without a glyph (Taxa, Display): the badge on the label's top right, as on the glyph. */
-.eb-drop-tag { position: relative; display: flex; min-width: 0; }
-.eb-drop-tag .eb-drop-badge { right: -10px; }
 /* Under 820px of bar (a tablet's or a phone's) the switches and the panel buttons take a second row under a Hairline,
    rather than squeeze the first; the views and the search keep row one. Under 600px the buttons share what the switches
    leave and drop their caret. */
@@ -488,8 +476,7 @@
 /* Under 240px (a 390px phone at aA 200%): row two's links at 13px with a 8px gutter and 3px inside each pill; the press
    stays 44px across (.eb-nav-link::after). */
 /* Under 300px of page (a 390px phone at Safari's aA 150% or more, page zoom; the top bar has split above): the stats
-   line and button labels wrap, and the Filters button drops its glyph (the label says it; the count moves to the
-   button's top right corner). Row one stays the views and
+   line and button labels wrap, and the Filters button drops its glyph (the label says it). Row one stays the views and
    the magnifier (the 310px container rule's 36px icons), row two the switches and Filters. */
 @media (max-width: 299px) {
   .eb-stat { white-space: normal; }
@@ -497,8 +484,6 @@
   .eb-dock-filters { min-width: 0; }
   .eb-dock-filters .eb-dock-drop { gap: 0; padding: 0 6px; }
   .eb-dock-filters .eb-dock-drop svg { display: none; }
-  .eb-dock-filters .eb-drop-icon, .eb-dock-filters .eb-drop-tag { position: static; }
-  .eb-dock-filters .eb-drop-badge { top: 2px; right: 2px; }
   .eb-dock-tools { margin-right: 0; }
 }
 /* Under 240px (a 390px phone at aA 200%): the views wrap beside the magnifier rather than push it off the row; the
@@ -687,28 +672,30 @@ main[tabindex="-1"]:focus { outline: none; }
 [data-tour-on] { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .eb-tour { animation: none; } }
 
-/* The controls bar's Display panel (DisplayPanel.tsx): the segmented choices (Layout; Arrangement with its glyphs) in
-   the share dialog's segmented style (`.eb-seg`, said here since the page may not have loaded share.css), each under its
-   mono label, then the switches: compact rows, the label at the left and the switch at the right, 32px with a mouse,
-   44px for touch, no rules or boxes; the row's Surface on hover. */
-.eb-disp { display: flex; flex-direction: column; gap: 14px; font-size: 14px; font-weight: 500; }
-.eb-disp-seg { display: flex; flex-direction: column; gap: 6px; }
+/* The controls bar's Display panel (DisplayPanel.tsx): every row one line, the label at the left and its control at
+   the right. The segmented choices (Layout's words; Arrangement's two 16px icons, no words) in the share dialog's small
+   segmented style (`.eb-share-seg`'s numbers, said here since the page may not have loaded share.css): 28px segments in
+   a 2px inset and a 1px border, a 44px press; a row too narrow for its words lets the control drop under the label.
+   Then the switches: compact rows, 32px with a mouse, 44px for touch, no rules or boxes; the row's Surface on hover. */
+.eb-disp { display: flex; flex-direction: column; gap: 10px; font-size: 14px; font-weight: 500; }
+.eb-disp-seg { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; min-height: 32px; }
 .eb-disp-slot:empty { display: none; }
 .eb-disp-slot { display: contents; }
 .eb-disp-label { margin: 0; }
 .eb-disp .eb-seg {
-  display: flex; gap: 4px; padding: 4px; border: 1px solid var(--hairline);
-  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  display: flex; flex: none; gap: 2px; padding: 2px; border: 1px solid var(--hairline);
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-disp .eb-seg-btn {
-  position: relative; flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 36px; padding: 0 10px; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 500;
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 28px; padding: 0 10px; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 500;
   white-space: nowrap; cursor: pointer; opacity: .66; -webkit-tap-highlight-color: transparent;
-  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease);
 }
-.eb-disp .eb-seg-btn::after { content: ''; position: absolute; inset: -4px 0; } /* 44px press */
-.eb-disp .eb-seg-btn svg { display: block; flex: none; width: 18px; height: 18px; }
+.eb-disp .eb-seg-btn[data-icon] { padding: 0 8px; }
+.eb-disp .eb-seg-btn::after { content: ''; position: absolute; inset: -8px 0; } /* 44px press */
+.eb-disp .eb-seg-btn svg { display: block; flex: none; width: 16px; height: 16px; }
 .eb-disp .eb-seg-btn[aria-pressed="true"] { opacity: 1; background: var(--surface); }
 .eb-disp .eb-seg-btn[aria-disabled="true"] { opacity: .4; cursor: default; }
 .eb-disp .eb-seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -717,10 +704,13 @@ main[tabindex="-1"]:focus { outline: none; }
 .eb-disp-sw .eb-setrow-label { font-size: 14px; font-weight: 500; }
 .eb-disp-sw .eb-track { flex: none; }
 .eb-setrow-btn.eb-disp-sw:focus-visible { outline-offset: 0; border-radius: 8px; }
+/* Touch (the phone's sheet, and any coarse pointer): every row and segment 44px, an icon segment 44px wide too. */
 .eb-drop-sheet .eb-setrow-btn.eb-disp-sw, .eb-drop-sheet .eb-disp .eb-seg-btn { min-height: 44px; }
+.eb-drop-sheet .eb-disp .eb-seg-btn[data-icon] { min-width: 44px; }
 .eb-drop-sheet .eb-disp .eb-seg-btn::after { content: none; }
 @media (pointer: coarse) {
   .eb-setrow-btn.eb-disp-sw, .eb-disp .eb-seg-btn { min-height: 44px; }
+  .eb-disp .eb-seg-btn[data-icon] { min-width: 44px; }
   .eb-disp .eb-seg-btn::after { content: none; }
 }
 @media (hover: hover) and (pointer: fine) { .eb-disp .eb-seg-btn:not([aria-disabled="true"]):hover { opacity: 1; } }

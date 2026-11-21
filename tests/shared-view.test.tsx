@@ -100,7 +100,7 @@ describe('shared view', () => {
     fireEvent.click(within(screen.getByRole('group', { name: 'Conservation status' })).getByTestId('status-VU'))
     await waitFor(() => expect(screen.getByTestId('collage-stats').textContent).toBe('2 of 5 species · 1 family'))
     expect(screen.getByTestId('chip-status-VU')).toBeTruthy()
-    expect(screen.getByTestId('filters-button').getAttribute('aria-label')).toMatch(/^Filters: Conservation status: Vulnerable$/)
+    expect(screen.getByTestId('filters-button').getAttribute('aria-label')).toMatch(/^Filters, 1 in use: Conservation status: Vulnerable$/)
   })
 
   it('no Filters button on a link whose birds have no status (it carries no places or dates either)', async () => {

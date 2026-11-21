@@ -137,6 +137,7 @@ export const zhHant: Messages = {
         taxaPanel: '目、科、屬',
         display: '顯示',
         displayPanel: '顯示選項',
+        inUse: { one: '{label}（已啟用 {n} 項）', other: '{label}（已啟用 {n} 項）' },
         sciNames: '學名',
         taxaHead: {
           order: { one: '{n} / {total} 個目', other: '{n} / {total} 個目' },

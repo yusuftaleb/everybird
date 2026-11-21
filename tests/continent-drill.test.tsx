@@ -179,6 +179,15 @@ describe('where the panel opens (startLevel)', () => {
 })
 
 describe('search from the continent level', () => {
+  it('the search box comes first, under the section title: before the count head and the list (round 6 polish)', () => {
+    render(<Harness />)
+    const field = screen.getByRole('searchbox', { name: 'Find a country or region' })
+    const head = document.querySelector('.eb-places-head')!
+    const list = screen.getByRole('list', { name: 'Continents' })
+    expect(field.compareDocumentPosition(head) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(head.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('finds any country: matches replace the continents, a tick and a drill work, clearing returns', () => {
     render(<Harness />)
     const field = screen.getByRole('searchbox', { name: 'Find a country or region' })

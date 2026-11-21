@@ -141,6 +141,7 @@ export const ru: Messages = {
         taxaPanel: 'Отряды, семейства и роды',
         display: 'Отображение',
         displayPanel: 'Настройки отображения',
+        inUse: { one: '{label}, используется: {n}', other: '{label}, используется: {n}' },
         sciNames: 'Латинские названия',
         taxaHead: {
           order: { one: '{n} из {total} отряда', few: '{n} из {total} отрядов', many: '{n} из {total} отрядов', other: '{n} из {total} отряда' },

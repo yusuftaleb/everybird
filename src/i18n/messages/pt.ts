@@ -135,6 +135,7 @@ export const pt: Messages = {
         taxaPanel: 'Ordens, famílias e gêneros',
         display: 'Exibição',
         displayPanel: 'Opções de exibição',
+        inUse: { one: '{label}, {n} em uso', other: '{label}, {n} em uso' },
         sciNames: 'Nomes científicos',
         taxaHead: {
           order: { one: '{n} de {total} ordem', other: '{n} de {total} ordens' },

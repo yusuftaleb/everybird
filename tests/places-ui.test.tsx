@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useReducer } from 'react'
-import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { fmt } from '@/i18n/core'
 import { es } from '@/i18n/messages/es'
@@ -15,6 +15,13 @@ vi.mock('@/lib/list/filters', async (importOriginal) => {
   return { ...actual, placeCounts: vi.fn(actual.placeCounts) }
 })
 
+// What the panel scrolls to: revealInScroller scrolls only the panel's own list (never the page), so the tests record it.
+vi.mock('@/components/dialog-utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/components/dialog-utils')>()
+  return { ...actual, revealInScroller: vi.fn() }
+})
+const { revealInScroller } = await import('@/components/dialog-utils')
+const revealed = () => vi.mocked(revealInScroller).mock.calls.map(([el]) => el)
 const { SEARCH_FROM } = await import('@/components/filters/Filters')
 const { FiltersDock } = await import('./filters-dock')
 const { initialState, makeReducer } = await import('@/lib/list/store')
@@ -114,9 +121,8 @@ describe('Places and Time: sections of the Filters panel', () => {
     fireEvent.click(screen.getByTestId('country-US'))
     expect(filterOf()).toEqual({ countries: ['MX', 'US'] })
     expect(screen.getByTestId('country-MX')).toBeChecked()
-    // The button counts the group, its accessible name names the places, and each place is a chip.
-    expect(within(filtersBtn()).getByTestId('filters-count')).toHaveTextContent(/^1$/)
-    expect(filtersBtn()).toHaveAccessibleName('Filters: Places: Mexico, United States of America')
+    // The button's accessible name counts the group and names the places, and each place is a chip.
+    expect(filtersBtn()).toHaveAccessibleName('Filters, 1 in use: Places: Mexico, United States of America')
     expect(screen.getByTestId('chip-place-c:MX')).toBeInTheDocument()
     expect(screen.getByTestId('chip-place-c:US')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('country-MX'))
@@ -168,8 +174,7 @@ describe('Places and Time: sections of the Filters panel', () => {
     act(() => { vi.advanceTimersByTime(400) })
     vi.useRealTimers()
     expect(filterOf()).toEqual({ from: '2020-01' })
-    expect(within(filtersBtn()).getByTestId('filters-count')).toHaveTextContent(/^1$/)
-    expect(filtersBtn()).toHaveAccessibleName('Filters: Time: from January 2020')
+    expect(filtersBtn()).toHaveAccessibleName('Filters, 1 in use: Time: from January 2020')
     expect(screen.getByTestId('chip-date-2020-01..')).toHaveTextContent('from 2020')
   })
 
@@ -255,8 +260,7 @@ describe('Places drills down: country, then state or province, then county', () 
     expect(filterOf()).toEqual({ provinces: ['CA-BC'] })
     expect(screen.getByTestId('place-all')).not.toBeChecked()
     expect(screen.getByTestId('place-s:CA-BC')).toBeChecked()
-    expect(within(filtersBtn()).getByTestId('filters-count')).toHaveTextContent(/^1$/)
-    expect(filtersBtn()).toHaveAccessibleName('Filters: Places: British Columbia, Canada')
+    expect(filtersBtn()).toHaveAccessibleName('Filters, 1 in use: Places: British Columbia, Canada')
     // "All of Canada" checks the country again, which holds the province.
     fireEvent.click(screen.getByTestId('place-all'))
     expect(filterOf()).toEqual({ countries: ['CA'] })
@@ -287,7 +291,7 @@ describe('Places drills down: country, then state or province, then county', () 
     expect(screen.getByTestId('place-all')).toHaveFocus()
     fireEvent.click(screen.getByRole('checkbox', { name: 'Capital, 1 species' }))
     expect(filterOf()).toEqual({ counties: ['CA-BC|Capital'] })
-    expect(filtersBtn()).toHaveAccessibleName('Filters: Places: Capital, British Columbia')
+    expect(filtersBtn()).toHaveAccessibleName('Filters, 1 in use: Places: Capital, British Columbia')
     // One step back: Canada's provinces, focus on British Columbia's drill button.
     fireEvent.click(within(screen.getByTestId('places-path')).getByRole('button', { name: 'Canada' }))
     expect(screen.getByText(/2 states and provinces/)).toBeInTheDocument()
@@ -299,20 +303,13 @@ describe('Places drills down: country, then state or province, then county', () 
     expect(screen.getByTestId('drill-c:CA')).toHaveFocus()
   })
 
-  it('a step back scrolls the drill button it focuses into view', () => {
+  it('a step back scrolls the drill button it focuses into view, inside the panel (never the page)', () => {
     vi.stubGlobal('innerWidth', 1000)
-    const scrolled: Element[] = []
-    const into = vi.fn(function (this: Element) { scrolled.push(this) })
-    Element.prototype.scrollIntoView = into
-    try {
-      render(<Harness />)
-      openFilters()
-      fireEvent.click(screen.getByTestId('drill-c:CA'))
-      fireEvent.click(within(screen.getByTestId('places-path')).getByRole('button', { name: 'All countries' }))
-      expect(scrolled.at(-1)).toBe(screen.getByTestId('drill-c:CA'))
-    } finally {
-      delete (Element.prototype as Partial<Element>).scrollIntoView
-    }
+    render(<Harness />)
+    openFilters()
+    fireEvent.click(screen.getByTestId('drill-c:CA'))
+    fireEvent.click(within(screen.getByTestId('places-path')).getByRole('button', { name: 'All countries' }))
+    expect(revealed().at(-1)).toBe(screen.getByTestId('drill-c:CA'))
   })
 
   it('Clear clears every level', () => {
@@ -344,10 +341,6 @@ describe('Places drills down: country, then state or province, then county', () 
   it('reopened, the panel starts at the selection\'s level: Capital checked opens on British Columbia\'s counties', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
-    // jsdom has no scrollIntoView: record what is scrolled to (removed after the test).
-    const scrolled: Element[] = []
-    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this) }
-    onTestFinished(() => { delete (Element.prototype as Partial<Element>).scrollIntoView })
     openFilters()
     fireEvent.click(screen.getByTestId('drill-c:CA'))
     fireEvent.click(screen.getByTestId('drill-s:CA-BC'))
@@ -358,7 +351,7 @@ describe('Places drills down: country, then state or province, then county', () 
     expect(screen.getByTestId('places-path')).toHaveTextContent('All countries/Canada/British Columbia')
     expect(screen.getByTestId('place-k:CA-BC|Capital')).toBeChecked()
     expect(screen.getByTestId('place-all')).toHaveAccessibleName('All of British Columbia, 2 species')
-    expect(scrolled).toContain(screen.getByTestId('place-k:CA-BC|Capital'))
+    expect(revealed()).toContain(screen.getByTestId('place-k:CA-BC|Capital'))
     // A step back lands on the province's drill button, as from a drill.
     fireEvent.click(within(screen.getByTestId('places-path')).getByRole('button', { name: 'Canada' }))
     expect(screen.getByTestId('drill-s:CA-BC')).toHaveFocus()
@@ -555,7 +548,7 @@ describe('Places drill: checked places stay reachable, the list is counted once'
     fireEvent.click(screen.getByTestId('drill-s:CA-BC'))
     fireEvent.click(screen.getByTestId('place-k:CA-BC|Capital'))
     expect(filterOf()).toEqual({ counties: ['CA-BC|Capital'] })
-    expect(filtersBtn()).toHaveAccessibleName('Filters: Places: Capital, British Columbia')
+    expect(filtersBtn()).toHaveAccessibleName('Filters, 1 in use: Places: Capital, British Columbia')
   })
 
   describe('counting', () => {
@@ -603,8 +596,7 @@ describe('in Spanish', () => {
     expect(screen.getByTestId('place-all')).toHaveAccessibleName(`${fmt(es.ui.places.allOf, { place: 'Canadá' })}, 3 especies`)
     expect(screen.getByRole('list', { name: 'Estados y provincias' })).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('place-all'))
-    expect(filtersBtn()).toHaveAccessibleName('Filtros: Lugares: Canadá')
-    expect(within(filtersBtn()).getByTestId('filters-count')).toHaveTextContent(/^1$/)
+    expect(filtersBtn()).toHaveAccessibleName('Filtros, 1 en uso: Lugares: Canadá')
     expect(filtersBtn().querySelector('.eb-drop-label')).toHaveTextContent(/^Filtros$/)
     expect(screen.getByTestId('chip-place-c:CA')).toHaveTextContent('Canadá')
   })

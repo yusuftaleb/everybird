@@ -94,6 +94,8 @@ describe('controls bar', () => {
     const sort = screen.getByRole('button', { name: 'Sort: Newest first' })
     expect(sort).toHaveTextContent('Newest first')
     expect(sort).toHaveAttribute('aria-haspopup', 'menu')
+    // Scientific sits before the sort (round 6 polish).
+    expect(screen.getByTestId('dock-sci').compareDocumentPosition(sort) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const rowNames = () => [...document.querySelectorAll('.eb-lrow .eb-row-primary')].map((el) => el.textContent)
     expect(rowNames()).toEqual(['Yellow-rumped Warbler', 'American Robin', 'Gilded Flicker', 'Northern Flicker', 'Snow Goose'])
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull() // headings only in Family
@@ -180,7 +182,7 @@ describe('the bar: one press per switch, each only in its view', () => {
 // Round 6 (Yusuf, 2026-11-20): Fit or Oval in the Collage's Display panel, the share dialog's setting (arrangement.ts).
 describe('the Arrangement choice', () => {
   afterEach(() => { setArrangement('packed') })
-  it('in the Collage\'s Display panel only, first, a labelled segmented group; one setting with the share dialog', () => {
+  it('in the Collage\'s Display panel only, first, a labelled segmented group of two icons; one setting with the share dialog', () => {
     render(<Harness />)
     const view = screen.getByRole('group', { name: 'View' })
     expect(screen.queryByTestId('dock-arrange')).toBeNull() // not in the bar
@@ -189,7 +191,11 @@ describe('the Arrangement choice', () => {
     expect(group()).toHaveAttribute('role', 'group')
     expect(group()).toHaveAccessibleName('Arrangement')
     const btn = (name: string) => within(group()).getByRole('button', { name })
-    expect(within(group()).getAllByRole('button').map((b) => b.textContent)).toEqual(['Fit', 'Oval'])
+    // Two small icons, no words: each segment named and titled "Fit" / "Oval".
+    expect(within(group()).getAllByRole('button').map((b) => [b.textContent, b.getAttribute('title')])).toEqual([['', 'Fit'], ['', 'Oval']])
+    // The oval is an ellipse wider than tall, not Phosphor's circle.
+    const ellipse = btn('Oval').querySelector('svg ellipse')!
+    expect(Number(ellipse.getAttribute('rx'))).toBeGreaterThan(Number(ellipse.getAttribute('ry')))
     expect(btn('Fit')).toHaveAttribute('aria-pressed', 'true')
     expect(btn('Fit').querySelector('svg')).not.toBeNull()
     // Its place: before the panel's switches.
@@ -240,14 +246,15 @@ describe('the bar\'s panels (round 6)', () => {
     await waitFor(() => expect(display).toHaveFocus())
   })
 
-  it('a chip picked in the Taxa panel filters, keeps the panel open, counts on the button and leaves only the breadcrumb on the page', () => {
+  it('a chip picked in the Taxa panel filters, keeps the panel open, marks the button and leaves only the breadcrumb on the page', () => {
     render(<Harness />)
     expect(screen.queryByTestId('filter-bar')).toBeNull() // nothing under the dock with no taxon picked
-    expect(screen.queryByTestId('taxa-button-count')).toBeNull()
+    expect(screen.getByTestId('taxa-button')).not.toHaveAttribute('data-active')
     pickOrder(/^Woodpeckers/)
     expect(screen.getByTestId('taxa-panel')).toBeInTheDocument()
     expect(stats()).toHaveTextContent(/^2 of 5 species/)
-    expect(screen.getByTestId('taxa-button-count')).toHaveTextContent('1')
+    expect(screen.getByTestId('taxa-button')).toHaveAttribute('data-active') // Accent, no count
+    expect(screen.getByTestId('taxa-button')).toHaveTextContent(/^Taxa$/)
     expect(screen.getByTestId('taxa-button')).toHaveAccessibleName('Taxa: Woodpeckers')
     fireEvent.click(screen.getByTestId('taxa-button'))
     const bar = screen.getByTestId('filter-bar')
@@ -260,6 +267,50 @@ describe('the bar\'s panels (round 6)', () => {
     openDisplay()
     fireEvent.pointerDown(screen.getByTestId('collage-stats'))
     expect(screen.queryByTestId('display-panel')).toBeNull()
+  })
+})
+
+// Round 6 polish: choosing anything never scrolls the page or moves an open panel.
+describe('nothing moves when something is chosen', () => {
+  const proto = HTMLElement.prototype
+  const offsetHeight = Object.getOwnPropertyDescriptor(proto, 'offsetHeight')!
+  afterEach(() => { Object.defineProperty(proto, 'offsetHeight', offsetHeight); vi.restoreAllMocks() })
+
+  it("every panel's top is the dock's bottom edge, whatever the chip row below the dock holds", () => {
+    // The dock 50px tall, everything else (the chip row included) 30px.
+    Object.defineProperty(proto, 'offsetHeight', { configurable: true, get(this: HTMLElement) { return this.classList.contains('eb-dock') ? 50 : 30 } })
+    render(<Harness />)
+    fireEvent.click(screen.getByTestId('filters-button'))
+    const panel = () => screen.getByTestId('filters-panel')
+    expect(panel().style.getPropertyValue('--dock-bottom')).toBe('50px')
+    fireEvent.click(screen.getAllByRole('checkbox')[0]) // a place: a chip appears under the dock
+    expect(screen.getByTestId('filter-chips')).toBeInTheDocument()
+    expect(panel().style.getPropertyValue('--dock-bottom')).toBe('50px')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    for (const open of [openTaxa, openDisplay]) {
+      open()
+      expect(document.querySelector<HTMLElement>('.eb-drop')!.style.getPropertyValue('--dock-bottom')).toBe('50px')
+      fireEvent.keyDown(document, { key: 'Escape' })
+    }
+  })
+
+  it('choosing (a place, its chip removed, a taxon, a switch, a sort) moves focus only with preventScroll', () => {
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus')
+    render(<Harness />)
+    fireEvent.click(screen.getByTestId('filters-button'))
+    fireEvent.click(screen.getAllByRole('checkbox')[0])
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.click(within(screen.getByTestId('filter-chips')).getAllByRole('button')[0]) // the last chip: focus goes back to Filters
+    pickOrder(/^Woodpeckers/)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    openDisplay()
+    fireEvent.click(screen.getByTestId('dock-true'))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'List' }))
+    fireEvent.click(screen.getByTestId('dock-sort'))
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitemradio', { name: 'Family' }))
+    expect(focus.mock.calls.length).toBeGreaterThan(0)
+    expect(focus.mock.calls.filter(([o]) => !o?.preventScroll)).toEqual([])
   })
 })
 
