@@ -24,12 +24,19 @@ const D = localDay()
 
 // The renderer is replaced by a promise the test resolves, so "busy" is under the test's control.
 const renders: { resolve: (b: Blob) => void }[] = []
-vi.mock('@/lib/share/image', async (orig) => ({
-  ...(await orig<typeof import('@/lib/share/image')>()),
-  packForImage: vi.fn(async () => ({ boxes: [] })),
-  renderShareImage: vi.fn(() => new Promise<Blob>((resolve) => renders.push({ resolve }))),
-  clearStickerCache: vi.fn(),
-}))
+// The dialog's readyShareImage records its opts on renderShareImage (one call per render), and paints a stand-in canvas.
+vi.mock('@/lib/share/image', async (orig) => {
+  const render = vi.fn<(opts: unknown) => Promise<Blob>>(() => new Promise((resolve) => renders.push({ resolve })))
+  return {
+    ...(await orig<typeof import('@/lib/share/image')>()),
+    packForImage: vi.fn(async () => ({ boxes: [] })),
+    renderShareImage: render,
+    readyShareImage: vi.fn((opts: unknown) => render(opts).then((b) => ({
+      W: 1080, H: 1920, scale: 2, missing: 0, paint: () => document.createElement('canvas'), blob: () => Promise.resolve(b),
+    }))),
+    clearStickerCache: vi.fn(),
+  }
+})
 vi.mock('@/lib/download', () => ({ downloadBlob: vi.fn() }))
 // The Map and Tree views' own images (loaded only from those views).
 type TreeFitsCb = { onTreeText?: (x: { layout: 'fan' | 'circle' | 'rows'; px: number; small: boolean }) => void }
@@ -714,9 +721,9 @@ describe('share dialog: print mode', () => {
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', printSize: 'A2', theme: 'light' }))
     await act(async () => renders.at(-1)!.resolve(new Blob(['png'], { type: 'image/png' })))
     await waitFor(() => expect(screen.getByTestId('share-preview')).toHaveAttribute('data-format', 'print'))
-    const img = screen.getByAltText('Preview of the A2 poster')
-    expect(img).toHaveAttribute('width', '1080')
-    expect(img).toHaveAttribute('height', String(Math.round(1080 * 3508 / 2480)))
+    // The collage's preview is a canvas painted at the box's size (speed audit finding 8), named as its image.
+    expect(within(screen.getByTestId('share-preview')).getByRole('img', { name: 'Preview of the A2 poster' })).toBeInTheDocument()
+    expect(screen.getByTestId('share-preview')).toHaveAttribute('data-size', 'A2')
   })
 
   it('"Transparent background" is off at first; on, the poster is made transparent and offers the PNG only', async () => {

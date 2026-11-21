@@ -793,10 +793,33 @@ export type ShareImageOpts = {
 
 /** The share image as a PNG (the print: its 1080-wide preview). Throws an AbortError when `signal` aborts. */
 export async function renderShareImage(opts: ShareImageOpts): Promise<Blob> {
-  const canvas = await drawShareImage(opts)
-  return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not encode the image'))), 'image/png')
-  })
+  return encodePng(await drawShareImage(opts))
+}
+
+const encodePng = (canvas: HTMLCanvasElement) => new Promise<Blob>((resolve, reject) => {
+  canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not encode the image'))), 'image/png')
+})
+
+/**
+ * A share image with its card prepared and its stickers in, not yet painted (the dialog's preview, speed audit finding
+ * 8): `paint(k)` draws it at `k` device px per design unit, on a new canvas or `into` (resized), cheap enough for the
+ * preview at its display size; `blob()` is the full image's PNG, the canvas drawShareImage returns (painted at `scale`)
+ * encoded once, made only when Share or Download needs it (or in idle time before). `missing`: the stickers that
+ * failed or ran out of time, drawn as outlines.
+ */
+export type ReadyImage = {
+  W: number; H: number; scale: number; missing: number
+  paint: (k: number, into?: HTMLCanvasElement) => HTMLCanvasElement
+  blob: () => Promise<Blob>
+}
+export async function readyShareImage(opts: ShareImageOpts): Promise<ReadyImage> {
+  const { card, imgs, s, missing } = await loadCard(opts)
+  let png: Promise<Blob> | undefined
+  return {
+    W: card.L.W, H: card.L.H, scale: s, missing,
+    paint: (k, into) => paintAt(card, imgs, k, into),
+    blob: () => (png ??= encodePng(paintAt(card, imgs, s)).catch((e: unknown) => { png = undefined; throw e })),
+  }
 }
 
 /** `grow`: how much the scale-up past the width fit enlarged the birds (and the hole), at least 1. */
@@ -1245,6 +1268,12 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
  * this is the 1080-wide preview (at scale 1 no tile passes 440 px, so it uses the 128/384 files).
  */
 export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasElement> {
+  const { card, imgs, s } = await loadCard(opts)
+  return paintAt(card, imgs, s)
+}
+
+/** The card, placed, with its stickers loaded (a failed 1024 file mapped to its 384), at its output scale `s`. */
+async function loadCard(opts: ShareImageOpts): Promise<{ card: PreparedCard; imgs: Map<string, HTMLImageElement | null>; s: number; missing: number }> {
   const { signal } = opts
   // A share image draws at its output scale (a desktop image 2×); a poster's preview at 1 (its strips use their own).
   const s = isPrint(opts.format) ? 1 : IMAGE_SCALE[opts.format as ImageFormat]
@@ -1255,19 +1284,23 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   const [imgs] = await Promise.all([loadStickers([...new Set([...cardUrls(draft), ...fallbacks])], { signal }), cardFontsReady(draft)])
   if (signal?.aborted) throw abortError()
   for (const t of tiles) if (t.url && t.fallback && !imgs.get(t.url)) imgs.set(t.url, imgs.get(t.fallback) ?? null)
-  const card = placeFooter(draft)
+  const missing = tiles.filter((t) => t.url && !imgs.get(t.url)).length
+  return { card: placeFooter(draft), imgs, s, missing }
+}
 
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(card.L.W * s)
-  canvas.height = Math.round(card.L.H * s)
+/** Paint `card` at `k` device px per design unit, on `into` (resized, so cleared) or a new canvas. */
+function paintAt(card: PreparedCard, imgs: Map<string, CanvasImageSource | null>, k: number, into?: HTMLCanvasElement): HTMLCanvasElement {
+  const canvas = into ?? document.createElement('canvas')
+  canvas.width = Math.round(card.L.W * k)
+  canvas.height = Math.round(card.L.H * k)
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas is not available')
   // The print's height is fractional (A4 1527.7 rounds up to 1528): Paper over the whole canvas covers its last row.
-  if (!card.transparent && canvas.height > card.L.H * s) {
+  if (!card.transparent && canvas.height > card.L.H * k) {
     ctx.fillStyle = card.colors.paper
     ctx.fillRect(0, 0, canvas.width, canvas.height)
   }
-  if (s !== 1) ctx.setTransform(s, 0, 0, s, 0, 0)
+  if (k !== 1) ctx.setTransform(k, 0, 0, k, 0, 0)
   paintCard(ctx, card, imgs)
   return canvas
 }

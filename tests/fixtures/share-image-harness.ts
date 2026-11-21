@@ -86,6 +86,7 @@ export function installStubs(opts: { monoEm?: number } = {}) {
     Object.defineProperty(canvas, 'height', { get: () => h, set: (v: number) => { log.push(`canvas.height = ${v}`); h = v } })
     const ctx = recordingContext(log, opts.monoEm ?? 0.6)
     canvas.getContext = (kind: string) => (kind === '2d' ? ctx : null)
+    canvas.toBlob = (done: (b: Blob | null) => void, type?: string) => { log.push(`toBlob(${show(type)})`); done(new Blob(['png'], { type })) }
     logs.set(canvas, log)
     return canvas
   }

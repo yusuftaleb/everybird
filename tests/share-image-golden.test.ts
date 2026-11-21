@@ -56,6 +56,33 @@ describe('share image draw calls', () => {
   })
 })
 
+// Speed audit finding 8: the dialog paints its preview at the box's size and encodes the full PNG only for Share or
+// Download. The PNG it encodes is drawShareImage's canvas, call for call; the preview is the same draws at its own scale.
+describe('the preview and the exported image', () => {
+  for (const c of CASES) {
+    it(`${caseName(c)}: the exported PNG draws exactly what drawShareImage draws`, async () => {
+      const logs = installStubs()
+      const before = await renderLog(image, logs, c)
+      image.clearStickerCache()
+      logs.clear()
+      const ready = await image.readyShareImage({ ...c, entries, species, pack, now: NOW, strings: en.ui })
+      expect(ready.scale).toBe(2)
+      expect(ready.missing).toBe(1) // bird4fail, drawn as its outline
+      const preview = ready.paint(0.5)
+      const shown = logs.get(preview as unknown as object)!
+      const blob = await ready.blob()
+      expect(blob.type).toBe('image/png')
+      expect(await ready.blob()).toBe(blob) // encoded once
+      const exported = [...logs].find(([k]) => k !== preview && logs.get(k)!.includes('toBlob("image/png")'))![1]
+      expect(exported.slice(0, -1)).toEqual(before)
+      expect(exported.at(-1)).toBe('toBlob("image/png")')
+      // The preview: the same draws, on a canvas a quarter the size, under its own transform.
+      expect(shown.slice(0, 2)).toEqual([`canvas.width = ${Math.round(ready.W / 2)}`, `canvas.height = ${Math.round(ready.H / 2)}`])
+      expect(shown.filter((l) => !l.startsWith('canvas.') && !l.startsWith('setTransform'))).toEqual(before.filter((l) => !l.startsWith('canvas.') && !l.startsWith('setTransform')))
+    })
+  }
+})
+
 describe('the footer is measured once the stickers and the fonts have both settled', () => {
   it('no measuring canvas exists until the last sticker and the fonts are in', async () => {
     const logs = installStubs()
