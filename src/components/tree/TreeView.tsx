@@ -191,6 +191,14 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const count = useCallback((n: number) => formatInt(n, t.num), [t])
   const tipOfText = useCallback((r: Tip) => (r.kind === 'group' ? fmt(tt.tipOf, { n: count(r.on), total: count(r.total) }) : ''), [tt, count])
   const tipsOf = (v: LevelView) => v.rows.filter((r): r is Tip => r.kind !== 'order')
+  /** "with Turacoena", "with Urolestes and Corvinella" (the groups folded into a row's branch, named as the row's own,
+   *  between <a> and <b> tags), or more than two genera "with 5 other genera" (a button opening their list). */
+  const withWords = useCallback((ws: Inside[], k: TipRank) => {
+    if (k === 'genera' && ws.length > 2) return plural(tt.withMany, ws.length, { n: count(ws.length) })
+    const names = ws.map((w) => nameAt(w.row, k)[0])
+    const b = names.pop()!
+    return names.length ? fmt(tt.withTwo, { a: names.join(', '), b }) : fmt(tt.withOne, { a: b })
+  }, [tt, count, nameAt])
 
   // Whether the Fan and Radial can name every tip of this level at this width (fitRound).
   const fits = useMemo(() => {
@@ -199,15 +207,17 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     const spans: LabelSpan[] = tipsOf(view).map((r) => {
       const name = r.kind === 'species' ? (sci ? r.row.sci : displayName(r.row)) : nameAt(r.row, view.tips)[0]
       const c = tipOfText(r)
+      // The mark of a split group, then right after it the groups inside (in the label's flex gap).
+      const other = r.kind === 'group' && r.with?.length ? LABEL_GAP * 13 + measure(withWords(r.with, view.tips).replace(/<\/?[ab]>/g, ''), 13, 500) : 0
       return {
-        name: (measure(name, 13, 600) + (r.kind === 'group' && r.with ? MARK_W : 0)) / 13,
+        name: (measure(name, 13, 600) + (r.kind === 'group' && r.with ? MARK_W : 0) + other) / 13,
         count: c ? measure(c, 11, 500, true) / 13 : 0,
         on: r.kind === 'species' ? r.on : r.on > 0,
       }
     })
     for (const s of ['fan', 'circle'] as const) out[s] = fitRound(spans, s, { w: width })
     return out
-  }, [view, width, measure, sci, nameAt, tipOfText])
+  }, [view, width, measure, sci, nameAt, tipOfText, withWords])
 
   // The layout drawn: the one picked, else the fan from FAN_FROM px; rows until the width is known, and rows when the
   // Fan or Radial cannot name every tip.
@@ -314,15 +324,9 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     k === 'orders' ? { ord: key } : k === 'families' ? { ord: r.ord, fam: key } : { ord: lv.ord ?? r.ord, fam: lv.fam ?? r.fam, genus: key }
   const famNameOf = (k: TipRank, r: SpeciesRow) => (k === 'orders' ? undefined : k === 'families' ? familyName(r) : famRow ? familyName(famRow) : familyName(r))
 
-  /** "with Turacoena", "with Urolestes and Corvinella": the groups folded into a row's branch, named as the row's own. */
-  const withWords = (rows: Inside[]) => {
-    const names = rows.map((w) => nameAt(w.row, rank)[0])
-    const b = names.pop()!
-    return names.length ? fmt(tt.withTwo, { a: names.join(', '), b }) : fmt(tt.withOne, { a: b })
-  }
   const withText = (rows: Inside[]) => {
     const tag = (chunk: string) => <span lang={rank === 'genera' || sci ? 'la' : undefined}>{chunk}</span>
-    return rich(withWords(rows), { a: tag, b: tag })
+    return rich(withWords(rows, rank), { a: tag, b: tag })
   }
   /** More than two genera inside a marked row: a count opening their list instead of the sentence. */
   const manyOf = (r: Tip) => (rank === 'genera' && r.kind === 'group' && r.with && r.with.length > 2 ? r.with : undefined)
@@ -350,6 +354,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         data-key={r.key}
         data-tip={i}
         data-on={r.on > 0 || undefined}
+        data-many={many ? '' : undefined}
         onClick={() => go({ ...opens(rank, r.key, r.row), ...(r.holds?.length ? { with: r.holds } : {}) }, famNameOf(rank, r.row))}
         {...focusing(i)}
       >
@@ -363,11 +368,12 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         <span className="eb-sr">{marked && `, ${tt.markSr}`}, {fmt(tt.onList, { n: count(r.on), total: count(r.total) })}{r.dotted && `, ${tt.dottedSr}`}</span>
       </button>
       {many && (
-        <button type="button" className="eb-tree-with" aria-haspopup="dialog" aria-expanded={list === r.key} data-inside={many.map((w) => w.key).join(' ')} onClick={() => setList(r.key)} {...focusing(i)}>
+        <button type="button" className="eb-tree-with" aria-haspopup="dialog" aria-expanded={list === r.key} data-inside={many.map((w) => w.key).join(' ')} data-with={i} onClick={() => setList(r.key)} {...focusing(i)}>
           <span className="eb-sr" lang="la">{r.key}</span>{' '}{plural(tt.withMany, many.length, { n: count(many.length) })}
         </button>
       )}
-      {/* After the row's buttons, so every count ends at the view's right edge, one column (the name says it). */}
+      {/* After the row's buttons (the list button right after the name's mark), so every count ends at the view's right
+          edge, one column (the name says it). */}
       <span className="eb-mono eb-tree-count" aria-hidden="true">{count(r.on)} / {count(r.total)}</span>
       </>
     )
@@ -403,6 +409,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     const r = tips[Number(i)]
     // A bird's card opens by its label on the drawing (its row is out of sight); a group opens as its row does.
     const el = box.current?.querySelector<HTMLElement>(`.eb-tree-fan-label[data-i="${i}"]`)
+    if ((e.target as Element).closest('[data-many]')) { box.current?.querySelector<HTMLElement>(`.eb-tree-rows [data-with="${i}"]`)?.click(); return }
     if (r.kind === 'species') { if (r.on && el) onPick(r.row.code, el) }
     else box.current?.querySelector<HTMLElement>(`.eb-tree-rows [data-tip="${i}"]`)?.click()
   }
@@ -427,6 +434,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         </span>
         <span className="eb-tree-fan-text" lang={latin ? 'la' : undefined}>{name}</span>
         {r.kind === 'group' && r.with && <span className="eb-tree-mark" />}
+        {r.kind === 'group' && !!r.with?.length && <span className="eb-tree-other" data-many={manyOf(r) ? '' : undefined}>{withText(r.with)}</span>}
         {r.kind === 'group' && fit!.counts[i] && <span className="eb-mono eb-tree-fan-count">{tipOfText(r)}</span>}
       </span>
     )

@@ -451,6 +451,31 @@ describe('the Fan and Radial on a measured width', () => {
     expect(container.querySelector('.eb-tree-fan-label .eb-tree-fan-text')).toHaveTextContent('Alpha One') // one family: its species
     undo()
   })
+  it('a marked tip names the groups inside right after its mark; a press on "with 3 other genera" opens their list', async () => {
+    const undo = widthOf(1100)
+    const { container } = render(<Tree entries={['qc1'].map(entry)} />)
+    const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    fireEvent.click(within(tips).getByRole('button', { name: /^Cranes and rails/ }))
+    fireEvent.click(within(tips).getByRole('button', { name: /^Rails, / }))
+    const label = (name: string) => [...container.querySelectorAll('.eb-tree-fan-label')].find((l) => l.querySelector('.eb-tree-fan-text')!.textContent === name)!
+    expect([...label('Pa').children].map((c) => c.className)).toEqual(['eb-tree-fan-st', 'eb-tree-fan-text', 'eb-tree-mark', 'eb-tree-other', 'eb-mono eb-tree-fan-count'])
+    expect(label('Pa').querySelector('.eb-tree-other')).toHaveTextContent(/^with Pb$/)
+    const many = label('Qa').querySelector('.eb-tree-other')!
+    expect(many.previousElementSibling).toHaveClass('eb-tree-mark')
+    expect(many).toHaveTextContent(/^with 3 other genera$/)
+    fireEvent.click(many)
+    expect(screen.getByRole('dialog', { name: 'Inside the Qa branch' })).toBeInTheDocument()
+    undo()
+  })
+  it('Rectangular: "with 3 other genera" follows the name and its mark, the count still ending the row', async () => {
+    render(<Tree entries={['qc1'].map(entry)} />)
+    fireEvent.click(await screen.findByRole('button', { name: /^Cranes and rails/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Rails, / }))
+    const qa = screen.getByRole('button', { name: /^Qa, not one branch/ })
+    expect(qa).toHaveAttribute('data-many')
+    expect([...qa.closest('li')!.children].map((c) => c.className)).toEqual(['eb-tree-btn', 'eb-tree-with', 'eb-mono eb-tree-count'])
+    expect(screen.getByRole('button', { name: /^Pa with Pb/ })).not.toHaveAttribute('data-many')
+  })
   it('too narrow to name every tip: Rectangular, with Fan and Radial listed but not on offer, saying why', async () => {
     const kept = new Map<string, string>([[TREE_LAYOUT_KEY, 'fan']])
     const undo = widthOf(300)
