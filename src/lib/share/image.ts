@@ -198,33 +198,19 @@ export const SAFE: Record<CardFormat, { top: number; bottom: number }> = {
 }
 /** Where the title starts (the collage starts at SAFE.top when there's no title). */
 export const TITLE_TOP: Record<CardFormat, number> = { story: 184, post: M, square: M, print: M, desktop: 72, wide: M, printLandscape: M }
-/** The latest lifer's sticker: 76 square for the tall and wide cards, 68 for the post and square (the 5:4 included). */
-const ICON: Record<CardFormat, number> = { story: 76, post: 68, square: 68, print: 76, desktop: 76, wide: 68, printLandscape: 76 }
 /**
- * The cards whose footer is one line: the wordmark, the site and the credit on the left and the latest lifer row on the
- * right, all on the footer's baseline (cardLayout, placeFooter). Only the desktop: its width follows the screen (1,308 to
- * 2,464 units of text). Where the credit at 17px and the whole name don't both fit beside the wordmark, the credit takes
- * its own line under it (placeFooter), and only then is a long name shrunk or clipped. The 5:4 card (1,222) and
- * the landscape poster (about 1,400, with the credit at 17px) are too narrow for the row beside the credit, so they keep
- * the row stacked above the hairline (tests/orientation.test.ts measures it).
- */
-const LATEST_ONE_LINE: Partial<Record<CardFormat, true>> = { desktop: true }
-/**
- * The footer-line latest row's sticker (px square), label and name sizes and the gap after the sticker. The row is two
- * lines inside the footer's line, right-aligned: the mono label over the name (the name on the footer's baseline), the
- * sticker to their left, centred on the pair. A name too wide for the room left shrinks to nameMin (80%) before it is clipped.
- */
-/** How far the wordmark and the credit line are lifted when the two-line row is on, to centre their caps on the row's block. */
-export const FOOTER_LIFT = 11.5
-const ONE_LINE = { icon: 40, label: 20, name: 30, gap: 14, nameMin: 0.8 }
-/**
- * The Tree image's oldest lineage row (round 6), smaller than the latest lifer's and only the gap it needs from the
- * drawing: stacked, the sticker and two lines (the label over the name); on the one-line cards (the desktop) one line
- * just above the hairline: the sticker, the label, then the name after it (`inline`).
+ * The latest lifer row and the Tree image's oldest lineage row (round 6, items 4 and 17: one form, one painter,
+ * paintRow): above the hairline, smaller than the latest lifer's old row, its room given to the collage. On the cards in
+ * INLINE_ROW (Desktop, Post and its 5:4, Square) one line: the sticker (SMALL_INLINE), the bird's name right after it in
+ * the name's style, then the detail in the label's small mono style ("Latest lifer · Oct 2026 · British Columbia, Canada";
+ * "Oldest lineage · split from its closest relatives about 39 million years ago"), its short form where that doesn't fit
+ * beside the whole name ("Latest lifer · Oct 2026"); the name is never cut. The Story stacks it (SMALL_ROW): the sticker
+ * and two lines, the label over the name. Posters keep their foot (POSTER_FOOT).
  */
 export const SMALL_ROW = { icon: 56, label: 16, name: 26 }
 export const SMALL_INLINE = { icon: 40, label: 18, name: 26, gap: 16 }
-/** The gap between the footer line and the latest row on its right. */
+export const INLINE_ROW: ReadonlySet<CardFormat> = new Set<CardFormat>(['desktop', 'post', 'wide', 'square'])
+/** The gap between the poster foot's line and its latest lifer on its right. */
 const FOOTER_GAP = 32
 /**
  * The gaps (px) between the head and the collage, the collage and the hairline (`collage`), and the latest lifer row and
@@ -282,11 +268,12 @@ export type CardLayout = {
   collage: { x: number; y: number; w: number; h: number }
   count: CountLayout
   /**
-   * The latest lifer row. Stacked (`oneLine` false): its sticker (icon px square, at x) beside two lines in a column `tw`
-   * wide, a mono label over the bird's name, above the hairline. One line (LATEST_ONE_LINE): the sticker at y on the
-   * footer's line, the label and name on its baseline, all placed by placeFooter from the text's measured widths.
+   * The latest lifer row (or the Tree's oldest lineage), above the hairline: its sticker (icon px square, at x, y), then
+   * on one line (`inline`, INLINE_ROW) the name and the detail, else two lines in a column `tw` wide, the mono label over
+   * the name (paintRow).
    */
-  latest?: { x: number; y: number; icon: number; tw: number; label: number; name: number; oneLine: boolean; inline?: boolean }
+  /** `lift`: the room kept under the collage for placeFooter's lift of the row (the 1080-wide cards). */
+  latest?: { x: number; y: number; icon: number; tw: number; label: number; name: number; inline?: boolean; lift?: number }
   rule: { y: number }
   /** The wordmark's size (`size`, Cabinet 700) and the line's beside it (`credit`, Geist Mono; placeCredit may shrink it). */
   footer: Text & { credit: number }
@@ -313,8 +300,7 @@ export const POSTER_FOOT = { brand: 24, line: 16, min: 12 }
 export const posterIcon = (px: number) => Math.round(px * 1.5)
 const posterIconGap = (px: number) => Math.round(px * 0.5)
 
-/** `small`: the row is the Tree image's oldest lineage, smaller than the latest lifer's (SMALL_ROW; round 6). */
-export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; target?: number; countSize?: CountSize; small?: boolean }
+export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; target?: number; countSize?: CountSize }
 
 /**
  * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: the shown count over "SPECIES" (a filtered
@@ -387,31 +373,20 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
     return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
   }
   const footer = { y: H - B - 30 - (format === 'story' ? 4 : 0), size: 30, credit: 20 }
-  const icon = ICON[format]
   const G = GAPS[format]
-  // One line (LATEST_ONE_LINE): the row is on the footer's own line, on its right, so the hairline sits just above the
-  // footer and the collage gets the height a stacked row took. Otherwise the row stacks above the hairline.
-  // Without the row the collage takes its room (and, on a one-line card, the 20 units of air over it): the pack is made
-  // for that taller frame (imagePackSpec), so no empty band is left above or below the birds.
-  const oneLine = !!LATEST_ONE_LINE[format]
-  let rule: { y: number }
-  let latest: CardLayout['latest']
-  if (c.latest && c.small) {
-    rule = { y: footer.y - 30 }
-    const S = oneLine ? SMALL_INLINE : SMALL_ROW
-    latest = { x: X, y: rule.y - G.latest - S.icon, icon: S.icon, tw: W - 2 * X - S.icon - 20, label: S.label, name: S.name, oneLine: false, ...(oneLine ? { inline: true } : {}) }
-  } else if (oneLine) {
-    // With the row: the label's caps start at footer.y - 20, so the hairline is 40 above the footer line (20 of air over the
-    // row). Without it the hairline is 20 above, as a one-line footer needs.
-    rule = { y: footer.y - (c.latest ? 40 : 20) }
-    latest = c.latest ? { x: X, y: footer.y - 18, icon: ONE_LINE.icon, tw: 0, label: ONE_LINE.label, name: ONE_LINE.name, oneLine } : undefined
-  } else {
-    rule = { y: footer.y - 30 }
-    latest = c.latest ? { x: X, y: rule.y - G.latest - icon, icon, tw: W - 2 * X - icon - 20, label: 20, name: 34, oneLine } : undefined
-  }
+  // The row above the hairline (round 6, item 17: the oldest lineage's form and size, SMALL_INLINE or SMALL_ROW), 30
+  // above the footer line; without it the collage takes its room (and on the desktop the hairline sits 20 above the
+  // footer line). The pack is made for that frame (imagePackSpec), so no empty band is left above or below the birds.
+  const inline = INLINE_ROW.has(format)
+  const rule = { y: footer.y - (c.latest || format !== 'desktop' ? 30 : 20) }
+  const S = inline ? SMALL_INLINE : SMALL_ROW
+  // On the 1080-wide cards the stamped footer line never fits beside the wordmark, so placeFooter lifts the hairline and
+  // the row by a credit line (its `shift`, at most the credit's size + 12): that room is kept under the collage, so the
+  // lifted row still has its gap above it.
+  const lift = c.latest && W === 1080 ? footer.credit + 12 : 0
+  const latest: CardLayout['latest'] = c.latest ? { x: X, y: rule.y - G.latest - S.icon, icon: S.icon, tw: W - 2 * X - S.icon - 20, label: S.label, name: S.name, ...(inline ? { inline: true } : {}), ...(lift ? { lift } : {}) } : undefined
   const top = headBottom === undefined ? T : headBottom + G.head
-  // A stacked row keeps the head's gap from the collage (round 6: it sat too close), the collage giving up the room.
-  const bottom = latest && !latest.oneLine ? latest.y - (c.small ? G.latest : G.head) : rule.y - G.collage
+  const bottom = latest ? latest.y - G.latest - lift : rule.y - G.collage
   const collage = { x: X, y: top, w: W - 2 * X, h: bottom - top }
   return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
 }
@@ -684,6 +659,56 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, font: (px: number)
   return `${t.trimEnd()}…`
 }
 
+/**
+ * The latest lifer's row and the Tree image's oldest lineage row, in every format that draws it (round 6, items 4 and
+ * 17: one painter): its words beside its sticker (drawn by the caller, `at` its icon's square). On one line (`at.inline`):
+ * the bird's name right after the sticker in the name's style (shrunk to the width, never cut), then the detail in the
+ * label's mono style, Muted, sentence case (`words.detail`, else `label`), its short form where that doesn't fit beside
+ * the whole name (`head`, the latest lifer without its place, or the oldest lineage's `label`), clipped only past that.
+ * Stacked (the Story): the mono label over the name, upper case and tracked, the place on a line of its own where the
+ * whole label doesn't fit. Returns the detail drawn (one line).
+ */
+export function paintRow(ctx: CanvasRenderingContext2D, font: Pick<CardFonts, 'lifer' | 'mono'>, C: Pick<ShareColors, 'ink' | 'muted'>, at: { x: number; y: number; icon: number; tw: number; label: number; name: number; inline?: boolean }, words: LatestText & { detail?: string }): string {
+  const { icon, label: ls, name: ns } = at
+  const track = (em: number, px: number) => { if ('letterSpacing' in ctx) ctx.letterSpacing = `${(em * px).toFixed(2)}px` }
+  ctx.textAlign = 'left'
+  if (at.inline) {
+    const right = at.x + at.tw + icon + 20, nx = at.x + icon + SMALL_INLINE.gap, mid = at.y + icon / 2
+    ctx.textBaseline = 'middle'
+    ctx.font = font.lifer(ns)
+    const full = ctx.measureText(words.name).width
+    if (nx + full > right) ctx.font = font.lifer(Math.max(1, (ns * (right - nx)) / full))
+    ctx.fillStyle = C.ink
+    ctx.fillText(words.name, nx, mid)
+    const dx = nx + ctx.measureText(words.name).width + SMALL_INLINE.gap, room = right - dx
+    ctx.font = font.mono(ls)
+    const long = words.detail ?? words.label, short = words.head ?? words.label
+    const detail = ctx.measureText(long).width <= room ? long : ctx.measureText(short).width <= room ? short : room > ls ? clipTo((t) => ctx.measureText(t).width, short, room) : ''
+    ctx.fillStyle = C.muted
+    if (detail) ctx.fillText(detail, dx, mid)
+    ctx.textBaseline = 'top'
+    return detail
+  }
+  const tx = at.x + icon + 20, tw = at.tw
+  ctx.textBaseline = 'top'
+  ctx.font = font.mono(16)
+  track(0.06, 16)
+  const tooLong = ctx.measureText(words.label.toUpperCase()).width > tw
+  const lines = words.place && words.head && tooLong ? [words.head, words.place] : [words.label]
+  const blockH = lines.length * ls + (lines.length - 1) * 6 + 10 + ns
+  const top = at.y + (icon - blockH) / 2
+  track(0.06, ls)
+  ctx.fillStyle = C.muted
+  lines.forEach((line, i) => ctx.fillText(fitText(ctx, line.toUpperCase(), font.mono, ls, 16, tw), tx, top + i * (ls + 6)))
+  track(0, 0)
+  ctx.font = font.lifer(ns)
+  const full = ctx.measureText(words.name).width
+  if (full > tw) ctx.font = font.lifer(Math.max(1, (ns * tw) / full))
+  ctx.fillStyle = C.ink
+  ctx.fillText(words.name, tx, top + lines.length * (ls + 6) + 4)
+  return lines.join(' · ')
+}
+
 /** The smallest size the footer line takes beside the wordmark before it moves to its own line. */
 export const CREDIT_MIN = 17
 /**
@@ -733,7 +758,7 @@ export type ShareImageOpts = {
   latest?: boolean
   /** Another bird in the latest lifer's place and style, with its own words (the Tree image's oldest lineage): `label`
    *  the row's mono label, `poster` the poster foot's line. */
-  latestAs?: { row: SpeciesRow; label: string; poster: string }
+  latestAs?: { row: SpeciesRow; label: string; poster: string; detail?: string }
   /** The UI language's strings the image draws: the count's number and label, the latest lifer's label and month, and
    *  the stamp's month. The filter label comes in words already (`filterLabel`, from the same strings). */
   strings: ShareStrings
@@ -843,8 +868,6 @@ export type PreparedCard = {
   fonts: CardFonts
   /** The wordmark's width plus the gap before the footer line beside it. */
   brandW: number
-  /** The one-line row (LATEST_ONE_LINE): the block's left edge, the label's width and the name as drawn (its text and font size). */
-  oneLine?: { x: number; labelW: number; nameText: string; nameSize: number }
   /** The footer line's size, and whether it took its own line under the wordmark (placeCredit); on a poster, whether its
    *  latest lifer took a line of its own under them, right-aligned (placePosterFoot). */
   credit: { size: number; below: boolean; latestBelow?: boolean }
@@ -917,12 +940,12 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const strings = opts.strings
   const latestName = latestRow ? opts.nameOf?.(latestRow) ?? latestRow.com : ''
   const latestWhere = !opts.latestAs && latestE && opts.regions ? liferPlace(latestE.place, opts.regions) || undefined : undefined
-  const latest = opts.latest !== false && latestRow ? (opts.latestAs ? { label: opts.latestAs.label, name: latestName } : latestText({ com: latestName, date: latestE!.date, place: latestWhere }, strings)) : undefined
+  const latest = opts.latest !== false && latestRow ? (opts.latestAs ? { label: opts.latestAs.label, name: latestName, ...(opts.latestAs.detail ? { detail: opts.latestAs.detail } : {}) } : latestText({ com: latestName, date: latestE!.date, place: latestWhere }, strings)) : undefined
   const goal = opts.goal
   const goalLabel = goal ? goalText(goal, strings) : undefined
   const filterText = opts.filterLabel?.trim() || goalLabel || undefined
   const named = opts.name?.trim() || undefined
-  const content: CardContent = { name: !!named, filter: !!filterText, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize, ...(opts.latestAs ? { small: true } : {}) }
+  const content: CardContent = { name: !!named, filter: !!filterText, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize }
   // A poster's head is its title alone: the name, else the filter in words. Its foot carries the latest lifer in words.
   const name = print ? named ?? filterText : named
   const label = print ? undefined : filterText
@@ -1041,35 +1064,6 @@ function placeFooter(d: CardDraft): PreparedCard {
   const measure = textMeasurer()
   const brandW = measure(font.brand(L.footer.size), L.footer.size, 'Everybird', 0.55) + 16
   const footerW = (px: number) => measure(font.footer(px), px, footerLine, 0.6)
-  if (L.latest?.oneLine && d.latest) {
-    // The one-line row: two lines right-aligned to the margin, the mono label (tracked 0.06em) over the name (Satoshi 600)
-    // on the footer's baseline, the sticker to their left. The credit keeps CREDIT_MIN beside the wordmark, so the name
-    // gets all the room that leaves: if it is still too wide it shrinks to ONE_LINE.nameMin of its size, and only then is
-    // it clipped with an ellipsis. The credit's room ends where the block starts, less FOOTER_GAP.
-    const { icon, label: ls, name: ns } = L.latest
-    const labelText = d.latest.label.toUpperCase()
-    const labelW = measure(font.mono(ls), ls, labelText, 0.6) + labelText.length * 0.06 * ls
-    const nameW = (t: string, px: number) => measure(font.lifer(px), px, t, 0.56)
-    const creditMin = footerW(CREDIT_MIN)
-    // `left`: where the credit's line starts, after the wordmark (beside it) or at the margin (under it).
-    const place = (left: number) => {
-      const room = maxW - FOOTER_GAP - left - creditMin - icon - ONE_LINE.gap
-      const full = nameW(d.latest!.name, ns)
-      const nameSize = full <= room ? ns : Math.max(ns * ONE_LINE.nameMin, Math.min(ns, Math.floor((ns * room) / full)))
-      const nameText = clipTo((t) => nameW(t, nameSize), d.latest!.name, room)
-      const x = X0 + maxW - (icon + ONE_LINE.gap + Math.max(labelW, nameW(nameText, nameSize)))
-      const roomCredit = x - FOOTER_GAP - X0 - left
-      return { nameSize, nameText, x, roomCredit, fits: nameText === d.latest!.name && roomCredit >= creditMin }
-    }
-    // Beside the wordmark when the credit (17px or more) and the whole name fit; else, as on every card, the credit takes
-    // its own line under the wordmark (the two on the row's two baselines, paintCard), so it has the wordmark's width too.
-    const beside = place(brandW)
-    const at = beside.fits ? beside : place(0)
-    const credit = { ...placeCredit(footerW, at.roomCredit, at.roomCredit, L.footer.credit), below: !beside.fits }
-    const { x, nameText, nameSize } = at
-    const lifer = d.lifer && { ...d.lifer, x: x + (icon - d.lifer.w) / 2, y: L.latest.y + (icon - d.lifer.h) / 2 }
-    return { ...d, lifer, brandW, credit, shift: 0, oneLine: { x, labelW, nameText, nameSize } }
-  }
   // A poster's right part: the bird's sticker (when it has one to show), then its words, the sticker counted in its width.
   const sticker = (px: number) => (d.lifer ? posterIcon(px) + posterIconGap(px) : 0)
   const posterW = (px: number) => measure(font.footer(px), px, d.posterLatest!, 0.6)
@@ -1214,76 +1208,20 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
   if (name && L.name) draw(name, font.name, L.name, 36, isPrint(card.format) ? C.accent : C.ink, X0, nameW)
   if (label && L.filter) draw(label, font.filter, L.filter, 24, C.accent)
 
-  // The latest lifer: its sticker, then the mono label over the bird's name, centred on the sticker.
-  if (latest && card.oneLine && lifer && L.latest) {
-    // One line on the footer's baseline: the sticker, the mono label, the name (placeFooter placed them).
-    const { x, nameText, nameSize } = card.oneLine
-    const { icon, label: ls } = L.latest
-    const base = L.footer.y + L.footer.size * 0.8
-    const tx = x + icon + ONE_LINE.gap
+  // The latest lifer (or the Tree's oldest lineage): its sticker, then its words (paintRow).
+  if (latest && lifer && L.latest) {
     paintTiles(ctx, [lifer], imgs, C.line, range)
-    ctx.textBaseline = 'alphabetic'
-    ctx.textAlign = 'left'
-    ctx.font = font.mono(ls)
-    track(0.06, ls)
-    ctx.fillStyle = C.muted
-    ctx.fillText(latest.label.toUpperCase(), tx, base - 30)
-    track(0, 0)
-    ctx.font = font.lifer(nameSize)
-    ctx.fillStyle = C.ink
-    ctx.fillText(nameText, tx, base)
-  } else if (latest && lifer && L.latest?.inline) {
-    // The oldest lineage on one line above the hairline: the sticker, the mono label, then the name in the room left.
-    paintTiles(ctx, [lifer], imgs, C.line, range)
-    const { icon, label: ls, name: ns } = L.latest
-    const mid = L.latest.y - shift + icon / 2
-    const tx = L.latest.x + icon + SMALL_INLINE.gap
-    ctx.textBaseline = 'middle'
-    ctx.textAlign = 'left'
-    ctx.font = font.mono(ls)
-    track(0.06, ls)
-    ctx.fillStyle = C.muted
-    const labelText = latest.label.toUpperCase()
-    ctx.fillText(labelText, tx, mid)
-    const lw = ctx.measureText(labelText).width // the tracking is in the measure
-    track(0, 0)
-    const nx = tx + lw + SMALL_INLINE.gap
-    ctx.font = font.lifer(ns)
-    ctx.fillStyle = C.ink
-    ctx.fillText(fitText(ctx, latest.name, font.lifer, ns, 20, L.latest.x + L.latest.tw + icon + 20 - nx), nx, mid)
-    ctx.textBaseline = 'top'
-  } else if (latest && lifer && L.latest) {
-    paintTiles(ctx, [lifer], imgs, C.line, range)
-    const { icon } = L.latest
-    const y = L.latest.y - shift
-    const tx = L.latest.x + icon + 20, tw = L.latest.tw
-    const ls = L.latest.label
-    // The label on one line where it fits at 16px or more; else the place takes a line of its own under it, never cut.
-    const tooLong = () => {
-      ctx.font = font.mono(16)
-      track(0.06, 16)
-      return ctx.measureText(latest.label.toUpperCase()).width > tw
-    }
-    const lines = latest.place && latest.head && tooLong() ? [latest.head, latest.place] : [latest.label]
-    const blockH = lines.length * ls + (lines.length - 1) * 6 + 10 + L.latest.name
-    const top = y + (icon - blockH) / 2
-    track(0.06, ls)
-    lines.forEach((line, i) => draw(line.toUpperCase(), font.mono, { y: top + i * (ls + 6), size: ls }, 16, C.muted, tx, tw))
-    track(0, 0)
-    draw(latest.name, font.lifer, { y: top + lines.length * (ls + 6) + 4, size: L.latest.name }, 24, C.ink, tx, tw)
+    paintRow(ctx, font, C, { ...L.latest, y: L.latest.y - shift }, latest)
   }
 
   // The footer (placed by prepareCard): the hairline, the wordmark, the line beside or under it.
-  // A one-line row: the wordmark and the credit lifted to the lifer block's middle; or, the credit under the wordmark, the
-  // two on the block's two baselines (its label's 30 above its name's).
-  const stack = !!card.oneLine && credit.below
-  const base = L.footer.y + L.footer.size * 0.8 - (card.oneLine && !stack ? FOOTER_LIFT : 0)
+  const base = L.footer.y + L.footer.size * 0.8
   ctx.fillStyle = C.hairline
   ctx.fillRect(X0, L.rule.y - shift, maxW, 2)
   ctx.textBaseline = 'alphabetic'
   ctx.font = font.brand(L.footer.size)
   ctx.fillStyle = C.ink
-  ctx.fillText('Everybird', X0, stack ? base - 30 : base - shift)
+  ctx.fillText('Everybird', X0, base - shift)
   ctx.font = font.footer(credit.size)
   ctx.fillStyle = C.muted
   // A poster's latest lifer at the right end of the bottom line: the wordmark's, or its own under it (placePosterFoot),

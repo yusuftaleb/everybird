@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
 import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, fitBox, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
+import { SMALL_INLINE } from '@/lib/share/image'
 import { MONO_CAP, MONO_CAP_ACCENT, countText, holeExtent, numberEm } from '@/lib/layout/count-box'
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
@@ -86,8 +87,9 @@ describe('cardLayout', () => {
       expect(off.collage.y).toBe(on.collage.y)
       expect(off.rule.y).toBe(on.rule.y)
       expect(off.collage.h).toBeGreaterThan(on.collage.h) // the row's icon, its gap to the rule and its gap from the collage
-      // Round 6: the row keeps the head's gap from the collage (the head's gap above it: the name's bottom to its top).
-      expect(on.latest!.y - (on.collage.y + on.collage.h)).toBe(on.collage.y - (on.name!.y + on.name!.size))
+      // Round 6, item 17: the row is the Tree's oldest lineage row, its gap from the collage the row's own (GAPS' latest),
+      // plus the credit line placeFooter lifts it by on these 1080-wide cards.
+      expect(on.latest!.y - (on.collage.y + on.collage.h)).toBe((format === 'square' ? 32 : 24) + on.footer.credit + 12)
       expect(packSpec(off).aspect).toBeLessThan(packSpec(on).aspect) // the taller area: the pack is NOT remade for it (imagePackSpec)
     }
   })
@@ -157,7 +159,7 @@ describe('cardLayout', () => {
     expect(L.count.size).toBeLessThanOrEqual(cardLayout('post', { name: true, filter: true, latest: true, count: 197 }).count.size)
     expect(L.count.label).toBe('SPECIES')
     expect(L.footer.y + L.footer.size).toBeLessThanOrEqual(1080 - 64)
-    expect(L.latest!.icon).toBe(68)
+    expect(L.latest!.icon).toBe(SMALL_INLINE.icon) // round 6, item 17: the one-line row's sticker
     const short = cardLayout('square', { name: false, filter: false, latest: true, count: 12 })
     expect(short.maxTile).toBe(0.36)
     expect(packSpec(short).aspect).toBeCloseTo(short.collage.w / short.collage.h)
@@ -378,7 +380,8 @@ describe('drawShareImage draws the count in the UI language', () => {
     expect(label).toBe('Paseriformes · mar 2020 a jun 2021')
     for (const format of ['story', 'post', 'square'] as const) {
       const texts = await draw(12, t, { format, latest: true, filterLabel: label })
-      expect(texts, format).toContain('ÚLTIMA ESPECIE NUEVA · MAY 2020')
+      // The Story stacks the row (its mono label upper case); the Post and the Square draw it on one line, sentence case.
+      expect(texts, format).toContain(format === 'story' ? 'ÚLTIMA ESPECIE NUEVA · MAY 2020' : 'Última especie nueva · may 2020')
       expect(texts, format).toContain(label)
       expect(texts, format).toContain('ESPECIES')
       // The credit stays English; only the date after it is Spanish, with no lead.
@@ -389,8 +392,8 @@ describe('drawShareImage draws the count in the UI language', () => {
   it('Portuguese and Dutch stamps: the date only', async () => {
     expect(await draw(12, pt.ui)).toContain(`${FOOTER_LINE} · 14 nov 2026`)
     expect(await draw(12, nl.ui)).toContain(`${FOOTER_LINE} · 14 nov 2026`)
-    expect((await draw(12, pt.ui, { latest: true })).join('\n')).toContain('ÚLTIMA ESPÉCIE NOVA · MAI 2020')
-    expect((await draw(12, nl.ui, { latest: true })).join('\n')).toContain('NIEUWSTE SOORT · MEI 2020')
+    expect(await draw(12, pt.ui, { latest: true })).toContain('Última espécie nova · mai 2020')
+    expect(await draw(12, nl.ui, { latest: true })).toContain('Nieuwste soort · mei 2020')
   })
   it('a long Spanish filter label with the stamp never cuts the credit', async () => {
     const t = es.ui

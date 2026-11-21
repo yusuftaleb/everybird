@@ -228,6 +228,8 @@ export const EN_UI = {
       /** The tree's share image and poster: the oldest lineage in the latest lifer's place (the row's mono label; the
        *  poster foot's line), and the dialog's switch. */
       oldestLabel: 'Oldest lineage · about {age} million years',
+      /** The one-line oldest lineage row (Desktop, Post and Square): the detail after the name; oldestLabel is its short form. */
+      oldestDetail: 'Oldest lineage · split from its closest relatives about {age} million years ago',
       oldestPoster: 'Oldest lineage: {name}, about {age} million years',
       showOldest: 'Show oldest lineage',
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
@@ -596,7 +598,8 @@ export const EN_UI = {
     imageFailed: 'Couldn’t make the image. Try again.',
     linkFailed: 'Couldn’t make the link. Try again.',
     tooLarge: 'This list is too large for a link. Share the image instead.',
-    nameLabel: 'Collage title',
+    /** The title field's label in Share, for every subject (round 6, item 9); Print's is print.nameLabel. */
+    nameLabel: 'Card title',
     namePlaceholder: 'My 2024 birds',
     nameOptional: '(optional)',
     /** The title field's description (read by screen readers): it is saved with the list and names the collage page. */
@@ -663,6 +666,8 @@ export const EN_UI = {
       title: 'Print your collage',
       /** From the Map and the Tree. */
       viewTitle: { map: 'Print your map', tree: 'Print your tree' },
+      /** The title field's label in Print (round 6, item 9). */
+      nameLabel: 'Poster title',
       size: 'Poster size',
       /** The Tree poster's Down to: the screen's rank or the next one down, and why the deeper one can't be picked at this size
        *  (every name must print at 9 pt or more: a larger size would, or none does). */
