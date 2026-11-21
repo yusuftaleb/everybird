@@ -131,8 +131,8 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     expect(text(main.querySelector('#eb-what-h'))).toBe(m.page.about.what.head)
     expect(text(main.querySelector('#eb-how-h'))).toBe(m.page.about.how.head)
     expect(text(main.querySelector('#eb-size-h'))).toBe(m.page.about.size.head)
-    // What it is: the collage, then the other views, sharing, printing, batches and Compare, side by side from 1024px
-    const what = main.querySelector('section[aria-labelledby="eb-what-h"] .eb-about-cols')!
+    // What it is: the collage, then the other views, sharing, printing, batches and Compare, one column
+    const what = main.querySelector('section[aria-labelledby="eb-what-h"]')!
     expect([...what.querySelectorAll('p')].map(text)).toEqual([m.page.about.what.body, m.page.about.what.more])
     const credits = document.getElementById('credits')!
     const made = { en: 'Made by Yusuf Taleb', es: 'Hecho por Yusuf Taleb', pt: 'Feito por Yusuf Taleb', nl: 'Gemaakt door Yusuf Taleb', pl: 'Autor: Yusuf Taleb', fr: 'Créé par Yusuf Taleb', de: 'Gemacht von Yusuf Taleb', it: 'Creato da Yusuf Taleb', sv: 'Gjord av Yusuf Taleb', da: 'Lavet af Yusuf Taleb', ru: 'Автор: Yusuf Taleb', ja: '制作：Yusuf Taleb', 'zh-Hans': '由Yusuf Taleb制作', 'zh-Hant': '由 Yusuf Taleb 製作' }[lang]

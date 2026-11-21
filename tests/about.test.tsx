@@ -24,9 +24,9 @@ describe('About: conservation status', () => {
     const section = h.closest('section')!
     expect(section).toHaveAttribute('aria-labelledby', 'eb-status-h')
     expect(h.id).toBe('eb-status-h')
-    // Beside True size (one pair: side by side from 1024px)
+    // After True size, each its own one-column section (a long section beside a short one reads unbalanced)
     expect(section.previousElementSibling).toHaveAttribute('aria-labelledby', 'eb-size-h')
-    expect(section.parentElement).toHaveClass('eb-about-cols')
+    expect(section.parentElement).not.toHaveClass('eb-about-cols')
     expect(section.textContent).toContain(
       `Each species' status is its global IUCN Red List category, from ${IUCN_SOURCE}. It is global, not regional: a bird common where you live can still be threatened worldwide, and the other way round. Species without a category show none.`,
     )

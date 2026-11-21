@@ -73,15 +73,13 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
     <main className="eb-page eb-about eb-page-titled">
       <PageHead title={page.meta.about.title} lede={a.lede} />
 
-      {/* From 1024px the page's width holds two equal columns (Settings' pair, .eb-about-cols): parts that pair (two
-          paragraphs, the steps and the privacy note, True size and Conservation status) sit side by side, each at a
-          reading measure; the demo spans the content width. One column under 1024px. */}
+      {/* One column where text reads on (a section's paragraphs, a long section beside a short one); two equal columns
+          from 1024px only where parts pair at a similar length (the steps beside the privacy note; the credit rows).
+          The demo spans the content width. */}
       <section className="eb-block" aria-labelledby="eb-what-h">
         <h2 id="eb-what-h" className="eb-h2">{a.what.head}</h2>
-        <div className="eb-about-cols">
-          <p className="eb-prose">{a.what.body}</p>
-          <p className="eb-prose">{a.what.more}</p>
-        </div>
+        <p className="eb-prose">{a.what.body}</p>
+        <p className="eb-prose">{a.what.more}</p>
       </section>
 
       <section className="eb-block" aria-labelledby="eb-how-h">
@@ -97,18 +95,16 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
         </div>
       </section>
 
-      <div className="eb-about-cols eb-about-pair">
-        <section className="eb-block" aria-labelledby="eb-size-h">
-          <h2 id="eb-size-h" className="eb-h2">{a.size.head}</h2>
-          <p className="eb-prose">{a.size.even}</p>
-          <p className="eb-prose">{a.size.true}</p>
-        </section>
+      <section className="eb-block" aria-labelledby="eb-size-h">
+        <h2 id="eb-size-h" className="eb-h2">{a.size.head}</h2>
+        <p className="eb-prose">{a.size.even}</p>
+        <p className="eb-prose">{a.size.true}</p>
+      </section>
 
-        <section className="eb-block" aria-labelledby="eb-status-h">
-          <h2 id="eb-status-h" className="eb-h2">{a.status.head}</h2>
-          <p className="eb-prose">{fmt(a.status.body, { source: IUCN_SOURCE })}</p>
-        </section>
-      </div>
+      <section className="eb-block" aria-labelledby="eb-status-h">
+        <h2 id="eb-status-h" className="eb-h2">{a.status.head}</h2>
+        <p className="eb-prose">{fmt(a.status.body, { source: IUCN_SOURCE })}</p>
+      </section>
 
       <section id="credits" className="eb-block" aria-labelledby="eb-credits-h" tabIndex={-1}>
         <h2 id="eb-credits-h" className="eb-h2">{c.head}</h2>

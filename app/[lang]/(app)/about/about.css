@@ -1,13 +1,13 @@
 /* About: a quiet editorial page as wide as Settings (.eb-page's content width), Cabinet Grotesk headings, Satoshi body,
    Geist Mono labels. Every paragraph keeps a reading measure (62ch, about 70 characters); the width is used by pairs, not
-   by long lines: from 1024px (Settings' pair) two equal columns 40px apart hold two paragraphs, the steps and the
-   privacy note, or True size beside Conservation status (.eb-about-cols); the demo spans the content width; the credit
-   rows form two columns from 720px. One column under 1024px, as before. */
+   by long lines. Two columns only where parts pair at a similar length (Yusuf, 2026-11-21: "two columns where it's
+   appropriate, one column where it fits better"): from 1024px (Settings' pair) the steps beside the privacy note
+   (.eb-about-cols), and the credit rows from 720px; a section's own paragraphs, and a long section beside a short one,
+   stay one column. The demo spans the content width. */
 .eb-prose { margin: 0; font-size: 17px; line-height: 1.6; max-width: 62ch; }
 .eb-prose + .eb-prose { margin-top: -4px; }
 .eb-about-cols { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .eb-about-cols > .eb-prose { margin: 0; }
-.eb-about-pair { gap: var(--page-gap); } /* two sections stacked: the page's own gap between them */
 @media (min-width: 1024px) {
   .eb-about-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; align-items: start; }
 }
