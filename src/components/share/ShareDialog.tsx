@@ -61,7 +61,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { countryName, regionsIn } from '@/lib/i18n-places'
 import { track, type PosterSizeWire } from '@/lib/analytics'
 import { currentTheme, type Theme } from '@/lib/theme'
-import { TREE_LAYOUTS, setTreeLayout, setTreeMine, useTreeLayout, useTreeMine, type TreeLayout } from '@/lib/tree-mine'
+import { TREE_LAYOUTS, setTreeLayout, setTreeMine, treeLayout as treeLayoutStored, useTreeMine, type TreeLayout } from '@/lib/tree-mine'
 import { ARRANGEMENTS, ARRANGE_ICON, setArrangement, useArrangement } from '@/lib/arrangement'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
@@ -88,7 +88,7 @@ import type { DeeperFits, ShareAt, TotalKey, ViewImageOpts } from '@/lib/share/v
 import { RANKS } from '@/lib/tree/levels'
 import '@/components/app/app.css'
 import '@/components/collage/collage.css'
-import { dialogRows, dialogTitle, optionRows, subjectOf, toggleTotal, treeOrientation, type CompareShare, type CompareWhat, type OptionRow } from './dialog-options'
+import { dialogRows, dialogTitle, optionRows, subjectOf, toggleTotal, treeOrientation, treeTotals, type CompareShare, type CompareWhat, type OptionRow } from './dialog-options'
 import { MenuSelect } from './MenuSelect'
 import './share.css'
 
@@ -213,16 +213,17 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // The orientation flips every format at once (Square stays square). It holds while the dialog is open. The Tree's
   // follows its arrangement instead (treeOrientation), so a Fan never turns into rows because of it.
   const [orientationChoice, setOrientation] = useState<Orientation>('vertical')
-  // The Tree image's layout is the dock's Layout menu (tree-mine.ts): picked there or here, drawn as on screen. A Fan or
-  // Radial that the image's renders say can't name every tip on its card (onTreeFits, kept per card) is off in the
-  // Arrangement control with its reason, and Rectangular is drawn meanwhile. Show oldest lineage starts on, as Show
-  // latest lifer does.
-  const pickedTreeLayout = useTreeLayout()
+  // The Tree image's layout starts at the one drawn on screen (round 6: never the stored pick the screen had no room for);
+  // a pick here is the dialog's and the dock's Layout menu's (tree-mine.ts). A Fan or Radial that the image's renders say
+  // can't name every tip on its card (onTreeFits, kept per card) is off in the Arrangement control with its reason, and
+  // Rectangular is drawn meanwhile. Show oldest lineage starts on, as Show latest lifer does.
+  const [treeChoice, setTreeChoice] = useState<TreeLayout>(() => at?.layout ?? treeLayoutStored() ?? 'rows')
+  const pickTreeLayout = (v: TreeLayout) => { setTreeChoice(v); setTreeLayout(v) }
   const [treeFitsBy, setTreeFitsBy] = useState<Record<string, TreeFits>>({})
   /** The card a tree in this orientation is drawn on, as renders report it (a poster's per size). */
   const cardKey = (o: Orientation) => (print ? `${o === 'horizontal' ? 'printLandscape' : 'print'}|${size}` : imageShape(format, o))
   const treeOff = (l: TreeLayout) => l !== 'rows' && treeFitsBy[cardKey(treeOrientation(l))]?.[l] === false
-  const wantTree: TreeLayout = pickedTreeLayout ?? at?.layout ?? 'rows'
+  const wantTree: TreeLayout = treeChoice
   const treeLayout: TreeLayout = treeOff(wantTree) ? 'rows' : wantTree
   const orientation: Orientation = treeImage ? treeOrientation(treeLayout) : compare ? 'vertical' : orientationChoice
   const landscape = orientation === 'horizontal'
@@ -236,7 +237,16 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     setTreeFitsBy((was) => (was[k]?.fan === f.fan && was[k]?.circle === f.circle ? was : { ...was, [k]: f }))
   const [showOldest, setShowOldest] = useState(true)
   // The Tree's and Map's Totals: every total its image draws, on at every open, not stored.
-  const [totals, setTotals] = useState<readonly TotalKey[]>(() => rows.totals)
+  // The Tree's only the ranks at and below the level on screen (treeTotals: inside a family, Species and Genera).
+  const totalsOffered = treeImage ? treeTotals(at?.tree) : rows.totals
+  const [totals, setTotals] = useState<readonly TotalKey[]>(() => totalsOffered)
+  // A new level (the dialog's Clear filters) offers other ranks: all of them on again, as at an open.
+  const offeredKey = totalsOffered.join(',')
+  const [totalsFor, setTotalsFor] = useState(offeredKey)
+  if (totalsFor !== offeredKey) {
+    setTotalsFor(offeredKey)
+    setTotals(totalsOffered)
+  }
   // Print's "Down to" (the Tree poster; round 6, "One step + size"): the screen's rank, or the next one down where every
   // name prints at TREE_NAME_MIN_PT or more at this size, orientation and arrangement. Starts at the screen's rank at
   // every open and is not stored. Each poster render reports, for every size, whether the deeper rank prints readably
@@ -272,9 +282,10 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const fk = filterKey(filter)
   const shown = useMemo(() => (fk ? applyFilter(known, filter, species, seen) : known), [known, filter, fk, species, seen])
   const label = useMemo(() => {
-    return labelFor(filter, { species, countryName: (iso) => countryName(iso, lang, regions), regions: named, familyName, groupName: (id) => { const g = species.groups?.get(id); return g && groupName(g, lang) } }, t)
+    // With Scientific on, the birds' part is the scientific family or order ("Parulidae"), on every view's image.
+    return labelFor(filter, { species, countryName: (iso) => countryName(iso, lang, regions), regions: named, familyName, sci, groupName: (id) => { const g = species.groups?.get(id); return g && groupName(g, lang) } }, t)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
-  }, [filter, species, regions, named, lang, t, names])
+  }, [filter, species, regions, named, lang, t, names, sci])
   // The Goal row (the collage image and the poster): closed ("Add a goal") until a goal is set or saved.
   const dated = useMemo(() => hasDates(known, seen), [known, seen])
   const [goalOpen, setGoalOpen] = useState(() => !!saved.bigYear)
@@ -1064,7 +1075,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       }
       case 'treeLayout':
         return optRow(r, treeLayoutId, t.share.arrange.label, segmented({
-          className: 'eb-share-seg', labelledBy: treeLayoutId, value: treeLayout, pick: setTreeLayout, testId: 'share-tree-layout',
+          className: 'eb-share-seg', labelledBy: treeLayoutId, value: treeLayout, pick: pickTreeLayout, testId: 'share-tree-layout',
           options: TREE_LAYOUTS.map((v) => ({ value: v, label: t.collage.tree.layouts[v], off: treeOff(v) ? t.collage.tree.noRoom : undefined })),
         }))
       case 'colours':
@@ -1088,8 +1099,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         // label where they don't fit beside it, as Count.
         return optRow(r, totalsId, t.share.totals, (
           <div className="eb-seg eb-share-seg" role="group" aria-labelledby={totalsId} data-testid="share-totals">
-            {rows.totals.map((k) => (
-              <button key={k} type="button" className="eb-seg-btn" aria-pressed={totals.includes(k)} onClick={() => setTotals((was) => toggleTotal(rows.totals, was, k))}>
+            {totalsOffered.map((k) => (
+              <button key={k} type="button" className="eb-seg-btn" aria-pressed={totals.includes(k)} onClick={() => setTotals((was) => toggleTotal(totalsOffered, was, k))}>
                 {k === 'countries' ? t.places.head.country : t.collage.tree.rank[k]}
               </button>
             ))}

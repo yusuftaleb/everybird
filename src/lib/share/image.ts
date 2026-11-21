@@ -145,12 +145,13 @@ export function liferPlace(place: Place | undefined, regions: Regions): string {
  * "Herons · Threatened · Canada" (filter-summary.ts statusLabel); a range reads
  * "Mar 2020 to Jun 2021" (timeline.ts rangeLabel). With `regions`, places at every level by their short names
  * ("Owls · British Columbia"); without, the countries only. Country names are whatever `regions` and `countryName` say
- * (the dialog passes them localized, i18n-places.ts regionsIn); family names are the data's.
+ * (the dialog passes them localized, i18n-places.ts regionsIn); family names are the data's; with `sci` the family and the
+ * order are their scientific names.
  * Undefined when nothing is filtered.
  */
 export function filterLabel(
   f: Filter,
-  ctx: { species: SpeciesIndex; countryName: (iso2: string) => string; regions?: Pick<Regions, 'countries' | 'sub1'>; /** A family's name to show (default: English). */ familyName?: (row: SpeciesRow) => string; /** A bird group's name in the UI language (Filter.group). */ groupName?: (id: string) => string | undefined },
+  ctx: { species: SpeciesIndex; countryName: (iso2: string) => string; regions?: Pick<Regions, 'countries' | 'sub1'>; /** A family's name to show (default: English). */ familyName?: (row: SpeciesRow) => string; /** A bird group's name in the UI language (Filter.group). */ groupName?: (id: string) => string | undefined; /** Scientific names on: the family and the order by theirs (round 6). */ sci?: boolean },
   t: ShareStrings,
 ): string | undefined {
   // Places: "Africa + Canada", "Canada + Egypt", "Capital and 2 more" (continents first).
@@ -158,8 +159,8 @@ export function filterLabel(
   const parts: string[] = []
   if (f.group) parts.push(ctx.groupName?.(f.group) ?? f.group)
   if (f.genus) parts.push(f.genus)
-  else if (f.family) { const r = ctx.species.rows.find((x) => x.fam === f.family); parts.push(r ? (ctx.familyName?.(r) ?? r.famCom) || f.family : f.family) }
-  else if (f.order) parts.push(orderLabel(f.order, t))
+  else if (f.family) { const r = !ctx.sci && ctx.species.rows.find((x) => x.fam === f.family); parts.push(r ? (ctx.familyName?.(r) ?? r.famCom) || f.family : f.family) }
+  else if (f.order) parts.push(ctx.sci ? f.order : orderLabel(f.order, t))
   const status = statusLabel(f.statuses, t)
   if (status) parts.push(status)
   // Basis 'seen': "Seen in Canada · 2026" (a range alone: "Seen: 2026").

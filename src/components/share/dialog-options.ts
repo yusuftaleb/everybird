@@ -14,6 +14,7 @@ import type { Theme } from '@/lib/theme'
 import type { TreeLayout } from '@/lib/tree-mine'
 import type { ViewKind } from '@/lib/view-resume'
 import type { TotalKey } from '@/lib/share/view-image'
+import type { TreeLevel } from '@/lib/tree/levels'
 
 export type Subject = 'collage' | 'tree' | 'map' | 'compare'
 
@@ -36,6 +37,15 @@ export type CompareShare = {
 export const VIEW_TOTALS: Record<'map' | 'tree', readonly TotalKey[]> = {
   map: ['species', 'countries'],
   tree: ['species', 'genera', 'families', 'orders'],
+}
+
+/**
+ * The Tree's totals offered at its level (round 6): only the ranks at and below the scope. All birds: Species, Genera,
+ * Families, Orders; inside an order: Species, Genera, Families; inside a family: Species, Genera; inside a genus: Species.
+ */
+export function treeTotals(level: TreeLevel | undefined): TotalKey[] {
+  const all = VIEW_TOTALS.tree
+  return [...all.slice(0, level?.genus ? 1 : level?.fam ? 2 : level?.ord ? 3 : all.length)]
 }
 
 /** `chosen` with `k` turned on or off, kept in `all`'s order. */

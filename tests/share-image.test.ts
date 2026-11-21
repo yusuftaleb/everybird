@@ -37,6 +37,9 @@ describe('filterLabel', () => {
     expect(filterLabel({ order: 'Pelecaniformes', family: 'Ardeidae', countries: ['EG'] }, ctx, en.ui)).toBe('Herons, Egrets, and Bitterns · Egypt')
     expect(filterLabel({ order: 'Passeriformes' }, ctx, en.ui)).toBe('Perching birds')
     expect(filterLabel({ year: '2025' }, ctx, en.ui)).toBe('2025')
+    // With Scientific on (round 6): the family and the order by their scientific names, on every view's image.
+    expect(filterLabel({ order: 'Pelecaniformes', family: 'Ardeidae', countries: ['EG'] }, { ...ctx, sci: true }, en.ui)).toBe('Ardeidae · Egypt')
+    expect(filterLabel({ order: 'Passeriformes' }, { ...ctx, sci: true }, en.ui)).toBe('Passeriformes')
     expect(filterLabel({ countries: ['EG'], from: '2026-01', to: '2026-12' }, ctx, en.ui)).toBe('Egypt · 2026')
     expect(filterLabel({ from: '2025-03', to: '2026-06' }, ctx, en.ui)).toBe('Mar 2025 to Jun 2026')
     expect(filterLabel({ countries: ['EG'], from: '2026-09', to: '2026-09' }, ctx, en.ui)).toBe('Egypt · Sep 2026')

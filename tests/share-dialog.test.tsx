@@ -323,17 +323,17 @@ describe('share dialog', () => {
     viewRenders.map.mockClear()
     const tree = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { fam: 'Struthionidae' } }} onClose={() => {}} />)
     await waitFor(() => expect(viewRenders.tree).toHaveBeenCalledTimes(1))
-    expect(viewRenders.tree.mock.calls[0]).toMatchObject([{ at: { tree: { fam: 'Struthionidae' }, mine: false }, totals: ['species', 'genera', 'families', 'orders'] }])
+    // Inside a family: only Species and Genera are offered, both on (round 6).
+    expect(viewRenders.tree.mock.calls[0]).toMatchObject([{ at: { tree: { fam: 'Struthionidae' }, mine: false }, totals: ['species', 'genera'] }])
     expect(viewRenders.map).not.toHaveBeenCalled()
     expect(screen.getByRole('heading', { name: 'Share your tree' })).toBeInTheDocument()
     // The Tree image: no Count row; Totals (its four ranks), Lifers only (the bar's switch), with Appearance and Transparent.
     expect(screen.queryByRole('group', { name: 'Count' })).toBeNull()
     for (const name of ['Lifers only', 'Transparent background']) expect(screen.getByRole('switch', { name })).toHaveAttribute('aria-checked', 'false')
     const treeTotals = within(screen.getByRole('group', { name: 'Totals' }))
-    expect(treeTotals.getAllByRole('button').map((b) => b.textContent)).toEqual(['Species', 'Genera', 'Families', 'Orders'])
-    fireEvent.click(treeTotals.getByRole('button', { name: 'Genera' }))
-    fireEvent.click(treeTotals.getByRole('button', { name: 'Orders' }))
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ totals: ['species', 'families'] })))
+    expect(treeTotals.getAllByRole('button').map((b) => b.textContent)).toEqual(['Species', 'Genera'])
+    fireEvent.click(treeTotals.getByRole('button', { name: 'Species' }))
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ totals: ['genera'] })))
     fireEvent.click(screen.getByRole('switch', { name: 'Lifers only' }))
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: { fam: 'Struthionidae' }, mine: true, layout: 'rows' } })))
     act(() => setTreeMine(false))
@@ -428,6 +428,14 @@ describe('share dialog', () => {
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'story', at: expect.objectContaining({ layout: 'circle' }) })))
     act(() => setTreeLayout(null))
     first.unmount()
+
+    // It opens with the arrangement drawn on screen (round 6), not a stored pick the screen had no room for.
+    act(() => setTreeLayout('circle'))
+    const third = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'rows' }} onClose={() => {}} />)
+    expect(arrange().getByRole('button', { name: 'Rectangular' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: expect.objectContaining({ layout: 'rows' }) })))
+    act(() => setTreeLayout(null))
+    third.unmount()
 
     // A layout the image's render says can't name every tip on its card is off with that reason; Rectangular is drawn.
     viewRenders.tree.mockImplementation(async (o) => { o?.onTreeFits?.({ fan: false, circle: true }); return new Blob(['tree']) })

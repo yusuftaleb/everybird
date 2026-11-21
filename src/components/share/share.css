@@ -47,11 +47,11 @@
    No scrolling on a laptop with everything closed (Yusuf, 2026-11-20; round 6): from 1200px the controls' column is
    480px; a 1440 × 830 window leaves the body 830 − 140 (the dialog pinned 32px from the top, 16px under it, its border,
    padding, head and gap) = 690px, and the tallest column with everything closed, the collage poster once made with a
-   status line and the filters line, takes 676: the top row 54, 12, the title 64 (its label's 18px line, 6, the 40px
-   field), 8, the list 261 (the size 45, then Arrangement, Appearance, Count, Show latest lifer, Show species names and
-   Transparent background, 36 each), 8, Export in batches' row 36 in its box's 1px border, 38, 12, the actions 88 (Download PNG and Download PDF,
+   status line and the filters line, takes 688: the top row 54, 12, the title 64 (its label's 18px line, 6, the 40px
+   field), 8, the list 273 (the size 45, then Arrangement, Appearance and Count, 40 each, Show latest lifer, Show species
+   names and Transparent background, 36 each), 8, Export in batches' row 36 in its box's 1px border, 38, 12, the actions 88 (Download PNG and Download PDF,
    then Copy link), the status 12 + 21, the filters line 12 + 36, the coffee button 12 + 38. Print has no Goal. Rows
-   are 36px with a mouse, 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css still
+   are 36px with a mouse (40 with a segmented control), 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css still
    says them. Opened (Export in batches, a goal), the column scrolls inside the dialog: the dialog and the preview keep
    the closed column's size (--scroll-h, ShareDialog's closedHeight). */
 .eb-share-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 20px; min-width: 0; }
@@ -217,6 +217,8 @@
 .eb-share .eb-share-switch.eb-share-opt { flex-wrap: nowrap; }
 @media (pointer: fine) {
   .eb-share .eb-share-opt { min-height: 36px; }
+  /* A row holding a segmented control is 40px, so its 30px box has about the air a switch's track has (round 6). */
+  .eb-share .eb-share-opt:has(> .eb-share-seg) { min-height: 40px; }
   .eb-share-input, .eb-share-actions .eb-btn { min-height: 40px; }
 }
 /* Narrow columns (tests/share-fit.test.ts): the 300px column keeps every switch's label on its line at 15px; a 320px
@@ -230,8 +232,8 @@
   .eb-share .eb-share-seg .eb-seg-btn { padding: 0 4px; font-size: 12px; }
 }
 .eb-share-optlabel { min-width: 0; }
-/* The choices in the rows (Arrangement, Appearance, Count or Totals): the format control's look, small: 28px segments in a 2px
-   inset and a 1px border, 34px in all, so a row stays 36px with a mouse; on touch 32px drawn with a 44px press. Words
+/* The choices in the rows (Arrangement, Appearance, Count or Totals): the format control's look, small: 26px segments in a 2px
+   inset and a 1px border, 32px in all, in a 40px row with a mouse (round 6: the air a switch has); on touch 32px drawn with a 44px press. Words
    at 14px on one line, never wrapped; the padding tightens under 400px of column and the words take 12px under 290px
    (a 320px phone), where German's and Russian's Count and Russian's tree layouts still fit (tests/share-fit.test.ts). */
 .eb-share .eb-share-seg {
@@ -239,7 +241,7 @@
   border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-share .eb-share-seg .eb-seg-btn {
-  position: relative; min-height: 28px; padding: 0 10px; font-size: 14px; white-space: nowrap;
+  position: relative; min-height: 26px; padding: 0 10px; font-size: 14px; white-space: nowrap;
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-share .eb-share-seg .eb-seg-btn svg { display: block; }

@@ -160,10 +160,13 @@ describe('the share dialog: no scrolling on a 1440 × 830 window with everything
     expect(row).toBe(36)
     const field = px(rule('.eb-share-input, .eb-share-actions .eb-btn', '@media (pointer: fine)'), 'min-height')
     expect(field).toBe(40)
-    // The small segmented controls fit the row: 28px segments, a 2px inset, a 1px border.
-    expect(rule('.eb-share .eb-share-seg .eb-seg-btn', '/* The choices in the rows')).toMatch(/min-height:\s*28px/)
+    // The small segmented controls sit in 40px rows (round 6: air round them as a switch has): 26px segments, a 2px
+    // inset, a 1px border, 32px in all, 8px of air in the row.
+    expect(rule('.eb-share .eb-share-seg .eb-seg-btn', '/* The choices in the rows')).toMatch(/min-height:\s*26px/)
     expect(rule('.eb-share .eb-share-seg', '/* The choices in the rows')).toMatch(/padding:\s*2px/)
-    expect(28 + 2 * 2 + 2).toBeLessThanOrEqual(row)
+    const segRow = px(rule('.eb-share .eb-share-opt:has(> .eb-share-seg)', '@media (pointer: fine)'), 'min-height')
+    expect(segRow).toBe(40)
+    expect(segRow - (26 + 2 * 2 + 2)).toBeGreaterThanOrEqual(8)
     // No box and no rules round the list.
     expect(rule('.eb-share-opts')).not.toMatch(/border/)
     expect(css).not.toMatch(/\.eb-share-opts > \* \+ \*/)
@@ -186,8 +189,9 @@ describe('the share dialog: no scrolling on a 1440 × 830 window with everything
     expect(rule('.eb-share-optnote')).toMatch(/font-size:\s*14px;[^}]*line-height:\s*1\.3/)
     expect(rule('.eb-share .eb-share-opt')).toMatch(/padding:\s*0;/)
     const sizeRow = 2 * 2 + 16 * 1.25 + 2 + 14 * 1.3
-    // The size, then Arrangement, Appearance, Count, Show latest lifer, Show species names, Transparent background. No Goal.
-    const list = sizeRow + 6 * row
+    // The size, then Arrangement, Appearance, Count (segmented), Show latest lifer, Show species names, Transparent
+    // background (switches). No Goal.
+    const list = sizeRow + 3 * segRow + 3 * row
     // Export in batches, closed: its row in its box, a Hairline border and no fill (round 6), no padding above or below the row.
     const box = rule('.eb-share-bulk')
     expect(box).toMatch(/border:\s*1px solid var\(--hairline\)/)
@@ -199,9 +203,9 @@ describe('the share dialog: no scrolling on a 1440 × 830 window with everything
     const filters = 36 // .eb-textbtn's height
     const coffee = 32 + 2 * 6 - 6 // the image, its press padding, the negative bottom margin
     const column = seg + gap + title + optionsGap + list + optionsGap + bulk + gap + actions + gap + status + gap + filters + gap + coffee
-    expect(Math.ceil(column)).toBe(676) // the figure share.css's comment gives
+    expect(Math.ceil(column)).toBe(688) // the figure share.css's comment gives
     expect(Math.ceil(column)).toBeLessThanOrEqual(H - 140)
-    expect(css).toContain('takes 676')
+    expect(css).toContain('takes 688')
     // The empty status line gives its gap back, so the usual column is shorter still.
     expect(rule('.eb-share-controls > [role="status"]:empty')).toMatch(new RegExp(`margin-top:\\s*-${gap}px`))
   })

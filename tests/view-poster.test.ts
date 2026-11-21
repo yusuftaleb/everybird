@@ -1,7 +1,7 @@
 // Print follows the view (2026-11-20): the Tree's and the Map's posters are their own drawing at the paper's size
 // (viewPosterScale, makeViewPoster), and the dialog shows only the options that drawing reads (dialogRows).
 import { describe, expect, it, vi } from 'vitest'
-import { BULK_SPLITS, dialogRows, dialogTitle, optionRows, subjectOf, toggleTotal, treeOrientation } from '@/components/share/dialog-options'
+import { BULK_SPLITS, dialogRows, dialogTitle, optionRows, subjectOf, toggleTotal, treeOrientation, treeTotals } from '@/components/share/dialog-options'
 import { en } from '@/i18n/messages/en'
 import { makeViewPoster, posterRows, type EncoderPort } from '@/lib/share/poster'
 import { IOS_CANVAS_AREA, PRINT_PT, PRINT_SIZES, printDesign, printPx, printScale, stripRanges, viewPosterScale } from '@/lib/share/print'
@@ -60,6 +60,13 @@ describe('optionRows: the options list\'s order (round 6)', () => {
     expect(optionRows(dialogRows('tree', true), true)).toEqual(['size', 'treeDepth', 'treeLayout', 'colours', 'totals', 'lifersOnly', 'oldest', 'transparent'])
     expect(optionRows(dialogRows('map', false), false)).toEqual(['colours', 'totals', 'transparent'])
     expect(optionRows(dialogRows('map', true), true)).toEqual(['size', 'colours', 'totals', 'transparent'])
+  })
+  it('the Tree offers only the totals at and below its level (round 6)', () => {
+    expect(treeTotals(undefined)).toEqual(['species', 'genera', 'families', 'orders'])
+    expect(treeTotals({})).toEqual(['species', 'genera', 'families', 'orders'])
+    expect(treeTotals({ ord: 'Passeriformes' })).toEqual(['species', 'genera', 'families'])
+    expect(treeTotals({ ord: 'Passeriformes', fam: 'Parulidae' })).toEqual(['species', 'genera'])
+    expect(treeTotals({ ord: 'Passeriformes', fam: 'Parulidae', genus: 'Setophaga' })).toEqual(['species'])
   })
   it('a Totals chip turns its total on or off on its own, kept in the image\'s order; every combination, none included', () => {
     const all = dialogRows('tree', false).totals
