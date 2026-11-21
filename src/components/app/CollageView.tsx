@@ -12,7 +12,7 @@ import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useId, useLayou
 import { BirdCard } from '@/components/collage/BirdCard'
 import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage, revealBird } from '@/components/collage/Collage'
-import { reduced } from '@/components/collage/collage-motion'
+import { MOVE_MS, reduced, RIPPLE_MS } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
 import { FilterBar, pickWords, type TreePath } from '@/components/filters/FilterBar'
 import { useIsSheet } from '@/components/dialog-utils'
@@ -92,8 +92,8 @@ function threatText(count: number, t: Ui): string {
 }
 /** How long a bird picked from the search wears its Accent ring. */
 const RING_MS = 1600
-/** The collage's glide to a new layout (640 ms) and a little slack: then a bird picked from outside the view is shown. */
-const GLIDE_MS = 760
+/** The collage's glide to a new layout (its travel after the longest ripple, 450 ms): then a bird picked from outside the view is shown. */
+const GLIDE_MS = MOVE_MS + RIPPLE_MS
 /** How long an out-of-view pick waits for its layout before it lapses. */
 const PENDING_MS = 4000
 

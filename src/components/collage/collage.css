@@ -22,7 +22,7 @@
 .eb-stage {
   position: relative;
   width: 100%;
-  transition: height .64s var(--eb-travel);
+  transition: height .38s var(--eb-travel); /* MOVE_MS (collage-motion.ts) */
   contain: layout style;
   touch-action: manipulation;
   user-select: none;
@@ -55,12 +55,12 @@
   -webkit-tap-highlight-color: transparent;
   contain: layout size style;
   transition:
-    translate .64s var(--eb-travel) var(--md),
-    scale .64s var(--eb-travel) var(--md),
+    translate .38s var(--eb-travel) var(--md),
+    scale .38s var(--eb-travel) var(--md),
     opacity .2s ease,
     transform .2s var(--eb-arrive),
     outline-color .15s ease;
-  animation: eb-in .48s var(--eb-arrive) var(--ad) backwards;
+  animation: eb-in .48s var(--eb-arrive) var(--ad) backwards; /* APPEAR_IN_MS: the first appearance keeps its pace */
 }
 /* The focus ring is drawn inside the bird's scale, so divide by it: 2px Accent, offset 2, at any size. */
 .eb-bird:focus-visible {

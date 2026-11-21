@@ -24,7 +24,7 @@ import { loadDeferred, unloadSticker } from './Sticker'
 import { birdAt, ensureMasks } from './collage-hit'
 import { BirdWindow, WINDOW_AT, buildIndex, setFar } from './collage-window'
 import {
-  APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, ENTER_AT, ENTER_MS, MOVE_MS, FADE_MS, RIPPLE_MS, WRITE_MIN, WRITE_START, applyFar, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
+  APPEAR_IN_MS, APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, ENTER_AT, ENTER_MS, MOVE_MS, FADE_MS, RIPPLE_MS, WRITE_MIN, WRITE_START, applyFar, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
   type FarBirds, type Motion,
 } from './collage-motion'
 import { Tally } from './Tally'
@@ -401,7 +401,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       if (f.phase) { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null; f.seq++; unveil() }
       fast(false) // after unveil: a skipped layer's birds must be styled for the flip to land without motion
       // Placed without motion, in budgeted chunks: hidden birds go at once, shown ones fade in through their CSS opacity
-      // transition (200 ms) rather than a 640 ms WAAPI growth, so few birds are composited at once. Many arrivals at
+      // transition (200 ms) rather than a WAAPI growth, so few birds are composited at once. Many arrivals at
       // once (a wide drag back) appear without the fade: hundreds of overlapping fades
       // are long frames on a phone.
       let arriving = 0
@@ -430,7 +430,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     write(first ? 'jump' : 'travel')
   }, [layout, visible, taxo, entries, shown, syncTabStop, setHot, fadeThrough, unveil, motion, inits, getWin, far])
 
-  // Once the first appearance has played (the latest bird starts at APPEAR_MS and runs ENTER_MS), switch the
+  // Once the first appearance has played (the latest bird starts at APPEAR_MS and runs APPEAR_IN_MS), switch the
   // birds' eb-in CSS animation off in idle time: a bird holding even a finished CSS animation costs more on
   // every later restyle. Later arrivals use Web Animations, and birds new to a mounted collage start hidden.
   useEffect(() => {
@@ -442,7 +442,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       const settle = () => el.setAttribute('data-settled', '')
       if (g.requestIdleCallback) idle = g.requestIdleCallback(settle, { timeout: 1000 })
       else settle()
-    }, APPEAR_MS + ENTER_MS + 100)
+    }, APPEAR_MS + APPEAR_IN_MS + 100)
     return () => { clearTimeout(t); if (idle) g.cancelIdleCallback?.(idle) }
   }, [])
 
