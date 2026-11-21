@@ -8,8 +8,9 @@
 // Province codes are the app's canonical sub1 ids (regions.v1.json): Natural Earth's iso_3166_2, rolled up by
 // SUB1_PARENT (French departments to their region); several features of one code are dissolved (shared edges cancel).
 // Each province group is projected on its own (azimuthal equal-area centred on it, so the US, Russia and Fiji don't
-// span the world) and fitted to SIDE units. Coordinates are whole units, quantised before simplification so neighbours
-// keep identical borders.
+// span the world) and fitted to SIDE units. Coordinates are quantised before simplification, so neighbours keep identical
+// borders: the world to tenths of a unit (WORLD_Q, so its coasts hold up when the map is zoomed), the provinces to whole
+// units. Nothing reads map-provinces.v1.json since the Map became the world only (round 6); it is still written.
 // Source: Natural Earth 1:50m countries and 1:10m states and provinces (public domain), which fetch-sources.ts downloads.
 // Run: DATA_RAW=<data/raw> npx tsx scripts/build-data/build-map.ts, then npx tsx scripts/build-data/data-files.ts
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -26,8 +27,11 @@ const OUT_PROVINCES = resolve(ROOT, 'public/data/map-provinces.v1.json')
 
 const WORLD_W = 2000 // the world layer's width in units (Equal Earth's height follows)
 const SIDE = 1000 // a province group's longer side
-const EPS = 1 // Douglas-Peucker tolerance, units
-const MIN_AREA = 2 // loops under this (units²) are dropped
+/** Steps per unit: the world keeps tenths of a unit (about 2 km at the equator, the 1:50m source's own precision, so its
+ * coasts hold up when the map is zoomed); the provinces, never zoomed, whole units. */
+const WORLD_Q = 10
+const EPS = 1 // Douglas-Peucker tolerance, in steps (the world: 0.1 unit, under a pixel at the Map's deepest zoom)
+const MIN_AREA = 2 // loops under this (steps²: the world's 0.02 units², about 8 km²) are dropped
 const GZIP_BUDGET = { countries: 250_000, provinces: 1_500_000 }
 /** Natural Earth features with no ISO code that are part of a country eBird lists. */
 const NO_ISO: Record<string, string> = { Somaliland: 'SO', 'N. Cyprus': 'QY' }
@@ -149,15 +153,22 @@ function simplify(loop: Pt[]): Pt[] {
   return [...a.slice(0, -1), ...b.slice(0, -1)]
 }
 
-/** The path: each loop an absolute moveto, then relative linetos, closed. */
-function pathOf(loops: Pt[][], w: number, h: number, maxSeg: number, what: string): string {
+/** A coordinate in `q` steps per unit as written: units, at most one decimal place, no leading zero (".5", "-.5"). */
+const num = (v: number, q: number) => String(v / q).replace(/^(-?)0\./, '$1.')
+
+/**
+ * The path, in units (`w`, `h`, `maxSeg` and the points in steps of 1/`q` unit): each loop an absolute moveto, then
+ * relative linetos, closed.
+ */
+function pathOf(loops: Pt[][], w: number, h: number, maxSeg: number, what: string, q = 1): string {
   let d = ''
   const kept = loops.map(simplify).filter((loop) => loop.length >= 3 && Math.abs(signedArea(loop)) >= MIN_AREA)
   // A place too small for the threshold (Singapore, Malta) keeps its largest loop, or a 2-unit square, so it can be seen and pressed.
   if (!kept.length && loops.length) {
     const big = loops.reduce((a, b) => (Math.abs(signedArea(b)) > Math.abs(signedArea(a)) ? b : a))
     const [x, y] = big[0]
-    kept.push(big.length >= 3 && Math.abs(signedArea(big)) >= 1 ? big : [[x, y], [Math.min(x + 2, w), y], [Math.min(x + 2, w), Math.min(y + 2, h)], [x, Math.min(y + 2, h)]])
+    const s = 2 * q
+    kept.push(big.length >= 3 && Math.abs(signedArea(big)) >= q * q ? big : [[x, y], [Math.min(x + s, w), y], [Math.min(x + s, w), Math.min(y + s, h)], [x, Math.min(y + s, h)]])
   }
   for (const loop of kept) {
     for (let i = 0; i < loop.length; i++) {
@@ -165,25 +176,25 @@ function pathOf(loops: Pt[][], w: number, h: number, maxSeg: number, what: strin
       const [nx, ny] = loop[(i + 1) % loop.length]
       if (!(x >= 0 && x <= w && y >= 0 && y <= h)) throw new Error(`${what}: point ${x},${y} outside ${w}×${h}`)
       // Antarctica's ring runs along the south pole, which Equal Earth draws as the bottom edge: the one long segment allowed.
-      if (Math.hypot(nx - x, ny - y) > maxSeg && !(y >= h - 1 && ny >= h - 1)) throw new Error(`${what}: segment of ${Math.round(Math.hypot(nx - x, ny - y))} units (a wrap)`)
+      if (Math.hypot(nx - x, ny - y) > maxSeg && !(y >= h - q && ny >= h - q)) throw new Error(`${what}: segment of ${Math.round(Math.hypot(nx - x, ny - y) / q)} units (a wrap)`)
     }
-    d += `M${loop[0][0]} ${loop[0][1]}l` + loop.slice(1).map((p, i) => `${p[0] - loop[i][0]} ${p[1] - loop[i][1]}`).join(' ').replace(/ -/g, '-') + 'z'
+    d += `M${num(loop[0][0], q)} ${num(loop[0][1], q)}l` + loop.slice(1).map((p, i) => `${num(p[0] - loop[i][0], q)} ${num(p[1] - loop[i][1], q)}`).join(' ').replace(/ -/g, '-') + 'z'
   }
   return d
 }
 
-/** A 2-unit square at `p`: a place whose rings round away entirely (an atoll) can still be seen and pressed. */
-const dot = ([x, y]: Pt, w: number, h: number) => `M${Math.min(x, w - 2)} ${Math.min(y, h - 2)}h2v2h-2z`
+/** A 2-unit square at `p` (in steps of 1/`q` unit): a place whose rings round away entirely (an atoll) can still be seen and pressed. */
+const dot = ([x, y]: Pt, w: number, h: number, q = 1) => `M${num(Math.min(x, w - 2 * q), q)} ${num(Math.min(y, h - 2 * q), q)}h2v2h-2z`
 
-/** A projection's whole-unit placer for these rings: the bounds fitted to `side` along the longer axis. */
-function fitter(proj: GeoProjection, polys: Poly[], side: number, byWidth = false): { at: (p: Pt) => Pt; w: number; h: number } {
+/** A projection's placer for these rings, in whole steps of 1/`q` unit: the bounds fitted to `side` units along the longer axis. */
+function fitter(proj: GeoProjection, polys: Poly[], side: number, byWidth = false, q = 1): { at: (p: Pt) => Pt; w: number; h: number } {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
   for (const poly of polys) for (const ring of poly) for (const p of ring) {
     const q = proj(p)
     if (!q || !Number.isFinite(q[0]) || !Number.isFinite(q[1])) throw new Error(`unprojectable point ${p}`)
     x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1])
   }
-  const k = side / (byWidth ? x1 - x0 : Math.max(x1 - x0, y1 - y0))
+  const k = (side * q) / (byWidth ? x1 - x0 : Math.max(x1 - x0, y1 - y0))
   const at = (p: Pt): Pt => {
     const q = proj(p)!
     return [Math.round((q[0] - x0) * k), Math.round((q[1] - y0) * k)]
@@ -257,9 +268,9 @@ function main() {
     }
   }
   const all = [...world.values(), ...overlay.values()].flat()
-  const wf = fitter(geoEqualEarth(), all, WORLD_W, true)
+  const wf = fitter(geoEqualEarth(), all, WORLD_W, true, WORLD_Q)
   const worldD: Record<string, string> = {}
-  for (const [id, polys] of [...world, ...overlay]) worldD[id] = pathOf(dissolve(rings(polys, wf.at)).loops, wf.w, wf.h, wf.w / 4, id) || dot(wf.at(polys[0][0][0]), wf.w, wf.h)
+  for (const [id, polys] of [...world, ...overlay]) worldD[id] = pathOf(dissolve(rings(polys, wf.at)).loops, wf.w, wf.h, wf.w / 4, id, WORLD_Q) || dot(wf.at(polys[0][0][0]), wf.w, wf.h, WORLD_Q)
   // Glance checks: the projection is the right way up and round.
   const y = (lonlat: Pt) => wf.at(lonlat)[1]
   const x = (lonlat: Pt) => wf.at(lonlat)[0]
@@ -285,7 +296,7 @@ function main() {
     groupsOut[group] = { w: fit.w, h: fit.h, d }
   }
 
-  const countriesJson = JSON.stringify({ v: 1, w: wf.w, h: wf.h, d: Object.fromEntries(Object.entries(worldD).filter(([, p]) => p).sort(([a], [b]) => (a < b ? -1 : 1))) })
+  const countriesJson = JSON.stringify({ v: 1, w: wf.w / WORLD_Q, h: wf.h / WORLD_Q, d: Object.fromEntries(Object.entries(worldD).filter(([, p]) => p).sort(([a], [b]) => (a < b ? -1 : 1))) })
   const provincesJson = JSON.stringify({ v: 1, groups: groupsOut })
   const gz = { countries: gzipSync(countriesJson).length, provinces: gzipSync(provincesJson).length }
   for (const k of ['countries', 'provinces'] as const) if (gz[k] > GZIP_BUDGET[k]) throw new Error(`${k}: ${gz[k]} bytes gzipped, over ${GZIP_BUDGET[k]}`)
