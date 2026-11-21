@@ -59,7 +59,7 @@ describe('the count beside the title', () => {
     expect(texts(log).find((l) => l.startsWith('fillText("Ada’s birds"'))).toMatch(/, 64, 184\) \{fillStyle: "#1e1e24"/)
   })
 
-  it('says "species" in the language, a goal as under the big count ("OF 150 SPECIES")', async () => {
+  it('says "species" in the language, a goal as under the big count ("/ 150 SPECIES")', async () => {
     const log = await draw({ name: 'Ada’s birds', countSize: 'title', strings: ja.ui })
     expect(texts(log).some((l) => l.startsWith('fillText("14",'))).toBe(true)
     expect(texts(log).some((l) => l.startsWith('fillText("種",'))).toBe(true)
@@ -68,7 +68,7 @@ describe('the count beside the title', () => {
   it('without a name, draws the count at the left margin; with a goal, says it', async () => {
     const log = await draw({ countSize: 'title', goal: { target: 150, basis: 'seen' } })
     expect(texts(log).find((l) => l.startsWith('fillText("14",'))).toMatch(/^fillText\("14", 64, 232\) .*textAlign: "left"/)
-    expect(texts(log).find((l) => l.includes('OF 150 SPECIES'))).toMatch(/^fillText\("OF 150 SPECIES", 133\.6, 232\) /)
+    expect(texts(log).find((l) => l.includes("/ 150 SPECIES"))).toMatch(/^fillText\("\/ 150 SPECIES", 133\.6, 232\) /)
   })
 })
 

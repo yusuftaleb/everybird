@@ -362,7 +362,7 @@ describe('bulk export', () => {
     const opts = { size: 'A2' as const, landscape: false, named: false, countSize: 'medium' as const, showNames: false, species }
     const plain = bulkPackSpec([entry('a')], opts).hole
     const goal = bulkPackSpec([entry('a')], { ...opts, target: 300 }).hole
-    // The number keeps its size; the label under it ("OF 300 SPECIES") is wider.
+    // The number keeps its size; the label under it ("/ 300 SPECIES") is wider.
     expect(goal.num).toEqual(plain.num)
     expect(goal.label[2] - goal.label[0]).toBeGreaterThan(plain.label[2] - plain.label[0])
   })

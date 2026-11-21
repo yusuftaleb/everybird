@@ -86,7 +86,7 @@ describe('count text metrics', () => {
   it('draws five digits a little smaller', () => {
     expect([7, 197, 1089, 11019].map((n) => countScale(countText(n)))).toEqual([1, 1, 1, 0.85])
   })
-  it('a goal keeps the number at its no-goal size and widens only the label box ("OF 300 SPECIES")', () => {
+  it('a goal keeps the number at its no-goal size and widens only the label box ("/ 300 SPECIES")', () => {
     for (const countSize of ['small', 'medium', 'large'] as const) {
       const plain = countLayout('story', 120, 952, undefined, countSize)
       const k = countLayout('story', 120, 952, 300, countSize)
