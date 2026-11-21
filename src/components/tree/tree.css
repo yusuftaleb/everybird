@@ -3,7 +3,8 @@
    follow their stickers and the counts end at that edge, right-aligned in one column; a row is 44px at least and grows
    with its name (the drawing follows the rows' measured centres), an order heading 32px (HEAD_H). Without the time
    scale (the bar's switch) there is no axis. Fan and Radial (data-round): the drawing alone, every tip
-   named past it (fitRound sizes it: --tree-px, the names' size, --tree-st the sticker's box, --tree-gap the gaps); the
+   named past it (fitRound sizes it: --tree-px, the names' size, at 11px at the least, --tree-st the sticker's box, which
+   a big step shrinks to the name's line, --tree-gap the gaps); the
    rows stay in the page visually hidden, for the keyboard and screen readers. Each tip reads, along its radius or
    row: its dot, a gap, the sticker's box, a gap, the name, the count. Branches on the list are Ink, the rest Line;
    corners are rounded (CORNER in tree.ts) and branches simply join. No name is ever cut. Hover and keyboard focus
@@ -107,8 +108,8 @@ button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-fan-label[data-hot] .eb-t
 .eb-tree-fan-text[lang="la"] { font-style: italic; }
 .eb-tree-fan-count { font-size: var(--tree-count); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 .eb-tree-fan-tick { position: absolute; transform: translateX(-50%); font-size: 11px; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
-/* The circle's ages sit on its rings on the radius straight up, where no branch runs: Paper behind them (TreeView drops
-   one whose patch would hide a branch end). */
+/* The circle's ages sit on its rings on the radius straight up, in its opening, where no branch runs: Paper behind them
+   (TreeView drops one whose patch would not fit the opening: an inner ring too small for it). */
 .eb-tree-fan[data-circle] .eb-tree-fan-tick { padding: 0 3px; border-radius: 4px; background: var(--paper); }
 .eb-tree-fan-axis { margin: 0; text-align: center; } /* under the drawing, clear of every label (ROUND_PAD above it) */
 /* Fan and Radial: the rows stay in the page for the keyboard and screen readers, out of sight (as .eb-sr), their focus

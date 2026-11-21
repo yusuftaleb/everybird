@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { attach, matcher, nexusTree, relabel, taxOnlyBits, type Addition } from '../scripts/build-data/build-tree'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
-import { FAN_R_MAX, FAN_R_MIN, LABEL_GAP, LABEL_STICKER, SCREEN_SIZES, drawFan, fanAngle, fanLabel, fanRing, fitRound, ringLabels, type FanShape, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
+import { FAN_R_MAX, FAN_R_MIN, LABEL_GAP, LABEL_LINE, LABEL_STICKER, RADIAL_GAP, SCREEN_SIZES, drawFan, fanAngle, fanLabel, fanRing, fitRound, inOpening, ringLabels, type FanShape, type LabelSizes, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
 import { HEAD_H, MAX_TIPS, ROW_H, foldSplit, groupSticker, isClade, levelView, taxonCover, type LevelView, type TreeRow } from '@/lib/tree/levels'
 import { closeDeep, openBranch, treeBranch } from '@/lib/tree/path'
 import { ageTicks, bitAt, cladeTree, drawTree, formatAge, isLeaf, leavesOf, oldestLineage, packBits, parseNewick, type TreeFile } from '@/lib/tree/tree'
@@ -277,17 +277,22 @@ describe('the fan', () => {
 
 describe('every tip named on the Fan and Radial (fitRound)', () => {
   const spans = (n: number, name = 8, count = 3, on = (i: number) => i % 2 === 0): LabelSpan[] => Array.from({ length: n }, (_, i) => ({ name, count, on: on(i) }))
+  /** The share image's way (round 6 kept it): the centre mid-width and the sticker's box never smaller. */
+  const FIXED: LabelSizes = { base: 13, floor: 11, dot: 3.5 }
   /** Each label's reach past the tips' ring: the dot, a gap, the sticker's box, a gap, the name, and the count it keeps. */
-  const reach = (f: RoundFit, s: LabelSpan, i: number) => SCREEN_SIZES.dot + f.px * (2 * LABEL_GAP + LABEL_STICKER + s.name + (f.counts[i] && s.count ? LABEL_GAP + s.count : 0))
-  /** No two labels touch, every label is inside the width (and the height, when given), the names at the floor or more. */
+  const reach = (f: RoundFit, s: LabelSpan, i: number) => SCREEN_SIZES.dot + f.st + f.px * (2 * LABEL_GAP + s.name + (f.counts[i] && s.count ? LABEL_GAP + s.count : 0))
+  /** No two labels touch, every label is inside the width on both sides (and the height, when given), the names at the
+   *  floor or more, the sticker's box at the name's line or more. */
   function whole(sp: LabelSpan[], f: RoundFit, shape: FanShape, w: number, h?: number) {
-    const n = sp.length, S = f.px * LABEL_STICKER
-    const step = (shape === 'circle' ? 2 * Math.PI : Math.PI) / n
+    const n = sp.length, S = f.st
+    const step = (shape === 'circle' ? 2 * Math.PI - (f.open ?? 0) : Math.PI) / n
     expect((f.R + SCREEN_SIZES.dot + f.px * LABEL_GAP) * step).toBeGreaterThanOrEqual(S - 1e-6)
     expect(f.px).toBeGreaterThanOrEqual(SCREEN_SIZES.floor)
+    expect(S).toBeGreaterThanOrEqual(f.px * LABEL_LINE - 1e-6)
     sp.forEach((s, i) => {
-      const a = fanAngle(i + 0.5, n, shape), out = f.R + reach(f, s, i)
-      expect(f.cx + out * Math.abs(Math.cos(a)) + (S / 2) * Math.abs(Math.sin(a))).toBeLessThanOrEqual(w + 1e-6)
+      const a = fanAngle(i + 0.5, n, shape, f.open), out = f.R + reach(f, s, i)
+      expect(f.cx + out * Math.cos(a) + (S / 2) * Math.abs(Math.sin(a))).toBeLessThanOrEqual(w + 1e-6)
+      expect(f.cx + out * Math.cos(a) - (S / 2) * Math.abs(Math.sin(a))).toBeGreaterThanOrEqual(-1e-6)
       expect(f.cy - out * Math.sin(a) - (S / 2) * Math.abs(Math.cos(a))).toBeGreaterThanOrEqual(-1e-6)
       if (h !== undefined) expect(f.cy - out * Math.sin(a) + (S / 2) * Math.abs(Math.cos(a))).toBeLessThanOrEqual(h + 1e-6)
     })
@@ -296,8 +301,9 @@ describe('every tip named on the Fan and Radial (fitRound)', () => {
     const sp = spans(45)
     const f = fitRound(sp, 'fan', { w: 1088 })!
     expect(f.px).toBe(13)
+    expect(f.st).toBe(13 * LABEL_STICKER)
     expect(f.counts.every(Boolean)).toBe(true)
-    expect(f.cx).toBe(544)
+    expect(f.cx).toBeCloseTo(544, 6) // even labels: their reach centred is the centre mid-width
     whole(sp, f, 'fan', 1088)
     expect(f.h).toBeGreaterThan(f.R) // the page grows with the drawing
   })
@@ -311,12 +317,40 @@ describe('every tip named on the Fan and Radial (fitRound)', () => {
   it('past the floor the counts go, only those that hold the drawing in; never a name', () => {
     // The first and last tips (at the fan's two ends) have long counts, one on the list and one not.
     const sp = spans(45, 6, 3).map((s, i) => (i === 0 || i === 44 ? { ...s, count: 20, on: i === 0 } : s))
+    // Centred mid-width (the share image's way): both go.
+    const fixed = fitRound(sp, 'fan', { w: 1088 }, FIXED)!
+    expect(fixed.px).toBe(SCREEN_SIZES.floor)
+    expect(fixed.counts[0]).toBe(false)
+    expect(fixed.counts[44]).toBe(false)
+    expect(fixed.counts.slice(1, 44).every(Boolean)).toBe(true)
+    expect(fixed.cx).toBe(544)
+    // On screen the labels' reach is centred (round 6): the off-list tip's count goes first, and that is enough.
     const f = fitRound(sp, 'fan', { w: 1088 })!
     expect(f.px).toBe(SCREEN_SIZES.floor)
-    expect(f.counts[0]).toBe(false)
+    expect(f.counts[0]).toBe(true)
     expect(f.counts[44]).toBe(false)
     expect(f.counts.slice(1, 44).every(Boolean)).toBe(true)
     whole(sp, f, 'fan', 1088)
+  })
+  it('on screen the drawing uses the whole width: a long label on one side takes the room the other side does not need', () => {
+    // A long name at the fan's left end and short ones elsewhere.
+    const sp = spans(30, 5, 0).map((s, i) => (i === 0 ? { ...s, name: 34 } : s))
+    expect(fitRound(sp, 'fan', { w: 1000 }, FIXED)).toBeUndefined()
+    const f = fitRound(sp, 'fan', { w: 1000 })!
+    expect(f.cx).toBeGreaterThan(500) // the centre moves right, away from the long label
+    whole(sp, f, 'fan', 1000)
+  })
+  it("last before refusing, the sticker's box shrinks, never under the name's line; the share image's never does", () => {
+    // 141 tips (Perching birds' families) of 9 em names on a 1,088px column.
+    const sp = spans(141, 9, 4)
+    expect(fitRound(sp, 'circle', { w: 1088 }, { ...SCREEN_SIZES, stFloor: LABEL_STICKER })).toBeUndefined()
+    // (The full box at 11px without a count did not fit: above. At each smaller box the type and counts are tried again.)
+    const f = fitRound(sp, 'circle', { w: 1088 })!
+    expect(f.st).toBeLessThan(f.px * LABEL_STICKER)
+    whole(sp, f, 'circle', 1088)
+    expect(fitRound(sp, 'circle', { w: 1088 }, FIXED)).toBeUndefined()
+    // Never under the line: with more tips, none.
+    expect(fitRound(spans(400, 9, 4), 'circle', { w: 1088 })).toBeUndefined()
   })
   it('the radius grows past its usual bound when the tips need it', () => {
     const sp = spans(200, 4)
@@ -333,6 +367,25 @@ describe('every tip named on the Fan and Radial (fitRound)', () => {
     const f = fitRound(sp, 'circle', { w: 1000, h: 800 })!
     expect(f).toMatchObject({ h: 800, cy: 400, cx: 500 })
     whole(sp, f, 'circle', 1000, 800)
+  })
+  it("the screen's Radial with its time scale opens at the top: no tip within half the opening of straight up", () => {
+    const sp = spans(141, 4, 0)
+    const f = fitRound(sp, 'circle', { w: 1088 }, { ...SCREEN_SIZES, gap: RADIAL_GAP })!
+    expect(f.open).toBeGreaterThan(0)
+    const off = sp.map((_, i) => Math.abs(Math.atan2(Math.cos(fanAngle(i + 0.5, 141, 'circle', f.open)), Math.sin(fanAngle(i + 0.5, 141, 'circle', f.open)))))
+    expect(Math.min(...off)).toBeCloseTo(RADIAL_GAP / 2, 6)
+    whole(sp, f, 'circle', 1088)
+    // Few tips: their own slot is already wider, so no opening.
+    expect(fitRound(spans(10), 'circle', { w: 1088 }, { ...SCREEN_SIZES, gap: RADIAL_GAP })!.open).toBeUndefined()
+  })
+  it("the Radial's ages go only inside its opening: a patch on an outer ring fits, one on an inner ring too small for it does not", () => {
+    const box = { cx: 500, cy: 500, R: 400, shape: 'circle' as const, open: 0.2 }
+    expect(inOpening(box, 141, 300, 20, 16)).toBe(true)
+    expect(inOpening(box, 141, 40, 20, 16)).toBe(false)
+    expect(inOpening(box, 141, 6, 20, 16)).toBe(false) // the patch would reach past the centre
+    // Without an opening, the one slot between the last tip and the first.
+    expect(inOpening({ ...box, open: undefined }, 141, 300, 20, 16)).toBe(false)
+    expect(inOpening({ ...box, open: undefined }, 8, 300, 20, 16)).toBe(true)
   })
   it('none when even then a name does not fit: too many tips for the width', () => {
     expect(fitRound(spans(300), 'fan', { w: 1088 })).toBeUndefined()
@@ -611,6 +664,25 @@ describe('public/data/tree.v1.json', () => {
         }
       }
       expect(marked).toBeGreaterThan(20)
+    })
+    it("Fan and Radial for big steps (round 6): Perching birds' 141 families all named on the Radial in a 1,088px view", () => {
+      // The names' widths from the fonts' measured advances (Satoshi 700 for the 600 weight, Geist Mono for the counts).
+      const fonts = JSON.parse(readFileSync(resolve(root, 'tests/fixtures/glyph-advances.json'), 'utf8')).fonts as Record<string, { advances: Record<string, number> }>
+      const em = (text: string, font: string) => [...text].reduce((a, c) => a + (fonts[font].advances[c] ?? 0.6), 0)
+      const on = new Set(shipped.species.filter((_, i) => i % 7 === 0).map((r) => r.code))
+      const v = levelView(t, idx, { ord: 'Passeriformes' }, on)!
+      expect(v.tips).toBe('families')
+      const tips = groups(v)
+      expect(tips).toHaveLength(141)
+      const spans = tips.map((r) => ({ name: em(r.row.famCom || r.row.fam, 'satoshi-700') + (r.with ? 15 / 13 : 0), count: ((em(`${r.on} of ${r.total}`, 'geist-mono-500') + 0.48) * 11) / 13, on: r.on > 0 }))
+      // Before round 6's fit (the centre mid-width, the sticker's box never smaller) neither layout could.
+      expect(fitRound(spans, 'circle', { w: 1088 }, { base: 13, floor: 11, dot: 3.5 })).toBeUndefined()
+      const f = fitRound(spans, 'circle', { w: 1088 }, { ...SCREEN_SIZES, gap: RADIAL_GAP })!
+      expect(f.px).toBeGreaterThanOrEqual(11)
+      expect(f.st).toBeGreaterThanOrEqual(11 * LABEL_LINE - 1e-6)
+      // The Fan cannot: 141 labels a line apart along a half circle need a radius over half the width.
+      expect(fitRound(spans, 'fan', { w: 1088 })).toBeUndefined()
+      expect((141 * 11 * LABEL_LINE) / Math.PI).toBeGreaterThan(1088 / 2)
     })
     it('Vauriella is the largest marked tip: 358 species with 55 other genera; Muscicapidae, Otididae and Timaliidae are one row each', () => {
       const v = levelView(t, idx, { fam: 'Muscicapidae' }, none)!

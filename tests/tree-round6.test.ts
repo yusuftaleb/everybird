@@ -2,7 +2,7 @@
 // (bySplits), no branch opening on one lone tip (levelView's default rank), the genus as a taxonomy filter (filters.ts,
 // filters-validate.ts, path.ts), the representative sticker of a group with no bird on the list (groupSticker), the
 // Rectangular drawing's half of the width and its counts' column (rowsTreeW, rowsLabels), and the Radial's ages where no
-// branch runs (ringLabels, clearOfEnds).
+// branch runs (ringLabels, clearOfEnds; on screen inside its opening, inOpening).
 import { describe, expect, it } from 'vitest'
 import { applyFilter, drillTo, filterKey, filterToShow, genusOf, options, type Filter } from '@/lib/list/filters'
 import { applyFilterValidity } from '@/lib/list/filters-validate'
@@ -10,7 +10,7 @@ import type { ListEntry } from '@/lib/list/model'
 import { rowsLabels } from '@/lib/share/tree-image'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
-import { clearOfEnds, drawFan, ringLabels, type FanBox } from '@/lib/tree/fan'
+import { clearOfEnds, drawFan, inOpening, ringLabels, type FanBox } from '@/lib/tree/fan'
 import { MAX_TIPS, SMALL_STEP, SPECIES_AT, groupSticker, levelView, rankCount, rowsTreeW, type TreeRow } from '@/lib/tree/levels'
 import { closeDeep, openBranch, treeBranch } from '@/lib/tree/path'
 import { bySplits, cladeTree, drawTree, isLeaf, parseNewick, type Leaf, type Node } from '@/lib/tree/tree'
@@ -255,5 +255,14 @@ describe("the Radial's ages where no branch runs", () => {
     for (const r of [40, 80, 120]) expect(clearOfEnds(d.ends, box.cx, box.cy - r, 24, 16)).toBe(true)
     // The root's join sits at the centre.
     expect(clearOfEnds(d.ends, box.cx, box.cy, 24, 16)).toBe(false)
+  })
+  it("on screen the Radial opens at the top (box.open): every branch end stays outside the opening, where its ages go", () => {
+    const t = parseNewick('(((a:1,b:1):1,c:2):2,(d:3,(e:1,f:1):2):1);')
+    const root = cladeTree(t, t.tipOf.values(), (k) => t.code[k]!)!
+    const open = 0.6
+    const d = drawFan(root, () => true, undefined, () => false, { ...box, open })
+    const half = ((2 * Math.PI - open) / 6 + open) / 2
+    for (const [x, y] of d.ends) if (Math.hypot(x - box.cx, y - box.cy) > 1) expect(Math.abs(Math.atan2(x - box.cx, box.cy - y))).toBeGreaterThanOrEqual(half - 1e-6)
+    expect(inOpening({ ...box, open }, 6, 100, 24, 16)).toBe(true)
   })
 })
