@@ -6,7 +6,6 @@ import { EditBird } from '@/components/edit/EditBird'
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
-import { pageTitle } from '@/lib/list/title'
 import { placesNoteFor, placesUnplacedFor } from '@/lib/list/filter-summary'
 import { undoEdit } from '@/lib/list/tick'
 import { nameOfCode } from '@/lib/species/names'
@@ -71,7 +70,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
   return (
     <main className="eb-page eb-page-collage eb-page-titled">
       <PageHead
-        title={pageTitle(saved.name, t)}
+        title={t.collage.untitled}
         actions={<>
           <button type="button" className="eb-btn eb-btn-quiet" aria-label={t.collage.addBirds} aria-haspopup="dialog" data-add-birds="" onClick={onAdd}>
             <Plus aria-hidden="true" focusable="false" />

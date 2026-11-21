@@ -82,7 +82,7 @@ export const EN_UI = {
   /** The collage page and the collage block every page shares (CollagePage, CollageView, ControlsBar, DockSearch,
    *  Collage's stage, Notices, UndoToast). The stats line and the Timeline readout join their parts with " · " in code. */
   collage: {
-    /** The collage page's title when the collage has none (pageTitle). */
+    /** The collage page's title, always "My birds" like the nav (Yusuf, 2026-11-21); the list's title names only its share card and poster. */
     untitled: 'My birds',
     addBirds: 'Add birds',
     share: 'Share',

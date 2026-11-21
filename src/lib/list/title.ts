@@ -42,7 +42,7 @@ export function titleFromOldName(name: string): string {
   return `${Array.from(n).slice(0, room).join('').trimEnd()}${SUFFIX}`
 }
 
-/** The collage page's title: the saved title, or the language's "My birds" (`t.collage.untitled`). */
+/** A list's title for display: the saved title, or the language's "My birds" (`t.collage.untitled`). The collage page itself is always titled "My birds" (CollagePage). */
 export function pageTitle(name: string | undefined, t: Ui): string {
   return name?.trim() || t.collage.untitled
 }
