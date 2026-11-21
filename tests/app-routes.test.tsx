@@ -149,10 +149,10 @@ function inatField() {
 }
 
 const stats = () => screen.getByTestId('collage-stats')
-/** Settings lays the source rows out in the page, and its "Add by hand" opens the Add birds dialog on Add by hand;
+/** Settings lays the source rows out in the page, and its "Add by hand" opens the dialog as Add by hand alone;
  *  elsewhere (the collage's head) "Add birds" opens the dialog, at Import a file, and `way` picks one of its two choices. */
 async function openAdd(way: 'Import a file' | 'Add by hand') {
-  if (document.querySelector('.eb-page-settings') && !screen.queryByRole('dialog', { name: 'Add birds' })) {
+  if (document.querySelector('.eb-page-settings') && !screen.queryByRole('dialog')) {
     if (way === 'Add by hand') fireEvent.click(screen.getByRole('button', { name: 'Add by hand' }))
     return
   }
@@ -975,7 +975,7 @@ describe('remembered sources', () => {
     await waitFor(async () => expect((await storage.load())?.sources?.inat?.user).toBe('sam_birds'), { timeout: 2000 })
   })
 
-  it('Settings lays out the sources; its Add by hand, at the end of their heading row, opens the Add birds dialog on Add by hand', async () => {
+  it('Settings lays out the sources; its Add by hand, at the end of their heading row, opens the dialog as Add by hand alone', async () => {
     await mount({ stored: (s) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Add birds' })).toBeNull()
@@ -989,13 +989,13 @@ describe('remembered sources', () => {
     expect(hand).toHaveAttribute('aria-haspopup', 'dialog')
     hand.focus()
     fireEvent.click(hand)
-    const dialog = screen.getByRole('dialog', { name: 'Add birds' })
-    expect(within(dialog).getByRole('button', { name: 'Add by hand' })).toHaveAttribute('aria-pressed', 'true')
+    // Adding by hand alone: titled "Add by hand", no switch to Import a file (Settings has its own import rows).
+    const dialog = screen.getByRole('dialog', { name: 'Add by hand' })
+    expect(within(dialog).queryByRole('group', { name: /ways/i })).toBeNull()
+    expect(within(dialog).queryByRole('button', { name: 'Import a file' })).toBeNull()
     expect(within(dialog).getByRole('list', { name: 'Species to tick' })).toBeInTheDocument()
     expect(within(dialog).getByText(/^Ticked by hand · 1 species/)).toBeInTheDocument()
-    // The same dialog as the collage's: Import a file is one press away; Esc closes it, focus back on Add by hand.
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Import a file' }))
-    expect(within(dialog).getByTestId('ebird-drop')).toBeInTheDocument()
+    // Esc closes it, focus back on Add by hand.
     fireEvent.keyDown(dialog, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(hand).toHaveFocus()

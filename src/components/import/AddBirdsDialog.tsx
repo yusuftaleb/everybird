@@ -1,7 +1,8 @@
 'use client'
 // "Add birds": one modal for every way in, opened from the collage's head and the landing's main button on "Import a
-// file" (the source rows, ImportPanel), and from Settings' "Add by hand" on "Add by hand" (TickList); the other is one
-// press away in the same control. Fits a 1440 × 830 window with any Add panel open (compact cells, import.css). Centred from 601px, a
+// file" (the source rows, ImportPanel), with Add by hand (TickList) one press away in the same control; from Settings'
+// "Add by hand" it is adding by hand alone, titled "Add by hand", with no switch to Import a file (Yusuf, 2026-11-21: Settings
+// has its own import rows). Fits a 1440 × 830 window with any Add panel open (compact cells, import.css). Centred from 601px, a
 // full-height sheet on phones. On Add by hand the dialog fits the screen: only the species list scrolls (import.css). Esc, ✕ and a press outside close it; Tab stays inside; focus goes back to the button
 // that opened it (or, when that button has gone, as the landing's does once a first list is made, to the collage's
 // "Add birds"). Imports run in EverybirdProvider, so closing it mid-import loses nothing.
@@ -23,7 +24,7 @@ export type AddWay = 'file' | 'hand'
 /** The element "Add birds" buttons carry, so focus can return to one when the opener has gone. */
 export const ADD_BIRDS_ATTR = 'data-add-birds'
 
-/** `way`: the tab it opens on (Import a file, or Settings' Add by hand). */
+/** `way`: 'hand' (Settings' Add by hand) is adding by hand alone; 'file' opens on Import a file with the switch. */
 export function AddBirdsDialog({ onClose, way: start = 'file' }: { onClose: () => void; way?: AddWay }) {
   const eb = useEverybirdContext()
   const { state, dispatch, data, jobs, mine } = eb
@@ -32,6 +33,7 @@ export function AddBirdsDialog({ onClose, way: start = 'file' }: { onClose: () =
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
   const [way, setWay] = useState<AddWay>(start)
+  const handOnly = start === 'hand'
   const [opener] = useState(() => document.activeElement as HTMLElement | null)
   useFocusInAndBack(ref, () => (opener?.isConnected ? opener : document.querySelector<HTMLElement>(`[${ADD_BIRDS_ATTR}]`)))
   useHoldTopBar()
@@ -67,16 +69,18 @@ export function AddBirdsDialog({ onClose, way: start = 'file' }: { onClose: () =
         }}
       >
         <div className="eb-add-head">
-          <h2 id={titleId} className="eb-add-title">{t.collage.addBirds}</h2>
+          <h2 id={titleId} className="eb-add-title">{handOnly ? t.add.hand : t.collage.addBirds}</h2>
           <button type="button" className="eb-add-close" aria-label={t.collage.close} onClick={onClose}>
             <X aria-hidden="true" focusable="false" weight="bold" />
           </button>
         </div>
-        <div className="eb-seg eb-add-ways" role="group" aria-label={t.add.ways}>
-          {(['file', 'hand'] as const).map((w) => (
-            <button key={w} type="button" className="eb-seg-btn" aria-pressed={way === w} onClick={() => setWay(w)}>{t.add[w]}</button>
-          ))}
-        </div>
+        {!handOnly && (
+          <div className="eb-seg eb-add-ways" role="group" aria-label={t.add.ways}>
+            {(['file', 'hand'] as const).map((w) => (
+              <button key={w} type="button" className="eb-seg-btn" aria-pressed={way === w} onClick={() => setWay(w)}>{t.add[w]}</button>
+            ))}
+          </div>
+        )}
         {line && (
           <p className="eb-summary" role="status" data-testid="add-summary">
             {line}
