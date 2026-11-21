@@ -893,25 +893,57 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // goal must not make it taller: the column's height for the layout is the card's less the top row (--pv-h, --top-h),
   // or its own closed height when that is taller (--scroll-h: closedHeight, then its gap and the coffee button's margin
   // box), and it scrolls past that (share.css).
+  // A menu never resizes the dialog (round 6, item 20): from a press on a dropdown until something other than a menu
+  // changes the layout (a press or an entry on another control, the format, the orientation, the window), the closed
+  // column's height is held, so what a choice changes in the column (the poster size's line and its names note, Export
+  // in batches' rows) stays inside it and the column scrolls if it must; the card's own height is still followed.
   const formatsRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
   const coffeeRef = useRef<HTMLAnchorElement>(null)
+  const holdColumn = useRef(false)
+  const remeasure = useRef<() => void>(() => {})
   useLayoutEffect(() => {
     const el = ref.current, top = formatsRef.current, col = controlsRef.current, coffee = coffeeRef.current, pv = previewBox.current
     if (!el || !top || !col || !coffee || !pv || typeof ResizeObserver === 'undefined') return
     const measure = () => {
+      if (!holdColumn.current) {
+        const colGap = parseFloat(getComputedStyle(col.parentElement!).rowGap) || 0
+        const closed = closedHeight(col) + colGap + coffee.offsetHeight + (parseFloat(getComputedStyle(coffee).marginBottom) || 0)
+        el.style.setProperty('--scroll-h', `${Math.ceil(closed)}px`)
+      }
       const gap = parseFloat(getComputedStyle(top.parentElement!).rowGap) || 0
-      const colGap = parseFloat(getComputedStyle(col.parentElement!).rowGap) || 0
-      const closed = closedHeight(col) + colGap + coffee.offsetHeight + (parseFloat(getComputedStyle(coffee).marginBottom) || 0)
-      el.style.setProperty('--scroll-h', `${Math.ceil(closed)}px`)
       el.style.setProperty('--top-h', `${Math.ceil(top.offsetHeight + gap)}px`)
       el.style.setProperty('--pv-h', `${Math.floor(pv.offsetHeight)}px`)
     }
+    remeasure.current = () => { holdColumn.current = false; measure() }
     measure()
     const ro = new ResizeObserver(measure)
     for (const x of [top, col, pv]) ro.observe(x)
-    return () => ro.disconnect()
+    // A dropdown or its menu holds the measure; any other control releases it (taken again at the column's next change,
+    // never at once, so a press elsewhere doesn't resize the dialog for the menu's choice either).
+    const press = (e: Event) => {
+      const at = e.target instanceof Element ? e.target : null
+      holdColumn.current = !!at?.closest('.eb-share-dd, .eb-share-menu')
+    }
+    // The arrow keys open a dropdown from its button (MenuSelect) without a click.
+    const arrow = (e: KeyboardEvent) => {
+      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.target instanceof Element && e.target.closest('.eb-share-dd')) holdColumn.current = true
+    }
+    const onResize = () => remeasure.current()
+    el.addEventListener('click', press, true)
+    el.addEventListener('input', press, true)
+    el.addEventListener('keydown', arrow, true)
+    window.addEventListener('resize', onResize)
+    return () => {
+      ro.disconnect()
+      el.removeEventListener('click', press, true)
+      el.removeEventListener('input', press, true)
+      el.removeEventListener('keydown', arrow, true)
+      window.removeEventListener('resize', onResize)
+    }
   }, [])
+  // A new format or orientation reshapes the card and the dialog anyway: the column is measured again with them.
+  useLayoutEffect(() => { remeasure.current() }, [format, orientation])
   const shownFormat = preview && isPrint(preview.format) ? `${preview.format}|${printPackH(preview.size)}` : preview?.format
   const lastShown = useRef(shownFormat)
   useLayoutEffect(() => {

@@ -12,12 +12,18 @@
 // with no check, each with its species count, the first stepping back a level (`back`, an arrow before the label).
 // The Collage's Arrangement menu in the controls bar gives each option its glyph (`icon`), drawn before its label on
 // the button and in the menu. In the share dialog (`layer`, round 6) the open menu is rendered into the dialog itself,
-// outside the scrolling controls' column, fixed to its button (right-aligned under it, over the preview where it needs
-// to be), opening upward when there is more room above than below and its list doesn't fit under the button; it
-// follows the button when the column scrolls or the window resizes.
+// outside the scrolling controls' column, fixed to its button (right-aligned under it, over the preview or past the
+// dialog's edges where it needs to be), opening upward when there is more room above than below and its list doesn't
+// fit under the button; it follows the button when the column scrolls or the window resizes. It is shown in the top
+// layer (round 6, item 19: `popover="manual"`, `showPopover`), so no transform, containment or overflow of the dialog
+// contains or clips it, while it stays in the dialog's DOM for the keyboard and assistive technology; where the popover
+// API is missing it is placed the same way in the page (the dialog keeps no containing block for it once open).
 import { ArrowLeft, CaretDown, Check, type Icon } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MutableRefObject, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
+
+/** Whether the browser has the popover API (the top layer for the dialog's menus). */
+export const canPopover = () => typeof HTMLElement !== 'undefined' && typeof HTMLElement.prototype.showPopover === 'function'
 
 /** The menu's side margin from the window's edges (as the language menu's). */
 const EDGE = 8
@@ -143,10 +149,14 @@ export function MenuList<T extends string | number>({ id, label, options, value,
   // Right-aligned under the button (share.css), then clamped to the window, as the language menu. In a layer: fixed to
   // the button (menuPlace), its natural size measured once, placed again when anything but the menu itself scrolls.
   const into = layer?.current ?? null
+  const [top] = useState(() => !!into && canPopover())
   useLayoutEffect(() => {
     const el = menu.current
     if (!el) return
     if (into) {
+      // In the top layer before it is measured (a popover is not rendered until shown); showing an open one, or hiding a
+      // hidden one, is a no-op or throws depending on the browser, so neither may stop the menu.
+      if (top) try { el.showPopover() } catch { /* already open */ }
       const { offsetHeight: h, offsetWidth: w } = el
       const place = () => {
         const b = btn.current?.getBoundingClientRect()
@@ -159,7 +169,11 @@ export function MenuList<T extends string | number>({ id, label, options, value,
       place()
       window.addEventListener('resize', place)
       document.addEventListener('scroll', onScroll, true)
-      return () => { window.removeEventListener('resize', place); document.removeEventListener('scroll', onScroll, true) }
+      return () => {
+        window.removeEventListener('resize', place)
+        document.removeEventListener('scroll', onScroll, true)
+        if (top) try { el.hidePopover() } catch { /* already hidden or gone */ }
+      }
     }
     const clamp = () => {
       el.style.right = ''
@@ -169,7 +183,7 @@ export function MenuList<T extends string | number>({ id, label, options, value,
     clamp()
     window.addEventListener('resize', clamp)
     return () => window.removeEventListener('resize', clamp)
-  }, [into, btn])
+  }, [into, btn, top])
 
   useEffect(() => {
     const at = Math.max(0, options.findIndex((o) => o.value === value))
@@ -207,7 +221,7 @@ export function MenuList<T extends string | number>({ id, label, options, value,
   }
 
   const list = (
-    <div ref={menu} id={id} className="eb-menu eb-langmenu eb-share-menu" data-layer={into ? '' : undefined} role="menu" aria-label={label} onKeyDown={onKey}>
+    <div ref={menu} id={id} className="eb-menu eb-langmenu eb-share-menu" data-layer={into ? '' : undefined} popover={top ? 'manual' : undefined} role="menu" aria-label={label} onKeyDown={onKey}>
       {options.map((o) => (
         <button
           key={o.value} type="button" role={radio ? 'menuitemradio' : 'menuitem'} aria-checked={radio ? o.value === value : undefined}
