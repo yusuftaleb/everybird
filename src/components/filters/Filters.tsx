@@ -22,6 +22,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { regionsIn } from '@/lib/i18n-places'
 import { filterChips, withoutFilterChip } from '@/lib/list/chips'
 import { filtersCount, filtersSpoken, panelHead, showLabel } from '@/lib/list/filter-summary'
+import { pressCloses } from '@/lib/dock-panels'
 import { emptyFilter, filterActive, type Filter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import type { Action, AppState } from '@/lib/list/store'
@@ -132,9 +133,9 @@ export const dropRoom = (top: number, windowH: number): number => Math.max(MIN_D
  * dock (over the chip row, if any), as tall as its content up to the window's bottom less DROP_MARGIN (`--drop-max`, measured on
  * open, scroll and resize); under 600px the modal bottom sheet (portalled to the body: the bar is a size container,
  * which would otherwise be the fixed sheet's containing block), which may take the window's full height, with a head
- * (`sheetHead`, then the close button) and an optional `foot`. Esc, a press outside the dock wrap (the popover) or on
- * the scrim (the sheet) closes it; focus moves in on open and back to `returnFocus()` (if still connected) or the
- * button on close; the top bar stays shown while it is open.
+ * (`sheetHead`, then the close button) and an optional `foot`. Esc, a press outside the dock wrap or on the dock's own
+ * empty part (the popover; dock-panels.ts pressCloses), or on the scrim (the sheet) closes it; focus moves in on open
+ * and back to `returnFocus()` (if still connected) or the button on close; the top bar stays shown while it is open.
  */
 export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onClose, panelRef, sheetHead, foot, children }: {
   id: string
@@ -160,13 +161,12 @@ export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onC
   })
   // Shown, the top bar must not cover the popover or its controls bar (a sheet sits above it anyway).
   useHoldTopBar(() => (sheet ? null : ref.current?.closest<HTMLElement>('.eb-dockwrap')))
-  // A press outside the dock wrap (the dock, the chips and the panel itself stay live) closes the popover; the sheet has its scrim.
+  // A press outside the dock wrap, or on the dock's own empty part, closes the popover (the dock's controls, the chips and
+  // the panel itself stay live: pressCloses); the sheet has its scrim.
   useEffect(() => {
     if (sheet) return
     const down = (e: PointerEvent) => {
-      const wrap = ref.current?.closest('.eb-dockwrap')
-      if (wrap?.contains(e.target as Node)) return
-      onClose()
+      if (pressCloses(e.target as Node, ref.current?.closest('.eb-dockwrap'))) onClose()
     }
     document.addEventListener('pointerdown', down)
     return () => document.removeEventListener('pointerdown', down)

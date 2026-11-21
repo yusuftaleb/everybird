@@ -2,7 +2,8 @@
 // The one horizontal bar above the views, as LifeList's dock (framer-site), with Photography's search: the views on the
 // left (Collage / List / Map / Tree); then the panel buttons, all in the Filters button's look (Filters.tsx
 // DockPanelButton; round 6, Yusuf, 2026-11-20): Taxa (the taxonomy chips), Display (what changes how the view looks:
-// Collage and Tree only) and Filters, one panel open at a time (CollageView, dock-panels.ts); then the magnifier. In
+// Collage and Tree only) and Filters, one panel open at a time (CollageView, dock-panels.ts; a press on the dock that is
+// not one of its controls closes it, as a press outside does); then the magnifier. In
 // Collage and Tree nothing else sits in the bar: their switches and choices are the Display panel's (DisplayPanel.tsx).
 // List and Map keep their few controls in the bar, before the panel buttons: the Scientific switch (both; in Map it changes
 // nothing on the map, so the setting can be changed from any view), then in List the Sort menu after it (Family (with family
