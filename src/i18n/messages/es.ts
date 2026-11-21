@@ -185,6 +185,8 @@ export const es: Messages = {
         layout: 'Diseño',
         layouts: { fan: 'Abanico', circle: 'Radial', rows: 'Rectangular' },
         noRoom: 'No hay espacio para todos los nombres',
+        tooMany: 'Demasiados para dibujar: activa Solo mis aves o abre una rama',
+        tooManyMine: 'Demasiados para dibujar: abre una rama',
         rank: { orders: 'Órdenes', families: 'Familias', genera: 'Géneros', species: 'Especies' },
         tipOf: '{n} de {total}',
         genera: { one: '{n} género', other: '{n} géneros' },

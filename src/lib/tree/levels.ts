@@ -1,6 +1,7 @@
 // The Tree view's levels as rows and a drawing (pure). A level is the open branch (nothing, an order, a family, a
-// family's genus); its tips are always the rank one step under it (Yusuf, 2026-11-20: all birds shows the orders, an
-// order its families, a family its genera, a genus its species; there is no other choice of rank). Totals come from the
+// family's genus); its tips are the rank one step under it (Yusuf, 2026-11-20: all birds shows the orders, an order its
+// families, a family its genera, a genus its species), or the Display panel's Down to when that is deeper (round 6:
+// `down`, offered as `downTo`, a rank over DRAW_CAP tips off; the ranks above it are the branches, as on the poster). Totals come from the
 // eBird taxonomy the app ships (species.v1.json), so a group's count is "on the list / in the taxonomy"; the tree only
 // decides where it is drawn.
 // An open branch never shows one lone tip (round 6): it opens past every rank that would draw a single tip (an order
@@ -23,6 +24,10 @@ export type TipRank = 'orders' | 'families' | 'genera' | 'species'
 export const RANKS: readonly TipRank[] = ['orders', 'families', 'genera', 'species']
 /** The most tips a skip past lone tips may reach (after Lifers only); past it the rank above is drawn. */
 export const MAX_TIPS = 300
+/** The most tips a rank picked in Down to may draw on screen (after Lifers only); past it the rank is offered off.
+ *  Measured (round 6): the rows' first render grows about linearly, 0.45 s in jsdom for All birds' 1,970 genera, the
+ *  largest rank it lets through, 1.4 s for Perching birds' 6,738 species, which it keeps off with All birds' 11,193. */
+export const DRAW_CAP = 2000
 
 /** Which branch is open (none, an order, a family, a family's genus: each step also names the ones above it, for the
  *  path). A value carried from before (a `tips` rank) is ignored. */
@@ -64,6 +69,9 @@ export type LevelView = {
   level: TreeLevel
   /** The rank of the tips drawn. */
   tips: TipRank
+  /** The Down to row's ranks: from the one step under the open branch down to the species, each with the tips it would
+   *  draw here (after Lifers only); one over DRAW_CAP is offered off. */
+  downTo: { rank: TipRank; n: number }[]
   /** The groups of the drawn rank in the open branch with a bird on the list, and all of them, in the taxonomy. */
   cover: [number, number]
   /** The drawing's tree and the stem of a lone lineage (drawFan draws the same). */
@@ -168,9 +176,10 @@ export const SMALL_STEP = 3
  * then the tree is cut down to the kept rows' tips. The tips are the rank one step under the open branch, past lone
  * tips (see the header); `rank` draws another rank at or under it instead (the unit tests read the folds at every rank),
  * or 'deeper' the rank under the one on screen (Print's "Down to"; undefined when the screen shows the species).
+ * `down`, the Display panel's Down to (round 6): the deeper of it and that step is drawn, within DRAW_CAP tips.
  * Undefined when nothing is drawn (with `mine`, rows are empty instead).
  */
-export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, onList: ReadonlySet<string>, mine = false, rank?: TipRank | 'deeper'): LevelView | undefined {
+export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, onList: ReadonlySet<string>, mine = false, rank?: TipRank | 'deeper', down?: TipRank): LevelView | undefined {
   const rowOf = (tip: number) => species.byCode.get(tree.code[tip]!)
   const all: number[] = []
   for (const tip of tree.tipOf.values()) if (rowOf(tip)) all.push(tip)
@@ -221,6 +230,16 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
     if (rankAt('species').count <= SPECIES_AT) ri = offered.length - 1
   }
   while (ri > 0 && rankAt(offered[ri]).count > MAX_TIPS) ri--
+  // Down to (round 6, the Display panel's): the chosen rank when it is deeper than that step, else the step; a chosen
+  // rank over DRAW_CAP tips here falls back to the deepest one within it (the choice itself is kept). The row offers the
+  // ranks from the step down to the species, each with its count.
+  const stepAt = ri
+  if (down && (rank === undefined || rank === 'deeper')) {
+    let di = offered.indexOf(down)
+    while (di > ri && rankAt(offered[di]).count > DRAW_CAP) di--
+    if (di > ri) ri = di
+  }
+  const downTo = offered.slice(stepAt).map((r) => ({ rank: r, n: rankAt(r).count }))
   if (rank === 'deeper') {
     if (ri === offered.length - 1) return undefined
     ri++
@@ -254,7 +273,7 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   const cover: [number, number] = [own.on.size, own.total.size]
   const drawn = mine ? tips.filter((tip) => (byRow.on.get(keyOf(rowOf(tip)!)) ?? 0) > 0) : tips
   const root = cladeTree(tree, drawn, (tip) => keyOf(rowOf(tip)!))
-  const head = { split, inside, level: at, tips: drawnRank, cover }
+  const head = { split, inside, level: at, tips: drawnRank, cover, downTo }
   if (!root) return mine && tips.length ? { ...head, rows: [], height: 0, drawing: NO_DRAWING } : undefined
   const rows: TreeRow[] = []
   const ys: number[] = []
@@ -288,6 +307,14 @@ export function rankCount(view: Pick<LevelView, 'rows' | 'tips' | 'cover'>, mine
   let n = 0
   for (const r of view.rows) if (r.kind === 'species') n++; else if (r.kind === 'group') n += 1 + (r.with?.length ?? 0)
   return { rank: view.tips, n, ...(mine && n < view.cover[1] ? { total: view.cover[1] } : {}) }
+}
+
+/** The Down to row's choices for a view (round 6): its ranks from the one step under the open branch down to the
+ *  species, each over DRAW_CAP tips off with why ('mine': too many even with Lifers only on, so only opening a branch
+ *  helps; 'all': Lifers only would help too); none when one rank is left (a genus, or a branch that opens at its species). */
+export function downOptions(view: Pick<LevelView, 'downTo'>, mine: boolean): { rank: TipRank; off?: 'tooMany' | 'tooManyMine' }[] {
+  if (view.downTo.length < 2) return []
+  return view.downTo.map(({ rank, n }) => (n > DRAW_CAP ? { rank, off: mine ? 'tooManyMine' : 'tooMany' } : { rank }))
 }
 
 /** Whether the i-th tip of `tips` (a level's rows without headings) has a bird on the list: drawTree's and drawFan's `seen`. */

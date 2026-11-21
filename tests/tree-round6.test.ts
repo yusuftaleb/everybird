@@ -11,7 +11,8 @@ import { rowsLabels } from '@/lib/share/tree-image'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 import { clearOfEnds, drawFan, inOpening, ringLabels, type FanBox } from '@/lib/tree/fan'
-import { MAX_TIPS, SMALL_STEP, SPECIES_AT, groupSticker, levelView, rankCount, rowsTreeW, type TreeRow } from '@/lib/tree/levels'
+import { DRAW_CAP, MAX_TIPS, SMALL_STEP, SPECIES_AT, downOptions, groupSticker, levelView, rankCount, rowsTreeW, type TreeRow } from '@/lib/tree/levels'
+import { setTreeDown, treeDown, TREE_DOWN_KEY } from '@/lib/tree-mine'
 import { closeDeep, openBranch, treeBranch } from '@/lib/tree/path'
 import { bySplits, cladeTree, drawTree, isLeaf, parseNewick, type Leaf, type Node } from '@/lib/tree/tree'
 
@@ -140,6 +141,72 @@ describe('a smarter step: three groups or fewer is not worth a step (SMALL_STEP)
   })
   it('the first screen stays on every order, whatever their number', () => {
     expect(levelView(t, idx, {}, none)!.tips).toBe('orders')
+  })
+})
+
+describe("Down to: the rank drawn at the least, the Display panel's (round 6)", () => {
+  const none = new Set<string>()
+  // Two orders: Big, five families of 21 genera of 20 species (2,100 species: over DRAW_CAP; 105 genera), and Wee, one
+  // family of four genera of three species.
+  const rs: SpeciesRow[] = []
+  for (let f = 0; f < 5; f++) for (let g = 0; g < 21; g++) for (let k = 0; k < 20; k++) rs.push(sp(`b${f}x${g}x${k}`, `Gb${f}x${g} s${k}`, 'Big', `Fb${f}`, rs.length))
+  for (let g = 0; g < 4; g++) for (let k = 0; k < 3; k++) rs.push(sp(`w${g}x${k}`, `Gw${g} s${k}`, 'Wee', 'Fw', rs.length))
+  const nwkOf = (ord: string) => {
+    const fams = [...new Set(rs.filter((r) => r.ord === ord).map((r) => r.fam))]
+    return `(${fams.map((f) => `(${[...new Set(rs.filter((r) => r.fam === f).map((r) => genusOf(r.sci)))].map((g) => `(${rs.filter((r) => genusOf(r.sci) === g).map((r) => `${r.code}:1`).join(',')}):2`).join(',')}):3`).join(',')}):1`
+  }
+  const idx = buildSpeciesIndex(rs)
+  const t = parseNewick(`(${nwkOf('Big')},${nwkOf('Wee')});`)
+  expect(DRAW_CAP).toBe(2000)
+  it('offers the ranks under the open branch down to the species: all four at All birds, three in an order, two in a family, none in a genus', () => {
+    expect(downOptions(levelView(t, idx, {}, none)!, false).map((o) => o.rank)).toEqual(['orders', 'families', 'genera', 'species'])
+    expect(downOptions(levelView(t, idx, { ord: 'Big' }, none)!, false).map((o) => o.rank)).toEqual(['families', 'genera', 'species'])
+    expect(downOptions(levelView(t, idx, { ord: 'Big', fam: 'Fb0' }, none)!, false).map((o) => o.rank)).toEqual(['genera', 'species'])
+    expect(downOptions(levelView(t, idx, { ord: 'Big', fam: 'Fb0', genus: 'Gb0x0' }, none)!, false)).toEqual([])
+    // A branch that opens past a rank (Wee's one family) offers only what it can draw: here only its species, so no row.
+    expect(levelView(t, idx, { ord: 'Wee' }, none)!.tips).toBe('species')
+    expect(downOptions(levelView(t, idx, { ord: 'Wee' }, none)!, false)).toEqual([])
+  })
+  it('draws the deeper of the choice and the one step under the open branch; opening a branch never changes the choice', () => {
+    expect(levelView(t, idx, {}, none)!.tips).toBe('orders')
+    expect(levelView(t, idx, {}, none, false, undefined, 'families')!.tips).toBe('families')
+    expect(levelView(t, idx, {}, none, false, undefined, 'genera')!.tips).toBe('genera')
+    // Families chosen: an opened family still shows its genera (its own step), and back up, families again.
+    expect(levelView(t, idx, { ord: 'Big', fam: 'Fb1' }, none, false, undefined, 'families')!.tips).toBe('genera')
+    expect(levelView(t, idx, {}, none, false, undefined, 'families')!.tips).toBe('families')
+    // The skip of a small step stays: Wee opens at its species whatever is chosen.
+    expect(levelView(t, idx, { ord: 'Wee' }, none, false, undefined, 'families')!.tips).toBe('species')
+  })
+  it('a rank over DRAW_CAP tips is offered off, saying what would help; a choice of it draws the deepest rank within the cap', () => {
+    const v = levelView(t, idx, {}, none, false, undefined, 'species')!
+    expect(v.downTo.find((d) => d.rank === 'species')!.n).toBe(2112)
+    expect(v.tips).toBe('genera')
+    expect(downOptions(v, false)).toEqual([{ rank: 'orders' }, { rank: 'families' }, { rank: 'genera' }, { rank: 'species', off: 'tooMany' }])
+    // Lifers only on and still too many: only opening a branch helps.
+    const most = new Set(rs.filter((_, i) => i % 50).map((r) => r.code))
+    expect(downOptions(levelView(t, idx, {}, most, true)!, true).at(-1)).toEqual({ rank: 'species', off: 'tooManyMine' })
+    // Lifers only counts first: a few birds draw every species.
+    const few = new Set(rs.slice(0, 30).map((r) => r.code))
+    const mine = levelView(t, idx, {}, few, true, undefined, 'species')!
+    expect(mine.tips).toBe('species')
+    expect(downOptions(mine, true).every((o) => !o.off)).toBe(true)
+    // Inside one order (2,100 species) still off; inside a family (420) on.
+    expect(downOptions(levelView(t, idx, { ord: 'Big' }, none)!, false).at(-1)).toEqual({ rank: 'species', off: 'tooMany' })
+    expect(levelView(t, idx, { ord: 'Big', fam: 'Fb0' }, none, false, undefined, 'species')!.tips).toBe('species')
+  })
+  it("the poster's rank under the screen's is under the chosen one", () => {
+    expect(levelView(t, idx, {}, none, false, 'deeper', 'families')!.tips).toBe('genera')
+    expect(levelView(t, idx, {}, none, false, 'deeper')!.tips).toBe('families')
+  })
+  it('the choice is kept on the device; an unknown value reads as none', () => {
+    setTreeDown('genera')
+    expect(treeDown()).toBe('genera')
+    setTreeDown(null)
+    expect(treeDown()).toBeNull()
+    setTreeDown('tips' as never)
+    expect(treeDown()).toBeNull()
+    setTreeDown(null)
+    expect(TREE_DOWN_KEY).toBe('everybird:tree-down')
   })
 })
 

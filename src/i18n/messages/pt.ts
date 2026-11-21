@@ -185,6 +185,8 @@ export const pt: Messages = {
         layout: 'Formato',
         layouts: { fan: 'Leque', circle: 'Radial', rows: 'Retangular' },
         noRoom: 'Não há espaço para todos os nomes',
+        tooMany: 'Muitos para desenhar: ative Só minhas aves ou abra um ramo',
+        tooManyMine: 'Muitos para desenhar: abra um ramo',
         rank: { orders: 'Ordens', families: 'Famílias', genera: 'Gêneros', species: 'Espécies' },
         tipOf: '{n} de {total}',
         genera: { one: '{n} gênero', other: '{n} gêneros' },

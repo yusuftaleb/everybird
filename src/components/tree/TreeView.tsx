@@ -1,16 +1,19 @@
 'use client'
 // The Tree tab: the list read on AvesData's dated tree of birds (public/data/tree.v1.json, fetched the first time the
-// tab opens). It opens on every order; a tip opens its branch, and the tree always shows the rank one step under the
-// open branch (Yusuf, 2026-11-20, round 6): an order its families, a family its genera, a genus its species, whose tips
-// on the list open the bird card; there is no other choice of rank. The open order, family and genus are the taxonomy
+// tab opens). It opens on every order; a tip opens its branch, and the tree shows the rank one step under the open
+// branch (Yusuf, 2026-11-20, round 6): an order its families, a family its genera, a genus its species, whose tips on
+// the list open the bird card; or, deeper, the rank picked in the Display panel's Down to (round 6, item 8: the deeper
+// of the two, within DRAW_CAP tips; levels.ts). The open order, family and genus are the taxonomy
 // filter's (the path under the dock and the Taxa panel's chips: CollageView passes `branch` and gets `onOpen`, path.ts);
 // opening a marked row also sets the filter's `with` (the other groups its branch holds), so every view shows the
 // branch's birds. A branch never opens on one lone tip (levels.ts: an order with one family at its genera, a family with
 // one genus at its species, a group of SPECIES_AT species or fewer at its species). The Layout choice (Fan | Radial |
 // Rectangular, kept on the device; unpicked, the fan from FAN_FROM px wide when it names every tip, rows otherwise; one
 // that can't name every tip stays listed, disabled, with its reason) is rendered here into the controls bar's Display
-// panel (`layoutSlot`, a portal), beside the panel's switches. No count line of its own: the page's stats line counts
-// against the taxonomy (CollageView, which also writes the oldest lineage under the view, in the legend's place). The
+// panel (`layoutSlot`, a portal), beside the panel's switches, and under it Down to (round 6): the rank the tree draws at
+// the least, kept on the device (tree-mine.ts); the tree draws the deeper of it and the one step under the open branch,
+// so opening a branch never changes the choice; a rank over DRAW_CAP tips is offered off, with its reason. No count
+// line of its own: the page's stats line counts against the taxonomy (CollageView, which also writes the oldest lineage under the view, in the legend's place). The
 // Display panel's Time scale switch (tree-mine.ts): on, branches at their true ages over the age axis (rings and ages
 // on the Fan and Radial); off, no axis, and the splits spaced evenly by branching order (bySplits).
 // Fan and Radial (fan.ts): the root at the centre, the tips on the arc or all round, and every tip's label past it,
@@ -44,10 +47,10 @@ import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { SpeciesRow } from '@/lib/species/types'
 import { FAN_FROM, LABEL_COUNT, LABEL_GAP, RADIAL_GAP, SCREEN_SIZES, drawFan, fanLabel, fanRing, fitRound, inOpening, ringLabels, type FanShape, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
-import { ROW_H, depthOf, rankCount, rowsTreeW, genusOf, levelView, tipOn, type Inside, type LevelView, type TipRank, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
+import { ROW_H, depthOf, downOptions, rankCount, rowsTreeW, genusOf, levelView, tipOn, type Inside, type LevelView, type TipRank, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
 import { loadTree } from '@/lib/tree/load'
 import type { OpenBranch } from '@/lib/tree/path'
-import { TREE_LAYOUTS, setTreeLayout, useTreeLayout, useTreeMine, useTreeTime, type TreeLayout } from '@/lib/tree-mine'
+import { TREE_LAYOUTS, setTreeDown, setTreeLayout, useTreeDown, useTreeLayout, useTreeMine, useTreeTime, type TreeLayout } from '@/lib/tree-mine'
 import { TIP_R, ageTicks, bySplits, circlePath, drawTree, formatAge, type Tree, type TreeFile } from '@/lib/tree/tree'
 import './tree.css'
 
@@ -169,6 +172,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const mine = useTreeMine()
   const timeScale = useTreeTime()
   const pickedLayout = useTreeLayout()
+  const down = useTreeDown()
   // The row whose list of genera inside is open, and the tip a hovered or keyboard-focused tip or row marks (`kb`: the
   // keyboard's, which adds the focus outline).
   const [list, setList] = useState<string | null>(null)
@@ -176,7 +180,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const onList = useMemo(() => new Set(entries.map((e) => e.code)), [entries])
   const species = data?.species
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `level` is read through its key
-  const view = useMemo(() => (data ? levelView(data.tree, data.species, level, onList, mine) : undefined), [data, at, onList, mine])
+  const view = useMemo(() => (data ? levelView(data.tree, data.species, level, onList, mine, undefined, down ?? undefined) : undefined), [data, at, onList, mine, down])
   const unmapped = useMemo(() => (data ? entries.filter((e) => !data.tree.tipOf.has(e.code)) : []), [data, entries])
 
   const box = useRef<HTMLDivElement | null>(null)
@@ -484,12 +488,25 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const keyMark = tips.some((r) => r.kind === 'group' && !!r.with)
   const keyDotted = tips.some((r) => r.dotted)
   // The Layout choice, in the controls bar's Display panel (its slot; TreeView knows which layouts fit).
+  // Under it, Down to (round 6): the ranks from the one step under the open branch down to the species, the one drawn
+  // pressed; a rank over DRAW_CAP tips here stays listed, off, with its reason (downOptions). No row when only one rank
+  // is left.
+  const downChoices = downOptions(shown, mine)
   const layoutChoice = layoutSlot && createPortal(
-    <DisplaySegments
-      label={tt.layout} value={layout} testId="tree-layout"
-      options={TREE_LAYOUTS.map((v) => ({ value: v, label: tt.layouts[v], off: width && v !== 'rows' && !roundOk[shapeOf(v)] ? tt.noRoom : undefined }))}
-      onChange={(v) => { setHot(null); setTreeLayout(v) }}
-    />,
+    <>
+      <DisplaySegments
+        label={tt.layout} value={layout} testId="tree-layout"
+        options={TREE_LAYOUTS.map((v) => ({ value: v, label: tt.layouts[v], off: width && v !== 'rows' && !roundOk[shapeOf(v)] ? tt.noRoom : undefined }))}
+        onChange={(v) => { setHot(null); setTreeLayout(v) }}
+      />
+      {downChoices.length > 0 && (
+        <DisplaySegments
+          label={t.share.print.downTo} value={rank} testId="tree-down"
+          options={downChoices.map((d) => ({ value: d.rank, label: tt.rank[d.rank], off: d.off && tt[d.off] }))}
+          onChange={(v) => { setHot(null); setTreeDown(v) }}
+        />
+      )}
+    </>,
     layoutSlot,
   )
 

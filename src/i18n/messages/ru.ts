@@ -196,6 +196,8 @@ export const ru: Messages = {
         layout: 'Вид дерева',
         layouts: { fan: 'Веер', circle: 'Радиальное', rows: 'Прямоугольное' },
         noRoom: 'Не хватает места для всех названий',
+        tooMany: 'Слишком много для рисунка: включите «Только мои птицы» или откройте ветвь',
+        tooManyMine: 'Слишком много для рисунка: откройте ветвь',
         rank: { orders: 'Отряды', families: 'Семейства', genera: 'Роды', species: 'Виды' },
         tipOf: '{n} из {total}',
         genera: { one: '{n} род', few: '{n} рода', many: '{n} родов', other: '{n} рода' },

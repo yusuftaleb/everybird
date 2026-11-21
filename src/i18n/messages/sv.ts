@@ -185,6 +185,8 @@ export const sv: Messages = {
         layout: 'Form',
         layouts: { fan: 'Solfjäder', circle: 'Radiell', rows: 'Rektangulär' },
         noRoom: 'Inte plats för alla namn',
+        tooMany: 'För många att rita: slå på Bara mina fåglar eller öppna en gren',
+        tooManyMine: 'För många att rita: öppna en gren',
         rank: { orders: 'Ordningar', families: 'Familjer', genera: 'Släkten', species: 'Arter' },
         tipOf: '{n} av {total}',
         genera: { one: '{n} släkte', other: '{n} släkten' },

@@ -17,7 +17,7 @@ import type { Regions, SpeciesRow } from '@/lib/species/types'
 import type { TreeFile } from '@/lib/tree/tree'
 import type { OpenBranch } from '@/lib/tree/path'
 import type { TreeShown } from '@/components/tree/TreeView'
-import { setTreeMine, TREE_LAYOUT_KEY, TREE_MINE_KEY } from '@/lib/tree-mine'
+import { setTreeDown, setTreeMine, TREE_DOWN_KEY, TREE_LAYOUT_KEY, TREE_MINE_KEY } from '@/lib/tree-mine'
 
 // The tree file, and the full species file TreeView loads itself (the shown index may be the landing sample's own).
 const { fetchData, rows } = vi.hoisted(() => {
@@ -408,6 +408,36 @@ describe('TreeView', () => {
     vi.unstubAllGlobals()
   })
 
+  it("Down to, under Layout: the ranks under the open branch, the one drawn pressed, the choice kept on the device and across branches", async () => {
+    const kept = new Map<string, string>()
+    vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
+    const { unmount } = render(<Tree entries={['a1', 'pa1'].map(entry)} />)
+    await screen.findByRole('button', { name: /^Waterfowl/ })
+    const groups = within(slot).getAllByRole('group')
+    expect(groups.map((g) => g.getAttribute('data-testid'))).toEqual(['tree-layout', 'tree-down'])
+    const down = () => within(within(slot).getByRole('group', { name: 'Down to' }))
+    expect(down().getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed'), b.getAttribute('aria-disabled')])).toEqual([['Orders', 'true', null], ['Families', 'false', null], ['Genera', 'false', null], ['Species', 'false', null]])
+    fireEvent.click(down().getByRole('button', { name: 'Families' }))
+    expect(kept.get(TREE_DOWN_KEY)).toBe('families')
+    const tips = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect(within(tips).getByRole('button', { name: /^Rails, / })).toBeInTheDocument()
+    expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^8 families$/)
+    expect(down().getByRole('button', { name: 'Families' })).toHaveAttribute('aria-pressed', 'true')
+    // Opening a family shows its genera (its own step); the row offers what is under it.
+    fireEvent.click(within(tips).getByRole('button', { name: /^Rails, / }))
+    expect(screen.getByTestId('tree-rank')).toHaveTextContent(/genera$/)
+    expect(down().getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([['Genera', 'true'], ['Species', 'false']])
+    // In a genus, always its species: no row.
+    fireEvent.click(within(screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })).getByRole('button', { name: /^Ra, / }))
+    expect(within(slot).queryByRole('group', { name: 'Down to' })).toBeNull()
+    unmount()
+    // Back at All birds (a new page), families again.
+    render(<Tree entries={['a1', 'pa1'].map(entry)} />)
+    expect(await screen.findByRole('button', { name: /^Rails, / })).toBeInTheDocument()
+    act(() => setTreeDown(null))
+    expect(kept.has(TREE_DOWN_KEY)).toBe(false)
+    vi.unstubAllGlobals()
+  })
   it('without a slot (the Display panel closed) no Layout choice is drawn', async () => {
     render(<TreeView entries={['a1'].map(entry)} sci={false} onPick={() => {}} branch={{}} onOpen={() => {}} />)
     await screen.findByRole('button', { name: /^Waterfowl/ })

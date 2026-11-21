@@ -187,6 +187,8 @@ export const zhHans: Messages = {
         layout: '布局',
         layouts: { fan: '扇形', circle: '放射状', rows: '矩形' },
         noRoom: '空间不足，无法显示所有名称',
+        tooMany: '太多，无法绘制：请打开“只看我的鸟”或展开一个分支',
+        tooManyMine: '太多，无法绘制：请展开一个分支',
         rank: { orders: '目', families: '科', genera: '属', species: '种' },
         tipOf: '{n}/{total}',
         genera: { one: '{n}属', other: '{n}属' },
