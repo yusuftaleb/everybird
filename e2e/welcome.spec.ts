@@ -133,12 +133,19 @@ test("phones get a bottom sheet, wider screens a small card", async ({ page }) =
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   const box = (await welcome(page).boundingBox())!;
-  expect(box.width).toBeGreaterThan(360);
+  // The sheet spans the scrim less its 8px insets (the card would leave 16px a side). The scrim is the window less the
+  // page's stable scrollbar gutter (html's scrollbar-gutter: 15px with desktop scrollbars, none with a phone's).
+  const scrim = (await page.locator(".eb-welcome-scrim").boundingBox())!;
+  expect(scrim.width).toBeGreaterThanOrEqual(390 - 15);
+  expect(Math.abs(box.width - (scrim.width - 16))).toBeLessThanOrEqual(1);
   expect(844 - (box.y + box.height)).toBeLessThanOrEqual(12);
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect.poll(async () => (await welcome(page).boundingBox())!.width).toBeLessThanOrEqual(400);
   const card = (await welcome(page).boundingBox())!;
-  expect(Math.abs(card.x + card.width / 2 - 640)).toBeLessThan(2);
+  // Centred in the window less the stable scrollbar gutter.
+  const wide = (await page.locator(".eb-welcome-scrim").boundingBox())!;
+  expect(wide.width).toBeGreaterThanOrEqual(1280 - 15);
+  expect(Math.abs(card.x + card.width / 2 - (wide.x + wide.width / 2))).toBeLessThan(2);
 });
 
 test("screenshots: the card and the sheet, light and dark", async ({ page, browserName }) => {

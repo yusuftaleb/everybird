@@ -23,7 +23,10 @@ test("sample collage renders on landing", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "A lifetime of birds." })).toBeVisible();
   const stage = page.getByTestId("collage-stage");
   await expect(stage).toBeVisible();
-  await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(`^Sample: a demo birder's life list · ${SAMPLE_COUNT} species · \\d+ orders · \\d+ families · since `));
+  await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(`^Sample · ${SAMPLE_COUNT} species · \\d+ orders · \\d+ families · since `));
+  // The sample is a demo: nothing to share or print (those are on the birder's own collage).
+  await expect(page.getByRole("button", { name: "Share", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Print", exact: true })).toHaveCount(0);
   await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(SAMPLE_COUNT);
   await expect(page.getByRole("contentinfo").getByRole("link", { name: "All credits" })).toHaveAttribute("href", "/about#credits");
   // "Make yours" opens the Add birds dialog on the landing.
@@ -77,24 +80,27 @@ test("large file shows progress and stays responsive", async ({ page }) => {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
 
-    // In-page probes, so nothing depends on Playwright's polling: every text the eBird status line shows (with
-    // its time), long tasks, the switch's input-to-update latency (pointerdown's timeStamp is when the input
-    // arrived, so a busy main thread counts against it) and what the status line read at that moment.
+    // In-page probes, so nothing depends on Playwright's polling: every text the import toast shows (its visible line,
+    // with its time; the toast comes and goes, so the probe watches the body), long tasks, the switch's input-to-update
+    // latency (pointerdown's timeStamp is when the input arrived, so a busy main thread counts against it) and what the
+    // toast read at that moment.
     await page.evaluate(() => {
       type Probe = { texts: string[]; times: number[]; long: [number, number][]; down: number; lat: number[]; atClick: string; stop: () => void };
-      const status = document.querySelector('[data-testid="ebird-drop"]')!.parentElement!.querySelector('[role="status"]')!;
+      const toast = () =>
+        document.querySelector('[data-testid="import-toast"] .eb-toast-line > span[aria-hidden="true"]:not(.eb-toast-spin)')?.textContent ??
+        document.querySelector('[data-testid="import-toast"]')?.textContent ?? "";
       const el = document.querySelector<HTMLElement>('#sources button[aria-label="Add iNaturalist"]')!;
       const p: Probe = { texts: [], times: [], long: [], lat: [], down: 0, atClick: "", stop: () => {} };
       const mo = new MutationObserver(() => {
-        const t = status.textContent ?? "";
+        const t = toast();
         if (t === p.texts[p.texts.length - 1]) return;
         p.texts.push(t);
         p.times.push(performance.now());
       });
-      mo.observe(status, { childList: true, characterData: true, subtree: true });
+      mo.observe(document.body, { childList: true, characterData: true, subtree: true });
       const po = new PerformanceObserver((l) => l.getEntries().forEach((e) => p.long.push([e.startTime, e.duration])));
       po.observe({ entryTypes: ["longtask"] });
-      el.addEventListener("pointerdown", (e) => { p.down = e.timeStamp; p.atClick = status.textContent ?? ""; }, true);
+      el.addEventListener("pointerdown", (e) => { p.down = e.timeStamp; p.atClick = toast(); }, true);
       new MutationObserver(() => p.lat.push(performance.now() - p.down)).observe(el, { attributes: true, attributeFilter: ["aria-expanded"] });
       p.stop = () => { po.disconnect(); mo.disconnect(); };
       (window as unknown as { __eb: Probe }).__eb = p;
@@ -111,7 +117,8 @@ test("large file shows progress and stays responsive", async ({ page }) => {
     const probe = await page.evaluate(() => {
       const p = (window as unknown as { __eb: { texts: string[]; times: number[]; long: [number, number][]; lat: number[]; atClick: string; stop: () => void } }).__eb;
       p.stop();
-      const end = p.times[p.times.length - 1]; // the status line's last change: the parse is done
+      const done = p.texts.findIndex((t) => t.startsWith("Done"));
+      const end = p.times[done >= 0 ? done : p.times.length - 1]; // the toast's done line: the parse is done
       return { texts: p.texts, latency: p.lat[0], atClick: p.atClick, longest: Math.max(0, ...p.long.filter(([t]) => t < end).map(([, d]) => d)) };
     });
     const counts = probe.texts.map((t) => /([\d,]+) rows/.exec(t)?.[1]).filter(Boolean);
@@ -134,14 +141,15 @@ test("an import keeps running while the birder moves between the pages", async (
   test.setTimeout(120_000);
   const dir = mkdtempSync(join(tmpdir(), "everybird-e2e-"));
   const file = join(dir, "MyEBirdData.csv");
-  writeFileSync(file, buildSyntheticMyData(100_000));
+  // Long enough that the read (in the worker) is still going after the walk through the three pages.
+  writeFileSync(file, buildSyntheticMyData(300_000));
   try {
     await page.goto("/settings");
     await openAdd(page, "file");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     await page.getByTestId("ebird-input").setInputFiles(file);
-    const status = page.getByTestId("ebird-drop").locator("xpath=..").getByRole("status");
-    await expect(status).toHaveText(/^Reading your file/);
+    // The import's toast: "Reading your file… 1,200 rows" while the file is read.
+    await expect(page.getByTestId("import-toast")).toContainText(/Reading your file… [\d,]+ rows/);
     // Away (client-side links: the provider above the routes, and the worker, stay) and back.
     await page.getByRole("link", { name: "Everybird", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: "A lifetime of birds." })).toBeVisible();

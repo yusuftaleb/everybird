@@ -104,7 +104,7 @@ test("a shared link's Places drills to province and county", async ({ page }) =>
   await expect(panel.locator(".eb-places-head")).toContainText("2 counties");
   await panel.getByText("Capital", { exact: true }).click();
   await expect(stats).toContainText("2 of 6 species");
-  await expect(places).toHaveAttribute("aria-label", "Filters: Places: Capital, British Columbia");
+  await expect(places).toHaveAttribute("aria-label", "Filters, 1 in use: Places: Capital, British Columbia");
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("filters-panel")).toHaveCount(0);
   const bird = page.getByTestId("collage-stage").locator("[data-code]:not([data-off])").first();
