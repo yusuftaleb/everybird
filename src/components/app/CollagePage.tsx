@@ -12,6 +12,7 @@ import { nameOfCode } from '@/lib/species/names'
 import type { Edits, ListEntry } from '@/lib/list/model'
 import type { ViewKind } from '@/lib/view-resume'
 import type { ShareAt } from '@/lib/share/view-image'
+import { onIntent, warmPrint, warmShare } from '@/lib/prefetch'
 import { CollageView } from './CollageView'
 import { useEverybirdContext } from './EverybirdProvider'
 import { AppNotices } from './Notices'
@@ -79,14 +80,14 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
           {/* Print beside Share, quieter (Share stays the page's one main button): the same dialog, on the poster. */}
           <button
             type="button" className="eb-btn eb-btn-quiet" aria-label={t.collage.print} aria-haspopup="dialog" disabled={!ready || !state.list.length}
-            data-testid="print-open" onClick={() => setSharing({ view: state.view, print: true })}
+            data-testid="print-open" onClick={() => setSharing({ view: state.view, print: true })} {...onIntent(warmPrint)}
           >
             <Printer aria-hidden="true" focusable="false" />
             <span className="eb-sm-hide">{t.collage.print}</span>
           </button>
           <button
             type="button" className="eb-btn" aria-haspopup="dialog" disabled={!ready || !state.list.length}
-            data-testid="share-open" data-tour="share" onClick={() => setSharing({ view: state.view })}
+            data-testid="share-open" data-tour="share" onClick={() => setSharing({ view: state.view })} {...onIntent(warmShare)}
           >
             <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
             {t.collage.share}

@@ -23,6 +23,7 @@ import { LIST_ORDERS, type ListOrder } from '@/lib/list/list-order'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
 import type { ViewKind } from '@/lib/view-resume'
 import { DockSearchField, SearchButton, type DockSearchProps } from './DockSearch'
+import { onIntent, warmMap, warmTree } from '@/lib/prefetch'
 
 type Props = {
   view: ViewKind
@@ -146,7 +147,8 @@ export function ControlsBar({ view, onView, noMap, listOrder, onListOrder, sci, 
       <div className="eb-dock" data-view={view} data-finding={finding || undefined}>
         <div className="eb-dock-tabs" role="group" aria-label={c.view} inert={finding} data-tour="view">
           {(noMap ? (['collage', 'list', 'tree'] as const) : (['collage', 'list', 'map', 'tree'] as const)).map((v) => (
-            <button key={v} type="button" className="eb-dock-tab" aria-pressed={view === v} aria-label={c[v]} onClick={() => onView(v)}>
+            <button key={v} type="button" className="eb-dock-tab" aria-pressed={view === v} aria-label={c[v]} onClick={() => onView(v)}
+              {...(v === 'tree' ? onIntent(warmTree) : v === 'map' ? onIntent(warmMap) : {})}>
               {v === 'collage' ? <CollageIcon /> : v === 'list' ? <ListIcon /> : v === 'map' ? <MapIcon /> : <TreeIcon />}
               <span>{c[v]}</span>
             </button>
