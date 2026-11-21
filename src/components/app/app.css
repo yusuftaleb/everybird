@@ -190,6 +190,22 @@
   .eb-dock[data-view="tree"] .eb-dock-filters .eb-dock-drop { min-width: max-content; } /* wraps under the switches rather than cut its label */
 }
 @media (prefers-reduced-motion: reduce) { .eb-dock-menus .eb-share-dd svg { transition: none; } }
+/* The Collage's Arrangement menu (ControlsBar: Fit or Oval) in the bar menus' look above, its option's glyph (18px, as
+   Filters') before the label. The page needs none of share.css for it, so the button's own layout is said here (share.css
+   says the same when the Tree or the share dialog has loaded it). Under 600px of bar: the glyph alone in a 44px button
+   (its name still says the choice), and the Filters group wraps whole controls: when True, Sci., the menu and Filters
+   don't fit one row, Filters takes the next at its full width, never cutting its label. */
+.eb-dock-arrange .eb-share-ddwrap { position: relative; display: inline-flex; flex: none; }
+.eb-dock-arrange .eb-share-dd { position: relative; display: inline-flex; align-items: center; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.eb-dock-arrange .eb-share-dd::after { position: absolute; } /* the press area under 600px, out of the button's row */
+.eb-dock-menus .eb-share-dd svg.eb-menu-icon { display: block; width: 18px; height: 18px; transform: none; }
+@container (max-width: 599px) {
+  .eb-dock[data-view="collage"] .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
+  .eb-dock[data-view="collage"] .eb-dock-filters .eb-dock-drop { min-width: max-content; }
+  .eb-dock-arrange, .eb-dock-arrange > .eb-share-ddwrap { flex: none; }
+  .eb-dock-arrange .eb-share-dd { width: 44px; padding: 0; }
+  .eb-dock-arrange .eb-menu-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 .eb-view-below { display: contents; } /* the column's gaps stay; Filters dims and inertes everything in it while open */
 .eb-view-below[data-dim] > * { opacity: .3; transition: opacity .2s var(--eb-ease); }
 @media (prefers-reduced-motion: reduce) { .eb-view-below[data-dim] > * { transition: none; } }
@@ -443,6 +459,9 @@
 .eb-menu-back { display: inline-flex; align-items: center; gap: 8px; }
 .eb-langmenu .eb-menu-back svg { color: var(--muted); }
 .eb-langmenu .eb-menuitem svg { width: 16px; height: 16px; flex: none; color: var(--accent); }
+/* An option's glyph before its label (MenuSelect's `icon`: the Arrangement menu), in the label's colour. */
+.eb-menu-glyph { display: inline-flex; align-items: center; gap: 8px; }
+.eb-langmenu .eb-menuitem svg.eb-menu-icon { color: inherit; }
 @media (hover: hover) and (pointer: fine) {
   .eb-nav-link:hover { opacity: 1; }
   .eb-theme:hover { background: var(--surface); }

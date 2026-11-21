@@ -12,10 +12,15 @@
 // `dockRowWidth`); under 600px Filters fills what the switches leave and the Tree's menus fill the rest of their row
 // (app.css); under 1100px the views are icons only; under 540px of bar (and on phones) the switches shorten ("True",
 // "Sci."; "Heaviest" in list view; Lifers only and Time scale keep their words), and under 330px and 310px everything tightens, so row
-// one (the views and the magnifier) never breaks from 280px of bar.
-import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+// one (the views and the magnifier) never breaks from 280px of bar. In Collage, the Arrangement menu (Fit or Oval,
+// arrangement.ts: the share dialog's setting too) follows the switches as the Tree's menus do, in their look; under
+// 600px of bar it shows its glyph alone, and if True, Sci., the menu and Filters still don't fit on row two, Filters
+// takes a row of its own rather than cut its label.
+import { useCallback, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowDownIcon, CollageIcon, ListIcon, MapIcon, TreeIcon } from '@/components/collage/icons'
+import { MenuSelect } from '@/components/share/MenuSelect'
 import { useI18n } from '@/i18n/I18nProvider'
+import { ARRANGEMENTS, ARRANGE_ICON, setArrangement, useArrangement } from '@/lib/arrangement'
 import { setTreeMine, setTreeTime, useTreeMine, useTreeTime } from '@/lib/tree-mine'
 import { useOfferResume, useTakeResume } from '@/lib/use-resume'
 import type { ViewKind } from '@/lib/view-resume'
@@ -88,6 +93,9 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
   const c = t.collage.controls
   const mine = useTreeMine()
   const time = useTreeTime()
+  const arrangement = useArrangement()
+  const arrangeId = useId()
+  const arrangeEscape = useRef<(() => void) | null>(null) // MenuSelect's hook for a dialog's Escape: none here
   const wrap = useRef<HTMLDivElement>(null)
   const dock = useRef<HTMLDivElement>(null)
   // Tree: the controls take the second row only when they don't fit on one (measured before paint, again on every
@@ -154,6 +162,16 @@ export function ControlsBar({ view, onView, noMap, trueSize, onTrueSize, lightFi
         <div className="eb-dock-filters" inert={finding}>
           <div className="eb-dock-tools">{tools}</div>
           {view === 'tree' && <div ref={treeMenus} className="eb-dock-menus" />}
+          {view === 'collage' && (
+            <div className="eb-dock-menus eb-dock-arrange">
+              <span id={arrangeId} className="eb-sr">{t.share.arrange.label}</span>
+              <MenuSelect
+                labelledBy={arrangeId} menuLabel={t.share.arrange.label} value={arrangement} escapeRef={arrangeEscape} testId="dock-arrange"
+                options={ARRANGEMENTS.map((a) => ({ value: a, label: t.share.arrange[a], icon: ARRANGE_ICON[a] }))}
+                onChange={setArrangement}
+              />
+            </div>
+          )}
           {filters}
         </div>
         {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => { onFind?.(); setFinding(true) }} buttonRef={findBtn} /></div>}

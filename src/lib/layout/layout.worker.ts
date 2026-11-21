@@ -2,7 +2,7 @@
 //
 // Protocol (structured-clone friendly):
 //   main -> worker  { type: 'setList', id, entries: [{ code, mass, ord }] }
-//                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit? }
+//                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit?, oval? }
 //                   { type: 'image', id, entries: [{ code, mass, ord }], aspect, hole?, maxTile?, captions?, oval? }
 //                                                             (share images; no setList needed)
 //   worker -> main  { type: 'ready', id }                      (setList done: masks loaded)
@@ -16,7 +16,8 @@
 // `fit` (filtered states): the result's stage height is trimmed about the count (pack.ts fitStage), so W/H
 // can be smaller than fixedStage. Relative sizes are always computed over the whole list (setList), per mode.
 //
-// `oval` (an image): packFrame inside the ellipse inscribed in the frame (the share dialog's Oval).
+// `oval`: inside the ellipse inscribed in the stage (a layout: packBest's, the page's Oval) or the frame (an image:
+// packFrame's, the share images' Oval); arrangement.ts.
 //
 // Species without a mask (st:false in species.v1.json, drawn as a silhouette icon) get FALLBACK_MASK: a solid
 // ellipse on a square 24 x 24 grid (aspect 1), so they pack as round blobs, and are sized by the outline they draw
@@ -33,7 +34,7 @@ export type WorkerRequest =
   | { type: 'setList'; id: number; entries: ListEntryMsg[] }
   | {
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
-      refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean
+      refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean; oval?: boolean
     }
   | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number; captions?: { w: number; h: number; ring?: number }[]; oval?: boolean }
 export type WorkerReply =
@@ -144,7 +145,7 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
       if (!layout) throw new Error(`unknown layout ${msg.layout}`)
       const targets = msg.targets ? new Map(pack.map((b, i) => [b.id, [centres[2 * i], centres[2 * i + 1]] as [number, number]])) : undefined
       const r = packBest(pack, layout, msg.mode, {
-        targets, refBase: msg.refBase, fixedStage: msg.fixedStage, rel: rel[msg.mode], fit: msg.fit,
+        targets, refBase: msg.refBase, fixedStage: msg.fixedStage, rel: rel[msg.mode], fit: msg.fit, ...(msg.oval ? { oval: true } : {}),
       })
       const boxes = new Float32Array(known.length * 4)
       pack.forEach((b, i) => boxes.set(r.boxes.get(b.id)!, i * 4))

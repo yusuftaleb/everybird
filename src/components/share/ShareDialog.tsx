@@ -32,7 +32,7 @@
 // Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied
 // isn't, from the poster; the ZIPs aren't counted.
 import {
-  ArrowClockwise, CaretDown, Circle, DownloadSimple, FilePdf, LinkSimple, Printer, Rectangle, ShareNetwork, X, type Icon,
+  ArrowClockwise, CaretDown, DownloadSimple, FilePdf, LinkSimple, Printer, ShareNetwork, X, type Icon,
 } from '@phosphor-icons/react'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar } from '@/components/dialog-utils'
@@ -44,7 +44,7 @@ import { countryName, regionsIn } from '@/lib/i18n-places'
 import { track, type PosterSizeWire } from '@/lib/analytics'
 import { currentTheme, type Theme } from '@/lib/theme'
 import { TREE_LAYOUTS, setTreeLayout, setTreeMine, useTreeLayout, useTreeMine, type TreeLayout } from '@/lib/tree-mine'
-import { ARRANGEMENTS, setArrangement, useArrangement, type Arrangement } from '@/lib/arrangement'
+import { ARRANGEMENTS, ARRANGE_ICON, setArrangement, useArrangement } from '@/lib/arrangement'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
 import { BULK_BATCH_OPTIONS, bulkGroups, bulkPackSpec, makeBulkZip, makeImageZip, type BulkBatch, type BulkSplit } from '@/lib/share/bulk'
@@ -95,8 +95,6 @@ const FORMATS: { id: FormatSlot; hint: Record<Orientation, string> }[] = [
   { id: 'square', hint: { vertical: '1:1', horizontal: '1:1' } },
 ]
 const ORIENTATIONS: Orientation[] = ['vertical', 'horizontal']
-/** Fit or Oval's icons: the frame the birds fill, or the oval they sit in. */
-const ARRANGE_ICON: Record<Arrangement, Icon> = { packed: Rectangle, oval: Circle }
 const COUNT_SIZES: CountSize[] = ['small', 'medium', 'large', 'title', 'hide']
 const BULK_BATCHES: BulkBatch[] = ['all', ...[...BULK_BATCH_OPTIONS].reverse()]
 type LinkResult = ReturnType<typeof MakeShareLink>
@@ -227,7 +225,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const goalOf = (y: GoalYear, target: number): BigYear => (y === 'all' ? { target } : { year: y, target })
   const hasLatest = useMemo(() => cardEntries.some((e) => e.date), [cardEntries])
   const withLatest = hasLatest && showLatest && !viewImage
-  // Packed or Oval (kept per device): how the images and the poster place the birds. The collage on the page is always packed.
+  // Packed or Oval (kept per device): how the collage, the images and the poster place the birds (the controls bar sets it too).
   const arrangement = useArrangement()
   const cardFormat: CardFormat = print ? (landscape ? 'printLandscape' : 'print') : shape
   const trimmed = name.trim()

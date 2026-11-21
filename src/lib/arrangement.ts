@@ -1,13 +1,18 @@
-// How the share images and the poster place the birds (the share dialog's Fit / Oval), a per-device choice kept in
-// localStorage, Packed when unset, unreadable or a value no longer offered (the
-// dropped 'family' and 'colour'), the same in every tab. The collage on the page is always packed.
+// How the collage places the birds, Fit or Oval: a per-device choice kept in localStorage, Packed when unset, unreadable
+// or a value no longer offered (the dropped 'family' and 'colour'), the same in every tab. One setting for the collage
+// on the page (the controls bar's Arrangement menu in the Collage view), the share images and the poster (the share
+// dialog's Arrangement row): changing it in either changes the other.
+import { Circle, Rectangle, type Icon } from '@phosphor-icons/react'
 import { useSyncExternalStore } from 'react'
 
-/** 'oval': Packed inside the ellipse inscribed in the frame (pack.ts packFrame's `oval`). */
+/** 'oval': packed inside the ellipse inscribed in the frame (pack.ts packBest's and packFrame's `oval`). */
 export type Arrangement = 'packed' | 'oval'
 export const ARRANGEMENTS: readonly Arrangement[] = ['packed', 'oval']
 
 export const ARRANGEMENT_KEY = 'everybird:arrangement'
+
+/** Fit or Oval's icons: the frame the birds fill, or the oval they sit in. */
+export const ARRANGE_ICON: Record<Arrangement, Icon> = { packed: Rectangle, oval: Circle }
 
 let memory: Arrangement | null = null
 const listeners = new Set<() => void>()

@@ -54,6 +54,8 @@ type Opts = {
    * from..to are visible (no worker call, no travel).
    */
   preview?: { from?: string; to?: string; committed?: boolean } | null
+  /** The Oval arrangement (arrangement.ts): every state packed inside the stage's ellipse. */
+  oval?: boolean
 }
 
 /**
@@ -95,7 +97,7 @@ const idle = (fn: () => void): (() => void) => {
  * The current StateLayout and its visible codes, or null until the first layout arrives (and always in
  * environments without Worker, such as jsdom, unless a seed covers the state). Entries whose species are unknown are left out.
  */
-export function useCollageLayout({ list, seen, filter, mode, species, container, seed, preview }: Opts): CollageLayout | null {
+export function useCollageLayout({ list, seen, filter, mode, species, container, seed, preview, oval = false }: Opts): CollageLayout | null {
   const client = useRef<LayoutClient | null>(null)
   const [cls, setCls] = useState<LayoutName | null>(null)
   const [result, setResult] = useState<CollageLayout | null>(null)
@@ -163,7 +165,7 @@ export function useCollageLayout({ list, seen, filter, mode, species, container,
     if (!c || !cls || !known.length) return
     let live = true
     let raf = 0
-    c.get(filter, cls, mode).then(
+    c.get(filter, cls, mode, oval).then(
       (layout) => {
         if (!live) return
         // Next frame: the tap's own update (chips, count, sheet) paints first, then the birds start to move.
@@ -177,7 +179,7 @@ export function useCollageLayout({ list, seen, filter, mode, species, container,
       live = false
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [packSig, filterSig, known.length, filter, cls, mode])
+  }, [packSig, filterSig, known.length, filter, cls, mode, oval])
 
   // Warm the cache for the next tap, once the current state is on screen: one idle slot to list the child
   // states, then one idle slot per state, so the main thread is never held for long.
@@ -188,12 +190,12 @@ export function useCollageLayout({ list, seen, filter, mode, species, container,
     let cancel = () => {}
     const step = () => {
       if (!todo) todo = childFilters(latest.current.known, filter, species, latest.current.seen)
-      else c.prefetch([todo.shift()!], cls)
+      else c.prefetch([todo.shift()!], cls, oval)
       if (todo.length) cancel = idle(step)
     }
     cancel = idle(step)
     return () => cancel()
-  }, [result, filter, species, cls])
+  }, [result, filter, species, cls, oval])
 
   // Until the worker's first answer, the seed stands in, whatever the filter or mode (as a stale layout does while a
   // new one is on its way): the stage stays up, and the worker's layout replaces it as soon as it lands.
