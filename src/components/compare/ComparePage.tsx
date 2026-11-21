@@ -32,7 +32,7 @@ export function forgetCompare(): void {
 const newId = () => kept.next++
 
 /**
- * /compare. First the set-up, one card: the title, a line ("Paste your friends' Everybird links. Up to 6 lists."), a
+ * /compare. First the set-up, on the page itself (no box): the title, a line ("Paste your friends' Everybird links. Up to 6 lists."), a
  * row per list (its colour dot, a name box, the link box, a remove button), the birder's own list first when there is
  * one (its name editable, "Your list · 1,092 species" for a link, no remove), "Add a friend" (a row, up to COMPARE_MAX
  * lists in all) and Compare at the bottom right, waiting for two lists. A link fills its row's name with the name or
