@@ -30,17 +30,20 @@ type Props = {
 
 const speciesIn = (records: { code: string }[]) => new Set(records.map((r) => r.code)).size
 
-/** One source's group (the focus target after a Remove: way-ebird, way-inat, way-obsorg, …). */
+/** One source's group (the focus target after a Remove: way-ebird, way-inat, way-obsorg, …). It draws no box: its
+ *  cells sit in the list's grid (import.css). */
 function Group({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return <div className="eb-srcgroup" id={id} tabIndex={-1} role="group" aria-label={label}>{children}</div>
 }
 
 /**
- * The Add birds dialog's "Import a file": one quiet row per source (eBird life list, MyEBirdData, iNaturalist, the
- * observation.org life list and observations, the spreadsheet, Scythebill, iGoTerra): its name and status on two lines, one button on the right, a ⋯ menu
- * once connected; adding opens the source's panel (its guidance and how-to inside) under the row. They combine into
- * one list; each import replaces only its own slot. The two file groups (eBird, observation.org) read one file at a
- * time: while either reads, both are disabled, and any file lands in the row of its kind.
+ * Settings > Your list and the Add birds dialog's "Import a file": the eight sources (eBird life list, MyEBirdData,
+ * iNaturalist, the observation.org life list and observations, the spreadsheet, Scythebill, iGoTerra) as a grid of
+ * cells in one group (four columns on Settings' wide column, two, one on phones; import.css). A cell is the source's
+ * name and status on two lines and its button, with a ⋯ menu once connected; adding opens the source's panel (its
+ * guidance and how-to inside) under the cell's row, across the grid. They combine into one list; each import replaces
+ * only its own slot. The file groups read one file at a time: while one reads, all are disabled, and any file lands in
+ * the row of its kind.
  */
 export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, jobs, disabled, counts, placesNote }: Props) {
   const { t } = useI18n()
@@ -54,7 +57,12 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
   const sheetOn = slotConnected(saved, 'sheet')
   const scythebillOn = slotConnected(saved, 'scythebill')
   const igoterraOn = slotConnected(saved, 'igoterra')
-  const focusWay = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.focus({ preventScroll: true }))
+  const focusWay = (id: string) => requestAnimationFrame(() => {
+    const way = document.getElementById(id)
+    way?.focus({ preventScroll: true })
+    // A boxless (display: contents) group can't take focus in every browser: then its first button does.
+    if (way && document.activeElement !== way) way.querySelector<HTMLElement>('button:not(:disabled)')?.focus({ preventScroll: true })
+  })
   const remove = (slot: Exclude<Slot, 'manual'>) => {
     dispatch({ type: 'remove-source', source: slot })
     focusWay(

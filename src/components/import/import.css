@@ -1,6 +1,7 @@
-/* Settings > Your list: one bordered group, a quiet row per source (two lines left: the title, with the file or
-   username, over a muted status; one button and, once connected, a ⋯ menu right), split by hairlines. Adding opens
-   the source's panel under its row. The eBird rows take a dropped file. */
+/* Settings > Your list and the Add birds dialog: one bordered group, the eight sources a grid of cells split by
+   hairlines (one column on phones, two from 600px, four on Settings from 1024px). A cell is a source's two lines (the
+   title, with the file or username, over a muted status) and its button and, once connected, its ⋯ menu. Adding
+   opens the source's panel under its cell's grid row, the group's full width. The file groups take a dropped file. */
 .eb-block-head { display: flex; flex-direction: column; gap: 4px; }
 /* Your list's one line on what each source brings (source-counts.ts), and after an import the way to the collage. */
 .eb-summary { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.45; font-variant-numeric: tabular-nums; max-width: 72ch; }
@@ -10,24 +11,59 @@
 }
 .eb-summary-link svg { width: 14px; height: 14px; flex: none; }
 .eb-summary-link::after { content: ''; position: absolute; inset: -12px -8px; } /* a 44px press */
+/* The groups (way-*: a Remove's focus target), the file groups' drop targets (.eb-filedrop) and each source (.eb-src)
+   keep their elements and add no box: the cells (.eb-src-main) are the grid's items, and whatever else a group holds
+   (an Add panel, "why?", the Remove question, a note, the live status) spans the grid under its cell's row. Dense
+   placement lets the cells after an open panel fill the rest of its row first (DOM and keyboard order unchanged). */
 .eb-srclist {
-  display: flex; flex-direction: column; min-width: 0; background: var(--paper); border: 1px solid var(--hairline);
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-flow: row dense; min-width: 0;
+  background: var(--paper); border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
-.eb-srcgroup { min-width: 0; scroll-margin-top: 16px; }
-.eb-srcgroup + .eb-srcgroup { border-top: 1px solid var(--hairline); }
+@media (min-width: 600px) { .eb-srclist { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Four only in Settings' column (.eb-import, Your list's section): from 1024px a cell holds about 200px inside, room
+   for the longest Replace or Refresh (i18n-fit.test.ts caps them at 11 characters, about 110px) and its ⋯ with some
+   to spare. The Add birds dialog (at most 760px wide) keeps two. */
+@media (min-width: 1024px) { .eb-import > .eb-srclist { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.eb-srclist :is(.eb-srcgroup, .eb-filedrop, .eb-src) { display: contents; }
+.eb-srclist :is(.eb-srcgroup, .eb-filedrop, .eb-src) > * { grid-column: 1 / -1; }
+.eb-srclist .eb-src-main { grid-column: auto; }
 .eb-srcgroup:focus { outline: none; }
-.eb-srcgroup:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
-.eb-src { position: relative; }
-.eb-src + .eb-src { border-top: 1px solid var(--hairline); }
-.eb-src-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 12px 16px; min-height: 68px; box-sizing: border-box; }
+.eb-srcgroup:focus-visible .eb-src-main { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
+.eb-src-main {
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px;
+  padding: 12px 16px; min-height: 68px; box-sizing: border-box;
+  transition: background-color .15s cubic-bezier(.25, .8, .25, 1), box-shadow .15s cubic-bezier(.25, .8, .25, 1);
+}
+/* In two or four columns a cell stacks: the text, then its buttons at the cell's bottom right, level along a row. */
+@media (min-width: 600px) {
+  .eb-src-main { flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+  .eb-src-main > .eb-src-text { flex: none; }
+  .eb-src-main > .eb-src-acts { margin-top: auto; align-self: flex-end; }
+}
+/* The hairlines: ::before the line above a cell (all but the first row), ::after the line on its left (all but the
+   first column). The cells, in order: #way-ebird's two (1, 2), #way-inat (3), #way-obsorg's two (4, 5), #way-sheet (6),
+   #way-scythebill (7), #way-igoterra (8). */
+.eb-src-main::before, .eb-src-main::after { position: absolute; background: var(--hairline); pointer-events: none; }
+.eb-src-main::before { content: ''; inset: 0 0 auto; height: 1px; }
+.eb-src-main::after { inset: 0 auto 0 0; width: 1px; }
+#way-ebird .eb-src:first-of-type > .eb-src-main::before { content: none; }
+@media (min-width: 600px) {
+  #way-ebird .eb-src-main::before { content: none; }
+  :is(#way-ebird .eb-src:nth-of-type(2), #way-obsorg .eb-src:first-of-type, #way-sheet .eb-src, #way-igoterra .eb-src) > .eb-src-main::after { content: ''; }
+}
+@media (min-width: 1024px) {
+  .eb-import > .eb-srclist :is(#way-inat .eb-src, #way-obsorg .eb-src:first-of-type) > .eb-src-main::before { content: none; }
+  .eb-import > .eb-srclist :is(#way-inat .eb-src, #way-scythebill .eb-src) > .eb-src-main::after { content: ''; }
+}
 /* The text keeps room for about 14 characters beside its buttons; with less (a large text size, a narrow phone) the
    buttons wrap under it rather than squeezing it to a letter a line (the title breaks anywhere for file names). */
 .eb-src-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 14ch; }
 .eb-src-title { margin: 0; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
 .eb-src-name { font-weight: 500; }
 .eb-src-meta { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.eb-src-meta .eb-nowrap { white-space: nowrap; }
+/* Each part on one line where it fits; a part wider than its cell (a narrow grid cell) wraps inside it. */
+.eb-src-meta .eb-nowrap { display: inline-block; max-width: 100%; }
 .eb-whybtn {
   position: relative; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer;
   text-decoration: underline; text-decoration-color: currentColor; text-decoration-thickness: from-font; text-underline-offset: 3px;
@@ -43,8 +79,8 @@
 @media (pointer: coarse) { .eb-menubtn { width: 44px; } }
 /* Its popover and rows, .eb-menu and .eb-menuitem: app.css, shared with the top bar's language menu. */
 
-/* Under a row: the Add panel (guidance, the drop zone or the username field, the how-to), the skipped entries, the
-   Remove question, the live status. */
+/* Under a cell, across the grid: the Add panel (guidance, the drop zone or the username field, the how-to), the
+   skipped entries, the Remove question, the live status. */
 .eb-src-panel { display: flex; flex-direction: column; gap: 10px; margin: -4px 16px 14px; padding: 14px 16px; background: var(--surface); max-width: 640px;
   border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
 .eb-src-panel[hidden] { display: none; }
@@ -88,9 +124,8 @@
 .eb-lifer-note a { color: var(--accent); font-weight: 600; text-decoration-thickness: from-font; text-underline-offset: 3px; }
 .eb-btn-sm { min-height: 40px; padding: 0 14px; font-size: 14px; }
 @media (pointer: coarse) { .eb-btn-sm { min-height: 44px; } }
-.eb-filedrop { border-radius: 12px; transition: background-color .15s cubic-bezier(.25, .8, .25, 1), box-shadow .15s cubic-bezier(.25, .8, .25, 1); }
-.eb-filedrop[data-over] { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--accent); }
-.eb-filedrop[data-over] .eb-src-panel { background: var(--paper); }
+/* A dragged file rings each cell of its file group. */
+.eb-filedrop[data-over] .eb-src-main { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--accent); border-radius: 12px; }
 @media (pointer: coarse) { .eb-drop-hint { display: none; } }
 @media (max-width: 479px) {
   .eb-src-main { padding: 12px 14px; }
@@ -120,7 +155,7 @@
 .eb-disclose-inner { min-height: 0; }
 .eb-disclose[data-phase] .eb-disclose-inner { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
-  .eb-disclose, .eb-disclose-btn svg, .eb-src-how svg, .eb-filedrop, .eb-dropzone { transition: none; }
+  .eb-disclose, .eb-disclose-btn svg, .eb-src-how svg, .eb-src-main, .eb-dropzone { transition: none; }
 }
 
 .eb-label {
