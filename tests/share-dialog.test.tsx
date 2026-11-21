@@ -23,12 +23,12 @@ import { MESSAGES, withI18n } from './i18n-render'
 const D = localDay()
 
 // The renderer is replaced by a promise the test resolves, so "busy" is under the test's control.
-const renders: { resolve: (b: Blob) => void; reject: (e: unknown) => void }[] = []
+const renders: { resolve: (b: Blob) => void; reject: (e: unknown) => void; opts?: { filterLabel?: string } }[] = []
 /** The stickers the next renders report as drawn outlines (ReadyImage.missing). */
 const mockMissing = { n: 0 }
 // The dialog's readyShareImage records its opts on renderShareImage (one call per render), and paints a stand-in canvas.
 vi.mock('@/lib/share/image', async (orig) => {
-  const render = vi.fn<(opts: unknown) => Promise<Blob>>(() => new Promise((resolve, reject) => renders.push({ resolve, reject })))
+  const render = vi.fn<(opts: unknown) => Promise<Blob>>((opts) => new Promise((resolve, reject) => renders.push({ resolve, reject, opts: opts as { filterLabel?: string } })))
   return {
     ...(await orig<typeof import('@/lib/share/image')>()),
     packForImage: vi.fn(async () => ({ boxes: [] })),
@@ -1510,9 +1510,11 @@ describe('the orientation switch', () => {
     expect(bulkCall).toMatchObject({ format: 'post', theme: 'light' })
     expect(bulkCall.entries.map((e) => e.code)).toEqual(['ostric2'])
     expect(makes).toHaveLength(0)
-    for (let k = before; k < before + 2; k++) {
-      await waitFor(() => expect(renders.length).toBeGreaterThan(k))
-      await act(async () => renders[k].resolve(new Blob(['png'], { type: 'image/png' })))
+    // The ZIP's own renders, by their group: the Post preview's debounced render lands in `renders` too, between or
+    // after them, so an index (renders[before + 1]) was sometimes the preview and the ZIP never finished.
+    for (const group of ['Ostriches', 'Cassowaries and Emu']) {
+      await waitFor(() => expect(renders.slice(before).some((r) => r.opts?.filterLabel === group)).toBe(true))
+      await act(async () => renders.slice(before).find((r) => r.opts?.filterLabel === group)!.resolve(new Blob(['png'], { type: 'image/png' })))
     }
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
     const [blob, filename] = vi.mocked(downloadBlob).mock.calls[0]
