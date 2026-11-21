@@ -14,10 +14,10 @@ import "@/styles/globals.css";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  // "latin-ext" carries Polish's letters outside Latin-1 (ą, ć, ę, ł, ń, ś, ź, ż), used in mono labels (dates, the
-  // count) once the UI language is Polish; "cyrillic" Russian's. Each is a unicode-range face: a page downloads only the
-  // ones its text uses.
-  subsets: ["latin", "latin-ext", "cyrillic"],
+  // Latin is the only file preloaded on every page. The generated CSS still declares every subset's unicode-range face
+  // (latin-ext for Polish's ą, ć, ę, ł, ń, ś, ź, ż, cyrillic for Russian, in the mono labels), so a page that uses
+  // those letters fetches them when it draws them: `subsets` only picks what is preloaded.
+  subsets: ["latin"],
 });
 
 /**

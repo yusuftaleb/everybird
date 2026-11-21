@@ -1,4 +1,3 @@
-import Papa from 'papaparse'
 import type { Slot } from '@/lib/list/model'
 
 export type FileKind =
@@ -28,8 +27,44 @@ const FILE_KINDS: readonly { kind: FileKind; slot: Slot | null; test: (cols: str
   { kind: 'sheet-text', slot: 'sheet', test: () => false },
 ]
 
+/** One CSV line's fields split at `d`, quotes handled as papaparse does ("" inside quotes is a quote). */
+function splitLine(line: string, d: string): string[] {
+  const out: string[] = []
+  let f = '', quoted = false
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]
+    if (quoted) {
+      if (c !== '"') f += c
+      else if (line[i + 1] === '"') { f += '"'; i++ }
+      else quoted = false
+    } else if (c === '"' && f === '') quoted = true
+    else if (c === d) { out.push(f); f = '' }
+    else f += c
+  }
+  out.push(f)
+  return out
+}
+
+/** papaparse's delimiters, in the order it guesses them. */
+const DELIMITERS = [',', '\t', '|', ';', '\x1e', '\x1f']
+
+/**
+ * A line's fields as papaparse reads one line (detection is synchronous and runs on the main thread, so papaparse stays
+ * in the import worker's chunk): split at the delimiter that gives the most fields, the first of a tie, a comma when none
+ * gives two. tests/detect-split.test.ts compares the two.
+ */
+export function csvFields(line: string): string[] {
+  let best = splitLine(line, ',')
+  let most = 1
+  for (const d of DELIMITERS) {
+    const row = splitLine(line, d)
+    if (row.length > most) { best = row; most = row.length }
+  }
+  return best
+}
+
 function isScythebillEbirdRow(line: string): boolean {
-  const row = Papa.parse<string[]>(line, { header: false }).data[0]
+  const row = csvFields(line)
   if (!row || row.length < 17) return false
   const genus = (row[1] ?? '').trim()
   const epithet = (row[2] ?? '').trim()

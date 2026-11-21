@@ -1,11 +1,15 @@
 // Name matching shared by species.search (the whole taxonomy) and the collage search (the birds on show):
 // word prefixes of the common or scientific name, accent- and case-insensitive.
 import { HTML_LANG, type Lang } from '@/i18n/langs'
-import { EN_UI, type Ui } from '@/i18n/messages/en-ui'
+import type { Ui } from '@/i18n/messages/en-ui'
 import { orderLabel } from './orders'
 import { displayName, familyName, localName, namesVersion } from './names'
 import { foldName } from './resolve'
 import type { SpeciesRow } from './types'
+
+/** The English order labels: orderLabel's fallback is orders.ts's ORDERS, which is en-ui's `orders` (tests/i18n.test.ts),
+ *  so the English dictionary stays out of the client bundle. */
+const EN_ORDERS: Pick<Ui, 'orders'> = { orders: {} as Ui['orders'] }
 
 /** Accent-stripped, lower-case, apostrophes dropped, other punctuation to spaces. Cyrillic, katakana (hiragana folds
  *  to it), its voicing marks and long-vowel mark ー, and Han are kept as letters; a Latin name's key is unchanged. */
@@ -123,7 +127,7 @@ export function searchCollage(
   }
   for (const [ord, o] of orders) {
     const com = orderLabel(ord, t)
-    const tiers = [nameTier(key, { com, sci: ord }), nameTier(key, { com: orderLabel(ord, EN_UI), sci: ord })].filter((x) => x >= 0)
+    const tiers = [nameTier(key, { com, sci: ord }), nameTier(key, { com: orderLabel(ord, EN_ORDERS), sci: ord })].filter((x) => x >= 0)
     const tier = tiers.length ? Math.min(...tiers) : -1
     if (tier >= 0) found.push({ hit: { kind: 'order', value: ord, com, sci: ord, count: o.shown || o.count, inFilter: o.shown > 0 }, tier, to: o.to })
   }
@@ -131,7 +135,7 @@ export function searchCollage(
     const o = orders.get(f.order)!
     // A family named like its order's only family is left out; either language's name counts, English order label too.
     const famKeys = [searchKey(f.com), searchKey(f.en)]
-    if (o.fams.size === 1 && famKeys.some((k) => k === searchKey(orderLabel(f.order, t)) || k === searchKey(orderLabel(f.order, EN_UI)))) continue
+    if (o.fams.size === 1 && famKeys.some((k) => k === searchKey(orderLabel(f.order, t)) || k === searchKey(orderLabel(f.order, EN_ORDERS)))) continue
     const tiers = [nameTier(key, { com: f.com, sci: fam }), nameTier(key, { com: f.en, sci: fam })].filter((x) => x >= 0)
     const tier = tiers.length ? Math.min(...tiers) : -1
     if (tier >= 0) found.push({ hit: { kind: 'family', value: fam, com: f.com, sci: fam, count: f.shown || f.count, order: f.order, inFilter: f.shown > 0 }, tier, to: f.to })

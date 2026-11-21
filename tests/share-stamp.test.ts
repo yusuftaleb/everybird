@@ -13,10 +13,14 @@ import { ru } from '@/i18n/messages/ru'
 import { ja } from '@/i18n/messages/ja'
 import { zhHans } from '@/i18n/messages/zh-Hans'
 import { zhHant } from '@/i18n/messages/zh-Hant'
-import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
+import { STAMP_EN, stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
 
 // The footer line as image.ts has it (FOOTER_LINE); this file must not import image.ts.
 const FOOTER = 'everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0'
+
+it("the default stamp's months are en-ui's (stamp.ts writes them out to keep the English dictionary out of the bundle)", () => {
+  expect(STAMP_EN.months).toEqual(en.ui.date.months)
+})
 
 describe('stampDate', () => {
   it('reads "14 Nov 2026" from the local date', () => {

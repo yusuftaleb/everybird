@@ -36,7 +36,7 @@ export function maskFromAlpha(alpha: Uint8Array, width: number, height: number, 
   const cells = boxResize(alpha, width, height, w, h)
   const bits = new Uint8Array(Math.ceil((w * h) / 8))
   for (let i = 0; i < cells.length; i++) if (cells[i] > threshold) bits[i >> 3] |= 0x80 >> (i & 7)
-  return [w, h, Buffer.from(bits).toString('base64')]
+  return [w, h, btoa(String.fromCharCode(...bits))] // btoa, not Buffer: the client imports this module (decodeMask)
 }
 
 export function decodeMask(m: [number, number, string]): Mask {

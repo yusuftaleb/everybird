@@ -2,13 +2,13 @@
 // image was made, with no prefix. Imports only @/lib/format, so e2e specs and the About demo can import it without the
 // canvas code in image.ts.
 import { dayText } from '@/i18n/format'
-import { EN_UI } from '@/i18n/messages/en-ui'
 
 /** The words of a stamp: the 12 short month names, January first. A language is one of these. */
 type StampStrings = { months: readonly string[] }
 
-/** English, with the short months the rest of the site uses ("Sep 2026"). */
-const STAMP_EN: StampStrings = { months: EN_UI.date.months }
+/** English, with the short months the rest of the site uses ("Sep 2026"): en-ui's `date.months` (tests/share-stamp.test.ts),
+ *  written out so the English dictionary stays out of the client bundle. */
+export const STAMP_EN: StampStrings = { months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] }
 
 /** "14 Nov 2026" ("2026年11月14日") from `d`'s local date (no leading zero); '' for an invalid date. */
 export function stampDate(d: Date, s: StampStrings = STAMP_EN): string {
