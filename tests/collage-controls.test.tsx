@@ -180,7 +180,7 @@ describe('the bar: one press per switch, each only in its view', () => {
 // Round 6 (Yusuf, 2026-11-20): Fit or Oval in the Collage's Display panel, the share dialog's setting (arrangement.ts).
 describe('the Arrangement choice', () => {
   afterEach(() => { setArrangement('packed') })
-  it('in the Collage\'s Display panel only, first, a labelled segmented group; one setting with the share dialog', () => {
+  it('in the Collage\'s Display panel only, first, a labelled segmented group of two icons; one setting with the share dialog', () => {
     render(<Harness />)
     const view = screen.getByRole('group', { name: 'View' })
     expect(screen.queryByTestId('dock-arrange')).toBeNull() // not in the bar
@@ -189,7 +189,11 @@ describe('the Arrangement choice', () => {
     expect(group()).toHaveAttribute('role', 'group')
     expect(group()).toHaveAccessibleName('Arrangement')
     const btn = (name: string) => within(group()).getByRole('button', { name })
-    expect(within(group()).getAllByRole('button').map((b) => b.textContent)).toEqual(['Fit', 'Oval'])
+    // Two small icons, no words: each segment named and titled "Fit" / "Oval".
+    expect(within(group()).getAllByRole('button').map((b) => [b.textContent, b.getAttribute('title')])).toEqual([['', 'Fit'], ['', 'Oval']])
+    // The oval is an ellipse wider than tall, not Phosphor's circle.
+    const ellipse = btn('Oval').querySelector('svg ellipse')!
+    expect(Number(ellipse.getAttribute('rx'))).toBeGreaterThan(Number(ellipse.getAttribute('ry')))
     expect(btn('Fit')).toHaveAttribute('aria-pressed', 'true')
     expect(btn('Fit').querySelector('svg')).not.toBeNull()
     // Its place: before the panel's switches.

@@ -670,28 +670,30 @@ main[tabindex="-1"]:focus { outline: none; }
 [data-tour-on] { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .eb-tour { animation: none; } }
 
-/* The controls bar's Display panel (DisplayPanel.tsx): the segmented choices (Layout; Arrangement with its glyphs) in
-   the share dialog's segmented style (`.eb-seg`, said here since the page may not have loaded share.css), each under its
-   mono label, then the switches: compact rows, the label at the left and the switch at the right, 32px with a mouse,
-   44px for touch, no rules or boxes; the row's Surface on hover. */
-.eb-disp { display: flex; flex-direction: column; gap: 14px; font-size: 14px; font-weight: 500; }
-.eb-disp-seg { display: flex; flex-direction: column; gap: 6px; }
+/* The controls bar's Display panel (DisplayPanel.tsx): every row one line, the label at the left and its control at
+   the right. The segmented choices (Layout's words; Arrangement's two 16px icons, no words) in the share dialog's small
+   segmented style (`.eb-share-seg`'s numbers, said here since the page may not have loaded share.css): 28px segments in
+   a 2px inset and a 1px border, a 44px press; a row too narrow for its words lets the control drop under the label.
+   Then the switches: compact rows, 32px with a mouse, 44px for touch, no rules or boxes; the row's Surface on hover. */
+.eb-disp { display: flex; flex-direction: column; gap: 10px; font-size: 14px; font-weight: 500; }
+.eb-disp-seg { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; min-height: 32px; }
 .eb-disp-slot:empty { display: none; }
 .eb-disp-slot { display: contents; }
 .eb-disp-label { margin: 0; }
 .eb-disp .eb-seg {
-  display: flex; gap: 4px; padding: 4px; border: 1px solid var(--hairline);
-  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  display: flex; flex: none; gap: 2px; padding: 2px; border: 1px solid var(--hairline);
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-disp .eb-seg-btn {
-  position: relative; flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 36px; padding: 0 10px; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 500;
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 28px; padding: 0 10px; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 500;
   white-space: nowrap; cursor: pointer; opacity: .66; -webkit-tap-highlight-color: transparent;
-  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease);
 }
-.eb-disp .eb-seg-btn::after { content: ''; position: absolute; inset: -4px 0; } /* 44px press */
-.eb-disp .eb-seg-btn svg { display: block; flex: none; width: 18px; height: 18px; }
+.eb-disp .eb-seg-btn[data-icon] { padding: 0 8px; }
+.eb-disp .eb-seg-btn::after { content: ''; position: absolute; inset: -8px 0; } /* 44px press */
+.eb-disp .eb-seg-btn svg { display: block; flex: none; width: 16px; height: 16px; }
 .eb-disp .eb-seg-btn[aria-pressed="true"] { opacity: 1; background: var(--surface); }
 .eb-disp .eb-seg-btn[aria-disabled="true"] { opacity: .4; cursor: default; }
 .eb-disp .eb-seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -700,10 +702,13 @@ main[tabindex="-1"]:focus { outline: none; }
 .eb-disp-sw .eb-setrow-label { font-size: 14px; font-weight: 500; }
 .eb-disp-sw .eb-track { flex: none; }
 .eb-setrow-btn.eb-disp-sw:focus-visible { outline-offset: 0; border-radius: 8px; }
+/* Touch (the phone's sheet, and any coarse pointer): every row and segment 44px, an icon segment 44px wide too. */
 .eb-drop-sheet .eb-setrow-btn.eb-disp-sw, .eb-drop-sheet .eb-disp .eb-seg-btn { min-height: 44px; }
+.eb-drop-sheet .eb-disp .eb-seg-btn[data-icon] { min-width: 44px; }
 .eb-drop-sheet .eb-disp .eb-seg-btn::after { content: none; }
 @media (pointer: coarse) {
   .eb-setrow-btn.eb-disp-sw, .eb-disp .eb-seg-btn { min-height: 44px; }
+  .eb-disp .eb-seg-btn[data-icon] { min-width: 44px; }
   .eb-disp .eb-seg-btn::after { content: none; }
 }
 @media (hover: hover) and (pointer: fine) { .eb-disp .eb-seg-btn:not([aria-disabled="true"]):hover { opacity: 1; } }

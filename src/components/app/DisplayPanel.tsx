@@ -4,8 +4,10 @@
 // DISPLAY_CONTROLS): in the Tree, Layout (Fan | Radial | Rectangular, a segmented control TreeView renders into
 // `layoutSlot`, since it knows which layouts can name every tip; one that can't stays listed, aria-disabled, its reason
 // its tooltip and accessible description), then Lifers only, Time scale and Scientific names; in the Collage,
-// Arrangement (Fit | Oval, with their glyphs), True size and Scientific names. List and Map have none. The switches are
-// compact rows: the label at the left, the switch at the right, 32px with a mouse and 44px for touch, no rules or boxes.
+// Arrangement (Fit | Oval as two small icons, no words: arrangement.ts ARRANGE_ICON, each named and titled), True size
+// and Scientific names. List and Map have none. Every row is one line, the label at the left and its control at the
+// right: the segmented choices small (the share dialog's Arrangement row's size), the switches 32px with a mouse and
+// 44px for touch, no rules or boxes.
 // Every setting keeps its stored value and behaviour (arrangement.ts, tree-mine.ts; True size and Scientific are the
 // list store's).
 import { useId, type ReactNode, type RefObject } from 'react'
@@ -19,8 +21,9 @@ import type { ViewKind } from '@/lib/view-resume'
 
 type Segment<V extends string> = { value: V; label: string; icon?: Icon; off?: string }
 
-/** A labelled segmented control in the share dialog's style (`.eb-seg`): one button per choice, the chosen one pressed;
- *  a choice with `off` stays listed, aria-disabled, its reason its tooltip and accessible description. */
+/** One row: the label at the left, a small segmented control in the share dialog's style (`.eb-seg`) at the right, one
+ *  button per choice, the chosen one pressed. A choice with an `icon` shows the icon alone (its label the button's name
+ *  and tooltip); one with `off` stays listed, aria-disabled, its reason its tooltip and accessible description. */
 export function DisplaySegments<V extends string>({ label, value, options, onChange, testId }: {
   label: string; value: V; options: readonly Segment<V>[]; onChange: (v: V) => void; testId?: string
 }): ReactNode {
@@ -32,11 +35,11 @@ export function DisplaySegments<V extends string>({ label, value, options, onCha
         {options.map((o) => (
           <button
             key={o.value} type="button" className="eb-seg-btn" aria-pressed={value === o.value}
-            aria-disabled={o.off ? true : undefined} aria-describedby={o.off ? `${id}-${o.value}` : undefined} title={o.off}
+            aria-label={o.icon ? o.label : undefined} data-icon={o.icon ? '' : undefined}
+            aria-disabled={o.off ? true : undefined} aria-describedby={o.off ? `${id}-${o.value}` : undefined} title={o.off ?? (o.icon ? o.label : undefined)}
             data-value={o.value} onClick={() => { if (!o.off && o.value !== value) onChange(o.value) }}
           >
-            {o.icon && <o.icon aria-hidden="true" focusable="false" />}
-            <span>{o.label}</span>
+            {o.icon ? <o.icon aria-hidden="true" focusable="false" /> : <span>{o.label}</span>}
           </button>
         ))}
       </div>

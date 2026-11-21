@@ -2,8 +2,8 @@
 // or a value no longer offered (the dropped 'family' and 'colour'), the same in every tab. One setting for the collage
 // on the page (the Display panel's Arrangement in the Collage view), the share images and the poster (the share
 // dialog's Arrangement row): changing it in either changes the other.
-import { Circle, Rectangle, type Icon } from '@phosphor-icons/react'
-import { useSyncExternalStore } from 'react'
+import { IconBase, Rectangle, type Icon, type IconWeight } from '@phosphor-icons/react'
+import { createElement, forwardRef, useSyncExternalStore, type ReactElement } from 'react'
 
 /** 'oval': packed inside the ellipse inscribed in the frame (pack.ts packBest's and packFrame's `oval`). */
 export type Arrangement = 'packed' | 'oval'
@@ -11,8 +11,22 @@ export const ARRANGEMENTS: readonly Arrangement[] = ['packed', 'oval']
 
 export const ARRANGEMENT_KEY = 'everybird:arrangement'
 
+// Phosphor has no oval: one drawn on its 256 grid, as wide as its Rectangle's frame (x 32–224 on the stroke's centre)
+// and shorter (y 56–200), so it reads as an ellipse beside it, never a circle; each weight at Phosphor's stroke width
+// (thin 8, light 12, regular 16, bold 24), filled for 'fill', with the 20% fill under the line for 'duotone'.
+const oval = (props: Record<string, unknown>) => createElement('ellipse', { cx: 128, cy: 128, rx: 96, ry: 72, ...props })
+const line = (w: number) => oval({ fill: 'none', stroke: 'currentColor', strokeWidth: w })
+const OVAL_WEIGHTS = new Map<IconWeight, ReactElement>([
+  ['thin', line(8)], ['light', line(12)], ['regular', line(16)], ['bold', line(24)],
+  ['fill', oval({ rx: 104, ry: 80 })],
+  ['duotone', createElement('g', null, oval({ opacity: 0.2 }), line(16))],
+])
+/** An oval in the Phosphor set's grid, weights and props (size, weight, colour, IconContext). */
+export const Oval: Icon = forwardRef((props, ref) => createElement(IconBase, { ref, ...props, weights: OVAL_WEIGHTS }))
+Oval.displayName = 'Oval'
+
 /** Fit or Oval's icons: the frame the birds fill, or the oval they sit in. */
-export const ARRANGE_ICON: Record<Arrangement, Icon> = { packed: Rectangle, oval: Circle }
+export const ARRANGE_ICON: Record<Arrangement, Icon> = { packed: Rectangle, oval: Oval }
 
 let memory: Arrangement | null = null
 const listeners = new Set<() => void>()
