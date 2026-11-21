@@ -592,9 +592,6 @@ export const EN_UI = {
      *  none, or beside the title (`title`). `short` is what the S, M and L segments show (the usual short size forms);
      *  `small`, `medium` and `large` are their spoken names. */
     countSize: { label: 'Count', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide', title: 'Beside title', short: { small: 'S', medium: 'M', large: 'L' } },
-    /** Why the Tree image's other orientation is off (its tooltip and description): a Fan is drawn horizontally only,
-     *  Rectangular and Radial vertically only (`fan`, `upright`). The poster's are under `print`. */
-    orientNote: { fan: 'Fan trees are horizontal', upright: 'Rectangular and Radial trees are vertical' },
     /** The preview image's alt text, per format. */
     preview: { story: 'Preview of the story image', post: 'Preview of the post image', square: 'Preview of the square image', desktop: 'Preview of the desktop image', wide: 'Preview of the wide post image' },
     failed: "Couldn't make the image.",
@@ -676,8 +673,6 @@ export const EN_UI = {
       /** The Tree's Level, the Display panel's row ("Down to" until Yusuf renamed it, 2026-11-21; Print had its own until
        *  round 6, item 22: a poster draws the screen's Level). */
       downTo: 'Level',
-      /** Why the Tree poster's other orientation is off (as `share.orientNote`, in the poster's words). */
-      orientNote: { fan: 'Fan trees print horizontally', upright: 'Rectangular and Radial trees print vertically' },
       inches: '{w} × {h} in',
       sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px at 150 dpi',
       sizeLineIn: '{w} × {h} in · {pw} × {ph} px at 150 dpi',

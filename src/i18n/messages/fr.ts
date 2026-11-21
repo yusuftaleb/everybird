@@ -480,7 +480,6 @@ export const fr: Messages = {
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Orientation', vertical: 'Portrait', horizontal: 'Paysage' },
       countSize: { label: 'Nombre', small: 'Petit', medium: 'Moyen', large: 'Grand', hide: 'Masquer', title: 'À côté du titre', short: { small: 'S', medium: 'M', large: 'L' } },
-      orientNote: { fan: 'Les arbres en éventail sont en paysage', upright: 'Les arbres rectangulaires et radiaux sont en portrait' },
       preview: { story: 'Aperçu de l’image au format Story', post: 'Aperçu de l’image au format Post', square: 'Aperçu de l’image carrée', desktop: 'Aperçu de l’image au format Bureau', wide: 'Aperçu de l’image au format Post paysage' },
       failed: 'Impossible de créer l’image.',
       imageFailed: 'Impossible de créer l’image. Réessaie.',
@@ -539,7 +538,6 @@ export const fr: Messages = {
         nameLabel: 'Titre de l’affiche',
         size: 'Taille de l’affiche',
         downTo: 'Niveau',
-        orientNote: { fan: 'Les arbres en éventail s’impriment en paysage', upright: 'Les arbres rectangulaires et radiaux s’impriment en portrait' },
         inches: '{w} × {h} po',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px à 150 dpi',
         sizeLineIn: '{w} × {h} po · {pw} × {ph} px à 150 dpi',

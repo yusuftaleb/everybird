@@ -16,22 +16,22 @@ describe('dialogRows: what each dialog shows', () => {
   })
   it('the collage: the sticker options and Export in batches, Number of birds first in both; the Goal only in Share, names only in Print', () => {
     const share = dialogRows('collage', false)
-    expect(share).toMatchObject({ arrangement: true, count: true, goal: true, latest: true, names: false, lifersOnly: false, totals: [], bulk: true, batchSize: true })
+    expect(share).toMatchObject({ orientation: true, arrangement: true, count: true, goal: true, latest: true, names: false, lifersOnly: false, totals: [], bulk: true, batchSize: true })
     const print = dialogRows('collage', true)
-    expect(print).toMatchObject({ arrangement: true, count: true, goal: false, names: true, bulk: true, batchSize: true })
+    expect(print).toMatchObject({ orientation: true, arrangement: true, count: true, goal: false, names: true, bulk: true, batchSize: true })
     for (const rows of [share, print]) {
       expect(rows.splits).toEqual(BULK_SPLITS)
       expect(rows.splits[0]).toBe('batches')
     }
   })
-  it('the Tree: its Arrangement, Show oldest lineage, Lifers only, Time scale and Totals (species, genera, families, orders), the same in Print (round 6, item 22: no rank of its own); the Map: Totals (species, countries); neither has sticker options or Export in batches, in Share or Print', () => {
+  it('the Tree: its Arrangement, Show oldest lineage, Lifers only, Time scale and Totals (species, genera, families, orders), the same in Print (round 6, item 22: no rank of its own; item 23: no orientation switch, its arrangement picks it); the Map: Totals (species, countries) and the orientation switch; neither has sticker options or Export in batches, in Share or Print', () => {
     for (const print of [false, true]) {
-      expect(dialogRows('tree', print)).toEqual({ what: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: true, oldest: true, timeScale: true, names: false, lifersOnly: true, totals: ['species', 'genera', 'families', 'orders'], bulk: false, batchSize: false, splits: [] })
-      expect(dialogRows('map', print)).toEqual({ what: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, oldest: false, timeScale: false, names: false, lifersOnly: false, totals: ['species', 'countries'], bulk: false, batchSize: false, splits: [] })
+      expect(dialogRows('tree', print)).toEqual({ what: false, orientation: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: true, oldest: true, timeScale: true, names: false, lifersOnly: true, totals: ['species', 'genera', 'families', 'orders'], bulk: false, batchSize: false, splits: [] })
+      expect(dialogRows('map', print)).toEqual({ what: false, orientation: true, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, oldest: false, timeScale: false, names: false, lifersOnly: false, totals: ['species', 'countries'], bulk: false, batchSize: false, splits: [] })
     }
   })
   it('Compare: What, and only the rows a comparison draws (no sticker options, Goal, Count, latest lifer, totals or batches)', () => {
-    expect(dialogRows('compare', false)).toEqual({ what: true, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, oldest: false, timeScale: false, names: false, lifersOnly: false, totals: [], bulk: false, batchSize: false, splits: [] })
+    expect(dialogRows('compare', false)).toEqual({ what: true, orientation: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, oldest: false, timeScale: false, names: false, lifersOnly: false, totals: [], bulk: false, batchSize: false, splits: [] })
     expect(optionRows(dialogRows('compare', false), false)).toEqual(['what', 'colours', 'transparent'])
   })
 })

@@ -416,26 +416,27 @@ describe('share dialog', () => {
     expect(screen.getByRole('button', { name: 'Poster size A2' })).toHaveAttribute('aria-haspopup', 'menu')
   })
 
-  it('the Tree: Fan, Radial or Rectangular in one control; the orientation follows it, the other one off with its reason', async () => {
+  it('the Tree: Fan, Radial or Rectangular in one control; no orientation control, the arrangement picks it (a Fan horizontal) in Share and Print', async () => {
     const st = stateWith([entry('ostric2')])
     viewRenders.tree.mockClear()
     const first = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'rows' }} onClose={() => {}} />)
     const arrange = () => within(screen.getByRole('group', { name: 'Arrangement' }))
     expect(arrange().getAllByRole('button').map((b) => b.textContent)).toEqual(['Fan', 'Radial', 'Rectangular'])
     expect(arrange().getByRole('button', { name: 'Rectangular' })).toHaveAttribute('aria-pressed', 'true')
-    // Rectangular is drawn vertically: Horizontal is off, saying why, and pressing it changes nothing.
-    const horizontal = screen.getByRole('button', { name: 'Horizontal' })
-    expect(horizontal).toHaveAttribute('aria-disabled', 'true')
-    expect(horizontal).toHaveAttribute('title', 'Rectangular and Radial trees are vertical')
-    expect(horizontal).toHaveAccessibleDescription('Rectangular and Radial trees are vertical')
-    fireEvent.click(horizontal)
-    expect(screen.getByRole('button', { name: 'Vertical' })).toHaveAttribute('aria-pressed', 'true')
-    // A Fan turns the image horizontal (the story becomes the desktop), and Vertical is the one off; never a Fan drawn as rows.
+    // No orientation control for the Tree (round 6, item 23): Rectangular is vertical, so the formats are Story, Post, Square.
+    expect(screen.queryByRole('group', { name: 'Orientation' })).toBeNull()
+    const formats = () => within(screen.getByRole('group', { name: 'Image format' })).getAllByRole('button')
+    expect(formats().map((b) => b.textContent)).toEqual(['Story', 'Post', 'Square'])
+    expect(formats().map((b) => b.getAttribute('aria-label'))).toEqual(['Story, 9:16', 'Post, 4:5', 'Square, 1:1'])
+    // A Fan turns the image horizontal: Desktop, Post 5:4 and Square (the story becomes the desktop); never a Fan drawn as rows.
     fireEvent.click(arrange().getByRole('button', { name: 'Fan' }))
     expect(treeLayout()).toBe('fan')
-    expect(screen.getByRole('button', { name: 'Horizontal' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Vertical' })).toHaveAccessibleDescription('Fan trees are horizontal')
+    expect(formats().map((b) => b.getAttribute('aria-label'))).toEqual(['Desktop, 16:9', 'Post, 5:4', 'Square, 1:1'])
+    expect(screen.queryByRole('group', { name: 'Orientation' })).toBeNull()
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'desktop', at: expect.objectContaining({ layout: 'fan' }) })))
+    fireEvent.click(formats()[1])
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'wide', at: expect.objectContaining({ layout: 'fan' }) })))
+    fireEvent.click(formats()[0])
     // Radial is vertical again.
     fireEvent.click(arrange().getByRole('button', { name: 'Radial' }))
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'story', at: expect.objectContaining({ layout: 'circle' }) })))
@@ -475,11 +476,13 @@ describe('share dialog', () => {
     act(() => setTreeLayout(null))
     fourth.unmount()
 
-    // Print from the Tree: the same rule, in the poster's words; a Fan prints landscape.
+    // Print from the Tree: no orientation row (and no format control, so no top row at all); Rectangular prints portrait,
+    // a Fan landscape.
     render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'rows' }} print onClose={() => {}} />)
-    expect(screen.getByRole('button', { name: 'Horizontal' })).toHaveAccessibleDescription('Rectangular and Radial trees print vertically')
+    expect(screen.queryByRole('group', { name: 'Orientation' })).toBeNull()
+    expect(document.querySelector('.eb-share-formats')).toHaveAttribute('hidden')
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'print', at: expect.objectContaining({ layout: 'rows' }) })))
     fireEvent.click(arrange().getByRole('button', { name: 'Fan' }))
-    expect(screen.getByRole('button', { name: 'Vertical' })).toHaveAccessibleDescription('Fan trees print horizontally')
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'printLandscape', at: expect.objectContaining({ layout: 'fan' }) })))
     act(() => setTreeLayout(null))
   })

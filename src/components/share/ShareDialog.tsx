@@ -6,8 +6,8 @@
 // (renderTreeImage, renderMapImage; the poster at the paper's size, makeViewPoster), from Collage or List the collage;
 // dialogRows says which options each shows and optionRows their order. On top the format control (Story, Post, Square;
 // Desktop, Post 5:4 and Square when the Vertical | Horizontal control beside it says Horizontal; the poster has none) and
-// the orientation, on one row where they fit; from the Tree the orientation follows the arrangement (treeOrientation: a
-// Fan is horizontal, Rectangular and Radial vertical), the other one off with its reason. Beside them the live preview
+// the orientation, on one row where they fit; the Tree has no orientation control: it follows the arrangement
+// (treeOrientation: a Fan is horizontal, Rectangular and Radial vertical; round 6, item 23). Beside them the live preview
 // (above them on phones), as large as the room left of the controls' column allows, at its top.
 // Then the optional collage title (Saved.name verbatim), its label above the field, and the options as one plain list
 // (round 6, the maintainer's layout: no box, no rules), one row each, the label at the left and its control at the right
@@ -206,8 +206,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const treeImage = subject === 'tree'
   // The Tree image's "Lifers only" is the bar's switch (tree-mine.ts), so the image and the view agree.
   const treeMine = useTreeMine()
-  // The orientation flips every format at once (Square stays square). It holds while the dialog is open. The Tree's
-  // follows its arrangement instead (treeOrientation), so a Fan never turns into rows because of it.
+  // The orientation flips every format at once (Square stays square). It holds while the dialog is open. The Tree has no
+  // switch (round 6, item 23): its orientation is its arrangement's (treeOrientation), a Fan horizontal, the others vertical.
   const [orientationChoice, setOrientation] = useState<Orientation>('vertical')
   // The Tree image's layout starts at the one drawn on screen (round 6: never the stored pick the screen had no room for);
   // a pick here is the dialog's and the dock's Layout menu's (tree-mine.ts). A Fan or Radial that the image's renders say
@@ -1057,8 +1057,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
     </button>
   )
-  /** Why the Tree's other orientation is off: a Fan is horizontal, Rectangular and Radial vertical (the poster's words in Print). */
-  const orientOff = (o: Orientation) => (treeImage && o !== orientation ? (print ? pt.orientNote : t.share.orientNote)[treeLayout === 'fan' ? 'fan' : 'upright'] : undefined)
   /** One row of the options list, by its name (optionRows gives them in order). */
   const option = (r: OptionRow): ReactNode => {
     switch (r) {
@@ -1216,7 +1214,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         <div className="eb-share-body">
           {/* On top of the controls beside the preview, above the preview on phones (share.css): the format (not in the
               poster) and the orientation on one row, the orientation under the format where the two don't fit. */}
-          <div ref={formatsRef} className="eb-share-formats">
+          {/* A Tree poster has neither (its arrangement picks the orientation): the row is left out, its grid track empty. */}
+          <div ref={formatsRef} className="eb-share-formats" hidden={print && !rows.orientation}>
             <div className="eb-share-toprow">
               {!print && (
                 <div className="eb-seg eb-share-format" role="group" aria-label={t.share.formats}>
@@ -1231,9 +1230,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                   })}
                 </div>
               )}
-              {!compare && segmented({
+              {rows.orientation && segmented({
                 className: 'eb-share-orient', label: t.share.orientation.group, value: orientation, pick: setOrientation,
-                options: ORIENTATIONS.map((o) => ({ value: o, label: t.share.orientation[o], off: orientOff(o) })),
+                options: ORIENTATIONS.map((o) => ({ value: o, label: t.share.orientation[o] })),
               })}
             </div>
           </div>

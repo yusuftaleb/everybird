@@ -7,7 +7,8 @@
 // background, nothing else. dialogTitle names what is shared or printed: the collage, the map or the tree.
 // The Goal is Share's alone (posters never draw one). Export in batches is the collage's alone, with the same Split by
 // in both, Number of birds first (Birds per image or per poster under it). optionRows puts them in the one list's order
-// (round 6); treeOrientation is the Tree's rule for its image and poster: Fan horizontal, Rectangular and Radial vertical.
+// (round 6); treeOrientation is the Tree's rule for its image and poster: Fan horizontal, Rectangular and Radial vertical,
+// so the Tree has no orientation switch (round 6, item 23).
 import type { BulkSplit } from '@/lib/share/bulk'
 import type { FormatSlot, Orientation } from '@/lib/share/image'
 import type { Theme } from '@/lib/theme'
@@ -69,6 +70,9 @@ export const subjectOf = (view: ViewKind | undefined): Subject => (view === 'tre
 export type DialogRows = {
   /** Compare's What: Comparison or Wish list. */
   what: boolean
+  /** The Vertical | Horizontal switch: the collage's and the Map's. The Tree's orientation is its arrangement's
+   *  (treeOrientation; round 6, item 23), and Compare's cards are vertical. */
+  orientation: boolean
   /** Fit, Oval or Free. */
   arrangement: boolean
   count: boolean
@@ -95,6 +99,7 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
   const collage = subject === 'collage'
   return {
     what: subject === 'compare',
+    orientation: collage || subject === 'map',
     arrangement: collage,
     count: collage,
     goal: collage && !print,
