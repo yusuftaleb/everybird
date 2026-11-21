@@ -427,6 +427,8 @@ export const pt: Messages = {
       lede: 'Veja quais aves as listas têm em comum e quais você ainda não viu. Escolha pessoas abaixo para ver as aves que só elas têm em comum.',
       ledeTheirs: 'Veja quais aves estas listas têm em comum. Escolha pessoas abaixo para ver as aves que só elas têm em comum.',
       diagram: 'Diagrama',
+      cantShow: { one: '{n} ave é compartilhada numa combinação que os círculos não conseguem mostrar.', other: '{n} aves são compartilhadas em combinações que os círculos não conseguem mostrar.' },
+      cantShowPick: 'Escolha pessoas acima para vê-las.',
     },
     orders: {
       Struthioniformes: 'Avestruzes',

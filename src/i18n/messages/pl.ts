@@ -426,6 +426,8 @@ export const pl: Messages = {
       lede: 'Zobacz, które ptaki są wspólne dla waszych list, a które są jeszcze przed tobą. Wybierz osoby poniżej, by zobaczyć ptaki wspólne tylko dla nich.',
       ledeTheirs: 'Zobacz, które ptaki są wspólne dla tych list. Wybierz osoby poniżej, by zobaczyć ptaki wspólne tylko dla nich.',
       diagram: 'Wykres',
+      cantShow: { one: '{n} ptak jest wspólny w układzie, którego koła nie pokażą.', few: '{n} ptaki są wspólne w układach, których koła nie pokażą.', many: '{n} ptaków jest wspólnych w układach, których koła nie pokażą.', other: '{n} ptaka jest wspólnych w układach, których koła nie pokażą.' },
+      cantShowPick: 'Wybierz osoby powyżej, by je zobaczyć.',
     },
     orders: {
       Struthioniformes: 'Strusie',

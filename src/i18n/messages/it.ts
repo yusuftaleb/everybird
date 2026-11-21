@@ -420,6 +420,8 @@ export const it: Messages = {
       lede: 'Scopri quali uccelli hanno in comune le vostre liste e quali devi ancora vedere. Scegli delle persone qui sotto per vedere gli uccelli che hanno in comune solo loro.',
       ledeTheirs: 'Scopri quali uccelli hanno in comune queste liste. Scegli delle persone qui sotto per vedere gli uccelli che hanno in comune solo loro.',
       diagram: 'Diagramma',
+      cantShow: { one: '{n} uccello è condiviso in una combinazione che i cerchi non possono mostrare.', other: '{n} uccelli sono condivisi in combinazioni che i cerchi non possono mostrare.' },
+      cantShowPick: 'Scegli le persone qui sopra per vederli.',
     },
     orders: {
       Struthioniformes: 'Struzzi',

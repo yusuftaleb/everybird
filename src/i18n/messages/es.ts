@@ -427,6 +427,8 @@ export const es: Messages = {
       lede: 'Mira qué aves tienen en común las listas y cuáles te quedan por ver. Elige personas abajo para ver las aves que solo ellas tienen en común.',
       ledeTheirs: 'Mira qué aves tienen en común estas listas. Elige personas abajo para ver las aves que solo ellas tienen en común.',
       diagram: 'Diagrama',
+      cantShow: { one: '{n} ave se comparte en una combinación que los círculos no pueden mostrar.', other: '{n} aves se comparten en combinaciones que los círculos no pueden mostrar.' },
+      cantShowPick: 'Elige personas arriba para verlas.',
     },
     orders: {
       Struthioniformes: 'Avestruces',

@@ -77,6 +77,12 @@ describe('the card\'s title', () => {
 // The card's diagram keeps the collage card's gaps (round 6, item 9): under the head by GAPS.head, above the footer's
 // hairline by GAPS.collage, the hairline drawn `shift` higher when the credit takes its own line (image.ts paintCard).
 describe('the card’s diagram between the head and the footer’s hairline', () => {
+  it('the line under the diagram takes its room off the bottom', () => {
+    const L = cardLayout('post', { name: false, filter: false, latest: false, count: 0, countSize: 'hide' })
+    const a = diagramBox('post', L, 400, 0), b = diagramBox('post', L, 400, 0, 54)
+    expect([b.x, b.y, b.w]).toEqual([a.x, a.y, a.w])
+    expect(a.h - b.h).toBe(54)
+  })
   /** image.ts GAPS, pinned: head under the counts, collage above the hairline. */
   const GAP = { story: { head: 40, collage: 32 }, post: { head: 40, collage: 32 }, square: { head: 48, collage: 40 } } as const
   const counts: Record<string, number[]> = {
@@ -92,21 +98,25 @@ describe('the card’s diagram between the head and the footer’s hairline', ()
           // The tallest head: two title lines at 60px (69 apart), 8px, the counts line at 30px.
           const headBottom = L.collage.y + 2 * 69 + 8 + 30
           const box = diagramBox(format, L, headBottom, shift)
-          const d = diagramLayout(c, box)
-          const all = d.core ? [...d.circles, d.core] : d.circles
+          // The names outside the circles, as the card measures them (30px Satoshi, a line 36px, 12px off the edge).
+          const n = Math.log2(c.length)
+          const d = diagramLayout(c, box, { w: Array(n).fill(180), h: 36, gap: 12 })
+          const all = [...d.circles.map((k) => ({ x: k.cx - k.r - 2, y: k.cy - k.r - 2, w: 2 * k.r + 4, h: 2 * k.r + 4 })), ...d.names!]
           // The outline's outer half (2px) counts as the drawing.
-          const low = Math.max(...all.map((k) => k.cy + k.r), ...d.spots.map((s) => s.y + s.h / 2)) + 2
-          const high = Math.min(...all.map((k) => k.cy - k.r)) - 2
+          const low = Math.max(...all.map((k) => k.y + k.h))
+          const high = Math.min(...all.map((k) => k.y))
           const hairline = L.rule.y - shift
           expect(low).toBeLessThanOrEqual(hairline - GAP[format].collage + 1e-6)
           expect(high).toBeGreaterThanOrEqual(headBottom + GAP[format].head - 1e-6)
-          // As large as the room allows, centred in it.
-          const left = Math.min(...all.map((k) => k.cx - k.r)) - 2, right = Math.max(...all.map((k) => k.cx + k.r)) + 2
-          const room = { top: headBottom + GAP[format].head, bottom: hairline - GAP[format].collage, left: L.collage.x, right: L.collage.x + L.collage.w }
-          expect(Math.abs(high - room.top - (room.bottom - low))).toBeLessThan(0.5)
-          expect(Math.abs(left - room.left - (room.right - right))).toBeLessThan(0.5)
-          // Centred, so it reaches the room's edges on the tighter side.
-          expect(Math.min(room.bottom - low, room.right - right)).toBeLessThan(0.5)
+          // As large as the box allows, centred in it (the circles by their own edges, the outline's half outside the
+          // box by diagramBox's inset; the names have none).
+          const raw = [...d.circles.map((k) => ({ x: k.cx - k.r, y: k.cy - k.r, w: 2 * k.r, h: 2 * k.r })), ...d.names!]
+          const [x0, x1] = [Math.min(...raw.map((k) => k.x)), Math.max(...raw.map((k) => k.x + k.w))]
+          const [y0, y1] = [Math.min(...raw.map((k) => k.y)), Math.max(...raw.map((k) => k.y + k.h))]
+          expect(Math.abs(y0 - box.y - (box.y + box.h - y1))).toBeLessThan(0.5)
+          expect(Math.abs(x0 - box.x - (box.x + box.w - x1))).toBeLessThan(0.5)
+          // Centred, so it reaches the box's edges on the tighter side.
+          expect(Math.min(box.y + box.h - y1, box.x + box.w - x1)).toBeLessThan(0.5)
         })
       }
     }

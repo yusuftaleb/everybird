@@ -422,6 +422,8 @@ export const zhHant: Messages = {
       lede: '看看你們的清單有哪些共同的鳥，以及哪些你還沒看過。在下方選擇人，查看只有他們共有的鳥。',
       ledeTheirs: '看看這些清單有哪些共同的鳥。在下方選擇人，查看只有他們共有的鳥。',
       diagram: '圖表',
+      cantShow: { one: '有 {n} 種鳥的共有組合無法用圓圈顯示。', other: '有 {n} 種鳥的共有組合無法用圓圈顯示。' },
+      cantShowPick: '在上方選擇人即可查看。',
     },
     orders: {
       Struthioniformes: '鴕鳥',
