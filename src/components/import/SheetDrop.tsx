@@ -9,6 +9,7 @@ import type { Saved, SheetDetails } from '@/lib/list/storage'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName } from '@/lib/species/names'
 import { FileDropzone, useFileDrop } from './FileDropzone'
+import { useAddPanel } from './add-panel'
 import { notCounted } from './NotCounted'
 import { sheetLine, SourceRow } from './SourceLine'
 
@@ -50,7 +51,10 @@ export function SheetDrop({
   const id = useId()
   const { t } = useI18n()
   const s = t.import.sheet
-  const [open, setOpen] = useState(false)
+  // The open Add panel, shared by every source (one at a time; ImportPanel folds it when a file lands).
+  const [panel, setPanel] = useAddPanel()
+  const open = panel === 'sheet'
+  const setOpen = (on: boolean) => setPanel('sheet', on)
   const [paste, setPaste] = useState('')
   const input = useRef<HTMLInputElement>(null)
   const reviewBox = useRef<HTMLDivElement>(null)
@@ -66,7 +70,6 @@ export function SheetDrop({
   const [lastMarker, setLastMarker] = useState(marker)
   if (lastMarker !== marker) {
     setLastMarker(marker)
-    setOpen(false)
     setPaste('')
   }
 
@@ -79,7 +82,8 @@ export function SheetDrop({
   const off = disabled || busy
   const pick = () => input.current?.click()
   const line = connected ? sheetLine(details, t) : null
-  const showPanel = open || !!review || busy || !!error
+  // A read or a review in progress keeps the panel open; so does its error, until another source's panel is opened.
+  const showPanel = open || !!review || busy || (!!error && panel === null)
 
   const unmatchedRows = review ? review.result.unmatched.filter((u) => u.reason === 'no-match') : []
   const shownUnmatched = unmatchedRows.slice(0, REVIEW_CAP)
@@ -134,7 +138,7 @@ export function SheetDrop({
               aria-expanded={showPanel}
               aria-controls={`${id}-panel`}
               aria-label={fmt(t.import.replaceLabel, { name: line!.name })}
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => setOpen(!open)}
             >
               {t.import.replace}
             </button>
@@ -146,7 +150,7 @@ export function SheetDrop({
               aria-expanded={showPanel}
               aria-controls={`${id}-panel`}
               aria-label={fmt(t.import.addLabel, { title: s.title })}
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => setOpen(!open)}
             >
               {t.import.add}
             </button>

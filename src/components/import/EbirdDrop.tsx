@@ -1,5 +1,5 @@
 'use client'
-import { useId, useRef, useState, type ReactNode } from 'react'
+import { useId, useRef, type ReactNode } from 'react'
 import { fileMessage, type EbirdJob } from '@/components/app/use-import-jobs'
 import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -15,6 +15,7 @@ import { FileDropzone, useFileDrop } from './FileDropzone'
 import { notCounted } from './NotCounted'
 import { ebirdLine, HowTo, SourceRow } from './SourceLine'
 import { useAnchorTarget } from './use-anchor-target'
+import { useAddPanel } from './add-panel'
 
 /** An eBird file already on the list: its slot ('ebird' full export, 'ebird-list' life list) and what is known of it. */
 export type EbirdConnected = { slot: 'ebird' | 'ebird-list'; details?: EbirdDetails }
@@ -37,8 +38,6 @@ type Props = {
   species?: SpeciesIndex
   /** Each row's species and "only here" (source-counts.ts). */
   counts?: SourceCounts
-  /** When the last import landed (use-import-jobs `landed.at`), from any source: the open Add panels fold. */
-  landedAt?: number
 }
 
 type Row = {
@@ -71,24 +70,17 @@ const rowsIn = (t: Ui): Row[] => {
  * /settings#add-mydata (the Places panel's note) open MyEBirdData's Add panel and focus its picker (MyEBirdData already
  * on the list: its Replace).
  */
-export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected = [], onRemove, saved, species, counts, landedAt }: Props) {
+export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected = [], onRemove, saved, species, counts }: Props) {
   const id = useId()
   const { t } = useI18n()
   useNames()
   const nameOf = species ? (code: string) => nameOfCode(species.byCode, code) : undefined
-  const [adding, setAdding] = useState<EbirdConnected['slot'] | null>(null)
+  // The open Add panel, shared by every source (one at a time; ImportPanel folds it when a file lands).
+  const [adding, setPanel] = useAddPanel()
   const input = useRef<HTMLInputElement>(null)
   const chooseFull = useRef<HTMLButtonElement>(null)
   const replaceFull = useRef<HTMLButtonElement>(null)
   const { busy, rows, error } = job
-  // A file landed anywhere (in this group or the other, new or a replacement: `landedAt`), or a row went: fold the
-  // Add panels away.
-  const on = `${connected.map((c) => c.slot).join()}|${landedAt ?? ''}`
-  const [lastOn, setLastOn] = useState(on)
-  if (lastOn !== on) {
-    setLastOn(on)
-    setAdding(null)
-  }
 
   const read = (file: File | undefined) => {
     if (!file || busy) return
@@ -106,7 +98,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected
   const fullOn = connected.some((c) => c.slot === 'ebird')
   const P = MYEBIRDDATA_PLACES
   // MyEBirdData's Add panel, opened and its picker focused; with MyEBirdData on the list, its Replace focused.
-  const toFull = useAnchorTarget({ anchor: P.anchor, off, connected: fullOn, open: () => setAdding('ebird'), picker: chooseFull, replace: replaceFull })
+  const toFull = useAnchorTarget({ anchor: P.anchor, off, connected: fullOn, open: () => setPanel('ebird', true), picker: chooseFull, replace: replaceFull })
 
   return (
     <div
@@ -157,7 +149,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected
                   aria-expanded={open}
                   aria-controls={`${id}-${r.slot}`}
                   aria-label={fmt(t.import.addLabel, { title: r.title })}
-                  onClick={() => setAdding(open ? null : r.slot)}
+                  onClick={() => setPanel(r.slot, !open)}
                 >
                   {t.import.add}
                 </button>

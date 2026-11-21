@@ -1,5 +1,5 @@
 'use client'
-import { useId, useRef, useState } from 'react'
+import { useId, useRef } from 'react'
 import { fileMessage, type FileJob } from '@/components/app/use-import-jobs'
 import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -11,6 +11,7 @@ import { FileDropzone, useFileDrop } from './FileDropzone'
 import { notCounted } from './NotCounted'
 import { HowTo, obsorgLine, SourceRow } from './SourceLine'
 import { useAnchorTarget } from './use-anchor-target'
+import { useAddPanel } from './add-panel'
 
 /** An observation.org file already on the list: its slot ('obsorg-list' Observed species, 'obsorg' the observations). */
 export type ObsOrgConnected = { slot: 'obsorg' | 'obsorg-list'; details?: ObsOrgDetails }
@@ -27,8 +28,6 @@ type Props = {
   saved?: Saved
   /** Each row's species and "only here" (source-counts.ts). */
   counts?: SourceCounts
-  /** When the last import landed (use-import-jobs `landed.at`), from any source: the open Add panels fold. */
-  landedAt?: number
 }
 
 type Row = { slot: ObsOrgConnected['slot']; kind: ObsOrgDetails['kind'] }
@@ -48,23 +47,16 @@ const ROWS: Row[] = [
  * (the Places panel's line) open the observations' Add panel and focus its picker (observations on the list: its
  * Replace).
  */
-export function ObsOrgDrop({ job, onFile, disabled, connected = [], onRemove, saved, counts, landedAt }: Props) {
+export function ObsOrgDrop({ job, onFile, disabled, connected = [], onRemove, saved, counts }: Props) {
   const id = useId()
   const { t } = useI18n()
   const o = t.import.obsorg
-  const [adding, setAdding] = useState<ObsOrgConnected['slot'] | null>(null)
+  // The open Add panel, shared by every source (one at a time; ImportPanel folds it when a file lands).
+  const [adding, setPanel] = useAddPanel()
   const input = useRef<HTMLInputElement>(null)
   const chooseObs = useRef<HTMLButtonElement>(null)
   const replaceObs = useRef<HTMLButtonElement>(null)
   const { busy, rows, error } = job
-  // A file landed anywhere (in this group or the other, new or a replacement: `landedAt`), or a row went: fold the
-  // Add panels away.
-  const on = `${connected.map((c) => c.slot).join()}|${landedAt ?? ''}`
-  const [lastOn, setLastOn] = useState(on)
-  if (lastOn !== on) {
-    setLastOn(on)
-    setAdding(null)
-  }
 
   const read = (file: File | undefined) => {
     if (!file || busy) return
@@ -78,7 +70,7 @@ export function ObsOrgDrop({ job, onFile, disabled, connected = [], onRemove, sa
   const obsOn = connected.some((c) => c.slot === 'obsorg')
   const P = OBSORG_PLACES
   // The observations' Add panel, opened and its picker focused; with the observations on the list, their Replace.
-  const toObs = useAnchorTarget({ anchor: P.anchor, off, connected: obsOn, open: () => setAdding('obsorg'), picker: chooseObs, replace: replaceObs })
+  const toObs = useAnchorTarget({ anchor: P.anchor, off, connected: obsOn, open: () => setPanel('obsorg', true), picker: chooseObs, replace: replaceObs })
 
   return (
     <div className="eb-filedrop" data-testid="obsorg-drop" data-over={over || undefined} data-busy={busy || undefined} {...handlers}>
@@ -124,7 +116,7 @@ export function ObsOrgDrop({ job, onFile, disabled, connected = [], onRemove, sa
                   aria-expanded={open}
                   aria-controls={`${id}-${r.slot}`}
                   aria-label={fmt(t.import.addLabel, { title: copy.title })}
-                  onClick={() => setAdding(open ? null : r.slot)}
+                  onClick={() => setPanel(r.slot, !open)}
                 >
                   {t.import.add}
                 </button>
