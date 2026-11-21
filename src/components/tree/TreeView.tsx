@@ -51,7 +51,7 @@ import './tree.css'
 
 type Loaded = { file: TreeFile; tree: Tree; species: SpeciesIndex }
 /** What the view draws, for Share (view-image.ts ShareAt). */
-export type TreeShown = { tree: TreeLevel; mine: boolean; layout: TreeLayout; time: boolean; fits: Record<FanShape, boolean> }
+export type TreeShown = { tree: TreeLevel; rank: TipRank; mine: boolean; layout: TreeLayout; time: boolean; fits: Record<FanShape, boolean> }
 type Tip = Exclude<TreeRow, { kind: 'order' }>
 
 /** Under the Fan and Radial, below their lowest label: air before the axis title. */
@@ -218,8 +218,9 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const fit = round ? fits[shape] : undefined
   const shownLevel = shown?.level
   const shownKey = shownLevel ? `${shownLevel.ord ?? ''}|${shownLevel.fam ?? ''}|${shownLevel.genus ?? ''}` : ''
+  const shownRank = shown?.tips
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `shownLevel` is read through its key
-  useEffect(() => { if (shownLevel) onLevel?.({ tree: shownLevel, mine, layout, time: timeScale, fits: roundOk }) }, [shownKey, mine, layout, timeScale, roundOk.fan, roundOk.circle, onLevel])
+  useEffect(() => { if (shownLevel && shownRank) onLevel?.({ tree: shownLevel, rank: shownRank, mine, layout, time: timeScale, fits: roundOk }) }, [shownKey, shownRank, mine, layout, timeScale, roundOk.fan, roundOk.circle, onLevel])
   const tips = useMemo(() => (shown ? tipsOf(shown) : []), [shown])
 
   // Rows: each row is as tall as its name needs (44px at least), so the drawing follows the rows' measured centres.

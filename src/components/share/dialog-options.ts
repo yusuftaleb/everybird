@@ -1,7 +1,8 @@
 // Which rows the share dialog shows, by what it draws and whether it is Print. Pure, so it is tested on its own.
 // The collage (from Collage or List) has the sticker options; the Tree and Map draw their own picture, in Share and in
 // Print alike, so they show only what that drawing reads: the Tree its Arrangement (Fan, Radial or Rectangular: the
-// dock's Layout), Show oldest lineage, Lifers only and Hide totals, the Map Hide totals.
+// dock's Layout), Show oldest lineage, Lifers only and Hide totals (and in Print, Down to: the screen's rank or the next
+// one down, round 6), the Map Hide totals.
 // The Goal is Share's alone (posters never draw one). Export in batches is the collage's alone, with the same Split by
 // in both, Number of birds first (Birds per image or per poster under it). optionRows puts them in the one list's order
 // (round 6); treeOrientation is the Tree's rule for its image and poster: Fan horizontal, Rectangular and Radial vertical.
@@ -25,6 +26,8 @@ export type DialogRows = {
   latest: boolean
   /** The Tree's: its layout (the dock's Layout menu) and Show oldest lineage. */
   treeLayout: boolean
+  /** The Tree poster's Down to: the screen's rank or the next one down (the dialog hides it when the screen shows the species). */
+  treeDepth: boolean
   oldest: boolean
   /** Show species names (the collage poster). */
   names: boolean
@@ -45,6 +48,7 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
     goal: collage && !print,
     latest: collage,
     treeLayout: subject === 'tree',
+    treeDepth: subject === 'tree' && print,
     oldest: subject === 'tree',
     names: collage && print,
     lifersOnly: subject === 'tree',
@@ -56,16 +60,17 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
 }
 
 /** One row of the options list. */
-export type OptionRow = 'size' | 'arrangement' | 'treeLayout' | 'colours' | 'count' | 'latest' | 'names' | 'lifersOnly' | 'hideTotals' | 'oldest' | 'transparent' | 'goal'
+export type OptionRow = 'size' | 'treeDepth' | 'arrangement' | 'treeLayout' | 'colours' | 'count' | 'latest' | 'names' | 'lifersOnly' | 'hideTotals' | 'oldest' | 'transparent' | 'goal'
 
 /**
- * The options list, top to bottom (round 6, the maintainer's layout): Print's Poster size first, the choices
+ * The options list, top to bottom (round 6, the maintainer's layout): Print's Poster size first (the Tree poster's Down
+ * to under it), the choices
  * (Arrangement, Colours, Count), then the switches, Transparent background last of them, and Share's Goal at the end.
  * Show latest lifer is listed wherever the image can draw one; the dialog leaves it out when no bird in view has a date.
  */
 export function optionRows(rows: DialogRows, print: boolean): OptionRow[] {
   const order: [OptionRow, boolean][] = [
-    ['size', print], ['arrangement', rows.arrangement], ['treeLayout', rows.treeLayout], ['colours', true], ['count', rows.count],
+    ['size', print], ['treeDepth', rows.treeDepth], ['arrangement', rows.arrangement], ['treeLayout', rows.treeLayout], ['colours', true], ['count', rows.count],
     ['latest', rows.latest], ['names', rows.names], ['lifersOnly', rows.lifersOnly], ['hideTotals', rows.hideTotals], ['oldest', rows.oldest],
     ['transparent', true], ['goal', rows.goal],
   ]

@@ -518,6 +518,9 @@ export const it: Messages = {
       print: {
         title: 'Stampa il poster',
         size: 'Formato del poster',
+        downTo: 'Fino a',
+        deeperLarger: 'Un poster più grande stampa tutti i nomi',
+        deeperNone: 'Troppi nomi per stamparli in modo leggibile',
         orientNote: { fan: 'Gli alberi a ventaglio si stampano in orizzontale', upright: 'Gli alberi rettangolari e radiali si stampano in verticale' },
         inches: '{w} × {h} pollici',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px a 150 dpi',

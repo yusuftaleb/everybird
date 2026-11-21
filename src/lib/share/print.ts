@@ -48,6 +48,12 @@ export const CAPTION_CAPS: Record<PrintSize, number> = {
  * length; in design units it scales with the poster (captionMinPx: 32.7 on A4, 16.3 on A2, 11.5 on A1).
  */
 export const CAPTION_MIN_PT = 18
+/**
+ * The Tree poster's tip names, in points on paper, when Print's "Down to" draws one rank deeper than the screen: every
+ * name must print at least this size, whole, or the deeper rank is not offered at that size (round 6, "One step +
+ * size"). 9 pt is the smallest type a poster read at arm's length stays readable at, half the species names' size above.
+ */
+export const TREE_NAME_MIN_PT = 9
 /** The print card's width in design units, as the share images. */
 export const PRINT_DESIGN_W = 1080
 /** The height the A sizes' pack is made at (every A size's printDesignH is within 0.2% of it). */
@@ -58,6 +64,8 @@ export const printScale = (s: PrintSize): number => PRINT_PX[s][0] / PRINT_DESIG
 /** Convert points at 150 dpi (72 pt/in) into card design units for `s`. */
 export const ptToDesignUnits = (pt: number, s: PrintSize): number => ((pt * PRINT_DPI) / 72) / printScale(s)
 export const captionMinPx = (s: PrintSize): number => ptToDesignUnits(CAPTION_MIN_PT, s)
+/** TREE_NAME_MIN_PT in design units for `s` (16.3 on A4, 8.2 on A2, 5.8 on A1). */
+export const treeNameMinPx = (s: PrintSize): number => ptToDesignUnits(TREE_NAME_MIN_PT, s)
 /** The size's long side in design units (A4 about 1527.7, A1 about 1529.2, 2:3 1620, 3:4 1440): the portrait height, the landscape width. */
 export const printDesignH = (s: PrintSize): number => PRINT_PX[s][1] / printScale(s)
 

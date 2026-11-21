@@ -520,6 +520,9 @@ export const zhHans: Messages = {
       print: {
         title: '打印海报',
         size: '海报尺寸',
+        downTo: '展开到',
+        deeperLarger: '更大的海报能印出所有名称',
+        deeperNone: '名称太多，无法清晰打印',
         orientNote: { fan: '扇形演化树横向打印', upright: '矩形和放射状演化树竖向打印' },
         inches: '{w} × {h}英寸',
         sizeLine: '{size} · {w} × {h}厘米 · 150 dpi下{pw} × {ph}像素',

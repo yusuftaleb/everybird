@@ -520,6 +520,9 @@ export const sv: Messages = {
       print: {
         title: 'Skriv ut affisch',
         size: 'Affischstorlek',
+        downTo: 'Ner till',
+        deeperLarger: 'En större affisch skriver ut alla namn',
+        deeperNone: 'För många namn för att skriva ut läsbart',
         orientNote: { fan: 'Solfjäderträd skrivs ut liggande', upright: 'Rektangulära och radiella träd skrivs ut stående' },
         inches: '{w} × {h} tum',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px vid 150 dpi',

@@ -520,6 +520,9 @@ export const zhHant: Messages = {
       print: {
         title: '列印海報',
         size: '海報尺寸',
+        downTo: '展開到',
+        deeperLarger: '更大的海報能印出所有名稱',
+        deeperNone: '名稱太多，無法清楚列印',
         orientNote: { fan: '扇形演化樹以橫向列印', upright: '矩形和放射狀演化樹以直向列印' },
         inches: '{w} × {h} 英吋',
         sizeLine: '{size} · {w} × {h} 公分 · {pw} × {ph} px，150 dpi',

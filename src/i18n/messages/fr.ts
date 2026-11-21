@@ -529,6 +529,9 @@ export const fr: Messages = {
       print: {
         title: 'Imprimer l’affiche',
         size: 'Taille de l’affiche',
+        downTo: 'Jusqu’à',
+        deeperLarger: 'Une plus grande affiche imprime tous les noms',
+        deeperNone: 'Trop de noms pour les imprimer lisiblement',
         orientNote: { fan: 'Les arbres en éventail s’impriment en paysage', upright: 'Les arbres rectangulaires et radiaux s’impriment en portrait' },
         inches: '{w} × {h} po',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px à 150 dpi',

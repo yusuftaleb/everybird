@@ -14,6 +14,10 @@
 // oldest lineage takes the latest lifer's place and style (latestAs; on a poster, its foot). On top, instead of the
 // big count, four equal totals: species, genera, families and orders, each "count / total" over its rank, the same
 // size and weight ("Hide totals": the species alone). The footer credits the stickers and the tree (TREE_FOOTER).
+// A share image always draws the rank on screen. Only a poster may go one rank deeper (Print's "Down to", `deeper`;
+// levelView's 'deeper'): every render of a poster checks, for each poster size in its orientation and arrangement,
+// whether every name of that rank prints whole at TREE_NAME_MIN_PT or more on paper (onDeeper), and draws it only at a
+// size where it does, its round layouts then sized with that floor, so the poster is the one checked.
 import { fmt } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import type { Ui } from '@/i18n/messages/en'
@@ -23,9 +27,10 @@ import type { SpeciesRow } from '@/lib/species/types'
 import { stickerUrl } from '@/lib/sticker-url'
 import { LABEL_COUNT, LABEL_GAP, LABEL_STICKER, clearOfEnds, drawFan, fanLabel, fanRing, fitRound, polar, ringLabels, type FanBox, type LabelSizes, type LabelSpan } from '@/lib/tree/fan'
 import { loadTree } from '@/lib/tree/load'
-import { levelView, ROW_H, taxonCover, tipOn, type TreeRow } from '@/lib/tree/levels'
+import { levelView, ROW_H, taxonCover, tipOn, type LevelView, type TreeRow } from '@/lib/tree/levels'
 import { ageTicks, bySplits, circlePath, drawTree, formatAge, oldestLineage, type Drawing } from '@/lib/tree/tree'
 import { IMAGE_SCALE, loadStickers, type ImageFormat } from './image'
+import { PRINT_SIZES, printDesign, treeNameMinPx, type PrintSize } from './print'
 import { TREE_FOOTER, clipText, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 
 /** The Rectangular image's names: the largest size, and how much of a row's pitch they and the sticker's box take. */
@@ -78,12 +83,31 @@ export function rowsLabels(spans: readonly LabelSpan[], pitch: number, textW: nu
   return { px, box, counts, col }
 }
 
+/** The Rectangular image's name size for `spans` in `room` (the drawing's rows `height` px tall on screen, ROW_H each). */
+export function rowsNamePx(spans: readonly LabelSpan[], height: number, room: { w: number; h: number }): number {
+  const k = Math.min(room.h / height, PITCH_MAX / ROW_H)
+  return rowsLabels(spans, ROW_H * k, room.w - Math.round(room.w * ROWS_TREE) - IMAGE_SIZES.dot).px
+}
+
+/**
+ * Whether every name prints whole at `floor` design units or more in `layout` in `room`: Rectangular's names at that
+ * size or larger, a Fan's or Radial's sized by fitRound with that floor (the counts may go, never a name).
+ */
+export function namesFit(layout: 'fan' | 'circle' | 'rows', spans: readonly LabelSpan[], height: number, room: { w: number; h: number }, floor: number): boolean {
+  if (!spans.length) return false
+  if (layout === 'rows') return rowsNamePx(spans, height, room) >= floor
+  return !!fitRound(spans, layout, room, { ...IMAGE_SIZES, floor: Math.max(IMAGE_SIZES.floor, floor) })
+}
+
 export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const { state, entries, at, t } = o
   const [{ tree }, all] = await Promise.all([loadTree(), loadSpecies()])
   const codes = new Set(entries.map((e) => e.code))
-  const view = levelView(tree, all, at.tree ?? {}, codes, at.mine)
-  if (!view) throw new Error('No tree to draw')
+  const shownView = levelView(tree, all, at.tree ?? {}, codes, at.mine)
+  if (!shownView) throw new Error('No tree to draw')
+  // A poster (its size given, the print card) may draw the rank under the screen's ("Down to"); a share image never.
+  const posterSize: PrintSize | undefined = o.printSize && (o.format === 'print' || o.format === 'printLandscape') ? o.printSize : undefined
+  const deepView = posterSize ? levelView(tree, all, at.tree ?? {}, codes, at.mine, 'deeper') : undefined
   const tt = t.collage.tree
   const timeScale = at.time !== false
   // The oldest lineage in the latest lifer's place ("Show oldest lineage").
@@ -91,31 +115,40 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const oldRow = old && (o.species.byCode.get(old.code) ?? all.byCode.get(old.code))
   const oldAge = old ? formatAge(old.age, t.num) : ''
   const latestAs = oldRow ? { row: oldRow, label: fmt(tt.oldestLabel, { age: oldAge }), poster: fmt(tt.oldestPoster, { name: o.nameOf?.(oldRow) ?? oldRow.com, age: oldAge }) } : undefined
-  const root = view.root && (timeScale ? view.root : bySplits(view.root))
-  const stem = timeScale ? view.stem : 1
   const cover = taxonCover(all.rows, codes)
   const totals = (o.hideTotals ? ['species'] as const : TOTALS).map((k) => ({ k, n: formatInt(cover[k][0], t.num), total: formatInt(cover[k][1], t.num), label: tt.rank[k].toUpperCase() }))
-  const rank = view.tips
-  const nameOf = (r: Tip): string =>
-    r.kind === 'species' ? (state.sci ? r.row.sci : o.nameOf?.(r.row) ?? r.row.com)
-      : rank === 'genera' ? r.key
-        : rank === 'orders' ? (state.sci ? r.row.ord : (t.orders as Record<string, string>)[r.row.ord] ?? r.row.ord)
-          : state.sci ? r.row.fam : familyName(r.row)
-  const tips = view.rows.filter((r): r is Tip => r.kind !== 'order')
+  /** What drawing a level takes: its drawing's tree (without its time scale when that is off), its tips and their names. */
+  const prep = (view: LevelView) => {
+    const rank = view.tips
+    const nameOf = (r: Tip): string =>
+      r.kind === 'species' ? (state.sci ? r.row.sci : o.nameOf?.(r.row) ?? r.row.com)
+        : rank === 'genera' ? r.key
+          : rank === 'orders' ? (state.sci ? r.row.ord : (t.orders as Record<string, string>)[r.row.ord] ?? r.row.ord)
+            : state.sci ? r.row.fam : familyName(r.row)
+    const tips = view.rows.filter((r): r is Tip => r.kind !== 'order')
+    return { view, root: view.root && (timeScale ? view.root : bySplits(view.root)), stem: timeScale ? view.stem : 1, nameOf, tips }
+  }
+  const shown = prep(shownView)
+  const deep = deepView?.rows.length ? prep(deepView) : undefined
   const onOf = (r: Tip) => (r.kind === 'species' ? Number(r.on) : r.on)
-  const dotted = tips.some((r) => r.dotted)
-  // The stickers, as on screen: the species' own, else one bird of the group on the list.
+  // The stickers, as on screen: the species' own, else one bird of the group on the list (the deeper rank's too when
+  // it may be drawn).
   const scale = o.scale ?? IMAGE_SCALE[o.format as ImageFormat] ?? 1
   const stickerOf = (r: Tip): SpeciesRow | undefined => { const row = r.kind === 'species' ? r.row : r.sticker; return row?.st ? row : undefined }
   const urlOf = (row: SpeciesRow) => stickerUrl(row.code, 64, scale, row.sv)
-  const imgs = await loadStickers([...new Set(tips.flatMap((r) => { const row = stickerOf(r); return row ? [urlOf(row)] : [] }))], { signal: o.signal })
+  const stickerTips = o.deeper && deep ? [...shown.tips, ...deep.tips] : shown.tips
+  const imgs = await loadStickers([...new Set(stickerTips.flatMap((r) => { const row = stickerOf(r); return row ? [urlOf(row)] : [] }))], { signal: o.signal })
   const countText = (r: Tip) => (r.kind === 'group' ? fmt(tt.tipOf, { n: formatInt(r.on, t.num), total: formatInt(r.total, t.num) }) : '')
 
   return renderViewImage({ ...o, countSize: 'hide', latestAs }, TREE_FOOTER, (ctx, card, full) => {
     const C = card.colors
     const font = card.fonts
     // The totals on top: the same size for all, "count" in Ink and " / total" in Muted, the rank under it.
-    const { num, label: labelPx } = totalsSize(totals.map((x) => `${x.n} / ${x.total}`), full.w, (s) => { ctx.font = font.count(100); return ctx.measureText(s).width / 100 })
+    const totalsAt = (w: number) => {
+      const { num, label } = totalsSize(totals.map((x) => `${x.n} / ${x.total}`), w, (s) => { ctx.font = font.count(100); return ctx.measureText(s).width / 100 })
+      return { num, label, head: num * 0.72 + TOTAL_GAP + label * 0.72 + TOTALS_BELOW }
+    }
+    const { num, label: labelPx, head } = totalsAt(full.w)
     const col = full.w / totals.length
     ctx.textBaseline = 'alphabetic'
     ctx.textAlign = 'left'
@@ -134,10 +167,10 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       ctx.fillText(x.label, cx, full.y + numCap + TOTAL_GAP + labelCap)
       ctx.textAlign = 'left'
     })
-    const head = numCap + TOTAL_GAP + labelCap + TOTALS_BELOW
     const area: Area = { x: full.x, y: full.y + head, w: full.w, h: full.h - head }
 
-    const axis = timeScale && area.h >= 520 && tips.length > 0
+    const axisIn = (h: number) => timeScale && h >= 520 && shown.tips.length > 0
+    const axis = axisIn(area.h)
     const bottom = (axis ? AXIS_H : 0) + KEY_H
     const stroke = (on: boolean) => {
       ctx.strokeStyle = on ? C.ink : C.line
@@ -187,26 +220,44 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       ctx.restore()
     }
     const isMarked = (r: Tip) => r.kind === 'group' && !!r.with
-    const tipIsOn = (i: number) => onOf(tips[i]) > 0
     // Each tip's name and count widths at size 1 (the name's face; the count in mono at LABEL_COUNT of it).
-    const spans: LabelSpan[] = tips.map((r) => {
+    const spansOf = (tips: readonly Tip[], nameOf: (r: Tip) => string): LabelSpan[] => tips.map((r) => {
       ctx.font = font.lifer(100)
       const nw = ctx.measureText(nameOf(r)).width / 100 + (isMarked(r) ? 0.8 : 0)
       ctx.font = font.footer(100 * LABEL_COUNT)
       const c = countText(r)
       return { name: nw, count: c ? ctx.measureText(c).width / 100 : 0, on: onOf(r) > 0 }
     })
+    const shownSpans = spansOf(shown.tips, shown.nameOf)
+    const want = shown.root ? at.layout ?? 'rows' : 'rows'
+    // "Down to": per poster size, whether every name of the deeper rank prints whole at TREE_NAME_MIN_PT or more in this
+    // orientation and arrangement. Another size's card is this one with its own width and height (a poster's head and
+    // foot are fixed in design units, so its drawing's area grows by the difference); its totals are sized again.
+    const deepSpans = deep && spansOf(deep.tips, deep.nameOf)
+    const deepFits = deep && posterSize ? Object.fromEntries(PRINT_SIZES.map((s) => {
+      const [W, H] = printDesign(s, o.format === 'printLandscape')
+      const w = full.w + W - card.L.W, h = full.h + H - card.L.H - totalsAt(w).head
+      const room = { w, h: h - (axisIn(h) ? AXIS_H : 0) - KEY_H }
+      return [s, namesFit(want, deepSpans!, deep.view.height, room, treeNameMinPx(s))]
+    })) as Record<PrintSize, boolean> : undefined
+    if (posterSize) o.onDeeper?.(deep && deepFits ? { rank: deep.view.tips, fits: deepFits } : null)
+    const drawDeep = !!(o.deeper && deep && deepFits?.[posterSize!])
+    const { view, root, stem, nameOf, tips } = drawDeep ? deep! : shown
+    const spans = drawDeep ? deepSpans! : shownSpans
+    const dotted = tips.some((r) => r.dotted)
+    const tipIsOn = (i: number) => onOf(tips[i]) > 0
     let marked = false
     let y: number
     let axisAt: (v: number) => number[]
     let axisY: number
-    // Whether each round layout names every tip here, told to the dialog (onTreeFits), which shows one that cannot as off
-    // and asks for Rectangular instead; a layout that cannot is drawn as rows meanwhile, never cut.
-    const round = (kind: 'fan' | 'circle') => (root ? fitRound(spans, kind, { w: area.w, h: area.h - bottom }, IMAGE_SIZES) : undefined)
-    const fans = { fan: round('fan'), circle: round('circle') }
-    o.onTreeFits?.({ fan: !!fans.fan, circle: !!fans.circle })
-    const want = root ? at.layout ?? 'rows' : 'rows'
-    const fit = want === 'rows' ? undefined : fans[want]
+    // Whether each round layout names every tip of the screen's rank here, told to the dialog (onTreeFits), which shows
+    // one that cannot as off and asks for Rectangular instead; a layout that cannot is drawn as rows meanwhile, never cut.
+    // The deeper rank is drawn with the floor it was checked at, so its names print at TREE_NAME_MIN_PT or more.
+    const round = (sp: LabelSpan[], kind: 'fan' | 'circle', sizes: LabelSizes) => (shown.root ? fitRound(sp, kind, { w: area.w, h: area.h - bottom }, sizes) : undefined)
+    const shownFans = { fan: round(shownSpans, 'fan', IMAGE_SIZES), circle: round(shownSpans, 'circle', IMAGE_SIZES) }
+    o.onTreeFits?.({ fan: !!shownFans.fan, circle: !!shownFans.circle })
+    const deepSizes = { ...IMAGE_SIZES, floor: Math.max(IMAGE_SIZES.floor, posterSize ? treeNameMinPx(posterSize) : 0) }
+    const fit = want === 'rows' ? undefined : drawDeep ? round(spans, want, deepSizes) : shownFans[want]
     const shape = fit ? (fit.shape ?? 'fan') : 'rows'
 
     if (fit) {
@@ -377,7 +428,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       ctx.fillStyle = C.muted
       ctx.fillText(clipText(ctx, tt.keyDotted, area.x + area.w - x), x, keyY)
     }
-  }, undefined, sampleText(tips.map(nameOf), tips.map(countText), totals, tt))
+  }, undefined, sampleText([...shown.tips.map(shown.nameOf), ...(deep?.tips.map(deep.nameOf) ?? [])], [...shown.tips, ...(deep?.tips ?? [])].map(countText), totals, tt))
 }
 
 /** Every text the image draws besides the frame's, so its fonts are loaded first. */

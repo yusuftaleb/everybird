@@ -7,6 +7,8 @@
 // with one family at its genera, a family with one genus at its species), and a group of SPECIES_AT species or fewer
 // opens straight at its species. MAX_TIPS guards that skip: a rank it skips to that would draw more tips is not drawn
 // (the rank above it is); on the shipped tree it never applies.
+// Print's "Down to" (round 6, "One step + size") may draw the poster one rank deeper: `rank` 'deeper' is the next rank
+// under the one on screen, past lone tips the same way, with no MAX_TIPS guard (the poster's 9 pt check decides).
 // A group the tree splits (not one branch of its own) is drawn once (`foldSplit`), as one marked row at the smallest
 // branch holding all of it within the open branch ("Macropygia with Turacoena"), counting the whole branch; the groups
 // inside get no row of their own. When such a branch lies inside another, the outer one is the row.
@@ -160,10 +162,11 @@ export const SPECIES_AT = 12
  * The rows and drawing of `level`, with `onList` the codes on the (filtered) list. `mine` ("Lifers only") keeps only the
  * rows with a bird on the list, and inside a marked row only those groups: the folds are decided on the full tree first,
  * then the tree is cut down to the kept rows' tips. The tips are the rank one step under the open branch, past lone
- * tips (see the header); `rank` draws another rank at or under it instead (the unit tests read the folds at every rank).
+ * tips (see the header); `rank` draws another rank at or under it instead (the unit tests read the folds at every rank),
+ * or 'deeper' the rank under the one on screen (Print's "Down to"; undefined when the screen shows the species).
  * Undefined when nothing is drawn (with `mine`, rows are empty instead).
  */
-export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, onList: ReadonlySet<string>, mine = false, rank?: TipRank): LevelView | undefined {
+export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, onList: ReadonlySet<string>, mine = false, rank?: TipRank | 'deeper'): LevelView | undefined {
   const rowOf = (tip: number) => species.byCode.get(tree.code[tip]!)
   const all: number[] = []
   for (const tip of tree.tipOf.values()) if (rowOf(tip)) all.push(tip)
@@ -204,12 +207,18 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   // (an order with one family opens at its genera, a family with one genus at its species), and straight at the
   // species for a group of SPECIES_AT species or fewer. Nothing open: the orders.
   let ri = 0
-  if (rank && offered.includes(rank)) ri = offered.indexOf(rank)
+  const skipLone = () => { while (ri < offered.length - 1 && rankAt(offered[ri]).count === 1) ri++ }
+  if (rank && rank !== 'deeper' && offered.includes(rank)) ri = offered.indexOf(rank)
   else if (depthOf(at) > 0) {
-    while (ri < offered.length - 1 && rankAt(offered[ri]).count === 1) ri++
+    skipLone()
     if (rankAt('species').count <= SPECIES_AT) ri = offered.length - 1
   }
   while (ri > 0 && rankAt(offered[ri]).count > MAX_TIPS) ri--
+  if (rank === 'deeper') {
+    if (ri === offered.length - 1) return undefined
+    ri++
+    skipLone()
+  }
   const drawnRank = offered[ri]
   const { rawKey, folds, keyOf } = rankAt(drawnRank)
 
