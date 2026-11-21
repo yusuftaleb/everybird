@@ -96,10 +96,13 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(filtersCss).not.toMatch(/data-view[^{]*\.eb-drop/);
   });
 
-  it("the content under the dock dims to 30% while Filters is open, with no transition under reduced motion", () => {
+  it("the content under the dock dims to 30% while Filters is open, easing both ways, with no transition under reduced motion", () => {
     expect(topLevelRule(css, ".eb-view-below")).toMatch(/display:\s*contents/);
     expect(topLevelRule(css, ".eb-view-below[data-dim] > *")).toMatch(/opacity:\s*\.3/);
-    expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.eb-view-below\[data-dim\] > \*\s*\{\s*transition:\s*none/);
+    // On the children at rest, not with the attribute: undimming eases too (AN2).
+    expect(topLevelRule(css, ".eb-view-below > *")).toMatch(/transition:\s*opacity/);
+    expect(topLevelRule(css, ".eb-view-below[data-dim] > *")).not.toMatch(/transition/);
+    expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.eb-view-below > \*\s*\{\s*transition:\s*none/);
   });
 
   it("the Conservation status panel's long category names wrap rather than cut", () => {
@@ -176,5 +179,44 @@ describe("the dock's right side: one padding, one gap, at every breakpoint", () 
       "@container (max-width: 540px)": { "--dock-px": "8px" },
       "@container (max-width: 330px)": { "--dock-px": "4px", "--dock-gap": "2px" },
     });
+  });
+});
+
+describe("round 6 design proposals: the panels' CSS (AU4, AN5, AD1, H11)", () => {
+  const cardCss = readFileSync(resolve(__dirname, "../src/components/collage/card-list.css"), "utf8");
+  it("every breadcrumb step, the Taxa path's too, has a 44px press", () => {
+    expect(topLevelRule(filtersCss, ".eb-path button")).toMatch(/position:\s*relative/);
+    expect(topLevelRule(filtersCss, ".eb-path button::after")).toMatch(/height:\s*44px/);
+  });
+  it("a popover rises 4px from its button, with no transform left once it lands, and none under reduced motion", () => {
+    const drop = topLevelRule(filtersCss, ".eb-drop");
+    expect(drop).toMatch(/animation:\s*eb-rise\s[^;]*backwards/);
+    expect(filtersCss).toMatch(/@keyframes eb-rise \{ from \{ opacity: 0; transform: translateY\(-4px\); \} \}/);
+    expect(block(filtersCss, /@media \(prefers-reduced-motion: reduce\) \{\n  \.eb-chip/)).toMatch(/\.eb-drop \{ animation: none; \}/);
+  });
+  it("under 760px of bar Conservation status stacks under Places", () => {
+    const stacked = block(filtersCss, /@container \(max-width: 759px\)/);
+    expect(stacked).toMatch(/\.eb-fpanel-row \{ flex-direction: column;/);
+    expect(stacked).toMatch(/\[data-sec="status"\] \{ border-left: 0;[^}]*border-top: 1px solid var\(--hairline\)/);
+  });
+  it("long compound names hyphenate before they break mid-word", () => {
+    expect(topLevelRule(filtersCss, ".eb-check-name")).toMatch(/hyphens:\s*auto/);
+    for (const sel of [".eb-card-name", ".eb-lhead-name", ".eb-row-primary"]) expect(topLevelRule(cardCss, sel)).toMatch(/hyphens:\s*auto/);
+  });
+});
+
+describe("round 6 design proposals: the dock's motion (AN8, AU16) and the list rows' hover (P6)", () => {
+  const cardCss = readFileSync(resolve(__dirname, "../src/components/collage/card-list.css"), "utf8");
+  it("a panel button's Accent text eases in, as its fill does; the theme and language buttons ease their fill", () => {
+    expect(topLevelRule(css, ".eb-dock-tab")).toMatch(/transition:[^;]*color \.15s/);
+    expect(topLevelRule(css, ".eb-theme")).toMatch(/transition:\s*background-color \.15s/);
+  });
+  it("under reduced motion the panel buttons' caret turns at once, and the theme button's fill too", () => {
+    const reduced = block(css, /@media \(prefers-reduced-motion: reduce\) \{\n  \.eb-btn, \.eb-dock-tab/);
+    expect(reduced).toMatch(/\.eb-dock-drop \.eb-drop-caret/);
+    expect(reduced).toMatch(/\.eb-theme \{ transition: none; \}|\.eb-theme[^{]*\{ transition: none; \}/);
+  });
+  it("list rows show a Surface band on hover, fine pointers only", () => {
+    expect(block(cardCss, /@media \(hover: hover\) and \(pointer: fine\) \{\n  \.eb-row-btn \{/)).toMatch(/\.eb-row-btn:hover \{ background: var\(--surface\); \}/);
   });
 });

@@ -85,6 +85,7 @@ export const ja: Messages = {
         threatenedSr: '（危急、危機、深刻な危機）',
       },
       arranging: 'ステッカーを配置しています',
+      noMatch: { your: 'あなたのリストに、この条件に合う鳥はいません。', this: 'このリストに、この条件に合う鳥はいません。' },
       legend: {
         latest: '最新：{name}',
         latestOn: '最新：{name}、<time>{date}</time>',
@@ -109,6 +110,8 @@ export const ja: Messages = {
         map: '地図',
         mapAll: 'すべて表示（{n}）',
         mapFailed: '地図を読み込めませんでした。下のリストで同じ数を確認できます。',
+        mapRetry: '再試行',
+        mapUnplaced: { one: 'このリストの{n}種は場所の記録がないため、地図には表示されません。', other: 'このリストの{n}種は場所の記録がないため、地図には表示されません。' },
         mapHint: 'ピンチまたは+/−でズーム · ドラッグで移動',
         mapZoomIn: 'ズームイン',
         mapZoomOut: 'ズームアウト',
@@ -856,6 +859,7 @@ export const ja: Messages = {
     },
     search: {
       understood: '解釈した条件',
+      hint: '名前、グループ、場所、年で探せます：猛禽 ケニア 2024',
       show: 'これらの鳥を表示',
       note: 'あなたのリストには初記録の日付しかありません。すべての記録を使うにはMyEBirdData.csvを読み込んでください',
     },

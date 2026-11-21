@@ -2,7 +2,8 @@
 // The controls bar's Taxa panel (Yusuf, 2026-11-20, round 6): the taxonomy chips (orders; in an order its families; in a
 // family its genera, each with its count, as FilterBar's levels work) in the Filters panel's frame (DockPanel), as wide
 // as the page's content, with the path ("All birds / Waterfowl / …") at its top to go back and a mono head with the
-// level's coverage ("18 of 45 orders": the groups with a bird under the other filters, of the taxonomy's in the parent).
+// level's coverage ("18 of 45 orders": the groups with a bird under the other filters, of the taxonomy's in the parent;
+// "18 orders" until the full species file is in, and for good if it fails to load, so the head never arrives late).
 // Picking a chip filters every view, and in the Tree opens it; the panel stays open for the next level. Under 600px it
 // is the sheet, its chips wrapping in it, with "Show N species" at its foot.
 import { useEffect, useState, type ReactNode, type RefObject } from 'react'
@@ -45,7 +46,7 @@ type Props = {
 
 export function TaxaPanel({ state, dispatch, species, tree, id, buttonRef, onClose, shown }: Props): ReactNode {
   const { t } = useI18n()
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const taxa = useTaxa({ state, dispatch, species, tree })
   // The taxonomy's totals come from the full species file (the landing sample's index holds only its birds).
   const [all, setAll] = useState<readonly SpeciesRow[] | null>(null)
@@ -56,7 +57,12 @@ export function TaxaPanel({ state, dispatch, species, tree, id, buttonRef, onClo
   }, [])
   const row = taxa.row
   const total = row && all ? taxaTotal(all, row.level, taxa.parent) : 0
-  const head = row && total ? plural(t.collage.controls.taxaHead[row.level], total, { n: formatInt(row.opts.length, t.num), total: formatInt(total, t.num) }) : ''
+  const n = row ? row.opts.length : 0
+  // Without the taxonomy's total (loading, or failed): the count alone, in the stats line's words.
+  const alone = row && (row.level === 'order' ? t.collage.stats.orders : row.level === 'family' ? t.collage.stats.families : t.collage.tree.genera)
+  const head = !row ? '' : total
+    ? plural(t.collage.controls.taxaHead[row.level], total, { n: formatInt(n, t.num), total: formatInt(total, t.num) })
+    : plural(alone!, n, { n: formatInt(n, t.num) })
   return (
     <DockPanel
       id={id} label={t.collage.controls.taxaPanel} kind="taxa" testId="taxa-panel" buttonRef={buttonRef} onClose={onClose}

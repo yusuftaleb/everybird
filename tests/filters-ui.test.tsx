@@ -108,6 +108,8 @@ describe('the Taxa panel and the breadcrumb', () => {
   it('the head counts the level\'s groups with a bird of the taxonomy\'s in the parent, once the species file loads', async () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
+    // Before the species file: the count alone, so the head never arrives late (O12).
+    expect(screen.getByTestId('taxa-head')).toHaveTextContent(/^3 orders$/)
     expect(await screen.findByText('3 of 4 orders')).toHaveAttribute('data-testid', 'taxa-head')
     fireEvent.click(within(panel()).getByRole('button', { name: /^Perching birds/ }))
     expect(screen.getByTestId('taxa-head')).toHaveTextContent('2 of 2 families')

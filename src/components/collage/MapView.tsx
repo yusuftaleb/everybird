@@ -12,9 +12,12 @@
 // a few pixels (src/lib/map/zoom.ts). Borders stay hairlines at every zoom (map.css, non-scaling strokes).
 // The picture is aria-hidden: the list under it, the countries with their flags and counts, most species first, in one
 // to three columns (map.css), is its text path. The names are told up (`onLevel`) so Share names places as the map does;
-// the share image is always the whole world. The ramp (RAMP in shapes.ts) is set per path, the borders and the outline
-// by map.css. The shapes (src/lib/map/shapes.ts) are pre-projected and load with the tab.
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+// the share image is always the whole world. The ramp (RAMP in shapes.ts, RAMP_DARK in dark mode) is set per path, the
+// borders and the outline by map.css. The shapes (src/lib/map/shapes.ts) are pre-projected and load with the tab; the
+// head row (the country count at the left, the legend at the right: one swatch when every count is the same) and the
+// zoom row are there from the first paint, so nothing moves when they land. If they fail, a line says so with Try
+// again, and the list (with, under it, how many birds shown have no place to map) still carries every count.
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from 'react'
 import { GlobeHemisphereWest, Minus, Plus } from '@/components/phosphor-icons'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -24,7 +27,8 @@ import { regionsIn } from '@/lib/i18n-places'
 import { parsePlaceKey, placeName } from '@/lib/list/place-keys'
 import type { AppState } from '@/lib/list/store'
 import { Flag } from '@/components/Flag'
-import { countRange, loadMapCountries, mapCounts, mapDrawOrder, mapRows, mapShapes, RAMP, shadeMix, type MapCountries } from '@/lib/map/shapes'
+import { countRange, loadMapCountries, mapCounts, mapDrawOrder, mapRows, mapShapes, mapUnplaced, RAMP, RAMP_DARK, shadeMix, type MapCountries } from '@/lib/map/shapes'
+import { currentTheme, subscribeTheme } from '@/lib/theme'
 import { clampView, maxZoom, viewBoxOf, worldView, zoomAt, type View } from '@/lib/map/zoom'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
@@ -38,6 +42,8 @@ const ZOOM_STEP = 2
 const EASE_MS = 650
 /** A press that moves further than this (CSS px) is a drag: it pans and names nothing. */
 const DRAG_PX = 4
+/** Closer than this (CSS px) to the map's top, or to the top bar's bottom, the tooltip goes under the pointer. */
+const TIP_ROOM = 84
 
 /** The CSS colour of `mix` (0 to 1) on the ramp: Accent over Paper, in the theme's tokens. */
 export function rampFill(mix: number): string {
@@ -52,16 +58,19 @@ type Props = {
   onLevel?: (at: undefined, name: (key: string) => string) => void
 }
 
-type Tip = { key: string; x: number; y: number; w: number }
+type Tip = { key: string; x: number; y: number; w: number; below: boolean }
 type Pt = { x: number; y: number }
 
 const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+const isDark = () => currentTheme() === 'dark'
 
 export function MapView({ state, species, regions, onLevel }: Props) {
   const { t, lang } = useI18n()
   const c = t.collage.controls
   const [world, setWorld] = useState<MapCountries | null>(null)
   const [failed, setFailed] = useState(false)
+  // Each Try again loads the shapes once more (a failure is not cached, shapes.ts).
+  const [tries, setTries] = useState(0)
   const [tip, setTip] = useState<Tip | null>(null)
   const [all, setAll] = useState(false)
   const [view, setViewState] = useState<View | null>(null)
@@ -72,6 +81,8 @@ export function MapView({ state, species, regions, onLevel }: Props) {
   const hintId = useId()
 
   const counts = useMemo(() => mapCounts(state.list, state.filter, species, state.seen), [state.list, state.filter, species, state.seen])
+  const unplaced = useMemo(() => mapUnplaced(state.list, state.filter, species, state.seen), [state.list, state.filter, species, state.seen])
+  const ramp = useSyncExternalStore(subscribeTheme, isDark, () => false) ? RAMP_DARK : RAMP
   const named = useMemo(() => regionsIn(regions, lang), [regions, lang])
   const name = useCallback((k: string) => placeName(k, named, t.places.continents, t.places.regions), [named, t])
   useEffect(() => { onLevel?.(undefined, name) }, [name, onLevel])
@@ -80,7 +91,13 @@ export function MapView({ state, species, regions, onLevel }: Props) {
     let live = true
     loadMapCountries().then((w) => live && setWorld(w), () => live && setFailed(true))
     return () => { live = false }
-  }, [])
+  }, [tries])
+  const retry = () => {
+    setFailed(false)
+    setTries((n) => n + 1)
+    // The line and its button go: focus moves to the map, which is focusable again.
+    requestAnimationFrame(() => pic.current?.focus({ preventScroll: true }))
+  }
 
   const shapes = useMemo(() => (world ? mapShapes(world, counts) : []), [world, counts])
   const [min, max] = countRange(shapes)
@@ -226,7 +243,9 @@ export function MapView({ state, species, regions, onLevel }: Props) {
   const tipAt = (key: string, e: ReactPointerEvent | React.MouseEvent) => {
     const r = pic.current?.getBoundingClientRect()
     if (!r) return
-    setTip({ key, x: e.clientX - r.left, y: e.clientY - r.top, w: r.width })
+    // Near the map's top (Greenland, Svalbard) or the sticky top bar, the tooltip goes under the pointer, never over either.
+    const bar = Math.max(0, document.querySelector('.eb-topbar')?.getBoundingClientRect().bottom ?? 0)
+    setTip({ key, x: e.clientX - r.left, y: e.clientY - r.top, w: r.width, below: e.clientY - Math.max(r.top, bar) < TIP_ROOM })
   }
   const tipShape = tip ? shapes.find((s) => s.key === tip.key) : undefined
   const spoken = (n: number) => plural(t.collage.stats.species, n, { n: formatInt(n, t.num) })
@@ -235,23 +254,28 @@ export function MapView({ state, species, regions, onLevel }: Props) {
 
   return (
     <div className="eb-map" data-testid="map-view">
-      {/* The legend at the top right of the map. */}
-      {world && max > 0 && (
-        <div className="eb-map-head">
+      {/* The head row, there from the first paint: the countries with species at its left (the Tree's rank line), the
+          legend at its right once the shapes are in (one swatch when every count is the same: nothing to range over). */}
+      <div className="eb-map-head">
+        {rows.length > 0 && <p className="eb-mono eb-map-count" data-testid="map-count">{plural(t.filters.countHead.country, rows.length, { n: formatInt(rows.length, t.num) })}</p>}
+        {world && max > 0 && (
           <div className="eb-mono eb-map-legend" aria-hidden="true" data-testid="map-legend">
-            <span>{formatInt(min, t.num)}</span>
-            <i style={{ background: `linear-gradient(90deg, ${rampFill(RAMP.lo)}, ${rampFill(RAMP.hi)})` }} />
+            {min < max ? <>
+              <span>{formatInt(min, t.num)}</span>
+              <i style={{ background: `linear-gradient(90deg, ${rampFill(ramp.lo)}, ${rampFill(ramp.hi)})` }} />
+            </> : <i className="eb-map-swatch" style={{ background: rampFill(ramp.hi) }} />}
             <span>{spoken(max)}</span>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      {/* With the shapes failed, the picture is no stop for the keyboard: no group, no caption to point to. */}
       <div
         ref={pic}
         className="eb-map-pic"
-        role="group"
-        aria-label={c.map}
-        aria-describedby={hintId}
-        tabIndex={0}
+        role={failed ? undefined : 'group'}
+        aria-label={failed ? undefined : c.map}
+        aria-describedby={failed ? undefined : hintId}
+        tabIndex={failed ? undefined : 0}
         data-testid="map-pic"
         data-zoomed={zoomed || undefined}
         onKeyDown={(e) => {
@@ -289,7 +313,7 @@ export function MapView({ state, species, regions, onLevel }: Props) {
             >
               {/* One path per place, the hovered one last: hovering never adds, hides or refills a shape. */}
               {mapDrawOrder(shapes, tipShape?.key).map((s) => {
-                const shade = s.n > 0 ? shadeMix(s.n, min, max) : undefined
+                const shade = s.n > 0 ? shadeMix(s.n, min, max, ramp) : undefined
                 return (
                   <path
                     key={s.id}
@@ -310,14 +334,15 @@ export function MapView({ state, species, regions, onLevel }: Props) {
             !failed && <div className="eb-map-svg eb-map-wait" />
           )}
           {tip && tipShape && (
-            <div className="eb-card eb-tip eb-map-tip" style={{ left: tip.x, top: tip.y }} data-side={tip.x < tip.w / 3 ? 'start' : tip.x > (2 * tip.w) / 3 ? 'end' : 'mid'} data-testid="map-tip">
+            <div className="eb-card eb-tip eb-map-tip" style={{ left: tip.x, top: tip.y }} data-side={tip.x < tip.w / 3 ? 'start' : tip.x > (2 * tip.w) / 3 ? 'end' : 'mid'} data-below={tip.below || undefined} data-testid="map-tip">
               <span className="eb-map-tip-name">{name(tipShape.key)}</span>
               <span className="eb-mono">{spoken(tipShape.n)}</span>
             </div>
           )}
         </div>
       </div>
-      {world && (
+      {/* From the first paint (the buttons aria-disabled until the shapes are in), so the map and list never move down. */}
+      {!failed && (
         <div className="eb-map-zoom">
           <p id={hintId} className="eb-mono eb-map-hint">{c.mapHint}</p>
           <div className="eb-map-zoom-btns">
@@ -341,6 +366,7 @@ export function MapView({ state, species, regions, onLevel }: Props) {
               type="button"
               className="eb-btn eb-btn-quiet eb-map-zoom-btn"
               aria-label={c.mapZoomOut}
+              title={c.mapZoomOut}
               aria-disabled={!zoomed || undefined}
               data-disabled={!zoomed || undefined}
               data-testid="map-zoom-out"
@@ -353,17 +379,23 @@ export function MapView({ state, species, regions, onLevel }: Props) {
               type="button"
               className="eb-btn eb-btn-quiet eb-map-zoom-btn"
               aria-label={c.mapZoomIn}
-              aria-disabled={atTop || undefined}
-              data-disabled={atTop || undefined}
+              title={c.mapZoomIn}
+              aria-disabled={!world || atTop || undefined}
+              data-disabled={!world || atTop || undefined}
               data-testid="map-zoom-in"
-              onClick={() => { if (!atTop) zoomBy(ZOOM_STEP) }}
+              onClick={() => { if (world && !atTop) zoomBy(ZOOM_STEP) }}
             >
               <Plus aria-hidden="true" />
             </button>
           </div>
         </div>
       )}
-      {failed && <p className="eb-note" data-testid="map-failed">{c.mapFailed}</p>}
+      {failed && (
+        <p className="eb-note eb-map-failed" role="status" data-testid="map-failed">
+          <span>{c.mapFailed}</span>
+          <button type="button" className="eb-textbtn" data-testid="map-retry" onClick={retry}>{c.mapRetry}</button>
+        </p>
+      )}
       <ul className="eb-map-list" aria-label={t.places.head.country} data-testid="map-list">
         {shownRows.map((r) => (
           <li key={r.value}>
@@ -383,6 +415,7 @@ export function MapView({ state, species, regions, onLevel }: Props) {
           {fmt(c.mapAll, { n: formatInt(rows.length, t.num) })}
         </button>
       )}
+      {unplaced > 0 && <p className="eb-note" data-testid="map-unplaced">{plural(c.mapUnplaced, unplaced, { n: formatInt(unplaced, t.num) })}</p>}
     </div>
   )
 }

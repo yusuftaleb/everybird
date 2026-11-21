@@ -7,7 +7,7 @@
 // beside the continents. From the top level the search field finds any country (its matches replace the continents). Drilling in
 // focuses "All of …"; a step back focuses the drill button of the row it came from (scrolled into view); Esc closes the panel from any
 // level (DropPanel). The search field and its query are per level.
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDownIcon } from '@/components/collage/icons'
 import { fmt } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -18,7 +18,7 @@ import { countHead } from '@/lib/list/filter-summary'
 import { revealInScroller } from '@/components/dialog-utils'
 import { emptyHere, levelUnder, matchRows, PlaceCheck, placeCountsFor, PlacesFind, placeTestId, SEARCH_FROM, upKey, usePlaceRows, useRegionRows, type PlacesBodyProps } from './places-shared'
 
-export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyProps) {
+export function PlacesDrill({ state, species, regions, onFilter, titleId }: PlacesBodyProps) {
   const { filter } = state
   const { t, lang } = useI18n()
   const counts = placeCountsFor(state, species)
@@ -32,6 +32,7 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
   // Test ids to focus, first found wins, once the new level has rendered (set by the drill and breadcrumb handlers).
   const focusNext = useRef<string[] | null>(null)
   const headRef = useRef<HTMLDivElement>(null)
+  const clearId = useId()
   // From the continent level the search field finds a country anywhere: the matches replace the continents.
   const searching = at === undefined && !flat && q.trim() !== ''
   const level = levelUnder(at, flat)
@@ -100,6 +101,8 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
   const showFind = at === undefined && !flat ? (rows.length > 0 || regionList.length > 0) : rows.length > SEARCH_FROM
   const visible = searching ? found : rows.length > SEARCH_FROM ? matchRows(rows, q) : rows
   const visibleRegions = at === undefined ? (searching ? foundRegions : flat && rows.length > SEARCH_FROM ? matchRows(regionList, q) : regionList) : []
+  // The head counts the rows listed: while a search narrows the level, its matches ("3 countries"), not the level's.
+  const listed = searching ? [...foundContinents, ...visible] : visible
   // Where some row drills, the others keep the button's room, so every count lines up.
   // At the counties the room is kept too, so the counts stay in the column they had a level up.
   const drills = shownLevel !== 'county' && shown.some((r) => r.children > 0)
@@ -114,9 +117,9 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
       {/* The search first, under the section's title, then the level's head, the path and the list (round 6 polish). */}
       {showFind && <PlacesFind level={shownLevel} q={q} onQ={setQ} />}
       <div className="eb-places-head" ref={headRef}>
-        <span className="eb-mono">{countHead(rows.length, level, rows.filter((r) => checked.has(r.value)).length, t)}</span>
+        <span className="eb-mono">{countHead(listed.length, shownLevel, listed.filter((r) => checked.has(r.value)).length, t)}</span>
         {hasPlaces(filter) && (
-          <button type="button" className="eb-textbtn" data-testid="places-clear" onClick={() => onFilter(clearPlaces(filter))}>{t.filters.clear}</button>
+          <button type="button" id={clearId} className="eb-textbtn" aria-labelledby={titleId ? `${clearId} ${titleId}` : undefined} data-testid="places-clear" onClick={() => onFilter(clearPlaces(filter))}>{t.filters.clear}</button>
         )}
       </div>
       {at && (

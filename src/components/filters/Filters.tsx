@@ -9,7 +9,7 @@
 // inside `.eb-dockwrap`, the same in every view (collage, list, map, tree): the filters drive them all; everything
 // after the dock wrap dims and goes inert while it is open (CollageView's `.eb-view-below`), and a press there, Esc or a
 // second press of the button closes it. On phones it is the modal bottom sheet, its head the count of species and its
-// bottom button "Show N species". Filters apply live. The active filters show as chips under the dock (ChipRow.tsx).
+// bottom button "Show N species" ("Clear all" when the filters leave none). Filters apply live. The active filters show as chips under the dock (ChipRow.tsx).
 // Every word is the language's (`t.filters`, `t.filters.panel`), place names `regionsIn(regions, lang)`.
 import { CalendarBlank, CaretDown, GlobeHemisphereWest } from '@/components/phosphor-icons'
 import { createPortal } from 'react-dom'
@@ -132,7 +132,7 @@ export const dropRoom = (top: number, windowH: number): number => Math.max(MIN_D
  * open, scroll and resize); under 600px the modal bottom sheet (portalled to the body: the bar is a size container,
  * which would otherwise be the fixed sheet's containing block), which may take the window's full height, with a head
  * (`sheetHead`, then the close button) and an optional `foot`. Esc, a press outside the dock wrap or on the dock's own
- * empty part (the popover; dock-panels.ts pressCloses), or on the scrim (the sheet) closes it; focus moves in on open
+ * empty part (the popover; dock-panels.ts pressCloses), focus leaving the dock wrap (the popover), or on the scrim (the sheet) closes it; focus moves in on open
  * and back to `returnFocus()` (if still connected) or the button on close; the top bar keeps its state (frozen, headroom.ts) while it is open.
  */
 export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onClose, panelRef, sheetHead, foot, children }: {
@@ -149,11 +149,14 @@ export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onC
   children: ReactNode
 }): ReactNode {
   const { t } = useI18n()
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const own = useRef<HTMLDivElement>(null)
   const ref = panelRef ?? own
   useEscapeCapture(onClose)
+  // Closed by focus leaving (below): focus stays where it went, never pulled back to the button.
+  const leftTo = useRef<HTMLElement | null>(null)
   useFocusInAndBack(ref, () => {
+    if (leftTo.current) return leftTo.current
     const el = returnFocus?.()
     return el?.isConnected ? el : buttonRef.current
   })
@@ -168,6 +171,20 @@ export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onC
     }
     document.addEventListener('pointerdown', down)
     return () => document.removeEventListener('pointerdown', down)
+  }, [sheet, onClose, ref])
+  // Focus leaving the dock wrap (Tab past the panel's last control) closes the popover, as the search does: it never
+  // stays open over an inert page. The sheet keeps Tab inside (trapTab).
+  useEffect(() => {
+    const wrap = ref.current?.closest<HTMLElement>('.eb-dockwrap')
+    if (sheet || !wrap) return
+    const out = (e: FocusEvent) => {
+      const to = e.relatedTarget
+      if (!(to instanceof HTMLElement) || wrap.contains(to)) return
+      leftTo.current = to
+      onClose()
+    }
+    wrap.addEventListener('focusout', out)
+    return () => wrap.removeEventListener('focusout', out)
   }, [sheet, onClose, ref])
   // The popover's top: right under the dock (`--dock-bottom`, the dock's bottom edge in the wrap), over whatever shows
   // below it (the chip row), at every width (the dock may wrap to two rows). Its height: down to the window's bottom,
@@ -246,7 +263,7 @@ type PanelProps = Shared & {
 /** In ControlsBar's `below` slot, after the chip row (the popover sits right under the dock, over it), or portalled as the sheet. */
 function FiltersPanel({ state, onChange, species, regions, sections, open, onOpen, id, buttonRef, returnFocus, placesNote, placesUnplaced, time, shown }: PanelProps): ReactNode {
   const { t } = useI18n()
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const ref = useRef<HTMLDivElement>(null)
   const titles = useId()
   const { filter } = state
@@ -292,9 +309,9 @@ function FiltersPanel({ state, onChange, species, regions, sections, open, onOpe
           </h3>
         )}
         {s === 'places' ? (
-          <PlacesSection state={state} species={species} regions={regions} note={placesNote} unplaced={placesUnplaced} onFilter={onFilter} />
+          <PlacesSection state={state} species={species} regions={regions} note={placesNote} unplaced={placesUnplaced} onFilter={onFilter} titleId={`${titles}-${s}`} />
         ) : s === 'status' ? (
-          <StatusSection state={state} species={species} onFilter={onFilter} />
+          <StatusSection state={state} species={species} onFilter={onFilter} titleId={`${titles}-${s}`} />
         ) : (
           <Timeline
             entries={time.entries}
@@ -305,6 +322,7 @@ function FiltersPanel({ state, onChange, species, regions, sections, open, onOpe
             today={time.today}
             onFilter={onFilter}
             onPreview={time.onPreview}
+            titleId={`${titles}-${s}`}
           />
         )}
       </div>
@@ -317,7 +335,10 @@ function FiltersPanel({ state, onChange, species, regions, sections, open, onOpe
     <DockPanel
       id={id} label={t.filters.label} kind="filters" testId="filters-panel" buttonRef={buttonRef} returnFocus={returnFocus} onClose={onClose} panelRef={ref}
       sheetHead={<><span className="eb-mono" role="status" data-testid="filters-head">{head}</span>{clearButton}</>}
-      foot={<button type="button" className="eb-btn" data-testid="filters-show" onClick={onClose}>{showLabel(shown, t)}</button>}
+      foot={shown === 0 && filterActive(filter)
+        // Nothing left to show: the sheet's one button is the way back, not "Show 0 species".
+        ? <button type="button" className="eb-btn" aria-label={t.filters.panel.clearAllLabel} data-testid="filters-show" onClick={clearAll}>{t.filters.panel.clearAll}</button>
+        : <button type="button" className="eb-btn" data-testid="filters-show" onClick={onClose}>{showLabel(shown, t)}</button>}
     >
       {!sheet && (
         <div className="eb-fpanel-headrow">
@@ -388,7 +409,7 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
 } {
   const base = useId()
   const { lang, t } = useI18n()
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const [open, setOpen] = useState<FiltersOpen | null>(null)
   useEffect(() => { void loadFilterSections() }, [])
   // Carried over a language switch (view-resume.ts): the section it was open at, if the birder had it open.

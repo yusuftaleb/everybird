@@ -8,7 +8,7 @@
 import { trackFilterUsed } from '@/lib/analytics'
 import { useArrangement } from '@/lib/arrangement'
 import { newlySetKinds } from '@/lib/list/filter-kinds'
-import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { BirdCard } from '@/components/collage/BirdCard'
 import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage, revealBird } from '@/components/collage/Collage'
@@ -26,7 +26,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import { latestLifer, liferOrder } from '@/lib/list/build-list'
 import { hasSeenMonths } from '@/lib/list/seen'
-import { applyFilter, drillTo, filterKey, filterToShow, genusOf, threatenedCount, type Filter } from '@/lib/list/filters'
+import { applyFilter, drillTo, emptyFilter, filterKey, filterToShow, genusOf, threatenedCount, type Filter } from '@/lib/list/filters'
 import type { PlacesUnplaced } from '@/lib/list/filter-summary'
 import type { ListEntry } from '@/lib/list/model'
 import { monthBins, todayMonth } from '@/lib/list/timeline'
@@ -82,6 +82,8 @@ type Props = {
   seed?: readonly StateLayout[]
   /** Told the level the Map or Tree view has open as it changes, for the page's Share button to draw the same. */
   onShareAt?: (at: ShareAt) => void
+  /** Filled with a function that shows a bird as a search pick does, once the layout has it (CollagePage: the bird put back by Undo). */
+  showRef?: RefObject<((code: string) => void) | null>
 }
 
 const pad = (d: string) => (d.length === 4 ? `${d}-00-00` : d.length === 7 ? `${d}-00` : d)
@@ -139,7 +141,7 @@ function latestLine(name: string, date: string | undefined, t: Ui): ReactNode {
   return rich(fmt(t.collage.legend.latestOn, { name, date: shown }), { time: (chunk) => <time dateTime={date}>{chunk}</time> })
 }
 
-export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShareAt, whose = 'this' }: Props) {
+export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShareAt, showRef, whose = 'this' }: Props) {
   const { list, filter, mode, listOrder, sci, seen } = state
   // No places to map (a shared link without them): no Map tab, and a carried-over Map view shows the collage.
   const noMap = !!hideSections?.includes('places')
@@ -236,7 +238,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const display = hasDisplay(view)
   const openPanel = panel === 'display' && !display ? null : panel // List and Map have no Display panel
   const taxaSpoken = useMemo(() => pickWords(filter, species, sci, t), [filter, species, sci, t])
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const panelButtons = (
     <>
       <DockPanelButton
@@ -253,7 +255,9 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // time to avoid the jump). `.eb-view-below` is display: contents, so the freeze goes on this section, which is a box.
   // Only growth still shows; the height is released on close.
   const frozen = filtersUi.frozen || !!openPanel
-  const dimmed = filtersUi.dimmed || (!!openPanel && !sheet)
+  // Everything under an open popover is inert; it dims too, except under Display, whose whole job is how the view looks.
+  const inertBelow = filtersUi.dimmed || (!!openPanel && !sheet)
+  const dimmed = filtersUi.dimmed || (!!openPanel && openPanel !== 'display' && !sheet)
   useLayoutEffect(() => {
     const el = box.current
     if (!frozen || !el) return
@@ -318,6 +322,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
     dispatch({ type: 'filter', filter: next })
     setPending({ code: h.value, key: filterKey(next), at: Date.now() })
   }, [filter, fk, shownList, entries, species, seen, dispatch, show, view])
+  // The page's way to show a bird the list is about to have again (Undo): the out-of-view pick's wait, below.
+  useImperativeHandle(showRef, () => (code: string) => setPending({ code, key: fk, at: Date.now() }), [fk])
   // The out-of-view pick: wait for the new filter's layout (the list re-renders at once), then for the glide. It lapses
   // when the filter is changed by hand meanwhile, or after PENDING_MS, so a stale tooltip can't pop up later.
   useEffect(() => {
@@ -336,6 +342,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const tipEntry = tip && !pick && view === 'collage' ? entries.find((e) => e.code === tip) : undefined
   const sizes = mode === 'true' ? t.collage.legend.sizesTrue : t.collage.legend.sizesEven
   const latestRow = latest ? species.byCode.get(latest.code) : undefined
+  const marked = useMemo(() => shownList.some((e) => e.heard || e.dead), [shownList])
   // The tree's legend: the oldest lineage among the birds shown (the tree is fetched once per page, with the Tree tab).
   const [tree, setTree] = useState<Tree | null>(null)
   useEffect(() => {
@@ -390,8 +397,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         panelOpen={frozen}
       />
 
-      {/* Everything under the dock: dimmed and inert while the Filters popover is open (a press there closes it). */}
-      <div className="eb-view-below" inert={dimmed || undefined} data-dim={dimmed || undefined}>
+      {/* Everything under the dock: inert while a popover is open (a press there closes it), dimmed but under Display. */}
+      <div className="eb-view-below" inert={inertBelow || undefined} data-dim={dimmed || undefined}>
       <FilterBar state={state} dispatch={dispatch} species={species} tree={treePath} />
       {filterNote}
 
@@ -418,12 +425,30 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         </Suspense>
       )}
 
+      {/* The filters leave none of the list's birds: say so under the empty stage or list, with the way out. */}
+      {(view === 'collage' || view === 'list') && entries.length > 0 && shownList.length === 0 && (
+        <p className="eb-note eb-view-empty" data-testid="view-empty">
+          <span>{whose === 'your' ? t.collage.noMatch.your : t.collage.noMatch.this}</span>
+          <button type="button" className="eb-textbtn" aria-label={t.filters.panel.clearAllLabel} data-testid="view-empty-clear" onClick={() => {
+            dispatch({ type: 'filter', filter: emptyFilter() })
+            // The line and its button go with the filters: focus moves to the Filters button, where they are set.
+            requestAnimationFrame(() => box.current?.querySelector<HTMLElement>('[data-testid="filters-button"]')?.focus({ preventScroll: true }))
+          }}>
+            {t.filters.panel.clearAll}
+          </button>
+        </p>
+      )}
+
+      {/* The latest lifer finds its bird (as a search pick does); the marks' key only when a bird shown carries one. */}
       {view !== 'map' && view !== 'tree' && <div className="eb-mono eb-legend">
         <p>
-          {latest && latestRow ? <>{latestLine(sci ? latestRow.sci : displayName(latestRow), latest.date, t)} · </> : null}
+          {latest && latestRow ? <>
+            <button type="button" className="eb-textbtn eb-legend-latest" data-testid="legend-latest" onClick={() => show(latest.code)}>{latestLine(sci ? latestRow.sci : displayName(latestRow), latest.date, t)}</button>
+            {' · '}
+          </> : null}
           {sizes}
         </p>
-        <p>{t.collage.legend.marks}</p>
+        {marked && <p data-testid="legend-marks">{t.collage.legend.marks}</p>}
       </div>}
       {view === 'tree' && oldest && oldestRow && <div className="eb-mono eb-legend">
         <p>{fmt(t.collage.tree.oldest, { name: sci ? oldestRow.sci : displayName(oldestRow), age: formatAge(oldest.age, t.num) })}</p>

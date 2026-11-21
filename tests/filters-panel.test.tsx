@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useCallback, useReducer, useState } from 'react'
 import { beforeAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { IucnCat } from '@/lib/species/iucn'
@@ -257,6 +257,33 @@ describe('the chip row', () => {
   })
 })
 
+describe('round 6 design proposals in the Filters panel (AU7, AU8)', () => {
+  it("each section's Clear is named by its section", () => {
+    vi.stubGlobal('innerWidth', 1000)
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: /^everyth/ }))
+    fireEvent.click(button())
+    const panel = screen.getByRole('dialog', { name: 'Filters' })
+    expect(within(panel).getByTestId('places-clear')).toHaveAccessibleName('Clear Places')
+    fireEvent.keyDown(within(panel).getByRole('slider', { name: 'End month' }), { key: 'ArrowLeft' }) // a range: Time's Clear shows
+    expect(within(panel).getByTestId('time-clear')).toHaveAccessibleName('Clear Time')
+    expect(within(panel).getByTestId('status-clear')).toHaveAccessibleName('Clear Conservation status')
+  })
+
+  it('focus leaving the dock wrap closes the popover, and stays where it went', () => {
+    vi.stubGlobal('innerWidth', 1000)
+    render(<Harness />)
+    fireEvent.click(button())
+    const inside = within(screen.getByRole('dialog', { name: 'Filters' })).getAllByRole('checkbox')[0]
+    act(() => inside.focus())
+    expect(screen.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument()
+    const away = screen.getByRole('button', { name: 'elsewhere' })
+    act(() => away.focus())
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).toBeNull()
+    expect(away).toHaveFocus()
+  })
+})
+
 describe('spec 15: the content below the panel', () => {
   function View() {
     const [state, dispatch] = useReducer(reduce, undefined, seeded)
@@ -283,6 +310,52 @@ describe('spec 15: the content below the panel', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(below).not.toHaveAttribute('inert')
     expect(below).not.toHaveAttribute('data-dim')
+  })
+
+  it('the Display panel leaves the view inert but undimmed: its choices are judged on the view (C11)', () => {
+    vi.stubGlobal('innerWidth', 1000)
+    render(<View />)
+    const below = document.querySelector('.eb-view-below')!
+    fireEvent.click(screen.getByTestId('display-button'))
+    expect(screen.getByRole('dialog', { name: 'Display options' })).toBeInTheDocument()
+    expect(below).toHaveAttribute('inert')
+    expect(below).not.toHaveAttribute('data-dim')
+  })
+
+  // A filter no bird on the list passes: crow1 is the only perching bird and is Vulnerable.
+  function Empty() {
+    const [state, dispatch] = useReducer(reduce, undefined, seeded)
+    return (
+      <>
+        <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Test collage" />
+        <button type="button" onClick={() => dispatch({ type: 'filter', filter: { order: 'Passeriformes', statuses: ['EN'] } })}>none left</button>
+      </>
+    )
+  }
+
+  it('filters that leave no bird: one line under the view and a Clear all that clears every filter (C1)', async () => {
+    vi.stubGlobal('innerWidth', 1000)
+    render(<Empty />)
+    expect(screen.queryByTestId('view-empty')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'none left' }))
+    expect(screen.getByTestId('view-empty')).toHaveTextContent('No birds on this list match these filters.')
+    const clear = within(screen.getByTestId('view-empty')).getByRole('button', { name: 'Clear all filters' })
+    fireEvent.click(clear)
+    expect(screen.queryByTestId('view-empty')).toBeNull()
+    expect(screen.getByTestId('collage-stats')).toHaveTextContent(/^3 species/)
+    await waitFor(() => expect(button()).toHaveFocus())
+  })
+
+  it("on phones the sheet's foot reads Clear all, not Show 0 species, when the filters leave none (C1)", () => {
+    vi.stubGlobal('innerWidth', 390)
+    render(<Empty />)
+    fireEvent.click(screen.getByRole('button', { name: 'none left' }))
+    fireEvent.click(button())
+    const foot = within(screen.getByRole('dialog', { name: 'Filters' })).getByTestId('filters-show')
+    expect(foot).toHaveTextContent('Clear all')
+    fireEvent.click(foot)
+    expect(screen.getByTestId('collage-stats')).toHaveTextContent(/^3 species/)
+    expect(within(screen.getByRole('dialog', { name: 'Filters' })).getByTestId('filters-show')).toHaveTextContent('Show 3 species')
   })
 
   it('on phones the sheet has its own scrim: no dim', () => {

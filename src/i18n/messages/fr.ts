@@ -83,6 +83,7 @@ export const fr: Messages = {
         threatenedSr: '(Vulnérable, En danger ou En danger critique)',
       },
       arranging: 'placement des autocollants',
+      noMatch: { your: 'Aucun oiseau de ta liste ne correspond à ces filtres.', this: 'Aucun oiseau de cette liste ne correspond à ces filtres.' },
       legend: {
         latest: 'Dernière\u00a0: {name}',
         latestOn: 'Dernière\u00a0: {name}, <time>{date}</time>',
@@ -107,6 +108,8 @@ export const fr: Messages = {
         map: 'Carte',
         mapAll: 'Tout afficher ({n})',
         mapFailed: 'Impossible de charger la carte. La liste ci-dessous a les mêmes nombres.',
+        mapRetry: 'Réessayer',
+        mapUnplaced: { one: '{n} oiseau de cette liste n’a pas de lieu, donc la carte le laisse de côté.', other: '{n} oiseaux de cette liste n’ont pas de lieu, donc la carte les laisse de côté.' },
         mapHint: 'Pince ou +/− pour zoomer · fais glisser pour déplacer',
         mapZoomIn: 'Zoom avant',
         mapZoomOut: 'Zoom arrière',
@@ -870,6 +873,7 @@ export const fr: Messages = {
     /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */
     search: {
       understood: 'Compris comme',
+      hint: 'Essaie un nom, un groupe, un lieu ou une année : rapaces au Kenya 2024',
       show: 'Afficher ces oiseaux',
       note: 'Ta liste n’a que les dates de première observation\u00a0; importe MyEBirdData.csv pour avoir chaque observation',
     },

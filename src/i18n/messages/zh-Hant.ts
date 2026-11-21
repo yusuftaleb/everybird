@@ -85,6 +85,7 @@ export const zhHant: Messages = {
         threatenedSr: '（易危、瀕危或極危）',
       },
       arranging: '正在排列貼紙',
+      noMatch: { your: '你的清單裡沒有符合這些篩選條件的鳥。', this: '這份清單裡沒有符合這些篩選條件的鳥。' },
       legend: {
         latest: '最新：{name}',
         latestOn: '最新：{name}，<time>{date}</time>',
@@ -109,6 +110,8 @@ export const zhHant: Messages = {
         map: '地圖',
         mapAll: '顯示全部（{n}）',
         mapFailed: '無法載入地圖。下方清單有相同的數字。',
+        mapRetry: '重試',
+        mapUnplaced: { one: '這份清單中有 {n} 種鳥沒有地點，所以地圖沒有顯示。', other: '這份清單中有 {n} 種鳥沒有地點，所以地圖沒有顯示。' },
         mapHint: '雙指或 +/− 縮放 · 拖曳平移',
         mapZoomIn: '放大',
         mapZoomOut: '縮小',
@@ -856,6 +859,7 @@ export const zhHant: Messages = {
     },
     search: {
       understood: '解讀為',
+      hint: '可以搜尋名稱、類群、地點或年份：猛禽 肯亞 2024',
       show: '顯示這些鳥',
       note: '你的清單只有首次紀錄的日期；匯入 MyEBirdData.csv 就能取得每一筆紀錄',
     },

@@ -83,6 +83,7 @@ export const nl: Messages = {
         threatenedSr: '(Kwetsbaar, Bedreigd of Ernstig bedreigd)',
       },
       arranging: 'stickers worden geschikt',
+      noMatch: { your: 'Geen vogels op je lijst passen bij deze filters.', this: 'Geen vogels op deze lijst passen bij deze filters.' },
       legend: {
         latest: 'Nieuwste: {name}',
         latestOn: 'Nieuwste: {name}, <time>{date}</time>',
@@ -107,6 +108,8 @@ export const nl: Messages = {
         map: 'Kaart',
         mapAll: 'Alle {n} tonen',
         mapFailed: 'De kaart kon niet worden geladen. De lijst hieronder heeft dezelfde aantallen.',
+        mapRetry: 'Opnieuw proberen',
+        mapUnplaced: { one: '{n} vogel op deze lijst heeft geen plaats, dus de kaart laat hem weg.', other: '{n} vogels op deze lijst hebben geen plaats, dus de kaart laat ze weg.' },
         mapHint: 'Zoom met twee vingers of +/− · sleep om te verschuiven',
         mapZoomIn: 'Inzoomen',
         mapZoomOut: 'Uitzoomen',
@@ -870,6 +873,7 @@ export const nl: Messages = {
     /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */
     search: {
       understood: 'Begrepen als',
+      hint: 'Probeer een naam, een groep, een plaats of een jaar: roofvogels in Kenia 2024',
       show: 'Toon deze vogels',
       note: 'Je lijst heeft alleen de datum van de eerste waarneming; importeer MyEBirdData.csv voor elke waarneming',
     },

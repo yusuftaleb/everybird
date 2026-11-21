@@ -13,16 +13,19 @@ import type { Regions, SpeciesRow } from '@/lib/species/types'
 const square = 'M0 0h2v2h-2z'
 // As wide as the real world layer (2000 units), so the deepest zoom is the real one for a map of a given width.
 const world = { v: 1 as const, w: 2000, h: 1000, d: { CA: square, US: 'M10 0h2v2h-2z', KE: 'M20 0h2v2h-2z', BR: 'M30 0h2v2h-2z' } }
+// How many loads of the world fail before one succeeds (the Try again tests).
+const net = vi.hoisted(() => ({ fails: 0 }))
 vi.mock('@/lib/data-url', () => ({
   fetchData: async (name: string) => {
     if (name !== 'map-countries.v1.json') throw new Error(`the map reads only the world, not ${name}`)
+    if (net.fails > 0) { net.fails--; throw new Error('offline') }
     return world
   },
 }))
 
 const { MapView } = await import('@/components/collage/MapView')
 const { countryRows } = await import('@/lib/list/filters')
-const { countRange, mapCounts, mapDrawOrder, mapRows, mapShapes, RAMP, shadeMix } = await import('@/lib/map/shapes')
+const { countRange, mapCounts, mapDrawOrder, mapRows, mapShapes, mapUnplaced, RAMP, RAMP_DARK, shadeMix } = await import('@/lib/map/shapes')
 const { clampView, EDGE_PX, MAP_EDGE, maxZoom, viewBoxOf, worldView, zoomAt } = await import('@/lib/map/zoom')
 const { initialState, makeReducer } = await import('@/lib/list/store')
 const { emptySaved } = await import('@/lib/list/storage')
@@ -498,5 +501,95 @@ describe('the list shows the first rows, then all', () => {
     expect(rows()).toHaveLength(MAP_FIRST_ROWS)
     fireEvent.click(screen.getByRole('button', { name: 'Show all 12' }))
     expect(rows()).toHaveLength(12)
+  })
+})
+
+describe('round 6 design proposals on the Map (D8, H4, H12, H13, H14, AU12, AU14, O7, P11)', () => {
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+  it('the head counts the countries at its left; one country, or every count tied, gets one swatch, not a range', async () => {
+    render(<Harness />)
+    expect(screen.getByTestId('map-count')).toHaveTextContent('3 countries')
+    await act(async () => {})
+    expect(screen.getByTestId('map-legend')).toHaveTextContent('12 species')
+    expect(screen.getByTestId('map-legend').querySelector('.eb-map-swatch')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Kenya only' }))
+    expect(screen.getByTestId('map-count')).toHaveTextContent('1 country')
+    const legend = screen.getByTestId('map-legend')
+    expect(legend.querySelectorAll('i')).toHaveLength(1)
+    expect(legend.querySelector('.eb-map-swatch')).not.toBeNull()
+    expect(legend).toHaveTextContent(/^1 species$/)
+  })
+
+  it('the zoom row and its caption are there before the shapes, the buttons disabled and titled', async () => {
+    layOut()
+    render(<Harness />)
+    expect(screen.getByTestId('map-zoom-in')).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByTestId('map-zoom-out')).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByTestId('map-zoom-in')).toHaveAttribute('title', 'Zoom in')
+    expect(screen.getByTestId('map-zoom-out')).toHaveAttribute('title', 'Zoom out')
+    expect(screen.getByText('Pinch or +/− to zoom · drag to pan')).toBeInTheDocument()
+    await act(async () => {})
+    expect(screen.getByTestId('map-zoom-in')).not.toHaveAttribute('aria-disabled')
+  })
+
+  it('a failed load says so with Try again (a status line); the map is no stop for the keyboard until it loads', async () => {
+    net.fails = 1
+    // A fresh module: the shapes earlier tests loaded are cached for the page.
+    vi.resetModules()
+    const { MapView: FreshMap } = await import('@/components/collage/MapView')
+    const state = start()
+    render(<FreshMap state={state} species={species} regions={regions} />)
+    await act(async () => {})
+    const failed = screen.getByTestId('map-failed')
+    expect(failed).toHaveAttribute('role', 'status')
+    const pic = screen.getByTestId('map-pic')
+    expect(pic).not.toHaveAttribute('tabindex')
+    expect(pic).not.toHaveAttribute('role')
+    expect(pic).not.toHaveAttribute('aria-describedby')
+    expect(screen.queryByTestId('map-zoom-in')).toBeNull()
+    await act(async () => { fireEvent.click(within(failed).getByRole('button', { name: 'Try again' })) })
+    expect(screen.queryByTestId('map-failed')).toBeNull()
+    expect(screen.getByRole('group', { name: 'Map' })).toHaveAttribute('tabindex', '0')
+    expect(shape('c:CA')).toBeInTheDocument()
+  })
+
+  it('a note under the list counts the birds shown with no place, which the map leaves out', () => {
+    const init = () => {
+      const saved = emptySaved()
+      saved.records.ebird = [{ code: 'duck1', source: 'ebird', date: '2019-01-01', place: { country: 'CA' } }]
+      saved.records['obsorg-list'] = [{ code: 'crow1', source: 'obsorg', date: '2020-01-01' }, { code: 'owl1', source: 'obsorg', date: '2020-02-01' }]
+      return reduce(initialState(), { type: 'restore', saved })
+    }
+    const state = init()
+    expect(mapUnplaced(state.list, state.filter, species, state.seen)).toBe(2)
+    render(<Harness init={init} />)
+    expect(screen.getByTestId('map-unplaced')).toHaveTextContent('2 birds on this list have no place, so the map leaves them out.')
+    cleanup()
+    render(<Harness />)
+    expect(screen.queryByTestId('map-unplaced')).toBeNull()
+  })
+
+  it('dark mode starts the ramp stronger; the share image keeps RAMP', async () => {
+    expect(RAMP_DARK.lo).toBeGreaterThan(RAMP.lo)
+    expect(RAMP_DARK.hi).toBe(RAMP.hi)
+    expect(shadeMix(1, 1, 100, RAMP_DARK)).toBeCloseTo(RAMP_DARK.lo)
+    document.documentElement.dataset.theme = 'dark'
+    try {
+      render(<Harness />)
+      await act(async () => {})
+      expect(Number(shape('c:KE').getAttribute('data-mix'))).toBeCloseTo(RAMP_DARK.lo)
+    } finally {
+      delete document.documentElement.dataset.theme
+    }
+  })
+
+  it('near the top of the map the tooltip goes under the pointer', async () => {
+    layOut()
+    render(<Harness />)
+    await act(async () => {})
+    fireEvent.click(shape('c:CA'), { clientX: 500, clientY: 20 })
+    expect(screen.getByTestId('map-tip')).toHaveAttribute('data-below')
+    fireEvent.click(shape('c:CA'), { clientX: 500, clientY: 300 })
+    expect(screen.getByTestId('map-tip')).not.toHaveAttribute('data-below')
   })
 })

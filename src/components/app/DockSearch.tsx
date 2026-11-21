@@ -10,7 +10,9 @@
 //
 // Item 9's smart search: what the query names (a group, a place, a period, a Red List category, "lifers") shows as
 // "Understood as" chips under the field, removable with their ×. Enter, or "Show these birds", applies those chips to
-// the filter in one action; typing applies nothing. The rest of the query is searched by bird name as before.
+// the filter in one action; typing applies nothing. The rest of the query is searched by bird name as before. Open and
+// empty, the drop holds one Muted line saying what it understands, with an example ("raptors in Kenya 2024"); it goes
+// on the first keystroke.
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { CloseIcon, SearchIcon } from '@/components/collage/icons'
 import { ChipRow } from '@/components/filters/ChipRow'
@@ -216,6 +218,7 @@ export function DockSearchField({ entries, shown, species, onPick, whose = 'this
             aria-controls={`${id}-results`}
             aria-expanded={listOpen}
             aria-activedescendant={at >= 0 ? `${id}-r${at}` : undefined}
+            aria-describedby={typed ? undefined : `${id}-hint`}
             autoComplete="off"
             autoCapitalize="none"
             autoCorrect="off"
@@ -230,9 +233,10 @@ export function DockSearchField({ entries, shown, species, onPick, whose = 'this
             <CloseIcon />
           </button>
         </div>
-        {(understood.length > 0 || needsMonths || listOpen) && (
+        {(!typed || understood.length > 0 || needsMonths || listOpen) && (
           // A press in the drop keeps focus in the field (as the options do): the chips and the button still click.
           <div className="eb-find-drop" onPointerDown={(e) => e.preventDefault()}>
+            {!typed && <p id={`${id}-hint`} className="eb-note eb-find-hint" data-testid="search-hint">{t.search.hint}</p>}
             {understood.length > 0 && (
               <div className="eb-understood">
                 <span className="eb-mono eb-understood-label" aria-hidden="true">{t.search.understood}</span>

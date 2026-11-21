@@ -83,6 +83,7 @@ export const sv: Messages = {
         threatenedSr: '(Sårbar, Starkt hotad eller Akut hotad)',
       },
       arranging: 'klistermärkena ordnas',
+      noMatch: { your: 'Inga fåglar på din lista matchar de här filtren.', this: 'Inga fåglar på den här listan matchar de här filtren.' },
       legend: {
         latest: 'Senaste: {name}',
         latestOn: 'Senaste: {name}, <time>{date}</time>',
@@ -107,6 +108,8 @@ export const sv: Messages = {
         map: 'Karta',
         mapAll: 'Visa alla {n}',
         mapFailed: 'Kartan kunde inte laddas. Listan nedan har samma siffror.',
+        mapRetry: 'Försök igen',
+        mapUnplaced: { one: '{n} fågel på den här listan har ingen plats, så kartan utelämnar den.', other: '{n} fåglar på den här listan har ingen plats, så kartan utelämnar dem.' },
         mapHint: 'Nyp eller +/− för att zooma · dra för att flytta',
         mapZoomIn: 'Zooma in',
         mapZoomOut: 'Zooma ut',
@@ -857,6 +860,7 @@ export const sv: Messages = {
     },
     search: {
       understood: 'Tolkat som',
+      hint: 'Prova ett namn, en grupp, en plats eller ett år: rovfåglar i Kenya 2024',
       show: 'Visa de här fåglarna',
       note: 'Din lista har bara datum för första observationen; importera MyEBirdData.csv för att få med alla observationer',
     },

@@ -83,6 +83,7 @@ export const it: Messages = {
         threatenedSr: '(Vulnerabile, In pericolo o In pericolo critico)',
       },
       arranging: 'disposizione degli adesivi',
+      noMatch: { your: 'Nessun uccello della tua lista corrisponde a questi filtri.', this: 'Nessun uccello di questa lista corrisponde a questi filtri.' },
       legend: {
         latest: 'Ultima: {name}',
         latestOn: 'Ultima: {name}, <time>{date}</time>',
@@ -107,6 +108,8 @@ export const it: Messages = {
         map: 'Mappa',
         mapAll: 'Mostra tutti ({n})',
         mapFailed: 'Impossibile caricare la mappa. L’elenco qui sotto riporta gli stessi conteggi.',
+        mapRetry: 'Riprova',
+        mapUnplaced: { one: '{n} uccello di questa lista non ha un luogo, quindi la mappa lo lascia fuori.', other: '{n} uccelli di questa lista non hanno un luogo, quindi la mappa li lascia fuori.' },
         mapHint: 'Pizzica o usa +/− per lo zoom · trascina per spostare',
         mapZoomIn: 'Aumenta lo zoom',
         mapZoomOut: 'Riduci lo zoom',
@@ -854,6 +857,7 @@ export const it: Messages = {
     },
     search: {
       understood: 'Interpretato come',
+      hint: 'Prova un nome, un gruppo, un luogo o un anno: rapaci in Kenya 2024',
       show: 'Mostra questi uccelli',
       note: 'La tua lista ha solo le date della prima osservazione; importa MyEBirdData.csv per avere ogni osservazione',
     },

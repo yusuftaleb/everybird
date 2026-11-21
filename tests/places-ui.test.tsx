@@ -411,6 +411,8 @@ describe('Places drills down: country, then state or province, then county', () 
     expect(filterOf()).toEqual({ countries: ['KE'], from: '2022-01' })
     fireEvent.change(screen.getByRole('searchbox', { name: 'Find a country or region' }), { target: { value: 'Ken' } })
     expect(screen.getByTestId('country-KE')).toHaveAccessibleName('Kenya, 0 species')
+    // The head counts what the search lists, not the continents it replaced (P5).
+    expect(screen.getByTestId('filter-panel-places').querySelector('.eb-places-head')).toHaveTextContent(/^1 country · 1 checked/)
   })
 
   it('a drilled level with nothing left under the other filters says so, the breadcrumb kept', () => {

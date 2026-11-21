@@ -83,6 +83,7 @@ export const pt: Messages = {
         threatenedSr: '(Vulnerável, Em perigo ou Criticamente em perigo)',
       },
       arranging: 'organizando os adesivos',
+      noMatch: { your: 'Nenhuma ave da sua lista corresponde a estes filtros.', this: 'Nenhuma ave desta lista corresponde a estes filtros.' },
       legend: {
         latest: 'Última: {name}',
         latestOn: 'Última: {name}, <time>{date}</time>',
@@ -107,6 +108,8 @@ export const pt: Messages = {
         map: 'Mapa',
         mapAll: 'Mostrar todos os {n}',
         mapFailed: 'Não foi possível carregar o mapa. A lista abaixo tem as mesmas contagens.',
+        mapRetry: 'Tentar de novo',
+        mapUnplaced: { one: '{n} ave desta lista não tem lugar, então o mapa a deixa de fora.', other: '{n} aves desta lista não têm lugar, então o mapa as deixa de fora.' },
         mapHint: 'Use dois dedos ou +/− para dar zoom · arraste para mover',
         mapZoomIn: 'Aumentar o zoom',
         mapZoomOut: 'Diminuir o zoom',
@@ -870,6 +873,7 @@ export const pt: Messages = {
     /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */
     search: {
       understood: 'Entendido como',
+      hint: 'Tente um nome, um grupo, um lugar ou um ano: aves de rapina no Quênia 2024',
       show: 'Mostrar estas aves',
       note: 'Sua lista só tem datas da primeira observação; importe o MyEBirdData.csv para ter cada observação',
     },

@@ -66,6 +66,9 @@ describe('the Status filter', () => {
   it('an empty drilled Places level names a status filter among the other filters', () => {
     expect(emptyHere({ statuses: ['VU'] }, en.ui)).toBe('No places here under the other filters.')
     expect(emptyHere({}, en.ui)).toBe('No places here on your list now.')
+    // The search's bird group and a genus are other filters too (H15).
+    expect(emptyHere({ group: 'owls' }, en.ui)).toBe('No places here under the other filters.')
+    expect(emptyHere({ order: 'Passeriformes', family: 'Corvidae', genus: 'Corvus' }, en.ui)).toBe('No places here under the other filters.')
   })
   it('threatened: VU + EN + CR only', () => {
     expect(threatenedCount(list, species)).toBe(2)

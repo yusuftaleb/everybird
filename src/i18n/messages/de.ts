@@ -83,6 +83,7 @@ export const de: Messages = {
         threatenedSr: '(gefährdet, stark gefährdet oder vom Aussterben bedroht)',
       },
       arranging: 'Sticker werden angeordnet',
+      noMatch: { your: 'Keine Vögel auf deiner Liste passen zu diesen Filtern.', this: 'Keine Vögel auf dieser Liste passen zu diesen Filtern.' },
       legend: {
         latest: 'Neueste: {name}',
         latestOn: 'Neueste: {name}, <time>{date}</time>',
@@ -107,6 +108,8 @@ export const de: Messages = {
         map: 'Karte',
         mapAll: 'Alle {n} zeigen',
         mapFailed: 'Die Karte konnte nicht geladen werden. Die Liste unten hat dieselben Zahlen.',
+        mapRetry: 'Erneut versuchen',
+        mapUnplaced: { one: '{n} Vogel auf dieser Liste hat keinen Ort, daher fehlt er auf der Karte.', other: '{n} Vögel auf dieser Liste haben keinen Ort, daher fehlen sie auf der Karte.' },
         mapHint: 'Mit zwei Fingern oder +/− zoomen · zum Verschieben ziehen',
         mapZoomIn: 'Vergrößern',
         mapZoomOut: 'Verkleinern',
@@ -859,6 +862,7 @@ export const de: Messages = {
     },
     search: {
       understood: 'Verstanden als',
+      hint: 'Probier einen Namen, eine Gruppe, einen Ort oder ein Jahr: Greifvögel in Kenia 2024',
       show: 'Diese Vögel zeigen',
       note: 'Deine Liste hat nur das Datum der Erstbeobachtung; importiere MyEBirdData.csv für jede Beobachtung',
     },

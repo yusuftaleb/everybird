@@ -11,7 +11,7 @@
 // 44px for touch, no rules or boxes.
 // Every setting keeps its stored value and behaviour (arrangement.ts, tree-mine.ts; True size and Scientific are the
 // list store's).
-import { useId, type ReactNode, type RefObject } from 'react'
+import { useId, useState, type ReactNode, type RefObject } from 'react'
 import type { Icon } from '@/components/phosphor-icons'
 import { DockPanel } from '@/components/filters/Filters'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -24,11 +24,15 @@ type Segment<V extends string> = { value: V; label: string; icon?: Icon; off?: s
 
 /** One row: the label at the left, a small segmented control in the share dialog's style (`.eb-seg`) at the right, one
  *  button per choice, the chosen one pressed. A choice with an `icon` shows the icon alone (its label the button's name
- *  and tooltip); one with `off` stays listed, aria-disabled, its reason its tooltip and accessible description. */
+ *  and tooltip); one with `off` stays listed, aria-disabled, its reason its tooltip and accessible description, and
+ *  pressing it shows the reason in one Muted line under the row (a status, so it is read; touch has no tooltip). */
 export function DisplaySegments<V extends string>({ label, value, options, onChange, testId }: {
   label: string; value: V; options: readonly Segment<V>[]; onChange: (v: V) => void; testId?: string
 }): ReactNode {
   const id = useId()
+  // The off choice last pressed: its reason shows under the row until another choice is pressed.
+  const [why, setWhy] = useState<V | null>(null)
+  const reason = options.find((o) => o.value === why)?.off
   return (
     <div className="eb-disp-seg">
       <span id={`${id}-label`} className="eb-disp-label">{label}</span>
@@ -38,13 +42,14 @@ export function DisplaySegments<V extends string>({ label, value, options, onCha
             key={o.value} type="button" className="eb-seg-btn" aria-pressed={value === o.value}
             aria-label={o.icon ? o.label : undefined} data-icon={o.icon ? '' : undefined}
             aria-disabled={o.off ? true : undefined} aria-describedby={o.off ? `${id}-${o.value}` : undefined} title={o.off ?? (o.icon ? o.label : undefined)}
-            data-value={o.value} onClick={() => { if (!o.off && o.value !== value) onChange(o.value) }}
+            data-value={o.value} onClick={() => { setWhy(o.off ? o.value : null); if (!o.off && o.value !== value) onChange(o.value) }}
           >
             {o.icon ? <o.icon aria-hidden="true" focusable="false" /> : <span>{o.label}</span>}
           </button>
         ))}
       </div>
       {options.map((o) => o.off && <span key={o.value} id={`${id}-${o.value}`} hidden>{o.off}</span>)}
+      <p className="eb-note eb-disp-why" role="status" data-testid={testId ? `${testId}-why` : undefined}>{reason}</p>
     </div>
   )
 }

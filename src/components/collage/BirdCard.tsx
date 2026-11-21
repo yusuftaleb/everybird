@@ -73,7 +73,7 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   const row = species.byCode.get(entry.code)
   const { t } = useI18n()
   useNames() // the card's name follows the names file and the English switch
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const shown = useMemo(() => entryInFilter(entry, filter, seen), [entry, filter, seen])
   const ref = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -138,7 +138,12 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
     const onScroll = () => { scrolled = true; again() }
     window.addEventListener('resize', again, { passive: true })
     window.addEventListener('scroll', onScroll, { passive: true, capture: true })
+    // The card grows after placement (the "Illustration ↗" line arrives with the album's slugs): placed again, so one
+    // above its bird never grows over it.
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(again) : null
+    ro?.observe(el)
     return () => {
+      ro?.disconnect()
       if (raf) cancelAnimationFrame(raf)
       if (trail) cancelAnimationFrame(trail)
       window.removeEventListener('resize', again)

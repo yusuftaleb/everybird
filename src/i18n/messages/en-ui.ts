@@ -112,6 +112,8 @@ export const EN_UI = {
     },
     /** The stage's placeholder while the first layout is packed. */
     arranging: 'arranging the stickers',
+    /** Under the collage or list when the filters leave none of the list's birds (CollageView), before Clear all. */
+    noMatch: { your: 'No birds on your list match these filters.', this: 'No birds on this list match these filters.' },
     /** The legend under the collage (its parts joined by " · " in code). */
     legend: {
       latest: 'Latest: {name}',
@@ -141,6 +143,10 @@ export const EN_UI = {
        *  load, the caption under the map (how to zoom and pan), and its buttons' names (+, −, and back to the whole world). */
       mapAll: 'Show all {n}',
       mapFailed: "Couldn't load the map. The list below has the same counts.",
+      /** After mapFailed: the button that loads the map again. */
+      mapRetry: 'Try again',
+      /** Under the Map view's list: the birds shown that have no place at all (a life list without places), left off the map. */
+      mapUnplaced: { one: '{n} bird on this list has no place, so the map leaves it out.', other: '{n} birds on this list have no place, so the map leaves them out.' },
       mapHint: 'Pinch or +/− to zoom · drag to pan',
       mapZoomIn: 'Zoom in',
       mapZoomOut: 'Zoom out',
@@ -1059,6 +1065,8 @@ export const EN_UI = {
   /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */
   search: {
     understood: 'Understood as',
+    /** The line in the open, empty search: what it understands, with one example (its words parse in this language). */
+    hint: 'Try a name, a group, a place or a year: raptors in Kenya 2024',
     show: 'Show these birds',
     note: 'Your list only has first-seen dates; import MyEBirdData.csv for every sighting',
   },

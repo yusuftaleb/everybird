@@ -83,6 +83,7 @@ export const da: Messages = {
         threatenedSr: '(Sårbar, Moderat truet eller Kritisk truet)',
       },
       arranging: 'klistermærkerne lægges ud',
+      noMatch: { your: 'Ingen fugle på din liste passer til disse filtre.', this: 'Ingen fugle på denne liste passer til disse filtre.' },
       legend: {
         latest: 'Nyeste: {name}',
         latestOn: 'Nyeste: {name}, <time>{date}</time>',
@@ -107,6 +108,8 @@ export const da: Messages = {
         map: 'Kort',
         mapAll: 'Vis alle {n}',
         mapFailed: 'Kortet kunne ikke indlæses. Listen nedenfor har de samme tal.',
+        mapRetry: 'Prøv igen',
+        mapUnplaced: { one: '{n} fugl på denne liste har intet sted, så kortet udelader den.', other: '{n} fugle på denne liste har intet sted, så kortet udelader dem.' },
         mapHint: 'Knib eller +/− for at zoome · træk for at flytte',
         mapZoomIn: 'Zoom ind',
         mapZoomOut: 'Zoom ud',
@@ -858,6 +861,7 @@ export const da: Messages = {
     },
     search: {
       understood: 'Forstået som',
+      hint: 'Prøv et navn, en gruppe, et sted eller et år: rovfugle i Kenya 2024',
       show: 'Vis disse fugle',
       note: 'Din liste har kun datoer for første fund; importér MyEBirdData.csv for hver observation',
     },

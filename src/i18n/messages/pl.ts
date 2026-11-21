@@ -85,6 +85,7 @@ export const pl: Messages = {
         threatenedSr: '(narażone, zagrożone lub krytycznie zagrożone)',
       },
       arranging: 'układanie naklejek',
+      noMatch: { your: 'Żaden ptak z Twojej listy nie pasuje do tych filtrów.', this: 'Żaden ptak z tej listy nie pasuje do tych filtrów.' },
       legend: {
         latest: 'Najnowszy: {name}',
         latestOn: 'Najnowszy: {name}, <time>{date}</time>',
@@ -113,6 +114,8 @@ export const pl: Messages = {
         map: 'Mapa',
         mapAll: 'Pokaż wszystkie ({n})',
         mapFailed: 'Nie udało się wczytać mapy. Lista poniżej pokazuje te same liczby.',
+        mapRetry: 'Spróbuj ponownie',
+        mapUnplaced: { one: '{n} ptak z tej listy nie ma miejsca, więc mapa go pomija.', few: '{n} ptaki z tej listy nie mają miejsca, więc mapa je pomija.', many: '{n} ptaków z tej listy nie ma miejsca, więc mapa je pomija.', other: '{n} ptaka z tej listy nie ma miejsca, więc mapa je pomija.' },
         mapHint: 'Przybliżaj palcami lub przyciskami +/− · przeciągnij, aby przesunąć',
         mapZoomIn: 'Przybliż',
         mapZoomOut: 'Oddal',
@@ -868,6 +871,7 @@ export const pl: Messages = {
     },
     search: {
       understood: 'Rozpoznano',
+      hint: 'Wpisz nazwę, grupę, miejsce lub rok: ptaki drapieżne Kenia 2024',
       show: 'Pokaż te ptaki',
       note: 'Twoja lista ma tylko daty pierwszych obserwacji; zaimportuj MyEBirdData.csv, aby mieć każdą obserwację',
     },

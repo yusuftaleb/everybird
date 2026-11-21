@@ -6,7 +6,7 @@
 import { fetchData } from '@/lib/data-url'
 import { applyFilter, clearPlaces, countryRows, filterKey, placeCounts, type Filter, type PlaceCounts, type PlaceOption } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
-import type { SeenIndex } from '@/lib/list/seen'
+import { seenOf, type SeenIndex } from '@/lib/list/seen'
 import type { SpeciesIndex } from '@/lib/species/load'
 
 export type MapLayer = { w: number; h: number; d: Record<string, string> }
@@ -33,6 +33,14 @@ export function loadMapCountries(): Promise<MapCountries> {
 export function mapCounts(list: ListEntry[], filter: Filter, species: SpeciesIndex, seen?: SeenIndex): PlaceCounts {
   const shown = filterKey(filter) ? applyFilter(list, filter, species, seen) : list
   return placeCounts(shown, clearPlaces(filter), species, seen)
+}
+
+/** How many of the birds the map shows have no place at all (a life list without places): the note under its list. */
+export function mapUnplaced(list: ListEntry[], filter: Filter, species: SpeciesIndex, seen?: SeenIndex): number {
+  const shown = filterKey(filter) ? applyFilter(list, filter, species, seen) : list
+  let n = 0
+  for (const e of shown) if (!seenOf(seen, e).length) n++
+  return n
 }
 
 /**
@@ -70,15 +78,18 @@ export function countRange(shapes: readonly { n: number }[]): [min: number, max:
  * borders and the hovered place's Ink outline (drawn last, mapDrawOrder) are map.css's.
  */
 export const RAMP = { lo: 0.18, hi: 0.62 } as const
+/** Dark mode's ramp: a stronger lowest tint, since 18% Accent over dark Paper is barely apart from the no-bird Surface
+ *  (1.15:1); the highest stays. The screen's map only (MapView); the share image keeps RAMP. */
+export const RAMP_DARK = { lo: 0.26, hi: 0.62 } as const
 
 /**
  * Accent's share (0 to 1) over Paper for a count on a layer whose counts run `min` to `max`: none for no species, then
- * RAMP.lo at the lowest up to RAMP.hi at the highest, continuous on a log scale (one big country doesn't flatten the
+ * `ramp.lo` (RAMP's by default) at the lowest up to `ramp.hi` at the highest (one count, or all tied: `hi`), continuous on a log scale (one big country doesn't flatten the
  * rest).
  */
-export function shadeMix(n: number, min: number, max: number): number {
+export function shadeMix(n: number, min: number, max: number, ramp: { lo: number; hi: number } = RAMP): number {
   if (n <= 0 || max <= 0) return 0
-  const { lo, hi } = RAMP
+  const { lo, hi } = ramp
   if (max <= min) return hi
   const t = (Math.log(n) - Math.log(min)) / (Math.log(max) - Math.log(min))
   return lo + (hi - lo) * Math.min(1, Math.max(0, t))
