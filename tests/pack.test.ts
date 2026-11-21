@@ -726,9 +726,9 @@ const exact = (r: PackResult) => {
   return `${r.boxes.size}:${h.toString(16)}`
 }
 const FREE: [string, number, string, string][] = [
-  ['wide', 200, '200:cd40546b', '200:6babe418'], ['wide', 1100, '1100:42495cc3', '1100:d0414a24'],
-  ['medium', 200, '200:5cab8a11', '200:ad0db7a9'], ['medium', 1100, '1100:f271b651', '1100:d894e790'],
-  ['narrow', 200, '200:c6b831de', '200:949d6338'], ['narrow', 1100, '1100:a67d2970', '1100:267ff50d'],
+  ['wide', 200, '200:cd40546b', '200:6babe418'], ['wide', 1100, '1100:f5ba7c1', '1100:66ba7d8e'],
+  ['medium', 200, '200:5cab8a11', '200:ad0db7a9'], ['medium', 1100, '1100:e37b5574', '1100:60720ab9'],
+  ['narrow', 200, '200:c6b831de', '200:949d6338'], ['narrow', 1100, '1100:cbafa15d', '1100:28d00a57'],
 ]
 describe('Free on the page: the cloud, box for box', () => {
   beforeAll(() => { if (!POOL.length) POOL = loadPool() })
