@@ -1,8 +1,8 @@
-// The view a birder had (filters, the search and its typed text, the Filters panel, the layout switches) survives a
-// language switch. The switch reloads the page (chooseLang, i18n/choose.ts), which would reset all of it. stashResume()
-// writes what each owner offered, just before that reload, under one versioned sessionStorage key. The first claims on
-// the new page read it once, delete it, and claim each slice once, only within RESUME_TTL_MS of the switch. A normal
-// load finds no key and restores nothing.
+// The view a birder had (the view itself, filters, the search, the Filters panel, the layout switches) survives a
+// language switch and a refresh. The switch reloads the page (chooseLang, i18n/choose.ts), which would reset all of it.
+// stashResume() writes what each owner offered under one versioned sessionStorage key, just before that reload and on
+// every pagehide (a refresh, or leaving the page). The first claims on the new page read it once, delete it, and claim
+// each slice once, only within RESUME_TTL_MS of the stash. A new tab, or a visit after the TTL, restores nothing.
 // Only canonical values go in: filter codes and ids, the typed search text, section ids and booleans. No label is
 // stored, so the labels are drawn in the new language. Storage errors are ignored: the page then behaves as it does today.
 import { isContinentId } from './places/continents'
@@ -125,15 +125,22 @@ export function readResume(store: Store | null, now: number): { at: number; slic
 type Readers = Record<Slice, (() => unknown) | undefined>
 const readers: Readers = { collage: undefined, search: undefined, panel: undefined }
 
-/** Registers how to read one slice when the language changes. Returns the unregister function (on unmount). */
+let hooked = false
+
+/** Registers how to read one slice when the page reloads. Returns the unregister function (on unmount). */
 export function offerResume<K extends Slice>(slice: K, read: () => Resume[K] | undefined): () => void {
+  // A refresh keeps the view too (Yusuf, 2026-11-21): the same stash on every pagehide, which a reload fires.
+  if (!hooked && typeof window !== 'undefined') {
+    hooked = true
+    window.addEventListener('pagehide', () => stashResume())
+  }
   readers[slice] = read
   return () => {
     if (readers[slice] === read) readers[slice] = undefined
   }
 }
 
-/** Called by chooseLang just before the reload. The search and the Filters panel never open together, so the panel is left out when the search is open. */
+/** Called by chooseLang just before the reload, and on pagehide. The search and the Filters panel never open together, so the panel is left out when the search is open. */
 export function stashResume(now: number = Date.now(), store: Store | null = sessionStore()): void {
   const slices: Slices = {}
   for (const k of SLICES) {
