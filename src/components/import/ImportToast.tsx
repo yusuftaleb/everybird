@@ -17,7 +17,7 @@ import { slotSource } from '@/lib/list/model'
 import '@/components/share/share.css' // .eb-share-bar, the site's progress line
 
 /** How long the done line stays (ms), while not hovered or focused. */
-export const DONE_MS = 4000
+export const DONE_MS = 3000 // Yusuf, 2026-11-21: 3 to 5 s at most
 /** A read or fetch shorter than this shows no running toast, only its done line. */
 export const RUN_DELAY = 400
 

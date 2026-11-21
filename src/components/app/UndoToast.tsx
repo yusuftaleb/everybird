@@ -1,7 +1,7 @@
 'use client'
 // "Removed … · Undo": the toast after a removal (the bird card's Remove) or a change by hand ("Added … · Undo" too). It
 // takes focus as it appears (the control that removed the bird has gone, so keyboard users land on Undo) unless
-// `focus` is false (Add by hand keeps focus on its list), stays about 6 s, and waits while it has focus or the pointer
+// `focus` is false (Add by hand keeps focus on its list), stays 5 s, and waits while it has focus or the pointer
 // is on it. The slot is a live region, so the line is announced. Built on the site's one toast (Toast.tsx).
 import { useEffect, useRef } from 'react'
 import { plural } from '@/i18n/core'
@@ -11,7 +11,7 @@ import type { Ui } from '@/i18n/messages/en-ui'
 import { Toast } from './Toast'
 
 /** How long "Removed … · Undo" stays. */
-export const UNDO_MS = 6000
+export const UNDO_MS = 5000 // Yusuf, 2026-11-21: 5 s at most; long enough to reach Undo
 
 /** What a removal (or a change by hand) touched, to undo: the line to show and the codes. */
 export type Removal = { text: string; codes: string[] }
