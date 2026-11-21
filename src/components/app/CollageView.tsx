@@ -348,6 +348,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const tipEntry = tip && !pick && view === 'collage' ? entries.find((e) => e.code === tip) : undefined
   const sizes = mode === 'true' ? t.collage.legend.sizesTrue : t.collage.legend.sizesEven
   const latestRow = latest ? species.byCode.get(latest.code) : undefined
+  const marked = useMemo(() => shownList.some((e) => e.heard || e.dead), [shownList])
   // The tree's legend: the oldest lineage among the birds shown (the tree is fetched once per page, with the Tree tab).
   const [tree, setTree] = useState<Tree | null>(null)
   useEffect(() => {
@@ -439,12 +440,16 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         </p>
       )}
 
+      {/* The latest lifer finds its bird (as a search pick does); the marks' key only when a bird shown carries one. */}
       {view !== 'map' && view !== 'tree' && <div className="eb-mono eb-legend">
         <p>
-          {latest && latestRow ? <>{latestLine(displayName(latestRow), latest.date, t)} · </> : null}
+          {latest && latestRow ? <>
+            <button type="button" className="eb-textbtn eb-legend-latest" data-testid="legend-latest" onClick={() => show(latest.code)}>{latestLine(displayName(latestRow), latest.date, t)}</button>
+            {' · '}
+          </> : null}
           {sizes}
         </p>
-        <p>{t.collage.legend.marks}</p>
+        {marked && <p data-testid="legend-marks">{t.collage.legend.marks}</p>}
       </div>}
       {view === 'tree' && oldest && oldestRow && <div className="eb-mono eb-legend">
         <p>{fmt(t.collage.tree.oldest, { name: displayName(oldestRow), age: formatAge(oldest.age, t.num) })}</p>

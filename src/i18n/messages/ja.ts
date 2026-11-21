@@ -848,6 +848,7 @@ export const ja: Messages = {
     },
     search: {
       understood: '解釈した条件',
+      hint: '名前、グループ、場所、年で探せます：猛禽 ケニア 2024',
       show: 'これらの鳥を表示',
       note: 'あなたのリストには初記録の日付しかありません。すべての記録を使うにはMyEBirdData.csvを読み込んでください',
     },

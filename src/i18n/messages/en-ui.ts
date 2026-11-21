@@ -1039,6 +1039,8 @@ export const EN_UI = {
   /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */
   search: {
     understood: 'Understood as',
+    /** The line in the open, empty search: what it understands, with one example (its words parse in this language). */
+    hint: 'Try a name, a group, a place or a year: raptors in Kenya 2024',
     show: 'Show these birds',
     note: 'Your list only has first-seen dates; import MyEBirdData.csv for every sighting',
   },

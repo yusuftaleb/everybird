@@ -860,6 +860,7 @@ export const pl: Messages = {
     },
     search: {
       understood: 'Rozpoznano',
+      hint: 'Wpisz nazwę, grupę, miejsce lub rok: ptaki drapieżne Kenia 2024',
       show: 'Pokaż te ptaki',
       note: 'Twoja lista ma tylko daty pierwszych obserwacji; zaimportuj MyEBirdData.csv, aby mieć każdą obserwację',
     },

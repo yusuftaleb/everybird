@@ -862,6 +862,7 @@ export const nl: Messages = {
     /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */
     search: {
       understood: 'Begrepen als',
+      hint: 'Probeer een naam, een groep, een plaats of een jaar: roofvogels in Kenia 2024',
       show: 'Toon deze vogels',
       note: 'Je lijst heeft alleen de datum van de eerste waarneming; importeer MyEBirdData.csv voor elke waarneming',
     },

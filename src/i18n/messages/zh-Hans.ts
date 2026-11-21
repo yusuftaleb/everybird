@@ -848,6 +848,7 @@ export const zhHans: Messages = {
     },
     search: {
       understood: '识别为',
+      hint: '可以搜索名称、类群、地点或年份：猛禽 肯尼亚 2024',
       show: '显示这些鸟',
       note: '你的清单只有首次记录日期；导入MyEBirdData.csv可获得每一次记录',
     },

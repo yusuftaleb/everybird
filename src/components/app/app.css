@@ -272,6 +272,8 @@
 .eb-understood .eb-chiprow { flex: 1 1 200px; min-width: 0; }
 .eb-understood-go { padding: 0 14px; font-size: 14px; }
 .eb-understood-note { padding: 0 12px 8px; }
+/* The open, empty search's one line: what it understands, with an example. */
+.eb-find-hint { padding: 10px 12px; }
 .eb-results [role="option"] {
   display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; cursor: pointer;
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
@@ -293,6 +295,9 @@
 .eb-ways-wait { min-height: 360px; }
 .eb-legend { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .eb-legend p { margin: 0; }
+/* "Latest: Snow Goose, Sep 2026" is a text button finding the bird: the legend's own type and line, a 44px press. */
+.eb-legend .eb-legend-latest { display: inline; min-height: 0; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; text-align: inherit; }
+.eb-legend .eb-legend-latest::after { inset: calc((100% - 44px) / 2) min(0px, calc(50% - 22px)); }
 
 @media (max-width: 479px) { .eb-sm-hide { display: none; } }
 /* After an import on Settings: what landed, and the way to the collage. */

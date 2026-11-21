@@ -850,6 +850,7 @@ export const da: Messages = {
     },
     search: {
       understood: 'Forstået som',
+      hint: 'Prøv et navn, en gruppe, et sted eller et år: rovfugle i Kenya 2024',
       show: 'Vis disse fugle',
       note: 'Din liste har kun datoer for første fund; importér MyEBirdData.csv for hver observation',
     },

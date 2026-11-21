@@ -849,6 +849,7 @@ export const sv: Messages = {
     },
     search: {
       understood: 'Tolkat som',
+      hint: 'Prova ett namn, en grupp, en plats eller ett år: rovfåglar i Kenya 2024',
       show: 'Visa de här fåglarna',
       note: 'Din lista har bara datum för första observationen; importera MyEBirdData.csv för att få med alla observationer',
     },

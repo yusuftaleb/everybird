@@ -846,6 +846,7 @@ export const it: Messages = {
     },
     search: {
       understood: 'Interpretato come',
+      hint: 'Prova un nome, un gruppo, un luogo o un anno: rapaci in Kenya 2024',
       show: 'Mostra questi uccelli',
       note: 'La tua lista ha solo le date della prima osservazione; importa MyEBirdData.csv per avere ogni osservazione',
     },

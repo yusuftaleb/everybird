@@ -862,6 +862,7 @@ export const pt: Messages = {
     /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */
     search: {
       understood: 'Entendido como',
+      hint: 'Tente um nome, um grupo, um lugar ou um ano: aves de rapina no Quênia 2024',
       show: 'Mostrar estas aves',
       note: 'Sua lista só tem datas da primeira observação; importe o MyEBirdData.csv para ter cada observação',
     },

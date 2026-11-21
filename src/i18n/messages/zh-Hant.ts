@@ -848,6 +848,7 @@ export const zhHant: Messages = {
     },
     search: {
       understood: '解讀為',
+      hint: '可以搜尋名稱、類群、地點或年份：猛禽 肯亞 2024',
       show: '顯示這些鳥',
       note: '你的清單只有首次紀錄的日期；匯入 MyEBirdData.csv 就能取得每一筆紀錄',
     },

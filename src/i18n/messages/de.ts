@@ -851,6 +851,7 @@ export const de: Messages = {
     },
     search: {
       understood: 'Verstanden als',
+      hint: 'Probier einen Namen, eine Gruppe, einen Ort oder ein Jahr: Greifvögel in Kenia 2024',
       show: 'Diese Vögel zeigen',
       note: 'Deine Liste hat nur das Datum der Erstbeobachtung; importiere MyEBirdData.csv für jede Beobachtung',
     },

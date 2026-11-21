@@ -37,9 +37,15 @@ function seeded(): AppState {
   return reduce(initialState(), { type: 'restore', saved })
 }
 
-function Harness() {
-  const [state, dispatch] = useReducer(reduce, undefined, seeded)
+function Harness({ init = seeded }: { init?: () => AppState }) {
+  const [state, dispatch] = useReducer(reduce, undefined, init)
   return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Test collage" />
+}
+/** The same list with the robin heard only: the legend's marks key shows. */
+function seededMarked(): AppState {
+  const saved = emptySaved()
+  saved.records.ebird = [rec('snogoo', '2020-01-02'), rec('norfli', '2021-03-04'), rec('gilfli', '2022-05-06'), { ...rec('amerob', '2023-07-08'), heard: true }, rec('yerwar', '2024-09-10')]
+  return reduce(initialState(), { type: 'restore', saved })
 }
 
 const stats = () => screen.getByTestId('collage-stats')
@@ -69,8 +75,11 @@ afterEach(() => {
 })
 
 describe('controls bar', () => {
-  it('the legend reads heard only and found dead, with no photo-or-recording mark', () => {
-    const { container } = render(<Harness />)
+  it('the legend reads heard only and found dead, with no photo-or-recording mark, only when a bird shown carries a mark', () => {
+    render(<Harness />)
+    expect(screen.queryByTestId('legend-marks')).toBeNull()
+    cleanup()
+    const { container } = render(<Harness init={seededMarked} />)
     expect(container).toHaveTextContent('* heard only · † found dead')
     expect(container).not.toHaveTextContent('◦')
     expect(container).not.toHaveTextContent(/photo or recording/i)
@@ -393,6 +402,25 @@ describe('search (Photography\'s dock search)', () => {
   const find = (text: string) => act(async () => { fireEvent.change(box(), { target: { value: text } }) })
   const names = () => within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.querySelector('.eb-result-name')!.textContent)
 
+  it('the legend\'s latest lifer is a button that finds the bird, as a search pick does', async () => {
+    render(<Harness />)
+    fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'List' }))
+    const latest = screen.getByTestId('legend-latest')
+    expect(latest).toHaveTextContent('Latest: Yellow-rumped Warbler, Sep 2024')
+    fireEvent.click(latest)
+    expect(within(screen.getByRole('list', { name: 'Life list' })).getByRole('button', { name: /Yellow-rumped Warbler/ })).toHaveFocus()
+  })
+
+  it('open and empty, the drop says what the search understands; the first keystroke takes the line away', async () => {
+    render(<Harness />)
+    open()
+    expect(screen.getByTestId('search-hint')).toHaveTextContent('Try a name, a group, a place or a year: raptors in Kenya 2024')
+    expect(box()).toHaveAttribute('aria-describedby', screen.getByTestId('search-hint').id)
+    await find('r')
+    expect(screen.queryByTestId('search-hint')).toBeNull()
+    expect(box()).not.toHaveAttribute('aria-describedby')
+  })
+
   it('the magnifier turns the dock into the field: tabs and tools inert, focus in the field; Esc closes and returns focus', async () => {
     render(<Harness />)
     open()
@@ -568,7 +596,7 @@ describe('in Spanish', () => {
     expect(screen.getByRole('button', { name: 'Cerrar la búsqueda' })).toBeInTheDocument()
   })
   it('the legend in Spanish', () => {
-    const { container } = render(<Harness />, { wrapper: withI18n('es') })
+    const { container } = render(<Harness init={seededMarked} />, { wrapper: withI18n('es') })
     expect(container.querySelector('.eb-legend')).toHaveTextContent('* solo oída · † encontrada muerta')
     expect(container.querySelector('.eb-legend')).toHaveTextContent('Los tamaños siguen la masa corporal, equilibrados para que las aves pequeñas se vean')
   })

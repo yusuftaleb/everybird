@@ -862,6 +862,7 @@ export const es: Messages = {
     /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */
     search: {
       understood: 'Entendido como',
+      hint: 'Prueba un nombre, un grupo, un lugar o un año: rapaces en Kenia 2024',
       show: 'Mostrar estas aves',
       note: 'Tu lista solo tiene fechas de primera observación; importa MyEBirdData.csv para tener cada observación',
     },
