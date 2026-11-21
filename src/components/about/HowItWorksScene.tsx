@@ -116,6 +116,10 @@ const SIDE: Record<string, number> = Object.fromEntries(BIRDS.map((code) => [cod
 export const demoStickerUrl = (code: string) => stickerUrl(code, SIDE[code] * DEMO_GROW, 2, SV[code])
 /** The stickers the poster shows first, biggest first (they're fetched ahead of the rest, HowItWorksDemo). */
 export const POSTER_STICKERS = [...BIRDS].sort((a, b) => Math.max(...COLLAGE.wide.all[b].slice(2)) - Math.max(...COLLAGE.wide.all[a].slice(2)))
+/** How many of them are preloaded from the head and fetched at once; every other sticker is lazy and low priority, so
+ *  the page's code and fonts go first and the design the slot doesn't show (one of the poster's two) is never fetched. */
+export const POSTER_EAGER = 6
+const EAGER = new Set(POSTER_STICKERS.slice(0, POSTER_EAGER))
 
 /** Marks a demo sticker loaded (data-ld): until then it draws nothing (how-it-works.css), as the product's do. */
 const markLoaded = (img: HTMLImageElement | null) => {
@@ -140,6 +144,7 @@ export function Sticker({ code }: { code: string }) {
     // suppressHydrationWarning: the head's STICKER_READY_SCRIPT may have marked it data-ld before hydration
     // eslint-disable-next-line @next/next/no-img-element
     <img src={demoStickerUrl(code)} alt="" draggable={false} decoding="async" className="ebd-st" ref={markLoaded} suppressHydrationWarning
+      {...(EAGER.has(code) ? {} : { loading: 'lazy' as const, fetchPriority: 'low' as const })}
       onLoad={(e) => { e.currentTarget.dataset.ld = '' }} onError={() => setFailed(true)} />
   )
 }
