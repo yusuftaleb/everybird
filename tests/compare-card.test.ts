@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { packFrame } from '@/lib/layout/pack'
 import { cardLayout, fitPack, imagePackSpec, maxTileSide, type ImagePack } from '@/lib/share/image'
-import { fitParts, titlePart } from '@/lib/share/compare-image'
+import { diagramBox, fitParts, titlePart } from '@/lib/share/compare-image'
+import { diagramLayout } from '@/lib/share/venn'
 
 // A share image with no birds to draw (an empty group): the empty pack must still lay out, the card's text over an
 // empty collage, not a hang or NaN.
@@ -71,4 +72,43 @@ describe('the card\'s title', () => {
     expect(r.lines.join(' ')).toBe('Alexandra, Bartholomew, Christophe, Dominique, Evangeline & Friederike')
     expect(r.lines[0]).toMatch(/,$/)
   })
+})
+
+// The card's diagram keeps the collage card's gaps (round 6, item 9): under the head by GAPS.head, above the footer's
+// hairline by GAPS.collage, the hairline drawn `shift` higher when the credit takes its own line (image.ts paintCard).
+describe('the card’s diagram between the head and the footer’s hairline', () => {
+  /** image.ts GAPS, pinned: head under the counts, collage above the hairline. */
+  const GAP = { story: { head: 40, collage: 32 }, post: { head: 40, collage: 32 }, square: { head: 48, collage: 40 } } as const
+  const counts: Record<string, number[]> = {
+    two: [0, 40, 20, 10],
+    three: [0, 461, 120, 144, 90, 30, 60, 218],
+    six: Array.from({ length: 64 }, (_, k) => (k ? (k * 37) % 23 : 0)),
+  }
+  for (const format of ['story', 'post', 'square'] as const) {
+    for (const shift of [0, 32]) {
+      for (const [lists, c] of Object.entries(counts)) {
+        it(`${format}, ${lists} lists${shift ? ', the credit on its own line' : ''}`, () => {
+          const L = cardLayout(format, { name: false, filter: false, latest: false, count: 0, countSize: 'hide' })
+          // The tallest head: two title lines at 60px (69 apart), 8px, the counts line at 30px.
+          const headBottom = L.collage.y + 2 * 69 + 8 + 30
+          const box = diagramBox(format, L, headBottom, shift)
+          const d = diagramLayout(c, box)
+          const all = d.core ? [...d.circles, d.core] : d.circles
+          // The outline's outer half (2px) counts as the drawing.
+          const low = Math.max(...all.map((k) => k.cy + k.r), ...d.spots.map((s) => s.y + s.h / 2)) + 2
+          const high = Math.min(...all.map((k) => k.cy - k.r)) - 2
+          const hairline = L.rule.y - shift
+          expect(low).toBeLessThanOrEqual(hairline - GAP[format].collage + 1e-6)
+          expect(high).toBeGreaterThanOrEqual(headBottom + GAP[format].head - 1e-6)
+          // As large as the room allows, centred in it.
+          const left = Math.min(...all.map((k) => k.cx - k.r)) - 2, right = Math.max(...all.map((k) => k.cx + k.r)) + 2
+          const room = { top: headBottom + GAP[format].head, bottom: hairline - GAP[format].collage, left: L.collage.x, right: L.collage.x + L.collage.w }
+          expect(Math.abs(high - room.top - (room.bottom - low))).toBeLessThan(0.5)
+          expect(Math.abs(left - room.left - (room.right - right))).toBeLessThan(0.5)
+          // Centred, so it reaches the room's edges on the tighter side.
+          expect(Math.min(room.bottom - low, room.right - right)).toBeLessThan(0.5)
+        })
+      }
+    }
+  }
 })

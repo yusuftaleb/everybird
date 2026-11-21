@@ -4,17 +4,18 @@
 // - the title, the lists' names joined the usual way, "Robin, Sam & Ada" (titlePart; one or two lines), and under it each list's species count on one line,
 //   most first; when even the smallest size is too wide, the names are shortened evenly, never the numbers;
 // - the diagram (venn.ts: two circles, three, or the flower from four lists), each circle in its list's colour
-//   (compare.ts listColorHex, as on the page), each region's number with its name, as large as the rest of the card
-//   allows. No birds: the wish list is the picture with the birds.
+//   (compare.ts listColorHex, as on the page), each region's number with its name, as large as the room between the
+//   head and the footer's hairline allows, keeping the collage card's gaps to both (diagramBox). No birds: the wish
+//   list is the picture with the birds.
 // Loaded only when the dialog draws it.
 import { fmt } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import type { Ui } from '@/i18n/messages/en'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { clipText } from './view-image'
-import { ensureViewFonts, paintCard, prepareCard, type FormatSlot, type ImagePack } from './image'
+import { cardLayout, ensureViewFonts, paintCard, prepareCard, type CardFormat, type CardLayout, type FormatSlot, type ImagePack } from './image'
 import { listColorHex, ranking, titlePart } from './compare'
-import { diagramLayout, type Diagram } from './venn'
+import { diagramLayout, type Box, type Diagram } from './venn'
 
 export { titlePart }
 
@@ -83,6 +84,28 @@ export function fitParts(
   return { px: min, lines: split(texts) ?? [clipText(ctx, texts.join(sep), maxW)] }
 }
 
+/** The circles' outline on the card (px): half of it lies outside each circle. */
+const OUTLINE = 4
+/** The collage card's gaps in `format`, read from its own layout (image.ts cardLayout): `head` under the head's last
+ *  line, `collage` above the footer's hairline. */
+function cardGaps(format: CardFormat): { head: number; collage: number } {
+  const plain = cardLayout(format, { name: false, filter: false, latest: false, count: 0, countSize: 'hide' })
+  const named = cardLayout(format, { name: true, filter: false, latest: false, count: 0, countSize: 'hide' })
+  return { head: named.collage.y - (named.name!.y + named.name!.size), collage: plain.rule.y - (plain.collage.y + plain.collage.h) }
+}
+/**
+ * The diagram's room on the card: from the collage card's head gap under the head (`headBottom`, the counts line's
+ * foot) to its collage gap above the footer's hairline, which sits `shift` higher when the credit takes a line of its
+ * own (image.ts placeFooter), less the outline's outer half all round. diagramLayout draws the diagram as large as
+ * this allows, centred in it.
+ */
+export function diagramBox(format: CardFormat, L: CardLayout, headBottom: number, shift: number): Box {
+  const g = cardGaps(format)
+  const top = headBottom + g.head + OUTLINE / 2
+  const bottom = L.rule.y - shift - g.collage - OUTLINE / 2
+  return { x: L.collage.x + OUTLINE / 2, y: top, w: L.collage.w - OUTLINE, h: Math.max(0, bottom - top) }
+}
+
 /** The name drawn under a region's number: two lists' "Only Ada" and "Both"; a list's own name; the flower's centre. */
 function regionName(d: Diagram, mask: number, names: readonly string[], t: Ui): string {
   const n = names.length
@@ -105,7 +128,7 @@ export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> 
     await Promise.race([document.fonts.load(card.fonts.name(60), sample).catch(() => []), new Promise((r) => setTimeout(r, 3000))])
   }
   const { L, colors: C, fonts } = card
-  const X = L.collage.x, CW = L.collage.w, bottom = L.collage.y + L.collage.h
+  const X = L.collage.x, CW = L.collage.w
 
   const canvas = document.createElement('canvas')
   canvas.width = L.W
@@ -133,18 +156,17 @@ export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> 
   ctx.font = fonts.filter(counts.px)
   ctx.fillStyle = C.muted
   ctx.fillText(counts.lines[0], X, y + counts.px * 0.8)
-  y += counts.px + 40
+  y += counts.px
 
-  // The diagram, in the rest of the card.
-  const box = { x: X, y, w: CW, h: bottom - y }
-  const d = diagramLayout(o.counts, box)
+  // The diagram, between the head and the footer's hairline.
+  const d = diagramLayout(o.counts, diagramBox(card.format, L, y, card.shift))
   const circle = (c: { cx: number; cy: number; r: number }) => { ctx.beginPath(); ctx.arc(c.cx, c.cy, c.r, 0, Math.PI * 2) }
   // Each circle a light wash of its list's colour (where circles overlap the washes add up) and a 4px outline in it.
   const colour = d.circles.map((_, i) => listColorHex(i, C))
   ctx.globalAlpha = 0.14
   d.circles.forEach((c, i) => { ctx.fillStyle = colour[i]; circle(c); ctx.fill() })
   ctx.globalAlpha = 1
-  ctx.lineWidth = 4
+  ctx.lineWidth = OUTLINE
   d.circles.forEach((c, i) => { ctx.strokeStyle = colour[i]; circle(c); ctx.stroke() })
   if (d.core) {
     // The flower's centre, every list's: Surface over the petals' inner ends, outlined in Ink.
