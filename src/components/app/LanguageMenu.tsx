@@ -1,32 +1,38 @@
 'use client'
 // The top bar's language button (preview variants lang:a, the default, and c): ThemeToggle's size and look, showing the
-// current language's code ("EN", "ES", "PT", "NL"; 简 and 繁 for Chinese, langBadge), named in full for screen readers ("Idioma: Español"). It opens a
-// small menu of the four languages, each in its own language, the current one checked. Its keyboard copies SourceMenu
-// (src/components/import/SourceMenu.tsx). A new choice sets the cookie and reloads (chooseLang); the current one only
+// current language's code ("EN", "ES", "PT", "NL"; 简 and 繁 for Chinese, langBadge), named with that code first and
+// then in full ("ES, Idioma: Español"), so the visible text is in its name. It opens a menu of the 14 languages, each in
+// its own language, the current one checked, on the shared floating layer (menu-layer.ts: fixed to the button, capped at
+// the room and 50dvh, scrolling inside). Its keyboard copies SourceMenu (src/components/import/SourceMenu.tsx). A new
+// choice shows its code on the button at once, then sets the cookie and reloads (chooseLang); the current one only
 // closes the menu.
 import { Check } from '@phosphor-icons/react'
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { useHoldTopBar } from '@/components/dialog-utils'
+import { useMenuLayer } from '@/components/menu-layer'
 import { chooseLang } from '@/i18n/choose'
 import { fmt } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
 import { HTML_LANG, LANG_NAMES, LANGS, langBadge, type Lang } from '@/i18n/langs'
 
-/** The menu's side margin from the window's edges. */
-const EDGE = 8
-
 export function LanguageMenu() {
-  const { lang, t } = useI18n()
+  const { lang: current, t } = useI18n()
   const id = useId()
   const [open, setOpen] = useState(false)
+  // The language just picked, shown on the button while the page reloads into it.
+  const [picked, setPicked] = useState<Lang | null>(null)
+  const lang = picked ?? current
   const btn = useRef<HTMLButtonElement>(null)
   const close = (refocus: boolean) => {
     setOpen(false)
     if (refocus) btn.current?.focus({ preventScroll: true })
   }
   const pick = (l: Lang) => {
-    close(l === lang)
-    if (l !== lang) chooseLang(l)
+    close(l === current)
+    if (l !== current) {
+      setPicked(l)
+      chooseLang(l)
+    }
   }
   const onButtonKey = (e: KeyboardEvent) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -40,7 +46,7 @@ export function LanguageMenu() {
         ref={btn}
         type="button"
         className="eb-theme eb-lang"
-        aria-label={fmt(t.shell.language.button, { name: LANG_NAMES[lang] })}
+        aria-label={`${langBadge(lang)}, ${fmt(t.shell.language.button, { name: LANG_NAMES[lang] })}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? `${id}-menu` : undefined}
@@ -49,7 +55,7 @@ export function LanguageMenu() {
       >
         <span className="eb-mono" aria-hidden="true">{langBadge(lang)}</span>
       </button>
-      {open && <LangList id={`${id}-menu`} label={t.shell.language.menu} current={lang} btn={btn} onPick={pick} onClose={close} />}
+      {open && <LangList id={`${id}-menu`} label={t.shell.language.menu} current={current} btn={btn} onPick={pick} onClose={close} />}
     </div>
   )
 }
@@ -67,20 +73,9 @@ function LangList({ id, label, current, btn, onPick, onClose }: {
   const menu = useRef<HTMLDivElement>(null)
   const items = () => [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? [])]
 
-  // Right-aligned under the button (CSS), then clamped to the window: shifted right if its left edge would leave it.
-  // Again whenever the window is resized while it is open (a rotation, the keyboard, page zoom).
-  useLayoutEffect(() => {
-    const el = menu.current
-    if (!el) return
-    const clamp = () => {
-      el.style.right = ''
-      const left = el.getBoundingClientRect().left
-      if (left < EDGE) el.style.right = `${left - EDGE}px`
-    }
-    clamp()
-    window.addEventListener('resize', clamp)
-    return () => window.removeEventListener('resize', clamp)
-  }, [])
+  // Right-aligned under the button, kept 8px inside the window, its height capped at the room below (or above) and
+  // 50dvh, scrolling inside: on a short or landscape phone the last languages stay reachable. 14 rows are about 600px.
+  useMenuLayer(menu, btn, { cap: 640 })
 
   useEffect(() => {
     items()[LANGS.indexOf(current)]?.focus({ preventScroll: true }) // opening never scrolls the page

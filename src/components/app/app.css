@@ -361,6 +361,9 @@
   border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-theme svg { width: 22px; height: 22px; }
+/* ThemeToggle: the moon on the light theme, the sun on the dark, from <html data-theme> (set before the first paint). */
+.eb-theme-sun, :root[data-theme="dark"] .eb-theme-moon { display: none; }
+:root[data-theme="dark"] .eb-theme-sun { display: block; }
 .eb-theme::after { content: ''; position: absolute; inset: min(0px, calc((100% - 44px) / 2)); } /* 44px even when drawn at 40 or 36 */
 /* The language button (LanguageMenu) sits with the theme switch at the row's end, the two always
    together in row one. It is .eb-theme too (44px, 40 under 500px, 36 wide under 360px; Surface on hover), showing the
@@ -405,7 +408,7 @@
 /* The language menu: a quiet popover, as wide as its widest row, its right edge on the button's; never wider than the window.
    Rows are 40px (44px on touch), the name left and its code right in Muted mono; the current one has no fill, its name in
    Accent at 600 and a check where the code was. Its rows' fill is every menu's (.eb-menuitem, above). */
-.eb-langmenu { width: max-content; min-width: 0; max-width: calc(100vw - 16px); }
+.eb-langmenu { width: max-content; min-width: 0; max-width: calc(100vw - 16px); overflow-y: auto; overscroll-behavior: contain; }
 .eb-langmenu .eb-menuitem { justify-content: space-between; gap: 16px; min-height: 40px; padding: 0 10px; }
 @media (pointer: coarse) { .eb-langmenu .eb-menuitem { min-height: 44px; } }
 .eb-langname[data-current] { color: var(--accent); font-weight: 600; }
@@ -482,10 +485,12 @@
 .eb-footer { padding: 0 16px 32px; }
 @media (min-width: 720px) { .eb-footer { padding: 0 32px 40px; } }
 .eb-footer-in {
-  max-width: 1088px; margin: 0 auto; padding-top: 20px; border-top: 1px solid var(--hairline);
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px;
+  max-width: 1088px; margin: 0 auto; padding-top: 8px; border-top: 1px solid var(--hairline);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 20px;
 }
 .eb-footer p { margin: 0; }
+/* Each text link a 44px press (its line is the box), so wrapped rows on a phone never crowd the thumb. */
+.eb-footer p > a { display: inline-flex; align-items: center; min-height: 44px; }
 .eb-footer a { color: inherit; text-underline-offset: 3px; }
 /* The code on GitHub: an 18px Muted glyph pushed to the row's right edge (also when the row wraps: it ends the last
    line), Ink on hover and focus; a 44px press that reaches 13px past the glyph on each side, inside the 20px gaps. */
