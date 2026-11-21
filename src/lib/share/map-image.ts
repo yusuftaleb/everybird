@@ -8,7 +8,7 @@
 // much of it as the height allows). On top, instead of the big count, the totals the dialog's Totals row keeps (the
 // species and the countries, either, both or none), the same size and weight as the tree image's, each over its word;
 // with none, the map has their room. Hairline Paper borders on every shape. No outline, no tooltip.
-import { plural } from '@/i18n/core'
+import { plural, pluralWord } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { parsePlaceKey } from '@/lib/list/place-keys'
 import { flagSrc } from '@/lib/flag'
@@ -126,8 +126,8 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
   const flags = new Map(await Promise.all(top.map(async (r) => [r.value, await loadFlag(parsePlaceKey(r.value)?.country ?? '', o.signal)] as const)))
   // The totals the dialog keeps (the countries only when the list has places).
   const totals = chosenTotals(MAP_TOTALS, o.totals).flatMap((k) => k === 'species'
-    ? [{ n: formatInt(entries.length, t.num), label: t.collage.tree.rank.species.toUpperCase() }]
-    : rows.length ? [{ n: formatInt(rows.length, t.num), label: t.places.head.country.toUpperCase() }] : [])
+    ? [{ n: formatInt(entries.length, t.num), label: pluralWord(t.collage.stats.species, entries.length).toUpperCase() }]
+    : rows.length ? [{ n: formatInt(rows.length, t.num), label: pluralWord(t.filters.countHead.country, rows.length).toUpperCase() }] : [])
   const minText = formatInt(min, t.num)
   const maxText = plural(t.collage.stats.species, max, { n: formatInt(max, t.num) })
   return renderViewImage({ ...o, countSize: 'hide' }, MAP_FOOTER, (ctx, card, full) => {
