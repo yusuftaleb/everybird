@@ -4,7 +4,7 @@
 // DISPLAY_CONTROLS): in the Tree, Layout (Fan | Radial | Rectangular, a segmented control TreeView renders into
 // `layoutSlot`, since it knows which layouts can name every tip; one that can't stays listed, aria-disabled, its reason
 // its tooltip and accessible description), then Lifers only, Time scale and Scientific names; in the Collage,
-// Arrangement (Fit | Oval, with their glyphs), True size and Scientific names. List and Map have none. The switches are
+// Arrangement (Fit | Oval | Free, with their glyphs), True size and Scientific names. List and Map have none. The switches are
 // compact rows: the label at the left, the switch at the right, 32px with a mouse and 44px for touch, no rules or boxes.
 // Every setting keeps its stored value and behaviour (arrangement.ts, tree-mine.ts; True size and Scientific are the
 // list store's).

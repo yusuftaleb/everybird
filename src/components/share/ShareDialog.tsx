@@ -14,7 +14,7 @@
 // edge: in the poster the size first (a dropdown, A4 to A1 and the inch sizes, with its line under the label; from the
 // Tree, Down to under it: the screen's rank or the next one down, the deeper one off with its reason at a size where its
 // names would print under 9 pt), then the
-// choices as small segmented controls (Arrangement: Fit or Oval, or the Tree's Fan, Radial or Rectangular, one that can't
+// choices as small segmented controls (Arrangement: Fit, Oval or Free, or the Tree's Fan, Radial or Rectangular, one that can't
 // name every tip off with its reason; Colours: Light or Dark; Count: Hide, S, M, L or Beside title, under its label
 // where it doesn't fit beside it), the switches one to a row (Show latest lifer, the poster's Show species names, the
 // Tree's Lifers only, Hide totals and Show oldest lineage, the Map's Hide totals, Transparent background) and Share's
