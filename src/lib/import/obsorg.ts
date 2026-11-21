@@ -181,7 +181,7 @@ export type ObsOrgObservationsResult = ImportResult & {
  */
 export async function parseObsOrgObservations(
   csv: string | File, t: TaxonomyIndex, synonyms: Record<string, string>, regions: Regions,
-  onProgress?: (rows: number) => void,
+  onProgress?: (rows: number, frac?: number) => void,
   loadCoordinates: (country: string) => Promise<CoordinateRegion | undefined> = loadCoordinateRegion,
 ): Promise<ObsOrgObservationsResult | { error: 'no-birds' }> {
   const placeOf = makeObsOrgPlaces(regions)
@@ -193,10 +193,13 @@ export async function parseObsOrgObservations(
   const seenUnmatched = new SeenAgg()
   const excluded = { escape: 0, uncertain: 0 }
   let rows = 0
+  // How far through the file: papaparse's cursor (decoded characters) over the file's size (bytes, near enough).
+  const total = typeof csv === 'string' ? csv.length : csv.size
+  let cursor = 0
 
   const onRow = (r: Row, location?: Place) => {
     rows++
-    if (rows % 5000 === 0) onProgress?.(rows)
+    if (rows % 5000 === 0) onProgress?.(rows, total ? cursor / total : undefined)
     if (r['is escape']?.trim().toLowerCase() === 'true') {
       excluded.escape++
       return
@@ -289,6 +292,7 @@ export async function parseObsOrgObservations(
             if (missingColumns(result.meta?.fields)) return fail(parser, new DamagedCsvError())
           }
           if (broken(result.errors)) return fail(parser, new DamagedCsvError())
+          cursor = result.meta.cursor
           const row = result.data
           const place = placeOf(row.country ?? '', row['country division'] ?? '')
           const country = place?.country

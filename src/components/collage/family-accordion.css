@@ -11,7 +11,11 @@
 .eb-facc-btn .eb-lhead-name { margin-right: auto; }
 .eb-facc-btn .eb-lhead-count { margin-left: 0; }
 .eb-facc-caret { display: grid; place-items: center; flex: none; width: 18px; color: var(--muted); }
-.eb-facc-caret svg { width: 16px; height: 16px; transform: rotate(-90deg); }
+.eb-facc-caret svg { width: 16px; height: 16px; transform: rotate(-90deg); transition: transform .2s var(--ease-ui); }
 .eb-facc-btn[aria-expanded="true"] .eb-facc-caret svg { transform: none; }
 @media (hover: hover) and (pointer: fine) { .eb-facc-btn:hover { color: var(--ink); } }
-.eb-facc-body { padding: 16px 0 24px; }
+.eb-facc-body { padding: 16px 0 24px; animation: eb-rise .24s var(--ease-ui) both; }
+@media (prefers-reduced-motion: reduce) {
+  .eb-facc-caret svg { transition: none; }
+  .eb-facc-body { animation-name: eb-fade-in; }
+}

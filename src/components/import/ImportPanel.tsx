@@ -1,6 +1,7 @@
 'use client'
 import { memo, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { ImportJobs } from '@/components/app/use-import-jobs'
+import { fmt } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
 import { slotConnected, type SourceCounts } from '@/lib/list/source-counts'
 import type { Action } from '@/lib/list/store'
@@ -14,6 +15,8 @@ import { ObsOrgDrop, type ObsOrgConnected } from './ObsOrgDrop'
 import { IgoterraDrop } from './IgoterraDrop'
 import { ScythebillDrop } from './ScythebillDrop'
 import { SheetDrop } from './SheetDrop'
+import { useNoStrayDrop } from './FileDropzone'
+import { SourceRow } from './SourceLine'
 import './import.css'
 
 type Props = {
@@ -38,6 +41,33 @@ function Group({ id, label, children }: { id: string; label: string; children: R
 }
 
 /**
+ * The grid's frame while the bird data loads (Settings, the Add birds dialog): every source's title, "Not added" and a
+ * disabled Add, in the grid's own cells and hairlines, so the page never shows a blank box.
+ */
+export function ImportFrame() {
+  const { t } = useI18n()
+  const o = t.import.obsorg.rows
+  const groups: [string, string[]][] = [
+    ['way-ebird', [t.import.ebird.listTitle, 'MyEBirdData']], ['way-inat', ['iNaturalist']], ['way-sheet', [t.import.sheet.title]],
+    ['way-obsorg', [o['obsorg-list'].title, o.obsorg.title]], ['way-scythebill', [t.import.scythebill.title]], ['way-igoterra', [t.import.igoterra.title]],
+  ]
+  return (
+    <div className="eb-srclist" aria-busy="true" data-testid="sources-wait">
+      {groups.map(([id, titles]) => (
+        <div key={id} className="eb-srcgroup" id={id}>
+          {titles.map((title) => (
+            <SourceRow
+              key={title} title={title} parts={[t.import.notAdded]} disabled
+              primary={<button type="button" className="eb-btn eb-btn-quiet eb-btn-sm" disabled aria-label={fmt(t.import.addLabel, { title })}>{t.import.add}</button>}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/**
  * Settings > Your list and the Add birds dialog's "Import a file": the eight sources (eBird life list, MyEBirdData,
  * iNaturalist, the spreadsheet; then the observation.org life list and observations, Scythebill, iGoTerra) as a grid of
  * cells in one group (four columns on Settings' wide column, two, one on phones, in that order; import.css). A cell is
@@ -49,6 +79,7 @@ function Group({ id, label, children }: { id: string; label: string; children: R
  */
 export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, jobs, disabled, counts, placesNote }: Props) {
   const { t } = useI18n()
+  useNoStrayDrop()
   const ebirdConnected: EbirdConnected[] = (['ebird', 'ebird-list'] as const)
     .filter((slot) => slotConnected(saved, slot))
     .map((slot) => ({ slot, details: saved.sources?.[slot] }))

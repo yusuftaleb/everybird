@@ -3,7 +3,7 @@
 // their own languages, SourceMenu's keyboard, the top bar frozen while it is open, and the choice written to the
 // cookie before a reload.
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useLayoutEffect, type ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LanguageMenu } from '@/components/app/LanguageMenu'
@@ -43,44 +43,44 @@ afterEach(() => {
   sessionStorage.clear() // rememberVariants keeps a ?v= for the tab
 })
 
-const open = () => fireEvent.click(screen.getByRole('button', { name: /^Idioma/ }))
+const open = () => fireEvent.click(screen.getByRole('button', { name: /^ES, Idioma/ }))
 
 describe('LanguageMenu', () => {
-  it('shows the current code and names the language for screen readers', () => {
+  it('shows the current code and names the language with that code first, so the visible text is in its name', () => {
     render(<LanguageMenu />, { wrapper: withI18n('es') })
-    const btn = screen.getByRole('button', { name: 'Idioma: Español' })
+    const btn = screen.getByRole('button', { name: 'ES, Idioma: Español' })
     expect(btn).toHaveTextContent('ES')
     expect(btn).toHaveAttribute('aria-haspopup', 'menu')
     expect(btn).toHaveAttribute('aria-expanded', 'false')
     cleanup()
     render(<LanguageMenu />, { wrapper: withI18n('nl') })
-    expect(screen.getByRole('button', { name: 'Taal: Nederlands' })).toHaveTextContent('NL')
+    expect(screen.getByRole('button', { name: 'NL, Taal: Nederlands' })).toHaveTextContent('NL')
     cleanup()
     render(<LanguageMenu />, { wrapper: withI18n('en') })
-    expect(screen.getByRole('button', { name: 'Language: English' })).toHaveTextContent('EN')
+    expect(screen.getByRole('button', { name: 'EN, Language: English' })).toHaveTextContent('EN')
   })
 
-  it('is clamped to the window when it opens and again when the window is resized while it is open', () => {
-    // jsdom has no layout: the menu's left edge is whatever the stand-in says. -20 leaves it 28px past EDGE (8px).
-    let left = -20
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({ left, right: left + 200, top: 0, bottom: 0, width: 200, height: 0, x: left, y: 0, toJSON: () => ({}) }))
+  it('opens on the shared floating layer: fixed to its button, its height capped at the room and 50dvh (H21)', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({ left: 300, right: 344, top: 8, bottom: 52, width: 44, height: 44, x: 300, y: 8, toJSON: () => ({}) }))
     render(<LanguageMenu />, { wrapper: withI18n('es') })
     open()
     const menu = screen.getByRole('menu')
-    expect(menu.style.right).toBe('-28px')
-    left = 40 // the window grew: nothing to shift any more
-    act(() => { window.dispatchEvent(new Event('resize')) })
-    expect(menu.style.right).toBe('')
-    left = -4 // and shrank again
-    act(() => { window.dispatchEvent(new Event('resize')) })
-    expect(menu.style.right).toBe('-12px')
+    expect(menu.style.position).toBe('fixed')
+    expect(menu.style.top).toBe('58px') // 6px under the button
+    expect(menu.style.maxHeight).toMatch(/50dvh/)
+  })
+  it('a new choice shows its code on the button at once, while the page reloads (O15)', () => {
+    render(<LanguageMenu />, { wrapper: withI18n('es') })
+    open()
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /Nederlands/ }))
+    expect(screen.getByRole('button', { name: 'NL, Idioma: Nederlands' })).toHaveTextContent('NL')
   })
 
   it('opens a menu of the four languages in their own names, current one checked', () => {
     render(<LanguageMenu />, { wrapper: withI18n('es') })
     expect(screen.queryByRole('menu')).toBeNull()
     open()
-    expect(screen.getByRole('button', { name: /^Idioma/ })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: /^ES, Idioma/ })).toHaveAttribute('aria-expanded', 'true')
     const menu = screen.getByRole('menu', { name: 'Idioma' })
     const items = screen.getAllByRole('menuitemradio')
     expect(menu).toContainElement(items[0])
@@ -100,7 +100,7 @@ describe('LanguageMenu', () => {
 
   it('arrows wrap, Home and End jump, Esc closes and focuses the button', () => {
     render(<LanguageMenu />, { wrapper: withI18n('zh-Hant') })
-    fireEvent.click(screen.getByRole('button', { name: '語言：繁體中文' }))
+    fireEvent.click(screen.getByRole('button', { name: '繁, 語言：繁體中文' }))
     const items = screen.getAllByRole('menuitemradio')
     expect(items[13]).toHaveFocus()
     const key = (k: string) => fireEvent.keyDown(document.activeElement!, { key: k })
@@ -116,19 +116,19 @@ describe('LanguageMenu', () => {
     expect(items[13]).toHaveFocus()
     key('Escape')
     expect(screen.queryByRole('menu')).toBeNull()
-    expect(screen.getByRole('button', { name: '語言：繁體中文' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: '繁, 語言：繁體中文' })).toHaveFocus()
     // ArrowDown on the button opens it too, on the checked item.
-    fireEvent.keyDown(screen.getByRole('button', { name: '語言：繁體中文' }), { key: 'ArrowDown' })
+    fireEvent.keyDown(screen.getByRole('button', { name: '繁, 語言：繁體中文' }), { key: 'ArrowDown' })
     expect(screen.getAllByRole('menuitemradio')[13]).toHaveFocus()
   })
 
   it('Tab and a press outside close it', () => {
     render(<><LanguageMenu /><p>outside</p></>, { wrapper: withI18n('en') })
-    fireEvent.click(screen.getByRole('button', { name: /^Language/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^EN, Language/ }))
     expect(screen.getByRole('menu')).toBeInTheDocument()
     fireEvent.keyDown(document.activeElement!, { key: 'Tab' })
     expect(screen.queryByRole('menu')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /^Language/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^EN, Language/ }))
     expect(screen.getByRole('menu')).toBeInTheDocument()
     fireEvent.pointerDown(screen.getByText('outside'))
     expect(screen.queryByRole('menu')).toBeNull()
@@ -142,7 +142,7 @@ describe('LanguageMenu', () => {
     expect(screen.queryByRole('menu')).toBeNull()
     expect(set).not.toHaveBeenCalled()
     expect(reload).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Idioma: Español' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'ES, Idioma: Español' })).toHaveFocus()
 
     open()
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Nederlands' }))
@@ -154,7 +154,7 @@ describe('LanguageMenu', () => {
   it('holds the top bar shown while open', () => {
     render(<LanguageMenu />, { wrapper: withI18n('pt') })
     expect(holds.live).toBe(0)
-    fireEvent.click(screen.getByRole('button', { name: 'Idioma: Português' }))
+    fireEvent.click(screen.getByRole('button', { name: 'PT, Idioma: Português' }))
     expect(holds.live).toBe(1)
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
     expect(holds.live).toBe(0)
@@ -164,7 +164,7 @@ describe('LanguageMenu', () => {
     nav.path = '/'
     try {
       render(<TopBar />, { wrapper: withI18n('es') })
-      const lang = screen.getByRole('button', { name: 'Idioma: Español' })
+      const lang = screen.getByRole('button', { name: 'ES, Idioma: Español' })
       const theme = screen.getByRole('switch', { name: 'Modo oscuro' })
       expect(lang.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
       const controls = [...screen.getByTestId('topbar').querySelectorAll('a, button')]

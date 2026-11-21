@@ -4,7 +4,9 @@
 // main button opens). Every step has Skip tour; Esc ends it; ended or skipped it never shows again (src/lib/tour.ts).
 // Landing renders it, so never on a birder's own list. No library: a fixed note under (or over) the target's box. Each
 // step's note takes focus, so a screen reader reads its name ("1 of 3") and its text; the target wears an Accent ring.
-// Reduced motion: no fade, and the target is scrolled to at once.
+// Reduced motion: no fade, and the target is scrolled to at once. Each step's note fades in (keyed by its step). A step
+// whose target never appears (the sample failed) ends the tour quietly after TARGET_MS. Ended, focus goes to the last
+// target, or the hero's "Make yours".
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { reduced } from '@/components/collage/collage-motion'
@@ -29,6 +31,8 @@ function targetOf(step: Step): HTMLElement | null {
 
 const GAP = 12
 const GUTTER = 16
+/** How long a step waits for its target before the tour ends itself. */
+const TARGET_MS = 3000
 
 export function Tour({ onOwn, onEnd }: { onOwn: () => void; onEnd: () => void }) {
   const { t } = useI18n()
@@ -40,7 +44,14 @@ export function Tour({ onOwn, onEnd }: { onOwn: () => void; onEnd: () => void })
   const ref = useRef<HTMLDivElement>(null)
   const nameId = useId()
   const textId = useId()
-  const end = useCallback(() => { rememberToured(); onEnd() }, [onEnd])
+  // The step's target, once found (where focus goes when the tour ends).
+  const target = useRef<HTMLElement | null>(null)
+  const end = useCallback(() => {
+    rememberToured()
+    const back = target.current?.isConnected ? target.current : document.querySelector<HTMLElement>('.eb-page-landing .eb-hero-cta')
+    back?.focus({ preventScroll: true })
+    onEnd()
+  }, [onEnd])
   // Esc ends the tour, but only an Esc nothing else took: dialogs and panels opened over it (Filters, Share, Add
   // birds) catch theirs on window's capture phase and stop it, so this listens in the bubble phase.
   const endRef = useRef(end)
@@ -58,13 +69,19 @@ export function Tour({ onOwn, onEnd }: { onOwn: () => void; onEnd: () => void })
     let el: HTMLElement | null = null
     let raf = 0
     let prevKey = ''
+    const since = performance.now()
     const tick = () => {
       if (!el?.isConnected) {
         el?.removeAttribute('data-tour-on')
         el = targetOf(step)
         if (el) {
+          target.current = el
           el.setAttribute('data-tour-on', '')
           el.scrollIntoView?.({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' })
+        } else if (performance.now() - since > TARGET_MS) {
+          // The target never came (the sample failed to load): end quietly, not a hidden note holding the bar and Esc.
+          endRef.current()
+          return
         }
       }
       const note = ref.current
@@ -92,6 +109,7 @@ export function Tour({ onOwn, onEnd }: { onOwn: () => void; onEnd: () => void })
   const own = () => { end(); onOwn() }
   return createPortal(
     <div
+      key={step}
       ref={ref}
       className="eb-tour"
       role="dialog"

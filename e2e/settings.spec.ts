@@ -98,7 +98,6 @@ const measureHead = (page: Page) =>
 
 for (const width of [390, 768, 1280]) {
   test(`Collage, Settings and About share one page head at ${width}`, async ({ page }) => {
-    test.fixme(width === 390, "app: at 390px the collage head's three actions (Add birds, Print, Share) wrap under \"My birds\", so its title sits 5px above Settings' and About's (one page head, same top offset)");
     test.setTimeout(60_000);
     await importLifeList(page);
     await page.setViewportSize({ width, height: 900 });

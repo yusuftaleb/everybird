@@ -8,6 +8,8 @@ import { ImportPanel } from '@/components/import/ImportPanel'
 import { MatchReport } from '@/components/import/MatchReport'
 import { RulesSwitches } from '@/components/import/RulesSwitches'
 import { AddBirdsDialog } from '@/components/import/AddBirdsDialog'
+import { DONE_MS } from '@/components/import/ImportToast'
+import { ImportFrame } from '@/components/import/ImportPanel'
 import { downloadText } from '@/lib/download'
 import { fileName } from '@/lib/file-name'
 import { toCsv, toJson } from '@/lib/list/export'
@@ -19,6 +21,7 @@ import { EnglishNamesSwitch } from './LanguageField'
 import { AppNotices } from './Notices'
 import { PageHead } from './PageHead'
 import { RestoreBackup } from './RestoreBackup'
+import { Toast } from './Toast'
 import './app.css'
 
 /**
@@ -38,6 +41,13 @@ export function SettingsPage() {
   const [confirming, setConfirming] = useState(false)
   const [restoring, setRestoring] = useState<Saved | null>(null)
   const [adding, setAdding] = useState(false)
+  // After Yes, replace it or Yes, forget it: the buttons are gone, so focus goes to Your data, and a toast says it's done.
+  const [done, setDone] = useState<{ text: string; at: number } | null>(null)
+  const dataRef = useRef<HTMLElement>(null)
+  const finish = (text: string) => {
+    setDone({ text, at: Date.now() })
+    requestAnimationFrame(() => dataRef.current?.focus({ preventScroll: true }))
+  }
   const sources = useRef<HTMLElement>(null)
   useEffect(() => {
     if (data && location.hash === '#sources') sources.current?.focus({ preventScroll: true })
@@ -64,7 +74,8 @@ export function SettingsPage() {
                 </button>
               </div>
               {line ? (
-                <p className="eb-summary" role="status" data-testid="see-collage">
+                // No live region: the import toast announces each landing.
+                <p className="eb-summary" data-testid="see-collage">
                   {line}
                   {landed && count > 0 && (
                     <>
@@ -89,12 +100,21 @@ export function SettingsPage() {
           </section>
         </>
       ) : (
-        !eb.failed && <div className="eb-ways-wait" aria-hidden="true" />
+        // While the bird data loads: the grid's frame, not a blank box.
+        !eb.failed && (
+          <section className="eb-block eb-import" aria-labelledby="eb-sources-h">
+            <div className="eb-block-head">
+              <div className="eb-block-headrow"><h2 id="eb-sources-h" className="eb-h2">{t.import.head}</h2></div>
+              <p className="eb-note">{t.import.combine}</p>
+            </div>
+            <ImportFrame />
+          </section>
+        )
       )}
       {/* Counting (left) beside Your data (right) on wide screens, stacked on narrow ones (app.css). */}
       <div className={mine && data ? 'eb-settings-pair' : 'eb-settings-one'}>
         {mine && data && <RulesSwitches saved={saved} dispatch={dispatch} />}
-        {(mine || data) && <section className="eb-block" aria-labelledby="eb-data-h">
+        {(mine || data) && <section ref={dataRef} className="eb-block" aria-labelledby="eb-data-h" tabIndex={-1}>
           <div className="eb-block-head">
             <h2 id="eb-data-h" className="eb-h2">{d.head}</h2>
             <p className="eb-note">{mine ? d.noteMine : d.noteRestore}</p>
@@ -124,7 +144,7 @@ export function SettingsPage() {
             <div className="eb-confirm" role="group" aria-label={d.restore}>
               <p>{d.restoreAsk}</p>
               <div className="eb-row">
-                <button type="button" className="eb-btn eb-btn-danger-solid" autoFocus onClick={() => { dispatch({ type: 'restore', saved: restoring }); setRestoring(null) }}>{d.restoreYes}</button>
+                <button type="button" className="eb-btn eb-btn-danger-solid" autoFocus onClick={() => { dispatch({ type: 'restore', saved: restoring }); setRestoring(null); finish(d.restored) }}>{d.restoreYes}</button>
                 <button type="button" className="eb-btn eb-btn-quiet" onClick={() => setRestoring(null)}>{d.restoreKeep}</button>
               </div>
             </div>
@@ -133,7 +153,7 @@ export function SettingsPage() {
             <div className="eb-confirm" role="group" aria-label={d.forget}>
               <p>{d.forgetAsk}</p>
               <div className="eb-row">
-                <button type="button" className="eb-btn eb-btn-danger-solid" autoFocus onClick={() => { setConfirming(false); dispatch({ type: 'forget' }) }}>{d.forgetYes}</button>
+                <button type="button" className="eb-btn eb-btn-danger-solid" autoFocus onClick={() => { setConfirming(false); dispatch({ type: 'forget' }); finish(d.forgotten) }}>{d.forgetYes}</button>
                 <button type="button" className="eb-btn eb-btn-quiet" onClick={() => setConfirming(false)}>{d.forgetKeep}</button>
               </div>
             </div>
@@ -151,6 +171,7 @@ export function SettingsPage() {
         </div>
       </section>}
       {adding && <AddBirdsDialog way="hand" onClose={() => setAdding(false)} />}
+      <Toast show={!!done} stay={DONE_MS} restart={done?.at} onDone={() => setDone(null)} testId="data-toast">{done && <span>{done.text}</span>}</Toast>
     </main>
   )
 }

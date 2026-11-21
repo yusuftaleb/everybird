@@ -45,7 +45,7 @@ const keep = (k: Kept) => {
  * set-up to the comparison changes only the line and the buttons (the set-up's head has none). First the set-up, on the page's width (no box,
  * the head's line "Paste your friends' Everybird links to see which birds you share. Up to 6 lists."), a
  * row per list (its colour dot, a name box, the link box, a remove button), the birder's own list first when there is
- * one (its name editable, "Your list · 1,092 species" for a link, no remove) and "Add a friend" (a row, up to COMPARE_MAX
+ * one (its name editable, "Your list · 1,092 species" for a link, no remove) and "Add a birder" (a row, up to COMPARE_MAX
  * lists in all) at the foot's left, Compare at its right (its edge on the link boxes'), waiting for two lists. A link fills its row's name with the name or
  * title it carries ("Birder 2" until one is typed, without); several links, or a comparison link (/c/), pasted at once
  * fill a row each (pasteRow), within the cap, with a note for the links that didn't open and the lists past it. The
@@ -66,7 +66,11 @@ export function ComparePage() {
   const [mine, setMineState] = useState<string | undefined>(kept.mine)
   const [open, setOpenState] = useState(kept.open)
   const [pick, setPickState] = useState(kept.pick)
-  const [notes, setNotes] = useState<{ bad: number; over: number } | null>(null)
+  // The status line after a paste: links that didn't open, lists past the cap or already in, and the lists it opened ("Sam · 412 species").
+  const [notes, setNotes] = useState<{ bad: number; over: number; dup: number; opened?: string[] } | null>(null)
+  // Link boxes left (blurred) or pasted into: one with text and no list is marked invalid (and every row read back from storage).
+  const [checked, setChecked] = useState<ReadonlySet<number>>(() => new Set())
+  const check = (rowId: number) => setChecked((c) => (c.has(rowId) ? c : new Set(c).add(rowId)))
   const [sharing, setSharing] = useState(false)
   const setRows = (r: CompareRow[]) => { keep({ ...kept, rows: r }); setRowsState(r) }
   const setMine = (v: string) => { keep({ ...kept, mine: v }); setMineState(v) }
@@ -93,7 +97,8 @@ export function ComparePage() {
       setRowsState(r.rows)
       setOpenState(true)
       setPickState(undefined)
-      setNotes(r.bad || r.over ? r : null)
+      setNotes(r.bad || r.over || r.dup ? r : null)
+      setChecked(new Set(r.rows.map((x) => x.id)))
       return
     }
     if (read) return
@@ -109,6 +114,7 @@ export function ComparePage() {
     setMineState(s.mine)
     setOpenState(s.open)
     setPickState(s.pick)
+    setChecked(new Set(rows.map((x) => x.id)))
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [codec])
 
@@ -131,7 +137,11 @@ export function ComparePage() {
   }, [rows, you, data, state.list, mineName])
   const c = useComparison(lists, { you, keep: { pick, set: setPick } })
   const shown = open && c.ready
-  const link = useMemo(() => (lists.length >= 2 ? makeCompareLink(lists, window.location.origin) : null), [lists])
+  // An open comparison coming back while the birder's own list loads (a reload, a language switch, Compare with mine):
+  // the results' head over a reserved box, not the set-up for a moment.
+  const pending = open && !c.ready && !you && mineSoon !== false && friends.length > 0
+  // Built only once the comparison shows (each list deflated: not on every keystroke in a name box).
+  const link = useMemo(() => (shown && lists.length >= 2 ? makeCompareLink(lists, window.location.origin) : null), [shown, lists])
 
   // Focus follows the switch between the set-up and the comparison: Edit lists, or the set-up's title.
   const editRef = useRef<HTMLButtonElement>(null)
@@ -144,9 +154,16 @@ export function ComparePage() {
     ;(shown ? editRef : titleRef).current?.focus()
   }, [shown])
   const go = (v: boolean) => { moved.current = true; setOpen(v) }
-  // After a remove, Add a friend (enabled again if the rows were full).
+  // After a remove, Add a birder (back again if the rows were full). After the add that fills the rows (the button
+  // goes), the new row's name box, never the page.
   const toAdd = useRef(false)
+  const toNew = useRef(false)
+  const formRef = useRef<HTMLFormElement>(null)
   useEffect(() => {
+    if (toNew.current) {
+      toNew.current = false
+      formRef.current?.querySelector<HTMLInputElement>(`[data-testid="compare-name-${rows.length - 1}"]`)?.focus()
+    }
     if (!toAdd.current) return
     toAdd.current = false
     addRef.current?.focus()
@@ -157,7 +174,15 @@ export function ComparePage() {
   const setText = (i: number, text: string) => {
     const r = pasteRow(rows, i, text, room, codec)
     setRows(r.rows)
-    setNotes(r.bad || r.over ? r : null)
+    // The lists this paste opened, named as their rows will be ("Sam · 412 species"), so a link without a title shows it worked.
+    const was = new Map(rows.map((x) => [x.id, x.list]))
+    const opened = r.rows.flatMap((x, j) => {
+      if (!x.list || was.get(x.id) === x.list) return []
+      const n = (own ? 1 : 0) + r.rows.slice(0, j).filter((y) => y.list).length + 1
+      const size = new Set(x.list.birds.map((b) => b.code)).size
+      return [`${rowName(x).trim() || fmt(t.compare.birder, { n })} · ${plural(t.count.live, size, { n: formatInt(size, t.num) })}`]
+    })
+    setNotes(r.bad || r.over || r.dup || opened.length ? { ...r, opened } : null)
   }
   const setName = (i: number, name: string) => setRows(rows.map((r, j) => (j === i ? { ...r, name } : r)))
   const remove = (i: number) => {
@@ -166,8 +191,11 @@ export function ComparePage() {
     setNotes(null)
     toAdd.current = true
   }
-  const add = () => setRows([...rows, { id: newId(), text: '', list: null }])
   const full = (own ? 1 : 0) + rows.length >= COMPARE_MAX
+  const add = () => {
+    if ((own ? 1 : 0) + rows.length + 1 >= COMPARE_MAX) toNew.current = true
+    setRows([...rows, { id: newId(), text: '', list: null }])
+  }
   // No list of the birder's own yet: the friend's list waits for it.
   const waiting = !own && mineSoon === false && friends.length > 0 && lists.length < 2
   const blocked = link && 'blocked' in link ? (link.blocked === 'tooMany' ? fmt(t.compare.tooMany, { n: COMPARE_MAX }) : t.compare.tooBig) : ''
@@ -178,7 +206,12 @@ export function ComparePage() {
   return (
     <main className="eb-page eb-page-collage eb-page-titled">
       {/* One page head in both states: only its line and its buttons change. */}
-      {shown ? (
+      {pending ? (
+        <>
+          <PageHead key="results" title={t.compare.title} lede={t.compare.lede} />
+          <div className="eb-compare-result-wait" aria-hidden="true" data-testid="compare-pending" />
+        </>
+      ) : shown ? (
         <>
           {/* Keyed apart from the set-up's head, so its buttons are new ones (focus goes to the title, not a reused button). */}
           <PageHead
@@ -212,7 +245,7 @@ export function ComparePage() {
             lede={<span id={`${id}-note`}>{fmt(t.compare.note, { n: COMPARE_MAX })}</span>}
             titleRef={titleRef}
           />
-          <form id={`${id}-form`} className="eb-compare-setup" onSubmit={(e) => { e.preventDefault(); if (lists.length >= 2) go(true) }} data-testid="compare-setup">
+          <form ref={formRef} id={`${id}-form`} className="eb-compare-setup" onSubmit={(e) => { e.preventDefault(); if (lists.length >= 2) go(true) }} data-testid="compare-setup">
             <ul className="eb-compare-rows" data-testid="compare-rows">
               {own && (
                 <li className="eb-compare-row" data-testid="compare-row-mine">
@@ -230,7 +263,7 @@ export function ComparePage() {
               )}
               {rows.map((r, i) => {
                 // A filled row by its place in the comparison; one without a list yet by its own place (they agree while the
-                // empty rows are last, as Add a friend puts them).
+                // empty rows are last, as Add a birder puts them).
                 const n = r.list ? place(i) : (own ? 1 : 0) + i + 1
                 const label = rowName(r).trim() || fmt(t.compare.birder, { n })
                 return (
@@ -242,11 +275,16 @@ export function ComparePage() {
                       onChange={(e) => setName(i, e.target.value)} data-testid={`compare-name-${i}`}
                     />
                     <input
-                      className="eb-input eb-compare-linkbox" type="text" inputMode="url" autoComplete="off" spellCheck={false} value={r.text}
+                      className="eb-input eb-compare-linkbox" type="text" inputMode="url" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={r.text}
                       placeholder={t.compare.paste} aria-label={fmt(t.compare.linkN, { n })} aria-describedby={`${id}-note`}
-                      onChange={(e) => setText(i, e.target.value)} data-testid={`compare-link-${i}`}
+                      aria-invalid={!r.list && !!r.text.trim() && checked.has(r.id) ? true : undefined}
+                      onChange={(e) => setText(i, e.target.value)} onBlur={() => check(r.id)} onPaste={() => check(r.id)} data-testid={`compare-link-${i}`}
                     />
-                    <button type="button" className="eb-compare-remove" aria-label={fmt(t.compare.remove, { name: label })} onClick={() => remove(i)} data-testid={`compare-remove-${i}`}>
+                    {/* The one row, blank: its × would do nothing visible, so it is hidden (and out of the tab order). */}
+                    <button
+                      type="button" className="eb-compare-remove" aria-label={fmt(t.compare.remove, { name: label })} onClick={() => remove(i)} data-testid={`compare-remove-${i}`}
+                      style={rows.length === 1 && !r.list && !r.text.trim() && !r.name?.trim() ? { visibility: 'hidden' } : undefined}
+                    >
                       <X aria-hidden="true" focusable="false" />
                     </button>
                   </li>
@@ -255,7 +293,9 @@ export function ComparePage() {
             </ul>
             <p className="eb-status" role="status" data-testid="compare-status">
               {notes && [
+                ...(notes.opened ?? []).map((o) => `${o}.`),
                 notes.bad ? plural(t.compare.bad, notes.bad, { n: formatInt(notes.bad, t.num) }) : '',
+                notes.dup ? plural(t.compare.dup, notes.dup, { n: formatInt(notes.dup, t.num) }) : '',
                 notes.over ? fmt(t.compare.over, { n: COMPARE_MAX }) : '',
               ].filter(Boolean).join(' ')}
             </p>
@@ -266,10 +306,13 @@ export function ComparePage() {
               </p>
             )}
             <div className="eb-compare-foot">
-              <button ref={addRef} type="button" className="eb-textbtn" disabled={full} aria-describedby={`${id}-note`} onClick={add} data-testid="compare-add">
-                <Plus aria-hidden="true" focusable="false" />
-                {t.compare.addFriend}
-              </button>
+              {/* Gone at COMPARE_MAX lists (the head's line says "Up to 6 lists."); back when a row is removed. */}
+              {!full && (
+                <button ref={addRef} type="button" className="eb-textbtn" onClick={add} data-testid="compare-add">
+                  <Plus aria-hidden="true" focusable="false" />
+                  {t.compare.addBirder}
+                </button>
+              )}
               {/* Compare at the foot's right, its edge on the link boxes' (Enter in a box submits too). */}
               <button type="submit" className="eb-btn eb-compare-submit" disabled={lists.length < 2} aria-describedby={lists.length < 2 ? `${id}-wait` : undefined} data-testid="compare-submit">
                 {t.compare.submit}

@@ -13,7 +13,7 @@ const IDLE: FileJob = { busy: false, rows: 0, error: null }
 const NO_INAT: InatJob = { busyFor: null, progress: null, error: null, note: null }
 const jobs = (over: Partial<ImportJobs> = {}): ImportJobs => ({
   ebird: IDLE, obsorg: IDLE, sheet: IDLE, scythebill: IDLE, igoterra: IDLE, inat: NO_INAT, landed: null,
-  cancelInat: vi.fn(), ...over,
+  cancelInat: vi.fn(), cancelFile: vi.fn(), ...over,
 } as unknown as ImportJobs)
 const wrapper = withI18n('en')
 const toast = () => screen.queryByTestId('import-toast')
@@ -35,7 +35,11 @@ describe('the import toast', () => {
     // The live region reads the constant words; the climbing count is shown only.
     expect(within(toast()!).getByText('Reading your file… 1,200 rows')).toHaveAttribute('aria-hidden', 'true')
     expect(toast()!.closest('[role="status"]')).not.toBeNull()
-    expect(within(toast()!).queryByRole('button')).toBeNull() // a file read can't be cancelled today
+    // Cancel stops the read (C9).
+    const cancelFile = vi.fn()
+    rerender(<ImportToast jobs={jobs({ cancelFile, ebird: { busy: true, rows: 1200, error: null } })} />)
+    fireEvent.click(within(toast()!).getByRole('button', { name: 'Cancel' }))
+    expect(cancelFile).toHaveBeenCalledOnce()
     rerender(<ImportToast jobs={jobs({ landed: landed(185, 1, 'ebird') })} />)
     expect(toast()).toHaveTextContent(/^Done · 185 from eBird$/)
     expect(document.activeElement).toBe(document.body) // it never takes focus
@@ -69,7 +73,7 @@ describe('the import toast', () => {
     rerender(<ImportToast jobs={jobs({ cancelInat, inat: { ...NO_INAT, note: 'cancelled' } })} />)
     expect(toast()).toBeNull()
   })
-  it('an error closes it and shows no done line (the error stays in the row), even after an earlier import landed', async () => {
+  it('an iNaturalist failure shows its message for DONE_MS (the fetch outlives the dialog), never an earlier done line', async () => {
     const { rerender } = render(<ImportToast jobs={jobs()} />, { wrapper })
     rerender(<ImportToast jobs={jobs({ landed: landed(3, 1) })} />)
     expect(toast()).toHaveTextContent('Done · 3 from iNaturalist')
@@ -77,7 +81,27 @@ describe('the import toast', () => {
     await wait(RUN_DELAY)
     expect(toast()).toHaveTextContent('Looking up “nobody”…')
     rerender(<ImportToast jobs={jobs({ landed: landed(3, 1), inat: { ...NO_INAT, error: { code: 'unknown-user', user: 'nobody' } } })} />)
+    expect(toast()).toHaveTextContent('nobody')
+    expect(toast()).not.toHaveTextContent('Done')
+    await wait(DONE_MS)
     expect(toast()).toBeNull()
+  })
+  it('a file read the parser streams: its share of the file over a progress line (O11)', async () => {
+    render(<ImportToast jobs={jobs({ ebird: { busy: true, rows: 120000, frac: 0.456, error: null } })} />, { wrapper })
+    await wait(RUN_DELAY)
+    expect(toast()).toHaveTextContent('Reading your file… 120,000 rows · 45%')
+    const bar = within(toast()!).getByRole('progressbar', { name: 'Reading your file…' })
+    expect(bar).toHaveAttribute('aria-valuenow', '45')
+    expect(toast()!.querySelector('.eb-toast-spin')).toBeNull()
+  })
+  it('the first birds into an empty list name the collage; a Refresh or Replace says what it added (D1, D2)', () => {
+    const { rerender } = render(<ImportToast jobs={jobs()} />, { wrapper })
+    rerender(<ImportToast jobs={jobs({ landed: { ...landed(282, 1, 'ebird'), first: true } })} />)
+    expect(toast()).toHaveTextContent(/^Your collage has 282 species$/)
+    rerender(<ImportToast jobs={jobs({ landed: { ...landed(290, 2), added: 4 } })} />)
+    expect(toast()).toHaveTextContent(/^Done · 290 from iNaturalist · 4 new species$/)
+    rerender(<ImportToast jobs={jobs({ landed: { ...landed(290, 3), added: 0 } })} />)
+    expect(toast()).toHaveTextContent(/^Done · 290 from iNaturalist · no new species$/)
   })
   it('waits while hovered or focused, then stays its time again', async () => {
     const { rerender } = render(<ImportToast jobs={jobs()} />, { wrapper })

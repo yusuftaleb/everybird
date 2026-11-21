@@ -56,7 +56,8 @@ function link(href: string): (chunk: string) => ReactNode {
 function Credit({ label, title, children }: { label: string; title: ReactNode; children: ReactNode }) {
   return (
     <li className="eb-credit">
-      <h3 className="eb-credit-title">{title}<span className="eb-mono">{label}</span></h3>
+      {/* The space keeps title and label two words for screen readers ("huashu-bird-sticker Stickers"); flex drops it visually. */}
+      <h3 className="eb-credit-title">{title}{' '}<span className="eb-mono">{label}</span></h3>
       <p className="eb-credit-body">{children}</p>
     </li>
   )

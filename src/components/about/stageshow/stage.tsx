@@ -44,6 +44,9 @@ export interface StageProps<S> {
    */
   cursor?: { at: Target | { wide: Target; compact: Target }; kind?: CursorKind; style?: CursorStyle; still?: boolean; ripple?: boolean; idle?: number | false }
   play?: Play
+  /** Everybird: the viewer paused the scene (a Pause button beside it, WCAG 2.2.2). It shows its still, as under
+   * reduced motion; unpaused, a fresh scene starts. */
+  paused?: boolean
   /**
    * A second, smaller design for narrow containers. Below `below` px of
    * container width the stage uses this size, the render's `layout` argument
@@ -97,6 +100,7 @@ export function Stage<S extends object>({
   cursor,
   hover,
   play: playProp = 'loop',
+  paused = false,
   compact,
   keys: keysAt = 'bottom',
   palette = 'accent',
@@ -132,7 +136,7 @@ export function Stage<S extends object>({
   const rootRef = useRef<HTMLDivElement>(null)
   const cursorRef = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
-  const still = !script || reduced
+  const still = !script || reduced || paused
 
   const [state, setState] = useState<S>(() => (still && poster ? poster : initial))
   const stateRef = useRef(state)

@@ -71,7 +71,7 @@ describe('metadata strings', () => {
     expect(ogTitle(p(undefined, 3), T)).toBe('A life list: 3 species')
     expect(ogTitle(p('  ', 1), T)).toBe('A life list: 1 species')
     expect(ogTitle(p(undefined, 1234), T)).toBe('A life list: 1,234 species')
-    expect(ogTitle(null, T)).toBe('Everybird')
+    expect(ogTitle(null, T)).toBe("This link didn't open · Everybird")
     expect(ogTitle(p('Ada', 2), T)).not.toMatch(/—/)
   })
   it("the page h1 (and the card's title): the title verbatim, an old bare name as \"<name>'s life list\"", () => {
@@ -92,7 +92,7 @@ describe('metadata strings', () => {
     expect(ogTitle(p(undefined, 1), es.ui)).toBe('Una lista de vida: 1 especie')
     expect(ogTitle(p(undefined, 1234), pt.ui)).toBe('Uma lista de vida: 1.234 espécies')
     expect(ogTitle(p(undefined, 3), nl.ui)).toBe('Een levenslijst: 3 soorten')
-    expect(ogTitle(null, pt.ui)).toBe('Everybird')
+    expect(ogTitle(null, pt.ui)).toBe(`${pt.ui.shared.brokenTitle} · Everybird`)
     expect(ogName({ name: 'Aves de 2026', titled: true }, pt.ui)).toBe('Aves de 2026')
     expect(ogName({}, es.ui)).toBe('La lista de vida de un observador de aves')
     expect(ogName({}, pt.ui)).toBe('A lista de vida de um observador de aves')

@@ -15,14 +15,23 @@ import { CollageView } from './CollageView'
 export function SampleDemo() {
   const [pack, setPack] = useState<SamplePack | null>(null)
   const [failed, setFailed] = useState(false)
+  // Try again loads it again (a failed load isn't cached, sample-pack.ts).
+  const [tries, setTries] = useState(0)
   const { t } = useI18n()
   useEffect(() => {
     let live = true
     loadSamplePack().then((p) => { if (live) setPack(p) }, () => { if (live) setFailed(true) })
     return () => { live = false }
-  }, [])
-  if (failed) return <p className="eb-error eb-notice" role="alert">{t.landing.sampleFailed}</p>
-  if (!pack) return <div className="eb-stage-wait eb-sample-wait" aria-hidden="true" />
+  }, [tries])
+  if (failed) {
+    return (
+      <p className="eb-error eb-notice" role="alert">
+        {t.landing.sampleFailed}{' '}
+        <button type="button" className="eb-textbtn" onClick={() => { setFailed(false); setTries(tries + 1) }}>{t.shared.retry}</button>
+      </p>
+    )
+  }
+  if (!pack) return <div className="eb-stage-wait eb-sample-wait" role="status" aria-label={t.collage.arranging} />
   return <Loaded pack={pack} />
 }
 

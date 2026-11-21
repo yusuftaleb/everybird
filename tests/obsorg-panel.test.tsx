@@ -21,7 +21,7 @@ afterEach(() => {
 function jobs(over: Partial<ImportJobs> = {}): ImportJobs {
   return {
     ebird: idle, readEbird: async () => {}, obsorg: idle, readObsOrg: async () => {},
-    sheet: idle, readSheet: async () => {}, scythebill: idle, readScythebill: async () => {}, igoterra: idle, readIgoterra: async () => {}, parsePaste: async () => {}, sheetReview: null, confirmSheet: () => {}, cancelSheet: () => {},
+    sheet: idle, readSheet: async () => {}, scythebill: idle, readScythebill: async () => {}, igoterra: idle, readIgoterra: async () => {}, cancelFile: () => {}, parsePaste: async () => {}, sheetReview: null, confirmSheet: () => {}, cancelSheet: () => {},
     inat: { busyFor: null, progress: null, error: null, note: null }, fetchInat: async () => {}, cancelInat: () => {},
     landed: null, ...over,
   }

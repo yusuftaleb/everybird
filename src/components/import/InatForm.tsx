@@ -141,7 +141,7 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, 
                 // Changing the username, thought better of: fold the panel, focus back on the row's ⋯ menu.
                 <button
                   type="button"
-                  className="eb-btn eb-btn-quiet"
+                  className="eb-btn eb-btn-quiet eb-inat-keep"
                   onClick={(e) => {
                     const menu = e.currentTarget.closest('.eb-src')?.querySelector<HTMLButtonElement>('.eb-menubtn')
                     setOpen(false)

@@ -32,7 +32,8 @@ export type ParseResult = ImportResult & { excluded?: ObsOrgObservationsResult['
  */
 export type ParseErrorCode = 'no-birds' | 'damaged' | 'missing-options'
 export type ParseResponse =
-  | { type: 'progress'; rows: number }
+  /** `frac`: how far through the file (0 to 1), from the parsers that stream it (MyEBirdData, observation.org's observations). */
+  | { type: 'progress'; rows: number; frac?: number }
   | { type: 'done'; result: ParseResult }
   | { type: 'error'; code?: ParseErrorCode; message: string }
 
@@ -61,12 +62,12 @@ export async function handleParseMessage(
     parsing = true
     let last = 0
     let lastRows = 0
-    const onProgress = (rows: number) => {
+    const onProgress = (rows: number, frac?: number) => {
       const now = Date.now()
       if (now - last >= PROGRESS_MS || rows - lastRows >= PROGRESS_ROWS) {
         last = now
         lastRows = rows
-        post({ type: 'progress', rows })
+        post(frac === undefined ? { type: 'progress', rows } : { type: 'progress', rows, frac: Math.min(1, Math.max(0, frac)) })
       }
     }
     let result: ParseResult | { error: 'no-birds' }

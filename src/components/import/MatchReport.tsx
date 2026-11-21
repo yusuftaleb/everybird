@@ -1,6 +1,6 @@
 'use client'
 import { CaretDown, Check, MagnifyingGlass } from '@/components/phosphor-icons'
-import { memo, useEffect, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -46,10 +46,24 @@ export const MatchReport = memo(function MatchReport({ open, saved, species, dis
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
+  // A fixed row leaves the report: focus goes to the row that takes its place (the last one when it was last), or, with
+  // none left, to Your list, never to the page's body.
+  const list = useRef<HTMLUListElement>(null)
+  const fixedAt = useRef<number | null>(null)
+  useEffect(() => {
+    const at = fixedAt.current
+    if (at === null) return
+    fixedAt.current = null
+    const next = list.current?.children[Math.min(at, rows.length - 1)]
+    const el = next?.querySelector<HTMLElement>('button') ?? document.getElementById('sources')
+    el?.focus({ preventScroll: true })
+  }, [rows.length])
   // Entries that aren't species (sp., slashes, hybrids) are counted in their own source's row ("· N skipped", NotCounted).
   if (!rows.length) return null
-  const fix = (u: Unmatched, code: string) =>
+  const fix = (u: Unmatched, code: string) => {
+    fixedAt.current = rows.indexOf(u)
     dispatch({ type: 'edit', edits: { ...saved.edits, fixes: { ...saved.edits.fixes, [unmatchedKey(u)]: code } } })
+  }
   return (
     <section id="match" className="eb-matchbox" aria-labelledby="eb-match-h">
       <div className="eb-matchbox-head">
@@ -62,7 +76,7 @@ export const MatchReport = memo(function MatchReport({ open, saved, species, dis
           <CaretDown aria-hidden="true" focusable="false" weight="bold" />
         </button>
       </div>
-      <ul id="eb-match-rows" className="eb-match" hidden={!shown}>
+      <ul ref={list} id="eb-match-rows" className="eb-match" hidden={!shown}>
         {rows.map((u) => <MatchRow key={unmatchedKey(u)} u={u} species={species} onFix={(code) => fix(u, code)} />)}
       </ul>
     </section>

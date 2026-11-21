@@ -73,6 +73,9 @@ export const EN_UI = {
       forgetAsk: 'Forget this list on this device? Download a backup first if you want to keep it.',
       forgetYes: 'Yes, forget it',
       forgetKeep: 'Keep it',
+      /** The toast after Yes, replace it and after Yes, forget it. */
+      restored: 'Your backup is restored.',
+      forgotten: 'This device no longer holds your list.',
       /** A backup that couldn't be read: the lead, then why (fromJson's BackupError reason). English shows fromJson's
        *  own message as the reason, so its wording stays exactly as it was. */
       restoreFailed: "Couldn't restore this backup.",
@@ -142,6 +145,8 @@ export const EN_UI = {
       /** The Map view (MapView): "Show all" under its list ({n} the number of places), the note when its shapes don't
        *  load, the caption under the map (how to zoom and pan), and its buttons' names (+, −, and back to the whole world). */
       mapAll: 'Show all {n}',
+      /** The same button once every row shows: back to the first rows (focus stays on it). */
+      mapFewer: 'Show fewer',
       mapFailed: "Couldn't load the map. The list below has the same counts.",
       /** After mapFailed: the button that loads the map again. */
       mapRetry: 'Try again',
@@ -441,11 +446,11 @@ export const EN_UI = {
   /** The landing page (Landing, SampleDemo) and the first visit's welcome (Welcome). */
   landing: {
     title: 'A lifetime of birds.',
-    lede: 'Your life list as a sticker collage, from eBird, iNaturalist, or by hand.',
+    lede: 'Your life list as a sticker collage, from eBird, iNaturalist, a spreadsheet or by hand.',
     makeYours: 'Make yours',
     samplePrefix: 'Sample',
     sampleFailed: "Couldn't load the sample collage. Check your connection and reload the page.",
-    welcome: 'A lifetime of birds, as a sticker collage.',
+    welcome: 'Your life list as a sticker collage. It stays in your browser.',
     makeMine: 'Make mine',
     explore: 'Explore the sample',
     /** The sample's guided tour (Tour.tsx), started by Explore the sample: the step count, one line per step, the buttons. */
@@ -453,7 +458,7 @@ export const EN_UI = {
       count: '{n} of {total}',
       filter: 'Filter by place, date or conservation status. Every view follows the filter.',
       view: 'See the same birds as a collage, a list, a map or a tree.',
-      bird: 'Press a bird to see when and where it was first seen.',
+      bird: 'Press a bird to see when and where you first recorded it.',
       next: 'Next',
       skip: 'Skip tour',
       end: 'End tour',
@@ -463,11 +468,13 @@ export const EN_UI = {
   /** The shared view's page (/s/[token]) and SharedView. A link's own title and the page metadata are og.ts's. */
   shared: {
     brokenTitle: "This link didn't open",
-    brokenLede: "It may be cut off, or made by a newer Everybird. Everybird turns a birder's life list into a sticker collage.",
+    brokenLede: "It may be cut off, or made by a newer Everybird. Ask for the link again. Everybird turns a birder's life list into a sticker collage.",
     lede: "Everybird turns a birder's life list into a sticker collage.",
     /** The h1 of a link without a title. */
     untitled: "A birder's life list",
-    endCta: 'Your list, from eBird, iNaturalist or by hand, as a collage like this.',
+    endCta: 'Your list, from eBird, iNaturalist, a spreadsheet or by hand, as a collage like this.',
+    /** After a load failure (the shared view's and the landing sample's): loads it again. */
+    retry: 'Try again',
     noPlacesDates: 'This link carries no places or dates, so those filters are left out.',
     noPlaces: 'This link carries no places, so those filters are left out.',
     noDates: 'This link carries no dates, so those filters are left out.',
@@ -480,7 +487,9 @@ export const EN_UI = {
     paste: 'Paste a friend’s Everybird link',
     linkN: 'Link {n}',
     submit: 'Compare',
-    bad: { one: '{n} link didn’t open.', other: '{n} links didn’t open.' },
+    bad: { one: '{n} link didn’t open. It may be cut off, or made by a newer Everybird.', other: '{n} links didn’t open. They may be cut off, or made by a newer Everybird.' },
+    /** A pasted list another row already holds: refused (the row keeps its text, no list). */
+    dup: { one: 'That list is already in this comparison.', other: '{n} of these lists are already in this comparison.' },
     needMore: 'Comparing needs at least two lists.',
     /** After a paste past the cap: the links beyond it weren't added ({n} 6). */
     over: 'Up to {n} lists can be compared, so the rest weren’t added.',
@@ -499,7 +508,7 @@ export const EN_UI = {
     birder: 'Birder {n}',
     empty: 'No birds in this group.',
     /** A tile's dots, one per list that has the bird (Yet to see and Every bird): their accessible name. */
-    seenBy: 'Seen by {names}',
+    seenBy: 'On {names}’s lists',
     /** The bars, one per list; a set-up row's remove button. */
     people: 'Lists in this comparison',
     remove: 'Remove {name}',
@@ -515,17 +524,17 @@ export const EN_UI = {
     /** The share dialog's note beside Copy link; why the wish list is off; why Copy link is off. */
     consent: 'A comparison link carries every list in it, so ask the others before you share it.',
     wishNeedsYours: 'Add your own birds for a wish list.',
-    wishNone: 'You’ve seen every bird on these lists.',
+    wishNone: 'Every bird on these lists is on yours.',
     tooMany: 'A comparison link holds up to {n} lists. Remove some to share it.',
     tooBig: 'These lists are too big for one link. Share the card instead, or compare fewer lists.',
     sharedTitle: 'Comparing {n} life lists',
     /** On a shared collage or comparison: open Compare with it and your own list. */
     withMine: 'Compare with mine',
-    /** The set-up: the page head's line ({n} 6), the birder's own row, each row's name box, Add a friend. */
+    /** The set-up: the page head's line ({n} 6), the birder's own row, each row's name box, Add a birder (the rows' "Birder {n}" word; gone at 6 lists). */
     note: 'Paste your friends’ Everybird links to see which birds you share. Up to {n} lists.',
     yourList: 'Your list',
     nameN: 'Name of list {n}',
-    addFriend: 'Add a friend',
+    addBirder: 'Add a birder',
     /** The results: back to the set-up; the page head's line (with your own list, and without); the circles' name. */
     editLists: 'Edit lists',
     lede: 'See which birds your lists share and which you’re yet to see. Choose people below to see the birds only they share.',
@@ -764,6 +773,9 @@ export const EN_UI = {
     ebirdGroup: 'eBird files',
     /** The import toast's last line (ImportToast): {result} is the summary's first part, "282 from iNaturalist". */
     toastDone: 'Done · {result}',
+    /** After a Refresh or Replace of a source that had birds: what it added ("Done · 282 from iNaturalist · 4 new species"), or none. */
+    toastNew: { one: '{n} new species', other: '{n} new species' },
+    toastNone: 'no new species',
     /** The summary line ("Your collage has 199 species: 185 from eBird, 11 more from iNaturalist, 3 ticked by hand.").
      *  `head` is plural on the total, each part on its own number; the parts are joined with ", " in code. */
     summary: {
@@ -943,12 +955,16 @@ export const EN_UI = {
       input: 'eBird file',
       reading: 'Reading your file…',
       readingRows: { one: 'Reading your file… {n} row', other: 'Reading your file… {n} rows' },
+      /** How far through a file the read is, after its row count (ImportToast): "· 45%". */
+      percent: '{n}%',
       /** Under the rows with only the life list download; <link> opens MyEBirdData's Add panel. */
       liferNote: 'Your eBird life list only says where you first recorded each bird, so Places filters by those first places. <link>Add MyEBirdData</link> to filter by every place you recorded each bird, down to the county.',
       liferLink: 'Add MyEBirdData for every place',
       /** use-import-jobs.ts: a file that isn't an eBird export, and one that failed to read. */
       unknownFile: "Couldn't read this file. Use eBird's life list download or MyEBirdData.csv.",
       damaged: "Couldn't read this file. It may be damaged or not an eBird export.",
+      /** An eBird export with no bird in it: nothing is imported (it would empty that source). */
+      noBirds: 'No birds in this file, so your list is unchanged.',
     },
     /** iNaturalist's row (InatForm). */
     inat: {
@@ -1041,6 +1057,8 @@ export const EN_UI = {
     wholeCountry: 'Whole country',
     /** The Undo notice after a tap adds a bird ("Removed {name}." after one takes it off: collage.removed). */
     added: 'Added {name}.',
+    /** The same, with the date and place the bar gave it ({details}: "May 2024 · France"). */
+    addedAt: 'Added {name} · {details}.',
   },
   /** Settings > Counting (RulesSwitches). */
   rules: {
@@ -1060,6 +1078,9 @@ export const EN_UI = {
   /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
   demo: {
     credit: 'Stickers: <link>huashu-bird-sticker</link>, CC BY 4.0',
+    /** The demo's quiet text button beside its credit (WCAG 2.2.2): stops the loop; Play starts it again. */
+    pause: 'Pause',
+    play: 'Play',
     caption: 'An animation of Everybird at work: an eBird export file is dropped onto Settings, under Your list, and its rows are read; MyEBirdData is connected and the collage has {total} species, all from eBird. Then the collage builds, stickers arriving around the count as it rolls up to {total} species. Choosing the Herons order brings the six herons into the middle; All birds, in the breadcrumb, brings everyone back. Share opens the share dialog: the image, with the stickers around {total} species, the latest lifer and the footer line, in the Story, Post and Square formats.',
   },
   /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */
@@ -1068,7 +1089,7 @@ export const EN_UI = {
     /** The line in the open, empty search: what it understands, with one example (its words parse in this language). */
     hint: 'Try a name, a group, a place or a year: raptors in Kenya 2024',
     show: 'Show these birds',
-    note: 'Your list only has first-seen dates; import MyEBirdData.csv for every sighting',
+    note: 'Your list only has the dates you first recorded each bird. Add MyEBirdData to count every sighting.',
   },
 }
 
