@@ -38,6 +38,8 @@
    its own contents at its end too, so on a line of its own it is still right-aligned. */
 .eb-map-head > .eb-map-legend { display: flex; flex: 0 1 auto; justify-content: flex-end; align-items: center; gap: 8px; margin: 0 0 0 auto; }
 .eb-map-legend i { flex: 0 1 200px; min-width: 48px; height: 8px; border-radius: 4px; }
+/* The counts never wrap ("426 SPECIES" on one line); only the ramp gives way. */
+.eb-map-legend span { flex: none; white-space: nowrap; }
 
 /* The list under the map: the shown level's places, most species first down each column (one on phones, two on medium
    screens, three from 1024px), the flag, the full name (wrapping, never cut) and the count beside it. A row that opens
