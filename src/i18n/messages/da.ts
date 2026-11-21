@@ -108,6 +108,8 @@ export const da: Messages = {
         map: 'Kort',
         mapAll: 'Vis alle {n}',
         mapFailed: 'Kortet kunne ikke indlæses. Listen nedenfor har de samme tal.',
+        mapRetry: 'Prøv igen',
+        mapUnplaced: { one: '{n} fugl på denne liste har intet sted, så kortet udelader den.', other: '{n} fugle på denne liste har intet sted, så kortet udelader dem.' },
         mapHint: 'Knib eller +/− for at zoome · træk for at flytte',
         mapZoomIn: 'Zoom ind',
         mapZoomOut: 'Zoom ud',

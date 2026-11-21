@@ -110,6 +110,8 @@ export const zhHans: Messages = {
         map: '地图',
         mapAll: '显示全部（{n}）',
         mapFailed: '无法加载地图。下方列表有相同的计数。',
+        mapRetry: '重试',
+        mapUnplaced: { one: '这份清单中有{n}种鸟没有地点，所以地图没有显示。', other: '这份清单中有{n}种鸟没有地点，所以地图没有显示。' },
         mapHint: '双指捏合或按+/−缩放 · 拖动平移',
         mapZoomIn: '放大',
         mapZoomOut: '缩小',

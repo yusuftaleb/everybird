@@ -108,6 +108,8 @@ export const it: Messages = {
         map: 'Mappa',
         mapAll: 'Mostra tutti ({n})',
         mapFailed: 'Impossibile caricare la mappa. L’elenco qui sotto riporta gli stessi conteggi.',
+        mapRetry: 'Riprova',
+        mapUnplaced: { one: '{n} uccello di questa lista non ha un luogo, quindi la mappa lo lascia fuori.', other: '{n} uccelli di questa lista non hanno un luogo, quindi la mappa li lascia fuori.' },
         mapHint: 'Pizzica o usa +/− per lo zoom · trascina per spostare',
         mapZoomIn: 'Aumenta lo zoom',
         mapZoomOut: 'Riduci lo zoom',

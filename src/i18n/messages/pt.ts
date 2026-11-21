@@ -108,6 +108,8 @@ export const pt: Messages = {
         map: 'Mapa',
         mapAll: 'Mostrar todos os {n}',
         mapFailed: 'Não foi possível carregar o mapa. A lista abaixo tem as mesmas contagens.',
+        mapRetry: 'Tentar de novo',
+        mapUnplaced: { one: '{n} ave desta lista não tem lugar, então o mapa a deixa de fora.', other: '{n} aves desta lista não têm lugar, então o mapa as deixa de fora.' },
         mapHint: 'Use dois dedos ou +/− para dar zoom · arraste para mover',
         mapZoomIn: 'Aumentar o zoom',
         mapZoomOut: 'Diminuir o zoom',

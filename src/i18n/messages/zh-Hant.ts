@@ -110,6 +110,8 @@ export const zhHant: Messages = {
         map: '地圖',
         mapAll: '顯示全部（{n}）',
         mapFailed: '無法載入地圖。下方清單有相同的數字。',
+        mapRetry: '重試',
+        mapUnplaced: { one: '這份清單中有 {n} 種鳥沒有地點，所以地圖沒有顯示。', other: '這份清單中有 {n} 種鳥沒有地點，所以地圖沒有顯示。' },
         mapHint: '雙指或 +/− 縮放 · 拖曳平移',
         mapZoomIn: '放大',
         mapZoomOut: '縮小',

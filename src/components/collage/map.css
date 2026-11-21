@@ -3,7 +3,7 @@
    shapes.ts), hairline Paper borders on every shape at every zoom, the hovered country outlined in Ink over its own fill
    ([data-edge], drawn last); under the map the zoom row (the caption, then − and + at the right, and a reset once
    zoomed), then the list of the countries in one to three columns. */
-.eb-map { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; min-width: 0; }
+.eb-map { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; min-width: 0; } /* the List's and Tree's 8px under the chip row */
 .eb-map-pic {
   position: relative;
   border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
@@ -30,21 +30,26 @@
 .eb-map-svg path[data-edge] { stroke: var(--ink); stroke-width: 1.5px; stroke-linecap: round; }
 
 /* The tooltip: the bird tooltip's card look (card-list.css .eb-card.eb-tip), above the pointer, its side by where the
-   pointer is so it never runs off the map. */
+   pointer is so it never runs off the map; near the map's top or the top bar ([data-below]) under the pointer instead. */
 /* As wide as its text up to .eb-tip's 280px; a longer name ("South Georgia and the South Sandwich Islands") wraps inside the
    box instead of running out of it (Yusuf, 2026-11-20); the count stays on one line. */
-.eb-map-tip { display: flex; flex-direction: column; gap: 2px; width: max-content; padding: 8px 12px; pointer-events: none; transform: translate(-50%, calc(-100% - 12px)); }
+.eb-map-tip { --tip-y: calc(-100% - 12px); display: flex; flex-direction: column; gap: 2px; width: max-content; padding: 8px 12px; pointer-events: none; transform: translate(-50%, var(--tip-y)); }
+.eb-map-tip[data-below] { --tip-y: 20px; }
 .eb-map-tip > .eb-mono { white-space: nowrap; }
-.eb-map-tip[data-side="start"] { transform: translate(-12px, calc(-100% - 12px)); }
-.eb-map-tip[data-side="end"] { transform: translate(calc(-100% + 12px), calc(-100% - 12px)); }
+.eb-map-tip[data-side="start"] { transform: translate(-12px, var(--tip-y)); }
+.eb-map-tip[data-side="end"] { transform: translate(calc(-100% + 12px), var(--tip-y)); }
 .eb-map-tip-name { font-weight: 600; font-size: 14px; line-height: 1.3; color: var(--ink); overflow-wrap: break-word; }
 
-/* The row above the map: the legend at its right. */
-.eb-map-head { display: flex; width: 100%; }
+/* The row above the map, there from the first paint at the legend's height: the country count at its left (Muted mono,
+   the Tree's rank line), the legend at its right. */
+.eb-map-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; width: 100%; min-height: 18px; }
+.eb-map-count { margin: 0; color: var(--muted); }
 
 /* The legend: the lowest count, one continuous ramp, the highest, at the row's end. */
 .eb-map-head > .eb-map-legend { display: flex; flex: 0 1 auto; justify-content: flex-end; align-items: center; gap: 8px; margin: 0 0 0 auto; }
 .eb-map-legend i { flex: 0 1 200px; min-width: 48px; height: 8px; border-radius: 4px; }
+/* One count for every country (one country, or all tied): one swatch, no range. */
+.eb-map-legend i.eb-map-swatch { flex: none; width: 16px; min-width: 0; }
 /* The counts never wrap ("426 SPECIES" on one line); only the ramp gives way. */
 .eb-map-legend span { flex: none; white-space: nowrap; }
 
@@ -68,6 +73,8 @@
 .eb-map-row-name { min-width: 0; overflow-wrap: break-word; padding-block: 6px; }
 .eb-map-row .eb-count { flex: none; }
 .eb-map-all { align-self: flex-start; }
+/* The shapes didn't load: the line, then Try again. */
+.eb-map-failed { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; }
 @media (prefers-reduced-motion: reduce) {
   .eb-map-svg { animation: none; }
   .eb-map-svg path { transition: none; }

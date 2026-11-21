@@ -108,6 +108,8 @@ export const fr: Messages = {
         map: 'Carte',
         mapAll: 'Tout afficher ({n})',
         mapFailed: 'Impossible de charger la carte. La liste ci-dessous a les mêmes nombres.',
+        mapRetry: 'Réessayer',
+        mapUnplaced: { one: '{n} oiseau de cette liste n’a pas de lieu, donc la carte le laisse de côté.', other: '{n} oiseaux de cette liste n’ont pas de lieu, donc la carte les laisse de côté.' },
         mapHint: 'Pince ou +/− pour zoomer · fais glisser pour déplacer',
         mapZoomIn: 'Zoom avant',
         mapZoomOut: 'Zoom arrière',

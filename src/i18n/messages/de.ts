@@ -108,6 +108,8 @@ export const de: Messages = {
         map: 'Karte',
         mapAll: 'Alle {n} zeigen',
         mapFailed: 'Die Karte konnte nicht geladen werden. Die Liste unten hat dieselben Zahlen.',
+        mapRetry: 'Erneut versuchen',
+        mapUnplaced: { one: '{n} Vogel auf dieser Liste hat keinen Ort, daher fehlt er auf der Karte.', other: '{n} Vögel auf dieser Liste haben keinen Ort, daher fehlen sie auf der Karte.' },
         mapHint: 'Mit zwei Fingern oder +/− zoomen · zum Verschieben ziehen',
         mapZoomIn: 'Vergrößern',
         mapZoomOut: 'Verkleinern',

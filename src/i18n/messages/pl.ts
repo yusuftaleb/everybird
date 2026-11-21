@@ -114,6 +114,8 @@ export const pl: Messages = {
         map: 'Mapa',
         mapAll: 'Pokaż wszystkie ({n})',
         mapFailed: 'Nie udało się wczytać mapy. Lista poniżej pokazuje te same liczby.',
+        mapRetry: 'Spróbuj ponownie',
+        mapUnplaced: { one: '{n} ptak z tej listy nie ma miejsca, więc mapa go pomija.', few: '{n} ptaki z tej listy nie mają miejsca, więc mapa je pomija.', many: '{n} ptaków z tej listy nie ma miejsca, więc mapa je pomija.', other: '{n} ptaka z tej listy nie ma miejsca, więc mapa je pomija.' },
         mapHint: 'Przybliżaj palcami lub przyciskami +/− · przeciągnij, aby przesunąć',
         mapZoomIn: 'Przybliż',
         mapZoomOut: 'Oddal',

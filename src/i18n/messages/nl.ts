@@ -108,6 +108,8 @@ export const nl: Messages = {
         map: 'Kaart',
         mapAll: 'Alle {n} tonen',
         mapFailed: 'De kaart kon niet worden geladen. De lijst hieronder heeft dezelfde aantallen.',
+        mapRetry: 'Opnieuw proberen',
+        mapUnplaced: { one: '{n} vogel op deze lijst heeft geen plaats, dus de kaart laat hem weg.', other: '{n} vogels op deze lijst hebben geen plaats, dus de kaart laat ze weg.' },
         mapHint: 'Zoom met twee vingers of +/− · sleep om te verschuiven',
         mapZoomIn: 'Inzoomen',
         mapZoomOut: 'Uitzoomen',

@@ -139,6 +139,10 @@ export const EN_UI = {
        *  load, the caption under the map (how to zoom and pan), and its buttons' names (+, −, and back to the whole world). */
       mapAll: 'Show all {n}',
       mapFailed: "Couldn't load the map. The list below has the same counts.",
+      /** After mapFailed: the button that loads the map again. */
+      mapRetry: 'Try again',
+      /** Under the Map view's list: the birds shown that have no place at all (a life list without places), left off the map. */
+      mapUnplaced: { one: '{n} bird on this list has no place, so the map leaves it out.', other: '{n} birds on this list have no place, so the map leaves them out.' },
       mapHint: 'Pinch or +/− to zoom · drag to pan',
       mapZoomIn: 'Zoom in',
       mapZoomOut: 'Zoom out',

@@ -110,6 +110,8 @@ export const ja: Messages = {
         map: '地図',
         mapAll: 'すべて表示（{n}）',
         mapFailed: '地図を読み込めませんでした。下のリストで同じ数を確認できます。',
+        mapRetry: '再試行',
+        mapUnplaced: { one: 'このリストの{n}種は場所の記録がないため、地図には表示されません。', other: 'このリストの{n}種は場所の記録がないため、地図には表示されません。' },
         mapHint: 'ピンチまたは+/−でズーム · ドラッグで移動',
         mapZoomIn: 'ズームイン',
         mapZoomOut: 'ズームアウト',

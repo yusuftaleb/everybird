@@ -108,6 +108,8 @@ export const sv: Messages = {
         map: 'Karta',
         mapAll: 'Visa alla {n}',
         mapFailed: 'Kartan kunde inte laddas. Listan nedan har samma siffror.',
+        mapRetry: 'Försök igen',
+        mapUnplaced: { one: '{n} fågel på den här listan har ingen plats, så kartan utelämnar den.', other: '{n} fåglar på den här listan har ingen plats, så kartan utelämnar dem.' },
         mapHint: 'Nyp eller +/− för att zooma · dra för att flytta',
         mapZoomIn: 'Zooma in',
         mapZoomOut: 'Zooma ut',
