@@ -1,5 +1,5 @@
 'use client'
-// The share dialog's dropdowns (Poster size, Count, the goal's year, Split by, Birds per poster), in the top bar's
+// The share dialog's dropdowns (Poster size, the goal's year, Split by, Birds per image or per poster), in the top bar's
 // language-menu style (LanguageMenu): a borderless button showing the current choice and a small chevron, Surface on
 // hover and while open (share.css .eb-share-dd), and a small floating menu (.eb-menu, .eb-menuitem,
 // role="menuitemradio", the current choice in Accent with a check). The button is named by its row's label and that choice. Its keyboard is the language menu's: ArrowDown or ArrowUp opens

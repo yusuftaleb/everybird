@@ -496,7 +496,7 @@ export const nl: Messages = {
       posterLatestPlace: 'Nieuwste soort: {name}, {date}, {place}',
       oldLinkTitle: 'Levenslijst van {name}',
       untitledTitle: { one: 'Een levenslijst: {n} soort', other: 'Een levenslijst: {n} soorten' },
-      /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
+      /** The Colours row: the images' and the poster's look, Light or Dark. */
       colours: { label: 'Kleuren', light: 'Licht', dark: 'Donker' },
       transparent: 'Transparante achtergrond',
       arrange: { label: 'Indeling', packed: 'Passend', oval: 'Ovaal' },

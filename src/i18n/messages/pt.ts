@@ -496,7 +496,7 @@ export const pt: Messages = {
       posterLatestPlace: 'Última espécie nova: {name}, {date}, {place}',
       oldLinkTitle: 'Lista de vida de {name}',
       untitledTitle: { one: 'Uma lista de vida: {n} espécie', other: 'Uma lista de vida: {n} espécies' },
-      /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
+      /** The Colours row: the images' and the poster's look, Light or Dark. */
       colours: { label: 'Cores', light: 'Claro', dark: 'Escuro' },
       transparent: 'Fundo transparente',
       arrange: { label: 'Disposição', packed: 'Ajustar', oval: 'Oval' },

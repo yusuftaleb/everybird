@@ -1,5 +1,5 @@
 // The Map and Tree views' share images (map-image.ts, tree-image.ts): the collage card's frame from image.ts (the title,
-// the count, the filter in words, the footer line with the sticker credit and the date stamp, Dark image and Transparent
+// the count, the filter in words, the footer line with the sticker credit and the date stamp, Colours and Transparent
 // background), with no stickers, around a drawing of the view in the area the collage would take. The count sits on top
 // of that area, centred, with an optional line under it (the tree's orders, families and genera); the drawing gets the
 // rest. The map's footer is the site alone (MAP_FOOTER: it draws no stickers); the tree's adds the tree's credit (TREE_FOOTER).
