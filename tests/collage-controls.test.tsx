@@ -240,14 +240,15 @@ describe('the bar\'s panels (round 6)', () => {
     await waitFor(() => expect(display).toHaveFocus())
   })
 
-  it('a chip picked in the Taxa panel filters, keeps the panel open, counts on the button and leaves only the breadcrumb on the page', () => {
+  it('a chip picked in the Taxa panel filters, keeps the panel open, marks the button and leaves only the breadcrumb on the page', () => {
     render(<Harness />)
     expect(screen.queryByTestId('filter-bar')).toBeNull() // nothing under the dock with no taxon picked
-    expect(screen.queryByTestId('taxa-button-count')).toBeNull()
+    expect(screen.getByTestId('taxa-button')).not.toHaveAttribute('data-active')
     pickOrder(/^Woodpeckers/)
     expect(screen.getByTestId('taxa-panel')).toBeInTheDocument()
     expect(stats()).toHaveTextContent(/^2 of 5 species/)
-    expect(screen.getByTestId('taxa-button-count')).toHaveTextContent('1')
+    expect(screen.getByTestId('taxa-button')).toHaveAttribute('data-active') // Accent, no count
+    expect(screen.getByTestId('taxa-button')).toHaveTextContent(/^Taxa$/)
     expect(screen.getByTestId('taxa-button')).toHaveAccessibleName('Taxa: Woodpeckers')
     fireEvent.click(screen.getByTestId('taxa-button'))
     const bar = screen.getByTestId('filter-bar')

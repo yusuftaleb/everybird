@@ -107,9 +107,9 @@
 .eb-dock-end { margin-left: 8px; } /* + the dock's 4px gap = 12px between groups */
 .eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools,
 .eb-dock[data-finding] .eb-dock-filters, .eb-dock[data-finding] .eb-dock-end { opacity: 0; pointer-events: none; }
-/* The panel buttons (Filters.tsx DockPanelButton): Filters with its glyph (how many filter groups are on as a small
-   badge on it), Taxa and Display with the label alone (Taxa's badge on the label); the label, a caret. Open: the pressed
-   tab's Surface; filtering: Accent text and full opacity, at the label's one weight (nothing changes width). */
+/* The panel buttons (Filters.tsx DockPanelButton): Filters with its glyph, Taxa and Display with the label alone; the
+   label, a caret. Open: the pressed tab's Surface; something chosen: Accent text and full opacity, at the label's one
+   weight (nothing changes width). No count: how many is said only in the accessible name. */
 /* At every width the button can give way: the group may shrink, each drop may shrink (flex's default, said here so the rule
    reads whole), and the label shrinks inside it with an ellipsis, so a long summary ("Time · 2022–2024") cuts its own
    label and never pushes the magnifier out of the bar. The accessible name (aria-label) stays whole. Where nothing
@@ -122,20 +122,6 @@
 .eb-dock-drop[aria-expanded="true"] { opacity: 1; background: var(--surface); }
 .eb-dock-drop[aria-expanded="true"] .eb-drop-caret { transform: rotate(180deg); }
 .eb-dock-drop[data-active] { opacity: 1; color: var(--accent); }
-/* The count: a 14px Accent pill on the glyph's top right (the StatusMark pill's size and type), placed absolutely so it
-   moves nothing in the bar, knocked out of the glyph by a 2px ring of the button's own background (an outline, not a
-   shadow: DESIGN.md's Elevation). Decorative: the button's name has the count. */
-.eb-drop-icon { position: relative; display: flex; flex: none; }
-.eb-drop-badge {
-  position: absolute; top: -5px; right: -6px; box-sizing: border-box; min-width: 14px; height: 14px; padding: 0 3px;
-  display: flex; align-items: center; justify-content: center; border-radius: 7px;
-  background: var(--accent); color: var(--paper); outline: 2px solid var(--paper);
-  font: 600 9px/1 var(--font-mono); font-variant-numeric: tabular-nums; pointer-events: none;
-}
-.eb-dock-drop[aria-expanded="true"] .eb-drop-badge { outline-color: var(--surface); }
-/* A panel button without a glyph (Taxa, Display): the badge on the label's top right, as on the glyph. */
-.eb-drop-tag { position: relative; display: flex; min-width: 0; }
-.eb-drop-tag .eb-drop-badge { right: -10px; }
 /* Under 820px of bar (a tablet's or a phone's) the switches and the panel buttons take a second row under a Hairline,
    rather than squeeze the first; the views and the search keep row one. Under 600px the buttons share what the switches
    leave and drop their caret. */
@@ -488,8 +474,7 @@
 /* Under 240px (a 390px phone at aA 200%): row two's links at 13px with a 8px gutter and 3px inside each pill; the press
    stays 44px across (.eb-nav-link::after). */
 /* Under 300px of page (a 390px phone at Safari's aA 150% or more, page zoom; the top bar has split above): the stats
-   line and button labels wrap, and the Filters button drops its glyph (the label says it; the count moves to the
-   button's top right corner). Row one stays the views and
+   line and button labels wrap, and the Filters button drops its glyph (the label says it). Row one stays the views and
    the magnifier (the 310px container rule's 36px icons), row two the switches and Filters. */
 @media (max-width: 299px) {
   .eb-stat { white-space: normal; }
@@ -497,8 +482,6 @@
   .eb-dock-filters { min-width: 0; }
   .eb-dock-filters .eb-dock-drop { gap: 0; padding: 0 6px; }
   .eb-dock-filters .eb-dock-drop svg { display: none; }
-  .eb-dock-filters .eb-drop-icon, .eb-dock-filters .eb-drop-tag { position: static; }
-  .eb-dock-filters .eb-drop-badge { top: 2px; right: 2px; }
   .eb-dock-tools { margin-right: 0; }
 }
 /* Under 240px (a 390px phone at aA 200%): the views wrap beside the magnifier rather than push it off the row; the

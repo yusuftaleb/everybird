@@ -311,7 +311,7 @@ describe('the conservation status on /', () => {
     expect(stats()).not.toHaveTextContent('threatened') // only on the unfiltered line
     expect(within(screen.getByTestId('filter-chips')).getByTestId('chip-status-VU')).toBeInTheDocument()
     expect(within(screen.getByTestId('filter-chips')).getByTestId('chip-status-EN')).toBeInTheDocument()
-    expect(screen.getByTestId('filters-button')).toHaveAccessibleName(/^Filters: Conservation status: /)
+    expect(screen.getByTestId('filters-button')).toHaveAccessibleName(/^Filters, 1 in use: Conservation status: /)
     // The list view shows what applyFilter (the layout client's resolve) returns for the same filter.
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
     const shown = Array.from(document.querySelectorAll<HTMLElement>('.eb-lrow [data-code]')).map((b) => b.dataset.code).sort()

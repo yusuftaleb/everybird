@@ -137,6 +137,7 @@ export const ja: Messages = {
         taxaPanel: '目・科・属',
         display: '表示設定',
         displayPanel: '表示の設定',
+        inUse: { one: '{label}（{n}件使用中）', other: '{label}（{n}件使用中）' },
         sciNames: '学名',
         taxaHead: {
           order: { one: '{total}目中{n}目', other: '{total}目中{n}目' },

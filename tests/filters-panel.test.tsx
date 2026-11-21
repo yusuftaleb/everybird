@@ -113,11 +113,10 @@ describe('the Filters button and its panel', () => {
     expect(screen.getByTestId('filters-head')).toHaveTextContent('Filters · 3 species')
     fireEvent.click(screen.getByTestId('continent-AF'))
     expect(screen.getByTestId('filters-head')).toHaveTextContent('Filters · 1 · 1 species')
-    expect(within(button()).getByTestId('filters-count')).toHaveTextContent(/^1$/)
-    expect(button()).toHaveAccessibleName('Filters: Places: Africa')
+    expect(button()).toHaveAccessibleName('Filters, 1 in use: Places: Africa')
     fireEvent.click(screen.getByTestId('status-VU'))
     expect(screen.getByTestId('filters-head')).toHaveTextContent('Filters · 2 · 1 species')
-    expect(within(button()).getByTestId('filters-count')).toHaveTextContent(/^2$/)
+    expect(button()).toHaveAccessibleName(/^Filters, 2 in use: /)
   })
 
   it('Esc and a press outside close the popover; focus returns to the Filters button', () => {

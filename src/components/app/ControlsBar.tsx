@@ -37,7 +37,7 @@ type Props = {
   panels?: ReactNode
   /** The Filters button. */
   filters?: ReactNode
-  /** After the dock, inside the wrap: the active-filter chips, then the open panel's popover (it anchors under them). */
+  /** After the dock, inside the wrap: the active-filter chips, then the open panel's popover (right under the dock, over the chips). */
   below?: ReactNode
   /** The search is opening (pointer or keyboard): the caller closes whatever else is open over the bar. */
   onFind?: () => void

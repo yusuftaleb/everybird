@@ -249,7 +249,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
     <>
       <DockPanelButton
         label={t.collage.controls.taxa} spoken={taxaSpoken ? `${t.collage.controls.taxa}: ${taxaSpoken}` : undefined} open={openPanel === 'taxa'}
-        onToggle={() => press('taxa')} panelId={`${ids}-taxa`} buttonRef={taxaBtn} count={filter.order ? 1 : 0} testId="taxa-button"
+        onToggle={() => press('taxa')} panelId={`${ids}-taxa`} buttonRef={taxaBtn} active={!!filter.order} testId="taxa-button"
       />
       {display && (
         <DockPanelButton label={t.collage.controls.display} open={openPanel === 'display'} onToggle={() => press('display')} panelId={`${ids}-display`} buttonRef={displayBtn} testId="display-button" />

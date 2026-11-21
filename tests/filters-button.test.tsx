@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// The Filters button: its label is always "Filters"; how many filter groups are in use (filtersCount) shows as a small
-// badge on its glyph, hidden from screen readers since the button's name says it in full; with none, no badge.
+// The Filters button: its label is always "Filters" and it shows no count; with a filter on it is Accent (data-active)
+// and its accessible name says how many filter groups are in use (filtersCount) and what they are.
 import '@testing-library/jest-dom/vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { createRef } from 'react'
@@ -18,20 +18,19 @@ const button = (filter: Filter) => {
 afterEach(cleanup)
 
 describe('the Filters button', () => {
-  it('with no filter: "Filters" and no badge', () => {
+  it('with no filter: "Filters", not active', () => {
     const b = button({})
+    expect(b).not.toHaveAttribute('data-active')
     expect(b).toHaveTextContent(/^Filters$/)
     expect(screen.queryByTestId('filters-count')).toBeNull()
     expect(b).toHaveAccessibleName('Filters')
   })
 
-  it('the badge counts the groups in use, on the glyph, out of the label; the name says them', () => {
+  it('no badge: Accent only; the name counts the groups in use and says them', () => {
     const b = button({ countries: ['KE'], from: '2020-01', statuses: ['VU', 'EN'] })
-    const badge = screen.getByTestId('filters-count')
-    expect(badge).toHaveTextContent(/^3$/)
-    expect(badge).toHaveAttribute('aria-hidden', 'true')
-    expect(badge.parentElement).toHaveClass('eb-drop-icon')
-    expect(b.querySelector('.eb-drop-label')).toHaveTextContent(/^Filters$/)
-    expect(b).toHaveAccessibleName('Filters: Places: Kenya. Time: from January 2020. Conservation status: Vulnerable, Endangered')
+    expect(screen.queryByTestId('filters-count')).toBeNull()
+    expect(b).toHaveTextContent(/^Filters$/)
+    expect(b).toHaveAttribute('data-active')
+    expect(b).toHaveAccessibleName('Filters, 3 in use: Places: Kenya. Time: from January 2020. Conservation status: Vulnerable, Endangered')
   })
 })

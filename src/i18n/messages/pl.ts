@@ -141,6 +141,7 @@ export const pl: Messages = {
         taxaPanel: 'Rzędy, rodziny i rodzaje',
         display: 'Wygląd',
         displayPanel: 'Opcje wyglądu',
+        inUse: { one: '{label}, {n} w użyciu', other: '{label}, {n} w użyciu' },
         sciNames: 'Nazwy łacińskie',
         taxaHead: {
           order: { one: '{n} z {total} rzędu', few: '{n} z {total} rzędów', many: '{n} z {total} rzędów', other: '{n} z {total} rzędów' },

@@ -135,6 +135,7 @@ export const da: Messages = {
         taxaPanel: 'Ordener, familier og slægter',
         display: 'Udseende',
         displayPanel: 'Indstillinger for udseende',
+        inUse: { one: '{label}, {n} i brug', other: '{label}, {n} i brug' },
         sciNames: 'Videnskabelige navne',
         taxaHead: {
           order: { one: '{n} af {total} orden', other: '{n} af {total} ordener' },

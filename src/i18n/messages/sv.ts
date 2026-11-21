@@ -135,6 +135,7 @@ export const sv: Messages = {
         taxaPanel: 'Ordningar, familjer och släkten',
         display: 'Visning',
         displayPanel: 'Visningsalternativ',
+        inUse: { one: '{label}, {n} används', other: '{label}, {n} används' },
         sciNames: 'Vetenskapliga namn',
         taxaHead: {
           order: { one: '{n} av {total} ordning', other: '{n} av {total} ordningar' },

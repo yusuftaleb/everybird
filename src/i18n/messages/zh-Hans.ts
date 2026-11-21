@@ -137,6 +137,7 @@ export const zhHans: Messages = {
         taxaPanel: '目、科、属',
         display: '显示',
         displayPanel: '显示选项',
+        inUse: { one: '{label}（已启用 {n} 项）', other: '{label}（已启用 {n} 项）' },
         sciNames: '学名',
         taxaHead: {
           order: { one: '{n}/{total}个目', other: '{n}/{total}个目' },

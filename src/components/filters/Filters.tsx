@@ -1,11 +1,11 @@
 'use client'
-// One Filters button in the controls bar and one panel behind it (item 10). The button ("Filters", with a small count on
-// its glyph of how many of the bird group, Places, Time and Conservation status are in use, not checked boxes) is the
+// One Filters button in the controls bar and one panel behind it (item 10). The button ("Filters" and its glyph, in Accent
+// while any of the bird group, Places, Time and Conservation status is in use; how many only in its accessible name) is the
 // last of the bar's panel buttons (Taxa, Display, Filters: DockPanelButton, one look), before the search. The panel's
 // frame (DockPanel) is the bar's other panels' too (TaxaPanel.tsx, DisplayPanel.tsx). It opens one panel holding the Time, Places and Conservation status sections, each keeping its own control: Time
 // (Timeline.tsx; "Count repeat sightings" at the right of its head on a list with month sets) across the top, Places
 // (PlacesList.tsx, the drill-down with its breadcrumb) about 2/3 and Conservation status (StatusList.tsx) 1/3 beside each
-// other below it. From 600px the panel is a popover the dock's full width under the chip row (or under the dock with none),
+// other below it. From 600px the panel is a popover the dock's full width right under the dock (over the chip row),
 // inside `.eb-dockwrap`, the same in every view (collage, list, map, tree): the filters drive them all; everything
 // after the dock wrap dims and goes inert while it is open (CollageView's `.eb-view-below`), and a press there, Esc or a
 // second press of the button closes it. On phones it is the modal bottom sheet, its head the count of species and its
@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom'
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { CloseIcon, FilterLinesIcon } from '@/components/collage/icons'
 import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
+import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { regionsIn } from '@/lib/i18n-places'
@@ -69,10 +70,10 @@ type Shared = {
 
 /**
  * A panel button in the controls bar (Filters, Taxa, Display: one look). The label and a caret, the Surface fill while
- * its panel is open; with `count` > 0, Accent text and a small count badge (on the glyph when there is one, else at the
- * label's top right), absolutely placed so it changes no width (the accessible name says it in full).
+ * its panel is open; `active` (something chosen) gives Accent text, and no count: how many is said only in the
+ * accessible name (`spoken`; FiltersButton's "Filters, 2 in use: …").
  */
-export function DockPanelButton({ label, spoken, open, onToggle, panelId, buttonRef, count = 0, glyph, testId, countTestId, tour }: {
+export function DockPanelButton({ label, spoken, open, onToggle, panelId, buttonRef, active, glyph, testId, tour }: {
   label: string
   /** The accessible name (default: the label). */
   spoken?: string
@@ -80,15 +81,11 @@ export function DockPanelButton({ label, spoken, open, onToggle, panelId, button
   onToggle: () => void
   panelId: string
   buttonRef?: RefObject<HTMLButtonElement | null>
-  count?: number
+  active?: boolean
   glyph?: ReactNode
   testId?: string
-  /** The badge's test id (default: `<testId>-count`). */
-  countTestId?: string
   tour?: string
 }): ReactNode {
-  const { t } = useI18n()
-  const badge = count > 0 && <span className="eb-drop-badge" aria-hidden="true" data-testid={countTestId ?? (testId ? `${testId}-count` : undefined)}>{formatInt(count, t.num)}</span>
   return (
     <button
       ref={buttonRef}
@@ -98,16 +95,13 @@ export function DockPanelButton({ label, spoken, open, onToggle, panelId, button
       aria-controls={open ? panelId : undefined}
       aria-haspopup="dialog"
       aria-label={spoken ?? label}
-      data-active={count > 0 ? '' : undefined}
+      data-active={active ? '' : undefined}
       data-testid={testId}
       data-tour={tour}
       onClick={onToggle}
     >
-      {glyph ? (
-        <><span className="eb-drop-icon">{glyph}{badge}</span><span className="eb-drop-label">{label}</span></>
-      ) : (
-        <span className="eb-drop-tag"><span className="eb-drop-label">{label}</span>{badge}</span>
-      )}
+      {glyph}
+      <span className="eb-drop-label">{label}</span>
       <CaretDown aria-hidden="true" focusable="false" className="eb-drop-caret" />
     </button>
   )
@@ -119,10 +113,11 @@ export function FiltersButton({ state, regions, sections, open, onOpen, groupNam
   if (!sections.length) return null
   const n = filtersCount(state.filter)
   const said = filtersSpoken(state.filter, regionsIn(regions, lang), t, groupName)
+  const name = n > 0 ? plural(t.collage.controls.inUse, n, { label: t.filters.label, n: formatInt(n, t.num) }) : t.filters.label
   return (
     <DockPanelButton
-      label={t.filters.label} spoken={said ? `${t.filters.label}: ${said}` : t.filters.label} open={!!open} onToggle={() => onOpen(open ? null : {})}
-      panelId={panelId} buttonRef={buttonRef} count={n} glyph={<FilterLinesIcon />} testId="filters-button" countTestId="filters-count" tour="filter"
+      label={t.filters.label} spoken={said ? `${name}: ${said}` : name} open={!!open} onToggle={() => onOpen(open ? null : {})}
+      panelId={panelId} buttonRef={buttonRef} active={n > 0} glyph={<FilterLinesIcon />} testId="filters-button" tour="filter"
     />
   )
 }
@@ -133,8 +128,8 @@ const MIN_DROP = 240
 export const dropRoom = (top: number, windowH: number): number => Math.max(MIN_DROP, Math.floor(windowH - top - DROP_MARGIN))
 
 /**
- * The controls bar's panels' one frame (Filters, Taxa, Display): from 600px a popover in `.eb-dockwrap` under the dock
- * (and the chip row), as tall as its content up to the window's bottom less DROP_MARGIN (`--drop-max`, measured on
+ * The controls bar's panels' one frame (Filters, Taxa, Display): from 600px a popover in `.eb-dockwrap` right under the
+ * dock (over the chip row, if any), as tall as its content up to the window's bottom less DROP_MARGIN (`--drop-max`, measured on
  * open, scroll and resize); under 600px the modal bottom sheet (portalled to the body: the bar is a size container,
  * which would otherwise be the fixed sheet's containing block), which may take the window's full height, with a head
  * (`sheetHead`, then the close button) and an optional `foot`. Esc, a press outside the dock wrap (the popover) or on
@@ -176,12 +171,19 @@ export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onC
     document.addEventListener('pointerdown', down)
     return () => document.removeEventListener('pointerdown', down)
   }, [sheet, onClose, ref])
-  // The popover's height: down to the window's bottom, never past it (its top moves as the page scrolls).
+  // The popover's top: right under the dock (`--dock-bottom`, the dock's bottom edge in the wrap), over whatever shows
+  // below it (the chip row), at every width (the dock may wrap to two rows). Its height: down to the window's bottom,
+  // never past it (its top moves as the page scrolls).
   useLayoutEffect(() => {
     const el = ref.current
     if (sheet || !el) return
     let frame = 0
-    const fit = () => { frame = 0; el.style.setProperty('--drop-max', `${dropRoom(el.getBoundingClientRect().top, window.innerHeight)}px`) }
+    const fit = () => {
+      frame = 0
+      const dock = el.parentElement?.querySelector<HTMLElement>(':scope > .eb-dock')
+      if (dock) el.style.setProperty('--dock-bottom', `${dock.offsetTop + dock.offsetHeight}px`)
+      el.style.setProperty('--drop-max', `${dropRoom(el.getBoundingClientRect().top, window.innerHeight)}px`)
+    }
     const later = () => { if (!frame) frame = requestAnimationFrame(fit) }
     fit()
     window.addEventListener('resize', later)
@@ -238,7 +240,7 @@ type PanelProps = Shared & {
   shown: number
 }
 
-/** In ControlsBar's `below` slot, after the chip row (the popover anchors under it), or portalled as the sheet. */
+/** In ControlsBar's `below` slot, after the chip row (the popover sits right under the dock, over it), or portalled as the sheet. */
 export function FiltersPanel({ state, onChange, species, regions, sections, open, onOpen, id, buttonRef, returnFocus, placesNote, placesUnplaced, time, threatLine, shown }: PanelProps): ReactNode {
   const { t } = useI18n()
   const sheet = useIsSheet()
