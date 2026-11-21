@@ -421,7 +421,7 @@ export const sv: Messages = {
       editLists: 'Redigera listor',
       lede: 'Se vilka fåglar era listor har gemensamt och vilka du har kvar att se. Välj personer nedan för att se fåglarna som bara de har gemensamt.',
       ledeTheirs: 'Se vilka fåglar listorna har gemensamt. Välj personer nedan för att se fåglarna som bara de har gemensamt.',
-      diagram: 'Diagram',
+      diagram: 'Hur listorna överlappar',
       cantShow: { one: '{n} fågel delas i en kombination som cirklarna inte kan visa.', other: '{n} fåglar delas i kombinationer som cirklarna inte kan visa.' },
       cantShowPick: 'Välj personer ovan för att se dem.',
     },

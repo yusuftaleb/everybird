@@ -426,7 +426,7 @@ export const pl: Messages = {
       editLists: 'Edytuj listy',
       lede: 'Zobacz, które ptaki są wspólne dla waszych list, a które są jeszcze przed tobą. Wybierz osoby poniżej, by zobaczyć ptaki wspólne tylko dla nich.',
       ledeTheirs: 'Zobacz, które ptaki są wspólne dla tych list. Wybierz osoby poniżej, by zobaczyć ptaki wspólne tylko dla nich.',
-      diagram: 'Wykres',
+      diagram: 'Jak listy się pokrywają',
       cantShow: { one: '{n} wspólny ptak należy do połączenia list, którego koła nie mogą pokazać.', few: '{n} wspólne ptaki należą do połączeń list, których koła nie mogą pokazać.', many: '{n} wspólnych ptaków należy do połączeń list, których koła nie mogą pokazać.', other: '{n} wspólnego ptaka należy do połączeń list, których koła nie mogą pokazać.' },
       cantShowPick: 'Wybierz osoby powyżej, by zobaczyć te ptaki.',
     },

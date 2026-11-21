@@ -541,7 +541,7 @@ export const EN_UI = {
     editLists: 'Edit lists',
     lede: 'See which birds your lists share and which you’re yet to see. Choose people below to see the birds only they share.',
     ledeTheirs: 'See which birds these lists share. Choose people below to see the birds only they share.',
-    diagram: 'Diagram',
+    diagram: 'How the lists overlap',
     /** Under the circles from four lists, when birds sit on a combination the ring has no region for ({n} those birds),
      *  then how to reach them (the screen only: the share image draws the first sentence). */
     cantShow: { one: '{n} bird is shared in a combination the circles can’t show.', other: '{n} birds are shared in combinations the circles can’t show.' },

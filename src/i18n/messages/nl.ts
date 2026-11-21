@@ -427,7 +427,7 @@ export const nl: Messages = {
       editLists: 'Lijsten bewerken',
       lede: 'Zie welke vogels jullie lijsten delen en welke je nog mist. Kies hieronder mensen om de vogels te zien die alleen zij delen.',
       ledeTheirs: 'Zie welke vogels deze lijsten delen. Kies hieronder mensen om de vogels te zien die alleen zij delen.',
-      diagram: 'Diagram',
+      diagram: 'Hoe de lijsten overlappen',
       cantShow: { one: '{n} vogel wordt gedeeld in een combinatie die de cirkels niet kunnen tonen.', other: '{n} vogels worden gedeeld in combinaties die de cirkels niet kunnen tonen.' },
       cantShowPick: 'Kies hierboven mensen om ze te zien.',
     },

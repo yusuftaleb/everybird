@@ -77,7 +77,7 @@
    choice in Muted (at least 4.5:1 on a veiled part). */
 .eb-compare-num {
   font-family: var(--font-mono); font-weight: 500; fill: var(--ink); text-anchor: middle; dominant-baseline: central; font-variant-numeric: tabular-nums;
-  pointer-events: none; transition: fill .2s cubic-bezier(.25, .8, .25, 1);
+  pointer-events: none; transition: fill .2s var(--ease-ui); /* UI state, not a bird (AN10) */
 }
 .eb-compare-num[data-quiet] { fill: var(--muted); }
 /* A region's number is its button for the keyboard (a press anywhere goes through the drawing): the focus ring around it. */
@@ -85,9 +85,9 @@
 .eb-compare-ring { fill: none; stroke: none; pointer-events: none; }
 .eb-compare-region:focus-visible .eb-compare-ring { stroke: var(--accent); stroke-width: 2; }
 /* The parts outside the chosen group: a Paper veil over their fills and outlines; eased. */
-.eb-compare-veil { fill: var(--paper); fill-opacity: 0; pointer-events: none; transition: fill-opacity .2s cubic-bezier(.25, .8, .25, 1); }
+.eb-compare-veil { fill: var(--paper); fill-opacity: 0; pointer-events: none; transition: fill-opacity .2s var(--ease-ui); }
 .eb-compare-veil[data-off] { fill-opacity: .65; }
-.eb-compare-bar { transition: opacity .2s cubic-bezier(.25, .8, .25, 1); }
+.eb-compare-bar { transition: opacity .2s var(--ease-ui); } /* UI state, not a bird: the UI ease (AN10) */
 .eb-compare-pick[data-off] .eb-compare-bar { opacity: .3; }
 /* A region too small for its number: the number in the site's tooltip, over the region. */
 .eb-compare-tip { width: max-content; padding: 6px 10px; font-family: var(--font-mono); font-size: 13px; color: var(--ink); transform: translate(-50%, -100%); }
@@ -106,7 +106,6 @@
 .eb-compare-pick[aria-pressed="true"] { background: var(--surface); }
 .eb-compare-name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 .eb-compare-count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.eb-compare-bar { transition-timing-function: var(--ease-ui); } /* UI state, not a bird: the UI ease (AN10) */
 .eb-compare-bar { grid-column: 1 / -1; display: block; min-inline-size: 3px; height: 6px; border-radius: 3px; }
 
 @media (hover: hover) and (pointer: fine) { .eb-compare-pick:hover { background: var(--surface); } }

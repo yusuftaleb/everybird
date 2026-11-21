@@ -423,7 +423,7 @@ export const de: Messages = {
       editLists: 'Listen bearbeiten',
       lede: 'Sieh, welche Vögel eure Listen gemeinsam haben und welche du noch nicht gesehen hast. Wähle unten Personen, um die Vögel zu sehen, die nur sie gemeinsam haben.',
       ledeTheirs: 'Sieh, welche Vögel diese Listen gemeinsam haben. Wähle unten Personen, um die Vögel zu sehen, die nur sie gemeinsam haben.',
-      diagram: 'Diagramm',
+      diagram: 'Wie sich die Listen überschneiden',
       cantShow: { one: '{n} gemeinsamer Vogel gehört zu einer Kombination, die die Kreise nicht zeigen können.', other: '{n} gemeinsame Vögel gehören zu Kombinationen, die die Kreise nicht zeigen können.' },
       cantShowPick: 'Wähle oben Personen aus, um diese Vögel zu sehen.',
     },
