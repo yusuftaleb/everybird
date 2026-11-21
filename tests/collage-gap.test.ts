@@ -11,6 +11,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { en } from '@/i18n/messages/en'
 import { decodeMask, type Mask } from '@/lib/layout/mask'
 import { packFrame } from '@/lib/layout/pack'
+import type { Arrangement } from '@/lib/arrangement'
 import { clearStickerCache, drawShareImage, GAPS, imagePackSpec, type CardFormat, type CountSize } from '@/lib/share/image'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -34,11 +35,11 @@ beforeAll(() => {
 /** The numbers of a logged call, "drawImage(img, 1, 2, 3, 4)" -> [1, 2, 3, 4]. */
 const nums = (line: string) => line.slice(line.indexOf('(') + 1, -1).split(', ').map(Number).filter((n) => Number.isFinite(n))
 
-async function gaps(format: CardFormat, n: number, latest: boolean, countSize: CountSize) {
+async function gaps(format: CardFormat, n: number, latest: boolean, countSize: CountSize, arrangement: Arrangement) {
   const pick = Array.from({ length: n }, (_, i) => rows[Math.floor((i * rows.length) / n)])
   const entries = pick.map((r, i) => ({ code: r.code, date: `20${10 + (i % 15)}-0${(i % 9) + 1}`, heard: false, dead: false, media: false, sources: ['ebird'] }))
-  const spec = imagePackSpec(format, { name: true, filter: false, latest, count: n, countSize })
-  const r = packFrame(pick.map((s, i) => ({ id: i, mass: s.g, mask: masks.get(s.code)! })), spec.aspect, { hole: spec.hole, maxTile: spec.maxTile })
+  const spec = imagePackSpec(format, { name: true, filter: false, latest, count: n, countSize }, undefined, undefined, arrangement)
+  const r = packFrame(pick.map((s, i) => ({ id: i, mass: s.g, mask: masks.get(s.code)! })), spec.aspect, { hole: spec.hole, maxTile: spec.maxTile, oval: spec.oval, free: spec.free })
   const pack = { W: r.W, H: r.H, boxes: new Map([...r.boxes].map(([id, b]) => [pick[id].code, b])) }
   const logs = installStubs()
   clearStickerCache()
@@ -56,19 +57,22 @@ async function gaps(format: CardFormat, n: number, latest: boolean, countSize: C
 
 describe('the collage keeps its gap above the footer', () => {
   const FORMATS: CardFormat[] = ['story', 'post', 'square', 'desktop', 'wide', 'print', 'printLandscape']
-  for (const format of FORMATS) {
-    // A loose pack (under FRAME_DENSE_FROM) and a dense one.
-    for (const n of [200, 400]) {
-      it(`${format}, ${n} birds: with and without the latest lifer, and the wish list's card`, async () => {
-        const G = GAPS[format]
-        for (const latest of [true, false]) {
-          const g = await gaps(format, n, latest, 'medium')
-          expect(g.hairline).toBeGreaterThanOrEqual(G.collage - 0.5)
-          if (latest) expect(g.row).toBeGreaterThanOrEqual(G.latest - 0.5)
-        }
-        const wish = await gaps(format, n, false, 'hide')
-        expect(wish.hairline).toBeGreaterThanOrEqual(G.collage - 0.5)
-      }, 120_000)
+  // Every arrangement (Fit, Oval, Free: the maintainer's second case was an Oval Story of 1,092 birds, the row off).
+  for (const arrangement of ['packed', 'oval', 'free'] as const) {
+    for (const format of FORMATS) {
+      // A loose pack (under FRAME_DENSE_FROM) and a dense one; the Story also at 1,092 birds.
+      for (const n of format === 'story' ? [200, 400, 1092] : [200, 400]) {
+        it(`${arrangement}, ${format}, ${n} birds: with and without the latest lifer, and the wish list's card`, async () => {
+          const G = GAPS[format]
+          for (const latest of [true, false]) {
+            const g = await gaps(format, n, latest, 'medium', arrangement)
+            expect(g.hairline, `latest ${latest}`).toBeGreaterThanOrEqual(G.collage - 0.5)
+            if (latest) expect(g.row).toBeGreaterThanOrEqual(G.latest - 0.5)
+          }
+          const wish = await gaps(format, n, false, 'hide', arrangement)
+          expect(wish.hairline, 'wish list').toBeGreaterThanOrEqual(G.collage - 0.5)
+        }, 180_000)
+      }
     }
   }
 })
