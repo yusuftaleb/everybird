@@ -130,6 +130,11 @@ describe('the Tree tab in CollageView', () => {
     expect(within(layout).getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([['Fan', 'false'], ['Radial', 'false'], ['Rectangular', 'true']])
     expect(within(panel).getAllByRole('switch').map((b) => b.getAttribute('data-testid'))).toEqual(['tree-mine', 'tree-time', 'dock-sci'])
     expect(layout.compareDocumentPosition(within(panel).getByTestId('tree-mine')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // P9 (the Tree brief, item 13): the oldest lineage follows the Scientific switch, as every tip does.
+    fireEvent.click(within(panel).getByTestId('dock-sci'))
+    expect(container.querySelector('.eb-legend')).toHaveTextContent('Oldest lineage on this list: Bb two, which split')
+    fireEvent.click(within(panel).getByTestId('dock-sci'))
+    expect(container.querySelector('.eb-legend')).toHaveTextContent('Oldest lineage on this list: Beta Two, which split')
     fireEvent.click(screen.getByTestId('display-button'))
     expect(screen.queryByRole('group', { name: 'Layout' })).toBeNull() // only while the panel is open
     expect(screen.queryByRole('group', { name: 'Show tips as' })).toBeNull()
@@ -141,6 +146,12 @@ describe('the Tree tab in CollageView', () => {
     // Every other view keeps today's line.
     fireEvent.click(within(view).getByRole('button', { name: 'Collage' }))
     expect(screen.getByTestId('collage-stats')).toHaveTextContent('2 species · 2 orders · 2 families · since Jan 2024')
+    // P9: the Collage's latest-lifer line follows the Scientific switch the same way.
+    const legend = () => container.querySelector('.eb-legend')!.textContent!
+    expect(legend()).toMatch(/Latest: (Alpha One|Beta Two)/)
+    fireEvent.click(screen.getByTestId('display-button'))
+    fireEvent.click(within(screen.getByTestId('display-panel')).getByTestId('dock-sci'))
+    expect(legend()).toMatch(/Latest: (Aa one|Bb two)/)
   })
 
   it("the taxonomy path is the tree's path: a chip opens the branch, a tip picks the chip, a genus is a chip too, and the steps go back", async () => {
@@ -508,7 +519,8 @@ describe('the Fan and Radial on a measured width', () => {
     const { container } = render(<Tree entries={['qc1'].map(entry)} />)
     const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
     fireEvent.click(within(tips).getByRole('button', { name: /^Cranes and rails/ }))
-    fireEvent.click(within(tips).getByRole('button', { name: /^Rails, / }))
+    // The chart is keyed by the branch (AN11): the rows list is a new one.
+    fireEvent.click(within(screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })).getByRole('button', { name: /^Rails, / }))
     const label = (name: string) => [...container.querySelectorAll('.eb-tree-fan-label')].find((l) => l.querySelector('.eb-tree-fan-text')!.textContent === name)!
     expect([...label('Pa').children].map((c) => c.className)).toEqual(['eb-tree-fan-st', 'eb-tree-fan-text', 'eb-tree-mark', 'eb-tree-other', 'eb-mono eb-tree-fan-count'])
     expect(label('Pa').querySelector('.eb-tree-other')).toHaveTextContent(/^with Pb$/)
@@ -528,24 +540,59 @@ describe('the Fan and Radial on a measured width', () => {
     expect([...qa.closest('li')!.children].map((c) => c.className)).toEqual(['eb-tree-btn', 'eb-tree-with', 'eb-mono eb-tree-count'])
     expect(screen.getByRole('button', { name: /^Pa with Pb/ })).not.toHaveAttribute('data-many')
   })
-  it('too narrow to name every tip: Rectangular, with Fan and Radial listed but not on offer, saying why', async () => {
+  it('too narrow for full-size names: the Fan picked is still drawn, its names under the floor, a note offering Rectangular (round 6, item 12)', async () => {
     const kept = new Map<string, string>([[TREE_LAYOUT_KEY, 'fan']])
     const undo = widthOf(300)
     vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
     vi.stubGlobal('sessionStorage', globalThis.localStorage)
     const { container } = render(<Tree entries={['a1', 'b2'].map(entry)} />)
     await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
-    expect(container.querySelector('.eb-tree')).not.toHaveAttribute('data-round')
+    // Every layout offered, none dimmed; the one picked drawn.
+    for (const name of ['Fan', 'Radial', 'Rectangular']) expect(layoutBtn(name)).not.toHaveAttribute('aria-disabled')
+    expect(layoutBtn('Fan')).toHaveAttribute('aria-pressed', 'true')
+    expect(container.querySelector('.eb-tree')).toHaveAttribute('data-round')
+    const px = parseFloat((container.querySelector('.eb-tree-fan') as HTMLElement).style.getPropertyValue('--tree-px'))
+    expect(px).toBeLessThan(11)
+    // The dots and branches shrink with the names.
+    expect(Number((container.querySelector('.eb-tree-fan') as HTMLElement).style.getPropertyValue('--tree-k'))).toBeCloseTo(px / 11)
+    // The note, its layout word a button switching to Rectangular.
+    const note = screen.getByTestId('tree-small')
+    expect(note).toHaveTextContent('Names are small in this layout. Rectangular names every bird at full size.')
+    fireEvent.click(within(note).getByRole('button', { name: 'Rectangular' }))
+    expect(kept.get(TREE_LAYOUT_KEY)).toBe('rows')
     expect(layoutBtn('Rectangular')).toHaveAttribute('aria-pressed', 'true')
-    const fan = layoutBtn('Fan')
-    expect(fan).toHaveAttribute('aria-disabled', 'true')
-    expect(fan).toHaveAttribute('title', 'Not enough room for every name')
-    expect(fan).toHaveAccessibleDescription('Not enough room for every name')
-    expect(layoutBtn('Radial')).toHaveAttribute('aria-disabled', 'true')
-    // Not on offer: a press changes nothing.
-    fireEvent.click(fan)
-    expect(kept.get(TREE_LAYOUT_KEY)).toBe('fan')
-    expect(layoutBtn('Fan')).toHaveAttribute('aria-pressed', 'false')
+    expect(container.querySelector('.eb-tree')).not.toHaveAttribute('data-round')
+    expect(screen.queryByTestId('tree-small')).toBeNull()
+    undo()
+  })
+  it('unpicked, a column too narrow for full-size names draws Rectangular, the Fan still offered; at full size no note', async () => {
+    const undo = widthOf(300)
+    const { container, unmount } = render(<Tree entries={['a1', 'b2'].map(entry)} />)
+    await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect(container.querySelector('.eb-tree')).not.toHaveAttribute('data-round')
+    expect(layoutBtn('Fan')).not.toHaveAttribute('aria-disabled')
+    unmount()
+    undo()
+    const wide = widthOf(1100)
+    render(<Tree entries={['a1', 'b2'].map(entry)} />)
+    await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect(layoutBtn('Fan')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByTestId('tree-small')).toBeNull()
+    wide()
+  })
+  it('a tip under the pointer, tapped or focused shows its whole name and count in a tooltip; one that opens nothing on a press', async () => {
+    const undo = widthOf(1100)
+    const { container } = render(<Tree entries={['a1', 'b2'].map(entry)} />)
+    const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    const labels = [...container.querySelectorAll('.eb-tree-fan-label')]
+    fireEvent.mouseOver(labels[2])
+    expect(screen.getByTestId('tree-tip')).toHaveTextContent(/^Cuckoos0 of 4$/)
+    expect(screen.getByTestId('tree-tip')).toHaveAttribute('aria-hidden', 'true')
+    fireEvent.mouseLeave(container.querySelector('.eb-tree-fan')!)
+    expect(screen.queryByTestId('tree-tip')).toBeNull()
+    viaKeyboard()
+    act(() => within(tips).getByRole('button', { name: /^Woodpeckers/ }).focus())
+    expect(screen.getByTestId('tree-tip')).toHaveTextContent(/^Woodpeckers1 of 2$/)
     undo()
   })
 })

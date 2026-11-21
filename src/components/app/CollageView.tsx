@@ -418,20 +418,21 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       ) : view === 'list' ? (
         <ListView entries={shownList} species={species} regions={regions} order={listOrder} sci={sci} onPick={onPickRow} />
       ) : (
-        <Suspense fallback={<p className="eb-mono">{t.collage.tree.loading}</p>}>
+        // The same loading line as TreeView's own while its data loads (O8): one element, one size, no margin.
+        <Suspense fallback={<div className="eb-mono" role="status">{t.collage.tree.loading}</div>}>
           <TreeView entries={shownList} sci={sci} onPick={onPickRow} branch={branch} onOpen={onTreeOpen} onLevel={onTreeLevel} layoutSlot={openPanel === 'display' ? layoutSlot : null} />
         </Suspense>
       )}
 
       {view !== 'map' && view !== 'tree' && <div className="eb-mono eb-legend">
         <p>
-          {latest && latestRow ? <>{latestLine(displayName(latestRow), latest.date, t)} · </> : null}
+          {latest && latestRow ? <>{latestLine(sci ? latestRow.sci : displayName(latestRow), latest.date, t)} · </> : null}
           {sizes}
         </p>
         <p>{t.collage.legend.marks}</p>
       </div>}
       {view === 'tree' && oldest && oldestRow && <div className="eb-mono eb-legend">
-        <p>{fmt(t.collage.tree.oldest, { name: displayName(oldestRow), age: formatAge(oldest.age, t.num) })}</p>
+        <p>{fmt(t.collage.tree.oldest, { name: sci ? oldestRow.sci : displayName(oldestRow), age: formatAge(oldest.age, t.num) })}</p>
       </div>}
       </div>
 

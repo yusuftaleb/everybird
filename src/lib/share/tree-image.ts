@@ -29,7 +29,7 @@ import { loadSpecies } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
 import type { SpeciesRow } from '@/lib/species/types'
 import { stickerUrl } from '@/lib/sticker-url'
-import { LABEL_COUNT, LABEL_GAP, LABEL_STICKER, RADIAL_GAP, drawFan, fanLabel, fanRing, fitRound, inOpening, polar, ringLabels, type FanBox, type LabelSizes, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
+import { LABEL_COUNT, LABEL_GAP, LABEL_STICKER, RADIAL_GAP, drawFan, fanLabel, fanRing, fitRound, inOpening, largestFit, polar, ringLabels, type FanBox, type LabelSizes, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
 import { loadTree } from '@/lib/tree/load'
 import { levelView, ROW_H, taxonCover, tipOn, type LevelView, type TreeRow } from '@/lib/tree/levels'
 import { ageTicks, bySplits, circlePath, drawTree, formatAge, oldestLineage, type Drawing } from '@/lib/tree/tree'
@@ -79,14 +79,9 @@ function fitImage(spans: readonly LabelSpan[], shape: 'fan' | 'circle', room: { 
   const at = (px: number) => fitRound(spans, shape, room, { ...sizes, base: px, floor: px, fill: true, keepCounts: true })
   const reach = (f: RoundFit) => Math.max(0, ...spans.map((sp, i) => (sizes.dot) + f.st + f.px * (2 * LABEL_GAP + sp.name + (f.counts[i] && sp.count ? LABEL_GAP + sp.count : 0))))
   const balanced = (f: RoundFit) => f.R >= BALANCE * (f.R + reach(f))
-  let first = at(sizes.base)
-  if (!first) {
-    // The largest size that fits (the fit holds at every size under it).
-    let lo = SHRINK_MIN, hi = sizes.base
-    if (!at(lo)) return undefined
-    for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (at(m)) lo = m; else hi = m }
-    first = at(lo)!
-  }
+  // The largest size that fits (fan.ts largestFit, the screen's search too).
+  const first = at(sizes.base) ?? largestFit(at, SHRINK_MIN, sizes.base)
+  if (!first) return undefined
   if (balanced(first)) return first
   let lo = SHRINK_MIN, hi = first.px, best: RoundFit | undefined
   for (let i = 0; i < 12; i++) {
