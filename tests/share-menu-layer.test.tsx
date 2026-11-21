@@ -147,9 +147,9 @@ describe('the dialog keeps no containing block for its menus once open (round 6,
   it('the scrim\'s container-type (item 18\'s card size) is allowed only because the menu is in the top layer, and the scrim is the window\'s own box', () => {
     expect(rules('.eb-share-scrim').join(';')).toMatch(/container-type:\s*size/)
     expect(rules('.eb-share-scrim')[0]).toMatch(/position:\s*fixed;\s*inset:\s*0/)
-    const src = readFileSync('src/components/share/MenuSelect.tsx', 'utf8')
-    expect(src).toMatch(/popover=\{top \? 'manual' : undefined\}/)
-    expect(src).toContain('el.showPopover()')
-    expect(css).toMatch(/\.eb-share-menu\[popover\] \{ margin: 0; color: var\(--ink\); \}/)
+    // The shared top-layer placement (menu-layer.ts; site-wide in tests/menu-layer.test.tsx).
+    expect(readFileSync('src/components/share/MenuSelect.tsx', 'utf8')).toContain('useMenuLayer(menu, btn, { on: !!into })')
+    expect(readFileSync('src/components/menu-layer.ts', 'utf8')).toContain('el.showPopover()')
+    expect(readFileSync('src/components/app/app.css', 'utf8')).toMatch(/\.eb-menu\[popover\] \{ margin: 0; color: var\(--ink\); \}/)
   })
 })

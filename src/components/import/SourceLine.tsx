@@ -1,6 +1,7 @@
 'use client'
 import { CaretDown } from '@phosphor-icons/react'
-import { useEffect, useId, useLayoutEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
+import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
+import { useMenuLayer } from '@/components/menu-layer'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt, shortDay } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -100,18 +101,9 @@ export function SourceRow({ title, name, parts, counts, skipped, primary, menu, 
   const whyBtn = useRef<HTMLButtonElement>(null)
   const whyPop = useRef<HTMLDivElement>(null)
   const whyKeys = useWhyPopover(why, () => setWhy(false), whyBtn, whyPop)
-  // The popover under the link, its left edge on the link's, kept 8px inside the window.
-  useLayoutEffect(() => {
-    const b = whyBtn.current
-    const el = whyPop.current
-    const cell = el?.offsetParent
-    if (!why || !b || !el || !cell) return
-    const at = b.getBoundingClientRect()
-    const box = cell.getBoundingClientRect()
-    el.style.top = `${at.bottom - box.top + 6}px`
-    const left = Math.max(8, Math.min(at.left, document.documentElement.clientWidth - 8 - el.offsetWidth))
-    el.style.left = `${left - box.left}px`
-  }, [why])
+  // The popover under the link (over it when there is no room below), its left edge on the link's, kept 8px inside the
+  // window, in the shared top layer (menu-layer.ts): the Add birds dialog's scrolling box never clips it.
+  useMenuLayer(whyPop, whyBtn, { on: why, align: 'start', cap: 260 })
   const menuBtn = useRef<SourceMenuHandle>(null)
   const items: MenuItem[] = [...(menu ?? []), ...(what ? [{ label: t.import.remove, danger: true, keepFocus: true, onSelect: () => setAsking(true) }] : [])]
   const skippedN = { n: formatInt(skipped?.n ?? 0, t.num) }
@@ -157,7 +149,7 @@ export function SourceRow({ title, name, parts, counts, skipped, primary, menu, 
           {items.length > 0 && <SourceMenu ref={menuBtn} label={fmt(t.import.more, { title })} items={items} disabled={disabled} />}
         </div>
         {why0 && skipped && (
-          // What "why?" explains, in a small popover under it (useWhyPopover places it), over the grid.
+          // What "why?" explains, in a small popover under it (useMenuLayer places it, in the top layer).
           <div ref={whyPop} id={`${id}-why`} className="eb-whypop" hidden={!why} data-testid="not-counted" {...whyKeys}>
             {skipped.body}
           </div>
