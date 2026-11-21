@@ -12,7 +12,7 @@ import './card-list.css'
 import './family-accordion.css'
 
 /** A family: its key, a bird of it (for its name) and how many birds it holds. */
-export type AccordionFamily = { key: string; row: SpeciesRow; n: number }
+type AccordionFamily = { key: string; row: SpeciesRow; n: number }
 
 /**
  * Birds under one heading per family, one family open at a time (round 6, item 12; Compare's results, built so the

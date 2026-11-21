@@ -7,7 +7,7 @@ import type { ViewKind } from './view-resume'
 export type DockPanelId = 'taxa' | 'display' | 'filters'
 /** The Display panel's controls: the Tree's Layout, the Collage's Arrangement and True size, the Tree's Lifers only and
  *  Time scale, and Scientific names in both. */
-export type DisplayControl = 'layout' | 'arrange' | 'true' | 'mine' | 'time' | 'sci'
+type DisplayControl = 'layout' | 'arrange' | 'true' | 'mine' | 'time' | 'sci'
 
 export const DISPLAY_CONTROLS: Record<ViewKind, readonly DisplayControl[]> = {
   collage: ['arrange', 'true', 'sci'],

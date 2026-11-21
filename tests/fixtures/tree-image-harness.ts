@@ -34,7 +34,7 @@ export type Pt = [number, number]
 export type Drawn = { s: string; px: number; font: string; box: Pt[] }
 
 /** Points along an SVG path (M, L, H, V, A, a, Q, Z), every `step` units or so. */
-export function samplePath(d: string, step = 2): Pt[] {
+function samplePath(d: string, step = 2): Pt[] {
   const out: Pt[] = []
   const tok = d.match(/[MLHVAaQZz]|-?\d*\.?\d+(?:e-?\d+)?/g) ?? []
   let i = 0, cmd = '', x = 0, y = 0, sx = 0, sy = 0

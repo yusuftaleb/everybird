@@ -13,10 +13,10 @@ import type { SeenIndex } from '@/lib/list/seen'
 import type { SpeciesIndex } from '@/lib/species/load'
 
 /** `still`: only visibility changes over the shown layout (a range drag's preview): placed without motion. */
-export type CollageLayout = { layout: StateLayout; visible: Set<string>; still?: boolean }
+type CollageLayout = { layout: StateLayout; visible: Set<string>; still?: boolean }
 
 /** Layout class from the stage container's width (LAYOUTS minWidth: wide 880, medium 540). */
-export function layoutFor(width: number): LayoutName {
+function layoutFor(width: number): LayoutName {
   return width >= 880 ? 'wide' : width >= 540 ? 'medium' : 'narrow'
 }
 

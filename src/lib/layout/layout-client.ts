@@ -78,7 +78,7 @@ const idle = (fn: () => void) => {
   else setTimeout(fn, 0)
 }
 
-export const CACHE_CAP = 300
+const CACHE_CAP = 300
 
 export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter) => string[]; cacheCap?: number } = {}): LayoutClient {
   const cap = opts.cacheCap ?? CACHE_CAP

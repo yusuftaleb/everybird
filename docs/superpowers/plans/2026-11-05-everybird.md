@@ -22,7 +22,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-05-everybird-design.md`. Read it first. This plan only records decisions, and the spec says why.
 
-**Reference code** (read-only, in the website repo): `/Users/yusuf/orca/projects/personal_website/framer-site/`
+**Reference code** (read-only, in the website repo): `framer-site/`
 - `code-components/LifeList.tsx`: collage rendering, motion, cards, phone sheet and list view.
 - `scripts/lifelist/build_lifelist.py`: the packer, size modes and masks.
 - `code-components/PlacesMap.tsx`: the dotted map geometry and `squirclePath()`.
@@ -98,7 +98,7 @@ These five inputs aren't covered by any task's main tests, and are the most like
 
 ---
 
-## File Structure (repo `/Users/yusuf/orca/projects/everybird`)
+## File Structure (this repo)
 
 ```
 AGENTS.md, README.md, LICENSE (MIT), .gitignore (exists)
@@ -225,7 +225,7 @@ export function buildSpecies(huashu: HuashuRecord[], taxonomy: TaxonRow[], overr
   - `only category species rows appear, sorted by taxonOrder`
   - `report lists every fallback with counts`
 - [ ] **Step 2: Run** `npx vitest run tests/build-species.test.ts`. Expected: FAIL.
-- [ ] **Step 3: Implement** `fetch-sources.ts` and `buildSpecies()` in `build-species.ts`. The CLI part reads `data/raw/*`, writes the two JSON files minified, and writes the report. **Seed `data/overrides.json` from** `/Users/yusuf/orca/projects/personal_website/framer-site/content/lifelist/overrides.json`, keeping each entry's `source`.
+- [ ] **Step 3: Implement** `fetch-sources.ts` and `buildSpecies()` in `build-species.ts`. The CLI part reads `data/raw/*`, writes the two JSON files minified, and writes the report. **Seed `data/overrides.json` from** `framer-site/content/lifelist/overrides.json`, keeping each entry's `source`.
 - [ ] **Step 4: Run the tests.** Expected: PASS.
 - [ ] **Step 5: Run on the real data.** Run `npx tsx scripts/build-data/fetch-sources.ts && npx tsx scripts/build-data/build-species.ts`. Expected:
   - `species.v1.json` has as many species as the eBird taxonomy's `species` rows, and every row has `g > 0`
@@ -495,7 +495,7 @@ export function detectFile(headerLine: string): FileKind
 **Interfaces:**
 - Produces: `data/inat-synonyms.json`, shaped `Record<inatScientificName, ebirdCode>`, which is copied to `public/data/inat-synonyms.v1.json` by `npm run data`.
 - **Seeding:**
-  1. The `ALIAS` map in `/Users/yusuf/orca/projects/personal_website/framer-site/scripts/lifelist/migrate_to_personal.py`: `{"Cistothorus palustris": "Cistothorus paludicola"}`. iNaturalist lumps the marsh wrens; eBird splits out Western Marsh Wren. So the seed entry is `"Cistothorus palustris"` mapped to the eBird code whose `sciName` is `Cistothorus paludicola` in `taxonomy.v1.json`.
+  1. The `ALIAS` map in `framer-site/scripts/lifelist/migrate_to_personal.py`: `{"Cistothorus palustris": "Cistothorus paludicola"}`. iNaturalist lumps the marsh wrens; eBird splits out Western Marsh Wren. So the seed entry is `"Cistothorus palustris"` mapped to the eBird code whose `sciName` is `Cistothorus paludicola` in `taxonomy.v1.json`.
   2. Every `scientific` name in `framer-site/content/lifelist/inat-firsts.json` whose exact scientific name isn't in `taxonomy.v1.json`. Map each to the eBird code that Yusuf's `lifelist.json` uses for that bird.
 
   Task 24's validation adds any further entries it needs. Each entry gets a line in a sibling `data/inat-synonyms.notes.md` giving its reason.

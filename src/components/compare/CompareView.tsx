@@ -24,7 +24,7 @@ import { FamilyAccordion } from '@/components/collage/FamilyAccordion'
 import './compare.css'
 
 /** Each list's name in the comparison: its title, else "Birder 2" by its place in the comparison. */
-export function listLabels(lists: readonly SharePayload[], t: Ui): string[] {
+function listLabels(lists: readonly SharePayload[], t: Ui): string[] {
   return lists.map((p, i) => shareTitle(p, t) ?? fmt(t.compare.birder, { n: i + 1 }))
 }
 

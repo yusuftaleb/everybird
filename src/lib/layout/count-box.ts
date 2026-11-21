@@ -37,7 +37,7 @@ const ADV: Record<string, number> = {
   '.': 0.291, '/': 0.407, ' ': 0.27,
 }
 /** The number's tracking (em per character), as .eb-num and the share images draw it. */
-export const NUM_TRACK = -0.02
+const NUM_TRACK = -0.02
 /** Rounding, hinting and kerning: every width is taken this much wider. */
 const SAFETY = 1.02
 /** The number's ink and line box, top to bottom (em): the line box (0.85) or the comma's foot (0.925), whichever is lower. */

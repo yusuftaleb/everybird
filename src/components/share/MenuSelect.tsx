@@ -21,12 +21,12 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent
 import { createPortal } from 'react-dom'
 import { useMenuLayer } from '@/components/menu-layer'
 
-export { canPopover, menuPlace } from '@/components/menu-layer'
+export { menuPlace } from '@/components/menu-layer'
 
 /** The menu's side margin from the window's edges (as the language menu's). */
 const EDGE = 8
 
-export type MenuOption<T extends string | number> = {
+type MenuOption<T extends string | number> = {
   value: T
   label: string
   /** Listed but not choosable: why. */

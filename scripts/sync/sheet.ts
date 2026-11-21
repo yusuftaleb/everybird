@@ -3,7 +3,7 @@
 // sharp; the workflow uploads it as an artifact (PR bodies can't take an uploaded image through the API).
 import sharp, { type OverlayOptions } from 'sharp'
 
-export type SheetRow = { code: string; com: string; kind: string; before: Buffer | null; after: Buffer | null }
+type SheetRow = { code: string; com: string; kind: string; before: Buffer | null; after: Buffer | null }
 
 const CELL = 136, LABEL = 420, PAD = 12, HEAD = 40
 const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')

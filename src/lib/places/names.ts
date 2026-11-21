@@ -110,7 +110,7 @@ export function makeSub1Index(
   }
 }
 
-export const COUNTRY_NAME_LANGS = ['nl', 'en', 'fr', 'de', 'es', 'pt'] as const
+const COUNTRY_NAME_LANGS = ['nl', 'en', 'fr', 'de', 'es', 'pt'] as const
 
 /** Generic country spellings not supplied by Intl.DisplayNames (folded name -> ISO2). */
 export const OBSORG_COUNTRY_ALIASES: Readonly<Record<string, string>> = {

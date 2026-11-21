@@ -11,7 +11,7 @@ import type { Filter } from './list/filters'
 import { listOrderOf, type ListOrder } from './list/list-order'
 import { STATUS_FILTER_CATS, type StatusFilterCat } from './species/status-filter'
 
-export const RESUME_KEY = 'everybird:resume:v1'
+const RESUME_KEY = 'everybird:resume:v1'
 export const RESUME_TTL_MS = 60_000
 const VERSION = 1
 
@@ -89,7 +89,7 @@ function slicesOf(v: unknown): Slices {
 }
 
 /** The session's storage, or null where it is blocked or missing. */
-export function sessionStore(): Store | null {
+function sessionStore(): Store | null {
   try {
     return globalThis.sessionStorage ?? null
   } catch {

@@ -5,10 +5,10 @@ import { dayText } from '@/i18n/format'
 import { EN_UI } from '@/i18n/messages/en-ui'
 
 /** The words of a stamp: the 12 short month names, January first. A language is one of these. */
-export type StampStrings = { months: readonly string[] }
+type StampStrings = { months: readonly string[] }
 
 /** English, with the short months the rest of the site uses ("Sep 2026"). */
-export const STAMP_EN: StampStrings = { months: EN_UI.date.months }
+const STAMP_EN: StampStrings = { months: EN_UI.date.months }
 
 /** "14 Nov 2026" ("2026年11月14日") from `d`'s local date (no leading zero); '' for an invalid date. */
 export function stampDate(d: Date, s: StampStrings = STAMP_EN): string {

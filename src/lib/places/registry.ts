@@ -18,7 +18,7 @@ export type PlaceRegistry = { v: 1; catalogues: Record<string, PlaceCatalogue> }
 type PlaceTables = Pick<Regions, 'countries' | 'sub1' | 'registry'>
 
 /** Place data from an importer. Coordinates are resolved on-device before constructing a reference. */
-export type ImportPlace = {
+type ImportPlace = {
   namespace: string
   id: string
   edition?: string
@@ -96,11 +96,6 @@ export function hasSourcePlaceKey(key: string): boolean {
   return key.slice(2, 6) === PREFIX
 }
 
-/** The source's own id inside a stored reference key (eBird's "FR-GES"), or undefined for any other key. */
-export function sourcePlaceId(key: string): string | undefined {
-  return referenceOf(key)?.id
-}
-
 function fromLegacyEbird(place: Place, tables: PlaceTables): Place {
   const id = place.sub1
   if (!id || hasSourcePlaceKey(id)) return place
@@ -170,7 +165,7 @@ export function projectRecord<T extends SourceRecord | Unmatched>(record: T, tab
   }
 }
 
-export type CatalogueUpdateReport = {
+type CatalogueUpdateReport = {
   added: string[]
   retired: string[]
   reused: string[]

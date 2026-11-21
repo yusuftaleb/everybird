@@ -16,7 +16,7 @@ export class ParseError extends Error {
 export const parseErrorCode = (e: unknown): ParseErrorCode | undefined => (e instanceof ParseError ? e.code : undefined)
 
 /** What a kind's parse needs beside the file: observation.org needs the synonyms, its observations the regions too. */
-export type ParseOptions<K extends ParseKind> = Omit<Extract<ParseRequest, { kind: K }>, 'kind' | 'file'> & {
+type ParseOptions<K extends ParseKind> = Omit<Extract<ParseRequest, { kind: K }>, 'kind' | 'file'> & {
   onProgress?: (rows: number) => void
 }
 

@@ -15,7 +15,7 @@ export type FileKind =
   | 'unknown'
 
 /** File kinds fill their own slots; a new kind also needs a parser in parse.worker.ts's dispatch. */
-export const FILE_KINDS: readonly { kind: FileKind; slot: Slot | null; test: (cols: string[], line: string) => boolean }[] = [
+const FILE_KINDS: readonly { kind: FileKind; slot: Slot | null; test: (cols: string[], line: string) => boolean }[] = [
   // eBird's life list: "Countable" alone is any ticked spreadsheet's column, so its other columns must be there too.
   { kind: 'ebird-lifelist', slot: 'ebird-list', test: c => ['taxon order', 'category', 'scientific name', 's/p', 'countable'].every(x => c.includes(x)) },
   { kind: 'ebird-mydata', slot: 'ebird', test: c => c.includes('submission id') },
@@ -39,7 +39,7 @@ function isScythebillEbirdRow(line: string): boolean {
   return /^(?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01])\/\d{4}$/.test(date)
 }
 
-export function isUnsupportedSpreadsheet(headerLine: string, fileName?: string): boolean {
+function isUnsupportedSpreadsheet(headerLine: string, fileName?: string): boolean {
   if (/\.(xls|numbers|ods)$/i.test(fileName ?? '')) return true
   return headerLine.startsWith('\u00d0\u00cf\u0011\u00e0')
 }

@@ -6,7 +6,7 @@ import { rectGap, type Hole } from '../src/lib/layout/count-box'
 import { maskCell } from '../src/lib/layout/mask'
 import type { Box, PackBird } from '../src/lib/layout/pack'
 
-export type Evenness = {
+type Evenness = {
   /** Each bird's gap to its nearest neighbour, in layout units (silhouette to silhouette). */
   gaps: number[]
   median: number

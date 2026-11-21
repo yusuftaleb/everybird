@@ -24,13 +24,13 @@ type Layout = {
   minBase?: number; floor?: number; maxH?: number; denseFrom?: number
 }
 
-export const DEFAULT_CELL = 2 // layout units per occupancy cell
+const DEFAULT_CELL = 2 // layout units per occupancy cell
 const MIN_MASS = 0.1 // grams; guards mass ** exp against 0 or bad data
 const STEPS = 7 // binary-search steps
 export const MAX_BASE = 80 // largest base for a full collage (the reference's search ceiling)
 const TRIM_PAD = 8
 /** Sets of fewer birds than this are settled dense (see packBest; a filtered one also tries a round spiral). */
-export const SMALL_SET = 12
+const SMALL_SET = 12
 // STEP: smallest growth step. AIM: each jump aims this much past the estimate, so one more search is rarely needed.
 const STEP = 1.1, AIM = 1.08, MAX_GROW = 12
 

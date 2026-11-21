@@ -9,7 +9,7 @@ export const BIRDBASE_CSV = 'data/raw/birdbase/birdbase-mass.csv'
 export const BIRDBASE_DOI = '10.1038/s41597-025-05615-3'
 
 /** The name columns, in the order the matcher tries them. */
-export const BIRDBASE_SCI_COLUMNS = ['birdlife', 'hbw', 'ioc', 'ebird', 'avilist'] as const
+const BIRDBASE_SCI_COLUMNS = ['birdlife', 'hbw', 'ioc', 'ebird', 'avilist'] as const
 export type BirdbaseColumn = (typeof BIRDBASE_SCI_COLUMNS)[number]
 export type BirdbaseRow = {
   id: string; english: string

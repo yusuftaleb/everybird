@@ -15,7 +15,7 @@ import { rememberToured } from '@/lib/tour'
 
 const SCOPE = '.eb-page-landing .eb-view'
 type Step = 'filter' | 'view' | 'bird'
-export const TOUR_STEPS: readonly Step[] = ['filter', 'view', 'bird']
+const TOUR_STEPS: readonly Step[] = ['filter', 'view', 'bird']
 
 /** The step's target: its control in the sample's bar, or the first bird drawn on the stage. */
 function targetOf(step: Step): HTMLElement | null {

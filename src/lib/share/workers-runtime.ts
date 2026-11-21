@@ -2,7 +2,7 @@
 // on globalThis under this symbol for every request; Node (next dev, the Vercel build, next start) has none. Server code
 // that must differ between the two (reading public/ with the Worker's static assets, sticker conversion) branches on this
 // at run time, so the Vercel path loads nothing Cloudflare-only.
-export type AssetsFetcher = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> }
+type AssetsFetcher = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> }
 type WorkersContext = { env?: { ASSETS?: AssetsFetcher } }
 
 /** The Workers env for this request, or null on Node. */

@@ -14,7 +14,7 @@ import { langCode, type Lang } from '@/i18n/langs'
  * Page visits are counted separately by Cloudflare Web Analytics (src/components/app/CloudflareBeacon.tsx).
  */
 export type VisitPage = 'landing' | 'collage' | 'settings' | 'about' | 'shared'
-export type AnalyticsEvents = {
+type AnalyticsEvents = {
   /** Once per page view. `shared` is /s/[token], never with the token. */
   visit: { page: VisitPage }
   collage_made: { source: Source }
@@ -39,7 +39,7 @@ export type PosterSizeWire =
   | 'a4' | 'a3' | 'a2' | 'a1' | 'us12x18' | 'us18x24' | 'us24x36'
   | 'a4-l' | 'a3-l' | 'a2-l' | 'a1-l' | 'us12x18-l' | 'us18x24-l' | 'us24x36-l'
 export type FilterKind = 'place' | 'continent' | 'time' | 'status' | 'group' | 'taxonomy'
-export type EventName = keyof AnalyticsEvents
+type EventName = keyof AnalyticsEvents
 
 export const STATS_ENDPOINT = 'https://stats.yusuftaleb.com/e'
 export const PRODUCTION_HOST = 'everybird.yusuftaleb.com'
@@ -63,7 +63,7 @@ export const ALLOWED: Record<EventName, readonly string[]> = {
 }
 export const WIRE_LEVEL: Record<ShareLevel, string> = { regions: 'full', countries: 'compact', dates: 'minimal', species: 'species' }
 
-export type Payload = { n: EventName; p: string; d?: 'touch'; l?: string }
+type Payload = { n: EventName; p: string; d?: 'touch'; l?: string }
 
 /**
  * The body for one event, or null if its value isn't on the allow-list (then nothing is sent). `browserLang` is

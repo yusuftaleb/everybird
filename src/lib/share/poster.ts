@@ -216,7 +216,7 @@ function finished(done: EncoderPort, info: Omit<Poster, 'file' | 'dispose'>): Po
 }
 
 /** For each sticker URL, the tile to load it with and the first and last strip that draw it. */
-export function stickerSpans(tiles: Tile[], ranges: PaintRange[]): Map<string, { tile: Tile; first: number; last: number }> {
+function stickerSpans(tiles: Tile[], ranges: PaintRange[]): Map<string, { tile: Tile; first: number; last: number }> {
   const spans = new Map<string, { tile: Tile; first: number; last: number }>()
   for (const t of tiles) {
     if (!t.url) continue
@@ -341,7 +341,7 @@ export async function makePoster(
 
 /** The Tree's or the Map's poster: `render(scale)` draws the view's image (renderTreeImage, renderMapImage) at the
  *  poster's size in design units, `scale` device px per unit. */
-export type ViewPosterOpts = { size: PrintSize; landscape?: boolean; transparent?: boolean; signal?: AbortSignal; render: (scale: number) => Promise<Blob> }
+type ViewPosterOpts = { size: PrintSize; landscape?: boolean; transparent?: boolean; signal?: AbortSignal; render: (scale: number) => Promise<Blob> }
 
 /** A decoded drawing the strips are cut from (createImageBitmap's; a test passes a fake). */
 export type Drawn = { width: number; height: number; close(): void }

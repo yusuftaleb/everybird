@@ -11,7 +11,7 @@ import type { Ui } from '@/i18n/messages/en-ui'
 import { Toast } from './Toast'
 
 /** How long "Removed … · Undo" stays. */
-export const UNDO_MS = 5000 // Yusuf, 2026-11-21: 5 s at most; long enough to reach Undo
+const UNDO_MS = 5000 // Yusuf, 2026-11-21: 5 s at most; long enough to reach Undo
 
 /** What a removal (or a change by hand) touched, to undo: the line to show and the codes. */
 export type Removal = { text: string; codes: string[] }

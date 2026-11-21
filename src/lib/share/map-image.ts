@@ -21,7 +21,7 @@ export const TOP_PLACES = 6
 /** The map image's totals, in this order. */
 export const MAP_TOTALS = ['species', 'countries'] as const
 /** The grid's columns (three by two for the six places). */
-export const GRID_COLS = 3
+const GRID_COLS = 3
 /** Design units: the legend (ramp height, text size, room above), one listed place (name and count, bar, row) and gaps. */
 const LEGEND = { ramp: 12, size: 20, above: 24, rampMax: 360, gap: 14 }
 const ROW = { name: 26, count: 22, bar: 6, h: 64, barTop: 40 }
@@ -45,7 +45,7 @@ export const mapListsInColumn = (format: CardFormat) => format === 'story' || fo
 
 /** The list's place: its area (`y` its top under the map once painted), how many places, its columns (1 or GRID_COLS),
  *  the rows' scale `k` (their text, flags and bars; 1 in the grid) and `pitch`, one row's top to the next one's. */
-export type MapImageLayout = { map: Area; legendH: number; list: Area | null; rows: number; cols: number; k: number; pitch: number }
+type MapImageLayout = { map: Area; legendH: number; list: Area | null; rows: number; cols: number; k: number; pitch: number }
 
 /**
  * Where the map, its legend and the top places go in `area`: the map across the area's width, the legend under it, the

@@ -60,7 +60,7 @@ export function useTreeMine(): boolean {
 }
 
 /** Whether the tree is drawn on its time scale: on unless turned off ('0' stored; on removes the key). */
-export const treeTime = (): boolean => timeStore.get() !== '0'
+const treeTime = (): boolean => timeStore.get() !== '0'
 export const setTreeTime = (on: boolean): void => timeStore.set(on ? null : '0')
 export function useTreeTime(): boolean {
   return useSyncExternalStore(timeStore.subscribe, treeTime, () => true)

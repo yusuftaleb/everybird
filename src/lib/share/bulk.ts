@@ -28,14 +28,14 @@ export function batchChoice(n: unknown): BulkBatch {
 
 export type BulkSplit = 'batches' | 'family' | 'order' | 'country' | 'continent' | 'province' | 'year'
 
-export type BulkGroup = {
+type BulkGroup = {
   id: string
   label: string
   stem: string
   entries: ListEntry[]
 }
 
-export type BulkGroupsOpts = {
+type BulkGroupsOpts = {
   species: SpeciesIndex
   regions: Regions
   seen?: SeenIndex
@@ -232,9 +232,9 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
 }
 
 /** `filterLabel` and `goal` are the view's: each poster's label line is that, then its group ("Canada · Herons"). */
-export type BulkPosterOpts = Omit<PosterOpts, 'entries' | 'pack' | 'species'>
+type BulkPosterOpts = Omit<PosterOpts, 'entries' | 'pack' | 'species'>
 
-export type BulkPackOpts = {
+type BulkPackOpts = {
   size: PrintSize
   landscape: boolean
   /** The poster has a title line. */
@@ -261,7 +261,7 @@ export function bulkPackSpec(entries: ListEntry[], o: BulkPackOpts): PackSpec {
   return imagePackSpec(format, content, o.size, plan.ok ? plan : undefined, o.arrangement)
 }
 
-export type BulkZipOpts = {
+type BulkZipOpts = {
   groups: readonly BulkGroup[]
   kind: 'png' | 'pdf'
   poster: BulkPosterOpts
@@ -349,9 +349,9 @@ export async function makeBulkZip(opts: BulkZipOpts): Promise<{ blob: Blob; name
 }
 
 /** The share images' options for every group's image (`filterLabel` and `goal` are the view's, as BulkPosterOpts). */
-export type BulkImageOpts = Omit<ShareImageOpts, 'entries' | 'pack' | 'species' | 'format'> & { format: ImageFormat }
+type BulkImageOpts = Omit<ShareImageOpts, 'entries' | 'pack' | 'species' | 'format'> & { format: ImageFormat }
 
-export type ImageZipOpts = {
+type ImageZipOpts = {
   groups: readonly BulkGroup[]
   image: BulkImageOpts
   species: SpeciesIndex

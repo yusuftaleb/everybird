@@ -82,7 +82,7 @@ export function retainPlaceHistory(previous: PlaceCatalogue, next: PlaceCatalogu
   return { ...next, ...(Object.keys(history).length ? { history: ordered(history) } : {}), ...(reused.size ? { reused: [...reused].sort() } : {}) }
 }
 
-export function buildPlaceRegistry(
+function buildPlaceRegistry(
   regions: Regions, current: EbirdSnapshot, historical: Record<string, string>, inat: InatSnapshot, iso: IsoEntry[],
 ) {
   const countries = { ...regions.countries }

@@ -27,10 +27,10 @@ export const OVERLAP_MIN = 0.55
 export const OVERLAP_MAX = 1.3
 export const GAP = 0.5
 /** Three circles: each centre this share of its radius from the middle, so all seven regions always have room. */
-export const SPREAD = 0.6
+const SPREAD = 0.6
 /** The flower: each petal tucks this share of its radius under the centre; neighbouring petals keep PETAL_GAP (a share
  *  of the biggest radius) apart; the centre's radius is at least CORE_MIN. */
-export const DIP = 0.4
+const DIP = 0.4
 export const PETAL_GAP = 0.12
 export const CORE_MIN = 0.7
 

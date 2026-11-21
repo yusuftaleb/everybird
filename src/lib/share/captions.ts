@@ -4,11 +4,11 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 import { CAPTION_CAPS, captionMinPx, type PrintSize } from './print'
 
-export const CAPTION_LINE_HEIGHT = 1.2
-export const CAPTION_GAP_RATIO = 0.35
-export const CAPTION_PAD_X = 2
+const CAPTION_LINE_HEIGHT = 1.2
+const CAPTION_GAP_RATIO = 0.35
+const CAPTION_PAD_X = 2
 /** The widest a long name's two lines may be, as a share of the collage's width. */
-export const WIDE_LINE = 0.45
+const WIDE_LINE = 0.45
 
 export type TextMeasurer = (px: number, text: string) => number
 
@@ -30,7 +30,7 @@ export type CaptionBox = {
   lineH: number
 }
 
-export type CaptionFitResult =
+type CaptionFitResult =
   | { ok: true; captions: CaptionBox[]; fontPx: number }
   | { ok: false; reason: 'cap' | 'fit' }
 

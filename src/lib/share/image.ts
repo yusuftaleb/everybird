@@ -425,7 +425,7 @@ export function packSpec(L: CardLayout): PackSpec {
  * Largest a sticker is drawn (long side) as a share of the collage's width: 30%, or 36% for a short list (up to 24
  * birds) so its ring around the count fills more of the frame. Either stays under the 384px files' sharpness.
  */
-export const MAX_TILE = 0.3, MAX_TILE_SHORT = 0.36
+const MAX_TILE = 0.3, MAX_TILE_SHORT = 0.36
 export const maxTileFrac = (n: number) => (n <= 24 ? MAX_TILE_SHORT : MAX_TILE)
 /**
  * A small group (under SMALL_GROUP birds, round 6, item 12) is drawn as large as its frame allows: its largest sticker's
@@ -516,7 +516,7 @@ export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSi
 const LOADS_AT_ONCE = 12
 const LOAD_TIMEOUT_MS = 20_000 // per sticker
 /** All stickers of one render must arrive within this; whatever is still pending is drawn as the silhouette. */
-export const LOAD_BUDGET_MS = 40_000
+const LOAD_BUDGET_MS = 40_000
 
 const images = new Map<string, Promise<HTMLImageElement | null>>()
 // Bumped by clearStickerCache: loads started before it never write to the cache again.

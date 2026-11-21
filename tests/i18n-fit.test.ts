@@ -42,7 +42,7 @@ const ROOMY: Record<string, number> = { 'import.add': 12, 'import.remove': 12 }
  *  width model of topbar-fit.test.ts; Latin and Cyrillic letters count one each). */
 const width = (s: string) => [...s].reduce((n, c) => n + (WIDE_CHAR.test(c) ? 1 / 0.58 : 1), 0)
 /** Short forms: at most the English short form + 2. */
-const SHORT = ['collage.controls.trueShort', 'collage.controls.sciShort']
+const SHORT = ['collage.controls.sciShort']
 
 function get(m: unknown, path: string): string {
   const v = path.split('.').reduce<unknown>((n, k) => (n as Record<string, unknown>)[k], (m as { ui: unknown }).ui)

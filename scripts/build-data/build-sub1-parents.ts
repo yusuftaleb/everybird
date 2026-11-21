@@ -7,7 +7,7 @@ import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { Regions } from '../../src/lib/species/types'
 
-export const ROLLUP_COUNTRIES = ['BE', 'FR', 'ES', 'IT', 'GB'] as const
+const ROLLUP_COUNTRIES = ['BE', 'FR', 'ES', 'IT', 'GB'] as const
 
 type IsoSub = { code: string; name: string; parent?: string }
 
@@ -16,7 +16,7 @@ type IsoSub = { code: string; name: string; parent?: string }
  * still uses), with their top-level region. French overseas codes (FR-GF, FR-GP, FR-MQ, FR-RE, FR-YT) are top-level
  * themselves and stay out.
  */
-export const MANUAL_PARENTS: Readonly<Record<string, string>> = {
+const MANUAL_PARENTS: Readonly<Record<string, string>> = {
   'FR-75': 'FR-IDF', // Paris, now FR-75C
   'IT-AO': 'IT-23', // Aosta, now the region itself
   // Sardinia's provinces before 2016.

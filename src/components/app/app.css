@@ -12,10 +12,6 @@
 }
 @media (min-width: 720px) { .eb-page { padding: 48px 32px 64px; --page-gap: 56px; } }
 
-.eb-head { display: flex; flex-direction: column; gap: 12px; }
-.eb-title { margin: 0; font-size: clamp(44px, 9vw, 72px); line-height: .95; letter-spacing: -.02em; }
-.eb-tagline { margin: 0; font-size: 18px; color: var(--muted); }
-.eb-head + * { margin-top: -16px; }
 
 .eb-lede-sm { margin: 0; font-size: 16px; line-height: 1.5; color: var(--muted); max-width: 640px; }
 

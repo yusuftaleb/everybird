@@ -1,5 +1,5 @@
 // Downloads the raw sources into data/raw/ (git-ignored) and writes data/raw/manifest.json.
-// Run: npx tsx scripts/build-data/fetch-sources.ts [--huashu-only | --names-only] [--taxonomy <YYYY|latest>]
+// Run: npx tsx scripts/build-data/fetch-sources.ts [--huashu-only | --names-only | --tree-only] [--taxonomy <YYYY|latest>]
 // The eBird taxonomy year is public/data/species.v1.json's, else data/raw/manifest.json's; --taxonomy picks another
 // (the yearly upgrade: fetch with --taxonomy latest, then npm run data). --names-only overwrites
 // data/raw/ebird-taxonomy.json too, so names and species always read the same year.
@@ -26,10 +26,9 @@ const ISO_URL = 'https://salsa.debian.org/iso-codes-team/iso-codes/-/raw/main/da
 
 // AvesData (McTavish et al., "A complete and dynamic tree of birds"), CC BY 4.0 (its README's LICENSE line), pinned to
 // a commit so a rebuild reads the same bytes. Aves 1.7 is the tree; Clements 2025 its taxonomy.
-export const AVES_REPO = 'https://github.com/McTavishLab/AvesData'
-export const AVES_COMMIT = '4af84f14f8f3df26bd4480202689b08ea0fc2c48'
+const AVES_COMMIT = '4af84f14f8f3df26bd4480202689b08ea0fc2c48'
 const AVES_RAW = `https://raw.githubusercontent.com/McTavishLab/AvesData/${AVES_COMMIT}/`
-export const AVES_FILES = [
+const AVES_FILES = [
   ['Tree_versions/Aves_1.7/Clements2025/summary_dated_clements.nex', 'avesdata/summary_dated_clements.nex'],
   ['Taxonomy_versions/Clements2025/OTT_crosswalk_2025.csv', 'avesdata/OTT_crosswalk_2025.csv'],
   // The tree of the species with genetic data: a summary tip missing from it was placed by taxonomy alone.
@@ -38,7 +37,7 @@ export const AVES_FILES = [
 
 const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex')
 
-export type FetchDeps = { fetch?: typeof fetch; sleep?: (ms: number) => Promise<void> }
+type FetchDeps = { fetch?: typeof fetch; sleep?: (ms: number) => Promise<void> }
 const wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms))
 
 /** GETs `url` with a 60 s timeout per try, 3 tries with backoff (1 s, 2 s); throws the last failure. */
@@ -105,7 +104,7 @@ type Source = { name: string; url: string; date: string; version?: string; sha25
  * The pinned English taxonomy, the 19 name sets (each checked against that English) and the four group sets, all in
  * memory: nothing is written unless every request succeeds.
  */
-export async function fetchNameSources(version: string, deps: FetchDeps = {}): Promise<{ files: RawFile[]; sources: Source[] }> {
+async function fetchNameSources(version: string, deps: FetchDeps = {}): Promise<{ files: RawFile[]; sources: Source[] }> {
   const files: RawFile[] = []
   const sources: Source[] = []
   const date = new Date().toISOString().slice(0, 10)
@@ -134,7 +133,7 @@ export async function fetchNameSources(version: string, deps: FetchDeps = {}): P
 }
 
 /** The AvesData tree and crosswalk, in memory (written by the caller once everything has succeeded). */
-export async function fetchTreeSources(deps: FetchDeps = {}): Promise<{ files: RawFile[]; sources: Source[] }> {
+async function fetchTreeSources(deps: FetchDeps = {}): Promise<{ files: RawFile[]; sources: Source[] }> {
   const files: RawFile[] = []
   const sources: Source[] = []
   const date = new Date().toISOString().slice(0, 10)

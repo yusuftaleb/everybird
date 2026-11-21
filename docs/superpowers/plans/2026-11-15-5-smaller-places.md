@@ -531,7 +531,7 @@ Also in `e2e/places.spec.ts`, for both widths: "variant b (?v=places:b) selects 
 
 - [ ] **Step 2: Run them (the sticker server, dev server and engines as AGENTS.md describes; the executor runs these, not the planner)**
 
-Run: `STICKERS_DIR=/Users/yusuf/orca/projects/everybird-stickers npx playwright test e2e/places.spec.ts e2e/share-link.spec.ts e2e/settings.spec.ts e2e/flows.spec.ts e2e/responsive.spec.ts --project=chromium --project=webkit --project=firefox`
+Run: `STICKERS_DIR=../everybird-stickers npx playwright test e2e/places.spec.ts e2e/share-link.spec.ts e2e/settings.spec.ts e2e/flows.spec.ts e2e/responsive.spec.ts --project=chromium --project=webkit --project=firefox`
 Expected: PASS (projects that don't include a spec skip it); "Settings fits about 1.5 screens at 1280x800 with a source connected" still passes.
 
 - [ ] **Step 3: Commit**
@@ -555,7 +555,7 @@ git commit -m "test(e2e): Places drills down on the collage and the shared view;
 Run: `npm run lint && npx next typegen && npx tsc --noEmit && npm test`
 Expected: no lint errors, no type errors, all Vitest tests pass.
 
-Run: `STICKERS_DIR=/Users/yusuf/orca/projects/everybird-stickers npx playwright test e2e/places.spec.ts e2e/flows.spec.ts e2e/share-link.spec.ts e2e/responsive.spec.ts e2e/settings.spec.ts e2e/search.spec.ts e2e/text-size.spec.ts --project=chromium --project=webkit --project=firefox`
+Run: `STICKERS_DIR=../everybird-stickers npx playwright test e2e/places.spec.ts e2e/flows.spec.ts e2e/share-link.spec.ts e2e/responsive.spec.ts e2e/settings.spec.ts e2e/search.spec.ts e2e/text-size.spec.ts --project=chromium --project=webkit --project=firefox`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**

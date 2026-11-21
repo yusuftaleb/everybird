@@ -31,7 +31,7 @@ export function localDay(d: Date = new Date()): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
-export type FileNameParts = {
+type FileNameParts = {
   /** The card's or poster's title as typed (made safe here). */
   title?: string
   /** What it shows: '' for the collage, 'map', 'tree-families', 'comparison', 'life-list', 'backup'. */

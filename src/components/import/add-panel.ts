@@ -7,7 +7,7 @@ export const AddPanels = createContext<[string | null, Dispatch<SetStateAction<s
 
 /** The open panel after `key`'s is opened (`on`) or closed: opening one closes any other; closing one leaves another
  *  source's open panel alone. */
-export const nextPanel = (open: string | null, key: string, on: boolean): string | null => (on ? key : open === key ? null : open)
+const nextPanel = (open: string | null, key: string, on: boolean): string | null => (on ? key : open === key ? null : open)
 
 /** The open Add panel's key and the way to open or close one. Outside ImportPanel (a source on its own), its own. */
 export function useAddPanel(): [string | null, (key: string, on: boolean) => void] {

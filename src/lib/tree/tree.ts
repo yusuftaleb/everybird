@@ -176,9 +176,6 @@ export function leavesOf(root: Node | Leaf): Leaf[] {
   return out
 }
 
-/** How long ago a tip split from its nearest relatives: its own branch, in millions of years. */
-export const tipBranch = (tree: Tree, tip: number): number => tree.len[tip]
-
 /**
  * The oldest lineage among `codes`: the tip whose own branch is the longest (the longest time since it split from
  * its closest relatives in the whole tree). Codes without a tip are skipped.

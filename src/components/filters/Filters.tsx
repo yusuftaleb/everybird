@@ -42,15 +42,15 @@ import './filters.css'
 
 export type FilterSection = 'places' | 'time' | 'status'
 /** Open: from the button (at undefined: focus the dialog) or a collapsed chip (focus that section). */
-export type FiltersOpen = { at?: FilterSection }
+type FiltersOpen = { at?: FilterSection }
 // The lifer-only notice's kinds and the search field's threshold live with the Places panel (places-shared.tsx).
 export { SEARCH_FROM, type PlacesNote } from './places-shared'
 
-export const SECTION_ORDER: readonly FilterSection[] = ['time', 'places', 'status']
+const SECTION_ORDER: readonly FilterSection[] = ['time', 'places', 'status']
 const ICONS: Record<FilterSection, typeof GlobeHemisphereWest> = { places: GlobeHemisphereWest, time: CalendarBlank, status: STATUS_ICON }
 
 /** The sections shown: SECTION_ORDER less `hide`, and Status only when a species on the list has a status or one is checked. */
-export function useFilterSections(state: AppState, species: SpeciesIndex, hide?: readonly FilterSection[]): FilterSection[] {
+function useFilterSections(state: AppState, species: SpeciesIndex, hide?: readonly FilterSection[]): FilterSection[] {
   const listHasStatus = useMemo(() => state.list.some((e) => species.byCode.get(e.code)?.iu), [state.list, species])
   const hasStatus = listHasStatus || !!state.filter.statuses?.length
   return useMemo(
@@ -241,7 +241,7 @@ type PanelProps = Shared & {
 }
 
 /** In ControlsBar's `below` slot, after the chip row (the popover sits right under the dock, over it), or portalled as the sheet. */
-export function FiltersPanel({ state, onChange, species, regions, sections, open, onOpen, id, buttonRef, returnFocus, placesNote, placesUnplaced, time, threatLine, shown }: PanelProps): ReactNode {
+function FiltersPanel({ state, onChange, species, regions, sections, open, onOpen, id, buttonRef, returnFocus, placesNote, placesUnplaced, time, threatLine, shown }: PanelProps): ReactNode {
   const { t } = useI18n()
   const sheet = useIsSheet()
   const ref = useRef<HTMLDivElement>(null)

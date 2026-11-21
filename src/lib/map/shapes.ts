@@ -13,7 +13,7 @@ export type MapLayer = { w: number; h: number; d: Record<string, string> }
 export type MapCountries = MapLayer & { v: 1 }
 
 /** One shape to draw: its id in the layer, its place key, path and species count. */
-export type MapShape = { id: string; key: string; d: string; n: number }
+type MapShape = { id: string; key: string; d: string; n: number }
 
 let cache: Promise<MapCountries> | undefined
 /** The world's shapes, fetched once per page (a failure is not cached, so the next open tries again). */

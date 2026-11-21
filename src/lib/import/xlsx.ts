@@ -1,6 +1,6 @@
 import { strFromU8, unzipSync } from 'fflate'
 
-export type XlsxSheet = {
+type XlsxSheet = {
   name: string
   /** The sheet's rows with cells (blank rows left out). */
   rows: string[][]

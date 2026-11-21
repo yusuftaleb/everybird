@@ -24,7 +24,7 @@ import './Sticker.css'
 /** The card's illustration link, handed to its actions (EditBird ends its Remove row with it); null when there is none. */
 export const CardEndLink = createContext<ReactNode>(null)
 
-export type CardAnchor = Element | DOMRect | null
+type CardAnchor = Element | DOMRect | null
 
 type Props = {
   entry: ListEntry

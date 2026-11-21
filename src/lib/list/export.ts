@@ -91,7 +91,7 @@ function validSources(x: unknown): boolean {
 }
 
 /** Why a backup was refused: 'damaged' covers every malformed part (the message says which). */
-export type BackupReason = 'json' | 'not-backup' | 'version' | 'damaged'
+type BackupReason = 'json' | 'not-backup' | 'version' | 'damaged'
 
 /** fromJson's error: a plain English message, and its reason for the UI to word in its own language. */
 export class BackupError extends Error {

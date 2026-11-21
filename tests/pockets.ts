@@ -17,7 +17,7 @@ import { Grid, cellMask, coreMask } from '../src/lib/layout/grid'
 import { maskCell } from '../src/lib/layout/mask'
 import type { Box, PackBird } from '../src/lib/layout/pack'
 
-export type Pockets = { slots: { inner: number; edge: number }; pocket: number; edgeCv: number; rectCv: number; corners: number[] }
+type Pockets = { slots: { inner: number; edge: number }; pocket: number; edgeCv: number; rectCv: number; corners: number[] }
 
 export function pockets(birds: PackBird[], r: { W: number; H: number; boxes: Map<number, Box> }, hole: Hole): Pockets {
   const W = Math.ceil(r.W), H = Math.ceil(r.H), cx = r.W / 2, cy = r.H / 2

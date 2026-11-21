@@ -12,7 +12,7 @@ import { CORNER, branchesOf, isLeaf, type Leaf, type Node } from './tree'
 import { fanAngle, polar, type FanBox, type Pt } from './fan'
 
 /** A group to name: its text as drawn and its tips' first and last index (leaf order). */
-export type NodeGroup = { text: string; first: number; last: number; latin?: boolean }
+type NodeGroup = { text: string; first: number; last: number; latin?: boolean }
 /** A placed name: the node's point, the label's centre, its size and its turn (degrees; upright, never upside down). */
 export type NodeLabel = { text: string; latin?: boolean; node: Pt; x: number; y: number; w: number; h: number; rot: number }
 

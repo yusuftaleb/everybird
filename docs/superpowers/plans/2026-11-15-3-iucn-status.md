@@ -217,7 +217,7 @@ npx tsx scripts/sync/huashu-sync.ts --init-lock --huashu-dir data/raw/huashu
 
 Expected: `--init-lock` prints "(verified against the tree and species.v1.json)". It fails if `buildSpecies` doesn't reproduce the new file exactly.
 
-- [x] **Step 2: Check that only `iu` changed.** Write a throwaway `/private/tmp/claude-501/iucn-diff.mts` that loads `git show HEAD:public/data/species.v1.json` and the new file, deletes `iu` from every new row, and compares them with `JSON.stringify`. Expected: equal. Its counts print `10100` rows with `iu` and `1184` threatened. Also run `git diff --quiet public/data/taxonomy.v1.json public/data/masks public/data/masks.v2.json data/sticker-versions.json`, which must exit 0. In the lock diff, only `records` values change (none of `commit`, `files`, `codes` or `shipped`).
+- [x] **Step 2: Check that only `iu` changed.** Write a throwaway `iucn-diff.mts` outside the repo that loads `git show HEAD:public/data/species.v1.json` and the new file, deletes `iu` from every new row, and compares them with `JSON.stringify`. Expected: equal. Its counts print `10100` rows with `iu` and `1184` threatened. Also run `git diff --quiet public/data/taxonomy.v1.json public/data/masks public/data/masks.v2.json data/sticker-versions.json`, which must exit 0. In the lock diff, only `records` values change (none of `commit`, `files`, `codes` or `shipped`).
 - [x] **Step 3: Run the data tests.** `npx vitest run tests/data-files.test.ts tests/sample-pack.test.ts tests/huashu-sync.test.ts tests/build-species.test.ts tests/howto-data.test.ts`. Expected: PASS.
 - [x] **Step 4: Commit** the five files together with nothing else: `git commit -m "data: IUCN status on 10,100 species (AviList v2026, BirdLife v10); lock regenerated"`
 

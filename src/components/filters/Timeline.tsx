@@ -17,7 +17,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import './timeline.css'
 
 /** Narrowest month on screen (px): below it the strip scrolls sideways. (A collapsed gap's months are narrower.) */
-export const MONTH_PX = 6
+const MONTH_PX = 6
 /** Keyboard steps commit the range this long after the last key (a pointer drag commits on release). */
 export const KEY_COMMIT_MS = 350
 

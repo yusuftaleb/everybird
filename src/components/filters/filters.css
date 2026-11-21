@@ -2,10 +2,6 @@
    Accent and the other chips in that row step back to 70%; pressing it again clears the filter. Superellipse
    corners with LifeList's .566 fallback. */
 .eb-filters { --eb-ease: cubic-bezier(.16, 1, .3, 1); display: flex; flex-direction: column; gap: 8px; color: var(--ink); font-size: 14px; font-weight: 500; }
-/* The panel has no entrance animation on purpose: a filled transform or opacity animation would make it the containing
-   block and stacking context of the phone's fixed picker sheet (the sheet would sit under the collage). */
-.eb-panel, .eb-levels { display: flex; flex-direction: column; gap: 8px; }
-.eb-levels:empty { display: none; }
 
 /* Breadcrumb: "All birds / Perching birds / Crows", the current place in Accent. */
 .eb-path { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 14px; animation: eb-rise .24s var(--eb-ease) both; }
@@ -179,8 +175,8 @@
 .eb-drill svg { width: 18px; height: 18px; transform: rotate(-90deg); }
 .eb-drill:focus-visible { color: var(--ink); }
 .eb-places-path { animation: eb-rise .24s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) both; } /* the sheet sits outside .eb-view */
-.eb-places-path button, .eb-map-path button { position: relative; }
-.eb-places-path button::after, .eb-map-path button::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100% + 8px, 44px); height: 44px; transform: translate(-50%, -50%); }
+.eb-places-path button { position: relative; }
+.eb-places-path button::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100% + 8px, 44px); height: 44px; transform: translate(-50%, -50%); }
 /* "Count repeat sightings" (Timeline.tsx RepeatSwitch): the Settings switch row (app.css .eb-setrow-btn) on the Time
    section's head row, right-aligned: its label and track only (the note is its tooltip), so nothing moves when it flips.
    A 44px press; the row wraps it under the title only when both can't share a line. No Surface band on hover: the

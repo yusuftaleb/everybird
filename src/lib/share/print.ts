@@ -33,7 +33,7 @@ export const PRINT_IN: Record<UsSize, readonly [number, number]> = {
   US12x18: [12, 18], US18x24: [18, 24], US24x36: [24, 36],
 }
 export const isUsSize = (s: PrintSize): s is UsSize => s in PRINT_IN
-export const PRINT_DPI = 150
+const PRINT_DPI = 150
 /**
  * Maximum species count for printing common names under stickers, by paper size (same in portrait and landscape). Half
  * the first posters' (40 on A4 … 360 on 24 × 36 in) since the names doubled: at the cap the stickers stay about three
@@ -47,7 +47,7 @@ export const CAPTION_CAPS: Record<PrintSize, number> = {
  * The species names' size on paper, in points: twice the first posters' 9pt, the same on every size so it reads at arm's
  * length; in design units it scales with the poster (captionMinPx: 32.7 on A4, 16.3 on A2, 11.5 on A1).
  */
-export const CAPTION_MIN_PT = 18
+const CAPTION_MIN_PT = 18
 /** The print card's width in design units, as the share images. */
 export const PRINT_DESIGN_W = 1080
 /** The height the A sizes' pack is made at (every A size's printDesignH is within 0.2% of it). */
@@ -56,7 +56,7 @@ export const PRINT_DESIGN_H = 1527
 /** Device px per design unit: A4 1.148, A3 1.624, A2 2.296, A1 3.248, 12 × 18 in 1.667, 18 × 24 in 2.5, 24 × 36 in 3.333. The same for a landscape poster: its short side is the width of the portrait one, so the type and the sticker tiers match. */
 export const printScale = (s: PrintSize): number => PRINT_PX[s][0] / PRINT_DESIGN_W
 /** Convert points at 150 dpi (72 pt/in) into card design units for `s`. */
-export const ptToDesignUnits = (pt: number, s: PrintSize): number => ((pt * PRINT_DPI) / 72) / printScale(s)
+const ptToDesignUnits = (pt: number, s: PrintSize): number => ((pt * PRINT_DPI) / 72) / printScale(s)
 export const captionMinPx = (s: PrintSize): number => ptToDesignUnits(CAPTION_MIN_PT, s)
 /** The size's long side in design units (A4 about 1527.7, A1 about 1529.2, 2:3 1620, 3:4 1440): the portrait height, the landscape width. */
 export const printDesignH = (s: PrintSize): number => PRINT_PX[s][1] / printScale(s)
