@@ -35,7 +35,7 @@ type Placed = { code: string; box: Box; src: string }
 const ogCount = (n: number): CountLayout => countLayout(OG_COUNT_MAX, n, OG_COLLAGE.w)
 
 /**
- * Up to 60 birds of the list that have stickers, packed with the wide layout into the collage area around the count's
+ * Up to 60 birds of the list that have stickers, packed in Free (the default arrangement) with the wide layout into the collage area around the count's
  * hole (ogCountHole: the column satori draws, grown by its pad; the stage is drawn 1:1, so the hole is in px), with
  * their stickers.
  */
@@ -49,7 +49,7 @@ async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof
   const pack = list.map(([, b]) => b)
   // A short list: no sticker taller than 40% of the collage (one ostrich shouldn't fill the card).
   const maxRel = Math.max(...relSizes(pack, EXP).values())
-  const r = packBest(pack, wide, 'even', { fixedStage: [OG_COLLAGE.w, OG_COLLAGE.h], hole: ogCountHole(ogCount(payload.birds.length)), maxBase: (0.4 * OG_COLLAGE.h) / maxRel })
+  const r = packBest(pack, wide, 'even', { fixedStage: [OG_COLLAGE.w, OG_COLLAGE.h], hole: ogCountHole(ogCount(payload.birds.length)), maxBase: (0.4 * OG_COLLAGE.h) / maxRel, free: true })
   // Tiles drawn past OG_LARGE_TILE get the 384 px file, so a short list's big birds stay sharp.
   const large = new Set(list.flatMap(([c, b]) => { const box = r.boxes.get(b.id); return box && Math.max(box[2], box[3]) > OG_LARGE_TILE ? [c] : [] }))
   const stickers = await fetchStickers(list.map(([code]) => ({ code, sv: species.get(code)?.sv })), undefined, large)

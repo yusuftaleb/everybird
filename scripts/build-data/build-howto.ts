@@ -1,7 +1,7 @@
 // Builds src/components/about/how-it-works-data.ts, the About demo's birds: where each sticker sits in the demo's
 // collage (all birds, and Herons chosen) and in its share images (story, post, square), packed by the product's own
-// code: packBest with the masks in public/data/masks (painted-area sizes from relSizes, the count's hole from
-// count-box.ts) for the collage, and cardLayout + packFrame + fitPack (src/lib/share/image.ts) for the images.
+// code in the Oval arrangement (Yusuf, 2026-11-21: the demo stays Oval, whatever the site's default): packBest with
+// the masks in public/data/masks (painted-area sizes from relSizes, the count's hole from count-box.ts) for the collage, and cardLayout + packFrame + fitPack (src/lib/share/image.ts) for the images.
 // The demo's list is made up (BIRDS below; TOTAL species in all); the boxes are the product's for these birds.
 // Rerun after changing the birds, the demo's collage box (STAGE) or the packer:
 //
@@ -90,11 +90,11 @@ export function makeHowtoData(readData: <T>(file: string) => T = read): string {
     // The count's hole is the drawn count's (its label a fixed 12px), scaled up with the box
     const drawn = { W: s.W, F: s.F, minWidth: s.W, maxWidth: s.W }
     const hole = (n: number) => scaleHole(collageHole(n, drawn), z)
-    const all = packBest(birds, layout, 'even', { fixedStage: [W, H], rel, hole: hole(TOTAL) })
+    const all = packBest(birds, layout, 'even', { fixedStage: [W, H], rel, hole: hole(TOTAL), oval: true })
     if (all.boxes.size !== TOTAL) throw new Error(`${name}: packed ${all.boxes.size} of ${TOTAL}`)
     for (const [id, [x, y, w, h]] of all.boxes) if (x < 0 || y < 0 || x + w > W || y + h > H) throw new Error(`${name}: ${BIRDS[id]} outside the box`)
     const six = birds.filter((b) => HERONS.includes(BIRDS[b.id]))
-    const herons = packBest(six, layout, 'even', { fixedStage: [W, H], rel, refBase: all.base, hole: hole(HERONS.length) })
+    const herons = packBest(six, layout, 'even', { fixedStage: [W, H], rel, refBase: all.base, hole: hole(HERONS.length), oval: true })
     const unz = (m: Map<number, Box>) => new Map([...m].map(([id, b]) => [id, b.map((v) => v / z) as unknown as Box]))
     return [name, { W: s.W, H: s.H, F: s.F, z, all: pick(unz(all.boxes)), herons: pick(unz(herons.boxes)) }]
   }))
@@ -103,7 +103,7 @@ export function makeHowtoData(readData: <T>(file: string) => T = read): string {
   const share = Object.fromEntries((['story', 'post', 'square'] as ImageFormat[]).map((format) => {
     const L = cardLayout(format, { name: false, filter: false, latest: true, count: TOTAL })
     const spec = packSpec(L)
-    const p = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile })
+    const p = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile, oval: true })
     const fit = fitPack({ W: p.W, H: p.H, boxes: new Map([...p.boxes].map(([id, b]) => [BIRDS[id], b])) }, L.collage, maxTileSide(L.collage.w, L.maxTile))
     const tiles = Object.fromEntries([...p.boxes].map(([id, b]) => [BIRDS[id], box(fitBox(fit, b))]))
     const g = Math.min(fit.grow, 1.3)
