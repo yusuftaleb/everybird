@@ -187,11 +187,18 @@ function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill
   const ax = W / 2, ay = H / 2
   // Oval: the ellipse's own distance, so the birds close up evenly all round it (the rounded rectangle would draw them
   // in from the ends of its axes and leave those empty).
-  const centrality = (cx: number, cy: number) => {
-    const u = (cx - ax) / ax, v = (cy - ay) / ay
-    const u2 = u * u, v2 = v * v, u4 = u2 * u2, v4 = v2 * v2
-    return shape === 'rect' ? Math.max(Math.abs(u), Math.abs(v)) + 1e-3 * (u2 + v2) : oval ? u2 + v2 : u4 * u4 + v4 * v4
-  }
+  const centrality = shape === 'rect'
+    ? (cx: number, cy: number) => {
+      const u = (cx - ax) / ax, v = (cy - ay) / ay
+      return Math.max(Math.abs(u), Math.abs(v)) + 1e-3 * (u * u + v * v)
+    }
+    : oval
+      ? (cx: number, cy: number) => { const u = (cx - ax) / ax, v = (cy - ay) / ay; return u * u + v * v }
+      : (cx: number, cy: number) => {
+        const u = (cx - ax) / ax, v = (cy - ay) / ay
+        const u2 = u * u, v2 = v * v, u4 = u2 * u2, v4 = v2 * v2
+        return u4 * u4 + v4 * v4
+      }
   const dist = (q: Settling, gx: number, gy: number) => centrality(gx + q.m.pw / 2, gy + q.m.ph / 2)
   // Walk a lifted bird inwards until no neighbouring position is more central and free.
   const walkIn = (q: Settling) => {
