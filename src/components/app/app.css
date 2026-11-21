@@ -527,6 +527,10 @@
 .eb-pagehead-title {
   flex: 1 1 7ch; margin: 0; min-width: 0; font-family: var(--font-display); font-weight: 700;
   font-size: clamp(32px, 5vw, 48px); line-height: 1.05; letter-spacing: -.02em; overflow-wrap: break-word;
+  /* As tall as the 44px buttons beside it (its line centred in them), so its box starts at the row's top whether the
+     actions share its line or wrap under it (the collage's three at 390px): every page's title the same distance
+     under the top bar. */
+  padding-block: max(0px, calc((44px - 1.05em) / 2));
 }
 .eb-pagehead-actions { display: flex; gap: 8px; flex: none; }
 @media (max-width: 479px) { .eb-pagehead-actions .eb-btn-quiet { padding: 0; width: 44px; } }
