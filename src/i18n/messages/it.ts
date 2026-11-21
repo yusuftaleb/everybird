@@ -849,6 +849,8 @@ export const it: Messages = {
     },
     demo: {
       credit: 'Adesivi: <link>huashu-bird-sticker</link>, CC BY 4.0',
+      pause: 'Pausa',
+      play: 'Riproduci',
       caption: 'Un’animazione di Everybird al lavoro: un file di esportazione eBird viene trascinato in Opzioni, sotto La tua lista, e le sue righe vengono lette; MyEBirdData è collegato e il collage ha {total} specie, tutte da eBird. Poi il collage si compone, con gli adesivi che arrivano intorno al numero mentre sale fino a {total} specie. Scegliere l’ordine Aironi porta i sei aironi al centro; Tutti gli uccelli, nel percorso di navigazione, li riporta tutti. Condividi apre la finestra di condivisione: l’immagine, con gli adesivi intorno a {total} specie, l’ultima specie nuova e la riga a piè di pagina, nei formati Storia, Post e Quadrato.',
     },
     search: {

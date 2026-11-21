@@ -239,7 +239,7 @@ Source of truth: `src/components/collage/collage-motion.ts` (ported from LifeLis
 - **Reduced motion.** `prefers-reduced-motion` gets the same 200ms fade, no travel, no growth, no stage height easing, no switch transitions; UI transitions go to `none`; sheets and breadcrumbs fade only. About's demo shows its poster.
 - Hover/press affordances only under `(hover: hover) and (pointer: fine)`.
 - **Optimize pass (impeccable, Task Z, 2026-11-06): nothing to change.** Measured on the production build at 4× CPU throttling: filtering frames at most 33.4 ms, a held timeline drag over 1,000 species 16.8 ms, the True size switch 8.7 ms during a 200,000-row parse; the share preview shows its spinner at once. The `perf` project (`e2e/filters.spec.ts`) holds these to its budget: no task over 50 ms, no frame over 50 ms. The one known gap is the frame budget past 3,000 species, which is its own follow-up.
-- The About demo pauses off screen and in a hidden tab, and follows the site theme.
+- The About demo pauses off screen and in a hidden tab, and follows the site theme. A quiet "Pause" text button beside its credit stops the loop (WCAG 2.2.2), showing the still frame, until "Play" starts it afresh. About's reading text is sized in rem (prose 1.0625rem, credits .9375rem), so a raised default font size reads larger.
 
 ## Iconography
 

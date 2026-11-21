@@ -67,8 +67,8 @@ and the whole figure under reduced motion.
 ## Shows at once (2026-11-06)
 
 - HowItWorksPoster is server-rendered in the slot's fixed height: both designs in the HTML, the slot's width picking
-  one (a container query, the stage's own 560 px rule) and scaling it (calc(100cqw / 720px) where the browser divides
-  lengths, Chromium and WebKit; a measured --k in Firefox). Layout and text are there with the HTML.
+  one (a container query, the stage's own 560 px rule) and scaling it (tan(atan2(100cqw, 720px)), a unitless ratio
+  Chromium, WebKit and Firefox all compute; a measured --k only where it is missing). Layout and text are there with the HTML.
 - Stickers: every demo sticker is the 128 px file (stickerUrl with sv), so the poster's 24 files are small and shared
   by every state; the six biggest are preloaded from the head (react-dom preload) with a preconnect to the sticker
   host; the rest start as the poster's HTML parses. Each fades in as it loads (data-ld), set before hydration by the

@@ -854,6 +854,8 @@ export const de: Messages = {
     },
     demo: {
       credit: 'Sticker: <link>huashu-bird-sticker</link>, CC BY 4.0',
+      pause: 'Pausieren',
+      play: 'Abspielen',
       caption: 'Eine Animation von Everybird bei der Arbeit: Eine eBird-Exportdatei wird auf der Seite Optionen unter Deine Liste abgelegt, und ihre Zeilen werden gelesen; MyEBirdData ist verbunden und die Collage hat {total} Arten, alle aus eBird. Dann baut sich die Collage auf, und Sticker erscheinen rund um die Zahl, während sie bis {total} Arten hochzählt. Die Ordnung Reiher bringt die sechs Reiher in die Mitte; Alle Vögel in der Pfadleiste holt alle zurück. Teilen öffnet den Teilen-Dialog: das Bild mit den Stickern rund um {total} Arten, der neuesten Art und der Fußzeile, in den Formaten Story, Beitrag und Quadrat.',
     },
     search: {

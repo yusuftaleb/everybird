@@ -864,6 +864,8 @@ export const fr: Messages = {
     /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
     demo: {
       credit: 'Autocollants\u00a0: <link>huashu-bird-sticker</link>, CC BY 4.0',
+      pause: 'Mettre en pause',
+      play: 'Lire',
       caption: 'Une animation d’Everybird en action\u00a0: un fichier d’export eBird est déposé dans Réglages, sous Ta liste, et ses lignes sont lues\u00a0; MyEBirdData est connecté et le collage compte {total} espèces, toutes issues d’eBird. Puis le collage se construit, les autocollants arrivant autour du nombre qui monte jusqu’à {total} espèces. Choisir l’ordre Hérons place les six hérons au centre\u00a0; Tous les oiseaux, dans le fil d’Ariane, les ramène tous. Partager ouvre la fenêtre de partage\u00a0: l’image, avec les autocollants autour de {total} espèces, la dernière nouvelle espèce et la ligne de pied de page, aux formats Story, Post et Carré.',
     },
     /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */

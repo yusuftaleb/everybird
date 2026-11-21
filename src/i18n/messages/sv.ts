@@ -852,6 +852,8 @@ export const sv: Messages = {
     },
     demo: {
       credit: 'Klistermärken: <link>huashu-bird-sticker</link>, CC BY 4.0',
+      pause: 'Pausa',
+      play: 'Spela',
       caption: 'En animation av Everybird i arbete: en exportfil från eBird släpps på sidan Alternativ, under Din lista, och dess rader läses; MyEBirdData är anslutet och collaget har {total} arter, alla från eBird. Sedan byggs collaget upp, och klistermärken dyker upp runt siffran medan den räknar upp till {total} arter. Valet av ordningen Hägrar flyttar de sex hägrarna till mitten; Alla fåglar, i sökvägen, tar tillbaka alla. Dela öppnar delningsdialogen: bilden, med klistermärkena runt {total} arter, den senaste nya arten och sidfotsraden, i formaten Story, Inlägg och Kvadrat.',
     },
     search: {

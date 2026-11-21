@@ -27,10 +27,10 @@ const SIZE: Record<Layout, [number, number]> = { wide: [720, 470], compact: [358
  */
 export function HowItWorksPoster() {
   const box = useRef<HTMLDivElement>(null)
-  // Where CSS can't divide lengths (calc(100cqw / 720px)), the scale is measured once mounted.
+  // Where CSS can't make the ratio (tan(atan2(100cqw, 720px)), how-it-works.css), the scale is measured once mounted.
   useLayoutEffect(() => {
     const el = box.current
-    if (!el || CSS.supports('scale', 'calc(100cqw / 720px)')) return
+    if (!el || CSS.supports('scale', 'tan(atan2(100cqw, 720px))')) return
     const fit = () => {
       const w = el.clientWidth
       el.style.setProperty('--k', String(Math.min(2, w / (w < 560 ? 358 : 720))))
@@ -63,15 +63,17 @@ const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: redu
  * hidden) tells the same story in words. The slot's height is set in CSS for both designs (about.css), and the static
  * poster fills it from the first paint, so the figure never shows an empty box and nothing shifts. Once the figure is
  * in view (and its poster's stickers are in, or a few seconds have passed) the live stage mounts under the poster and
- * the poster fades away as the story starts; the stage pauses off screen and in a hidden tab. Under reduced motion the
- * poster is all there is.
+ * the poster fades away as the story starts; the stage pauses off screen and in a hidden tab, and a quiet Pause beside
+ * the credit stops it (its still frame) until Play. Under reduced motion the poster is all there is.
  */
 export function HowItWorksDemo() {
   const { t } = useI18n()
   preconnect(STICKER_BASE)
   for (const code of POSTER_STICKERS.slice(0, PRELOAD)) preload(demoStickerUrl(code), { as: 'image' })
   const slot = useRef<HTMLDivElement>(null)
-  const [Stage, setStage] = useState<ComponentType | null>(null)
+  const [Stage, setStage] = useState<ComponentType<{ paused?: boolean }> | null>(null)
+  // The viewer's Pause (WCAG 2.2.2: a loop that runs as long as it is on screen can be stopped); Play starts it afresh.
+  const [paused, setPaused] = useState(false)
   const [posterGone, setPosterGone] = useState(false)
   const [fading, setFading] = useState(false)
 
@@ -81,7 +83,7 @@ export function HowItWorksDemo() {
     let live = true
     let timer = 0
     // The live scene's code, fetched once the page has loaded (at an idle moment), so it never competes with the page.
-    const code = new Promise<ComponentType>((resolve) => {
+    const code = new Promise<ComponentType<{ paused?: boolean }>>((resolve) => {
       const go = () => void loadStage().then((m) => resolve(m.default))
       const idle = () => ('requestIdleCallback' in window ? window.requestIdleCallback(go, { timeout: 2000 }) : setTimeout(go, 200))
       if (document.readyState === 'complete') idle()
@@ -114,12 +116,20 @@ export function HowItWorksDemo() {
   return (
     <figure className="eb-howto">
       <div ref={slot} className="eb-howto-slot" aria-hidden="true" data-testid="howto-demo" data-live={Stage ? '' : undefined}>
-        {Stage && <Stage />}
+        {Stage && <Stage paused={paused} />}
         {!posterGone && <div className="eb-howto-poster" data-fading={fading || undefined}><HowItWorksPoster /></div>}
       </div>
-      <p className="eb-howto-credit">
-        {rich(t.demo.credit, { link: (chunk) => <a href="https://github.com/alchaincyf/huashu-bird-sticker" target="_blank" rel="noopener noreferrer">{chunk}</a> })}
-      </p>
+      <div className="eb-howto-foot">
+        <p className="eb-howto-credit">
+          {rich(t.demo.credit, { link: (chunk) => <a href="https://github.com/alchaincyf/huashu-bird-sticker" target="_blank" rel="noopener noreferrer">{chunk}</a> })}
+        </p>
+        {/* Only once the live stage runs (never under reduced motion, where the poster is all there is). */}
+        {Stage && (
+          <button type="button" className="eb-textbtn eb-howto-pause" onClick={() => setPaused(!paused)} data-testid="howto-pause">
+            {paused ? t.demo.play : t.demo.pause}
+          </button>
+        )}
+      </div>
       <figcaption className="eb-sr">{fmt(t.demo.caption, { total: formatInt(TOTAL, t.num) })}</figcaption>
     </figure>
   )

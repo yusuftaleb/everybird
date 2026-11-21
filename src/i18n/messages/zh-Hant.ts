@@ -851,6 +851,8 @@ export const zhHant: Messages = {
     },
     demo: {
       credit: '貼紙：<link>huashu-bird-sticker</link>，CC BY 4.0',
+      pause: '暫停',
+      play: '播放',
       caption: 'Everybird 運作的動畫：一個 eBird 匯出檔被拖放到「設定」的「你的清單」底下，它的資料列被讀取；MyEBirdData 已連結，拼貼有 {total} 種，全部來自 eBird。接著拼貼逐步成形，貼紙圍繞著數字出現，數字一路增加到 {total} 種。選擇「鷺類」這個目，六種鷺就移到中間；點導覽路徑中的「所有鳥類」，所有的鳥又回來了。「分享」會開啟分享對話框：圖片中貼紙圍繞著 {total} 種、最新鳥種和頁尾文字，有限時動態、貼文和方形三種格式。',
     },
     search: {

@@ -1047,6 +1047,9 @@ export const EN_UI = {
   /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
   demo: {
     credit: 'Stickers: <link>huashu-bird-sticker</link>, CC BY 4.0',
+    /** The demo's quiet text button beside its credit (WCAG 2.2.2): stops the loop; Play starts it again. */
+    pause: 'Pause',
+    play: 'Play',
     caption: 'An animation of Everybird at work: an eBird export file is dropped onto Settings, under Your list, and its rows are read; MyEBirdData is connected and the collage has {total} species, all from eBird. Then the collage builds, stickers arriving around the count as it rolls up to {total} species. Choosing the Herons order brings the six herons into the middle; All birds, in the breadcrumb, brings everyone back. Share opens the share dialog: the image, with the stickers around {total} species, the latest lifer and the footer line, in the Story, Post and Square formats.',
   },
   /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */

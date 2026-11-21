@@ -864,6 +864,8 @@ export const nl: Messages = {
     /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
     demo: {
       credit: 'Stickers van <link>huashu-bird-sticker</link>, CC BY 4.0',
+      pause: 'Pauzeren',
+      play: 'Afspelen',
       caption: 'Een animatie van Everybird aan het werk: een eBird-exportbestand wordt op Instellingen gesleept, onder Je lijst, en de rijen worden gelezen; MyEBirdData is gekoppeld en de collage heeft {total} soorten, allemaal van eBird. Daarna bouwt de collage zich op, met stickers die rond het aantal verschijnen tot {total} soorten. Kies je de orde Reigers, dan komen de zes reigers in het midden; Alle vogels, in het kruimelpad, brengt iedereen terug. Delen opent het deelvenster: de afbeelding, met de stickers rond {total} soorten, de nieuwste soort en de voettekst, in de formaten Verhaal, Bericht en Vierkant.',
     },
     /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */

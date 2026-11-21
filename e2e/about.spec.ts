@@ -127,8 +127,7 @@ const SIZES = [
 ] as const
 
 for (const { layout, width, height } of SIZES) {
-  test(`How it works: the poster is in the page's HTML, the ${layout} design filling its slot, before any script runs`, async ({ browser, browserName }) => {
-    test.fixme(browserName === "firefox" && layout === "wide", "app: Firefox has no length ÷ length in calc, so how-it-works.css's @supports (scale: calc(100cqw / 720px)) fails and the no-script poster stays 720 × 470 in About's now wider (1088px) slot")
+  test(`How it works: the poster is in the page's HTML, the ${layout} design filling its slot, before any script runs`, async ({ browser }) => {
     // No stored state: setting it would need a script (Firefox waits on it forever with scripts off)
     const ctx = await browser.newContext({ viewport: { width, height }, javaScriptEnabled: false, storageState: { cookies: [], origins: [] } })
     const page = await ctx.newPage()

@@ -863,6 +863,8 @@ export const pl: Messages = {
     },
     demo: {
       credit: 'Naklejki: <link>huashu-bird-sticker</link>, CC BY 4.0',
+      pause: 'Wstrzymaj',
+      play: 'Odtwórz',
       caption: 'Animacja Everybird w działaniu: plik eksportu eBird zostaje upuszczony w Ustawieniach, w sekcji Twoja lista, a jego wiersze są wczytywane; MyEBirdData zostaje połączone, a kolaż ma {total} gatunków, wszystkie z eBird. Potem kolaż się buduje, a naklejki pojawiają się wokół licznika, który rośnie do {total} gatunków. Wybór rzędu Czaple przenosi sześć czapli na środek; Wszystkie ptaki w ścieżce nawigacji przywracają resztę. Udostępnij otwiera okno udostępniania: obraz z naklejkami wokół {total} gatunków, najnowszym gatunkiem i stopką, w formatach Relacja, Post i Kwadrat.',
     },
     search: {

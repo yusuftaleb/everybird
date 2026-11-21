@@ -476,8 +476,9 @@
 
 /* ---- The static poster (HowItWorksPoster): the stage's first frame, server-rendered ---- */
 /* Both designs are in the markup; the slot's width picks one (the stage's own rule: compact under 560px). Each is
-   scaled to the slot as the Stage does with fill (min(2, width / design width)), with CSS where the browser can divide
-   lengths and a measured --k otherwise. */
+   scaled to the slot as the Stage does with fill (min(2, width / design width)). The ratio is unitless with
+   tan(atan2(100cqw, 720px)), which every engine has (Firefox can't divide a length by a length in calc); a measured --k
+   stands in where even that is missing. */
 .ebd-poster { position: relative; width: 100%; container-type: inline-size; }
 .ebd-poster .ss-fit { position: relative; width: 100%; }
 .ebd-poster .ss-stage { position: absolute; left: 50%; top: 0; transform-origin: 50% 0; translate: -50% 0; scale: var(--k, 1); }
@@ -486,7 +487,7 @@
   .ebd-poster [data-poster="wide"] { display: none; }
   .ebd-poster [data-poster="compact"] { display: block; }
 }
-@supports (scale: calc(100cqw / 720px)) {
-  .ebd-poster [data-poster="wide"] .ss-stage { scale: min(2, calc(100cqw / 720px)); }
-  .ebd-poster [data-poster="compact"] .ss-stage { scale: min(2, calc(100cqw / 358px)); }
+@supports (scale: tan(atan2(100cqw, 720px))) {
+  .ebd-poster [data-poster="wide"] .ss-stage { scale: min(2, tan(atan2(100cqw, 720px))); }
+  .ebd-poster [data-poster="compact"] .ss-stage { scale: min(2, tan(atan2(100cqw, 358px))); }
 }

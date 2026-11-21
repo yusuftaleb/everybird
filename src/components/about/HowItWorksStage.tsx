@@ -151,7 +151,8 @@ function useSiteTheme(): 'light' | 'dark' {
   return theme
 }
 
-export default function HowItWorksStage() {
+/** `paused`: the About page's Pause (HowItWorksDemo): the stage shows its still frame until Play. */
+export default function HowItWorksStage({ paused = false }: { paused?: boolean }) {
   const theme = useSiteTheme()
   const [drag] = useState<Drag>(newDrag)
   const [script] = useState(() => makeScript(drag))
@@ -166,6 +167,7 @@ export default function HowItWorksStage() {
       script={script}
       theme={theme}
       cursor={{ at: REST }}
+      paused={paused}
       className="ebd"
     >
       {(s, _rect, layout) => <Scene s={s} layout={layout} drag={drag} />}

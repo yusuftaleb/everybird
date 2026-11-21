@@ -864,6 +864,8 @@ export const pt: Messages = {
     /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
     demo: {
       credit: 'Adesivos: <link>huashu-bird-sticker</link>, CC BY 4.0',
+      pause: 'Pausar',
+      play: 'Reproduzir',
       caption: 'Uma animação do Everybird em ação: um arquivo de exportação do eBird é solto em Ajustes, em Sua lista, e as linhas dele são lidas; o MyEBirdData é conectado e a colagem tem {total} espécies, todas do eBird. Depois a colagem se monta, com os adesivos chegando ao redor da contagem até {total} espécies. Escolher a ordem Garças leva as seis garças para o meio; Todas as aves, na trilha de navegação, traz todo mundo de volta. Compartilhar abre a janela de compartilhamento: a imagem, com os adesivos ao redor de {total} espécies, a última espécie nova e a linha do rodapé, nos formatos Story, Publicação e Quadrado.',
     },
     /** Item 9's smart search (DockSearch): the "Understood as" chips, their apply button and the seen-dates note. */

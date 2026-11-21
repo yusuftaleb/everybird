@@ -851,6 +851,8 @@ export const zhHans: Messages = {
     },
     demo: {
       credit: '贴纸：<link>huashu-bird-sticker</link>，CC BY 4.0',
+      pause: '暂停',
+      play: '播放',
       caption: '一段展示Everybird运作过程的动画：一个eBird导出文件被拖放到“设置”的“你的清单”下，文件中的行被逐一读取；MyEBirdData已连接，拼贴画有{total}种，全部来自eBird。接着拼贴画逐渐成形，贴纸围绕总数出现，数字一路增加到{total}种。选择“鹭”这个目，六种鹭移到中间；点面包屑中的“所有鸟”，所有鸟又回来了。“分享”打开分享对话框：图片中贴纸环绕着{total}种，还有最新加新和页脚行，有快拍、帖子和方形三种格式。',
     },
     search: {
