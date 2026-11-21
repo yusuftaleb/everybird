@@ -6,6 +6,8 @@ import { resolve } from 'node:path'
 import type { ListOrder } from '@/lib/list/list-order'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BirdCard, BirdFacts } from '@/components/collage/BirdCard'
+import { BirdTip } from '@/components/collage/BirdTip'
+import { STICKER_BASE } from '@/lib/sticker-url'
 import { ListView } from '@/components/collage/ListView'
 import type { ListEntry } from '@/lib/list/model'
 import { IUCN_COLORS } from '@/lib/species/iucn'
@@ -130,6 +132,45 @@ describe('BirdCard', () => {
     expect(left).toBeGreaterThanOrEqual(8)
     expect(left).toBeLessThanOrEqual(1000)
     anchor.remove()
+  })
+})
+
+describe('BirdCard sticker', () => {
+  it('the card shows the sticker in its box (384 and 1024 by density, decorative); a failed 1024 falls back to the 384 once', () => {
+    setWidth(1280)
+    const idx = buildSpeciesIndex([{ ...row('crowa', 'Alpha Crow', 1, 400), sv: 'ab12' }])
+    render(<BirdCard entry={entry('crowa')} species={idx} regions={regions} onClose={() => {}} />)
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-sticker')
+    const img = screen.getByTestId('card-sticker').querySelector('img')!
+    expect(img).toHaveAttribute('alt', '')
+    expect(img).toHaveAttribute('srcset', `${STICKER_BASE}/v1/384/crowa.ab12.webp 384w, ${STICKER_BASE}/v1/1024/crowa.ab12.webp 1024w`)
+    expect(img).toHaveAttribute('sizes', 'min(270px, calc(100vw - 46px))')
+    Object.defineProperty(img, 'currentSrc', { value: `${STICKER_BASE}/v1/1024/crowa.ab12.webp` })
+    fireEvent.error(img)
+    const again = screen.getByTestId('card-sticker').querySelector('img')!
+    expect(again).toHaveAttribute('src', `${STICKER_BASE}/v1/384/crowa.ab12.webp`)
+    expect(again).not.toHaveAttribute('srcset')
+    fireEvent.error(again)
+    expect(screen.getByTestId('card-sticker').querySelector('img')).toHaveAttribute('src', `${STICKER_BASE}/v1/384/crowa.ab12.webp`)
+  })
+  it('the sheet gives the box the phone width; no box for a species without a sticker; the hover tooltip has none', () => {
+    setWidth(390)
+    const { unmount } = render(<BirdCard entry={entry('crowa')} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.getByTestId('card-sticker').querySelector('img')).toHaveAttribute('sizes', 'calc(100vw - 46px)')
+    unmount()
+    const { unmount: u2 } = render(<BirdCard entry={entry('bigge')} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.queryByTestId('card-sticker')).toBeNull()
+    expect(screen.getByRole('dialog')).not.toHaveAttribute('data-sticker')
+    u2()
+    const wrap = { current: document.createElement('div') }
+    const { container } = render(<BirdTip entry={entry('crowa')} row={species.byCode.get('crowa')!} regions={regions} wrap={wrap} />)
+    expect(container.querySelector('[data-testid="card-sticker"], img')).toBeNull()
+  })
+  it('the box has a fixed height in both variants, so the card is placed right before the file loads', () => {
+    const css = readFileSync(resolve(__dirname, '../src/components/collage/card-list.css'), 'utf8')
+    expect(css).toMatch(/\.eb-card-sticker \{[^}]*height: 180px/)
+    expect(css).toMatch(/\[data-variant="sheet"\] \.eb-card-sticker \{ height: 230px; \}/)
+    expect(css).toMatch(/\.eb-card-sticker img \{[^}]*object-fit: contain/)
   })
 })
 

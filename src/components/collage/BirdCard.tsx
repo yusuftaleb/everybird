@@ -15,9 +15,11 @@ import { displayName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { albumSlug, albumUrl, loadAlbumSlugs } from '@/lib/bird-album'
+import { cardFallback, cardSrcSet } from '@/lib/sticker-url'
 import { IucnBadge } from './IucnPill'
 import { markLabel, Marks, marksOf } from './Marks'
 import './card-list.css'
+import './Sticker.css'
 
 /** The card's illustration link, handed to its actions (EditBird ends its Remove row with it); null when there is none. */
 export const CardEndLink = createContext<ReactNode>(null)
@@ -185,10 +187,12 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
       aria-modal={sheet ? true : undefined}
       aria-label={displayName(row)}
       data-variant={sheet ? 'sheet' : 'popover'}
+      data-sticker={row.st ? '' : undefined}
       tabIndex={-1}
       onKeyDown={trap}
     >
       <button type="button" className="eb-sr eb-card-close" onClick={onClose}>{t.card.close}</button>
+      {row.st && <CardSticker key={row.code} row={row} sheet={sheet} />}
       <BirdFacts entry={shown} row={row} regions={regions} sci={sci} statusTip />
       {!row.st && <p className="eb-card-note" data-testid="no-drawing">{t.card.noDrawing}</p>}
       {notes.length > 0 && <p className="eb-card-note">{notes.join(' · ')}</p>}
@@ -203,6 +207,35 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   return sheet ? (
     <div className="eb-card-scrim" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>{card}</div>
   ) : card
+}
+
+/**
+ * The card's sticker, large, on the card's paper: a fixed box (card-list.css: 180px tall in the popover, 230px in the
+ * sheet) reserved before the file loads, so place() measures the card right at once; the sticker contained in it, so a
+ * tall heron and a long loon both fit and never cover the words. The 384 or 1024 file by the screen's density
+ * (cardSrcSet); a failed 1024 falls back to the 384 once (cardFallback). Decorative: the name is the card's heading.
+ * Fades in on load as every sticker does (Sticker.css `img.eb-st`, instant under reduced motion).
+ */
+function CardSticker({ row, sheet }: { row: SpeciesRow; sheet: boolean }) {
+  const { src, srcSet } = cardSrcSet(row.code, row.sv)
+  const [fallback, setFallback] = useState<string | null>(null)
+  return (
+    <div className="eb-card-sticker" data-testid="card-sticker">
+      {/* Plain <img>: stickers come from the static stickers site, not the Next image optimizer. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        key={fallback ?? 'set'}
+        className="eb-st"
+        src={fallback ?? src}
+        srcSet={fallback ? undefined : srcSet}
+        sizes={fallback ? undefined : sheet ? 'calc(100vw - 46px)' : 'min(270px, calc(100vw - 46px))'}
+        alt=""
+        decoding="async"
+        onLoad={(e) => { e.currentTarget.dataset.ld = '' }}
+        onError={(e) => { if (!fallback) setFallback(cardFallback(e.currentTarget.currentSrc, row.code, row.sv)) }}
+      />
+    </div>
+  )
 }
 
 /**
