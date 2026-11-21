@@ -130,7 +130,7 @@ describe('store reducer', () => {
     const fresh = initialState()
     expect(s.list).toEqual([])
     expect(s.saved.records).toEqual(fresh.saved.records)
-    expect([s.filter, s.mode, s.view, s.listOrder]).toEqual([{}, 'even', 'collage', 'heaviest'])
+    expect([s.filter, s.mode, s.view, s.listOrder]).toEqual([{}, 'even', 'collage', 'newest'])
   })
 
   it('name sets Saved.name (trimmed to nothing when blank) and leaves the list alone', () => {

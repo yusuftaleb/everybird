@@ -1,4 +1,5 @@
-// The List view's sort (the controls bar's Sort menu): taxonomic, by lifer date either way, or by body mass either way.
+// The List view's sort (the controls bar's Sort menu): taxonomic (ListView adds family headings), by lifer date either
+// way (Newest first the default), or by body mass either way.
 // Pure, so the store, the resumed view and ListView share one list of values and one comparison.
 import type { SpeciesRow } from '../species/types'
 import type { ListEntry } from './model'
@@ -6,7 +7,7 @@ import type { ListEntry } from './model'
 /** In the menu's order. */
 export const LIST_ORDERS = ['family', 'newest', 'oldest', 'heaviest', 'lightest'] as const
 export type ListOrder = (typeof LIST_ORDERS)[number]
-export const DEFAULT_LIST_ORDER: ListOrder = 'heaviest'
+export const DEFAULT_LIST_ORDER: ListOrder = 'newest'
 
 /** A carried value read back: a known order as it is (the old `heaviest` and `lightest` included), else the default. */
 export const listOrderOf = (v: unknown): ListOrder => ((LIST_ORDERS as readonly unknown[]).includes(v) ? (v as ListOrder) : DEFAULT_LIST_ORDER)

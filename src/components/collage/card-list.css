@@ -75,6 +75,24 @@
 /* List view: LifeList's rows. thumb | name | mass | (spacer) | place | date, the date rightmost. Each row is its own
    grid, so no track sizes to its content (rows stay aligned). */
 .eb-list { list-style: none; margin: 8px 0 0; padding: 0; border-top: 1px solid var(--hairline); font-family: var(--font-body); animation: eb-card-in .24s cubic-bezier(.16, 1, .3, 1) both; }
+/* Family order (ListView FamilyHead): one heading per family over its rows, small, Muted and upper case, the family's
+   birds on the list at the right edge in the Tree's count (.eb-mono, 12px, tabular). Each heading sticks to the top while
+   its family scrolls (its group is its sticky range), below the top bar while that is shown (headroom.ts' data-hidden),
+   moving with it. Paper behind it so rows pass under; under the top bar on the z ladder. */
+.eb-list[data-grouped] { border-top: 0; }
+.eb-lgroup-rows { list-style: none; margin: 0; padding: 0; }
+.eb-lhead {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: baseline; gap: 16px; margin: 0; padding: 16px 4px 6px 0;
+  border-bottom: 1px solid var(--hairline); background: var(--paper); color: var(--muted);
+  font: 600 12px/1.3 var(--font-body); letter-spacing: .06em; text-transform: uppercase;
+  transition: top .2s var(--ease-ui);
+}
+:root:has(.eb-topbar:not([data-hidden])) .eb-lhead { top: var(--topbar-h); }
+.eb-lhead-name { min-width: 0; overflow-wrap: break-word; }
+.eb-lhead-name[lang="la"] { text-transform: none; font-style: italic; letter-spacing: 0; }
+.eb-lhead-count { flex: none; margin-left: auto; font-variant-numeric: tabular-nums; text-align: right; }
+@media (prefers-reduced-motion: reduce) { .eb-lhead { transition: none; } }
 .eb-lrow {
   border-bottom: 1px solid var(--hairline);
   content-visibility: auto;

@@ -4,8 +4,8 @@
 // DockPanelButton; round 6, Yusuf, 2026-11-20): Taxa (the taxonomy chips), Display (what changes how the view looks:
 // Collage and Tree only) and Filters, one panel open at a time (CollageView, dock-panels.ts); then the magnifier. In
 // Collage and Tree nothing else sits in the bar: their switches and choices are the Display panel's (DisplayPanel.tsx).
-// List and Map keep their few controls in the bar, before the panel buttons: the Sort menu (List: Family, Newest first,
-// Oldest first, Heaviest first, Lightest first; a dock button showing the current order and a caret, opening
+// List and Map keep their few controls in the bar, before the panel buttons: the Sort menu (List: Family (with family
+// headings, ListView), Newest first (the default), Oldest first, Heaviest first, Lightest first; a dock button showing the current order and a caret, opening
 // MenuSelect's small menu with its keyboard) and the Scientific switch (both; in Map it changes nothing on the map, so the setting can be changed from any view). The
 // magnifier turns the dock into the search field (DockSearch.tsx); everything else sits under it, inert, while it is
 // open. Under 820px of bar the controls and panel buttons take a second row of their own; under 1100px the views are

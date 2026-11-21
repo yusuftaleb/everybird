@@ -36,7 +36,7 @@ describe('listCompare', () => {
 describe('listOrderOf', () => {
   it('keeps every known order, the old heaviest and lightest included, and defaults the rest', () => {
     for (const o of LIST_ORDERS) expect(listOrderOf(o)).toBe(o)
-    expect(DEFAULT_LIST_ORDER).toBe('heaviest')
-    for (const v of [undefined, null, '', 'Heaviest', 'alphabetical', 3]) expect(listOrderOf(v)).toBe('heaviest')
+    expect(DEFAULT_LIST_ORDER).toBe('newest')
+    for (const v of [undefined, null, '', 'Heaviest', 'alphabetical', 3]) expect(listOrderOf(v)).toBe('newest')
   })
 })

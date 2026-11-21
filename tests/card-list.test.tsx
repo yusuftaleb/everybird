@@ -255,7 +255,7 @@ describe('ListView', () => {
     entry('tinyc'),
     entry('bigge'),
   ]
-  const names = () => screen.getAllByRole('listitem').map((li) => within(li).getByText(/^(Alpha|Beta|Gamma|Delta) /).textContent)
+  const names = () => [...document.querySelectorAll('.eb-lrow')].map((li) => within(li as HTMLElement).getByText(/^(Alpha|Beta|Gamma|Delta) /).textContent)
 
   function Harness({ onPick = () => {}, order = 'heaviest' }: { onPick?: (c: string) => void; order?: ListOrder }) {
     return <ListView entries={entries} species={species} regions={regions} order={order} onPick={onPick} />
@@ -283,6 +283,23 @@ describe('ListView', () => {
     expect(li).toHaveTextContent('2022')
     fireEvent.click(within(li).getByRole('button'))
     expect(onPick).toHaveBeenCalledWith('crowa', expect.any(HTMLElement))
+  })
+
+  it('Family puts one heading per family over its rows; the other orders have none', () => {
+    const fams = buildSpeciesIndex([
+      { ...row('a1', 'Alpha One', 1, 50), fam: 'Anatidae', famCom: 'Ducks' },
+      { ...row('a2', 'Alpha Two', 2, 900), fam: 'Anatidae', famCom: 'Ducks' },
+      { ...row('b1', 'Beta One', 3, 10), fam: 'Picidae', famCom: 'Woodpeckers' },
+    ])
+    const list = [entry('b1'), entry('a2'), entry('a1')]
+    const { rerender } = render(<ListView entries={list} species={fams} regions={regions} order="family" onPick={() => {}} />)
+    const heads = screen.getAllByRole('heading', { level: 2 })
+    expect(heads.map((h) => h.textContent)).toEqual(['Ducks2, 2 species', 'Woodpeckers1, 1 species'])
+    expect(heads[0].closest('li')!.querySelectorAll('.eb-lrow')).toHaveLength(2)
+    rerender(<ListView entries={list} species={fams} regions={regions} order="family" sci onPick={() => {}} />)
+    expect(screen.getAllByRole('heading', { level: 2 })[0]).toHaveAccessibleName('Anatidae, 2 species')
+    rerender(<ListView entries={list} species={fams} regions={regions} order="newest" onPick={() => {}} />)
+    expect(screen.queryByRole('heading')).toBeNull()
   })
 
   it('renders 5,000 rows', () => {

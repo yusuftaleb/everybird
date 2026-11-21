@@ -111,8 +111,8 @@ describe('writeResume / readResume', () => {
     expect(at({ massOrder: 'heaviest' })).toBe('heaviest')
     expect(at({ listOrder: 'newest' })).toBe('newest')
     expect(at({ listOrder: 'family', massOrder: 'lightest' })).toBe('family')
-    expect(at({ listOrder: 'alphabetical' })).toBe('heaviest')
-    expect(at({})).toBe('heaviest')
+    expect(at({ listOrder: 'alphabetical' })).toBe('newest')
+    expect(at({})).toBe('newest')
   })
 
   it('keeps valid region presets in collage filter and drops unknown ones', () => {

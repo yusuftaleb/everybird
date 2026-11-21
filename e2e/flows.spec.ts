@@ -239,7 +239,7 @@ for (const width of WIDTHS) {
       await expect(shownBirds(page)).toHaveCount(6);
       // The list view: one row per bird shown, the bar's Sort menu (and no Display button).
       await page.getByRole("button", { name: "List", exact: true }).click();
-      await expect(page.getByRole("button", { name: "Sort: Heaviest first" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Sort: Newest first" })).toBeVisible();
       await expect(page.getByTestId("display-button")).toHaveCount(0);
       await expect(page.locator(".eb-lrow")).toHaveCount(6);
       await page.getByRole("button", { name: "Collage", exact: true }).click();
