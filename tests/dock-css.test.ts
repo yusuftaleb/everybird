@@ -106,3 +106,75 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(topLevelRule(filtersCss, ".eb-status-row .eb-check-name")).toMatch(/white-space:\s*normal/);
   });
 });
+
+// Round 6 polish, item 7 (Yusuf, 2026-11-21): one even rhythm on the dock's right side. Every rule in app.css that
+// touches a right-side item or group is read with the at-rule it sits in, so a per-item padding, a group's own gap or a
+// margin between groups fails here at whichever breakpoint it is added.
+type Rule = { at: string; sel: string; body: string };
+function rules(source: string): Rule[] {
+  const text = source.replace(/\/\*[\s\S]*?\*\//g, "");
+  const out: Rule[] = [];
+  const walk = (src: string, at: string) => {
+    let i = 0;
+    while (i < src.length) {
+      const open = src.indexOf("{", i);
+      if (open < 0) break;
+      const head = src.slice(i, open).trim().split(";").pop()!.trim();
+      let depth = 0, j = open;
+      for (; j < src.length; j++) {
+        if (src[j] === "{") depth++;
+        if (src[j] === "}" && --depth === 0) break;
+      }
+      const inner = src.slice(open + 1, j);
+      if (head.startsWith("@")) walk(inner, head);
+      else out.push({ at, sel: head, body: inner });
+      i = j + 1;
+    }
+  };
+  walk(text, "top");
+  return out;
+}
+const decl = (body: string, prop: string) => [...body.matchAll(new RegExp(`(?:^|;)\\s*(${prop})\\s*:\\s*([^;]+)`, "g"))].map((m) => [m[1], m[2].trim()]);
+const RIGHT_ITEM = /\.eb-dock-(sw|dir|drop|find|sortwrap)\b|\.eb-dock-(tools|filters|end) \.eb-dock-tab\b/;
+const RIGHT_GROUP = /^\.eb-dock-(tools|filters|end)$/;
+
+describe("the dock's right side: one padding, one gap, at every breakpoint", () => {
+  const all = rules(css);
+
+  it("no right-side item sets its own side padding: only `.eb-dock-filters .eb-dock-tab` (var(--dock-px)) and the 44px magnifier's 0", () => {
+    const bad = all.flatMap((r) => r.sel.split(",").map((s) => s.trim()).filter((s) => RIGHT_ITEM.test(s)).flatMap((s) =>
+      decl(r.body, "padding(?:-inline|-left|-right)?").filter(() => !(s === ".eb-dock-filters .eb-dock-tab" && r.at === "top") && !(s === ".eb-dock-find" && r.at === "top"))
+        .map(([p, v]) => `${r.at} ${s} { ${p}: ${v} }`)));
+    expect(bad).toEqual([]);
+    expect(topLevelRule(css, ".eb-dock-filters .eb-dock-tab")).toMatch(/^\s*padding-inline: var\(--dock-px\);\s*$/);
+    // The magnifier: 44px with its 20px glyph leaves 12px a side, the wide bar's --dock-px.
+    expect(topLevelRule(css, ".eb-dock-find")).toMatch(/padding: 0; width: 44px/);
+    expect(topLevelRule(css, ".eb-dock-tab svg")).toMatch(/width: 20px/);
+  });
+
+  it("the groups' gaps are var(--dock-gap), the dock's column gap too, and no margin sits between groups", () => {
+    const bad = all.flatMap((r) => r.sel.split(",").map((s) => s.trim()).flatMap((s) => {
+      const out: string[] = [];
+      if (RIGHT_GROUP.test(s) || s === ".eb-dock") {
+        for (const [p, v] of decl(r.body, "(?:column-)?gap")) if (v !== "var(--dock-gap)" && !(s === ".eb-dock" && p === "gap" && v === "4px")) out.push(`${r.at} ${s} { ${p}: ${v} }`);
+      }
+      if (/^\.eb-dock-(tools|end)$/.test(s)) for (const [p, v] of decl(r.body, "margin(?:-left|-right|-inline)?")) out.push(`${r.at} ${s} { ${p}: ${v} }`);
+      return out;
+    }));
+    expect(bad).toEqual([]);
+    expect(topLevelRule(css, ".eb-dock-tools, .eb-dock-filters, .eb-dock-end")).toMatch(/gap: var\(--dock-gap\)/);
+  });
+
+  it("the breakpoints change only the two variables, on .eb-dock alone: 12/4, then 8/4 under 600px, then 4/2 under 330px", () => {
+    const set = all.flatMap((r) => decl(r.body, "--dock-(?:px|gap)").map(([p, v]) => ({ at: r.at, sel: r.sel, p, v })));
+    expect(set.every((d) => d.sel === ".eb-dock")).toBe(true);
+    const table = Object.fromEntries([...new Set(set.map((d) => d.at))].map((at) => [at, Object.fromEntries(set.filter((d) => d.at === at).map((d) => [d.p, d.v]))]));
+    expect(table).toEqual({
+      top: { "--dock-px": "12px", "--dock-gap": "4px" },
+      "@container (max-width: 599px)": { "--dock-px": "8px" },
+      "@media (max-width: 600px)": { "--dock-px": "8px" },
+      "@container (max-width: 540px)": { "--dock-px": "8px" },
+      "@container (max-width: 330px)": { "--dock-px": "4px", "--dock-gap": "2px" },
+    });
+  });
+});
