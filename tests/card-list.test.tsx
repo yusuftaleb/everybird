@@ -252,7 +252,6 @@ describe('BirdCard Red List pill', () => {
   }
   afterEach(() => {
     history.replaceState(null, '', '/')
-    sessionStorage.removeItem('everybird:variants')
   })
 
   it('the card shows the pill alone, under the mass: a button named "Red List: Vulnerable" with a toggletip', () => {

@@ -40,7 +40,7 @@ afterEach(() => {
   vi.restoreAllMocks()
   document.cookie = 'everybird-lang=; Max-Age=0; Path=/'
   history.replaceState(null, '', '/')
-  sessionStorage.clear() // rememberVariants keeps a ?v= for the tab
+  sessionStorage.clear()
 })
 
 const open = () => fireEvent.click(screen.getByRole('button', { name: /^ES, Idioma/ }))

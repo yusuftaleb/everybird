@@ -11,7 +11,6 @@ import { useEffect, useRef } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
 import { useAppPath } from '@/i18n/path'
 import { attachHeadroom } from '@/lib/headroom'
-import { rememberVariants } from '@/lib/variants'
 import { LanguageMenu } from './LanguageMenu'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -28,8 +27,6 @@ export function TopBar() {
   const { t } = useI18n()
   const ref = useRef<HTMLElement>(null)
   useEffect(() => (ref.current ? attachHeadroom(ref.current) : undefined), [])
-  // Preview variants: a `?v=` on any page load is remembered for the tab (src/lib/variants.ts).
-  useEffect(rememberVariants, [])
   return (
     <header ref={ref} className="eb-topbar" data-testid="topbar">
       <div className="eb-topbar-in">
