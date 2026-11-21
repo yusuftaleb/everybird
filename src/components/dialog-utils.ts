@@ -82,3 +82,14 @@ export function useFocusInAndBack(ref: RefObject<HTMLElement | null>, returnTo?:
     }
   }, [ref])
 }
+
+/** Brings `el` into view inside its nearest scrolling ancestor only (a panel's list or body), never the page: what
+ *  `scrollIntoView({ block: 'nearest' })` does, without scrolling the window when the panel itself is partly off screen. */
+export function revealInScroller(el: HTMLElement | null | undefined): void {
+  let box = el?.parentElement
+  while (box && !(box.scrollHeight > box.clientHeight && /auto|scroll/.test(getComputedStyle(box).overflowY))) box = box.parentElement
+  if (!el || !box || box === document.scrollingElement || box === document.body) return
+  const r = el.getBoundingClientRect(), b = box.getBoundingClientRect()
+  if (r.top < b.top) box.scrollTop -= b.top - r.top
+  else if (r.bottom > b.bottom) box.scrollTop += Math.min(r.bottom - b.bottom, r.top - b.top)
+}

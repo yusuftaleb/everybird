@@ -85,6 +85,8 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(pop).toMatch(/left:\s*0;\s*right:\s*0;\s*width:\s*auto/);
     // DockPanel sets --drop-max (dropRoom, tests/dock-row.test.ts); before it is measured, at most 70vh.
     expect(topLevelRule(filtersCss, ".eb-drop")).toMatch(/max-height:\s*var\(--drop-max, min\(70vh, 560px\)\)/);
+    // No scroll anchoring in the view: a chip row or a view changing height never scrolls the page under an open panel.
+    expect(topLevelRule(css, ".eb-view")).toMatch(/overflow-anchor:\s*none/);
     // Every panel opens 6px under the dock's bottom edge (DockPanel sets --dock-bottom), over the chip row.
     expect(topLevelRule(filtersCss, ".eb-drop")).toMatch(/top:\s*calc\(var\(--dock-bottom, 100%\) \+ 6px\)/);
     const list = topLevelRule(filtersCss, '.eb-drop[data-kind="filters"] .eb-fpanel-row .eb-places-scroll,\n.eb-drop[data-kind="filters"] .eb-fpanel-row [data-sec="status"] .eb-checklist');

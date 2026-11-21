@@ -15,7 +15,7 @@ import { CalendarBlank, CaretDown, GlobeHemisphereWest } from '@phosphor-icons/r
 import { createPortal } from 'react-dom'
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { CloseIcon, FilterLinesIcon } from '@/components/collage/icons'
-import { trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
+import { revealInScroller, trapTab, useEscapeCapture, useFocusInAndBack, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -255,7 +255,7 @@ export function FiltersPanel({ state, onChange, species, regions, sections, open
     const el = ref.current?.querySelector<HTMLElement>(`[data-testid="filter-panel-${open.at}"]`)
     if (!el) return
     el.focus({ preventScroll: true })
-    if (sheet) el.scrollIntoView?.({ block: 'nearest' })
+    if (sheet) revealInScroller(el) // inside the sheet's body, never the page
   }, [open, sheet])
 
   const n = filtersCount(filter)
@@ -423,7 +423,7 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
   }, [])
   const close = useCallback(() => setOpen(null), [])
   const returnFocus = useCallback(() => opener.current, [])
-  const onEmpty = useCallback(() => buttonRef.current?.focus(), [])
+  const onEmpty = useCallback(() => buttonRef.current?.focus({ preventScroll: true }), [])
   // The chips' scope: group, places, time (and its basis) and statuses; the taxonomy path has its own breadcrumb.
   // The same as the panel's Clear all: every filter, the taxonomy choice too.
   const onClearAll = useCallback(() => change(emptyFilter()), [change])

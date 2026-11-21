@@ -94,6 +94,8 @@ describe('controls bar', () => {
     const sort = screen.getByRole('button', { name: 'Sort: Newest first' })
     expect(sort).toHaveTextContent('Newest first')
     expect(sort).toHaveAttribute('aria-haspopup', 'menu')
+    // Scientific sits before the sort (round 6 polish).
+    expect(screen.getByTestId('dock-sci').compareDocumentPosition(sort) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const rowNames = () => [...document.querySelectorAll('.eb-lrow .eb-row-primary')].map((el) => el.textContent)
     expect(rowNames()).toEqual(['Yellow-rumped Warbler', 'American Robin', 'Gilded Flicker', 'Northern Flicker', 'Snow Goose'])
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull() // headings only in Family
@@ -265,6 +267,50 @@ describe('the bar\'s panels (round 6)', () => {
     openDisplay()
     fireEvent.pointerDown(screen.getByTestId('collage-stats'))
     expect(screen.queryByTestId('display-panel')).toBeNull()
+  })
+})
+
+// Round 6 polish: choosing anything never scrolls the page or moves an open panel.
+describe('nothing moves when something is chosen', () => {
+  const proto = HTMLElement.prototype
+  const offsetHeight = Object.getOwnPropertyDescriptor(proto, 'offsetHeight')!
+  afterEach(() => { Object.defineProperty(proto, 'offsetHeight', offsetHeight); vi.restoreAllMocks() })
+
+  it("every panel's top is the dock's bottom edge, whatever the chip row below the dock holds", () => {
+    // The dock 50px tall, everything else (the chip row included) 30px.
+    Object.defineProperty(proto, 'offsetHeight', { configurable: true, get(this: HTMLElement) { return this.classList.contains('eb-dock') ? 50 : 30 } })
+    render(<Harness />)
+    fireEvent.click(screen.getByTestId('filters-button'))
+    const panel = () => screen.getByTestId('filters-panel')
+    expect(panel().style.getPropertyValue('--dock-bottom')).toBe('50px')
+    fireEvent.click(screen.getAllByRole('checkbox')[0]) // a place: a chip appears under the dock
+    expect(screen.getByTestId('filter-chips')).toBeInTheDocument()
+    expect(panel().style.getPropertyValue('--dock-bottom')).toBe('50px')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    for (const open of [openTaxa, openDisplay]) {
+      open()
+      expect(document.querySelector<HTMLElement>('.eb-drop')!.style.getPropertyValue('--dock-bottom')).toBe('50px')
+      fireEvent.keyDown(document, { key: 'Escape' })
+    }
+  })
+
+  it('choosing (a place, its chip removed, a taxon, a switch, a sort) moves focus only with preventScroll', () => {
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus')
+    render(<Harness />)
+    fireEvent.click(screen.getByTestId('filters-button'))
+    fireEvent.click(screen.getAllByRole('checkbox')[0])
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.click(within(screen.getByTestId('filter-chips')).getAllByRole('button')[0]) // the last chip: focus goes back to Filters
+    pickOrder(/^Woodpeckers/)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    openDisplay()
+    fireEvent.click(screen.getByTestId('dock-true'))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'List' }))
+    fireEvent.click(screen.getByTestId('dock-sort'))
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitemradio', { name: 'Family' }))
+    expect(focus.mock.calls.length).toBeGreaterThan(0)
+    expect(focus.mock.calls.filter(([o]) => !o?.preventScroll)).toEqual([])
   })
 })
 

@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useReducer } from 'react'
-import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { fmt } from '@/i18n/core'
 import { es } from '@/i18n/messages/es'
@@ -15,6 +15,13 @@ vi.mock('@/lib/list/filters', async (importOriginal) => {
   return { ...actual, placeCounts: vi.fn(actual.placeCounts) }
 })
 
+// What the panel scrolls to: revealInScroller scrolls only the panel's own list (never the page), so the tests record it.
+vi.mock('@/components/dialog-utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/components/dialog-utils')>()
+  return { ...actual, revealInScroller: vi.fn() }
+})
+const { revealInScroller } = await import('@/components/dialog-utils')
+const revealed = () => vi.mocked(revealInScroller).mock.calls.map(([el]) => el)
 const { SEARCH_FROM } = await import('@/components/filters/Filters')
 const { FiltersDock } = await import('./filters-dock')
 const { initialState, makeReducer } = await import('@/lib/list/store')
@@ -296,20 +303,13 @@ describe('Places drills down: country, then state or province, then county', () 
     expect(screen.getByTestId('drill-c:CA')).toHaveFocus()
   })
 
-  it('a step back scrolls the drill button it focuses into view', () => {
+  it('a step back scrolls the drill button it focuses into view, inside the panel (never the page)', () => {
     vi.stubGlobal('innerWidth', 1000)
-    const scrolled: Element[] = []
-    const into = vi.fn(function (this: Element) { scrolled.push(this) })
-    Element.prototype.scrollIntoView = into
-    try {
-      render(<Harness />)
-      openFilters()
-      fireEvent.click(screen.getByTestId('drill-c:CA'))
-      fireEvent.click(within(screen.getByTestId('places-path')).getByRole('button', { name: 'All countries' }))
-      expect(scrolled.at(-1)).toBe(screen.getByTestId('drill-c:CA'))
-    } finally {
-      delete (Element.prototype as Partial<Element>).scrollIntoView
-    }
+    render(<Harness />)
+    openFilters()
+    fireEvent.click(screen.getByTestId('drill-c:CA'))
+    fireEvent.click(within(screen.getByTestId('places-path')).getByRole('button', { name: 'All countries' }))
+    expect(revealed().at(-1)).toBe(screen.getByTestId('drill-c:CA'))
   })
 
   it('Clear clears every level', () => {
@@ -341,10 +341,6 @@ describe('Places drills down: country, then state or province, then county', () 
   it('reopened, the panel starts at the selection\'s level: Capital checked opens on British Columbia\'s counties', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Harness />)
-    // jsdom has no scrollIntoView: record what is scrolled to (removed after the test).
-    const scrolled: Element[] = []
-    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this) }
-    onTestFinished(() => { delete (Element.prototype as Partial<Element>).scrollIntoView })
     openFilters()
     fireEvent.click(screen.getByTestId('drill-c:CA'))
     fireEvent.click(screen.getByTestId('drill-s:CA-BC'))
@@ -355,7 +351,7 @@ describe('Places drills down: country, then state or province, then county', () 
     expect(screen.getByTestId('places-path')).toHaveTextContent('All countries/Canada/British Columbia')
     expect(screen.getByTestId('place-k:CA-BC|Capital')).toBeChecked()
     expect(screen.getByTestId('place-all')).toHaveAccessibleName('All of British Columbia, 2 species')
-    expect(scrolled).toContain(screen.getByTestId('place-k:CA-BC|Capital'))
+    expect(revealed()).toContain(screen.getByTestId('place-k:CA-BC|Capital'))
     // A step back lands on the province's drill button, as from a drill.
     fireEvent.click(within(screen.getByTestId('places-path')).getByRole('button', { name: 'Canada' }))
     expect(screen.getByTestId('drill-s:CA-BC')).toHaveFocus()

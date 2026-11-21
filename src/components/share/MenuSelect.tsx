@@ -65,7 +65,7 @@ export function MenuSelect<T extends string | number>({ labelledBy, menuLabel, o
   const btn = useRef<HTMLButtonElement>(null)
   const close = (refocus: boolean) => {
     setOpen(false)
-    if (refocus) btn.current?.focus()
+    if (refocus) btn.current?.focus({ preventScroll: true })
   }
   const current = options.find((o) => o.value === value) ?? shown
   return (
@@ -135,7 +135,7 @@ export function MenuList<T extends string | number>({ id, label, options, value,
 
   useEffect(() => {
     const at = Math.max(0, options.findIndex((o) => o.value === value))
-    items()[at]?.focus()
+    items()[at]?.focus({ preventScroll: true }) // the menu is clamped into the window; opening it never scrolls the page
     escapeRef.current = () => onClose(true)
     const away = (e: PointerEvent) => {
       const target = e.target as Node
