@@ -315,8 +315,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await page.getByTestId("compare-submit").click();
       await expect(pills(page)).toHaveCount(6);
       await expect(chip(page, "need")).toBeVisible();
-      // Six lists: the flower, a petal each, and its middle.
-      await expect(page.getByTestId("compare-diagram").locator("circle.eb-compare-circle, circle.eb-compare-core")).toHaveCount(7);
+      // Six lists: a ring of six equal circles, one a list, and no middle of its own.
+      await expect(page.getByTestId("compare-diagram").locator("circle.eb-compare-circle")).toHaveCount(6);
+      await expect(page.getByTestId("compare-diagram").locator("circle.eb-compare-core")).toHaveCount(0);
     });
 
     test("Share opens the Share dialog on the comparison: What, the formats, Share image, Download and Copy link", async ({ page, context, baseURL, browserName }) => {
