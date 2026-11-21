@@ -38,6 +38,11 @@
 // The link encoder (and its ~111 KB species index) is a separate chunk, fetched when the dialog opens, so a Copy link
 // click awaits nothing slow (iOS drops the clipboard permission once a click handler waits on the network).
 // Share image and Download wait for the current render: they're disabled while it's busy, so a click has the PNG at hand.
+// The collage's preview is a canvas painted at the box's size (readyShareImage), and its full 2× PNG is encoded in idle
+// time once the preview shows (speed audit finding 8), so they wait for that too; in Print nothing encodes it. A failed
+// render keeps the last image dimmed under Try again, and Share or Download render it again; stickers drawn as outlines
+// are named, with Try again. Filters that leave no birds (and no goal) show "No birds match your filters." in the box,
+// and Share, Download and Make poster are off with that reason.
 // Every word is the UI language's (ui.share), the image's and the poster's too (the latest lifer's place in it, from
 // regionsIn); the credit line, the share text (SHARE_CREDIT), the download names and the link stay the same in every
 // language (a link carries no language).
@@ -45,7 +50,8 @@
 // its reason when there is none), the format (no orientation, no title field), Appearance and Transparent background; the
 // drawings are Compare's (CompareShare.draw), Copy link copies the comparison link (off over its limits, with the
 // reason), with the consent note beside it. Nothing from Compare is counted.
-// Changing the size, title or a choice, or closing the dialog cancels a poster make and drops a finished poster.
+// Changing the size, title or a choice, or closing the dialog cancels a poster make and drops a finished poster (the
+// status line says so: "The options changed. Make the poster again.").
 // Counted: poster_made (by size) when a make finishes, poster_downloaded (png|pdf) when a file is saved; link_copied
 // isn't, from the poster; the ZIPs aren't counted.
 import {

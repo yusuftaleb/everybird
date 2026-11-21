@@ -19,7 +19,8 @@
 //           footer: the Everybird wordmark and one
 //           quiet line beside it, the site, the sticker credit and the date the image was made
 //           ("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", stamp.ts; Geist Mono
-//           20px, Muted; on its own line under the wordmark where it does not fit beside it: placeCredit).
+//           20px, Muted; where it does not fit beside it, two lines under the wordmark at 22px, the site and the date,
+//           then the credit: placeCredit, FOOT_TWO; the poster's one line shrinks and takes a line of its own).
 //           The full credit, with the licence, travels in the share text.
 // The story keeps the story safe zones clear: nothing in the top 160px (the profile row; the title from 184) or the
 // bottom 156px (the reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1284 with
@@ -936,7 +937,7 @@ export type PreparedCard = {
   fonts: CardFonts
   /** The wordmark's width plus the gap before the footer line beside it. */
   brandW: number
-  /** The footer line's size, and whether it took its own line under the wordmark (placeCredit). */
+  /** The footer line's size, and whether it went under the wordmark (placeCredit; a share image's as `footerTwo`'s two lines). */
   credit: { size: number; below: boolean }
   /** How far the wordmark, the hairline and the latest lifer row move up when the footer line is below the wordmark. */
   shift: number
@@ -1123,9 +1124,9 @@ function cardFontsReady(d: CardDraft): Promise<void> {
 function placeFooter(d: CardDraft): PreparedCard {
   const { L, fonts: font, footerLine } = d
   // Footer, quiet: the wordmark, then one line on its baseline, the site, the sticker credit and the date stamp ("… ·
-  // Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", never truncated). If it doesn't fit there at 17px or more, it takes its
-  // own line under the wordmark at the bottom safe line, and the wordmark, the hairline and the latest lifer row move
-  // up by that line. Estimates without a DOM: Cabinet Grotesk 700 about 0.55 em a character, Geist Mono 0.6.
+  // Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", never truncated). If it doesn't fit there at 17px or more, a
+  // share image's takes two lines under the wordmark (FOOT_TWO: the site and the date, then the credit; a poster's one
+  // line), the last at the bottom safe line, and the wordmark, the hairline and the latest lifer row move up by them. Estimates without a DOM: Cabinet Grotesk 700 about 0.55 em a character, Geist Mono 0.6.
   const maxW = L.collage.w
   const measure = textMeasurer()
   const brandW = measure(font.brand(L.footer.size), L.footer.size, 'Everybird', 0.55) + 16
@@ -1186,7 +1187,7 @@ export async function prepareCard(opts: ShareImageOpts, scale = 1): Promise<Prep
 
 /**
  * The birds' lowest edge stays the card's gap (GAPS: `collage`, or `latest` above the latest lifer row) above
- * where the footer ended up: cardLayout keeps room for the lift it can foresee (a 1080-wide card's credit line, a portrait
+ * where the footer ended up: cardLayout keeps room for the lift it can foresee (a 1080-wide card's two footer lines, a portrait
  * poster's second foot line), and where placeFooter lifted the hairline further (a landscape poster whose latest lifer took
  * its own line), the collage is fitted again into the area that leaves, about its centre, as fitPack would (round 6, item 10).
  */
