@@ -430,11 +430,12 @@ export const maxTileFrac = (n: number) => (n <= 24 ? MAX_TILE_SHORT : MAX_TILE)
 /**
  * A small group (under SMALL_GROUP birds, round 6, item 12) is drawn as large as its frame allows: its largest sticker's
  * long side up to GROUP_TILE of the collage's shorter side (so one or two birds stay a sensible size beside the count),
- * at most GROUP_SIDE design units; tiles over the 384 files' sharp size draw from the 1024 file (with the 384 as fallback).
+ * at most GROUP_SIDE design units, never under the cap a longer list gets; tiles over the 384 files' sharp size draw from the 1024 file (with the 384 as fallback).
  */
 export const GROUP_TILE = 0.7, GROUP_SIDE = 640
 function tileCaps(format: CardFormat, n: number, collage: { w: number; h: number }): { maxTile: number; maxSide: number } {
-  if (n < SMALL_GROUP) return { maxTile: (GROUP_TILE * Math.min(collage.w, collage.h)) / collage.w, maxSide: GROUP_SIDE }
+  // Never under the cap it had (a lone bird on the wide desktop keeps its 512).
+  if (n < SMALL_GROUP) return { maxTile: Math.max(maxTileFrac(n), (GROUP_TILE * Math.min(collage.w, collage.h)) / collage.w), maxSide: Math.max(GROUP_SIDE, MAX_SIDE[format] ?? 440) }
   return { maxTile: maxTileFrac(n), maxSide: MAX_SIDE[format] ?? 440 }
 }
 /**
