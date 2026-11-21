@@ -396,7 +396,7 @@ export const de: Messages = {
       sharedTitle: '{n} Lebenslisten im Vergleich',
       paste: 'Füge den Everybird-Link eines Freundes ein',
       noList: 'Um mit {name} zu vergleichen, füge zuerst deine eigenen Vögel hinzu.',
-      showAll: 'Alle {n} zeigen',
+      seenBy: 'Gesehen von {names}',
       people: 'Listen in diesem Vergleich',
       remove: '{name} entfernen',
       withMine: 'Mit meiner vergleichen',

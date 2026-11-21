@@ -395,7 +395,7 @@ export const zhHant: Messages = {
       sharedTitle: '比較 {n} 份生涯清單',
       paste: '貼上朋友的 Everybird 連結',
       noList: '要和 {name} 比較，請先新增你自己的鳥。',
-      showAll: '顯示全部（{n}）',
+      seenBy: '看過的人：{names}',
       people: '這次比較的清單',
       remove: '移除 {name}',
       withMine: '和我的比較',

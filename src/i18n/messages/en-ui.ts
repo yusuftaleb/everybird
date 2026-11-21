@@ -490,7 +490,8 @@ export const EN_UI = {
     every: 'Every bird',
     birder: 'Birder {n}',
     empty: 'No birds in this group.',
-    showAll: 'Show all {n}',
+    /** A tile's dots, one per list that has the bird (Yet to see and Every bird): their accessible name. */
+    seenBy: 'Seen by {names}',
     /** The bars, one per list; a set-up row's remove button. */
     people: 'Lists in this comparison',
     remove: 'Remove {name}',

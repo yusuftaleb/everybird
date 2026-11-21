@@ -400,7 +400,7 @@ export const es: Messages = {
       sharedTitle: 'Comparación de {n} listas de vida',
       paste: 'Pega el enlace de Everybird de un amigo',
       noList: 'Para comparar con {name}, añade primero tus propias aves.',
-      showAll: 'Ver las {n}',
+      seenBy: 'Visto por {names}',
       people: 'Listas de esta comparación',
       remove: 'Quitar {name}',
       withMine: 'Comparar con la mía',

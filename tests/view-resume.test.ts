@@ -115,6 +115,13 @@ describe('writeResume / readResume', () => {
     expect(at({})).toBe('newest')
   })
 
+  it('keeps the Tree’s open marked branch: the genus and the groups with it', () => {
+    const store = fakeStore()
+    const filter = { order: 'Anseriformes', family: 'Anatidae', genus: 'Netta', with: ['Aythya'] }
+    mod.writeResume(store, { collage: { ...collage, filter, view: 'tree' } }, 1_000)
+    expect(mod.readResume(store, 1_000)!.slices.collage?.filter).toEqual(filter)
+  })
+
   it('keeps valid region presets in collage filter and drops unknown ones', () => {
     const store = fakeStore()
     store.m.set(KEY, JSON.stringify({

@@ -73,12 +73,29 @@ export function ranking(sizes: readonly number[]): number[] {
 }
 
 /** The sticker grid, the page's full width: tiles at least TILE_MIN px wide with TILE_GAP between, three to GRID_MAX
- *  across; GRID_ROWS rows show before "Show all". */
+ *  across. */
 export const TILE_MIN = 104
 export const TILE_GAP = 12
-export const GRID_ROWS = 3
 export const GRID_MAX = 10
 export const gridCols = (width: number): number => Math.min(GRID_MAX, Math.max(3, Math.floor((width + TILE_GAP) / (TILE_MIN + TILE_GAP))))
+
+const ones = (m: number) => { let k = 0; for (; m; m &= m - 1) k++; return k }
+/**
+ * The birds by family (round 6, item 12): `codes` in taxonomic order, grouped by `famOf` in the order each family first
+ * comes; inside a family the birds most lists have first (by `mask`, their lists), then as given.
+ */
+export function byFamily(codes: readonly string[], famOf: (code: string) => string, mask: (code: string) => number): { fam: string; codes: string[] }[] {
+  const out = new Map<string, string[]>()
+  for (const c of codes) {
+    const f = famOf(c)
+    const g = out.get(f)
+    if (g) g.push(c)
+    else out.set(f, [c])
+  }
+  return [...out].map(([fam, cs]) => ({ fam, codes: cs.map((c, i) => [c, ones(mask(c)), i] as const).sort((a, b) => b[1] - a[1] || a[2] - b[2]).map((x) => x[0]) }))
+}
+/** Whether a choice's birds come from different lists, so each tile shows whose they are: Yet to see and Every bird. */
+export const showsWho = (choice: Choice) => choice === 'need' || choice === 'every'
 
 /**
  * Whether the diagram's part `mask` (the birds on exactly those of `n` lists) is `choice`'s, so the diagram marks it

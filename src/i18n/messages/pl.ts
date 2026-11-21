@@ -399,7 +399,7 @@ export const pl: Messages = {
       sharedTitle: 'Porównanie list życia: {n}',
       paste: 'Wklej link Everybird od znajomego',
       noList: 'Najpierw dodaj swoje ptaki, aby porównać je z listą: {name}.',
-      showAll: 'Pokaż wszystkie ({n})',
+      seenBy: 'Widziany przez: {names}',
       people: 'Listy w tym porównaniu',
       remove: 'Usuń: {name}',
       withMine: 'Porównaj z moją',

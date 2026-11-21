@@ -49,7 +49,8 @@ function filterOf(v: unknown): Filter {
     const s = str(r[k], 64)
     if (s) f[k] = s
   }
-  for (const k of ['countries', 'provinces', 'counties'] as const) {
+  // `with`: a marked Tree row's other groups (its open branch), beside the deepest taxon.
+  for (const k of ['countries', 'provinces', 'counties', 'with'] as const) {
     const a = strings(r[k])
     if (a.length) f[k] = a
   }

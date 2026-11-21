@@ -1,14 +1,15 @@
-/* Compare with friends. One page head in both states (PageHead, as My birds: the title, a line; at its right the
-   set-up's Compare, then the comparison's Edit lists and Share in its place). The set-up sits on the page itself under
-   it, no box, at most 760px wide: a row per list (its colour dot, a name box, the link box, a remove button; the
-   birder's own row a quiet box in the link's place), then "Add a friend". The comparison: one row of chips, then the
+/* Compare with friends. One page head in both states (PageHead, as My birds: the title, a line; the set-up's head has
+   nothing at its right, the comparison's Edit lists and Share). The set-up sits on the page itself under it, no box,
+   the page's content width as the results: a row per list (its colour dot, a name box, the link box, a remove button;
+   the birder's own row a quiet box in the link's place, the remove column kept empty), then the foot, "Add a friend"
+   at its left and Compare at its right, its edge on the link boxes'. The comparison: one row of chips, then the
    circles and the bars side by side from 640px (stacked under it), then what is chosen, named, over its birds across
    the page. */
 
 /* A list's colour: a 12px dot (compare.ts listColor). */
 .eb-compare-dot { flex: none; display: block; width: 12px; height: 12px; border-radius: 50%; }
 
-.eb-compare-setup { container-type: inline-size; width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 8px; }
+.eb-compare-setup { container-type: inline-size; width: 100%; display: flex; flex-direction: column; gap: 8px; }
 /* The page head's title takes focus from Edit lists: a ring only when the keyboard put it there. */
 .eb-pagehead-title[tabindex]:focus { outline: none; }
 .eb-pagehead-title[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
@@ -40,6 +41,8 @@
 .eb-compare-remove svg { width: 18px; height: 18px; }
 @media (hover: hover) and (pointer: fine) { .eb-compare-remove:hover { color: var(--ink); background: var(--surface); } }
 .eb-compare-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; }
+/* Compare's right edge on the link boxes' (the remove column, 44px, and the row's 10px gap, left beside it), at every width. */
+.eb-compare-submit { margin-inline-start: auto; margin-inline-end: 54px; }
 /* An empty status line takes no room (no gap either), yet stays in the set-up, so its first message is announced. */
 .eb-compare-setup > .eb-status:empty { position: absolute; }
 .eb-compare-wait-note a { color: var(--accent); font-weight: 600; }
@@ -90,8 +93,8 @@
 .eb-compare-shown { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .eb-compare-shown-n { color: var(--muted); font-variant-numeric: tabular-nums; }
 /* Its birds: equal tiles, every sticker in the same box (the tile's width up to 104px, 4:3), contained, never cropped,
-   standing on the box's bottom; the name under it. */
-.eb-compare-birds-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; min-width: 0; }
+   standing on the box's bottom; the name under it; on Yet to see and Every bird, a dot per list that has it. They sit
+   under one heading per family, one family open at a time (FamilyAccordion). */
 .eb-compare-grid {
   list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 16px 12px;
 }
@@ -104,6 +107,8 @@
   max-width: 100%; font-size: 13px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
 }
+.eb-compare-who { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.eb-compare-who-dot { display: block; width: 8px; height: 8px; border-radius: 50%; }
 .eb-compare-birds-wait { min-height: 240px; }
 
 /* "Compare with mine" beside "Make yours" on a shared collage or comparison. */

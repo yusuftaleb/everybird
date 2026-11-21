@@ -13,7 +13,7 @@
 /** Scroll this far in one direction (px, summed over frames) before the bar hides or shows: no jitter. */
 export const HEADROOM_DELTA = 8
 
-type Bar = { el: HTMLElement; show: (instant?: boolean) => void }
+type Bar = { el: HTMLElement; show: (instant?: boolean) => void; quiet: (on: boolean) => void }
 const bars = new Set<Bar>()
 let holds = 0
 
@@ -43,6 +43,8 @@ export function attachHeadroom(el: HTMLElement): () => void {
   let focused = el.contains(document.activeElement)
   let y = s.lastY
   let raf = 0
+  // A scroll the page made to keep content in place (scrollQuietly): taken as the new position, no direction.
+  let quiet = false
 
   const write = () => {
     if (s.hidden) el.setAttribute('data-hidden', '')
@@ -50,6 +52,7 @@ export function attachHeadroom(el: HTMLElement): () => void {
   }
   const update = () => {
     raf = 0
+    if (quiet) { quiet = false; s = { ...s, lastY: Math.max(y, 0), acc: 0 }; return }
     const was = s.hidden
     s = nextHeadroom(s, y, { barH, maxY: docH - viewH, held: holds > 0 || focused })
     if (s.hidden !== was) write()
@@ -103,7 +106,7 @@ export function attachHeadroom(el: HTMLElement): () => void {
   window.addEventListener('resize', onResize, { passive: true })
   el.addEventListener('focusin', onFocusIn)
   el.addEventListener('focusout', onFocusOut)
-  const bar: Bar = { el, show }
+  const bar: Bar = { el, show, quiet: (on) => { quiet = on } }
   bars.add(bar)
   return () => {
     bars.delete(bar)
@@ -115,6 +118,18 @@ export function attachHeadroom(el: HTMLElement): () => void {
     el.removeEventListener('focusout', onFocusOut)
     el.removeAttribute('data-hidden')
   }
+}
+
+/**
+ * Scrolls the page by `dy` at once, leaving the bar as it is: a correction for content that moved under the reader
+ * (Compare's families closing above the one pressed), not the reader's own scroll.
+ */
+export function scrollQuietly(dy: number): void {
+  const y0 = window.scrollY
+  for (const b of bars) b.quiet(true)
+  window.scrollBy({ top: dy, behavior: 'instant' })
+  // Nothing moved (the page's end): no scroll event will come to take the flag.
+  if (window.scrollY === y0) for (const b of bars) b.quiet(false)
 }
 
 /**

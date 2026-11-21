@@ -394,7 +394,7 @@ export const sv: Messages = {
       sharedTitle: 'Jämförelse av {n} livslistor',
       paste: 'Klistra in en väns Everybird-länk',
       noList: 'Lägg först till dina egna fåglar för att jämföra med {name}.',
-      showAll: 'Visa alla {n}',
+      seenBy: 'Sedd av {names}',
       people: 'Listor i jämförelsen',
       remove: 'Ta bort {name}',
       withMine: 'Jämför med min',

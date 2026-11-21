@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import linkIndex from '../data/link-index.json'
 import {
-  barInChoice, choiceAt, choiceCodes, choiceWords, firstChoice, gridCols, groupPayload, joinNames, linksIn, listColor, listColorHex, memberships, partInChoice,
-  pasteRow, ranking, regionCounts, rowName, toggleList, type Choice, type CompareRow,
+  barInChoice, byFamily, choiceAt, choiceCodes, choiceWords, firstChoice, gridCols, groupPayload, joinNames, linksIn, listColor, listColorHex, memberships, partInChoice,
+  pasteRow, ranking, regionCounts, rowName, showsWho, toggleList, type Choice, type CompareRow,
 } from '@/lib/share/compare'
 import { SHARE_COLORS } from '@/lib/share/image'
 import { makeCompareLink } from '@/lib/share/make-link'
@@ -197,6 +197,20 @@ describe('choosing (the chips and the diagram)', () => {
     expect(gridCols(700)).toBe(6)
     expect(gridCols(1088)).toBe(9)
     expect(gridCols(1400)).toBe(10)
+  })
+  it('the birds by family: families as they first come, the birds most lists have first inside each, then as given', () => {
+    const fam: Record<string, string> = { a: 'F1', b: 'F1', c: 'F2', d: 'F1', e: 'F2' }
+    const mask: Record<string, number> = { a: 1, b: 3, c: 1, d: 7, e: 4 }
+    expect(byFamily(['a', 'b', 'c', 'd', 'e'], (x) => fam[x], (x) => mask[x])).toEqual([
+      { fam: 'F1', codes: ['d', 'b', 'a'] },
+      { fam: 'F2', codes: ['c', 'e'] },
+    ])
+    expect(byFamily([], (x) => x, () => 0)).toEqual([])
+  })
+  it('who has each bird shows only where the birds come from different lists: Yet to see and Every bird', () => {
+    expect(showsWho('need')).toBe(true)
+    expect(showsWho('every')).toBe(true)
+    expect([1, 2, 3, 7].map(showsWho)).toEqual([false, false, false, false])
   })
   it('each list’s colour: the tokens in CSS, the same mix in hex for the card, six apart', () => {
     expect([0, 1, 2, 3].map(listColor)).toEqual(['var(--accent)', 'var(--ink)', 'var(--line)', 'color-mix(in srgb, var(--accent) 50%, var(--paper))'])

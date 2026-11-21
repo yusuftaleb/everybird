@@ -6,11 +6,12 @@ import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntry } from '@/lib/list/model'
 import {
-  barInChoice, choiceAt, choiceCodes, choiceWords, firstChoice, gridCols, GRID_ROWS, groupPayload, joinNames, listColor, partInChoice, ranking,
-  regionCounts, toggleList, type Choice,
+  barInChoice, byFamily, choiceAt, choiceCodes, choiceWords, firstChoice, gridCols, groupPayload, joinNames, listColor, memberships, partInChoice, ranking,
+  regionCounts, showsWho, toggleList, type Choice,
 } from '@/lib/share/compare'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
+import type { CompareShown } from '@/lib/share/compare-store'
 import { shareTitle } from '@/lib/share/og'
 import { diagramLayout, maskAt, type Diagram } from '@/lib/share/venn'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
@@ -19,6 +20,7 @@ import { useLoadNames, useNames } from '@/lib/species/use-names'
 import type { CompareShare } from '@/components/share/dialog-options'
 import { Sticker } from '@/components/collage/Sticker'
 import { Chip } from '@/components/filters/Chip'
+import { FamilyAccordion } from '@/components/collage/FamilyAccordion'
 import './compare.css'
 
 /** Each list's name in the comparison: its title, else "Birder 2" by its place in the comparison. */
@@ -38,14 +40,19 @@ const byTaxon = (codes: readonly string[], species: SpeciesIndex) =>
  * A comparison's state: what is shown (`choice`: Yet to see, Every bird, or the birds on exactly the people chosen) and
  * `draw`, the Share dialog's two pictures (the comparison card and the wish list). `lists`: two or more (fewer: nothing
  * to show). `you`: the first list is the viewer's own (it opens on Yet to see and offers the wish list). Each list's
- * name is its title (listLabels). Reads and writes nothing of the saved list.
+ * name is its title (listLabels). `keep`: the choice held by the caller (Compare keeps it on the device), else here.
+ * Reads and writes nothing of the saved list.
  */
-export function useComparison(lists: readonly SharePayload[], { you = false }: { you?: boolean } = {}) {
+export function useComparison(
+  lists: readonly SharePayload[],
+  { you = false, keep }: { you?: boolean; keep?: { pick: CompareShown | undefined; set: (p: CompareShown) => void } } = {},
+) {
   const { t } = useI18n()
   const [data, setData] = useState<{ species: SpeciesIndex } | null>(null)
   const [failed, setFailed] = useState(false)
   // The choice belongs to these lists (by their names and sizes): other lists (Edit lists) open on the first choice again.
-  const [pick, setPick] = useState<{ key: string; choice: Choice } | null>(null)
+  const [own, setOwn] = useState<CompareShown | undefined>()
+  const [pick, setPick] = keep ? [keep.pick, keep.set] : [own, setOwn]
   useEffect(() => {
     let live = true
     loadSpecies().then((species) => { if (live) setData({ species }) }, () => { if (live) setFailed(true) })
@@ -58,6 +65,7 @@ export function useComparison(lists: readonly SharePayload[], { you = false }: {
   const labels = listLabels(lists, t)
   const sizes = useMemo(() => lists.map(sizeOf), [lists])
   const counts = useMemo(() => regionCounts(lists), [lists])
+  const member = useMemo(() => memberships(lists), [lists])
   const drawKey = `${labels.join('\n')}\n${sizes.join(',')}`
   const choice: Choice = pick?.key === drawKey ? pick.choice : firstChoice(you)
   const choose = (c: Choice) => setPick({ key: drawKey, choice: c })
@@ -91,6 +99,15 @@ export function useComparison(lists: readonly SharePayload[], { you = false }: {
   const alt = masks.map(regionLabel).join(' ')
 
   const codes = data ? byTaxon(shown, data.species) : []
+  /** The chosen birds by family, taxonomic, the birds most lists have first inside each (byFamily). */
+  const families = useMemo(
+    () => (data ? byFamily(codes, (c) => data.species.byCode.get(c)!.fam, (c) => member.get(c) ?? 0) : []),
+    // codes is shown's and data's
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [shown, data, member],
+  )
+  /** The lists that have `code`, in their order. */
+  const listsOf = (code: string) => { const m = member.get(code) ?? 0; return labels.map((_, i) => i).filter((i) => m & (1 << i)) }
   // The wish list: the birds on the others' lists the viewer has yet to see.
   const canWish = ready && you && !!need?.length
   /** Why the wish list can't be made, once a comparison shows ('' when it can). */
@@ -113,7 +130,7 @@ export function useComparison(lists: readonly SharePayload[], { you = false }: {
 
   return {
     ready, data, failed, labels, sizes, counts, you, choice, choose, choiceLabel, regionLabel, shown, needCount: need?.length ?? 0, every,
-    alt, codes, canWish, wishReason, draw,
+    alt, codes, families, listsOf, canWish, wishReason, draw,
     /** What the drawings show, for the dialog: it draws again when this changes. */
     drawKey,
     wishAlt: need ? wishTitle(need.length) : '',
@@ -131,9 +148,11 @@ export function ListDot({ i }: { i: number }) {
  * lists; then Yet to see, with your own list, and Every bird), then, side by side from 640px, the circles (or the
  * flower) and the bars, both marking the choice; pressing a region of the circles chooses its people, outside them
  * every bird; a bar chooses that person alone. Under them the choice named with its count ("Kalvin & Kalin · 144")
- * over its birds as a sticker grid.
+ * over its birds by family (FamilyAccordion, one family open at a time, the first on arrival and on a new choice), each
+ * family a sticker grid; on Yet to see and Every bird each tile has a dot per list that has it. `sci`: families by
+ * their Latin names (the page's Scientific switch).
  */
-export function CompareResult({ c }: { c: Comparison }) {
+export function CompareResult({ c, sci = false }: { c: Comparison; sci?: boolean }) {
   const { t } = useI18n()
   const shownId = useId()
   if (c.failed) return <p className="eb-error eb-notice" role="alert">{t.collage.notices.loadFailed}</p>
@@ -161,8 +180,13 @@ export function CompareResult({ c }: { c: Comparison }) {
         </h2>
         {!c.data ? (
           <div className="eb-compare-birds-wait" aria-hidden="true" />
-        ) : c.codes.length ? (
-          <Grid key={String(c.choice)} codes={c.codes} species={c.data.species} />
+        ) : c.families.length ? (
+          <FamilyAccordion
+            families={c.families.map((f) => ({ key: f.fam, row: c.data!.species.byCode.get(f.codes[0])!, n: f.codes.length }))}
+            sci={sci} reset={`${c.drawKey}|${c.choice}`}
+          >
+            {(fam) => <Grid codes={c.families.find((f) => f.fam === fam)!.codes} species={c.data!.species} who={showsWho(c.choice) ? c : undefined} />}
+          </FamilyAccordion>
         ) : (
           <p className="eb-note" data-testid="compare-empty">{t.compare.empty}</p>
         )}
@@ -288,12 +312,12 @@ function Bars({ c }: { c: Comparison }) {
 }
 
 /**
- * The chosen birds as a grid of stickers, every one in the same box, contained and standing on its bottom, the name
- * under each: three to GRID_MAX across by the grid's width (gridCols), the first GRID_ROWS rows, then "Show all N".
+ * A family's chosen birds as a grid of stickers, every one in the same box, contained and standing on its bottom, the
+ * name under each: three to GRID_MAX across by the grid's width (gridCols), all of them. With `who`, under the name one
+ * 8px dot per list that has the bird, in the lists' colours and order, named "Seen by Sam & Ada".
  */
-function Grid({ codes, species }: { codes: readonly string[]; species: SpeciesIndex }) {
+function Grid({ codes, species, who }: { codes: readonly string[]; species: SpeciesIndex; who?: Pick<Comparison, 'labels' | 'listsOf'> }) {
   const { t } = useI18n()
-  const [all, setAll] = useState(false)
   const [cols, setCols] = useState(4)
   const ref = useRef<HTMLUListElement>(null)
   useEffect(() => {
@@ -303,28 +327,26 @@ function Grid({ codes, species }: { codes: readonly string[]; species: SpeciesIn
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  const first = cols * GRID_ROWS
   return (
-    <div className="eb-compare-birds-wrap">
-      <ul className="eb-compare-grid" style={{ '--cols': cols } as CSSProperties} ref={ref} data-testid="compare-birds">
-        {(all ? codes : codes.slice(0, first)).map((code) => {
+    <ul className="eb-compare-grid" style={{ '--cols': cols } as CSSProperties} ref={ref} data-testid="compare-birds">
+        {codes.map((code) => {
           const row = species.byCode.get(code)!
+          const on = who?.listsOf(code)
           return (
             <li key={code} className="eb-compare-tile">
               <span className="eb-compare-tile-pic" aria-hidden="true">
                 <Sticker code={row.code} st={row.st} ar={row.st && row.ar > 0 ? row.ar : 1} sv={row.sv} w={TILE_PIC[0]} h={TILE_PIC[1]} />
               </span>
               <span className="eb-compare-tile-name">{displayName(row)}</span>
+              {on && (
+                <span className="eb-compare-who" role="img" aria-label={fmt(t.compare.seenBy, { names: joinNames(on.map((i) => who!.labels[i])) })} data-testid="compare-who">
+                  {on.map((i) => <span key={i} className="eb-compare-who-dot" style={{ background: listColor(i) }} />)}
+                </span>
+              )}
             </li>
           )
         })}
-      </ul>
-      {!all && codes.length > first && (
-        <button type="button" className="eb-textbtn eb-compare-more" onClick={() => setAll(true)} data-testid="compare-more">
-          {fmt(t.compare.showAll, { n: formatInt(codes.length, t.num) })}
-        </button>
-      )}
-    </div>
+    </ul>
   )
 }
 /** Every tile's sticker box at its largest (CSS px; compare.css .eb-compare-tile-pic): the size the files are asked for. */

@@ -5,7 +5,8 @@ import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { payloadFromList } from '@/lib/share/convert'
-import { pasteRow, rowName, type CompareRow } from '@/lib/share/compare'
+import { linksIn, pasteRow, rowName, type CompareRow } from '@/lib/share/compare'
+import { readCompare, writeCompare, type CompareShown } from '@/lib/share/compare-store'
 import { takeHandOff } from '@/lib/share/compare-handoff'
 import { COMPARE_MAX, decodeCompare, decodeShare, encodeShare, NAME_MAX, type SharePayload } from '@/lib/share/link'
 import { makeCompareLink } from '@/lib/share/make-link'
@@ -20,25 +21,32 @@ import './compare.css'
 const ShareDialog = lazy(() => import('@/components/share/ShareDialog'))
 const NO_REGIONS: Regions = { v: 1, countries: {}, sub1: {} }
 
-/** The set-up as left: the friends' rows, the name given to the birder's own list, whether the comparison shows. */
-type Kept = { rows: CompareRow[]; mine?: string; open: boolean; next: number }
+/** The set-up as left: the friends' rows, the name given to the birder's own list, whether the comparison shows, the chips chosen. */
+type Kept = { rows: CompareRow[]; mine?: string; open: boolean; pick?: CompareShown; next: number }
 const fresh = (): Kept => ({ rows: [{ id: 0, text: '', list: null }], open: false, next: 1 })
-// The set-up outlives the page while the tab stays in the app (memory only, never storage): a visitor sent to add their
-// own birds first finds their friend's list waiting when they come back.
+// The set-up outlives the page: in memory while the tab stays in the app, and on this device (compare-store.ts,
+// localStorage, read once per page load) through a language switch, a refresh or a later visit. A visitor sent to add
+// their own birds first finds their friend's list waiting when they come back.
 let kept: Kept = fresh()
-/** Test hook: forget the set-up, as a new tab would. */
+let read = false
+/** Test hook: forget the set-up in memory, as a new page load would (what storage keeps stays). */
 export function forgetCompare(): void {
   kept = fresh()
+  read = false
 }
 const newId = () => kept.next++
+const keep = (k: Kept) => {
+  kept = k
+  writeCompare({ rows: k.rows.map((r) => (r.name === undefined ? { text: r.text } : { text: r.text, name: r.name })), mine: k.mine, open: k.open, pick: k.pick })
+}
 
 /**
  * /compare. One page head in both states (PageHead, as My birds: "Compare life lists" and a line), so going from the
- * set-up to the comparison changes only the line and the head's buttons. First the set-up, on the page itself (no box,
+ * set-up to the comparison changes only the line and the buttons (the set-up's head has none). First the set-up, on the page's width (no box,
  * the head's line "Paste your friends' Everybird links to see which birds you share. Up to 6 lists."), a
  * row per list (its colour dot, a name box, the link box, a remove button), the birder's own list first when there is
  * one (its name editable, "Your list · 1,092 species" for a link, no remove) and "Add a friend" (a row, up to COMPARE_MAX
- * lists in all); Compare sits at the head's right (where Share will be), waiting for two lists. A link fills its row's name with the name or
+ * lists in all) at the foot's left, Compare at its right (its edge on the link boxes'), waiting for two lists. A link fills its row's name with the name or
  * title it carries ("Birder 2" until one is typed, without); several links, or a comparison link (/c/), pasted at once
  * fill a row each (pasteRow), within the cap, with a note for the links that didn't open and the lists past it. The
  * names typed are the comparison's, its images' and its link's. Compare shows the comparison: My birds' page head
@@ -46,7 +54,8 @@ const newId = () => kept.next++
  * Share), then CompareResult (the chips, the circles and bars, the chosen birds). Share opens the site's Share dialog on the comparison
  * (CompareShare: the card or the wish list, Copy link with the comparison link). "Compare with mine" on a shared
  * collage or comparison hands its link over in sessionStorage (compare-handoff.ts), read once on arrival, and opens
- * the comparison with the birder's own list. Nothing goes in the URL (the beacon reports the address) or anywhere else.
+ * the comparison with the birder's own list, replacing what was kept. The set-up (rows, names, open, chips) is kept on
+ * this device only (compare-store.ts); nothing goes in the URL (the beacon reports the address) or leaves the device.
  */
 export function ComparePage() {
   const { t } = useI18n()
@@ -56,11 +65,13 @@ export function ComparePage() {
   // The name typed for the birder's own list (unset: the collage's title).
   const [mine, setMineState] = useState<string | undefined>(kept.mine)
   const [open, setOpenState] = useState(kept.open)
+  const [pick, setPickState] = useState(kept.pick)
   const [notes, setNotes] = useState<{ bad: number; over: number } | null>(null)
   const [sharing, setSharing] = useState(false)
-  const setRows = (r: CompareRow[]) => { kept = { ...kept, rows: r }; setRowsState(r) }
-  const setMine = (v: string) => { kept = { ...kept, mine: v }; setMineState(v) }
-  const setOpen = (v: boolean) => { kept = { ...kept, open: v }; setOpenState(v) }
+  const setRows = (r: CompareRow[]) => { keep({ ...kept, rows: r }); setRowsState(r) }
+  const setMine = (v: string) => { keep({ ...kept, mine: v }); setMineState(v) }
+  const setOpen = (v: boolean) => { keep({ ...kept, open: v }); setOpenState(v) }
+  const setPick = (p: CompareShown) => { keep({ ...kept, pick: p }); setPickState(p) }
 
   // The birder's own list: its row shows as soon as storage says there is one; it joins once its data is in.
   const you = !!data && state.list.length > 0
@@ -73,13 +84,31 @@ export function ComparePage() {
 
   useEffect(() => {
     const link = takeHandOff()
-    if (!link) return
-    // "Compare with mine": the link's lists, after the birder's own, replace the rows, and the comparison opens.
-    const r = pasteRow([{ id: newId(), text: '', list: null }], 0, link, COMPARE_MAX - 1, codec)
-    /* eslint-disable react-hooks/set-state-in-effect -- sessionStorage, read once on arrival, isn't there to prerender */
-    setRows(r.rows)
-    setNotes(r.bad || r.over ? r : null)
-    setOpen(true)
+    /* eslint-disable react-hooks/set-state-in-effect -- storage, read once on arrival, isn't there to prerender */
+    if (link) {
+      // "Compare with mine": the link's lists, after the birder's own, replace the rows (and what was kept), and the comparison opens.
+      const r = pasteRow([{ id: newId(), text: '', list: null }], 0, link, COMPARE_MAX - 1, codec)
+      read = true
+      keep({ rows: r.rows, mine: kept.mine, open: true, next: kept.next })
+      setRowsState(r.rows)
+      setOpenState(true)
+      setPickState(undefined)
+      setNotes(r.bad || r.over ? r : null)
+      return
+    }
+    if (read) return
+    read = true
+    // The set-up kept on this device: each row's text read again as it was pasted (one list a row, as pasteRow left it).
+    const s = readCompare()
+    if (!s) return
+    const rows = s.rows.map((r): CompareRow => ({
+      id: newId(), text: r.text, list: linksIn(r.text, decodeShare, decodeCompare).lists[0] ?? null, ...(r.name !== undefined ? { name: r.name } : {}),
+    }))
+    kept = { rows, mine: s.mine, open: s.open, pick: s.pick, next: kept.next }
+    setRowsState(rows)
+    setMineState(s.mine)
+    setOpenState(s.open)
+    setPickState(s.pick)
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [codec])
 
@@ -100,7 +129,7 @@ export function ComparePage() {
     // friends is rows'
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, you, data, state.list, mineName])
-  const c = useComparison(lists, { you })
+  const c = useComparison(lists, { you, keep: { pick, set: setPick } })
   const shown = open && c.ready
   const link = useMemo(() => (lists.length >= 2 ? makeCompareLink(lists, window.location.origin) : null), [lists])
 
@@ -167,7 +196,7 @@ export function ComparePage() {
               </button>
             </>}
           />
-          <CompareResult c={c} />
+          <CompareResult c={c} sci={state.sci} />
           {sharing && share && c.data && (
             <Suspense fallback={null}>
               <ShareDialog state={state} dispatch={dispatch} species={c.data.species} regions={data?.regions ?? NO_REGIONS} compare={share} onClose={() => setSharing(false)} />
@@ -176,19 +205,12 @@ export function ComparePage() {
         </>
       ) : (
         <>
-          {/* Compare at the head's right, where Share will be: the title wraps the same in both states, so nothing at the
-              top moves but the buttons. It submits the form below (Enter in a box too). */}
+          {/* The set-up's head: the title and its line only (round 6, item 11: Compare is the form's, at its foot). */}
           <PageHead
             key="setup"
             title={t.compare.title}
             lede={<span id={`${id}-note`}>{fmt(t.compare.note, { n: COMPARE_MAX })}</span>}
             titleRef={titleRef}
-            actions={<>
-              <button type="submit" form={`${id}-form`} className="eb-btn" disabled={lists.length < 2} aria-describedby={lists.length < 2 ? `${id}-wait` : undefined} data-testid="compare-submit">
-                {t.compare.submit}
-              </button>
-              <span id={`${id}-wait`} hidden>{t.compare.needMore}</span>
-            </>}
           />
           <form id={`${id}-form`} className="eb-compare-setup" onSubmit={(e) => { e.preventDefault(); if (lists.length >= 2) go(true) }} data-testid="compare-setup">
             <ul className="eb-compare-rows" data-testid="compare-rows">
@@ -248,6 +270,11 @@ export function ComparePage() {
                 <Plus aria-hidden="true" focusable="false" />
                 {t.compare.addFriend}
               </button>
+              {/* Compare at the foot's right, its edge on the link boxes' (Enter in a box submits too). */}
+              <button type="submit" className="eb-btn eb-compare-submit" disabled={lists.length < 2} aria-describedby={lists.length < 2 ? `${id}-wait` : undefined} data-testid="compare-submit">
+                {t.compare.submit}
+              </button>
+              <span id={`${id}-wait`} hidden>{t.compare.needMore}</span>
             </div>
           </form>
         </>
