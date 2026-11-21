@@ -9,6 +9,24 @@
 // (RADIAL_GAP), and its ages are written in that opening, where no branch runs (inOpening). Pure: no React, no DOM.
 import { CORNER, branchesOf, circlePath, type Drawing, type Leaf, type Node } from './tree'
 
+/**
+ * The least distance between two neighbouring tips' upright stickers' centres (in sticker boxes) so that none overlaps,
+ * the most any pair needs: two upright boxes are apart when they are apart across or up and down, and the line between
+ * neighbours runs at right angles to the radius between them (`mid(i)`: the angle between tips i and i + 1). `wrap`:
+ * the last tip and the first are neighbours too (a circle with no opening).
+ */
+export function uprightSpacing(spans: readonly LabelSpan[], mid: (i: number) => number, wrap: boolean): number {
+  const box = (sp: LabelSpan) => (sp.ar === undefined ? [0, 0] : sp.ar >= 1 ? [1, 1 / sp.ar] : [sp.ar, 1])
+  let most = 0
+  for (let i = 0; i < spans.length - (wrap && spans.length > 2 ? 0 : 1); i++) {
+    const [wa, ha] = box(spans[i]), [wb, hb] = box(spans[(i + 1) % spans.length])
+    const a = mid(i), across = Math.abs(Math.sin(a)), upDown = Math.abs(Math.cos(a))
+    const d = Math.min(across > 1e-9 ? (wa + wb) / 2 / across : Infinity, upDown > 1e-9 ? (ha + hb) / 2 / upDown : Infinity)
+    most = Math.max(most, d)
+  }
+  return most
+}
+
 /** From this width (px) the Tree view draws a fan unless a layout is picked (and only when every name fits); under it,
  *  rows. */
 export const FAN_FROM = 720
@@ -31,8 +49,8 @@ export type FanShape = 'fan' | 'circle'
 export type FanBox = { cx: number; cy: number; R: number; shape?: FanShape; open?: number }
 
 /** A tip's label measured at a name size of 1 (multiply by the size): its name's width, its count's (0: none), and
- *  whether the tip has a bird on the list. */
-export type LabelSpan = { name: number; count: number; on: boolean }
+ *  whether the tip has a bird on the list. `ar`: its sticker's aspect (width / height), absent when none is drawn. */
+export type LabelSpan = { name: number; count: number; on: boolean; ar?: number }
 /** The sizes a fit may use: the name's size and the smallest it may shrink to, the tips' dot radius, the radius's bounds,
  *  and the room under the fan's centre. `stFloor`: the smallest the sticker's box may get, in units of the name's size
  *  (LABEL_STICKER, the default, keeps it). `fill`: the labels' reach, not the centre, is centred in the width, so the
@@ -74,11 +92,15 @@ export function fitRound(spans: readonly LabelSpan[], shape: FanShape, room: { w
   // smallest type and sticker: past the width, no fit (and no search: a big rank, Down to's, answers at once).
   if (fill && 2 * Math.max(rMin, (floor * stFloor) / step - dot - floor * LABEL_GAP) > room.w) return undefined
   let st = LABEL_STICKER
+  const upright = uprightSpacing(spans, (i) => fanAngle(i + 1, n, shape, open), circle && !open)
   const ext = (px: number, i: number, count: boolean) => dot + px * (2 * LABEL_GAP + st + spans[i].name + (count && spans[i].count ? LABEL_GAP + spans[i].count : 0))
   // The radius the tips need (sticker boxes a box apart at their inner edge), and the most each tip allows: its label
   // inside the width (unless `fill`: then sides() decides) and, with a height, inside it (the circle centred, so half of
   // it each way).
-  const need = (px: number) => Math.max(rMin, (px * st) / step - dot - px * LABEL_GAP)
+  // The stickers are drawn upright, not turned with their labels: off the axes two neighbours' boxes need more than a
+  // box between them (up to √2 at 45°). `upright`: the most any two neighbours need between their centres, in boxes.
+  const need = (px: number) => Math.max(rMin, (px * st) / step - dot - px * LABEL_GAP,
+    (px * st * upright) / (2 * Math.sin(step / 2)) - dot - px * LABEL_GAP - (px * st) / 2)
   const bound = (px: number, i: number, count: boolean) => {
     const a = angles[i], c = Math.abs(Math.cos(a)), sn = Math.sin(a), half = (px * st) / 2
     let b = !fill && c > 1e-6 ? (room.w / 2 - half * Math.abs(sn)) / c : Infinity

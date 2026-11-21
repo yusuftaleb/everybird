@@ -270,6 +270,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     return tipsOf(view).map((r) => {
       const [name, latin] = r.kind === 'species' ? [sci ? r.row.sci : displayName(r.row), sci] : nameAt(r.row, view.tips)
       const c = tipOfText(r)
+      const st = r.kind === 'species' ? r.row : r.sticker
       // The mark of a split group, then right after it the groups inside (in the label's flex gap): "with" and "and"
       // upright, the names between <a> and <b> italic where they are Latin, as withText draws them.
       const withLatin = view.tips === 'genera' || sci
@@ -283,6 +284,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         name: (measure(name, 13, 600, false, latin) + (r.kind === 'group' && r.with ? MARK_W : 0) + other) / 13,
         count: c ? measure(c, 11, 500, true) / 13 : 0,
         on: r.kind === 'species' ? r.on : r.on > 0,
+        ...(st?.st ? { ar: st.ar > 0 ? st.ar : 1 } : {}),
       }
     })
   }, [view, width, measure, sci, nameAt, tipOfText, withWords])

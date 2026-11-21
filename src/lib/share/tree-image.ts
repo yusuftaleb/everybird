@@ -317,7 +317,8 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       }
       ctx.font = font.footer(100 * LABEL_COUNT)
       const c = countText(r)
-      return { name: nw, count: c ? ctx.measureText(c).width / 100 : 0, on: onOf(r) > 0, ...(lines ? { lines } : {}) }
+      const st = stickerOf(r)
+      return { name: nw, count: c ? ctx.measureText(c).width / 100 : 0, on: onOf(r) > 0, ...(st ? { ar: st.ar > 0 ? st.ar : 1 } : {}), ...(lines ? { lines } : {}) }
     })
     const shownSpans = spansOf(shown.tips, shown.nameOf)
     const want = shown.root ? at.layout ?? 'rows' : 'rows'

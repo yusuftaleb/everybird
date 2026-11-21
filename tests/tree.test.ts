@@ -713,3 +713,38 @@ describe('public/data/tree.v1.json', () => {
     }
   })
 })
+
+// Yusuf, 2026-11-21: on the Fan, neighbouring tips' stickers overlapped off the axes. They are drawn upright while
+// fitRound spaced their boxes as if turned with the labels; it now keeps upright boxes apart too.
+describe('upright stickers on the Fan and Radial', () => {
+  const apart = (fit: RoundFit, spans: LabelSpan[], shape: FanShape, wrap: boolean) => {
+    const n = spans.length, rc = fit.R + SCREEN_SIZES.dot + fit.px * LABEL_GAP + fit.st / 2
+    const box = (i: number) => {
+      const a = fanAngle(i + 0.5, n, shape, fit.open ?? 0), ar = spans[i].ar ?? 1
+      const [w, h] = ar >= 1 ? [fit.st, fit.st / ar] : [fit.st * ar, fit.st]
+      return { x: rc * Math.cos(a), y: -rc * Math.sin(a), w, h }
+    }
+    for (let i = 0; i < n - (wrap ? 0 : 1); i++) {
+      const p = box(i), q = box((i + 1) % n)
+      const ok = Math.abs(p.x - q.x) >= (p.w + q.w) / 2 - 1e-6 || Math.abs(p.y - q.y) >= (p.h + q.h) / 2 - 1e-6
+      expect(ok, `tips ${i} and ${i + 1}`).toBe(true)
+    }
+  }
+  for (const ar of [1, 1.6, 0.6]) {
+    it(`no two neighbours' stickers overlap at any angle (aspect ${ar})`, () => {
+      const spans: LabelSpan[] = Array.from({ length: 120 }, () => ({ name: 5, count: 0, on: true, ar }))
+      const fan = fitRound(spans, 'fan', { w: 4000 })!
+      apart(fan, spans, 'fan', false)
+      const circle = fitRound(spans, 'circle', { w: 4000 })!
+      apart(circle, spans, 'circle', true)
+    })
+  }
+  it('tips with no sticker are spaced as before', () => {
+    const plain: LabelSpan[] = Array.from({ length: 120 }, () => ({ name: 5, count: 0, on: true }))
+    const square = plain.map((sp) => ({ ...sp, ar: 1 }))
+    const a = fitRound(plain, 'fan', { w: 4000 })!, b = fitRound(square, 'fan', { w: 4000 })!
+    // 120 tips need more than FAN_R_MAX, so the radius is what the stickers need: a box apart, or more once upright.
+    expect(a.R).toBeCloseTo(a.st / (Math.PI / 120) - SCREEN_SIZES.dot - a.px * LABEL_GAP, 3)
+    expect(b.R).toBeGreaterThan(a.R * 1.3)
+  })
+})
