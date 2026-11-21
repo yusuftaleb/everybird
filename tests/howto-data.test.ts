@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { HOWTO_DATA, makeHowtoData } from '../scripts/build-data/build-howto'
 import { BIRDS, COLLAGE, FAMILIES, HERONS, SHARE, THREATENED, TOTAL } from '@/components/about/how-it-works-data'
-import { ORDERS } from '@/components/about/HowItWorksScene'
+import { ORDERS, TAXONOMY_ORDERS } from '@/components/about/HowItWorksScene'
 import { collageHole, touchesHole, type Rect } from '@/lib/layout/count-box'
 import { decodeMask, maskCell, type Mask } from '@/lib/layout/mask'
 import { relSizes, type PackBird } from '@/lib/layout/pack'
@@ -68,6 +68,10 @@ describe('the About demo', () => {
   it('counts the threatened birds (VU, EN, CR) the stats line shows from species.v1.json', () => {
     expect(THREATENED).toBe(BIRDS.filter((c) => { const iu = byCode.get(c)!.iu; return !!iu && THREAT_CATS.includes(iu) }).length)
     expect(THREATENED).toBe(1) // lesyel, VU
+  })
+
+  it("says the Taxa panel's head against the taxonomy's own order count (\"7 of 45 orders\")", () => {
+    expect(TAXONOMY_ORDERS).toBe(new Set(species.map((r) => r.ord)).size)
   })
 
   it('has chips whose counts add up to its total, each order a real one with a bird in the demo, Herons six', () => {

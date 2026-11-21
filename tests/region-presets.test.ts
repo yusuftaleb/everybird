@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PlacesDrill } from '@/components/filters/PlacesDrill'
+import { matchRows } from '@/components/filters/places-shared'
 import { withI18n } from './i18n-render'
 import { buildList } from '@/lib/list/build-list'
 import { filterChips, withoutFilterChip } from '@/lib/list/chips'
@@ -74,13 +75,24 @@ describe('REGION_PRESETS and regionsOfPlace', () => {
     for (const country of ['EG', 'TR', 'IR', 'IQ', 'IL', 'PS', 'JO', 'LB', 'SY', 'CY', 'QY', 'QZ', 'SA', 'AE', 'QA', 'BH', 'KW', 'OM', 'YE']) {
       expect(regionsOfPlace({ country })).toContain('me')
     }
-    expect(regionsOfPlace({ country: 'EG' })).toEqual(['me', 'northern-africa'])
-    expect(regionsOfPlace({ country: 'TR' })).toEqual(['me', 'western-asia'])
-    expect(regionsOfPlace({ country: 'IR' })).toEqual(['me', 'southern-asia'])
+    expect(regionsOfPlace({ country: 'EG' })).toEqual(['me', 'mena', 'northern-africa'])
+    expect(regionsOfPlace({ country: 'TR' })).toEqual(['me', 'mena', 'western-asia'])
+    expect(regionsOfPlace({ country: 'IR' })).toEqual(['me', 'mena', 'southern-asia'])
   })
 
-  it('covers all 22 UN M49 subregions plus latam and me', () => {
-    expect(REGION_PRESETS).toHaveLength(24)
+  it('puts every country of Middle East and of Northern Africa, and only those, in mena', () => {
+    for (const iso of Object.keys(CONTINENT_OF)) {
+      const regs = regionsOfPlace({ country: iso })
+      expect(regs.includes('mena'), iso).toBe(regs.includes('me') || regs.includes('northern-africa'))
+    }
+    expect(regionsOfPlace({ country: 'MA' })).toEqual(['mena', 'northern-africa'])
+    expect(regionsOfPlace({ country: 'SD' })).toEqual(['mena', 'northern-africa'])
+    expect(regionsOfPlace({ country: 'GR' })).not.toContain('mena')
+    expect(REGION_PRESETS.map((r) => r.id).indexOf('mena')).toBe(REGION_PRESETS.map((r) => r.id).indexOf('me') + 1)
+  })
+
+  it('covers all 22 UN M49 subregions plus latam, me and mena', () => {
+    expect(REGION_PRESETS).toHaveLength(25)
     expect(regionsOfPlace({ country: 'MA' })).toContain('northern-africa')
     expect(regionsOfPlace({ country: 'KE' })).toContain('eastern-africa')
     expect(regionsOfPlace({ country: 'CM' })).toContain('middle-africa')
@@ -118,6 +130,11 @@ describe('REGION_PRESETS and regionsOfPlace', () => {
     expect(regionsOfPlace({ country: 'US', sub1: 'US-GU' })).toEqual(['micronesia'])
     expect(regionsOfPlace({ country: 'US', sub1: 'US-MP' })).toEqual(['micronesia'])
     expect(regionsOfPlace({ country: 'US', sub1: 'US-UM' })).toEqual(['micronesia'])
+    expect(regionsOfPlace({ country: 'US', sub1: 'US-PR' })).toEqual(['latam', 'caribbean'])
+    expect(regionsOfPlace({ country: 'US', sub1: 'US-VI' })).toEqual(['latam', 'caribbean'])
+    const pr = [rec('sp-br', { date: '2020-02-01', place: { country: 'US', sub1: 'US-PR' }, seen: ['2020-02-01|US-PR'] })]
+    const keys = buildSeen(pr, EMPTY_EDITS, DEFAULT_RULES, buildList(pr, EMPTY_EDITS, DEFAULT_RULES)).byCode.get('sp-br')?.keys
+    expect(keys?.has('r:caribbean') && keys.has('r:latam') && !keys.has('r:northern-america')).toBe(true)
     for (const [sub1, cont] of Object.entries(SUB1_CONTINENT)) {
       const country = sub1.slice(0, 2)
       const regs = regionsOfPlace({ country, sub1 })
@@ -167,6 +184,35 @@ describe('overlapping presets and Places UI search', () => {
 
     fireEvent.click(screen.getByTestId('region-me'))
     expect(onFilter).toHaveBeenCalledWith({ regions: ['me'] })
+  })
+
+  it('finds regions by their short names (word start, any case or accent), region rows only', () => {
+    const rowsR = REGION_PRESETS.map((r) => ({ value: `r:${r.id}`, label: r.name }))
+    const ids = (q: string) => matchRows(rowsR, q).map((r) => r.value)
+    expect(ids('latam')).toEqual(['r:latam'])
+    expect(ids('LAC')).toEqual(['r:latam'])
+    expect(ids('la')).toEqual(['r:latam'])
+    expect(ids('Ména')).toEqual(['r:mena'])
+    expect(ids('sea')).toEqual(['r:south-eastern-asia'])
+    expect(ids('anz')).toEqual(['r:australia-nz'])
+    expect(ids('atam')).toEqual([])
+    expect(ids('middle east')).toEqual(['r:me', 'r:mena'])
+    // A country row whose value is not r: takes no alias.
+    expect(matchRows([{ value: 'c:BR', label: 'Brazil' }], 'latam')).toEqual([])
+  })
+
+  it('lists, counts, chips and labels mena like any region', () => {
+    const counts = placeCounts(list, {}, species, seen)
+    expect(counts.regions.get('mena')?.n).toBe(1)
+    expect(applyFilter(list, { regions: ['mena'] }, species, seen).map((e) => e.code)).toEqual(['sp-eg'])
+    const regions: Regions = { v: 1, countries: { EG: 'Egypt' }, sub1: {} }
+    expect(filterChips({ regions: ['mena'] }, regions, en.ui).map((c) => [c.token, c.label])).toEqual([['r:mena', 'Middle East & North Africa']])
+    expect(filterLabel({ regions: ['mena'] }, { species, countryName: (c) => c, regions }, en.ui)).toBe('Middle East & North Africa')
+    const state: AppState = { ...initialState(), list, seen }
+    render(createElement(PlacesDrill, { state, species, regions, onFilter: vi.fn() }), { wrapper: withI18n('en') })
+    fireEvent.change(screen.getByTestId('places-find'), { target: { value: 'mena' } })
+    expect(screen.getByTestId('region-mena')).toBeTruthy()
+    expect(screen.queryByTestId('region-me')).toBeNull()
   })
 
   it('keeps continent drill buttons during search and keeps flat=true on 1-continent lists with regions', () => {

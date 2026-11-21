@@ -17,10 +17,10 @@ const row = (code: string, to: number) => ({ code, com: code, sci: code, ord: 'S
 const species = buildSpeciesIndex(CODES.map((c, i) => row(c, i + 1)))
 // synbird0 is the latest lifer (the only 2024 date).
 const entries: ListEntry[] = CODES.map((code, i) => ({ code, date: i === 0 ? '2024-05' : '2020-05', place: { country: 'CA' }, heard: false, dead: false, media: false, sources: ['ebird'] }))
-// synbird0 small and at the very top (so its tile uses the 384 file, as the lifer's does at A1), the rest big and
-// stacked down the frame, away from the centre's count.
+// synbird0 small and at the very top (so its tile uses the 384 file at A1), the rest big and stacked down the frame,
+// away from the centre's count. The frame has the poster collage's shape (952 × 1319 design units), as packFrame's does.
 const pack: ImagePack = {
-  W: 1000, H: 1000,
+  W: 1000, H: 1385,
   boxes: new Map(CODES.map((c, i) => [c, i === 0 ? [470, 0, 40, 40] : [i % 2 ? 100 : 700, (i - 1) * 105, 200, 100]])),
 }
 const NOW = new Date(2026, 10, 15)
@@ -30,7 +30,7 @@ const MANY = Array.from({ length: 72 }, (_, i) => `synmany${i}`)
 const manySpecies = buildSpeciesIndex(MANY.map((c, i) => row(c, i + 1)))
 const manyEntries: ListEntry[] = MANY.map((code, i) => ({ code, date: i === 0 ? '2024-05' : '2020-05', place: { country: 'CA' }, heard: false, dead: false, media: false, sources: ['ebird'] }))
 const manyPack: ImagePack = {
-  W: 1000, H: 1000,
+  W: 1000, H: 1385,
   boxes: new Map(MANY.map((c, i) => [c, i < 48
     ? [20 + (i % 12) * 80, Math.floor(i / 12) * 30, 60, 25]
     : [100 + ((i - 48) % 4) * 220, 200 + Math.floor((i - 48) / 4) * 130, 120, 60]])),
@@ -226,26 +226,6 @@ describe('makePoster', () => {
     perStrip.pop()
     const all = [...c.tiles, ...(c.lifer ? [c.lifer] : [])]
     ranges.forEach((r, i) => expect(perStrip[i].sort()).toEqual(all.filter((t) => t.url && tileInRange(t, r)).map((t) => t.url!).sort()))
-  })
-
-  it('a URL shared by a collage tile at the top and the lifer at the bottom is fetched once, released after the lifer', async () => {
-    const c = await card('A1')
-    const top = c.tiles.find((t) => t.url === c.lifer!.url)!
-    expect(top).toBeDefined() // precondition: synbird0's collage tile and the lifer use the same 384 file
-    const { out } = spans(c, 'A1')
-    const [w, h] = PRINT_PX.A1, k = printScale('A1')
-    const strips = stripRanges(w, h, posterRows(w, k))
-    const lastOfTop = Math.max(...strips.flatMap((s, i) => (tileInRange(top, { y0: s.y / k, y1: (s.y + s.rows) / k }) ? [i] : [])))
-    const sp = out.get(top.url!)!
-    expect(lastOfTop).toBeLessThan(sp.last - 1) // the lifer's strip is well after the tile's
-    const s = fakeStickers()
-    let done = 0, releasedAt = -1
-    const release = s.stickers.release
-    s.stickers.release = (url) => { if (url === top.url) releasedAt = done; release(url) }
-    const { deps } = setup()
-    await makePoster(opts('A1'), (d) => { done = d }, { ...deps, stickers: s.stickers })
-    expect(s.gets.filter((u) => u === top.url)).toHaveLength(1)
-    expect(releasedAt).toBe(sp.last)
   })
 
   it('every strip transform has an integer f equal to -y; no canvas passes the iOS cap, even with a huge rows override', async () => {

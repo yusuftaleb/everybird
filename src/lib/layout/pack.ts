@@ -11,7 +11,7 @@
 // symmetrically about the count (fitStage): W is unchanged, H shrinks, every box moves up by the same amount.
 import { EXP, EXP_TRUE, GAP, MAXUP, SHAPE_REF } from './constants'
 import { NO_HOLE, collageHole, holeArea, holeExtent, rectGap, scaleHole, type Hole } from './count-box'
-import { CentreWalk, Grid, SPIRAL_T, captionCellMask, cellMask, coreMask, spiral, spiralFrom, type CellMask } from './grid'
+import { CentreWalk, Grid, SPIRAL_T, captionCellMask, cellMask, coreMask, spiral, spiralFrom, type CaptionRoom, type CellMask } from './grid'
 import { MASK, type Mask } from './mask'
 
 /** shape: the painted share of the bird's L x L square (maskShape of its mask when absent; the outline's for no sticker). */
@@ -62,30 +62,72 @@ function placementOrder(birds: PackBird[], rel: Map<number, number>): PackBird[]
 }
 
 /**
- * Place every bird at long side base · rel around the central hole; boxes, or null if one doesn't fit.
- * Birds spiral out from the stage centre, x stretched by `stretch` (packBest passes [x, y] scales, stretchAt).
- * With `targets` (id -> centre), each bird spirals from its own target with no stretch: true size is packed from the evened-out positions, so
- * switching modes is a short morph. With `dense`, every bird stamps only its silhouette, so neighbours keep one
- * GAP between them instead of two (see coreMask).
+ * The boundary a pack stays inside, as a superellipse exponent: 0 the stage's rectangle, 2 Oval's ellipse, CLOUD_P Free's
+ * rounded rectangle for a small list (true, as `oval` was, reads as 2).
  */
-export function pack(
-  birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
-  stretch: number, hole: Hole, targets?: Map<number, [number, number]>, cell = DEFAULT_CELL, dense = false,
-): Map<number, Box> | null {
-  return packGrid(birds, rel, W, H, base, stretch, hole, targets, cell, dense)?.boxes ?? null
+type Bound = number | boolean
+const boundP = (b: Bound) => (b === true ? 2 : b || 0)
+/** The share of the stage's area inside the bound. */
+const boundArea = (b: Bound) => { const p = boundP(b); return p === 2 ? Math.PI / 4 : p ? CLOUD_AREA : 1 }
+/** Free's cloud for a list too small to settle into one (round 6, item 11): it packs inside |u|^3 + |v|^3 <= 1. */
+const CLOUD_P = 3
+const CLOUD_AREA = 0.883 // Γ(1 + 1/3)² / Γ(1 + 2/3): the share of the rectangle inside it
+
+/** An empty grid with the count's hole marked and, for Oval or a small Free list, everything outside its bound. */
+function blankGrid(W: number, H: number, cell: number, hole: Hole, bound: Bound): Grid {
+  const grid = new Grid(W, H, cell)
+  grid.markHole(W / 2, H / 2, hole)
+  if (boundP(bound)) grid.markOutsideOval(W, H, boundP(bound))
+  return grid
+}
+
+const MOVES = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]] as const
+
+/**
+ * Slide a bird the spiral just placed at `at` (its mask's top-left cell, updated in place) one cell at a time to
+ * whichever free neighbouring position (of 8) is nearest the spiral's origin (ox, oy, in cells), measured in the
+ * spiral's own scale (sx, sy cells per spiral unit), until none is nearer. The spiral's points lie 13 to 20 layout
+ * units apart, so a bird stopped at the first one where it fits rarely touches its neighbours: big birds placed
+ * first left pockets between them that the later, smaller birds' spiral points missed. Slid, each bird rests GAP
+ * from the ones before it, and the next birds see the closed-up group. Every step is a collision test.
+ */
+function slideIn(grid: Grid, m: CellMask, at: [number, number], ox: number, oy: number, sx: number, sy: number): void {
+  const hx = m.pw / 2 - ox, hy = m.ph / 2 - oy
+  const dist = (gx: number, gy: number) => { const u = (gx + hx) / sx, v = (gy + hy) / sy; return u * u + v * v }
+  const xmax = grid.gw - m.pw, ymax = grid.gh - m.ph
+  let [gx, gy] = at, d = dist(gx, gy)
+  for (;;) {
+    let bx = -1, by = -1, bd = d
+    for (const [mx, my] of MOVES) {
+      const nx = gx + mx, ny = gy + my
+      if (nx < 0 || ny < 0 || nx > xmax || ny > ymax) continue
+      const nd = dist(nx, ny)
+      if (nd >= bd - 1e-9 || (m.probeX >= 0 && grid.get(nx + m.probeX, ny + m.probeY)) || grid.collides(m, nx, ny)) continue
+      bx = nx; by = ny; bd = nd
+    }
+    if (bx < 0) break
+    gx = bx; gy = by; d = bd
+  }
+  at[0] = gx; at[1] = gy
 }
 
 /** What settle() needs of each placed bird (its box is in Packed.boxes). */
 type Placed = { id: number; mask: Mask; w: number; h: number }
 type Packed = { boxes: Map<number, Box>; placed: Placed[] }
 
+/**
+ * Place every bird at long side base · rel around the central hole; its boxes, or null if one doesn't fit.
+ * Birds spiral out from the stage centre, x stretched by `stretch` (packBest passes [x, y] scales, stretchAt).
+ * With `targets` (id -> centre), each bird spirals from its own target with no stretch: true size is packed from the evened-out positions, so
+ * switching modes is a short morph. With `dense`, every bird stamps only its silhouette, so neighbours keep one
+ * GAP between them instead of two (see coreMask).
+ */
 function packGrid(
   birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
   stretch: number | readonly [number, number], hole: Hole, targets: Map<number, [number, number]> | undefined,
-  cell: number, dense: boolean, captions?: Map<number, { w: number; h: number }>,
+  cell: number, dense: boolean, captions?: Map<number, CaptionRoom>, oval: Bound = false, slide = true,
 ): Packed | null {
-  const grid = new Grid(W, H, cell)
-  grid.markHole(W / 2, H / 2, hole)
+  const grid = blankGrid(W, H, cell, hole, oval)
   const pad = Math.ceil(GAP / cell)
   const [kx, ky] = typeof stretch === 'number' ? [stretch, 1] : stretch
   const sx = (targets ? 1 : kx) / cell, sy = (targets ? 1 : ky) / cell
@@ -104,58 +146,77 @@ function packGrid(
     const L = Math.max(2, base * rel.get(b.id)!)
     const w = (L * b.mask.w) / MASK, h = (L * b.mask.h) / MASK
     const cap = captions?.get(b.id)
-    const { mask: m, offX } = cap
-      ? captionCellMask(b.mask, w, h, cap.w, cap.h, cell, pad, true)
-      : { mask: cellMask(b.mask, w, h, cell, pad), offX: 0 }
-    const at = walk ? walk.place(m) : spiralFrom(grid, m, sp, targets!.get(b.id) ?? [W / 2, H / 2], sx, sy, cell, lim)
+    const { mask: m, offX, offY } = cap
+      ? captionCellMask(w, h, cap, cell, pad, true)
+      : { mask: cellMask(b.mask, w, h, cell, pad), offX: 0, offY: 0 }
+    const origin = targets ? targets.get(b.id) ?? [W / 2, H / 2] : [W / 2, H / 2]
+    const at = walk ? walk.place(m) : spiralFrom(grid, m, sp, origin as [number, number], sx, sy, cell, lim)
     if (!at) return null
+    if (slide) slideIn(grid, m, at, origin[0] / cell, origin[1] / cell, sx, sy)
     const s = cap
-      ? (dense ? captionCellMask(b.mask, w, h, cap.w, cap.h, cell, pad, false).mask : m)
+      ? (dense ? captionCellMask(w, h, cap, cell, pad, false).mask : m)
       : (dense ? coreMask(b.mask, w, h, cell, pad) : m)
     grid.stamp(s, at[0], at[1])
-    boxes.set(b.id, [(at[0] + offX + pad) * cell, (at[1] + pad) * cell, w, h])
+    boxes.set(b.id, [(at[0] + offX + pad) * cell, (at[1] + offY + pad) * cell, w, h])
     placed.push({ id: b.id, mask: b.mask, w, h })
   }
   return { boxes, placed }
 }
+
+/** What settle walks the birds towards: Fit's rectangle, Free's rounded rectangle or Oval's ellipse (see settle). */
+type Settle = 'rect' | 'round' | 'oval'
 
 /**
  * Settle a dense collage (a big list, centre-packed), on a fresh grid of one layout unit per cell (the packer's
  * is 2, too coarse for small stickers): every bird is stamped there as its bare silhouette. Then each bird,
  * nearest the count first, is lifted and walked one unit at a time to the free neighbouring position (of 8) that
  * is most central, until none is, and put down; it is tested dilated by GAP, so it ends at least GAP from every
- * silhouette. "Central" is a rounded-rectangle distance (|dx|/ax)^8 + (|dy|/ay)^8 over the stage's half sizes,
- * so the outer birds close up towards the middle and the stage corners stay filled. This closes the gaps the
- * spiral's coarse steps (about 14 units between turns) leave between small stickers, which read as a loose
- * lattice at the edge; every step is a collision test, so it never makes an overlap. Deterministic.
+ * silhouette. "Central" is a distance over the stage's half sizes ax, ay (u = dx / ax, v = dy / ay) whose level lines
+ * are the shape the collage closes up into:
+ * - 'rect' (Fit): the rectangle's max(|u|, |v|), plus a thousandth of u² + v² so a bird against an edge still drifts
+ *   towards the middle instead of stopping anywhere along it. A corner bird is no further out than one on an edge, so
+ *   the corners stay filled and the edges straight (round 6: the rounded rectangle's corner birds were the outermost,
+ *   walked in first and moved into pockets first, so a big collage came out a soft cloud with empty corners).
+ * - 'round' (Free): the rounded rectangle u^8 + v^8.
+ * - 'oval' (Oval): the ellipse's u² + v².
+ * This closes the gaps the spiral's coarse steps (about 14 units between turns) leave between
+ * small stickers, which read as a loose lattice at the edge; every step is a collision test, so it never makes an
+ * overlap. Then (`fill`) fillPockets moves the outermost birds into the pockets still left inside. Deterministic.
  */
-function settle(p: Packed, W: number, H: number, hole: Hole): Map<number, Box> {
-  const grid = new Grid(W, H, 1)
-  grid.markHole(W / 2, H / 2, hole)
+function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill = true, keep?: UnitMasks, bound: Bound = shape === 'oval'): Map<number, Box> {
+  const oval = shape === 'oval'
+  const grid = blankGrid(W, H, 1, hole, bound)
   const pad = GAP
-  type Q = { id: number; m: CellMask; s: CellMask; gx: number; gy: number; w: number; h: number }
-  const todo: Q[] = []
+  const todo: Settling[] = []
   for (const q of p.placed) {
     const [x, y] = p.boxes.get(q.id)!
     const gx = Math.round(x) - pad, gy = Math.round(y) - pad
     const m = cellMask(q.mask, q.w, q.h, 1, pad)
     const s = coreMask(q.mask, q.w, q.h, 1, pad)
+    keep?.set(q.id, { m, s })
     grid.stamp(s, gx, gy)
     todo.push({ id: q.id, m, s, gx, gy, w: q.w, h: q.h })
   }
   const ax = W / 2, ay = H / 2
-  const dist = (q: Q, gx: number, gy: number) => {
-    const u = (gx + q.m.pw / 2 - ax) / ax, v = (gy + q.m.ph / 2 - ay) / ay
-    const u2 = u * u, v2 = v * v, u4 = u2 * u2, v4 = v2 * v2
-    return u4 * u4 + v4 * v4
-  }
-  const d0 = new Map(todo.map((q) => [q, dist(q, q.gx, q.gy)]))
-  todo.sort((a, b) => d0.get(a)! - d0.get(b)! || a.id - b.id)
-  const MOVES = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
-  for (const q of todo) {
-    grid.clear(q.s, q.gx, q.gy)
+  // Oval: the ellipse's own distance, so the birds close up evenly all round it (the rounded rectangle would draw them
+  // in from the ends of its axes and leave those empty).
+  const centrality = shape === 'rect'
+    ? (cx: number, cy: number) => {
+      const u = (cx - ax) / ax, v = (cy - ay) / ay
+      return Math.max(Math.abs(u), Math.abs(v)) + 1e-3 * (u * u + v * v)
+    }
+    : oval
+      ? (cx: number, cy: number) => { const u = (cx - ax) / ax, v = (cy - ay) / ay; return u * u + v * v }
+      : (cx: number, cy: number) => {
+        const u = (cx - ax) / ax, v = (cy - ay) / ay
+        const u2 = u * u, v2 = v * v, u4 = u2 * u2, v4 = v2 * v2
+        return u4 * u4 + v4 * v4
+      }
+  const dist = (q: Settling, gx: number, gy: number) => centrality(gx + q.m.pw / 2, gy + q.m.ph / 2)
+  // Walk a lifted bird inwards until no neighbouring position is more central and free.
+  const walkIn = (q: Settling) => {
     const xmax = grid.gw - q.m.pw, ymax = grid.gh - q.m.ph
-    let d = d0.get(q)!
+    let d = dist(q, q.gx, q.gy)
     for (let step = 0; step < 2000; step++) {
       let bx = -1, by = -1, bd = d
       for (const [mx, my] of MOVES) {
@@ -169,10 +230,130 @@ function settle(p: Packed, W: number, H: number, hole: Hole): Map<number, Box> {
       if (bx < 0) break
       q.gx = bx; q.gy = by; d = bd
     }
-    grid.stamp(q.s, q.gx, q.gy)
-    p.boxes.set(q.id, [q.gx + pad, q.gy + pad, q.w, q.h])
   }
+  const d0 = new Map(todo.map((q) => [q, dist(q, q.gx, q.gy)]))
+  todo.sort((a, b) => d0.get(a)! - d0.get(b)! || a.id - b.id)
+  for (const q of todo) {
+    grid.clear(q.s, q.gx, q.gy)
+    walkIn(q)
+    grid.stamp(q.s, q.gx, q.gy)
+  }
+  if (fill) fillPockets(grid, todo, centrality, walkIn)
+  for (const q of todo) p.boxes.set(q.id, [q.gx + pad, q.gy + pad, q.w, q.h])
   return p.boxes
+}
+
+/** Each bird's masks on a one-unit grid, tested (dilated by GAP) and stamped (bare): settle's, kept for lineEdges. */
+type UnitMasks = Map<number, { m: CellMask; s: CellMask }>
+
+/** A bird on settle's grid: its tested (dilated) and stamped (bare) masks, and its mask's top-left cell. */
+type Settling = { id: number; m: CellMask; s: CellMask; gx: number; gy: number; w: number; h: number }
+
+/**
+ * Fill the pockets settling leaves inside a dense collage: free room where a bird fits GAP from its neighbours (one
+ * opens when a bird walks inwards and nothing behind it can follow). The free space's chessboard distance D (to the
+ * nearest silhouette, the hole or the stage's edge) says where a bird may fit: only where D is at least the depth of
+ * its tested (dilated) mask's deepest cell, its pole. Outermost bird first, each bird tries those cells (every other
+ * one each way) that are more central than it, most central first, pole on the cell, each a collision test; at the first that fits it moves there
+ * (only ever inwards), walks inwards to rest against its neighbours, and D is brought up to date around it. So the
+ * loose birds at the outline's edge fill the holes inside it, and the edge evens out. Never makes an overlap.
+ * Deterministic (fixed orders, ties by id).
+ */
+function fillPockets(grid: Grid, qs: Settling[], centrality: (cx: number, cy: number) => number, walkIn: (q: Settling) => void): void {
+  const dist = (q: Settling, gx: number, gy: number) => centrality(gx + q.m.pw / 2, gy + q.m.ph / 2)
+  const gw = grid.gw, gh = grid.gh, wpr = grid.wpr, bits = grid.bits
+  const D = new Int32Array(gw * gh) // chessboard distance to the nearest occupied cell (the grid's border counts as one)
+  // The two passes of the chessboard distance over the window [x0, x1) x [y0, y1), from what D holds (so a window
+  // only ever lowers it: the whole grid once, then the room around each bird that moves).
+  const transform = (x0: number, y0: number, x1: number, y1: number) => {
+    for (let y = y0; y < y1; y++) {
+      for (let x = x0; x < x1; x++) {
+        const i = y * gw + x
+        if (bits[y * wpr + (x >> 5)] & (1 << (x & 31))) { D[i] = 0; continue }
+        D[i] = Math.min(D[i], 1 + (x && y && x < gw - 1 ? Math.min(D[i - 1], D[i - gw], D[i - gw - 1], D[i - gw + 1]) : 0))
+      }
+    }
+    for (let y = y1 - 1; y >= y0; y--) {
+      for (let x = x1 - 1; x >= x0; x--) {
+        const i = y * gw + x
+        if (D[i]) D[i] = Math.min(D[i], 1 + (x && y < gh - 1 && x < gw - 1 ? Math.min(D[i + 1], D[i + gw], D[i + gw + 1], D[i + gw - 1]) : 0))
+      }
+    }
+  }
+  D.fill(gw + gh)
+  transform(0, 0, gw, gh)
+  const probes = qs.map((q) => maskProbes(q.m))
+  let kmin = Infinity, kmax = 0
+  for (const [[, , k]] of probes) { kmin = Math.min(kmin, k); kmax = Math.max(kmax, k) }
+  const cells: number[] = []
+  // Every other cell each way: a bird that fits a pocket with a cell to spare is still found (and walks in after), at a
+  // quarter of the scanning.
+  for (let y = 0; y < gh; y += 2) for (let x = 0; x < gw; x += 2) if (D[y * gw + x] >= kmin) cells.push(y * gw + x)
+  const cen = new Float64Array(gw * gh)
+  for (const i of cells) cen[i] = centrality((i % gw) + 0.5, Math.floor(i / gw) + 0.5)
+  cells.sort((a, b) => cen[a] - cen[b] || a - b)
+  // The cells deep enough for a pole of depth k, most central first (D only drops later: each cell is checked again).
+  const lists = new Map<number, number[]>()
+  const deepFor = (k: number) => { let l = lists.get(k); if (!l) lists.set(k, (l = cells.filter((i) => D[i] >= k))); return l }
+  const order = qs.map((q, n) => ({ q, probe: probes[n], d: dist(q, q.gx, q.gy) })).sort((a, b) => b.d - a.d || a.q.id - b.q.id)
+  for (const { q, probe: [[px, py, k], ...more], d } of order) {
+    grid.clear(q.s, q.gx, q.gy)
+    let fit = false
+    next: for (const i of deepFor(k)) {
+      if (cen[i] >= d) break
+      if (D[i] < k) continue
+      const gx = (i % gw) - px, gy = Math.floor(i / gw) - py
+      if (gx < 0 || gy < 0 || gx + q.m.pw > gw || gy + q.m.ph > gh) continue
+      for (const [ox, oy, kk] of more) if (D[i + oy * gw + ox] < kk) continue next
+      if (dist(q, gx, gy) >= d || grid.collides(q.m, gx, gy)) continue
+      q.gx = gx; q.gy = gy; fit = true
+      break
+    }
+    if (fit) walkIn(q)
+    grid.stamp(q.s, q.gx, q.gy)
+    if (fit) transform(Math.max(0, q.gx - kmax), Math.max(0, q.gy - kmax), Math.min(gw, q.gx + q.m.pw + kmax), Math.min(gh, q.gy + q.m.ph + kmax))
+  }
+}
+
+/**
+ * Where a mask needs free room, for fillPockets' quick test: its pole (the cell deepest inside it, chessboard, as
+ * [x, y, depth], the depth 1-based: the square of side 2 · depth - 1 around it is all set) and the deepest cell in
+ * each outer third of it (left, right, top, bottom) as [x - pole x, y - pole y, depth]. Where the mask fits, D is at
+ * least each one's depth there.
+ */
+function maskProbes(m: CellMask): [pole: [px: number, py: number, k: number], ...more: [ox: number, oy: number, k: number][]] {
+  const { pw, ph, wpr, data } = m
+  const dd = new Int32Array(pw * ph)
+  for (let y = 0; y < ph; y++) {
+    for (let x = 0; x < pw; x++) {
+      if (!(data[y * wpr + (x >> 5)] & (1 << (x & 31)))) continue
+      const i = y * pw + x
+      dd[i] = 1 + (x && y && x < pw - 1 ? Math.min(dd[i - 1], dd[i - pw], dd[i - pw - 1], dd[i - pw + 1]) : 0)
+    }
+  }
+  for (let y = ph - 1; y >= 0; y--) {
+    for (let x = pw - 1; x >= 0; x--) {
+      const i = y * pw + x
+      if (dd[i]) dd[i] = Math.min(dd[i], 1 + (x && y < ph - 1 && x < pw - 1 ? Math.min(dd[i + 1], dd[i + pw], dd[i + pw + 1], dd[i + pw - 1]) : 0))
+    }
+  }
+  // The deepest cell (first in row order on a tie) of the part of the mask where `inside` holds.
+  const deepest = (inside: (x: number, y: number) => boolean): [number, number, number] => {
+    let bx = 0, by = 0, k = 0
+    for (let y = 0; y < ph; y++) for (let x = 0; x < pw; x++) if (dd[y * pw + x] > k && inside(x, y)) { k = dd[y * pw + x]; bx = x; by = y }
+    return [bx, by, k]
+  }
+  const [px, py, k] = deepest(() => true)
+  const more: [number, number, number][] = []
+  for (const part of [(x: number) => 3 * x < pw, (x: number) => 3 * x >= 2 * pw]) {
+    const [x, y, kk] = deepest((x) => part(x))
+    if (kk > 1) more.push([x - px, y - py, kk])
+  }
+  for (const part of [(y: number) => 3 * y < ph, (y: number) => 3 * y >= 2 * ph]) {
+    const [x, y, kk] = deepest((_, y) => part(y))
+    if (kk > 1) more.push([x - px, y - py, kk])
+  }
+  return [[px, py, k], ...more]
 }
 
 /**
@@ -249,48 +430,48 @@ export function detached(boxes: Map<number, Box>, k = DETACH): number[] {
  * clear. Repeated while that frees others (a bird that was blocked by one now moved). True size and small lists
  * leave a few: big birds placed first push small ones out along the spiral past the edge (the "stragglers").
  */
-function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions?: Map<number, { w: number; h: number }>): Map<number, Box> {
+function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions?: Map<number, CaptionRoom>, oval: Bound = false): Map<number, Box> {
   let loose = detached(boxes)
   if (!loose.length) return boxes
-  const grid = new Grid(W, H, 1)
-  grid.markHole(W / 2, H / 2, hole)
+  const grid = blankGrid(W, H, 1, hole, oval)
   const pad = GAP
   const byId = new Map(birds.map((b) => [b.id, b]))
-  const cores = new Map<number, { s: CellMask; offX: number }>()
-  const at = (id: number, offX = 0) => { const [x, y] = boxes.get(id)!; return [Math.round(x) - pad - offX, Math.round(y) - pad] as const }
+  type Off = { offX: number; offY: number }
+  const cores = new Map<number, { s: CellMask } & Off>()
+  const at = (id: number, o: Off = { offX: 0, offY: 0 }) => { const [x, y] = boxes.get(id)!; return [Math.round(x) - pad - o.offX, Math.round(y) - pad - o.offY] as const }
   for (const [id, [, , w, h]] of boxes) {
     const cap = captions?.get(id)
-    const { mask: s, offX } = cap
-      ? captionCellMask(byId.get(id)!.mask, w, h, cap.w, cap.h, 1, pad, false)
-      : { mask: coreMask(byId.get(id)!.mask, w, h, 1, pad), offX: 0 }
-    cores.set(id, { s, offX })
-    const [gx, gy] = at(id, offX)
+    const { mask: s, offX, offY } = cap
+      ? captionCellMask(w, h, cap, 1, pad, false)
+      : { mask: coreMask(byId.get(id)!.mask, w, h, 1, pad), offX: 0, offY: 0 }
+    cores.set(id, { s, offX, offY })
+    const [gx, gy] = at(id, { offX, offY })
     grid.stamp(s, gx, gy)
   }
-  const MOVES = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
   for (let round = 0; round < 4 && loose.length; round++) {
-    const d2 = (id: number, gx: number, gy: number, offX = 0) => {
+    const d2 = (id: number, gx: number, gy: number, o: Off) => {
       const [, , w, h] = boxes.get(id)!
-      const u = gx + offX + pad + w / 2 - W / 2, v = gy + pad + h / 2 - H / 2
+      const u = gx + o.offX + pad + w / 2 - W / 2, v = gy + o.offY + pad + h / 2 - H / 2
       return u * u + v * v
     }
-    loose.sort((a, b) => d2(a, ...at(a, cores.get(a)!.offX), cores.get(a)!.offX) - d2(b, ...at(b, cores.get(b)!.offX), cores.get(b)!.offX) || a - b)
+    loose.sort((a, b) => d2(a, ...at(a, cores.get(a)!), cores.get(a)!) - d2(b, ...at(b, cores.get(b)!), cores.get(b)!) || a - b)
     let moved = false
     for (const id of loose) {
       const [, , w, h] = boxes.get(id)!
       const cap = captions?.get(id)
-      const { s, offX } = cores.get(id)!
-      const m = cap ? captionCellMask(byId.get(id)!.mask, w, h, cap.w, cap.h, 1, pad, true).mask : cellMask(byId.get(id)!.mask, w, h, 1, pad)
-      let [gx, gy] = at(id, offX)
+      const o = cores.get(id)!
+      const { s } = o
+      const m = cap ? captionCellMask(w, h, cap, 1, pad, true).mask : cellMask(byId.get(id)!.mask, w, h, 1, pad)
+      let [gx, gy] = at(id, o)
       grid.clear(s, gx, gy)
       const xmax = grid.gw - m.pw, ymax = grid.gh - m.ph
-      let d = d2(id, gx, gy, offX)
+      let d = d2(id, gx, gy, o)
       for (let step = 0; step < 4 * (W + H); step++) {
         let bx = -1, by = -1, bd = d
         for (const [mx, my] of MOVES) {
           const nx = gx + mx, ny = gy + my
           if (nx < 0 || ny < 0 || nx > xmax || ny > ymax) continue
-          const nd = d2(id, nx, ny, offX)
+          const nd = d2(id, nx, ny, o)
           if (nd >= bd - 1e-9 || grid.collides(m, nx, ny)) continue
           bx = nx; by = ny; bd = nd
         }
@@ -298,12 +479,81 @@ function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number
         gx = bx; gy = by; d = bd; moved = true
       }
       grid.stamp(s, gx, gy)
-      boxes.set(id, [gx + offX + pad, gy + pad, w, h])
+      boxes.set(id, [gx + o.offX + pad, gy + o.offY + pad, w, h])
     }
     if (!moved) break
     loose = detached(boxes)
   }
   return boxes
+}
+
+/** spreadEven's passes over every bird, at most (it stops sooner once nothing moves). 32 since the pack slides its birds
+ *  together (slideIn): a frame whose size is capped (maxTile) starts tighter and takes more passes to even out. */
+const SPREAD_ROUNDS = 32
+
+/**
+ * Even out a frame's pack (packFrame: the share images and the posters), so the gaps are about the same everywhere and
+ * the birds fill the frame (or its oval) to its edge: no clumps, no holes, no empty corners. On a grid of one layout
+ * unit per cell, every bird is stamped as its bare silhouette (a captioned one as its box and its name's box, as
+ * gather; with `wide`, dilated by GAP as a loose pack stamps it, so neighbours stay two GAPs apart). Then, pass after pass, each bird is lifted and its free run measured in the four directions (how far it can
+ * go, tested dilated by GAP, before it meets another bird or a wall: the frame's edge, the count's hole, outside the
+ * oval). Along each axis it moves to the middle of its two runs, so it sits halfway between its neighbours; next to a
+ * wall, it moves right up to the wall instead, so the outer birds line the frame and the free room goes between birds.
+ * The free room so flows to where it is short until the gaps even out. Every move stays inside a measured free run, so
+ * it never makes an overlap; the order is fixed (by id, forwards then backwards), so the result is deterministic.
+ * `rounds`: at most this many passes (the page's lineEdges takes 3); `known`: masks already made (settle's), by bird.
+ */
+function spreadEven(
+  boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions: Map<number, CaptionRoom> | undefined, oval: boolean,
+  wide = false, rounds = SPREAD_ROUNDS, known?: UnitMasks,
+): Map<number, Box> {
+  // The walls alone, and the walls with every bird's core. No core overlaps a wall (the pack kept every bird GAP from them
+  // on a coarser, more cautious grid), so clearing a core never clears a wall.
+  const walls = blankGrid(W, H, 1, hole, oval)
+  const occ = blankGrid(W, H, 1, hole, oval)
+  const pad = GAP
+  const byId = new Map(birds.map((b) => [b.id, b]))
+  type Q = { id: number; s: CellMask; m: CellMask; gx: number; gy: number; offX: number; offY: number; w: number; h: number }
+  const qs: Q[] = []
+  for (const id of [...boxes.keys()].sort((a, b) => a - b)) {
+    const [x, y, w, h] = boxes.get(id)!
+    const cap = captions?.get(id)
+    const k = cap ? undefined : known?.get(id)
+    const m = k?.m ?? (cap ? captionCellMask(w, h, cap, 1, pad, true).mask : cellMask(byId.get(id)!.mask, w, h, 1, pad))
+    const { mask: s, offX, offY } = wide ? { mask: m, offX: 0, offY: 0 } : k ? { mask: k.s, offX: 0, offY: 0 }
+      : cap ? captionCellMask(w, h, cap, 1, pad, false) : { mask: coreMask(byId.get(id)!.mask, w, h, 1, pad), offX: 0, offY: 0 }
+    const q = { id, s, m, gx: Math.round(x) - pad - offX, gy: Math.round(y) - pad - offY, offX, offY, w, h }
+    occ.stamp(s, q.gx, q.gy)
+    qs.push(q)
+  }
+  // How far q can go from (gx, gy) by (dx, dy) steps, and whether a wall (not a bird) stops it.
+  const run = (q: Q, dx: number, dy: number): [steps: number, wall: boolean] => {
+    const xmax = occ.gw - q.m.pw, ymax = occ.gh - q.m.ph
+    for (let k = 1; ; k++) {
+      const x = q.gx + k * dx, y = q.gy + k * dy
+      if (x < 0 || y < 0 || x > xmax || y > ymax) return [k - 1, true]
+      if (occ.collides(q.m, x, y)) return [k - 1, walls.collides(q.m, x, y)]
+    }
+  }
+  // The move along one axis: to the wall when one side is a wall and the other a bird, else to the middle.
+  const shift = ([a, aWall]: [number, boolean], [b, bWall]: [number, boolean]) => (aWall && !bWall ? -a : bWall && !aWall ? b : Math.trunc((b - a) / 2))
+  for (let round = 0; round < rounds; round++) {
+    let moved = 0
+    for (let i = 0; i < qs.length; i++) {
+      const q = qs[round % 2 ? qs.length - 1 - i : i]
+      occ.clear(q.s, q.gx, q.gy)
+      const dx = shift(run(q, -1, 0), run(q, 1, 0))
+      q.gx += dx
+      const dy = shift(run(q, 0, -1), run(q, 0, 1))
+      q.gy += dy
+      if (dx || dy) moved++
+      occ.stamp(q.s, q.gx, q.gy)
+    }
+    if (!moved) break
+  }
+  const out = new Map<number, Box>()
+  for (const q of qs) out.set(q.id, [q.gx + q.offX + pad, q.gy + q.offY + pad, q.w, q.h])
+  return out
 }
 
 function medianOf(xs: number[]): number {
@@ -328,6 +578,31 @@ function trimToContent(boxes: Map<number, Box>, W: number, H: number): { W: numb
   const out = new Map<number, Box>()
   for (const [id, [x, y, w, h]] of boxes) out.set(id, [x - dx, y - dy, w, h])
   return { W: W - 2 * dx, H: H - 2 * dy, boxes: out }
+}
+
+/**
+ * Fit on the page (round 6, items 8 and 9: the page's Fit read as a soft rectangle while the share image's was crisp):
+ * spreadEven over the trimmed stage, so the outer birds line its four edges and the free room goes evenly between the
+ * birds, as on a share image. A bird left standing apart (a corner bird sent to both walls while its neighbours moved
+ * along one) is gathered back to the group, as after packing. The walls sit TRIM_PAD - GAP inside the stage (less where a bird is nearer it), so the
+ * margin stays TRIM_PAD. `wide` (a collage not packed dense): each bird is stamped dilated by GAP, as the pack stamps it,
+ * so neighbours keep their two GAPs.
+ */
+/** lineEdges' passes: three line the edges up and spread the room over the outer few layers only. The share images' 32
+ *  even it out over the whole collage, so most birds would no longer rest against their neighbours, and the edge is
+ *  hardly straighter for it (on 1,100 birds, its variation about the rectangle 0.004 against 0.005); two leave a corner
+ *  bird apart now and then. */
+const LINE_ROUNDS = 3
+function lineEdges(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions: Map<number, CaptionRoom> | undefined, wide: boolean, known?: UnitMasks): Map<number, Box> {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+  for (const [x, y, w, h] of boxes.values()) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + w); y1 = Math.max(y1, y + h) }
+  const inset = (a: number, b: number) => Math.max(0, Math.min(TRIM_PAD - GAP, Math.floor(Math.min(a, b)) - GAP))
+  const ix = inset(x0, W - x1), iy = inset(y0, H - y1)
+  const moved = new Map<number, Box>()
+  for (const [id, [x, y, w, h]] of boxes) moved.set(id, [x - ix, y - iy, w, h])
+  const out = new Map<number, Box>()
+  for (const [id, [x, y, w, h]] of spreadEven(moved, birds, W - 2 * ix, H - 2 * iy, hole, captions, false, wide, LINE_ROUNDS, known)) out.set(id, [x + ix, y + iy, w, h])
+  return gather(out, birds, W, H, hole, captions)
 }
 
 const FIT_MARGIN = 10, FIT_HOLE = 24
@@ -381,15 +656,27 @@ export function stretchAt(layout: Pick<Layout, 'H' | 'stretch' | 'maxH'>, H: num
  * - With fit (filtered states, needs fixedStage): after packing, the stage height is trimmed about the count
  *   (fitStage), so the returned H can be less than fixedStage's and box y's move up by the same amount.
  * - With maxBase (share images): the search never goes above it, so no tile is longer than maxBase · max rel.
+ * - With oval (the Oval arrangement: the page's collage, through the worker's layout request, and packFrame's share
+ *   images): every bird stays inside the ellipse inscribed in the stage packed in (the grown stage, fixedStage or the
+ *   frame), and the size estimate counts the ellipse's area (π/4 of the stage's).
+ * - Fit (neither oval nor free) settles a dense collage into its stage's rectangle, and a full even collage then lines
+ *   its outer birds up along the trimmed stage's edges (lineEdges); with free (the Free arrangement) it settles into the
+ *   rounded rectangle and lines nothing up: the soft cloud (see settle).
+ * - With settleFrame (packFrame: the share images and posters of a big list): packed dense and settled as a big page
+ *   collage is; Fit without moving birds into pockets (spreadEven evens out the room afterwards), Free with them, as on
+ *   the page.
  */
 export function packBest(
   birds: PackBird[], layout: Layout, mode: 'even' | 'true',
   opts: {
     targets?: Map<number, [number, number]>; refBase?: number; fixedStage?: [number, number]
-    rel?: Map<number, number>; fit?: boolean; hole?: Hole; maxBase?: number; captions?: Map<number, { w: number; h: number }>
+    rel?: Map<number, number>; fit?: boolean; hole?: Hole; maxBase?: number; captions?: Map<number, CaptionRoom>; oval?: boolean
+    free?: boolean; settleFrame?: boolean
   } = {},
 ): PackResult {
   const { targets, refBase, fixedStage, fit, captions } = opts
+  const oval = !!opts.oval
+  const shape: Settle = oval ? 'oval' : opts.free ? 'round' : 'rect'
   if (!birds.length) {
     const [W, H] = fixedStage ?? [layout.W, layout.H]
     return { base: refBase ?? 0, ...(fit && fixedStage ? fitStage(new Map(), W, H, holeExtent(collageHole(0, layout))[1]) : { W, H, boxes: new Map() }) }
@@ -407,18 +694,28 @@ export function packBest(
   // mode, whatever the whole list's size) is settled too, and spirals round rather than stretched: two or three birds
   // then pack around the count instead of strung out along the stage's width, where the settling pass can't close the gap.
   const small = !!layout.denseFrom && birds.length < SMALL_SET
-  const dense = small || (!!layout.denseFrom && mode === 'even' && !targets && rel.size >= layout.denseFrom)
+  // Free is its cloud from FREE_CLOUD_FROM birds (round 6, item 11), not only from denseFrom.
+  const denseFrom = shape === 'round' ? Math.min(layout.denseFrom ?? Infinity, FREE_CLOUD_FROM) : layout.denseFrom
+  const dense = small || !!opts.settleFrame || (!!layout.denseFrom && mode === 'even' && !targets && rel.size >= denseFrom!)
+  // Free's list from FREE_CLOUD_FROM birds up to the size whose settling makes its own cloud (denseFrom; a frame's
+  // FRAME_DENSE_FROM) packs inside the rounded rectangle: so few birds fill whatever they are packed in, corners too.
+  const bound: Bound = oval ? 2 : shape === 'round' && rel.size >= FREE_CLOUD_FROM && rel.size < (layout.denseFrom ?? FRAME_DENSE_FROM) ? CLOUD_P : 0
   // The spiral of the pass in hand: a small set's filtered state tries a round one and the stage's own, keeps the tighter.
+  // A small set neither slides nor fills pockets: sliding pulls each bird onto the count and away from its neighbour,
+  // and the round / stage spiral test (worstGap) already keeps the snugger of two arrangements.
   let round = small
-  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions)
+  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions, bound, !small)
   // Settled (dense), then any detached birds gathered back to the group (gather): the outline stays compact.
-  const boxesOf = (p: Packed, W: number, H: number) => gather(dense ? settle(p, W, H, hole) : p.boxes, birds, W, H, hole, captions)
+  const unitMasks: UnitMasks = new Map() // settle's, for lineEdges
+  // A small set keeps the rounded rectangle under Fit too: a few birds close up round the count, not into a rectangle.
+  const boxesOf = (p: Packed, W: number, H: number) =>
+    gather(dense ? settle(p, W, H, hole, small && shape === 'rect' ? 'round' : shape, !small && !(opts.settleFrame && shape === 'rect'), unitMasks, bound) : p.boxes, birds, W, H, hole, captions, bound)
 
   // Search range. Full collage: [0.6, 1.6] x the area estimate, capped at MAX_BASE. With refBase (filtered
   // states): the reference's window [0.7, MAXUP] x refBase, searched directly (it may exceed MAX_BASE).
   const range = (W: number, H: number): [number, number] => {
     if (clamp) return [clamp[0], clamp[1]]
-    const usable = Math.max(1, W * H - holeArea(hole))
+    const usable = Math.max(1, boundArea(bound) * W * H - holeArea(hole))
     const est = Math.sqrt((0.55 * usable) / Math.max(area, 1e-9))
     const hi = Math.min(1.6 * est, MAX_BASE, opts.maxBase ?? Infinity)
     return [Math.min(0.6 * est, hi), hi]
@@ -513,7 +810,9 @@ export function packBest(
   }
   got ??= fallback(W, H)
   const t = trimToContent(boxesOf(got.packed, W, H), W, H)
-  return { base: got.base, W: t.W, H: t.H, boxes: t.boxes }
+  // Fit's full collage lines its outer birds up along the trimmed stage's edges, as a share image's frame (spreadEven).
+  const lined = shape === 'rect' && mode === 'even' && !targets ? lineEdges(t.boxes, birds, t.W, t.H, hole, captions, !dense, unitMasks) : t.boxes
+  return { base: got.base, W: t.W, H: t.H, boxes: lined }
 }
 
 // packFrame's target base: the site's typical sizes (so GAP and the cell grid look the same) up to 300 birds,
@@ -528,8 +827,42 @@ const frameBase = (n: number) => (n <= 300 ? 28 : Math.max(10, 28 * (300 / n) **
  *   same in layout units and in pixels); none by default.
  * - maxTile: no tile's long side is longer than this fraction of the frame's width (a short list then sits as a
  *   ring around the count instead of a few giant stickers).
+ * - oval: the birds fill the ellipse inscribed in the frame (a circle in a square one); the frame is sized for its area.
+ * - captions: each bird's name room under it (a poster's names), as fractions of the frame's width. When no base packs
+ *   the birds with their names, the pack is made as without them: the caller's caption check (image.ts fitCaptionPack)
+ *   then finds the names don't fit and draws the poster without them.
+ * - free: the Free arrangement, its cloud as on the page: a list of FRAME_DENSE_FROM birds or more packed dense and
+ *   settled into the rounded rectangle, pockets filled, and nothing spread to the frame's walls, so its corners stay open
+ *   (round 6, item 8: the images drew a rectangle under Free).
+ * Fit (neither oval nor free) packs a list of FRAME_DENSE_FROM birds or more dense and settles it into the frame's
+ * rectangle (packBest's settleFrame), as the page packs a big collage: one GAP between birds instead of two, so the
+ * stickers come out about a tenth bigger in the same frame (round 6: a 1,092-species story read as a field of tiny
+ * birds). A poster with names keeps the loose pack (settling doesn't know the names' room).
+ * Then, but for Free, spreadEven spreads the birds evenly over the frame (or its oval), edge to edge.
+ * A list under SMALL_GROUP birds is instead one snug group round the count (round 6, item 12): packed at GROUP_BASE in a
+ * frame wide enough for its largest bird under maxTile, dense and settled in every arrangement, and never spread, so the
+ * caller's fit draws it as large as the frame allows.
  */
-export function packFrame(birds: PackBird[], aspect: number, opts: { hole?: Hole; maxTile?: number; captions?: Map<number, { w: number; h: number }> } = {}): PackResult {
+export function packFrame(birds: PackBird[], aspect: number, opts: FrameOpts = {}): PackResult {
+  if (!opts.captions) return packFrameWith(birds, aspect, opts)
+  try {
+    return packFrameWith(birds, aspect, opts)
+  } catch {
+    return packFrameWith(birds, aspect, { ...opts, captions: undefined })
+  }
+}
+type FrameOpts = { hole?: Hole; maxTile?: number; captions?: Map<number, CaptionRoom>; oval?: boolean; free?: boolean }
+/** Fit's share images pack dense from this many birds: the wide and medium layouts' denseFrom. */
+export const FRAME_DENSE_FROM = 380
+/** Free is settled into its cloud from this many birds, on the page and in the images (round 6, item 11: below
+ *  denseFrom it was a loose rectangle, hard to tell from Fit's). */
+export const FREE_CLOUD_FROM = 100
+/** A list of fewer birds is one snug group round the count in the images (round 6, item 12): packed dense at one GAP,
+ *  settled and gathered, and never spread to the frame's walls (spreadEven scattered four storks into the corners). */
+export const SMALL_GROUP = 40
+/** The base a small group is packed at: a page collage of a few birds' (MAX_BASE 80 at most), one GAP between them. */
+const GROUP_BASE = 60
+function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): PackResult {
   const rel = relSizes(birds, EXP)
   let area = 0, maxRel = 1
   for (const b of placementOrder(birds, rel)) { const r = rel.get(b.id)!; area += r ** 2 * maskFill(b.mask); maxRel = Math.max(maxRel, r) }
@@ -538,15 +871,26 @@ export function packFrame(birds: PackBird[], aspect: number, opts: { hole?: Hole
   if (opts.captions) for (const c of opts.captions.values()) capArea += c.w * c.h
   // packBest's estimate is base = sqrt(0.55 · usable / area); solve it for the frame at frameBase, where usable is the
   // frame's area less the hole's: W² · (1 / aspect − hole area at width 1).
-  const usable = (frameBase(birds.length) ** 2 * Math.max(area, 0.05)) / 0.55
-  const free = Math.max(0.1 / aspect, 1 / aspect - holeArea(unit) - capArea * 2.8)
-  const W = Math.max(8, Math.ceil(Math.sqrt(usable / free)))
+  const group = birds.length < SMALL_GROUP
+  const fb = group ? GROUP_BASE : frameBase(birds.length)
+  const usable = (fb ** 2 * Math.max(area, 0.05)) / 0.55
+  const inside = opts.oval ? Math.PI / 4 : opts.free && birds.length >= FREE_CLOUD_FROM && birds.length < FRAME_DENSE_FROM ? CLOUD_AREA : 1
+  const free = Math.max(0.1 / aspect, inside / aspect - holeArea(unit) - capArea * 2.8)
+  // A small group's frame is wide enough for its largest bird at GROUP_BASE under the tile cap, so the cap, not a frame a
+  // few birds wide, sets the size (the spiral's points, 13 to 20 units apart, had few places to try in such a frame).
+  const fitCap = group && opts.maxTile ? Math.ceil((fb * maxRel) / opts.maxTile) : 0
+  const W = Math.max(8, fitCap, Math.ceil(Math.sqrt(usable / free)))
   const H = Math.max(8, Math.round(W / aspect))
   const hole = scaleHole(unit, W)
   const maxBase = opts.maxTile ? (opts.maxTile * W) / maxRel : undefined
   const frame = { W, H, stretch: aspect, F: 0 }
   const captions = opts.captions
-    ? new Map([...opts.captions].map(([id, c]) => [id, { w: c.w * W, h: c.h * W }]))
+    ? new Map([...opts.captions].map(([id, c]) => [id, { w: c.w * W, h: c.h * W, ...(c.ring ? { ring: c.ring * W } : {}) }]))
     : undefined
-  return packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions })
+  // A small group settles in every arrangement (Oval by its ellipse); names keep the loose pack (settling doesn't know
+  // their room), still never spread.
+  const settleFrame = !captions && (group || (!opts.oval && birds.length >= (opts.free ? FREE_CLOUD_FROM : FRAME_DENSE_FROM)))
+  const r = packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : opts.free ? { free: true } : {}), ...(settleFrame ? { settleFrame } : {}) })
+  // Free keeps its cloud and a small group stays snug: nothing spreads them to the frame's walls.
+  return opts.free || group ? r : { ...r, boxes: spreadEven(r.boxes, birds, r.W, r.H, hole, captions, !!opts.oval) }
 }

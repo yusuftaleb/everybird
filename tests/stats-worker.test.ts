@@ -13,6 +13,9 @@ describe("the stats Worker's row", () => {
     expect(eventRow({ n: 'visit', p: 'landing', l: 'es' }, ctx)).toEqual({ ...ctx, name: 'visit', value: 'landing', lang: 'es' })
     expect(eventRow({ n: 'visit', p: 'landing', l: 'es' }, ctx)!.lang).toBe('es')
     expect(eventRow({ n: 'visit', p: 'about', l: 'zh' }, ctx)?.lang).toBe('zh')
+    // Chinese by script, as the app's langCode sends it.
+    expect(eventRow({ n: 'visit', p: 'about', l: 'zh-Hans' }, ctx)?.lang).toBe('zh-Hans')
+    expect(eventRow({ n: 'visit', p: 'about', l: 'zh-Hant' }, ctx)?.lang).toBe('zh-Hant')
     expect(eventRow({ n: 'visit', p: 'about' }, ctx)?.lang).toBe('')
   })
   it('stores only a primary subtag: anything else is ""', () => {

@@ -5,19 +5,25 @@
 //
 // Layout (cardLayout), on Paper with 64px side margins, all text left-aligned. It leads with the birder, not the
 // product: people share a brag, not an app card.
-//   top     the name, if given (Cabinet Grotesk 700, 56px), then the count (Cabinet 96px, "197 species"), then, for a
-//           filtered view, the filter in words (Satoshi 500 32px, Accent)
+//   top     the name, if given (Cabinet Grotesk 700, 60px), then, for a filtered view, the filter in words (Satoshi 500
+//           34px, Accent). With the Count menu's "Beside title" the count is on the name's line, at its right, in the
+//           label style ("96 SPECIES", Geist Mono 34px, Ink), or alone at the top left without a name.
 //   middle  the collage, packed for the space left (layout worker 'image' message: packFrame, the count's hole at its
-//           centre); no sticker longer than 30% of the collage wide (36% up to 24 birds)
-//   bottom  a Hairline rule, "Latest lifer: Western Grebe · Sep 2026" (Satoshi 32px; unless the dialog's "Show latest
-//           lifer" switch is off, when the collage takes its room), then the footer: the Everybird wordmark and one
+//           centre, the birds spread evenly to the frame's edges; under Fit a big list packed dense, as on the page, and
+//           settled into the rectangle; without the latest lifer row, the taller frame it leaves); no sticker longer than
+//           30% of the collage wide (36% up to 24 birds)
+//   bottom  the latest lifer row, the head's gap under the collage (round 6): its sticker, then "LATEST LIFER · SEP 2026 ·
+//           BRITISH COLUMBIA, CANADA" (the province or state and the country where it was seen, in the image's language:
+//           liferPlace; the place on its own line where the label doesn't fit, never cut) over the name; unless the
+//           dialog's "Show latest lifer" switch is off, when the collage takes its room. Then a Hairline rule and the
+//           footer: the Everybird wordmark and one
 //           quiet line beside it, the site, the sticker credit and the date the image was made
-//           ("everybird.yusuftaleb.com · stickers by huashu · 14 Nov 2026", stamp.ts; Geist Mono 20px, Muted).
+//           ("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", stamp.ts; Geist Mono
+//           20px, Muted; on its own line under the wordmark where it does not fit beside it: placeCredit).
 //           The full credit, with the licence, travels in the share text.
 // The story keeps the story safe zones clear: nothing in the top 160px (the profile row; the title from 184) or the
 // bottom 156px (the reply bar); the post and the square use 64px margins all round. The story's collage is tall (about 952 × 1284 with
-// a name and the latest lifer): packFrame packs it for that aspect (the spiral stretched to it, as the narrow layout's
-// 0.55), so it is a tall rounded cluster, and fitPack spreads a short list's ring to its height (SPREAD).
+// a name and the latest lifer): packFrame packs it for that aspect and spreads the birds evenly over it, edge to edge.
 // Stickers load with crossOrigin = 'anonymous' (the stickers site sends access-control-allow-origin: *), so the
 // canvas stays exportable. Species without a sticker, and stickers that fail to load, are drawn as a thin outline of
 // the Phosphor Bird in Line (a solid silhouette would be the heaviest shape in the image). Text waits for the real
@@ -29,23 +35,30 @@
 // The print poster ('print', print.ts) is the same card 1080 units wide and as tall as its size (printDesignH), with
 // 64px margins all round, in the dialog's theme, packed once per shape (printPackH); prepareCard's `scale` (device px per unit)
 // picks its sticker tier (printStickerUrl: 1024 with the 384 fallback for big tiles), and the poster paints it in strips.
+// Its head and foot are quieter than an image's: the head is the title alone (the collage title, else the filter in
+// words, in Accent), with the count at its right under "Beside title"; the foot is one line under the hairline, the
+// wordmark then "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 20 Nov 2026" (POSTER_FOOT). The
+// latest lifer (with "Show latest lifer"), or the Tree's oldest lineage (latestAs), is the share images' one-line row
+// above the hairline (paintRow, round 6, item 24), its room taken from the content above it.
 import { SHARE_ORIGIN } from '@/lib/share/origin'
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
-import { printStickerUrl, stickerUrl } from '@/lib/sticker-url'
-import { fmt } from '@/i18n/core'
+import { PRINT_FROM, printStickerUrl, stickerUrl } from '@/lib/sticker-url'
+import { fmt, plural } from '@/i18n/core'
 import { formatMonth } from '@/i18n/format'
 import { PRINT_DESIGN_W, captionMinPx, printDesign, printPackH, type PrintSize } from '@/lib/share/print'
 import { defaultCaptionMeasure, planCaptions, verifyAndPlaceCaptions, type CaptionBox, type CaptionPlan, type PlacedTile, type TextMeasurer } from '@/lib/share/captions'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
-import type { Box } from '@/lib/layout/pack'
-import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
+import { SMALL_GROUP, type Box } from '@/lib/layout/pack'
+import type { Arrangement } from '@/lib/arrangement'
+import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, goalLabelCells, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
-import { firstLifer, latestLifer, liferOrder } from '@/lib/list/build-list'
+import { latestLifer, liferOrder } from '@/lib/list/build-list'
 import { continentNames, namesLabel, placesLabel, regionNames, seenLabels, statusLabel } from '@/lib/list/filter-summary'
 import type { Filter } from '@/lib/list/filters'
 import { rangeLabel } from '@/lib/list/timeline'
-import type { ListEntry } from '@/lib/list/model'
+import type { ListEntry, Place } from '@/lib/list/model'
+import { formatPlace } from '@/lib/import/places'
 import type { SpeciesIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
 import { orderLabel } from '@/lib/species/orders'
@@ -73,11 +86,13 @@ export const IMAGE_SIZE: Record<ImageFormat, [w: number, h: number]> = {
   story: [1080, 1920], post: [1080, 1350], square: [1080, 1080], desktop: [1920, 1080], wide: [1350, 1080],
 }
 /**
- * Device px per design unit when the image is drawn, so the PNG is IMAGE_SIZE × IMAGE_SCALE: the desktop image is
- * twice its design (3840 × 2160; sharp on a 4K or Retina screen), the others 1:1 with their design. A poster has no entry: it draws at its
- * own scale (prepareCard's `scale`, device px per unit), and its preview (drawShareImage) at 1.
+ * Device px per design unit when the image is drawn, so the PNG is IMAGE_SIZE × IMAGE_SCALE: every image is twice its
+ * design (a Story 2160 × 3840, a Desktop 3840 × 2160), sharp in the dialog's large preview and on a Retina screen; the
+ * share sites scale it down themselves (Yusuf, 2026-11-21: the 1:1 Story, Post and Square looked soft). Twice the design
+ * keeps every canvas under iOS Safari's 16.7 million pixel limit. A poster has no entry: it draws at its own scale
+ * (prepareCard's `scale`, device px per unit), and its preview (drawShareImage) at 1.
  */
-export const IMAGE_SCALE: Record<ImageFormat, number> = { story: 1, post: 1, square: 1, desktop: 2, wide: 1 }
+export const IMAGE_SCALE: Record<ImageFormat, number> = { story: 2, post: 2, square: 2, desktop: 2, wide: 2 }
 /** A card's format: a share image, or the print poster, portrait or landscape (1080 design units across the short side; print.ts). */
 export type CardFormat = ImageFormat | 'print' | 'printLandscape'
 /** Whether a card is a poster (portrait or landscape) rather than a share image. */
@@ -86,11 +101,13 @@ export const isPrint = (f: CardFormat): f is 'print' | 'printLandscape' => f ===
 export const NAME_MAX_LEN = 40
 /** The footer's site name: the share origin's host ("everybird.yusuftaleb.com"). */
 export const SITE_LABEL = new URL(SHARE_ORIGIN).host
+/** The sticker credit on every image, poster and link preview, in the one form the credits take ("Tree: AvesData, CC BY 4.0"). */
+export const STICKER_CREDIT = 'Stickers: huashu-bird-sticker, CC BY 4.0'
 /**
- * The footer's one line beside the wordmark on share images and link previews: the site and the sticker credit. Share
- * images end it with the date stamp (stamp.ts withStamp); link previews don't.
+ * The footer's one line beside (or under) the wordmark on share images and link previews: the site and the sticker
+ * credit. Share images end it with the date stamp (stamp.ts withStamp); link previews don't.
  */
-export const FOOTER_LINE = `${SITE_LABEL} · stickers by huashu`
+export const FOOTER_LINE = `${SITE_LABEL} · ${STICKER_CREDIT}`
 /** The full sticker credit (CC BY 4.0), for the share sheet's text: the image itself carries FOOTER_LINE. */
 export const SHARE_CREDIT = 'Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker'
 
@@ -102,12 +119,26 @@ export const SHARE_COLORS = {
 export type ShareColors = { [K in keyof typeof SHARE_COLORS.light]: string }
 
 /**
- * The latest lifer row's two lines: the mono label "Latest lifer · Sep 2026" ("Última especie nueva · sept 2026"; the
- * date part only when there is one) and the bird's name.
+ * The latest lifer row's two lines: the mono label "Latest lifer · Oct 2026 · British Columbia, Canada" ("Última especie
+ * nueva · oct 2026 · …"; the date part only when there is one, the place only when the record has one: `place`, the
+ * province or state and the country, or the country alone, placeName) and the bird's name. `place` is also given apart,
+ * so a label too long for its row can put it on a line of its own (paintCard) rather than cut it.
  */
-export function latestText(latest: { com: string; date?: string }, t: Pick<Ui, 'share' | 'date'>): { label: string; name: string } {
+export function latestText(latest: { com: string; date?: string; place?: string }, t: Pick<Ui, 'share' | 'date'>): LatestText {
   const d = formatMonth(latest.date, t.date.months)
-  return { label: `${t.share.latestLifer}${d ? ` · ${d}` : ''}`, name: latest.com }
+  const head = `${t.share.latestLifer}${d ? ` · ${d}` : ''}`
+  return latest.place ? { label: `${head} · ${latest.place}`, name: latest.com, head, place: latest.place } : { label: head, name: latest.com }
+}
+/** The latest lifer row's words: the whole mono label and the name; with a place, the label before it (`head`) and the place. */
+export type LatestText = { label: string; name: string; head?: string; place?: string }
+
+/**
+ * Where a lifer was seen, for its row and the poster's foot: the province or state and the country ("British Columbia,
+ * Canada"), the country alone without one, nothing without a place. Never a county or a locality. `regions` names them
+ * (the dialog passes them in the image's language, i18n-places.ts regionsIn, as the Places filter and the Map).
+ */
+export function liferPlace(place: Place | undefined, regions: Regions): string {
+  return place ? formatPlace({ country: place.country, sub1: place.sub1 }, regions) : ''
 }
 
 /**
@@ -115,20 +146,22 @@ export function latestText(latest: { com: string; date?: string }, t: Pick<Ui, '
  * "Herons · Threatened · Canada" (filter-summary.ts statusLabel); a range reads
  * "Mar 2020 to Jun 2021" (timeline.ts rangeLabel). With `regions`, places at every level by their short names
  * ("Owls · British Columbia"); without, the countries only. Country names are whatever `regions` and `countryName` say
- * (the dialog passes them localized, i18n-places.ts regionsIn); family names are the data's.
+ * (the dialog passes them localized, i18n-places.ts regionsIn); family names are the data's; with `sci` the family and the
+ * order are their scientific names.
  * Undefined when nothing is filtered.
  */
 export function filterLabel(
   f: Filter,
-  ctx: { species: SpeciesIndex; countryName: (iso2: string) => string; regions?: Pick<Regions, 'countries' | 'sub1'>; /** A family's name to show (default: English). */ familyName?: (row: SpeciesRow) => string; /** A bird group's name in the UI language (Filter.group). */ groupName?: (id: string) => string | undefined },
+  ctx: { species: SpeciesIndex; countryName: (iso2: string) => string; regions?: Pick<Regions, 'countries' | 'sub1'>; /** A family's name to show (default: English). */ familyName?: (row: SpeciesRow) => string; /** A bird group's name in the UI language (Filter.group). */ groupName?: (id: string) => string | undefined; /** Scientific names on: the family and the order by theirs (round 6). */ sci?: boolean },
   t: ShareStrings,
 ): string | undefined {
   // Places: "Africa + Canada", "Canada + Egypt", "Capital and 2 more" (continents first).
   const place = ctx.regions ? placesLabel(f, ctx.regions, t) : namesLabel([...continentNames(f.continents, t), ...regionNames(f.regions, t), ...(f.countries ?? []).map((c) => ctx.countryName(c.slice(0, 2)))], t)
   const parts: string[] = []
   if (f.group) parts.push(ctx.groupName?.(f.group) ?? f.group)
-  if (f.family) { const r = ctx.species.rows.find((x) => x.fam === f.family); parts.push(r ? (ctx.familyName?.(r) ?? r.famCom) || f.family : f.family) }
-  else if (f.order) parts.push(orderLabel(f.order, t))
+  if (f.genus) parts.push(f.genus)
+  else if (f.family) { const r = !ctx.sci && ctx.species.rows.find((x) => x.fam === f.family); parts.push(r ? (ctx.familyName?.(r) ?? r.famCom) || f.family : f.family) }
+  else if (f.order) parts.push(ctx.sci ? f.order : orderLabel(f.order, t))
   const status = statusLabel(f.statuses, t)
   if (status) parts.push(status)
   // Basis 'seen': "Seen in Canada · 2026" (a range alone: "Seen: 2026").
@@ -165,41 +198,29 @@ export const SAFE: Record<CardFormat, { top: number; bottom: number }> = {
 }
 /** Where the title starts (the collage starts at SAFE.top when there's no title). */
 export const TITLE_TOP: Record<CardFormat, number> = { story: 184, post: M, square: M, print: M, desktop: 72, wide: M, printLandscape: M }
-/** The latest lifer's sticker: 76 square for the tall and wide cards, 68 for the post and square (the 5:4 included). */
-const ICON: Record<CardFormat, number> = { story: 76, post: 68, square: 68, print: 76, desktop: 76, wide: 68, printLandscape: 76 }
 /**
- * The cards whose footer is one line: the wordmark, the site and the credit on the left and the latest lifer row on the
- * right, all on the footer's baseline (cardLayout, placeFooter). Only the desktop: its width follows the screen (1,308 to
- * 2,464 units of text), and placeFooter clips a long name to the room the credit leaves at 17px. The 5:4 card (1,222) and
- * the landscape poster (about 1,400, with the credit at 17px) are too narrow for the row beside the credit, so they keep
- * the row stacked above the hairline (tests/orientation.test.ts measures it).
+ * The latest lifer row and the Tree image's oldest lineage row (round 6, items 4 and 17: one form, one painter,
+ * paintRow): above the hairline, smaller than the latest lifer's old row, its room given to the collage. On the cards in
+ * INLINE_ROW (Desktop, Post and its 5:4, Square) one line: the sticker (SMALL_INLINE), the bird's name right after it in
+ * the name's style, then the detail in the label's small mono style ("Latest lifer · Oct 2026 · British Columbia, Canada";
+ * "Oldest lineage · split from its closest relatives about 39 million years ago"), its short form where that doesn't fit
+ * beside the whole name ("Latest lifer · Oct 2026"); the name is never cut. The Story stacks it (SMALL_ROW): the sticker
+ * and two lines, the label over the name. Posters draw the one-line row too (round 6, item 24: no longer a line in
+ * their foot); a Tree poster's name is never smaller than its tip names (view-image.ts).
  */
-const LATEST_ONE_LINE: Partial<Record<CardFormat, true>> = { desktop: true }
+export const SMALL_ROW = { icon: 56, label: 16, name: 26 }
+export const SMALL_INLINE = { icon: 40, label: 18, name: 26, gap: 16 }
+export const INLINE_ROW: ReadonlySet<CardFormat> = new Set<CardFormat>(['desktop', 'post', 'wide', 'square', 'print', 'printLandscape'])
 /**
- * The footer-line latest row's sticker (px square), label and name sizes and the gap after the sticker. The row is two
- * lines inside the footer's line, right-aligned: the mono label over the name (the name on the footer's baseline), the
- * sticker to their left, centred on the pair. A name too wide for the room left shrinks to nameMin (80%) before it is clipped.
+ * The gaps (px) between the head and the collage, the collage and the hairline (`collage`), and the latest lifer row and
+ * the hairline (`latest`). A stacked latest lifer row keeps the head's gap above it, from the collage (cardLayout). The
+ * story, the post and the print keep them tighter so their collages take the height; the square keeps its own.
  */
-/** How far the wordmark and the credit line are lifted when the two-line row is on, to centre their caps on the row's block. */
-export const FOOTER_LIFT = 11.5
-const ONE_LINE = { icon: 40, label: 20, name: 30, gap: 14, nameMin: 0.8 }
-/** The gap between the footer line and the latest row on its right. */
-const FOOTER_GAP = 32
-/**
- * The gaps (px) between the head and the collage, the collage and the latest lifer row, and that row and the hairline.
- * The story, the post and the print keep them tighter so their collages take the height; the square keeps its own.
- */
-const GAPS: Record<CardFormat, { head: number; collage: number; latest: number }> = {
+export const GAPS: Record<CardFormat, { head: number; collage: number; latest: number }> = {
   story: { head: 40, collage: 32, latest: 24 }, post: { head: 40, collage: 32, latest: 24 }, square: { head: 48, collage: 40, latest: 32 },
   print: { head: 40, collage: 32, latest: 24 }, desktop: { head: 40, collage: 24, latest: 24 }, wide: { head: 40, collage: 32, latest: 24 },
   printLandscape: { head: 40, collage: 32, latest: 24 },
 }
-/**
- * How far fitPack may spread the birds' centres vertically to fill a tall collage (sizes kept, distances only grow):
- * the story's tall frame most, the post's a little, the square not at all. The print (about 0.71 wide to tall) sits
- * between the story and the post.
- */
-export const SPREAD: Record<CardFormat, number> = { story: 1.6, post: 1.25, square: 1, print: 1.4, desktop: 1.25, wide: 1, printLandscape: 1.25 }
 /**
  * The count's largest size (Cabinet Grotesk 700, px) per format; it shrinks for long numbers (countLayout). It reads
  * as a label in the ring, in /lifelist's proportion: "197" is about 17% of the collage wide (the site's medium
@@ -229,32 +250,57 @@ export type CountLayout = {
   labelSize: number
   /** Gap between the number's baseline and the label's cap line. */
   gap: number
+  /** The label box's width in characters (labelEm): COUNT_LABEL_CHARS, or a goal's (goalLabelCells). */
+  cells?: number
   /** The hole (px, about the collage's centre) the packer keeps empty: the drawn text's boxes, grown by its pad. */
   hole: Hole
 }
 export type CardLayout = {
   W: number
   H: number
+  /** The head's first line: the name (on a poster, its title), and, with "Beside title", the count's row too. */
   name?: Text
   filter?: Text
+  /** "Beside title": the count on the name's baseline, right-aligned (left without a name): the number at `num` px (the
+   *  count's Cabinet 700), then its label at `label` px (the count label's Geist Mono, upper case), `gap` between. */
+  titleCount?: typeof TITLE_COUNT
   collage: { x: number; y: number; w: number; h: number }
   count: CountLayout
   /**
-   * The latest lifer row. Stacked (`oneLine` false): its sticker (icon px square, at x) beside two lines in a column `tw`
-   * wide, a mono label over the bird's name, above the hairline. One line (LATEST_ONE_LINE): the sticker at y on the
-   * footer's line, the label and name on its baseline, all placed by placeFooter from the text's measured widths.
+   * The latest lifer row (or the Tree's oldest lineage), above the hairline: its sticker (icon px square, at x, y), then
+   * on one line (`inline`, INLINE_ROW) the name and the detail, else two lines in a column `tw` wide, the mono label over
+   * the name (paintRow).
    */
-  latest?: { x: number; y: number; icon: number; tw: number; label: number; name: number; oneLine: boolean }
+  /** `lift`: the room kept under the collage for placeFooter's lift of the row (the 1080-wide cards). */
+  latest?: { x: number; y: number; icon: number; tw: number; label: number; name: number; inline?: boolean; lift?: number }
   rule: { y: number }
+  /** The wordmark's size (`size`, Cabinet 700) and the line's beside it (`credit`, Geist Mono; placeCredit may shrink it). */
   footer: Text & { credit: number }
   /** The largest sticker's long side as a share of the collage width (maxTileFrac of the count). */
   maxTile: number
   /** The largest sticker's long side in px (maxTileSide's cap; 440, the desktop 512). */
   maxSide: number
 }
-export type CountSize = 'small' | 'medium' | 'large' | 'hide'
+/** The Count menu: the count in the middle at one of three sizes, none, or 'title', beside the title (no hole). */
+export type CountSize = 'small' | 'medium' | 'large' | 'hide' | 'title'
+/**
+ * The count beside the title, in the big count's own type scaled to the title (60px): the number as tall as the title
+ * (Cabinet Grotesk 700, -0.02em), then its label in the count label's style (Geist Mono 500, upper case, tracked 0.06em,
+ * Muted) at the size the label under a medium count takes, on one baseline, `gap` px apart.
+ */
+export const TITLE_COUNT = { num: 60, label: 22, gap: 12 } as const
+/**
+ * The poster's foot: the wordmark and the line beside it, smaller than an image's so the line stays one line beside the
+ * wordmark (it shrinks to `min`, then takes its own line under the wordmark).
+ */
+export const POSTER_FOOT = { brand: 24, line: 16, min: 12 }
 
-export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; target?: number; countSize?: CountSize }
+export type CardContent = {
+  name: boolean; filter: boolean; latest: boolean; count: number; target?: number; countSize?: CountSize
+  /** A view image's own footer (view-image.ts MAP_FOOTER, TREE_FOOTER): short enough to sit beside the wordmark, so
+   *  without a row no room is kept for the credit's own line. */
+  viewFooter?: boolean
+}
 
 /**
  * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: the shown count over "SPECIES" (a filtered
@@ -266,12 +312,14 @@ export type CardContent = { name: boolean; filter: boolean; latest: boolean; cou
  * column's height, and so where the text is drawn, stays the caps'.
  */
 export function countLayout(format: CardFormat | number, count: number, collageW: number, target?: number, countSize: CountSize = 'medium'): CountLayout {
-  if (countSize === 'hide') return { number: '', label: '', size: 0, labelSize: 0, gap: 0, hole: NO_HOLE }
+  if (countSize === 'hide' || countSize === 'title') return { number: '', label: '', size: 0, labelSize: 0, gap: 0, hole: NO_HOLE }
   const baseMax = typeof format === 'number' ? format : COUNT_MAX[format]
   const max = countSize === 'small' ? baseMax * 0.72 : countSize === 'large' ? baseMax * 1.28 : baseMax
   const countW = countSize === 'small' ? COUNT_W * 0.72 : countSize === 'large' ? Math.min(0.68, COUNT_W * 1.2) : COUNT_W
-  const number = target !== undefined ? `${countText(count)} / ${countText(target)}` : countText(count)
+  // A goal never changes the number (its size stays the no-goal one): it goes in the label, "/ 150 SPECIES".
+  const number = countText(count)
   const label = LABEL
+  const cells = target !== undefined ? goalLabelCells(target) : undefined
   const em = numberEm(number)
   const size = Math.round(Math.min(max, (countW * collageW) / em))
   // The label: a fifth of the number up to 22px, never under 18px on the share images (a long count's number is smaller).
@@ -282,8 +330,8 @@ export function countLayout(format: CardFormat | number, count: number, collageW
   const accent = (MONO_CAP_ACCENT - MONO_CAP) * labelSize
   // `gap - drop - accent` is negative at most sizes: the comma's foot and the accent's ink share the gap, so the two boxes
   // overlap by design (the column's height is still digits + gap + caps). Clamping it would move the text.
-  const boxes = columnBoxes(em * size, DIGIT_CAP * size + drop, gap - drop - accent, labelEm() * labelSize, MONO_CAP_ACCENT * labelSize)
-  return { number, label, size, labelSize, gap, hole: { ...boxes, pad: COUNT_PAD * size } }
+  const boxes = columnBoxes(em * size, DIGIT_CAP * size + drop, gap - drop - accent, labelEm(cells) * labelSize, MONO_CAP_ACCENT * labelSize)
+  return { number, label, size, labelSize, gap, ...(cells ? { cells } : {}), hole: { ...boxes, pad: COUNT_PAD * size } }
 }
 
 /**
@@ -292,7 +340,7 @@ export function countLayout(format: CardFormat | number, count: number, collageW
  */
 export function ogCountHole(K: CountLayout): Hole {
   const em = numberEm(K.number)
-  const boxes = columnBoxes(em * K.size, Math.max(NUM_LINE, DIGIT_CAP + COMMA_DROP) * K.size, K.gap * 0.6 - Math.max(0, DIGIT_CAP + COMMA_DROP - NUM_LINE) * K.size, labelEm() * K.labelSize, MONO_LINE * K.labelSize)
+  const boxes = columnBoxes(em * K.size, Math.max(NUM_LINE, DIGIT_CAP + COMMA_DROP) * K.size, K.gap * 0.6 - Math.max(0, DIGIT_CAP + COMMA_DROP - NUM_LINE) * K.size, labelEm(K.cells) * K.labelSize, MONO_LINE * K.labelSize)
   return { ...boxes, pad: COUNT_PAD * K.size }
 }
 
@@ -306,35 +354,45 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   const [W, H] = typeof dims === 'number' ? [cardDims(format)[0], dims] : (dims ?? cardDims(format))
   const { top: T, bottom: B } = SAFE[format]
   const X = sideMargin(format)
-  // Top: only the name and the filter in words; with neither, the collage starts at the safe line.
-  const name = c.name ? { y: TITLE_TOP[format], size: 60 } : undefined
-  const filter = c.filter ? { y: name ? name.y + 76 : T, size: 34 } : undefined
+  // Top: only the name and the filter in words; with neither, the collage starts at the safe line. "Beside title" puts the
+  // count on the name's line, so that line is there without a name too. A poster's head is one line, its title (the
+  // name, else the filter in words: draftCard), so it has no filter line.
+  const print = isPrint(format)
+  const titleCount = c.countSize === 'title'
+  const name = c.name || titleCount || (print && c.filter) ? { y: TITLE_TOP[format], size: 60 } : undefined
+  const filter = c.filter && !print ? { y: name ? name.y + 76 : T, size: 34 } : undefined
   const headBottom = filter ? filter.y + filter.size : name ? name.y + name.size : undefined
   // Bottom, upwards: the footer (wordmark, site and credit on one line), a hairline, the latest lifer row.
   // The story's footer sits 4px higher so its descenders ("y", "(") clear the bottom safe line too.
-  const footer = { y: H - B - 30 - (format === 'story' ? 4 : 0), size: 30, credit: 20 }
-  const icon = ICON[format]
-  const G = GAPS[format]
-  // One line (LATEST_ONE_LINE): the row is on the footer's own line, on its right, so the hairline sits just above the
-  // footer and the collage gets the height a stacked row took. Otherwise the row stacks above the hairline.
-  // The one-line formats keep that geometry with the row off too (the row only leaves the line), so the collage's frame,
-  // and with it the pack, is the same either way: the switch never moves a bird.
-  const oneLine = !!LATEST_ONE_LINE[format]
-  let rule: { y: number }
-  let latest: CardLayout['latest']
-  if (oneLine) {
-    // With the row: the label's caps start at footer.y - 20, so the hairline is 40 above the footer line (20 of air over the
-    // row). Without it the hairline is 20 above, as a one-line footer needs, and the collage fits the same pack to the room.
-    rule = { y: footer.y - (c.latest ? 40 : 20) }
-    latest = c.latest ? { x: X, y: footer.y - 18, icon: ONE_LINE.icon, tw: 0, label: ONE_LINE.label, name: ONE_LINE.name, oneLine } : undefined
-  } else {
-    rule = { y: footer.y - 30 }
-    latest = c.latest ? { x: X, y: rule.y - G.latest - icon, icon, tw: W - 2 * X - icon - 20, label: 20, name: 34, oneLine } : undefined
+  if (print) {
+    // The poster: the hairline, then one quiet line (POSTER_FOOT); the latest lifer's row (or the oldest lineage's) above
+    // the hairline as on the images (round 6, item 24), its room taken from the collage's (or the view's) area.
+    const footer = { y: H - B - POSTER_FOOT.brand, size: POSTER_FOOT.brand, credit: POSTER_FOOT.line }
+    const rule = { y: footer.y - 24 }
+    const G = GAPS[format], S = SMALL_INLINE
+    const latest: CardLayout['latest'] = c.latest ? { x: X, y: rule.y - G.latest - S.icon, icon: S.icon, tw: W - 2 * X - S.icon - 20, label: S.label, name: S.name, inline: true } : undefined
+    const top = headBottom === undefined ? T : headBottom + G.head
+    const collage = { x: X, y: top, w: W - 2 * X, h: (latest ? latest.y - G.latest : rule.y - G.collage) - top }
+    return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, ...tileCaps(format, c.count, collage) }
   }
+  const footer = { y: H - B - 30 - (format === 'story' ? 4 : 0), size: 30, credit: 20 }
+  const G = GAPS[format]
+  // The row above the hairline (round 6, item 17: the oldest lineage's form and size, SMALL_INLINE or SMALL_ROW), 30
+  // above the footer line; without it the collage takes its room (and on the desktop the hairline sits 20 above the
+  // footer line). The pack is made for that frame (imagePackSpec), so no empty band is left above or below the birds.
+  const inline = INLINE_ROW.has(format)
+  const rule = { y: footer.y - (c.latest || format !== 'desktop' ? 30 : 20) }
+  const S = inline ? SMALL_INLINE : SMALL_ROW
+  // On the 1080-wide cards the stamped footer line never fits beside the wordmark, so placeFooter lifts the hairline and
+  // the row by a credit line (its `shift`, at most the credit's size + 12): that room is kept under the collage, with the
+  // row or without it, so the lifted row, or the hairline itself, keeps its gap above it (round 6, item 10: without the
+  // row the birds came down to the lifted hairline).
+  const lift = W === 1080 && (c.latest || !c.viewFooter) ? footer.credit + 12 : 0
+  const latest: CardLayout['latest'] = c.latest ? { x: X, y: rule.y - G.latest - S.icon, icon: S.icon, tw: W - 2 * X - S.icon - 20, label: S.label, name: S.name, ...(inline ? { inline: true } : {}), ...(lift ? { lift } : {}) } : undefined
   const top = headBottom === undefined ? T : headBottom + G.head
-  const bottom = (latest && !oneLine ? latest.y : rule.y) - G.collage
+  const bottom = (latest ? latest.y - G.latest : rule.y - G.collage) - lift
   const collage = { x: X, y: top, w: W - 2 * X, h: bottom - top }
-  return { W, H, name, filter, collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
+  return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, ...tileCaps(format, c.count, collage) }
 }
 
 /**
@@ -349,10 +407,13 @@ export function cardDims(format: CardFormat, size: PrintSize = 'A2'): [number, n
 }
 
 /** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
-export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number }> }
+/** `oval` and `free`: the share dialog's Oval and Free (arrangement.ts); both left out for Fit. */
+export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number }>; oval?: true; free?: true }
 export function packSpec(L: CardLayout): PackSpec {
   const { w, h } = L.collage
-  return { aspect: w / h, hole: scaleHole(L.count.hole, 1 / w), maxTile: L.maxTile }
+  // The tile cap the drawing keeps (maxTileSide: the share, and the sticker files' sharp size), so the pack is made at the
+  // size it is drawn and fitPack never shrinks it off the frame's edges.
+  return { aspect: w / h, hole: scaleHole(L.count.hole, 1 / w), maxTile: Math.min(L.maxTile, L.maxSide / w) }
 }
 
 /**
@@ -361,6 +422,17 @@ export function packSpec(L: CardLayout): PackSpec {
  */
 export const MAX_TILE = 0.3, MAX_TILE_SHORT = 0.36
 export const maxTileFrac = (n: number) => (n <= 24 ? MAX_TILE_SHORT : MAX_TILE)
+/**
+ * A small group (under SMALL_GROUP birds, round 6, item 12) is drawn as large as its frame allows: its largest sticker's
+ * long side up to GROUP_TILE of the collage's shorter side (so one or two birds stay a sensible size beside the count),
+ * at most GROUP_SIDE design units, never under the cap a longer list gets; tiles over the 384 files' sharp size draw from the 1024 file (with the 384 as fallback).
+ */
+export const GROUP_TILE = 0.7, GROUP_SIDE = 640
+function tileCaps(format: CardFormat, n: number, collage: { w: number; h: number }): { maxTile: number; maxSide: number } {
+  // Never under the cap it had (a lone bird on the wide desktop keeps its 512).
+  if (n < SMALL_GROUP) return { maxTile: Math.max(maxTileFrac(n), (GROUP_TILE * Math.min(collage.w, collage.h)) / collage.w), maxSide: Math.max(GROUP_SIDE, MAX_SIDE[format] ?? 440) }
+  return { maxTile: maxTileFrac(n), maxSide: MAX_SIDE[format] ?? 440 }
+}
 /**
  * That largest side in px (never past `cap`: 440, the 384px files' sharp size at 1×; the desktop's 2× tiles draw from the
  * 1024 file, so its cap is 512, MAX_SIDE).
@@ -397,7 +469,7 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, spec: 
     }
     w.onerror = (e) => { done(); reject(new Error(`layout worker failed: ${e.message ?? 'error'}`)) }
     const captions = spec.captionBoxes ? birds.map((b) => spec.captionBoxes![b.code] ?? { w: 0, h: 0 }) : undefined
-    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}) }
+    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}), ...(spec.oval ? { oval: true } : {}), ...(spec.free ? { free: true } : {}) }
     w.postMessage(msg)
   })
 }
@@ -418,20 +490,20 @@ export const abortError = (message = 'share image cancelled') => {
 
 /**
  * What to pack for a format and a view: the collage frame (with or without the name, the filter line and the latest
- * lifer) and the count's hole. The dialog packs once per format, name-or-not and lifer-or-not; the drawing maps the pack onto
- * whatever frame it gets. The print packs once per shape (cardDims with `size`: every A size at PRINT_DESIGN_H).
+ * lifer row) and the count's hole. The dialog packs once per format, name-or-not and lifer-or-not; the drawing maps the
+ * pack onto the card's frame. The print packs once per shape (cardDims with `size`: every A size at PRINT_DESIGN_H).
+ * Without the latest lifer row (the dialog's "Show latest lifer" off, or no dated bird) the frame is the taller one that
+ * takes the row's room and its gap (round 6: the with-row pack fitted into it left an empty band above and below).
  */
-export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSize, captionPlan?: Extract<CaptionPlan, { ok: true }>): PackSpec {
-  // Always the frame with the latest lifer row (the smaller one): the "Show latest lifer" switch never changes the pack.
-  // With the row off, the same pack is fitted into the taller area (fitPack), so every bird keeps its place.
-  const L = cardLayout(format, { ...c, latest: true }, cardDims(format, size))
-  const spec = packSpec(L)
+export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSize, captionPlan?: Extract<CaptionPlan, { ok: true }>, arrangement: Arrangement = 'packed'): PackSpec {
+  const L = cardLayout(format, c, cardDims(format, size))
+  const spec: PackSpec = { ...packSpec(L), ...(arrangement === 'oval' ? { oval: true } : arrangement === 'free' ? { free: true } : {}) }
   if (!captionPlan) return spec
-  const captionBoxes: Record<string, { w: number; h: number }> = {}
+  const captionBoxes: NonNullable<PackSpec['captionBoxes']> = {}
   for (const [code, entry] of captionPlan.byCode) {
     captionBoxes[code] = { w: entry.w / L.collage.w, h: entry.h / L.collage.w }
   }
-  return { ...spec, maxTile: Math.min(spec.maxTile, L.maxSide / L.collage.w), captionBoxes }
+  return { ...spec, captionBoxes }
 }
 
 // --- drawing ---
@@ -527,7 +599,6 @@ export type Tile = {
   x: number; y: number; w: number; h: number; url: string | null
   /** The print's 384 file, tried when its 1024 file (`url`) fails; absent or null otherwise. */
   fallback?: string | null
-  mark?: 'newest' | 'first' | 'both'
 }
 /** A band of the card in design units, top (y0) to bottom (y1): the part a poster strip paints. */
 export type PaintRange = { y0: number; y1: number }
@@ -544,12 +615,10 @@ export function tileInRange(t: { y: number; h: number }, range: PaintRange): boo
  * `range`, only the tiles tileInRange keeps.
  */
 export function paintTiles(
-  ctx: CanvasRenderingContext2D, tiles: Tile[], imgs: Map<string, CanvasImageSource | null>, line: string, range?: PaintRange, colors?: Pick<ShareColors, 'accent' | 'ink'>,
+  ctx: CanvasRenderingContext2D, tiles: Tile[], imgs: Map<string, CanvasImageSource | null>, line: string, range?: PaintRange,
 ): void {
   const bird = new Path2D(BIRD_PATH)
-  const ringed: Tile[] = []
   for (const t of tiles) {
-    if (t.mark && (!range || (t.y - 7 < range.y1 && t.y + t.h + 7 > range.y0))) ringed.push(t)
     if (range && !tileInRange(t, range)) continue
     const img = t.url ? imgs.get(t.url) : null
     if (img) {
@@ -568,27 +637,22 @@ export function paintTiles(
     ctx.stroke(bird)
     ctx.restore()
   }
-  for (const t of ringed) {
-    ctx.save()
-    ctx.beginPath()
-    const pad = 5, r = 10
-    if (ctx.roundRect) ctx.roundRect(t.x - pad, t.y - pad, t.w + pad * 2, t.h + pad * 2, r)
-    else ctx.rect(t.x - pad, t.y - pad, t.w + pad * 2, t.h + pad * 2)
-    ctx.strokeStyle = t.mark === 'first' ? (colors?.ink ?? '#1e1e24') : (colors?.accent ?? '#92140c')
-    ctx.lineWidth = 3
-    ctx.stroke()
-    ctx.restore()
-  }
 }
 
-/** The families canvas text uses: the page's own fonts (Fontshare and next/font), with the CSS fallbacks. */
+/** The families canvas text uses: the page's own fonts (Fontshare and next/font), with the CSS fallbacks; on a page in
+ *  Russian, Japanese or Chinese its Noto family (tokens.css --font-noto) after the Latin ones. */
 function families(): { display: string; body: string; mono: string } {
-  let mono = ''
-  if (typeof document !== 'undefined') mono = getComputedStyle(document.documentElement).getPropertyValue('--font-geist-mono').trim()
+  let mono = '', noto = ''
+  if (typeof document !== 'undefined') {
+    const css = getComputedStyle(document.documentElement)
+    mono = css.getPropertyValue('--font-geist-mono').trim()
+    noto = css.getPropertyValue('--font-noto').trim()
+  }
+  const n = noto ? `${noto}, ` : ''
   return {
-    display: '"Cabinet Grotesk", "Satoshi", system-ui, sans-serif',
-    body: '"Satoshi", system-ui, -apple-system, "Segoe UI", sans-serif',
-    mono: `${mono ? `${mono}, ` : ''}"Geist Mono", ui-monospace, Menlo, monospace`,
+    display: `"Cabinet Grotesk", "Satoshi", ${n}system-ui, sans-serif`,
+    body: `"Satoshi", ${n}system-ui, -apple-system, "Segoe UI", sans-serif`,
+    mono: `${mono ? `${mono}, ` : ''}"Geist Mono", ${n}ui-monospace, Menlo, monospace`,
   }
 }
 
@@ -610,19 +674,73 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, font: (px: number)
   return `${t.trimEnd()}…`
 }
 
+/**
+ * The latest lifer's row and the Tree image's oldest lineage row, in every format that draws it (round 6, items 4 and
+ * 17: one painter): its words beside its sticker (drawn by the caller, `at` its icon's square). On one line (`at.inline`):
+ * the bird's name right after the sticker in the name's style (shrunk to the width, never cut), then the detail in the
+ * label's mono style, Muted, sentence case (`words.detail`, else `label`), its short form where that doesn't fit beside
+ * the whole name (`head`, the latest lifer without its place, or the oldest lineage's `label`), clipped only past that.
+ * Stacked (the Story): the mono label over the name, upper case and tracked, the place on a line of its own where the
+ * whole label doesn't fit. Returns the detail drawn (one line).
+ */
+export function paintRow(ctx: CanvasRenderingContext2D, font: Pick<CardFonts, 'lifer' | 'mono'>, C: Pick<ShareColors, 'ink' | 'muted'>, at: { x: number; y: number; icon: number; tw: number; label: number; name: number; inline?: boolean }, words: LatestText & { detail?: string }): string {
+  const { icon, label: ls, name: ns } = at
+  const track = (em: number, px: number) => { if ('letterSpacing' in ctx) ctx.letterSpacing = `${(em * px).toFixed(2)}px` }
+  ctx.textAlign = 'left'
+  if (at.inline) {
+    const right = at.x + at.tw + icon + 20, nx = at.x + icon + SMALL_INLINE.gap
+    ctx.textBaseline = 'alphabetic'
+    const full = (ctx.font = font.lifer(ns), ctx.measureText(words.name).width)
+    const size = nx + full > right ? Math.max(1, (ns * (right - nx)) / full) : ns
+    if (size !== ns) ctx.font = font.lifer(size)
+    // One baseline for the name and the detail (each centred on its own font's middle sat them apart), the name's
+    // capitals centred on the sticker (cap height about 0.7 em).
+    const base = at.y + icon / 2 + 0.35 * size
+    ctx.fillStyle = C.ink
+    ctx.fillText(words.name, nx, base)
+    const dx = nx + ctx.measureText(words.name).width + SMALL_INLINE.gap, room = right - dx
+    ctx.font = font.mono(ls)
+    const long = words.detail ?? words.label, short = words.head ?? words.label
+    const detail = ctx.measureText(long).width <= room ? long : ctx.measureText(short).width <= room ? short : room > ls ? clipTo((t) => ctx.measureText(t).width, short, room) : ''
+    ctx.fillStyle = C.muted
+    if (detail) ctx.fillText(detail, dx, base)
+    ctx.textBaseline = 'top'
+    return detail
+  }
+  const tx = at.x + icon + 20, tw = at.tw
+  ctx.textBaseline = 'top'
+  ctx.font = font.mono(16)
+  track(0.06, 16)
+  const tooLong = ctx.measureText(words.label.toUpperCase()).width > tw
+  const lines = words.place && words.head && tooLong ? [words.head, words.place] : [words.label]
+  const blockH = lines.length * ls + (lines.length - 1) * 6 + 10 + ns
+  const top = at.y + (icon - blockH) / 2
+  track(0.06, ls)
+  ctx.fillStyle = C.muted
+  lines.forEach((line, i) => ctx.fillText(fitText(ctx, line.toUpperCase(), font.mono, ls, 16, tw), tx, top + i * (ls + 6)))
+  track(0, 0)
+  ctx.font = font.lifer(ns)
+  const full = ctx.measureText(words.name).width
+  if (full > tw) ctx.font = font.lifer(Math.max(1, (ns * tw) / full))
+  ctx.fillStyle = C.ink
+  ctx.fillText(words.name, tx, top + lines.length * (ls + 6) + 4)
+  return lines.join(' · ')
+}
+
 /** The smallest size the footer line takes beside the wordmark before it moves to its own line. */
 export const CREDIT_MIN = 17
 /**
- * Where the footer line (the site and "stickers by huashu") goes, never truncated and never without the credit: beside
- * the wordmark (`inlineRoom` px) at `size` down to CREDIT_MIN, else on its own line (`fullRoom` px) at `size`,
- * shrinking only if even the full width is too narrow. `measure(px)` is the line's width at that size.
+ * Where the footer line (the site and the sticker credit) goes, never truncated and never without the credit: beside
+ * the wordmark (`inlineRoom` px) at `size` down to `min` (CREDIT_MIN; the poster's POSTER_FOOT.min), else on its own line
+ * (`fullRoom` px) at `size`, shrinking only if even the full width is too narrow. `measure(px)` is the line's width at that size.
  */
-export function placeCredit(measure: (px: number) => number, inlineRoom: number, fullRoom: number, size: number): { size: number; below: boolean } {
-  for (let px = size; px >= CREDIT_MIN; px--) if (measure(px) <= inlineRoom) return { size: px, below: false }
+export function placeCredit(measure: (px: number) => number, inlineRoom: number, fullRoom: number, size: number, min = CREDIT_MIN): { size: number; below: boolean } {
+  for (let px = size; px >= min; px--) if (measure(px) <= inlineRoom) return { size: px, below: false }
   let px = size
   while (px > 8 && measure(px) > fullRoom) px--
   return { size: px, below: true }
 }
+
 
 export type ShareImageOpts = {
   format: CardFormat
@@ -632,24 +750,37 @@ export type ShareImageOpts = {
   name?: string
   /** The page's theme. The print follows it too: dark is light ink on the dark paper. */
   theme: 'light' | 'dark'
+  /** No background fill: a PNG of the birds and the text alone (to print on fabric). The text keeps `theme`'s ink. */
+  transparent?: boolean
   /** The print's size (print only; default A2): the card's height is printDesignH(size). */
   printSize?: PrintSize
   /** A pack made earlier by packForImage for this format, these entries, name-or-not and lifer-or-not (the dialog keeps them). */
   pack?: ImagePack
   /** When the image is made, for the footer's date stamp; default `new Date()`. */
   now?: Date
+  /** The footer line before its date stamp; default FOOTER_LINE. The Map and Tree images draw no stickers (view-image.ts). */
+  footer?: string
   /** The latest lifer row; default true. False leaves it out and gives its room to the collage (cardLayout's `latest: false`). */
   latest?: boolean
-  markNewest?: boolean
-  markFirst?: boolean
+  /** Another bird in the latest lifer's place and style, with its own words (the Tree image's oldest lineage): `label`
+   *  the row's mono label (its short form), `detail` its long one. `poster` is unused since posters draw the row too
+   *  (round 6, item 24). */
+  latestAs?: { row: SpeciesRow; label: string; poster?: string; detail?: string }
   /** The UI language's strings the image draws: the count's number and label, the latest lifer's label and month, and
    *  the stamp's month. The filter label comes in words already (`filterLabel`, from the same strings). */
   strings: ShareStrings
   /** A bird's name to draw (the latest lifer's); default its English name. The dialog passes the display name. */
   nameOf?: (row: SpeciesRow) => string
-  goal?: { year: number; target?: number; basis: 'seen' | 'lifer' }
+  /** The places' names in the image's language (i18n-places.ts regionsIn), for where the latest lifer was seen
+   *  (liferPlace); without them the row and the poster's foot name no place. */
+  regions?: Regions
+  /** A species goal: the label under the count reads "/ 300 SPECIES". With `year`, the card's line names it ("Big Year 2026"); without, it is
+   *  the shown list's goal (All time) and the line is the filter's. */
+  goal?: { year?: number; target?: number; basis: 'seen' | 'lifer' }
   countSize?: CountSize
   showNames?: boolean
+  /** How the birds are placed (default Packed); used when `pack` is not given. */
+  arrangement?: Arrangement
   signal?: AbortSignal
 }
 
@@ -661,48 +792,45 @@ export async function renderShareImage(opts: ShareImageOpts): Promise<Blob> {
   })
 }
 
-/**
- * `grow`: how much the scale-up past the width fit enlarged the birds (and the hole), at least 1. `sy`: the extra
- * vertical spread of the birds' centres (not their sizes) above the centre, `syDown` below it, each at least 1.
- */
-export type PackFit = { s: number; cx: number; cy: number; ux: number; uy: number; grow: number; sy: number; syDown: number }
-/** Where a tile's centre lands vertically: above the centre spread by `sy`, below by `syDown`. */
-export const spreadY = (f: PackFit, yc: number) => f.cy + (yc - f.uy) * f.s * (yc < f.uy ? f.sy : f.syDown)
+/** `grow`: how much the scale-up past the width fit enlarged the birds (and the hole), at least 1. */
+export type PackFit = { s: number; cx: number; cy: number; ux: number; uy: number; grow: number }
 /**
  * How a pack lands on the collage area: the frame's centre (the hole) on the area's centre, the frame's width on the
  * area's width (or its height, if that is tighter), then scaled about the centre until the birds reach the area's
- * edge or the largest tile reaches `maxTile` px. Then, up to `spreadMax` (the story's tall frame), the birds' centres
- * spread vertically until the top or bottom bird reaches the area's edge: sizes are kept and distances only grow, so
- * nothing overlaps, and the ring and its hole become a taller oval. A layout unit at (x, y) is drawn at
- * (cx + (x − ux)·s, cy + (y − uy)·s) before the spread; a tile's centre moves to cy + (yc − uy)·s·sy.
+ * edge or the largest tile reaches `maxTile` px. A layout unit at (x, y) is drawn at (cx + (x − ux)·s, cy + (y − uy)·s)
+ * (fitBox). The pack already fills its frame evenly (packFrame), and the frame has the area's shape, so nothing is
+ * stretched: the gaps stay even.
  */
 export function fitPack(
-  pack: ImagePack, area: { x: number; y: number; w: number; h: number }, maxTile: number, spreadMax = 1,
-  capBounds?: Map<string, { left: number; right: number; bottom: number }>,
+  pack: ImagePack, area: { x: number; y: number; w: number; h: number }, maxTile: number,
+  caps?: Map<string, { w: number; below: number }>,
 ): PackFit {
   const ux = pack.W / 2, uy = pack.H / 2
   const cx = area.x + area.w / 2, cy = area.y + area.h / 2
   const k = Math.min(area.w / pack.W, area.h / pack.H)
   let dx = 0, dy = 0, maxL = 0
-  for (const [code, [x, y, w, h]] of pack.boxes) {
-    const b = capBounds?.get(code)
-    dx = Math.max(dx, ux - (x - (b?.left ?? 0)), x + w + (b?.right ?? 0) - ux)
-    dy = Math.max(dy, uy - y, y + h + (b?.bottom ?? 0) - uy)
+  for (const [, [x, y, w, h]] of pack.boxes) {
+    dx = Math.max(dx, ux - x, x + w - ux)
+    dy = Math.max(dy, uy - y, y + h - uy)
     maxL = Math.max(maxL, w, h)
   }
-  if (!maxL) return { s: k, cx, cy, ux, uy, grow: 1, sy: 1, syDown: 1 }
-  const fill = Math.min(area.w / 2 / (dx * k), area.h / 2 / (dy * k), maxTile / (maxL * k))
-  const s = k * fill
-  // Above and below the centre spread separately, so a lopsided ring (one big bird low) still reaches both edges.
-  let up = spreadMax, down = spreadMax
-  for (const [code, [, y, , h]] of pack.boxes) {
-    const b = capBounds?.get(code)
-    const c = (y + h / 2 - uy) * s
-    if (c < -1e-6) up = Math.min(up, (area.h / 2 - (h * s) / 2) / Math.abs(c))
-    else if (c > 1e-6) down = Math.min(down, (area.h / 2 - (h * s) / 2 - (b?.bottom ?? 0) * s) / Math.abs(c))
+  if (!maxL) return { s: k, cx, cy, ux, uy, grow: 1 }
+  let fill = Math.min(area.w / 2 / (dx * k), area.h / 2 / (dy * k), maxTile / (maxL * k))
+  // `caps`: each name's width and its reach below its sticker, in design units (they don't scale with the birds), centred
+  // under the sticker: it stays inside the area too.
+  if (caps) {
+    for (const [code, [x, y, w, h]] of pack.boxes) {
+      const c = caps.get(code)
+      if (!c) continue
+      const mid = Math.abs(x + w / 2 - ux), low = y + h - uy
+      if (mid > 1e-9) fill = Math.min(fill, (area.w / 2 - c.w / 2) / (mid * k))
+      if (low > 1e-9) fill = Math.min(fill, (area.h / 2 - c.below) / (low * k))
+    }
   }
-  return { s, cx, cy, ux, uy, grow: Math.max(1, fill), sy: Math.max(1, up), syDown: Math.max(1, down) }
+  return { s: k * fill, cx, cy, ux, uy, grow: Math.max(1, fill) }
 }
+/** A pack's box [x, y, w, h] (layout units) as drawn on the card (design units), by fitPack's `f`. */
+export const fitBox = (f: PackFit, [x, y, w, h]: Box): Box => [f.cx + (x - f.ux) * f.s, f.cy + (y - f.uy) * f.s, w * f.s, h * f.s]
 
 /** The canvas fonts of one card, as functions of the size in px. */
 export type CardFonts = Record<'name' | 'filter' | 'count' | 'mono' | 'lifer' | 'brand' | 'footer', (px: number) => string>
@@ -736,20 +864,25 @@ export type PreparedCard = {
   /** What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's. */
   countNum: string
   countLabel: string
+  /** "Beside title": the count on the title's line, its number and its upper-cased label ("96", "SPECIES" or "/ 150 SPECIES"). */
+  countLine?: { num: string; label: string }
   footerLine: string
-  latest?: { label: string; name: string }
+  /** The row's words (the Tree's oldest lineage adds its long `detail`). */
+  latest?: LatestText & { detail?: string }
   name?: string
   label?: string
   fonts: CardFonts
   /** The wordmark's width plus the gap before the footer line beside it. */
   brandW: number
-  /** The one-line row (LATEST_ONE_LINE): the block's left edge, the label's width and the name as drawn (its text and font size). */
-  oneLine?: { x: number; labelW: number; nameText: string; nameSize: number }
   /** The footer line's size, and whether it took its own line under the wordmark (placeCredit). */
   credit: { size: number; below: boolean }
   /** How far the wordmark, the hairline and the latest lifer row move up when the footer line is below the wordmark. */
   shift: number
   captions?: CaptionBox[]
+  /** Print names were asked for (showNames) but none are drawn: they didn't fit. */
+  namesDropped?: true
+  /** No Paper fill (ShareImageOpts.transparent). */
+  transparent?: true
 }
 type CardDraft = Omit<PreparedCard, 'brandW' | 'credit' | 'shift'>
 
@@ -760,36 +893,38 @@ export function fitCaptionPack(
   content: CardContent,
   printSize: PrintSize,
   captionPlan: Extract<CaptionPlan, { ok: true }>,
-  markedCodes?: Set<string>,
 ): { fit: PackFit; placed: PlacedTile[]; captions?: CaptionBox[]; ok: boolean } {
   const L = cardLayout(format, content, printDesign(printSize, format === 'printLandscape'))
   const area = L.collage
-  let capBounds: Map<string, { left: number; right: number; bottom: number }> | undefined
-  if (pack.W > 0) {
-    const luPerDu = pack.W / area.w
-    capBounds = new Map()
-    for (const [code, [, , w]] of pack.boxes) {
-      const p = captionPlan.byCode.get(code)
-      if (!p) continue
-      const extraX = Math.max(0, (p.w * luPerDu - w) / 2)
-      capBounds.set(code, { left: extraX, right: extraX, bottom: p.h * luPerDu })
-    }
-  }
-  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format], capBounds)
+  const caps = new Map<string, { w: number; below: number }>()
+  for (const [code, p] of captionPlan.byCode) caps.set(code, { w: p.w, below: p.h })
+  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), caps)
   const placed: PlacedTile[] = []
   for (const e of entries) {
     const b = pack.boxes.get(e.code)
     if (!b) continue
-    const [w, h] = [b[2] * fit.s, b[3] * fit.s]
-    const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
-    placed.push({ code: e.code, x, y, w, h, ...(markedCodes?.has(e.code) ? { marked: true } : {}) })
+    const [x, y, w, h] = fitBox(fit, b)
+    placed.push({ code: e.code, x, y, w, h })
   }
   const verified = verifyAndPlaceCaptions(placed, area, { cx: fit.cx, cy: fit.cy }, scaleHole(L.count.hole, Math.max(1, fit.grow)), captionPlan)
   return verified.ok ? { fit, placed, captions: verified.captions, ok: true } : { fit, placed, ok: false }
 }
 
+
+/** The Big Year goal's line on the card ("Big Year 2027"), in the image's language; none for an All time goal. */
+export function goalText(goal: NonNullable<ShareImageOpts['goal']>, strings: ShareStrings): string {
+  if (goal.year === undefined) return ''
+  return fmt(goal.basis === 'lifer' ? strings.share.bigYear.cardLifer : strings.share.bigYear.card, { year: goal.year })
+}
+
 export function ensureCaptionFont(px: number, sample: string): Promise<void> {
   return fontsReady([cardFonts().filter(px)], sample)
+}
+
+/** Wait for the faces a view image draws its own text with (names, ticks, the key: the lifer and footer fonts), for
+ *  every character of `sample`: a CJK family is split into many files, and only those `sample` touches are loaded. */
+export function ensureViewFonts(card: Pick<PreparedCard, 'fonts'>, sample: string): Promise<void> {
+  return fontsReady([card.fonts.lifer(20), card.fonts.footer(20)], sample)
 }
 
 /** The card without its fonts and footer placement: layout, pack, fit, tiles, text. `scale`: device px per design unit. */
@@ -800,23 +935,23 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const shown = entries.filter((e) => species.byCode.has(e.code))
   const order = liferOrder(species.byCode)
   const latestE = latestLifer(shown, order)
-  const firstE = opts.markFirst ? firstLifer(shown, order) : undefined
-  const markNewestCode = opts.markNewest ? latestE?.code : undefined
-  const markFirstCode = opts.markFirst ? firstE?.code : undefined
-  const latestRow = latestE && species.byCode.get(latestE.code)!
+  const latestRow = opts.latestAs?.row ?? (latestE && species.byCode.get(latestE.code)!)
   const strings = opts.strings
-  const latest = opts.latest !== false && latestRow ? latestText({ com: opts.nameOf?.(latestRow) ?? latestRow.com, date: latestE!.date }, strings) : undefined
+  const latestName = latestRow ? opts.nameOf?.(latestRow) ?? latestRow.com : ''
+  const latestWhere = !opts.latestAs && latestE && opts.regions ? liferPlace(latestE.place, opts.regions) || undefined : undefined
+  const latest = opts.latest !== false && latestRow ? (opts.latestAs ? { label: opts.latestAs.label, name: latestName, ...(opts.latestAs.detail ? { detail: opts.latestAs.detail } : {}) } : latestText({ com: latestName, date: latestE!.date, place: latestWhere }, strings)) : undefined
   const goal = opts.goal
-  const goalLabel = goal ? fmt(goal.basis === 'lifer' ? strings.share.bigYear.cardLifer : strings.share.bigYear.card, { year: goal.year }) : undefined
-  const label = opts.filterLabel?.trim() || goalLabel || undefined
-  const name = opts.name?.trim() || undefined
-  const footerLine = withStamp(FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
-  const content: CardContent = { name: !!name, filter: !!label, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize }
+  const goalLabel = goal ? goalText(goal, strings) : undefined
+  const filterText = opts.filterLabel?.trim() || goalLabel || undefined
+  const named = opts.name?.trim() || undefined
+  const content: CardContent = { name: !!named, filter: !!filterText, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize, ...(opts.footer ? { viewFooter: true } : {}) }
+  // A poster's head is its title alone: the name, else the filter in words.
+  const name = print ? named ?? filterText : named
+  const label = print ? undefined : filterText
+  const stamped = withStamp(opts.footer ?? FOOTER_LINE, stampDate(opts.now ?? new Date(), stampStrings(strings)))
+  const footerLine = stamped
   const printSize = opts.printSize ?? 'A2'
   const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
-  const markedCodes = new Set<string>()
-  if (markNewestCode) markedCodes.add(markNewestCode)
-  if (markFirstCode) markedCodes.add(markFirstCode)
   let captionPlan: CaptionPlan | undefined
   if (print && opts.showNames) {
     const sample = shown.map((e) => {
@@ -825,53 +960,58 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
     }).join('')
     await ensureCaptionFont(captionMinPx(printSize), sample)
     if (signal?.aborted) throw abortError()
-    captionPlan = planCaptions(shown, species, printSize, L.collage.w, opts.nameOf, captionMeasurer(), markedCodes)
+    captionPlan = planCaptions(shown, species, printSize, L.collage.w, opts.nameOf, captionMeasurer())
   }
   // Packed for the format's own frame (the print: at its shape's printPackH, one pack for every A size, as imagePackSpec).
-  let pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined), signal))
+  let pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined, opts.arrangement), signal))
   if (signal?.aborted) throw abortError()
 
   // A tile's sticker: the share images' 128/384 by its size; the print's by its device px (1024 with the 384 fallback).
   // A 2× image (the desktop) takes the print's device tiers, so its big stickers come from the 1024 file, with the 384 as
   // a fallback (drawShareImage maps it in when the 1024 one fails).
   const sticker = (code: string, side: number, sv?: string): Pick<Tile, 'url' | 'fallback'> =>
-    print || scale > 1 ? printStickerUrl(code, side * scale, sv) : { url: stickerUrl(code, side, scale, sv) }
+    print || scale > 1 || side > PRINT_FROM ? printStickerUrl(code, side * scale, sv) : { url: stickerUrl(code, side, scale, sv) }
 
   // The pack on the collage area, its centre (the count) on the area's centre.
   const area = L.collage
-  const capFit = captionPlan?.ok ? fitCaptionPack(pack, shown, format, content, printSize, captionPlan, markedCodes) : undefined
+  const capFit = captionPlan?.ok ? fitCaptionPack(pack, shown, format, content, printSize, captionPlan) : undefined
   if (capFit && !capFit.ok && !opts.pack) {
-    pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize), signal)
+    pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, undefined, opts.arrangement), signal)
     if (signal?.aborted) throw abortError()
   }
-  const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), SPREAD[format])
+  const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide))
   const captions = capFit?.ok ? capFit.captions : undefined
+  // Names asked for but not drawn (over the cap, a name too long, or a pack they don't fit): the caller says so.
+  const namesDropped = print && !!opts.showNames && !captions
   const tiles: Tile[] = shown.flatMap((e) => {
     const b = pack.boxes.get(e.code)
     if (!b) return []
     const row = species.byCode.get(e.code)!
-    const [w, h] = [b[2] * fit.s, b[3] * fit.s]
-    const [x, y] = [fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2]
-    const isNewest = e.code === markNewestCode, isFirst = e.code === markFirstCode
-    const mark: Tile['mark'] = isNewest && isFirst ? 'both' : isNewest ? 'newest' : isFirst ? 'first' : undefined
-    const tile: Tile = { x, y, w, h, ...(row.st ? sticker(e.code, Math.max(w, h), row.sv) : { url: null }), ...(mark ? { mark } : {}) }
+    const [x, y, w, h] = fitBox(fit, b)
+    const tile: Tile = { x, y, w, h, ...(row.st ? sticker(e.code, Math.max(w, h), row.sv) : { url: null }) }
     return [tile]
   })
-  // The latest lifer's sticker, contained in its square at the sticker's own aspect.
+  // The latest lifer's sticker, contained in its square at the sticker's own aspect, in its row.
   let lifer: Tile | null = null
-  if (latestRow && L.latest) {
-    const { icon, y } = L.latest
+  const liferSide = L.latest?.icon ?? 0
+  if (latestRow && liferSide) {
     const ar = latestRow.st && latestRow.ar > 0 ? latestRow.ar : 1
-    const w = ar >= 1 ? icon : icon * ar, h = ar >= 1 ? icon / ar : icon
-    lifer = { x: L.latest.x + (icon - w) / 2, y: y + (icon - h) / 2, w, h, ...(latestRow.st ? sticker(latestRow.code, icon, latestRow.sv) : { url: null }) }
+    const w = ar >= 1 ? liferSide : liferSide * ar, h = ar >= 1 ? liferSide / ar : liferSide
+    const x = L.latest?.x ?? 0, y = L.latest?.y ?? 0
+    lifer = { x: x + (liferSide - w) / 2, y: y + (liferSide - h) / 2, w, h, ...(latestRow.st ? sticker(latestRow.code, liferSide, latestRow.sv) : { url: null }) }
   }
   // The count grows with the birds when a short list is scaled up past the width fit (its hole grew as much).
   const g = Math.min(fit.grow, 1.3)
   const K = { ...L.count, size: Math.round(L.count.size * g), labelSize: Math.round(L.count.labelSize * Math.min(g, 1.15)), gap: Math.round(L.count.gap * g) }
   // What the count draws, in the UI language ("1.089", "ESPÉCIES"); K's number and label are the geometry's.
-  const countNum = K.size > 0 ? (goal?.target !== undefined ? `${countDisplay(content.count, strings.num)} / ${countDisplay(goal.target, strings.num)}` : countDisplay(content.count, strings.num)) : ''
-  const countLabel = K.size > 0 ? strings.count.label.toUpperCase() : ''
-  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, footerLine, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}) }
+  // With a goal the label says it ("/ 150 SPECIES"); the number is the count alone, at its no-goal size.
+  // Beside the title the same two parts, on the title's line.
+  const numText = countDisplay(content.count, strings.num)
+  const labelText = (goal?.target !== undefined ? plural(strings.share.bigYear.ofTarget, goal.target, { n: countDisplay(goal.target, strings.num) }) : strings.count.label).toUpperCase()
+  const countNum = K.size > 0 ? numText : ''
+  const countLabel = K.size > 0 ? labelText : ''
+  const countLine = L.titleCount ? { num: numText, label: labelText } : undefined
+  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, ...(countLine ? { countLine } : {}), footerLine, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}) }
 }
 
 export function captionMeasurer(): TextMeasurer {
@@ -896,13 +1036,13 @@ function textMeasurer(): (font: string, px: number, text: string, em: number) =>
 
 /** Wait (at most 3 s) for every font the card draws with. */
 function cardFontsReady(d: CardDraft): Promise<void> {
-  const { L, fonts: font, K, name, label, latest, footerLine, countNum, countLabel, captions } = d
-  const fonts = [font.name(L.name?.size ?? 60), font.filter(34), ...(K.size > 0 ? [font.count(K.size), font.mono(K.labelSize)] : []), font.lifer(34), font.brand(30), font.footer(20)]
+  const { L, fonts: font, K, name, label, latest, footerLine, countNum, countLabel, countLine, captions } = d
+  const fonts = [font.name(L.name?.size ?? 60), font.filter(34), ...(K.size > 0 ? [font.count(K.size), font.mono(K.labelSize)] : []), ...(countLine ? [font.count(TITLE_COUNT.num), font.mono(TITLE_COUNT.label)] : []), font.lifer(34), font.brand(30), font.footer(20)]
   if (captions?.length) fonts.push(font.filter(captions[0].fontPx))
   const captionSample = captions?.length ? captions.map((c) => c.lines.join('')).join('') : ''
   return fontsReady(
     fonts,
-    `${name ?? ''}${label ?? ''}${countNum}${countLabel}${latest ? latest.label.toUpperCase() + latest.name : ''}Everybird${footerLine}${captionSample}`,
+    `${name ?? ''}${label ?? ''}${countNum}${countLabel}${countLine ? countLine.num + countLine.label : ''}${latest ? latest.label + latest.label.toUpperCase() + latest.name + (latest.detail ?? '') + (latest.head ?? '') + (latest.place ?? '') : ''}Everybird${footerLine}${captionSample}`,
   )
 }
 
@@ -914,36 +1054,16 @@ function cardFontsReady(d: CardDraft): Promise<void> {
 function placeFooter(d: CardDraft): PreparedCard {
   const { L, fonts: font, footerLine } = d
   // Footer, quiet: the wordmark, then one line on its baseline, the site, the sticker credit and the date stamp ("… ·
-  // stickers by huashu · 14 Nov 2026", never truncated). If it doesn't fit there at 17px or more, it takes its
+  // Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", never truncated). If it doesn't fit there at 17px or more, it takes its
   // own line under the wordmark at the bottom safe line, and the wordmark, the hairline and the latest lifer row move
   // up by that line. Estimates without a DOM: Cabinet Grotesk 700 about 0.55 em a character, Geist Mono 0.6.
-  const X0 = L.collage.x, maxW = L.collage.w
+  const maxW = L.collage.w
   const measure = textMeasurer()
   const brandW = measure(font.brand(L.footer.size), L.footer.size, 'Everybird', 0.55) + 16
   const footerW = (px: number) => measure(font.footer(px), px, footerLine, 0.6)
-  if (L.latest?.oneLine && d.latest) {
-    // The one-line row: two lines right-aligned to the margin, the mono label (tracked 0.06em) over the name (Satoshi 600)
-    // on the footer's baseline, the sticker to their left. The credit keeps CREDIT_MIN beside the wordmark, so the name
-    // gets all the room that leaves: if it is still too wide it shrinks to ONE_LINE.nameMin of its size, and only then is
-    // it clipped with an ellipsis. The credit's room ends where the block starts, less FOOTER_GAP.
-    const { icon, label: ls, name: ns } = L.latest
-    const labelText = d.latest.label.toUpperCase()
-    const labelW = measure(font.mono(ls), ls, labelText, 0.6) + labelText.length * 0.06 * ls
-    const nameW = (t: string, px: number) => measure(font.lifer(px), px, t, 0.56)
-    const creditMin = footerW(CREDIT_MIN)
-    const room = maxW - FOOTER_GAP - brandW - creditMin - icon - ONE_LINE.gap
-    const full = nameW(d.latest.name, ns)
-    const nameSize = full <= room ? ns : Math.max(ns * ONE_LINE.nameMin, Math.min(ns, Math.floor((ns * room) / full)))
-    const nameText = clipTo((t) => nameW(t, nameSize), d.latest.name, room)
-    const blockW = icon + ONE_LINE.gap + Math.max(labelW, nameW(nameText, nameSize))
-    const x = X0 + maxW - blockW
-    const roomCredit = x - FOOTER_GAP - X0 - brandW
-    const credit = { ...placeCredit(footerW, roomCredit, roomCredit, L.footer.credit), below: false }
-    const lifer = d.lifer && { ...d.lifer, x: x + (icon - d.lifer.w) / 2, y: L.latest.y + (icon - d.lifer.h) / 2 }
-    return { ...d, lifer, brandW, credit, shift: 0, oneLine: { x, labelW, nameText, nameSize } }
-  }
-  const credit = placeCredit(footerW, maxW - brandW, maxW, L.footer.credit)
-  const shift = credit.below ? credit.size + 12 : 0
+  const credit = placeCredit(footerW, maxW - brandW, maxW, L.footer.credit, isPrint(d.format) ? POSTER_FOOT.min : CREDIT_MIN)
+  // A line under the wordmark's lifts the wordmark, the hairline and the latest lifer row by a line.
+  const shift = (credit.below ? 1 : 0) * (credit.size + 12)
   const lifer = d.lifer && { ...d.lifer, y: d.lifer.y - shift }
   return { ...d, lifer, brandW, credit, shift }
 }
@@ -965,7 +1085,32 @@ export async function prepareCard(opts: ShareImageOpts, scale = 1): Promise<Prep
   const draft = await draftCard(opts, scale)
   await cardFontsReady(draft)
   if (opts.signal?.aborted) throw abortError()
-  return placeFooter(draft)
+  return keepClear(placeFooter(draft))
+}
+
+/**
+ * The birds' lowest edge stays the card's gap (GAPS: `collage`, or `latest` above the latest lifer row) above
+ * where the footer ended up: cardLayout keeps room for the lift it can foresee (a 1080-wide card's credit line, a portrait
+ * poster's second foot line), and where placeFooter lifted the hairline further (a landscape poster whose latest lifer took
+ * its own line), the collage is fitted again into the area that leaves, about its centre, as fitPack would (round 6, item 10).
+ */
+function keepClear(card: PreparedCard): PreparedCard {
+  const { L, shift, fit } = card
+  const G = GAPS[card.format]
+  const limit = L.latest ? L.latest.y - shift - G.latest : L.rule.y - shift - G.collage
+  let low = -Infinity, top = Infinity
+  for (const t of card.tiles) { low = Math.max(low, t.y + t.h); top = Math.min(top, t.y) }
+  for (const c of card.captions ?? []) low = Math.max(low, c.y + c.h)
+  if (!card.tiles.length || low <= limit + 0.5) return card
+  // The area's bottom moves up to the limit; its centre (the count's) moves up by half that, and the birds shrink about it
+  // only as much as their reach below and above the centre needs.
+  const a = L.collage, cy = fit.cy, ny = cy - (low - limit) / 2
+  const half = (limit - a.y) / 2
+  const r = Math.min(1, half / Math.max(low - cy, cy - top, 1e-9))
+  const move = (x: number, y: number) => [fit.cx + (x - fit.cx) * r, ny + (y - cy) * r] as const
+  const tiles = card.tiles.map((t) => { const [x, y] = move(t.x, t.y); return { ...t, x, y, w: t.w * r, h: t.h * r } })
+  const captions = card.captions?.map((c) => { const [cx, y] = move(c.cx, c.y); return { ...c, cx, x: c.x + cx - c.cx, y } })
+  return { ...card, tiles, ...(captions ? { captions } : {}), fit: { ...fit, cy: ny, s: fit.s * r } }
 }
 
 /** The unique sticker URLs a card draws (tiles, then the latest lifer), in that order. Fallbacks are not included. */
@@ -980,13 +1125,15 @@ export function cardUrls(card: Pick<PreparedCard, 'tiles' | 'lifer'>): string[] 
  */
 export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, imgs: Map<string, CanvasImageSource | null>, range?: PaintRange): void {
   const { L, colors: C, fit, K, countNum, countLabel, fonts: font, latest, name, label, lifer, footerLine, brandW, credit, shift } = card
-  ctx.fillStyle = C.paper
-  ctx.fillRect(0, 0, L.W, L.H)
+  if (!card.transparent) {
+    ctx.fillStyle = C.paper
+    ctx.fillRect(0, 0, L.W, L.H)
+  }
 
   // The collage.
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
-  paintTiles(ctx, card.tiles, imgs, C.line, range, C)
+  paintTiles(ctx, card.tiles, imgs, C.line, range)
   if (card.captions?.length) {
     ctx.font = font.filter(card.captions[0].fontPx)
     ctx.fillStyle = C.ink
@@ -1032,42 +1179,49 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
     ctx.fillStyle = color
     ctx.fillText(out, x, t.y)
   }
-  if (name && L.name) draw(name, font.name, L.name, 36, C.ink)
-  if (label && L.filter) draw(label, font.filter, L.filter, 24, C.accent)
-
-  // The latest lifer: its sticker, then the mono label over the bird's name, centred on the sticker.
-  if (latest && card.oneLine && lifer && L.latest) {
-    // One line on the footer's baseline: the sticker, the mono label, the name (placeFooter placed them).
-    const { x, nameText, nameSize } = card.oneLine
-    const { icon, label: ls } = L.latest
-    const base = L.footer.y + L.footer.size * 0.8
-    const tx = x + icon + ONE_LINE.gap
-    paintTiles(ctx, [lifer], imgs, C.line, range)
-    ctx.textBaseline = 'alphabetic'
-    ctx.textAlign = 'left'
+  // The head: the name (a poster's title, in Accent), with "Beside title" the count on its baseline at the right (alone,
+  // at the left, without a name), in the big count's type: the number in Ink (Cabinet 700, -0.02em), then its label in
+  // Muted (Geist Mono, upper case, tracked 0.06em), as under the count in the middle.
+  let nameW = maxW
+  if (card.countLine && L.name && L.titleCount) {
+    const { num: ns, label: ls, gap } = L.titleCount
+    // The name is drawn from its em box's top: its baseline is that far below (0.8 of the size where the canvas can't say).
+    ctx.font = font.name(L.name.size)
+    ctx.textBaseline = 'top'
+    const drop = Math.abs(ctx.measureText('H').alphabeticBaseline ?? 0)
+    const base = L.name.y + (Number.isFinite(drop) && drop > 0 ? drop : 0.8 * L.name.size)
+    ctx.font = font.count(ns)
+    track(-0.02, ns)
+    const numW = ctx.measureText(card.countLine.num).width
     ctx.font = font.mono(ls)
     track(0.06, ls)
+    const labelW = ctx.measureText(card.countLine.label).width
+    const w = numW + gap + labelW
+    const x = name ? X0 + maxW - w : X0
+    ctx.textBaseline = 'alphabetic'
+    ctx.textAlign = 'left'
     ctx.fillStyle = C.muted
-    ctx.fillText(latest.label.toUpperCase(), tx, base - 30)
+    ctx.fillText(card.countLine.label, x + numW + gap, base)
     track(0, 0)
-    ctx.font = font.lifer(nameSize)
+    ctx.font = font.count(ns)
+    track(-0.02, ns)
     ctx.fillStyle = C.ink
-    ctx.fillText(nameText, tx, base)
-  } else if (latest && lifer && L.latest) {
-    paintTiles(ctx, [lifer], imgs, C.line, range)
-    const { icon } = L.latest
-    const y = L.latest.y - shift
-    const tx = L.latest.x + icon + 20, tw = L.latest.tw
-    const blockH = L.latest.label + 10 + L.latest.name
-    const top = y + (icon - blockH) / 2
-    track(0.06, L.latest.label)
-    draw(latest.label.toUpperCase(), font.mono, { y: top, size: L.latest.label }, 16, C.muted, tx, tw)
+    ctx.fillText(card.countLine.num, x, base)
     track(0, 0)
-    draw(latest.name, font.lifer, { y: top + L.latest.label + 10, size: L.latest.name }, 24, C.ink, tx, tw)
+    ctx.textBaseline = 'top'
+    nameW = maxW - w - 32
+  }
+  if (name && L.name) draw(name, font.name, L.name, 36, isPrint(card.format) ? C.accent : C.ink, X0, nameW)
+  if (label && L.filter) draw(label, font.filter, L.filter, 24, C.accent)
+
+  // The latest lifer (or the Tree's oldest lineage): its sticker, then its words (paintRow).
+  if (latest && lifer && L.latest) {
+    paintTiles(ctx, [lifer], imgs, C.line, range)
+    paintRow(ctx, font, C, { ...L.latest, y: L.latest.y - shift }, latest)
   }
 
   // The footer (placed by prepareCard): the hairline, the wordmark, the line beside or under it.
-  const base = L.footer.y + L.footer.size * 0.8 - (card.oneLine ? FOOTER_LIFT : 0) // lifted to the lifer block's middle when it is on
+  const base = L.footer.y + L.footer.size * 0.8
   ctx.fillStyle = C.hairline
   ctx.fillRect(X0, L.rule.y - shift, maxW, 2)
   ctx.textBaseline = 'alphabetic'
@@ -1102,7 +1256,7 @@ export async function drawShareImage(opts: ShareImageOpts): Promise<HTMLCanvasEl
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas is not available')
   // The print's height is fractional (A4 1527.7 rounds up to 1528): Paper over the whole canvas covers its last row.
-  if (canvas.height > card.L.H * s) {
+  if (!card.transparent && canvas.height > card.L.H * s) {
     ctx.fillStyle = card.colors.paper
     ctx.fillRect(0, 0, canvas.width, canvas.height)
   }

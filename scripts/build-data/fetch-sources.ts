@@ -7,10 +7,12 @@
 // to; see scripts/sync/huashu-sync.ts), or at upstream HEAD when there is no lock. --huashu-only moves data/raw/huashu
 // to the pinned commit and updates the manifest's huashu entries, leaving the other downloads as they are (what
 // build-species and build-stickers ask for after a huashu sync PR is merged).
+// --tree-only fetches just the AvesData trees and the crosswalk (fetchTreeSources) into data/raw/avesdata/ and merges
+// their manifest entries, for scripts/build-data/build-tree.ts.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { NAME_LOCALES } from '../../src/lib/species/name-locales'
 import type { NameLocale } from '../../src/lib/species/name-locales'
@@ -21,6 +23,18 @@ const EBIRD_VERSIONS_URL = 'https://api.ebird.org/v2/ref/taxonomy/versions'
 const NE = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/'
 
 const ISO_URL = 'https://salsa.debian.org/iso-codes-team/iso-codes/-/raw/main/data/iso_3166-2.json'
+
+// AvesData (McTavish et al., "A complete and dynamic tree of birds"), CC BY 4.0 (its README's LICENSE line), pinned to
+// a commit so a rebuild reads the same bytes. Aves 1.7 is the tree; Clements 2025 its taxonomy.
+export const AVES_REPO = 'https://github.com/McTavishLab/AvesData'
+export const AVES_COMMIT = '4af84f14f8f3df26bd4480202689b08ea0fc2c48'
+const AVES_RAW = `https://raw.githubusercontent.com/McTavishLab/AvesData/${AVES_COMMIT}/`
+export const AVES_FILES = [
+  ['Tree_versions/Aves_1.7/Clements2025/summary_dated_clements.nex', 'avesdata/summary_dated_clements.nex'],
+  ['Taxonomy_versions/Clements2025/OTT_crosswalk_2025.csv', 'avesdata/OTT_crosswalk_2025.csv'],
+  // The tree of the species with genetic data: a summary tip missing from it was placed by taxonomy alone.
+  ['Tree_versions/Aves_1.7/Clements2025/phylo_only_clements_labels.tre', 'avesdata/phylo_only_clements_labels.tre'],
+] as const
 
 const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex')
 
@@ -57,7 +71,10 @@ async function download(url: string, file: string, files: RawFile[], deps: Fetch
 
 function writeRawFiles(raw: string, files: RawFile[]): void {
   mkdirSync(raw, { recursive: true })
-  for (const { file, body } of files) writeFileSync(resolve(raw, file), body)
+  for (const { file, body } of files) {
+    mkdirSync(dirname(resolve(raw, file)), { recursive: true })
+    writeFileSync(resolve(raw, file), body)
+  }
 }
 
 /** Use the same taxonomy year as English, including when the API's latest year changes. */
@@ -108,10 +125,22 @@ export async function fetchNameSources(version: string, deps: FetchDeps = {}): P
   // English groups supply the exact famCom matching key, joined by groupOrder in build-names.
   // sppgroup has no version: the endpoint ignores `version=` (checked 2026-11-15: 2026, 2019 and 1900 all return the
   // same bytes), so these are today's groups; the sha256 records exactly which ones a build used.
-  for (const [lang, locale] of [['en', 'en'], ['es', 'es'], ['pt', 'pt_BR'], ['nl', 'nl']] as const) {
+  for (const [lang, locale] of [['en', 'en'], ['es', 'es'], ['pt', 'pt_BR'], ['nl', 'nl'], ['pl', 'pl'], ['fr', 'fr'], ['de', 'de'], ['it', 'it'], ['sv', 'sv'], ['da', 'da'], ['ru', 'ru'], ['ja', 'ja'], ['zh-Hans', 'zh_SIM'], ['zh-Hant', 'zh']] as const) {
     const url = `https://api.ebird.org/v2/ref/sppgroup/ebird?groupNameLocale=${locale}`
     const file = `ebird-groups.${lang}`
     sources.push({ name: file, url, date, sha256: await download(url, `${file}.json`, files, deps) })
+  }
+  return { files, sources }
+}
+
+/** The AvesData tree and crosswalk, in memory (written by the caller once everything has succeeded). */
+export async function fetchTreeSources(deps: FetchDeps = {}): Promise<{ files: RawFile[]; sources: Source[] }> {
+  const files: RawFile[] = []
+  const sources: Source[] = []
+  const date = new Date().toISOString().slice(0, 10)
+  for (const [path, file] of AVES_FILES) {
+    const url = AVES_RAW + path
+    sources.push({ name: `avesdata ${path} (CC BY 4.0)`, url, date, version: `Aves 1.7 @ ${AVES_COMMIT.slice(0, 7)}`, sha256: await download(url, file, files, deps) })
   }
   return { files, sources }
 }
@@ -193,6 +222,17 @@ async function main() {
     console.log('names sources written; eBird taxonomy', ebirdTaxonomy)
     return
   }
+  if (process.argv.includes('--tree-only')) {
+    const { files, sources } = await fetchTreeSources()
+    const path = resolve(raw, 'manifest.json')
+    const manifest = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {}
+    const replaced = new Set(sources.map((s) => s.name))
+    manifest.sources = [...(manifest.sources ?? []).filter((s: Source) => !replaced.has(s.name)), ...sources]
+    writeRawFiles(raw, files)
+    writeFileSync(path, JSON.stringify(manifest, null, 2))
+    console.log('AvesData written at', AVES_COMMIT)
+    return
+  }
   const huashuDir = resolve(raw, 'huashu')
   const huashuCommit = checkoutHuashu(huashuDir, lockedCommit())
 
@@ -214,6 +254,8 @@ async function main() {
   const ne0Sha = await download(NE + 'ne_50m_admin_0_countries.geojson', 'ne_50m_admin_0_countries.geojson', files, {})
   const ne1Sha = await download(NE + 'ne_10m_admin_1_states_provinces.geojson', 'ne_10m_admin_1_states_provinces.geojson', files, {})
   const isoSha = await download(ISO_URL, 'iso_3166-2.json', files, {})
+  const tree = await fetchTreeSources()
+  files.push(...tree.files)
 
   const date = new Date().toISOString().slice(0, 10)
   const manifest = {
@@ -226,6 +268,7 @@ async function main() {
       { name: 'ne_50m_admin_0_countries', url: NE + 'ne_50m_admin_0_countries.geojson', date, sha256: ne0Sha },
       { name: 'ne_10m_admin_1_states_provinces', url: NE + 'ne_10m_admin_1_states_provinces.geojson', date, sha256: ne1Sha },
       { name: 'iso-codes iso_3166-2 (Debian iso-codes, LGPL-2.1)', url: ISO_URL, date, licence: 'LGPL-2.1', sha256: isoSha },
+      ...tree.sources,
     ],
   }
   writeRawFiles(raw, files)

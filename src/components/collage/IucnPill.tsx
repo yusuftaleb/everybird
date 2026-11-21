@@ -4,6 +4,7 @@
 // The span form is decoration beside words that name the category (the Status panel's rows) or inside the aria-hidden
 // hover tooltip, so it is hidden from assistive tech. The card's pill (IucnBadge, `tip`) is a button: a toggletip whose
 // label (the full name) shows on a press, on keyboard focus and on a fine pointer's hover; the button's name says it.
+// No `title`: the browser's own tooltip would show beside the site's.
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
 import { fmt } from '@/i18n/core'
@@ -57,7 +58,6 @@ function IucnToggletip({ cat }: { cat: IucnCat }) {
         className="eb-iucn"
         data-cat={cat}
         style={pillStyle(cat)}
-        title={name}
         aria-label={name}
         aria-expanded={open}
         aria-controls={tipId}

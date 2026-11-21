@@ -50,7 +50,7 @@ for (const width of [1280, 390]) {
       await seed(page);
       const total = 53;
       await expect(page.getByTestId("collage-stats")).toContainText(`${total} species`);
-      await page.getByTestId("filter-tab-time").click();
+      await page.getByTestId("filters-button").click();
       const lo = page.getByRole("slider", { name: "Start month" });
       await expect(lo).toHaveAttribute("aria-valuetext", "January 2019");
       // A range: the start a year on (PageUp), then three months on.
@@ -70,7 +70,7 @@ for (const width of [1280, 390]) {
       }));
       await expect(page.getByTestId("collage-stats")).toContainText(`of ${total} species`);
       expect(await travelled).toBe(true);
-      await expect(page.getByTestId("timeline-read")).toContainText("Apr 2020 to");
+      await expect(page.getByTestId("timeline-read")).toContainText("Apr 2020–");
 
       // No trip brackets or labels, however many runs abroad the list has.
       const panel = page.getByTestId("filter-panel-time");
@@ -90,7 +90,7 @@ for (const width of [1280, 390]) {
       await clear.click();
       await expect(lo).toHaveAttribute("aria-valuetext", "January 2019");
       await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(`^${total} species`));
-      await expect(page.getByTestId("filter-tab-time")).toHaveText(/^Time$/);
+      await expect(page.getByTestId("filters-button")).toHaveText(/^Filters$/);
       await expect(clear).toHaveCount(0);
       await expect.poll(() => shown(page)).toBe(total);
     });
@@ -123,8 +123,8 @@ test.describe("timeline at 390px with a lone early month and a long gap", () => 
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
   test("the gap collapses: the strip fits, nothing is cut, quiet months are bars", async ({ page }) => {
     await seed(page, gappySaved());
-    await page.getByTestId("filter-tab-time").click();
-    await expect(page.getByTestId("timeline-read")).toContainText("May 2020 to");
+    await page.getByTestId("filters-button").click();
+    await expect(page.getByTestId("timeline-read")).toContainText("May 2020–");
     await expect(page.getByTestId("time-gap")).toHaveCount(1);
     const m = await page.evaluate(() => {
       const box = (el: Element | null) => el!.getBoundingClientRect();

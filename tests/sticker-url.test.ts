@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { PRINT, PRINT_FROM, STICKER_BASE, printStickerUrl, stickerPath } from '../src/lib/sticker-url'
+import { PRINT, PRINT_FROM, STICKER_BASE, cardFallback, cardSrcSet, printStickerUrl, stickerPath } from '../src/lib/sticker-url'
 
 it('selects print tiers by device pixels and preserves versions in the fallback', () => {
   expect(PRINT).toBe(1024)
@@ -9,4 +9,13 @@ it('selects print tiers by device pixels and preserves versions in the fallback'
     expect(printStickerUrl('crowa', px)).toEqual({ url: `${STICKER_BASE}/v1/${size}/crowa.webp`, fallback: null })
   }
   expect(printStickerUrl('crowa', 441, 'ab12')).toEqual({ url: `${STICKER_BASE}/v1/1024/crowa.ab12.webp`, fallback: `${STICKER_BASE}/v1/384/crowa.ab12.webp` })
+})
+
+it('the card takes the 384 and 1024 files by density, and falls back from a failed 1024 to the 384 once', () => {
+  const b = STICKER_BASE
+  expect(cardSrcSet('crowa')).toEqual({ src: `${b}/v1/384/crowa.webp`, srcSet: `${b}/v1/384/crowa.webp 384w, ${b}/v1/1024/crowa.webp 1024w` })
+  expect(cardSrcSet('crowa', 'ab12').srcSet).toBe(`${b}/v1/384/crowa.ab12.webp 384w, ${b}/v1/1024/crowa.ab12.webp 1024w`)
+  expect(cardFallback(`${b}/v1/1024/crowa.ab12.webp`, 'crowa', 'ab12')).toBe(`${b}/v1/384/crowa.ab12.webp`)
+  expect(cardFallback(`${b}/v1/384/crowa.ab12.webp`, 'crowa', 'ab12')).toBeNull()
+  expect(cardFallback('', 'crowa')).toBeNull()
 })

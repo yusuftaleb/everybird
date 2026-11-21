@@ -15,12 +15,28 @@ export function normalizeSci(s: string): string {
     .toLowerCase()
 }
 
-/** Lower-case, accents stripped, spaces collapsed (common names). */
+/** Lower-case, accents stripped (Russian ё reads as е, й as и), hiragana as katakana, spaces collapsed (common names). */
 export function foldName(s: string): string {
   return s
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
+    // Polish ł has no decomposition, so NFD leaves it whole: "łabędź" must fold to "labedz" like every other accent.
+    .replace(/ł/g, 'l')
+    .replace(/Ł/g, 'L')
+    // German ß and French œ don't decompose either: "Weißstorch" folds to "weissstorch", "Œdicnème" to "oedicneme".
+    .replace(/ß/g, 'ss')
+    .replace(/ẞ/g, 'SS')
+    .replace(/œ/g, 'oe')
+    .replace(/Œ/g, 'OE')
+    // Danish and Norwegian ø and æ neither: "Sørøver" folds to "sorover", "Ænder" to "aender".
+    .replace(/ø/g, 'o')
+    .replace(/Ø/g, 'O')
+    .replace(/æ/g, 'ae')
+    .replace(/Æ/g, 'AE')
     .replace(/[\u2018\u2019]/g, "'")
+    // Hiragana reads as katakana (eBird's Japanese names are katakana): "かも" finds "カモ". NFD has split off the
+    // voicing marks (U+3099, U+309A), which both scripts share; ゝゞ become ヽヾ.
+    .replace(/[\u3041-\u3096\u309d\u309e]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim()

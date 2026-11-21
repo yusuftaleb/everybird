@@ -3,7 +3,17 @@ import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
 import { pt } from '@/i18n/messages/pt'
-import { goalBasis, goalYears, hasDates, isGoalYear, isTarget, validBigYear, yearFilter, yearList } from '@/lib/list/big-year'
+import { pl } from '@/i18n/messages/pl'
+import { fr } from '@/i18n/messages/fr'
+import { de } from '@/i18n/messages/de'
+import { it as italian } from '@/i18n/messages/it'
+import { sv } from '@/i18n/messages/sv'
+import { da } from '@/i18n/messages/da'
+import { ru } from '@/i18n/messages/ru'
+import { ja } from '@/i18n/messages/ja'
+import { zhHans } from '@/i18n/messages/zh-Hans'
+import { zhHant } from '@/i18n/messages/zh-Hant'
+import { goalBasis, goalYears, hasDates, isGoalYear, isTarget, listYears, validBigYear, yearFilter, yearList } from '@/lib/list/big-year'
 import { applyFilter } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
 import { buildSeen, type SeenIndex } from '@/lib/list/seen'
@@ -33,6 +43,11 @@ describe('bigYear helpers', () => {
     expect(validBigYear({ year: 2027, target: 300 })).toBe(true)
     expect(validBigYear({ year: 2027, target: 0 })).toBe(false)
     expect(validBigYear({ year: 2027, target: 300, extra: 1 })).toBe(false)
+    // An All time goal: the target alone.
+    expect(validBigYear({ target: 300 })).toBe(true)
+    expect(validBigYear({ target: 0 })).toBe(false)
+    expect(validBigYear({ target: 300, extra: 1 })).toBe(false)
+    expect(validBigYear({ year: undefined, target: 300 })).toBe(false)
     expect(validBigYear(null)).toBe(false)
   })
 
@@ -47,6 +62,8 @@ describe('bigYear helpers', () => {
     ]
     expect(hasDates(dated, emptySeen)).toBe(true)
     expect(goalYears(dated, new Date(2027, 0, 1))).toEqual([2027, 2026, 2025, 2024, 2023])
+    // The goal's menu: this year, then only the years with a bird.
+    expect(listYears(dated, makeSpecies(2), emptySeen, new Date(2027, 0, 1))).toEqual([2027, 2025, 2023])
   })
 
   it('counts seen-in-year with seenMonths and lifers without seenMonths, agreeing with year filter', () => {
@@ -91,8 +108,8 @@ describe('bigYear helpers', () => {
   })
 })
 
-describe('Big Year share card', () => {
-  it('draws 120 / 300 with Big Year 2027 (seen) and New species in 2027 (lifer), and fits all languages', async () => {
+describe('year list share card', () => {
+  it('draws 120 over / 300 SPECIES with 2027 year list (seen) and 2027 lifers (lifer), in every language', async () => {
     const species = makeSpecies(120)
     const entries: ListEntry[] = Array.from({ length: 120 }, (_, i) => ({
       code: `sp${i}`, date: '2027-03-01', heard: false, dead: false, media: false, sources: ['ebird'],
@@ -103,22 +120,24 @@ describe('Big Year share card', () => {
       format: 'story', entries, species, pack, theme: 'light',
       goal: { year: 2027, target: 300, basis: 'seen' }, strings: en.ui,
     })
-    expect(seenCard.countNum).toBe('120 / 300')
-    expect(seenCard.label).toBe('Big Year 2027')
+    expect(seenCard.countNum).toBe('120')
+    expect(seenCard.countLabel).toBe('/ 300 SPECIES')
+    expect(seenCard.label).toBe('2027 year list')
 
     const liferCard = await prepareCard({
       format: 'story', entries, species, pack, theme: 'light',
       goal: { year: 2027, target: 300, basis: 'lifer' }, strings: en.ui,
     })
-    expect(liferCard.countNum).toBe('120 / 300')
-    expect(liferCard.label).toBe('Big Year 2027 · New species in 2027')
+    expect(liferCard.countNum).toBe('120')
+    expect(liferCard.label).toBe('2027 lifers')
 
-    for (const m of [en, es, pt, nl]) {
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) {
       const c = await prepareCard({
         format: 'square', entries, species, pack, theme: 'light',
         goal: { year: 2027, target: 300, basis: 'lifer' }, strings: m.ui,
       })
-      expect(c.countNum).toBe('120 / 300')
+      expect(c.countNum).toBe('120')
+      expect(c.countLabel).toContain('300')
       expect(c.label).toContain('2027')
     }
   })

@@ -39,10 +39,11 @@ export function SharedView({ payload }: { payload: SharePayload }) {
 
   if (failed) return <p className="eb-error eb-notice" role="alert">{t.collage.notices.loadFailed}</p>
   if (!data) return <div className="eb-stage-wait eb-sample-wait" aria-hidden="true" />
-  return <Loaded payload={payload} species={data.species} regions={data.regions} />
+  return <SharedCollage payload={payload} species={data.species} regions={data.regions} />
 }
 
-function Loaded({ payload, species, regions }: { payload: SharePayload; species: SpeciesIndex; regions: Regions }) {
+/** One payload's collage in its own store (also a comparison's group, compare/CompareView). */
+export function SharedCollage({ payload, species, regions }: { payload: SharePayload; species: SpeciesIndex; regions: Regions }) {
   const { t } = useI18n()
   const shown = useMemo(() => payloadToRecords(payload, regions), [payload, regions])
   const reducer = useMemo(

@@ -120,6 +120,19 @@ export const OBSORG_COUNTRY_ALIASES: Readonly<Record<string, string>> = {
   // Long Dutch territory names; Intl uses shorter names for SH and a different spelling for GS.
   'sint-helena, ascension en tristan da cunha': 'SH',
   'zuid-georgie en de zuidelijke sandwicheilanden': 'GS',
+  // ISO 3166-1's inverted short names, as spreadsheets copied from ISO lists carry them.
+  'bolivia, plurinational state of': 'BO',
+  'congo, democratic republic of the': 'CD', 'congo, the democratic republic of the': 'CD',
+  'iran, islamic republic of': 'IR',
+  "korea, democratic people's republic of": 'KP', 'korea, republic of': 'KR',
+  'micronesia, federated states of': 'FM',
+  'moldova, republic of': 'MD',
+  'palestine, state of': 'PS',
+  'saint helena, ascension and tristan da cunha': 'SH',
+  'taiwan, province of china': 'TW',
+  'tanzania, united republic of': 'TZ',
+  'venezuela, bolivarian republic of': 'VE',
+  'virgin islands, british': 'VG', 'virgin islands, u.s.': 'VI',
 }
 
 /** Local province names; scoped to their country, never used as fuzzy matches. */

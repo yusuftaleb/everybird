@@ -129,7 +129,7 @@ function resolveScythebillName(
   return suggestion ? { code: null, reason: 'no-match', suggestion } : { code: null, reason: 'no-match' }
 }
 
-type Agg = {
+export type Agg = {
   addRow: (
     rowNo: number,
     sci: string | undefined,
@@ -141,7 +141,8 @@ type Agg = {
   finish: (totalRows: number) => ImportResult | { error: 'no-birds' }
 }
 
-function createAggregator(t: TaxonomyIndex): Agg {
+/** Rows to one record per species (earliest date, heard only when every row is), shared with iGoTerra. */
+export function createAggregator(t: TaxonomyIndex, source: 'scythebill' | 'igoterra' = 'scythebill'): Agg {
   const byCode = new Map<string, SourceRecord>()
   const heardAll = new Map<string, boolean>()
   const unmatchedByName = new Map<string, Unmatched>()
@@ -173,7 +174,7 @@ function createAggregator(t: TaxonomyIndex): Agg {
         seenUnmatched.add(key, place, date)
         const prev = unmatchedByName.get(key)
         if (!prev || earlier(date, prev.date)) {
-          const u: Unmatched = { source: 'scythebill', row: rowNo, reason: res.reason }
+          const u: Unmatched = { source, row: rowNo, reason: res.reason }
           if (sci) u.sci = sci
           if (com) u.com = com
           if (res.suggestion) u.suggestion = res.suggestion
@@ -186,7 +187,7 @@ function createAggregator(t: TaxonomyIndex): Agg {
       seen.add(res.code, place, date)
       const prev = byCode.get(res.code)
       if (!prev) {
-        const rec: SourceRecord = { code: res.code, source: 'scythebill' }
+        const rec: SourceRecord = { code: res.code, source }
         if (date) rec.date = date
         if (place) rec.place = place
         byCode.set(res.code, rec)
@@ -197,7 +198,7 @@ function createAggregator(t: TaxonomyIndex): Agg {
       if (earlier(date, prev.date) || (date === prev.date && placeDetail(place) > placeDetail(prev.place))) {
         byCode.set(res.code, {
           code: res.code,
-          source: 'scythebill',
+          source,
           ...(date ? { date } : {}),
           ...(place ? { place } : {}),
         })

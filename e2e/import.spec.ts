@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import { addDialog, openAdd } from "./add-birds";
 import { SAMPLE_COUNT } from "./sample";
 import { buildSyntheticMyData } from "../scripts/validate/synthetic-list";
 
@@ -24,8 +25,12 @@ test("sample collage renders on landing", async ({ page }) => {
   await expect(stage).toBeVisible();
   await expect(page.getByTestId("collage-stats")).toHaveText(new RegExp(`^Sample: a demo birder's life list · ${SAMPLE_COUNT} species · \\d+ orders · \\d+ families · since `));
   await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(SAMPLE_COUNT);
-  await expect(page.getByRole("link", { name: /^Make yours/ })).toHaveAttribute("href", "/settings");
   await expect(page.getByRole("contentinfo").getByRole("link", { name: "All credits" })).toHaveAttribute("href", "/about#credits");
+  // "Make yours" opens the Add birds dialog on the landing.
+  const make = page.getByRole("button", { name: /^Make yours/ });
+  await expect(make).toHaveAttribute("aria-haspopup", "dialog");
+  await make.click();
+  await expect(addDialog(page)).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -42,9 +47,10 @@ test("the landing sample is pre-packed: its stickers show without the species fi
 // 1280 the order chips wrap, at 390 the "Choose an order" button and the bar's 4px insets sit over the stage (0.47).
 // The demo birder (2026-11-06) has 29 orders where the old sample had 18, so at 1280 the chips wrap onto four rows
 // instead of three and the stage starts 40px lower (0.45 of the screen, was 0.50); 390 is unchanged. The bounds keep a
-// couple of percent of slack under those.
+// couple of percent of slack under those. Since round 3 the top bar's nav takes its own row under 620px (--topbar-h 93px,
+// was 61px): 32px more above the stage at 390 (3.8% of 844), so 0.45 there became 0.41.
 test("at 1280x800 and 390x844 the landing's birds fill a little under half of the first screen", async ({ page }) => {
-  for (const [width, height, share] of [[1280, 800, 0.43], [390, 844, 0.45]] as const) {
+  for (const [width, height, share] of [[1280, 800, 0.43], [390, 844, 0.41]] as const) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
     const stage = page.getByTestId("collage-stage");
@@ -60,11 +66,13 @@ test("large file shows progress and stays responsive", async ({ page }) => {
   const file = join(dir, "MyEBirdData.csv");
   writeFileSync(file, buildSyntheticMyData(200_000));
   try {
-    // Settings has no collage: the probe taps the top bar's Dark mode switch, which re-renders the page's colours.
+    // Settings has no collage: the probe taps iNaturalist's Add in the source rows, which opens its panel
+    // (aria-expanded) while the eBird file is read.
     await page.goto("/settings");
+    const dialog = await openAdd(page, "file");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
-    const sw = page.getByRole("switch", { name: "Dark mode" });
-    await expect(sw).toHaveAttribute("aria-checked", "false");
+    const sw = dialog.getByRole("button", { name: "Add iNaturalist" });
+    await expect(sw).toHaveAttribute("aria-expanded", "false");
     // A phone-like main thread (4x CPU slowdown).
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
@@ -75,7 +83,7 @@ test("large file shows progress and stays responsive", async ({ page }) => {
     await page.evaluate(() => {
       type Probe = { texts: string[]; times: number[]; long: [number, number][]; down: number; lat: number[]; atClick: string; stop: () => void };
       const status = document.querySelector('[data-testid="ebird-drop"]')!.parentElement!.querySelector('[role="status"]')!;
-      const el = document.querySelector<HTMLElement>('.eb-theme[role="switch"]')!;
+      const el = document.querySelector<HTMLElement>('#sources button[aria-label="Add iNaturalist"]')!;
       const p: Probe = { texts: [], times: [], long: [], lat: [], down: 0, atClick: "", stop: () => {} };
       const mo = new MutationObserver(() => {
         const t = status.textContent ?? "";
@@ -87,15 +95,15 @@ test("large file shows progress and stays responsive", async ({ page }) => {
       const po = new PerformanceObserver((l) => l.getEntries().forEach((e) => p.long.push([e.startTime, e.duration])));
       po.observe({ entryTypes: ["longtask"] });
       el.addEventListener("pointerdown", (e) => { p.down = e.timeStamp; p.atClick = status.textContent ?? ""; }, true);
-      new MutationObserver(() => p.lat.push(performance.now() - p.down)).observe(el, { attributes: true, attributeFilter: ["aria-checked"] });
+      new MutationObserver(() => p.lat.push(performance.now() - p.down)).observe(el, { attributes: true, attributeFilter: ["aria-expanded"] });
       p.stop = () => { po.disconnect(); mo.disconnect(); };
       (window as unknown as { __eb: Probe }).__eb = p;
     });
 
     await page.getByTestId("ebird-input").setInputFiles(file);
-    // As soon as the first row count shows, tap the switch. It is scrolled to and measured now, not before the import.
+    // As soon as the first row count shows, tap Add. It is scrolled to and measured now, not before the import.
     await page.waitForFunction(() => (window as unknown as { __eb: { texts: string[] } }).__eb.texts.some((t) => / rows$/.test(t)), null, { polling: "raf" });
-    await page.evaluate(() => document.querySelector(".eb-theme[role=\"switch\"]")!.scrollIntoView({ block: "center" }));
+    await page.evaluate(() => document.querySelector('#sources button[aria-label="Add iNaturalist"]')!.scrollIntoView({ block: "center" }));
     const box = (await sw.boundingBox())!;
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await expect(page.getByTestId("see-collage")).toContainText("Your collage has 8 species", { timeout: 120_000 });
@@ -113,7 +121,7 @@ test("large file shows progress and stays responsive", async ({ page }) => {
     );
     expect(new Set(counts).size).toBeGreaterThanOrEqual(2); // the progress text updates
     expect(probe.atClick).toMatch(/^Reading your file… [\d,]+ rows$/); // the tap landed while the worker was parsing
-    expect(probe.latency).toBeLessThan(200); // and the switch flipped within 200 ms
+    expect(probe.latency).toBeLessThan(200); // and the panel opened within 200 ms
     expect(probe.longest).toBeLessThan(200);
     await page.getByTestId("see-collage").getByRole("link", { name: "See my collage" }).click();
     await expect(page.getByTestId("collage-stats")).toHaveText(/^8 species/);
@@ -129,6 +137,7 @@ test("an import keeps running while the birder moves between the pages", async (
   writeFileSync(file, buildSyntheticMyData(100_000));
   try {
     await page.goto("/settings");
+    await openAdd(page, "file");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     await page.getByTestId("ebird-input").setInputFiles(file);
     const status = page.getByTestId("ebird-drop").locator("xpath=..").getByRole("status");
@@ -207,6 +216,7 @@ test("works in memory when storage is blocked", async ({ page }) => {
   });
   await page.goto("/settings");
   await expect(page.getByText(NOT_SAVED)).toBeVisible();
+  await openAdd(page, "file");
   await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
   await expect(page.getByTestId("see-collage")).toContainText("Your collage has 3 species");
   await page.getByTestId("see-collage").getByRole("link", { name: "See my collage" }).click();

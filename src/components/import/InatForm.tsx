@@ -2,10 +2,10 @@
 import { useId, useState, type FormEvent } from 'react'
 import { inatMessage, type InatJob } from '@/components/app/use-import-jobs'
 import { fmt } from '@/i18n/core'
-import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { countParts, type RowCount } from '@/lib/list/source-counts'
 import type { InatDetails, Saved } from '@/lib/list/storage'
+import { useAddPanel } from './add-panel'
 import { notCounted } from './NotCounted'
 import { HowTo, inatLine, SourceRow } from './SourceLine'
 
@@ -29,24 +29,28 @@ type Props = {
  * iNaturalist's row (Settings > Your list), one quiet row: "iNaturalist · username" over "220 species · 11 only here ·
  * 10 skipped · Updated 6 Nov", or "Not added". Not added: "Add" opens the panel (what counts, the username field, "How do I find
  * my username?"). Connected: Refresh (fetches the remembered username again, no retyping; Cancel while it runs) and a
- * ⋯ menu (Refresh, Change username, Remove); Change username opens the same panel. The field only shows when adding
+ * ⋯ menu (Change username, Remove; Refresh is the button, never repeated in it); Change username opens the same panel. The field only shows when adding
  * or changing the username, or when a connected account's username isn't known (a list saved before v3). Public wild
- * bird observations are fetched above the routes (survives navigation). Cancel aborts a fetch and leaves the list as
- * it was.
+ * bird observations are fetched above the routes (survives navigation); the fetch shows in the import toast
+ * (ImportToast: "Fetching your observations · 600 of 16,544" over a progress line, with Cancel), never in the grid.
+ * Cancel aborts a fetch and leaves the list as it was.
  */
 export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, onRemove, saved, counts }: Props) {
   const id = useId()
   const { t } = useI18n()
   const ti = t.import.inat
   const [user, setUser] = useState('')
-  const [open, setOpen] = useState(false)
-  const { busyFor, progress, error, note } = job
+  // The open Add panel, shared by every source (one at a time; ImportPanel folds this one when a fetch lands under a
+  // new username).
+  const [panel, setPanel] = useAddPanel()
+  const open = panel === 'inat'
+  const setOpen = (on: boolean) => setPanel('inat', on)
+  const { busyFor, error, note } = job
   const known = replaces ? details?.user : undefined
-  // A fetch landed under a new username: fold the panel away again.
+  // A fetch landed under a new username: the field starts empty again.
   const [lastKnown, setLastKnown] = useState(known)
   if (lastKnown !== known) {
     setLastKnown(known)
-    setOpen(false)
     setUser('')
   }
   const refreshing = !!busyFor && !!known && busyFor === known && !open
@@ -81,7 +85,7 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, 
         aria-controls={`${id}-panel`}
         aria-label={fmt(t.import.addLabel, { title: 'iNaturalist' })}
         disabled={disabled || (!!busyFor && !open)}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(!open)}
       >
         {t.import.add}
       </button>
@@ -99,14 +103,8 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, 
       what={replaces ? ti.what : undefined}
       disabled={off}
       onRemove={() => onRemove?.()}
-      menu={
-        replaces
-          ? [
-              ...(known ? [{ label: ti.refresh, onSelect: refresh }] : []),
-              ...(unknown ? [] : [{ label: ti.change, keepFocus: true, onSelect: () => setOpen(true) }]),
-            ]
-          : undefined
-      }
+      // Refresh is the row's button, so not in the menu too (round 6 menu audit, item 6: no item repeats a visible button).
+      menu={replaces && !unknown ? [{ label: ti.change, keepFocus: true, onSelect: () => setOpen(true) }] : undefined}
       primary={primary}
     >
       <div id={`${id}-panel`} className="eb-src-panel" hidden={!showPanel} role="group" aria-label={known ? ti.change : fmt(t.import.addLabel, { title: 'iNaturalist' })}>
@@ -162,11 +160,8 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, 
         </HowTo>
       </div>
       <p className="eb-status eb-src-status" role="status">
-        {busyFor
-          ? progress
-            ? fmt(ti.fetched, { n: formatInt(progress.fetched, t.num), total: formatInt(progress.total, t.num) })
-            : fmt(ti.lookingUp, { user: busyFor })
-          : note === 'cancelled' ? ti.cancelled : ''}
+        {/* The fetch's progress is the import toast's (ImportToast); the row keeps only a cancel's word. */}
+        {!busyFor && note === 'cancelled' ? ti.cancelled : ''}
       </p>
       {error && <p className="eb-error eb-src-status" role="alert">{inatMessage(error.code, error.user, t)}</p>}
     </SourceRow>

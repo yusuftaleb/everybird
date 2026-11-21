@@ -12,15 +12,17 @@ export const CF_BEACON_SRC = 'https://static.cloudflareinsights.com/beacon.min.j
 const noop = () => () => {}
 /** The production hostname (the share origin). The beacon never loads anywhere else: previews, localhost and the Workers copy. */
 const PROD_HOST = new URL(SHARE_ORIGIN).host
-/** Whether this document began (or is) on a shared view: its first navigation's URL, or the current path, is /s/... */
+/** /s/<token> and /c/<token>, with or without a language prefix (/es/s/...). */
+const shared = (path: string) => /^\/(?:[a-z]{2}(?:-[A-Za-z]+)?\/)?[sc]\//.test(path)
+/** Whether this document began (or is) on a shared view: its first navigation's URL, or the current path, is /s/... or /c/... */
 export function startedOnShare(): boolean {
   try {
     const first = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.name
-    if (first && new URL(first).pathname.startsWith('/s/')) return true
+    if (first && shared(new URL(first).pathname)) return true
   } catch {
     // No Navigation Timing: fall back to the current path alone.
   }
-  return location.pathname.startsWith('/s/')
+  return shared(location.pathname)
 }
 
 /**

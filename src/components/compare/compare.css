@@ -1,0 +1,116 @@
+/* Compare with friends. One page head in both states (PageHead, as My birds: the title, a line; the set-up's head has
+   nothing at its right, the comparison's Edit lists and Share). The set-up sits on the page itself under it, no box,
+   the page's content width as the results: a row per list (its colour dot, a name box, the link box, a remove button;
+   the birder's own row a quiet box in the link's place, the remove column kept empty), then the foot, "Add a friend"
+   at its left and Compare at its right, its edge on the link boxes'. The comparison: one row of chips, then the
+   circles and the bars side by side from 640px (stacked under it), then what is chosen, named, over its birds across
+   the page. */
+
+/* A list's colour: a 12px dot (compare.ts listColor). */
+.eb-compare-dot { flex: none; display: block; width: 12px; height: 12px; border-radius: 50%; }
+
+.eb-compare-setup { container-type: inline-size; width: 100%; display: flex; flex-direction: column; gap: 8px; }
+/* The page head's title takes focus from Edit lists: a ring only when the keyboard put it there. */
+.eb-pagehead-title[tabindex]:focus { outline: none; }
+.eb-pagehead-title[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.eb-compare-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+/* A row: the dot, the name (about 11 characters wide), the link (the rest), the remove button. */
+.eb-compare-row {
+  display: grid; grid-template-columns: 12px minmax(0, 11rem) minmax(0, 1fr) 44px; grid-template-areas: "dot name link x";
+  align-items: center; gap: 8px 10px;
+}
+.eb-compare-row .eb-compare-dot { grid-area: dot; }
+.eb-compare-namebox { grid-area: name; min-width: 0; }
+.eb-compare-linkbox, .eb-compare-mine { grid-area: link; min-width: 0; }
+.eb-compare-remove { grid-area: x; }
+/* The birder's own list in the link's place: a quiet box, not a field. */
+.eb-compare-mine {
+  display: flex; align-items: center; min-height: 44px; padding: 0 12px; background: var(--surface); color: var(--muted);
+  font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+/* A narrow set-up: the link under the name, the remove button on the name's line. */
+@container (max-width: 519px) {
+  .eb-compare-row { grid-template-columns: 12px minmax(0, 1fr) 44px; grid-template-areas: "dot name x" ". link ."; }
+  .eb-compare-rows { gap: 16px; }
+}
+.eb-compare-remove {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: none; color: var(--muted); cursor: pointer;
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-compare-remove svg { width: 18px; height: 18px; }
+@media (hover: hover) and (pointer: fine) { .eb-compare-remove:hover { color: var(--ink); background: var(--surface); } }
+.eb-compare-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; }
+/* Compare's right edge on the link boxes' (the remove column, 44px, and the row's 10px gap, left beside it), at every width. */
+.eb-compare-submit { margin-inline-start: auto; margin-inline-end: 54px; }
+/* An empty status line takes no room (no gap either), yet stays in the set-up, so its first message is announced. */
+.eb-compare-setup > .eb-status:empty { position: absolute; }
+.eb-compare-wait-note a { color: var(--accent); font-weight: 600; }
+
+/* The comparison. */
+.eb-compare-result { display: flex; flex-direction: column; gap: 32px; min-width: 0; }
+/* The chips: the site's chips (filters.css), a person's with its colour dot before the name. */
+.eb-compare-chip-name { min-width: 0; overflow-wrap: anywhere; }
+
+/* The circles at the left, the bars at the right from 640px, each half the width, centred on each other; stacked under. */
+.eb-compare-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: center; }
+@media (min-width: 640px) { .eb-compare-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; } }
+
+/* The circles: each a wash of its list's colour (--c) with an outline in it; the flower's centre Surface outlined in Ink.
+   The drawing grows with its column at its own shape (320 × 260) up to 360px tall. */
+.eb-compare-venn { display: block; width: min(100%, 443px); height: auto; margin: 0 auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.eb-compare-circle { fill: var(--c); fill-opacity: .12; stroke: var(--c); stroke-width: 2; }
+.eb-compare-core { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.eb-compare-num { font-family: var(--font-mono); font-weight: 500; fill: var(--ink); text-anchor: middle; dominant-baseline: central; font-variant-numeric: tabular-nums; pointer-events: none; }
+/* A region's number is its button for the keyboard (a press anywhere goes through the drawing): the focus ring around it. */
+.eb-compare-region { outline: none; }
+.eb-compare-ring { fill: none; stroke: none; pointer-events: none; }
+.eb-compare-region:focus-visible .eb-compare-ring { stroke: var(--accent); stroke-width: 2; }
+/* The parts outside the chosen group: a Paper veil over their fills and outlines, their numbers faded; eased. */
+.eb-compare-veil { fill: var(--paper); fill-opacity: 0; pointer-events: none; transition: fill-opacity .2s cubic-bezier(.25, .8, .25, 1); }
+.eb-compare-veil[data-off] { fill-opacity: .65; }
+.eb-compare-num, .eb-compare-bar { transition: opacity .2s cubic-bezier(.25, .8, .25, 1); }
+.eb-compare-num[data-off], .eb-compare-pick[data-off] .eb-compare-bar { opacity: .3; }
+
+/* The bars: one per list, most species first, the name and count over a bar to scale in the list's colour. */
+.eb-compare-bars { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hairline); }
+.eb-compare-bars li { border-bottom: 1px solid var(--hairline); }
+.eb-compare-pick {
+  width: 100%; min-height: 44px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 6px 12px;
+  margin: 2px 0; padding: 8px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 15px; text-align: start; cursor: pointer;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: background-color .15s cubic-bezier(.25, .8, .25, 1);
+}
+.eb-compare-pick[aria-pressed="true"] { background: var(--surface); }
+.eb-compare-name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.eb-compare-count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.eb-compare-bar { grid-column: 1 / -1; display: block; min-inline-size: 3px; height: 6px; border-radius: 3px; }
+
+@media (hover: hover) and (pointer: fine) { .eb-compare-pick:hover { background: var(--surface); } }
+@media (prefers-reduced-motion: reduce) { .eb-compare-pick, .eb-compare-veil, .eb-compare-num, .eb-compare-bar { transition: none; } }
+
+/* What is chosen: its name and count over its birds. */
+.eb-compare-shown { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eb-compare-shown-n { color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Its birds: equal tiles, every sticker in the same box (the tile's width up to 104px, 4:3), contained, never cropped,
+   standing on the box's bottom; the name under it; on Yet to see and Every bird, a dot per list that has it. They sit
+   under one heading per family, one family open at a time (FamilyAccordion). */
+.eb-compare-grid {
+  list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 16px 12px;
+}
+.eb-compare-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
+.eb-compare-tile-pic { position: relative; display: block; flex: none; width: min(100%, 104px); aspect-ratio: 4 / 3; }
+.eb-compare-tile-pic img, .eb-compare-tile-pic .eb-sil {
+  position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; object-fit: contain; object-position: center bottom;
+}
+.eb-compare-tile-name {
+  max-width: 100%; font-size: 13px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+}
+.eb-compare-who { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.eb-compare-who-dot { display: block; width: 8px; height: 8px; border-radius: 50%; }
+.eb-compare-birds-wait { min-height: 240px; }
+
+/* "Compare with mine" beside "Make yours" on a shared collage or comparison. */
+.eb-compare-ctas { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (min-width: 720px) { .eb-compare-ctas { flex: none; } }

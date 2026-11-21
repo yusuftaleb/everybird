@@ -29,6 +29,7 @@ describe('shared view', () => {
     expect(dateToYm('2020-03-04')).toEqual({ ym: 1442 })
     expect(dateToYm('2020')).toEqual({ ym: 1440, yearOnly: true })
     expect(dateToYm('junk')).toBeUndefined()
+    expect(dateToYm('2921-05-03')).toBeUndefined() // past what a link can carry
     expect(ymToDate(1442)).toBe('2020-03')
     expect(ymToDate(1440, true)).toBe('2020')
   })
@@ -81,9 +82,10 @@ describe('shared view', () => {
     render(<SharedView payload={{ v: 1, birds: [{ code: 'a' }, { code: 'b' }] }} />)
     await waitFor(() => expect(screen.getByTestId('collage-stats').textContent).toContain('2 species'))
     expect(screen.getByTestId('share-limited').textContent).toBe('This link carries no places or dates, so those filters are left out.')
-    // Birds only: no Filters button (by test id or by name), just LifeList's orders row.
+    // Birds only: no Filters button (by test id or by name), just LifeList's orders row (in the Taxa panel, round 6).
     expect(screen.queryByTestId('filters-button')).toBeNull()
     expect(screen.queryByRole('button', { name: /^Filters/ })).toBeNull()
+    fireEvent.click(screen.getByTestId('taxa-button'))
     expect(screen.getByRole('group', { name: 'Orders' })).toBeTruthy()
     expect(open).not.toHaveBeenCalled()
   })
@@ -98,7 +100,7 @@ describe('shared view', () => {
     fireEvent.click(within(screen.getByRole('group', { name: 'Conservation status' })).getByTestId('status-VU'))
     await waitFor(() => expect(screen.getByTestId('collage-stats').textContent).toBe('2 of 5 species · 1 family'))
     expect(screen.getByTestId('chip-status-VU')).toBeTruthy()
-    expect(screen.getByTestId('filters-button').getAttribute('aria-label')).toMatch(/^Filters: Conservation status: Vulnerable$/)
+    expect(screen.getByTestId('filters-button').getAttribute('aria-label')).toMatch(/^Filters, 1 in use: Conservation status: Vulnerable$/)
   })
 
   it('no Filters button on a link whose birds have no status (it carries no places or dates either)', async () => {

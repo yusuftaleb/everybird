@@ -8,9 +8,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import AboutPage from '../app/[lang]/(app)/about/page'
 import { HowItWorksPoster } from '@/components/about/HowItWorksDemo'
 import { TOTAL } from '@/components/about/how-it-works-data'
-import { fmt } from '@/i18n/core'
+import { fmt, plural } from '@/i18n/core'
 import { formatInt, shortDay } from '@/i18n/format'
 import { LANGS } from '@/i18n/langs'
+import { showLabel } from '@/lib/list/filter-summary'
 import { countParts, summaryLine, type RowCount, type SourceCounts } from '@/lib/list/source-counts'
 import { pageTitle } from '@/lib/list/title'
 import { FOOTER_LINE } from '@/lib/share/image'
@@ -39,44 +40,61 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
   const wide = host.querySelector('[data-poster="wide"]')!
   const compact = host.querySelector('[data-poster="compact"]')!
 
-  it("draws the product's own strings: Settings rows, summary, page head, taxonomy labels", () => {
+  it("draws the product's own strings: top bar, Settings rows, summary, page head, controls bar, Taxa panel", () => {
+    expect([...wide.querySelectorAll('.ebd-nav-link')].map(text)).toEqual([ui.shell.nav.collage, ui.shell.nav.compare, ui.shell.nav.settings, ui.shell.nav.about])
     expect(text(wide.querySelector('.ebd-h1'))).toBe(ui.shell.nav.settings)
     expect(text(wide.querySelector('.ebd-h2'))).toBe(ui.import.head)
+    expect(text(wide.querySelector('.ebd-btn-hand'))).toBe(ui.add.hand)
     const titles = [...wide.querySelectorAll('.ebd-src-title')].map((e) => e.firstChild!.textContent)
-    expect(titles).toEqual([ui.import.ebird.listTitle, 'MyEBirdData', 'iNaturalist', ui.tick.title])
+    expect(titles).toEqual([ui.import.ebird.listTitle, 'MyEBirdData', 'iNaturalist', ui.import.sheet.title])
     const sum = summaryLine({ total: TOTAL, parts: [{ group: 'ebird', n: TOTAL }] } as unknown as SourceCounts, ui)!
     expect(text(wide.querySelector('.ebd-sum .ebd-swap-b'))).toBe(`${sum} ${ui.settings.seeCollage}`)
     expect(text(wide.querySelector('.ebd-sum .ebd-swap-a'))).toBe(ui.import.combine)
     const imported = fmt(ui.import.imported, { date: shortDay(STAMPED.toISOString(), ui.date.months, STAMPED) })
-    const skipped = ui.import.skipped.other.replace('{n}', formatInt(3, ui.num))
+    const skipped = plural(ui.import.skipped, 3, { n: formatInt(3, ui.num) })
     const status = text(wide.querySelector('.ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-b'))
     expect(status).toBe(`${countParts({ species: TOTAL, only: 0 } as RowCount, ui).join(' · ')} · ${skipped} ${ui.import.why} · ${imported}`)
     expect(text(wide.querySelector('.ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-a .ebd-swap-a'))).toBe(ui.import.notAdded)
     expect(text(wide.querySelector('.ebd-head-title'))).toBe(pageTitle(undefined, ui))
-    expect(text(wide.querySelector('.ebd-chips-label'))).toBe(ui.filters.rank.order)
+    expect(text(wide.querySelector('.ebd-btn-add'))).toBe(ui.collage.addBirds)
+    expect(text(wide.querySelector('.ebd-btn-print'))).toBe(ui.collage.print)
+    expect(text(wide.querySelector('.ebd-btn-share'))).toBe(ui.collage.share)
+    // The controls bar: four view tabs, then Taxa, Display and Filters, then search (ControlsBar)
+    for (const root of [wide, compact]) {
+      expect(root.querySelectorAll('.ebd-dock-tabs .ebd-icontab')).toHaveLength(4)
+      expect([...root.querySelectorAll('.ebd-drop')].map(text)).toEqual([ui.collage.controls.taxa, ui.collage.controls.display, ui.filters.label])
+    }
+    // The Taxa panel (wide) and its sheet (compact): the coverage head, the rank label and the order chips
+    const head = plural(ui.collage.controls.taxaHead.order, 45, { n: '7', total: '45' })
+    expect(text(wide.querySelector('.ebd-taxa .ebd-taxa-head'))).toBe(head)
+    expect(text(compact.querySelector('.ebd-sheet .ebd-taxa-head'))).toBe(head)
+    expect(text(wide.querySelector('.ebd-taxa .ebd-chips-label'))).toBe(ui.filters.rank.order)
+    expect(wide.querySelectorAll('.ebd-taxa .ebd-chip')).toHaveLength(7)
+    expect(text(compact.querySelector('.ebd-sheet-show .ebd-swap-a'))).toBe(showLabel(TOTAL, ui))
     expect(text(wide.querySelector('.ebd-path-link'))).toBe(ui.filters.all)
-    expect(text(compact.querySelector('.ebd-pick-label'))).toBe(ui.filters.choose.order)
     expect(text(wide.querySelector('.ebd-mid-label'))).toBe(ui.count.label)
     expect(text(wide.querySelector('.ebd-num'))).toBe(formatInt(TOTAL, ui.num))
-    expect(text(wide.querySelector('.ebd-stats .ebd-swap-a'))).toContain(ui.collage.stats.orders.other.replace('{n}', '7'))
+    expect(text(wide.querySelector('.ebd-stats .ebd-swap-a'))).toContain(plural(ui.collage.stats.orders, 7, { n: '7' }))
   })
 
   it("draws the share dialog and its images in the language, the stamp ending each footer", () => {
     expect(text(wide.querySelector('.ebd-share-title'))).toBe(ui.share.title)
-    expect([...wide.querySelectorAll('.ebd-seg-btn')].map(text)).toEqual([`${ui.share.format.story}9:16`, `${ui.share.format.post}4:5`, `${ui.share.format.square}1:1`])
+    expect([...wide.querySelectorAll('.ebd-seg-btn')].map(text)).toEqual([ui.share.format.story, ui.share.format.post, ui.share.format.square])
+    expect(text(wide.querySelector('.ebd-share-bulk'))).toBe(ui.share.print.bulk.title)
     expect(text(wide.querySelector('.ebd-share-label'))).toBe(ui.share.nameLabel)
     expect(text(wide.querySelector('.ebd-share-input'))).toBe(ui.share.namePlaceholder)
     expect(text(wide.querySelector('.ebd-share-switch'))).toBe(ui.share.showLatest)
     const line = withStamp(FOOTER_LINE, stampDate(STAMPED, stampStrings(ui)))
     expect([...wide.querySelectorAll('.ebd-img-line')].map(text)).toEqual([line, line, line])
-    // The date alone, no lead: "6 Nov 2026" in English, "6 nov 2026" in es, pt and nl
-    expect(line.endsWith(lang === 'en' ? ' · 6 Nov 2026' : ' · 6 nov 2026')).toBe(true)
-    expect(line.startsWith('everybird.yusuftaleb.com · stickers by huashu')).toBe(true)
+    // The date alone, no lead: "6 Nov 2026" in English, "6 nov 2026" in es, pt and nl, "6 lis 2026" in pl, "2026年11月6日" in ja and zh
+    const stamp = { en: '6 Nov 2026', de: '6 Nov 2026', pl: '6 lis 2026', ru: '6 ноя 2026', ja: '2026年11月6日', 'zh-Hans': '2026年11月6日', 'zh-Hant': '2026年11月6日' }[lang as string] ?? '6 nov 2026'
+    expect(line.endsWith(` · ${stamp}`)).toBe(true)
+    expect(line.startsWith('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · ')).toBe(true)
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.share.latestLifer)
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.date.months[9])
     expect(text(wide.querySelector('.ebd-img-mark'))).toBe('Everybird')
-    // The latest lifer's name is the language's base name (es, pt_BR, nl), English in English.
-    const base = { en: undefined, es: 'es', pt: 'pt_BR', nl: 'nl' }[lang] as keyof typeof LATEST.names | undefined
+    // The latest lifer's name is the language's base name (es, pt_BR, nl, pl, fr_FR, de, it, sv, da, ru, ja, zh_SIM, zh), English in English.
+    const base = { en: undefined, es: 'es', pt: 'pt_BR', nl: 'nl', pl: 'pl', fr: 'fr_FR', de: 'de', it: 'it', sv: 'sv', da: 'da', ru: 'ru', ja: 'ja', 'zh-Hans': 'zh_SIM', 'zh-Hant': 'zh' }[lang] as keyof typeof LATEST.names | undefined
     expect(text(wide.querySelector('.ebd-img-latest-name'))).toBe(base ? LATEST.names[base] : LATEST.name)
   })
 
@@ -113,13 +131,23 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     expect(text(main.querySelector('#eb-what-h'))).toBe(m.page.about.what.head)
     expect(text(main.querySelector('#eb-how-h'))).toBe(m.page.about.how.head)
     expect(text(main.querySelector('#eb-size-h'))).toBe(m.page.about.size.head)
+    // What it is: the collage, then the other views, sharing, printing, batches and Compare, one column
+    const what = main.querySelector('section[aria-labelledby="eb-what-h"]')!
+    expect([...what.querySelectorAll('p')].map(text)).toEqual([m.page.about.what.body, m.page.about.what.more])
     const credits = document.getElementById('credits')!
-    const made = { en: 'Made by Yusuf Taleb', es: 'Hecho por Yusuf Taleb', pt: 'Feito por Yusuf Taleb', nl: 'Gemaakt door Yusuf Taleb' }[lang]
+    const made = { en: 'Made by Yusuf Taleb', es: 'Hecho por Yusuf Taleb', pt: 'Feito por Yusuf Taleb', nl: 'Gemaakt door Yusuf Taleb', pl: 'Autor: Yusuf Taleb', fr: 'Créé par Yusuf Taleb', de: 'Gemacht von Yusuf Taleb', it: 'Creato da Yusuf Taleb', sv: 'Gjord av Yusuf Taleb', da: 'Lavet af Yusuf Taleb', ru: 'Автор: Yusuf Taleb', ja: '制作：Yusuf Taleb', 'zh-Hans': '由Yusuf Taleb制作', 'zh-Hant': '由 Yusuf Taleb 製作' }[lang]
     expect(made).toBe(m.ui.shell.footer.madeBy)
-    expect(text(credits.querySelector('.eb-prose'))).toMatch(new RegExp(`^${made}\\.`))
+    expect(text(credits.querySelector('.eb-prose'))).toMatch(new RegExp(`^${made}[.。]`))
     expect(within(credits).getByRole('link', { name: 'Yusuf Taleb' })).toHaveAttribute('href', 'https://www.yusuftaleb.com')
-    // The coffee sentence is translated, the button and its alt stay
-    expect(text(credits.querySelector('.eb-coffee .eb-prose'))).toBe(m.page.about.credits.coffee)
+    // "Made by" and the coffee sentence are one paragraph (joined by a space, none after 。), the button beside it
+    const c = m.page.about.credits
+    const plain = (s: string) => s.replace(/<\/?\w+>/g, '')
+    expect(text(credits.querySelector('.eb-coffee .eb-prose'))).toBe(`${plain(c.madeBy)}${c.madeBy.endsWith('。') ? '' : ' '}${c.coffee}`)
+    expect(credits.querySelector('.eb-coffee > .eb-prose + a.eb-coffee-btn')).not.toBeNull()
+    // The thank-you follows it, before the credit rows
+    const thanks = credits.querySelector('.eb-coffee + .eb-prose')!
+    expect(text(thanks)).toBe(c.thanks)
+    expect(thanks.nextElementSibling).toHaveClass('eb-credits')
     expect(within(credits).getByRole('img', { name: 'Buy me a coffee' })).toHaveAttribute('src', '/buy-me-a-coffee.png')
     for (const name of ['huashu-bird-sticker', 'CC BY 4.0', 'Icons8', 'Origami', 'Natural Earth', 'Debian iso-codes', 'Fontshare', 'flag-icons', 'AVONET', 'BIRDBASE', 'iNaturalist']) {
       expect(within(credits).getAllByRole('link', { name }).length, name).toBeGreaterThan(0)
@@ -133,14 +161,15 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
 
   it("the privacy note keeps its claims and adds the language cookie and the visit language, translated", async () => {
     render(await AboutPage({ params: Promise.resolve({ lang }) }))
-    const p = text(document.querySelector('main .eb-how, section[aria-labelledby="eb-how-h"] > p.eb-prose'))
+    const p = text(document.querySelector('section[aria-labelledby="eb-how-h"] .eb-about-cols > p.eb-prose'))
     expect(p).toBe(m.page.about.how.privacy)
     expect(p).toContain('Cloudflare Web Analytics')
-    expect(p).toMatch(/[“"]es[”"], [“"]pt[”"].*[“"]nl[”"]/)
+    // Polish quotes open low („es”), Swedish with a closing quote (”es”).
+    expect(p).toMatch(/[“„"”]es[”"][,、] ?[“„"”]pt[”"].*[“„"”]nl[”"].*[“„"”]pl[”"].*[“„"”]fr[”"].*[“„"”]de[”"].*[“„"”]it[”"].*[“„"”]sv[”"].*[“„"”]da[”"].*[“„"”]ru[”"].*[“„"”]ja[”"].*[“„"”]zh-Hans[”"].*[“„"”]zh-Hant[”"]/)
     if (lang === 'en') {
       expect(p).toContain('anonymous and cookieless')
       expect(p).toContain('Your language choice is kept in a small cookie on this device; it never leaves it except to show you the right page.')
-      expect(p).toContain('The visit count includes your browser\'s language (just “es”, “pt” or “nl”).')
+      expect(p).toContain('The visit count includes your browser\'s language (just “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” or “zh-Hant”).')
     }
   })
 })

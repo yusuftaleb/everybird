@@ -12,8 +12,11 @@
 // strip canvas is width × rows, capped by it.
 //
 // An abort disposes the encoder at once, so a wait on it (backpressure, end) rejects even if the worker never replies.
+//
+// The Tree's and the Map's posters (makeViewPoster) have no stickers of their own to stream: their image is drawn whole
+// (renderTreeImage, renderMapImage, at viewPosterScale) and cut into the same strips for the same encoder.
 import { abortError, paintCard, prepareCard, tileInRange, type CardFormat, type PaintRange, type ShareImageOpts, type Tile } from './image'
-import { IOS_CANVAS_AREA, STRIP_AREA, STRIP_DESIGN_ROWS, printPt, printPx, printScale, stripRanges, type PrintSize } from './print'
+import { IOS_CANVAS_AREA, STRIP_AREA, STRIP_DESIGN_ROWS, printPt, printPx, printScale, stripRanges, viewPosterScale, type PrintSize } from './print'
 import { createPrintStickers, type PrintStickers } from './print-stickers'
 import type { PrintWorkerReply, PrintWorkerRequest } from './print.worker'
 
@@ -30,6 +33,8 @@ export type Poster = {
   soft: number
   /** Stickers drawn as the outline because every attempt failed. */
   missing: number
+  /** Names were asked for (showNames) but the poster has none: they didn't fit. */
+  namesDropped: boolean
   /** The file, asked of the encoder once per kind, as a main-thread copy (it survives dispose). */
   file(kind: 'png' | 'pdf'): Promise<Blob>
   /** Terminates the encoder. Files already returned stay valid. */
@@ -37,7 +42,8 @@ export type Poster = {
 }
 
 export type EncoderPort = {
-  begin(width: number, height: number): void
+  /** `alpha`: keep the alpha channel (an RGBA PNG; no PDF). */
+  begin(width: number, height: number, alpha?: boolean): void
   /** Transfers the buffer; resolves once at most 1 strip is unacknowledged (so at most 2 are ever in flight). */
   strip(rgba: Uint8ClampedArray, rows: number): Promise<void>
   /** Resolves with the encoded bytes. */
@@ -147,9 +153,9 @@ export function workerEncoder(
   worker.onerror = (e) => { e.preventDefault?.(); fail(new Error(e.message || 'print worker failed')) }
 
   return {
-    begin(width, height) {
+    begin(width, height, alpha) {
       if (failure) throw failure
-      send({ type: 'begin', width, height })
+      send({ type: 'begin', width, height, ...(alpha ? { alpha } : {}) })
     },
     strip(rgba, rows) {
       if (failure) return Promise.reject(failure)
@@ -188,6 +194,24 @@ async function fontsSettled(signal?: AbortSignal): Promise<void> {
   } finally {
     clearTimeout(timer)
     if (onAbort) signal?.removeEventListener('abort', onAbort)
+  }
+}
+
+/** The Poster for an encoder that has ended: its files asked once per kind, as main-thread copies. */
+function finished(done: EncoderPort, info: Omit<Poster, 'file' | 'dispose'>): Poster {
+  const files = new Map<'png' | 'pdf', Promise<Blob>>()
+  return {
+    ...info,
+    file(kind) {
+      let p = files.get(kind)
+      if (!p) {
+        p = done.file(kind, printPt(info.size, info.landscape)).then(async (blob) => new Blob([await blob.arrayBuffer()], { type: blob.type }))
+        p.catch(() => files.delete(kind))
+        files.set(kind, p)
+      }
+      return p
+    },
+    dispose: () => done.dispose(),
   }
 }
 
@@ -268,7 +292,8 @@ export async function makePoster(
     const { ctx } = strip
     encoder = (deps.encoder ?? workerEncoder)()
     signal?.addEventListener('abort', onAbort, { once: true })
-    encoder.begin(width, height)
+    if (card.transparent) encoder.begin(width, height, true)
+    else encoder.begin(width, height)
 
     const imgs = new Map<string, CanvasImageSource | null>()
     startStrip(0)
@@ -278,10 +303,14 @@ export async function makePoster(
       for (const url of byFirst[i]) imgs.set(url, await loads.get(url)!)
       check()
 
-      // Paper over the whole strip in device px (it covers the last row, which the card's fractional height may not).
+      // Paper over the whole strip in device px (it covers the last row, which the card's fractional height may not);
+      // transparent, the reused strip is cleared instead.
       ctx.setTransform(1, 0, 0, 1, 0, 0)
-      ctx.fillStyle = card.colors.paper
-      ctx.fillRect(0, 0, width, rows)
+      if (card.transparent) ctx.clearRect(0, 0, width, rows)
+      else {
+        ctx.fillStyle = card.colors.paper
+        ctx.fillRect(0, 0, width, rows)
+      }
       ctx.setTransform(k, 0, 0, k, 0, -y)
       paintCard(ctx, card, imgs, ranges[i])
       const rgba = strip.read(rows)
@@ -296,22 +325,7 @@ export async function makePoster(
     check()
     onProgress(strips.length + 1, strips.length + 1)
     const { soft, missing } = stickers.stats()
-
-    const done = encoder
-    const files = new Map<'png' | 'pdf', Promise<Blob>>()
-    return {
-      size, landscape, bytes, soft, missing,
-      file(kind) {
-        let p = files.get(kind)
-        if (!p) {
-          p = done.file(kind, printPt(size, landscape)).then(async (blob) => new Blob([await blob.arrayBuffer()], { type: blob.type }))
-          p.catch(() => files.delete(kind))
-          files.set(kind, p)
-        }
-        return p
-      },
-      dispose: () => done.dispose(),
-    }
+    return finished(encoder, { size, landscape, bytes, soft, missing, namesDropped: !!card.namesDropped })
   } catch (error) {
     encoder?.dispose()
     // A sticker released with a get pending is a bug, never a cancel.
@@ -320,6 +334,77 @@ export async function makePoster(
   } finally {
     signal?.removeEventListener('abort', onAbort)
     stickers.dispose()
+    const canvas = strip?.ctx?.canvas
+    if (canvas) { canvas.width = 1; canvas.height = 1 }
+  }
+}
+
+/** The Tree's or the Map's poster: `render(scale)` draws the view's image (renderTreeImage, renderMapImage) at the
+ *  poster's size in design units, `scale` device px per unit. */
+export type ViewPosterOpts = { size: PrintSize; landscape?: boolean; transparent?: boolean; signal?: AbortSignal; render: (scale: number) => Promise<Blob> }
+
+/** A decoded drawing the strips are cut from (createImageBitmap's; a test passes a fake). */
+export type Drawn = { width: number; height: number; close(): void }
+
+/**
+ * Make the Tree's or the Map's poster: draw the view once at viewPosterScale (one canvas, never over IOS_CANVAS_AREA),
+ * decode it, then cut it into the collage poster's strips, stretched to the poster's own px, for the same encoder (the
+ * PNG and the PDF from one stream). `onProgress(done, total)`: once the drawing is ready, after each strip and when the
+ * encoder has finished (total is the strip count plus 2). Rejects as makePoster does.
+ */
+export async function makeViewPoster(
+  opts: ViewPosterOpts, onProgress: (done: number, total: number) => void,
+  deps: Partial<Pick<PosterDeps, 'strip' | 'encoder' | 'frame' | 'rows'>> & { decode?: (blob: Blob) => Promise<Drawn> } = {},
+): Promise<Poster> {
+  const { size, landscape = false, transparent = false, signal, render } = opts
+  const check = () => { if (signal?.aborted) throw abortError() }
+  const frame = deps.frame ?? nextFrame
+  let encoder: EncoderPort | null = null
+  let strip: PosterStrip | null = null
+  let drawn: Drawn | null = null
+  const onAbort = () => encoder?.dispose()
+  try {
+    check()
+    const [width, height] = printPx(size, landscape)
+    const strips = stripRanges(width, height, posterRows(width, printScale(size), deps.rows))
+    const total = strips.length + 2
+    const blob = await render(viewPosterScale(size, landscape)).catch((error: unknown) => {
+      throw error instanceof Error && error.message === NO_CANVAS ? memoryError() : error
+    })
+    check()
+    drawn = await (deps.decode ?? ((b: Blob) => createImageBitmap(b)))(blob).catch(() => { throw memoryError() })
+    check()
+    onProgress(1, total)
+
+    strip = (deps.strip ?? canvasStrip)(width, strips[0].rows)
+    if (!strip?.ctx) throw memoryError()
+    const { ctx } = strip
+    encoder = (deps.encoder ?? workerEncoder)()
+    signal?.addEventListener('abort', onAbort, { once: true })
+    if (transparent) encoder.begin(width, height, true)
+    else encoder.begin(width, height)
+    for (let i = 0; i < strips.length; i++) {
+      const { y, rows } = strips[i]
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.clearRect(0, 0, width, rows)
+      ctx.drawImage(drawn as unknown as CanvasImageSource, 0, -y, width, height)
+      await encoder.strip(strip.read(rows), rows)
+      check()
+      onProgress(i + 2, total)
+      await frame()
+      check()
+    }
+    const bytes = await encoder.end()
+    check()
+    onProgress(total, total)
+    return finished(encoder, { size, landscape, bytes, soft: 0, missing: 0, namesDropped: false })
+  } catch (error) {
+    encoder?.dispose()
+    if (signal?.aborted) throw abortError()
+    throw error
+  } finally {
+    signal?.removeEventListener('abort', onAbort)
+    drawn?.close()
     const canvas = strip?.ctx?.canvas
     if (canvas) { canvas.width = 1; canvas.height = 1 }
   }

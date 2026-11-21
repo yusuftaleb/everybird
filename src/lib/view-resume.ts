@@ -1,24 +1,28 @@
-// The view a birder had (filters, the search and its typed text, the Filters panel, the layout switches) survives a
-// language switch. The switch reloads the page (chooseLang, i18n/choose.ts), which would reset all of it. stashResume()
-// writes what each owner offered, just before that reload, under one versioned sessionStorage key. The first claims on
-// the new page read it once, delete it, and claim each slice once, only within RESUME_TTL_MS of the switch. A normal
-// load finds no key and restores nothing.
+// The view a birder had (the view itself, filters, the search, the Filters panel, the layout switches) survives a
+// language switch and a refresh. The switch reloads the page (chooseLang, i18n/choose.ts), which would reset all of it.
+// stashResume() writes what each owner offered under one versioned sessionStorage key, just before that reload and on
+// every pagehide (a refresh, or leaving the page). The first claims on the new page read it once, delete it, and claim
+// each slice once, only within RESUME_TTL_MS of the stash. A new tab, or a visit after the TTL, restores nothing.
 // Only canonical values go in: filter codes and ids, the typed search text, section ids and booleans. No label is
 // stored, so the labels are drawn in the new language. Storage errors are ignored: the page then behaves as it does today.
 import { isContinentId } from './places/continents'
 import { isRegionPresetId } from './places/presets'
 import type { Filter } from './list/filters'
+import { listOrderOf, type ListOrder } from './list/list-order'
 import { STATUS_FILTER_CATS, type StatusFilterCat } from './species/status-filter'
 
 export const RESUME_KEY = 'everybird:resume:v1'
 export const RESUME_TTL_MS = 60_000
 const VERSION = 1
 
+/** The collage block's views (the dock's tabs). */
+export type ViewKind = 'collage' | 'list' | 'map' | 'tree'
+
 export type CollageResume = {
   filter: Filter
   mode: 'even' | 'true'
-  view: 'collage' | 'list'
-  massOrder: 'heaviest' | 'lightest'
+  view: ViewKind
+  listOrder: ListOrder
   sci: boolean
 }
 /** The collage search: whether its field is open. The typed text is not carried: it would be read again in the new language. */
@@ -41,11 +45,12 @@ const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is
 function filterOf(v: unknown): Filter {
   const r = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>
   const f: Filter = {}
-  for (const k of ['order', 'family', 'group', 'year', 'from', 'to'] as const) {
+  for (const k of ['order', 'family', 'genus', 'group', 'year', 'from', 'to'] as const) {
     const s = str(r[k], 64)
     if (s) f[k] = s
   }
-  for (const k of ['countries', 'provinces', 'counties'] as const) {
+  // `with`: a marked Tree row's other groups (its open branch), beside the deepest taxon.
+  for (const k of ['countries', 'provinces', 'counties', 'with'] as const) {
     const a = strings(r[k])
     if (a.length) f[k] = a
   }
@@ -67,10 +72,11 @@ function slicesOf(v: unknown): Slices {
   const c = (r.collage ?? undefined) as Record<string, unknown> | undefined
   if (c && typeof c === 'object') {
     const mode = one(c.mode, ['even', 'true'] as const)
-    const view = one(c.view, ['collage', 'list'] as const)
-    const massOrder = one(c.massOrder, ['heaviest', 'lightest'] as const)
+    const view = one(c.view, ['collage', 'list', 'map', 'tree'] as const)
+    // An unknown sort is the default, not a dropped slice; a record from before the rename carries `massOrder`.
+    const listOrder = listOrderOf(c.listOrder ?? c.massOrder)
     const sci = bool(c.sci)
-    if (mode && view && massOrder && sci !== undefined) out.collage = { filter: filterOf(c.filter), mode, view, massOrder, sci }
+    if (mode && view && sci !== undefined) out.collage = { filter: filterOf(c.filter), mode, view, listOrder, sci }
   }
   const s = (r.search ?? undefined) as Record<string, unknown> | undefined
   if (s && typeof s === 'object' && bool(s.open) !== undefined) out.search = { open: bool(s.open)! }
@@ -120,15 +126,22 @@ export function readResume(store: Store | null, now: number): { at: number; slic
 type Readers = Record<Slice, (() => unknown) | undefined>
 const readers: Readers = { collage: undefined, search: undefined, panel: undefined }
 
-/** Registers how to read one slice when the language changes. Returns the unregister function (on unmount). */
+let hooked = false
+
+/** Registers how to read one slice when the page reloads. Returns the unregister function (on unmount). */
 export function offerResume<K extends Slice>(slice: K, read: () => Resume[K] | undefined): () => void {
+  // A refresh keeps the view too (Yusuf, 2026-11-21): the same stash on every pagehide, which a reload fires.
+  if (!hooked && typeof window !== 'undefined') {
+    hooked = true
+    window.addEventListener('pagehide', () => stashResume())
+  }
   readers[slice] = read
   return () => {
     if (readers[slice] === read) readers[slice] = undefined
   }
 }
 
-/** Called by chooseLang just before the reload. The search and the Filters panel never open together, so the panel is left out when the search is open. */
+/** Called by chooseLang just before the reload, and on pagehide. The search and the Filters panel never open together, so the panel is left out when the search is open. */
 export function stashResume(now: number = Date.now(), store: Store | null = sessionStore()): void {
   const slices: Slices = {}
   for (const k of SLICES) {

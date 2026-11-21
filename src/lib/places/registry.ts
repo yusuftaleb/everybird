@@ -96,6 +96,11 @@ export function hasSourcePlaceKey(key: string): boolean {
   return key.slice(2, 6) === PREFIX
 }
 
+/** The source's own id inside a stored reference key (eBird's "FR-GES"), or undefined for any other key. */
+export function sourcePlaceId(key: string): string | undefined {
+  return referenceOf(key)?.id
+}
+
 function fromLegacyEbird(place: Place, tables: PlaceTables): Place {
   const id = place.sub1
   if (!id || hasSourcePlaceKey(id)) return place

@@ -8,6 +8,7 @@ export type FileKind =
   | 'obsorg-observations'
   | 'scythebill-csv'
   | 'scythebill-ebird'
+  | 'igoterra'
   | 'xlsx'
   | 'sheet-text'
   | 'unsupported-sheet'
@@ -15,12 +16,14 @@ export type FileKind =
 
 /** File kinds fill their own slots; a new kind also needs a parser in parse.worker.ts's dispatch. */
 export const FILE_KINDS: readonly { kind: FileKind; slot: Slot | null; test: (cols: string[], line: string) => boolean }[] = [
-  { kind: 'ebird-lifelist', slot: 'ebird-list', test: c => c.includes('countable') },
+  // eBird's life list: "Countable" alone is any ticked spreadsheet's column, so its other columns must be there too.
+  { kind: 'ebird-lifelist', slot: 'ebird-list', test: c => ['taxon order', 'category', 'scientific name', 's/p', 'countable'].every(x => c.includes(x)) },
   { kind: 'ebird-mydata', slot: 'ebird', test: c => c.includes('submission id') },
   { kind: 'obsorg-species', slot: 'obsorg-list', test: c => ['scientific name', 'species type', 'date first observed'].every(x => c.includes(x)) },
   { kind: 'obsorg-observations', slot: 'obsorg', test: c => ['scientific name', 'species type', 'country', 'date'].every(x => c.includes(x)) },
   { kind: 'scythebill-csv', slot: 'scythebill', test: c => ['scientific', 'subspecies', 'index', 'trip name'].every(x => c.includes(x)) },
   { kind: 'scythebill-ebird', slot: 'scythebill', test: (_c, line) => isScythebillEbirdRow(line) },
+  { kind: 'igoterra', slot: 'igoterra', test: c => ['scientific name', 'scientific family', 'fo', 'main group', 'species group'].every(x => c.includes(x)) },
   { kind: 'xlsx', slot: 'sheet', test: () => false },
   { kind: 'sheet-text', slot: 'sheet', test: () => false },
 ]

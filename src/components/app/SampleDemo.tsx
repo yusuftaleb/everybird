@@ -9,7 +9,7 @@ import { CollageView } from './CollageView'
 
 /**
  * The landing page's live demo: the pre-packed sample (public/data/sample-pack.v1.json) in its own store, never
- * saved. It needs neither the species file nor the layout worker to show its first collage; filters and True size
+ * saved, and a demo: no Share or Print. It needs neither the species file nor the layout worker to show its first collage; filters and True size
  * then run on the worker as anywhere else.
  */
 export function SampleDemo() {

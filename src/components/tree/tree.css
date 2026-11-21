@@ -1,0 +1,148 @@
+/* The Tree tab (TreeView.tsx). Rectangular: the drawing takes the left column (--tree-w, about half the width, which
+   TreeView sets in px once it knows the width: rowsTreeW), the rows the rest, to the view's right edge, so the names
+   follow their stickers and the counts end at that edge, right-aligned in one column; a row is 44px at least and grows
+   with its name (the drawing follows the rows' measured centres), an order heading 32px (HEAD_H). Without the time
+   scale (the bar's switch) there is no axis. Fan and Radial (data-round): the drawing alone, every tip
+   named past it (fitRound sizes it: --tree-px, the names' size, at 11px at the least, --tree-st the sticker's box, which
+   a big step shrinks to the name's line, --tree-gap the gaps); the
+   rows stay in the page visually hidden, for the keyboard and screen readers. Each tip reads, along its radius or
+   row: its dot, a gap, the sticker's box, a gap, the name, the count. Branches on the list are Ink, the rest Line;
+   corners are rounded (CORNER in tree.ts) and branches simply join. No name is ever cut. Hover and keyboard focus
+   (Yusuf, 2026-11-20, option 7B; round 6 without the sticker's growth): no box, the name Accent and underlined,
+   nothing moves; the keyboard's focus adds the outline round the name. */
+.eb-tree { --tree-w: clamp(112px, 50%, 640px); display: grid; gap: 12px; margin-top: 8px; }
+
+/* The path is the chip row under the dock (FilterBar); the oldest lineage is the legend under the view (CollageView).
+   Above the tree, the rank drawn and how many, in the Taxa panel head's mono ("29 GENERA"). */
+.eb-tree-note, .eb-tree-unmapped p { margin: 0; font-size: 14px; color: var(--muted); }
+.eb-tree-rank { margin: 0; }
+
+.eb-tree-head { display: flex; align-items: flex-end; gap: 12px; }
+.eb-tree-axis { position: relative; flex: none; width: var(--tree-w); height: 28px; border-bottom: 1px solid var(--hairline); }
+.eb-tree-tick { position: absolute; bottom: 6px; transform: translateX(-50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.eb-tree-tick::after { content: ''; position: absolute; left: 50%; bottom: -7px; height: 4px; border-left: 1px solid var(--line); }
+.eb-tree-axis-title { min-width: 0; font-size: 11px; color: var(--muted); padding-bottom: 4px; }
+
+.eb-tree-body { position: relative; }
+.eb-tree-svg { position: absolute; inset: 0 auto 0 0; width: var(--tree-w); height: 100%; overflow: visible; }
+.eb-tree-svg path { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.eb-tree-off { stroke: var(--line); stroke-width: 1; opacity: .55; }
+.eb-tree-on { stroke: var(--ink); stroke-width: 1.5; }
+/* A tip placed without genetic data: its own branch dotted (levels.ts `dotted`). */
+.eb-tree-dash { stroke-dasharray: 2 3; }
+/* The fan's and circle's tip dots: hollow, Paper under the stroke at full opacity (the off stroke mixed to Line's .55). */
+.eb-tree-svg path.eb-tree-tipdot { fill: var(--paper); }
+.eb-tree-tipdot.eb-tree-off { opacity: 1; stroke: color-mix(in srgb, var(--line) 55%, var(--paper)); }
+.eb-tree-tiphit { fill: transparent; cursor: pointer; }
+.eb-tree-rows { position: relative; list-style: none; margin: 0; padding: 0 0 0 var(--tree-w); width: 100%; box-sizing: border-box; } /* over the drawing: the tip dots cover the branch ends */
+.eb-tree-order {
+  display: flex; align-items: flex-end; height: 32px; padding: 0 0 4px 12px; box-sizing: border-box;
+  border-top: 1px solid var(--hairline); font-size: 11px; color: var(--muted);
+}
+.eb-tree-order[lang] { font-style: italic; }
+/* The first heading has no rule: the time axis (or nothing) sits right above it, and its rule read as the axis running on
+   past 0 under the caption (Yusuf, 2026-11-21). */
+.eb-tree-rows > .eb-tree-order:first-child { border-top: 0; }
+.eb-tree-row { display: flex; min-height: 44px; }
+/* Each row holds its own hidden words (.eb-sr is absolutely placed): they stay inside it, never below the page. */
+.eb-tree-row > .eb-tree-btn { flex: 1 1 0; width: auto; min-width: 0; }
+/* A marked row with more than two genera inside: the row's button holds to its name, so "with 5 other genera" sits right
+   after the mark, and the count still ends the row. */
+.eb-tree-row > .eb-tree-btn[data-many] { flex: 0 1 auto; }
+.eb-tree-row > .eb-tree-count { align-self: center; }
+.eb-tree-btn {
+  position: relative; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 0; margin: 0; box-sizing: border-box;
+  border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; text-align: left;
+}
+button.eb-tree-btn { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.eb-tree-btn[data-on] { color: var(--ink); }
+/* Hover and the keyboard's focus (7B): the name Accent and underlined; nothing moves or grows.
+   The keyboard's focus (and a bird picked from the search, data-ring) adds the outline round the name, not the row. */
+button.eb-tree-btn:focus-visible { outline: none; }
+button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-btn[data-ring] .eb-tree-nm { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-fan-label[data-hot] .eb-tree-fan-text { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) {
+  button.eb-tree-btn:hover .eb-tree-nm { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+}
+/* The tip's hollow dot where the branch ends: Ink on the list, Line off it. */
+.eb-tree-dot { flex: none; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid color-mix(in srgb, var(--line) 55%, var(--paper)); background: var(--paper); }
+.eb-tree-btn[data-on] .eb-tree-dot { border-color: var(--ink); }
+/* One name, in full: it wraps rather than being cut. */
+.eb-tree-name { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; line-height: 1.25; overflow-wrap: break-word; hyphens: auto; }
+.eb-tree-name [lang="la"] { font-style: italic; }
+.eb-tree-other { font-size: 13px; font-weight: 500; color: var(--muted); }
+/* A group that is not one branch of its own (levels.ts foldSplit): a diamond outline after its name, a shape, not a
+   colour; the key under the tree says what it means and the row's hidden text says it to a screen reader. */
+.eb-tree-mark { display: inline-block; flex: none; vertical-align: .1em; width: 7px; height: 7px; margin: 0 2px 0 6px; box-sizing: border-box; border: 1.5px solid currentColor; transform: rotate(45deg); }
+.eb-tree-key .eb-tree-mark { margin: 0 1px; }
+.eb-tree-nm { border-radius: 4px; }
+.eb-tree-count { flex: none; margin-left: auto; padding-right: 4px; font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+
+/* A tip's sticker (Sticker.tsx) in its fixed box: the species' own, or one bird of the group on the list, else the
+   group's first species with a sticker; a tip with no bird on the list dimmed; none, or one that fails, leaves the box
+   empty (no outline), so every name starts at one place. */
+.eb-tree-st { flex: none; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; }
+.eb-tree-st-in { display: flex; align-items: center; justify-content: center; }
+.eb-tree-st-in[data-off] { opacity: .4; }
+.eb-tree-st .eb-sil, .eb-tree-fan-st .eb-sil { display: none; }
+
+/* The Fan and Radial (fan.ts): the SVG and, over it, every tip's label (the sticker's box kept upright, the name, the
+   count where it fits), turned along its radius and never upside down: on the left half the label is mirrored, so
+   from the tip outward it still reads sticker, name, count. The ages of the rings. A press on a tip or its label
+   presses its row. */
+.eb-tree-fan { position: relative; overflow: hidden; cursor: default; }
+.eb-tree-fan .eb-tree-svg { inset: 0; width: 100%; height: 100%; }
+.eb-tree-ring { stroke: var(--hairline); stroke-width: 1; }
+.eb-tree-fan-label {
+  position: absolute; display: flex; align-items: center; gap: var(--tree-gap); height: var(--tree-st); box-sizing: border-box;
+  transform-origin: 0 50%; white-space: nowrap; color: var(--muted); font-size: var(--tree-px);
+}
+.eb-tree-fan-label[data-on] { color: var(--ink); }
+.eb-tree-fan-label[data-live], .eb-tree-tiphit[data-live] { cursor: pointer; }
+.eb-tree-fan-label[data-flip] { flex-direction: row-reverse; transform-origin: 100% 50%; }
+.eb-tree-fan-label[data-hot] { z-index: 1; }
+.eb-tree-fan-label[data-focus] .eb-tree-fan-text { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.eb-tree-fan-st { flex: none; display: flex; align-items: center; justify-content: center; width: var(--tree-st); height: var(--tree-st); }
+.eb-tree-fan-label .eb-tree-mark { margin: 0 1px; }
+/* The groups inside a marked tip, right after its mark, at the label's size. */
+.eb-tree-fan-label .eb-tree-other { font-size: inherit; }
+.eb-tree-fan-label .eb-tree-other [lang="la"] { font-style: italic; }
+.eb-tree-fan-text { font-weight: 600; line-height: calc(17em / 13); }
+.eb-tree-fan-text[lang="la"] { font-style: italic; }
+.eb-tree-fan-count { font-size: var(--tree-count); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.eb-tree-fan-tick { position: absolute; transform: translateX(-50%); font-size: 11px; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* The circle's ages sit on its rings on the radius straight up, in its opening, where no branch runs: Paper behind them
+   (TreeView drops one whose patch would not fit the opening: an inner ring too small for it). */
+.eb-tree-fan[data-circle] .eb-tree-fan-tick { padding: 0 3px; border-radius: 4px; background: var(--paper); }
+.eb-tree-fan-axis { margin: 0; text-align: center; } /* under the drawing, clear of every label (ROUND_PAD above it) */
+/* Fan and Radial: the rows stay in the page for the keyboard and screen readers, out of sight (as .eb-sr), their focus
+   shown on the tip in the drawing. Absolutely placed and clipped to 1px, so they add nothing to the page's height. */
+.eb-tree[data-round] .eb-tree-rows {
+  position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
+/* A marked row with more than two genera inside: the count right after the row's mark, opening their list (PickerSheet). */
+.eb-tree-with {
+  flex: none; min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px;
+  text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; cursor: pointer;
+}
+.eb-tree-with:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+.eb-tree-inside { list-style: none; margin: 0; padding: 0 12px 12px 22px; overflow-y: auto; overscroll-behavior: contain; }
+/* Wider than a phone, the sheet keeps to a column's width. */
+@media (min-width: 601px) { .eb-sheet:has(> .eb-tree-inside) { left: max(8px, calc(50% - 220px)); right: max(8px, calc(50% - 220px)); } }
+
+/* The key under the drawing: what the dotted line (and the mark) mean. */
+.eb-tree-key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 13px; color: var(--muted); }
+.eb-tree-key li { display: flex; align-items: center; gap: 8px; }
+.eb-tree-key-line { flex: none; width: 24px; height: 4px; overflow: visible; }
+.eb-tree-key-line path { fill: none; }
+
+.eb-tree-unmapped { display: grid; gap: 4px; }
+.eb-tree-unmapped ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 16px; }
+.eb-tree-link {
+  min-height: 44px; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: 15px;
+  text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; cursor: pointer;
+}
+.eb-tree-link[lang] { font-style: italic; }
+.eb-tree-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+

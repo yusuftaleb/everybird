@@ -41,20 +41,19 @@ export function useEscapeCapture(onClose: () => void): void {
 }
 
 /**
- * While mounted, the top bar stays shown (its headroom never hides it under an open dialog, sheet or popover).
- * `clear()` names an element the shown bar must not cover (a popover's controls bar): the page scrolls it out from
- * under the bar on open.
+ * While mounted, the top bar is frozen (headroom.ts' holdTopBar): it keeps the state it had, shown or hidden, under an
+ * open menu, panel, popover, sheet, the dock search or a dialog, and the page is never scrolled for it.
  */
-export function useHoldTopBar(clear?: () => HTMLElement | null | undefined): void {
-  const get = useRef(clear)
-  useLayoutEffect(() => holdTopBar(get.current?.()), [])
+export function useHoldTopBar(): void {
+  useLayoutEffect(() => holdTopBar(), [])
 }
 
 /** Keep Tab inside `root` (a modal). Call from the root's onKeyDown. */
 export function trapTab(e: ReactKeyboardEvent, root: HTMLElement | null): void {
   if (e.key !== 'Tab' || !root) return
-  // In document order (a selector list may return its matches grouped by selector, as jsdom's does).
-  const items = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).sort((x, y) => (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
+  // In document order (a selector list may return its matches grouped by selector, as jsdom's does). Not what Tab skips:
+  // out of the tab order (a hidden file input) or inside a closed panel (`hidden`).
+  const items = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.tabIndex >= 0 && !el.closest('[hidden]')).sort((x, y) => (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
   if (!items.length) return
   const first = items[0], last = items[items.length - 1]
   if (e.shiftKey && (document.activeElement === first || document.activeElement === root)) {
@@ -80,4 +79,15 @@ export function useFocusInAndBack(ref: RefObject<HTMLElement | null>, returnTo?:
       if (target?.isConnected) target.focus({ preventScroll: true })
     }
   }, [ref])
+}
+
+/** Brings `el` into view inside its nearest scrolling ancestor only (a panel's list or body), never the page: what
+ *  `scrollIntoView({ block: 'nearest' })` does, without scrolling the window when the panel itself is partly off screen. */
+export function revealInScroller(el: HTMLElement | null | undefined): void {
+  let box = el?.parentElement
+  while (box && !(box.scrollHeight > box.clientHeight && /auto|scroll/.test(getComputedStyle(box).overflowY))) box = box.parentElement
+  if (!el || !box || box === document.scrollingElement || box === document.body) return
+  const r = el.getBoundingClientRect(), b = box.getBoundingClientRect()
+  if (r.top < b.top) box.scrollTop -= b.top - r.top
+  else if (r.bottom > b.bottom) box.scrollTop += Math.min(r.bottom - b.bottom, r.top - b.top)
 }

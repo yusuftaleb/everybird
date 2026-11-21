@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The top bar's language button (LanguageMenu, preview variant lang:a): a menu button with four menuitemradio items in
-// their own languages, SourceMenu's keyboard, the top bar held shown while it is open, and the choice written to the
+// their own languages, SourceMenu's keyboard, the top bar frozen while it is open, and the choice written to the
 // cookie before a reload.
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
@@ -95,41 +95,41 @@ describe('LanguageMenu', () => {
     const items = screen.getAllByRole('menuitemradio')
     expect(menu).toContainElement(items[0])
     const names = items.map((i) => i.querySelector('[lang]')!)
-    expect(names.map((n) => n.textContent)).toEqual(['English', 'Español', 'Português', 'Nederlands'])
-    expect(names.map((n) => n.getAttribute('lang'))).toEqual(['en', 'es', 'pt-BR', 'nl'])
+    expect(names.map((n) => n.textContent)).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski', 'Français', 'Deutsch', 'Italiano', 'Svenska', 'Dansk', 'Русский', '日本語', '简体中文', '繁體中文'])
+    expect(names.map((n) => n.getAttribute('lang'))).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh-Hans', 'zh-Hant'])
     // Each row's code sits on the right, aria-hidden; the current one shows a check instead, and only its name is marked.
-    expect(items.map((i) => i.querySelector('.eb-langcode')?.textContent ?? null)).toEqual(['EN', null, 'PT', 'NL'])
-    expect(items.map((i) => i.querySelector('.eb-langcode')?.getAttribute('aria-hidden') ?? null)).toEqual(['true', null, 'true', 'true'])
-    expect(items.map((i) => i.querySelector('svg') !== null)).toEqual([false, true, false, false])
+    expect(items.map((i) => i.querySelector('.eb-langcode')?.textContent ?? null)).toEqual(['EN', null, 'PT', 'NL', 'PL', 'FR', 'DE', 'IT', 'SV', 'DA', 'RU', 'JA', '简', '繁'])
+    expect(items.map((i) => i.querySelector('.eb-langcode')?.getAttribute('aria-hidden') ?? null)).toEqual(['true', null, 'true', 'true', 'true', 'true', 'true', 'true', 'true', 'true', 'true', 'true', 'true', 'true'])
+    expect(items.map((i) => i.querySelector('svg') !== null)).toEqual([false, true, false, false, false, false, false, false, false, false, false, false, false, false])
     expect(items[1].querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
-    expect(names.map((n) => n.hasAttribute('data-current'))).toEqual([false, true, false, false])
-    expect(items.map((i) => i.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false'])
+    expect(names.map((n) => n.hasAttribute('data-current'))).toEqual([false, true, false, false, false, false, false, false, false, false, false, false, false, false])
+    expect(items.map((i) => i.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false', 'false', 'false', 'false', 'false', 'false', 'false', 'false', 'false', 'false', 'false'])
     // Opening focuses the checked item.
     expect(items[1]).toHaveFocus()
   })
 
   it('arrows wrap, Home and End jump, Esc closes and focuses the button', () => {
-    render(<LanguageMenu />, { wrapper: withI18n('nl') })
-    fireEvent.click(screen.getByRole('button', { name: 'Taal: Nederlands' }))
+    render(<LanguageMenu />, { wrapper: withI18n('zh-Hant') })
+    fireEvent.click(screen.getByRole('button', { name: '語言：繁體中文' }))
     const items = screen.getAllByRole('menuitemradio')
-    expect(items[3]).toHaveFocus()
+    expect(items[13]).toHaveFocus()
     const key = (k: string) => fireEvent.keyDown(document.activeElement!, { key: k })
     key('ArrowDown')
     expect(items[0]).toHaveFocus()
     key('ArrowUp')
-    expect(items[3]).toHaveFocus()
+    expect(items[13]).toHaveFocus()
     key('ArrowUp')
-    expect(items[2]).toHaveFocus()
+    expect(items[12]).toHaveFocus()
     key('Home')
     expect(items[0]).toHaveFocus()
     key('End')
-    expect(items[3]).toHaveFocus()
+    expect(items[13]).toHaveFocus()
     key('Escape')
     expect(screen.queryByRole('menu')).toBeNull()
-    expect(screen.getByRole('button', { name: 'Taal: Nederlands' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: '語言：繁體中文' })).toHaveFocus()
     // ArrowDown on the button opens it too, on the checked item.
-    fireEvent.keyDown(screen.getByRole('button', { name: 'Taal: Nederlands' }), { key: 'ArrowDown' })
-    expect(screen.getAllByRole('menuitemradio')[3]).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('button', { name: '語言：繁體中文' }), { key: 'ArrowDown' })
+    expect(screen.getAllByRole('menuitemradio')[13]).toHaveFocus()
   })
 
   it('Tab and a press outside close it', () => {
@@ -202,18 +202,18 @@ describe('LanguageMenu', () => {
     const theme = screen.getByRole('switch', { name: 'Modo oscuro' })
     expect(lang.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     // jsdom has no media queries: app.css hides [data-nav="collage"] under 480px in c; the wordmark still goes home.
-    const collage = screen.getByRole('link', { name: 'Collage' })
+    const collage = screen.getByRole('link', { name: 'Mis aves' })
     expect(collage.closest('li')).toHaveAttribute('data-nav', 'collage')
     expect(screen.getByRole('link', { name: 'Ajustes' }).closest('li')).toHaveAttribute('data-nav', 'settings')
     expect(screen.getByRole('link', { name: 'Everybird' })).toHaveAttribute('href', '/')
   })
 
-  it('variant c: on the Collage page the wordmark is the current page too (Collage is hidden on phones); never in a or b', () => {
+  it('variant c: on the My birds page the wordmark is the current page too (My birds is hidden on phones); never in a or b', () => {
     nav.path = '/'
     try {
       renderTopBar('c')
       expect(screen.getByRole('link', { name: 'Everybird' })).toHaveAttribute('aria-current', 'page')
-      expect(screen.getByRole('link', { name: 'Collage' })).toHaveAttribute('aria-current', 'page')
+      expect(screen.getByRole('link', { name: 'Mis aves' })).toHaveAttribute('aria-current', 'page')
       cleanup()
       for (const v of ['a', 'b']) {
         renderTopBar(v)

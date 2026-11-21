@@ -12,18 +12,19 @@ import { rememberWelcomed, welcomed } from '@/lib/welcome'
 /**
  * The first visit's welcome, over the landing's sample collage (Landing renders it, so never with a list on the device,
  * never before storage has been read, never on /settings, /about or a shared view). One line, "Make mine" (to the ways
- * in on Settings) and "Explore the sample"; ✕, Esc and a press outside are Explore. Closed once, it stays closed on this
+ * in on Settings) and "Explore the sample", which starts the sample's tour; ✕, Esc and a press outside close it
+ * without the tour. Closed once, it stays closed on this
  * device (src/lib/welcome.ts). A small card from 601px, the phones' bottom sheet at 600px and under; a light scrim
  * keeps the sample in view.
  */
-export function Welcome() {
+export function Welcome({ onExplore }: { onExplore?: () => void }) {
   // Landing only renders on the client, after storage is read, so this is never a server render.
   const [open, setOpen] = useState(() => !welcomed())
   if (!open) return null
-  return createPortal(<WelcomeDialog onClose={() => setOpen(false)} />, document.body)
+  return createPortal(<WelcomeDialog onClose={() => setOpen(false)} onExplore={onExplore} />, document.body)
 }
 
-function WelcomeDialog({ onClose }: { onClose: () => void }) {
+function WelcomeDialog({ onClose, onExplore }: { onClose: () => void; onExplore?: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const primary = useRef<HTMLAnchorElement>(null)
   const lineId = useId()
@@ -63,7 +64,8 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
             {t.landing.makeMine}
             <ArrowRight aria-hidden="true" focusable="false" weight="bold" />
           </Link>
-          <button type="button" className="eb-btn eb-btn-quiet" onClick={explore}>{t.landing.explore}</button>
+          {/* The button (not ✕, Esc or a press outside) starts the sample's guided tour (Tour.tsx). */}
+          <button type="button" className="eb-btn eb-btn-quiet" onClick={() => { explore(); onExplore?.() }}>{t.landing.explore}</button>
         </div>
         <button type="button" className="eb-welcome-close" aria-label={t.collage.close} onClick={explore}>
           <CloseIcon />

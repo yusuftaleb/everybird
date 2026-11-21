@@ -51,9 +51,26 @@ export const COMMA_DROP = 0.12
 export const LABEL = 'SPECIES'
 /**
  * The label box holds this many characters, the longest label across the languages ("ESPECIES", "ESPÉCIES" 8;
- * "SPECIES", "SOORTEN" 7). A new language's `count.label` must fit it (tests/count-box.test.ts).
+ * "SPECIES", "SOORTEN" 7). A new language's `count.label` must fit it, counted in labelCells (tests/count-box.test.ts).
  */
 export const COUNT_LABEL_CHARS = 8
+/**
+ * With a goal the share images' label reads "/ 150 SPECIES" (share.bigYear.ofTarget, the number as large as without
+ * one): its box holds the target's en-US digits and this many characters more, the words around the number in the
+ * longest language ("sur  espèces", "van  soorten" 12). tests/count-box.test.ts checks every language's against it.
+ */
+export const GOAL_LABEL_CHARS = 12
+/** The goal label's width in characters for `target` (labelEm's `cells`). */
+export const goalLabelCells = (target: number): number => GOAL_LABEL_CHARS + countText(target).length
+/** Full-width characters: kana, Han, CJK punctuation and full-width forms. About 1em each, wider than Geist Mono's 0.6em. */
+export const WIDE_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u3000-\u303f\u30fc\uff00-\uffef]/u
+/** A label's width in Geist Mono characters: a full-width character (WIDE_CHAR) counts as two, so COUNT_LABEL_CHARS
+ *  stays a width limit (two cells, 1.32em with tracking, hold one CJK character's 1em). */
+export function labelCells(label: string): number {
+  let n = 0
+  for (const ch of label) n += WIDE_CHAR.test(ch) ? 2 : 1
+  return n
+}
 /** Geist Mono: advance per character and the label's tracking (em), caps height, normal line box. */
 export const MONO_EM = 0.6, MONO_TRACK = 0.06, MONO_CAP = 0.73, MONO_LINE = 1.3
 /** Geist Mono 500's accented capital's ink top above the baseline (em; "É" 0.909): the share images' label box. */
@@ -71,8 +88,8 @@ export function numberEm(text: string): number {
   return em * SAFETY
 }
 /** The label's width in em at its tracking (the last letter's tracking too, as the DOM box counts it), for
- *  COUNT_LABEL_CHARS characters: the same in every language. */
-export const labelEm = (): number => COUNT_LABEL_CHARS * (MONO_EM + MONO_TRACK) * SAFETY
+ *  COUNT_LABEL_CHARS characters (or `cells`, a goal's label: goalLabelCells): the same in every language. */
+export const labelEm = (cells: number = COUNT_LABEL_CHARS): number => cells * (MONO_EM + MONO_TRACK) * SAFETY
 
 /**
  * How much smaller the collage's number is drawn than the layout's F: five digits ("11,019", six characters) are drawn

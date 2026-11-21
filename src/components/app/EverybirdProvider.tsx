@@ -1,7 +1,8 @@
 'use client'
 // The birder's list and the imports in flight, above the routes (app/[lang]/(app)/layout.tsx): / (Collage), /settings and
 // /about share one store, and an import started on /settings keeps running while the birder moves between them. The
-// shared view (/s/[token]) lives outside this layout, so it never loads or touches the saved list.
+// shared view (/s/[token]) lives outside this layout, so it never loads or touches the saved list. Every import's toast
+// (ImportToast) is mounted here, so it follows the birder from page to page until the import ends.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { track } from '@/lib/analytics'
 import { loadRegions } from '@/lib/import/places'
@@ -12,6 +13,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { useLoadNames } from '@/lib/species/use-names'
 import type { Regions } from '@/lib/species/types'
 import { useAppPath } from '@/i18n/path'
+import { ImportToast } from '@/components/import/ImportToast'
 import { useImportJobs, type ImportJobs } from './use-import-jobs'
 
 export type Everybird = {
@@ -62,7 +64,7 @@ export function EverybirdProvider({ children }: { children: ReactNode }) {
     () => ({ state, dispatch, meta, data, failed: !!meta.error || regionsFailed, mine, mineSoon, jobs }),
     [state, dispatch, meta, data, regionsFailed, mine, mineSoon, jobs],
   )
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={value}>{children}<ImportToast jobs={jobs} /></Ctx.Provider>
 }
 
 export function useEverybirdContext(): Everybird {

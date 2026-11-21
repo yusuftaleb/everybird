@@ -11,6 +11,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { HTML_LANG } from '@/i18n/langs'
 import type { Ui } from '@/i18n/messages/en'
 import { isContinentId } from '@/lib/places/continents'
+import { REGION_ALIASES, type RegionPresetId } from '@/lib/places/presets'
 import { ContinentGlobe } from './ContinentGlobe'
 import { clearPlaces, countryRows, filterKey, filterPlaceKeys, placeCounts, placeRows, regionRows, type Filter, type PlaceCounts, type PlaceOption } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
@@ -31,7 +32,12 @@ export type PlacesNote = 'add' | 'reimport'
 export const SEARCH_FROM = 8
 
 /** What a design of the panel gets. */
-export type PlacesBodyProps = { state: AppState; species: SpeciesIndex; regions: Regions; onFilter: (f: Filter) => void }
+export type PlacesBodyProps = {
+  state: AppState
+  species: SpeciesIndex
+  regions: Regions
+  onFilter: (f: Filter) => void
+}
 
 /**
  * The level of the places under `parent`: continents with none (countries when `flat`: the one-continent list skips the
@@ -134,13 +140,15 @@ export function useRegionRows(counts: PlaceCounts, filter: Filter, regions: Regi
   }, [opts, filter.regions, regions, cn, rn])
 }
 
-/** The rows whose names hold every word of `q` as a word prefix, accent- and case-insensitive ("new z": New Zealand). */
-export function matchRows<T extends { label: string }>(rows: T[], q: string): T[] {
+/** The rows whose names hold every word of `q` as a word prefix, accent- and case-insensitive ("new z": New Zealand);
+ *  a region row (`r:<id>`) also answers to its `REGION_ALIASES` ("latam", "mena"). */
+export function matchRows<T extends { label: string; value?: string }>(rows: T[], q: string): T[] {
   const key = searchKey(q)
   if (!key) return rows
   const terms = key.split(' ')
   return rows.filter((r) => {
-    const ws = searchKey(r.label).split(' ')
+    const aliases = r.value?.startsWith('r:') ? (REGION_ALIASES[r.value.slice(2) as RegionPresetId] ?? []) : []
+    const ws = searchKey([r.label, ...aliases].join(' ')).split(' ')
     return terms.every((t) => ws.some((w) => w.startsWith(t)))
   })
 }

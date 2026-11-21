@@ -1,6 +1,6 @@
 import type { Edits, ListEntry, Place, Rules, Source, SourceRecord } from './model'
 
-const SOURCE_ORDER: Source[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'manual']
+const SOURCE_ORDER: Source[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'igoterra', 'manual']
 
 /** YYYY -> YYYY-00-00, YYYY-MM -> YYYY-MM-00, so partial dates compare lexically. */
 function padDate(d: string): string {
@@ -100,21 +100,6 @@ export function latestLifer(list: ListEntry[], taxonOrder?: (code: string) => nu
     const d = byString(padDate(e.date), padDate(best.date!))
     const t = taxonOrder ? taxonOrder(e.code) - taxonOrder(best.code) || byString(e.code, best.code) : byString(e.code, best.code)
     if (d > 0 || (d === 0 && t > 0)) best = e
-  }
-  return best
-}
-
-export function firstLifer(list: ListEntry[], taxonOrder?: (code: string) => number): ListEntry | undefined {
-  let best: ListEntry | undefined
-  for (const e of list) {
-    if (!e.date) continue
-    if (!best) {
-      best = e
-      continue
-    }
-    const d = byString(padDate(e.date), padDate(best.date!))
-    const t = taxonOrder ? taxonOrder(e.code) - taxonOrder(best.code) || byString(e.code, best.code) : byString(e.code, best.code)
-    if (d < 0 || (d === 0 && t < 0)) best = e
   }
   return best
 }

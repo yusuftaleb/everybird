@@ -45,7 +45,7 @@ export function ChipRow<C extends ChipData>({ chips, label, onRemove, onOpen, on
     }
     const el = rowRef.current?.children[Math.min(at, chips.length - 1)]
     const target = el?.matches('.eb-chip-pair') ? el.querySelector<HTMLElement>('.eb-chip-x') : (el as HTMLElement | undefined)
-    target?.focus()
+    target?.focus({ preventScroll: true })
   }, [chips, onEmpty])
 
   if (!chips.length) return null

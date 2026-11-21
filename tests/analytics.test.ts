@@ -30,7 +30,7 @@ function assertClean(body: string) {
   if ('d' in o) expect(o.d).toBe('touch')
   if ('l' in o) {
     expect(o.n).toBe('visit')
-    expect(o.l).toMatch(/^[a-z]{2,3}$/)
+    expect(o.l).toMatch(/^(?:[a-z]{2,3}|zh-Han[st])$/)
   }
 }
 
@@ -72,7 +72,10 @@ describe('the browser language', () => {
       return JSON.parse(await blobText(beacon.mock.calls[0][1])) as Record<string, unknown>
     }
     expect(await body('pt-BR')).toEqual({ n: 'visit', p: 'landing', l: 'pt' })
-    expect(await body('zh-Hant-TW')).toEqual({ n: 'visit', p: 'landing', l: 'zh' })
+    // Chinese by script (langCode), the stats Worker's two Chinese values.
+    expect(await body('zh-Hant-TW')).toEqual({ n: 'visit', p: 'landing', l: 'zh-Hant' })
+    expect(await body('zh-HK')).toEqual({ n: 'visit', p: 'landing', l: 'zh-Hant' })
+    expect(await body('zh-CN')).toEqual({ n: 'visit', p: 'landing', l: 'zh-Hans' })
     expect(await body('es')).toEqual({ n: 'visit', p: 'landing', l: 'es' })
     for (const bad of ['x', '', 'english', '12-US', undefined]) expect(await body(bad), String(bad)).toEqual({ n: 'visit', p: 'landing' })
     const ipad = env({ nav: { userAgent: MAC, maxTouchPoints: 5, language: 'nl-NL' } })
@@ -230,7 +233,7 @@ describe('the newer events', () => {
     for (const format of ['png', 'pdf'] as const) expect(payloadFor('poster_downloaded', { format })).toEqual({ n: 'poster_downloaded', p: format })
     for (const kind of ['smart', 'bird'] as const) expect(payloadFor('search_applied', { kind })).toEqual({ n: 'search_applied', p: kind })
     for (const kind of ['place', 'continent', 'time', 'status', 'group', 'taxonomy'] as const) expect(payloadFor('filter_used', { kind })).toEqual({ n: 'filter_used', p: kind })
-    expect(payloadFor('ui_language', { lang: 'fr' as never })).toBeNull()
+    expect(payloadFor('ui_language', { lang: 'tr' as never })).toBeNull()
     expect(payloadFor('poster_made', { size: 'A4' as never })).toBeNull()
     expect(payloadFor('poster_downloaded', { format: 'jpg' as never })).toBeNull()
     expect(payloadFor('search_applied', { kind: 'Snow Goose' as never })).toBeNull()

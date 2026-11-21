@@ -20,12 +20,15 @@ export const EN_UI = {
     nav: {
       /** The nav's aria-label. */
       label: 'Everybird',
-      collage: 'Collage',
+      collage: 'My birds',
+      compare: 'Compare',
       settings: 'Settings',
       about: 'About',
     },
     /** The theme switch's aria-label. */
     darkMode: 'Dark mode',
+    /** The "Back to top" button's aria-label and tooltip (BackToTop). */
+    toTop: 'Back to top',
     footer: {
       credits: 'All credits',
       madeBy: 'Made by Yusuf Taleb',
@@ -41,10 +44,8 @@ export const EN_UI = {
   },
   /** Settings (SettingsPage). */
   settings: {
-    /** Your data > the language select's label (LanguageField). */
+    /** The heading over the English-names switch (EnglishNamesSwitch), shown when the UI isn't English. */
     language: 'Language',
-    /** The button after the language select: the language changes (and the page reloads) only when it is pressed. */
-    languageChange: 'Change language',
     /** Your data > the English-names switch (EnglishNamesSwitch), shown when the UI isn't English. */
     enNames: {
       label: 'Show bird names in English',
@@ -57,12 +58,6 @@ export const EN_UI = {
       head: 'Your data',
       noteMine: 'Your list lives on this device. Download it, or move it to another device with the backup.',
       noteRestore: 'Moving from another device? Restore the backup you downloaded there.',
-      /** Name your collage (NameField). */
-      name: {
-        label: 'Name your collage',
-        placeholder: 'e.g. Yusuf’s life list',
-        helper: 'Shown as your collage’s title and on shares.',
-      },
       downloadCsv: 'Download CSV',
       downloadJson: 'Download JSON backup',
       restore: 'Restore from backup',
@@ -87,10 +82,11 @@ export const EN_UI = {
   /** The collage page and the collage block every page shares (CollagePage, CollageView, ControlsBar, DockSearch,
    *  Collage's stage, Notices, UndoToast). The stats line and the Timeline readout join their parts with " · " in code. */
   collage: {
-    /** The collage page's title when the collage has none (pageTitle). */
-    untitled: 'My collage',
+    /** The collage page's title, always "My birds" like the nav (Yusuf, 2026-11-21); the list's title names only its share card and poster. */
+    untitled: 'My birds',
     addBirds: 'Add birds',
     share: 'Share',
+    print: 'Print',
     /** The collage block's accessible name: the birder's own, the landing sample, a shared link's. */
     regionYours: 'Your collage',
     regionSample: 'Sample collage',
@@ -136,12 +132,28 @@ export const EN_UI = {
       view: 'View',
       collage: 'Collage',
       list: 'List',
+      map: 'Map',
+      /** The Map view (MapView): "Show all" under its list ({n} the number of places), the note when its shapes don't
+       *  load, the caption under the map (how to zoom and pan), and its buttons' names (+, −, and back to the whole world). */
+      mapAll: 'Show all {n}',
+      mapFailed: "Couldn't load the map. The list below has the same counts.",
+      mapHint: 'Pinch or +/− to zoom · drag to pan',
+      mapZoomIn: 'Zoom in',
+      mapZoomOut: 'Zoom out',
+      mapReset: 'Show the whole world',
+      tree: 'Tree',
       heaviestFirst: 'Heaviest first',
       lightestFirst: 'Lightest first',
       heaviest: 'Heaviest',
       lightest: 'Lightest',
-      sortedHeaviest: 'Sorted by body mass, heaviest first. Reverse order',
-      sortedLightest: 'Sorted by body mass, lightest first. Reverse order',
+      /** The List view's Sort menu: its options (each with a short form for narrow bars, Family has one), and its name
+       *  (the button reads "Sort: Newest first"). */
+      family: 'Family',
+      newestFirst: 'Newest first',
+      oldestFirst: 'Oldest first',
+      newest: 'Newest',
+      oldest: 'Oldest',
+      sort: 'Sort',
       trueSize: 'True size',
       trueShort: 'True',
       trueSr: 'sticker sizes',
@@ -149,10 +161,25 @@ export const EN_UI = {
       sci: 'Scientific',
       sciShort: 'Sci.',
       sciSr: 'names',
-      markNewest: 'Mark newest bird',
-      markFirst: 'Mark first bird',
-      newestSr: ', newest bird',
-      firstSr: ', first bird',
+      /** Tree view: keep only the rows with a bird on the list. */
+      lifersOnly: 'Lifers only',
+      /** Tree view: branches at their true ages over the age axis, or (off) the splits spaced evenly. */
+      timeScale: 'Time scale',
+      /** The bar's panel buttons (Taxa: the taxonomy chips; Display: how the view looks, Collage and Tree), the panels'
+       *  names for screen readers, the Display panel's Scientific switch, and the Taxa panel's head (plural on {total}). */
+      taxa: 'Taxa',
+      taxaPanel: 'Orders, families and genera',
+      display: 'Display',
+      displayPanel: 'Display options',
+      /** The Filters button's accessible name while filters are on ({label} the button's label, {n} how many of the
+       *  bird group, Places, Time and Conservation status are in use): the dock shows no count, the name says it. */
+      inUse: { one: '{label}, {n} in use', other: '{label}, {n} in use' },
+      sciNames: 'Scientific names',
+      taxaHead: {
+        order: { one: '{n} of {total} order', other: '{n} of {total} orders' },
+        family: { one: '{n} of {total} family', other: '{n} of {total} families' },
+        genus: { one: '{n} of {total} genus', other: '{n} of {total} genera' },
+      },
     },
     /** The dock search (DockSearch). */
     search: {
@@ -166,6 +193,56 @@ export const EN_UI = {
       noneYour: 'No bird on your list matches “{q}”.',
       noneThis: 'No bird on this list matches “{q}”.',
       matches: { one: '{n} match', other: '{n} matches' },
+    },
+    /** The Tree view (TreeView.tsx): AvesData's tree, opening on the orders; `all` the path's first step. `rank` the
+     *  four ranks (the share images' totals); `layout` the Display panel's Layout choice, `layouts` its three choices (a
+     *  half disc, a full circle, rows top to bottom), `noRoom` why one is off; `tipOf` a fan or circle tip's count, "12 of 39".
+     *  `oldest` the legend under the view (CollageView); the tree's credit is About's credits.tree.
+     *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the names of the groups inside
+     *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
+     *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that is
+     *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. `mineNone`
+     *  the line when the bar's Lifers only (controls.lifersOnly) leaves no row. `genera` the rank line above the tree
+     *  ("29 genera"; the other ranks reuse `stats`, and with Lifers only `controls.taxaHead` and `stats.of`).
+     *  `tooMany`/`tooManyMine` why a rank in the Display panel's Down to is off (too many tips to draw on screen). */
+    tree: {
+      loading: 'Loading the tree',
+      failed: "The tree didn't load. Open Tree again to try once more.",
+      tips: 'Tips of the tree, top to bottom',
+      axis: 'Million years ago (estimates)',
+      onList: '{n} of {total} on the list',
+      withOne: 'with <a>{a}</a>',
+      withTwo: 'with <a>{a}</a> and <b>{b}</b>',
+      markSr: 'not one branch of its own in this tree',
+      keyMark: 'Not one branch of its own in this tree',
+      insideOne: '{name} is not one branch in this tree. The smallest branch with all of it also holds {a}, so both are shown.',
+      insideTwo: '{name} is not one branch in this tree. The smallest branch with all of it also holds {a} and {b}, so all are shown.',
+      withMany: { one: 'with {n} other genus', other: 'with {n} other genera' },
+      insideMany: { one: '{name} is not one branch in this tree. The smallest branch with all of it also holds {n} other genus, so both are shown.', other: '{name} is not one branch in this tree. The smallest branch with all of it also holds {n} other genera, so all are shown.' },
+      insideTitle: 'Inside the {name} branch',
+      onListOne: 'on the list',
+      notOnList: 'not on the list',
+      dottedSr: 'placed without genetic data',
+      keyDotted: 'Placed without genetic data',
+      split: '{name} is not one branch in this tree, so this drawing shows its species alone.',
+      oldest: 'Oldest lineage on this list: {name}, which split from its closest relatives about {age} million years ago (an estimate).',
+      /** The tree's share image and poster: the oldest lineage in the latest lifer's place (the row's mono label; the
+       *  poster foot's line), and the dialog's switch. */
+      oldestLabel: 'Oldest lineage · about {age} million years',
+      /** The one-line oldest lineage row (Desktop, Post and Square): the detail after the name; oldestLabel is its short form. */
+      oldestDetail: 'Oldest lineage · split from its closest relatives about {age} million years ago',
+      oldestPoster: 'Oldest lineage: {name}, about {age} million years',
+      showOldest: 'Show oldest lineage',
+      unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
+      mineNone: 'No bird on the list here.',
+      layout: 'Layout',
+      layouts: { fan: 'Fan', circle: 'Radial', rows: 'Rectangular' },
+      noRoom: 'Not enough room for every name',
+      tooMany: 'Too many to draw: turn on Lifers only or open a branch',
+      tooManyMine: 'Too many to draw: open a branch',
+      rank: { orders: 'Orders', families: 'Families', genera: 'Genera', species: 'Species' },
+      tipOf: '{n} of {total}',
+      genera: { one: '{n} genus', other: '{n} genera' },
     },
     /** The close buttons' aria-label (the welcome, sheets, the Places and Time sheet). */
     close: 'Close',
@@ -186,9 +263,9 @@ export const EN_UI = {
     nav: 'Filter by group',
     all: 'All birds',
     /** A level's mono label and its sheet's title. */
-    rank: { order: 'Orders', family: 'Families', country: 'Countries', year: 'Years' },
+    rank: { order: 'Orders', family: 'Families', genus: 'Genera', country: 'Countries', year: 'Years' },
     /** The phone's picker button. */
-    choose: { order: 'Choose an order', family: 'Choose a family', country: 'Choose a country', year: 'Choose a year' },
+    choose: { order: 'Choose an order', family: 'Choose a family', genus: 'Choose a genus', country: 'Choose a country', year: 'Choose a year' },
     /** A removable chip's aria-label. */
     remove: 'Remove {label} filter',
     /** The Filters sections' names (the panel, the chips and the button's spoken text). */
@@ -239,11 +316,12 @@ export const EN_UI = {
       end: 'End month',
       empty: 'This list has no dates, so there is no timeline.',
     },
-    /** The Time section's basis switch (Filter.basis) and how "seen" reads in chips, labels and share images. */
+    /** The counting switch (Filter.basis) and how "seen" reads in chips, labels and share images. */
     basis: {
-      label: 'Count a bird by',
-      first: 'First seen',
-      any: 'Seen any time',
+      /** The Filters panel's "Count repeat sightings" switch (RepeatSwitch): its label, and its note off and on. */
+      label: 'Count repeat sightings',
+      off: 'A bird counts where and when you first recorded it.',
+      on: 'A bird counts everywhere and every year you recorded it.',
       seenIn: 'Seen in {places}',
       seenTime: 'Seen: {time}',
     },
@@ -259,10 +337,8 @@ export const EN_UI = {
     allContinents: 'All continents',
     /** The drilled level's first row, the parent's own checkbox ("All of Canada"). */
     allOf: 'All of {place}',
-    /** The drill buttons' aria-labels (design a). */
+    /** The drill buttons' aria-labels (PlacesDrill: a row's places, one level down). */
     drill: { continent: 'Show countries in {place}', country: 'Show states and provinces in {place}', province: 'Show counties in {place}' },
-    /** The disclosure buttons' and open groups' names (design b). */
-    group: { continent: 'Countries in {place}', country: 'States and provinces in {place}', province: 'Counties in {place}' },
     none: 'No places on this list.',
     emptyFiltered: 'No places here under the other filters.',
     emptyNow: 'No places here on your list now.',
@@ -283,6 +359,7 @@ export const EN_UI = {
     regions: {
       latam: 'Latin America & Caribbean',
       me: 'Middle East',
+      mena: 'Middle East & North Africa',
       'northern-africa': 'Northern Africa',
       'eastern-africa': 'Eastern Africa',
       'middle-africa': 'Middle Africa',
@@ -336,6 +413,8 @@ export const EN_UI = {
   card: {
     close: 'Close',
     noDrawing: 'No drawing yet for this species.',
+    album: 'Illustration',
+    albumSpoken: 'Illustration from Bird Album, opens in a new tab',
     assignedRegion: 'Assigned by region',
     assignedDefault: 'Assigned by default',
     mass: 'Average body mass',
@@ -349,18 +428,29 @@ export const EN_UI = {
     marks: 'Marks',
     markAs: 'Mark as',
     resetMarks: 'Marks from my records',
-    remove: 'Remove from my list',
+    remove: 'Remove',
   },
   /** The landing page (Landing, SampleDemo) and the first visit's welcome (Welcome). */
   landing: {
     title: 'A lifetime of birds.',
     lede: 'Your life list as a sticker collage, from eBird, iNaturalist, or by hand.',
     makeYours: 'Make yours',
-    samplePrefix: "Sample: a demo birder's life list",
+    samplePrefix: 'Sample',
     sampleFailed: "Couldn't load the sample collage. Check your connection and reload the page.",
     welcome: 'A lifetime of birds, as a sticker collage.',
     makeMine: 'Make mine',
     explore: 'Explore the sample',
+    /** The sample's guided tour (Tour.tsx), started by Explore the sample: the step count, one line per step, the buttons. */
+    tour: {
+      count: '{n} of {total}',
+      filter: 'Filter by place, date or conservation status. Every view follows the filter.',
+      view: 'See the same birds as a collage, a list, a map or a tree.',
+      bird: 'Press a bird to see when and where it was first seen.',
+      next: 'Next',
+      skip: 'Skip tour',
+      end: 'End tour',
+      own: 'Use your own list',
+    },
   },
   /** The shared view's page (/s/[token]) and SharedView. A link's own title and the page metadata are og.ts's. */
   shared: {
@@ -374,6 +464,67 @@ export const EN_UI = {
     noPlaces: 'This link carries no places, so those filters are left out.',
     noDates: 'This link carries no dates, so those filters are left out.',
   },
+  /** Compare with friends (issue #10): /compare, and a comparison link's page, /c/<token>. */
+  compare: {
+    /** The page head's title, the same before and after comparing (and the page's name in the browser). */
+    title: 'Compare life lists',
+    /** A row's link box (its placeholder; named "Link N"), the main button, and why it waits (its description). */
+    paste: 'Paste a friend’s Everybird link',
+    linkN: 'Link {n}',
+    submit: 'Compare',
+    bad: { one: '{n} link didn’t open.', other: '{n} links didn’t open.' },
+    needMore: 'Comparing needs at least two lists.',
+    /** After a paste past the cap: the links beyond it weren't added ({n} 6). */
+    over: 'Up to {n} lists can be compared, so the rest weren’t added.',
+    /** "Compare with mine" sent a friend's list, and the visitor has none yet (followed by the "Add birds" link). */
+    noList: 'To compare with {name}, add your own birds first.',
+    /** The chips' name, and what they show (also the heading over the birds): the birds on the others' lists you lack, on
+     *  both or every list, one list's alone (yours: "Only you"), every bird. Several people chosen are their names,
+     *  "Kalvin & Kalin", joined the same way in every language. */
+    groups: 'Which birds',
+    yetToSee: 'Yet to see',
+    both: 'Both',
+    everyone: 'On every list',
+    onlyYou: 'Only you',
+    only: 'Only {name}',
+    every: 'Every bird',
+    birder: 'Birder {n}',
+    empty: 'No birds in this group.',
+    /** A tile's dots, one per list that has the bird (Yet to see and Every bird): their accessible name. */
+    seenBy: 'Seen by {names}',
+    /** The bars, one per list; a set-up row's remove button. */
+    people: 'Lists in this comparison',
+    remove: 'Remove {name}',
+    /** Each region of the diagram (its button's name) and the card's text alternative, every number in the diagram:
+     *  "Only Ada: 12." "Only Ada and Sam: 3." */
+    onlyTwo: 'Only {a} and {b}',
+    altPart: '{label}: {n}.',
+    /** The card's counts line, one part per list ("Sam: 412"). */
+    cardCount: '{label}: {n}',
+    /** The birds you've yet to see, with one friend and with several: the wish list's title. */
+    wish: { one: '{n} of {name}’s birds you’ve yet to see', other: '{n} of {name}’s birds you’ve yet to see' },
+    wishAll: { one: '{n} of your friends’ birds you’ve yet to see', other: '{n} of your friends’ birds you’ve yet to see' },
+    /** The share dialog's note beside Copy link; why the wish list is off; why Copy link is off. */
+    consent: 'A comparison link carries every list in it, so ask the others before you share it.',
+    wishNeedsYours: 'Add your own birds for a wish list.',
+    wishNone: 'You’ve seen every bird on these lists.',
+    tooMany: 'A comparison link holds up to {n} lists. Remove some to share it.',
+    tooBig: 'These lists are too big for one link. Share the card instead, or compare fewer lists.',
+    sharedTitle: 'Comparing {n} life lists',
+    /** On a shared collage or comparison: open Compare with it and your own list. */
+    withMine: 'Compare with mine',
+    /** The set-up: the page head's line ({n} 6), the birder's own row, each row's name box, Add a friend. */
+    note: 'Paste your friends’ Everybird links to see which birds you share. Up to {n} lists.',
+    yourList: 'Your list',
+    nameN: 'Name of list {n}',
+    addFriend: 'Add a friend',
+    /** The results: back to the set-up; the page head's line (with your own list, and without); the circles' name. */
+    editLists: 'Edit lists',
+    lede: 'See which birds your lists share and which you’re yet to see. Choose people below to see the birds only they share.',
+    ledeTheirs: 'See which birds these lists share. Choose people below to see the birds only they share.',
+    diagram: 'Diagram',
+  },
+
   /** Plain labels for the bird orders (scientific name -> label): every order in species.v1.json. English is a copy of
    *  src/lib/species/orders.ts ORDERS (tests/i18n.test.ts keeps them equal). */
   orders: {
@@ -427,23 +578,33 @@ export const EN_UI = {
    *  route). The credits (FOOTER_LINE, SHARE_CREDIT) and the download names stay English and are not here. */
   share: {
     title: 'Share your collage',
+    /** The title from the Map and the Tree (dialogTitle: what is shared). */
+    viewTitle: { map: 'Share your map', tree: 'Share your tree' },
     /** The format control's group name and its three segments (their 9:16, 4:5, 1:1 hints are in code). */
     formats: 'Image format',
+    /** Compare's dialog: what it shares, the comparison card or the wish list. */
+    what: { label: 'What', comparison: 'Comparison', wish: 'Wish list' },
     format: { story: 'Story', post: 'Post', square: 'Square', desktop: 'Desktop' },
     /** A format button's spoken name: the label and its ratio, which the button hides when it is tight. */
     formatName: '{name}, {ratio}',
     /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
     orientation: { group: 'Orientation', vertical: 'Vertical', horizontal: 'Horizontal' },
-    countSize: { label: 'Count size', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide' },
+    /** The Count row's segmented control (Hide | S | M | L | Beside title): the count's size in the middle of the collage,
+     *  none, or beside the title (`title`). `short` is what the S, M and L segments show (the usual short size forms);
+     *  `small`, `medium` and `large` are their spoken names. */
+    countSize: { label: 'Count', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide', title: 'Beside title', short: { small: 'S', medium: 'M', large: 'L' } },
     /** The preview image's alt text, per format. */
     preview: { story: 'Preview of the story image', post: 'Preview of the post image', square: 'Preview of the square image', desktop: 'Preview of the desktop image', wide: 'Preview of the wide post image' },
     failed: "Couldn't make the image.",
     imageFailed: 'Couldn’t make the image. Try again.',
     linkFailed: 'Couldn’t make the link. Try again.',
     tooLarge: 'This list is too large for a link. Share the image instead.',
-    nameLabel: 'Collage title',
+    /** The title field's label in Share, for every subject (round 6, item 9); Print's is print.nameLabel. */
+    nameLabel: 'Card title',
     namePlaceholder: 'My 2024 birds',
     nameOptional: '(optional)',
+    /** The title field's description (read by screen readers): it is saved with the list and names the collage page. */
+    nameHelper: 'Shown as your collage’s title and on shares.',
     showLatest: 'Show latest lifer',
     shareImage: 'Share image',
     download: 'Download image',
@@ -472,22 +633,43 @@ export const EN_UI = {
     oldLinkTitle: "{name}'s life list",
     /** The shared page's document title for a link without a title ({n} formatted). */
     untitledTitle: { one: 'A life list: {n} species', other: 'A life list: {n} species' },
-    /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
-    dark: 'Dark image',
+    /** The Appearance row (its key keeps the name colours): the images' and the poster's look, Light or Dark (it starts at the page's theme). */
+    colours: { label: 'Appearance', light: 'Light', dark: 'Dark' },
+    transparent: 'Transparent background',
+    /** How the images and the poster place the birds (the stored value stays 'packed'): fitted to the frame, or in an oval. */
+    arrange: { label: 'Arrangement', packed: 'Fit', oval: 'Oval', free: 'Free' },
+    /** The Tree's and Map's Totals row: one toggle chip per total the image draws (the chips reuse collage.tree.rank and places.head.country). */
+    totals: 'Totals',
+    /** The Goal row: "Add a goal", then "[300] species in [2026 ▾] ✕". `target` names the number box, `year` the year
+     *  menu (All time or a year); the card's line for a year's goal is `card` ("2026 year list"; with the lifer basis `cardLifer`, "2026 lifers"). */
     bigYear: {
-      label: 'Big Year',
-      year: 'Year',
-      target: 'Target',
-      targetPlaceholder: 'Species',
-      card: 'Big Year {year}',
-      cardLifer: 'Big Year {year} · New species in {year}',
+      label: 'Goal',
+      add: 'Add a goal',
+      target: 'Goal in species',
+      speciesIn: 'species in',
+      year: 'Goal period',
+      allTime: 'All time',
+      remove: 'Remove goal',
+      targetInvalid: 'Enter a whole number from 1 to {max}.',
+      card: '{year} year list',
+      cardLifer: '{year} lifers',
+      /** With a goal, the count's label: "632 / 100 SPECIES" (a slash, not "of": Yusuf, 2026-11-21), beside the title or under the number. */
+      ofTarget: { one: '/ {n} species', other: '/ {n} species' },
     },
+    /** Download's short label in the row of quiet buttons. */
     downloadShort: 'Download',
     /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
     print: {
-      print: 'Print',
-      entry: 'Print a poster',
+      /** The dialog's title when the page's Print button opens it on the poster (from Collage or List). */
+      title: 'Print your collage',
+      /** From the Map and the Tree. */
+      viewTitle: { map: 'Print your map', tree: 'Print your tree' },
+      /** The title field's label in Print (round 6, item 9). */
+      nameLabel: 'Poster title',
       size: 'Poster size',
+      /** The Tree's Level, the Display panel's row ("Down to" until Yusuf renamed it, 2026-11-21; Print had its own until
+       *  round 6, item 22: a poster draws the screen's Level). */
+      downTo: 'Level',
       inches: '{w} × {h} in',
       sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px at 150 dpi',
       sizeLineIn: '{w} × {h} in · {pw} × {ph} px at 150 dpi',
@@ -503,13 +685,18 @@ export const EN_UI = {
       soft: 'Some stickers come from smaller files for now, so the biggest birds may print a little soft.',
       failedMemory: 'Couldn’t make the poster. Try a smaller size.',
       failed: 'Couldn’t make the poster. Try again.',
-      back: 'Share images',
       previewAlt: 'Preview of the {size} poster',
+      /** Export in batches (`title`, a collapsed row): a ZIP of one share image (Share) or one poster (Print) per group.
+       *  `perImage` and `perPoster` name Birds per image (Share) and per poster (Print); `count`, `progress`, `ready` are the poster's, `…Images` the image's. */
       bulk: {
-        title: 'Multiple posters (ZIP)',
+        title: 'Export in batches',
+        lede: 'A ZIP with one image, or one poster, for each group.',
         splitLabel: 'Split by',
+        perPoster: 'Birds per poster',
+        perImage: 'Birds per image',
+        all: 'All',
         splits: {
-          batches: '1,000 per poster',
+          batches: 'Number of birds',
           family: 'Family',
           order: 'Order',
           country: 'Country',
@@ -519,20 +706,26 @@ export const EN_UI = {
         },
         batch: 'Part {n}',
         count: { one: '{n} poster', other: '{n} posters' },
-        empty: 'No posters to make for this choice.',
+        countImages: { one: '{n} image', other: '{n} images' },
+        empty: 'Nothing to make for this choice.',
         png: 'Download PNGs (ZIP)',
         pdf: 'Download PDFs (ZIP)',
         progress: 'Poster {done} of {total}',
+        progressImages: 'Image {done} of {total}',
         makingNote: 'Making the ZIP.',
         ready: { one: 'Saved {file} ({n} poster).', other: 'Saved {file} ({n} posters).' },
+        readyImages: { one: 'Saved {file} ({n} image).', other: 'Saved {file} ({n} images).' },
         failed: 'Couldn’t make the ZIP. Try again.',
+        namesDropped: { one: '{n} poster has no names: they didn’t fit.', other: '{n} posters have no names: they didn’t fit.' },
       },
       showNames: 'Show species names',
-      namesCap: '{size} fits up to {max} species with names. Pick a larger size or filter your list.',
+      /** Under Show species names over the size's cap; `<batch>…</batch>` is a button that opens Export in batches. */
+      namesCap: '{size} fits up to {max} species with names. Pick a larger size, filter your list or <batch>export in batches</batch>.',
       namesNoFit: 'Names won’t fit cleanly on {size}. Pick a larger size or filter your list.',
+      namesDropped: 'The names didn’t fit, so this poster has none.',
     },
   },
-  /** Settings > Your list (ImportPanel, SourceLine, SourceMenu, EbirdDrop, InatForm, NotCounted, MatchReport,
+  /** The Add birds dialog and Settings > Your list (AddBirdsDialog, ImportPanel, SourceLine, SourceMenu, EbirdDrop, InatForm, NotCounted, MatchReport,
    *  SpeciesSearch, source-counts.ts) and the import jobs' messages (use-import-jobs.ts). eBird, MyEBirdData and
    *  iNaturalist are names and stay as they are. */
   import: {
@@ -541,6 +734,8 @@ export const EN_UI = {
     privacy: 'Your list never leaves your browser. We count visits anonymously.',
     /** The eBird rows' group (its aria-label). */
     ebirdGroup: 'eBird files',
+    /** The import toast's last line (ImportToast): {result} is the summary's first part, "282 from iNaturalist". */
+    toastDone: 'Done · {result}',
     /** The summary line ("Your collage has 199 species: 185 from eBird, 11 more from iNaturalist, 3 ticked by hand.").
      *  `head` is plural on the total, each part on its own number; the parts are joined with ", " in code. */
     summary: {
@@ -554,6 +749,7 @@ export const EN_UI = {
         obsorg: { one: 'all from observation.org', other: 'all from observation.org' },
         sheet: { one: 'all from your spreadsheet', other: 'all from your spreadsheet' },
         scythebill: { one: 'all from Scythebill', other: 'all from Scythebill' },
+        igoterra: { one: 'all from iGoTerra', other: 'all from iGoTerra' },
         manual: { one: 'all ticked by hand', other: 'all ticked by hand' },
       },
       /** The first part. */
@@ -563,6 +759,7 @@ export const EN_UI = {
         obsorg: { one: '{n} from observation.org', other: '{n} from observation.org' },
         sheet: { one: '{n} from your spreadsheet', other: '{n} from your spreadsheet' },
         scythebill: { one: '{n} from Scythebill', other: '{n} from Scythebill' },
+        igoterra: { one: '{n} from iGoTerra', other: '{n} from iGoTerra' },
         manual: { one: '{n} ticked by hand', other: '{n} ticked by hand' },
       },
       /** A later part: the species it adds to the ones before (eBird is always first when it is on the list). */
@@ -571,6 +768,7 @@ export const EN_UI = {
         obsorg: { one: '{n} more from observation.org', other: '{n} more from observation.org' },
         sheet: { one: '{n} more from your spreadsheet', other: '{n} more from your spreadsheet' },
         scythebill: { one: '{n} more from Scythebill', other: '{n} more from Scythebill' },
+        igoterra: { one: '{n} more from iGoTerra', other: '{n} more from iGoTerra' },
         manual: { one: '{n} ticked by hand', other: '{n} ticked by hand' },
       },
     },
@@ -637,7 +835,7 @@ export const EN_UI = {
     sheet: {
       title: 'Spreadsheet or list',
       what: 'your spreadsheet or list',
-      guide: 'Upload an Excel (.xlsx), CSV or text file, or paste a list below. Any column of English or scientific bird names works; dates, places and ticked columns are optional.',
+      guide: 'Upload an Excel (.xlsx), CSV or text file, or paste a list below. Any column of English or scientific bird names works; dates, places and a column of ticks (x) are optional.',
       choose: 'Choose your file',
       input: 'Spreadsheet or list file',
       pasteLabel: 'Paste a list of bird names',
@@ -649,9 +847,11 @@ export const EN_UI = {
         duplicates: { one: '{n} duplicate', other: '{n} duplicates' },
         notSpecies: { one: '{n} not a species', other: '{n} not species' },
         unmatched: { one: '{n} unmatched', other: '{n} unmatched' },
+        /** Rows left out because the sheet's date column marks the birds seen and they have no date. */
+        noDate: { one: '{n} row skipped: no date', other: '{n} rows skipped: no date' },
         suggestion: '{name} → {suggestion}',
         more: '{n} more',
-        note: 'You can tick any unmatched birds by hand after adding.',
+        note: 'You can fix any unmatched names after adding.',
         add: { one: 'Add {n} species', other: 'Add {n} species' },
         replace: { one: 'Replace with {n} species', other: 'Replace with {n} species' },
         addEmpty: 'Add list',
@@ -668,7 +868,7 @@ export const EN_UI = {
     scythebill: {
       title: 'Scythebill',
       what: 'your Scythebill export',
-      guide: 'Your Scythebill CSV export, or its eBird export. Places each bird by country, state or province, and county.',
+      guide: 'Your Scythebill CSV export, or its export formatted for eBird. Places each bird by country, state or province, and county.',
       help: 'In Scythebill: Reports, then Export, and choose CSV or formatted for eBird.',
       howTo: 'How do I get this file?',
       choose: 'Choose your Scythebill file',
@@ -679,6 +879,22 @@ export const EN_UI = {
         unknown: 'Couldn\'t read this file. Use a Scythebill CSV export or a Scythebill file formatted for eBird.',
         noBirds: 'No birds found in this Scythebill file.',
         damaged: 'Couldn’t read this file. It may be damaged or not a Scythebill export.',
+      },
+    },
+    igoterra: {
+      title: 'iGoTerra',
+      what: 'your iGoTerra export',
+      guide: 'Your iGoTerra sightings export (Backup.csv). Places each bird by country, and by state or province when iGoTerra gives one.',
+      help: 'Export your sightings from iGoTerra as CSV.',
+      howTo: 'How do I get this file?',
+      choose: 'Choose your iGoTerra file',
+      input: 'iGoTerra file',
+      fallback: 'iGoTerra export',
+      whereRow: 'iGoTerra row {row}',
+      errors: {
+        unknown: 'Couldn’t read this file. Use iGoTerra’s sightings export: a CSV whose first row starts Common Name, Scientific Name, Scientific Family.',
+        noBirds: 'No birds found in this iGoTerra file.',
+        damaged: 'Couldn’t read this file. It may be damaged or not an iGoTerra export.',
       },
     },
     /** The two eBird rows (EbirdDrop). */
@@ -722,7 +938,9 @@ export const EN_UI = {
       keepUser: 'Keep {user}',
       howTo: 'How do I find my username?',
       help: 'Use your username (on your iNaturalist profile, after the @), not your display name. Only public, wild bird observations identified to species count.',
-      fetched: 'Fetched {n} of {total}',
+      /** The progress bar's name; `fetched` is its value for screen readers. */
+      progress: 'Fetching your observations',
+      fetched: '{n} of {total}',
       lookingUp: 'Looking up “{user}”…',
       cancelled: 'Cancelled. Nothing was changed.',
       /** use-import-jobs.ts inatMessage, by the import's error code. */
@@ -740,8 +958,8 @@ export const EN_UI = {
         other: "{n} entries aren't species: birds only identified to a group (like “duck sp.”), either/or IDs (like “Greater/Lesser Scaup”) and hybrids. eBird leaves these off life lists too.",
       },
       notCountable: {
-        one: '{n} species eBird marks as not countable, like escaped or introduced birds:',
-        other: '{n} species eBird marks as not countable, like escaped or introduced birds:',
+        one: '{n} species marked as not countable, like escaped or introduced birds:',
+        other: '{n} species marked as not countable, like escaped or introduced birds:',
       },
       unmatched: {
         one: "{n} row couldn't be matched to this year's eBird taxonomy.",
@@ -766,35 +984,36 @@ export const EN_UI = {
     },
   },
   /** Tick by hand (ImportPanel's row, TickList). The removal toast is `collage.removed`. */
+  /** The "Add birds" dialog (AddBirdsDialog): its two choices and their group's name. */
+  add: {
+    ways: 'Ways to add birds',
+    file: 'Import a file',
+    hand: 'Add by hand',
+  },
   tick: {
     title: 'Ticked by hand',
+    /** The About demo's Settings scene (HowItWorksScene) still shows the old row's button. */
     button: 'Tick birds',
-    /** The button's aria-label and the list's heading. */
+    /** The list's heading, for screen readers. */
     label: 'Tick birds off a list',
     search: 'Search birds',
-    order: 'Order',
-    allOrders: 'All orders',
-    family: 'Family',
-    allFamilies: 'All families',
+    /** The species list's name: the list that opens in place (orders, families, genera) and the search's matches. */
     list: 'Species to tick',
     /** A row's name for screen readers when the bird is already on the list ({name} is "Common, Scientific"). */
     onListLabel: '{name}, already on your list',
     onList: 'On your list',
-    toRemove: 'To remove',
-    bar: 'Add or remove the ticked birds',
-    selected: { one: '{n} selected', other: '{n} selected' },
-    toRemoveN: { one: '{n} to remove', other: '{n} to remove' },
+    /** The bar under the list (always shown): the date, year, country and region every bird added gets. */
+    when: 'When and where',
     date: 'Date (optional)',
-    datePlaceholder: 'Date: YYYY-MM-DD, YYYY-MM or YYYY',
-    dateError: 'Use YYYY-MM-DD, YYYY-MM or YYYY.',
+    /** The year field beside the date picker: a year alone, as typed dates allowed. */
+    year: 'Or a year',
+    dateError: 'Use a year from 1800 to this year.',
     country: 'Country (optional)',
     noCountry: 'No country',
     region: 'Region (optional)',
     wholeCountry: 'Whole country',
-    addN: { one: 'Add {n} to my list', other: 'Add {n} to my list' },
-    removeN: { one: 'Remove {n} from my list', other: 'Remove {n} from my list' },
-    keepThem: 'Keep them',
-    added: { one: 'Added {n} bird to your list.', other: 'Added {n} birds to your list.' },
+    /** The Undo notice after a tap adds a bird ("Removed {name}." after one takes it off: collage.removed). */
+    added: 'Added {name}.',
   },
   /** Settings > Counting (RulesSwitches). */
   rules: {
@@ -809,7 +1028,7 @@ export const EN_UI = {
       one: 'Count iNaturalist sightings only once the community agrees on the ID. Affects {n} bird.',
       other: 'Count iNaturalist sightings only once the community agrees on the ID. Affects {n} birds.',
     },
-    researchOff: 'For iNaturalist sightings. Add iNaturalist above to use it.',
+    researchOff: 'For iNaturalist sightings. Add iNaturalist in Add birds to use it.',
   },
   /** About's "How it works" figure (HowItWorksDemo): its sticker credit (<link> is huashu-bird-sticker's repo) and the caption that tells the same story in words ({total} is the demo's species count). The scene itself draws the product's own keys. */
   demo: {

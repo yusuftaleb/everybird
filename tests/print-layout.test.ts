@@ -4,7 +4,8 @@ import {
   IOS_CANVAS_AREA, PRINT_CM, PRINT_DESIGN_H, PRINT_IN, PRINT_PT, PRINT_PX, PRINT_SIZES, STRIP_AREA,
   isUsSize, printDesignH, printPackH, printScale, stripRanges,
 } from '@/lib/share/print'
-import { SAFE, SHARE_COLORS, TITLE_TOP, cardDims, cardLayout, imagePackSpec, prepareCard, type ImagePack } from '@/lib/share/image'
+import { GAPS, GROUP_SIDE, POSTER_FOOT, SAFE, SMALL_INLINE, SHARE_COLORS, TITLE_TOP, cardDims, cardLayout, imagePackSpec, prepareCard, type ImagePack } from '@/lib/share/image'
+import { PRINT_FROM } from '@/lib/sticker-url'
 import type { ListEntry } from '@/lib/list/model'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -68,14 +69,15 @@ describe('print sizes and strips', () => {
 })
 
 describe('the print card', () => {
-  it('lays out 1080 wide at PRINT_DESIGN_H by default, with 64 margins and the story-sized latest row', () => {
+  it('lays out 1080 wide at PRINT_DESIGN_H by default, with 64 margins, the latest lifer\'s row above the hairline and the quiet one-line foot', () => {
     expect(SAFE.print).toEqual({ top: 64, bottom: 64 })
     expect(TITLE_TOP.print).toBe(64)
     const L = cardLayout('print', { name: true, filter: false, latest: true, count: 197 })
     expect([L.W, L.H]).toEqual([1080, PRINT_DESIGN_H])
     expect(L.name!.y).toBe(64)
-    expect(L.latest!.icon).toBe(76)
-    expect(L.footer.y).toBe(PRINT_DESIGN_H - 64 - 30) // no story-only lift
+    expect(L.latest).toEqual({ x: 64, y: L.rule.y - GAPS.print.latest - SMALL_INLINE.icon, icon: SMALL_INLINE.icon, tw: 952 - SMALL_INLINE.icon - 20, label: SMALL_INLINE.label, name: SMALL_INLINE.name, inline: true })
+    expect(L.footer).toEqual({ y: PRINT_DESIGN_H - 64 - POSTER_FOOT.brand, size: POSTER_FOOT.brand, credit: POSTER_FOOT.line })
+    expect(L.rule.y).toBe(L.footer.y - 24)
     expect(L.count.size).toBeLessThanOrEqual(112)
     expect(cardLayout('print', { name: true, filter: false, latest: true, count: 197 }, 1600).H).toBe(1600)
     expect(imagePackSpec('print', { name: false, filter: false, latest: true, count: 197 }).aspect)
@@ -87,37 +89,47 @@ describe('the print card', () => {
     expect(card.L.collage.x).toBe(64)
     expect(card.L.W - card.L.collage.x - card.L.collage.w).toBe(64)
     expect(card.L.H).toBeCloseTo(printDesignH('A2'), 6)
-    expect(card.footerLine).toContain('stickers by huashu')
+    expect(card.footerLine).toContain('Stickers: huashu-bird-sticker, CC BY 4.0')
     expect(card.footerLine).toMatch(/ · 15 Nov 2026$/)
     expect(card.colors).toEqual(SHARE_COLORS.dark)
     expect(card.colors.paper).toBe('#1e1e24')
     const light = await prepareCard({ format: 'print', printSize: 'A2', theme: 'light', entries, species, pack, now: new Date(2026, 10, 15), strings: en.ui }, printScale('A2'))
     expect(light.colors).toEqual(SHARE_COLORS.light)
     expect(light.colors.paper).toBe('#f6f4ef')
-    expect(card.credit.size).toBeGreaterThanOrEqual(17)
+    // The foot: the site, the credit and the date beside the wordmark, at 16px down to POSTER_FOOT.min; the latest lifer
+    // is the row above the hairline (round 6, item 24).
+    expect(card.footerLine).toMatch(/^everybird\.yusuftaleb\.com · /)
+    expect(card.latest?.label).toMatch(/^Latest lifer · /)
+    expect(card.credit.size).toBeGreaterThanOrEqual(POSTER_FOOT.min)
+    expect(card.credit.size).toBeLessThanOrEqual(POSTER_FOOT.line)
   })
 
-  it('print tiles pick the tier by device px: a 343 design-px tile at A1 is 1024 with the 384 fallback', async () => {
+  it('print tiles pick the tier by device px: a two-bird group\'s tile at A1 is 1024 with the 384 fallback', async () => {
     const opts = { format: 'print' as const, printSize: 'A1' as const, theme: 'light' as const, entries, species, pack, strings: en.ui }
     const a1 = await prepareCard(opts, printScale('A1'))
     expect(a1.tiles).toHaveLength(2)
     for (const t of a1.tiles) {
-      expect(Math.max(t.w, t.h)).toBeCloseTo(342.72, 1) // maxTileSide(952, 0.36): a short list's largest
+      expect(Math.max(t.w, t.h)).toBeGreaterThan(PRINT_FROM) // a small group's (round 6, item 12: GROUP_TILE)
+      expect(Math.max(t.w, t.h)).toBeLessThanOrEqual(GROUP_SIDE + 1e-6)
       expect(t.url).toMatch(/\/v1\/1024\/(ostric2|emu1)\.webp$/)
       expect(t.fallback).toBe(t.url!.replace('/1024/', '/384/'))
     }
-    // The latest lifer's 76 units at A1 are about 247 px: the 384 file, no fallback.
-    expect(a1.lifer!.url).toMatch(/\/v1\/384\/(ostric2|emu1)\.webp$/)
-    expect(a1.lifer!.fallback).toBeNull()
-    // The preview (scale 1): the same layout, the 384 file and no fallback.
+    // The latest lifer's sticker fills its row's square (round 6, item 24).
+    expect(Math.max(a1.lifer!.w, a1.lifer!.h)).toBe(SMALL_INLINE.icon)
+    // The preview (scale 1): the same layout; its tiles are past the 384 file's sharp size, so the 1024 file too.
     const preview = await prepareCard(opts)
     expect(preview.tiles.map((t) => [t.x, t.y, t.w, t.h])).toEqual(a1.tiles.map((t) => [t.x, t.y, t.w, t.h]))
-    expect(preview.tiles.every((t) => /\/v1\/384\//.test(t.url!) && t.fallback === null)).toBe(true)
+    expect(preview.tiles.every((t) => /\/v1\/1024\//.test(t.url!) && t.fallback === t.url!.replace('/1024/', '/384/'))).toBe(true)
   })
 
-  it('share images keep their 128/384 URLs and no fallback', async () => {
+  it('share images keep their 128/384 URLs and no fallback up to the 384 file\'s sharp size, the 1024 file past it', async () => {
     const card = await prepareCard({ format: 'post', theme: 'dark', entries, species, pack, strings: en.ui })
     expect(card.colors).toEqual(SHARE_COLORS.dark)
-    expect(card.tiles.every((t) => /\/v1\/384\//.test(t.url!) && t.fallback === undefined)).toBe(true)
+    // Two birds: a small group, drawn past PRINT_FROM (round 6, item 12), so from the 1024 file with the 384 fallback.
+    for (const t of card.tiles) {
+      if (Math.max(t.w, t.h) <= PRINT_FROM) expect(/\/v1\/384\//.test(t.url!) && t.fallback === undefined).toBe(true)
+      else expect(t.fallback).toBe(t.url!.replace('/1024/', '/384/'))
+    }
+    expect(card.tiles.some((t) => Math.max(t.w, t.h) > PRINT_FROM)).toBe(true)
   })
 })

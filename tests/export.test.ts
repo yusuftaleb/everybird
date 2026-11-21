@@ -29,8 +29,33 @@ describe('toCsv', () => {
   })
 })
 
+// Snapshot of the released build's backup rules (commit 97dffee, src/lib/list/export.ts fromJson): every key of
+// `records` must be one of its slots, or the backup is refused as damaged.
+const RELEASED_SLOTS = ['ebird', 'ebird-list', 'inat', 'obsorg', 'obsorg-list', 'manual']
+const releasedAccepts = (json: string) => Object.keys((JSON.parse(json) as { records: object }).records).every((k) => RELEASED_SLOTS.includes(k))
+
+describe('json backup and the released build', () => {
+  it('leaves out empty sheet and scythebill slots, so the released build opens the backup', () => {
+    const s = emptySaved()
+    s.records.ebird = [{ code: 'a', source: 'ebird' }]
+    const json = toJson(s)
+    expect(Object.keys((JSON.parse(json) as { records: object }).records).sort()).toEqual([...RELEASED_SLOTS].sort())
+    expect(releasedAccepts(json)).toBe(true)
+    expect(fromJson(json).records).toEqual(s.records)
+  })
+  it('keeps them when they hold records, and restores backups with or without them', () => {
+    const s = emptySaved()
+    s.records.sheet = [{ code: 'b', source: 'sheet' }]
+    const json = toJson(s)
+    expect(releasedAccepts(json)).toBe(false)
+    expect(fromJson(json).records.sheet).toEqual([{ code: 'b', source: 'sheet' }])
+    expect(fromJson(json).records.scythebill).toEqual([])
+    expect(fromJson(JSON.stringify(emptySaved())).records).toEqual(emptySaved().records)
+  })
+})
+
 describe('json backup', () => {
-  const good = () => ({ ...emptySaved(), name: 'Me', records: { obsorg: [], 'obsorg-list': [], ebird: [{ code: 'a', source: 'ebird' }], 'ebird-list': [], inat: [], sheet: [], scythebill: [], manual: [] } })
+  const good = () => ({ ...emptySaved(), name: 'Me', records: { obsorg: [], 'obsorg-list': [], ebird: [{ code: 'a', source: 'ebird' }], 'ebird-list': [], inat: [], sheet: [], scythebill: [], igoterra: [], manual: [] } })
   it('round-trips', () => {
     const s = good()
     expect(fromJson(toJson(s as never))).toEqual(s)
@@ -64,11 +89,13 @@ describe('json backup', () => {
     delete rest.name
     const out = fromJson(JSON.stringify({ ...rest, records: { ebird: [] } }))
     expect(out.name).toBeUndefined()
-    expect(out.records).toEqual({ ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], manual: [] })
+    expect(out.records).toEqual({ ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], igoterra: [], manual: [] })
   })
   it('round-trips bigYear and rejects malformed values', () => {
     const s = { ...good(), bigYear: { year: 2027, target: 300 } }
     expect(fromJson(toJson(s as never)).bigYear).toEqual({ year: 2027, target: 300 })
+    // An All time goal has no year.
+    expect(fromJson(toJson({ ...good(), bigYear: { target: 120 } } as never)).bigYear).toEqual({ target: 120 })
     expect(() => fromJson(JSON.stringify({ ...good(), bigYear: { year: 2027, target: 0 } }))).toThrow(/Big Year/)
     expect(() => fromJson(JSON.stringify({ ...good(), bigYear: { year: 99, target: 300 } }))).toThrow(/Big Year/)
     expect(() => fromJson(JSON.stringify({ ...good(), bigYear: { year: 2027, target: 1.5 } }))).toThrow(/Big Year/)

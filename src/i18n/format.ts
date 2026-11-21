@@ -23,13 +23,24 @@ export function formatMass(g: number, num: Num): string {
   return `${Math.round(g)} g`
 }
 
-/** 'YYYY-MM-DD' | 'YYYY-MM' -> "Sep 2026" ("sept 2026"); 'YYYY' -> "2026"; anything else -> "". formatDate's rules. */
+/** Japanese and Chinese months ("9月", ui.date.months): the year comes first and dates read "2026年9月", "11月6日". */
+export const yearFirst = (months: readonly string[]): boolean => months[0]?.endsWith('月') ?? false
+
+/** 'YYYY-MM-DD' | 'YYYY-MM' -> "Sep 2026" ("sept 2026", "2026年9月"); 'YYYY' -> "2026"; anything else -> "". formatDate's rules. */
 export function formatMonth(d: string | undefined, months: readonly string[]): string {
   const m = d && /^(\d{4})(?:-(\d{2}))?(?:-\d{2})?$/.exec(d)
   if (!m) return ''
   if (!m[2]) return m[1]
   const mon = Number(m[2])
-  return mon >= 1 && mon <= 12 ? `${months[mon - 1]} ${m[1]}` : m[1]
+  if (mon < 1 || mon > 12) return m[1]
+  return yearFirst(months) ? `${m[1]}年${months[mon - 1]}` : `${months[mon - 1]} ${m[1]}`
+}
+
+/** A local day: "6 Nov" (yearFirst: "11月6日"), with the year when `withYear`: "1 Mar 2025", "2025年3月1日". */
+export function dayText(d: Date, months: readonly string[], withYear: boolean): string {
+  if (yearFirst(months)) return `${withYear ? `${d.getFullYear()}年` : ''}${months[d.getMonth()]}${d.getDate()}日`
+  const day = `${d.getDate()} ${months[d.getMonth()]}`
+  return withYear ? `${day} ${d.getFullYear()}` : day
 }
 
 /** A timestamp's local day: "6 Nov" this year, "1 Mar 2025" otherwise (SourceLine's shortDate rules); '' if invalid. */
@@ -37,6 +48,5 @@ export function shortDay(iso: string, months: readonly string[], now: Date = new
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
-  const day = `${d.getDate()} ${months[d.getMonth()]}`
-  return d.getFullYear() === now.getFullYear() ? day : `${day} ${d.getFullYear()}`
+  return dayText(d, months, d.getFullYear() !== now.getFullYear())
 }

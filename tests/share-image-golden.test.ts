@@ -4,6 +4,11 @@
 // checked against the renderer from before the prepareCard / paintCard split (4c1dce0^): every draw, with the state it
 // is drawn in, was identical; the only difference was that the footer is now measured on a scratch canvas, so the old
 // log's measureText calls (and their font and textBaseline sets) between the filter line and the latest lifer are gone.
+// Retaken 2026-11-20 for round 6, item 17: the latest lifer row is the Tree's oldest lineage row (one line, name first,
+// on the post and the square; the smaller stacked row on the story); the only other change is the collage taking the room
+// it frees (the count and the tiles lower); every case without the row is byte-identical.
+// Then the cases with the row on the story, post and square again: the collage ends a credit line higher, the room the
+// footer lifts the row by when its credit takes its own line (only the tiles and the count move).
 import { en } from '@/i18n/messages/en'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as image from '@/lib/share/image'
@@ -34,7 +39,7 @@ describe('share image draw calls', () => {
       expect(log).toMatchSnapshot()
     })
   }
-  it('story Big Year progress card', async () => {
+  it('story year list progress card', async () => {
     const logs = installStubs()
     image.clearStickerCache()
     const canvas = await image.drawShareImage({
@@ -42,8 +47,11 @@ describe('share image draw calls', () => {
       goal: { year: 2027, target: 300, basis: 'seen' }, strings: en.ui,
     })
     const log = logs.get(canvas as unknown as object)!
-    expect(log.some((l) => l.startsWith('fillText("14 / 300",'))).toBe(true)
-    expect(log).toContain('fillText("Big Year 2027", 64, 160)')
+    // The goal is in the label under the count; the number is the count alone, at its no-goal size.
+    expect(log.some((l) => l.startsWith('fillText("14",'))).toBe(true)
+    expect(log.some((l) => l.startsWith('fillText("/ 300 SPECIES",'))).toBe(true)
+    expect(log.some((l) => l.includes(' / 300'))).toBe(false)
+    expect(log).toContain('fillText("2027 year list", 64, 160)')
     expect(log).toMatchSnapshot()
   })
 })
@@ -85,54 +93,7 @@ describe('the footer is measured once the stickers and the fonts have both settl
   })
 })
 
-describe('marked lifer rings on share and print images', () => {
-  it('draws Accent and Ink rings around the newest and first lifers on share and print cards without changing unmarked cards', async () => {
-    for (const [format, theme, accent, ink] of [
-      ['story', 'light', '#92140c', '#1e1e24'],
-      ['story', 'dark', '#f06a5f', '#ffffff'],
-      ['print', 'light', '#92140c', '#1e1e24'],
-    ] as const) {
-      const logs = installStubs()
-      const base = await renderLog(image, logs, { format, latest: true, theme } as never)
-      const marked = await renderLog(image, logs, { format, latest: true, theme, markNewest: true, markFirst: true } as never)
-      const added = marked.filter((l, i) => base[i] !== l)
-      expect(added.length).toBeGreaterThan(0)
-      expect(marked).toContain(`strokeStyle = "${accent}"`)
-      expect(marked).toContain(`strokeStyle = "${ink}"`)
-      expect(marked).toContain('lineWidth = 3')
-      expect(marked.filter((l) => l.startsWith('roundRect('))).toHaveLength(2)
-    }
-  })
-
-  it('marks the same newest bird that appears in the share card latest lifer row', async () => {
-    installStubs()
-    image.clearStickerCache()
-    const tiedEntries = [
-      { code: 'bird0', date: '2025-05', heard: false, dead: false, media: false, sources: ['ebird'] },
-      { code: 'bird13', date: '2025-05', heard: false, dead: false, media: false, sources: ['ebird'] },
-    ] satisfies Parameters<typeof image.prepareCard>[0]['entries']
-    const card = await image.prepareCard({ format: 'post', entries: tiedEntries, species, pack, now: NOW, theme: 'light', strings: en.ui, markNewest: true })
-    expect(card.latest?.name).toBe('Synthetic Bird 13')
-    const markedTiles = card.tiles.filter((t) => t.mark)
-    expect(markedTiles).toHaveLength(1)
-    expect(markedTiles[0].mark).toBe('newest')
-  })
-
-  it('paintTiles draws the ring overhang when a marked tile is within 7 units outside a strip range', () => {
-    const logs = installStubs()
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')!
-    const tiles: image.Tile[] = [
-      { x: 10, y: 103, w: 40, h: 40, url: null, mark: 'newest' },
-      { x: 10, y: 108, w: 40, h: 40, url: null, mark: 'first' },
-    ]
-    const imgs = new Map<string, CanvasImageSource | null>()
-    image.paintTiles(ctx, tiles, imgs, '#857f74', { y0: 0, y1: 100 })
-    const log = logs.get(canvas)!
-    expect(log.filter((l) => l.startsWith('roundRect('))).toHaveLength(1)
-    expect(log).toContain('roundRect(5, 98, 50, 50, 10)')
-  })
-
+describe('the count size', () => {
   it('draws no count text when countSize is hide', async () => {
     const logs = installStubs()
     image.clearStickerCache()
@@ -152,5 +113,19 @@ describe('print captions golden compatibility', () => {
     const base = await renderLog(image, logs, { format: 'print', latest: true, theme: 'light' } as never)
     const off = await renderLog(image, logs, { format: 'print', latest: true, theme: 'light', showNames: false } as never)
     expect(off).toEqual(base)
+  })
+})
+
+describe('a transparent background', () => {
+  it('paints no Paper: the same draws as the default image without its one background fill', async () => {
+    const c = CASES.find((x) => x.format === 'story' && x.name && x.latest && x.theme === 'light')!
+    const logs = installStubs()
+    const opaque = await renderLog(image, logs, c)
+    const clear = await renderLog(image, logs, { ...c, transparent: true } as typeof c)
+    const fill = opaque.findIndex((l) => l.startsWith('fillRect(0, 0,'))
+    expect(fill).toBeGreaterThan(-1)
+    expect(clear.some((l) => l.startsWith('fillRect(0, 0,'))).toBe(false)
+    // The background is the fillStyle set and the fillRect just before it; everything else is the same, in order.
+    expect(clear).toEqual([...opaque.slice(0, fill - 1), ...opaque.slice(fill + 1)])
   })
 })

@@ -1,6 +1,7 @@
 export const REGION_PRESETS = [
   { id: 'latam', name: 'Latin America & Caribbean' },
   { id: 'me', name: 'Middle East' },
+  { id: 'mena', name: 'Middle East & North Africa' },
   { id: 'northern-africa', name: 'Northern Africa' },
   { id: 'eastern-africa', name: 'Eastern Africa' },
   { id: 'middle-africa', name: 'Middle Africa' },
@@ -29,6 +30,14 @@ export type RegionPresetId = (typeof REGION_PRESETS)[number]['id']
 
 const IDS: readonly string[] = REGION_PRESETS.map((r) => r.id)
 export const isRegionPresetId = (v: unknown): v is RegionPresetId => typeof v === 'string' && IDS.includes(v)
+
+/** Short names a region row also answers to in the Places search, the same in every language. */
+export const REGION_ALIASES: Partial<Record<RegionPresetId, readonly string[]>> = {
+  latam: ['LATAM', 'LAC'],
+  mena: ['MENA'],
+  'south-eastern-asia': ['SEA'],
+  'australia-nz': ['ANZ'],
+}
 
 export function regionPresetName(id: string): string {
   return REGION_PRESETS.find((r) => r.id === id)?.name ?? id
@@ -146,6 +155,8 @@ const SUB1_SUBREGION: Record<string, RegionPresetId | null> = {
   'NL-BQ1': 'caribbean', 'NL-BQ2': 'caribbean', 'NL-BQ3': 'caribbean',
   'US-AS': 'polynesia', 'US-HI': 'polynesia',
   'US-GU': 'micronesia', 'US-MP': 'micronesia', 'US-UM': 'micronesia',
+  // Entered as US states (a spreadsheet's "United States, Puerto Rico", observation.org's divisions).
+  'US-PR': 'caribbean', 'US-VI': 'caribbean',
 }
 
 const LATAM_SUBREGIONS = new Set<RegionPresetId>(['central-america', 'caribbean', 'south-america'])
@@ -164,7 +175,10 @@ export function regionsOfPlace(p: { country: string; sub1?: string }): RegionPre
       : undefined
   const out: RegionPresetId[] = []
   if (sub && LATAM_SUBREGIONS.has(sub)) out.push('latam')
-  if (!hasSub1Override && MIDDLE_EAST_CODES.has(p.country)) out.push('me')
+  const me = !hasSub1Override && MIDDLE_EAST_CODES.has(p.country)
+  if (me) out.push('me')
+  // Middle East & North Africa: every country of the two.
+  if (me || sub === 'northern-africa') out.push('mena')
   if (sub) out.push(sub)
   return out
 }

@@ -8,30 +8,47 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { LANG_VARIANTS } from '@/i18n/choose'
-import { HTML_LANG, LANGS, type Lang } from '@/i18n/langs'
+import { LANGS, langBadge, type Lang } from '@/i18n/langs'
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
+import { pl } from '@/i18n/messages/pl'
+import { fr } from '@/i18n/messages/fr'
+import { de } from '@/i18n/messages/de'
+import { it as italian } from '@/i18n/messages/it'
+import { sv } from '@/i18n/messages/sv'
+import { da } from '@/i18n/messages/da'
+import { ru } from '@/i18n/messages/ru'
+import { ja } from '@/i18n/messages/ja'
+import { zhHans } from '@/i18n/messages/zh-Hans'
+import { zhHant } from '@/i18n/messages/zh-Hant'
 import { pt } from '@/i18n/messages/pt'
+import { WIDE_CHAR } from '@/lib/layout/count-box'
 import glyphs from './fixtures/glyph-advances.json'
 
 type Variant = (typeof LANG_VARIANTS)[number]
 type FontKey = keyof typeof glyphs.fonts
 
-const NAV = { en, es, pt, nl }
-const PAGES = ['collage', 'settings', 'about'] as const
+const NAV = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant }
+const PAGES = ['collage', 'compare', 'settings', 'about'] as const
 
 /** Room left over that we insist on: kerning (tightens these words; `kernWidenEm` is added anyway), subpixel rounding. */
 const MARGIN = 4
+
+/** Where a page finds the letters a Latin face lacks (tokens.css --font-noto): Cyrillic in Noto Sans at the same
+ *  weight, measured. Kana and Han are taken as one em each: not measured (thousands of glyphs), every one is drawn on
+ *  the em square, so one em is their advance in Noto Sans JP, SC and TC. */
+const NOTO: Partial<Record<FontKey, FontKey>> = { 'satoshi-500': 'noto-sans-500', 'satoshi-700': 'noto-sans-700', 'cabinet-grotesk-700': 'noto-sans-700' }
+const advance = (font: FontKey, ch: string): number | undefined => (glyphs.fonts[font].advances as Record<string, number>)[ch]
 
 /** A string's width at `px`: the sum of its advances, the most kerning widens a word, and letter-spacing per glyph
  *  (browsers add it after every glyph, the last one too). */
 function textWidth(font: FontKey, s: string, px: number, letterSpacingEm = 0): number {
   const f = glyphs.fonts[font]
-  const adv = f.advances as Record<string, number>
   let em = f.kernWidenEm
   for (const ch of s) {
-    const a = adv[ch]
+    const fallback = NOTO[font]
+    const a = advance(font, ch) ?? (fallback && advance(fallback, ch)) ?? (WIDE_CHAR.test(ch) ? 1 : undefined)
     if (a === undefined) throw new Error(`no advance for ${JSON.stringify(ch)} in ${font}`)
     em += a + letterSpacingEm
   }
@@ -48,7 +65,7 @@ type Sizes = {
   gap: number
   /** .eb-wordmark font-size (Cabinet Grotesk 700, letter-spacing -.01em): 22px; 19px under 500px; 17px under 360px. */
   wordmark: number
-  /** .eb-nav ul gap: 4px; 2px under 500px; 0 under 360px. */
+  /** .eb-nav ul gap: 4px; 0 under 500px (the nav is on its own row there, spread by space-between). */
   navGap: number
   /** .eb-nav-link padding's inline sides: 12px; 8px under 500px; 6px under 360px; 3px under 240px (border 1px). */
   linkPad: number
@@ -65,7 +82,7 @@ const WIDE: Sizes = { maxWidth: 1152, gutter: 16, gap: 8, wordmark: 22, navGap: 
 /** @media (min-width: 720px) { .eb-topbar-in { padding: 10px 32px; … } } */
 const DESKTOP: Partial<Sizes> = { gutter: 32 }
 /** @media (max-width: 499px) */
-const SMALL: Partial<Sizes> = { gap: 4, wordmark: 19, navGap: 2, linkPad: 8, linkFont: 14, button: 40 }
+const SMALL: Partial<Sizes> = { gap: 4, wordmark: 19, navGap: 0, linkPad: 8, linkFont: 14, button: 40 }
 /** @media (max-width: 359px) */
 const TINY: Partial<Sizes> = { gutter: 12, gap: 2, wordmark: 17, navGap: 0, linkPad: 6, linkFont: 13, button: 36, endGap: 2 }
 /** @media (max-width: 239px) */
@@ -82,12 +99,11 @@ function sizesAt(w: number): Sizes {
 /** Where the nav takes its own row (app.css's split rules, each paired with a --topbar-h rule in tokens.css): under
  *  `below` px, for the variant and languages `selector` matches. */
 const SPLITS: { selector: string; below: number; applies: (v: Variant, l: Lang) => boolean }[] = [
-  { selector: ':root:not([data-topbar="b"], [data-topbar="c"])', below: 430, applies: (v) => v === 'a' },
-  { selector: ':root[data-topbar="b"]:is(:lang(es), :lang(nl))', below: 384, applies: (v, l) => v === 'b' && (l === 'es' || l === 'nl') },
-  { selector: ':root[data-topbar="b"]', below: 366, applies: (v) => v === 'b' },
-  { selector: ':root[data-topbar="c"]', below: 310, applies: (v) => v === 'c' },
+  { selector: ':root:not([data-topbar="b"], [data-topbar="c"])', below: 620, applies: (v) => v === 'a' },
+  { selector: ':root[data-topbar="b"]', below: 572, applies: (v) => v === 'b' },
+  { selector: ':root[data-topbar="c"]', below: 620, applies: (v) => v === 'c' },
 ]
-/** c hides the Collage link under 480px: `:root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }`. */
+/** c hides the My birds link (its key is still `collage`) under 480px: `:root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }`. */
 const C_HIDES_COLLAGE_BELOW = 480
 
 const splitAt = (v: Variant, l: Lang, w: number) => SPLITS.some((s) => s.applies(v, l) && w < s.below)
@@ -102,7 +118,20 @@ function navWidth(l: Lang, pages: readonly (typeof PAGES)[number][], s: Sizes): 
   return links.reduce((a, b) => a + b, 0) + bold + s.navGap * (labels.length - 1)
 }
 
-type Fit = { split: boolean; inner: number; one: number; two?: number }
+/** Under 320px the nav's row may wrap onto a second line (app.css `.eb-nav ul { flex-wrap: wrap; }`, --topbar-h 133px). */
+const NAV_WRAPS_BELOW = 320
+type Fit = { split: boolean; inner: number; one: number; two?: number; lines?: number }
+
+/** The nav's links packed into lines `inner` wide (a flex row that wraps): how many lines, and the widest. */
+function navLines(l: Lang, pages: readonly (typeof PAGES)[number][], s: Sizes, inner: number): { lines: number; widest: number } {
+  let lines = 1, cur = 0, widest = 0
+  for (const p of pages) {
+    const w = navWidth(l, [p], s)
+    const next = cur ? cur + s.navGap + w : w
+    if (cur && next + MARGIN > inner) { lines++; widest = Math.max(widest, cur); cur = w } else cur = next
+  }
+  return { lines, widest: Math.max(widest, cur) }
+}
 
 function fit(v: Variant, l: Lang, w: number): Fit {
   const s = sizesAt(w)
@@ -111,12 +140,16 @@ function fit(v: Variant, l: Lang, w: number): Fit {
   const end = s.button + (hasLangButton(v) ? s.endGap + s.button : 0)
   const nav = navWidth(l, pagesShown(v, w), s)
   const split = splitAt(v, l, w)
+  if (split && w < NAV_WRAPS_BELOW) {
+    const { lines, widest } = navLines(l, pagesShown(v, w), s, inner)
+    return { split, inner, one: wordmark + s.gap + end, two: widest, lines }
+  }
   if (split) return { split, inner, one: wordmark + s.gap + end, two: nav }
   return { split, inner, one: wordmark + s.gap + nav + s.gap + end }
 }
 
-const BREAKPOINT_EDGES = [239, 240, 299, 300, 309, 310, 359, 360, 365, 366, 383, 384, 429, 430, 479, 480, 499, 500, 719, 720]
-const WIDTHS = [...new Set([195, 260, 300, 320, 340, 360, 375, 390, 414, 430, 480, 600, 720, 1280, ...BREAKPOINT_EDGES])].sort((a, b) => a - b)
+const BREAKPOINT_EDGES = [239, 240, 319, 320, 359, 360, 479, 480, 499, 500, 571, 572, 619, 620, 719, 720]
+const WIDTHS = [...new Set([195, 260, 300, 320, 340, 360, 375, 390, 414, 430, 480, 560, 600, 640, 720, 768, 1280, ...BREAKPOINT_EDGES])].sort((a, b) => a - b)
 
 describe('the top bar fits (fontkit advances of the served fonts)', () => {
   for (const v of LANG_VARIANTS) {
@@ -127,6 +160,7 @@ describe('the top bar fits (fontkit advances of the served fonts)', () => {
           const f = fit(v, l, w)
           if (f.one + MARGIN > f.inner) bad.push(`${w}px: row one ${f.one.toFixed(1)} in ${f.inner}`)
           if (f.two !== undefined && f.two + MARGIN > f.inner) bad.push(`${w}px: row two ${f.two.toFixed(1)} in ${f.inner}`)
+          if ((f.lines ?? 1) > 2) bad.push(`${w}px: the nav takes ${f.lines} lines`)
         }
         expect(bad).toEqual([])
       })
@@ -134,13 +168,11 @@ describe('the top bar fits (fontkit advances of the served fonts)', () => {
   }
 
   it('the language code fits its button at its narrowest (Geist Mono 13px, letter-spacing .06em)', () => {
-    for (const l of LANGS) expect(textWidth('geist-mono-500', l.toUpperCase(), 13, 0.06)).toBeLessThan(TINY.button! - 2 * MARGIN)
+    for (const l of LANGS) expect(textWidth('geist-mono-500', langBadge(l), 13, 0.06)).toBeLessThan(TINY.button! - 2 * MARGIN)
   })
 
-  it('every split rule matches some language (no dead rule) and the html lang values the selectors key on', () => {
+  it('every split rule matches some language (no dead rule)', () => {
     for (const s of SPLITS) expect(LANG_VARIANTS.some((v) => LANGS.some((l) => s.applies(v, l)))).toBe(true)
-    expect(HTML_LANG.es).toBe('es')
-    expect(HTML_LANG.nl).toBe('nl')
   })
 
   if (process.env.TOPBAR_FIT_TABLE) {
@@ -223,6 +255,11 @@ describe('the model mirrors the CSS', () => {
       expect(tokens).toContain(`@media (${q}) { ${s.selector} { --topbar-h: 93px; } }`)
     }
     expect(tokens.match(/--topbar-h: 93px/g)).toHaveLength(SPLITS.length)
+    expect(app).toContain(`@media (max-width: ${NAV_WRAPS_BELOW - 1}px) {\n  .eb-nav ul { flex-wrap: wrap; }`)
+    expect(tokens).toContain(`@media (max-width: ${NAV_WRAPS_BELOW - 1}px) { :root:not(:lang(zh-Hans), :lang(zh-Hant)):not([data-topbar="-"]) { --topbar-h: 133px; } }`)
+    expect(4 + 44 + 2 * 40 + 4 + 1).toBe(133)
+    // Every split starts at or above the wrap, so a wrapped nav is always on its own row.
+    for (const s of SPLITS) expect(s.below).toBeGreaterThanOrEqual(NAV_WRAPS_BELOW)
     expect(app.match(/\.eb-topbar-in \{ flex-wrap: wrap;/g)).toHaveLength(SPLITS.length)
     expect(app).toContain(`@media (max-width: ${C_HIDES_COLLAGE_BELOW - 1}px) {\n  :root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }`)
   })

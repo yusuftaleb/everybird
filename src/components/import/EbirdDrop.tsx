@@ -1,8 +1,7 @@
 'use client'
-import { useId, useRef, useState, type ReactNode } from 'react'
+import { useId, useRef, type ReactNode } from 'react'
 import { fileMessage, type EbirdJob } from '@/components/app/use-import-jobs'
-import { fmt, plural, rich } from '@/i18n/core'
-import { formatInt } from '@/i18n/format'
+import { fmt, rich } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import { MYEBIRDDATA_PLACES } from '@/lib/list/filter-summary'
@@ -15,6 +14,7 @@ import { FileDropzone, useFileDrop } from './FileDropzone'
 import { notCounted } from './NotCounted'
 import { ebirdLine, HowTo, SourceRow } from './SourceLine'
 import { useAnchorTarget } from './use-anchor-target'
+import { useAddPanel } from './add-panel'
 
 /** An eBird file already on the list: its slot ('ebird' full export, 'ebird-list' life list) and what is known of it. */
 export type EbirdConnected = { slot: 'ebird' | 'ebird-list'; details?: EbirdDetails }
@@ -37,8 +37,6 @@ type Props = {
   species?: SpeciesIndex
   /** Each row's species and "only here" (source-counts.ts). */
   counts?: SourceCounts
-  /** When the last import landed (use-import-jobs `landed.at`), from any source: the open Add panels fold. */
-  landedAt?: number
 }
 
 type Row = {
@@ -63,7 +61,7 @@ const rowsIn = (t: Ui): Row[] => {
 /**
  * The two eBird files, one quiet row each (Settings > Your list). Not added: "Add" opens the row's panel (what the file
  * brings, the drop zone with "Choose your eBird file", and "How do I get this file?"). Added: the file's name, its species
- * and "only here" (source-counts.ts), skipped entries and date, with Replace (the same picker) and a ⋯ menu (Replace, Remove). Every picker and drop reads
+ * and "only here" (source-counts.ts), skipped entries and date, with Replace (the same picker) and a ⋯ menu (Remove; no item repeats a visible button). Every picker and drop reads
  * the file the same way, and it lands in the row of its kind (read from its header); both rows and the open panels
  * take a dropped file (they highlight while one is dragged over). The import itself runs above the routes, so it
  * survives navigation. With only the life list download, a note under the rows says Places knows only each bird's first
@@ -71,24 +69,17 @@ const rowsIn = (t: Ui): Row[] => {
  * /settings#add-mydata (the Places panel's note) open MyEBirdData's Add panel and focus its picker (MyEBirdData already
  * on the list: its Replace).
  */
-export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected = [], onRemove, saved, species, counts, landedAt }: Props) {
+export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected = [], onRemove, saved, species, counts }: Props) {
   const id = useId()
   const { t } = useI18n()
   useNames()
   const nameOf = species ? (code: string) => nameOfCode(species.byCode, code) : undefined
-  const [adding, setAdding] = useState<EbirdConnected['slot'] | null>(null)
+  // The open Add panel, shared by every source (one at a time; ImportPanel folds it when a file lands).
+  const [adding, setPanel] = useAddPanel()
   const input = useRef<HTMLInputElement>(null)
   const chooseFull = useRef<HTMLButtonElement>(null)
   const replaceFull = useRef<HTMLButtonElement>(null)
-  const { busy, rows, error } = job
-  // A file landed anywhere (in this group or the other, new or a replacement: `landedAt`), or a row went: fold the
-  // Add panels away.
-  const on = `${connected.map((c) => c.slot).join()}|${landedAt ?? ''}`
-  const [lastOn, setLastOn] = useState(on)
-  if (lastOn !== on) {
-    setLastOn(on)
-    setAdding(null)
-  }
+  const { busy, error } = job
 
   const read = (file: File | undefined) => {
     if (!file || busy) return
@@ -106,7 +97,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected
   const fullOn = connected.some((c) => c.slot === 'ebird')
   const P = MYEBIRDDATA_PLACES
   // MyEBirdData's Add panel, opened and its picker focused; with MyEBirdData on the list, its Replace focused.
-  const toFull = useAnchorTarget({ anchor: P.anchor, off, connected: fullOn, open: () => setAdding('ebird'), picker: chooseFull, replace: replaceFull })
+  const toFull = useAnchorTarget({ anchor: P.anchor, off, connected: fullOn, open: () => setPanel('ebird', true), picker: chooseFull, replace: replaceFull })
 
   return (
     <div
@@ -143,7 +134,6 @@ export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected
             what={c ? r.what : undefined}
             disabled={off}
             onRemove={() => onRemove?.(r.slot)}
-            menu={c ? [{ label: t.import.replace, onSelect: pick }] : undefined}
             primary={
               c ? (
                 <button ref={r.slot === 'ebird' ? replaceFull : undefined} type="button" className="eb-btn eb-btn-quiet eb-btn-sm" disabled={off} onClick={pick} aria-label={fmt(t.import.replaceLabel, { name: line!.name })}>
@@ -157,7 +147,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected
                   aria-expanded={open}
                   aria-controls={`${id}-${r.slot}`}
                   aria-label={fmt(t.import.addLabel, { title: r.title })}
-                  onClick={() => setAdding(open ? null : r.slot)}
+                  onClick={() => setPanel(r.slot, !open)}
                 >
                   {t.import.add}
                 </button>
@@ -196,9 +186,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected
           })}
         </p>
       )}
-      <p className="eb-status eb-src-status" role="status">
-        {busy ? (rows ? plural(t.import.ebird.readingRows, rows, { n: formatInt(rows, t.num) }) : t.import.ebird.reading) : ''}
-      </p>
+      {/* A read's progress is the import toast's (ImportToast), never in the grid. */}
       {error && <p className="eb-error eb-src-status" role="alert">{fileMessage(error, t)}</p>}
       {reimport && (
         // The Places panel's own words (one source), its link left as plain text here: Replace is right above.

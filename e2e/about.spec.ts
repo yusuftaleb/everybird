@@ -6,10 +6,11 @@ import { en } from "../src/i18n/messages/en";
 import { countParts, summaryLine, type RowCount, type SourceCounts } from "../src/lib/list/source-counts";
 import { SHARE_ORIGIN } from "../src/lib/share/origin";
 import { stampDate, withStamp } from "../src/lib/share/stamp";
+import { checkTopbar } from "./topbar";
 
 // share/image.ts's FOOTER_LINE (that module can't load here: it starts a worker with import.meta); the test checks its
 // definition is still this.
-const FOOTER_LINE = `${new URL(SHARE_ORIGIN).host} · stickers by huashu`;
+const FOOTER_LINE = `${new URL(SHARE_ORIGIN).host} · Stickers: huashu-bird-sticker, CC BY 4.0`;
 const frozen = readFileSync("tests/fixtures/share/v1-frozen.txt", "utf8").trim();
 
 test("/about says what Everybird is, what True size means, and credits the stickers (CC BY 4.0) and the taxonomy version", async ({ page }) => {
@@ -76,7 +77,7 @@ for (const [name, path] of [
     await page.goto(path);
     const bar = page.getByRole("banner");
     await expect(bar.getByRole("link", { name: "Everybird" })).toHaveAttribute("href", "/");
-    for (const [label, href] of [["Collage", "/"], ["Settings", "/settings"], ["About", "/about"]]) {
+    for (const [label, href] of [["My birds", "/"], ["Settings", "/settings"], ["About", "/about"]]) {
       await expect(bar.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
     }
     await expect(bar.getByRole("switch", { name: "Dark mode" })).toBeVisible();
@@ -107,17 +108,12 @@ for (const [name, path] of [
   });
 }
 
+// Under 620px the nav takes its own row under the wordmark, the language button and the theme switch (variant a, the
+// default): e2e/topbar.ts checks both rows, the gutter, --topbar-h and that nothing scrolls sideways.
 for (const width of [320, 390]) {
-  test(`the top bar is one row with no sideways scroll at ${width}px`, async ({ page }) => {
+  test(`the top bar's rows fit with no sideways scroll at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
-    await page.goto("/about");
-    const m = await page.evaluate(() => {
-      const bar = document.querySelector<HTMLElement>(".eb-topbar-in")!;
-      const items = [...bar.children].map((c) => c.getBoundingClientRect());
-      return { sw: document.documentElement.scrollWidth, tops: items.map((r) => Math.round(r.top + r.height / 2)) };
-    });
-    expect(m.sw).toBe(width);
-    expect(new Set(m.tops).size).toBe(1);
+    await checkTopbar(page, "/about", "a", "en", width);
   });
 }
 
@@ -138,9 +134,9 @@ for (const { layout, width, height } of SIZES) {
     const shown = slot.locator(`[data-poster="${layout}"]`)
     await expect(shown).toBeVisible()
     await expect(slot.locator(`[data-poster="${layout === "wide" ? "compact" : "wide"}"]`)).toBeHidden()
-    await expect(shown.locator(".ebd-head-title")).toHaveText("My collage")
+    await expect(shown.locator(".ebd-head-title")).toHaveText("My birds")
     await expect(shown.locator(".ebd-num")).toHaveText(String(TOTAL))
-    await expect(shown.locator(".ebd-mid-label")).toHaveText("Species")
+    await expect(shown.locator(".ebd-mid-label")).toHaveText(en.ui.count.label)
     const m = await page.evaluate((l) => {
       const s = document.querySelector('[data-testid="howto-demo"]')!.getBoundingClientRect()
       const st = document.querySelector(`[data-poster="${l}"] .ss-stage`)!.getBoundingClientRect()
@@ -307,53 +303,52 @@ test("How it works: the scene's labels are the product's (Settings rows, summary
   await page.goto("/about")
   const scene = page.locator('[data-poster="wide"]')
   const src = (f: string) => readFileSync(f, "utf8")
-  // Settings: the heads and the four source rows, as SourceRow draws them
-  await expect(scene.locator(".ebd-h1")).toHaveText("Settings")
-  expect(src("src/components/app/SettingsPage.tsx")).toContain('<PageHead title="Settings" />')
-  await expect(scene.locator(".ebd-h2")).toHaveText("Your list")
-  expect(src("src/components/import/ImportPanel.tsx")).toContain('>Your list</h2>')
+  const ui = en.ui
+  // Settings: the heads and the scene's four source rows, in the words the product's Settings and source rows use
+  await expect(scene.locator(".ebd-h1")).toHaveText(ui.shell.nav.settings)
+  expect(src("src/components/app/SettingsPage.tsx")).toContain("<PageHead title={t.shell.nav.settings} />")
+  await expect(scene.locator(".ebd-h2")).toHaveText(ui.import.head)
+  expect(src("src/components/app/SettingsPage.tsx")).toContain("{t.import.head}</h2>")
   const titles = await scene.locator(".ebd-src-title").evaluateAll((els) => els.map((e) => e.firstChild!.textContent))
-  expect(titles).toEqual(["eBird life list", "MyEBirdData", "iNaturalist", "Ticked by hand"])
-  for (const t of titles.slice(0, 2)) expect(src("src/components/import/EbirdDrop.tsx")).toContain(`title: '${t}'`)
+  expect(titles).toEqual([ui.import.ebird.listTitle, "MyEBirdData", "iNaturalist", ui.tick.title])
+  expect(src("src/components/import/EbirdDrop.tsx")).toContain("title: e.listTitle")
+  expect(src("src/components/import/EbirdDrop.tsx")).toContain("title: 'MyEBirdData'")
   expect(src("src/components/import/InatForm.tsx")).toContain('title="iNaturalist"')
-  expect(src("src/components/import/ImportPanel.tsx")).toContain('title="Ticked by hand"')
   // The connected row's status and the summary line, from the product's own functions
   const status = (await scene.locator(".ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-b").textContent())!
   // Before the import: "Not added", then the reading line in its place (the product's .eb-status wording)
-  await expect(scene.locator(".ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-a .ebd-swap-a")).toHaveText("Not added")
+  await expect(scene.locator(".ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-a .ebd-swap-a")).toHaveText(ui.import.notAdded)
   await expect(scene.locator(".ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-a .ebd-swap-b")).toHaveText(/^Reading your file… [\d,]+ rows$/)
-  expect(status).toMatch(new RegExp(`^${countParts({ species: TOTAL, only: 0 } as RowCount, en.ui).join(" · ")} · 3 skipped why\\? · Imported \\d{1,2} [A-Z][a-z]{2}$`))
-  const sum = summaryLine({ total: TOTAL, parts: [{ group: "ebird", n: TOTAL }] } as unknown as SourceCounts, en.ui)!
-  await expect(scene.locator(".ebd-sum .ebd-swap-b")).toHaveText(`${sum} See my collage`)
-  await expect(scene.locator(".ebd-sum .ebd-swap-a")).toHaveText("Combine any of these into one list.")
-  expect(src("src/components/import/ImportPanel.tsx")).toContain("Combine any of these into one list.")
+  expect(status).toMatch(new RegExp(`^${countParts({ species: TOTAL, only: 0 } as RowCount, ui).join(" · ")} · 3 skipped why\\? · Imported \\d{1,2} [A-Z][a-z]{2}$`))
+  const sum = summaryLine({ total: TOTAL, parts: [{ group: "ebird", n: TOTAL }] } as unknown as SourceCounts, ui)!
+  await expect(scene.locator(".ebd-sum .ebd-swap-b")).toHaveText(`${sum} ${ui.settings.seeCollage}`)
+  await expect(scene.locator(".ebd-sum .ebd-swap-a")).toHaveText(ui.import.combine)
+  expect(src("src/components/app/SettingsPage.tsx")).toContain("{t.import.combine}")
   // The collage page: the title as the product shows an untitled collage, and the taxonomy labels
-  await expect(scene.locator(".ebd-head-title")).toHaveText(pageTitle(undefined, en.ui))
-  await expect(scene.locator(".ebd-chips-label")).toHaveText("Orders")
-  await expect(scene.locator(".ebd-path-link").first()).toHaveText("All birds")
-  await expect(page.locator('[data-poster="compact"] .ebd-pick-label')).toHaveText("Choose an order")
-  // The controls bar: Places, Time and Red List, in both designs
+  await expect(scene.locator(".ebd-head-title")).toHaveText(pageTitle(undefined, ui))
+  await expect(scene.locator(".ebd-chips-label")).toHaveText(ui.filters.rank.order)
+  await expect(scene.locator(".ebd-path-link").first()).toHaveText(ui.filters.all)
+  await expect(page.locator('[data-poster="compact"] .ebd-pick-label')).toHaveText(ui.filters.choose.order)
+  // The controls bar: the one Filters button (Filters.tsx's label with no filter on), in both designs
   for (const design of ["wide", "compact"]) {
     const drops = page.locator(`[data-poster="${design}"] .ebd-drop`)
-    await expect(drops).toHaveCount(3)
-    await expect(drops.last()).toHaveText("Red List")
+    await expect(drops).toHaveCount(1)
+    await expect(drops).toHaveText(ui.filters.label)
   }
-  // The wide design's dock holds all three drops on its one row: nothing overflows the column
+  // The wide design's dock holds it on its one row: nothing overflows the column
   const dock = await scene.locator(".ebd-dock").evaluate((d) => ({ client: d.clientWidth, scroll: d.scrollWidth }))
   expect(dock.client).toBeGreaterThan(0)
   expect(dock.scroll).toBeLessThanOrEqual(dock.client)
   // The stats line counts the demo's threatened birds, as the product's does
   await expect(scene.locator(".ebd-stats")).toContainText(`${THREATENED} threatened`)
-  // The share dialog: its title, Story / Post / Square with their ratios, and each image's footer line
-  await expect(scene.locator(".ebd-share-title")).toHaveText("Share your collage")
-  const formats = [...src("src/components/share/ShareDialog.tsx").matchAll(/\{ id: '\w+', label: '(\w+)', hint: '([\d:]+)'/g)].map((x) => `${x[1]}${x[2]}`)
-  expect(formats).toEqual(["Story9:16", "Post4:5", "Square1:1"])
+  // The share dialog: its title, Story / Post / Square with their ratios
+  await expect(scene.locator(".ebd-share-title")).toHaveText(ui.share.title)
+  const formats = [`${ui.share.format.story}9:16`, `${ui.share.format.post}4:5`, `${ui.share.format.square}1:1`]
   expect(await scene.locator(".ebd-seg-btn").allTextContents()).toEqual(formats)
   // The "Show latest lifer" switch, on (the product's default), between the title field and the actions
-  await expect(scene.locator(".ebd-share-switch")).toHaveText("Show latest lifer")
+  await expect(scene.locator(".ebd-share-switch")).toHaveText(ui.share.showLatest)
   await expect(scene.locator(".ebd-share-switch")).toHaveAttribute("data-on", "")
-  expect(src("src/components/share/ShareDialog.tsx")).toContain("<span>Show latest lifer</span>")
-  await expect(page.locator('[data-poster="compact"] .ebd-share-switch')).toHaveCSS("display", "none") // no room in the compact design, as the title field
+  await expect(page.locator('[data-poster="compact"] .ebd-share-switch')).toBeHidden() // no room in the compact design: its box, with the title field, is hidden
   // The dialog still fits inside the stage
   const fit = await scene.evaluate((s) => {
     const d = s.querySelector(".ebd-share")!.getBoundingClientRect(), st = s.getBoundingClientRect()
@@ -362,16 +357,17 @@ test("How it works: the scene's labels are the product's (Settings rows, summary
   expect(fit).toBeGreaterThanOrEqual(0)
   // The footer line ends with the demo's fixed date stamp (its "Imported 6 Nov"), as the product's ends with the day's
   const LINE = withStamp(FOOTER_LINE, stampDate(new Date(2026, 10, 6)))
-  expect(LINE).toBe("everybird.yusuftaleb.com · stickers by huashu · 6 Nov 2026")
+  expect(LINE).toBe("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 6 Nov 2026")
   expect(await scene.locator(".ebd-img-line").allTextContents()).toEqual([LINE, LINE, LINE])
-  expect(src("src/lib/share/image.ts")).toContain("withStamp(FOOTER_LINE, stampDate(")
-  expect(src("src/lib/share/image.ts")).toContain("export const FOOTER_LINE = `${SITE_LABEL} · stickers by huashu`")
+  expect(src("src/lib/share/image.ts")).toContain("withStamp(opts.footer ?? FOOTER_LINE, stampDate(")
+  expect(src("src/lib/share/image.ts")).toContain("export const FOOTER_LINE = `${SITE_LABEL} · ${STICKER_CREDIT}`")
+  expect(src("src/lib/share/image.ts")).toContain("export const STICKER_CREDIT = 'Stickers: huashu-bird-sticker, CC BY 4.0'")
   expect(src("src/lib/share/image.ts")).toContain("export const SITE_LABEL = new URL(SHARE_ORIGIN).host")
-  expect(FOOTER_LINE).toBe("everybird.yusuftaleb.com · stickers by huashu")
+  expect(FOOTER_LINE).toBe("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0")
   expect(await scene.locator(".ebd-img-mark").allTextContents()).toEqual(["Everybird", "Everybird", "Everybird"])
-  // Nothing from the old scene, no credit line inside the image (the footer carries it), no "seen" for the list
+  // Nothing from the old scene, no credit line inside the image but the footer's (one in each of the three), no "seen" for the list
   const all = (await scene.textContent())!
-  expect(all).not.toContain("Stickers: huashu")
+  expect(all.split("Stickers: huashu").length - 1).toBe(3)
   expect(all).not.toMatch(/\bseen\b/i)
   expect(all).not.toContain("Yusuf")
 })

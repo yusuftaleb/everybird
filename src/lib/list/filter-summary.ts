@@ -173,7 +173,7 @@ export function countHead(n: number, kind: 'continent' | 'region' | 'country' | 
   return checked > 0 ? `${head} · ${fmt(t.filters.countHead.checked, { n: formatInt(checked, t.num) })}` : head
 }
 
-/** The N in "Filters · N": the filter groups in use (bird group, Places, Time, Conservation status), 0 to 4, not checked boxes; it matches the chips shown by kind. */
+/** The Filters button's count (its badge, and the panel head's "Filters · N"): the filter groups in use (bird group, Places, Time, Conservation status), 0 to 4, not checked boxes; it matches the chips shown by kind. */
 export function filtersCount(f: Filter): number {
   return (f.group ? 1 : 0) + (hasPlaces(f) ? 1 : 0) + (f.from || f.to ? 1 : 0) + (f.statuses?.length ? 1 : 0)
 }

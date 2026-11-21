@@ -22,6 +22,7 @@ test("robots.txt allows the site, disallows /s/ and names the sitemap", async ({
   expect(body).toMatch(/^User-Agent: \*$/m);
   expect(body).toMatch(/^Allow: \/$/m);
   expect(body).toMatch(/^Disallow: \/s\/$/m);
+  expect(body).toMatch(/^Disallow: \/c\/$/m);
   for (const lang of ["en", "es", "pt", "nl"]) expect(body).toMatch(new RegExp(`^Disallow: /${lang}/s/$`, "m"));
   expect(body).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`);
 });

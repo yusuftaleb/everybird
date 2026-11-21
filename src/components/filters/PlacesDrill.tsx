@@ -15,6 +15,7 @@ import { HTML_LANG } from '@/i18n/langs'
 import { clearPlaces, countryRows, filterPlaceKeys, hasPlaces, onlyOneContinent, placeRows, togglePlace } from '@/lib/list/filters'
 import { parentKey, parsePlaceKey, placeName } from '@/lib/list/place-keys'
 import { countHead } from '@/lib/list/filter-summary'
+import { revealInScroller } from '@/components/dialog-utils'
 import { emptyHere, levelUnder, matchRows, PlaceCheck, placeCountsFor, PlacesFind, placeTestId, SEARCH_FROM, upKey, usePlaceRows, useRegionRows, type PlacesBodyProps } from './places-shared'
 
 export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyProps) {
@@ -75,7 +76,7 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
   // Opened at the selection's level: the first checked row scrolled into the panel's view (focus stays with the panel).
   useLayoutEffect(() => {
     if (!at) return
-    headRef.current?.closest<HTMLElement>('.eb-places')?.querySelector<HTMLElement>('.eb-places-level input:checked')?.scrollIntoView?.({ block: 'nearest' })
+    revealInScroller(headRef.current?.closest<HTMLElement>('.eb-places')?.querySelector<HTMLElement>('.eb-places-level input:checked'))
     // Only on opening: later levels place their own focus below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -86,11 +87,13 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
     const root = headRef.current?.closest<HTMLElement>('.eb-places')
     const body = root?.closest<HTMLElement>('.eb-drop-body')
     if (body) body.scrollTop = 0
+    const list = root?.querySelector<HTMLElement>('.eb-places-scroll')
+    if (list) list.scrollTop = 0
     const all = Array.from(root?.querySelectorAll<HTMLElement>('[data-testid]') ?? [])
     const target = ids.map((id) => all.find((el) => el.dataset.testid === id)).find(Boolean) ?? root?.closest<HTMLElement>('[role="dialog"]')
     target?.focus({ preventScroll: true })
-    // A step back to a row far down the level: scroll the body to it, so the focus is in view.
-    target?.scrollIntoView?.({ block: 'nearest' })
+    // A step back to a row far down the level: scroll its list to it, so the focus is in view (never the page).
+    revealInScroller(target)
   }, [at])
 
   const shown = searching ? [...foundContinents, ...found] : rows
@@ -108,6 +111,8 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
 
   return (
     <>
+      {/* The search first, under the section's title, then the level's head, the path and the list (round 6 polish). */}
+      {showFind && <PlacesFind level={shownLevel} q={q} onQ={setQ} />}
       <div className="eb-places-head" ref={headRef}>
         <span className="eb-mono">{countHead(rows.length, level, rows.filter((r) => checked.has(r.value)).length, t)}</span>
         {hasPlaces(filter) && (
@@ -128,11 +133,11 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
           ))}
         </p>
       )}
-      {showFind && <PlacesFind level={shownLevel} q={q} onQ={setQ} />}
       {rows.length === 0 && regionList.length === 0 && !at ? (
         <p className="eb-note">{t.places.none}</p>
       ) : (
-        <>
+        // One scroller for the level and the regions under it: the column never holds two lists that could run past each other.
+        <div className="eb-places-scroll">
           {(!searching || visible.length > 0 || foundContinents.length > 0 || visibleRegions.length === 0) && (
             <ul key={at ?? ''} className="eb-checklist eb-places-level" aria-label={t.places.head[shownLevel]}>
               {at && (
@@ -168,7 +173,7 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
               ))}
               {rows.length === 0 && !searching ? (
                 <li className="eb-note eb-check-none" data-testid="places-empty">{emptyHere(filter, t)}</li>
-              ) : visible.length === 0 && foundContinents.length === 0 && visibleRegions.length === 0 && <li className="eb-note eb-check-none">{t.places.noMatch[shownLevel]}</li>}
+              ) : visible.length === 0 && foundContinents.length === 0 && visibleRegions.length === 0 && <li className="eb-note eb-check-none">{t.places.noMatch[level]}</li>}
             </ul>
           )}
           {visibleRegions.length > 0 && (
@@ -186,7 +191,7 @@ export function PlacesDrill({ state, species, regions, onFilter }: PlacesBodyPro
               </ul>
             </>
           )}
-        </>
+        </div>
       )}
     </>
   )

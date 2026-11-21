@@ -69,19 +69,26 @@
 @keyframes eb-sheet-up { from { opacity: 0; transform: translateY(16px); } }
 @keyframes eb-fade-in { from { opacity: 0; } }
 
-/* The Filters panel (Filters.tsx): a popover under the chip row inside the controls bar's wrap (the dock's full width),
-   or the phone's bottom sheet. Time across the top, Places (2/3) and Conservation status (1/3) side by side below it. */
+/* The controls bar's panels (Filters.tsx DockPanel: Filters, Taxa, Display): a popover right under the dock inside the
+   controls bar's wrap (6px below the dock's bottom edge, `--dock-bottom`, set by DockPanel; over the chip row when one
+   shows), or the phone's bottom sheet. Filters and Taxa take the dock's full width (the same in every view:
+   collage, list, map, tree); Display a menu's width at the bar's right end. A popover is as tall as its content, down to
+   the window's bottom less 16px (`--drop-max`, set by DockPanel; never past it), so Places and Conservation status show
+   as many rows as fit before their lists scroll. Filters: Time across the top, Places (2/3) and Conservation status (1/3)
+   side by side below it. */
 .eb-drop {
-  position: absolute; z-index: 9; top: calc(100% + 6px); right: 0; width: min(380px, 100%); box-sizing: border-box;
+  position: absolute; z-index: 9; top: calc(var(--dock-bottom, 100%) + 6px); right: 0; width: min(380px, 100%); box-sizing: border-box;
   overflow-anchor: none; /* the browser must not re-anchor the page when the panel's size changes under a filter change */
-  max-height: min(70vh, 560px); display: flex; flex-direction: column;
+  max-height: var(--drop-max, min(70vh, 560px)); display: flex; flex-direction: column;
   background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
   animation: eb-fade-in .15s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) both;
   font-size: 14px; font-weight: 500;
 }
-.eb-drop[data-kind="filters"] { left: 0; right: 0; width: auto; max-height: 70vh; }
+.eb-drop[data-kind="filters"], .eb-drop[data-kind="taxa"] { left: 0; right: 0; width: auto; }
+/* The panels' sheets may take the window's full height (8px clear of each edge and the safe areas). */
+.eb-sheet.eb-drop-sheet { max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
 .eb-drop:focus, .eb-drop-sheet:focus { outline: none; }
 .eb-drop-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 16px; }
 .eb-drop-sheet .eb-drop-body { padding: 4px 16px 18px; }
@@ -90,7 +97,9 @@
    only: the sheet renders no row and its body scrolls as one). Flexbox, not grid: the flex column under max-height
    shrinks the row and the lists scroll. */
 .eb-drop[data-kind="filters"] .eb-drop-body { display: flex; flex-direction: column; gap: 16px; }
-.eb-fpanel-headrow { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* The head row is the Clear all button's height (.eb-textbtn, 36px) from the start, so nothing under it moves when a
+   filter brings the button in. The sheet's head is already the close button's 44px. */
+.eb-fpanel-headrow { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; }
 .eb-drop[data-kind="filters"] .eb-fpanel-head { flex: none; margin: 0; }
 .eb-sheet-head .eb-textbtn { margin-left: auto; flex: none; }
 .eb-drop[data-kind="filters"] [data-sec="time"] { flex: none; }
@@ -107,7 +116,12 @@
 .eb-fpanel-row > [data-sec="status"] { flex: 1 1 0; }
 .eb-fpanel-row > .eb-fsec { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .eb-drop[data-kind="filters"] .eb-fpanel-row .eb-places { flex: 1 1 auto; min-height: 0; }
-.eb-drop[data-kind="filters"] .eb-fpanel-row .eb-checklist { flex: 1 1 auto; min-height: 132px; overflow-y: auto; overscroll-behavior: contain; }
+/* One scroller per column, always its last part: Places' level with the regions under it (PlacesDrill's .eb-places-scroll),
+   Status' checklist. Nothing follows a scroller in its column, so a column squeezed below its fixed parts runs on into
+   the body, which scrolls, never under another section. The scroller's 8px each side holds the rows' -8px hover band. */
+.eb-drop[data-kind="filters"] .eb-fpanel-row .eb-places-scroll,
+.eb-drop[data-kind="filters"] .eb-fpanel-row [data-sec="status"] .eb-checklist { flex: 1 1 auto; min-height: 132px; overflow-y: auto; overscroll-behavior: contain; }
+.eb-places-scroll { display: flex; flex-direction: column; gap: 10px; margin: 0 -8px; padding: 0 8px; }
 .eb-fsec { outline: none; }
 .eb-fsec-title { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: inherit; font-weight: 500; }
 .eb-fsec-title svg { width: 16px; height: 16px; flex: none; }
@@ -165,8 +179,23 @@
 .eb-drill svg { width: 18px; height: 18px; transform: rotate(-90deg); }
 .eb-drill:focus-visible { color: var(--ink); }
 .eb-places-path { animation: eb-rise .24s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) both; } /* the sheet sits outside .eb-view */
-.eb-places-path button { position: relative; }
-.eb-places-path button::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100% + 8px, 44px); height: 44px; transform: translate(-50%, -50%); }
+.eb-places-path button, .eb-map-path button { position: relative; }
+.eb-places-path button::after, .eb-map-path button::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100% + 8px, 44px); height: 44px; transform: translate(-50%, -50%); }
+/* "Count repeat sightings" (Timeline.tsx RepeatSwitch): the Settings switch row (app.css .eb-setrow-btn) on the Time
+   section's head row, right-aligned: its label and track only (the note is its tooltip), so nothing moves when it flips.
+   A 44px press; the row wraps it under the title only when both can't share a line. No Surface band on hover: the
+   track's ring answers, as the share dialog's switches do. */
+.eb-fsec-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 16px; margin-bottom: 8px; }
+.eb-fsec-head .eb-fsec-title { margin: 0; }
+.eb-setrow-btn.eb-frepeat { flex: none; gap: 10px; width: auto; max-width: 100%; margin-left: auto; padding: 0; min-height: 44px; }
+.eb-frepeat .eb-setrow-label { font-size: 14px; font-weight: 600; }
+.eb-frepeat .eb-track { flex: none; }
+.eb-setrow-btn.eb-frepeat:focus-visible { outline-offset: 2px; border-radius: 8px; }
+@media (hover: hover) and (pointer: fine) {
+  .eb-setrow-btn.eb-frepeat:not(:disabled):hover { background: none; }
+  .eb-frepeat[aria-checked="false"]:hover .eb-track { box-shadow: inset 0 0 0 1px var(--muted); }
+  .eb-frepeat[aria-checked="true"]:hover .eb-track { opacity: .88; }
+}
 @media (hover: hover) and (pointer: fine) {
   .eb-places-row:hover, .eb-status-row:hover { background: var(--surface); }
   .eb-drill:hover { color: var(--ink); }
@@ -177,6 +206,11 @@
   .eb-sheet, .eb-path, .eb-path + .eb-level, .eb-path + .eb-pick, .eb-places-level { animation-name: eb-fade-in; }
   .eb-drill { transition: none; }
 }
+
+/* The Taxa panel (TaxaPanel.tsx): the level's coverage in the panel heads' mono style, the path, the level's chips. */
+.eb-taxa { display: flex; flex-direction: column; gap: 10px; }
+.eb-taxa-head { margin: 0; }
+.eb-taxa-head:empty { display: none; }
 
 /* The chip row under the dock (ChipRow.tsx): the taxonomy chip's shape, always in its active state. */
 .eb-chiprow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; overflow-anchor: none; }

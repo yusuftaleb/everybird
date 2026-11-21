@@ -2,18 +2,20 @@
 // (HowItWorksPoster, server-rendered so the figure is there at once) and the live Stageshow stage (HowItWorksStage,
 // loaded later, which plays the script). It mirrors the product's current UI at the demo's two sizes (wide 720 × 470,
 // compact 358 × 356):
-//   - Settings: "Your list", the summary line ("Your collage has 112 species, all from eBird." and "See my collage")
-//     over the quiet source rows (SourceLine.tsx: a title, " · file" once connected, a muted sentence-case status, one
-//     button and, connected, a ⋯ menu); the eBird rows take a dropped file (EbirdDrop) and read it ("Reading your
-//     file… 4,812 rows").
-//   - The collage page: the page head ("My collage", the title verbatim; Add birds and Share), the stats line, the
-//     controls bar (ControlsBar: view tabs, True size, Scientific, the one Filters button, search; two rows on
-//     phones), the taxonomy chips (wrapped; the "Choose an order" picker and its sheet on phones), the breadcrumb once
-//     Herons is chosen, and the collage around the count.
+//   - Settings: "Your list" with Add by hand at its right, the summary line ("Your collage has 112 species, all from
+//     eBird." and "See my collage") over the first quiet source rows (SourceLine.tsx: a title, " · file" once connected,
+//     a muted sentence-case status, one button and, connected, a ⋯ menu: the eBird life list, MyEBirdData, iNaturalist,
+//     Spreadsheet or list; the rest run off the window); the eBird rows take a dropped file (EbirdDrop) and read it
+//     ("Reading your file… 4,812 rows").
+//   - The collage page: the page head ("My birds"; Add birds, Print and Share), the stats line, the controls bar
+//     (ControlsBar: the Collage, List, Map and Tree tabs, then Taxa, Display and Filters, then search; two rows on
+//     phones), the Taxa panel (TaxaPanel.tsx: its coverage head, "7 of 45 orders", and the order chips; on phones the
+//     sheet, with "Show N species" at its foot), the breadcrumb under the bar once Herons is chosen, and the collage
+//     around the count.
 //   - The share dialog (ShareDialog.tsx): the preview (the image's own shape), Story / Post / Square, then (wide only) the
-//     image options box (the title field with its "(optional)", the "Show latest lifer" switch on and "Dark image" off,
-//     side by side) and the actions (Share image, then the quiet row Download, Copy link, Print); the image is the
-//     product's centre-count card (cardLayout in image.ts).
+//     image options box (the title field with its "(optional)" and the "Show latest lifer" switch on), the Export in
+//     batches row, and the actions (Share image, then the quiet row Download, Copy link); the image is the product's
+//     centre-count card (cardLayout in image.ts).
 // Every string is the product's own, in the page's language (t, as the product's components read it), the bird names in
 // the language's base names (LATEST, FAMILY). Nothing here is sized for English: boxes that can't wrap are checked
 // against all four languages in tests/howto-fit.test.tsx, the rest wrap, and the script reads every stop from the
@@ -23,15 +25,16 @@
 // light and dark themes with the page.
 import { ArrowRight, CaretDown, DotsThree, DownloadSimple, FileCsv, LinkSimple, Plus, Printer, ShareNetwork, X } from '@phosphor-icons/react'
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { CollageIcon, FilterLinesIcon, ListIcon, SearchIcon } from '@/components/collage/icons'
+import { CollageIcon, FilterLinesIcon, ListIcon, MapIcon, SearchIcon, TreeIcon } from '@/components/collage/icons'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt, formatMonth, shortDay } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
+import { showLabel } from '@/lib/list/filter-summary'
 import { countParts, summaryLine, type SourceCounts, type RowCount } from '@/lib/list/source-counts'
 import { pageTitle } from '@/lib/list/title'
-import { FOOTER_LINE, latestText } from '@/lib/share/image'
+import { FOOTER_LINE, latestText, placeCredit } from '@/lib/share/image'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
 import { ORDERS as ORDER_LABELS, orderLabel } from '@/lib/species/orders'
 import { baseOfLang } from '@/lib/species/name-locales'
@@ -57,14 +60,14 @@ export type S = {
   birds: boolean
   count: number
   herons: boolean
-  /** Compact: the "Choose an order" sheet is open. */
-  sheet: boolean
+  /** The Taxa panel is open (on phones, its sheet). */
+  taxa: boolean
   /** The share dialog, on its format; false when closed. */
   share: false | Format
 }
 
 export const NO_GHOST: Ghost = { on: false, dropped: false, off: { x: 0, y: 0 } }
-export const initial: S = { page: 'settings', ghost: NO_GHOST, adding: false, reading: false, rows: 0, made: false, birds: false, count: 0, herons: false, sheet: false, share: false }
+export const initial: S = { page: 'settings', ghost: NO_GHOST, adding: false, reading: false, rows: 0, made: false, birds: false, count: 0, herons: false, taxa: false, share: false }
 /** The still (the poster before the stage plays, reduced motion, a screenshot): the collage made, every sticker around its count. */
 export const poster: S = { ...initial, page: 'collage', made: true, birds: true, count: TOTAL }
 
@@ -72,6 +75,8 @@ export const FILE = 'MyEBirdData.csv'
 export const ROWS = 4812
 /** The demo's list (made up): its orders as the chips show them, in taxonomic order, adding up to TOTAL. */
 export const ORDERS: [string, number][] = [['Waterfowl', 17], ['Shorebirds and gulls', 12], ['Herons', 6], ['Hawks and eagles', 8], ['Owls', 3], ['Woodpeckers', 5], ['Perching birds', 61]]
+/** The taxonomy's orders (species.v1.json, eBird 2026), for the Taxa panel's head ("7 of 45 orders"). */
+export const TAXONOMY_ORDERS = 45
 
 /** The first lifer's and the latest lifer's months, as the list stores them (formatMonth writes them in the language). */
 const SINCE = '2019-03'
@@ -102,8 +107,13 @@ export const GEO: Record<Layout, Geo> = {
   compact: { win: { x: 16, y: 16, w: 400, h: 420 }, col: 310 },
 }
 
-/** Every demo sticker is the small (128 px) file, so the figure's few downloads are light and shared by every state. */
-export const demoStickerUrl = (code: string) => stickerUrl(code, 1, 1, SV[code])
+/** The most the figure is drawn at: About's content width (1088px, `.eb-page`) over the wide design's 720. */
+export const DEMO_GROW = 1088 / 720
+/** Each bird's largest box in the wide collage (all birds, or Herons chosen), design px. */
+const SIDE: Record<string, number> = Object.fromEntries(BIRDS.map((code) => [code, Math.max(...COLLAGE.wide.all[code].slice(2), ...(COLLAGE.wide.herons[code]?.slice(2) ?? []))]))
+/** One file per demo sticker, shared by every state: the small (128 px) file, or the 384 px one for the few birds drawn
+ *  past 128 device px at the figure's largest on a 2x screen, so they stay sharp. The downloads stay light. */
+export const demoStickerUrl = (code: string) => stickerUrl(code, SIDE[code] * DEMO_GROW, 2, SV[code])
 /** The stickers the poster shows first, biggest first (they're fetched ahead of the rest, HowItWorksDemo). */
 export const POSTER_STICKERS = [...BIRDS].sort((a, b) => Math.max(...COLLAGE.wide.all[b].slice(2)) - Math.max(...COLLAGE.wide.all[a].slice(2)))
 
@@ -226,7 +236,7 @@ export function Scene({ s, layout, drag }: { s: S; layout: Layout; drag?: Drag }
             <CollagePage s={s} layout={layout} />
           </div>
         </div>
-        {!wide && <OrderSheet open={s.sheet} />}
+        {!wide && <TaxaSheet open={s.taxa} herons={s.herons} />}
         <div className="ebd-scrim" data-show={s.share ? true : undefined} />
         <ShareDialog format={s.share || 'story'} show={!!s.share} wide={wide} />
       </Window>
@@ -249,6 +259,7 @@ function TopBar({ page, compact }: { page: S['page']; compact: boolean }) {
       <span className="ebd-wordmark">Everybird</span>
       <span className="ebd-nav">
         <span className="ebd-nav-link" data-label={nav.collage} data-on={page === 'collage' || undefined}>{nav.collage}</span>
+        {!compact && <span className="ebd-nav-link" data-label={nav.compare}>{nav.compare}</span>}
         <span className="ebd-nav-link" data-label={nav.settings} data-on={page === 'settings' || undefined} data-target="nav-settings">{nav.settings}</span>
         {!compact && <span className="ebd-nav-link" data-label={nav.about}>{nav.about}</span>}
       </span>
@@ -309,7 +320,10 @@ function SettingsPage({ s, wide }: { s: S; wide: boolean }) {
   return (
     <div className="ebd-col ebd-col-settings">
       <div className="ebd-h1">{t.shell.nav.settings}</div>
-      <div className="ebd-h2">{imp.head}</div>
+      <div className="ebd-h2row">
+        <span className="ebd-h2">{imp.head}</span>
+        {wide && <span className="ebd-btn ebd-btn-quiet ebd-btn-sm ebd-btn-hand"><Plus weight="bold" />{t.add.hand}</span>}
+      </div>
       {/* The section's note, or once there's a list, the summary line ending in "See my collage" (SettingsPage) */}
       <p className="ebd-sum">
         <Swap
@@ -349,7 +363,7 @@ function SettingsPage({ s, wide }: { s: S; wide: boolean }) {
         </div>
         <div className="ebd-below" data-pushed={(!wide && s.adding) || undefined}>
           <Row title="iNaturalist" status={imp.notAdded} button={imp.add} />
-          <Row title={t.tick.title} status={imp.noneYet} button={<>{t.tick.button}<CaretDown weight="bold" /></>} />
+          <Row title={imp.sheet.title} status={imp.notAdded} button={imp.add} />
         </div>
       </div>
     </div>
@@ -372,6 +386,7 @@ function CollagePage({ s, layout }: { s: S; layout: Layout }) {
         <span className="ebd-head-title">{pageTitle(undefined, t)}</span>
         <span className="ebd-head-acts">
           <span className="ebd-btn ebd-btn-quiet ebd-btn-add"><Plus weight="bold" />{wide && t.collage.addBirds}</span>
+          <span className="ebd-btn ebd-btn-quiet ebd-btn-print"><Printer weight="bold" />{wide && t.collage.print}</span>
           <span className="ebd-btn ebd-btn-share" data-target="share"><ShareNetwork weight="bold" />{t.collage.share}</span>
         </span>
       </div>
@@ -384,22 +399,13 @@ function CollagePage({ s, layout }: { s: S; layout: Layout }) {
           />
         </p>
       )}
-      <Dock wide={wide} />
-      {/* The taxonomy filter: the order chips (wrapped; on phones the "Choose an order" picker), and once an order is
-          chosen the breadcrumb in its place (Herons has one family here, so it ends with the family and no row follows) */}
-      <div className="ebd-filter" data-chosen={filtered || undefined}>
-        {wide ? (
-          <div className="ebd-chips">
-            <span className="ebd-chips-label">{t.filters.rank.order}</span>
-            {ORDERS.map(([label, k]) => (
-              <span key={label} className="ebd-chip" data-target={label === 'Herons' ? 'herons' : undefined}>{orderName(label, t)}<span className="ebd-chip-n">{formatInt(k, t.num)}</span></span>
-            ))}
-          </div>
-        ) : (
-          <div className="ebd-chips">
-            <span className="ebd-pick" data-target="picker"><FilterLinesIcon /><span className="ebd-pick-label">{t.filters.choose.order}</span><span className="ebd-chip-n">{formatInt(ORDERS.length, t.num)}</span></span>
-          </div>
-        )}
+      <div className="ebd-dockwrap">
+        <Dock taxa={s.taxa} chosen={filtered} />
+        {wide && <TaxaPanel open={s.taxa} herons={s.herons} />}
+      </div>
+      {/* Under the bar, once an order is chosen, only the breadcrumb (the chips are the Taxa panel's); Herons has one
+          family here, so it ends with the family. While a panel is open, everything under the bar dims. */}
+      <div className="ebd-filter" data-chosen={filtered || undefined} data-dim={s.taxa || undefined}>
         <div className="ebd-path">
           <span className="ebd-path-link" data-target="all-birds">{t.filters.all}</span>
           <span className="ebd-path-sep">/</span>
@@ -408,7 +414,7 @@ function CollagePage({ s, layout }: { s: S; layout: Layout }) {
           <span className="ebd-path-here">{family}</span>
         </div>
       </div>
-      <div className="ebd-collage" data-birds={s.birds || undefined} style={{ width: c.W, height: c.H }}>
+      <div className="ebd-collage" data-birds={s.birds || undefined} data-dim={s.taxa || undefined} style={{ width: c.W, height: c.H }}>
         {BIRDS.map((code) => {
           const heron = HERONS.includes(code)
           const a = c.all[code]
@@ -438,59 +444,80 @@ function CollagePage({ s, layout }: { s: S; layout: Layout }) {
   )
 }
 
-/** The controls bar (ControlsBar): one row on the wide page; on phones the short labels, with the Filters button on row two.
- *  A compressed mock: the product's button reads "Filters" with no filter on (Filters.tsx), drawn with its glyph. */
-function Dock({ wide }: { wide: boolean }) {
+/** The controls bar (ControlsBar): the four view tabs (icons, Collage pressed), then the panel buttons Taxa, Display and
+ *  Filters (the label and a caret; Filters with its glyph), then search; on phones the panel buttons share row two. A
+ *  compressed mock: the product's Filters button reads "Filters" with no filter on (Filters.tsx). Taxa is on Surface
+ *  while its panel is open and in Accent once a taxon is chosen. */
+function Dock({ taxa, chosen }: { taxa: boolean; chosen: boolean }) {
   const { t } = useI18n()
   const ctl = t.collage.controls
-  const sw = (label: string, italic?: boolean) => (
-    <span className="ebd-tab ebd-sw" data-italic={italic || undefined}>{label}<span className="ebd-track"><span className="ebd-knob" /></span></span>
-  )
-  const drops = (
-    <span className="ebd-dock-filters">
-      <span className="ebd-tab ebd-drop"><FilterLinesIcon />{t.filters.label}<CaretDown className="ebd-drop-caret" weight="bold" /></span>
-    </span>
-  )
+  const caret = <CaretDown className="ebd-drop-caret" weight="bold" />
   return (
     <div className="ebd-dock">
       <span className="ebd-dock-tabs">
         <span className="ebd-tab ebd-icontab" data-on><CollageIcon /></span>
         <span className="ebd-tab ebd-icontab"><ListIcon /></span>
+        <span className="ebd-tab ebd-icontab"><MapIcon /></span>
+        <span className="ebd-tab ebd-icontab"><TreeIcon /></span>
       </span>
-      <span className="ebd-dock-tools">
-        {sw(wide ? ctl.trueSize : ctl.trueShort)}
-        {sw(wide ? ctl.sci : ctl.sciShort, true)}
+      <span className="ebd-dock-filters">
+        <span className="ebd-tab ebd-drop" data-target="taxa" data-open={taxa || undefined} data-active={chosen || undefined}>{ctl.taxa}{caret}</span>
+        <span className="ebd-tab ebd-drop">{ctl.display}{caret}</span>
+        <span className="ebd-tab ebd-drop"><FilterLinesIcon />{t.filters.label}{caret}</span>
       </span>
-      {drops}
       <span className="ebd-dock-end"><span className="ebd-tab ebd-icontab"><SearchIcon /></span></span>
     </div>
   )
 }
 
-/** Phones: the "Choose an order" sheet (PickerSheet), the orders as wrapped chips. */
-function OrderSheet({ open }: { open: boolean }) {
+/** The Taxa panel's coverage head ("7 of 45 orders"), the product's words. */
+function useTaxaHead() {
+  const { t } = useI18n()
+  return plural(t.collage.controls.taxaHead.order, TAXONOMY_ORDERS, { n: formatInt(ORDERS.length, t.num), total: formatInt(TAXONOMY_ORDERS, t.num) })
+}
+
+/** The order chips (LevelRow: the rank label, then each order with its count); the chosen one in Accent. */
+function OrderChips({ herons, target }: { herons: boolean; target: string }) {
+  const { t } = useI18n()
+  return (
+    <div className="ebd-chips">
+      <span className="ebd-chips-label">{t.filters.rank.order}</span>
+      {ORDERS.map(([label, k]) => (
+        <span key={label} className="ebd-chip" data-on={(herons && label === 'Herons') || undefined} data-target={label === 'Herons' ? target : undefined}>{orderName(label, t)}<span className="ebd-chip-n">{formatInt(k, t.num)}</span></span>
+      ))}
+    </div>
+  )
+}
+
+/** The wide page: the Taxa panel (TaxaPanel in DockPanel's frame), the bar's full width, 6px under it. */
+function TaxaPanel({ open, herons }: { open: boolean; herons: boolean }) {
+  return (
+    <div className="ebd-taxa" data-show={open || undefined}>
+      <p className="ebd-taxa-head">{useTaxaHead()}</p>
+      <OrderChips herons={herons} target="herons" />
+    </div>
+  )
+}
+
+/** Phones: the Taxa panel's sheet over its scrim: the head and ✕, the order chips, "Show N species" at its foot. */
+function TaxaSheet({ open, herons }: { open: boolean; herons: boolean }) {
   const { t } = useI18n()
   return (
     <>
       <div className="ebd-sheet-scrim" data-show={open || undefined} />
       <div className="ebd-sheet" data-show={open || undefined}>
-        <div className="ebd-sheet-head"><span className="ebd-sheet-title">{t.filters.rank.order}</span><span className="ebd-chip-n">{formatInt(ORDERS.length, t.num)}</span><X className="ebd-sheet-x" weight="bold" /></div>
-        <div className="ebd-sheet-chips">
-          {ORDERS.map(([label, k]) => (
-            <span key={label} className="ebd-chip" data-target={label === 'Herons' ? 'sheet-herons' : undefined}>{orderName(label, t)}<span className="ebd-chip-n">{formatInt(k, t.num)}</span></span>
-          ))}
-        </div>
+        <div className="ebd-sheet-head"><span className="ebd-taxa-head">{useTaxaHead()}</span><X className="ebd-sheet-x" weight="bold" /></div>
+        <OrderChips herons={herons} target="sheet-herons" />
+        <span className="ebd-btn ebd-btn-sm ebd-sheet-show" data-target="sheet-show">
+          <Swap on={herons} a={showLabel(TOTAL, t)} b={showLabel(HERONS.length, t)} />
+        </span>
       </div>
     </>
   )
 }
 
-/** Story / Post / Square and the shape of each image (the ratio shown beside the name). */
-const FORMATS: { id: Format; hint: string }[] = [
-  { id: 'story', hint: '9:16' },
-  { id: 'post', hint: '4:5' },
-  { id: 'square', hint: '1:1' },
-]
+/** Story / Post / Square (the product names each by its word alone; the ratio is in its accessible name). */
+const FORMATS: { id: Format }[] = [{ id: 'story' }, { id: 'post' }, { id: 'square' }]
 /**
  * The share preview's box takes the image's own shape (share.css), with a Hairline and 12px corners and no Surface
  * around it. Wide: the box is the dialog's height (h) and the format's width, and the dialog narrows or widens around it
@@ -524,10 +551,9 @@ function ShareDialog({ format, show, wide }: { format: Format; show: boolean; wi
         </div>
         <div className="ebd-share-controls">
           <div className="ebd-seg">
-            {FORMATS.map(({ id, hint }) => (
+            {FORMATS.map(({ id }) => (
               <span key={id} className="ebd-seg-btn" data-on={format === id || undefined} data-target={`fmt-${id}`}>
                 <span className="ebd-seg-label">{sh.format[id]}</span>
-                {wide && <span className="ebd-seg-hint">{hint}</span>}
               </span>
             ))}
           </div>
@@ -538,15 +564,14 @@ function ShareDialog({ format, show, wide }: { format: Format; show: boolean; wi
             </div>
             <div className="ebd-share-switches">
               <span className="ebd-share-switch" data-on=""><span>{sh.showLatest}</span><span className="ebd-track"><span className="ebd-knob" /></span></span>
-              <span className="ebd-share-switch"><span>{sh.dark}</span><span className="ebd-track"><span className="ebd-knob" /></span></span>
             </div>
           </div>
+          {wide && <div className="ebd-share-bulk"><span>{sh.print.bulk.title}</span><CaretDown weight="bold" /></div>}
           <div className="ebd-share-actions">
             <span className="ebd-btn ebd-btn-sm ebd-share-primary"><ShareNetwork weight="bold" />{sh.shareImage}</span>
             <span className="ebd-share-row">
               <span className="ebd-btn ebd-btn-sm ebd-btn-quiet"><DownloadSimple />{sh.downloadShort}</span>
               <span className="ebd-btn ebd-btn-sm ebd-btn-quiet"><LinkSimple />{sh.copyLink}</span>
-              {wide && <span className="ebd-btn ebd-btn-sm ebd-btn-quiet"><Printer />{sh.print.print}</span>}
             </span>
           </div>
         </div>
@@ -558,9 +583,11 @@ function ShareDialog({ format, show, wide }: { format: Format; show: boolean; wi
 /**
  * One share image, drawn from the product's layout (cardLayout, at the image's 1080 px width, scaled into the preview
  * box): the collage's stickers packed around "112 / SPECIES", the latest lifer row, a hairline, and the quiet footer
- * line: the wordmark, then "everybird.yusuftaleb.com · stickers by huashu · 6 Nov 2026" (the stamp fixed at
- * STAMPED). No name on top (the demo's collage has no title). Small text is set a little larger than its true scale so
- * it reads as text, except the footer line: stamped, it fits the image (overflow: hidden) only at its true 20 px.
+ * line: the wordmark, then "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 6 Nov 2026" (the
+ * stamp fixed at STAMPED), placed as the product's placeFooter places it: too long to sit beside the wordmark, it takes
+ * its own line under it and the wordmark, the hairline and the latest lifer row move up a line. No name on top (the
+ * demo's collage has no title). Small text is set a little larger than its true scale so it reads as text, except the
+ * footer line, at its true size so it fits the image (overflow: hidden).
  */
 function ShareImage({ format, box, show }: { format: Format; box: { w: number; h: number }; show: boolean }) {
   const { t } = useI18n()
@@ -574,6 +601,10 @@ function ShareImage({ format, box, show }: { format: Format; box: { w: number; h
   const K = L.count
   const ar = AR[LATEST.code] ?? 1
   const icon = L.latest.icon * k
+  const line = withStamp(FOOTER_LINE, stampDate(STAMPED, stampStrings(t)))
+  // The product's estimate without a DOM (image.ts placeFooter): Geist Mono 0.6 em a character, the wordmark 0.55 em and 16 after it.
+  const credit = placeCredit((px) => line.length * 0.6 * px, L.W - 128 - (9 * 0.55 * 30 + 16), L.W - 128, 20)
+  const lift = credit.below ? (credit.size + 12) * k : 0
   return (
     <div className="ebd-img" data-show={show || undefined} data-format={format} style={{ width: w, height: h, left: 0, top: 0 }}>
       {Object.entries(L.tiles).map(([code, [x, y, tw, th]]) => (
@@ -583,19 +614,27 @@ function ShareImage({ format, box, show }: { format: Format; box: { w: number; h
         <span className="ebd-img-num" style={{ fontSize: K.size * k }}>{formatInt(TOTAL, t.num)}</span>
         <span className="ebd-img-label" style={{ fontSize: Math.max(3, K.labelSize * k) }}>{t.count.label}</span>
       </span>
-      <span className="ebd-img-latest" style={{ left: M, top: L.latest.y * k, height: icon, gap: 20 * k }}>
+      <span className="ebd-img-latest" data-inline={L.latest.inline || undefined} style={{ left: M, top: L.latest.y * k - lift, height: icon, gap: (L.latest.inline ? 16 : 20) * k }}>
         <span className="ebd-img-latest-icon" style={{ width: icon, height: icon }}>
           <span style={{ width: ar >= 1 ? '100%' : `${ar * 100}%`, height: ar >= 1 ? `${100 / ar}%` : '100%' }}><Sticker code={LATEST.code} /></span>
         </span>
-        <span className="ebd-img-latest-text">
-          <span className="ebd-img-latest-label" style={{ fontSize: L.latest.label * k * 1.5 }}>{latest.label}</span>
-          <span className="ebd-img-latest-name" style={{ fontSize: L.latest.name * k * 1.5 }}>{latest.name}</span>
-        </span>
+        {L.latest.inline ? (
+          // One line, as the product's Post and Square: the name, then the detail (round 6, item 17).
+          <span className="ebd-img-latest-text">
+            <span className="ebd-img-latest-name" style={{ fontSize: L.latest.name * k * 1.5 }}>{latest.name}</span>
+            <span className="ebd-img-latest-label" style={{ fontSize: L.latest.label * k * 1.5 }}>{latest.head ?? latest.label}</span>
+          </span>
+        ) : (
+          <span className="ebd-img-latest-text">
+            <span className="ebd-img-latest-label" style={{ fontSize: L.latest.label * k * 1.5 }}>{latest.label}</span>
+            <span className="ebd-img-latest-name" style={{ fontSize: L.latest.name * k * 1.5 }}>{latest.name}</span>
+          </span>
+        )}
       </span>
-      <span className="ebd-img-rule" style={{ left: M, right: M, top: L.rule * k }} />
-      <span className="ebd-img-foot" style={{ left: M, top: L.footer * k, height: 30 * k * 1.25 }}>
+      <span className="ebd-img-rule" style={{ left: M, right: M, top: L.rule * k - lift }} />
+      <span className="ebd-img-foot" style={{ left: M, top: L.footer * k - lift, height: 30 * k * 1.25, ...(credit.below ? { flexDirection: 'column', alignItems: 'flex-start', gap: 12 * k } : {}) }}>
         <span className="ebd-img-mark" style={{ fontSize: 30 * k * 1.25 }}>Everybird</span>
-        <span className="ebd-img-line" style={{ fontSize: 20 * k }}>{withStamp(FOOTER_LINE, stampDate(STAMPED, stampStrings(t)))}</span>
+        <span className="ebd-img-line" style={{ fontSize: credit.size * k }}>{line}</span>
       </span>
     </div>
   )

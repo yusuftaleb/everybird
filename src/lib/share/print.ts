@@ -7,6 +7,7 @@
 // PRINT_DESIGN_H, and fitPack absorbs the small difference to each size's own printDesignH; the US sizes' at their exact
 // height (2:3, 12 × 18 and 24 × 36 in, 1620; 3:4, 18 × 24 in, 1440). An A1 (3508 × 4967) or a 24 × 36 in (3600 × 5400)
 // is over iOS Safari's canvas cap (IOS_CANVAS_AREA), so posters are painted in horizontal strips of at most STRIP_AREA px.
+// The Tree's and the Map's posters are one drawing at viewPosterScale, cut into the same strips.
 
 export type IsoSize = 'A4' | 'A3' | 'A2' | 'A1'
 export type UsSize = 'US12x18' | 'US18x24' | 'US24x36'
@@ -33,12 +34,20 @@ export const PRINT_IN: Record<UsSize, readonly [number, number]> = {
 }
 export const isUsSize = (s: PrintSize): s is UsSize => s in PRINT_IN
 export const PRINT_DPI = 150
-/** Maximum species count for printing common names under stickers, by paper size (same in portrait and landscape). */
+/**
+ * Maximum species count for printing common names under stickers, by paper size (same in portrait and landscape). Half
+ * the first posters' (40 on A4 … 360 on 24 × 36 in) since the names doubled: at the cap the stickers stay about three
+ * times the names' size (tests/print-captions-real-masks.test.ts packs real masks at each cap).
+ */
 export const CAPTION_CAPS: Record<PrintSize, number> = {
-  A4: 40, A3: 80, A2: 160, A1: 320,
-  US12x18: 80, US18x24: 180, US24x36: 360,
+  A4: 20, A3: 40, A2: 80, A1: 160,
+  US12x18: 40, US18x24: 90, US24x36: 180,
 }
-export const CAPTION_MIN_PT = 9
+/**
+ * The species names' size on paper, in points: twice the first posters' 9pt, the same on every size so it reads at arm's
+ * length; in design units it scales with the poster (captionMinPx: 32.7 on A4, 16.3 on A2, 11.5 on A1).
+ */
+export const CAPTION_MIN_PT = 18
 /** The print card's width in design units, as the share images. */
 export const PRINT_DESIGN_W = 1080
 /** The height the A sizes' pack is made at (every A size's printDesignH is within 0.2% of it). */
@@ -68,12 +77,22 @@ export const printPackH = (s: PrintSize): number => (isUsSize(s) ? Math.round(pr
  * for landscape (the short side is always PRINT_DESIGN_W units, so the landscape card is printDesignH(s) by 1080).
  */
 export const printDesign = (s: PrintSize, landscape = false): [number, number] => (landscape ? [printDesignH(s), PRINT_DESIGN_W] : [PRINT_DESIGN_W, printDesignH(s)])
-/** A poster's file stem: "everybird-a2", "everybird-a2-landscape", "everybird-24x36in". */
-export const printFileStem = (s: PrintSize, landscape = false): string =>
-  `everybird-${isUsSize(s) ? `${PRINT_IN[s][0]}x${PRINT_IN[s][1]}in` : s.toLowerCase()}${landscape ? '-landscape' : ''}`
+/** A poster's format in its file name (fileName): "a2", "a2-landscape", "24x36in". */
+export const printFormat = (s: PrintSize, landscape = false): string =>
+  `${isUsSize(s) ? `${PRINT_IN[s][0]}x${PRINT_IN[s][1]}in` : s.toLowerCase()}${landscape ? '-landscape' : ''}`
 
 /** iOS Safari's largest canvas, in px. No canvas the poster makes may be larger. */
 export const IOS_CANVAS_AREA = 16_777_216
+/**
+ * The Tree's or the Map's poster is drawn whole on one canvas (renderTreeImage, renderMapImage) and then streamed to the
+ * encoder in strips: its device px per design unit, printScale(s) unless that canvas would pass IOS_CANVAS_AREA (A1 and
+ * 24 × 36 in), then the largest scale under it; the strips stretch the drawing to the poster's own px (about 2% on A1, 7% on 24 × 36 in).
+ */
+export function viewPosterScale(s: PrintSize, landscape = false): number {
+  const [w, h] = printDesign(s, landscape)
+  return Math.min(printScale(s), Math.floor(Math.sqrt(IOS_CANVAS_AREA / (w * h)) * 1000) / 1000)
+}
+
 /** A strip's largest area in px (about 1 MP, 4 MB of RGBA). */
 export const STRIP_AREA = 1_048_576
 /**

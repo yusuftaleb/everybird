@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-// Settings > Your data > Language (LanguageField, in both preview variants), the English-names switch under it, the
+// Settings > Language (only the English-names switch: the language is the top bar's menu), the
 // language preference cookie (src/i18n/choose.ts) and the provider's refresh of it on every page load.
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EnglishNamesSwitch, EN_NAMES_KEY, LanguageField } from '@/components/app/LanguageField'
+import { EnglishNamesSwitch, EN_NAMES_KEY } from '@/components/app/LanguageField'
 import { SettingsPage } from '@/components/app/SettingsPage'
 import { chooseLang, refreshLangCookie, setLangCookie } from '@/i18n/choose'
 import { initialState } from '@/lib/list/store'
@@ -27,8 +27,9 @@ vi.mock('@/components/app/EverybirdProvider', () => ({
   }),
 }))
 
-// "Your list" needs the import jobs: not under test here.
+// "Your list" and Add by hand need the import jobs and the taxonomy: not under test here.
 vi.mock('@/components/import/ImportPanel', () => ({ ImportPanel: () => null }))
+vi.mock('@/components/import/TickList', () => ({ TickList: () => null }))
 
 // Node 25 ships its own (unconfigured) localStorage global, which shadows jsdom's: use a plain in-memory one.
 class MemoryStorage {
@@ -61,64 +62,23 @@ afterEach(() => {
   document.cookie = 'everybird-lang=; Max-Age=0; Path=/'
 })
 
-describe('LanguageField', () => {
-  it('lists all four in their own names and shows the current one', () => {
-    render(<LanguageField />, { wrapper: withI18n('pt') })
-    const select = screen.getByRole('combobox', { name: 'Idioma' }) as HTMLSelectElement
-    expect(select).toHaveClass('eb-input')
-    expect(select.parentElement).toHaveClass('eb-select')
-    const options = [...select.options]
-    expect(options.map((o) => o.textContent)).toEqual(['English', 'Español', 'Português', 'Nederlands'])
-    expect(options.map((o) => o.value)).toEqual(['en', 'es', 'pt', 'nl'])
-    expect(options.map((o) => o.getAttribute('lang'))).toEqual(['en', 'es', 'pt-BR', 'nl'])
-    expect(select.value).toBe('pt')
-  })
-
-  it('picking a language changes nothing until "Change language" is pressed; only the button writes the cookie and reloads', () => {
-    const set = vi.spyOn(Document.prototype, 'cookie', 'set')
-    render(<LanguageField />, { wrapper: withI18n('en') })
-    const select = screen.getByRole('combobox', { name: 'Language' })
-    const button = screen.getByRole('button', { name: 'Change language' })
-    expect(button).toBeDisabled() // the draft is the current language
-    fireEvent.change(select, { target: { value: 'es' } })
-    expect(set).not.toHaveBeenCalled()
-    expect(reload).not.toHaveBeenCalled()
-    expect(button).toBeEnabled()
-    fireEvent.change(select, { target: { value: 'en' } }) // arrowing back to the current language
-    expect(button).toBeDisabled()
-    fireEvent.change(select, { target: { value: 'es' } })
-    fireEvent.click(button)
-    expect(set).toHaveBeenCalledTimes(1)
-    expect(set.mock.calls[0][0]).toMatch(/^everybird-lang=es; Max-Age=31536000; Path=\/; SameSite=Lax/)
-    expect(reload).toHaveBeenCalledTimes(1)
-  })
-
-  it('the button is named in the page language', () => {
-    for (const [l, name] of [['es', 'Cambiar idioma'], ['pt', 'Mudar idioma'], ['nl', 'Taal wijzigen']] as const) {
-      render(<LanguageField />, { wrapper: withI18n(l) })
-      expect(screen.getByRole('button', { name })).toBeDisabled()
-      cleanup()
-    }
-  })
-
-  it('without a list the field is still on Settings', () => {
+describe('Settings > Language', () => {
+  it('has no language select (the top bar\'s menu changes the language); the English-names switch stays when the UI is not English', () => {
     // Before the bird data loads (the prerendered page) and after it, with no list on the device.
     for (const data of [null, { species: {}, regions: {} }]) {
       eb.data = data
       render(<SettingsPage />, { wrapper: withI18n('nl') })
-      const select = screen.getByRole('combobox', { name: 'Taal' }) as HTMLSelectElement
-      expect(select.value).toBe('nl')
-      // The first field of "Your data".
-      const section = document.querySelector<HTMLElement>('section[aria-labelledby="eb-data-h"]')!
-      expect(section).toContainElement(select)
-      expect(section.querySelector('select, input, button')).toBe(select)
-      // The English-names switch sits under it when the UI isn't English.
-      expect(screen.getByRole('switch', { name: 'Vogelnamen in het Engels tonen' })).toBeInTheDocument()
+      expect(screen.queryByRole('combobox')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Taal wijzigen' })).toBeNull()
+      const section = document.querySelector<HTMLElement>('section[aria-labelledby="eb-lang-h"]')!
+      expect(section.querySelector('h2')).toHaveTextContent('Taal')
+      expect(section).toContainElement(screen.getByRole('switch', { name: 'Vogelnamen in het Engels tonen' }))
       cleanup()
     }
     eb.data = null
     render(<SettingsPage />, { wrapper: withI18n('en') })
-    expect(screen.getByRole('combobox', { name: 'Language' })).toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).toBeNull()
+    expect(document.querySelector('section[aria-labelledby="eb-lang-h"]')).toBeNull()
     expect(screen.queryByRole('switch', { name: /English/ })).toBeNull()
   })
 })
@@ -175,7 +135,7 @@ describe('the language cookie', () => {
     refreshLangCookie(present)
     expect(present.writes).toEqual(['everybird-lang=es; Max-Age=31536000; Path=/; SameSite=Lax; Secure'])
 
-    for (const c of ['', 'theme=x', 'everybird-lang=fr', 'everybird-lang=', 'my-everybird-lang=es']) {
+    for (const c of ['', 'theme=x', 'everybird-lang=tr', 'everybird-lang=', 'my-everybird-lang=es']) {
       const doc = fakeDoc(c)
       refreshLangCookie(doc)
       expect(doc.writes, c).toEqual([])

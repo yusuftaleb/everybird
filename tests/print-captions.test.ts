@@ -9,7 +9,7 @@ import type { SpeciesRow } from '@/lib/species/types'
 import { planCaptions, verifyAndPlaceCaptions, wrapCaption } from '@/lib/share/captions'
 import * as image from '@/lib/share/image'
 import { makePoster, type EncoderPort, type PosterDeps } from '@/lib/share/poster'
-import { CAPTION_CAPS, captionMinPx, printScale } from '@/lib/share/print'
+import { CAPTION_CAPS, captionMinPx, printDesign, printScale } from '@/lib/share/print'
 import { installStubs } from './fixtures/share-image-harness'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -52,24 +52,27 @@ function rectsOverlap(ax0: number, ay0: number, ax1: number, ay1: number, bx0: n
 }
 
 describe('print captions', () => {
-  it('defines exact species caps and >= 9pt minimum design-unit font sizes', () => {
+  it('defines exact species caps and 18pt names on paper (twice the first posters\' 9pt), in each size\'s design units', () => {
     expect(CAPTION_CAPS).toEqual({
-      A4: 40, A3: 80, A2: 160, A1: 320,
-      US12x18: 80, US18x24: 180, US24x36: 360,
+      A4: 20, A3: 40, A2: 80, A1: 160,
+      US12x18: 40, US18x24: 90, US24x36: 180,
     })
     for (const size of Object.keys(CAPTION_CAPS) as (keyof typeof CAPTION_CAPS)[]) {
-      expect(captionMinPx(size)).toBeCloseTo(18.75 / printScale(size), 6)
+      expect(captionMinPx(size)).toBeCloseTo(37.5 / printScale(size), 6)
     }
+    // The bigger the poster, the smaller a name is in design units, and the same on paper.
+    expect(captionMinPx('A4')).toBeGreaterThan(captionMinPx('A2'))
+    expect(captionMinPx('A2') * printScale('A2')).toBeCloseTo(captionMinPx('A4') * printScale('A4'), 6)
   })
 
-  it('rejects 41 species on A4 with cap reason and accepts 40 species on A4 with zero overlap', async () => {
-    const over = makeSpeciesAndEntries(41)
+  it('rejects 21 species on A4 with cap reason and accepts 20 species on A4 with zero overlap', async () => {
+    const over = makeSpeciesAndEntries(21)
     const overPlan = planCaptions(over.entries, over.species, 'A4', 952)
     expect(overPlan).toEqual({ ok: false, reason: 'cap' })
 
-    const { species, entries, load } = makeSpeciesAndEntries(40, (i) => `Northern Synthetic Warbler ${i + 1}`)
+    const { species, entries, load } = makeSpeciesAndEntries(20, (i) => `Synthetic Warbler ${i + 1}`)
     const content: image.CardContent = { name: true, filter: false, latest: true, count: entries.length }
-    const L = image.cardLayout('print', content, image.cardDims('print', 'A4'))
+    const L = image.cardLayout('print', content, printDesign('A4'))
     const plan = planCaptions(entries, species, 'A4', L.collage.w)
     expect(plan.ok).toBe(true)
     if (!plan.ok) return
@@ -89,7 +92,7 @@ describe('print captions', () => {
     const pack = image.packFromReply(reply)
     const fitRes = image.fitCaptionPack(pack, entries, 'print', content, 'A4', plan)
     expect(fitRes.ok).toBe(true)
-    expect(fitRes.captions).toHaveLength(40)
+    expect(fitRes.captions).toHaveLength(20)
 
     const hole = {
       ...L.count.hole,
@@ -118,6 +121,12 @@ describe('print captions', () => {
         expect(rectsOverlap(cap.x, cap.y, cap.x + cap.w, cap.y + cap.h, other.x, other.y, other.x + other.w, other.y + other.h)).toBe(false)
       }
     }
+  })
+
+  it('breaks a name after a slash as after a hyphen', () => {
+    const m = (s: string) => s.length * 10
+    expect(wrapCaption('Northwestern/Southeastern', 140, m)).toEqual(['Northwestern/', 'Southeastern'])
+    expect(wrapCaption('Northwestern/ Southeastern', 140, m)).toEqual(['Northwestern/', 'Southeastern'])
   })
 
   it('rejects unbreakable long names and overlapping caption placements', () => {
@@ -168,6 +177,7 @@ describe('print captions', () => {
       nameOf: (row) => `Local ${row.code}`,
     })
     expect(card.captions).toHaveLength(2)
+    expect(card.namesDropped).toBeUndefined()
     const cap0 = card.captions![0]
     const seamY = cap0.y + cap0.h / 2
 
@@ -185,53 +195,6 @@ describe('print captions', () => {
     expect(drawnA.length).toBeGreaterThan(0)
     expect(drawnB.length).toBeGreaterThan(0)
     expect(drawnA).toEqual(drawnB)
-  })
-
-  it('clears lifer rings on ringed tiles and rejects neighbor ring overlap', async () => {
-    installStubs()
-    const { species, entries } = makeSpeciesAndEntries(2, (i) => `Ringed Bird ${i}`)
-    const pack: image.ImagePack = {
-      W: 400,
-      H: 500,
-      boxes: new Map([
-        ['bird0', [60, 120, 60, 60]],
-        ['bird1', [260, 320, 60, 60]],
-      ]),
-    }
-    image.clearStickerCache()
-    const card = await image.prepareCard({
-      format: 'print',
-      printSize: 'A4',
-      showNames: true,
-      markNewest: true,
-      markFirst: true,
-      entries,
-      species,
-      pack,
-      theme: 'light',
-      strings: en.ui,
-    })
-    expect(card.captions).toHaveLength(2)
-    for (let i = 0; i < card.tiles.length; i++) {
-      const tile = card.tiles[i]
-      const cap = card.captions![i]
-      expect(cap.y).toBeGreaterThanOrEqual(tile.y + tile.h + 8 - 1e-6)
-    }
-
-    const plan = planCaptions(entries, species, 'A4', 952, undefined, undefined, new Set(['bird1']))
-    expect(plan.ok).toBe(true)
-    if (!plan.ok) return
-    const ringOverlap = verifyAndPlaceCaptions(
-      [
-        { code: 'bird0', x: 100, y: 100, w: 60, h: 60 },
-        { code: 'bird1', x: 100, y: 190, w: 60, h: 60, marked: true },
-      ],
-      { x: 64, y: 64, w: 952, h: 1300 },
-      { cx: 540, cy: 700 },
-      { num: [-10, -10, 10, 10], label: [-10, 10, 10, 20], pad: 2 },
-      plan,
-    )
-    expect(ringOverlap).toEqual({ ok: false, reason: 'fit' })
   })
 
   it('falls back to uncaptioned fit in prepareCard when provided pack fails caption verification', async () => {
@@ -257,6 +220,7 @@ describe('print captions', () => {
       strings: en.ui,
     })
     expect(card.captions).toBeUndefined()
+    expect(card.namesDropped).toBe(true)
   })
 
   it('makePoster paints captions across strips identically to prepareCard', async () => {
@@ -305,9 +269,15 @@ describe('print captions', () => {
       deps,
     )
     expect(poster.bytes).toBe(123)
+    expect(poster.namesDropped).toBe(false)
     const drawnTexts = stripCanvases.flatMap((c) => (logs.get(c) ?? []).filter((l) => l.includes('Poster Bird')))
     expect(drawnTexts.some((l) => l.includes('Poster Bird 0'))).toBe(true)
     expect(drawnTexts.some((l) => l.includes('Poster Bird 1'))).toBe(true)
+
+    // A pack the names don't fit: the poster is made without them and says so.
+    const tight: image.ImagePack = { W: 400, H: 500, boxes: new Map([['bird0', [100, 100, 60, 60]], ['bird1', [100, 165, 60, 60]]]) }
+    const bare = await makePoster({ size: 'A4', showNames: true, entries, species, pack: tight, theme: 'light', strings: en.ui }, () => {}, deps)
+    expect(bare.namesDropped).toBe(true)
   })
 
   it('supports countSize: hide with showNames: true', async () => {

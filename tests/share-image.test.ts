@@ -2,7 +2,9 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, SPREAD, spreadY, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
+import { GROUP_SIDE, GROUP_TILE, IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, fitBox, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
+import { SMALL_GROUP } from '../src/lib/layout/pack'
+import { SMALL_INLINE } from '@/lib/share/image'
 import { MONO_CAP, MONO_CAP_ACCENT, countText, holeExtent, numberEm } from '@/lib/layout/count-box'
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
@@ -37,6 +39,9 @@ describe('filterLabel', () => {
     expect(filterLabel({ order: 'Pelecaniformes', family: 'Ardeidae', countries: ['EG'] }, ctx, en.ui)).toBe('Herons, Egrets, and Bitterns · Egypt')
     expect(filterLabel({ order: 'Passeriformes' }, ctx, en.ui)).toBe('Perching birds')
     expect(filterLabel({ year: '2025' }, ctx, en.ui)).toBe('2025')
+    // With Scientific on (round 6): the family and the order by their scientific names, on every view's image.
+    expect(filterLabel({ order: 'Pelecaniformes', family: 'Ardeidae', countries: ['EG'] }, { ...ctx, sci: true }, en.ui)).toBe('Ardeidae · Egypt')
+    expect(filterLabel({ order: 'Passeriformes' }, { ...ctx, sci: true }, en.ui)).toBe('Passeriformes')
     expect(filterLabel({ countries: ['EG'], from: '2026-01', to: '2026-12' }, ctx, en.ui)).toBe('Egypt · 2026')
     expect(filterLabel({ from: '2025-03', to: '2026-06' }, ctx, en.ui)).toBe('Mar 2025 to Jun 2026')
     expect(filterLabel({ countries: ['EG'], from: '2026-09', to: '2026-09' }, ctx, en.ui)).toBe('Egypt · Sep 2026')
@@ -82,7 +87,10 @@ describe('cardLayout', () => {
       const off = cardLayout(format, { name: true, filter: false, latest: false, count: 197 })
       expect(off.collage.y).toBe(on.collage.y)
       expect(off.rule.y).toBe(on.rule.y)
-      expect(off.collage.h - on.collage.h).toBe(on.rule.y - on.latest!.y) // the row's icon and its gap to the rule
+      expect(off.collage.h).toBeGreaterThan(on.collage.h) // the row's icon, its gap to the rule and its gap from the collage
+      // Round 6, item 17: the row is the Tree's oldest lineage row, its gap from the collage the row's own (GAPS' latest),
+      // plus the credit line placeFooter lifts it by on these 1080-wide cards.
+      expect(on.latest!.y - (on.collage.y + on.collage.h)).toBe((format === 'square' ? 32 : 24) + on.footer.credit + 12)
       expect(packSpec(off).aspect).toBeLessThan(packSpec(on).aspect) // the taller area: the pack is NOT remade for it (imagePackSpec)
     }
   })
@@ -136,17 +144,12 @@ describe('cardLayout', () => {
     expect(L.collage.h / L.collage.w).toBeGreaterThan(1.25)
     expect(packSpec(L).aspect).toBeCloseTo(L.collage.w / L.collage.h)
   })
-  it('post: taller than before (914px with a name and the latest lifer), still inside 64px margins', () => {
+  it('post: taller than before (914px with a name and the latest lifer; 930 since the row keeps the head\'s gap above it), still inside 64px margins', () => {
     const L = cardLayout('post', { name: true, filter: false, latest: true, count: 197 })
     expect(L.name!.y).toBe(64)
     expect(L.footer.y + L.footer.size).toBe(1350 - 64)
-    expect(L.collage.h).toBeGreaterThanOrEqual(935)
-    expect(L.collage.h).toBeGreaterThan(L.collage.w * 0.98)
-  })
-  it('the story and the post may spread a short list vertically; the square never', () => {
-    expect(SPREAD.story).toBeGreaterThan(SPREAD.post)
-    expect(SPREAD.post).toBeGreaterThan(1)
-    expect(SPREAD.square).toBe(1)
+    expect(L.collage.h).toBeGreaterThanOrEqual(930)
+    expect(L.collage.h).toBeGreaterThan(L.collage.w * 0.97)
   })
   it('square: the same centre-count card in 1080×1080, the count a little smaller than the post\'s, its collage wider than tall', () => {
     const L = cardLayout('square', { name: true, filter: true, latest: true, count: 197 })
@@ -157,9 +160,11 @@ describe('cardLayout', () => {
     expect(L.count.size).toBeLessThanOrEqual(cardLayout('post', { name: true, filter: true, latest: true, count: 197 }).count.size)
     expect(L.count.label).toBe('SPECIES')
     expect(L.footer.y + L.footer.size).toBeLessThanOrEqual(1080 - 64)
-    expect(L.latest!.icon).toBe(68)
+    expect(L.latest!.icon).toBe(SMALL_INLINE.icon) // round 6, item 17: the one-line row's sticker
+    // A small group (round 6, item 12): its largest sticker up to GROUP_TILE of the collage's shorter side.
     const short = cardLayout('square', { name: false, filter: false, latest: true, count: 12 })
-    expect(short.maxTile).toBe(0.36)
+    expect(short.maxTile * short.collage.w).toBeCloseTo(GROUP_TILE * short.collage.h)
+    expect(short.maxSide).toBe(GROUP_SIDE)
     expect(packSpec(short).aspect).toBeCloseTo(short.collage.w / short.collage.h)
   })
 })
@@ -251,11 +256,18 @@ describe('maxTileSide', () => {
     expect(maxTileSide(4000)).toBe(440) // and never past the 384px files' sharp size
   })
   it('a short list (up to 24 birds) gets bigger stickers, still under the 384px files', () => {
-    expect(maxTileFrac(12)).toBe(0.36)
+    expect(maxTileFrac(24)).toBe(0.36)
     expect(maxTileFrac(197)).toBe(0.3)
-    expect(maxTileSide(952, maxTileFrac(12))).toBeLessThan(384)
-    expect(cardLayout('story', { name: false, filter: false, latest: true, count: 12 }).maxTile).toBe(0.36)
+    expect(maxTileSide(952, maxTileFrac(24))).toBeLessThan(384)
     expect(packSpec(cardLayout('post', { name: false, filter: false, latest: true, count: 197 })).maxTile).toBe(0.3)
+  })
+  it('a small group (under SMALL_GROUP birds) is drawn as large as its frame allows: up to GROUP_TILE of the shorter side, at most GROUP_SIDE', () => {
+    expect(SMALL_GROUP).toBe(40)
+    const story = cardLayout('story', { name: false, filter: false, latest: true, count: 12 })
+    expect(maxTileSide(story.collage.w, story.maxTile, story.maxSide)).toBe(GROUP_SIDE) // 0.7 × 952 is past the cap
+    const desktop = cardLayout('desktop', { name: false, filter: false, latest: true, count: 39 })
+    expect(maxTileSide(desktop.collage.w, desktop.maxTile, desktop.maxSide)).toBeCloseTo(GROUP_TILE * desktop.collage.h)
+    expect(cardLayout('story', { name: false, filter: false, latest: true, count: 40 }).maxTile).toBe(0.3)
   })
 })
 
@@ -275,31 +287,15 @@ describe('fitPack', () => {
     const capped = fitPack(pack, area, 228)
     expect(60 * capped.s).toBeCloseTo(228)
   })
-  it('spreads a short list vertically to fill a tall area (story), keeping tile sizes, up to spreadMax', () => {
-    // A ring ±100 units around the centre; tiles 40 units; the area is much taller than wide.
-    const boxes: [string, [number, number, number, number]][] = [['t', [180, 90, 40, 40]], ['b', [180, 290, 40, 40]], ['l', [80, 190, 40, 40]], ['r', [280, 190, 40, 40]]]
+  it('scales both axes alike (no vertical stretch): a box keeps its shape and its place relative to the centre', () => {
+    const boxes: [string, [number, number, number, number]][] = [['t', [180, 90, 40, 40]], ['b', [180, 290, 40, 40]]]
     const pack = { W: 400, H: 420, boxes: new Map(boxes) }
     const tall = { x: 64, y: 250, w: 952, h: 1400 }
-    const f = fitPack(pack, tall, 10_000, 2)
-    expect(f.sy).toBeGreaterThan(1)
-    // The top tile's top edge lands on the area's top (or the spread hit its max).
-    const top = f.cy + (110 - f.uy) * f.s * f.sy - 20 * f.s
-    expect(top).toBeGreaterThanOrEqual(tall.y - 1e-6)
-    expect(f.sy === 2 || Math.abs(top - tall.y) < 1e-6).toBe(true)
-    // Without a spread allowance it stays uniform.
-    expect(fitPack(pack, tall, 10_000).sy).toBe(1)
-    expect(fitPack(pack, tall, 10_000, 1.2).sy).toBeLessThanOrEqual(1.2)
-  })
-  it('spreads above and below separately, so a lopsided ring reaches both edges', () => {
-    // One tile 60 units above the centre, one 120 below: the upper one may spread further.
-    const boxes: [string, [number, number, number, number]][] = [['t', [180, 130, 40, 40]], ['b', [180, 310, 40, 40]], ['r', [300, 190, 40, 40]]]
-    const pack = { W: 400, H: 420, boxes: new Map(boxes) }
-    const tall = { x: 64, y: 250, w: 952, h: 1400 }
-    const f = fitPack(pack, tall, 10_000, 5)
-    expect(f.sy).toBeGreaterThan(f.syDown)
-    expect(spreadY(f, 150) - 20 * f.s).toBeCloseTo(tall.y)
-    expect(spreadY(f, 330) + 20 * f.s).toBeCloseTo(tall.y + tall.h)
-    expect(spreadY(f, 210)).toBeCloseTo(f.cy) // a centred tile stays put
+    const f = fitPack(pack, tall, 10_000)
+    const [x, y, w, h] = fitBox(f, [180, 90, 40, 40])
+    expect(w).toBeCloseTo(h)
+    expect(x + w / 2 - f.cx).toBeCloseTo((200 - f.ux) * f.s)
+    expect(y + h / 2 - f.cy).toBeCloseTo((110 - f.uy) * f.s)
   })
   it('never scales a full frame below its width fit', () => {
     const pack = { W: 400, H: 420, boxes: new Map([['a', [0, 0, 30, 30]], ['b', [370, 390, 30, 30]]] as [string, [number, number, number, number]][]) }
@@ -310,16 +306,16 @@ describe('fitPack', () => {
 describe('the footer line (the site and the sticker credit, never truncated)', () => {
   // Geist Mono: 0.6em per character.
   const measure = (text: string) => (px: number) => text.length * 0.6 * px
-  it('is the site and "stickers by huashu" on one line; the full credit is the share text', () => {
-    expect(FOOTER_LINE).toBe(`${SITE_LABEL} · stickers by huashu`)
-    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · stickers by huashu')
+  it('is the site and the sticker credit in its one form; the full credit with the link is the share text', () => {
+    expect(FOOTER_LINE).toBe(`${SITE_LABEL} · Stickers: huashu-bird-sticker, CC BY 4.0`)
+    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0')
     expect(SHARE_CREDIT).toBe('Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker')
   })
   it('sits beside the wordmark when it fits, shrinking no lower than 17px', () => {
-    expect(placeCredit(measure(FOOTER_LINE), 790, 952, 20)).toEqual({ size: 20, below: false }) // 540px
-    expect(placeCredit(measure(FOOTER_LINE), 470, 952, 20)).toEqual({ size: 17, below: false }) // 459px
+    expect(placeCredit(measure(FOOTER_LINE), 810, 952, 20)).toEqual({ size: 20, below: false }) // 804px
+    expect(placeCredit(measure(FOOTER_LINE), 690, 952, 20)).toEqual({ size: 17, below: false }) // 683px
   })
-  it('takes its own line at full size when it does not fit at 17px, keeping "stickers by huashu"', () => {
+  it('takes its own line at full size when it does not fit at 17px, keeping the credit', () => {
     expect(placeCredit(measure(FOOTER_LINE), 300, 952, 20)).toEqual({ size: 20, below: true })
   })
   it('a line too long for even its own line shrinks to fit, never cut', () => {
@@ -327,18 +323,18 @@ describe('the footer line (the site and the sticker credit, never truncated)', (
     expect(r.below).toBe(true)
     expect(measure(FOOTER_LINE)(r.size)).toBeLessThanOrEqual(400)
   })
-  const stamped = withStamp(FOOTER_LINE, stampDate(new Date(2026, 8, 30))) // the longest English stamp; the line is 59 characters
-  it('with the date stamp, still sits beside the wordmark at 17px or more for a wordmark up to 280px wide', () => {
+  const stamped = withStamp(FOOTER_LINE, stampDate(new Date(2026, 8, 30))) // the longest English stamp; the line is 81 characters
+  it('with the date stamp, takes its own line under the wordmark of a 1080-wide card, whole, at 19px', () => {
     for (const brandW of [140, 200, 280]) {
       const r = placeCredit(measure(stamped), 952 - brandW, 952, 20)
-      expect(r.below).toBe(false)
-      expect(r.size).toBeGreaterThanOrEqual(17)
+      expect(r).toEqual({ size: 19, below: true })
+      expect(measure(stamped)(r.size)).toBeLessThanOrEqual(952)
     }
   })
-  it('a stamp too long to sit beside a 280px wordmark (a full month name) moves the whole line under it, never cut', () => {
+  it('a longer stamp (a full month name) shrinks the line on its own line, never cut', () => {
     const long = withStamp(FOOTER_LINE, '30 septiembre 2026')
     const r = placeCredit(measure(long), 952 - 280, 952, 20)
-    expect(r).toEqual({ size: 20, below: true })
+    expect(r).toEqual({ size: 18, below: true })
     expect(measure(long)(r.size)).toBeLessThanOrEqual(952)
   })
 })
@@ -394,7 +390,8 @@ describe('drawShareImage draws the count in the UI language', () => {
     expect(label).toBe('Paseriformes · mar 2020 a jun 2021')
     for (const format of ['story', 'post', 'square'] as const) {
       const texts = await draw(12, t, { format, latest: true, filterLabel: label })
-      expect(texts, format).toContain('ÚLTIMA ESPECIE NUEVA · MAY 2020')
+      // The Story stacks the row (its mono label upper case); the Post and the Square draw it on one line, sentence case.
+      expect(texts, format).toContain(format === 'story' ? 'ÚLTIMA ESPECIE NUEVA · MAY 2020' : 'Última especie nueva · may 2020')
       expect(texts, format).toContain(label)
       expect(texts, format).toContain('ESPECIES')
       // The credit stays English; only the date after it is Spanish, with no lead.
@@ -405,8 +402,8 @@ describe('drawShareImage draws the count in the UI language', () => {
   it('Portuguese and Dutch stamps: the date only', async () => {
     expect(await draw(12, pt.ui)).toContain(`${FOOTER_LINE} · 14 nov 2026`)
     expect(await draw(12, nl.ui)).toContain(`${FOOTER_LINE} · 14 nov 2026`)
-    expect((await draw(12, pt.ui, { latest: true })).join('\n')).toContain('ÚLTIMA ESPÉCIE NOVA · MAI 2020')
-    expect((await draw(12, nl.ui, { latest: true })).join('\n')).toContain('NIEUWSTE SOORT · MEI 2020')
+    expect(await draw(12, pt.ui, { latest: true })).toContain('Última espécie nova · mai 2020')
+    expect(await draw(12, nl.ui, { latest: true })).toContain('Nieuwste soort · mei 2020')
   })
   it('a long Spanish filter label with the stamp never cuts the credit', async () => {
     const t = es.ui
@@ -414,7 +411,7 @@ describe('drawShareImage draws the count in the UI language', () => {
     const long = `${label} · ${'Muy largo '.repeat(12)}`
     for (const format of ['story', 'post', 'square'] as const) {
       const texts = await draw(12, t, { format, latest: true, filterLabel: long })
-      const footer = texts.filter((x) => x.includes('stickers by huashu'))
+      const footer = texts.filter((x) => x.includes('Stickers: huashu-bird-sticker'))
       expect(footer, format).toEqual([`${FOOTER_LINE} · 14 nov 2026`])
     }
     // placeCredit itself: the stamped Spanish line beside a 280px wordmark, else whole on its own line.

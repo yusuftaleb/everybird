@@ -134,12 +134,12 @@ export const MAX_REBUILD = 600
 
 /**
  * The part of a change one sync ships: every removal (cheap), and at most `max` rebuilt stickers (`max` <= 0: all),
- * the website's species first, then by code, so reruns pick the same batch. The rest is `deferred` to a later run.
+ * by code, so reruns pick the same batch. The rest is `deferred` to a later run.
  */
-export function selectBatch(changes: readonly StickerChange[], max: number, website: ReadonlySet<string>): { ship: StickerChange[]; deferred: StickerChange[] } {
+export function selectBatch(changes: readonly StickerChange[], max: number): { ship: StickerChange[]; deferred: StickerChange[] } {
   const removed = changes.filter((c) => c.kind === 'removed')
   const rebuild = changes.filter((c) => c.kind !== 'removed')
-    .sort((a, b) => Number(website.has(b.code)) - Number(website.has(a.code)) || (a.code < b.code ? -1 : a.code > b.code ? 1 : 0))
+    .sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0))
   const n = max > 0 ? Math.min(max, rebuild.length) : rebuild.length
   const ship = [...rebuild.slice(0, n), ...removed].sort((a, b) => (a.code < b.code ? -1 : 1))
   return { ship, deferred: rebuild.slice(n) }
@@ -238,7 +238,7 @@ export function diffRows(prev: readonly SpeciesRow[], next: readonly SpeciesRow[
 }
 const fmtG = (g: number) => `${Math.round(g * 10) / 10} g`
 
-export type SummaryEntry = { code: string; com: string; kind: 'changed' | 'new' | 'removed' | 'data'; detail: string; website: boolean }
+export type SummaryEntry = { code: string; com: string; kind: 'changed' | 'new' | 'removed' | 'data'; detail: string }
 export type Summary = {
   from: string; to: string; repo: string
   entries: SummaryEntry[]
@@ -256,7 +256,7 @@ export type IucnCredit = { sources: [string, number][]; ok: boolean }
 
 export function summarise(o: {
   from: string; to: string; stickers: readonly StickerChange[]; rows: readonly RowChange[]; records: RecordChanges
-  names: ReadonlyMap<string, string>; website: ReadonlySet<string>; files: string[]; deferred?: number; cap?: number
+  names: ReadonlyMap<string, string>; files: string[]; deferred?: number; cap?: number
   iucnCredit?: IucnCredit
 }): Summary {
   const entries: SummaryEntry[] = []
@@ -265,10 +265,10 @@ export function summarise(o: {
     const extra = rowsBy.get(s.code) ?? []
     rowsBy.delete(s.code)
     const what = s.kind === 'changed' ? (s.from === s.to ? 'redrawn' : `now ${base(s.to!)}`) : s.kind === 'new' ? `sticker ${base(s.to!)}` : 'outline from now on'
-    entries.push({ code: s.code, com: o.names.get(s.code) ?? s.code, kind: s.kind, detail: [what, ...extra].join('; '), website: o.website.has(s.code) })
+    entries.push({ code: s.code, com: o.names.get(s.code) ?? s.code, kind: s.kind, detail: [what, ...extra].join('; ') })
   }
   for (const [code, fields] of rowsBy) {
-    entries.push({ code, com: o.names.get(code) ?? code, kind: 'data', detail: fields.join('; '), website: false })
+    entries.push({ code, com: o.names.get(code) ?? code, kind: 'data', detail: fields.join('; ') })
   }
   const order = { changed: 0, new: 1, removed: 2, data: 3 }
   entries.sort((a, b) => order[a.kind] - order[b.kind] || (a.com < b.com ? -1 : a.com > b.com ? 1 : 0))
@@ -281,7 +281,6 @@ const count = (s: Summary, k: SummaryEntry['kind']) => s.entries.filter((e) => e
 export const compareUrl = (s: Pick<Summary, 'repo' | 'from' | 'to'>) => `${s.repo}/compare/${s.from.slice(0, 7)}...${s.to.slice(0, 7)}`
 const esc = (t: string) => t.replace(/\|/g, '\\|').replace(/\n/g, ' ')
 
-export const PR_URL = '@@PR_URL@@'
 export const ARTIFACT_URL = '@@ARTIFACT_URL@@'
 export const TABLE_MAX = 300
 /** GitHub rejects bodies over 65,536 characters; stay well under (the workflow swaps in URLs). */
@@ -309,7 +308,6 @@ export function shouldOpenPr(o: { ship: readonly unknown[]; rowChanges: readonly
  */
 export function renderPrBody(s: Summary, o: { sheets?: SheetInfo | null; tableMax?: number } = {}): string {
   const n = { changed: count(s, 'changed'), new: count(s, 'new'), removed: count(s, 'removed'), data: count(s, 'data') }
-  const web = s.entries.filter((e) => e.website)
   const head = [
     '## huashu-bird-sticker sync',
     '',
@@ -321,7 +319,6 @@ export function renderPrBody(s: Summary, o: { sheets?: SheetInfo | null; tableMa
     ...(s.deferred ? [`- Left for the next sync: ${s.deferred} more rebuilt stickers (this run ships at most ${s.cap}; merge this PR and the next run continues)`] : []),
     `- Other data (mass, names, quality bar, status): ${n.data} species`,
     `- huashu records with build-relevant changes: ${s.records.changed.length} changed, ${s.records.added.length} added, ${s.records.removed.length} removed`,
-    `- On the website's /lifelist: ${web.length ? web.map((e) => `\`${e.code}\``).join(', ') : 'none'}`,
     ...(s.iucnCredit ? [creditLine(s.iucnCredit)] : []),
     '',
     `Artifacts: [summary.json and the before/after sheets](${ARTIFACT_URL})${o.sheets ? ` (old and new 128 px sticker side by side, ${o.sheets.rows} rows on ${o.sheets.pages} page${o.sheets.pages === 1 ? '' : 's'})` : ''}; kept 30 days.`,
@@ -332,39 +329,16 @@ export function renderPrBody(s: Summary, o: { sheets?: SheetInfo | null; tableMa
     '',
     'Rebuilt stickers are already in the R2 bucket under new file names (`v1/<size>/<code>.<sv>.webp`); their `sv` is in',
     '`data/sticker-versions.json` and `species.v1.json`, so only they get new URLs and every other sticker URL stays the',
-    'same. Nothing changes on the live site until this is merged. Check the Vercel preview, then merge by hand.',
+    'same. Nothing changes on the live site until this is merged. Check the before/after sheets, then merge by hand.',
     '',
     `Files: ${s.files.map((f) => `\`${f}\``).join(', ')}`,
   ]
-  const rows = s.entries.map((e) => `| ${esc(e.com)}${e.website ? ' (website)' : ''} | \`${e.code}\` | ${e.kind} | ${esc(e.detail)} |`)
+  const rows = s.entries.map((e) => `| ${esc(e.com)} | \`${e.code}\` | ${e.kind} | ${esc(e.detail)} |`)
   let max = Math.min(o.tableMax ?? TABLE_MAX, rows.length)
   const build = (k: number) => [...head, ...rows.slice(0, k), ...(rows.length > k ? [`| … and ${rows.length - k} more (summary.json has them all) | | | |`] : []), ...tail].join('\n') + '\n'
   let body = build(max)
   while (body.length > BODY_MAX && max > 0) body = build(max = Math.max(0, max - Math.max(1, Math.ceil(max / 4))))
   return body
-}
-
-export const WEBSITE_ISSUE_TITLE = 'Website /lifelist stickers changed upstream'
-/** Marks which published state (the lock's commit) an issue body was written against. */
-export const baseMarker = (from: string) => `<!-- huashu-sync base=${from} -->`
-
-/**
- * The website issue's body (null when no website species changed). PR_URL stands for the sync PR's link. Its marker
- * lets the workflow update the body while the same change is still unmerged, and comment once a new change comes.
- */
-export function renderIssueBody(s: Summary): string | null {
-  const web = s.entries.filter((e) => e.website)
-  if (!web.length) return null
-  return [
-    baseMarker(s.from),
-    `huashu-bird-sticker changed the stickers of ${web.length} species on yusuftaleb.com/lifelist ([\`${s.from.slice(0, 7)}...${s.to.slice(0, 7)}\`](${compareUrl(s)}); Everybird PR: ${PR_URL}).`,
-    'Update them in Framer.',
-    '',
-    '| Species | Code | Change |',
-    '|---|---|---|',
-    ...web.map((e) => `| ${esc(e.com)} | \`${e.code}\` | ${e.kind} |`),
-    '',
-  ].join('\n')
 }
 
 export const BLOCKED_ISSUE_TITLE = 'huashu sync is blocked upstream'

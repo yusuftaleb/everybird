@@ -11,8 +11,12 @@ export class PosterEncoder {
   /** The PNG's parts, built once: its chunk CRCs run over the whole payload, so repeat downloads reuse them. */
   private png: Uint8Array[] | null = null
 
-  constructor(private readonly width: number, private readonly height: number, opts?: { native?: boolean }) {
+  /** RGBA: the PNG keeps the alpha channel (a transparent poster); a PDF is refused. */
+  private readonly alpha: boolean
+
+  constructor(private readonly width: number, private readonly height: number, opts?: { native?: boolean; alpha?: boolean }) {
     if (!Number.isSafeInteger(width) || width <= 0 || !Number.isSafeInteger(height) || height <= 0) throw new Error('invalid poster dimensions')
+    this.alpha = !!opts?.alpha
     this.sink = createZlibSink(opts)
   }
 
@@ -23,7 +27,7 @@ export class PosterEncoder {
     this.rows += rows
     // Reserve rows synchronously, then serialize filtering so concurrent callers share the right previous row.
     const pending = this.tail.then(async () => {
-      const { out, last } = filterUp(rgba, this.width, rows, this.prev)
+      const { out, last } = filterUp(rgba, this.width, rows, this.prev, this.alpha)
       await this.sink.push(out)
       this.prev = last
     })
@@ -54,7 +58,8 @@ export class PosterEncoder {
 
   file(kind: 'png' | 'pdf', page: readonly [number, number]): Blob {
     if (this.state !== 'done' || !this.chunks) throw new Error('poster must end before a file is ready')
-    const parts = kind === 'png' ? (this.png ??= pngParts(this.width, this.height, this.chunks)) : pdfParts(this.width, this.height, page, this.chunks)
+    if (kind === 'pdf' && this.alpha) throw new Error('a transparent poster has no PDF')
+    const parts = kind === 'png' ? (this.png ??= pngParts(this.width, this.height, this.chunks, 150, this.alpha)) : pdfParts(this.width, this.height, page, this.chunks)
     // Both compressors and the wrappers allocate ordinary ArrayBuffers, never SharedArrayBuffers.
     return new Blob(parts as Uint8Array<ArrayBuffer>[], { type: kind === 'png' ? 'image/png' : 'application/pdf' })
   }

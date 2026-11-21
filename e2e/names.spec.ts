@@ -3,6 +3,9 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
+import { openAdd } from './add-birds'
+import { nl } from '../src/i18n/messages/nl'
+import { pt } from '../src/i18n/messages/pt'
 
 const data = (f: string) => JSON.parse(readFileSync(resolve(__dirname, `../public/data/${f}`), 'utf8'))
 const names = (l: string) => (data(`names.${l}.v1.json`) as { names: Record<string, string> }).names
@@ -47,7 +50,9 @@ test.describe('es-MX', () => {
     const local = names('es_MX')[CODE] ?? names('es')[CODE]
     const bird = page.locator(`[data-code="${CODE}"]`).first()
     await expect(bird).toHaveAttribute('aria-label', local)
-    await bird.click()
+    // Birds take no pointer events of their own (the stage hit-tests their silhouettes): open the card from the keyboard
+    await bird.focus()
+    await page.keyboard.press('Enter')
     await expect(page.getByRole('dialog', { name: local })).toBeVisible()
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: /buscar/i }).first().click()
@@ -62,7 +67,11 @@ test.describe('es-MX', () => {
     const code = await first.getAttribute('data-code')
     const label = await first.getAttribute('aria-label')
     expect(label).toBe(names('es')[code!] ?? label)
-    await first.hover()
+    // The stage hit-tests the silhouettes (a bird takes no pointer events itself): the mouse over the bird's middle
+    await expect(stage).toHaveAttribute('data-settled', '')
+    await first.scrollIntoViewIfNeeded()
+    const bb = (await first.boundingBox())!
+    await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2)
     await expect(page.getByTestId('bird-tip')).toContainText(names('es')[code!] ?? label!)
   })
 
@@ -87,18 +96,17 @@ test.describe('pt-PT', () => {
   })
 })
 
-for (const [locale, word, english] of [['pt-BR', 'pardal', 'sparrow'], ['nl-NL', 'huismus', 'sparrow']] as const) {
+for (const [locale, ui, word, english] of [['pt-BR', pt.ui, 'pardal', 'sparrow'], ['nl-NL', nl.ui, 'huismus', 'sparrow']] as const) {
   test.describe(locale, () => {
     test.use({ locale })
 
-    test(`Tick by hand's search finds "${word}" and "${english}"`, async ({ page }) => {
+    test(`Add by hand's search finds "${word}" and "${english}"`, async ({ page }) => {
       await page.goto('/settings')
-      await page.locator('#tick').scrollIntoViewIfNeeded()
-      await page.getByRole('button', { name: /tick|marcar|aankruisen|afinar|vink/i }).first().click()
-      const search = page.locator('#tick input[type="search"]').first()
+      const dialog = await openAdd(page, 'hand', ui)
+      const search = dialog.getByLabel(ui.tick.search, { exact: true })
       for (const q of [word, english]) {
         await search.fill(q)
-        await expect(page.locator('#tick [role="option"]').first()).toBeVisible()
+        await expect(dialog.getByRole('listbox', { name: ui.tick.list }).getByRole('option').first()).toBeVisible()
       }
     })
   })

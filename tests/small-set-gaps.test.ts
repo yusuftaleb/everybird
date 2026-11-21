@@ -86,8 +86,12 @@ const BEFORE: Record<string, { even: { toHole: number; toNeighbour: number }; tr
 // - true size, medium and narrow, 4 birds: the count distance is worse (74.3 against 58.2, and 193.4 against 142.2): a
 //   heavy bird's true-size box is pushed out past the count's air. Settling true size is still what closes the neighbour
 //   gaps there (all six true-size neighbour gaps are smaller than before), so it stays on.
+// - true size, wide, 3 birds (2026-11-20, round 6): one of the eight sets (4,243 g, 1,466 g and 424 g) has its third bird
+//   133 units from the count, beside its neighbour (before 18). The full collage now packs tighter (slideIn), so its
+//   trimmed stage, which every filtered state packs in, is 788 units tall instead of 892, and three of the heaviest
+//   birds at true size (1.5 x the base) no longer fit above and below the count.
 const OVER_F = new Set(['narrow 3 even neighbour'])
-const WORSE_TRUE_COUNT = new Set(['medium 4', 'narrow 4'])
+const WORSE_TRUE_COUNT = new Set(['medium 4', 'narrow 4', 'wide 3'])
 
 describe('small filtered sets (3 and 4 birds) sit snugly around the count', () => {
   beforeAll(() => { POOL = loadPool() })

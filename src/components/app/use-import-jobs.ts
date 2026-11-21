@@ -8,7 +8,7 @@ import { parseErrorCode, parseInWorker } from '@/lib/import/parse-client'
 import type { ParseResult } from '@/lib/import/parse.worker'
 import { loadRegions } from '@/lib/import/places'
 import type { ImportResult, Slot } from '@/lib/list/model'
-import type { DetailsFor, EbirdDetails, ObsOrgDetails, ScythebillDetails, SheetDetails } from '@/lib/list/storage'
+import type { DetailsFor, EbirdDetails, IgoterraDetails, ObsOrgDetails, ScythebillDetails, SheetDetails } from '@/lib/list/storage'
 import { loadTaxonomy } from '@/lib/species/load'
 import type { Regions } from '@/lib/species/types'
 import { fetchData } from '@/lib/data-url'
@@ -21,6 +21,7 @@ export type FileError =
   | 'unknown-file'
   | 'damaged'
   | 'unsupported-sheet'
+  | 'xlsx'
   | 'data'
   | 'obsorg-unknown'
   | 'obsorg-no-birds'
@@ -31,6 +32,9 @@ export type FileError =
   | 'scythebill-unknown'
   | 'scythebill-no-birds'
   | 'scythebill-damaged'
+  | 'igoterra-unknown'
+  | 'igoterra-no-birds'
+  | 'igoterra-damaged'
 export type SheetReview = {
   result: ParseResult
   details: SheetDetails
@@ -38,6 +42,8 @@ export type SheetReview = {
   duplicates: number
   unmatchedCount: number
   notSpeciesCount: number
+  /** Rows left out for having no date (the date column marks the birds seen). */
+  noDate: number
 }
 /** A file being read (an eBird, observation.org or spreadsheet export), shown under the row group it was given to. */
 export type FileJob = { busy: boolean; rows: number; error: FileError | null }
@@ -60,6 +66,8 @@ export type ImportJobs = {
   readSheet: (file: File) => Promise<void>
   scythebill: FileJob
   readScythebill: (file: File) => Promise<void>
+  igoterra: FileJob
+  readIgoterra: (file: File) => Promise<void>
   parsePaste: (text: string) => Promise<void>
   sheetReview: SheetReview | null
   confirmSheet: () => void
@@ -118,10 +126,12 @@ export function fileMessage(error: FileError, t: Ui): string {
   const o = t.import.obsorg.errors
   const s = t.import.sheet.errors
   const sb = t.import.scythebill.errors
+  const ig = t.import.igoterra.errors
   switch (error) {
     case 'unknown-file': return e.unknownFile
     case 'damaged': return e.damaged
     case 'unsupported-sheet': return s.unsupported
+    case 'xlsx': return o.xlsx
     case 'data': return o.data
     case 'obsorg-unknown': return o.unknown
     case 'obsorg-no-birds': return o.noBirds
@@ -132,12 +142,15 @@ export function fileMessage(error: FileError, t: Ui): string {
     case 'scythebill-unknown': return sb.unknown
     case 'scythebill-no-birds': return sb.noBirds
     case 'scythebill-damaged': return sb.damaged
+    case 'igoterra-unknown': return ig.unknown
+    case 'igoterra-no-birds': return ig.noBirds
+    case 'igoterra-damaged': return ig.damaged
   }
 }
 
 const IDLE_FILE: FileJob = { busy: false, rows: 0, error: null }
 /** The row group a file was given to. */
-type Via = 'ebird' | 'obsorg' | 'sheet' | 'scythebill'
+type Via = 'ebird' | 'obsorg' | 'sheet' | 'scythebill' | 'igoterra'
 const IDLE_INAT: InatJob = { busyFor: null, progress: null, error: null, note: null }
 
 export type OnImport = (slot: Slot, result: ImportResult, details: DetailsFor<Slot>) => void
@@ -155,6 +168,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   const [obsorg, setObsorg] = useState<FileJob>(IDLE_FILE)
   const [sheet, setSheet] = useState<FileJob>(IDLE_FILE)
   const [scythebill, setScythebill] = useState<FileJob>(IDLE_FILE)
+  const [igoterra, setIgoterra] = useState<FileJob>(IDLE_FILE)
   const [sheetReview, setSheetReview] = useState<SheetReview | null>(null)
   const [inat, setInat] = useState<InatJob>(IDLE_INAT)
   const [landed, setLanded] = useState<Landed | null>(null)
@@ -177,11 +191,12 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   const readFile = useCallback(async (file: File, via: Via) => {
     if (busyFile.current) return
     busyFile.current = true
-    const set = via === 'ebird' ? setEbird : via === 'obsorg' ? setObsorg : via === 'sheet' ? setSheet : setScythebill
+    const set = via === 'ebird' ? setEbird : via === 'obsorg' ? setObsorg : via === 'sheet' ? setSheet : via === 'scythebill' ? setScythebill : setIgoterra
     setEbird(IDLE_FILE)
     setObsorg(IDLE_FILE)
     setSheet(IDLE_FILE)
     setScythebill(IDLE_FILE)
+    setIgoterra(IDLE_FILE)
     setSheetReview(null)
     let kind: FileKind = 'unknown'
     let head = ''
@@ -196,13 +211,18 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
         set({ ...IDLE_FILE, error: 'unsupported-sheet' })
         return
       }
+      // eBird and observation.org export CSV: an Excel file given to their rows is not read as a spreadsheet.
+      if (kind === 'xlsx' && (via === 'ebird' || via === 'obsorg')) {
+        set({ ...IDLE_FILE, error: 'xlsx' })
+        return
+      }
       if (kind === 'unknown' && via === 'sheet') {
         const textExt = /\.(csv|tsv|txt)$/i.test(file.name) || !/\.[a-z0-9]{1,8}$/i.test(file.name)
         if (textExt && !head.includes('\u0000')) kind = 'sheet-text'
       }
       const slot = slotOfKind(kind)
       if (kind === 'unknown' || !slot) {
-        set({ ...IDLE_FILE, error: via === 'ebird' ? 'unknown-file' : via === 'obsorg' ? 'obsorg-unknown' : via === 'sheet' ? 'sheet-unknown' : 'scythebill-unknown' })
+        set({ ...IDLE_FILE, error: via === 'ebird' ? 'unknown-file' : via === 'obsorg' ? 'obsorg-unknown' : via === 'sheet' ? 'sheet-unknown' : via === 'scythebill' ? 'scythebill-unknown' : 'igoterra-unknown' })
         return
       }
       set({ busy: true, rows: 0, error: null })
@@ -236,12 +256,13 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
               duplicates: result.duplicates ?? 0,
               unmatchedCount: result.unmatched.filter((u) => u.reason === 'no-match').length,
               notSpeciesCount: result.unmatched.filter((u) => u.reason === 'not-species').length,
+              noDate: result.noDate ?? 0,
             })
           }
           set(IDLE_FILE)
           return
         }
-        let details: EbirdDetails | ObsOrgDetails | ScythebillDetails
+        let details: EbirdDetails | ObsOrgDetails | ScythebillDetails | IgoterraDetails
         if (kind === 'ebird-lifelist' || kind === 'ebird-mydata') {
           result = await parseInWorker(kind, file, { onProgress, regions })
           details = { kind: kind === 'ebird-lifelist' ? 'life-list' : 'full-export', at } satisfies EbirdDetails
@@ -254,6 +275,9 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
         } else if (kind === 'scythebill-csv' || kind === 'scythebill-ebird') {
           result = await parseInWorker(kind, file, { onProgress, regions })
           details = { kind: kind === 'scythebill-csv' ? 'csv' : 'ebird-record', at } satisfies ScythebillDetails
+        } else if (kind === 'igoterra') {
+          result = await parseInWorker(kind, file, { onProgress, regions })
+          details = { kind: 'csv', at } satisfies IgoterraDetails
         } else {
           return
         }
@@ -272,7 +296,9 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
               ? (code === 'no-birds' ? 'sheet-no-birds' : 'sheet-damaged')
               : scythebillKind
                 ? (code === 'no-birds' ? 'scythebill-no-birds' : 'scythebill-damaged')
-                : 'damaged'
+                : kind === 'igoterra'
+                  ? (code === 'no-birds' ? 'igoterra-no-birds' : 'igoterra-damaged')
+                  : 'damaged'
           : 'data'
         set({ ...IDLE_FILE, error })
       }
@@ -284,6 +310,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   const readObsOrg = useCallback((file: File) => readFile(file, 'obsorg'), [readFile])
   const readSheet = useCallback((file: File) => readFile(file, 'sheet'), [readFile])
   const readScythebill = useCallback((file: File) => readFile(file, 'scythebill'), [readFile])
+  const readIgoterra = useCallback((file: File) => readFile(file, 'igoterra'), [readFile])
 
   const parsePaste = useCallback(async (text: string) => {
     if (busyFile.current || !text.trim()) return
@@ -291,6 +318,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
     setEbird(IDLE_FILE)
     setObsorg(IDLE_FILE)
     setScythebill(IDLE_FILE)
+    setIgoterra(IDLE_FILE)
     setSheet({ busy: true, rows: 0, error: null })
     setSheetReview(null)
     try {
@@ -315,6 +343,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
             duplicates: result.duplicates ?? 0,
             unmatchedCount: result.unmatched.filter((u) => u.reason === 'no-match').length,
             notSpeciesCount: result.unmatched.filter((u) => u.reason === 'not-species').length,
+            noDate: result.noDate ?? 0,
           })
         }
         setSheet(IDLE_FILE)
@@ -369,7 +398,7 @@ export function useImportJobs(onImport: OnImport): ImportJobs {
   const cancelInat = useCallback(() => abort.current?.abort(), [])
 
   return useMemo(
-    () => ({ ebird, readEbird, obsorg, readObsOrg, sheet, readSheet, scythebill, readScythebill, parsePaste, sheetReview, confirmSheet, cancelSheet, inat, fetchInat, cancelInat, landed }),
-    [ebird, readEbird, obsorg, readObsOrg, sheet, readSheet, scythebill, readScythebill, parsePaste, sheetReview, confirmSheet, cancelSheet, inat, fetchInat, cancelInat, landed],
+    () => ({ ebird, readEbird, obsorg, readObsOrg, sheet, readSheet, scythebill, readScythebill, igoterra, readIgoterra, parsePaste, sheetReview, confirmSheet, cancelSheet, inat, fetchInat, cancelInat, landed }),
+    [ebird, readEbird, obsorg, readObsOrg, sheet, readSheet, scythebill, readScythebill, igoterra, readIgoterra, parsePaste, sheetReview, confirmSheet, cancelSheet, inat, fetchInat, cancelInat, landed],
   )
 }

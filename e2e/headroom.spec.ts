@@ -94,14 +94,14 @@ test("scrolling down past the threshold hides the bar; a small scroll doesn't to
   expect(await barBottom(page)).toBeCloseTo(h, 0);
 });
 
-test("Places opened after scrolling: the bar shows and covers neither the controls bar nor the panel", async ({ page }) => {
+test("Filters opened after scrolling: the bar shows and covers neither the controls bar nor the panel", async ({ page }) => {
   test.skip((page.viewportSize()?.width ?? 0) <= 600, "phones get the bottom sheet");
   await seed(page);
   const dockTop = await page.locator(".eb-dockwrap").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
   await scrollTo(page, dockTop - 12); // the controls bar just under where the shown bar would be
   await hidden(page);
-  await page.getByTestId("filter-tab-places").click();
-  const panel = page.getByTestId("filter-panel-places");
+  await page.getByTestId("filters-button").click();
+  const panel = page.getByTestId("filters-panel");
   await expect(panel).toBeVisible();
   await shown(page);
   const b = await barBottom(page);
@@ -146,7 +146,7 @@ test("focus moving into the hidden bar shows it, and it stays while focus is ins
   await scrollTo(page, 400);
   await hidden(page);
   // From the page, Shift+Tab back to the bar's last control (the theme switch).
-  await page.getByRole("link", { name: "Add birds" }).evaluate((el: HTMLElement) => el.focus({ preventScroll: true }));
+  await page.getByRole("button", { name: "Add birds", exact: true }).evaluate((el: HTMLElement) => el.focus({ preventScroll: true }));
   const theme = page.getByRole("switch", { name: "Dark mode" });
   for (let i = 0; i < 6 && !(await theme.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press("Shift+Tab");
   await expect(theme).toBeFocused();
@@ -186,11 +186,11 @@ test("anchor jumps land below the bar: /about#credits and /settings#sources", as
 });
 
 // Only keyboard focus holds the bar: Chromium focuses a link on a mouse click, and the bar outlives client navigation,
-// so a clicked "Collage" used to pin the bar until the next click elsewhere (review, 2026-11-06).
+// so a clicked "Collage" (now "My birds") used to pin the bar until the next click elsewhere (review, 2026-11-06).
 test("a mouse click in the bar doesn't pin it: after navigating, scrolling down still hides it", async ({ page }) => {
   await seed(page);
   await page.goto("/settings");
-  await bar(page).getByRole("link", { name: "Collage" }).click();
+  await bar(page).getByRole("link", { name: "My birds" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("collage-stage")).toBeVisible();
   for (const y of [200, 500, 900]) await scrollTo(page, y);

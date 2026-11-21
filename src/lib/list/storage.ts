@@ -43,6 +43,12 @@ export type ScythebillDetails = {
   rows?: number
   at?: string
 }
+export type IgoterraDetails = {
+  kind: 'csv'
+  file?: string
+  rows?: number
+  at?: string
+}
 /**
  * What each connected source is, for "Your sources" on a return visit and its Refresh. A slot with records but no
  * entry here was imported before v3: its details are unknown.
@@ -55,6 +61,7 @@ export type SourceDetails = {
   'obsorg-list'?: ObsOrgDetails & RegionMapping
   sheet?: SheetDetails & RegionMapping
   scythebill?: ScythebillDetails & RegionMapping
+  igoterra?: IgoterraDetails & RegionMapping
 }
 
 /** Records imported through the shared, source-aware region mapping. Older raw codes lack this marker. */
@@ -70,7 +77,9 @@ export type DetailsFor<S extends Slot> = S extends 'inat'
         ? SheetDetails & RegionMapping
         : S extends 'scythebill'
           ? ScythebillDetails & RegionMapping
-          : never
+          : S extends 'igoterra'
+            ? IgoterraDetails & RegionMapping
+            : never
 
 /**
  * The stored list. v2 (Task PL) added seen-here (`SourceRecord.seen`, `Unmatched.seen`); a v1 list is the same shape
@@ -108,7 +117,7 @@ export const STORAGE_KEY = 'everybird:v1'
 export function emptySaved(): Saved {
   return {
     v: 5,
-    records: { ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], manual: [] },
+    records: { ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], igoterra: [], manual: [] },
     unmatched: [],
     edits: { removed: [], added: [], marks: {}, fixes: {} },
     rules: { ...DEFAULT_RULES },

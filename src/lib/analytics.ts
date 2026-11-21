@@ -1,13 +1,13 @@
 import type { Source } from '@/lib/list/model'
 import type { ImageFormat } from '@/lib/share/image'
 import type { ShareLevel } from '@/lib/share/link'
-import { primarySubtag, type Lang } from '@/i18n/langs'
+import { langCode, type Lang } from '@/i18n/langs'
 
 /**
  * Everybird's anonymous counter (spec "My calls" 13). Each event is one tiny POST to Yusuf's Worker
  * (workers/stats: Cloudflare D1, one row per event with a server receipt time and stats day, no IPs or cookies) with the body {n, p, d?, l?}: the
  * event's name, its one property value from a fixed list, d: 'touch' on an iPad that reports a Mac, and on a visit only
- * l, the browser language's primary subtag ("es" for es-MX; the browser's, not the UI language, to choose the next
+ * l, the browser language's primary subtag ("es" for es-MX, zh-Hans or zh-Hant for Chinese; the browser's, not the UI language, to choose the next
  * language). Never counts, names, species, places, URLs or share tokens.
  *
  * Sent only from the production hostname, never with Do Not Track or Global Privacy Control on, and never throws.
@@ -51,11 +51,11 @@ export const PRODUCTION_HOST = 'everybird.yusuftaleb.com'
  */
 export const ALLOWED: Record<EventName, readonly string[]> = {
   visit: ['landing', 'collage', 'settings', 'about', 'shared'],
-  collage_made: ['ebird', 'ebird-list', 'inat', 'obsorg', 'sheet', 'scythebill', 'manual', 'sample', 'restore', 'mixed'],
+  collage_made: ['ebird', 'ebird-list', 'inat', 'obsorg', 'sheet', 'scythebill', 'igoterra', 'manual', 'sample', 'restore', 'mixed'],
   image_downloaded: ['story', 'post', 'square', 'desktop', 'wide'],
   shared: ['story', 'post', 'square', 'desktop', 'wide', 'link'],
   link_copied: ['full', 'compact', 'minimal', 'species'],
-  ui_language: ['en', 'es', 'pt', 'nl'],
+  ui_language: ['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh-Hans', 'zh-Hant'],
   poster_made: ['a4', 'a3', 'a2', 'a1', 'us12x18', 'us18x24', 'us24x36', 'a4-l', 'a3-l', 'a2-l', 'a1-l', 'us12x18-l', 'us18x24-l', 'us24x36-l'],
   poster_downloaded: ['png', 'pdf'],
   search_applied: ['smart', 'bird'],
@@ -67,7 +67,7 @@ export type Payload = { n: EventName; p: string; d?: 'touch'; l?: string }
 
 /**
  * The body for one event, or null if its value isn't on the allow-list (then nothing is sent). `browserLang` is
- * navigator.language: a visit carries its primary subtag as `l`, left out when it isn't one; other events never do.
+ * navigator.language: a visit carries its primary subtag as `l` (zh-Hans or zh-Hant for Chinese, langCode), left out when it isn't one; other events never do.
  */
 export function payloadFor<K extends EventName>(name: K, props: AnalyticsEvents[K], touchMac = false, browserLang?: string): Payload | null {
   if (!Object.prototype.hasOwnProperty.call(ALLOWED, name) || !props || typeof props !== 'object') return null
@@ -76,7 +76,7 @@ export function payloadFor<K extends EventName>(name: K, props: AnalyticsEvents[
   const p = name === 'link_copied' ? WIRE_LEVEL[values[0] as ShareLevel] : values[0]
   if (typeof p !== 'string' || !ALLOWED[name].includes(p)) return null
   const out: Payload = touchMac ? { n: name, p, d: 'touch' } : { n: name, p }
-  const l = name === 'visit' ? primarySubtag(browserLang) : undefined
+  const l = name === 'visit' ? langCode(browserLang) : undefined
   if (l) out.l = l
   return out
 }
