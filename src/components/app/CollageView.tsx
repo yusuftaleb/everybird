@@ -69,7 +69,7 @@ type Props = {
   placesNote?: PlacesNote
   /** Some birds on the observation.org life list have no places: the Places dropdown says so (the birder's own collage). */
   placesUnplaced?: PlacesUnplaced
-  /** Before the stats ("Sample: a demo birder's life list"). */
+  /** Before the stats ("Sample"). */
   statsPrefix?: string
   /** A line under the stats (the unmatched-rows note on the birder's own collage). */
   notice?: ReactNode
@@ -81,8 +81,6 @@ type Props = {
   seed?: readonly StateLayout[]
   /** Told the level the Map or Tree view has open as it changes, for the page's Share button to draw the same. */
   onShareAt?: (at: ShareAt) => void
-  /** At the end of the stats line's row (the landing sample's Share). */
-  statsAction?: ReactNode
 }
 
 const pad = (d: string) => (d.length === 4 ? `${d}-00-00` : d.length === 7 ? `${d}-00` : d)
@@ -145,7 +143,7 @@ function latestLine(name: string, date: string | undefined, t: Ui): ReactNode {
   return rich(fmt(t.collage.legend.latestOn, { name, date: shown }), { time: (chunk) => <time dateTime={date}>{chunk}</time> })
 }
 
-export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShareAt, statsAction, whose = 'this' }: Props) {
+export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShareAt, whose = 'this' }: Props) {
   const { list, filter, mode, listOrder, sci, seen } = state
   // No places to map (a shared link without them): no Map tab, and a carried-over Map view shows the collage.
   const noMap = !!hideSections?.includes('places')
@@ -366,7 +364,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
 
   return (
     <section ref={box} className="eb-view" aria-label={label}>
-      {statsAction ? <div className="eb-stats-row">{statsP}{statsAction}</div> : statsP}
+      {statsP}
       {notice}
       <ControlsBar
         view={view}

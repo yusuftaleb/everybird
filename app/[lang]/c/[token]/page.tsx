@@ -51,10 +51,10 @@ export default async function ComparedPage({ params }: Props) {
   return (
     <>
       <TopBar />
-      <main className="eb-page eb-page-collage">
+      <main className="eb-page eb-page-collage eb-page-titled">
         <div className="eb-hero">
           <div className="eb-hero-text">
-            <h1 className="eb-hero-title">{lists ? fmt(t.compare.sharedTitle, { n: lists.length }) : t.shared.brokenTitle}</h1>
+            <div className="eb-pagehead-row"><h1 className="eb-pagehead-title">{lists ? fmt(t.compare.sharedTitle, { n: lists.length }) : t.shared.brokenTitle}</h1></div>
             <p className="eb-hero-lede" role={lists ? undefined : 'alert'}>{lists ? t.shared.lede : t.shared.brokenLede}</p>
           </div>
           <div className="eb-compare-ctas">

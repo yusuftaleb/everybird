@@ -1,9 +1,9 @@
 'use client'
-// The landing sample's guided tour, started by the welcome's "Explore the sample": four short notes, each placed beside
-// the control it points at (Filter, View, a bird, Share), the last ending on "Use your own list" (what the landing's
+// The landing sample's guided tour, started by the welcome's "Explore the sample": three short notes, each placed beside
+// what it points at (Filter, View, a bird; the sample has no Share), the last ending on "Use your own list" (what the landing's
 // main button opens). Every step has Skip tour; Esc ends it; ended or skipped it never shows again (src/lib/tour.ts).
 // Landing renders it, so never on a birder's own list. No library: a fixed note under (or over) the target's box. Each
-// step's note takes focus, so a screen reader reads its name ("1 of 4") and its text; the target wears an Accent ring.
+// step's note takes focus, so a screen reader reads its name ("1 of 3") and its text; the target wears an Accent ring.
 // Reduced motion: no fade, and the target is scrolled to at once.
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -14,8 +14,8 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { rememberToured } from '@/lib/tour'
 
 const SCOPE = '.eb-page-landing .eb-view'
-type Step = 'filter' | 'view' | 'bird' | 'share'
-export const TOUR_STEPS: readonly Step[] = ['filter', 'view', 'bird', 'share']
+type Step = 'filter' | 'view' | 'bird'
+export const TOUR_STEPS: readonly Step[] = ['filter', 'view', 'bird']
 
 /** The step's target: its control in the sample's bar, or the first bird drawn on the stage. */
 function targetOf(step: Step): HTMLElement | null {

@@ -62,10 +62,10 @@ export default async function SharedPage({ params }: Props) {
     return (
       <>
         <TopBar />
-        <main className="eb-page eb-page-collage">
+        <main className="eb-page eb-page-collage eb-page-titled">
           <div className="eb-hero">
             <div className="eb-hero-text">
-              <h1 className="eb-hero-title">{t.shared.brokenTitle}</h1>
+              <div className="eb-pagehead-row"><h1 className="eb-pagehead-title">{t.shared.brokenTitle}</h1></div>
               <p className="eb-hero-lede" role="alert">{t.shared.brokenLede}</p>
             </div>
             <MakeYours big t={t} />
@@ -81,10 +81,10 @@ export default async function SharedPage({ params }: Props) {
   return (
     <>
       <TopBar />
-      <main className="eb-page eb-page-collage">
+      <main className="eb-page eb-page-collage eb-page-titled">
         <div className="eb-hero">
           <div className="eb-hero-text">
-            <h1 className="eb-hero-title">{ogName(payload, t)}</h1>
+            <div className="eb-pagehead-row"><h1 className="eb-pagehead-title">{ogName(payload, t)}</h1></div>
             <p className="eb-hero-lede">{ogDescription(t)}</p>
           </div>
           <div className="eb-compare-ctas">

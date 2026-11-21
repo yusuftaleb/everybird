@@ -22,10 +22,10 @@ export default function GlobalNotFound() {
         <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700&display=swap" />
       </head>
       <body>
-        <main className="eb-page">
+        <main className="eb-page eb-page-titled">
           <div className="eb-hero">
             <div className="eb-hero-text">
-              <h1 className="eb-hero-title">This page isn&apos;t here</h1>
+              <div className="eb-pagehead-row"><h1 className="eb-pagehead-title">This page isn&apos;t here</h1></div>
               <p className="eb-hero-lede">The address may be mistyped, or the page has moved.</p>
             </div>
             <Link className="eb-btn" href="/">Go to Everybird</Link>
