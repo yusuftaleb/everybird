@@ -64,7 +64,7 @@ export function SheetDrop({
   useEffect(() => {
     if (review) reviewBox.current?.focus()
   }, [review])
-  const { busy, rows, error } = job
+  const { busy, error } = job
 
   const marker = `${connected ? '1' : '0'}|${landedAt ?? ''}`
   const [lastMarker, setLastMarker] = useState(marker)
@@ -128,7 +128,6 @@ export function SheetDrop({
         what={connected ? s.what : undefined}
         disabled={off}
         onRemove={onRemove}
-        menu={connected ? [{ label: t.import.replace, keepFocus: true, onSelect: () => setOpen(true) }] : undefined}
         primary={
           connected ? (
             <button
@@ -227,9 +226,7 @@ export function SheetDrop({
           )}
         </div>
       </SourceRow>
-      <p className="eb-status eb-src-status" role="status">
-        {busy ? (rows ? plural(t.import.ebird.readingRows, rows, { n: formatInt(rows, t.num) }) : t.import.ebird.reading) : ''}
-      </p>
+      {/* A read's progress is the import toast's (ImportToast), never in the grid. */}
       {error && <p className="eb-error eb-src-status" role="alert" data-testid="sheet-error">{fileMessage(error, t)}</p>}
     </div>
   )

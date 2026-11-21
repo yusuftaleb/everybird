@@ -80,7 +80,7 @@ const LAYERS: Layer[] = [
   { name: "Settings' and Add birds' ⋯ source menus (SourceMenu)", file: 'src/components/import/SourceMenu.tsx', cls: '.eb-menu', kind: 'top', up: ['.eb-menuwrap', '.eb-src-acts', ...SOURCES] },
   { name: 'A source row\'s "why?" popover (SourceRow)', file: 'src/components/import/SourceLine.tsx', cls: '.eb-whypop', kind: 'top', up: SOURCES },
   { name: 'Bird card popover and phone sheet (BirdCard)', file: 'src/components/collage/BirdCard.tsx', cls: '.eb-card', covers: ['.eb-card-scrim'], kind: 'fixed', up: VIEW },
-  { name: '"Removed … · Undo" toast (collage, Add by hand)', file: 'src/components/app/UndoToast.tsx', cls: '.eb-toast-slot', kind: 'fixed', up: ['.eb-tick', '.eb-add', '.eb-add-scrim', ...PAGE] },
+  { name: 'The one toast (Toast: "Removed … · Undo" on the collage and in Add by hand; every import\'s, from EverybirdProvider)', file: 'src/components/app/Toast.tsx', cls: '.eb-toast-slot', kind: 'fixed', up: ['.eb-tick', '.eb-add', '.eb-add-scrim', ...PAGE] },
   { name: "The Tree's inside-list sheet (PickerSheet)", file: 'src/components/filters/PickerSheet.tsx', cls: '.eb-sheet', covers: ['.eb-sheet-scrim'], kind: 'fixed', up: ['.eb-tree', ...VIEW] },
   { name: "The dock panels' phone sheets (Filters, Taxa, Display: portalled to the body)", file: 'src/components/filters/Filters.tsx', cls: '.eb-drop-sheet', kind: 'fixed', up: ['body', 'html'] },
   { name: "The sample's tour note (portalled to the body)", file: 'src/components/app/Tour.tsx', cls: '.eb-tour', kind: 'fixed', up: ['body', 'html'] },
@@ -133,6 +133,29 @@ describe('every floating layer is placed against its intended box (the share dia
     const fixed = rules.filter((r) => /position:\s*fixed/.test(r.body)).flatMap((r) => r.sel.split(',').map((s) => s.trim().split(/[\s>+~[:]+/).pop()!))
     const boxes = new Set(LAYERS.flatMap((l) => [l.cls, ...(l.covers ?? [])]).concat('.eb-card'))
     expect([...new Set(fixed)].filter((c) => !boxes.has(c) && !c.startsWith('.ebd'))).toEqual([])
+  })
+})
+
+describe('every menu\'s rows share the language menu\'s treatment (round 6, item 6)', () => {
+  const rowRules = rules.filter((r) => /\.eb-menuitem/.test(r.sel))
+  const fills = (r: { body: string }) => /background:\s*var\(--surface\)/.test(r.body)
+  it('one rule: a fill on hover and on keyboard focus only, never on the current choice; none on a pointer-focused row', () => {
+    const filling = rowRules.filter(fills).map((r) => r.sel)
+    expect(filling).toEqual([
+      '.eb-menuitem:not([aria-checked="true"]):focus-visible',
+      '.eb-menuitem:not([aria-checked="true"]):not([aria-disabled="true"]):hover',
+    ])
+    // No menu's own copy (the language menu's lived under .eb-langmenu), and plain :focus never fills.
+    expect(rowRules.filter((r) => /\.eb-langmenu \.eb-menuitem[^,{]*:(hover|focus)/.test(r.sel))).toEqual([])
+    expect(rowRules.filter((r) => /:focus(?!-visible)/.test(r.sel) && fills(r))).toEqual([])
+    expect(rulesOf('.eb-menuitem').some((r) => r.sel === '.eb-menuitem:focus' && /outline:\s*none/.test(r.body))).toBe(true)
+    // Remove keeps its Accent text.
+    expect(rules.some((r) => r.sel === '.eb-menuitem[data-danger]' && /color:\s*var\(--accent\)/.test(r.body))).toBe(true)
+  })
+  it.each(['src/components/import/SourceMenu.tsx', 'src/components/app/LanguageMenu.tsx', 'src/components/share/MenuSelect.tsx'])('%s draws its rows with .eb-menuitem in an .eb-menu', (f) => {
+    const src = readFileSync(f, 'utf8')
+    expect(src).toMatch(/className="eb-menuitem"/)
+    expect(src).toMatch(/className="eb-menu[ "]/)
   })
 })
 

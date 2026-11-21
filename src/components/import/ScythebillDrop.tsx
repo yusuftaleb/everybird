@@ -1,8 +1,7 @@
 'use client'
 import { useId, useRef } from 'react'
 import { fileMessage, type FileJob } from '@/components/app/use-import-jobs'
-import { fmt, plural } from '@/i18n/core'
-import { formatInt } from '@/i18n/format'
+import { fmt } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
 import { countParts, type RowCount } from '@/lib/list/source-counts'
 import type { Saved, ScythebillDetails } from '@/lib/list/storage'
@@ -39,7 +38,7 @@ export function ScythebillDrop({
   const [panel, setPanel] = useAddPanel()
   const open = panel === 'scythebill'
   const input = useRef<HTMLInputElement>(null)
-  const { busy, rows, error } = job
+  const { busy, error } = job
 
   const read = (file: File | undefined) => {
     if (!file || busy) return
@@ -76,7 +75,6 @@ export function ScythebillDrop({
         what={connected ? sb.what : undefined}
         disabled={off}
         onRemove={onRemove}
-        menu={connected ? [{ label: t.import.replace, onSelect: pick }] : undefined}
         primary={
           connected ? (
             <button
@@ -111,9 +109,7 @@ export function ScythebillDrop({
           </div>
         )}
       </SourceRow>
-      <p className="eb-status eb-src-status" role="status">
-        {busy ? (rows ? plural(t.import.ebird.readingRows, rows, { n: formatInt(rows, t.num) }) : t.import.ebird.reading) : ''}
-      </p>
+      {/* A read's progress is the import toast's (ImportToast), never in the grid. */}
       {error && <p className="eb-error eb-src-status" role="alert">{fileMessage(error, t)}</p>}
     </div>
   )

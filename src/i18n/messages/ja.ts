@@ -590,6 +590,7 @@ export const ja: Messages = {
       combine: 'これらを組み合わせて一つのリストにできます。',
       privacy: 'リストがブラウザの外に出ることはありません。訪問は匿名で数えています。',
       ebirdGroup: 'eBirdファイル',
+      toastDone: '完了 · {result}',
       summary: {
         head: { one: 'コラージュの{n}種', other: 'コラージュの{n}種' },
         list: '{head}：{parts}。',

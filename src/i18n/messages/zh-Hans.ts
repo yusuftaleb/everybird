@@ -590,6 +590,7 @@ export const zhHans: Messages = {
       combine: '可以把这些来源合并成一份清单。',
       privacy: '你的清单从不离开你的浏览器。我们匿名统计访问量。',
       ebirdGroup: 'eBird文件',
+      toastDone: '完成 · {result}',
       summary: {
         head: { one: '你的拼贴画有{n}种', other: '你的拼贴画有{n}种' },
         list: '{head}：{parts}。',

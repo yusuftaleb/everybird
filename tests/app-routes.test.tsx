@@ -452,15 +452,18 @@ describe('Settings and the collage', () => {
     expect(vi.mocked(analytics.track)).not.toHaveBeenCalled() // failed iNat imports send no event
   })
 
-  it('the iNat progress bar is indeterminate until the first page gives the total', async () => {
+  it('until the first page gives the total, the import toast looks the user up with a spinner, no bar (round 6 item 7)', async () => {
     const { inat } = await mount()
     vi.mocked(inat.importInat).mockImplementationOnce(async () => new Promise(() => {}) as never)
     fireEvent.change(inatField(), { target: { value: 'birder' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
-    const bar = await screen.findByRole('progressbar', { name: 'Fetching your observations' })
-    expect(bar).not.toHaveAttribute('aria-valuenow')
-    expect(bar).toHaveAttribute('data-indeterminate')
-    expect(screen.getByText('Looking up “birder”…')).toBeInTheDocument()
+    const toast = await screen.findByTestId('import-toast')
+    expect(toast).toHaveTextContent('Looking up “birder”…')
+    expect(toast.querySelector('.eb-toast-spin')).not.toBeNull()
+    expect(screen.queryByRole('progressbar')).toBeNull()
+    // Nothing of the fetch's progress in the sources grid: the toast's line is the only one.
+    expect(screen.getAllByText(/Looking up/)).toEqual([within(toast).getByText(/Looking up/)])
+    expect(toast.closest('.eb-srclist')).toBeNull()
   })
 
   it('iNat import shows progress and adds its birds as another source', async () => {
@@ -473,11 +476,14 @@ describe('Settings and the collage', () => {
     fireEvent.change(inatField(), { target: { value: 'birder' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
     expect(await screen.findByRole('progressbar', { name: 'Fetching your observations' })).toHaveAttribute('aria-valuetext', '400 of 576')
-    expect(screen.getByText('400 / 576')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    const toast = screen.getByTestId('import-toast')
+    expect(toast).toHaveTextContent('Fetching your observations · 400 of 576')
+    expect(toast).toContainElement(screen.getByRole('progressbar'))
+    expect(within(toast).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     expect(vi.mocked(analytics.track)).not.toHaveBeenCalled()
     await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }) })
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species, all from iNaturalist. See my collage'))
+    expect(screen.getByTestId('import-toast')).toHaveTextContent(/^Done · 1 from iNaturalist$/)
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'inat' }]])
   })
 
@@ -500,7 +506,7 @@ describe('Settings and the collage', () => {
     await go('/settings')
     await openAdd('Import a file')
     expect(screen.getByRole('progressbar', { name: 'Fetching your observations' })).toHaveAttribute('aria-valuenow', '400') // the fetch and its progress outlived the pages
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    expect(within(screen.getByTestId('import-toast')).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     expect(aborted).toBe(false)
     await go('/')
     await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }) })
@@ -889,11 +895,11 @@ describe('remembered sources', () => {
     expect(line).toHaveTextContent(`3 species · 1 skipped why? · Imported ${today}`)
     expect(within(line).getByRole('button', { name: 'Replace ebird_world_life_list.csv' })).toBeInTheDocument()
     await waitFor(async () => expect((await storage.load())?.sources?.['ebird-list']).toMatchObject({ kind: 'life-list', file: 'ebird_world_life_list.csv', rows: 4 }), { timeout: 2000 })
-    // Remove is in the row's ⋯ menu, after Replace; it asks once, and "Keep it" changes nothing (focus back on ⋯).
+    // Remove is the row's ⋯ menu's one item (Replace is the button beside it, never repeated: round 6 item 6); it asks once, and "Keep it" changes nothing (focus back on ⋯).
     const more = within(line).getByRole('button', { name: 'More for eBird life list' })
     expect(more).toHaveAttribute('aria-haspopup', 'menu')
     fireEvent.click(more)
-    expect(within(screen.getByRole('menu', { name: 'More for eBird life list' })).getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Replace', 'Remove'])
+    expect(within(screen.getByRole('menu', { name: 'More for eBird life list' })).getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Remove'])
     fireEvent.click(screen.getByRole('menuitem', { name: 'Remove' }))
     expect(screen.queryByRole('menu')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Keep it' }))
@@ -941,7 +947,7 @@ describe('remembered sources', () => {
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 5 species'))
 
     fireEvent.click(within(screen.getByTestId('source-inat')).getByRole('button', { name: 'More for iNaturalist' }))
-    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Refresh', 'Change username', 'Remove'])
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Change username', 'Remove']) // Refresh is the row's button, not repeated
     fireEvent.click(screen.getByRole('menuitem', { name: 'Remove' }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes, remove it' }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))

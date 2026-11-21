@@ -1,8 +1,7 @@
 'use client'
 import { useId, useRef, type ReactNode } from 'react'
 import { fileMessage, type EbirdJob } from '@/components/app/use-import-jobs'
-import { fmt, plural, rich } from '@/i18n/core'
-import { formatInt } from '@/i18n/format'
+import { fmt, rich } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import { MYEBIRDDATA_PLACES } from '@/lib/list/filter-summary'
@@ -62,7 +61,7 @@ const rowsIn = (t: Ui): Row[] => {
 /**
  * The two eBird files, one quiet row each (Settings > Your list). Not added: "Add" opens the row's panel (what the file
  * brings, the drop zone with "Choose your eBird file", and "How do I get this file?"). Added: the file's name, its species
- * and "only here" (source-counts.ts), skipped entries and date, with Replace (the same picker) and a ⋯ menu (Replace, Remove). Every picker and drop reads
+ * and "only here" (source-counts.ts), skipped entries and date, with Replace (the same picker) and a ⋯ menu (Remove; no item repeats a visible button). Every picker and drop reads
  * the file the same way, and it lands in the row of its kind (read from its header); both rows and the open panels
  * take a dropped file (they highlight while one is dragged over). The import itself runs above the routes, so it
  * survives navigation. With only the life list download, a note under the rows says Places knows only each bird's first
@@ -80,7 +79,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected
   const input = useRef<HTMLInputElement>(null)
   const chooseFull = useRef<HTMLButtonElement>(null)
   const replaceFull = useRef<HTMLButtonElement>(null)
-  const { busy, rows, error } = job
+  const { busy, error } = job
 
   const read = (file: File | undefined) => {
     if (!file || busy) return
@@ -135,7 +134,6 @@ export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected
             what={c ? r.what : undefined}
             disabled={off}
             onRemove={() => onRemove?.(r.slot)}
-            menu={c ? [{ label: t.import.replace, onSelect: pick }] : undefined}
             primary={
               c ? (
                 <button ref={r.slot === 'ebird' ? replaceFull : undefined} type="button" className="eb-btn eb-btn-quiet eb-btn-sm" disabled={off} onClick={pick} aria-label={fmt(t.import.replaceLabel, { name: line!.name })}>
@@ -188,9 +186,7 @@ export function EbirdDrop({ job, onFile, disabled, loaded, placesNote, connected
           })}
         </p>
       )}
-      <p className="eb-status eb-src-status" role="status">
-        {busy ? (rows ? plural(t.import.ebird.readingRows, rows, { n: formatInt(rows, t.num) }) : t.import.ebird.reading) : ''}
-      </p>
+      {/* A read's progress is the import toast's (ImportToast), never in the grid. */}
       {error && <p className="eb-error eb-src-status" role="alert">{fileMessage(error, t)}</p>}
       {reimport && (
         // The Places panel's own words (one source), its link left as plain text here: Replace is right above.

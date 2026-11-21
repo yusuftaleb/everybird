@@ -1,8 +1,7 @@
 'use client'
 import { useId, useRef } from 'react'
 import { fileMessage, type FileJob } from '@/components/app/use-import-jobs'
-import { fmt, plural, rich } from '@/i18n/core'
-import { formatInt } from '@/i18n/format'
+import { fmt, rich } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
 import { OBSORG_PLACES } from '@/lib/list/filter-summary'
 import { countParts, type SourceCounts } from '@/lib/list/source-counts'
@@ -41,8 +40,8 @@ const ROWS: Row[] = [
  * observation.org's two exports, one quiet row each (Settings > Your list), built as EbirdDrop's rows: the life list
  * (Observed species: first dates, no places), then the observations (every bird observation, placed by country and
  * province). Not added: "Add" opens the row's panel (what the file brings, the drop zone, "How do I get this file?").
- * Added: the file's name, its species and "only here", skipped entries and date, with Replace and a ⋯ menu (Replace,
- * Remove). Any picker or drop reads any supported file, and it lands in the row of its kind. With only the life list,
+ * Added: the file's name, its species and "only here", skipped entries and date, with Replace and a ⋯ menu (Remove:
+ * no item repeats a visible button). Any picker or drop reads any supported file, and it lands in the row of its kind. With only the life list,
  * a note under the rows says Places can't filter those birds; its inline link and arrival at /settings#add-obsorg
  * (the Places panel's line) open the observations' Add panel and focus its picker (observations on the list: its
  * Replace).
@@ -56,7 +55,7 @@ export function ObsOrgDrop({ job, onFile, disabled, connected = [], onRemove, sa
   const input = useRef<HTMLInputElement>(null)
   const chooseObs = useRef<HTMLButtonElement>(null)
   const replaceObs = useRef<HTMLButtonElement>(null)
-  const { busy, rows, error } = job
+  const { busy, error } = job
 
   const read = (file: File | undefined) => {
     if (!file || busy) return
@@ -102,7 +101,6 @@ export function ObsOrgDrop({ job, onFile, disabled, connected = [], onRemove, sa
             what={c ? copy.what : undefined}
             disabled={off}
             onRemove={() => onRemove?.(r.slot)}
-            menu={c ? [{ label: t.import.replace, onSelect: pick }] : undefined}
             primary={
               c ? (
                 <button ref={r.slot === 'obsorg' ? replaceObs : undefined} type="button" className="eb-btn eb-btn-quiet eb-btn-sm" disabled={off} onClick={pick} aria-label={fmt(t.import.replaceLabel, { name: line!.name })}>
@@ -154,9 +152,7 @@ export function ObsOrgDrop({ job, onFile, disabled, connected = [], onRemove, sa
           })}
         </p>
       )}
-      <p className="eb-status eb-src-status" role="status">
-        {busy ? (rows ? plural(t.import.ebird.readingRows, rows, { n: formatInt(rows, t.num) }) : t.import.ebird.reading) : ''}
-      </p>
+      {/* A read's progress is the import toast's (ImportToast), never in the grid. */}
       {error && <p className="eb-error eb-src-status" role="alert">{fileMessage(error, t)}</p>}
     </div>
   )

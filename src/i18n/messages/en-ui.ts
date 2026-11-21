@@ -744,6 +744,8 @@ export const EN_UI = {
     privacy: 'Your list never leaves your browser. We count visits anonymously.',
     /** The eBird rows' group (its aria-label). */
     ebirdGroup: 'eBird files',
+    /** The import toast's last line (ImportToast): {result} is the summary's first part, "282 from iNaturalist". */
+    toastDone: 'Done · {result}',
     /** The summary line ("Your collage has 199 species: 185 from eBird, 11 more from iNaturalist, 3 ticked by hand.").
      *  `head` is plural on the total, each part on its own number; the parts are joined with ", " in code. */
     summary: {

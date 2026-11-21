@@ -2,14 +2,12 @@
 import { useId, useState, type FormEvent } from 'react'
 import { inatMessage, type InatJob } from '@/components/app/use-import-jobs'
 import { fmt } from '@/i18n/core'
-import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { countParts, type RowCount } from '@/lib/list/source-counts'
 import type { InatDetails, Saved } from '@/lib/list/storage'
 import { useAddPanel } from './add-panel'
 import { notCounted } from './NotCounted'
 import { HowTo, inatLine, SourceRow } from './SourceLine'
-import '@/components/share/share.css' // .eb-share-bar, the site's progress bar (the poster's and the batch export's)
 
 type Props = {
   job: InatJob
@@ -31,10 +29,11 @@ type Props = {
  * iNaturalist's row (Settings > Your list), one quiet row: "iNaturalist · username" over "220 species · 11 only here ·
  * 10 skipped · Updated 6 Nov", or "Not added". Not added: "Add" opens the panel (what counts, the username field, "How do I find
  * my username?"). Connected: Refresh (fetches the remembered username again, no retyping; Cancel while it runs) and a
- * ⋯ menu (Refresh, Change username, Remove); Change username opens the same panel. The field only shows when adding
+ * ⋯ menu (Change username, Remove; Refresh is the button, never repeated in it); Change username opens the same panel. The field only shows when adding
  * or changing the username, or when a connected account's username isn't known (a list saved before v3). Public wild
- * bird observations are fetched above the routes (survives navigation), shown as a progress bar (fetched / total, with
- * "600 / 16,544" after it; indeterminate until the total is known). Cancel aborts a fetch and leaves the list as it was.
+ * bird observations are fetched above the routes (survives navigation); the fetch shows in the import toast
+ * (ImportToast: "Fetching your observations · 600 of 16,544" over a progress line, with Cancel), never in the grid.
+ * Cancel aborts a fetch and leaves the list as it was.
  */
 export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, onRemove, saved, counts }: Props) {
   const id = useId()
@@ -46,7 +45,7 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, 
   const [panel, setPanel] = useAddPanel()
   const open = panel === 'inat'
   const setOpen = (on: boolean) => setPanel('inat', on)
-  const { busyFor, progress, error, note } = job
+  const { busyFor, error, note } = job
   const known = replaces ? details?.user : undefined
   // A fetch landed under a new username: the field starts empty again.
   const [lastKnown, setLastKnown] = useState(known)
@@ -104,14 +103,8 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, 
       what={replaces ? ti.what : undefined}
       disabled={off}
       onRemove={() => onRemove?.()}
-      menu={
-        replaces
-          ? [
-              ...(known ? [{ label: ti.refresh, onSelect: refresh }] : []),
-              ...(unknown ? [] : [{ label: ti.change, keepFocus: true, onSelect: () => setOpen(true) }]),
-            ]
-          : undefined
-      }
+      // Refresh is the row's button, so not in the menu too (round 6 menu audit, item 6: no item repeats a visible button).
+      menu={replaces && !unknown ? [{ label: ti.change, keepFocus: true, onSelect: () => setOpen(true) }] : undefined}
       primary={primary}
     >
       <div id={`${id}-panel`} className="eb-src-panel" hidden={!showPanel} role="group" aria-label={known ? ti.change : fmt(t.import.addLabel, { title: 'iNaturalist' })}>
@@ -166,26 +159,9 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, 
           <p>{ti.help}</p>
         </HowTo>
       </div>
-      {busyFor && (
-        // Filled by fetched / total; indeterminate until the first page gives the total.
-        <div className="eb-share-progress eb-src-status eb-inat-progress">
-          <div
-            className="eb-share-bar" role="progressbar" aria-label={ti.progress}
-            data-indeterminate={progress ? undefined : ''}
-            aria-valuemin={progress ? 0 : undefined} aria-valuemax={progress?.total} aria-valuenow={progress?.fetched}
-            aria-valuetext={progress ? fmt(ti.fetched, { n: formatInt(progress.fetched, t.num), total: formatInt(progress.total, t.num) }) : undefined}
-          >
-            <span className="eb-share-bar-fill" style={progress ? { width: `${(100 * progress.fetched) / Math.max(progress.total, 1)}%` } : undefined} />
-          </div>
-          {progress && (
-            <span className="eb-share-pct" aria-hidden="true">
-              {`${formatInt(progress.fetched, t.num)} / ${formatInt(progress.total, t.num)}`}
-            </span>
-          )}
-        </div>
-      )}
       <p className="eb-status eb-src-status" role="status">
-        {busyFor ? (progress ? '' : fmt(ti.lookingUp, { user: busyFor })) : note === 'cancelled' ? ti.cancelled : ''}
+        {/* The fetch's progress is the import toast's (ImportToast); the row keeps only a cancel's word. */}
+        {!busyFor && note === 'cancelled' ? ti.cancelled : ''}
       </p>
       {error && <p className="eb-error eb-src-status" role="alert">{inatMessage(error.code, error.user, t)}</p>}
     </SourceRow>

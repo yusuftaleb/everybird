@@ -84,7 +84,7 @@ describe('ObsOrgDrop: the two observation.org rows', () => {
     expect(why).toHaveTextContent("2 rows couldn't be matched to this year's eBird taxonomy. Fix them")
     expect(within(row).getByRole('button', { name: `Replace ${FILE}` })).toBeInTheDocument()
     fireEvent.click(within(row).getByRole('button', { name: 'More for observation.org life list' }))
-    expect(screen.getByRole('menuitem', { name: 'Replace' })).toBeInTheDocument()
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Remove']) // Replace is the button beside it
     fireEvent.click(screen.getByRole('menuitem', { name: 'Remove' }))
     expect(within(row).getByRole('group', { name: 'Remove your observation.org life list' })).toHaveTextContent(/^Remove your observation\.org life list\? Its birds leave your collage/)
   })
@@ -223,14 +223,15 @@ describe('ObsOrgDrop: the two observation.org rows', () => {
     expect(screen.queryByRole('group', { name: 'Add observation.org observations' })).toBeNull()
   })
 
-  it('a dropped file is read; while busy, the status shows here', () => {
+  it('a dropped file is read; while busy, the grid shows no progress (the import toast does: round 6 item 7)', () => {
     const onFile = vi.fn()
     const file = new File(['x'], 'o.csv', { type: 'text/csv' })
     const { rerender } = render(<ObsOrgDrop job={idle} onFile={onFile} />)
     fireEvent.drop(screen.getByTestId('obsorg-drop'), { dataTransfer: { files: [file], types: ['Files'] } })
     expect(onFile).toHaveBeenCalledWith(file)
     rerender(<ObsOrgDrop job={{ busy: true, rows: 1200, error: null }} onFile={onFile} />)
-    expect(screen.getByRole('status')).toHaveTextContent('Reading your file… 1,200 rows')
+    expect(screen.getByTestId('obsorg-drop')).not.toHaveTextContent(/Reading your file/)
+    expect(screen.getByTestId('obsorg-drop')).toHaveAttribute('data-busy')
     rerender(<ObsOrgDrop job={{ ...idle, error: 'obsorg-no-birds' }} onFile={onFile} />)
     expect(screen.getByRole('alert')).toHaveTextContent('No birds in this file.')
     // Disabled (the eBird rows are reading a file): a drop is not taken.

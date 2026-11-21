@@ -349,11 +349,3 @@
 .eb-add button:focus-visible, .eb-add input:focus-visible, .eb-add select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .eb-add { animation: none; } }
 
-/* iNaturalist's fetch: the share dialog's progress bar (.eb-share-bar) across the row, the count after it. Before
-   the total is known, a third of the bar slides along the track; under reduced motion it rests at the start. */
-.eb-inat-progress { display: flex; }
-.eb-inat-progress .eb-share-bar[data-indeterminate] .eb-share-bar-fill { width: 33%; animation: eb-inat-slide 1.4s var(--ease-ui) infinite alternate; }
-@keyframes eb-inat-slide { to { translate: 200% 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .eb-inat-progress .eb-share-bar[data-indeterminate] .eb-share-bar-fill { animation: none; }
-}
