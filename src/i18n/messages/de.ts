@@ -415,6 +415,8 @@ export const de: Messages = {
       lede: 'Sieh, welche Vögel eure Listen gemeinsam haben und welche du noch nicht gesehen hast. Wähle unten Personen, um die Vögel zu sehen, die nur sie gemeinsam haben.',
       ledeTheirs: 'Sieh, welche Vögel diese Listen gemeinsam haben. Wähle unten Personen, um die Vögel zu sehen, die nur sie gemeinsam haben.',
       diagram: 'Diagramm',
+      cantShow: { one: '{n} Vogel steht auf einer Kombination von Listen, die die Kreise nicht zeigen können.', other: '{n} Vögel stehen auf Kombinationen von Listen, die die Kreise nicht zeigen können.' },
+      cantShowPick: 'Wähle oben Personen, um sie zu sehen.',
     },
     orders: {
       Struthioniformes: 'Strauße',

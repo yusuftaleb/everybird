@@ -419,6 +419,8 @@ export const fr: Messages = {
       lede: 'Vois quels oiseaux vos listes ont en commun et lesquels tu n’as pas encore vus. Choisis des personnes ci-dessous pour voir les oiseaux qu’elles seules ont en commun.',
       ledeTheirs: 'Vois quels oiseaux ces listes ont en commun. Choisis des personnes ci-dessous pour voir les oiseaux qu’elles seules ont en commun.',
       diagram: 'Diagramme',
+      cantShow: { one: '{n} oiseau est partagé dans une combinaison que les cercles ne peuvent pas montrer.', other: '{n} oiseaux sont partagés dans des combinaisons que les cercles ne peuvent pas montrer.' },
+      cantShowPick: 'Choisis des personnes ci-dessus pour les voir.',
     },
     orders: {
       Struthioniformes: 'Autruches',
