@@ -5,7 +5,9 @@ import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntry } from '@/lib/list/model'
-import { compareGroups, gridCols, GRID_ROWS, groupOfMask, groupPayload, listColor, ranking, regionCounts, type CompareGroup, type GroupId } from '@/lib/share/compare'
+import {
+  barInGroup, compareGroups, gridCols, GRID_ROWS, groupOfMask, groupPayload, listColor, partInGroup, ranking, regionCounts, type CompareGroup, type GroupId,
+} from '@/lib/share/compare'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import { shareTitle } from '@/lib/share/og'
@@ -117,7 +119,8 @@ export function ListDot({ i }: { i: number }) {
  * The comparison: on top the lists as pills (colour dot, name, species count), `edit` after them and `share` at the
  * row's right end (the Compare page's Edit lists and Share; a comparison link's page has neither); then, side by side
  * from 640px, the diagram (Circles or Bars, chosen in its head row) and the groups as a list of rows, one chosen;
- * pressing a part of the diagram chooses its group too. Under both, the chosen group's birds as a sticker grid.
+ * pressing a part of the diagram chooses its group too, and the diagram shows the chosen group's parts at full strength,
+ * the others faded. Under both, the chosen group's birds as a sticker grid.
  */
 export function CompareResult({ c, edit, share }: { c: Comparison; edit?: ReactNode; share?: ReactNode }) {
   const { t } = useI18n()
@@ -189,15 +192,34 @@ export function CompareView({ lists }: { lists: readonly SharePayload[] }) {
 const VB = [320, 260] as const
 const PAD = 4
 
+/** A part of the drawing: inside every circle `clip` names (the flower's centre is 'core'), outside every one `out` names. */
+type Part = { mask: number; clip: (number | 'core')[]; out: (number | 'core')[] }
+/** The drawing's parts, one per numbered region: every combination of two or three circles; the flower's petals (each
+ *  petal outside the centre) and its centre. */
+function partsOf(d: Diagram): Part[] {
+  const n = d.circles.length, all = d.circles.map((_, i) => i)
+  if (d.core) return [...all.map((i) => ({ mask: 1 << i, clip: [i], out: ['core' as const] })), { mask: (1 << n) - 1, clip: ['core'], out: [] }]
+  return Array.from({ length: (1 << n) - 1 }, (_, k) => {
+    const mask = k + 1
+    return { mask, clip: all.filter((i) => mask & (1 << i)), out: all.filter((i) => !(mask & (1 << i))) }
+  })
+}
+
 /**
  * The circles (two or three lists) or the flower (four to six): each circle a wash of its list's colour with an
- * outline in it, each region's number in it. The picture's text is every number in words (`alt`); pressing a list's own
- * part, or the part on every list, chooses that group (the groups list is the keyboard's way to them).
+ * outline in it, each region's number in it. The chosen group's parts stay at full strength; every other part takes a
+ * Paper veil (the same fills, fainter) and its number fades, eased, so a choice shows where its birds are (Every bird:
+ * none faded). The picture's text is every number in words (`alt`); pressing a list's own part, or the part on every
+ * list, chooses that group (the groups list is the keyboard's way to them).
  */
 function Circles({ c }: { c: Comparison }) {
   const { t } = useI18n()
   const d: Diagram = useMemo(() => diagramLayout(c.counts, { x: PAD, y: PAD, w: VB[0] - 2 * PAD, h: VB[1] - 2 * PAD }), [c.counts])
+  const parts = useMemo(() => partsOf(d), [d])
+  const uid = useId().replace(/[^\w-]/g, '')
+  const ref = (k: number | 'core') => `url(#${uid}-c${k})`
   const n = c.labels.length
+  const on = (mask: number) => partInGroup(c.group.id, mask, n)
   const pick = (e: MouseEvent<SVGSVGElement>) => {
     const box = e.currentTarget.getBoundingClientRect()
     if (!box.width || !box.height) return
@@ -207,21 +229,44 @@ function Circles({ c }: { c: Comparison }) {
   return (
     // A pointer shortcut beside the groups list, which holds every group for the keyboard.
     <svg className="eb-compare-venn" viewBox={`0 0 ${VB[0]} ${VB[1]}`} role="img" aria-label={c.alt} onClick={pick} data-testid="compare-diagram">
+      <defs>
+        {[...d.circles.map((k, i) => [i, k] as const), ...(d.core ? [['core', d.core] as const] : [])].map(([i, k]) => (
+          <clipPath key={i} id={`${uid}-c${i}`}><circle cx={k.cx} cy={k.cy} r={k.r} /></clipPath>
+        ))}
+        {parts.filter((p) => p.out.length).map((p) => (
+          <mask key={p.mask} id={`${uid}-o${p.mask}`} maskUnits="userSpaceOnUse" x={0} y={0} width={VB[0]} height={VB[1]}>
+            <rect width={VB[0]} height={VB[1]} fill="#fff" />
+            {p.out.map((i) => {
+              const k = i === 'core' ? d.core! : d.circles[i]
+              return <circle key={i} cx={k.cx} cy={k.cy} r={k.r} fill="#000" />
+            })}
+          </mask>
+        ))}
+      </defs>
       {d.circles.map((k, i) => (
         <circle key={i} cx={k.cx} cy={k.cy} r={k.r} style={{ '--c': listColor(i) } as CSSProperties} className="eb-compare-circle" />
       ))}
       {d.core && <circle cx={d.core.cx} cy={d.core.cy} r={d.core.r} className="eb-compare-core" />}
+      {parts.map((p) => (
+        <g key={p.mask} mask={p.out.length ? `url(#${uid}-o${p.mask})` : undefined}>
+          {p.clip.reduceRight<ReactNode>(
+            (inner, k) => <g clipPath={ref(k)}>{inner}</g>,
+            <rect width={VB[0]} height={VB[1]} className="eb-compare-veil" data-off={on(p.mask) ? undefined : ''} data-testid={`compare-part-${p.mask}`} />,
+          )}
+        </g>
+      ))}
       {d.spots.map((s) => {
         const num = formatInt(c.counts[s.mask] ?? 0, t.num)
         // Mono digits are about .6em wide: as large as the region's room allows, 10 to 20 units.
         const size = Math.max(10, Math.min(20, s.h * 0.5, (s.w * 0.8) / (0.6 * Math.max(1, num.length))))
-        return <text key={s.mask} x={s.x} y={s.y} fontSize={size} className="eb-compare-num" aria-hidden="true">{num}</text>
+        return <text key={s.mask} x={s.x} y={s.y} fontSize={size} className="eb-compare-num" data-off={on(s.mask) ? undefined : ''} aria-hidden="true">{num}</text>
       })}
     </svg>
   )
 }
 
-/** One bar per list, most species first: its name, its count and a bar to scale in its colour. A bar chooses that list's own birds. */
+/** One bar per list, most species first: its name, its count and a bar to scale in its colour, faded when the chosen
+ *  group has none of that list's birds (barInGroup). A bar chooses that list's own birds. */
 function Bars({ c }: { c: Comparison }) {
   const { t } = useI18n()
   const max = Math.max(1, ...c.sizes)
@@ -232,7 +277,10 @@ function Bars({ c }: { c: Comparison }) {
           <button type="button" className="eb-compare-pick" aria-pressed={c.group.id === i} onClick={() => c.choose(i)} data-testid={`compare-rank-${i}`}>
             <span className="eb-compare-name">{c.labels[i]}</span>
             <span className="eb-compare-count">{formatInt(c.sizes[i], t.num)}</span>
-            <span className="eb-compare-bar" style={{ inlineSize: `${(100 * c.sizes[i]) / max}%`, background: listColor(i) }} aria-hidden="true" />
+            <span
+              className="eb-compare-bar" style={{ inlineSize: `${(100 * c.sizes[i]) / max}%`, background: listColor(i) }}
+              data-off={barInGroup(c.group.id, i) ? undefined : ''} aria-hidden="true"
+            />
           </button>
         </li>
       ))}

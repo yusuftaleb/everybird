@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import linkIndex from '../data/link-index.json'
 import {
-  compareGroups, evenly, gridCols, groupOfMask, groupPayload, linksIn, listColor, listColorHex, memberships, pasteRow, ranking, regionCounts, rowName,
+  barInGroup, compareGroups, evenly, gridCols, groupOfMask, partInGroup, groupPayload, linksIn, listColor, listColorHex, memberships, pasteRow, ranking, regionCounts, rowName,
   type CompareRow, type GroupId,
 } from '@/lib/share/compare'
 import { SHARE_COLORS } from '@/lib/share/image'
@@ -172,6 +172,17 @@ describe('compareGroups', () => {
     expect([1, 2, 4, 7, 3, 5, 6].map((m) => groupOfMask(m, 3))).toEqual([0, 1, 2, 'all', null, null, null])
     expect(groupOfMask(63, 6)).toBe('all')
     expect(groupOfMask(32, 6)).toBe(5)
+  })
+  it('the diagram shows the chosen group: its parts at full strength, the others faded; the bars the same', () => {
+    const on = (id: GroupId, n: number) => Array.from({ length: (1 << n) - 1 }, (_, k) => k + 1).filter((m) => partInGroup(id, m, n))
+    expect(on('need', 3)).toEqual([2, 4, 6])
+    expect(on('all', 3)).toEqual([7])
+    expect(on(1, 3)).toEqual([2])
+    expect(on('every', 2)).toEqual([1, 2, 3])
+    expect(on('all', 2)).toEqual([3])
+    expect([0, 1, 2].map((i) => barInGroup('need', i))).toEqual([false, true, true])
+    expect([0, 1, 2].map((i) => barInGroup(2, i))).toEqual([false, false, true])
+    expect([0, 1, 2].every((i) => barInGroup('all', i) && barInGroup('every', i))).toBe(true)
   })
   it('each list’s colour: the tokens in CSS, the same mix in hex for the card, six apart', () => {
     expect([0, 1, 2, 3].map(listColor)).toEqual(['var(--accent)', 'var(--ink)', 'var(--line)', 'color-mix(in srgb, var(--accent) 50%, var(--paper))'])

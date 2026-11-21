@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { packFrame } from '@/lib/layout/pack'
 import { cardLayout, fitPack, imagePackSpec, maxTileSide, type ImagePack } from '@/lib/share/image'
-import { fitParts } from '@/lib/share/compare-image'
+import { fitParts, titlePart } from '@/lib/share/compare-image'
 
 // A share image with no birds to draw (an empty group): the empty pack must still lay out, the card's text over an
 // empty collage, not a hang or NaN.
@@ -48,5 +48,27 @@ describe('fitParts', () => {
     expect(r.lines[0].length * 22 * 0.55).toBeLessThanOrEqual(952)
     for (const n of counts) expect(r.lines[0]).toContain(`: ${n}`)
     expect(r.lines[0].split(' · ').every((p) => p.includes('…'))).toBe(true)
+  })
+})
+
+describe('the card\'s title', () => {
+  const title = (names: string[]) => names.map((n, i) => titlePart(n, i, names.length)).join(' ')
+  it('joins the names the usual way: commas, then " & " before the last', () => {
+    expect(title(['Ada'])).toBe('Ada')
+    expect(title(['Ada', 'Sam'])).toBe('Ada & Sam')
+    expect(title(["Robin's birds", 'Sam', 'Ada'])).toBe("Robin's birds, Sam & Ada")
+    expect(title(['A', 'B', 'C', 'D', 'E', 'F'])).toBe('A, B, C, D, E & F')
+  })
+  it('breaks into two lines at a comma, or before the "&", never leaving one alone', () => {
+    const fake = () => {
+      let px = 0
+      const ctx = { set font(f: string) { px = +/(\d+)px/.exec(f)![1] }, get font() { return `${px}px x` }, measureText: (s: string) => ({ width: s.length * px * 0.55 }) }
+      return { ctx: ctx as unknown as CanvasRenderingContext2D, font: (p: number) => `700 ${p}px x` }
+    }
+    const names = ['Alexandra', 'Bartholomew', 'Christophe', 'Dominique', 'Evangeline', 'Friederike']
+    const r = fitParts(fake(), names, (n, i) => titlePart(n, i, names.length), ' ', [60, 40], 952, 2)
+    expect(r.lines).toHaveLength(2)
+    expect(r.lines.join(' ')).toBe('Alexandra, Bartholomew, Christophe, Dominique, Evangeline & Friederike')
+    expect(r.lines[0]).toMatch(/,$/)
   })
 })

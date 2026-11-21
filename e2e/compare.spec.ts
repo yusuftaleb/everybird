@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import linkIndex from "../data/link-index.json";
 import { decodeCompare, encodeShare } from "../src/lib/share/link";
 
@@ -75,6 +75,23 @@ async function pressDiagram(page: Page, at: (circles: { cx: number; cy: number; 
   await svg.click({ position: { x: (x * box.width) / 320, y: (y * box.height) / 260 } });
 }
 
+/** The Share dialog on a phone: the preview box has the card's shape and its row no more room (12px gaps either side). */
+async function expectNoBands(dialog: Locator) {
+  const preview = dialog.getByTestId("share-preview");
+  await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+  // The box eases to a new format's shape (420ms): measured once it has settled.
+  await expect(preview).not.toHaveAttribute("data-resizing");
+  await preview.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => undefined))));
+  const [top, pv, below] = await Promise.all([".eb-share-formats", '[data-testid="share-preview"]', ".eb-share-scroll"].map((q) => dialog.locator(q).boundingBox()));
+  const ar = await preview.evaluate((el) => {
+    const img = el.querySelector<HTMLImageElement>("img.eb-share-in")!;
+    return img.naturalWidth / img.naturalHeight;
+  });
+  expect(Math.abs(pv!.width / pv!.height - ar)).toBeLessThan(0.02);
+  expect(Math.round(pv!.y - (top!.y + top!.height))).toBeLessThanOrEqual(13);
+  expect(Math.round(below!.y - (pv!.y + pv!.height))).toBeLessThanOrEqual(13);
+}
+
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
   test.describe(`at ${viewport.width} × ${viewport.height}`, () => {
     test.use({ viewport });
@@ -114,6 +131,12 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(page.getByTestId("compare-more")).toHaveText("Show all 50");
       await expect(page.getByTestId("compare-diagram")).toHaveAttribute("aria-label",
         `Only ${ME}: 40. Only Sam: 20. Only Ada: 20. Only ${ME} and Sam: 10. Only ${ME} and Ada: 0. Only Sam and Ada: 10. On every list: 10.`);
+      // From 640px the diagram and the groups are two equal columns across the content: the counts end under Share.
+      if (viewport.width >= 640) {
+        const share = (await page.getByTestId("compare-share").boundingBox())!;
+        const groups = (await page.getByTestId("compare-groups").boundingBox())!;
+        expect(Math.abs(groups.x + groups.width - (share.x + share.width))).toBeLessThanOrEqual(1);
+      }
       // Nothing scrolls sideways.
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
       await shot(page, "results", browserName);
@@ -123,6 +146,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(group(page, 1)).toHaveAttribute("aria-pressed", "true");
       await expect(group(page, "need")).toHaveAttribute("aria-pressed", "false");
       await expectAll(page, 20);
+      // The diagram shows the chosen group: Sam's own part (mask 2) at full strength, the rest faded.
+      await expect(page.getByTestId("compare-part-2")).not.toHaveAttribute("data-off");
+      await expect(page.getByTestId("compare-part-1")).toHaveAttribute("data-off", "");
+      await expect(page.getByTestId("compare-part-7")).toHaveAttribute("data-off", "");
+      await shot(page, "results-chosen", browserName);
       await pressDiagram(page, ([a]) => [a.cx - 0.75 * a.r * Math.sqrt(3) / 2, a.cy - 0.75 * a.r / 2]);
       await expect(group(page, 0)).toHaveAttribute("aria-pressed", "true");
       await pressDiagram(page, (cs) => [cs.reduce((s, c) => s + c.cx, 0) / 3, cs.reduce((s, c) => s + c.cy, 0) / 3]);
@@ -162,7 +190,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await page.getByTestId("compare-submit").click();
       await expect(pills(page)).toHaveCount(6);
       // Six lists: the flower, a petal each, and its middle.
-      await expect(page.getByTestId("compare-diagram").locator("circle")).toHaveCount(7);
+      await expect(page.getByTestId("compare-diagram").locator("circle.eb-compare-circle, circle.eb-compare-core")).toHaveCount(7);
     });
 
     test("Share opens the Share dialog on the comparison: What, the formats, Share image, Download and Copy link", async ({ page, context, baseURL, browserName }) => {
@@ -210,6 +238,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(note).toHaveText("A comparison link carries every list in it, so ask the others before you share it.");
       await shot(page, "share", browserName);
 
+      // On a phone the preview's row is as tall as the card it shows: nothing empty above or below it.
+      if (viewport.width < 720) await expectNoBands(dialog);
       // Each format, downloaded at its size.
       for (const [format, w, h] of [["Story", 1080, 1920], ["Post", 1080, 1350], ["Square", 1080, 1080]] as const) {
         await dialog.getByRole("button", { name: new RegExp(`^${format}`) }).click();
@@ -249,3 +279,20 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     });
   });
 }
+
+test.describe("the collage's Share dialog at 390 × 844", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  test("the preview's row is as tall as the card: no empty band above or below it", async ({ page, browserName }) => {
+    test.setTimeout(90_000);
+    await seed(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Share", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Share your collage" });
+    for (const format of ["Post", "Square", "Story"]) {
+      await dialog.getByRole("button", { name: new RegExp(`^${format}`) }).click();
+      await expect(dialog.getByTestId("share-preview")).toHaveAttribute("data-format", format.toLowerCase(), { timeout: 30_000 });
+      await expectNoBands(dialog);
+      if (format === "Post") await shot(page, "collage-share", browserName);
+    }
+  });
+});

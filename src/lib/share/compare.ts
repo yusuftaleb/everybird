@@ -60,6 +60,21 @@ export function groupOfMask(mask: number, n: number): GroupId | null {
   return mask > 0 && !(mask & (mask - 1)) ? Math.log2(mask) : null
 }
 
+/**
+ * Whether the diagram's part `mask` (the birds on exactly those of `n` lists) holds group `id`'s birds, so the diagram
+ * shows the chosen group at full strength and fades the rest: Yet to see is every part outside the first list; Every
+ * bird every part.
+ */
+export function partInGroup(id: GroupId, mask: number, n: number): boolean {
+  if (id === 'every') return true
+  if (id === 'need') return !(mask & 1)
+  if (id === 'all') return mask === (1 << n) - 1
+  return mask === 1 << id
+}
+/** Whether list `i`'s bar holds some of group `id`'s birds (the bars' view of the same): every list's for Both and Every
+ *  bird, the others' for Yet to see, its own for a list's own birds. */
+export const barInGroup = (id: GroupId, i: number): boolean => id === 'every' || id === 'all' || (id === 'need' ? i !== 0 : id === i)
+
 /** The site's tokens a list's colour is made of (DESIGN.md Colors). */
 export type ListTone = 'accent' | 'ink' | 'line' | 'muted'
 /**

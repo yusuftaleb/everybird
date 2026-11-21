@@ -99,11 +99,11 @@
 /* A transparent image over a checkerboard, so either ink shows. */
 .eb-share-preview[data-transparent] .eb-share-in { background: repeating-conic-gradient(var(--surface) 0 25%, var(--paper) 0 50%) 0 0 / 16px 16px; }
 
-/* Stacked (phones): the preview's area (the body's middle row) is --cap tall in every format (set in the phones' media
-   query above: as tall as the screen allows while Share image stays on the first screen), at most 62% of the screen
-   and 600px, at least 240px. The box is at most --cap tall and as wide as the dialog allows, centred in the row both
-   ways: the story fills its height, a post or square leaves equal bands above and below. */
-.eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 340px, 600px)); grid-template-rows: auto var(--cap) auto; }
+/* Stacked (phones): the preview's box takes the shown image's shape at the body's width, at most --cap tall (set in the
+   phones' media query above: as tall as the screen allows while Share image stays on the first screen), at most 62% of
+   the screen and 600px, at least 240px; its row is as tall as the box (round 6: no empty band above or below a post or
+   a square), so the buttons under it move with the format. From 720px the media query below sets the rows. */
+.eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 340px, 600px)); grid-template-rows: auto auto auto; }
 
 /* Beside the controls: the dialog is pinned 32px from the window's top (--top) and grows downward, at most to 16px
    above the window's bottom; it never re-centres, so opening Export in batches or adding a goal never moves it. The
