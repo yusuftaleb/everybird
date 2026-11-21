@@ -521,6 +521,9 @@ export const da: Messages = {
       print: {
         title: 'Udskriv plakat',
         size: 'Plakatstørrelse',
+        downTo: 'Ned til',
+        deeperLarger: 'En større plakat udskriver alle navne',
+        deeperNone: 'For mange navne til at udskrive læseligt',
         orientNote: { fan: 'Viftetræer udskrives vandret', upright: 'Rektangulære og radiale træer udskrives lodret' },
         inches: '{w} × {h} tommer',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px ved 150 dpi',

@@ -521,6 +521,9 @@ export const de: Messages = {
       print: {
         title: 'Poster drucken',
         size: 'Postergröße',
+        downTo: 'Bis',
+        deeperLarger: 'Ein größeres Poster druckt alle Namen',
+        deeperNone: 'Zu viele Namen, um sie lesbar zu drucken',
         orientNote: { fan: 'Fächerbäume werden im Querformat gedruckt', upright: 'Rechteckige und radiale Bäume werden im Hochformat gedruckt' },
         inches: '{w} × {h} Zoll',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px bei 150 dpi',

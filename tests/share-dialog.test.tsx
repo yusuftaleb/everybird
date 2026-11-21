@@ -27,7 +27,7 @@ vi.mock('@/lib/share/image', async (orig) => ({
 }))
 vi.mock('@/lib/download', () => ({ downloadBlob: vi.fn() }))
 // The Map and Tree views' own images (loaded only from those views).
-type TreeFitsCb = { onTreeFits?: (f: Record<'fan' | 'circle', boolean>) => void }
+type TreeFitsCb = { onTreeFits?: (f: Record<'fan' | 'circle', boolean>) => void; deeper?: boolean; onDeeper?: (d: { rank: string; fits: Record<string, boolean> } | null) => void }
 const viewRenders = vi.hoisted(() => ({ map: vi.fn(async () => new Blob(['map'])), tree: vi.fn<(o?: TreeFitsCb) => Promise<Blob>>(async () => new Blob(['tree'])) }))
 vi.mock('@/lib/share/map-image', () => ({ renderMapImage: viewRenders.map }))
 vi.mock('@/lib/share/tree-image', () => ({ renderTreeImage: viewRenders.tree }))
@@ -476,6 +476,61 @@ describe('share dialog', () => {
     expect(after.filterLabel).toBeUndefined()
     // The pack the image draws is made from the whole list too.
     expect(vi.mocked(image.packForImage).mock.calls.at(-1)![0].map((e) => e.code).sort()).toEqual(['emu1', 'ostric2'])
+  })
+
+  it("Print from the Tree: Down to, the screen's rank or the next one down, only at sizes where every name prints readably", async () => {
+    const st = stateWith([entry('ostric2')])
+    // The poster's render reports the deeper rank and the sizes that print it (here A2 and larger).
+    const fits = { A4: false, A3: false, A2: true, A1: true, US12x18: false, US18x24: true, US24x36: true }
+    viewRenders.tree.mockClear()
+    viewRenders.tree.mockImplementation(async (o) => { o?.onDeeper?.({ rank: 'genera', fits }); return new Blob(['tree']) })
+    const first = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { ord: 'Struthioniformes' }, rank: 'families', layout: 'rows' }} print onClose={() => {}} />)
+    const depth = () => within(screen.getByRole('group', { name: 'Down to' }))
+    // The row comes right after Poster size, in the rank words, at the screen's rank.
+    const labels = [...document.querySelectorAll('.eb-share-optlabel')].map((l) => l.textContent)
+    expect(labels.slice(0, 2)).toEqual(['Poster size', 'Down to'])
+    expect(depth().getAllByRole('button').map((b) => b.textContent)).toEqual(['Families', 'Genera'])
+    expect(depth().getByRole('button', { name: 'Families' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'print', printSize: 'A2', deeper: false })))
+    fireEvent.click(depth().getByRole('button', { name: 'Genera' }))
+    expect(depth().getByRole('button', { name: 'Genera' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ printSize: 'A2', deeper: true })))
+    // A4 can't print every genus readably: back to Families, Genera off with its reason (focusable, described, titled).
+    pickMenu('Poster size', 'A4')
+    const genera = depth().getByRole('button', { name: 'Genera' })
+    expect(genera).toHaveAttribute('aria-disabled', 'true')
+    expect(genera).not.toBeDisabled()
+    expect(genera).toHaveAttribute('title', 'A larger poster prints every name')
+    expect(genera).toHaveAccessibleDescription('A larger poster prints every name')
+    expect(depth().getByRole('button', { name: 'Families' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ printSize: 'A4', deeper: false })))
+    fireEvent.click(genera)
+    expect(depth().getByRole('button', { name: 'Families' })).toHaveAttribute('aria-pressed', 'true')
+    first.unmount()
+
+    // No size prints them: the other reason. And the choice is not kept: each open starts at the screen's rank.
+    viewRenders.tree.mockImplementation(async (o) => { o?.onDeeper?.({ rank: 'genera', fits: Object.fromEntries(Object.keys(fits).map((k) => [k, false])) }); return new Blob(['tree']) })
+    const second = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { ord: 'Struthioniformes' }, rank: 'families', layout: 'rows' }} print onClose={() => {}} />)
+    await waitFor(() => expect(depth().getByRole('button', { name: 'Genera' })).toHaveAccessibleDescription('Too many names to print readably'))
+    expect(depth().getByRole('button', { name: 'Families' })).toHaveAttribute('aria-pressed', 'true')
+    second.unmount()
+
+    // No row at the species, nor when the render finds nothing under the screen's rank, nor in Share.
+    viewRenders.tree.mockImplementation(async (o) => { o?.onDeeper?.(null); return new Blob(['tree']) })
+    const third = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { fam: 'Struthionidae' }, rank: 'species', layout: 'rows' }} print onClose={() => {}} />)
+    expect(screen.queryByRole('group', { name: 'Down to' })).toBeNull()
+    third.unmount()
+    const fourth = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, rank: 'orders', layout: 'rows' }} print onClose={() => {}} />)
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenCalled())
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Down to' })).toBeNull())
+    fourth.unmount()
+    viewRenders.tree.mockClear()
+    viewRenders.tree.mockImplementation(async () => new Blob(['tree']))
+    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, rank: 'orders', layout: 'rows' }} onClose={() => {}} />)
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenCalledTimes(1))
+    expect(screen.queryByRole('group', { name: 'Down to' })).toBeNull()
+    expect(viewRenders.tree.mock.calls[0][0]).not.toHaveProperty('deeper')
+    expect(viewRenders.tree.mock.calls[0][0]).not.toHaveProperty('onDeeper')
   })
 
   it('in the Tree, Clear filters draws the level the tree then shows (the page passes it live), in the image and in Print', async () => {

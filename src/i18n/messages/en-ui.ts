@@ -648,6 +648,11 @@ export const EN_UI = {
       /** The dialog's title when the page's Print button opens it on the poster. */
       title: 'Print poster',
       size: 'Poster size',
+      /** The Tree poster's Down to: the screen's rank or the next one down, and why the deeper one can't be picked at this size
+       *  (every name must print at 9 pt or more: a larger size would, or none does). */
+      downTo: 'Down to',
+      deeperLarger: 'A larger poster prints every name',
+      deeperNone: 'Too many names to print readably',
       /** Why the Tree poster's other orientation is off (as `share.orientNote`, in the poster's words). */
       orientNote: { fan: 'Fan trees print horizontally', upright: 'Rectangular and Radial trees print vertically' },
       inches: '{w} × {h} in',

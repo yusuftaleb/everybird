@@ -529,6 +529,9 @@ export const nl: Messages = {
       print: {
         title: 'Poster printen',
         size: 'Postergrootte',
+        downTo: 'Tot',
+        deeperLarger: 'Een grotere poster drukt alle namen af',
+        deeperNone: 'Te veel namen om leesbaar af te drukken',
         orientNote: { fan: 'Waaierbomen worden liggend afgedrukt', upright: 'Rechthoekige en radiale bomen worden staand afgedrukt' },
         inches: '{w} × {h} inch',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px op 150 dpi',
