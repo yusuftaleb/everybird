@@ -864,19 +864,19 @@ export const it: Messages = {
     },
     about: {
       lede: 'Everybird trasforma la lista di vita di qualsiasi birdwatcher in un collage di adesivi.',
-      what: { head: 'Cos’è', body: 'La tua lista di vita è già il resoconto di una vita di uccelli. Everybird la dispone in un unico collage: ogni specie è un adesivo, dimensionato in base alla sua massa corporea, con il numero al centro. Filtrala per gruppo, luogo, anno o stato di conservazione, poi condividila come immagine o come link.' },
+      what: { head: 'Cos’è', body: 'La tua lista di vita è già il resoconto di una vita di uccelli. Everybird la dispone in un unico collage: ogni specie è un adesivo, dimensionato in base alla sua massa corporea, con il numero al centro. Filtrala per gruppo, luogo, anno o stato di conservazione, poi condividila come immagine o come link.', more: 'Guardala come collage, come elenco, su una mappa del mondo o nell’albero degli uccelli. Condividila come immagine o come link, stampala come poster o esportala a lotti: un’immagine o un poster per ogni famiglia, paese, anno o altro gruppo. Confronta mette la tua lista accanto a quelle dei tuoi amici e mostra quali uccelli avete in comune.' },
       how: {
         head: 'Come funziona',
         steps: [
-          'Porta la tua lista in <link>Opzioni</link>: un file eBird o observation.org, un nome utente iNaturalist, o uccelli spuntati a mano. Combinali se tieni più di un registro.',
+          'Porta la tua lista in <link>Opzioni</link>: un file eBird, observation.org, Scythebill o iGoTerra, un foglio di calcolo o una lista incollata, un nome utente iNaturalist, o uccelli aggiunti a mano. Combinali se tieni più di un registro.',
           'Ogni uccello viene abbinato alla tassonomia eBird di quest’anno e mantiene la sua data più antica. Le righe che non corrispondono vengono elencate, così niente viene scartato in silenzio.',
-          'Il collage, i filtri e le immagini da condividere vengono creati tutti nel tuo browser.',
+          'Il collage e le sue viste, i filtri, le immagini da condividere e i poster vengono creati tutti nel tuo browser.',
         ],
         privacy: 'La tua lista non lascia mai il tuo browser. Contiamo le visite con Cloudflare Web Analytics, in forma anonima e senza cookie, e alcune azioni (un collage creato, un’immagine condivisa o salvata, un link copiato) con un nostro piccolo contatore che non vede mai i tuoi uccelli, i nomi o i luoghi. Un identificativo anonimo che cambia ogni giorno ci permette di contare i visitatori unici senza seguire nessuno da un giorno all’altro. Nessuno dei due funziona se il tuo browser chiede di non essere tracciato. La lingua che scegli è salvata in un piccolo cookie su questo dispositivo; non ne esce mai, se non per mostrarti la pagina giusta. Il conteggio delle visite include la lingua del tuo browser (solo “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” o “zh-Hant”). Le pagine in russo, giapponese e cinese caricano i caratteri da Google Fonts, quindi su quelle pagine il tuo browser contatta Google.',
       },
       size: {
         head: 'Cosa significa Taglia reale',
-        even: 'Ogni adesivo è dimensionato in base alla massa corporea media dell’uccello, da AVONET, secondo l’area che occupa sulla pagina, così lo strascico di un pavone o le zampe di un airone non lo fanno sembrare piccolo. Di base le dimensioni sono bilanciate: l’area segue la massa elevata a 0,4, così gli uccelli piccoli restano visibili accanto a quelli grandi.',
+        even: 'Ogni adesivo è dimensionato in base alla massa corporea media dell’uccello, da AVONET (o da BIRDBASE quando AVONET non ce l’ha), secondo l’area che occupa sulla pagina, così lo strascico di un pavone o le zampe di un airone non lo fanno sembrare piccolo. Di base le dimensioni sono bilanciate: l’area segue la massa elevata a 0,4, così gli uccelli piccoli restano visibili accanto a quelli grandi.',
         true: 'Taglia reale usa invece la radice cubica della massa per la lunghezza. Gli uccelli hanno una densità più o meno simile, quindi la massa segue il volume e la sua radice cubica segue la lunghezza: un uccello otto volte più pesante è disegnato lungo circa il doppio e occupa quattro volte l’area. È una stima della dimensione relativa, non una lunghezza misurata. Gli uccelli snelli dal collo lungo possono sembrare un po’ piccoli e quelli tozzi un po’ grandi, le pose a nuoto nascondono parte del corpo, e ogni specie usa una sola massa media, quindi maschi, femmine e stagioni non sono distinti.',
       },
       status: {
@@ -887,6 +887,7 @@ export const it: Messages = {
         head: 'Crediti',
         madeBy: 'Creato da <you>Yusuf Taleb</you>. È nato dalla <life>lista di vita sul suo sito</life> ed è costruito sul lavoro generoso di altre persone.',
         coffee: 'Se ti piace Everybird, puoi offrire un caffè a Yusuf.',
+        thanks: 'Grazie a tutte le persone che hanno incoraggiato l’idea, provato le prime versioni e mandato i loro commenti lungo la strada. Everybird è migliore grazie a loro.',
         label: {
           stickers: 'Adesivi generati con IA · CC BY 4.0',
           inspiration: 'Ispirazione',
@@ -908,13 +909,13 @@ export const it: Messages = {
         stickers: { lead: 'Ogni adesivo di uccello è un’illustrazione generata con IA da huashu-bird-sticker di alchaincyf, con licenza <cc>CC BY 4.0</cc>. Ognuno è stato creato con GPT-image a partire da una descrizione scritta dei caratteri distintivi della specie e, per la maggior parte delle specie, da foto di riferimento, i cui fotografi sono citati in quel progetto. <how>Come sono fatti gli adesivi</how>. Everybird li ha ridimensionati e ritagliati per il web; nient’altro è stato cambiato.', commit: 'Commit sorgente <code>{sha}</code>.', tail: 'Meno del 2% delle specie non ha ancora un adesivo e appare come contorno. Cerchiamo nuovi disegni ogni settimana e li aggiungiamo negli aggiornamenti di Everybird.' },
         inspiration: 'Avian Visitors di Teddy Warner ha mostrato quanto può essere bella una parete di uccelli. Everybird è partito da lì.',
         taxonomyTitle: 'eBird e Clements',
-        taxonomy: 'I nomi degli uccelli, le specie e il loro ordine seguono la tassonomia eBird/Clements, versione {version}, del Cornell Lab of Ornithology. I file eBird e observation.org vengono letti nel tuo browser. I nomi italiani che eBird non ha vengono dalla IOC World Bird List v15.2 (Gill, Donsker & Rasmussen), con licenza <cc>CC BY 3.0</cc>.',
+        taxonomy: 'I nomi degli uccelli, le specie e il loro ordine seguono la tassonomia eBird/Clements, versione {version}, del Cornell Lab of Ornithology. Ogni file che importi viene letto nel tuo browser. I nomi italiani che eBird non ha vengono dalla IOC World Bird List v15.2 (Gill, Donsker & Rasmussen), con licenza <cc>CC BY 3.0</cc>.',
         masses: 'Le dimensioni degli adesivi usano le masse corporee di AVONET (Tobias et al. 2022, Ecology Letters), tramite la tabella delle specie di huashu.',
         birdbase: 'Per le specie di cui AVONET non ha la massa, le dimensioni degli adesivi usano le masse corporee di BIRDBASE (Şekercioğlu et al. 2025, Scientific Data).',
         redList: 'Categorie della Lista rossa IUCN come indicate per BirdLife {birdlife} in AviList: The Global Avian Checklist, {version} (AviList Core Team, {year}), tramite la tabella delle specie di huashu, con licenza <cc>CC BY 4.0</cc>. Everybird le ha abbinate alle specie eBird.',
         tree: 'La vista Albero disegna l’albero datato degli uccelli {tree} ({taxonomy}) di McTavish et al., con licenza <cc>CC BY 4.0</cc>. Everybird ne ha abbinato le foglie alla tassonomia eBird {year}, da cui vengono famiglie, generi e totali. Le specie nuove nella tassonomia {year} sono state messe accanto al parente più stretto.',
         api: 'Le osservazioni vengono dall’API pubblica di iNaturalist, chiamata direttamente dal tuo browser, circa una volta al secondo.',
-        countries: 'I nomi dei paesi, la maggior parte dei nomi delle regioni e le coste dei globi dei continenti vengono da Natural Earth.',
+        countries: 'I nomi dei paesi, la maggior parte dei nomi delle regioni, la mappa del mondo e le coste dei globi dei continenti vengono da Natural Earth.',
         regions: 'Gli altri nomi di stati e province vengono dai dati ISO 3166-2 di iso-codes di Debian, usati solo per i nomi.',
         vietnamBoundariesTitle: 'Confini provinciali del Vietnam',
         vietnamBoundaries: 'I confini provinciali del Vietnam del 2025 vengono dall’Ufficio generale di statistica del Vietnam tramite OCHA e HDX, con licenza <cc>CC BY 3.0 IGO</cc>. Everybird ha semplificato le forme e le usa per ricerche locali.',

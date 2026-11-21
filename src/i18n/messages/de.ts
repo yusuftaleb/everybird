@@ -869,20 +869,20 @@ export const de: Messages = {
     },
     about: {
       lede: 'Everybird macht aus jeder Vogel-Lebensliste eine Stickercollage.',
-      what: { head: 'Was es ist', body: 'Deine Lebensliste ist schon die Chronik eines Lebens voller Vögel. Everybird legt sie als eine Collage aus: jede Art ein Sticker, nach Körpergewicht skaliert, mit der Zahl in der Mitte. Filtere sie nach Gruppe, Ort, Jahr oder Gefährdungsstatus und teile sie als Bild oder Link.' },
+      what: { head: 'Was es ist', body: 'Deine Lebensliste ist schon die Chronik eines Lebens voller Vögel. Everybird legt sie als eine Collage aus: jede Art ein Sticker, nach Körpergewicht skaliert, mit der Zahl in der Mitte. Filtere sie nach Gruppe, Ort, Jahr oder Gefährdungsstatus und teile sie als Bild oder Link.', more: 'Sieh sie dir als Collage, als Liste, auf einer Weltkarte oder im Stammbaum der Vögel an. Teile sie als Bild oder Link, drucke sie als Poster oder exportiere sie in Teilen: ein Bild oder Poster für jede Familie, jedes Land, jedes Jahr oder eine andere Gruppe. Vergleichen stellt deine Liste neben die deiner Freunde und zeigt, welche Vögel ihr gemeinsam habt.' },
       how: {
         head: 'So funktioniert es',
         steps: [
-          'Füge deine Liste unter <link>Optionen</link> hinzu: eine Datei von eBird oder observation.org, einen iNaturalist-Benutzernamen oder von Hand abgehakte Vögel. Kombiniere sie, wenn du mehr als eine Liste führst.',
+          'Füge deine Liste unter <link>Optionen</link> hinzu: eine Datei von eBird, observation.org, Scythebill oder iGoTerra, eine Tabelle oder eine eingefügte Liste, einen iNaturalist-Benutzernamen oder von Hand hinzugefügte Vögel. Kombiniere sie, wenn du mehr als eine Liste führst.',
           'Jeder Vogel wird der diesjährigen eBird-Taxonomie zugeordnet und behält sein frühestes Datum. Zeilen, die nicht passen, werden aufgelistet, damit nichts stillschweigend verloren geht.',
-          'Die Collage, die Filter und die Bilder zum Teilen entstehen alle in deinem Browser.',
+          'Die Collage und ihre Ansichten, die Filter, die Bilder zum Teilen und die Poster entstehen alle in deinem Browser.',
         ],
         // The language codes keep “…” (not „…“): tests/about-i18n.test.tsx matches them.
         privacy: 'Deine Liste verlässt nie deinen Browser. Wir zählen Besuche mit Cloudflare Web Analytics, anonym und ohne Cookies, und ein paar Aktionen (eine Collage erstellt, ein Bild geteilt oder gespeichert, ein Link kopiert) mit einem kleinen eigenen Zähler, der nie deine Vögel, Namen oder Orte sieht. Eine anonyme ID, die sich täglich ändert, lässt uns einzelne Besucher zählen, ohne jemanden über mehrere Tage zu verfolgen. Beides läuft nicht, wenn dein Browser darum bittet, nicht verfolgt zu werden. Deine Sprachwahl wird in einem kleinen Cookie auf diesem Gerät gespeichert; es verlässt das Gerät nur, um dir die richtige Seite zu zeigen. Die Besuchszählung enthält die Sprache deines Browsers (nur “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” oder “zh-Hant”). Seiten auf Russisch, Japanisch und Chinesisch laden ihre Schriften von Google Fonts, daher nimmt dein Browser auf diesen Seiten Kontakt zu Google auf.',
       },
       size: {
         head: 'Was Echte Größe bedeutet',
-        even: 'Jeder Sticker wird nach dem durchschnittlichen Körpergewicht des Vogels aus AVONET skaliert, und zwar nach der Fläche, die er auf der Seite bedeckt, damit die Schleppe eines Pfaus oder die Beine eines Reihers ihn nicht klein wirken lassen. Standardmäßig werden die Größen ausgeglichen: Die Fläche folgt dem Gewicht hoch 0,4, damit kleine Vögel neben großen sichtbar bleiben.',
+        even: 'Jeder Sticker wird nach dem durchschnittlichen Körpergewicht des Vogels aus AVONET (oder BIRDBASE, wo AVONET keines hat) skaliert, und zwar nach der Fläche, die er auf der Seite bedeckt, damit die Schleppe eines Pfaus oder die Beine eines Reihers ihn nicht klein wirken lassen. Standardmäßig werden die Größen ausgeglichen: Die Fläche folgt dem Gewicht hoch 0,4, damit kleine Vögel neben großen sichtbar bleiben.',
         true: 'Echte Größe nutzt stattdessen die Kubikwurzel des Gewichts für die Länge. Vögel haben ungefähr die gleiche Dichte, also folgt das Gewicht dem Volumen und seine Kubikwurzel der Länge: Ein achtmal schwererer Vogel wird etwa doppelt so lang gezeichnet und bedeckt die vierfache Fläche. Das ist eine Schätzung der relativen Größe, keine gemessene Länge. Schlanke, langhalsige Vögel können etwas klein wirken und gedrungene etwas groß, Schwimmhaltungen verbergen einen Teil des Körpers, und jede Art nutzt ein Durchschnittsgewicht, daher werden Männchen, Weibchen und Jahreszeiten nicht unterschieden.',
       },
       status: {
@@ -893,6 +893,7 @@ export const de: Messages = {
         head: 'Credits',
         madeBy: 'Gemacht von <you>Yusuf Taleb</you>. Es ist aus der <life>Lebensliste auf seiner Website</life> entstanden und baut auf der großzügigen Arbeit anderer auf.',
         coffee: 'Wenn dir Everybird gefällt, kannst du Yusuf einen Kaffee spendieren.',
+        thanks: 'Danke an alle, die die Idee unterstützt, frühe Versionen getestet und unterwegs Feedback geschickt haben. Everybird ist dadurch besser geworden.',
         label: {
           stickers: 'KI-generierte Sticker · CC BY 4.0',
           inspiration: 'Vorbild',
@@ -914,13 +915,13 @@ export const de: Messages = {
         stickers: { lead: 'Jeder Vogelsticker ist eine KI-generierte Illustration aus huashu-bird-sticker von alchaincyf, lizenziert unter <cc>CC BY 4.0</cc>. Jeder wurde mit GPT-image aus einer schriftlichen Beschreibung der Feldkennzeichen der Art erstellt und, bei den meisten Arten, aus Referenzfotos, deren Fotografinnen und Fotografen in jenem Projekt genannt werden. <how>So entstehen die Sticker</how>. Everybird hat sie für das Web verkleinert und zugeschnitten; sonst wurde nichts verändert.', commit: 'Quell-Commit <code>{sha}</code>.', tail: 'Weniger als 2 % der Arten haben noch keinen Sticker und erscheinen als Umriss. Wir suchen wöchentlich nach neuen Zeichnungen und fügen sie mit Everybird-Updates hinzu.' },
         inspiration: 'Avian Visitors von Teddy Warner hat gezeigt, wie schön eine Wand voller Vögel sein kann. Dort hat Everybird angefangen.',
         taxonomyTitle: 'eBird und Clements',
-        taxonomy: 'Vogelnamen, Arten und ihre Reihenfolge folgen der eBird/Clements-Taxonomie, Version {version}, vom Cornell Lab of Ornithology. Dateien von eBird und observation.org werden in deinem Browser gelesen.',
+        taxonomy: 'Vogelnamen, Arten und ihre Reihenfolge folgen der eBird/Clements-Taxonomie, Version {version}, vom Cornell Lab of Ornithology. Jede Datei, die du importierst, wird in deinem Browser gelesen.',
         masses: 'Die Stickergrößen nutzen Körpergewichte aus AVONET (Tobias et al. 2022, Ecology Letters), über die Artentabelle von huashu.',
         birdbase: 'Für Arten, für die AVONET kein Gewicht hat, nutzen die Stickergrößen Körpergewichte aus BIRDBASE (Şekercioğlu et al. 2025, Scientific Data).',
         redList: 'Kategorien der Roten Liste der IUCN, wie für BirdLife {birdlife} in AviList: The Global Avian Checklist, {version} (AviList Core Team, {year}) angegeben, über die Artentabelle von huashu, lizenziert unter <cc>CC BY 4.0</cc>. Everybird hat sie den eBird-Arten zugeordnet.',
         tree: 'Die Ansicht Baum zeigt den datierten Stammbaum der Vögel {tree} ({taxonomy}) von McTavish et al., lizenziert unter <cc>CC BY 4.0</cc>. Everybird hat seine Enden mit der eBird-Taxonomie {year} abgeglichen, aus der Familien, Gattungen und Summen stammen. Arten, die in der Taxonomie {year} neu sind, stehen neben ihrem nächsten Verwandten.',
         api: 'Beobachtungen kommen aus der öffentlichen API von iNaturalist, direkt aus deinem Browser abgerufen, etwa einmal pro Sekunde.',
-        countries: 'Ländernamen, die meisten Regionsnamen und die Küstenlinien der Kontinent-Globen stammen von Natural Earth.',
+        countries: 'Ländernamen, die meisten Regionsnamen, die Weltkarte und die Küstenlinien der Kontinent-Globen stammen von Natural Earth.',
         regions: 'Die übrigen Namen von Staaten und Provinzen stammen aus den ISO-3166-2-Daten von Debian iso-codes, nur für die Namen verwendet.',
         vietnamBoundariesTitle: 'Provinzgrenzen von Vietnam',
         vietnamBoundaries: 'Die Provinzgrenzen Vietnams von 2025 stammen vom General Statistics Office of Vietnam über OCHA und HDX, unter <cc>CC BY 3.0 IGO</cc>. Everybird hat die Formen vereinfacht und nutzt sie für lokale Zuordnungen.',

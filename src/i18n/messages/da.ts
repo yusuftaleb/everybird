@@ -868,20 +868,20 @@ export const da: Messages = {
     },
     about: {
       lede: 'Everybird gør enhver fuglekiggers livsliste til en collage af klistermærker.',
-      what: { head: 'Hvad det er', body: 'Din livsliste er allerede beretningen om et liv med fugle. Everybird lægger den ud som én collage: hver art et klistermærke, i størrelse efter kropsvægt, med tallet i midten. Filtrér den efter gruppe, sted, år eller bevaringsstatus, og del den som billede eller link.' },
+      what: { head: 'Hvad det er', body: 'Din livsliste er allerede beretningen om et liv med fugle. Everybird lægger den ud som én collage: hver art et klistermærke, i størrelse efter kropsvægt, med tallet i midten. Filtrér den efter gruppe, sted, år eller bevaringsstatus, og del den som billede eller link.', more: 'Se den som collage, som liste, på et verdenskort eller i fuglenes stamtræ. Del den som billede eller link, udskriv den som plakat, eller eksportér den i portioner: ét billede eller én plakat for hver familie, hvert land, hvert år eller en anden gruppe. Sammenlign stiller din liste ved siden af dine venners og viser, hvilke fugle I har til fælles.' },
       how: {
         head: 'Sådan virker det',
         steps: [
-          'Tilføj din liste under <link>Valg</link>: en fil fra eBird eller observation.org, et brugernavn på iNaturalist eller fugle krydset af i hånden. Kombinér dem, hvis du fører mere end én liste.',
+          'Tilføj din liste under <link>Valg</link>: en fil fra eBird, observation.org, Scythebill eller iGoTerra, et regneark eller en indsat liste, et brugernavn på iNaturalist eller fugle tilføjet i hånden. Kombinér dem, hvis du fører mere end én liste.',
           'Hver fugl matches med årets eBird-taksonomi og beholder sin tidligste dato. Rækker, der ikke matcher, bliver listet, så intet forsvinder ubemærket.',
-          'Collagen, filtrene og billederne til deling laves alle i din browser.',
+          'Collagen og dens visninger, filtrene, billederne til deling og plakaterne laves alle i din browser.',
         ],
         // The language codes keep “…”: tests/about-i18n.test.tsx matches them.
         privacy: 'Din liste forlader aldrig din browser. Vi tæller besøg med Cloudflare Web Analytics, anonymt og uden cookies, og nogle få handlinger (en collage lavet, et billede delt eller gemt, et link kopieret) med vores egen lille tæller, som aldrig ser dine fugle, navne eller steder. Et anonymt id, der skifter hver dag, lader os tælle unikke besøgende uden at følge nogen fra dag til dag. Ingen af dem kører, hvis din browser beder om ikke at blive sporet. Dit valg af sprog gemmes i en lille cookie på denne enhed; den forlader kun enheden for at vise dig den rigtige side. Besøgstællingen indeholder din browsers sprog (kun “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” eller “zh-Hant”). Sider på russisk, japansk og kinesisk henter deres skrifttyper fra Google Fonts, så på de sider kontakter din browser Google.',
       },
       size: {
         head: 'Hvad Ægte mål betyder',
-        even: 'Hvert klistermærke får sin størrelse efter fuglens gennemsnitlige kropsvægt, fra AVONET, målt på det areal, det dækker på siden, så en påfugls slæb eller en hejres ben ikke får den til at se lille ud. Som standard udjævnes størrelserne: arealet følger vægten opløftet i 0,4, så små fugle stadig kan ses ved siden af store.',
+        even: 'Hvert klistermærke får sin størrelse efter fuglens gennemsnitlige kropsvægt, fra AVONET (eller BIRDBASE, hvor AVONET ikke har den), målt på det areal, det dækker på siden, så en påfugls slæb eller en hejres ben ikke får den til at se lille ud. Som standard udjævnes størrelserne: arealet følger vægten opløftet i 0,4, så små fugle stadig kan ses ved siden af store.',
         true: 'Ægte mål bruger i stedet kubikroden af vægten til længden. Fugle har nogenlunde samme massefylde, så vægten følger rumfanget, og dens kubikrod følger længden: en fugl, der er otte gange tungere, tegnes omkring dobbelt så lang og dækker fire gange arealet. Det er et skøn over den relative størrelse, ikke en målt længde. Slanke fugle med lang hals kan se lidt små ud og kompakte lidt store, svømmestillinger skjuler en del af kroppen, og hver art bruger én gennemsnitsvægt, så hanner, hunner og årstider skelnes ikke fra hinanden.',
       },
       status: {
@@ -892,6 +892,7 @@ export const da: Messages = {
         head: 'Krediteringer',
         madeBy: 'Lavet af <you>Yusuf Taleb</you>. Det voksede ud af <life>livslisten på hans websted</life> og er bygget på andres generøse arbejde.',
         coffee: 'Hvis du kan lide Everybird, kan du købe Yusuf en kaffe.',
+        thanks: 'Tak til alle, der har bakket op om idéen, testet tidlige versioner og sendt feedback undervejs. Everybird er blevet bedre af det.',
         label: {
           stickers: 'AI-genererede klistermærker · CC BY 4.0',
           inspiration: 'Inspirationskilde',
@@ -913,13 +914,13 @@ export const da: Messages = {
         stickers: { lead: 'Hvert fugleklistermærke er en AI-genereret illustration fra huashu-bird-sticker af alchaincyf, med licensen <cc>CC BY 4.0</cc>. Hvert enkelt blev lavet med GPT-image ud fra en skriftlig beskrivelse af artens kendetegn og, for de fleste arter, referencefotos, hvis fotografer krediteres i det projekt. <how>Sådan laves klistermærkerne</how>. Everybird har gjort dem mindre og beskåret dem til nettet; intet andet er ændret.', commit: 'Kilde-commit <code>{sha}</code>.', tail: 'Under 2 % af arterne har endnu ikke et klistermærke og vises som et omrids. Vi tjekker hver uge for nye tegninger og tilføjer dem i opdateringer af Everybird.' },
         inspiration: 'Teddy Warners Avian Visitors viste, hvor smuk en væg af fugle kan være. Det var der, Everybird begyndte.',
         taxonomyTitle: 'eBird og Clements',
-        taxonomy: 'Fuglenavne, arter og deres rækkefølge følger eBird/Clements-taksonomien, version {version}, fra Cornell Lab of Ornithology. Filer fra eBird og observation.org læses i din browser. De danske navne, som eBird ikke har, kommer fra IOC World Bird List v15.2 (Gill, Donsker & Rasmussen), med licensen <cc>CC BY 3.0</cc>.',
+        taxonomy: 'Fuglenavne, arter og deres rækkefølge følger eBird/Clements-taksonomien, version {version}, fra Cornell Lab of Ornithology. Hver fil, du importerer, læses i din browser. De danske navne, som eBird ikke har, kommer fra IOC World Bird List v15.2 (Gill, Donsker & Rasmussen), med licensen <cc>CC BY 3.0</cc>.',
         masses: 'Klistermærkernes størrelser bruger kropsvægte fra AVONET (Tobias et al. 2022, Ecology Letters), via huashus artstabel.',
         birdbase: 'For arter, som AVONET ikke har en vægt for, bruger klistermærkernes størrelser kropsvægte fra BIRDBASE (Şekercioğlu et al. 2025, Scientific Data).',
         redList: 'IUCN’s rødlistekategorier som angivet for BirdLife {birdlife} i AviList: The Global Avian Checklist, {version} (AviList Core Team, {year}), via huashus artstabel, med licensen <cc>CC BY 4.0</cc>. Everybird har matchet dem med eBirds arter.',
         tree: 'Visningen Træ tegner fuglenes daterede stamtræ {tree} ({taxonomy}) af McTavish et al., med licensen <cc>CC BY 4.0</cc>. Everybird har afstemt dets spidser med eBird-taksonomien {year}, som giver familier, slægter og totaler. Arter, der er nye i taksonomien {year}, står ved siden af deres nærmeste slægtning.',
         api: 'Observationerne kommer fra iNaturalists offentlige API, hentet direkte fra din browser, omkring én gang i sekundet.',
-        countries: 'Landenavne, de fleste regionsnavne og kystlinjerne på kontinenternes globusser kommer fra Natural Earth.',
+        countries: 'Landenavne, de fleste regionsnavne, verdenskortet og kystlinjerne på kontinenternes globusser kommer fra Natural Earth.',
         regions: 'Resten af navnene på stater og provinser kommer fra Debians iso-codes ISO 3166-2-data, kun brugt til navne.',
         vietnamBoundariesTitle: 'Vietnams provinsgrænser',
         vietnamBoundaries: 'Vietnams provinsgrænser fra 2025 kommer fra General Statistics Office of Vietnam via OCHA og HDX, under <cc>CC BY 3.0 IGO</cc>. Everybird har forenklet formerne og bruger dem til lokale opslag.',

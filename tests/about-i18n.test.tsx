@@ -11,6 +11,7 @@ import { TOTAL } from '@/components/about/how-it-works-data'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt, shortDay } from '@/i18n/format'
 import { LANGS } from '@/i18n/langs'
+import { showLabel } from '@/lib/list/filter-summary'
 import { countParts, summaryLine, type RowCount, type SourceCounts } from '@/lib/list/source-counts'
 import { pageTitle } from '@/lib/list/title'
 import { FOOTER_LINE } from '@/lib/share/image'
@@ -39,11 +40,13 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
   const wide = host.querySelector('[data-poster="wide"]')!
   const compact = host.querySelector('[data-poster="compact"]')!
 
-  it("draws the product's own strings: Settings rows, summary, page head, taxonomy labels", () => {
+  it("draws the product's own strings: top bar, Settings rows, summary, page head, controls bar, Taxa panel", () => {
+    expect([...wide.querySelectorAll('.ebd-nav-link')].map(text)).toEqual([ui.shell.nav.collage, ui.shell.nav.compare, ui.shell.nav.settings, ui.shell.nav.about])
     expect(text(wide.querySelector('.ebd-h1'))).toBe(ui.shell.nav.settings)
     expect(text(wide.querySelector('.ebd-h2'))).toBe(ui.import.head)
+    expect(text(wide.querySelector('.ebd-btn-hand'))).toBe(ui.add.hand)
     const titles = [...wide.querySelectorAll('.ebd-src-title')].map((e) => e.firstChild!.textContent)
-    expect(titles).toEqual([ui.import.ebird.listTitle, 'MyEBirdData', 'iNaturalist', ui.tick.title])
+    expect(titles).toEqual([ui.import.ebird.listTitle, 'MyEBirdData', 'iNaturalist', ui.import.sheet.title])
     const sum = summaryLine({ total: TOTAL, parts: [{ group: 'ebird', n: TOTAL }] } as unknown as SourceCounts, ui)!
     expect(text(wide.querySelector('.ebd-sum .ebd-swap-b'))).toBe(`${sum} ${ui.settings.seeCollage}`)
     expect(text(wide.querySelector('.ebd-sum .ebd-swap-a'))).toBe(ui.import.combine)
@@ -53,9 +56,22 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
     expect(status).toBe(`${countParts({ species: TOTAL, only: 0 } as RowCount, ui).join(' · ')} · ${skipped} ${ui.import.why} · ${imported}`)
     expect(text(wide.querySelector('.ebd-src-full .ebd-src-meta > .ebd-swap > .ebd-swap-a .ebd-swap-a'))).toBe(ui.import.notAdded)
     expect(text(wide.querySelector('.ebd-head-title'))).toBe(pageTitle(undefined, ui))
-    expect(text(wide.querySelector('.ebd-chips-label'))).toBe(ui.filters.rank.order)
+    expect(text(wide.querySelector('.ebd-btn-add'))).toBe(ui.collage.addBirds)
+    expect(text(wide.querySelector('.ebd-btn-print'))).toBe(ui.collage.print)
+    expect(text(wide.querySelector('.ebd-btn-share'))).toBe(ui.collage.share)
+    // The controls bar: four view tabs, then Taxa, Display and Filters, then search (ControlsBar)
+    for (const root of [wide, compact]) {
+      expect(root.querySelectorAll('.ebd-dock-tabs .ebd-icontab')).toHaveLength(4)
+      expect([...root.querySelectorAll('.ebd-drop')].map(text)).toEqual([ui.collage.controls.taxa, ui.collage.controls.display, ui.filters.label])
+    }
+    // The Taxa panel (wide) and its sheet (compact): the coverage head, the rank label and the order chips
+    const head = plural(ui.collage.controls.taxaHead.order, 45, { n: '7', total: '45' })
+    expect(text(wide.querySelector('.ebd-taxa .ebd-taxa-head'))).toBe(head)
+    expect(text(compact.querySelector('.ebd-sheet .ebd-taxa-head'))).toBe(head)
+    expect(text(wide.querySelector('.ebd-taxa .ebd-chips-label'))).toBe(ui.filters.rank.order)
+    expect(wide.querySelectorAll('.ebd-taxa .ebd-chip')).toHaveLength(7)
+    expect(text(compact.querySelector('.ebd-sheet-show .ebd-swap-a'))).toBe(showLabel(TOTAL, ui))
     expect(text(wide.querySelector('.ebd-path-link'))).toBe(ui.filters.all)
-    expect(text(compact.querySelector('.ebd-pick-label'))).toBe(ui.filters.choose.order)
     expect(text(wide.querySelector('.ebd-mid-label'))).toBe(ui.count.label)
     expect(text(wide.querySelector('.ebd-num'))).toBe(formatInt(TOTAL, ui.num))
     expect(text(wide.querySelector('.ebd-stats .ebd-swap-a'))).toContain(plural(ui.collage.stats.orders, 7, { n: '7' }))
@@ -63,7 +79,8 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
 
   it("draws the share dialog and its images in the language, the stamp ending each footer", () => {
     expect(text(wide.querySelector('.ebd-share-title'))).toBe(ui.share.title)
-    expect([...wide.querySelectorAll('.ebd-seg-btn')].map(text)).toEqual([`${ui.share.format.story}9:16`, `${ui.share.format.post}4:5`, `${ui.share.format.square}1:1`])
+    expect([...wide.querySelectorAll('.ebd-seg-btn')].map(text)).toEqual([ui.share.format.story, ui.share.format.post, ui.share.format.square])
+    expect(text(wide.querySelector('.ebd-share-bulk'))).toBe(ui.share.print.bulk.title)
     expect(text(wide.querySelector('.ebd-share-label'))).toBe(ui.share.nameLabel)
     expect(text(wide.querySelector('.ebd-share-input'))).toBe(ui.share.namePlaceholder)
     expect(text(wide.querySelector('.ebd-share-switch'))).toBe(ui.share.showLatest)
@@ -114,13 +131,23 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     expect(text(main.querySelector('#eb-what-h'))).toBe(m.page.about.what.head)
     expect(text(main.querySelector('#eb-how-h'))).toBe(m.page.about.how.head)
     expect(text(main.querySelector('#eb-size-h'))).toBe(m.page.about.size.head)
+    // What it is: the collage, then the other views, sharing, printing, batches and Compare, side by side from 1024px
+    const what = main.querySelector('section[aria-labelledby="eb-what-h"] .eb-about-cols')!
+    expect([...what.querySelectorAll('p')].map(text)).toEqual([m.page.about.what.body, m.page.about.what.more])
     const credits = document.getElementById('credits')!
     const made = { en: 'Made by Yusuf Taleb', es: 'Hecho por Yusuf Taleb', pt: 'Feito por Yusuf Taleb', nl: 'Gemaakt door Yusuf Taleb', pl: 'Autor: Yusuf Taleb', fr: 'Créé par Yusuf Taleb', de: 'Gemacht von Yusuf Taleb', it: 'Creato da Yusuf Taleb', sv: 'Gjord av Yusuf Taleb', da: 'Lavet af Yusuf Taleb', ru: 'Автор: Yusuf Taleb', ja: '制作：Yusuf Taleb', 'zh-Hans': '由Yusuf Taleb制作', 'zh-Hant': '由 Yusuf Taleb 製作' }[lang]
     expect(made).toBe(m.ui.shell.footer.madeBy)
     expect(text(credits.querySelector('.eb-prose'))).toMatch(new RegExp(`^${made}[.。]`))
     expect(within(credits).getByRole('link', { name: 'Yusuf Taleb' })).toHaveAttribute('href', 'https://www.yusuftaleb.com')
-    // The coffee sentence is translated, the button and its alt stay
-    expect(text(credits.querySelector('.eb-coffee .eb-prose'))).toBe(m.page.about.credits.coffee)
+    // "Made by" and the coffee sentence are one paragraph (joined by a space, none after 。), the button beside it
+    const c = m.page.about.credits
+    const plain = (s: string) => s.replace(/<\/?\w+>/g, '')
+    expect(text(credits.querySelector('.eb-coffee .eb-prose'))).toBe(`${plain(c.madeBy)}${c.madeBy.endsWith('。') ? '' : ' '}${c.coffee}`)
+    expect(credits.querySelector('.eb-coffee > .eb-prose + a.eb-coffee-btn')).not.toBeNull()
+    // The thank-you follows it, before the credit rows
+    const thanks = credits.querySelector('.eb-coffee + .eb-prose')!
+    expect(text(thanks)).toBe(c.thanks)
+    expect(thanks.nextElementSibling).toHaveClass('eb-credits')
     expect(within(credits).getByRole('img', { name: 'Buy me a coffee' })).toHaveAttribute('src', '/buy-me-a-coffee.png')
     for (const name of ['huashu-bird-sticker', 'CC BY 4.0', 'Icons8', 'Origami', 'Natural Earth', 'Debian iso-codes', 'Fontshare', 'flag-icons', 'AVONET', 'BIRDBASE', 'iNaturalist']) {
       expect(within(credits).getAllByRole('link', { name }).length, name).toBeGreaterThan(0)
@@ -134,7 +161,7 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
 
   it("the privacy note keeps its claims and adds the language cookie and the visit language, translated", async () => {
     render(await AboutPage({ params: Promise.resolve({ lang }) }))
-    const p = text(document.querySelector('main .eb-how, section[aria-labelledby="eb-how-h"] > p.eb-prose'))
+    const p = text(document.querySelector('section[aria-labelledby="eb-how-h"] .eb-about-cols > p.eb-prose'))
     expect(p).toBe(m.page.about.how.privacy)
     expect(p).toContain('Cloudflare Web Analytics')
     // Polish quotes open low („es”), Swedish with a closing quote (”es”).

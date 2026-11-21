@@ -159,3 +159,25 @@ the product's for these 24). The compact page leaves out the stats line for room
 Not checked: real devices and touch, Firefox, headed Safari over a long run (headed WebKit windows were throttled by the
 OS once covered, for the old and new demo alike, so its long runs measure the window manager, not the page), toggling
 reduced motion during playback, a theme switch mid-loop, and the demo with the production stickers site (not live yet).
+
+## Round 6 (2026-11-21): today's site, a larger figure
+
+What changed, and why (the product moved on; the demo follows it, labels from the product's dictionaries as before):
+- The top bar: My birds, Compare, Settings, About (compact: My birds and Settings; there is no room for four).
+- Settings: Add by hand at the right of "Your list" (wide), and the fourth row is Spreadsheet or list, as the import
+  panel orders its rows today (the Ticked by hand row is gone: by hand is the heading row's button).
+- The collage page head: Add birds, Print and Share (compact: Add birds and Print as 26px icon buttons).
+- The controls bar: the Collage, List, Map and Tree tabs (icons), then Taxa, Display and Filters, then search (the True
+  size and Scientific switches live in the Display panel now); on phones the three panel buttons share row two.
+- The taxonomy filter: no wall of chips under the bar. Beat 3 presses Taxa, the panel drops under the bar (its "7 of 45
+  orders" head and the order chips; everything under the bar dims), Herons is pressed (Accent), and Taxa again closes it:
+  the six herons glide in and the breadcrumb shows under the bar, as before. On phones the panel is its sheet at the
+  bottom of what the stage shows, closed by its foot button, "Show 6 species".
+- The collage box (wide) is 524 × 198, 32px taller, the room the chip rows took (`STAGE` in build-howto.ts).
+- The share dialog: the format names alone (the product shows no ratios), and the Export in batches row under the image
+  options (wide only).
+- Size: the figure spans About's content width and the stage scales its design past 720 × 470 (Stage's `fill`, up to 2x;
+  1.51x at 1088px), the poster with it. Text and lines are DOM and stay sharp; the 17 stickers (of 112) drawn past 128 device px
+  at 1.51x on a 2x screen take the 384 file, every other one keeps the 128 file (one URL per bird in every state).
+
+Not rehearsed: no film or browser run this round (code checks only); the frames above predate it.

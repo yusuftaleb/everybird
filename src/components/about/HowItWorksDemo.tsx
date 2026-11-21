@@ -22,7 +22,7 @@ const SIZE: Record<Layout, [number, number]> = { wide: [720, 470], compact: [358
 /**
  * The figure's first frame, server-rendered: the collage made, every sticker around its count (the scene's poster
  * state), in both designs; the slot's width picks one (under 560px the compact one, as the stage does) and scales it
- * to the slot. Layout and text are there with the page's HTML; each sticker fades in as it decodes. It is the whole
+ * to the slot, past its design size too (up to 2x, as the stage's fill). Layout and text are there with the page's HTML; each sticker fades in as it decodes. It is the whole
  * figure under reduced motion.
  */
 export function HowItWorksPoster() {
@@ -33,7 +33,7 @@ export function HowItWorksPoster() {
     if (!el || CSS.supports('scale', 'calc(100cqw / 720px)')) return
     const fit = () => {
       const w = el.clientWidth
-      el.style.setProperty('--k', String(Math.min(1, w / (w < 560 ? 358 : 720))))
+      el.style.setProperty('--k', String(Math.min(2, w / (w < 560 ? 358 : 720))))
     }
     fit()
     const ro = new ResizeObserver(fit)

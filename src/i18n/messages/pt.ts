@@ -881,19 +881,19 @@ export const pt: Messages = {
     /** About (app/[lang]/(app)/about/page.tsx). `<tag>` words become links; proper names, licences and the Buy Me a Coffee button stay as they are. */
     about: {
       lede: 'O Everybird transforma a lista de vida de qualquer observador de aves em uma colagem de adesivos.',
-      what: { head: 'O que é', body: 'Sua lista de vida já é o registro de uma vida inteira de aves. O Everybird a organiza em uma só colagem: cada espécie é um adesivo, com o tamanho segundo sua massa corporal, e a contagem no centro. Filtre por grupo, lugar, ano ou situação de conservação e compartilhe como imagem ou como link.' },
+      what: { head: 'O que é', body: 'Sua lista de vida já é o registro de uma vida inteira de aves. O Everybird a organiza em uma só colagem: cada espécie é um adesivo, com o tamanho segundo sua massa corporal, e a contagem no centro. Filtre por grupo, lugar, ano ou situação de conservação e compartilhe como imagem ou como link.', more: 'Veja como colagem, como lista, em um mapa do mundo ou na árvore das aves. Compartilhe como imagem ou como link, imprima como pôster ou exporte em lotes: uma imagem ou um pôster para cada família, país, ano ou outro grupo. Em Comparar, sua lista fica ao lado das listas dos seus amigos e você vê quais aves vocês têm em comum.' },
       how: {
         head: 'Como funciona',
         steps: [
-          'Traga sua lista em <link>Ajustes</link>: um arquivo do eBird ou do observation.org, um nome de usuário do iNaturalist ou aves marcadas à mão. Combine tudo se você mantém mais de um registro.',
+          'Traga sua lista em <link>Ajustes</link>: um arquivo do eBird, do observation.org, do Scythebill ou do iGoTerra, uma planilha ou uma lista colada, um nome de usuário do iNaturalist ou aves adicionadas à mão. Combine tudo se você mantém mais de um registro.',
           'Cada ave é associada à taxonomia do eBird deste ano e mantém a data mais antiga. As linhas que não correspondem aparecem em uma lista, então nada é descartado em silêncio.',
-          'A colagem, os filtros e as imagens para compartilhar são feitos no seu navegador.',
+          'A colagem e suas visualizações, os filtros, as imagens para compartilhar e os pôsteres são feitos no seu navegador.',
         ],
         privacy: 'Sua lista nunca sai do seu navegador. Contamos as visitas com o Cloudflare Web Analytics, de forma anônima e sem cookies, e algumas ações (uma colagem feita, uma imagem compartilhada ou salva, um link copiado) com um pequeno contador nosso que nunca vê suas aves, nomes ou lugares. Um identificador anônimo que muda todo dia nos deixa contar visitantes únicos sem rastrear ninguém de um dia para o outro. Nenhum dos dois funciona se o seu navegador pedir para não ser rastreado. A sua escolha de idioma fica guardada em um pequeno cookie neste dispositivo; ela só sai dele para mostrar a página certa. A contagem de visitas inclui o idioma do seu navegador (apenas “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” ou “zh-Hant”). As páginas em russo, japonês e chinês carregam as fontes do Google Fonts, então nessas páginas seu navegador se conecta ao Google.',
       },
       size: {
         head: 'O que significa Tamanho real',
-        even: 'O tamanho de cada adesivo vem da massa corporal média da ave, segundo o AVONET, aplicada à área que ele ocupa na página, para que a cauda de um pavão ou as pernas de uma garça não o façam parecer pequeno. O padrão equilibra os tamanhos: a área acompanha a massa elevada a 0,4, e assim as aves pequenas continuam visíveis ao lado das grandes.',
+        even: 'O tamanho de cada adesivo vem da massa corporal média da ave, segundo o AVONET (ou o BIRDBASE quando o AVONET não a tem), aplicada à área que ele ocupa na página, para que a cauda de um pavão ou as pernas de uma garça não o façam parecer pequeno. O padrão equilibra os tamanhos: a área acompanha a massa elevada a 0,4, e assim as aves pequenas continuam visíveis ao lado das grandes.',
         true: 'O Tamanho real usa a raiz cúbica da massa para o comprimento. As aves têm densidade parecida, então a massa acompanha o volume e sua raiz cúbica acompanha o comprimento: uma ave oito vezes mais pesada é desenhada com cerca do dobro do comprimento e cobre quatro vezes a área. É uma estimativa do tamanho relativo, não um comprimento medido. Aves esguias e de pescoço comprido podem parecer um pouco pequenas e as robustas um pouco grandes, poses de nado escondem parte do corpo e cada espécie usa uma única massa média, então machos, fêmeas e estações não se distinguem.',
       },
       status: {
@@ -904,6 +904,7 @@ export const pt: Messages = {
         head: 'Créditos',
         madeBy: 'Feito por <you>Yusuf Taleb</you>. Ele nasceu da <life>lista de vida do site dele</life> e é construído com o generoso trabalho de outras pessoas.',
         coffee: 'Se você gosta do Everybird, pode pagar um café para o Yusuf.',
+        thanks: 'Obrigado a todas as pessoas que incentivaram a ideia, testaram as primeiras versões e mandaram sugestões pelo caminho. O Everybird ficou melhor graças a elas.',
         /** Each credit's mono label (its kind, then the licence). */
         label: {
           stickers: 'Adesivos gerados por IA · CC BY 4.0',
@@ -926,13 +927,13 @@ export const pt: Messages = {
         stickers: { lead: 'Cada adesivo de ave é uma ilustração gerada por IA do huashu-bird-sticker, de alchaincyf, com licença <cc>CC BY 4.0</cc>. Cada um foi feito com o GPT-image a partir de uma descrição escrita das marcas de campo da espécie e, para a maioria das espécies, de fotos de referência, cujos fotógrafos são creditados nesse projeto. <how>Como os adesivos são feitos</how>. O Everybird os redimensionou e recortou para a web; nada mais foi alterado.', commit: 'Commit de origem <code>{sha}</code>.', tail: 'Menos de 2% das espécies ainda não têm adesivo e aparecem como um contorno. Procuramos novos desenhos toda semana e os adicionamos nas atualizações do Everybird.' },
         inspiration: 'O Avian Visitors, de Teddy Warner, mostrou como um mural de aves pode ser lindo. O Everybird começou ali.',
         taxonomyTitle: 'eBird e Clements',
-        taxonomy: 'Os nomes das aves, as espécies e a ordem delas seguem a taxonomia eBird/Clements, versão {version}, do Cornell Lab of Ornithology. Os arquivos do eBird e do observation.org são lidos no seu navegador.',
+        taxonomy: 'Os nomes das aves, as espécies e a ordem delas seguem a taxonomia eBird/Clements, versão {version}, do Cornell Lab of Ornithology. Todos os arquivos que você importa são lidos no seu navegador.',
         masses: 'Os tamanhos dos adesivos usam massas corporais do AVONET (Tobias et al. 2022, Ecology Letters), pela tabela de espécies do huashu.',
         birdbase: 'Os tamanhos dos adesivos das espécies sem massa no AVONET usam massas corporais do BIRDBASE (Şekercioğlu et al. 2025, Scientific Data).',
         redList: 'Categorias da Lista Vermelha da IUCN como constam para a BirdLife {birdlife} no AviList: The Global Avian Checklist, {version} (AviList Core Team, {year}), pela tabela de espécies do huashu, com licença <cc>CC BY 4.0</cc>. O Everybird as associou às espécies do eBird.',
         tree: 'A visualização Árvore desenha a árvore datada das aves {tree} ({taxonomy}), de McTavish et al., com licença <cc>CC BY 4.0</cc>. O Everybird associou as pontas à taxonomia do eBird {year}, que dá as famílias, os gêneros e os totais. As espécies novas da taxonomia {year} foram colocadas ao lado do parente mais próximo.',
         api: 'As observações vêm da API pública do iNaturalist, chamada direto do seu navegador, cerca de uma vez por segundo.',
-        countries: 'Os nomes dos países, da maioria das regiões e as costas dos globos dos continentes vêm do Natural Earth.',
+        countries: 'Os nomes dos países, da maioria das regiões, o mapa do mundo e as costas dos globos dos continentes vêm do Natural Earth.',
         regions: 'O restante dos nomes de estados e províncias vem dos dados ISO 3166-2 do iso-codes do Debian, usados apenas para os nomes.',
         vietnamBoundariesTitle: 'Limites provinciais do Vietnã',
         vietnamBoundaries: 'Os limites provinciais do Vietnã de 2025 vêm do Escritório Geral de Estatística do Vietnã, via OCHA e HDX, sob a licença <cc>CC BY 3.0 IGO</cc>. O Everybird simplificou os limites para consultas no navegador.',

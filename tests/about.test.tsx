@@ -24,7 +24,9 @@ describe('About: conservation status', () => {
     const section = h.closest('section')!
     expect(section).toHaveAttribute('aria-labelledby', 'eb-status-h')
     expect(h.id).toBe('eb-status-h')
+    // Beside True size (one pair: side by side from 1024px)
     expect(section.previousElementSibling).toHaveAttribute('aria-labelledby', 'eb-size-h')
+    expect(section.parentElement).toHaveClass('eb-about-cols')
     expect(section.textContent).toContain(
       `Each species' status is its global IUCN Red List category, from ${IUCN_SOURCE}. It is global, not regional: a bird common where you live can still be threatened worldwide, and the other way round. Species without a category show none.`,
     )
@@ -45,6 +47,11 @@ describe('About: conservation status', () => {
     expect(within(birdbase as HTMLElement).getByRole('link', { name: 'BIRDBASE' })).toHaveAttribute('href', 'https://doi.org/10.1038/s41597-025-05615-3')
     expect(birdbase.textContent).toContain('BIRDBASE')
     expect(birdbase.previousElementSibling!.textContent).toContain('AVONET')
+  })
+
+  it('names the sources the sticker sizes come from: AVONET, and BIRDBASE where AVONET has none', async () => {
+    render(await AboutPage({ params: Promise.resolve({ lang: 'en' }) }))
+    expect(screen.getByText(/from AVONET \(or BIRDBASE where AVONET has none\)/)).toBeInTheDocument()
   })
 
   it('reads its version text and DOI from AVILIST, as IUCN_SOURCE does', () => {

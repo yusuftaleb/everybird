@@ -881,19 +881,19 @@ export const fr: Messages = {
     /** About (app/[lang]/(app)/about/page.tsx). `<tag>` words become links; proper names, licences and the Buy Me a Coffee button stay as they are. */
     about: {
       lede: 'Everybird transforme la liste de vie de n’importe quel observateur d’oiseaux en collage d’autocollants.',
-      what: { head: 'Ce que c’est', body: 'Ta liste de vie, c’est déjà toute une vie d’oiseaux. Everybird la dispose en un seul collage\u00a0: chaque espèce est un autocollant, dont la taille suit sa masse corporelle, avec le nombre au centre. Filtre-la par groupe, lieu, année ou statut de conservation, puis partage-la en image ou en lien.' },
+      what: { head: 'Ce que c’est', body: 'Ta liste de vie, c’est déjà toute une vie d’oiseaux. Everybird la dispose en un seul collage\u00a0: chaque espèce est un autocollant, dont la taille suit sa masse corporelle, avec le nombre au centre. Filtre-la par groupe, lieu, année ou statut de conservation, puis partage-la en image ou en lien.', more: 'Regarde-la en collage, en liste, sur une carte du monde ou dans l’arbre des oiseaux. Partage-la en image ou en lien, imprime-la en affiche ou exporte-la par lots\u00a0: une image ou une affiche par famille, pays, année ou autre groupe. Comparer place ta liste à côté de celles de tes amis et montre les oiseaux que vous avez en commun.' },
       how: {
         head: 'Comment ça marche',
         steps: [
-          'Ajoute ta liste dans <link>Réglages</link>\u00a0: un fichier eBird ou observation.org, un nom d’utilisateur iNaturalist, ou des oiseaux cochés à la main. Combine-les si tu notes tes oiseaux à plusieurs endroits.',
+          'Ajoute ta liste dans <link>Réglages</link>\u00a0: un fichier eBird, observation.org, Scythebill ou iGoTerra, un tableur ou une liste collée, un nom d’utilisateur iNaturalist, ou des oiseaux ajoutés à la main. Combine-les si tu notes tes oiseaux à plusieurs endroits.',
           'Chaque oiseau est rapproché de la taxonomie eBird de cette année et garde sa date la plus ancienne. Les lignes qui ne correspondent pas sont listées, donc rien n’est écarté en silence.',
-          'Le collage, les filtres et les images de partage sont tous créés dans ton navigateur.',
+          'Le collage et ses vues, les filtres, les images de partage et les affiches sont tous créés dans ton navigateur.',
         ],
         privacy: 'Ta liste ne quitte jamais ton navigateur. Nous comptons les visites avec Cloudflare Web Analytics, de façon anonyme et sans cookies, et quelques actions (un collage créé, une image partagée ou enregistrée, un lien copié) avec notre propre petit compteur, qui ne voit jamais tes oiseaux, tes noms ni tes lieux. Un identifiant anonyme qui change chaque jour nous permet de compter les visiteurs uniques sans suivre personne d’un jour à l’autre. Aucun des deux ne fonctionne si ton navigateur demande à ne pas être suivi. Ton choix de langue est conservé dans un petit cookie sur cet appareil\u00a0; il n’en sort que pour t’afficher la bonne page. Le décompte des visites inclut la langue de ton navigateur (seulement “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” ou “zh-Hant”). Les pages en russe, en japonais et en chinois chargent leurs polices depuis Google Fonts, donc sur ces pages ton navigateur contacte Google.',
       },
       size: {
         head: 'Ce que signifie Taille réelle',
-        even: 'Chaque autocollant est dimensionné d’après la masse corporelle moyenne de l’oiseau, issue d’AVONET, en fonction de la surface qu’il couvre sur la page, pour que la traîne d’un paon ou les pattes d’un héron ne le fassent pas paraître petit. Par défaut, les tailles sont rééquilibrées\u00a0: la surface suit la masse à la puissance 0,4, donc les petits oiseaux restent visibles à côté des grands.',
+        even: 'Chaque autocollant est dimensionné d’après la masse corporelle moyenne de l’oiseau, issue d’AVONET (ou de BIRDBASE quand AVONET n’en a pas), en fonction de la surface qu’il couvre sur la page, pour que la traîne d’un paon ou les pattes d’un héron ne le fassent pas paraître petit. Par défaut, les tailles sont rééquilibrées\u00a0: la surface suit la masse à la puissance 0,4, donc les petits oiseaux restent visibles à côté des grands.',
         true: 'Taille réelle utilise plutôt la racine cubique de la masse pour la longueur. Les oiseaux ont une densité à peu près semblable, donc la masse suit le volume, et sa racine cubique suit la longueur\u00a0: un oiseau huit fois plus lourd est dessiné environ deux fois plus long, et couvre quatre fois la surface. C’est une estimation de la taille relative, pas une longueur mesurée. Les oiseaux fins à long cou peuvent paraître un peu petits et les trapus un peu grands, les poses de nage cachent une partie du corps, et chaque espèce utilise une seule masse moyenne, donc mâles, femelles et saisons ne sont pas distingués.',
       },
       status: {
@@ -904,6 +904,7 @@ export const fr: Messages = {
         head: 'Crédits',
         madeBy: 'Créé par <you>Yusuf Taleb</you>. Il est né de la <life>liste de vie de son site</life>, et repose sur le travail généreux d’autres personnes.',
         coffee: 'Si tu aimes Everybird, tu peux offrir un café à Yusuf.',
+        thanks: 'Merci à toutes les personnes qui ont encouragé l’idée, testé les premières versions et envoyé leurs retours en chemin. Everybird est meilleur grâce à elles.',
         /** Each credit's mono label (its kind, then the licence). */
         label: {
           stickers: 'Autocollants générés par IA · CC BY 4.0',
@@ -926,13 +927,13 @@ export const fr: Messages = {
         stickers: { lead: 'Chaque autocollant d’oiseau est une illustration générée par IA tirée de huashu-bird-sticker, d’alchaincyf, sous licence <cc>CC BY 4.0</cc>. Chacun a été créé avec GPT-image à partir d’une description écrite des critères d’identification de l’espèce et, pour la plupart des espèces, de photos de référence, dont les photographes sont crédités dans ce projet. <how>Comment les autocollants sont créés</how>. Everybird les a redimensionnés et recadrés pour le web\u00a0; rien d’autre n’a été modifié.', commit: 'Commit source <code>{sha}</code>.', tail: 'Moins de 2\u00a0% des espèces n’ont pas encore d’autocollant et apparaissent en contour. Nous cherchons de nouveaux dessins chaque semaine et les ajoutons dans les mises à jour d’Everybird.' },
         inspiration: 'Avian Visitors, de Teddy Warner, a montré à quel point un mur d’oiseaux peut être beau. Everybird est parti de là.',
         taxonomyTitle: 'eBird et Clements',
-        taxonomy: 'Les noms d’oiseaux, les espèces et leur ordre suivent la taxonomie eBird/Clements, version {version}, du Cornell Lab of Ornithology. Les fichiers eBird et observation.org sont lus dans ton navigateur.',
+        taxonomy: 'Les noms d’oiseaux, les espèces et leur ordre suivent la taxonomie eBird/Clements, version {version}, du Cornell Lab of Ornithology. Chaque fichier que tu importes est lu dans ton navigateur.',
         masses: 'La taille des autocollants utilise les masses corporelles d’AVONET (Tobias et al. 2022, Ecology Letters), via la table des espèces de huashu.',
         birdbase: 'Pour les espèces sans masse dans AVONET, la taille des autocollants utilise les masses corporelles de BIRDBASE (Şekercioğlu et al. 2025, Scientific Data).',
         redList: 'Catégories de la Liste rouge de l’UICN telles qu’indiquées pour BirdLife {birdlife} dans AviList: The Global Avian Checklist, {version} (AviList Core Team, {year}), via la table des espèces de huashu, sous licence <cc>CC BY 4.0</cc>. Everybird les a associées aux espèces eBird.',
         tree: 'La vue Arbre dessine l’arbre daté des oiseaux {tree} ({taxonomy}), de McTavish et al., sous licence <cc>CC BY 4.0</cc>. Everybird a rapproché ses extrémités de la taxonomie eBird {year}, qui donne les familles, les genres et les totaux. Les espèces nouvelles de la taxonomie {year} sont placées à côté de leur plus proche parent.',
         api: 'Les observations viennent de l’API publique d’iNaturalist, appelée directement depuis ton navigateur, environ une fois par seconde.',
-        countries: 'Les noms de pays, la plupart des noms de régions et les côtes des globes des continents viennent de Natural Earth.',
+        countries: 'Les noms de pays, la plupart des noms de régions, la carte du monde et les côtes des globes des continents viennent de Natural Earth.',
         regions: 'Les autres noms d’États et de provinces viennent des données ISO 3166-2 d’iso-codes de Debian, utilisées seulement pour les noms.',
         vietnamBoundariesTitle: 'Limites provinciales du Vietnam',
         vietnamBoundaries: 'Les limites provinciales du Vietnam de 2025 viennent de l’Office général de la statistique du Vietnam via OCHA et HDX, sous licence <cc>CC BY 3.0 IGO</cc>. Everybird a simplifié les formes et les utilise pour des recherches locales.',
