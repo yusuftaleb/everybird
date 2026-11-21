@@ -180,6 +180,20 @@ describe('the option rows and Print\'s actions', () => {
     }
     expect(over).toEqual([])
   })
+  it('keeps each choice beside its label at the 480px column in every language, so a 1440 × 830 window\'s rows stay 36px (tests/share-layout.test.ts)', () => {
+    // .eb-share-opt: the label (16/500), a 16px gap, the control; under it only where the two don't fit.
+    expect(css).toMatch(/\.eb-share \.eb-share-opt \{[^}]*gap: 4px 16px;/)
+    const over: string[] = []
+    for (const [lang, m] of Object.entries(LANG)) {
+      const s = m.ui.share, c = s.countSize, tl = m.ui.collage.tree.layouts
+      const rows: [string, string[]][] = [[c.label, [c.hide, c.short.small, c.short.medium, c.short.large, c.title]], [s.colours.label, [s.colours.light, s.colours.dark]], [s.arrange.label, [tl.fan, tl.circle, tl.rows]]]
+      for (const [label, labels] of rows) {
+        const need = measured(label, 16) + 16 + segW(labels, 14, 10)
+        if (need > COLUMNS.laptop) over.push(`${lang} "${label}": ${Math.ceil(need)}px`)
+      }
+    }
+    expect(over).toEqual([])
+  })
 
   it('puts Print\'s two actions on one row at the 420px column in every language, labels never wrapped', () => {
     // .eb-share-duo: two .eb-btn (18px padding each side, an 18px icon and 8px before the 15px label, 1px border), 8px apart.
