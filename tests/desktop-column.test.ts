@@ -140,14 +140,15 @@ describe('everything on the desktop is inside the central column, clear of the t
 // square for the credit line the footer lifts the row by (their tiles and count move). Retaken for round 6, item 10: that
 // room is kept without the row too (story, post, square: the collage ends a credit line higher, so the birds clear the
 // lifted hairline), and the portrait poster keeps room for its foot's second line with the latest lifer (print).
-// tests/share-image-golden.test.ts's logs show each difference.
+// The layouts retaken for round 6, item 12: a small group's size cap (maxTile and maxSide of the 12-bird layouts, GROUP_TILE
+// of the collage's shorter side; nothing else; the draws unchanged). tests/share-image-golden.test.ts's logs show each difference.
 const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: string }> = {
-  story: { layout: 'c5e241e2bec510622a9d78dd632935d5f3a45496', draws: 'a6510af37bdf6310ceee486709103ed6fafbd67c' },
-  post: { layout: '09575c4b18de84c8fb11014f3ed55a3bb74da545', draws: 'ac03e3b5d68c16b0863f86fed8ee8a1ccc211b48' },
-  square: { layout: '67cbc8d79a50f624c095e32223e0d74d05d018ae', draws: 'afdda9c8379f5ea661d14bb9125444023a12cb18' },
-  wide: { layout: '2ef1edc25ca86d9298033672f889811ebc6ee68a', draws: 'b697c1cdc3cbbc3e8347d352fcad3f9168887863' },
-  print: { layout: '1b883b8a0e064da2633b0498d08889122625f923', draws: '2c3bb2a19c65614da6256d60b9f3f825681e85cb' },
-  printLandscape: { layout: '6420700515cec114ad51c385b3bc919e11dc6d0c', draws: '21ba5288b3d830e3e1713889de2e15291860baa5' },
+  story: { layout: '2a758cf254b2e9b93ad225fc67ab50c7ea0161d7', draws: 'a6510af37bdf6310ceee486709103ed6fafbd67c' },
+  post: { layout: '12fe6e864052a8f663dcdf9454cf6038aab9411e', draws: 'ac03e3b5d68c16b0863f86fed8ee8a1ccc211b48' },
+  square: { layout: '50f8870f865f176da7c25b3912113ad1485a0108', draws: 'afdda9c8379f5ea661d14bb9125444023a12cb18' },
+  wide: { layout: '08fbc77c3a7dddb33e4fcb3a29470b3c95206cc9', draws: 'b697c1cdc3cbbc3e8347d352fcad3f9168887863' },
+  print: { layout: '7e31248b24570465c3ee08f396f08f59412dc880', draws: '2c3bb2a19c65614da6256d60b9f3f825681e85cb' },
+  printLandscape: { layout: '4753e9a64f9078440232e31ba21e5fc80f46ba12', draws: '21ba5288b3d830e3e1713889de2e15291860baa5' },
 }
 const sha = (s: string) => createHash('sha1').update(s).digest('hex')
 

@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, fitBox, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
+import { GROUP_SIDE, GROUP_TILE, IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, fitBox, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
+import { SMALL_GROUP } from '../src/lib/layout/pack'
 import { SMALL_INLINE } from '@/lib/share/image'
 import { MONO_CAP, MONO_CAP_ACCENT, countText, holeExtent, numberEm } from '@/lib/layout/count-box'
 import { en } from '@/i18n/messages/en'
@@ -160,8 +161,10 @@ describe('cardLayout', () => {
     expect(L.count.label).toBe('SPECIES')
     expect(L.footer.y + L.footer.size).toBeLessThanOrEqual(1080 - 64)
     expect(L.latest!.icon).toBe(SMALL_INLINE.icon) // round 6, item 17: the one-line row's sticker
+    // A small group (round 6, item 12): its largest sticker up to GROUP_TILE of the collage's shorter side.
     const short = cardLayout('square', { name: false, filter: false, latest: true, count: 12 })
-    expect(short.maxTile).toBe(0.36)
+    expect(short.maxTile * short.collage.w).toBeCloseTo(GROUP_TILE * short.collage.h)
+    expect(short.maxSide).toBe(GROUP_SIDE)
     expect(packSpec(short).aspect).toBeCloseTo(short.collage.w / short.collage.h)
   })
 })
@@ -253,11 +256,18 @@ describe('maxTileSide', () => {
     expect(maxTileSide(4000)).toBe(440) // and never past the 384px files' sharp size
   })
   it('a short list (up to 24 birds) gets bigger stickers, still under the 384px files', () => {
-    expect(maxTileFrac(12)).toBe(0.36)
+    expect(maxTileFrac(24)).toBe(0.36)
     expect(maxTileFrac(197)).toBe(0.3)
-    expect(maxTileSide(952, maxTileFrac(12))).toBeLessThan(384)
-    expect(cardLayout('story', { name: false, filter: false, latest: true, count: 12 }).maxTile).toBe(0.36)
+    expect(maxTileSide(952, maxTileFrac(24))).toBeLessThan(384)
     expect(packSpec(cardLayout('post', { name: false, filter: false, latest: true, count: 197 })).maxTile).toBe(0.3)
+  })
+  it('a small group (under SMALL_GROUP birds) is drawn as large as its frame allows: up to GROUP_TILE of the shorter side, at most GROUP_SIDE', () => {
+    expect(SMALL_GROUP).toBe(40)
+    const story = cardLayout('story', { name: false, filter: false, latest: true, count: 12 })
+    expect(maxTileSide(story.collage.w, story.maxTile, story.maxSide)).toBe(GROUP_SIDE) // 0.7 × 952 is past the cap
+    const desktop = cardLayout('desktop', { name: false, filter: false, latest: true, count: 39 })
+    expect(maxTileSide(desktop.collage.w, desktop.maxTile, desktop.maxSide)).toBeCloseTo(GROUP_TILE * desktop.collage.h)
+    expect(cardLayout('story', { name: false, filter: false, latest: true, count: 40 }).maxTile).toBe(0.3)
   })
 })
 

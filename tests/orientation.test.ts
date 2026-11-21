@@ -176,10 +176,11 @@ describe('the packed collage uses the frame', () => {
         expect(f.y).toBeGreaterThan(0.95)
       }, 60_000)
     }
-    it(`${format}, 12 species: a short list still fills the frame's height and most of its width`, () => {
+    // Round 6, item 12: a short list is one snug group round the count, as large as the frame allows.
+    it(`${format}, 12 species: a short list is one group filling most of the frame's height`, () => {
       const f = fill(format, 12)
-      expect(f.x).toBeGreaterThan(0.8)
-      expect(f.y).toBeGreaterThan(0.9)
+      expect(f.y).toBeGreaterThan(0.75)
+      expect(f.x * f.L.collage.w).toBeGreaterThan(f.y * f.L.collage.h)
     }, 60_000)
   }
 

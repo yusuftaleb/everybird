@@ -10,8 +10,8 @@ import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { scaleHole } from '../src/lib/layout/count-box'
 import { decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
-import { FRAME_DENSE_FROM, packFrame, type PackBird, type PackResult } from '../src/lib/layout/pack'
-import { cardDims, cardLayout, packSpec, type CardFormat } from '../src/lib/share/image'
+import { FRAME_DENSE_FROM, SMALL_GROUP, packFrame, type PackBird, type PackResult } from '../src/lib/layout/pack'
+import { cardDims, cardLayout, fitBox, fitPack, imagePackSpec, maxTileSide, packSpec, type CardFormat } from '../src/lib/share/image'
 import { evenness } from './evenness'
 
 const DATA = resolve(__dirname, '../public/data')
@@ -55,7 +55,7 @@ describe('even spacing in the share images and the poster', () => {
   // Each format's own frame, with the count in the middle (its hole) or beside the title (none).
   const CASES: [CardFormat, number, 'medium' | 'title'][] = [
     ['story', 60, 'medium'], ['post', 197, 'medium'], ['square', 197, 'title'], ['desktop', 197, 'medium'],
-    ['print', 600, 'medium'], ['print', 197, 'title'], ['printLandscape', 300, 'medium'], ['story', 12, 'medium'],
+    ['print', 600, 'medium'], ['print', 197, 'title'], ['printLandscape', 300, 'medium'], ['story', 40, 'medium'],
     ['story', 1092, 'medium'], ['post', 800, 'title'],
   ]
   for (const oval of [false, true]) {
@@ -119,6 +119,44 @@ describe('even spacing in the share images and the poster', () => {
         console.log(`[corners] ${format} ${n}: Fit ${corners(fit).map((c) => c.toFixed(2)).join(' ')}, Free ${corners(free).map((c) => c.toFixed(2)).join(' ')}`)
         for (const c of corners(fit)) expect(c).toBeLessThan(0.75)
         for (const c of corners(free)) expect(c).toBeGreaterThan(1.25)
+      }, 60_000)
+    }
+  }
+
+  // Round 6, item 12: a list under SMALL_GROUP birds is one snug group round the count, as large as its frame allows,
+  // in every arrangement (the maintainer's batch export had four storks in the card's corners and five nightjars in a
+  // loose line). Before, from 4 birds: the largest gap between neighbours 0.6 to 2.7 median stickers, the median 0.2 to
+  // 2.0; now at most 0.35 and 0.03 to 0.18 (the page's one GAP). The group's box at least 70% of the frame's shorter
+  // side from 4 birds (two birds may sit either side of the count, its hole between them).
+  for (const arrangement of ['packed', 'oval', 'free'] as const) {
+    for (const format of ['story', 'post', 'square', 'desktop'] as const) {
+      it(`${arrangement}, ${format}, 1 to 39 birds: one snug group round the count, as large as the frame allows`, () => {
+        for (const n of [1, 2, 4, 5, 10, 20, 39]) {
+          expect(n).toBeLessThan(SMALL_GROUP)
+          const c = { name: true, filter: true, latest: true, count: n }
+          const L = cardLayout(format, c)
+          const spec = imagePackSpec(format, c, undefined, undefined, arrangement)
+          const birds = sample(n)
+          const r = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile, oval: spec.oval, free: spec.free })
+          expect(r.boxes.size).toBe(n)
+          expect(clean(birds, r)).toBe(true)
+          const fit = fitPack(r as never, L.collage, maxTileSide(L.collage.w, L.maxTile, L.maxSide))
+          let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+          for (const b of r.boxes.values()) {
+            const [x, y, w, h] = fitBox(fit, b)
+            x0 = Math.min(x0, x); x1 = Math.max(x1, x + w); y0 = Math.min(y0, y); y1 = Math.max(y1, y + h)
+            // Inside the collage's area.
+            expect(x).toBeGreaterThanOrEqual(L.collage.x - 0.5)
+            expect(x + w).toBeLessThanOrEqual(L.collage.x + L.collage.w + 0.5)
+            expect(y).toBeGreaterThanOrEqual(L.collage.y - 0.5)
+            expect(y + h).toBeLessThanOrEqual(L.collage.y + L.collage.h + 0.5)
+          }
+          if (n < 4) continue
+          const e = evenness(birds, r)
+          expect(e.median / e.medianL, `${n} median gap`).toBeLessThan(0.2)
+          expect(Math.max(...e.gaps) / e.medianL, `${n} largest gap`).toBeLessThan(0.4)
+          expect(Math.min(x1 - x0, y1 - y0) / Math.min(L.collage.w, L.collage.h), `${n} box`).toBeGreaterThan(0.68)
+        }
       }, 60_000)
     }
   }

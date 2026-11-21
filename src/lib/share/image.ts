@@ -44,13 +44,13 @@
 // has the same foot, "Oldest lineage: Osprey, about 39 million years" in the lifer's place (latestAs).
 import { SHARE_ORIGIN } from '@/lib/share/origin'
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
-import { printStickerUrl, stickerUrl } from '@/lib/sticker-url'
+import { PRINT_FROM, printStickerUrl, stickerUrl } from '@/lib/sticker-url'
 import { fmt, plural } from '@/i18n/core'
 import { formatMonth } from '@/i18n/format'
 import { PRINT_DESIGN_W, captionMinPx, printDesign, printPackH, type PrintSize } from '@/lib/share/print'
 import { defaultCaptionMeasure, planCaptions, verifyAndPlaceCaptions, type CaptionBox, type CaptionPlan, type PlacedTile, type TextMeasurer } from '@/lib/share/captions'
 import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
-import type { Box } from '@/lib/layout/pack'
+import { SMALL_GROUP, type Box } from '@/lib/layout/pack'
 import type { Arrangement } from '@/lib/arrangement'
 import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, goalLabelCells, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
 import type { Ui } from '@/i18n/messages/en'
@@ -378,7 +378,7 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
     // line and the hairline rises by it: that room is kept under the collage (round 6, item 10: the birds met the hairline).
     const lift = c.latest && W === PRINT_DESIGN_W ? POSTER_FOOT.line + 12 : 0
     const collage = { x: X, y: top, w: W - 2 * X, h: rule.y - GAPS[format].collage - lift - top }
-    return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
+    return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), rule, footer, ...tileCaps(format, c.count, collage) }
   }
   const footer = { y: H - B - 30 - (format === 'story' ? 4 : 0), size: 30, credit: 20 }
   const G = GAPS[format]
@@ -397,7 +397,7 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   const top = headBottom === undefined ? T : headBottom + G.head
   const bottom = (latest ? latest.y - G.latest : rule.y - G.collage) - lift
   const collage = { x: X, y: top, w: W - 2 * X, h: bottom - top }
-  return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
+  return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, ...tileCaps(format, c.count, collage) }
 }
 
 /**
@@ -427,6 +427,16 @@ export function packSpec(L: CardLayout): PackSpec {
  */
 export const MAX_TILE = 0.3, MAX_TILE_SHORT = 0.36
 export const maxTileFrac = (n: number) => (n <= 24 ? MAX_TILE_SHORT : MAX_TILE)
+/**
+ * A small group (under SMALL_GROUP birds, round 6, item 12) is drawn as large as its frame allows: its largest sticker's
+ * long side up to GROUP_TILE of the collage's shorter side (so one or two birds stay a sensible size beside the count),
+ * at most GROUP_SIDE design units; tiles over the 384 files' sharp size draw from the 1024 file (with the 384 as fallback).
+ */
+export const GROUP_TILE = 0.7, GROUP_SIDE = 640
+function tileCaps(format: CardFormat, n: number, collage: { w: number; h: number }): { maxTile: number; maxSide: number } {
+  if (n < SMALL_GROUP) return { maxTile: (GROUP_TILE * Math.min(collage.w, collage.h)) / collage.w, maxSide: GROUP_SIDE }
+  return { maxTile: maxTileFrac(n), maxSide: MAX_SIDE[format] ?? 440 }
+}
 /**
  * That largest side in px (never past `cap`: 440, the 384px files' sharp size at 1×; the desktop's 2× tiles draw from the
  * 1024 file, so its cap is 512, MAX_SIDE).
@@ -981,7 +991,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   // A 2× image (the desktop) takes the print's device tiers, so its big stickers come from the 1024 file, with the 384 as
   // a fallback (drawShareImage maps it in when the 1024 one fails).
   const sticker = (code: string, side: number, sv?: string): Pick<Tile, 'url' | 'fallback'> =>
-    print || scale > 1 ? printStickerUrl(code, side * scale, sv) : { url: stickerUrl(code, side, scale, sv) }
+    print || scale > 1 || side > PRINT_FROM ? printStickerUrl(code, side * scale, sv) : { url: stickerUrl(code, side, scale, sv) }
 
   // The pack on the collage area, its centre (the count) on the area's centre.
   const area = L.collage
