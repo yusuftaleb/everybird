@@ -50,7 +50,9 @@ test.describe('es-MX', () => {
     const local = names('es_MX')[CODE] ?? names('es')[CODE]
     const bird = page.locator(`[data-code="${CODE}"]`).first()
     await expect(bird).toHaveAttribute('aria-label', local)
-    await bird.click()
+    // Birds take no pointer events of their own (the stage hit-tests their silhouettes): open the card from the keyboard
+    await bird.focus()
+    await page.keyboard.press('Enter')
     await expect(page.getByRole('dialog', { name: local })).toBeVisible()
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: /buscar/i }).first().click()
@@ -65,7 +67,11 @@ test.describe('es-MX', () => {
     const code = await first.getAttribute('data-code')
     const label = await first.getAttribute('aria-label')
     expect(label).toBe(names('es')[code!] ?? label)
-    await first.hover()
+    // The stage hit-tests the silhouettes (a bird takes no pointer events itself): the mouse over the bird's middle
+    await expect(stage).toHaveAttribute('data-settled', '')
+    await first.scrollIntoViewIfNeeded()
+    const bb = (await first.boundingBox())!
+    await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2)
     await expect(page.getByTestId('bird-tip')).toContainText(names('es')[code!] ?? label!)
   })
 
