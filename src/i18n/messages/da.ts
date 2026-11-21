@@ -412,10 +412,10 @@ export const da: Messages = {
       nameN: 'Navn på liste {n}',
       addFriend: 'Tilføj en ven',
       editLists: 'Redigér lister',
-      circles: 'Cirkler',
-      bars: 'Søjler',
+      resultsTitle: 'Sammenlign livslister',
+      lede: 'Se hvilke fugle jeres lister har til fælles, og hvilke du endnu ikke har set. Vælg personer herunder for at se de fugle, kun de har til fælles.',
+      ledeTheirs: 'Se hvilke fugle listerne har til fælles. Vælg personer herunder for at se de fugle, kun de har til fælles.',
       diagram: 'Diagram',
-      lists: { one: '{n} liste', other: '{n} lister' },
     },
     orders: {
       Struthioniformes: 'Strudse',

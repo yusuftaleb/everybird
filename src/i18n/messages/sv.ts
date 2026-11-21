@@ -410,10 +410,10 @@ export const sv: Messages = {
       nameN: 'Namn på lista {n}',
       addFriend: 'Lägg till en vän',
       editLists: 'Redigera listor',
-      circles: 'Cirklar',
-      bars: 'Staplar',
+      resultsTitle: 'Jämför livslistor',
+      lede: 'Se vilka fåglar era listor har gemensamt och vilka du har kvar att se. Välj personer nedan för att se fåglarna som bara de har gemensamt.',
+      ledeTheirs: 'Se vilka fåglar listorna har gemensamt. Välj personer nedan för att se fåglarna som bara de har gemensamt.',
       diagram: 'Diagram',
-      lists: { one: '{n} lista', other: '{n} listor' },
     },
     orders: {
       Struthioniformes: 'Strutsar',

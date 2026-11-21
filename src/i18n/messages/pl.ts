@@ -415,10 +415,10 @@ export const pl: Messages = {
       nameN: 'Nazwa listy {n}',
       addFriend: 'Dodaj znajomego',
       editLists: 'Edytuj listy',
-      circles: 'Koła',
-      bars: 'Słupki',
+      resultsTitle: 'Porównaj listy życia',
+      lede: 'Zobacz, które ptaki są wspólne dla waszych list, a które są jeszcze przed tobą. Wybierz osoby poniżej, by zobaczyć ptaki wspólne tylko dla nich.',
+      ledeTheirs: 'Zobacz, które ptaki są wspólne dla tych list. Wybierz osoby poniżej, by zobaczyć ptaki wspólne tylko dla nich.',
       diagram: 'Wykres',
-      lists: { one: '{n} lista', few: '{n} listy', many: '{n} list', other: '{n} listy' },
     },
     orders: {
       Struthioniformes: 'Strusie',

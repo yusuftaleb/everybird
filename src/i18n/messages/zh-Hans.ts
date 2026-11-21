@@ -411,10 +411,10 @@ export const zhHans: Messages = {
       nameN: '清单{n}的名称',
       addFriend: '添加朋友',
       editLists: '编辑清单',
-      circles: '圆形',
-      bars: '条形',
+      resultsTitle: '对比生涯清单',
+      lede: '看看你们的清单有哪些共同的鸟，以及哪些你还没见过。在下方选择人，查看只有他们共有的鸟。',
+      ledeTheirs: '看看这些清单有哪些共同的鸟。在下方选择人，查看只有他们共有的鸟。',
       diagram: '图表',
-      lists: { one: '{n}份清单', other: '{n}份清单' },
     },
     orders: {
       Struthioniformes: '鸵鸟',

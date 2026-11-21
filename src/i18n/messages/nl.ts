@@ -416,10 +416,10 @@ export const nl: Messages = {
       nameN: 'Naam van lijst {n}',
       addFriend: 'Vriend toevoegen',
       editLists: 'Lijsten bewerken',
-      circles: 'Cirkels',
-      bars: 'Balken',
+      resultsTitle: 'Levenslijsten vergelijken',
+      lede: 'Zie welke vogels jullie lijsten delen en welke je nog mist. Kies hieronder mensen om de vogels te zien die alleen zij delen.',
+      ledeTheirs: 'Zie welke vogels deze lijsten delen. Kies hieronder mensen om de vogels te zien die alleen zij delen.',
       diagram: 'Diagram',
-      lists: { one: '{n} lijst', other: '{n} lijsten' },
     },
     orders: {
       Struthioniformes: 'Struisvogels',

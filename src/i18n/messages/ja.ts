@@ -411,10 +411,10 @@ export const ja: Messages = {
       nameN: 'リスト{n}の名前',
       addFriend: '友だちを追加',
       editLists: 'リストを編集',
-      circles: 'ベン図',
-      bars: '棒グラフ',
+      resultsTitle: 'ライフリストを比較',
+      lede: 'リストに共通する鳥と、あなたがまだ見ていない鳥がわかります。下で人を選ぶと、その人たちだけに共通する鳥が表示されます。',
+      ledeTheirs: 'これらのリストに共通する鳥がわかります。下で人を選ぶと、その人たちだけに共通する鳥が表示されます。',
       diagram: '図',
-      lists: { one: '{n}件のリスト', other: '{n}件のリスト' },
     },
     orders: {
       Struthioniformes: 'ダチョウ類',

@@ -411,10 +411,10 @@ export const zhHant: Messages = {
       nameN: '清單 {n} 的名稱',
       addFriend: '新增朋友',
       editLists: '編輯清單',
-      circles: '圓形',
-      bars: '長條',
+      resultsTitle: '比較生涯清單',
+      lede: '看看你們的清單有哪些共同的鳥，以及哪些你還沒看過。在下方選擇人，查看只有他們共有的鳥。',
+      ledeTheirs: '看看這些清單有哪些共同的鳥。在下方選擇人，查看只有他們共有的鳥。',
       diagram: '圖表',
-      lists: { one: '{n} 份清單', other: '{n} 份清單' },
     },
     orders: {
       Struthioniformes: '鴕鳥',

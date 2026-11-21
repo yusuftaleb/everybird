@@ -409,10 +409,10 @@ export const it: Messages = {
       nameN: 'Nome della lista {n}',
       addFriend: 'Aggiungi un amico',
       editLists: 'Modifica le liste',
-      circles: 'Cerchi',
-      bars: 'Barre',
+      resultsTitle: 'Confronta liste di vita',
+      lede: 'Scopri quali uccelli hanno in comune le vostre liste e quali devi ancora vedere. Scegli delle persone qui sotto per vedere gli uccelli che hanno in comune solo loro.',
+      ledeTheirs: 'Scopri quali uccelli hanno in comune queste liste. Scegli delle persone qui sotto per vedere gli uccelli che hanno in comune solo loro.',
       diagram: 'Diagramma',
-      lists: { one: '{n} lista', other: '{n} liste' },
     },
     orders: {
       Struthioniformes: 'Struzzi',

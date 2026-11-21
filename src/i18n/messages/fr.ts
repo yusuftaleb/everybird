@@ -416,10 +416,10 @@ export const fr: Messages = {
       nameN: 'Nom de la liste {n}',
       addFriend: 'Ajouter un ami',
       editLists: 'Modifier les listes',
-      circles: 'Cercles',
-      bars: 'Barres',
+      resultsTitle: 'Comparer des listes de vie',
+      lede: 'Vois quels oiseaux vos listes ont en commun et lesquels tu n’as pas encore vus. Choisis des personnes ci-dessous pour voir les oiseaux qu’elles seules ont en commun.',
+      ledeTheirs: 'Vois quels oiseaux ces listes ont en commun. Choisis des personnes ci-dessous pour voir les oiseaux qu’elles seules ont en commun.',
       diagram: 'Diagramme',
-      lists: { one: '{n} liste', other: '{n} listes' },
     },
     orders: {
       Struthioniformes: 'Autruches',

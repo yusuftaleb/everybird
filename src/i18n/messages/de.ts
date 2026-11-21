@@ -412,10 +412,10 @@ export const de: Messages = {
       nameN: 'Name der Liste {n}',
       addFriend: 'Freund hinzufügen',
       editLists: 'Listen bearbeiten',
-      circles: 'Kreise',
-      bars: 'Balken',
+      resultsTitle: 'Lebenslisten vergleichen',
+      lede: 'Sieh, welche Vögel eure Listen gemeinsam haben und welche du noch nicht gesehen hast. Wähle unten Personen, um die Vögel zu sehen, die nur sie gemeinsam haben.',
+      ledeTheirs: 'Sieh, welche Vögel diese Listen gemeinsam haben. Wähle unten Personen, um die Vögel zu sehen, die nur sie gemeinsam haben.',
       diagram: 'Diagramm',
-      lists: { one: '{n} Liste', other: '{n} Listen' },
     },
     orders: {
       Struthioniformes: 'Strauße',

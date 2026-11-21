@@ -1,6 +1,6 @@
 'use client'
 import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { Plus, ShareNetwork, X } from '@phosphor-icons/react'
+import { PencilSimple, Plus, ShareNetwork, X } from '@phosphor-icons/react'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -12,6 +12,7 @@ import { makeCompareLink } from '@/lib/share/make-link'
 import type { Regions } from '@/lib/species/types'
 import { useEverybirdContext } from '@/components/app/EverybirdProvider'
 import Link from '@/components/app/IntentLink'
+import { PageHead } from '@/components/app/PageHead'
 import type { CompareShare } from '@/components/share/dialog-options'
 import { CompareResult, ListDot, useComparison } from './CompareView'
 import './compare.css'
@@ -38,8 +39,9 @@ const newId = () => kept.next++
  * lists in all) and Compare at the bottom right, waiting for two lists. A link fills its row's name with the name or
  * title it carries ("Birder 2" until one is typed, without); several links, or a comparison link (/c/), pasted at once
  * fill a row each (pasteRow), within the cap, with a note for the links that didn't open and the lists past it. The
- * names typed are the comparison's, its images' and its link's. Compare shows the comparison (CompareResult): the
- * lists as pills, Edit lists (back to these rows) and Share, which opens the site's Share dialog on the comparison
+ * names typed are the comparison's, its images' and its link's. Compare shows the comparison: My birds' page head
+ * ("Compare life lists", a line on how to use it, Edit lists (back to these rows) and Share, where My birds has its
+ * Share), then CompareResult (the chips, the circles and bars, the chosen birds). Share opens the site's Share dialog on the comparison
  * (CompareShare: the card or the wish list, Copy link with the comparison link). "Compare with mine" on a shared
  * collage or comparison hands its link over in sessionStorage (compare-handoff.ts), read once on arrival, and opens
  * the comparison with the birder's own list. Nothing goes in the URL (the beacon reports the address) or anywhere else.
@@ -146,17 +148,21 @@ export function ComparePage() {
     <main className="eb-page eb-page-collage eb-page-titled">
       {shown ? (
         <>
-          <h1 className="eb-sr">{t.compare.title}</h1>
-          <CompareResult
-            c={c}
-            edit={<button ref={editRef} type="button" className="eb-btn eb-btn-quiet eb-compare-edit" onClick={() => go(false)} data-testid="compare-edit">{t.compare.editLists}</button>}
-            share={(
-              <button type="button" className="eb-btn eb-compare-share" disabled={!c.data || !share} onClick={() => setSharing(true)} data-testid="compare-share">
+          <PageHead
+            title={t.compare.resultsTitle}
+            lede={c.you ? t.compare.lede : t.compare.ledeTheirs}
+            actions={<>
+              <button ref={editRef} type="button" className="eb-btn eb-btn-quiet" aria-label={t.compare.editLists} onClick={() => go(false)} data-testid="compare-edit">
+                <PencilSimple aria-hidden="true" focusable="false" />
+                <span className="eb-sm-hide">{t.compare.editLists}</span>
+              </button>
+              <button type="button" className="eb-btn" aria-haspopup="dialog" disabled={!c.data || !share} onClick={() => setSharing(true)} data-testid="compare-share">
                 <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
                 {t.collage.share}
               </button>
-            )}
+            </>}
           />
+          <CompareResult c={c} />
           {sharing && share && c.data && (
             <Suspense fallback={null}>
               <ShareDialog state={state} dispatch={dispatch} species={c.data.species} regions={data?.regions ?? NO_REGIONS} compare={share} onClose={() => setSharing(false)} />
