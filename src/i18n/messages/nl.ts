@@ -468,6 +468,7 @@ export const nl: Messages = {
     },
     share: {
       title: 'Deel je collage',
+      viewTitle: { map: 'Deel je kaart', tree: 'Deel je boom' },
       formats: 'Afbeeldingsformaat',
       what: { label: 'Wat', comparison: 'Vergelijking', wish: 'Verlanglijst' },
       format: { story: 'Verhaal', post: 'Bericht', square: 'Vierkant', desktop: 'Desktop' },
@@ -509,11 +510,11 @@ export const nl: Messages = {
       posterLatestPlace: 'Nieuwste soort: {name}, {date}, {place}',
       oldLinkTitle: 'Levenslijst van {name}',
       untitledTitle: { one: 'Een levenslijst: {n} soort', other: 'Een levenslijst: {n} soorten' },
-      /** The Colours row: the images' and the poster's look, Light or Dark. */
-      colours: { label: 'Kleuren', light: 'Licht', dark: 'Donker' },
+      /** The Appearance row: the images' and the poster's look, Light or Dark. */
+      colours: { label: 'Uiterlijk', light: 'Licht', dark: 'Donker' },
       transparent: 'Transparante achtergrond',
       arrange: { label: 'Indeling', packed: 'Passend', oval: 'Ovaal' },
-      hideTotals: 'Totalen verbergen',
+      totals: 'Totalen',
       bigYear: {
         label: 'Doel',
         add: 'Doel toevoegen',
@@ -530,7 +531,8 @@ export const nl: Messages = {
       downloadShort: 'Downloaden',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
-        title: 'Poster printen',
+        title: 'Je collage printen',
+        viewTitle: { map: 'Je kaart printen', tree: 'Je boom printen' },
         size: 'Postergrootte',
         downTo: 'Tot op',
         deeperLarger: 'Op een grotere poster passen alle namen',

@@ -468,6 +468,7 @@ export const es: Messages = {
     },
     share: {
       title: 'Comparte tu collage',
+      viewTitle: { map: 'Comparte tu mapa', tree: 'Comparte tu árbol' },
       formats: 'Formato de imagen',
       what: { label: 'Qué compartir', comparison: 'Comparación', wish: 'Lista de deseos' },
       format: { story: 'Historia', post: 'Post', square: 'Cuadrado', desktop: 'Escritorio' },
@@ -509,11 +510,11 @@ export const es: Messages = {
       posterLatestPlace: 'Última especie nueva: {name}, {date}, {place}',
       oldLinkTitle: 'Lista de vida de {name}',
       untitledTitle: { one: 'Una lista de vida: {n} especie', other: 'Una lista de vida: {n} especies' },
-      /** The Colours row: the images' and the poster's look, Light or Dark. */
-      colours: { label: 'Colores', light: 'Claro', dark: 'Oscuro' },
+      /** The Appearance row: the images' and the poster's look, Light or Dark. */
+      colours: { label: 'Apariencia', light: 'Claro', dark: 'Oscuro' },
       transparent: 'Fondo transparente',
       arrange: { label: 'Disposición', packed: 'Ajustada', oval: 'Ovalada' },
-      hideTotals: 'Ocultar totales',
+      totals: 'Totales',
       bigYear: {
         label: 'Meta',
         add: 'Añadir una meta',
@@ -530,7 +531,8 @@ export const es: Messages = {
       downloadShort: 'Descargar',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
-        title: 'Imprimir póster',
+        title: 'Imprimir tu collage',
+        viewTitle: { map: 'Imprimir tu mapa', tree: 'Imprimir tu árbol' },
         size: 'Tamaño del póster',
         downTo: 'Hasta',
         deeperLarger: 'En un póster más grande caben todos los nombres',

@@ -60,7 +60,7 @@ const pickMenu = (label: string, option: string) => {
   fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label} `) }))
   fireEvent.click(screen.getByRole('menuitemradio', { name: option }))
 }
-/** Presses `name` in the segmented control named `group` (Arrangement, Colours, Count). */
+/** Presses `name` in the segmented control named `group` (Arrangement, Appearance, Count). */
 const pickSeg = (group: string, name: string) => fireEvent.click(within(screen.getByRole('group', { name: group })).getByRole('button', { name }))
 /** Opens Export in batches (collapsed to start). */
 const openBulk = () => fireEvent.click(screen.getByRole('button', { name: 'Export in batches' }))
@@ -250,7 +250,7 @@ describe('share dialog', () => {
     first.unmount()
 
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
-    expect(screen.getByRole('heading', { name: 'Print poster' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Print your collage' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Poster size / })).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Image format' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Back to image' })).toBeNull()
@@ -261,7 +261,7 @@ describe('share dialog', () => {
     expect(screen.getByTestId('share-bulk')).toBeInTheDocument()
     openBulk()
     expect(screen.getByRole('button', { name: 'Download PDFs (ZIP)' })).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'Colours' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Appearance' })).toBeInTheDocument()
   })
 
   it('the share image and the poster draw the Map or Tree view they were opened from, at its level; other views draw the collage', async () => {
@@ -273,16 +273,25 @@ describe('share dialog', () => {
     expect(viewRenders.map.mock.calls[0]).toMatchObject([{ format: 'story', at: { place: 'c:CA' }, latest: false, state: { list: st.list } }])
     expect(image.renderShareImage).not.toHaveBeenCalled()
     expect(image.packForImage).not.toHaveBeenCalled()
-    // No sticker options for a map: no latest lifer switch, Fit or Oval, Count or goal; Hide totals, Dark and Transparent.
+    // Titled for what it shares. No sticker options for a map: no latest lifer switch, Fit or Oval, Count or goal; Totals
+    // (Species, Countries, each on at every open), Appearance and Transparent.
+    expect(screen.getByRole('heading', { name: 'Share your map' })).toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: 'Show latest lifer' })).toBeNull()
     expect(screen.queryByRole('group', { name: 'Arrangement' })).toBeNull()
     expect(screen.queryByTestId('share-goal')).toBeNull()
     expect(screen.queryByRole('group', { name: 'Count' })).toBeNull()
-    for (const name of ['Hide totals', 'Transparent background']) expect(screen.getByRole('switch', { name })).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'Colours' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Transparent background' })).toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'Hide totals' })).toBeNull()
+    expect(screen.getByRole('group', { name: 'Appearance' })).toBeInTheDocument()
     expect(screen.queryByTestId('share-bulk')).toBeNull()
-    fireEvent.click(screen.getByRole('switch', { name: 'Hide totals' }))
-    await waitFor(() => expect(viewRenders.map).toHaveBeenLastCalledWith(expect.objectContaining({ hideTotals: true })))
+    expect(viewRenders.map.mock.calls[0]).toMatchObject([{ totals: ['species', 'countries'] }])
+    const mapTotals = within(screen.getByRole('group', { name: 'Totals' }))
+    expect(mapTotals.getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([['Species', 'true'], ['Countries', 'true']])
+    fireEvent.click(mapTotals.getByRole('button', { name: 'Species' }))
+    expect(mapTotals.getByRole('button', { name: 'Species' })).toHaveAttribute('aria-pressed', 'false')
+    await waitFor(() => expect(viewRenders.map).toHaveBeenLastCalledWith(expect.objectContaining({ totals: ['countries'] })))
+    fireEvent.click(mapTotals.getByRole('button', { name: 'Countries' }))
+    await waitFor(() => expect(viewRenders.map).toHaveBeenLastCalledWith(expect.objectContaining({ totals: [] })))
     unmount()
 
     // Print from the Map: the map at the poster's size, with the poster's sizes and only the map's options.
@@ -291,11 +300,13 @@ describe('share dialog', () => {
     await waitFor(() => expect(viewRenders.map).toHaveBeenCalledTimes(1))
     expect(viewRenders.map.mock.calls[0]).toMatchObject([{ format: 'print', printSize: 'A2', at: { place: 'c:CA' } }])
     expect(image.renderShareImage).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { name: 'Print your map' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Poster size A2' })).toBeInTheDocument()
     for (const name of ['Show latest lifer', 'Show species names', 'Lifers only']) expect(screen.queryByRole('switch', { name })).toBeNull()
     expect(screen.queryByRole('group', { name: 'Count' })).toBeNull()
     expect(screen.queryByTestId('share-bulk')).toBeNull()
-    expect(screen.getByRole('switch', { name: 'Hide totals' })).toBeInTheDocument()
+    // All on again at this open (not stored).
+    expect(within(screen.getByRole('group', { name: 'Totals' })).getAllByRole('button').map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'true'])
     fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
     await waitFor(() => expect(makes).toHaveLength(1))
     expect(makes[0].opts).toMatchObject({ size: 'A2', landscape: false, transparent: false })
@@ -312,13 +323,17 @@ describe('share dialog', () => {
     viewRenders.map.mockClear()
     const tree = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { fam: 'Struthionidae' } }} onClose={() => {}} />)
     await waitFor(() => expect(viewRenders.tree).toHaveBeenCalledTimes(1))
-    expect(viewRenders.tree.mock.calls[0]).toMatchObject([{ at: { tree: { fam: 'Struthionidae' }, mine: false }, hideTotals: false }])
+    // Inside a family: only Species and Genera are offered, both on (round 6).
+    expect(viewRenders.tree.mock.calls[0]).toMatchObject([{ at: { tree: { fam: 'Struthionidae' }, mine: false }, totals: ['species', 'genera'] }])
     expect(viewRenders.map).not.toHaveBeenCalled()
-    // The Tree image: no Count row; Lifers only (the bar's switch) and Hide totals, with Dark and Transparent.
+    expect(screen.getByRole('heading', { name: 'Share your tree' })).toBeInTheDocument()
+    // The Tree image: no Count row; Totals (its four ranks), Lifers only (the bar's switch), with Appearance and Transparent.
     expect(screen.queryByRole('group', { name: 'Count' })).toBeNull()
-    for (const name of ['Lifers only', 'Hide totals', 'Transparent background']) expect(screen.getByRole('switch', { name })).toHaveAttribute('aria-checked', 'false')
-    fireEvent.click(screen.getByRole('switch', { name: 'Hide totals' }))
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ hideTotals: true })))
+    for (const name of ['Lifers only', 'Transparent background']) expect(screen.getByRole('switch', { name })).toHaveAttribute('aria-checked', 'false')
+    const treeTotals = within(screen.getByRole('group', { name: 'Totals' }))
+    expect(treeTotals.getAllByRole('button').map((b) => b.textContent)).toEqual(['Species', 'Genera'])
+    fireEvent.click(treeTotals.getByRole('button', { name: 'Species' }))
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ totals: ['genera'] })))
     fireEvent.click(screen.getByRole('switch', { name: 'Lifers only' }))
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: { fam: 'Struthionidae' }, mine: true, layout: 'rows' } })))
     act(() => setTreeMine(false))
@@ -336,7 +351,9 @@ describe('share dialog', () => {
     const treePoster = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { fam: 'Struthionidae' }, layout: 'rows' }} print onClose={() => {}} />)
     await waitFor(() => expect(viewRenders.tree).toHaveBeenCalledTimes(1))
     expect(viewRenders.tree.mock.calls[0]).toMatchObject([{ format: 'print', at: { tree: { fam: 'Struthionidae' }, layout: 'rows', mine: false } }])
-    for (const name of ['Lifers only', 'Hide totals']) expect(screen.getByRole('switch', { name })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Print your tree' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Lifers only' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Totals' })).toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: 'Show species names' })).toBeNull()
     expect(screen.queryByTestId('share-bulk')).toBeNull()
     treePoster.unmount()
@@ -356,7 +373,7 @@ describe('share dialog', () => {
     const title = screen.getByLabelText('Collage title')
     expect(title.previousElementSibling).toHaveClass('eb-share-labelrow')
     expect(title.closest('.eb-share-field')!.nextElementSibling).toBe(list)
-    expect([...list.children].map(label)).toEqual(['Arrangement', 'Colours', 'Count', 'Show latest lifer', 'Transparent background', 'Goal'])
+    expect([...list.children].map(label)).toEqual(['Arrangement', 'Appearance', 'Count', 'Show latest lifer', 'Transparent background', 'Goal'])
     // One row each, nothing paired: a switch is its row (its label, then its track at the right edge).
     for (const el of list.children) expect(el).toHaveClass('eb-share-opt')
     const transparent = screen.getByRole('switch', { name: 'Transparent background' })
@@ -364,11 +381,11 @@ describe('share dialog', () => {
     expect([...transparent.children].map((c) => c.className)).toEqual(['', 'eb-track'])
     // The choices are small segmented controls named by their row; Count's sizes show S, M, L, named in full.
     expect(within(screen.getByRole('group', { name: 'Arrangement' })).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Fit', 'Oval'])
-    expect(within(screen.getByRole('group', { name: 'Colours' })).getAllByRole('button').map((b) => b.textContent)).toEqual(['Light', 'Dark'])
+    expect(within(screen.getByRole('group', { name: 'Appearance' })).getAllByRole('button').map((b) => b.textContent)).toEqual(['Light', 'Dark'])
     const count = within(screen.getByRole('group', { name: 'Count' })).getAllByRole('button')
     expect(count.map((b) => b.textContent)).toEqual(['Hide', 'S', 'M', 'L', 'Beside title'])
     expect(count.map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual(['Hide', 'Small', 'Medium', 'Large', 'Beside title'])
-    for (const g of ['Arrangement', 'Colours', 'Count']) expect(screen.getByRole('group', { name: g })).toHaveClass('eb-seg', 'eb-share-seg')
+    for (const g of ['Arrangement', 'Appearance', 'Count']) expect(screen.getByRole('group', { name: g })).toHaveClass('eb-seg', 'eb-share-seg')
     // Export in batches: a row in its own panel right under the list, collapsed.
     expect(list.nextElementSibling).toBe(screen.getByTestId('share-bulk'))
     expect(within(screen.getByTestId('share-bulk')).getByRole('button', { name: 'Export in batches' })).toHaveClass('eb-share-opt')
@@ -380,7 +397,7 @@ describe('share dialog', () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
     list = screen.getByTestId('share-options')
     // No Goal: posters never draw one.
-    expect([...list.children].map(label)).toEqual(['Poster size', 'Arrangement', 'Colours', 'Count', 'Show latest lifer', 'Show species names', 'Transparent background'])
+    expect([...list.children].map(label)).toEqual(['Poster size', 'Arrangement', 'Appearance', 'Count', 'Show latest lifer', 'Show species names', 'Transparent background'])
     expect(list.nextElementSibling).toBe(screen.getByTestId('share-bulk'))
     expect(list.firstElementChild).toHaveTextContent('A2 · 42 × 59.4 cm · 2480 × 3508 px at 150 dpi')
     expect(screen.getByRole('button', { name: 'Poster size A2' })).toHaveAttribute('aria-haspopup', 'menu')
@@ -411,6 +428,14 @@ describe('share dialog', () => {
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'story', at: expect.objectContaining({ layout: 'circle' }) })))
     act(() => setTreeLayout(null))
     first.unmount()
+
+    // It opens with the arrangement drawn on screen (round 6), not a stored pick the screen had no room for.
+    act(() => setTreeLayout('circle'))
+    const third = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'rows' }} onClose={() => {}} />)
+    expect(arrange().getByRole('button', { name: 'Rectangular' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: expect.objectContaining({ layout: 'rows' }) })))
+    act(() => setTreeLayout(null))
+    third.unmount()
 
     // A layout the image's render says can't name every tip on its card is off with that reason; Rectangular is drawn.
     viewRenders.tree.mockImplementation(async (o) => { o?.onTreeFits?.({ fan: false, circle: true }); return new Blob(['tree']) })
@@ -560,12 +585,12 @@ describe('share dialog', () => {
     expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: {}, layout: 'rows', mine: false }, filterLabel: undefined }))
   })
 
-  it('Colours starts at the app\'s theme (Dark here), then the dialog\'s own; the page theme is left alone', async () => {
+  it('Appearance starts at the app\'s theme (Dark here), then the dialog\'s own; the page theme is left alone', async () => {
     document.documentElement.dataset.theme = 'dark'
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     await waitFor(() => expect(renders).toHaveLength(1))
     expect(vi.mocked(image.renderShareImage).mock.calls[0][0]).toMatchObject({ format: 'story', theme: 'dark' })
-    const colours = within(screen.getByRole('group', { name: 'Colours' }))
+    const colours = within(screen.getByRole('group', { name: 'Appearance' }))
     expect(colours.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true')
     expect(colours.getByRole('button', { name: 'Light' })).toHaveAttribute('aria-pressed', 'false')
     fireEvent.click(colours.getByRole('button', { name: 'Light' }))
@@ -922,14 +947,14 @@ describe('share dialog: print mode', () => {
     expect(vi.mocked(image.renderShareImage).mock.calls[0][0]).toMatchObject({ format: 'print', theme: 'light' })
   })
 
-  it('Colours: Dark in print mode re-renders the preview dark and discards a made poster; makePoster gets the theme', async () => {
+  it('Appearance: Dark in print mode re-renders the preview dark and discards a made poster; makePoster gets the theme', async () => {
     open()
     await startMake()
     expect(makes[0].opts).toMatchObject({ theme: 'light' })
     const p = fakePoster()
     await act(async () => makes[0].resolve(p))
     expect(screen.getByRole('button', { name: 'Download PNG' })).toBeInTheDocument()
-    pickSeg('Colours', 'Dark')
+    pickSeg('Appearance', 'Dark')
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', theme: 'dark' }))
     expect(p.dispose).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('button', { name: 'Download PNG' })).toBeNull()

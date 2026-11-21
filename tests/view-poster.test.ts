@@ -1,7 +1,8 @@
 // Print follows the view (2026-11-20): the Tree's and the Map's posters are their own drawing at the paper's size
 // (viewPosterScale, makeViewPoster), and the dialog shows only the options that drawing reads (dialogRows).
 import { describe, expect, it, vi } from 'vitest'
-import { BULK_SPLITS, dialogRows, optionRows, subjectOf, treeOrientation } from '@/components/share/dialog-options'
+import { BULK_SPLITS, dialogRows, dialogTitle, optionRows, subjectOf, toggleTotal, treeOrientation, treeTotals } from '@/components/share/dialog-options'
+import { en } from '@/i18n/messages/en'
 import { makeViewPoster, posterRows, type EncoderPort } from '@/lib/share/poster'
 import { IOS_CANVAS_AREA, PRINT_PT, PRINT_SIZES, printDesign, printPx, printScale, stripRanges, viewPosterScale } from '@/lib/share/print'
 
@@ -15,7 +16,7 @@ describe('dialogRows: what each dialog shows', () => {
   })
   it('the collage: the sticker options and Export in batches, Number of birds first in both; the Goal only in Share, names only in Print', () => {
     const share = dialogRows('collage', false)
-    expect(share).toMatchObject({ arrangement: true, count: true, goal: true, latest: true, names: false, lifersOnly: false, hideTotals: false, bulk: true, batchSize: true })
+    expect(share).toMatchObject({ arrangement: true, count: true, goal: true, latest: true, names: false, lifersOnly: false, totals: [], bulk: true, batchSize: true })
     const print = dialogRows('collage', true)
     expect(print).toMatchObject({ arrangement: true, count: true, goal: false, names: true, bulk: true, batchSize: true })
     for (const rows of [share, print]) {
@@ -23,15 +24,29 @@ describe('dialogRows: what each dialog shows', () => {
       expect(rows.splits[0]).toBe('batches')
     }
   })
-  it('the Tree: its Arrangement, Show oldest lineage, Lifers only and Hide totals, and in Print Down to; the Map: Hide totals; neither has sticker options or Export in batches, in Share or Print', () => {
+  it('the Tree: its Arrangement, Show oldest lineage, Lifers only and Totals (species, genera, families, orders), and in Print Down to; the Map: Totals (species, countries); neither has sticker options or Export in batches, in Share or Print', () => {
     for (const print of [false, true]) {
-      expect(dialogRows('tree', print)).toEqual({ what: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: true, treeDepth: print, oldest: true, names: false, lifersOnly: true, hideTotals: true, bulk: false, batchSize: false, splits: [] })
-      expect(dialogRows('map', print)).toEqual({ what: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, treeDepth: false, oldest: false, names: false, lifersOnly: false, hideTotals: true, bulk: false, batchSize: false, splits: [] })
+      expect(dialogRows('tree', print)).toEqual({ what: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: true, treeDepth: print, oldest: true, names: false, lifersOnly: true, totals: ['species', 'genera', 'families', 'orders'], bulk: false, batchSize: false, splits: [] })
+      expect(dialogRows('map', print)).toEqual({ what: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, treeDepth: false, oldest: false, names: false, lifersOnly: false, totals: ['species', 'countries'], bulk: false, batchSize: false, splits: [] })
     }
   })
   it('Compare: What, and only the rows a comparison draws (no sticker options, Goal, Count, latest lifer, totals or batches)', () => {
-    expect(dialogRows('compare', false)).toEqual({ what: true, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, treeDepth: false, oldest: false, names: false, lifersOnly: false, hideTotals: false, bulk: false, batchSize: false, splits: [] })
+    expect(dialogRows('compare', false)).toEqual({ what: true, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, treeDepth: false, oldest: false, names: false, lifersOnly: false, totals: [], bulk: false, batchSize: false, splits: [] })
     expect(optionRows(dialogRows('compare', false), false)).toEqual(['what', 'colours', 'transparent'])
+  })
+})
+
+describe('dialogTitle: the title names what is shared (round 6)', () => {
+  it('the collage from Collage and List, the map, the tree; Print the same way; Compare keeps its own', () => {
+    const s = en.ui.share
+    expect(dialogTitle(subjectOf('collage'), false, s, 'Share')).toBe('Share your collage')
+    expect(dialogTitle(subjectOf('list'), false, s, 'Share')).toBe('Share your collage')
+    expect(dialogTitle('map', false, s, 'Share')).toBe('Share your map')
+    expect(dialogTitle('tree', false, s, 'Share')).toBe('Share your tree')
+    expect(dialogTitle('collage', true, s, 'Share')).toBe('Print your collage')
+    expect(dialogTitle('map', true, s, 'Share')).toBe('Print your map')
+    expect(dialogTitle('tree', true, s, 'Share')).toBe('Print your tree')
+    expect(dialogTitle('compare', false, s, en.ui.collage.share)).toBe(en.ui.collage.share)
   })
 })
 
@@ -40,11 +55,25 @@ describe('optionRows: the options list\'s order (round 6)', () => {
     expect(optionRows(dialogRows('collage', false), false)).toEqual(['arrangement', 'colours', 'count', 'latest', 'transparent', 'goal'])
     expect(optionRows(dialogRows('collage', true), true)).toEqual(['size', 'arrangement', 'colours', 'count', 'latest', 'names', 'transparent'])
   })
-  it('the Tree: its Arrangement, Colours, then Lifers only, Hide totals, Show oldest lineage and Transparent background (in Print, Down to after the size); the Map: Colours, Hide totals, Transparent background', () => {
-    expect(optionRows(dialogRows('tree', false), false)).toEqual(['treeLayout', 'colours', 'lifersOnly', 'hideTotals', 'oldest', 'transparent'])
-    expect(optionRows(dialogRows('tree', true), true)).toEqual(['size', 'treeDepth', 'treeLayout', 'colours', 'lifersOnly', 'hideTotals', 'oldest', 'transparent'])
-    expect(optionRows(dialogRows('map', false), false)).toEqual(['colours', 'hideTotals', 'transparent'])
-    expect(optionRows(dialogRows('map', true), true)).toEqual(['size', 'colours', 'hideTotals', 'transparent'])
+  it('the Tree: its Arrangement, Appearance, Totals, then Lifers only, Show oldest lineage and Transparent background (in Print, Down to after the size); the Map: Appearance, Totals, Transparent background', () => {
+    expect(optionRows(dialogRows('tree', false), false)).toEqual(['treeLayout', 'colours', 'totals', 'lifersOnly', 'oldest', 'transparent'])
+    expect(optionRows(dialogRows('tree', true), true)).toEqual(['size', 'treeDepth', 'treeLayout', 'colours', 'totals', 'lifersOnly', 'oldest', 'transparent'])
+    expect(optionRows(dialogRows('map', false), false)).toEqual(['colours', 'totals', 'transparent'])
+    expect(optionRows(dialogRows('map', true), true)).toEqual(['size', 'colours', 'totals', 'transparent'])
+  })
+  it('the Tree offers only the totals at and below its level (round 6)', () => {
+    expect(treeTotals(undefined)).toEqual(['species', 'genera', 'families', 'orders'])
+    expect(treeTotals({})).toEqual(['species', 'genera', 'families', 'orders'])
+    expect(treeTotals({ ord: 'Passeriformes' })).toEqual(['species', 'genera', 'families'])
+    expect(treeTotals({ ord: 'Passeriformes', fam: 'Parulidae' })).toEqual(['species', 'genera'])
+    expect(treeTotals({ ord: 'Passeriformes', fam: 'Parulidae', genus: 'Setophaga' })).toEqual(['species'])
+  })
+  it('a Totals chip turns its total on or off on its own, kept in the image\'s order; every combination, none included', () => {
+    const all = dialogRows('tree', false).totals
+    expect(toggleTotal(all, all, 'genera')).toEqual(['species', 'families', 'orders'])
+    expect(toggleTotal(all, ['orders'], 'species')).toEqual(['species', 'orders'])
+    expect(toggleTotal(all, ['orders'], 'orders')).toEqual([])
+    expect(toggleTotal(all, [], 'families')).toEqual(['families'])
   })
   it('a tree\'s orientation is its arrangement\'s: a Fan horizontal, Rectangular and Radial vertical', () => {
     expect(treeOrientation('fan')).toBe('horizontal')

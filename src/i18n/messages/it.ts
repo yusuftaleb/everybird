@@ -461,6 +461,7 @@ export const it: Messages = {
     },
     share: {
       title: 'Condividi il tuo collage',
+      viewTitle: { map: 'Condividi la tua mappa', tree: 'Condividi il tuo albero' },
       formats: 'Formato dell’immagine',
       what: { label: 'Cosa', comparison: 'Confronto', wish: 'Lista dei desideri' },
       format: { story: 'Storia', post: 'Post', square: 'Quadrato', desktop: 'Desktop' },
@@ -500,10 +501,10 @@ export const it: Messages = {
       posterLatestPlace: 'Ultima specie nuova: {name}, {date}, {place}',
       oldLinkTitle: 'La lista di vita di {name}',
       untitledTitle: { one: 'Una lista di vita: {n} specie', other: 'Una lista di vita: {n} specie' },
-      colours: { label: 'Colori', light: 'Chiaro', dark: 'Scuro' },
+      colours: { label: 'Aspetto', light: 'Chiaro', dark: 'Scuro' },
       transparent: 'Sfondo trasparente',
       arrange: { label: 'Disposizione', packed: 'Adatta', oval: 'Ovale' },
-      hideTotals: 'Nascondi i totali',
+      totals: 'Totali',
       bigYear: {
         label: 'Obiettivo',
         add: 'Aggiungi un obiettivo',
@@ -519,7 +520,8 @@ export const it: Messages = {
       },
       downloadShort: 'Scarica',
       print: {
-        title: 'Stampa il poster',
+        title: 'Stampa il tuo collage',
+        viewTitle: { map: 'Stampa la tua mappa', tree: 'Stampa il tuo albero' },
         size: 'Formato del poster',
         downTo: 'Fino a',
         deeperLarger: 'Con un poster più grande si stampano tutti i nomi',

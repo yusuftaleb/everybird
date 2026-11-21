@@ -236,7 +236,7 @@ describe('Compare: Share opens the Share dialog in its Compare mode', () => {
     fireEvent.click(screen.getByTestId('compare-share'))
     return screen.findByRole('dialog')
   }
-  it('What (Comparison | Wish list), the formats, Colours and Transparent only; Download draws the chosen one', async () => {
+  it('What (Comparison | Wish list), the formats, Appearance and Transparent only; Download draws the chosen one', async () => {
     render(<ComparePage />)
     paste(link('Sam', 3, 4, 5, 6))
     compare()

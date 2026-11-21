@@ -464,6 +464,7 @@ export const de: Messages = {
     },
     share: {
       title: 'Deine Collage teilen',
+      viewTitle: { map: 'Deine Karte teilen', tree: 'Deinen Baum teilen' },
       formats: 'Bildformat',
       what: { label: 'Was', comparison: 'Vergleich', wish: 'Wunschliste' },
       format: { story: 'Story', post: 'Beitrag', square: 'Quadrat', desktop: 'Desktop' },
@@ -503,10 +504,10 @@ export const de: Messages = {
       posterLatestPlace: 'Neueste Art: {name}, {date}, {place}',
       oldLinkTitle: 'Lebensliste von {name}',
       untitledTitle: { one: 'Eine Lebensliste: {n} Art', other: 'Eine Lebensliste: {n} Arten' },
-      colours: { label: 'Farben', light: 'Hell', dark: 'Dunkel' },
+      colours: { label: 'Darstellung', light: 'Hell', dark: 'Dunkel' },
       transparent: 'Transparenter Hintergrund',
       arrange: { label: 'Anordnung', packed: 'Eingepasst', oval: 'Oval' },
-      hideTotals: 'Summen ausblenden',
+      totals: 'Summen',
       bigYear: {
         label: 'Ziel',
         add: 'Ziel hinzufügen',
@@ -522,7 +523,8 @@ export const de: Messages = {
       },
       downloadShort: 'Speichern',
       print: {
-        title: 'Poster drucken',
+        title: 'Deine Collage drucken',
+        viewTitle: { map: 'Deine Karte drucken', tree: 'Deinen Baum drucken' },
         size: 'Postergröße',
         downTo: 'Bis',
         deeperLarger: 'Ein größeres Poster druckt alle Namen',

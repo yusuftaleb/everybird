@@ -464,6 +464,7 @@ export const da: Messages = {
     },
     share: {
       title: 'Del din collage',
+      viewTitle: { map: 'Del dit kort', tree: 'Del dit træ' },
       formats: 'Billedformat',
       what: { label: 'Hvad', comparison: 'Sammenligning', wish: 'Ønskeliste' },
       format: { story: 'Story', post: 'Opslag', square: 'Kvadrat', desktop: 'Skrivebord' },
@@ -503,10 +504,10 @@ export const da: Messages = {
       posterLatestPlace: 'Nyeste nye art: {name}, {date}, {place}',
       oldLinkTitle: 'Livsliste fra {name}',
       untitledTitle: { one: 'En livsliste: {n} art', other: 'En livsliste: {n} arter' },
-      colours: { label: 'Farver', light: 'Lys', dark: 'Mørk' },
+      colours: { label: 'Udseende', light: 'Lys', dark: 'Mørk' },
       transparent: 'Gennemsigtig baggrund',
       arrange: { label: 'Opstilling', packed: 'Tilpas', oval: 'Oval' },
-      hideTotals: 'Skjul totaler',
+      totals: 'Totaler',
       bigYear: {
         label: 'Mål',
         add: 'Tilføj et mål',
@@ -522,7 +523,8 @@ export const da: Messages = {
       },
       downloadShort: 'Hent',
       print: {
-        title: 'Udskriv plakat',
+        title: 'Udskriv din collage',
+        viewTitle: { map: 'Udskriv dit kort', tree: 'Udskriv dit træ' },
         size: 'Plakatstørrelse',
         downTo: 'Ned til',
         deeperLarger: 'En større plakat har plads til alle navne',

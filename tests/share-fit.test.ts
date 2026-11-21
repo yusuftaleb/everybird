@@ -147,7 +147,7 @@ describe('the option rows and Print\'s actions', () => {
     const over: string[] = []
     for (const [lang, m] of Object.entries(LANG)) {
       const s = m.ui.share
-      for (const label of [s.showLatest, s.print.showNames, s.transparent, m.ui.collage.controls.lifersOnly, s.hideTotals, m.ui.collage.tree.showOldest]) {
+      for (const label of [s.showLatest, s.print.showNames, s.transparent, m.ui.collage.controls.lifersOnly, m.ui.collage.tree.showOldest]) {
         if (measured(label, 16) + 12 + 34 > COLUMNS.desktop) over.push(`${lang} "${label}" at the 420px column`)
         if (measured(label, 15) + 12 + 34 > COLUMNS.narrow) over.push(`${lang} "${label}" at the 300px column`)
         if (measured(label, 14) + 12 + 34 > COLUMNS.phone) over.push(`${lang} "${label}" on a phone`)
@@ -167,12 +167,17 @@ describe('the option rows and Print\'s actions', () => {
     expect(css).toMatch(/@container \(max-width: 399px\) \{[^}]*\}\s*\.eb-share \.eb-share-seg \.eb-seg-btn \{ padding: 0 6px; \}/)
     expect(css).toMatch(/@container \(max-width: 289px\) \{[^}]*\}\s*\.eb-share \.eb-share-seg \.eb-seg-btn \{ padding: 0 4px; font-size: 12px; \}/)
   })
-  it('keeps Count, Colours, the Tree\'s arrangement and Compare\'s What whole in every language at every column', () => {
+  /** The Totals row's chips (round 6): the Map's species and countries, the Tree's four ranks, in the image's words. */
+  const totalChips = (m: (typeof LANG)[keyof typeof LANG]) => {
+    const r = m.ui.collage.tree.rank
+    return { mapTotals: [r.species, m.ui.places.head.country], treeTotals: [r.species, r.genera, r.families, r.orders] }
+  }
+  it('keeps Count, Appearance, the Tree\'s arrangement, the Totals chips and Compare\'s What whole in every language at every column', () => {
     const over: string[] = []
     for (const [lang, m] of Object.entries(LANG)) {
       const c = m.ui.share.countSize, col = m.ui.share.colours, tl = m.ui.collage.tree.layouts
       const w = m.ui.share.what
-      const sets = { count: [c.hide, c.short.small, c.short.medium, c.short.large, c.title], colours: [col.light, col.dark], tree: [tl.fan, tl.circle, tl.rows], what: [w.comparison, w.wish] }
+      const sets = { count: [c.hide, c.short.small, c.short.medium, c.short.large, c.title], colours: [col.light, col.dark], tree: [tl.fan, tl.circle, tl.rows], what: [w.comparison, w.wish], ...totalChips(m) }
       for (const [name, labels] of Object.entries(sets)) {
         if (segW(labels, 14, 10) > COLUMNS.desktop) over.push(`${lang} ${name} in the 420px column`)
         if (segW(labels, 14, 6) > COLUMNS.narrow) over.push(`${lang} ${name} in the 300px column`)
@@ -190,6 +195,7 @@ describe('the option rows and Print\'s actions', () => {
       const rows: [string, string[]][] = [
         [c.label, [c.hide, c.short.small, c.short.medium, c.short.large, c.title]], [s.colours.label, [s.colours.light, s.colours.dark]],
         [s.arrange.label, [tl.fan, tl.circle, tl.rows]], [s.what.label, [s.what.comparison, s.what.wish]],
+        [s.totals, totalChips(m).mapTotals], [s.totals, totalChips(m).treeTotals],
       ]
       for (const [label, labels] of rows) {
         const need = measured(label, 16) + 16 + segW(labels, 14, 10)

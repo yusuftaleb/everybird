@@ -145,12 +145,13 @@ export function liferPlace(place: Place | undefined, regions: Regions): string {
  * "Herons · Threatened · Canada" (filter-summary.ts statusLabel); a range reads
  * "Mar 2020 to Jun 2021" (timeline.ts rangeLabel). With `regions`, places at every level by their short names
  * ("Owls · British Columbia"); without, the countries only. Country names are whatever `regions` and `countryName` say
- * (the dialog passes them localized, i18n-places.ts regionsIn); family names are the data's.
+ * (the dialog passes them localized, i18n-places.ts regionsIn); family names are the data's; with `sci` the family and the
+ * order are their scientific names.
  * Undefined when nothing is filtered.
  */
 export function filterLabel(
   f: Filter,
-  ctx: { species: SpeciesIndex; countryName: (iso2: string) => string; regions?: Pick<Regions, 'countries' | 'sub1'>; /** A family's name to show (default: English). */ familyName?: (row: SpeciesRow) => string; /** A bird group's name in the UI language (Filter.group). */ groupName?: (id: string) => string | undefined },
+  ctx: { species: SpeciesIndex; countryName: (iso2: string) => string; regions?: Pick<Regions, 'countries' | 'sub1'>; /** A family's name to show (default: English). */ familyName?: (row: SpeciesRow) => string; /** A bird group's name in the UI language (Filter.group). */ groupName?: (id: string) => string | undefined; /** Scientific names on: the family and the order by theirs (round 6). */ sci?: boolean },
   t: ShareStrings,
 ): string | undefined {
   // Places: "Africa + Canada", "Canada + Egypt", "Capital and 2 more" (continents first).
@@ -158,8 +159,8 @@ export function filterLabel(
   const parts: string[] = []
   if (f.group) parts.push(ctx.groupName?.(f.group) ?? f.group)
   if (f.genus) parts.push(f.genus)
-  else if (f.family) { const r = ctx.species.rows.find((x) => x.fam === f.family); parts.push(r ? (ctx.familyName?.(r) ?? r.famCom) || f.family : f.family) }
-  else if (f.order) parts.push(orderLabel(f.order, t))
+  else if (f.family) { const r = !ctx.sci && ctx.species.rows.find((x) => x.fam === f.family); parts.push(r ? (ctx.familyName?.(r) ?? r.famCom) || f.family : f.family) }
+  else if (f.order) parts.push(ctx.sci ? f.order : orderLabel(f.order, t))
   const status = statusLabel(f.statuses, t)
   if (status) parts.push(status)
   // Basis 'seen': "Seen in Canada · 2026" (a range alone: "Seen: 2026").
@@ -215,6 +216,13 @@ const LATEST_ONE_LINE: Partial<Record<CardFormat, true>> = { desktop: true }
 /** How far the wordmark and the credit line are lifted when the two-line row is on, to centre their caps on the row's block. */
 export const FOOTER_LIFT = 11.5
 const ONE_LINE = { icon: 40, label: 20, name: 30, gap: 14, nameMin: 0.8 }
+/**
+ * The Tree image's oldest lineage row (round 6), smaller than the latest lifer's and only the gap it needs from the
+ * drawing: stacked, the sticker and two lines (the label over the name); on the one-line cards (the desktop) one line
+ * just above the hairline: the sticker, the label, then the name after it (`inline`).
+ */
+export const SMALL_ROW = { icon: 56, label: 16, name: 26 }
+export const SMALL_INLINE = { icon: 40, label: 18, name: 26, gap: 16 }
 /** The gap between the footer line and the latest row on its right. */
 const FOOTER_GAP = 32
 /**
@@ -277,7 +285,7 @@ export type CardLayout = {
    * wide, a mono label over the bird's name, above the hairline. One line (LATEST_ONE_LINE): the sticker at y on the
    * footer's line, the label and name on its baseline, all placed by placeFooter from the text's measured widths.
    */
-  latest?: { x: number; y: number; icon: number; tw: number; label: number; name: number; oneLine: boolean }
+  latest?: { x: number; y: number; icon: number; tw: number; label: number; name: number; oneLine: boolean; inline?: boolean }
   rule: { y: number }
   /** The wordmark's size (`size`, Cabinet 700) and the line's beside it (`credit`, Geist Mono; placeCredit may shrink it). */
   footer: Text & { credit: number }
@@ -304,7 +312,8 @@ export const POSTER_FOOT = { brand: 24, line: 16, min: 12 }
 export const posterIcon = (px: number) => Math.round(px * 1.5)
 const posterIconGap = (px: number) => Math.round(px * 0.5)
 
-export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; target?: number; countSize?: CountSize }
+/** `small`: the row is the Tree image's oldest lineage, smaller than the latest lifer's (SMALL_ROW; round 6). */
+export type CardContent = { name: boolean; filter: boolean; latest: boolean; count: number; target?: number; countSize?: CountSize; small?: boolean }
 
 /**
  * The count in the middle, as the app's Tally and /lifelist's .yt-ll-mid: the shown count over "SPECIES" (a filtered
@@ -386,7 +395,11 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   const oneLine = !!LATEST_ONE_LINE[format]
   let rule: { y: number }
   let latest: CardLayout['latest']
-  if (oneLine) {
+  if (c.latest && c.small) {
+    rule = { y: footer.y - 30 }
+    const S = oneLine ? SMALL_INLINE : SMALL_ROW
+    latest = { x: X, y: rule.y - G.latest - S.icon, icon: S.icon, tw: W - 2 * X - S.icon - 20, label: S.label, name: S.name, oneLine: false, ...(oneLine ? { inline: true } : {}) }
+  } else if (oneLine) {
     // With the row: the label's caps start at footer.y - 20, so the hairline is 40 above the footer line (20 of air over the
     // row). Without it the hairline is 20 above, as a one-line footer needs, and the collage fits the same pack to the room.
     rule = { y: footer.y - (c.latest ? 40 : 20) }
@@ -397,7 +410,7 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   }
   const top = headBottom === undefined ? T : headBottom + G.head
   // A stacked row keeps the head's gap from the collage (round 6: it sat too close), the collage giving up the room.
-  const bottom = latest && !oneLine ? latest.y - G.head : rule.y - G.collage
+  const bottom = latest && !latest.oneLine ? latest.y - (c.small ? G.latest : G.head) : rule.y - G.collage
   const collage = { x: X, y: top, w: W - 2 * X, h: bottom - top }
   return { W, H, name, filter, ...(titleCount ? { titleCount: TITLE_COUNT } : {}), collage, count: countLayout(format, c.count, collage.w, c.target, c.countSize), latest, rule, footer, maxTile: maxTileFrac(c.count), maxSide: MAX_SIDE[format] ?? 440 }
 }
@@ -908,7 +921,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const goalLabel = goal ? goalText(goal, strings) : undefined
   const filterText = opts.filterLabel?.trim() || goalLabel || undefined
   const named = opts.name?.trim() || undefined
-  const content: CardContent = { name: !!named, filter: !!filterText, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize }
+  const content: CardContent = { name: !!named, filter: !!filterText, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize, ...(opts.latestAs ? { small: true } : {}) }
   // A poster's head is its title alone: the name, else the filter in words. Its foot carries the latest lifer in words.
   const name = print ? named ?? filterText : named
   const label = print ? undefined : filterText
@@ -1218,6 +1231,26 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
     ctx.font = font.lifer(nameSize)
     ctx.fillStyle = C.ink
     ctx.fillText(nameText, tx, base)
+  } else if (latest && lifer && L.latest?.inline) {
+    // The oldest lineage on one line above the hairline: the sticker, the mono label, then the name in the room left.
+    paintTiles(ctx, [lifer], imgs, C.line, range)
+    const { icon, label: ls, name: ns } = L.latest
+    const mid = L.latest.y - shift + icon / 2
+    const tx = L.latest.x + icon + SMALL_INLINE.gap
+    ctx.textBaseline = 'middle'
+    ctx.textAlign = 'left'
+    ctx.font = font.mono(ls)
+    track(0.06, ls)
+    ctx.fillStyle = C.muted
+    const labelText = latest.label.toUpperCase()
+    ctx.fillText(labelText, tx, mid)
+    const lw = ctx.measureText(labelText).width // the tracking is in the measure
+    track(0, 0)
+    const nx = tx + lw + SMALL_INLINE.gap
+    ctx.font = font.lifer(ns)
+    ctx.fillStyle = C.ink
+    ctx.fillText(fitText(ctx, latest.name, font.lifer, ns, 20, L.latest.x + L.latest.tw + icon + 20 - nx), nx, mid)
+    ctx.textBaseline = 'top'
   } else if (latest && lifer && L.latest) {
     paintTiles(ctx, [lifer], imgs, C.line, range)
     const { icon } = L.latest

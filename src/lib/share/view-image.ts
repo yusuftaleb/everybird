@@ -1,5 +1,5 @@
 // The Map and Tree views' share images (map-image.ts, tree-image.ts): the collage card's frame from image.ts (the title,
-// the count, the filter in words, the footer line with the sticker credit and the date stamp, Colours and Transparent
+// the count, the filter in words, the footer line with the sticker credit and the date stamp, Appearance and Transparent
 // background), with no stickers, around a drawing of the view in the area the collage would take. The count sits on top
 // of that area, centred, with an optional line under it (the tree's orders, families and genera); the drawing gets the
 // rest. The map's footer is the site alone (MAP_FOOTER: it draws no stickers); the tree's adds the tree's credit (TREE_FOOTER).
@@ -23,10 +23,15 @@ export const TREE_FOOTER = `${FOOTER_LINE} · Tree: AvesData, CC BY 4.0`
  *  every tree image draws, or the dialog's Arrangement row's; `rank`: the rank the tree draws, for Print's Down to; `time`: its "Time scale" switch, on unless false; `fits`:
  *  whether the Fan and the Radial name every tip on screen, for that row's reasons). */
 export type ShareAt = { place?: string; names?: (key: string) => string; tree?: TreeLevel; rank?: TipRank; mine?: boolean; layout?: TreeLayout; time?: boolean; fits?: Record<'fan' | 'circle', boolean> }
+/** A total a view image can draw on top: the Map's species and countries, the Tree's species, genera, families and orders. */
+export type TotalKey = 'species' | 'countries' | 'genera' | 'families' | 'orders'
+/** `all` (an image's totals, in its order) kept to those `chosen` (the dialog's Totals row; unset, every one). */
+export const chosenTotals = <K extends TotalKey>(all: readonly K[], chosen?: readonly TotalKey[]): K[] => all.filter((k) => !chosen || chosen.includes(k))
 /** A view image's input: the share image's, with the view's level, the app state it reads and the UI strings
- *  (`oldest`: the Tree image draws its oldest lineage in the latest lifer's place). */
+ *  (`totals`: the totals drawn on top, any of the image's in any combination, none included; unset, all of them;
+ *  `oldest`: the Tree image draws its oldest lineage in the latest lifer's place). */
 export type ViewImageOpts = ShareImageOpts & {
-  at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; hideTotals?: boolean; oldest?: boolean
+  at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; totals?: readonly TotalKey[]; oldest?: boolean
   /** Device px per design unit (a poster's, print.ts viewPosterScale); default the format's IMAGE_SCALE, 1 for a poster's preview. */
   scale?: number
   /** The Tree image's: called with whether the Fan and the Radial name every tip in this image's area, so the dialog

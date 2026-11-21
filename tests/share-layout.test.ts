@@ -23,7 +23,7 @@ const px = (decl: string, prop: string): number => {
   return Number(m![1])
 }
 const DESKTOP = '@media (min-width: 720px) {\n  .eb-share-scrim {'
-const WIDE = '@media (min-width: 720px) {\n  .eb-share-scrim[data-layout="wide"]'
+const WIDE = '@media (min-width: 720px) {\n  .eb-share-scrim[data-layout="wide"] .eb-share-preview'
 
 describe('the share dialog: the top row clears the options', () => {
   it('keeps no explicit min-height on the format column (it would let the grid squeeze its row)', () => {
@@ -44,10 +44,12 @@ describe('the share dialog: the top row clears the options', () => {
       for (const r of css.matchAll(m)) expect(r[2]).not.toMatch(/margin[^;]*-\d|transform|\btop:/)
     }
   })
-  it('lays Horizontal out side by side like Vertical, the preview\'s room the width left beside the column', () => {
-    expect(rule('.eb-share-scrim[data-layout="wide"]', WIDE)).toMatch(/--room:\s*calc\(var\(--wide-w\) - var\(--ctl\) - 62px\)/)
+  it('lays Horizontal out side by side like Vertical, the preview\'s room the whole width left of the column', () => {
+    expect(rule('.eb-share-scrim[data-layout="wide"] .eb-share-preview', WIDE)).toMatch(/--room:\s*calc\(100vw - var\(--pad-r\) - var\(--ctl\) - 94px\)/)
     expect(css).not.toMatch(/grid-column:\s*1 \/ -1/)
-    expect(css).toContain('min(1400px, 94vw)')
+    // Nothing else changes with the orientation: no other width, padding or animation of its own (round 6).
+    expect(css).not.toMatch(/\.eb-share-scrim\[data-layout="wide"\]\s*\{/)
+    expect(css).not.toMatch(/data-changing|--wide-w/)
   })
 })
 
@@ -58,10 +60,8 @@ describe('the share dialog: pinned at its top, only as tall as its content', () 
     expect(scrim).toMatch(/place-items:\s*start end/)
     expect(scrim).toMatch(/padding-top:\s*var\(--top\)/)
     // The right edge from the window alone (not from the content), so nothing the column opens moves it.
-    expect(scrim).toMatch(/padding-right:\s*max\(16px, \(100% - \(max\(240px, min\(var\(--tall\), var\(--room\)\)\) \+ var\(--ctl\) \+ 62px\)\) \/ 2\)/)
-    const wide = rule('.eb-share-scrim[data-layout="wide"]', WIDE)
-    expect(wide).not.toMatch(/place-items/)
-    expect(wide).toMatch(/padding-right:\s*max\(16px, \(100% - var\(--wide-w\)\) \/ 2\)/)
+    expect(scrim).toMatch(/--pad-r:\s*max\(16px, \(100vw - \(max\(240px, min\(var\(--tall\), var\(--room\)\)\) \+ var\(--ctl\) \+ 62px\)\) \/ 2\)/)
+    expect(scrim).toMatch(/padding-right:\s*var\(--pad-r\)/)
     // No area the story's size to centre a shorter preview in (phones keep the scrim's own centring across).
     expect(css).not.toMatch(/--story-h/)
   })
@@ -85,6 +85,63 @@ describe('the share dialog: pinned at its top, only as tall as its content', () 
   })
 })
 
+describe('the share dialog: nothing moves when the format or the orientation changes (round 6)', () => {
+  /** The scrim's numbers at a window `vw` × `vh` (share.css, from 720px): the right padding, the controls' column's left
+   *  edge, and the preview's box for a shape `ar` in either layout, with a controls' column `colH` tall. */
+  const model = (vw: number, vh: number, colH: number) => {
+    const ctl = vw >= 1200 ? 480 : vw >= 1000 ? 420 : 300
+    const tall = Math.max(240, vh - 32 - 16 - 92)
+    const room = Math.min(vw - ctl - 108, 560)
+    const padR = Math.max(16, (vw - (Math.max(240, Math.min(tall, room)) + ctl + 62)) / 2)
+    // The dialog's right edge is padR from the window's; its 20px padding and 1px border, then the column.
+    const colLeft = vw - padR - 21 - ctl
+    const preview = (ar: number, wide: boolean) => {
+      const r = wide ? vw - padR - ctl - 94 : room
+      const h = Math.max(160, Math.min(colH, tall, r / ar))
+      // The dialog's left edge: the preview, the 20px gap, then its padding and border.
+      return { w: h * ar, h, left: colLeft - 20 - h * ar - 21 }
+    }
+    return { ctl, colLeft, preview }
+  }
+  it('the right edge and the column come from the window alone, the same rule in both layouts', () => {
+    expect(rule('.eb-share-scrim', DESKTOP)).toMatch(/--ctl:\s*300px/)
+    expect(css).toContain('@media (min-width: 1000px) { .eb-share-scrim { --ctl: 420px; } }')
+    // The column's width is --ctl in every layout; nothing in the wide layout sets it, the padding or the dialog's width.
+    expect(rule('.eb-share-body', DESKTOP)).toMatch(/grid-template-columns:\s*auto var\(--ctl\)/)
+    expect(css).not.toMatch(/\[data-layout="wide"\][^{]*\{[^}]*(?:[{;\s])(--ctl|padding[\w-]*|width|--pad-r)\s*:/)
+  })
+  it('every shape, vertical and horizontal, share and print, keeps the column where it is; the preview stays in the window', () => {
+    const vertical = [9 / 16, 4 / 5, 1, 1240 / 1754, 2 / 3, 3 / 4]
+    const horizontal = [16 / 9, 5 / 4, 1754 / 1240, 3 / 2, 4 / 3]
+    for (const [vw, vh] of [[1440, 830], [1280, 800], [1024, 768], [1920, 1080], [800, 900]]) {
+      for (const colH of [520, 674, 900]) {
+        const m = model(vw, vh, colH)
+        for (const [ar, wide] of [...vertical.map((a) => [a, false] as const), ...horizontal.map((a) => [a, true] as const)]) {
+          const p = m.preview(ar, wide)
+          // The dialog's left edge is inside the scrim's 16px gutter, never past the window.
+          expect(p.left, `${vw}×${vh} ${ar} ${wide}`).toBeGreaterThanOrEqual(16 - 1e-6)
+          // Its top is the column's, its height at most the column's: no band above it, none below it unless the
+          // window's width is what keeps it shorter.
+          expect(p.h).toBeLessThanOrEqual(Math.max(160, colH) + 1e-6)
+        }
+      }
+    }
+  })
+  it('a horizontal preview at 1440 × 830 is as tall as its room left of the column allows, the column unmoved', () => {
+    const m = model(1440, 830, 674)
+    const desk = m.preview(16 / 9, true), story = m.preview(9 / 16, false)
+    expect(desk.left).toBeCloseTo(16 + 16, 0) // the scrim's gutter and the scrollbar's slack
+    expect(story.h).toBe(674)
+  })
+})
+
+describe('the share dialog: opening Export in batches or a goal resizes nothing (round 6)', () => {
+  it('caps the column at its closed height beside the preview, so what opens scrolls inside it', () => {
+    expect(css).toContain('.eb-share-scroll { max-height: var(--scroll-h, none); }')
+    expect(rule('.eb-share-scroll', '/* The column scrolls on its own')).toMatch(/overflow:\s*hidden auto/)
+  })
+})
+
 describe('the share dialog: no scrolling on a 1440 × 830 window with everything closed', () => {
   const H = 830
   it('the chrome is 140px: the dialog 32px from the top and 16px from the bottom, its border, padding, head and gap', () => {
@@ -103,10 +160,13 @@ describe('the share dialog: no scrolling on a 1440 × 830 window with everything
     expect(row).toBe(36)
     const field = px(rule('.eb-share-input, .eb-share-actions .eb-btn', '@media (pointer: fine)'), 'min-height')
     expect(field).toBe(40)
-    // The small segmented controls fit the row: 28px segments, a 2px inset, a 1px border.
-    expect(rule('.eb-share .eb-share-seg .eb-seg-btn', '/* The choices in the rows')).toMatch(/min-height:\s*28px/)
+    // The small segmented controls sit in 40px rows (round 6: air round them as a switch has): 26px segments, a 2px
+    // inset, a 1px border, 32px in all, 8px of air in the row.
+    expect(rule('.eb-share .eb-share-seg .eb-seg-btn', '/* The choices in the rows')).toMatch(/min-height:\s*26px/)
     expect(rule('.eb-share .eb-share-seg', '/* The choices in the rows')).toMatch(/padding:\s*2px/)
-    expect(28 + 2 * 2 + 2).toBeLessThanOrEqual(row)
+    const segRow = px(rule('.eb-share .eb-share-opt:has(> .eb-share-seg)', '@media (pointer: fine)'), 'min-height')
+    expect(segRow).toBe(40)
+    expect(segRow - (26 + 2 * 2 + 2)).toBeGreaterThanOrEqual(8)
     // No box and no rules round the list.
     expect(rule('.eb-share-opts')).not.toMatch(/border/)
     expect(css).not.toMatch(/\.eb-share-opts > \* \+ \*/)
@@ -129,20 +189,23 @@ describe('the share dialog: no scrolling on a 1440 × 830 window with everything
     expect(rule('.eb-share-optnote')).toMatch(/font-size:\s*14px;[^}]*line-height:\s*1\.3/)
     expect(rule('.eb-share .eb-share-opt')).toMatch(/padding:\s*0;/)
     const sizeRow = 2 * 2 + 16 * 1.25 + 2 + 14 * 1.3
-    // The size, then Arrangement, Colours, Count, Show latest lifer, Show species names, Transparent background. No Goal.
-    const list = sizeRow + 6 * row
-    // Export in batches, closed: its row in its panel (no border, no padding above or below the row).
-    expect(rule('.eb-share-bulk')).not.toMatch(/border:|padding/)
-    const bulk = row
+    // The size, then Arrangement, Appearance, Count (segmented), Show latest lifer, Show species names, Transparent
+    // background (switches). No Goal.
+    const list = sizeRow + 3 * segRow + 3 * row
+    // Export in batches, closed: its row in its box, a Hairline border and no fill (round 6), no padding above or below the row.
+    const box = rule('.eb-share-bulk')
+    expect(box).toMatch(/border:\s*1px solid var\(--hairline\)/)
+    expect(box).not.toMatch(/background|padding/)
+    const bulk = row + 2
     // Once made: Download PNG and Download PDF, then Copy link (before, Make poster and Copy link are one row).
     const actions = field + actionsGap + field
     const status = 14 * 1.5
     const filters = 36 // .eb-textbtn's height
     const coffee = 32 + 2 * 6 - 6 // the image, its press padding, the negative bottom margin
     const column = seg + gap + title + optionsGap + list + optionsGap + bulk + gap + actions + gap + status + gap + filters + gap + coffee
-    expect(Math.ceil(column)).toBe(674) // the figure share.css's comment gives
+    expect(Math.ceil(column)).toBe(688) // the figure share.css's comment gives
     expect(Math.ceil(column)).toBeLessThanOrEqual(H - 140)
-    expect(css).toContain('takes 674')
+    expect(css).toContain('takes 688')
     // The empty status line gives its gap back, so the usual column is shorter still.
     expect(rule('.eb-share-controls > [role="status"]:empty')).toMatch(new RegExp(`margin-top:\\s*-${gap}px`))
   })

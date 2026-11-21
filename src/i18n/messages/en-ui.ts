@@ -568,6 +568,8 @@ export const EN_UI = {
    *  route). The credits (FOOTER_LINE, SHARE_CREDIT) and the download names stay English and are not here. */
   share: {
     title: 'Share your collage',
+    /** The title from the Map and the Tree (dialogTitle: what is shared). */
+    viewTitle: { map: 'Share your map', tree: 'Share your tree' },
     /** The format control's group name and its three segments (their 9:16, 4:5, 1:1 hints are in code). */
     formats: 'Image format',
     /** Compare's dialog: what it shares, the comparison card or the wish list. */
@@ -627,13 +629,13 @@ export const EN_UI = {
     oldLinkTitle: "{name}'s life list",
     /** The shared page's document title for a link without a title ({n} formatted). */
     untitledTitle: { one: 'A life list: {n} species', other: 'A life list: {n} species' },
-    /** The Colours row: the images' and the poster's look, Light or Dark (it starts at the page's theme). */
-    colours: { label: 'Colours', light: 'Light', dark: 'Dark' },
+    /** The Appearance row (its key keeps the name colours): the images' and the poster's look, Light or Dark (it starts at the page's theme). */
+    colours: { label: 'Appearance', light: 'Light', dark: 'Dark' },
     transparent: 'Transparent background',
     /** How the images and the poster place the birds (the stored value stays 'packed'): fitted to the frame, or in an oval. */
     arrange: { label: 'Arrangement', packed: 'Fit', oval: 'Oval' },
-    /** The Tree image's switch: keep the species count, drop the orders, families and genera totals under it. */
-    hideTotals: 'Hide totals',
+    /** The Tree's and Map's Totals row: one toggle chip per total the image draws (the chips reuse collage.tree.rank and places.head.country). */
+    totals: 'Totals',
     /** The Goal row: "Add a goal", then "[300] species in [2026 ▾] ✕". `target` names the number box, `year` the year
      *  menu (All time or a year); the card's line for a year's goal is `card` ("2026 year list"; with the lifer basis `cardLifer`, "2026 lifers"). */
     bigYear: {
@@ -653,8 +655,10 @@ export const EN_UI = {
     downloadShort: 'Download',
     /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
     print: {
-      /** The dialog's title when the page's Print button opens it on the poster. */
-      title: 'Print poster',
+      /** The dialog's title when the page's Print button opens it on the poster (from Collage or List). */
+      title: 'Print your collage',
+      /** From the Map and the Tree. */
+      viewTitle: { map: 'Print your map', tree: 'Print your tree' },
       size: 'Poster size',
       /** The Tree poster's Down to: the screen's rank or the next one down, and why the deeper one can't be picked at this size
        *  (every name must print at 9 pt or more: a larger size would, or none does). */

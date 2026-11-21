@@ -473,6 +473,7 @@ export const ru: Messages = {
     },
     share: {
       title: 'Поделиться коллажем',
+      viewTitle: { map: 'Поделиться картой', tree: 'Поделиться деревом' },
       formats: 'Формат изображения',
       what: { label: 'Что показать', comparison: 'Сравнение', wish: 'Список желаний' },
       format: { story: 'История', post: 'Пост', square: 'Квадрат', desktop: 'Рабочий стол' },
@@ -517,10 +518,10 @@ export const ru: Messages = {
       posterLatestPlace: 'Последний новый вид: {name}, {date}, {place}',
       oldLinkTitle: 'Лайф-лист: {name}',
       untitledTitle: { one: 'Лайф-лист: {n} вид', few: 'Лайф-лист: {n} вида', many: 'Лайф-лист: {n} видов', other: 'Лайф-лист: {n} вида' },
-      colours: { label: 'Цвета', light: 'Светлые', dark: 'Тёмные' },
+      colours: { label: 'Оформление', light: 'Светлое', dark: 'Тёмное' },
       transparent: 'Прозрачный фон',
       arrange: { label: 'Расположение', packed: 'По рамке', oval: 'Овал' },
-      hideTotals: 'Скрыть итоги',
+      totals: 'Итоги',
       bigYear: {
         label: 'Цель',
         add: 'Добавить цель',
@@ -536,7 +537,8 @@ export const ru: Messages = {
       },
       downloadShort: 'Скачать',
       print: {
-        title: 'Напечатать постер',
+        title: 'Напечатать коллаж',
+        viewTitle: { map: 'Напечатать карту', tree: 'Напечатать дерево' },
         size: 'Размер постера',
         downTo: 'Детализация',
         deeperLarger: 'На постере большего размера поместятся все названия',

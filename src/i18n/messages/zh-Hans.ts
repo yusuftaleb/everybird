@@ -463,6 +463,7 @@ export const zhHans: Messages = {
     },
     share: {
       title: '分享你的拼贴画',
+      viewTitle: { map: '分享你的地图', tree: '分享你的进化树' },
       formats: '图片格式',
       what: { label: '内容', comparison: '对比', wish: '心愿清单' },
       format: { story: '快拍', post: '帖子', square: '方形', desktop: '桌面' },
@@ -502,10 +503,10 @@ export const zhHans: Messages = {
       posterLatestPlace: '最新加新：{name}，{date}，{place}',
       oldLinkTitle: '{name}的生涯清单',
       untitledTitle: { one: '一份生涯清单：{n}种', other: '一份生涯清单：{n}种' },
-      colours: { label: '配色', light: '浅色', dark: '深色' },
+      colours: { label: '外观', light: '浅色', dark: '深色' },
       transparent: '透明背景',
       arrange: { label: '排列方式', packed: '适配', oval: '椭圆' },
-      hideTotals: '隐藏目科属总数',
+      totals: '总数',
       bigYear: {
         label: '目标',
         add: '添加目标',
@@ -521,7 +522,8 @@ export const zhHans: Messages = {
       },
       downloadShort: '下载',
       print: {
-        title: '打印海报',
+        title: '打印你的拼贴画',
+        viewTitle: { map: '打印你的地图', tree: '打印你的进化树' },
         size: '海报尺寸',
         downTo: '展开到',
         deeperLarger: '更大的海报能印出所有名称',
