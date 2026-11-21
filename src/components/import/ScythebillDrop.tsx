@@ -1,5 +1,5 @@
 'use client'
-import { useId, useRef, useState } from 'react'
+import { useId, useRef } from 'react'
 import { fileMessage, type FileJob } from '@/components/app/use-import-jobs'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -7,6 +7,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { countParts, type RowCount } from '@/lib/list/source-counts'
 import type { Saved, ScythebillDetails } from '@/lib/list/storage'
 import { FileDropzone, useFileDrop } from './FileDropzone'
+import { useAddPanel } from './add-panel'
 import { notCounted } from './NotCounted'
 import { HowTo, scythebillLine, SourceRow } from './SourceLine'
 
@@ -19,7 +20,6 @@ type Props = {
   onRemove?: () => void
   saved?: Saved
   counts?: RowCount
-  landedAt?: number
 }
 
 export function ScythebillDrop({
@@ -31,21 +31,15 @@ export function ScythebillDrop({
   onRemove,
   saved,
   counts,
-  landedAt,
 }: Props) {
   const id = useId()
   const { t } = useI18n()
   const sb = t.import.scythebill
-  const [open, setOpen] = useState(false)
+  // The open Add panel, shared by every source (one at a time; ImportPanel folds it when a file lands).
+  const [panel, setPanel] = useAddPanel()
+  const open = panel === 'scythebill'
   const input = useRef<HTMLInputElement>(null)
   const { busy, rows, error } = job
-
-  const marker = `${connected ? '1' : '0'}|${landedAt ?? ''}`
-  const [lastMarker, setLastMarker] = useState(marker)
-  if (lastMarker !== marker) {
-    setLastMarker(marker)
-    setOpen(false)
-  }
 
   const read = (file: File | undefined) => {
     if (!file || busy) return
@@ -56,7 +50,8 @@ export function ScythebillDrop({
   const off = disabled || busy
   const pick = () => input.current?.click()
   const line = connected ? scythebillLine(details, t) : null
-  const showPanel = open || busy || !!error
+  // A read in progress keeps the panel open; so does its error, until another source's panel is opened.
+  const showPanel = open || busy || (!!error && panel === null)
 
   return (
     <div className="eb-filedrop" data-testid="scythebill-drop" data-over={over || undefined} data-busy={busy || undefined} {...handlers}>
@@ -101,7 +96,7 @@ export function ScythebillDrop({
               aria-expanded={open}
               aria-controls={`${id}-panel`}
               aria-label={fmt(t.import.addLabel, { title: sb.title })}
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => setPanel('scythebill', !open)}
             >
               {t.import.add}
             </button>

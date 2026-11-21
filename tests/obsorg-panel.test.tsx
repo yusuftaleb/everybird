@@ -102,6 +102,40 @@ describe('ImportPanel: the Add panels fold whenever a file lands', () => {
   })
 })
 
+describe('ImportPanel: one Add panel at a time', () => {
+  const add = (title: string) => screen.getByRole('button', { name: `Add ${title}` })
+  it('opening a source\'s Add panel closes the open one, and its button shows which is open', () => {
+    render(<Panel saved={emptySaved()} j={jobs()} />)
+    fireEvent.click(add('eBird life list'))
+    expect(screen.getByRole('group', { name: 'Add eBird life list' })).toBeVisible()
+    expect(add('eBird life list')).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(add('Spreadsheet or list'))
+    expect(screen.queryByRole('group', { name: 'Add eBird life list' })).toBeNull()
+    expect(add('eBird life list')).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('group', { name: 'Add Spreadsheet or list' })).toBeVisible()
+    fireEvent.click(add('iNaturalist'))
+    expect(screen.queryByRole('group', { name: 'Add Spreadsheet or list' })).toBeNull()
+    expect(screen.getByRole('group', { name: 'Add iNaturalist' })).toBeVisible()
+    // Its own button again closes it, and nothing is open.
+    fireEvent.click(add('iNaturalist'))
+    expect(screen.queryByRole('group', { name: /^Add / })).toBeNull()
+  })
+  it('a read in progress keeps its panel open beside the one opened next', () => {
+    const { rerender } = render(<Panel saved={emptySaved()} j={jobs()} />)
+    fireEvent.click(add('Scythebill'))
+    rerender(<Panel saved={emptySaved()} j={jobs({ scythebill: busy })} />)
+    fireEvent.click(add('iNaturalist'))
+    expect(screen.getByRole('group', { name: 'Add iNaturalist' })).toBeVisible()
+    expect(screen.getByRole('group', { name: 'Add Scythebill' })).toBeVisible()
+  })
+  it('the sources in order: eBird life list, MyEBirdData, iNaturalist, Spreadsheet or list, then observation.org\'s two, Scythebill, iGoTerra', () => {
+    render(<Panel saved={emptySaved()} j={jobs()} />)
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'eBird life list', 'MyEBirdData', 'iNaturalist', 'Spreadsheet or list', 'observation.org life list', 'observation.org observations', 'Scythebill', 'iGoTerra',
+    ])
+  })
+})
+
 describe('ImportPanel: a life list that holds only not-countable species', () => {
   it('shows connected, with its menu and its skipped part, so it can be removed', () => {
     const saved = emptySaved()

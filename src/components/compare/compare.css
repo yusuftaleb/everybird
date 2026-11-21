@@ -1,17 +1,11 @@
-/* Compare with friends. The set-up is one card (Paper, Hairline, the source cards' 20px squircle): the title, a line,
-   a row per list (its colour dot, a name box, the link box, a remove button; the birder's own row a quiet box in the
-   link's place), then "Add a friend" and Compare. The comparison: the pills with Edit lists and Share, then the diagram
+/* Compare with friends. The set-up sits on the page itself, no box, at most 760px wide: the title, a line, a row per
+   list (its colour dot, a name box, the link box, a remove button; the birder's own row a quiet box in the link's place), then "Add a friend" and Compare. The comparison: the pills with Edit lists and Share, then the diagram
    and the groups side by side from 640px (one column under it), then the chosen group's birds across the page. */
 
 /* A list's colour: a 12px dot (compare.ts listColor). */
 .eb-compare-dot { flex: none; display: block; width: 12px; height: 12px; border-radius: 50%; }
 
-.eb-compare-setup {
-  container-type: inline-size; width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 8px;
-  padding: 24px; border: 1px solid var(--hairline); background: var(--paper);
-  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-}
-@media (max-width: 479px) { .eb-compare-setup { padding: 16px; } }
+.eb-compare-setup { container-type: inline-size; width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 8px; }
 .eb-compare-title { flex: none; }
 .eb-compare-title:focus { outline: none; }
 .eb-compare-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
@@ -32,7 +26,7 @@
   font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
-/* A narrow card: the link under the name, the remove button on the name's line. */
+/* A narrow set-up: the link under the name, the remove button on the name's line. */
 @container (max-width: 519px) {
   .eb-compare-row { grid-template-columns: 12px minmax(0, 1fr) 44px; grid-template-areas: "dot name x" ". link ."; }
   .eb-compare-rows { gap: 16px; }
@@ -45,7 +39,7 @@
 @media (hover: hover) and (pointer: fine) { .eb-compare-remove:hover { color: var(--ink); background: var(--surface); } }
 .eb-compare-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
 .eb-compare-foot .eb-btn { margin-inline-start: auto; padding: 0 28px; }
-/* An empty status line takes no room (no gap either), yet stays in the card, so its first message is announced. */
+/* An empty status line takes no room (no gap either), yet stays in the set-up, so its first message is announced. */
 .eb-compare-setup > .eb-status:empty { position: absolute; }
 .eb-compare-wait-note a { color: var(--accent); font-weight: 600; }
 

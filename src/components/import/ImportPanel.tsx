@@ -1,5 +1,5 @@
 'use client'
-import { memo, useState, type ReactNode } from 'react'
+import { memo, useMemo, useState, type ReactNode } from 'react'
 import type { ImportJobs } from '@/components/app/use-import-jobs'
 import { useI18n } from '@/i18n/I18nProvider'
 import { slotConnected, type SourceCounts } from '@/lib/list/source-counts'
@@ -7,6 +7,7 @@ import type { Action } from '@/lib/list/store'
 import type { Slot } from '@/lib/list/model'
 import type { Saved } from '@/lib/list/storage'
 import type { SpeciesIndex } from '@/lib/species/load'
+import { AddPanels } from './add-panel'
 import { EbirdDrop, type EbirdConnected } from './EbirdDrop'
 import { InatForm } from './InatForm'
 import { ObsOrgDrop, type ObsOrgConnected } from './ObsOrgDrop'
@@ -38,12 +39,13 @@ function Group({ id, label, children }: { id: string; label: string; children: R
 
 /**
  * Settings > Your list and the Add birds dialog's "Import a file": the eight sources (eBird life list, MyEBirdData,
- * iNaturalist, the observation.org life list and observations, the spreadsheet, Scythebill, iGoTerra) as a grid of
- * cells in one group (four columns on Settings' wide column, two, one on phones; import.css). A cell is the source's
- * name and status on two lines and its button, with a ⋯ menu once connected; adding opens the source's panel (its
- * guidance and how-to inside) under the cell's row, across the grid. They combine into one list; each import replaces
- * only its own slot. The file groups read one file at a time: while one reads, all are disabled, and any file lands in
- * the row of its kind.
+ * iNaturalist, the spreadsheet; then the observation.org life list and observations, Scythebill, iGoTerra) as a grid of
+ * cells in one group (four columns on Settings' wide column, two, one on phones, in that order; import.css). A cell is
+ * the source's name and status on two lines and its button, with a ⋯ menu once connected; adding opens the source's
+ * panel (its guidance and how-to inside) under the whole grid, in a box of its own, its Add button pressed. One panel
+ * is open at a time (`AddPanels`): opening one closes the other, though a read, a review or a fetch in progress keeps
+ * its own open. They combine into one list; each import replaces only its own slot. The file groups read one file at a
+ * time: while one reads, all are disabled, and any file lands in the row of its kind.
  */
 export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, jobs, disabled, counts, placesNote }: Props) {
   const { t } = useI18n()
@@ -85,8 +87,20 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
   // beside them, leaves an open panel alone).
   const [fileLandedAt, setFileLandedAt] = useState<number | undefined>(undefined)
   if (jobs.landed && jobs.landed.slot !== 'inat' && jobs.landed.at !== fileLandedAt) setFileLandedAt(jobs.landed.at)
+  // The one open Add panel. A file landing, or a file source coming or going, folds a file source's panel (an open
+  // iNaturalist panel stays); a fetch landing under a new username folds iNaturalist's.
+  const [panel, setPanel] = useState<string | null>(null)
+  const fileMark = `${[...ebirdConnected, ...obsorgConnected].map((c) => c.slot).join()}|${sheetOn}|${scythebillOn}|${igoterraOn}|${fileLandedAt ?? ''}`
+  const inatMark = inatOn ? saved.sources?.inat?.user ?? '' : ''
+  const [marks, setMarks] = useState({ fileMark, inatMark })
+  if (marks.fileMark !== fileMark || marks.inatMark !== inatMark) {
+    setMarks({ fileMark, inatMark })
+    if (panel !== null && (panel === 'inat' ? marks.inatMark !== inatMark : marks.fileMark !== fileMark)) setPanel(null)
+  }
+  const shared = useMemo((): [string | null, typeof setPanel] => [panel, setPanel], [panel])
   return (
-    <div className="eb-srclist">
+    <AddPanels.Provider value={shared}>
+      <div className="eb-srclist">
         <Group id="way-ebird" label={t.import.ebirdGroup}>
           <EbirdDrop
             job={jobs.ebird}
@@ -97,7 +111,6 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             saved={saved}
             species={species}
             counts={counts}
-            landedAt={fileLandedAt}
             loaded={{ full: speciesIn(saved.records.ebird), quick: speciesIn(saved.records['ebird-list'] ?? []) }}
             placesNote={placesNote}
           />
@@ -113,18 +126,6 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             onRemove={() => remove('inat')}
             saved={saved}
             counts={counts.rows.inat}
-          />
-        </Group>
-        <Group id="way-obsorg" label={t.import.obsorg.group}>
-          <ObsOrgDrop
-            job={jobs.obsorg}
-            onFile={(f) => void jobs.readObsOrg(f)}
-            disabled={disabled || fileBusy}
-            landedAt={fileLandedAt}
-            connected={obsorgConnected}
-            onRemove={remove}
-            saved={saved}
-            counts={counts}
           />
         </Group>
         <Group id="way-sheet" label={t.import.sheet.title}>
@@ -145,6 +146,17 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             landedAt={fileLandedAt}
           />
         </Group>
+        <Group id="way-obsorg" label={t.import.obsorg.group}>
+          <ObsOrgDrop
+            job={jobs.obsorg}
+            onFile={(f) => void jobs.readObsOrg(f)}
+            disabled={disabled || fileBusy}
+            connected={obsorgConnected}
+            onRemove={remove}
+            saved={saved}
+            counts={counts}
+          />
+        </Group>
         <Group id="way-scythebill" label={t.import.scythebill.title}>
           <ScythebillDrop
             job={jobs.scythebill}
@@ -155,7 +167,6 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             onRemove={() => remove('scythebill')}
             saved={saved}
             counts={counts.rows.scythebill}
-            landedAt={fileLandedAt}
           />
         </Group>
         <Group id="way-igoterra" label={t.import.igoterra.title}>
@@ -168,9 +179,9 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             onRemove={() => remove('igoterra')}
             saved={saved}
             counts={counts.rows.igoterra}
-            landedAt={fileLandedAt}
           />
         </Group>
-    </div>
+      </div>
+    </AddPanels.Provider>
   )
 })

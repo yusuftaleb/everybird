@@ -149,10 +149,14 @@ function inatField() {
 }
 
 const stats = () => screen.getByTestId('collage-stats')
-/** Settings lays the source rows and Add by hand out in the page, behind no click; elsewhere (the collage's head) "Add
- *  birds" opens the dialog, at Import a file, and `way` picks one of its two choices. */
+/** Settings lays the source rows out in the page and folds Add by hand in its box (`way` opens it); elsewhere (the
+ *  collage's head) "Add birds" opens the dialog, at Import a file, and `way` picks one of its two choices. */
 async function openAdd(way: 'Import a file' | 'Add by hand') {
-  if (document.querySelector('.eb-page-settings')) return
+  if (document.querySelector('.eb-page-settings')) {
+    const hand = screen.getByRole('button', { name: 'Add by hand' })
+    if (way === 'Add by hand' && hand.getAttribute('aria-expanded') === 'false') fireEvent.click(hand)
+    return
+  }
   if (!screen.queryByRole('dialog', { name: 'Add birds' })) fireEvent.click(await screen.findByRole('button', { name: 'Add birds' }))
   fireEvent.click(within(screen.getByRole('dialog', { name: 'Add birds' })).getByRole('button', { name: way }))
 }
@@ -750,11 +754,12 @@ describe('editing', () => {
     fireEvent.click(screen.getByRole('switch', { name: /Scientific/ }))
     fireEvent.click(screen.getByTestId('display-button'))
     await openTick()
+    // Add by hand's groups keep the common name first, the scientific one after it (round 6).
     const tree = screen.getByRole('list', { name: 'Species to tick' })
-    expect(within(tree).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Anseriformes, 1 species', 'Piciformes, 2 species', 'Passeriformes, 2 species'])
+    expect(within(tree).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Waterfowl, 1 species', 'Woodpeckers, 2 species', 'Perching birds, 2 species'])
     const order = screen.getByTestId('tick-group-Piciformes')
     expect(within(order).getByText('Piciformes')).toHaveAttribute('lang', 'la')
-    expect(within(order).getByText('Woodpeckers')).toHaveClass('eb-ticksub')
+    expect(within(order).getByText('Piciformes')).toHaveClass('eb-ticksub')
     expect(within(order).getByText('Woodpeckers')).not.toHaveAttribute('lang')
   })
 
@@ -963,15 +968,20 @@ describe('remembered sources', () => {
     await waitFor(async () => expect((await storage.load())?.sources?.inat?.user).toBe('sam_birds'), { timeout: 2000 })
   })
 
-  it('Settings lays out the sources, then Add by hand, each under its heading, with no Add birds button and no dialog', async () => {
-    await mount()
+  it('Settings lays out the sources, then Add by hand folded in its box, each under its heading, with no Add birds button and no dialog', async () => {
+    await mount({ stored: (s) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Add birds' })).toBeNull()
     const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
     expect(headings.slice(0, 2)).toEqual(['Your list', 'Add by hand'])
-    // The rows and the whole taxonomy to tick (its orders, opening in place) are in the page, nothing to open first.
+    // The rows are in the page; Add by hand is folded: its title, what was ticked, and a press opens it in place.
     expect(screen.getByTestId('ebird-drop')).toBeVisible()
-    expect(screen.getByRole('list', { name: 'Species to tick' })).toBeInTheDocument()
+    const hand = screen.getByRole('button', { name: 'Add by hand' })
+    expect(hand).toHaveAttribute('aria-expanded', 'false')
+    expect(hand).toHaveAccessibleDescription(/^Ticked by hand · 1 species/)
+    expect(screen.queryByRole('list', { name: 'Species to tick' })).toBeNull()
+    fireEvent.click(hand)
+    expect(hand).toHaveAttribute('aria-expanded', 'true')
     expect(document.getElementById('tick')).toContainElement(screen.getByRole('list', { name: 'Species to tick' }))
     expect(screen.getByText('Your list never leaves your browser. We count visits anonymously.')).toBeInTheDocument()
   })

@@ -1,12 +1,12 @@
 'use client'
 // Add by hand (the Add birds dialog and Settings): the whole eBird taxonomy (~11,000 species). With the search empty it
 // is one list that opens in place, as the Places list did (a disclosure list): the orders, each a compact row with a
-// chevron, its name, its scientific name after it (smaller, Muted; with Scientific on the scientific name leads and the
-// common one follows) and its species count; opening an order shows its families under it, a family its genera, a genus
+// chevron, its common name, its scientific name after it (smaller, Muted, italic) and its species count; one group is
+// open at a time at each level (opening one closes its siblings, `toggleOpen`); opening an order shows its families under it, a family its genera, a genus
 // its species, with no lone levels (the Tree's rule, `taxonOpen`: an order with one family shows its genera, a family with
 // one genus its species, a group of 12 species or fewer its species). Only species rows carry stickers. Typing in the search shows the matches
 // instead (by word prefixes of either name), and clearing it brings the list back with the same rows open. Species rows
-// are a multi-select listbox whose selected options are the birds on the list (the search's, and each open genus's): the
+// (a fill only under the pointer and on the active row while their list has the keyboard's focus) are a multi-select listbox whose selected options are the birds on the list (the search's, and each open genus's): the
 // arrow keys move the active row, Space or Enter flips it; a click flips a row. A tap adds a bird to the list at once and a tap on a bird already on it takes it off at
 // once, each with "Added … · Undo" or "Removed … · Undo". Taking off a bird is the bird card's Remove (removeTicked): it
 // goes into `removed`, so a file that has it no longer counts it. "When and where", a bar under the list that is always
@@ -29,7 +29,7 @@ import { today } from '@/lib/download'
 import { stripBracket } from '@/lib/import/places'
 import type { Edits, Place } from '@/lib/list/model'
 import type { Action } from '@/lib/list/store'
-import { addTicked, filterTickRows, removeTicked, taxonChildren, taxonOpen, undoEdit, type TaxonGroup, type TaxonPath } from '@/lib/list/tick'
+import { addTicked, filterTickRows, removeTicked, taxonChildren, taxonOpen, toggleOpen, undoEdit, type TaxonGroup, type TaxonPath } from '@/lib/list/tick'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName, nameOfCode } from '@/lib/species/names'
 import { orderLabel } from '@/lib/species/orders'
@@ -50,8 +50,6 @@ type Props = {
   autoFocus?: boolean
   /** Rows the list shows at most (8; the dialog's 7, so it fits a laptop's screen). */
   view?: number
-  /** Scientific names lead (the Scientific switch): the groups' scientific names come first. */
-  sci?: boolean
 }
 
 const ROW = 56
@@ -163,7 +161,7 @@ function TickOptions({ rows, onList, onFlip, view, inline, boxRef, label, labell
 /** What every row of the list that opens in place reads. */
 type Tree = {
   species: SpeciesIndex; onList: ReadonlySet<string>; onFlip: (code: string, box: HTMLDivElement | null) => void
-  open: ReadonlySet<string>; toggle: (key: string) => void; sci: boolean
+  open: ReadonlySet<string>; toggle: (key: string) => void
 }
 
 /**
@@ -176,11 +174,10 @@ function GroupNode({ path, g, depth, tree }: { path: TaxonPath; g: TaxonGroup; d
   const at = [...path, g.id]
   const key = at.join('/')
   const isOpen = tree.open.has(key)
-  // Orders by the dictionary's names, families by their names, each with its scientific name after it (first with
-  // Scientific on); genera by their scientific name alone.
+  // Orders by the dictionary's names, families by their names, each with its scientific name after it; genera by
+  // their scientific name alone.
   const common = at.length === 1 ? orderLabel(g.id, t) : at.length === 2 ? familyName(g.first) : undefined
-  const lead = tree.sci || !common ? g.id : common
-  const second = common === undefined ? undefined : tree.sci ? common : g.id
+  const lead = common ?? g.id
   const count = formatInt(g.n, t.num)
   return (
     <li>
@@ -191,8 +188,8 @@ function GroupNode({ path, g, depth, tree }: { path: TaxonPath; g: TaxonGroup; d
       >
         <span className="eb-tickchev" aria-hidden="true"><ChevronDownIcon /></span>
         <span className="eb-tickgroup-name">
-          <span lang={lead === g.id ? 'la' : undefined}>{lead}</span>
-          {second !== undefined && <>{' '}{tree.sci ? <span className="eb-ticksub">{second}</span> : <i className="eb-ticksub" lang="la">{second}</i>}</>}
+          <span lang={common === undefined ? 'la' : undefined}>{lead}</span>
+          {common !== undefined && <>{' '}<i className="eb-ticksub" lang="la">{g.id}</i></>}
         </span>
         <span className="eb-mono eb-langcode eb-tickgroup-n" aria-hidden="true">{count}</span>
       </button>
@@ -221,7 +218,7 @@ function GroupBody({ id, labelledBy, path, n, depth, tree }: { id: string; label
   )
 }
 
-export function TickList({ species, regions, edits, dispatch, onList, listEmpty, autoFocus, view = VIEW, sci = false }: Props) {
+export function TickList({ species, regions, edits, dispatch, onList, listEmpty, autoFocus, view = VIEW }: Props) {
   const ids = useId()
   const { lang, t } = useI18n()
   const tt = t.tick
@@ -278,11 +275,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
     if (listEmpty) track('collage_made', { source: 'manual' })
     setChange({ codes: [code], text: fmt(tt.added, { name }), before: edits })
   }
-  const toggle = useCallback((key: string) => setOpen((prev) => {
-    const next = new Set(prev)
-    if (!next.delete(key)) next.add(key)
-    return next
-  }), [])
+  const toggle = useCallback((key: string) => setOpen((prev) => toggleOpen(prev, key)), [])
   // Undo: exactly what the change touched comes back (on or off the list, hand records as they were), later edits kept.
   const undo = () => {
     if (!change) return
@@ -291,7 +284,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
     last.current?.focus({ preventScroll: true })
   }
   const dismiss = useCallback(() => setChange(null), [])
-  const tree: Tree = { species, onList, onFlip: flip, open, toggle, sci }
+  const tree: Tree = { species, onList, onFlip: flip, open, toggle }
 
   return (
     <section className="eb-tick" aria-labelledby={`${ids}-h`}>

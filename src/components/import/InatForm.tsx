@@ -6,6 +6,7 @@ import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { countParts, type RowCount } from '@/lib/list/source-counts'
 import type { InatDetails, Saved } from '@/lib/list/storage'
+import { useAddPanel } from './add-panel'
 import { notCounted } from './NotCounted'
 import { HowTo, inatLine, SourceRow } from './SourceLine'
 import '@/components/share/share.css' // .eb-share-bar, the site's progress bar (the poster's and the batch export's)
@@ -40,14 +41,17 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, 
   const { t } = useI18n()
   const ti = t.import.inat
   const [user, setUser] = useState('')
-  const [open, setOpen] = useState(false)
+  // The open Add panel, shared by every source (one at a time; ImportPanel folds this one when a fetch lands under a
+  // new username).
+  const [panel, setPanel] = useAddPanel()
+  const open = panel === 'inat'
+  const setOpen = (on: boolean) => setPanel('inat', on)
   const { busyFor, progress, error, note } = job
   const known = replaces ? details?.user : undefined
-  // A fetch landed under a new username: fold the panel away again.
+  // A fetch landed under a new username: the field starts empty again.
   const [lastKnown, setLastKnown] = useState(known)
   if (lastKnown !== known) {
     setLastKnown(known)
-    setOpen(false)
     setUser('')
   }
   const refreshing = !!busyFor && !!known && busyFor === known && !open
@@ -82,7 +86,7 @@ export function InatForm({ job, onFetch, onCancel, disabled, replaces, details, 
         aria-controls={`${id}-panel`}
         aria-label={fmt(t.import.addLabel, { title: 'iNaturalist' })}
         disabled={disabled || (!!busyFor && !open)}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(!open)}
       >
         {t.import.add}
       </button>
