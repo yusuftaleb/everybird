@@ -1,10 +1,10 @@
 // Print follows the view (2026-11-20): the Tree's and the Map's posters are their own drawing at the paper's size
-// (viewPosterScale, makeViewPoster), and the dialog shows only the options that drawing reads (dialogRows).
+// (makeViewPoster: laid out once at printScale, painted into each strip), and the dialog shows only the options that drawing reads (dialogRows).
 import { describe, expect, it, vi } from 'vitest'
 import { BULK_SPLITS, dialogRows, dialogTitle, optionRows, subjectOf, toggleTotal, treeOrientation, treeTotals } from '@/components/share/dialog-options'
 import { en } from '@/i18n/messages/en'
 import { makeViewPoster, posterRows, type EncoderPort } from '@/lib/share/poster'
-import { IOS_CANVAS_AREA, PRINT_PT, PRINT_SIZES, printDesign, printPx, printScale, stripRanges, viewPosterScale } from '@/lib/share/print'
+import { PRINT_PT, PRINT_SIZES, STRIP_AREA, printPx, printScale, stripRanges } from '@/lib/share/print'
 
 describe('dialogRows: what each dialog shows', () => {
   it('Collage and List draw the collage; the Tree and the Map their own picture', () => {
@@ -85,30 +85,13 @@ describe('optionRows: the options list\'s order (round 6)', () => {
   })
 })
 
-describe('viewPosterScale: the Tree or Map drawn whole on one canvas', () => {
-  it('is the poster scale where its canvas is under the iOS cap, and the largest scale under it where not', () => {
-    for (const size of PRINT_SIZES) for (const landscape of [false, true]) {
-      const s = viewPosterScale(size, landscape)
-      const [w, h] = printDesign(size, landscape)
-      expect(Math.round(w * s) * Math.round(h * s), `${size} ${landscape}`).toBeLessThanOrEqual(IOS_CANVAS_AREA)
-      const [pw, ph] = printPx(size, landscape)
-      if (pw * ph <= IOS_CANVAS_AREA) expect(s).toBe(printScale(size))
-      else expect(s).toBeGreaterThan(printScale(size) * 0.92) // A1 about 2% under, 24 × 36 in about 7%
-    }
-  })
-  it('A1 and 24 × 36 in are the two over the cap', () => {
-    expect(PRINT_SIZES.filter((size) => viewPosterScale(size) < printScale(size))).toEqual(['A1', 'US24x36'])
-  })
-})
-
 describe('makeViewPoster', () => {
   function setup() {
-    const draws: { y: number; w: number; h: number }[] = []
-    const clears: number[] = []
+    const ops: string[] = []
     const ctx = {
-      canvas: { width: 0, height: 0 },
-      setTransform: () => {}, clearRect: (_x: number, _y: number, _w: number, h: number) => clears.push(h),
-      drawImage: (_img: unknown, _x: number, y: number, w: number, h: number) => draws.push({ y, w, h }),
+      canvas: { width: 0, height: 0 }, fillStyle: '',
+      setTransform: (...m: number[]) => ops.push(`setTransform(${m.join(',')})`), save: () => ops.push('save'), restore: () => ops.push('restore'),
+      clearRect: (_x: number, _y: number, _w: number, h: number) => ops.push(`clear ${h}`), fillRect: (_x: number, _y: number, _w: number, h: number) => ops.push(`fill ${h}`),
     } as unknown as CanvasRenderingContext2D
     const rows: number[] = []
     const enc = {
@@ -117,51 +100,68 @@ describe('makeViewPoster', () => {
       end: vi.fn(async () => 99),
       file: vi.fn(async (kind: 'png' | 'pdf') => new Blob([kind], { type: kind === 'png' ? 'image/png' : 'application/pdf' })),
     } satisfies EncoderPort
-    const closed = vi.fn()
-    const decode = vi.fn(async () => ({ width: 10, height: 14, close: closed }))
-    const deps = { strip: (w: number) => { ctx.canvas.width = w; return { ctx, read: (n: number) => new Uint8ClampedArray(w * n * 4) } }, encoder: () => enc, frame: async () => {}, decode }
-    return { draws, clears, rows, enc, closed, decode, deps }
+    const canvases: [number, number][] = []
+    const deps = { strip: (w: number, n: number) => { canvases.push([w, n]); ctx.canvas.width = w; return { ctx, read: (r: number) => new Uint8ClampedArray(w * r * 4) } }, encoder: () => enc, frame: async () => {} }
+    const paints: number[] = []
+    const painter = (paper: string | null) => ({ paper, paint: vi.fn(() => { paints.push(paints.length) }) })
+    return { ops, rows, enc, deps, canvases, paints, painter }
   }
 
-  it('draws the view once at the poster scale, then streams it in the collage poster\'s strips, stretched to the paper\'s px', async () => {
-    const { draws, rows, enc, closed, deps } = setup()
-    const render = vi.fn(async () => new Blob(['png']))
+  it('lays the view out once at the poster scale, then paints the whole drawing into each strip under its transform', async () => {
+    const { ops, rows, enc, deps, canvases, painter } = setup()
+    const view = painter('#fff')
+    const render = vi.fn(async (_scale: number, give: (p: typeof view) => void) => { give(view); return new Blob([]) })
     const progress: [number, number][] = []
     const p = await makeViewPoster({ size: 'A2', render }, (d, t) => progress.push([d, t]), deps)
     expect(render).toHaveBeenCalledTimes(1)
-    expect(render).toHaveBeenCalledWith(printScale('A2'))
+    const k = printScale('A2')
+    expect(render.mock.calls[0][0]).toBe(k)
     const [w, h] = printPx('A2')
-    const strips = stripRanges(w, h, posterRows(w, printScale('A2')))
+    const strips = stripRanges(w, h, posterRows(w, k))
     expect(enc.begin).toHaveBeenCalledWith(w, h)
     expect(rows).toEqual(strips.map((s) => s.rows))
-    expect(draws).toEqual(strips.map((s) => ({ y: -s.y, w, h })))
+    expect(view.paint).toHaveBeenCalledTimes(strips.length)
+    // Each strip: Paper over it in device px, then the drawing at the poster's scale moved up by the strip's top.
+    expect(ops).toEqual(strips.flatMap((s) => ['setTransform(1,0,0,1,0,0)', `fill ${s.rows}`, 'save', `setTransform(${k},0,0,${k},0,${-s.y})`, 'restore']))
+    expect(canvases).toEqual([[w, strips[0].rows]])
     expect(progress.at(0)).toEqual([1, strips.length + 2])
     expect(progress.at(-1)).toEqual([strips.length + 2, strips.length + 2])
-    expect(closed).toHaveBeenCalled()
     expect(p).toMatchObject({ size: 'A2', landscape: false, bytes: 99, soft: 0, missing: 0, namesDropped: false })
     await p.file('pdf')
     expect(enc.file).toHaveBeenCalledWith('pdf', PRINT_PT.A2)
   })
 
-  it('landscape A1: the capped scale, the turned paper, an RGBA PNG when transparent', async () => {
-    const { enc, deps } = setup()
-    const render = vi.fn(async () => new Blob(['png']))
+  it('landscape A1: the poster scale (no cap), the turned paper, cleared strips and an RGBA PNG when transparent', async () => {
+    const { ops, enc, deps, painter } = setup()
+    const render = vi.fn(async (_scale: number, give: (p: ReturnType<typeof painter>) => void) => { give(painter(null)); return new Blob([]) })
     const p = await makeViewPoster({ size: 'A1', landscape: true, transparent: true, render }, () => {}, deps)
-    expect(render).toHaveBeenCalledWith(viewPosterScale('A1', true))
+    expect(render.mock.calls[0][0]).toBe(printScale('A1'))
     expect(enc.begin).toHaveBeenCalledWith(...printPx('A1', true), true)
+    expect(ops.some((o) => o.startsWith('fill'))).toBe(false)
     await p.file('png')
     expect(enc.file).toHaveBeenCalledWith('png', [PRINT_PT.A1[1], PRINT_PT.A1[0]])
   })
 
-  it('an abort rejects with AbortError and disposes the encoder; a drawing the browser cannot decode is poster-memory', async () => {
+  it('never makes a canvas over STRIP_AREA, at any size or orientation', async () => {
+    for (const size of PRINT_SIZES) for (const landscape of [false, true]) {
+      const { deps, canvases, painter } = setup()
+      await makeViewPoster({ size, landscape, render: async (_s, give) => { give(painter('#fff')); return new Blob([]) } }, () => {}, deps)
+      for (const [w, n] of canvases) expect(w * n, `${size} ${landscape}`).toBeLessThanOrEqual(STRIP_AREA)
+      const [w] = printPx(size, landscape)
+      expect(w * posterRows(w, printScale(size))).toBeLessThanOrEqual(STRIP_AREA)
+    }
+  })
+
+  it('an abort rejects with AbortError and disposes the encoder; a view that gives no painter fails', async () => {
     const a = setup()
     const ctl = new AbortController()
     let n = 0
     const aborting = { ...a.deps, frame: async () => { if (++n === 2) ctl.abort() } }
-    await expect(makeViewPoster({ size: 'A4', signal: ctl.signal, render: async () => new Blob(['png']) }, () => {}, aborting)).rejects.toMatchObject({ name: 'AbortError' })
+    await expect(makeViewPoster({ size: 'A4', signal: ctl.signal, render: async (_s, give) => { give(a.painter('#fff')); return new Blob([]) } }, () => {}, aborting)).rejects.toMatchObject({ name: 'AbortError' })
     expect(a.enc.dispose).toHaveBeenCalled()
     const b = setup()
-    const failing = { ...b.deps, decode: async () => { throw new Error('decode') } }
-    await expect(makeViewPoster({ size: 'A4', render: async () => new Blob(['png']) }, () => {}, failing)).rejects.toThrow('poster-memory')
+    await expect(makeViewPoster({ size: 'A4', render: async () => new Blob(['png']) }, () => {}, b.deps)).rejects.toThrow('no painter')
+    const c = setup()
+    await expect(makeViewPoster({ size: 'A4', render: async () => { throw new Error('Canvas is not available') } }, () => {}, c.deps)).rejects.toThrow('poster-memory')
   })
 })

@@ -6,8 +6,8 @@
 // px per unit, the same in both. One pack serves every size of one shape (printPackH): the A sizes' is made at
 // PRINT_DESIGN_H, and fitPack absorbs the small difference to each size's own printDesignH; the US sizes' at their exact
 // height (2:3, 12 × 18 and 24 × 36 in, 1620; 3:4, 18 × 24 in, 1440). An A1 (3508 × 4967) or a 24 × 36 in (3600 × 5400)
-// is over iOS Safari's canvas cap (IOS_CANVAS_AREA), so posters are painted in horizontal strips of at most STRIP_AREA px.
-// The Tree's and the Map's posters are one drawing at viewPosterScale, cut into the same strips.
+// is over iOS Safari's canvas cap (IOS_CANVAS_AREA), so every poster, the Tree's and the Map's included, is painted in
+// horizontal strips of at most STRIP_AREA px, each strip the whole drawing seen through its window.
 
 export type IsoSize = 'A4' | 'A3' | 'A2' | 'A1'
 export type UsSize = 'US12x18' | 'US18x24' | 'US24x36'
@@ -83,16 +83,6 @@ export const printFormat = (s: PrintSize, landscape = false): string =>
 
 /** iOS Safari's largest canvas, in px. No canvas the poster makes may be larger. */
 export const IOS_CANVAS_AREA = 16_777_216
-/**
- * The Tree's or the Map's poster is drawn whole on one canvas (renderTreeImage, renderMapImage) and then streamed to the
- * encoder in strips: its device px per design unit, printScale(s) unless that canvas would pass IOS_CANVAS_AREA (A1 and
- * 24 × 36 in), then the largest scale under it; the strips stretch the drawing to the poster's own px (about 2% on A1, 7% on 24 × 36 in).
- */
-export function viewPosterScale(s: PrintSize, landscape = false): number {
-  const [w, h] = printDesign(s, landscape)
-  return Math.min(printScale(s), Math.floor(Math.sqrt(IOS_CANVAS_AREA / (w * h)) * 1000) / 1000)
-}
-
 /** A strip's largest area in px (about 1 MP, 4 MB of RGBA). */
 export const STRIP_AREA = 1_048_576
 /**

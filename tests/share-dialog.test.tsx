@@ -48,10 +48,10 @@ vi.mock('@/lib/share/tree-image', () => ({ renderTreeImage: viewRenders.tree }))
 
 // The poster is made by a promise the test settles; it records the progress callback, the signal and the opts.
 type FakePoster = { size: string; landscape: boolean; bytes: number; soft: number; missing: number; namesDropped?: boolean; file: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }
-const makes: { opts: { size: string; signal?: AbortSignal; pack?: unknown; render?: (scale: number) => Promise<Blob> }; onProgress: (d: number, t: number) => void; resolve: (p: FakePoster) => void; reject: (e: unknown) => void }[] = []
+const makes: { opts: { size: string; signal?: AbortSignal; pack?: unknown; render?: (scale: number, onPainter: (p: unknown) => void) => Promise<unknown> }; onProgress: (d: number, t: number) => void; resolve: (p: FakePoster) => void; reject: (e: unknown) => void }[] = []
 const posterMock = () => ({
   makePoster: vi.fn((opts, onProgress) => new Promise((resolve, reject) => makes.push({ opts, onProgress, resolve, reject }))),
-  // The Tree's and the Map's poster: the same record, its opts carrying `render(scale)` instead of a pack.
+  // The Tree's and the Map's poster: the same record, its opts carrying `render(scale, onPainter)` instead of a pack.
   makeViewPoster: vi.fn((opts, onProgress) => new Promise((resolve, reject) => makes.push({ opts, onProgress, resolve, reject }))),
 })
 vi.mock('@/lib/share/poster', () => posterMock()) // called at the first import, once posterMock exists
@@ -537,9 +537,10 @@ describe('share dialog', () => {
     await waitFor(() => expect(makes).toHaveLength(1))
     expect(makes[0].opts).toMatchObject({ size: 'A2', landscape: false, transparent: false })
     expect(makes[0].opts.pack).toBeUndefined()
-    // The poster's drawing is the map image at the scale the poster gives it.
-    await makes[0].opts.render!(2.296)
-    expect(viewRenders.map).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'print', printSize: 'A2', scale: 2.296, at: { place: 'c:CA' } }))
+    // The poster's drawing is the map image at the scale the poster gives it, its painter handed to the poster's strips.
+    const onPainter = () => {}
+    await makes[0].opts.render!(4.594, onPainter)
+    expect(viewRenders.map).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'print', printSize: 'A2', scale: 4.594, onPainter, at: { place: 'c:CA' } }))
     await act(async () => makes[0].resolve(fakePoster()))
     expect(await screen.findByRole('button', { name: 'Download PNG' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Download PDF' })).toBeInTheDocument()
@@ -802,7 +803,7 @@ describe('share dialog', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Make poster' }))
     await waitFor(() => expect(makes).toHaveLength(1))
     viewRenders.tree.mockClear()
-    await makes[0].opts.render!(2)
+    await makes[0].opts.render!(2, () => {})
     expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: {}, layout: 'rows', mine: false, time: true }, filterLabel: undefined }))
   })
 

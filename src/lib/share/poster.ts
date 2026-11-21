@@ -13,12 +13,13 @@
 //
 // An abort disposes the encoder at once, so a wait on it (backpressure, end) rejects even if the worker never replies.
 //
-// The Tree's and the Map's posters (makeViewPoster) have no stickers of their own to stream: their image is drawn whole
-// (renderTreeImage, renderMapImage, at viewPosterScale) and cut into the same strips for the same encoder.
+// The Tree's and the Map's posters (makeViewPoster) have no stickers of their own to stream: their image is laid out once
+// (renderTreeImage, renderMapImage, at printScale) and painted whole into each of the same strips for the same encoder.
 import { abortError, paintCard, prepareCard, tileInRange, type CardFormat, type PaintRange, type ShareImageOpts, type Tile } from './image'
-import { IOS_CANVAS_AREA, STRIP_AREA, STRIP_DESIGN_ROWS, printPt, printPx, printScale, stripRanges, viewPosterScale, type PrintSize } from './print'
+import { IOS_CANVAS_AREA, STRIP_AREA, STRIP_DESIGN_ROWS, printPt, printPx, printScale, stripRanges, type PrintSize } from './print'
 import { createPrintStickers, type PrintStickers } from './print-stickers'
 import type { PrintWorkerReply, PrintWorkerRequest } from './print.worker'
+import type { ViewPainter } from './view-image'
 
 /** `landscape`: the poster is wider than it is tall (the A size's sides swapped; print.ts printPx, printPt, printDesign). */
 export type PosterOpts = Omit<ShareImageOpts, 'format' | 'printSize' | 'signal'> & { size: PrintSize; landscape?: boolean; signal?: AbortSignal }
@@ -339,41 +340,40 @@ export async function makePoster(
   }
 }
 
-/** The Tree's or the Map's poster: `render(scale)` draws the view's image (renderTreeImage, renderMapImage) at the
- *  poster's size in design units, `scale` device px per unit. */
-type ViewPosterOpts = { size: PrintSize; landscape?: boolean; transparent?: boolean; signal?: AbortSignal; render: (scale: number) => Promise<Blob> }
-
-/** A decoded drawing the strips are cut from (createImageBitmap's; a test passes a fake). */
-export type Drawn = { width: number; height: number; close(): void }
+/** The Tree's or the Map's poster: `render(scale, onPainter)` lays out the view's image (renderTreeImage, renderMapImage)
+ *  at the poster's size in design units, `scale` device px per unit, and hands its painter to `onPainter` (no canvas). */
+type ViewPosterOpts = { size: PrintSize; landscape?: boolean; transparent?: boolean; signal?: AbortSignal; render: (scale: number, onPainter: (painter: ViewPainter) => void) => Promise<unknown> }
 
 /**
- * Make the Tree's or the Map's poster: draw the view once at viewPosterScale (one canvas, never over IOS_CANVAS_AREA),
- * decode it, then cut it into the collage poster's strips, stretched to the poster's own px, for the same encoder (the
- * PNG and the PDF from one stream). `onProgress(done, total)`: once the drawing is ready, after each strip and when the
- * encoder has finished (total is the strip count plus 2). Rejects as makePoster does.
+ * Make the Tree's or the Map's poster: lay the view out once at printScale, then paint the whole drawing into each of the
+ * collage poster's strips under the strip's transform (setTransform(k, 0, 0, k, 0, -y), whole device rows, so the strips
+ * join exactly as one canvas would draw them), for the same encoder (the PNG and the PDF from one stream). Never a
+ * canvas over one strip. `onProgress(done, total)`: once the layout is ready, after each strip and when the encoder has
+ * finished (total is the strip count plus 2). Rejects as makePoster does.
  */
 export async function makeViewPoster(
   opts: ViewPosterOpts, onProgress: (done: number, total: number) => void,
-  deps: Partial<Pick<PosterDeps, 'strip' | 'encoder' | 'frame' | 'rows'>> & { decode?: (blob: Blob) => Promise<Drawn> } = {},
+  deps: Partial<Pick<PosterDeps, 'strip' | 'encoder' | 'frame' | 'rows'>> = {},
 ): Promise<Poster> {
   const { size, landscape = false, transparent = false, signal, render } = opts
   const check = () => { if (signal?.aborted) throw abortError() }
   const frame = deps.frame ?? nextFrame
   let encoder: EncoderPort | null = null
   let strip: PosterStrip | null = null
-  let drawn: Drawn | null = null
   const onAbort = () => encoder?.dispose()
   try {
     check()
+    const k = printScale(size)
     const [width, height] = printPx(size, landscape)
-    const strips = stripRanges(width, height, posterRows(width, printScale(size), deps.rows))
+    const strips = stripRanges(width, height, posterRows(width, k, deps.rows))
     const total = strips.length + 2
-    const blob = await render(viewPosterScale(size, landscape)).catch((error: unknown) => {
+    let painter: ViewPainter | null = null
+    await render(k, (p) => { painter = p }).catch((error: unknown) => {
       throw error instanceof Error && error.message === NO_CANVAS ? memoryError() : error
     })
     check()
-    drawn = await (deps.decode ?? ((b: Blob) => createImageBitmap(b)))(blob).catch(() => { throw memoryError() })
-    check()
+    const view = painter as ViewPainter | null
+    if (!view) throw new Error('the view gave no painter')
     onProgress(1, total)
 
     strip = (deps.strip ?? canvasStrip)(width, strips[0].rows)
@@ -385,9 +385,18 @@ export async function makeViewPoster(
     else encoder.begin(width, height)
     for (let i = 0; i < strips.length; i++) {
       const { y, rows } = strips[i]
+      // Paper over the whole strip in device px (it covers the last row, which the card's fractional height may not);
+      // transparent, the reused strip is cleared instead.
       ctx.setTransform(1, 0, 0, 1, 0, 0)
-      ctx.clearRect(0, 0, width, rows)
-      ctx.drawImage(drawn as unknown as CanvasImageSource, 0, -y, width, height)
+      if (transparent || !view.paper) ctx.clearRect(0, 0, width, rows)
+      else {
+        ctx.fillStyle = view.paper
+        ctx.fillRect(0, 0, width, rows)
+      }
+      ctx.save()
+      ctx.setTransform(k, 0, 0, k, 0, -y)
+      view.paint(ctx)
+      ctx.restore()
       await encoder.strip(strip.read(rows), rows)
       check()
       onProgress(i + 2, total)
@@ -404,7 +413,6 @@ export async function makeViewPoster(
     throw error
   } finally {
     signal?.removeEventListener('abort', onAbort)
-    drawn?.close()
     const canvas = strip?.ctx?.canvas
     if (canvas) { canvas.width = 1; canvas.height = 1 }
   }

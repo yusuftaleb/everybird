@@ -31,13 +31,18 @@ export const chosenTotals = <K extends TotalKey>(all: readonly K[], chosen?: rea
  *  `oldest`: the Tree image draws its oldest lineage in the latest lifer's place). */
 export type ViewImageOpts = ShareImageOpts & {
   at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; totals?: readonly TotalKey[]; oldest?: boolean
-  /** Device px per design unit (a poster's, print.ts viewPosterScale); default the format's IMAGE_SCALE, 1 for a poster's preview. */
+  /** Device px per design unit (a poster's, print.ts printScale); default the format's IMAGE_SCALE, 1 for a poster's preview. */
   scale?: number
+  /** A poster's: given the painter instead of a drawn canvas (no canvas is made; the Blob returned is empty). */
+  onPainter?: (painter: ViewPainter) => void
   /** The Tree image's (round 6, item 9): called with the arrangement drawn (always the one asked for), its names' size
    *  and whether names or counts are under the readable sizes (NAME_READ, COUNT_READ), for the dialog's note. */
   onTreeText?: (text: { layout: 'fan' | 'circle' | 'rows'; px: number; small: boolean }) => void
 }
 export type Area = { x: number; y: number; w: number; h: number }
+/** A view image, drawn: `paint` draws all of it, in design units under the context's transform, the same every call
+ *  (so a poster's strips are one drawing seen through different windows); `paper`, the card's background (null: transparent). */
+export type ViewPainter = { paper: string | null; paint: (ctx: CanvasRenderingContext2D) => void }
 
 /** A `w` × `h` drawing fitted whole in `area` (contain), centred: its top-left corner and scale. */
 export function fitBox(w: number, h: number, area: Area): { x: number; y: number; s: number } {
@@ -57,7 +62,7 @@ export { wrapParts }
  * `under`: the parts of a line under the count, at the footer's size (two lines when one does not fit); none when the
  * count is hidden. `sample`: every other text `paint` draws, so the fonts it needs are loaded first.
  */
-export async function renderViewImage(opts: ShareImageOpts & { scale?: number }, footer: string, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[], sample = ''): Promise<Blob> {
+export async function renderViewImage(opts: ShareImageOpts & Pick<ViewImageOpts, 'scale' | 'onPainter'>, footer: string, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[], sample = ''): Promise<Blob> {
   // No latest lifer, unless the view gives a bird for its place (latestAs: the Tree's oldest lineage), drawn as the
   // collage image draws its latest lifer.
   const s = opts.scale ?? IMAGE_SCALE[opts.format as ImageFormat] ?? 1
@@ -71,6 +76,40 @@ export async function renderViewImage(opts: ShareImageOpts & { scale?: number },
   const drop = card.headDrop ?? 0
   const c = drop ? { ...L.collage, y: L.collage.y + drop, h: L.collage.h - drop } : L.collage
   const blockH = K.size > 0 ? DIGIT_CAP * K.size + K.gap + MONO_CAP * K.labelSize : 0
+  // The whole drawing, in design units under the context's transform (the canvas's scale, or a poster strip's).
+  const draw = (ctx: CanvasRenderingContext2D) => {
+    const subPx = L.footer.credit, lineH = Math.round(subPx * 1.5)
+    ctx.font = card.fonts.footer(subPx)
+    const lines = blockH && under?.length ? wrapParts(under, (text) => ctx.measureText(text).width, c.w) : []
+    const top = blockH ? blockH + lines.length * lineH + COUNT_GAP : 0
+    // A poster's row (the Tree's oldest lineage) is painted after the view, so its name can be the view's largest name
+    // (round 6, item 24: never smaller than the tip names, read from the same distance); elsewhere paintCard draws it.
+    const lateRow = isPrint(card.format) && card.latest && card.lifer && L.latest ? card.latest : undefined
+    // paintCard centres the count on fit's centre: moved to the top of the area.
+    paintCard(ctx, { ...card, fit: { ...card.fit, cx: c.x + c.w / 2, cy: c.y + blockH / 2 }, ...(lateRow ? { latest: undefined } : {}) }, imgs)
+    ctx.font = card.fonts.footer(subPx)
+    ctx.fillStyle = card.colors.muted
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'alphabetic'
+    lines.forEach((line, i) => ctx.fillText(line, c.x + c.w / 2, c.y + blockH + (i + 1) * lineH))
+    // The footer lifted (placeFooter's shift) by more than the room kept for it (L.latest.lift; none without the row): the
+    // Tree's longer footer on Post 5:4, or its two lines under the wordmark (AD7). The drawing ends that much higher, so the
+    // row, or the hairline, keeps its gap.
+    const lifted = Math.max(0, card.shift - (L.latest?.lift ?? 0))
+    const seen = lateRow ? watchNames(ctx, card.fonts) : undefined
+    paint(ctx, seen ? { ...card, fonts: seen.fonts } : card, { x: c.x, y: c.y + top, w: c.w, h: c.h - top - lifted })
+    if (lateRow && seen && L.latest && card.lifer) {
+      // The row's own size, or the view's largest name if larger (a Tree's tip names, at most 48 units: the sticker's line holds it).
+      const R = L.latest, name = Math.max(R.name, seen.done())
+      paintTiles(ctx, [card.lifer], imgs, card.colors.line)
+      paintRow(ctx, card.fonts, card.colors, { ...R, y: R.y - card.shift, name, label: Math.round((R.label * name) / R.name) }, lateRow)
+    }
+  }
+  // A poster paints the drawing strip by strip itself (poster.ts makeViewPoster); its file comes from the encoder.
+  if (opts.onPainter) {
+    opts.onPainter({ paper: card.transparent ? null : card.colors.paper, paint: draw })
+    return new Blob([])
+  }
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(L.W * s)
   canvas.height = Math.round(L.H * s)
@@ -82,32 +121,7 @@ export async function renderViewImage(opts: ShareImageOpts & { scale?: number },
     ctx.fillRect(0, 0, canvas.width, canvas.height)
   }
   if (s !== 1) ctx.setTransform(s, 0, 0, s, 0, 0)
-  const subPx = L.footer.credit, lineH = Math.round(subPx * 1.5)
-  ctx.font = card.fonts.footer(subPx)
-  const lines = blockH && under?.length ? wrapParts(under, (text) => ctx.measureText(text).width, c.w) : []
-  const top = blockH ? blockH + lines.length * lineH + COUNT_GAP : 0
-  // A poster's row (the Tree's oldest lineage) is painted after the view, so its name can be the view's largest name
-  // (round 6, item 24: never smaller than the tip names, read from the same distance); elsewhere paintCard draws it.
-  const lateRow = isPrint(card.format) && card.latest && card.lifer && L.latest ? card.latest : undefined
-  // paintCard centres the count on fit's centre: moved to the top of the area.
-  paintCard(ctx, { ...card, fit: { ...card.fit, cx: c.x + c.w / 2, cy: c.y + blockH / 2 }, ...(lateRow ? { latest: undefined } : {}) }, imgs)
-  ctx.font = card.fonts.footer(subPx)
-  ctx.fillStyle = card.colors.muted
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'alphabetic'
-  lines.forEach((line, i) => ctx.fillText(line, c.x + c.w / 2, c.y + blockH + (i + 1) * lineH))
-  // The footer lifted (placeFooter's shift) by more than the room kept for it (L.latest.lift; none without the row): the
-  // Tree's longer footer on Post 5:4, or its two lines under the wordmark (AD7). The drawing ends that much higher, so the
-  // row, or the hairline, keeps its gap.
-  const lifted = Math.max(0, card.shift - (L.latest?.lift ?? 0))
-  const seen = lateRow ? watchNames(ctx, card.fonts) : undefined
-  paint(ctx, seen ? { ...card, fonts: seen.fonts } : card, { x: c.x, y: c.y + top, w: c.w, h: c.h - top - lifted })
-  if (lateRow && seen && L.latest && card.lifer) {
-    // The row's own size, or the view's largest name if larger (a Tree's tip names, at most 48 units: the sticker's line holds it).
-    const R = L.latest, name = Math.max(R.name, seen.done())
-    paintTiles(ctx, [card.lifer], imgs, card.colors.line)
-    paintRow(ctx, card.fonts, card.colors, { ...R, y: R.y - card.shift, name, label: Math.round((R.label * name) / R.name) }, lateRow)
-  }
+  draw(ctx)
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not encode the image'))), 'image/png')
   })
