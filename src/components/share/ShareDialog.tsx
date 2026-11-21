@@ -582,7 +582,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   }, [])
 
   // `print` marks a note about the poster, dropped with the poster.
-  const [note, setNote] = useState<{ text: string; error?: boolean; print?: boolean } | null>(null)
+  type Note = { text: string; error?: boolean; print?: boolean }
+  // Each note is numbered (`n`): the status line draws it in a new span, which fades in and is read again even when its
+  // words are the last note's (AN15: a second Copy link).
+  const [note, setNoteN] = useState<(Note & { n: number }) | null>(null)
+  const setNote = (v: Note | null | ((n: Note | null) => Note | null)) => setNoteN((was) => {
+    const next = typeof v === 'function' ? v(was) : v
+    return next === was ? was : next && { ...next, n: (was?.n ?? 0) + 1 }
+  })
   const [manual, setManual] = useState<string | null>(null)
   const manualRef = useRef<HTMLInputElement>(null)
   useEffect(() => { if (manual) manualRef.current?.select() }, [manual])
@@ -1220,7 +1227,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       case 'count': {
         const cs = t.share.countSize
         return optRow(r, countSizeId, cs.label, segmented({
-          className: 'eb-share-seg', labelledBy: countSizeId, value: countSizeChoice, pick: setCountSize, testId: 'share-count-size',
+          className: 'eb-share-seg eb-share-count', labelledBy: countSizeId, value: countSizeChoice, pick: setCountSize, testId: 'share-count-size',
           options: COUNT_SIZES.map((v) => {
             const short = SHORT_SIZES.has(v) ? cs.short[v as keyof typeof cs.short] : cs[v]
             return { value: v, label: short, name: short === cs[v] ? undefined : cs[v] }
@@ -1425,6 +1432,13 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                   />
                   <p id={helperId} className="eb-sr">{t.share.nameHelper}</p>
                 </div>}
+                {/* What the image shows, read before the options and the actions (P12): the filters, and Clear filters. */}
+              {!compare && fk && yearGoal === undefined && (
+                <div className="eb-note eb-share-filters" data-testid="share-filters">
+                  <span>{label ? fmt(t.share.filters, { label }) : t.share.filtersNoLabel}</span>
+                  <button type="button" className="eb-textbtn" onClick={clearFilters}>{t.share.clearFilters}</button>
+                </div>
+              )}
 
                 <div className="eb-share-opts" data-testid="share-options">
                   {optionRows(rows, print).map(option)}
@@ -1540,15 +1554,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                   <button type="button" className="eb-textbtn eb-share-inline" onClick={renderAgain}>{t.share.retry}</button>
                 </p>
               )}
-              <p className={note?.error ? 'eb-error' : 'eb-note'} role="status" data-testid="share-note">{note?.text ?? ''}</p>
+              <p className={note?.error ? 'eb-error' : 'eb-note'} role="status" data-testid="share-note">{note && <span key={note.n} className="eb-share-say">{note.text}</span>}</p>
               {manual && (
                 <input ref={manualRef} className="eb-share-input" type="text" readOnly value={manual} aria-label={t.share.linkField} onFocus={(e) => e.currentTarget.select()} />
-              )}
-              {!compare && fk && yearGoal === undefined && (
-                <div className="eb-note eb-share-filters" data-testid="share-filters">
-                  <span>{label ? fmt(t.share.filters, { label }) : t.share.filtersNoLabel}</span>
-                  <button type="button" className="eb-textbtn" onClick={clearFilters}>{t.share.clearFilters}</button>
-                </div>
               )}
             </div>
             {/* Buy Me a Coffee's standard static button, self-hosted as on About (no script, nothing from their servers),

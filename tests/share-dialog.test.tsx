@@ -216,6 +216,31 @@ describe('share dialog', () => {
     await waitFor(() => expect(screen.getByTestId('share-note')).toHaveTextContent('Link copied. The link opens your whole list, without the filters.'))
   })
 
+  it('the filters line comes right under the title field, before the options and the actions (P12)', () => {
+    const st = { ...stateWith([entry('ostric2')]), filter: { countries: ['CA'] } }
+    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    const filters = screen.getByTestId('share-filters')
+    const follows = (a: Node, b: Node) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(follows(screen.getByLabelText('Card title'), filters)).toBe(true)
+    expect(follows(filters, screen.getByTestId('share-options'))).toBe(true)
+    expect(follows(filters, screen.getByRole('button', { name: 'Share image' }))).toBe(true)
+  })
+
+  it('each note is a new span, so a second Copy link shows and is read again (AN15)', async () => {
+    const writeText = vi.fn(async () => {})
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    vi.stubGlobal('ClipboardItem', undefined)
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    const note = screen.getByTestId('share-note')
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }))
+    await waitFor(() => expect(note).toHaveTextContent('Link copied.'))
+    const first = note.querySelector('.eb-share-say')
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(note.querySelector('.eb-share-say')).not.toBe(first))
+    expect(note).toHaveTextContent('Link copied.')
+  })
+
   it('a goal met says so under the Goal row (D6)', async () => {
     const st = stateWith([entry('ostric2'), entry('emu1')])
     st.saved = { ...st.saved, bigYear: { target: 2 } }
