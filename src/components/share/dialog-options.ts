@@ -83,8 +83,12 @@ type DialogRows = {
   oldest: boolean
   /** The Tree's Time scale (the dock's switch): its ages, axis and rings, or the splits spaced evenly (round 6, item 12). */
   timeScale: boolean
-  /** The Tree's Scientific names (the dock's switch, round 6, item 12: its tips' names in the image as on screen). */
+  /** Scientific names (the dock's switch): the Tree's tips' names in the image as on screen (round 6, item 12); the
+   *  collage's latest lifer's line and a poster's names (shown only while those are). */
   sci: boolean
+  /** True size (the collage's, Share and Print; the dock's switch): the images and posters packed at true sizes. In the
+   *  Arrangement row, so it adds no row. */
+  trueSize: boolean
   /** Show species names (the collage poster). */
   names: boolean
   lifersOnly: boolean
@@ -109,7 +113,8 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
     treeLayout: subject === 'tree',
     oldest: subject === 'tree',
     timeScale: subject === 'tree',
-    sci: subject === 'tree',
+    sci: subject === 'tree' || collage,
+    trueSize: collage,
     names: collage && print,
     lifersOnly: subject === 'tree',
     totals: subject === 'tree' || subject === 'map' ? VIEW_TOTALS[subject] : [],

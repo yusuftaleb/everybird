@@ -4,7 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { openAdd } from "./add-birds";
 import { pressAreas } from "./press-areas";
 import { SAMPLE_COUNT } from "./sample";
-import { fmt } from "../src/i18n/core";
+import { fmt, plural, tagPlurals } from "../src/i18n/core";
 import { localDay } from "../src/lib/file-name";
 import { HTML_LANG, LANGS } from "../src/i18n/langs";
 import { es } from "../src/i18n/messages/es";
@@ -301,20 +301,18 @@ for (const width of WIDTHS) {
       await page.getByRole("button", { name: "Share", exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "Share your collage" });
       const preview = dialog.getByTestId("share-preview");
-      // The PNG is twice the design (IMAGE_SCALE): 2160 × 3840 for a 1080 × 1920 story.
+      // The PNG is twice the design (IMAGE_SCALE): 2160 × 3840 for a 1080 × 1920 story. The preview is a canvas at its
+      // box's size (speed audit finding 8), so the size is read from the downloaded file.
       for (const [format, w, h] of [["Story", 2160, 3840], ["Post", 2160, 2700], ["Square", 2160, 2160]] as const) {
         await dialog.getByRole("button", { name: new RegExp(`^${format}`) }).click();
         await expect(preview.getByRole("img", { name: `Preview of the ${format.toLowerCase()} image` })).toBeVisible({ timeout: 30_000 });
         await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
-        const size = await page.evaluate(async () => {
-          const img = document.querySelector<HTMLImageElement>('[data-testid="share-preview"] img.eb-share-in')!;
-          const blob = await (await fetch(img.src)).blob();
-          const bmp = await createImageBitmap(blob);
-          return { w: bmp.width, h: bmp.height, type: blob.type };
-        });
-        expect(size).toEqual({ w, h, type: "image/png" });
         const [dl] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
         expect(dl.suggestedFilename()).toBe(`everybird-${format.toLowerCase()}-${localDay()}.png`);
+        const png = readFileSync((await dl.path())!);
+        // The PNG signature, then the IHDR chunk's width and height (big-endian, at bytes 16 and 20).
+        expect(png.subarray(1, 4).toString("latin1")).toBe("PNG");
+        expect({ w: png.readUInt32BE(16), h: png.readUInt32BE(20) }).toEqual({ w, h });
       }
       await dialog.getByLabel("Card title").fill("Ada's big year");
       await dialog.getByRole("button", { name: "Copy link" }).click();
@@ -455,7 +453,9 @@ for (const lang of LANGS.filter((l) => l !== "en")) {
       await page.goto("/");
       await expect(page.locator("html")).toHaveAttribute("lang", HTML_LANG[lang]);
       await expect(shownBirds(page).first()).toBeVisible();
-      await expect(page.getByTestId("collage-stage")).toContainText(ui.count.label);
+      // The count's word for the sample's count in this language (H7: "548 gatunków", "548 видов").
+      tagPlurals(lang, ui);
+      await expect(page.getByTestId("collage-stage")).toContainText(plural(ui.count.word, SAMPLE_COUNT));
       await page.goto("/settings");
       const sources = await openAdd(page, "file", ui);
       // Each source row's button reads "Add", named "Add <the row's title>"

@@ -176,3 +176,24 @@ describe('even spacing in the share images and the poster', () => {
     expect(performance.now() - t).toBeLessThan(12_000)
   }, 60_000)
 })
+
+// The dialog's True size switch (the screen's setting): share images and posters pack at true sizes through the same
+// packer as the page (relSizes with EXP_TRUE, packBest's true mode), in every arrangement, still clean.
+describe('true size in the images', () => {
+  beforeAll(() => { if (!POOL.length) POOL = loadPool() })
+  const spread = (r: PackResult) => {
+    const sides = [...r.boxes.values()].map(([, , w, h]) => Math.max(w, h))
+    return Math.max(...sides) / Math.min(...sides)
+  }
+  for (const arrangement of [{}, { oval: true }, { free: true }] as const) {
+    it(`${'oval' in arrangement ? 'Oval' : 'free' in arrangement ? 'Free' : 'Fit'}, 120 species: wider size range than even, no overlaps`, () => {
+      const spec = packSpec(cardLayout('story', { name: true, filter: false, latest: true, count: 120 }, cardDims('story')))
+      const birds = sample(120)
+      const even = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile, ...arrangement })
+      const tru = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile, ...arrangement, mode: 'true' })
+      expect(tru.boxes.size).toBe(120)
+      expect(spread(tru)).toBeGreaterThan(spread(even) * 1.3)
+      expect(clean(birds, tru)).toBe(true)
+    }, 60_000)
+  }
+})

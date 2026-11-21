@@ -182,9 +182,10 @@ describe('the share dialog: no scrolling on a 1440 × 830 window with everything
     expect(rule('.eb-share-optnote')).toMatch(/font-size:\s*14px;[^}]*line-height:\s*1\.3/)
     expect(rule('.eb-share .eb-share-opt')).toMatch(/padding:\s*0;/)
     const sizeRow = 2 * 2 + 16 * 1.25 + 2 + 14 * 1.3
-    // The size, then Arrangement, Appearance, Count (segmented), Show latest lifer, Show species names, Transparent
-    // background (switches). No Goal.
-    const list = sizeRow + 3 * segRow + 3 * row
+    // The size, then Arrangement (with True size), Appearance, Count (segmented), Show latest lifer, Show species names,
+    // Scientific names, Transparent background (switches). No Goal.
+    // Scientific names shows under Show species names (they are on here); True size sits in Arrangement's row.
+    const list = sizeRow + 3 * segRow + 4 * row
     // Export in batches, closed: its row in its box, a Hairline border and no fill (round 6), no padding above or below the row.
     const box = rule('.eb-share-bulk')
     expect(box).toMatch(/border:\s*1px solid var\(--hairline\)/)
@@ -197,9 +198,9 @@ describe('the share dialog: no scrolling on a 1440 × 830 window with everything
     const coffee = 32 + 2 * 6 - 6 // the image, its press padding, the negative bottom margin
     // The filters line sits under the title, in the options' 8px gaps (P12).
     const column = seg + gap + title + optionsGap + filters + optionsGap + list + optionsGap + bulk + gap + actions + gap + status + gap + coffee
-    expect(Math.ceil(column)).toBe(670) // the figure share.css's comment gives
+    expect(Math.ceil(column)).toBe(706) // the figure share.css's comment gives
     expect(Math.ceil(column)).toBeLessThanOrEqual(H - 124)
-    expect(css).toContain('takes 670')
+    expect(css).toContain('takes 706')
     // The empty status line gives its gap back, so the usual column is shorter still.
     expect(rule('.eb-share-controls > [role="status"]:empty')).toMatch(new RegExp(`margin-top:\\s*-${gap}px`))
   })

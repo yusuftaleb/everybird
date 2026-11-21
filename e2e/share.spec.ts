@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Download, type Page } from "@playwright/test";
 import { SAMPLE_COUNT } from "./sample";
 import { en, type Ui } from "../src/i18n/messages/en";
 import { es } from "../src/i18n/messages/es";
@@ -35,11 +35,13 @@ async function openShare(page: Page, t: Ui = en.ui) {
   return dialog;
 }
 
-/** The preview's PNG: its size, type and how many distinct colours it has (stickers drawn, not just text). */
-async function previewInfo(page: Page) {
-  return page.evaluate(async () => {
-    const img = document.querySelector<HTMLImageElement>('[data-testid="share-preview"] img.eb-share-in')!;
-    const blob = await (await fetch(img.src)).blob();
+/** A downloaded image's PNG: its size, type and how many distinct colours it has (stickers drawn, not just text). The
+ *  preview is a canvas painted at its box's size (speed audit finding 8), so the full PNG is the one Download saves. */
+async function pngInfo(page: Page, dl: Download) {
+  const bytes = readFileSync((await dl.path())!);
+  const type = bytes.subarray(1, 4).toString("latin1") === "PNG" ? "image/png" : "unknown";
+  return page.evaluate(async ({ b64, type }) => {
+    const blob = new Blob([Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0))], { type });
     const bmp = await createImageBitmap(blob);
     const c = document.createElement("canvas");
     c.width = bmp.width;
@@ -62,7 +64,7 @@ async function previewInfo(page: Page) {
     while (clearTop < c.height && rowBlank(clearTop)) clearTop++;
     while (clearBottom < c.height && rowBlank(c.height - 1 - clearBottom)) clearBottom++;
     return { w: bmp.width, h: bmp.height, type: blob.type, colours: colours.size, clearTop, clearBottom };
-  });
+  }, { b64: bytes.toString("base64"), type });
 }
 
 // WebKit and Firefox run only the layout test at the end: WebKit's desktop build shares files natively (Share image
@@ -79,7 +81,10 @@ test("story image is a 2160×3840 PNG, post 2160×2700 and square 2160×2160 (tw
 
   await expect(preview.getByRole("img", { name: "Preview of the story image" })).toBeVisible({ timeout: 30_000 });
   await expect(preview).toHaveAttribute("aria-busy", "false");
-  const story = await previewInfo(page);
+  // Download gives the PNG under the format's name.
+  const [dl] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
+  expect(dl.suggestedFilename()).toBe(`everybird-story-${localDay()}.png`);
+  const story = await pngInfo(page, dl);
   // Every image is twice its 1080-wide design (IMAGE_SCALE in image.ts).
   expect(story).toMatchObject({ w: 2160, h: 3840, type: "image/png" });
   expect(story.colours).toBeGreaterThan(2000); // the stickers are in it (a tainted canvas would not export at all)
@@ -87,29 +92,25 @@ test("story image is a 2160×3840 PNG, post 2160×2700 and square 2160×2160 (tw
   // 320 and 312 px at twice the design.
   expect(story.clearTop).toBeGreaterThanOrEqual(320);
   expect(story.clearBottom).toBeGreaterThanOrEqual(312);
-
-  // Download gives the same file under the format's name.
-  const [dl] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
-  expect(dl.suggestedFilename()).toBe(`everybird-story-${localDay()}.png`);
   if (OUT) { mkdirSync(OUT, { recursive: true }); await dl.saveAs(join(OUT, "everybird-story.png")); }
 
   await dialog.getByRole("button", { name: /Post/ }).click();
   await expect(preview.getByRole("img", { name: "Preview of the post image" })).toBeVisible({ timeout: 30_000 });
   await expect(preview).toHaveAttribute("aria-busy", "false");
-  expect(await previewInfo(page)).toMatchObject({ w: 2160, h: 2700, type: "image/png" });
   // Share image falls back to a download where the browser can't share files (desktop Chromium here).
   const [dl2] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Share image" }).click()]);
   expect(dl2.suggestedFilename()).toBe(`everybird-post-${localDay()}.png`);
+  expect(await pngInfo(page, dl2)).toMatchObject({ w: 2160, h: 2700, type: "image/png" });
   if (OUT) await dl2.saveAs(join(OUT, "everybird-post.png"));
 
   await dialog.getByRole("button", { name: /Square/ }).click();
   await expect(preview.getByRole("img", { name: "Preview of the square image" })).toBeVisible({ timeout: 30_000 });
   await expect(preview).toHaveAttribute("aria-busy", "false");
-  const square = await previewInfo(page);
-  expect(square).toMatchObject({ w: 2160, h: 2160, type: "image/png" });
-  expect(square.colours).toBeGreaterThan(2000);
   const [dlSq] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
   expect(dlSq.suggestedFilename()).toBe(`everybird-square-${localDay()}.png`);
+  const square = await pngInfo(page, dlSq);
+  expect(square).toMatchObject({ w: 2160, h: 2160, type: "image/png" });
+  expect(square.colours).toBeGreaterThan(2000);
   if (OUT) await dlSq.saveAs(join(OUT, "everybird-square.png"));
   await dialog.getByRole("button", { name: /Post/ }).click();
   await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
@@ -156,7 +157,8 @@ test.describe("date stamp", () => {
     const dialog = await openShare(page);
     const preview = dialog.getByTestId("share-preview");
     const texts = () => page.evaluate(() => (window as unknown as { __fillTexts: string[] }).__fillTexts);
-    const line = "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 15 Nov 2026";
+    // On the 1080-wide cards the footer is two lines under the wordmark (AD7): the site and the date, then the credit.
+    const lines = ["everybird.yusuftaleb.com · 15 Nov 2026", "Stickers: huashu-bird-sticker, CC BY 4.0"];
     for (const format of ["Story", "Post", "Square"]) {
       // The story is drawn as the dialog opens; the others on their click, after the previous format's texts are gone.
       if (format !== "Story") {
@@ -166,7 +168,7 @@ test.describe("date stamp", () => {
       await expect(preview.getByRole("img", { name: `Preview of the ${format.toLowerCase()} image` })).toBeVisible({ timeout: 30_000 });
       await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
       const drawn = await texts();
-      expect(drawn, `${format}: the footer line`).toContain(line);
+      for (const line of lines) expect(drawn, `${format}: the footer's lines`).toContain(line);
       expect(drawn.join("\n"), `${format}: never the UTC day`).not.toContain("14 Nov 2026");
     }
   });
@@ -187,7 +189,8 @@ test.describe("date stamp", () => {
       await expect(preview.getByRole("img", { name: es.ui.share.preview.story })).toBeVisible({ timeout: 30_000 });
       await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
       const drawn = await page.evaluate(() => (window as unknown as { __fillTexts: string[] }).__fillTexts);
-      expect(drawn).toContain("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 15 nov 2026");
+      expect(drawn).toContain("everybird.yusuftaleb.com · 15 nov 2026");
+      expect(drawn).toContain("Stickers: huashu-bird-sticker, CC BY 4.0");
       expect(drawn.some((t) => t.startsWith("ÚLTIMA ESPECIE NUEVA"))).toBe(true);
       expect(drawn).toContain("ESPECIES");
       const [download] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Descargar imagen" }).click()]);
@@ -228,7 +231,9 @@ test("Show latest lifer: on by default; off draws no latest lifer row, on draws 
   const off = await texts();
   expect(off.length).toBeGreaterThan(0); // a new image was drawn
   expect(off.some((t) => t.startsWith("LATEST LIFER"))).toBe(false);
-  expect(off.some((t) => t.startsWith("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0"))).toBe(true); // the footer and credit stay
+  // The footer and credit stay (two lines under the wordmark on the 1080-wide cards, AD7).
+  expect(off.some((t) => t.startsWith("everybird.yusuftaleb.com · "))).toBe(true);
+  expect(off).toContain("Stickers: huashu-bird-sticker, CC BY 4.0");
   expect(off.filter((t) => /coffee/i.test(t)), "Buy me a coffee is never drawn on the image").toEqual([]);
   await clear();
   await sw.click();
@@ -378,7 +383,8 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
         const formats = d.querySelector(".eb-share-formats")!.getBoundingClientRect();
         const col = d.querySelector(".eb-share-controls")!.getBoundingClientRect();
         const box = d.querySelector('[data-testid="share-preview"]')!;
-        const img = box.querySelector("img.eb-share-in")!;
+        // The shown layer: the collage's canvas in its span (speed audit finding 8), else an img.
+        const img = box.querySelector(".eb-share-in")!;
         const b = box.getBoundingClientRect();
         const share = [...d.querySelectorAll("button")].find((x) => x.textContent!.includes("Share image"))!.getBoundingClientRect();
         // The window less the scrim's 16px margins (the scrim is the size container the card is sized from) and --ctl.
