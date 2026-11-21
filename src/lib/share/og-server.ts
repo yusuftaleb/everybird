@@ -52,7 +52,7 @@ export const serverMasks: MaskLoader = (order) => {
 
 // --- fonts ---
 
-export type OgFont = { name: string; data: ArrayBuffer; weight: 400 | 500 | 700; style: 'normal' }
+type OgFont = { name: string; data: ArrayBuffer; weight: 400 | 500 | 700; style: 'normal' }
 const FONT_TIMEOUT_MS = 2000
 const FONT_RETRY_MS = 30_000
 const UA = 'Mozilla/5.0 (X11; U; Linux x86_64) AppleWebKit/533.0 (KHTML, like Gecko) Version/4.0 Safari/533.0' // old: Google answers with TTF
@@ -63,7 +63,7 @@ async function get(url: string, ms: number, init?: RequestInit): Promise<Respons
   return res
 }
 
-export type FontFace = { family: string; weight: number; url: string; range?: string }
+type FontFace = { family: string; weight: number; url: string; range?: string }
 
 /**
  * The @font-face blocks of a CSS file as family, weight, the first TTF/WOFF/OTF url (never WOFF2: satori can't read it)

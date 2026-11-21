@@ -3,7 +3,7 @@ export const MASK = 24 // longest side in cells
 
 export type Mask = { w: number; h: number; bits: Uint8Array } // row-major, 1 bit per cell, MSB first
 
-export function maskDims(width: number, height: number): [number, number] {
+function maskDims(width: number, height: number): [number, number] {
   const w = width >= height ? MASK : Math.max(1, Math.round((MASK * width) / height))
   const h = height >= width ? MASK : Math.max(1, Math.round((MASK * height) / width))
   return [w, h]

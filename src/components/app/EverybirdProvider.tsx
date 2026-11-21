@@ -32,7 +32,7 @@ export type Everybird = {
 }
 
 /** Anything the birder brought in, matched or not (an import of only unmatched rows still shows its report). */
-export function hasData(s: Saved): boolean {
+function hasData(s: Saved): boolean {
   return SLOTS.some((k) => (s.records[k]?.length ?? 0) > 0) || s.edits.added.length > 0 || s.unmatched.length > 0
 }
 

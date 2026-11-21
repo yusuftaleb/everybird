@@ -20,7 +20,7 @@ export const LABEL_STICKER = 24 / 13
 export const LABEL_LINE = 17 / 13
 export const LABEL_COUNT = 11 / 13
 /** Under the fan's centre: the age axis's numbers. */
-export const FAN_BELOW = 30
+const FAN_BELOW = 30
 /** The tips' radius is at least this (px), and grows past FAN_R_MAX only when the tips need the room. */
 export const FAN_R_MIN = 80
 export const FAN_R_MAX = 440
@@ -172,7 +172,7 @@ export const polar = (box: FanBox, r: number, a: number): [number, number] => [b
 const n1 = (v: number) => +v.toFixed(1)
 
 /** A tip of the fan: its angle and the point on the arc. */
-export type FanTip = { a: number; x: number; y: number }
+type FanTip = { a: number; x: number; y: number }
 /** A point in px. */
 export type Pt = [number, number]
 

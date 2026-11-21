@@ -44,7 +44,7 @@ export const rowsTreeW = (width: number): number => Math.round(Math.min(640, Mat
 export { genusOf }
 
 /** A rank a heading names: any group rank above the tips. */
-export type HeadRank = Exclude<TipRank, 'species'>
+type HeadRank = Exclude<TipRank, 'species'>
 /** One group a heading names: its rank, its key (order, family or genus) and one of its species, for names. */
 export type HeadPart = { rank: HeadRank; key: string; row: SpeciesRow }
 /** A run of tips in one group a heading names (round 6, item 10): the i-th tips `first` to `last` (in leaf order), for
@@ -96,7 +96,7 @@ export type LevelView = {
  * The split groups among `tips` (one key per tip): `into` maps each group inside a marked branch to the group whose
  * row that branch is, `others` a marked group to the groups inside its branch.
  */
-export type Folds = { into: Map<string, string>; others: Map<string, string[]> }
+type Folds = { into: Map<string, string>; others: Map<string, string[]> }
 
 export function foldSplit(tree: Tree, tips: Iterable<number>, keyOf: (tip: number) => string): Folds {
   const n = tree.parent.length
@@ -134,7 +134,7 @@ export function foldSplit(tree: Tree, tips: Iterable<number>, keyOf: (tip: numbe
 }
 
 /** The group whose row shows `key` (itself unless inside a marked branch). */
-export const foldedInto = (into: ReadonlyMap<string, string>, key: string): string => into.get(key) ?? key
+const foldedInto = (into: ReadonlyMap<string, string>, key: string): string => into.get(key) ?? key
 
 /** Whether `tips` are exactly the tips under their most recent common ancestor. */
 export function isClade(tree: Tree, tips: readonly number[]): boolean {

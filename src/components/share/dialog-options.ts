@@ -17,7 +17,7 @@ import type { ViewKind } from '@/lib/view-resume'
 import type { TotalKey } from '@/lib/share/view-image'
 import type { TreeLevel } from '@/lib/tree/levels'
 
-export type Subject = 'collage' | 'tree' | 'map' | 'compare'
+type Subject = 'collage' | 'tree' | 'map' | 'compare'
 
 /** What Compare's dialog shares: the comparison card, or the wish list (the birds the viewer has yet to see). */
 export type CompareWhat = 'comparison' | 'wish'
@@ -67,7 +67,7 @@ export const BULK_SPLITS: readonly BulkSplit[] = ['batches', 'family', 'order', 
 /** What the dialog draws for the view it was opened in: the Tree's and the Map's own drawing, else the collage. */
 export const subjectOf = (view: ViewKind | undefined): Subject => (view === 'tree' || view === 'map' ? view : 'collage')
 
-export type DialogRows = {
+type DialogRows = {
   /** Compare's What: Comparison or Wish list. */
   what: boolean
   /** The Vertical | Horizontal switch: the collage's and the Map's. The Tree's orientation is its arrangement's

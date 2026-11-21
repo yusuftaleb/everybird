@@ -36,13 +36,13 @@ export { stickerUrl } from './Bird'
  * Dispatched (bubbling) on a bird's element to have the collage render it now: a big list renders only the birds
  * near the viewport (collage-window.ts), so one picked from elsewhere must be rendered before it is scrolled to.
  */
-export const REVEAL_EVENT = 'eb-reveal'
+const REVEAL_EVENT = 'eb-reveal'
 /** Render a bird now, wherever it is (see REVEAL_EVENT). */
 export function revealBird(el: HTMLElement): void {
   el.dispatchEvent(new Event(REVEAL_EVENT, { bubbles: true }))
 }
 
-export type CollageProps = {
+type CollageProps = {
   entries: ListEntry[]
   species: SpeciesIndex
   layout: StateLayout

@@ -5,13 +5,10 @@
 // list, backups or links.
 import { SettingRow } from '@/components/import/RulesSwitches'
 import { useI18n } from '@/i18n/I18nProvider'
-import { englishNames, setEnglishNames } from '@/lib/species/names'
+import { setEnglishNames } from '@/lib/species/names'
 import { useEnNames } from '@/lib/species/use-names'
 
 export { EN_NAMES_KEY } from '@/lib/species/names'
-export { useEnNames } from '@/lib/species/use-names'
-export const readEnNames = englishNames
-export const writeEnNames = setEnglishNames
 
 /** "Show bird names in English" (a SettingRow), only when the UI isn't English. The names follow it (species/names.ts). */
 export function EnglishNamesSwitch() {
@@ -20,7 +17,7 @@ export function EnglishNamesSwitch() {
   if (lang === 'en') return null
   return (
     <ul className="eb-setgroup eb-langnames">
-      <SettingRow label={t.settings.enNames.label} note={t.settings.enNames.note} checked={on} onChange={writeEnNames} />
+      <SettingRow label={t.settings.enNames.label} note={t.settings.enNames.note} checked={on} onChange={setEnglishNames} />
     </ul>
   )
 }

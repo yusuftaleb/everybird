@@ -3,8 +3,8 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as Rea
 import { holdTopBar } from '@/lib/headroom'
 
 /** At or below this width (phones, as /lifelist's max-width:600px), popovers become bottom sheets. */
-export const SHEET_AT = 600
-export const FOCUSABLE = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+const SHEET_AT = 600
+const FOCUSABLE = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 
 /** Screens wider than 600px get a popover; 600px and narrower a bottom sheet (the phone controls bar's breakpoint
  * too, app.css). Read synchronously on first render. */

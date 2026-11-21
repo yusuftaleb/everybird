@@ -15,7 +15,7 @@ import type { Regions } from '@/lib/species/types'
 
 export type PlaceLevel = 'continent' | 'region' | 'country' | 'province' | 'county'
 /** `country` is the ISO code ('' for a continent); `continent` the id of a continent key or of a country key's `@` part. */
-export type ParsedPlace = { level: PlaceLevel; country: string; continent?: string; region?: string; sub1?: string; county?: string }
+type ParsedPlace = { level: PlaceLevel; country: string; continent?: string; region?: string; sub1?: string; county?: string }
 
 type PlaceLike = { country: string; sub1?: string; sub2?: string }
 
@@ -91,7 +91,7 @@ export function childKey(p: PlaceLike, parent: string | undefined): string | und
 }
 
 /** `childKey` with `parent` parsed once, for a loop over many places under the same parent. */
-export function childKeyOf(parent: string | undefined): (p: PlaceLike) => string | undefined {
+function childKeyOf(parent: string | undefined): (p: PlaceLike) => string | undefined {
   if (parent === undefined) return (p) => { const c = continentOfPlace(p); return c ? `n:${c}` : countryKeyOf(p) }
   const at = parsePlaceKey(parent)
   if (at?.level === 'continent') return (p) => (continentOfPlace(p) === at.continent ? countryKeyOf(p) : undefined)

@@ -123,7 +123,7 @@ export async function renderViewImage(opts: ShareImageOpts & { scale?: number },
  * paints with comes from the card's fonts, so the face in use at each fillText is known; measuring (measureText) never
  * counts. `done` restores fillText and gives that size (0 for none).
  */
-export function watchNames(ctx: CanvasRenderingContext2D, fonts: CardFonts): { fonts: CardFonts; done: () => number } {
+function watchNames(ctx: CanvasRenderingContext2D, fonts: CardFonts): { fonts: CardFonts; done: () => number } {
   let cur = 0, max = 0
   const wrapped = Object.fromEntries(Object.entries(fonts).map(([k, f]) => [k, (px: number) => { cur = k === 'lifer' ? px : 0; return f(px) }])) as CardFonts
   const own = Object.prototype.hasOwnProperty.call(ctx, 'fillText')

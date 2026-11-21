@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { HuashuLock } from '../sync/huashu-lib'
 
-export const LOCK_PATH = 'data/huashu.lock.json'
+const LOCK_PATH = 'data/huashu.lock.json'
 
 export function readLock(root = process.cwd()): HuashuLock | null {
   const p = resolve(root, LOCK_PATH)

@@ -22,7 +22,7 @@ import './import.css'
 export type AddWay = 'file' | 'hand'
 
 /** The element "Add birds" buttons carry, so focus can return to one when the opener has gone. */
-export const ADD_BIRDS_ATTR = 'data-add-birds'
+const ADD_BIRDS_ATTR = 'data-add-birds'
 
 /** `way`: 'hand' (Settings' Add by hand) is adding by hand alone; 'file' opens on Import a file with the switch. */
 export function AddBirdsDialog({ onClose, way: start = 'file' }: { onClose: () => void; way?: AddWay }) {

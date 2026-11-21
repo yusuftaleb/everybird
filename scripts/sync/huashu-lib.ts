@@ -165,7 +165,7 @@ export function restrictToShipped(rows: SpeciesRow[], shipped: Record<string, st
 }
 
 /** Thresholds past which a diff looks like an upstream schema change rather than real edits. */
-export const LIMITS = { removed: 0.05, mass: 0.2, statusLost: 0.2, recordsLost: 0.2, malformed: 0.5 } as const
+const LIMITS = { removed: 0.05, mass: 0.2, statusLost: 0.2, recordsLost: 0.2, malformed: 0.5 } as const
 
 /**
  * Reasons to stop instead of shipping: more than 5% of the published stickers removed, more than 20% of the species'
@@ -195,7 +195,7 @@ export function implausible(o: {
   return out
 }
 
-export type RecordChanges = { changed: string[]; added: string[]; removed: string[] }
+type RecordChanges = { changed: string[]; added: string[]; removed: string[] }
 export function diffRecords(a: Record<string, string>, b: Record<string, string>): RecordChanges {
   const changed: string[] = [], added: string[] = [], removed: string[] = []
   for (const id of Object.keys(b)) if (!(id in a)) added.push(id); else if (a[id] !== b[id]) changed.push(id)
@@ -204,7 +204,7 @@ export function diffRecords(a: Record<string, string>, b: Record<string, string>
 }
 
 /** Short sticker version for a rebuilt sticker: the start of its huashu file's blob SHA (so a rerun gives the same). */
-export const stickerVersion = (blob: string) => blob.slice(0, 10)
+const stickerVersion = (blob: string) => blob.slice(0, 10)
 
 /** The new sticker versions: rebuilt stickers get one, removed stickers lose theirs, the rest keep what they have. */
 export function nextVersions(prev: Record<string, string>, changes: readonly StickerChange[]): Record<string, string> {
@@ -220,7 +220,7 @@ export function nextVersions(prev: Record<string, string>, changes: readonly Sti
  * Data changes other than the sticker itself, per code: mass (and its source), names, IUCN status, and the quality
  * bar (unless the sticker itself came or went, which the sticker change already says).
  */
-export type RowChange = { code: string; fields: string[] }
+type RowChange = { code: string; fields: string[] }
 export function diffRows(prev: readonly SpeciesRow[], next: readonly SpeciesRow[]): RowChange[] {
   const before = new Map(prev.map((r) => [r.code, r]))
   const out: RowChange[] = []
@@ -238,8 +238,8 @@ export function diffRows(prev: readonly SpeciesRow[], next: readonly SpeciesRow[
 }
 const fmtG = (g: number) => `${Math.round(g * 10) / 10} g`
 
-export type SummaryEntry = { code: string; com: string; kind: 'changed' | 'new' | 'removed' | 'data'; detail: string }
-export type Summary = {
+type SummaryEntry = { code: string; com: string; kind: 'changed' | 'new' | 'removed' | 'data'; detail: string }
+type Summary = {
   from: string; to: string; repo: string
   entries: SummaryEntry[]
   records: RecordChanges
@@ -252,7 +252,7 @@ export type Summary = {
    * versions; only when the run read species.json. */
   iucnCredit?: IucnCredit
 }
-export type IucnCredit = { sources: [string, number][]; ok: boolean }
+type IucnCredit = { sources: [string, number][]; ok: boolean }
 
 export function summarise(o: {
   from: string; to: string; stickers: readonly StickerChange[]; rows: readonly RowChange[]; records: RecordChanges
@@ -278,15 +278,15 @@ export function summarise(o: {
 const base = (p: string) => p.split('/').pop()!
 
 const count = (s: Summary, k: SummaryEntry['kind']) => s.entries.filter((e) => e.kind === k).length
-export const compareUrl = (s: Pick<Summary, 'repo' | 'from' | 'to'>) => `${s.repo}/compare/${s.from.slice(0, 7)}...${s.to.slice(0, 7)}`
+const compareUrl = (s: Pick<Summary, 'repo' | 'from' | 'to'>) => `${s.repo}/compare/${s.from.slice(0, 7)}...${s.to.slice(0, 7)}`
 const esc = (t: string) => t.replace(/\|/g, '\\|').replace(/\n/g, ' ')
 
 export const ARTIFACT_URL = '@@ARTIFACT_URL@@'
-export const TABLE_MAX = 300
+const TABLE_MAX = 300
 /** GitHub rejects bodies over 65,536 characters; stay well under (the workflow swaps in URLs). */
 export const BODY_MAX = 60_000
 
-export type SheetInfo = { pages: number; rows: number }
+type SheetInfo = { pages: number; rows: number }
 
 const creditLine = (c: IucnCredit) => {
   const cited = c.sources.map(([src, k]) => `${src}: ${k}`).join('; ') || 'none'
@@ -340,8 +340,6 @@ export function renderPrBody(s: Summary, o: { sheets?: SheetInfo | null; tableMa
   while (body.length > BODY_MAX && max > 0) body = build(max = Math.max(0, max - Math.max(1, Math.ceil(max / 4))))
   return body
 }
-
-export const BLOCKED_ISSUE_TITLE = 'huashu sync is blocked upstream'
 
 /** The issue opened when a sync stops on an upstream inconsistency or an implausible diff. */
 export function renderBlockedBody(o: { from: string; to: string; problems: readonly string[]; runUrl?: string }): string {

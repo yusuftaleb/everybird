@@ -116,7 +116,7 @@ export type CellMask = { pw: number; ph: number; wpr: number; data: Uint32Array;
  * than a grid cell), thin legs and bills are kept instead of being missed by a centre sample. Either way every
  * point of the silhouette lies in a set grid cell.
  */
-export function scaleMask(mask: Mask, w: number, h: number, cell: number): { tw: number; th: number; cells: Uint8Array } {
+function scaleMask(mask: Mask, w: number, h: number, cell: number): { tw: number; th: number; cells: Uint8Array } {
   const tw = Math.max(1, Math.ceil(w / cell)), th = Math.max(1, Math.ceil(h / cell))
   // Mask cells [lo, hi] overlapped by grid cell i along one axis (tile length len, n mask cells).
   const span = (i: number, len: number, n: number): [number, number] => {
@@ -221,7 +221,7 @@ export function toCellMask(cells: Uint8Array, pw: number, ph: number): CellMask 
  * tMax = 1400 (rad 3080); pack() passes a larger tMax only for stages too big for that, so the spiral still
  * reaches every part of a grown stage. One table is kept, extended on demand; callers walk a prefix.
  */
-export type Spiral = { n: number; dx: Float64Array; dy: Float64Array; rad: Float64Array }
+type Spiral = { n: number; dx: Float64Array; dy: Float64Array; rad: Float64Array }
 export const SPIRAL_T = 1400
 let TABLE: { tEnd: number; dx: Float64Array; dy: Float64Array; rad: Float64Array } | null = null
 export function spiral(tMax = SPIRAL_T): Spiral {

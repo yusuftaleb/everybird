@@ -16,7 +16,7 @@ export function setLangCookie(lang: Lang, doc: CookieDoc = document): void {
 }
 
 /** The cookie's language, when it is present and names one. */
-export function readLangCookie(doc: CookieDoc = document): Lang | undefined {
+function readLangCookie(doc: CookieDoc = document): Lang | undefined {
   for (const part of doc.cookie.split(';')) {
     const eq = part.indexOf('=')
     if (eq < 0 || part.slice(0, eq).trim() !== LANG_COOKIE) continue

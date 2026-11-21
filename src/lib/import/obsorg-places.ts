@@ -14,7 +14,7 @@ import { SUB1_PARENT } from './sub1-parents'
 
 export { countryNameMap, OBSORG_COUNTRY_ALIASES, OBSORG_SUB1_ALIASES }
 
-export const OBSORG_NAME_LANGS = ['nl', 'en', 'fr', 'de', 'es'] as const
+const OBSORG_NAME_LANGS = ['nl', 'en', 'fr', 'de', 'es'] as const
 
 // The UK's divisions read "<Nation> - <County>": eBird's subnational1 there is the nation (England, Scotland, Wales,
 // Northern Ireland); the county would be subnational2, which this export never sets.

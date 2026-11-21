@@ -29,7 +29,7 @@ export function baseOfLang(lang: string): NameBase | null {
 }
 /** The family-label languages (data/i18n/families.<lang>.json), one per UI language with names. */
 export const FAMILY_LANGS = ['es', 'pt', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh-Hans', 'zh-Hant'] as const
-export type FamilyLang = typeof FAMILY_LANGS[number]
+type FamilyLang = typeof FAMILY_LANGS[number]
 /** eBird's Chinese sets: zh_SIM is Simplified, plain zh Traditional. */
 const FAMILY_OF: Partial<Record<string, string>> = { zh_SIM: 'zh-Hans', zh: 'zh-Hant' }
 /** A name set's family-label language: every other locale starts with its UI language's code (es_MX -> es, fr_FR -> fr). */

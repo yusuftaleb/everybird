@@ -12,7 +12,7 @@ export const genusOf = (sci: string): string => sci.split(' ', 1)[0]
 const keyAt = (r: SpeciesRow, depth: number): string => (depth === 0 ? r.ord : depth === 1 ? r.fam : genusOf(r.sci))
 
 /** Whether the species is inside the group `path` names. */
-export const inTaxon = (r: SpeciesRow, path: TaxonPath): boolean => path.every((k, d) => keyAt(r, d) === k)
+const inTaxon = (r: SpeciesRow, path: TaxonPath): boolean => path.every((k, d) => keyAt(r, d) === k)
 
 /** One group of the list: its id (the scientific name), its species count and its first species in taxonomic order (for its names). */
 export type TaxonGroup = { id: string; n: number; first: SpeciesRow }

@@ -12,7 +12,7 @@ import sharp from 'sharp'
 import type { SpeciesFile } from '../../src/lib/species/types'
 import { PRINT, stickerPath } from '../../src/lib/sticker-url'
 
-export type StickerCheck = {
+type StickerCheck = {
   checked: number
   failed: { file: string; error: string }[]
   /** File names (code or code.sv) that have one screen size but not the other. */

@@ -10,7 +10,7 @@ export const TITLE_MAX = 40
 const SUFFIX = "'s birds"
 
 /** Trimmed, at most TITLE_MAX characters (code points), trimmed again. */
-export function cleanTitle(s: string): string {
+function cleanTitle(s: string): string {
   return Array.from(s.trim()).slice(0, TITLE_MAX).join('').trim()
 }
 
@@ -20,7 +20,7 @@ export function cleanTitle(s: string): string {
  * a year (1900–2099), is possessive ("'s " or "’s ", or ends in "'s"), or starts "My " or holds " of " ("My year",
  * "Birds of Kenya"). A bare name ("Ada", "Sam Birder") does none of these.
  */
-export function looksLikeTitle(name: string): boolean {
+function looksLikeTitle(name: string): boolean {
   const s = name.toLowerCase()
   return (
     /\b(birds?|birding|lists?|life|lifers?)\b/.test(s) ||

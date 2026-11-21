@@ -7,7 +7,7 @@ import type { SpeciesRow } from '@/lib/species/types'
 import type { ListEntry } from '@/lib/list/model'
 
 /** The parts of image.ts the harness needs (the module, or an older copy of it). */
-export type ImageModule = {
+type ImageModule = {
   drawShareImage: (opts: never) => Promise<HTMLCanvasElement>
   clearStickerCache: () => void
 }

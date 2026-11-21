@@ -21,7 +21,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import type { TreePath } from './FilterBar'
 
 /** How many groups of `level` the taxonomy `rows` hold inside `parent` (an order's families, a family's genera). */
-export function taxaTotal(rows: readonly SpeciesRow[], level: TaxonLevel, parent: Partial<Record<TaxonLevel, string>>): number {
+function taxaTotal(rows: readonly SpeciesRow[], level: TaxonLevel, parent: Partial<Record<TaxonLevel, string>>): number {
   const keys = new Set<string>()
   for (const r of rows) {
     if (level === 'order') keys.add(r.ord)

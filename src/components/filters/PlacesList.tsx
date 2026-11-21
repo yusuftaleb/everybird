@@ -27,7 +27,7 @@ export function PlacesList({ note, unplaced, ...props }: PlacesBodyProps & { not
 
 /** Birds only on the observation.org life list have no places; while the observations aren't on the list, a link to
  *  their Add panel follows (`t.places.unplaced`). */
-export function PlacesUnplacedLine({ link = true }: { link?: boolean }) {
+function PlacesUnplacedLine({ link = true }: { link?: boolean }) {
   const { t } = useI18n()
   return (
     <p className="eb-note eb-places-note" data-testid="places-unplaced">
@@ -40,7 +40,7 @@ export function PlacesUnplacedLine({ link = true }: { link?: boolean }) {
 
 /** Places only knows each bird's first place, and a link to the Add panel of the file that knows every place (its
  *  anchor from `source`; the words, `t.places.note`, name MyEBirdData). */
-export function PlacesNoteLine({ note, source = MYEBIRDDATA_PLACES }: { note: PlacesNote; source?: FullPlacesSource }) {
+function PlacesNoteLine({ note, source = MYEBIRDDATA_PLACES }: { note: PlacesNote; source?: FullPlacesSource }) {
   const { t } = useI18n()
   return (
     <p className="eb-note eb-places-note" data-testid="places-lifer-only">

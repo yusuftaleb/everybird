@@ -19,7 +19,7 @@ import { diagramLayout, type Box, type Diagram } from './venn'
 
 export { titlePart }
 
-export type CompareCardOpts = {
+type CompareCardOpts = {
   /** Every list's name, in list order. */
   names: string[]
   /** Every list's species count, in list order. */
@@ -35,7 +35,7 @@ export type CompareCardOpts = {
   t: Ui
   now?: Date
 }
-export type CompareCard = { blob: Blob; W: number; H: number }
+type CompareCard = { blob: Blob; W: number; H: number }
 
 const NO_BIRDS: ImagePack = { W: 1, H: 1, boxes: new Map() }
 /** Type sizes (px, design units) and their floors: the title (Cabinet 700), the counts line (Satoshi), each region's

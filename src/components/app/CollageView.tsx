@@ -101,7 +101,7 @@ const GLIDE_MS = 760
 const PENDING_MS = 4000
 
 /** The taxonomy's species, orders and families: the totals the Tree counts against (levels.ts taxonCover's). */
-export type TaxonomyTotals = { species: number; orders: number; families: number }
+type TaxonomyTotals = { species: number; orders: number; families: number }
 export function taxonomyTotals(rows: readonly SpeciesRow[]): TaxonomyTotals {
   return { species: new Set(rows.map((r) => r.code)).size, orders: new Set(rows.map((r) => r.ord)).size, families: new Set(rows.map((r) => r.fam)).size }
 }

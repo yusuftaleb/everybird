@@ -7,12 +7,12 @@ import { decodeShare, type SharePayload } from './link'
 
 /** The strings the shared page's title, h1 and metadata read: the shared view's (`ui.shared`, one source with the
  *  page), the share area's old-link and untitled titles, and the number separators. */
-export type OgStrings = Pick<Ui, 'share' | 'shared' | 'num'>
+type OgStrings = Pick<Ui, 'share' | 'shared' | 'num'>
 
 export const OG_SIZE = { width: 1200, height: 630 } as const
 /** The collage's area on the left of the image. */
 export const OG_COLLAGE = { w: 640, h: 560 } as const
-export const OG_MAX_BIRDS = 60
+const OG_MAX_BIRDS = 60
 /** For someone who has never heard of Everybird: the shared page's lede under its title (`ui.shared.lede`), so the
  *  page and its metadata say the same in every language. */
 export function ogDescription(t: OgStrings): string {
@@ -69,9 +69,9 @@ export function tryDecodeShare(token: string): SharePayload | null {
   }
 }
 
-export const OG_FONT_COUNT = 3 // Satoshi 500, Cabinet Grotesk 700, Geist Mono 400
+const OG_FONT_COUNT = 3 // Satoshi 500, Cabinet Grotesk 700, Geist Mono 400
 /** The fonts a card in `lang` needs to be complete: a Russian card's Noto Sans 500 and 700 too (og-server's SOURCES). */
-export const ogFontCount = (lang?: string): number => OG_FONT_COUNT + (lang === 'ru' ? 2 : 0)
+const ogFontCount = (lang?: string): number => OG_FONT_COUNT + (lang === 'ru' ? 2 : 0)
 /**
  * A complete card never changes: the token is content-addressed (the link encodes the list, so a different list is a
  * different URL). Browsers keep it a day, the CDN a year (one render per token per region until evicted), and a stale

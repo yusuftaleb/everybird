@@ -11,7 +11,7 @@ import { SUB1_PARENT } from './sub1-parents'
 import { excelSerialToIso, readXlsx } from './xlsx'
 
 /** `noDate`: rows left out because the sheet's date column marks which birds were seen and they have none. */
-export type SheetParseResult = ImportResult & { duplicates: number; noDate?: number }
+type SheetParseResult = ImportResult & { duplicates: number; noDate?: number }
 
 type ColMap = {
   sci: number
@@ -598,7 +598,7 @@ export function parseSheetRows(
 }
 
 /** The text's rows, blank ones kept (as ['']), so a row's index is its line in the file. */
-export function textToRows(text: string): string[][] {
+function textToRows(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, '')
   if (!clean.trim()) return []
   // The delimiter is guessed without the blank rows (they would sway papaparse's guess), then every row is kept.

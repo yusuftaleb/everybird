@@ -7,7 +7,6 @@ import type { Box } from '@/lib/layout/pack'
 
 // Global Constraints: travel 640ms ease-in-out; arrival 480ms decelerating, starting at 160ms; exit 180ms
 // ease-in; ripple 0–120ms by distance from the count. The first appearance ripples out over 0–480ms.
-export const TRAVEL = 'cubic-bezier(.45,0,.1,1)'
 export const EASE_OUT = 'cubic-bezier(.25,.8,.25,1)'
 export const EASE_IN = 'cubic-bezier(.4,0,1,1)'
 export const EXIT_MS = 180, MOVE_MS = 640, ENTER_MS = 480, ENTER_AT = 160, RIPPLE_MS = 120, APPEAR_MS = 480
@@ -20,7 +19,7 @@ export const FADE_MS = 200
  * A unit is about one bird restyle (a leaving bird); a moving or arriving bird starts transitions and costs two.
  */
 export const WRITE_START = 100, WRITE_MIN = 50, WRITE_MAX = 800
-export const SHRINK = 'translate(12%,12%) scale(.76)' // scale .76 about the tile's centre (transform-origin is 0 0)
+const SHRINK = 'translate(12%,12%) scale(.76)' // scale .76 about the tile's centre (transform-origin is 0 0)
 
 export const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -77,7 +76,7 @@ export function cancelFinishes(m: Motion): void {
   m.done.length = 0
 }
 
-export type WriteArgs = {
+type WriteArgs = {
   codes: string[]
   els: Map<string, HTMLElement>
   layout: StateLayout

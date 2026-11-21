@@ -15,7 +15,7 @@ const fallback = (kind: EbirdDetails['kind'], t: Ui) => (kind === 'full-export' 
 
 /** A connected source's file or username (after the title) and the status parts after its counts and skipped entries
  *  ("Imported 6 Nov"). The counts ("185 species · 12 only here", source-counts.ts) lead the line (SourceRow). */
-export type SourceState = { name: string; parts: string[] }
+type SourceState = { name: string; parts: string[] }
 
 /** One eBird file: its name, then "Imported 6 Nov" (shortDay: no year this year). Unknown details say so. */
 export function ebirdLine(kind: EbirdDetails['kind'], d: EbirdDetails | undefined, t: Ui, now?: Date): SourceState {

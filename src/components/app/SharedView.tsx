@@ -43,7 +43,7 @@ export function SharedView({ payload }: { payload: SharePayload }) {
 }
 
 /** One payload's collage in its own store (also a comparison's group, compare/CompareView). */
-export function SharedCollage({ payload, species, regions }: { payload: SharePayload; species: SpeciesIndex; regions: Regions }) {
+function SharedCollage({ payload, species, regions }: { payload: SharePayload; species: SpeciesIndex; regions: Regions }) {
   const { t } = useI18n()
   const shown = useMemo(() => payloadToRecords(payload, regions), [payload, regions])
   const reducer = useMemo(

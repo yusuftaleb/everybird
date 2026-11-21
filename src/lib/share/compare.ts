@@ -74,8 +74,8 @@ export function ranking(sizes: readonly number[]): number[] {
 
 /** The sticker grid, the page's full width: tiles at least TILE_MIN px wide with TILE_GAP between, three to GRID_MAX
  *  across. */
-export const TILE_MIN = 104
-export const TILE_GAP = 12
+const TILE_MIN = 104
+const TILE_GAP = 12
 export const GRID_MAX = 10
 export const gridCols = (width: number): number => Math.min(GRID_MAX, Math.max(3, Math.floor((width + TILE_GAP) / (TILE_MIN + TILE_GAP))))
 
@@ -113,12 +113,12 @@ export const barInChoice = (choice: Choice, i: number): boolean =>
   choice === 'every' || (choice === 'need' ? i !== 0 : !!(choice & (1 << i)))
 
 /** The site's tokens a list's colour is made of (DESIGN.md Colors). */
-export type ListTone = 'accent' | 'ink' | 'line' | 'muted'
+type ListTone = 'accent' | 'ink' | 'line' | 'muted'
 /**
  * Each list's colour by its place, the same everywhere (the set-up's dots, the pills, the circles and bars, the card):
  * Accent, Ink, Line, Accent at half on Paper, Muted, Line at half on Paper. Never the only cue: every part is named.
  */
-export const LIST_TONES: readonly (readonly [ListTone, number])[] = [['accent', 1], ['ink', 1], ['line', 1], ['accent', 0.5], ['muted', 1], ['line', 0.5]]
+const LIST_TONES: readonly (readonly [ListTone, number])[] = [['accent', 1], ['ink', 1], ['line', 1], ['accent', 0.5], ['muted', 1], ['line', 0.5]]
 /** List `i`'s colour in CSS, from the page's tokens (so it follows the theme). */
 export function listColor(i: number): string {
   const [tone, p] = LIST_TONES[i % LIST_TONES.length]

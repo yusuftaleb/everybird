@@ -10,7 +10,7 @@ export const COMPARE_KEY = 'everybird:compare'
 
 /** The chosen chips and the lists they were chosen for (useComparison's `drawKey`). */
 export type CompareShown = { key: string; choice: Choice }
-export type KeptCompare = { rows: { text: string; name?: string }[]; mine?: string; open: boolean; pick?: CompareShown }
+type KeptCompare = { rows: { text: string; name?: string }[]; mine?: string; open: boolean; pick?: CompareShown }
 
 type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 const local = (): Store | null => {

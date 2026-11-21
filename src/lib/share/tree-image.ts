@@ -60,7 +60,7 @@ const FAN_AXIS = 22, CIRCLE_AXIS = 28
 export const IMAGE_SIZES: LabelSizes = { base: 32, floor: 9, dot: 5, rMin: 40, rMax: Infinity, below: 40 }
 /** The image's Fan and Radial keep their radius at least this share of their reach (the radius and the longest label):
  *  never a tiny knot under long labels (round 6, item 15). */
-export const BALANCE = 0.33
+const BALANCE = 0.33
 
 /** The smallest size the image's labels shrink to (design units): past it a Fan or Radial is drawn as rows. */
 const SHRINK_MIN = 0.5
@@ -72,7 +72,7 @@ const SHRINK_MIN = 0.5
  * is at least BALANCE of the reach, so the drawing and its names share the card; when no size balances, the plain fit.
  * Undefined only when not even SHRINK_MIN names them.
  */
-export function fitImage(spans: readonly LabelSpan[], shape: 'fan' | 'circle', room: { w: number; h: number }, sizes: LabelSizes = IMAGE_SIZES): RoundFit | undefined {
+function fitImage(spans: readonly LabelSpan[], shape: 'fan' | 'circle', room: { w: number; h: number }, sizes: LabelSizes = IMAGE_SIZES): RoundFit | undefined {
   const at = (px: number) => fitRound(spans, shape, room, { ...sizes, base: px, floor: px, fill: true, keepCounts: true })
   const reach = (f: RoundFit) => Math.max(0, ...spans.map((sp, i) => (sizes.dot) + f.st + f.px * (2 * LABEL_GAP + sp.name + (f.counts[i] && sp.count ? LABEL_GAP + sp.count : 0))))
   const balanced = (f: RoundFit) => f.R >= BALANCE * (f.R + reach(f))
@@ -99,7 +99,7 @@ export function fitImage(spans: readonly LabelSpan[], shape: 'fan' | 'circle', r
  * (`pad` units of air). The youngest (0) and the oldest are taken first (round 6, item 15), then the others, youngest
  * first, each only where it clears those taken. Each item: its age and its box.
  */
-export function clearTicks<T extends { v: number; x0: number; x1: number; y0: number; y1: number }>(items: readonly T[], pad = 6): T[] {
+function clearTicks<T extends { v: number; x0: number; x1: number; y0: number; y1: number }>(items: readonly T[], pad = 6): T[] {
   if (!items.length) return []
   const lo = Math.min(...items.map((x) => x.v)), hi = Math.max(...items.map((x) => x.v))
   const rank = (x: T) => (x.v === lo ? 0 : x.v === hi ? 1 : 2)
@@ -113,7 +113,7 @@ export function clearTicks<T extends { v: number; x0: number; x1: number; y0: nu
 const TOTAL_MAX = 56, TOTAL_GAP = 12, TOTALS_BELOW = 20
 
 type Tip = Exclude<TreeRow, { kind: 'head' }>
-export type TotalRank = 'species' | 'genera' | 'families' | 'orders'
+type TotalRank = 'species' | 'genera' | 'families' | 'orders'
 /** The four totals, in this order. */
 export const TOTALS: readonly TotalRank[] = ['species', 'genera', 'families', 'orders']
 /** Each total's word, by its count ("1 family", "5 families"; Russian's few and many forms too). */
@@ -134,8 +134,8 @@ export function totalsSize(texts: readonly string[], width: number, widthAt1: (t
 
 /** The share of the area's width the Rectangular image's drawing takes at most (round 6: half, as on screen), and at
  *  least, when the names and counts need the rest (round 6, item 13: the branches give way first). */
-export const ROWS_TREE = 0.5
-export const ROWS_TREE_MIN = 0.2
+const ROWS_TREE = 0.5
+const ROWS_TREE_MIN = 0.2
 /** Where the names have their largest size and room to spare (a long level held small by its rows' pitch, or the cap),
  *  the drawing takes that room, up to this share of the width, so no wide gap opens between a name and its count
  *  (round 6, item 9: the share image's spacing tightened). */

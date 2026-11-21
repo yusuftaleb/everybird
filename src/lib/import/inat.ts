@@ -170,7 +170,7 @@ type ApiObs = {
   positional_accuracy?: number | null
   geojson?: { type: string; coordinates?: number[] } | null
 }
-export type ApiPlace = { id: number; name: string; admin_level: number | null; ancestor_place_ids?: number[] }
+type ApiPlace = { id: number; name: string; admin_level: number | null; ancestor_place_ids?: number[] }
 
 function publicCoordinates(o: ApiObs) {
   const isOpen = (value: string | null | undefined) => !value || value === 'open'
@@ -231,8 +231,6 @@ function invertCountries(r: Regions): Map<string, string> {
   return m
 }
 
-export { SUB1_ALIASES, sub1Names } from './sub1-index'
-
 /** Exported for tests. */
 export function makePlaceResolver(regions: Regions, byId: Map<number, ApiPlace>) {
   const countries = invertCountries(regions)
@@ -270,7 +268,7 @@ export function makePlaceResolver(regions: Regions, byId: Map<number, ApiPlace>)
 
 // ---------------------------------------------------------------------------------------------
 
-export type InatOptions = {
+type InatOptions = {
   taxonomy: TaxonomyIndex
   synonyms: Record<string, string>
   regions: Regions
