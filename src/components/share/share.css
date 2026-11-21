@@ -103,7 +103,11 @@
 .eb-share-preview .eb-share-out { pointer-events: none; animation: eb-share-fade-out .36s cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes eb-share-fade-in { from { opacity: 0; } }
 @keyframes eb-share-fade-out { to { opacity: 0; } }
-.eb-share-preview[aria-busy="true"] .eb-share-in { opacity: .55; }
+/* Busy cues wait 300ms (O1: a quick render, a title keystroke, shows none): the dim, the spinner (below) and the primary
+   button's quiet colours. The dim fades in after the wait and lifts at once. A failed render keeps the last image,
+   dimmed, under its message. */
+.eb-share-preview[aria-busy="true"] .eb-share-in { opacity: .55; transition-delay: .3s; }
+.eb-share-preview[data-failed] .eb-share-in { opacity: .55; }
 /* A transparent image over a checkerboard, so either ink shows. */
 .eb-share-preview[data-transparent] .eb-share-in { background: repeating-conic-gradient(var(--surface) 0 25%, var(--paper) 0 50%) 0 0 / 16px 16px; }
 
@@ -150,10 +154,21 @@
 .eb-share-spin {
   position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px;
   border: 3px solid var(--hairline); border-top-color: var(--accent); border-radius: 50%;
-  animation: eb-share-spin .8s linear infinite;
+  animation: eb-share-spin .8s linear .3s infinite, eb-share-wait .01s .3s backwards;
 }
 @keyframes eb-share-spin { to { transform: rotate(360deg); } }
-.eb-share-failed { position: absolute; inset: auto 12px 12px; text-align: center; }
+/* Hidden through the wait (its `from`, filled backwards), then shown. */
+@keyframes eb-share-wait { from { opacity: 0; } }
+/* The first image taking long: one Muted line under the spinner. */
+.eb-share-slow { position: absolute; inset: calc(50% + 28px) 12px auto; margin: 0; text-align: center; }
+.eb-share-slow:empty { display: none; }
+/* A failed render: the message and Try again, over the last image's foot, on a Paper plate so either ink reads. */
+.eb-share-failed {
+  position: absolute; inset: auto 12px 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 12px;
+  padding: 4px 12px; text-align: center; background: var(--paper);
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-share-failed .eb-error { margin: 0; }
 
 .eb-share-controls { display: flex; flex: none; flex-direction: column; gap: 12px; min-width: 0; container-type: inline-size; }
 /* The column: the controls, then the coffee button at its foot. */
@@ -337,7 +352,11 @@
 .eb-share-actions { display: grid; gap: 8px; min-width: 0; font-size: 15px; }
 .eb-share-actions .eb-btn {
   min-width: 0; white-space: normal; text-align: center; line-height: 1.2; padding-block: 3px; overflow-wrap: break-word;
+  transition: opacity .15s var(--ease-ui), border-color .15s var(--ease-ui), background-color .15s var(--ease-ui), color .15s var(--ease-ui);
 }
+/* A button the render holds back turns quiet only after the busy cues' 300ms wait, and comes back at once (O1). It is
+   disabled all along: Share keeps the click's activation for a PNG at hand. */
+.eb-share-actions .eb-btn:disabled { transition-delay: .3s; }
 /* Print: the primary (Make poster, the progress, Download PNG) and one quiet button (Copy link; once made, Download PDF)
    on one row, the primary taking twice the leftover room; their labels never wrap: where the two don't fit side by
    side, the quiet one takes the next line. */
@@ -376,7 +395,9 @@
   /* A plain swap: the new image just appears, the old one is gone. */
   .eb-share-preview .eb-share-in { animation: none; }
   .eb-share-preview .eb-share-out { display: none; }
-  .eb-share-spin { animation: none; border-color: var(--accent); opacity: .5; }
+  /* Still after the wait, but never turning. */
+  .eb-share-spin { animation: eb-share-wait .01s .3s backwards; border-color: var(--accent); opacity: .5; }
+  .eb-share-actions .eb-btn { transition-duration: 0s; }
   .eb-share .eb-share-switch, .eb-share-switch .eb-track, .eb-share-switch .eb-knob { transition: none; }
   .eb-share-bar-fill { transition: none; }
   .eb-share-disclose svg { transition: none; }

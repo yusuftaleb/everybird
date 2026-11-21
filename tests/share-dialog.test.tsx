@@ -23,16 +23,18 @@ import { MESSAGES, withI18n } from './i18n-render'
 const D = localDay()
 
 // The renderer is replaced by a promise the test resolves, so "busy" is under the test's control.
-const renders: { resolve: (b: Blob) => void }[] = []
+const renders: { resolve: (b: Blob) => void; reject: (e: unknown) => void }[] = []
+/** The stickers the next renders report as drawn outlines (ReadyImage.missing). */
+const mockMissing = { n: 0 }
 // The dialog's readyShareImage records its opts on renderShareImage (one call per render), and paints a stand-in canvas.
 vi.mock('@/lib/share/image', async (orig) => {
-  const render = vi.fn<(opts: unknown) => Promise<Blob>>(() => new Promise((resolve) => renders.push({ resolve })))
+  const render = vi.fn<(opts: unknown) => Promise<Blob>>(() => new Promise((resolve, reject) => renders.push({ resolve, reject })))
   return {
     ...(await orig<typeof import('@/lib/share/image')>()),
     packForImage: vi.fn(async () => ({ boxes: [] })),
     renderShareImage: render,
     readyShareImage: vi.fn((opts: unknown) => render(opts).then((b) => ({
-      W: 1080, H: 1920, scale: 2, missing: 0, paint: () => document.createElement('canvas'), blob: () => Promise.resolve(b),
+      W: 1080, H: 1920, scale: 2, missing: mockMissing.n, paint: () => document.createElement('canvas'), blob: () => Promise.resolve(b),
     }))),
     clearStickerCache: vi.fn(),
   }
@@ -85,6 +87,7 @@ const pressFocused = (name: string) => {
 
 beforeEach(() => {
   renders.length = 0
+  mockMissing.n = 0
   makes.length = 0
   vi.mocked(track).mockClear()
   vi.mocked(downloadBlob).mockClear()
@@ -119,6 +122,55 @@ describe('share dialog', () => {
     await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
     await waitFor(() => expect(shareBtn.disabled).toBe(false))
     expect(dlBtn.disabled).toBe(false)
+  })
+
+  it('a failed render says so over the last image, and Try again (or Share image) renders it again (H3)', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    await act(async () => renders[0].reject(new Error('boom')))
+    const box = screen.getByTestId('share-preview')
+    await waitFor(() => expect(box).toHaveAttribute('data-failed'))
+    expect(within(box).getByText('Couldn’t make the image.')).toBeInTheDocument()
+    // Share image and Download stay pressable: pressing renders again.
+    const shareBtn = screen.getByRole('button', { name: 'Share image' }) as HTMLButtonElement
+    expect(shareBtn.disabled).toBe(false)
+    fireEvent.click(within(box).getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(renders).toHaveLength(2))
+    expect(box).not.toHaveAttribute('data-failed')
+    await act(async () => renders[1].reject(new Error('boom')))
+    await waitFor(() => expect(box).toHaveAttribute('data-failed'))
+    fireEvent.click(shareBtn)
+    await waitFor(() => expect(renders).toHaveLength(3))
+    await act(async () => renders[2].resolve(new Blob(['png'], { type: 'image/png' })))
+    await waitFor(() => expect(box).toHaveAttribute('aria-busy', 'false'))
+    expect(box).not.toHaveAttribute('data-failed')
+  })
+
+  it('says how many stickers are drawn as outlines, and Try again renders the image again (H5)', async () => {
+    mockMissing.n = 3
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
+    const note = await screen.findByTestId('share-missing')
+    expect(note).toHaveTextContent('3 stickers didn’t load and are drawn as outlines. Try again')
+    mockMissing.n = 0
+    fireEvent.click(within(note).getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(renders).toHaveLength(2))
+    expect(screen.queryByTestId('share-missing')).toBeNull()
+    await act(async () => renders[1].resolve(new Blob(['png'], { type: 'image/png' })))
+    await waitFor(() => expect(screen.getByTestId('share-preview')).toHaveAttribute('aria-busy', 'false'))
+    expect(screen.queryByTestId('share-missing')).toBeNull()
+  })
+
+  it('a first image taking over 1.5 s says it is arranging the birds (O2)', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    const slow = screen.getByTestId('share-slow')
+    expect(slow).toHaveTextContent('')
+    expect(slow).toHaveAttribute('aria-live', 'polite')
+    await waitFor(() => expect(slow).toHaveTextContent('Arranging 2 birds…'), { timeout: 3000 })
+    await waitFor(() => expect(renders).toHaveLength(1))
+    await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
+    await waitFor(() => expect(slow).toHaveTextContent(''))
   })
 
   it('Share image hands the share sheet the image and the full sticker credit as its text', async () => {

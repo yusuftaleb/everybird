@@ -593,7 +593,13 @@ export const EN_UI = {
     countSize: { label: 'Count', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide', title: 'Beside title', short: { small: 'S', medium: 'M', large: 'L' } },
     /** The preview image's alt text, per format. */
     preview: { story: 'Preview of the story image', post: 'Preview of the post image', square: 'Preview of the square image', desktop: 'Preview of the desktop image', wide: 'Preview of the wide post image' },
-    failed: "Couldn't make the image.",
+    failed: 'Couldn’t make the image.',
+    /** A failed preview's (and the outlines' note's) text button: renders the image again. */
+    retry: 'Try again',
+    /** Under the actions when stickers didn't load for the image (it draws them as outlines); Try again (`retry`) follows. */
+    missing: { one: '1 sticker didn’t load and is drawn as an outline.', other: '{n} stickers didn’t load and are drawn as outlines.' },
+    /** In the empty preview box when the first image takes over 1.5 s ({n} formatted). */
+    arranging: { one: 'Arranging {n} bird…', other: 'Arranging {n} birds…' },
     imageFailed: 'Couldn’t make the image. Try again.',
     linkFailed: 'Couldn’t make the link. Try again.',
     tooLarge: 'This list is too large for a link. Share the image instead.',

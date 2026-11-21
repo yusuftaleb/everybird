@@ -114,6 +114,8 @@ export const VIEW_IMAGE: Partial<Record<ViewKind, () => Promise<(o: ViewImageOpt
 }
 
 const RENDER_DELAY_MS = 250
+/** How long the first image may take before the empty box says what it is doing (O2). */
+const SLOW_MS = 1500
 
 /** A finished render: the PNG Share and Download use, and for the collage the image ready to paint at any size
  *  (speed audit finding 8: the preview is painted at its display size, the full PNG encoded only for Share or Download,
@@ -460,12 +462,26 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // The Tree's or Map's drawing: the view, its switches.
   // `at` is the view's level, live (the Tree's follows the taxonomy filter); its JSON leaves out the map's names function.
   const viewKey = viewImage ? `${subject}|${treeImage ? `${treeMine}|${treeLayout}|${showOldest}|${timeScale}` : ''}|${totals.join(',')}|${JSON.stringify(at ?? {})}` : ''
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}`
+  // Try again (a failed render, stickers that didn't load) renders the same image anew: `retry` is in the key.
+  const [retry, setRetry] = useState(0)
+  const renderAgain = () => setRetry((n) => n + 1)
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}|${retry}`
   const busy = preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   /** Share and Download wait for the full PNG (in at once for the Map, Tree and Compare; encoded in idle time for the
    *  collage), so a click has it at hand (iOS shares only inside the click). */
   const blobIn = blobKey === key
+  // The first image taking long (a big first pack, stickers still coming): the empty box says so after SLOW_MS.
+  const [slow, setSlow] = useState(false)
+  const waiting = busy && !preview
+  useEffect(() => {
+    if (!waiting) return
+    const t = setTimeout(() => setSlow(true), SLOW_MS)
+    return () => clearTimeout(t)
+  }, [waiting])
+  /** The stickers the shown image draws as outlines (they failed or ran out of time); Try again loads them anew (the
+   *  ones that loaded stay cached). The Share image's alone: a poster reports its own after Make poster. */
+  const missing = !print && !busy && preview?.key === key ? (preview.ready?.missing ?? 0) : 0
   useEffect(() => {
     let live = true
     let cancel = () => {}
@@ -869,6 +885,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     }
   }
   const download = async () => {
+    if (failed) return renderAgain() // a failed render: pressing renders it again
     const blob = await getBlob()
     if (!blob) return setNote({ text: t.share.imageFailed, error: true })
     downloadBlob(blob, fileName)
@@ -876,6 +893,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     setNote({ text: fmt(t.share.saved, { file: fileName }) })
   }
   const share = async () => {
+    if (failed) return renderAgain()
     const blob = await getBlob()
     if (!blob) return setNote({ text: t.share.imageFailed, error: true })
     const file = new File([blob], fileName, { type: 'image/png' })
@@ -1016,7 +1034,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // Download PNG; each its own key, so a change of state is a new element and the focus moves below run instead of
   // focus staying on a renamed button), then the quiet ones (a row of three).
   const primary: ReactNode = !print ? (
-    <button key="share" type="button" className="eb-btn eb-share-primary" disabled={busy || !blobIn} onClick={() => void share()}>
+    <button key="share" type="button" className="eb-btn eb-share-primary" disabled={!failed && (busy || !blobIn)} onClick={() => void share()}>
       <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
       {t.share.shareImage}
     </button>
@@ -1049,7 +1067,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // and Copy link; once made, Download PNG and Download PDF), the rest (Copy link, Make again) in a row under them.
   const quiet: QuietAction[] = !print
     ? [
-        { label: t.share.download, short: t.share.downloadShort, icon: DownloadSimple, disabled: busy || !blobIn, onClick: () => void download() },
+        { label: t.share.download, short: t.share.downloadShort, icon: DownloadSimple, disabled: !failed && (busy || !blobIn), onClick: () => void download() },
         copy,
       ]
     : [
@@ -1312,7 +1330,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           <div className="eb-share-area">
           <div
             ref={previewBox} className="eb-share-preview" data-format={shownCard} data-size={isPrint(shownCard) ? (preview?.size ?? size) : undefined}
-            aria-busy={busy} data-testid="share-preview" data-transparent={transparent || undefined}
+            aria-busy={busy} data-testid="share-preview" data-transparent={transparent || undefined} data-failed={failed || undefined}
           >
             {outgoing && (
               // The image just replaced, fading out over the frame while it changes shape.
@@ -1325,7 +1343,19 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               />
             )}
             {busy && <span className="eb-share-spin" aria-hidden="true" />}
-            {failed && !busy && <p className="eb-error eb-share-failed">{t.share.failed}</p>}
+            {/* The first image taking long: what it is doing, under the spinner (polite, so it is read once). */}
+            {!compare && !viewImage && (
+              <p className="eb-note eb-share-slow" aria-live="polite" data-testid="share-slow">
+                {slow && waiting ? plural(t.share.arranging, cardEntries.length, { n: formatInt(cardEntries.length, t.num) }) : ''}
+              </p>
+            )}
+            {failed && !busy && (
+              // The last image stays, dimmed, under the message (share.css); Try again renders it anew.
+              <div className="eb-share-failed" data-testid="share-failed">
+                <p className="eb-error">{t.share.failed}</p>
+                <button type="button" className="eb-textbtn" onClick={renderAgain}>{t.share.retry}</button>
+              </div>
+            )}
           </div>
           </div>
 
@@ -1462,6 +1492,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                 )}
               </div>
 
+              {missing > 0 && (
+                <p className="eb-note eb-share-missing" data-testid="share-missing">
+                  {plural(t.share.missing, missing, { n: formatInt(missing, t.num) })}{' '}
+                  <button type="button" className="eb-textbtn eb-share-inline" onClick={renderAgain}>{t.share.retry}</button>
+                </p>
+              )}
               <p className={note?.error ? 'eb-error' : 'eb-note'} role="status" data-testid="share-note">{note?.text ?? ''}</p>
               {manual && (
                 <input ref={manualRef} className="eb-share-input" type="text" readOnly value={manual} aria-label={t.share.linkField} onFocus={(e) => e.currentTarget.select()} />
