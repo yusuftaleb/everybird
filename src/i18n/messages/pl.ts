@@ -118,7 +118,7 @@ export const pl: Messages = {
         mapFewer: 'Pokaż mniej',
         mapFailed: 'Nie udało się wczytać mapy. Lista poniżej pokazuje te same liczby.',
         mapRetry: 'Spróbuj ponownie',
-        mapUnplaced: { one: '{n} ptak z tej listy nie ma miejsca, więc mapa go pomija.', few: '{n} ptaki z tej listy nie mają miejsca, więc mapa je pomija.', many: '{n} ptaków z tej listy nie ma miejsca, więc mapa je pomija.', other: '{n} ptaka z tej listy nie ma miejsca, więc mapa je pomija.' },
+        mapUnplaced: { one: '{n} ptak z tej listy nie ma miejsca obserwacji, więc mapa go pomija.', few: '{n} ptaki z tej listy nie mają miejsca obserwacji, więc mapa je pomija.', many: '{n} ptaków z tej listy nie ma miejsca obserwacji, więc mapa je pomija.', other: '{n} ptaka z tej listy nie ma miejsca obserwacji, więc mapa je pomija.' },
         mapHint: 'Przybliżaj palcami lub przyciskami +/− · przeciągnij, aby przesunąć',
         mapZoomIn: 'Przybliż',
         mapZoomOut: 'Oddal',
@@ -426,8 +426,8 @@ export const pl: Messages = {
       lede: 'Zobacz, które ptaki są wspólne dla waszych list, a które są jeszcze przed tobą. Wybierz osoby poniżej, by zobaczyć ptaki wspólne tylko dla nich.',
       ledeTheirs: 'Zobacz, które ptaki są wspólne dla tych list. Wybierz osoby poniżej, by zobaczyć ptaki wspólne tylko dla nich.',
       diagram: 'Wykres',
-      cantShow: { one: '{n} ptak jest wspólny w układzie, którego koła nie pokażą.', few: '{n} ptaki są wspólne w układach, których koła nie pokażą.', many: '{n} ptaków jest wspólnych w układach, których koła nie pokażą.', other: '{n} ptaka jest wspólnych w układach, których koła nie pokażą.' },
-      cantShowPick: 'Wybierz osoby powyżej, by je zobaczyć.',
+      cantShow: { one: '{n} wspólny ptak należy do połączenia list, którego koła nie mogą pokazać.', few: '{n} wspólne ptaki należą do połączeń list, których koła nie mogą pokazać.', many: '{n} wspólnych ptaków należy do połączeń list, których koła nie mogą pokazać.', other: '{n} wspólnego ptaka należy do połączeń list, których koła nie mogą pokazać.' },
+      cantShowPick: 'Wybierz osoby powyżej, by zobaczyć te ptaki.',
     },
     orders: {
       Struthioniformes: 'Strusie',
@@ -885,7 +885,7 @@ export const pl: Messages = {
     },
     search: {
       understood: 'Rozpoznano',
-      hint: 'Wpisz nazwę, grupę, miejsce lub rok: ptaki drapieżne Kenia 2024',
+      hint: 'Wpisz nazwę, grupę, miejsce lub rok: szponiaste Kenia 2024',
       show: 'Pokaż te ptaki',
       note: 'Twoja lista ma tylko daty pierwszego zanotowania każdego ptaka. Dodaj MyEBirdData, aby liczyć każdą obserwację.',
     },

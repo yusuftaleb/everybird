@@ -485,7 +485,7 @@ export const zhHant: Messages = {
       failed: '無法製作圖片。',
       retry: '再試一次',
       missing: { one: '有 1 張貼紙沒有載入，以外框顯示。', other: '有 {n} 張貼紙沒有載入，以外框顯示。' },
-      arranging: { one: '正在排列{n}種鳥…', other: '正在排列{n}種鳥…' },
+      arranging: { one: '正在排列 {n} 種鳥…', other: '正在排列 {n} 種鳥…' },
       imageFailed: '無法製作圖片。請再試一次。',
       linkFailed: '無法製作連結。請再試一次。',
       tooLarge: '這份清單太大，無法放進連結。改為分享圖片。',
