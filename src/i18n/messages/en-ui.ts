@@ -451,23 +451,17 @@ export const EN_UI = {
   /** Compare with friends (issue #10): /compare, and a comparison link's page, /c/<token>. */
   compare: {
     title: 'Compare with friends',
-    /** The paste field (its label and placeholder), and once a comparison shows, the same field adding another list. */
+    /** A row's link box (its placeholder; named "Link N"), the main button, and why it waits (its description). */
     paste: 'Paste a friend’s Everybird link',
-    addAnother: 'Add another friend’s link',
-    /** Before the first comparison: another link field ("Add more"), named by its place. */
-    addMore: 'Add more',
     linkN: 'Link {n}',
-    /** Under the field: how many lists a comparison holds ({n} 6, {m} 5). */
-    limit: 'Compare up to {n} lists: yours and {m} friends’.',
     submit: 'Compare',
-    add: 'Add',
     bad: { one: '{n} link didn’t open.', other: '{n} links didn’t open.' },
     needMore: 'Comparing needs at least two lists.',
     /** After a paste past the cap: the links beyond it weren't added ({n} 6). */
     over: 'Up to {n} lists can be compared, so the rest weren’t added.',
     /** "Compare with mine" sent a friend's list, and the visitor has none yet (followed by the "Add birds" link). */
     noList: 'To compare with {name}, add your own birds first.',
-    /** The chips' name, and the chips: the birds on the others' lists you lack, on both or every list, one list's
+    /** The groups' name, and the groups: the birds on the others' lists you lack, on both or every list, one list's
      *  alone (yours: "Only you"), every bird. */
     groups: 'Which birds',
     yetToSee: 'Yet to see',
@@ -479,34 +473,37 @@ export const EN_UI = {
     birder: 'Birder {n}',
     empty: 'No birds in this group.',
     showAll: 'Show all {n}',
-    /** The bars, one per list, your own marked "(you)", and each one's controls. */
+    /** The pills (and the bars), one per list; a set-up row's remove button. */
     people: 'Lists in this comparison',
-    you: '(you)',
-    rename: 'Rename {name}',
     remove: 'Remove {name}',
     /** The card's text alternative, every number in the diagram: "Only Ada: 12." "Only Ada and Sam: 3." */
     onlyTwo: 'Only {a} and {b}',
     altPart: '{label}: {n}.',
-    shareCard: 'Share card',
     /** The card's counts line, one part per list ("Sam: 412"), and a group's caption over its stickers ("Both: 15"). */
     cardCount: '{label}: {n}',
     /** The birds you've yet to see, with one friend and with several: the card's caption and the wish list's title. */
     wish: { one: '{n} of {name}’s birds you’ve yet to see', other: '{n} of {name}’s birds you’ve yet to see' },
     wishAll: { one: '{n} of your friends’ birds you’ve yet to see', other: '{n} of your friends’ birds you’ve yet to see' },
-    shareWish: 'Share wish list',
-    /** Under the page head: why its buttons wait, then what a comparison link carries, and why there's no wish list. */
-    needFirst: 'Compare two lists to share them.',
+    /** The share dialog's note beside Copy link; why the wish list is off; why Copy link is off. */
     consent: 'A comparison link carries every list in it, so ask the others before you share it.',
     wishNeedsYours: 'Add your own birds for a wish list.',
     wishNone: 'You’ve seen every bird on these lists.',
-    copyLink: 'Copy comparison link',
-    copied: 'Link copied.',
-    copyManual: 'Copy this link',
     tooMany: 'A comparison link holds up to {n} lists. Remove some to share it.',
     tooBig: 'These lists are too big for one link. Share the card instead, or compare fewer lists.',
     sharedTitle: 'Comparing {n} life lists',
     /** On a shared collage or comparison: open Compare with it and your own list. */
     withMine: 'Compare with mine',
+    /** The set-up: the line under the title ({n} 6), the birder's own row, each row's name box, Add a friend. */
+    note: 'Paste your friends’ Everybird links. Up to {n} lists.',
+    yourList: 'Your list',
+    nameN: 'Name of list {n}',
+    addFriend: 'Add a friend',
+    /** The results: back to the set-up; the diagram's Circles | Bars (named Diagram); its head's count of lists. */
+    editLists: 'Edit lists',
+    circles: 'Circles',
+    bars: 'Bars',
+    diagram: 'Diagram',
+    lists: { one: '{n} list', other: '{n} lists' },
   },
 
   /** Plain labels for the bird orders (scientific name -> label): every order in species.v1.json. English is a copy of
@@ -564,6 +561,8 @@ export const EN_UI = {
     title: 'Share your collage',
     /** The format control's group name and its three segments (their 9:16, 4:5, 1:1 hints are in code). */
     formats: 'Image format',
+    /** Compare's dialog: what it shares, the comparison card or the wish list. */
+    what: { label: 'What', comparison: 'Comparison', wish: 'Wish list' },
     format: { story: 'Story', post: 'Post', square: 'Square', desktop: 'Desktop' },
     /** A format button's spoken name: the label and its ratio, which the button hides when it is tight. */
     formatName: '{name}, {ratio}',

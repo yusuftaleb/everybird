@@ -45,12 +45,39 @@ export function ranking(sizes: readonly number[]): number[] {
   return sizes.map((_, i) => i).sort((x, y) => sizes[y] - sizes[x] || x - y)
 }
 
-/** The sticker grid: tiles at least TILE_MIN px wide with TILE_GAP between, three to six across; GRID_ROWS rows show
- *  before "Show all". */
+/** The sticker grid, the page's full width: tiles at least TILE_MIN px wide with TILE_GAP between, three to GRID_MAX
+ *  across; GRID_ROWS rows show before "Show all". */
 export const TILE_MIN = 104
 export const TILE_GAP = 12
 export const GRID_ROWS = 3
-export const gridCols = (width: number): number => Math.min(6, Math.max(3, Math.floor((width + TILE_GAP) / (TILE_MIN + TILE_GAP))))
+export const GRID_MAX = 10
+export const gridCols = (width: number): number => Math.min(GRID_MAX, Math.max(3, Math.floor((width + TILE_GAP) / (TILE_MIN + TILE_GAP))))
+
+/** A part of the diagram's group, by the lists it holds (`mask`, of `n`): every list's 'all', one list's own birds, or
+ *  null for birds on some lists only (three circles' pairs) and outside the circles. */
+export function groupOfMask(mask: number, n: number): GroupId | null {
+  if (mask === (1 << n) - 1) return 'all'
+  return mask > 0 && !(mask & (mask - 1)) ? Math.log2(mask) : null
+}
+
+/** The site's tokens a list's colour is made of (DESIGN.md Colors). */
+export type ListTone = 'accent' | 'ink' | 'line' | 'muted'
+/**
+ * Each list's colour by its place, the same everywhere (the set-up's dots, the pills, the circles and bars, the card):
+ * Accent, Ink, Line, Accent at half on Paper, Muted, Line at half on Paper. Never the only cue: every part is named.
+ */
+export const LIST_TONES: readonly (readonly [ListTone, number])[] = [['accent', 1], ['ink', 1], ['line', 1], ['accent', 0.5], ['muted', 1], ['line', 0.5]]
+/** List `i`'s colour in CSS, from the page's tokens (so it follows the theme). */
+export function listColor(i: number): string {
+  const [tone, p] = LIST_TONES[i % LIST_TONES.length]
+  return p === 1 ? `var(--${tone})` : `color-mix(in srgb, var(--${tone}) ${p * 100}%, var(--paper))`
+}
+/** List `i`'s colour as #rrggbb, from a theme's token values (the card's canvas): the same mix as CSS color-mix in sRGB. */
+export function listColorHex(i: number, c: Record<ListTone | 'paper', string>): string {
+  const [tone, p] = LIST_TONES[i % LIST_TONES.length]
+  const ch = (h: string, k: number) => parseInt(h.slice(1 + 2 * k, 3 + 2 * k), 16)
+  return `#${[0, 1, 2].map((k) => Math.round(ch(c[tone], k) * p + ch(c.paper, k) * (1 - p)).toString(16).padStart(2, '0')).join('')}`
+}
 
 /** Up to `n` of `codes`, in even steps through them (the card's strip of stickers). */
 export const evenly = (codes: readonly string[], n: number): string[] =>
@@ -65,13 +92,39 @@ export function groupPayload(lists: readonly SharePayload[], codes: readonly str
   return { v: 1, birds }
 }
 
+/** A friend's row in Compare's set-up: what was pasted, the name typed (none: the link's own), the list it opened. */
+export type CompareRow = { id: number; text: string; name?: string; list: SharePayload | null }
+const blank = (r: CompareRow) => !r.list && !r.text.trim() && r.name === undefined
+/** A row's name: the one typed, else the link's own name or title as it carries it, else '' (the list is "Birder N"). */
+export const rowName = (r: CompareRow): string => r.name ?? r.list?.name ?? ''
+
+type RowCodec = {
+  decode: (token: string) => SharePayload
+  decodeC?: (token: string) => SharePayload[]
+  /** A filled row's text when one paste held several lists: that list's own link. */
+  link: (p: SharePayload) => string
+  /** A new row's id. */
+  id: () => number
+}
 /**
- * The pasted lists `held` with `incoming` added after them, at most `room` in all (the page's cap: COMPARE_MAX, one
- * less while the birder's own list joins them): the lists kept, the first ones, and how many were left out.
+ * `text` typed or pasted into row `at` of `rows` (at most `room` rows: COMPARE_MAX, less the birder's own): one link
+ * (or none yet) stays that row's; several links, or a comparison link, fill that row, then the blank rows after it,
+ * then new ones after it, a list each, within `room`. `bad`: links that didn't open; `over`: lists left out past `room`.
  */
-export function addWithin(held: readonly SharePayload[], incoming: readonly SharePayload[], room: number): { lists: SharePayload[]; over: number } {
-  const all = [...held, ...incoming]
-  return { lists: all.slice(0, Math.max(0, room)), over: Math.max(0, all.length - Math.max(0, room)) }
+export function pasteRow(rows: readonly CompareRow[], at: number, text: string, room: number, codec: RowCodec): { rows: CompareRow[]; bad: number; over: number } {
+  const r = linksIn(text, codec.decode, codec.decodeC)
+  const row = rows[at]
+  if (r.lists.length <= 1) return { rows: rows.map((x, i) => (i === at ? { ...x, text, list: r.lists[0] ?? null } : x)), bad: r.bad, over: 0 }
+  const before = rows.slice(0, at), after = rows.slice(at + 1)
+  const kept = after.filter((x) => !blank(x)), spare = after.filter(blank)
+  const lists = r.lists.slice(0, Math.max(1, room - before.length - kept.length))
+  const ids = [row.id, ...spare.map((x) => x.id)]
+  const filled = lists.map((p, j): CompareRow => ({
+    id: j < ids.length ? ids[j] : codec.id(), text: codec.link(p), list: p, ...(j === 0 && row.name !== undefined ? { name: row.name } : {}),
+  }))
+  // The blank rows not filled stay after them, as many as the room leaves.
+  const rest = spare.slice(lists.length - 1).slice(0, Math.max(0, room - before.length - kept.length - filled.length))
+  return { rows: [...before, ...filled, ...kept, ...rest], bad: r.bad, over: r.lists.length - lists.length }
 }
 
 /**

@@ -1,19 +1,21 @@
-// The comparison card (Compare's Share card, and the picture on the page): the share image's post frame from image.ts
-// (Paper, the footer with the sticker credit and the date stamp, in the page's theme) holding, top down:
+// The comparison card (the Share dialog's Comparison on /compare): the share image's frame from image.ts in the dialog's
+// format, Story, Post or Square (Paper unless transparent, the footer with the sticker credit and the date stamp, in the
+// dialog's colours) holding, top down:
 // - the title, the lists' names joined by " & " (one or two lines), and under it each list's species count on one line,
 //   most first; when even the smallest size is too wide, the names are shortened evenly, never the numbers;
-// - the diagram (venn.ts: two circles, three, or the flower from four lists), each region's number with its name;
+// - the diagram (venn.ts: two circles, three, or the flower from four lists), each circle in its list's colour
+//   (compare.ts listColorHex, as on the page), each region's number with its name;
 // - the caption ("55 of Sam's birds you've yet to see", or the chosen group's) over an even strip of up to
 //   STRIP_MAX of those birds' stickers, every one in the same square.
-// Loaded only when a comparison shows.
+// Loaded only when the dialog draws it.
 import { fmt } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import type { Ui } from '@/i18n/messages/en'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { stickerUrl } from '@/lib/sticker-url'
 import { clipText } from './view-image'
-import { ensureViewFonts, loadStickers, paintCard, paintTiles, prepareCard, type ImagePack, type Tile } from './image'
-import { evenly, ranking } from './compare'
+import { ensureViewFonts, loadStickers, paintCard, paintTiles, prepareCard, type FormatSlot, type ImagePack, type Tile } from './image'
+import { evenly, listColorHex, ranking } from './compare'
 import { diagramLayout, type Diagram } from './venn'
 
 export type CompareCardOpts = {
@@ -28,6 +30,10 @@ export type CompareCardOpts = {
   codes: string[]
   species: SpeciesIndex
   theme: 'light' | 'dark'
+  /** Default 'post'. */
+  format?: FormatSlot
+  /** No Paper fill (as the share images' Transparent background). */
+  transparent?: boolean
   t: Ui
   now?: Date
 }
@@ -95,7 +101,7 @@ function regionName(d: Diagram, mask: number, names: readonly string[], t: Ui): 
 export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> {
   const { t, species, names, sizes } = o
   const card = await prepareCard({
-    format: 'post', entries: [], species, theme: o.theme, strings: t, pack: NO_BIRDS, latest: false, countSize: 'hide', now: o.now,
+    format: o.format ?? 'post', entries: [], species, theme: o.theme, transparent: o.transparent, strings: t, pack: NO_BIRDS, latest: false, countSize: 'hide', now: o.now,
   })
   const order = ranking(sizes)
   const sample = `${names.join('')}${o.caption}${t.compare.both}${t.compare.everyone}${t.compare.only}0123456789,.`
@@ -148,31 +154,20 @@ export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> 
   const box = { x: X, y, w: CW, h: captionY - caption.px - 48 - y }
   const d = diagramLayout(o.counts, box)
   const circle = (c: { cx: number; cy: number; r: number }) => { ctx.beginPath(); ctx.arc(c.cx, c.cy, c.r, 0, Math.PI * 2) }
-  ctx.fillStyle = C.surface
-  for (const c of d.circles) { circle(c); ctx.fill() }
+  // Each circle a light wash of its list's colour (where circles overlap the washes add up) and a 4px outline in it.
+  const colour = d.circles.map((_, i) => listColorHex(i, C))
+  ctx.globalAlpha = 0.14
+  d.circles.forEach((c, i) => { ctx.fillStyle = colour[i]; circle(c); ctx.fill() })
+  ctx.globalAlpha = 1
+  ctx.lineWidth = 4
+  d.circles.forEach((c, i) => { ctx.strokeStyle = colour[i]; circle(c); ctx.stroke() })
   if (d.core) {
-    ctx.strokeStyle = C.ink
-    ctx.lineWidth = 4
-    for (const c of d.circles) { circle(c); ctx.stroke() }
+    // The flower's centre, every list's: Surface over the petals' inner ends, outlined in Ink.
     circle(d.core)
-    ctx.fillStyle = C.hairline
+    ctx.fillStyle = C.surface
     ctx.fill()
-    ctx.stroke()
-  } else {
-    // Where circles overlap: Hairline.
-    ctx.fillStyle = C.hairline
-    d.circles.forEach((a, i) => d.circles.forEach((b, j) => {
-      if (j <= i) return
-      ctx.save()
-      circle(a)
-      ctx.clip()
-      circle(b)
-      ctx.fill()
-      ctx.restore()
-    }))
     ctx.strokeStyle = C.ink
-    ctx.lineWidth = 4
-    for (const c of d.circles) { circle(c); ctx.stroke() }
+    ctx.stroke()
   }
   ctx.textAlign = 'center'
   for (const s of d.spots) {

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import linkIndex from '../data/link-index.json'
-import { addWithin, compareGroups, evenly, gridCols, groupPayload, linksIn, memberships, ranking, regionCounts, type GroupId } from '@/lib/share/compare'
+import {
+  compareGroups, evenly, gridCols, groupOfMask, groupPayload, linksIn, listColor, listColorHex, memberships, pasteRow, ranking, regionCounts, rowName,
+  type CompareRow, type GroupId,
+} from '@/lib/share/compare'
+import { SHARE_COLORS } from '@/lib/share/image'
 import { makeCompareLink } from '@/lib/share/make-link'
 import { payloadToRecords } from '@/lib/share/convert'
 import { buildList } from '@/lib/list/build-list'
@@ -155,28 +159,63 @@ describe('compareGroups', () => {
     const out = evenly(g, 4)
     expect(out).toEqual(['b0', 'b25', 'b50', 'b75'])
   })
-  it('the sticker grid: three across on phones, up to six on a wide column', () => {
+  it('the sticker grid, the page’s width: three across on phones, up to ten on a wide page', () => {
     expect(gridCols(280)).toBe(3)
     expect(gridCols(358)).toBe(3)
     expect(gridCols(460)).toBe(4)
-    expect(gridCols(580)).toBe(5)
     expect(gridCols(700)).toBe(6)
-    expect(gridCols(1200)).toBe(6)
+    expect(gridCols(1088)).toBe(9)
+    expect(gridCols(1400)).toBe(10)
+  })
+  it('a part of the diagram chooses its group: a list’s own birds, or every list’s; none for a part some lists share', () => {
+    expect([1, 2, 3, 0].map((m) => groupOfMask(m, 2))).toEqual([0, 1, 'all', null])
+    expect([1, 2, 4, 7, 3, 5, 6].map((m) => groupOfMask(m, 3))).toEqual([0, 1, 2, 'all', null, null, null])
+    expect(groupOfMask(63, 6)).toBe('all')
+    expect(groupOfMask(32, 6)).toBe(5)
+  })
+  it('each list’s colour: the tokens in CSS, the same mix in hex for the card, six apart', () => {
+    expect([0, 1, 2, 3].map(listColor)).toEqual(['var(--accent)', 'var(--ink)', 'var(--line)', 'color-mix(in srgb, var(--accent) 50%, var(--paper))'])
+    const light = [0, 1, 2, 3, 4, 5].map((i) => listColorHex(i, SHARE_COLORS.light))
+    expect(light.slice(0, 3)).toEqual([SHARE_COLORS.light.accent, SHARE_COLORS.light.ink, SHARE_COLORS.light.line])
+    // Accent half and half with Paper: #92140c and #f6f4ef.
+    expect(light[3]).toBe('#c4847e')
+    expect(new Set(light).size).toBe(6)
+    expect(new Set([0, 1, 2, 3, 4, 5].map((i) => listColorHex(i, SHARE_COLORS.dark))).size).toBe(6)
   })
 })
 
-describe('addWithin', () => {
-  const L = (name: string): SharePayload => ({ v: 1, name, birds: [{ code: C(1) }] })
-  const names = (ls: SharePayload[]) => ls.map((l) => l.name)
-  it('keeps the held lists and as many new ones as the room takes, counting the rest', () => {
-    const r = addWithin([L('a'), L('b')], [L('c'), L('d'), L('e'), L('f')], COMPARE_MAX - 1)
-    expect(names(r.lists)).toEqual(['a', 'b', 'c', 'd', 'e'])
-    expect(r.over).toBe(1)
+describe('pasteRow', () => {
+  const L = (name: string): SharePayload => ({ v: 1, name, titled: true, birds: [{ code: C(1) }] })
+  const link = (p: SharePayload) => `${SHARE_ORIGIN}/s/${encodeShare(p).token}`
+  let next = 10
+  const codec = { decode: decodeShare, decodeC: decodeCompare, link, id: () => next++ }
+  const blank = (id: number): CompareRow => ({ id, text: '', list: null })
+  const names = (rows: CompareRow[]) => rows.map(rowName)
+  it('one link fills its row and its name from the link; a typed name stays; text without a link empties the row', () => {
+    const r = pasteRow([blank(1)], 0, `look: ${link(L('Sam'))}`, 5, codec)
+    expect(r).toMatchObject({ bad: 0, over: 0 })
+    expect(r.rows[0]).toMatchObject({ id: 1, text: `look: ${link(L('Sam'))}` })
+    expect(names(r.rows)).toEqual(['Sam'])
+    const typed = pasteRow([{ ...blank(1), name: 'Samuel' }], 0, link(L('Sam')), 5, codec)
+    expect(names(typed.rows)).toEqual(['Samuel'])
+    expect(pasteRow(r.rows, 0, 'hello', 5, codec).rows[0]).toEqual({ id: 1, text: 'hello', list: null })
+    expect(pasteRow([blank(1)], 0, `${SHARE_ORIGIN}/s/1broken`, 5, codec)).toMatchObject({ bad: 1, rows: [{ list: null }] })
   })
-  it('adds nothing to a full page, and everything while there is room', () => {
+  it('several links fill that row, the blank rows after it, then new rows, a link each, keeping the filled rows', () => {
+    const ada = { id: 2, text: link(L('Ada')), list: L('Ada') }
+    const rows = [blank(1), blank(3), ada, blank(4)]
+    const r = pasteRow(rows, 0, [L('A'), L('B'), L('C'), L('D')].map(link).join(' '), 5, codec)
+    expect(r.rows.map((x) => x.id)).toEqual([1, 3, 4, 10, 2])
+    expect(names(r.rows)).toEqual(['A', 'B', 'C', 'D', 'Ada'])
+    expect(r.rows[1].text).toBe(link(L('B')))
+    expect(r.over).toBe(0)
+  })
+  it('a comparison link fills a row per list, within the room, counting the rest', () => {
     const six = ['a', 'b', 'c', 'd', 'e', 'f'].map(L)
-    expect(addWithin(six, [L('g')], COMPARE_MAX)).toEqual({ lists: six, over: 1 })
-    expect(addWithin([], [L('a'), L('b')], COMPARE_MAX)).toEqual({ lists: [L('a'), L('b')], over: 0 })
+    const r = pasteRow([blank(1), blank(2)], 1, `${SHARE_ORIGIN}/c/${encodeCompare(six).token}`, 5, codec)
+    expect(names(r.rows)).toEqual(['', 'a', 'b', 'c', 'd'])
+    expect(r.over).toBe(2)
+    expect(pasteRow([blank(1)], 0, `${SHARE_ORIGIN}/c/${encodeCompare(six).token}`, 6, codec).over).toBe(0)
   })
 })
 
