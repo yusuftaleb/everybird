@@ -352,6 +352,7 @@ export const EN_UI = {
     regions: {
       latam: 'Latin America & Caribbean',
       me: 'Middle East',
+      mena: 'Middle East & North Africa',
       'northern-africa': 'Northern Africa',
       'eastern-africa': 'Eastern Africa',
       'middle-africa': 'Middle Africa',

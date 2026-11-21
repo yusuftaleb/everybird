@@ -277,6 +277,7 @@ export const da: Messages = {
       regions: {
         latam: 'Latinamerika og Caribien',
         me: 'Mellemøsten',
+        mena: 'Mellemøsten og Nordafrika',
         'northern-africa': 'Nordafrika',
         'eastern-africa': 'Østafrika',
         'middle-africa': 'Centralafrika',

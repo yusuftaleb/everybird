@@ -287,6 +287,7 @@ export const ru: Messages = {
       regions: {
         latam: 'Латинская Америка и Карибский бассейн',
         me: 'Ближний Восток',
+        mena: 'Ближний Восток и Северная Африка',
         'northern-africa': 'Северная Африка',
         'eastern-africa': 'Восточная Африка',
         'middle-africa': 'Центральная Африка',

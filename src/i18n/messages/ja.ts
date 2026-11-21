@@ -277,6 +277,7 @@ export const ja: Messages = {
       regions: {
         latam: 'ラテンアメリカ・カリブ海地域',
         me: '中東',
+        mena: '中東・北アフリカ',
         'northern-africa': '北アフリカ',
         'eastern-africa': '東アフリカ',
         'middle-africa': '中部アフリカ',

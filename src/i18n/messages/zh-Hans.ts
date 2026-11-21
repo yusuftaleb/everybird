@@ -277,6 +277,7 @@ export const zhHans: Messages = {
       regions: {
         latam: '拉丁美洲和加勒比',
         me: '中东',
+        mena: '中东和北非',
         'northern-africa': '北非',
         'eastern-africa': '东非',
         'middle-africa': '中非',

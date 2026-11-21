@@ -279,6 +279,7 @@ export const nl: Messages = {
       regions: {
         latam: 'Latijns-Amerika en het Caribisch gebied',
         me: 'Midden-Oosten',
+        mena: 'Midden-Oosten en Noord-Afrika',
         'northern-africa': 'Noord-Afrika',
         'eastern-africa': 'Oost-Afrika',
         'middle-africa': 'Centraal-Afrika',
