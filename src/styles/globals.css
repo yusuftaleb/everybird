@@ -10,6 +10,9 @@ html {
   -webkit-text-size-adjust: 100%;
   /* Anchor jumps (/settings#sources, /about#credits) and scrollIntoView land below the sticky top bar, shown or not. */
   scroll-padding-top: var(--topbar-h);
+  /* Always keep the scrollbar's room: with scrollbars always shown, a filter that makes the page shorter than the window
+     would drop the scrollbar and shift everything sideways by its width, then back (Yusuf, 2026-11-20). */
+  scrollbar-gutter: stable;
 }
 
 body {
