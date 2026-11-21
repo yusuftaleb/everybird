@@ -128,7 +128,8 @@ button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-fan-label[data-hot] .eb-t
 .eb-tree-fan-label[data-hot] { z-index: 1; }
 .eb-tree-fan-label[data-focus] .eb-tree-fan-text { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .eb-tree-fan-st { flex: none; display: flex; align-items: center; justify-content: center; width: var(--tree-st); height: var(--tree-st); }
-.eb-tree-fan-label .eb-tree-mark { margin: 0 1px; }
+/* The mark shrinks with the names under the floor (fitRound counts it in the label's units, MARK_W). */
+.eb-tree-fan-label .eb-tree-mark { margin: 0 calc(var(--tree-px) / 13); width: calc(var(--tree-px) * 7 / 13); height: calc(var(--tree-px) * 7 / 13); border-width: calc(var(--tree-px) * 1.5 / 13); }
 /* The groups inside a marked tip, right after its mark, at the label's size. */
 .eb-tree-fan-label .eb-tree-other { font-size: inherit; }
 .eb-tree-fan-label .eb-tree-other [lang="la"] { font-style: italic; }

@@ -24,10 +24,11 @@ export type TipRank = 'orders' | 'families' | 'genera' | 'species'
 export const RANKS: readonly TipRank[] = ['orders', 'families', 'genera', 'species']
 /** The most tips a skip past lone tips may reach (after Lifers only); past it the rank above is drawn. */
 export const MAX_TIPS = 300
-/** The most tips a rank picked in Down to may draw on screen (after Lifers only); past it the rank is offered off.
- *  Measured (round 6): the rows' first render grows about linearly, 0.45 s in jsdom for All birds' 1,970 genera, the
- *  largest rank it lets through, 1.4 s for Perching birds' 6,738 species, which it keeps off with All birds' 11,193. */
-export const DRAW_CAP = 2000
+/** The most tips a rank picked in Level may draw on screen (after Lifers only); past it the rank is offered off, with
+ *  its reason. Only what can be named (Yusuf, 2026-11-21: All birds' 2,379 genera drew as an unreadable fan): at the top
+ *  orders and families (about 250); in Perching birds its 143 families, not its 1,000-odd genera; in any other order,
+ *  or any family, every rank (the largest family has about 440 species). Was 2,000, a render-time bound. */
+export const DRAW_CAP = 500
 
 /** Which branch is open (none, an order, a family, a family's genus: each step also names the ones above it, for the
  *  path). A value carried from before (a `tips` rank) is ignored. */

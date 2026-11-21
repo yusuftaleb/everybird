@@ -157,7 +157,7 @@ describe("Down to: the rank drawn at the least, the Display panel's (round 6)", 
   }
   const idx = buildSpeciesIndex(rs)
   const t = parseNewick(`(${nwkOf('Big')},${nwkOf('Wee')});`)
-  expect(DRAW_CAP).toBe(2000)
+  expect(DRAW_CAP).toBe(500) // only what can be named (Yusuf, 2026-11-21)
   it('offers the ranks under the open branch down to the species: all four at All birds, three in an order, two in a family, none in a genus', () => {
     expect(downOptions(levelView(t, idx, {}, none)!, false).map((o) => o.rank)).toEqual(['orders', 'families', 'genera', 'species'])
     expect(downOptions(levelView(t, idx, { ord: 'Big' }, none)!, false).map((o) => o.rank)).toEqual(['families', 'genera', 'species'])
