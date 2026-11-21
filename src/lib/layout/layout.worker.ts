@@ -3,7 +3,7 @@
 // Protocol (structured-clone friendly):
 //   main -> worker  { type: 'setList', id, entries: [{ code, mass, ord }] }
 //                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit?, oval?, free? }
-//                   { type: 'image', id, entries: [{ code, mass, ord }], aspect, hole?, maxTile?, captions?, oval?, free? }
+//                   { type: 'image', id, entries: [{ code, mass, ord }], aspect, hole?, maxTile?, captions?, oval?, free?, trueSize? }
 //                                                             (share images; no setList needed)
 //   worker -> main  { type: 'ready', id }                      (setList done: masks loaded)
 //                   { type: 'result', id, key, layout, mode, base, W, H, codes, boxes }
@@ -37,7 +37,7 @@ export type WorkerRequest =
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
       refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean; oval?: boolean; free?: boolean
     }
-  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number; captions?: { w: number; h: number; ring?: number }[]; oval?: boolean; free?: boolean }
+  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number; captions?: { w: number; h: number; ring?: number }[]; oval?: boolean; free?: boolean; trueSize?: boolean }
 export type WorkerReply =
   | { type: 'ready'; id: number }
   | {
@@ -118,7 +118,7 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
         const captions = msg.captions
           ? new Map(codes.map((c, i) => [birds.get(c)!.id, msg.captions![i]]))
           : undefined
-        const r = packFrame([...birds.values()], msg.aspect, { hole: msg.hole, maxTile: msg.maxTile, captions, ...(msg.oval ? { oval: true } : {}), ...(msg.free ? { free: true } : {}) })
+        const r = packFrame([...birds.values()], msg.aspect, { hole: msg.hole, maxTile: msg.maxTile, captions, ...(msg.oval ? { oval: true } : {}), ...(msg.free ? { free: true } : {}), ...(msg.trueSize ? { mode: 'true' as const } : {}) })
         const boxes = new Float32Array(codes.length * 4)
         codes.forEach((c, i) => boxes.set(r.boxes.get(birds.get(c)!.id)!, i * 4))
         return { type: 'image', id: msg.id, W: r.W, H: r.H, codes, boxes }

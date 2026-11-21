@@ -57,9 +57,10 @@
    No scrolling on a laptop with everything closed (Yusuf, 2026-11-20; round 6): from 1200px the controls' column is
    480px; a 1440 × 830 window leaves the body 830 − 124 (the scrim's 16px above and below, then the dialog's chrome,
    --chrome-h: its border, padding, head and gap, 92) = 706px, and the tallest column with everything closed, the collage poster once made with a
-   status line and the filters line, takes 670: the top row 40, 12, the title 64 (its label's 18px line, 6, the 40px
-   field), 8, the filters line 36 (under the title since P12), 8, the list 273 (the size 45, then Arrangement, Appearance
-   and Count, 40 each, Show latest lifer, Show species names and Transparent background, 36 each), 8, Export in batches'
+   status line, the filters line and its names in scientific form, takes 706: the top row 40, 12, the title 64 (its label's
+   18px line, 6, the 40px field), 8, the filters line 36 (under the title since P12), 8, the list 309 (the size 45, then
+   Arrangement (True size beside it, no row of its own), Appearance and Count, 40 each, Show latest lifer, Show species
+   names, Scientific names (shown with the names) and Transparent background, 36 each), 8, Export in batches'
    row 36 in its box's 1px border, 38, 12, the actions 88 (Download PNG and Download PDF, then Copy link), the status
    12 + 21, the coffee button 12 + 38. Print has no Goal. Rows
    are 36px with a mouse (40 with a segmented control), 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css still
@@ -251,6 +252,7 @@
   .eb-share .eb-share-opt { min-height: 36px; }
   /* A row holding a segmented control is 40px, so its 30px box has about the air a switch's track has (round 6). */
   .eb-share .eb-share-opt:has(> .eb-share-seg) { min-height: 40px; }
+  .eb-share .eb-share-opt:has(> .eb-share-optctl) { min-height: 40px; }
   .eb-share-input, .eb-share-actions .eb-btn { min-height: 40px; }
 }
 /* Narrow columns (tests/share-fit.test.ts): the 300px column keeps every switch's label on its line at 15px; a 320px
@@ -264,6 +266,12 @@
   .eb-share .eb-share-seg .eb-seg-btn { padding: 0 4px; font-size: 12px; }
 }
 .eb-share-optlabel { min-width: 0; }
+/* A row's control and a switch beside it (Arrangement and True size): at the right, the switch after the choice; where
+   they don't fit beside the label they take its next line together, wrapping between them only if they must. */
+.eb-share-optctl { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 16px; min-width: 0; margin-inline-start: auto; }
+/* That switch: the dialog's switch, its words at the dropdowns' 15px, never wrapped; on touch its press is 44px tall. */
+.eb-share .eb-share-minisw { align-self: center; gap: 8px; font-size: 15px; white-space: nowrap; }
+@media (pointer: coarse) { .eb-share .eb-share-minisw { min-height: 44px; } }
 /* The choices in the rows (Arrangement, Appearance, Count or Totals): the format control's look, small: 26px segments in a 2px
    inset and a 1px border, 32px in all, in a 40px row with a mouse (round 6: the air a switch has); on touch 32px drawn with a 44px press. Words
    at 14px on one line, never wrapped; the padding tightens under 400px of column and the words take 12px under 290px

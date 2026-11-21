@@ -221,6 +221,18 @@ describe('the option rows and Print\'s actions', () => {
     // Where the full basis doesn't fit (a 320px phone), the shrunk control is its no-basis width, which the test above
     // keeps inside every column.
   })
+  it('keeps True size beside Arrangement\'s choice and its label at the 480px column in every language, so the row stays 40px', () => {
+    // .eb-share-optctl: the three icon segments (18px icons, 10px padding), 16px, the switch (15px words, 8px, the 34px track).
+    expect(css).toMatch(/\.eb-share-optctl \{[^}]*gap: 4px 16px;/)
+    expect(css).toMatch(/\.eb-share \.eb-share-minisw \{[^}]*gap: 8px; font-size: 15px; white-space: nowrap;/)
+    const icons = 2 + 2 * 2 + 2 * 2 + 3 * (2 * 10 + 18)
+    const over: string[] = []
+    for (const [lang, m] of Object.entries(LANG)) {
+      const need = measured(m.ui.share.arrange.label, 16) + 16 + icons + 16 + measured(m.ui.collage.controls.trueSize, 15) + 8 + 34
+      if (need > COLUMNS.laptop) over.push(`${lang}: ${Math.ceil(need)}px`)
+    }
+    expect(over).toEqual([])
+  })
   it('keeps each choice beside its label at the 480px column in every language, so a 1440 × 830 window\'s rows stay 36px (tests/share-layout.test.ts)', () => {
     // .eb-share-opt: the label (16/500), a 16px gap, the control; under it only where the two don't fit.
     expect(css).toMatch(/\.eb-share \.eb-share-opt \{[^}]*gap: 4px 16px;/)

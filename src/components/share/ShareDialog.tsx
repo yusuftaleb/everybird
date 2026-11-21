@@ -16,7 +16,9 @@
 // choices as small segmented controls (Arrangement: Fit, Oval or Free, or the Tree's Fan, Radial or Rectangular, one that can't
 // name every tip off with its reason; Appearance: Light or Dark; Count: Hide, S, M, L or Beside title, under its label
 // where it doesn't fit beside it), the switches one to a row (Show latest lifer, the poster's Show species names, the
-// Tree's Lifers only and Show oldest lineage, Transparent background) and Share's Goal last; the Tree's and the Map's
+// Tree's Lifers only and Show oldest lineage, the collage's Scientific names under the row it changes, Transparent
+// background) and Share's Goal last; the collage's True size is a switch in the Arrangement row (both the screen's own
+// settings, as the Tree's rows); the Tree's and the Map's
 // Totals sit with the choices: one toggle chip per total its image draws (aria-pressed, the segments' look), each on or
 // off, all on at every open. Under the list Export in batches, a row in a Surface panel that opens in place: a ZIP of one image (PNG, the
 // dialog's format and options) or one poster per group, by the Split by choices (Number of birds first, with Birds per
@@ -89,7 +91,7 @@ import type { makeShareLink as MakeShareLink } from '@/lib/share/make-link'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
-import type { Regions } from '@/lib/species/types'
+import type { Regions, SpeciesRow } from '@/lib/species/types'
 import type { ViewKind } from '@/lib/view-resume'
 import type { ShareAt, TotalKey, ViewImageOpts } from '@/lib/share/view-image'
 import '@/components/app/app.css'
@@ -351,6 +353,13 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const withLatest = hasLatest && showLatest && !viewImage
   // Packed or Oval (kept per device): how the collage, the images and the poster place the birds (the controls bar sets it too).
   const arrangement = useArrangement()
+  // True size and Scientific names are the screen's own settings (the Tree's rule: a dialog row is the screen's setting,
+  // a change here changes the screen too). True size packs the collage's images and posters at true sizes, as the page
+  // does; Scientific names puts the scientific name on the latest lifer's line and in a poster's names (the collage's;
+  // the Tree reads `sci` itself).
+  const trueSize = state.mode === 'true'
+  const setTrueSize = (on: boolean) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })
+  const nameOf = useMemo(() => (sci && !viewImage ? (r: SpeciesRow) => r.sci : displayName), [sci, viewImage])
   const cardFormat: CardFormat = print ? (landscape ? 'printLandscape' : 'print') : shape
   const trimmed = name.trim()
   const hasTitle = !!trimmed
@@ -362,20 +371,20 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     let live = true
     const sample = cardEntries.map((e) => {
       const r = species.byCode.get(e.code)
-      return r ? displayName(r) : ''
+      return r ? nameOf(r) : ''
     }).join('')
     void ensureCaptionFont(captionMinPx(size), sample).then(() => {
       if (live) setFontsTick((n) => n + 1)
     })
     return () => { live = false }
-  }, [rows.names, overCap, size, cardEntries, species, lang, names])
+  }, [rows.names, overCap, size, cardEntries, species, lang, names, nameOf])
   const captionPlan = useMemo(() => {
     if (!rows.names || overCap) return null
     const L = cardLayout(cardFormat, { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target, countSize }, printDesign(size, landscape))
-    return planCaptions(cardEntries, species, size, L.collage.w, displayName, captionMeasurer())
+    return planCaptions(cardEntries, species, size, L.collage.w, nameOf, captionMeasurer())
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names`, `lang`, `fontsTick` trigger recheck for `displayName` and loaded Satoshi metrics
-  }, [rows.names, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, countSize, size, landscape, species, names, lang, fontsTick])
-  const namesCheckKey = `${cardFormat}|${arrangement}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${countSize}|${lang}|${names}|${fk}|${goalKey}|${fontsTick}`
+  }, [rows.names, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, countSize, size, landscape, species, names, lang, fontsTick, nameOf])
+  const namesCheckKey = `${cardFormat}|${arrangement}|${trueSize}|${sci}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${countSize}|${lang}|${names}|${fk}|${goalKey}|${fontsTick}`
   const namesFitFailed = namesFitFailKey === namesCheckKey
   const namesAvailable = !overCap && !!captionPlan?.ok && !namesFitFailed
   const effectiveShowNames = rows.names && showNames && namesAvailable
@@ -412,14 +421,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       const k = `${f}|${named}|${isPrint(f) ? `${printPackH(printSize)}|${f === 'print' && latest}` : latest}|${cs}|${hasPlan ? `${printSize}|plan${planId(plan)}` : ''}`
       let p = packs.get(k)
       if (!p) {
-        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined, arrangement)
+        const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined, arrangement, trueSize)
         p = packForImage(cardEntries, species, spec, signal ?? life.current?.signal)
         packs.set(k, p)
         p.catch(() => packs.delete(k))
       }
       return p
     }
-  }, [cardEntries, species, cardLabel, cardGoal, arrangement])
+  }, [cardEntries, species, cardLabel, cardGoal, arrangement, trueSize])
   useEffect(() => {
     if (!rows.names || overCap || !captionPlan?.ok) return
     let live = true
@@ -473,7 +482,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // Try again (a failed render, stickers that didn't load) renders the same image anew: `retry` is in the key.
   const [retry, setRetry] = useState(0)
   const renderAgain = () => setRetry((n) => n + 1)
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}|${retry}`
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trueSize}|${sci}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}|${retry}`
   // The filters leave no birds and no goal is drawn (H8): the box says so, with Clear filters, instead of a "0 SPECIES"
   // card; nothing renders, and Share image, Download and Make poster are off with that reason. A goal's "0 / 300" stays.
   const empty = !compare && !!fk && cardEntries.length === 0 && !cardGoal
@@ -508,7 +517,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       .then(async () => {
         const opts = {
           format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
-          theme, transparent, latest: withLatest, countSize, strings: t, nameOf: displayName, regions: named, signal: life.current?.signal,
+          theme, transparent, latest: withLatest, countSize, strings: t, nameOf, regions: named, signal: life.current?.signal,
         }
         const png = (b: Blob): Rendered => ({ blob: () => Promise.resolve(b) })
         if (compare) return png(await compare.draw(what, { format, theme, transparent }))
@@ -603,7 +612,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
 
   // The poster: one make at a time, for `posterKey`. A new key or closing the dialog cancels the make and drops the
   // poster (its encoder ends with it). Export in batches' ZIP is cancelled by a new key too (in Share, `key`: the image's).
-  const posterKey = print ? `print|${viewKey}|${arrangement}|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}` : key
+  const posterKey = print ? `print|${viewKey}|${arrangement}|${trueSize}|${sci}|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}` : key
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   // Export in batches: closed until its row is pressed (or the names note's "export in batches").
@@ -731,7 +740,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     try {
       const mod = await (posterModule.current ?? loadPoster())
       const progress = (done: number, total: number) => { if (!ctl.signal.aborted) setMaking({ key: forKey, done, total }) }
-      const common = { entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, latest: withLatest, countSize, theme, transparent, strings: t, nameOf: displayName, regions: named }
+      const common = { entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, latest: withLatest, countSize, theme, transparent, strings: t, nameOf, regions: named }
       let p: Poster
       if (viewImage) {
         // The Tree or the Map as on screen, drawn at the poster's size (makeViewPoster).
@@ -803,7 +812,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           species,
           image: {
             format: shape, name: trimmed || undefined, filterLabel: cardLabel, goal: cardGoal, latest: withLatest, countSize, theme, transparent,
-            arrangement, strings: t, nameOf: displayName, regions: named, signal: ctl.signal,
+            arrangement, trueSize, strings: t, nameOf, regions: named, signal: ctl.signal,
           },
           onProgress,
         })
@@ -813,7 +822,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         if (effectiveShowNames) {
           const sample = bulkList.flatMap((g) => g.entries).map((e) => {
             const r = species.byCode.get(e.code)
-            return r ? displayName(r) : ''
+            return r ? nameOf(r) : ''
           }).join('')
           await ensureCaptionFont(captionMinPx(size), sample)
           if (ctl.signal.aborted) return
@@ -825,10 +834,10 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           species,
           poster: {
             size, landscape, showNames: effectiveShowNames, name: trimmed || undefined, filterLabel: cardLabel, goal: cardGoal, latest: withLatest,
-            countSize, theme, transparent, strings: t, nameOf: displayName, regions: named, signal: ctl.signal,
+            countSize, theme, transparent, strings: t, nameOf, regions: named, signal: ctl.signal,
           },
           packSpec: (entries) => bulkPackSpec(entries, {
-            size, landscape, named: !!trimmed, latest: withLatest, countSize, target: cardGoal?.target, showNames: effectiveShowNames, species, nameOf: displayName, measure, arrangement,
+            size, landscape, named: !!trimmed, latest: withLatest, countSize, target: cardGoal?.target, showNames: effectiveShowNames, species, nameOf, measure, arrangement, trueSize,
           }),
           onProgress,
           deps: { makePoster: mod.makePoster },
@@ -1213,13 +1222,25 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         )
       case 'arrangement':
         // Two icon buttons, named and titled Fit and Oval: no label to wrap in any language.
-        return optRow(r, arrangeId, t.share.arrange.label, segmented({
-          className: 'eb-share-seg', labelledBy: arrangeId, value: arrangement, pick: setArrangement, testId: 'share-arrangement',
-          options: ARRANGEMENTS.map((a) => {
-            const Glyph = ARRANGE_ICON[a]
-            return { value: a, label: <Glyph aria-hidden="true" focusable="false" />, name: t.share.arrange[a], title: t.share.arrange[a] }
-          }),
-        }))
+        // True size beside it (the collage, Share and Print): it changes how the birds are placed too, and in this row it
+        // takes no height (the 1440 × 830 budget, share.css). The screen's own setting.
+        return optRow(r, arrangeId, t.share.arrange.label, (
+          <span className="eb-share-optctl">
+            {segmented({
+              className: 'eb-share-seg', labelledBy: arrangeId, value: arrangement, pick: setArrangement, testId: 'share-arrangement',
+              options: ARRANGEMENTS.map((a) => {
+                const Glyph = ARRANGE_ICON[a]
+                return { value: a, label: <Glyph aria-hidden="true" focusable="false" />, name: t.share.arrange[a], title: t.share.arrange[a] }
+              }),
+            })}
+            {rows.trueSize && (
+              <button type="button" role="switch" aria-checked={trueSize} className="eb-switch eb-share-switch eb-share-minisw" data-testid="share-true-size" onClick={() => setTrueSize(!trueSize)}>
+                <span>{t.collage.controls.trueSize}</span>
+                <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+              </button>
+            )}
+          </span>
+        ))
       case 'treeLayout':
         return optRow(r, treeLayoutId, t.share.arrange.label, segmented({
           className: 'eb-share-seg', labelledBy: treeLayoutId, value: treeLayout, pick: pickTreeLayout, testId: 'share-tree-layout',
@@ -1274,7 +1295,10 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       case 'timeScale':
         return switchRow(timeScale, t.collage.controls.timeScale, () => setTreeTime(!timeScale), 'share-tree-time')
       case 'sci':
-        return switchRow(sci, t.collage.controls.sciNames, () => dispatch({ type: 'sci', sci: !sci }), 'share-tree-sci')
+        // The collage's: in Share under Show latest lifer and only while it is on (the lifer's line), in Print under Show
+        // species names and only while they are on (the captions); hidden, it keeps its value (the screen's).
+        if (subject === 'collage' && !(print ? effectiveShowNames : withLatest)) return null
+        return switchRow(sci, t.collage.controls.sciNames, () => dispatch({ type: 'sci', sci: !sci }), subject === 'tree' ? 'share-tree-sci' : 'share-sci')
       case 'oldest':
         return switchRow(showOldest, t.collage.tree.showOldest, () => setShowOldest((v) => !v), 'share-tree-oldest')
       case 'transparent':

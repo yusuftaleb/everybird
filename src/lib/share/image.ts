@@ -414,7 +414,8 @@ export function cardDims(format: CardFormat, size: PrintSize = 'A2'): [number, n
 
 /** What the layout worker packs for: the collage frame's aspect and the hole as fractions of the frame's width. */
 /** `oval` and `free`: the share dialog's Oval and Free (arrangement.ts); both left out for Fit. */
-export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number }>; oval?: true; free?: true }
+/** `trueSize`: packed at true sizes, as the page's True size (the dialog's switch, its screen setting). */
+export type PackSpec = { aspect: number; hole: Hole; maxTile: number; captionBoxes?: Record<string, { w: number; h: number }>; oval?: true; free?: true; trueSize?: true }
 export function packSpec(L: CardLayout): PackSpec {
   const { w, h } = L.collage
   // The tile cap the drawing keeps (maxTileSide: the share, and the sticker files' sharp size), so the pack is made at the
@@ -475,7 +476,7 @@ export function packForImage(entries: ListEntry[], species: SpeciesIndex, spec: 
     }
     w.onerror = (e) => { done(); reject(new Error(`layout worker failed: ${e.message ?? 'error'}`)) }
     const captions = spec.captionBoxes ? birds.map((b) => spec.captionBoxes![b.code] ?? { w: 0, h: 0 }) : undefined
-    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}), ...(spec.oval ? { oval: true } : {}), ...(spec.free ? { free: true } : {}) }
+    const msg: WorkerRequest = { type: 'image', id: 1, entries: birds, aspect: spec.aspect, hole: spec.hole, maxTile: spec.maxTile, ...(captions ? { captions } : {}), ...(spec.oval ? { oval: true } : {}), ...(spec.free ? { free: true } : {}), ...(spec.trueSize ? { trueSize: true } : {}) }
     w.postMessage(msg)
   })
 }
@@ -501,9 +502,9 @@ export const abortError = (message = 'share image cancelled') => {
  * Without the latest lifer row (the dialog's "Show latest lifer" off, or no dated bird) the frame is the taller one that
  * takes the row's room and its gap (round 6: the with-row pack fitted into it left an empty band above and below).
  */
-export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSize, captionPlan?: Extract<CaptionPlan, { ok: true }>, arrangement: Arrangement = 'packed'): PackSpec {
+export function imagePackSpec(format: CardFormat, c: CardContent, size?: PrintSize, captionPlan?: Extract<CaptionPlan, { ok: true }>, arrangement: Arrangement = 'packed', trueSize = false): PackSpec {
   const L = cardLayout(format, c, cardDims(format, size))
-  const spec: PackSpec = { ...packSpec(L), ...(arrangement === 'oval' ? { oval: true } : arrangement === 'free' ? { free: true } : {}) }
+  const spec: PackSpec = { ...packSpec(L), ...(arrangement === 'oval' ? { oval: true } : arrangement === 'free' ? { free: true } : {}), ...(trueSize ? { trueSize: true } : {}) }
   if (!captionPlan) return spec
   const captionBoxes: NonNullable<PackSpec['captionBoxes']> = {}
   for (const [code, entry] of captionPlan.byCode) {
@@ -818,6 +819,8 @@ export type ShareImageOpts = {
   showNames?: boolean
   /** How the birds are placed (default Packed); used when `pack` is not given. */
   arrangement?: Arrangement
+  /** Packed at true sizes (the page's True size); used when `pack` is not given. */
+  trueSize?: boolean
   signal?: AbortSignal
 }
 
@@ -1033,7 +1036,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
     captionPlan = planCaptions(shown, species, printSize, L.collage.w, opts.nameOf, captionMeasurer())
   }
   // Packed for the format's own frame (the print: at its shape's printPackH, one pack for every A size, as imagePackSpec).
-  let pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined, opts.arrangement), signal))
+  let pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined, opts.arrangement, opts.trueSize), signal))
   if (signal?.aborted) throw abortError()
 
   // A tile's sticker: the share images' 128/384 by its size; the print's by its device px (1024 with the 384 fallback).
@@ -1046,7 +1049,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const area = L.collage
   const capFit = captionPlan?.ok ? fitCaptionPack(pack, shown, format, content, printSize, captionPlan) : undefined
   if (capFit && !capFit.ok && !opts.pack) {
-    pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, undefined, opts.arrangement), signal)
+    pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, undefined, opts.arrangement, opts.trueSize), signal)
     if (signal?.aborted) throw abortError()
   }
   const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide))

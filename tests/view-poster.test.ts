@@ -26,12 +26,12 @@ describe('dialogRows: what each dialog shows', () => {
   })
   it('the Tree: its Arrangement, Show oldest lineage, Lifers only, Time scale and Totals (species, genera, families, orders), the same in Print (round 6, item 22: no rank of its own; item 23: no orientation switch, its arrangement picks it); the Map: Totals (species, countries) and the orientation switch; neither has sticker options or Export in batches, in Share or Print', () => {
     for (const print of [false, true]) {
-      expect(dialogRows('tree', print)).toEqual({ what: false, orientation: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: true, oldest: true, timeScale: true, sci: true, names: false, lifersOnly: true, totals: ['species', 'genera', 'families', 'orders'], bulk: false, batchSize: false, splits: [] })
-      expect(dialogRows('map', print)).toEqual({ what: false, orientation: true, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, oldest: false, timeScale: false, sci: false, names: false, lifersOnly: false, totals: ['species', 'countries'], bulk: false, batchSize: false, splits: [] })
+      expect(dialogRows('tree', print)).toEqual({ what: false, orientation: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: true, oldest: true, timeScale: true, sci: true, trueSize: false, names: false, lifersOnly: true, totals: ['species', 'genera', 'families', 'orders'], bulk: false, batchSize: false, splits: [] })
+      expect(dialogRows('map', print)).toEqual({ what: false, orientation: true, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, oldest: false, timeScale: false, sci: false, trueSize: false, names: false, lifersOnly: false, totals: ['species', 'countries'], bulk: false, batchSize: false, splits: [] })
     }
   })
   it('Compare: What, and only the rows a comparison draws (no sticker options, Goal, Count, latest lifer, totals or batches)', () => {
-    expect(dialogRows('compare', false)).toEqual({ what: true, orientation: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, oldest: false, timeScale: false, sci: false, names: false, lifersOnly: false, totals: [], bulk: false, batchSize: false, splits: [] })
+    expect(dialogRows('compare', false)).toEqual({ what: true, orientation: false, arrangement: false, count: false, goal: false, latest: false, treeLayout: false, oldest: false, timeScale: false, sci: false, trueSize: false, names: false, lifersOnly: false, totals: [], bulk: false, batchSize: false, splits: [] })
     expect(optionRows(dialogRows('compare', false), false)).toEqual(['what', 'colours', 'transparent'])
   })
 })
@@ -52,8 +52,11 @@ describe('dialogTitle: the title names what is shared (round 6)', () => {
 
 describe('optionRows: the options list\'s order (round 6)', () => {
   it('Share\'s collage: the choices, the switches, then the Goal; Print\'s: the size first and the names switch, no Goal', () => {
-    expect(optionRows(dialogRows('collage', false), false)).toEqual(['arrangement', 'colours', 'count', 'latest', 'transparent', 'goal'])
-    expect(optionRows(dialogRows('collage', true), true)).toEqual(['size', 'arrangement', 'colours', 'count', 'latest', 'names', 'transparent'])
+    // Scientific names under the row it changes (the dialog shows it only while that row is on); True size is in Arrangement's row.
+    expect(optionRows(dialogRows('collage', false), false)).toEqual(['arrangement', 'colours', 'count', 'latest', 'sci', 'transparent', 'goal'])
+    expect(optionRows(dialogRows('collage', true), true)).toEqual(['size', 'arrangement', 'colours', 'count', 'latest', 'names', 'sci', 'transparent'])
+    expect(dialogRows('collage', false).trueSize).toBe(true)
+    expect(dialogRows('collage', true).trueSize).toBe(true)
   })
   it('the Tree: its Arrangement, Appearance, Totals, then Lifers only, Time scale, Scientific names (round 6, the Tree brief item 12), Show oldest lineage and Transparent background (in Print, the size first and no rank row: item 22); the Map: Appearance, Totals, Transparent background', () => {
     expect(optionRows(dialogRows('tree', false), false)).toEqual(['treeLayout', 'colours', 'totals', 'lifersOnly', 'timeScale', 'sci', 'oldest', 'transparent'])

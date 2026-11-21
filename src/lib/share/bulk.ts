@@ -249,16 +249,17 @@ type BulkPackOpts = {
   nameOf?: (row: SpeciesRow) => string
   measure?: TextMeasurer
   arrangement?: Arrangement
+  trueSize?: boolean
 }
 
 /** What to pack for one group's poster (every poster has its group's label line), with names planned for its own birds. */
 export function bulkPackSpec(entries: ListEntry[], o: BulkPackOpts): PackSpec {
   const format: CardFormat = o.landscape ? 'printLandscape' : 'print'
   const content = { name: o.named, filter: true, latest: o.latest !== false, count: entries.length, target: o.target, countSize: o.countSize }
-  if (!o.showNames) return imagePackSpec(format, content, o.size, undefined, o.arrangement)
+  if (!o.showNames) return imagePackSpec(format, content, o.size, undefined, o.arrangement, o.trueSize)
   const L = cardLayout(format, content, printDesign(o.size, o.landscape))
   const plan = planCaptions(entries, o.species, o.size, L.collage.w, o.nameOf, o.measure)
-  return imagePackSpec(format, content, o.size, plan.ok ? plan : undefined, o.arrangement)
+  return imagePackSpec(format, content, o.size, plan.ok ? plan : undefined, o.arrangement, o.trueSize)
 }
 
 type BulkZipOpts = {
@@ -366,8 +367,8 @@ type ImageZipOpts = {
  * What to pack for one group's share image: the dialog's own pack for its format, with the group's label line, and the
  * latest lifer row unless it is off (a group with no dated bird has none either; its collage then keeps the row's room).
  */
-export function bulkImagePackSpec(entries: ListEntry[], o: Pick<BulkImageOpts, 'format' | 'name' | 'goal' | 'countSize' | 'arrangement' | 'latest'>): PackSpec {
-  return imagePackSpec(o.format, { name: !!o.name?.trim(), filter: true, latest: o.latest !== false, count: entries.length, target: o.goal?.target, countSize: o.countSize }, undefined, undefined, o.arrangement)
+export function bulkImagePackSpec(entries: ListEntry[], o: Pick<BulkImageOpts, 'format' | 'name' | 'goal' | 'countSize' | 'arrangement' | 'latest' | 'trueSize'>): PackSpec {
+  return imagePackSpec(o.format, { name: !!o.name?.trim(), filter: true, latest: o.latest !== false, count: entries.length, target: o.goal?.target, countSize: o.countSize }, undefined, undefined, o.arrangement, o.trueSize)
 }
 
 /** A ZIP of one share image (PNG) per group, in the dialog's format and with its options. */

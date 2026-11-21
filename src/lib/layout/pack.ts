@@ -851,7 +851,8 @@ export function packFrame(birds: PackBird[], aspect: number, opts: FrameOpts = {
     return packFrameWith(birds, aspect, { ...opts, captions: undefined })
   }
 }
-type FrameOpts = { hole?: Hole; maxTile?: number; captions?: Map<number, CaptionRoom>; oval?: boolean; free?: boolean }
+/** `mode`: 'true' packs at true sizes (relSizes with EXP_TRUE, packBest's true mode), as the page's True size does. */
+type FrameOpts = { hole?: Hole; maxTile?: number; captions?: Map<number, CaptionRoom>; oval?: boolean; free?: boolean; mode?: 'even' | 'true' }
 /** Fit's share images pack dense from this many birds: the wide and medium layouts' denseFrom. */
 export const FRAME_DENSE_FROM = 380
 /** Free is settled into its cloud from this many birds, on the page and in the images (round 6, item 11: below
@@ -863,7 +864,8 @@ export const SMALL_GROUP = 40
 /** The base a small group is packed at: a page collage of a few birds' (MAX_BASE 80 at most), one GAP between them. */
 const GROUP_BASE = 60
 function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): PackResult {
-  const rel = relSizes(birds, EXP)
+  const mode = opts.mode ?? 'even'
+  const rel = relSizes(birds, mode === 'true' ? EXP_TRUE : EXP)
   let area = 0, maxRel = 1
   for (const b of placementOrder(birds, rel)) { const r = rel.get(b.id)!; area += r ** 2 * maskFill(b.mask); maxRel = Math.max(maxRel, r) }
   const unit = opts.hole ?? NO_HOLE
@@ -890,7 +892,7 @@ function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): Pack
   // A small group settles in every arrangement (Oval by its ellipse); names keep the loose pack (settling doesn't know
   // their room), still never spread.
   const settleFrame = !captions && (group || (!opts.oval && birds.length >= (opts.free ? FREE_CLOUD_FROM : FRAME_DENSE_FROM)))
-  const r = packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : opts.free ? { free: true } : {}), ...(settleFrame ? { settleFrame } : {}) })
+  const r = packBest(birds, frame, mode, { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : opts.free ? { free: true } : {}), ...(settleFrame ? { settleFrame } : {}) })
   // Free keeps its cloud and a small group stays snug: nothing spreads them to the frame's walls.
   return opts.free || group ? r : { ...r, boxes: spreadEven(r.boxes, birds, r.W, r.H, hole, captions, !!opts.oval) }
 }
