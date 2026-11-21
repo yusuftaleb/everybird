@@ -1551,3 +1551,62 @@ describe('share dialog: Fit / Oval / Free', () => {
     expect(arrangement()).toBe('packed')
   })
 })
+
+// Round 6, item 20: opening a dialog menu or choosing from it never resizes the dialog. jsdom lays nothing out, so the
+// heights are modelled from the content (each element 20px plus its text, so the column's height follows what a choice
+// writes in it; the card a fixed 600) and the ResizeObserver is fired by hand after each step: the dialog's size
+// inputs (--scroll-h, the closed column; --top-h; --pv-h, the card) must not move.
+describe('a menu never resizes the dialog (round 6, item 20)', () => {
+  const observers: { cb: () => void }[] = []
+  const offset = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')!
+  beforeEach(() => {
+    observers.length = 0
+    vi.stubGlobal('ResizeObserver', class { cb: () => void; constructor(cb: () => void) { this.cb = cb; observers.push(this) } observe() {} disconnect() {} })
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      configurable: true,
+      get(this: HTMLElement) { return this.dataset.testid === 'share-preview' ? 600 : 20 * (this.querySelectorAll('*').length + 1) + (this.textContent ?? '').length },
+    })
+  })
+  afterEach(() => { Object.defineProperty(HTMLElement.prototype, 'offsetHeight', offset) })
+  const settle = () => act(() => { for (const o of observers) o.cb() })
+  const inputs = () => {
+    const d = screen.getByRole('dialog')
+    return ['--scroll-h', '--top-h', '--pv-h'].map((p) => d.style.getPropertyValue(p))
+  }
+  /** Opens the dropdown named `label`, then picks `option`: the size inputs after each step as before. */
+  const openAndPick = async (label: string, option: string) => {
+    const before = inputs()
+    expect(before[0]).toMatch(/px$/)
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label} `) }))
+    await settle()
+    expect(inputs(), `${label} open`).toEqual(before)
+    fireEvent.click(screen.getByRole('menuitemradio', { name: option }))
+    await settle()
+    expect(inputs(), `${label}: ${option}`).toEqual(before)
+  }
+
+  it('Share: Split by, Birds per image and the goal\'s year', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    openBulk()
+    await settle()
+    await openAndPick('Birds per image', '100')
+    await openAndPick('Split by', 'Family')
+    fireEvent.click(screen.getByRole('button', { name: 'Add a goal' }))
+    await settle()
+    await openAndPick('Goal period', '2020')
+    await openAndPick('Goal period', 'All time')
+  })
+
+  it('Print: the poster size, whose choice rewrites the column (its size line), held until another control is used', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
+    await settle()
+    const [closed] = inputs()
+    await openAndPick('Poster size', 'A4')
+    await openAndPick('Poster size', '24 × 36 in')
+    // The hold is what kept it: another control releases it, and the column's next change is measured, its longer
+    // size line and button included.
+    openBulk()
+    await settle()
+    expect(inputs()[0]).not.toBe(closed)
+  })
+})
