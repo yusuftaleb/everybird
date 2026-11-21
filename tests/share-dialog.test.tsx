@@ -173,6 +173,58 @@ describe('share dialog', () => {
     await waitFor(() => expect(slow).toHaveTextContent(''))
   })
 
+  it('the title field\'s example is this year\'s (D7)', () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.getByLabelText('Card title')).toHaveAttribute('placeholder', `My ${new Date().getFullYear()} birds`)
+  })
+
+  it('the preview is named with its title and count (AU15)', async () => {
+    const state = stateWith([entry('ostric2'), entry('emu1')])
+    state.saved = { ...state.saved, name: 'Ada’s life list' }
+    render(<ShareDialog state={state} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    await waitFor(() => expect(renders).toHaveLength(1))
+    await act(async () => renders[0].resolve(new Blob(['png'], { type: 'image/png' })))
+    expect(await within(screen.getByTestId('share-preview')).findByRole('img', { name: 'Preview of the story image: Ada’s life list, 2 species' })).toBeInTheDocument()
+  })
+
+  it('filters that leave no birds: the box says so with Clear filters, nothing renders, and Share image and Download are off with that reason (H8)', async () => {
+    const dispatch = vi.fn()
+    const st = { ...stateWith([entry('ostric2')]), filter: { countries: ['KE'] } }
+    render(<ShareDialog state={st} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
+    const box = screen.getByTestId('share-preview')
+    expect(within(box).getByText('No birds match your filters.')).toBeInTheDocument()
+    expect(box).toHaveAttribute('aria-busy', 'false')
+    const shareBtn = screen.getByRole('button', { name: 'Share image' })
+    expect(shareBtn).toHaveAttribute('aria-disabled', 'true')
+    expect(shareBtn).toHaveAccessibleDescription('No birds match your filters.')
+    expect(screen.getByRole('button', { name: 'Download image' })).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(shareBtn)
+    await new Promise((r) => setTimeout(r, 300))
+    expect(renders).toHaveLength(0)
+    expect(downloadBlob).not.toHaveBeenCalled()
+    fireEvent.click(within(box).getByRole('button', { name: 'Clear filters' }))
+    expect(dispatch).toHaveBeenCalledWith({ type: 'filter', filter: {} })
+  })
+
+  it('with filters on, Copy link says the link opens the whole list (C7)', async () => {
+    const writeText = vi.fn(async () => {})
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    vi.stubGlobal('ClipboardItem', undefined)
+    const st = { ...stateWith([entry('ostric2'), entry('emu1')]), filter: { countries: ['CA'] } }
+    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }))
+    await waitFor(() => expect(screen.getByTestId('share-note')).toHaveTextContent('Link copied. The link opens your whole list, without the filters.'))
+  })
+
+  it('a goal met says so under the Goal row (D6)', async () => {
+    const st = stateWith([entry('ostric2'), entry('emu1')])
+    st.saved = { ...st.saved, bigYear: { target: 2 } }
+    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.getByTestId('share-goal-reached')).toHaveTextContent('Goal reached: 2 of 2.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Goal in species' }), { target: { value: '3' } })
+    expect(screen.queryByTestId('share-goal-reached')).toBeNull()
+  })
+
   it('Share image hands the share sheet the image and the full sticker credit as its text', async () => {
     const share = vi.fn<(d: ShareData) => Promise<void>>(async () => {})
     vi.stubGlobal('navigator', { ...navigator, share, canShare: () => true })
@@ -554,7 +606,7 @@ describe('share dialog', () => {
   it('the title label says "(optional)" beside it and the placeholder is an example', () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     const input = screen.getByLabelText('Card title')
-    expect(input).toHaveAttribute('placeholder', 'My 2024 birds')
+    expect(input).toHaveAttribute('placeholder', `My ${new Date().getFullYear()} birds`)
     expect(screen.getByText('(optional)')).toBeInTheDocument()
     expect(input).toHaveAccessibleDescription('(optional) Shown as your collage’s title and on shares.')
   })
@@ -774,7 +826,7 @@ describe('share dialog: print mode', () => {
     await act(async () => renders.at(-1)!.resolve(new Blob(['png'], { type: 'image/png' })))
     await waitFor(() => expect(screen.getByTestId('share-preview')).toHaveAttribute('data-format', 'print'))
     // The collage's preview is a canvas painted at the box's size (speed audit finding 8), named as its image.
-    expect(within(screen.getByTestId('share-preview')).getByRole('img', { name: 'Preview of the A2 poster' })).toBeInTheDocument()
+    expect(within(screen.getByTestId('share-preview')).getByRole('img', { name: 'Preview of the A2 poster: 1 species' })).toBeInTheDocument()
     expect(screen.getByTestId('share-preview')).toHaveAttribute('data-size', 'A2')
   })
 
@@ -867,7 +919,10 @@ describe('share dialog: print mode', () => {
     fireEvent.change(screen.getByLabelText('Poster title'), { target: { value: 'Kenya' } })
     expect(p.dispose).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('button', { name: 'Download PNG' })).toBeNull()
-    expect(screen.getByTestId('share-note').textContent).toBe('')
+    // C6: the dropped poster is named, and the line stays through the next change, until a make.
+    expect(screen.getByTestId('share-note').textContent).toBe('The options changed. Make the poster again.')
+    fireEvent.change(screen.getByLabelText('Poster title'), { target: { value: 'Kenya 2026' } })
+    expect(screen.getByTestId('share-note').textContent).toBe('The options changed. Make the poster again.')
     expect(downloadBlob).not.toHaveBeenCalled()
 
     async function startMakeAgain() {

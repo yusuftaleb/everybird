@@ -610,7 +610,8 @@ export const EN_UI = {
     tooLarge: 'This list is too large for a link. Share the image instead.',
     /** The title field's label in Share, for every subject (round 6, item 9); Print's is print.nameLabel. */
     nameLabel: 'Card title',
-    namePlaceholder: 'My 2024 birds',
+    /** The title field's placeholder, {year} this year (D7). */
+    namePlaceholder: 'My {year} birds',
     nameOptional: '(optional)',
     /** The title field's description (read by screen readers): it is saved with the list and names the collage page. */
     nameHelper: 'Shown as your collage’s title and on shares.',
@@ -638,6 +639,13 @@ export const EN_UI = {
     filters: 'Showing your filters: {label}',
     filtersNoLabel: 'Showing your filters.',
     clearFilters: 'Clear filters',
+    /** In the empty preview when the filters leave no birds (H8); Clear filters (`clearFilters`) follows. Also the reason Share image, Download and Make poster are off. */
+    noMatch: 'No birds match your filters.',
+    /** After Copy link's note when filters are on (C7): the link carries the whole list. */
+    linkWhole: 'The link opens your whole list, without the filters.',
+    /** The preview's accessible name with what it shows (AU15): `preview` is preview.* or print.previewAlt, `count` count.live. */
+    previewOf: '{preview}: {title}, {count}',
+    previewOfCount: '{preview}: {count}',
     /** The latest lifer row's mono label on the images and the link preview ("LATEST LIFER · SEP 2026"; upper-cased in code). */
     latestLifer: 'Latest lifer',
     /** A link made before titles carries a bare name: its title (og.ts shareTitle). */
@@ -662,6 +670,8 @@ export const EN_UI = {
       allTime: 'All time',
       remove: 'Remove goal',
       targetInvalid: 'Enter a whole number from 1 to {max}.',
+      /** Under the Goal row once the shown birds meet the target (D6). */
+      reached: 'Goal reached: {n} of {target}.',
       card: '{year} year list',
       cardLifer: '{year} lifers',
       /** With a goal, the count's label: "632 / 100 SPECIES" (a slash, not "of": Yusuf, 2026-11-21), beside the title or under the number. */
@@ -695,6 +705,8 @@ export const EN_UI = {
       missing: { one: '1 sticker didn’t load and is drawn as an outline. Make the poster again to retry.', other: '{n} stickers didn’t load and are drawn as outlines. Make the poster again to retry.' },
       soft: 'Some stickers come from smaller files for now, so the biggest birds may print a little soft.',
       failedMemory: 'Couldn’t make the poster. Try a smaller size.',
+      /** When a change to an option drops a finished poster (C6). */
+      changed: 'The options changed. Make the poster again.',
       failed: 'Couldn’t make the poster. Try again.',
       previewAlt: 'Preview of the {size} poster',
       /** Export in batches (`title`, a collapsed row): a ZIP of one share image (Share) or one poster (Print) per group.

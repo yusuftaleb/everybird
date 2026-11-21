@@ -227,6 +227,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const namesNoteId = useId()
   const whatId = useId()
   const linkNoteId = useId()
+  const emptyId = useId()
   // An open dropdown takes Escape first (the dialog catches it on the window before the menu could): it closes the menu.
   const menuEsc = useRef<(() => void) | null>(null)
   useEscapeCapture(() => (menuEsc.current ? menuEsc.current() : onClose()))
@@ -466,7 +467,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const [retry, setRetry] = useState(0)
   const renderAgain = () => setRetry((n) => n + 1)
   const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}|${retry}`
-  const busy = preview?.key !== key && failedKey !== key
+  // The filters leave no birds and no goal is drawn (H8): the box says so, with Clear filters, instead of a "0 SPECIES"
+  // card; nothing renders, and Share image, Download and Make poster are off with that reason. A goal's "0 / 300" stays.
+  const empty = !compare && !!fk && cardEntries.length === 0 && !cardGoal
+  const clearFilters = () => dispatch({ type: 'filter', filter: {} })
+  const busy = !empty && preview?.key !== key && failedKey !== key
   const failed = failedKey === key
   /** Share and Download wait for the full PNG (in at once for the Map, Tree and Compare; encoded in idle time for the
    *  collage), so a click has it at hand (iOS shares only inside the click). */
@@ -486,6 +491,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     let live = true
     let cancel = () => {}
     let cancelEncode = () => {}
+    if (empty) return
     const delay = first.current ? 0 : RENDER_DELAY_MS
     first.current = false
     const job = new Promise<void>((resolve, reject) => {
@@ -549,7 +555,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     )
     return () => { live = false; cancel(); cancelEncode() }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- viewOf reads treeImage, treeMine, treeLayout, showOldest, timeScale, totals, at, list, filter, seen and sci, all in `key` or below
-  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, totals, at, list, filter, seen, sci, named, compare, what, format])
+  }, [key, empty, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, totals, at, list, filter, seen, sci, named, compare, what, format])
   // The canvas is repainted, larger, when its box outgrows it (a new format's shape easing in, a larger window).
   useEffect(() => {
     const box = previewBox.current, r = preview?.ready, c = preview?.layer.canvas
@@ -613,12 +619,16 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     makeCtl.current = null
     bulkCtl.current?.abort()
     bulkCtl.current = null
+    // A finished poster dropped by a change says so (C6: Download PNG turning back into Make poster, after an A1 make
+    // that took minutes); the line stays until the next make.
+    const dropped = !!posterRef.current
     posterRef.current?.dispose()
     posterRef.current = null
     setPoster(null)
     setMaking(null)
     setBulkMaking(null)
-    setNote((n) => (n?.print ? null : n))
+    setNote((n) => (dropped ? { text: pt.changed, print: true } : n?.print && n.text !== pt.changed ? null : n))
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- pt.changed is read when the key changes, not a reason to run
   }, [posterKey])
   const posterNow = print && poster?.key === posterKey ? poster.p : null
   const makingNow = print && making?.key === posterKey ? making : null
@@ -885,6 +895,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     }
   }
   const download = async () => {
+    if (empty) return
     if (failed) return renderAgain() // a failed render: pressing renders it again
     const blob = await getBlob()
     if (!blob) return setNote({ text: t.share.imageFailed, error: true })
@@ -893,6 +904,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     setNote({ text: fmt(t.share.saved, { file: fileName }) })
   }
   const share = async () => {
+    if (empty) return
     if (failed) return renderAgain()
     const blob = await getBlob()
     if (!blob) return setNote({ text: t.share.imageFailed, error: true })
@@ -947,11 +959,21 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     const why = [levelReason(level, t), dropped ? plural(t.share.dropped, dropped, { n: formatInt(dropped, t.num) }) : ''].filter(Boolean)
     let ok = await copied
     if (!ok && typeof clip?.writeText === 'function') ok = await clip.writeText(url).then(() => true, () => false)
-    if (ok) return setNote({ text: [t.share.copied, ...why].join(' ') })
+    // The image follows the filters, the link carries the whole list (C7): said whenever filters are on.
+    const whole = !compare && fk ? [t.share.linkWhole] : []
+    if (ok) return setNote({ text: [t.share.copied, ...why, ...whole].join(' ') })
     setManual(url)
-    setNote({ text: [...why, t.share.copyThis].join(' ') })
+    setNote({ text: [...why, ...whole, t.share.copyThis].join(' ') })
   }
 
+  /** The preview's accessible name: what the image is, then (AU15) its title and count, "Preview of the story image:
+   *  Ada’s life list, 1,089 species". Compare's cards keep their own. */
+  const previewName = (p: NonNullable<typeof preview>) => {
+    if (compare) return compare.alt[what]
+    const base = isPrint(p.format) ? fmt(t.share.print.previewAlt, { size: sizeName(p.size) }) : t.share.preview[p.format]
+    const count = plural(t.count.live, cardEntries.length, { n: formatInt(cardEntries.length, t.num) })
+    return trimmed ? fmt(t.share.previewOf, { preview: base, title: trimmed, count }) : fmt(t.share.previewOfCount, { preview: base, count })
+  }
   const shownCard: CardFormat = preview?.format ?? cardFormat
   const [w, h] = isPrint(shownCard)
     ? (printDesign(preview?.size ?? size, shownCard === 'printLandscape').map(Math.round) as [number, number])
@@ -1034,7 +1056,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // Download PNG; each its own key, so a change of state is a new element and the focus moves below run instead of
   // focus staying on a renamed button), then the quiet ones (a row of three).
   const primary: ReactNode = !print ? (
-    <button key="share" type="button" className="eb-btn eb-share-primary" disabled={!failed && (busy || !blobIn)} onClick={() => void share()}>
+    <button
+      key="share" type="button" className="eb-btn eb-share-primary" disabled={!empty && !failed && (busy || !blobIn)}
+      aria-disabled={empty || undefined} title={empty ? t.share.noMatch : undefined} aria-describedby={empty ? emptyId : undefined}
+      onClick={() => void share()}
+    >
       <ShareNetwork aria-hidden="true" focusable="false" weight="bold" />
       {t.share.shareImage}
     </button>
@@ -1055,7 +1081,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       {pt.png}
     </button>
   ) : (
-    <button key="make" ref={makeRef} type="button" className="eb-btn eb-share-primary" disabled={!!bulkMakingNow} onClick={() => void makePoster()}>
+    <button
+      key="make" ref={makeRef} type="button" className="eb-btn eb-share-primary" disabled={!!bulkMakingNow}
+      aria-disabled={empty || undefined} title={empty ? t.share.noMatch : undefined} aria-describedby={empty ? emptyId : undefined}
+      onClick={() => { if (!empty) void makePoster() }}
+    >
       <Printer aria-hidden="true" focusable="false" weight="bold" />
       {pt.make}
     </button>
@@ -1067,7 +1097,10 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // and Copy link; once made, Download PNG and Download PDF), the rest (Copy link, Make again) in a row under them.
   const quiet: QuietAction[] = !print
     ? [
-        { label: t.share.download, short: t.share.downloadShort, icon: DownloadSimple, disabled: !failed && (busy || !blobIn), onClick: () => void download() },
+        {
+          label: t.share.download, short: t.share.downloadShort, icon: DownloadSimple, disabled: !empty && !failed && (busy || !blobIn), onClick: () => void download(),
+          ...(empty ? { off: t.share.noMatch, describedBy: emptyId } : {}),
+        },
         copy,
       ]
     : [
@@ -1276,6 +1309,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
             )}
           </div>,
           goalOpen && targetBad && <p key="goal-note" id={targetNoteId} className="eb-note eb-share-opt-note" data-opened="">{fmt(gt.targetInvalid, { max: formatInt(TARGET_MAX, t.num) })}</p>,
+          // The goal met (D6): one Muted line, so the dialog says it too, not only the card's "312 / 300".
+          goalActive && !targetBad && validTarget !== undefined && cardEntries.length >= validTarget && (
+            <p key="goal-reached" className="eb-note eb-share-opt-note" data-opened="" data-testid="share-goal-reached">
+              {fmt(gt.reached, { n: formatInt(cardEntries.length, t.num), target: formatInt(validTarget, t.num) })}
+            </p>
+          ),
         ]
     }
   }
@@ -1336,11 +1375,14 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               // The image just replaced, fading out over the frame while it changes shape.
               <PreviewLayer layer={outgoing.layer} className="eb-share-out" w={outgoing.w} h={outgoing.h} />
             )}
-            {preview && (
-              <PreviewLayer
-                key={preview.n} layer={preview.layer} className="eb-share-in" w={w} h={h}
-                label={compare ? compare.alt[what] : isPrint(preview.format) ? fmt(t.share.print.previewAlt, { size: sizeName(preview.size) }) : t.share.preview[preview.format]}
-              />
+            {preview && !empty && (
+              <PreviewLayer key={preview.n} layer={preview.layer} className="eb-share-in" w={w} h={h} label={previewName(preview)} />
+            )}
+            {empty && (
+              <div className="eb-share-empty" data-testid="share-empty">
+                <p id={emptyId} className="eb-note">{t.share.noMatch}</p>
+                <button type="button" className="eb-textbtn" onClick={clearFilters}>{t.share.clearFilters}</button>
+              </div>
             )}
             {busy && <span className="eb-share-spin" aria-hidden="true" />}
             {/* The first image taking long: what it is doing, under the spinner (polite, so it is read once). */}
@@ -1376,7 +1418,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                     type="text"
                     autoComplete="off"
                     maxLength={NAME_MAX_LEN}
-                    placeholder={t.share.namePlaceholder}
+                    placeholder={fmt(t.share.namePlaceholder, { year: new Date().getFullYear() })}
                     aria-describedby={`${optionalId} ${helperId}`}
                     value={name}
                     onChange={(e) => { setName(e.target.value); dispatch({ type: 'name', name: e.target.value }) }}
@@ -1505,7 +1547,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               {!compare && fk && yearGoal === undefined && (
                 <div className="eb-note eb-share-filters" data-testid="share-filters">
                   <span>{label ? fmt(t.share.filters, { label }) : t.share.filtersNoLabel}</span>
-                  <button type="button" className="eb-textbtn" onClick={() => dispatch({ type: 'filter', filter: {} })}>{t.share.clearFilters}</button>
+                  <button type="button" className="eb-textbtn" onClick={clearFilters}>{t.share.clearFilters}</button>
                 </div>
               )}
             </div>

@@ -58,6 +58,8 @@ const ALLOW_SAME = [
   ',', '.',
   // ru: the share format's name and ratio, a template with no words.
   '{name}, {ratio}',
+  // Every language but fr, ja and zh: the share preview's name with its title and count (AU15), templates with no words.
+  '{preview}: {title}, {count}', '{preview}: {count}',
   // it: the continent's name in Italian.
   'Africa',
   // The Tree's Layout menu: es, da and de write "Radial" as English does, es "Rectangular" too.

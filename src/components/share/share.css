@@ -169,6 +169,16 @@
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-share-failed .eb-error { margin: 0; }
+/* No birds under the filters (H8): the box holds one Muted line and Clear filters, centred, instead of an image. */
+.eb-share-empty {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 16px; text-align: center;
+}
+.eb-share-empty .eb-note { margin: 0; }
+/* An action that can't be used (Share image, Download or Make poster with nothing to make; Compare's Copy link over its
+   limits): the quiet disabled colours (the Quiet Disabled Rule), still focusable (aria-disabled), the reason its
+   description. */
+.eb-share-actions .eb-btn[aria-disabled="true"] { background: var(--surface); border-color: var(--hairline); color: var(--muted); cursor: default; }
 
 .eb-share-controls { display: flex; flex: none; flex-direction: column; gap: 12px; min-width: 0; container-type: inline-size; }
 /* The column: the controls, then the coffee button at its foot. */
