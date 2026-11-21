@@ -484,6 +484,7 @@ export const da: Messages = {
       nameOptional: '(valgfri)',
       nameHelper: 'Vises som din collages titel og når du deler.',
       showLatest: 'Vis nyeste nye art',
+      treeSmall: 'Navnene er små i denne størrelse. <print>En plakat trykker dem større.</print>',
       shareImage: 'Del billede',
       download: 'Hent billede',
       copyLink: 'Kopiér link',

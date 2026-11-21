@@ -32,7 +32,7 @@ vi.mock('@/lib/share/image', async (orig) => ({
 }))
 vi.mock('@/lib/download', () => ({ downloadBlob: vi.fn() }))
 // The Map and Tree views' own images (loaded only from those views).
-type TreeFitsCb = { onTreeFits?: (f: Record<'fan' | 'circle', boolean>, byCard?: Record<string, Record<'fan' | 'circle', boolean>>) => void }
+type TreeFitsCb = { onTreeText?: (x: { layout: 'fan' | 'circle' | 'rows'; px: number; small: boolean }) => void }
 const viewRenders = vi.hoisted(() => ({ map: vi.fn(async () => new Blob(['map'])), tree: vi.fn<(o?: TreeFitsCb) => Promise<Blob>>(async () => new Blob(['tree'])) }))
 vi.mock('@/lib/share/map-image', () => ({ renderMapImage: viewRenders.map }))
 vi.mock('@/lib/share/tree-image', () => ({ renderTreeImage: viewRenders.tree }))
@@ -460,27 +460,23 @@ describe('share dialog', () => {
     act(() => setTreeLayout(null))
     third.unmount()
 
-    // A layout the image's render says can't name every tip on its card is off with that reason; Rectangular is drawn.
-    viewRenders.tree.mockImplementation(async (o) => { o?.onTreeFits?.({ fan: false, circle: true }); return new Blob(['tree']) })
-    const second = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'fan' }} onClose={() => {}} />)
-    await waitFor(() => expect(arrange().getByRole('button', { name: 'Fan' })).toHaveAttribute('aria-disabled', 'true'))
-    expect(arrange().getByRole('button', { name: 'Fan' })).toHaveAccessibleDescription('Not enough room for every name')
-    expect(arrange().getByRole('button', { name: 'Rectangular' })).toHaveAttribute('aria-pressed', 'true')
-    expect(arrange().getByRole('button', { name: 'Radial' })).not.toHaveAttribute('aria-disabled')
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'story', at: expect.objectContaining({ layout: 'rows' }) })))
-    fireEvent.click(arrange().getByRole('button', { name: 'Fan' }))
-    expect(treeLayout()).toBeNull()
-    viewRenders.tree.mockImplementation(async () => new Blob(['tree']))
+    // Every arrangement stays offered (round 6, item 9): the image draws the one picked, its names as small as it needs.
+    // When they are under the readable size the render says so and a quiet note offers Print (its button, onPrint).
+    const onPrint = vi.fn()
+    viewRenders.tree.mockImplementation(async (o) => { o?.onTreeText?.({ layout: 'fan', px: 14, small: true }); return new Blob(['tree']) })
+    const second = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'fan' }} onClose={() => {}} onPrint={onPrint} />)
+    const note = await screen.findByTestId('share-tree-small')
+    expect(note).toHaveTextContent('Names are small at this size. A poster prints them larger.')
+    for (const name of ['Fan', 'Radial', 'Rectangular']) expect(arrange().getByRole('button', { name })).not.toHaveAttribute('aria-disabled')
+    expect(arrange().getByRole('button', { name: 'Fan' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(within(note).getByRole('button', { name: 'A poster prints them larger.' }))
+    expect(onPrint).toHaveBeenCalled()
     second.unmount()
-
-    // Round 6, item 11: a render on the vertical card reports the horizontal card's fit too, so a Fan the desktop image
-    // can't draw is off before it is ever picked (and the Radial the story can draw stays on).
-    viewRenders.tree.mockClear()
-    viewRenders.tree.mockImplementation(async (o) => { o?.onTreeFits?.({ fan: true, circle: true }, { story: { fan: true, circle: true }, desktop: { fan: false, circle: true } }); return new Blob(['tree']) })
-    const fourth = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'circle' }} onClose={() => {}} />)
-    await waitFor(() => expect(arrange().getByRole('button', { name: 'Fan' })).toHaveAttribute('aria-disabled', 'true'))
-    expect(arrange().getByRole('button', { name: 'Radial' })).toHaveAttribute('aria-pressed', 'true')
-    expect(viewRenders.tree).not.toHaveBeenCalledWith(expect.objectContaining({ at: expect.objectContaining({ layout: 'fan' }) }))
+    // Readable names: no note.
+    viewRenders.tree.mockImplementation(async (o) => { o?.onTreeText?.({ layout: 'rows', px: 30, small: false }); return new Blob(['tree']) })
+    const fourth = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'rows' }} onClose={() => {}} onPrint={onPrint} />)
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenCalled())
+    expect(screen.queryByTestId('share-tree-small')).toBeNull()
     viewRenders.tree.mockImplementation(async () => new Blob(['tree']))
     act(() => setTreeLayout(null))
     fourth.unmount()

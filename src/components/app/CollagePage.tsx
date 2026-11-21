@@ -117,7 +117,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
           />
           {sharing && (
             <Suspense fallback={null}>
-              <ShareDialog state={state} dispatch={dispatch} species={data.species} regions={data.regions} view={sharing.view} at={shareAt} print={sharing.print} onClose={() => setSharing(null)} />
+              <ShareDialog key={sharing.print ? 'print' : 'share'} state={state} dispatch={dispatch} species={data.species} regions={data.regions} view={sharing.view} at={shareAt} print={sharing.print} onClose={() => setSharing(null)} onPrint={() => setSharing({ view: sharing.view, print: true })} />
             </Suspense>
           )}
         </>

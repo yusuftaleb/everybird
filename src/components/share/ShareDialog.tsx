@@ -102,6 +102,8 @@ type Props = {
   /** Compare's dialog: it draws the comparison or the wish list instead of the view (state then only fills the props). */
   compare?: CompareShare
   onClose: () => void
+  /** Opens this view's Print instead (the Tree image's small-names note). */
+  onPrint?: () => void
 }
 
 /** The views that draw their own image and poster: each module loads only when Share or Print is pressed there.
@@ -145,8 +147,6 @@ type PosterModule = typeof import('@/lib/share/poster')
 /** A small segmented control's choice: its label (words or an icon), a spoken name when the label isn't one, a tooltip,
  *  and `off`, why it can't be picked (its tooltip and its description; it stays focusable, aria-disabled). */
 type SegOption<T extends string> = { value: T; label: ReactNode; name?: string; title?: string; off?: string }
-/** The Tree image's round layouts, and whether each names every tip, by the card it was drawn on. */
-type TreeFits = Record<'fan' | 'circle', boolean>
 
 /** A quiet action: a full label (its accessible name), a shorter one for the row, an icon. */
 type QuietAction = {
@@ -158,7 +158,7 @@ type QuietAction = {
 /** Why a link carries less than the regions (a large list), or nothing for a full link. */
 const levelReason = (level: ShareLevel, t: ReturnType<typeof useI18n>['t']) => (level === 'regions' ? '' : t.share.level[level])
 
-export default function ShareDialog({ state, dispatch, species, regions, view, at, print = false, compare, onClose }: Props) {
+export default function ShareDialog({ state, dispatch, species, regions, view, at, print = false, compare, onClose, onPrint }: Props) {
   const names = useNames()
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
@@ -211,32 +211,19 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // switch (round 6, item 23): its orientation is its arrangement's (treeOrientation), a Fan horizontal, the others vertical.
   const [orientationChoice, setOrientation] = useState<Orientation>('vertical')
   // The Tree image's layout starts at the one drawn on screen (round 6: never the stored pick the screen had no room for);
-  // a pick here is the dialog's and the dock's Layout menu's (tree-mine.ts). A Fan or Radial that the image's renders say
-  // can't name every tip on its card (onTreeFits, kept per card) is off in the Arrangement control with its reason, and
-  // Rectangular is drawn meanwhile. Show oldest lineage starts on, as Show latest lifer does.
+  // a pick here is the dialog's and the dock's Layout menu's (tree-mine.ts). Every arrangement is offered at every level
+  // and on every card (round 6, item 9): the image always draws the one picked, its names as small as it needs; when they
+  // are under the readable size (onTreeText) a quiet note under the options says so and offers Print. Show oldest
+  // lineage starts on, as Show latest lifer does.
   const [treeChoice, setTreeChoice] = useState<TreeLayout>(() => at?.layout ?? treeLayoutStored() ?? 'rows')
   const pickTreeLayout = (v: TreeLayout) => { setTreeChoice(v); setTreeLayout(v) }
-  const [treeFitsBy, setTreeFitsBy] = useState<Record<string, TreeFits>>({})
-  /** The card a tree in this orientation is drawn on, as renders report it (a poster's per size). */
-  const cardKey = (o: Orientation) => (print ? `${o === 'horizontal' ? 'printLandscape' : 'print'}|${size}` : imageShape(format, o))
-  const treeOff = (l: TreeLayout) => l !== 'rows' && treeFitsBy[cardKey(treeOrientation(l))]?.[l] === false
-  const wantTree: TreeLayout = treeChoice
-  const treeLayout: TreeLayout = treeOff(wantTree) ? 'rows' : wantTree
+  const treeLayout: TreeLayout = treeChoice
+  /** The last Tree render's names were under the readable size (its note). */
+  const [treeSmall, setTreeSmall] = useState(false)
   const orientation: Orientation = treeImage ? treeOrientation(treeLayout) : compare ? 'vertical' : orientationChoice
   const landscape = orientation === 'horizontal'
   /** The share image's shape: the slot in this orientation (story is desktop, post is wide when horizontal). */
   const shape = imageShape(format, orientation)
-  /** Keeps what a Tree render on card `k` found, and what it found for that card's other orientation (byCard, keyed by
-   *  card format; a poster's with its size), so a layout its image can't draw is off before it is picked (no new state
-   *  when nothing changed). */
-  const noteTreeFits = (k: string, sizeKey?: PrintSize) => (f: TreeFits, byCard?: Partial<Record<CardFormat, TreeFits>>) =>
-    setTreeFitsBy((was) => {
-      let next = was
-      const keep = (key: string, v: TreeFits) => { if (next[key]?.fan !== v.fan || next[key]?.circle !== v.circle) next = { ...next, [key]: v } }
-      keep(k, f)
-      for (const [card, v] of Object.entries(byCard ?? {})) if (v) keep(sizeKey ? `${card}|${sizeKey}` : card, v)
-      return next
-    })
   const [showOldest, setShowOldest] = useState(true)
   // The Tree image's Time scale starts as the screen's switch is (round 6, item 12); the dialog's own after that.
   const [timeScale, setTimeScale] = useState(at?.time !== false)
@@ -411,7 +398,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   /** What the Tree or Map image reads besides the share image's options: the view's level, the app state, its switches. */
   const viewOf = () => ({
     at: treeImage ? { ...at, mine: treeMine, layout: treeLayout, time: timeScale } : at ?? {}, state: { list, filter, seen, sci }, t, totals, oldest: treeImage && showOldest,
-    ...(treeImage ? { onTreeFits: noteTreeFits(print ? `${cardFormat}|${size}` : cardFormat, print ? size : undefined) } : {}),
+    ...(treeImage ? { onTreeText: (x: { small: boolean }) => setTreeSmall(x.small) } : {}),
   })
   const [preview, setPreview] = useState<{ url: string; format: CardFormat; size: PrintSize; key: string } | null>(null)
   const [failedKey, setFailedKey] = useState<string | null>(null)
@@ -1092,7 +1079,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       case 'treeLayout':
         return optRow(r, treeLayoutId, t.share.arrange.label, segmented({
           className: 'eb-share-seg', labelledBy: treeLayoutId, value: treeLayout, pick: pickTreeLayout, testId: 'share-tree-layout',
-          options: TREE_LAYOUTS.map((v) => ({ value: v, label: t.collage.tree.layouts[v], off: treeOff(v) ? t.collage.tree.noRoom : undefined })),
+          options: TREE_LAYOUTS.map((v) => ({ value: v, label: t.collage.tree.layouts[v] })),
         }))
       case 'colours':
         // Appearance: Light or Dark (the key keeps its first name, colours).
@@ -1294,6 +1281,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                 <div className="eb-share-opts" data-testid="share-options">
                   {optionRows(rows, print).map(option)}
                 </div>
+                {treeImage && !print && treeSmall && onPrint && (
+                  // The Tree's names under the readable size: the image still draws them; a poster prints them larger.
+                  <p className="eb-note eb-share-opt-note" data-testid="share-tree-small">
+                    {rich(t.share.treeSmall, { print: (chunk) => <button type="button" className="eb-textbtn eb-share-inline" onClick={onPrint}>{chunk}</button> })}
+                  </p>
+                )}
                 {bulkOn && (
                   // Export in batches: one more row under the options, in a Surface panel, its name and a chevron; open, under
                   // it in the same panel a ZIP of one image (or, in the poster, one poster) per group.
