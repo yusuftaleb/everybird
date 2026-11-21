@@ -153,8 +153,8 @@ const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: st
   post: { layout: '4280553701155c23ef7e570949bbfa4d953b9b53', draws: '47ff51b57908cb67237c843f04a08c087f391ac2' },
   square: { layout: 'bc72454ab59ab999e4391ea9259179482d237a65', draws: 'cc48c37cfe35369838caeb958e0534ec242908b5' },
   wide: { layout: '08fbc77c3a7dddb33e4fcb3a29470b3c95206cc9', draws: 'c0110aee3e1af65c03ac44941f512b24c6a8dc6a' },
-  print: { layout: '539e3566a02bffc91eef031e75e05d75616f1d1e', draws: 'e90a3efff53745b4d3ba50afedc818d54056a48f' },
-  printLandscape: { layout: 'be645517b968335ba79d09e666410a687dbfb1e8', draws: 'db6dcc195e02e0d00d00d7c6316b23b4e633b8c9' },
+  print: { layout: '539e3566a02bffc91eef031e75e05d75616f1d1e', draws: '12cdecd5b451965aa5dbab6199fbc03d157538e5' },
+  printLandscape: { layout: 'be645517b968335ba79d09e666410a687dbfb1e8', draws: '5821b5383fee695ff5fd313174d9a3f4106b7e5d' },
 }
 const sha = (s: string) => createHash('sha1').update(s).digest('hex')
 

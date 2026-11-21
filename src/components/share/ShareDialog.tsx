@@ -745,11 +745,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       const common = { entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, latest: withLatest, countSize, theme, transparent, strings: t, nameOf, regions: named }
       let p: Poster
       if (viewImage) {
-        // The Tree or the Map as on screen, drawn at the poster's size (makeViewPoster).
+        // The Tree or the Map as on screen, laid out at the poster's size and painted in strips (makeViewPoster).
         const render = await viewImage()
         if (ctl.signal.aborted) return
         p = await mod.makeViewPoster(
-          { size, landscape, transparent, signal: ctl.signal, render: (scale) => render({ ...common, format: cardFormat, printSize: size, signal: ctl.signal, scale, ...viewOf() }) },
+          { size, landscape, transparent, signal: ctl.signal, render: (scale, onPainter) => render({ ...common, format: cardFormat, printSize: size, signal: ctl.signal, scale, onPainter, ...viewOf() }) },
           progress,
         )
       } else {

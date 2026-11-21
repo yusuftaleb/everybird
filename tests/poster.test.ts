@@ -3,7 +3,7 @@ import sharp from 'sharp'
 import { en } from '@/i18n/messages/en'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { prepareCard, tileInRange, type ImagePack, type PreparedCard } from '@/lib/share/image'
-import { IOS_CANVAS_AREA, PRINT_PT, PRINT_PX, printScale, stripRanges, type PrintSize } from '@/lib/share/print'
+import { IOS_CANVAS_AREA, PRINT_PT, PRINT_PX, STRIP_AREA, printScale, stripRanges, type PrintSize } from '@/lib/share/print'
 import { PosterEncoder } from '@/lib/share/poster-encoder'
 import { makePoster, posterRows, workerEncoder, type EncoderPort, type PosterDeps, type PosterOpts, type WorkerLike } from '@/lib/share/poster'
 import type { PrintStickers } from '@/lib/share/print-stickers'
@@ -153,32 +153,32 @@ function spans(c: PreparedCard, size: PrintSize, rows?: number) {
 }
 
 describe('makePoster', () => {
-  it('strip rows per size: A1 298 (17 strips), A2–A4, and US sizes under IOS_CANVAS_AREA', () => {
+  it('strip rows per size at 300 dpi: A1 149 (67 strips), A2–A4, and US sizes under STRIP_AREA', () => {
     const got = (['A1', 'A2', 'A3', 'A4', 'US24x36', 'US18x24', 'US12x18'] as const).map((size) => {
       const [w, h] = PRINT_PX[size], rows = posterRows(w, printScale(size))
-      expect(w * rows).toBeLessThanOrEqual(IOS_CANVAS_AREA)
+      expect(w * rows).toBeLessThanOrEqual(STRIP_AREA)
       return [size, rows, stripRanges(w, h, rows).length]
     })
     expect(got).toEqual([
-      ['A1', 298, 17], ['A2', 276, 13], ['A3', 195, 13], ['A4', 138, 13],
-      ['US24x36', 291, 19], ['US18x24', 300, 12], ['US12x18', 200, 14],
+      ['A1', 149, 67], ['A2', 211, 34], ['A3', 298, 17], ['A4', 276, 13],
+      ['US24x36', 145, 75], ['US18x24', 194, 38], ['US12x18', 291, 19],
     ])
-    expect(3600 * 5400).toBeGreaterThan(IOS_CANVAS_AREA)
+    expect(7200 * 10800).toBeGreaterThan(IOS_CANVAS_AREA)
   })
 
-  it('A1: one strip canvas of 3508 × 298, rows sent in order summing to 4967, progress 1..18 of 18', async () => {
+  it('A1: one strip canvas of 7016 × 149, rows sent in order summing to 9933, progress 1..68 of 68', async () => {
     const { deps, stripCalls, e, f } = setup()
     const progress: [number, number][] = []
     const endedAt: number[] = []
     const poster = await makePoster(opts('A1'), (d, n) => { progress.push([d, n]); endedAt.push(e.enc.end.mock.calls.length) }, deps)
-    expect(stripCalls).toEqual([[3508, 298]])
-    expect(e.enc.begin).toHaveBeenCalledWith(3508, 4967)
-    expect(e.rows).toEqual(stripRanges(3508, 4967).map((s) => s.rows))
-    expect(e.rows.reduce((a, b) => a + b, 0)).toBe(4967)
-    expect(progress).toEqual(Array.from({ length: 18 }, (_, i) => [i + 1, 18]))
+    expect(stripCalls).toEqual([[7016, 149]])
+    expect(e.enc.begin).toHaveBeenCalledWith(7016, 9933)
+    expect(e.rows).toEqual(stripRanges(7016, 9933).map((s) => s.rows))
+    expect(e.rows.reduce((a, b) => a + b, 0)).toBe(9933)
+    expect(progress).toEqual(Array.from({ length: 68 }, (_, i) => [i + 1, 68]))
     // The last step comes only once the encoder has finished.
-    expect(endedAt).toEqual([...Array(17).fill(0), 1])
-    expect(e.rows).toHaveLength(17)
+    expect(endedAt).toEqual([...Array(67).fill(0), 1])
+    expect(e.rows).toHaveLength(67)
     expect([poster.size, poster.bytes, poster.soft, poster.missing]).toEqual(['A1', 1234, 1, 2])
     expect([f.canvas.width, f.canvas.height]).toEqual([1, 1]) // shrunk once done
   })
@@ -229,7 +229,7 @@ describe('makePoster', () => {
   })
 
   it('every strip transform has an integer f equal to -y; no canvas passes the iOS cap, even with a huge rows override', async () => {
-    for (const [size, rows] of [['A1', undefined], ['A4', undefined], ['A1', 4967]] as const) {
+    for (const [size, rows] of [['A1', undefined], ['A4', undefined], ['A1', 9933]] as const) {
       const { deps, f, stripCalls } = setup({ rows })
       await makePoster(opts(size), () => {}, deps)
       const [w, h] = PRINT_PX[size], k = printScale(size)
@@ -248,11 +248,11 @@ describe('makePoster', () => {
     const a = setup(), b = setup({ rows: 100 })
     await makePoster(opts('A4'), () => {}, a.deps)
     await makePoster(opts('A4'), () => {}, b.deps)
-    expect(a.e.rows).toEqual([...Array(12).fill(138), 98])
-    expect(b.e.rows).toHaveLength(18)
-    expect(b.e.rows.reduce((x, y) => x + y, 0)).toBe(1754)
-    expect(b.stripCalls).toEqual([[1240, 100]])
-    expect(b.e.enc.begin).toHaveBeenCalledWith(1240, 1754)
+    expect(a.e.rows).toEqual([...Array(12).fill(276), 196])
+    expect(b.e.rows).toHaveLength(36)
+    expect(b.e.rows.reduce((x, y) => x + y, 0)).toBe(3508)
+    expect(b.stripCalls).toEqual([[2480, 100]])
+    expect(b.e.enc.begin).toHaveBeenCalledWith(2480, 3508)
     expect([...b.s.gets].sort()).toEqual([...a.s.gets].sort())
   })
 
@@ -306,7 +306,9 @@ describe('makePoster', () => {
   it('at most 12 gets in flight, with 72 stickers and 48 of them in the first strips', async () => {
     const c = await manyCard('A1')
     const { out } = spans(c, 'A1')
-    expect([...out.values()].filter((sp) => sp.first <= 1).length).toBeGreaterThan(12) // precondition
+    // Precondition: more than 12 stickers start in the first two strips that draw any (at 300 dpi the head takes several strips).
+    const top = Math.min(...[...out.values()].map((sp) => sp.first))
+    expect([...out.values()].filter((sp) => sp.first <= top + 1).length).toBeGreaterThan(12)
     const { deps, s } = setup()
     await makePoster(manyOpts('A1'), () => {}, deps)
     expect(s.gets).toHaveLength(out.size)
@@ -525,8 +527,8 @@ describe('seams, end to end', () => {
     const [w, h] = PRINT_PX.A4
     const expected = Buffer.alloc(w * h * 3)
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) expected.set(pixel(y, x), (y * w + x) * 3)
-    expect(stripRanges(w, h, 97)).toHaveLength(19)
-    for (const rows of [1754, 97]) {
+    expect(stripRanges(w, h, 185)).toHaveLength(19)
+    for (const rows of [3508, 185]) {
       const poster = await make(rows)
       const png = Buffer.from(await (await poster.file('png')).arrayBuffer())
       const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true })
