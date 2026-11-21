@@ -117,7 +117,8 @@ test("large file shows progress and stays responsive", async ({ page }) => {
     const probe = await page.evaluate(() => {
       const p = (window as unknown as { __eb: { texts: string[]; times: number[]; long: [number, number][]; lat: number[]; atClick: string; stop: () => void } }).__eb;
       p.stop();
-      const done = p.texts.findIndex((t) => t.startsWith("Done"));
+      // The done line: "Done · …", or "Your collage has …" for the first birds into an empty list (D1).
+      const done = p.texts.findIndex((t) => t.startsWith("Done") || t.startsWith("Your collage has"));
       const end = p.times[done >= 0 ? done : p.times.length - 1]; // the toast's done line: the parse is done
       return { texts: p.texts, latency: p.lat[0], atClick: p.atClick, longest: Math.max(0, ...p.long.filter(([t]) => t < end).map(([, d]) => d)) };
     });

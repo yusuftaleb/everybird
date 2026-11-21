@@ -277,19 +277,20 @@
 .ebd .ebd-taxa-head { margin: 0; font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 
 /* The birds sit in the collage box at the product's packed boxes; a filter moves them on the product's own travel
-   curve (collage.css: .64s, cubic-bezier(.45, 0, .1, 1)). Two elements per bird, so each animates one transform
+   curve (cubic-bezier(.45, 0, .1, 1)) and settles in the collage's 450ms (collage-motion.ts: MOVE_MS 380 plus its
+   70ms ripple; the demo has no ripple, so its move is the whole 450ms). Two elements per bird, so each animates one transform
    property and the compositor runs it: the outer one's place and size (and its fade when it steps out), the inner
    one's arrival. */
 .ebd .ebd-collage { position: relative; margin-top: 8px; flex: none; }
 .ebd .ss-stage[data-layout="compact"] .ebd-collage { margin-top: 6px; }
 .ebd .ebd-bird {
   position: absolute; display: block;
-  transition: transform .64s var(--eb-travel) var(--md, 0ms), opacity .3s ease var(--md, 0ms);
+  transition: transform .45s var(--eb-travel) var(--md, 0ms), opacity .3s ease var(--md, 0ms);
 }
 .ebd .ebd-bird-in { display: block; width: 100%; height: 100%; opacity: 0; }
 .ebd .ebd-bird img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .ebd .ebd-collage[data-birds] .ebd-bird-in { opacity: 1; animation: ebd-in .48s var(--eb-arrive) var(--d) backwards; }
-.ebd .ebd-bird[data-out] { opacity: 0; transition-duration: .5s, .25s; }
+.ebd .ebd-bird[data-out] { opacity: 0; transition-duration: .45s, .25s; }
 @keyframes ebd-in { from { opacity: 0; transform: translate(12%, 12%) scale(.76); } }
 
 /* The count in the hole (Tally, .eb-mid): the number over the mono "SPECIES", centred on the collage box. */

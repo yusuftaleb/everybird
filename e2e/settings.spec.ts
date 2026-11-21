@@ -440,7 +440,7 @@ test("the collage's Fix it opens Settings with the match report open", async ({ 
 test("Language: Español from the top bar switches every page and stays after a reload", async ({ page, context }) => {
   await page.goto("/");
   const bar = page.getByTestId("topbar");
-  const btn = bar.getByRole("button", { name: "Language: English" });
+  const btn = bar.getByRole("button", { name: "EN, Language: English" });
   await expect(btn).toHaveText("EN");
   await btn.click();
   const menu = page.getByRole("menu", { name: "Language" });
@@ -448,7 +448,7 @@ test("Language: Español from the top bar switches every page and stays after a 
   await expect(menu.getByRole("menuitemradio", { name: "English" })).toBeFocused();
   await Promise.all([page.waitForEvent("load"), menu.getByRole("menuitemradio", { name: "Español" }).click()]);
   await expect(page.locator("html")).toHaveAttribute("lang", "es");
-  await expect(bar.getByRole("button", { name: "Idioma: Español" })).toHaveText("ES");
+  await expect(bar.getByRole("button", { name: "ES, Idioma: Español" })).toHaveText("ES");
   expect((await context.cookies()).find((c) => c.name === "everybird-lang")?.value).toBe("es");
   for (const [name, path] of [["Ajustes", "/settings"], ["Acerca de", "/about"], ["Mis aves", "/"]] as const) {
     await bar.getByRole("link", { name, exact: true }).click();

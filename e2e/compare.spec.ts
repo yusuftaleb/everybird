@@ -3,7 +3,7 @@ import linkIndex from "../data/link-index.json";
 import { localDay } from "../src/lib/file-name";
 import { decodeCompare, encodeShare } from "../src/lib/share/link";
 
-// Compare (/compare, src/components/compare/): the set-up (a name beside each link, Add a friend, the cap, Compare at
+// Compare (/compare, src/components/compare/): the set-up (a name beside each link, Add a birder, the cap, Compare at
 // two lists, at the form's foot), the comparison (My birds' page head with Edit lists and Share, the chips: a person, a
 // pair, all three, Yet to see, Every bird; every region of the circles pressed, by pointer and keyboard; the bars beside
 // the circles; the heading and the stickers under one heading per family, one family open at a time; Edit lists) and Share into the site's Share dialog in its Compare mode (What, the
@@ -127,13 +127,13 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
       // The same page head as the comparison's and My birds': the title and its line, no buttons (Compare is the form's, at
-      // its foot: Add a friend at the left, Compare at the right, its right edge on the link boxes').
+      // its foot: Add a birder at the left, Compare at the right, its right edge on the link boxes').
       const title = page.getByRole("heading", { level: 1, name: "Compare life lists" });
       await expect(title).toBeVisible();
       await expect(title).toHaveClass(/eb-pagehead-title/);
       await expect(page.locator(".eb-pagehead .eb-lede-sm")).toHaveText("Paste your friends’ Everybird links to see which birds you share. Up to 6 lists.");
       await expect(page.locator(".eb-pagehead-actions").getByRole("button")).toHaveCount(0);
-      await expect(page.locator(".eb-compare-foot").getByRole("button")).toHaveText(["Add a friend", "Compare"]);
+      await expect(page.locator(".eb-compare-foot").getByRole("button")).toHaveText(["Add a birder", "Compare"]);
       const linkBox = (await page.getByTestId("compare-link-0").boundingBox())!;
       const foot = (await page.getByTestId("compare-submit").boundingBox())!;
       expect(Math.abs(foot.x + foot.width - (linkBox.x + linkBox.width))).toBeLessThanOrEqual(1);
@@ -285,7 +285,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await page.getByTestId("compare-edit").click();
       await expect(page.getByRole("heading", { level: 1, name: "Compare life lists" })).toBeFocused();
       await expect(page.locator(".eb-pagehead-actions").getByRole("button")).toHaveCount(0);
-      await expect(page.locator(".eb-compare-foot").getByRole("button")).toHaveText(["Add a friend", "Compare"]);
+      await expect(page.locator(".eb-compare-foot").getByRole("button")).toHaveText(["Add a birder", "Compare"]);
       await expect(page.getByTestId("compare-name-0")).toHaveValue("Sam");
       await expect(page.getByTestId("compare-name-1")).toHaveValue("Ada");
       await page.getByRole("button", { name: "Remove Ada" }).click();
@@ -307,13 +307,17 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await page.getByTestId("compare-link-0").fill(six);
       await expect(rows(page)).toHaveCount(5);
       await expect(page.getByTestId("compare-name-4")).toHaveValue("Friend 5");
-      await expect(page.getByTestId("compare-status")).toHaveText("Up to 6 lists can be compared, so the rest weren’t added.");
-      await expect(page.getByTestId("compare-add")).toBeDisabled();
+      // The status names each list the paste opened, then the note on the ones left out.
+      const opened = Array.from({ length: 5 }, (_, i) => `Friend ${i + 1} · 5 species.`).join(" ");
+      await expect(page.getByTestId("compare-status")).toHaveText(`${opened} Up to 6 lists can be compared, so the rest weren’t added.`);
+      // Six lists: Add a birder is gone, not disabled.
+      await expect(page.getByTestId("compare-add")).toHaveCount(0);
       await page.getByTestId("compare-submit").click();
       await expect(pills(page)).toHaveCount(6);
       await expect(chip(page, "need")).toBeVisible();
-      // Six lists: the flower, a petal each, and its middle.
-      await expect(page.getByTestId("compare-diagram").locator("circle.eb-compare-circle, circle.eb-compare-core")).toHaveCount(7);
+      // Six lists: a ring of six equal circles, one a list, and no middle of its own.
+      await expect(page.getByTestId("compare-diagram").locator("circle.eb-compare-circle")).toHaveCount(6);
+      await expect(page.getByTestId("compare-diagram").locator("circle.eb-compare-core")).toHaveCount(0);
     });
 
     test("Share opens the Share dialog on the comparison: What, the formats, Share image, Download and Copy link", async ({ page, context, baseURL, browserName }) => {
