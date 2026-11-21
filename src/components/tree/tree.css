@@ -110,13 +110,12 @@ button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-fan-label[data-hot] .eb-t
 .eb-tree-fan .eb-tree-on { stroke-width: calc(1.5px * var(--tree-k, 1)); }
 .eb-tree-fan .eb-tree-off, .eb-tree-fan .eb-tree-tipdot.eb-tree-off { stroke-width: calc(1px * var(--tree-k, 1)); }
 .eb-tree-fan .eb-tree-dash { stroke-dasharray: calc(2px * var(--tree-k, 1)) calc(3px * var(--tree-k, 1)); }
-/* The Fan's and Radial's tooltip (round 6, item 12): the bird tooltip's card look (card-list.css .eb-card.eb-tip), the Map's
-   form, above the tip's dot, its side by where the dot is; outside the figure (which clips its labels) so it is never cut. */
+/* The Fan's and Radial's tooltip under the floor (round 6, item 12): the bird tooltip's card look (card-list.css
+   .eb-card.eb-tip), the Map's form, just past the name's end (TreeView's placeTip); outside the figure (which clips its
+   labels) so it is never cut. */
 .eb-tree-fanwrap { position: relative; }
-.eb-tree-tip { display: flex; flex-direction: column; gap: 2px; width: max-content; padding: 8px 12px; pointer-events: none; transform: translate(-50%, calc(-100% - 12px)); }
+.eb-tree-tip { display: flex; flex-direction: column; gap: 2px; width: max-content; padding: 8px 12px; pointer-events: none; }
 .eb-tree-tip > .eb-mono { white-space: nowrap; }
-.eb-tree-tip[data-side="start"] { transform: translate(-12px, calc(-100% - 12px)); }
-.eb-tree-tip[data-side="end"] { transform: translate(calc(-100% + 12px), calc(-100% - 12px)); }
 .eb-tree-tip-name { font-weight: 600; font-size: 14px; line-height: 1.3; color: var(--ink); overflow-wrap: break-word; }
 .eb-tree-tip-name[lang] { font-style: italic; }
 .eb-tree-small { margin-top: 8px; }

@@ -580,12 +580,26 @@ describe('the Fan and Radial on a measured width', () => {
     expect(screen.queryByTestId('tree-small')).toBeNull()
     wide()
   })
-  it('a tip under the pointer, tapped or focused shows its whole name and count in a tooltip; one that opens nothing on a press', async () => {
+  it('at full size a tip shows no tooltip (its name is whole on the drawing)', async () => {
     const undo = widthOf(1100)
     const { container } = render(<Tree entries={['a1', 'b2'].map(entry)} />)
+    await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    fireEvent.mouseOver(container.querySelectorAll('.eb-tree-fan-label')[2])
+    expect(container.querySelector('.eb-tree-fan-label[data-i="2"]')).toHaveAttribute('data-hot')
+    expect(screen.queryByTestId('tree-tip')).toBeNull()
+    undo()
+  })
+  it('under the floor a tip under the pointer, tapped or focused shows its whole name and count in a tooltip, placed past its name', async () => {
+    const kept = new Map<string, string>([[TREE_LAYOUT_KEY, 'fan']])
+    const undo = widthOf(300)
+    vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v), removeItem: (k: string) => kept.delete(k) })
+    vi.stubGlobal('sessionStorage', globalThis.localStorage)
+    const { container } = render(<Tree entries={['a1', 'b2'].map(entry)} />)
     const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    expect(screen.getByTestId('tree-small')).toBeInTheDocument()
     const labels = [...container.querySelectorAll('.eb-tree-fan-label')]
     fireEvent.mouseOver(labels[2])
+    expect(screen.getByTestId('tree-tip').style.left).toMatch(/px$/)
     expect(screen.getByTestId('tree-tip')).toHaveTextContent(/^Cuckoos0 of 4$/)
     expect(screen.getByTestId('tree-tip')).toHaveAttribute('aria-hidden', 'true')
     fireEvent.mouseLeave(container.querySelector('.eb-tree-fan')!)

@@ -22,7 +22,7 @@
 // the count (fitScreen sizes the drawing so that every name fits whole, using the whole width: the counts go first
 // when room is short, then the sticker's box shrinks to the name's line, then, under the 11px floor, the names shrink as
 // far as needed with the dots and branches, and a quiet note under the tree offers Rectangular; hovering, tapping or
-// focusing a tip shows its whole name and count in a tooltip); on a touch screen, unpicked, Rectangular at any width
+// focusing a tip shows its whole name and count in a tooltip when the names are under the floor); on a touch screen, unpicked, Rectangular at any width
 // (AD5). The rows are one Tab stop (↑ ↓ Home End, AU3); the chart fades in per branch, rank and layout (AN11); a failed
 // load offers Try again (H4) and Lifers only emptying the view offers Show every group (D9); the ages where no branch
 // runs (under the fan's centre; in the Radial's opening at the top, RADIAL_GAP, on Paper, only where the patch fits it),
@@ -584,16 +584,27 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   )
 
   // The tooltip (round 6, item 12): the tip under the pointer, tapped or with keyboard focus, its whole name and count,
-  // in the site's tooltip look, above its dot, its side by where the dot is so it stays on the page. The Fan and Radial
-  // only (Rectangular's rows show every name whole); aria-hidden, as the drawing is (the rows carry the words).
+  // in the site's tooltip look. Only when the names are under the floor (Yusuf, 2026-11-21): at full size the name is
+  // whole on the drawing and the hover's Accent marks it. The Fan and Radial only (Rectangular's rows show every name
+  // whole); aria-hidden, as the drawing is (the rows carry the words).
   const tipI = peek ?? hot?.i
-  const tipRow = fit && tipI != null ? tips[tipI] : undefined
+  const tipRow = small && tipI != null ? tips[tipI] : undefined
   const tipAtP = tipRow && roundTips[tipI!]
+  // Placed once drawn (the label's width is the DOM's): just past the name's end, along its line, so it covers neither
+  // the name nor its bird, its near side toward the name, kept inside the column.
+  const placeTip = (el: HTMLDivElement | null) => {
+    const label = el && box.current?.querySelector<HTMLElement>(`.eb-tree-fan-label[data-i="${tipI}"]`)
+    if (!el || !label || !tipAtP || !fit) return
+    const at = fanLabel(fit, tipAtP.a, TIP_R * k + px * LABEL_GAP + label.offsetWidth + 8)
+    const [w, h] = [el.offsetWidth, el.offsetHeight]
+    const x = at.x + ((Math.cos(tipAtP.a) - 1) * w) / 2
+    el.style.left = `${Math.min(Math.max(0, x), (el.parentElement?.clientWidth ?? w) - w)}px`
+    el.style.top = `${at.y + ((-Math.sin(tipAtP.a) - 1) * h) / 2}px`
+  }
   const tooltip = tipRow && tipAtP && (() => {
     const [name, latin] = tipName(tipRow)
-    const side = tipAtP.x < width / 3 ? 'start' : tipAtP.x > (2 * width) / 3 ? 'end' : 'mid'
     return (
-      <div className="eb-card eb-tip eb-tree-tip" style={{ left: tipAtP.x, top: tipAtP.y }} data-side={side} aria-hidden="true" data-testid="tree-tip">
+      <div ref={placeTip} className="eb-card eb-tip eb-tree-tip" aria-hidden="true" data-testid="tree-tip">
         <span className="eb-tree-tip-name" lang={latin ? 'la' : undefined}>{name}</span>
         {tipRow.kind === 'group' && <span className="eb-mono">{tipOfText(tipRow)}</span>}
       </div>
