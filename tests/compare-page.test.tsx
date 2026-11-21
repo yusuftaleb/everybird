@@ -46,6 +46,12 @@ const comparison = (...lists: SharePayload[]) => `${SHARE_ORIGIN}/c/${encodeComp
 const paste = (text: string, i = 0) => fireEvent.change(screen.getByTestId(`compare-link-${i}`), { target: { value: text } })
 const compare = () => fireEvent.click(screen.getByTestId('compare-submit'))
 const names = (el: HTMLElement) => within(el).queryAllByRole('listitem').map((li) => li.querySelector('.eb-compare-tile-name')?.textContent)
+/** Every family starts closed (Yusuf, 2026-11-21): open the first, then its birds. */
+const firstBirds = async () => {
+  const b = (await screen.findByTestId('family-accordion')).querySelector<HTMLElement>('.eb-facc-btn')!
+  if (b.getAttribute('aria-expanded') !== 'true') fireEvent.click(b)
+  return screen.getByTestId('compare-birds')
+}
 const chip = (id: string | number) => screen.getByTestId(`compare-chip-${id}`)
 /** The people's chips: each name and its count. */
 const pills = () => screen.getAllByTestId(/^compare-chip-\d+$/).map((b) => `${b.querySelector('.eb-compare-chip-name')!.textContent}${b.querySelector('.eb-count')!.textContent}`)
@@ -218,7 +224,7 @@ describe('Compare: the comparison', () => {
     expect(chip('every')).toHaveTextContent('Every bird5')
     expect(chip('need')).toHaveAttribute('aria-pressed', 'true')
     expect(shown()).toBe('Yet to see · 1')
-    expect(names(await screen.findByTestId('compare-birds'))).toEqual(['Bird 5'])
+    expect(names(await firstBirds())).toEqual(['Bird 5'])
     // Both people: the birds on both lists.
     fireEvent.click(chip(0))
     expect(chip(0)).toHaveAttribute('aria-pressed', 'true')
@@ -226,7 +232,7 @@ describe('Compare: the comparison', () => {
     expect(shown()).toBe('Only you · 2')
     fireEvent.click(chip(1))
     expect(shown()).toBe('Both · 2')
-    expect(names(screen.getByTestId('compare-birds'))).toEqual(['Bird 3', 'Bird 4'])
+    expect(names(await firstBirds())).toEqual(['Bird 3', 'Bird 4'])
     fireEvent.click(chip(0))
     expect(shown()).toBe('Only Sam · 1')
     // The last person off: every bird.
@@ -372,8 +378,8 @@ describe('Compare: the comparison', () => {
     fireEvent.click(chip(0))
     fireEvent.click(chip(1))
     expect(shown()).toBe('Only Sam · 15')
-    // Family 1 (birds 5 to 9) open, every bird of it.
-    expect(names(await screen.findByTestId('compare-birds'))).toEqual(['Bird 5', 'Bird 6', 'Bird 7', 'Bird 8', 'Bird 9'])
+    // Family 1 (birds 5 to 9) opened, every bird of it.
+    expect(names(await firstBirds())).toEqual(['Bird 5', 'Bird 6', 'Bird 7', 'Bird 8', 'Bird 9'])
     expect(screen.queryByTestId('compare-more')).toBeNull()
   })
 })
@@ -391,10 +397,13 @@ describe('Compare: the birds by family, one open at a time, with who has each', 
   const open = () => heads().map((b) => b.getAttribute('aria-expanded'))
   const who = () => screen.queryAllByTestId('compare-who').map((w) => w.getAttribute('aria-label'))
   const head = (name: string) => heads().find((b) => b.textContent!.startsWith(name))!
-  it('families in taxonomic order, the first open; one at a time; all can close; the first again on a new choice', async () => {
+  it('families in taxonomic order, all closed; one at a time; all can close; all closed again on a new choice', async () => {
     await start()
     expect(shown()).toBe('Yet to see · 4')
     expect(fams()).toEqual(['Family 1', 'Family 2'])
+    expect(open()).toEqual(['false', 'false'])
+    expect(screen.queryByTestId('compare-birds')).toBeNull()
+    fireEvent.click(head('Family 1'))
     expect(open()).toEqual(['true', 'false'])
     // The heading: its name, then its count (in words for a screen reader), the button controlling its family.
     expect(head('Family 1')).toHaveAccessibleName('Family 1, 2 species')
@@ -410,27 +419,32 @@ describe('Compare: the birds by family, one open at a time, with who has each', 
     fireEvent.click(head('Family 2'))
     expect(open()).toEqual(['false', 'false'])
     expect(screen.queryByTestId('compare-birds')).toBeNull()
+    fireEvent.click(head('Family 1'))
     fireEvent.click(chip('every'))
     expect(fams()).toEqual(['Family 0', 'Family 1', 'Family 2'])
-    expect(open()).toEqual(['true', 'false', 'false'])
-    expect(names(screen.getByTestId('compare-birds'))).toEqual(['Bird 4', 'Bird 3', 'Bird 1', 'Bird 2'])
+    expect(open()).toEqual(['false', 'false', 'false'])
+    expect(names(await firstBirds())).toEqual(['Bird 4', 'Bird 3', 'Bird 1', 'Bird 2'])
   })
   it('each tile’s dots name who has it, on Yet to see and Every bird only', async () => {
     await start()
+    await firstBirds()
     expect(who()).toEqual(['On Sam & Ada’s lists', 'On Sam’s lists'])
     const dots = screen.getAllByTestId('compare-who')[0].querySelectorAll('.eb-compare-who-dot')
     expect([...dots].map((d) => (d as HTMLElement).style.background)).toEqual([listColor(1), listColor(2)])
     fireEvent.click(chip('every'))
+    await firstBirds()
     expect(who()).toEqual(['On Mine, Sam & Ada’s lists', 'On Mine & Sam’s lists', 'On Mine’s lists', 'On Mine’s lists'])
     // A person's own birds, or a region: the same lists on every tile, so no dots.
     fireEvent.click(chip(1))
     expect(shown()).toBe('Only Sam · 2')
+    await firstBirds()
     expect(who()).toEqual([])
     fireEvent.click(chip(2))
     expect(who()).toEqual([])
   })
   it('a family above closing keeps the pressed heading where it was on screen, the scroll corrected at once', async () => {
     await start()
+    fireEvent.click(head('Family 1'))
     const scrollBy = vi.fn()
     vi.stubGlobal('scrollBy', scrollBy)
     window.scrollBy = scrollBy

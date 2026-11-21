@@ -19,7 +19,7 @@ type AccordionFamily = { key: string; row: SpeciesRow; n: number }
  * List view could use it). Each heading is the List view's (`.eb-lhead`: small Muted upper case, the family's name,
  * italic Latin with `sci`, its count at the right in mono, sticky under the top bar) made a button: a caret before the
  * count, turned while open, `aria-expanded` and `aria-controls`. Opening one closes the one open; pressing the open one
- * closes it, so all can be closed. The first opens on arrival and whenever `reset` changes. Only the open family's
+ * closes it, so all can be closed. All start closed, on arrival and whenever `reset` changes (Yusuf, 2026-11-21). Only the open family's
  * body is rendered (`children(key)`). When a family above closes, the pressed heading stays where it was on screen:
  * the page is scrolled by what moved, in the same frame, the top bar left as it is (scrollQuietly).
  */
@@ -30,7 +30,7 @@ export function FamilyAccordion({ families, sci = false, reset, children }: {
   useNames()
   const id = useId()
   const [pick, setPick] = useState<{ reset: string; key: string | null } | null>(null)
-  const open = pick && pick.reset === reset && (pick.key === null || families.some((f) => f.key === pick.key)) ? pick.key : families[0]?.key ?? null
+  const open = pick && pick.reset === reset && (pick.key === null || families.some((f) => f.key === pick.key)) ? pick.key : null
   // The pressed family's section and its top on screen before the press.
   const held = useRef<{ el: HTMLElement; top: number } | null>(null)
   useLayoutEffect(() => {

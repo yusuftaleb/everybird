@@ -127,7 +127,7 @@
   position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; object-fit: contain; object-position: center bottom;
 }
 .eb-compare-tile-name {
-  max-width: 100%; font-size: 13px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; hyphens: auto;
+  max-width: 100%; font-size: 13px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; /* no hyphens: they split names that fit on the next line ("Shovel-er"); Yusuf, 2026-11-21 */
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
 }
 .eb-compare-who { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }

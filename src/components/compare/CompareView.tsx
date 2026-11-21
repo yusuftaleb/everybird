@@ -152,7 +152,7 @@ export function ListDot({ i }: { i: number }) {
  * lists; then Yet to see, with your own list, and Every bird), then, side by side from 640px, the circles (or the
  * flower) and the bars, both marking the choice; pressing a region of the circles chooses its people, outside them
  * every bird; a bar chooses that person alone. Under them the choice named with its count ("Kalvin & Kalin · 144")
- * over its birds by family (FamilyAccordion, one family open at a time, the first on arrival and on a new choice), each
+ * over its birds by family (FamilyAccordion, one family open at a time, all closed on arrival and on a new choice), each
  * family a sticker grid; on Yet to see and Every bird each tile has a dot per list that has it. `sci`: families by
  * their Latin names (the page's Scientific switch).
  */
