@@ -3,7 +3,7 @@ import { filterPlaceKeys, seenBasis, type Filter } from '@/lib/list/filters'
 import { inRange } from '@/lib/list/in-range'
 import type { ListEntry } from '@/lib/list/model'
 import { countryKeyOf, keysOfPlace, placeName } from '@/lib/list/place-keys'
-import { seenOf, type SeenIndex } from '@/lib/list/seen'
+import { hasSeenMonths, seenOf, type SeenIndex } from '@/lib/list/seen'
 import { monthOrd, sightingKeys, whereOf } from '@/lib/list/sighting'
 import { continentOfPlace, type ContinentId } from '@/lib/places/continents'
 import type { SpeciesIndex } from '@/lib/species/load'
@@ -46,6 +46,19 @@ export type BulkGroupsOpts = {
   locale?: string
   /** Splitting by number of birds: the most per poster or image (default All: one group of every bird). */
   batchSize?: BulkBatch
+  /**
+   * Splitting by place or year (round 6, item 21, Export in batches' "Count repeat sightings"): true (the default) puts
+   * a bird in every country, continent, province or year where it was seen; false only in its lifer's (the place and
+   * date it was first recorded), so each bird is in one group and the groups add up to the list.
+   */
+  repeats?: boolean
+  /** A year group's label line ("2026 lifers", "2026 year list"); the year alone by default. Its file keeps the year. */
+  yearLabel?: (year: string) => string
+}
+
+/** Whether a list has repeat sightings for Export in batches to count: places beyond the lifers' (seen-here) or month sets. */
+export function hasRepeats(seen: SeenIndex | undefined): boolean {
+  return !!seen && (seen.full || hasSeenMonths(seen))
 }
 
 const RESERVED_WINDOWS = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i
@@ -71,10 +84,10 @@ export function sanitizeGroupStem(label: string, fallback = 'group'): string {
   return RESERVED_WINDOWS.test(base) ? `${base}-group` : base
 }
 
-function uniqueStems(groups: { id: string; label: string; entries: ListEntry[] }[]): BulkGroup[] {
+function uniqueStems(groups: { id: string; label: string; entries: ListEntry[]; stem?: string }[]): BulkGroup[] {
   const used = new Set<string>()
   return groups.map((g, i) => {
-    const base = sanitizeGroupStem(g.label, `group-${i + 1}`)
+    const base = sanitizeGroupStem(g.stem ?? g.label, `group-${i + 1}`)
     let stem = base
     let n = 2
     while (used.has(stem)) {
@@ -158,13 +171,18 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
   const loOrd = fromBound ? monthOrd(fromBound) : Number.NEGATIVE_INFINITY
   const hiOrd = toBound ? monthOrd(toBound) : Number.POSITIVE_INFINITY
 
+  const repeats = opts.repeats ?? true
   if (split === 'country' || split === 'continent' || split === 'province') {
     const buckets = new Map<string, { label: string; entries: ListEntry[]; seen: Set<string> }>()
     for (const e of sorted) {
-      const here = where ? sightingKeys(e, opts.seen, where) : undefined
-      for (const p of seenOf(opts.seen, e)) {
+      const here = repeats && where ? sightingKeys(e, opts.seen, where) : undefined
+      // Lifers only: the one place it was first recorded (the list is already the filter's birds); a province without
+      // its country takes the province code's.
+      const country = e.place?.country || e.place?.sub1?.split('-')[0]
+      const places = repeats ? seenOf(opts.seen, e) : country ? [{ ...e.place, country }] : []
+      for (const p of places) {
         if (here && !here.has(p.sub2 ? `${p.sub1 ?? p.country}|${p.sub2}` : (p.sub1 ?? p.country))) continue
-        if (!placeMatches(p)) continue
+        if (repeats && !placeMatches(p)) continue
         if (split === 'country') {
           const id = countryKeyOf(p)
           addToBucket(buckets, id, placeName(id, opts.regions, opts.continents), e)
@@ -187,7 +205,14 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
   }
 
   const buckets = new Map<string, { label: string; entries: ListEntry[]; seen: Set<string> }>()
+  const yearLabel = opts.yearLabel ?? ((y: string) => y)
   for (const e of sorted) {
+    if (!repeats) {
+      // Lifers only: the year it was first recorded.
+      const m = e.date ? YEAR_RE.exec(e.date) : null
+      if (m) addToBucket(buckets, m[1], yearLabel(m[1]), e)
+      continue
+    }
     const months = opts.seen?.byCode.get(e.code)?.months
     const years = new Set<string>()
     if (months) {
@@ -211,10 +236,10 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
         if (m && (!hasTime || inRange(p.date, fromBound, toBound))) years.add(m[1])
       }
     }
-    for (const y of years) addToBucket(buckets, y, y, e)
+    for (const y of years) addToBucket(buckets, y, yearLabel(y), e)
   }
   const items = [...buckets.entries()]
-    .map(([id, b]) => ({ id, label: b.label, entries: b.entries }))
+    .map(([id, b]) => ({ id, label: b.label, entries: b.entries, stem: id }))
     .sort((a, b) => a.id.localeCompare(b.id))
   return uniqueStems(items)
 }

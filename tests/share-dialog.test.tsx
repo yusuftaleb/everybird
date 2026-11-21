@@ -11,6 +11,7 @@ import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
 import { initialState, makeReducer } from '@/lib/list/store'
+import { buildSeen } from '@/lib/list/seen'
 import { decodeShare } from '@/lib/share/link'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -1608,5 +1609,54 @@ describe('a menu never resizes the dialog (round 6, item 20)', () => {
     openBulk()
     await settle()
     expect(inputs()[0]).not.toBe(closed)
+  })
+})
+
+// Round 6, item 21: Export in batches' "Count repeat sightings", for the place and year splits.
+describe('Export in batches: Count repeat sightings (round 6, item 21)', () => {
+  const rules = { hideHeard: false, hideDead: false, researchOnly: false }
+  const edits = { added: [], removed: [], fixes: {}, marks: {} }
+  // An Ostrich seen in Canada in 2020 (its lifer) and in Kenya in 2023.
+  const list = [entry('ostric2')]
+  const seen = buildSeen([{ code: 'ostric2', source: 'ebird', date: '2020-05', place: { country: 'CA' }, seen: ['2020-05|CA', '2023-02|KE'], seenMonths: ['2020-05|CA', '2023-02|KE'] }], edits, rules, list)
+  const withRegions = { ...regions, countries: { CA: 'Canada', KE: 'Kenya' } }
+  const open = (basis?: 'seen') => {
+    render(<ShareDialog state={{ ...stateWith(list), seen, filter: { ...initialState().filter, ...(basis ? { basis } : {}) } }} dispatch={() => {}} species={species} regions={withRegions} onClose={() => {}} />)
+    openBulk()
+  }
+  const sw = () => screen.queryByRole('switch', { name: 'Count repeat sightings' })
+
+  it('shows for Country, Continent, State or province and Year only, starting as the page\'s switch (off)', () => {
+    open()
+    expect(sw()).toBeNull() // Number of birds
+    pickMenu('Split by', 'Family')
+    expect(sw()).toBeNull()
+    pickMenu('Split by', 'Country')
+    expect(sw()).toHaveAttribute('aria-checked', 'false')
+    // Off: the Ostrich once, in Canada, where it was first recorded.
+    expect(screen.getByTestId('bulk-count').textContent).toBe('1 image')
+    fireEvent.click(sw()!)
+    expect(sw()).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByTestId('bulk-count').textContent).toBe('2 images')
+    for (const split of ['Continent', 'State or province', 'Year']) {
+      pickMenu('Split by', split)
+      expect(sw(), split).toBeInTheDocument()
+    }
+  })
+
+  it('starts on when the page counts repeat sightings', () => {
+    open('seen')
+    pickMenu('Split by', 'Year')
+    expect(sw()).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByTestId('bulk-count').textContent).toBe('2 images')
+    fireEvent.click(sw()!)
+    expect(screen.getByTestId('bulk-count').textContent).toBe('1 image')
+  })
+
+  it('is not shown for a list with no repeat sightings to count', () => {
+    render(<ShareDialog state={stateWith(list)} dispatch={() => {}} species={species} regions={withRegions} onClose={() => {}} />)
+    openBulk()
+    pickMenu('Split by', 'Country')
+    expect(sw()).toBeNull()
   })
 })

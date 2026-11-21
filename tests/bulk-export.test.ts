@@ -9,7 +9,7 @@ vi.mock('fflate', async (orig) => ({
 }))
 import { buildSeen } from '@/lib/list/seen'
 import type { ListEntry, SourceRecord } from '@/lib/list/model'
-import { batchChoice, bulkGroups, bulkImagePackSpec, bulkPackSpec, makeBulkZip, makeImageZip, sanitizeGroupStem } from '@/lib/share/bulk'
+import { batchChoice, bulkGroups, hasRepeats, bulkImagePackSpec, bulkPackSpec, makeBulkZip, makeImageZip, sanitizeGroupStem } from '@/lib/share/bulk'
 import { imagePackSpec, type ImagePack } from '@/lib/share/image'
 import type { Poster } from '@/lib/share/poster'
 import { buildSpeciesIndex } from '@/lib/species/load'
@@ -177,6 +177,44 @@ describe('bulk export', () => {
       ['2023', ['merlin']],
       ['2024', ['merlin']],
     ])
+  })
+
+  // Round 6, item 21: Export in batches' "Count repeat sightings" for the place and year splits.
+  it('with repeat sightings off, puts each bird once, in its lifer\'s country and year; on, everywhere it was seen', () => {
+    const species = buildSpeciesIndex([row('merlin', 1, 'Falconiformes', 'Falconidae', 'Falcons'), row('mallar3', 2, 'Anseriformes', 'Anatidae', 'Ducks')])
+    const entries = [
+      entry('merlin', { date: '2019-03-01', place: { country: 'EG', sub1: 'EG-C' } }),
+      entry('mallar3', { date: '2022-06-01', place: { country: 'CA', sub1: 'CA-BC' } }),
+    ]
+    const records: SourceRecord[] = [
+      { code: 'merlin', source: 'ebird', date: '2019-03-01', place: { country: 'EG', sub1: 'EG-C' }, seen: ['2019-03-01|EG-C', '2023-04-10|CA-BC'], seenMonths: ['2019-03|EG-C', '2023-04|CA-BC'] },
+      { code: 'mallar3', source: 'ebird', date: '2022-06-01', place: { country: 'CA', sub1: 'CA-BC' }, seen: ['2022-06-01|CA-BC'], seenMonths: ['2022-06|CA-BC'] },
+    ]
+    const seen = buildSeen(records, { added: [], removed: [], fixes: {}, marks: {} }, { hideHeard: false, hideDead: false, researchOnly: false }, entries)
+    const groups = (split: 'country' | 'continent' | 'province' | 'year', repeats: boolean) =>
+      bulkGroups(split, entries, { species, regions, seen, repeats, yearLabel: (y) => `${y} ${repeats ? 'year list' : 'lifers'}` }).map((g) => [g.label, g.entries.map((e) => e.code)])
+    // Off: the Merlin only in Egypt (its lifer's country) and 2019 (its lifer's year).
+    expect(groups('country', false)).toEqual([['Canada', ['mallar3']], ['Egypt', ['merlin']]])
+    expect(groups('year', false)).toEqual([['2019 lifers', ['merlin']], ['2022 lifers', ['mallar3']]])
+    // On: in both countries and both years (today's behaviour, and the default without the option).
+    expect(groups('country', true)).toEqual([['Canada', ['merlin', 'mallar3']], ['Egypt', ['merlin']]])
+    expect(groups('year', true)).toEqual([['2019 year list', ['merlin']], ['2022 year list', ['mallar3']], ['2023 year list', ['merlin']]])
+    expect(bulkGroups('country', entries, { species, regions, seen }).map((g) => g.entries.length)).toEqual([2, 1])
+    // Off, the groups add up to the list, every split.
+    for (const split of ['country', 'continent', 'province', 'year'] as const) {
+      expect(groups(split, false).reduce((n, [, codes]) => n + codes.length, 0), split).toBe(entries.length)
+    }
+    // A year's file keeps the year, whatever its label line says.
+    expect(bulkGroups('year', entries, { species, regions, seen, repeats: false, yearLabel: (y) => `${y} lifers` }).map((g) => g.stem)).toEqual(['2019', '2022'])
+  })
+
+  it('has repeat sightings to count only with seen-here places or month sets', () => {
+    const one = [entry('merlin', { date: '2019-03-01', place: { country: 'EG' } })]
+    const rules = { hideHeard: false, hideDead: false, researchOnly: false }
+    const edits = { added: [], removed: [], fixes: {}, marks: {} }
+    expect(hasRepeats(undefined)).toBe(false)
+    expect(hasRepeats(buildSeen([{ code: 'merlin', source: 'ebird', date: '2019-03-01', place: { country: 'EG' } }], edits, rules, one))).toBe(false)
+    expect(hasRepeats(buildSeen([{ code: 'merlin', source: 'ebird', date: '2019-03-01', place: { country: 'EG' }, seen: ['2019-03-01|EG'], seenMonths: ['2019-03|EG'] }], edits, rules, one))).toBe(true)
   })
 
   it('keeps the letters NFKD does not decompose in file names', () => {

@@ -65,7 +65,7 @@ import { TREE_LAYOUTS, setTreeLayout, setTreeMine, treeLayout as treeLayoutStore
 import { ARRANGEMENTS, ARRANGE_ICON, setArrangement, useArrangement } from '@/lib/arrangement'
 import { COFFEE_URL } from '@/lib/site-meta'
 import { downloadBlob } from '@/lib/download'
-import { BULK_BATCH_OPTIONS, bulkGroups, bulkPackSpec, makeBulkZip, makeImageZip, type BulkBatch, type BulkSplit } from '@/lib/share/bulk'
+import { BULK_BATCH_OPTIONS, bulkGroups, bulkPackSpec, hasRepeats, makeBulkZip, makeImageZip, type BulkBatch, type BulkSplit } from '@/lib/share/bulk'
 import type { Poster } from '@/lib/share/poster'
 import { CAPTION_CAPS, PRINT_IN, PRINT_PT, PRINT_SIZES, captionMinPx, isUsSize, printCm, printDesign, printFileStem, printIn, printPackH, printPx, type PrintSize } from '@/lib/share/print'
 import { planCaptions, type CaptionPlan } from '@/lib/share/captions'
@@ -532,6 +532,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const [bulkSplit, setBulkSplit] = useState<BulkSplit>(() => rows.splits[0] ?? 'family')
   // The most birds per poster (or image) when splitting by number of birds: All (one of every bird) or a cap.
   const [bulkSize, setBulkSize] = useState<BulkBatch>('all')
+  // Splitting by place or year (round 6, item 21): every sighting, or each bird once where and when it was first
+  // recorded. It starts as the page's "Count repeat sightings" switch (the filter's basis), so the batch matches the page;
+  // not stored. Shown only when the list has repeat sightings to count (seen-here places or month sets).
+  const [bulkRepeats, setBulkRepeats] = useState(() => filter.basis === 'seen')
+  const repeatsRow = hasRepeats(seen) && (bulkSplit === 'country' || bulkSplit === 'continent' || bulkSplit === 'province' || bulkSplit === 'year')
   const [bulkMaking, setBulkMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   const makeCtl = useRef<AbortController | null>(null)
   const bulkCtl = useRef<AbortController | null>(null)
@@ -576,9 +581,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       orderLabel: (ord) => t.orders[ord as keyof typeof t.orders] ?? ord,
       locale: HTML_LANG[lang],
       batchSize: bulkSize,
+      repeats: bulkRepeats,
+      // A year's label line says its basis: "2026 year list" (every sighting) or "2026 lifers".
+      yearLabel: (year) => fmt(bulkRepeats ? t.share.bigYear.card : t.share.bigYear.cardLifer, { year }),
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
-  }, [bulkOn, bulkSplit, bulkSize, cardEntries, species, named, lang, seen, yearGoal, filter, t, pt.bulk.batch, names])
+  }, [bulkOn, bulkSplit, bulkSize, bulkRepeats, cardEntries, species, named, lang, seen, yearGoal, filter, t, pt.bulk.batch, names])
 
   // Where focus goes once the button that had it is gone (only if it fell to the page or the dialog itself).
   const goalAddRef = useRef<HTMLButtonElement>(null)
@@ -1015,8 +1023,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     )
   }
   /** An option row that is a switch: the whole row presses, the label on the left, the track at the right edge. */
-  const switchRow = (on: boolean, text: string, toggle: () => void, testId?: string) => (
-    <button key={text} type="button" role="switch" aria-checked={on} className="eb-switch eb-share-switch eb-share-opt" data-testid={testId} onClick={toggle}>
+  const switchRow = (on: boolean, text: string, toggle: () => void, testId?: string, disabled?: boolean) => (
+    <button key={text} type="button" role="switch" aria-checked={on} className="eb-switch eb-share-switch eb-share-opt" data-testid={testId} disabled={disabled} onClick={toggle}>
       <span>{text}</span>
       <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
     </button>
@@ -1336,6 +1344,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                             value={bulkSplit} onChange={setBulkSplit} disabled={!!bulkMakingNow}
                           />
                         </div>
+                        {repeatsRow && switchRow(bulkRepeats, t.filters.basis.label, () => setBulkRepeats((v) => !v), 'bulk-repeats', !!bulkMakingNow)}
                         {rows.batchSize && bulkSplit === 'batches' && (
                           <div className="eb-share-opt">
                             <span id={bulkSizeId} className="eb-share-optlabel">{perBatch}</span>
