@@ -652,8 +652,8 @@ describe('compact outline: no box detached from the collage', () => {
 // fit, and the spiral's points lie 13 to 20 units apart, so neighbours rarely touched (now each slides in until it does:
 // slideIn), and settling left holes behind birds that walked inwards (now the outermost birds fill them: fillPockets).
 // Measured on 1,100 birds (tests/pockets.ts), before -> after: room for another smallest sticker inside the outline's
-// inner part 69 / 83 / 56 times -> 5 / 5 / 6 (wide / medium / narrow), the share of the outline a small bird would fit
-// in 7.9% / 8.8% / 9.3% -> 3.9% / 4.5% / 4.4%, the edge's variation 0.031 / 0.042 / 0.049 -> 0.011 / 0.012 / 0.013.
+// inner part 69 / 83 / 56 times -> 3 / 6 / 5 (wide / medium / narrow), the share of the outline a small bird would fit
+// in 7.9% / 8.8% / 9.3% -> 3.7% / 4.6% / 4.4%, the edge's variation 0.031 / 0.042 / 0.049 -> 0.011 / 0.011 / 0.012.
 describe('big lists: no pockets inside the outline, an even edge', () => {
   beforeAll(() => { if (!POOL.length) POOL = loadPool() })
   for (const L of LAYOUTS) {

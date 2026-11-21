@@ -113,7 +113,7 @@ type Packed = { boxes: Map<number, Box>; placed: Placed[] }
 function packGrid(
   birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
   stretch: number | readonly [number, number], hole: Hole, targets: Map<number, [number, number]> | undefined,
-  cell: number, dense: boolean, captions?: Map<number, CaptionRoom>, oval = false,
+  cell: number, dense: boolean, captions?: Map<number, CaptionRoom>, oval = false, slide = true,
 ): Packed | null {
   const grid = blankGrid(W, H, cell, hole, oval)
   const pad = Math.ceil(GAP / cell)
@@ -140,7 +140,7 @@ function packGrid(
     const origin = targets ? targets.get(b.id) ?? [W / 2, H / 2] : [W / 2, H / 2]
     const at = walk ? walk.place(m) : spiralFrom(grid, m, sp, origin as [number, number], sx, sy, cell, lim)
     if (!at) return null
-    slideIn(grid, m, at, origin[0] / cell, origin[1] / cell, sx, sy)
+    if (slide) slideIn(grid, m, at, origin[0] / cell, origin[1] / cell, sx, sy)
     const s = cap
       ? (dense ? captionCellMask(w, h, cap, cell, pad, false).mask : m)
       : (dense ? coreMask(b.mask, w, h, cell, pad) : m)
@@ -162,7 +162,7 @@ function packGrid(
  * small stickers, which read as a loose lattice at the edge; every step is a collision test, so it never makes an
  * overlap. Then fillPockets moves the outermost birds into the pockets still left inside. Deterministic.
  */
-function settle(p: Packed, W: number, H: number, hole: Hole, oval: boolean): Map<number, Box> {
+function settle(p: Packed, W: number, H: number, hole: Hole, oval: boolean, fill = true): Map<number, Box> {
   const grid = blankGrid(W, H, 1, hole, oval)
   const pad = GAP
   const todo: Settling[] = []
@@ -208,7 +208,7 @@ function settle(p: Packed, W: number, H: number, hole: Hole, oval: boolean): Map
     walkIn(q)
     grid.stamp(q.s, q.gx, q.gy)
   }
-  fillPockets(grid, todo, centrality, walkIn)
+  if (fill) fillPockets(grid, todo, centrality, walkIn)
   for (const q of todo) p.boxes.set(q.id, [q.gx + pad, q.gy + pad, q.w, q.h])
   return p.boxes
 }
@@ -220,8 +220,8 @@ type Settling = { id: number; m: CellMask; s: CellMask; gx: number; gy: number; 
  * Fill the pockets settling leaves inside a dense collage: free room where a bird fits GAP from its neighbours (one
  * opens when a bird walks inwards and nothing behind it can follow). The free space's chessboard distance D (to the
  * nearest silhouette, the hole or the stage's edge) says where a bird may fit: only where D is at least the depth of
- * its tested (dilated) mask's deepest cell, its pole. Outermost bird first, each bird tries those cells that are more
- * central than it, most central first, pole on the cell, each a collision test; at the first that fits it moves there
+ * its tested (dilated) mask's deepest cell, its pole. Outermost bird first, each bird tries those cells (every other
+ * one each way) that are more central than it, most central first, pole on the cell, each a collision test; at the first that fits it moves there
  * (only ever inwards), walks inwards to rest against its neighbours, and D is brought up to date around it. So the
  * loose birds at the outline's edge fill the holes inside it, and the edge evens out. Never makes an overlap.
  * Deterministic (fixed orders, ties by id).
@@ -253,7 +253,9 @@ function fillPockets(grid: Grid, qs: Settling[], centrality: (cx: number, cy: nu
   let kmin = Infinity, kmax = 0
   for (const [[, , k]] of probes) { kmin = Math.min(kmin, k); kmax = Math.max(kmax, k) }
   const cells: number[] = []
-  for (let i = 0; i < gw * gh; i++) if (D[i] >= kmin) cells.push(i)
+  // Every other cell each way: a bird that fits a pocket with a cell to spare is still found (and walks in after), at a
+  // quarter of the scanning.
+  for (let y = 0; y < gh; y += 2) for (let x = 0; x < gw; x += 2) if (D[y * gw + x] >= kmin) cells.push(y * gw + x)
   const cen = new Float64Array(gw * gh)
   for (const i of cells) cen[i] = centrality((i % gw) + 0.5, Math.floor(i / gw) + 0.5)
   cells.sort((a, b) => cen[a] - cen[b] || a - b)
@@ -624,10 +626,12 @@ export function packBest(
   const small = !!layout.denseFrom && birds.length < SMALL_SET
   const dense = small || (!!layout.denseFrom && mode === 'even' && !targets && rel.size >= layout.denseFrom)
   // The spiral of the pass in hand: a small set's filtered state tries a round one and the stage's own, keeps the tighter.
+  // A small set neither slides nor fills pockets: sliding pulls each bird onto the count and away from its neighbour,
+  // and the round / stage spiral test (worstGap) already keeps the snugger of two arrangements.
   let round = small
-  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions, oval)
+  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions, oval, !small)
   // Settled (dense), then any detached birds gathered back to the group (gather): the outline stays compact.
-  const boxesOf = (p: Packed, W: number, H: number) => gather(dense ? settle(p, W, H, hole, oval) : p.boxes, birds, W, H, hole, captions, oval)
+  const boxesOf = (p: Packed, W: number, H: number) => gather(dense ? settle(p, W, H, hole, oval, !small) : p.boxes, birds, W, H, hole, captions, oval)
 
   // Search range. Full collage: [0.6, 1.6] x the area estimate, capped at MAX_BASE. With refBase (filtered
   // states): the reference's window [0.7, MAXUP] x refBase, searched directly (it may exceed MAX_BASE).

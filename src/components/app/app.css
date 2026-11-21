@@ -197,6 +197,7 @@
    don't fit one row, Filters takes the next at its full width, never cutting its label. */
 .eb-dock-arrange .eb-share-ddwrap { position: relative; display: inline-flex; flex: none; }
 .eb-dock-arrange .eb-share-dd { position: relative; display: inline-flex; align-items: center; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.eb-dock-arrange .eb-share-dd::after { position: absolute; } /* the press area under 600px, out of the button's row */
 .eb-dock-menus .eb-share-dd svg.eb-menu-icon { display: block; width: 18px; height: 18px; transform: none; }
 @container (max-width: 599px) {
   .eb-dock[data-view="collage"] .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
