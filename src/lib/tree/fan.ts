@@ -163,6 +163,34 @@ export function fitRound(spans: readonly LabelSpan[], shape: FanShape, room: { w
   return { cx, cy, R, ...(circle ? { shape } : {}), ...(open ? { open } : {}), w: room.w, h: room.h !== undefined && !circle ? Math.min(h, room.h) : h, px, st: px * st, counts, up: top, down: circle ? Math.ceil(bottom) : below }
 }
 
+/** The largest size in [lo, hi] at which `at` fits (the fit holds at every size under it), and that fit; undefined when
+ *  not even `lo` fits. One search for the screen (fitScreen) and the share image (tree-image.ts fitImage). */
+export function largestFit(at: (px: number) => RoundFit | undefined, lo: number, hi: number, steps = 18): RoundFit | undefined {
+  if (!at(lo)) return undefined
+  for (let i = 0; i < steps; i++) { const m = (lo + hi) / 2; if (at(m)) lo = m; else hi = m }
+  return at(lo)
+}
+
+/** The smallest name on screen, in px per px of width: the share image's 0.5 units on its 1080-unit card, at the screen's
+ *  scale (round 6, item 12: the screen shrinks as far as the image does). */
+export const SCREEN_SHRINK = 0.5 / 1080
+
+/**
+ * The screen's Fan or Radial (round 6, item 12: the layout picked is always drawn, as in Share and Print). At
+ * SCREEN_SIZES when every name fits there (13px down to the 11px floor, the counts and the sticker's box giving way
+ * first); else at the largest size under the floor that names every tip, down to SCREEN_SHRINK of the width, the tips'
+ * dots shrinking with the names (`dotK`). Its `px` under `sizes.floor` is what the small-names note reads. Undefined only
+ * when not even that fits (a column too narrow for the drawing at all).
+ */
+export function fitScreen(spans: readonly LabelSpan[], shape: FanShape, w: number, sizes: LabelSizes = SCREEN_SIZES): RoundFit | undefined {
+  const full = fitRound(spans, shape, { w }, sizes)
+  if (full) return full
+  // Ten halvings: within a thousandth of the floor, ample on screen (a big rank costs each one a fit).
+  return largestFit((px) => fitRound(spans, shape, { w }, { ...sizes, base: px, floor: px, dot: sizes.dot * dotK(px, sizes) }), SCREEN_SHRINK * w, sizes.floor, 10)
+}
+/** How much of their full size the tips' dots and branches keep at names of `px` (full from the floor up). */
+export const dotK = (px: number, sizes: Pick<LabelSizes, 'floor'> = SCREEN_SIZES): number => Math.min(1, px / sizes.floor)
+
 /** The angle (radians) at `y` leaf units of `n` leaves, each tip mid-slot: the fan from π at the left end to 0 at the
  *  right; the circle from π/2 at the top, clockwise all round, less its opening `open` there (half each side). */
 export const fanAngle = (y: number, n: number, shape: FanShape = 'fan', open = 0): number =>

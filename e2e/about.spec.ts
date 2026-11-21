@@ -115,7 +115,7 @@ for (const [name, path] of [
 for (const width of [320, 390]) {
   test(`the top bar's rows fit with no sideways scroll at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
-    await checkTopbar(page, "/about", "a", "en", width);
+    await checkTopbar(page, "/about", "en", width);
   });
 }
 

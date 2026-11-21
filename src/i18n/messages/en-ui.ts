@@ -108,7 +108,6 @@ export const EN_UI = {
       families: { one: '{n} family', other: '{n} families' },
       since: 'since {date}',
       threatened: '{n} threatened',
-      threatenedGlobal: '{n} globally threatened',
       threatenedSr: '(Vulnerable, Endangered or Critically Endangered)',
     },
     /** The stage's placeholder while the first layout is packed. */
@@ -199,7 +198,7 @@ export const EN_UI = {
     },
     /** The Tree view (TreeView.tsx): AvesData's tree, opening on the orders; `all` the path's first step. `rank` the
      *  four ranks (the share images' totals); `layout` the Display panel's Layout choice, `layouts` its three choices (a
-     *  half disc, a full circle, rows top to bottom), `noRoom` why one is off; `tipOf` a fan or circle tip's count, "12 of 39".
+     *  half disc, a full circle, rows top to bottom), `small` the note under a Fan or Radial drawn under the floor; `tipOf` a fan or circle tip's count, "12 of 39".
      *  `oldest` the legend under the view (CollageView); the tree's credit is About's credits.tree.
      *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the names of the groups inside
      *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
@@ -210,7 +209,8 @@ export const EN_UI = {
      *  `tooMany`/`tooManyMine` why a rank in the Display panel's Down to is off (too many tips to draw on screen). */
     tree: {
       loading: 'Loading the tree',
-      failed: "The tree didn't load. Open Tree again to try once more.",
+      failed: "The tree didn't load.",
+      retry: 'Try again',
       tips: 'Tips of the tree, top to bottom',
       axis: 'Million years ago (estimates)',
       onList: '{n} of {total} on the list',
@@ -238,9 +238,11 @@ export const EN_UI = {
       showOldest: 'Show oldest lineage',
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
       mineNone: 'No bird on the list here.',
+      showAll: 'Show every group',
       layout: 'Layout',
       layouts: { fan: 'Fan', circle: 'Radial', rows: 'Rectangular' },
-      noRoom: 'Not enough room for every name',
+      /** Under a Fan or Radial whose names are under the screen's floor (round 6, item 12): <rows> is a button switching to Rectangular. */
+      small: 'Names are small in this layout. <rows>Rectangular</rows> names every bird at full size.',
       tooMany: 'Too many to draw: turn on Lifers only or open a branch',
       tooManyMine: 'Too many to draw: open a branch',
       rank: { orders: 'Orders', families: 'Families', genera: 'Genera', species: 'Species' },
@@ -259,7 +261,7 @@ export const EN_UI = {
       loadFailed: "Couldn't load the bird data. Check your connection and reload the page.",
     },
   },
-  /** The taxonomy filter (FilterBar, LevelRow, SheetPicker, PickerSheet, Chip), the Filters button, panel and chips
+  /** The taxonomy filter (FilterBar, LevelRow, PickerSheet, Chip), the Filters button, panel and chips
    *  (Filters, filter-summary.ts) and the Time panel (Timeline, timeline.ts). */
   filters: {
     label: 'Filters',
@@ -267,8 +269,6 @@ export const EN_UI = {
     all: 'All birds',
     /** A level's mono label and its sheet's title. */
     rank: { order: 'Orders', family: 'Families', genus: 'Genera', country: 'Countries', year: 'Years' },
-    /** The phone's picker button. */
-    choose: { order: 'Choose an order', family: 'Choose a family', genus: 'Choose a genus', country: 'Choose a country', year: 'Choose a year' },
     /** A removable chip's aria-label. */
     remove: 'Remove {label} filter',
     /** The Filters sections' names (the panel, the chips and the button's spoken text). */
@@ -405,9 +405,8 @@ export const EN_UI = {
     /** The card pill's name (a button whose tip shows the full name). */
     pillName: 'Red List: {name}',
   },
-  /** The Status panel (StatusList). {n} is formatted. */
+  /** The Status panel (StatusList). */
   status: {
-    threatenedNote: '{n} threatened: Vulnerable, Endangered or Critically Endangered.',
     list: 'Categories',
     none: 'No categories here under the other filters.',
   },

@@ -21,7 +21,7 @@
 .eb-tree-axis { position: relative; flex: none; width: var(--tree-w); height: 28px; border-bottom: 1px solid var(--hairline); }
 .eb-tree-tick { position: absolute; bottom: 6px; transform: translateX(-50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .eb-tree-tick::after { content: ''; position: absolute; left: 50%; bottom: -7px; height: 4px; border-left: 1px solid var(--line); }
-.eb-tree-axis-title { min-width: 0; font-size: 11px; color: var(--muted); padding-bottom: 4px; }
+.eb-tree-axis-title { min-width: 0; font-size: 12px; color: var(--muted); padding-bottom: 4px; }
 
 .eb-tree-body { position: relative; }
 .eb-tree-svg { position: absolute; inset: 0 auto 0 0; width: var(--tree-w); height: 100%; overflow: visible; }
@@ -40,7 +40,7 @@
    quick double press on the tips beside it never tints it with the Accent selection (which read as a highlight). */
 .eb-tree-heading {
   display: flex; align-items: flex-end; height: 32px; padding: 0 0 4px 12px; box-sizing: border-box;
-  border-top: 1px solid var(--hairline); font-size: 11px; color: var(--muted); background: none;
+  border-top: 1px solid var(--hairline); font-size: 12px; color: var(--muted); background: none;
   user-select: none; -webkit-user-select: none;
 }
 .eb-tree-heading > span { overflow-wrap: anywhere; }
@@ -87,7 +87,9 @@ button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-fan-label[data-hot] .eb-t
 .eb-tree-mark { display: inline-block; flex: none; vertical-align: .1em; width: 7px; height: 7px; margin: 0 2px 0 6px; box-sizing: border-box; border: 1.5px solid currentColor; transform: rotate(45deg); }
 .eb-tree-key .eb-tree-mark { margin: 0 1px; }
 .eb-tree-nm { border-radius: 4px; }
-.eb-tree-count { flex: none; margin-left: auto; padding-right: 4px; font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.eb-tree-count { flex: none; margin-left: auto; padding-right: 4px; font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }
+/* A complete group ("12 / 12", more than one: D10): a quiet completion, by weight in Ink, no new colour. */
+.eb-tree-count[data-full] { color: var(--ink); font-weight: 600; }
 
 /* A tip's sticker (Sticker.tsx) in its fixed box: the species' own, or one bird of the group on the list, else the
    group's first species with a sticker; a tip with no bird on the list dimmed; none, or one that fails, leaves the box
@@ -104,6 +106,19 @@ button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-fan-label[data-hot] .eb-t
 .eb-tree-fan { position: relative; overflow: hidden; cursor: default; }
 .eb-tree-fan .eb-tree-svg { inset: 0; width: 100%; height: 100%; }
 .eb-tree-ring { stroke: var(--hairline); stroke-width: 1; }
+/* Under the 11px floor (round 6, item 12) the branches thin with the names, as the tips' dots shrink (--tree-k, 1 at the floor). */
+.eb-tree-fan .eb-tree-on { stroke-width: calc(1.5px * var(--tree-k, 1)); }
+.eb-tree-fan .eb-tree-off, .eb-tree-fan .eb-tree-tipdot.eb-tree-off { stroke-width: calc(1px * var(--tree-k, 1)); }
+.eb-tree-fan .eb-tree-dash { stroke-dasharray: calc(2px * var(--tree-k, 1)) calc(3px * var(--tree-k, 1)); }
+/* The Fan's and Radial's tooltip under the floor (round 6, item 12): the bird tooltip's card look (card-list.css
+   .eb-card.eb-tip), the Map's form, just past the name's end (TreeView's placeTip); outside the figure (which clips its
+   labels) so it is never cut. */
+.eb-tree-fanwrap { position: relative; }
+.eb-tree-tip { display: flex; flex-direction: column; gap: 2px; width: max-content; padding: 8px 12px; pointer-events: none; }
+.eb-tree-tip > .eb-mono { white-space: nowrap; }
+.eb-tree-tip-name { font-weight: 600; font-size: 14px; line-height: 1.3; color: var(--ink); overflow-wrap: break-word; }
+.eb-tree-tip-name[lang] { font-style: italic; }
+.eb-tree-small { margin-top: 8px; }
 .eb-tree-fan-label {
   position: absolute; display: flex; align-items: center; gap: var(--tree-gap); height: var(--tree-st); box-sizing: border-box;
   transform-origin: 0 50%; white-space: nowrap; color: var(--muted); font-size: var(--tree-px);
@@ -156,4 +171,11 @@ button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-fan-label[data-hot] .eb-t
 }
 .eb-tree-link[lang] { font-style: italic; }
 .eb-tree-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-
+/* AN11: a new branch, rank or layout fades in (the chart is keyed by them; the List's .24s fade); a name eases to Accent
+   on hover and focus. None under reduced motion. */
+.eb-tree-chart { animation: eb-card-in .24s cubic-bezier(.16, 1, .3, 1) both; }
+.eb-tree-nm, .eb-tree-fan-text { transition: color .15s; }
+@media (prefers-reduced-motion: reduce) {
+  .eb-tree-chart { animation: none; }
+  .eb-tree-nm, .eb-tree-fan-text { transition: none; }
+}

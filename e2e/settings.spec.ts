@@ -435,7 +435,7 @@ test("the collage's Fix it opens Settings with the match report open", async ({ 
   await expect(page.locator("#eb-match-rows")).toBeVisible();
 });
 
-// The language switch (preview variant lang:a, the default): the top bar's button beside the theme switch opens a menu
+// The language switch: the top bar's button beside the theme switch opens a menu
 // of the languages; a choice sets the everybird-lang cookie and reloads, and every page follows it, after a reload
 // too. Settings has no language select, only the English-names switch.
 test("Language: Español from the top bar switches every page and stays after a reload", async ({ page, context }) => {
@@ -465,14 +465,6 @@ test("Language: Español from the top bar switches every page and stays after a 
 });
 
 // (Settings' old 1.5-screen budget went with the 2026-11-19 Settings: every source row and Add by hand, open, in the page.)
-test("Settings has no language select (?v=lang:b: no top-bar button either)", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await importLifeList(page);
-  await page.goto("/settings?v=lang:b");
-  await expect(page.getByRole("combobox", { name: "Language" })).toHaveCount(0);
-  await expect(page.getByTestId("topbar").getByRole("button", { name: /^Language/ })).toHaveCount(0);
-});
-
 const MESSAGES = { es, pt, nl, pl, fr, de, it, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant } as const;
 
 // Settings' source rows in each language at 390 and 1280: each Add button is whole (the row buttons wrap under the

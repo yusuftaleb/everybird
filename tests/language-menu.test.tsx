@@ -40,18 +40,8 @@ afterEach(() => {
   vi.restoreAllMocks()
   document.cookie = 'everybird-lang=; Max-Age=0; Path=/'
   history.replaceState(null, '', '/')
-  delete document.documentElement.dataset.topbar
   sessionStorage.clear() // rememberVariants keeps a ?v= for the tab
 })
-
-/** TopBar under `?v=lang:<letter>`. */
-function renderTopBar(variant: string) {
-  history.replaceState(null, '', `/?v=lang:${variant}`)
-  vi.stubGlobal('location', { host: realLocation.host, search: `?v=lang:${variant}`, protocol: realLocation.protocol, reload })
-  let out!: ReturnType<typeof render>
-  act(() => { out = render(<TopBar />, { wrapper: withI18n('es') }) })
-  return out
-}
 
 const open = () => fireEvent.click(screen.getByRole('button', { name: /^Idioma/ }))
 
@@ -170,59 +160,20 @@ describe('LanguageMenu', () => {
     expect(holds.live).toBe(0)
   })
 
-  it('variant b renders no top-bar control', () => {
-    // Variant a (no ?v=): the language button sits right before the theme switch, in DOM and reading order.
-    const { unmount } = render(<TopBar />, { wrapper: withI18n('es') })
-    const lang = screen.getByRole('button', { name: 'Idioma: Español' })
-    const theme = screen.getByRole('switch', { name: 'Modo oscuro' })
-    expect(lang.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    const controls = [...screen.getByTestId('topbar').querySelectorAll('a, button')]
-    expect(controls.indexOf(theme) - controls.indexOf(lang)).toBe(1)
-    unmount()
-
-    renderTopBar('b')
-    expect(screen.queryByRole('button', { name: /^Idioma/ })).toBeNull()
-    expect(screen.getByRole('switch', { name: 'Modo oscuro' })).toBeInTheDocument()
-    expect(document.documentElement.dataset.topbar).toBe('b')
-  })
-
-  it('mirrors the variant on <html data-topbar>, the one selector app.css and --topbar-h key on', () => {
-    // Default: a (the CSS reads no attribute as a too, which is what the server sends).
-    const { unmount } = render(<TopBar />, { wrapper: withI18n('es') })
-    expect(document.documentElement.dataset.topbar).toBe('a')
-    unmount()
-    // Unmounting takes it off, so a page without the bar never keeps a stale one.
-    expect(document.documentElement.dataset.topbar).toBeUndefined()
-  })
-
-  it('variant c renders the button beside the theme switch, and marks Collage for the phones\' rule that hides it', () => {
-    renderTopBar('c')
-    expect(document.documentElement.dataset.topbar).toBe('c')
-    const lang = screen.getByRole('button', { name: 'Idioma: Español' })
-    const theme = screen.getByRole('switch', { name: 'Modo oscuro' })
-    expect(lang.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    // jsdom has no media queries: app.css hides [data-nav="collage"] under 480px in c; the wordmark still goes home.
-    const collage = screen.getByRole('link', { name: 'Mis aves' })
-    expect(collage.closest('li')).toHaveAttribute('data-nav', 'collage')
-    expect(screen.getByRole('link', { name: 'Ajustes' }).closest('li')).toHaveAttribute('data-nav', 'settings')
-    expect(screen.getByRole('link', { name: 'Everybird' })).toHaveAttribute('href', '/')
-  })
-
-  it('variant c: on the My birds page the wordmark is the current page too (My birds is hidden on phones); never in a or b', () => {
+  it('the top bar: the language button right before the theme switch; the wordmark goes home and is never the current page', () => {
     nav.path = '/'
     try {
-      renderTopBar('c')
-      expect(screen.getByRole('link', { name: 'Everybird' })).toHaveAttribute('aria-current', 'page')
+      render(<TopBar />, { wrapper: withI18n('es') })
+      const lang = screen.getByRole('button', { name: 'Idioma: Español' })
+      const theme = screen.getByRole('switch', { name: 'Modo oscuro' })
+      expect(lang.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      const controls = [...screen.getByTestId('topbar').querySelectorAll('a, button')]
+      expect(controls.indexOf(theme) - controls.indexOf(lang)).toBe(1)
       expect(screen.getByRole('link', { name: 'Mis aves' })).toHaveAttribute('aria-current', 'page')
-      cleanup()
-      for (const v of ['a', 'b']) {
-        renderTopBar(v)
-        expect(screen.getByRole('link', { name: 'Everybird' })).not.toHaveAttribute('aria-current')
-        cleanup()
-      }
-      nav.path = '/settings'
-      renderTopBar('c')
-      expect(screen.getByRole('link', { name: 'Everybird' })).not.toHaveAttribute('aria-current')
+      const wordmark = screen.getByRole('link', { name: 'Everybird' })
+      expect(wordmark).toHaveAttribute('href', '/')
+      expect(wordmark).not.toHaveAttribute('aria-current')
+      expect(document.documentElement.dataset.topbar).toBeUndefined()
     } finally {
       nav.path = '/settings'
     }

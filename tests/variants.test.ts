@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { LANG_VARIANTS } from '@/i18n/choose'
 import { parseVariants, readVariant, rememberVariants, variantsEnabled } from '@/lib/variants'
 
 describe('parseVariants', () => {
@@ -93,14 +92,5 @@ describe('readVariant from the address', () => {
     expect(readVariant('stamp', opts, '?v=b')).toBe('a')
     vi.stubEnv('NEXT_PUBLIC_VERCEL_ENV', 'production')
     expect(variantsEnabled('everybird-git-feat-x.vercel.app')).toBe(false)
-  })
-})
-
-describe('the language picker’s variants (lang)', () => {
-  it('reads lang:b and lang:c, and an unknown letter gives a', () => {
-    expect(readVariant('lang', LANG_VARIANTS, '?v=lang:b')).toBe('b')
-    expect(readVariant('lang', LANG_VARIANTS, '?v=lang:c')).toBe('c')
-    expect(readVariant('lang', LANG_VARIANTS, '?v=lang:q')).toBe('a')
-    expect(readVariant('lang', LANG_VARIANTS, '')).toBe('a')
   })
 })

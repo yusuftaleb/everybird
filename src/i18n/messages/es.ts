@@ -80,7 +80,6 @@ export const es: Messages = {
         families: { one: '{n} familia', other: '{n} familias' },
         since: 'desde {date}',
         threatened: '{n} amenazadas',
-        threatenedGlobal: '{n} amenazadas a escala mundial',
         threatenedSr: '(Vulnerable, En peligro o En peligro crítico)',
       },
       arranging: 'colocando los stickers',
@@ -156,7 +155,8 @@ export const es: Messages = {
       },
       tree: {
         loading: 'Cargando el árbol',
-        failed: 'El árbol no se cargó. Abre Árbol de nuevo para volver a intentarlo.',
+        failed: 'El árbol no se cargó.',
+        retry: 'Volver a intentarlo',
         tips: 'Puntas del árbol, de arriba abajo',
         axis: 'Millones de años atrás (estimaciones)',
         onList: '{n} de {total} en la lista',
@@ -181,9 +181,10 @@ export const es: Messages = {
         showOldest: 'Mostrar el linaje más antiguo',
         unmapped: { one: '{n} ave de esta lista no tiene lugar en este árbol:', other: '{n} aves de esta lista no tienen lugar en este árbol:' },
         mineNone: 'Aquí no hay ningún ave de la lista.',
+        showAll: 'Mostrar todos los grupos',
         layout: 'Diseño',
         layouts: { fan: 'Abanico', circle: 'Radial', rows: 'Rectangular' },
-        noRoom: 'No hay espacio para todos los nombres',
+        small: 'Los nombres se ven pequeños en esta disposición. <rows>Rectangular</rows> muestra todos los nombres a tamaño completo.',
         tooMany: 'Demasiados para dibujar: activa Solo mis aves o abre una rama',
         tooManyMine: 'Demasiados para dibujar: abre una rama',
         rank: { orders: 'Órdenes', families: 'Familias', genera: 'Géneros', species: 'Especies' },
@@ -204,7 +205,6 @@ export const es: Messages = {
       nav: 'Filtrar por grupo',
       all: 'Todas las aves',
       rank: { order: 'Órdenes', family: 'Familias', genus: 'Géneros', country: 'Países', year: 'Años' },
-      choose: { order: 'Elige un orden', family: 'Elige una familia', genus: 'Elige un género', country: 'Elige un país', year: 'Elige un año' },
       remove: 'Quitar el filtro {label}',
       group: 'Grupo de aves',
       places: 'Lugares',
@@ -324,9 +324,8 @@ export const es: Messages = {
       threatened: 'Amenazadas',
       pillName: 'Lista Roja: {name}',
     },
-    /** The Status panel (StatusList). {n} is formatted. */
+    /** The Status panel (StatusList). */
     status: {
-      threatenedNote: '{n} amenazadas: Vulnerable, En peligro o En peligro crítico.',
       list: 'Categorías',
       none: 'No hay categorías aquí con los otros filtros.',
     },
@@ -896,7 +895,7 @@ export const es: Messages = {
           'Cada ave se empareja con la taxonomía de eBird de este año y conserva su fecha más antigua. Las filas que no coinciden aparecen en una lista, así que nada se descarta en silencio.',
           'El collage y sus vistas, los filtros, las imágenes para compartir y los pósteres se hacen en tu navegador.',
         ],
-        privacy: 'Tu lista nunca sale de tu navegador. Contamos las visitas con Cloudflare Web Analytics, de forma anónima y sin cookies, y unas pocas acciones (un collage hecho, una imagen compartida o guardada, un enlace copiado) con un pequeño contador propio que nunca ve tus aves, nombres ni lugares. Un identificador anónimo que cambia cada día nos permite contar visitantes únicos sin seguir a nadie de un día a otro. Ninguno de los dos funciona si tu navegador pide que no se le rastree. Tu elección de idioma se guarda en una pequeña cookie en este dispositivo; solo sale de él para mostrarte la página correcta. El recuento de visitas incluye el idioma de tu navegador (solo “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” o “zh-Hant”). Las páginas en ruso, japonés y chino cargan sus fuentes desde Google Fonts, así que en esas páginas tu navegador se conecta con Google.',
+        privacy: 'Tu lista nunca sale de tu navegador. Contamos las visitas con Cloudflare Web Analytics, de forma anónima y sin cookies. Un pequeño contador propio registra las visitas a cada página y unas pocas acciones (un collage hecho, una imagen compartida o guardada, un enlace copiado, el idioma cambiado, un póster creado o guardado, una búsqueda aplicada, los tipos de filtro usados), cada una con tu país y el tipo de dispositivo, nunca recuentos, nombres, especies ni lugares. Un identificador anónimo que cambia cada día nos permite contar visitantes únicos sin seguir a nadie de un día a otro. Ninguno de los dos funciona si tu navegador pide que no se le rastree. Tu elección de idioma se guarda en una pequeña cookie en este dispositivo; solo sale de él para mostrarte la página correcta. El recuento de visitas incluye el idioma de tu navegador (solo “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” o “zh-Hant”). Las páginas en ruso, japonés y chino cargan sus fuentes desde Google Fonts, así que en esas páginas tu navegador se conecta con Google.',
       },
       size: {
         head: 'Qué significa Tamaño real',
