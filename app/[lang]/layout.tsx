@@ -85,6 +85,11 @@ export default async function RootLayout({ children, params }: { children: React
             no 600 (400, 500 and 700 here; a 600 rule draws the nearest, 700). */}
         <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" />
         <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700&display=swap" />
+        {/* The two most-used files, Satoshi 500 (body) and Cabinet Grotesk 700 (headings), fetched now rather than once
+            the stylesheets above are parsed. These URLs follow Fontshare's current file names (copied from the CSS
+            above, 2026-11-21): if Fontshare renames them the preload is wasted, never wrong; recopy them from the CSS. */}
+        <link rel="preload" as="font" type="font/woff2" crossOrigin="" href="https://cdn.fontshare.com/wf/P2LQKHE6KA6ZP4AAGN72KDWMHH6ZH3TA/ZC32TK2P7FPS5GFTL46EU6KQJA24ZYDB/7AHDUZ4A7LFLVFUIFSARGIWCRQJHISQP.woff2" />
+        <link rel="preload" as="font" type="font/woff2" crossOrigin="" href="https://cdn.fontshare.com/wf/XMXWOHABYLQDJ42L65EFRYNVRY37HQCB/B2O4O6V3JMFM2WDCYQI3A47L5U4THDUL/WN5274VQ3AUBDFP74GB4EC4XYJ3EKVNE.woff2" />
         {NOTO[lang] && (
           <>
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
