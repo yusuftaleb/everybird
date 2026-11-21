@@ -31,10 +31,13 @@
 
 /* The tooltip: the bird tooltip's card look (card-list.css .eb-card.eb-tip), above the pointer, its side by where the
    pointer is so it never runs off the map. */
-.eb-map-tip { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; white-space: nowrap; pointer-events: none; transform: translate(-50%, calc(-100% - 12px)); }
+/* As wide as its text up to .eb-tip's 280px; a longer name ("South Georgia and the South Sandwich Islands") wraps inside the
+   box instead of running out of it (Yusuf, 2026-11-20); the count stays on one line. */
+.eb-map-tip { display: flex; flex-direction: column; gap: 2px; width: max-content; padding: 8px 12px; pointer-events: none; transform: translate(-50%, calc(-100% - 12px)); }
+.eb-map-tip > .eb-mono { white-space: nowrap; }
 .eb-map-tip[data-side="start"] { transform: translate(-12px, calc(-100% - 12px)); }
 .eb-map-tip[data-side="end"] { transform: translate(calc(-100% + 12px), calc(-100% - 12px)); }
-.eb-map-tip-name { font-weight: 600; font-size: 14px; color: var(--ink); }
+.eb-map-tip-name { font-weight: 600; font-size: 14px; line-height: 1.3; color: var(--ink); overflow-wrap: break-word; }
 
 /* The row above the map: the legend at its right. */
 .eb-map-head { display: flex; width: 100%; }
