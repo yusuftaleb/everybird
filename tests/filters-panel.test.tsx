@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useCallback, useReducer, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { IucnCat } from '@/lib/species/iucn'
@@ -330,7 +330,7 @@ describe('spec 15: the content below the panel', () => {
     )
   }
 
-  it('filters that leave no bird: one line under the view and a Clear all that clears every filter (C1)', () => {
+  it('filters that leave no bird: one line under the view and a Clear all that clears every filter (C1)', async () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<Empty />)
     expect(screen.queryByTestId('view-empty')).toBeNull()
@@ -340,6 +340,7 @@ describe('spec 15: the content below the panel', () => {
     fireEvent.click(clear)
     expect(screen.queryByTestId('view-empty')).toBeNull()
     expect(screen.getByTestId('collage-stats')).toHaveTextContent(/^3 species/)
+    await waitFor(() => expect(button()).toHaveFocus())
   })
 
   it("on phones the sheet's foot reads Clear all, not Show 0 species, when the filters leave none (C1)", () => {

@@ -434,7 +434,11 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       {(view === 'collage' || view === 'list') && entries.length > 0 && shownList.length === 0 && (
         <p className="eb-note eb-view-empty" data-testid="view-empty">
           <span>{whose === 'your' ? t.collage.noMatch.your : t.collage.noMatch.this}</span>
-          <button type="button" className="eb-textbtn" aria-label={t.filters.panel.clearAllLabel} data-testid="view-empty-clear" onClick={() => dispatch({ type: 'filter', filter: emptyFilter() })}>
+          <button type="button" className="eb-textbtn" aria-label={t.filters.panel.clearAllLabel} data-testid="view-empty-clear" onClick={() => {
+            dispatch({ type: 'filter', filter: emptyFilter() })
+            // The line and its button go with the filters: focus moves to the Filters button, where they are set.
+            requestAnimationFrame(() => box.current?.querySelector<HTMLElement>('[data-testid="filters-button"]')?.focus({ preventScroll: true }))
+          }}>
             {t.filters.panel.clearAll}
           </button>
         </p>
