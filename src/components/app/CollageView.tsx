@@ -5,7 +5,7 @@
 // oldest lineage), the hover tooltip and the bird card. The collage follows the Arrangement (Fit, Oval or Free,
 // arrangement.ts: the Display panel's choice in the Collage view and the share dialog's row are one setting).
 // Composition after LifeList.tsx (framer-site).
-import { trackFilterUsed } from '@/lib/analytics'
+import { track, trackFilterUsed } from '@/lib/analytics'
 import { useArrangement } from '@/lib/arrangement'
 import { newlySetKinds } from '@/lib/list/filter-kinds'
 import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
@@ -370,7 +370,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       <ControlsBar
         view={view}
         noMap={noMap}
-        onView={(v) => { setPick(null); setTip(null); if (!hasDisplay(v)) setPanel((p) => (p === 'display' ? null : p)); dispatch({ type: 'view', view: v }) }}
+        onView={(v) => { setPick(null); setTip(null); if (!hasDisplay(v)) setPanel((p) => (p === 'display' ? null : p)); if (v !== 'collage' && v !== view) track('view_opened', { view: v }); dispatch({ type: 'view', view: v }) }}
         listOrder={listOrder}
         onListOrder={(o) => dispatch({ type: 'listOrder', listOrder: o })}
         sci={sci}

@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /**
  * A comparison link: the lists it carries, compared, outside the app's store (it never reads or writes the visitor's
- * own list; "Compare with mine" takes the link to /compare, which adds it). Like the shared view: no Cloudflare beacon, every link out a full page load, counted as a 'shared' visit.
+ * own list; "Compare with mine" takes the link to /compare, which adds it). Like the shared view: no Cloudflare beacon, every link out a full page load, counted as a 'compare-shared' visit.
  */
 export default async function ComparedPage({ params }: Props) {
   const t = getMessages(await langParam(params)).ui
@@ -76,7 +76,7 @@ export default async function ComparedPage({ params }: Props) {
       </main>
       <SiteFooter />
       <FullNavigation />
-      <TrackVisit page="shared" />
+      <TrackVisit page="compare-shared" />
     </>
   )
 }

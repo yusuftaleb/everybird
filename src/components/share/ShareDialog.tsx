@@ -67,7 +67,7 @@ import { formatInt } from '@/i18n/format'
 import { HTML_LANG } from '@/i18n/langs'
 import { useI18n } from '@/i18n/I18nProvider'
 import { countryName, regionsIn } from '@/lib/i18n-places'
-import { track, type PosterSizeWire } from '@/lib/analytics'
+import { track, type ImageView, type PosterSizeWire } from '@/lib/analytics'
 import { currentTheme, type Theme } from '@/lib/theme'
 import { TREE_LAYOUTS, setTreeLayout, setTreeMine, setTreeTime, treeLayout as treeLayoutStored, useTreeMine, useTreeTime, type TreeLayout } from '@/lib/tree-mine'
 import { ARRANGEMENTS, ARRANGE_ICON, setArrangement, useArrangement } from '@/lib/arrangement'
@@ -850,6 +850,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       bulkCtl.current = null
       setBulkMaking(null)
       downloadBlob(blob, file)
+      track('batch_exported', { split: bulkSplit === 'batches' ? 'size' : bulkSplit })
       const dropped = namesDropped > 0 ? plural(pt.bulk.namesDropped, namesDropped, { n: formatInt(namesDropped, t.num) }) : ''
       setNote({ text: [plural(print ? pt.bulk.ready : pt.bulk.readyImages, total, { file, n: formatInt(total, t.num) }), dropped].filter(Boolean).join(' '), print: true })
       focusNext.current = kind === 'png' ? 'bulkPng' : 'bulkPdf'
@@ -903,6 +904,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   }
 
   const fileName = exportName('png', shape)
+  const imageView: ImageView = compare ? (what === 'wish' ? 'wish-list' : 'comparison') : view ?? 'collage'
   /** The newest render's PNG: at hand once it's done (the buttons are disabled before), else waiting for it; null if it failed. */
   const getBlob = async (): Promise<Blob | null> => {
     if (ready.current?.key === key) return ready.current.blob
@@ -923,7 +925,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     const blob = await getBlob()
     if (!blob) return setNote({ text: t.share.imageFailed, error: true })
     downloadBlob(blob, fileName)
-    if (!compare) track('image_downloaded', { format: shape })
+    track('image_downloaded', { format: shape })
+    track('image_view', { view: imageView })
     setNote({ text: fmt(t.share.saved, { file: fileName }) })
   }
   const share = async () => {
@@ -937,7 +940,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       try {
         // The image says "Stickers: huashu-bird-sticker, CC BY 4.0"; the post's text carries the full CC BY 4.0 credit and its link.
         await nav.share({ files: [file], title: 'Everybird', text: SHARE_CREDIT })
-        if (!compare) track('shared', { via: shape })
+        track('shared', { via: shape })
+        track('image_view', { view: imageView })
         return
       } catch (e) {
         if ((e as Error)?.name === 'AbortError') return // the birder closed the share sheet: not shared, nothing sent
@@ -945,7 +949,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       }
     }
     downloadBlob(blob, fileName)
-    if (!compare) track('image_downloaded', { format: shape })
+    track('image_downloaded', { format: shape })
+    track('image_view', { view: imageView })
     setNote({ text: fmt(t.share.savedPost, { file: fileName }) })
   }
   const copyLink = async () => {

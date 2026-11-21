@@ -1163,6 +1163,18 @@ describe('share dialog: print mode', () => {
     await waitFor(() => expect(dl.disabled).toBe(false))
     fireEvent.click(dl)
     await waitFor(() => expect(track).toHaveBeenCalledWith('image_downloaded', { format: 'story' }))
+    expect(track).toHaveBeenCalledWith('image_view', { view: 'collage' })
+  })
+
+  it("Compare's images are counted too, with what they show", async () => {
+    const draw = vi.fn(async () => new Blob(['png'], { type: 'image/png' }))
+    const compare = { draw, key: 'k', link: { url: 'https://everybird.yusuftaleb.com/c/x' }, alt: { comparison: 'Two lists compared', wish: 'A wish list' } }
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} compare={compare} onClose={() => {}} />)
+    const dl = screen.getByRole('button', { name: 'Download image' }) as HTMLButtonElement
+    await waitFor(() => expect(dl.disabled).toBe(false))
+    fireEvent.click(dl)
+    await waitFor(() => expect(track).toHaveBeenCalledWith('image_downloaded', { format: 'post' })) // Compare opens on Post
+    expect(track).toHaveBeenCalledWith('image_view', { view: 'comparison' })
   })
 
   it('Print renders the poster once, in the dialog\'s theme', async () => {
@@ -1571,7 +1583,7 @@ describe('the orientation switch', () => {
     expect(screen.queryByRole('button', { name: /^Birds per poster / })).toBeNull()
   })
 
-  it('Export in batches in Share makes a ZIP of PNG images, one per group, in the dialog\'s format; never counted', async () => {
+  it('Export in batches in Share makes a ZIP of PNG images, one per group, in the dialog\'s format; counted as batch_exported only', async () => {
     const bulkSpecies = buildSpeciesIndex([row('ostric2', 1), { ...row('emu1', 2), fam: 'Casuariidae', famCom: 'Cassowaries and Emu' }])
     render(<ShareDialog state={stateWith([entry('ostric2'), entry('emu1')])} dispatch={() => {}} species={bulkSpecies} regions={regions} onClose={() => {}} />)
     await waitFor(() => expect(renders).toHaveLength(1))
@@ -1604,7 +1616,7 @@ describe('the orientation switch', () => {
     expect(filename).toBe(`everybird-post-by-family-${D}.zip`)
     expect(blob.type).toBe('application/zip')
     expect(screen.getByTestId('share-note').textContent).toBe(`Saved everybird-post-by-family-${D}.zip (2 images).`)
-    expect(track).not.toHaveBeenCalled()
+    expect(vi.mocked(track).mock.calls).toEqual([['batch_exported', { split: 'family' }]])
   })
 
   it('Export in batches in Share splits by number of birds: Birds per image (All, 1,000, 500, 250, 100), one image per batch', async () => {

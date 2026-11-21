@@ -4,6 +4,7 @@ import { PencilSimple, Plus, ShareNetwork, X } from '@/components/phosphor-icons
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
+import { track, type CompareLists } from '@/lib/analytics'
 import { payloadFromList } from '@/lib/share/convert'
 import { linksIn, pasteRow, rowName, type CompareRow } from '@/lib/share/compare'
 import { readCompare, writeCompare, type CompareShown } from '@/lib/share/compare-store'
@@ -245,7 +246,7 @@ export function ComparePage() {
             lede={<span id={`${id}-note`}>{fmt(t.compare.note, { n: COMPARE_MAX })}</span>}
             titleRef={titleRef}
           />
-          <form ref={formRef} id={`${id}-form`} className="eb-compare-setup" onSubmit={(e) => { e.preventDefault(); if (lists.length >= 2) go(true) }} data-testid="compare-setup">
+          <form ref={formRef} id={`${id}-form`} className="eb-compare-setup" onSubmit={(e) => { e.preventDefault(); if (lists.length >= 2) { track('compare_made', { lists: String(lists.length) as CompareLists }); go(true) } }} data-testid="compare-setup">
             <ul className="eb-compare-rows" data-testid="compare-rows">
               {own && (
                 <li className="eb-compare-row" data-testid="compare-row-mine">

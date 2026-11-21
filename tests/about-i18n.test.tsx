@@ -169,7 +169,7 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     if (lang === 'en') {
       expect(p).toContain('anonymous and cookieless')
       // Every event the site sends (analytics.ts ALLOWED) and the Worker's own fields (country, device), DESIGN.md's privacy line.
-      expect(p).toContain('A small counter of our own records page visits and a few actions (a collage made, an image shared or saved, a link copied, the language switched, a poster made or saved, a search applied, the kinds of filter used), each with your country and kind of device, never counts, names, species or places.')
+      expect(p).toContain('A small counter of our own records page visits and a few actions (a collage made, a comparison made, an image shared or saved and the view it shows, a view opened, a link copied, the language switched, a poster made or saved, a batch exported, a search applied, the kinds of filter used), each with your country and kind of device, never counts, names, species or places.')
       expect(p).toContain('Your language choice is kept in a small cookie on this device; it never leaves it except to show you the right page.')
       expect(p).toContain('The visit count includes your browser\'s language (just “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” or “zh-Hant”).')
     }

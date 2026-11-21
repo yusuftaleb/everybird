@@ -3,7 +3,7 @@
 
 /** Only these events and values are accepted; anything else is dropped. Mirrored by the app's ALLOWED (src/lib/analytics.ts). */
 export const ALLOWED: Record<string, Set<string>> = {
-  visit: new Set(['landing', 'collage', 'settings', 'about', 'shared']),
+  visit: new Set(['landing', 'collage', 'settings', 'about', 'shared', 'compare', 'compare-shared']),
   collage_made: new Set(['ebird', 'ebird-list', 'inat', 'obsorg', 'sheet', 'scythebill', 'igoterra', 'manual', 'sample', 'restore', 'mixed']),
   image_downloaded: new Set(['story', 'post', 'square', 'desktop', 'wide']),
   shared: new Set(['story', 'post', 'square', 'desktop', 'wide', 'link']),
@@ -13,6 +13,10 @@ export const ALLOWED: Record<string, Set<string>> = {
   poster_downloaded: new Set(['png', 'pdf']),
   search_applied: new Set(['smart', 'bird']),
   filter_used: new Set(['place', 'continent', 'time', 'status', 'group', 'taxonomy']),
+  compare_made: new Set(['2', '3', '4', '5', '6']),
+  image_view: new Set(['collage', 'list', 'map', 'tree', 'comparison', 'wish-list']),
+  view_opened: new Set(['list', 'map', 'tree']),
+  batch_exported: new Set(['family', 'order', 'country', 'continent', 'province', 'year', 'size']),
 }
 
 /** The day boundary: 2026-11-17T00:00Z. From this instant a row's day is the America/Vancouver date, which is 16 Nov until
@@ -63,10 +67,14 @@ export function seenBinds(row: EventRow): [string, string, string, string] {
   return [row.name, row.value, row.day, row.vid]
 }
 
-/** Whether to store the row, given SEEN_SQL's counts for its visitor and day: not over the cap, and a visit is stored
- *  once per visitor, page and day (a repeat of the same page is skipped). Every other event is stored as it comes. */
+/** Whether to store the row, given SEEN_SQL's counts for its visitor and day: not over the cap, and a visit or a
+ *  view_opened is stored once per visitor, page (view) and day (a repeat of the same value is skipped). Every other
+ *  event is stored as it comes. */
+/** The events kept once per visitor, value and day. */
+const ONCE_A_DAY = new Set(['visit', 'view_opened'])
+
 export function keepRow(row: EventRow, seen: { c: number | null; dup: number | null }): boolean {
   if ((seen.c ?? 0) >= DAILY_CAP) return false
-  if (row.name === 'visit' && (seen.dup ?? 0) > 0) return false
+  if (ONCE_A_DAY.has(row.name) && (seen.dup ?? 0) > 0) return false
   return true
 }

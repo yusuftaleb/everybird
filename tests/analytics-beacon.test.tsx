@@ -91,6 +91,7 @@ describe('visitPageFor', () => {
     expect(visitPageFor('/', true)).toBe('collage')
     expect(visitPageFor('/settings', true)).toBe('settings')
     expect(visitPageFor('/about', null)).toBe('about')
+    expect(visitPageFor('/compare', null)).toBe('compare')
     expect(visitPageFor('/s/v1.token', false)).toBeNull()
   })
 })
