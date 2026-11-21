@@ -6,14 +6,14 @@ import { withCanonicalPlaces } from '@/lib/places/region-mapping'
 import { loadRegions } from '@/lib/import/places'
 import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { validBigYear, type BigYear } from './big-year'
-import { buildList } from './build-list'
+import { buildList, entryOrder } from './build-list'
 import type { Filter } from './filters'
 import { DEFAULT_LIST_ORDER, type ListOrder } from './list-order'
 import { applyFilterValidity } from './filters-validate'
 import { slotSource, unmatchedKey } from './model'
 import { slottedRecords } from './source-counts'
 import type { Edits, ImportResult, ListEntry, Rules, Slot, SourceRecord, Unmatched } from './model'
-import { buildSeen, type SeenIndex } from './seen'
+import { buildSeen, seenSig, type SeenEntry, type SeenIndex } from './seen'
 import * as storage from './storage'
 import { takeResume, type CollageResume, type ViewKind } from '../view-resume'
 import { useOfferResume } from '../use-resume'
@@ -109,6 +109,64 @@ function derive(s: AppState, saved: Saved, filter: Filter, ctx: StoreContext, pr
   }
 }
 
+/** JSON of each code's hand records, in order (the part of `added` buildList and buildSeen read per species). */
+function addedByCode(added: readonly SourceRecord[]): Map<string, string> {
+  const out = new Map<string, string>()
+  for (const r of added) out.set(r.code, (out.get(r.code) ?? '') + JSON.stringify(r))
+  return out
+}
+
+/**
+ * The species an edit touches, when it changes only marks, removals and hand records (the bird card's actions, Tick by
+ * hand, and their undos); null when it changes a fix, which moves a row between species and needs the full derive.
+ */
+function touchedCodes(was: Edits, now: Edits): Set<string> | null {
+  if (was.fixes !== now.fixes && JSON.stringify(was.fixes) !== JSON.stringify(now.fixes)) return null
+  const out = new Set<string>()
+  if (was.marks !== now.marks) {
+    for (const c of new Set([...Object.keys(was.marks), ...Object.keys(now.marks)])) {
+      if (JSON.stringify(was.marks[c]) !== JSON.stringify(now.marks[c])) out.add(c)
+    }
+  }
+  if (was.removed !== now.removed) {
+    const a = new Set(was.removed), b = new Set(now.removed)
+    for (const c of a) if (!b.has(c)) out.add(c)
+    for (const c of b) if (!a.has(c)) out.add(c)
+  }
+  if (was.added !== now.added) {
+    const a = addedByCode(was.added), b = addedByCode(now.added)
+    for (const c of new Set([...a.keys(), ...b.keys()])) if (a.get(c) !== b.get(c)) out.add(c)
+  }
+  return out
+}
+
+/**
+ * An edit, derived for the species it touches only: their entries and seen-here are rebuilt from their own records,
+ * every other species keeps its entry and its seen-here (buildSeen is the slow part on a big list). The result equals
+ * `derive`'s (tests/store-edit-patch.test.ts); an edit that changes a fix takes the full derive.
+ */
+function deriveEdit(s: AppState, saved: Saved, ctx: StoreContext): AppState {
+  const touched = touchedCodes(s.saved.edits, saved.edits)
+  if (!touched) return derive(s, saved, s.filter, ctx, true)
+  const taxonOrder = (code: string) => ctx.species.byCode.get(code)?.to ?? Number.MAX_SAFE_INTEGER
+  const slotted = slottedRecords(saved)
+  const records = slotted.filter(({ record }) => touched.has(record.code)).map(({ record, slot }) => displayRecord(record, slot, saved, ctx.regions))
+  const edits = { ...saved.edits, added: saved.edits.added.filter((r) => touched.has(r.code)).map(withCanonicalPlaces) }
+  const part = buildList(records, edits, saved.rules, taxonOrder)
+  const partSeen = buildSeen(records, edits, saved.rules, part)
+  const list = [...s.list.filter((e) => !touched.has(e.code)), ...part].sort(entryOrder(taxonOrder))
+  const byCode = new Map<string, SeenEntry>()
+  for (const e of list) {
+    const entry = (touched.has(e.code) ? partSeen.byCode : s.seen.byCode).get(e.code)
+    if (entry) byCode.set(e.code, entry)
+  }
+  // `full` as buildSeen has it: some counting record of a species on the list carries seen-here (hand records never do).
+  const onList = new Set(list.map((e) => e.code))
+  const full = slotted.some(({ record: r }) => Array.isArray(r.seen) && onList.has(r.code) && !(saved.rules.researchOnly && r.research === false))
+  const seen = { byCode, full, sig: seenSig(list, byCode) }
+  return { ...s, saved, list, seen, filter: applyFilterValidity(s.filter, list, ctx.species, true, seen) }
+}
+
 export function initialState(): AppState {
   return {
     saved: emptySaved(),
@@ -136,7 +194,7 @@ export function makeReducer(ctx: StoreContext): (s: AppState, a: Action) => AppS
       case 'remove-source':
         return derive(s, removeSource(s.saved, a.source), s.filter, ctx, true)
       case 'edit':
-        return derive(s, stamp({ ...s.saved, edits: a.edits }), s.filter, ctx, true)
+        return deriveEdit(s, stamp({ ...s.saved, edits: a.edits }), ctx)
       case 'rules':
         return derive(s, stamp({ ...s.saved, rules: a.rules }), s.filter, ctx, true)
       case 'restore':

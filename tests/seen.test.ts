@@ -124,7 +124,8 @@ describe('buildSeen output, pinned', () => {
     // Twice: the second build reads the shared place keys.
     for (let i = 0; i < 2; i++) {
       const { seen } = build(recs)
-      expect(seen.sig).toBe('3:581dc675')
+      // Each species' hash chained in list order since the store's card actions patch it (seen.ts seenSig).
+      expect(seen.sig).toBe('3:1ac7e8e6')
       expect(seen.full).toBe(true)
       expect([...seen.byCode].map(([k, v]) => [k, v.places, [...v.keys]])).toEqual([
         ['a', [{ country: 'CA', sub1: 'CA-BC', sub2: 'Capital', date: '2017-01-01' }, { country: 'US', sub1: 'US-WA', date: '2019-05' }, { country: 'KE' }, { country: 'HK', sub2: 'Kowloon', date: '2021-01-01' }, { country: 'MX', date: '2022' }], ['n:NA', 'r:northern-america', 'c:CA', 's:CA-BC', 'k:CA-BC|Capital', 'c:US', 's:US-WA', 'n:AF', 'r:eastern-africa', 'c:KE', 'n:AS', 'r:eastern-asia', 'c:HK', 'r:latam', 'r:central-america', 'c:MX']],
