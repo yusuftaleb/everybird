@@ -25,9 +25,12 @@
 // Copy link; in the poster Make poster (makePoster, its chunk fetched when the dialog opens) and Copy link side by side,
 // then the progress and Cancel, then Download PNG and Download PDF serving the one encode, side by side the same way.
 // Last, in the bottom right corner, Buy Me a Coffee's static button (self-hosted, never on the images). Every dropdown is
-// MenuSelect. Beside the preview the dialog is pinned at its top and grows downward (opening Export in batches or adding a
-// goal never moves it), and its controls' column keeps its place and width in every format and orientation: only the
-// preview changes, on its own side (share.css); taller than the window, the controls' column scrolls inside it.
+// MenuSelect, its menu rendered into the dialog over everything (not clipped by the scrolling column; upward when there
+// is no room below). Beside the preview the dialog is pinned at its top, and its controls' column keeps its place and
+// width in every format and orientation: only the preview changes, on its own side (share.css). Its size, and the
+// preview's, are the closed column's: opening Export in batches or adding a goal never resizes either (round 6): what
+// opened (data-opened) is left out of the measure and the column scrolls inside, just enough to show it; taller than the
+// window, the column scrolls too.
 // On phones the actions come straight under the preview, so Share image (or Make poster) is on the first screen.
 // The Goal row (Share only; posters never draw a goal): "Add a goal" until one is set; then a number box, "species in",
 // a year menu (All time and each year with birds, newest first) and a remove button. With a year the image is that
@@ -109,6 +112,17 @@ export const VIEW_IMAGE: Partial<Record<ViewKind, () => Promise<(o: ViewImageOpt
 }
 
 const RENDER_DELAY_MS = 250
+/**
+ * The controls' column's height as if Export in batches and the goal were closed: its height less what they add once
+ * open (each `[data-opened]` element's height; a `grow` one's beyond its row's closed min-height).
+ */
+export function closedHeight(col: HTMLElement): number {
+  let h = col.offsetHeight
+  for (const x of col.querySelectorAll<HTMLElement>('[data-opened]')) {
+    h -= x.dataset.opened === 'grow' ? Math.max(0, x.offsetHeight - (parseFloat(getComputedStyle(x).minHeight) || 0)) : x.offsetHeight
+  }
+  return h
+}
 /** A poster size's paper area (pt²), for "A larger poster prints every name". */
 const paperArea = (s: PrintSize) => PRINT_PT[s][0] * PRINT_PT[s][1]
 
@@ -582,6 +596,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   useEffect(() => { if (bulkOpen) bulkBodyRef.current?.scrollIntoView?.({ block: 'nearest' }) }, [bulkOpen])
   // Beside the preview, the preview is as tall as the controls' column (the format row, the gap and the controls), so
   // neither leaves an empty band: --col-h, measured (no CSS sizes an item by its neighbour's height and its own shape).
+  // Measured closed (closedHeight): what opening Export in batches or a goal adds is left out, and --scroll-h caps the
+  // column there, so opening them scrolls the column instead of resizing the dialog and the preview.
   const formatsRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
@@ -589,7 +605,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     if (!el || !top || !col || typeof ResizeObserver === 'undefined') return
     const measure = () => {
       const gap = parseFloat(getComputedStyle(top.parentElement!).rowGap) || 0
-      el.style.setProperty('--col-h', `${Math.ceil(top.offsetHeight + gap + col.offsetHeight)}px`)
+      const closed = closedHeight(col)
+      el.style.setProperty('--scroll-h', `${Math.ceil(closed)}px`)
+      el.style.setProperty('--col-h', `${Math.ceil(top.offsetHeight + gap + closed)}px`)
     }
     measure()
     const ro = new ResizeObserver(measure)
@@ -1016,7 +1034,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               <span className="eb-share-optnote">{sizeLine}</span>
             </span>
             <MenuSelect
-              labelledBy={sizeId} menuLabel={pt.size} escapeRef={menuEsc} testId="share-print-size"
+              labelledBy={sizeId} menuLabel={pt.size} escapeRef={menuEsc} layer={ref} testId="share-print-size"
               options={PRINT_SIZES.map((s) => ({ value: s, label: sizeName(s) }))}
               value={size} onChange={setSize}
             />
@@ -1098,7 +1116,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         return switchRow(transparent, t.share.transparent, () => setTransparent((v) => !v), 'share-transparent-switch')
       case 'goal':
         return [
-          <div key={r} className="eb-share-opt" data-testid="share-goal">
+          <div key={r} className="eb-share-opt" data-testid="share-goal" data-opened={goalOpen ? 'grow' : undefined}>
             <span id={goalId} className="eb-share-optlabel">{gt.label}</span>
             {!goalOpen ? (
               <button ref={goalAddRef} type="button" className="eb-textbtn" onClick={addGoal}>{gt.add}</button>
@@ -1131,7 +1149,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                 <span className="eb-share-goalwords" aria-hidden="true">{gt.speciesIn}</span>
                 <span id={goalYearId} hidden>{gt.year}</span>
                 <MenuSelect<GoalYear>
-                  labelledBy={goalYearId} menuLabel={gt.year} escapeRef={menuEsc} testId="share-goal-year"
+                  labelledBy={goalYearId} menuLabel={gt.year} escapeRef={menuEsc} layer={ref} testId="share-goal-year"
                   options={[{ value: 'all', label: gt.allTime }, ...years.map((y) => ({ value: y, label: String(y) }))]}
                   value={goalYear} onChange={pickGoalYear}
                 />
@@ -1141,7 +1159,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               </span>
             )}
           </div>,
-          goalOpen && targetBad && <p key="goal-note" id={targetNoteId} className="eb-note eb-share-opt-note">{fmt(gt.targetInvalid, { max: formatInt(TARGET_MAX, t.num) })}</p>,
+          goalOpen && targetBad && <p key="goal-note" id={targetNoteId} className="eb-note eb-share-opt-note" data-opened="">{fmt(gt.targetInvalid, { max: formatInt(TARGET_MAX, t.num) })}</p>,
         ]
     }
   }
@@ -1253,12 +1271,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                       <CaretDown aria-hidden="true" focusable="false" weight="bold" />
                     </button>
                     {bulkShown && (
-                      <section ref={bulkBodyRef} id={bulkBodyId} className="eb-share-bulk-body" aria-labelledby={bulkToggleId}>
+                      <section ref={bulkBodyRef} id={bulkBodyId} className="eb-share-bulk-body" aria-labelledby={bulkToggleId} data-opened="">
                         <p className="eb-note">{pt.bulk.lede}</p>
                         <div className="eb-share-opt">
                           <span id={bulkSplitId} className="eb-share-optlabel">{pt.bulk.splitLabel}</span>
                           <MenuSelect
-                            labelledBy={bulkSplitId} menuLabel={pt.bulk.splitLabel} escapeRef={menuEsc} testId="bulk-split"
+                            labelledBy={bulkSplitId} menuLabel={pt.bulk.splitLabel} escapeRef={menuEsc} layer={ref} testId="bulk-split"
                             options={rows.splits.map((s) => ({ value: s, label: pt.bulk.splits[s] }))}
                             value={bulkSplit} onChange={setBulkSplit} disabled={!!bulkMakingNow}
                           />
@@ -1267,7 +1285,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                           <div className="eb-share-opt">
                             <span id={bulkSizeId} className="eb-share-optlabel">{perBatch}</span>
                             <MenuSelect<BulkBatch>
-                              labelledBy={bulkSizeId} menuLabel={perBatch} escapeRef={menuEsc} testId="bulk-size"
+                              labelledBy={bulkSizeId} menuLabel={perBatch} escapeRef={menuEsc} layer={ref} testId="bulk-size"
                               options={BULK_BATCHES.map((b) => ({ value: b, label: b === 'all' ? pt.bulk.all : formatInt(b, t.num) }))}
                               value={bulkSize} onChange={setBulkSize} disabled={!!bulkMakingNow}
                             />

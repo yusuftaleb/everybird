@@ -135,6 +135,13 @@ describe('the share dialog: nothing moves when the format or the orientation cha
   })
 })
 
+describe('the share dialog: opening Export in batches or a goal resizes nothing (round 6)', () => {
+  it('caps the column at its closed height beside the preview, so what opens scrolls inside it', () => {
+    expect(css).toContain('.eb-share-scroll { max-height: var(--scroll-h, none); }')
+    expect(rule('.eb-share-scroll', '/* The column scrolls on its own')).toMatch(/overflow:\s*hidden auto/)
+  })
+})
+
 describe('the share dialog: no scrolling on a 1440 × 830 window with everything closed', () => {
   const H = 830
   it('the chrome is 140px: the dialog 32px from the top and 16px from the bottom, its border, padding, head and gap', () => {
@@ -181,18 +188,20 @@ describe('the share dialog: no scrolling on a 1440 × 830 window with everything
     const sizeRow = 2 * 2 + 16 * 1.25 + 2 + 14 * 1.3
     // The size, then Arrangement, Appearance, Count, Show latest lifer, Show species names, Transparent background. No Goal.
     const list = sizeRow + 6 * row
-    // Export in batches, closed: its row in its panel (no border, no padding above or below the row).
-    expect(rule('.eb-share-bulk')).not.toMatch(/border:|padding/)
-    const bulk = row
+    // Export in batches, closed: its row in its box, a Hairline border and no fill (round 6), no padding above or below the row.
+    const box = rule('.eb-share-bulk')
+    expect(box).toMatch(/border:\s*1px solid var\(--hairline\)/)
+    expect(box).not.toMatch(/background|padding/)
+    const bulk = row + 2
     // Once made: Download PNG and Download PDF, then Copy link (before, Make poster and Copy link are one row).
     const actions = field + actionsGap + field
     const status = 14 * 1.5
     const filters = 36 // .eb-textbtn's height
     const coffee = 32 + 2 * 6 - 6 // the image, its press padding, the negative bottom margin
     const column = seg + gap + title + optionsGap + list + optionsGap + bulk + gap + actions + gap + status + gap + filters + gap + coffee
-    expect(Math.ceil(column)).toBe(674) // the figure share.css's comment gives
+    expect(Math.ceil(column)).toBe(676) // the figure share.css's comment gives
     expect(Math.ceil(column)).toBeLessThanOrEqual(H - 140)
-    expect(css).toContain('takes 674')
+    expect(css).toContain('takes 676')
     // The empty status line gives its gap back, so the usual column is shorter still.
     expect(rule('.eb-share-controls > [role="status"]:empty')).toMatch(new RegExp(`margin-top:\\s*-${gap}px`))
   })

@@ -11,12 +11,30 @@
 // its current group is not among the options (`shown` gives the button its words), so the rows are plain menuitems
 // with no check, each with its species count, the first stepping back a level (`back`, an arrow before the label).
 // The Collage's Arrangement menu in the controls bar gives each option its glyph (`icon`), drawn before its label on
-// the button and in the menu.
+// the button and in the menu. In the share dialog (`layer`, round 6) the open menu is rendered into the dialog itself,
+// outside the scrolling controls' column, fixed to its button (right-aligned under it, over the preview where it needs
+// to be), opening upward when there is more room above than below and its list doesn't fit under the button; it
+// follows the button when the column scrolls or the window resizes.
 import { ArrowLeft, CaretDown, Check, type Icon } from '@phosphor-icons/react'
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MutableRefObject } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MutableRefObject, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 
 /** The menu's side margin from the window's edges (as the language menu's). */
 const EDGE = 8
+/** Between the button and a menu placed by `menuPlace` (as .eb-menu's 6px). */
+const GAP = 6
+
+/**
+ * Where a floating menu goes (window px): right-aligned to the button `b`, under it, or over it (`up`) when its
+ * natural height `h` doesn't fit below and there is more room above; `maxH` is the room on that side (the menu scrolls
+ * past it); `right` keeps its left edge EDGE inside the window. `vw`/`vh`: the window's size.
+ */
+export function menuPlace(b: { top: number; bottom: number; right: number }, h: number, w: number, vw: number, vh: number) {
+  const below = vh - b.bottom - GAP - EDGE, above = b.top - GAP - EDGE
+  const up = h > below && above > below
+  const right = Math.min(vw - b.right, vw - EDGE - w)
+  return { up, y: up ? vh - b.top + GAP : b.bottom + GAP, maxH: Math.max(0, up ? above : below), right: Math.max(EDGE, right) }
+}
 
 export type MenuOption<T extends string | number> = {
   value: T
@@ -57,9 +75,11 @@ type Props<T extends string | number> = {
   escapeRef: MutableRefObject<(() => void) | null>
   /** What the button shows when `value` isn't among the options (the picker's current group). */
   shown?: MenuOption<T>
+  /** The share dialog: the element the open menu is rendered into, over everything (see the header). */
+  layer?: RefObject<HTMLElement | null>
 }
 
-export function MenuSelect<T extends string | number>({ labelledBy, menuLabel, options, value, onChange, disabled, testId, escapeRef, shown }: Props<T>) {
+export function MenuSelect<T extends string | number>({ labelledBy, menuLabel, options, value, onChange, disabled, testId, escapeRef, shown, layer }: Props<T>) {
   const id = useId()
   const [open, setOpen] = useState(false)
   const btn = useRef<HTMLButtonElement>(null)
@@ -94,7 +114,7 @@ export function MenuSelect<T extends string | number>({ labelledBy, menuLabel, o
       </button>
       {open && (
         <MenuList
-          id={`${id}-menu`} label={menuLabel} options={options} value={value} btn={btn} escapeRef={escapeRef}
+          id={`${id}-menu`} label={menuLabel} options={options} value={value} btn={btn} escapeRef={escapeRef} layer={layer}
           onPick={(v) => { close(true); if (v !== value) onChange(v) }}
           onClose={close}
         />
@@ -104,7 +124,7 @@ export function MenuSelect<T extends string | number>({ labelledBy, menuLabel, o
 }
 
 /** The open menu: mounted only while open (also the List view's Sort menu in the controls bar, ControlsBar.tsx). */
-export function MenuList<T extends string | number>({ id, label, options, value, btn, escapeRef, onPick, onClose }: {
+export function MenuList<T extends string | number>({ id, label, options, value, btn, escapeRef, onPick, onClose, layer }: {
   id: string
   label: string
   options: readonly MenuOption<T>[]
@@ -113,16 +133,34 @@ export function MenuList<T extends string | number>({ id, label, options, value,
   escapeRef: MutableRefObject<(() => void) | null>
   onPick: (v: T) => void
   onClose: (refocus: boolean) => void
+  layer?: RefObject<HTMLElement | null>
 }) {
   const menu = useRef<HTMLDivElement>(null)
   const items = () => [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]') ?? [])]
   // A choice among options (a check on the current one), or places to go when the current one isn't listed.
   const radio = options.some((o) => o.value === value)
 
-  // Right-aligned under the button (share.css), then clamped to the window, as the language menu.
+  // Right-aligned under the button (share.css), then clamped to the window, as the language menu. In a layer: fixed to
+  // the button (menuPlace), its natural size measured once, placed again when anything but the menu itself scrolls.
+  const into = layer?.current ?? null
   useLayoutEffect(() => {
     const el = menu.current
     if (!el) return
+    if (into) {
+      const { offsetHeight: h, offsetWidth: w } = el
+      const place = () => {
+        const b = btn.current?.getBoundingClientRect()
+        if (!b) return
+        const p = menuPlace(b, h, w, document.documentElement.clientWidth || window.innerWidth, window.innerHeight)
+        Object.assign(el.style, { position: 'fixed', left: 'auto', right: `${p.right}px`, top: p.up ? 'auto' : `${p.y}px`, bottom: p.up ? `${p.y}px` : 'auto', maxHeight: `min(320px, 50dvh, ${p.maxH}px)` })
+        el.toggleAttribute('data-up', p.up)
+      }
+      const onScroll = (e: Event) => { if (!(e.target instanceof Node && el.contains(e.target))) place() }
+      place()
+      window.addEventListener('resize', place)
+      document.addEventListener('scroll', onScroll, true)
+      return () => { window.removeEventListener('resize', place); document.removeEventListener('scroll', onScroll, true) }
+    }
     const clamp = () => {
       el.style.right = ''
       const left = el.getBoundingClientRect().left
@@ -131,7 +169,7 @@ export function MenuList<T extends string | number>({ id, label, options, value,
     clamp()
     window.addEventListener('resize', clamp)
     return () => window.removeEventListener('resize', clamp)
-  }, [])
+  }, [into, btn])
 
   useEffect(() => {
     const at = Math.max(0, options.findIndex((o) => o.value === value))
@@ -168,8 +206,8 @@ export function MenuList<T extends string | number>({ id, label, options, value,
     } else if (e.key === 'Tab') onClose(false)
   }
 
-  return (
-    <div ref={menu} id={id} className="eb-menu eb-langmenu eb-share-menu" role="menu" aria-label={label} onKeyDown={onKey}>
+  const list = (
+    <div ref={menu} id={id} className="eb-menu eb-langmenu eb-share-menu" data-layer={into ? '' : undefined} role="menu" aria-label={label} onKeyDown={onKey}>
       {options.map((o) => (
         <button
           key={o.value} type="button" role={radio ? 'menuitemradio' : 'menuitem'} aria-checked={radio ? o.value === value : undefined}
@@ -189,4 +227,5 @@ export function MenuList<T extends string | number>({ id, label, options, value,
       ))}
     </div>
   )
+  return into ? createPortal(list, into) : list
 }
