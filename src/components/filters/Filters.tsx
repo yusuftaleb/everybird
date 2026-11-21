@@ -1,7 +1,8 @@
 'use client'
 // One Filters button in the controls bar and one panel behind it (item 10). The button ("Filters", with a small count on
-// its glyph of how many of the bird group, Places, Time and Conservation status are in use, not checked boxes) sits in the controls bar between Scientific and the
-// search. It opens one panel holding the Time, Places and Conservation status sections, each keeping its own control: Time
+// its glyph of how many of the bird group, Places, Time and Conservation status are in use, not checked boxes) is the
+// last of the bar's panel buttons (Taxa, Display, Filters: DockPanelButton, one look), before the search. The panel's
+// frame (DockPanel) is the bar's other panels' too (TaxaPanel.tsx, DisplayPanel.tsx). It opens one panel holding the Time, Places and Conservation status sections, each keeping its own control: Time
 // (Timeline.tsx; "Count repeat sightings" at the right of its head on a list with month sets) across the top, Places
 // (PlacesList.tsx, the drill-down with its breadcrumb) about 2/3 and Conservation status (StatusList.tsx) 1/3 beside each
 // other below it. From 600px the panel is a popover the dock's full width under the chip row (or under the dock with none),
@@ -66,6 +67,52 @@ type Shared = {
   groupName?: (id: string) => string | undefined
 }
 
+/**
+ * A panel button in the controls bar (Filters, Taxa, Display: one look). The label and a caret, the Surface fill while
+ * its panel is open; with `count` > 0, Accent text and a small count badge (on the glyph when there is one, else at the
+ * label's top right), absolutely placed so it changes no width (the accessible name says it in full).
+ */
+export function DockPanelButton({ label, spoken, open, onToggle, panelId, buttonRef, count = 0, glyph, testId, countTestId, tour }: {
+  label: string
+  /** The accessible name (default: the label). */
+  spoken?: string
+  open: boolean
+  onToggle: () => void
+  panelId: string
+  buttonRef?: RefObject<HTMLButtonElement | null>
+  count?: number
+  glyph?: ReactNode
+  testId?: string
+  /** The badge's test id (default: `<testId>-count`). */
+  countTestId?: string
+  tour?: string
+}): ReactNode {
+  const { t } = useI18n()
+  const badge = count > 0 && <span className="eb-drop-badge" aria-hidden="true" data-testid={countTestId ?? (testId ? `${testId}-count` : undefined)}>{formatInt(count, t.num)}</span>
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      className="eb-dock-tab eb-dock-drop"
+      aria-expanded={open}
+      aria-controls={open ? panelId : undefined}
+      aria-haspopup="dialog"
+      aria-label={spoken ?? label}
+      data-active={count > 0 ? '' : undefined}
+      data-testid={testId}
+      data-tour={tour}
+      onClick={onToggle}
+    >
+      {glyph ? (
+        <><span className="eb-drop-icon">{glyph}{badge}</span><span className="eb-drop-label">{label}</span></>
+      ) : (
+        <span className="eb-drop-tag"><span className="eb-drop-label">{label}</span>{badge}</span>
+      )}
+      <CaretDown aria-hidden="true" focusable="false" className="eb-drop-caret" />
+    </button>
+  )
+}
+
 /** In the dock's `filters` slot (ControlsBar's `.eb-dock-filters` group). Renders null when `sections` is empty. */
 export function FiltersButton({ state, regions, sections, open, onOpen, groupName, buttonRef, panelId }: Shared & { buttonRef: RefObject<HTMLButtonElement | null>; panelId: string }): ReactNode {
   const { lang, t } = useI18n()
@@ -73,28 +120,102 @@ export function FiltersButton({ state, regions, sections, open, onOpen, groupNam
   const n = filtersCount(state.filter)
   const said = filtersSpoken(state.filter, regionsIn(regions, lang), t, groupName)
   return (
-      <button
-        ref={buttonRef}
-        type="button"
-        className="eb-dock-tab eb-dock-drop"
-        aria-expanded={!!open}
-        aria-controls={open ? panelId : undefined}
-        aria-haspopup="dialog"
-        aria-label={said ? `${t.filters.label}: ${said}` : t.filters.label}
-        data-active={n > 0 ? '' : undefined}
-        data-testid="filters-button"
-        data-tour="filter"
-        onClick={() => onOpen(open ? null : {})}
-      >
-        {/* The count sits on the glyph, absolutely placed, so setting a filter changes no width; the name says it in full. */}
-        <span className="eb-drop-icon">
-          <FilterLinesIcon />
-          {n > 0 && <span className="eb-drop-badge" aria-hidden="true" data-testid="filters-count">{formatInt(n, t.num)}</span>}
-        </span>
-        <span className="eb-drop-label">{t.filters.label}</span>
-        <CaretDown aria-hidden="true" focusable="false" className="eb-drop-caret" />
-      </button>
+    <DockPanelButton
+      label={t.filters.label} spoken={said ? `${t.filters.label}: ${said}` : t.filters.label} open={!!open} onToggle={() => onOpen(open ? null : {})}
+      panelId={panelId} buttonRef={buttonRef} count={n} glyph={<FilterLinesIcon />} testId="filters-button" countTestId="filters-count" tour="filter"
+    />
   )
+}
+
+/** The room a popover has from its top down to the window's bottom, less a small margin (px), at least MIN_DROP. */
+export const DROP_MARGIN = 16
+const MIN_DROP = 240
+export const dropRoom = (top: number, windowH: number): number => Math.max(MIN_DROP, Math.floor(windowH - top - DROP_MARGIN))
+
+/**
+ * The controls bar's panels' one frame (Filters, Taxa, Display): from 600px a popover in `.eb-dockwrap` under the dock
+ * (and the chip row), as tall as its content up to the window's bottom less DROP_MARGIN (`--drop-max`, measured on
+ * open, scroll and resize); under 600px the modal bottom sheet (portalled to the body: the bar is a size container,
+ * which would otherwise be the fixed sheet's containing block), which may take the window's full height, with a head
+ * (`sheetHead`, then the close button) and an optional `foot`. Esc, a press outside the dock wrap (the popover) or on
+ * the scrim (the sheet) closes it; focus moves in on open and back to `returnFocus()` (if still connected) or the
+ * button on close; the top bar stays shown while it is open.
+ */
+export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onClose, panelRef, sheetHead, foot, children }: {
+  id: string
+  label: string
+  kind: 'filters' | 'taxa' | 'display'
+  testId?: string
+  buttonRef: RefObject<HTMLButtonElement | null>
+  returnFocus?: () => HTMLElement | null
+  onClose: () => void
+  panelRef?: RefObject<HTMLDivElement | null>
+  sheetHead?: ReactNode
+  foot?: ReactNode
+  children: ReactNode
+}): ReactNode {
+  const { t } = useI18n()
+  const sheet = useIsSheet()
+  const own = useRef<HTMLDivElement>(null)
+  const ref = panelRef ?? own
+  useEscapeCapture(onClose)
+  useFocusInAndBack(ref, () => {
+    const el = returnFocus?.()
+    return el?.isConnected ? el : buttonRef.current
+  })
+  // Shown, the top bar must not cover the popover or its controls bar (a sheet sits above it anyway).
+  useHoldTopBar(() => (sheet ? null : ref.current?.closest<HTMLElement>('.eb-dockwrap')))
+  // A press outside the dock wrap (the dock, the chips and the panel itself stay live) closes the popover; the sheet has its scrim.
+  useEffect(() => {
+    if (sheet) return
+    const down = (e: PointerEvent) => {
+      const wrap = ref.current?.closest('.eb-dockwrap')
+      if (wrap?.contains(e.target as Node)) return
+      onClose()
+    }
+    document.addEventListener('pointerdown', down)
+    return () => document.removeEventListener('pointerdown', down)
+  }, [sheet, onClose, ref])
+  // The popover's height: down to the window's bottom, never past it (its top moves as the page scrolls).
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (sheet || !el) return
+    let frame = 0
+    const fit = () => { frame = 0; el.style.setProperty('--drop-max', `${dropRoom(el.getBoundingClientRect().top, window.innerHeight)}px`) }
+    const later = () => { if (!frame) frame = requestAnimationFrame(fit) }
+    fit()
+    window.addEventListener('resize', later)
+    window.addEventListener('scroll', later, { passive: true })
+    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', later); window.removeEventListener('scroll', later) }
+  }, [sheet, ref])
+  const body = (
+    <div
+      ref={ref}
+      id={id}
+      className={sheet ? 'eb-sheet eb-drop-sheet' : 'eb-drop'}
+      role="dialog"
+      aria-modal={sheet ? true : undefined}
+      aria-label={label}
+      tabIndex={-1}
+      data-kind={kind}
+      data-testid={testId}
+      onKeyDown={sheet ? (e) => trapTab(e, ref.current) : undefined}
+    >
+      {sheet && (
+        <div className="eb-sheet-head">
+          {sheetHead}
+          <button type="button" className="eb-sheet-close" aria-label={t.collage.close} onClick={onClose}>
+            <CloseIcon />
+          </button>
+        </div>
+      )}
+      <div className="eb-drop-body">{children}</div>
+      {sheet && foot && <div className="eb-fpanel-foot">{foot}</div>}
+    </div>
+  )
+  return sheet
+    ? createPortal(<div className="eb-sheet-scrim" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>{body}</div>, document.body)
+    : body
 }
 
 const PlacesSection = memo(PlacesList)
@@ -126,13 +247,6 @@ export function FiltersPanel({ state, onChange, species, regions, sections, open
   const { filter } = state
   const onClose = useCallback(() => onOpen(null), [onOpen])
   const onFilter = onChange
-  useEscapeCapture(onClose)
-  useFocusInAndBack(ref, () => {
-    const el = returnFocus?.()
-    return el?.isConnected ? el : buttonRef.current
-  })
-  // Shown, the top bar must not cover the popover or its controls bar (a sheet sits above it anyway).
-  useHoldTopBar(() => (sheet ? null : ref.current?.closest<HTMLElement>('.eb-dockwrap')))
   // Opened from a collapsed chip (or pressed again while open): focus goes to that section.
   useLayoutEffect(() => {
     if (!open?.at) return
@@ -141,17 +255,6 @@ export function FiltersPanel({ state, onChange, species, regions, sections, open
     el.focus({ preventScroll: true })
     if (sheet) el.scrollIntoView?.({ block: 'nearest' })
   }, [open, sheet])
-  // A press outside the dock wrap (the dock, the chips and the panel itself stay live) closes the popover; the sheet has its scrim.
-  useEffect(() => {
-    if (sheet) return
-    const down = (e: PointerEvent) => {
-      const wrap = ref.current?.closest('.eb-dockwrap')
-      if (wrap?.contains(e.target as Node)) return
-      onClose()
-    }
-    document.addEventListener('pointerdown', down)
-    return () => document.removeEventListener('pointerdown', down)
-  }, [sheet, onClose])
 
   const n = filtersCount(filter)
   const head = panelHead(n, shown, t)
@@ -205,49 +308,22 @@ export function FiltersPanel({ state, onChange, species, regions, sections, open
   const has = (s: FilterSection) => sections.includes(s)
   const lower = (['places', 'status'] as const).filter(has)
 
-  const body = (
-    <div
-      ref={ref}
-      id={id}
-      className={sheet ? 'eb-sheet eb-drop-sheet' : 'eb-drop'}
-      role="dialog"
-      aria-modal={sheet ? true : undefined}
-      aria-label={t.filters.label}
-      tabIndex={-1}
-      data-kind="filters"
-      data-testid="filters-panel"
-      onKeyDown={sheet ? (e) => trapTab(e, ref.current) : undefined}
+  return (
+    <DockPanel
+      id={id} label={t.filters.label} kind="filters" testId="filters-panel" buttonRef={buttonRef} returnFocus={returnFocus} onClose={onClose} panelRef={ref}
+      sheetHead={<><span className="eb-mono" role="status" data-testid="filters-head">{head}</span>{clearButton}</>}
+      foot={<button type="button" className="eb-btn" data-testid="filters-show" onClick={onClose}>{showLabel(shown, t)}</button>}
     >
-      {sheet && (
-        <div className="eb-sheet-head">
-          <span className="eb-mono" role="status" data-testid="filters-head">{head}</span>
+      {!sheet && (
+        <div className="eb-fpanel-headrow">
+          <p className="eb-mono eb-fpanel-head" role="status" data-testid="filters-head">{head}</p>
           {clearButton}
-          <button type="button" className="eb-sheet-close" aria-label={t.collage.close} onClick={onClose}>
-            <CloseIcon />
-          </button>
         </div>
       )}
-      <div className="eb-drop-body">
-        {!sheet && (
-          <div className="eb-fpanel-headrow">
-            <p className="eb-mono eb-fpanel-head" role="status" data-testid="filters-head">{head}</p>
-            {clearButton}
-          </div>
-        )}
-        {has('time') && section('time')}
-        {sheet ? lower.map(section) : lower.length > 0 && <div className="eb-fpanel-row">{lower.map(section)}</div>}
-      </div>
-      {sheet && (
-        <div className="eb-fpanel-foot">
-          <button type="button" className="eb-btn" data-testid="filters-show" onClick={onClose}>{showLabel(shown, t)}</button>
-        </div>
-      )}
-    </div>
+      {has('time') && section('time')}
+      {sheet ? lower.map(section) : lower.length > 0 && <div className="eb-fpanel-row">{lower.map(section)}</div>}
+    </DockPanel>
   )
-  // The sheet goes to <body>: the bar is a size container, which would otherwise be the fixed sheet's containing block.
-  return sheet
-    ? createPortal(<div className="eb-sheet-scrim" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>{body}</div>, document.body)
-    : body
 }
 
 /** What a filter change must find again: the window's and each popover scroller's position, and the focused control. */
@@ -289,13 +365,15 @@ type UiArgs = {
   time: PanelProps['time']
   threatLine?: number
   shown: number
+  /** The panel is opening: the caller closes the bar's other panels (one open at a time). */
+  onOpening?: () => void
 }
 
 /**
  * The button, the chip row and the panel, wired together as CollageView uses them: `button` for the dock's
  * `filters` slot, `below` for ControlsBar's, `dimmed` for the content after the dock wrap.
  */
-export function useFiltersUi({ state, dispatch, species, regions, hide, placesNote, placesUnplaced, time, threatLine, shown }: UiArgs): {
+export function useFiltersUi({ state, dispatch, species, regions, hide, placesNote, placesUnplaced, time, threatLine, shown, onOpening }: UiArgs): {
   button: ReactNode
   below: ReactNode
   dimmed: boolean
@@ -335,8 +413,10 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
     kept.current = null
     restorePlace(k, document.getElementById(panelId))
   })
+  const opening = useRef(onOpening)
+  useLayoutEffect(() => { opening.current = onOpening })
   const onOpen = useCallback((o: FiltersOpen | null) => {
-    if (o) opener.current = null // closing keeps it: focus goes back to the chip that opened the panel
+    if (o) { opener.current = null; opening.current?.() } // closing keeps it: focus goes back to the chip that opened the panel
     setOpen(o)
   }, [])
   const close = useCallback(() => setOpen(null), [])
@@ -352,6 +432,7 @@ export function useFiltersUi({ state, dispatch, species, regions, hide, placesNo
     [change, filter],
   )
   const onChip = useCallback((c: (typeof chips)[number], el: HTMLElement) => {
+    opening.current?.()
     opener.current = el
     setOpen({ at: c.kind === 'place' ? 'places' : 'status' })
   }, [])

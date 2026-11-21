@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 // The taxonomy chips down to genera (round 6): a picked family offers its genera as chips (scientific names, italic),
 // a genus chip filters to that genus and keeps its row as a leaf; an order with one family offers that family's genera
-// (the breadcrumb names the lone family); a family with one genus shows no lone genus chip. Synthetic species only.
+// (the breadcrumb names the lone family); a family with one genus shows no lone genus chip. The chips are the controls
+// bar's Taxa panel's (TaxaPanel), the breadcrumb the page's (FilterBar). Synthetic species only.
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { useReducer } from 'react'
+import { useReducer, useRef } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FilterBar } from '@/components/filters/FilterBar'
+import { TaxaPanel } from '@/components/filters/TaxaPanel'
 import { initialState, makeReducer, type AppState } from '@/lib/list/store'
 import { emptySaved } from '@/lib/list/storage'
 import type { SourceRecord } from '@/lib/list/model'
@@ -37,8 +39,13 @@ function seeded(): AppState {
 function Harness() {
   const reduce = makeReducer({ species })
   const [state, dispatch] = useReducer(reduce, undefined, seeded)
+  const btn = useRef<HTMLButtonElement>(null)
   return (
     <>
+      <div className="eb-dockwrap">
+        <button ref={btn} type="button">Taxa</button>
+        <TaxaPanel state={state} dispatch={dispatch} species={species} id="taxa" buttonRef={btn} onClose={() => {}} shown={0} />
+      </div>
       <FilterBar state={state} dispatch={dispatch} species={species} />
       <output data-testid="filter">{JSON.stringify(state.filter)}</output>
     </>

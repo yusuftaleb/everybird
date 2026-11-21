@@ -260,17 +260,13 @@ for (const [label, n] of SIZES) {
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.waitForTimeout(500);
 
-      // A filter change: the first order (1440: its chip; 390: from the picker sheet).
+      // A filter change: the first order, from the Taxa panel (1440: its popover; 390: its sheet; round 6). The panel
+      // stays open after a pick; it is closed once the filter has shown, before the geometry check.
       await startProbe(page);
       const t1 = Date.now();
-      if (width < 600) {
-        await page.getByTestId("picker-order").click();
-        const dlg = page.locator('.eb-sheet[role="dialog"]');
-        await dlg.locator(".eb-chip:not([data-selected])").first().click();
-        await expect(dlg).toHaveCount(0);
-      } else {
-        await page.locator('[data-testid="filter-bar"] .eb-chip:not([data-selected])').first().click();
-      }
+      await page.getByTestId("taxa-button").click();
+      const taxa = page.locator('[data-testid="taxa-panel"]');
+      await taxa.locator(".eb-chip:not([data-selected])").first().click();
       await expect(page.getByTestId("collage-stats")).toContainText(" of ", { timeout: 120_000 });
       // Settled: the collage shows the count the stats give, and the bird layer is back (no fade-through under
       // way). Every shown bird drawn where it belongs is checked below (checkGeometry: a big list renders only the
@@ -287,6 +283,8 @@ for (const [label, n] of SIZES) {
       const filterMs = Date.now() - t1;
       await page.waitForTimeout(1500);
       const filt = await stopProbe(page);
+      await page.keyboard.press("Escape");
+      await expect(taxa).toHaveCount(0);
       await cdp?.send("Emulation.setCPUThrottlingRate", { rate: 1 });
       console.log(`[stress] ${browserName} ${width}px ${count} species: filter (first order)${cdp ? " at 4x CPU" : ""}: shown after ${filterMs} ms, longest task ${filt.long.toFixed(0)} ms, longest frame ${filt.frame.toFixed(1)} ms, p95 frame ${filt.p95.toFixed(1)} ms`);
       const geo2 = await checkGeometry(page);

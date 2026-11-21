@@ -378,7 +378,7 @@ describe('in Spanish', () => {
   it("the list view's rows and the direction switch: es.ui's heaviest first", () => {
     render(
       <>
-        <ControlsBar view="list" onView={() => {}} trueSize={false} onTrueSize={() => {}} lightFirst={false} onDirection={() => {}} sci={false} onSci={() => {}} />
+        <ControlsBar view="list" onView={() => {}} lightFirst={false} onDirection={() => {}} sci={false} onSci={() => {}} />
         <ListView entries={[entry('pelica', { date: '2026-09-02' })]} species={heavy} regions={regions} order="heaviest" onPick={() => {}} />
       </>,
       { wrapper: withI18n('es') },

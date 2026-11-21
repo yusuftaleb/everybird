@@ -88,7 +88,8 @@ type Props = {
  * username), a muted sentence-case status ("185 species · 12 only here · 10 skipped · Updated 6 Nov"), and the row's primary
  * button on the right; a connected source's line leads with its counts ("185 species · 12 only here") and adds a ⋯ menu (SourceMenu) holding its other actions and Remove. Remove asks
  * once, inline, before taking the source's birds away. Edits always stay. "why?" after the skipped count opens the
- * entries that weren't counted under the row.
+ * entries that weren't counted under the row. `.eb-src-main` is the source's cell in the list's grid; everything after
+ * it (the "why?" entries, the Remove question, `children`) spans the grid under the cell's row (import.css).
  */
 export function SourceRow({ title, name, parts, counts, skipped, primary, menu, what, onRemove, disabled, children, testId }: Props) {
   const id = useId()

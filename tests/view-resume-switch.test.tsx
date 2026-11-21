@@ -145,7 +145,7 @@ describe('the dock search after a language switch', () => {
     render(
       <StrictMode>
         <I18n>
-          <ControlsBar view="collage" onView={() => {}} trueSize={false} onTrueSize={() => {}} lightFirst={false} onDirection={() => {}} sci={false} onSci={() => {}} search={search} />
+          <ControlsBar view="collage" onView={() => {}} lightFirst={false} onDirection={() => {}} sci={false} onSci={() => {}} search={search} />
         </I18n>
       </StrictMode>,
     )

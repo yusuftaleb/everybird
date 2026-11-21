@@ -31,8 +31,10 @@ test("a big list: kept birds glide from where they stand when the filter narrows
     return !L.style.opacity && !L.style.contentVisibility && L.getAnimations().length === 0 && document.querySelectorAll(".eb-tile").length > 0;
   }), { timeout: 30_000 }).toBe(true);
   await settled();
-  // Big -> an order (a fade-through: data-fast on).
-  await page.locator('[data-testid="filter-bar"] .eb-chip', { hasText: /Perching birds/ }).click();
+  // Big -> an order (a fade-through: data-fast on), from the Taxa panel (round 6), which stays open for the family.
+  await page.getByTestId("taxa-button").click();
+  const taxa = page.getByTestId("taxa-panel");
+  await taxa.locator(".eb-chip", { hasText: /Perching birds/ }).click();
   await expect(stage).toHaveAttribute("data-fast", "", { timeout: 30_000 });
   await settled();
   await page.waitForTimeout(800);
@@ -55,7 +57,7 @@ test("a big list: kept birds glide from where they stand when the filter narrows
     };
     requestAnimationFrame(tick);
   }, codes);
-  await page.locator('[data-testid="filter-bar"] .eb-chip:not([data-selected])').first().click();
+  await taxa.locator(".eb-chip:not([data-selected])").first().click();
   await expect(stage).not.toHaveAttribute("data-fast", "", { timeout: 30_000 });
   await page.waitForTimeout(1500);
   const track = await page.evaluate(() => (window as unknown as { __track: Record<string, number[][]> }).__track);

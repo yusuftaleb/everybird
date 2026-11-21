@@ -38,6 +38,10 @@ export type Filter = {
   /** A genus of the family (its scientific name, the first word of a species' `sci`; round 6): set only with its
    *  family, as a family only with its order. */
   genus?: string
+  /** The other groups of a marked Tree branch at the filter's deepest taxonomy level (a genus, else a family, else an
+   *  order): opening "Netta ◇ with Aythya" keeps Netta and Aythya (taxonWith). Set only by the tree; any other change
+   *  of the order, family or genus drops it. */
+  with?: string[]
   countries?: string[]
   provinces?: string[]
   counties?: string[]
@@ -60,6 +64,12 @@ export const filterActive = (f: Filter): boolean =>
 export type ChipOption = { value: string; label: string; count: number }
 /** A species' genus: the first word of its scientific name. */
 export const genusOf = (sci: string): string => sci.split(' ')[0]
+/** The deepest taxonomy level the filter sets: the one `with` widens. */
+export const taxonLevel = (f: Pick<Filter, 'order' | 'family' | 'genus'>): 'order' | 'family' | 'genus' | undefined =>
+  f.genus ? 'genus' : f.family ? 'family' : f.order ? 'order' : undefined
+/** Whether a species' value `v` at `level` passes the filter's `want` there: equal, or (at the deepest level) one of `with`. */
+export const taxonWith = (f: Pick<Filter, 'order' | 'family' | 'genus' | 'with'>, level: 'order' | 'family' | 'genus', v: string, want: string): boolean =>
+  v === want || (!!f.with?.length && taxonLevel(f) === level && f.with.includes(v))
 /** `country`: the countries' options (the filter holds a set, `countries`); as a skipped dimension, every place level. */
 export type FilterLevel = 'order' | 'family' | 'genus' | 'country' | 'year'
 /** The range (`from`/`to`) and the statuses as dimensions of their own, for skipping them when counting. */
@@ -81,6 +91,7 @@ export function filterKey(f: Filter): string {
   if (f.order) parts.push(`o:${f.order}`)
   if (f.family) parts.push(`f:${f.family}`)
   if (f.genus) parts.push(`e:${f.genus}`)
+  if (f.with?.length && taxonLevel(f)) parts.push(`w:${[...f.with].sort().join(',')}`)
   if (f.group) parts.push(`g:${f.group}`)
   if (f.countries?.length) parts.push(`c:${[...f.countries].sort().join(',')}`)
   if (f.provinces?.length) parts.push(`s:${[...f.provinces].sort().join(',')}`)
@@ -118,9 +129,9 @@ function matcher(f: Filter, species: SpeciesIndex, skip: ReadonlySet<Dim>, seen?
     if (order || family || genus || statuses || bounds !== undefined) {
       const row = species.byCode.get(e.code)
       if (!row) return false
-      if (order && row.ord !== order) return false
-      if (family && row.fam !== family) return false
-      if (genus && genusOf(row.sci) !== genus) return false
+      if (order && !taxonWith(f, 'order', row.ord, order)) return false
+      if (family && !taxonWith(f, 'family', row.fam, family)) return false
+      if (genus && !taxonWith(f, 'genus', genusOf(row.sci), genus)) return false
       if (statuses && !statuses.has(row.iu ?? 'NE')) return false
       if (bounds === null || (bounds && (row.to < bounds.lo || row.to > bounds.hi))) return false
     }
@@ -214,9 +225,10 @@ export function options(
 export function filterToShow(f: Filter, e: ListEntry, species: SpeciesIndex, seen?: SeenIndex): Filter {
   const row = species.byCode.get(e.code)
   const next: Filter = { ...f }
-  if (next.order && row?.ord !== next.order) { delete next.order; delete next.family; delete next.genus }
-  if (next.family && row?.fam !== next.family) { delete next.family; delete next.genus }
-  if (next.genus && (!row || genusOf(row.sci) !== next.genus)) delete next.genus
+  // A level that excludes the bird goes with every level under it and the marked branch's `with` (judged on `f`).
+  if (next.order && !(row && taxonWith(f, 'order', row.ord, next.order))) { delete next.order; delete next.family; delete next.genus; delete next.with }
+  if (next.family && !(row && taxonWith(f, 'family', row.fam, next.family))) { delete next.family; delete next.genus; delete next.with }
+  if (next.genus && !(row && taxonWith(f, 'genus', genusOf(row.sci), next.genus))) { delete next.genus; delete next.with }
   if (next.group && row && species.groups) {
     const g = species.groups.get(next.group)
     if (!g || row.to < g.lo || row.to > g.hi) delete next.group
@@ -236,7 +248,7 @@ export function filterToShow(f: Filter, e: ListEntry, species: SpeciesIndex, see
   }
   // Each dimension alone includes the bird; under basis 'seen' the places and the range together may still not (Canada in
   // 2019, a range of 2026 the bird was seen in only in Egypt): the range goes.
-  if (next.basis === 'seen' && (next.from || next.to) && hasPlaces(next) && !matcher({ ...next, order: undefined, family: undefined, genus: undefined, group: undefined, statuses: undefined }, species, new Set(), seen)(e)) {
+  if (next.basis === 'seen' && (next.from || next.to) && hasPlaces(next) && !matcher({ ...next, order: undefined, family: undefined, genus: undefined, with: undefined, group: undefined, statuses: undefined }, species, new Set(), seen)(e)) {
     delete next.from
     delete next.to
   }
@@ -253,6 +265,7 @@ export function filterToShow(f: Filter, e: ListEntry, species: SpeciesIndex, see
 export function drillTo(f: Filter, group: { order: string; family?: string }, list: ListEntry[], species: SpeciesIndex, seen?: SeenIndex): Filter {
   const next: Filter = { ...f, order: group.order }
   delete next.genus
+  delete next.with
   if (group.family) next.family = group.family
   else delete next.family
   return applyFilter(list, next, species, seen).length ? next : { ...group }

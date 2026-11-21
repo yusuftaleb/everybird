@@ -46,6 +46,8 @@ const ALLOW_SAME = [
   'Continent', '{n} poster', '{n} posters',
   // pl "{n} region" is the Polish word too.
   '{n} region',
+  // The controls bar's Taxa button: nl, de, it, sv and da use the same word.
+  'Taxa',
   // fr: the same spelling in French.
   '{n} continents', 'Continents', 'Europe', 'Tinamous', 'Orientation',
   // The share dialog's parts: fr "Image", nl and de "Poster"; fr "{n} image(s)" in Export in batches' count.

@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// The controls bar with one Filters button. No browser, so these read app.css and filters.css as text.
+// The controls bar's panel buttons (Taxa, Display, Filters: one look, round 6) and their popovers. No browser, so these
+// read app.css and filters.css as text.
 const css = readFileSync(resolve(__dirname, "../src/components/app/app.css"), "utf8");
 
 /** Body of the first block whose selector text matches `selector` (as tests/tokens.test.ts). */
@@ -46,11 +47,11 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(css).not.toContain("@container (max-width: 319px)");
   });
 
-  it("the one button wraps to its own row under 820px of bar and fills it on phones", () => {
+  it("the panel buttons wrap to their own row under 820px of bar and share it on phones", () => {
     const two = block(css, /@container \(max-width: 819px\)/);
     expect(two).toMatch(/^\s*\.eb-dock \{ flex-wrap: wrap; row-gap: 4px; \}/);
     expect(two).toMatch(/\.eb-dock-filters\s*\{\s*order: 1; flex: 1 0 100%/);
-    expect(block(css, /@container \(max-width: 599px\)/)).toMatch(/\.eb-dock-filters \.eb-dock-drop \{[^}]*flex: 1 1 0; min-width: 0;/);
+    expect(block(css, /@container \(max-width: 599px\)/)).toMatch(/\.eb-dock-filters \.eb-dock-drop \{[^}]*flex: 1 1 auto; min-width: 0;/);
   });
 
   it("a drop label can always shrink (outside every rule): it never pushes the magnifier", () => {
@@ -82,10 +83,11 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(topLevelRule(css, ".eb-dock-tab svg")).toMatch(/width: 20px/);
   });
 
-  it("the popover spans the dock (the same in every view) and caps at 70vh; each column scrolls one list, its last part", () => {
-    const pop = topLevelRule(filtersCss, '.eb-drop[data-kind="filters"]');
+  it("the Filters and Taxa popovers span the dock (the same in every view) and reach down to the window (--drop-max); each column scrolls one list, its last part", () => {
+    const pop = topLevelRule(filtersCss, '.eb-drop[data-kind="filters"], .eb-drop[data-kind="taxa"]');
     expect(pop).toMatch(/left:\s*0;\s*right:\s*0;\s*width:\s*auto/);
-    expect(pop).toMatch(/max-height:\s*70vh/);
+    // DockPanel sets --drop-max (dropRoom, tests/dock-row.test.ts); before it is measured, at most 70vh.
+    expect(topLevelRule(filtersCss, ".eb-drop")).toMatch(/max-height:\s*var\(--drop-max, min\(70vh, 560px\)\)/);
     const list = topLevelRule(filtersCss, '.eb-drop[data-kind="filters"] .eb-fpanel-row .eb-places-scroll,\n.eb-drop[data-kind="filters"] .eb-fpanel-row [data-sec="status"] .eb-checklist');
     expect(list).toMatch(/overscroll-behavior:\s*contain/);
     expect(list).toMatch(/overflow-y:\s*auto/);

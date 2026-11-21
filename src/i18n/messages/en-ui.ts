@@ -159,6 +159,18 @@ export const EN_UI = {
       lifersOnly: 'Lifers only',
       /** Tree view: branches at their true ages over the age axis, or (off) the splits spaced evenly. */
       timeScale: 'Time scale',
+      /** The bar's panel buttons (Taxa: the taxonomy chips; Display: how the view looks, Collage and Tree), the panels'
+       *  names for screen readers, the Display panel's Scientific switch, and the Taxa panel's head (plural on {total}). */
+      taxa: 'Taxa',
+      taxaPanel: 'Orders, families and genera',
+      display: 'Display',
+      displayPanel: 'Display options',
+      sciNames: 'Scientific names',
+      taxaHead: {
+        order: { one: '{n} of {total} order', other: '{n} of {total} orders' },
+        family: { one: '{n} of {total} family', other: '{n} of {total} families' },
+        genus: { one: '{n} of {total} genus', other: '{n} of {total} genera' },
+      },
     },
     /** The dock search (DockSearch). */
     search: {
@@ -173,10 +185,9 @@ export const EN_UI = {
       noneThis: 'No bird on this list matches “{q}”.',
       matches: { one: '{n} match', other: '{n} matches' },
     },
-    /** The Tree view (TreeView.tsx): AvesData's tree, opening on the orders; `all` the path's first step. `level`
-     *  names the controls bar's Level menu, `rank` its four choices (what the open branch's tips are), `tooMany` the
-     *  reason a choice is off (more than 300 tips: what to open first); `layout` the Layout menu, `layouts` its three
-     *  choices (a half disc, a full circle, rows top to bottom); `tipOf` a fan or circle tip's count, "12 of 39".
+    /** The Tree view (TreeView.tsx): AvesData's tree, opening on the orders; `all` the path's first step. `rank` the
+     *  four ranks (the share images' totals); `layout` the Display panel's Layout choice, `layouts` its three choices (a
+     *  half disc, a full circle, rows top to bottom), `noRoom` why one is off; `tipOf` a fan or circle tip's count, "12 of 39".
      *  `oldest` the legend under the view (CollageView); the tree's credit is About's credits.tree.
      *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the names of the groups inside
      *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
@@ -193,10 +204,10 @@ export const EN_UI = {
       withTwo: 'with <a>{a}</a> and <b>{b}</b>',
       markSr: 'not one branch of its own in this tree',
       keyMark: 'Not one branch of its own in this tree',
-      insideOne: 'In this tree, {a} sits inside {name}.',
-      insideTwo: 'In this tree, {a} and {b} sit inside {name}.',
+      insideOne: '{name} is not one branch in this tree. The smallest branch with all of it also holds {a}, so both are shown.',
+      insideTwo: '{name} is not one branch in this tree. The smallest branch with all of it also holds {a} and {b}, so all are shown.',
       withMany: { one: 'with {n} other genus', other: 'with {n} other genera' },
-      insideMany: { one: 'In this tree, {n} other genus sits inside {name}.', other: 'In this tree, {n} other genera sit inside {name}.' },
+      insideMany: { one: '{name} is not one branch in this tree. The smallest branch with all of it also holds {n} other genus, so both are shown.', other: '{name} is not one branch in this tree. The smallest branch with all of it also holds {n} other genera, so all are shown.' },
       insideTitle: 'Inside the {name} branch',
       onListOne: 'on the list',
       notOnList: 'not on the list',
@@ -211,12 +222,10 @@ export const EN_UI = {
       showOldest: 'Show oldest lineage',
       unmapped: { one: '{n} bird on this list has no place in this tree:', other: '{n} birds on this list have no place in this tree:' },
       mineNone: 'No bird on the list here.',
-      level: 'Level',
       layout: 'Layout',
       layouts: { fan: 'Fan', circle: 'Radial', rows: 'Rectangular' },
       noRoom: 'Not enough room for every name',
       rank: { orders: 'Orders', families: 'Families', genera: 'Genera', species: 'Species' },
-      tooMany: { families: 'Open an order to see its families', genera: 'Open a family to see its genera', species: 'Open a genus to see its species' },
       tipOf: '{n} of {total}',
     },
     /** The close buttons' aria-label (the welcome, sheets, the Places and Time sheet). */
@@ -618,7 +627,7 @@ export const EN_UI = {
     /** The Tree image's switch: keep the species count, drop the orders, families and genera totals under it. */
     hideTotals: 'Hide totals',
     /** The Goal row: "Add a goal", then "[300] species in [2026 ▾] ✕". `target` names the number box, `year` the year
-     *  menu (All time or a year); the card's line for a year's goal is `card` ("Big Year 2026"). */
+     *  menu (All time or a year); the card's line for a year's goal is `card` ("2026 year list"; with the lifer basis `cardLifer`, "2026 lifers"). */
     bigYear: {
       label: 'Goal',
       add: 'Add a goal',
@@ -628,8 +637,8 @@ export const EN_UI = {
       allTime: 'All time',
       remove: 'Remove goal',
       targetInvalid: 'Enter a whole number from 1 to {max}.',
-      card: 'Big Year {year}',
-      cardLifer: 'Big Year {year} · New species in {year}',
+      card: '{year} year list',
+      cardLifer: '{year} lifers',
       ofTarget: { one: 'of {n} species', other: 'of {n} species' },
     },
     /** Download's short label in the row of quiet buttons. */

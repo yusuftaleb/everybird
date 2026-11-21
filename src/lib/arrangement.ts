@@ -1,6 +1,6 @@
 // How the collage places the birds, Fit or Oval: a per-device choice kept in localStorage, Packed when unset, unreadable
 // or a value no longer offered (the dropped 'family' and 'colour'), the same in every tab. One setting for the collage
-// on the page (the controls bar's Arrangement menu in the Collage view), the share images and the poster (the share
+// on the page (the Display panel's Arrangement in the Collage view), the share images and the poster (the share
 // dialog's Arrangement row): changing it in either changes the other.
 import { Circle, Rectangle, type Icon } from '@phosphor-icons/react'
 import { useSyncExternalStore } from 'react'

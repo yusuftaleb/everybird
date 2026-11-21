@@ -226,12 +226,17 @@ describe('the Collage page (/)', () => {
     expect(within(bar).getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
     expect(within(bar).getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about')
     expect(within(bar).getByRole('switch', { name: 'Dark mode' })).toBeInTheDocument()
-    // One Filters button in the controls bar (closed); the order chips wrap under it, as /lifelist's. No Birds
-    // button, no sideways strip.
-    const filters = screen.getByTestId('filter-bar')
+    // The Taxa, Display and Filters buttons in the controls bar (closed); with no taxon picked nothing sits under the
+    // dock (round 6): the order chips wrap in the Taxa panel. No Birds button, no sideways strip.
     expect(screen.getByTestId('filters-button')).toHaveAttribute('aria-expanded', 'false')
-    expect(filters).not.toContainElement(screen.getByTestId('filters-button'))
-    expect(within(filters).getByRole('group', { name: 'Orders' })).toBeInTheDocument()
+    expect(screen.getByTestId('display-button')).toHaveAttribute('aria-expanded', 'false')
+    const taxa = screen.getByTestId('taxa-button')
+    expect(taxa).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByTestId('filter-bar')).toBeNull()
+    fireEvent.click(taxa)
+    expect(within(screen.getByTestId('taxa-panel')).getByRole('group', { name: 'Orders' })).toBeInTheDocument()
+    fireEvent.click(taxa)
+    expect(screen.queryByTestId('taxa-panel')).toBeNull()
     expect(screen.queryByTestId('filter-strip')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Birds' })).toBeNull()
     expect(screen.queryByTestId('filter-bar-folded')).toBeNull()
@@ -740,7 +745,10 @@ describe('editing', () => {
 
   it('Add by hand with Scientific on leads every group with its scientific name, the common one after it', async () => {
     await mount({ path: '/', stored: (s) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] } })
-    fireEvent.click(await screen.findByRole('switch', { name: /Scientific/ }))
+    // Scientific names is the Collage's Display panel's (round 6).
+    fireEvent.click(await screen.findByTestId('display-button'))
+    fireEvent.click(screen.getByRole('switch', { name: /Scientific/ }))
+    fireEvent.click(screen.getByTestId('display-button'))
     await openTick()
     const tree = screen.getByRole('list', { name: 'Species to tick' })
     expect(within(tree).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Anseriformes, 1 species', 'Piciformes, 2 species', 'Passeriformes, 2 species'])

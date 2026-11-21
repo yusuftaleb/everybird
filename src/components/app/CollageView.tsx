@@ -1,21 +1,26 @@
 'use client'
 // The collage block shared by the landing sample, the birder's own collage and the shared view: the stats line, the
-// controls bar (view tabs, the view's switches, Filters, the search), the filters, the collage, list, map or tree, the
-// legend (in the tree, its oldest lineage), the hover tooltip and the bird card. The collage follows the Arrangement (Fit or
-// Oval, arrangement.ts: the controls bar's menu in the Collage view and the share dialog's row are one setting).
+// controls bar (view tabs, List's and Map's own switches, the Taxa, Display and Filters buttons with their panels, one
+// open at a time, and the search), the taxonomy path, the collage, list, map or tree, the legend (in the tree, its
+// oldest lineage), the hover tooltip and the bird card. The collage follows the Arrangement (Fit or Oval,
+// arrangement.ts: the Display panel's choice in the Collage view and the share dialog's row are one setting).
 // Composition after LifeList.tsx (framer-site).
 import { trackFilterUsed } from '@/lib/analytics'
 import { useArrangement } from '@/lib/arrangement'
 import { newlySetKinds } from '@/lib/list/filter-kinds'
-import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, lazy, memo, Suspense, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BirdCard } from '@/components/collage/BirdCard'
 import { BirdTip } from '@/components/collage/BirdTip'
 import { Collage, revealBird } from '@/components/collage/Collage'
 import { reduced } from '@/components/collage/collage-motion'
 import { ListView } from '@/components/collage/ListView'
 import { MapView } from '@/components/collage/MapView'
-import { FilterBar, type TreePath } from '@/components/filters/FilterBar'
-import { useFiltersUi, type FilterSection, type PlacesNote } from '@/components/filters/Filters'
+import { FilterBar, pickWords, type TreePath } from '@/components/filters/FilterBar'
+import { useIsSheet } from '@/components/dialog-utils'
+import { DockPanelButton, useFiltersUi, type FilterSection, type PlacesNote } from '@/components/filters/Filters'
+import { TaxaPanel } from '@/components/filters/TaxaPanel'
+import { hasDisplay, pressPanel, type DockPanelId } from '@/lib/dock-panels'
+import { DisplayPanel } from './DisplayPanel'
 import { fmt, plural, rich } from '@/i18n/core'
 import { formatInt, formatMonth } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -154,8 +159,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   // The level the Map or Tree view has open (their own state, told up as it changes), for Share to draw the same.
   const onMapLevel = useCallback((place: string | undefined, names: (key: string) => string) => onShareAt?.({ place, names }), [onShareAt])
   const onTreeLevel = useCallback((at: TreeShown) => onShareAt?.(at), [onShareAt])
-  // The controls bar's slot for the Tree's Level and Layout menus, which TreeView fills.
-  const [treeMenus, setTreeMenus] = useState<HTMLDivElement | null>(null)
+  // The Display panel's slot for the Tree's Layout choice, which TreeView fills.
+  const [layoutSlot, setLayoutSlot] = useState<HTMLDivElement | null>(null)
   // The tree's open branch is the taxonomy filter's order, family and genus (the chip row is its path, path.ts), with
   // what the tree opens past them (a family or genus the shown index lacks) kept here while they stay.
   const [treeDeep, setTreeDeep] = useState<TreeDeep | null>(null)
@@ -228,12 +233,35 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   }, [filter])
   const onApply = useCallback((f: Filter) => dispatch({ type: 'filter', filter: f }), [dispatch])
 
-  const filtersUi = useFiltersUi({ state, dispatch, species, regions, hide: hideSections, placesNote, placesUnplaced, time, threatLine, shown: shownList.length })
-  // While the Filters panel is open the column keeps its height: a filter that empties the collage would otherwise shorten
-  // the page and the browser would clamp the scroll (the panel's own restore puts the position back, but not in time to
-  // avoid the jump). `.eb-view-below` is display: contents, so the freeze goes on this section, which is a box. Only
-  // growth still shows; the height is released on close.
-  const frozen = filtersUi.frozen
+  // The bar's Taxa and Display panels (Filters keeps its own state in useFiltersUi): one panel open at a time.
+  const [panel, setPanel] = useState<Exclude<DockPanelId, 'filters'> | null>(null)
+  const closePanel = useCallback(() => setPanel(null), [])
+  const filtersUi = useFiltersUi({ state, dispatch, species, regions, hide: hideSections, placesNote, placesUnplaced, time, threatLine, shown: shownList.length, onOpening: closePanel })
+  const press = (p: Exclude<DockPanelId, 'filters'>) => { filtersUi.close(); setPanel((open) => pressPanel(open, p) as typeof open) }
+  const ids = useId()
+  const taxaBtn = useRef<HTMLButtonElement>(null)
+  const displayBtn = useRef<HTMLButtonElement>(null)
+  const display = hasDisplay(view)
+  const openPanel = panel === 'display' && !display ? null : panel // List and Map have no Display panel
+  const taxaSpoken = useMemo(() => pickWords(filter, species, sci, t), [filter, species, sci, t])
+  const sheet = useIsSheet()
+  const panelButtons = (
+    <>
+      <DockPanelButton
+        label={t.collage.controls.taxa} spoken={taxaSpoken ? `${t.collage.controls.taxa}: ${taxaSpoken}` : undefined} open={openPanel === 'taxa'}
+        onToggle={() => press('taxa')} panelId={`${ids}-taxa`} buttonRef={taxaBtn} count={filter.order ? 1 : 0} testId="taxa-button"
+      />
+      {display && (
+        <DockPanelButton label={t.collage.controls.display} open={openPanel === 'display'} onToggle={() => press('display')} panelId={`${ids}-display`} buttonRef={displayBtn} testId="display-button" />
+      )}
+    </>
+  )
+  // While a panel is open the column keeps its height: a filter that empties the collage would otherwise shorten
+  // the page and the browser would clamp the scroll (the Filters panel's own restore puts the position back, but not in
+  // time to avoid the jump). `.eb-view-below` is display: contents, so the freeze goes on this section, which is a box.
+  // Only growth still shows; the height is released on close.
+  const frozen = filtersUi.frozen || !!openPanel
+  const dimmed = filtersUi.dimmed || (!!openPanel && !sheet)
   useLayoutEffect(() => {
     const el = box.current
     if (!frozen || !el) return
@@ -343,22 +371,34 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
       <ControlsBar
         view={view}
         noMap={noMap}
-        onView={(v) => { setPick(null); setTip(null); dispatch({ type: 'view', view: v }) }}
-        trueSize={mode === 'true'}
-        onTrueSize={(on) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })}
+        onView={(v) => { setPick(null); setTip(null); if (!hasDisplay(v)) setPanel((p) => (p === 'display' ? null : p)); dispatch({ type: 'view', view: v }) }}
         lightFirst={massOrder === 'lightest'}
         onDirection={() => dispatch({ type: 'massOrder', massOrder: massOrder === 'heaviest' ? 'lightest' : 'heaviest' })}
         sci={sci}
         onSci={(on) => dispatch({ type: 'sci', sci: on })}
         search={{ entries, shown: fk ? shownCodes : undefined, species, onPick: onSearchPick, whose, filter, onApply, regions, listPlaces, hasMonths }}
+        panels={panelButtons}
         filters={filtersUi.button}
-        below={filtersUi.below}
-        onFind={filtersUi.close}
-        treeMenus={setTreeMenus}
+        below={(
+          <>
+            {filtersUi.below}
+            {openPanel === 'taxa' && (
+              <TaxaPanel state={state} dispatch={dispatch} species={species} tree={treePath} id={`${ids}-taxa`} buttonRef={taxaBtn} onClose={closePanel} shown={shownList.length} />
+            )}
+            {openPanel === 'display' && (
+              <DisplayPanel
+                view={view} id={`${ids}-display`} buttonRef={displayBtn} onClose={closePanel} layoutSlot={setLayoutSlot}
+                trueSize={mode === 'true'} onTrueSize={(on) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })}
+                sci={sci} onSci={(on) => dispatch({ type: 'sci', sci: on })}
+              />
+            )}
+          </>
+        )}
+        onFind={() => { filtersUi.close(); closePanel() }}
       />
 
       {/* Everything under the dock: dimmed and inert while the Filters popover is open (a press there closes it). */}
-      <div className="eb-view-below" inert={filtersUi.dimmed || undefined} data-dim={filtersUi.dimmed || undefined}>
+      <div className="eb-view-below" inert={dimmed || undefined} data-dim={dimmed || undefined}>
       <FilterBar state={state} dispatch={dispatch} species={species} tree={treePath} />
       {filterNote}
 
@@ -380,7 +420,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
         <ListView entries={shownList} species={species} regions={regions} order={massOrder} sci={sci} onPick={onPickRow} />
       ) : (
         <Suspense fallback={<p className="eb-mono">{t.collage.tree.loading}</p>}>
-          <TreeView entries={shownList} sci={sci} onPick={onPickRow} branch={branch} onOpen={onTreeOpen} onLevel={onTreeLevel} menus={treeMenus} />
+          <TreeView entries={shownList} sci={sci} onPick={onPickRow} branch={branch} onOpen={onTreeOpen} onLevel={onTreeLevel} layoutSlot={openPanel === 'display' ? layoutSlot : null} />
         </Suspense>
       )}
 

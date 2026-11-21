@@ -1,6 +1,6 @@
 /* The Tree tab (TreeView.tsx). Rectangular: the drawing takes the left column (--tree-w, about half the width, which
-   TreeView sets in px once it knows the width: rowsTreeW), the rows the rest, as wide as their longest name and count
-   (fit-content), so the counts line up right-aligned just after the longest name; a row is 44px at least and grows
+   TreeView sets in px once it knows the width: rowsTreeW), the rows the rest, to the view's right edge, so the names
+   follow their stickers and the counts end at that edge, right-aligned in one column; a row is 44px at least and grows
    with its name (the drawing follows the rows' measured centres), an order heading 32px (HEAD_H). Without the time
    scale (the bar's switch) there is no axis. Fan and Radial (data-round): the drawing alone, every tip
    named past it (fitRound sizes it: --tree-px, the names' size, --tree-st the sticker's box, --tree-gap the gaps); the
@@ -31,7 +31,7 @@
 .eb-tree-svg path.eb-tree-tipdot { fill: var(--paper); }
 .eb-tree-tipdot.eb-tree-off { opacity: 1; stroke: color-mix(in srgb, var(--line) 55%, var(--paper)); }
 .eb-tree-tiphit { fill: transparent; cursor: pointer; }
-.eb-tree-rows { position: relative; list-style: none; margin: 0; padding: 0 0 0 var(--tree-w); width: fit-content; max-width: 100%; box-sizing: border-box; } /* over the drawing: the tip dots cover the branch ends */
+.eb-tree-rows { position: relative; list-style: none; margin: 0; padding: 0 0 0 var(--tree-w); width: 100%; box-sizing: border-box; } /* over the drawing: the tip dots cover the branch ends */
 .eb-tree-order {
   display: flex; align-items: flex-end; height: 32px; padding: 0 0 4px 12px; box-sizing: border-box;
   border-top: 1px solid var(--hairline); font-size: 11px; color: var(--muted);
@@ -39,7 +39,8 @@
 .eb-tree-order[lang] { font-style: italic; }
 .eb-tree-row { display: flex; min-height: 44px; }
 /* Each row holds its own hidden words (.eb-sr is absolutely placed): they stay inside it, never below the page. */
-.eb-tree-row > .eb-tree-btn { min-width: 0; }
+.eb-tree-row > .eb-tree-btn { flex: 1 1 0; width: auto; min-width: 0; }
+.eb-tree-row > .eb-tree-count { align-self: center; }
 .eb-tree-btn {
   position: relative; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 0; margin: 0; box-sizing: border-box;
   border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; text-align: left;
@@ -66,7 +67,7 @@ button.eb-tree-btn:focus-visible .eb-tree-nm, .eb-tree-fan-label[data-hot] .eb-t
 .eb-tree-mark { display: inline-block; flex: none; vertical-align: .1em; width: 7px; height: 7px; margin: 0 2px 0 6px; box-sizing: border-box; border: 1.5px solid currentColor; transform: rotate(45deg); }
 .eb-tree-key .eb-tree-mark { margin: 0 1px; }
 .eb-tree-nm { border-radius: 4px; }
-.eb-tree-count { flex: none; padding-right: 4px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.eb-tree-count { flex: none; margin-left: auto; padding-right: 4px; font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
 
 /* A tip's sticker (Sticker.tsx) in its fixed box: the species' own, or one bird of the group on the list, else the
    group's first species with a sticker; a tip with no bird on the list dimmed; none, or one that fails, leaves the box

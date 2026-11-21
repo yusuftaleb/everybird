@@ -265,6 +265,10 @@ describe('spec 15: the content below the panel', () => {
     vi.stubGlobal('innerWidth', 1000)
     render(<View />)
     const below = document.querySelector('.eb-view-below')!
+    // A taxon picked in the Taxa panel puts the taxonomy path under the dock (round 6).
+    fireEvent.click(screen.getByTestId('taxa-button'))
+    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Perching birds/ }))
+    fireEvent.click(screen.getByTestId('taxa-button'))
     expect(below).not.toHaveAttribute('inert')
     fireEvent.click(button())
     expect(below).toHaveAttribute('inert')
