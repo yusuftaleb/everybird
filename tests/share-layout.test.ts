@@ -1,7 +1,7 @@
 // The share dialog's desktop grid, read from share.css (no layout engine runs in Node): the top row never runs onto the
-// options below it; from 720px (round 6, item 10) the dialog is centred, pinned near the window's top and as large as
-// the window allows (at most 1,440 × 1,000), its size from the window alone; the controls' column at its right scrolls
-// only when taller than it, and the preview takes the rest, the image as large as that allows, at its top. On a
+// options below it; from 720px (round 6, item 18) the card is as large as the window allows and the dialog wraps it
+// and the controls' column beside it, centred in the window: no empty room beside or under the card beyond the gap
+// (a column taller than the card is the one exception: the dialog is then the column's height). On a
 // 1440 × 830 laptop window the tallest column with everything closed fits with nothing scrolling (Yusuf, 2026-11-20).
 // The height budget adds share.css's own numbers, each checked to be in the file.
 import { readFileSync } from 'node:fs'
@@ -49,91 +49,97 @@ describe('the share dialog: the top row clears the options', () => {
   })
 })
 
-describe('the share dialog: as big as possible, centred, top-aligned (round 6, item 10)', () => {
-  it('centres the dialog across the window, 32px from its top, as large as the window allows up to 1,440 × 1,000', () => {
+describe('the share dialog wraps its card, centred (round 6, item 18)', () => {
+  it('the scrim is a size container and centres the dialog; the dialog is as wide as its content, at most the window', () => {
     const scrim = rule('.eb-share-scrim', DESKTOP)
-    expect(scrim).toMatch(/--top:\s*32px/)
-    expect(scrim).toMatch(/--dlg-w:\s*1440px/)
-    expect(scrim).toMatch(/--dlg-h:\s*1000px/)
-    expect(scrim).toMatch(/place-items:\s*start center/)
-    expect(scrim).toMatch(/padding-top:\s*var\(--top\)/)
+    expect(scrim).toMatch(/container-type:\s*size/)
+    expect(scrim).toMatch(/--chrome-h:\s*92px/)
+    expect(scrim).toMatch(/--chrome-w:\s*62px/)
+    expect(scrim).not.toMatch(/place-items|padding-top|--top|--dlg/)
+    expect(rule('.eb-share-scrim')).toMatch(/place-items:\s*center;\s*padding:\s*16px/)
     const dialog = rule('.eb-share-scrim .eb-share', DESKTOP)
-    expect(dialog).toMatch(/width:\s*min\(100%, var\(--dlg-w\)\)/)
-    expect(dialog).toMatch(/height:\s*min\(100dvh - var\(--top\) - 16px, var\(--dlg-h\)\)/)
-    expect(dialog).toMatch(/overflow:\s*hidden/)
+    expect(dialog).toMatch(/width:\s*max-content/)
+    expect(dialog).toMatch(/max-width:\s*100%/)
+    expect(dialog).toMatch(/max-height:\s*100%/)
+    expect(dialog).not.toMatch(/(^|[\s;])height:/)
   })
-  it('sizes nothing from the content: no fit-content, no measured heights, nothing per format, orientation or subject', () => {
-    expect(css).not.toMatch(/fit-content|--col-h|--scroll-h|--pv-h|--pad-r|contain-intrinsic/)
-    expect(css).not.toMatch(/data-layout|\[data-subject/)
-  })
-  it('two parts, both top-aligned: the preview\'s area and the controls\' column at the right, its width as before', () => {
+  it('the card at the body\'s top left, the column beside it, both top-aligned, a fixed gap between them', () => {
     const body = rule('.eb-share-body', DESKTOP)
-    expect(body).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\) var\(--ctl\)/)
-    expect(body).toMatch(/grid-template-rows:\s*max-content minmax\(0, 1fr\)/)
-    expect(body).toMatch(/flex:\s*1 1 auto/)
-    expect(rule('.eb-share-scrim', DESKTOP)).toMatch(/--ctl:\s*300px/)
-    expect(css).toContain('@media (min-width: 1000px) { .eb-share-scrim { --ctl: 420px; } }')
-    const area = rule('.eb-share-area', DESKTOP)
-    expect(area).toMatch(/grid-row:\s*1 \/ span 2/)
-    expect(area).toMatch(/container-type:\s*size/)
-    expect(area).toMatch(/justify-content:\s*center/)
-    expect(area).toMatch(/align-items:\s*flex-start/)
+    expect(body).toMatch(/grid-template-columns:\s*max-content var\(--ctl\)/)
+    expect(rule('.eb-share-body', '/* The body: the format control')).toMatch(/gap:\s*12px 20px/)
+    expect(rule('.eb-share-area', DESKTOP)).toMatch(/grid-row:\s*1 \/ span 2/)
+    expect(rule('.eb-share-area', DESKTOP)).not.toMatch(/container-type/)
+    const pv = rule('.eb-share-preview', DESKTOP)
+    expect(pv).toMatch(/--card-h:\s*min\(100cqh - var\(--chrome-h\), \(100cqw - var\(--chrome-w\) - var\(--ctl\)\) \/ var\(--ar\)\)/)
+    expect(pv).toMatch(/width:\s*calc\(var\(--card-h\) \* var\(--ar\)\);\s*height:\s*var\(--card-h\)/)
+    expect(pv).toMatch(/justify-self:\s*start;\s*align-self:\s*start/)
+    expect(rule('.eb-share-scroll', '/* Its 8px inset')).toMatch(/align-self:\s*start/)
   })
-  it('fits the card in the area (contain): as large as it allows, never cropped, its own shape', () => {
-    const pv = rule('.eb-share-preview', '.eb-share-area { grid-column: 1')
-    expect(pv).toMatch(/width:\s*min\(100cqw, 100cqh \* var\(--ar\)\)/)
-    expect(pv).toMatch(/height:\s*min\(100cqh, 100cqw \/ var\(--ar\)\)/)
-  })
-  it('the column scrolls only when taller than the dialog, its inset never cutting the coffee button, which sits at its foot', () => {
-    const scroll = rule('.eb-share-scroll', '/* The column scrolls on its own')
+  it('the column follows its content, grows to the card\'s height at most when something opens, then scrolls; never past the window', () => {
+    const scroll = rule('.eb-share-scroll', '/* Its 8px inset')
     expect(scroll).toMatch(/overflow:\s*hidden auto/)
-    expect(scroll).toMatch(/min-height:\s*0/)
     expect(scroll).toMatch(/padding:\s*8px; margin:\s*-8px/)
-    expect(scroll).not.toMatch(/max-height/)
+    expect(scroll).toContain('max-height: calc(min(max(var(--scroll-h, 100cqh), var(--pv-h, 0px) - var(--top-h, 0px)), 100cqh - var(--chrome-h) - var(--top-h, 0px)) + 16px)')
     expect(rule('.eb-share-scroll', '/* The column: the controls, then the coffee')).toMatch(/flex-direction:\s*column;\s*gap:\s*12px/)
     expect(rule('.eb-share-coffee')).toMatch(/margin:\s*auto -6px -6px/)
+    expect(css).not.toMatch(/--dlg-w|--dlg-h|--col-h|--pad-r|contain-intrinsic|data-layout|\[data-subject/)
   })
-  /** The dialog and the preview at a window `vw` × `vh` for a shape `ar` (share.css from 720px). */
-  const model = (vw: number, vh: number, ar: number) => {
-    const ctl = vw >= 1200 ? 480 : vw >= 1000 ? 420 : 300
-    const w = Math.min(vw - 32, 1440), h = Math.min(vh - 48, 1000)
-    // The area: the dialog less its 1px border and 20px padding each side, the column and the 20px gap; under its head.
-    const areaW = w - 42 - ctl - 20, areaH = h - 92
-    const pw = Math.min(areaW, areaH * ar), ph = Math.min(areaH, areaW / ar)
-    return { w, h, left: (vw - w) / 2, areaW, areaH, pw, ph }
+
+  // The dialog as share.css lays it out: the scrim's 16px round the window, the card fitted in what the window leaves
+  // under the dialog's head (92) and beside the column and the chrome across (62), the dialog the card, the gap and the
+  // column across and its head and the taller of the card and the closed column down, centred.
+  const ctlAt = (vw: number) => (vw >= 1200 ? 480 : vw >= 1000 ? 420 : 300)
+  const model = (vw: number, vh: number, ar: number, column: number) => {
+    const W = vw - 32, H = vh - 32, ctl = ctlAt(vw)
+    const cardH = Math.min(H - 92, (W - 62 - ctl) / ar), cardW = cardH * ar
+    const w = cardW + 62 + ctl, h = Math.min(H, 92 + Math.max(cardH, column))
+    return { w, h, left: (vw - w) / 2, top: (vh - h) / 2, cardW, cardH, ctl, W, H }
   }
-  it('at the maintainer\'s windows every shape is as large as its area allows, the dialog centred and the same for all', () => {
-    const shapes = [9 / 16, 4 / 5, 1, 16 / 9, 5 / 4, 1240 / 1754, 1754 / 1240, 2 / 3, 3 / 2]
-    for (const [vw, vh] of [[1280, 720], [1440, 830], [1440, 900], [1920, 960], [1024, 768], [800, 900]]) {
-      const ms = shapes.map((ar) => model(vw, vh, ar))
-      // One dialog for every shape: same width, height and left edge.
-      expect(new Set(ms.map((m) => `${m.w}×${m.h}@${m.left}`)).size).toBe(1)
-      for (const m of ms) {
-        expect(m.left).toBeGreaterThanOrEqual(16)
-        // Fitted: it touches the area's width or its height.
-        expect(Math.max(m.pw / m.areaW, m.ph / m.areaH)).toBeCloseTo(1, 6)
-        expect(m.pw).toBeLessThanOrEqual(m.areaW + 1e-6)
-        expect(m.ph).toBeLessThanOrEqual(m.areaH + 1e-6)
+  const SHAPES: Record<string, number> = { story: 9 / 16, post: 4 / 5, square: 1, desktop: 16 / 9, wide: 5 / 4, print: 1240 / 1754, printLandscape: 1754 / 1240 }
+  // The collage's Share column closed, with a mouse (as the budget below adds it): the top row 40, 12, the title 64, 8,
+  // Arrangement, Appearance and Count 40 each, Show latest lifer, Transparent background and Goal 36 each, 8, Export in
+  // batches' row 38, 12, Share image over Download and Copy link 88, 12, the coffee button 38: 548. A short one, the
+  // Map's: 40, 12, 64, 8, Appearance, Totals 40 each, Transparent background 36, 12, 88, 12, 38: 390.
+  const COLUMNS = [548, 390]
+  it('at 1,280 × 720, 1,440 × 900 and 1,920 × 960 no empty room beside or under the card beyond the gap, centred', () => {
+    for (const [vw, vh] of [[1280, 720], [1440, 900], [1920, 960]]) {
+      for (const [name, ar] of Object.entries(SHAPES)) {
+        for (const column of COLUMNS) {
+          const m = model(vw, vh, ar, column)
+          const what = `${vw}×${vh} ${name} column ${column}`
+          // Across: the card, the 20px gap, the column, the 1px borders and 20px padding: nothing else.
+          expect(m.w - m.cardW - m.ctl, what).toBeCloseTo(62, 6)
+          // Down: the head, then the card, unless the closed column is taller (then the column's height).
+          expect(m.h - 92, what).toBeCloseTo(Math.max(m.cardH, column), 6)
+          // Fitted whole: the card touches the window's room across or down.
+          expect(Math.max(m.cardH / (m.H - 92), m.w / m.W), what).toBeCloseTo(1, 6)
+          // Centred, inside the 16px margins.
+          expect(m.left, what).toBeGreaterThanOrEqual(16 - 1e-6)
+          expect(m.top, what).toBeGreaterThanOrEqual(16 - 1e-6)
+        }
       }
     }
-    // 1920 × 960: a 1,440 × 912 dialog; the story 820 tall (461 wide), far past round 6's 225px.
-    const story = model(1920, 960, 9 / 16)
-    expect(story).toMatchObject({ w: 1440, h: 912 })
-    expect(story.ph).toBe(820)
-    expect(story.pw).toBeGreaterThan(450)
+    // 1,440 × 900: a Story makes a narrow, tall dialog, a Desktop a wide, shorter one.
+    const story = model(1440, 900, SHAPES.story, 548), desk = model(1440, 900, SHAPES.desktop, 548)
+    expect(Math.round(story.w)).toBe(979)
+    expect(story.h).toBe(868)
+    expect(story.cardH).toBe(776)
+    expect(Math.round(desk.w)).toBe(1408)
+    expect(Math.round(desk.h)).toBe(640)
+    expect(Math.round(desk.cardH)).toBe(487)
   })
 })
 
 describe('the share dialog: no scrolling on a 1440 × 830 window with everything closed', () => {
   const H = 830
-  it('the chrome is 140px: the dialog 32px from the top and 16px from the bottom, its border, padding, head and gap', () => {
+  it('the chrome is 124px: the scrim\'s 16px above and below, the dialog\'s border, padding, head and gap', () => {
     const dialog = rule('.eb-share')
     const [top, , bottom] = /padding:\s*(\d+)px (\d+)px (\d+)px/.exec(dialog)!.slice(1).map(Number)
     const head = px(rule('.eb-share-close'), 'height')
     const own = 2 + top + bottom + head + px(dialog, 'gap')
     expect(own).toBe(92)
-    expect(32 + 16 + own).toBe(140)
-    expect(rule('.eb-share-scrim .eb-share', DESKTOP)).toMatch(/height:\s*min\(100dvh - var\(--top\) - 16px/)
+    expect(16 + 16 + own).toBe(124)
+    expect(rule('.eb-share-scrim', DESKTOP)).toMatch(new RegExp(`--chrome-h:\\s*${own}px`))
     expect(css).toContain('@media (min-width: 1200px) { .eb-share-scrim { --ctl: 480px; } }')
   })
   it('the tallest closed column (the collage poster once made: the size, six rows, Export in batches\' row; two rows of actions, a status line and the filters line) fits', () => {
@@ -191,7 +197,7 @@ describe('the share dialog: no scrolling on a 1440 × 830 window with everything
     const coffee = 32 + 2 * 6 - 6 // the image, its press padding, the negative bottom margin
     const column = seg + gap + title + optionsGap + list + optionsGap + bulk + gap + actions + gap + status + gap + filters + gap + coffee
     expect(Math.ceil(column)).toBe(674) // the figure share.css's comment gives
-    expect(Math.ceil(column)).toBeLessThanOrEqual(H - 140)
+    expect(Math.ceil(column)).toBeLessThanOrEqual(H - 124)
     expect(css).toContain('takes 674')
     // The empty status line gives its gap back, so the usual column is shorter still.
     expect(rule('.eb-share-controls > [role="status"]:empty')).toMatch(new RegExp(`margin-top:\\s*-${gap}px`))
