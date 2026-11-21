@@ -467,14 +467,14 @@ describe('local builds stay on the lock', () => {
 })
 
 describe('the sample pack the sync regenerates', () => {
-  it('still carries the base names (loc), read from the committed names files, with no new input', async () => {
-    const { makeSamplePack } = await import('../scripts/build-data/build-sample-pack')
+  it("still writes the sample's base names files, read from the committed names files, with no new input", async () => {
+    const { makeSamplePack, sampleNameFiles } = await import('../scripts/build-data/build-sample-pack')
     const dir = resolve(__dirname, '../public/data')
     const read = <T,>(f: string) => JSON.parse(readFileSync(join(dir, f), 'utf8')) as T
     const rows = read<SpeciesFile>('species.v1.json').species // the sync passes its rebuilt rows the same way
-    const pack = await makeSamplePack(read('sample.v1.json'), rows, read('regions.v1.json'), async () => ({}), dir)
-    expect(Object.keys(pack.loc).sort()).toEqual(['da', 'de', 'es', 'fr_FR', 'it', 'ja', 'nl', 'pl', 'pt_BR', 'ru', 'sv', 'zh', 'zh_SIM'])
-    expect(Object.keys(pack.loc.es.names).length).toBeGreaterThan(100)
-    expect(pack.loc).toEqual(read<{ loc: unknown }>('sample-pack.v1.json').loc)
+    const pack = await makeSamplePack(read('sample.v1.json'), rows, read('regions.v1.json'), async () => ({}))
+    const files = sampleNameFiles(pack.species, dir)
+    expect(files.map(([rel]) => rel.replace(/^public\/data\/sample-names\.|\.v1\.json$/g, '')).sort()).toEqual(['da', 'de', 'es', 'fr_FR', 'it', 'ja', 'nl', 'pl', 'pt_BR', 'ru', 'sv', 'zh', 'zh_SIM'])
+    for (const [rel, text] of files) expect(text, rel).toBe(readFileSync(resolve(__dirname, '..', rel), 'utf8'))
   })
 })

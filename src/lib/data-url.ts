@@ -35,6 +35,22 @@ export async function fetchData<T>(name: DataFile, init?: RequestInit): Promise<
 }
 
 export type MaskTable = Record<string, [number, number, string]>
+
+const inHand: Record<string, MaskTable> = {}
+/** Masks already on the page without the masks file (the landing sample's, from its pack), by order then code. */
+export function addMasks(tables: Record<string, MaskTable>): void {
+  for (const [ord, t] of Object.entries(tables)) inHand[ord] = { ...inHand[ord], ...t }
+}
+/** These birds' masks by order when every one is in hand (addMasks), else undefined: then the masks file is needed. */
+export function masksInHand(birds: Iterable<{ code: string; ord: string }>): Record<string, MaskTable> | undefined {
+  const out: Record<string, MaskTable> = {}
+  for (const { code, ord } of birds) {
+    const m = inHand[ord]?.[code]
+    if (!m) return undefined
+    ;(out[ord] ??= {})[code] = m
+  }
+  return out
+}
 let masksP: Promise<Record<string, MaskTable>> | null = null
 /** Every order's masks, one request per page or worker (a failure is not cached). */
 export function fetchAllMasks(): Promise<Record<string, MaskTable>> {

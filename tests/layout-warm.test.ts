@@ -37,3 +37,27 @@ describe('warmLayoutWorker', () => {
     expect(() => warmLayoutWorker()).not.toThrow()
   })
 })
+
+describe('masks sent with the list', () => {
+  it('the worker packs with them and never calls its loader', async () => {
+    const { createLayoutHandler } = await import('@/lib/layout/layout.worker')
+    const { maskFromAlpha } = await import('@/lib/layout/mask')
+    const calls: string[] = []
+    const handle = createLayoutHandler(async (o) => { calls.push(o); return {} })
+    const m = maskFromAlpha(new Uint8Array(48 * 24).fill(255), 48, 24)
+    const r = await handle({ type: 'setList', id: 1, entries: [{ code: 'a', mass: 10, ord: 'O' }], masks: { O: { a: m } } })
+    expect(r.type).toBe('ready')
+    expect(calls).toEqual([])
+    await handle({ type: 'setList', id: 2, entries: [{ code: 'a', mass: 10, ord: 'O' }] })
+    expect(calls).toEqual(['O']) // without them, the masks file as before
+  })
+
+  it('masksInHand gives every bird\'s mask, or nothing when one is missing', async () => {
+    const { addMasks, masksInHand } = await import('@/lib/data-url')
+    const m: [number, number, string] = [24, 24, 'AA==']
+    addMasks({ O: { a: m }, P: { b: m } })
+    expect(masksInHand([{ code: 'a', ord: 'O' }, { code: 'b', ord: 'P' }])).toEqual({ O: { a: m }, P: { b: m } })
+    expect(masksInHand([{ code: 'a', ord: 'O' }, { code: 'c', ord: 'O' }])).toBeUndefined()
+    expect(masksInHand([{ code: 'b', ord: 'O' }])).toBeUndefined() // a code is looked up under its own order
+  })
+})

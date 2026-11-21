@@ -40,6 +40,7 @@ import { filterKey, type Filter } from '@/lib/list/filters'
 import type { Arrangement } from '@/lib/arrangement'
 import type { Box } from './pack'
 import type { LayoutName, ListEntryMsg, WorkerReply, WorkerRequest } from './layout.worker'
+import type { MaskTable } from '../data-url'
 
 export type StateLayout = {
   key: string
@@ -52,7 +53,8 @@ export type StateLayout = {
   base: number
 }
 export type LayoutClient = {
-  setList(entries: ListEntryMsg[], resolve?: (f: Filter) => string[]): void
+  /** `masks`: every entry's mask by order then code (data-url.ts masksInHand), so the worker needn't fetch the masks file. */
+  setList(entries: ListEntryMsg[], resolve?: (f: Filter) => string[], masks?: Record<string, MaskTable>): void
   /** Same entries, new filter resolution: keeps the full collages, drops the filtered states (see the header). */
   refilter(resolve?: (f: Filter) => string[]): void
   /** `arrangement`: Fit (the default), Oval (packed inside the stage's ellipse) or Free (arrangement.ts). */
@@ -228,7 +230,7 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
   }
 
   return {
-    setList(entries, resolve) {
+    setList(entries, resolve, masks) {
       if (disposed) return
       epoch++
       cache = new Map()
@@ -241,7 +243,7 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       allCodes = entries.map((e) => e.code)
       hasList = true
       const myEpoch = epoch
-      const job: Job = { prio: HIGH, msg: { type: 'setList', id: nextId++, entries }, resolve: () => {}, reject: (e) => { if (epoch === myEpoch) listError = e instanceof Error ? e : new Error(String(e)) }, epoch }
+      const job: Job = { prio: HIGH, msg: { type: 'setList', id: nextId++, entries, ...(masks ? { masks } : {}) }, resolve: () => {}, reject: (e) => { if (epoch === myEpoch) listError = e instanceof Error ? e : new Error(String(e)) }, epoch }
       queue.unshift(job)
       pump()
     },

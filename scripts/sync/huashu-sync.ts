@@ -267,15 +267,16 @@ async function syncFrom(root: string, a: Args, lock: HuashuLock, repo: Repo, dir
   })
 
   // The landing sample pack, from the new rows and masks.
-  const { makeSamplePack } = await import('../build-data/build-sample-pack')
+  const { makeSamplePack, sampleNameFiles } = await import('../build-data/build-sample-pack')
   const read = <T>(f: string) => readJson<T>(join(root, 'public/data', f))
-  const pack = await makeSamplePack(read('sample.v1.json'), rows, read<Regions>('regions.v1.json'), async (ord) => masks.get(ord) ?? {}, join(root, 'public/data'))
+  const pack = await makeSamplePack(read('sample.v1.json'), rows, read<Regions>('regions.v1.json'), async (ord) => masks.get(ord) ?? {})
 
   const nextLock: HuashuLock = { v: 1, repo: HUASHU_REPO, commit, speciesJson: speciesBlob, files, records, codes, shipped }
   const target = a.dryRun ? join(a.out, 'repo') : root
   const outputs = new Map<string, string>([
     ['public/data/species.v1.json', JSON.stringify({ ...repo.species, huashuCommit: commit, species: rows })],
     ['public/data/sample-pack.v1.json', JSON.stringify(pack)],
+    ...sampleNameFiles(pack.species, join(root, 'public/data')),
     [STICKER_VERSIONS, JSON.stringify(versions, null, 1) + '\n'],
     [LOCK, lockJson(nextLock)],
   ])

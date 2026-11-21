@@ -128,7 +128,8 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     return [...taxo].sort((a, b) => g(b) - g(a))
   }, [taxo, row])
   const top = useMemo(() => [...draw].reverse(), [draw])
-  const orders = useMemo(() => [...new Set(entries.map((e) => row(e.code)?.ord).filter((o): o is string => !!o))], [entries, row])
+  const ords = useMemo(() => entries.flatMap((e) => { const ord = row(e.code)?.ord; return ord ? [{ code: e.code, ord }] : [] }), [entries, row])
+  const orders = useMemo(() => [...new Set(ords.map((b) => b.ord))], [ords])
   const shown = useMemo(() => entries.reduce((n, e) => n + (visible.has(e.code) ? 1 : 0), 0), [entries, visible])
   useLayoutEffect(() => { latest.current = { layout, onPick, onHover, still, visible, shown } })
   // Big from the start: the first appearance doesn't animate (collage.css). Frozen at the first render: flipping it
@@ -501,7 +502,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     const L = latest.current.layout, s = L.W / r.width
     return birdAt(L, top, on, (clientX - r.left) * s, (clientY - r.top) * s, slopPx * s)
   }
-  const loadMasks = () => { void ensureMasks(orders) }
+  const loadMasks = () => { void ensureMasks(orders, ords) }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     const code = codeOf(e.target)

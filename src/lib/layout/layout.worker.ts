@@ -1,7 +1,8 @@
 // Layout worker: owns the sticker masks and runs packBest off the main thread.
 //
 // Protocol (structured-clone friendly):
-//   main -> worker  { type: 'setList', id, entries: [{ code, mass, ord }] }
+//   main -> worker  { type: 'setList', id, entries: [{ code, mass, ord }], masks? }  (masks: every entry's, by order
+//                                                             then code, so the masks file isn't fetched)
 //                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit?, oval?, free? }
 //                   { type: 'image', id, entries: [{ code, mass, ord }], aspect, hole?, maxTile?, captions?, oval?, free? }
 //                                                             (share images; no setList needed)
@@ -33,7 +34,7 @@ import { fetchAllMasks } from '../data-url'
 export type ListEntryMsg = { code: string; mass: number; ord: string }
 export type LayoutName = 'wide' | 'medium' | 'narrow'
 export type WorkerRequest =
-  | { type: 'setList'; id: number; entries: ListEntryMsg[] }
+  | { type: 'setList'; id: number; entries: ListEntryMsg[]; masks?: Record<string, MaskTable> }
   | {
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
       refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean; oval?: boolean; free?: boolean
@@ -125,7 +126,9 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
         return { type: 'image', id: msg.id, W: r.W, H: r.H, codes, boxes }
       }
       if (msg.type === 'setList') {
-        const p = buildList(msg.entries, load)
+        // Masks sent with the list (every bird's, the landing sample's) stand in for the masks file, uncached here.
+        const given = msg.masks
+        const p = buildList(msg.entries, given ? async (o) => given[o] ?? {} : load)
         list = p
         p.catch(() => {}) // surfaced to layout requests below
         await p
