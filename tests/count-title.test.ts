@@ -103,8 +103,10 @@ describe('the poster\'s head and foot', () => {
       expect(R.y + R.icon + image.GAPS[format].latest).toBe(L.rule.y)
       const name = texts(log).find((l) => l.startsWith('fillText("Synthetic Bird 13"'))!
       expect(name).toMatch(/, 120, [\d.]+\) .*font: "600 26px/)
-      expect(y(name)).toBeCloseTo(R.y + R.icon / 2, 6)
+      // One baseline for the name and the detail, the name's capitals centred on the sticker (0.35 em under its middle).
+      expect(y(name)).toBeCloseTo(R.y + R.icon / 2 + 0.35 * image.SMALL_INLINE.name, 6)
       const detail = texts(log).find((l) => l.startsWith('fillText("Latest lifer · May 2023"'))!
+      expect(y(detail)).toBe(y(name))
       expect(detail).toContain(`fillStyle: "${C.muted}"`)
       expect(detail).toContain('font: "500 18px')
       const sticker = log.filter((l) => l.startsWith('drawImage(')).at(-1)!
