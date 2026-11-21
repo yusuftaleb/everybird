@@ -41,13 +41,11 @@ export function useEscapeCapture(onClose: () => void): void {
 }
 
 /**
- * While mounted, the top bar stays shown (its headroom never hides it under an open dialog, sheet or popover).
- * `clear()` names an element the shown bar must not cover (a popover's controls bar): the page scrolls it out from
- * under the bar on open.
+ * While mounted, the top bar is frozen (headroom.ts' holdTopBar): it keeps the state it had, shown or hidden, under an
+ * open menu, panel, popover, sheet, the dock search or a dialog, and the page is never scrolled for it.
  */
-export function useHoldTopBar(clear?: () => HTMLElement | null | undefined): void {
-  const get = useRef(clear)
-  useLayoutEffect(() => holdTopBar(get.current?.()), [])
+export function useHoldTopBar(): void {
+  useLayoutEffect(() => holdTopBar(), [])
 }
 
 /** Keep Tab inside `root` (a modal). Call from the root's onKeyDown. */

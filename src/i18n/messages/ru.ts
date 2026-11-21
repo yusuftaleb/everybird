@@ -611,6 +611,7 @@ export const ru: Messages = {
       combine: 'Объединяй любые из них в один список.',
       privacy: 'Твой список никогда не покидает браузер. Мы анонимно считаем посещения.',
       ebirdGroup: 'Файлы eBird',
+      toastDone: 'Готово · {result}',
       summary: {
         head: { one: 'В твоём коллаже {n} вид', few: 'В твоём коллаже {n} вида', many: 'В твоём коллаже {n} видов', other: 'В твоём коллаже {n} вида' },
         list: '{head}: {parts}.',

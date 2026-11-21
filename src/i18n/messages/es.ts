@@ -595,6 +595,7 @@ export const es: Messages = {
       combine: 'Combina cualquiera de estas fuentes en una sola lista.',
       privacy: 'Tu lista nunca sale de tu navegador. Contamos las visitas de forma anónima.',
       ebirdGroup: 'Archivos de eBird',
+      toastDone: 'Listo · {result}',
       summary: {
         head: { one: 'Tu collage tiene {n} especie', other: 'Tu collage tiene {n} especies' },
         list: '{head}: {parts}.',

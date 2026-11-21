@@ -586,6 +586,7 @@ export const zhHant: Messages = {
       combine: '可以把這些來源合併成一份清單。',
       privacy: '你的清單不會離開你的瀏覽器。我們以匿名方式計算造訪次數。',
       ebirdGroup: 'eBird 檔案',
+      toastDone: '完成 · {result}',
       summary: {
         head: { one: '你的拼貼有 {n} 種', other: '你的拼貼有 {n} 種' },
         list: '{head}：{parts}。',

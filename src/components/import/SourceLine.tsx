@@ -188,7 +188,7 @@ function useWhyPopover(open: boolean, close: () => void, btn: RefObject<HTMLButt
       e.preventDefault()
       e.stopPropagation()
       close()
-      btn.current?.focus()
+      btn.current?.focus({ preventScroll: true })
     },
     onBlur: (e: FocusEvent) => { if (open && !inside(e.relatedTarget as Node | null)) close() },
   }

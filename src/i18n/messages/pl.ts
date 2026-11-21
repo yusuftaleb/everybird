@@ -590,6 +590,7 @@ export const pl: Messages = {
       combine: 'Połącz dowolne z nich w jedną listę.',
       privacy: 'Twoja lista nigdy nie opuszcza przeglądarki. Odwiedziny liczymy anonimowo.',
       ebirdGroup: 'Pliki eBird',
+      toastDone: 'Gotowe · {result}',
       summary: {
         head: { one: 'Twój kolaż ma {n} gatunek', few: 'Twój kolaż ma {n} gatunki', many: 'Twój kolaż ma {n} gatunków', other: 'Gatunki w twoim kolażu: {n}' },
         list: '{head}: {parts}.',

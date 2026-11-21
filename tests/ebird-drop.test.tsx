@@ -138,9 +138,10 @@ describe('EbirdDrop in Spanish', () => {
     expect(screen.getByTestId('places-lifer-add')).toHaveTextContent('Añade MyEBirdData')
     expect(screen.getByTestId('places-lifer-note')).toHaveTextContent(/^Tu lista de vida de eBird solo dice/)
   })
-  it('the read status and errors, from the job codes', () => {
+  it('a read shows no progress in the rows (the import toast does: round 6 item 7); errors from the job codes', () => {
     const { rerender } = render(<EbirdDrop job={{ busy: true, rows: 1089, error: null }} onFile={() => {}} loaded={{ full: 0, quick: 0 }} />, { wrapper: withI18n('es') })
-    expect(screen.getByRole('status')).toHaveTextContent('Leyendo tu archivo… 1.089 filas')
+    expect(screen.getByTestId('ebird-drop')).not.toHaveTextContent(/Leyendo tu archivo/)
+    expect(screen.getByTestId('ebird-drop')).toHaveAttribute('data-busy')
     rerender(<EbirdDrop job={{ ...idle, error: 'unknown-file' }} onFile={() => {}} loaded={{ full: 0, quick: 0 }} />)
     expect(screen.getByRole('alert')).toHaveTextContent(/^No se pudo leer este archivo\. Usa la descarga/)
     cleanup()

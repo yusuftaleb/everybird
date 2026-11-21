@@ -33,7 +33,17 @@ describe('nextHeadroom', () => {
     // Above the top: shown.
     expect(run([-30, 0], o, { hidden: true, lastY: 500, acc: 0 }).hidden).toBe(false)
   })
-  it('stays shown while held', () => {
-    expect(run([600, 900], { ...o, held: true }, { hidden: false, lastY: 500, acc: 0 }).hidden).toBe(false)
+  it('held, it keeps the state it had: shown stays shown, hidden stays hidden, whatever the scroll (round 6, item 5)', () => {
+    const held = { ...o, held: true }
+    expect(run([600, 900], held, { hidden: false, lastY: 500, acc: 0 }).hidden).toBe(false)
+    expect(run([700, 400], held, { hidden: true, lastY: 800, acc: 0 }).hidden).toBe(true)
+    // Even at the top: nothing opening or scrolling inside it shows the bar until the hold is released.
+    expect(run([10], held, { hidden: true, lastY: 800, acc: 0 }).hidden).toBe(true)
+    expect(run([10, 5], o, run([10], held, { hidden: true, lastY: 800, acc: 0 })).hidden).toBe(false)
+  })
+  it('a held frame sums nothing: after the release a small scroll does not flip the bar', () => {
+    const after = run([900, 920], { ...o, held: true }, { hidden: false, lastY: 500, acc: 0 })
+    expect(after.acc).toBe(0)
+    expect(run([925], o, after).hidden).toBe(false)
   })
 })

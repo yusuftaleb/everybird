@@ -6,9 +6,11 @@
 // frame's rAF callbacks) and asks for one rAF; the rAF compares numbers and writes `data-hidden` only when the state
 // flips. No React state, no layout reads (the bar's height and the page's height come from ResizeObservers).
 //
-// Always shown: near the top (scrollY at most the bar's height), while a dialog, sheet or popover holds it
-// (holdTopBar), and while keyboard focus is inside the bar. Hidden is not removed: the bar stays in the accessibility
-// tree and focusable; focusing it shows it.
+// Always shown near the top (scrollY at most the bar's height). Frozen while a menu, panel, popover, sheet, the dock
+// search or a dialog is open (holdTopBar; round 6 menu audit, item 5): it keeps the state it had, shown or hidden, and
+// neither hides nor shows on any scroll until the last hold is released, so opening or closing one never moves the bar
+// or the page. Keyboard focus inside the bar shows it (onFocusIn) and then freezes it the same way. Hidden is not
+// removed: the bar stays in the accessibility tree and focusable; focusing it shows it.
 
 /** Scroll this far in one direction (px, summed over frames) before the bar hides or shows: no jitter. */
 export const HEADROOM_DELTA = 8
@@ -28,7 +30,8 @@ export function nextHeadroom(
   const d = cy - s.lastY
   let acc = d === 0 ? s.acc : Math.sign(d) === Math.sign(s.acc) ? s.acc + d : d
   let hidden = s.hidden
-  if (cy <= o.barH || o.held) { hidden = false; acc = 0 }
+  if (o.held) acc = 0 // frozen: the state it had
+  else if (cy <= o.barH) { hidden = false; acc = 0 }
   else if (acc >= HEADROOM_DELTA) { hidden = true; acc = 0 }
   else if (acc <= -HEADROOM_DELTA) { hidden = false; acc = 0 }
   return { hidden, lastY: cy, acc }
@@ -62,12 +65,11 @@ export function attachHeadroom(el: HTMLElement): () => void {
     if (!raf) raf = requestAnimationFrame(update)
   }
   const onResize = () => { viewH = window.innerHeight }
-  /** Show the bar; `instant` applies the shown transform now, without the slide (paired with a scroll jump). */
-  const show = (instant = false) => {
+  /** Show the bar at once: the shown transform applied now, without the slide. */
+  const show = () => {
     s = { ...s, acc: 0 }
     if (!s.hidden) return
     s.hidden = false
-    if (!instant) { write(); return }
     el.style.transition = 'none'
     write()
     void el.offsetHeight
@@ -86,7 +88,7 @@ export function attachHeadroom(el: HTMLElement): () => void {
     if (!t?.matches?.(':focus-visible')) return
     const entering = !focused
     focused = true
-    show(true) // apply the shown transform now, before the browser measures the focused control
+    show() // apply the shown transform now, before the browser measures the focused control
     if (entering && Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y)
   }
   const onFocusOut = (e: FocusEvent) => { if (!el.contains(e.relatedTarget as Node | null)) focused = false }
@@ -133,21 +135,11 @@ export function scrollQuietly(dy: number): void {
 }
 
 /**
- * Keep the bar shown (a dialog, sheet or popover is open). Returns the release. With `clear`, an element under the bar
- * (the Places and Time popovers' controls bar) is scrolled down out from under it if the shown bar would cover it.
+ * Freeze the bar while a menu, panel, popover, sheet, the dock search or a dialog is open: it keeps the state it had,
+ * shown or hidden, and the page is never scrolled for it. Returns the release.
  */
-export function holdTopBar(clear?: HTMLElement | null): () => void {
+export function holdTopBar(): () => void {
   holds++
-  for (const b of bars) {
-    // The bar's own height: it is sticky at top 0, so shown, its bottom is its height. One read, on open only.
-    const gap = clear ? clear.getBoundingClientRect().top - b.el.offsetHeight : Infinity
-    if (gap < 8) {
-      // The page moves to clear the popover's controls bar: the top bar arrives in the same frame, not sliding in
-      // over 200ms after an instant jump.
-      b.show(true)
-      window.scrollBy(0, gap - 8)
-    } else b.show()
-  }
   let done = false
   return () => {
     if (done) return

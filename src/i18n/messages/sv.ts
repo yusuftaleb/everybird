@@ -586,6 +586,7 @@ export const sv: Messages = {
       combine: 'Kombinera valfritt antal till en lista.',
       privacy: 'Din lista lämnar aldrig din webbläsare. Vi räknar besök anonymt.',
       ebirdGroup: 'eBird-filer',
+      toastDone: 'Klart · {result}',
       summary: {
         head: { one: 'Ditt collage har {n} art', other: 'Ditt collage har {n} arter' },
         list: '{head}: {parts}.',

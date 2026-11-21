@@ -587,6 +587,7 @@ export const de: Messages = {
       combine: 'Kombiniere sie beliebig zu einer Liste.',
       privacy: 'Deine Liste verlässt nie deinen Browser. Wir zählen Besuche anonym.',
       ebirdGroup: 'eBird-Dateien',
+      toastDone: 'Fertig · {result}',
       summary: {
         head: { one: 'Deine Collage hat {n} Art', other: 'Deine Collage hat {n} Arten' },
         list: '{head}: {parts}.',

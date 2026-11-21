@@ -587,6 +587,7 @@ export const da: Messages = {
       combine: 'Kombinér dem, du vil, til én liste.',
       privacy: 'Din liste forlader aldrig din browser. Vi tæller besøg anonymt.',
       ebirdGroup: 'eBird-filer',
+      toastDone: 'Færdig · {result}',
       summary: {
         head: { one: 'Din collage har {n} art', other: 'Din collage har {n} arter' },
         list: '{head}: {parts}.',

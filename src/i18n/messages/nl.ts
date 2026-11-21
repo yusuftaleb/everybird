@@ -595,6 +595,7 @@ export const nl: Messages = {
       combine: 'Combineer deze bronnen tot één lijst.',
       privacy: 'Je lijst verlaat je browser nooit. We tellen bezoeken anoniem.',
       ebirdGroup: 'eBird-bestanden',
+      toastDone: 'Klaar · {result}',
       summary: {
         head: { one: 'Je collage heeft {n} soort', other: 'Je collage heeft {n} soorten' },
         list: '{head}: {parts}.',
