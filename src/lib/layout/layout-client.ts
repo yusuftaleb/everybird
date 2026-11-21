@@ -80,9 +80,23 @@ const idle = (fn: () => void) => {
 
 const CACHE_CAP = 300
 
+const newWorker = () => new Worker(new URL('./layout.worker.ts', import.meta.url), { type: 'module' })
+let spare: Worker | null = null
+
+/**
+ * Start a layout worker and its masks download before any collage asks for one (`/` as soon as storage says the device
+ * holds a list, EverybirdProvider), so they overlap the species download. The next createLayoutClient() takes it.
+ */
+export function warmLayoutWorker(): void {
+  if (spare || typeof Worker === 'undefined') return
+  spare = newWorker()
+  spare.postMessage({ type: 'warm' })
+}
+
 export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter) => string[]; cacheCap?: number } = {}): LayoutClient {
   const cap = opts.cacheCap ?? CACHE_CAP
-  const w: Worker = worker ?? new Worker(new URL('./layout.worker.ts', import.meta.url), { type: 'module' })
+  const w: Worker = worker ?? spare ?? newWorker()
+  if (w === spare) spare = null
   let epoch = 0
   let hasList = false
   let allCodes: string[] = []

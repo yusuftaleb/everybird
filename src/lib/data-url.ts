@@ -5,7 +5,7 @@
 // Works in the layout worker too (relative URLs resolve against self.location).
 import { DATA_FILES, type DataFile } from './data-files'
 
-const DATA_BASE = (process.env.NEXT_PUBLIC_DATA_BASE || '').replace(/\/+$/, '')
+export const DATA_BASE = (process.env.NEXT_PUBLIC_DATA_BASE || '').replace(/\/+$/, '')
 
 /** The URLs to try for a data file, in order. */
 export function dataUrls(name: DataFile, base: string = DATA_BASE): string[] {

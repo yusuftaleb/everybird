@@ -5,6 +5,7 @@
 //                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit?, oval?, free? }
 //                   { type: 'image', id, entries: [{ code, mass, ord }], aspect, hole?, maxTile?, captions?, oval?, free? }
 //                                                             (share images; no setList needed)
+//                   { type: 'warm' }                           (warmLayoutWorker: fetch the masks now; no reply)
 //   worker -> main  { type: 'ready', id }                      (setList done: masks loaded)
 //                   { type: 'result', id, key, layout, mode, base, W, H, codes, boxes }
 //                   { type: 'image', id, W, H, codes, boxes }  (packFrame: these birds only, evened out, the hole
@@ -161,11 +162,13 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
 const scope = globalThis as unknown as {
   WorkerGlobalScope?: unknown
   postMessage(m: unknown, transfer?: Transferable[]): void
-  onmessage: ((e: MessageEvent<WorkerRequest>) => void) | null
+  onmessage: ((e: MessageEvent<WorkerRequest | { type: 'warm' }>) => void) | null
 }
 if (typeof scope.WorkerGlobalScope !== 'undefined' && globalThis instanceof (scope.WorkerGlobalScope as typeof Object)) {
   const handle = createLayoutHandler()
-  scope.onmessage = (e) => {
+  scope.onmessage = (e: MessageEvent<WorkerRequest | { type: 'warm' }>) => {
+    // warmLayoutWorker (layout-client.ts): start the masks download now; the first setList finds it under way.
+    if (e.data.type === 'warm') return void fetchAllMasks().catch(() => {})
     void handle(e.data).then((r) => scope.postMessage(r, r.type === 'result' || r.type === 'image' ? [r.boxes.buffer] : []))
   }
 }

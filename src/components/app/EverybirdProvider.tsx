@@ -3,7 +3,7 @@
 // /about share one store, and an import started on /settings keeps running while the birder moves between them. The
 // shared view (/s/[token]) lives outside this layout, so it never loads or touches the saved list. Every import's toast
 // (ImportToast) is mounted here, so it follows the birder from page to page until the import ends.
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import { track } from '@/lib/analytics'
 import { slotSource, SLOTS, type ImportResult, type Slot } from '@/lib/list/model'
 import type { DetailsFor, Saved } from '@/lib/list/storage'
@@ -11,6 +11,7 @@ import { useEverybird, type Action, type AppState, type EverybirdMeta } from '@/
 import type { SpeciesIndex } from '@/lib/species/load'
 import { useLoadNames } from '@/lib/species/use-names'
 import type { Regions } from '@/lib/species/types'
+import { useAppPath } from '@/i18n/path'
 import { ImportToast } from '@/components/import/ImportToast'
 import { useImportJobs, type ImportJobs } from './use-import-jobs'
 
@@ -52,6 +53,11 @@ export function EverybirdProvider({ children }: { children: ReactNode }) {
   const data = useMemo(() => (meta.ready && species && regions ? { species, regions } : null), [meta.ready, species, regions])
   const mine = hasData(state.saved)
   const mineSoon = meta.ready ? mine : meta.stored === undefined ? null : !!meta.stored && hasData(meta.stored)
+  // On / with a list, the collage's layout worker and its masks start now, beside the species download, not after it.
+  const home = useAppPath() === '/'
+  useEffect(() => {
+    if (home && mineSoon) void import('@/lib/layout/layout-client').then((m) => m.warmLayoutWorker())
+  }, [home, mineSoon])
   const value = useMemo<Everybird>(
     () => ({ state, dispatch, meta, data, failed: !!meta.error, mine, mineSoon, jobs }),
     [state, dispatch, meta, data, mine, mineSoon, jobs],

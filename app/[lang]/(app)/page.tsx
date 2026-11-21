@@ -1,10 +1,14 @@
 import { Home } from '@/components/app/Home'
+import { SAMPLE_FILES, preloadData } from '@/lib/data-preload'
 import { SITE_NAME, siteUrl } from '@/lib/site-meta'
 
 // Only the layout's four languages exist: any other first segment (/nope) is the static 404, never a render.
 export const dynamicParams = false
 
 export default function Page() {
+  // The landing's sample (every first visit) downloads with the page's JavaScript; a returning birder's species file isn't
+  // known to be needed until storage is read (EverybirdProvider warms the collage then).
+  preloadData(SAMPLE_FILES, 'high')
   return <>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
       '@context': 'https://schema.org',
