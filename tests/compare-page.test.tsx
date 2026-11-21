@@ -80,12 +80,18 @@ afterEach(() => {
 describe('Compare: the set-up', () => {
   it('your list first, named, with its count; a pasted link fills its row’s name; Compare waits for two lists', () => {
     render(<ComparePage />)
-    // The same page head as the comparison's (and My birds'): the title, the line under it, Compare at its right.
+    // The same page head as the comparison's (and My birds'): the title and the line under it.
     const title = screen.getByRole('heading', { level: 1 })
     expect(title).toHaveTextContent('Compare life lists')
     expect(title).toHaveClass('eb-pagehead-title')
     expect(title.closest('.eb-pagehead')!.querySelector('.eb-lede-sm')).toHaveTextContent('Paste your friends’ Everybird links to see which birds you share. Up to 6 lists.')
-    expect(title.closest('.eb-pagehead')!.querySelector('.eb-pagehead-actions')).toContainElement(screen.getByTestId('compare-submit'))
+    // The head has the title and its line only; Compare is the form's, at its foot after Add a friend.
+    expect(title.closest('.eb-pagehead')!.querySelector('.eb-pagehead-actions')).toBeNull()
+    const foot = screen.getByTestId('compare-add').parentElement!
+    expect(foot).toHaveClass('eb-compare-foot')
+    expect([...foot.querySelectorAll('button')].map((b) => b.dataset.testid)).toEqual(['compare-add', 'compare-submit'])
+    expect(screen.getByTestId('compare-submit')).toHaveAttribute('type', 'submit')
+    expect(screen.getByTestId('compare-setup')).toContainElement(screen.getByTestId('compare-submit'))
     expect(screen.getByTestId('compare-link-0')).toHaveAccessibleDescription('Paste your friends’ Everybird links to see which birds you share. Up to 6 lists.')
     expect(screen.getByTestId('compare-name-mine')).toHaveValue('Mine')
     expect(screen.getByTestId('compare-row-mine')).toHaveTextContent('Your list · 4 species')

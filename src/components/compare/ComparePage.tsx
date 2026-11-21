@@ -42,11 +42,11 @@ const keep = (k: Kept) => {
 
 /**
  * /compare. One page head in both states (PageHead, as My birds: "Compare life lists" and a line), so going from the
- * set-up to the comparison changes only the line and the head's buttons. First the set-up, on the page itself (no box,
+ * set-up to the comparison changes only the line and the buttons (the set-up's head has none). First the set-up, on the page's width (no box,
  * the head's line "Paste your friends' Everybird links to see which birds you share. Up to 6 lists."), a
  * row per list (its colour dot, a name box, the link box, a remove button), the birder's own list first when there is
  * one (its name editable, "Your list · 1,092 species" for a link, no remove) and "Add a friend" (a row, up to COMPARE_MAX
- * lists in all); Compare sits at the head's right (where Share will be), waiting for two lists. A link fills its row's name with the name or
+ * lists in all) at the foot's left, Compare at its right (its edge on the link boxes'), waiting for two lists. A link fills its row's name with the name or
  * title it carries ("Birder 2" until one is typed, without); several links, or a comparison link (/c/), pasted at once
  * fill a row each (pasteRow), within the cap, with a note for the links that didn't open and the lists past it. The
  * names typed are the comparison's, its images' and its link's. Compare shows the comparison: My birds' page head
@@ -205,19 +205,12 @@ export function ComparePage() {
         </>
       ) : (
         <>
-          {/* Compare at the head's right, where Share will be: the title wraps the same in both states, so nothing at the
-              top moves but the buttons. It submits the form below (Enter in a box too). */}
+          {/* The set-up's head: the title and its line only (round 6, item 11: Compare is the form's, at its foot). */}
           <PageHead
             key="setup"
             title={t.compare.title}
             lede={<span id={`${id}-note`}>{fmt(t.compare.note, { n: COMPARE_MAX })}</span>}
             titleRef={titleRef}
-            actions={<>
-              <button type="submit" form={`${id}-form`} className="eb-btn" disabled={lists.length < 2} aria-describedby={lists.length < 2 ? `${id}-wait` : undefined} data-testid="compare-submit">
-                {t.compare.submit}
-              </button>
-              <span id={`${id}-wait`} hidden>{t.compare.needMore}</span>
-            </>}
           />
           <form id={`${id}-form`} className="eb-compare-setup" onSubmit={(e) => { e.preventDefault(); if (lists.length >= 2) go(true) }} data-testid="compare-setup">
             <ul className="eb-compare-rows" data-testid="compare-rows">
@@ -277,6 +270,11 @@ export function ComparePage() {
                 <Plus aria-hidden="true" focusable="false" />
                 {t.compare.addFriend}
               </button>
+              {/* Compare at the foot's right, its edge on the link boxes' (Enter in a box submits too). */}
+              <button type="submit" className="eb-btn eb-compare-submit" disabled={lists.length < 2} aria-describedby={lists.length < 2 ? `${id}-wait` : undefined} data-testid="compare-submit">
+                {t.compare.submit}
+              </button>
+              <span id={`${id}-wait`} hidden>{t.compare.needMore}</span>
             </div>
           </form>
         </>
