@@ -52,6 +52,9 @@ const AXIS_H = 32, KEY_H = 28, MONO = 16
 const WRAP_LINE = 1.15
 /** The row pitch a full-size tip dot and its stroke need (a 5 radius, 2.5 stroke) with a little air. */
 const DOT_PITCH = 14
+/** The Fan's and Radial's name size from which tip dots and branches are drawn full size; under it they shrink with the
+ *  names (Yusuf, 2026-11-21: a dense fan's dots outweighed its tiny names). */
+const DOT_FULL_PX = 14
 /** The round layouts' axis beyond their own room: the fan's title line under the ages its `below` holds; the circle's title. */
 const FAN_AXIS = 22, CIRCLE_AXIS = 28
 /** The Fan's and Radial's names in the image (design units): as on screen at about twice the size or more where the
@@ -376,6 +379,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       // The fan or circle, centred across, its top at the block's.
       const box: FanBox = { cx: area.x + fit.cx, cy: area.y + fit.up, R: fit.R, shape: fit.shape, ...(fit.open ? { open: fit.open } : {}) }
       const d = drawFan(root!, tipOn(tips), stem, (_, i) => tips[i].dotted, box)
+      lineK = Math.min(1, fit.px / DOT_FULL_PX)
       if (timeScale) {
         ctx.save()
         ctx.strokeStyle = C.hairline
@@ -386,7 +390,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       paintDrawing(d)
       tipDots(d.tips.map((p) => [p.x, p.y]), tipIsOn)
       const { px } = fit
-      const S = px * LABEL_STICKER, g = px * LABEL_GAP, from = IMAGE_SIZES.dot + g
+      const S = px * LABEL_STICKER, g = px * LABEL_GAP, from = IMAGE_SIZES.dot * lineK + g
       ctx.textBaseline = 'middle'
       d.tips.forEach((p, i) => {
         const r = tips[i]
