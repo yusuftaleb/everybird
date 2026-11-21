@@ -134,7 +134,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `.github/workflows/`: `huashu-sync.yml` and its `README.md` (secrets, settings, the R2 token's rotation). `public/data/`: generated JSON the app loads.
 - `scripts/build-data/`, `scripts/validate/`: data build and validation scripts.
 - `private/`: Yusuf's real files. Git-ignored. Never read from tests or commit.
-- Fonts: Satoshi and Cabinet Grotesk load from Fontshare in `app/[lang]/layout.tsx`; Geist Mono via `next/font/google`.
+- Fonts: Satoshi and Cabinet Grotesk load from Fontshare in `app/[lang]/layout.tsx`, which also preloads Satoshi 500 and Cabinet Grotesk 700 from `cdn.fontshare.com` (URLs copied from Fontshare's CSS: recopy them if Fontshare renames its files); while they load, `tokens.css`'s "Satoshi Fallback" and "Cabinet Grotesk Fallback" (local Arial with `size-adjust` and the ascent, descent and line-gap overrides measured from the real files, its comment says how) keep the text's size and lines; Geist Mono via `next/font/google`.
 
 
 ## Smart search groundwork (item 9, A and C)
