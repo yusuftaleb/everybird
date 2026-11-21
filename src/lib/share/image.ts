@@ -88,11 +88,13 @@ export const IMAGE_SIZE: Record<ImageFormat, [w: number, h: number]> = {
   story: [1080, 1920], post: [1080, 1350], square: [1080, 1080], desktop: [1920, 1080], wide: [1350, 1080],
 }
 /**
- * Device px per design unit when the image is drawn, so the PNG is IMAGE_SIZE × IMAGE_SCALE: the desktop image is
- * twice its design (3840 × 2160; sharp on a 4K or Retina screen), the others 1:1 with their design. A poster has no entry: it draws at its
- * own scale (prepareCard's `scale`, device px per unit), and its preview (drawShareImage) at 1.
+ * Device px per design unit when the image is drawn, so the PNG is IMAGE_SIZE × IMAGE_SCALE: every image is twice its
+ * design (a Story 2160 × 3840, a Desktop 3840 × 2160), sharp in the dialog's large preview and on a Retina screen; the
+ * share sites scale it down themselves (Yusuf, 2026-11-21: the 1:1 Story, Post and Square looked soft). Twice the design
+ * keeps every canvas under iOS Safari's 16.7 million pixel limit. A poster has no entry: it draws at its own scale
+ * (prepareCard's `scale`, device px per unit), and its preview (drawShareImage) at 1.
  */
-export const IMAGE_SCALE: Record<ImageFormat, number> = { story: 1, post: 1, square: 1, desktop: 2, wide: 1 }
+export const IMAGE_SCALE: Record<ImageFormat, number> = { story: 2, post: 2, square: 2, desktop: 2, wide: 2 }
 /** A card's format: a share image, or the print poster, portrait or landscape (1080 design units across the short side; print.ts). */
 export type CardFormat = ImageFormat | 'print' | 'printLandscape'
 /** Whether a card is a poster (portrait or landscape) rather than a share image. */
