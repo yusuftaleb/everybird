@@ -28,6 +28,9 @@ export type ViewImageOpts = ShareImageOpts & {
   at: ShareAt; state: Pick<AppState, 'list' | 'filter' | 'seen' | 'sci'>; t: Ui; hideTotals?: boolean; oldest?: boolean
   /** Device px per design unit (a poster's, print.ts viewPosterScale); default the format's IMAGE_SCALE, 1 for a poster's preview. */
   scale?: number
+  /** The Tree image's: called with whether the Fan and the Radial name every tip in this image's area, so the dialog
+   *  shows one that cannot as off (its reason) rather than drawing another layout without a word. */
+  onTreeFits?: (fits: Record<'fan' | 'circle', boolean>) => void
 }
 export type Area = { x: number; y: number; w: number; h: number }
 

@@ -462,7 +462,8 @@ export const pt: Messages = {
       formatName: '{name}, proporção {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Orientação', vertical: 'Vertical', horizontal: 'Horizontal' },
-      countSize: { label: 'Número', small: 'Pequeno', medium: 'Médio', large: 'Grande', hide: 'Ocultar', title: 'Ao lado do título' },
+      countSize: { label: 'Número', small: 'Pequeno', medium: 'Médio', large: 'Grande', hide: 'Ocultar', title: 'Ao lado do título', short: { small: 'P', medium: 'M', large: 'G' } },
+      orientNote: { fan: 'Árvores em leque são horizontais', upright: 'Árvores retangulares e radiais são verticais' },
       preview: { story: 'Prévia da imagem para story', post: 'Prévia da imagem para publicação', square: 'Prévia da imagem quadrada', desktop: 'Prévia da imagem para desktop', wide: 'Prévia da imagem horizontal' },
       failed: 'Não foi possível criar a imagem.',
       imageFailed: 'Não foi possível criar a imagem. Tente de novo.',
@@ -492,10 +493,11 @@ export const pt: Messages = {
       clearFilters: 'Limpar filtros',
       latestLifer: 'Última espécie nova',
       posterLatest: 'Última espécie nova: {name}, {date}',
+      posterLatestPlace: 'Última espécie nova: {name}, {date}, {place}',
       oldLinkTitle: 'Lista de vida de {name}',
       untitledTitle: { one: 'Uma lista de vida: {n} espécie', other: 'Uma lista de vida: {n} espécies' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
-      dark: 'Imagem escura',
+      colours: { label: 'Cores', light: 'Claro', dark: 'Escuro' },
       transparent: 'Fundo transparente',
       arrange: { label: 'Disposição', packed: 'Ajustar', oval: 'Oval' },
       hideTotals: 'Ocultar totais',
@@ -517,6 +519,7 @@ export const pt: Messages = {
       print: {
         title: 'Imprimir pôster',
         size: 'Tamanho do pôster',
+        orientNote: { fan: 'Árvores em leque são impressas na horizontal', upright: 'Árvores retangulares e radiais são impressas na vertical' },
         inches: '{w} × {h} pol.',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px a 150 dpi',
         sizeLineIn: '{w} × {h} pol. · {pw} × {ph} px a 150 dpi',

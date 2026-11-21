@@ -462,7 +462,8 @@ export const es: Messages = {
       formatName: '{name}, relación {ratio}',
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Orientación', vertical: 'Vertical', horizontal: 'Horizontal' },
-      countSize: { label: 'Número', small: 'Pequeño', medium: 'Mediano', large: 'Grande', hide: 'Ocultar', title: 'Junto al título' },
+      countSize: { label: 'Número', small: 'Pequeño', medium: 'Mediano', large: 'Grande', hide: 'Ocultar', title: 'Junto al título', short: { small: 'S', medium: 'M', large: 'L' } },
+      orientNote: { fan: 'Los árboles en abanico son horizontales', upright: 'Los árboles rectangulares y radiales son verticales' },
       preview: { story: 'Vista previa de la imagen de historia', post: 'Vista previa de la imagen de publicación', square: 'Vista previa de la imagen cuadrada', desktop: 'Vista previa de la imagen de escritorio', wide: 'Vista previa de la imagen de publicación horizontal' },
       failed: 'No se pudo crear la imagen.',
       imageFailed: 'No se pudo crear la imagen. Inténtalo de nuevo.',
@@ -492,10 +493,11 @@ export const es: Messages = {
       clearFilters: 'Quitar filtros',
       latestLifer: 'Última especie nueva',
       posterLatest: 'Última especie nueva: {name}, {date}',
+      posterLatestPlace: 'Última especie nueva: {name}, {date}, {place}',
       oldLinkTitle: 'Lista de vida de {name}',
       untitledTitle: { one: 'Una lista de vida: {n} especie', other: 'Una lista de vida: {n} especies' },
       /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
-      dark: 'Imagen oscura',
+      colours: { label: 'Colores', light: 'Claro', dark: 'Oscuro' },
       transparent: 'Fondo transparente',
       arrange: { label: 'Disposición', packed: 'Ajustar', oval: 'Ovalada' },
       hideTotals: 'Ocultar totales',
@@ -517,6 +519,7 @@ export const es: Messages = {
       print: {
         title: 'Imprimir póster',
         size: 'Tamaño del póster',
+        orientNote: { fan: 'Los árboles en abanico se imprimen en horizontal', upright: 'Los árboles rectangulares y radiales se imprimen en vertical' },
         inches: '{w} × {h} pulg.',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px a 150 dpi',
         sizeLineIn: '{w} × {h} pulg. · {pw} × {ph} px a 150 dpi',

@@ -559,8 +559,13 @@ export const EN_UI = {
     formatName: '{name}, {ratio}',
     /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
     orientation: { group: 'Orientation', vertical: 'Vertical', horizontal: 'Horizontal' },
-    /** The Count row's dropdown: the count's size in the middle of the collage, none, or beside the title (`title`). */
-    countSize: { label: 'Count', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide', title: 'Beside title' },
+    /** The Count row's segmented control (Hide | S | M | L | Beside title): the count's size in the middle of the collage,
+     *  none, or beside the title (`title`). `short` is what the S, M and L segments show (the usual short size forms);
+     *  `small`, `medium` and `large` are their spoken names. */
+    countSize: { label: 'Count', small: 'Small', medium: 'Medium', large: 'Large', hide: 'Hide', title: 'Beside title', short: { small: 'S', medium: 'M', large: 'L' } },
+    /** Why the Tree image's other orientation is off (its tooltip and description): a Fan is drawn horizontally only,
+     *  Rectangular and Radial vertically only (`fan`, `upright`). The poster's are under `print`. */
+    orientNote: { fan: 'Fan trees are horizontal', upright: 'Rectangular and Radial trees are vertical' },
     /** The preview image's alt text, per format. */
     preview: { story: 'Preview of the story image', post: 'Preview of the post image', square: 'Preview of the square image', desktop: 'Preview of the desktop image', wide: 'Preview of the wide post image' },
     failed: "Couldn't make the image.",
@@ -598,12 +603,14 @@ export const EN_UI = {
     latestLifer: 'Latest lifer',
     /** The poster's foot: the latest lifer in words, before the site and the credit ("Latest lifer: Hooded Crow, Sep 2026"). */
     posterLatest: 'Latest lifer: {name}, {date}',
+    /** The same with where it was seen: the province or state and the country, or the country alone ({place}). */
+    posterLatestPlace: 'Latest lifer: {name}, {date}, {place}',
     /** A link made before titles carries a bare name: its title (og.ts shareTitle). */
     oldLinkTitle: "{name}'s life list",
     /** The shared page's document title for a link without a title ({n} formatted). */
     untitledTitle: { one: 'A life list: {n} species', other: 'A life list: {n} species' },
-    /** The "Dark image" switch, and Download's short label in the row of quiet buttons. */
-    dark: 'Dark image',
+    /** The Colours row: the images' and the poster's look, Light or Dark (it starts at the page's theme). */
+    colours: { label: 'Colours', light: 'Light', dark: 'Dark' },
     transparent: 'Transparent background',
     /** How the images and the poster place the birds (the stored value stays 'packed'): fitted to the frame, or in an oval. */
     arrange: { label: 'Arrangement', packed: 'Fit', oval: 'Oval' },
@@ -624,12 +631,15 @@ export const EN_UI = {
       cardLifer: 'Big Year {year} · New species in {year}',
       ofTarget: { one: 'of {n} species', other: 'of {n} species' },
     },
+    /** Download's short label in the row of quiet buttons. */
     downloadShort: 'Download',
     /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
     print: {
       /** The dialog's title when the page's Print button opens it on the poster. */
       title: 'Print poster',
       size: 'Poster size',
+      /** Why the Tree poster's other orientation is off (as `share.orientNote`, in the poster's words). */
+      orientNote: { fan: 'Fan trees print horizontally', upright: 'Rectangular and Radial trees print vertically' },
       inches: '{w} × {h} in',
       sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px at 150 dpi',
       sizeLineIn: '{w} × {h} in · {pw} × {ph} px at 150 dpi',
