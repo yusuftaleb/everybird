@@ -29,7 +29,7 @@ import { EXP, EXP_TRUE, LAYOUTS, OUTLINE_SHAPE } from './constants'
 import { decodeMask, MASK, type Mask } from './mask'
 import { packBest, packFrame, relSizes, type PackBird } from './pack'
 import type { Hole } from './count-box'
-import { fetchAllMasks } from '../data-url'
+import { fetchAllMasks, type MaskTable } from '../data-url'
 
 export type ListEntryMsg = { code: string; mass: number; ord: string }
 export type LayoutName = 'wide' | 'medium' | 'narrow'
@@ -49,8 +49,8 @@ export type WorkerReply =
   | { type: 'image'; id: number; W: number; H: number; codes: string[]; boxes: Float32Array }
   | { type: 'error'; id: number; message: string }
 
-export type MaskTable = Record<string, [number, number, string]>
-/** Loads one order's masks (code -> [w, h, base64 bits]). Injectable for tests. */
+export type { MaskTable }
+/** Loads one order's masks (code -> mask, decoded or [w, h, base64 bits]). Injectable for tests. */
 export type MaskLoader = (order: string) => Promise<MaskTable>
 
 function ellipseMask(): Mask {
@@ -66,7 +66,7 @@ function ellipseMask(): Mask {
 }
 export const FALLBACK_MASK: Mask = ellipseMask()
 
-// All orders come from one file (masks.v2.json, one request); an order missing from it has no masks.
+// All orders come from one file (masks.v3.bin, one request); an order missing from it has no masks.
 export const fetchOrderMasks: MaskLoader = async (order) => (await fetchAllMasks())[order] ?? {}
 
 // rel: relative sizes over the whole list per mode (smallest bird of the list = 1), shared by every state.

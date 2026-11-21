@@ -63,9 +63,12 @@ export function buildList(
     entries.push(entry)
   }
 
-  return entries.sort(
-    taxonOrder ? (a, b) => taxonOrder(a.code) - taxonOrder(b.code) || byString(a.code, b.code) : (a, b) => byString(a.code, b.code),
-  )
+  return entries.sort(entryOrder(taxonOrder))
+}
+
+/** buildList's order: by `taxonOrder`, then by code (by code alone without it). */
+export function entryOrder(taxonOrder?: (code: string) => number): (a: ListEntry, b: ListEntry) => number {
+  return taxonOrder ? (a, b) => taxonOrder(a.code) - taxonOrder(b.code) || byString(a.code, b.code) : (a, b) => byString(a.code, b.code)
 }
 
 /** True when `a` should replace the current winner `b`; strict, so input order breaks full ties. */

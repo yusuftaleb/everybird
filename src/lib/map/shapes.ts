@@ -31,9 +31,18 @@ export function loadMapCountries(): Promise<MapCountries> {
  * place only for the birds recorded there in the range, as placeCounts does).
  */
 export function mapCounts(list: ListEntry[], filter: Filter, species: SpeciesIndex, seen?: SeenIndex): PlaceCounts {
-  const shown = filterKey(filter) ? applyFilter(list, filter, species, seen) : list
-  return placeCounts(shown, clearPlaces(filter), species, seen)
+  const key = filterKey(filter)
+  const hit = lastCounts.get(list)
+  if (hit && hit.key === key && hit.species === species && hit.seen === seen) return hit.counts
+  const shown = key ? applyFilter(list, filter, species, seen) : list
+  const counts = placeCounts(shown, clearPlaces(filter), species, seen)
+  lastCounts.set(list, { key, species, seen, counts })
+  return counts
 }
+// The last counts per list, as the Places panel keeps its own (places-shared.tsx placeCountsFor): list and seen keep
+// their identities across filter changes (store.ts), so a filter action that leaves the key as it was, the Map tab
+// opened again and the map's share image reuse the pass.
+const lastCounts = new WeakMap<ListEntry[], { key: string; species: SpeciesIndex; seen?: SeenIndex; counts: PlaceCounts }>()
 
 /** How many of the birds the map shows have no place at all (a life list without places): the note under its list. */
 export function mapUnplaced(list: ListEntry[], filter: Filter, species: SpeciesIndex, seen?: SeenIndex): number {

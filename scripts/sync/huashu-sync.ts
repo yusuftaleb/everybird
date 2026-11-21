@@ -273,7 +273,7 @@ async function syncFrom(root: string, a: Args, lock: HuashuLock, repo: Repo, dir
 
   const nextLock: HuashuLock = { v: 1, repo: HUASHU_REPO, commit, speciesJson: speciesBlob, files, records, codes, shipped }
   const target = a.dryRun ? join(a.out, 'repo') : root
-  const outputs = new Map<string, string>([
+  const outputs = new Map<string, string | Uint8Array>([
     ['public/data/species.v1.json', JSON.stringify({ ...repo.species, huashuCommit: commit, species: rows })],
     ['public/data/sample-pack.v1.json', JSON.stringify(pack)],
     ...sampleNameFiles(pack.species, join(root, 'public/data')),
@@ -284,18 +284,21 @@ async function syncFrom(root: string, a: Args, lock: HuashuLock, repo: Repo, dir
     const sorted = Object.fromEntries(Object.entries(rec).sort(([x], [y]) => (x < y ? -1 : 1)))
     outputs.set(`public/data/masks/${ord}.v1.json`, JSON.stringify(sorted))
   }
-  // The masks bundle and the hashed data-file names (src/lib/data-files.ts), from the files as this run leaves them.
+  // The masks file and the hashed data-file names (src/lib/data-files.ts), from the files as this run leaves them.
   const { buildDataFiles } = await import('../build-data/data-files')
-  const dataText = (n: string) => outputs.get(`public/data/${n}`) ?? readFileSync(join(root, 'public/data', n), 'utf8')
-  for (const [rel, text] of buildDataFiles(dataText, masks as Map<string, Record<string, unknown>>)) outputs.set(rel, text)
+  const dataText = (n: string) => {
+    const out = outputs.get(`public/data/${n}`)
+    return typeof out === 'string' ? out : readFileSync(join(root, 'public/data', n), 'utf8')
+  }
+  for (const [rel, text] of buildDataFiles(dataText, masks)) outputs.set(rel, text)
   // The About demo embeds sticker versions and positions too. Read this run's in-memory data so a dry run
   // regenerates it under target without reading stale masks or writing into the working repository.
   const { HOWTO_DATA_PATH, makeHowtoData } = await import('../build-data/build-howto')
   outputs.set(HOWTO_DATA_PATH, makeHowtoData(<T>(file: string) => JSON.parse(dataText(file)) as T))
   const changedFiles: string[] = []
   for (const [rel, text] of outputs) {
-    const now = existsSync(join(root, rel)) ? readFileSync(join(root, rel), 'utf8') : null
-    if (now === text) continue
+    const now = existsSync(join(root, rel)) ? readFileSync(join(root, rel)) : null
+    if (now?.equals(typeof text === 'string' ? Buffer.from(text) : text)) continue
     changedFiles.push(rel)
     mkdirSync(dirname(join(target, rel)), { recursive: true })
     writeFileSync(join(target, rel), text)

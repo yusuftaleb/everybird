@@ -4,6 +4,8 @@
 // changed before an upload, an R2 outage). Unset (dev, the e2e servers, tests): /data/<name> only.
 // Works in the layout worker too (relative URLs resolve against self.location).
 import { DATA_FILES, type DataFile } from './data-files'
+import type { Mask, RawMask } from './layout/mask'
+import { readMaskFile } from './layout/mask-file'
 
 export const DATA_BASE = (process.env.NEXT_PUBLIC_DATA_BASE || '').replace(/\/+$/, '')
 
@@ -20,12 +22,21 @@ function absolute(url: string): string {
 }
 
 /** Fetch and parse a data file, trying each of dataUrls in turn; throws the last failure. */
-export async function fetchData<T>(name: DataFile, init?: RequestInit): Promise<T> {
+export function fetchData<T>(name: DataFile, init?: RequestInit): Promise<T> {
+  return fetchFirst(name, init, (res) => res.json() as Promise<T>)
+}
+
+/** A binary data file's bytes, as fetchData. */
+export function fetchDataBytes(name: DataFile, init?: RequestInit): Promise<ArrayBuffer> {
+  return fetchFirst(name, init, (res) => res.arrayBuffer())
+}
+
+async function fetchFirst<T>(name: DataFile, init: RequestInit | undefined, read: (res: Response) => Promise<T>): Promise<T> {
   let last: unknown
   for (const url of dataUrls(name)) {
     try {
       const res = await (init ? fetch(absolute(url), init) : fetch(absolute(url)))
-      if (res.ok) return (await res.json()) as T
+      if (res.ok) return await read(res)
       last = new Error(`Failed to load ${url}: ${res.status}`)
     } catch (e) {
       last = e
@@ -34,7 +45,8 @@ export async function fetchData<T>(name: DataFile, init?: RequestInit): Promise<
   throw last
 }
 
-export type MaskTable = Record<string, [number, number, string]>
+/** One order's masks by code: decoded (masks.v3.bin) or as JSON holds them (the sample pack's); decodeMask takes both. */
+export type MaskTable = Record<string, RawMask | Mask>
 
 const inHand: Record<string, MaskTable> = {}
 /** Masks already on the page without the masks file (the landing sample's, from its pack), by order then code. */
@@ -52,9 +64,9 @@ export function masksInHand(birds: Iterable<{ code: string; ord: string }>): Rec
   return out
 }
 let masksP: Promise<Record<string, MaskTable>> | null = null
-/** Every order's masks, one request per page or worker (a failure is not cached). */
+/** Every order's masks (masks.v3.bin, decoded), one request per page or worker (a failure is not cached). */
 export function fetchAllMasks(): Promise<Record<string, MaskTable>> {
-  masksP ??= fetchData<Record<string, MaskTable>>('masks.v2.json').catch((e) => {
+  masksP ??= fetchDataBytes('masks.v3.bin').then(readMaskFile).catch((e) => {
     masksP = null
     throw e
   })

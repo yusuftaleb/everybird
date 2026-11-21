@@ -62,7 +62,7 @@ export default async function SharedPage({ params }: Props) {
   const payload = tryDecodeShare(token)
   // What the page will fetch, from its head, beside its JavaScript: the shared collage's bird data and masks (the layout
   // worker's), or the sample a broken link shows.
-  if (payload) preloadData([...SPECIES_FILES, 'regions.v1.json', 'masks.v2.json'])
+  if (payload) preloadData([...SPECIES_FILES, 'regions.v1.json', 'masks.v3.bin'])
   else preloadData(sampleFiles(lang), 'high')
   if (!payload) {
     return (
