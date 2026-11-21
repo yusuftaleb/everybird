@@ -1,5 +1,6 @@
 // One poster's state: ordered RGBA strips -> one zlib stream -> either download format.
 import { createZlibSink, filterUp, pdfParts, pngParts, type ZlibSink } from './png-pdf'
+import { PRINT_DPI } from './print'
 
 export class PosterEncoder {
   private readonly sink: ZlibSink
@@ -59,7 +60,7 @@ export class PosterEncoder {
   file(kind: 'png' | 'pdf', page: readonly [number, number]): Blob {
     if (this.state !== 'done' || !this.chunks) throw new Error('poster must end before a file is ready')
     if (kind === 'pdf' && this.alpha) throw new Error('a transparent poster has no PDF')
-    const parts = kind === 'png' ? (this.png ??= pngParts(this.width, this.height, this.chunks, 150, this.alpha)) : pdfParts(this.width, this.height, page, this.chunks)
+    const parts = kind === 'png' ? (this.png ??= pngParts(this.width, this.height, this.chunks, PRINT_DPI, this.alpha)) : pdfParts(this.width, this.height, page, this.chunks)
     // Both compressors and the wrappers allocate ordinary ArrayBuffers, never SharedArrayBuffers.
     return new Blob(parts as Uint8Array<ArrayBuffer>[], { type: kind === 'png' ? 'image/png' : 'application/pdf' })
   }

@@ -1,7 +1,7 @@
 import { en } from '@/i18n/messages/en'
 import { describe, expect, it } from 'vitest'
 import {
-  IOS_CANVAS_AREA, PRINT_CM, PRINT_DESIGN_H, PRINT_IN, PRINT_PT, PRINT_PX, PRINT_SIZES, STRIP_AREA,
+  IOS_CANVAS_AREA, PRINT_CM, PRINT_DESIGN_H, PRINT_DPI, PRINT_IN, PRINT_PT, PRINT_PX, PRINT_SIZES, STRIP_AREA,
   isUsSize, printDesignH, printPackH, printScale, stripRanges,
 } from '@/lib/share/print'
 import { GAPS, GROUP_SIDE, POSTER_FOOT, SAFE, SMALL_INLINE, SHARE_COLORS, TITLE_TOP, cardDims, cardLayout, imagePackSpec, prepareCard, type ImagePack } from '@/lib/share/image'
@@ -19,11 +19,14 @@ const entries = [entry('ostric2'), entry('emu1')]
 const pack: ImagePack = { W: 1000, H: 1000, boxes: new Map([['ostric2', [395, 450, 100, 100]], ['emu1', [505, 450, 100, 100]]]) }
 
 describe('print sizes and strips', () => {
-  it('the ISO and US sizes at 150 dpi, in px, points and inches', () => {
+  it('the ISO and US sizes at 300 dpi, in px, points and inches', () => {
+    expect(PRINT_DPI).toBe(300)
     expect(PRINT_PX).toEqual({
-      A4: [1240, 1754], A3: [1754, 2480], A2: [2480, 3508], A1: [3508, 4967],
-      US12x18: [1800, 2700], US18x24: [2700, 3600], US24x36: [3600, 5400],
+      A4: [2480, 3508], A3: [3508, 4961], A2: [4961, 7016], A1: [7016, 9933],
+      US12x18: [3600, 5400], US18x24: [5400, 7200], US24x36: [7200, 10800],
     })
+    // Every size's px is its paper at 300 dpi, rounded (the ISO mm, the US inches).
+    for (const s of PRINT_SIZES) for (const i of [0, 1]) expect(PRINT_PX[s][i]).toBe(Math.round((PRINT_PT[s][i] / 72) * 300))
     for (const s of PRINT_SIZES) {
       expect(PRINT_PT[s][0]).toBeCloseTo((PRINT_CM[s][0] / 2.54) * 72, 1)
       expect(PRINT_PT[s][1]).toBeCloseTo((PRINT_CM[s][1] / 2.54) * 72, 1)
@@ -37,9 +40,9 @@ describe('print sizes and strips', () => {
     expect(printPackH('US12x18')).toBe(1620)
     expect(printPackH('US24x36')).toBe(1620)
     expect(printPackH('US18x24')).toBe(1440)
-    expect(printScale('A1')).toBeCloseTo(3.248, 3)
-    expect(printScale('A4')).toBeCloseTo(1.148, 3)
-    expect(printScale('US24x36')).toBeCloseTo(3.333, 3)
+    expect(printScale('A1')).toBeCloseTo(6.496, 3)
+    expect(printScale('A4')).toBeCloseTo(2.296, 3)
+    expect(printScale('US24x36')).toBeCloseTo(6.667, 3)
   })
 
   it('US shapes get their own pack frame so birds fill the frame', () => {
@@ -61,10 +64,10 @@ describe('print sizes and strips', () => {
         expect(w * r.rows).toBeLessThanOrEqual(STRIP_AREA)
       })
     }
-    expect(stripRanges(3508, 4967)).toHaveLength(17)
-    expect(stripRanges(1240, 1754)).toHaveLength(3)
-    expect(stripRanges(3508, 4967, 4967)).toEqual([{ y: 0, rows: 4967 }]) // a rows override (one strip)
-    expect(3508 * 4967).toBeGreaterThan(IOS_CANVAS_AREA) // why strips exist
+    expect(stripRanges(7016, 9933)).toHaveLength(67)
+    expect(stripRanges(2480, 3508)).toHaveLength(9)
+    expect(stripRanges(7016, 9933, 9933)).toEqual([{ y: 0, rows: 9933 }]) // a rows override (one strip)
+    expect(7016 * 9933).toBeGreaterThan(IOS_CANVAS_AREA) // why strips exist
   })
 })
 

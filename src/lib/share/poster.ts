@@ -7,8 +7,8 @@
 // URL is released with a get still pending. At most 12 gets run at once, and only for the current and the next strip,
 // so a long list never holds every bitmap at once.
 //
-// Strips: at most STRIP_AREA px and STRIP_DESIGN_ROWS design rows each (A4 138 device rows in 13 strips, A3 195 in 13,
-// A2 276 in 13, A1 298 in 17), so two strips stay a small part of the card. Never a canvas over IOS_CANVAS_AREA: the
+// Strips: at most STRIP_AREA px and STRIP_DESIGN_ROWS design rows each (at 300 dpi A4 276 device rows in 13 strips, A3 298
+// in 17, A2 211 in 34, A1 149 in 67), so two strips stay a small part of the card. Never a canvas over IOS_CANVAS_AREA: the
 // strip canvas is width × rows, capped by it.
 //
 // An abort disposes the encoder at once, so a wait on it (backpressure, end) rejects even if the worker never replies.

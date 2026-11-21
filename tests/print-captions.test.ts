@@ -58,7 +58,7 @@ describe('print captions', () => {
       US12x18: 40, US18x24: 90, US24x36: 180,
     })
     for (const size of Object.keys(CAPTION_CAPS) as (keyof typeof CAPTION_CAPS)[]) {
-      expect(captionMinPx(size)).toBeCloseTo(37.5 / printScale(size), 6)
+      expect(captionMinPx(size)).toBeCloseTo(75 / printScale(size), 6) // 18pt at 300 dpi: 75 device px
     }
     // The bigger the poster, the smaller a name is in design units, and the same on paper.
     expect(captionMinPx('A4')).toBeGreaterThan(captionMinPx('A2'))

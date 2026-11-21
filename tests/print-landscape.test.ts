@@ -17,7 +17,7 @@ afterEach(() => vi.unstubAllGlobals())
 const SIZES: PrintSize[] = ['A4', 'A3', 'A2', 'A1', 'US12x18', 'US18x24', 'US24x36']
 
 describe('the landscape sizes', () => {
-  it('swaps width and height: A4 landscape is 1754 × 1240 px, the same ISO or US size turned', () => {
+  it('swaps width and height: A4 landscape is 3508 × 2480 px, the same ISO or US size turned', () => {
     for (const s of SIZES) {
       expect(printPx(s, true)).toEqual([PRINT_PX[s][1], PRINT_PX[s][0]])
       expect(printPt(s, true)).toEqual([PRINT_PT[s][1], PRINT_PT[s][0]])
@@ -26,8 +26,9 @@ describe('the landscape sizes', () => {
       expect(printPx(s, false)).toEqual(PRINT_PX[s])
       expect(printPt(s, false)).toEqual(PRINT_PT[s])
     }
-    expect(printPx('A4', true)).toEqual([1754, 1240])
-    expect(printPx('US24x36', true)).toEqual([5400, 3600])
+    expect(printPx('A4', true)).toEqual([3508, 2480])
+    expect(printPx('A2', true)).toEqual([7016, 4961])
+    expect(printPx('US24x36', true)).toEqual([10800, 7200])
     expect(printIn('US24x36', true)).toEqual([36, 24])
     expect(printPt('A4', true)[0]).toBeCloseTo(841.89, 2)
     expect(printPt('A4', true)[1]).toBeCloseTo(595.28, 2)
@@ -130,11 +131,11 @@ describe('makePoster, landscape', () => {
     })
   }
 
-  it('portrait is unchanged: A4 is 1240 × 1754 with the portrait page', async () => {
+  it('portrait is unchanged: A4 is 2480 × 3508 with the portrait page', async () => {
     const { deps, enc } = fakeDeps()
     const poster = await makePoster({ size: 'A4', theme: 'light', entries: pentries, species: psp, pack: ppack, now: new Date(2026, 10, 15), strings: en.ui }, () => {}, deps)
     expect(poster.landscape).toBe(false)
-    expect(enc.begin).toHaveBeenCalledWith(1240, 1754)
+    expect(enc.begin).toHaveBeenCalledWith(2480, 3508)
     await poster.file('pdf')
     expect(enc.file).toHaveBeenCalledWith('pdf', PRINT_PT.A4)
     poster.dispose()
