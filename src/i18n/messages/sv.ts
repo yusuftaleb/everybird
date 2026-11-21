@@ -184,7 +184,7 @@ export const sv: Messages = {
         mineNone: 'Inga fåglar på listan här.',
         layout: 'Form',
         layouts: { fan: 'Solfjäder', circle: 'Radiell', rows: 'Rektangulär' },
-        noRoom: 'Inte plats för alla namn',
+        small: 'Namnen är små i den här layouten. <rows>Rektangulär</rows> visar varje namn i full storlek.',
         tooMany: 'För många att rita: slå på Bara mina fåglar eller öppna en gren',
         tooManyMine: 'För många att rita: öppna en gren',
         rank: { orders: 'Ordningar', families: 'Familjer', genera: 'Släkten', species: 'Arter' },

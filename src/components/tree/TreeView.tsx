@@ -8,8 +8,9 @@
 // opening a marked row also sets the filter's `with` (the other groups its branch holds), so every view shows the
 // branch's birds. A branch never opens on one lone tip (levels.ts: an order with one family at its genera, a family with
 // one genus at its species, a group of SPECIES_AT species or fewer at its species). The Layout choice (Fan | Radial |
-// Rectangular, kept on the device; unpicked, the fan from FAN_FROM px wide when it names every tip, rows otherwise; one
-// that can't name every tip stays listed, disabled, with its reason) is rendered here into the controls bar's Display
+// Rectangular, kept on the device; unpicked, the fan from FAN_FROM px wide when it names every tip at full size, rows
+// otherwise; every one always offered and the one picked drawn, as in Share and Print: round 6, the Tree brief's item 12)
+// is rendered here into the controls bar's Display
 // panel (`layoutSlot`, a portal), beside the panel's switches, and under it Down to (round 6): the rank the tree draws at
 // the least, kept on the device (tree-mine.ts); the tree draws the deeper of it and the one step under the open branch,
 // so opening a branch never changes the choice; a rank over DRAW_CAP tips is offered off, with its reason. No count
@@ -18,8 +19,10 @@
 // on the Fan and Radial); off, no axis, and the splits spaced evenly by branching order (bySplits).
 // Fan and Radial (fan.ts): the root at the centre, the tips on the arc or all round, and every tip's label past it,
 // along its radius: the dot, a gap, the sticker's box, a gap, the name, the mark and groups inside of a split group,
-// the count (fitRound sizes the drawing so that every name fits whole, at 11px at the least, using the whole width;
-// the counts go first when room is short, then the sticker's box shrinks to the name's line); the ages where no branch
+// the count (fitScreen sizes the drawing so that every name fits whole, using the whole width: the counts go first
+// when room is short, then the sticker's box shrinks to the name's line, then, under the 11px floor, the names shrink as
+// far as needed with the dots and branches, and a quiet note under the tree offers Rectangular; hovering, tapping or
+// focusing a tip shows its whole name and count in a tooltip); the ages where no branch
 // runs (under the fan's centre; in the Radial's opening at the top, RADIAL_GAP, on Paper, only where the patch fits it),
 // the axis title under the drawing. Above every layout, the rank line: the rank drawn and how many (rankCount).
 // Their rows stay in the page, visually hidden, for the keyboard and screen readers. Rectangular draws the tree top to
@@ -50,18 +53,19 @@ import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { SpeciesRow } from '@/lib/species/types'
-import { FAN_FROM, LABEL_COUNT, LABEL_GAP, RADIAL_GAP, SCREEN_SIZES, drawFan, fanLabel, fanRing, fitRound, inOpening, ringLabels, type FanShape, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
+import { FAN_FROM, LABEL_COUNT, LABEL_GAP, RADIAL_GAP, SCREEN_SIZES, dotK, drawFan, fanLabel, fanRing, fitRound, fitScreen, inOpening, ringLabels, type FanShape, type LabelSpan } from '@/lib/tree/fan'
 import { ROW_H, depthOf, downOptions, rankCount, rowsTreeW, genusOf, levelView, tipOn, type Inside, type LevelView, type TipRank, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
 import { loadTree } from '@/lib/tree/load'
 import { rowNodeLabels, roundNodeLabels, type NodeLabel } from '@/lib/tree/nodes'
 import type { OpenBranch } from '@/lib/tree/path'
 import { TREE_LAYOUTS, setTreeDown, setTreeLayout, useTreeDown, useTreeLayout, useTreeMine, useTreeTime, type TreeLayout } from '@/lib/tree-mine'
 import { TIP_R, ageTicks, bySplits, circlePath, drawTree, formatAge, type Tree, type TreeFile } from '@/lib/tree/tree'
+import '@/components/collage/card-list.css'
 import './tree.css'
 
 type Loaded = { file: TreeFile; tree: Tree; species: SpeciesIndex }
 /** What the view draws, for Share (view-image.ts ShareAt). */
-export type TreeShown = { tree: TreeLevel; rank: TipRank; mine: boolean; layout: TreeLayout; time: boolean; fits: Record<FanShape, boolean> }
+export type TreeShown = { tree: TreeLevel; rank: TipRank; mine: boolean; layout: TreeLayout; time: boolean }
 type Tip = Exclude<TreeRow, { kind: 'head' }>
 
 /** Under the Fan and Radial, below their lowest label: air before the axis title. */
@@ -69,6 +73,8 @@ const ROUND_PAD = 8
 /** A row's sticker (px); the split-group mark's width with its margins (px, at the 13px names). */
 const ROW_STICKER = 24
 const MARK_W = 7 + 8
+/** A Fan's or Radial's sticker box under this (px) shows no bird: too small to see one. */
+const MIN_STICKER = 6
 /** The named nodes' text (px; the headings' Muted mono) and its line. */
 const NODE_PX = 11
 const NODE_LINE = 13
@@ -185,6 +191,8 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   // keyboard's, which adds the focus outline).
   const [list, setList] = useState<string | null>(null)
   const [hot, setHot] = useState<{ i: number; kb: boolean } | null>(null)
+  // The Fan's or Radial's tip under the pointer, or tapped, live or not: its tooltip (round 6, item 12).
+  const [peek, setPeek] = useState<number | null>(null)
   const onList = useMemo(() => new Set(entries.map((e) => e.code)), [entries])
   const species = data?.species
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `level` is read through its key
@@ -214,11 +222,10 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     return names.length ? fmt(tt.withTwo, { a: names.join(', '), b }) : fmt(tt.withOne, { a: b })
   }, [tt, count, nameAt])
 
-  // Whether the Fan and Radial can name every tip of this level at this width (fitRound).
-  const fits = useMemo(() => {
-    const out: Record<FanShape, RoundFit | undefined> = { fan: undefined, circle: undefined }
-    if (!view || !width) return out
-    const spans: LabelSpan[] = tipsOf(view).map((r) => {
+  // The labels' widths at 13px (in units of the size), for the Fan's and Radial's fit.
+  const spans = useMemo((): LabelSpan[] => {
+    if (!view || !width) return []
+    return tipsOf(view).map((r) => {
       const name = r.kind === 'species' ? (sci ? r.row.sci : displayName(r.row)) : nameAt(r.row, view.tips)[0]
       const c = tipOfText(r)
       // The mark of a split group, then right after it the groups inside (in the label's flex gap).
@@ -229,25 +236,32 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         on: r.kind === 'species' ? r.on : r.on > 0,
       }
     })
-    // The Radial with its time scale opens at the top for its ages (RADIAL_GAP).
-    for (const s of ['fan', 'circle'] as const) out[s] = fitRound(spans, s, { w: width }, s === 'circle' && timeScale ? { ...SCREEN_SIZES, gap: RADIAL_GAP } : SCREEN_SIZES)
-    return out
-  }, [view, width, measure, sci, nameAt, tipOfText, withWords, timeScale])
+  }, [view, width, measure, sci, nameAt, tipOfText, withWords])
+  // The Radial with its time scale opens at the top for its ages (RADIAL_GAP).
+  const sizesOf = (s: FanShape) => (s === 'circle' && timeScale ? { ...SCREEN_SIZES, gap: RADIAL_GAP } : SCREEN_SIZES)
+  // Whether the Fan names every tip at full size (the unpicked default; fitRound answers at once for a big rank).
+  const fullFan = useMemo(() => spans.length > 0 && !!fitRound(spans, 'fan', { w: width }, SCREEN_SIZES), [spans, width])
 
-  // The layout drawn: the one picked, else the fan from FAN_FROM px; rows until the width is known, and rows when the
-  // Fan or Radial cannot name every tip.
-  const roundOk = { fan: !!fits.fan, circle: !!fits.circle }
-  let layout: TreeLayout = !width ? 'rows' : pickedLayout ?? (width >= FAN_FROM ? 'fan' : 'rows')
-  if (layout !== 'rows' && !roundOk[shapeOf(layout)]) layout = 'rows'
+  // The layout drawn (round 6, item 12: the screen offers what Share and Print offer): the one picked, always, a Fan or
+  // Radial shrinking its names to fit (fitScreen: under the 11px floor where it must, as far as the share image would);
+  // unpicked, the Fan from FAN_FROM px when it names every tip at full size, else Rectangular. Rows until the width is
+  // known, and where nothing round fits at all (a column too narrow for the drawing; none at 320px or more on the
+  // shipped tree's ranks, All birds' 1,970 genera included). Only the shape drawn is fitted (All birds' genera: about
+  // half a second).
+  const wanted: TreeLayout = !width ? 'rows' : pickedLayout ?? (width >= FAN_FROM && fullFan ? 'fan' : 'rows')
+  const roundFit = useMemo(() => (wanted === 'rows' || !spans.length ? undefined : fitScreen(spans, shapeOf(wanted), width, sizesOf(shapeOf(wanted)))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sizesOf reads timeScale
+    [wanted, spans, width, timeScale])
+  const layout: TreeLayout = wanted !== 'rows' && !roundFit ? 'rows' : wanted
   const shown = view
   const round = layout !== 'rows'
   const shape = shapeOf(layout)
-  const fit = round ? fits[shape] : undefined
+  const fit = round ? roundFit : undefined
   const shownLevel = shown?.level
   const shownKey = shownLevel ? `${shownLevel.ord ?? ''}|${shownLevel.fam ?? ''}|${shownLevel.genus ?? ''}` : ''
   const shownRank = shown?.tips
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `shownLevel` is read through its key
-  useEffect(() => { if (shownLevel && shownRank) onLevel?.({ tree: shownLevel, rank: shownRank, mine, layout, time: timeScale, fits: roundOk }) }, [shownKey, shownRank, mine, layout, timeScale, roundOk.fan, roundOk.circle, onLevel])
+  useEffect(() => { if (shownLevel && shownRank) onLevel?.({ tree: shownLevel, rank: shownRank, mine, layout, time: timeScale }) }, [shownKey, shownRank, mine, layout, timeScale, onLevel])
   const tips = useMemo(() => (shown ? tipsOf(shown) : []), [shown])
 
   // Rows: each row is as tall as its name needs (44px at least), so the drawing follows the rows' measured centres.
@@ -334,7 +348,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const go = (next: OpenBranch, famName?: string) => {
     focusFirst.current = true
     setList(null)
-    setHot(null)
+    setHot(null); setPeek(null)
     onOpen(next, famName)
   }
 
@@ -445,11 +459,17 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const roundTips = fit && 'tips' in drawing ? (drawing.tips as { a: number; x: number; y: number }[]) : []
   const px = fit?.px ?? 13
   const S = fit?.st ?? 24
+  // Under the floor the tips' dots and branches shrink with the names (as the image's do); a sticker box too small to
+  // show a bird stays empty (no download for it).
+  const k = fit ? dotK(fit.px) : 1
+  const small = !!fit && fit.px < SCREEN_SIZES.floor
   const tipAt = (e: MouseEvent) => (e.target as Element).closest('[data-i]')?.getAttribute('data-i')
   const onFanClick = (e: MouseEvent) => {
     const i = tipAt(e)
     if (i == null) return
     const r = tips[Number(i)]
+    // A tip that opens nothing shows its tooltip on a press (a tap has no hover).
+    if (!live(r)) { setPeek(Number(i)); return }
     // A bird's card opens by its label on the drawing (its row is out of sight); a group opens as its row does.
     const el = box.current?.querySelector<HTMLElement>(`.eb-tree-fan-label[data-i="${i}"]`)
     if ((e.target as Element).closest('[data-many]')) { box.current?.querySelector<HTMLElement>(`.eb-tree-rows [data-with="${i}"]`)?.click(); return }
@@ -459,12 +479,13 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const onFanOver = (e: MouseEvent) => {
     const i = tipAt(e)
     const n = i == null ? null : Number(i)
+    setPeek(n)
     setHot((h) => (n == null || !live(tips[n]) ? (h?.kb ? h : null) : h?.i === n && !h.kb ? h : { i: n, kb: false }))
   }
   const label = (p: { a: number }, i: number) => {
     const r = tips[i]
     const [name, latin] = tipName(r)
-    const l = fanLabel(fit!, p.a, TIP_R + px * LABEL_GAP)
+    const l = fanLabel(fit!, p.a, TIP_R * k + px * LABEL_GAP)
     const isHot = hot?.i === i && live(r)
     return (
       <span
@@ -473,7 +494,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         style={{ left: l.x, top: l.y - S / 2, transform: `${l.flip ? 'translateX(-100%) ' : ''}rotate(${l.rot.toFixed(2)}deg)` }}
       >
         <span className="eb-tree-fan-st" style={l.rot ? { transform: `rotate(${(-l.rot).toFixed(2)}deg)` } : undefined}>
-          <Thumb row={r.kind === 'species' ? r.row : r.sticker} size={S} off={!isOn(r)} />
+          <Thumb row={S < MIN_STICKER ? undefined : r.kind === 'species' ? r.row : r.sticker} size={S} off={!isOn(r)} />
         </span>
         <span className="eb-tree-fan-text" lang={latin ? 'la' : undefined}>{name}</span>
         {r.kind === 'group' && r.with && <span className="eb-tree-mark" />}
@@ -484,18 +505,18 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   }
   const circle = shape === 'circle'
   const figH = fit ? fit.h + ROUND_PAD : 0
-  const figureStyle = { height: figH, '--tree-px': `${px}px`, '--tree-st': `${S}px`, '--tree-gap': `${px * LABEL_GAP}px`, '--tree-count': `${px * LABEL_COUNT}px` } as CSSProperties
+  const figureStyle = { height: figH, '--tree-px': `${px}px`, '--tree-st': `${S}px`, '--tree-gap': `${px * LABEL_GAP}px`, '--tree-count': `${px * LABEL_COUNT}px`, '--tree-k': k } as CSSProperties
   const roundFigure = fit && (
     // The hidden rows are the keyboard's and screen readers' way in; this is the pointer's.
-    <div className="eb-tree-fan" data-circle={circle || undefined} style={figureStyle} aria-hidden="true" onClick={onFanClick} onMouseOver={onFanOver} onMouseLeave={() => setHot((h) => (h?.kb ? h : null))}>
+    <div className="eb-tree-fan" data-circle={circle || undefined} style={figureStyle} aria-hidden="true" onClick={onFanClick} onMouseOver={onFanOver} onMouseLeave={() => { setPeek(null); setHot((h) => (h?.kb ? h : null)) }}>
       <svg className="eb-tree-svg" width={width} height={figH} viewBox={`0 0 ${width} ${figH}`} focusable="false">
         {ticks.filter((v) => v > 0).map((v) => <path key={v} className="eb-tree-ring" d={fanRing(fit, (1 - v / drawing.rootAge) * fit.R)} />)}
         <path className="eb-tree-off" d={drawing.unseen} />
         <path className="eb-tree-on" d={drawing.seen} />
         <path className="eb-tree-off eb-tree-dash" d={drawing.unseenDot} />
         <path className="eb-tree-on eb-tree-dash" d={drawing.seenDot} />
-        <path className="eb-tree-tipdot eb-tree-off" d={roundTips.filter((_, i) => !isOn(tips[i])).map((p) => circlePath(p.x, p.y)).join('')} />
-        <path className="eb-tree-tipdot eb-tree-on" d={roundTips.filter((_, i) => isOn(tips[i])).map((p) => circlePath(p.x, p.y)).join('')} />
+        <path className="eb-tree-tipdot eb-tree-off" d={roundTips.filter((_, i) => !isOn(tips[i])).map((p) => circlePath(p.x, p.y, TIP_R * k)).join('')} />
+        <path className="eb-tree-tipdot eb-tree-on" d={roundTips.filter((_, i) => isOn(tips[i])).map((p) => circlePath(p.x, p.y, TIP_R * k)).join('')} />
         {nodeMarks}
         {roundTips.map((p, i) => <circle key={i} className="eb-tree-tiphit" data-i={i} data-live={live(tips[i]) || undefined} cx={p.x} cy={p.y} r={8} />)}
       </svg>
@@ -511,6 +532,29 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         ))
       })}
     </div>
+  )
+
+  // The tooltip (round 6, item 12): the tip under the pointer, tapped or with keyboard focus, its whole name and count,
+  // in the site's tooltip look, above its dot, its side by where the dot is so it stays on the page. The Fan and Radial
+  // only (Rectangular's rows show every name whole); aria-hidden, as the drawing is (the rows carry the words).
+  const tipI = peek ?? hot?.i
+  const tipRow = fit && tipI != null ? tips[tipI] : undefined
+  const tipAtP = tipRow && roundTips[tipI!]
+  const tooltip = tipRow && tipAtP && (() => {
+    const [name, latin] = tipName(tipRow)
+    const side = tipAtP.x < width / 3 ? 'start' : tipAtP.x > (2 * width) / 3 ? 'end' : 'mid'
+    return (
+      <div className="eb-card eb-tip eb-tree-tip" style={{ left: tipAtP.x, top: tipAtP.y }} data-side={side} aria-hidden="true" data-testid="tree-tip">
+        <span className="eb-tree-tip-name" lang={latin ? 'la' : undefined}>{name}</span>
+        {tipRow.kind === 'group' && <span className="eb-mono">{tipOfText(tipRow)}</span>}
+      </div>
+    )
+  })()
+  // Under the floor, one quiet line under the tree (round 6, item 12), its layout word a button switching to Rectangular.
+  const smallNote = small && (
+    <p className="eb-tree-note eb-tree-small" data-testid="tree-small">
+      {rich(tt.small, { rows: (chunk) => <button type="button" className="eb-textbtn" data-testid="tree-small-rows" onClick={() => { setHot(null); setPeek(null); setTreeLayout('rows') }}>{chunk}</button> })}
+    </p>
   )
 
   const listRow = list ? shown.rows.find((r): r is Extract<TreeRow, { kind: 'group' }> => r.kind === 'group' && r.key === list && !!r.with) : undefined
@@ -545,14 +589,14 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     <>
       <DisplaySegments
         label={tt.layout} value={layout} testId="tree-layout"
-        options={TREE_LAYOUTS.map((v) => ({ value: v, label: tt.layouts[v], off: width && v !== 'rows' && !roundOk[shapeOf(v)] ? tt.noRoom : undefined }))}
-        onChange={(v) => { setHot(null); setTreeLayout(v) }}
+        options={TREE_LAYOUTS.map((v) => ({ value: v, label: tt.layouts[v] }))}
+        onChange={(v) => { setHot(null); setPeek(null); setTreeLayout(v) }}
       />
       {downChoices.length > 0 && (
         <DisplaySegments
           label={t.share.print.downTo} value={rank} testId="tree-down"
           options={downChoices.map((d) => ({ value: d.rank, label: tt.rank[d.rank], off: d.off && tt[d.off] }))}
-          onChange={(v) => { setHot(null); setTreeDown(v) }}
+          onChange={(v) => { setHot(null); setPeek(null); setTreeDown(v) }}
         />
       )}
     </>,
@@ -569,8 +613,12 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         <div className="eb-tree-chart">
           {/* Before the drawing, so a row the keyboard reaches is near its tip. */}
           <ol className="eb-tree-rows" aria-label={tt.tips}>{rowItems}</ol>
-          {roundFigure}
+          <div className="eb-tree-fanwrap">
+            {roundFigure}
+            {tooltip}
+          </div>
           {timeScale && <p className="eb-mono eb-tree-axis-title eb-tree-fan-axis" aria-hidden="true">{tt.axis}</p>}
+          {smallNote}
         </div>
       ) : (
         <div className="eb-tree-chart">

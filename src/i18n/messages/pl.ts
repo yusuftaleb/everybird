@@ -190,7 +190,7 @@ export const pl: Messages = {
         mineNone: 'Nie ma tu żadnego ptaka z listy.',
         layout: 'Układ',
         layouts: { fan: 'Wachlarzowy', circle: 'Promienisty', rows: 'Prostokątny' },
-        noRoom: 'Za mało miejsca na wszystkie nazwy',
+        small: 'W tym układzie nazwy są małe. Układ <rows>Prostokątny</rows> pokazuje wszystkie nazwy w pełnym rozmiarze.',
         tooMany: 'Za dużo do narysowania: włącz Tylko moje ptaki albo otwórz gałąź',
         tooManyMine: 'Za dużo do narysowania: otwórz gałąź',
         rank: { orders: 'Rzędy', families: 'Rodziny', genera: 'Rodzaje', species: 'Gatunki' },

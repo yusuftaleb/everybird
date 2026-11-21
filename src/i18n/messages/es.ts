@@ -184,7 +184,7 @@ export const es: Messages = {
         mineNone: 'Aquí no hay ningún ave de la lista.',
         layout: 'Diseño',
         layouts: { fan: 'Abanico', circle: 'Radial', rows: 'Rectangular' },
-        noRoom: 'No hay espacio para todos los nombres',
+        small: 'Los nombres se ven pequeños en esta disposición. <rows>Rectangular</rows> muestra todos los nombres a tamaño completo.',
         tooMany: 'Demasiados para dibujar: activa Solo mis aves o abre una rama',
         tooManyMine: 'Demasiados para dibujar: abre una rama',
         rank: { orders: 'Órdenes', families: 'Familias', genera: 'Géneros', species: 'Especies' },

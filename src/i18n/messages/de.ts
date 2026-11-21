@@ -184,7 +184,7 @@ export const de: Messages = {
         mineNone: 'Hier ist kein Vogel der Liste.',
         layout: 'Form',
         layouts: { fan: 'Fächer', circle: 'Radial', rows: 'Rechteckig' },
-        noRoom: 'Nicht genug Platz für alle Namen',
+        small: 'In dieser Darstellung sind die Namen klein. <rows>Rechteckig</rows> zeigt jeden Namen in voller Größe.',
         tooMany: 'Zu viele zum Zeichnen: Nur meine Vögel einschalten oder einen Zweig öffnen',
         tooManyMine: 'Zu viele zum Zeichnen: einen Zweig öffnen',
         rank: { orders: 'Ordnungen', families: 'Familien', genera: 'Gattungen', species: 'Arten' },

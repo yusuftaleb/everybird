@@ -196,7 +196,7 @@ export const EN_UI = {
     },
     /** The Tree view (TreeView.tsx): AvesData's tree, opening on the orders; `all` the path's first step. `rank` the
      *  four ranks (the share images' totals); `layout` the Display panel's Layout choice, `layouts` its three choices (a
-     *  half disc, a full circle, rows top to bottom), `noRoom` why one is off; `tipOf` a fan or circle tip's count, "12 of 39".
+     *  half disc, a full circle, rows top to bottom), `small` the note under a Fan or Radial drawn under the floor; `tipOf` a fan or circle tip's count, "12 of 39".
      *  `oldest` the legend under the view (CollageView); the tree's credit is About's credits.tree.
      *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the names of the groups inside
      *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
@@ -237,7 +237,8 @@ export const EN_UI = {
       mineNone: 'No bird on the list here.',
       layout: 'Layout',
       layouts: { fan: 'Fan', circle: 'Radial', rows: 'Rectangular' },
-      noRoom: 'Not enough room for every name',
+      /** Under a Fan or Radial whose names are under the screen's floor (round 6, item 12): <rows> is a button switching to Rectangular. */
+      small: 'Names are small in this layout. <rows>Rectangular</rows> names every bird at full size.',
       tooMany: 'Too many to draw: turn on Lifers only or open a branch',
       tooManyMine: 'Too many to draw: open a branch',
       rank: { orders: 'Orders', families: 'Families', genera: 'Genera', species: 'Species' },

@@ -184,7 +184,7 @@ export const fr: Messages = {
         mineNone: 'Aucun oiseau de la liste ici.',
         layout: 'Forme',
         layouts: { fan: 'Éventail', circle: 'Radial', rows: 'Rectangulaire' },
-        noRoom: 'Pas assez de place pour tous les noms',
+        small: 'Les noms sont petits dans cette disposition. <rows>Rectangulaire</rows> affiche chaque nom en taille normale.',
         tooMany: 'Trop nombreux à dessiner : activez Seulement mes oiseaux ou ouvrez une branche',
         tooManyMine: 'Trop nombreux à dessiner : ouvrez une branche',
         rank: { orders: 'Ordres', families: 'Familles', genera: 'Genres', species: 'Espèces' },

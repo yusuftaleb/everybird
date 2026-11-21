@@ -184,7 +184,7 @@ export const it: Messages = {
         mineNone: 'Nessun uccello della lista qui.',
         layout: 'Forma',
         layouts: { fan: 'Ventaglio', circle: 'Radiale', rows: 'Rettangolare' },
-        noRoom: 'Non c’è spazio per tutti i nomi',
+        small: 'In questa disposizione i nomi sono piccoli. <rows>Rettangolare</rows> mostra ogni nome a grandezza piena.',
         tooMany: 'Troppi da disegnare: attiva Solo i miei uccelli o apri un ramo',
         tooManyMine: 'Troppi da disegnare: apri un ramo',
         rank: { orders: 'Ordini', families: 'Famiglie', genera: 'Generi', species: 'Specie' },

@@ -19,9 +19,8 @@ export const TREE_FOOTER = `${FOOTER_LINE} · Tree: AvesData, CC BY 4.0`
 
 /** The level the view had open when Share was pressed: the country the map has open (`names`: how the map names its
  *  places, in the UI language), or the tree's (`mine`: its "Lifers only" switch; `layout`: the layout on screen, which
- *  every tree image draws, or the dialog's Arrangement row's; `rank`: the rank the tree draws (its Level), which every tree image and poster draws too, and the file's name says; `time`: its "Time scale" switch, on unless false; `fits`:
- *  whether the Fan and the Radial name every tip on screen, for that row's reasons). */
-export type ShareAt = { place?: string; names?: (key: string) => string; tree?: TreeLevel; rank?: TipRank; mine?: boolean; layout?: TreeLayout; time?: boolean; fits?: Record<'fan' | 'circle', boolean> }
+ *  every tree image draws, or the dialog's Arrangement row's; `rank`: the rank the tree draws (its Level), which every tree image and poster draws too, and the file's name says; `time`: its "Time scale" switch, on unless false). */
+export type ShareAt = { place?: string; names?: (key: string) => string; tree?: TreeLevel; rank?: TipRank; mine?: boolean; layout?: TreeLayout; time?: boolean }
 /** A total a view image can draw on top: the Map's species and countries, the Tree's species, genera, families and orders. */
 export type TotalKey = 'species' | 'countries' | 'genera' | 'families' | 'orders'
 /** `all` (an image's totals, in its order) kept to those `chosen` (the dialog's Totals row; unset, every one). */

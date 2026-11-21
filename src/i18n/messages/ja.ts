@@ -186,7 +186,7 @@ export const ja: Messages = {
         mineNone: 'ここにはリストの鳥がいません。',
         layout: 'レイアウト',
         layouts: { fan: '扇形', circle: '放射状', rows: '矩形' },
-        noRoom: 'すべての名前が入りきりません',
+        small: 'この表示では名前が小さくなります。<rows>矩形</rows>ならすべての名前を通常の大きさで表示します。',
         tooMany: '多すぎて描けません：自分の鳥だけをオンにするか、枝を開いてください',
         tooManyMine: '多すぎて描けません：枝を開いてください',
         rank: { orders: '目', families: '科', genera: '属', species: '種' },

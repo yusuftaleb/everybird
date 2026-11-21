@@ -184,7 +184,7 @@ export const nl: Messages = {
         mineNone: 'Hier staat geen vogel van de lijst.',
         layout: 'Vorm',
         layouts: { fan: 'Waaier', circle: 'Radiaal', rows: 'Rechthoekig' },
-        noRoom: 'Niet genoeg ruimte voor alle namen',
+        small: 'De namen zijn klein in deze weergave. <rows>Rechthoekig</rows> toont elke naam op volle grootte.',
         tooMany: 'Te veel om te tekenen: zet Alleen mijn vogels aan of open een tak',
         tooManyMine: 'Te veel om te tekenen: open een tak',
         rank: { orders: 'Ordes', families: 'Families', genera: 'Geslachten', species: 'Soorten' },

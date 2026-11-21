@@ -184,7 +184,7 @@ export const da: Messages = {
         mineNone: 'Ingen fugl fra listen her.',
         layout: 'Form',
         layouts: { fan: 'Vifte', circle: 'Radial', rows: 'Rektangulær' },
-        noRoom: 'Ikke plads til alle navne',
+        small: 'Navnene er små i dette layout. <rows>Rektangulær</rows> viser hvert navn i fuld størrelse.',
         tooMany: 'For mange at tegne: slå Kun mine fugle til, eller åbn en gren',
         tooManyMine: 'For mange at tegne: åbn en gren',
         rank: { orders: 'Ordener', families: 'Familier', genera: 'Slægter', species: 'Arter' },

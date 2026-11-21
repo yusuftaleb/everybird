@@ -186,7 +186,7 @@ export const zhHant: Messages = {
         mineNone: '這裡沒有清單上的鳥。',
         layout: '版面',
         layouts: { fan: '扇形', circle: '放射狀', rows: '矩形' },
-        noRoom: '空間不足，無法顯示所有名稱',
+        small: '此版面中名稱較小。<rows>矩形</rows>版面可依正常大小顯示所有名稱。',
         tooMany: '太多，無法繪製：請開啟「只顯示我的鳥」或展開一個分支',
         tooManyMine: '太多，無法繪製：請展開一個分支',
         rank: { orders: '目', families: '科', genera: '屬', species: '種' },
