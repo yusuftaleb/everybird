@@ -1,10 +1,18 @@
-/* The Map view (MapView.tsx): the path above the map (the Places breadcrumb's .eb-path, filters.css) with the legend
-   ramp at the right of its row, land in Surface, a step darker than the page, each place with species on one continuous
-   scale in the ramp (Accent over Paper, the fill set per path, RAMP in shapes.ts), hairline Paper borders on every
-   shape, the hovered place and the open one outlined in Ink over their own fill ([data-edge], drawn last), then the list of
-   the shown level's places in one to three columns. */
+/* The Map view (MapView.tsx): the legend ramp at the top right, the world's land in Surface, a step darker than the page,
+   each country with species on one continuous scale in the ramp (Accent over Paper, the fill set per path, RAMP in
+   shapes.ts), hairline Paper borders on every shape at every zoom, the hovered country outlined in Ink over its own fill
+   ([data-edge], drawn last); under the map the zoom row (the caption, then − and + at the right, and a reset once
+   zoomed), then the list of the countries in one to three columns. */
 .eb-map { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; min-width: 0; }
-.eb-map-pic { position: relative; }
+.eb-map-pic {
+  position: relative;
+  border-radius: calc(8px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-map-pic:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+/* At the whole world a one-finger swipe scrolls the page (and two fingers pinch the map); once zoomed a drag pans it. */
+.eb-map-art { touch-action: pan-y; }
+.eb-map-pic[data-zoomed] .eb-map-art { touch-action: none; cursor: grab; }
+.eb-map-pic[data-zoomed] .eb-map-art:active { cursor: grabbing; }
 .eb-map-svg { display: block; width: 100%; height: auto; max-height: 70vh; animation: eb-map-in .28s cubic-bezier(.16, 1, .3, 1) both; }
 .eb-map-wait { aspect-ratio: 2000 / 983; background: var(--surface); border-radius: 8px; animation: none; }
 @keyframes eb-map-in { from { opacity: 0; transform: scale(.985); } }
@@ -17,55 +25,46 @@
   vector-effect: non-scaling-stroke;
   transition: fill .15s var(--ease-ui);
 }
-.eb-map-svg path[data-opens] { cursor: pointer; }
-/* The hovered or open place's outline: the stroke of its own path, which keeps its fill (set on the path) and is drawn
-   after every other shape (MapView, mapDrawOrder), so its whole edge shows: one Ink line, the same width at every zoom. */
+/* The hovered country's outline: the stroke of its own path, which keeps its fill (set on the path) and is drawn after
+   every other shape (MapView, mapDrawOrder), so its whole edge shows: one Ink line, the same width at every zoom. */
 .eb-map-svg path[data-edge] { stroke: var(--ink); stroke-width: 1.5px; stroke-linecap: round; }
 
 /* The tooltip: the bird tooltip's card look (card-list.css .eb-card.eb-tip), above the pointer, its side by where the
    pointer is so it never runs off the map. */
-.eb-map-tip { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; white-space: nowrap; transform: translate(-50%, calc(-100% - 12px)); }
+.eb-map-tip { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; white-space: nowrap; pointer-events: none; transform: translate(-50%, calc(-100% - 12px)); }
 .eb-map-tip[data-side="start"] { transform: translate(-12px, calc(-100% - 12px)); }
 .eb-map-tip[data-side="end"] { transform: translate(calc(-100% + 12px), calc(-100% - 12px)); }
 .eb-map-tip-name { font-weight: 600; font-size: 14px; color: var(--ink); }
 
-/* The row above the map: the path on the left, the legend at the right; under the path, still at the right, when the
-   two don't share a line. The path's earlier steps take a 44px press (filters.css, with the Places breadcrumb's). */
-.eb-map-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; width: 100%; }
-.eb-map-head > .eb-map-path { flex: 0 1 auto; min-width: 0; min-height: 24px; }
+/* The row above the map: the legend at its right. */
+.eb-map-head { display: flex; width: 100%; }
 
-/* The legend: the lowest count, one continuous ramp, the highest; pushed to the row's end (margin-inline-start: auto),
-   its own contents at its end too, so on a line of its own it is still right-aligned. */
+/* The legend: the lowest count, one continuous ramp, the highest, at the row's end. */
 .eb-map-head > .eb-map-legend { display: flex; flex: 0 1 auto; justify-content: flex-end; align-items: center; gap: 8px; margin: 0 0 0 auto; }
 .eb-map-legend i { flex: 0 1 200px; min-width: 48px; height: 8px; border-radius: 4px; }
 /* The counts never wrap ("426 SPECIES" on one line); only the ramp gives way. */
 .eb-map-legend span { flex: none; white-space: nowrap; }
 
-/* The list under the map: the shown level's places, most species first down each column (one on phones, two on medium
-   screens, three from 1024px), the flag, the full name (wrapping, never cut) and the count beside it. A row that opens
-   is a button (a 44px row with the chevron pointing in); the others are plain. */
+/* Under the map: the caption (Muted mono) and, at the right, the quiet 44px icon buttons (reset once zoomed, −, +).
+   On a narrow map the caption wraps and the buttons keep their place at the right. */
+.eb-map-zoom { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.eb-map-hint { flex: 1 1 12em; min-width: 0; margin: 0; color: var(--muted); }
+.eb-map-zoom-btns { display: flex; flex: none; gap: 8px; margin-left: auto; }
+.eb-map-zoom-btn { width: 44px; padding: 0; }
+.eb-map-zoom-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* The list under the map: the countries, most species first down each column (one on phones, two on medium screens,
+   three from 1024px), the flag, the full name (wrapping, never cut) and the count beside it. */
 .eb-map-list { list-style: none; margin: 0 -8px; padding: 0; columns: 1; column-gap: 16px; }
 .eb-map-list > li { position: relative; break-inside: avoid; } /* each row holds its own .eb-sr text: never far below the columns */
 @media (min-width: 601px) { .eb-map-list { columns: 2; } }
 @media (min-width: 1024px) { .eb-map-list { columns: 3; } }
 /* The flag: the Places filter's (components/Flag, filters.css .eb-flag) in its 18×13 slot (.eb-flag-slot), kept empty
    for a place without one so the names line up. */
-.eb-map-row {
-  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 8px; box-sizing: border-box;
-  border: 0; background: none; color: var(--ink); font: inherit; text-align: left;
-  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-  -webkit-tap-highlight-color: transparent;
-}
-button.eb-map-row { cursor: pointer; }
-button.eb-map-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.eb-map-row { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 8px; box-sizing: border-box; color: var(--ink); }
 .eb-map-row-name { min-width: 0; overflow-wrap: break-word; padding-block: 6px; }
 .eb-map-row .eb-count { flex: none; }
-.eb-map-row-go { flex: none; width: 16px; height: 16px; margin-left: auto; color: var(--muted); transform: rotate(-90deg); }
 .eb-map-all { align-self: flex-start; }
-@media (hover: hover) and (pointer: fine) {
-  button.eb-map-row:hover { background: var(--surface); }
-  button.eb-map-row:hover .eb-map-row-go { color: var(--ink); }
-}
 @media (prefers-reduced-motion: reduce) {
   .eb-map-svg { animation: none; }
   .eb-map-svg path { transition: none; }

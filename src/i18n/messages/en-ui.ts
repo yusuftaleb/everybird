@@ -133,11 +133,14 @@ export const EN_UI = {
       collage: 'Collage',
       list: 'List',
       map: 'Map',
-      /** The Map view (MapView): the first step of the path above the map ("World / Canada"), "Show all" under its list
-       *  ({n} the number of places), and the note when its shapes don't load. */
-      mapWorld: 'World',
+      /** The Map view (MapView): "Show all" under its list ({n} the number of places), the note when its shapes don't
+       *  load, the caption under the map (how to zoom and pan), and its buttons' names (+, −, and back to the whole world). */
       mapAll: 'Show all {n}',
       mapFailed: "Couldn't load the map. The list below has the same counts.",
+      mapHint: 'Pinch or +/− to zoom · drag to pan',
+      mapZoomIn: 'Zoom in',
+      mapZoomOut: 'Zoom out',
+      mapReset: 'Show the whole world',
       tree: 'Tree',
       heaviestFirst: 'Heaviest first',
       lightestFirst: 'Lightest first',
@@ -311,8 +314,6 @@ export const EN_UI = {
     allOf: 'All of {place}',
     /** The drill buttons' aria-labels (PlacesDrill: a row's places, one level down). */
     drill: { continent: 'Show countries in {place}', country: 'Show states and provinces in {place}', province: 'Show counties in {place}' },
-    /** The Map view's list under the map, inside a country or a province (its accessible name). */
-    group: { country: 'States and provinces in {place}', province: 'Counties in {place}' },
     none: 'No places on this list.',
     emptyFiltered: 'No places here under the other filters.',
     emptyNow: 'No places here on your list now.',
