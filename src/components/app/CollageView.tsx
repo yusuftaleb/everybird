@@ -394,7 +394,8 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
             )}
           </>
         )}
-        onFind={() => { filtersUi.close(); closePanel() }}
+        onOpening={() => { filtersUi.close(); closePanel() }}
+        panelOpen={frozen}
       />
 
       {/* Everything under the dock: dimmed and inert while the Filters popover is open (a press there closes it). */}
