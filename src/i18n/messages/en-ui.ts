@@ -712,8 +712,8 @@ export const EN_UI = {
        *  round 6, item 22: a poster draws the screen's Level). */
       downTo: 'Level',
       inches: '{w} × {h} in',
-      sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px at 150 dpi',
-      sizeLineIn: '{w} × {h} in · {pw} × {ph} px at 150 dpi',
+      sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px at 300 dpi',
+      sizeLineIn: '{w} × {h} in · {pw} × {ph} px at 300 dpi',
       make: 'Make poster',
       making: 'Making the poster',
       makingNote: 'Making the poster.',

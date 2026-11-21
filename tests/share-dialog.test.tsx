@@ -641,7 +641,7 @@ describe('share dialog', () => {
     // No Goal: posters never draw one.
     expect([...list.children].map(label)).toEqual(['Poster size', 'Arrangement', 'Appearance', 'Count', 'Show latest lifer', 'Show species names', 'Transparent background'])
     expect(list.nextElementSibling).toBe(screen.getByTestId('share-bulk'))
-    expect(list.firstElementChild).toHaveTextContent('A2 · 42 × 59.4 cm · 2480 × 3508 px at 150 dpi')
+    expect(list.firstElementChild).toHaveTextContent('A2 · 42 × 59.4 cm · 4961 × 7016 px at 300 dpi')
     expect(screen.getByRole('button', { name: 'Poster size A2' })).toHaveAttribute('aria-haspopup', 'menu')
   })
 
@@ -922,13 +922,13 @@ describe('share dialog: print mode', () => {
     expect(screen.getAllByRole('menuitemradio').map((b) => [b.textContent, b.getAttribute('aria-checked')])).toEqual(
       [['A4', 'false'], ['A3', 'false'], ['A2', 'true'], ['A1', 'false'], ['12 × 18 in', 'false'], ['18 × 24 in', 'false'], ['24 × 36 in', 'false']])
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'A2' }))
-    expect(screen.getByText('A2 · 42 × 59.4 cm · 2480 × 3508 px at 150 dpi')).toBeInTheDocument()
+    expect(screen.getByText('A2 · 42 × 59.4 cm · 4961 × 7016 px at 300 dpi')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Make poster' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Share image' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Download image' })).toBeNull()
     pickMenu('Poster size', 'A4')
-    expect(screen.getByText('A4 · 21 × 29.7 cm · 1240 × 1754 px at 150 dpi')).toBeInTheDocument()
+    expect(screen.getByText('A4 · 21 × 29.7 cm · 2480 × 3508 px at 300 dpi')).toBeInTheDocument()
     pickMenu('Poster size', 'A2')
     // The preview is the poster's, in the dialog's theme, at the chosen size.
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', printSize: 'A2', theme: 'light' }))
@@ -1292,7 +1292,7 @@ describe('the orientation switch', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Horizontal' }))
     expect((screen.getByRole('button', { name: 'Horizontal' }) as HTMLButtonElement).disabled).toBe(false)
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'printLandscape', printSize: 'A2' }))
-    expect(screen.getByText('A2 · 59.4 × 42 cm · 3508 × 2480 px at 150 dpi')).toBeInTheDocument()
+    expect(screen.getByText('A2 · 59.4 × 42 cm · 7016 × 4961 px at 300 dpi')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
     await waitFor(() => expect(makes).toHaveLength(1))
     expect(makes[0].opts).toMatchObject({ size: 'A2', landscape: true })
@@ -1312,12 +1312,12 @@ describe('the orientation switch', () => {
   it('US poster sizes show inches, keep data-size on the preview, name files in inches and track us24x36', async () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} print onClose={() => {}} />)
     pickMenu('Poster size', '24 × 36 in')
-    expect(screen.getByText('24 × 36 in · 3600 × 5400 px at 150 dpi')).toBeInTheDocument()
+    expect(screen.getByText('24 × 36 in · 7200 × 10800 px at 300 dpi')).toBeInTheDocument()
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0]).toMatchObject({ format: 'print', printSize: 'US24x36' }))
     await act(async () => renders.at(-1)!.resolve(new Blob(['png'], { type: 'image/png' })))
     await waitFor(() => expect(screen.getByTestId('share-preview')).toHaveAttribute('data-size', 'US24x36'))
     fireEvent.click(screen.getByRole('button', { name: 'Horizontal' }))
-    expect(screen.getByText('36 × 24 in · 5400 × 3600 px at 150 dpi')).toBeInTheDocument()
+    expect(screen.getByText('36 × 24 in · 10800 × 7200 px at 300 dpi')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
     await waitFor(() => expect(makes).toHaveLength(1))
     expect(makes[0].opts).toMatchObject({ size: 'US24x36', landscape: true })
