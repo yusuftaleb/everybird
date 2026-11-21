@@ -1,7 +1,7 @@
 // Which rows the share dialog shows, by what it draws and whether it is Print. Pure, so it is tested on its own.
 // The collage (from Collage or List) has the sticker options; the Tree and Map draw their own picture, in Share and in
 // Print alike, so they show only what that drawing reads: the Tree its Arrangement (Fan, Radial or Rectangular: the
-// dock's Layout), Totals (species, genera, families and orders, each on or off), Show oldest lineage and Lifers only (and
+// dock's Layout), Totals (species, genera, families and orders, each on or off), Show oldest lineage, Lifers only and Time scale (and
 // in Print, Down to: the screen's rank or the next one down, round 6), the Map Totals (species and countries). Compare
 // (Share only) draws its comparison card or wish list: What (Comparison | Wish list), Appearance and Transparent
 // background, nothing else. dialogTitle names what is shared or printed: the collage, the map or the tree.
@@ -79,6 +79,8 @@ export type DialogRows = {
   /** The Tree poster's Down to: the screen's rank or the next one down (the dialog hides it when the screen shows the species). */
   treeDepth: boolean
   oldest: boolean
+  /** The Tree's Time scale (the dock's switch): its ages, axis and rings, or the splits spaced evenly (round 6, item 12). */
+  timeScale: boolean
   /** Show species names (the collage poster). */
   names: boolean
   lifersOnly: boolean
@@ -102,6 +104,7 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
     treeLayout: subject === 'tree',
     treeDepth: subject === 'tree' && print,
     oldest: subject === 'tree',
+    timeScale: subject === 'tree',
     names: collage && print,
     lifersOnly: subject === 'tree',
     totals: subject === 'tree' || subject === 'map' ? VIEW_TOTALS[subject] : [],
@@ -112,7 +115,7 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
 }
 
 /** One row of the options list. */
-export type OptionRow = 'what' | 'size' | 'treeDepth' | 'arrangement' | 'treeLayout' | 'colours' | 'count' | 'totals' | 'latest' | 'names' | 'lifersOnly' | 'oldest' | 'transparent' | 'goal'
+export type OptionRow = 'what' | 'size' | 'treeDepth' | 'arrangement' | 'treeLayout' | 'colours' | 'count' | 'totals' | 'latest' | 'names' | 'lifersOnly' | 'timeScale' | 'oldest' | 'transparent' | 'goal'
 
 /**
  * The options list, top to bottom (round 6, the maintainer's layout): Compare's What or Print's Poster size first (the
@@ -123,7 +126,7 @@ export type OptionRow = 'what' | 'size' | 'treeDepth' | 'arrangement' | 'treeLay
 export function optionRows(rows: DialogRows, print: boolean): OptionRow[] {
   const order: [OptionRow, boolean][] = [
     ['what', rows.what], ['size', print], ['treeDepth', rows.treeDepth], ['arrangement', rows.arrangement], ['treeLayout', rows.treeLayout], ['colours', true], ['count', rows.count], ['totals', rows.totals.length > 0],
-    ['latest', rows.latest], ['names', rows.names], ['lifersOnly', rows.lifersOnly], ['oldest', rows.oldest],
+    ['latest', rows.latest], ['names', rows.names], ['lifersOnly', rows.lifersOnly], ['timeScale', rows.timeScale], ['oldest', rows.oldest],
     ['transparent', true], ['goal', rows.goal],
   ]
   return order.filter(([, on]) => on).map(([r]) => r)

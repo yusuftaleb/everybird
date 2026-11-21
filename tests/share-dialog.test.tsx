@@ -27,7 +27,7 @@ vi.mock('@/lib/share/image', async (orig) => ({
 }))
 vi.mock('@/lib/download', () => ({ downloadBlob: vi.fn() }))
 // The Map and Tree views' own images (loaded only from those views).
-type TreeFitsCb = { onTreeFits?: (f: Record<'fan' | 'circle', boolean>) => void; deeper?: boolean; onDeeper?: (d: { rank: string; fits: Record<string, boolean> } | null) => void }
+type TreeFitsCb = { onTreeFits?: (f: Record<'fan' | 'circle', boolean>, byCard?: Record<string, Record<'fan' | 'circle', boolean>>) => void; deeper?: boolean; onDeeper?: (d: { rank: string; fits: Record<string, boolean> } | null) => void }
 const viewRenders = vi.hoisted(() => ({ map: vi.fn(async () => new Blob(['map'])), tree: vi.fn<(o?: TreeFitsCb) => Promise<Blob>>(async () => new Blob(['tree'])) }))
 vi.mock('@/lib/share/map-image', () => ({ renderMapImage: viewRenders.map }))
 vi.mock('@/lib/share/tree-image', () => ({ renderTreeImage: viewRenders.tree }))
@@ -84,12 +84,12 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); history.replaceState(null, '', '/'); delete document.documentElement.dataset.theme })
 
 describe('share dialog', () => {
-  it('"Collage title" starts from the saved title and saves as it is typed (it names the collage page too)', async () => {
+  it('"Card title" starts from the saved title and saves as it is typed (it names the collage page too)', async () => {
     const dispatch = vi.fn()
     const state = stateWith([entry('ostric2')])
     state.saved = { ...state.saved, name: "Ada's big year" }
     render(<ShareDialog state={state} dispatch={dispatch} species={species} regions={regions} onClose={() => {}} />)
-    const field = screen.getByLabelText('Collage title') as HTMLInputElement
+    const field = screen.getByLabelText('Card title') as HTMLInputElement
     expect(field.value).toBe("Ada's big year")
     fireEvent.change(field, { target: { value: 'Ada B.' } })
     expect(field.value).toBe('Ada B.')
@@ -142,7 +142,7 @@ describe('share dialog', () => {
     const state = stateWith([entry('ostric2')])
     state.saved = { ...state.saved, name: 'Birds of 2026' }
     render(<ShareDialog state={state} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    fireEvent.change(screen.getByLabelText('Collage title'), { target: { value: '  Kenya, 2026  ' } })
+    fireEvent.change(screen.getByLabelText('Card title'), { target: { value: '  Kenya, 2026  ' } })
     await waitFor(() => expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)?.[0].name).toBe('Kenya, 2026'))
     fireEvent.click(screen.getByRole('button', { name: 'Copy link' }))
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
@@ -337,8 +337,14 @@ describe('share dialog', () => {
     fireEvent.click(treeTotals.getByRole('button', { name: 'Species' }))
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ totals: ['genera'] })))
     fireEvent.click(screen.getByRole('switch', { name: 'Lifers only' }))
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: { fam: 'Struthionidae' }, mine: true, layout: 'rows' } })))
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: { fam: 'Struthionidae' }, mine: true, layout: 'rows', time: true } })))
     act(() => setTreeMine(false))
+    // Round 6, item 12: Time scale starts as the screen's switch (on unless at.time is false); off, the image has no ages.
+    const time = screen.getByRole('switch', { name: 'Time scale' })
+    expect(time).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(time)
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: expect.objectContaining({ time: false }) })))
+    fireEvent.click(time)
     // Round 6: Show oldest lineage (on at first, as Show latest lifer) and the Arrangement row, the dock's Layout menu.
     const oldest = screen.getByRole('switch', { name: 'Show oldest lineage' })
     expect(oldest).toHaveAttribute('aria-checked', 'true')
@@ -372,7 +378,7 @@ describe('share dialog', () => {
     const label = (el: Element): string => (el.getAttribute('role') === 'switch' ? el.textContent! : el.querySelector('.eb-share-optlabel')!.textContent!)
     let list = screen.getByTestId('share-options')
     // The title: its label above the field (round 2), then the list.
-    const title = screen.getByLabelText('Collage title')
+    const title = screen.getByLabelText('Card title')
     expect(title.previousElementSibling).toHaveClass('eb-share-labelrow')
     expect(title.closest('.eb-share-field')!.nextElementSibling).toBe(list)
     expect([...list.children].map(label)).toEqual(['Arrangement', 'Appearance', 'Count', 'Show latest lifer', 'Transparent background', 'Goal'])
@@ -452,6 +458,18 @@ describe('share dialog', () => {
     viewRenders.tree.mockImplementation(async () => new Blob(['tree']))
     second.unmount()
 
+    // Round 6, item 11: a render on the vertical card reports the horizontal card's fit too, so a Fan the desktop image
+    // can't draw is off before it is ever picked (and the Radial the story can draw stays on).
+    viewRenders.tree.mockClear()
+    viewRenders.tree.mockImplementation(async (o) => { o?.onTreeFits?.({ fan: true, circle: true }, { story: { fan: true, circle: true }, desktop: { fan: false, circle: true } }); return new Blob(['tree']) })
+    const fourth = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'circle' }} onClose={() => {}} />)
+    await waitFor(() => expect(arrange().getByRole('button', { name: 'Fan' })).toHaveAttribute('aria-disabled', 'true'))
+    expect(arrange().getByRole('button', { name: 'Radial' })).toHaveAttribute('aria-pressed', 'true')
+    expect(viewRenders.tree).not.toHaveBeenCalledWith(expect.objectContaining({ at: expect.objectContaining({ layout: 'fan' }) }))
+    viewRenders.tree.mockImplementation(async () => new Blob(['tree']))
+    act(() => setTreeLayout(null))
+    fourth.unmount()
+
     // Print from the Tree: the same rule, in the poster's words; a Fan prints landscape.
     render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'rows' }} print onClose={() => {}} />)
     expect(screen.getByRole('button', { name: 'Horizontal' })).toHaveAccessibleDescription('Rectangular and Radial trees print vertically')
@@ -463,7 +481,7 @@ describe('share dialog', () => {
 
   it('the title label says "(optional)" beside it and the placeholder is an example', () => {
     render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
-    const input = screen.getByLabelText('Collage title')
+    const input = screen.getByLabelText('Card title')
     expect(input).toHaveAttribute('placeholder', 'My 2024 birds')
     expect(screen.getByText('(optional)')).toBeInTheDocument()
     expect(input).toHaveAccessibleDescription('(optional) Shown as your collage’s title and on shares.')
@@ -573,7 +591,7 @@ describe('share dialog', () => {
     await waitFor(() => expect(viewRenders.tree).toHaveBeenCalledTimes(1))
     expect(viewRenders.tree.mock.calls[0]).toMatchObject([{ at: { tree: { ord: 'Struthioniformes' } }, filterLabel: expect.any(String) }])
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: {}, layout: 'rows', mine: false }, filterLabel: undefined })))
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: {}, layout: 'rows', mine: false, time: true }, filterLabel: undefined })))
     expect((viewRenders.tree.mock.lastCall as unknown as [{ entries: ListEntry[] }])[0].entries).toHaveLength(2)
     unmount()
     // Print: the poster is made for the level after Clear filters, not the one the dialog opened on.
@@ -584,7 +602,7 @@ describe('share dialog', () => {
     await waitFor(() => expect(makes).toHaveLength(1))
     viewRenders.tree.mockClear()
     await makes[0].opts.render!(2)
-    expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: {}, layout: 'rows', mine: false }, filterLabel: undefined }))
+    expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: { tree: {}, layout: 'rows', mine: false, time: true }, filterLabel: undefined }))
   })
 
   it('Appearance starts at the app\'s theme (Dark here), then the dialog\'s own; the page theme is left alone', async () => {
@@ -659,7 +677,7 @@ describe('share dialog', () => {
     for (const label of ['Historia', 'Post', 'Cuadrado']) expect(screen.getByRole('button', { name: new RegExp(label) })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Última especie nueva' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Copiar enlace' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Título del collage')).toBeInTheDocument()
+    expect(screen.getByLabelText('Título de la tarjeta')).toBeInTheDocument()
     expect(screen.getByText(/Mostrando tus filtros: /)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: es.share.clearFilters })).toBeInTheDocument()
     await waitFor(() => expect(renders).toHaveLength(1))
@@ -805,7 +823,7 @@ describe('share dialog: print mode', () => {
     const p = fakePoster({ size: 'A3' })
     await act(async () => makes[1].resolve(p))
     expect(screen.getByTestId('share-note').textContent).toBe('Your A3 poster is ready.')
-    fireEvent.change(screen.getByLabelText('Collage title'), { target: { value: 'Kenya' } })
+    fireEvent.change(screen.getByLabelText('Poster title'), { target: { value: 'Kenya' } })
     expect(p.dispose).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('button', { name: 'Download PNG' })).toBeNull()
     expect(screen.getByTestId('share-note').textContent).toBe('')
