@@ -281,6 +281,7 @@ export const pl: Messages = {
       regions: {
         latam: 'Ameryka Łacińska i Karaiby',
         me: 'Bliski Wschód',
+        mena: 'Bliski Wschód i Afryka Północna',
         'northern-africa': 'Afryka Północna',
         'eastern-africa': 'Afryka Wschodnia',
         'middle-africa': 'Afryka Środkowa',

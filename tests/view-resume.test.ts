@@ -121,11 +121,11 @@ describe('writeResume / readResume', () => {
       v: 1,
       at: 1_000,
       slices: {
-        collage: { filter: { regions: ['me', 'bogus'] }, mode: 'even', view: 'collage', listOrder: 'heaviest', sci: false },
+        collage: { filter: { regions: ['me', 'mena', 'bogus'] }, mode: 'even', view: 'collage', listOrder: 'heaviest', sci: false },
       },
     }))
     const back = mod.readResume(store, 1_000)!
-    expect(back.slices.collage?.filter).toEqual({ regions: ['me'] })
+    expect(back.slices.collage?.filter).toEqual({ regions: ['me', 'mena'] })
   })
 })
 

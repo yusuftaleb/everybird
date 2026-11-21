@@ -275,6 +275,7 @@ export const it: Messages = {
       regions: {
         latam: 'America Latina e Caraibi',
         me: 'Medio Oriente',
+        mena: 'Medio Oriente e Nord Africa',
         'northern-africa': 'Africa settentrionale',
         'eastern-africa': 'Africa orientale',
         'middle-africa': 'Africa centrale',
