@@ -9,7 +9,6 @@ import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TipRank, TreeLevel } from '@/lib/tree/levels'
 import type { TreeLayout } from '@/lib/tree-mine'
-import type { PrintSize } from './print'
 import { FOOTER_LINE, IMAGE_SCALE, SITE_LABEL, ensureViewFonts, loadStickers, paintCard, prepareCard, type CardFormat, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
 /** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone (it
@@ -20,7 +19,7 @@ export const TREE_FOOTER = `${FOOTER_LINE} · Tree: AvesData, CC BY 4.0`
 
 /** The level the view had open when Share was pressed: the country the map has open (`names`: how the map names its
  *  places, in the UI language), or the tree's (`mine`: its "Lifers only" switch; `layout`: the layout on screen, which
- *  every tree image draws, or the dialog's Arrangement row's; `rank`: the rank the tree draws, for Print's Down to; `time`: its "Time scale" switch, on unless false; `fits`:
+ *  every tree image draws, or the dialog's Arrangement row's; `rank`: the rank the tree draws (its Level), which every tree image and poster draws too, and the file's name says; `time`: its "Time scale" switch, on unless false; `fits`:
  *  whether the Fan and the Radial name every tip on screen, for that row's reasons). */
 export type ShareAt = { place?: string; names?: (key: string) => string; tree?: TreeLevel; rank?: TipRank; mine?: boolean; layout?: TreeLayout; time?: boolean; fits?: Record<'fan' | 'circle', boolean> }
 /** A total a view image can draw on top: the Map's species and countries, the Tree's species, genera, families and orders. */
@@ -38,16 +37,7 @@ export type ViewImageOpts = ShareImageOpts & {
    *  shows one that cannot as off (its reason) rather than drawing another layout without a word; `byCard` has the same
    *  for this card and its other orientation's (round 6, item 11), keyed by card format. */
   onTreeFits?: (fits: Record<'fan' | 'circle', boolean>, byCard?: Partial<Record<CardFormat, Record<'fan' | 'circle', boolean>>>) => void
-  /** The Tree poster's (Print's "Down to"): draw the rank under the one on screen, where every name prints at
-   *  TREE_NAME_MIN_PT or more at this size; at a size where it does not, the screen's rank. */
-  deeper?: boolean
-  /** The Tree poster's: called with the rank under the screen's and which sizes print it readably (DeeperFits), or null
-   *  when the screen shows the species or nothing is under its rank. */
-  onDeeper?: (deeper: DeeperFits | null) => void
 }
-/** The rank under the one on screen, and per poster size whether every one of its names prints whole at
- *  TREE_NAME_MIN_PT or more, in this orientation and arrangement. */
-export type DeeperFits = { rank: TipRank; fits: Record<PrintSize, boolean> }
 export type Area = { x: number; y: number; w: number; h: number }
 
 /** A `w` × `h` drawing fitted whole in `area` (contain), centred: its top-left corner and scale. */

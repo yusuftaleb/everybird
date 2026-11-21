@@ -12,6 +12,7 @@ import { track } from '@/lib/analytics'
 import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
 import { initialState, makeReducer } from '@/lib/list/store'
+import { buildSeen } from '@/lib/list/seen'
 import { decodeShare } from '@/lib/share/link'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -31,7 +32,7 @@ vi.mock('@/lib/share/image', async (orig) => ({
 }))
 vi.mock('@/lib/download', () => ({ downloadBlob: vi.fn() }))
 // The Map and Tree views' own images (loaded only from those views).
-type TreeFitsCb = { onTreeFits?: (f: Record<'fan' | 'circle', boolean>, byCard?: Record<string, Record<'fan' | 'circle', boolean>>) => void; deeper?: boolean; onDeeper?: (d: { rank: string; fits: Record<string, boolean> } | null) => void }
+type TreeFitsCb = { onTreeFits?: (f: Record<'fan' | 'circle', boolean>, byCard?: Record<string, Record<'fan' | 'circle', boolean>>) => void }
 const viewRenders = vi.hoisted(() => ({ map: vi.fn(async () => new Blob(['map'])), tree: vi.fn<(o?: TreeFitsCb) => Promise<Blob>>(async () => new Blob(['tree'])) }))
 vi.mock('@/lib/share/map-image', () => ({ renderMapImage: viewRenders.map }))
 vi.mock('@/lib/share/tree-image', () => ({ renderTreeImage: viewRenders.tree }))
@@ -415,26 +416,27 @@ describe('share dialog', () => {
     expect(screen.getByRole('button', { name: 'Poster size A2' })).toHaveAttribute('aria-haspopup', 'menu')
   })
 
-  it('the Tree: Fan, Radial or Rectangular in one control; the orientation follows it, the other one off with its reason', async () => {
+  it('the Tree: Fan, Radial or Rectangular in one control; no orientation control, the arrangement picks it (a Fan horizontal) in Share and Print', async () => {
     const st = stateWith([entry('ostric2')])
     viewRenders.tree.mockClear()
     const first = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'rows' }} onClose={() => {}} />)
     const arrange = () => within(screen.getByRole('group', { name: 'Arrangement' }))
     expect(arrange().getAllByRole('button').map((b) => b.textContent)).toEqual(['Fan', 'Radial', 'Rectangular'])
     expect(arrange().getByRole('button', { name: 'Rectangular' })).toHaveAttribute('aria-pressed', 'true')
-    // Rectangular is drawn vertically: Horizontal is off, saying why, and pressing it changes nothing.
-    const horizontal = screen.getByRole('button', { name: 'Horizontal' })
-    expect(horizontal).toHaveAttribute('aria-disabled', 'true')
-    expect(horizontal).toHaveAttribute('title', 'Rectangular and Radial trees are vertical')
-    expect(horizontal).toHaveAccessibleDescription('Rectangular and Radial trees are vertical')
-    fireEvent.click(horizontal)
-    expect(screen.getByRole('button', { name: 'Vertical' })).toHaveAttribute('aria-pressed', 'true')
-    // A Fan turns the image horizontal (the story becomes the desktop), and Vertical is the one off; never a Fan drawn as rows.
+    // No orientation control for the Tree (round 6, item 23): Rectangular is vertical, so the formats are Story, Post, Square.
+    expect(screen.queryByRole('group', { name: 'Orientation' })).toBeNull()
+    const formats = () => within(screen.getByRole('group', { name: 'Image format' })).getAllByRole('button')
+    expect(formats().map((b) => b.textContent)).toEqual(['Story', 'Post', 'Square'])
+    expect(formats().map((b) => b.getAttribute('aria-label'))).toEqual(['Story, 9:16', 'Post, 4:5', 'Square, 1:1'])
+    // A Fan turns the image horizontal: Desktop, Post 5:4 and Square (the story becomes the desktop); never a Fan drawn as rows.
     fireEvent.click(arrange().getByRole('button', { name: 'Fan' }))
     expect(treeLayout()).toBe('fan')
-    expect(screen.getByRole('button', { name: 'Horizontal' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Vertical' })).toHaveAccessibleDescription('Fan trees are horizontal')
+    expect(formats().map((b) => b.getAttribute('aria-label'))).toEqual(['Desktop, 16:9', 'Post, 5:4', 'Square, 1:1'])
+    expect(screen.queryByRole('group', { name: 'Orientation' })).toBeNull()
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'desktop', at: expect.objectContaining({ layout: 'fan' }) })))
+    fireEvent.click(formats()[1])
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'wide', at: expect.objectContaining({ layout: 'fan' }) })))
+    fireEvent.click(formats()[0])
     // Radial is vertical again.
     fireEvent.click(arrange().getByRole('button', { name: 'Radial' }))
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'story', at: expect.objectContaining({ layout: 'circle' }) })))
@@ -474,11 +476,13 @@ describe('share dialog', () => {
     act(() => setTreeLayout(null))
     fourth.unmount()
 
-    // Print from the Tree: the same rule, in the poster's words; a Fan prints landscape.
+    // Print from the Tree: no orientation row (and no format control, so no top row at all); Rectangular prints portrait,
+    // a Fan landscape.
     render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, layout: 'rows' }} print onClose={() => {}} />)
-    expect(screen.getByRole('button', { name: 'Horizontal' })).toHaveAccessibleDescription('Rectangular and Radial trees print vertically')
+    expect(screen.queryByRole('group', { name: 'Orientation' })).toBeNull()
+    expect(document.querySelector('.eb-share-formats')).toHaveAttribute('hidden')
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'print', at: expect.objectContaining({ layout: 'rows' }) })))
     fireEvent.click(arrange().getByRole('button', { name: 'Fan' }))
-    expect(screen.getByRole('button', { name: 'Vertical' })).toHaveAccessibleDescription('Fan trees print horizontally')
     await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'printLandscape', at: expect.objectContaining({ layout: 'fan' }) })))
     act(() => setTreeLayout(null))
   })
@@ -527,59 +531,28 @@ describe('share dialog', () => {
     expect(vi.mocked(image.packForImage).mock.calls.at(-1)![0].map((e) => e.code).sort()).toEqual(['emu1', 'ostric2'])
   })
 
-  it("Print from the Tree: Down to, the screen's rank or the next one down, only at sizes where every name prints readably", async () => {
+  it("Print from the Tree: no rank of its own; the poster draws the screen's rank, its Level, as the share image does", async () => {
+    // Round 6, item 22: Print's Down to went; the Tree's Display panel's Level picks the rank for both.
     const st = stateWith([entry('ostric2')])
-    // The poster's render reports the deeper rank and the sizes that print it (here A2 and larger).
-    const fits = { A4: false, A3: false, A2: true, A1: true, US12x18: false, US18x24: true, US24x36: true }
-    viewRenders.tree.mockClear()
-    viewRenders.tree.mockImplementation(async (o) => { o?.onDeeper?.({ rank: 'genera', fits }); return new Blob(['tree']) })
-    const first = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { ord: 'Struthioniformes' }, rank: 'families', layout: 'rows' }} print onClose={() => {}} />)
-    const depth = () => within(screen.getByRole('group', { name: 'Level' }))
-    // The row comes right after Poster size, in the rank words, at the screen's rank.
-    const labels = [...document.querySelectorAll('.eb-share-optlabel')].map((l) => l.textContent)
-    expect(labels.slice(0, 2)).toEqual(['Poster size', 'Level'])
-    expect(depth().getAllByRole('button').map((b) => b.textContent)).toEqual(['Families', 'Genera'])
-    expect(depth().getByRole('button', { name: 'Families' })).toHaveAttribute('aria-pressed', 'true')
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'print', printSize: 'A2', deeper: false })))
-    fireEvent.click(depth().getByRole('button', { name: 'Genera' }))
-    expect(depth().getByRole('button', { name: 'Genera' })).toHaveAttribute('aria-pressed', 'true')
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ printSize: 'A2', deeper: true })))
-    // A4 can't print every genus readably: back to Families, Genera off with its reason (focusable, described, titled).
-    pickMenu('Poster size', 'A4')
-    const genera = depth().getByRole('button', { name: 'Genera' })
-    expect(genera).toHaveAttribute('aria-disabled', 'true')
-    expect(genera).not.toBeDisabled()
-    expect(genera).toHaveAttribute('title', 'A larger poster prints every name')
-    expect(genera).toHaveAccessibleDescription('A larger poster prints every name')
-    expect(depth().getByRole('button', { name: 'Families' })).toHaveAttribute('aria-pressed', 'true')
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ printSize: 'A4', deeper: false })))
-    fireEvent.click(genera)
-    expect(depth().getByRole('button', { name: 'Families' })).toHaveAttribute('aria-pressed', 'true')
-    first.unmount()
-
-    // No size prints them: the other reason. And the choice is not kept: each open starts at the screen's rank.
-    viewRenders.tree.mockImplementation(async (o) => { o?.onDeeper?.({ rank: 'genera', fits: Object.fromEntries(Object.keys(fits).map((k) => [k, false])) }); return new Blob(['tree']) })
-    const second = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { ord: 'Struthioniformes' }, rank: 'families', layout: 'rows' }} print onClose={() => {}} />)
-    await waitFor(() => expect(depth().getByRole('button', { name: 'Genera' })).toHaveAccessibleDescription('Too many names to print readably'))
-    expect(depth().getByRole('button', { name: 'Families' })).toHaveAttribute('aria-pressed', 'true')
-    second.unmount()
-
-    // No row at the species, nor when the render finds nothing under the screen's rank, nor in Share.
-    viewRenders.tree.mockImplementation(async (o) => { o?.onDeeper?.(null); return new Blob(['tree']) })
-    const third = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: { fam: 'Struthionidae' }, rank: 'species', layout: 'rows' }} print onClose={() => {}} />)
-    expect(screen.queryByRole('group', { name: 'Level' })).toBeNull()
-    third.unmount()
-    const fourth = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, rank: 'orders', layout: 'rows' }} print onClose={() => {}} />)
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenCalled())
-    await waitFor(() => expect(screen.queryByRole('group', { name: 'Level' })).toBeNull())
-    fourth.unmount()
     viewRenders.tree.mockClear()
     viewRenders.tree.mockImplementation(async () => new Blob(['tree']))
-    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={{ tree: {}, rank: 'orders', layout: 'rows' }} onClose={() => {}} />)
-    await waitFor(() => expect(viewRenders.tree).toHaveBeenCalledTimes(1))
+    const at = { tree: { ord: 'Struthioniformes' }, rank: 'families' as const, layout: 'rows' as const }
+    const poster = render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={at} print onClose={() => {}} />)
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ format: 'print', printSize: 'A2', at: expect.objectContaining({ rank: 'families' }) })))
     expect(screen.queryByRole('group', { name: 'Level' })).toBeNull()
-    expect(viewRenders.tree.mock.calls[0][0]).not.toHaveProperty('deeper')
-    expect(viewRenders.tree.mock.calls[0][0]).not.toHaveProperty('onDeeper')
+    expect([...document.querySelectorAll('.eb-share-optlabel')].map((l) => l.textContent)).not.toContain('Level')
+    // A size changes nothing about the rank.
+    pickMenu('Poster size', 'A4')
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ printSize: 'A4', at: expect.objectContaining({ rank: 'families' }) })))
+    for (const [o] of viewRenders.tree.mock.calls) {
+      expect(o).not.toHaveProperty('deeper')
+      expect(o).not.toHaveProperty('onDeeper')
+    }
+    poster.unmount()
+    viewRenders.tree.mockClear()
+    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} view="tree" at={at} onClose={() => {}} />)
+    await waitFor(() => expect(viewRenders.tree).toHaveBeenLastCalledWith(expect.objectContaining({ at: expect.objectContaining({ rank: 'families' }) })))
+    expect(screen.queryByRole('group', { name: 'Level' })).toBeNull()
   })
 
   it('in the Tree, Clear filters draws the level the tree then shows (the page passes it live), in the image and in Print', async () => {
@@ -1612,5 +1585,54 @@ describe('a menu never resizes the dialog (round 6, item 20)', () => {
     openBulk()
     await settle()
     expect(inputs()[0]).not.toBe(closed)
+  })
+})
+
+// Round 6, item 21: Export in batches' "Count repeat sightings", for the place and year splits.
+describe('Export in batches: Count repeat sightings (round 6, item 21)', () => {
+  const rules = { hideHeard: false, hideDead: false, researchOnly: false }
+  const edits = { added: [], removed: [], fixes: {}, marks: {} }
+  // An Ostrich seen in Canada in 2020 (its lifer) and in Kenya in 2023.
+  const list = [entry('ostric2')]
+  const seen = buildSeen([{ code: 'ostric2', source: 'ebird', date: '2020-05', place: { country: 'CA' }, seen: ['2020-05|CA', '2023-02|KE'], seenMonths: ['2020-05|CA', '2023-02|KE'] }], edits, rules, list)
+  const withRegions = { ...regions, countries: { CA: 'Canada', KE: 'Kenya' } }
+  const open = (basis?: 'seen') => {
+    render(<ShareDialog state={{ ...stateWith(list), seen, filter: { ...initialState().filter, ...(basis ? { basis } : {}) } }} dispatch={() => {}} species={species} regions={withRegions} onClose={() => {}} />)
+    openBulk()
+  }
+  const sw = () => screen.queryByRole('switch', { name: 'Count repeat sightings' })
+
+  it('shows for Country, Continent, State or province and Year only, starting as the page\'s switch (off)', () => {
+    open()
+    expect(sw()).toBeNull() // Number of birds
+    pickMenu('Split by', 'Family')
+    expect(sw()).toBeNull()
+    pickMenu('Split by', 'Country')
+    expect(sw()).toHaveAttribute('aria-checked', 'false')
+    // Off: the Ostrich once, in Canada, where it was first recorded.
+    expect(screen.getByTestId('bulk-count').textContent).toBe('1 image')
+    fireEvent.click(sw()!)
+    expect(sw()).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByTestId('bulk-count').textContent).toBe('2 images')
+    for (const split of ['Continent', 'State or province', 'Year']) {
+      pickMenu('Split by', split)
+      expect(sw(), split).toBeInTheDocument()
+    }
+  })
+
+  it('starts on when the page counts repeat sightings', () => {
+    open('seen')
+    pickMenu('Split by', 'Year')
+    expect(sw()).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByTestId('bulk-count').textContent).toBe('2 images')
+    fireEvent.click(sw()!)
+    expect(screen.getByTestId('bulk-count').textContent).toBe('1 image')
+  })
+
+  it('is not shown for a list with no repeat sightings to count', () => {
+    render(<ShareDialog state={stateWith(list)} dispatch={() => {}} species={species} regions={withRegions} onClose={() => {}} />)
+    openBulk()
+    pickMenu('Split by', 'Country')
+    expect(sw()).toBeNull()
   })
 })

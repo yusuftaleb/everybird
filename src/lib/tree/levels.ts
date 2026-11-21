@@ -9,8 +9,8 @@
 // (Owls' two families open at their genera) while the next rank stays within MAX_TIPS, and a group of SPECIES_AT
 // species or fewer opens straight at its species. MAX_TIPS guards the skip past lone tips: a rank it skips to that
 // would draw more tips is not drawn (the rank above it is); on the shipped tree it never applies.
-// Print's "Down to" (round 6, "One step + size") may draw the poster one rank deeper: `rank` 'deeper' is the next rank
-// under the one on screen, past lone tips the same way, with no MAX_TIPS guard (the poster's 9 pt check decides).
+// A Tree poster draws the rank on screen, its Level, as the share image does (round 6, item 22: Print's own "Down to",
+// one rank deeper, went).
 // A group the tree splits (not one branch of its own) is drawn once (`foldSplit`), as one marked row at the smallest
 // branch holding all of it within the open branch ("Macropygia with Turacoena"), counting the whole branch; the groups
 // inside get no row of their own. When such a branch lies inside another, the outer one is the row.
@@ -174,12 +174,11 @@ export const SMALL_STEP = 3
  * The rows and drawing of `level`, with `onList` the codes on the (filtered) list. `mine` ("Lifers only") keeps only the
  * rows with a bird on the list, and inside a marked row only those groups: the folds are decided on the full tree first,
  * then the tree is cut down to the kept rows' tips. The tips are the rank one step under the open branch, past lone
- * tips (see the header); `rank` draws another rank at or under it instead (the unit tests read the folds at every rank),
- * or 'deeper' the rank under the one on screen (Print's "Down to"; undefined when the screen shows the species).
+ * tips (see the header); `rank` draws another rank at or under it instead (the unit tests read the folds at every rank).
  * `down`, the Display panel's Down to (round 6): the deeper of it and that step is drawn, within DRAW_CAP tips.
  * Undefined when nothing is drawn (with `mine`, rows are empty instead).
  */
-export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, onList: ReadonlySet<string>, mine = false, rank?: TipRank | 'deeper', down?: TipRank): LevelView | undefined {
+export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, onList: ReadonlySet<string>, mine = false, rank?: TipRank, down?: TipRank): LevelView | undefined {
   const rowOf = (tip: number) => species.byCode.get(tree.code[tip]!)
   const all: number[] = []
   for (const tip of tree.tipOf.values()) if (rowOf(tip)) all.push(tip)
@@ -221,7 +220,7 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   // species for a group of SPECIES_AT species or fewer. Nothing open: the orders.
   let ri = 0
   const skipLone = () => { while (ri < offered.length - 1 && rankAt(offered[ri]).count === 1) ri++ }
-  if (rank && rank !== 'deeper' && offered.includes(rank)) ri = offered.indexOf(rank)
+  if (rank && offered.includes(rank)) ri = offered.indexOf(rank)
   else if (depthOf(at) > 0) {
     skipLone()
     // A smarter step (round 6): a rank of SMALL_STEP groups or fewer is not worth a step, so the next rank down is
@@ -234,17 +233,12 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   // rank over DRAW_CAP tips here falls back to the deepest one within it (the choice itself is kept). The row offers the
   // ranks from the step down to the species, each with its count.
   const stepAt = ri
-  if (down && (rank === undefined || rank === 'deeper')) {
+  if (down && rank === undefined) {
     let di = offered.indexOf(down)
     while (di > ri && rankAt(offered[di]).count > DRAW_CAP) di--
     if (di > ri) ri = di
   }
   const downTo = offered.slice(stepAt).map((r) => ({ rank: r, n: rankAt(r).count }))
-  if (rank === 'deeper') {
-    if (ri === offered.length - 1) return undefined
-    ri++
-    skipLone()
-  }
   const drawnRank = offered[ri]
   const { rawKey, folds, keyOf } = rankAt(drawnRank)
 

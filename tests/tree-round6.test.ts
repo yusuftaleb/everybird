@@ -194,10 +194,6 @@ describe("Down to: the rank drawn at the least, the Display panel's (round 6)", 
     expect(downOptions(levelView(t, idx, { ord: 'Big' }, none)!, false).at(-1)).toEqual({ rank: 'species', off: 'tooMany' })
     expect(levelView(t, idx, { ord: 'Big', fam: 'Fb0' }, none, false, undefined, 'species')!.tips).toBe('species')
   })
-  it("the poster's rank under the screen's is under the chosen one", () => {
-    expect(levelView(t, idx, {}, none, false, 'deeper', 'families')!.tips).toBe('genera')
-    expect(levelView(t, idx, {}, none, false, 'deeper')!.tips).toBe('families')
-  })
   it('the choice is kept on the device; an unknown value reads as none', () => {
     setTreeDown('genera')
     expect(treeDown()).toBe('genera')

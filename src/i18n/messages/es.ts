@@ -480,7 +480,6 @@ export const es: Messages = {
       /** The orientation switch above the format control (Vertical or Horizontal; Square has neither). */
       orientation: { group: 'Orientación', vertical: 'Vertical', horizontal: 'Horizontal' },
       countSize: { label: 'Número', small: 'Pequeño', medium: 'Mediano', large: 'Grande', hide: 'Ocultar', title: 'Junto al título', short: { small: 'S', medium: 'M', large: 'L' } },
-      orientNote: { fan: 'Los árboles en abanico son horizontales', upright: 'Los árboles rectangulares y radiales son verticales' },
       preview: { story: 'Vista previa de la imagen de historia', post: 'Vista previa de la imagen de publicación', square: 'Vista previa de la imagen cuadrada', desktop: 'Vista previa de la imagen de escritorio', wide: 'Vista previa de la imagen de publicación horizontal' },
       failed: 'No se pudo crear la imagen.',
       imageFailed: 'No se pudo crear la imagen. Inténtalo de nuevo.',
@@ -539,9 +538,6 @@ export const es: Messages = {
         nameLabel: 'Título del póster',
         size: 'Tamaño del póster',
         downTo: 'Nivel',
-        deeperLarger: 'En un póster más grande caben todos los nombres',
-        deeperNone: 'Demasiados nombres para imprimirlos de forma legible',
-        orientNote: { fan: 'Los árboles en abanico se imprimen en horizontal', upright: 'Los árboles rectangulares y radiales se imprimen en vertical' },
         inches: '{w} × {h} pulg.',
         sizeLine: '{size} · {w} × {h} cm · {pw} × {ph} px a 150 dpi',
         sizeLineIn: '{w} × {h} pulg. · {pw} × {ph} px a 150 dpi',

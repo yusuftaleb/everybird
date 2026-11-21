@@ -65,6 +65,7 @@
    contribution" to the body's auto row, which a grid squeezed to a definite height (the desktop body, below) may shrink
    the row to. */
 .eb-share-formats { display: flex; flex-direction: column; gap: 8px; min-width: 0; container-type: inline-size; }
+.eb-share-formats[hidden] { display: none; }
 .eb-share-toprow { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .eb-share-toprow .eb-seg { display: flex; flex: 1 1 auto; min-width: 0; }
 .eb-share-toprow .eb-seg-btn { flex: 1 1 auto; min-width: 0; padding: 0 10px; overflow-wrap: anywhere; }
