@@ -85,26 +85,31 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
     returnRef.current = returnFocus
   })
 
-  // Popover: below the anchor (above when there is no room), clamped inside the viewport. Written straight
-  // to the element's style, in a layout effect, so it is placed before paint and before focus moves in
-  // (browsers ignore focus() on hidden elements, so we never hide it).
+  // Popover: below the anchor (above when there is no room), clamped inside the viewport under the top bar. Written
+  // straight to the element's style, in a layout effect, so it is placed before paint and before focus moves in
+  // (browsers ignore focus() on hidden elements, so we never hide it). It never covers the top bar, and once a scroll
+  // takes its bird out of view (behind the bar or below the window) it closes, as the bird's own page content would
+  // go (Yusuf, 2026-11-21: it stayed over the bar).
   useLayoutEffect(() => {
     const el = ref.current
     if (!el || sheet) return
-    const place = () => {
+    const place = (scrolled = false) => {
       const a = rectOf(anchorRef.current)
       const w = el.offsetWidth, h = el.offsetHeight
       const vw = window.innerWidth, vh = window.innerHeight
+      const bar = Math.max(0, document.querySelector('.eb-topbar')?.getBoundingClientRect().bottom ?? 0)
+      if (scrolled && a && (a.bottom <= bar || a.top >= vh)) { onCloseRef.current(); return }
+      const lo = bar + MARGIN
       const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, Math.max(lo, hi)))
       let left: number, top: number
       if (!a) {
         left = clamp((vw - w) / 2, MARGIN, vw - w - MARGIN)
-        top = clamp((vh - h) / 2, MARGIN, vh - h - MARGIN)
+        top = clamp((vh - h) / 2, lo, vh - h - MARGIN)
       } else {
         const below = a.bottom + GAP
-        const t = below + h <= vh - MARGIN ? below : a.top - GAP - h >= MARGIN ? a.top - GAP - h : below
+        const t = below + h <= vh - MARGIN ? below : a.top - GAP - h >= lo ? a.top - GAP - h : below
         left = clamp(a.left + a.width / 2 - w / 2, MARGIN, vw - w - MARGIN)
-        top = clamp(t, MARGIN, vh - h - MARGIN)
+        top = clamp(t, lo, vh - h - MARGIN)
       }
       el.style.left = `${left}px`
       el.style.top = `${top}px`
@@ -121,20 +126,23 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
       }
       trail = requestAnimationFrame(step)
     }
+    let scrolled = false
     const again = () => {
       if (raf) return
       raf = requestAnimationFrame(() => {
         raf = 0
-        place()
+        place(scrolled)
+        scrolled = false
       })
     }
+    const onScroll = () => { scrolled = true; again() }
     window.addEventListener('resize', again, { passive: true })
-    window.addEventListener('scroll', again, { passive: true, capture: true })
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true })
     return () => {
       if (raf) cancelAnimationFrame(raf)
       if (trail) cancelAnimationFrame(trail)
       window.removeEventListener('resize', again)
-      window.removeEventListener('scroll', again, { capture: true })
+      window.removeEventListener('scroll', onScroll, { capture: true })
     }
   }, [anchor, sheet, entry.code, follow])
 

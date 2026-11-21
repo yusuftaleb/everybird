@@ -119,6 +119,32 @@ describe('BirdCard', () => {
     anchor.remove()
   })
 
+  it('the popover stays under the top bar and closes once a scroll takes its bird behind the bar or below the window', async () => {
+    setWidth(1000)
+    vi.stubGlobal('innerHeight', 800)
+    const bar = document.createElement('header')
+    bar.className = 'eb-topbar'
+    bar.getBoundingClientRect = () => ({ left: 0, right: 1000, top: 0, bottom: 64, width: 1000, height: 64, x: 0, y: 0, toJSON() {} })
+    document.body.append(bar)
+    let top = 90
+    const anchor = document.createElement('button')
+    anchor.getBoundingClientRect = () => ({ left: 400, right: 420, top, bottom: top + 20, width: 20, height: 20, x: 400, y: top, toJSON() {} })
+    document.body.append(anchor)
+    const onClose = vi.fn()
+    render(<BirdCard entry={full} species={species} regions={regions} anchor={anchor} onClose={onClose} />)
+    expect(parseFloat(screen.getByRole('dialog').style.top)).toBeGreaterThanOrEqual(64 + 8)
+    top = 50 // half behind the bar: still shown
+    fireEvent.scroll(window)
+    await new Promise((r) => setTimeout(r, 40))
+    expect(onClose).not.toHaveBeenCalled()
+    top = 30 // wholly behind the bar
+    fireEvent.scroll(window)
+    await new Promise((r) => setTimeout(r, 40))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    anchor.remove()
+    bar.remove()
+  })
+
   it('popover on wide screens positions inside the viewport near the anchor', () => {
     setWidth(1000)
     vi.stubGlobal('innerHeight', 800)
