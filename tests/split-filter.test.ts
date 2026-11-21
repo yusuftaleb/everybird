@@ -13,15 +13,16 @@ import { parseNewick } from '@/lib/tree/tree'
 
 const sp = (code: string, sci: string, fam: string, to: number): SpeciesRow =>
   ({ code, com: code.toUpperCase(), sci, ord: 'Ans', fam, famCom: `${fam} birds`, to, g: 10, gSrc: 'avonet', st: true, ar: 1, q: true })
-// Family Duc: genus Na (n1, n2) is split by genus Ab (a1..a3), which sits inside Na's smallest branch; Ma stands apart.
-// Fourteen species, so the family opens at its genera (over SPECIES_AT).
+// Family Duc: genus Na (n1, n2) is split by genus Ab (a1..a3), which sits inside Na's smallest branch; Ma, Pa, Qa and Ra
+// stand apart. Seventeen species in five rows, so the family opens at its genera (over SPECIES_AT and SMALL_STEP).
 const rows = [
   sp('n1', 'Na one', 'Duc', 1), sp('a1', 'Ab one', 'Duc', 2), sp('a2', 'Ab two', 'Duc', 3), sp('a3', 'Ab three', 'Duc', 4), sp('n2', 'Na two', 'Duc', 5),
   ...Array.from({ length: 9 }, (_, i) => sp(`m${i}`, `Ma m${i}`, 'Duc', 10 + i)),
+  sp('p1', 'Pa one', 'Duc', 30), sp('q1', 'Qa one', 'Duc', 31), sp('r1', 'Ra one', 'Duc', 32),
 ]
 const species = buildSpeciesIndex(rows)
 const ms = rows.filter((r) => r.code.startsWith('m')).map((r) => `${r.code}:1`).join(',')
-const tree = parseNewick(`(((n1:1,(a1:1,a2:1,a3:1):1):1,n2:3):2,(${ms}):5);`)
+const tree = parseNewick(`((((n1:1,(a1:1,a2:1,a3:1):1):1,n2:3):2,(${ms}):5):1,(p1:5,(q1:4,r1:4):1):1);`)
 const entry = (code: string): ListEntry => ({ code, date: '2024-01-01', place: { country: 'CA' } } as ListEntry)
 // On the list: one Na and two Ab ducks.
 const list = ['n1', 'a1', 'a2', 'm0'].map(entry)

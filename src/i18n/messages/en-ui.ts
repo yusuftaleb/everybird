@@ -202,7 +202,8 @@ export const EN_UI = {
      *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
      *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that is
      *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. `mineNone`
-     *  the line when the bar's Lifers only (controls.lifersOnly) leaves no row. */
+     *  the line when the bar's Lifers only (controls.lifersOnly) leaves no row. `genera` the rank line above the tree
+     *  ("29 genera"; the other ranks reuse `stats`, and with Lifers only `controls.taxaHead` and `stats.of`). */
     tree: {
       loading: 'Loading the tree',
       failed: "The tree didn't load. Open Tree again to try once more.",
@@ -236,6 +237,7 @@ export const EN_UI = {
       noRoom: 'Not enough room for every name',
       rank: { orders: 'Orders', families: 'Families', genera: 'Genera', species: 'Species' },
       tipOf: '{n} of {total}',
+      genera: { one: '{n} genus', other: '{n} genera' },
     },
     /** The close buttons' aria-label (the welcome, sheets, the Places and Time sheet). */
     close: 'Close',

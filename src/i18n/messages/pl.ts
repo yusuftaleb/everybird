@@ -192,6 +192,7 @@ export const pl: Messages = {
         noRoom: 'Za mało miejsca na wszystkie nazwy',
         rank: { orders: 'Rzędy', families: 'Rodziny', genera: 'Rodzaje', species: 'Gatunki' },
         tipOf: '{n} z {total}',
+        genera: { one: '{n} rodzaj', few: '{n} rodzaje', many: '{n} rodzajów', other: '{n} rodzajów' },
       },
       close: 'Zamknij',
       undo: 'Cofnij',

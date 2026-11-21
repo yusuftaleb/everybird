@@ -2,7 +2,9 @@
 // The one horizontal bar above the views, as LifeList's dock (framer-site), with Photography's search: the views on the
 // left (Collage / List / Map / Tree); then the panel buttons, all in the Filters button's look (Filters.tsx
 // DockPanelButton; round 6, Yusuf, 2026-11-20): Taxa (the taxonomy chips), Display (what changes how the view looks:
-// Collage and Tree only) and Filters, one panel open at a time (CollageView, dock-panels.ts); then the magnifier. In
+// Collage and Tree only) and Filters, one panel open at a time (CollageView, dock-panels.ts; a press on the dock that is
+// not one of its controls closes it, as a press outside does); then the magnifier. One open thing in the dock at a time
+// (round 6): the search and the List's sort menu close the open panel as they open, and a panel opening closes the menu. In
 // Collage and Tree nothing else sits in the bar: their switches and choices are the Display panel's (DisplayPanel.tsx).
 // List and Map keep their few controls in the bar, before the panel buttons: the Scientific switch (both; in Map it changes
 // nothing on the map, so the setting can be changed from any view), then in List the Sort menu after it (Family (with family
@@ -40,8 +42,11 @@ type Props = {
   filters?: ReactNode
   /** After the dock, inside the wrap: the active-filter chips, then the open panel's popover (right under the dock, over the chips). */
   below?: ReactNode
-  /** The search is opening (pointer or keyboard): the caller closes whatever else is open over the bar. */
-  onFind?: () => void
+  /** The search or the List's sort menu is opening (pointer or keyboard): the caller closes whatever else of the dock is
+   *  open (its panels), so one thing is open at a time (round 6). */
+  onOpening?: () => void
+  /** One of the dock's panels (Taxa, Display, Filters) is open: the sort menu closes. */
+  panelOpen?: boolean
 }
 
 /** A one-press switch in the bar: the label, its short form on narrow bars and phones (none: the label at every
@@ -60,7 +65,7 @@ function DockSwitch({ on, onChange, long, short, sr, className, title, testId }:
 /** The List view's Sort menu: a dock button with the current order (its short form on narrow bars and phones) and a
  *  caret, named "Sort: Newest first"; the menu is MenuSelect's (a check on the current order, arrows, Home, End,
  *  Escape back to the button, Tab or a press outside closes it). */
-function SortMenu({ value, onChange }: { value: ListOrder; onChange: (o: ListOrder) => void }) {
+function SortMenu({ value, onChange, shut, onOpening }: { value: ListOrder; onChange: (o: ListOrder) => void; shut: boolean; onOpening?: () => void }) {
   const { t } = useI18n()
   const c = t.collage.controls
   const id = useId()
@@ -73,17 +78,24 @@ function SortMenu({ value, onChange }: { value: ListOrder; onChange: (o: ListOrd
     setOpen(false)
     if (refocus) btn.current?.focus({ preventScroll: true })
   }
+  // One open thing in the dock at a time (round 6): opening the menu closes the open panel; a panel opening closes it.
+  const show = () => { onOpening?.(); setOpen(true) }
+  const [wasShut, setWasShut] = useState(shut)
+  if (shut !== wasShut) {
+    setWasShut(shut)
+    if (shut) setOpen(false)
+  }
   return (
     <div className="eb-dock-sortwrap">
       <button
         ref={btn} type="button" className="eb-dock-tab eb-dock-sw eb-dock-dir"
         aria-haspopup="menu" aria-expanded={open} aria-controls={open ? `${id}-menu` : undefined}
         aria-label={`${c.sort}: ${long(value)}`} data-testid="dock-sort"
-        onClick={() => (open ? close(false) : setOpen(true))}
+        onClick={() => (open ? close(false) : show())}
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault()
-            setOpen(true)
+            show()
           }
         }}
       >
@@ -103,7 +115,7 @@ function SortMenu({ value, onChange }: { value: ListOrder; onChange: (o: ListOrd
   )
 }
 
-export function ControlsBar({ view, onView, noMap, listOrder, onListOrder, sci, onSci, search, panels, filters, below, onFind }: Props) {
+export function ControlsBar({ view, onView, noMap, listOrder, onListOrder, sci, onSci, search, panels, filters, below, onOpening, panelOpen = false }: Props) {
   const [finding, setFinding] = useState(false)
   // Whether the search is open is carried over a language switch (view-resume.ts); the typed text is not.
   const hasSearch = !!search
@@ -126,7 +138,7 @@ export function ControlsBar({ view, onView, noMap, listOrder, onListOrder, sci, 
   const tools = view === 'list' ? (
     <>
       {sciSwitch}
-      <SortMenu value={listOrder} onChange={onListOrder} />
+      <SortMenu value={listOrder} onChange={onListOrder} shut={panelOpen || finding} onOpening={onOpening} />
     </>
   ) : view === 'map' ? sciSwitch : null
   return (
@@ -145,7 +157,7 @@ export function ControlsBar({ view, onView, noMap, listOrder, onListOrder, sci, 
           {panels}
           {filters}
         </div>
-        {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => { onFind?.(); setFinding(true) }} buttonRef={findBtn} /></div>}
+        {search && <div className="eb-dock-end" inert={finding}><SearchButton open={finding} onOpen={() => { onOpening?.(); setFinding(true) }} buttonRef={findBtn} /></div>}
         {search && <DockSearchField {...search} onPick={onPick} open={finding} onClose={close} within={wrap} />}
       </div>
       {below}

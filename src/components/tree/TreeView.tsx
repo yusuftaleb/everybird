@@ -14,9 +14,11 @@
 // Display panel's Time scale switch (tree-mine.ts): on, branches at their true ages over the age axis (rings and ages
 // on the Fan and Radial); off, no axis, and the splits spaced evenly by branching order (bySplits).
 // Fan and Radial (fan.ts): the root at the centre, the tips on the arc or all round, and every tip's label past it,
-// along its radius: the dot, a gap, the sticker's box, a gap, the name, the count (fitRound sizes the drawing so that
-// every name fits whole; the counts go first when room is short); the ages where no branch runs (under the fan's
-// centre; on the circle's radius straight up, on Paper, never over a branch end), the axis title under the drawing.
+// along its radius: the dot, a gap, the sticker's box, a gap, the name, the mark and groups inside of a split group,
+// the count (fitRound sizes the drawing so that every name fits whole, at 11px at the least, using the whole width;
+// the counts go first when room is short, then the sticker's box shrinks to the name's line); the ages where no branch
+// runs (under the fan's centre; in the Radial's opening at the top, RADIAL_GAP, on Paper, only where the patch fits it),
+// the axis title under the drawing. Above every layout, the rank line: the rank drawn and how many (rankCount).
 // Their rows stay in the page, visually hidden, for the keyboard and screen readers. Rectangular draws the tree top to
 // bottom in about half the width (rowsTreeW) beside the rows, which grow with their names and reach the view's right
 // edge, the counts ending there in one column. Branches have rounded corners and simply join; every tip has one small
@@ -24,8 +26,8 @@
 // list) the group's first species with a sticker, dimmed as a species off the list (groupSticker). One name per tip,
 // following the Scientific switch. Hovering a tip, or focusing it from the keyboard, turns its name Accent with an
 // underline (nothing moves); the keyboard's focus adds the outline round the name. A group the tree splits is one
-// marked row at the smallest branch holding it, "with" the groups inside it; more than two genera inside are a button
-// opening their list (PickerSheet), each opening its own species. Under it: the key (the mark and the dotted line of a
+// marked row at the smallest branch holding it, "with" the groups inside it right after its mark; more than two genera
+// inside are a button opening their list (PickerSheet), each opening its own species. Under it: the key (the mark and the dotted line of a
 // tip placed without genetic data, each when the drawing has it) and the birds the tree does not place. The credit is
 // About's. levels.ts, fan.ts and tree.ts hold the logic.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
@@ -41,8 +43,8 @@ import { loadSpecies, type SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { SpeciesRow } from '@/lib/species/types'
-import { FAN_FROM, LABEL_COUNT, LABEL_GAP, LABEL_STICKER, clearOfEnds, drawFan, fanLabel, fanRing, fitRound, ringLabels, type FanShape, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
-import { ROW_H, depthOf, rowsTreeW, genusOf, levelView, tipOn, type Inside, type LevelView, type TipRank, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
+import { FAN_FROM, LABEL_COUNT, LABEL_GAP, RADIAL_GAP, SCREEN_SIZES, drawFan, fanLabel, fanRing, fitRound, inOpening, ringLabels, type FanShape, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
+import { ROW_H, depthOf, rankCount, rowsTreeW, genusOf, levelView, tipOn, type Inside, type LevelView, type TipRank, type TreeLevel, type TreeRow } from '@/lib/tree/levels'
 import { loadTree } from '@/lib/tree/load'
 import type { OpenBranch } from '@/lib/tree/path'
 import { TREE_LAYOUTS, setTreeLayout, useTreeLayout, useTreeMine, useTreeTime, type TreeLayout } from '@/lib/tree-mine'
@@ -60,6 +62,8 @@ const ROUND_PAD = 8
 const ROW_STICKER = 24
 const MARK_W = 7 + 8
 const shapeOf = (l: TreeLayout): FanShape => (l === 'circle' ? 'circle' : 'fan')
+/** The Taxa panel head's word for each group rank (its "18 of 45 orders"). */
+const TAXA_HEAD = { orders: 'order', families: 'family', genera: 'genus' } as const
 
 type Props = {
   /** The filtered list. */
@@ -189,6 +193,14 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   const count = useCallback((n: number) => formatInt(n, t.num), [t])
   const tipOfText = useCallback((r: Tip) => (r.kind === 'group' ? fmt(tt.tipOf, { n: count(r.on), total: count(r.total) }) : ''), [tt, count])
   const tipsOf = (v: LevelView) => v.rows.filter((r): r is Tip => r.kind !== 'order')
+  /** "with Turacoena", "with Urolestes and Corvinella" (the groups folded into a row's branch, named as the row's own,
+   *  between <a> and <b> tags), or more than two genera "with 5 other genera" (a button opening their list). */
+  const withWords = useCallback((ws: Inside[], k: TipRank) => {
+    if (k === 'genera' && ws.length > 2) return plural(tt.withMany, ws.length, { n: count(ws.length) })
+    const names = ws.map((w) => nameAt(w.row, k)[0])
+    const b = names.pop()!
+    return names.length ? fmt(tt.withTwo, { a: names.join(', '), b }) : fmt(tt.withOne, { a: b })
+  }, [tt, count, nameAt])
 
   // Whether the Fan and Radial can name every tip of this level at this width (fitRound).
   const fits = useMemo(() => {
@@ -197,15 +209,18 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     const spans: LabelSpan[] = tipsOf(view).map((r) => {
       const name = r.kind === 'species' ? (sci ? r.row.sci : displayName(r.row)) : nameAt(r.row, view.tips)[0]
       const c = tipOfText(r)
+      // The mark of a split group, then right after it the groups inside (in the label's flex gap).
+      const other = r.kind === 'group' && r.with?.length ? LABEL_GAP * 13 + measure(withWords(r.with, view.tips).replace(/<\/?[ab]>/g, ''), 13, 500) : 0
       return {
-        name: (measure(name, 13, 600) + (r.kind === 'group' && r.with ? MARK_W : 0)) / 13,
+        name: (measure(name, 13, 600) + (r.kind === 'group' && r.with ? MARK_W : 0) + other) / 13,
         count: c ? measure(c, 11, 500, true) / 13 : 0,
         on: r.kind === 'species' ? r.on : r.on > 0,
       }
     })
-    for (const s of ['fan', 'circle'] as const) out[s] = fitRound(spans, s, { w: width })
+    // The Radial with its time scale opens at the top for its ages (RADIAL_GAP).
+    for (const s of ['fan', 'circle'] as const) out[s] = fitRound(spans, s, { w: width }, s === 'circle' && timeScale ? { ...SCREEN_SIZES, gap: RADIAL_GAP } : SCREEN_SIZES)
     return out
-  }, [view, width, measure, sci, nameAt, tipOfText])
+  }, [view, width, measure, sci, nameAt, tipOfText, withWords, timeScale])
 
   // The layout drawn: the one picked, else the fan from FAN_FROM px; rows until the width is known, and rows when the
   // Fan or Radial cannot name every tip.
@@ -298,21 +313,23 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     const last = names.pop()!
     return names.length ? fmt(tt.insideTwo, { a: names.join(', '), b: last, name: here }) : fmt(tt.insideOne, { a: last, name: here })
   })()
+  // The rank line: the rank drawn and how many, in the Taxa panel head's words ("29 genera"; with Lifers only leaving some
+  // out, "65 of 143 families").
+  const rankLine = (() => {
+    const { rank: k, n, total } = rankCount(shown, mine)
+    const v = { n: count(n), total: count(total ?? n) }
+    if (total === undefined) return plural(k === 'genera' ? tt.genera : t.collage.stats[k], n, v)
+    return plural(k === 'species' ? t.collage.stats.of : t.collage.controls.taxaHead[TAXA_HEAD[k]], total, v)
+  })()
   const ticks = timeScale ? ageTicks(drawing.rootAge).filter((v) => v / drawing.rootAge <= 0.97 || v === 0) : []
   /** The branch a group's tip opens: the path down to it, the ranks above it named from its row. */
   const opens = (k: TipRank, key: string, r: SpeciesRow): OpenBranch =>
     k === 'orders' ? { ord: key } : k === 'families' ? { ord: r.ord, fam: key } : { ord: lv.ord ?? r.ord, fam: lv.fam ?? r.fam, genus: key }
   const famNameOf = (k: TipRank, r: SpeciesRow) => (k === 'orders' ? undefined : k === 'families' ? familyName(r) : famRow ? familyName(famRow) : familyName(r))
 
-  /** "with Turacoena", "with Urolestes and Corvinella": the groups folded into a row's branch, named as the row's own. */
-  const withWords = (rows: Inside[]) => {
-    const names = rows.map((w) => nameAt(w.row, rank)[0])
-    const b = names.pop()!
-    return names.length ? fmt(tt.withTwo, { a: names.join(', '), b }) : fmt(tt.withOne, { a: b })
-  }
   const withText = (rows: Inside[]) => {
     const tag = (chunk: string) => <span lang={rank === 'genera' || sci ? 'la' : undefined}>{chunk}</span>
-    return rich(withWords(rows), { a: tag, b: tag })
+    return rich(withWords(rows, rank), { a: tag, b: tag })
   }
   /** More than two genera inside a marked row: a count opening their list instead of the sentence. */
   const manyOf = (r: Tip) => (rank === 'genera' && r.kind === 'group' && r.with && r.with.length > 2 ? r.with : undefined)
@@ -340,6 +357,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         data-key={r.key}
         data-tip={i}
         data-on={r.on > 0 || undefined}
+        data-many={many ? '' : undefined}
         onClick={() => go({ ...opens(rank, r.key, r.row), ...(r.holds?.length ? { with: r.holds } : {}) }, famNameOf(rank, r.row))}
         {...focusing(i)}
       >
@@ -353,11 +371,12 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         <span className="eb-sr">{marked && `, ${tt.markSr}`}, {fmt(tt.onList, { n: count(r.on), total: count(r.total) })}{r.dotted && `, ${tt.dottedSr}`}</span>
       </button>
       {many && (
-        <button type="button" className="eb-tree-with" aria-haspopup="dialog" aria-expanded={list === r.key} data-inside={many.map((w) => w.key).join(' ')} onClick={() => setList(r.key)} {...focusing(i)}>
+        <button type="button" className="eb-tree-with" aria-haspopup="dialog" aria-expanded={list === r.key} data-inside={many.map((w) => w.key).join(' ')} data-with={i} onClick={() => setList(r.key)} {...focusing(i)}>
           <span className="eb-sr" lang="la">{r.key}</span>{' '}{plural(tt.withMany, many.length, { n: count(many.length) })}
         </button>
       )}
-      {/* After the row's buttons, so every count ends at the view's right edge, one column (the name says it). */}
+      {/* After the row's buttons (the list button right after the name's mark), so every count ends at the view's right
+          edge, one column (the name says it). */}
       <span className="eb-mono eb-tree-count" aria-hidden="true">{count(r.on)} / {count(r.total)}</span>
       </>
     )
@@ -383,9 +402,8 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   // The Fan's or Radial's labels, one per tip, each named in full (fitRound): the sticker's box, the name, the count
   // where it fits. A press on one presses its row; a pointer over one marks it.
   const roundTips = fit && 'tips' in drawing ? (drawing.tips as { a: number; x: number; y: number }[]) : []
-  const ends = fit && 'ends' in drawing ? (drawing.ends as [number, number][]) : []
   const px = fit?.px ?? 13
-  const S = px * LABEL_STICKER
+  const S = fit?.st ?? 24
   const tipAt = (e: MouseEvent) => (e.target as Element).closest('[data-i]')?.getAttribute('data-i')
   const onFanClick = (e: MouseEvent) => {
     const i = tipAt(e)
@@ -393,6 +411,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
     const r = tips[Number(i)]
     // A bird's card opens by its label on the drawing (its row is out of sight); a group opens as its row does.
     const el = box.current?.querySelector<HTMLElement>(`.eb-tree-fan-label[data-i="${i}"]`)
+    if ((e.target as Element).closest('[data-many]')) { box.current?.querySelector<HTMLElement>(`.eb-tree-rows [data-with="${i}"]`)?.click(); return }
     if (r.kind === 'species') { if (r.on && el) onPick(r.row.code, el) }
     else box.current?.querySelector<HTMLElement>(`.eb-tree-rows [data-tip="${i}"]`)?.click()
   }
@@ -417,6 +436,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
         </span>
         <span className="eb-tree-fan-text" lang={latin ? 'la' : undefined}>{name}</span>
         {r.kind === 'group' && r.with && <span className="eb-tree-mark" />}
+        {r.kind === 'group' && !!r.with?.length && <span className="eb-tree-other" data-many={manyOf(r) ? '' : undefined}>{withText(r.with)}</span>}
         {r.kind === 'group' && fit!.counts[i] && <span className="eb-mono eb-tree-fan-count">{tipOfText(r)}</span>}
       </span>
     )
@@ -441,9 +461,10 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
       {ticks.filter((v) => !circle || v > 0).map((v) => {
         const rr = (1 - v / drawing.rootAge) * fit.R
         const text = formatAge(v, t.num)
-        // The circle's ages sit on a Paper patch on the radius straight up (16px tall, 3px of padding each side): one
-        // that would hide a branch end is not written.
-        return ringLabels(fit, rr).filter(([x, y]) => !circle || clearOfEnds(ends, x, y, measure(text, 11, 400, true) + 6, 16)).map(([x, y]) => (
+        // The Fan's ages sit under its centre, below every branch. The Radial's sit on a Paper patch on the radius straight
+        // up (16px tall, 3px of padding each side), inside its opening (round 6): one whose patch would reach a branch
+        // (an inner ring too small for it) is not written.
+        return ringLabels(fit, rr).filter(() => !circle || inOpening(fit, tips.length, rr, measure(text, 11, 400, true) + 6, 16)).map(([x, y]) => (
           <span key={`${v}:${x}`} className="eb-mono eb-tree-fan-tick" style={{ left: x, top: circle ? y - 8 : y + 10 }}>{text}</span>
         ))
       })}
@@ -475,6 +496,7 @@ export default function TreeView({ entries, sci, onPick, branch, onOpen, onLevel
   return (
     <div ref={boxRef} className="eb-tree" data-round={roundNow || undefined} style={width ? { ['--tree-w' as string]: `${treeW}px` } : undefined}>
       {layoutChoice}
+      {shown.rows.length > 0 && <p className="eb-mono eb-tree-rank" data-testid="tree-rank">{rankLine}</p>}
       {view.split && here && <p className="eb-tree-note">{fmt(tt.split, { name: here })}</p>}
       {insideNote && <p className="eb-tree-note">{insideNote}</p>}
       {!shown.rows.length ? <p className="eb-tree-note">{tt.mineNone}</p> : roundNow ? (

@@ -4,9 +4,10 @@
 // eBird taxonomy the app ships (species.v1.json), so a group's count is "on the list / in the taxonomy"; the tree only
 // decides where it is drawn.
 // An open branch never shows one lone tip (round 6): it opens past every rank that would draw a single tip (an order
-// with one family at its genera, a family with one genus at its species), and a group of SPECIES_AT species or fewer
-// opens straight at its species. MAX_TIPS guards that skip: a rank it skips to that would draw more tips is not drawn
-// (the rank above it is); on the shipped tree it never applies.
+// with one family at its genera, a family with one genus at its species), past every rank of SMALL_STEP groups or fewer
+// (Owls' two families open at their genera) while the next rank stays within MAX_TIPS, and a group of SPECIES_AT
+// species or fewer opens straight at its species. MAX_TIPS guards the skip past lone tips: a rank it skips to that
+// would draw more tips is not drawn (the rank above it is); on the shipped tree it never applies.
 // Print's "Down to" (round 6, "One step + size") may draw the poster one rank deeper: `rank` 'deeper' is the next rank
 // under the one on screen, past lone tips the same way, with no MAX_TIPS guard (the poster's 9 pt check decides).
 // A group the tree splits (not one branch of its own) is drawn once (`foldSplit`), as one marked row at the smallest
@@ -157,6 +158,9 @@ export function groupSticker(rows: Iterable<SpeciesRow>, onList: ReadonlySet<str
 
 /** A group of at most this many species opens straight at its species (round 6). */
 export const SPECIES_AT = 12
+/** A step whose rank would draw this many groups or fewer draws the next rank down instead (round 6: Owls' two families,
+ *  Owls and Barn Owls, open at their genera). */
+export const SMALL_STEP = 3
 
 /**
  * The rows and drawing of `level`, with `onList` the codes on the (filtered) list. `mine` ("Lifers only") keeps only the
@@ -211,6 +215,9 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   if (rank && rank !== 'deeper' && offered.includes(rank)) ri = offered.indexOf(rank)
   else if (depthOf(at) > 0) {
     skipLone()
+    // A smarter step (round 6): a rank of SMALL_STEP groups or fewer is not worth a step, so the next rank down is
+    // drawn instead, again while that holds, as long as the next one stays within MAX_TIPS.
+    while (ri < offered.length - 1 && rankAt(offered[ri]).count <= SMALL_STEP && rankAt(offered[ri + 1]).count <= MAX_TIPS) ri++
     if (rankAt('species').count <= SPECIES_AT) ri = offered.length - 1
   }
   while (ri > 0 && rankAt(offered[ri]).count > MAX_TIPS) ri--
@@ -272,6 +279,15 @@ export function levelView(tree: Tree, species: SpeciesIndex, level: TreeLevel, o
   const stem = isLeaf(root) && tree.parent[root.node] >= 0 ? tree.age[tree.parent[root.node]] : undefined
   const drawing = drawTree(root, tipOn(tipRows), (i) => ys[i], stem, (_, i) => tipRows[i].dotted)
   return { ...head, rows, height: top, drawing, root, stem }
+}
+
+/** The rank line above the tree (round 6): the rank drawn and how many of its groups the rows draw, `n` (a marked row
+ *  counts the groups inside it too), with `total`, the rank's groups in the open branch in the taxonomy, only when
+ *  Lifers only (`mine`) leaves some out ("65 of 143 families"; else "29 genera"). */
+export function rankCount(view: Pick<LevelView, 'rows' | 'tips' | 'cover'>, mine: boolean): { rank: TipRank; n: number; total?: number } {
+  let n = 0
+  for (const r of view.rows) if (r.kind === 'species') n++; else if (r.kind === 'group') n += 1 + (r.with?.length ?? 0)
+  return { rank: view.tips, n, ...(mine && n < view.cover[1] ? { total: view.cover[1] } : {}) }
 }
 
 /** Whether the i-th tip of `tips` (a level's rows without headings) has a bird on the list: drawTree's and drawFan's `seen`. */

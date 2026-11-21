@@ -271,6 +271,40 @@ describe('the bar\'s panels (round 6)', () => {
 })
 
 // Round 6 polish: choosing anything never scrolls the page or moves an open panel.
+describe('one open thing in the dock at a time (round 6)', () => {
+  const toList = () => fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'List' }))
+  it("the List's sort menu closes the open panel as it opens, by press or by key", () => {
+    render(<Harness />)
+    toList()
+    openTaxa()
+    expect(screen.getByTestId('taxa-panel')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('dock-sort'))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    expect(screen.queryByTestId('taxa-panel')).toBeNull()
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+    fireEvent.click(screen.getByTestId('filters-button'))
+    expect(screen.getByTestId('filters-panel')).toBeInTheDocument()
+    fireEvent.keyDown(screen.getByTestId('dock-sort'), { key: 'ArrowDown' })
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    expect(screen.queryByTestId('filters-panel')).toBeNull()
+  })
+  it('opening a panel closes the sort menu; so does opening the search', () => {
+    render(<Harness />)
+    toList()
+    for (const open of [openTaxa, () => fireEvent.click(screen.getByTestId('filters-button'))]) {
+      fireEvent.click(screen.getByTestId('dock-sort'))
+      expect(screen.getByRole('menu')).toBeInTheDocument()
+      open()
+      expect(screen.queryByRole('menu')).toBeNull()
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      fireEvent.keyDown(document, { key: 'Escape' })
+    }
+    fireEvent.click(screen.getByTestId('dock-sort'))
+    fireEvent.click(screen.getByRole('button', { name: 'Find a bird' }))
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+})
+
 describe('nothing moves when something is chosen', () => {
   const proto = HTMLElement.prototype
   const offsetHeight = Object.getOwnPropertyDescriptor(proto, 'offsetHeight')!

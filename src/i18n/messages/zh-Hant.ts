@@ -188,6 +188,7 @@ export const zhHant: Messages = {
         noRoom: '空間不足，無法顯示所有名稱',
         rank: { orders: '目', families: '科', genera: '屬', species: '種' },
         tipOf: '{n} / {total}',
+        genera: { one: '{n} 屬', other: '{n} 屬' },
       },
       close: '關閉',
       undo: '復原',

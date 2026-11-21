@@ -21,7 +21,7 @@ import { setTreeMine, TREE_LAYOUT_KEY, TREE_MINE_KEY } from '@/lib/tree-mine'
 
 // The tree file, and the full species file TreeView loads itself (the shown index may be the landing sample's own).
 const { fetchData, rows } = vi.hoisted(() => {
-  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: '2026', newick: '((((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6):1,((c1:1,c2:1):1,(c3:1,c4:1):1):9,((d1:1,d2:1):1,(d3:1,(d4:0.5,d5:0.5):0.5):1):9,((((pa1:1,pb1:1):1,pa2:2):1,((qa1:1.5,(qb1:1,(qc1:0.5,qd1:0.5):0.5):0.5):0.5,qa2:2):1,(ra1:1,ra2:1,ra3:1,ra4:1,ra5:1,ra6:1):2):5,g1:8):3);', taxOnly: 'Q' }
+  const file: TreeFile = { v: 1, tree: 'AvesData v1.7', taxonomy: 'Clements 2025', ebirdTaxonomy: '2026', newick: '((((a1:1,a3:1):2,a2:3):7,(b1:4,b2:4):6):1,((c1:1,c2:1):1,(c3:1,c4:1):1):9,((d1:1,d2:1):1,(d3:1,(d4:0.5,d5:0.5):0.5):1):9,((((pa1:1,pb1:1):1,pa2:2):1,((qa1:1.5,(qb1:1,(qc1:0.5,qd1:0.5):0.5):0.5):0.5,qa2:2):1,(ra1:1,ra2:1,ra3:1,ra4:1,ra5:1,ra6:1):2,sa1:3):5,g1:8,ar1:8,ps1:8):3);', taxOnly: 'Q' }
   // b2, the fifth tip, is placed without genetic data. Genus Aa's row holds Ab, Ca's holds Cb, Da's holds Db, Dc and Dd;
   // in the rails, Pa's holds Pb and Qa's holds Qb, Qc and Qd.
   const rows: SpeciesRow[] = []
@@ -49,15 +49,18 @@ rows.push(
   sp('d1', 'Delta One', 'Da one', 'Columbiformes', 'Columbidae', 'Pigeons', 11), sp('d2', 'Delta Two', 'Db two', 'Columbiformes', 'Columbidae', 'Pigeons', 12),
   sp('d3', 'Delta Three', 'Dc three', 'Columbiformes', 'Columbidae', 'Pigeons', 13), sp('d4', 'Delta Four', 'Dd four', 'Columbiformes', 'Columbidae', 'Pigeons', 14),
   sp('d5', 'Delta Five', 'Da five', 'Columbiformes', 'Columbidae', 'Pigeons', 15),
-  // Cranes and rails: two families, so the order opens at its families; the rails (14 species, more than SPECIES_AT)
-  // open at their genera (Pa with Pb, Qa with three, Ra), the cranes (one species) at it.
+  // Cranes and rails: four families (more than SMALL_STEP), so the order opens at its families; the rails (15 species,
+  // more than SPECIES_AT, in four rows) open at their genera (Pa with Pb, Qa with three, Ra, Sa), the cranes, limpkins
+  // and trumpeters (one species each) at it.
   sp('pa1', 'Rail One', 'Pa one', 'Gruiformes', 'Rallidae', 'Rails', 16), sp('pb1', 'Rail Two', 'Pb two', 'Gruiformes', 'Rallidae', 'Rails', 17),
   sp('pa2', 'Rail Three', 'Pa three', 'Gruiformes', 'Rallidae', 'Rails', 18),
   sp('qa1', 'Crake One', 'Qa one', 'Gruiformes', 'Rallidae', 'Rails', 19), sp('qb1', 'Crake Two', 'Qb two', 'Gruiformes', 'Rallidae', 'Rails', 20),
   sp('qc1', 'Crake Three', 'Qc three', 'Gruiformes', 'Rallidae', 'Rails', 21), sp('qd1', 'Crake Four', 'Qd four', 'Gruiformes', 'Rallidae', 'Rails', 22),
   sp('qa2', 'Crake Five', 'Qa five', 'Gruiformes', 'Rallidae', 'Rails', 23),
   ...[1, 2, 3, 4, 5, 6].map((n) => sp(`ra${n}`, `Coot ${n}`, `Ra c${n}`, 'Gruiformes', 'Rallidae', 'Rails', 23 + n)),
-  sp('g1', 'Crane One', 'Gg one', 'Gruiformes', 'Gruidae', 'Cranes', 30),
+  sp('sa1', 'Rail Four', 'Sa four', 'Gruiformes', 'Rallidae', 'Rails', 30),
+  sp('g1', 'Crane One', 'Gg one', 'Gruiformes', 'Gruidae', 'Cranes', 31), sp('ar1', 'Limpkin One', 'Ar one', 'Gruiformes', 'Aramidae', 'Limpkins', 32),
+  sp('ps1', 'Trumpeter One', 'Ps one', 'Gruiformes', 'Psophiidae', 'Trumpeters', 33),
 )
 const entry = (code: string): ListEntry => ({ code, date: '2024-01-01', place: { country: 'CA' } } as ListEntry)
 
@@ -134,7 +137,7 @@ describe('the Tree tab in CollageView', () => {
     // stats line counts against the taxonomy, from the full species file (the shown index here holds only the list's birds).
     expect(screen.queryByRole('navigation', { name: 'Tree levels' })).toBeNull()
     expect(screen.queryByText('2 of 5 orders')).toBeNull()
-    await waitFor(() => expect(screen.getByTestId('collage-stats')).toHaveTextContent('2 / 30 species · 2 / 5 orders · 2 / 6 families · since Jan 2024'))
+    await waitFor(() => expect(screen.getByTestId('collage-stats')).toHaveTextContent('2 / 33 species · 2 / 5 orders · 2 / 8 families · since Jan 2024'))
     // Every other view keeps today's line.
     fireEvent.click(within(view).getByRole('button', { name: 'Collage' }))
     expect(screen.getByTestId('collage-stats')).toHaveTextContent('2 species · 2 orders · 2 families · since Jan 2024')
@@ -156,7 +159,7 @@ describe('the Tree tab in CollageView', () => {
     fireEvent.click(within(path() as HTMLElement).getByRole('button', { name: 'All birds' }))
     expect(within(tipList()).getByRole('button', { name: /^Woodpeckers, / })).toBeInTheDocument()
     expect(path()).toBeNull()
-    // A tip opens its branch and picks its chips: the order (two families: its families), then the family (its genera).
+    // A tip opens its branch and picks its chips: the order (four families: its families), then the family (its genera).
     fireEvent.click(within(tipList()).getByRole('button', { name: /^Cranes and rails/ }))
     expect(path()).toHaveTextContent(/^All birds\/Cranes and rails$/)
     fireEvent.click(within(tipList()).getByRole('button', { name: /^Rails, / }))
@@ -201,7 +204,7 @@ describe('the Tree tab in CollageView', () => {
 })
 
 describe('TreeView', () => {
-  it('opens on every order with its count and sticker; an order of two families shows its families; the birds without a tip and the source', async () => {
+  it('opens on every order with its count and sticker; an order of four families shows its families; the birds without a tip and the source', async () => {
     render(<Tree entries={['a1', 'b2', 'x1'].map(entry)} />)
     let tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
     expect(within(tips).getAllByRole('button').map((b) => b.getAttribute('data-key'))).toEqual(['Anseriformes', 'Piciformes', 'Cuculiformes', 'Columbiformes', 'Gruiformes'])
@@ -219,13 +222,17 @@ describe('TreeView', () => {
     // One name per row: the common one, or the scientific one with the Scientific switch.
     expect(within(tips).queryByText('Anseriformes')).toBeNull()
     expect(screen.queryByText('2 of 5 orders')).toBeNull() // no count line: the page's stats line has the counts
-    // No Level menu (round 6): an order of two families and more than SPECIES_AT species opens at its families.
+    // The rank line above the tree names the rank drawn and how many (round 6), in the Taxa panel head's mono.
+    expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^5 orders$/)
+    expect(screen.getByTestId('tree-rank')).toHaveClass('eb-mono')
+    // No Level menu (round 6): an order of four families and more than SPECIES_AT species opens at its families.
     expect(screen.queryByTestId('tree-level')).toBeNull()
     fireEvent.click(within(tips).getByRole('button', { name: /^Cranes and rails/ }))
     tips = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
-    expect(within(tips).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? b.textContent)).toHaveLength(2)
-    expect(within(tips).getByRole('button', { name: /^Rails, 0 of 14 on the list$/ })).toBeInTheDocument()
+    expect(within(tips).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? b.textContent)).toHaveLength(4)
+    expect(within(tips).getByRole('button', { name: /^Rails, 0 of 15 on the list$/ })).toBeInTheDocument()
     expect(within(tips).getByRole('button', { name: /^Cranes, 0 of 1 on the list$/ })).toBeInTheDocument()
+    expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^4 families$/)
     expect(tips.querySelector('.eb-tree-order')).toBeNull() // no order headings: the order is open
     // The oldest lineage is CollageView's legend now, not the tree's own line.
     expect(screen.queryByText(/^Oldest lineage on this list/)).toBeNull()
@@ -243,14 +250,14 @@ describe('TreeView', () => {
     // One family whose genera are one row (Aa with Ab), three species: straight at the species.
     expect(screen.getByRole('button', { name: 'Alpha One, on the list' })).toBeInTheDocument()
     expect([...screen.getByRole('list', { name: 'Tips of the tree, top to bottom' }).querySelectorAll('.eb-tree-name')].map((n) => n.textContent)).toEqual(['Alpha One', 'Alpha Three', 'Alpha Two'])
-    // The rails (14 species) open at their genera.
+    // The rails (15 species in four rows) open at their genera.
     cleanup()
     render(<Tree entries={['a1', 'b2', 'pa1'].map(entry)} onPick={onPick} />)
     fireEvent.click(await screen.findByRole('button', { name: /^Cranes and rails/ }))
     fireEvent.click(screen.getByRole('button', { name: /^Rails, / }))
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
     // Pa is not one branch: one row for the branch, with Pb inside it and no row of its own.
-    expect([...genera.querySelectorAll('.eb-tree-btn')].map((b) => b.getAttribute('data-key'))).toEqual(['Pa', 'Qa', 'Ra'])
+    expect([...genera.querySelectorAll('.eb-tree-btn')].map((b) => b.getAttribute('data-key'))).toEqual(['Pa', 'Qa', 'Ra', 'Sa'])
     const pa = within(genera).getByRole('button', { name: 'Pa with Pb, not one branch of its own in this tree, 1 of 3 on the list' })
     expect(pa).toHaveAttribute('data-on')
     expect(pa.querySelector('.eb-tree-mark')).toHaveAttribute('aria-hidden', 'true')
@@ -310,6 +317,7 @@ describe('TreeView', () => {
     fireEvent.click(pa)
     expect(screen.getByText('Pa is not one branch in this tree. The smallest branch with all of it also holds Pb, so both are shown.')).toBeInTheDocument()
     expect([...screen.getByRole('list', { name: 'Tips of the tree, top to bottom' }).querySelectorAll('.eb-tree-name')].map((n) => n.textContent)).toEqual(['Rail One', 'Rail Two', 'Rail Three'])
+    expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^3 species$/)
   })
 
   it('opening a marked row tells the branch with the other genera it holds (the filter\'s `with`)', async () => {
@@ -349,6 +357,7 @@ describe('TreeView', () => {
     act(() => setTreeMine(true))
     expect(screen.queryByRole('button', { name: /^Waterfowl/ })).toBeNull()
     expect(screen.getByRole('button', { name: /^Woodpeckers, 1 of 2 on the list$/ })).toBeInTheDocument()
+    expect(screen.getByTestId('tree-rank')).toHaveTextContent(/^1 of 5 orders$/) // the Taxa panel head's words
     expect(onLevel).toHaveBeenLastCalledWith(expect.objectContaining({ tree: {}, mine: true, layout: 'rows', time: true }))
     expect(localStorage.getItem(TREE_MINE_KEY)).toBe('1')
     unmount()
@@ -358,6 +367,7 @@ describe('TreeView', () => {
     await screen.findByRole('button', { name: /^Beta Two/ }) // one genus: its species
     rerender(<TreeView entries={['a1'].map(entry)} sci={false} onPick={() => {}} branch={branch} onOpen={() => {}} />)
     expect(screen.getByText('No bird on the list here.')).toBeInTheDocument()
+    expect(screen.queryByTestId('tree-rank')).toBeNull() // nothing drawn, no rank line
     act(() => setTreeMine(false))
     expect(localStorage.getItem(TREE_MINE_KEY)).toBeNull()
     expect(screen.queryByText('No bird on the list here.')).toBeNull()
@@ -440,6 +450,31 @@ describe('the Fan and Radial on a measured width', () => {
     fireEvent.click(labels[0])
     expect(container.querySelector('.eb-tree-fan-label .eb-tree-fan-text')).toHaveTextContent('Alpha One') // one family: its species
     undo()
+  })
+  it('a marked tip names the groups inside right after its mark; a press on "with 3 other genera" opens their list', async () => {
+    const undo = widthOf(1100)
+    const { container } = render(<Tree entries={['qc1'].map(entry)} />)
+    const tips = await screen.findByRole('list', { name: 'Tips of the tree, top to bottom' })
+    fireEvent.click(within(tips).getByRole('button', { name: /^Cranes and rails/ }))
+    fireEvent.click(within(tips).getByRole('button', { name: /^Rails, / }))
+    const label = (name: string) => [...container.querySelectorAll('.eb-tree-fan-label')].find((l) => l.querySelector('.eb-tree-fan-text')!.textContent === name)!
+    expect([...label('Pa').children].map((c) => c.className)).toEqual(['eb-tree-fan-st', 'eb-tree-fan-text', 'eb-tree-mark', 'eb-tree-other', 'eb-mono eb-tree-fan-count'])
+    expect(label('Pa').querySelector('.eb-tree-other')).toHaveTextContent(/^with Pb$/)
+    const many = label('Qa').querySelector('.eb-tree-other')!
+    expect(many.previousElementSibling).toHaveClass('eb-tree-mark')
+    expect(many).toHaveTextContent(/^with 3 other genera$/)
+    fireEvent.click(many)
+    expect(screen.getByRole('dialog', { name: 'Inside the Qa branch' })).toBeInTheDocument()
+    undo()
+  })
+  it('Rectangular: "with 3 other genera" follows the name and its mark, the count still ending the row', async () => {
+    render(<Tree entries={['qc1'].map(entry)} />)
+    fireEvent.click(await screen.findByRole('button', { name: /^Cranes and rails/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Rails, / }))
+    const qa = screen.getByRole('button', { name: /^Qa, not one branch/ })
+    expect(qa).toHaveAttribute('data-many')
+    expect([...qa.closest('li')!.children].map((c) => c.className)).toEqual(['eb-tree-btn', 'eb-tree-with', 'eb-mono eb-tree-count'])
+    expect(screen.getByRole('button', { name: /^Pa with Pb/ })).not.toHaveAttribute('data-many')
   })
   it('too narrow to name every tip: Rectangular, with Fan and Radial listed but not on offer, saying why', async () => {
     const kept = new Map<string, string>([[TREE_LAYOUT_KEY, 'fan']])

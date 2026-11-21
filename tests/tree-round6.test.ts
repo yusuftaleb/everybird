@@ -2,7 +2,7 @@
 // (bySplits), no branch opening on one lone tip (levelView's default rank), the genus as a taxonomy filter (filters.ts,
 // filters-validate.ts, path.ts), the representative sticker of a group with no bird on the list (groupSticker), the
 // Rectangular drawing's half of the width and its counts' column (rowsTreeW, rowsLabels), and the Radial's ages where no
-// branch runs (ringLabels, clearOfEnds).
+// branch runs (ringLabels, clearOfEnds; on screen inside its opening, inOpening).
 import { describe, expect, it } from 'vitest'
 import { applyFilter, drillTo, filterKey, filterToShow, genusOf, options, type Filter } from '@/lib/list/filters'
 import { applyFilterValidity } from '@/lib/list/filters-validate'
@@ -10,8 +10,8 @@ import type { ListEntry } from '@/lib/list/model'
 import { rowsLabels } from '@/lib/share/tree-image'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
-import { clearOfEnds, drawFan, ringLabels, type FanBox } from '@/lib/tree/fan'
-import { SPECIES_AT, groupSticker, levelView, rowsTreeW, type TreeRow } from '@/lib/tree/levels'
+import { clearOfEnds, drawFan, inOpening, ringLabels, type FanBox } from '@/lib/tree/fan'
+import { MAX_TIPS, SMALL_STEP, SPECIES_AT, groupSticker, levelView, rankCount, rowsTreeW, type TreeRow } from '@/lib/tree/levels'
 import { closeDeep, openBranch, treeBranch } from '@/lib/tree/path'
 import { bySplits, cladeTree, drawTree, isLeaf, parseNewick, type Leaf, type Node } from '@/lib/tree/tree'
 
@@ -72,17 +72,95 @@ describe('a branch never opens on one lone tip', () => {
     expect(v.tips).toBe('species')
     expect(v.rows.filter((r) => r.kind === 'species')).toHaveLength(3)
   })
-  it('a group over SPECIES_AT species opens at its children (the rank one step under it)', () => {
-    const o3 = levelView(tree, species, { ord: 'O3' }, none)!
-    expect(o3.tips).toBe('families')
-    const f3a = levelView(tree, species, { ord: 'O3', fam: 'F3a' }, none)!
-    expect(f3a.tips).toBe('genera')
+  it('a step of SMALL_STEP groups or fewer draws the next rank down, again while that holds (here down to the species)', () => {
+    // O3: two families, then three genera (Ma, Mb, Zz), then its 15 species.
+    expect(SMALL_STEP).toBe(3)
+    expect(levelView(tree, species, { ord: 'O3' }, none)!.tips).toBe('species')
+    // F3a: two genera, then its 14 species.
+    expect(levelView(tree, species, { ord: 'O3', fam: 'F3a' }, none)!.tips).toBe('species')
     expect(levelView(tree, species, { ord: 'O1' }, none, false, 'families')!.tips).toBe('families')
   })
   it('Lifers only counts first: a family of 14 with two birds on the list opens at those species', () => {
     const v = levelView(tree, species, { ord: 'O3', fam: 'F3a' }, new Set(['m0', 'm9']), true)!
     expect(v.tips).toBe('species')
     expect(v.rows.filter((r) => r.kind === 'species').map((r) => (r as Extract<TreeRow, { kind: 'species' }>).row.code)).toEqual(['m0', 'm9'])
+  })
+})
+
+describe('a smarter step: three groups or fewer is not worth a step (SMALL_STEP)', () => {
+  const none = new Set<string>()
+  // `n` genera of `per` species each, spread over `fams` families of one order (Strigiformes-like: Tytonidae and
+  // Strigidae), on a comb of genera.
+  const order = (ord: string, fams: number, n: number, per: number) => {
+    const rs: SpeciesRow[] = []
+    for (let g = 0; g < n; g++) for (let k = 0; k < per; k++) rs.push(sp(`${ord}${g}x${k}`, `G${ord}${g} s${k}`, ord, `F${ord}${g % fams}`, rs.length))
+    return rs
+  }
+  const nwk = (rs: SpeciesRow[]) => {
+    const byFam = new Map<string, Map<string, SpeciesRow[]>>()
+    for (const r of rs) {
+      const gs = byFam.get(r.fam) ?? byFam.set(r.fam, new Map()).get(r.fam)!
+      const g = genusOf(r.sci)
+      gs.set(g, [...gs.get(g) ?? [], r])
+    }
+    return `(${[...byFam.values()].map((gs) => `(${[...gs.values()].map((ss) => `(${ss.map((r) => `${r.code}:1`).join(',')}):2`).join(',')}):3`).join(',')}):1`
+  }
+  const owls = order('Os', 2, 8, 3) // two families, eight genera, 24 species
+  const four = order('Fo', 4, 8, 4) // four families, two genera of four species each
+  const wide = order('Wi', 2, MAX_TIPS + 1, 1) // two families whose genera are over MAX_TIPS
+  const all = [...owls, ...four, ...wide]
+  const idx = buildSpeciesIndex(all)
+  const t = parseNewick(`(${nwk(owls)},${nwk(four)},${nwk(wide)});`)
+  it('an order of two families opens at its genera (Owls: Owls and Barn Owls were two rows)', () => {
+    const v = levelView(t, idx, { ord: 'Os' }, none)!
+    expect(v.tips).toBe('genera')
+    expect(v.rows.filter((r) => r.kind === 'group')).toHaveLength(8)
+  })
+  it('an order of four families still opens at its families', () => {
+    expect(levelView(t, idx, { ord: 'Fo' }, none)!.tips).toBe('families')
+  })
+  it('a family of four genera opens at its genera; one of two genera with more than SPECIES_AT species at its species', () => {
+    const fam = order('Fm', 1, 4, 4)
+    const two = order('Tw', 1, 2, 8)
+    const t2 = parseNewick(`(${nwk(fam)},${nwk(two)});`)
+    const i2 = buildSpeciesIndex([...fam, ...two])
+    expect(levelView(t2, i2, { ord: 'Fm', fam: 'FFm0' }, none)!.tips).toBe('genera')
+    expect(levelView(t2, i2, { ord: 'Tw', fam: 'FTw0' }, none)!.tips).toBe('species')
+  })
+  it('the next rank must stay within MAX_TIPS: two families over 301 genera stay at the families', () => {
+    const v = levelView(t, idx, { ord: 'Wi' }, none)!
+    expect(v.tips).toBe('families')
+    expect(v.rows.filter((r) => r.kind === 'group')).toHaveLength(2)
+  })
+  it('Lifers only counts first: birds in two of four families open at their four genera; two birds of one genus at those species', () => {
+    const on = new Set([four[0].code, four[1].code])
+    const v = levelView(t, idx, { ord: 'Fo' }, on, true)!
+    expect(v.tips).toBe('species')
+    expect(levelView(t, idx, { ord: 'Fo' }, new Set(four.filter((r) => r.fam === 'FFo0' || r.fam === 'FFo1').map((r) => r.code)), true)!.tips).toBe('genera')
+  })
+  it('the first screen stays on every order, whatever their number', () => {
+    expect(levelView(t, idx, {}, none)!.tips).toBe('orders')
+  })
+})
+
+describe('the rank line above the tree (rankCount)', () => {
+  const none = new Set<string>()
+  it('names the rank drawn and how many groups its rows draw', () => {
+    expect(rankCount(levelView(tree, species, {}, none)!, false)).toEqual({ rank: 'orders', n: 3 })
+    expect(rankCount(levelView(tree, species, { ord: 'O3' }, none)!, false)).toEqual({ rank: 'species', n: 15 })
+  })
+  it('a marked row counts the groups inside it', () => {
+    const t2 = parseNewick('(((a1:1,b1:1):1,a2:2):1,(c1:1,d1:1):2);')
+    const i2 = buildSpeciesIndex([sp('a1', 'Aa one', 'O', 'F', 1), sp('a2', 'Aa two', 'O', 'F', 2), sp('b1', 'Bb one', 'O', 'F', 3), sp('c1', 'Cc one', 'O', 'F', 4), sp('d1', 'Dd one', 'O', 'F', 5)])
+    const v = levelView(t2, i2, { ord: 'O', fam: 'F' }, none, false, 'genera')!
+    expect(v.rows.filter((r) => r.kind === 'group')).toHaveLength(3) // Aa with Bb, Cc, Dd
+    expect(rankCount(v, false)).toEqual({ rank: 'genera', n: 4 })
+  })
+  it('with Lifers only leaving some out, how many of the taxonomy\'s groups in the open branch', () => {
+    const on = new Set(['a1', 'x1'])
+    expect(rankCount(levelView(tree, species, {}, on, true)!, true)).toEqual({ rank: 'orders', n: 2, total: 3 })
+    // Every order has a bird: no "of".
+    expect(rankCount(levelView(tree, species, {}, new Set(['a1', 'x1', 'z1']), true)!, true)).toEqual({ rank: 'orders', n: 3 })
   })
 })
 
@@ -176,5 +254,14 @@ describe("the Radial's ages where no branch runs", () => {
     for (const r of [40, 80, 120]) expect(clearOfEnds(d.ends, box.cx, box.cy - r, 24, 16)).toBe(true)
     // The root's join sits at the centre.
     expect(clearOfEnds(d.ends, box.cx, box.cy, 24, 16)).toBe(false)
+  })
+  it("on screen the Radial opens at the top (box.open): every branch end stays outside the opening, where its ages go", () => {
+    const t = parseNewick('(((a:1,b:1):1,c:2):2,(d:3,(e:1,f:1):2):1);')
+    const root = cladeTree(t, t.tipOf.values(), (k) => t.code[k]!)!
+    const open = 0.6
+    const d = drawFan(root, () => true, undefined, () => false, { ...box, open })
+    const half = ((2 * Math.PI - open) / 6 + open) / 2
+    for (const [x, y] of d.ends) if (Math.hypot(x - box.cx, y - box.cy) > 1) expect(Math.abs(Math.atan2(x - box.cx, box.cy - y))).toBeGreaterThanOrEqual(half - 1e-6)
+    expect(inOpening({ ...box, open }, 6, 100, 24, 16)).toBe(true)
   })
 })

@@ -4,7 +4,9 @@
 // top-to-bottom order; time runs outward: a node's radius is (1 - age / rootAge) of the tips', so the age axis becomes
 // rings. A branch is an arc along its parent's ring, a rounded join, then a line out along the child's radius. Every tip
 // has its label past it, turned along its radius and never upside down (fitRound sizes the drawing so that none is
-// cut or touches another). Pure: no React, no DOM.
+// cut or touches another; on screen, round 6, the labels' reach is centred in the whole width and, last before
+// refusing, the sticker's box shrinks to the name's line). On screen the Radial with its time scale opens at the top
+// (RADIAL_GAP), and its ages are written in that opening, where no branch runs (inOpening). Pure: no React, no DOM.
 import { CORNER, branchesOf, circlePath, type Drawing, type Leaf, type Node } from './tree'
 
 /** From this width (px) the Tree view draws a fan unless a layout is picked (and only when every name fits); under it,
@@ -24,22 +26,29 @@ export const FAN_R_MIN = 80
 export const FAN_R_MAX = 440
 
 export type FanShape = 'fan' | 'circle'
-/** The centre and the tips' radius; `shape` absent is the fan. */
-export type FanBox = { cx: number; cy: number; R: number; shape?: FanShape }
+/** The centre and the tips' radius; `shape` absent is the fan. `open` (the circle only, radians): an opening at the top,
+ *  past the one tip's slot between its last tip and its first (round 6: the screen's Radial writes its ages there). */
+export type FanBox = { cx: number; cy: number; R: number; shape?: FanShape; open?: number }
 
 /** A tip's label measured at a name size of 1 (multiply by the size): its name's width, its count's (0: none), and
  *  whether the tip has a bird on the list. */
 export type LabelSpan = { name: number; count: number; on: boolean }
 /** The sizes a fit may use: the name's size and the smallest it may shrink to, the tips' dot radius, the radius's bounds,
- *  and the room under the fan's centre. */
-export type LabelSizes = { base: number; floor: number; dot: number; rMin?: number; rMax?: number; below?: number }
-/** On screen: 13px names, never under 11px. */
-export const SCREEN_SIZES: LabelSizes = { base: 13, floor: 11, dot: 3.5 }
+ *  and the room under the fan's centre. `stFloor`: the smallest the sticker's box may get, in units of the name's size
+ *  (LABEL_STICKER, the default, keeps it). `fill`: the labels' reach, not the centre, is centred in the width, so the
+ *  drawing may use all of it (no `room.h` then). `gap` (the circle): the least angle (radians) between its last tip and
+ *  its first, for its opening. */
+export type LabelSizes = { base: number; floor: number; dot: number; rMin?: number; rMax?: number; below?: number; stFloor?: number; fill?: boolean; gap?: number }
+/** On screen (round 6, for big steps): 13px names, never under 11px; the whole width; and, last before refusing, the
+ *  sticker's box down to the name's line. */
+export const SCREEN_SIZES: LabelSizes = { base: 13, floor: 11, dot: 3.5, stFloor: LABEL_LINE, fill: true }
+/** The screen's Radial with its time scale: the least opening at the top (16°), where its ages are written. */
+export const RADIAL_GAP = (16 * Math.PI) / 180
 
 /** A fan or circle in which every tip has its name: the box (its centre about its own top-left corner), its size, the
- *  names' size `px`, which tips keep their count, and how far the drawing and its labels reach above (`up`) and below
- *  (`down`) the centre (the fan's `down` is the room kept under it), whatever height `h` was given. */
-export type RoundFit = FanBox & { w: number; h: number; px: number; counts: boolean[]; up: number; down: number }
+ *  names' size `px`, the sticker's box `st` (px), which tips keep their count, and how far the drawing and its labels reach
+ *  above (`up`) and below (`down`) the centre (the fan's `down` is the room kept under it), whatever height `h` was given. */
+export type RoundFit = FanBox & { w: number; h: number; px: number; st: number; counts: boolean[]; up: number; down: number }
 
 /**
  * The fan or circle (`shape`) whose every tip has its name in full, in `room` (its width; `h` caps its height when
@@ -47,52 +56,98 @@ export type RoundFit = FanBox & { w: number; h: number; px: number; counts: bool
  * gap, the sticker's box, a gap, the name, a gap, the count. No two labels touch: neighbouring sticker boxes (the label's
  * thickest part) sit a box apart where they start, and the labels only part further outward. The radius grows as the
  * tips need; on a narrow column the type shrinks toward `sizes.floor`; past that the counts go, those of tips without a
- * bird on the list first, and only where they hold the drawing in. Undefined when even then a name does not fit.
+ * bird on the list first, and only where they hold the drawing in; past that (with `sizes.stFloor`) the sticker's box
+ * shrinks toward it, the type and counts tried again at each size. With `sizes.fill` the labels' reach is centred in the
+ * width rather than the centre, so a long label on one side may use the other side's room. Undefined when even then a
+ * name does not fit.
  */
 export function fitRound(spans: readonly LabelSpan[], shape: FanShape, room: { w: number; h?: number }, sizes: LabelSizes = SCREEN_SIZES): RoundFit | undefined {
   const n = spans.length
   if (!n) return undefined
-  const { base, floor, dot, rMin = FAN_R_MIN, rMax = FAN_R_MAX, below = FAN_BELOW } = sizes
+  const { base, floor, dot, rMin = FAN_R_MIN, rMax = FAN_R_MAX, below = FAN_BELOW, stFloor = LABEL_STICKER, fill = false, gap = 0 } = sizes
   const circle = shape === 'circle'
-  const step = (circle ? 2 * Math.PI : Math.PI) / n
-  const angles = spans.map((_, i) => fanAngle(i + 0.5, n, shape))
-  const ext = (px: number, i: number, count: boolean) => dot + px * (2 * LABEL_GAP + LABEL_STICKER + spans[i].name + (count && spans[i].count ? LABEL_GAP + spans[i].count : 0))
+  // The circle's opening: what its last and first tips' slot (2π / n) lacks of `gap`, taken from the tips' turn.
+  const open = circle && n > 1 ? Math.max(0, (n * gap - 2 * Math.PI) / (n - 1)) : 0
+  const step = (circle ? 2 * Math.PI - open : Math.PI) / n
+  const angles = spans.map((_, i) => fanAngle(i + 0.5, n, shape, open))
+  let st = LABEL_STICKER
+  const ext = (px: number, i: number, count: boolean) => dot + px * (2 * LABEL_GAP + st + spans[i].name + (count && spans[i].count ? LABEL_GAP + spans[i].count : 0))
   // The radius the tips need (sticker boxes a box apart at their inner edge), and the most each tip allows: its label
-  // inside the width and, with a height, inside it (the circle centred, so half of it each way).
-  const need = (px: number) => Math.max(rMin, (px * LABEL_STICKER) / step - dot - px * LABEL_GAP)
+  // inside the width (unless `fill`: then sides() decides) and, with a height, inside it (the circle centred, so half of
+  // it each way).
+  const need = (px: number) => Math.max(rMin, (px * st) / step - dot - px * LABEL_GAP)
   const bound = (px: number, i: number, count: boolean) => {
-    const a = angles[i], c = Math.abs(Math.cos(a)), sn = Math.sin(a), half = (px * LABEL_STICKER) / 2
-    let b = c > 1e-6 ? (room.w / 2 - half * Math.abs(sn)) / c : Infinity
+    const a = angles[i], c = Math.abs(Math.cos(a)), sn = Math.sin(a), half = (px * st) / 2
+    let b = !fill && c > 1e-6 ? (room.w / 2 - half * Math.abs(sn)) / c : Infinity
     if (room.h !== undefined) {
       const up = circle ? room.h / 2 : room.h - below
       if (Math.abs(sn) > 1e-6 && (circle || sn > 0)) b = Math.min(b, (up - half * c) / Math.abs(sn))
     }
     return b - ext(px, i, count)
   }
+  // With `fill`: how far the labels reach left and right of the centre at radius R, and the tip reaching furthest on each side.
+  const sides = (R: number, px: number, counts: readonly boolean[]) => {
+    const half = (px * st) / 2
+    let l = R, r = R, li = -1, ri = -1
+    angles.forEach((a, i) => {
+      const x = (R + ext(px, i, counts[i])) * Math.cos(a), h = half * Math.abs(Math.sin(a))
+      if (x + h > r) { r = x + h; ri = i }
+      if (h - x > l) { l = h - x; li = i }
+    })
+    return { l, r, li, ri }
+  }
   const tryFit = (px: number, counts: boolean[]) => {
     const r = need(px)
     let hi = Infinity
     for (let i = 0; i < n; i++) hi = Math.min(hi, bound(px, i, counts[i]))
-    return { r, hi, ok: r <= hi }
+    if (!fill) return { r, hi, ok: r <= hi }
+    const side = sides(r, px, counts)
+    return { r, hi, ok: r <= hi && side.l + side.r <= room.w }
   }
   const all = spans.map(() => true)
   let px = base
   let counts = all
   let f = tryFit(px, counts)
-  // Smaller type first (in eight steps down to the floor), then the counts that hold the drawing in.
-  for (let k = 1; !f.ok && k <= 8; k++) { px = base - ((base - floor) * k) / 8; f = tryFit(px, counts) }
-  for (const on of [false, true]) {
-    while (!f.ok) {
-      const drop = spans.map((s, i) => counts[i] && !!s.count && s.on === on && bound(px, i, true) < f.r)
-      if (!drop.some(Boolean)) break
-      counts = counts.map((c, i) => c && !drop[i])
-      f = tryFit(px, counts)
+  for (let k = 0; ; k++) {
+    // At each sticker size (the full box first; with stFloor, smaller, in 1/13 em steps): the type in eight steps down
+    // to the floor, then the counts that hold the drawing in.
+    st = Math.max(stFloor, LABEL_STICKER - k / 13)
+    px = base
+    counts = all
+    f = tryFit(px, counts)
+    for (let j = 1; !f.ok && j <= 8; j++) { px = base - ((base - floor) * j) / 8; f = tryFit(px, counts) }
+    for (const on of [false, true]) {
+      while (!f.ok) {
+        const cut = (i: number) => counts[i] && !!spans[i].count && spans[i].on === on
+        let drop: boolean[]
+        if (fill) {
+          // The tips reaching furthest out on either side, where their count is what holds them out.
+          const side = sides(f.r, px, counts)
+          drop = spans.map((_, i) => cut(i) && (i === side.li || i === side.ri))
+        } else drop = spans.map((_, i) => cut(i) && bound(px, i, true) < f.r)
+        if (!drop.some(Boolean)) break
+        counts = counts.map((c, i) => c && !drop[i])
+        f = tryFit(px, counts)
+      }
     }
+    if (f.ok || st <= stFloor) break
   }
   if (!f.ok) return undefined
-  const R = Math.max(f.r, Math.min(f.hi, rMax))
+  let R = Math.max(f.r, Math.min(f.hi, rMax))
+  let cx = room.w / 2
+  if (fill) {
+    // The largest radius up to rMax (or the one the tips need) whose labels still fit the width, their reach centred.
+    const fits = (r: number) => { const sd = sides(r, px, counts); return sd.l + sd.r <= room.w }
+    if (!fits(R)) {
+      let lo = f.r, hi = R
+      for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m }
+      R = lo
+    }
+    const sd = sides(R, px, counts)
+    cx = sd.l + (room.w - sd.l - sd.r) / 2
+  }
   // How far the labels reach above and below the centre (the circle's both ways; the fan's age numbers under it).
-  const half = (px * LABEL_STICKER) / 2
+  const half = (px * st) / 2
   let top = R, bottom = R
   angles.forEach((a, i) => {
     const out = R + ext(px, i, counts[i]), sn = Math.sin(a), side = half * Math.abs(Math.cos(a))
@@ -102,13 +157,13 @@ export function fitRound(spans: readonly LabelSpan[], shape: FanShape, room: { w
   top = Math.ceil(top)
   const h = room.h !== undefined && circle ? room.h : circle ? top + Math.ceil(bottom) : top + below
   const cy = room.h !== undefined && circle ? room.h / 2 : top
-  return { cx: room.w / 2, cy, R, ...(circle ? { shape } : {}), w: room.w, h: room.h !== undefined && !circle ? Math.min(h, room.h) : h, px, counts, up: top, down: circle ? Math.ceil(bottom) : below }
+  return { cx, cy, R, ...(circle ? { shape } : {}), ...(open ? { open } : {}), w: room.w, h: room.h !== undefined && !circle ? Math.min(h, room.h) : h, px, st: px * st, counts, up: top, down: circle ? Math.ceil(bottom) : below }
 }
 
 /** The angle (radians) at `y` leaf units of `n` leaves, each tip mid-slot: the fan from π at the left end to 0 at the
- *  right; the circle from π/2 at the top, clockwise all round. */
-export const fanAngle = (y: number, n: number, shape: FanShape = 'fan'): number =>
-  shape === 'circle' ? Math.PI / 2 - (2 * Math.PI * y) / n : Math.PI * (1 - y / n)
+ *  right; the circle from π/2 at the top, clockwise all round, less its opening `open` there (half each side). */
+export const fanAngle = (y: number, n: number, shape: FanShape = 'fan', open = 0): number =>
+  shape === 'circle' ? Math.PI / 2 - open / 2 - ((2 * Math.PI - open) * y) / n : Math.PI * (1 - y / n)
 export const polar = (box: FanBox, r: number, a: number): [number, number] => [box.cx + r * Math.cos(a), box.cy - r * Math.sin(a)]
 
 const n1 = (v: number) => +v.toFixed(1)
@@ -126,7 +181,7 @@ export function drawFan(root: Node | Leaf, seen: (leaf: Leaf, i: number) => bool
   const { leaves, branches, rootAge } = branchesOf(root, seen, (i) => i + 0.5, stemAge, dotted)
   const n = leaves.length
   const rad = (age: number) => (1 - age / rootAge) * box.R
-  const ang = (y: number) => fanAngle(y, n, box.shape)
+  const ang = (y: number) => fanAngle(y, n, box.shape, box.open)
   const P = (r: number, a: number) => { const [x, y] = polar(box, r, a); return `${n1(x)} ${n1(y)}` }
   const on: string[] = [], onDot: string[] = [], off: string[] = [], offDot: string[] = []
   const ends: Pt[] = []
@@ -160,10 +215,20 @@ export const fanRing = (box: FanBox, r: number): string =>
 
 /** Where the age of the ring of radius `r` is written, where no branch runs (round 6): under the fan's centre on both
  *  sides (once for a ring too small to split; the branches all run above it), or where the ring crosses the circle's
- *  radius straight up, the one radius between its last tip and its first that no branch crosses. */
+ *  radius straight up, the one radius between its last tip and its first that no branch crosses (on screen, the middle
+ *  of its opening). */
 export function ringLabels(box: FanBox, r: number): [number, number][] {
   if (box.shape === 'circle') return [[box.cx, box.cy - r]]
   return r > 12 ? [[box.cx + r, box.cy], [box.cx - r, box.cy]] : [[box.cx + r, box.cy]]
+}
+
+/** Whether a `w` × `h` patch centred on the circle's radius straight up, `r` from its centre, lies inside its opening
+ *  between its last tip and its first (`n` tips; with `pad` px of air), where no branch runs: every branch lies within
+ *  the tips' turn (round 6: the screen's Radial writes its ages only there). */
+export function inOpening(box: FanBox, n: number, r: number, w: number, h: number, pad = 2): boolean {
+  const open = box.open ?? 0
+  const half = ((2 * Math.PI - open) / n + open) / 2
+  return r - h / 2 > 0 && Math.atan2(w / 2 + pad, r - h / 2) <= half
 }
 
 /** Whether a `w` × `h` patch centred at (x, y) leaves every branch end (drawFan's `ends`, with `pad` px of air) in view:
