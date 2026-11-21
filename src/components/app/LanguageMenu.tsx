@@ -22,7 +22,7 @@ export function LanguageMenu() {
   const btn = useRef<HTMLButtonElement>(null)
   const close = (refocus: boolean) => {
     setOpen(false)
-    if (refocus) btn.current?.focus()
+    if (refocus) btn.current?.focus({ preventScroll: true })
   }
   const pick = (l: Lang) => {
     close(l === lang)
@@ -54,7 +54,7 @@ export function LanguageMenu() {
   )
 }
 
-/** The open menu. Mounted only while open, so the top bar is held shown exactly that long. */
+/** The open menu. Mounted only while open, so the top bar is frozen exactly that long. */
 function LangList({ id, label, current, btn, onPick, onClose }: {
   id: string
   label: string
@@ -83,7 +83,7 @@ function LangList({ id, label, current, btn, onPick, onClose }: {
   }, [])
 
   useEffect(() => {
-    items()[LANGS.indexOf(current)]?.focus()
+    items()[LANGS.indexOf(current)]?.focus({ preventScroll: true }) // opening never scrolls the page
     const away = (e: PointerEvent) => {
       const target = e.target as Node
       if (!menu.current?.contains(target) && !btn.current?.contains(target)) onClose(false)

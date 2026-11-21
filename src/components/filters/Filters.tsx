@@ -135,7 +135,7 @@ export const dropRoom = (top: number, windowH: number): number => Math.max(MIN_D
  * which would otherwise be the fixed sheet's containing block), which may take the window's full height, with a head
  * (`sheetHead`, then the close button) and an optional `foot`. Esc, a press outside the dock wrap or on the dock's own
  * empty part (the popover; dock-panels.ts pressCloses), or on the scrim (the sheet) closes it; focus moves in on open
- * and back to `returnFocus()` (if still connected) or the button on close; the top bar stays shown while it is open.
+ * and back to `returnFocus()` (if still connected) or the button on close; the top bar keeps its state (frozen, headroom.ts) while it is open.
  */
 export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onClose, panelRef, sheetHead, foot, children }: {
   id: string
@@ -159,8 +159,8 @@ export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onC
     const el = returnFocus?.()
     return el?.isConnected ? el : buttonRef.current
   })
-  // Shown, the top bar must not cover the popover or its controls bar (a sheet sits above it anyway).
-  useHoldTopBar(() => (sheet ? null : ref.current?.closest<HTMLElement>('.eb-dockwrap')))
+  // The top bar keeps its state while the panel is open (headroom.ts): opening never shows it nor scrolls the page.
+  useHoldTopBar()
   // A press outside the dock wrap, or on the dock's own empty part, closes the popover (the dock's controls, the chips and
   // the panel itself stay live: pressCloses); the sheet has its scrim.
   useEffect(() => {

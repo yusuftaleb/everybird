@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The top bar's language button (LanguageMenu, preview variant lang:a): a menu button with four menuitemradio items in
-// their own languages, SourceMenu's keyboard, the top bar held shown while it is open, and the choice written to the
+// their own languages, SourceMenu's keyboard, the top bar frozen while it is open, and the choice written to the
 // cookie before a reload.
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'

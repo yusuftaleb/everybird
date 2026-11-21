@@ -176,7 +176,7 @@ export function DockSearchField({ entries, shown, species, onPick, whose = 'this
     onClose(true)
   }
   const removeChip = (chip: SmartChip) => { setQuery(withoutChip(query, chip)); setCursor(-1) }
-  const focusField = () => input.current?.focus()
+  const focusField = () => input.current?.focus({ preventScroll: true })
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape') {
       e.preventDefault()

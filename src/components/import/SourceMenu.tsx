@@ -28,14 +28,14 @@ export const SourceMenu = forwardRef<SourceMenuHandle, { label: string; items: M
   const btn = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)
   const startAt = useRef(0)
-  useImperativeHandle(ref, () => ({ focus: () => btn.current?.focus() }), [])
+  useImperativeHandle(ref, () => ({ focus: () => btn.current?.focus({ preventScroll: true }) }), [])
   useMenuLayer(menu, btn, { on: open })
 
   const itemEls = () => [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])]
   useEffect(() => {
     if (!open) return
     const els = itemEls()
-    els[(startAt.current + els.length) % els.length]?.focus()
+    els[(startAt.current + els.length) % els.length]?.focus({ preventScroll: true }) // opening never scrolls the page
     const away = (e: PointerEvent) => {
       const t = e.target as Node
       if (!menu.current?.contains(t) && !btn.current?.contains(t)) setOpen(false)
@@ -46,7 +46,7 @@ export const SourceMenu = forwardRef<SourceMenuHandle, { label: string; items: M
   useEffect(() => { if (disabled) setOpen(false) }, [disabled])
 
   const show = (at: number) => { startAt.current = at; setOpen(true) }
-  const close = (refocus: boolean) => { setOpen(false); if (refocus) btn.current?.focus() }
+  const close = (refocus: boolean) => { setOpen(false); if (refocus) btn.current?.focus({ preventScroll: true }) }
 
   const onButtonKey = (e: KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); show(0) }
