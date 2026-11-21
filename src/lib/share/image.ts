@@ -688,19 +688,22 @@ export function paintRow(ctx: CanvasRenderingContext2D, font: Pick<CardFonts, 'l
   const track = (em: number, px: number) => { if ('letterSpacing' in ctx) ctx.letterSpacing = `${(em * px).toFixed(2)}px` }
   ctx.textAlign = 'left'
   if (at.inline) {
-    const right = at.x + at.tw + icon + 20, nx = at.x + icon + SMALL_INLINE.gap, mid = at.y + icon / 2
-    ctx.textBaseline = 'middle'
-    ctx.font = font.lifer(ns)
-    const full = ctx.measureText(words.name).width
-    if (nx + full > right) ctx.font = font.lifer(Math.max(1, (ns * (right - nx)) / full))
+    const right = at.x + at.tw + icon + 20, nx = at.x + icon + SMALL_INLINE.gap
+    ctx.textBaseline = 'alphabetic'
+    const full = (ctx.font = font.lifer(ns), ctx.measureText(words.name).width)
+    const size = nx + full > right ? Math.max(1, (ns * (right - nx)) / full) : ns
+    if (size !== ns) ctx.font = font.lifer(size)
+    // One baseline for the name and the detail (each centred on its own font's middle sat them apart), the name's
+    // capitals centred on the sticker (cap height about 0.7 em).
+    const base = at.y + icon / 2 + 0.35 * size
     ctx.fillStyle = C.ink
-    ctx.fillText(words.name, nx, mid)
+    ctx.fillText(words.name, nx, base)
     const dx = nx + ctx.measureText(words.name).width + SMALL_INLINE.gap, room = right - dx
     ctx.font = font.mono(ls)
     const long = words.detail ?? words.label, short = words.head ?? words.label
     const detail = ctx.measureText(long).width <= room ? long : ctx.measureText(short).width <= room ? short : room > ls ? clipTo((t) => ctx.measureText(t).width, short, room) : ''
     ctx.fillStyle = C.muted
-    if (detail) ctx.fillText(detail, dx, mid)
+    if (detail) ctx.fillText(detail, dx, base)
     ctx.textBaseline = 'top'
     return detail
   }

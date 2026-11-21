@@ -63,7 +63,7 @@ describe('a Tree poster\'s oldest lineage row', () => {
       const format = layout === 'fan' ? 'printLandscape' : 'print'
       const L = image.cardLayout(format, { name: false, filter: false, latest: true, count: 0, countSize: 'hide' }, printDesign('A4', layout === 'fan'))
       const texts = log.filter((l) => l.startsWith('fillText('))
-      const name = texts.find((l) => l.startsWith(`fillText(${JSON.stringify(oldName)}, `) && l.includes('textBaseline: "middle"'))!
+      const name = texts.find((l) => l.startsWith(`fillText(${JSON.stringify(oldName)}, `) && l.includes('textBaseline: "alphabetic"'))!
       expect(name, 'the row\'s name').toBeTruthy()
       // The tip names: every other text in the row's face (600 weight, the body family).
       const tips = texts.filter((l) => l !== name && /font: "600 /.test(l)).map(px)
@@ -73,17 +73,20 @@ describe('a Tree poster\'s oldest lineage row', () => {
       // Five families' names are large on a poster, so the row's name grows to theirs; 141 families' are small, so it keeps its own.
       if (level.ord === 'Galliformes') expect(px(name)).toBe(Math.max(...tips))
       if (level.ord === 'Passeriformes') expect(px(name)).toBe(image.SMALL_INLINE.name)
-      // In the row: right after its sticker's square, on its middle; above the hairline, inside the content's width.
+      // In the row: right after its sticker's square, its capitals centred on it (the baseline 0.35 em under the middle,
+      // the detail on the same baseline); above the hairline, inside the content's width.
       const R = L.latest!
       const [x, y] = xy(name)
       expect(x).toBe(R.x + R.icon + image.SMALL_INLINE.gap)
-      expect(y).toBeCloseTo(R.y + R.icon / 2, 6)
+      expect(y).toBeCloseTo(R.y + R.icon / 2 + 0.35 * px(name), 6)
       const rule = log.find((l) => l.startsWith('fillRect(64, ') && l.includes(image.SHARE_COLORS.light.hairline))!
       expect(R.y + R.icon).toBeLessThan(Number(/fillRect\(64, ([\d.]+),/.exec(rule)![1]))
       expect(R.x).toBe(L.collage.x)
       expect(R.y).toBeGreaterThanOrEqual(L.collage.y + L.collage.h)
       // The detail beside it, "Oldest lineage · …", in the small mono.
-      expect(texts.some((l) => l.startsWith('fillText("Oldest lineage · ') && l.includes('textBaseline: "middle"'))).toBe(true)
+      const detail = texts.find((l) => l.startsWith('fillText("Oldest lineage · ') && l.includes('textBaseline: "alphabetic"'))!
+      expect(detail).toBeTruthy()
+      expect(xy(detail)[1]).toBe(y)
       // Nothing of it in the foot any more.
       expect(texts.some((l) => l.includes('Oldest lineage:'))).toBe(false)
     })
