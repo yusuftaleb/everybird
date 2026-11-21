@@ -3,7 +3,8 @@
 // Filters panel's frame (DockPanel) at a menu's width, at the bar's right end. Only what applies (dock-panels.ts
 // DISPLAY_CONTROLS): in the Tree, Layout (Fan | Radial | Rectangular, a segmented control TreeView renders into
 // `layoutSlot`, since it knows which layouts can name every tip; one that can't stays listed, aria-disabled, its reason
-// its tooltip and accessible description), then Lifers only, Time scale and Scientific names; in the Collage,
+// its tooltip and accessible description; under it Down to, the rank drawn, rendered there too), then Lifers only,
+// Time scale and Scientific names; in the Collage,
 // Arrangement (Fit | Oval | Free as three small icons, no words: arrangement.ts ARRANGE_ICON, each named and titled), True size
 // and Scientific names. List and Map have none. Every row is one line, the label at the left and its control at the
 // right: the segmented choices small (the share dialog's Arrangement row's size), the switches 32px with a mouse and

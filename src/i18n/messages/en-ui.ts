@@ -203,7 +203,8 @@ export const EN_UI = {
      *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that is
      *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. `mineNone`
      *  the line when the bar's Lifers only (controls.lifersOnly) leaves no row. `genera` the rank line above the tree
-     *  ("29 genera"; the other ranks reuse `stats`, and with Lifers only `controls.taxaHead` and `stats.of`). */
+     *  ("29 genera"; the other ranks reuse `stats`, and with Lifers only `controls.taxaHead` and `stats.of`).
+     *  `tooMany`/`tooManyMine` why a rank in the Display panel's Down to is off (too many tips to draw on screen). */
     tree: {
       loading: 'Loading the tree',
       failed: "The tree didn't load. Open Tree again to try once more.",
@@ -237,6 +238,8 @@ export const EN_UI = {
       layout: 'Layout',
       layouts: { fan: 'Fan', circle: 'Radial', rows: 'Rectangular' },
       noRoom: 'Not enough room for every name',
+      tooMany: 'Too many to draw: turn on Lifers only or open a branch',
+      tooManyMine: 'Too many to draw: open a branch',
       rank: { orders: 'Orders', families: 'Families', genera: 'Genera', species: 'Species' },
       tipOf: '{n} of {total}',
       genera: { one: '{n} genus', other: '{n} genera' },

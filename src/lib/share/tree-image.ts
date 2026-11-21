@@ -156,11 +156,12 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const { state, entries, at, t } = o
   const [{ tree }, all] = await Promise.all([loadTree(), loadSpecies()])
   const codes = new Set(entries.map((e) => e.code))
-  const shownView = levelView(tree, all, at.tree ?? {}, codes, at.mine)
+  // The rank on screen, Down to's included (round 6: the screen's rank is the deeper of its Down to and the step).
+  const shownView = levelView(tree, all, at.tree ?? {}, codes, at.mine, undefined, at.rank)
   if (!shownView) throw new Error('No tree to draw')
   // A poster (its size given, the print card) may draw the rank under the screen's ("Down to"); a share image never.
   const posterSize: PrintSize | undefined = o.printSize && (o.format === 'print' || o.format === 'printLandscape') ? o.printSize : undefined
-  const deepView = posterSize ? levelView(tree, all, at.tree ?? {}, codes, at.mine, 'deeper') : undefined
+  const deepView = posterSize ? levelView(tree, all, at.tree ?? {}, codes, at.mine, 'deeper', at.rank) : undefined
   const tt = t.collage.tree
   const timeScale = at.time !== false
   // The oldest lineage in the latest lifer's place ("Show oldest lineage").

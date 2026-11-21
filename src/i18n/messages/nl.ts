@@ -185,6 +185,8 @@ export const nl: Messages = {
         layout: 'Vorm',
         layouts: { fan: 'Waaier', circle: 'Radiaal', rows: 'Rechthoekig' },
         noRoom: 'Niet genoeg ruimte voor alle namen',
+        tooMany: 'Te veel om te tekenen: zet Alleen mijn vogels aan of open een tak',
+        tooManyMine: 'Te veel om te tekenen: open een tak',
         rank: { orders: 'Ordes', families: 'Families', genera: 'Geslachten', species: 'Soorten' },
         tipOf: '{n} van {total}',
         genera: { one: '{n} geslacht', other: '{n} geslachten' },

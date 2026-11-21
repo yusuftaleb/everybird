@@ -191,6 +191,8 @@ export const pl: Messages = {
         layout: 'Układ',
         layouts: { fan: 'Wachlarzowy', circle: 'Promienisty', rows: 'Prostokątny' },
         noRoom: 'Za mało miejsca na wszystkie nazwy',
+        tooMany: 'Za dużo do narysowania: włącz Tylko moje ptaki albo otwórz gałąź',
+        tooManyMine: 'Za dużo do narysowania: otwórz gałąź',
         rank: { orders: 'Rzędy', families: 'Rodziny', genera: 'Rodzaje', species: 'Gatunki' },
         tipOf: '{n} z {total}',
         genera: { one: '{n} rodzaj', few: '{n} rodzaje', many: '{n} rodzajów', other: '{n} rodzajów' },

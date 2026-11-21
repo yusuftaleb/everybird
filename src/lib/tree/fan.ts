@@ -70,6 +70,9 @@ export function fitRound(spans: readonly LabelSpan[], shape: FanShape, room: { w
   const open = circle && n > 1 ? Math.max(0, (n * gap - 2 * Math.PI) / (n - 1)) : 0
   const step = (circle ? 2 * Math.PI - open : Math.PI) / n
   const angles = spans.map((_, i) => fanAngle(i + 0.5, n, shape, open))
+  // With `fill` the labels' reach is at least the radius each way, and the radius at least what the tips need at the
+  // smallest type and sticker: past the width, no fit (and no search: a big rank, Down to's, answers at once).
+  if (fill && 2 * Math.max(rMin, (floor * stFloor) / step - dot - floor * LABEL_GAP) > room.w) return undefined
   let st = LABEL_STICKER
   const ext = (px: number, i: number, count: boolean) => dot + px * (2 * LABEL_GAP + st + spans[i].name + (count && spans[i].count ? LABEL_GAP + spans[i].count : 0))
   // The radius the tips need (sticker boxes a box apart at their inner edge), and the most each tip allows: its label

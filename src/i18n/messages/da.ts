@@ -185,6 +185,8 @@ export const da: Messages = {
         layout: 'Form',
         layouts: { fan: 'Vifte', circle: 'Radial', rows: 'Rektangulær' },
         noRoom: 'Ikke plads til alle navne',
+        tooMany: 'For mange at tegne: slå Kun mine fugle til, eller åbn en gren',
+        tooManyMine: 'For mange at tegne: åbn en gren',
         rank: { orders: 'Ordener', families: 'Familier', genera: 'Slægter', species: 'Arter' },
         tipOf: '{n} af {total}',
         genera: { one: '{n} slægt', other: '{n} slægter' },

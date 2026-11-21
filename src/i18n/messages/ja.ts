@@ -187,6 +187,8 @@ export const ja: Messages = {
         layout: 'レイアウト',
         layouts: { fan: '扇形', circle: '放射状', rows: '矩形' },
         noRoom: 'すべての名前が入りきりません',
+        tooMany: '多すぎて描けません：自分の鳥だけをオンにするか、枝を開いてください',
+        tooManyMine: '多すぎて描けません：枝を開いてください',
         rank: { orders: '目', families: '科', genera: '属', species: '種' },
         tipOf: '{total}中{n}',
         genera: { one: '{n}属', other: '{n}属' },

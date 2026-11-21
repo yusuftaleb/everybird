@@ -185,6 +185,8 @@ export const de: Messages = {
         layout: 'Form',
         layouts: { fan: 'Fächer', circle: 'Radial', rows: 'Rechteckig' },
         noRoom: 'Nicht genug Platz für alle Namen',
+        tooMany: 'Zu viele zum Zeichnen: Nur meine Vögel einschalten oder einen Zweig öffnen',
+        tooManyMine: 'Zu viele zum Zeichnen: einen Zweig öffnen',
         rank: { orders: 'Ordnungen', families: 'Familien', genera: 'Gattungen', species: 'Arten' },
         tipOf: '{n} von {total}',
         genera: { one: '{n} Gattung', other: '{n} Gattungen' },
