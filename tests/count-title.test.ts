@@ -110,12 +110,15 @@ describe('the poster\'s head and foot', () => {
     expect(sy + h / 2).toBeCloseTo(Number(y(lifer)) - 0.35 * image.POSTER_FOOT.line, 4)
   })
 
-  it('leaves the latest lifer out of the line with "Show latest lifer" off, and keeps the collage where it was', async () => {
+  // Item 10: with the latest lifer the portrait poster keeps room for its own line under the foot's (placePosterFoot
+  // moves it there when the two don't fit beside each other), so the collage never meets the raised hairline; off, the
+  // collage takes that room.
+  it('leaves the latest lifer out of the line with "Show latest lifer" off, the collage taking its line', async () => {
     const log = await poster({ name: 'Ada’s birds', latest: false })
     expect(texts(log).find((l) => l.includes('Stickers: huashu-bird-sticker'))).toMatch(/^fillText\("everybird\.yusuftaleb\.com · Stickers: huashu-bird-sticker, CC BY 4\.0 · 15 Nov 2026"/)
     const on = image.cardLayout('print', { name: true, filter: false, latest: true, count: 14 }, printDesign('A4'))
     const off = image.cardLayout('print', { name: true, filter: false, latest: false, count: 14 }, printDesign('A4'))
-    expect(off.collage).toEqual(on.collage)
+    expect(off.collage).toEqual({ ...on.collage, h: on.collage.h + image.POSTER_FOOT.line + 12 })
     expect(on.latest).toBeUndefined()
   })
 

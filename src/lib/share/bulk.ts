@@ -227,6 +227,8 @@ export type BulkPackOpts = {
   landscape: boolean
   /** The poster has a title line. */
   named: boolean
+  /** Show latest lifer (default on): a portrait poster keeps room for the lifer's own line in its foot (cardLayout). */
+  latest?: boolean
   countSize: CountSize
   /** The Big Year goal's target: the label under the count reads "/ 300 SPECIES", so its hole is sized for that. */
   target?: number
@@ -240,7 +242,7 @@ export type BulkPackOpts = {
 /** What to pack for one group's poster (every poster has its group's label line), with names planned for its own birds. */
 export function bulkPackSpec(entries: ListEntry[], o: BulkPackOpts): PackSpec {
   const format: CardFormat = o.landscape ? 'printLandscape' : 'print'
-  const content = { name: o.named, filter: true, latest: true, count: entries.length, target: o.target, countSize: o.countSize }
+  const content = { name: o.named, filter: true, latest: o.latest !== false, count: entries.length, target: o.target, countSize: o.countSize }
   if (!o.showNames) return imagePackSpec(format, content, o.size, undefined, o.arrangement)
   const L = cardLayout(format, content, printDesign(o.size, o.landscape))
   const plan = planCaptions(entries, o.species, o.size, L.collage.w, o.nameOf, o.measure)

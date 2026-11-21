@@ -61,11 +61,23 @@ function placementOrder(birds: PackBird[], rel: Map<number, number>): PackBird[]
   return [...birds].sort((a, b) => rel.get(b.id)! - rel.get(a.id)! || a.id - b.id)
 }
 
-/** An empty grid with the count's hole marked and, for Oval, everything outside the stage's ellipse. */
-function blankGrid(W: number, H: number, cell: number, hole: Hole, oval: boolean): Grid {
+/**
+ * The boundary a pack stays inside, as a superellipse exponent: 0 the stage's rectangle, 2 Oval's ellipse, CLOUD_P Free's
+ * rounded rectangle for a small list (true, as `oval` was, reads as 2).
+ */
+type Bound = number | boolean
+const boundP = (b: Bound) => (b === true ? 2 : b || 0)
+/** The share of the stage's area inside the bound. */
+const boundArea = (b: Bound) => { const p = boundP(b); return p === 2 ? Math.PI / 4 : p ? CLOUD_AREA : 1 }
+/** Free's cloud for a list too small to settle into one (round 6, item 11): it packs inside |u|^3 + |v|^3 <= 1. */
+const CLOUD_P = 3
+const CLOUD_AREA = 0.883 // Γ(1 + 1/3)² / Γ(1 + 2/3): the share of the rectangle inside it
+
+/** An empty grid with the count's hole marked and, for Oval or a small Free list, everything outside its bound. */
+function blankGrid(W: number, H: number, cell: number, hole: Hole, bound: Bound): Grid {
   const grid = new Grid(W, H, cell)
   grid.markHole(W / 2, H / 2, hole)
-  if (oval) grid.markOutsideOval(W, H)
+  if (boundP(bound)) grid.markOutsideOval(W, H, boundP(bound))
   return grid
 }
 
@@ -113,7 +125,7 @@ type Packed = { boxes: Map<number, Box>; placed: Placed[] }
 function packGrid(
   birds: PackBird[], rel: Map<number, number>, W: number, H: number, base: number,
   stretch: number | readonly [number, number], hole: Hole, targets: Map<number, [number, number]> | undefined,
-  cell: number, dense: boolean, captions?: Map<number, CaptionRoom>, oval = false, slide = true,
+  cell: number, dense: boolean, captions?: Map<number, CaptionRoom>, oval: Bound = false, slide = true,
 ): Packed | null {
   const grid = blankGrid(W, H, cell, hole, oval)
   const pad = Math.ceil(GAP / cell)
@@ -171,9 +183,9 @@ type Settle = 'rect' | 'round' | 'oval'
  * small stickers, which read as a loose lattice at the edge; every step is a collision test, so it never makes an
  * overlap. Then (`fill`) fillPockets moves the outermost birds into the pockets still left inside. Deterministic.
  */
-function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill = true, keep?: UnitMasks): Map<number, Box> {
+function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill = true, keep?: UnitMasks, bound: Bound = shape === 'oval'): Map<number, Box> {
   const oval = shape === 'oval'
-  const grid = blankGrid(W, H, 1, hole, oval)
+  const grid = blankGrid(W, H, 1, hole, bound)
   const pad = GAP
   const todo: Settling[] = []
   for (const q of p.placed) {
@@ -418,7 +430,7 @@ export function detached(boxes: Map<number, Box>, k = DETACH): number[] {
  * clear. Repeated while that frees others (a bird that was blocked by one now moved). True size and small lists
  * leave a few: big birds placed first push small ones out along the spiral past the edge (the "stragglers").
  */
-function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions?: Map<number, CaptionRoom>, oval = false): Map<number, Box> {
+function gather(boxes: Map<number, Box>, birds: PackBird[], W: number, H: number, hole: Hole, captions?: Map<number, CaptionRoom>, oval: Bound = false): Map<number, Box> {
   let loose = detached(boxes)
   if (!loose.length) return boxes
   const grid = blankGrid(W, H, 1, hole, oval)
@@ -682,23 +694,28 @@ export function packBest(
   // mode, whatever the whole list's size) is settled too, and spirals round rather than stretched: two or three birds
   // then pack around the count instead of strung out along the stage's width, where the settling pass can't close the gap.
   const small = !!layout.denseFrom && birds.length < SMALL_SET
-  const dense = small || !!opts.settleFrame || (!!layout.denseFrom && mode === 'even' && !targets && rel.size >= layout.denseFrom)
+  // Free is its cloud from FREE_CLOUD_FROM birds (round 6, item 11), not only from denseFrom.
+  const denseFrom = shape === 'round' ? Math.min(layout.denseFrom ?? Infinity, FREE_CLOUD_FROM) : layout.denseFrom
+  const dense = small || !!opts.settleFrame || (!!layout.denseFrom && mode === 'even' && !targets && rel.size >= denseFrom!)
+  // Free's list from FREE_CLOUD_FROM birds up to the size whose settling makes its own cloud (denseFrom; a frame's
+  // FRAME_DENSE_FROM) packs inside the rounded rectangle: so few birds fill whatever they are packed in, corners too.
+  const bound: Bound = oval ? 2 : shape === 'round' && rel.size >= FREE_CLOUD_FROM && rel.size < (layout.denseFrom ?? FRAME_DENSE_FROM) ? CLOUD_P : 0
   // The spiral of the pass in hand: a small set's filtered state tries a round one and the stage's own, keeps the tighter.
   // A small set neither slides nor fills pockets: sliding pulls each bird onto the count and away from its neighbour,
   // and the round / stage spiral test (worstGap) already keeps the snugger of two arrangements.
   let round = small
-  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions, oval, !small)
+  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions, bound, !small)
   // Settled (dense), then any detached birds gathered back to the group (gather): the outline stays compact.
   const unitMasks: UnitMasks = new Map() // settle's, for lineEdges
   // A small set keeps the rounded rectangle under Fit too: a few birds close up round the count, not into a rectangle.
   const boxesOf = (p: Packed, W: number, H: number) =>
-    gather(dense ? settle(p, W, H, hole, small && shape === 'rect' ? 'round' : shape, !small && !(opts.settleFrame && shape === 'rect'), unitMasks) : p.boxes, birds, W, H, hole, captions, oval)
+    gather(dense ? settle(p, W, H, hole, small && shape === 'rect' ? 'round' : shape, !small && !(opts.settleFrame && shape === 'rect'), unitMasks, bound) : p.boxes, birds, W, H, hole, captions, bound)
 
   // Search range. Full collage: [0.6, 1.6] x the area estimate, capped at MAX_BASE. With refBase (filtered
   // states): the reference's window [0.7, MAXUP] x refBase, searched directly (it may exceed MAX_BASE).
   const range = (W: number, H: number): [number, number] => {
     if (clamp) return [clamp[0], clamp[1]]
-    const usable = Math.max(1, (oval ? Math.PI / 4 : 1) * W * H - holeArea(hole))
+    const usable = Math.max(1, boundArea(bound) * W * H - holeArea(hole))
     const est = Math.sqrt((0.55 * usable) / Math.max(area, 1e-9))
     const hi = Math.min(1.6 * est, MAX_BASE, opts.maxBase ?? Infinity)
     return [Math.min(0.6 * est, hi), hi]
@@ -834,6 +851,9 @@ export function packFrame(birds: PackBird[], aspect: number, opts: FrameOpts = {
 type FrameOpts = { hole?: Hole; maxTile?: number; captions?: Map<number, CaptionRoom>; oval?: boolean; free?: boolean }
 /** Fit's share images pack dense from this many birds: the wide and medium layouts' denseFrom. */
 export const FRAME_DENSE_FROM = 380
+/** Free is settled into its cloud from this many birds, on the page and in the images (round 6, item 11: below
+ *  denseFrom it was a loose rectangle, hard to tell from Fit's). */
+export const FREE_CLOUD_FROM = 100
 function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): PackResult {
   const rel = relSizes(birds, EXP)
   let area = 0, maxRel = 1
@@ -844,7 +864,8 @@ function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): Pack
   // packBest's estimate is base = sqrt(0.55 · usable / area); solve it for the frame at frameBase, where usable is the
   // frame's area less the hole's: W² · (1 / aspect − hole area at width 1).
   const usable = (frameBase(birds.length) ** 2 * Math.max(area, 0.05)) / 0.55
-  const free = Math.max(0.1 / aspect, (opts.oval ? Math.PI / 4 : 1) / aspect - holeArea(unit) - capArea * 2.8)
+  const inside = opts.oval ? Math.PI / 4 : opts.free && birds.length >= FREE_CLOUD_FROM && birds.length < FRAME_DENSE_FROM ? CLOUD_AREA : 1
+  const free = Math.max(0.1 / aspect, inside / aspect - holeArea(unit) - capArea * 2.8)
   const W = Math.max(8, Math.ceil(Math.sqrt(usable / free)))
   const H = Math.max(8, Math.round(W / aspect))
   const hole = scaleHole(unit, W)
@@ -853,7 +874,7 @@ function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): Pack
   const captions = opts.captions
     ? new Map([...opts.captions].map(([id, c]) => [id, { w: c.w * W, h: c.h * W, ...(c.ring ? { ring: c.ring * W } : {}) }]))
     : undefined
-  const settleFrame = !opts.oval && !captions && birds.length >= FRAME_DENSE_FROM
+  const settleFrame = !opts.oval && !captions && birds.length >= (opts.free ? FREE_CLOUD_FROM : FRAME_DENSE_FROM)
   const r = packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : opts.free ? { free: true } : {}), ...(settleFrame ? { settleFrame } : {}) })
   // Free keeps its cloud: nothing spreads it to the frame's walls.
   return opts.free ? r : { ...r, boxes: spreadEven(r.boxes, birds, r.W, r.H, hole, captions, !!opts.oval) }

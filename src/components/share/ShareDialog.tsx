@@ -377,11 +377,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       if (!planIds.has(plan)) planIds.set(plan, nextPlan++)
       return planIds.get(plan)!
     }
-    // Keyed by the latest lifer row on an image (without it the collage takes the row's room); a poster has no row.
+    // Keyed by the latest lifer row on an image (without it the collage takes the row's room); a poster has no row, but
+    // a portrait one keeps room in its foot for the lifer's own line (cardLayout, round 6 item 10).
     return (f: CardFormat, named: boolean, printSize: PrintSize, cs: CountSize, plan?: Extract<CaptionPlan, { ok: true }> | null, signal?: AbortSignal, latest = true) => {
       const hasPlan = !!plan?.ok && isPrint(f)
       // With names, the paper size too: the caption font follows the paper, though every A size shares one pack height.
-      const k = `${f}|${named}|${isPrint(f) ? printPackH(printSize) : latest}|${cs}|${hasPlan ? `${printSize}|plan${planId(plan)}` : ''}`
+      const k = `${f}|${named}|${isPrint(f) ? `${printPackH(printSize)}|${f === 'print' && latest}` : latest}|${cs}|${hasPlan ? `${printSize}|plan${planId(plan)}` : ''}`
       let p = packs.get(k)
       if (!p) {
         const spec = imagePackSpec(f, { name: named, filter: !!(cardLabel || cardGoal), latest, count: cardEntries.length, target: cardGoal?.target, countSize: cs }, printSize, hasPlan ? plan : undefined, arrangement)
@@ -730,7 +731,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
             countSize, theme, transparent, strings: t, nameOf: displayName, regions: named, signal: ctl.signal,
           },
           packSpec: (entries) => bulkPackSpec(entries, {
-            size, landscape, named: !!trimmed, countSize, target: cardGoal?.target, showNames: effectiveShowNames, species, nameOf: displayName, measure, arrangement,
+            size, landscape, named: !!trimmed, latest: withLatest, countSize, target: cardGoal?.target, showNames: effectiveShowNames, species, nameOf: displayName, measure, arrangement,
           }),
           onProgress,
           deps: { makePoster: mod.makePoster },

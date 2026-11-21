@@ -105,6 +105,24 @@ describe('even spacing in the share images and the poster', () => {
     }, 60_000)
   }
 
+  // Item 11: Free is a cloud from FREE_CLOUD_FROM (100) birds, not only once dense: under FRAME_DENSE_FROM its pack stays
+  // inside the rounded rectangle |u|^3 + |v|^3 <= 1 and settles into it, so its corners stay open while Fit's are filled.
+  for (const n of [100, 200, 300]) {
+    for (const format of ['story', 'post', 'square', 'desktop', 'wide'] as const) {
+      it(`${format}, ${n} species: Free's corners open, Fit's filled`, () => {
+        const spec = packSpec(cardLayout(format, { name: true, filter: false, latest: true, count: n }, cardDims(format)))
+        const birds = sample(n)
+        const fit = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile })
+        const free = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile, free: true })
+        expect(clean(birds, free)).toBe(true)
+        const corners = (r: PackResult) => { const e = evenness(birds, r, { hole: scaleHole(spec.hole, r.W) }); return e.corners.map((c) => c / e.medianL) }
+        console.log(`[corners] ${format} ${n}: Fit ${corners(fit).map((c) => c.toFixed(2)).join(' ')}, Free ${corners(free).map((c) => c.toFixed(2)).join(' ')}`)
+        for (const c of corners(fit)) expect(c).toBeLessThan(0.75)
+        for (const c of corners(free)) expect(c).toBeGreaterThan(1.25)
+      }, 60_000)
+    }
+  }
+
   it('is deterministic: the same list packs to the same boxes', () => {
     const birds = sample(150)
     const a = packFrame(birds, 0.7, { maxTile: 0.3 })

@@ -36,13 +36,14 @@ export class Grid {
 
   /**
    * Oval (arrange.ts): mark every cell not wholly inside the ellipse inscribed in the W x H stage (centred at W / 2,
-   * H / 2, semi-axes W / 2 and H / 2), so nothing is placed outside it.
+   * H / 2, semi-axes W / 2 and H / 2), so nothing is placed outside it. With `p` other than 2, the superellipse
+   * |u|^p + |v|^p <= 1 instead (Free's small lists: a rounded rectangle, pack.ts CLOUD_P).
    */
-  markOutsideOval(W: number, H: number): void {
+  markOutsideOval(W: number, H: number, p = 2): void {
     const c = this.cell, rx = W / 2, ry = H / 2
     for (let y = 0; y < this.gh; y++) {
       const dy = Math.max(Math.abs(y * c - ry), Math.abs((y + 1) * c - ry)) / ry
-      const half = dy < 1 ? rx * Math.sqrt(1 - dy * dy) : -1
+      const half = dy < 1 ? rx * (p === 2 ? Math.sqrt(1 - dy * dy) : (1 - dy ** p) ** (1 / p)) : -1
       for (let x = 0; x < this.gw; x++) {
         if (half < 0 || x * c < rx - half || (x + 1) * c > rx + half) this.bits[y * this.wpr + (x >> 5)] |= 1 << (x & 31)
       }

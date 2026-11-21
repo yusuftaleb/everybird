@@ -692,9 +692,33 @@ describe('big lists: no pockets inside the outline, an even edge', () => {
   }
 })
 
+// Item 11: Free is a cloud from FREE_CLOUD_FROM (100) birds on every layout, not only once dense (denseFrom): its pack stays
+// inside the rounded rectangle |u|^3 + |v|^3 <= 1 and settles into it, so its corners stay open where Fit's are filled.
+// The corners (tests/pockets.ts: median stickers from the nearest silhouette), Free before item 11 -> after, wide / medium
+// / narrow, the smallest: 100 birds 0.77 / 0.63 / 0.63 -> 0.89 / 0.87 / 0.78, 200 birds 0.44 / 0.86 / 0.93 -> 1.33 / 1.33
+// / 1.20, 300 birds 0.69 / 0.87 / 0.83 (narrow already dense, unchanged) -> 1.69 / 1.49 / 0.83. Fit's: 0.00 to 0.64.
+describe('Free from 100 birds: a cloud on every layout, Fit the rectangle', () => {
+  beforeAll(() => { if (!POOL.length) POOL = loadPool() })
+  for (const L of LAYOUTS) {
+    for (const n of [100, 200, 300]) {
+      it(`${n} birds on ${L.name}`, () => {
+        const birds = sample(n)
+        const corners = (r: PackResult) => pockets(birds, r, collageHole(n, L)).corners
+        const fit = corners(packBest(birds, L, 'even'))
+        const free = corners(packBest(birds, L, 'even', { free: true }))
+        const mean = (c: number[]) => c.reduce((a, b) => a + b, 0) / c.length
+        console.log(`[cloud] ${L.name} ${n}: Fit ${fit.map((c) => c.toFixed(2)).join(' ')}, Free ${free.map((c) => c.toFixed(2)).join(' ')}`)
+        expect(Math.min(...free)).toBeGreaterThan(0.7)
+        expect(mean(free)).toBeGreaterThan(mean(fit) + 0.5)
+      }, 60000)
+    }
+  }
+})
+
 // Free on the page is Fit as it was before Fit filled the rectangle (round 6), box for box: an exact hash of every box (and
 // the base and stage) of the page's even and true-size collages on every layout, for a list under denseFrom and a big one.
-// Recorded from the code before the change. (Its share images draw the same cloud since item 8: tests/even-spacing.test.ts.)
+// The big lists' recorded from the code before the change; the 200 birds' re-recorded for item 11 (Free's cloud from 100).
+// (Its share images draw the same cloud since item 8: tests/even-spacing.test.ts.)
 const exact = (r: PackResult) => {
   const f = new Float64Array([r.base, r.W, r.H, ...[...r.boxes.entries()].sort((a, b) => a[0] - b[0]).flatMap(([id, b]) => [id, ...b])])
   let h = 0x811c9dc5
@@ -702,11 +726,11 @@ const exact = (r: PackResult) => {
   return `${r.boxes.size}:${h.toString(16)}`
 }
 const FREE: [string, number, string, string][] = [
-  ['wide', 200, '200:43af54d5', '200:c216b5f8'], ['wide', 1100, '1100:42495cc3', '1100:d0414a24'],
-  ['medium', 200, '200:5b2fd13e', '200:386b9aff'], ['medium', 1100, '1100:f271b651', '1100:d894e790'],
-  ['narrow', 200, '200:d72c0469', '200:3f2489b0'], ['narrow', 1100, '1100:a67d2970', '1100:267ff50d'],
+  ['wide', 200, '200:cd40546b', '200:6babe418'], ['wide', 1100, '1100:42495cc3', '1100:d0414a24'],
+  ['medium', 200, '200:5cab8a11', '200:ad0db7a9'], ['medium', 1100, '1100:f271b651', '1100:d894e790'],
+  ['narrow', 200, '200:c6b831de', '200:949d6338'], ['narrow', 1100, '1100:a67d2970', '1100:267ff50d'],
 ]
-describe('Free on the page: the layout before Fit filled the rectangle, box for box', () => {
+describe('Free on the page: the cloud, box for box', () => {
   beforeAll(() => { if (!POOL.length) POOL = loadPool() })
   for (const [name, n, even, tru] of FREE) {
     it(`${n} birds on ${name}, even and true size`, () => {
