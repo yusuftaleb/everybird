@@ -67,7 +67,7 @@ describe('bulk export', () => {
     expect(groups).toHaveLength(3)
     expect(groups.map((g) => g.entries.length)).toEqual([1000, 1000, 101])
     expect(groups.map((g) => g.label)).toEqual(['Batch 1', 'Batch 2', 'Batch 3'])
-    expect(groups.map((g) => g.stem)).toEqual(['batch-1', 'batch-2', 'batch-3'])
+    expect(groups.map((g) => g.stem)).toEqual(['birds-1-1000', 'birds-1001-2000', 'birds-2001-2101'])
     expect(groups[0].entries[0].code).toBe('b0')
     expect(groups[2].entries[100].code).toBe('b2100')
   })
@@ -217,17 +217,16 @@ describe('bulk export', () => {
     expect(hasRepeats(buildSeen([{ code: 'merlin', source: 'ebird', date: '2019-03-01', place: { country: 'EG' }, seen: ['2019-03-01|EG'], seenMonths: ['2019-03|EG'] }], edits, rules, one))).toBe(true)
   })
 
-  it('keeps the letters NFKD does not decompose in file names', () => {
-    expect(sanitizeGroupStem('Łódź')).toBe('lodz')
-    expect(sanitizeGroupStem('Færøerne')).toBe('faeroerne')
-    expect(sanitizeGroupStem('Straße Œuvre')).toBe('strasse-oeuvre')
-    expect(sanitizeGroupStem('Đakovo Þórshöfn')).toBe('dakovo-thorshofn')
+  it('keeps letters of every script in file names', () => {
+    expect(sanitizeGroupStem('Łódź')).toBe('łódź')
+    expect(sanitizeGroupStem('Straße Œuvre')).toBe('straße-œuvre')
+    expect(sanitizeGroupStem('Hawks, Eagles, and Kites')).toBe('hawks-eagles-and-kites')
+    expect(sanitizeGroupStem('Ястребиные')).toBe('ястребиные')
   })
 
   it('sanitizes group names into safe, unique filenames without traversal or illegal characters', () => {
     expect(sanitizeGroupStem('../../etc/passwd')).toBe('etc-passwd')
-    expect(sanitizeGroupStem('São Paulo: State / East?*')).toBe('sao-paulo-state-east')
-    expect(sanitizeGroupStem('CON')).toBe('con-group')
+    expect(sanitizeGroupStem('São Paulo: State / East?*')).toBe('são-paulo-state-east')
     expect(sanitizeGroupStem('...')).toBe('group')
 
     const species = buildSpeciesIndex([
@@ -299,10 +298,10 @@ describe('bulk export', () => {
     ])
 
     const unzipped = unzipSync(new Uint8Array(await zipBlob.arrayBuffer()))
-    expect(Object.keys(unzipped)).toEqual(['ostriches.png', 'ducks.png', 'falcons.png'])
-    expect(strFromU8(unzipped['ostriches.png'])).toBe('png:Ostriches')
-    expect(strFromU8(unzipped['ducks.png'])).toBe('png:Ducks')
-    expect(strFromU8(unzipped['falcons.png'])).toBe('png:Falcons')
+    expect(Object.keys(unzipped)).toEqual(['01-ostriches.png', '02-ducks.png', '03-falcons.png'])
+    expect(strFromU8(unzipped['01-ostriches.png'])).toBe('png:Ostriches')
+    expect(strFromU8(unzipped['02-ducks.png'])).toBe('png:Ducks')
+    expect(strFromU8(unzipped['03-falcons.png'])).toBe('png:Falcons')
   })
 
   it('makeImageZip writes one PNG per group in the dialog\'s format, each labelled with its group after the view', async () => {
@@ -330,8 +329,8 @@ describe('bulk export', () => {
     expect(progress).toEqual([1, 2])
     expect(specs[0]).toEqual(bulkImagePackSpec(groups[0].entries, { format: 'post', countSize: 'large' }))
     const files = unzipSync(new Uint8Array(await blob.arrayBuffer()))
-    expect(Object.keys(files).sort()).toEqual(['ducks.png', 'ostriches.png'])
-    expect(strFromU8(files['ducks.png'])).toBe('png:Canada · Ducks')
+    expect(Object.keys(files)).toEqual(['01-ostriches.png', '02-ducks.png'])
+    expect(strFromU8(files['02-ducks.png'])).toBe('png:Canada · Ducks')
   })
 
   it('makeImageZip stops at a cancel and makes no later image', async () => {

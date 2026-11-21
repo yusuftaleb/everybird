@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useMemo, useReducer } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { localDay } from '@/lib/file-name'
 import ShareDialog from '@/components/share/ShareDialog'
 import * as image from '@/lib/share/image'
 import { ARRANGEMENT_KEY, arrangement, setArrangement } from '@/lib/arrangement'
@@ -17,6 +18,9 @@ import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
 import { LANGS } from '@/i18n/langs'
 import { MESSAGES, withI18n } from './i18n-render'
+
+/** Today's local date: saved files end with it. */
+const D = localDay()
 
 // The renderer is replaced by a promise the test resolves, so "busy" is under the test's control.
 const renders: { resolve: (b: Blob) => void }[] = []
@@ -690,8 +694,8 @@ describe('share dialog', () => {
     await waitFor(() => expect(dl.disabled).toBe(false))
     fireEvent.click(dl)
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
-    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe('everybird-story.png')
-    await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Se guardó everybird-story.png.'))
+    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe(`everybird-story-${D}.png`)
+    await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe(`Se guardó everybird-story-${D}.png.`))
   })
 
   it('in Spanish: the copied note, with a bird left out', async () => {
@@ -765,7 +769,7 @@ describe('share dialog: print mode', () => {
     expect(screen.getByRole('button', { name: 'Copy link' }).parentElement).toHaveClass('eb-share-row')
   })
 
-  it('Make poster shows a progressbar with Cancel; when done, Download PNG and Download PDF save everybird-a2.png/.pdf at once', async () => {
+  it('Make poster shows a progressbar with Cancel; when done, Download PNG and Download PDF save everybird-a2-<date>.png/.pdf at once', async () => {
     open()
     await startMake()
     expect(makes[0].opts.size).toBe('A2')
@@ -789,11 +793,11 @@ describe('share dialog: print mode', () => {
     expect(pdf.disabled).toBe(false)
     fireEvent.click(png)
     await waitFor(() => expect(downloadBlob).toHaveBeenCalledTimes(1))
-    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe('everybird-a2.png')
-    expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2.png.')
+    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe(`everybird-a2-${D}.png`)
+    expect(screen.getByTestId('share-note').textContent).toBe(`Saved everybird-a2-${D}.png.`)
     fireEvent.click(pdf)
     await waitFor(() => expect(downloadBlob).toHaveBeenCalledTimes(2))
-    expect(vi.mocked(downloadBlob).mock.calls[1][1]).toBe('everybird-a2.pdf')
+    expect(vi.mocked(downloadBlob).mock.calls[1][1]).toBe(`everybird-a2-${D}.pdf`)
     expect(p.file.mock.calls.map((c) => c[0])).toEqual(['png', 'pdf'])
   })
 
@@ -1067,7 +1071,7 @@ describe('the orientation switch', () => {
     await waitFor(() => expect(dl.disabled).toBe(false))
     fireEvent.click(dl)
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
-    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe('everybird-desktop.png')
+    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe(`everybird-desktop-${D}.png`)
     expect(vi.mocked(track)).toHaveBeenCalledWith('image_downloaded', { format: 'desktop' })
   })
 
@@ -1083,7 +1087,7 @@ describe('the orientation switch', () => {
     await act(async () => makes[0].resolve(fakePoster({ landscape: true })))
     fireEvent.click(await screen.findByRole('button', { name: 'Download PNG' }))
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
-    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe('everybird-a2-landscape.png')
+    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe(`everybird-a2-landscape-${D}.png`)
     // Counted by size: the landscape A2 is a2-l, never the portrait a2.
     expect(vi.mocked(track)).toHaveBeenCalledWith('poster_made', { size: 'a2-l' })
   })
@@ -1108,7 +1112,7 @@ describe('the orientation switch', () => {
     await act(async () => makes[0].resolve(fakePoster({ size: 'US24x36', landscape: true })))
     fireEvent.click(await screen.findByRole('button', { name: 'Download PNG' }))
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
-    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe('everybird-24x36in-landscape.png')
+    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe(`everybird-24x36in-landscape-${D}.png`)
     expect(vi.mocked(track)).toHaveBeenCalledWith('poster_made', { size: 'us24x36-l' })
   })
 
@@ -1270,9 +1274,9 @@ describe('the orientation switch', () => {
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
     expect(p2.dispose).toHaveBeenCalledTimes(1)
     const [blob, filename] = vi.mocked(downloadBlob).mock.calls[0]
-    expect(filename).toBe('everybird-a2-bulk.zip')
+    expect(filename).toBe(`everybird-a2-by-family-${D}.zip`)
     expect(blob.type).toBe('application/zip')
-    expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2-bulk.zip (2 posters).')
+    expect(screen.getByTestId('share-note').textContent).toBe(`Saved everybird-a2-by-family-${D}.zip (2 posters).`)
   })
 
   it('says when names were asked for but a poster has none, for one poster and for a ZIP', async () => {
@@ -1290,7 +1294,7 @@ describe('the orientation switch', () => {
     await act(async () => makes[1].resolve(fakePoster({ namesDropped: true })))
     await waitFor(() => expect(makes).toHaveLength(3))
     await act(async () => makes[2].resolve(fakePoster()))
-    await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-a2-bulk.zip (2 posters). 1 poster has no names: they didn’t fit.'))
+    await waitFor(() => expect(screen.getByTestId('share-note').textContent).toBe(`Saved everybird-a2-by-family-${D}.zip (2 posters). 1 poster has no names: they didn’t fit.`))
   })
 
   it('Print has no Goal, and a saved goal reaches neither the poster nor the ZIP', async () => {
@@ -1396,9 +1400,9 @@ describe('the orientation switch', () => {
     }
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
     const [blob, filename] = vi.mocked(downloadBlob).mock.calls[0]
-    expect(filename).toBe('everybird-post-groups.zip')
+    expect(filename).toBe(`everybird-post-by-family-${D}.zip`)
     expect(blob.type).toBe('application/zip')
-    expect(screen.getByTestId('share-note').textContent).toBe('Saved everybird-post-groups.zip (2 images).')
+    expect(screen.getByTestId('share-note').textContent).toBe(`Saved everybird-post-by-family-${D}.zip (2 images).`)
     expect(track).not.toHaveBeenCalled()
   })
 
@@ -1425,7 +1429,7 @@ describe('the orientation switch', () => {
       await act(async () => renders[k].resolve(new Blob(['png'], { type: 'image/png' })))
     }
     await waitFor(() => expect(vi.mocked(downloadBlob)).toHaveBeenCalledTimes(1))
-    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe('everybird-story-groups.zip')
+    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe(`everybird-story-100-birds-each-${D}.zip`)
     expect(vi.mocked(image.renderShareImage).mock.calls.filter((c) => /^Part \d$/.test(c[0].filterLabel ?? '')).map((c) => c[0].entries.length)).toEqual([100, 100, 60])
   })
 

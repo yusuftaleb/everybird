@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { localDay } from '@/lib/file-name'
 import linkIndex from '../data/link-index.json'
 import { ComparePage, forgetCompare } from '@/components/compare/ComparePage'
 import * as load from '@/lib/species/load'
@@ -12,6 +13,9 @@ import { HANDOFF_KEY } from '@/lib/share/compare-handoff'
 import { downloadBlob } from '@/lib/download'
 import type { ListEntry } from '@/lib/list/model'
 import type { Regions } from '@/lib/species/types'
+
+/** Today's local date: saved files end with it. */
+const D = localDay()
 
 const codes = linkIndex as string[]
 const C = (i: number) => codes[i]
@@ -289,7 +293,7 @@ describe('Compare: Share opens the Share dialog in its Compare mode', () => {
     const download = within(dialog).getByRole('button', { name: 'Download image' })
     await waitFor(() => expect(download).toBeEnabled())
     fireEvent.click(download)
-    await waitFor(() => expect(downloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'everybird-compare.png'))
+    await waitFor(() => expect(downloadBlob).toHaveBeenCalledWith(expect.any(Blob), `everybird-comparison-square-${D}.png`))
     fireEvent.click(within(within(dialog).getByTestId('share-what')).getByRole('button', { name: 'Wish list' }))
     await waitFor(() => expect(renderShareImage).toHaveBeenCalled())
     const wish = vi.mocked(renderShareImage).mock.calls.at(-1)![0]
@@ -297,7 +301,7 @@ describe('Compare: Share opens the Share dialog in its Compare mode', () => {
     expect(wish.entries.map((e) => e.code).sort()).toEqual([C(5), C(6)].sort())
     await waitFor(() => expect(download).toBeEnabled())
     fireEvent.click(download)
-    await waitFor(() => expect(downloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'everybird-wish-list.png'))
+    await waitFor(() => expect(downloadBlob).toHaveBeenCalledWith(expect.any(Blob), `everybird-wish-list-square-${D}.png`))
     expect(within(dialog).getByRole('button', { name: 'Share image' })).toBeInTheDocument()
   })
   it('Copy link copies the comparison link, its consent note beside it', async () => {
