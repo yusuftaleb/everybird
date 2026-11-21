@@ -82,9 +82,10 @@ describe('shared view', () => {
     render(<SharedView payload={{ v: 1, birds: [{ code: 'a' }, { code: 'b' }] }} />)
     await waitFor(() => expect(screen.getByTestId('collage-stats').textContent).toContain('2 species'))
     expect(screen.getByTestId('share-limited').textContent).toBe('This link carries no places or dates, so those filters are left out.')
-    // Birds only: no Filters button (by test id or by name), just LifeList's orders row.
+    // Birds only: no Filters button (by test id or by name), just LifeList's orders row (in the Taxa panel, round 6).
     expect(screen.queryByTestId('filters-button')).toBeNull()
     expect(screen.queryByRole('button', { name: /^Filters/ })).toBeNull()
+    fireEvent.click(screen.getByTestId('taxa-button'))
     expect(screen.getByRole('group', { name: 'Orders' })).toBeTruthy()
     expect(open).not.toHaveBeenCalled()
   })

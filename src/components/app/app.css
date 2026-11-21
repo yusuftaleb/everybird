@@ -98,15 +98,17 @@
   position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px;
   border: 1px solid var(--hairline); border-radius: 16px; background: var(--paper);
 }
-/* Three groups: the views | the view's switches (ControlsBar's `.eb-dock-tools`) and Filters | search. 4px inside a group
-   (LifeList's dock gap), 12px between groups and between the switches and Filters (a hairline would be one line too
-   many in a bar this quiet). The switches live in the Filters group, so they take its row wherever it goes. */
+/* Three groups: the views | List's and Map's switches (ControlsBar's `.eb-dock-tools`) and the panel buttons (Taxa,
+   Display, Filters) | search. 4px inside a group (LifeList's dock gap), 12px between groups and between the switches and
+   the buttons (a hairline would be one line too many in a bar this quiet). The switches live in the buttons' group, so
+   they take its row wherever it goes. */
 .eb-dock-tabs, .eb-dock-tools, .eb-dock-filters, .eb-dock-end { display: flex; align-items: center; gap: 4px; transition: opacity .15s var(--eb-ease); }
 .eb-dock-tools { flex: none; margin-right: 8px; }
 .eb-dock-end { margin-left: 8px; } /* + the dock's 4px gap = 12px between groups */
 .eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools,
 .eb-dock[data-finding] .eb-dock-filters, .eb-dock[data-finding] .eb-dock-end { opacity: 0; pointer-events: none; }
-/* Filters: a glyph (with how many filter groups are on as a small badge on it), the label, a caret. Open: the pressed
+/* The panel buttons (Filters.tsx DockPanelButton): Filters with its glyph (how many filter groups are on as a small
+   badge on it), Taxa and Display with the label alone (Taxa's badge on the label); the label, a caret. Open: the pressed
    tab's Surface; filtering: Accent text and full opacity, at the label's one weight (nothing changes width). */
 /* At every width the button can give way: the group may shrink, each drop may shrink (flex's default, said here so the rule
    reads whole), and the label shrinks inside it with an ellipsis, so a long summary ("Time · 2022–2024") cuts its own
@@ -131,9 +133,12 @@
   font: 600 9px/1 var(--font-mono); font-variant-numeric: tabular-nums; pointer-events: none;
 }
 .eb-dock-drop[aria-expanded="true"] .eb-drop-badge { outline-color: var(--surface); }
-/* Under 820px of bar (a tablet's or a phone's) the switches and the Filters button take a second row under a Hairline,
-   rather than squeeze the first; the views and the search keep row one. Under 600px Filters fills what the switches
-   leave and drops its caret. */
+/* A panel button without a glyph (Taxa, Display): the badge on the label's top right, as on the glyph. */
+.eb-drop-tag { position: relative; display: flex; min-width: 0; }
+.eb-drop-tag .eb-drop-badge { right: -10px; }
+/* Under 820px of bar (a tablet's or a phone's) the switches and the panel buttons take a second row under a Hairline,
+   rather than squeeze the first; the views and the search keep row one. Under 600px the buttons share what the switches
+   leave and drop their caret. */
 @container (max-width: 819px) {
   .eb-dock { flex-wrap: wrap; row-gap: 4px; }
   .eb-dock-filters {
@@ -146,65 +151,18 @@
   /* A slimmer second row (36px buttons, as the old filter toggles; the hit area stays 44px), so the landing's birds
      keep most of a phone's first screen. The dock's 4px inset holds all round: above the pressed tab, either side of
      the Hairline and under the buttons (the ≤820px row's 4px gap and padding). */
-  .eb-dock-filters .eb-dock-drop { position: relative; min-height: 36px; flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 10px; }
+  .eb-dock-filters .eb-dock-drop { position: relative; min-height: 36px; flex: 1 1 auto; min-width: 0; justify-content: center; padding: 0 10px; }
   .eb-dock-filters .eb-dock-drop::after { content: ''; position: absolute; inset: -4px 0; }
   .eb-dock-filters .eb-drop-caret { display: none; } /* the row reads as buttons; aria-expanded says the rest */
   .eb-dock-tools .eb-dock-sw { position: relative; min-height: 36px; }
   .eb-dock-tools .eb-dock-sw::after { content: ''; position: absolute; inset: -4px 0; }
 }
-/* The Tree's controls: Lifers only and Scientific, then the Level and Layout menus (MenuSelect's button, rendered by
-   TreeView into `.eb-dock-menus`), then Filters. They keep one row with the views and the magnifier whenever they fit;
-   when they don't (ControlsBar measures them: `data-wrap`), they take the second row as the other views' controls do
-   under 820px, in the same order, and that row wraps whole groups (the two switches together, the two menus together)
-   rather than overflowing. Each control keeps its own width there (no shrinking: the measure reads it). Under 600px the
-   menus fill the rest of their row, sharing it evenly, and Filters the rest of its own. */
-.eb-dock-menus { display: flex; align-items: center; gap: 4px; flex: none; margin-right: 8px; }
-.eb-dock-menus:empty { display: none; }
-.eb-dock[data-view="tree"] .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
-.eb-dock[data-view="tree"][data-wrap] .eb-dock-filters {
-  order: 1; flex: 1 0 100%; margin: 0 -4px -4px; padding: 4px; border-top: 1px solid var(--hairline);
-}
-.eb-dock[data-view="tree"][data-wrap] .eb-find { bottom: auto; height: 44px; }
-.eb-dock[data-view="tree"][data-wrap][data-finding] .eb-dock-filters { display: none; }
-@container (min-width: 600px) { .eb-dock[data-view="tree"] .eb-dock-filters > * { flex-shrink: 0; } }
-/* The menus' buttons are the Filters button's look (a borderless bar button: the label, a caret; the same height,
-   padding, opacity, hover and open state), not MenuSelect's bordered form field (share.css). */
-.eb-dock-menus .eb-share-dd {
-  min-height: 44px; gap: 8px; padding: 0 10px 0 12px; border: 0; background: transparent; color: inherit;
-  font: inherit; opacity: .66; border-radius: 12px; corner-shape: round;
-  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease);
-}
-.eb-dock-menus .eb-share-dd::after { content: none; }
-.eb-dock-menus .eb-share-dd svg { width: 14px; height: 14px; color: inherit; transition: transform .2s var(--eb-ease); }
-.eb-dock-menus .eb-share-dd[aria-expanded="true"] { opacity: 1; background: var(--surface); }
-.eb-dock-menus .eb-share-dd[aria-expanded="true"] svg { transform: rotate(180deg); }
-.eb-dock-menus .eb-share-dd:disabled { color: inherit; cursor: default; }
-@media (hover: hover) and (pointer: fine) { .eb-dock-menus .eb-share-dd:not(:disabled):hover { opacity: 1; } }
+/* Under 600px of bar the row's controls and panel buttons wrap as whole controls: when the switches and the buttons
+   don't fit one row, the buttons take the next, each at its full width (never cutting its label) and sharing the
+   row's rest. */
 @container (max-width: 599px) {
-  .eb-dock-menus { flex: 1 0 auto; margin-right: 0; }
-  .eb-dock-menus > .eb-share-ddwrap { flex: 1 1 0; min-width: 0; }
-  /* As Filters on this row: 36px drawn with a 44px press, the label centred, no caret. */
-  .eb-dock-menus .eb-share-dd { width: 100%; min-height: 36px; justify-content: center; padding: 0 10px; }
-  .eb-dock-menus .eb-share-dd::after { content: ''; inset: -4px 0; }
-  .eb-dock-menus .eb-share-dd svg { display: none; }
-  .eb-dock[data-view="tree"] .eb-dock-filters .eb-dock-drop { min-width: max-content; } /* wraps under the switches rather than cut its label */
-}
-@media (prefers-reduced-motion: reduce) { .eb-dock-menus .eb-share-dd svg { transition: none; } }
-/* The Collage's Arrangement menu (ControlsBar: Fit or Oval) in the bar menus' look above, its option's glyph (18px, as
-   Filters') before the label. The page needs none of share.css for it, so the button's own layout is said here (share.css
-   says the same when the Tree or the share dialog has loaded it). Under 600px of bar: the glyph alone in a 44px button
-   (its name still says the choice), and the Filters group wraps whole controls: when True, Sci., the menu and Filters
-   don't fit one row, Filters takes the next at its full width, never cutting its label. */
-.eb-dock-arrange .eb-share-ddwrap { position: relative; display: inline-flex; flex: none; }
-.eb-dock-arrange .eb-share-dd { position: relative; display: inline-flex; align-items: center; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.eb-dock-arrange .eb-share-dd::after { position: absolute; } /* the press area under 600px, out of the button's row */
-.eb-dock-menus .eb-share-dd svg.eb-menu-icon { display: block; width: 18px; height: 18px; transform: none; }
-@container (max-width: 599px) {
-  .eb-dock[data-view="collage"] .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
-  .eb-dock[data-view="collage"] .eb-dock-filters .eb-dock-drop { min-width: max-content; }
-  .eb-dock-arrange, .eb-dock-arrange > .eb-share-ddwrap { flex: none; }
-  .eb-dock-arrange .eb-share-dd { width: 44px; padding: 0; }
-  .eb-dock-arrange .eb-menu-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
+  .eb-dock-filters .eb-dock-drop { flex: 1 1 auto; min-width: max-content; }
 }
 .eb-view-below { display: contents; } /* the column's gaps stay; Filters dims and inertes everything in it while open */
 .eb-view-below[data-dim] > * { opacity: .3; transition: opacity .2s var(--eb-ease); }
@@ -227,8 +185,8 @@
 .eb-dock-find { padding: 0; width: 44px; }
 .eb-short { display: none; }
 /* Phones (LifeList's 600px): the bar's short form whatever the phone's width: row one is always the view icons and the
-   magnifier, row two True and Sci. (or the list's "Heaviest") and the Filters button; in Tree, row two the Level and
-   Layout menus, row three Lifers only, Sci. and Filters. */
+   magnifier, row two the panel buttons (Taxa, Display, Filters), after the list's "Heaviest" and Sci. (or the map's
+   Sci.), which keep a row of their own when all don't fit. */
 @media (max-width: 600px) {
   .eb-dock .eb-long { display: none; }
   .eb-dock .eb-short { display: inline; }
@@ -269,6 +227,7 @@
   .eb-dock-tabs .eb-dock-tab, .eb-dock-end .eb-dock-find { position: relative; width: 40px; min-width: 40px; }
   .eb-dock-tabs .eb-dock-tab::after, .eb-dock-end .eb-dock-find::after { content: ''; position: absolute; inset: 0 -2px; }
   .eb-dock-tabs { gap: 4px; } /* the two 44px press areas meet, never overlap */
+  .eb-dock-filters .eb-dock-drop { gap: 6px; padding: 0 6px; } /* Taxa, Display and Filters keep one row in the longer languages */
 }
 /* A 320px phone's bar (288px) and narrower: 36px icon buttons (a 44px press through ::after), the switches' slimmest
    form (28×18, the knob moving 10px). */
@@ -533,7 +492,7 @@
   .eb-dock-filters { min-width: 0; }
   .eb-dock-filters .eb-dock-drop { gap: 0; padding: 0 6px; }
   .eb-dock-filters .eb-dock-drop svg { display: none; }
-  .eb-dock-filters .eb-drop-icon { position: static; }
+  .eb-dock-filters .eb-drop-icon, .eb-dock-filters .eb-drop-tag { position: static; }
   .eb-dock-filters .eb-drop-badge { top: 2px; right: 2px; }
   .eb-dock-tools { margin-right: 0; }
 }
@@ -722,3 +681,42 @@ main[tabindex="-1"]:focus { outline: none; }
 .eb-tour .eb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 [data-tour-on] { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .eb-tour { animation: none; } }
+
+/* The controls bar's Display panel (DisplayPanel.tsx): the segmented choices (Layout; Arrangement with its glyphs) in
+   the share dialog's segmented style (`.eb-seg`, said here since the page may not have loaded share.css), each under its
+   mono label, then the switches: compact rows, the label at the left and the switch at the right, 32px with a mouse,
+   44px for touch, no rules or boxes; the row's Surface on hover. */
+.eb-disp { display: flex; flex-direction: column; gap: 14px; font-size: 14px; font-weight: 500; }
+.eb-disp-seg { display: flex; flex-direction: column; gap: 6px; }
+.eb-disp-slot:empty { display: none; }
+.eb-disp-slot { display: contents; }
+.eb-disp-label { margin: 0; }
+.eb-disp .eb-seg {
+  display: flex; gap: 4px; padding: 4px; border: 1px solid var(--hairline);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-disp .eb-seg-btn {
+  position: relative; flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 36px; padding: 0 10px; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 500;
+  white-space: nowrap; cursor: pointer; opacity: .66; -webkit-tap-highlight-color: transparent;
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease);
+}
+.eb-disp .eb-seg-btn::after { content: ''; position: absolute; inset: -4px 0; } /* 44px press */
+.eb-disp .eb-seg-btn svg { display: block; flex: none; width: 18px; height: 18px; }
+.eb-disp .eb-seg-btn[aria-pressed="true"] { opacity: 1; background: var(--surface); }
+.eb-disp .eb-seg-btn[aria-disabled="true"] { opacity: .4; cursor: default; }
+.eb-disp .eb-seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eb-disp-switches { display: flex; flex-direction: column; margin: 0 -8px; }
+.eb-setrow-btn.eb-disp-sw { min-height: 32px; padding: 0 8px; gap: 12px; border-radius: 8px; }
+.eb-disp-sw .eb-setrow-label { font-size: 14px; font-weight: 500; }
+.eb-disp-sw .eb-track { flex: none; }
+.eb-setrow-btn.eb-disp-sw:focus-visible { outline-offset: 0; border-radius: 8px; }
+.eb-drop-sheet .eb-setrow-btn.eb-disp-sw, .eb-drop-sheet .eb-disp .eb-seg-btn { min-height: 44px; }
+.eb-drop-sheet .eb-disp .eb-seg-btn::after { content: none; }
+@media (pointer: coarse) {
+  .eb-setrow-btn.eb-disp-sw, .eb-disp .eb-seg-btn { min-height: 44px; }
+  .eb-disp .eb-seg-btn::after { content: none; }
+}
+@media (hover: hover) and (pointer: fine) { .eb-disp .eb-seg-btn:not([aria-disabled="true"]):hover { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .eb-disp .eb-seg-btn { transition: none; } }

@@ -1,7 +1,7 @@
 // The Tree view's per-device choices, kept in localStorage, the same in every tab; without storage a choice holds for
-// the page load. "Lifers only" (the bar's switch; TreeView reads it, and the tree's share image follows it), off when
-// unset or unreadable; "Time scale" (the bar's switch, round 6: branches at their true ages, or the splits spaced evenly
-// by branching order), on unless turned off; and the Layout menu's choice (also the share dialog's Arrangement row), unset until one is picked, when the view draws the fan from
+// the page load. "Lifers only" (the Display panel's switch; TreeView reads it, and the tree's share image follows it),
+// off when unset or unreadable; "Time scale" (the Display panel's switch, round 6: branches at their true ages, or the
+// splits spaced evenly by branching order), on unless turned off; and the Layout choice (the Display panel's) (also the share dialog's Arrangement row), unset until one is picked, when the view draws the fan from
 // FAN_FROM px wide (where it names every tip) and rows under it. The stored values keep their first names: 'fan' is the
 // Fan, 'circle' the Radial and 'rows' the Rectangular layout.
 import { useSyncExternalStore } from 'react'

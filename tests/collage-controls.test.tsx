@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// The controls bar (view tabs, the list's direction, True size, Scientific), Scientific names and the search, on the
-// shared CollageView. jsdom has no layout worker, so the collage shows its placeholder; the stats line, the list view
+// The controls bar (view tabs, the list's direction and Scientific in the bar, the Taxa, Display and Filters panels,
+// round 6), Scientific names and the search, on the shared CollageView. jsdom has no layout worker, so the collage shows its placeholder; the stats line, the list view
 // and the card carry what is shown.
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -43,6 +43,13 @@ function Harness() {
 }
 
 const stats = () => screen.getByTestId('collage-stats')
+// Round 6: the taxonomy chips and the view's switches live in the bar's Taxa and Display panels.
+const openTaxa = () => fireEvent.click(screen.getByTestId('taxa-button'))
+const openDisplay = () => fireEvent.click(screen.getByTestId('display-button'))
+const pickOrder = (name: RegExp) => {
+  if (!screen.queryByTestId('taxa-panel')) openTaxa()
+  fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name }))
+}
 
 // Node 25+ has its own unconfigured localStorage that shadows jsdom's.
 class MemoryStorage {
@@ -68,14 +75,21 @@ describe('controls bar', () => {
     expect(container).not.toHaveTextContent('◦')
     expect(container).not.toHaveTextContent(/photo or recording/i)
   })
-  it('has the Collage and List tabs, True size in collage view and the direction in list view, and Scientific', () => {
+  it('has the Collage and List tabs; True size and Scientific in the Collage\'s Display panel; the direction and Scientific in the List\'s bar', () => {
     render(<Harness />)
     const view = screen.getByRole('group', { name: 'View' })
     expect(within(view).getByRole('button', { name: 'Collage' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('switch', { name: /True size/ })).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('switch', { name: /Scientific/ })).toHaveAttribute('aria-checked', 'false')
+    // Collage: no switch in the bar; the Display panel holds them.
+    expect(screen.queryAllByRole('switch')).toEqual([])
+    openDisplay()
+    const panel = screen.getByRole('dialog', { name: 'Display options' })
+    expect(within(panel).getByRole('switch', { name: 'True size' })).toHaveAttribute('aria-checked', 'false')
+    expect(within(panel).getByRole('switch', { name: 'Scientific names' })).toHaveAttribute('aria-checked', 'false')
     fireEvent.click(within(view).getByRole('button', { name: 'List' }))
     expect(screen.queryByRole('switch', { name: /True size/ })).toBeNull()
+    expect(screen.queryByTestId('display-button')).toBeNull()
+    expect(screen.queryByTestId('display-panel')).toBeNull()
+    expect(screen.getByTestId('dock-sci')).toHaveAccessibleName(/^Scientific.*names$/) // jsdom reads the short label too
     const dir = screen.getByRole('button', { name: 'Sorted by body mass, heaviest first. Reverse order' })
     expect(dir).toHaveTextContent('Heaviest first')
     const rowNames = () => screen.getAllByRole('listitem').map((li) => li.querySelector('.eb-row-primary')!.textContent)
@@ -87,7 +101,7 @@ describe('controls bar', () => {
 })
 
 describe('the bar: one press per switch, each only in its view', () => {
-  it('Map shows Scientific alone; Tree shows Lifers only, held on the device, and Scientific; no Style, Share or Compare in the bar', () => {
+  it('Map shows Scientific alone in the bar; Tree\'s Display panel shows Lifers only, held on the device, Time scale and Scientific; no Style, Share or Compare in the bar', () => {
     render(<Harness />)
     const view = screen.getByRole('group', { name: 'View' })
     expect(screen.queryByRole('button', { name: 'Style' })).toBeNull()
@@ -95,20 +109,26 @@ describe('the bar: one press per switch, each only in its view', () => {
     expect(screen.queryByRole('link', { name: 'Compare' })).toBeNull()
     expect(screen.queryByRole('switch', { name: 'Lifers only' })).toBeNull()
     const sci = () => screen.getByRole('switch', { name: /^Scientific/ })
+    openDisplay()
     fireEvent.click(sci())
+    openDisplay() // closed again
     fireEvent.click(within(view).getByRole('button', { name: 'Map' }))
-    // The same switch, in the same place, keeps its setting from view to view and changes it from the map.
+    // One setting: the bar's switch in Map keeps it from view to view and changes it from the map.
+    expect(screen.queryByTestId('display-button')).toBeNull()
     expect(screen.getAllByRole('switch')).toEqual([sci()])
     expect(sci()).toHaveAttribute('aria-checked', 'true')
     fireEvent.click(sci())
     expect(sci()).toHaveAttribute('aria-checked', 'false')
     expect(screen.queryByRole('button', { name: /^Sorted by body mass/ })).toBeNull()
     fireEvent.click(within(view).getByRole('button', { name: 'Tree' }))
+    // In the tree the bar holds no switch; its Display panel does.
+    expect(screen.queryAllByRole('switch')).toEqual([])
+    openDisplay()
     const mine = screen.getByRole('switch', { name: 'Lifers only' })
     // No True size in the tree; Scientific is there, since the tree shows one name by it.
     // Round 6: Time scale beside them, on by default, held on the device ('0' when off).
     const time = screen.getByRole('switch', { name: 'Time scale' })
-    expect(screen.getAllByRole('switch')).toEqual([mine, time, screen.getByRole('switch', { name: /^Scientific/ })])
+    expect(screen.getAllByRole('switch')).toEqual([mine, time, screen.getByRole('switch', { name: 'Scientific names' })])
     expect(time).toHaveAttribute('aria-checked', 'true')
     fireEvent.click(time)
     expect(time).toHaveAttribute('aria-checked', 'false')
@@ -124,41 +144,89 @@ describe('the bar: one press per switch, each only in its view', () => {
   })
 })
 
-// Round 6 (Yusuf, 2026-11-20): Fit or Oval in the bar, in Collage only, the share dialog's setting (arrangement.ts).
-describe('the Arrangement menu', () => {
+// Round 6 (Yusuf, 2026-11-20): Fit or Oval in the Collage's Display panel, the share dialog's setting (arrangement.ts).
+describe('the Arrangement choice', () => {
   afterEach(() => { setArrangement('packed') })
-  it('in Collage only, after the switches and before Filters, named by its label and the choice; one setting with the share dialog', async () => {
+  it('in the Collage\'s Display panel only, first, a labelled segmented group; one setting with the share dialog', () => {
     render(<Harness />)
     const view = screen.getByRole('group', { name: 'View' })
-    const menu = () => screen.getByTestId('dock-arrange')
-    expect(menu()).toHaveAccessibleName('Arrangement Fit')
-    expect(menu()).toHaveAttribute('aria-haspopup', 'menu')
-    // Its place: after the switches, before the Filters button.
-    const sci = screen.getByRole('switch', { name: /^Scientific/ }), filters = screen.getByTestId('filters-button')
-    expect(sci.compareDocumentPosition(menu()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(menu().compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    // The keyboard: ArrowDown opens it on the current choice, the arrows move, Enter picks.
-    fireEvent.keyDown(menu(), { key: 'ArrowDown' })
-    const items = await screen.findAllByRole('menuitemradio')
-    expect(items.map((i) => i.textContent)).toEqual(['Fit', 'Oval'])
-    expect(items[0]).toHaveAttribute('aria-checked', 'true')
-    expect(items[0].querySelector('svg.eb-menu-icon')).not.toBeNull()
-    await waitFor(() => expect(items[0]).toHaveFocus())
-    fireEvent.keyDown(items[0], { key: 'ArrowDown' })
-    expect(items[1]).toHaveFocus()
-    fireEvent.click(items[1])
-    expect(menu()).toHaveAccessibleName('Arrangement Oval')
-    expect(menu()).toHaveFocus()
+    expect(screen.queryByTestId('dock-arrange')).toBeNull() // not in the bar
+    openDisplay()
+    const group = () => screen.getByTestId('dock-arrange')
+    expect(group()).toHaveAttribute('role', 'group')
+    expect(group()).toHaveAccessibleName('Arrangement')
+    const btn = (name: string) => within(group()).getByRole('button', { name })
+    expect(within(group()).getAllByRole('button').map((b) => b.textContent)).toEqual(['Fit', 'Oval'])
+    expect(btn('Fit')).toHaveAttribute('aria-pressed', 'true')
+    expect(btn('Fit').querySelector('svg')).not.toBeNull()
+    // Its place: before the panel's switches.
+    const trueSize = screen.getByTestId('dock-true')
+    expect(group().compareDocumentPosition(trueSize) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.click(btn('Oval'))
+    expect(btn('Oval')).toHaveAttribute('aria-pressed', 'true')
+    expect(btn('Fit')).toHaveAttribute('aria-pressed', 'false')
     expect(localStorage.getItem(ARRANGEMENT_KEY)).toBe('oval')
-    // The share dialog's row sets the same store: the bar follows.
+    // The share dialog's row sets the same store: the panel follows.
     act(() => setArrangement('packed'))
-    expect(menu()).toHaveAccessibleName('Arrangement Fit')
+    expect(btn('Fit')).toHaveAttribute('aria-pressed', 'true')
     expect(localStorage.getItem(ARRANGEMENT_KEY)).toBeNull()
     // Not in List, Map or Tree.
     for (const v of ['List', 'Map', 'Tree']) {
       fireEvent.click(within(view).getByRole('button', { name: v }))
+      if (screen.queryByTestId('display-button') && !screen.queryByTestId('display-panel')) openDisplay()
       expect(screen.queryByTestId('dock-arrange')).toBeNull()
     }
+  })
+})
+
+describe('the bar\'s panels (round 6)', () => {
+  it('Taxa, Display and Filters after the view tabs, before the magnifier; one panel open at a time; Esc and a second press close it, focus back on its button', async () => {
+    render(<Harness />)
+    const taxa = screen.getByTestId('taxa-button'), display = screen.getByTestId('display-button'), filters = screen.getByTestId('filters-button')
+    const view = screen.getByRole('group', { name: 'View' }), find = screen.getByRole('button', { name: 'Find a bird' })
+    for (const [a, b] of [[view, taxa], [taxa, display], [display, filters], [filters, find]]) expect(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(taxa).toHaveAccessibleName('Taxa')
+    expect(display).toHaveAccessibleName('Display')
+    fireEvent.click(taxa)
+    expect(screen.getByRole('dialog', { name: 'Orders, families and genera' })).toBe(screen.getByTestId('taxa-panel'))
+    expect(taxa).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(display)
+    expect(screen.queryByTestId('taxa-panel')).toBeNull()
+    expect(screen.getByTestId('display-panel')).toBeInTheDocument()
+    fireEvent.click(filters)
+    expect(screen.queryByTestId('display-panel')).toBeNull()
+    expect(screen.getByTestId('filters-panel')).toBeInTheDocument()
+    fireEvent.click(taxa)
+    expect(screen.queryByTestId('filters-panel')).toBeNull()
+    expect(screen.getByTestId('taxa-panel')).toBeInTheDocument()
+    fireEvent.click(taxa)
+    expect(screen.queryByTestId('taxa-panel')).toBeNull()
+    fireEvent.click(display)
+    await act(async () => { fireEvent.keyDown(window, { key: 'Escape' }) })
+    expect(screen.queryByTestId('display-panel')).toBeNull()
+    await waitFor(() => expect(display).toHaveFocus())
+  })
+
+  it('a chip picked in the Taxa panel filters, keeps the panel open, counts on the button and leaves only the breadcrumb on the page', () => {
+    render(<Harness />)
+    expect(screen.queryByTestId('filter-bar')).toBeNull() // nothing under the dock with no taxon picked
+    expect(screen.queryByTestId('taxa-button-count')).toBeNull()
+    pickOrder(/^Woodpeckers/)
+    expect(screen.getByTestId('taxa-panel')).toBeInTheDocument()
+    expect(stats()).toHaveTextContent(/^2 of 5 species/)
+    expect(screen.getByTestId('taxa-button-count')).toHaveTextContent('1')
+    expect(screen.getByTestId('taxa-button')).toHaveAccessibleName('Taxa: Woodpeckers')
+    fireEvent.click(screen.getByTestId('taxa-button'))
+    const bar = screen.getByTestId('filter-bar')
+    expect(bar).toHaveTextContent('All birds/Woodpeckers')
+    expect(within(bar).queryByRole('group')).toBeNull() // no chips on the page
+  })
+
+  it('a press outside the dock closes the open panel', () => {
+    render(<Harness />)
+    openDisplay()
+    fireEvent.pointerDown(screen.getByTestId('collage-stats'))
+    expect(screen.queryByTestId('display-panel')).toBeNull()
   })
 })
 
@@ -175,13 +243,17 @@ describe('Filters and the search', () => {
 describe('Scientific names', () => {
   it('lead in list rows, the card, the order chips and the breadcrumb, in italics marked as Latin', () => {
     render(<Harness />)
+    openDisplay()
     fireEvent.click(screen.getByRole('switch', { name: /Scientific/ }))
     expect(screen.getByRole('switch', { name: /Scientific/ })).toHaveAttribute('aria-checked', 'true')
-    // Order chips: the order's scientific name.
+    // Order chips (the Taxa panel's): the order's scientific name.
+    openTaxa()
     const orders = screen.getByRole('group', { name: 'Orders' })
     const chip = within(orders).getByRole('button', { name: /^Piciformes/ })
     expect(chip).toHaveAttribute('lang', 'la')
     fireEvent.click(chip)
+    expect(screen.getByTestId('taxa-button')).toHaveAccessibleName('Taxa: Piciformes')
+    fireEvent.click(screen.getByTestId('taxa-button'))
     expect(screen.getByRole('navigation', { name: 'Filter by group' })).toHaveTextContent('All birds/Piciformes')
     // List rows: scientific first, common second.
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
@@ -236,7 +308,7 @@ describe('search (Photography\'s dock search)', () => {
 
   it('covers the whole list: matches in the filter first, the rest under "Elsewhere on the list" with their order', async () => {
     render(<Harness />)
-    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
+    pickOrder(/^Woodpeckers/)
     open()
     await find('robin')
     const opt = within(screen.getByRole('listbox')).getByRole('option', { name: /American Robin/ })
@@ -250,7 +322,7 @@ describe('search (Photography\'s dock search)', () => {
   it('picking a species outside the filter clears the filters that hide it, then shows it (list view: its row)', async () => {
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
-    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
+    pickOrder(/^Woodpeckers/)
     await waitFor(() => expect(stats()).toHaveTextContent(/^2 of 5 species/))
     open()
     await find('robin')
@@ -263,7 +335,7 @@ describe('search (Photography\'s dock search)', () => {
 
   it('picking an order or family outside the filter drills into it', async () => {
     render(<Harness />)
-    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
+    pickOrder(/^Woodpeckers/)
     open()
     await find('thrush')
     fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /^Thrushes/ }))
@@ -329,7 +401,7 @@ describe('hover tooltip', () => {
   it('a species picked from outside the filter: the filter clears, the collage glides, then its tooltip opens', async () => {
     render(<Seeded />)
     await screen.findByTestId('collage-stage')
-    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
+    pickOrder(/^Woodpeckers/)
     fireEvent.click(screen.getByRole('button', { name: 'Find a bird' }))
     await act(async () => { fireEvent.change(screen.getByRole('combobox', { name: 'Find a bird' }), { target: { value: 'robin' } }) })
     fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /American Robin/ }))
@@ -341,23 +413,32 @@ describe('hover tooltip', () => {
   it('an out-of-filter pick lapses when the filter is changed by hand before it lands', async () => {
     render(<Seeded />)
     await screen.findByTestId('collage-stage')
-    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Woodpeckers/ }))
+    pickOrder(/^Woodpeckers/)
     fireEvent.click(screen.getByRole('button', { name: 'Find a bird' }))
     await act(async () => { fireEvent.change(screen.getByRole('combobox', { name: 'Find a bird' }), { target: { value: 'robin' } }) })
     fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /American Robin/ }))
     await waitFor(() => expect(stats()).toHaveTextContent(/^5 species/))
-    fireEvent.click(within(screen.getByRole('group', { name: 'Orders' })).getByRole('button', { name: /^Waterfowl/ }))
+    pickOrder(/^Waterfowl/)
     await act(async () => { await new Promise((r) => setTimeout(r, 1200)) })
     expect(screen.queryByTestId('bird-tip')).toBeNull()
   })
 })
 
 describe('in Spanish', () => {
-  it('Tamaño real, Científico, the view tabs, the magnifier and the stats line', () => {
+  it('Taxones, Aspecto (Tamaño real, Nombres científicos), the view tabs, the magnifier and the stats line; Científico in the List\'s bar', () => {
     render(<Harness />, { wrapper: withI18n('es') })
+    expect(screen.getByTestId('taxa-button')).toHaveAccessibleName('Taxones')
+    fireEvent.click(screen.getByTestId('taxa-button'))
+    expect(screen.getByRole('dialog', { name: 'Órdenes, familias y géneros' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('display-button'))
+    expect(screen.getByRole('dialog', { name: 'Opciones de aspecto' })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: /^Tamaño real/ })).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('switch', { name: /^Científico/ })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Nombres científicos' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('display-button'))
     const view = screen.getByRole('group', { name: 'Vista' })
+    fireEvent.click(within(view).getByRole('button', { name: 'Lista' }))
+    expect(screen.getByRole('switch', { name: /^Científico/ })).toBeInTheDocument()
+    fireEvent.click(within(view).getByRole('button', { name: 'Collage' }))
     expect(within(view).getByRole('button', { name: 'Lista' })).toBeInTheDocument()
     expect(stats()).toHaveTextContent('5 especies · 3 órdenes · 4 familias · desde ene 2020')
     const find = screen.getByRole('button', { name: 'Buscar un ave' })

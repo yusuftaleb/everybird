@@ -69,19 +69,25 @@
 @keyframes eb-sheet-up { from { opacity: 0; transform: translateY(16px); } }
 @keyframes eb-fade-in { from { opacity: 0; } }
 
-/* The Filters panel (Filters.tsx): a popover under the chip row inside the controls bar's wrap (the dock's full width, the same in every view: collage, list, map, tree),
-   or the phone's bottom sheet. Time across the top, Places (2/3) and Conservation status (1/3) side by side below it. */
+/* The controls bar's panels (Filters.tsx DockPanel: Filters, Taxa, Display): a popover under the chip row inside the
+   controls bar's wrap, or the phone's bottom sheet. Filters and Taxa take the dock's full width (the same in every view:
+   collage, list, map, tree); Display a menu's width at the bar's right end. A popover is as tall as its content, down to
+   the window's bottom less 16px (`--drop-max`, set by DockPanel; never past it), so Places and Conservation status show
+   as many rows as fit before their lists scroll. Filters: Time across the top, Places (2/3) and Conservation status (1/3)
+   side by side below it. */
 .eb-drop {
   position: absolute; z-index: 9; top: calc(100% + 6px); right: 0; width: min(380px, 100%); box-sizing: border-box;
   overflow-anchor: none; /* the browser must not re-anchor the page when the panel's size changes under a filter change */
-  max-height: min(70vh, 560px); display: flex; flex-direction: column;
+  max-height: var(--drop-max, min(70vh, 560px)); display: flex; flex-direction: column;
   background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
   animation: eb-fade-in .15s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) both;
   font-size: 14px; font-weight: 500;
 }
-.eb-drop[data-kind="filters"] { left: 0; right: 0; width: auto; max-height: 70vh; }
+.eb-drop[data-kind="filters"], .eb-drop[data-kind="taxa"] { left: 0; right: 0; width: auto; }
+/* The panels' sheets may take the window's full height (8px clear of each edge and the safe areas). */
+.eb-sheet.eb-drop-sheet { max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
 .eb-drop:focus, .eb-drop-sheet:focus { outline: none; }
 .eb-drop-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 16px; }
 .eb-drop-sheet .eb-drop-body { padding: 4px 16px 18px; }
@@ -199,6 +205,11 @@
   .eb-sheet, .eb-path, .eb-path + .eb-level, .eb-path + .eb-pick, .eb-places-level { animation-name: eb-fade-in; }
   .eb-drill { transition: none; }
 }
+
+/* The Taxa panel (TaxaPanel.tsx): the level's coverage in the panel heads' mono style, the path, the level's chips. */
+.eb-taxa { display: flex; flex-direction: column; gap: 10px; }
+.eb-taxa-head { margin: 0; }
+.eb-taxa-head:empty { display: none; }
 
 /* The chip row under the dock (ChipRow.tsx): the taxonomy chip's shape, always in its active state. */
 .eb-chiprow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; overflow-anchor: none; }

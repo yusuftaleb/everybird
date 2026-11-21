@@ -181,17 +181,17 @@ for (const width of WIDTHS) {
     test("filters: taxonomy, Places with two countries, a Time range; True size and the list view", async ({ page }) => {
       test.setTimeout(60_000);
       await seed(page);
-      // Taxonomy: the first order (chips from 600px, the "Choose an order" sheet below).
-      if (width < 600) {
-        await page.getByTestId("picker-order").click();
-        await page.getByRole("dialog", { name: "Order" }).locator(".eb-chip").first().click();
-      } else {
-        await page.getByTestId("level-order").locator(".eb-chip").first().click();
-      }
+      // Taxonomy: the first order, in the Taxa panel (a popover from 600px, the sheet below: its chips in both; round 6).
+      // The panel stays open after a pick; Esc closes it, and the page keeps the breadcrumb.
+      await page.getByTestId("taxa-button").click();
+      await page.getByTestId("taxa-panel").getByTestId("level-order").locator(".eb-chip").first().click();
       await expect(stats(page)).toContainText(`of ${TOTAL} species`);
+      await expect(page.getByTestId("taxa-button-count")).toHaveText("1");
+      await page.keyboard.press("Escape");
+      await expect(page.getByTestId("taxa-panel")).toHaveCount(0);
       const inOrder = Number(/^([\d,]+) of/.exec((await stats(page).textContent())!)![1]);
       await expect(shownBirds(page)).toHaveCount(inOrder);
-      await page.getByRole("button", { name: "All birds" }).click();
+      await page.getByTestId("filter-bar").getByRole("button", { name: "All birds" }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
 
       // Places (in the one Filters panel): two countries (species seen in either), each drilled to from its continent.
@@ -230,14 +230,17 @@ for (const width of WIDTHS) {
       await expect(stats(page)).toContainText(`6 of ${TOTAL} species`);
       await expect(shownBirds(page)).toHaveCount(6);
 
-      // True size (in the bar, one press): the switch flips and every bird stays on the stage.
-      const trueSize = page.getByRole("switch", { name: /^True size|^True sticker sizes/ });
+      // True size (the Collage's Display panel, round 6): the switch flips and every bird stays on the stage.
+      await page.getByTestId("display-button").click();
+      const trueSize = page.getByTestId("display-panel").getByRole("switch", { name: /^True size/ });
       await trueSize.click();
       await expect(trueSize).toHaveAttribute("aria-checked", "true");
+      await page.keyboard.press("Escape");
       await expect(shownBirds(page)).toHaveCount(6);
-      // The list view: one row per bird shown, and the bar's sort direction in place of True size.
+      // The list view: one row per bird shown, the bar's sort direction (and no Display button).
       await page.getByRole("button", { name: "List", exact: true }).click();
       await expect(page.getByRole("button", { name: /^Sorted by body mass/ })).toBeVisible();
+      await expect(page.getByTestId("display-button")).toHaveCount(0);
       await expect(page.locator(".eb-lrow")).toHaveCount(6);
       await page.getByRole("button", { name: "Collage", exact: true }).click();
       await expect(shownBirds(page)).toHaveCount(6);

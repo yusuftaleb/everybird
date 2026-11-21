@@ -159,23 +159,22 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
     // still usually drops one vsync (33 ms) and sometimes two (50 ms), so a tighter frame bound would be flaky.
     expect(m.long, `longest task after ${what} (headroom)`).toBeLessThanOrEqual(50);
   };
-  const pickFirstChip = async () => {
-    // A CSS locator: getByRole("dialog") computes ARIA roles over the whole page (1,000+ bird buttons) on the
-    // page's main thread at every poll, inside the probe window, which would measure Playwright, not the app.
-    const dlg = page.locator('.eb-sheet[role="dialog"]');
-    await dlg.locator(".eb-chip:not([data-selected])").first().tap();
-    await expect(dlg).toHaveCount(0);
-  };
+  // A CSS locator: getByRole("dialog") computes ARIA roles over the whole page (1,000+ bird buttons) on the page's main
+  // thread at every poll, inside the probe window, which would measure Playwright, not the app.
+  const taxaSheet = page.locator('.eb-sheet[role="dialog"][data-testid="taxa-panel"]');
 
-  // 1. Tap an order (in the phone sheet). As on LifeList, the orders button then gives way to the breadcrumb.
+  // 1. Tap an order (in the Taxa sheet, round 6: it stays open after a pick, the Taxa button counts it, and the page
+  // shows the breadcrumb). The sheet is closed after the measure.
   await measure(
     "choosing an order",
     async () => {
-      await page.getByTestId("picker-order").tap();
-      await pickFirstChip();
+      await page.getByTestId("taxa-button").tap();
+      await taxaSheet.locator(".eb-chip:not([data-selected])").first().tap();
     },
-    () => expect(page.getByTestId("picker-order")).toHaveCount(0),
+    () => expect(page.getByTestId("taxa-button-count")).toHaveText("1"),
   );
+  await taxaSheet.getByRole("button", { name: "Close" }).tap();
+  await expect(taxaSheet).toHaveCount(0);
 
   // 2. Check a continent in the Filters sheet's Places section (its top level; filters apply live, the sheet stays open).
   await page.getByTestId("filters-button").tap();
