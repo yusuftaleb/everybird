@@ -48,7 +48,7 @@
    480px; a 1440 × 830 window leaves the body 830 − 140 (the dialog pinned 32px from the top, 16px under it, its border,
    padding, head and gap) = 690px, and the tallest column with everything closed, the collage poster once made with a
    status line and the filters line, takes 674: the top row 54, 12, the title 64 (its label's 18px line, 6, the 40px
-   field), 8, the list 261 (the size 45, then Arrangement, Colours, Count, Show latest lifer, Show species names and
+   field), 8, the list 261 (the size 45, then Arrangement, Appearance, Count, Show latest lifer, Show species names and
    Transparent background, 36 each), 8, Export in batches' row 36, 12, the actions 88 (Download PNG and Download PDF,
    then Copy link), the status 12 + 21, the filters line 12 + 36, the coffee button 12 + 38. Print has no Goal. Rows
    are 36px with a mouse, 44px on touch. tests/share-layout.test.ts adds the same numbers and checks share.css still
@@ -113,14 +113,15 @@
    and never wider than the window leaves beside the column (--room: --ctl 300px, 420px from 1000px, 480px from 1200px,
    so the format and the orientation share one row; 92px of padding and gap, 16px of slack for a scrollbar; no preview
    wider than 560px, --wide). The height is --pv-h, not --h, which collage.css registers as a number. Its top is the
-   column's top, nothing centred in leftover room. The dialog's right edge stays where the widest (square) dialog's
-   would end when centred, so a narrower format grows the dialog leftward and the controls never move. */
+   column's top, nothing centred in leftover room. The dialog's right edge (--pad-r from the window's) stays where the
+   widest vertical (square) dialog's would end when centred, in every format and orientation (round 6: nothing moves),
+   so another format grows or shrinks the dialog leftward and the controls never move. */
 @media (min-width: 720px) {
   .eb-share-scrim {
     --ctl: 300px; --wide: 560px; --top: 32px; --room: min(100vw - var(--ctl) - 108px, var(--wide));
     --tall: max(240px, 100dvh - var(--top) - 16px - 92px);
-    place-items: start end; padding-top: var(--top);
-    padding-right: max(16px, (100% - (max(240px, min(var(--tall), var(--room))) + var(--ctl) + 62px)) / 2);
+    --pad-r: max(16px, (100vw - (max(240px, min(var(--tall), var(--room))) + var(--ctl) + 62px)) / 2);
+    place-items: start end; padding-top: var(--top); padding-right: var(--pad-r);
   }
   .eb-share-scrim .eb-share { max-height: calc(100dvh - var(--top) - 16px); overflow: hidden; }
   .eb-share { width: fit-content; max-width: 100%; }
@@ -138,16 +139,13 @@
      button's press inside what it shows. */
   .eb-share-scroll { grid-row: 2; min-height: 0; overflow: hidden auto; overscroll-behavior: contain; padding: 8px; margin: -8px; }
 }
-/* Horizontal (the desktop, the wide post, the landscape poster): the same structure as Vertical (the preview on the
-   left, the controls' column on the right, --ctl wide), but the dialog may be as wide as the window allows (--wide-w:
-   1400px, 94vw): the preview's room is the width left after the column, its height following its shape, at most the
-   column's and the window's. Pinned at the top as Vertical, its right edge where the widest one's would end. */
+/* Horizontal (the desktop, the wide post, the landscape poster): the same dialog, its right edge and its controls'
+   column where Vertical has them (the scrim's --pad-r, the same --ctl), so switching moves nothing but the preview.
+   The preview may take the whole width left of the column (--room on the preview: the window less --pad-r, the column,
+   the dialog's 62px of padding, border and gap, the scrim's 16px on the left and 16px of slack for a scrollbar), its
+   height following its shape, at most the column's and the window's. */
 @media (min-width: 720px) {
-  .eb-share-scrim[data-layout="wide"] {
-    --wide-w: min(1400px, 94vw); --room: calc(var(--wide-w) - var(--ctl) - 62px);
-    padding-right: max(16px, (100% - var(--wide-w)) / 2);
-  }
-  .eb-share[data-layout="wide"][data-changing] .eb-share-body > * { animation: eb-share-fade-in .42s cubic-bezier(.22, 1, .36, 1) both; }
+  .eb-share-scrim[data-layout="wide"] .eb-share-preview { --room: calc(100vw - var(--pad-r) - var(--ctl) - 94px); }
 }
 @media (min-width: 1000px) { .eb-share-scrim { --ctl: 420px; } }
 @media (min-width: 1200px) { .eb-share-scrim { --ctl: 480px; } }
@@ -228,7 +226,7 @@
   .eb-share .eb-share-seg .eb-seg-btn { padding: 0 4px; font-size: 12px; }
 }
 .eb-share-optlabel { min-width: 0; }
-/* The choices in the rows (Arrangement, Colours, Count): the format control's look, small: 28px segments in a 2px
+/* The choices in the rows (Arrangement, Appearance, Count or Totals): the format control's look, small: 28px segments in a 2px
    inset and a 1px border, 34px in all, so a row stays 36px with a mouse; on touch 32px drawn with a 44px press. Words
    at 14px on one line, never wrapped; the padding tightens under 400px of column and the words take 12px under 290px
    (a 320px phone), where German's and Russian's Count and Russian's tree layouts still fit (tests/share-fit.test.ts). */
@@ -408,5 +406,5 @@
 }
 @media (prefers-reduced-motion: reduce) { .eb-seg-btn { transition: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .eb-share[data-changing] .eb-share-body > *, .eb-share-preview[data-resizing] { animation: none; transition: none; }
+  .eb-share-preview[data-resizing] { transition: none; }
 }

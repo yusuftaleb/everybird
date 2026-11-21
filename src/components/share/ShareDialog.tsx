@@ -25,7 +25,8 @@
 // then the progress and Cancel, then Download PNG and Download PDF serving the one encode, side by side the same way.
 // Last, in the bottom right corner, Buy Me a Coffee's static button (self-hosted, never on the images). Every dropdown is
 // MenuSelect. Beside the preview the dialog is pinned at its top and grows downward (opening Export in batches or adding a
-// goal never moves it); taller than the window, the controls' column scrolls inside it.
+// goal never moves it), and its controls' column keeps its place and width in every format and orientation: only the
+// preview changes, on its own side (share.css); taller than the window, the controls' column scrolls inside it.
 // On phones the actions come straight under the preview, so Share image (or Make poster) is on the first screen.
 // The Goal row (Share only; posters never draw a goal): "Add a goal" until one is set; then a number box, "species in",
 // a year menu (All time and each year with birds, newest first) and a remove button. With a year the image is that
@@ -228,10 +229,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const [deeperFit, setDeeperFit] = useState<{ key: string; d: DeeperFits | null } | null>(null)
   // Square is the same in both orientations (its image doesn't change; the dialog keeps its narrow layout for it).
   const squareShare = !print && format === 'square'
-  // Horizontal (a desktop or wide image, or a landscape poster) lays out wide: the dialog widens and the preview takes
-  // the width left beside the controls' column (share.css, data-layout). Vertical keeps its narrower dialog.
+  // Horizontal (a desktop or wide image, or a landscape poster) lays out wide: the preview may take the width left of the
+  // controls' column, which keeps its place (share.css, data-layout).
   const wideLayout = landscape && !squareShare
-  const lastWide = useRef(wideLayout)
   // The collage's title: saved with the list as it is typed (the store trims it), so it also names the page.
   const [name, setName] = useState(saved.name ?? '')
   const [countSizeChoice, setCountSize] = useState<CountSize>('medium')
@@ -874,17 +874,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const previewBox = useRef<HTMLDivElement>(null)
   const shownFormat = preview && isPrint(preview.format) ? `${preview.format}|${printPackH(preview.size)}` : preview?.format
   const lastShown = useRef(shownFormat)
-  // Switching between the side-by-side and the wide layout eases the preview and fades the controls in (share.css).
-  useLayoutEffect(() => {
-    if (lastWide.current === wideLayout) return
-    lastWide.current = wideLayout
-    const el = ref.current
-    const pv = previewBox.current
-    if (el) el.dataset.changing = ''
-    if (pv) pv.dataset.resizing = ''
-    const t = setTimeout(() => { if (el) delete el.dataset.changing; if (pv) delete pv.dataset.resizing }, PREVIEW_EASE_MS + 60)
-    return () => clearTimeout(t)
-  }, [wideLayout])
   useLayoutEffect(() => {
     const el = previewBox.current
     const was = lastShown.current
