@@ -466,6 +466,7 @@ export const pl: Messages = {
     },
     share: {
       title: 'Udostępnij swój kolaż',
+      viewTitle: { map: 'Udostępnij swoją mapę', tree: 'Udostępnij swoje drzewo' },
       formats: 'Format obrazu',
       what: { label: 'Co', comparison: 'Porównanie', wish: 'Lista życzeń' },
       format: { story: 'Relacja', post: 'Post', square: 'Kwadrat', desktop: 'Pulpit' },
@@ -505,10 +506,10 @@ export const pl: Messages = {
       posterLatestPlace: 'Najnowszy gatunek: {name}, {date}, {place}',
       oldLinkTitle: 'Lista życia: {name}',
       untitledTitle: { one: 'Lista życia: {n} gatunek', few: 'Lista życia: {n} gatunki', many: 'Lista życia: {n} gatunków', other: 'Lista życia: {n} gatunków' },
-      colours: { label: 'Kolory', light: 'Jasne', dark: 'Ciemne' },
+      colours: { label: 'Wygląd', light: 'Jasny', dark: 'Ciemny' },
       transparent: 'Przezroczyste tło',
       arrange: { label: 'Układ', packed: 'Dopasowany', oval: 'Owalny' },
-      hideTotals: 'Ukryj sumy',
+      totals: 'Sumy',
       bigYear: {
         label: 'Cel',
         add: 'Dodaj cel',
@@ -524,7 +525,8 @@ export const pl: Messages = {
       },
       downloadShort: 'Pobierz',
       print: {
-        title: 'Drukuj plakat',
+        title: 'Drukuj swój kolaż',
+        viewTitle: { map: 'Drukuj swoją mapę', tree: 'Drukuj swoje drzewo' },
         size: 'Rozmiar plakatu',
         downTo: 'Szczegółowość',
         deeperLarger: 'Na większym plakacie zmieszczą się wszystkie nazwy',

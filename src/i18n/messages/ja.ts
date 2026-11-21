@@ -462,6 +462,7 @@ export const ja: Messages = {
     },
     share: {
       title: 'コラージュを共有',
+      viewTitle: { map: '地図を共有', tree: '系統樹を共有' },
       formats: '画像の形式',
       what: { label: '内容', comparison: '比較', wish: '見たい鳥リスト' },
       format: { story: 'ストーリー', post: '投稿', square: '正方形', desktop: 'デスクトップ' },
@@ -501,10 +502,10 @@ export const ja: Messages = {
       posterLatestPlace: '最新のライファー：{name}、{date}、{place}',
       oldLinkTitle: '{name}のライフリスト',
       untitledTitle: { one: 'ライフリスト：{n}種', other: 'ライフリスト：{n}種' },
-      colours: { label: '配色', light: 'ライト', dark: 'ダーク' },
+      colours: { label: '外観', light: 'ライト', dark: 'ダーク' },
       transparent: '透明な背景',
       arrange: { label: '配置', packed: 'フィット', oval: '楕円' },
-      hideTotals: '合計を非表示',
+      totals: '合計',
       bigYear: {
         label: '目標',
         add: '目標を追加',
@@ -520,7 +521,8 @@ export const ja: Messages = {
       },
       downloadShort: 'ダウンロード',
       print: {
-        title: 'ポスターを印刷',
+        title: 'コラージュを印刷',
+        viewTitle: { map: '地図を印刷', tree: '系統樹を印刷' },
         size: 'ポスターのサイズ',
         downTo: '表示する階層',
         deeperLarger: 'より大きなポスターなら、すべての名前を印刷できます',

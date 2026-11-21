@@ -12,8 +12,8 @@
 // circle's ages on its radius straight up, never over a branch end), and a one-line key for the mark and the dotted
 // line when the image has them. "Lifers only" (`at.mine`) as on screen. With "Show oldest lineage" (`oldest`) the
 // oldest lineage takes the latest lifer's place and style (latestAs; on a poster, its foot). On top, instead of the
-// big count, four equal totals: species, genera, families and orders, each "count / total" over its rank, the same
-// size and weight ("Hide totals": the species alone). The footer credits the stickers and the tree (TREE_FOOTER).
+// big count, the totals the dialog's Totals row keeps (species, genera, families and orders, any of them, none
+// included), each "count / total" over its rank, the same size and weight; with none, the drawing has their room. The footer credits the stickers and the tree (TREE_FOOTER).
 // A share image always draws the rank on screen. Only a poster may go one rank deeper (Print's "Down to", `deeper`;
 // levelView's 'deeper'): every render of a poster checks, for each poster size in its orientation and arrangement,
 // whether every name of that rank prints whole at TREE_NAME_MIN_PT or more on paper (onDeeper), and draws it only at a
@@ -31,7 +31,7 @@ import { levelView, ROW_H, taxonCover, tipOn, type LevelView, type TreeRow } fro
 import { ageTicks, bySplits, circlePath, drawTree, formatAge, oldestLineage, type Drawing } from '@/lib/tree/tree'
 import { IMAGE_SCALE, loadStickers, type ImageFormat } from './image'
 import { PRINT_SIZES, printDesign, treeNameMinPx, type PrintSize } from './print'
-import { TREE_FOOTER, clipText, renderViewImage, type Area, type ViewImageOpts } from './view-image'
+import { TREE_FOOTER, chosenTotals, clipText, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 
 /** The Rectangular image's names: the largest size, and how much of a row's pitch they and the sticker's box take. */
 const NAME_MAX = 30
@@ -116,7 +116,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const oldAge = old ? formatAge(old.age, t.num) : ''
   const latestAs = oldRow ? { row: oldRow, label: fmt(tt.oldestLabel, { age: oldAge }), poster: fmt(tt.oldestPoster, { name: o.nameOf?.(oldRow) ?? oldRow.com, age: oldAge }) } : undefined
   const cover = taxonCover(all.rows, codes)
-  const totals = (o.hideTotals ? ['species'] as const : TOTALS).map((k) => ({ k, n: formatInt(cover[k][0], t.num), total: formatInt(cover[k][1], t.num), label: tt.rank[k].toUpperCase() }))
+  const totals = chosenTotals(TOTALS, o.totals).map((k) => ({ k, n: formatInt(cover[k][0], t.num), total: formatInt(cover[k][1], t.num), label: tt.rank[k].toUpperCase() }))
   /** What drawing a level takes: its drawing's tree (without its time scale when that is off), its tips and their names. */
   const prep = (view: LevelView) => {
     const rank = view.tips
@@ -146,7 +146,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     // The totals on top: the same size for all, "count" in Ink and " / total" in Muted, the rank under it.
     const totalsAt = (w: number) => {
       const { num, label } = totalsSize(totals.map((x) => `${x.n} / ${x.total}`), w, (s) => { ctx.font = font.count(100); return ctx.measureText(s).width / 100 })
-      return { num, label, head: num * 0.72 + TOTAL_GAP + label * 0.72 + TOTALS_BELOW }
+      return { num, label, head: totals.length ? num * 0.72 + TOTAL_GAP + label * 0.72 + TOTALS_BELOW : 0 }
     }
     const { num, label: labelPx, head } = totalsAt(full.w)
     const col = full.w / totals.length

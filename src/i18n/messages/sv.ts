@@ -461,6 +461,7 @@ export const sv: Messages = {
     },
     share: {
       title: 'Dela ditt collage',
+      viewTitle: { map: 'Dela din karta', tree: 'Dela ditt träd' },
       formats: 'Bildformat',
       what: { label: 'Vad', comparison: 'Jämförelse', wish: 'Önskelista' },
       format: { story: 'Story', post: 'Inlägg', square: 'Kvadrat', desktop: 'Skrivbord' },
@@ -501,10 +502,10 @@ export const sv: Messages = {
       // No genitive "{name}s": a name ending in s would read wrong, and the variable can't follow.
       oldLinkTitle: 'Livslista: {name}',
       untitledTitle: { one: 'En livslista: {n} art', other: 'En livslista: {n} arter' },
-      colours: { label: 'Färger', light: 'Ljus', dark: 'Mörk' },
+      colours: { label: 'Utseende', light: 'Ljust', dark: 'Mörkt' },
       transparent: 'Genomskinlig bakgrund',
       arrange: { label: 'Placering', packed: 'Anpassa', oval: 'Oval' },
-      hideTotals: 'Dölj summor',
+      totals: 'Summor',
       bigYear: {
         label: 'Mål',
         add: 'Lägg till ett mål',
@@ -520,7 +521,8 @@ export const sv: Messages = {
       },
       downloadShort: 'Ladda ner',
       print: {
-        title: 'Skriv ut affisch',
+        title: 'Skriv ut ditt collage',
+        viewTitle: { map: 'Skriv ut din karta', tree: 'Skriv ut ditt träd' },
         size: 'Affischstorlek',
         downTo: 'Ner till',
         deeperLarger: 'På en större affisch får alla namn plats',

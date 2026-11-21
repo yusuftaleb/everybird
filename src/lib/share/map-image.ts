@@ -1,24 +1,34 @@
 // The Map view's share image (view-image.ts has the frame): the whole world, whatever the view's zoom (the Map has no
 // country or province levels since round 6), shaded by the birds the filters leave (mapCounts, the Places filter
-// included) on the view's continuous scale (RAMP in shapes.ts), with the legend ramp under it, and the five countries
-// with the most species beside it (wide areas) or under it, each with its flag, its count and a bar in its shade. On top,
-// instead of the big count, two equal totals, the same size and weight as the tree image's: the species and the
-// countries, each over its word ("Hide totals": the species alone). Hairline Paper borders on every shape. No outline,
-// no tooltip.
+// included) on the view's continuous scale (RAMP in shapes.ts), with the legend ramp under it, and under that the six
+// countries with the most species, each with its flag, its name, its count and a bar in its shade: in the Story (and the
+// portrait poster) one under another; in every other format (Post, Square, Desktop, the 5:4
+// post and the landscape poster) in a grid of three columns by two rows, so the map takes the image's width (or as
+// much of it as the height allows). On top, instead of the big count, the totals the dialog's Totals row keeps (the
+// species and the countries, either, both or none), the same size and weight as the tree image's, each over its word;
+// with none, the map has their room. Hairline Paper borders on every shape. No outline, no tooltip.
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
 import { parsePlaceKey } from '@/lib/list/place-keys'
 import { flagSrc } from '@/lib/flag'
 import { countRange, loadMapCountries, mapCounts, mapRows, mapShapes, RAMP, shadeMix } from '@/lib/map/shapes'
-import { MAP_FOOTER, clipText, fitBox, renderViewImage, type Area, type ViewImageOpts } from './view-image'
+import { MAP_FOOTER, chosenTotals, clipText, fitBox, renderViewImage, type Area, type ViewImageOpts } from './view-image'
+import type { CardFormat } from './image'
 
 /** How many places the image lists. */
-export const TOP_PLACES = 5
+export const TOP_PLACES = 6
+/** The map image's totals, in this order. */
+export const MAP_TOTALS = ['species', 'countries'] as const
+/** The grid's columns (three by two for the six places). */
+export const GRID_COLS = 3
 /** Design units: the legend (ramp height, text size, room above), one listed place (name and count, bar, row) and gaps. */
 const LEGEND = { ramp: 12, size: 20, above: 24, rampMax: 360, gap: 14 }
 const ROW = { name: 26, count: 22, bar: 6, h: 64, barTop: 40 }
-const SIDE = { gap: 48, minW: 280, maxW: 460, share: 0.32, from: 1.2 }
+/** A row's drawn height (the name line and the bar), without the space under it. */
+const ROW_INK = ROW.barTop + ROW.bar
 const LIST_GAP = 40
+/** The grid: the gap between its columns, its cells' least width (the grid is the map's width, at least three of these). */
+const GRID = { gap: 32, cellMin: 300, gapAbove: 32 }
 /** The borders' width in design units: hairlines (the page's .5px). */
 const STROKE = 0.6
 /** The totals, as the tree image's: the largest number, the gap under the numbers and the labels, room before the map. */
@@ -26,28 +36,42 @@ const TOTAL_MAX = 56, TOTAL_GAP = 12, TOTALS_BELOW = 32
 /** A listed country's flag (design units): flag-icons' 4:3, the Places filter's 18×13 at the names' scale, and its gap. */
 const FLAG = { w: 30, h: 22, gap: 12 }
 
-export type MapImageLayout = { map: Area; legendH: number; list: Area | null; rows: number; side: boolean }
+/** The formats whose places are listed one under another (the tall ones); every other lays them out in the grid. */
+export const mapListsInColumn = (format: CardFormat) => format === 'story' || format === 'print'
+
+/** The list's place: its area (`y` its top under the map once painted), how many places, and its columns (1 or GRID_COLS). */
+export type MapImageLayout = { map: Area; legendH: number; list: Area | null; rows: number; cols: number }
 
 /**
- * Where the map, its legend and the top places go in `area`: the list beside the map when the area is wide (at least
- * SIDE.from times as wide as tall), else under it; as many of `rows` places as fit (at most TOP_PLACES; under the map,
- * the list takes at most 45% of the area). The map is fitted whole in `map` (fitBox) with the legend under it; under the
- * map, the list's `y` is its lowest place (the painter moves the map, legend and list up together as one block).
+ * Where the map, its legend and the top places go in `area`: the map across the area's width, the legend under it, the
+ * places under that, as many of `rows` as fit (at most TOP_PLACES; the list takes at most 45% of the area): one under
+ * another (`grid` false: the Story and the portrait poster), else in GRID_COLS columns, so two rows for six. The map
+ * box is what is left; the map is fitted whole in it (fitBox), and the painter moves the map, legend and list up
+ * together as one block.
  */
-export function mapImageLayout(area: Area, rows: number, legend: boolean): MapImageLayout {
+export function mapImageLayout(area: Area, rows: number, legend: boolean, grid: boolean): MapImageLayout {
   const legendH = legend ? LEGEND.above + Math.max(LEGEND.ramp, LEGEND.size) : 0
+  const cols = grid ? GRID_COLS : 1
   const want = Math.min(rows, TOP_PLACES)
-  if (area.w >= area.h * SIDE.from && want > 0) {
-    const listW = Math.min(SIDE.maxW, Math.max(SIDE.minW, area.w * SIDE.share))
-    const n = Math.min(want, Math.floor(area.h / ROW.h))
-    const listH = n * ROW.h
-    const list = { x: area.x + area.w - listW, y: area.y + (area.h - listH) / 2, w: listW, h: listH }
-    return { map: { x: area.x, y: area.y, w: area.w - listW - SIDE.gap, h: area.h - legendH }, legendH, list: n ? list : null, rows: n, side: true }
-  }
-  const n = Math.min(want, Math.floor((area.h * 0.45) / ROW.h))
-  const listH = n ? n * ROW.h + LIST_GAP : 0
-  const list = n ? { x: area.x, y: area.y + area.h - n * ROW.h, w: area.w, h: n * ROW.h } : null
-  return { map: { x: area.x, y: area.y, w: area.w, h: area.h - legendH - listH }, legendH, list, rows: n, side: false }
+  // Lines of places that fit in 45% of the area (the last one without the space under a row), then the places on them.
+  const lines = Math.min(Math.ceil(want / cols), Math.floor((area.h * 0.45 - ROW_INK) / ROW.h) + 1)
+  const n = Math.max(0, Math.min(want, lines * cols))
+  const used = Math.ceil(n / cols)
+  const listH = n ? (used - 1) * ROW.h + ROW_INK : 0
+  const gap = n ? (grid ? GRID.gapAbove : LIST_GAP) : 0
+  const list = n ? { x: area.x, y: area.y + area.h - listH, w: area.w, h: listH } : null
+  return { map: { x: area.x, y: area.y, w: area.w, h: area.h - legendH - listH - gap }, legendH, list, rows: n, cols }
+}
+
+/**
+ * The grid's columns under a map drawn `mapW` wide, centred on `cx`: as wide as the map, at least GRID_COLS cells of
+ * GRID.cellMin (a map the height keeps narrow, the desktop's), never wider than `area`. Each column's left edge and width.
+ */
+export function gridColumns(area: Area, cx: number, mapW: number): { x: number; w: number }[] {
+  const w = Math.min(area.w, Math.max(mapW, GRID_COLS * GRID.cellMin + (GRID_COLS - 1) * GRID.gap))
+  const x0 = Math.max(area.x, Math.min(area.x + area.w - w, cx - w / 2))
+  const cell = (w - (GRID_COLS - 1) * GRID.gap) / GRID_COLS
+  return Array.from({ length: GRID_COLS }, (_, i) => ({ x: x0 + i * (cell + GRID.gap), w: cell }))
 }
 
 /** `a` mixed into `b` by `p` (sRGB, as CSS color-mix), both #rrggbb. */
@@ -86,10 +110,10 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
   const rows = mapRows(counts, name)
   const top = rows.slice(0, TOP_PLACES)
   const flags = new Map(await Promise.all(top.map(async (r) => [r.value, await loadFlag(parsePlaceKey(r.value)?.country ?? '', o.signal)] as const)))
-  const totals = [
-    { n: formatInt(entries.length, t.num), label: t.collage.tree.rank.species.toUpperCase() },
-    ...(o.hideTotals || !rows.length ? [] : [{ n: formatInt(rows.length, t.num), label: t.places.head.country.toUpperCase() }]),
-  ]
+  // The totals the dialog keeps (the countries only when the list has places).
+  const totals = chosenTotals(MAP_TOTALS, o.totals).flatMap((k) => k === 'species'
+    ? [{ n: formatInt(entries.length, t.num), label: t.collage.tree.rank.species.toUpperCase() }]
+    : rows.length ? [{ n: formatInt(rows.length, t.num), label: t.places.head.country.toUpperCase() }] : [])
   const minText = formatInt(min, t.num)
   const maxText = plural(t.collage.stats.species, max, { n: formatInt(max, t.num) })
   return renderViewImage({ ...o, countSize: 'hide' }, MAP_FOOTER, (ctx, card, full) => {
@@ -97,8 +121,8 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
     const font = card.fonts
     const shade = (p: number) => mix(C.accent, C.paper, p)
     // The totals on top, as the tree image's: one number size for both (the largest that fits each in its half), in
-    // Ink, its word under it in Muted capitals.
-    const col = full.w / totals.length
+    // Ink, its word under it in Muted capitals. None: no head, the map takes its room.
+    const col = full.w / Math.max(1, totals.length)
     ctx.font = font.count(100)
     const num = Math.floor(Math.min(TOTAL_MAX, ...totals.map((x) => (col - 24) / Math.max(1e-6, ctx.measureText(x.n).width / 100))))
     const labelPx = Math.max(16, Math.min(22, Math.round(num * 0.4)))
@@ -114,12 +138,13 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
       ctx.fillStyle = C.muted
       ctx.fillText(clipText(ctx, x.label, col - 16), cx, full.y + numCap + TOTAL_GAP + labelCap)
     })
-    const headH = numCap + TOTAL_GAP + labelCap + TOTALS_BELOW
+    const headH = totals.length ? numCap + TOTAL_GAP + labelCap + TOTALS_BELOW : 0
     const area: Area = { x: full.x, y: full.y + headH, w: full.w, h: full.h - headH }
-    const L = mapImageLayout(area, top.length, max > 0)
+    const L = mapImageLayout(area, top.length, max > 0, !mapListsInColumn(o.format))
     const fit = fitBox(box.w, box.h, L.map)
-    // Under the map, the map, its legend and the list are one block, centred in the area.
-    if (!L.side) fit.y = area.y + (L.map.h - box.h * fit.s) / 2
+    const mapW = box.w * fit.s
+    // The map, its legend and the list are one block, centred in the area.
+    fit.y = area.y + (L.map.h - box.h * fit.s) / 2
     // The whole world, clipped to its box.
     ctx.save()
     ctx.beginPath()
@@ -145,9 +170,9 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
       const y = mapBottom + LEGEND.above + LEGEND.size / 2
       ctx.font = card.fonts.footer(LEGEND.size)
       const lw = ctx.measureText(minText).width, rw = ctx.measureText(maxText).width
-      const room = (L.side ? fit.x + box.w * fit.s : area.x + area.w) - fit.x
+      const room = mapW
       const ramp = Math.max(0, Math.min(LEGEND.rampMax, room - lw - rw - 2 * LEGEND.gap))
-      const x0 = L.side ? fit.x : area.x
+      const x0 = fit.x
       ctx.fillStyle = C.muted
       ctx.textAlign = 'left'
       ctx.fillText(minText, x0, y)
@@ -166,31 +191,34 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
       ctx.fillText(clipText(ctx, maxText, Math.max(0, room - lw - ramp - 2 * LEGEND.gap)), rx + ramp + LEGEND.gap, y)
     }
 
-    // The top places: the name (clipped), the count at the right edge, a bar in the place's shade, as long as its share of the most.
+    // The top places, one under another or in the grid's cells (row by row): the flag and the name (clipped), the count
+    // at the cell's right edge, a bar in the place's shade under them, as long as its share of the most.
     if (!L.list) return
-    const list = L.side ? L.list : { ...L.list, y: mapBottom + L.legendH + LIST_GAP }
+    const listY = mapBottom + L.legendH + (L.cols > 1 ? GRID.gapAbove : LIST_GAP)
+    const cells = L.cols > 1 ? gridColumns(area, fit.x + mapW / 2, mapW) : [{ x: L.list.x, w: L.list.w }]
     const most = top[0]?.count ?? 1
     top.slice(0, L.rows).forEach((r, i) => {
-      const y = list.y + i * ROW.h
+      const { x, w: cw0 } = cells[i % L.cols]
+      const y = listY + Math.floor(i / L.cols) * ROW.h
       const count = formatInt(r.count, t.num)
       ctx.font = card.fonts.mono(ROW.count)
       const cw = ctx.measureText(count).width
       ctx.fillStyle = C.muted
       ctx.textAlign = 'right'
-      ctx.fillText(count, list.x + list.w, y + ROW.name / 2 + 4)
+      ctx.fillText(count, x + cw0, y + ROW.name / 2 + 4)
       // A country's flag before its name (its slot kept when the set has none, so the names line up).
       const fx = FLAG.w + FLAG.gap
       const flag = flags.get(r.value)
-      if (flag) ctx.drawImage(flag, list.x, y + ROW.name / 2 + 4 - FLAG.h / 2, FLAG.w, FLAG.h)
+      if (flag) ctx.drawImage(flag, x, y + ROW.name / 2 + 4 - FLAG.h / 2, FLAG.w, FLAG.h)
       ctx.font = card.fonts.lifer(ROW.name)
       ctx.fillStyle = C.ink
       ctx.textAlign = 'left'
-      ctx.fillText(clipText(ctx, r.label, list.w - cw - 16 - fx), list.x + fx, y + ROW.name / 2 + 4)
+      ctx.fillText(clipText(ctx, r.label, cw0 - cw - 16 - fx), x + fx, y + ROW.name / 2 + 4)
       ctx.fillStyle = shade(shadeMix(r.count, min, max) || RAMP.hi)
       ctx.beginPath()
-      const w = Math.max(ROW.bar, (list.w * r.count) / most)
-      if (ctx.roundRect) ctx.roundRect(list.x, y + ROW.barTop, w, ROW.bar, ROW.bar / 2)
-      else ctx.rect(list.x, y + ROW.barTop, w, ROW.bar)
+      const w = Math.max(ROW.bar, (cw0 * r.count) / most)
+      if (ctx.roundRect) ctx.roundRect(x, y + ROW.barTop, w, ROW.bar, ROW.bar / 2)
+      else ctx.rect(x, y + ROW.barTop, w, ROW.bar)
       ctx.fill()
     })
   }, undefined, `${totals.map((x) => x.n + x.label).join('')}${minText}${maxText}${top.map((r) => `${r.label}${formatInt(r.count, t.num)}`).join('')}0123456789`)

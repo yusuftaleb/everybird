@@ -1,7 +1,7 @@
 'use client'
 // The share dialog, on one screen (Yusuf, 2026-11-19: the fewest steps from the collage to a shared image; every other
 // option is complementary and stays out of the way; 2026-11-20: nothing scrolls on a 1440 × 830 laptop with everything
-// closed). The page opens it two ways: Share (images) and Print beside it (the poster, `print`); neither switches to the
+// closed). Its title names what it shares or prints (dialogTitle: the collage, the map or the tree). The page opens it two ways: Share (images) and Print beside it (the poster, `print`); neither switches to the
 // other inside it. Both draw what the view on screen draws: from the Tree or the Map that view's own picture
 // (renderTreeImage, renderMapImage; the poster at the paper's size, makeViewPoster), from Collage or List the collage;
 // dialogRows says which options each shows and optionRows their order. On top the format control (Story, Post, Square;
@@ -15,10 +15,11 @@
 // Tree, Down to under it: the screen's rank or the next one down, the deeper one off with its reason at a size where its
 // names would print under 9 pt), then the
 // choices as small segmented controls (Arrangement: Fit or Oval, or the Tree's Fan, Radial or Rectangular, one that can't
-// name every tip off with its reason; Colours: Light or Dark; Count: Hide, S, M, L or Beside title, under its label
+// name every tip off with its reason; Appearance: Light or Dark; Count: Hide, S, M, L or Beside title, under its label
 // where it doesn't fit beside it), the switches one to a row (Show latest lifer, the poster's Show species names, the
-// Tree's Lifers only, Hide totals and Show oldest lineage, the Map's Hide totals, Transparent background) and Share's
-// Goal last. Under the list Export in batches, a row in a Surface panel that opens in place: a ZIP of one image (PNG, the
+// Tree's Lifers only and Show oldest lineage, Transparent background) and Share's Goal last; the Tree's and the Map's
+// Totals sit with the choices: one toggle chip per total its image draws (aria-pressed, the segments' look), each on or
+// off, all on at every open. Under the list Export in batches, a row in a Surface panel that opens in place: a ZIP of one image (PNG, the
 // dialog's format and options) or one poster per group, by the Split by choices (Number of birds first, with Birds per
 // image or per poster). Then Share image (the system share sheet when it takes files, else a download) over Download and
 // Copy link; in the poster Make poster (makePoster, its chunk fetched when the dialog opens) and Copy link side by side,
@@ -39,7 +40,7 @@
 // regionsIn); the credit line, the share text (SHARE_CREDIT), the download names and the link stay the same in every
 // language (a link carries no language).
 // Compare opens it too (`compare`, Share only): the What control first (Comparison | Wish list, the wish list off with
-// its reason when there is none), the format (no orientation, no title field), Colours and Transparent background; the
+// its reason when there is none), the format (no orientation, no title field), Appearance and Transparent background; the
 // drawings are Compare's (CompareShare.draw), Copy link copies the comparison link (off over its limits, with the
 // reason), with the consent note beside it. Nothing from Compare is counted.
 // Changing the size, title or a choice, or closing the dialog cancels a poster make and drops a finished poster.
@@ -80,11 +81,11 @@ import { displayName, familyName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { Regions } from '@/lib/species/types'
 import type { ViewKind } from '@/lib/view-resume'
-import type { DeeperFits, ShareAt, ViewImageOpts } from '@/lib/share/view-image'
+import type { DeeperFits, ShareAt, TotalKey, ViewImageOpts } from '@/lib/share/view-image'
 import { RANKS } from '@/lib/tree/levels'
 import '@/components/app/app.css'
 import '@/components/collage/collage.css'
-import { dialogRows, optionRows, subjectOf, treeOrientation, type CompareShare, type CompareWhat, type OptionRow } from './dialog-options'
+import { dialogRows, dialogTitle, optionRows, subjectOf, toggleTotal, treeOrientation, type CompareShare, type CompareWhat, type OptionRow } from './dialog-options'
 import { MenuSelect } from './MenuSelect'
 import './share.css'
 
@@ -160,6 +161,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const bulkBodyId = useId()
   const arrangeId = useId()
   const coloursId = useId()
+  const totalsId = useId()
   const orientWhyId = useId()
   const treeLayoutId = useId()
   const treeDepthId = useId()
@@ -219,7 +221,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const noteTreeFits = (k: string) => (f: TreeFits) =>
     setTreeFitsBy((was) => (was[k]?.fan === f.fan && was[k]?.circle === f.circle ? was : { ...was, [k]: f }))
   const [showOldest, setShowOldest] = useState(true)
-  const [hideTotals, setHideTotals] = useState(false)
+  // The Tree's and Map's Totals: every total its image draws, on at every open, not stored.
+  const [totals, setTotals] = useState<readonly TotalKey[]>(() => rows.totals)
   // Print's "Down to" (the Tree poster; round 6, "One step + size"): the screen's rank, or the next one down where every
   // name prints at TREE_NAME_MIN_PT or more at this size, orientation and arrangement. Starts at the screen's rank at
   // every open and is not stored. Each poster render reports, for every size, whether the deeper rank prints readably
@@ -389,7 +392,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // size instead of the format).
   /** What the Tree or Map image reads besides the share image's options: the view's level, the app state, its switches. */
   const viewOf = () => ({
-    at: treeImage ? { ...at, mine: treeMine, layout: treeLayout } : at ?? {}, state: { list, filter, seen, sci }, t, hideTotals, oldest: treeImage && showOldest,
+    at: treeImage ? { ...at, mine: treeMine, layout: treeLayout } : at ?? {}, state: { list, filter, seen, sci }, t, totals, oldest: treeImage && showOldest,
     ...(treeImage ? { onTreeFits: noteTreeFits(print ? `${cardFormat}|${size}` : cardFormat) } : {}),
     ...(treeImage && print ? { deeper: deeperOn, onDeeper: noteDeeper(deeperKey) } : {}),
   })
@@ -407,7 +410,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const first = useRef(true)
   // The Tree's or Map's drawing: the view, its switches.
   // `at` is the view's level, live (the Tree's follows the taxonomy filter); its JSON leaves out the map's names function.
-  const viewKey = viewImage ? `${subject}|${treeImage ? `${treeMine}|${treeLayout}|${showOldest}` : ''}|${hideTotals}|${JSON.stringify(at ?? {})}` : ''
+  const viewKey = viewImage ? `${subject}|${treeImage ? `${treeMine}|${treeLayout}|${showOldest}` : ''}|${totals.join(',')}|${JSON.stringify(at ?? {})}` : ''
   // What the deeper rank's fit depends on besides the size (the card, the tree drawn, the title, the names).
   const deeperKey = `${landscape}|${viewKey}|${trimmed}|${lang}|${names}|${fk}`
   const deeper = treeImage && print && deeperFit?.key === deeperKey ? deeperFit.d : undefined
@@ -466,8 +469,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       },
     )
     return () => { live = false; cancel() }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- viewOf reads treeImage, treeMine, treeLayout, showOldest, hideTotals, at, list, filter, seen and sci, all in `key` or below
-  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, hideTotals, at, list, filter, seen, sci, named, compare, what, format])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- viewOf reads treeImage, treeMine, treeLayout, showOldest, totals, at, list, filter, seen and sci, all in `key` or below
+  }, [key, print, size, cardFormat, trimmed, theme, transparent, withLatest, packFor, cardEntries, species, cardLabel, cardGoal, countSize, t, effectiveShowNames, captionPlan, viewImage, treeImage, treeMine, totals, at, list, filter, seen, sci, named, compare, what, format])
   useEffect(() => () => {
     clearTimeout(outgoingTimer.current)
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
@@ -1047,6 +1050,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           options: TREE_LAYOUTS.map((v) => ({ value: v, label: t.collage.tree.layouts[v], off: treeOff(v) ? t.collage.tree.noRoom : undefined })),
         }))
       case 'colours':
+        // Appearance: Light or Dark (the key keeps its first name, colours).
         return optRow(r, coloursId, t.share.colours.label, segmented({
           className: 'eb-share-seg', labelledBy: coloursId, value: theme, pick: (v: Theme) => setDark(v === 'dark'), testId: 'share-colours',
           options: (['light', 'dark'] as const).map((v) => ({ value: v, label: t.share.colours[v] })),
@@ -1061,6 +1065,18 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           }),
         }))
       }
+      case 'totals':
+        // One toggle chip per total the image draws, each on or off (none included), in the segments' look; under the
+        // label where they don't fit beside it, as Count.
+        return optRow(r, totalsId, t.share.totals, (
+          <div className="eb-seg eb-share-seg" role="group" aria-labelledby={totalsId} data-testid="share-totals">
+            {rows.totals.map((k) => (
+              <button key={k} type="button" className="eb-seg-btn" aria-pressed={totals.includes(k)} onClick={() => setTotals((was) => toggleTotal(rows.totals, was, k))}>
+                {k === 'countries' ? t.places.head.country : t.collage.tree.rank[k]}
+              </button>
+            ))}
+          </div>
+        ))
       case 'latest':
         return hasLatest ? switchRow(showLatest, t.share.showLatest, () => setShowLatest((v) => !v)) : null
       case 'names':
@@ -1076,8 +1092,6 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         ]
       case 'lifersOnly':
         return switchRow(treeMine, t.collage.controls.lifersOnly, () => setTreeMine(!treeMine), 'share-tree-mine')
-      case 'hideTotals':
-        return switchRow(hideTotals, t.share.hideTotals, () => setHideTotals((v) => !v), 'share-hide-totals')
       case 'oldest':
         return switchRow(showOldest, t.collage.tree.showOldest, () => setShowOldest((v) => !v), 'share-tree-oldest')
       case 'transparent':
@@ -1145,7 +1159,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         onKeyDown={(e) => trapTab(e, ref.current)}
       >
         <div className="eb-share-head">
-          <h2 id={titleId} className="eb-share-title">{print ? pt.title : compare ? t.collage.share : t.share.title}</h2>
+          <h2 id={titleId} className="eb-share-title">{dialogTitle(subject, print, t.share, t.collage.share)}</h2>
           <button type="button" className="eb-share-close" aria-label={t.collage.close} onClick={onClose}>
             <X aria-hidden="true" focusable="false" weight="bold" />
           </button>

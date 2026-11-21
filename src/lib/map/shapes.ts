@@ -84,7 +84,7 @@ export function shadeMix(n: number, min: number, max: number): number {
   return lo + (hi - lo) * Math.min(1, Math.max(0, t))
 }
 
-/** The countries with species, most first (then by name): the list under the map and the share image's top five. */
+/** The countries with species, most first (then by name): the list under the map and the share image's top six. */
 export function mapRows(counts: PlaceCounts, label: (key: string) => string, locale?: string): PlaceOption[] {
   return countryRows(counts, label, locale).filter((r) => r.count > 0)
 }

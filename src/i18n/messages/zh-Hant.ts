@@ -462,6 +462,7 @@ export const zhHant: Messages = {
     },
     share: {
       title: '分享你的拼貼',
+      viewTitle: { map: '分享你的地圖', tree: '分享你的演化樹' },
       formats: '圖片格式',
       what: { label: '內容', comparison: '比較', wish: '願望清單' },
       format: { story: '限時動態', post: '貼文', square: '方形', desktop: '桌面' },
@@ -501,10 +502,10 @@ export const zhHant: Messages = {
       posterLatestPlace: '最新鳥種：{name}，{date}，{place}',
       oldLinkTitle: '{name} 的生涯清單',
       untitledTitle: { one: '一份生涯清單：{n} 種', other: '一份生涯清單：{n} 種' },
-      colours: { label: '配色', light: '淺色', dark: '深色' },
+      colours: { label: '外觀', light: '淺色', dark: '深色' },
       transparent: '透明背景',
       arrange: { label: '排列', packed: '填滿', oval: '橢圓' },
-      hideTotals: '隱藏總數',
+      totals: '總數',
       bigYear: {
         label: '目標',
         add: '新增目標',
@@ -520,7 +521,8 @@ export const zhHant: Messages = {
       },
       downloadShort: '下載',
       print: {
-        title: '列印海報',
+        title: '列印你的拼貼',
+        viewTitle: { map: '列印你的地圖', tree: '列印你的演化樹' },
         size: '海報尺寸',
         downTo: '展開到',
         deeperLarger: '更大的海報能印出所有名稱',
