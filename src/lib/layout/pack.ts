@@ -839,6 +839,9 @@ const frameBase = (n: number) => (n <= 300 ? 28 : Math.max(10, 28 * (300 / n) **
  * stickers come out about a tenth bigger in the same frame (round 6: a 1,092-species story read as a field of tiny
  * birds). A poster with names keeps the loose pack (settling doesn't know the names' room).
  * Then, but for Free, spreadEven spreads the birds evenly over the frame (or its oval), edge to edge.
+ * A list under SMALL_GROUP birds is instead one snug group round the count (round 6, item 12): packed at GROUP_BASE in a
+ * frame wide enough for its largest bird under maxTile, dense and settled in every arrangement, and never spread, so the
+ * caller's fit draws it as large as the frame allows.
  */
 export function packFrame(birds: PackBird[], aspect: number, opts: FrameOpts = {}): PackResult {
   if (!opts.captions) return packFrameWith(birds, aspect, opts)
@@ -854,6 +857,11 @@ export const FRAME_DENSE_FROM = 380
 /** Free is settled into its cloud from this many birds, on the page and in the images (round 6, item 11: below
  *  denseFrom it was a loose rectangle, hard to tell from Fit's). */
 export const FREE_CLOUD_FROM = 100
+/** A list of fewer birds is one snug group round the count in the images (round 6, item 12): packed dense at one GAP,
+ *  settled and gathered, and never spread to the frame's walls (spreadEven scattered four storks into the corners). */
+export const SMALL_GROUP = 40
+/** The base a small group is packed at: a page collage of a few birds' (MAX_BASE 80 at most), one GAP between them. */
+const GROUP_BASE = 60
 function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): PackResult {
   const rel = relSizes(birds, EXP)
   let area = 0, maxRel = 1
@@ -863,10 +871,15 @@ function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): Pack
   if (opts.captions) for (const c of opts.captions.values()) capArea += c.w * c.h
   // packBest's estimate is base = sqrt(0.55 · usable / area); solve it for the frame at frameBase, where usable is the
   // frame's area less the hole's: W² · (1 / aspect − hole area at width 1).
-  const usable = (frameBase(birds.length) ** 2 * Math.max(area, 0.05)) / 0.55
+  const group = birds.length < SMALL_GROUP
+  const fb = group ? GROUP_BASE : frameBase(birds.length)
+  const usable = (fb ** 2 * Math.max(area, 0.05)) / 0.55
   const inside = opts.oval ? Math.PI / 4 : opts.free && birds.length >= FREE_CLOUD_FROM && birds.length < FRAME_DENSE_FROM ? CLOUD_AREA : 1
   const free = Math.max(0.1 / aspect, inside / aspect - holeArea(unit) - capArea * 2.8)
-  const W = Math.max(8, Math.ceil(Math.sqrt(usable / free)))
+  // A small group's frame is wide enough for its largest bird at GROUP_BASE under the tile cap, so the cap, not a frame a
+  // few birds wide, sets the size (the spiral's points, 13 to 20 units apart, had few places to try in such a frame).
+  const fitCap = group && opts.maxTile ? Math.ceil((fb * maxRel) / opts.maxTile) : 0
+  const W = Math.max(8, fitCap, Math.ceil(Math.sqrt(usable / free)))
   const H = Math.max(8, Math.round(W / aspect))
   const hole = scaleHole(unit, W)
   const maxBase = opts.maxTile ? (opts.maxTile * W) / maxRel : undefined
@@ -874,8 +887,10 @@ function packFrameWith(birds: PackBird[], aspect: number, opts: FrameOpts): Pack
   const captions = opts.captions
     ? new Map([...opts.captions].map(([id, c]) => [id, { w: c.w * W, h: c.h * W, ...(c.ring ? { ring: c.ring * W } : {}) }]))
     : undefined
-  const settleFrame = !opts.oval && !captions && birds.length >= (opts.free ? FREE_CLOUD_FROM : FRAME_DENSE_FROM)
+  // A small group settles in every arrangement (Oval by its ellipse); names keep the loose pack (settling doesn't know
+  // their room), still never spread.
+  const settleFrame = !captions && (group || (!opts.oval && birds.length >= (opts.free ? FREE_CLOUD_FROM : FRAME_DENSE_FROM)))
   const r = packBest(birds, frame, 'even', { fixedStage: [W, H], rel, hole, maxBase, captions, ...(opts.oval ? { oval: true } : opts.free ? { free: true } : {}), ...(settleFrame ? { settleFrame } : {}) })
-  // Free keeps its cloud: nothing spreads it to the frame's walls.
-  return opts.free ? r : { ...r, boxes: spreadEven(r.boxes, birds, r.W, r.H, hole, captions, !!opts.oval) }
+  // Free keeps its cloud and a small group stays snug: nothing spreads them to the frame's walls.
+  return opts.free || group ? r : { ...r, boxes: spreadEven(r.boxes, birds, r.W, r.H, hole, captions, !!opts.oval) }
 }
