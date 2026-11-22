@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { UndoToast } from '@/components/app/UndoToast'
 import type { FileJob, ImportJobs, InatJob, Landed } from '@/components/app/use-import-jobs'
-import { DONE_MS, ImportToast, RUN_DELAY } from '@/components/import/ImportToast'
+import { DONE_MS, ImportToast, RUN_DELAY, SEE_MS } from '@/components/import/ImportToast'
 import { InatForm } from '@/components/import/InatForm'
 import { withI18n } from './i18n-render'
 
@@ -151,6 +151,68 @@ describe('the import toast', () => {
     expect(toast()).toBeNull()
     rerender(<Both removal={null} />)
     expect(toast()).toBeNull()
+  })
+})
+
+describe('"See my collage" on the done line', () => {
+  const see = () => (toast() ? within(toast()!).queryByRole('button', { name: 'See my collage' }) : null)
+  it('shows when an import brought birds (first collage, a new source, new species), stays SEE_MS, and its press goes and ends the toast', async () => {
+    const onSee = vi.fn()
+    const { rerender } = render(<ImportToast jobs={jobs()} onSee={onSee} />, { wrapper })
+    rerender(<ImportToast jobs={jobs({ landed: { ...landed(282, 1, 'ebird'), first: true } })} onSee={onSee} />)
+    expect(toast()).toHaveTextContent(/^Your collage has 282 species\s*See my collage$/)
+    expect(toast()!.closest('[role="status"]')).not.toBeNull() // still in the live region
+    expect(see()).toHaveClass('eb-textbtn') // Undo's style, and its 44px press (app.css .eb-textbtn::after)
+    rerender(<ImportToast jobs={jobs({ landed: landed(12, 2, 'inat') })} onSee={onSee} />)
+    expect(see()).not.toBeNull()
+    rerender(<ImportToast jobs={jobs({ landed: { ...landed(290, 3), added: 4 } })} onSee={onSee} />)
+    expect(see()).not.toBeNull()
+    expect(document.activeElement).toBe(document.body) // a pointer start: no focus move
+    await wait(SEE_MS - 10)
+    expect(see()).not.toBeNull()
+    fireEvent.click(see()!)
+    expect(onSee).toHaveBeenCalledOnce()
+    expect(toast()).toBeNull()
+  })
+  it('never on an error, a cancel or "no new species", nor without birds', async () => {
+    const onSee = vi.fn()
+    const { rerender } = render(<ImportToast jobs={jobs()} onSee={onSee} />, { wrapper })
+    rerender(<ImportToast jobs={jobs({ landed: { ...landed(290, 1), added: 0 } })} onSee={onSee} />)
+    expect(toast()).toHaveTextContent('no new species')
+    expect(see()).toBeNull()
+    rerender(<ImportToast jobs={jobs({ landed: landed(0, 2, 'ebird') })} onSee={onSee} />)
+    expect(see()).toBeNull()
+    rerender(<ImportToast jobs={jobs({ landed: landed(0, 2, 'ebird'), inat: { ...NO_INAT, busyFor: 'nobody' } })} onSee={onSee} />)
+    rerender(<ImportToast jobs={jobs({ landed: landed(0, 2, 'ebird'), inat: { ...NO_INAT, error: { code: 'unknown-user', user: 'nobody' } } })} onSee={onSee} />)
+    expect(toast()).toHaveTextContent('nobody')
+    expect(see()).toBeNull()
+  })
+  it('hidden when the birder is already on the Collage view (here), and back if they leave it while it shows', () => {
+    const onSee = vi.fn()
+    const { rerender } = render(<ImportToast jobs={jobs()} onSee={onSee} here />, { wrapper })
+    rerender(<ImportToast jobs={jobs({ landed: { ...landed(5, 1), first: true } })} onSee={onSee} here />)
+    expect(toast()).toHaveTextContent(/^Your collage has 5 species$/)
+    expect(see()).toBeNull()
+    rerender(<ImportToast jobs={jobs({ landed: { ...landed(5, 1), first: true } })} onSee={onSee} here={false} />)
+    expect(see()).not.toBeNull()
+    expect(document.activeElement).toBe(document.body) // shown later: never a focus move
+  })
+  it('an import started from the keyboard puts focus on it; one started by pointer does not', async () => {
+    const onSee = vi.fn()
+    const { rerender } = render(<ImportToast jobs={jobs()} onSee={onSee} />, { wrapper })
+    fireEvent.keyDown(document.body, { key: 'Enter' })
+    rerender(<ImportToast jobs={jobs({ inat: { ...NO_INAT, busyFor: 'sam' } })} onSee={onSee} />)
+    fireEvent.pointerDown(document.body) // a press while it runs doesn't change how it was started
+    rerender(<ImportToast jobs={jobs({ landed: landed(5, 1) })} onSee={onSee} />)
+    await wait(16)
+    expect(see()).toHaveFocus()
+    fireEvent.blur(see()!)
+    ;(document.activeElement as HTMLElement).blur()
+    rerender(<ImportToast jobs={jobs({ landed: landed(5, 1), ebird: { busy: true, rows: 0, error: null } })} onSee={onSee} />)
+    rerender(<ImportToast jobs={jobs({ landed: landed(6, 2) })} onSee={onSee} />)
+    await wait(16)
+    expect(see()).not.toBeNull()
+    expect(see()).not.toHaveFocus()
   })
 })
 
