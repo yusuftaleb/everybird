@@ -15,7 +15,7 @@ import { showLabel } from '@/lib/list/filter-summary'
 import { countParts, summaryLine, type RowCount, type SourceCounts } from '@/lib/list/source-counts'
 import { pageTitle } from '@/lib/list/title'
 import { FOOTER_LINE } from '@/lib/share/image'
-import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
+import { stampDate, stampStrings } from '@/lib/share/stamp'
 import { MESSAGES, withI18n } from './i18n-render'
 
 vi.mock('@/components/app/IntentLink', () => ({ default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a> }))
@@ -77,19 +77,21 @@ describe.each(LANGS)('About, the demo poster in %s', (lang) => {
     expect(text(wide.querySelector('.ebd-stats .ebd-swap-a'))).toContain(plural(ui.collage.stats.orders, 7, { n: '7' }))
   })
 
-  it("draws the share dialog and its images in the language, the stamp ending each footer", () => {
+  it("draws the share dialog and its images in the language, each footer one line: the credits link, the date at the right", () => {
     expect(text(wide.querySelector('.ebd-share-title'))).toBe(ui.share.title)
     expect([...wide.querySelectorAll('.ebd-seg-btn')].map(text)).toEqual([ui.share.format.story, ui.share.format.post, ui.share.format.square])
     expect(text(wide.querySelector('.ebd-share-bulk'))).toBe(ui.share.print.bulk.title)
     expect(text(wide.querySelector('.ebd-share-label'))).toBe(ui.share.nameLabel)
     expect(text(wide.querySelector('.ebd-share-input'))).toBe(ui.share.namePlaceholder)
     expect(text(wide.querySelector('.ebd-share-switch'))).toBe(ui.share.showLatest)
-    const line = withStamp(FOOTER_LINE, stampDate(STAMPED, stampStrings(ui)))
-    expect([...wide.querySelectorAll('.ebd-img-line')].map(text)).toEqual([line, line, line])
+    expect([...wide.querySelectorAll('.ebd-img-line')].map(text)).toEqual([FOOTER_LINE, FOOTER_LINE, FOOTER_LINE])
+    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com/credits')
     // The date alone, no lead: "6 Nov 2026" in English, "6 nov 2026" in es, pt and nl, "6 lis 2026" in pl, "2026年11月6日" in ja and zh
     const stamp = { en: '6 Nov 2026', de: '6 Nov 2026', pl: '6 lis 2026', ru: '6 ноя 2026', ja: '2026年11月6日', 'zh-Hans': '2026年11月6日', 'zh-Hant': '2026年11月6日' }[lang as string] ?? '6 nov 2026'
-    expect(line.endsWith(` · ${stamp}`)).toBe(true)
-    expect(line.startsWith('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · ')).toBe(true)
+    expect(stampDate(STAMPED, stampStrings(ui))).toBe(stamp)
+    expect([...wide.querySelectorAll('.ebd-img-date')].map(text)).toEqual([stamp, stamp, stamp])
+    // One line: the wordmark, the link and the date are the foot's only children, in that order.
+    for (const foot of wide.querySelectorAll('.ebd-img-foot')) expect([...foot.children].map((c) => c.className)).toEqual(['ebd-img-mark', 'ebd-img-line', 'ebd-img-date'])
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.share.latestLifer)
     expect(text(wide.querySelector('.ebd-img-latest-label'))).toContain(ui.date.months[9])
     expect(text(wide.querySelector('.ebd-img-mark'))).toBe('Everybird')

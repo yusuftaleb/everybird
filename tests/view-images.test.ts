@@ -2,14 +2,14 @@
 // in the Story and the portrait poster, else three columns by two rows), the totals the Totals row keeps, the tree's
 // equal totals, and its Rectangular names (every tip named).
 import { describe, expect, it } from 'vitest'
-import { MAP_TOTALS, gridColumns, mapImageLayout, mapListsInColumn, TOP_PLACES } from '@/lib/share/map-image'
+import { MAP_TOTALS, ROW_CAP_PLACES, gridColumns, mapImageLayout, mapListsInColumn, TOP_PLACES } from '@/lib/share/map-image'
 import { printDesign } from '@/lib/share/print'
 import { VIEW_TOTALS } from '@/components/share/dialog-options'
 import { en } from '@/i18n/messages/en'
 import { FOOTER_LINE, SMALL_INLINE, SMALL_ROW, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
-import { IMAGE_SIZES, TOTALS, rowsLabels, totalsSize } from '@/lib/share/tree-image'
+import { IMAGE_SIZES, TOTALS, TOTALS_TYPE, rowsLabels, totalsPlace } from '@/lib/share/tree-image'
 import { LABEL_GAP, fitRound } from '@/lib/tree/fan'
-import { MAP_FOOTER, TREE_FOOTER, chosenTotals, fitBox, wrapParts } from '@/lib/share/view-image'
+import { chosenTotals, fitBox, wrapParts } from '@/lib/share/view-image'
 import { buildSpeciesIndex } from '@/lib/species/load'
 
 describe('the map image', () => {
@@ -24,7 +24,7 @@ describe('the map image', () => {
   it('six places: in a column under the map in the Story and the portrait poster, in three columns by two rows in every other format, inside the frame', () => {
     expect(TOP_PLACES).toBe(6)
     for (const format of ['story', 'post', 'square', 'desktop', 'wide', 'print', 'printLandscape'] as const) {
-      const c = cardLayout(format, { name: true, filter: true, latest: false, count: 318, viewFooter: true }, format.startsWith('print') ? printDesign('A2', format === 'printLandscape') : undefined).collage
+      const c = cardLayout(format, { name: true, filter: true, latest: false, count: 318 }, format.startsWith('print') ? printDesign('A2', format === 'printLandscape') : undefined).collage
       // The totals take the top of the collage's area (view-image.ts).
       const area = { x: c.x, y: c.y + 100, w: c.w, h: c.h - 100 }
       const grid = !mapListsInColumn(format)
@@ -43,13 +43,13 @@ describe('the map image', () => {
         expect(L, format).toMatchObject({ k: 1, pitch: 64 })
         expect(list.h, format).toBe(64 + 46)
       } else {
-        // The column (round 6): the map at the full width, its box exactly the map's height, and the rows grown to fill
-        // the rest down to the area's foot, nothing left over (no empty band under the six countries).
-        expect(L.map.h, format).toBeCloseTo(mapH, 6)
+        // The column (round 6): the map at the full width, the rows grown to the size eight places filling the room
+        // under it would get (ROW_CAP_PLACES), at their own pitch, the spare height the map's box's.
+        expect(L.map.h, format).toBeGreaterThanOrEqual(mapH - 1e-6)
         expect(list.y + list.h, format).toBeCloseTo(area.y + area.h, 6)
-        expect(L.k, format).toBeGreaterThan(1.4)
+        expect(L.k, format).toBeGreaterThan(1)
         expect(L.k, format).toBeLessThanOrEqual(2)
-        expect(L.pitch, format).toBeGreaterThanOrEqual(64 * L.k - 1e-6)
+        expect(L.pitch, format).toBeCloseTo(64 * L.k, 6)
         expect(fitBox(2000, 983, L.map).s * 2000, format).toBeCloseTo(area.w, 6)
       }
       if (grid) {
@@ -87,12 +87,47 @@ describe('the map image', () => {
     expect(short.rows).toBe(2)
     // No room under a full-width map: the rows keep their size and the map shrinks into what is left.
     expect(mapImageLayout({ x: 0, y: 0, w: 952, h: 600 }, 6, true, false, 468)).toMatchObject({ k: 1, pitch: 64 })
-    // Two places in a tall column: grown to the cap, spread at most a quarter more, the rest left to the centring.
+    // Two places in a tall column: the scale eight rows would get (no spread), the rest the map's box's.
     const two = mapImageLayout({ x: 0, y: 0, w: 952, h: 1400 }, 2, true, false, 468)
-    expect(two).toMatchObject({ k: 2, pitch: 2 * 64 * 1.25 })
+    const k8 = Math.min(2, (1400 - 44 - 40 - 468) / (7 * 64 + 46))
+    expect(two.k).toBeCloseTo(k8, 6)
+    expect(two.pitch).toBeCloseTo(64 * k8, 6)
     expect(two.map.h).toBeGreaterThan(468)
     expect(mapImageLayout({ x: 0, y: 0, w: 1800, h: 200 }, 9, true, true).rows).toBe(3)
   })
+})
+
+describe("the Map's column rows never pass the cap (Story, portrait poster)", () => {
+  // With few countries the rows used to grow until their names outgrew the totals: never larger now than about eight
+  // places would make them, top-aligned under the map, the spare height the map's box's.
+  const ROW_INK = 46
+  for (const format of ['story', 'print'] as const) {
+    it(format, () => {
+      for (const latest of [true, false]) for (const name of [true, false]) for (const head of [0, 100]) {
+        const c = cardLayout(format, { name, filter: false, latest, count: 50 }, format === 'print' ? printDesign('A2') : undefined).collage
+        const area = { x: c.x, y: c.y + head, w: c.w, h: c.h - head }
+        const mapH = (983 * area.w) / 2000
+        const room = area.h - 44 - 40 - mapH
+        const cap = Math.max(1, Math.min(2, room / ((ROW_CAP_PLACES - 1) * 64 + ROW_INK)))
+        const full = mapImageLayout(area, 12, true, false, mapH)
+        for (let n = 1; n <= TOP_PLACES; n++) {
+          const L = mapImageLayout(area, n, true, false, mapH)
+          const at = `${format} ${n} ${latest} ${name} ${head}`
+          expect(L.rows, at).toBe(n)
+          // Name, count and bar all scale by k: never past the cap, the same for one place as for six.
+          expect(L.k, at).toBeLessThanOrEqual(cap + 1e-9)
+          expect(L.k, at).toBeCloseTo(full.k, 9)
+          expect(26 * L.k, at).toBeLessThan(56)
+          expect(L.pitch, at).toBeCloseTo(64 * L.k, 9)
+          // Top-aligned under the map and its legend; the rest of the height is the map's box.
+          const list = L.list!
+          expect(list.y, at).toBeCloseTo(L.map.y + L.map.h + L.legendH + 40, 9)
+          expect(L.map.h, at).toBeGreaterThanOrEqual(mapH - 1e-6)
+          expect(L.map.h + L.legendH + 40 + list.h, at).toBeCloseTo(area.h, 9)
+        }
+      }
+    })
+  }
 })
 
 describe('the Totals row: the totals each image draws', () => {
@@ -108,18 +143,17 @@ describe('the Totals row: the totals each image draws', () => {
   })
 })
 
-describe('the tree image: four equal totals on top', () => {
-  it('species, genera, families and orders, in that order, every number the same size, the largest that fits each', () => {
+describe('the tree image: the totals at the top right (round 6, as the promo)', () => {
+  it('species, genera, families and orders, in that order; beside the title when both fit, else under it', () => {
     expect(TOTALS).toEqual(['species', 'genera', 'families', 'orders'])
-    const texts = ['202 / 11,201', '150 / 2,379', '60 / 251', '20 / 41']
-    const w = (s: string) => s.length * 0.55
-    const { num, label } = totalsSize(texts, 952, w)
-    // One size for the four, set by the widest, each inside its quarter.
-    expect(num).toBe(Math.floor((952 / 4 - 24) / w(texts[0])))
-    for (const t of texts) expect(w(t) * num).toBeLessThanOrEqual(952 / 4)
-    expect(label).toBeLessThan(num)
-    // Never larger than the cap, however wide the image; one total (the Totals row's species alone) as large as that.
-    expect(totalsSize(['1 / 2'], 1800, w).num).toBe(56)
+    expect(TOTALS_TYPE).toMatchObject({ num: 44, label: 15, gap: 8, between: 48 })
+    // Side by side with the title only when the two and the gap between them fit the width.
+    expect(totalsPlace(500, 400, 952)).toEqual({ band: true, k: 1 })
+    expect(totalsPlace(500, 405, 952)).toEqual({ band: false, k: 1 })
+    // No title: never on a band, still at full size.
+    expect(totalsPlace(500, undefined, 952)).toEqual({ band: false, k: 1 })
+    // A group wider than the card on its own shrinks to fit it.
+    expect(totalsPlace(1904, undefined, 952).k).toBeCloseTo(0.5, 9)
   })
 })
 
@@ -129,7 +163,7 @@ describe("the row: the tree's oldest lineage and the collage's latest lifer, one
     const L = cardLayout('story', content)
     expect(L.latest).toMatchObject({ icon: SMALL_ROW.icon, label: SMALL_ROW.label, name: SMALL_ROW.name })
     expect(L.latest!.inline).toBeUndefined()
-    expect(L.latest!.y - (L.collage.y + L.collage.h)).toBe(24 + L.latest!.lift!)
+    expect(L.latest!.y - (L.collage.y + L.collage.h)).toBe(24)
   })
   it('Desktop, Post (and its 5:4) and Square: one line just above the hairline (SMALL_INLINE), name first', () => {
     for (const format of ['desktop', 'post', 'wide', 'square'] as const) {
@@ -174,19 +208,13 @@ describe('the tree image names every tip', () => {
   })
 })
 
-describe('the credit on each image', () => {
-  it('the map has the site alone; the tree adds AvesData, each credit in one form', () => {
-    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0')
-    expect(MAP_FOOTER).toBe('everybird.yusuftaleb.com')
-    expect(TREE_FOOTER).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker · Tree: AvesData · CC BY 4.0')
-  })
-
-  it('a card draws the footer it is given, the date stamp after it; without one, FOOTER_LINE', async () => {
+describe('the footer on each image', () => {
+  it('every card, the Map\'s and the Tree\'s too, links to the credits and dates itself at the right', async () => {
     const species = buildSpeciesIndex([])
     const base: ShareImageOpts = { format: 'square', entries: [], species, theme: 'light', strings: en.ui, now: new Date(2026, 10, 19), pack: { W: 1, H: 1, boxes: new Map() } }
-    expect((await prepareCard({ ...base, footer: TREE_FOOTER })).footerLine).toBe(`${TREE_FOOTER} · 19 Nov 2026`)
-    expect((await prepareCard({ ...base, footer: MAP_FOOTER })).footerLine).toBe(`${MAP_FOOTER} · 19 Nov 2026`)
-    expect((await prepareCard(base)).footerLine).toBe(`${FOOTER_LINE} · 19 Nov 2026`)
+    const card = await prepareCard(base)
+    expect([card.footerLine, card.stamp]).toEqual([FOOTER_LINE, '19 Nov 2026'])
+    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com/credits')
   })
 })
 

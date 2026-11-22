@@ -38,7 +38,7 @@ vi.mock('@/lib/share/view-image', async (orig) => {
   const print = await import('@/lib/share/print')
   return {
     ...real,
-    renderViewImage: async (opts: ShareImageOpts, _footer: string, paint: (ctx: CanvasRenderingContext2D, card: unknown, area: unknown) => void) => {
+    renderViewImage: async (opts: ShareImageOpts, paint: (ctx: CanvasRenderingContext2D, card: unknown, area: unknown) => void) => {
       const landscape = opts.format === 'printLandscape'
       const L = cardLayout(opts.format, { name: false, filter: false, latest: false, count: 0, countSize: 'hide' }, opts.printSize && (opts.format === 'print' || landscape) ? print.printDesign(opts.printSize, landscape) : undefined)
       let px = 10
@@ -48,7 +48,7 @@ vi.mock('@/lib/share/view-image', async (orig) => {
             : k in o ? o[k] : () => {}),
         set: (o, k, v) => { if (k === 'font') px = parseFloat(v); o[k] = v; return true },
       })
-      const card = { L, colors: { ink: '#000', line: '#999', muted: '#666', paper: '#fff', hairline: '#ddd' }, fonts: { count: (n: number) => `${n}px c`, footer: (n: number) => `${n}px f`, lifer: (n: number) => `${n}px l` }, transparent: false }
+      const card = { L, colors: { ink: '#000', line: '#999', muted: '#666', paper: '#fff', hairline: '#ddd' }, fonts: { count: (n: number) => `${n}px c`, footer: (n: number) => `${n}px f`, lifer: (n: number) => `${n}px l`, name: (n: number) => `${n}px n`, mono: (n: number) => `${n}px m` }, transparent: false }
       paint(ctx as unknown as CanvasRenderingContext2D, card, { ...L.collage })
       return new Blob(['tree'])
     },

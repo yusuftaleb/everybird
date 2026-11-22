@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NAME_MAX } from '@/lib/share/link'
-import { FOOT_TWO, GROUP_SIDE, GROUP_TILE, IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, placeCredit, fitBox, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
+import { CREDIT_MIN, DATE_GAP, GROUP_SIDE, GROUP_TILE, IMAGE_SIZE, NAME_MAX_LEN, SHARE_COLORS, cardLayout, countLayout, drawShareImage, filterLabel, fitPack, latestText, maxTileFrac, maxTileSide, OG_COUNT_MAX, ogCountHole, packSpec, fitFooter, fitBox, FOOTER_LINE, SHARE_CREDIT, SITE_LABEL } from '@/lib/share/image'
 import { SMALL_GROUP } from '../src/lib/layout/pack'
 import { SMALL_INLINE } from '@/lib/share/image'
 import { MONO_CAP, MONO_CAP_ACCENT, countText, holeExtent, numberEm } from '@/lib/layout/count-box'
@@ -10,7 +10,7 @@ import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
 import { pt } from '@/i18n/messages/pt'
-import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
+import { stampDate, stampStrings } from '@/lib/share/stamp'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { orderLabel } from '@/lib/species/orders'
 
@@ -88,9 +88,9 @@ describe('cardLayout', () => {
       expect(off.collage.y).toBe(on.collage.y)
       expect(off.rule.y).toBe(on.rule.y)
       expect(off.collage.h).toBeGreaterThan(on.collage.h) // the row's icon, its gap to the rule and its gap from the collage
-      // Round 6, item 17: the row is the Tree's oldest lineage row, its gap from the collage the row's own (GAPS' latest),
-      // plus the footer's two lines placeFooter lifts it by on these 1080-wide cards (AD7, FOOT_TWO).
-      expect(on.latest!.y - (on.collage.y + on.collage.h)).toBe((format === 'square' ? 32 : 24) + 2 * (FOOT_TWO.size + FOOT_TWO.gap))
+      // Round 6, item 17: the row is the Tree's oldest lineage row, its gap from the collage the row's own (GAPS' latest);
+      // the footer is one line, so no room is kept under the collage for a lift.
+      expect(on.latest!.y - (on.collage.y + on.collage.h)).toBe(format === 'square' ? 32 : 24)
       expect(packSpec(off).aspect).toBeLessThan(packSpec(on).aspect) // the taller area: the pack is NOT remade for it (imagePackSpec)
     }
   })
@@ -126,8 +126,8 @@ describe('cardLayout', () => {
         expect(L.footer.y).toBeGreaterThan(L.rule.y)
         expect(L.footer.y + L.footer.size).toBeLessThanOrEqual(H - bottom)
         expect(L.footer.credit).toBeLessThan(L.footer.size)
-        // AD7: the footer's two lines take 32 more under the collage than its one line did.
-        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 1118 : format === 'post' ? 838 : 528)
+        // Round 6: the footer's one line gives the collage the 64 its two lines under the wordmark took.
+        expect(L.collage.h).toBeGreaterThan(format === 'story' ? 1182 : format === 'post' ? 902 : 592)
         // Nothing (the name on top, the footer at the bottom) inside the platform's safe zones.
         if (L.name) expect(L.name.y).toBeGreaterThanOrEqual(top)
         expect(L.collage.y).toBeGreaterThanOrEqual(top)
@@ -304,39 +304,31 @@ describe('fitPack', () => {
   })
 })
 
-describe('the footer line (the site and the sticker credit, never truncated)', () => {
+describe('the footer line (the wordmark, the link to the credits, the date at the right; never wrapped)', () => {
   // Geist Mono: 0.6em per character.
   const measure = (text: string) => (px: number) => text.length * 0.6 * px
-  it('is the site and the sticker credit in its one form; the full credit with the link is the share text', () => {
-    expect(FOOTER_LINE).toBe(`${SITE_LABEL} · Stickers: huashu-bird-sticker, CC BY 4.0`)
-    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0')
+  const line = (stamp: string) => (px: number) => measure(FOOTER_LINE)(px) + DATE_GAP + measure(stamp)(px)
+  it('is the link to the credits page; the full credit with the link is the share text', () => {
+    expect(FOOTER_LINE).toBe(`${SITE_LABEL}/credits`)
+    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com/credits')
     expect(SHARE_CREDIT).toBe('Stickers: huashu-bird-sticker (CC BY 4.0) github.com/alchaincyf/huashu-bird-sticker')
   })
-  it('sits beside the wordmark when it fits, shrinking no lower than 17px', () => {
-    expect(placeCredit(measure(FOOTER_LINE), 810, 952, 20)).toEqual({ size: 20, below: false }) // 804px
-    expect(placeCredit(measure(FOOTER_LINE), 690, 952, 20)).toEqual({ size: 17, below: false }) // 683px
+  it('sits beside the wordmark at full size with the longest stamp, on a 1080-wide card', () => {
+    const stamp = stampDate(new Date(2026, 8, 30)) // "30 Sep 2026"
+    for (const brandW of [140, 200, 280]) expect(fitFooter(line(stamp), brandW, 952, 20)).toEqual({ size: 20, brand: true })
   })
-  it('takes its own line at full size when it does not fit at 17px, keeping the credit', () => {
-    expect(placeCredit(measure(FOOTER_LINE), 300, 952, 20)).toEqual({ size: 20, below: true })
+  it('shrinks no lower than 17px beside the wordmark', () => {
+    const w = line('30 Sep 2026')
+    expect(fitFooter(w, 952 - w(20) + 1, 952, 20)).toEqual({ size: 19, brand: true })
+    expect(fitFooter(w, 952 - w(17), 952, 20)).toEqual({ size: 17, brand: true })
   })
-  it('a line too long for even its own line shrinks to fit, never cut', () => {
-    const r = placeCredit(measure(FOOTER_LINE), 200, 400, 20)
-    expect(r.below).toBe(true)
-    expect(measure(FOOTER_LINE)(r.size)).toBeLessThanOrEqual(400)
-  })
-  const stamped = withStamp(FOOTER_LINE, stampDate(new Date(2026, 8, 30))) // the longest English stamp; the line is 81 characters
-  it('with the date stamp, takes its own line under the wordmark of a 1080-wide card, whole, at 19px', () => {
-    for (const brandW of [140, 200, 280]) {
-      const r = placeCredit(measure(stamped), 952 - brandW, 952, 20)
-      expect(r).toEqual({ size: 19, below: true })
-      expect(measure(stamped)(r.size)).toBeLessThanOrEqual(952)
-    }
-  })
-  it('a longer stamp (a full month name) shrinks the line on its own line, never cut', () => {
-    const long = withStamp(FOOTER_LINE, '30 septiembre 2026')
-    const r = placeCredit(measure(long), 952 - 280, 952, 20)
-    expect(r).toEqual({ size: 18, below: true })
-    expect(measure(long)(r.size)).toBeLessThanOrEqual(952)
+  it('where even 17px does not fit, the wordmark makes room and the link starts the line, shrinking only past the width', () => {
+    const w = line('30 Sep 2026')
+    expect(fitFooter(w, 952 - w(17) + 1, 952, 20)).toEqual({ size: 20, brand: false })
+    const r = fitFooter(w, 200, 400, 20)
+    expect(r.brand).toBe(false)
+    expect(w(r.size)).toBeLessThanOrEqual(400)
+    expect(r.size).toBeLessThan(CREDIT_MIN)
   })
 })
 
@@ -383,7 +375,8 @@ describe('drawShareImage draws the count in the UI language', () => {
     const texts = await draw(1089)
     expect(texts).toContain('1,089')
     expect(texts).toContain('SPECIES')
-    expect(texts).toContain(`${FOOTER_LINE} · 14 Nov 2026`)
+    expect(texts).toContain(FOOTER_LINE)
+    expect(texts).toContain('14 Nov 2026')
   })
   it('the story, post and square draw Spanish text', async () => {
     const t = es.ui
@@ -395,32 +388,30 @@ describe('drawShareImage draws the count in the UI language', () => {
       expect(texts, format).toContain(format === 'story' ? 'ÚLTIMA ESPECIE NUEVA · MAY 2020' : 'Última especie nueva · may 2020')
       expect(texts, format).toContain(label)
       expect(texts, format).toContain('ESPECIES')
-      // The credit stays English; only the date after it is Spanish, with no lead.
-      expect(texts, format).toContain(`${FOOTER_LINE} · 14 nov 2026`)
+      // The link stays English; only the date at the right is Spanish, with no lead.
+      expect(texts, format).toContain(FOOTER_LINE)
+      expect(texts, format).toContain('14 nov 2026')
       expect(texts.join('\n'), format).not.toMatch(/Latest lifer|LATEST LIFER|Al 14/)
     }
   })
   it('Portuguese and Dutch stamps: the date only', async () => {
-    expect(await draw(12, pt.ui)).toContain(`${FOOTER_LINE} · 14 nov 2026`)
-    expect(await draw(12, nl.ui)).toContain(`${FOOTER_LINE} · 14 nov 2026`)
+    expect(await draw(12, pt.ui)).toContain('14 nov 2026')
+    expect(await draw(12, nl.ui)).toContain('14 nov 2026')
     expect(await draw(12, pt.ui, { latest: true })).toContain('Última espécie nova · mai 2020')
     expect(await draw(12, nl.ui, { latest: true })).toContain('Nieuwste soort · mei 2020')
   })
-  it('a long Spanish filter label with the stamp never cuts the credit', async () => {
+  it('a long Spanish filter label with the stamp never cuts the footer', async () => {
     const t = es.ui
     const label = filterLabel({ order: 'Charadriiformes', countries: ['EG', 'CA'], from: '2020-03', to: '2021-06' }, ctx, t)!
     const long = `${label} · ${'Muy largo '.repeat(12)}`
     for (const format of ['story', 'post', 'square'] as const) {
       const texts = await draw(12, t, { format, latest: true, filterLabel: long })
-      const footer = texts.filter((x) => x.includes('Stickers: huashu-bird-sticker'))
-      expect(footer, format).toEqual([`${FOOTER_LINE} · 14 nov 2026`])
+      expect(texts.slice(-2), format).toEqual([FOOTER_LINE, '14 nov 2026'])
     }
-    // placeCredit itself: the stamped Spanish line beside a 280px wordmark, else whole on its own line.
-    const stamped = withStamp(FOOTER_LINE, stampDate(new Date(2026, 8, 30), stampStrings(t)))
-    expect(stamped).toBe(`${FOOTER_LINE} · 30 sept 2026`)
-    const m = (px: number) => stamped.length * px * 0.6
-    const r = placeCredit(m, 952 - 280, 952, 20)
-    expect(r.size).toBeGreaterThanOrEqual(17)
-    expect(m(r.size)).toBeLessThanOrEqual(r.below ? 952 : 952 - 280)
+    // fitFooter itself: the longest Spanish stamp beside a 280px wordmark, at full size.
+    const stamp = stampDate(new Date(2026, 8, 30), stampStrings(t))
+    expect(stamp).toBe('30 sept 2026')
+    const m = (px: number) => (FOOTER_LINE.length + stamp.length) * px * 0.6 + DATE_GAP
+    expect(fitFooter(m, 280, 952, 20)).toEqual({ size: 20, brand: true })
   })
 })

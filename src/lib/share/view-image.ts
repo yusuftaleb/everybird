@@ -1,22 +1,15 @@
 // The Map and Tree views' share images (map-image.ts, tree-image.ts): the collage card's frame from image.ts (the title,
-// the count, the filter in words, the footer line with the sticker credit and the date stamp, Appearance and Transparent
+// the count, the filter in words, the footer line (the link to the credits and the date), Appearance and Transparent
 // background), with no stickers, around a drawing of the view in the area the collage would take. The count sits on top
 // of that area, centred, with an optional line under it (the tree's orders, families and genera); the drawing gets the
-// rest. The map's footer is the site alone (MAP_FOOTER: it draws no stickers); the tree's adds the tree's credit (TREE_FOOTER).
+// rest. The footer is the collage card's (FOOTER_LINE: the credits page names the tree's and the maps' sources too).
 // Loaded only when Share is pressed in one of those views.
 import type { Ui } from '@/i18n/messages/en'
 import { DIGIT_CAP, MONO_CAP } from '@/lib/layout/count-box'
 import type { AppState } from '@/lib/list/store'
 import type { TipRank, TreeLevel } from '@/lib/tree/levels'
 import type { TreeLayout } from '@/lib/tree-mine'
-import { IMAGE_SCALE, SITE_LABEL, dropLast, ensureViewFonts, isPrint, loadStickers, paintCard, paintRow, paintTiles, prepareCard, wrapParts, type CardFonts, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
-
-/** The footer lines (before the date stamp; English in every language, as FOOTER_LINE): the map's the site alone (it
- *  draws no stickers, so no sticker credit), the tree's FOOTER_LINE (its tips carry stickers) and the tree's credit
- *  (AvesData is CC BY 4.0, so an image of it carries the credit), in the credits' one form. */
-export const MAP_FOOTER = SITE_LABEL
-// CC BY 4.0 once, for both (Yusuf, 2026-11-21): the stickers and the tree are under the same licence.
-export const TREE_FOOTER = `${SITE_LABEL} · Stickers: huashu-bird-sticker · Tree: AvesData · CC BY 4.0`
+import { IMAGE_SCALE, dropLast, ensureViewFonts, isPrint, loadStickers, paintCard, paintRow, paintTiles, prepareCard, wrapParts, type CardFonts, type ImageFormat, type ImagePack, type PreparedCard, type ShareImageOpts } from './image'
 
 /** The level the view had open when Share was pressed: the country the map has open (`names`: how the map names its
  *  places, in the UI language), or the tree's (`mine`: its "Lifers only" switch; `layout`: the layout on screen, which
@@ -38,6 +31,8 @@ export type ViewImageOpts = ShareImageOpts & {
   /** The Tree image's (round 6, item 9): called with the arrangement drawn (always the one asked for), its names' size
    *  and whether names or counts are under the readable sizes (NAME_READ, COUNT_READ), for the dialog's note. */
   onTreeText?: (text: { layout: 'fan' | 'circle' | 'rows'; px: number; small: boolean }) => void
+  /** The Tree image's room under its totals and its drawing's real bounds in it, placed (design units; for tests). */
+  onTreeBounds?: (b: { room: Area; drawing: Area }) => void
 }
 export type Area = { x: number; y: number; w: number; h: number }
 /** A view image, drawn: `paint` draws all of it, in design units under the context's transform, the same every call
@@ -58,15 +53,15 @@ const COUNT_GAP = 32
 export { wrapParts }
 
 /**
- * The card's frame, its footer line `footer`, with `paint` drawing the view into its area (design units), as a PNG.
+ * The card's frame, with `paint` drawing the view into its area (design units), as a PNG.
  * `under`: the parts of a line under the count, at the footer's size (two lines when one does not fit); none when the
  * count is hidden. `sample`: every other text `paint` draws, so the fonts it needs are loaded first.
  */
-export async function renderViewImage(opts: ShareImageOpts & Pick<ViewImageOpts, 'scale' | 'onPainter'>, footer: string, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[], sample = ''): Promise<Blob> {
+export async function renderViewImage(opts: ShareImageOpts & Pick<ViewImageOpts, 'scale' | 'onPainter'>, paint: (ctx: CanvasRenderingContext2D, card: PreparedCard, area: Area) => void, under?: readonly string[], sample = ''): Promise<Blob> {
   // No latest lifer, unless the view gives a bird for its place (latestAs: the Tree's oldest lineage), drawn as the
   // collage image draws its latest lifer.
   const s = opts.scale ?? IMAGE_SCALE[opts.format as ImageFormat] ?? 1
-  const card = await prepareCard({ ...opts, footer, pack: NO_BIRDS, latest: !!opts.latestAs, showNames: false }, s)
+  const card = await prepareCard({ ...opts, pack: NO_BIRDS, latest: !!opts.latestAs, showNames: false }, s)
   const lifer = card.lifer?.url ? card.lifer : null
   const imgs = lifer ? await loadStickers([...new Set([lifer.url!, ...(lifer.fallback ? [lifer.fallback] : [])])], { signal: opts.signal }) : new Map<string, HTMLImageElement | null>()
   if (lifer?.fallback && !imgs.get(lifer.url!)) imgs.set(lifer.url!, imgs.get(lifer.fallback) ?? null)
@@ -92,17 +87,13 @@ export async function renderViewImage(opts: ShareImageOpts & Pick<ViewImageOpts,
     ctx.textAlign = 'center'
     ctx.textBaseline = 'alphabetic'
     lines.forEach((line, i) => ctx.fillText(line, c.x + c.w / 2, c.y + blockH + (i + 1) * lineH))
-    // The footer lifted (placeFooter's shift) by more than the room kept for it (L.latest.lift; none without the row): the
-    // Tree's longer footer on Post 5:4, or its two lines under the wordmark (AD7). The drawing ends that much higher, so the
-    // row, or the hairline, keeps its gap.
-    const lifted = Math.max(0, card.shift - (L.latest?.lift ?? 0))
     const seen = lateRow ? watchNames(ctx, card.fonts) : undefined
-    paint(ctx, seen ? { ...card, fonts: seen.fonts } : card, { x: c.x, y: c.y + top, w: c.w, h: c.h - top - lifted })
+    paint(ctx, seen ? { ...card, fonts: seen.fonts } : card, { x: c.x, y: c.y + top, w: c.w, h: c.h - top })
     if (lateRow && seen && L.latest && card.lifer) {
       // The row's own size, or the view's largest name if larger (a Tree's tip names, at most 48 units: the sticker's line holds it).
       const R = L.latest, name = Math.max(R.name, seen.done())
       paintTiles(ctx, [card.lifer], imgs, card.colors.line)
-      paintRow(ctx, card.fonts, card.colors, { ...R, y: R.y - card.shift, name, label: Math.round((R.label * name) / R.name) }, lateRow)
+      paintRow(ctx, card.fonts, card.colors, { ...R, name, label: Math.round((R.label * name) / R.name) }, lateRow)
     }
   }
   // A poster paints the drawing strip by strip itself (poster.ts makeViewPoster); its file comes from the encoder.

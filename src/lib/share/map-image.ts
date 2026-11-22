@@ -2,8 +2,8 @@
 // country or province levels since round 6), shaded by the birds the filters leave (mapCounts, the Places filter
 // included) on the view's continuous scale (RAMP in shapes.ts), with the legend ramp under it, and under that the six
 // countries with the most species, each with its flag, its name, its count and a bar in its shade: in the Story (and the
-// portrait poster) one under another, the map at the area's full width and the rows grown (up to ROW_GROW_MAX, then
-// spaced out) so the block fills the area to the footer; in every other format (Post, Square, Desktop, the 5:4
+// portrait poster) one under another, the map at the area's full width and the rows grown with the room under it, never
+// past the size about eight places would get (ROW_CAP_PLACES), top-aligned under the map; in every other format (Post, Square, Desktop, the 5:4
 // post and the landscape poster) in a grid of three columns by two rows, so the map takes the image's width (or as
 // much of it as the height allows). On top, instead of the big count, the totals the dialog's Totals row keeps (the
 // species and the countries, either, both or none), the same size and weight as the tree image's, each over its word;
@@ -13,7 +13,7 @@ import { formatInt } from '@/i18n/format'
 import { parsePlaceKey } from '@/lib/list/place-keys'
 import { flagSrc } from '@/lib/flag'
 import { countRange, loadMapCountries, mapCounts, mapRows, mapShapes, RAMP, shadeMix } from '@/lib/map/shapes'
-import { MAP_FOOTER, chosenTotals, clipText, fitBox, renderViewImage, type Area, type ViewImageOpts } from './view-image'
+import { chosenTotals, clipText, fitBox, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 import type { CardFormat } from './image'
 
 /** How many places the image lists. */
@@ -27,9 +27,11 @@ const LEGEND = { ramp: 12, size: 20, above: 24, rampMax: 360, gap: 14 }
 const ROW = { name: 26, count: 22, bar: 6, h: 64, barTop: 40 }
 /** A row's drawn height (the name line and the bar), without the space under it. */
 const ROW_INK = ROW.barTop + ROW.bar
-/** The column's rows (Story, portrait poster) grow with the room under the map up to this scale (a 52-unit name, under
- *  the totals' 56), then their pitch spreads, up to ROW_SPREAD_MAX of a row's height; past that the block is centred. */
-const ROW_GROW_MAX = 2, ROW_SPREAD_MAX = 1.25
+/** The column's rows (Story, portrait poster) grow with the room under the map, at most to this scale (a 52-unit name,
+ *  under the totals' 56), and never past the scale that ROW_CAP_PLACES rows filling that room would get, so a few
+ *  places don't grow huge (Yusuf, round 6): the rows keep their pitch and the spare height goes to the map's box. */
+const ROW_GROW_MAX = 2
+export const ROW_CAP_PLACES = 8
 const LIST_GAP = 40
 /** The grid: the gap between its columns, its cells' least width (the grid is the map's width, at least three of these). */
 const GRID = { gap: 32, cellMin: 300, gapAbove: 32 }
@@ -53,8 +55,9 @@ type MapImageLayout = { map: Area; legendH: number; list: Area | null; rows: num
  * another (`grid` false: the Story and the portrait poster), else in GRID_COLS columns, so two rows for six. The map
  * box is what is left; the map is fitted whole in it (fitBox), and the painter moves the map, legend and list up
  * together as one block. In the column, `mapH` (the map's height at the area's full width) leaves the rest of the area
- * to the list: its rows grow by `k` (at most ROW_GROW_MAX) and spread (at most ROW_SPREAD_MAX) to fill it, the map
- * staying full width; what is still left over (a few places) the painter's centring shares above and below.
+ * to the list: its rows grow by `k`, the scale ROW_CAP_PLACES rows would need to fill it (at most ROW_GROW_MAX), and
+ * stay top-aligned under the map at their own pitch; what is left over goes to the map's box (a map the width bounds
+ * stays its size, and the painter's centring shares the calm space above and below).
  */
 export function mapImageLayout(area: Area, rows: number, legend: boolean, grid: boolean, mapH = 0): MapImageLayout {
   const legendH = legend ? LEGEND.above + Math.max(LEGEND.ramp, LEGEND.size) : 0
@@ -68,9 +71,9 @@ export function mapImageLayout(area: Area, rows: number, legend: boolean, grid: 
   const gap = n ? (grid ? GRID.gapAbove : LIST_GAP) : 0
   let k = 1, pitch = ROW.h, h = listH
   const room = area.h - legendH - gap - mapH
-  if (n && !grid && room > listH) {
-    k = Math.min(ROW_GROW_MAX, room / listH)
-    pitch = used > 1 ? Math.min(ROW.h * k * ROW_SPREAD_MAX, (room - ROW_INK * k) / (used - 1)) : ROW.h * k
+  if (n && !grid) {
+    k = Math.max(1, Math.min(ROW_GROW_MAX, room / ((ROW_CAP_PLACES - 1) * ROW.h + ROW_INK)))
+    pitch = ROW.h * k
     h = (used - 1) * pitch + ROW_INK * k
   }
   const list = n ? { x: area.x, y: area.y + area.h - h, w: area.w, h } : null
@@ -130,7 +133,7 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
     : rows.length ? [{ n: formatInt(rows.length, t.num), label: pluralWord(t.filters.countHead.country, rows.length).toUpperCase() }] : [])
   const minText = formatInt(min, t.num)
   const maxText = plural(t.collage.stats.species, max, { n: formatInt(max, t.num) })
-  return renderViewImage({ ...o, countSize: 'hide' }, MAP_FOOTER, (ctx, card, full) => {
+  return renderViewImage({ ...o, countSize: 'hide' }, (ctx, card, full) => {
     const C = card.colors
     const font = card.fonts
     const shade = (p: number) => mix(C.accent, C.paper, p)

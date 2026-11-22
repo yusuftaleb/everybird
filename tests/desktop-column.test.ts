@@ -18,7 +18,7 @@ import { ja } from '@/i18n/messages/ja'
 import { zhHans } from '@/i18n/messages/zh-Hans'
 import { zhHant } from '@/i18n/messages/zh-Hant'
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { CREDIT_MIN, DESKTOP_SIDE, IMAGE_SCALE, SMALL_INLINE, IMAGE_SIZE, cardDims, cardLayout, clearStickerCache, drawShareImage, imagePackSpec, prepareCard, renderShareImage, type CardFormat } from '@/lib/share/image'
+import { CREDIT_MIN, DATE_GAP, DESKTOP_SIDE, IMAGE_SCALE, SMALL_INLINE, IMAGE_SIZE, cardDims, cardLayout, clearStickerCache, drawShareImage, imagePackSpec, prepareCard, renderShareImage, type CardFormat } from '@/lib/share/image'
 import { entries, installStubs, NOW, pack, species } from './fixtures/share-image-harness'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -77,7 +77,8 @@ describe('everything on the desktop is inside the central column, clear of the t
         if (L.latest) expect(L.latest.x).toBeGreaterThanOrEqual(LEFT + M)
         if (L.latest) expect(L.latest.x + L.latest.icon + 20 + L.latest.tw).toBeLessThanOrEqual(RIGHT - M)
         expect(card.credit.size).toBeGreaterThanOrEqual(CREDIT_MIN)
-        expect(LEFT + M + (card.credit.below ? 0 : card.brandW) + card.footerLine.length * 0.6 * card.credit.size).toBeLessThanOrEqual(RIGHT - M)
+        expect(card.credit.brand).toBe(true)
+        expect(LEFT + M + card.brandW + (card.footerLine.length + card.stamp.length) * 0.6 * card.credit.size + DATE_GAP).toBeLessThanOrEqual(RIGHT - M)
         // Vertical clearance.
         if (L.name) expect(L.name.y).toBeGreaterThanOrEqual(TOP_CLEAR)
         expect(L.collage.y).toBeGreaterThanOrEqual(TOP_CLEAR)
@@ -99,8 +100,10 @@ describe('everything on the desktop is inside the central column, clear of the t
       if ((m = /^textAlign = "(\w+)"/.exec(line))) align = m[1]
       if ((m = /^fillText\(".*", ([\d.]+), ([\d.]+)\)$/.exec(line))) {
         n++
-        // Left-aligned text starts at or after the margin; centred text (the count) is centred inside the column.
+        // Left-aligned text starts at or after the margin; centred text (the count) is centred inside the column; the
+        // footer's date, right-aligned, ends at the margin.
         if (align === 'left') expect(num(m[1])).toBeGreaterThanOrEqual(LEFT + M)
+        else if (align === 'right') expect(num(m[1])).toBeLessThanOrEqual(RIGHT - M)
         else { expect(num(m[1])).toBeGreaterThan(LEFT + M); expect(num(m[1])).toBeLessThan(RIGHT - M) }
       }
       if ((m = /^fillRect\(([\d.]+), [\d.]+, ([\d.]+), ([\d.]+)\)$/.exec(line)) && num(m[3]) !== 1080) {
@@ -147,14 +150,17 @@ describe('everything on the desktop is inside the central column, clear of the t
 // wordmark and the credit alone (no "Latest lifer: …" line, no sticker in it); with it off the portrait poster's collage
 // takes back the second foot line it kept. Retaken for the round 6 proposals' AD7 (story, post, square): the footer under
 // the wordmark is two lines at 22 (the site and the date, then the credit), so the collage ends a line higher, and the
-// Story's stacked row's label is 20. tests/share-image-golden.test.ts's logs show each difference.
+// Story's stacked row's label is 20. Retaken for round 6's one-line footer (the wordmark, the credits link, the date at
+// the right): every format's draws (the footer's words); the story's, post's and square's layouts too (their collages
+// take back the two lines' room kept under them); the wide and the posters' layouts unchanged (one line already).
+// tests/share-image-golden.test.ts's logs show each difference.
 const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: string }> = {
-  story: { layout: 'a71f8e947914dd4a99d07238fe1e272a82488acf', draws: 'e1dbbefa6ce27b024a2afe12d607cc4fc8f6ed0f' },
-  post: { layout: '4280553701155c23ef7e570949bbfa4d953b9b53', draws: '47ff51b57908cb67237c843f04a08c087f391ac2' },
-  square: { layout: 'bc72454ab59ab999e4391ea9259179482d237a65', draws: 'cc48c37cfe35369838caeb958e0534ec242908b5' },
-  wide: { layout: '08fbc77c3a7dddb33e4fcb3a29470b3c95206cc9', draws: 'c0110aee3e1af65c03ac44941f512b24c6a8dc6a' },
-  print: { layout: '539e3566a02bffc91eef031e75e05d75616f1d1e', draws: '12cdecd5b451965aa5dbab6199fbc03d157538e5' },
-  printLandscape: { layout: 'be645517b968335ba79d09e666410a687dbfb1e8', draws: '5821b5383fee695ff5fd313174d9a3f4106b7e5d' },
+  story: { layout: '676ee017ba756e1d43b7a9101ee614f821a6e1ec', draws: '84536a04ca9cd3d3cec120ac83aeb46302efacd9' },
+  post: { layout: '6c59c39f1adc6c0d653d2656051e0b453757df1d', draws: '11329eeda2854670f1e5b2b0c46020857929ac8a' },
+  square: { layout: '189278b3cb75de85353316f85e8a7d7825ff67a4', draws: 'b4fa775d9103d4ead05d9ca715d79bb812b55038' },
+  wide: { layout: '08fbc77c3a7dddb33e4fcb3a29470b3c95206cc9', draws: '686ef464e1b4f10682253a3ffadaa1986887cbc5' },
+  print: { layout: '539e3566a02bffc91eef031e75e05d75616f1d1e', draws: '8d184d9aa70aa6a27cd6dc384237ab618a6e3d50' },
+  printLandscape: { layout: 'be645517b968335ba79d09e666410a687dbfb1e8', draws: '408a057cbe0de8ebc4ae596fd18659a0e12c40e2' },
 }
 const sha = (s: string) => createHash('sha1').update(s).digest('hex')
 

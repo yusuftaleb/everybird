@@ -47,12 +47,12 @@ vi.mock('@/lib/share/view-image', async (orig) => {
   const h = await import('./fixtures/tree-image-harness')
   return {
     ...real,
-    renderViewImage: async (opts: ShareImageOpts & { latestAs?: { row: { com: string }; label: string; detail?: string } }, _footer: string, paint: (ctx: CanvasRenderingContext2D, card: unknown, area: unknown) => void) => {
+    renderViewImage: async (opts: ShareImageOpts & { latestAs?: { row: { com: string }; label: string; detail?: string } }, paint: (ctx: CanvasRenderingContext2D, card: unknown, area: unknown) => void) => {
       // The card as the real frame lays it out (prepareCard): the title, the view's footer, the Tree's tighter gaps, a poster's size.
       const print = opts.format === 'print' || opts.format === 'printLandscape'
-      const L = cardLayout(opts.format, { name: !!opts.name, filter: false, latest: !!opts.latestAs, count: 0, countSize: 'hide', viewFooter: true, ...(opts.tight ? { tight: true } : {}) }, print ? printDesign(opts.printSize ?? 'A2', opts.format === 'printLandscape') : undefined)
+      const L = cardLayout(opts.format, { name: !!opts.name, filter: false, latest: !!opts.latestAs, count: 0, countSize: 'hide', ...(opts.tight ? { tight: true } : {}) }, print ? printDesign(opts.printSize ?? 'A2', opts.format === 'printLandscape') : undefined)
       const rec = h.recorder()
-      const card = { L, colors: { ink: '#000', line: '#999', muted: '#666', paper: '#fff', hairline: '#ddd', accent: '#c00', surface: '#eee' }, fonts: h.FONTS, transparent: false }
+      const card = { L, name: opts.name?.trim() || undefined, colors: { ink: '#000', line: '#999', muted: '#666', paper: '#fff', hairline: '#ddd', accent: '#c00', surface: '#eee' }, fonts: h.FONTS, transparent: false }
       paint(rec.ctx, card, { ...L.collage })
       // The frame's row, by the frame's own painter (image.ts paintRow), its sticker its square.
       let row = ''
@@ -85,10 +85,11 @@ async function render(o: { layout: Layout; format: CardFormat; time: boolean; to
   const t = LANGS[o.lang].ui
   setNames(o.lang === 'de' ? deNames : null)
   const told: { layout: Layout; px: number; small: boolean }[] = []
+  let room = { x: 0, y: 0, w: 0, h: 0 }
   await renderTreeImage({
     format: o.format, entries, species, theme: 'light', strings: t, latest: false, ...(o.title ? { name: 'Yusuf’s tree of birds' } : {}), ...(o.size ? { printSize: o.size } : {}),
     at: { tree: o.level, layout: o.layout, time: o.time }, state: { list: [], filter: {}, seen: undefined as never, sci: false }, t,
-    totals: o.totals ? undefined : [], oldest: o.oldest ?? true, onTreeText: (x: { layout: Layout; px: number; small: boolean }) => told.push(x),
+    totals: o.totals ? undefined : [], oldest: o.oldest ?? true, onTreeText: (x: { layout: Layout; px: number; small: boolean }) => told.push(x), onTreeBounds: (b: { room: typeof room }) => { room = b.room },
   } as unknown as Parameters<typeof renderTreeImage>[0])
   const v = levelView(tree, species, o.level, codes)!
   const tips = v.rows.filter((r): r is Tip => r.kind !== 'head')
@@ -102,7 +103,7 @@ async function render(o: { layout: Layout; format: CardFormat; time: boolean; to
   const old = oldestLineage(tree, codes)!
   const oldest = { name: species.byCode.get(old.code)!.com, forms: [t.collage.tree.oldestDetail, t.collage.tree.oldestLabel].map((f) => fmt(f, { age: formatAge(old.age, t.num) })), oneLine: INLINE_ROW.has(o.format) }
   const share = o.format !== 'print' && o.format !== 'printLandscape'
-  return { ...frame.last!, t, tips, names: tips.map(nameOf), counts: tips.map(countOf), ages, fits: text, round, oldest, oldestOn: o.oldest ?? true, want: o.layout, text, share }
+  return { ...frame.last!, t, tips, names: tips.map(nameOf), counts: tips.map(countOf), ages, fits: text, round, oldest, oldestOn: o.oldest ?? true, want: o.layout, text, share, room }
 }
 
 /** Every problem in one render, in words. */
@@ -169,11 +170,13 @@ function problems(r: Awaited<ReturnType<typeof render>>, time: boolean): string[
   const block = ink.filter(([a, b]) => b > c.y && a < foot)
   const gap = largestGap(block, c.y, foot)
   // A Fan (2:1) or a Radial (1:1) already as wide as the area is as large as the card allows (it can't be taller without
-  // its names shrinking): its leftover height is then split evenly above and below it, and nothing inside is empty.
-  const lo = Math.min(...block.map((x) => x[0])), hi = Math.max(...block.map((x) => x[1]))
+  // its names shrinking): its leftover height is then split evenly above and below it in the room under the totals
+  // (round 6: the totals stay at the top, the drawing is centred between them and the row), and nothing inside is empty.
+  const drawing = block.filter(([a]) => a >= r.room.y - 0.5)
+  const lo = Math.min(...drawing.map((x) => x[0])), hi = Math.max(...drawing.map((x) => x[1]))
   const xs = [...texts.flatMap((x) => x.box), ...images.flat()].map((p) => p[0])
   const fullWidth = r.round && Math.min(...xs) <= c.x + c.w * 0.03 && Math.max(...xs) >= c.x + c.w * 0.97
-  const inner = largestGap(block, lo, hi), above = lo - c.y, below = foot - hi
+  const inner = largestGap(drawing, lo, hi), above = lo - r.room.y, below = foot - hi
   if (fullWidth ? inner > r.L.H / 10 || Math.abs(above - below) > r.L.H / 20 : gap > r.L.H / 10) {
     out.push(`empty band ${Math.round(gap)} of ${Math.round(r.L.H)} (${Math.round((100 * gap) / r.L.H)}%)${fullWidth ? ` above ${Math.round(above)} below ${Math.round(below)}` : ''}`)
   }

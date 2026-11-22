@@ -431,7 +431,8 @@
 .ebd .ebd-img-rule { height: 1px; background: var(--hairline); }
 .ebd .ebd-img-foot { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
 .ebd .ebd-img-mark { font-family: var(--font-display); font-weight: 700; line-height: 1; }
-.ebd .ebd-img-line { font-family: var(--font-mono); line-height: 1; color: var(--muted); }
+.ebd .ebd-img-line, .ebd .ebd-img-date { font-family: var(--font-mono); line-height: 1; color: var(--muted); }
+.ebd .ebd-img-date { margin-left: auto; }
 
 /* ---- The desktop: the eBird export, and its drag image ---- */
 .ebd .ebd-desk {

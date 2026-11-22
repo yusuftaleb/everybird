@@ -76,7 +76,7 @@ Settled in the round 6 review (es, pt, fr, it, de, nl, sv, da; the other languag
 
 ## Stays English in every language
 
-- The credit lines `FOOTER_LINE` ("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0"), `TREE_FOOTER` (adds " · Tree: AvesData, CC BY 4.0") and `SHARE_CREDIT` (attribution; only the date stamp after them is translated).
+- The credit lines `FOOTER_LINE` ("everybird.yusuftaleb.com/credits", the share images' footer link) and `SHARE_CREDIT` (attribution; only the date at the footer's right is translated).
 - CSV column headers and the CSV's English name column, download file names, the backup JSON, stored data (`titleFromOldName`'s output), analytics values.
 - Scientific names, IUCN abbreviations (LC … DD; their full names are translated), province and county names.
 - Names: Everybird, eBird, iNaturalist, GitHub, CSV, JSON. These may equal English; `ALLOW_SAME` in `tests/i18n.test.ts` lists every value allowed to.

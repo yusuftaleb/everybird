@@ -1,4 +1,4 @@
-// The date stamp at the end of the share images' footer line: "… · Stickers: huashu-bird-sticker, CC BY 4.0 · 14 Nov 2026", the date the
+// The date stamp at the right of the share images' and posters' footer line ("14 Nov 2026"), the date the
 // image was made, with no prefix. Imports only @/lib/format, so e2e specs and the About demo can import it without the
 // canvas code in image.ts.
 import { dayText } from '@/i18n/format'

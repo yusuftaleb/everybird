@@ -75,11 +75,11 @@ describe('the card\'s title', () => {
 })
 
 // The card's diagram keeps the collage card's gaps (round 6, item 9): under the head by GAPS.head, above the footer's
-// hairline by GAPS.collage, the hairline drawn `shift` higher when the credit takes its own line (image.ts paintCard).
+// hairline by GAPS.collage.
 describe('the card’s diagram between the head and the footer’s hairline', () => {
   it('the line under the diagram takes its room off the bottom', () => {
     const L = cardLayout('post', { name: false, filter: false, latest: false, count: 0, countSize: 'hide' })
-    const a = diagramBox('post', L, 400, 0), b = diagramBox('post', L, 400, 0, 54)
+    const a = diagramBox('post', L, 400), b = diagramBox('post', L, 400, 54)
     expect([b.x, b.y, b.w]).toEqual([a.x, a.y, a.w])
     expect(a.h - b.h).toBe(54)
   })
@@ -91,13 +91,13 @@ describe('the card’s diagram between the head and the footer’s hairline', ()
     six: Array.from({ length: 64 }, (_, k) => (k ? (k * 37) % 23 : 0)),
   }
   for (const format of ['story', 'post', 'square'] as const) {
-    for (const shift of [0, 32]) {
+    {
       for (const [lists, c] of Object.entries(counts)) {
-        it(`${format}, ${lists} lists${shift ? ', the credit on its own line' : ''}`, () => {
+        it(`${format}, ${lists} lists`, () => {
           const L = cardLayout(format, { name: false, filter: false, latest: false, count: 0, countSize: 'hide' })
           // The tallest head: two title lines at 60px (69 apart), 8px, the counts line at 30px.
           const headBottom = L.collage.y + 2 * 69 + 8 + 30
-          const box = diagramBox(format, L, headBottom, shift)
+          const box = diagramBox(format, L, headBottom)
           // The names outside the circles, as the card measures them (30px Satoshi, a line 36px, 12px off the edge).
           const n = Math.log2(c.length)
           const d = diagramLayout(c, box, { w: Array(n).fill(180), h: 36, gap: 12 })
@@ -105,7 +105,7 @@ describe('the card’s diagram between the head and the footer’s hairline', ()
           // The outline's outer half (2px) counts as the drawing.
           const low = Math.max(...all.map((k) => k.y + k.h))
           const high = Math.min(...all.map((k) => k.y))
-          const hairline = L.rule.y - shift
+          const hairline = L.rule.y
           expect(low).toBeLessThanOrEqual(hairline - GAP[format].collage + 1e-6)
           expect(high).toBeGreaterThanOrEqual(headBottom + GAP[format].head - 1e-6)
           // As large as the box allows, centred in it (the circles by their own edges, the outline's half outside the

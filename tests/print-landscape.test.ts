@@ -66,12 +66,12 @@ describe('the landscape sizes', () => {
     const card = await prepareCard({ format: 'printLandscape', printSize: 'A2', theme: 'light', entries: es, species: sp, pack, now: new Date(2026, 10, 15), strings: en.ui }, printScale('A2'))
     expect([card.L.W, card.L.H]).toEqual([printDesign('A2', true)[0], 1080])
     // The latest lifer is the images' one-line row above the hairline (round 6, item 24), its sticker in the row's square;
-    // the foot is the wordmark and the credit on one line, at the full size.
+    // the foot is the wordmark, the credits link and the date on one line, at the full size.
     expect(card.L.latest).toMatchObject({ x: 64, icon: SMALL_INLINE.icon, inline: true })
     expect(Math.max(card.lifer!.w, card.lifer!.h)).toBe(SMALL_INLINE.icon)
     expect(card.latest).toMatchObject({ name: 'synl0', label: 'Latest lifer · May 2024' })
-    expect(card.footerLine.startsWith('everybird.yusuftaleb.com · ')).toBe(true)
-    expect(card.credit).toEqual({ size: POSTER_FOOT.line, below: false })
+    expect([card.footerLine, card.stamp]).toEqual(['everybird.yusuftaleb.com/credits', '15 Nov 2026'])
+    expect(card.credit).toEqual({ size: POSTER_FOOT.line, brand: true })
     expect(card.L.footer.y).toBe(1080 - 64 - POSTER_FOOT.brand)
   })
 })
