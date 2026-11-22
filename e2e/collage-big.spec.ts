@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
+import { finalCollage } from "./layouts";
 
 // A big (windowed) list moving between filters: 1,600 synthetic species, so the full collage fades through
 // (data-fast: birds placed by left/top), then a family of one order travels (translate). Leaving data-fast must not
@@ -30,6 +31,7 @@ test("a big list: kept birds glide from where they stand when the filter narrows
     const L = document.querySelector<HTMLElement>(".eb-layer")!;
     return !L.style.opacity && !L.style.contentVisibility && L.getAnimations().length === 0 && document.querySelectorAll(".eb-tile").length > 0;
   }), { timeout: 30_000 }).toBe(true);
+  await finalCollage(page); // 1,600 species: the provisional collage's swap lands before the first filter
   await settled();
   // Big -> an order (a fade-through: data-fast on), from the Taxa panel (round 6), which stays open for the family.
   await page.getByTestId("taxa-button").click();
