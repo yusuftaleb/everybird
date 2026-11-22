@@ -1,5 +1,6 @@
 'use client'
-import { memo, useMemo, useRef, useState, type ReactNode } from 'react'
+import { memo, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { revealInScroller } from '@/components/dialog-utils'
 import type { ImportJobs } from '@/components/app/use-import-jobs'
 import { fmt } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -30,6 +31,8 @@ type Props = {
   counts: SourceCounts
   /** The Places panel's lifer-only note (placesNoteFor), so the eBird rows say the same. */
   placesNote?: 'add' | 'reimport'
+  /** The Add birds dialog as a phone's sheet: an open Add panel takes the list's place, under a path back to it. */
+  drill?: boolean
 }
 
 const speciesIn = (records: { code: string }[]) => new Set(records.map((r) => r.code)).size
@@ -75,9 +78,11 @@ export function ImportFrame() {
  * panel (its guidance and how-to inside) under the whole grid, in a box of its own, its Add button pressed. One panel
  * is open at a time (`AddPanels`): opening one closes the other, though a read, a review or a fetch in progress keeps
  * its own open. They combine into one list; each import replaces only its own slot. The file groups read one file at a
- * time: while one reads, all are disabled, and any file lands in the row of its kind.
+ * time: while one reads, all are disabled, and any file lands in the row of its kind. With `drill` (the Add birds
+ * sheet on a phone) an open panel shows in place of the list, its first field or button focused, under the path "All
+ * sources / <source>", whose first step folds it and focuses the source's Add again (as the Taxa sheet's path goes back).
  */
-export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, jobs, disabled, counts, placesNote }: Props) {
+export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, jobs, disabled, counts, placesNote, drill = false }: Props) {
   const { t } = useI18n()
   useNoStrayDrop()
   const ebirdConnected: EbirdConnected[] = (['ebird', 'ebird-list'] as const)
@@ -131,9 +136,41 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
     if (panel !== null && (panel === 'inat' ? marks.inatMark !== inatMark : marks.fileMark !== fileMark)) setPanel(null)
   }
   const shared = useMemo((): [string | null, typeof setPanel] => [panel, setPanel], [panel])
+  const drilled = drill && panel !== null
+  const o = t.import.obsorg.rows
+  const titles: Record<string, string> = {
+    'ebird-list': t.import.ebird.listTitle, ebird: 'MyEBirdData', inat: 'iNaturalist', sheet: t.import.sheet.title,
+    'obsorg-list': o['obsorg-list'].title, obsorg: o.obsorg.title, scythebill: t.import.scythebill.title, igoterra: t.import.igoterra.title,
+  }
+  // Drilled in: the panel's first field (else its first button) takes focus from the Add button the list hides, in the
+  // press's own commit, so a phone opens its keyboard for it.
+  useLayoutEffect(() => {
+    if (!drilled) return
+    const pane = root.current?.querySelector<HTMLElement>('.eb-src-panel:not([hidden])')
+    if (!pane || pane.contains(document.activeElement)) return
+    const first = pane.querySelector<HTMLElement>('input:not([type="file"]):not(:disabled), textarea:not(:disabled)')
+      ?? pane.querySelector<HTMLElement>('button:not(:disabled)')
+    first?.focus({ preventScroll: true })
+    revealInScroller(first)
+  }, [drilled, panel])
+  // Back to the list: the panel folds and its source's Add (the button that controls it) takes focus again.
+  const back = () => {
+    const id = root.current?.querySelector<HTMLElement>('.eb-src-panel:not([hidden])')?.id
+    setPanel(null)
+    if (id) requestAnimationFrame(() => root.current?.querySelector<HTMLElement>(`[aria-controls="${CSS.escape(id)}"]`)?.focus({ preventScroll: true }))
+  }
   return (
     <AddPanels.Provider value={shared}>
-      <div ref={root} className="eb-srclist">
+      {drilled && (
+        <p className="eb-path eb-src-path" data-testid="sources-path">
+          <span className="eb-path-item"><button type="button" onClick={back}>{t.import.allSources}</button></span>
+          <span className="eb-path-item">
+            <span className="eb-path-sep" aria-hidden="true">/</span>
+            <span aria-current="location">{titles[panel] ?? ''}</span>
+          </span>
+        </p>
+      )}
+      <div ref={root} className="eb-srclist" data-drill={drilled || undefined}>
         <Group id="way-ebird" label={t.import.ebirdGroup}>
           <EbirdDrop
             job={jobs.ebird}

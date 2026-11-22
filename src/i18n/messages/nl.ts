@@ -654,6 +654,7 @@ export const nl: Messages = {
       why: 'waarom?',
       whyLabel: { one: 'Waarom {n} overgeslagen?', other: 'Waarom {n} overgeslagen?' },
       notAdded: 'Niet toegevoegd',
+      allSources: 'Alle bronnen',
       detailsUnknown: 'Details onbekend',
       usernameUnknown: 'Gebruikersnaam onbekend: vul hem opnieuw in om te vernieuwen',
       imported: 'Geïmporteerd op {date}',

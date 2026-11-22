@@ -829,6 +829,8 @@ export const EN_UI = {
     whyLabel: { one: 'Why {n} skipped?', other: 'Why {n} skipped?' },
     /** A row's status. */
     notAdded: 'Not added',
+    /** On a phone's Add birds sheet, the path's first step back from a source's form to the list (ImportPanel). */
+    allSources: 'All sources',
     detailsUnknown: 'Details unknown',
     usernameUnknown: 'Username unknown: enter it again to refresh',
     imported: 'Imported {date}',

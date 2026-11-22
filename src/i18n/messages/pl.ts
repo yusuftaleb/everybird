@@ -649,6 +649,7 @@ export const pl: Messages = {
       why: 'dlaczego?',
       whyLabel: { one: 'Dlaczego pominięto {n}?', few: 'Dlaczego pominięto {n}?', many: 'Dlaczego pominięto {n}?', other: 'Dlaczego pominięto {n}?' },
       notAdded: 'Nie dodano',
+      allSources: 'Wszystkie źródła',
       detailsUnknown: 'Szczegóły nieznane',
       usernameUnknown: 'Nazwa użytkownika nieznana: wpisz ją ponownie, aby odświeżyć',
       imported: 'Zaimportowano {date}',

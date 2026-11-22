@@ -676,6 +676,7 @@ export const ru: Messages = {
       why: 'почему?',
       whyLabel: { one: 'Почему пропущено: {n}?', other: 'Почему пропущено: {n}?' },
       notAdded: 'Не добавлено',
+      allSources: 'Все источники',
       detailsUnknown: 'Подробности неизвестны',
       usernameUnknown: 'Имя пользователя неизвестно: введи его снова, чтобы обновить',
       imported: 'Импорт: {date}',

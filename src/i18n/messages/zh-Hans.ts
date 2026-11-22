@@ -645,6 +645,7 @@ export const zhHans: Messages = {
       why: '为什么？',
       whyLabel: { one: '为什么跳过了{n}条？', other: '为什么跳过了{n}条？' },
       notAdded: '未添加',
+      allSources: '所有来源',
       detailsUnknown: '详情未知',
       usernameUnknown: '用户名未知：重新输入以刷新',
       imported: '{date}导入',

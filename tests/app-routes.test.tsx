@@ -299,6 +299,43 @@ describe('the Collage page (/)', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(add).toHaveFocus()
+    // A desktop dialog: a source's Add opens its panel under the list, no path.
+    fireEvent.click(add)
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Add birds' })).getByRole('button', { name: 'Add iNaturalist' }))
+    expect(screen.queryByTestId('sources-path')).toBeNull()
+    expect(document.querySelector('.eb-add')).not.toHaveClass('eb-sheet')
+  })
+
+  it('on a phone the head\'s + opens Add birds (never Settings) as a sheet; a source\'s Add drills into its form and the path goes back', async () => {
+    vi.stubGlobal('innerWidth', 390)
+    await mount()
+    await drop(csv(...ROWS))
+    await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
+    await go('/')
+    const add = await screen.findByRole('button', { name: 'Add birds' })
+    fireEvent.click(add)
+    expect(nav.path).toBe('/')
+    const dialog = screen.getByRole('dialog', { name: 'Add birds' })
+    expect(dialog).toHaveClass('eb-sheet')
+    // iNaturalist's Add: its form in place of the list, the username field focused, under "All sources / iNaturalist".
+    const addInat = within(dialog).getByRole('button', { name: 'Add iNaturalist' })
+    fireEvent.click(addInat)
+    const path = within(dialog).getByTestId('sources-path')
+    expect(path).toHaveTextContent('All sources/iNaturalist')
+    expect(dialog.querySelector('.eb-srclist')).toHaveAttribute('data-drill')
+    expect(within(dialog).getByLabelText('iNaturalist username')).toHaveFocus()
+    // Back: the list again, focus on iNaturalist's Add.
+    await act(async () => {
+      fireEvent.click(within(path).getByRole('button', { name: 'All sources' }))
+      await new Promise((r) => requestAnimationFrame(() => r(null)))
+    })
+    expect(within(dialog).queryByTestId('sources-path')).toBeNull()
+    expect(dialog.querySelector('.eb-srclist')).not.toHaveAttribute('data-drill')
+    expect(addInat).toHaveFocus()
+    // A file source drills in too, its picker focused.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add MyEBirdData' }))
+    expect(within(dialog).getByTestId('sources-path')).toHaveTextContent('All sources/MyEBirdData')
+    expect(document.activeElement?.closest('.eb-src-panel')).not.toBeNull()
   })
 })
 

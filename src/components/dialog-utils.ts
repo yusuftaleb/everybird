@@ -87,6 +87,37 @@ export function useFocusInAndBack(ref: RefObject<HTMLElement | null>, returnTo?:
   }, [ref])
 }
 
+/** How much of the layout viewport's bottom the on-screen keyboard covers (px): the part of `innerHeight` under the
+ *  visual viewport. 0 without one. */
+export const keyboardInset = (innerHeight: number, vv: { height: number; offsetTop: number } | null | undefined): number =>
+  vv ? Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)) : 0
+
+/**
+ * While `on`, a bottom sheet keeps clear of the on-screen keyboard: `--kb` on `ref` is the keyboard's height
+ * (`keyboardInset`, from `visualViewport`), and on every change the focused control inside is brought into view in its
+ * scroller (`revealInScroller`), so the field being typed in stays above the keys.
+ */
+export function useKeyboardInset(ref: RefObject<HTMLElement | null>, on: boolean): void {
+  useEffect(() => {
+    const vv = typeof window === 'undefined' ? null : window.visualViewport
+    const el = ref.current
+    if (!on || !vv || !el) return
+    const update = () => {
+      el.style.setProperty('--kb', `${keyboardInset(window.innerHeight, vv)}px`)
+      const f = document.activeElement
+      if (f instanceof HTMLElement && el.contains(f)) revealInScroller(f)
+    }
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+      el.style.removeProperty('--kb')
+    }
+  }, [ref, on])
+}
+
 /** Brings `el` into view inside its nearest scrolling ancestor only (a panel's list or body), never the page: what
  *  `scrollIntoView({ block: 'nearest' })` does, without scrolling the window when the panel itself is partly off screen. */
 export function revealInScroller(el: HTMLElement | null | undefined): void {

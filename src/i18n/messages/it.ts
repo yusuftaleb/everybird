@@ -643,6 +643,7 @@ export const it: Messages = {
       why: 'perché?',
       whyLabel: { one: 'Perché {n} saltata?', other: 'Perché {n} saltate?' },
       notAdded: 'Non aggiunto',
+      allSources: 'Tutte le fonti',
       detailsUnknown: 'Dettagli sconosciuti',
       usernameUnknown: 'Nome utente sconosciuto: inseriscilo di nuovo per aggiornare',
       imported: 'Importato il {date}',
