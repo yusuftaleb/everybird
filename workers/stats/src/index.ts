@@ -55,7 +55,7 @@ async function dashboard(req: Request, env: Env, url: URL, notFound: () => Respo
   const email = await verifyAccess(req.headers.get('cf-access-jwt-assertion'), env, jwks)
   if (!email) return notFound()
   if (url.pathname === '/dashboard' || url.pathname === '/dashboard/') {
-    return new Response(PAGE, { headers: { ...SECURE, 'content-type': 'text/html; charset=utf-8', 'cache-control': 'private, no-store', 'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" } })
+    return new Response(PAGE, { headers: { ...SECURE, 'content-type': 'text/html; charset=utf-8', 'cache-control': 'private, no-store', 'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; font-src data:; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" } })
   }
   if (url.searchParams.get('workspace') === '1') {
     const today = pacificDay(new Date()), p = parseWorkspace(url.searchParams, today)

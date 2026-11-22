@@ -22,5 +22,10 @@ next-env.d.ts
 .wrangler/
 .dev.vars*
 worker-configuration.d.ts
+# The stats dashboard UI's own dependencies and build. Its output, workers/stats/src/page.generated.ts, embeds the Geist
+# fonts (OFL) as base64, so it is never committed: wrangler's build step regenerates it before every deploy.
+/workers/stats/ui/node_modules/
+/workers/stats/ui/dist/
+/workers/stats/src/page.generated.ts
 # OpenNext's Cloudflare build output (`npm run cf:build`).
 /.open-next/

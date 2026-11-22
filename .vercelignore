@@ -13,3 +13,4 @@ workers/
 tests/stats-worker.test.ts
 tests/stats-workspace.test.ts
 tests/stats-dashboard.test.ts
+tests/stats-page.ts
