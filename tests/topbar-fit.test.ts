@@ -95,9 +95,16 @@ function sizesAt(w: number): Sizes {
 
 /** Where the nav takes its own row (app.css's split rule, paired with a --topbar-h rule in tokens.css): under
  *  `below` px. */
-const SPLITS: { selector: string; below: number }[] = [{ selector: ':root', below: 381 }]
+const SPLITS: { selector: string; below: number }[] = [{ selector: ':root', below: 320 }]
 
-/** From the split up to 620px the pages are icon tabs on row one (app.css `@media (min-width: 381px) and (max-width:
+/** Under 381px the wordmark is the origami bird (app.css `@media (max-width: 380px)`): a 40px link holding a 22px
+ *  glyph, its press 44px by reaching 4px into the gutter. */
+const MARK_BELOW = 381
+const MARK = 40
+const MARK_GLYPH = 22
+const MARK_REACH = 4
+
+/** From the split up to 620px the pages are icon tabs on row one (app.css `@media (min-width: 320px) and (max-width:
  *  619px)`): each drawn 40px square, 4px apart (their 44px presses meet). */
 const ICONS_BELOW = 620
 const ICON = 40
@@ -132,7 +139,7 @@ function navLines(l: Lang, pages: readonly (typeof PAGES)[number][], s: Sizes, i
 function fit(l: Lang, w: number): Fit {
   const s = sizesAt(w)
   const inner = Math.min(w, s.maxWidth) - 2 * s.gutter
-  const wordmark = textWidth('cabinet-grotesk-700', 'Everybird', s.wordmark, -0.01)
+  const wordmark = w < MARK_BELOW ? MARK : textWidth('cabinet-grotesk-700', 'Everybird', s.wordmark, -0.01)
   const end = s.button + s.endGap + s.button // the theme switch and the language button
   const nav = navWidth(l, PAGES, s)
   const split = splitAt(w)
@@ -248,6 +255,16 @@ describe('the model mirrors the CSS', () => {
     const icons = app.slice(app.indexOf(`@media (min-width: ${SPLITS[0].below}px) and (max-width: ${ICONS_BELOW - 1}px) {`))
     expect(icons.slice(0, icons.indexOf('\n}'))).toContain(`.eb-nav ul { gap: ${ICON_GAP}px; }\n  .eb-nav-link { width: ${ICON}px; padding: 0; justify-content: center; }\n  .eb-nav-icon { display: block; }\n  .eb-nav-word { display: none; }`)
     expect(app).toContain('.eb-nav-icon { display: none; width: 22px; height: 22px; flex: none; }')
+    // Under 381px the origami bird stands for the word, which stays in the link's name (visually hidden).
+    const mark = block(app, `max-width: ${MARK_BELOW - 1}px`, '.eb-wordmark {')
+    expect(mark).toContain(`.eb-wordmark { position: relative; width: ${MARK}px; }`)
+    expect(mark).toContain(`.eb-wordmark::after { content: ''; position: absolute; inset: 0 0 0 -${MARK_REACH}px; }`)
+    expect(mark).toContain(`.eb-wordmark-mark { display: block; width: ${MARK_GLYPH}px; height: ${MARK_GLYPH}px; }`)
+    expect(mark).toContain('.eb-wordmark-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);')
+    expect(app).toContain('.eb-wordmark-mark { display: none; flex: none; }')
+    expect(MARK + MARK_REACH).toBe(44)
+    // The press reaches into the gutter only, never past the narrowest one (12px under 360).
+    expect(MARK_REACH).toBeLessThanOrEqual(TINY.gutter!)
     // 40px drawn, 4px apart: the 44px presses (2px past each side) meet, never overlap.
     expect(ICON + 2 * 2).toBe(44)
     expect(ICON_GAP).toBe(2 * 2)
