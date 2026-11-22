@@ -95,7 +95,14 @@ function sizesAt(w: number): Sizes {
 
 /** Where the nav takes its own row (app.css's split rule, paired with a --topbar-h rule in tokens.css): under
  *  `below` px. */
-const SPLITS: { selector: string; below: number }[] = [{ selector: ':root', below: 620 }]
+const SPLITS: { selector: string; below: number }[] = [{ selector: ':root', below: 381 }]
+
+/** From the split up to 620px the pages are icon tabs on row one (app.css `@media (min-width: 381px) and (max-width:
+ *  619px)`): each drawn 40px square, 4px apart (their 44px presses meet). */
+const ICONS_BELOW = 620
+const ICON = 40
+const ICON_GAP = 4
+const iconNav = PAGES.length * ICON + (PAGES.length - 1) * ICON_GAP
 
 const splitAt = (w: number) => SPLITS.some((s) => w < s.below)
 
@@ -134,10 +141,11 @@ function fit(l: Lang, w: number): Fit {
     return { split, inner, one: wordmark + s.gap + end, two: widest, lines }
   }
   if (split) return { split, inner, one: wordmark + s.gap + end, two: nav }
+  if (w < ICONS_BELOW) return { split, inner, one: wordmark + s.gap + iconNav + s.gap + end }
   return { split, inner, one: wordmark + s.gap + nav + s.gap + end }
 }
 
-const BREAKPOINT_EDGES = [239, 240, 319, 320, 359, 360, 479, 480, 499, 500, 571, 572, 619, 620, 719, 720]
+const BREAKPOINT_EDGES = [239, 240, 319, 320, 359, 360, 380, 381, 479, 480, 499, 500, 571, 572, 619, 620, 719, 720]
 const WIDTHS = [...new Set([195, 260, 300, 320, 340, 360, 375, 390, 414, 430, 480, 560, 600, 640, 720, 768, 1280, ...BREAKPOINT_EDGES])].sort((a, b) => a - b)
 
 describe('the top bar fits (fontkit advances of the served fonts)', () => {
@@ -236,6 +244,13 @@ describe('the model mirrors the CSS', () => {
       expect(tokens).toContain(`@media (${q}) { ${s.selector} { --topbar-h: 93px; } }`)
     }
     expect(tokens.match(/--topbar-h: 93px/g)).toHaveLength(SPLITS.length)
+    // Between the split and 620px, the icon tabs on row one.
+    const icons = app.slice(app.indexOf(`@media (min-width: ${SPLITS[0].below}px) and (max-width: ${ICONS_BELOW - 1}px) {`))
+    expect(icons.slice(0, icons.indexOf('\n}'))).toContain(`.eb-nav ul { gap: ${ICON_GAP}px; }\n  .eb-nav-link { width: ${ICON}px; padding: 0; justify-content: center; }\n  .eb-nav-icon { display: block; }\n  .eb-nav-word { display: none; }`)
+    expect(app).toContain('.eb-nav-icon { display: none; width: 22px; height: 22px; flex: none; }')
+    // 40px drawn, 4px apart: the 44px presses (2px past each side) meet, never overlap.
+    expect(ICON + 2 * 2).toBe(44)
+    expect(ICON_GAP).toBe(2 * 2)
     expect(app).toContain(`@media (max-width: ${NAV_WRAPS_BELOW - 1}px) {\n  .eb-nav ul { flex-wrap: wrap; }`)
     expect(tokens).toContain(`@media (max-width: ${NAV_WRAPS_BELOW - 1}px) { :root:not(:lang(zh-Hans), :lang(zh-Hant)) { --topbar-h: 133px; } }`)
     expect(4 + 44 + 2 * 40 + 4 + 1).toBe(133)

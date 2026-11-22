@@ -193,7 +193,7 @@ describe('the top bar under a language prefix', () => {
       nav.path = path
       const { unmount } = render(<TopBar />, { wrapper: withI18n('en') })
       const bar = screen.getByRole('banner')
-      const marked = within(bar).getAllByRole('link').filter((a) => a.getAttribute('aria-current') === 'page').map((a) => a.textContent)
+      const marked = within(bar).getAllByRole('link').filter((a) => a.getAttribute('aria-current') === 'page').map((a) => a.getAttribute('aria-label'))
       const html = bar.outerHTML
       unmount()
       return { marked, html }
