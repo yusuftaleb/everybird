@@ -2,9 +2,10 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 import { type Row } from '../workers/stats/src/dashboard'
-import { DIMENSIONS, MEASURES, WORKSPACE_META, parseWorkspace, shapeWorkspace, workspaceStatements } from '../workers/stats/src/workspace'
-import { WORKSPACE_JS } from '../workers/stats/src/workspace-client'
-import { PURE_JS } from '../workers/stats/src/pure'
+import { ALLOWED } from '../workers/stats/src/event'
+import { DIMENSIONS, FEATURES, MEASURES, WORKSPACE_META, parseWorkspace, shapeWorkspace, workspaceStatements } from '../workers/stats/src/workspace'
+import { label } from '../workers/stats/ui/src/lib/format'
+import { workspaceChartRows, workspaceCsv, workspaceDefault, workspaceHash, workspaceObservation, workspaceQuery, workspaceRequestGate, workspaceSort, workspaceState, type WorkspaceState } from '../workers/stats/ui/src/lib/workspace'
 
 type Db = { exec(sql: string): void; prepare(sql: string): { run(...a: unknown[]): unknown; all(...a: unknown[]): Row[] } }
 const sqlite = (() => { try { return createRequire(import.meta.url)('node:sqlite') as { DatabaseSync: new (p: string) => Db } } catch { return null } })()
@@ -64,6 +65,69 @@ describe('workspace validation and capability contract', () => {
     expect(params('measure=visits&dimension=language&f_language=zh-Hant').filters).toEqual({language:'zh-Hant'})
     expect(params('measure=visits&dimension=hour&f_hour=').filters).toEqual({hour:''})
     expect(params('country=mx')).toMatchObject({country:'MX'})
+  })
+})
+
+// What 21 Nov released: Compare (its two pages and compare_made), iGoTerra, the 14 interface languages, image_view,
+// view_opened and batch_exported. Each measure and filter takes every value the Worker accepts, and nothing else.
+const RELEASED: [string, string, string, string[]][] = [
+  ['visits', 'page', 'visit', ['compare', 'compare-shared']],
+  ['collages', 'source', 'collage_made', ['igoterra', 'sheet', 'scythebill']],
+  ['languageSwitches', 'uiLanguage', 'ui_language', ['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh-Hans', 'zh-Hant']],
+  ['compares', 'listCount', 'compare_made', ['2', '3', '4', '5', '6']],
+  ['imageViews', 'imageView', 'image_view', ['collage', 'list', 'map', 'tree', 'comparison', 'wish-list']],
+  ['viewsOpened', 'openedView', 'view_opened', ['list', 'map', 'tree']],
+  ['batches', 'batchSplit', 'batch_exported', ['family', 'order', 'country', 'continent', 'province', 'year', 'size']],
+]
+describe('the 21 Nov measures', () => {
+  it('accept every released value as a filter, and refuse values off the allow-list', () => {
+    for (const [measure, dimension, event, values] of RELEASED) {
+      expect([...ALLOWED[event]].filter((v) => values.includes(v)).sort(), event).toEqual([...values].sort())
+      for (const v of ALLOWED[event]) {
+        if (measure === 'collages' && ['sample', 'restore'].includes(v)) continue
+        expect(params(`measure=${measure}&dimension=${dimension}&f_${dimension}=${encodeURIComponent(v)}`).filters, measure + '/' + v).toEqual({ [dimension]: v })
+      }
+      for (const bad of ['', 'x', 'Map', '7', 'zh', "map' OR 1=1"]) {
+        if (ALLOWED[event].has(bad)) continue
+        expect(typeof parseWorkspace(new URLSearchParams(`from=2026-11-20&to=2026-11-21&measure=${measure}&dimension=${dimension}&f_${dimension}=${encodeURIComponent(bad)}`), today), measure + '/' + bad).toBe('string')
+      }
+    }
+    // A breakdown belongs to its own measure only.
+    expect(typeof parseWorkspace(new URLSearchParams('measure=compares&dimension=openedView'), today)).toBe('string')
+    expect(typeof parseWorkspace(new URLSearchParams('measure=visits&f_listCount=2'), today)).toBe('string')
+    expect(Object.values(FEATURES).every((e) => e in ALLOWED)).toBe(true)
+  })
+  it('name every released value readably on the page', () => {
+    for (const [, dimension, , values] of RELEASED) for (const v of values) {
+      const name = label(dimension, v)
+      expect(name, dimension + '/' + v).not.toBe(v)
+      expect(name, dimension + '/' + v).toMatch(/^[A-Z0-9]|^iGoTerra$/)
+    }
+    expect(['zh-Hans', 'zh-Hant', 'pt', 'ja'].map((v) => label('uiLanguage', v))).toEqual(['Chinese (Simplified)', 'Chinese (Traditional)', 'Portuguese (Brazil)', 'Japanese'])
+    expect(['zh-Hant', 'pt', ''].map((v) => label('language', v))).toEqual(['Chinese (Traditional)', 'Portuguese', 'Unknown']) // a browser's primary subtag
+    expect([label('page', 'collage'), label('imageView', 'collage'), label('batchSplit', 'country'), label('listCount', '3')]).toEqual(['Collage page', 'Collage', 'By country', '3 lists'])
+  })
+  it.skipIf(!sqlite)('count each one, and break them down on Overview with bound values only', () => {
+    const db = fixture(), ins = db.prepare('INSERT INTO events (day,name,value,country,device,vid,lang,received_at) VALUES (?,?,?,?,?,?,?,?)')
+    const add = (name: string, value: string, vid = 'f', country = 'MX') => ins.run('2026-11-20', name, value, country, 'iphone', vid, '', null)
+    add('visit', 'compare'); add('visit', 'compare-shared', 'g'); add('visit', 'compare', 'h', 'US')
+    add('compare_made', '2'); add('compare_made', '2'); add('compare_made', '6', 'g')
+    add('image_view', 'map'); add('image_view', 'wish-list'); add('image_view', 'map', 'g')
+    add('view_opened', 'tree'); add('view_opened', 'list', 'g')
+    add('batch_exported', 'family'); add('batch_exported', 'size', 'g', 'US')
+    add('ui_language', 'zh-Hant'); add('collage_made', 'igoterra')
+    add('compare_made', 'evil') // a row no current Worker writes never reaches the page
+    for (const s of workspaceStatements(params())) expect(s.sql).not.toMatch(/'(?:MX|US|2026-11-2\d)'/) // filters and dates are bound
+    const d = run(db)
+    expect(d.summary).toMatchObject({ compares: 4, imageViews: 3, viewsOpened: 2, batches: 2, languageSwitches: 2 })
+    expect(d.features.compares).toEqual([{ key: '2', value: 2 }, { key: '6', value: 1 }])
+    expect(d.features.comparePages).toEqual([{ key: 'compare', value: 2 }, { key: 'compare-shared', value: 1 }])
+    expect(d.features.imageViews).toEqual([{ key: 'map', value: 2 }, { key: 'wish-list', value: 1 }])
+    expect(d.features.languageSwitches).toEqual([{ key: 'es', value: 1 }, { key: 'zh-Hant', value: 1 }])
+    expect(run(db, params('country=US')).features).toMatchObject({ comparePages: [{ key: 'compare', value: 1 }], batches: [{ key: 'size', value: 1 }], compares: [] })
+    expect(run(db, params('measure=viewsOpened&dimension=openedView')).explore.rows).toEqual([{ key: 'list', value: 1 }, { key: 'tree', value: 1 }])
+    expect(run(db, params('measure=collages&dimension=source&f_source=igoterra')).explore.total).toBe(1)
+    expect(run(db, params('measure=visits&dimension=page&f_page=compare-shared')).explore.total).toBe(1)
   })
 })
 
@@ -174,14 +238,10 @@ describe.skipIf(!sqlite)('workspace SQL and numbers', () => {
   })
 })
 
-type State={view:string;preset:string;from:string;to:string;country:string;device:string;compare:boolean;trend:string;measure:string;dimension:string;display:string;filters:Record<string,string>;sort:string;descending:boolean}
+type State=WorkspaceState
 type Data=ReturnType<typeof shapeWorkspace>
-const lib=new Function(PURE_JS+WORKSPACE_JS+';return {workspaceDefault,workspaceState,workspaceHash,workspaceQuery,workspaceSort,workspaceChartRows,workspaceCsv,workspaceObservation,workspaceRequestGate};')() as {
-  workspaceRequestGate():{begin():number;current(ticket:number):boolean};
-  workspaceDefault():State;workspaceState(hash:string,meta:typeof WORKSPACE_META):State;workspaceHash(s:State):string;workspaceQuery(s:State,today:string):string
-  workspaceSort(rows:{key:string;value:number}[],sort:string,desc:boolean,dimension:string):{key:string;value:number}[]
-  workspaceChartRows(r:Data['explore']):{key:string;value:number}[];workspaceCsv(d:Data,s:State):string;workspaceObservation(d:Data,m:string,compare:boolean):string
-}
+// The console's state/query/export module (workers/stats/ui/src/lib/workspace.ts), imported directly.
+const lib={workspaceDefault,workspaceState,workspaceHash,workspaceQuery,workspaceSort,workspaceChartRows,workspaceCsv,workspaceObservation,workspaceRequestGate}
 describe('workspace state, displays and export contract',()=>{
   it('discards delayed responses after a newer request, a return to cached data, or navigation away',async()=>{
     const gate=lib.workspaceRequestGate(),old=gate.begin();
@@ -192,7 +252,7 @@ describe('workspace state, displays and export contract',()=>{
     gate.begin();expect(gate.current(newer)).toBe(false);
   });
   it('defaults to completed days and restores all fields, including empty unknown-category filters',()=>{
-    const s={...lib.workspaceDefault(),view:'explore',preset:'custom',from:'2026-11-20',to:'2026-11-21',measure:'visits',dimension:'language',country:'MX',device:'iphone',filters:{language:''},sort:'value',descending:true,compare:false}
+    const s:State={...lib.workspaceDefault(),view:'explore',preset:'custom',from:'2026-11-20',to:'2026-11-21',measure:'visits',dimension:'language',country:'MX',device:'iphone',filters:{language:''},sort:'value',descending:true,compare:false}
     expect(lib.workspaceState(lib.workspaceHash(s),WORKSPACE_META)).toEqual(s)
     const q=new URLSearchParams(lib.workspaceQuery(lib.workspaceDefault(),today));expect(q.get('from')).toBe('2026-11-10');expect(q.get('to')).toBe('2026-11-23')
     expect(lib.workspaceState('#r=7&c=mx&m=collages',WORKSPACE_META)).toMatchObject({preset:'7',country:'MX',trend:'collages'})

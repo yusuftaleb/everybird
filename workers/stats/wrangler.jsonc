@@ -3,6 +3,8 @@
   // a D1 table (events). No names, species, places, IPs or cookies are stored.
   "name": "everybird-stats",
   "main": "src/index.ts",
+  // Builds the dashboard UI (workers/stats/ui) into src/page.generated.ts before every deploy. Needs `npm --prefix ui ci` once.
+  "build": { "command": "npm --prefix ui run build" },
   "compatibility_date": "2026-11-01",
   "workers_dev": false,
   "routes": [{ "pattern": "stats.yusuftaleb.com", "custom_domain": true }],

@@ -5,7 +5,11 @@ import { verifyAccess, type AccessEnv, type Jwk } from '../workers/stats/src/acc
 import { parseParams, shape, statements, type Row } from '../workers/stats/src/dashboard'
 import { pacificDay } from '../workers/stats/src/event'
 import worker from '../workers/stats/src/index'
-import { PURE_JS } from '../workers/stats/src/pure'
+import { PAGE_BUILT, pageModule } from './stats-page'
+import { addDays, buildCsv, deltaInfo, pacificDay as pagePacificDay, parseHash, pct, perPerson, safeClaim, serializeHash } from '../workers/stats/ui/src/lib/pure'
+
+// The built dashboard page when there is one (it's git-ignored: it embeds fonts), else a stand-in: tests/stats-page.ts.
+vi.mock('../workers/stats/src/page', async () => (await import('./stats-page')).pageModule())
 
 // node:sqlite (as in tests/stats-worker.test.ts): the dashboard's SQL runs for real, on the Worker's schema.
 type Db = { exec(sql: string): void; prepare(sql: string): { run(...a: unknown[]): unknown; all(...a: unknown[]): Row[] } }
@@ -180,6 +184,8 @@ describe('the Access gate', () => {
   })
 })
 
+const CSP = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; font-src data:; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+
 describe('the Worker routes', () => {
   const db = { prepare: vi.fn(() => ({ bind: () => ({ first: async () => null, run: async () => ({}) }) })), batch: vi.fn(async (s: unknown[]) => s.map(() => ({ results: [] }))) }
   const call = async (path: string, init: RequestInit, token?: string, env: Record<string, unknown> = { ...ENV }, jwks = async () => ({ keys: [] as Jwk[] })) => {
@@ -201,11 +207,10 @@ describe('the Worker routes', () => {
     const k = await keys(), t = await k.sign({})
     const page = await call('/dashboard', { method: 'GET' }, t, { ...ENV }, k.jwks)
     expect(page.status).toBe(200)
-    const html = await page.text()
-    expect(html).toContain('<title>Everybird stats</title>')
-    expect(html).not.toMatch(/https?:\/\/(?!www\.w3\.org)/) // self-contained: no CDN, no fonts
-    expect(html.length).toBeLessThan(60_000)
-    for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) expect(() => new Function(m[1])).not.toThrow() // the inline JS parses (eslint and tsc don't see it)
+    expect(await page.text()).toContain('<title>Everybird stats</title>')
+    // The redesign's policy, exactly: inline scripts and styles, data: fonts and images, requests to this origin only.
+    expect(page.headers.get('content-security-policy')).toBe(CSP)
+    expect(page.headers.get('cache-control')).toBe('private, no-store')
     const data = await call('/dashboard/data?from=2026-11-01&to=2026-11-14&country=mx', { method: 'GET' }, t, { ...ENV }, k.jwks)
     expect(data.status).toBe(200)
     expect(data.headers.get('cache-control')).toBe('private, max-age=60')
@@ -213,6 +218,22 @@ describe('the Worker routes', () => {
     expect((await call('/dashboard/data?from=bad', { method: 'GET' }, t, { ...ENV }, k.jwks)).status).toBe(400)
     expect((await call('/dashboard/other', { method: 'GET' }, t, { ...ENV }, k.jwks)).status).toBe(404)
     expect((await call('/dashboard', { method: 'POST' }, t, { ...ENV }, k.jwks)).status).toBe(404)
+  })
+  it.skipIf(!PAGE_BUILT)('the built page is one self-contained file the policy allows', async () => {
+    const { PAGE } = await pageModule()
+    const html = PAGE
+    expect(html).toContain('<title>Everybird stats</title>')
+    // Self-contained: no resource from another origin (scripts, styles and fonts are inlined; namespace strings are fine).
+    expect(html).not.toMatch(/(?:src|href)\s*=\s*["']?https?:/i)
+    expect(html).not.toMatch(/url\(\s*["']?https?:/i)
+    expect(html).not.toMatch(/@import\s+(?:url\()?\s*["']?https?:/i)
+    expect(html).not.toMatch(/<script[^>]*\ssrc\s*=/i)
+    expect(html.length).toBeLessThan(1_500_000)
+    const classic = html.replace(/<script type="module"[^>]*>[\s\S]*?<\/script>/g, '') // a module body can't hold </script>, so this removes exactly the bundle
+    expect(classic.match(/<script>/g)?.length).toBeGreaterThan(0)
+    for (const m of classic.matchAll(/<script>([\s\S]*?)<\/script>/g)) expect(() => new Function(m[1])).not.toThrow() // classic inline scripts parse (the module bundle is checked by its own build)
+    expect(html).not.toMatch(/fonts\.(?:googleapis|gstatic)|fontsource|cdn\./i) // Geist is inlined as data:, never fetched
+    expect(html).toMatch(/url\(\s*["']?data:font\/woff2/) // and that's what font-src data: is for
   })
   it('leaves POST /e and CORS as they were', async () => {
     const opt = await call('/e', { method: 'OPTIONS', headers: { origin: 'http://localhost:3000' } })
@@ -253,7 +274,7 @@ describe('the Worker routes', () => {
 
 describe('the Pacific date in the page and the Worker', () => {
   afterEach(() => vi.useRealTimers())
-  const pure = new Function(PURE_JS + '; return { pacificDay, addDays }')() as { pacificDay(ms: number): string; addDays(d: string, n: number): string }
+  const pure = { pacificDay: pagePacificDay, addDays }
   it('the page computes the same Pacific dates as the Worker, around the cutover and midnight', () => {
     for (const s of ['2026-11-16T06:59:59Z', '2026-11-17T06:59:59Z', '2026-11-17T07:00:00Z', '2026-11-17T23:30:00Z', '2026-11-18T06:59:59Z', '2026-11-18T07:00:00Z']) {
       expect(pure.pacificDay(Date.parse(s)), s).toBe(pacificDay(new Date(s)))
@@ -266,17 +287,8 @@ describe('the Pacific date in the page and the Worker', () => {
   })
 })
 
-// The page's pure functions: the same string the page inlines.
-type HashState = { days: number; all: boolean; country: string; metric: string; compare: boolean }
-const lib = new Function(PURE_JS + '; return { parseHash, serializeHash, buildCsv, safeClaim, pct, perPerson, deltaInfo }')() as {
-  parseHash(h: string): HashState
-  serializeHash(s: HashState): string
-  buildCsv(days: Record<string, number | string>[], country: string): string
-  safeClaim(n: number, what: string): string
-  pct(a: number, b: number): string
-  perPerson(a: number, b: number): string
-  deltaInfo(v: number, p: number): { dir: string; pct: number }
-}
+// The page's pure functions (workers/stats/ui/src/lib/pure.ts), the same module the console imports.
+const lib = { parseHash, serializeHash, buildCsv, safeClaim, pct, perPerson, deltaInfo }
 
 describe('the dashboard hash state', () => {
   const def = { days: 14, all: false, country: '', metric: 'people', compare: false }
@@ -337,5 +349,26 @@ describe('rates and changes', () => {
   it('classifies the change against the previous period', () => {
     expect(lib.deltaInfo(12, 10)).toEqual({ dir: 'up', pct: 20 }); expect(lib.deltaInfo(5, 10)).toEqual({ dir: 'down', pct: 50 })
     expect(lib.deltaInfo(10, 10)).toEqual({ dir: 'flat', pct: 0 }); expect(lib.deltaInfo(3, 0)).toEqual({ dir: 'new', pct: 0 }); expect(lib.deltaInfo(0, 0)).toEqual({ dir: 'none', pct: 0 })
+  })
+})
+
+describe('the console pure modules', () => {
+  it('keep workers/stats/ui/src/lib free of DOM and React', async () => {
+    const { readdirSync } = await import('node:fs')
+    const dir = 'workers/stats/ui/src/lib'
+    for (const f of readdirSync(dir)) {
+      const src = readFileSync(dir + '/' + f, 'utf8')
+      expect(src, f).not.toMatch(/from ['"]react|\bdocument\.|\bwindow\.|\blocalStorage\b|\bfetch\(/)
+    }
+  })
+  it('read saved views defensively and keep at most 20', async () => {
+    const { parseViews, withView } = await import('../workers/stats/ui/src/lib/saved-views')
+    expect(parseViews(null)).toEqual([])
+    expect(parseViews('{bad')).toEqual([])
+    expect(parseViews(JSON.stringify([{ name: 'a', hash: '#x' }, { name: 1 }, null]))).toEqual([{ name: 'a', hash: '#x' }])
+    let v = parseViews('[]')
+    for (let i = 0; i < 25; i++) v = withView(v, 'v' + i, '#' + i)
+    expect(v).toHaveLength(20)
+    expect(withView(v, 'v24', '#new').filter((x) => x.name === 'v24')).toEqual([{ name: 'v24', hash: '#new' }])
   })
 })
