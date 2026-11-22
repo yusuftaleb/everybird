@@ -646,6 +646,7 @@ export const da: Messages = {
       why: 'hvorfor?',
       whyLabel: { one: 'Hvorfor er {n} sprunget over?', other: 'Hvorfor er {n} sprunget over?' },
       notAdded: 'Ikke tilføjet',
+      allSources: 'Alle kilder',
       detailsUnknown: 'Detaljer ukendte',
       usernameUnknown: 'Brugernavn ukendt: skriv det igen for at opdatere',
       imported: 'Importeret {date}',

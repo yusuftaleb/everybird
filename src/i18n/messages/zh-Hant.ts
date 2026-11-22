@@ -645,6 +645,7 @@ export const zhHant: Messages = {
       why: '為什麼？',
       whyLabel: { one: '為什麼略過 {n} 筆？', other: '為什麼略過 {n} 筆？' },
       notAdded: '尚未加入',
+      allSources: '所有來源',
       detailsUnknown: '詳細資料不明',
       usernameUnknown: '使用者名稱不明：重新輸入以更新',
       imported: '{date} 匯入',

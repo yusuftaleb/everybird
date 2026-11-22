@@ -316,7 +316,7 @@
 }
 
 /* "Add birds" (AddBirdsDialog): the share dialog's modal (scrim, Paper, Hairline, the one floating shadow), centred;
-   on phones a full-height sheet. */
+   where the dock's panels are sheets, their bottom sheet (below). */
 .eb-add-scrim { position: fixed; inset: 0; z-index: var(--z-dialog-scrim); background: rgb(0 0 0 / .28); display: grid; place-items: center; padding: 16px; }
 .eb-add {
   width: min(760px, 100%); max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain;
@@ -328,10 +328,25 @@
 }
 .eb-add:focus { outline: none; }
 @keyframes eb-add-in { from { opacity: 0; transform: translateY(12px); } }
-@media (max-width: 600px) {
-  .eb-add-scrim { padding: 0; place-items: stretch; }
-  .eb-add { width: 100%; height: 100dvh; max-height: none; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); border: 0; border-radius: 0; }
+/* Where the dock's panels are sheets (useIsSheet({ short: true }): 600px wide or 500px tall and under), the same bottom
+   sheet (filters.css .eb-sheet: 8px clear of the edges, its corners, its rise), as tall as the window allows, at the
+   dialog's layer (under the toasts, which carry Undo and an import's progress) and above the on-screen keyboard (--kb,
+   useKeyboardInset). */
+.eb-add-scrim[data-sheet] { z-index: var(--z-dialog-scrim); display: block; padding: 0; }
+.eb-add.eb-sheet {
+  width: auto; padding: 12px 16px 16px;
+  bottom: calc(8px + env(safe-area-inset-bottom) + var(--kb, 0px));
+  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--kb, 0px));
+  animation: eb-sheet-up .32s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) backwards;
 }
+/* A source's form in place of the list (ImportPanel's `drill`): its group alone, without its cells, under the path
+   back ("All sources / iNaturalist"); the line above the list makes room for it too. */
+.eb-add:has(.eb-srclist[data-drill]) :is(.eb-summary, .eb-add-note) { display: none; }
+.eb-srclist[data-drill]::before { content: none; }
+.eb-srclist[data-drill] .eb-srcgroup:not(:has(.eb-src-panel:not([hidden]))) { display: none; }
+.eb-srclist[data-drill] :is(.eb-src-main, .eb-src-confirm, .eb-src-status:not(.eb-error, [role="status"])) { display: none; }
+.eb-srclist[data-drill] .eb-src-panel { margin-top: 0; }
+.eb-srclist[data-drill] .eb-src-status { grid-row: 96; } /* an error under the form, not above it */
 .eb-add-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .eb-add-title { min-width: 0; margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15; }
 .eb-add-close {
@@ -364,7 +379,7 @@
 /* Inside the list's strict containment an outer ring is clipped: the groups and an open genus keep theirs inside. */
 .eb-add .eb-tickgroup:focus-visible, .eb-add .eb-ticklist-inline:focus-visible { outline-offset: -2px; }
 @media (prefers-reduced-motion: reduce) {
-  .eb-add { animation: none; }
+  .eb-add, .eb-add.eb-sheet { animation: none; }
   .eb-src-panel:not([hidden]) { animation-name: eb-tick-fade; }
   .eb-whypop:not([hidden]), .eb-whypop[data-up]:not([hidden]) { animation: none; }
 }

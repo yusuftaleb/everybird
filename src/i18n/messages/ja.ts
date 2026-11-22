@@ -645,6 +645,7 @@ export const ja: Messages = {
       why: '理由',
       whyLabel: { one: '{n}件スキップした理由', other: '{n}件スキップした理由' },
       notAdded: '未追加',
+      allSources: 'すべてのソース',
       detailsUnknown: '詳細不明',
       usernameUnknown: 'ユーザー名不明：更新するにはもう一度入力してください',
       imported: '{date}に読み込み',

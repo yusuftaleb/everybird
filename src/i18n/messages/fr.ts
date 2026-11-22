@@ -654,6 +654,7 @@ export const fr: Messages = {
       why: 'pourquoi\u00a0?',
       whyLabel: { one: 'Pourquoi {n} ignorée\u00a0?', other: 'Pourquoi {n} ignorées\u00a0?' },
       notAdded: 'Non ajouté',
+      allSources: 'Toutes les sources',
       detailsUnknown: 'Détails inconnus',
       usernameUnknown: 'Nom d’utilisateur inconnu\u00a0: saisis-le à nouveau pour actualiser',
       imported: 'Importé le {date}',

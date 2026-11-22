@@ -186,6 +186,18 @@ const FORMATS: { id: FormatSlot; hint: Record<Orientation, string> }[] = [
   { id: 'square', hint: { vertical: '1:1', horizontal: '1:1' } },
 ]
 const ORIENTATIONS: Orientation[] = ['vertical', 'horizontal']
+/** Vertical and Horizontal as icons, a portrait and a landscape rectangle (Phosphor's 256 grid and 16-unit stroke): on
+ *  a phone they replace the words (share.css), so the orientation keeps the format's row; the word is the button's
+ *  name and the icon's title. */
+function OrientIcon({ o, title }: { o: Orientation; title: string }) {
+  const r = o === 'vertical' ? { x: 72, y: 32, width: 112, height: 192 } : { x: 32, y: 72, width: 192, height: 112 }
+  return (
+    <svg className="eb-orient-icon" viewBox="0 0 256 256" aria-hidden="true" focusable="false">
+      <title>{title}</title>
+      <rect {...r} rx="16" fill="none" stroke="currentColor" strokeWidth="16" strokeLinejoin="round" />
+    </svg>
+  )
+}
 /** The Count control's segments, left to right: Hide, S, M, L, Beside title. */
 const COUNT_SIZES: CountSize[] = ['hide', 'small', 'medium', 'large', 'title']
 /** The three sizes the Count control shows by their short forms (S, M, L), named in full. */
@@ -357,11 +369,12 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   const arrangement = useArrangement()
   // True size and Scientific names are the screen's own settings (the Tree's rule: a dialog row is the screen's setting,
   // a change here changes the screen too). True size packs the collage's images and posters at true sizes, as the page
-  // does; Scientific names puts the scientific name on the latest lifer's line and in a poster's names (the collage's;
-  // the Tree reads `sci` itself).
+  // does; Scientific names puts the scientific name in a poster's names (the collage's; the Tree reads `sci` itself). The
+  // latest lifer and the oldest lineage are always named by their common name (`nameOf: displayName`; the phone fixes,
+  // item 6).
   const trueSize = state.mode === 'true'
   const setTrueSize = (on: boolean) => dispatch({ type: 'mode', mode: on ? 'true' : 'even' })
-  const nameOf = useMemo(() => (sci && !viewImage ? (r: SpeciesRow) => r.sci : displayName), [sci, viewImage])
+  const captionOf = useMemo(() => (sci && !viewImage ? (r: SpeciesRow) => r.sci : displayName), [sci, viewImage])
   const cardFormat: CardFormat = print ? (landscape ? 'printLandscape' : 'print') : shape
   const trimmed = name.trim()
   const hasTitle = !!trimmed
@@ -373,19 +386,19 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     let live = true
     const sample = cardEntries.map((e) => {
       const r = species.byCode.get(e.code)
-      return r ? nameOf(r) : ''
+      return r ? captionOf(r) : ''
     }).join('')
     void ensureCaptionFont(captionMinPx(size), sample).then(() => {
       if (live) setFontsTick((n) => n + 1)
     })
     return () => { live = false }
-  }, [rows.names, overCap, size, cardEntries, species, lang, names, nameOf])
+  }, [rows.names, overCap, size, cardEntries, species, lang, names, captionOf])
   const captionPlan = useMemo(() => {
     if (!rows.names || overCap) return null
     const L = cardLayout(cardFormat, { name: hasTitle, filter: hasFilter, latest: true, count: cardEntries.length, target: cardGoal?.target, countSize }, printDesign(size, landscape))
-    return planCaptions(cardEntries, species, size, L.collage.w, nameOf, captionMeasurer())
+    return planCaptions(cardEntries, species, size, L.collage.w, captionOf, captionMeasurer())
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names`, `lang`, `fontsTick` trigger recheck for `displayName` and loaded Satoshi metrics
-  }, [rows.names, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, countSize, size, landscape, species, names, lang, fontsTick, nameOf])
+  }, [rows.names, overCap, cardFormat, hasTitle, hasFilter, cardEntries, cardGoal?.target, countSize, size, landscape, species, names, lang, fontsTick, captionOf])
   const namesCheckKey = `${cardFormat}|${arrangement}|${trueSize}|${sci}|${size}|${hasTitle}|${hasFilter}|${cardEntries.length}|${cardGoal?.target ?? ''}|${countSize}|${lang}|${names}|${fk}|${goalKey}|${fontsTick}`
   const namesFitFailed = namesFitFailKey === namesCheckKey
   const namesAvailable = !overCap && !!captionPlan?.ok && !namesFitFailed
@@ -519,7 +532,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       .then(async () => {
         const opts = {
           format: cardFormat, ...(print ? { printSize: size, showNames: effectiveShowNames } : {}), entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined,
-          theme, transparent, latest: withLatest, countSize, strings: t, nameOf, regions: named, signal: life.current?.signal,
+          theme, transparent, latest: withLatest, countSize, strings: t, nameOf: displayName, captionOf, regions: named, signal: life.current?.signal,
         }
         const png = (b: Blob): Rendered => ({ blob: () => Promise.resolve(b) })
         if (compare) return png(await compare.draw(what, { format, theme, transparent }))
@@ -742,7 +755,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     try {
       const mod = await (posterModule.current ?? loadPoster())
       const progress = (done: number, total: number) => { if (!ctl.signal.aborted) setMaking({ key: forKey, done, total }) }
-      const common = { entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, latest: withLatest, countSize, theme, transparent, strings: t, nameOf, regions: named }
+      const common = { entries: cardEntries, species, filterLabel: cardLabel, goal: cardGoal, name: trimmed || undefined, latest: withLatest, countSize, theme, transparent, strings: t, nameOf: displayName, captionOf, regions: named }
       let p: Poster
       if (viewImage) {
         // The Tree or the Map as on screen, laid out at the poster's size and painted in strips (makeViewPoster).
@@ -814,7 +827,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           species,
           image: {
             format: shape, name: trimmed || undefined, filterLabel: cardLabel, goal: cardGoal, latest: withLatest, countSize, theme, transparent,
-            arrangement, trueSize, strings: t, nameOf, regions: named, signal: ctl.signal,
+            arrangement, trueSize, strings: t, nameOf: displayName, regions: named, signal: ctl.signal,
           },
           onProgress,
         })
@@ -824,7 +837,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         if (effectiveShowNames) {
           const sample = bulkList.flatMap((g) => g.entries).map((e) => {
             const r = species.byCode.get(e.code)
-            return r ? nameOf(r) : ''
+            return r ? captionOf(r) : ''
           }).join('')
           await ensureCaptionFont(captionMinPx(size), sample)
           if (ctl.signal.aborted) return
@@ -836,10 +849,10 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
           species,
           poster: {
             size, landscape, showNames: effectiveShowNames, name: trimmed || undefined, filterLabel: cardLabel, goal: cardGoal, latest: withLatest,
-            countSize, theme, transparent, strings: t, nameOf, regions: named, signal: ctl.signal,
+            countSize, theme, transparent, strings: t, nameOf: displayName, captionOf, regions: named, signal: ctl.signal,
           },
           packSpec: (entries) => bulkPackSpec(entries, {
-            size, landscape, named: !!trimmed, latest: withLatest, countSize, target: cardGoal?.target, showNames: effectiveShowNames, species, nameOf, measure, arrangement, trueSize,
+            size, landscape, named: !!trimmed, latest: withLatest, countSize, target: cardGoal?.target, showNames: effectiveShowNames, species, nameOf: captionOf, measure, arrangement, trueSize,
           }),
           onProgress,
           deps: { makePoster: mod.makePoster },
@@ -1302,9 +1315,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
       case 'timeScale':
         return switchRow(timeScale, t.collage.controls.timeScale, () => setTreeTime(!timeScale), 'share-tree-time')
       case 'sci':
-        // The collage's: in Share under Show latest lifer and only while it is on (the lifer's line), in Print under Show
-        // species names and only while they are on (the captions); hidden, it keeps its value (the screen's).
-        if (subject === 'collage' && !(print ? effectiveShowNames : withLatest)) return null
+        // The collage's (Print only: the captions): under Show species names and only while they are on; hidden, it
+        // keeps its value (the screen's).
+        if (subject === 'collage' && !effectiveShowNames) return null
         return switchRow(sci, t.collage.controls.sciNames, () => dispatch({ type: 'sci', sci: !sci }), subject === 'tree' ? 'share-tree-sci' : 'share-sci')
       case 'oldest':
         return switchRow(showOldest, t.collage.tree.showOldest, () => setShowOldest((v) => !v), 'share-tree-oldest')
@@ -1406,7 +1419,10 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               )}
               {rows.orientation && segmented({
                 className: 'eb-share-orient', label: t.share.orientation.group, value: orientation, pick: setOrientation,
-                options: ORIENTATIONS.map((o) => ({ value: o, label: t.share.orientation[o] })),
+                options: ORIENTATIONS.map((o) => ({
+                  value: o, name: t.share.orientation[o],
+                  label: <><span className="eb-orient-word">{t.share.orientation[o]}</span><OrientIcon o={o} title={t.share.orientation[o]} /></>,
+                })),
               })}
             </div>
           </div>
@@ -1581,8 +1597,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                   </>
                 ) : (
                   <>
-                    {primary}
-                    <div className="eb-share-row">{quiet.map(quietButton)}</div>
+                    {/* On a phone Share image and the quiet row share one line where they fit (share.css); else as here. */}
+                    <div className="eb-share-trio">
+                      {primary}
+                      <div className="eb-share-row">{quiet.map(quietButton)}</div>
+                    </div>
                     {compare && <p id={linkNoteId} className="eb-note" data-testid="share-link-note">{linkOff ?? t.compare.consent}</p>}
                   </>
                 )}

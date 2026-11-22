@@ -645,6 +645,7 @@ export const sv: Messages = {
       why: 'varför?',
       whyLabel: { one: 'Varför hoppades {n} över?', other: 'Varför hoppades {n} över?' },
       notAdded: 'Inte tillagd',
+      allSources: 'Alla källor',
       detailsUnknown: 'Uppgifter saknas',
       usernameUnknown: 'Okänt användarnamn: ange det igen för att uppdatera',
       imported: 'Importerad {date}',

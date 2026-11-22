@@ -2,7 +2,7 @@
 // revealInScroller (dialog-utils.ts): a panel's list scrolls to show a row; the page never does (round 6 polish: nothing
 // chosen in a panel scrolls the page). jsdom has no layout, so the boxes are stubbed.
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { revealInScroller } from '@/components/dialog-utils'
+import { keyboardInset, revealInScroller } from '@/components/dialog-utils'
 
 const rect = (top: number, h: number) => ({ top, bottom: top + h, left: 0, right: 100, width: 100, height: h, x: 0, y: top, toJSON: () => ({}) }) as DOMRect
 
@@ -42,5 +42,15 @@ describe('revealInScroller', () => {
     const row = document.getElementById('row')!
     expect(() => revealInScroller(row)).not.toThrow()
     expect(document.documentElement.scrollTop).toBe(0)
+  })
+})
+
+describe('keyboardInset (the Add birds sheet above the on-screen keyboard)', () => {
+  it('is the layout viewport under the visual one, never negative, 0 without a visual viewport', () => {
+    expect(keyboardInset(844, { height: 508, offsetTop: 0 })).toBe(336)
+    expect(keyboardInset(844, { height: 508, offsetTop: 40 })).toBe(296) // the page panned up under the keys
+    expect(keyboardInset(844, { height: 844, offsetTop: 0 })).toBe(0)
+    expect(keyboardInset(844, { height: 900, offsetTop: 0 })).toBe(0)
+    expect(keyboardInset(844, null)).toBe(0)
   })
 })

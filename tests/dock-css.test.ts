@@ -54,6 +54,18 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(block(css, /@container \(max-width: 599px\)/)).toMatch(/\.eb-dock-filters \.eb-dock-drop \{[^}]*flex: 1 1 auto; min-width: 0;/);
   });
 
+  it("under 820px of bar the magnifier ends row one, apart from the views (the phone fixes, item 3)", () => {
+    expect(block(css, /@container \(max-width: 819px\)/)).toMatch(/\.eb-dock-end \{ margin-left: auto; \}/);
+  });
+
+  it("on phones every view's row two shares its room evenly: List's two tools take two shares, one each (item 5)", () => {
+    const phone = rules(css).filter((r) => r.at === "@container (max-width: 599px)");
+    const body = (sel: string) => phone.find((r) => r.sel === sel)?.body ?? "";
+    expect(body(".eb-dock-filters .eb-dock-drop")).toMatch(/flex: 1 1 auto/);
+    expect(body(".eb-dock-tools")).toMatch(/flex: 2 1 auto/);
+    expect(body(".eb-dock-tools > *, .eb-dock-sortwrap > .eb-dock-dir")).toMatch(/flex: 1 1 auto/);
+  });
+
   it("a drop label can always shrink (outside every rule): it never pushes the magnifier", () => {
     const label = topLevelRule(css, ".eb-drop-label");
     expect(label).toMatch(/min-width:\s*0/);
@@ -161,7 +173,9 @@ describe("the dock's right side: one padding, one gap, at every breakpoint", () 
       if (RIGHT_GROUP.test(s) || s === ".eb-dock") {
         for (const [p, v] of decl(r.body, "(?:column-)?gap")) if (v !== "var(--dock-gap)" && !(s === ".eb-dock" && p === "gap" && v === "4px")) out.push(`${r.at} ${s} { ${p}: ${v} }`);
       }
-      if (/^\.eb-dock-(tools|end)$/.test(s)) for (const [p, v] of decl(r.body, "margin(?:-left|-right|-inline)?")) out.push(`${r.at} ${s} { ${p}: ${v} }`);
+      // The one exception: under 820px of bar the magnifier is on row one with the views, pushed to its right end.
+      const searchRight = (at: string, p: string, v: string) => s === ".eb-dock-end" && at === "@container (max-width: 819px)" && p === "margin-left" && v === "auto";
+      if (/^\.eb-dock-(tools|end)$/.test(s)) for (const [p, v] of decl(r.body, "margin(?:-left|-right|-inline)?")) if (!searchRight(r.at, p, v)) out.push(`${r.at} ${s} { ${p}: ${v} }`);
       return out;
     }));
     expect(bad).toEqual([]);
@@ -218,5 +232,22 @@ describe("round 6 design proposals: the dock's motion (AN8, AU16) and the list r
   });
   it("list rows show a Surface band on hover, fine pointers only", () => {
     expect(block(cardCss, /@media \(hover: hover\) and \(pointer: fine\) \{\n  \.eb-row-btn \{/)).toMatch(/\.eb-row-btn:hover \{ background: var\(--surface\); \}/);
+  });
+});
+
+describe("the Display panel's segments on a phone (the phone fixes, item 4)", () => {
+  const shareCss = readFileSync(resolve(__dirname, "../src/components/share/share.css"), "utf8");
+  const tokens = readFileSync(resolve(__dirname, "../src/styles/tokens.css"), "utf8");
+  it("are the share dialog's touch height (one token, --seg-touch: 32px), with a 44px press through ::after", () => {
+    expect(tokens).toMatch(/--seg-touch: 32px;/);
+    const all = rules(css), share = rules(shareCss);
+    const body = (list: Rule[], at: string, sel: string) => list.find((r) => r.at === at && r.sel === sel)?.body ?? "";
+    for (const [at, pre] of [["@media (pointer: coarse)", ""], ["top", ".eb-drop-sheet "]] as const) {
+      expect(body(all, at, `${pre}.eb-disp .eb-seg-btn`)).toMatch(/min-height: var\(--seg-touch\)/);
+      expect(body(all, at, `${pre}.eb-disp .eb-seg-btn::after`)).toMatch(/inset: calc\(\(var\(--seg-touch\) - 44px\) \/ 2\) 0/);
+    }
+    expect(body(all, "top", ".eb-disp .eb-seg-btn::after")).toMatch(/content: ''; position: absolute/);
+    expect(body(share, "@media (pointer: coarse)", ".eb-share .eb-share-seg .eb-seg-btn")).toMatch(/min-height: var\(--seg-touch\)/);
+    expect(body(share, "@media (pointer: coarse)", ".eb-share .eb-share-seg .eb-seg-btn::after")).toMatch(/inset: calc\(\(var\(--seg-touch\) - 44px\) \/ 2\) 0/);
   });
 });

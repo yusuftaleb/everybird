@@ -646,6 +646,7 @@ export const de: Messages = {
       why: 'warum?',
       whyLabel: { one: 'Warum {n} übersprungen?', other: 'Warum {n} übersprungen?' },
       notAdded: 'Nicht hinzugefügt',
+      allSources: 'Alle Quellen',
       detailsUnknown: 'Details unbekannt',
       usernameUnknown: 'Benutzername unbekannt: Gib ihn erneut ein, um zu aktualisieren',
       imported: 'Importiert am {date}',
