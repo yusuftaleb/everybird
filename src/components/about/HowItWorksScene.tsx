@@ -39,7 +39,7 @@ import { stampDate, stampStrings } from '@/lib/share/stamp'
 import { ORDERS as ORDER_LABELS, orderLabel } from '@/lib/species/orders'
 import { baseOfLang } from '@/lib/species/name-locales'
 import { useEnNames } from '@/lib/species/use-names'
-import { stickerUrl } from '@/lib/sticker-url'
+import { stickerSrcSet, stickerUrl } from '@/lib/sticker-url'
 import { AR, BIRDS, COLLAGE, FAMILIES, FAMILY, HERONS, LATEST, SHARE, SV, THREATENED, TOTAL, type Box } from './how-it-works-data'
 import type { Layout } from './stageshow/looks'
 import { Window } from './stageshow/window'
@@ -107,13 +107,57 @@ export const GEO: Record<Layout, Geo> = {
   compact: { win: { x: 16, y: 16, w: 400, h: 420 }, col: 310 },
 }
 
-/** The most the figure is drawn at: About's content width (1088px, `.eb-page`) over the wide design's 720. */
-export const DEMO_GROW = 1088 / 720
-/** Each bird's largest box in the wide collage (all birds, or Herons chosen), design px. */
-const SIDE: Record<string, number> = Object.fromEntries(BIRDS.map((code) => [code, Math.max(...COLLAGE.wide.all[code].slice(2), ...(COLLAGE.wide.herons[code]?.slice(2) ?? []))]))
-/** One file per demo sticker, shared by every state: the small (128 px) file, or the 384 px one for the few birds drawn
- *  past 128 device px at the figure's largest on a 2x screen, so they stay sharp. The downloads stay light. */
-export const demoStickerUrl = (code: string) => stickerUrl(code, SIDE[code] * DEMO_GROW, 2, SV[code])
+/**
+ * The share preview's box takes the image's own shape (share.css), with a Hairline and 12px corners and no Surface
+ * around it. Wide: the box is the dialog's height (h) and the format's width, and the dialog narrows or widens around it
+ * from a fixed right edge, as the product's does. Compact: the image fits a fixed w x h area, centred in it both ways,
+ * as the product's stacked preview is in its row.
+ */
+const PREVIEW = { wide: { w: 202, h: 202 }, compact: { w: 128, h: 160 } }
+const IMG_AR: Record<Format, number> = { story: 9 / 16, post: 4 / 5, square: 1 }
+function previewBox(f: Format, wide: boolean): { w: number; h: number } {
+  const { w, h } = PREVIEW[wide ? 'wide' : 'compact']
+  if (wide) return { w: h * IMG_AR[f], h }
+  const k = Math.min(w / IMG_AR[f], h)
+  return { w: k * IMG_AR[f], h: k }
+}
+
+/** Each bird's widest drawn box in a design, design px: in the collage (all birds, or Herons chosen, which grow) and in
+ *  the share dialog's three previews (the latest lifer's icon too). Every box keeps its sticker's shape, so this is the
+ *  width the file is drawn at. */
+function drawnWidth(layout: Layout, code: string): number {
+  const c = COLLAGE[layout]
+  let w = Math.max(c.all[code][2], c.herons[code]?.[2] ?? 0)
+  for (const f of ['story', 'post', 'square'] as const) {
+    const L = SHARE[f], box = previewBox(f, layout === 'wide')
+    const k = Math.min(box.w / L.W, box.h / L.H)
+    w = Math.max(w, (L.tiles[code]?.[2] ?? 0) * k)
+    if (code === LATEST.code) w = Math.max(w, L.latest.icon * k * Math.min(1, AR[code] ?? 1))
+  }
+  return w
+}
+/** The figure's drawn scale at a page width, as About lays it out (.eb-page: 16px gutters under 720px, 32px from
+ *  there, content at most 1088px; the compact design under 560px of content) and the Stage zooms it (width / design). */
+export const DEMO_SCALE = [
+  { media: '(max-width: 591.98px)', layout: 'compact', content: '100vw - 32px', design: 358 },
+  { media: '(max-width: 719.98px)', layout: 'wide', content: '100vw - 32px', design: 720 },
+  { media: '', layout: 'wide', content: 'min(100vw - 64px, 1088px)', design: 720 },
+] as const
+/** A demo sticker's image: both files as a srcset, and `sizes` its widest drawn width at the page's width, so the
+ *  browser takes the 384 file just where the sticker is drawn past 128 device px (on this screen's density), the 128
+ *  file elsewhere. Every state and preview of a bird shares the same attributes: one file per sticker. */
+export function demoSticker(code: string): { srcSet: string; sizes: string; src: string } {
+  let img = IMG.get(code)
+  if (!img) {
+    const sizes = DEMO_SCALE.map(({ media, layout, content, design }) =>
+      `${media ? `${media} ` : ''}calc((${content}) * ${Math.ceil((drawnWidth(layout, code) / design) * 1e4) / 1e4})`).join(', ')
+    // srcset and sizes before src, so a client-made img never fetches the fallback first
+    img = { srcSet: stickerSrcSet(code, AR[code] ?? 1, SV[code]), sizes, src: stickerUrl(code, 0, 1, SV[code]) }
+    IMG.set(code, img)
+  }
+  return img
+}
+const IMG = new Map<string, { srcSet: string; sizes: string; src: string }>()
 /** The stickers the poster shows first, biggest first (they're fetched ahead of the rest, HowItWorksDemo). */
 export const POSTER_STICKERS = [...BIRDS].sort((a, b) => Math.max(...COLLAGE.wide.all[b].slice(2)) - Math.max(...COLLAGE.wide.all[a].slice(2)))
 /** How many of them are preloaded from the head and fetched at once; every other sticker is lazy and low priority, so
@@ -143,7 +187,7 @@ export function Sticker({ code }: { code: string }) {
   return (
     // suppressHydrationWarning: the head's STICKER_READY_SCRIPT may have marked it data-ld before hydration
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={demoStickerUrl(code)} alt="" draggable={false} decoding="async" className="ebd-st" ref={markLoaded} suppressHydrationWarning
+    <img {...demoSticker(code)} alt="" draggable={false} decoding="async" className="ebd-st" ref={markLoaded} suppressHydrationWarning
       {...(EAGER.has(code) ? {} : { loading: 'lazy' as const, fetchPriority: 'low' as const })}
       onLoad={(e) => { e.currentTarget.dataset.ld = '' }} onError={() => setFailed(true)} />
   )
@@ -523,21 +567,6 @@ function TaxaSheet({ open, herons }: { open: boolean; herons: boolean }) {
 
 /** Story / Post / Square (the product names each by its word alone; the ratio is in its accessible name). */
 const FORMATS: { id: Format }[] = [{ id: 'story' }, { id: 'post' }, { id: 'square' }]
-/**
- * The share preview's box takes the image's own shape (share.css), with a Hairline and 12px corners and no Surface
- * around it. Wide: the box is the dialog's height (h) and the format's width, and the dialog narrows or widens around it
- * from a fixed right edge, as the product's does. Compact: the image fits a fixed w x h area, centred in it both ways,
- * as the product's stacked preview is in its row.
- */
-const PREVIEW = { wide: { w: 202, h: 202 }, compact: { w: 128, h: 160 } }
-const IMG_AR: Record<Format, number> = { story: 9 / 16, post: 4 / 5, square: 1 }
-function previewBox(f: Format, wide: boolean): { w: number; h: number } {
-  const { w, h } = PREVIEW[wide ? 'wide' : 'compact']
-  if (wide) return { w: h * IMG_AR[f], h }
-  const k = Math.min(w / IMG_AR[f], h)
-  return { w: k * IMG_AR[f], h: k }
-}
-
 /** The share dialog (ShareDialog.tsx) over the window, on the share dialog's scrim. */
 function ShareDialog({ format, show, wide }: { format: Format; show: boolean; wide: boolean }) {
   const { t } = useI18n()

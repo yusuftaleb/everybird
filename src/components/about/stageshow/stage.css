@@ -104,7 +104,6 @@
     position: absolute;
     top: 0;
     left: 0;
-    transform-origin: 0 0;
     font-family: var(--ss-font);
     -webkit-font-smoothing: antialiased;
     user-select: none;
