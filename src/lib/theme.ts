@@ -13,9 +13,19 @@ export function currentTheme(): Theme {
   return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'
 }
 
-/** Apply a theme and remember it on this device (best effort: private modes may refuse storage). */
+/** On <html> while the theme switches: globals.css turns every transition off, so the colours change at once instead of
+ *  each chip, dock label and tree name fading for its own colour transition. */
+export const THEME_SWITCHING = 'data-theme-switching'
+let unpause = 0
+
+/** Apply a theme and remember it on this device (best effort: private modes may refuse storage). Transitions are paused
+ *  for the switch and come back two frames later, once the new colours are painted. */
 export function applyTheme(t: Theme): void {
-  document.documentElement.setAttribute('data-theme', t)
+  const html = document.documentElement
+  html.setAttribute(THEME_SWITCHING, '')
+  html.setAttribute('data-theme', t)
+  cancelAnimationFrame(unpause)
+  unpause = requestAnimationFrame(() => { unpause = requestAnimationFrame(() => html.removeAttribute(THEME_SWITCHING)) })
   try {
     localStorage.setItem(THEME_KEY, t)
   } catch {

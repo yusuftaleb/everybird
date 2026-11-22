@@ -197,7 +197,10 @@ export function DockPanel({ id, label, kind, testId, buttonRef, returnFocus, onC
       frame = 0
       const dock = el.parentElement?.querySelector<HTMLElement>(':scope > .eb-dock')
       if (dock) el.style.setProperty('--dock-bottom', `${dock.offsetTop + dock.offsetHeight}px`)
-      el.style.setProperty('--drop-max', `${dropRoom(el.getBoundingClientRect().top, window.innerHeight)}px`)
+      // Its top from its offset parent's box, not its own: the opening rise still holds it 4px up (a transform).
+      const p = el.offsetParent
+      const top = p ? p.getBoundingClientRect().top + p.clientTop + el.offsetTop : el.getBoundingClientRect().top
+      el.style.setProperty('--drop-max', `${dropRoom(top, window.innerHeight)}px`)
     }
     const later = () => { if (!frame) frame = requestAnimationFrame(fit) }
     fit()

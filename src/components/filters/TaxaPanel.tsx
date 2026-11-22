@@ -56,6 +56,10 @@ export function TaxaPanel({ state, dispatch, species, tree, id, buttonRef, onClo
     return () => { live = false }
   }, [])
   const row = taxa.row
+  // Every level after the one the panel opened at rises in (filters.css), going back to the orders too; the first comes
+  // in with the panel's own rise, so it doesn't rise twice.
+  const [seen, setSeen] = useState({ level: row?.level, moved: false })
+  if (seen.level !== row?.level) setSeen({ level: row?.level, moved: true })
   const total = row && all ? taxaTotal(all, row.level, taxa.parent) : 0
   const n = row ? row.opts.length : 0
   // Without the taxonomy's total (loading, or failed): the count alone, in the stats line's words.
@@ -72,7 +76,7 @@ export function TaxaPanel({ state, dispatch, species, tree, id, buttonRef, onClo
       <div className="eb-taxa">
         {!sheet && <p className="eb-mono eb-taxa-head" data-testid="taxa-head">{head}</p>}
         <TaxaPath crumbs={taxa.crumbs} go={taxa.go} />
-        <TaxaLevel taxa={taxa} />
+        <TaxaLevel taxa={taxa} rise={seen.moved} />
       </div>
     </DockPanel>
   )

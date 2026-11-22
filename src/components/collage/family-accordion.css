@@ -14,7 +14,7 @@
 .eb-facc-caret svg { width: 16px; height: 16px; transform: rotate(-90deg); transition: transform .2s var(--ease-ui); }
 .eb-facc-btn[aria-expanded="true"] .eb-facc-caret svg { transform: none; }
 @media (hover: hover) and (pointer: fine) { .eb-facc-btn:hover { color: var(--ink); } }
-.eb-facc-body { padding: 16px 0 24px; animation: eb-rise .24s var(--ease-ui) both; }
+.eb-facc-body { padding: 16px 0 24px; animation: eb-rise .24s var(--ease-ui) backwards; }
 @media (prefers-reduced-motion: reduce) {
   .eb-facc-caret svg { transition: none; }
   .eb-facc-body { animation-name: eb-fade-in; }

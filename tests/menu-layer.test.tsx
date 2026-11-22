@@ -207,6 +207,21 @@ describe('placement at the trigger', () => {
       expect(btn).toHaveFocus()
     })
   })
+  it('keeps the side it opened on for its entry animation (data-up) when a scroll moves it to the other side', () => {
+    render(<SourceMenu label="More for eBird" items={items} />)
+    const btn = screen.getByRole('button', { name: 'More for eBird' })
+    const vh = window.innerHeight
+    const spy = box(btn, { left: 600, top: 100, width: 40, height: 40 })
+    fireEvent.click(btn)
+    const menu = screen.getByRole('menu', { name: 'More for eBird' })
+    expect(menu).not.toHaveAttribute('data-up')
+    // Scrolled so far that the button sits at the window's bottom: the menu now goes over it, but its animation stays.
+    spy.mockReturnValue({ left: 600, top: vh - 40, width: 40, height: 40, x: 600, y: vh - 40, right: 640, bottom: vh, toJSON: () => ({}) } as DOMRect)
+    Object.defineProperty(menu, 'offsetHeight', { configurable: true, value: 0 })
+    act(() => { document.dispatchEvent(new Event('scroll')) })
+    expect(menu.style.bottom).not.toBe('auto') // it moved over the button
+    expect(menu).not.toHaveAttribute('data-up')
+  })
   it('the ⋯ source menu without the popover API: fixed at its button all the same', () => {
     render(<SourceMenu label="More for eBird" items={items} />)
     const btn = screen.getByRole('button', { name: 'More for eBird' })

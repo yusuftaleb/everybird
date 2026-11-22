@@ -56,12 +56,16 @@ export function useMenuLayer(
     }
     el.style.removeProperty('max-height') // measured at its natural height, not last time's room
     const { offsetHeight: h, offsetWidth: w } = el
+    let first = true
     const place = () => {
       const b = btn.current?.getBoundingClientRect()
       if (!b) return
       const p = menuPlace(b, h, w, document.documentElement.clientWidth || window.innerWidth, window.innerHeight, align)
       Object.assign(el.style, { position: 'fixed', left: 'auto', right: `${p.right}px`, top: p.up ? 'auto' : `${p.y}px`, bottom: p.up ? `${p.y}px` : 'auto', maxHeight: `min(${cap}px, 50dvh, ${p.maxH}px)` })
-      el.toggleAttribute('data-up', p.up)
+      // data-up picks the entry animation's direction (.eb-menu[data-up], .eb-whypop[data-up]): set once, on opening, so a
+      // later scroll or resize that flips the side never restarts it.
+      if (first) el.toggleAttribute('data-up', p.up)
+      first = false
     }
     const onScroll = (e: Event) => { if (!(e.target instanceof Node && el.contains(e.target))) place() }
     place()

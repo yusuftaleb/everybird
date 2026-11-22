@@ -132,7 +132,7 @@ describe('tree.css: P7, D10, P10, AN11', () => {
     expect(rule('.eb-tree-axis-title')).toMatch(/font-size: 12px/)
     expect(rule('.eb-tree-tick')).toMatch(/font-size: 11px/)
     expect(rule('.eb-tree-chart')).toMatch(/animation: eb-card-in \.24s/)
-    expect(css).toMatch(/\.eb-tree-nm, \.eb-tree-fan-text \{ transition: color \.15s; \}/)
+    expect(css).toMatch(/\.eb-tree-nm, \.eb-tree-fan-text \{ transition: color \.15s var\(--ease-ui\); \}/)
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.eb-tree-chart \{ animation: none; \}\s*\.eb-tree-nm, \.eb-tree-fan-text \{ transition: none; \}/)
   })
 })
