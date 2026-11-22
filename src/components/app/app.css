@@ -727,7 +727,7 @@ main[tabindex="-1"]:focus { outline: none; }
 .eb-disp-slot { display: contents; }
 .eb-disp-label { margin: 0; }
 .eb-disp .eb-seg {
-  display: flex; flex: none; gap: 2px; padding: 2px; border: 1px solid var(--hairline);
+  display: flex; flex: none; gap: 2px; padding: 2px; border: 1px solid var(--hairline); margin-left: auto; /* wrapped under its label: right-aligned, as the share dialog's */
   border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-disp .eb-seg-btn {

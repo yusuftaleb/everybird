@@ -509,3 +509,6 @@
   .eb-share-trio > * { flex: 1 1 auto; min-width: 0; }
   .eb-share-trio > .eb-share-primary { flex-grow: 2; }
 }
+/* Under 300px of column (a 360px phone) the quiet row is its narrow grid (above): beside Share image it stacked, so there
+   the three keep the stacked layout, Share image over the row. */
+@container (max-width: 299px) { .eb-share-trio { display: contents; } }
