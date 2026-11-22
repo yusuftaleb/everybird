@@ -98,7 +98,7 @@ describe('the 21 Nov measures', () => {
     expect(Object.values(FEATURES).every((e) => e in ALLOWED)).toBe(true)
   })
   it('name every released value readably on the page', () => {
-    for (const [, dimension, event, values] of RELEASED) for (const v of values) {
+    for (const [, dimension, , values] of RELEASED) for (const v of values) {
       const name = label(dimension, v)
       expect(name, dimension + '/' + v).not.toBe(v)
       expect(name, dimension + '/' + v).toMatch(/^[A-Z0-9]|^iGoTerra$/)
