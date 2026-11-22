@@ -93,8 +93,9 @@
 :root:lang(zh-Hans) { --font-noto: "Noto Sans SC"; }
 :root:lang(zh-Hant) { --font-noto: "Noto Sans TC"; }
 @media (min-width: 720px) { :root { --topbar-h: 65px; } }
-/* The bar's nav on a second row (app.css, the same media query): 4 + 44 + 40 + 4px and the hairline. */
-@media (max-width: 380px) { :root { --topbar-h: 93px; } }
+/* The bar's nav on a second row (app.css, the same media query): 4 + 44 + 40 + 4px and the hairline. From 320px the bar
+   is one row (the icon tabs; under 381px beside the origami bird): 61px. */
+@media (max-width: 319px) { :root { --topbar-h: 93px; } }
 /* Under 320px the nav's row wraps to two lines (app.css): 4 + 44 + 2 × 40 + 4px and the hairline. Chinese keeps one line.
    The :not() also lifts it over the split rule above. */
 @media (max-width: 319px) { :root:not(:lang(zh-Hans), :lang(zh-Hant)) { --topbar-h: 133px; } }

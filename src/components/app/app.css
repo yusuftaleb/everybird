@@ -359,6 +359,8 @@
   color: var(--ink); text-decoration: none; white-space: nowrap;
   display: inline-flex; align-items: center; min-height: 44px; /* the whole 44px row is the link (Fitts) */
 }
+/* The origami bird that stands for the word on small phones (TopBar's OrigamiMark; the block under 381px below). */
+.eb-wordmark-mark { display: none; flex: none; }
 .eb-nav { margin-left: auto; }
 .eb-nav ul { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .eb-nav-link {
@@ -463,27 +465,38 @@
 }
 
 /* Where row one can't hold the nav: the nav takes its own full-width row under the wordmark, the language button and
-   the theme switch staying in row one. Only the padding's block sides change, so the gutter stays 16px (12px under
-   360, 8px under 240). The split has its twin in tokens.css (--topbar-h 93px), the same media query, so a one-row bar
-   never gets a two-row offset; tests/topbar-fit.test.ts checks the pair and that every row fits.
+   the theme switch staying in row one. Only the padding's block sides change, so the gutter stays 12px (8px under
+   240). The split has its twin in tokens.css (--topbar-h 93px), the same media query, so a one-row bar never gets a
+   two-row offset; tests/topbar-fit.test.ts checks the pair and that every row fits.
    Four links (My birds, Compare, Settings, About) beside the wordmark and the buttons need about 620px of page; under
-   it the links are icon tabs on row one (below), and only under 381px, where even those can't share it without a
-   narrower gutter or type (a 360 or 375px phone), does the nav take its own row, in words. */
-@media (max-width: 380px) {
+   it the links are icon tabs on row one (below), under 381px beside the origami bird instead of the word, and only
+   under 320px of page (a phone at Safari's aA page zoom), where even that can't share row one, does the nav take its
+   own row, in words. */
+@media (max-width: 319px) {
   :root .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding-block: 4px; min-height: 0; }
   :root .eb-topbar-end { order: 1; margin-left: auto; }
   :root .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
   :root .eb-nav ul { justify-content: space-between; }
 }
-/* Phones from 381px (the phone fixes, 2026-11-21): the four pages as icon tabs, so the whole bar is one line: the
+/* Phones from 320px (the phone fixes, 2026-11-21): the four pages as icon tabs, so the whole bar is one line: the
    wordmark, the icons, the language button and the theme switch. Each tab is the pill drawn 40px square (its Surface,
    Hairline and Accent when current), 4px apart, so their 44px presses (.eb-nav-link::after) meet; named by its word
-   (aria-label), the icon titled by it. Needs 381px at the 499px step's sizes (tests/topbar-fit.test.ts). */
-@media (min-width: 381px) and (max-width: 619px) {
+   (aria-label), the icon titled by it. With the word it needs 381px at the 499px step's sizes; under that the
+   origami bird stands for it (below), down to 320px at the 359px step's (tests/topbar-fit.test.ts). */
+@media (min-width: 320px) and (max-width: 619px) {
   .eb-nav ul { gap: 4px; }
   .eb-nav-link { width: 40px; padding: 0; justify-content: center; }
   .eb-nav-icon { display: block; }
   .eb-nav-word { display: none; }
+}
+/* Under 381px (360 and 375px phones): the site icon's origami bird instead of the word, 22px (the tabs' glyph) in Ink, at the gutter's
+   edge as the word was; the word is visually hidden (.eb-sr's rules), so the link is still named Everybird. The link
+   is 40px wide, its press 44px by reaching 4px into the gutter (never into the first tab's). */
+@media (max-width: 380px) {
+  .eb-wordmark { position: relative; width: 40px; }
+  .eb-wordmark::after { content: ''; position: absolute; inset: 0 0 0 -4px; }
+  .eb-wordmark-mark { display: block; width: 22px; height: 22px; }
+  .eb-wordmark-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 /* Under 320px of page (a phone at Safari's aA 150% or more) four links can't share row two at the bar's type in some
    languages: the nav wraps onto a second line there (--topbar-h 133px in tokens.css) rather than shrink. */
