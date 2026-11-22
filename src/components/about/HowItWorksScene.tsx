@@ -34,8 +34,8 @@ import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { showLabel } from '@/lib/list/filter-summary'
 import { countParts, summaryLine, type SourceCounts, type RowCount } from '@/lib/list/source-counts'
 import { pageTitle } from '@/lib/list/title'
-import { FOOTER_LINE, latestText, placeCredit } from '@/lib/share/image'
-import { stampDate, stampStrings, withStamp } from '@/lib/share/stamp'
+import { DATE_GAP, FOOTER_LINE, fitFooter, latestText } from '@/lib/share/image'
+import { stampDate, stampStrings } from '@/lib/share/stamp'
 import { ORDERS as ORDER_LABELS, orderLabel } from '@/lib/species/orders'
 import { baseOfLang } from '@/lib/species/name-locales'
 import { useEnNames } from '@/lib/species/use-names'
@@ -588,9 +588,8 @@ function ShareDialog({ format, show, wide }: { format: Format; show: boolean; wi
 /**
  * One share image, drawn from the product's layout (cardLayout, at the image's 1080 px width, scaled into the preview
  * box): the collage's stickers packed around "112 / SPECIES", the latest lifer row, a hairline, and the quiet footer
- * line: the wordmark, then "everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 6 Nov 2026" (the
- * stamp fixed at STAMPED), placed as the product's placeFooter places it: too long to sit beside the wordmark, it takes
- * its own line under it and the wordmark, the hairline and the latest lifer row move up a line. No name on top (the
+ * line: the wordmark, then "everybird.yusuftaleb.com/credits" and, at the right, "6 Nov 2026" (the stamp fixed at
+ * STAMPED), sized as the product's placeFooter sizes it (fitFooter). No name on top (the
  * demo's collage has no title). Small text is set a little larger than its true scale so it reads as text, except the
  * footer line, at its true size so it fits the image (overflow: hidden).
  */
@@ -606,10 +605,9 @@ function ShareImage({ format, box, show }: { format: Format; box: { w: number; h
   const K = L.count
   const ar = AR[LATEST.code] ?? 1
   const icon = L.latest.icon * k
-  const line = withStamp(FOOTER_LINE, stampDate(STAMPED, stampStrings(t)))
+  const stamp = stampDate(STAMPED, stampStrings(t))
   // The product's estimate without a DOM (image.ts placeFooter): Geist Mono 0.6 em a character, the wordmark 0.55 em and 16 after it.
-  const credit = placeCredit((px) => line.length * 0.6 * px, L.W - 128 - (9 * 0.55 * 30 + 16), L.W - 128, 20)
-  const lift = credit.below ? (credit.size + 12) * k : 0
+  const credit = fitFooter((px) => (FOOTER_LINE.length + stamp.length) * 0.6 * px + DATE_GAP, 9 * 0.55 * 30 + 16, L.W - 128, 20)
   return (
     <div className="ebd-img" data-show={show || undefined} data-format={format} style={{ width: w, height: h, left: 0, top: 0 }}>
       {Object.entries(L.tiles).map(([code, [x, y, tw, th]]) => (
@@ -619,7 +617,7 @@ function ShareImage({ format, box, show }: { format: Format; box: { w: number; h
         <span className="ebd-img-num" style={{ fontSize: K.size * k }}>{formatInt(TOTAL, t.num)}</span>
         <span className="ebd-img-label" style={{ fontSize: Math.max(3, K.labelSize * k) }}>{plural(t.count.word, TOTAL)}</span>
       </span>
-      <span className="ebd-img-latest" data-inline={L.latest.inline || undefined} style={{ left: M, top: L.latest.y * k - lift, height: icon, gap: (L.latest.inline ? 16 : 20) * k }}>
+      <span className="ebd-img-latest" data-inline={L.latest.inline || undefined} style={{ left: M, top: L.latest.y * k, height: icon, gap: (L.latest.inline ? 16 : 20) * k }}>
         <span className="ebd-img-latest-icon" style={{ width: icon, height: icon }}>
           <span style={{ width: ar >= 1 ? '100%' : `${ar * 100}%`, height: ar >= 1 ? `${100 / ar}%` : '100%' }}><Sticker code={LATEST.code} /></span>
         </span>
@@ -636,10 +634,11 @@ function ShareImage({ format, box, show }: { format: Format; box: { w: number; h
           </span>
         )}
       </span>
-      <span className="ebd-img-rule" style={{ left: M, right: M, top: L.rule * k - lift }} />
-      <span className="ebd-img-foot" style={{ left: M, top: L.footer * k - lift, height: 30 * k * 1.25, ...(credit.below ? { flexDirection: 'column', alignItems: 'flex-start', gap: 12 * k } : {}) }}>
-        <span className="ebd-img-mark" style={{ fontSize: 30 * k * 1.25 }}>Everybird</span>
-        <span className="ebd-img-line" style={{ fontSize: credit.size * k }}>{line}</span>
+      <span className="ebd-img-rule" style={{ left: M, right: M, top: L.rule * k }} />
+      <span className="ebd-img-foot" style={{ left: M, right: M, top: L.footer * k, height: 30 * k * 1.25 }}>
+        {credit.brand && <span className="ebd-img-mark" style={{ fontSize: 30 * k * 1.25 }}>Everybird</span>}
+        <span className="ebd-img-line" style={{ fontSize: credit.size * k }}>{FOOTER_LINE}</span>
+        <span className="ebd-img-date" style={{ fontSize: credit.size * k }}>{stamp}</span>
       </span>
     </div>
   )
