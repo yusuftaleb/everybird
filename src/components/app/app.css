@@ -327,12 +327,6 @@
 }
 /* Settings > Language: the English-names switch (the language itself is the top bar's menu). */
 .eb-langrow { display: flex; flex-direction: column; gap: 12px; }
-.eb-confirm {
-  display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; max-width: 560px;
-  border: 1px solid var(--accent);
-  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-}
-.eb-confirm p { margin: 0; }
 
 
 /* The top bar (the site's phone top bar): wordmark home, Collage / Settings / About, the language button and the theme

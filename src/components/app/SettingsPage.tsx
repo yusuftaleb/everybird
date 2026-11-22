@@ -4,6 +4,7 @@ import Link from '@/components/app/IntentLink'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { ImportPanel } from '@/components/import/ImportPanel'
 import { MatchReport } from '@/components/import/MatchReport'
 import { RulesSwitches } from '@/components/import/RulesSwitches'
@@ -44,6 +45,7 @@ export function SettingsPage() {
   // After Yes, replace it or Yes, forget it: the buttons are gone, so focus goes to Your data, and a toast says it's done.
   const [done, setDone] = useState<{ text: string; at: number } | null>(null)
   const dataRef = useRef<HTMLElement>(null)
+  const forgetRef = useRef<HTMLButtonElement>(null)
   const finish = (text: string) => {
     setDone({ text, at: Date.now() })
     requestAnimationFrame(() => dataRef.current?.focus({ preventScroll: true }))
@@ -130,7 +132,7 @@ export function SettingsPage() {
                 {d.downloadJson}
               </button>
               <RestoreBackup onRestore={(s) => { setConfirming(false); setRestoring(s) }} disabled={!data} />
-              <button type="button" className="eb-btn eb-btn-quiet eb-btn-danger" aria-expanded={confirming} onClick={() => { setRestoring(null); setConfirming((c) => !c) }}>
+              <button ref={forgetRef} type="button" className="eb-btn eb-btn-quiet eb-btn-danger" aria-haspopup="dialog" onClick={() => { setRestoring(null); setConfirming(true) }}>
                 <Trash aria-hidden="true" focusable="false" />
                 {d.forget}
               </button>
@@ -141,22 +143,18 @@ export function SettingsPage() {
             </div>
           )}
           {restoring && (
-            <div className="eb-confirm" role="group" aria-label={d.restore}>
-              <p>{d.restoreAsk}</p>
-              <div className="eb-row">
-                <button type="button" className="eb-btn eb-btn-danger-solid" autoFocus onClick={() => { dispatch({ type: 'restore', saved: restoring }); setRestoring(null); finish(d.restored) }}>{d.restoreYes}</button>
-                <button type="button" className="eb-btn eb-btn-quiet" onClick={() => setRestoring(null)}>{d.restoreKeep}</button>
-              </div>
-            </div>
+            <ConfirmDialog
+              ask={d.restoreAsk} yes={d.restoreYes} keep={d.restoreKeep}
+              onYes={() => { dispatch({ type: 'restore', saved: restoring }); setRestoring(null); finish(d.restored) }} onKeep={() => setRestoring(null)}
+              returnTo={() => dataRef.current?.querySelector<HTMLElement>('input[type="file"]')}
+            />
           )}
           {confirming && (
-            <div className="eb-confirm" role="group" aria-label={d.forget}>
-              <p>{d.forgetAsk}</p>
-              <div className="eb-row">
-                <button type="button" className="eb-btn eb-btn-danger-solid" autoFocus onClick={() => { setConfirming(false); dispatch({ type: 'forget' }); finish(d.forgotten) }}>{d.forgetYes}</button>
-                <button type="button" className="eb-btn eb-btn-quiet" onClick={() => setConfirming(false)}>{d.forgetKeep}</button>
-              </div>
-            </div>
+            <ConfirmDialog
+              ask={d.forgetAsk} yes={d.forgetYes} keep={d.forgetKeep}
+              onYes={() => { setConfirming(false); dispatch({ type: 'forget' }); finish(d.forgotten) }} onKeep={() => setConfirming(false)}
+              returnTo={() => forgetRef.current}
+            />
           )}
         </section>}
       </div>
