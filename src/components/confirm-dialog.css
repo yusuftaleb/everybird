@@ -1,0 +1,22 @@
+/* ConfirmDialog: the Add birds dialog's scrim and card, small (the welcome's width), over every dialog it can open
+   from (--z-confirm). On phones the dock's bottom sheet (filters.css .eb-sheet: its edges, corners and rise), held
+   inside this scrim's layer. */
+.eb-confirm-scrim { position: fixed; inset: 0; z-index: var(--z-confirm); background: rgb(0 0 0 / .28); display: grid; place-items: center; padding: 16px; }
+.eb-confirm-scrim[data-sheet] { display: block; padding: 0; }
+.eb-confirm {
+  box-sizing: border-box; width: min(400px, 100%); display: flex; flex-direction: column; gap: 16px; padding: 20px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+}
+.eb-confirm:not(.eb-sheet) { animation: eb-confirm-in .24s cubic-bezier(.25, .8, .25, 1) backwards; }
+.eb-confirm.eb-sheet { width: auto; padding: 18px 16px 16px; }
+.eb-confirm:focus { outline: none; }
+.eb-confirm-ask { margin: 0; }
+.eb-confirm-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.eb-confirm.eb-sheet .eb-confirm-acts { flex-direction: column; }
+.eb-confirm.eb-sheet .eb-confirm-acts .eb-btn { width: 100%; }
+.eb-confirm .eb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@keyframes eb-confirm-in { from { opacity: 0; transform: translateY(12px); } }
+/* As the Add birds dialog: no rise; the sheet fades (filters.css). */
+@media (prefers-reduced-motion: reduce) { .eb-confirm:not(.eb-sheet) { animation: none; } }
