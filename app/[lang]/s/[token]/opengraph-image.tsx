@@ -10,7 +10,7 @@ import { plural } from '@/i18n/core'
 import { formatMonth } from '@/i18n/format'
 import { getMessages } from '@/i18n/server'
 import { countDisplay } from '@/lib/layout/count-box'
-import { OG_COUNT_MAX, SHARE_COLORS, FOOTER_LINE, SITE_LABEL, STICKER_CREDIT, countLayout, ogCountHole, type CountLayout } from '@/lib/share/image'
+import { OG_COUNT_MAX, SHARE_COLORS, FOOTER_LINE, countLayout, ogCountHole, type CountLayout } from '@/lib/share/image'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import { OG_COLLAGE, OG_SIZE, ogDescription, ogLang, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
@@ -103,17 +103,14 @@ export default async function Image({ params }: { params: Promise<{ lang: string
   const countNum = payload ? countDisplay(payload.birds.length, t.num) : ''
   const countLabel = plural(t.count.word, payload?.birds.length ?? 0).toUpperCase()
 
-  // The footer, as the share images': the wordmark and one quiet line, the site and the sticker credit (FOOTER_LINE, "… ·
-  // Stickers: huashu-bird-sticker, CC BY 4.0"). Beside the wordmark on the wide text card; under it beside the collage,
-  // where the column (380px) is too narrow for the whole line at 14px, so there the site and the credit take a line each.
+  // The footer, as the share images': the wordmark and the link to the credits (FOOTER_LINE, no date). Beside the
+  // wordmark on the wide text card; beside the collage the column (380px) can't hold both at 14px (about 385px), so
+  // there the link is alone on its line under the wordmark.
   const credit = (
     <div style={{ display: 'flex', flexDirection: placed.length ? 'column' : 'row', alignItems: placed.length ? 'flex-start' : 'baseline', gap: placed.length ? 8 : 12 }}>
       <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 24 }}>Everybird</div>
       {placed.length ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontFamily: MONO, fontSize: 14, color: C.muted, whiteSpace: 'nowrap' }}>
-          <div style={{ display: 'flex' }}>{SITE_LABEL}</div>
-          <div style={{ display: 'flex' }}>{STICKER_CREDIT}</div>
-        </div>
+        <div style={{ display: 'flex', fontFamily: MONO, fontSize: 14, color: C.muted, whiteSpace: 'nowrap' }}>{FOOTER_LINE}</div>
       ) : (
         <div style={{ display: 'flex', fontFamily: MONO, fontSize: 16, color: C.muted, whiteSpace: 'nowrap' }}>{FOOTER_LINE}</div>
       )}
