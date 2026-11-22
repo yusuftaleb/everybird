@@ -183,7 +183,7 @@ type Settle = 'rect' | 'round' | 'oval'
  * small stickers, which read as a loose lattice at the edge; every step is a collision test, so it never makes an
  * overlap. Then (`fill`) fillPockets moves the outermost birds into the pockets still left inside. Deterministic.
  */
-function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill = true, keep?: UnitMasks, bound: Bound = shape === 'oval'): Map<number, Box> {
+function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill = true, keep?: UnitMasks, bound: Bound = shape === 'oval', aimH = H): Map<number, Box> {
   const oval = shape === 'oval'
   const grid = blankGrid(W, H, 1, hole, bound)
   const pad = GAP
@@ -197,18 +197,18 @@ function settle(p: Packed, W: number, H: number, hole: Hole, shape: Settle, fill
     grid.stamp(s, gx, gy)
     todo.push({ id: q.id, m, s, gx, gy, w: q.w, h: q.h })
   }
-  const ax = W / 2, ay = H / 2
+  const ax = W / 2, midY = H / 2, ay = aimH / 2 // ay: the shape's half-height (aimH: a filtered state's own, see packBest)
   // Oval: the ellipse's own distance, so the birds close up evenly all round it (the rounded rectangle would draw them
   // in from the ends of its axes and leave those empty).
   const centrality = shape === 'rect'
     ? (cx: number, cy: number) => {
-      const u = (cx - ax) / ax, v = (cy - ay) / ay
+      const u = (cx - ax) / ax, v = (cy - midY) / ay
       return Math.max(Math.abs(u), Math.abs(v)) + 1e-3 * (u * u + v * v)
     }
     : oval
-      ? (cx: number, cy: number) => { const u = (cx - ax) / ax, v = (cy - ay) / ay; return u * u + v * v }
+      ? (cx: number, cy: number) => { const u = (cx - ax) / ax, v = (cy - midY) / ay; return u * u + v * v }
       : (cx: number, cy: number) => {
-        const u = (cx - ax) / ax, v = (cy - ay) / ay
+        const u = (cx - ax) / ax, v = (cy - midY) / ay
         const u2 = u * u, v2 = v * v, u4 = u2 * u2, v4 = v2 * v2
         return u4 * u4 + v4 * v4
       }
@@ -687,6 +687,10 @@ export function packBest(
   let area = 0 // sum of rel² · mask fill, summed in placement order so it never depends on input order
   for (const b of placementOrder(birds, rel)) area += rel.get(b.id)! ** 2 * maskFill(b.mask)
   const clamp = refBase ? ([0.7 * refBase, MAXUP * refBase] as const) : null
+  // A filtered state packs in the full collage's stage but takes the shape a list of its own size takes on the page: the
+  // height its birds fill at refBase (packBest's estimate), from the layout's starting height up to the stage's. Shaped by
+  // the stage, a taxon of a big list (a stage grown 3.7x taller than wide) settled into a column down a wide page.
+  const aimH = fixedStage && refBase ? Math.min(fixedStage[1], Math.max(layout.H, (area * refBase ** 2) / (0.55 * fixedStage[0]))) : undefined
   // Dense: the whole list (rel covers it, also for a filtered state) has at least layout.denseFrom birds. Its even
   // (centre-packed) states keep one GAP between birds and are settled after packing, so small birds sit as close
   // at the edge as in the middle. True size (targets: it follows the settled even centres) and share images
@@ -704,12 +708,12 @@ export function packBest(
   // A small set neither slides nor fills pockets: sliding pulls each bird onto the count and away from its neighbour,
   // and the round / stage spiral test (worstGap) already keeps the snugger of two arrangements.
   let round = small
-  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, H), hole, targets, cell, dense, captions, bound, !small)
+  const tryPack = (W: number, H: number, base: number) => packGrid(birds, rel, W, H, base, round ? [1, 1] : stretchAt(layout, aimH ?? H), hole, targets, cell, dense, captions, bound, !small)
   // Settled (dense), then any detached birds gathered back to the group (gather): the outline stays compact.
   const unitMasks: UnitMasks = new Map() // settle's, for lineEdges
   // A small set keeps the rounded rectangle under Fit too: a few birds close up round the count, not into a rectangle.
   const boxesOf = (p: Packed, W: number, H: number) =>
-    gather(dense ? settle(p, W, H, hole, small && shape === 'rect' ? 'round' : shape, !small && !(opts.settleFrame && shape === 'rect'), unitMasks, bound) : p.boxes, birds, W, H, hole, captions, bound)
+    gather(dense ? settle(p, W, H, hole, small && shape === 'rect' ? 'round' : shape, !small && !(opts.settleFrame && shape === 'rect'), unitMasks, bound, aimH ?? H) : p.boxes, birds, W, H, hole, captions, bound)
 
   // Search range. Full collage: [0.6, 1.6] x the area estimate, capped at MAX_BASE. With refBase (filtered
   // states): the reference's window [0.7, MAXUP] x refBase, searched directly (it may exceed MAX_BASE).

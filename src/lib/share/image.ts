@@ -50,7 +50,7 @@ import { defaultCaptionMeasure, planCaptions, verifyAndPlaceCaptions, type Capti
 import { stampDate, stampStrings } from '@/lib/share/stamp'
 import { SMALL_GROUP, type Box } from '@/lib/layout/pack'
 import type { Arrangement } from '@/lib/arrangement'
-import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, goalLabelCells, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
+import { COMMA_DROP, DIGIT_CAP, LABEL, MONO_CAP, goalLabelCells, MONO_CAP_ACCENT, MONO_LINE, NO_HOLE, NUM_LINE, columnBoxes, countDisplay, isHole, countText, labelEm, numberEm, scaleHole, type Hole } from '@/lib/layout/count-box'
 import type { Ui } from '@/i18n/messages/en'
 import type { ListEntryMsg, WorkerReply, WorkerRequest } from '@/lib/layout/layout.worker'
 import { latestLifer, liferOrder } from '@/lib/list/build-list'
@@ -842,30 +842,47 @@ export async function readyShareImage(opts: ShareImageOpts): Promise<ReadyImage>
 /** `grow`: how much the scale-up past the width fit enlarged the birds (and the hole), at least 1. */
 export type PackFit = { s: number; cx: number; cy: number; ux: number; uy: number; grow: number }
 /**
- * How a pack lands on the collage area: the frame's centre (the hole) on the area's centre, the frame's width on the
- * area's width (or its height, if that is tighter), then scaled about the centre until the birds reach the area's
- * edge or the largest tile reaches `maxTile` px. A layout unit at (x, y) is drawn at (cx + (x − ux)·s, cy + (y − uy)·s)
- * (fitBox). The pack already fills its frame evenly (packFrame), and the frame has the area's shape, so nothing is
- * stretched: the gaps stay even.
+ * How a pack lands on the collage area: the frame's width on the area's width (or its height, if that is tighter), then
+ * scaled until the group reaches the area's edge or the largest tile reaches `maxTile` px. The group (the birds and the
+ * count's `hole`, design units at the collage's width as cardLayout gives it) is centred in the area: (cx, cy) is where
+ * the frame's centre, the count, lands, on the area's centre when the birds ring it evenly and off it by as much as they
+ * don't (round 6: six trogons, settled round an empty centre, sat 132 units off a story's centre, one bird alone at the
+ * top). A layout unit at (x, y) is drawn at (cx + (x − ux)·s, cy + (y − uy)·s) (fitBox). The pack already fills its frame
+ * evenly (packFrame), and the frame has the area's shape, so nothing is stretched: the gaps stay even.
+ * With `caps` (a poster's names, which don't scale with the birds) the frame's centre stays on the area's.
  */
 export function fitPack(
   pack: ImagePack, area: { x: number; y: number; w: number; h: number }, maxTile: number,
-  caps?: Map<string, { w: number; below: number }>,
+  caps?: Map<string, { w: number; below: number }>, hole: Hole = NO_HOLE,
 ): PackFit {
   const ux = pack.W / 2, uy = pack.H / 2
-  const cx = area.x + area.w / 2, cy = area.y + area.h / 2
   const k = Math.min(area.w / pack.W, area.h / pack.H)
-  let dx = 0, dy = 0, maxL = 0
+  // The birds' reach from the frame's centre on each side (layout units) and the count's (design units: it is drawn at
+  // its own size, grown with the birds past the width fit but never shrunk with them).
+  let l = 0, r = 0, t = 0, b = 0, maxL = 0
+  const [hl, hr, ht, hb] = isHole(hole) ? [-Math.min(hole.num[0], hole.label[0]), Math.max(hole.num[2], hole.label[2]), -hole.num[1], hole.label[3]] : [0, 0, 0, 0]
   for (const [, [x, y, w, h]] of pack.boxes) {
-    dx = Math.max(dx, ux - x, x + w - ux)
-    dy = Math.max(dy, uy - y, y + h - uy)
+    l = Math.max(l, ux - x); r = Math.max(r, x + w - ux)
+    t = Math.max(t, uy - y); b = Math.max(b, y + h - uy)
     maxL = Math.max(maxL, w, h)
   }
-  if (!maxL) return { s: k, cx, cy, ux, uy, grow: 1 }
-  let fill = Math.min(area.w / 2 / (dx * k), area.h / 2 / (dy * k), maxTile / (maxL * k))
-  // `caps`: each name's width and its reach below its sticker, in design units (they don't scale with the birds), centred
-  // under the sticker: it stays inside the area too.
+  if (caps) { l = r = Math.max(l, r); t = b = Math.max(t, b) }
+  const reach = (f: number) => {
+    const g = Math.max(1, f), s = k * f
+    return { l: Math.max(hl * g, l * s), r: Math.max(hr * g, r * s), t: Math.max(ht * g, t * s), b: Math.max(hb * g, b * s) }
+  }
+  const at = (f: number) => {
+    const e = caps ? { l: l * k * f, r: r * k * f, t: t * k * f, b: b * k * f } : reach(f)
+    return { s: k * f, cx: area.x + area.w / 2 + (e.l - e.r) / 2, cy: area.y + area.h / 2 + (e.t - e.b) / 2, ux, uy, grow: Math.max(1, f) }
+  }
+  if (!maxL) return at(1)
+  // The largest fill whose group fits the area (its reach grows with the fill: bisection), at most the tile cap's.
+  let fill = maxTile / (maxL * k)
+  const fits = (f: number) => { const e = reach(f); return e.l + e.r <= area.w + 1e-6 && e.t + e.b <= area.h + 1e-6 }
   if (caps) {
+    fill = Math.min(fill, area.w / 2 / (l * k), area.h / 2 / (t * k))
+    // Each name's width and its reach below its sticker, in design units (they don't scale with the birds), centred under
+    // the sticker: it stays inside the area too.
     for (const [code, [x, y, w, h]] of pack.boxes) {
       const c = caps.get(code)
       if (!c) continue
@@ -873,8 +890,12 @@ export function fitPack(
       if (mid > 1e-9) fill = Math.min(fill, (area.w / 2 - c.w / 2) / (mid * k))
       if (low > 1e-9) fill = Math.min(fill, (area.h / 2 - c.below) / (low * k))
     }
+  } else if (!fits(fill)) {
+    let lo = 0, hi = fill
+    for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m }
+    fill = lo
   }
-  return { s: k * fill, cx, cy, ux, uy, grow: Math.max(1, fill) }
+  return at(fill)
 }
 /** A pack's box [x, y, w, h] (layout units) as drawn on the card (design units), by fitPack's `f`. */
 export const fitBox = (f: PackFit, [x, y, w, h]: Box): Box => [f.cx + (x - f.ux) * f.s, f.cy + (y - f.uy) * f.s, w * f.s, h * f.s]
@@ -948,7 +969,7 @@ export function fitCaptionPack(
   const area = L.collage
   const caps = new Map<string, { w: number; below: number }>()
   for (const [code, p] of captionPlan.byCode) caps.set(code, { w: p.w, below: p.h })
-  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), caps)
+  const fit = fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), caps, L.count.hole)
   const placed: PlacedTile[] = []
   for (const e of entries) {
     const b = pack.boxes.get(e.code)
@@ -1022,14 +1043,14 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const sticker = (code: string, side: number, sv?: string): Pick<Tile, 'url' | 'fallback'> =>
     print || scale > 1 || side > PRINT_FROM ? printStickerUrl(code, side * scale, sv) : { url: stickerUrl(code, side, scale, sv) }
 
-  // The pack on the collage area, its centre (the count) on the area's centre.
+  // The pack on the collage area, the group (the birds and the count) centred in it (fitPack).
   const area = L.collage
   const capFit = captionPlan?.ok ? fitCaptionPack(pack, shown, format, content, printSize, captionPlan) : undefined
   if (capFit && !capFit.ok && !opts.pack) {
     pack = await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, undefined, opts.arrangement, opts.trueSize), signal)
     if (signal?.aborted) throw abortError()
   }
-  const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide))
+  const fit = capFit?.ok ? capFit.fit : fitPack(pack, area, maxTileSide(area.w, L.maxTile, L.maxSide), undefined, L.count.hole)
   const captions = capFit?.ok ? capFit.captions : undefined
   // Names asked for but not drawn (over the cap, a name too long, or a pack they don't fit): the caller says so.
   const namesDropped = print && !!opts.showNames && !captions
