@@ -10,8 +10,10 @@
 // or Replace of a source that had birds adds what changed, "Done · 282 from iNaturalist · 4 new species" (or "no new
 // species"); for DONE_MS, longer while hovered or focused. An iNaturalist fetch that fails shows its message for DONE_MS
 // too (the fetch outlives the dialog; the row keeps the words); a file's error or a cancel closes it, their words in the
-// source's row. It never takes focus. Under reduced motion the spinner is a still ring.
-import { useEffect, useState } from 'react'
+// source's row. Under reduced motion the spinner is a still ring. A done line that brought birds (`seeWorth`) offers
+// "See my collage" (`onSee`) unless the birder is already looking at it (`here`). It never takes focus, except to put
+// a keyboard user on that button when the import was started from the keyboard (UndoToast's rule).
+import { useEffect, useRef, useState } from 'react'
 import { Toast } from '@/components/app/Toast'
 import { inatMessage, type ImportJobs, type InatJob, type Landed } from '@/components/app/use-import-jobs'
 import { fmt, plural } from '@/i18n/core'
@@ -22,10 +24,32 @@ import '@/components/share/share.css' // .eb-share-bar, the site's progress line
 
 /** How long the done line stays (ms), while not hovered or focused. */
 export const DONE_MS = 3000 // Yusuf, 2026-11-21: 3 to 5 s at most
+/** How long a done line with "See my collage" stays: Undo's 5 s, time to reach a button (Yusuf: 3 to 5 s at most). */
+export const SEE_MS = 5000
 /** A read or fetch shorter than this shows no running toast, only its done line. */
 export const RUN_DELAY = 400
 
-export function ImportToast({ jobs }: { jobs: ImportJobs }) {
+/** Whether a landing is worth "See my collage": a first collage, a new source with birds, or a Refresh or Replace that
+ *  added species. Not "no new species": the collage looks as it did. */
+export const seeWorth = (d: Landed) => d.species > 0 && (!!d.first || d.added !== 0)
+
+/** The last press was a key (not a pointer or a drop), page-wide: what started an import. */
+let byKey = false
+if (typeof window !== 'undefined') {
+  addEventListener('keydown', (e) => { if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) byKey = true }, true)
+  addEventListener('pointerdown', () => { byKey = false }, true)
+  addEventListener('drop', () => { byKey = false }, true)
+}
+
+type Props = {
+  jobs: ImportJobs
+  /** "See my collage": takes the birder to My birds' Collage view. None: no button. */
+  onSee?: () => void
+  /** The birder is already on My birds' Collage view with nothing over it: no button. */
+  here?: boolean
+}
+
+export function ImportToast({ jobs, onSee, here = false }: Props) {
   const { t } = useI18n()
   const ti = t.import.inat
   const file = [jobs.ebird, jobs.obsorg, jobs.sheet, jobs.scythebill, jobs.igoterra].find((j) => j.busy)
@@ -34,8 +58,11 @@ export function ImportToast({ jobs }: { jobs: ImportJobs }) {
 
   // Running, shown once it has lasted RUN_DELAY.
   const [slow, setSlow] = useState(false)
+  // How the running import was started (a quick read too); null: none since the last done line (a review's confirm).
+  const started = useRef<boolean | null>(null)
   useEffect(() => {
     if (!busy) return
+    started.current = byKey
     const id = setTimeout(() => setSlow(true), RUN_DELAY)
     return () => { clearTimeout(id); setSlow(false) }
   }, [busy])
@@ -57,6 +84,20 @@ export function ImportToast({ jobs }: { jobs: ImportJobs }) {
     setFailed(jobs.inat.error ? { error: jobs.inat.error, at: (failed?.at ?? 0) + 1 } : null)
   }
   if (busy && failed) setFailed(null)
+
+  const see = !busy && !!done && !!onSee && !here && seeWorth(done)
+  const seeRef = useRef<HTMLButtonElement>(null)
+  // Once per done line: a keyboard start puts focus on the button (a mouse, touch or drop start leaves it alone).
+  const focused = useRef<number | undefined>(undefined)
+  useEffect(() => {
+    if (!done || focused.current === done.at) return
+    focused.current = done.at
+    const key = started.current ?? byKey
+    started.current = null
+    if (!see || !key) return // shown later (the birder left the Collage view): never a focus move then
+    const raf = requestAnimationFrame(() => seeRef.current?.focus({ preventScroll: true }))
+    return () => cancelAnimationFrame(raf)
+  }, [see, done])
 
   const running = busy && slow
   const progress = inat?.progress ?? null
@@ -121,7 +162,7 @@ export function ImportToast({ jobs }: { jobs: ImportJobs }) {
   return (
     <Toast
       show={!!body}
-      stay={running ? undefined : DONE_MS}
+      stay={running ? undefined : see ? SEE_MS : DONE_MS}
       restart={running ? 'running' : body && failed && !done ? `fail${failed.at}` : done?.at}
       onDone={() => { setDone(null); setFailed(null) }}
       testId="import-toast"
@@ -129,6 +170,10 @@ export function ImportToast({ jobs }: { jobs: ImportJobs }) {
       {body}
       {running && inat && <button type="button" className="eb-textbtn" onClick={jobs.cancelInat}>{ti.cancel}</button>}
       {running && file && <button type="button" className="eb-textbtn" onClick={jobs.cancelFile} data-testid="import-cancel">{ti.cancel}</button>}
+      {see && (
+        // Its press ends the toast (the button would go from under focus, and the toast would wait on it for ever).
+        <button ref={seeRef} type="button" className="eb-textbtn" data-testid="import-see" onClick={() => { setDone(null); onSee!() }}>{t.import.toastSee}</button>
+      )}
     </Toast>
   )
 }
