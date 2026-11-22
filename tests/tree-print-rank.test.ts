@@ -38,7 +38,7 @@ vi.mock('@/lib/share/view-image', async (orig) => {
   const print = await import('@/lib/share/print')
   return {
     ...real,
-    renderViewImage: async (opts: ShareImageOpts, _footer: string, paint: (ctx: CanvasRenderingContext2D, card: unknown, area: unknown) => void) => {
+    renderViewImage: async (opts: ShareImageOpts, paint: (ctx: CanvasRenderingContext2D, card: unknown, area: unknown) => void) => {
       const landscape = opts.format === 'printLandscape'
       const L = cardLayout(opts.format, { name: false, filter: false, latest: false, count: 0, countSize: 'hide' }, opts.printSize && (opts.format === 'print' || landscape) ? print.printDesign(opts.printSize, landscape) : undefined)
       let px = 10

@@ -29,7 +29,7 @@ const POSTERS = ['print', 'printLandscape'] as const
 // The harness's mono face: 0.6 em a character (installStubs).
 const mono = (s: string, px: number) => s.length * 0.6 * px
 // The language's longest date stamp: the 28th of its longest month name.
-const longestDay = (ui: typeof en.ui) => {
+const longestDay = (ui: Parameters<typeof stampStrings>[0]) => {
   const days = Array.from({ length: 12 }, (_, m) => new Date(2026, m, 28))
   return days.reduce((a, b) => (stampDate(b, stampStrings(ui)).length > stampDate(a, stampStrings(ui)).length ? b : a))
 }
