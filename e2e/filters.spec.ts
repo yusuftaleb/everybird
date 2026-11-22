@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { finalCollage } from "./layouts";
 
 // A phone: 390px wide, with touch (the test taps).
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
@@ -105,6 +106,7 @@ test("the timeline on a 1,000-species list at 390px with 4x CPU: a held range dr
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
   const stage = page.getByTestId("collage-stage");
   await expect(stage.locator("[data-code]:not([data-off])").first()).toBeVisible();
+  await finalCollage(page); // 1,000 species: the provisional collage's swap must not land inside a measure
   await page.getByTestId("filters-button").tap();
   await expect(page.getByTestId("timeline")).toBeVisible();
   await page.waitForTimeout(1500);
@@ -144,6 +146,7 @@ test("filtering a 1,000-species list at 390px with 4x CPU slowdown stays smooth"
 
   const stage = page.getByTestId("collage-stage");
   await expect(stage.locator("[data-code]:not([data-off])").first()).toBeVisible();
+  await finalCollage(page); // 1,000 species: the provisional collage's swap must not land inside a measure
   await page.waitForTimeout(1500); // let the first ripple finish
 
   const measure = async (what: string, act: () => Promise<void>, took: () => Promise<void>) => {

@@ -25,7 +25,8 @@ test("a share link opens a read-only collage: whose list, what Everybird is and 
   await expect(page.getByRole("contentinfo").getByRole("link", { name: "All credits" })).toHaveAttribute("href", "/about#credits");
   // Read-only: none of the editing tools, and the visitor's own list is untouched.
   await expect(page.getByRole("button", { name: /forget|download|restore/i })).toHaveCount(0);
-  expect(await page.evaluate(async () => (await indexedDB.databases?.())?.some((d) => d.name === "everybird") ?? false)).toBe(false);
+  // Neither the stored list nor the birder's stored layouts (layout-store.ts: only the birder's own collage keeps them).
+  expect(await page.evaluate(async () => (await indexedDB.databases?.())?.some((d) => d.name === "everybird" || d.name === "everybird-layouts") ?? false)).toBe(false);
   // The token never leaves as a Referer (no analytics request carries a URL either: src/lib/analytics.ts).
   await expect(page.locator('meta[name="referrer"]')).toHaveAttribute("content", "strict-origin");
   expect(errors).toEqual([]);

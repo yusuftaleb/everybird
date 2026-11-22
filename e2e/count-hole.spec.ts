@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { finalCollage } from "./layouts";
 
 // The count in the middle of the collage (Tally: the number over "SPECIES") sits in the hole the packer keeps empty,
 // sized from the count's en-US text and an 8-character label (src/lib/layout/count-box.ts), in every language. A 1,089-species synthetic list, at a desktop and
@@ -84,11 +85,9 @@ for (const { locale, num: shown, label } of LOCALES) test.describe(`${locale}`, 
       await page.goto("/");
       const stage = page.getByTestId("collage-stage");
       await expect(stage).toHaveAttribute("aria-label", /1[.,]089/, { timeout: 60_000 });
-      await expect.poll(() => page.evaluate(() => {
-        const L = document.querySelector<HTMLElement>(".eb-layer");
-        return !!L && !L.style.opacity && L.getAnimations().length === 0 && document.querySelectorAll(".eb-tile").length > 0
-          && [...document.querySelectorAll(".eb-tile")].every((t) => t.getAnimations().length === 0);
-      }), { timeout: 60_000 }).toBe(true);
+      // 1,089 species: the final collage, not the provisional one it replaces, is the one checked.
+      await finalCollage(page);
+      await expect(page.locator(".eb-tile").first()).toBeVisible();
       await page.locator(".eb-num").scrollIntoViewIfNeeded();
       await page.evaluate(() => { const r = document.querySelector(".eb-num")!.getBoundingClientRect(); window.scrollBy(0, r.top - window.innerHeight / 2); });
       await expect(page.locator(".eb-num")).toHaveText(shown, { timeout: 10_000 });

@@ -205,7 +205,7 @@ const WIDTHS = [390, 1440];
 // 3,000 and 6,000 species (big) and the whole taxonomy (all); see the P4 report for the numbers measured.
 const GOAL = { scroll: [100, 50], filter: [100, 50] };
 const CEILING = { big: { scroll: [150, 150], filter: [200, 300] }, all: { scroll: [200, 200], filter: [300, 400] } };
-// Worker budget for the first full collage (setList + the even layout), unthrottled.
+// Worker budget for the final full collage (setList + the even layout, not the provisional one), unthrottled.
 const LAYOUT_BUDGET_MS: Record<number, number> = { 3000: 20_000, 6000: 40_000, [SPECIES.length]: 90_000 };
 
 for (const [label, n] of SIZES) {
@@ -223,15 +223,24 @@ for (const [label, n] of SIZES) {
       const count = Math.min(n, SPECIES.length);
       await expect(stage).toBeVisible({ timeout: LAYOUT_BUDGET_MS[n] * 2 });
       await expect.poll(() => stage.locator(".eb-bird:not([data-off])").count(), { timeout: LAYOUT_BUDGET_MS[n] * 2 }).toBe(count);
-      const firstMs = Date.now() - t0;
-      const log = await page.evaluate(() => (window as unknown as { __workerLog: { type: string; key?: string; ms: number; n?: number }[] }).__workerLog);
+      const firstMs = Date.now() - t0; // the first collage on screen: from PROVISIONAL_FROM (600) birds, the provisional one
+      // The final full collage replaces the provisional (layout-client.ts): wait for the worker's answer and the travel to
+      // it, so the checks below read the final layout.
+      const workerLog = () => page.evaluate(() => (window as unknown as { __workerLog: { type: string; key?: string; ms: number; n?: number }[] }).__workerLog);
+      await expect.poll(async () => (await workerLog()).some((l) => l.type === "layout" && l.key?.endsWith("|even|")), { timeout: LAYOUT_BUDGET_MS[n] * 2 }).toBe(true);
+      const finalMs = Date.now() - t0;
+      await expect.poll(() => page.evaluate(() => {
+        const L = document.querySelector<HTMLElement>(".eb-layer")!;
+        return !L.style.opacity && !L.style.contentVisibility && L.getAnimations().length === 0;
+      }), { timeout: 120_000 }).toBe(true);
+      const log = await workerLog();
       const setList = log.find((l) => l.type === "setList")?.ms ?? NaN;
       const fullEven = log.find((l) => l.type === "layout" && l.key?.endsWith("|even|"))?.ms ?? NaN;
       await page.waitForTimeout(3000); // the first ripple, then idle prefetches may start
       const imgsAtRest = stickerReqs.size; // (before the check: it scrolls the whole stage)
       const geo = await checkGeometry(page);
       const heap = await heapMB(page, browserName);
-      console.log(`[stress] ${browserName} ${width}px ${count} species: collage in ${firstMs} ms (setList ${setList.toFixed(0)} ms, full even layout ${fullEven.toFixed(0)} ms), stage ${geo.stageW.toFixed(0)}x${geo.stageH.toFixed(0)} px, ${geo.rastered}/${geo.shown} silhouettes checked, ${geo.clashes} clashing px (${geo.clashBirds} birds), ${geo.outside} outside, ${imgsAtRest} sticker requests at rest (${geo.near} stickers within a screen of the viewport), heap ${heap?.toFixed(0) ?? "n/a"} MB`);
+      console.log(`[stress] ${browserName} ${width}px ${count} species: collage in ${firstMs} ms, final in ${finalMs} ms (setList ${setList.toFixed(0)} ms, full even layout ${fullEven.toFixed(0)} ms), stage ${geo.stageW.toFixed(0)}x${geo.stageH.toFixed(0)} px, ${geo.rastered}/${geo.shown} silhouettes checked, ${geo.clashes} clashing px (${geo.clashBirds} birds), ${geo.outside} outside, ${imgsAtRest} sticker requests at rest (${geo.near} stickers within a screen of the viewport), heap ${heap?.toFixed(0) ?? "n/a"} MB`);
       expect(geo.shown).toBe(count);
       expect(geo.drawn, "every shown bird is drawn where the viewport reaches it").toBe(count);
       expect(geo.outside).toBe(0);

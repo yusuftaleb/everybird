@@ -7,12 +7,12 @@ import { plural } from "../src/i18n/core";
 import { en } from "../src/i18n/messages/en";
 import { countParts, summaryLine, type RowCount, type SourceCounts } from "../src/lib/list/source-counts";
 import { SHARE_ORIGIN } from "../src/lib/share/origin";
-import { stampDate, withStamp } from "../src/lib/share/stamp";
+import { stampDate } from "../src/lib/share/stamp";
 import { checkTopbar } from "./topbar";
 
-// share/image.ts's FOOTER_LINE (that module can't load here: it starts a worker with import.meta); the test checks its
-// definition is still this.
-const FOOTER_LINE = `${new URL(SHARE_ORIGIN).host} · Stickers: huashu-bird-sticker, CC BY 4.0`;
+// share/image.ts's FOOTER_LINE, the link to every credit (that module can't load here: it starts a worker with
+// import.meta); the test checks its definition is still this.
+const FOOTER_LINE = `${new URL(SHARE_ORIGIN).host}/credits`;
 const frozen = readFileSync("tests/fixtures/share/v1-frozen.txt", "utf8").trim();
 
 test("/about says what Everybird is, what True size means, and credits the stickers (CC BY 4.0) and the taxonomy version", async ({ page }) => {
@@ -25,7 +25,7 @@ test("/about says what Everybird is, what True size means, and credits the stick
   await expect(main.getByRole("heading", { name: "What True size means" })).toBeVisible();
   await expect(main.getByText(/cube root of mass/)).toBeVisible();
   await expect(main.getByText("Your list never leaves your browser.", { exact: false })).toBeVisible();
-  await expect(main.getByText(/Cloudflare Web Analytics, anonymous and cookieless/)).toBeVisible();
+  await expect(main.getByText(/Cloudflare Web Analytics \(anonymous, no cookies\)/)).toBeVisible();
   await expect(main.getByText(/daily-changing anonymous id/)).toBeVisible();
   await expect(main.getByText(/Vercel Analytics/)).toHaveCount(0);
   const credits = main.locator("#credits");
@@ -110,8 +110,8 @@ for (const [name, path] of [
   });
 }
 
-// Under 620px the nav takes its own row under the wordmark, the language button and the theme switch (variant a, the
-// default): e2e/topbar.ts checks both rows, the gutter, --topbar-h and that nothing scrolls sideways.
+// From 320px the bar is one line (under 620px the pages are icon tabs, under 381px the origami bird stands for the
+// wordmark): e2e/topbar.ts checks the row, the gutter, --topbar-h and that nothing scrolls sideways.
 for (const width of [320, 390]) {
   test(`the top bar's rows fit with no sideways scroll at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
@@ -144,7 +144,7 @@ for (const { layout, width, height } of SIZES) {
       const st = document.querySelector(`[data-poster="${l}"] .ss-stage`)!.getBoundingClientRect()
       return { slotW: s.width, slotH: s.height, w: st.width, h: st.height, left: st.left - s.left }
     }, layout)
-    // The stage's own scale (min(1, width / design width)) and height: the slot is never a blank box
+    // The stage's own zoom (min(2, width / design width)) and height: the slot is never a blank box
     expect(Math.abs(m.h - m.slotH)).toBeLessThan(1.5)
     expect(m.w).toBeLessThanOrEqual(m.slotW + 1)
     expect(m.left).toBeGreaterThanOrEqual(-1)
@@ -371,19 +371,21 @@ test("How it works: the scene's labels are the product's (Settings rows, summary
     return st.bottom - d.bottom
   })
   expect(fit).toBeGreaterThanOrEqual(0)
-  // The footer line ends with the demo's fixed date stamp (its "Imported 6 Nov"), as the product's ends with the day's
-  const LINE = withStamp(FOOTER_LINE, stampDate(new Date(2026, 10, 6)))
-  expect(LINE).toBe("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0 · 6 Nov 2026")
-  expect(await scene.locator(".ebd-img-line").allTextContents()).toEqual([LINE, LINE, LINE])
-  expect(src("src/lib/share/image.ts")).toContain("withStamp(opts.footer ?? FOOTER_LINE, stampDate(")
-  expect(src("src/lib/share/image.ts")).toContain("export const FOOTER_LINE = `${SITE_LABEL} · ${STICKER_CREDIT}`")
-  expect(src("src/lib/share/image.ts")).toContain("export const STICKER_CREDIT = 'Stickers: huashu-bird-sticker, CC BY 4.0'")
+  // The footer is one line: the wordmark, the link to every credit, and at its right the demo's fixed date stamp (its
+  // "Imported 6 Nov"), as the product's ends with the day's
+  const STAMP = stampDate(new Date(2026, 10, 6))
+  expect(STAMP).toBe("6 Nov 2026")
+  expect(await scene.locator(".ebd-img-line").allTextContents()).toEqual([FOOTER_LINE, FOOTER_LINE, FOOTER_LINE])
+  expect(await scene.locator(".ebd-img-date").allTextContents()).toEqual([STAMP, STAMP, STAMP])
+  expect(src("src/lib/share/image.ts")).toContain("export const FOOTER_LINE = `${SITE_LABEL}/credits`")
   expect(src("src/lib/share/image.ts")).toContain("export const SITE_LABEL = new URL(SHARE_ORIGIN).host")
-  expect(FOOTER_LINE).toBe("everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0")
+  expect(FOOTER_LINE).toBe("everybird.yusuftaleb.com/credits")
   expect(await scene.locator(".ebd-img-mark").allTextContents()).toEqual(["Everybird", "Everybird", "Everybird"])
-  // Nothing from the old scene, no credit line inside the image but the footer's (one in each of the three), no "seen" for the list
+  // Nothing from the old scene: the credit is behind the footer's link (one in each of the three), no sticker credit
+  // inside the images, no "seen" for the list
   const all = (await scene.textContent())!
-  expect(all.split("Stickers: huashu").length - 1).toBe(3)
+  expect(all.split(FOOTER_LINE).length - 1).toBe(3)
+  expect(all).not.toContain("Stickers: huashu")
   expect(all).not.toMatch(/\bseen\b/i)
   expect(all).not.toContain("Yusuf")
 })

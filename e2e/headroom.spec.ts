@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 // The top bar's headroom (src/lib/headroom.ts): it slides up out of view while the page scrolls down past it and back in
-// on any upward scroll; it stays shown at the top, while a dialog, sheet or popover is open, and while focus is inside
+// on any upward scroll; it stays shown at the top and while focus is inside
 // it. While a menu, panel, popover, sheet or dialog is open it is frozen (round 6 menu audit): it keeps the state it had,
 // shown or hidden, and opening or closing one neither shows nor hides it nor scrolls the page. Runs in Chromium and WebKit.
 

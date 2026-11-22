@@ -130,7 +130,7 @@ test("story image is a 2160×3840 PNG, post 2160×2700 and square 2160×2160 (tw
   expect(errors).toEqual([]);
 });
 
-// The footer line ends with the day the image was made, on the device's clock and in its time zone: at 12:30 UTC on
+// The footer's date is the day the image was made, on the device's clock and in its time zone: at 12:30 UTC on
 // 14 Nov it is already 01:30 on 15 Nov in Auckland, so the stamp says 15 Nov and never the UTC day. A wrapper around
 // fillText records every text the main-thread canvas draws (the share image is drawn there), cleared between formats
 // so each format proves its own line.
@@ -151,14 +151,15 @@ test.describe("date stamp", () => {
     });
   }
 
-  test("every format's footer line ends with the device's local date: 15 Nov 2026", async ({ page }) => {
+  test("every format's footer ends with the device's local date: 15 Nov 2026", async ({ page }) => {
     test.setTimeout(90_000);
     await stampClock(page);
     const dialog = await openShare(page);
     const preview = dialog.getByTestId("share-preview");
     const texts = () => page.evaluate(() => (window as unknown as { __fillTexts: string[] }).__fillTexts);
-    // On the 1080-wide cards the footer is two lines under the wordmark (AD7): the site and the date, then the credit.
-    const lines = ["everybird.yusuftaleb.com · 15 Nov 2026", "Stickers: huashu-bird-sticker, CC BY 4.0"];
+    // The footer is one line (image.ts paintCard): the wordmark, the link to the credits (FOOTER_LINE) and, at the right,
+    // the date, each drawn on its own.
+    const lines = ["everybird.yusuftaleb.com/credits", "15 Nov 2026"];
     for (const format of ["Story", "Post", "Square"]) {
       // The story is drawn as the dialog opens; the others on their click, after the previous format's texts are gone.
       if (format !== "Story") {
@@ -168,14 +169,14 @@ test.describe("date stamp", () => {
       await expect(preview.getByRole("img", { name: `Preview of the ${format.toLowerCase()} image` })).toBeVisible({ timeout: 30_000 });
       await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
       const drawn = await texts();
-      for (const line of lines) expect(drawn, `${format}: the footer's lines`).toContain(line);
+      for (const line of lines) expect(drawn, `${format}: the footer's link and date`).toContain(line);
       expect(drawn.join("\n"), `${format}: never the UTC day`).not.toContain("14 Nov 2026");
     }
   });
 
   // The same dialog in Spanish (the browser's language picks /es/): its words, the image's, an English download name,
-  // named for the device's local day (15 Nov in Auckland), and the credit line unchanged with the Spanish date after it,
-// no lead ("Al").
+  // named for the device's local day (15 Nov in Auckland), and the credits link unchanged with the Spanish date at its
+  // right, no lead ("Al").
   test.describe("in Spanish", () => {
     test.use({ locale: "es-ES" });
     test("the labels, the drawn words and the stamp; the file is still English, everybird-story-2026-11-15.png", async ({ page }) => {
@@ -189,8 +190,8 @@ test.describe("date stamp", () => {
       await expect(preview.getByRole("img", { name: es.ui.share.preview.story })).toBeVisible({ timeout: 30_000 });
       await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
       const drawn = await page.evaluate(() => (window as unknown as { __fillTexts: string[] }).__fillTexts);
-      expect(drawn).toContain("everybird.yusuftaleb.com · 15 nov 2026");
-      expect(drawn).toContain("Stickers: huashu-bird-sticker, CC BY 4.0");
+      expect(drawn).toContain("everybird.yusuftaleb.com/credits");
+      expect(drawn).toContain("15 nov 2026");
       expect(drawn.some((t) => t.startsWith("ÚLTIMA ESPECIE NUEVA"))).toBe(true);
       expect(drawn).toContain("ESPECIES");
       const [download] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Descargar imagen" }).click()]);
@@ -201,7 +202,7 @@ test.describe("date stamp", () => {
 });
 
 // "Show latest lifer" (on at every open): off, the image draws no latest lifer row (its room goes to the collage), and
-// the footer with the sticker credit stays; on again, the row is back. The same fillText recorder as the date stamp's.
+// the footer with its link to the credits stays; on again, the row is back. The same fillText recorder as the date stamp's.
 test("Show latest lifer: on by default; off draws no latest lifer row, on draws it again", async ({ page }) => {
   test.setTimeout(90_000);
   await page.addInitScript(() => {
@@ -231,9 +232,8 @@ test("Show latest lifer: on by default; off draws no latest lifer row, on draws 
   const off = await texts();
   expect(off.length).toBeGreaterThan(0); // a new image was drawn
   expect(off.some((t) => t.startsWith("LATEST LIFER"))).toBe(false);
-  // The footer and credit stay (two lines under the wordmark on the 1080-wide cards, AD7).
-  expect(off.some((t) => t.startsWith("everybird.yusuftaleb.com · "))).toBe(true);
-  expect(off).toContain("Stickers: huashu-bird-sticker, CC BY 4.0");
+  // The footer stays: one line, the wordmark and the link to the credits (image.ts FOOTER_LINE).
+  expect(off).toContain("everybird.yusuftaleb.com/credits");
   expect(off.filter((t) => /coffee/i.test(t)), "Buy me a coffee is never drawn on the image").toEqual([]);
   await clear();
   await sw.click();
@@ -302,7 +302,7 @@ async function recordStats(page: Page) {
   return async () => (await page.evaluate(() => (window as unknown as { __stats: string[] }).__stats)).map((b) => JSON.parse(b) as Record<string, string>);
 }
 
-test("visits, downloads and copy link each send one anonymous event: {n, p} only, no list contents", async ({ page, context, baseURL, browserName }) => {
+test("visits, downloads and copy link send anonymous events: {n, p} only, no list contents", async ({ page, context, baseURL, browserName }) => {
   chromiumOnly(browserName);
   test.setTimeout(90_000);
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseURL });
@@ -321,8 +321,11 @@ test("visits, downloads and copy link each send one anonymous event: {n, p} only
     // A visit also carries the browser language's primary subtag (l: "en" under Playwright's en-US).
     { n: "visit", p: "settings", l: expect.stringMatching(/^[a-z]{2,3}$/) },
     { n: "visit", p: "collage", l: expect.stringMatching(/^[a-z]{2,3}$/) },
+    // Each saved image also says what view it shows (image_view, ShareDialog's download).
     { n: "image_downloaded", p: "story" },
+    { n: "image_view", p: "collage" },
     { n: "image_downloaded", p: "square" },
+    { n: "image_view", p: "collage" },
     { n: "link_copied", p: expect.stringMatching(/^(full|compact|minimal|species)$/) },
   ]);
 });
@@ -346,14 +349,16 @@ test("Share image counts `shared` when the share sheet resolves, nothing when it
   await expect(dialog.getByTestId("share-preview")).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
   const share = dialog.getByRole("button", { name: "Share image" });
   await share.click();
-  await expect.poll(async () => (await stats()).filter((e) => e.n !== "visit")).toEqual([{ n: "shared", p: "post" }]);
+  await expect.poll(async () => (await stats()).filter((e) => e.n !== "visit")).toEqual([{ n: "shared", p: "post" }, { n: "image_view", p: "collage" }]);
   await page.evaluate(() => { (window as unknown as { __shareMode: string }).__shareMode = "abort"; });
   await share.click();
   await page.evaluate(() => { (window as unknown as { __shareMode: string }).__shareMode = "fail"; });
   await Promise.all([page.waitForEvent("download"), share.click()]);
   await expect.poll(async () => (await stats()).filter((e) => e.n !== "visit")).toEqual([
     { n: "shared", p: "post" },
+    { n: "image_view", p: "collage" },
     { n: "image_downloaded", p: "post" },
+    { n: "image_view", p: "collage" },
   ]);
 });
 
@@ -369,7 +374,7 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
   const dialog = await openShare(page);
   await dialog.getByLabel("Card title").fill("Maximiliana Featherstonehaugh-Ravensworth");
   const aspect: Record<string, number> = { Story: 9 / 16, Post: 4 / 5, Square: 1 };
-  for (const width of [1440, 1280, 1000, 768, 440, 390, 320]) {
+  for (const width of [1440, 1280, 1000, 768, 440, 390, 360, 320]) {
     await page.setViewportSize({ width, height: 800 });
     const seen: { format: string; col: number; segX: number; segY: number; midY: number; midX: number; boxR: number; share: string; rel: string }[] = [];
     for (const format of ["Story", "Post", "Square"]) {
@@ -422,15 +427,21 @@ test("the dialog never scrolls sideways at 320 to 1440px, with a long name, in e
         expect(Math.abs(m.dialogMidY - m.winMidY), `${format} at ${width}px: the dialog isn't centred down`).toBeLessThanOrEqual(1);
       }
       // Stacked on a phone, the tallest preview still leaves Share image on the dialog's first screen, with air under it.
+      // Share image and the quiet row share one wrapping line where they fit (.eb-share-trio, share.css); under 300px of
+      // column (a 360px phone and narrower) the three keep the stacked layout, Share image over the row, never stretched
+      // two rows tall beside it.
       if (width < 720 && format === "Story") {
         const g = await dialog.evaluate((d) => {
           d.scrollTop = 0;
           const bottom = d.getBoundingClientRect().bottom;
           const btn = (t: string) => [...d.querySelectorAll("button")].find((b) => (b.getAttribute("aria-label") ?? b.textContent!).includes(t))!.getBoundingClientRect();
-          return { air: bottom - btn("Share image").bottom, peek: bottom - btn("Download image").top };
+          const share = btn("Share image"), dl = btn("Download image");
+          return { air: bottom - share.bottom, peek: bottom - dl.top, below: dl.top - share.bottom, shareH: share.height };
         });
         expect(g.air, `at ${width}px Share image is not on the first screen with air under it`).toBeGreaterThanOrEqual(12);
-        expect(g.peek, `at ${width}px the Download row doesn't show its top as a scroll cue`).toBeGreaterThanOrEqual(width >= 390 ? 12 : 4);
+        expect(g.peek, `at ${width}px the Download row doesn't show its top`).toBeGreaterThanOrEqual(width >= 390 ? 12 : 4);
+        expect(g.shareH, `at ${width}px Share image is stretched`).toBeLessThanOrEqual(48);
+        if (width <= 360) expect(g.below, `at ${width}px the actions aren't stacked`).toBeGreaterThanOrEqual(0);
       }
       seen.push({ format, col: m.col, segX: m.segX, segY: m.segY, midY: m.midY, midX: m.midX, boxR: m.boxR, share: m.share, rel: m.rel });
       if (shots) {

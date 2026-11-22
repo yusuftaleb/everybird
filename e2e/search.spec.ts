@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
+import { finalCollage } from "./layouts";
 
 // A phone: 390px wide. The list: the first 1,000 species in the taxonomy (synthetic dates and countries).
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
@@ -38,8 +39,9 @@ test("a bird picked from the search on a 1,000-species list ends on screen, ring
   const stage = page.getByTestId("collage-stage");
   await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(1000, { timeout: 30_000 });
 
+  // A list of 600 or more first shows a provisional collage, then the final one replaces it: wait for the final one.
+  await finalCollage(page);
   // The targets: the birds lowest on the stage (far below the dock), whose names pick out only them.
-  await page.waitForTimeout(1500);
   const byDepth = await stage.evaluate((el) =>
     [...el.querySelectorAll<HTMLElement>("[data-code]")].map((b) => ({ code: b.dataset.code!, y: b.getBoundingClientRect().top })).sort((a, b) => b.y - a.y),
   );
