@@ -49,7 +49,10 @@ describe('the share dialog: the top row clears the options', () => {
     expect(css).toMatch(/\.eb-orient-icon \{ display: none; \}/)
     expect(css).toMatch(/\.eb-share-trio \{ display: contents; \}/)
     expect(phone).toMatch(/@media \(max-width: 719\.98px\) \{[^]*\.eb-share \.eb-share-orient \.eb-orient-word \{ display: none; \}/)
-    expect(phone).toMatch(/\.eb-share \.eb-share-orient \.eb-seg-btn svg\.eb-orient-icon \{ display: block;/)
+    expect(phone).toMatch(/\.eb-share \.eb-share-orient \.eb-seg-btn svg\.eb-orient-icon \{ display: block; width: 20px;/)
+    // 20px icon + 2 × 8px = 36px across, the ::after 4px past each side: a 44px press (e2e/press-areas.ts).
+    expect(phone).toMatch(/\.eb-share-orient \.eb-seg-btn \{ flex: none; padding: 0 8px; \}/)
+    expect(phone).toMatch(/\.eb-share-orient \.eb-seg-btn::after \{ inset: -5px -4px; \}/)
     expect(phone).toMatch(/\.eb-share-trio \{ display: flex; flex-wrap: wrap; gap: 8px;/)
     expect(phone).toMatch(/\.eb-share-trio > \.eb-share-primary \{ flex-grow: 2; \}/)
   })

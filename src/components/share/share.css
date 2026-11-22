@@ -496,7 +496,9 @@
 @media (max-width: 719.98px) {
   .eb-share .eb-share-orient .eb-orient-word { display: none; }
   .eb-share .eb-share-toprow .eb-share-orient { flex: none; }
-  .eb-share .eb-share-toprow .eb-share-orient .eb-seg-btn { flex: none; padding: 0 7px; }
+  /* 36px across, its press 44px across too (the ::after 4px past each side, inside the control's inset). */
+  .eb-share .eb-share-toprow .eb-share-orient .eb-seg-btn { flex: none; padding: 0 8px; }
+  .eb-share .eb-share-toprow .eb-share-orient .eb-seg-btn::after { inset: -5px -4px; }
   .eb-share .eb-share-orient .eb-seg-btn svg.eb-orient-icon { display: block; width: 20px; height: 20px; }
   .eb-share-trio { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
   .eb-share-trio > * { flex: 1 1 auto; min-width: 0; }
