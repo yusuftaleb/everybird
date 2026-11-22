@@ -87,7 +87,8 @@ describe('ObsOrgDrop: the two observation.org rows', () => {
     fireEvent.click(within(row).getByRole('button', { name: 'More for observation.org life list' }))
     expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Remove']) // Replace is the button beside it
     fireEvent.click(screen.getByRole('menuitem', { name: 'Remove' }))
-    expect(within(row).getByRole('group', { name: 'Remove your observation.org life list' })).toHaveTextContent(/^Remove your observation\.org life list\? Its birds leave your collage/)
+    // The confirmation is a dialog portalled to the body (ConfirmDialog), not a box in the row.
+    expect(screen.getByRole('alertdialog', { name: /^Remove your observation\.org life list/ })).toHaveTextContent(/^Remove your observation\.org life list\? Its birds leave your collage/)
   })
 
   it('"why?" opens a popover over the grid: it closes on Esc (focus back on why?), a press outside, focus leaving, or why? again', () => {

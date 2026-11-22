@@ -690,7 +690,8 @@ export function packBest(
   // A filtered state packs in the full collage's stage but takes the shape a list of its own size takes on the page: the
   // height its birds fill at refBase (packBest's estimate), from the layout's starting height up to the stage's. Shaped by
   // the stage, a taxon of a big list (a stage grown 3.7x taller than wide) settled into a column down a wide page.
-  const aimH = fixedStage && refBase ? Math.min(fixedStage[1], Math.max(layout.H, (area * refBase ** 2) / (0.55 * fixedStage[0]))) : undefined
+  // A small set (under SMALL_SET) is packed round the count instead, as snug as it was (tests/small-set-gaps.test.ts).
+  const aimH = fixedStage && refBase && !(layout.denseFrom && birds.length < SMALL_SET) ? Math.min(fixedStage[1], Math.max(layout.H, (area * refBase ** 2) / (0.55 * fixedStage[0]))) : undefined
   // Dense: the whole list (rel covers it, also for a filtered state) has at least layout.denseFrom birds. Its even
   // (centre-packed) states keep one GAP between birds and are settled after packing, so small birds sit as close
   // at the edge as in the middle. True size (targets: it follows the settled even centres) and share images
