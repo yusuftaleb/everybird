@@ -18,10 +18,10 @@ const species = buildSpeciesIndex(CODES.map((c, i) => row(c, i + 1)))
 // synbird0 is the latest lifer (the only 2024 date).
 const entries: ListEntry[] = CODES.map((code, i) => ({ code, date: i === 0 ? '2024-05' : '2020-05', place: { country: 'CA' }, heard: false, dead: false, media: false, sources: ['ebird'] }))
 // synbird0 small and at the very top (so its tile uses the 384 file at A1), the rest big and stacked down the frame,
-// away from the centre's count. The frame has the poster collage's shape (952 × 1319 design units), as packFrame's does.
+// away from the centre's count, top to bottom (fitPack centres the group). The frame has the poster collage's shape (952 × 1319 design units), as packFrame's does.
 const pack: ImagePack = {
   W: 1000, H: 1385,
-  boxes: new Map(CODES.map((c, i) => [c, i === 0 ? [470, 0, 40, 40] : [i % 2 ? 100 : 700, (i - 1) * 105, 200, 100]])),
+  boxes: new Map(CODES.map((c, i) => [c, i === 0 ? [470, 0, 40, 40] : [i % 2 ? 100 : 700, (i - 1) * 160, 200, 100]])),
 }
 const NOW = new Date(2026, 10, 15)
 const opts = (size: PrintSize, extra: Partial<PosterOpts> = {}): PosterOpts => ({ size, theme: 'light', entries, species, pack, now: NOW, strings: en.ui, ...extra })
