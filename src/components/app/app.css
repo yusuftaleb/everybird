@@ -128,6 +128,8 @@
   .eb-dock-filters {
     order: 1; flex: 1 0 100%; margin: 0 -4px -4px; padding: 4px; border-top: 1px solid var(--hairline);
   }
+  /* Row one: the views at the left, the magnifier at the right end, apart from them. */
+  .eb-dock-end { margin-left: auto; }
   .eb-find { bottom: auto; height: 44px; }
   .eb-dock[data-finding] .eb-dock-filters { display: none; }
 }
@@ -148,6 +150,11 @@
 @container (max-width: 599px) {
   .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
   .eb-dock-filters .eb-dock-drop { flex: 1 1 auto; min-width: max-content; }
+  /* One rule for every view's row two: each item (List's Sci. and Sort, then Taxa, Display, Filters) grows by the same
+     share, its content centred, so the gaps between them are even and the last ends the row. The List's two tools are
+     one group: it takes two shares and gives one to each. */
+  .eb-dock-tools { flex: 2 1 auto; }
+  .eb-dock-tools > *, .eb-dock-sortwrap > .eb-dock-dir { flex: 1 1 auto; }
 }
 .eb-view-below { display: contents; } /* the column's gaps stay; Filters dims and inertes everything in it while open */
 /* The transition sits on the children at rest too, so undimming eases as dimming does. */
@@ -190,7 +197,7 @@
   .eb-dock-tabs .eb-dock-tab { padding: 0; width: 44px; }
   .eb-dock { --dock-px: 8px; }
   .eb-dock-tabs { gap: 2px; }
-  .eb-dock-sw { gap: 6px; }
+  .eb-dock-sw { gap: 8px; } /* the label clear of its switch, as a panel button's glyph of its label */
   .eb-dock .eb-track { width: 30px; height: 18px; border-radius: 9px; }
   .eb-dock .eb-knob { width: 12px; height: 12px; }
   .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(12px); }
@@ -209,7 +216,7 @@
   .eb-short { display: inline; }
   .eb-dock { --dock-px: 8px; }
   .eb-dock-tabs { gap: 2px; }
-  .eb-dock-sw { gap: 6px; }
+  .eb-dock-sw { gap: 8px; } /* the label clear of its switch, as a panel button's glyph of its label */
   .eb-dock .eb-track { width: 30px; height: 18px; border-radius: 9px; }
   .eb-dock .eb-knob { width: 12px; height: 12px; }
   .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(12px); }

@@ -54,6 +54,18 @@ describe("the controls bar's CSS: one Filters button", () => {
     expect(block(css, /@container \(max-width: 599px\)/)).toMatch(/\.eb-dock-filters \.eb-dock-drop \{[^}]*flex: 1 1 auto; min-width: 0;/);
   });
 
+  it("under 820px of bar the magnifier ends row one, apart from the views (the phone fixes, item 3)", () => {
+    expect(block(css, /@container \(max-width: 819px\)/)).toMatch(/\.eb-dock-end \{ margin-left: auto; \}/);
+  });
+
+  it("on phones every view's row two shares its room evenly: List's two tools take two shares, one each (item 5)", () => {
+    const phone = rules(css).filter((r) => r.at === "@container (max-width: 599px)");
+    const body = (sel: string) => phone.find((r) => r.sel === sel)?.body ?? "";
+    expect(body(".eb-dock-filters .eb-dock-drop")).toMatch(/flex: 1 1 auto/);
+    expect(body(".eb-dock-tools")).toMatch(/flex: 2 1 auto/);
+    expect(body(".eb-dock-tools > *, .eb-dock-sortwrap > .eb-dock-dir")).toMatch(/flex: 1 1 auto/);
+  });
+
   it("a drop label can always shrink (outside every rule): it never pushes the magnifier", () => {
     const label = topLevelRule(css, ".eb-drop-label");
     expect(label).toMatch(/min-width:\s*0/);
@@ -161,7 +173,9 @@ describe("the dock's right side: one padding, one gap, at every breakpoint", () 
       if (RIGHT_GROUP.test(s) || s === ".eb-dock") {
         for (const [p, v] of decl(r.body, "(?:column-)?gap")) if (v !== "var(--dock-gap)" && !(s === ".eb-dock" && p === "gap" && v === "4px")) out.push(`${r.at} ${s} { ${p}: ${v} }`);
       }
-      if (/^\.eb-dock-(tools|end)$/.test(s)) for (const [p, v] of decl(r.body, "margin(?:-left|-right|-inline)?")) out.push(`${r.at} ${s} { ${p}: ${v} }`);
+      // The one exception: under 820px of bar the magnifier is on row one with the views, pushed to its right end.
+      const searchRight = (at: string, p: string, v: string) => s === ".eb-dock-end" && at === "@container (max-width: 819px)" && p === "margin-left" && v === "auto";
+      if (/^\.eb-dock-(tools|end)$/.test(s)) for (const [p, v] of decl(r.body, "margin(?:-left|-right|-inline)?")) if (!searchRight(r.at, p, v)) out.push(`${r.at} ${s} { ${p}: ${v} }`);
       return out;
     }));
     expect(bad).toEqual([]);
