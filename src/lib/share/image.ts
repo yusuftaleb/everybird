@@ -807,8 +807,11 @@ export type ShareImageOpts = {
   /** The UI language's strings the image draws: the count's number and label, the latest lifer's label and month, and
    *  the stamp's month. The filter label comes in words already (`filterLabel`, from the same strings). */
   strings: ShareStrings
-  /** A bird's name to draw (the latest lifer's); default its English name. The dialog passes the display name. */
+  /** The latest lifer's name (its common name, whatever the Scientific names switch says); default its English name.
+   *  The dialog passes the display name. */
   nameOf?: (row: SpeciesRow) => string
+  /** A poster's names under its stickers (Show species names): the Scientific names switch picks it; default `nameOf`. */
+  captionOf?: (row: SpeciesRow) => string
   /** The places' names in the image's language (i18n-places.ts regionsIn), for where the latest lifer was seen
    *  (liferPlace); without them the row and the poster's foot name no place. */
   regions?: Regions
@@ -1027,13 +1030,14 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
   let captionPlan: CaptionPlan | undefined
   if (print && opts.showNames) {
+    const captionOf = opts.captionOf ?? opts.nameOf
     const sample = shown.map((e) => {
       const r = species.byCode.get(e.code)
-      return r ? (opts.nameOf?.(r) ?? r.com) : ''
+      return r ? (captionOf?.(r) ?? r.com) : ''
     }).join('')
     await ensureCaptionFont(captionMinPx(printSize), sample)
     if (signal?.aborted) throw abortError()
-    captionPlan = planCaptions(shown, species, printSize, L.collage.w, opts.nameOf, captionMeasurer())
+    captionPlan = planCaptions(shown, species, printSize, L.collage.w, captionOf, captionMeasurer())
   }
   // Packed for the format's own frame (the print: at its shape's printPackH, one pack for every A size, as imagePackSpec).
   let pack = opts.pack ?? (await packForImage(shown, species, imagePackSpec(format, content, opts.printSize, captionPlan?.ok ? captionPlan : undefined, opts.arrangement, opts.trueSize), signal))

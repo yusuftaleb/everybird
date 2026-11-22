@@ -276,24 +276,12 @@ describe('share dialog', () => {
       for (const spec of specs) expect(spec.trueSize).toBe(true)
     })
 
-    it('Share: Scientific names shows under Show latest lifer, only while it is on; on, the lifer\'s line takes the scientific name', async () => {
-      const dispatch = vi.fn()
-      const first = render(<ShareDialog state={stateWith(list)} dispatch={dispatch} species={sciSpecies} regions={regions} onClose={() => {}} />)
-      const sw = screen.getByRole('switch', { name: 'Scientific names' })
-      expect(sw).toHaveAttribute('aria-checked', 'false')
-      expect(sw.previousElementSibling).toBe(screen.getByRole('switch', { name: 'Show latest lifer' }))
-      await waitFor(() => expect(renders).toHaveLength(1))
-      expect(vi.mocked(image.renderShareImage).mock.calls[0][0].nameOf!(sciRow)).toBe('Common Ostrich')
-      fireEvent.click(sw)
-      expect(dispatch).toHaveBeenCalledWith({ type: 'sci', sci: true })
-      fireEvent.click(screen.getByRole('switch', { name: 'Show latest lifer' }))
+    it('Share: no Scientific names switch (it would change nothing); the latest lifer reads its common name with Scientific names on', async () => {
+      render(<ShareDialog state={{ ...stateWith(list), sci: true }} dispatch={() => {}} species={sciSpecies} regions={regions} onClose={() => {}} />)
+      expect(screen.getByRole('switch', { name: 'Show latest lifer' })).toHaveAttribute('aria-checked', 'true')
       expect(screen.queryByRole('switch', { name: 'Scientific names' })).toBeNull()
-      first.unmount()
-      vi.mocked(image.renderShareImage).mockClear()
-      render(<ShareDialog state={{ ...stateWith(list), sci: true }} dispatch={dispatch} species={sciSpecies} regions={regions} onClose={() => {}} />)
-      expect(screen.getByRole('switch', { name: 'Scientific names' })).toHaveAttribute('aria-checked', 'true')
       await waitFor(() => expect(vi.mocked(image.renderShareImage)).toHaveBeenCalled())
-      expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)![0].nameOf!(sciRow)).toBe('Struthio camelus')
+      expect(vi.mocked(image.renderShareImage).mock.calls.at(-1)![0].nameOf!(sciRow)).toBe('Common Ostrich')
     })
 
     it('Print: Scientific names shows under Show species names, only while they are on; on, the poster\'s names are scientific', async () => {
@@ -306,9 +294,11 @@ describe('share dialog', () => {
       expect(sw).toHaveAttribute('aria-checked', 'true')
       fireEvent.click(screen.getByRole('button', { name: 'Make poster' }))
       await waitFor(() => expect(makes).toHaveLength(1))
-      const opts = makes[0].opts as { nameOf?: (r: typeof sciRow) => string; showNames?: boolean }
+      const opts = makes[0].opts as { nameOf?: (r: typeof sciRow) => string; captionOf?: (r: typeof sciRow) => string; showNames?: boolean }
       expect(opts.showNames).toBe(true)
-      expect(opts.nameOf!(sciRow)).toBe('Struthio camelus')
+      expect(opts.captionOf!(sciRow)).toBe('Struthio camelus')
+      // The poster's latest lifer keeps its common name (the phone fixes, item 6).
+      expect(opts.nameOf!(sciRow)).toBe('Common Ostrich')
       // Off again, the row hides; the setting keeps its value (it is the screen's).
       fireEvent.click(names)
       expect(screen.queryByRole('switch', { name: 'Scientific names' })).toBeNull()
@@ -615,7 +605,7 @@ describe('share dialog', () => {
     const title = screen.getByLabelText('Card title')
     expect(title.previousElementSibling).toHaveClass('eb-share-labelrow')
     expect(title.closest('.eb-share-field')!.nextElementSibling).toBe(list)
-    expect([...list.children].map(label)).toEqual(['Arrangement', 'Appearance', 'Count', 'Show latest lifer', 'Scientific names', 'Transparent background', 'Goal'])
+    expect([...list.children].map(label)).toEqual(['Arrangement', 'Appearance', 'Count', 'Show latest lifer', 'Transparent background', 'Goal'])
     // One row each, nothing paired: a switch is its row (its label, then its track at the right edge).
     for (const el of list.children) expect(el).toHaveClass('eb-share-opt')
     const transparent = screen.getByRole('switch', { name: 'Transparent background' })

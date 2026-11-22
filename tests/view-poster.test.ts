@@ -53,7 +53,8 @@ describe('dialogTitle: the title names what is shared (round 6)', () => {
 describe('optionRows: the options list\'s order (round 6)', () => {
   it('Share\'s collage: the choices, the switches, then the Goal; Print\'s: the size first and the names switch, no Goal', () => {
     // Scientific names under the row it changes (the dialog shows it only while that row is on); True size is in Arrangement's row.
-    expect(optionRows(dialogRows('collage', false), false)).toEqual(['arrangement', 'colours', 'count', 'latest', 'sci', 'transparent', 'goal'])
+    // No Scientific names in Share's collage image: the latest lifer reads its common name, so it would change nothing.
+    expect(optionRows(dialogRows('collage', false), false)).toEqual(['arrangement', 'colours', 'count', 'latest', 'transparent', 'goal'])
     expect(optionRows(dialogRows('collage', true), true)).toEqual(['size', 'arrangement', 'colours', 'count', 'latest', 'names', 'sci', 'transparent'])
     expect(dialogRows('collage', false).trueSize).toBe(true)
     expect(dialogRows('collage', true).trueSize).toBe(true)
