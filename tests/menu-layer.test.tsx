@@ -88,6 +88,7 @@ const LAYERS: Layer[] = [
   { name: '"Back to top" (not a popup: a fixed button in the footer)', file: 'src/components/app/BackToTop.tsx', cls: '.eb-totop', kind: 'fixed', up: ['.eb-footer', ...PAGE] },
   { name: "The Add birds dialog (its scrim is the window's box)", file: 'src/components/import/AddBirdsDialog.tsx', cls: '.eb-add-scrim', kind: 'fixed', up: PAGE },
   { name: "The share dialog (its scrim is the window's box)", file: 'src/components/share/ShareDialog.tsx', cls: '.eb-share-scrim', kind: 'fixed', up: PAGE },
+  { name: "The confirmation dialog (ConfirmDialog: remove a source, restore, forget; portalled to the body, its scrim is the window's box)", file: 'src/components/ConfirmDialog.tsx', cls: '.eb-confirm-scrim', kind: 'fixed', up: ['body', 'html'] },
   { name: "The top bar's language menu", file: 'src/components/app/LanguageMenu.tsx', cls: '.eb-langmenu', also: ['.eb-menu'], kind: 'top', up: ['.eb-langwrap', '.eb-topbar-end', '.eb-topbar-in', '.eb-topbar', 'body', 'html'],
     allow: { '.eb-topbar': 'data-hidden slides it away by transform; an open menu holds the bar shown (useHoldTopBar), and the menu is in the top layer' } },
   { name: "The List view's Sort menu (MenuList in the dock)", file: 'src/components/app/ControlsBar.tsx', cls: '.eb-menu', kind: 'absolute', up: ['.eb-dock-sortwrap', '.eb-dock-tools', '.eb-dock-filters', '.eb-dock', '.eb-dockwrap', ...VIEW] },
