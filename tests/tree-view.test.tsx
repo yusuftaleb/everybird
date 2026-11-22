@@ -188,7 +188,7 @@ describe('the Tree tab in CollageView', () => {
     expect(document.querySelector('.eb-filters [aria-current]')).toHaveTextContent(/^Pa with Pb$/)
     // Opening from the keyboard focuses the new branch's first tip, without a scroll.
     expect(within(tipList()).getByRole('button', { name: 'Rail One, on the list' })).toHaveFocus()
-    expect(screen.getByText('Pa is not one branch in this tree. The smallest branch with all of it also holds Pb, so both are shown.')).toBeInTheDocument()
+    expect(screen.getByText('Pa shares its branch with Pb, so both are shown.')).toBeInTheDocument()
     fireEvent.click(taxa())
     expect(within(screen.getByRole('group', { name: 'Genera' })).getByRole('button', { name: /^Pa/ })).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(taxa())
@@ -269,13 +269,13 @@ describe('TreeView', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^Cranes and rails/ }))
     fireEvent.click(screen.getByRole('button', { name: /^Rails, / }))
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
-    // Pa is not one branch: one row for the branch, with Pb inside it and no row of its own.
+    // Pa shares its branch with Pb: one row for the branch, with Pb inside it and no row of its own.
     expect([...genera.querySelectorAll('.eb-tree-btn')].map((b) => b.getAttribute('data-key'))).toEqual(['Pa', 'Qa', 'Ra', 'Sa'])
-    const pa = within(genera).getByRole('button', { name: 'Pa with Pb, not one branch of its own in this tree, 1 of 3 on the list' })
+    const pa = within(genera).getByRole('button', { name: 'Pa with Pb, shares its branch with other groups, 1 of 3 on the list' })
     expect(pa).toHaveAttribute('data-on')
     expect(pa.querySelector('.eb-tree-mark')).toHaveAttribute('aria-hidden', 'true')
     fireEvent.click(pa)
-    expect(screen.getByText('Pa is not one branch in this tree. The smallest branch with all of it also holds Pb, so both are shown.')).toBeInTheDocument()
+    expect(screen.getByText('Pa shares its branch with Pb, so both are shown.')).toBeInTheDocument()
     const tips = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
     // Every species of the branch where the tree puts it, by its one name.
     expect([...tips.querySelectorAll('.eb-tree-row')].map((li) => li.querySelector('.eb-tree-name')!.textContent)).toEqual(['Rail One', 'Rail Two', 'Rail Three'])
@@ -321,14 +321,14 @@ describe('TreeView', () => {
   it('a genus split across its family is one marked row, with the genus inside named; the key says what the mark means', async () => {
     render(<Tree entries={['pb1'].map(entry)} />)
     fireEvent.click(await screen.findByRole('button', { name: /^Cranes and rails/ }))
-    expect(screen.queryByText('Not one branch of its own in this tree')).toBeNull() // the key says only what is drawn
+    expect(screen.queryByText('Shares its branch with other groups')).toBeNull() // the key says only what is drawn
     fireEvent.click(screen.getByRole('button', { name: /^Rails, / }))
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
-    expect(screen.getByText('Not one branch of its own in this tree')).toBeInTheDocument()
-    const pa = within(genera).getByRole('button', { name: 'Pa with Pb, not one branch of its own in this tree, 1 of 3 on the list' })
+    expect(screen.getByText('Shares its branch with other groups')).toBeInTheDocument()
+    const pa = within(genera).getByRole('button', { name: 'Pa with Pb, shares its branch with other groups, 1 of 3 on the list' })
     expect(pa.querySelector('.eb-tree-other')).toHaveTextContent('with Pb')
     fireEvent.click(pa)
-    expect(screen.getByText('Pa is not one branch in this tree. The smallest branch with all of it also holds Pb, so both are shown.')).toBeInTheDocument()
+    expect(screen.getByText('Pa shares its branch with Pb, so both are shown.')).toBeInTheDocument()
     expect([...screen.getByRole('list', { name: 'Tips of the tree, top to bottom' }).querySelectorAll('.eb-tree-name')].map((n) => n.textContent)).toEqual(['Rail One', 'Rail Two', 'Rail Three'])
     expect(rank).toMatch(/^3 species$/)
   })
@@ -347,7 +347,7 @@ describe('TreeView', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^Cranes and rails/ }))
     fireEvent.click(screen.getByRole('button', { name: /^Rails, / }))
     const genera = screen.getByRole('list', { name: 'Tips of the tree, top to bottom' })
-    expect(within(genera).getByRole('button', { name: 'Qa, not one branch of its own in this tree, 1 of 5 on the list' })).toBeInTheDocument()
+    expect(within(genera).getByRole('button', { name: 'Qa, shares its branch with other groups, 1 of 5 on the list' })).toBeInTheDocument()
     const more = within(genera).getByRole('button', { name: 'Qa with 3 other genera' })
     expect(more).toHaveAttribute('aria-haspopup', 'dialog')
     fireEvent.click(more)
@@ -537,7 +537,7 @@ describe('the Fan and Radial on a measured width', () => {
     render(<Tree entries={['qc1'].map(entry)} />)
     fireEvent.click(await screen.findByRole('button', { name: /^Cranes and rails/ }))
     fireEvent.click(screen.getByRole('button', { name: /^Rails, / }))
-    const qa = screen.getByRole('button', { name: /^Qa, not one branch/ })
+    const qa = screen.getByRole('button', { name: /^Qa, shares its branch/ })
     expect(qa).toHaveAttribute('data-many')
     expect([...qa.closest('li')!.children].map((c) => c.className)).toEqual(['eb-tree-btn', 'eb-tree-with', 'eb-mono eb-tree-count'])
     expect(screen.getByRole('button', { name: /^Pa with Pb/ })).not.toHaveAttribute('data-many')
