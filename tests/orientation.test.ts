@@ -24,7 +24,7 @@ import { holeRects, rectGap, type Hole, type Rect } from '@/lib/layout/count-box
 import { decodeMask, maskCell, type Mask } from '@/lib/layout/mask'
 import { packFrame, type PackBird, type PackResult } from '@/lib/layout/pack'
 import {
-  IMAGE_SCALE, IMAGE_SIZE, SAFE, cardLayout, drawShareImage, fitBox, fitPack, imageShape, isPrint, maxTileSide, packSpec,
+  DATE_GAP, IMAGE_SCALE, IMAGE_SIZE, SAFE, cardLayout, drawShareImage, fitBox, fitPack, imageShape, isPrint, maxTileSide, packSpec,
   prepareCard, type CardFormat, type ImagePack,
 } from '@/lib/share/image'
 import { installStubs, NOW, entries, pack as harnessPack, species } from './fixtures/share-image-harness'
@@ -157,12 +157,12 @@ describe('the landscape layouts', () => {
 
 describe('the footer’s one line fits in every language', () => {
   for (const [lang, m] of Object.entries({ en, es, nl, pt, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant })) {
-    it(`${lang}: the credit beside the wordmark, whole, at 17px or more, inside the margin`, async () => {
+    it(`${lang}: the link and the date beside the wordmark, whole, at 17px or more, inside the margin`, async () => {
       const opts = { format: 'desktop' as const, theme: 'light' as const, entries, species, pack: harnessPack, now: NOW, strings: m.ui }
       const card = await prepareCard(opts, IMAGE_SCALE.desktop)
-      expect(card.credit.size).toBeGreaterThanOrEqual(17)
-      // The estimate measureText makes without a DOM (0.6 em a character in mono): the credit ends inside the margin.
-      const lineEnd = M + (card.credit.below ? 0 : card.brandW) + card.footerLine.length * 0.6 * card.credit.size
+      expect(card.credit).toEqual({ size: 20, brand: true })
+      // The estimate measureText makes without a DOM (0.6 em a character in mono): the date ends inside the margin.
+      const lineEnd = M + card.brandW + (card.footerLine.length + card.stamp.length) * 0.6 * card.credit.size + DATE_GAP
       expect(lineEnd).toBeLessThanOrEqual(card.L.collage.x + card.L.collage.w + 1)
     })
   }

@@ -83,16 +83,17 @@ describe('the poster\'s head and foot', () => {
     expect(filtered.find((l) => l.startsWith('fillText("Perching birds"'))).toMatch(/, 64, 64\) \{fillStyle: "#92140c", font: "700 60px/)
   })
 
-  it('ends with one quiet line, the wordmark then the site, the credit and the date; the latest lifer is the images\' row above the hairline (round 6, item 24)', async () => {
+  it('ends with one quiet line, the wordmark then the credits link and the date at the right; the latest lifer is the images\' row above the hairline (round 6, item 24)', async () => {
     for (const format of ['print', 'printLandscape'] as const) {
       const log = await poster({ name: 'Ada’s birds', format })
-      const foot = texts(log).find((l) => l.includes('Stickers: huashu-bird-sticker'))!
-      expect(foot.startsWith(`fillText(${JSON.stringify(`${image.FOOTER_LINE} · 15 Nov 2026`)}, `)).toBe(true)
+      const foot = texts(log).find((l) => l.startsWith(`fillText(${JSON.stringify(image.FOOTER_LINE)}, `))!
+      const date = texts(log).find((l) => l.startsWith('fillText("15 Nov 2026", '))!
       expect(foot).toContain(`fillStyle: "${C.muted}"`)
+      expect(date).toContain(`fillStyle: "${C.muted}"`)
       const brand = texts(log).find((l) => l.startsWith('fillText("Everybird"'))!
       expect(brand).toContain(`font: "700 ${image.POSTER_FOOT.brand}px`)
       const y = (l: string) => Number(/, ([\d.]+)\) \{/.exec(l)![1])
-      expect(y(foot)).toBe(y(brand))
+      expect([y(foot), y(date)]).toEqual([y(brand), y(brand)])
       // Nothing of the lifer in the foot any more.
       expect(texts(log).some((l) => l.includes('Latest lifer:'))).toBe(false)
       // The row: the sticker in its 40-unit square at the left margin, the name right after it in the row's face, then

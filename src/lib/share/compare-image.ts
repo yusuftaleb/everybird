@@ -1,5 +1,5 @@
 // The comparison card (the Share dialog's Comparison on /compare): the share image's frame from image.ts in the dialog's
-// format, Story, Post or Square (Paper unless transparent, the footer with the sticker credit and the date stamp, in the
+// format, Story, Post or Square (Paper unless transparent, the footer with the credits link and the date, in the
 // dialog's colours) holding, top down:
 // - the title, the lists' names joined the usual way, "Robin, Sam & Ada" (titlePart; one or two lines), and under it each list's species count on one line,
 //   most first; when even the smallest size is too wide, the names are shortened evenly, never the numbers;
@@ -94,15 +94,14 @@ const OUTLINE = 4
 const cardGaps = (format: CardFormat): { head: number; collage: number } => GAPS[format]
 /**
  * The diagram's room on the card: from the collage card's head gap under the head (`headBottom`, the counts line's
- * foot) to its collage gap above the footer's hairline, which sits `shift` higher when the credit takes a line of its
- * own (image.ts placeFooter), less the outline's outer half all round. diagramLayout draws the diagram as large as
+ * foot) to its collage gap above the footer's hairline, less the outline's outer half all round. diagramLayout draws the diagram as large as
  * this allows, centred in it.
  */
-export function diagramBox(format: CardFormat, L: CardLayout, headBottom: number, shift: number, foot = 0): Box {
+export function diagramBox(format: CardFormat, L: CardLayout, headBottom: number, foot = 0): Box {
   const g = cardGaps(format)
   const top = headBottom + g.head + OUTLINE / 2
   // `foot`: the room the line under the diagram takes.
-  const bottom = L.rule.y - shift - g.collage - foot - OUTLINE / 2
+  const bottom = L.rule.y - g.collage - foot - OUTLINE / 2
   return { x: L.collage.x + OUTLINE / 2, y: top, w: L.collage.w - OUTLINE, h: Math.max(0, bottom - top) }
 }
 
@@ -163,7 +162,7 @@ export async function drawCompareCard(o: CompareCardOpts): Promise<CompareCard> 
   ctx.font = fonts.filter(NAME)
   const nameText = names.map((n) => clipText(ctx, n, CW * NAME_CAP))
   const d = diagramLayout(
-    o.counts, diagramBox(card.format, L, y, card.shift, line ? UNSHOWN_GAP + lp : 0),
+    o.counts, diagramBox(card.format, L, y, line ? UNSHOWN_GAP + lp : 0),
     { w: nameText.map((n) => Math.ceil(ctx.measureText(n).width)), h: Math.round(NAME * 1.2), gap: NAME_GAP },
   )
   const circle = (c: { cx: number; cy: number; r: number }) => { ctx.beginPath(); ctx.arc(c.cx, c.cy, c.r, 0, Math.PI * 2) }

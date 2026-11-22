@@ -20,7 +20,7 @@
 // oldest lineage takes the latest lifer's place and style (latestAs; on a poster, its foot). On top, instead of the
 // big count, the totals the dialog's Totals row keeps (species, genera, families and orders at and below the level on
 // screen, any of them, none included), each a plain count over its rank ("65" over "FAMILIES", no "/ 250"), the same
-// size and weight; with none, the drawing has their room. The oldest lineage is the card's small row (SMALL_ROW). The footer credits the stickers and the tree (TREE_FOOTER).
+// size and weight; with none, the drawing has their room. The oldest lineage is the card's small row (SMALL_ROW). The footer links to the credits (image.ts FOOTER_LINE), the tree's among them.
 // A share image and a poster alike draw the rank on screen, its Level (round 6, item 22: Print's own "Down to" went).
 import { fmt, pluralWord, type Plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -35,7 +35,7 @@ import { levelView, ROW_H, taxonCover, tipOn, type LevelView, type TreeRow } fro
 import { ageTicks, bySplits, circlePath, drawTree, formatAge, oldestLineage, type Drawing } from '@/lib/tree/tree'
 import { IMAGE_SCALE, SMALL_ROW, loadStickers, type ImageFormat } from './image'
 import type { PrintSize } from './print'
-import { TREE_FOOTER, chosenTotals, clipText, renderViewImage, type Area, type ViewImageOpts } from './view-image'
+import { chosenTotals, clipText, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 
 /** The Rectangular poster's names: the largest size (round 6: as large as the room allows, up to this). */
 const NAME_MAX = 48
@@ -211,7 +211,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   const imgs = await loadStickers([...new Set(shown.tips.flatMap((r) => { const row = stickerOf(r); return row ? [urlOf(row)] : [] }))], { signal: o.signal })
   const countText = (r: Tip) => (r.kind === 'group' ? fmt(tt.tipOf, { n: formatInt(r.on, t.num), total: formatInt(r.total, t.num) }) : '')
 
-  return renderViewImage({ ...o, countSize: 'hide', latestAs, tight: true }, TREE_FOOTER, (ctx, card, full) => {
+  return renderViewImage({ ...o, countSize: 'hide', latestAs, tight: true }, (ctx, card, full) => {
     const C = card.colors
     const font = card.fonts
     // The totals on top of the drawing (round 6: counts only, "65" over "FAMILIES"): the same size for all, in Ink, the

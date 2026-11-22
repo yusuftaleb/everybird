@@ -87,24 +87,22 @@ describe('the print card', () => {
       .toBeCloseTo(952 / cardLayout('print', { name: false, filter: false, latest: true, count: 197 }).collage.h, 6)
   })
 
-  it('M margins, the credit and the stamp in its footer, the theme\'s colours', async () => {
+  it('M margins, the credits link and the stamp in its footer, the theme\'s colours', async () => {
     const card = await prepareCard({ format: 'print', printSize: 'A2', theme: 'dark', entries, species, pack, now: new Date(2026, 10, 15), strings: en.ui }, printScale('A2'))
     expect(card.L.collage.x).toBe(64)
     expect(card.L.W - card.L.collage.x - card.L.collage.w).toBe(64)
     expect(card.L.H).toBeCloseTo(printDesignH('A2'), 6)
-    expect(card.footerLine).toContain('Stickers: huashu-bird-sticker, CC BY 4.0')
-    expect(card.footerLine).toMatch(/ · 15 Nov 2026$/)
+    expect(card.footerLine).toBe('everybird.yusuftaleb.com/credits')
+    expect(card.stamp).toBe('15 Nov 2026')
     expect(card.colors).toEqual(SHARE_COLORS.dark)
     expect(card.colors.paper).toBe('#1e1e24')
     const light = await prepareCard({ format: 'print', printSize: 'A2', theme: 'light', entries, species, pack, now: new Date(2026, 10, 15), strings: en.ui }, printScale('A2'))
     expect(light.colors).toEqual(SHARE_COLORS.light)
     expect(light.colors.paper).toBe('#f6f4ef')
-    // The foot: the site, the credit and the date beside the wordmark, at 16px down to POSTER_FOOT.min; the latest lifer
-    // is the row above the hairline (round 6, item 24).
-    expect(card.footerLine).toMatch(/^everybird\.yusuftaleb\.com · /)
+    // The foot: the wordmark, the link and the date on one line, at the full 16px; the latest lifer is the row above
+    // the hairline (round 6, item 24).
     expect(card.latest?.label).toMatch(/^Latest lifer · /)
-    expect(card.credit.size).toBeGreaterThanOrEqual(POSTER_FOOT.min)
-    expect(card.credit.size).toBeLessThanOrEqual(POSTER_FOOT.line)
+    expect(card.credit).toEqual({ size: POSTER_FOOT.line, brand: true })
   })
 
   it('print tiles pick the tier by device px: a two-bird group\'s tile at A1 is 1024 with the 384 fallback', async () => {

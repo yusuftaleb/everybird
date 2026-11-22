@@ -26,24 +26,39 @@ describe('share image draw calls', () => {
       expect(log).toMatchSnapshot()
     })
   }
-  // Mono at 0.85 em: the stamped footer line (59 characters) no longer fits beside the wordmark and takes two lines
-  // under it at 22 (AD7): the site and the date, then the credit; the rows above move up.
+  // The footer is one line (round 6): the wordmark, the link to the credits, the date at the right, on one baseline.
+  // Mono at 0.85 em (a wider face than Geist Mono) still fits beside the wordmark at 20.
+  const footTexts = (log: string[]) => {
+    const texts = log.filter((l) => l.startsWith('fillText'))
+    return { texts, brand: texts.find((l) => l.startsWith('fillText("Everybird"')), link: texts.find((l) => l.includes('"everybird.yusuftaleb.com/credits"'))!, date: texts.find((l) => l.startsWith('fillText("15 Nov 2026"'))! }
+  }
+  const y = (l: string) => Number(/, ([\d.]+)\)$/.exec(l)![1])
+  const x = (l: string) => Number(/", ([\d.]+), [\d.]+\)$/.exec(l)![1])
   for (const c of CASES.filter((x) => x.name && x.latest)) {
-    it(`${caseName(c)}, footer on its own line`, async () => {
+    it(`${caseName(c)}, footer on one line with a wide mono face`, async () => {
       const logs = installStubs({ monoEm: 0.85 })
       const log = await renderLog(image, logs, c)
-      const texts = log.filter((l) => l.startsWith('fillText'))
-      const brand = texts.find((l) => l.startsWith('fillText("Everybird"'))!
-      const [site, line] = texts.slice(-2)
-      expect(site).toMatch(/^fillText\("everybird\.yusuftaleb\.com · 15 Nov 2026", 64, /) // under the wordmark, at the margin
-      expect(line).toMatch(/^fillText\("Stickers: huashu-bird-sticker, CC BY 4\.0", 64, /)
-      const y = (l: string) => Number(/, ([\d.]+)\)$/.exec(l)![1])
-      expect(y(brand)).toBeLessThan(y(site))
-      expect(y(line) - y(site)).toBe(image.FOOT_TWO.size + image.FOOT_TWO.gap)
-      expect(log).toContain(`font = ${JSON.stringify(`400 ${image.FOOT_TWO.size}px "Geist Mono", ui-monospace, Menlo, monospace`)}`)
-      expect(log).toMatchSnapshot()
+      const { brand, link, date } = footTexts(log)
+      expect(brand).toBeDefined()
+      expect([y(link), y(date)]).toEqual([y(brand!), y(brand!)])
+      expect(x(link)).toBeGreaterThan(64)
+      // The date right-aligned at the content's right edge, the alignment put back after it.
+      const at = log.indexOf(date)
+      expect([log[at - 1], log[at + 1]]).toEqual(['textAlign = "right"', 'textAlign = "left"'])
+      expect(x(date)).toBe(1016)
+      expect(log).toContain(`font = ${JSON.stringify('400 20px "Geist Mono", ui-monospace, Menlo, monospace')}`)
+      expect(log.slice(at + 1)).not.toContainEqual(expect.stringMatching(/^fillText/))
     })
   }
+  it('a face too wide for the wordmark: the link starts the line, the date still at the right, never a second line', async () => {
+    const logs = installStubs({ monoEm: 2 })
+    const log = await renderLog(image, logs, CASES.find((x) => x.name && x.latest && x.format === 'story')!)
+    const { texts, brand, link, date } = footTexts(log)
+    expect(brand).toBeUndefined()
+    expect(x(link)).toBe(64)
+    expect(y(date)).toBe(y(link))
+    expect(texts.at(-1)).toBe(date)
+  })
   it('story year list progress card', async () => {
     const logs = installStubs()
     image.clearStickerCache()

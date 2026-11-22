@@ -9,7 +9,7 @@ import { en } from '@/i18n/messages/en'
 import { FOOTER_LINE, SMALL_INLINE, SMALL_ROW, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
 import { IMAGE_SIZES, TOTALS, rowsLabels, totalsSize } from '@/lib/share/tree-image'
 import { LABEL_GAP, fitRound } from '@/lib/tree/fan'
-import { MAP_FOOTER, TREE_FOOTER, chosenTotals, fitBox, wrapParts } from '@/lib/share/view-image'
+import { chosenTotals, fitBox, wrapParts } from '@/lib/share/view-image'
 import { buildSpeciesIndex } from '@/lib/species/load'
 
 describe('the map image', () => {
@@ -24,7 +24,7 @@ describe('the map image', () => {
   it('six places: in a column under the map in the Story and the portrait poster, in three columns by two rows in every other format, inside the frame', () => {
     expect(TOP_PLACES).toBe(6)
     for (const format of ['story', 'post', 'square', 'desktop', 'wide', 'print', 'printLandscape'] as const) {
-      const c = cardLayout(format, { name: true, filter: true, latest: false, count: 318, viewFooter: true }, format.startsWith('print') ? printDesign('A2', format === 'printLandscape') : undefined).collage
+      const c = cardLayout(format, { name: true, filter: true, latest: false, count: 318 }, format.startsWith('print') ? printDesign('A2', format === 'printLandscape') : undefined).collage
       // The totals take the top of the collage's area (view-image.ts).
       const area = { x: c.x, y: c.y + 100, w: c.w, h: c.h - 100 }
       const grid = !mapListsInColumn(format)
@@ -129,7 +129,7 @@ describe("the row: the tree's oldest lineage and the collage's latest lifer, one
     const L = cardLayout('story', content)
     expect(L.latest).toMatchObject({ icon: SMALL_ROW.icon, label: SMALL_ROW.label, name: SMALL_ROW.name })
     expect(L.latest!.inline).toBeUndefined()
-    expect(L.latest!.y - (L.collage.y + L.collage.h)).toBe(24 + L.latest!.lift!)
+    expect(L.latest!.y - (L.collage.y + L.collage.h)).toBe(24)
   })
   it('Desktop, Post (and its 5:4) and Square: one line just above the hairline (SMALL_INLINE), name first', () => {
     for (const format of ['desktop', 'post', 'wide', 'square'] as const) {
@@ -174,19 +174,13 @@ describe('the tree image names every tip', () => {
   })
 })
 
-describe('the credit on each image', () => {
-  it('the map has the site alone; the tree adds AvesData, each credit in one form', () => {
-    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker, CC BY 4.0')
-    expect(MAP_FOOTER).toBe('everybird.yusuftaleb.com')
-    expect(TREE_FOOTER).toBe('everybird.yusuftaleb.com · Stickers: huashu-bird-sticker · Tree: AvesData · CC BY 4.0')
-  })
-
-  it('a card draws the footer it is given, the date stamp after it; without one, FOOTER_LINE', async () => {
+describe('the footer on each image', () => {
+  it('every card, the Map\'s and the Tree\'s too, links to the credits and dates itself at the right', async () => {
     const species = buildSpeciesIndex([])
     const base: ShareImageOpts = { format: 'square', entries: [], species, theme: 'light', strings: en.ui, now: new Date(2026, 10, 19), pack: { W: 1, H: 1, boxes: new Map() } }
-    expect((await prepareCard({ ...base, footer: TREE_FOOTER })).footerLine).toBe(`${TREE_FOOTER} · 19 Nov 2026`)
-    expect((await prepareCard({ ...base, footer: MAP_FOOTER })).footerLine).toBe(`${MAP_FOOTER} · 19 Nov 2026`)
-    expect((await prepareCard(base)).footerLine).toBe(`${FOOTER_LINE} · 19 Nov 2026`)
+    const card = await prepareCard(base)
+    expect([card.footerLine, card.stamp]).toEqual([FOOTER_LINE, '19 Nov 2026'])
+    expect(FOOTER_LINE).toBe('everybird.yusuftaleb.com/credits')
   })
 })
 

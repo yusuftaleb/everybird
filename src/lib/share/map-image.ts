@@ -13,7 +13,7 @@ import { formatInt } from '@/i18n/format'
 import { parsePlaceKey } from '@/lib/list/place-keys'
 import { flagSrc } from '@/lib/flag'
 import { countRange, loadMapCountries, mapCounts, mapRows, mapShapes, RAMP, shadeMix } from '@/lib/map/shapes'
-import { MAP_FOOTER, chosenTotals, clipText, fitBox, renderViewImage, type Area, type ViewImageOpts } from './view-image'
+import { chosenTotals, clipText, fitBox, renderViewImage, type Area, type ViewImageOpts } from './view-image'
 import type { CardFormat } from './image'
 
 /** How many places the image lists. */
@@ -130,7 +130,7 @@ export async function renderMapImage(o: ViewImageOpts): Promise<Blob> {
     : rows.length ? [{ n: formatInt(rows.length, t.num), label: pluralWord(t.filters.countHead.country, rows.length).toUpperCase() }] : [])
   const minText = formatInt(min, t.num)
   const maxText = plural(t.collage.stats.species, max, { n: formatInt(max, t.num) })
-  return renderViewImage({ ...o, countSize: 'hide' }, MAP_FOOTER, (ctx, card, full) => {
+  return renderViewImage({ ...o, countSize: 'hide' }, (ctx, card, full) => {
     const C = card.colors
     const font = card.fonts
     const shade = (p: number) => mix(C.accent, C.paper, p)

@@ -69,9 +69,8 @@ describe('the room above the latest lifer row', () => {
   it('is the row\'s own gap (the oldest lineage row\'s, round 6 item 17), in every format; without the row, the collage takes it', () => {
     for (const format of ['story', 'post', 'square', 'wide', 'desktop'] as const) {
       const L = image.cardLayout(format, { name: true, filter: false, latest: true, count: 120 })
-      // The 1080-wide cards keep the footer's two lines placeFooter lifts the row by (`lift`, AD7); Post 5:4 and Desktop lift nothing.
-      expect(L.latest!.lift ?? 0, format).toBe(['story', 'post', 'square'].includes(format) ? 2 * (image.FOOT_TWO.size + image.FOOT_TWO.gap) : 0)
-      expect(L.latest!.y - (L.collage.y + L.collage.h) - (L.latest!.lift ?? 0), format).toBe(format === 'square' ? 32 : 24)
+      // The footer is one line in every format (round 6), so nothing is kept for a lift.
+      expect(L.latest!.y - (L.collage.y + L.collage.h), format).toBe(format === 'square' ? 32 : 24)
       expect(L.latest!.y + L.latest!.icon, format).toBeLessThan(L.rule.y)
       expect(L.latest!.inline, format).toBe(format === 'story' ? undefined : true)
       const off = image.cardLayout(format, { name: true, filter: false, latest: false, count: 120 })
@@ -113,7 +112,7 @@ describe('the poster\'s row (round 6, item 24: the images\' row above the hairli
       const R = L.latest!
       expect(R).toMatchObject({ x: L.collage.x, icon: image.SMALL_INLINE.icon, inline: true })
       expect(R.y + R.icon).toBeLessThan(L.rule.y)
-      expect(card.credit).toEqual({ size: image.POSTER_FOOT.line, below: false })
+      expect(card.credit).toEqual({ size: image.POSTER_FOOT.line, brand: true })
       const lifer = card.lifer!
       expect(Math.max(lifer.w, lifer.h)).toBeCloseTo(R.icon, 6)
       expect(lifer.x + lifer.w / 2).toBeCloseTo(R.x + R.icon / 2, 6)
@@ -139,14 +138,13 @@ describe('the poster\'s row (round 6, item 24: the images\' row above the hairli
   })
 })
 
-describe('the row lifted with the footer', () => {
-  // The rule and the row move up by a line when the credit takes its own line under the wordmark (placeFooter's shift):
-  // the collage still ends the row's own gap above the row as drawn.
+describe('the row and the footer', () => {
+  // The footer is one line (round 6): the row stays where the layout put it, the row's own gap under the collage.
   it('keeps the row\'s gap from the collage once the footer is placed, in every format', async () => {
     for (const format of ['story', 'post', 'square', 'wide', 'desktop'] as const) {
       const card = await image.prepareCard({ format, entries, species, pack, now: NOW, theme: 'light', strings: en.ui, name: 'A title' })
       const { L } = card
-      const gap = L.latest!.y - card.shift - (L.collage.y + L.collage.h)
+      const gap = L.latest!.y - (L.collage.y + L.collage.h)
       expect(gap, format).toBeGreaterThanOrEqual(format === 'square' ? 32 : 24)
     }
   })

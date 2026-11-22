@@ -47,10 +47,10 @@ vi.mock('@/lib/share/view-image', async (orig) => {
   const h = await import('./fixtures/tree-image-harness')
   return {
     ...real,
-    renderViewImage: async (opts: ShareImageOpts & { latestAs?: { row: { com: string }; label: string; detail?: string } }, _footer: string, paint: (ctx: CanvasRenderingContext2D, card: unknown, area: unknown) => void) => {
+    renderViewImage: async (opts: ShareImageOpts & { latestAs?: { row: { com: string }; label: string; detail?: string } }, paint: (ctx: CanvasRenderingContext2D, card: unknown, area: unknown) => void) => {
       // The card as the real frame lays it out (prepareCard): the title, the view's footer, the Tree's tighter gaps, a poster's size.
       const print = opts.format === 'print' || opts.format === 'printLandscape'
-      const L = cardLayout(opts.format, { name: !!opts.name, filter: false, latest: !!opts.latestAs, count: 0, countSize: 'hide', viewFooter: true, ...(opts.tight ? { tight: true } : {}) }, print ? printDesign(opts.printSize ?? 'A2', opts.format === 'printLandscape') : undefined)
+      const L = cardLayout(opts.format, { name: !!opts.name, filter: false, latest: !!opts.latestAs, count: 0, countSize: 'hide', ...(opts.tight ? { tight: true } : {}) }, print ? printDesign(opts.printSize ?? 'A2', opts.format === 'printLandscape') : undefined)
       const rec = h.recorder()
       const card = { L, colors: { ink: '#000', line: '#999', muted: '#666', paper: '#fff', hairline: '#ddd', accent: '#c00', surface: '#eee' }, fonts: h.FONTS, transparent: false }
       paint(rec.ctx, card, { ...L.collage })
