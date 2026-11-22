@@ -527,7 +527,7 @@ describe('Settings and the collage', () => {
     await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }) })
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species, all from iNaturalist. See my collage'))
     // The first birds into an empty list: the milestone (D1).
-    expect(screen.getByTestId('import-toast')).toHaveTextContent(/^Your collage has 1 species$/)
+    expect(screen.getByTestId('import-toast')).toHaveTextContent(/^Your collage has 1 species\s*See my collage$/)
     expect(vi.mocked(analytics.track).mock.calls).toEqual([['collage_made', { source: 'inat' }]])
   })
 
@@ -1090,4 +1090,58 @@ describe('remembered sources', () => {
     expect(add).toHaveFocus()
   })
 
+  describe('the import toast\'s "See my collage"', () => {
+    const toastSee = () => within(screen.getByTestId('import-toast')).queryByRole('button', { name: 'See my collage' })
+    const collageTab = () => screen.getByRole('button', { name: 'Collage' })
+    const manualList = (s: import('@/lib/list/storage').Saved) => { s.records.manual = [{ code: 'snogoo', source: 'manual' }] }
+
+    it('from Settings: goes to My birds on the Collage view, whichever view was open there', async () => {
+      await mount({ path: '/', stored: manualList })
+      fireEvent.click(await screen.findByRole('button', { name: 'List' }))
+      await go('/settings')
+      await screen.findByTestId('ebird-drop')
+      await drop(csv(...ROWS))
+      await waitFor(() => expect(screen.getByTestId('import-toast')).toHaveTextContent(/^Done · 3 from eBird\s*See my collage$/))
+      await act(async () => { fireEvent.click(toastSee()!) })
+      expect(nav.path).toBe('/')
+      expect(await screen.findByRole('heading', { level: 1, name: 'My birds' })).toBeInTheDocument()
+      expect(collageTab()).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.queryByTestId('import-toast')).toBeNull() // its press ends the toast
+    })
+
+    it('on My birds with Add birds open: closes the dialog, switches to the Collage view and scrolls to the top', async () => {
+      const scrolled = vi.fn()
+      vi.stubGlobal('scrollTo', scrolled)
+      await mount({ path: '/', stored: manualList })
+      fireEvent.click(await screen.findByRole('button', { name: 'List' }))
+      await openAdd('Import a file')
+      const dialog = screen.getByRole('dialog', { name: 'Add birds' })
+      await drop(csv(...ROWS))
+      await waitFor(() => expect(toastSee()).not.toBeNull())
+      expect(dialog).toBeInTheDocument() // the dialog stays open under the toast until asked
+      fireEvent.click(toastSee()!)
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(collageTab()).toHaveAttribute('aria-pressed', 'true')
+      expect(scrolled).toHaveBeenCalledWith({ top: 0 })
+      expect(nav.path).toBe('/')
+    })
+
+    it('hidden on My birds when the Collage view shows with nothing over it', async () => {
+      const { inat } = await mount({ path: '/', stored: manualList })
+      let finish: (v: unknown) => void = () => {}
+      vi.mocked(inat.importInat).mockImplementationOnce(async () => new Promise((done) => { finish = done }) as never)
+      await openAdd('Import a file')
+      fireEvent.change(inatField(), { target: { value: 'birder' } })
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Fetch my birds' })) })
+      // The fetch outlives the dialog: closed, the birder is on the collage when it lands.
+      fireEvent.click(within(screen.getByRole('dialog', { name: 'Add birds' })).getByRole('button', { name: 'Close' }))
+      expect(collageTab()).toHaveAttribute('aria-pressed', 'true')
+      await act(async () => { finish({ records: [{ code: 'amerob', source: 'inat', date: '2024-05-01' }], unmatched: [], skipped: 0 }) })
+      await waitFor(() => expect(screen.getByTestId('import-toast')).toHaveTextContent(/^Done · 1 from iNaturalist$/))
+      expect(toastSee()).toBeNull()
+      // Another view: the way back shows.
+      fireEvent.click(screen.getByRole('button', { name: 'List' }))
+      expect(toastSee()).not.toBeNull()
+    })
+  })
 })

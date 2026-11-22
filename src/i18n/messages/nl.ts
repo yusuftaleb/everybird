@@ -615,6 +615,7 @@ export const nl: Messages = {
       toastDone: 'Klaar · {result}',
       toastNew: { one: '{n} nieuwe soort', other: '{n} nieuwe soorten' },
       toastNone: 'geen nieuwe soorten',
+      toastSee: 'Bekijk mijn collage',
       summary: {
         head: { one: 'Je collage heeft {n} soort', other: 'Je collage heeft {n} soorten' },
         list: '{head}: {parts}.',

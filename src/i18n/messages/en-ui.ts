@@ -782,6 +782,8 @@ export const EN_UI = {
     /** After a Refresh or Replace of a source that had birds: what it added ("Done · 282 from iNaturalist · 4 new species"), or none. */
     toastNew: { one: '{n} new species', other: '{n} new species' },
     toastNone: 'no new species',
+    /** The done toast's button to My birds' Collage view (ImportToast). */
+    toastSee: 'See my collage',
     /** The summary line ("Your collage has 199 species: 185 from eBird, 11 more from iNaturalist, 3 ticked by hand.").
      *  `head` is plural on the total, each part on its own number; the parts are joined with ", " in code. */
     summary: {

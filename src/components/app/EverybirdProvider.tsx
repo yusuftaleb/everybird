@@ -3,7 +3,8 @@
 // /about share one store, and an import started on /settings keeps running while the birder moves between them. The
 // shared view (/s/[token]) lives outside this layout, so it never loads or touches the saved list. Every import's toast
 // (ImportToast) is mounted here, so it follows the birder from page to page until the import ends.
-import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { track } from '@/lib/analytics'
 import { slotSource, SLOTS, type ImportResult, type Slot } from '@/lib/list/model'
 import type { DetailsFor, Saved } from '@/lib/list/storage'
@@ -28,6 +29,9 @@ export type Everybird = {
   /** Whether there is a list, known as soon as storage has been read (before the bird data): null until then. */
   mineSoon: boolean | null
   jobs: ImportJobs
+  /** My birds' Add birds dialog is open (held here, not in Home, so the import toast's "See my collage" can close it). */
+  adding: boolean
+  setAdding: (open: boolean) => void
 }
 
 /** Anything the birder brought in, matched or not (an import of only unmatched rows still shows its report). */
@@ -64,11 +68,25 @@ export function EverybirdProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (home && mineSoon) void import('@/lib/layout/layout-client').then((m) => m.warmLayoutWorker())
   }, [home, mineSoon])
+  const [adding, setAdding] = useState(false)
+  // A page change (Back) leaves no dialog behind: the next visit to / opens on the collage, as when Home held it.
+  if (!home && adding) setAdding(false)
   const value = useMemo<Everybird>(
-    () => ({ state, dispatch, meta, data, failed: !!meta.error, mine, mineSoon, jobs }),
-    [state, dispatch, meta, data, mine, mineSoon, jobs],
+    () => ({ state, dispatch, meta, data, failed: !!meta.error, mine, mineSoon, jobs, adding, setAdding }),
+    [state, dispatch, meta, data, mine, mineSoon, jobs, adding],
   )
-  return <Ctx.Provider value={value}>{children}<ImportToast jobs={jobs} /></Ctx.Provider>
+
+  // The import toast's "See my collage": My birds on the Collage view, at the top. On / it closes the Add birds dialog
+  // and switches the view (the dock's own action); from another page it goes to / (scrolled to the top, as a link does).
+  const router = useRouter()
+  const view = state.view
+  const onSee = useCallback(() => {
+    if (view !== 'collage') dispatch({ type: 'view', view: 'collage' })
+    if (!home) return router.push('/')
+    setAdding(false)
+    scrollTo({ top: 0 })
+  }, [view, dispatch, home, router])
+  return <Ctx.Provider value={value}>{children}<ImportToast jobs={jobs} onSee={onSee} here={home && !adding && view === 'collage'} /></Ctx.Provider>
 }
 
 export function useEverybirdContext(): Everybird {

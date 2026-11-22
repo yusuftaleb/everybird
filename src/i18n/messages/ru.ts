@@ -636,6 +636,7 @@ export const ru: Messages = {
       toastDone: 'Готово · {result}',
       toastNew: { one: '{n} новый вид', few: '{n} новых вида', many: '{n} новых видов', other: '{n} нового вида' },
       toastNone: 'новых видов нет',
+      toastSee: 'Открыть мой коллаж',
       summary: {
         head: { one: 'В твоём коллаже {n} вид', few: 'В твоём коллаже {n} вида', many: 'В твоём коллаже {n} видов', other: 'В твоём коллаже {n} вида' },
         list: '{head}: {parts}.',

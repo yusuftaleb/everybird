@@ -606,6 +606,7 @@ export const ja: Messages = {
       toastDone: '完了 · {result}',
       toastNew: { one: '新たに{n}種', other: '新たに{n}種' },
       toastNone: '新しい種はありません',
+      toastSee: 'コラージュを見る',
       summary: {
         head: { one: 'コラージュの{n}種', other: 'コラージュの{n}種' },
         list: '{head}：{parts}。',

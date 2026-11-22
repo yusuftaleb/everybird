@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useState } from 'react'
+import { Suspense } from 'react'
 import { lazyLoaded } from '@/lib/lazy-loaded'
 import { CollagePage } from './CollagePage'
 import { useEverybirdContext } from './EverybirdProvider'
@@ -11,12 +11,12 @@ export const AddBirdsDialog = lazyLoaded(() => import('@/components/import/AddBi
 /**
  * `/` (Collage): the birder's own collage when this device holds a list, else the landing with the sample collage.
  * Which one is known as soon as storage has been read, well before the bird data arrives. "Add birds" (the landing's
- * main button, the collage's head) opens one dialog, held here so it stays open while a first list turns the landing
- * into the collage behind it.
+ * main button, the collage's head) opens one dialog, held in the provider (`adding`) so it stays open while a first list
+ * turns the landing into the collage behind it, and the import toast's "See my collage" can close it.
  */
 export function Home() {
   const eb = useEverybirdContext()
-  const [adding, setAdding] = useState(false)
+  const { adding, setAdding } = eb
   if (eb.mineSoon === null) return <main className="eb-page eb-page-collage" aria-busy="true"><div className="eb-stage-wait eb-sample-wait" aria-hidden="true" /></main>
   const add = () => setAdding(true)
   return (

@@ -606,6 +606,7 @@ export const sv: Messages = {
       toastDone: 'Klart · {result}',
       toastNew: { one: '{n} ny art', other: '{n} nya arter' },
       toastNone: 'inga nya arter',
+      toastSee: 'Visa mitt collage',
       summary: {
         head: { one: 'Ditt collage har {n} art', other: 'Ditt collage har {n} arter' },
         list: '{head}: {parts}.',

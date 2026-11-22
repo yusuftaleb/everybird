@@ -615,6 +615,7 @@ export const fr: Messages = {
       toastDone: 'Terminé · {result}',
       toastNew: { one: '{n} nouvelle espèce', other: '{n} nouvelles espèces' },
       toastNone: 'aucune nouvelle espèce',
+      toastSee: 'Voir mon collage',
       summary: {
         head: { one: 'Ton collage compte {n} espèce', other: 'Ton collage compte {n} espèces' },
         list: '{head}\u00a0: {parts}.',

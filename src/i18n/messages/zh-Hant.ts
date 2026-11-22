@@ -606,6 +606,7 @@ export const zhHant: Messages = {
       toastDone: '完成 · {result}',
       toastNew: { one: '新增 {n} 種', other: '新增 {n} 種' },
       toastNone: '沒有新增鳥種',
+      toastSee: '查看我的拼貼',
       summary: {
         head: { one: '你的拼貼有 {n} 種', other: '你的拼貼有 {n} 種' },
         list: '{head}：{parts}。',

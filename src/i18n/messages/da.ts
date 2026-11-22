@@ -607,6 +607,7 @@ export const da: Messages = {
       toastDone: 'Færdig · {result}',
       toastNew: { one: '{n} ny art', other: '{n} nye arter' },
       toastNone: 'ingen nye arter',
+      toastSee: 'Se min collage',
       summary: {
         head: { one: 'Din collage har {n} art', other: 'Din collage har {n} arter' },
         list: '{head}: {parts}.',

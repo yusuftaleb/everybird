@@ -607,6 +607,7 @@ export const de: Messages = {
       toastDone: 'Fertig · {result}',
       toastNew: { one: '{n} neue Art', other: '{n} neue Arten' },
       toastNone: 'keine neuen Arten',
+      toastSee: 'Meine Collage ansehen',
       summary: {
         head: { one: 'Deine Collage hat {n} Art', other: 'Deine Collage hat {n} Arten' },
         list: '{head}: {parts}.',
