@@ -735,14 +735,17 @@ main[tabindex="-1"]:focus { outline: none; }
 .eb-disp-sw .eb-setrow-label { font-size: 14px; font-weight: 500; }
 .eb-disp-sw .eb-track { flex: none; }
 .eb-setrow-btn.eb-disp-sw:focus-visible { outline-offset: 0; border-radius: 8px; }
-/* Touch (the phone's sheet, and any coarse pointer): every row and segment 44px, an icon segment 44px wide too. */
-.eb-drop-sheet .eb-setrow-btn.eb-disp-sw, .eb-drop-sheet .eb-disp .eb-seg-btn { min-height: 44px; }
+/* Touch (the phone's sheet, and any coarse pointer): every switch row 44px; the segments the share dialog's on touch
+   (--seg-touch, 32px drawn) with a 44px press through the ::after, an icon segment 44px wide. */
+.eb-drop-sheet .eb-setrow-btn.eb-disp-sw { min-height: 44px; }
+.eb-drop-sheet .eb-disp .eb-seg-btn { min-height: var(--seg-touch); }
 .eb-drop-sheet .eb-disp .eb-seg-btn[data-icon] { min-width: 44px; }
-.eb-drop-sheet .eb-disp .eb-seg-btn::after { content: none; }
+.eb-drop-sheet .eb-disp .eb-seg-btn::after { inset: calc((var(--seg-touch) - 44px) / 2) 0; }
 @media (pointer: coarse) {
-  .eb-setrow-btn.eb-disp-sw, .eb-disp .eb-seg-btn { min-height: 44px; }
+  .eb-setrow-btn.eb-disp-sw { min-height: 44px; }
+  .eb-disp .eb-seg-btn { min-height: var(--seg-touch); }
   .eb-disp .eb-seg-btn[data-icon] { min-width: 44px; }
-  .eb-disp .eb-seg-btn::after { content: none; }
+  .eb-disp .eb-seg-btn::after { inset: calc((var(--seg-touch) - 44px) / 2) 0; }
 }
 @media (hover: hover) and (pointer: fine) { .eb-disp .eb-seg-btn:not([aria-disabled="true"]):hover { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .eb-disp .eb-seg-btn { transition: none; } }

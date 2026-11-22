@@ -234,3 +234,20 @@ describe("round 6 design proposals: the dock's motion (AN8, AU16) and the list r
     expect(block(cardCss, /@media \(hover: hover\) and \(pointer: fine\) \{\n  \.eb-row-btn \{/)).toMatch(/\.eb-row-btn:hover \{ background: var\(--surface\); \}/);
   });
 });
+
+describe("the Display panel's segments on a phone (the phone fixes, item 4)", () => {
+  const shareCss = readFileSync(resolve(__dirname, "../src/components/share/share.css"), "utf8");
+  const tokens = readFileSync(resolve(__dirname, "../src/styles/tokens.css"), "utf8");
+  it("are the share dialog's touch height (one token, --seg-touch: 32px), with a 44px press through ::after", () => {
+    expect(tokens).toMatch(/--seg-touch: 32px;/);
+    const all = rules(css), share = rules(shareCss);
+    const body = (list: Rule[], at: string, sel: string) => list.find((r) => r.at === at && r.sel === sel)?.body ?? "";
+    for (const [at, pre] of [["@media (pointer: coarse)", ""], ["top", ".eb-drop-sheet "]] as const) {
+      expect(body(all, at, `${pre}.eb-disp .eb-seg-btn`)).toMatch(/min-height: var\(--seg-touch\)/);
+      expect(body(all, at, `${pre}.eb-disp .eb-seg-btn::after`)).toMatch(/inset: calc\(\(var\(--seg-touch\) - 44px\) \/ 2\) 0/);
+    }
+    expect(body(all, "top", ".eb-disp .eb-seg-btn::after")).toMatch(/content: ''; position: absolute/);
+    expect(body(share, "@media (pointer: coarse)", ".eb-share .eb-share-seg .eb-seg-btn")).toMatch(/min-height: var\(--seg-touch\)/);
+    expect(body(share, "@media (pointer: coarse)", ".eb-share .eb-share-seg .eb-seg-btn::after")).toMatch(/inset: calc\(\(var\(--seg-touch\) - 44px\) \/ 2\) 0/);
+  });
+});

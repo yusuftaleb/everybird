@@ -286,8 +286,8 @@
 }
 .eb-share .eb-share-seg .eb-seg-btn svg { display: block; }
 @media (pointer: coarse) {
-  .eb-share .eb-share-seg .eb-seg-btn { min-height: 32px; }
-  .eb-share .eb-share-seg .eb-seg-btn::after { content: ''; position: absolute; inset: -6px 0; }
+  .eb-share .eb-share-seg .eb-seg-btn { min-height: var(--seg-touch); }
+  .eb-share .eb-share-seg .eb-seg-btn::after { content: ''; position: absolute; inset: calc((var(--seg-touch) - 44px) / 2) 0; }
   /* Count's S, M and L are a letter wide: on touch each is 36px across (32px under 290px of column; AU5), shrinking
      only as far as its letter where the row is too narrow for that (German and Russian on a phone), so Count never
      overflows: a basis, not a minimum, in a control at most the row's width. */
