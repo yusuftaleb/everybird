@@ -886,6 +886,7 @@ export const da: Messages = {
     meta: {
       title: 'Everybird · Gør din livsliste over fugle til en collage',
       description: 'Gør din livsliste over fugle til en gratis collage af klistermærker. Importér fra eBird, iNaturalist eller observation.org, og del billeder eller udskriv en plakat.',
+      imageAlt: 'Everybird: en collage af klistermærker fra en livsliste over fugle',
       about: {
         title: 'Om',
         description: 'Hvad Everybird er, hvordan det virker, hvad Ægte mål betyder, og hvilke data, klistermærker, skrifttyper og hvilken kode det er bygget af.',

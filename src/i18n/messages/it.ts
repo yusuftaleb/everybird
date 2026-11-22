@@ -882,6 +882,7 @@ export const it: Messages = {
     meta: {
       title: 'Everybird · Trasforma la tua lista di vita di uccelli in un collage',
       description: 'Trasforma la tua lista di vita di uccelli in un collage di adesivi gratuito. Importala da eBird, iNaturalist o observation.org, poi condividi immagini o stampa un poster.',
+      imageAlt: 'Everybird: un collage di adesivi da una lista di vita di uccelli',
       about: {
         title: 'Info',
         description: 'Cos’è Everybird, come funziona, cosa significa Taglia reale, e i dati, gli adesivi, i caratteri e il codice su cui si basa.',

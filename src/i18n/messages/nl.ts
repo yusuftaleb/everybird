@@ -898,6 +898,7 @@ export const nl: Messages = {
     meta: {
       title: 'Everybird · Je vogellijst als stickercollage',
       description: 'Maak gratis een stickercollage van je vogellijst. Importeer uit eBird, iNaturalist of observation.org. Deel afbeeldingen of druk een poster af.',
+      imageAlt: 'Everybird: een stickercollage van een vogellijst',
       about: {
         title: 'Over',
         description: 'Wat Everybird is, hoe het werkt, wat Ware grootte betekent, en de data, stickers, lettertypen en code waarmee het gemaakt is.',

@@ -898,6 +898,7 @@ export const pt: Messages = {
     meta: {
       title: 'Everybird · Sua lista de aves em uma colagem',
       description: 'Transforme sua lista de aves em uma colagem de adesivos grátis. Importe do eBird, iNaturalist ou observation.org. Compartilhe imagens ou imprima um pôster.',
+      imageAlt: 'Everybird: uma colagem de adesivos de uma lista de aves',
       about: {
         title: 'Sobre',
         description: 'O que é o Everybird, como funciona, o que significa Tamanho real, e os dados, adesivos, fontes e código de que ele é feito.',

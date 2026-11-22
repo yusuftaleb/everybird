@@ -5,6 +5,7 @@
 import type { Metadata } from 'next'
 import type { Lang } from '@/i18n/langs'
 import { SHARE_ORIGIN } from '@/lib/share/origin'
+import { SITE_OG, siteOgPath } from '@/lib/share/site-og'
 
 export const SITE_NAME = 'Everybird'
 
@@ -23,17 +24,19 @@ export const REPO_URL = 'https://github.com/yusuftaleb/everybird'
 /** The only pages offered to search engines (app/sitemap.ts). */
 export const INDEXED_PATHS = ['/', '/about'] as const
 
-/** The site's own 512px icon (scripts/build-data/build-icons.ts), the one picture the public pages already have. */
-const ICON = { url: '/icons/icon-512.png', width: 512, height: 512, alt: SITE_NAME }
-
 export const siteUrl = (path: string) => new URL(path, SHARE_ORIGIN).toString()
 
-/** Canonical (unprefixed), Open Graph (with the language's locale) and Twitter card for one public page. */
-export function pageSeo(path: string, title: string, description: string, lang: Lang): Pick<Metadata, 'alternates' | 'openGraph' | 'twitter'> {
+/**
+ * Canonical (unprefixed), Open Graph (with the language's locale) and a large Twitter card for one public page; the
+ * picture is the language's link preview (public/og/<lang>.jpg, scripts/build-data/build-og.tsx), `imageAlt` its alt
+ * (`page.meta.imageAlt`, passed in: this module also reaches the client, the dictionaries' `page` never does).
+ */
+export function pageSeo(path: string, title: string, description: string, lang: Lang, imageAlt: string): Pick<Metadata, 'alternates' | 'openGraph' | 'twitter'> {
   const url = siteUrl(path)
+  const image = { url: siteOgPath(lang), ...SITE_OG, alt: imageAlt }
   return {
     alternates: { canonical: url },
-    openGraph: { type: 'website', siteName: SITE_NAME, url, title, description, images: [ICON], locale: OG_LOCALE[lang] },
-    twitter: { card: 'summary', title, description, images: [ICON.url] },
+    openGraph: { type: 'website', siteName: SITE_NAME, url, title, description, images: [image], locale: OG_LOCALE[lang] },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
   }
 }

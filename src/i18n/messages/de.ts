@@ -887,6 +887,7 @@ export const de: Messages = {
     meta: {
       title: 'Everybird · Mach aus deiner Vogel-Lebensliste eine Collage',
       description: 'Mach aus deiner Vogel-Lebensliste eine kostenlose Stickercollage. Importiere aus eBird, iNaturalist oder observation.org, dann teile Bilder oder drucke ein Poster.',
+      imageAlt: 'Everybird: eine Stickercollage aus einer Vogel-Lebensliste',
       about: {
         title: 'Über',
         description: 'Was Everybird ist, wie es funktioniert, was Echte Größe bedeutet und aus welchen Daten, Stickern, Schriften und welchem Code es gebaut ist.',

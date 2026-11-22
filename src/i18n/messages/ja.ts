@@ -884,6 +884,7 @@ export const ja: Messages = {
     meta: {
       title: 'Everybird · 鳥のライフリストをコラージュに',
       description: '鳥のライフリストを無料のステッカーコラージュに。eBird、iNaturalist、observation.orgから読み込んで、画像を共有したり、ポスターを印刷したりできます。',
+      imageAlt: 'Everybird：鳥のライフリストのステッカーコラージュ',
       about: {
         title: '概要',
         description: 'Everybirdとは何か、その仕組み、「実寸」の意味、そしてもとになったデータ、ステッカー、フォント、コードについて。',

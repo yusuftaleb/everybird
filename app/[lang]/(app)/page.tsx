@@ -15,6 +15,8 @@ export default async function Page({ params }: { params: Promise<{ lang: string 
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: SITE_NAME,
+      // One more site-name hint for Google, which lists the site as "yusuftaleb.com".
+      alternateName: 'Everybird app',
       url: siteUrl('/'),
     }).replace(/</g, '\\u003c') }} />
     <Home />

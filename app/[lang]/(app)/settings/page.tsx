@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   const lang = await langParam(params)
   const { meta } = getMessages(lang).page
   const title = siteTitle(meta.settings.title)
-  return { title, ...pageSeo('/settings', title, meta.description, lang) }
+  return { title, ...pageSeo('/settings', title, meta.description, lang, meta.imageAlt) }
 }
 
 export default function Page() {
