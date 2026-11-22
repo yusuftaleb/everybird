@@ -7,7 +7,7 @@ import { printDesign } from '@/lib/share/print'
 import { VIEW_TOTALS } from '@/components/share/dialog-options'
 import { en } from '@/i18n/messages/en'
 import { FOOTER_LINE, SMALL_INLINE, SMALL_ROW, cardLayout, prepareCard, type ShareImageOpts } from '@/lib/share/image'
-import { IMAGE_SIZES, TOTALS, rowsLabels, totalsSize } from '@/lib/share/tree-image'
+import { IMAGE_SIZES, TOTALS, TOTALS_TYPE, rowsLabels, totalsPlace } from '@/lib/share/tree-image'
 import { LABEL_GAP, fitRound } from '@/lib/tree/fan'
 import { chosenTotals, fitBox, wrapParts } from '@/lib/share/view-image'
 import { buildSpeciesIndex } from '@/lib/species/load'
@@ -143,18 +143,17 @@ describe('the Totals row: the totals each image draws', () => {
   })
 })
 
-describe('the tree image: four equal totals on top', () => {
-  it('species, genera, families and orders, in that order, every number the same size, the largest that fits each', () => {
+describe('the tree image: the totals at the top right (round 6, as the promo)', () => {
+  it('species, genera, families and orders, in that order; beside the title when both fit, else under it', () => {
     expect(TOTALS).toEqual(['species', 'genera', 'families', 'orders'])
-    const texts = ['202 / 11,201', '150 / 2,379', '60 / 251', '20 / 41']
-    const w = (s: string) => s.length * 0.55
-    const { num, label } = totalsSize(texts, 952, w)
-    // One size for the four, set by the widest, each inside its quarter.
-    expect(num).toBe(Math.floor((952 / 4 - 24) / w(texts[0])))
-    for (const t of texts) expect(w(t) * num).toBeLessThanOrEqual(952 / 4)
-    expect(label).toBeLessThan(num)
-    // Never larger than the cap, however wide the image; one total (the Totals row's species alone) as large as that.
-    expect(totalsSize(['1 / 2'], 1800, w).num).toBe(56)
+    expect(TOTALS_TYPE).toMatchObject({ num: 44, label: 15, gap: 8, between: 48 })
+    // Side by side with the title only when the two and the gap between them fit the width.
+    expect(totalsPlace(500, 400, 952)).toEqual({ band: true, k: 1 })
+    expect(totalsPlace(500, 405, 952)).toEqual({ band: false, k: 1 })
+    // No title: never on a band, still at full size.
+    expect(totalsPlace(500, undefined, 952)).toEqual({ band: false, k: 1 })
+    // A group wider than the card on its own shrinks to fit it.
+    expect(totalsPlace(1904, undefined, 952).k).toBeCloseTo(0.5, 9)
   })
 })
 

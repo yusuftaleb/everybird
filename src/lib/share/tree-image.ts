@@ -10,8 +10,8 @@
 // before it shrinks), and the counts are right-aligned in a column at the card's right edge. On a share card no name
 // is over NAME_CAP; under NAME_READ (names) or COUNT_READ (counts) the image still draws and tells the dialog
 // (onTreeText), which shows a quiet note offering Print. The dialog draws a Fan horizontally and the others
-// vertically. The totals, the drawing, its axis and key are one block centred in the card's area (round 6), so neither
-// a Fan, a Radial nor the rows leave an empty band above or below them; room is kept only for the axis and key drawn,
+// vertically. The drawing, its axis and key are fitted under the totals and centred there on their real bounds
+// (round 6, roundBounds), so neither a Fan, a Radial nor the rows sit high; room is kept only for the axis and key drawn,
 // and the Tree card's gaps are tighter than the collage card's (TIGHT_GAPS, item 9). A group with no bird on the list
 // shows its representative sticker dimmed (groupSticker). Under it, when there is room and the time scale is on
 // (`at.time`, the bar's switch; off: the splits spaced evenly, bySplits, and no axis, rings or ages), the age axis (the
@@ -20,7 +20,8 @@
 // oldest lineage takes the latest lifer's place and style (latestAs; on a poster, its foot). On top, instead of the
 // big count, the totals the dialog's Totals row keeps (species, genera, families and orders at and below the level on
 // screen, any of them, none included), each a plain count over its rank ("65" over "FAMILIES", no "/ 250"), the same
-// size and weight; with none, the drawing has their room. The oldest lineage is the card's small row (SMALL_ROW). The footer links to the credits (image.ts FOOTER_LINE), the tree's among them.
+// size and weight, in one right-aligned group at the top right, beside the title on its band when both fit, else under
+// it (round 6, as the promo's tree poster; totalsPlace, TOTALS_TYPE); with none, the drawing has their room. The oldest lineage is the card's small row (SMALL_ROW). The footer links to the credits (image.ts FOOTER_LINE), the tree's among them.
 // A share image and a poster alike draw the rank on screen, its Level (round 6, item 22: Print's own "Down to" went).
 import { fmt, pluralWord, type Plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -127,8 +128,13 @@ function clearTicks<T extends { v: number; x0: number; x1: number; y0: number; y
   for (const it of order) if (kept.every((k) => clear(it, k))) kept.push(it)
   return kept.sort((a, b) => a.v - b.v)
 }
-/** The totals: the largest number, the gap under the numbers, and before the drawing (round 6, item 9: 20, was 32). */
-const TOTAL_MAX = 56, TOTAL_GAP = 12, TOTALS_BELOW = 20
+/** The room between the totals and the drawing under them (round 6, item 9: 20, was 32). */
+const TOTALS_BELOW = 20
+/**
+ * The totals' type, as the promo's tree poster (round 6): each number (Cabinet 700, Ink) over its rank (Geist Mono 500,
+ * Muted, tracked .06em), right-aligned, `gap` between them; `between` the blocks, and between the title and the group.
+ */
+export const TOTALS_TYPE = { num: 44, label: 15, gap: 8, between: 48, track: 0.06 } as const
 
 type Tip = Exclude<TreeRow, { kind: 'head' }>
 type TotalRank = 'species' | 'genera' | 'families' | 'orders'
@@ -140,14 +146,13 @@ const RANK_WORD: Record<TotalRank, (t: Ui) => Plural> = {
 }
 
 /**
- * The totals' size: one number size for every block (the largest that fits each "count / total" in its share of
- * `width` with a little air, TOTAL_MAX at most), and the rank's label under it. `widthAt1(text)` measures a number at
- * size 1.
+ * Where the totals go (round 6, as the promo's tree poster): one right-aligned group at the content's top right. On the
+ * title's band when the title (`titleW` wide at its size; undefined for none) and the group (`groupW` at TOTALS_TYPE)
+ * fit the `width` side by side with TOTALS_TYPE.between between them; else under the title, or at the top with no
+ * title. `k` shrinks the group only where it is wider than the width on its own.
  */
-export function totalsSize(texts: readonly string[], width: number, widthAt1: (text: string) => number): { num: number; label: number } {
-  const col = width / Math.max(1, texts.length)
-  const num = Math.floor(Math.min(TOTAL_MAX, ...texts.map((s) => (col - 24) / Math.max(1e-6, widthAt1(s)))))
-  return { num, label: Math.max(16, Math.min(22, Math.round(num * 0.4))) }
+export function totalsPlace(groupW: number, titleW: number | undefined, width: number): { band: boolean; k: number } {
+  return { band: titleW !== undefined && titleW + TOTALS_TYPE.between + groupW <= width, k: Math.min(1, width / Math.max(1e-6, groupW)) }
 }
 
 /** The share of the area's width the Rectangular image's drawing takes at most (round 6: half, as on screen), and at
@@ -234,31 +239,58 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   return renderViewImage({ ...o, countSize: 'hide', latestAs, tight: true }, (ctx, card, full) => {
     const C = card.colors
     const font = card.fonts
-    // The totals on top of the drawing (round 6: counts only, "65" over "FAMILIES"): the same size for all, in Ink, the
-    // rank under it; at the top of the area (drawTotals).
-    const totalsAt = (w: number) => {
-      const { num, label } = totalsSize(totals.map((x) => x.n), w, (s) => { ctx.font = font.count(100); return ctx.measureText(s).width / 100 })
-      return { num, label, head: totals.length ? num * 0.72 + TOTAL_GAP + label * 0.72 + TOTALS_BELOW : 0 }
+    // The totals (round 6, as the promo's tree poster: counts only, "65" over "FAMILIES"): one right-aligned group at the
+    // top right, each number over its rank, right-aligned. Beside the card's title on its band (the title at the left,
+    // the numbers' caps level with its caps) when both fit; else under the title, or at the top without one.
+    const T = TOTALS_TYPE
+    const widthOf = (x: { n: string; label: string }, k: number) => {
+      ctx.font = font.count(T.num * k)
+      const nw = ctx.measureText(x.n).width
+      ctx.font = font.mono(T.label * k)
+      ctx.letterSpacing = `${T.track * T.label * k}px`
+      const lw = ctx.measureText(x.label).width
+      ctx.letterSpacing = '0px'
+      return Math.max(nw, lw)
     }
-    const { num, label: labelPx, head } = totalsAt(full.w)
-    const drawTotals = (y0: number) => {
-      const col = full.w / Math.max(1, totals.length)
-      const numCap = num * 0.72, labelCap = labelPx * 0.72
+    const groupW = (k: number) => totals.reduce((sum, x, i) => sum + widthOf(x, k) + (i ? T.between * k : 0), 0)
+    const title = card.name && card.L.name ? card.name : undefined
+    ctx.font = font.name(card.L.name?.size ?? 60)
+    const titleW = title ? ctx.measureText(title).width : undefined
+    const place = totalsPlace(groupW(1), titleW, full.w)
+    const tk = place.k
+    const numCap = T.num * tk * 0.72, labelCap = T.label * tk * 0.72
+    const groupH = totals.length ? numCap + T.gap * tk + labelCap : 0
+    // The title's caps' top (paintCard draws it from its em box's top; its baseline that far below, 0.8 of the size
+    // where the canvas can't say).
+    let groupTop = full.y
+    if (place.band && title && card.L.name) {
+      ctx.font = font.name(card.L.name.size)
+      ctx.textBaseline = 'top'
+      const drop = Math.abs(ctx.measureText('H').alphabeticBaseline ?? 0)
+      groupTop = card.L.name.y + (Number.isFinite(drop) && drop > 0 ? drop : 0.8 * card.L.name.size) - 0.72 * card.L.name.size
+    }
+    const drawTotals = () => {
       ctx.textBaseline = 'alphabetic'
-      ctx.textAlign = 'center'
-      totals.forEach((x, i) => {
-        const cx = full.x + col * (i + 0.5)
-        ctx.font = font.count(num)
+      ctx.textAlign = 'right'
+      let x = full.x + full.w
+      for (let i = totals.length - 1; i >= 0; i--) {
+        const tot = totals[i]
+        ctx.font = font.count(T.num * tk)
         ctx.fillStyle = C.ink
-        ctx.fillText(x.n, cx, y0 + numCap)
-        ctx.font = font.footer(labelPx)
+        ctx.fillText(tot.n, x, groupTop + numCap)
+        ctx.font = font.mono(T.label * tk)
+        ctx.letterSpacing = `${T.track * T.label * tk}px`
         ctx.fillStyle = C.muted
-        ctx.fillText(x.label, cx, y0 + numCap + TOTAL_GAP + labelCap)
-      })
+        ctx.fillText(tot.label, x, groupTop + numCap + T.gap * tk + labelCap)
+        ctx.letterSpacing = '0px'
+        x -= widthOf(tot, tk) + T.between * tk
+      }
       ctx.textAlign = 'left'
     }
     // The room under the totals, down to the gap above the footer's row: the drawing (with its axis and key) is fitted
     // in it and centred there on its real bounds (round 6: the Story's Radial no longer sits high with a gap under it).
+    // On the title's band the totals take none of it unless they reach below the card's head.
+    const head = !totals.length ? 0 : Math.max(0, groupTop + groupH + TOTALS_BELOW - full.y)
     const room: Area = { x: full.x, y: full.y + head, w: full.w, h: full.h - head }
 
     // The axis wherever the time scale is on (round 6, item 14: no height it needs first; Square had none).
@@ -409,7 +441,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     // drawH: the round drawing's whole height (under it included), or the rows' own (their axis and key under them).
     const drawH = fit && bounds ? bounds.up + bottomOf(fit, bounds) : view.height * k
     const blockH = fit ? drawH : drawH + under('rows')
-    drawTotals(full.y)
+    drawTotals()
     const area: Area = { x: full.x, y: room.y + Math.max(0, room.h - blockH) / 2, w: full.w, h: drawH }
     o.onTreeBounds?.({ room, drawing: bounds && fit ? { x: area.x + fit.cx - bounds.left, y: area.y, w: bounds.left + bounds.right, h: drawH } : { ...area, h: blockH } })
 

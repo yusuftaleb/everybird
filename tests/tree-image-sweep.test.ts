@@ -52,7 +52,7 @@ vi.mock('@/lib/share/view-image', async (orig) => {
       const print = opts.format === 'print' || opts.format === 'printLandscape'
       const L = cardLayout(opts.format, { name: !!opts.name, filter: false, latest: !!opts.latestAs, count: 0, countSize: 'hide', ...(opts.tight ? { tight: true } : {}) }, print ? printDesign(opts.printSize ?? 'A2', opts.format === 'printLandscape') : undefined)
       const rec = h.recorder()
-      const card = { L, colors: { ink: '#000', line: '#999', muted: '#666', paper: '#fff', hairline: '#ddd', accent: '#c00', surface: '#eee' }, fonts: h.FONTS, transparent: false }
+      const card = { L, name: opts.name?.trim() || undefined, colors: { ink: '#000', line: '#999', muted: '#666', paper: '#fff', hairline: '#ddd', accent: '#c00', surface: '#eee' }, fonts: h.FONTS, transparent: false }
       paint(rec.ctx, card, { ...L.collage })
       // The frame's row, by the frame's own painter (image.ts paintRow), its sticker its square.
       let row = ''

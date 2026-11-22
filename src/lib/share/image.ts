@@ -974,7 +974,7 @@ export function ensureCaptionFont(px: number, sample: string): Promise<void> {
 /** Wait for the faces a view image draws its own text with (names, ticks, the key: the lifer and footer fonts), for
  *  every character of `sample`: a CJK family is split into many files, and only those `sample` touches are loaded. */
 export function ensureViewFonts(card: Pick<PreparedCard, 'fonts'>, sample: string): Promise<void> {
-  return fontsReady([card.fonts.lifer(20), card.fonts.footer(20)], sample)
+  return fontsReady([card.fonts.lifer(20), card.fonts.footer(20), card.fonts.mono(20)], sample)
 }
 
 /** The card without its fonts and footer placement: layout, pack, fit, tiles, text. `scale`: device px per design unit. */
