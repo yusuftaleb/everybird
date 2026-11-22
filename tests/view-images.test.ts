@@ -1,8 +1,8 @@
-// The Map and Tree views' share images, their pure parts: how the map is fitted, where its six top places go (a column
-// in the Story and the portrait poster, else three columns by two rows), the totals the Totals row keeps, the tree's
-// equal totals, and its Rectangular names (every tip named).
+// The Map and Tree views' share images, their pure parts: how the map is fitted, where its six top places go (two
+// columns of three in every format), the totals the Totals row keeps, the tree's equal totals, and its Rectangular
+// names (every tip named).
 import { describe, expect, it } from 'vitest'
-import { MAP_TOTALS, ROW_CAP_PLACES, gridColumns, mapImageLayout, mapListsInColumn, TOP_PLACES } from '@/lib/share/map-image'
+import { LIST, LIST_COLS, LIST_ROWS, MAP_TOTALS, ROW, listColumns, mapImageLayout, TOP_PLACES } from '@/lib/share/map-image'
 import { printDesign } from '@/lib/share/print'
 import { VIEW_TOTALS } from '@/components/share/dialog-options'
 import { en } from '@/i18n/messages/en'
@@ -21,113 +21,50 @@ describe('the map image', () => {
     expect(f).toEqual({ x: 475, y: 0, s: 0.5 })
   })
 
-  it('six places: in a column under the map in the Story and the portrait poster, in three columns by two rows in every other format, inside the frame', () => {
+  it('six places: two columns of three under the map in every format, inside the frame, the rest the map\'s', () => {
     expect(TOP_PLACES).toBe(6)
+    expect([LIST_COLS, LIST_ROWS]).toEqual([2, 3])
     for (const format of ['story', 'post', 'square', 'desktop', 'wide', 'print', 'printLandscape'] as const) {
       const c = cardLayout(format, { name: true, filter: true, latest: false, count: 318 }, format.startsWith('print') ? printDesign('A2', format === 'printLandscape') : undefined).collage
       // The totals take the top of the collage's area (view-image.ts).
-      const area = { x: c.x, y: c.y + 100, w: c.w, h: c.h - 100 }
-      const grid = !mapListsInColumn(format)
-      expect(grid, format).toBe(format !== 'story' && format !== 'print')
-      // The world (2000 × 983) at the area's full width.
-      const mapH = (983 * area.w) / 2000
-      const L = mapImageLayout(area, 12, true, grid, mapH)
-      expect(L.rows, format).toBe(6)
-      expect(L.cols, format).toBe(grid ? 3 : 1)
+      const area = { x: c.x, y: c.y + 70, w: c.w, h: c.h - 70 }
+      const L = mapImageLayout(area, 12, true)
+      expect(L, format).toMatchObject({ rows: 6, perCol: 3 })
       const list = L.list!
-      expect(list.y + list.h, format).toBeLessThanOrEqual(area.y + area.h + 1e-6)
-      // The map's box is the area's width, the rest of its height once the legend and the list are under it.
+      // Three rows at their own pitch, no growing: the list's height is the same in every format.
+      expect(list.h, format).toBe(2 * ROW.pitch + ROW.h)
+      expect(list.y + list.h, format).toBeCloseTo(area.y + area.h, 9)
+      // The map's box is the area's width and every unit of height the legend and the list leave.
       expect(L.map.w, format).toBe(area.w)
-      expect(L.map.y + L.map.h + L.legendH, format).toBeLessThan(list.y)
-      if (grid) {
-        expect(L, format).toMatchObject({ k: 1, pitch: 64 })
-        expect(list.h, format).toBe(64 + 46)
-      } else {
-        // The column (round 6): the map at the full width, the rows grown to the size eight places filling the room
-        // under it would get (ROW_CAP_PLACES), at their own pitch, the spare height the map's box's.
-        expect(L.map.h, format).toBeGreaterThanOrEqual(mapH - 1e-6)
-        expect(list.y + list.h, format).toBeCloseTo(area.y + area.h, 6)
-        expect(L.k, format).toBeGreaterThan(1)
-        expect(L.k, format).toBeLessThanOrEqual(2)
-        expect(L.pitch, format).toBeCloseTo(64 * L.k, 6)
-        expect(fitBox(2000, 983, L.map).s * 2000, format).toBeCloseTo(area.w, 6)
-      }
-      if (grid) {
-        // The world (2000 × 983) takes the whole width where the height allows (Post), else as much as it allows: in
-        // every format larger than with the places in a column.
-        const s = fitBox(2000, 983, L.map).s
-        expect(s, format).toBeGreaterThan(fitBox(2000, 983, mapImageLayout(area, 12, true, false).map).s)
-        expect(2000 * s, format).toBeGreaterThan(area.w * (format === 'post' ? 0.99 : format === 'square' ? 0.85 : 0.55))
-      }
+      expect(L.map.h + L.legendH + LIST.above + list.h, format).toBeCloseTo(area.h, 9)
     }
   })
 
-  it("the grid's columns are the map's width, at least three 300-unit cells, centred on the map and inside the area", () => {
+  it("the list's columns are the map's width, or the content's when the map is narrower than two comfortable columns", () => {
     const area = { x: 214, y: 0, w: 1492, h: 600 }
-    const wide = gridColumns(area, 214 + 746, 1400)
+    const wide = listColumns(area, 214 + 746, 1400)
+    expect(wide).toHaveLength(2)
     expect(wide[0].x).toBeCloseTo(214 + 46)
-    expect(wide[2].x + wide[2].w).toBeCloseTo(214 + 46 + 1400)
-    expect(wide[1].x - (wide[0].x + wide[0].w)).toBe(32)
-    // A map the height keeps narrow (the desktop's): the grid is still three cells of 300.
-    const narrow = gridColumns(area, 214 + 746, 600)
-    expect(narrow[0].w).toBe(300)
-    expect(narrow[2].x + narrow[2].w - narrow[0].x).toBe(964)
+    expect(wide[1].x + wide[1].w).toBeCloseTo(214 + 46 + 1400)
+    expect(wide[1].x - (wide[0].x + wide[0].w)).toBe(LIST.gap)
+    // A map the height keeps narrower than two columns of LIST.colMin: the content's width.
+    const narrow = listColumns(area, 214 + 746, 600)
+    expect(narrow[0].x).toBe(214)
+    expect(narrow[1].x + narrow[1].w).toBeCloseTo(214 + 1492)
     // Never wider than the area, never past its edges.
-    const square = gridColumns({ x: 64, y: 0, w: 952, h: 600 }, 64 + 476, 830)
+    const square = listColumns({ x: 64, y: 0, w: 952, h: 600 }, 64 + 476, 990)
     expect(square[0].x).toBe(64)
-    expect(square[2].x + square[2].w).toBeCloseTo(64 + 952)
+    expect(square[1].x + square[1].w).toBeCloseTo(64 + 952)
   })
 
-  it('fewer places than six list them all; none, no list; a short area lists only what fits', () => {
+  it('fewer places than six fill the left column first; none, no list; a short area lists only the lines that fit', () => {
     const area = { x: 0, y: 0, w: 952, h: 1000 }
-    expect(mapImageLayout(area, 3, true, false).rows).toBe(3)
-    expect(mapImageLayout(area, 4, true, true)).toMatchObject({ rows: 4, cols: 3 })
-    expect(mapImageLayout(area, 0, false, true).list).toBeNull()
-    const short = mapImageLayout({ x: 0, y: 0, w: 952, h: 300 }, 9, true, false)
-    expect(short.rows).toBe(2)
-    // No room under a full-width map: the rows keep their size and the map shrinks into what is left.
-    expect(mapImageLayout({ x: 0, y: 0, w: 952, h: 600 }, 6, true, false, 468)).toMatchObject({ k: 1, pitch: 64 })
-    // Two places in a tall column: the scale eight rows would get (no spread), the rest the map's box's.
-    const two = mapImageLayout({ x: 0, y: 0, w: 952, h: 1400 }, 2, true, false, 468)
-    const k8 = Math.min(2, (1400 - 44 - 40 - 468) / (7 * 64 + 46))
-    expect(two.k).toBeCloseTo(k8, 6)
-    expect(two.pitch).toBeCloseTo(64 * k8, 6)
-    expect(two.map.h).toBeGreaterThan(468)
-    expect(mapImageLayout({ x: 0, y: 0, w: 1800, h: 200 }, 9, true, true).rows).toBe(3)
+    expect(mapImageLayout(area, 1, true)).toMatchObject({ rows: 1, perCol: 1 })
+    expect(mapImageLayout(area, 3, true)).toMatchObject({ rows: 3, perCol: 3 })
+    expect(mapImageLayout(area, 4, true)).toMatchObject({ rows: 4, perCol: 3 })
+    expect(mapImageLayout(area, 0, false).list).toBeNull()
+    expect(mapImageLayout({ x: 0, y: 0, w: 952, h: 200 }, 9, true)).toMatchObject({ rows: 4, perCol: 2 })
   })
-})
-
-describe("the Map's column rows never pass the cap (Story, portrait poster)", () => {
-  // With few countries the rows used to grow until their names outgrew the totals: never larger now than about eight
-  // places would make them, top-aligned under the map, the spare height the map's box's.
-  const ROW_INK = 46
-  for (const format of ['story', 'print'] as const) {
-    it(format, () => {
-      for (const latest of [true, false]) for (const name of [true, false]) for (const head of [0, 100]) {
-        const c = cardLayout(format, { name, filter: false, latest, count: 50 }, format === 'print' ? printDesign('A2') : undefined).collage
-        const area = { x: c.x, y: c.y + head, w: c.w, h: c.h - head }
-        const mapH = (983 * area.w) / 2000
-        const room = area.h - 44 - 40 - mapH
-        const cap = Math.max(1, Math.min(2, room / ((ROW_CAP_PLACES - 1) * 64 + ROW_INK)))
-        const full = mapImageLayout(area, 12, true, false, mapH)
-        for (let n = 1; n <= TOP_PLACES; n++) {
-          const L = mapImageLayout(area, n, true, false, mapH)
-          const at = `${format} ${n} ${latest} ${name} ${head}`
-          expect(L.rows, at).toBe(n)
-          // Name, count and bar all scale by k: never past the cap, the same for one place as for six.
-          expect(L.k, at).toBeLessThanOrEqual(cap + 1e-9)
-          expect(L.k, at).toBeCloseTo(full.k, 9)
-          expect(26 * L.k, at).toBeLessThan(56)
-          expect(L.pitch, at).toBeCloseTo(64 * L.k, 9)
-          // Top-aligned under the map and its legend; the rest of the height is the map's box.
-          const list = L.list!
-          expect(list.y, at).toBeCloseTo(L.map.y + L.map.h + L.legendH + 40, 9)
-          expect(L.map.h, at).toBeGreaterThanOrEqual(mapH - 1e-6)
-          expect(L.map.h + L.legendH + 40 + list.h, at).toBeCloseTo(area.h, 9)
-        }
-      }
-    })
-  }
 })
 
 describe('the Totals row: the totals each image draws', () => {
