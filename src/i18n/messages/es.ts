@@ -615,6 +615,7 @@ export const es: Messages = {
       toastDone: 'Listo · {result}',
       toastNew: { one: '{n} especie nueva', other: '{n} especies nuevas' },
       toastNone: 'ninguna especie nueva',
+      toastSee: 'Ver mi collage',
       summary: {
         head: { one: 'Tu collage tiene {n} especie', other: 'Tu collage tiene {n} especies' },
         list: '{head}: {parts}.',

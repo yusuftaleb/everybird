@@ -606,6 +606,7 @@ export const zhHans: Messages = {
       toastDone: '完成 · {result}',
       toastNew: { one: '新增{n}种', other: '新增{n}种' },
       toastNone: '没有新增鸟种',
+      toastSee: '查看我的拼贴画',
       summary: {
         head: { one: '你的拼贴画有{n}种', other: '你的拼贴画有{n}种' },
         list: '{head}：{parts}。',

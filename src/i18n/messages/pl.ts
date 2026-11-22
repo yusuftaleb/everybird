@@ -610,6 +610,7 @@ export const pl: Messages = {
       toastDone: 'Gotowe · {result}',
       toastNew: { one: '{n} nowy gatunek', few: '{n} nowe gatunki', many: '{n} nowych gatunków', other: '{n} nowego gatunku' },
       toastNone: 'brak nowych gatunków',
+      toastSee: 'Zobacz mój kolaż',
       summary: {
         head: { one: 'Twój kolaż ma {n} gatunek', few: 'Twój kolaż ma {n} gatunki', many: 'Twój kolaż ma {n} gatunków', other: 'Gatunki w twoim kolażu: {n}' },
         list: '{head}: {parts}.',

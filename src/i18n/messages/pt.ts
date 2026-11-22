@@ -615,6 +615,7 @@ export const pt: Messages = {
       toastDone: 'Pronto · {result}',
       toastNew: { one: '{n} espécie nova', other: '{n} espécies novas' },
       toastNone: 'nenhuma espécie nova',
+      toastSee: 'Ver minha colagem',
       summary: {
         head: { one: 'Sua colagem tem {n} espécie', other: 'Sua colagem tem {n} espécies' },
         list: '{head}: {parts}.',
