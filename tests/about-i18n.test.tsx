@@ -161,19 +161,23 @@ describe.each(LANGS)('About, the page in %s', (lang) => {
     expect(within(main).getByRole('link', { name: m.ui.shell.nav.settings })).toHaveAttribute('href', '/settings')
   })
 
-  it("the privacy note keeps its claims, names every anonymous event and what the counter stores, and adds the language cookie and the visit language, translated", async () => {
+  it("the privacy note is short, keeps its claims (both counters, the cookie, Google Fonts) and is translated", async () => {
     render(await AboutPage({ params: Promise.resolve({ lang }) }))
     const p = text(document.querySelector('section[aria-labelledby="eb-how-h"] .eb-about-cols > p.eb-prose'))
     expect(p).toBe(m.page.about.how.privacy)
     expect(p).toContain('Cloudflare Web Analytics')
-    // Polish quotes open low („es”), Swedish with a closing quote (”es”).
-    expect(p).toMatch(/[“„"”]es[”"][,、] ?[“„"”]pt[”"].*[“„"”]nl[”"].*[“„"”]pl[”"].*[“„"”]fr[”"].*[“„"”]de[”"].*[“„"”]it[”"].*[“„"”]sv[”"].*[“„"”]da[”"].*[“„"”]ru[”"].*[“„"”]ja[”"].*[“„"”]zh-Hans[”"].*[“„"”]zh-Hant[”"]/)
+    expect(p).toContain('Google Fonts')
+    expect(p).toMatch(/cookie|クッキー/i)
+    // No longer the event-by-event list or the language codes (round 6: "shorten this section").
+    expect(p).not.toMatch(/zh-Hans/)
+    expect(p).not.toMatch(/[—!！]/)
+    if (lang !== 'en') expect(p).not.toBe(MESSAGES.en.page.about.how.privacy)
     if (lang === 'en') {
-      expect(p).toContain('anonymous and cookieless')
-      // Every event the site sends (analytics.ts ALLOWED) and the Worker's own fields (country, device), DESIGN.md's privacy line.
-      expect(p).toContain('A small counter of our own records page visits and a few actions (a collage made, a comparison made, an image shared or saved and the view it shows, a view opened, a link copied, the language switched, a poster made or saved, a batch exported, a search applied, the kinds of filter used), each with your country and kind of device, never counts, names, species or places.')
-      expect(p).toContain('Your language choice is kept in a small cookie on this device; it never leaves it except to show you the right page.')
-      expect(p).toContain('The visit count includes your browser\'s language (just “es”, “pt”, “nl”, “pl”, “fr”, “de”, “it”, “sv”, “da”, “ru”, “ja”, “zh-Hans” or “zh-Hant”).')
+      expect(p.split(/\s+/).length).toBeLessThanOrEqual(110)
+      // analytics.ts and the stats Worker: the receipt time, country, device class, and the browser language on visits only.
+      expect(p).toContain('with the time, your country and device type, and on visits your browser language')
+      expect(p).toContain('neither counter runs if your browser asks not to be tracked')
+      expect(p).toContain('A small cookie remembers your language.')
     }
   })
 })
