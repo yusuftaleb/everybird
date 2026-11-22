@@ -224,6 +224,14 @@ describe('layout client with the store', () => {
     await b.c.get({ order: 'Gamma' }, 'medium', 'even')
     expect(b.worker.layouts().map((l) => l.key)).toEqual(['medium|even|o:Gamma'])
 
+    // The idle prefetch of a next visit finds the state the birder saw in the store: nothing packed, then served at once.
+    const c = client(m, list)
+    c.c.prefetch([{ order: 'Gamma' }], 'medium')
+    await settle()
+    expect(c.worker.layouts()).toEqual([])
+    await c.c.get({ order: 'Gamma' }, 'medium', 'even')
+    expect(c.worker.layouts()).toEqual([])
+
     const offline = client(m, birds(31), { failOrder: 'Beta' })
     await offline.c.get({}, 'narrow', 'even')
     await settle()
