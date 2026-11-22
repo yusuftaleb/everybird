@@ -15,6 +15,7 @@ import { createElement as h, forwardRef, useEffect, useRef } from 'react'
 import { useI18n } from '@/i18n/I18nProvider'
 import { useAppPath } from '@/i18n/path'
 import { attachHeadroom } from '@/lib/headroom'
+import { ORIGAMI_PATH } from '@/lib/origami-mark'
 import { LanguageMenu } from './LanguageMenu'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -23,7 +24,7 @@ import { ThemeToggle } from './ThemeToggle'
 function OrigamiMark() {
   return (
     <svg className="eb-wordmark-mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
-      <path fill="currentColor" fillRule="evenodd" d="M332 32L326 34.5L320.5 40L240 131L235 139L235 148L267.5 234L267 236L129 193L124 191.5L119 192L114 193.5L108.5 199L106.5 204L106.5 212L139.5 286L58 277L53 277.5L49 279.5L45 284L43 288L42.5 297L45.5 303L161.5 448L168 455L173 459.5L186 466.5L194 468.5L201 469L351 469L359 468L369 465.5L381 458L388 451L448.5 373L455.5 359L457.5 350L457.5 340L455.5 330L452.5 323L353.5 160L424 159L429 157.5L434.5 152L436.5 147L436 139L431 131L347 36.5L344 34L339 32ZM334.5 73L336 72L384.5 127L286.5 127ZM273.5 160L316 160L424 338L425.5 342L425.5 347L423 353L372 419ZM151.5 234L156 234.5L282 274.5L283.5 276L294 304L293 305L287 304L177 291ZM95.5 314L107 314.5L307 339L344 436L343 437L202 437L195 435.5L191.5 433L186.5 428Z" />
+      <path fill="currentColor" fillRule="evenodd" d={ORIGAMI_PATH} />
     </svg>
   )
 }
