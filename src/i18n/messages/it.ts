@@ -655,7 +655,6 @@ export const it: Messages = {
       replaceLabel: 'Sostituisci {name}',
       more: 'Altre opzioni per {title}',
       remove: 'Rimuovi',
-      removeLabel: 'Rimuovi {what}',
       removeAsk: 'Rimuovere {what}? I suoi uccelli escono dal tuo collage, a meno che un’altra fonte non li abbia. Le tue modifiche restano.',
       removeYes: 'Sì, rimuovi',
       keep: 'Mantieni',

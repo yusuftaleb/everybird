@@ -845,7 +845,6 @@ export const EN_UI = {
     more: 'More for {title}',
     remove: 'Remove',
     /** Remove's one question; {what} is the row's `…What` below. */
-    removeLabel: 'Remove {what}',
     removeAsk: 'Remove {what}? Its birds leave your collage unless another source has them. Your edits stay.',
     removeYes: 'Yes, remove it',
     keep: 'Keep it',

@@ -659,7 +659,6 @@ export const de: Messages = {
       more: 'Weitere Optionen für {title}',
       remove: 'Entfernen',
       /** {what} is accusative ("deinen vollständigen eBird-Export"). */
-      removeLabel: '{what} entfernen',
       removeAsk: 'Möchtest du {what} entfernen? Die Vögel daraus verschwinden aus deiner Collage, sofern keine andere Quelle sie hat. Deine Änderungen bleiben.',
       removeYes: 'Ja, entfernen',
       keep: 'Behalten',

@@ -144,7 +144,6 @@
 .eb-whypop .eb-note { margin: 0; }
 .eb-whypop ul { margin: 0; padding-left: 18px; }
 .eb-whypop a { color: var(--accent); font-weight: 600; }
-.eb-src-confirm { margin: 0 16px 14px; }
 .eb-src-form { display: block; }
 .eb-src-formrow { max-width: 560px; }
 .eb-src-formrow > .eb-input { flex: 1 1 180px; min-width: 0; }
@@ -344,7 +343,7 @@
 .eb-add:has(.eb-srclist[data-drill]) :is(.eb-summary, .eb-add-note) { display: none; }
 .eb-srclist[data-drill]::before { content: none; }
 .eb-srclist[data-drill] .eb-srcgroup:not(:has(.eb-src-panel:not([hidden]))) { display: none; }
-.eb-srclist[data-drill] :is(.eb-src-main, .eb-src-confirm, .eb-src-status:not(.eb-error, [role="status"])) { display: none; }
+.eb-srclist[data-drill] :is(.eb-src-main, .eb-src-status:not(.eb-error, [role="status"])) { display: none; }
 .eb-srclist[data-drill] .eb-src-panel { margin-top: 0; }
 .eb-srclist[data-drill] .eb-src-status { grid-row: 96; } /* an error under the form, not above it */
 .eb-add-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

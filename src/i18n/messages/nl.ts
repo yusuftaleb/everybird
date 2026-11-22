@@ -666,7 +666,6 @@ export const nl: Messages = {
       replaceLabel: '{name} vervangen',
       more: 'Meer opties voor {title}',
       remove: 'Verwijderen',
-      removeLabel: '{what} verwijderen',
       removeAsk: 'Wil je {what} verwijderen? De vogels ervan verdwijnen uit je collage, tenzij een andere bron ze heeft. Je aanpassingen blijven.',
       removeYes: 'Ja, verwijderen',
       keep: 'Houden',

@@ -1,6 +1,7 @@
 'use client'
 import { CaretDown } from '@/components/phosphor-icons'
 import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useMenuLayer } from '@/components/menu-layer'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt, shortDay } from '@/i18n/format'
@@ -156,13 +157,11 @@ export function SourceRow({ title, name, parts, counts, skipped, primary, menu, 
         )}
       </div>
       {what && asking && (
-        <div className="eb-confirm eb-src-confirm" role="group" aria-label={fmt(t.import.removeLabel, { what })}>
-          <p>{fmt(t.import.removeAsk, { what })}</p>
-          <div className="eb-row">
-            <button type="button" className="eb-btn eb-btn-danger-solid" autoFocus onClick={() => { setAsking(false); onRemove?.() }}>{t.import.removeYes}</button>
-            <button type="button" className="eb-btn eb-btn-quiet" onClick={() => { setAsking(false); menuBtn.current?.focus() }}>{t.import.keep}</button>
-          </div>
-        </div>
+        <ConfirmDialog
+          ask={fmt(t.import.removeAsk, { what })} yes={t.import.removeYes} keep={t.import.keep}
+          onYes={() => { setAsking(false); onRemove?.() }} onKeep={() => setAsking(false)}
+          returnTo={() => menuBtn.current}
+        />
       )}
       {children}
     </div>

@@ -666,7 +666,6 @@ export const pt: Messages = {
       replaceLabel: 'Substituir {name}',
       more: 'Mais opções de {title}',
       remove: 'Remover',
-      removeLabel: 'Remover {what}',
       removeAsk: 'Remover {what}? As aves dessa fonte saem da sua colagem, a menos que outra fonte as tenha. Suas edições ficam.',
       removeYes: 'Sim, remover',
       keep: 'Manter',

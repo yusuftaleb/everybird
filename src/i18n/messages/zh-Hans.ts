@@ -657,7 +657,6 @@ export const zhHans: Messages = {
       replaceLabel: '替换{name}',
       more: '{title}的更多选项',
       remove: '移除',
-      removeLabel: '移除{what}',
       removeAsk: '移除{what}？它的鸟会离开你的拼贴画，除非其他来源也有。你的编辑会保留。',
       removeYes: '是，移除',
       keep: '保留',

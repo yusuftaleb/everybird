@@ -657,7 +657,6 @@ export const sv: Messages = {
       replaceLabel: 'Ersätt {name}',
       more: 'Fler alternativ för {title}',
       remove: 'Ta bort',
-      removeLabel: 'Ta bort {what}',
       removeAsk: 'Ta bort {what}? Fåglarna därifrån försvinner från ditt collage om ingen annan källa har dem. Dina ändringar finns kvar.',
       removeYes: 'Ja, ta bort',
       keep: 'Behåll',
