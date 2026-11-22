@@ -420,10 +420,16 @@
 .eb-menuitem[aria-disabled="true"] { color: var(--muted); cursor: default; }
 .eb-menu-off { display: grid; gap: 2px; padding: 6px 0; max-width: 260px; white-space: normal; }
 .eb-menu-why { font-size: 13px; font-weight: 400; line-height: 1.35; }
-/* The language menu: a quiet popover, as wide as its widest row, its right edge on the button's; never wider than the window.
-   Rows are 40px (44px on touch), the name left and its code right in Muted mono; the current one has no fill, its name in
-   Accent at 600 and a check where the code was. Its rows' fill is every menu's (.eb-menuitem, above). */
+/* The language menu (and MenuSelect's menus, which share its look): a quiet popover, as wide as its widest row, its right
+   edge on the button's; never wider than the window. Rows are 40px (44px on touch), the name left and its code right in
+   Muted mono; the current one has no fill, its name in Accent at 600 and a check where the code was. Its rows' fill is
+   every menu's (.eb-menuitem, above). */
 .eb-langmenu { width: max-content; min-width: 0; max-width: calc(100vw - 16px); overflow-y: auto; overscroll-behavior: contain; }
+/* The language menu's 14 languages in columns read down, so all show at once without scrolling: two of 7 rows, three of 5
+   from 480px (the widest names fit a 360px screen at two and 480px at three: tests/language-menu.test.tsx), every column
+   as wide as the widest row. ↑ and ↓ go through the list in order, ← and → to the next column (LanguageMenu.tsx). */
+.eb-langgrid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, auto); grid-auto-columns: 1fr; column-gap: 4px; }
+@media (min-width: 480px) { .eb-langgrid { grid-template-rows: repeat(5, auto); } }
 .eb-langmenu .eb-menuitem { justify-content: space-between; gap: 16px; min-height: 40px; padding: 0 10px; }
 @media (pointer: coarse) { .eb-langmenu .eb-menuitem { min-height: 44px; } }
 .eb-langname[data-current] { color: var(--accent); font-weight: 600; }

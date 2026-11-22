@@ -2,8 +2,9 @@
 // The top bar's language button: ThemeToggle's size and look, showing the
 // current language's code ("EN", "ES", "PT", "NL"; 简 and 繁 for Chinese, langBadge), named with that code first and
 // then in full ("ES, Idioma: Español"), so the visible text is in its name. It opens a menu of the 14 languages, each in
-// its own language, the current one checked, on the shared floating layer (menu-layer.ts: fixed to the button, capped at
-// the room and 50dvh, scrolling inside). Its keyboard copies SourceMenu (src/components/import/SourceMenu.tsx). A new
+// its own language, the current one checked, in columns read down (two, three where they fit: .eb-langgrid), on the
+// shared floating layer (menu-layer.ts: fixed to the button, capped at the room and 50dvh, scrolling inside only on a
+// very short window). Its keyboard copies SourceMenu (src/components/import/SourceMenu.tsx), with ← and → between columns. A new
 // choice shows its code on the button at once, then sets the cookie and reloads (chooseLang); the current one only
 // closes the menu.
 import { Check } from '@/components/phosphor-icons'
@@ -74,7 +75,7 @@ function LangList({ id, label, current, btn, onPick, onClose }: {
   const items = () => [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? [])]
 
   // Right-aligned under the button, kept 8px inside the window, its height capped at the room below (or above) and
-  // 50dvh, scrolling inside: on a short or landscape phone the last languages stay reachable. 14 rows are about 600px.
+  // 50dvh, scrolling inside: on a short or landscape phone the last languages stay reachable. 7 rows are about 290px.
   useMenuLayer(menu, btn, { cap: 640 })
 
   useEffect(() => {
@@ -96,8 +97,21 @@ function LangList({ id, label, current, btn, onPick, onClose }: {
       e.preventDefault()
       els[(i + els.length) % els.length]?.focus()
     }
+    // ← and →: the same row of the next column over (the menu is in columns read down, .eb-langgrid), its last row where
+    // that column is shorter; nothing past the first or last column. Columns are read from where the items sit.
+    const across = (dir: 1 | -1) => {
+      e.preventDefault()
+      const cur = els[at]
+      if (!cur) return
+      const lefts = [...new Set(els.map((el) => el.offsetLeft))].sort((a, b) => a - b)
+      const col = els.filter((el) => el.offsetLeft === lefts[lefts.indexOf(cur.offsetLeft) + dir])
+      const row = els.filter((el) => el.offsetLeft === cur.offsetLeft).indexOf(cur)
+      col[Math.min(row, col.length - 1)]?.focus()
+    }
     if (e.key === 'ArrowDown') go(at + 1)
     else if (e.key === 'ArrowUp') go(at - 1)
+    else if (e.key === 'ArrowRight') across(1)
+    else if (e.key === 'ArrowLeft') across(-1)
     else if (e.key === 'Home') go(0)
     else if (e.key === 'End') go(els.length - 1)
     else if (e.key === 'Escape') {
@@ -108,7 +122,7 @@ function LangList({ id, label, current, btn, onPick, onClose }: {
   }
 
   return (
-    <div ref={menu} id={id} className="eb-menu eb-langmenu" role="menu" aria-label={label} onKeyDown={onKey}>
+    <div ref={menu} id={id} className="eb-menu eb-langmenu eb-langgrid" role="menu" aria-label={label} onKeyDown={onKey}>
       {LANGS.map((l) => (
         <button key={l} type="button" role="menuitemradio" aria-checked={l === current} tabIndex={-1} className="eb-menuitem" onClick={() => onPick(l)}>
           <span className="eb-langname" lang={HTML_LANG[l]} data-current={l === current ? '' : undefined}>{LANG_NAMES[l]}</span>
