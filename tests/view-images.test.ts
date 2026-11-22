@@ -2,7 +2,7 @@
 // in the Story and the portrait poster, else three columns by two rows), the totals the Totals row keeps, the tree's
 // equal totals, and its Rectangular names (every tip named).
 import { describe, expect, it } from 'vitest'
-import { MAP_TOTALS, gridColumns, mapImageLayout, mapListsInColumn, TOP_PLACES } from '@/lib/share/map-image'
+import { MAP_TOTALS, ROW_CAP_PLACES, gridColumns, mapImageLayout, mapListsInColumn, TOP_PLACES } from '@/lib/share/map-image'
 import { printDesign } from '@/lib/share/print'
 import { VIEW_TOTALS } from '@/components/share/dialog-options'
 import { en } from '@/i18n/messages/en'
@@ -43,13 +43,13 @@ describe('the map image', () => {
         expect(L, format).toMatchObject({ k: 1, pitch: 64 })
         expect(list.h, format).toBe(64 + 46)
       } else {
-        // The column (round 6): the map at the full width, its box exactly the map's height, and the rows grown to fill
-        // the rest down to the area's foot, nothing left over (no empty band under the six countries).
-        expect(L.map.h, format).toBeCloseTo(mapH, 6)
+        // The column (round 6): the map at the full width, the rows grown to the size eight places filling the room
+        // under it would get (ROW_CAP_PLACES), at their own pitch, the spare height the map's box's.
+        expect(L.map.h, format).toBeGreaterThanOrEqual(mapH - 1e-6)
         expect(list.y + list.h, format).toBeCloseTo(area.y + area.h, 6)
-        expect(L.k, format).toBeGreaterThan(1.4)
+        expect(L.k, format).toBeGreaterThan(1)
         expect(L.k, format).toBeLessThanOrEqual(2)
-        expect(L.pitch, format).toBeGreaterThanOrEqual(64 * L.k - 1e-6)
+        expect(L.pitch, format).toBeCloseTo(64 * L.k, 6)
         expect(fitBox(2000, 983, L.map).s * 2000, format).toBeCloseTo(area.w, 6)
       }
       if (grid) {
@@ -87,12 +87,47 @@ describe('the map image', () => {
     expect(short.rows).toBe(2)
     // No room under a full-width map: the rows keep their size and the map shrinks into what is left.
     expect(mapImageLayout({ x: 0, y: 0, w: 952, h: 600 }, 6, true, false, 468)).toMatchObject({ k: 1, pitch: 64 })
-    // Two places in a tall column: grown to the cap, spread at most a quarter more, the rest left to the centring.
+    // Two places in a tall column: the scale eight rows would get (no spread), the rest the map's box's.
     const two = mapImageLayout({ x: 0, y: 0, w: 952, h: 1400 }, 2, true, false, 468)
-    expect(two).toMatchObject({ k: 2, pitch: 2 * 64 * 1.25 })
+    const k8 = Math.min(2, (1400 - 44 - 40 - 468) / (7 * 64 + 46))
+    expect(two.k).toBeCloseTo(k8, 6)
+    expect(two.pitch).toBeCloseTo(64 * k8, 6)
     expect(two.map.h).toBeGreaterThan(468)
     expect(mapImageLayout({ x: 0, y: 0, w: 1800, h: 200 }, 9, true, true).rows).toBe(3)
   })
+})
+
+describe("the Map's column rows never pass the cap (Story, portrait poster)", () => {
+  // With few countries the rows used to grow until their names outgrew the totals: never larger now than about eight
+  // places would make them, top-aligned under the map, the spare height the map's box's.
+  const ROW_INK = 46
+  for (const format of ['story', 'print'] as const) {
+    it(format, () => {
+      for (const latest of [true, false]) for (const name of [true, false]) for (const head of [0, 100]) {
+        const c = cardLayout(format, { name, filter: false, latest, count: 50 }, format === 'print' ? printDesign('A2') : undefined).collage
+        const area = { x: c.x, y: c.y + head, w: c.w, h: c.h - head }
+        const mapH = (983 * area.w) / 2000
+        const room = area.h - 44 - 40 - mapH
+        const cap = Math.max(1, Math.min(2, room / ((ROW_CAP_PLACES - 1) * 64 + ROW_INK)))
+        const full = mapImageLayout(area, 12, true, false, mapH)
+        for (let n = 1; n <= TOP_PLACES; n++) {
+          const L = mapImageLayout(area, n, true, false, mapH)
+          const at = `${format} ${n} ${latest} ${name} ${head}`
+          expect(L.rows, at).toBe(n)
+          // Name, count and bar all scale by k: never past the cap, the same for one place as for six.
+          expect(L.k, at).toBeLessThanOrEqual(cap + 1e-9)
+          expect(L.k, at).toBeCloseTo(full.k, 9)
+          expect(26 * L.k, at).toBeLessThan(56)
+          expect(L.pitch, at).toBeCloseTo(64 * L.k, 9)
+          // Top-aligned under the map and its legend; the rest of the height is the map's box.
+          const list = L.list!
+          expect(list.y, at).toBeCloseTo(L.map.y + L.map.h + L.legendH + 40, 9)
+          expect(L.map.h, at).toBeGreaterThanOrEqual(mapH - 1e-6)
+          expect(L.map.h + L.legendH + 40 + list.h, at).toBeCloseTo(area.h, 9)
+        }
+      }
+    })
+  }
 })
 
 describe('the Totals row: the totals each image draws', () => {
