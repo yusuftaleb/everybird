@@ -29,7 +29,7 @@ import { loadSpecies } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
 import type { SpeciesRow } from '@/lib/species/types'
 import { stickerUrl } from '@/lib/sticker-url'
-import { LABEL_COUNT, LABEL_GAP, LABEL_STICKER, RADIAL_GAP, drawFan, fanLabel, fanRing, fitRound, inOpening, largestFit, polar, ringLabels, type FanBox, type LabelSizes, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
+import { LABEL_COUNT, LABEL_GAP, LABEL_STICKER, RADIAL_GAP, drawFan, fanAngle, fanLabel, fanRing, fitRound, inOpening, largestFit, polar, ringLabels, type FanBox, type LabelSizes, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
 import { loadTree } from '@/lib/tree/load'
 import { levelView, ROW_H, taxonCover, tipOn, type LevelView, type TreeRow } from '@/lib/tree/levels'
 import { ageTicks, bySplits, circlePath, drawTree, formatAge, oldestLineage, type Drawing } from '@/lib/tree/tree'
@@ -90,6 +90,26 @@ function fitImage(spans: readonly LabelSpan[], shape: 'fan' | 'circle', room: { 
     if (f && balanced(f)) { best = f; lo = m } else hi = m
   }
   return best ?? first
+}
+
+/**
+ * A Fan's or Radial's real bounds about its centre, in fitRound's own terms (its `up`, `down` and the labels' reach left
+ * and right): the branches (R; a Fan's only above its centre), and each tip's label out to its end, the sticker's box
+ * thick across its radius. Round 6: the image centres the drawing on these, not on the room fitRound kept under a Fan.
+ */
+export function roundBounds(fit: RoundFit, spans: readonly LabelSpan[], dot = IMAGE_SIZES.dot): { up: number; down: number; left: number; right: number } {
+  const circle = fit.shape === 'circle', half = fit.st / 2
+  let up = fit.R, down = circle ? fit.R : 0, left = fit.R, right = fit.R
+  spans.forEach((sp, i) => {
+    const a = fanAngle(i + 0.5, spans.length, circle ? 'circle' : 'fan', fit.open ?? 0)
+    const out = fit.R + dot + fit.st + fit.px * (2 * LABEL_GAP + sp.name + (fit.counts[i] && sp.count ? LABEL_GAP + sp.count : 0))
+    const sn = Math.sin(a), cs = Math.cos(a)
+    up = Math.max(up, out * sn + half * Math.abs(cs))
+    down = Math.max(down, -out * sn + half * Math.abs(cs))
+    right = Math.max(right, out * cs + half * Math.abs(sn))
+    left = Math.max(left, -out * cs + half * Math.abs(sn))
+  })
+  return { up, down, left, right }
 }
 
 /**
@@ -215,7 +235,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     const C = card.colors
     const font = card.fonts
     // The totals on top of the drawing (round 6: counts only, "65" over "FAMILIES"): the same size for all, in Ink, the
-    // rank under it; drawn with the block once it is placed (drawTotals).
+    // rank under it; at the top of the area (drawTotals).
     const totalsAt = (w: number) => {
       const { num, label } = totalsSize(totals.map((x) => x.n), w, (s) => { ctx.font = font.count(100); return ctx.measureText(s).width / 100 })
       return { num, label, head: totals.length ? num * 0.72 + TOTAL_GAP + label * 0.72 + TOTALS_BELOW : 0 }
@@ -237,8 +257,8 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       })
       ctx.textAlign = 'left'
     }
-    // The room under the totals, for fitting the drawing; the block (totals, drawing, axis, key) is centred in `full`
-    // once its height is known (round 6: no empty band above or below it).
+    // The room under the totals, down to the gap above the footer's row: the drawing (with its axis and key) is fitted
+    // in it and centred there on its real bounds (round 6: the Story's Radial no longer sits high with a gap under it).
     const room: Area = { x: full.x, y: full.y + head, w: full.w, h: full.h - head }
 
     // The axis wherever the time scale is on (round 6, item 14: no height it needs first; Square had none).
@@ -361,19 +381,41 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     // NAME_CAP on a share card. Only a Fan or Radial that not even SHRINK_MIN names (none on the shipped tree's levels)
     // is drawn as rows.
     const roundSizes = posterSize ? IMAGE_SIZES : { ...IMAGE_SIZES, base: Math.min(IMAGE_SIZES.base, NAME_CAP) }
-    const fit = want === 'rows' ? undefined : round(shownSpans, want, roundSizes, shown.view.drawing.rootAge)
+    // The Fan or Radial as large as fits between the totals and the row above the footer (round 6): its real height
+    // (roundBounds, then what is drawn under it: the axis, the key) is what must fit, not the room fitRound keeps (a
+    // Fan's for ages it may not draw, a Radial's half the height each way of its centre), so where it does not already
+    // reach across the width it is fitted again in a taller room until that height fills the room.
+    const bottomOf = (f: RoundFit, b: ReturnType<typeof roundBounds>) => f.shape === 'circle'
+      ? b.down + (axis ? CIRCLE_AXIS : 0) + keyH
+      : Math.max(b.down, axis ? IMAGE_SIZES.below! + FAN_AXIS + keyH : keyH ? 8 + keyH : 0)
+    const heightOf = (f: RoundFit) => { const b = roundBounds(f, shownSpans); return b.up + bottomOf(f, b) }
+    const fitAt = (h: number) => (shown.root && want !== 'rows' ? fitIn(shownSpans, want, { w: room.w, h: h - under(want) }, roundSizes, shown.view.drawing.rootAge) : undefined)
+    let fit = want === 'rows' ? undefined : round(shownSpans, want, roundSizes, shown.view.drawing.rootAge)
+    if (fit) {
+      const b = roundBounds(fit, shownSpans)
+      if (b.left + b.right < room.w - 1 && heightOf(fit) < room.h - 1) {
+        let lo = room.h, hi = 2 * room.h
+        for (let i = 0; i < 10; i++) {
+          const m = (lo + hi) / 2, f = fitAt(m)
+          if (f && heightOf(f) <= room.h) { fit = f; lo = m } else hi = m
+        }
+      }
+    }
     const shape = fit ? (fit.shape ?? 'fan') : 'rows'
-    // The rows' scale (round 6, item 5: the pitch the whole room allows, so the rows fill it) and the drawing's height,
-    // then the block's top.
+    // The rows' scale (round 6, item 5: the pitch the whole room allows, so the rows fill it) and the drawing's height;
+    // the totals at the room's top, the drawing centred on its real bounds in the rest.
     const k = (room.h - under('rows')) / view.height
-    const drawH = fit ? fit.up + fit.down : view.height * k
-    const blockTop = full.y + Math.max(0, (full.h - head - drawH - under(shape)) / 2)
-    drawTotals(blockTop)
-    const area: Area = { x: full.x, y: blockTop + head, w: full.w, h: drawH }
+    const bounds = fit ? roundBounds(fit, shownSpans) : undefined
+    // drawH: the round drawing's whole height (under it included), or the rows' own (their axis and key under them).
+    const drawH = fit && bounds ? bounds.up + bottomOf(fit, bounds) : view.height * k
+    const blockH = fit ? drawH : drawH + under('rows')
+    drawTotals(full.y)
+    const area: Area = { x: full.x, y: room.y + Math.max(0, room.h - blockH) / 2, w: full.w, h: drawH }
+    o.onTreeBounds?.({ room, drawing: bounds && fit ? { x: area.x + fit.cx - bounds.left, y: area.y, w: bounds.left + bounds.right, h: drawH } : { ...area, h: blockH } })
 
     if (fit) {
-      // The fan or circle, centred across, its top at the block's.
-      const box: FanBox = { cx: area.x + fit.cx, cy: area.y + fit.up, R: fit.R, shape: fit.shape, ...(fit.open ? { open: fit.open } : {}) }
+      // The fan or circle, centred across (its labels' reach), its real top at the area's.
+      const box: FanBox = { cx: area.x + fit.cx, cy: area.y + bounds!.up, R: fit.R, shape: fit.shape, ...(fit.open ? { open: fit.open } : {}) }
       const d = drawFan(root!, tipOn(tips), stem, (_, i) => tips[i].dotted, box)
       lineK = Math.min(1, fit.px / DOT_FULL_PX)
       if (timeScale) {
@@ -421,7 +463,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
       if (shape === 'circle') {
         // The ages on their rings where they cross the radius straight up (no branch runs there), on Paper, except one
         // whose patch would hide a branch end; the axis's title under the circle.
-        y = box.cy + fit.down
+        y = box.cy + bounds!.down
         axisY = y + 8
         axisAt = () => []
       } else {

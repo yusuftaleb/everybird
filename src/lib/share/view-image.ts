@@ -31,6 +31,8 @@ export type ViewImageOpts = ShareImageOpts & {
   /** The Tree image's (round 6, item 9): called with the arrangement drawn (always the one asked for), its names' size
    *  and whether names or counts are under the readable sizes (NAME_READ, COUNT_READ), for the dialog's note. */
   onTreeText?: (text: { layout: 'fan' | 'circle' | 'rows'; px: number; small: boolean }) => void
+  /** The Tree image's room under its totals and its drawing's real bounds in it, placed (design units; for tests). */
+  onTreeBounds?: (b: { room: Area; drawing: Area }) => void
 }
 export type Area = { x: number; y: number; w: number; h: number }
 /** A view image, drawn: `paint` draws all of it, in design units under the context's transform, the same every call
